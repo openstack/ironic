@@ -16,22 +16,8 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import imp
-import os
-import sys
-
+from nova.cmd import baremetal_manage as bm_man
 from nova.tests.baremetal.db import base as bm_db_base
-
-TOPDIR = os.path.normpath(os.path.join(
-                            os.path.dirname(os.path.abspath(__file__)),
-                            os.pardir,
-                            os.pardir,
-                            os.pardir))
-BM_MAN_PATH = os.path.join(TOPDIR, 'bin', 'nova-baremetal-manage')
-
-sys.dont_write_bytecode = True
-bm_man = imp.load_source('bm_man', BM_MAN_PATH)
-sys.dont_write_bytecode = False
 
 
 class BareMetalDbCommandsTestCase(bm_db_base.BMDBTestCase):
