@@ -28,18 +28,22 @@ from nova.virt.baremetal import db as bmdb
 from nova.virt.libvirt import utils as libvirt_utils
 
 opts = [
-    cfg.BoolOpt('baremetal_use_unsafe_iscsi',
+    cfg.BoolOpt('use_unsafe_iscsi',
                  default=False,
                  help='Do not set this out of dev/test environments. '
                       'If a node does not have an fixed PXE IP address, '
                       'volumes are exported with globally opened ACL'),
-    cfg.StrOpt('baremetal_iscsi_iqn_prefix',
+    cfg.StrOpt('iscsi_iqn_prefix',
                default='iqn.2010-10.org.openstack.baremetal',
                help='iSCSI IQN prefix used in baremetal volume connections.'),
     ]
 
+baremetal_group = cfg.OptGroup(name='baremetal',
+                               title='Baremetal Options')
+
 CONF = cfg.CONF
-CONF.register_opts(opts)
+CONF.register_group(baremetal_group)
+CONF.register_opts(opts, baremetal_group)
 
 CONF.import_opt('libvirt_volume_drivers', 'nova.virt.libvirt.driver')
 
@@ -171,7 +175,7 @@ def _find_tid(iqn):
 
 def _get_iqn(instance_name, mountpoint):
     mp = mountpoint.replace('/', '-').strip('-')
-    iqn = '%s:%s-%s' % (CONF.baremetal_iscsi_iqn_prefix,
+    iqn = '%s:%s-%s' % (CONF.baremetal.iscsi_iqn_prefix,
                         instance_name,
                         mp)
     return iqn
@@ -229,7 +233,7 @@ class LibvirtVolumeDriver(VolumeDriver):
         ctx = nova_context.get_admin_context()
         pxe_ip = bmdb.bm_pxe_ip_get_by_bm_node_id(ctx, node['id'])
         if not pxe_ip:
-            if not CONF.baremetal_use_unsafe_iscsi:
+            if not CONF.baremetal.use_unsafe_iscsi:
                 raise exception.NovaException(_(
                     'No fixed PXE IP is associated to %s') % instance_name)
 
@@ -249,7 +253,7 @@ class LibvirtVolumeDriver(VolumeDriver):
             # instance's initiator ip, it allows any initiators
             # to connect to the volume. This means other bare-metal
             # instances that are not attached the volume can connect
-            # to the volume. Do not set CONF.baremetal_use_unsafe_iscsi
+            # to the volume. Do not set CONF.baremetal.use_unsafe_iscsi
             # out of dev/test environments.
             # TODO(NTTdocomo): support CHAP
             _allow_iscsi_tgtadm(tid, 'ALL')
