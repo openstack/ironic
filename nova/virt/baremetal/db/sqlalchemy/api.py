@@ -92,7 +92,7 @@ def bm_node_get_all(context, service_host=None):
 @sqlalchemy_api.require_admin_context
 def bm_node_get_associated(context, service_host=None):
     query = model_query(context, models.BareMetalNode, read_deleted="no").\
-                filter(models.BareMetalNode.instance_uuid != None)
+                filter(models.BareMetalNode.instance_uuid is not None)
     if service_host:
         query = query.filter_by(service_host=service_host)
     return query.all()
@@ -101,7 +101,7 @@ def bm_node_get_associated(context, service_host=None):
 @sqlalchemy_api.require_admin_context
 def bm_node_get_unassociated(context, service_host=None):
     query = model_query(context, models.BareMetalNode, read_deleted="no").\
-                filter(models.BareMetalNode.instance_uuid == None)
+                filter(models.BareMetalNode.instance_uuid is None)
     if service_host:
         query = query.filter_by(service_host=service_host)
     return query.all()
@@ -111,7 +111,7 @@ def bm_node_get_unassociated(context, service_host=None):
 def bm_node_find_free(context, service_host=None,
                       cpus=None, memory_mb=None, local_gb=None):
     query = model_query(context, models.BareMetalNode, read_deleted="no")
-    query = query.filter(models.BareMetalNode.instance_uuid == None)
+    query = query.filter(models.BareMetalNode.instance_uuid is None)
     if service_host:
         query = query.filter_by(service_host=service_host)
     if cpus is not None:

@@ -216,7 +216,7 @@ def get_tftp_image_info(instance, instance_type):
         image_info['ramdisk'][0] = str(instance['ramdisk_id'])
         image_info['deploy_kernel'][0] = get_deploy_aki_id(instance_type)
         image_info['deploy_ramdisk'][0] = get_deploy_ari_id(instance_type)
-    except KeyError as e:
+    except KeyError:
         pass
 
     missing_labels = []
@@ -462,7 +462,7 @@ class PXE(base.NodeDriver):
 
                 status = row.get('task_state')
                 if (status == baremetal_states.DEPLOYING
-                        and locals['started'] == False):
+                        and locals['started'] is False):
                     LOG.info(_("PXE deploy started for instance %s")
                                 % instance['uuid'])
                     locals['started'] = True

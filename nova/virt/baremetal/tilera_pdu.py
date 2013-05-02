@@ -78,22 +78,21 @@ class Pdu(base.PowerManager):
         self.password = node['pm_password']
         self.port = node['terminal_port']
 
-        if self.node_id == None:
+        if self.node_id is None:
             raise exception.InvalidParameterValue(_("Node id not supplied "
                 "to PDU"))
-        if self.address == None:
+        if self.address is None:
             raise exception.InvalidParameterValue(_("Address not supplied "
                 "to PDU"))
-        if self.user == None:
+        if self.user is None:
             raise exception.InvalidParameterValue(_("User not supplied "
                 "to PDU"))
-        if self.password == None:
+        if self.password is None:
             raise exception.InvalidParameterValue(_("Password not supplied "
                 "to PDU"))
 
     def _exec_pdutool(self, mode):
-        """
-        Changes power state of the given node.
+        """Changes power state of the given node.
 
         According to the mode (1-ON, 2-OFF, 3-REBOOT), power state can be
         changed. /tftpboot/pdu_mgr script handles power management of
@@ -108,8 +107,8 @@ class Pdu(base.PowerManager):
                 return CONF.baremetal.tile_pdu_off
         else:
             try:
-                out = utils.execute(CONF.baremetal.tile_pdu_mgr,
-                          CONF.baremetal.tile_pdu_ip, mode)
+                utils.execute(CONF.baremetal.tile_pdu_mgr,
+                              CONF.baremetal.tile_pdu_ip, mode)
                 time.sleep(CONF.baremetal.tile_power_wait)
                 return mode
             except exception.ProcessExecutionError:

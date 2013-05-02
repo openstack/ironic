@@ -128,8 +128,7 @@ def get_partition_sizes(instance):
 
 
 def get_tftp_image_info(instance):
-    """
-    Generate the paths for tftp files for this instance.
+    """Generate the paths for tftp files for this instance.
 
     Raises NovaException if
     - instance does not contain kernel_id
@@ -139,7 +138,7 @@ def get_tftp_image_info(instance):
             }
     try:
         image_info['kernel'][0] = str(instance['kernel_id'])
-    except KeyError as e:
+    except KeyError:
         pass
 
     missing_labels = []
@@ -287,7 +286,6 @@ class Tilera(base.NodeDriver):
                  kernel
             ./fs_node_id/
         """
-        image_info = get_tftp_image_info(instance)
         (root_mb, swap_mb) = get_partition_sizes(instance)
         tilera_nfs_path = get_tilera_nfs_path(node['id'])
         image_file_path = get_image_file_path(instance)
@@ -333,7 +331,7 @@ class Tilera(base.NodeDriver):
                 bm_utils.unlink_without_raise(path)
 
         try:
-            macs = self._collect_mac_addresses(context, node)
+            self._collect_mac_addresses(context, node)
         except db_exc.DBError:
             pass
 
@@ -343,8 +341,7 @@ class Tilera(base.NodeDriver):
                 os.path.join(CONF.baremetal.tftp_root, instance['uuid']))
 
     def _iptables_set(self, node_ip, user_data):
-        """
-        Sets security setting (iptables:port) if needed.
+        """Sets security setting (iptables:port) if needed.
 
         iptables -A INPUT -p tcp ! -s $IP --dport $PORT -j DROP
         /tftpboot/iptables_rule script sets iptables rule on the given node.
@@ -367,7 +364,7 @@ class Tilera(base.NodeDriver):
 
             status = row.get('task_state')
             if (status == baremetal_states.DEPLOYING and
-                locals['started'] == False):
+                locals['started'] is False):
                 LOG.info(_('Tilera deploy started for instance %s')
                            % instance['uuid'])
                 locals['started'] = True
@@ -380,7 +377,7 @@ class Tilera(base.NodeDriver):
                 user_data = instance['user_data']
                 try:
                     self._iptables_set(node_ip, user_data)
-                except Exception as ex:
+                except Exception:
                     self.deactivate_bootloader(context, node, instance)
                     raise exception.NovaException(_("Node is "
                           "unknown error state."))

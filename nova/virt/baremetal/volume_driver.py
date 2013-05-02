@@ -262,7 +262,5 @@ class LibvirtVolumeDriver(VolumeDriver):
                                        mount_device)
 
     def get_all_block_devices(self):
-        """
-        Return all block devices in use on this node.
-        """
+        """Return all block devices in use on this node."""
         return _list_backingstore_path()
