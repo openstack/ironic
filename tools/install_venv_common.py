@@ -24,8 +24,6 @@ environment, it should be kept strictly compatible with Python 2.6.
 Synced in from openstack-common
 """
 
-from __future__ import print_function
-
 import optparse
 import os
 import subprocess
@@ -44,7 +42,7 @@ class InstallVenv(object):
         self.project = project
 
     def die(self, message, *args):
-        print(message % args, file=sys.stderr)
+        print >> sys.stderr, message % args
         sys.exit(1)
 
     def check_python_version(self):
@@ -91,20 +89,20 @@ class InstallVenv(object):
         virtual environment.
         """
         if not os.path.isdir(self.venv):
-            print('Creating venv...', end=' ')
+            print 'Creating venv...',
             if no_site_packages:
                 self.run_command(['virtualenv', '-q', '--no-site-packages',
                                  self.venv])
             else:
                 self.run_command(['virtualenv', '-q', self.venv])
-            print('done.')
-            print('Installing pip in venv...', end=' ')
+            print 'done.'
+            print 'Installing pip in venv...',
             if not self.run_command(['tools/with_venv.sh', 'easy_install',
                                     'pip>1.0']).strip():
                 self.die("Failed to install pip.")
-            print('done.')
+            print 'done.'
         else:
-            print("venv already exists...")
+            print "venv already exists..."
             pass
 
     def pip_install(self, *args):
@@ -113,7 +111,7 @@ class InstallVenv(object):
                          redirect_output=False)
 
     def install_dependencies(self):
-        print('Installing dependencies with pip (this can take a while)...')
+        print 'Installing dependencies with pip (this can take a while)...'
 
         # First things first, make sure our venv has the latest pip and
         # distribute.
@@ -155,12 +153,12 @@ class Distro(InstallVenv):
             return
 
         if self.check_cmd('easy_install'):
-            print('Installing virtualenv via easy_install...', end=' ')
+            print 'Installing virtualenv via easy_install...',
             if self.run_command(['easy_install', 'virtualenv']):
-                print('Succeeded')
+                print 'Succeeded'
                 return
             else:
-                print('Failed')
+                print 'Failed'
 
         self.die('ERROR: virtualenv not found.\n\n%s development'
                  ' requires virtualenv, please install it using your'

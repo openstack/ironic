@@ -17,7 +17,7 @@
 import os
 import sys
 
-import tools.install_venv_common as install_venv
+import install_venv_common as install_venv
 
 
 def main(argv):
@@ -25,8 +25,8 @@ def main(argv):
 
     venv = os.environ['VIRTUAL_ENV']
 
-    pip_requires = os.path.join(root, 'requirements.txt')
-    test_requires = os.path.join(root, 'test-requirements.txt')
+    pip_requires = os.path.join(root, 'tools', 'pip-requires')
+    test_requires = os.path.join(root, 'tools', 'test-requires')
     py_version = "python%s.%s" % (sys.version_info[0], sys.version_info[1])
     project = 'Nova'
     install = install_venv.InstallVenv(root, venv, pip_requires, test_requires,

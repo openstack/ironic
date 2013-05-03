@@ -37,17 +37,17 @@ from oslo.config import cfg
 import stubout
 import testtools
 
-from nova import context
-from nova import db
-from nova.db import migration
+from ironic import context
+from ironic import db
+from ironic.db import migration
 from nova.network import manager as network_manager
-from nova.openstack.common.db.sqlalchemy import session
-from nova.openstack.common import log as logging
-from nova.openstack.common import timeutils
-from nova import paths
-from nova import service
-from nova.tests import conf_fixture
-from nova.tests import policy_fixture
+from ironic.openstack.common.db.sqlalchemy import session
+from ironic.openstack.common import log as logging
+from ironic.openstack.common import timeutils
+from ironic import paths
+from ironic import service
+from ironic.tests import conf_fixture
+from ironic.tests import policy_fixture
 
 
 test_opts = [
@@ -59,11 +59,11 @@ test_opts = [
 CONF = cfg.CONF
 CONF.register_opts(test_opts)
 CONF.import_opt('sql_connection',
-                'nova.openstack.common.db.sqlalchemy.session')
-CONF.import_opt('sqlite_db', 'nova.openstack.common.db.sqlalchemy.session')
+                'ironic.openstack.common.db.sqlalchemy.session')
+CONF.import_opt('sqlite_db', 'ironic.openstack.common.db.sqlalchemy.session')
 CONF.set_override('use_stderr', False)
 
-logging.setup('nova')
+logging.setup('ironic')
 
 _DB_CACHE = None
 
@@ -154,7 +154,7 @@ class ServiceFixture(fixtures.Fixture):
         name = name
         host = host and host or uuid.uuid4().hex
         kwargs.setdefault('host', host)
-        kwargs.setdefault('binary', 'nova-%s' % name)
+        kwargs.setdefault('binary', 'ironic-%s' % name)
         self.kwargs = kwargs
 
     def setUp(self):

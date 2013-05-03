@@ -1,6 +1,5 @@
-# vim: tabstop=4 shiftwidth=4 softtabstop=4
-
-# Copyright (c) 2012 OpenStack Foundation
+# Copyright (c) 2013 Hewlett-Packard Development Company, L.P.
+# All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License"); you may
 # not use this file except in compliance with the License. You may obtain
@@ -14,12 +13,15 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+# TODO(mikal): move eventlet imports to ironic.__init__ once we move to PBR
+import os
+import sys
 
-policy_data = """
-{
-    "admin_api": "role:admin",
-    "admin_or_owner": "is_admin:True or project_id:%(project_id)s",
-    "context_is_admin": "role:admin or role:administrator",
-    "default": "rule:admin_or_owner"
-}
-"""
+os.environ['EVENTLET_NO_GREENDNS'] = 'yes'
+
+import eventlet
+
+eventlet.monkey_patch(os=False)
+
+from ironic.openstack.common import gettextutils
+gettextutils.install('ironic')

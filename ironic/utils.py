@@ -44,14 +44,14 @@ import netaddr
 
 from oslo.config import cfg
 
-from nova import exception
-from nova.openstack.common import excutils
-from nova.openstack.common import importutils
-from nova.openstack.common import log as logging
-from nova.openstack.common.rpc import common as rpc_common
-from nova.openstack.common import timeutils
+from ironic import exception
+from ironic.openstack.common import excutils
+from ironic.openstack.common import importutils
+from ironic.openstack.common import log as logging
+from ironic.openstack.common.rpc import common as rpc_common
+from ironic.openstack.common import timeutils
 
-notify_decorator = 'nova.openstack.common.notifier.api.notify_decorator'
+notify_decorator = 'ironic.openstack.common.notifier.api.notify_decorator'
 
 monkey_patch_opts = [
     cfg.BoolOpt('monkey_patch',

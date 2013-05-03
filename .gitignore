@@ -21,6 +21,7 @@ develop-eggs
 .installed.cfg
 
 # Other
+*.DS_Store
 .testrepository
 .tox
 .*.swp
@@ -28,3 +29,7 @@ develop-eggs
 cover
 AUTHORS
 ChangeLog
+
+.testrepository/
+.tox
+.venv

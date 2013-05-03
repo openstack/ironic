@@ -16,9 +16,9 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-"""Nova base exception handling.
+"""Ironic base exception handling.
 
-Includes decorator for re-raising Nova-type exceptions.
+Includes decorator for re-raising Ironic-type exceptions.
 
 SHOULD include dedicated exception logging.
 
@@ -27,11 +27,11 @@ SHOULD include dedicated exception logging.
 import functools
 
 from oslo.config import cfg
-import webob.exc
 
-from nova.openstack.common import excutils
-from nova.openstack.common import log as logging
-from nova import safe_utils
+from ironic.openstack.common import excutils
+from ironic.openstack.common import log as logging
+from ironic import safe_utils
+
 
 LOG = logging.getLogger(__name__)
 
@@ -43,14 +43,6 @@ exc_log_opts = [
 
 CONF = cfg.CONF
 CONF.register_opts(exc_log_opts)
-
-
-class ConvertedException(webob.exc.WSGIHTTPException):
-    def __init__(self, code=0, title="", explanation=""):
-        self.code = code
-        self.title = title
-        self.explanation = explanation
-        super(ConvertedException, self).__init__()
 
 
 class ProcessExecutionError(IOError):

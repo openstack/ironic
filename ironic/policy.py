@@ -15,7 +15,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-"""Policy Engine For Nova."""
+"""Policy Engine For Ironic."""
 
 import os.path
 
@@ -71,7 +71,7 @@ def _set_rules(data):
 def enforce(context, action, target, do_raise=True):
     """Verifies that the action is valid on the target in this context.
 
-       :param context: nova context
+       :param context: ironic context
        :param action: string representing the action to be checked
            this should be colon separated for clarity.
            i.e. ``compute:create_instance``,

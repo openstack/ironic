@@ -34,11 +34,11 @@ from oslo.config import cfg
 from nova import conductor
 from nova import context
 from nova import exception
-from nova.openstack.common import eventlet_backdoor
-from nova.openstack.common import importutils
-from nova.openstack.common import log as logging
-from nova.openstack.common import loopingcall
-from nova.openstack.common import rpc
+from ironic.openstack.common import eventlet_backdoor
+from ironic.openstack.common import importutils
+from ironic.openstack.common import log as logging
+from ironic.openstack.common import loopingcall
+from ironic.openstack.common import rpc
 from nova import servicegroup
 from nova import utils
 from nova import version

@@ -297,11 +297,5 @@ def _get_impl():
     """Delay import of rpc_backend until configuration is loaded."""
     global _RPCIMPL
     if _RPCIMPL is None:
-        try:
-            _RPCIMPL = importutils.import_module(CONF.rpc_backend)
-        except ImportError:
-            # For backwards compatibility with older nova config.
-            impl = CONF.rpc_backend.replace('nova.rpc',
-                                            'nova.openstack.common.rpc')
-            _RPCIMPL = importutils.import_module(impl)
+        _RPCIMPL = importutils.import_module(CONF.rpc_backend)
     return _RPCIMPL
