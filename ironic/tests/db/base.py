@@ -19,14 +19,14 @@ from oslo.config import cfg
 
 from ironic import context as ironic_context
 from ironic import test
-from ironic.db import migration as bm_migration
-from ironic.db.sqlalchemy import session as bm_session
+from ironic.db import migration as db_migration
+from ironic.openstack.common.db.sqlalchemy import session as db_session
 
 _DB_CACHE = None
 
 CONF = cfg.CONF
 CONF.import_opt('sql_connection',
-                'ironic.db.sqlalchemy.session')
+                'ironic.openstack.common.db.sqlalchemy.session')
 
 
 class Database(test.Database):
@@ -42,7 +42,7 @@ class BMDBTestCase(test.TestCase):
         self.flags(sql_connection='sqlite://')
         global _DB_CACHE
         if not _DB_CACHE:
-            _DB_CACHE = Database(bm_session, bm_migration,
+            _DB_CACHE = Database(db_session, db_migration,
                                  sql_connection=CONF.sql_connection,
                                  sqlite_db=None,
                                  sqlite_clean_db=None)

@@ -25,53 +25,89 @@ import uuid
 from sqlalchemy.sql.expression import asc
 from sqlalchemy.sql.expression import literal_column
 
-import nova.context
-from nova.db.sqlalchemy import api as sqlalchemy_api
-from nova import exception
+import ironic.context
+from ironic import exception
 from ironic.openstack.common.db import exception as db_exc
+from ironic.openstack.common.db.sqlalchemy import session as db_session
+from ironic.openstack.common import log as logging
 from ironic.openstack.common import timeutils
 from ironic.openstack.common import uuidutils
-from nova.virt.baremetal.db.sqlalchemy import models
-from nova.virt.baremetal.db.sqlalchemy import session as db_session
+from ironic.db.sqlalchemy import models
 
 
-def model_query(context, *args, **kwargs):
+LOG = logging.getLogger(__name__)
+
+get_engine = db_session.get_engine
+get_session = db_session.get_session
+
+def _retry_on_deadlock(f):
+    """Decorator to retry a DB API call if Deadlock was received."""
+    @functools.wraps(f)
+    def wrapped(*args, **kwargs):
+        while True:
+            try:
+                return f(*args, **kwargs)
+            except db_exc.DBDeadlock:
+                LOG.warn(_("Deadlock detected when running "
+                           "'%(func_name)s': Retrying..."),
+                           dict(func_name=f.__name__))
+                # Retry!
+                time.sleep(0.5)
+                continue
+    functools.update_wrapper(wrapped, f)
+    return wrapped
+
+
+def model_query(context, model, *args, **kwargs):
     """Query helper that accounts for context's `read_deleted` field.
 
     :param context: context to query under
     :param session: if present, the session to use
     :param read_deleted: if present, overrides context's read_deleted field.
     :param project_only: if present and context is user-type, then restrict
-            query to match the context's project_id.
+            query to match the context's project_id. If set to 'allow_none',
+            restriction includes project_id = None.
+    :param base_model: Where model_query is passed a "model" parameter which is
+            not a subclass of NovaBase, we should pass an extra base_model
+            parameter that is a subclass of NovaBase and corresponds to the
+            model parameter.
     """
-    session = kwargs.get('session') or db_session.get_session()
+    session = kwargs.get('session') or get_session()
     read_deleted = kwargs.get('read_deleted') or context.read_deleted
-    project_only = kwargs.get('project_only')
+    project_only = kwargs.get('project_only', False)
 
-    query = session.query(*args)
+    def issubclassof_nova_base(obj):
+        return isinstance(obj, type) and issubclass(obj, models.NovaBase)
 
+    base_model = model
+    if not issubclassof_nova_base(base_model):
+        base_model = kwargs.get('base_model', None)
+        if not issubclassof_nova_base(base_model):
+            raise Exception(_("model or base_model parameter should be "
+                              "subclass of NovaBase"))
+
+    query = session.query(model, *args)
+
+    default_deleted_value = base_model.__mapper__.c.deleted.default.arg
     if read_deleted == 'no':
-        query = query.filter_by(deleted=False)
+        query = query.filter(base_model.deleted == default_deleted_value)
     elif read_deleted == 'yes':
         pass  # omit the filter to include deleted and active
     elif read_deleted == 'only':
-        query = query.filter_by(deleted=True)
+        query = query.filter(base_model.deleted != default_deleted_value)
     else:
-        raise Exception(
-                _("Unrecognized read_deleted value '%s'") % read_deleted)
+        raise Exception(_("Unrecognized read_deleted value '%s'")
+                            % read_deleted)
 
-    if project_only and nova.context.is_user_context(context):
-        query = query.filter_by(project_id=context.project_id)
+    if nova.context.is_user_context(context) and project_only:
+        if project_only == 'allow_none':
+            query = query.\
+                filter(or_(base_model.project_id == context.project_id,
+                           base_model.project_id == None))
+        else:
+            query = query.filter_by(project_id=context.project_id)
 
     return query
-
-
-def _save(ref, session=None):
-    if not session:
-        session = db_session.get_session()
-    # We must not call ref.save() with session=None, otherwise NovaBase
-    # uses nova-db's session, which cannot access bm-db.
-    ref.save(session=session)
 
 
 def _build_node_order_by(query):
@@ -81,7 +117,6 @@ def _build_node_order_by(query):
     return query
 
 
-@sqlalchemy_api.require_admin_context
 def bm_node_get_all(context, service_host=None):
     query = model_query(context, models.BareMetalNode, read_deleted="no")
     if service_host:
@@ -89,7 +124,6 @@ def bm_node_get_all(context, service_host=None):
     return query.all()
 
 
-@sqlalchemy_api.require_admin_context
 def bm_node_get_associated(context, service_host=None):
     query = model_query(context, models.BareMetalNode, read_deleted="no").\
                 filter(models.BareMetalNode.instance_uuid is not None)
@@ -98,7 +132,6 @@ def bm_node_get_associated(context, service_host=None):
     return query.all()
 
 
-@sqlalchemy_api.require_admin_context
 def bm_node_get_unassociated(context, service_host=None):
     query = model_query(context, models.BareMetalNode, read_deleted="no").\
                 filter(models.BareMetalNode.instance_uuid is None)
@@ -107,7 +140,6 @@ def bm_node_get_unassociated(context, service_host=None):
     return query.all()
 
 
-@sqlalchemy_api.require_admin_context
 def bm_node_find_free(context, service_host=None,
                       cpus=None, memory_mb=None, local_gb=None):
     query = model_query(context, models.BareMetalNode, read_deleted="no")
@@ -124,7 +156,6 @@ def bm_node_find_free(context, service_host=None,
     return query.first()
 
 
-@sqlalchemy_api.require_admin_context
 def bm_node_get(context, bm_node_id):
     # bm_node_id may be passed as a string. Convert to INT to improve DB perf.
     bm_node_id = int(bm_node_id)
@@ -138,7 +169,6 @@ def bm_node_get(context, bm_node_id):
     return result
 
 
-@sqlalchemy_api.require_admin_context
 def bm_node_get_by_instance_uuid(context, instance_uuid):
     if not uuidutils.is_uuid_like(instance_uuid):
         raise exception.InstanceNotFound(instance_id=instance_uuid)
@@ -153,7 +183,6 @@ def bm_node_get_by_instance_uuid(context, instance_uuid):
     return result
 
 
-@sqlalchemy_api.require_admin_context
 def bm_node_get_by_node_uuid(context, bm_node_uuid):
     result = model_query(context, models.BareMetalNode, read_deleted="no").\
                      filter_by(uuid=bm_node_uuid).\
@@ -165,7 +194,6 @@ def bm_node_get_by_node_uuid(context, bm_node_uuid):
     return result
 
 
-@sqlalchemy_api.require_admin_context
 def bm_node_create(context, values):
     if not values.get('uuid'):
         values['uuid'] = str(uuid.uuid4())
@@ -175,7 +203,6 @@ def bm_node_create(context, values):
     return bm_node_ref
 
 
-@sqlalchemy_api.require_admin_context
 def bm_node_update(context, bm_node_id, values):
     rows = model_query(context, models.BareMetalNode, read_deleted="no").\
             filter_by(id=bm_node_id).\
@@ -185,7 +212,6 @@ def bm_node_update(context, bm_node_id, values):
         raise exception.NodeNotFound(node_id=bm_node_id)
 
 
-@sqlalchemy_api.require_admin_context
 def bm_node_associate_and_update(context, node_uuid, values):
     """Associate an instance to a node safely
 
@@ -216,7 +242,6 @@ def bm_node_associate_and_update(context, node_uuid, values):
     return ref
 
 
-@sqlalchemy_api.require_admin_context
 def bm_node_destroy(context, bm_node_id):
     # First, delete all interfaces belonging to the node.
     # Delete physically since these have unique columns.
@@ -235,13 +260,11 @@ def bm_node_destroy(context, bm_node_id):
             raise exception.NodeNotFound(node_id=bm_node_id)
 
 
-@sqlalchemy_api.require_admin_context
 def bm_pxe_ip_get_all(context):
     query = model_query(context, models.BareMetalPxeIp, read_deleted="no")
     return query.all()
 
 
-@sqlalchemy_api.require_admin_context
 def bm_pxe_ip_create(context, address, server_address):
     ref = models.BareMetalPxeIp()
     ref.address = address
@@ -250,7 +273,6 @@ def bm_pxe_ip_create(context, address, server_address):
     return ref
 
 
-@sqlalchemy_api.require_admin_context
 def bm_pxe_ip_create_direct(context, bm_pxe_ip):
     ref = bm_pxe_ip_create(context,
                            address=bm_pxe_ip['address'],
@@ -258,7 +280,6 @@ def bm_pxe_ip_create_direct(context, bm_pxe_ip):
     return ref
 
 
-@sqlalchemy_api.require_admin_context
 def bm_pxe_ip_destroy(context, ip_id):
     # Delete physically since it has unique columns
     model_query(context, models.BareMetalPxeIp, read_deleted="no").\
@@ -266,7 +287,6 @@ def bm_pxe_ip_destroy(context, ip_id):
             delete()
 
 
-@sqlalchemy_api.require_admin_context
 def bm_pxe_ip_destroy_by_address(context, address):
     # Delete physically since it has unique columns
     model_query(context, models.BareMetalPxeIp, read_deleted="no").\
@@ -274,7 +294,6 @@ def bm_pxe_ip_destroy_by_address(context, address):
             delete()
 
 
-@sqlalchemy_api.require_admin_context
 def bm_pxe_ip_get(context, ip_id):
     result = model_query(context, models.BareMetalPxeIp, read_deleted="no").\
             filter_by(id=ip_id).\
@@ -283,7 +302,6 @@ def bm_pxe_ip_get(context, ip_id):
     return result
 
 
-@sqlalchemy_api.require_admin_context
 def bm_pxe_ip_get_by_bm_node_id(context, bm_node_id):
     result = model_query(context, models.BareMetalPxeIp, read_deleted="no").\
             filter_by(bm_node_id=bm_node_id).\
@@ -295,7 +313,6 @@ def bm_pxe_ip_get_by_bm_node_id(context, bm_node_id):
     return result
 
 
-@sqlalchemy_api.require_admin_context
 def bm_pxe_ip_associate(context, bm_node_id):
     session = db_session.get_session()
     with session.begin():
@@ -333,14 +350,12 @@ def bm_pxe_ip_associate(context, bm_node_id):
         return ip_ref.id
 
 
-@sqlalchemy_api.require_admin_context
 def bm_pxe_ip_disassociate(context, bm_node_id):
     model_query(context, models.BareMetalPxeIp, read_deleted="no").\
             filter_by(bm_node_id=bm_node_id).\
             update({'bm_node_id': None})
 
 
-@sqlalchemy_api.require_admin_context
 def bm_interface_get(context, if_id):
     result = model_query(context, models.BareMetalInterface,
                          read_deleted="no").\
@@ -354,14 +369,12 @@ def bm_interface_get(context, if_id):
     return result
 
 
-@sqlalchemy_api.require_admin_context
 def bm_interface_get_all(context):
     query = model_query(context, models.BareMetalInterface,
                         read_deleted="no")
     return query.all()
 
 
-@sqlalchemy_api.require_admin_context
 def bm_interface_destroy(context, if_id):
     # Delete physically since it has unique columns
     model_query(context, models.BareMetalInterface, read_deleted="no").\
@@ -369,7 +382,6 @@ def bm_interface_destroy(context, if_id):
             delete()
 
 
-@sqlalchemy_api.require_admin_context
 def bm_interface_create(context, bm_node_id, address, datapath_id, port_no):
     ref = models.BareMetalInterface()
     ref.bm_node_id = bm_node_id
@@ -380,7 +392,6 @@ def bm_interface_create(context, bm_node_id, address, datapath_id, port_no):
     return ref.id
 
 
-@sqlalchemy_api.require_admin_context
 def bm_interface_set_vif_uuid(context, if_id, vif_uuid):
     session = db_session.get_session()
     with session.begin():
@@ -406,7 +417,6 @@ def bm_interface_set_vif_uuid(context, if_id, vif_uuid):
                 raise e
 
 
-@sqlalchemy_api.require_admin_context
 def bm_interface_get_by_vif_uuid(context, vif_uuid):
     result = model_query(context, models.BareMetalInterface,
                          read_deleted="no").\
@@ -420,7 +430,6 @@ def bm_interface_get_by_vif_uuid(context, vif_uuid):
     return result
 
 
-@sqlalchemy_api.require_admin_context
 def bm_interface_get_all_by_bm_node_id(context, bm_node_id):
     result = model_query(context, models.BareMetalInterface,
                          read_deleted="no").\

@@ -21,15 +21,20 @@ SQLAlchemy models for baremetal data.
 
 from sqlalchemy import Column, Boolean, Integer, String
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy import ForeignKey, Text
+from sqlalchemy import ForeignKey, Text, DateTime, Float
 
-from nova.db.sqlalchemy import models
-
+from ironic.openstack.common.db.sqlalchemy import models
 
 BASE = declarative_base()
 
 
-class BareMetalNode(BASE, models.NovaBase):
+class IronicBase(models.SoftDeleteMixin,
+                 models.TimestampMixin,
+                 models.ModelBase):
+    metadata = None
+
+
+class BareMetalNode(BASE, IronicBase):
     """Represents a bare metal node."""
 
     __tablename__ = 'bm_nodes'
@@ -55,7 +60,7 @@ class BareMetalNode(BASE, models.NovaBase):
     swap_mb = Column(Integer)
 
 
-class BareMetalPxeIp(BASE, models.NovaBase):
+class BareMetalPxeIp(BASE, IronicBase):
     __tablename__ = 'bm_pxe_ips'
     id = Column(Integer, primary_key=True)
     deleted = Column(Boolean, default=False)
@@ -64,7 +69,7 @@ class BareMetalPxeIp(BASE, models.NovaBase):
     bm_node_id = Column(Integer, ForeignKey('bm_nodes.id'), nullable=True)
 
 
-class BareMetalInterface(BASE, models.NovaBase):
+class BareMetalInterface(BASE, IronicBase):
     __tablename__ = 'bm_interfaces'
     id = Column(Integer, primary_key=True)
     deleted = Column(Boolean, default=False)

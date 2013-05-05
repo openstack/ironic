@@ -17,14 +17,16 @@
 #    under the License.
 
 import distutils.version as dist_version
+import os
+
+from ironic.db import migration
+from ironic import exception
+from ironic.openstack.common.db.sqlalchemy import session as db_session
+
+
 import migrate
 from migrate.versioning import util as migrate_util
-import os
 import sqlalchemy
-
-from ironic import exception
-from ironic.db import migration
-from ironic.db.sqlalchemy import session
 
 
 @migrate_util.decorator
@@ -54,8 +56,9 @@ from migrate import exceptions as versioning_exceptions
 from migrate.versioning import api as versioning_api
 from migrate.versioning.repository import Repository
 
-
 _REPOSITORY = None
+
+get_engine = db_session.get_engine
 
 
 def db_sync(version=None):
@@ -68,25 +71,24 @@ def db_sync(version=None):
     current_version = db_version()
     repository = _find_migrate_repo()
     if version is None or version > current_version:
-        return versioning_api.upgrade(session.get_engine(), repository,
-                version)
+        return versioning_api.upgrade(get_engine(), repository, version)
     else:
-        return versioning_api.downgrade(session.get_engine(), repository,
+        return versioning_api.downgrade(get_engine(), repository,
                                         version)
 
 
 def db_version():
     repository = _find_migrate_repo()
     try:
-        return versioning_api.db_version(session.get_engine(), repository)
+        return versioning_api.db_version(get_engine(), repository)
     except versioning_exceptions.DatabaseNotControlledError:
         meta = sqlalchemy.MetaData()
-        engine = session.get_engine()
+        engine = get_engine()
         meta.reflect(bind=engine)
         tables = meta.tables
         if len(tables) == 0:
             db_version_control(migration.INIT_VERSION)
-            return versioning_api.db_version(session.get_engine(), repository)
+            return versioning_api.db_version(get_engine(), repository)
         else:
             # Some pre-Essex DB's may not be version controlled.
             # Require them to upgrade using Essex first.
@@ -96,7 +98,7 @@ def db_version():
 
 def db_version_control(version=None):
     repository = _find_migrate_repo()
-    versioning_api.version_control(session.get_engine(), repository, version)
+    versioning_api.version_control(get_engine(), repository, version)
     return version
 
 
