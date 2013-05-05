@@ -21,7 +21,6 @@ from oslo.config import cfg
 
 from ironic import config
 from ironic import paths
-from ironic.tests import utils
 
 CONF = cfg.CONF
 CONF.import_opt('use_ipv6', 'ironic.netconf')
@@ -37,8 +36,6 @@ class ConfFixture(fixtures.Fixture):
     def setUp(self):
         super(ConfFixture, self).setUp()
 
-        self.conf.set_default('api_paste_config',
-                              paths.state_path_def('etc/ironic/api-paste.ini'))
         self.conf.set_default('host', 'fake-mini')
         self.conf.set_default('rpc_backend',
                               'ironic.openstack.common.rpc.impl_fake')
@@ -50,5 +47,3 @@ class ConfFixture(fixtures.Fixture):
         self.conf.set_default('verbose', True)
         config.parse_args([], default_config_files=[])
         self.addCleanup(self.conf.reset)
-        self.addCleanup(utils.cleanup_dns_managers)
-        self.addCleanup(ipv6.api.reset_backend)

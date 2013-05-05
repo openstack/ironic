@@ -17,13 +17,13 @@
 Bare-metal DB testcase for BareMetalInterface
 """
 
-from nova import exception
+from ironic import exception
 from ironic.openstack.common.db import exception as db_exc
-from nova.tests.baremetal.db import base
-from nova.virt.baremetal import db
+from ironic.tests.db import base
+from ironic import db
 
 
-class BareMetalInterfaceTestCase(base.BMDBTestCase):
+class BareMetalInterfaceTestCase(base.DbTestCase):
 
     def test_unique_address(self):
         pif1_id = db.bm_interface_create(self.context, 1, '11:11:11:11:11:11',

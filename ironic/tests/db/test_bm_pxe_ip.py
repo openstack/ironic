@@ -17,14 +17,14 @@
 Bare-metal DB testcase for BareMetalPxeIp
 """
 
-from nova import exception
+from ironic import exception
 from ironic.openstack.common.db import exception as db_exc
-from nova.tests.baremetal.db import base
-from nova.tests.baremetal.db import utils
-from nova.virt.baremetal import db
+from ironic.tests.db import base
+from ironic.tests.db import utils
+from ironic import db
 
 
-class BareMetalPxeIpTestCase(base.BMDBTestCase):
+class BareMetalPxeIpTestCase(base.DbTestCase):
 
     def _create_pxe_ip(self):
         i1 = utils.new_bm_pxe_ip(address='10.1.1.1',

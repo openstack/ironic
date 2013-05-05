@@ -30,13 +30,13 @@ import socket
 import stat
 from wsgiref import simple_server
 
-from nova import config
-from nova import context as nova_context
-from nova import exception
+from ironic import config
+from ironic import context as ironic_context
+from ironic import exception
 from ironic.openstack.common import log as logging
-from nova import utils
-from nova.virt.baremetal import baremetal_states
-from nova.virt.baremetal import db
+from ironic import utils
+from ironic import states
+from ironic import db
 
 
 QUEUE = Queue.Queue()
@@ -235,19 +235,19 @@ class Worker(threading.Thread):
                 # Requests comes here from BareMetalDeploy.post()
                 LOG.info(_('start deployment for node %(node_id)s, '
                            'params %(params)s') % locals())
-                context = nova_context.get_admin_context()
+                context = ironic_context.get_admin_context()
                 try:
                     db.bm_node_update(context, node_id,
-                          {'task_state': baremetal_states.DEPLOYING})
+                          {'task_state': states.DEPLOYING})
                     deploy(**params)
                 except Exception:
                     LOG.error(_('deployment to node %s failed') % node_id)
                     db.bm_node_update(context, node_id,
-                          {'task_state': baremetal_states.DEPLOYFAIL})
+                          {'task_state': states.DEPLOYFAIL})
                 else:
                     LOG.info(_('deployment to node %s done') % node_id)
                     db.bm_node_update(context, node_id,
-                          {'task_state': baremetal_states.DEPLOYDONE})
+                          {'task_state': states.DEPLOYDONE})
 
 
 class BareMetalDeploy(object):
@@ -284,7 +284,7 @@ class BareMetalDeploy(object):
             start_response('400 Bad Request', [('Content-type', 'text/plain')])
             return "parameter '%s' is not defined" % e
 
-        context = nova_context.get_admin_context()
+        context = ironic_context.get_admin_context()
         d = db.bm_node_get(context, node_id)
 
         if d['deploy_key'] != deploy_key:

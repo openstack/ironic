@@ -40,23 +40,6 @@ LOG = logging.getLogger(__name__)
 get_engine = db_session.get_engine
 get_session = db_session.get_session
 
-def _retry_on_deadlock(f):
-    """Decorator to retry a DB API call if Deadlock was received."""
-    @functools.wraps(f)
-    def wrapped(*args, **kwargs):
-        while True:
-            try:
-                return f(*args, **kwargs)
-            except db_exc.DBDeadlock:
-                LOG.warn(_("Deadlock detected when running "
-                           "'%(func_name)s': Retrying..."),
-                           dict(func_name=f.__name__))
-                # Retry!
-                time.sleep(0.5)
-                continue
-    functools.update_wrapper(wrapped, f)
-    return wrapped
-
 
 def model_query(context, model, *args, **kwargs):
     """Query helper that accounts for context's `read_deleted` field.
@@ -64,27 +47,23 @@ def model_query(context, model, *args, **kwargs):
     :param context: context to query under
     :param session: if present, the session to use
     :param read_deleted: if present, overrides context's read_deleted field.
-    :param project_only: if present and context is user-type, then restrict
-            query to match the context's project_id. If set to 'allow_none',
-            restriction includes project_id = None.
     :param base_model: Where model_query is passed a "model" parameter which is
-            not a subclass of NovaBase, we should pass an extra base_model
-            parameter that is a subclass of NovaBase and corresponds to the
+            not a subclass of IronicBase, we should pass an extra base_model
+            parameter that is a subclass of IronicBase and corresponds to the
             model parameter.
     """
     session = kwargs.get('session') or get_session()
     read_deleted = kwargs.get('read_deleted') or context.read_deleted
-    project_only = kwargs.get('project_only', False)
 
-    def issubclassof_nova_base(obj):
-        return isinstance(obj, type) and issubclass(obj, models.NovaBase)
+    def issubclassof_ironic_base(obj):
+        return isinstance(obj, type) and issubclass(obj, models.IronicBase)
 
     base_model = model
-    if not issubclassof_nova_base(base_model):
+    if not issubclassof_ironic_base(base_model):
         base_model = kwargs.get('base_model', None)
         if not issubclassof_nova_base(base_model):
             raise Exception(_("model or base_model parameter should be "
-                              "subclass of NovaBase"))
+                              "subclass of IronicBase"))
 
     query = session.query(model, *args)
 
@@ -98,14 +77,6 @@ def model_query(context, model, *args, **kwargs):
     else:
         raise Exception(_("Unrecognized read_deleted value '%s'")
                             % read_deleted)
-
-    if nova.context.is_user_context(context) and project_only:
-        if project_only == 'allow_none':
-            query = query.\
-                filter(or_(base_model.project_id == context.project_id,
-                           base_model.project_id == None))
-        else:
-            query = query.filter_by(project_id=context.project_id)
 
     return query
 
@@ -126,7 +97,7 @@ def bm_node_get_all(context, service_host=None):
 
 def bm_node_get_associated(context, service_host=None):
     query = model_query(context, models.BareMetalNode, read_deleted="no").\
-                filter(models.BareMetalNode.instance_uuid is not None)
+                filter(models.BareMetalNode.instance_uuid != None)
     if service_host:
         query = query.filter_by(service_host=service_host)
     return query.all()
@@ -134,7 +105,7 @@ def bm_node_get_associated(context, service_host=None):
 
 def bm_node_get_unassociated(context, service_host=None):
     query = model_query(context, models.BareMetalNode, read_deleted="no").\
-                filter(models.BareMetalNode.instance_uuid is None)
+                filter(models.BareMetalNode.instance_uuid == None)
     if service_host:
         query = query.filter_by(service_host=service_host)
     return query.all()
@@ -143,7 +114,7 @@ def bm_node_get_unassociated(context, service_host=None):
 def bm_node_find_free(context, service_host=None,
                       cpus=None, memory_mb=None, local_gb=None):
     query = model_query(context, models.BareMetalNode, read_deleted="no")
-    query = query.filter(models.BareMetalNode.instance_uuid is None)
+    query = query.filter(models.BareMetalNode.instance_uuid == None)
     if service_host:
         query = query.filter_by(service_host=service_host)
     if cpus is not None:
@@ -199,7 +170,7 @@ def bm_node_create(context, values):
         values['uuid'] = str(uuid.uuid4())
     bm_node_ref = models.BareMetalNode()
     bm_node_ref.update(values)
-    _save(bm_node_ref)
+    bm_node_ref.save()
     return bm_node_ref
 
 
@@ -269,7 +240,7 @@ def bm_pxe_ip_create(context, address, server_address):
     ref = models.BareMetalPxeIp()
     ref.address = address
     ref.server_address = server_address
-    _save(ref)
+    ref.save()
     return ref
 
 
@@ -388,7 +359,7 @@ def bm_interface_create(context, bm_node_id, address, datapath_id, port_no):
     ref.address = address
     ref.datapath_id = datapath_id
     ref.port_no = port_no
-    _save(ref)
+    ref.save()
     return ref.id
 
 

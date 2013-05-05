@@ -17,13 +17,13 @@
 Bare-Metal DB testcase for BareMetalNode
 """
 
-from nova import exception
-from nova.tests.baremetal.db import base
-from nova.tests.baremetal.db import utils
-from nova.virt.baremetal import db
+from ironic import exception
+from ironic.tests.db import base
+from ironic.tests.db import utils
+from ironic import db
 
 
-class BareMetalNodesTestCase(base.BMDBTestCase):
+class BareMetalNodesTestCase(base.DbTestCase):
 
     def _create_nodes(self):
         nodes = [

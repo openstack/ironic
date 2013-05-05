@@ -22,11 +22,11 @@ import time
 
 import mox
 
-from nova.cmd import baremetal_deploy_helper as bmdh
+from ironic.cmd import ironic_deploy_helper as bmdh
 from ironic.openstack.common import log as logging
-from nova import test
-from nova.tests.baremetal.db import base as bm_db_base
-from nova.virt.baremetal import db as bm_db
+from ironic import test
+from ironic.tests.db import base
+from ironic import db
 
 bmdh.LOG = logging.getLogger('nova.virt.baremetal.deploy_helper')
 
@@ -57,7 +57,7 @@ append initrd=ramdisk root=UUID=12345678-1234-1234-1234-1234567890abcdef
 """
 
 
-class WorkerTestCase(bm_db_base.BMDBTestCase):
+class WorkerTestCase(base.DbTestCase):
     def setUp(self):
         super(WorkerTestCase, self).setUp()
         self.worker = bmdh.Worker()
@@ -85,10 +85,10 @@ class WorkerTestCase(bm_db_base.BMDBTestCase):
             history.append(params)
 
         self.stubs.Set(bmdh, 'deploy', fake_deploy)
-        self.mox.StubOutWithMock(bm_db, 'bm_node_update')
+        self.mox.StubOutWithMock(db, 'bm_node_update')
         # update is called twice inside Worker.run
         for i in range(6):
-            bm_db.bm_node_update(mox.IgnoreArg(), mox.IgnoreArg(),
+            db.bm_node_update(mox.IgnoreArg(), mox.IgnoreArg(),
                                         mox.IgnoreArg())
         self.mox.ReplayAll()
 
@@ -111,10 +111,10 @@ class WorkerTestCase(bm_db_base.BMDBTestCase):
             raise Exception('test')
 
         self.stubs.Set(bmdh, 'deploy', fake_deploy)
-        self.mox.StubOutWithMock(bm_db, 'bm_node_update')
+        self.mox.StubOutWithMock(db, 'bm_node_update')
         # update is called twice inside Worker.run
         for i in range(6):
-            bm_db.bm_node_update(mox.IgnoreArg(), mox.IgnoreArg(),
+            db.bm_node_update(mox.IgnoreArg(), mox.IgnoreArg(),
                                         mox.IgnoreArg())
         self.mox.ReplayAll()
 

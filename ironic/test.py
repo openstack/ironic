@@ -40,12 +40,10 @@ import testtools
 from ironic import context
 from ironic import db
 from ironic.db import migration
-from nova.network import manager as network_manager
 from ironic.openstack.common.db.sqlalchemy import session
 from ironic.openstack.common import log as logging
 from ironic.openstack.common import timeutils
 from ironic import paths
-from ironic import service
 from ironic.tests import conf_fixture
 from ironic.tests import policy_fixture
 
@@ -109,25 +107,6 @@ class Database(fixtures.Fixture):
 
     def post_migrations(self):
         """Any addition steps that are needed outside of the migrations."""
-        ctxt = context.get_admin_context()
-        network = network_manager.VlanManager()
-        bridge_interface = CONF.flat_interface or CONF.vlan_interface
-        network.create_networks(ctxt,
-                                label='test',
-                                cidr=CONF.fixed_range,
-                                multi_host=CONF.multi_host,
-                                num_networks=CONF.num_networks,
-                                network_size=CONF.network_size,
-                                cidr_v6=CONF.fixed_range_v6,
-                                gateway=CONF.gateway,
-                                gateway_v6=CONF.gateway_v6,
-                                bridge=CONF.flat_network_bridge,
-                                bridge_interface=bridge_interface,
-                                vpn_start=CONF.vpn_start,
-                                vlan_start=CONF.vlan_start,
-                                dns1=CONF.flat_network_dns)
-        for net in db.network_get_all(ctxt):
-            network.set_network_host(ctxt, net)
 
 
 class ReplaceModule(fixtures.Fixture):
@@ -145,23 +124,6 @@ class ReplaceModule(fixtures.Fixture):
         old_value = sys.modules.get(self.name)
         sys.modules[self.name] = self.new_value
         self.addCleanup(self._restore, old_value)
-
-
-class ServiceFixture(fixtures.Fixture):
-    """Run a service as a test fixture."""
-
-    def __init__(self, name, host=None, **kwargs):
-        name = name
-        host = host and host or uuid.uuid4().hex
-        kwargs.setdefault('host', host)
-        kwargs.setdefault('binary', 'ironic-%s' % name)
-        self.kwargs = kwargs
-
-    def setUp(self):
-        super(ServiceFixture, self).setUp()
-        self.service = service.Service.create(**self.kwargs)
-        self.service.start()
-        self.addCleanup(self.service.kill)
 
 
 class MoxStubout(fixtures.Fixture):
@@ -240,10 +202,6 @@ class TestCase(testtools.TestCase):
         group = kw.pop('group', None)
         for k, v in kw.iteritems():
             CONF.set_override(k, v, group)
-
-    def start_service(self, name, host=None, **kwargs):
-        svc = self.useFixture(ServiceFixture(name, host, **kwargs))
-        return svc.service
 
 
 class APICoverage(object):
