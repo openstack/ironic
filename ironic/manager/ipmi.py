@@ -27,14 +27,13 @@ import tempfile
 
 from oslo.config import cfg
 
-from ironic import exception
+from ironic.common import exception
+from ironic.common import paths
+from ironic.common import states
+from ironic.common import utils
+from ironic.manager import base
 from ironic.openstack.common import log as logging
 from ironic.openstack.common import loopingcall
-from nova import paths
-from ironic import utils
-from ironic import states
-from ironic.manager import base
-from ironic import utils as bm_utils
 
 opts = [
     cfg.StrOpt('terminal',
@@ -132,7 +131,7 @@ class IPMI(base.PowerManager):
                       locals())
             return out, err
         finally:
-            bm_utils.unlink_without_raise(pwfile)
+            utils.unlink_without_raise(pwfile)
 
     def _is_power(self, state):
         out_err = self._exec_ipmitool("power status")
@@ -247,7 +246,7 @@ class IPMI(base.PowerManager):
             x.append('2>&1')
             utils.execute(' '.join(x), shell=True)
         finally:
-            bm_utils.unlink_without_raise(pwfile)
+            utils.unlink_without_raise(pwfile)
 
     def stop_console(self):
         console_pid = _get_console_pid(self.node_id)
@@ -256,4 +255,4 @@ class IPMI(base.PowerManager):
             utils.execute('kill', '-TERM', str(console_pid),
                           run_as_root=True,
                           check_exit_code=[0, 99])
-        bm_utils.unlink_without_raise(_get_console_pid_path(self.node_id))
+        utils.unlink_without_raise(_get_console_pid_path(self.node_id))

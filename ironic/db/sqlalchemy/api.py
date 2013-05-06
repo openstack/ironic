@@ -25,8 +25,7 @@ import uuid
 from sqlalchemy.sql.expression import asc
 from sqlalchemy.sql.expression import literal_column
 
-import ironic.context
-from ironic import exception
+from ironic.common import exception
 from ironic.openstack.common.db import exception as db_exc
 from ironic.openstack.common.db.sqlalchemy import session as db_session
 from ironic.openstack.common import log as logging

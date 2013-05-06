@@ -26,16 +26,16 @@ import os
 from oslo.config import cfg
 
 from nova.compute import instance_types
-from ironic import exception
+from ironic.common import exception
+from ironic.common import states
+from ironic.common import utils
+from ironic import db
+from ironic.manager import base
 from ironic.openstack.common.db import exception as db_exc
 from ironic.openstack.common import fileutils
 from ironic.openstack.common import log as logging
 from ironic.openstack.common import loopingcall
 from ironic.openstack.common import timeutils
-from ironic import states
-from ironic.manager import base
-from ironic import db
-from ironic import utils as bm_utils
 
 pxe_opts = [
     cfg.StrOpt('deploy_kernel',
@@ -251,7 +251,7 @@ class PXE(base.NodeDriver):
                         instance['name'])
         for label in image_info.keys():
             (uuid, path) = image_info[label]
-            bm_utils.cache_image(
+            utils.cache_image(
                     context=context,
                     target=path,
                     image_id=uuid,
@@ -281,7 +281,7 @@ class PXE(base.NodeDriver):
 
         LOG.debug(_("Fetching image %(ami)s for instance %(name)s") %
                         {'ami': image_meta['id'], 'name': instance['name']})
-        bm_utils.cache_image(context=context,
+        utils.cache_image(context=context,
                              target=image_path,
                              image_id=image_meta['id'],
                              user_id=instance['user_id'],
@@ -322,7 +322,7 @@ class PXE(base.NodeDriver):
         LOG.debug(_("Injecting files into image for instance %(name)s") %
                         {'name': instance['name']})
 
-        bm_utils.inject_into_image(
+        utils.inject_into_image(
                     image=get_image_file_path(instance),
                     key=ssh_key,
                     net=net_config,
@@ -346,8 +346,8 @@ class PXE(base.NodeDriver):
 
     def destroy_images(self, context, node, instance):
         """Delete instance's image file."""
-        bm_utils.unlink_without_raise(get_image_file_path(instance))
-        bm_utils.rmtree_without_raise(get_image_dir_path(instance))
+        utils.unlink_without_raise(get_image_file_path(instance))
+        utils.rmtree_without_raise(get_image_dir_path(instance))
 
     def activate_bootloader(self, context, node, instance):
         """Configure PXE boot loader for an instance
@@ -377,7 +377,7 @@ class PXE(base.NodeDriver):
         pxe_config_file_path = get_pxe_config_file_path(instance)
         image_file_path = get_image_file_path(instance)
 
-        deployment_key = bm_utils.random_alnum(32)
+        deployment_key = utils.random_alnum(32)
         deployment_iscsi_iqn = "iqn-%s" % instance['uuid']
         db.bm_node_update(context, node['id'],
                 {'deploy_key': deployment_key,
@@ -394,13 +394,13 @@ class PXE(base.NodeDriver):
                     image_info['kernel'][1],
                     image_info['ramdisk'][1],
                 )
-        bm_utils.write_to_file(pxe_config_file_path, pxe_config)
+        utils.write_to_file(pxe_config_file_path, pxe_config)
 
         macs = self._collect_mac_addresses(context, node)
         for mac in macs:
             mac_path = get_pxe_mac_path(mac)
-            bm_utils.unlink_without_raise(mac_path)
-            bm_utils.create_link_without_raise(pxe_config_file_path, mac_path)
+            utils.unlink_without_raise(mac_path)
+            utils.create_link_without_raise(pxe_config_file_path, mac_path)
 
     def deactivate_bootloader(self, context, node, instance):
         """Delete PXE bootloader images and config."""
@@ -427,18 +427,18 @@ class PXE(base.NodeDriver):
         else:
             for label in image_info.keys():
                 (uuid, path) = image_info[label]
-                bm_utils.unlink_without_raise(path)
+                utils.unlink_without_raise(path)
 
-        bm_utils.unlink_without_raise(get_pxe_config_file_path(instance))
+        utils.unlink_without_raise(get_pxe_config_file_path(instance))
         try:
             macs = self._collect_mac_addresses(context, node)
         except db_exc.DBError:
             pass
         else:
             for mac in macs:
-                bm_utils.unlink_without_raise(get_pxe_mac_path(mac))
+                utils.unlink_without_raise(get_pxe_mac_path(mac))
 
-        bm_utils.rmtree_without_raise(
+        utils.rmtree_without_raise(
                 os.path.join(CONF.tftp_root, instance['uuid']))
 
     def activate_node(self, context, node, instance):

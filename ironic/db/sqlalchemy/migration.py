@@ -19,8 +19,8 @@
 import distutils.version as dist_version
 import os
 
+from ironic.common import exception
 from ironic.db import migration
-from ironic import exception
 from ironic.openstack.common.db.sqlalchemy import session as db_session
 
 

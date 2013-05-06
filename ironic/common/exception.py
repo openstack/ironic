@@ -28,9 +28,9 @@ import functools
 
 from oslo.config import cfg
 
+from ironic.common import safe_utils
 from ironic.openstack.common import excutils
 from ironic.openstack.common import log as logging
-from ironic import safe_utils
 
 
 LOG = logging.getLogger(__name__)

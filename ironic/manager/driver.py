@@ -24,13 +24,13 @@ A driver for Bare-metal platform.
 from oslo.config import cfg
 
 from nova.compute import power_state
-from ironic import context as ironic_context
-from ironic import exception
+from ironic.common import context as ironic_context
+from ironic.common import exception
+from ironic.common import paths
+from ironic.common import states
 from ironic.openstack.common import excutils
 from ironic.openstack.common import importutils
 from ironic.openstack.common import log as logging
-from nova import paths
-from ironic import states
 from ironic import db
 from nova.virt import driver
 from nova.virt import firewall

@@ -22,11 +22,11 @@
 import copy
 import uuid
 
-from ironic import exception
+from ironic.common import exception
+from ironic.common import policy
 from ironic.openstack.common import local
 from ironic.openstack.common import log as logging
 from ironic.openstack.common import timeutils
-from ironic import policy
 
 
 LOG = logging.getLogger(__name__)

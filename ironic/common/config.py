@@ -21,7 +21,7 @@ from oslo.config import cfg
 
 from ironic.openstack.common.db.sqlalchemy import session as db_session
 from ironic.openstack.common import rpc
-from ironic import paths
+from ironic.common import paths
 from ironic import version
 
 _DEFAULT_SQL_CONNECTION = 'sqlite:///' + paths.state_path_def('$sqlite_db')

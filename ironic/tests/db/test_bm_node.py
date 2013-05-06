@@ -17,7 +17,7 @@
 Bare-Metal DB testcase for BareMetalNode
 """
 
-from ironic import exception
+from ironic.common import exception
 from ironic.tests.db import base
 from ironic.tests.db import utils
 from ironic import db

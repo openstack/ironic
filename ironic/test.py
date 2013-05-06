@@ -37,13 +37,13 @@ from oslo.config import cfg
 import stubout
 import testtools
 
-from ironic import context
 from ironic import db
+from ironic.common import context
+from ironic.common import paths
 from ironic.db import migration
 from ironic.openstack.common.db.sqlalchemy import session
 from ironic.openstack.common import log as logging
 from ironic.openstack.common import timeutils
-from ironic import paths
 from ironic.tests import conf_fixture
 from ironic.tests import policy_fixture
 

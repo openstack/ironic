@@ -17,7 +17,7 @@
 Bare-metal DB testcase for BareMetalPxeIp
 """
 
-from ironic import exception
+from ironic.common import exception
 from ironic.openstack.common.db import exception as db_exc
 from ironic.tests.db import base
 from ironic.tests.db import utils

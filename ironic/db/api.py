@@ -44,7 +44,7 @@ these objects be simple dictionaries.
 
 from oslo.config import cfg
 
-from ironic import utils
+from ironic.common import utils
 
 db_opts = [
     cfg.StrOpt('db_backend',

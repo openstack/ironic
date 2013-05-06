@@ -21,9 +21,9 @@ import os.path
 
 from oslo.config import cfg
 
-from ironic import exception
+from ironic.common import exception
+from ironic.common import utils
 from ironic.openstack.common import policy
-from ironic import utils
 
 
 policy_opts = [

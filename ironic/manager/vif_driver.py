@@ -15,8 +15,8 @@
 
 from oslo.config import cfg
 
-from ironic import context as nova_context
-from ironic import exception
+from ironic.common import context as nova_context
+from ironic.common import exception
 from ironic.openstack.common import log as logging
 from ironic import db
 

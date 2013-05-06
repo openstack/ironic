@@ -17,7 +17,7 @@
 
 from oslo.config import cfg
 
-from ironic import context as ironic_context
+from ironic.common import context as ironic_context
 from ironic import test
 
 

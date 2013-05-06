@@ -44,7 +44,7 @@ import netaddr
 
 from oslo.config import cfg
 
-from ironic import exception
+from ironic.common import exception
 from ironic.openstack.common import excutils
 from ironic.openstack.common import importutils
 from ironic.openstack.common import log as logging

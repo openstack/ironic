@@ -20,11 +20,11 @@ import re
 
 from oslo.config import cfg
 
-from ironic import context as nova_context
-from ironic import exception
+from ironic.common import context as nova_context
+from ironic.common import exception
+from ironic.common import utils
 from ironic.openstack.common import importutils
 from ironic.openstack.common import log as logging
-from ironic import utils
 from ironic import db
 from nova.virt.libvirt import utils as libvirt_utils
 
