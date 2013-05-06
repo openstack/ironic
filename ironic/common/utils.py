@@ -3,6 +3,7 @@
 # Copyright 2010 United States Government as represented by the
 # Administrator of the National Aeronautics and Space Administration.
 # Copyright 2011 Justin Santa Barbara
+# Copyright (c) 2012 NTT DOCOMO, INC.
 # All Rights Reserved.
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -20,23 +21,14 @@
 """Utilities and helper functions."""
 
 import contextlib
-import datetime
 import errno
-import functools
 import hashlib
-import inspect
 import os
-import pyclbr
 import random
 import re
 import shutil
 import signal
-import socket
-import struct
-import sys
 import tempfile
-import time
-from xml.sax import saxutils
 
 from eventlet.green import subprocess
 from eventlet import greenthread
@@ -45,46 +37,19 @@ import netaddr
 from oslo.config import cfg
 
 from ironic.common import exception
-from ironic.openstack.common import excutils
-from ironic.openstack.common import importutils
 from ironic.openstack.common import log as logging
-from ironic.openstack.common.rpc import common as rpc_common
-from ironic.openstack.common import timeutils
 
-notify_decorator = 'ironic.openstack.common.notifier.api.notify_decorator'
-
-monkey_patch_opts = [
-    cfg.BoolOpt('monkey_patch',
-                default=False,
-                help='Whether to log monkey patching'),
-    cfg.ListOpt('monkey_patch_modules',
-                default=[
-                  'nova.api.ec2.cloud:%s' % (notify_decorator),
-                  'nova.compute.api:%s' % (notify_decorator)
-                  ],
-                help='List of modules/decorators to monkey patch'),
-]
 utils_opts = [
-    cfg.IntOpt('password_length',
-               default=12,
-               help='Length of generated instance admin passwords'),
-    cfg.BoolOpt('disable_process_locking',
-                default=False,
-                help='Whether to disable inter-process locks'),
-    cfg.StrOpt('instance_usage_audit_period',
-               default='month',
-               help='time period to generate instance usages for.  '
-                    'Time period must be hour, day, month or year'),
     cfg.StrOpt('rootwrap_config',
-               default="/etc/nova/rootwrap.conf",
+               default="/etc/ironic/rootwrap.conf",
                help='Path to the rootwrap configuration file to use for '
                     'running commands as root'),
     cfg.StrOpt('tempdir',
                default=None,
                help='Explicitly specify the temporary working directory'),
 ]
+
 CONF = cfg.CONF
-CONF.register_opts(monkey_patch_opts)
 CONF.register_opts(utils_opts)
 
 LOG = logging.getLogger(__name__)
@@ -98,55 +63,6 @@ BYTE_MULTIPLIERS = {
     'm': 1024 ** 2,
     'k': 1024,
 }
-
-
-def vpn_ping(address, port, timeout=0.05, session_id=None):
-    """Sends a vpn negotiation packet and returns the server session.
-
-    Returns False on a failure. Basic packet structure is below.
-
-    Client packet (14 bytes)::
-
-         0 1      8 9  13
-        +-+--------+-----+
-        |x| cli_id |?????|
-        +-+--------+-----+
-        x = packet identifier 0x38
-        cli_id = 64 bit identifier
-        ? = unknown, probably flags/padding
-
-    Server packet (26 bytes)::
-
-         0 1      8 9  13 14    21 2225
-        +-+--------+-----+--------+----+
-        |x| srv_id |?????| cli_id |????|
-        +-+--------+-----+--------+----+
-        x = packet identifier 0x40
-        cli_id = 64 bit identifier
-        ? = unknown, probably flags/padding
-        bit 9 was 1 and the rest were 0 in testing
-
-    """
-    if session_id is None:
-        session_id = random.randint(0, 0xffffffffffffffff)
-    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    data = struct.pack('!BQxxxxx', 0x38, session_id)
-    sock.sendto(data, (address, port))
-    sock.settimeout(timeout)
-    try:
-        received = sock.recv(2048)
-    except socket.timeout:
-        return False
-    finally:
-        sock.close()
-    fmt = '!BQxxxxxQxxxx'
-    if len(received) != struct.calcsize(fmt):
-        LOG.warn(_('Expected to receive %(exp)s bytes, but actually %(act)s') %
-                 dict(exp=struct.calcsize(fmt), act=len(received)))
-        return False
-    (identifier, server_sess, client_sess) = struct.unpack(fmt, received)
-    if identifier == 0x40 and client_sess == session_id:
-        return server_sess
 
 
 def _subprocess_setup():
@@ -317,198 +233,15 @@ def ssh_execute(ssh, cmd, process_input=None,
     return (stdout, stderr)
 
 
-def novadir():
-    import nova
-    return os.path.abspath(nova.__file__).split('nova/__init__.py')[0]
-
-
-def debug(arg):
-    LOG.debug(_('debug in callback: %s'), arg)
-    return arg
-
-
 def generate_uid(topic, size=8):
     characters = '01234567890abcdefghijklmnopqrstuvwxyz'
     choices = [random.choice(characters) for _x in xrange(size)]
     return '%s-%s' % (topic, ''.join(choices))
 
 
-# Default symbols to use for passwords. Avoids visually confusing characters.
-# ~6 bits per symbol
-DEFAULT_PASSWORD_SYMBOLS = ('23456789',  # Removed: 0,1
-                            'ABCDEFGHJKLMNPQRSTUVWXYZ',   # Removed: I, O
-                            'abcdefghijkmnopqrstuvwxyz')  # Removed: l
-
-
-# ~5 bits per symbol
-EASIER_PASSWORD_SYMBOLS = ('23456789',  # Removed: 0, 1
-                           'ABCDEFGHJKLMNPQRSTUVWXYZ')  # Removed: I, O
-
-
-def last_completed_audit_period(unit=None, before=None):
-    """This method gives you the most recently *completed* audit period.
-
-    arguments:
-            units: string, one of 'hour', 'day', 'month', 'year'
-                    Periods normally begin at the beginning (UTC) of the
-                    period unit (So a 'day' period begins at midnight UTC,
-                    a 'month' unit on the 1st, a 'year' on Jan, 1)
-                    unit string may be appended with an optional offset
-                    like so:  'day@18'  This will begin the period at 18:00
-                    UTC.  'month@15' starts a monthly period on the 15th,
-                    and year@3 begins a yearly one on March 1st.
-            before: Give the audit period most recently completed before
-                    <timestamp>. Defaults to now.
-
-
-    returns:  2 tuple of datetimes (begin, end)
-              The begin timestamp of this audit period is the same as the
-              end of the previous."""
-    if not unit:
-        unit = CONF.instance_usage_audit_period
-
-    offset = 0
-    if '@' in unit:
-        unit, offset = unit.split("@", 1)
-        offset = int(offset)
-
-    if before is not None:
-        rightnow = before
-    else:
-        rightnow = timeutils.utcnow()
-    if unit not in ('month', 'day', 'year', 'hour'):
-        raise ValueError('Time period must be hour, day, month or year')
-    if unit == 'month':
-        if offset == 0:
-            offset = 1
-        end = datetime.datetime(day=offset,
-                                month=rightnow.month,
-                                year=rightnow.year)
-        if end >= rightnow:
-            year = rightnow.year
-            if 1 >= rightnow.month:
-                year -= 1
-                month = 12 + (rightnow.month - 1)
-            else:
-                month = rightnow.month - 1
-            end = datetime.datetime(day=offset,
-                                    month=month,
-                                    year=year)
-        year = end.year
-        if 1 >= end.month:
-            year -= 1
-            month = 12 + (end.month - 1)
-        else:
-            month = end.month - 1
-        begin = datetime.datetime(day=offset, month=month, year=year)
-
-    elif unit == 'year':
-        if offset == 0:
-            offset = 1
-        end = datetime.datetime(day=1, month=offset, year=rightnow.year)
-        if end >= rightnow:
-            end = datetime.datetime(day=1,
-                                    month=offset,
-                                    year=rightnow.year - 1)
-            begin = datetime.datetime(day=1,
-                                      month=offset,
-                                      year=rightnow.year - 2)
-        else:
-            begin = datetime.datetime(day=1,
-                                      month=offset,
-                                      year=rightnow.year - 1)
-
-    elif unit == 'day':
-        end = datetime.datetime(hour=offset,
-                               day=rightnow.day,
-                               month=rightnow.month,
-                               year=rightnow.year)
-        if end >= rightnow:
-            end = end - datetime.timedelta(days=1)
-        begin = end - datetime.timedelta(days=1)
-
-    elif unit == 'hour':
-        end = rightnow.replace(minute=offset, second=0, microsecond=0)
-        if end >= rightnow:
-            end = end - datetime.timedelta(hours=1)
-        begin = end - datetime.timedelta(hours=1)
-
-    return (begin, end)
-
-
-def generate_password(length=None, symbolgroups=DEFAULT_PASSWORD_SYMBOLS):
-    """Generate a random password from the supplied symbol groups.
-
-    At least one symbol from each group will be included. Unpredictable
-    results if length is less than the number of symbol groups.
-
-    Believed to be reasonably secure (with a reasonable password length!)
-
-    """
-    if length is None:
-        length = CONF.password_length
-
-    r = random.SystemRandom()
-
-    # NOTE(jerdfelt): Some password policies require at least one character
-    # from each group of symbols, so start off with one random character
-    # from each symbol group
-    password = [r.choice(s) for s in symbolgroups]
-    # If length < len(symbolgroups), the leading characters will only
-    # be from the first length groups. Try our best to not be predictable
-    # by shuffling and then truncating.
-    r.shuffle(password)
-    password = password[:length]
-    length -= len(password)
-
-    # then fill with random characters from all symbol groups
-    symbols = ''.join(symbolgroups)
-    password.extend([r.choice(symbols) for _i in xrange(length)])
-
-    # finally shuffle to ensure first x characters aren't from a
-    # predictable group
-    r.shuffle(password)
-
-    return ''.join(password)
-
-
-def last_octet(address):
-    return int(address.split('.')[-1])
-
-
-def get_my_linklocal(interface):
-    try:
-        if_str = execute('ip', '-f', 'inet6', '-o', 'addr', 'show', interface)
-        condition = '\s+inet6\s+([0-9a-f:]+)/\d+\s+scope\s+link'
-        links = [re.search(condition, x) for x in if_str[0].split('\n')]
-        address = [w.group(1) for w in links if w is not None]
-        if address[0] is not None:
-            return address[0]
-        else:
-            msg = _('Link Local address is not found.:%s') % if_str
-            raise exception.NovaException(msg)
-    except Exception as ex:
-        msg = _("Couldn't get Link Local IP of %(interface)s"
-                " :%(ex)s") % locals()
-        raise exception.NovaException(msg)
-
-
-def parse_mailmap(mailmap='.mailmap'):
-    mapping = {}
-    if os.path.exists(mailmap):
-        fp = open(mailmap, 'r')
-        for l in fp:
-            l = l.strip()
-            if not l.startswith('#') and ' ' in l:
-                canonical_email, alias = l.split(' ')
-                mapping[alias.lower()] = canonical_email.lower()
-    return mapping
-
-
-def str_dict_replace(s, mapping):
-    for s1, s2 in mapping.iteritems():
-        s = s.replace(s1, s2)
-    return s
+def random_alnum(size=32):
+    characters = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+    return ''.join(random.choice(characters) for _ in xrange(size))
 
 
 class LazyPluggable(object):
@@ -546,54 +279,6 @@ class LazyPluggable(object):
         return getattr(backend, key)
 
 
-def xhtml_escape(value):
-    """Escapes a string so it is valid within XML or XHTML.
-
-    """
-    return saxutils.escape(value, {'"': '&quot;', "'": '&apos;'})
-
-
-def utf8(value):
-    """Try to turn a string into utf-8 if possible.
-
-    Code is directly from the utf8 function in
-    http://github.com/facebook/tornado/blob/master/tornado/escape.py
-
-    """
-    if isinstance(value, unicode):
-        return value.encode('utf-8')
-    assert isinstance(value, str)
-    return value
-
-
-def to_bytes(text, default=0):
-    """Try to turn a string into a number of bytes. Looks at the last
-    characters of the text to determine what conversion is needed to
-    turn the input text into a byte number.
-
-    Supports: B/b, K/k, M/m, G/g, T/t (or the same with b/B on the end)
-
-    """
-    # Take off everything not number 'like' (which should leave
-    # only the byte 'identifier' left)
-    mult_key_org = text.lstrip('-1234567890')
-    mult_key = mult_key_org.lower()
-    mult_key_len = len(mult_key)
-    if mult_key.endswith("b"):
-        mult_key = mult_key[0:-1]
-    try:
-        multiplier = BYTE_MULTIPLIERS[mult_key]
-        if mult_key_len:
-            # Empty cases shouldn't cause text[0:-0]
-            text = text[0:-mult_key_len]
-        return int(text) * multiplier
-    except KeyError:
-        msg = _('Unknown byte multiplier: %s') % mult_key_org
-        raise TypeError(msg)
-    except ValueError:
-        return default
-
-
 def delete_if_exists(pathname):
     """delete a file, but ignore file not found error."""
 
@@ -604,163 +289,6 @@ def delete_if_exists(pathname):
             return
         else:
             raise
-
-
-def get_from_path(items, path):
-    """Returns a list of items matching the specified path.
-
-    Takes an XPath-like expression e.g. prop1/prop2/prop3, and for each item
-    in items, looks up items[prop1][prop2][prop3].  Like XPath, if any of the
-    intermediate results are lists it will treat each list item individually.
-    A 'None' in items or any child expressions will be ignored, this function
-    will not throw because of None (anywhere) in items.  The returned list
-    will contain no None values.
-
-    """
-    if path is None:
-        raise exception.NovaException('Invalid mini_xpath')
-
-    (first_token, sep, remainder) = path.partition('/')
-
-    if first_token == '':
-        raise exception.NovaException('Invalid mini_xpath')
-
-    results = []
-
-    if items is None:
-        return results
-
-    if not isinstance(items, list):
-        # Wrap single objects in a list
-        items = [items]
-
-    for item in items:
-        if item is None:
-            continue
-        get_method = getattr(item, 'get', None)
-        if get_method is None:
-            continue
-        child = get_method(first_token)
-        if child is None:
-            continue
-        if isinstance(child, list):
-            # Flatten intermediate lists
-            for x in child:
-                results.append(x)
-        else:
-            results.append(child)
-
-    if not sep:
-        # No more tokens
-        return results
-    else:
-        return get_from_path(results, remainder)
-
-
-def flatten_dict(dict_, flattened=None):
-    """Recursively flatten a nested dictionary."""
-    flattened = flattened or {}
-    for key, value in dict_.iteritems():
-        if hasattr(value, 'iteritems'):
-            flatten_dict(value, flattened)
-        else:
-            flattened[key] = value
-    return flattened
-
-
-def partition_dict(dict_, keys):
-    """Return two dicts, one with `keys` the other with everything else."""
-    intersection = {}
-    difference = {}
-    for key, value in dict_.iteritems():
-        if key in keys:
-            intersection[key] = value
-        else:
-            difference[key] = value
-    return intersection, difference
-
-
-def map_dict_keys(dict_, key_map):
-    """Return a dict in which the dictionaries keys are mapped to new keys."""
-    mapped = {}
-    for key, value in dict_.iteritems():
-        mapped_key = key_map[key] if key in key_map else key
-        mapped[mapped_key] = value
-    return mapped
-
-
-def subset_dict(dict_, keys):
-    """Return a dict that only contains a subset of keys."""
-    subset = partition_dict(dict_, keys)[0]
-    return subset
-
-
-def diff_dict(orig, new):
-    """
-    Return a dict describing how to change orig to new.  The keys
-    correspond to values that have changed; the value will be a list
-    of one or two elements.  The first element of the list will be
-    either '+' or '-', indicating whether the key was updated or
-    deleted; if the key was updated, the list will contain a second
-    element, giving the updated value.
-    """
-    # Figure out what keys went away
-    result = dict((k, ['-']) for k in set(orig.keys()) - set(new.keys()))
-    # Compute the updates
-    for key, value in new.items():
-        if key not in orig or value != orig[key]:
-            result[key] = ['+', value]
-    return result
-
-
-def check_isinstance(obj, cls):
-    """Checks that obj is of type cls, and lets PyLint infer types."""
-    if isinstance(obj, cls):
-        return obj
-    raise Exception(_('Expected object of type: %s') % (str(cls)))
-
-
-def parse_server_string(server_str):
-    """
-    Parses the given server_string and returns a list of host and port.
-    If it's not a combination of host part and port, the port element
-    is a null string. If the input is invalid expression, return a null
-    list.
-    """
-    try:
-        # First of all, exclude pure IPv6 address (w/o port).
-        if netaddr.valid_ipv6(server_str):
-            return (server_str, '')
-
-        # Next, check if this is IPv6 address with a port number combination.
-        if server_str.find("]:") != -1:
-            (address, port) = server_str.replace('[', '', 1).split(']:')
-            return (address, port)
-
-        # Third, check if this is a combination of an address and a port
-        if server_str.find(':') == -1:
-            return (server_str, '')
-
-        # This must be a combination of an address and a port
-        (address, port) = server_str.split(':')
-        return (address, port)
-
-    except Exception:
-        LOG.error(_('Invalid server_string: %s'), server_str)
-        return ('', '')
-
-
-def bool_from_str(val):
-    """Convert a string representation of a bool into a bool value."""
-
-    if not val:
-        return False
-    try:
-        return True if int(val) else False
-    except ValueError:
-        return val.lower() == 'true' or \
-               val.lower() == 'yes' or \
-               val.lower() == 'y'
 
 
 def is_int_like(val):
@@ -843,47 +371,6 @@ def get_ip_version(network):
         return "IPv4"
 
 
-def monkey_patch():
-    """If the Flags.monkey_patch set as True,
-    this function patches a decorator
-    for all functions in specified modules.
-    You can set decorators for each modules
-    using CONF.monkey_patch_modules.
-    The format is "Module path:Decorator function".
-    Example:
-      'nova.api.ec2.cloud:nova.openstack.common.notifier.api.notify_decorator'
-
-    Parameters of the decorator is as follows.
-    (See nova.openstack.common.notifier.api.notify_decorator)
-
-    name - name of the function
-    function - object of the function
-    """
-    # If CONF.monkey_patch is not True, this function do nothing.
-    if not CONF.monkey_patch:
-        return
-    # Get list of modules and decorators
-    for module_and_decorator in CONF.monkey_patch_modules:
-        module, decorator_name = module_and_decorator.split(':')
-        # import decorator function
-        decorator = importutils.import_class(decorator_name)
-        __import__(module)
-        # Retrieve module information using pyclbr
-        module_data = pyclbr.readmodule_ex(module)
-        for key in module_data.keys():
-            # set the decorator for the class methods
-            if isinstance(module_data[key], pyclbr.Class):
-                clz = importutils.import_class("%s.%s" % (module, key))
-                for method, func in inspect.getmembers(clz, inspect.ismethod):
-                    setattr(clz, method,
-                        decorator("%s.%s.%s" % (module, key, method), func))
-            # set the decorator for the function
-            if isinstance(module_data[key], pyclbr.Function):
-                func = importutils.import_class("%s.%s" % (module, key))
-                setattr(sys.modules[module], key,
-                    decorator("%s.%s" % (module, key), func))
-
-
 def convert_to_list_dict(lst, label):
     """Convert a value or list into a list of dicts."""
     if not lst:
@@ -891,56 +378,6 @@ def convert_to_list_dict(lst, label):
     if not isinstance(lst, list):
         lst = [lst]
     return [{label: x} for x in lst]
-
-
-def timefunc(func):
-    """Decorator that logs how long a particular function took to execute."""
-    @functools.wraps(func)
-    def inner(*args, **kwargs):
-        start_time = time.time()
-        try:
-            return func(*args, **kwargs)
-        finally:
-            total_time = time.time() - start_time
-            LOG.debug(_("timefunc: '%(name)s' took %(total_time).2f secs") %
-                      dict(name=func.__name__, total_time=total_time))
-    return inner
-
-
-@contextlib.contextmanager
-def remove_path_on_error(path):
-    """Protect code that wants to operate on PATH atomically.
-    Any exception will cause PATH to be removed.
-    """
-    try:
-        yield
-    except Exception:
-        with excutils.save_and_reraise_exception():
-            delete_if_exists(path)
-
-
-def make_dev_path(dev, partition=None, base='/dev'):
-    """Return a path to a particular device.
-
-    >>> make_dev_path('xvdc')
-    /dev/xvdc
-
-    >>> make_dev_path('xvdc', 1)
-    /dev/xvdc1
-    """
-    path = os.path.join(base, dev)
-    if partition:
-        path += str(partition)
-    return path
-
-
-def total_seconds(td):
-    """Local total_seconds implementation for compatibility with python 2.6."""
-    if hasattr(td, 'total_seconds'):
-        return td.total_seconds()
-    else:
-        return ((td.days * 86400 + td.seconds) * 10 ** 6 +
-                td.microseconds) / 10.0 ** 6
 
 
 def sanitize_hostname(hostname):
@@ -1046,50 +483,6 @@ def temporary_mutation(obj, **kwargs):
                 set_value(obj, attr, old_value)
 
 
-def generate_mac_address():
-    """Generate an Ethernet MAC address."""
-    # NOTE(vish): We would prefer to use 0xfe here to ensure that linux
-    #             bridge mac addresses don't change, but it appears to
-    #             conflict with libvirt, so we use the next highest octet
-    #             that has the unicast and locally administered bits set
-    #             properly: 0xfa.
-    #             Discussion: https://bugs.launchpad.net/nova/+bug/921838
-    mac = [0xfa, 0x16, 0x3e,
-           random.randint(0x00, 0xff),
-           random.randint(0x00, 0xff),
-           random.randint(0x00, 0xff)]
-    return ':'.join(map(lambda x: "%02x" % x, mac))
-
-
-def read_file_as_root(file_path):
-    """Secure helper to read file as root."""
-    try:
-        out, _err = execute('cat', file_path, run_as_root=True)
-        return out
-    except exception.ProcessExecutionError:
-        raise exception.FileNotFound(file_path=file_path)
-
-
-@contextlib.contextmanager
-def temporary_chown(path, owner_uid=None):
-    """Temporarily chown a path.
-
-    :params owner_uid: UID of temporary owner (defaults to current user)
-    """
-    if owner_uid is None:
-        owner_uid = os.getuid()
-
-    orig_uid = os.stat(path).st_uid
-
-    if orig_uid != owner_uid:
-        execute('chown', owner_uid, path, run_as_root=True)
-    try:
-        yield
-    finally:
-        if orig_uid != owner_uid:
-            execute('chown', orig_uid, path, run_as_root=True)
-
-
 @contextlib.contextmanager
 def tempdir(**kwargs):
     tempfile.tempdir = CONF.tempdir
@@ -1101,46 +494,6 @@ def tempdir(**kwargs):
             shutil.rmtree(tmpdir)
         except OSError, e:
             LOG.error(_('Could not remove tmpdir: %s'), str(e))
-
-
-def walk_class_hierarchy(clazz, encountered=None):
-    """Walk class hierarchy, yielding most derived classes first."""
-    if not encountered:
-        encountered = []
-    for subclass in clazz.__subclasses__():
-        if subclass not in encountered:
-            encountered.append(subclass)
-            # drill down to leaves first
-            for subsubclass in walk_class_hierarchy(subclass, encountered):
-                yield subsubclass
-            yield subclass
-
-
-class UndoManager(object):
-    """Provides a mechanism to facilitate rolling back a series of actions
-    when an exception is raised.
-    """
-    def __init__(self):
-        self.undo_stack = []
-
-    def undo_with(self, undo_func):
-        self.undo_stack.append(undo_func)
-
-    def _rollback(self):
-        for undo_func in reversed(self.undo_stack):
-            undo_func()
-
-    def rollback_and_reraise(self, msg=None, **kwargs):
-        """Rollback a series of actions then re-raise the exception.
-
-        .. note:: (sirp) This should only be called within an
-                  exception handler.
-        """
-        with excutils.save_and_reraise_exception():
-            if msg:
-                LOG.exception(msg, **kwargs)
-
-            self._rollback()
 
 
 def mkfs(fs, path, label=None):
@@ -1168,99 +521,53 @@ def mkfs(fs, path, label=None):
     execute(*args)
 
 
-def last_bytes(file_like_object, num):
-    """Return num bytes from the end of the file, and remaining byte count.
+def cache_image(context, target, image_id, user_id, project_id):
+    if not os.path.exists(target):
+        libvirt_utils.fetch_image(context, target, image_id,
+                                  user_id, project_id)
 
-    :param file_like_object: The file to read
-    :param num: The number of bytes to return
 
-    :returns (data, remaining)
-    """
-
+def inject_into_image(image, key, net, metadata, admin_password,
+        files, partition, use_cow=False):
     try:
-        file_like_object.seek(-num, os.SEEK_END)
-    except IOError, e:
-        if e.errno == 22:
-            file_like_object.seek(0, os.SEEK_SET)
+        disk_api.inject_data(image, key, net, metadata, admin_password,
+                files, partition, use_cow)
+    except Exception as e:
+        LOG.warn(_("Failed to inject data into image %(image)s. "
+                   "Error: %(e)s") % locals())
+
+
+def unlink_without_raise(path):
+    try:
+        os.unlink(path)
+    except OSError as e:
+        if e.errno == errno.ENOENT:
+            return
         else:
-            raise
-
-    remaining = file_like_object.tell()
-    return (file_like_object.read(), remaining)
+            LOG.warn(_("Failed to unlink %(path)s, error: %(e)s") % locals())
 
 
-def metadata_to_dict(metadata):
-    result = {}
-    for item in metadata:
-        if not item.get('deleted'):
-            result[item['key']] = item['value']
-    return result
+def rmtree_without_raise(path):
+    try:
+        if os.path.isdir(path):
+            shutil.rmtree(path)
+    except OSError as e:
+        LOG.warn(_("Failed to remove dir %(path)s, error: %(e)s") % locals())
 
 
-def dict_to_metadata(metadata):
-    result = []
-    for key, value in metadata.iteritems():
-        result.append(dict(key=key, value=value))
-    return result
+def write_to_file(path, contents):
+    with open(path, 'w') as f:
+        f.write(contents)
 
 
-def get_wrapped_function(function):
-    """Get the method at the bottom of a stack of decorators."""
-    if not hasattr(function, 'func_closure') or not function.func_closure:
-        return function
-
-    def _get_wrapped_function(function):
-        if not hasattr(function, 'func_closure') or not function.func_closure:
-            return None
-
-        for closure in function.func_closure:
-            func = closure.cell_contents
-
-            deeper_func = _get_wrapped_function(func)
-            if deeper_func:
-                return deeper_func
-            elif hasattr(closure.cell_contents, '__call__'):
-                return closure.cell_contents
-
-    return _get_wrapped_function(function)
+def create_link_without_raise(source, link):
+    try:
+        os.symlink(source, link)
+    except OSError as e:
+        if e.errno == errno.EEXIST:
+            return
+        else:
+            LOG.warn(_("Failed to create symlink from %(source)s to %(link)s"
+                       ", error: %(e)s") % locals())
 
 
-class ExceptionHelper(object):
-    """Class to wrap another and translate the ClientExceptions raised by its
-    function calls to the actual ones"""
-
-    def __init__(self, target):
-        self._target = target
-
-    def __getattr__(self, name):
-        func = getattr(self._target, name)
-
-        @functools.wraps(func)
-        def wrapper(*args, **kwargs):
-            try:
-                return func(*args, **kwargs)
-            except rpc_common.ClientException, e:
-                raise (e._exc_info[1], None, e._exc_info[2])
-        return wrapper
-
-
-def check_string_length(value, name, min_length=0, max_length=None):
-    """Check the length of specified string
-    :param value: the value of the string
-    :param name: the name of the string
-    :param min_length: the min_length of the string
-    :param max_length: the max_length of the string
-    """
-    if not isinstance(value, basestring):
-        msg = _("%s is not a string or unicode") % name
-        raise exception.InvalidInput(message=msg)
-
-    if len(value) < min_length:
-        msg = _("%(name)s has less than %(min_length)s "
-                    "characters.") % locals()
-        raise exception.InvalidInput(message=msg)
-
-    if max_length and len(value) > max_length:
-        msg = _("%(name)s has more than %(max_length)s "
-                    "characters.") % locals()
-        raise exception.InvalidInput(message=msg)

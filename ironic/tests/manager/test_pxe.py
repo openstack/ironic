@@ -26,16 +26,15 @@ import mox
 from oslo.config import cfg
 from testtools import matchers
 
-from ironic import exception
+from ironic.common import exception
+from ironic.common import states
+from ironic import db
+from ironic.manager import pxe
 from ironic.openstack.common.db import exception as db_exc
 from ironic.tests.db import base as db_base
 from ironic.tests.db import utils as db_utils
 from ironic.tests.image import fake as fake_image
 from ironic.tests import utils
-from ironic import states
-from ironic import db
-from ironic import pxe
-from ironic import utils as bm_utils
 from ironic.virt.disk import api as disk_api
 from ironic.virt import fake as fake_virt
 
@@ -417,11 +416,11 @@ class PXEPublicMethodsTestCase(BareMetalPXETestCase):
 
     def test_destroy_images(self):
         self._create_node()
-        self.mox.StubOutWithMock(bm_utils, 'unlink_without_raise')
-        self.mox.StubOutWithMock(bm_utils, 'rmtree_without_raise')
+        self.mox.StubOutWithMock(utils, 'unlink_without_raise')
+        self.mox.StubOutWithMock(utils, 'rmtree_without_raise')
 
-        bm_utils.unlink_without_raise(pxe.get_image_file_path(self.instance))
-        bm_utils.rmtree_without_raise(pxe.get_image_dir_path(self.instance))
+        utils.unlink_without_raise(pxe.get_image_file_path(self.instance))
+        utils.rmtree_without_raise(pxe.get_image_dir_path(self.instance))
         self.mox.ReplayAll()
 
         self.driver.destroy_images(self.context, self.node, self.instance)
@@ -446,22 +445,22 @@ class PXEPublicMethodsTestCase(BareMetalPXETestCase):
         self.mox.StubOutWithMock(self.driver.virtapi, 'instance_type_get')
         self.mox.StubOutWithMock(pxe, 'get_tftp_image_info')
         self.mox.StubOutWithMock(pxe, 'get_partition_sizes')
-        self.mox.StubOutWithMock(bm_utils, 'random_alnum')
+        self.mox.StubOutWithMock(utils, 'random_alnum')
         self.mox.StubOutWithMock(pxe, 'build_pxe_config')
-        self.mox.StubOutWithMock(bm_utils, 'write_to_file')
-        self.mox.StubOutWithMock(bm_utils, 'create_link_without_raise')
+        self.mox.StubOutWithMock(utils, 'write_to_file')
+        self.mox.StubOutWithMock(utils, 'create_link_without_raise')
 
         self.driver.virtapi.instance_type_get(
             self.context, self.instance['instance_type_id']).AndReturn({})
         pxe.get_tftp_image_info(self.instance, {}).AndReturn(image_info)
         pxe.get_partition_sizes(self.instance).AndReturn((0, 0))
-        bm_utils.random_alnum(32).AndReturn('alnum')
+        utils.random_alnum(32).AndReturn('alnum')
         pxe.build_pxe_config(
                 self.node['id'], 'alnum', iqn,
                 'aaaa', 'bbbb', 'cccc', 'dddd').AndReturn(pxe_config)
-        bm_utils.write_to_file(pxe_path, pxe_config)
+        utils.write_to_file(pxe_path, pxe_config)
         for mac in macs:
-            bm_utils.create_link_without_raise(
+            utils.create_link_without_raise(
                     pxe_path, pxe.get_pxe_mac_path(mac))
 
         self.mox.ReplayAll()
@@ -481,32 +480,32 @@ class PXEPublicMethodsTestCase(BareMetalPXETestCase):
         self.instance['uuid'] = 'fake-uuid'
 
         self.mox.StubOutWithMock(self.driver.virtapi, 'instance_type_get')
-        self.mox.StubOutWithMock(bm_utils, 'write_to_file')
-        self.mox.StubOutWithMock(bm_utils, 'create_link_without_raise')
-        self.mox.StubOutWithMock(bm_utils, 'unlink_without_raise')
-        self.mox.StubOutWithMock(bm_utils, 'rmtree_without_raise')
+        self.mox.StubOutWithMock(utils, 'write_to_file')
+        self.mox.StubOutWithMock(utils, 'create_link_without_raise')
+        self.mox.StubOutWithMock(utils, 'unlink_without_raise')
+        self.mox.StubOutWithMock(utils, 'rmtree_without_raise')
 
         self.driver.virtapi.instance_type_get(
             self.context, self.instance['instance_type_id']).AndReturn(
                 instance_type)
 
         # create the config file
-        bm_utils.write_to_file(mox.StrContains('fake-uuid'),
+        utils.write_to_file(mox.StrContains('fake-uuid'),
                                mox.StrContains(CONF.baremetal.tftp_root))
         # unlink and link the 2 interfaces
         for i in range(2):
-            bm_utils.unlink_without_raise(mox.Or(
+            utils.unlink_without_raise(mox.Or(
                     mox.StrContains('fake-uuid'),
                     mox.StrContains(CONF.baremetal.tftp_root)))
-            bm_utils.create_link_without_raise(
+            utils.create_link_without_raise(
                     mox.StrContains('fake-uuid'),
                     mox.StrContains(CONF.baremetal.tftp_root))
         # unlink all 2 interfaces, 4 images, and the config file
         for i in range(7):
-            bm_utils.unlink_without_raise(mox.Or(
+            utils.unlink_without_raise(mox.Or(
                     mox.StrContains('fake-uuid'),
                     mox.StrContains(CONF.baremetal.tftp_root)))
-        bm_utils.rmtree_without_raise(mox.StrContains('fake-uuid'))
+        utils.rmtree_without_raise(mox.StrContains('fake-uuid'))
 
         self.mox.ReplayAll()
 
@@ -532,8 +531,8 @@ class PXEPublicMethodsTestCase(BareMetalPXETestCase):
         self.instance['uuid'] = 'fake-uuid'
         pxe_path = pxe.get_pxe_config_file_path(self.instance)
 
-        self.mox.StubOutWithMock(bm_utils, 'unlink_without_raise')
-        self.mox.StubOutWithMock(bm_utils, 'rmtree_without_raise')
+        self.mox.StubOutWithMock(utils, 'unlink_without_raise')
+        self.mox.StubOutWithMock(utils, 'rmtree_without_raise')
         self.mox.StubOutWithMock(pxe, 'get_tftp_image_info')
         self.mox.StubOutWithMock(self.driver, '_collect_mac_addresses')
 
@@ -542,10 +541,10 @@ class PXEPublicMethodsTestCase(BareMetalPXETestCase):
             'baremetal:deploy_kernel_id': 'ignore'})
         pxe.get_tftp_image_info(self.instance, extra_specs).\
                 AndRaise(exception.NovaException)
-        bm_utils.unlink_without_raise(pxe_path)
+        utils.unlink_without_raise(pxe_path)
         self.driver._collect_mac_addresses(self.context, self.node).\
                 AndRaise(db_exc.DBError)
-        bm_utils.rmtree_without_raise(
+        utils.rmtree_without_raise(
                 os.path.join(CONF.baremetal.tftp_root, 'fake-uuid'))
         self.mox.ReplayAll()
 
