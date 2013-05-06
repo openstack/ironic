@@ -25,12 +25,11 @@ import tempfile
 
 from oslo.config import cfg
 
-from nova import test
-from nova.tests.baremetal.db import utils as bm_db_utils
-from nova import utils
-from nova.virt.baremetal import baremetal_states
-from nova.virt.baremetal import ipmi
-from nova.virt.baremetal import utils as bm_utils
+from ironic import test
+from ironic.common import states
+from ironic.common import utils
+from ironic.tests.db import utils as db_utils
+from ironic.manager import ipmi
 
 CONF = cfg.CONF
 
@@ -39,7 +38,7 @@ class BareMetalIPMITestCase(test.TestCase):
 
     def setUp(self):
         super(BareMetalIPMITestCase, self).setUp()
-        self.node = bm_db_utils.new_bm_node(
+        self.node = db_utils.new_bm_node(
                 id=123,
                 pm_address='fake-address',
                 pm_user='fake-user',
@@ -68,7 +67,7 @@ class BareMetalIPMITestCase(test.TestCase):
 
         self.mox.StubOutWithMock(ipmi, '_make_password_file')
         self.mox.StubOutWithMock(utils, 'execute')
-        self.mox.StubOutWithMock(bm_utils, 'unlink_without_raise')
+        self.mox.StubOutWithMock(utils, 'delete_if_exists')
         ipmi._make_password_file(self.ipmi.password).AndReturn(pw_file)
         args = [
                 'ipmitool',
@@ -79,7 +78,7 @@ class BareMetalIPMITestCase(test.TestCase):
                 'A', 'B', 'C',
                 ]
         utils.execute(*args, attempts=3).AndReturn(('', ''))
-        bm_utils.unlink_without_raise(pw_file).AndReturn(None)
+        utils.delete_if_exists(pw_file).AndReturn(None)
         self.mox.ReplayAll()
 
         self.ipmi._exec_ipmitool('A B C')
@@ -95,20 +94,20 @@ class BareMetalIPMITestCase(test.TestCase):
         self.mox.VerifyAll()
 
     def test_power_already_on(self):
-        self.flags(ipmi_power_retry=0, group='baremetal')
+        self.flags(ipmi_power_retry=0)
         self.mox.StubOutWithMock(self.ipmi, '_exec_ipmitool')
 
         self.ipmi._exec_ipmitool("power status").AndReturn(
                 ["Chassis Power is on\n"])
         self.mox.ReplayAll()
 
-        self.ipmi.state = baremetal_states.DELETED
+        self.ipmi.state = states.DELETED
         self.ipmi._power_on()
         self.mox.VerifyAll()
-        self.assertEqual(self.ipmi.state, baremetal_states.ACTIVE)
+        self.assertEqual(self.ipmi.state, states.ACTIVE)
 
     def test_power_on_ok(self):
-        self.flags(ipmi_power_retry=0, group='baremetal')
+        self.flags(ipmi_power_retry=0)
         self.mox.StubOutWithMock(self.ipmi, '_exec_ipmitool')
 
         self.ipmi._exec_ipmitool("power status").AndReturn(
@@ -118,13 +117,13 @@ class BareMetalIPMITestCase(test.TestCase):
                 ["Chassis Power is on\n"])
         self.mox.ReplayAll()
 
-        self.ipmi.state = baremetal_states.DELETED
+        self.ipmi.state = states.DELETED
         self.ipmi._power_on()
         self.mox.VerifyAll()
-        self.assertEqual(self.ipmi.state, baremetal_states.ACTIVE)
+        self.assertEqual(self.ipmi.state, states.ACTIVE)
 
     def test_power_on_fail(self):
-        self.flags(ipmi_power_retry=0, group='baremetal')
+        self.flags(ipmi_power_retry=0)
         self.mox.StubOutWithMock(self.ipmi, '_exec_ipmitool')
 
         self.ipmi._exec_ipmitool("power status").AndReturn(
@@ -134,13 +133,13 @@ class BareMetalIPMITestCase(test.TestCase):
                 ["Chassis Power is off\n"])
         self.mox.ReplayAll()
 
-        self.ipmi.state = baremetal_states.DELETED
+        self.ipmi.state = states.DELETED
         self.ipmi._power_on()
         self.mox.VerifyAll()
-        self.assertEqual(self.ipmi.state, baremetal_states.ERROR)
+        self.assertEqual(self.ipmi.state, states.ERROR)
 
     def test_power_on_max_retries(self):
-        self.flags(ipmi_power_retry=2, group='baremetal')
+        self.flags(ipmi_power_retry=2)
         self.mox.StubOutWithMock(self.ipmi, '_exec_ipmitool')
 
         self.ipmi._exec_ipmitool("power status").AndReturn(
@@ -156,14 +155,14 @@ class BareMetalIPMITestCase(test.TestCase):
                 ["Chassis Power is off\n"])
         self.mox.ReplayAll()
 
-        self.ipmi.state = baremetal_states.DELETED
+        self.ipmi.state = states.DELETED
         self.ipmi._power_on()
         self.mox.VerifyAll()
-        self.assertEqual(self.ipmi.state, baremetal_states.ERROR)
+        self.assertEqual(self.ipmi.state, states.ERROR)
         self.assertEqual(self.ipmi.retries, 3)
 
     def test_power_off_ok(self):
-        self.flags(ipmi_power_retry=0, group='baremetal')
+        self.flags(ipmi_power_retry=0)
         self.mox.StubOutWithMock(self.ipmi, '_exec_ipmitool')
 
         self.ipmi._exec_ipmitool("power status").AndReturn(
@@ -173,13 +172,13 @@ class BareMetalIPMITestCase(test.TestCase):
                 ["Chassis Power is off\n"])
         self.mox.ReplayAll()
 
-        self.ipmi.state = baremetal_states.ACTIVE
+        self.ipmi.state = states.ACTIVE
         self.ipmi._power_off()
         self.mox.VerifyAll()
-        self.assertEqual(self.ipmi.state, baremetal_states.DELETED)
+        self.assertEqual(self.ipmi.state, states.DELETED)
 
     def test_get_console_pid_path(self):
-        self.flags(terminal_pid_dir='/tmp', group='baremetal')
+        self.flags(terminal_pid_dir='/tmp')
         path = ipmi._get_console_pid_path(self.ipmi.node_id)
         self.assertEqual(path, '/tmp/%s.pid' % self.ipmi.node_id)
 
@@ -193,7 +192,7 @@ class BareMetalIPMITestCase(test.TestCase):
         self.mox.ReplayAll()
 
         pid = ipmi._get_console_pid(self.ipmi.node_id)
-        bm_utils.unlink_without_raise(path)
+        utils.delete_if_exists(path)
         self.mox.VerifyAll()
         self.assertEqual(pid, 12345)
 
@@ -207,7 +206,7 @@ class BareMetalIPMITestCase(test.TestCase):
         self.mox.ReplayAll()
 
         pid = ipmi._get_console_pid(self.ipmi.node_id)
-        bm_utils.unlink_without_raise(path)
+        utils.delete_if_exists(path)
         self.mox.VerifyAll()
         self.assertTrue(pid is None)
 

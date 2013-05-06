@@ -16,7 +16,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-from ironic import states
+from ironic.common import states
 
 
 class NodeDriver(object):

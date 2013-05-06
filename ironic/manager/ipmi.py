@@ -131,7 +131,7 @@ class IPMI(base.PowerManager):
                       locals())
             return out, err
         finally:
-            utils.unlink_without_raise(pwfile)
+            utils.delete_if_exists(pwfile)
 
     def _is_power(self, state):
         out_err = self._exec_ipmitool("power status")
@@ -246,7 +246,7 @@ class IPMI(base.PowerManager):
             x.append('2>&1')
             utils.execute(' '.join(x), shell=True)
         finally:
-            utils.unlink_without_raise(pwfile)
+            utils.delete_if_exists(pwfile)
 
     def stop_console(self):
         console_pid = _get_console_pid(self.node_id)
@@ -255,4 +255,4 @@ class IPMI(base.PowerManager):
             utils.execute('kill', '-TERM', str(console_pid),
                           run_as_root=True,
                           check_exit_code=[0, 99])
-        utils.unlink_without_raise(_get_console_pid_path(self.node_id))
+        utils.delete_if_exists(_get_console_pid_path(self.node_id))
