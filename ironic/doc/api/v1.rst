@@ -1,0 +1,28 @@
+GET    /                 - information about this API
+
+GET    /node            - list all nodes
+GET    /node/<id>       - get node info
+POST   /node            - insert a new node
+DELETE /node/<id>       - delete a node (and any associated interfaces)
+
+GET    /iface           - list all interfaces
+GET    /iface/<id>      - information about the interface
+GET    /iface/node/<id> - list interfaces for this node
+POST   /iface           - insert a new interface
+DELETE /iface/<id>      - delete an interface
+
+GET    /node/image/<id>      - get deployment driver info
+PUT    /node/image/<id>      - set deployment driver info
+GET    /node/image/pxe/<id>  - get PXE info
+PUT    /node/image/pxe/<id>  - set PXE info
+
+GET    /node/power/<id>      - get power driver info
+PUT    /node/power/<id>      - set power driver info
+GET    /node/power/ipmi/<id> - get IPMI info (sanitised pw)
+PUT    /node/power/ipmi/<id> - set IPMI info
+
+GET    /node/power/state/<id> - get the power state
+PUT    /node/power/state/<id> - set the power state
+
+GET    /find/node       - search for node based on query string
+GET    /find/iface      - search for iface based on query string

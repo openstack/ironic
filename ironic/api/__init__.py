@@ -15,4 +15,23 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-from ironic.db.api import *
+import flask.helpers
+from oslo.config import cfg
+
+from ironic.openstack.common import jsonutils
+
+flask.helpers.json = jsonutils
+
+API_SERVICE_OPTS = [
+        cfg.StrOpt('ironic_api_bind_ip',
+            default='0.0.0.0',
+            help='IP for the Ironic API server to bind to',
+            ),
+        cfg.IntOpt('ironic_api_port',
+            default=6385,
+            help='The port for the Ironic API server',
+            ),
+        ]
+
+CONF = cfg.CONF
+CONF.register_opts(API_SERVICE_OPTS)

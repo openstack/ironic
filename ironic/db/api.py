@@ -45,19 +45,12 @@ these objects be simple dictionaries.
 from oslo.config import cfg
 
 from ironic.common import utils
+from ironic.openstack.common.db import api as db_api
 
-db_opts = [
-    cfg.StrOpt('db_backend',
-               default='sqlalchemy',
-               help='The backend to use for the ironic database'),
-    ]
 
-CONF = cfg.CONF
-CONF.register_opts(db_opts)
+_BACKEND_MAPPING = {'sqlalchemy': 'ironic.db.sqlalchemy.api'}
 
-IMPL = utils.LazyPluggable(
-        'db_backend',
-        sqlalchemy='ironic.db.sqlalchemy.api')
+IMPL = db_api.DBAPI(backend_mapping=_BACKEND_MAPPING)
 
 
 def bm_node_get_all(context, service_host=None):

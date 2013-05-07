@@ -1,5 +1,8 @@
+#!/usr/bin/env python
+# -*- encoding: utf-8 -*-
+#
 # vim: tabstop=4 shiftwidth=4 softtabstop=4
-
+#
 # Copyright 2013 Hewlett-Packard Development Company, L.P.
 # All Rights Reserved.
 #
@@ -15,4 +18,29 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-from ironic.db.api import *
+"""
+The Ironic Management Service
+"""
+
+import sys
+
+from oslo.config import cfg
+from wsgiref import simple_server
+
+from ironic.manager import manager
+from ironic.common.service import prepare_service
+from ironic.openstack.common import service
+from ironic.openstack.common.rpc import service as rpc_service
+
+CONF = cfg.CONF
+
+
+def main():
+    # Pase config file and command line options, then start logging
+    prepare_service(sys.argv)
+
+    mgr = manager.AgentManager()
+    topic = 'ironic.manager'
+    ironic = rcp_service.Service(CONF.host, topic, mgr)
+    launcher = service.launch(ironic)
+    launcher.wait()

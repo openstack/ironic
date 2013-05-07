@@ -20,6 +20,7 @@
 
 """Implementation of SQLAlchemy backend."""
 
+import sys
 import uuid
 
 from sqlalchemy.sql.expression import asc
@@ -38,6 +39,11 @@ LOG = logging.getLogger(__name__)
 
 get_engine = db_session.get_engine
 get_session = db_session.get_session
+
+
+def get_backend():
+    """The backend is this module itself."""
+    return sys.modules[__name__]
 
 
 def model_query(context, model, *args, **kwargs):
