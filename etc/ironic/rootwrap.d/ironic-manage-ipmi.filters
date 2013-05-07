@@ -1,0 +1,9 @@
+# ironic-rootwrap command filters for manager nodes
+# This file should be owned by (and only-writeable by) the root user
+
+[Filters]
+# ironic/manager/ipmi.py: 'ipmitool', ..
+ipmitool: CommandFilter, /usr/bin/ipmitool, root
+
+# ironic/manager/ipmi.py: 'kill', '-TERM', str(console_pid)
+kill_shellinaboxd: KillFilter, root, /usr/local/bin/shellinaboxd, -15, -TERM

@@ -1,0 +1,10 @@
+# ironic-rootwrap command filters for ironic-deploy-helper
+# This file should be owned by (and only-writeable by) the root user
+
+[Filters]
+# ironic-deploy-helper
+iscsiadm: CommandFilter, /sbin/iscsiadm, root
+sfdisk: CommandFilter, /sbin/sfdisk, root
+dd: CommandFilter, /bin/dd, root
+mkswap: CommandFilter, /sbin/mkswap, root
+blkid: CommandFilter, /sbin/blkid, root
