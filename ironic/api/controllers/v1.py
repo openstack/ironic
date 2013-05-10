@@ -61,9 +61,10 @@ class Interface(Base):
     node_id = int
     address = wtypes.text
 
-    def __init__(self, node_id=None, address=None):
-        self.node_id = node_id
-        self.address = address
+    def __init__(self, **kwargs):
+        self.fields = list(kwargs)
+        for k, v in kwargs.iteritems():
+            setattr(self, k, v)
 
     @classmethod
     def sample(cls):
@@ -108,19 +109,15 @@ class Node(Base):
     """A representation of a bare metal node"""
 
     uuid = wtypes.text
-    cpus = int
-    memory_mb = int
 
-    def __init__(self, uuid=None, cpus=None, memory_mb=None):
-        self.uuid = uuid
-        self.cpus = cpus
-        self.memory_mb = memory_mb
+    def __init__(self, **kwargs):
+        self.fields = list(kwargs)
+        for k, v in kwargs.iteritems():
+            setattr(self, k, v)
 
     @classmethod
     def sample(cls):
         return cls(uuid='1be26c0b-03f2-4d2e-ae87-c02d7f33c123',
-                   cpus=2,
-                   memory_mb=1024,
                    )
 
  
@@ -141,9 +138,8 @@ class NodesController(rest.RestController):
     @wsme_pecan.wsexpose(Node, unicode)
     def get_one(self, node_id):
         """Retrieve information about the given node."""
-        one = Node.sample()
-        one.uuid = node_id
-        return one
+        r = pecan.request.dbapi.get_node_by_id(node_id)
+        return r
 
     @wsme_pecan.wsexpose()
     def delete(self, node_id):

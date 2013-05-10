@@ -39,9 +39,8 @@ def get_pecan_config():
 
 
 def setup_app(pecan_config=None, extra_hooks=None):
-    # FIXME: Replace DBHook with a hooks.TransactionHook
-    app_hooks = [hooks.ConfigHook()]
-#                 hooks.DBHook()]
+    app_hooks = [hooks.ConfigHook(),
+                 hooks.DBHook()]
     if extra_hooks:
         app_hooks.extend(extra_hooks)
 
@@ -62,6 +61,7 @@ def setup_app(pecan_config=None, extra_hooks=None):
         force_canonical=getattr(pecan_config.app, 'force_canonical', True),
         hooks=app_hooks,
     )
+#        TODO: add this back in
 #        wrap_app=middleware.ParsableErrorMiddleware,
 
     if pecan_config.app.enable_acl:

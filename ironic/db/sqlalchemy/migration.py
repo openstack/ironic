@@ -19,14 +19,13 @@
 import distutils.version as dist_version
 import os
 
-from ironic.common import exception
-from ironic.db import migration
-from ironic.openstack.common.db.sqlalchemy import session as db_session
-
-
 import migrate
 from migrate.versioning import util as migrate_util
 import sqlalchemy
+
+from ironic.common import exception
+from ironic.db import migration
+from ironic.openstack.common.db.sqlalchemy import session as db_session
 
 
 @migrate_util.decorator
