@@ -30,7 +30,7 @@ from ironic.openstack.common.rpc import service as rpc_service
 
 cfg.CONF.register_opts([
     cfg.IntOpt('periodic_interval',
-               default=600,
+               default=60,
                help='seconds between running periodic tasks'),
     cfg.StrOpt('host',
                default=socket.getfqdn(),
@@ -70,12 +70,6 @@ class PeriodicService(rpc_service.Service):
         self.tg.add_timer(cfg.CONF.periodic_interval,
                           self.manager.periodic_tasks,
                           context=admin_context)
-
-
-def _sanitize_cmd_line(argv):
-    """Remove non-nova CLI options from argv."""
-    cli_opt_names = ['--%s' % o.name for o in CLI_OPTIONS]
-    return [a for a in argv if a in cli_opt_names]
 
 
 def prepare_service(argv=[]):

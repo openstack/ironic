@@ -39,8 +39,7 @@ def main():
     # Pase config file and command line options, then start logging
     prepare_service(sys.argv)
 
-    mgr = manager.AgentManager()
     topic = 'ironic.manager'
-    ironic = rcp_service.Service(CONF.host, topic, mgr)
-    launcher = service.launch(ironic)
+    mgr = manager.ManagerService(CONF.host, topic)
+    launcher = service.launch(mgr)
     launcher.wait()
