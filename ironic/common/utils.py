@@ -90,7 +90,7 @@ def execute(*cmd, **kwargs):
     :param run_as_root:        True | False. Defaults to False. If set to True,
                                the command is run with rootwrap.
 
-    :raises exception.NovaException: on receiving unknown arguments
+    :raises exception.IronicException: on receiving unknown arguments
     :raises exception.ProcessExecutionError:
 
     :returns: a tuple, (stdout, stderr) from the spawned process, or None if
@@ -110,7 +110,7 @@ def execute(*cmd, **kwargs):
     shell = kwargs.pop('shell', False)
 
     if len(kwargs):
-        raise exception.NovaException(_('Got unknown keyword args '
+        raise exception.IronicException(_('Got unknown keyword args '
                                         'to utils.execute: %r') % kwargs)
 
     if run_as_root and os.geteuid() != 0:
@@ -200,12 +200,12 @@ def ssh_execute(ssh, cmd, process_input=None,
                 addl_env=None, check_exit_code=True):
     LOG.debug(_('Running cmd (SSH): %s'), cmd)
     if addl_env:
-        raise exception.NovaException(_('Environment not supported over SSH'))
+        raise exception.IronicException(_('Environment not supported over SSH'))
 
     if process_input:
         # This is (probably) fixable if we need it...
         msg = _('process_input not supported over SSH')
-        raise exception.NovaException(msg)
+        raise exception.IronicException(msg)
 
     stdin_stream, stdout_stream, stderr_stream = ssh.exec_command(cmd)
     channel = stdout_stream.channel
@@ -261,7 +261,7 @@ class LazyPluggable(object):
                 backend_name = CONF[self.__config_group][self.__pivot]
             if backend_name not in self.__backends:
                 msg = _('Invalid backend: %s') % backend_name
-                raise exception.NovaException(msg)
+                raise exception.IronicException(msg)
 
             backend = self.__backends[backend_name]
             if isinstance(backend, tuple):
