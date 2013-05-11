@@ -90,9 +90,8 @@ class InterfacesController(rest.RestController):
     @wsme_pecan.wsexpose(Interface, unicode)
     def get_one(self, address):
         """Retrieve information about the given interface."""
-        one = Interface.sample()
-        one.address = address
-        return one
+        r = pecan.request.dbapi.get_iface(address)
+        return Interface.from_db_model(r)
 
     @wsme_pecan.wsexpose()
     def delete(self, iface_id):
@@ -141,6 +140,15 @@ class Node(Base):
                    extra='{}',
                    )
 
+
+class NodeIfaceController(rest.RestController):
+    """For GET /node/ifaces/<id>"""
+
+    @wsme_pecan.wsexpose([Interface], unicode)
+    def get(self, node_id):
+        return [Interface.from_db_model(r)
+                for r in pecan.request.dbapi.get_ifaces_for_node(node_id)]
+
  
 class NodesController(rest.RestController):
     """REST controller for Nodes"""
@@ -149,35 +157,35 @@ class NodesController(rest.RestController):
     def post(self, data):
         """Ceate a new node."""
         try:
-            node = pecan.request.dbapi.create_node(
+            r = pecan.request.dbapi.create_node(
                         data.as_dict(db.models.Node))
         except Exception as e:
             LOG.exception(e)
             raise wsme.exc.ClientSideError(_("Invalid data"))
-        return node
-        
+        return Node.from_db_model(r)
 
     @wsme_pecan.wsexpose()
     def get_all(self):
         """Retrieve a list of all nodes."""
-        nodes = [Node.sample()]
-        return [n.uuid for n in nodes]
+        pass
 
     @wsme_pecan.wsexpose(Node, unicode)
     def get_one(self, node_id):
         """Retrieve information about the given node."""
-        r = pecan.request.dbapi.get_node_by_id(node_id)
+        r = pecan.request.dbapi.get_node(node_id)
         return Node.from_db_model(r)
 
     @wsme_pecan.wsexpose()
     def delete(self, node_id):
         """Delete a node"""
-        pass
+        pecan.request.dbapi.destroy_node(node_id)
 
     @wsme_pecan.wsexpose()
     def put(self, node_id):
         """Update a node"""
         pass
+
+    ifaces = NodeIfaceController()
 
 
 class Controller(object):

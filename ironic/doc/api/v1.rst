@@ -5,11 +5,13 @@ GET    /node/<id>       - get node info
 POST   /node            - insert a new node
 DELETE /node/<id>       - delete a node (and any associated interfaces)
 
+
 GET    /iface           - list all interfaces
 GET    /iface/<id>      - information about the interface
-GET    /iface/node/<id> - list interfaces for this node
 POST   /iface           - insert a new interface
 DELETE /iface/<id>      - delete an interface
+
+GET    /node/ifaces/<id>     - list interfaces for this node
 
 GET    /node/image/<id>      - get deployment driver info
 PUT    /node/image/<id>      - set deployment driver info
