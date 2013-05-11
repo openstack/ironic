@@ -58,11 +58,15 @@ class Node(Base):
 
     __tablename__ = 'nodes'
     id = Column(Integer, primary_key=True)
-    uuid = Column(String(36))
+    uuid = Column(String(36), unique=True)
     power_info = Column(Text)
+    cpu_arch = Column(String(10))
+    cpu_num = Column(Integer)
+    memory = Column(Integer)
+    local_storage_max = Column(Integer)
     task_state = Column(String(255))
     image_path = Column(String(255), nullable=True)
-    instance_uuid = Column(String(36), nullable=True)
+    instance_uuid = Column(String(36), nullable=True, unique=True)
     instance_name = Column(String(255), nullable=True)
     extra = Column(Text)
 
@@ -72,31 +76,6 @@ class Iface(Base):
 
     __tablename__ = 'ifaces'
     id = Column(Integer, primary_key=True)
-    mac = Column(String(255), unique=True)
+    address = Column(String(18), unique=True)
     node_id = Column(Integer, ForeignKey('nodes.id'), nullable=True)
     extra = Column(Text)
-
-
-class HwSpec(Base):
-    """Represents a unique hardware class."""
-
-    __tablename__ = 'hw_specs'
-    id = Column(Integer, primary_key=True)
-    uuid = Column(String(36))
-    cpu_arch = Column(String(255))
-    n_cpu = Column(Integer)
-    ram_mb = Column(Integer)
-    storage_gb = Column(Integer)
-    name = Column(String(255), nullable=True)
-    n_disk = Column(Integer, nullable=True)
-
-
-class InstSpec(Base):
-    """Represents a unique instance class."""
-
-    __tablename__ = 'inst_specs'
-    id = Column(Integer, primary_key=True)
-    uuid = Column(String(36))
-    root_mb = Column(Integer)
-    swap_mb = Column(Integer)
-    name = Column(String(255), nullable=True)

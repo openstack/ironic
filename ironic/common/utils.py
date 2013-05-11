@@ -305,6 +305,12 @@ def is_valid_boolstr(val):
     return str(val).lower() in boolstrs
 
 
+def is_valid_mac(address):
+    """Verify the format of a MAC addres."""
+    if re.match("[0-9a-f]{2}([-:])[0-9a-f]{2}(\\1[0-9a-f]{2}){4}$", address.lower()):
+        return True
+    return False
+
 def is_valid_ipv4(address):
     """Verify that address represents a valid IPv4 address."""
     try:

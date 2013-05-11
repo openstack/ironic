@@ -109,6 +109,16 @@ class Node(Base):
     """A representation of a bare metal node"""
 
     uuid = wtypes.text
+    cpu_arch = wtypes.text
+    cpu_num = int
+    memory = int
+    local_storage_max = int
+    task_state = wtypes.text
+    image_path = wtypes.text
+    instance_uuid = wtypes.text
+    instance_name = wtypes.text
+    power_info = wtypes.text
+    extra = wtypes.text
 
     def __init__(self, **kwargs):
         self.fields = list(kwargs)
@@ -117,17 +127,35 @@ class Node(Base):
 
     @classmethod
     def sample(cls):
+        power_info = "{'driver': 'ipmi', 'user': 'fake', " \
+                   + "'password': 'password', 'address': '1.2.3.4'}"
         return cls(uuid='1be26c0b-03f2-4d2e-ae87-c02d7f33c123',
+                   cpu_arch='x86_64',
+                   cpu_num=4,
+                   memory=16384,
+                   local_storage_max=1000,
+                   task_state='NOSTATE',
+                   image_path='/fake/image/path',
+                   instance_uuid='8227348d-5f1d-4488-aad1-7c92b2d42504',
+                   power_info=power_info,
+                   extra='{}',
                    )
 
  
 class NodesController(rest.RestController):
     """REST controller for Nodes"""
 
-    @wsme_pecan.wsexpose(Node, unicode) 
-    def post(self, node):
+    @wsme_pecan.wsexpose(Node, body=Node)
+    def post(self, data):
         """Ceate a new node."""
-        return Node.sample()
+        try:
+            node = pecan.request.dbapi.create_node(
+                        data.as_dict(db.models.Node))
+        except Exception as e:
+            LOG.exception(e)
+            raise wsme.exc.ClientSideError(_("Invalid data"))
+        return node
+        
 
     @wsme_pecan.wsexpose()
     def get_all(self):
@@ -139,7 +167,7 @@ class NodesController(rest.RestController):
     def get_one(self, node_id):
         """Retrieve information about the given node."""
         r = pecan.request.dbapi.get_node_by_id(node_id)
-        return r
+        return Node.from_db_model(r)
 
     @wsme_pecan.wsexpose()
     def delete(self, node_id):

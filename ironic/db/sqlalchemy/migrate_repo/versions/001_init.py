@@ -34,8 +34,12 @@ def upgrade(migrate_engine):
 
     nodes = Table('nodes', meta,
         Column('id', Integer, primary_key=True, nullable=False),
-        Column('uuid', String(length=26)),
+        Column('uuid', String(length=36)),
         Column('power_info', Text),
+        Column('cpu_arch', String(length=10)),
+        Column('cpu_num', Integer),
+        Column('memory', Integer),
+        Column('local_storage_max', Integer),
         Column('task_state', String(length=255)),
         Column('image_path', String(length=255), nullable=True),
         Column('instance_uuid', String(length=255), nullable=True),
@@ -49,7 +53,7 @@ def upgrade(migrate_engine):
 
     ifaces = Table('ifaces', meta,
         Column('id', Integer, primary_key=True, nullable=False),
-        Column('uuid', String(length=26)),
+        Column('address', String(length=18)),
         Column('node_id', Integer, ForeignKey('nodes.id'),
             nullable=True),
         Column('extra', Text),
@@ -69,13 +73,24 @@ def upgrade(migrate_engine):
             raise
 
     indexes = [
-        Index('uuid', nodes.c.uuid),
-        Index('uuid', ifaces.c.uuid),
+        Index('node_cpu_mem_disk', nodes.c.cpu_num,
+                nodes.c.memory, nodes.c.local_storage_max),
+        Index('node_instance_uuid', nodes.c.instance_uuid),
+    ]
+
+    uniques = [
+        UniqueConstraint('uuid', table=nodes,
+                            name='node_uuid_ux'),
+        UniqueConstraint('address', table=ifaces,
+                            name='iface_address_ux'),
     ]
 
     if migrate_engine.name == 'mysql' or migrate_engine.name == 'postgresql':
         for index in indexes:
             index.create(migrate_engine)
+        for index in uniques:
+            index.create(migrate_engine)
+
 
 def downgrade(migrate_engine):
     raise NotImplementedError('Downgrade from Folsom is unsupported.')

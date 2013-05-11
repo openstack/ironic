@@ -56,67 +56,98 @@ class Connection(object):
         """Return a list of ids of all unassociated nodes."""
 
     @abc.abstractmethod
-    def reserve_node(self, *args, **kwargs):
-        """Find a free node and associate it.
+    def reserve_node(self, node, values):
+        """Associate a node with an instance.
 
-        TBD
+        :param node: The id or uuid of a node.
+        :param values: Values to set while reserving the node.
+                       Must include 'instance_uuid'.
+        :return: The reserved Node.
         """
 
     @abc.abstractmethod
-    def create_node(self, *args, **kwargs):
-        """Create a new node."""
+    def create_node(self, values):
+        """Create a new node.
+        
+        :param values: Values to instantiate the node with.
+        :returns: Node.
+        """
 
     @abc.abstractmethod
-    def get_node_by_id(self, node_id):
+    def get_node(self, node):
         """Return a node.
 
-        :param node_id: The id or uuid of a node.
+        :param node: The id or uuid of a node.
+        :return Node:
         """
 
     @abc.abstractmethod
-    def get_node_by_instance_id(self, instance_id):
+    def get_node_by_instance(self, instance):
         """Return a node.
 
-        :param instance_id: The instance id or uuid of a node.
+        :param instance: The instance name or uuid to search for.
+        :returns: Node.
         """
 
     @abc.abstractmethod
-    def destroy_node(self, node_id):
-        """Destroy a node.
+    def destroy_node(self, node):
+        """Destroy a node and all associated interfaces.
 
-        :param node_id: The id or uuid of a node.
+        :param node: The id or uuid of a node.
         """
 
     @abc.abstractmethod
-    def update_node(self, node_id, *args, **kwargs):
+    def update_node(self, node, values):
         """Update properties of a node.
 
-        :param node_id: The id or uuid of a node.
-        TBD
+        :param node: The id or uuid of a node.
+        :param values: Dict of values to update.
+        :returns: Node.
         """
 
     @abc.abstractmethod
-    def get_iface(self, iface_id):
+    def get_iface(self, iface):
         """Return an interface.
 
-        :param iface_id: The id or MAC of an interface.
+        :param iface: The id or MAC of an interface.
+        :returns: Iface.
         """
 
     @abc.abstractmethod
-    def create_iface(self, *args, **kwargs):
-        """Create a new iface."""
+    def get_iface_by_vif(self, vif):
+        """Return the interface corresponding to this VIF.
+
+        :param vif: The uuid of the VIF.
+        :returns: Iface.
+        """
 
     @abc.abstractmethod
-    def update_iface(self, iface_id, *args, **kwargs):
+    def get_iface_by_node(self, node):
+        """List all the interfaces for a given node.
+
+        :param node: The id or uuid of a node.
+        :returns: list of Iface.
+        """
+
+    @abc.abstractmethod
+    def create_iface(self, values):
+        """Create a new iface.
+        
+        :param values: Dict of values.
+        """
+
+    @abc.abstractmethod
+    def update_iface(self, iface, values):
         """Update properties of an iface.
 
-        :param iface_id: The id or MAC of an interface.
-        TBD
+        :param iface: The id or MAC of an interface.
+        :param values: Dict of values to update.
+        :returns: Iface.
         """
 
     @abc.abstractmethod
-    def destroy_iface(self, iface_id):
+    def destroy_iface(self, iface):
         """Destroy an iface.
 
-        :param iface_id: The id or MAC of an interface.
+        :param iface: The id or MAC of an interface.
         """

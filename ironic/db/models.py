@@ -16,13 +16,14 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 """
-Model classes for use in the storage API.
+Model classes for use above the storage layer.
+
+NOT YET IMPLEMENTED.
 """
 
 
 class Model(object):
-    """Base class for storage API models.
-    """
+    """Base class for API models."""
 
     def __init__(self, **kwds):
         self.fields = list(kwds)
@@ -60,7 +61,7 @@ class Node(Model):
 
 
 class Iface(Model):
-    """Representation of a NIC."""
+    """Representation of a network interface."""
 
     def __init__(self, mac, node_id, extra):
         Model.__init__(mac=mac,

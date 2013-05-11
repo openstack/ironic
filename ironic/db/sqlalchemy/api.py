@@ -26,8 +26,9 @@ from sqlalchemy.orm.exc import NoResultFound
 from sqlalchemy.orm.exc import MultipleResultsFound
 
 from ironic.common import exception
+from ironic.common import utils
 from ironic.db import api
-from ironic.db.sqlalchemy.models import Node, Iface
+from ironic.db.sqlalchemy import models
 from ironic.openstack.common.db.sqlalchemy import session as db_session
 from ironic.openstack.common import log
 from ironic.openstack.common import uuidutils
@@ -41,46 +42,10 @@ LOG = log.getLogger(__name__)
 get_engine = db_session.get_engine
 get_session = db_session.get_session
 
+
 def get_backend():
      """The backend is this module itself."""
      return Connection()
-
-
-#    - nodes
-#      - { id: AUTO_INC INTEGER
-#          uuid: node uuid
-#          power_info: JSON of power mgmt information
-#          task_state: current task
-#          image_path: URL of associated image
-#          instance_uuid: uuid of associated instance
-#          instance_name: name of associated instance
-#          hw_spec_id: hw specification id             (->hw_specs.id)
-#          inst_spec_id: instance specification id     (->inst_specs.id)
-#          extra: JSON blob of extra data
-#        }
-#    - ifaces
-#      - { id: AUTO_INC INTEGER
-#          mac: MAC address of this iface
-#          node_id: associated node        (->nodes.id)
-#         ?datapath_id
-#         ?port_no
-#         ?model
-#          extra: JSON blob of extra data
-#        }
-#    - hw_specs
-#      - { id: AUTO_INC INTEGER
-#          cpu_arch:
-#          n_cpu:
-#          n_disk:
-#          ram_mb:
-#          storage_gb:
-#        }
-#    - inst_specs
-#      - { id: AUTO_INC INTEGER
-#          root_mb:
-#          swap_mb:
-#          image_path:
-#        }
 
 
 def model_query(model, *args, **kwargs):
@@ -94,6 +59,24 @@ def model_query(model, *args, **kwargs):
     return query
 
 
+def add_uuid_filter(query, value):
+    if utils.is_int_like(value):
+        return query.filter_by(id=value)
+    elif uuidutils.is_uuid_like(value):
+        return query.filter_by(uuid=value)
+    else:
+        raise exception.InvalidUUID(uuid=value)
+
+
+def add_mac_filter(query, value):
+    if utils.is_int_like(iface):
+        query.filter_by(id=iface)
+    elif utils.is_valid_mac(iface):
+        query.filter_by(address=iface)
+    else:
+        raise exception.InvalidMAC(mac=value)
+
+
 class Connection(api.Connection):
     """SqlAlchemy connection."""
 
@@ -101,95 +84,139 @@ class Connection(api.Connection):
         pass
 
     def get_nodes(self, columns):
-        """Return a list of dicts of all nodes.
-
-        :param columns: List of columns to return.
-        """
         pass
 
     def get_associated_nodes(self):
-        """Return a list of ids of all associated nodes."""
         pass
 
     def get_unassociated_nodes(self):
-        """Return a list of ids of all unassociated nodes."""
         pass
 
-    def reserve_node(self, *args, **kwargs):
-        """Find a free node and associate it.
+    def reserve_node(self, node, values):
+        if values.get('instance_uuid', None) is None:
+            raise exception.IronicException(_("Instance UUID not specified"))
 
-        TBD
-        """
-        pass
+        session = get_session()
+        with session.begin():
+            query = model_query(models.Node, session=session)
+            query = add_uuid_filter(query, node)
 
-    def create_node(self, *args, **kwargs):
-        """Create a new node."""
-        node = Node()
+            count = query.filter_by(instance_uuid=None).\
+                        update(values)
+            if count != 1:
+                raise exception.IronicException(_(
+                    "Failed to associate instance %(i)s to node %(n)s.") %
+                        {'i': values['instance_uuid'], 'n': node})
+            ref = query.one()
 
-    def get_node_by_id(self, node_id):
-        """Return a node.
+        return ref
 
-        :param node_id: The id or uuid of a node.
-        """
-        query = model_query(Node)
-        if uuidutils.is_uuid_like(node_id):
-            query.filter_by(uuid=node_id)
-        else:
-            query.filter_by(id=node_id)
+    def create_node(self, values):
+        node = models.Node()
+        node.update(values)
+        node.save()
+
+    def get_node(self, node):
+        query = model_query(models.Node)
+        query = add_uuid_filter(query, node)
 
         try:
             result = query.one()
         except NoResultFound:
-            raise 
-        except MultipleResultsFound:
-            raise
+            raise exception.NodeNotFound(node=node)
+
         return result
                 
+    def get_node_by_instance(self, instance):
+        query = model_query(models.Node)
+        if uuidutils.is_uuid_like(instance):
+            query.filter_by(instance_uuid=instance)
+        else:
+            query.filter_by(instance_name=instance)
 
-    def get_node_by_instance_id(self, instance_id):
-        """Return a node.
+        try:
+            result = query.one()
+        except NoResultFound:
+            raise exception.NodeNotFound(node=node)
 
-        :param instance_id: The instance id or uuid of a node.
-        """
+        return result
+
+    def destroy_node(self, node):
+        session = get_session()
+        with session.begin():
+            query = model_query(models.Node, session=session)
+            query = add_uuid_filter(query, node)
+            
+            count = query.delete()
+            if count != 1:
+                raise exception.NodeNotFound(node=node)
+
+    def update_node(self, node, values):
+        session = get_session()
+        with session.begin():
+            query = model_query(models.Node, session=session)
+            query = add_uuid_filter(query, node)
+            
+            count = query.update(values)
+            if count != 1:
+                raise exception.NodeNotFound(node=node)
+            ref = query.one()
+        return ref
+
+    def get_iface(self, iface):
+        query = model_query(models.Iface)
+        query = add_mac_filter(query, iface)
+
+        try:
+            result = query.one()
+        except NoResultFound:
+            raise exception.InterfaceNotFound(iface=iface)
+
+        return result
+
+    def get_iface_by_vif(self, vif):
         pass
 
-    def destroy_node(self, node_id):
-        """Destroy a node.
+    def get_iface_by_node(self, node):
+        session = get_session()
 
-        :param node_id: The id or uuid of a node.
-        """
-        pass
+        if is_int_like(node):
+            query = session.query(models.Iface).\
+                        filter_by(node_id=node)
+        else:
+            query = session.query(models.Iface).\
+                        join(models.Node,
+                             models.Iface.node_id == models.Node.id).\
+                        filter_by(models.Node.uuid == node)
+        result = query.all()
 
-    def update_node(self, node_id, *args, **kwargs):
-        """Update properties of a node.
+        return result
 
-        :param node_id: The id or uuid of a node.
-        TBD
-        """
-        pass
+    def create_iface(self, values):
+        iface = models.Iface()
+        iface.update(values)
+        iface.save()
 
-    def get_iface(self, iface_id):
-        """Return an interface.
+    def update_iface(self, iface, values):
+        session = get_session()
+        with session.begin():
+            query = model_query(models.Iface, session=session)
+            query = add_mac_filter(query, iface)
+            
+            count = query.update(values)
+            if count != 1:
+                raise exception.InterfaceNotFound(iface=iface)
+            ref = query.one()
+        return ref                
 
-        :param iface_id: The id or MAC of an interface.
-        """
-        pass
-
-    def create_iface(self, *args, **kwargs):
-        """Create a new iface."""
-        pass
-
-    def update_iface(self, iface_id, *args, **kwargs):
-        """Update properties of an iface.
-
-        :param iface_id: The id or MAC of an interface.
-        TBD
-        """
-        pass
-
-    def destroy_iface(self, iface_id):
-        """Destroy an iface.
-
-        :param iface_id: The id or MAC of an interface.
-        """
-        pass
+    def destroy_iface(self, iface):
+        session = get_session()
+        with session.begin():
+            query = model_query(models.Iface, session=session)
+            query = add_mac_filter(query, iface)
+            
+            count = query.update(values)
+            if count != 1:
+                raise exception.NodeNotFound(node=node)
+            ref = query.one()
+        return ref
