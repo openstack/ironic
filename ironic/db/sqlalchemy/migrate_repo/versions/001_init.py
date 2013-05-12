@@ -42,7 +42,7 @@ def upgrade(migrate_engine):
         Column('local_storage_max', Integer),
         Column('task_state', String(length=255)),
         Column('image_path', String(length=255), nullable=True),
-        Column('instance_uuid', String(length=255), nullable=True),
+        Column('instance_uuid', String(length=36), nullable=True),
         Column('instance_name', String(length=255), nullable=True),
         Column('extra', Text),
         Column('created_at', DateTime),

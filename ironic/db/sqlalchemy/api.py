@@ -69,10 +69,10 @@ def add_uuid_filter(query, value):
 
 
 def add_mac_filter(query, value):
-    if utils.is_int_like(iface):
-        query.filter_by(id=iface)
-    elif utils.is_valid_mac(iface):
-        query.filter_by(address=iface)
+    if utils.is_int_like(value):
+        return query.filter_by(id=value)
+    elif utils.is_valid_mac(value):
+        return query.filter_by(address=value)
     else:
         raise exception.InvalidMAC(mac=value)
 
@@ -130,14 +130,14 @@ class Connection(api.Connection):
     def get_node_by_instance(self, instance):
         query = model_query(models.Node)
         if uuidutils.is_uuid_like(instance):
-            query.filter_by(instance_uuid=instance)
+            query = query.filter_by(instance_uuid=instance)
         else:
-            query.filter_by(instance_name=instance)
+            query = query.filter_by(instance_name=instance)
 
         try:
             result = query.one()
         except NoResultFound:
-            raise exception.NodeNotFound(node=node)
+            raise exception.InstanceNotFound(instance=instance)
 
         return result
 
@@ -157,7 +157,9 @@ class Connection(api.Connection):
             query = model_query(models.Node, session=session)
             query = add_uuid_filter(query, node)
             
-            count = query.update(values)
+            print "Updating with %s." % values
+            count = query.update(values,
+                                 synchronize_session='fetch')
             if count != 1:
                 raise exception.NodeNotFound(node=node)
             ref = query.one()
@@ -180,14 +182,14 @@ class Connection(api.Connection):
     def get_iface_by_node(self, node):
         session = get_session()
 
-        if is_int_like(node):
+        if utils.is_int_like(node):
             query = session.query(models.Iface).\
                         filter_by(node_id=node)
         else:
             query = session.query(models.Iface).\
                         join(models.Node,
                              models.Iface.node_id == models.Node.id).\
-                        filter_by(models.Node.uuid == node)
+                        filter(models.Node.uuid==node)
         result = query.all()
 
         return result
