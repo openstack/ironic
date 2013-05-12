@@ -32,6 +32,7 @@ from ironic.common import paths
 from ironic.common import states
 from ironic.common import utils
 from ironic.manager import base
+from ironic.openstack.common import jsonutils as json
 from ironic.openstack.common import log as logging
 from ironic.openstack.common import loopingcall
 
@@ -95,10 +96,11 @@ class IPMI(base.PowerManager):
         self.state = None
         self.retries = None
         self.node_id = node['id']
-        self.address = node['pm_address']
-        self.user = node['pm_user']
-        self.password = node['pm_password']
-        self.port = node['terminal_port']
+        self.power_info = json.loads(node['power_info'])
+        self.address = self.power_info.get('address', None)
+        self.user = self.power_info.get('user', None)
+        self.password = self.power_info.get('password', None)
+        self.port = self.power_info.get('terminal_port', None)
 
         if self.node_id is None:
             raise exception.InvalidParameterValue(_("Node id not supplied "

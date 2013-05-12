@@ -38,11 +38,7 @@ class BareMetalIPMITestCase(test.TestCase):
 
     def setUp(self):
         super(BareMetalIPMITestCase, self).setUp()
-        self.node = db_utils.new_bm_node(
-                id=123,
-                pm_address='fake-address',
-                pm_user='fake-user',
-                pm_password='fake-password')
+        self.node = db_utils.get_test_node()
         self.ipmi = ipmi.IPMI(self.node)
 
     def test_construct(self):
@@ -52,13 +48,14 @@ class BareMetalIPMITestCase(test.TestCase):
         self.assertEqual(self.ipmi.password, 'fake-password')
 
     def test_make_password_file(self):
-        pw_file = ipmi._make_password_file(self.node['pm_password'])
+        fakepass = 'this is a fake password'
+        pw_file = ipmi._make_password_file(fakepass)
         try:
             self.assertTrue(os.path.isfile(pw_file))
             self.assertEqual(os.stat(pw_file)[stat.ST_MODE] & 0777, 0600)
             with open(pw_file, "r") as f:
-                pm_password = f.read()
-            self.assertEqual(pm_password, self.node['pm_password'])
+                password = f.read()
+            self.assertEqual(password, fakepass)
         finally:
             os.unlink(pw_file)
 
