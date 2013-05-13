@@ -31,7 +31,7 @@ from oslo.config import cfg
 from ironic.common import safe_utils
 from ironic.openstack.common import excutils
 from ironic.openstack.common import log as logging
-
+from ironic.openstack.common.gettextutils import _
 
 LOG = logging.getLogger(__name__)
 
@@ -234,3 +234,7 @@ class NodeNotFound(NotFound):
 
 class InterfaceNotFound(NotFound):
     message = _("Interface %(iface)s could not be found.")
+
+
+class PowerStateFailure(IronicException):
+    message = _("Failed to set node power state to %(pstate)s.")

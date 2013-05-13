@@ -31,7 +31,7 @@ from ironic.common import exception
 from ironic.common import paths
 from ironic.common import states
 from ironic.common import utils
-from ironic.manager import base
+from ironic.drivers import base
 from ironic.openstack.common import jsonutils as json
 from ironic.openstack.common import log as logging
 from ironic.openstack.common import loopingcall
@@ -48,7 +48,7 @@ opts = [
                help='path to directory stores pidfiles of baremetal_terminal'),
     cfg.IntOpt('ipmi_power_retry',
                default=5,
-               help='maximal number of retries for IPMI operations'),
+               help='Maximum seconds to retry IPMI operations'),
     ]
 
 CONF = cfg.CONF
@@ -83,13 +83,12 @@ def _get_console_pid(node_id):
     return None
 
 
-class IPMI(base.PowerManager):
-    """IPMI Power Driver for Baremetal Nova Compute
+class IPMIPowerDriver(base.BMCDriver):
+    """Generic IPMI Power Driver
 
-    This PowerManager class provides mechanism for controlling the power state
-    of physical hardware via IPMI calls. It also provides serial console access
-    where available.
-
+    This BMCDriver class provides mechanism for controlling the power state
+    of physical hardware via IPMI calls. It also provides console access
+    for some supported hardware.
     """
 
     def __init__(self, node, **kwargs):
@@ -135,19 +134,16 @@ class IPMI(base.PowerManager):
         finally:
             utils.delete_if_exists(pwfile)
 
-    def _is_power(self, state):
-        out_err = self._exec_ipmitool("power status")
-        return out_err[0] == ("Chassis Power is %s\n" % state)
-
     def _power_on(self):
         """Turn the power to this node ON."""
 
         def _wait_for_power_on():
             """Called at an interval until the node's power is on."""
 
-            if self._is_power("on"):
-                self.state = states.ACTIVE
+            self._update_state()
+            if self.state == states.POWER_ON:
                 raise loopingcall.LoopingCallDone()
+
             if self.retries > CONF.ipmi_power_retry:
                 self.state = states.ERROR
                 raise loopingcall.LoopingCallDone()
@@ -159,7 +155,7 @@ class IPMI(base.PowerManager):
 
         self.retries = 0
         timer = loopingcall.FixedIntervalLoopingCall(_wait_for_power_on)
-        timer.start(interval=0.5).wait()
+        timer.start(interval=1).wait()
 
     def _power_off(self):
         """Turn the power to this node OFF."""
@@ -167,9 +163,10 @@ class IPMI(base.PowerManager):
         def _wait_for_power_off():
             """Called at an interval until the node's power is off."""
 
-            if self._is_power("off"):
-                self.state = states.DELETED
+            self._update_state()
+            if self.state == states.POWER_OFF:
                 raise loopingcall.LoopingCallDone()
+
             if self.retries > CONF.ipmi_power_retry:
                 self.state = states.ERROR
                 raise loopingcall.LoopingCallDone()
@@ -181,37 +178,55 @@ class IPMI(base.PowerManager):
 
         self.retries = 0
         timer = loopingcall.FixedIntervalLoopingCall(_wait_for_power_off)
-        timer.start(interval=0.5).wait()
+        timer.start(interval=1).wait()
 
     def _set_pxe_for_next_boot(self):
+        # FIXME: raise exception, not just log
+        # FIXME: make into a public set-boot function
         try:
             self._exec_ipmitool("chassis bootdev pxe")
         except Exception:
             LOG.exception(_("IPMI set next bootdev failed"))
 
-    def activate_node(self):
-        """Turns the power to node ON."""
-        if self._is_power("on") and self.state == states.ACTIVE:
-            LOG.warning(_("Activate node called, but node %s "
-                          "is already active") % self.address)
-        self._set_pxe_for_next_boot()
-        self._power_on()
+    def _update_state(self):
+        # FIXME: better error and other-state handling
+        out_err = self._exec_ipmitool("power status")
+        if out_err[0] == "Chassis Power is on\n":
+            self.state = states.POWER_ON
+        elif out_err[0] == "Chassis Power is off\n":
+            self.state = states.POWER_OFF
+        else:
+            self.state = states.ERROR
+
+    def get_power_state(self):
+        """Checks and returns current power state."""
+        self._update_state()
         return self.state
 
-    def reboot_node(self):
+    def set_power_state(self, pstate):
+        """Turn the power on or off."""
+        if self.state and self.state == pstate:
+            LOG.warning(_("set_power_state called with current state."))
+
+        if pstate == states.POWER_ON:
+            self._set_pxe_for_next_boot()
+            self._power_on()
+        elif pstate == states.POWER_OFF:
+            self._power_off()
+        else:
+            LOG.error(_("set_power_state called with invalid pstate."))
+
+        if self.state != pstate:
+            raise exception.PowerStateFailure(pstate=pstate)
+
+    def reboot(self):
         """Cycles the power to a node."""
         self._power_off()
         self._set_pxe_for_next_boot()
         self._power_on()
-        return self.state
 
-    def deactivate_node(self):
-        """Turns the power to node OFF, regardless of current state."""
-        self._power_off()
-        return self.state
-
-    def is_power_on(self):
-        return self._is_power("on")
+        if self.state != states.POWER_ON:
+            raise exception.PowerStateFailure(pstate=states.POWER_ON)
 
     def start_console(self):
         if not self.port:

@@ -26,6 +26,7 @@ health.
 
 """
 
+NOSTATE = None
 NULL = None
 INIT = 'initializing'
 ACTIVE = 'active'
@@ -35,3 +36,8 @@ DEPLOYFAIL = 'deploy failed'
 DEPLOYDONE = 'deploy complete'
 DELETED = 'deleted'
 ERROR = 'error'
+
+POWER_ON = 'power on'
+POWER_OFF = 'power off'
+REBOOTING = 'rebooting'
+SUSPEND = 'suspended'
