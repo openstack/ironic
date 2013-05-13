@@ -115,6 +115,7 @@ class Connection(api.Connection):
         node = models.Node()
         node.update(values)
         node.save()
+        return node
 
     def get_node(self, node):
         query = model_query(models.Node)
@@ -198,6 +199,7 @@ class Connection(api.Connection):
         iface = models.Iface()
         iface.update(values)
         iface.save()
+        return iface
 
     def update_iface(self, iface, values):
         session = get_session()

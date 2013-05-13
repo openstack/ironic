@@ -19,6 +19,7 @@
 SQLAlchemy models for baremetal data.
 """
 
+import json
 import urlparse
 
 from oslo.config import cfg
@@ -26,6 +27,7 @@ from oslo.config import cfg
 from sqlalchemy import Table, Column, Index, ForeignKey
 from sqlalchemy import Boolean, DateTime, Float, Integer, String, Text
 from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.types import TypeDecorator, VARCHAR
 
 from ironic.openstack.common.db.sqlalchemy import models
 
@@ -45,9 +47,33 @@ def table_args():
                 'mysql_charset': "utf8"}
     return None
 
+
+class JSONEncodedDict(TypeDecorator):
+    """Represents an immutable structure as a json-encoded string."""
+
+    impl = VARCHAR
+
+    def process_bind_param(self, value, dialect):
+        if value is not None:
+            value = json.dumps(value)
+        return value
+
+    def process_result_value(self, value, dialect):
+        if value is not None:
+            value = json.loads(value)
+        return value
+
+
 class IronicBase(models.TimestampMixin,
                  models.ModelBase):
+
     metadata = None
+
+    def as_dict(self):
+        d = {}
+        for c in self.__table__.columns:
+            d[c.name] = self[c.name]
+        return d
 
 
 Base = declarative_base(cls=IronicBase)
@@ -59,7 +85,7 @@ class Node(Base):
     __tablename__ = 'nodes'
     id = Column(Integer, primary_key=True)
     uuid = Column(String(36), unique=True)
-    power_info = Column(Text)
+    power_info = Column(JSONEncodedDict)
     cpu_arch = Column(String(10))
     cpu_num = Column(Integer)
     memory = Column(Integer)
@@ -68,7 +94,7 @@ class Node(Base):
     image_path = Column(String(255), nullable=True)
     instance_uuid = Column(String(36), nullable=True, unique=True)
     instance_name = Column(String(255), nullable=True)
-    extra = Column(Text)
+    extra = Column(JSONEncodedDict)
 
 
 class Iface(Base):
@@ -78,4 +104,4 @@ class Iface(Base):
     id = Column(Integer, primary_key=True)
     address = Column(String(18), unique=True)
     node_id = Column(Integer, ForeignKey('nodes.id'), nullable=True)
-    extra = Column(Text)
+    extra = Column(JSONEncodedDict)

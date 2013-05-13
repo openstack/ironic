@@ -22,7 +22,7 @@ Should maintain feature parity with Nova Baremetal Extension.
 Specification in ironic/doc/api/v1.rst
 """
 
-
+import inspect
 import pecan
 from pecan import rest
 
@@ -30,27 +30,30 @@ import wsme
 import wsmeext.pecan as wsme_pecan
 from wsme import types as wtypes
 
-from ironic import db
+from ironic.openstack.common import log
+
+# TODO(deva): The API shouldn't know what db IMPL is in use.
+#             Import ironic.db.models instead of the sqlalchemy models
+#             once that layer is written.
+from ironic.db.sqlalchemy import models
+
+LOG = log.getLogger(__name__)
 
 
 class Base(wtypes.Base):
-    # TODO: all the db bindings
+
+    def __init__(self, **kwargs):
+        self.fields = list(kwargs)
+        for k, v in kwargs.iteritems():
+            setattr(self, k, v)
 
     @classmethod
     def from_db_model(cls, m):
-        return cls(**(m.as_dict()))
+        return cls(**m.as_dict())
 
-    @classmethod
-    def from_db_and_links(cls, m, links):
-        return cls(links=links, **(m.as_dict()))
-
-    def as_dict(self, db_model):
-        valid_keys = inspect.getargspec(db_model.__init__)[0]
-        if 'self' in valid_keys:
-            valid_keys.remove('self')
-
+    def as_dict(self):
         return dict((k, getattr(self, k))
-                    for k in valid_keys
+                    for k in self.fields
                     if hasattr(self, k) and
                     getattr(self, k) != wsme.Unset)
 
@@ -60,11 +63,6 @@ class Interface(Base):
 
     node_id = int
     address = wtypes.text
-
-    def __init__(self, **kwargs):
-        self.fields = list(kwargs)
-        for k, v in kwargs.iteritems():
-            setattr(self, k, v)
 
     @classmethod
     def sample(cls):
@@ -119,11 +117,6 @@ class Node(Base):
     power_info = wtypes.text
     extra = wtypes.text
 
-    def __init__(self, **kwargs):
-        self.fields = list(kwargs)
-        for k, v in kwargs.iteritems():
-            setattr(self, k, v)
-
     @classmethod
     def sample(cls):
         power_info = "{'driver': 'ipmi', 'user': 'fake', " \
@@ -153,12 +146,13 @@ class NodeIfaceController(rest.RestController):
 class NodesController(rest.RestController):
     """REST controller for Nodes"""
 
-    @wsme_pecan.wsexpose(Node, body=Node)
-    def post(self, data):
+    @wsme.validate(Node)
+    @wsme_pecan.wsexpose(Node, body=Node, status_code=201)
+    def post(self, node):
         """Ceate a new node."""
         try:
-            r = pecan.request.dbapi.create_node(
-                        data.as_dict(db.models.Node))
+            d = node.as_dict()
+            r = pecan.request.dbapi.create_node(d)
         except Exception as e:
             LOG.exception(e)
             raise wsme.exc.ClientSideError(_("Invalid data"))
