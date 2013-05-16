@@ -17,13 +17,10 @@
 
 """SQLAlchemy storage backend."""
 
-import sys
-import uuid
-
 from oslo.config import cfg
 
+# TODO(deva): import MultipleResultsFound and handle it appropriately
 from sqlalchemy.orm.exc import NoResultFound
-from sqlalchemy.orm.exc import MultipleResultsFound
 
 from ironic.common import exception
 from ironic.common import utils
@@ -44,13 +41,13 @@ get_session = db_session.get_session
 
 
 def get_backend():
-     """The backend is this module itself."""
-     return Connection()
+    """The backend is this module itself."""
+    return Connection()
 
 
 def model_query(model, *args, **kwargs):
     """Query helper for simpler session usage.
-    
+
     :param session: if present, the session to use
     """
 
@@ -127,7 +124,7 @@ class Connection(api.Connection):
             raise exception.NodeNotFound(node=node)
 
         return result
-                
+
     def get_node_by_instance(self, instance):
         query = model_query(models.Node)
         if uuidutils.is_uuid_like(instance):
@@ -147,7 +144,7 @@ class Connection(api.Connection):
         with session.begin():
             query = model_query(models.Node, session=session)
             query = add_uuid_filter(query, node)
-            
+
             count = query.delete()
             if count != 1:
                 raise exception.NodeNotFound(node=node)
@@ -157,7 +154,7 @@ class Connection(api.Connection):
         with session.begin():
             query = model_query(models.Node, session=session)
             query = add_uuid_filter(query, node)
-            
+
             print "Updating with %s." % values
             count = query.update(values,
                                  synchronize_session='fetch')
@@ -190,7 +187,7 @@ class Connection(api.Connection):
             query = session.query(models.Iface).\
                         join(models.Node,
                              models.Iface.node_id == models.Node.id).\
-                        filter(models.Node.uuid==node)
+                        filter(models.Node.uuid == node)
         result = query.all()
 
         return result
@@ -206,21 +203,19 @@ class Connection(api.Connection):
         with session.begin():
             query = model_query(models.Iface, session=session)
             query = add_mac_filter(query, iface)
-            
+
             count = query.update(values)
             if count != 1:
                 raise exception.InterfaceNotFound(iface=iface)
             ref = query.one()
-        return ref                
+        return ref
 
     def destroy_iface(self, iface):
         session = get_session()
         with session.begin():
             query = model_query(models.Iface, session=session)
             query = add_mac_filter(query, iface)
-            
-            count = query.update(values)
+
+            count = query.delete()
             if count != 1:
-                raise exception.NodeNotFound(node=node)
-            ref = query.one()
-        return ref
+                raise exception.IfaceNotFound(iface=iface)

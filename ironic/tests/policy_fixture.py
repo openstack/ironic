@@ -17,8 +17,8 @@ import os
 import fixtures
 from oslo.config import cfg
 
-from ironic.openstack.common import policy as common_policy
 from ironic.common import policy as ironic_policy
+from ironic.openstack.common import policy as common_policy
 from ironic.tests import fake_policy
 
 CONF = cfg.CONF

@@ -13,9 +13,8 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-# TODO(mikal): move eventlet imports to ironic.__init__ once we move to PBR
+# TODO(deva): move eventlet imports to ironic.__init__ once we move to PBR
 import os
-import sys
 
 os.environ['EVENTLET_NO_GREENDNS'] = 'yes'
 

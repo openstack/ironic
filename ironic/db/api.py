@@ -68,7 +68,7 @@ class Connection(object):
     @abc.abstractmethod
     def create_node(self, values):
         """Create a new node.
-        
+
         :param values: Values to instantiate the node with.
         :returns: Node.
         """
@@ -132,7 +132,7 @@ class Connection(object):
     @abc.abstractmethod
     def create_iface(self, values):
         """Create a new iface.
-        
+
         :param values: Dict of values.
         """
 

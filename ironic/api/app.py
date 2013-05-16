@@ -1,4 +1,5 @@
 # vim: tabstop=4 shiftwidth=4 softtabstop=4
+# -*- encoding: utf-8 -*-
 
 # Copyright © 2012 New Dream Network, LLC (DreamHost)
 # All Rights Reserved.
@@ -52,6 +53,7 @@ def setup_app(pecan_config=None, extra_hooks=None):
 
     pecan.configuration.set_config(dict(pecan_config), overwrite=True)
 
+# TODO(deva): add middleware.ParsableErrorMiddleware from Ceilometer
     app = pecan.make_app(
         pecan_config.app.root,
         static_root=pecan_config.app.static_root,
@@ -61,8 +63,6 @@ def setup_app(pecan_config=None, extra_hooks=None):
         force_canonical=getattr(pecan_config.app, 'force_canonical', True),
         hooks=app_hooks,
     )
-#        TODO: add this back in
-#        wrap_app=middleware.ParsableErrorMiddleware,
 
     if pecan_config.app.enable_acl:
         return acl.install(app, cfg.CONF)

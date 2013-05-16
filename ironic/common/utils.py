@@ -169,8 +169,7 @@ def execute(*cmd, **kwargs):
 
 
 def trycmd(*args, **kwargs):
-    """
-    A wrapper around execute() to more easily handle warnings and errors.
+    """A wrapper around execute() to more easily handle warnings and errors.
 
     Returns an (out, err) tuple of strings containing the output of
     the command's stdout and stderr.  If 'err' is not empty then the
@@ -200,7 +199,8 @@ def ssh_execute(ssh, cmd, process_input=None,
                 addl_env=None, check_exit_code=True):
     LOG.debug(_('Running cmd (SSH): %s'), cmd)
     if addl_env:
-        raise exception.IronicException(_('Environment not supported over SSH'))
+        raise exception.IronicException(_(
+            'Environment not supported over SSH'))
 
     if process_input:
         # This is (probably) fixable if we need it...
@@ -307,9 +307,11 @@ def is_valid_boolstr(val):
 
 def is_valid_mac(address):
     """Verify the format of a MAC addres."""
-    if re.match("[0-9a-f]{2}([-:])[0-9a-f]{2}(\\1[0-9a-f]{2}){4}$", address.lower()):
+    m = "[0-9a-f]{2}([-:])[0-9a-f]{2}(\\1[0-9a-f]{2}){4}$"
+    if re.match(m, address.lower()):
         return True
     return False
+
 
 def is_valid_ipv4(address):
     """Verify that address represents a valid IPv4 address."""
@@ -345,8 +347,7 @@ def get_shortened_ipv6_cidr(address):
 
 
 def is_valid_cidr(address):
-    """Check if the provided ipv4 or ipv6 address is a valid
-    CIDR address or not"""
+    """Check if the provided ipv4 or ipv6 address is a valid CIDR address."""
     try:
         # Validate the correct CIDR Address
         netaddr.IPNetwork(address)
@@ -369,8 +370,10 @@ def is_valid_cidr(address):
 
 
 def get_ip_version(network):
-    """Returns the IP version of a network (IPv4 or IPv6). Raises
-    AddrFormatError if invalid network."""
+    """Returns the IP version of a network (IPv4 or IPv6).
+
+    :raises: AddrFormatError if invalid network.
+    """
     if netaddr.IPNetwork(network).version == 6:
         return "IPv6"
     elif netaddr.IPNetwork(network).version == 4:
@@ -527,20 +530,25 @@ def mkfs(fs, path, label=None):
     execute(*args)
 
 
-def cache_image(context, target, image_id, user_id, project_id):
-    if not os.path.exists(target):
-        libvirt_utils.fetch_image(context, target, image_id,
-                                  user_id, project_id)
-
-
-def inject_into_image(image, key, net, metadata, admin_password,
-        files, partition, use_cow=False):
-    try:
-        disk_api.inject_data(image, key, net, metadata, admin_password,
-                files, partition, use_cow)
-    except Exception as e:
-        LOG.warn(_("Failed to inject data into image %(image)s. "
-                   "Error: %(e)s") % locals())
+# TODO(deva): Make these work in Ironic.
+#             Either copy nova/virt/utils (bad),
+#             or reimplement as a common lib,
+#             or make a driver that doesn't need to do this.
+#
+#def cache_image(context, target, image_id, user_id, project_id):
+#    if not os.path.exists(target):
+#        libvirt_utils.fetch_image(context, target, image_id,
+#                                  user_id, project_id)
+#
+#
+#def inject_into_image(image, key, net, metadata, admin_password,
+#        files, partition, use_cow=False):
+#    try:
+#        disk_api.inject_data(image, key, net, metadata, admin_password,
+#                files, partition, use_cow)
+#    except Exception as e:
+#        LOG.warn(_("Failed to inject data into image %(image)s. "
+#                   "Error: %(e)s") % locals())
 
 
 def unlink_without_raise(path):
@@ -575,5 +583,3 @@ def create_link_without_raise(source, link):
         else:
             LOG.warn(_("Failed to create symlink from %(source)s to %(link)s"
                        ", error: %(e)s") % locals())
-
-

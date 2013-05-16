@@ -22,20 +22,17 @@ Should maintain feature parity with Nova Baremetal Extension.
 Specification in ironic/doc/api/v1.rst
 """
 
-import inspect
 import pecan
 from pecan import rest
 
 import wsme
-import wsmeext.pecan as wsme_pecan
 from wsme import types as wtypes
+import wsmeext.pecan as wsme_pecan
 
 from ironic.openstack.common import log
 
 # TODO(deva): The API shouldn't know what db IMPL is in use.
-#             Import ironic.db.models instead of the sqlalchemy models
-#             once that layer is written.
-from ironic.db.sqlalchemy import models
+#             Import ironic.db.models once that layer is written.
 
 LOG = log.getLogger(__name__)
 
@@ -59,7 +56,7 @@ class Base(wtypes.Base):
 
 
 class Interface(Base):
-    """A representation of a network interface for a baremetal node"""
+    """A representation of a network interface for a baremetal node."""
 
     node_id = int
     address = wtypes.text
@@ -72,9 +69,9 @@ class Interface(Base):
 
 
 class InterfacesController(rest.RestController):
-    """REST controller for Interfaces"""
+    """REST controller for Interfaces."""
 
-    @wsme_pecan.wsexpose(Interface, unicode) 
+    @wsme_pecan.wsexpose(Interface, unicode)
     def post(self, iface):
         """Ceate a new interface."""
         return Interface.sample()
@@ -93,17 +90,17 @@ class InterfacesController(rest.RestController):
 
     @wsme_pecan.wsexpose()
     def delete(self, iface_id):
-        """Delete an interface"""
+        """Delete an interface."""
         pass
 
     @wsme_pecan.wsexpose()
     def put(self, iface_id):
-        """Update an interface"""
+        """Update an interface."""
         pass
 
 
 class Node(Base):
-    """A representation of a bare metal node"""
+    """A representation of a bare metal node."""
 
     uuid = wtypes.text
     cpu_arch = wtypes.text
@@ -135,16 +132,16 @@ class Node(Base):
 
 
 class NodeIfaceController(rest.RestController):
-    """For GET /node/ifaces/<id>"""
+    """For GET /node/ifaces/<id>."""
 
     @wsme_pecan.wsexpose([Interface], unicode)
     def get(self, node_id):
         return [Interface.from_db_model(r)
                 for r in pecan.request.dbapi.get_ifaces_for_node(node_id)]
 
- 
+
 class NodesController(rest.RestController):
-    """REST controller for Nodes"""
+    """REST controller for Nodes."""
 
     @wsme.validate(Node)
     @wsme_pecan.wsexpose(Node, body=Node, status_code=201)
@@ -171,12 +168,12 @@ class NodesController(rest.RestController):
 
     @wsme_pecan.wsexpose()
     def delete(self, node_id):
-        """Delete a node"""
+        """Delete a node."""
         pecan.request.dbapi.destroy_node(node_id)
 
     @wsme_pecan.wsexpose()
     def put(self, node_id):
-        """Update a node"""
+        """Update a node."""
         pass
 
     ifaces = NodeIfaceController()
@@ -185,7 +182,7 @@ class NodesController(rest.RestController):
 class Controller(object):
     """Version 1 API controller root."""
 
-    # TODO: _default and index
+    # TODO(deva): _default and index
 
     nodes = NodesController()
     interfaces = InterfacesController()

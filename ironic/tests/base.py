@@ -29,18 +29,17 @@ eventlet.monkey_patch(os=False)
 import os
 import shutil
 import sys
-import uuid
 
 import fixtures
 import mox
-from oslo.config import cfg
 import stubout
 import testtools
 
-from ironic import db
-from ironic.common import context
-from ironic.common import paths
+from oslo.config import cfg
+
 from ironic.db import migration
+
+from ironic.common import paths
 from ironic.openstack.common.db.sqlalchemy import session
 from ironic.openstack.common import log as logging
 from ironic.openstack.common import timeutils

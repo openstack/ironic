@@ -24,9 +24,7 @@
    :platform: Unix
 """
 
-# TODO(mikal): move eventlet imports to ironic.__init__ once we move to PBR
-import os
-import sys
+# TODO(deva): move eventlet imports to ironic.__init__ once we move to PBR
 
 import eventlet
 

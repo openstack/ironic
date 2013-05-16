@@ -18,16 +18,9 @@
 
 from oslo.config import cfg
 
-from ironic.openstack.common import context
 from ironic.openstack.common import log
-from ironic.openstack.common.rpc import dispatcher as rpc_dispatcher
-from ironic.openstack.common import timeutils
 
-import ironic.openstack.common.notifier.rpc_notifier
-
-from ironic import db
 from ironic.common import service
-from ironic.common import extension_manager
 
 manager_opts = [
     cfg.StrOpt('power_driver',
@@ -52,14 +45,14 @@ class ManagerService(service.PeriodicService):
 
     def start(self):
         super(ManagerService, self).start()
-        # TODO: connect with storage driver
+        # TODO(deva): connect with storage driver
 
     def initialize_(self, service):
         LOG.debug(_('Manager initializing service hooks'))
 
     def process_notification(self, notification):
-        LOG.debug(_('Received notification %r',
-                        notification.get('event_type')))
+        LOG.debug(_('Received notification: %r') %
+                        notification.get('event_type'))
 
     def periodic_tasks(self, context):
         pass

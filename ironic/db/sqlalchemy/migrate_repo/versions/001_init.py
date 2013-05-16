@@ -18,14 +18,14 @@
 
 from migrate.changeset import UniqueConstraint
 from sqlalchemy import Table, Column, Index, ForeignKey, MetaData
-from sqlalchemy import Boolean, DateTime, Float, Integer, String, Text
+from sqlalchemy import DateTime, Integer, String, Text
 
 from ironic.openstack.common import log as logging
 
 LOG = logging.getLogger(__name__)
 
-ENGINE='InnoDB'
-CHARSET='utf8'
+ENGINE = 'InnoDB'
+CHARSET = 'utf8'
 
 
 def upgrade(migrate_engine):

@@ -24,7 +24,7 @@ import mox
 
 from ironic.cmd import ironic_deploy_helper as bmdh
 from ironic.openstack.common import log as logging
-from ironic import test
+from ironic.tests import base as tests_base
 from ironic.tests.db import base
 from ironic import db
 
@@ -126,7 +126,7 @@ class WorkerTestCase(base.DbTestCase):
         self.mox.VerifyAll()
 
 
-class PhysicalWorkTestCase(test.TestCase):
+class PhysicalWorkTestCase(tests_base.TestCase):
     def setUp(self):
         super(PhysicalWorkTestCase, self).setUp()
 
@@ -223,7 +223,7 @@ class PhysicalWorkTestCase(test.TestCase):
                          pxe_config_path, root_mb, swap_mb)
 
 
-class SwitchPxeConfigTestCase(test.TestCase):
+class SwitchPxeConfigTestCase(tests_base.TestCase):
     def setUp(self):
         super(SwitchPxeConfigTestCase, self).setUp()
         (fd, self.fname) = tempfile.mkstemp()
@@ -242,7 +242,7 @@ class SwitchPxeConfigTestCase(test.TestCase):
         self.assertEqual(pxeconf, _PXECONF_BOOT)
 
 
-class OtherFunctionTestCase(test.TestCase):
+class OtherFunctionTestCase(tests_base.TestCase):
     def test_get_dev(self):
         expected = '/dev/disk/by-path/ip-1.2.3.4:5678-iscsi-iqn.fake-lun-9'
         actual = bmdh.get_dev('1.2.3.4', 5678, 'iqn.fake', 9)

@@ -18,9 +18,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-"""
-The Ironic Service API 
-"""
+"""The Ironic Service API."""
 
 import sys
 
@@ -28,16 +26,14 @@ from oslo.config import cfg
 from wsgiref import simple_server
 
 from ironic.api import app
-from ironic.common.service import prepare_service
-from ironic.openstack.common import service
-from ironic.openstack.common.rpc import service as rpc_service
+from ironic.common import service as ironic_service
 
 CONF = cfg.CONF
 
 
 def main():
     # Pase config file and command line options, then start logging
-    prepare_service(sys.argv)
+    ironic_service.prepare_service(sys.argv)
 
     # Build and start the WSGI app
     host = CONF.ironic_api_bind_ip

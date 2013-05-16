@@ -207,7 +207,8 @@ class Fedora(Distro):
         This can be removed when the fix is applied upstream.
 
         Nova: https://bugs.launchpad.net/nova/+bug/884915
-        Upstream: https://bitbucket.org/which_linden/eventlet/issue/89
+        Upstream: https://bitbucket.org/eventlet/eventlet/issue/89
+        RHEL: https://bugzilla.redhat.com/958868
         """
 
         # Install "patch" program if it's not there

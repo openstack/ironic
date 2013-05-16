@@ -20,7 +20,6 @@ import fixtures
 from oslo.config import cfg
 
 from ironic.common import config
-from ironic.common import paths
 
 CONF = cfg.CONF
 CONF.import_opt('use_ipv6', 'ironic.netconf')

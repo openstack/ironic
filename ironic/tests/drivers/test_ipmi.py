@@ -25,16 +25,16 @@ import tempfile
 
 from oslo.config import cfg
 
-from ironic import test
 from ironic.common import states
 from ironic.common import utils
-from ironic.tests.db import utils as db_utils
 from ironic.drivers import ipmi
+from ironic.tests import base
+from ironic.tests.db import utils as db_utils
 
 CONF = cfg.CONF
 
 
-class BareMetalIPMITestCase(test.TestCase):
+class BareMetalIPMITestCase(base.TestCase):
 
     def setUp(self):
         super(BareMetalIPMITestCase, self).setUp()
@@ -205,7 +205,7 @@ class BareMetalIPMITestCase(test.TestCase):
         self.mox.VerifyAll()
 
     def test_reboot(self):
-        # TODO
+        # TODO(deva)
         pass
 
     def test_get_console_pid_path(self):

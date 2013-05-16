@@ -15,13 +15,11 @@
 
 """Ironic DB test base class."""
 
-from oslo.config import cfg
-
 from ironic.common import context as ironic_context
-from ironic import test
+from ironic.tests import base
 
 
-class DbTestCase(test.TestCase):
+class DbTestCase(base.TestCase):
 
     def setUp(self):
         super(DbTestCase, self).setUp()

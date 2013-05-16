@@ -1,13 +1,28 @@
+# vim: tabstop=4 shiftwidth=4 softtabstop=4
+
+# Copyright 2013 Hewlett-Packard Development Company, L.P.
+# All Rights Reserved.
+#
+#    Licensed under the Apache License, Version 2.0 (the "License"); you may
+#    not use this file except in compliance with the License. You may obtain
+#    a copy of the License at
+#
+#         http://www.apache.org/licenses/LICENSE-2.0
+#
+#    Unless required by applicable law or agreed to in writing, software
+#    distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+#    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+#    License for the specific language governing permissions and limitations
+#    under the License.
 """Ironic test utilities."""
 
-from ironic import test
-from ironic.openstack.common import jsonutils as json
 from ironic.db.sqlalchemy import models
+from ironic.openstack.common import jsonutils as json
 
 
 def get_test_node(**kw):
     power_info = json.dumps({'driver': 'ipmi',
-                             'user': 'fake-user', 
+                             'user': 'fake-user',
                              'password': 'fake-password',
                              'address': 'fake-address'})
     node = models.Node()
@@ -25,6 +40,7 @@ def get_test_node(**kw):
     node.extra = kw.get('extra', '{}')
 
     return node
+
 
 def get_test_iface(**kw):
     iface = models.Iface()

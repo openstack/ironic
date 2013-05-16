@@ -25,19 +25,18 @@ The Ironic Management Service
 import sys
 
 from oslo.config import cfg
-from wsgiref import simple_server
 
-from ironic.manager import manager
-from ironic.common.service import prepare_service
 from ironic.openstack.common import service
-from ironic.openstack.common.rpc import service as rpc_service
+
+from ironic.common import service as ironic_service
+from ironic.manager import manager
 
 CONF = cfg.CONF
 
 
 def main():
     # Pase config file and command line options, then start logging
-    prepare_service(sys.argv)
+    ironic_service.prepare_service(sys.argv)
 
     topic = 'ironic.manager'
     mgr = manager.ManagerService(CONF.host, topic)

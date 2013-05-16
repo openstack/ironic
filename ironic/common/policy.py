@@ -92,7 +92,7 @@ def enforce(context, action, target, do_raise=True):
     """
     init()
 
-    credentials = ironic_context.to_dict()
+    credentials = context.to_dict()
 
     # Add the exception arguments if asked to do a raise
     extra = {}
@@ -102,19 +102,16 @@ def enforce(context, action, target, do_raise=True):
     return policy.check(action, target, credentials, **extra)
 
 
-def check_is_admin(roles):
-    """Whether or not roles contains 'admin' role according to policy setting.
+def check_is_admin(context):
+    """Whether or not role contains 'admin' role according to policy setting.
 
     """
     init()
 
-    if isinstance(roles, RequestContext):
-        # the target is user-self
-        credentials = roles.to_dict()
-        target = credentials
-        return policy.check('context_is_admin', target, credentials)
-    else:
-        return policy.check('context_is_admin', {}, {'roles': roles})
+    credentials = context.to_dict()
+    target = credentials
+
+    return policy.check('context_is_admin', target, credentials)
 
 
 @policy.register('is_admin')

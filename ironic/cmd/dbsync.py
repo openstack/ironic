@@ -33,6 +33,7 @@ CONF = cfg.CONF
 CONF.import_opt('db_backend',
                 'ironic.openstack.common.db.api')
 
+
 def main():
     service.prepare_service(sys.argv)
     migration.db_sync()

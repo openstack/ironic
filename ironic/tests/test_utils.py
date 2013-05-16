@@ -16,11 +16,8 @@
 #    under the License.
 
 import __builtin__
-import datetime
 import errno
-import functools
 import hashlib
-import importlib
 import os
 import os.path
 import StringIO
@@ -30,16 +27,14 @@ import mox
 import netaddr
 from oslo.config import cfg
 
-import ironic
 from ironic.common import exception
 from ironic.common import utils
-from ironic.openstack.common import timeutils
-from ironic import test
+from ironic.tests import base
 
 CONF = cfg.CONF
 
 
-class BareMetalUtilsTestCase(test.TestCase):
+class BareMetalUtilsTestCase(base.TestCase):
 
     def test_random_alnum(self):
         s = utils.random_alnum(10)
@@ -81,7 +76,7 @@ class BareMetalUtilsTestCase(test.TestCase):
         self.mox.VerifyAll()
 
 
-class ExecuteTestCase(test.TestCase):
+class ExecuteTestCase(base.TestCase):
 
     def test_retry_on_failure(self):
         fd, tmpfilename = tempfile.mkstemp()
@@ -164,7 +159,7 @@ grep foo
             os.unlink(tmpfilename2)
 
 
-class GenericUtilsTestCase(test.TestCase):
+class GenericUtilsTestCase(base.TestCase):
     def test_hostname_unicode_sanitization(self):
         hostname = u"\u7684.test.example.com"
         self.assertEqual("test.example.com",
@@ -303,7 +298,7 @@ class GenericUtilsTestCase(test.TestCase):
                           "failure")
 
 
-class MkfsTestCase(test.TestCase):
+class MkfsTestCase(base.TestCase):
 
     def test_mkfs(self):
         self.mox.StubOutWithMock(utils, 'execute')
@@ -330,7 +325,7 @@ class MkfsTestCase(test.TestCase):
         utils.mkfs('swap', '/my/swap/block/dev', 'swap-vol')
 
 
-class IntLikeTestCase(test.TestCase):
+class IntLikeTestCase(base.TestCase):
 
     def test_is_int_like(self):
         self.assertTrue(utils.is_int_like(1))

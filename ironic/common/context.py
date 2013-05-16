@@ -48,7 +48,8 @@ class RequestContext(object):
                  request_id=None, auth_token=None, overwrite=True,
                  quota_class=None, user_name=None, project_name=None,
                  service_catalog=None, instance_lock_checked=False, **kwargs):
-        """
+        """Initialize this RequestContext.
+
         :param read_deleted: 'no' indicates deleted records are hidden, 'yes'
             indicates deleted records are visible, 'only' indicates that
             *only* deleted records are visible.

@@ -24,8 +24,8 @@ import urlparse
 
 from oslo.config import cfg
 
-from sqlalchemy import Table, Column, Index, ForeignKey
-from sqlalchemy import Boolean, DateTime, Float, Integer, String, Text
+from sqlalchemy import Column, ForeignKey
+from sqlalchemy import Integer, String
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.types import TypeDecorator, VARCHAR
 
