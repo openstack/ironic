@@ -73,7 +73,6 @@ class DbNodeTestCase(base.DbTestCase):
                           self.dbapi.destroy_node, n['id'])
 
     def test_update_node(self):
-        # FIXME
         n = utils.get_test_node()
         self.dbapi.create_node(n)
 
@@ -81,5 +80,5 @@ class DbNodeTestCase(base.DbTestCase):
         new_state = 'TESTSTATE'
         self.assertNotEqual(old_state, new_state)
 
-        #res = self.dbapi.update_node(n['id'], {'task_state': new_state})
-        #self.assertEqual(new_state, n['task_state'])
+        res = self.dbapi.update_node(n['id'], {'task_state': new_state})
+        self.assertEqual(new_state, res['task_state'])
