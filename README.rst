@@ -3,7 +3,12 @@ Ironic
 
 Ironic is an Incubated OpenStack project which aims to provision
 bare metal machines instead of virtual machines, forked from the
-Nova Baremetal driver.
+Nova Baremetal driver. It is best thought of as a bare metal
+hypervisor **API** and a set of plugins which interact with
+the bare metal hypervisors. By default, it will use PXE and IPMI
+in concert to provision and turn on/off machines, but Ironic
+also supports vendor-specific plugins which may implement additional
+functionality.
 
 -----------------
 Project Resources
@@ -49,6 +54,26 @@ An Ironic deployment will be composed of the following components:
   https://github.com/stackforge/diskimage-builder, and this ramdisk can be
   booted on-demand. The agent is never run inside a tenant instance.
 - A **Database** and a DB API for storing persistent state of the Manager and Drivers.
+
+
+In addition to the two types of drivers, BMCDriver and DeploymentDriver, there
+are three categories of driver functionality: core, common, and vendor:
+
+- "Core" functionality represents the minimal API for that driver type, eg.
+  power on/off for a BMCDriver.
+- "Common" functionality represents an extended but supported API, and any
+  driver which implements it must be consistent with all other driver
+  implementations of that functionality. For example, if a driver supports
+  enumerating PCI devices, it must return that list as well-structured JSON. In
+  this case, Ironic may validate the API input's structure, but will pass it
+  unaltered to the driver. This ensures compatibility for common features
+  across drivers.
+- "Vendor" functionality allows an excemption to the API contract when a vendor
+  wishes to expose unique functionality provided by their hardware and is
+  unable to do so within the core or common APIs. In this case, Ironic will
+  neither store nor introspect the messages passed between the API and the
+  driver.
+
 
 -----------
 Development
