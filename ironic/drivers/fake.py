@@ -42,7 +42,7 @@ class FakeDeploymentDriver(base.DeploymentDriver):
         pass
 
 
-class BMCDriver(object):
+class FakeBMCDriver(base.BMCDriver):
     def __init__(self):
         pass
 
