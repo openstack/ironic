@@ -63,7 +63,11 @@ Setting up a local environment for development can be done with tox::
     cd <your_src_dir>/ironic
 
     # install prerequisites
-    sudo apt-get install python-dev swig libssl-dev python-pip
+    * Ubuntu/Debian:
+    sudo apt-get install python-dev swig libssl-dev python-pip libmysqlclient-dev libxml2-dev libxslt-dev
+    * Fedora/RHEL:
+    sudo yum install python-devel swig openssl-devel python-pip mysql-libs libxml2-devel libxslt-devel
+
     sudo easy_install nose
     sudo pip install virtualenv setuptools-git flake8
 
