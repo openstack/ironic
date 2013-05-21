@@ -94,13 +94,16 @@ Setting up a local environment for development can be done with tox::
     sudo yum install python-devel swig openssl-devel python-pip mysql-libs libxml2-devel libxslt-devel
 
     sudo easy_install nose
-    sudo pip install virtualenv setuptools-git flake8
+    sudo pip install virtualenv setuptools-git flake8 tox
 
     # create virtualenv
     tox -evenv -- echo 'done'
 
     # activate the virtualenv
     source .tox/venv/bin/activate
+
+    # run testr init
+    testr init
 
     # run pep8/flake8 checks
     flake8
