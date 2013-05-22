@@ -56,20 +56,46 @@ class Connection(object):
         """Return a list of ids of all unassociated nodes."""
 
     @abc.abstractmethod
-    def reserve_node(self, node, values):
-        """Associate a node with an instance.
+    def reserve_nodes(self, nodes):
+        """Reserve a set of nodes atomically.
 
-        :param node: The id or uuid of a node.
-        :param values: Values to set while reserving the node.
-                       Must include 'instance_uuid'.
-        :return: The reserved Node.
+        To prevent other ManagerServices from manipulating the given
+        Nodes while a Task is performed, mark them all reserved by this host.
+
+        :param nodes: A list of node id or uuid.
+        :returns: A list of the reserved node refs.
+        :raises: NodeNotFound if any node is not found.
+        :raises: NodeAlreadyReserved if any node is already reserved.
+        """
+
+    @abc.abstractmethod
+    def release_nodes(self, nodes):
+        """Release the reservation on a set of nodes atomically.
+
+        :param nodes: A list of node id or uuid.
+        :raises: NodeNotFound if any node is not found.
+        :raises: NodeAlreadyReserved if any node could not be released
+                 because it was not reserved by this host.
         """
 
     @abc.abstractmethod
     def create_node(self, values):
         """Create a new node.
 
-        :param values: Values to instantiate the node with.
+        :param values: A dict containing several items used to identify
+                       and track the node, and several dicts which are passed
+                       into the Drivers when managing this node. For example:
+
+                        {
+                         'uuid': uuidutils.generate_uuid(),
+                         'instance_uuid': None,
+                         'task_state': states.NOSTATE,
+                         'control_driver': 'ipmi',
+                         'control_info': { ... },
+                         'deploy_driver': 'pxe',
+                         'deploy_info': { ... },
+                         'properties': { ... },
+                        }
         :returns: A node.
         """
 
@@ -102,6 +128,17 @@ class Connection(object):
 
         :param node: The id or uuid of a node.
         :param values: Dict of values to update.
+                       May be a partial list, eg. when setting the
+                       properties for a single driver. For example:
+
+                       {
+                        'deploy_driver': 'my-vendor-driver',
+                        'deploy_info':
+                            {
+                             'my-field-1': val1,
+                             'my-field-2': val2,
+                            }
+                       }
         :returns: A node.
         """
 
