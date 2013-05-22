@@ -83,12 +83,12 @@ def _get_console_pid(node_id):
     return None
 
 
-class IPMIPowerDriver(base.BMCDriver):
+class IPMIPowerDriver(base.ControlDriver):
     """Generic IPMI Power Driver
 
-    This BMCDriver class provides mechanism for controlling the power state
-    of physical hardware via IPMI calls. It also provides console access
-    for some supported hardware.
+    This ControlDriver class provides mechanism for controlling the power state
+    of physical hardware via IPMI calls. It also provides console access for
+    some supported hardware.
     """
 
     def __init__(self, node, **kwargs):
