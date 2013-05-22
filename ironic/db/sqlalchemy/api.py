@@ -31,8 +31,9 @@ from ironic.openstack.common import log
 from ironic.openstack.common import uuidutils
 
 CONF = cfg.CONF
-CONF.import_opt('sql_connection',
-                'ironic.openstack.common.db.sqlalchemy.session')
+CONF.import_opt('connection',
+                'ironic.openstack.common.db.sqlalchemy.session',
+                group='database')
 
 LOG = log.getLogger(__name__)
 

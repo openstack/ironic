@@ -260,53 +260,76 @@ from ironic.openstack.common import log as logging
 from ironic.openstack.common.gettextutils import _
 from ironic.openstack.common import timeutils
 
+DEFAULT = 'DEFAULT'
 
-sql_opts = [
-    cfg.StrOpt('sql_connection',
+sqlite_db_opts = [
+    cfg.StrOpt('sqlite_db',
+               default='ironic.sqlite',
+               help='the filename to use with sqlite'),
+    cfg.BoolOpt('sqlite_synchronous',
+                default=True,
+                help='If true, use synchronous mode for sqlite'),
+]
+
+database_opts = [
+    cfg.StrOpt('connection',
                default='sqlite:///' +
                        os.path.abspath(os.path.join(os.path.dirname(__file__),
                        '../', '$sqlite_db')),
                help='The SQLAlchemy connection string used to connect to the '
                     'database',
+               deprecated_name='sql_connection',
+               deprecated_group=DEFAULT,
                secret=True),
-    cfg.StrOpt('sqlite_db',
-               default='ironic.sqlite',
-               help='the filename to use with sqlite'),
-    cfg.IntOpt('sql_idle_timeout',
+    cfg.IntOpt('idle_timeout',
                default=3600,
+               deprecated_name='sql_idle_timeout',
+               deprecated_group=DEFAULT,
                help='timeout before idle sql connections are reaped'),
-    cfg.BoolOpt('sqlite_synchronous',
-                default=True,
-                help='If passed, use synchronous mode for sqlite'),
-    cfg.IntOpt('sql_min_pool_size',
+    cfg.IntOpt('min_pool_size',
                default=1,
+               deprecated_name='sql_min_pool_size',
+               deprecated_group=DEFAULT,
                help='Minimum number of SQL connections to keep open in a '
                     'pool'),
-    cfg.IntOpt('sql_max_pool_size',
+    cfg.IntOpt('max_pool_size',
                default=5,
+               deprecated_name='sql_max_pool_size',
+               deprecated_group=DEFAULT,
                help='Maximum number of SQL connections to keep open in a '
                     'pool'),
-    cfg.IntOpt('sql_max_retries',
+    cfg.IntOpt('max_retries',
                default=10,
+               deprecated_name='sql_max_retries',
+               deprecated_group=DEFAULT,
                help='maximum db connection retries during startup. '
                     '(setting -1 implies an infinite retry count)'),
-    cfg.IntOpt('sql_retry_interval',
+    cfg.IntOpt('retry_interval',
                default=10,
+               deprecated_name='sql_retry_interval',
+               deprecated_group=DEFAULT,
                help='interval between retries of opening a sql connection'),
-    cfg.IntOpt('sql_max_overflow',
+    cfg.IntOpt('max_overflow',
                default=None,
+               deprecated_name='sql_max_overflow',
+               deprecated_group=DEFAULT,
                help='If set, use this value for max_overflow with sqlalchemy'),
-    cfg.IntOpt('sql_connection_debug',
+    cfg.IntOpt('connection_debug',
                default=0,
+               deprecated_name='sql_connection_debug',
+               deprecated_group=DEFAULT,
                help='Verbosity of SQL debugging information. 0=None, '
                     '100=Everything'),
-    cfg.BoolOpt('sql_connection_trace',
+    cfg.BoolOpt('connection_trace',
                 default=False,
+                deprecated_name='sql_connection_trace',
+                deprecated_group=DEFAULT,
                 help='Add python stack traces to SQL as comment strings'),
 ]
 
 CONF = cfg.CONF
-CONF.register_opts(sql_opts)
+CONF.register_opts(sqlite_db_opts)
+CONF.register_opts(database_opts, 'database')
 LOG = logging.getLogger(__name__)
 
 _ENGINE = None
@@ -315,8 +338,9 @@ _MAKER = None
 
 def set_defaults(sql_connection, sqlite_db):
     """Set defaults for configuration variables."""
-    cfg.set_defaults(sql_opts,
-                     sql_connection=sql_connection,
+    cfg.set_defaults(database_opts,
+                     connection=sql_connection)
+    cfg.set_defaults(sqlite_db_opts,
                      sqlite_db=sqlite_db)
 
 
@@ -470,7 +494,7 @@ def get_engine(sqlite_fk=False):
     """Return a SQLAlchemy engine."""
     global _ENGINE
     if _ENGINE is None:
-        _ENGINE = create_engine(CONF.sql_connection,
+        _ENGINE = create_engine(CONF.database.connection,
                                 sqlite_fk=sqlite_fk)
     return _ENGINE
 
@@ -533,15 +557,15 @@ def create_engine(sql_connection, sqlite_fk=False):
     connection_dict = sqlalchemy.engine.url.make_url(sql_connection)
 
     engine_args = {
-        "pool_recycle": CONF.sql_idle_timeout,
+        "pool_recycle": CONF.database.idle_timeout,
         "echo": False,
         'convert_unicode': True,
     }
 
     # Map our SQL debug level to SQLAlchemy's options
-    if CONF.sql_connection_debug >= 100:
+    if CONF.database.connection_debug >= 100:
         engine_args['echo'] = 'debug'
-    elif CONF.sql_connection_debug >= 50:
+    elif CONF.database.connection_debug >= 50:
         engine_args['echo'] = True
 
     if "sqlite" in connection_dict.drivername:
@@ -549,13 +573,13 @@ def create_engine(sql_connection, sqlite_fk=False):
             engine_args["listeners"] = [SqliteForeignKeysListener()]
         engine_args["poolclass"] = NullPool
 
-        if CONF.sql_connection == "sqlite://":
+        if CONF.database.connection == "sqlite://":
             engine_args["poolclass"] = StaticPool
             engine_args["connect_args"] = {'check_same_thread': False}
     else:
-        engine_args['pool_size'] = CONF.sql_max_pool_size
-        if CONF.sql_max_overflow is not None:
-            engine_args['max_overflow'] = CONF.sql_max_overflow
+        engine_args['pool_size'] = CONF.database.max_pool_size
+        if CONF.database.max_overflow is not None:
+            engine_args['max_overflow'] = CONF.database.max_overflow
 
     engine = sqlalchemy.create_engine(sql_connection, **engine_args)
 
@@ -569,7 +593,7 @@ def create_engine(sql_connection, sqlite_fk=False):
                                     _synchronous_switch_listener)
         sqlalchemy.event.listen(engine, 'connect', _add_regexp_listener)
 
-    if (CONF.sql_connection_trace and
+    if (CONF.database.connection_trace and
             engine.dialect.dbapi.__name__ == 'MySQLdb'):
         _patch_mysqldb_with_stacktrace_comments()
 
@@ -579,7 +603,7 @@ def create_engine(sql_connection, sqlite_fk=False):
         if not _is_db_connection_error(e.args[0]):
             raise
 
-        remaining = CONF.sql_max_retries
+        remaining = CONF.database.max_retries
         if remaining == -1:
             remaining = 'infinite'
         while True:
@@ -587,7 +611,7 @@ def create_engine(sql_connection, sqlite_fk=False):
             LOG.warn(msg % remaining)
             if remaining != 'infinite':
                 remaining -= 1
-            time.sleep(CONF.sql_retry_interval)
+            time.sleep(CONF.database.retry_interval)
             try:
                 engine.connect()
                 break

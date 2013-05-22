@@ -22,7 +22,8 @@ from ironic.common import utils
 
 
 IMPL = utils.LazyPluggable(
-        'db_backend',
+        pivot='backend',
+        config_group='database',
         sqlalchemy='ironic.db.sqlalchemy.migration')
 
 INIT_VERSION = 0
