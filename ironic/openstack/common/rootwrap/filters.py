@@ -196,6 +196,10 @@ class KillFilter(CommandFilter):
                 return False
         try:
             command = os.readlink("/proc/%d/exe" % int(args[1]))
+            # NOTE(yufang521247): /proc/PID/exe may have '\0' on the
+            # end, because python doen't stop at '\0' when read the
+            # target path.
+            command = command.split('\0')[0]
             # NOTE(dprince): /proc/PID/exe may have ' (deleted)' on
             # the end if an executable is updated or deleted
             if command.endswith(" (deleted)"):
