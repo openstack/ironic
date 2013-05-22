@@ -60,6 +60,7 @@ import abc
 import re
 import urllib
 
+import six
 import urllib2
 
 from ironic.openstack.common.gettextutils import _
@@ -775,5 +776,5 @@ class GenericCheck(Check):
         # TODO(termie): do dict inspection via dot syntax
         match = self.match % target
         if self.kind in creds:
-            return match == unicode(creds[self.kind])
+            return match == six.text_type(creds[self.kind])
         return False
