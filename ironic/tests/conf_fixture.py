@@ -23,7 +23,7 @@ from ironic.common import config
 
 CONF = cfg.CONF
 CONF.import_opt('use_ipv6', 'ironic.netconf')
-CONF.import_opt('host', 'ironic.netconf')
+CONF.import_opt('host', 'ironic.common.service')
 
 
 class ConfFixture(fixtures.Fixture):
