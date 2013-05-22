@@ -95,10 +95,10 @@ class IPMIPowerDriver(base.ControlDriver):
         self.state = None
         self.retries = None
         self.node_id = node['id']
-        self.power_info = json.loads(node['power_info'])
-        self.address = self.power_info.get('address', None)
-        self.user = self.power_info.get('user', None)
-        self.password = self.power_info.get('password', None)
+        self.power_info = json.loads(node['control_info'])
+        self.address = self.power_info.get('ipmi_address', None)
+        self.user = self.power_info.get('ipmi_username', None)
+        self.password = self.power_info.get('ipmi_password', None)
         self.port = self.power_info.get('terminal_port', None)
 
         if self.node_id is None:

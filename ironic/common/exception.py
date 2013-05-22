@@ -219,7 +219,7 @@ class FileNotFound(NotFound):
     message = _("File %(file_path)s could not be found.")
 
 
-class NoValidHost(IronicException):
+class NoValidHost(NotFound):
     message = _("No valid host was found. %(reason)s")
 
 
