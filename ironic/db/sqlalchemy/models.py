@@ -105,10 +105,10 @@ class Node(Base):
     reservation = Column(String(255), nullable=True)
 
 
-class Iface(Base):
-    """Represents a NIC in a bare metal node."""
+class Port(Base):
+    """Represents a network port of a bare metal node."""
 
-    __tablename__ = 'ifaces'
+    __tablename__ = 'ports'
     id = Column(Integer, primary_key=True)
     address = Column(String(18), unique=True)
     node_id = Column(Integer, ForeignKey('nodes.id'), nullable=True)
