@@ -127,11 +127,9 @@ def _run_shell_command(cmd, throw_on_error=False):
     out = output.communicate()
     if output.returncode and throw_on_error:
         raise Exception("%s returned %d" % cmd, output.returncode)
-    if len(out) == 0:
+    if not out:
         return None
-    if len(out[0].strip()) == 0:
-        return None
-    return out[0].strip()
+    return out[0].strip() or None
 
 
 def _get_git_directory():

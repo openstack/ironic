@@ -436,7 +436,7 @@ def _parse_list_rule(rule):
             or_list.append(AndCheck(and_list))
 
     # If we have only one check, omit the "or"
-    if len(or_list) == 0:
+    if not or_list:
         return FalseCheck()
     elif len(or_list) == 1:
         return or_list[0]

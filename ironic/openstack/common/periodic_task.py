@@ -15,6 +15,7 @@
 
 import datetime
 import time
+
 from oslo.config import cfg
 
 from ironic.openstack.common.gettextutils import _

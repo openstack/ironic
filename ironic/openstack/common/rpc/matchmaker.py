@@ -236,7 +236,8 @@ class HeartbeatMatchMakerBase(MatchMakerBase):
         self.hosts.discard(host)
         self.backend_unregister(key, '.'.join((key, host)))
 
-        LOG.info(_("Matchmaker unregistered: %s, %s" % (key, host)))
+        LOG.info(_("Matchmaker unregistered: %(key)s, %(host)s"),
+                 {'key': key, 'host': host})
 
     def start_heartbeat(self):
         """
@@ -245,7 +246,7 @@ class HeartbeatMatchMakerBase(MatchMakerBase):
         yielding for CONF.matchmaker_heartbeat_freq seconds
         between iterations.
         """
-        if len(self.hosts) == 0:
+        if not self.hosts:
             raise MatchMakerException(
                 _("Register before starting heartbeat."))
 
