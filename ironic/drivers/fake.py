@@ -21,49 +21,41 @@ Fake drivers used in testing.
 from ironic.drivers import base
 
 
-class FakeDeploymentDriver(base.DeploymentDriver):
+class FakeDeployDriver(base.DeployDriver):
     def __init__(self):
         pass
 
-    @classmethod
-    def is_capable(self):
-        return True
-
-    def activate_bootloader(self):
+    def activate_bootloader(self, task, node):
         pass
 
-    def deactivate_bootloader(self):
+    def deactivate_bootloader(self, task, node):
         pass
 
-    def activate_node(self):
+    def activate_node(self, task, node):
         pass
 
-    def deactivate_node(self):
+    def deactivate_node(self, task, node):
         pass
 
 
-class FakeBMCDriver(base.BMCDriver):
+class FakeControlDriver(base.ControlDriver):
     def __init__(self):
         pass
 
-    @classmethod
-    def is_capable(self):
-        return True
-
-    def start_console(self):
+    def start_console(self, task, node):
         pass
 
-    def stop_console(self):
+    def stop_console(self, task, node):
         pass
 
-    def attach_console(self):
+    def attach_console(self, task, node):
         pass
 
-    def get_power_state(self):
+    def get_power_state(self, task, node):
         pass
 
-    def set_power_state(self):
+    def set_power_state(self, task, node):
         pass
 
-    def reboot(self):
+    def reboot(self, task, node):
         pass

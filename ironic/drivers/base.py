@@ -15,14 +15,16 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 """
-Base classes for drivers
+Base classes for drivers.
+
+All methods take, at minimum, a TaskManager resource and a single Node.
 """
 
 import abc
 
 
-class DeploymentDriver(object):
-    """Base class for hardware deployment drivers."""
+class DeployDriver(object):
+    """Base class for image deployment drivers."""
 
     __metaclass__ = abc.ABCMeta
 
@@ -30,58 +32,48 @@ class DeploymentDriver(object):
     def __init__(self):
         """Constructor."""
 
-    @classmethod
     @abc.abstractmethod
-    def is_capable(self):
-        """Check if this driver is capable of handling the givens."""
-
-    @abc.abstractmethod
-    def activate_bootloader(self):
+    def activate_bootloader(self, task, node):
         """Prepare the bootloader for this deployment."""
 
     @abc.abstractmethod
-    def deactivate_bootloader(self):
+    def deactivate_bootloader(self, task, node):
         """Tear down the bootloader for this deployment."""
 
     @abc.abstractmethod
-    def activate_node(self):
+    def activate_node(self, task, node):
         """Perform post-power-on operations for this deployment."""
 
     @abc.abstractmethod
-    def deactivate_node(self):
+    def deactivate_node(self, task, node):
         """Perform pre-power-off operations for this deployment."""
 
 
-class BMCDriver(object):
-    """Base class for baseboard management controller drivers."""
+class ControlDriver(object):
+    """Base class for node control drivers."""
 
     __metaclass__ = abc.ABCMeta
 
     @abc.abstractmethod
-    def __init__(self):
+    def __init__(self, nodes):
         """Constructor."""
 
-    @classmethod
     @abc.abstractmethod
-    def is_capable(self):
-        """Check if this driver is capable of handling the givens."""
+    def start_console(self, task, node):
+        """Start a remote console for the nodes."""
 
     @abc.abstractmethod
-    def start_console(self):
-        """Start a remote console for this BMC."""
+    def stop_console(self, task, node):
+        """Stop the remote console session for the nodes."""
 
     @abc.abstractmethod
-    def stop_console(self):
-        """Stop the remote console session for this BMC."""
+    def get_power_state(self, task, node):
+        """Return the power state of the nodes."""
 
     @abc.abstractmethod
-    def get_power_state(self):
-        """Return the power state."""
+    def set_power_state(self, task, node):
+        """Set the power state of the nodes."""
 
     @abc.abstractmethod
-    def set_power_state(self):
-        """Set the power state."""
-
-    @abc.abstractmethod
-    def reboot(self):
-        """Perform a hard reboot."""
+    def reboot(self, task, node):
+        """Perform a hard reboot of the nodes."""
