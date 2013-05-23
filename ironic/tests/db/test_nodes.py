@@ -17,6 +17,8 @@
 
 """Tests for manipulating Nodes via the DB API"""
 
+from ironic.openstack.common import uuidutils
+
 from ironic.common import exception
 from ironic.db import api as dbapi
 from ironic.tests.db import base
@@ -82,3 +84,70 @@ class DbNodeTestCase(base.DbTestCase):
 
         res = self.dbapi.update_node(n['id'], {'task_state': new_state})
         self.assertEqual(new_state, res['task_state'])
+
+    def test_reserve_one_node(self):
+        n = utils.get_test_node()
+        uuid = n['uuid']
+        self.dbapi.create_node(n)
+
+        r1 = 'fake-reservation'
+        r2 = 'another-reservation'
+
+        # reserve the node
+        self.dbapi.reserve_nodes(r1, [uuid])
+
+        # check reservation
+        res = self.dbapi.get_node(uuid)
+        self.assertEqual(r1, res['reservation'])
+
+        # another host fails to reserve or release
+        self.assertRaises(exception.NodeLocked,
+                          self.dbapi.reserve_nodes,
+                          r2, [uuid])
+        self.assertRaises(exception.NodeLocked,
+                          self.dbapi.release_nodes,
+                          r2, [uuid])
+
+        # release reservation
+        self.dbapi.release_nodes(r1, [uuid])
+        res = self.dbapi.get_node(uuid)
+        self.assertEqual(None, res['reservation'])
+
+        # another host succeeds
+        self.dbapi.reserve_nodes(r2, [uuid])
+        res = self.dbapi.get_node(uuid)
+        self.assertEqual(r2, res['reservation'])
+
+    def test_reserve_many_nodes(self):
+        uuids = []
+        for i in xrange(1, 6):
+            n = utils.get_test_node(id=i, uuid=uuidutils.generate_uuid())
+            self.dbapi.create_node(n)
+            uuids.append(n['uuid'])
+
+        uuids.sort()
+        r1 = 'first-reservation'
+        r2 = 'second-reservation'
+
+        # nodes 1,2,3: r1. nodes 4,5: unreseved
+        self.dbapi.reserve_nodes(r1, uuids[:3])
+
+        # overlapping ranges fail
+        self.assertRaises(exception.NodeLocked,
+                          self.dbapi.reserve_nodes,
+                          r2, uuids)
+        self.assertRaises(exception.NodeLocked,
+                          self.dbapi.reserve_nodes,
+                          r2, uuids[2:])
+
+        # non-overlapping range succeeds
+        self.dbapi.reserve_nodes(r2, uuids[3:])
+
+        # overlapping release fails
+        self.assertRaises(exception.NodeLocked,
+                          self.dbapi.release_nodes,
+                          r1, uuids)
+
+        # non-overlapping release succeeds
+        self.dbapi.release_nodes(r1, uuids[:3])
+        self.dbapi.release_nodes(r2, uuids[3:])

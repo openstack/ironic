@@ -56,12 +56,13 @@ class Connection(object):
         """Return a list of ids of all unassociated nodes."""
 
     @abc.abstractmethod
-    def reserve_nodes(self, nodes):
+    def reserve_nodes(self, tag, nodes):
         """Reserve a set of nodes atomically.
 
         To prevent other ManagerServices from manipulating the given
         Nodes while a Task is performed, mark them all reserved by this host.
 
+        :param tag: A string uniquely identifying the reservation holder.
         :param nodes: A list of node id or uuid.
         :returns: A list of the reserved node refs.
         :raises: NodeNotFound if any node is not found.
@@ -69,9 +70,10 @@ class Connection(object):
         """
 
     @abc.abstractmethod
-    def release_nodes(self, nodes):
+    def release_nodes(self, tag, nodes):
         """Release the reservation on a set of nodes atomically.
 
+        :param tag: A string uniquely identifying the reservation holder.
         :param nodes: A list of node id or uuid.
         :raises: NodeNotFound if any node is not found.
         :raises: NodeAlreadyReserved if any node could not be released

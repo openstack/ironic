@@ -89,7 +89,7 @@ class Connection(api.Connection):
     def get_unassociated_nodes(self):
         pass
 
-    def reserve_nodes(self, nodes):
+    def reserve_nodes(self, tag, nodes):
         # Ensure consistent sort order so we don't run into deadlocks.
         nodes.sort()
 
@@ -105,7 +105,7 @@ class Connection(api.Connection):
 
                 # Be optimistic and assume we usually get a reservation.
                 count = query.filter_by(reservation=None).\
-                            update({'reservation': CONF.host})
+                            update({'reservation': tag})
 
                 if count != 1:
                     try:
@@ -113,13 +113,13 @@ class Connection(api.Connection):
                     except NoResultFound:
                         raise exception.NodeNotFound(node=node)
                     else:
-                        raise exception.NodeAlreadyReserved(node=node)
+                        raise exception.NodeLocked(node=node)
                 ref = query.one()
                 result.append(ref)
 
         return result
 
-    def release_nodes(self, nodes):
+    def release_nodes(self, tag, nodes):
         session = get_session()
         with session.begin():
             # TODO(deva): Optimize this by trying to release all the nodes
@@ -130,7 +130,7 @@ class Connection(api.Connection):
                 query = add_uuid_filter(query, node)
 
                 # be optimistic and assume we usually release a reservation
-                count = query.filter_by(reservation=CONF.host).\
+                count = query.filter_by(reservation=tag).\
                             update({'reservation': None})
 
                 if count != 1:
@@ -140,7 +140,7 @@ class Connection(api.Connection):
                         raise exception.NodeNotFound(node=node)
                     else:
                         if ref['reservation'] is not None:
-                            raise exception.NodeAlreadyReserved(node=node)
+                            raise exception.NodeLocked(node=node)
 
     def create_node(self, values):
         node = models.Node()

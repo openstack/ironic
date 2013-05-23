@@ -231,8 +231,8 @@ class NodeNotFound(NotFound):
     message = _("Node %(node)s could not be found.")
 
 
-class NodeAlreadyReserved(NotFound):
-    message = _("Node %(node)s is already reserved.")
+class NodeLocked(NotFound):
+    message = _("Node %(node)s is locked by another process.")
 
 
 class PortNotFound(NotFound):
@@ -241,3 +241,8 @@ class PortNotFound(NotFound):
 
 class PowerStateFailure(IronicException):
     message = _("Failed to set node power state to %(pstate)s.")
+
+
+class ExclusiveLockRequired(NotAuthorized):
+    message = _("An exclusive lock is required, "
+                "but the current context has a shared lock.")
