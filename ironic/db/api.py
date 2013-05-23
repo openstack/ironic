@@ -23,11 +23,11 @@ import abc
 from ironic.openstack.common.db import api as db_api
 
 _BACKEND_MAPPING = {'sqlalchemy': 'ironic.db.sqlalchemy.api'}
+IMPL = db_api.DBAPI(backend_mapping=_BACKEND_MAPPING)
 
 
 def get_instance():
     """Return a DB API instance."""
-    IMPL = db_api.DBAPI(backend_mapping=_BACKEND_MAPPING)
     return IMPL
 
 
