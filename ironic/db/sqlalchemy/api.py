@@ -89,24 +89,58 @@ class Connection(api.Connection):
     def get_unassociated_nodes(self):
         pass
 
-    def reserve_node(self, node, values):
-        if values.get('instance_uuid', None) is None:
-            raise exception.IronicException(_("Instance UUID not specified"))
+    def reserve_nodes(self, nodes):
+        # Ensure consistent sort order so we don't run into deadlocks.
+        nodes.sort()
 
+        result = []
         session = get_session()
         with session.begin():
-            query = model_query(models.Node, session=session)
-            query = add_uuid_filter(query, node)
+            # TODO(deva): Optimize this by trying to reserve all the nodes
+            #             at once, and fall back to reserving one at a time
+            #             only if needed to determine the cause of an error.
+            for node in nodes:
+                query = model_query(models.Node, session=session)
+                query = add_uuid_filter(query, node)
 
-            count = query.filter_by(instance_uuid=None).\
-                        update(values)
-            if count != 1:
-                raise exception.IronicException(_(
-                    "Failed to associate instance %(i)s to node %(n)s.") %
-                        {'i': values['instance_uuid'], 'n': node})
-            ref = query.one()
+                # Be optimistic and assume we usually get a reservation.
+                count = query.filter_by(reservation=None).\
+                            update({'reservation': CONF.host})
 
-        return ref
+                if count != 1:
+                    try:
+                        ref = query.one()
+                    except NoResultFound:
+                        raise exception.NodeNotFound(node=node)
+                    else:
+                        raise exception.NodeAlreadyReserved(node=node)
+                ref = query.one()
+                result.append(ref)
+
+        return result
+
+    def release_nodes(self, nodes):
+        session = get_session()
+        with session.begin():
+            # TODO(deva): Optimize this by trying to release all the nodes
+            #             at once, and fall back to releasing one at a time
+            #             only if needed to determine the cause of an error.
+            for node in nodes:
+                query = model_query(models.Node, session=session)
+                query = add_uuid_filter(query, node)
+
+                # be optimistic and assume we usually release a reservation
+                count = query.filter_by(reservation=CONF.host).\
+                            update({'reservation': None})
+
+                if count != 1:
+                    try:
+                        ref = query.one()
+                    except NoResultFound:
+                        raise exception.NodeNotFound(node=node)
+                    else:
+                        if ref['reservation'] is not None:
+                            raise exception.NodeAlreadyReserved(node=node)
 
     def create_node(self, values):
         node = models.Node()
