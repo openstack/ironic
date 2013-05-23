@@ -246,6 +246,7 @@ import time
 
 from eventlet import greenthread
 from oslo.config import cfg
+import six
 from sqlalchemy import exc as sqla_exc
 import sqlalchemy.interfaces
 from sqlalchemy.interfaces import PoolListener
@@ -483,7 +484,7 @@ def _add_regexp_listener(dbapi_con, con_record):
 
     def regexp(expr, item):
         reg = re.compile(expr)
-        return reg.search(unicode(item)) is not None
+        return reg.search(six.text_type(item)) is not None
     dbapi_con.create_function('regexp', 2, regexp)
 
 
