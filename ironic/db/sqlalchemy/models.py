@@ -25,7 +25,7 @@ import urlparse
 from oslo.config import cfg
 
 from sqlalchemy import Column, ForeignKey
-from sqlalchemy import Integer, String
+from sqlalchemy import Integer, String, DateTime
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.types import TypeDecorator, VARCHAR
 
@@ -79,22 +79,30 @@ class IronicBase(models.TimestampMixin,
 Base = declarative_base(cls=IronicBase)
 
 
+class Chassis(Base):
+    """Represents a hardware chassis."""
+
+    __tablename__ = 'chassis'
+    id = Column(Integer, primary_key=True)
+    uuid = Column(String(36), unique=True)
+
+
 class Node(Base):
     """Represents a bare metal node."""
 
     __tablename__ = 'nodes'
     id = Column(Integer, primary_key=True)
     uuid = Column(String(36), unique=True)
-    power_info = Column(JSONEncodedDict)
-    cpu_arch = Column(String(10))
-    cpu_num = Column(Integer)
-    memory = Column(Integer)
-    local_storage_max = Column(Integer)
-    task_state = Column(String(255))
-    image_path = Column(String(255), nullable=True)
     instance_uuid = Column(String(36), nullable=True, unique=True)
-    instance_name = Column(String(255), nullable=True)
-    extra = Column(JSONEncodedDict)
+    chassis_id = Column(Integer, ForeignKey('chassis.id'), nullable=True)
+    task_start = Column(DateTime, nullable=True)
+    task_state = Column(String(15))
+    properties = Column(JSONEncodedDict)
+    control_driver = Column(String(15))
+    control_info = Column(JSONEncodedDict)
+    deploy_driver = Column(String(15))
+    deploy_info = Column(JSONEncodedDict)
+    reservation = Column(String(255), nullable=True)
 
 
 class Iface(Base):

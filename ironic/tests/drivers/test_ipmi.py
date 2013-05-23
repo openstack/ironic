@@ -43,9 +43,9 @@ class BareMetalIPMITestCase(base.TestCase):
 
     def test_construct(self):
         self.assertEqual(self.ipmi.node_id, 123)
-        self.assertEqual(self.ipmi.address, 'fake-address')
-        self.assertEqual(self.ipmi.user, 'fake-user')
-        self.assertEqual(self.ipmi.password, 'fake-password')
+        self.assertEqual(self.ipmi.address, '1.2.3.4')
+        self.assertEqual(self.ipmi.user, 'admin')
+        self.assertEqual(self.ipmi.password, 'fake')
 
     def test_make_password_file(self):
         fakepass = 'this is a fake password'
