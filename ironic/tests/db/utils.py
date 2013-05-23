@@ -63,10 +63,10 @@ def get_test_node(**kw):
     return node
 
 
-def get_test_iface(**kw):
-    iface = models.Iface()
-    iface.id = kw.get('id', 987)
-    iface.node_id = kw.get('node_id', 123)
-    iface.address = kw.get('address', '52:54:00:cf:2d:31')
+def get_test_port(**kw):
+    port = models.Port()
+    port.id = kw.get('id', 987)
+    port.node_id = kw.get('node_id', 123)
+    port.address = kw.get('address', '52:54:00:cf:2d:31')
 
-    return iface
+    return port

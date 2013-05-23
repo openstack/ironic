@@ -163,59 +163,59 @@ class Connection(api.Connection):
             ref = query.one()
         return ref
 
-    def get_iface(self, iface):
-        query = model_query(models.Iface)
-        query = add_mac_filter(query, iface)
+    def get_port(self, port):
+        query = model_query(models.Port)
+        query = add_mac_filter(query, port)
 
         try:
             result = query.one()
         except NoResultFound:
-            raise exception.InterfaceNotFound(iface=iface)
+            raise exception.PortNotFound(port=port)
 
         return result
 
-    def get_iface_by_vif(self, vif):
+    def get_port_by_vif(self, vif):
         pass
 
-    def get_iface_by_node(self, node):
+    def get_ports_by_node(self, node):
         session = get_session()
 
         if utils.is_int_like(node):
-            query = session.query(models.Iface).\
+            query = session.query(models.Port).\
                         filter_by(node_id=node)
         else:
-            query = session.query(models.Iface).\
+            query = session.query(models.Port).\
                         join(models.Node,
-                             models.Iface.node_id == models.Node.id).\
+                             models.Port.node_id == models.Node.id).\
                         filter(models.Node.uuid == node)
         result = query.all()
 
         return result
 
-    def create_iface(self, values):
-        iface = models.Iface()
-        iface.update(values)
-        iface.save()
-        return iface
+    def create_port(self, values):
+        port = models.Port()
+        port.update(values)
+        port.save()
+        return port
 
-    def update_iface(self, iface, values):
+    def update_port(self, port, values):
         session = get_session()
         with session.begin():
-            query = model_query(models.Iface, session=session)
-            query = add_mac_filter(query, iface)
+            query = model_query(models.Port, session=session)
+            query = add_mac_filter(query, port)
 
             count = query.update(values)
             if count != 1:
-                raise exception.InterfaceNotFound(iface=iface)
+                raise exception.PortNotFound(port=port)
             ref = query.one()
         return ref
 
-    def destroy_iface(self, iface):
+    def destroy_port(self, port):
         session = get_session()
         with session.begin():
-            query = model_query(models.Iface, session=session)
-            query = add_mac_filter(query, iface)
+            query = model_query(models.Port, session=session)
+            query = add_mac_filter(query, port)
 
             count = query.delete()
             if count != 1:
-                raise exception.IfaceNotFound(iface=iface)
+                raise exception.PortNotFound(port=port)

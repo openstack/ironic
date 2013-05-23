@@ -231,8 +231,12 @@ class NodeNotFound(NotFound):
     message = _("Node %(node)s could not be found.")
 
 
-class InterfaceNotFound(NotFound):
-    message = _("Interface %(iface)s could not be found.")
+class NodeAlreadyReserved(NotFound):
+    message = _("Node %(node)s is already reserved.")
+
+
+class PortNotFound(NotFound):
+    message = _("Port %(port)s could not be found.")
 
 
 class PowerStateFailure(IronicException):

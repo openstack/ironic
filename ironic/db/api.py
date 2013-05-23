@@ -70,7 +70,7 @@ class Connection(object):
         """Create a new node.
 
         :param values: Values to instantiate the node with.
-        :returns: Node.
+        :returns: A node.
         """
 
     @abc.abstractmethod
@@ -78,7 +78,7 @@ class Connection(object):
         """Return a node.
 
         :param node: The id or uuid of a node.
-        :return Node:
+        :returns: A node.
         """
 
     @abc.abstractmethod
@@ -86,7 +86,7 @@ class Connection(object):
         """Return a node.
 
         :param instance: The instance name or uuid to search for.
-        :returns: Node.
+        :returns: A node.
         """
 
     @abc.abstractmethod
@@ -102,52 +102,52 @@ class Connection(object):
 
         :param node: The id or uuid of a node.
         :param values: Dict of values to update.
-        :returns: Node.
+        :returns: A node.
         """
 
     @abc.abstractmethod
-    def get_iface(self, iface):
-        """Return an interface.
+    def get_port(self, port):
+        """Return a network port representation.
 
-        :param iface: The id or MAC of an interface.
-        :returns: Iface.
+        :param port: The id or MAC of a port.
+        :returns: A port.
         """
 
     @abc.abstractmethod
-    def get_iface_by_vif(self, vif):
-        """Return the interface corresponding to this VIF.
+    def get_port_by_vif(self, vif):
+        """Return the port corresponding to this VIF.
 
         :param vif: The uuid of the VIF.
-        :returns: Iface.
+        :returns: A port.
         """
 
     @abc.abstractmethod
-    def get_iface_by_node(self, node):
-        """List all the interfaces for a given node.
+    def get_ports_by_node(self, node):
+        """List all the ports for a given node.
 
         :param node: The id or uuid of a node.
-        :returns: list of Iface.
+        :returns: A list of ports.
         """
 
     @abc.abstractmethod
-    def create_iface(self, values):
-        """Create a new iface.
+    def create_port(self, values):
+        """Create a new port.
 
         :param values: Dict of values.
         """
 
     @abc.abstractmethod
-    def update_iface(self, iface, values):
-        """Update properties of an iface.
+    def update_port(self, port, values):
+        """Update properties of an port.
 
-        :param iface: The id or MAC of an interface.
+        :param port: The id or MAC of a port.
         :param values: Dict of values to update.
-        :returns: Iface.
+        :returns: A port.
         """
 
     @abc.abstractmethod
-    def destroy_iface(self, iface):
-        """Destroy an iface.
+    def destroy_port(self, port):
+        """Destroy an port.
 
-        :param iface: The id or MAC of an interface.
+        :param port: The id or MAC of a port.
         """
