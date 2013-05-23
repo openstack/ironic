@@ -38,29 +38,38 @@ Project Architecture
 
 An Ironic deployment will be composed of the following components:
 
-- A **RESTful API** service, by which operators and other services
-  may interact with the managed bare metal servers.
-- A **Manager** service, which does the bulk of the work. Functionality
-  is exposed via the API service.
-  The Manager and API services communicate via RPC.
-- An internal **driver API** for different Manager functions.
-  There are currently two driver types: BMCDriver and DeploymentDriver.
-- Internal drivers for each function are dynamically loaded, according to the
-  specific hardware being managed, such that heterogeneous hardware deployments
-  can be managed by a single Manager service.
-- One or more **Deployment Agents**, which provide local control over
-  the hardware which is not available remotely to the Manager.
-  A ramdisk should be built which contains one of these agents, eg. with
+- A **RESTful API** service, by which operators and other services may interact
+  with the managed bare metal servers.
+- A **Manager** service, which does the bulk of the work. Functionality is
+  exposed via the API service.  The Manager and API services communicate via
+  RPC.
+- One or more **Deployment Agents**, which provide local control over the
+  hardware which is not available remotely to the Manager.  A ramdisk should be
+  built which contains one of these agents, eg. with
   https://github.com/stackforge/diskimage-builder, and this ramdisk can be
   booted on-demand. The agent is never run inside a tenant instance.
-- A **Database** and a DB API for storing persistent state of the Manager and Drivers.
+- A **Database** and a DB API for storing persistent state of the Manager and
+  Drivers.
 
+The internal driver API provides a consistent interface between the
+Manager service and the driver implementations. There are two types of drivers:
 
-In addition to the two types of drivers, BMCDriver and DeploymentDriver, there
-are three categories of driver functionality: core, common, and vendor:
+- ControlDrivers manage the hardware, performing functions such as power
+  on/off, toggle boot device, etc.
+- DeployDrivers handle the task of booting a temporary ramdisk, formatting
+  drives, and putting a persistent image onto the hardware.
+- Driver implementations are loaded and instantiated via entrypoints when the
+  ManagerService starts. Each Node record stored in the database indicates
+  which drivers should manage it. When a task is started on that node,
+  information about the node and task is passed to the corresponding driver.
+  In this way, heterogeneous hardware deployments can be managed by a single
+  Manager service.
+
+In addition to the two types of drivers, there are three categories of driver
+functionality: core, common, and vendor:
 
 - "Core" functionality represents the minimal API for that driver type, eg.
-  power on/off for a BMCDriver.
+  power on/off for a ControlDriver.
 - "Common" functionality represents an extended but supported API, and any
   driver which implements it must be consistent with all other driver
   implementations of that functionality. For example, if a driver supports
