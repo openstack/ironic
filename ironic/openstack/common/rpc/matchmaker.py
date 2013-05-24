@@ -230,7 +230,8 @@ class HeartbeatMatchMakerBase(MatchMakerBase):
         self.hosts.discard(host)
         self.backend_unregister(key, '.'.join((key, host)))
 
-        LOG.info(_("Matchmaker unregistered: %s, %s" % (key, host)))
+        LOG.info(_("Matchmaker unregistered: %(key)s, %(host)s"),
+                 {'key': key, 'host': host})
 
     def start_heartbeat(self):
         """

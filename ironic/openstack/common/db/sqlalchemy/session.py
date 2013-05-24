@@ -25,8 +25,9 @@ Initializing:
 
   Example:
 
-    session.set_defaults(sql_connection="sqlite:///var/lib/ironic/sqlite.db",
-                         sqlite_db="/var/lib/ironic/sqlite.db")
+    session.set_defaults(
+        sql_connection="sqlite:///var/lib/ironic/sqlite.db",
+        sqlite_db="/var/lib/ironic/sqlite.db")
 
 Recommended ways to use sessions within this framework:
 

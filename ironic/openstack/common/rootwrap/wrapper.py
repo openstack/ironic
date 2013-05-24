@@ -93,7 +93,7 @@ def setup_syslog(execname, facility, level):
 
 
 def build_filter(class_name, *args):
-    """Returns a filter object of class class_name"""
+    """Returns a filter object of class class_name."""
     if not hasattr(filters, class_name):
         logging.warning("Skipping unknown filter class (%s) specified "
                         "in filter definitions" % class_name)
@@ -103,7 +103,7 @@ def build_filter(class_name, *args):
 
 
 def load_filters(filters_path):
-    """Load filters from a list of directories"""
+    """Load filters from a list of directories."""
     filterlist = []
     for filterdir in filters_path:
         if not os.path.isdir(filterdir):
@@ -121,7 +121,7 @@ def load_filters(filters_path):
     return filterlist
 
 
-def match_filter(filters, userargs, exec_dirs=[]):
+def match_filter(filter_list, userargs, exec_dirs=[]):
     """
     Checks user command and arguments through command filters and
     returns the first matching filter.
@@ -131,7 +131,7 @@ def match_filter(filters, userargs, exec_dirs=[]):
     """
     first_not_executable_filter = None
 
-    for f in filters:
+    for f in filter_list:
         if f.match(userargs):
             # Try other filters if executable is absent
             if not f.get_exec(exec_dirs=exec_dirs):
