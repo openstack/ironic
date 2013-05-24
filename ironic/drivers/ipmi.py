@@ -56,7 +56,10 @@ CONF.register_opts(opts)
 
 LOG = logging.getLogger(__name__)
 
+VALID_BOOT_DEVICES = ['pxe', 'disk', 'safe', 'cdrom', 'bios']
 
+
+# TODO(deva): use a contextmanager for this, and port it to nova.
 def _make_password_file(password):
     fd, path = tempfile.mkstemp()
     os.fchmod(fd, stat.S_IRUSR | stat.S_IWUSR)
@@ -65,22 +68,117 @@ def _make_password_file(password):
     return path
 
 
-def _get_console_pid_path(node_id):
-    name = "%s.pid" % node_id
-    path = os.path.join(CONF.terminal_pid_dir, name)
-    return path
+def _parse_control_info(node):
+    info = json.loads(node.get('control_info', ''))
+    address = info.get('ipmi_address', None)
+    user = info.get('ipmi_username', None)
+    password = info.get('ipmi_password', None)
+    port = info.get('ipmi_terminal_port', None)
+
+    if not address or not user or not password:
+        raise exception.InvalidParameterValue(_(
+            "IPMI credentials not supplied to IPMI driver."))
+
+    return {
+            'address': address,
+            'user': user,
+            'password': password,
+            'port': port,
+            'uuid': node.get('uuid')
+           }
 
 
-def _get_console_pid(node_id):
-    pid_path = _get_console_pid_path(node_id)
-    if os.path.exists(pid_path):
-        with open(pid_path, 'r') as f:
-            pid_str = f.read()
+def _exec_ipmitool(c_info, command):
+    args = ['ipmitool',
+            '-I',
+            'lanplus',
+            '-H',
+            c_info['address'],
+            '-U',
+            c_info['user'],
+            '-f']
+    try:
+        pwfile = _make_password_file(c_info['password'])
+        args.append(pwfile)
+        args.extend(command.split(" "))
+        out, err = utils.execute(*args, attempts=3)
+        LOG.debug(_("ipmitool stdout: '%(out)s', stderr: '%(err)s'"),
+                  locals())
+        return out, err
+    finally:
+        utils.delete_if_exists(pwfile)
+
+
+def _power_on(c_info):
+    """Turn the power to this node ON."""
+
+    # use mutable objects so the looped method can change them
+    state = [None]
+    retries = [0]
+
+    def _wait_for_power_on(state, retries):
+        """Called at an interval until the node's power is on."""
+
+        state[0] = _power_status(c_info)
+        if state[0] == states.POWER_ON:
+            raise loopingcall.LoopingCallDone()
+
+        if retries[0] > CONF.ipmi_power_retry:
+            state[0] = states.ERROR
+            raise loopingcall.LoopingCallDone()
         try:
-            return int(pid_str)
-        except ValueError:
-            LOG.warn(_("pid file %s does not contain any pid"), pid_path)
-    return None
+            retries[0] += 1
+            _exec_ipmitool(c_info, "power on")
+        except Exception:
+            # Log failures but keep trying
+            LOG.warning(_("IPMI power on failed for node %s.")
+                    % c_info['uuid'])
+
+    timer = loopingcall.FixedIntervalLoopingCall(_wait_for_power_on,
+                                                 state, retries)
+    timer.start(interval=1).wait()
+    return state[0]
+
+
+def _power_off(c_info):
+    """Turn the power to this node OFF."""
+
+    # use mutable objects so the looped method can change them
+    state = [None]
+    retries = [0]
+
+    def _wait_for_power_off(state, retries):
+        """Called at an interval until the node's power is off."""
+
+        state[0] = _power_status(c_info)
+        if state[0] == states.POWER_OFF:
+            raise loopingcall.LoopingCallDone()
+
+        if retries[0] > CONF.ipmi_power_retry:
+            state[0] = states.ERROR
+            raise loopingcall.LoopingCallDone()
+        try:
+            retries[0] += 1
+            _exec_ipmitool(c_info, "power off")
+        except Exception:
+            # Log failures but keep trying
+            LOG.warning(_("IPMI power off failed for node %s.")
+                    % c_info['uuid'])
+
+    timer = loopingcall.FixedIntervalLoopingCall(_wait_for_power_off,
+                                                 state=state, retries=retries)
+    timer.start(interval=1).wait()
+    return state[0]
+
+
+def _power_status(c_info):
+    out_err = _exec_ipmitool(c_info, "power status")
+    if out_err[0] == "Chassis Power is on\n":
+        return states.POWER_ON
+    elif out_err[0] == "Chassis Power is off\n":
+        return states.POWER_OFF
+    else:
+        return states.ERROR
 
 
 class IPMIPowerDriver(base.ControlDriver):
@@ -89,192 +187,81 @@ class IPMIPowerDriver(base.ControlDriver):
     This ControlDriver class provides mechanism for controlling the power state
     of physical hardware via IPMI calls. It also provides console access for
     some supported hardware.
+
+    NOTE: This driver does not currently support multi-node operations.
     """
 
-    def __init__(self, node, **kwargs):
-        self.state = None
-        self.retries = None
-        self.node_id = node['id']
-        self.power_info = json.loads(node['control_info'])
-        self.address = self.power_info.get('ipmi_address', None)
-        self.user = self.power_info.get('ipmi_username', None)
-        self.password = self.power_info.get('ipmi_password', None)
-        self.port = self.power_info.get('terminal_port', None)
-
-        if self.node_id is None:
-            raise exception.InvalidParameterValue(_("Node id not supplied "
-                "to IPMI"))
-        if self.address is None:
-            raise exception.InvalidParameterValue(_("Address not supplied "
-                "to IPMI"))
-        if self.user is None:
-            raise exception.InvalidParameterValue(_("User not supplied "
-                "to IPMI"))
-        if self.password is None:
-            raise exception.InvalidParameterValue(_("Password not supplied "
-                "to IPMI"))
-
-    def _exec_ipmitool(self, command):
-        args = ['ipmitool',
-                '-I',
-                'lanplus',
-                '-H',
-                self.address,
-                '-U',
-                self.user,
-                '-f']
-        pwfile = _make_password_file(self.password)
-        try:
-            args.append(pwfile)
-            args.extend(command.split(" "))
-            out, err = utils.execute(*args, attempts=3)
-            LOG.debug(_("ipmitool stdout: '%(out)s', stderr: '%(err)s'"),
-                      locals())
-            return out, err
-        finally:
-            utils.delete_if_exists(pwfile)
-
-    def _power_on(self):
-        """Turn the power to this node ON."""
-
-        def _wait_for_power_on():
-            """Called at an interval until the node's power is on."""
-
-            self._update_state()
-            if self.state == states.POWER_ON:
-                raise loopingcall.LoopingCallDone()
-
-            if self.retries > CONF.ipmi_power_retry:
-                self.state = states.ERROR
-                raise loopingcall.LoopingCallDone()
-            try:
-                self.retries += 1
-                self._exec_ipmitool("power on")
-            except Exception:
-                LOG.exception(_("IPMI power on failed"))
-
-        self.retries = 0
-        timer = loopingcall.FixedIntervalLoopingCall(_wait_for_power_on)
-        timer.start(interval=1).wait()
-
-    def _power_off(self):
-        """Turn the power to this node OFF."""
-
-        def _wait_for_power_off():
-            """Called at an interval until the node's power is off."""
-
-            self._update_state()
-            if self.state == states.POWER_OFF:
-                raise loopingcall.LoopingCallDone()
-
-            if self.retries > CONF.ipmi_power_retry:
-                self.state = states.ERROR
-                raise loopingcall.LoopingCallDone()
-            try:
-                self.retries += 1
-                self._exec_ipmitool("power off")
-            except Exception:
-                LOG.exception(_("IPMI power off failed"))
-
-        self.retries = 0
-        timer = loopingcall.FixedIntervalLoopingCall(_wait_for_power_off)
-        timer.start(interval=1).wait()
-
-    def _set_pxe_for_next_boot(self):
-        # FIXME: raise exception, not just log
-        # FIXME: make into a public set-boot function
-        try:
-            self._exec_ipmitool("chassis bootdev pxe")
-        except Exception:
-            LOG.exception(_("IPMI set next bootdev failed"))
-
-    def _update_state(self):
-        # FIXME: better error and other-state handling
-        out_err = self._exec_ipmitool("power status")
-        if out_err[0] == "Chassis Power is on\n":
-            self.state = states.POWER_ON
-        elif out_err[0] == "Chassis Power is off\n":
-            self.state = states.POWER_OFF
-        else:
-            self.state = states.ERROR
-
-    def validate_driver_info(node):
-        # Temporary stub so patch I8ba2f4bd70bd2d7af405868cca2aedb56d3f0640
-        # will pass. The next patch actually implements this.
+    def __init__(self):
         pass
 
-    def get_power_state(self):
-        """Checks and returns current power state."""
-        self._update_state()
-        return self.state
+    def validate_driver_info(self, node):
+        """Check that node['control_info'] contains the requisite fields."""
+        try:
+            _parse_control_info(node)
+        except exception.InvalidParameterValue:
+            return False
+        return True
 
-    def set_power_state(self, pstate):
+    def get_power_state(self, task, node):
+        """Get the current power state."""
+        c_info = _parse_control_info(node)
+        return _power_status(c_info)
+
+    def set_power_state(self, task, node, pstate):
         """Turn the power on or off."""
-        if self.state and self.state == pstate:
-            LOG.warning(_("set_power_state called with current state."))
+        c_info = _parse_control_info(node)
 
         if pstate == states.POWER_ON:
-            self._set_pxe_for_next_boot()
-            self._power_on()
+            state = _power_on(c_info)
         elif pstate == states.POWER_OFF:
-            self._power_off()
+            state = _power_off(c_info)
         else:
-            LOG.error(_("set_power_state called with invalid pstate."))
+            raise exception.IronicException(_(
+                "set_power_state called with invalid power state."))
 
-        if self.state != pstate:
+        if state != pstate:
             raise exception.PowerStateFailure(pstate=pstate)
 
-    def reboot(self):
+    def reboot(self, task, node):
         """Cycles the power to a node."""
-        self._power_off()
-        self._set_pxe_for_next_boot()
-        self._power_on()
+        c_info = _parse_control_info(node)
+        _power_off(c_info)
+        state = _power_on(c_info)
 
-        if self.state != states.POWER_ON:
+        if state != states.POWER_ON:
             raise exception.PowerStateFailure(pstate=states.POWER_ON)
 
-    def start_console(self):
-        if not self.port:
-            return
-        args = []
-        args.append(CONF.terminal)
-        if CONF.terminal_cert_dir:
-            args.append("-c")
-            args.append(CONF.terminal_cert_dir)
-        else:
-            args.append("-t")
-        args.append("-p")
-        args.append(str(self.port))
-        args.append("--background=%s" % _get_console_pid_path(self.node_id))
-        args.append("-s")
+    def set_boot_device(self, task, node, device, persistent=False):
+        """Set the boot device for a node.
 
+        :param task: TaskManager context.
+        :param node: The Node.
+        :param device: Boot device. One of [pxe, disk, cdrom, safe, bios].
+        :param persistent: Whether to set next-boot, or make the change
+            permanent. Default: False.
+        :raises: InvalidParameterValue if an invalid boot device is specified.
+        :raises: IPMIFailure on an error from ipmitool.
+
+        """
+        if device not in VALID_BOOT_DEVICES:
+            raise exception.InvalidParameterValue(_(
+                "Invalid boot device %s specified.") % device)
+        cmd = "chassis bootdev %s" % device
+        if persistent:
+            cmd = cmd + " options=persistent"
+        c_info = _parse_control_info(node)
         try:
-            pwfile = _make_password_file(self.password)
-            ipmi_args = "/:%(uid)s:%(gid)s:HOME:ipmitool -H %(address)s" \
-                    " -I lanplus -U %(user)s -f %(pwfile)s sol activate" \
-                    % {'uid': os.getuid(),
-                       'gid': os.getgid(),
-                       'address': self.address,
-                       'user': self.user,
-                       'pwfile': pwfile,
-                       }
+            out, err = _exec_ipmitool(c_info, cmd)
+            # TODO(deva): validate (out, err) and add unit test for failure
+        except Exception:
+            raise exception.IPMIFailure(cmd=cmd)
 
-            args.append(ipmi_args)
-            # Run shellinaboxd without pipes. Otherwise utils.execute() waits
-            # infinitely since shellinaboxd does not close passed fds.
-            x = ["'" + arg.replace("'", "'\\''") + "'" for arg in args]
-            x.append('</dev/null')
-            x.append('>/dev/null')
-            x.append('2>&1')
-            utils.execute(' '.join(x), shell=True)
-        finally:
-            utils.delete_if_exists(pwfile)
+    # TODO(deva): port start_console
+    def start_console(self, task, node):
+        raise exception.IronicException(_(
+            "start_console is not supported by IPMIPowerDriver."))
 
-    def stop_console(self):
-        console_pid = _get_console_pid(self.node_id)
-        if console_pid:
-            # Allow exitcode 99 (RC_UNAUTHORIZED)
-            utils.execute('kill', '-TERM', str(console_pid),
-                          run_as_root=True,
-                          check_exit_code=[0, 99])
-        utils.delete_if_exists(_get_console_pid_path(self.node_id))
+    # TODO(deva): port stop_console
+    def stop_console(self, task, node):
+        raise exception.IronicException(_(
+            "stop_console is not supported by IPMIPowerDriver."))

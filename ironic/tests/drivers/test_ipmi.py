@@ -21,10 +21,12 @@
 
 import os
 import stat
-import tempfile
 
 from oslo.config import cfg
 
+from ironic.openstack.common import jsonutils as json
+
+from ironic.common import exception
 from ironic.common import states
 from ironic.common import utils
 from ironic.drivers import ipmi
@@ -39,15 +41,9 @@ class BareMetalIPMITestCase(base.TestCase):
     def setUp(self):
         super(BareMetalIPMITestCase, self).setUp()
         self.node = db_utils.get_test_node()
-        self.ipmi = ipmi.IPMIPowerDriver(self.node)
+        self.ipmi = ipmi.IPMIPowerDriver()
 
-    def test_construct(self):
-        self.assertEqual(self.ipmi.node_id, 123)
-        self.assertEqual(self.ipmi.address, '1.2.3.4')
-        self.assertEqual(self.ipmi.user, 'admin')
-        self.assertEqual(self.ipmi.password, 'fake')
-
-    def test_make_password_file(self):
+    def test__make_password_file(self):
         fakepass = 'this is a fake password'
         pw_file = ipmi._make_password_file(fakepass)
         try:
@@ -59,18 +55,39 @@ class BareMetalIPMITestCase(base.TestCase):
         finally:
             os.unlink(pw_file)
 
-    def test_exec_ipmitool(self):
+    def test__parse_control_info(self):
+        # make sure we get back the expected things
+        node = db_utils.get_test_node()
+        info = ipmi._parse_control_info(node)
+        self.assertIsNotNone(info.get('address'))
+        self.assertIsNotNone(info.get('user'))
+        self.assertIsNotNone(info.get('password'))
+        self.assertIsNotNone(info.get('uuid'))
+
+        # make sure error is raised when info, eg. username, is missing
+        _control_info = json.dumps(
+            {
+                "ipmi_address": "1.2.3.4",
+                "ipmi_password": "fake",
+             })
+        node = db_utils.get_test_node(control_info=_control_info)
+        self.assertRaises(exception.InvalidParameterValue,
+                ipmi._parse_control_info,
+                node)
+
+    def test__exec_ipmitool(self):
         pw_file = '/tmp/password_file'
+        info = ipmi._parse_control_info(self.node)
 
         self.mox.StubOutWithMock(ipmi, '_make_password_file')
         self.mox.StubOutWithMock(utils, 'execute')
         self.mox.StubOutWithMock(utils, 'delete_if_exists')
-        ipmi._make_password_file(self.ipmi.password).AndReturn(pw_file)
+        ipmi._make_password_file(info['password']).AndReturn(pw_file)
         args = [
                 'ipmitool',
                 '-I', 'lanplus',
-                '-H', self.ipmi.address,
-                '-U', self.ipmi.user,
+                '-H', info['address'],
+                '-U', info['user'],
                 '-f', pw_file,
                 'A', 'B', 'C',
                 ]
@@ -78,176 +95,175 @@ class BareMetalIPMITestCase(base.TestCase):
         utils.delete_if_exists(pw_file).AndReturn(None)
         self.mox.ReplayAll()
 
-        self.ipmi._exec_ipmitool('A B C')
+        ipmi._exec_ipmitool(info, 'A B C')
         self.mox.VerifyAll()
 
-    def test_update_state_on(self):
-        self.mox.StubOutWithMock(self.ipmi, '_exec_ipmitool')
-        self.ipmi._exec_ipmitool("power status").AndReturn(
-                ["Chassis Power is on\n"])
+    def test__power_status_on(self):
+        self.mox.StubOutWithMock(ipmi, '_exec_ipmitool')
+        info = ipmi._parse_control_info(self.node)
+        ipmi._exec_ipmitool(info, "power status").AndReturn(
+                ["Chassis Power is on\n", None])
         self.mox.ReplayAll()
 
-        self.ipmi.state = states.NOSTATE
-        self.ipmi._update_state()
+        state = ipmi._power_status(info)
         self.mox.VerifyAll()
-        self.assertEqual(self.ipmi.state, states.POWER_ON)
+        self.assertEqual(state, states.POWER_ON)
 
-    def test_update_state_off(self):
-        self.mox.StubOutWithMock(self.ipmi, '_exec_ipmitool')
-        self.ipmi._exec_ipmitool("power status").AndReturn(
-                ["Chassis Power is off\n"])
+    def test__power_status_off(self):
+        self.mox.StubOutWithMock(ipmi, '_exec_ipmitool')
+        info = ipmi._parse_control_info(self.node)
+        ipmi._exec_ipmitool(info, "power status").AndReturn(
+                ["Chassis Power is off\n", None])
         self.mox.ReplayAll()
 
-        self.ipmi.state = states.NOSTATE
-        self.ipmi._update_state()
+        state = ipmi._power_status(info)
         self.mox.VerifyAll()
-        self.assertEqual(self.ipmi.state, states.POWER_OFF)
+        self.assertEqual(state, states.POWER_OFF)
 
-    def test_update_state_error(self):
-        self.mox.StubOutWithMock(self.ipmi, '_exec_ipmitool')
-        self.ipmi._exec_ipmitool("power status").AndReturn(
-                ["Chassis Power is foobar\n"])
+    def test__power_status_error(self):
+        self.mox.StubOutWithMock(ipmi, '_exec_ipmitool')
+        info = ipmi._parse_control_info(self.node)
+        ipmi._exec_ipmitool(info, "power status").AndReturn(
+                ["Chassis Power is badstate\n", None])
         self.mox.ReplayAll()
 
-        self.ipmi.state = states.NOSTATE
-        self.ipmi._update_state()
+        state = ipmi._power_status(info)
         self.mox.VerifyAll()
-        self.assertEqual(self.ipmi.state, states.ERROR)
+        self.assertEqual(state, states.ERROR)
+
+    def test__power_on_max_retries(self):
+        self.flags(ipmi_power_retry=2)
+        self.mox.StubOutWithMock(ipmi, '_exec_ipmitool')
+        info = ipmi._parse_control_info(self.node)
+
+        ipmi._exec_ipmitool(info, "power status").AndReturn(
+                ["Chassis Power is off\n", None])
+        ipmi._exec_ipmitool(info, "power on").AndReturn([None, None])
+        ipmi._exec_ipmitool(info, "power status").AndReturn(
+                ["Chassis Power is off\n", None])
+        ipmi._exec_ipmitool(info, "power on").AndReturn([None, None])
+        ipmi._exec_ipmitool(info, "power status").AndReturn(
+                ["Chassis Power is off\n", None])
+        ipmi._exec_ipmitool(info, "power on").AndReturn([None, None])
+        ipmi._exec_ipmitool(info, "power status").AndReturn(
+                ["Chassis Power is off\n", None])
+        self.mox.ReplayAll()
+
+        state = ipmi._power_on(info)
+        self.mox.VerifyAll()
+        self.assertEqual(state, states.ERROR)
+
+    def test_get_power_state(self):
+        info = ipmi._parse_control_info(self.node)
+        self.mox.StubOutWithMock(ipmi, '_exec_ipmitool')
+        ipmi._exec_ipmitool(info, "power status").AndReturn(
+                ["Chassis Power is off\n", None])
+        ipmi._exec_ipmitool(info, "power status").AndReturn(
+                ["Chassis Power is on\n", None])
+        ipmi._exec_ipmitool(info, "power status").AndReturn(
+                ["\n", None])
+        self.mox.ReplayAll()
+
+        pstate = self.ipmi.get_power_state(None, self.node)
+        self.assertEqual(pstate, states.POWER_OFF)
+
+        pstate = self.ipmi.get_power_state(None, self.node)
+        self.assertEqual(pstate, states.POWER_ON)
+
+        pstate = self.ipmi.get_power_state(None, self.node)
+        self.assertEqual(pstate, states.ERROR)
+
+        self.mox.VerifyAll()
 
     def test_set_power_on_ok(self):
         self.flags(ipmi_power_retry=0)
-        self.mox.StubOutWithMock(self.ipmi, '_exec_ipmitool')
+        info = ipmi._parse_control_info(self.node)
+        self.mox.StubOutWithMock(ipmi, '_power_on')
+        self.mox.StubOutWithMock(ipmi, '_power_off')
 
-        self.ipmi._exec_ipmitool("set bootdev pxe").AndReturn([])
-        self.ipmi._exec_ipmitool("power status").AndReturn(
-                ["Chassis Power is off\n"])
-        self.ipmi._exec_ipmitool("power on").AndReturn([])
-        self.ipmi._exec_ipmitool("power status").AndReturn(
-                ["Chassis Power is on\n"])
+        ipmi._power_on(info).AndReturn(states.POWER_ON)
         self.mox.ReplayAll()
 
-        self.ipmi.state = states.POWER_OFF
-        self.ipmi.set_power_state(states.POWER_ON)
+        self.ipmi.set_power_state(None, self.node, states.POWER_ON)
         self.mox.VerifyAll()
-        self.assertEqual(self.ipmi.state, states.POWER_ON)
 
     def test_set_power_off_ok(self):
         self.flags(ipmi_power_retry=0)
-        self.mox.StubOutWithMock(self.ipmi, '_exec_ipmitool')
+        info = ipmi._parse_control_info(self.node)
+        self.mox.StubOutWithMock(ipmi, '_power_on')
+        self.mox.StubOutWithMock(ipmi, '_power_off')
 
-        self.ipmi._exec_ipmitool("power status").AndReturn(
-                ["Chassis Power is on\n"])
-        self.ipmi._exec_ipmitool("power off").AndReturn([])
-        self.ipmi._exec_ipmitool("power status").AndReturn(
-                ["Chassis Power is off\n"])
+        ipmi._power_off(info).AndReturn(states.POWER_OFF)
         self.mox.ReplayAll()
 
-        self.ipmi.state = states.POWER_ON
-        self.ipmi._power_off()
+        self.ipmi.set_power_state(None, self.node, states.POWER_OFF)
         self.mox.VerifyAll()
-        self.assertEqual(self.ipmi.state, states.POWER_OFF)
 
-    def test_power_on_fail(self):
+    def test_set_power_on_fail(self):
         self.flags(ipmi_power_retry=0)
-        self.mox.StubOutWithMock(self.ipmi, '_exec_ipmitool')
+        info = ipmi._parse_control_info(self.node)
 
-        self.ipmi._exec_ipmitool("power status").AndReturn(
-                ["Chassis Power is off\n"])
-        self.ipmi._exec_ipmitool("power on").AndReturn([])
-        self.ipmi._exec_ipmitool("power status").AndReturn(
-                ["Chassis Power is off\n"])
+        self.mox.StubOutWithMock(ipmi, '_power_on')
+        self.mox.StubOutWithMock(ipmi, '_power_off')
+
+        ipmi._power_on(info).AndReturn(states.ERROR)
         self.mox.ReplayAll()
 
-        self.ipmi.state = states.POWER_OFF
-        self.ipmi._power_on()
+        self.assertRaises(exception.PowerStateFailure,
+                self.ipmi.set_power_state,
+                None,
+                self.node,
+                states.POWER_ON)
         self.mox.VerifyAll()
-        self.assertEqual(self.ipmi.state, states.ERROR)
 
-    def test_power_on_max_retries(self):
-        self.flags(ipmi_power_retry=2)
-        self.mox.StubOutWithMock(self.ipmi, '_exec_ipmitool')
+    def test_set_power_invalid_state(self):
+        self.assertRaises(exception.IronicException,
+                self.ipmi.set_power_state,
+                None,
+                self.node,
+                "fake state")
 
-        self.ipmi._exec_ipmitool("power status").AndReturn(
-                ["Chassis Power is off\n"])
-        self.ipmi._exec_ipmitool("power on").AndReturn([])
-        self.ipmi._exec_ipmitool("power status").AndReturn(
-                ["Chassis Power is off\n"])
-        self.ipmi._exec_ipmitool("power on").AndReturn([])
-        self.ipmi._exec_ipmitool("power status").AndReturn(
-                ["Chassis Power is off\n"])
-        self.ipmi._exec_ipmitool("power on").AndReturn([])
-        self.ipmi._exec_ipmitool("power status").AndReturn(
-                ["Chassis Power is off\n"])
+    def test_set_boot_device_ok(self):
+        info = ipmi._parse_control_info(self.node)
+        self.mox.StubOutWithMock(ipmi, '_exec_ipmitool')
+
+        ipmi._exec_ipmitool(info, "chassis bootdev pxe").\
+                AndReturn([None, None])
         self.mox.ReplayAll()
 
-        self.ipmi.state = states.POWER_OFF
-        self.ipmi._power_on()
+        self.ipmi.set_boot_device(None, self.node, 'pxe')
         self.mox.VerifyAll()
-        self.assertEqual(self.ipmi.state, states.ERROR)
-        self.assertEqual(self.ipmi.retries, 3)
 
-    def test_get_power_state(self):
-        self.mox.StubOutWithMock(self.ipmi, '_exec_ipmitool')
-        self.ipmi._exec_ipmitool("power status").AndReturn(
-                ["Chassis Power is off\n"])
-        self.ipmi._exec_ipmitool("power status").AndReturn(
-                ["Chassis Power is on\n"])
+    def test_set_boot_device_bad_device(self):
+        self.assertRaises(exception.InvalidParameterValue,
+                self.ipmi.set_boot_device,
+                None,
+                self.node,
+                'fake-device')
+
+    def test_reboot_ok(self):
+        info = ipmi._parse_control_info(self.node)
+        self.mox.StubOutWithMock(ipmi, '_power_off')
+        self.mox.StubOutWithMock(ipmi, '_power_on')
+
+        ipmi._power_off(info)
+        ipmi._power_on(info).AndReturn(states.POWER_ON)
         self.mox.ReplayAll()
 
-        self.ipmi.state = states.POWER_OFF
-        pstate = self.ipmi.get_power_state()
-        self.assertEqual(pstate, states.POWER_OFF)
-
-        self.ipmi.state = states.POWER_ON
-        pstate = self.ipmi.get_power_state()
-        self.assertEqual(pstate, states.POWER_ON)
-
+        self.ipmi.reboot(None, self.node)
         self.mox.VerifyAll()
 
-    def test_reboot(self):
-        # TODO(deva)
-        pass
+    def test_reboot_fail(self):
+        info = ipmi._parse_control_info(self.node)
+        self.mox.StubOutWithMock(ipmi, '_power_off')
+        self.mox.StubOutWithMock(ipmi, '_power_on')
 
-    def test_get_console_pid_path(self):
-        self.flags(terminal_pid_dir='/tmp')
-        path = ipmi._get_console_pid_path(self.ipmi.node_id)
-        self.assertEqual(path, '/tmp/%s.pid' % self.ipmi.node_id)
-
-    def test_console_pid(self):
-        fd, path = tempfile.mkstemp()
-        with os.fdopen(fd, 'w') as f:
-            f.write("12345\n")
-
-        self.mox.StubOutWithMock(ipmi, '_get_console_pid_path')
-        ipmi._get_console_pid_path(self.ipmi.node_id).AndReturn(path)
+        ipmi._power_off(info)
+        ipmi._power_on(info).AndReturn(states.ERROR)
         self.mox.ReplayAll()
 
-        pid = ipmi._get_console_pid(self.ipmi.node_id)
-        utils.delete_if_exists(path)
+        self.assertRaises(exception.PowerStateFailure,
+                self.ipmi.reboot,
+                None,
+                self.node)
         self.mox.VerifyAll()
-        self.assertEqual(pid, 12345)
-
-    def test_console_pid_nan(self):
-        fd, path = tempfile.mkstemp()
-        with os.fdopen(fd, 'w') as f:
-            f.write("hello world\n")
-
-        self.mox.StubOutWithMock(ipmi, '_get_console_pid_path')
-        ipmi._get_console_pid_path(self.ipmi.node_id).AndReturn(path)
-        self.mox.ReplayAll()
-
-        pid = ipmi._get_console_pid(self.ipmi.node_id)
-        utils.delete_if_exists(path)
-        self.mox.VerifyAll()
-        self.assertTrue(pid is None)
-
-    def test_console_pid_file_not_found(self):
-        pid_path = ipmi._get_console_pid_path(self.ipmi.node_id)
-
-        self.mox.StubOutWithMock(os.path, 'exists')
-        os.path.exists(pid_path).AndReturn(False)
-        self.mox.ReplayAll()
-
-        pid = ipmi._get_console_pid(self.ipmi.node_id)
-        self.mox.VerifyAll()
-        self.assertTrue(pid is None)

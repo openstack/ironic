@@ -194,6 +194,12 @@ class InvalidMAC(Invalid):
     message = _("Expected a MAC address but received %(mac)s.")
 
 
+# Cannot be templated as the error syntax varies.
+# msg needs to be constructed when raised.
+class InvalidParameterValue(Invalid):
+    message = _("%(err)s")
+
+
 class NotFound(IronicException):
     message = _("Resource could not be found.")
     code = 404
@@ -246,3 +252,7 @@ class PowerStateFailure(IronicException):
 class ExclusiveLockRequired(NotAuthorized):
     message = _("An exclusive lock is required, "
                 "but the current context has a shared lock.")
+
+
+class IPMIFailure(IronicException):
+    message = _("IPMI command failed: %(cmd)s.")
