@@ -25,6 +25,9 @@ class FakeDeployDriver(base.DeployDriver):
     def __init__(self):
         pass
 
+    def validate_driver_info(self, node):
+        return True
+
     def activate_bootloader(self, task, node):
         pass
 
@@ -41,6 +44,9 @@ class FakeDeployDriver(base.DeployDriver):
 class FakeControlDriver(base.ControlDriver):
     def __init__(self):
         pass
+
+    def validate_driver_info(self, node):
+        return True
 
     def start_console(self, task, node):
         pass

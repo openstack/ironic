@@ -33,6 +33,17 @@ class DeployDriver(object):
         """Constructor."""
 
     @abc.abstractmethod
+    def validate_driver_info(cls, node):
+        """Validate the driver-specific Node info.
+
+        This method validates whether the 'deploy_info' property of the
+        supplied nodes contains the required information for this driver to
+        manage the nodes.
+
+        :returns: True or False, depending on capabilities.
+        """
+
+    @abc.abstractmethod
     def activate_bootloader(self, task, node):
         """Prepare the bootloader for this deployment."""
 
@@ -55,8 +66,19 @@ class ControlDriver(object):
     __metaclass__ = abc.ABCMeta
 
     @abc.abstractmethod
-    def __init__(self, nodes):
+    def __init__(self):
         """Constructor."""
+
+    @abc.abstractmethod
+    def validate_driver_info(cls, node):
+        """Validate the driver-specific Node info.
+
+        This method validates whether the 'control_info' property of the
+        supplied nodes contains the required information for this driver to
+        manage the nodes.
+
+        :returns: True or False, depending on capabilities.
+        """
 
     @abc.abstractmethod
     def start_console(self, task, node):

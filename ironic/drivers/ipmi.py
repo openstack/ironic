@@ -198,6 +198,11 @@ class IPMIPowerDriver(base.ControlDriver):
         else:
             self.state = states.ERROR
 
+    def validate_driver_info(node):
+        # Temporary stub so patch I8ba2f4bd70bd2d7af405868cca2aedb56d3f0640
+        # will pass. The next patch actually implements this.
+        pass
+
     def get_power_state(self):
         """Checks and returns current power state."""
         self._update_state()
