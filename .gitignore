@@ -6,6 +6,7 @@
 
 # Sphinx
 _build
+doc/source/api/
 
 # Packages/installer info
 *.egg
