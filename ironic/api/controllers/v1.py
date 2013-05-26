@@ -140,6 +140,16 @@ class NodeIfaceController(rest.RestController):
                 for r in pecan.request.dbapi.get_ifaces_for_node(node_id)]
 
 
+class NodePowerController(rest.RestController):
+    """Initial mock of an API for /node/<id>/power."""
+
+    @wsme_pecan.wsexpose(unicode, unicode)
+    def get_one(self, node_id):
+        return pecan.request.rpcapi.get_node_power_state(
+                pecan.request.context,
+                node_id)
+
+
 class NodesController(rest.RestController):
     """REST controller for Nodes."""
 
@@ -177,6 +187,7 @@ class NodesController(rest.RestController):
         pass
 
     ifaces = NodeIfaceController()
+    power = NodePowerController()
 
 
 class Controller(object):

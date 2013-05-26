@@ -17,8 +17,11 @@
 #    under the License.
 
 from ironic.common import service
+from ironic.db import api as dbapi
 from ironic.manager import task_manager
 from ironic.openstack.common import log
+
+MANAGER_TOPIC = 'ironic.manager'
 
 LOG = log.getLogger(__name__)
 
@@ -35,16 +38,17 @@ class ManagerService(service.PeriodicService):
     which is also used to coordinate locks between ManagerServices.
     """
 
+    RPC_API_VERSION = '1.0'
+
     def __init__(self, host, topic):
         super(ManagerService, self).__init__(host, topic)
 
     def start(self):
         super(ManagerService, self).start()
-        # TODO(deva): connect with storage driver
+        self.dbapi = dbapi.get_instance()
 
-    def initialize(self, service):
-        LOG.debug(_('Manager initializing service hooks'))
-        # TODO(deva)
+    def initialize_service_hook(self, service):
+        pass
 
     def process_notification(self, notification):
         LOG.debug(_('Received notification: %r') %
@@ -55,10 +59,10 @@ class ManagerService(service.PeriodicService):
         # TODO(deva)
         pass
 
-    def get_node_power_state(self, id):
+    def get_node_power_state(self, context, node_id):
         """Get and return the power state for a single node."""
 
-        with task_manager.acquire([id], shared=True) as task:
+        with task_manager.acquire([node_id], shared=True) as task:
             node = task.resources[0].node
             driver = task.resources[0].controller
             state = driver.get_power_state(task, node)
