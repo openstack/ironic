@@ -132,7 +132,7 @@ class BareMetalIPMITestCase(base.TestCase):
         self.assertEqual(state, states.ERROR)
 
     def test__power_on_max_retries(self):
-        self.flags(ipmi_power_retry=2)
+        self.config(ipmi_power_retry=2)
         self.mox.StubOutWithMock(ipmi, '_exec_ipmitool')
         info = ipmi._parse_control_info(self.node)
 
@@ -176,7 +176,7 @@ class BareMetalIPMITestCase(base.TestCase):
         self.mox.VerifyAll()
 
     def test_set_power_on_ok(self):
-        self.flags(ipmi_power_retry=0)
+        self.config(ipmi_power_retry=0)
         info = ipmi._parse_control_info(self.node)
         self.mox.StubOutWithMock(ipmi, '_power_on')
         self.mox.StubOutWithMock(ipmi, '_power_off')
@@ -188,7 +188,7 @@ class BareMetalIPMITestCase(base.TestCase):
         self.mox.VerifyAll()
 
     def test_set_power_off_ok(self):
-        self.flags(ipmi_power_retry=0)
+        self.config(ipmi_power_retry=0)
         info = ipmi._parse_control_info(self.node)
         self.mox.StubOutWithMock(ipmi, '_power_on')
         self.mox.StubOutWithMock(ipmi, '_power_off')
@@ -200,7 +200,7 @@ class BareMetalIPMITestCase(base.TestCase):
         self.mox.VerifyAll()
 
     def test_set_power_on_fail(self):
-        self.flags(ipmi_power_retry=0)
+        self.config(ipmi_power_retry=0)
         info = ipmi._parse_control_info(self.node)
 
         self.mox.StubOutWithMock(ipmi, '_power_on')
