@@ -24,15 +24,8 @@ Run storage database migration.
 
 import sys
 
-from oslo.config import cfg
-
 from ironic.common import service
 from ironic.db import migration
-
-CONF = cfg.CONF
-CONF.import_opt('backend',
-                'ironic.openstack.common.db.api',
-                group='database')
 
 
 def main():

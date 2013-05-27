@@ -18,8 +18,14 @@
 
 """Database setup and migration commands."""
 
+from oslo.config import cfg
+
 from ironic.common import utils
 
+CONF = cfg.CONF
+CONF.import_opt('backend',
+                'ironic.openstack.common.db.api',
+                group='database')
 
 IMPL = utils.LazyPluggable(
         pivot='backend',
