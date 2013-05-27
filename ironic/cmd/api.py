@@ -20,6 +20,7 @@
 
 """The Ironic Service API."""
 
+import logging
 import sys
 
 from oslo.config import cfg
@@ -27,6 +28,7 @@ from wsgiref import simple_server
 
 from ironic.api import app
 from ironic.common import service as ironic_service
+from ironic.openstack.common import log
 
 CONF = cfg.CONF
 
@@ -42,7 +44,10 @@ def main():
             host, port,
             app.VersionSelectorApplication())
 
-    print "Serving on http://%s:%s" % (host, port)
+    LOG = log.getLogger(__name__)
+    LOG.info("Serving on http://%s:%s" % (host, port))
+    LOG.info("Configuration:")
+    CONF.log_opt_values(LOG, logging.INFO)
 
     try:
         wsgi.serve_forever()
