@@ -17,7 +17,6 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-import os
 import socket
 
 from oslo.config import cfg
@@ -40,26 +39,6 @@ cfg.CONF.register_opts([
                'an AMQP key, and if using ZeroMQ, a valid '
                'hostname, FQDN, or IP address'),
 ])
-
-CLI_OPTIONS = [
-    cfg.StrOpt('os-username',
-               default=os.environ.get('OS_USERNAME', 'ironic'),
-               help='Username to use for openstack service access'),
-    cfg.StrOpt('os-password',
-               default=os.environ.get('OS_PASSWORD', 'admin'),
-               help='Password to use for openstack service access'),
-    cfg.StrOpt('os-tenant-id',
-               default=os.environ.get('OS_TENANT_ID', ''),
-               help='Tenant ID to use for openstack service access'),
-    cfg.StrOpt('os-tenant-name',
-               default=os.environ.get('OS_TENANT_NAME', 'admin'),
-               help='Tenant name to use for openstack service access'),
-    cfg.StrOpt('os-auth-url',
-               default=os.environ.get('OS_AUTH_URL',
-                                      'http://localhost:5000/v2.0'),
-               help='Auth URL to use for openstack service access'),
-]
-cfg.CONF.register_cli_opts(CLI_OPTIONS)
 
 
 class PeriodicService(rpc_service.Service):
