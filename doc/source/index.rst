@@ -2,7 +2,10 @@
 Welcome to Ironic's developer documentation!
 ============================================
 
-Ironic is an :term:`Incubated` OpenStack project which aims to provision bare
+Introduction
+============
+
+Ironic is an Incubated OpenStack project which aims to provision bare
 metal (as opposed to virtual) machines by leveraging common technologies such
 as PXE boot and IPMI to cover a wide range of hardware, while supporting
 pluggable drivers to allow vendor-specific functionality to be added.
@@ -13,17 +16,18 @@ VM, and so on), then Ironic may be thought of as a *hypervisor API* glueing
 together multiple drivers, each of which implement some portion of that
 functionality with respect to physical hardware.
 
+For an in-depth look at the project's scope and structure, see the
+:doc:`architecture` page.
 
-Table of contents
-=================
 
-.. toctree::
-  :maxdepth: 1
+Status: Hard Hat Required!
+==========================
 
-  architecture
-  contributing/index
-  api/index
+Ironic is under rapid initial development, forked from Nova's `Baremetal
+driver`_.  If you're looking for an OpenStack service to provision bare metal
+today, that is where you want to look.
 
+.. TODO
 .. - installation
 .. - configuration
 ..   - integration with other OS services
@@ -33,6 +37,41 @@ Table of contents
 ..   - manual vs automatic
 ..   - hw plugins
 
+
+Developer Docs
+==============
+
+For those wishing to develop Ironic itself, or add drivers to extend Ironic's
+functionality, the following documentation is provided.
+
+.. toctree::
+  :maxdepth: 1
+
+  architecture
+  contributing
+  dev-quickstart
+
+Client API Reference
+--------------------
+
+.. toctree::
+  :maxdepth: 1
+
+  api-spec-v1
+
+Python API Quick Reference
+--------------------------
+
+.. toctree::
+  :maxdepth: 2
+
+  api/api
+  api/cmd
+  api/common
+  api/db
+  api/drivers
+  api/manager
+
 Indices and tables
 ==================
 
@@ -40,3 +79,5 @@ Indices and tables
 * :ref:`modindex`
 * :ref:`search`
 
+
+.. _Baremetal Driver: https://wiki.openstack.org/wiki/Baremetal

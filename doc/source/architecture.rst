@@ -42,16 +42,16 @@ Manager service and the driver implementations. There are two types of drivers:
 In addition to the two types of drivers, there are three categories of driver
 functionality: core, common, and vendor:
 
-- :term:`Core functionality` represents the minimal API for that driver type, eg.
+- `Core functionality` represents the minimal API for that driver type, eg.
   power on/off for a ControlDriver.
-- :term:`Common functionality` represents an extended but supported API, and any
+- `Common functionality` represents an extended but supported API, and any
   driver which implements it must be consistent with all other driver
   implementations of that functionality. For example, if a driver supports
   enumerating PCI devices, it must return that list as well-structured JSON. In
   this case, Ironic may validate the API input's structure, but will pass it
   unaltered to the driver. This ensures compatibility for common features
   across drivers.
-- :term:`Vendor functionality` allows an excemption to the API contract when a vendor
+- `Vendor functionality` allows an excemption to the API contract when a vendor
   wishes to expose unique functionality provided by their hardware and is
   unable to do so within the core or common APIs. In this case, Ironic will
   neither store nor introspect the messages passed between the API and the

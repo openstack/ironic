@@ -1,17 +1,16 @@
-.. _development:
+.. _dev-quickstart:
 
-===========
-Development
-===========
+=====================
+Developer Quick-Start
+=====================
 
 This is a quick walkthrough to get you started developing code for Ironic.
-For a guide on using OpenStack's code review system (Gerrit), see:
+This assumes you are already familiar with submitting code reviews to 
+an OpenStack project.
+
+.. seealso::
 
     https://wiki.openstack.org/wiki/GerritWorkflow
-
-===========
-Walkthrough
-===========
 
 Ironic source code should be pulled directly from git::
 
