@@ -18,7 +18,7 @@
 
 """Base classes for our unit tests.
 
-Allows overriding of flags for use of fakes, and some black magic for
+Allows overriding of config for use of fakes, and some black magic for
 inline callbacks.
 
 """
@@ -197,8 +197,8 @@ class TestCase(testtools.TestCase):
         for key in [k for k in self.__dict__.keys() if k[0] != '_']:
             del self.__dict__[key]
 
-    def flags(self, **kw):
-        """Override flag variables for a test."""
+    def config(self, **kw):
+        """Override config options for a test."""
         group = kw.pop('group', None)
         for k, v in kw.iteritems():
             CONF.set_override(k, v, group)

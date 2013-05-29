@@ -40,12 +40,12 @@ from ironic.virt import fake as fake_virt
 
 CONF = cfg.CONF
 
-COMMON_FLAGS = dict(
+COMMON_CONFIG = dict(
     firewall_driver='ironic.fake.FakeFirewallDriver',
     host='test_host',
 )
 
-BAREMETAL_FLAGS = dict(
+BAREMETAL_CONFIG = dict(
     driver='ironic.pxe.PXE',
     instance_type_extra_specs=['cpu_arch:test', 'test_spec:test_value'],
     power_manager='ironic.fake.FakePowerManager',
@@ -58,8 +58,8 @@ class BareMetalPXETestCase(db_base.BMDBTestCase):
 
     def setUp(self):
         super(BareMetalPXETestCase, self).setUp()
-        self.flags(**COMMON_FLAGS)
-        self.flags(**BAREMETAL_FLAGS)
+        self.config(**COMMON_CONFIG)
+        self.config(**BAREMETAL_CONFIG)
         self.driver = pxe.PXE(fake_virt.FakeVirtAPI())
 
         fake_image.stub_out_image_service(self.stubs)
@@ -151,7 +151,7 @@ class PXEClassMethodsTestCase(BareMetalPXETestCase):
         self.assertIn('eth1', config)
 
     def test_build_network_config_dhcp(self):
-        self.flags(
+        self.config(
                 net_config_template='$pybasedir/ironic/'
                                     'net-dhcp.ubuntu.template',
                 group='baremetal',
@@ -163,7 +163,7 @@ class PXEClassMethodsTestCase(BareMetalPXETestCase):
         self.assertNotIn('address 1.2.3.4', config)
 
     def test_build_network_config_static(self):
-        self.flags(
+        self.config(
                 net_config_template='$pybasedir/ironic/'
                                     'net-static.ubuntu.template',
                 group='baremetal',
@@ -203,8 +203,8 @@ class PXEClassMethodsTestCase(BareMetalPXETestCase):
                 'baremetal:deploy_kernel_id': 'aaaa',
                 'baremetal:deploy_ramdisk_id': 'bbbb',
                 }
-        self.flags(deploy_kernel="fail", group='baremetal')
-        self.flags(deploy_ramdisk="fail", group='baremetal')
+        self.config(deploy_kernel="fail", group='baremetal')
+        self.config(deploy_ramdisk="fail", group='baremetal')
 
         self.assertEqual(
                 pxe.get_deploy_aki_id(self.instance), 'aaaa')
@@ -213,8 +213,8 @@ class PXEClassMethodsTestCase(BareMetalPXETestCase):
 
     def test_get_default_deploy_ids(self):
         self.instance['extra_specs'] = {}
-        self.flags(deploy_kernel="aaaa", group='baremetal')
-        self.flags(deploy_ramdisk="bbbb", group='baremetal')
+        self.config(deploy_kernel="aaaa", group='baremetal')
+        self.config(deploy_ramdisk="bbbb", group='baremetal')
 
         self.assertEqual(
                 pxe.get_deploy_aki_id(self.instance), 'aaaa')
@@ -555,7 +555,7 @@ class PXEPublicMethodsTestCase(BareMetalPXETestCase):
     def test_activate_node(self):
         self._create_node()
         self.instance['uuid'] = 'fake-uuid'
-        self.flags(pxe_deploy_timeout=1, group='baremetal')
+        self.config(pxe_deploy_timeout=1, group='baremetal')
 
         db.bm_node_update(self.context, 1,
                 {'task_state': states.DEPLOYING,

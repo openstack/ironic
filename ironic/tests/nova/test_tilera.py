@@ -37,12 +37,12 @@ from nova.virt import fake as fake_virt
 
 CONF = cfg.CONF
 
-COMMON_FLAGS = dict(
+COMMON_CONFIG = dict(
     firewall_driver='nova.virt.baremetal.fake.FakeFirewallDriver',
     host='test_host',
 )
 
-BAREMETAL_FLAGS = dict(
+BAREMETAL_CONFIG = dict(
     driver='nova.virt.baremetal.tilera.Tilera',
     instance_type_extra_specs=['cpu_arch:test', 'test_spec:test_value'],
     power_manager='nova.virt.baremetal.fake.FakePowerManager',
@@ -56,8 +56,8 @@ class BareMetalTileraTestCase(bm_db_base.BMDBTestCase):
 
     def setUp(self):
         super(BareMetalTileraTestCase, self).setUp()
-        self.flags(**COMMON_FLAGS)
-        self.flags(**BAREMETAL_FLAGS)
+        self.config(**COMMON_CONFIG)
+        self.config(**BAREMETAL_CONFIG)
         self.driver = tilera.Tilera(fake_virt.FakeVirtAPI())
 
         fake_image.stub_out_image_service(self.stubs)
@@ -116,7 +116,7 @@ class TileraClassMethodsTestCase(BareMetalTileraTestCase):
         self.assertIn('eth1', config)
 
     def test_build_network_config_dhcp(self):
-        self.flags(
+        self.config(
                 net_config_template='$pybasedir/nova/virt/baremetal/'
                                     'net-dhcp.ubuntu.template',
                 group='baremetal',
@@ -128,7 +128,7 @@ class TileraClassMethodsTestCase(BareMetalTileraTestCase):
         self.assertNotIn('address 1.2.3.4', config)
 
     def test_build_network_config_static(self):
-        self.flags(
+        self.config(
                 net_config_template='$pybasedir/nova/virt/baremetal/'
                                     'net-static.ubuntu.template',
                 group='baremetal',

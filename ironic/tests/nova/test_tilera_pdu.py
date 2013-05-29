@@ -51,8 +51,8 @@ class BareMetalPduTestCase(test.TestCase):
         self.assertEqual(self.tilera_pdu.password, 'fake-password')
 
     def test_exec_pdutool(self):
-        self.flags(tile_pdu_mgr='fake-pdu-mgr', group='baremetal')
-        self.flags(tile_pdu_ip='fake-address', group='baremetal')
+        self.config(tile_pdu_mgr='fake-pdu-mgr', group='baremetal')
+        self.config(tile_pdu_ip='fake-address', group='baremetal')
         self.mox.StubOutWithMock(utils, 'execute')
         self.mox.StubOutWithMock(bm_utils, 'unlink_without_raise')
         args = [

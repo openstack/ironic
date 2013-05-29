@@ -33,12 +33,12 @@ import nova.virt.powervm.common as connection
 
 CONF = cfg.CONF
 
-COMMON_FLAGS = dict(
+COMMON_CONFIG = dict(
     firewall_driver='nova.virt.baremetal.fake.FakeFirewallDriver',
     host='test_host',
 )
 
-BAREMETAL_FLAGS = dict(
+BAREMETAL_CONFIG = dict(
     driver='nova.virt.baremetal.pxe.PXE',
     instance_type_extra_specs=['cpu_arch:test', 'test_spec:test_value'],
     power_manager=
@@ -58,8 +58,8 @@ class BareMetalVPDTestCase(bm_db_base.BMDBTestCase):
 
     def setUp(self):
         super(BareMetalVPDTestCase, self).setUp()
-        self.flags(**COMMON_FLAGS)
-        self.flags(**BAREMETAL_FLAGS)
+        self.config(**COMMON_CONFIG)
+        self.config(**BAREMETAL_CONFIG)
 
         fake_image.stub_out_image_service(self.stubs)
         self.context = utils.get_test_admin_context()
@@ -103,20 +103,20 @@ class BareMetalVPDTestCase(bm_db_base.BMDBTestCase):
 class VPDMissingOptionsTestCase(BareMetalVPDTestCase):
 
     def test_get_conn_missing_options(self):
-        self.flags(virtual_power_ssh_host=None, group="baremetal")
-        self.flags(virtual_power_host_user=None, group="baremetal")
-        self.flags(virtual_power_host_pass=None, group="baremetal")
+        self.config(virtual_power_ssh_host=None, group="baremetal")
+        self.config(virtual_power_host_user=None, group="baremetal")
+        self.config(virtual_power_host_pass=None, group="baremetal")
         self._create_node()
         self._create_pm()
         self._conn = None
         self.assertRaises(exception.NovaException,
                 self.pm._get_conn)
         self._conn = None
-        self.flags(virtual_power_ssh_host='127.0.0.1', group="baremetal")
+        self.config(virtual_power_ssh_host='127.0.0.1', group="baremetal")
         self.assertRaises(exception.NovaException,
                 self.pm._get_conn)
         self._conn = None
-        self.flags(virtual_power_host_user='user', group="baremetal")
+        self.config(virtual_power_host_user='user', group="baremetal")
         self.assertRaises(exception.NovaException,
                 self.pm._get_conn)
 
@@ -125,9 +125,9 @@ class VPDClassMethodsTestCase(BareMetalVPDTestCase):
 
     def setUp(self):
         super(VPDClassMethodsTestCase, self).setUp()
-        self.flags(virtual_power_ssh_host='127.0.0.1', group="baremetal")
-        self.flags(virtual_power_host_user='user', group="baremetal")
-        self.flags(virtual_power_host_pass='password', group="baremetal")
+        self.config(virtual_power_ssh_host='127.0.0.1', group="baremetal")
+        self.config(virtual_power_host_user='user', group="baremetal")
+        self.config(virtual_power_host_pass='password', group="baremetal")
 
     def test_get_conn_success_pass(self):
         self._create_node()
@@ -144,9 +144,9 @@ class VPDClassMethodsTestCase(BareMetalVPDTestCase):
         self.mox.VerifyAll()
 
     def test_get_conn_success_key(self):
-        self.flags(virtual_power_host_pass='', group="baremetal")
-        self.flags(virtual_power_host_key='/id_rsa_file.txt',
-            group="baremetal")
+        self.config(virtual_power_host_pass='', group="baremetal")
+        self.config(virtual_power_host_key='/id_rsa_file.txt',
+                    group="baremetal")
         self._create_node()
         self._create_pm()
         self._conn = self.pm._get_conn()

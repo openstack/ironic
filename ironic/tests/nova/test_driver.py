@@ -36,12 +36,12 @@ from nova.virt.baremetal import fake
 
 CONF = cfg.CONF
 
-COMMON_FLAGS = dict(
+COMMON_CONFIG = dict(
     firewall_driver='nova.virt.baremetal.fake.FakeFirewallDriver',
     host='test_host',
 )
 
-BAREMETAL_FLAGS = dict(
+BAREMETAL_CONFIG = dict(
     driver='nova.virt.baremetal.fake.FakeDriver',
     instance_type_extra_specs=['cpu_arch:test', 'test_spec:test_value'],
     power_manager='nova.virt.baremetal.fake.FakePowerManager',
@@ -55,8 +55,8 @@ class BareMetalDriverNoDBTestCase(test.TestCase):
 
     def setUp(self):
         super(BareMetalDriverNoDBTestCase, self).setUp()
-        self.flags(**COMMON_FLAGS)
-        self.flags(**BAREMETAL_FLAGS)
+        self.config(**COMMON_CONFIG)
+        self.config(**BAREMETAL_CONFIG)
         self.driver = bm_driver.BareMetalDriver(None)
 
     def test_validate_driver_loading(self):
@@ -74,8 +74,8 @@ class BareMetalDriverWithDBTestCase(bm_db_base.BMDBTestCase):
 
     def setUp(self):
         super(BareMetalDriverWithDBTestCase, self).setUp()
-        self.flags(**COMMON_FLAGS)
-        self.flags(**BAREMETAL_FLAGS)
+        self.config(**COMMON_CONFIG)
+        self.config(**BAREMETAL_CONFIG)
 
         fake_image.stub_out_image_service(self.stubs)
         self.context = utils.get_test_admin_context()
