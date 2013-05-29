@@ -17,14 +17,16 @@
 #    under the License.
 
 """
-A NodeManager instance holds the data and drivers for a distinct node.
+Hold the data and drivers for a distinct node within a given context.
 
-Each NodeManager instance is a semi-singleton, keyed by the node id, and
-contains references to the TaskManagers which called it. When no more
-TaskManagers reference a given NodeManager, it is automatically destroyed.
+Each :py:class:`ironic.manager.resource_manager.NodeManager` instance is a
+semi-singleton, keyed by the node id. It contains references to all
+:py:class:`ironic.manager.task_manager.TaskManager` which called it.  When no
+more TaskManagers reference a given NodeManager, it is automatically destroyed.
 
-Do not request a NodeManager directly; instead, you should use a
-TaskManager to manage the resource in a given context.
+Do not request a NodeManager directly; instead, you should use a TaskManager to
+manage the resource in a given context. See the documentation on TaskManager
+for an example.
 """
 
 from stevedore import dispatch
