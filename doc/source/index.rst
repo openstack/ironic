@@ -17,7 +17,7 @@ together multiple drivers, each of which implement some portion of that
 functionality with respect to physical hardware.
 
 For an in-depth look at the project's scope and structure, see the
-:doc:`architecture` page.
+:doc:`dev/architecture` page.
 
 
 Status: Hard Hat Required!
@@ -47,9 +47,9 @@ functionality, the following documentation is provided.
 .. toctree::
   :maxdepth: 1
 
-  architecture
-  contributing
-  dev-quickstart
+  dev/architecture
+  dev/contributing
+  dev/dev-quickstart
 
 Client API Reference
 --------------------
@@ -57,7 +57,7 @@ Client API Reference
 .. toctree::
   :maxdepth: 1
 
-  api-spec-v1
+  dev/api-spec-v1
 
 Python API Quick Reference
 --------------------------
@@ -65,12 +65,12 @@ Python API Quick Reference
 .. toctree::
   :maxdepth: 2
 
-  api/api
-  api/cmd
-  api/common
-  api/db
-  api/drivers
-  api/manager
+  dev/api
+  dev/cmd
+  dev/common
+  dev/db
+  dev/drivers
+  dev/manager
 
 Indices and tables
 ==================
