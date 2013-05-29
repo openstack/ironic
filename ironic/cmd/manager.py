@@ -38,7 +38,6 @@ def main():
     # Pase config file and command line options, then start logging
     ironic_service.prepare_service(sys.argv)
 
-    topic = 'ironic.manager'
-    mgr = manager.ManagerService(CONF.host, topic)
+    mgr = manager.ManagerService(CONF.host, manager.MANAGER_TOPIC)
     launcher = service.launch(mgr)
     launcher.wait()

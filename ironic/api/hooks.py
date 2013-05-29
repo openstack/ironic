@@ -20,6 +20,8 @@ from oslo.config import cfg
 from pecan import hooks
 
 from ironic.db import api as dbapi
+from ironic.manager import rpcapi
+from ironic.openstack.common import context
 
 
 class ConfigHook(hooks.PecanHook):
@@ -35,3 +37,17 @@ class DBHook(hooks.PecanHook):
 
     def before(self, state):
         state.request.dbapi = dbapi.get_instance()
+
+
+class ContextHook(hooks.PecanHook):
+
+    def before(self, state):
+        # TODO(deva): Making all requests have admin context for early
+        #             development. This needs to be fixed later!
+        state.request.context = context.get_admin_context()
+
+
+class RPCHook(hooks.PecanHook):
+
+    def before(self, state):
+        state.request.rpcapi = rpcapi.ManagerAPI()
