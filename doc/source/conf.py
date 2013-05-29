@@ -1,13 +1,12 @@
 # -*- coding: utf-8 -*-
 #
 
-project = 'ironic'
-
 # -- General configuration ----------------------------------------------------
 
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom ones.
-extensions = ['sphinx.ext.autodoc', 'sphinx.ext.intersphinx']
+extensions = ['sphinx.ext.autodoc',
+              'sphinx.ext.intersphinx']
 
 # autodoc generation is a bit aggressive and a nuisance when doing heavy
 # text edit cycles.
@@ -23,7 +22,22 @@ source_suffix = '.rst'
 master_doc = 'index'
 
 # General information about the project.
+project = u'Ironic'
 copyright = u'OpenStack Foundation'
+
+# The version info for the project you're documenting, acts as replacement for
+# |version| and |release|, also used in various other places throughout the
+# built documents.
+#
+# The short X.Y version.
+from ironic import version as ironic_version
+# The full version, including alpha/beta/rc tags.
+release = ironic_version.version_string_with_vcs()
+# The short X.Y version.
+version = ironic_version.canonical_version_string()
+
+# A list of ignored prefixes for module index sorting.
+modindex_common_prefix = ['ironic.']
 
 # If true, '()' will be appended to :func: etc. cross-reference text.
 add_function_parentheses = True
@@ -41,6 +55,7 @@ pygments_style = 'sphinx'
 # Sphinx are currently 'default' and 'sphinxdoc'.
 html_theme_path = ["."]
 html_theme = '_theme'
+html_static_path = ['_static']
 
 # Output file base name for HTML help builder.
 htmlhelp_basename = '%sdoc' % project
