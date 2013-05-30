@@ -12,7 +12,7 @@ pluggable drivers to allow vendor-specific functionality to be added.
 
 If one thinks of traditional hypervisor functionality (eg, creating a VM,
 enumerating virtual devices, managing the power state, loading an OS onto the
-VM, and so on), then Ironic may be thought of as a *hypervisor API* glueing
+VM, and so on), then Ironic may be thought of as a *hypervisor API* gluing
 together multiple drivers, each of which implement some portion of that
 functionality with respect to physical hardware.
 
