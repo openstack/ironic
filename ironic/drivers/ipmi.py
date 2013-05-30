@@ -32,6 +32,7 @@ from ironic.common import paths
 from ironic.common import states
 from ironic.common import utils
 from ironic.drivers import base
+from ironic.manager import task_manager
 from ironic.openstack.common import jsonutils as json
 from ironic.openstack.common import log as logging
 from ironic.openstack.common import loopingcall
@@ -207,6 +208,7 @@ class IPMIPowerDriver(base.ControlDriver):
         c_info = _parse_control_info(node)
         return _power_status(c_info)
 
+    @task_manager.require_exclusive_lock
     def set_power_state(self, task, node, pstate):
         """Turn the power on or off."""
         c_info = _parse_control_info(node)
@@ -222,6 +224,7 @@ class IPMIPowerDriver(base.ControlDriver):
         if state != pstate:
             raise exception.PowerStateFailure(pstate=pstate)
 
+    @task_manager.require_exclusive_lock
     def reboot(self, task, node):
         """Cycles the power to a node."""
         c_info = _parse_control_info(node)
@@ -231,6 +234,7 @@ class IPMIPowerDriver(base.ControlDriver):
         if state != states.POWER_ON:
             raise exception.PowerStateFailure(pstate=states.POWER_ON)
 
+    @task_manager.require_exclusive_lock
     def set_boot_device(self, task, node, device, persistent=False):
         """Set the boot device for a node.
 

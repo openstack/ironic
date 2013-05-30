@@ -29,9 +29,12 @@ from ironic.openstack.common import jsonutils as json
 from ironic.common import exception
 from ironic.common import states
 from ironic.common import utils
+from ironic.db import api as db_api
 from ironic.drivers import ipmi
+from ironic.manager import task_manager
 from ironic.tests import base
 from ironic.tests.db import utils as db_utils
+from ironic.tests.manager import utils as mgr_utils
 
 CONF = cfg.CONF
 
@@ -40,8 +43,13 @@ class BareMetalIPMITestCase(base.TestCase):
 
     def setUp(self):
         super(BareMetalIPMITestCase, self).setUp()
-        self.node = db_utils.get_test_node()
-        self.ipmi = ipmi.IPMIPowerDriver()
+        self.dbapi = db_api.get_instance()
+        (self.controller, self.deployer) = mgr_utils.get_mocked_node_manager(
+                                                control_driver='ipmi')
+
+        self.node = db_utils.get_test_node(control_driver='ipmi',
+                                           deploy_driver='fake')
+        self.dbapi.create_node(self.node)
 
     def test__make_password_file(self):
         fakepass = 'this is a fake password'
@@ -164,13 +172,13 @@ class BareMetalIPMITestCase(base.TestCase):
                 ["\n", None])
         self.mox.ReplayAll()
 
-        pstate = self.ipmi.get_power_state(None, self.node)
+        pstate = self.controller.get_power_state(None, self.node)
         self.assertEqual(pstate, states.POWER_OFF)
 
-        pstate = self.ipmi.get_power_state(None, self.node)
+        pstate = self.controller.get_power_state(None, self.node)
         self.assertEqual(pstate, states.POWER_ON)
 
-        pstate = self.ipmi.get_power_state(None, self.node)
+        pstate = self.controller.get_power_state(None, self.node)
         self.assertEqual(pstate, states.ERROR)
 
         self.mox.VerifyAll()
@@ -184,7 +192,8 @@ class BareMetalIPMITestCase(base.TestCase):
         ipmi._power_on(info).AndReturn(states.POWER_ON)
         self.mox.ReplayAll()
 
-        self.ipmi.set_power_state(None, self.node, states.POWER_ON)
+        with task_manager.acquire([self.node.uuid]) as task:
+            self.controller.set_power_state(task, self.node, states.POWER_ON)
         self.mox.VerifyAll()
 
     def test_set_power_off_ok(self):
@@ -196,7 +205,8 @@ class BareMetalIPMITestCase(base.TestCase):
         ipmi._power_off(info).AndReturn(states.POWER_OFF)
         self.mox.ReplayAll()
 
-        self.ipmi.set_power_state(None, self.node, states.POWER_OFF)
+        with task_manager.acquire([self.node.uuid]) as task:
+            self.controller.set_power_state(task, self.node, states.POWER_OFF)
         self.mox.VerifyAll()
 
     def test_set_power_on_fail(self):
@@ -209,19 +219,21 @@ class BareMetalIPMITestCase(base.TestCase):
         ipmi._power_on(info).AndReturn(states.ERROR)
         self.mox.ReplayAll()
 
-        self.assertRaises(exception.PowerStateFailure,
-                self.ipmi.set_power_state,
-                None,
-                self.node,
-                states.POWER_ON)
+        with task_manager.acquire([self.node.uuid]) as task:
+            self.assertRaises(exception.PowerStateFailure,
+                    self.controller.set_power_state,
+                    task,
+                    self.node,
+                    states.POWER_ON)
         self.mox.VerifyAll()
 
     def test_set_power_invalid_state(self):
-        self.assertRaises(exception.IronicException,
-                self.ipmi.set_power_state,
-                None,
-                self.node,
-                "fake state")
+        with task_manager.acquire([self.node.uuid]) as task:
+            self.assertRaises(exception.IronicException,
+                    self.controller.set_power_state,
+                    task,
+                    self.node,
+                    "fake state")
 
     def test_set_boot_device_ok(self):
         info = ipmi._parse_control_info(self.node)
@@ -231,15 +243,17 @@ class BareMetalIPMITestCase(base.TestCase):
                 AndReturn([None, None])
         self.mox.ReplayAll()
 
-        self.ipmi.set_boot_device(None, self.node, 'pxe')
+        with task_manager.acquire([self.node.uuid]) as task:
+            self.controller.set_boot_device(task, self.node, 'pxe')
         self.mox.VerifyAll()
 
     def test_set_boot_device_bad_device(self):
-        self.assertRaises(exception.InvalidParameterValue,
-                self.ipmi.set_boot_device,
-                None,
-                self.node,
-                'fake-device')
+        with task_manager.acquire([self.node.uuid]) as task:
+            self.assertRaises(exception.InvalidParameterValue,
+                    self.controller.set_boot_device,
+                    task,
+                    self.node,
+                    'fake-device')
 
     def test_reboot_ok(self):
         info = ipmi._parse_control_info(self.node)
@@ -250,7 +264,9 @@ class BareMetalIPMITestCase(base.TestCase):
         ipmi._power_on(info).AndReturn(states.POWER_ON)
         self.mox.ReplayAll()
 
-        self.ipmi.reboot(None, self.node)
+        with task_manager.acquire([self.node.uuid]) as task:
+            self.controller.reboot(task, self.node)
+
         self.mox.VerifyAll()
 
     def test_reboot_fail(self):
@@ -262,8 +278,10 @@ class BareMetalIPMITestCase(base.TestCase):
         ipmi._power_on(info).AndReturn(states.ERROR)
         self.mox.ReplayAll()
 
-        self.assertRaises(exception.PowerStateFailure,
-                self.ipmi.reboot,
-                None,
-                self.node)
+        with task_manager.acquire([self.node.uuid]) as task:
+            self.assertRaises(exception.PowerStateFailure,
+                    self.controller.reboot,
+                    task,
+                    self.node)
+
         self.mox.VerifyAll()
