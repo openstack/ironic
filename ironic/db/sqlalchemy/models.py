@@ -103,6 +103,7 @@ class Node(Base):
     deploy_driver = Column(String(15))
     deploy_info = Column(JSONEncodedDict)
     reservation = Column(String(255), nullable=True)
+    extra = Column(JSONEncodedDict)
 
 
 class Port(Base):
