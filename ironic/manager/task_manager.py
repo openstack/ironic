@@ -82,8 +82,8 @@ def require_exclusive_lock(f):
 
     """
     def wrapper(*args, **kwargs):
-        tracker = args[0]
-        if tracker.shared:
+        task = args[0] if isinstance(args[0], TaskManager) else args[1]
+        if task.shared:
             raise exception.ExclusiveLockRequired()
         return f(*args, **kwargs)
     return wrapper
