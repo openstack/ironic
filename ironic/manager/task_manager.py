@@ -19,20 +19,22 @@
 """
 A context manager to peform a series of tasks on a set of resources.
 
-TaskManagers are context managers, created on-demand to synchronize locking and
-simplify operations across a set of ResourceManagers.  Each ResourceManager
-holds the data model for a node, as well as handles to the controller and
-deployer drivers configured for that node.
+:class:`TaskManager` is a context manager, created on-demand to synchronize
+locking and simplify operations across a set of
+:class:`ironic.manager.resource_manager.NodeManager` instances.  Each
+NodeManager holds the data model for a node, as well as references to the
+controller and deployer driver singletons appropriate for that node.
 
-The TaskManager will acquire either a shared or exclusive lock, as indicated.
-Multiple shared locks for the same resource may coexist with an exclusive lock,
-but only one exclusive lock will be granted across a deployment; attempting to
-allocate another will raise an exception.  An exclusive lock is represented in
-the database to coordinate between Managers,  even when deployed on different
-hosts.
+The :class:`TaskManager` will acquire either a shared or exclusive lock, as
+indicated.  Multiple shared locks for the same resource may coexist with an
+exclusive lock, but only one exclusive lock will be granted across a
+deployment; attempting to allocate another will raise an exception.  An
+exclusive lock is represented in the database to coordinate between
+:class:`ironic.manager.manager` instances, even when deployed on
+different hosts.
 
-TaskManager methods, as well as driver methods, may be decorated to determine
-whether their invokation requires an exclusive lock.  For example:
+:class:`TaskManager` methods, as well as driver methods, may be decorated to
+determine whether their invocation requires an exclusive lock.  For example::
 
     from ironic.manager import task_manager
 
@@ -49,9 +51,8 @@ whether their invokation requires an exclusive lock.  For example:
         with task_manager.acquire(node_ids, shared=True) as task:
             states = nodes.get_power_state()
 
-
-In case TaskManager does not provide a method wrapping a particular driver
-function, you can access the drivers directly in this way:
+In case :class:`TaskManager` does not provide a method wrapping a particular
+driver function, you can access the drivers directly in this way::
 
     with task_manager.acquire(node_ids) as task:
         states = []
@@ -73,7 +74,13 @@ CONF = cfg.CONF
 
 
 def require_exclusive_lock(f):
-    """Decorator to require an exclusive lock."""
+    """Decorator to require an exclusive lock.
+
+    Decorated functions must take a :class:`TaskManager` as the first
+    parameter. Decorated class methods should take a :class:`TaskManager`
+    as the first parameter after "self".
+
+    """
     def wrapper(*args, **kwargs):
         tracker = args[0]
         if tracker.shared:
@@ -84,7 +91,19 @@ def require_exclusive_lock(f):
 
 @contextlib.contextmanager
 def acquire(node_ids, shared=False):
-    """Acquire either a shared or exclusive lock on the supplied node_ids."""
+    """Context manager for acquiring a lock on one or more Nodes.
+
+    Acquire a lock atomically on a non-empty set of nodes. The lock
+    can be either shared or exclusive. Shared locks may be used for
+    read-only or non-disruptive actions only, and must be considerate
+    to what other threads may be doing on the nodes at the same time.
+
+    :param node_ids: A list of ids or uuids of nodes to lock.
+    :param shared: Boolean indicating whether to take a shared or exclusive
+                   lock. Default: False.
+    :returns: An instance of :class:`TaskManager`.
+
+    """
 
     t = TaskManager(shared)
 

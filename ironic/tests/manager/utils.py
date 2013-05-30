@@ -25,6 +25,16 @@ from ironic.manager import resource_manager
 
 
 def get_mockable_extension_manager(namespace):
+    """Get a fake stevedore NameDispatchExtensionManager instance.
+
+    :param namespace: A string representing the namespace over which to
+                      search for entrypoints.
+    :returns mock_ext_mgr: A NameDispatchExtensionManager that has been
+                           faked.
+    :returns mock_ext: A real plugin loaded by mock_ext_mgr in the specified
+                       namespace.
+
+    """
     for entry_point in list(pkg_resources.iter_entry_points(namespace)):
         s = "%s" % entry_point
         if s[0:4] == 'fake':
@@ -39,6 +49,16 @@ def get_mockable_extension_manager(namespace):
 
 
 def get_mocked_node_manager():
+    """Get a mockable :class:NodeManager instance.
+
+    To enable testing of NodeManagers, we need to control what plugins
+    stevedore loads under the hood. To do that, we fake the plugin loading,
+    substitute NodeManager's _control_factory and _deploy_factory with the
+    fake managers, and then return handles to the actual objects.
+
+    :returns: A tuple of (control, deploy) drivers.
+    """
+
     (mgr, ext) = get_mockable_extension_manager('ironic.controllers')
     resource_manager.NodeManager._control_factory = mgr
     c = ext.obj
