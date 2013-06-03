@@ -76,7 +76,7 @@ def execute(*cmd, **kwargs):
     """Helper method to execute command with optional retry.
 
     If you add a run_as_root=True command, don't forget to add the
-    corresponding filter to etc/nova/rootwrap.d !
+    corresponding filter to etc/ironic/rootwrap.d !
 
     :param cmd:                Passed to subprocess.Popen.
     :param process_input:      Send to opened process.
@@ -115,7 +115,7 @@ def execute(*cmd, **kwargs):
                                         'to utils.execute: %r') % kwargs)
 
     if run_as_root and os.geteuid() != 0:
-        cmd = ['sudo', 'nova-rootwrap', CONF.rootwrap_config] + list(cmd)
+        cmd = ['sudo', 'ironic-rootwrap', CONF.rootwrap_config] + list(cmd)
 
     cmd = map(str, cmd)
 
