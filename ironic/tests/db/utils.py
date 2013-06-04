@@ -20,11 +20,20 @@ from ironic.db.sqlalchemy import models
 from ironic.openstack.common import jsonutils as json
 
 
-_control_info = json.dumps(
+_ipmi_control_info = json.dumps(
         {
             "ipmi_address": "1.2.3.4",
             "ipmi_username": "admin",
             "ipmi_password": "fake",
+         })
+
+_ssh_control_info = json.dumps(
+        {
+            "ssh_host": "1.2.3.4",
+            "ssh_user": "admin",
+            "ssh_pass": "fake",
+            "ssh_port": 22,
+            "virt_type": "vbox",
          })
 
 _deploy_info = json.dumps(
@@ -53,7 +62,12 @@ def get_test_node(**kw):
                                 '8227348d-5f1d-4488-aad1-7c92b2d42504')
 
     node.control_driver = kw.get('control_driver', 'ipmi')
-    node.control_info = kw.get('control_info', _control_info)
+    node.control_info = kw.get('control_info', None)
+
+    if node.control_driver == 'ipmi' and not node.control_info:
+        node.control_info = _ipmi_control_info
+    elif node.control_driver == 'ssh' and not node.control_info:
+        node.control_info = _ssh_control_info
 
     node.deploy_driver = kw.get('deploy_driver', 'pxe')
     node.deploy_info = kw.get('deploy_info', _deploy_info)

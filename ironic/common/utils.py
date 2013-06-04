@@ -24,6 +24,7 @@ import contextlib
 import errno
 import hashlib
 import os
+import paramiko
 import random
 import re
 import shutil
@@ -195,42 +196,30 @@ def trycmd(*args, **kwargs):
     return out, err
 
 
-def ssh_execute(ssh, cmd, process_input=None,
-                addl_env=None, check_exit_code=True):
-    LOG.debug(_('Running cmd (SSH): %s'), cmd)
-    if addl_env:
-        raise exception.IronicException(_(
-            'Environment not supported over SSH'))
+def ssh_connect(connection):
+    """Method to connect to a remote system using ssh protocol.
 
-    if process_input:
-        # This is (probably) fixable if we need it...
-        msg = _('process_input not supported over SSH')
-        raise exception.IronicException(msg)
+    :param connection: a dict of connection parameters.
+    :returns: paramiko.SSHClient -- an active ssh connection.
+    :raises: SSHConnectFailed
 
-    stdin_stream, stdout_stream, stderr_stream = ssh.exec_command(cmd)
-    channel = stdout_stream.channel
+    """
+    try:
+        ssh = paramiko.SSHClient()
+        ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+        ssh.connect(connection.get('host'),
+                    username=connection.get('username'),
+                    password=connection.get('password', None),
+                    port=connection.get('port', 22),
+                    key_filename=connection.get('key_filename', None),
+                    timeout=connection.get('timeout', 10))
 
-    #stdin.write('process_input would go here')
-    #stdin.flush()
+        # send TCP keepalive packets every 20 seconds
+        ssh.get_transport().set_keepalive(20)
+    except Exception:
+        raise exception.SSHConnectFailed(host=connection.get('host'))
 
-    # NOTE(justinsb): This seems suspicious...
-    # ...other SSH clients have buffering issues with this approach
-    stdout = stdout_stream.read()
-    stderr = stderr_stream.read()
-    stdin_stream.close()
-
-    exit_status = channel.recv_exit_status()
-
-    # exit_status == -1 if no exit code was returned
-    if exit_status != -1:
-        LOG.debug(_('Result was %s') % exit_status)
-        if check_exit_code and exit_status != 0:
-            raise exception.ProcessExecutionError(exit_code=exit_status,
-                                                  stdout=stdout,
-                                                  stderr=stderr,
-                                                  cmd=cmd)
-
-    return (stdout, stderr)
+    return ssh
 
 
 def generate_uid(topic, size=8):
