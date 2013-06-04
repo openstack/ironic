@@ -15,46 +15,45 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 """
-Fake drivers used in testing.
+PXE Driver and supporting meta-classes.
 """
 
 from ironic.drivers import base
-from ironic.drivers.modules import fake
 from ironic.drivers.modules import ipmi
 from ironic.drivers.modules import pxe
 from ironic.drivers.modules import ssh
 
 
-class FakeDriver(base.BaseDriver):
-    """Example implementation of a Driver."""
+class PXEAndIPMIDriver(base.BaseDriver):
+    """PXE + IPMI driver.
 
-    def __init__(self):
-        self.power = fake.FakePower()
-        self.deploy = fake.FakeDeploy()
-        self.vendor = fake.FakeVendor()
-
-
-class FakeIPMIDriver(base.BaseDriver):
-    """Example implementation of a Driver."""
+    This driver implements the `core` functionality, combinding
+    :class:ironic.drivers.ipmi.IPMI for power on/off and reboot with
+    :class:ironic.driver.pxe.PXE for image deployment. Implementations are in
+    those respective classes; this class is merely the glue between them.
+    """
 
     def __init__(self):
         self.power = ipmi.IPMIPower()
-        self.deploy = fake.FakeDeploy()
-        self.vendor = self.power
-
-
-class FakePXEDriver(base.BaseDriver):
-    """Example implementation of a Driver."""
-
-    def __init__(self):
-        self.power = fake.FakePower()
         self.deploy = pxe.PXEDeploy()
         self.rescue = self.deploy
+        self.vendor = pxe.IPMIVendorPassthru()
 
 
-class FakeSSHDriver(base.BaseDriver):
-    """Example implementation of a Driver."""
+class PXEAndSSHDriver(base.BaseDriver):
+    """PXE + SSH driver.
+
+    NOTE: This driver is meant only for testing environments.
+
+    This driver implements the `core` functionality, combinding
+    :class:ironic.drivers.ssh.SSH for power on/off and reboot of virtual
+    machines tunneled over SSH, with :class:ironic.driver.pxe.PXE for image
+    deployment. Implementations are in those respective classes; this class is
+    merely the glue between them.
+    """
 
     def __init__(self):
         self.power = ssh.SSHPower()
-        self.deploy = fake.FakeDeploy()
+        self.deploy = pxe.PXEDeploy()
+        self.rescue = self.deploy
+        self.vendor = None

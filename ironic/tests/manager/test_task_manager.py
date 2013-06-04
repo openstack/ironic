@@ -51,7 +51,7 @@ class TaskManagerTestCase(base.DbTestCase):
     def setUp(self):
         super(TaskManagerTestCase, self).setUp()
         self.dbapi = dbapi.get_instance()
-        (self.controller, self.deployer) = mgr_utils.get_mocked_node_manager()
+        self.driver = mgr_utils.get_mocked_node_manager()
 
         self.uuids = [create_fake_node(i) for i in xrange(1, 6)]
         self.uuids.sort()
@@ -119,7 +119,7 @@ class ExclusiveLockDecoratorTestCase(base.DbTestCase):
     def setUp(self):
         super(ExclusiveLockDecoratorTestCase, self).setUp()
         self.dbapi = dbapi.get_instance()
-        (self.controller, self.deployer) = mgr_utils.get_mocked_node_manager()
+        self.driver = mgr_utils.get_mocked_node_manager()
         self.uuids = [create_fake_node(123)]
 
     def test_require_exclusive_lock(self):

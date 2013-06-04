@@ -23,7 +23,7 @@ A context manager to peform a series of tasks on a set of resources.
 locking and simplify operations across a set of
 :class:`ironic.manager.resource_manager.NodeManager` instances.  Each
 NodeManager holds the data model for a node, as well as references to the
-controller and deployer driver singletons appropriate for that node.
+driver singleton appropriate for that node.
 
 The :class:`TaskManager` will acquire either a shared or exclusive lock, as
 indicated.  Multiple shared locks for the same resource may coexist with an
@@ -56,11 +56,10 @@ driver function, you can access the drivers directly in this way::
 
     with task_manager.acquire(node_ids) as task:
         states = []
-        for node, control, deploy in [r.node, r.controller, r.deployer
+        for node, driver in [r.node, r.driver
                                         for r in task.resources]:
-            # control and deploy are driver singletons,
-            # loaded based on that node's configuration.
-            states.append(control.get_power_state(task, node)
+            # the driver is loaded based on that node's configuration.
+            states.append(driver.power.get_power_state(task, node)
 """
 
 import contextlib

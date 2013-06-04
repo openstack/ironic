@@ -27,19 +27,29 @@ class UtilsTestCase(base.TestCase):
     def setUp(self):
         super(UtilsTestCase, self).setUp()
 
+    def test_fails_to_load_extension(self):
+        self.assertRaises(AttributeError,
+                          utils.get_mockable_extension_manager,
+                          'fake',
+                          'bad.namespace')
+        self.assertRaises(AttributeError,
+                          utils.get_mockable_extension_manager,
+                          'no-such-driver',
+                          'ironic.drivers')
+
     def test_get_mockable_ext_mgr(self):
-        (mgr, ext) = utils.get_mockable_extension_manager("fake",
-                                                          'ironic.controllers')
+        (mgr, ext) = utils.get_mockable_extension_manager('fake',
+                                                          'ironic.drivers')
 
         # confirm that stevedore did not scan the actual entrypoints
-        self.assertNotEqual(mgr.namespace, 'ironic.controllers')
+        self.assertNotEqual(mgr.namespace, 'ironic.drivers')
         # confirm mgr has only one extension
         self.assertEqual(len(mgr.extensions), 1)
         # confirm that we got a reference to the extension in this manager
         self.assertEqual(mgr.extensions[0], ext)
         # confirm that it is the "fake" driver we asked for
         self.assertEqual("%s" % ext.entry_point,
-                         "fake = ironic.drivers.fake:FakeControlDriver")
+                         "fake = ironic.drivers.fake:FakeDriver")
 
     def test_get_mocked_node_mgr(self):
         self.mox.StubOutWithMock(utils, 'get_mockable_extension_manager')
@@ -48,19 +58,14 @@ class UtilsTestCase(base.TestCase):
             def __init__(self, name):
                 self.obj = name
 
-        utils.get_mockable_extension_manager('foo', 'ironic.controllers').\
+        utils.get_mockable_extension_manager('foo', 'ironic.drivers').\
                 AndReturn(('foo-manager', ext('foo-extension')))
-        utils.get_mockable_extension_manager('bar', 'ironic.deployers').\
-                AndReturn(('bar-manager', ext('bar-extension')))
         self.mox.ReplayAll()
 
-        (control_ext, deploy_ext) = utils.get_mocked_node_manager('foo', 'bar')
+        driver = utils.get_mocked_node_manager('foo')
 
-        self.assertEqual(resource_manager.NodeManager._control_factory,
+        self.assertEqual(resource_manager.NodeManager._driver_factory,
                          'foo-manager')
-        self.assertEqual(control_ext, 'foo-extension')
-        self.assertEqual(resource_manager.NodeManager._deploy_factory,
-                         'bar-manager')
-        self.assertEqual(deploy_ext, 'bar-extension')
+        self.assertEqual(driver, 'foo-extension')
 
         self.mox.VerifyAll()

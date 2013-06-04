@@ -36,11 +36,10 @@ class ManagerTestCase(base.DbTestCase):
         self.service = manager.ManagerService('test-host', 'test-topic')
         self.context = context.get_admin_context()
         self.dbapi = dbapi.get_instance()
-        (self.controller, self.deployer) = mgr_utils.get_mocked_node_manager()
+        self.driver = mgr_utils.get_mocked_node_manager()
 
     def test_get_power_state(self):
-        n = utils.get_test_node(control_driver='fake',
-                                deploy_driver='fake')
+        n = utils.get_test_node(driver='fake')
         self.dbapi.create_node(n)
 
         # FakeControlDriver.get_power_state will "pass"
@@ -49,15 +48,14 @@ class ManagerTestCase(base.DbTestCase):
         self.assertEqual(state, states.NOSTATE)
 
     def test_get_power_state_with_mock(self):
-        n = utils.get_test_node(control_driver='fake',
-                                deploy_driver='fake')
+        n = utils.get_test_node(driver='fake')
         self.dbapi.create_node(n)
 
-        self.mox.StubOutWithMock(self.controller, 'get_power_state')
+        self.mox.StubOutWithMock(self.driver.power, 'get_power_state')
 
-        self.controller.get_power_state(mox.IgnoreArg(), mox.IgnoreArg()).\
+        self.driver.power.get_power_state(mox.IgnoreArg(), mox.IgnoreArg()).\
                 AndReturn(states.POWER_OFF)
-        self.controller.get_power_state(mox.IgnoreArg(), mox.IgnoreArg()).\
+        self.driver.power.get_power_state(mox.IgnoreArg(), mox.IgnoreArg()).\
                 AndReturn(states.POWER_ON)
         self.mox.ReplayAll()
 

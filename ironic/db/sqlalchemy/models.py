@@ -98,10 +98,8 @@ class Node(Base):
     task_start = Column(DateTime, nullable=True)
     task_state = Column(String(15))
     properties = Column(JSONEncodedDict)
-    control_driver = Column(String(15))
-    control_info = Column(JSONEncodedDict)
-    deploy_driver = Column(String(15))
-    deploy_info = Column(JSONEncodedDict)
+    driver = Column(String(15))
+    driver_info = Column(JSONEncodedDict)
     reservation = Column(String(255), nullable=True)
     extra = Column(JSONEncodedDict)
 

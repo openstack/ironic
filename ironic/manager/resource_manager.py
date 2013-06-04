@@ -46,12 +46,8 @@ class NodeManager(object):
 
     _nodes = {}
 
-    _control_factory = dispatch.NameDispatchExtensionManager(
-            namespace='ironic.controllers',
-            check_func=lambda x: True,
-            invoke_on_load=True)
-    _deploy_factory = dispatch.NameDispatchExtensionManager(
-            namespace='ironic.deployers',
+    _driver_factory = dispatch.NameDispatchExtensionManager(
+            namespace='ironic.drivers',
             check_func=lambda x: True,
             invoke_on_load=True)
 
@@ -69,22 +65,13 @@ class NodeManager(object):
         # NOTE(deva): Driver loading here may get refactored, depend on:
         #             https://github.com/dreamhost/stevedore/issues/15
         try:
-            ref = NodeManager._control_factory.map(
-                    [self.node.get('control_driver')], _get_instance)
-            self.controller = ref[0]
+            ref = NodeManager._driver_factory.map(
+                    [self.node.get('driver')], _get_instance)
+            self.driver = ref[0]
         except KeyError:
             raise exception.IronicException(_(
-                "Failed to load Control driver %s.") %
-                        self.node.get('control_driver'))
-
-        try:
-            ref = NodeManager._deploy_factory.map(
-                    [self.node.get('deploy_driver')], _get_instance)
-            self.deployer = ref[0]
-        except KeyError:
-            raise exception.IronicException(_(
-                "Failed to load Deploy driver %s.") %
-                        self.node.get('deploy_driver'))
+                "Failed to load driver %s.") %
+                        self.node.get('driver'))
 
     @classmethod
     @lockutils.synchronized(RESOURCE_MANAGER_SEMAPHORE, 'ironic-')

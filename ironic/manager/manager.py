@@ -75,8 +75,8 @@ class ManagerService(service.PeriodicService):
 
         with task_manager.acquire([node_id], shared=True) as task:
             node = task.resources[0].node
-            driver = task.resources[0].controller
-            state = driver.get_power_state(task, node)
+            driver = task.resources[0].driver
+            state = driver.power.get_power_state(task, node)
             return state
 
     # TODO(deva)

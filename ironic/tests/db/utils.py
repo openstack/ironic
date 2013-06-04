@@ -20,30 +20,45 @@ from ironic.db.sqlalchemy import models
 from ironic.openstack.common import jsonutils as json
 
 
-_ipmi_control_info = json.dumps(
+fake_info = json.dumps({"foo": "bar"})
+
+ipmi_info = json.dumps(
         {
-            "ipmi_address": "1.2.3.4",
-            "ipmi_username": "admin",
-            "ipmi_password": "fake",
+            'ipmi': {
+                "address": "1.2.3.4",
+                "username": "admin",
+                "password": "fake",
+            }
          })
 
-_ssh_control_info = json.dumps(
+ssh_info = json.dumps(
         {
-            "ssh_host": "1.2.3.4",
-            "ssh_user": "admin",
-            "ssh_pass": "fake",
-            "ssh_port": 22,
-            "virt_type": "vbox",
+            'ssh': {
+                "address": "1.2.3.4",
+                "username": "admin",
+                "password": "fake",
+                "port": 22,
+                "virt_type": "vbox",
+                "key_filename": "/not/real/file",
+            }
          })
 
-_deploy_info = json.dumps(
+pxe_info = json.dumps(
         {
-            "image_path": "/path/to/image.qcow2",
-            "image_source": "glance://image-uuid",
-            "deploy_image_source": "glance://deploy-image-uuid",
+            'pxe': {
+                "image_path": "/path/to/image.qcow2",
+                "image_source": "glance://image-uuid",
+                "deploy_image_source": "glance://deploy-image-uuid",
+            }
         })
 
-_properties = json.dumps(
+pxe_ssh_info = json.dumps(
+        dict(json.loads(pxe_info), **json.loads(ssh_info)))
+
+pxe_ipmi_info = json.dumps(
+        dict(json.loads(pxe_info), **json.loads(ipmi_info)))
+
+properties = json.dumps(
         {
             "cpu_arch": "x86_64",
             "cpu_num": 8,
@@ -61,18 +76,11 @@ def get_test_node(**kw):
     node.instance_uuid = kw.get('instance_uuid',
                                 '8227348d-5f1d-4488-aad1-7c92b2d42504')
 
-    node.control_driver = kw.get('control_driver', 'ipmi')
-    node.control_info = kw.get('control_info', None)
+    node.driver = kw.get('driver', 'fake')
+    node.driver_info = kw.get('driver_info', fake_info)
 
-    if node.control_driver == 'ipmi' and not node.control_info:
-        node.control_info = _ipmi_control_info
-    elif node.control_driver == 'ssh' and not node.control_info:
-        node.control_info = _ssh_control_info
-
-    node.deploy_driver = kw.get('deploy_driver', 'pxe')
-    node.deploy_info = kw.get('deploy_info', _deploy_info)
-
-    node.properties = kw.get('properties', _properties)
+    node.properties = kw.get('properties', properties)
+    node.extra = kw.get('extra', '{}')
 
     return node
 

@@ -25,7 +25,6 @@ For use in dev and test environments.
 Currently supported environments are:
     Virtual Box (vbox)
     Virsh       (virsh)
-
 """
 
 import os
@@ -109,17 +108,19 @@ def _exec_ssh_command(ssh_obj, command):
     return (stdout, stderr)
 
 
-def _parse_control_info(node):
-    info = json.loads(node.get('control_info', ''))
-    host = info.get('ssh_host', None)
-    username = info.get('ssh_user', None)
-    password = info.get('ssh_pass', None)
-    port = info.get('ssh_port', 22)
-    key_filename = info.get('ssh_key', None)
-    virt_type = info.get('virt_type', None)
+def _parse_driver_info(node):
+    driver_info = json.loads(node.get('driver_info', ''))
+    ssh_info = driver_info.get('ssh')
+    address = ssh_info.get('address', None)
+    username = ssh_info.get('username', None)
+    password = ssh_info.get('password', None)
+    port = ssh_info.get('port', 22)
+    key_filename = ssh_info.get('key_filename', None)
+    virt_type = ssh_info.get('virt_type', None)
 
+    # NOTE(deva): we map 'address' from API to 'host' for common utils
     res = {
-           'host': host,
+           'host': address,
            'username': username,
            'port': port,
            'virt_type': virt_type,
@@ -136,15 +137,16 @@ def _parse_control_info(node):
             "SSHPowerDriver unknown virt_type (%s).") % cmd_set)
     res['cmd_set'] = cmd_set
 
-    if not host or not username:
+    if not address or not username:
         raise exception.InvalidParameterValue(_(
-            "SSHPowerDriver requires both ssh_host and ssh_user be set."))
+            "SSHPowerDriver requires both address and username be set."))
     if password:
         res['password'] = password
     else:
         if not key_filename:
             raise exception.InvalidParameterValue(_(
-                "SSHPowerDriver requires either ssh_pass or ssh_key be set."))
+                "SSHPowerDriver requires either password or "
+                "key_filename be set."))
         if not os.path.isfile(key_filename):
             raise exception.FileNotFound(file_path=key_filename)
         res['key_filename'] = key_filename
@@ -152,15 +154,15 @@ def _parse_control_info(node):
     return res
 
 
-def _get_power_status(ssh_obj, c_info):
+def _get_power_status(ssh_obj, driver_info):
     """Returns a node's current power state."""
 
     power_state = None
-    cmd_to_exec = c_info['cmd_set']['list_running']
+    cmd_to_exec = driver_info['cmd_set']['list_running']
     running_list = _exec_ssh_command(ssh_obj, cmd_to_exec)
     # Command should return a list of running vms. If the current node is
     # not listed then we can assume it is not powered on.
-    node_name = _get_hosts_name_for_node(ssh_obj, c_info)
+    node_name = _get_hosts_name_for_node(ssh_obj, driver_info)
     if node_name:
         for node in running_list:
             if node_name in node:
@@ -175,23 +177,23 @@ def _get_power_status(ssh_obj, c_info):
 
 
 def _get_connection(node):
-    return utils.ssh_connect(_parse_control_info(node))
+    return utils.ssh_connect(_parse_driver_info(node))
 
 
-def _get_hosts_name_for_node(ssh_obj, c_info):
+def _get_hosts_name_for_node(ssh_obj, driver_info):
     """Get the name the host uses to reference the node."""
 
     matched_name = None
-    cmd_to_exec = c_info['cmd_set']['list_all']
+    cmd_to_exec = driver_info['cmd_set']['list_all']
     full_node_list = _exec_ssh_command(ssh_obj, cmd_to_exec)
     # for each node check Mac Addresses
     for node in full_node_list:
-        cmd_to_exec = c_info['cmd_set']['get_node_macs']
+        cmd_to_exec = driver_info['cmd_set']['get_node_macs']
         cmd_to_exec = cmd_to_exec.replace('{_NodeName_}', node)
         hosts_node_mac_list = _exec_ssh_command(ssh_obj, cmd_to_exec)
 
         for host_mac in hosts_node_mac_list:
-            for node_mac in c_info['macs']:
+            for node_mac in driver_info['macs']:
                 if _normalize_mac(host_mac) in _normalize_mac(node_mac):
                     matched_name = node
                     break
@@ -204,40 +206,40 @@ def _get_hosts_name_for_node(ssh_obj, c_info):
     return matched_name
 
 
-def _power_on(ssh_obj, c_info):
+def _power_on(ssh_obj, driver_info):
     """Power ON this node."""
 
-    current_pstate = _get_power_status(ssh_obj, c_info)
+    current_pstate = _get_power_status(ssh_obj, driver_info)
     if current_pstate == states.POWER_ON:
-        _power_off(ssh_obj, c_info)
+        _power_off(ssh_obj, driver_info)
 
-    node_name = _get_hosts_name_for_node(ssh_obj, c_info)
-    cmd_to_power_on = c_info['cmd_set']['start_cmd']
+    node_name = _get_hosts_name_for_node(ssh_obj, driver_info)
+    cmd_to_power_on = driver_info['cmd_set']['start_cmd']
     cmd_to_power_on = cmd_to_power_on.replace('{_NodeName_}', node_name)
 
     _exec_ssh_command(ssh_obj, cmd_to_power_on)
 
-    current_pstate = _get_power_status(ssh_obj, c_info)
+    current_pstate = _get_power_status(ssh_obj, driver_info)
     if current_pstate == states.POWER_ON:
         return current_pstate
     else:
         return states.ERROR
 
 
-def _power_off(ssh_obj, c_info):
+def _power_off(ssh_obj, driver_info):
     """Power OFF this node."""
 
-    current_pstate = _get_power_status(ssh_obj, c_info)
+    current_pstate = _get_power_status(ssh_obj, driver_info)
     if current_pstate == states.POWER_OFF:
         return current_pstate
 
-    node_name = _get_hosts_name_for_node(ssh_obj, c_info)
-    cmd_to_power_off = c_info['cmd_set']['stop_cmd']
+    node_name = _get_hosts_name_for_node(ssh_obj, driver_info)
+    cmd_to_power_off = driver_info['cmd_set']['stop_cmd']
     cmd_to_power_off = cmd_to_power_off.replace('{_NodeName_}', node_name)
 
     _exec_ssh_command(ssh_obj, cmd_to_power_off)
 
-    current_pstate = _get_power_status(ssh_obj, c_info)
+    current_pstate = _get_power_status(ssh_obj, driver_info)
     if current_pstate == states.POWER_OFF:
         return current_pstate
     else:
@@ -251,30 +253,25 @@ def _get_nodes_mac_addresses(task, node):
     return macs
 
 
-class SSHPowerDriver(base.ControlDriver):
-    """SSH Power Driver.
+class SSHPower(base.PowerInterface):
+    """SSH Power Interface.
 
-    This ControlDriver class provides a mechanism for controlling the power
+    This PowerInterface class provides a mechanism for controlling the power
     state of virtual machines via SSH.
 
     NOTE: This driver supports VirtualBox and Virsh commands.
     NOTE: This driver does not currently support multi-node operations.
-
     """
 
-    def __init__(self):
-        pass
-
-    def validate_driver_info(self, node):
-        """Check that node['control_info'] contains the requisite fields.
+    def validate(self, node):
+        """Check that node['driver_info'] contains the requisite fields.
 
         :param node: Single node object.
 
         :returns: True / False.
-
         """
         try:
-            _parse_control_info(node)
+            _parse_driver_info(node)
         except exception.InvalidParameterValue:
             return False
         return True
@@ -288,12 +285,11 @@ class SSHPowerDriver(base.ControlDriver):
         :param node: A single node.
 
         :returns: power state. One of :class:`ironic.common.states`.
-
         """
-        c_info = _parse_control_info(node)
-        c_info['macs'] = _get_nodes_mac_addresses(task, node)
+        driver_info = _parse_driver_info(node)
+        driver_info['macs'] = _get_nodes_mac_addresses(task, node)
         ssh_obj = _get_connection(node)
-        return _get_power_status(ssh_obj, c_info)
+        return _get_power_status(ssh_obj, driver_info)
 
     @task_manager.require_exclusive_lock
     def set_power_state(self, task, node, pstate):
@@ -307,18 +303,16 @@ class SSHPowerDriver(base.ControlDriver):
             `ironic.common.states`.
 
         :returns NOTHING:
-
-        Can raise exception.IronicException or exception.PowerStateFailure.
-
+        :raises: exception.IronicException or exception.PowerStateFailure.
         """
-        c_info = _parse_control_info(node)
-        c_info['macs'] = _get_nodes_mac_addresses(task, node)
+        driver_info = _parse_driver_info(node)
+        driver_info['macs'] = _get_nodes_mac_addresses(task, node)
         ssh_obj = _get_connection(node)
 
         if pstate == states.POWER_ON:
-            state = _power_on(ssh_obj, c_info)
+            state = _power_on(ssh_obj, driver_info)
         elif pstate == states.POWER_OFF:
-            state = _power_off(ssh_obj, c_info)
+            state = _power_off(ssh_obj, driver_info)
         else:
             raise exception.IronicException(_(
                 "set_power_state called with invalid power state."))
@@ -336,47 +330,16 @@ class SSHPowerDriver(base.ControlDriver):
         :param node: A single node.
 
         :returns NOTHING:
-
-        Can raise exception.PowerStateFailure.
-
+        :raises: exception.PowerStateFailure.
         """
-        c_info = _parse_control_info(node)
-        c_info['macs'] = _get_nodes_mac_addresses(task, node)
+        driver_info = _parse_driver_info(node)
+        driver_info['macs'] = _get_nodes_mac_addresses(task, node)
         ssh_obj = _get_connection(node)
-        current_pstate = _get_power_status(ssh_obj, c_info)
+        current_pstate = _get_power_status(ssh_obj, driver_info)
         if current_pstate == states.POWER_ON:
-            _power_off(ssh_obj, c_info)
+            _power_off(ssh_obj, driver_info)
 
-        state = _power_on(ssh_obj, c_info)
+        state = _power_on(ssh_obj, driver_info)
 
         if state != states.POWER_ON:
             raise exception.PowerStateFailure(pstate=states.POWER_ON)
-
-    def start_console(self, task, node):
-        """Starts a console connection to a node.
-
-        CURRENTLY NOT SUPPORTED.
-
-        :param task: A instance of `ironic.manager.task_manager.TaskManager`.
-        :param node: A single node.
-
-        Will raise raise exception.IronicException.
-
-        """
-        raise exception.IronicException(_(
-            "start_console is not supported by SSHPowerDriver."))
-
-    def stop_console(self, task, node):
-        """Stops a console connection to a node.
-
-        CURRENTLY NOT SUPPORTED.
-
-        :param task: A instance of `ironic.manager.task_manager.TaskManager`.
-        :param node: A single node.
-
-        Will raise raise exception.IronicException.
-
-        """
-
-        raise exception.IronicException(_(
-            "stop_console is not supported by SSHPowerDriver."))

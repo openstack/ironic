@@ -92,11 +92,10 @@ class Connection(object):
                          'uuid': uuidutils.generate_uuid(),
                          'instance_uuid': None,
                          'task_state': states.NOSTATE,
-                         'control_driver': 'ipmi',
-                         'control_info': { ... },
-                         'deploy_driver': 'pxe',
-                         'deploy_info': { ... },
+                         'driver': 'pxe_ipmi',
+                         'driver_info': { ... },
                          'properties': { ... },
+                         'extra': { ... },
                         }
         :returns: A node.
         """
@@ -131,11 +130,10 @@ class Connection(object):
         :param node: The id or uuid of a node.
         :param values: Dict of values to update.
                        May be a partial list, eg. when setting the
-                       properties for a single driver. For example:
+                       properties for a driver. For example:
 
                        {
-                        'deploy_driver': 'my-vendor-driver',
-                        'deploy_info':
+                        'driver_info':
                             {
                              'my-field-1': val1,
                              'my-field-2': val2,

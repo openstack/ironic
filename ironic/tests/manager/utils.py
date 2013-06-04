@@ -35,10 +35,13 @@ def get_mockable_extension_manager(driver, namespace):
                        namespace.
 
     """
-    for entry_point in list(pkg_resources.iter_entry_points(namespace)):
-        s = "%s" % entry_point
-        if s.startswith(driver):
+    entry_point = None
+    for ep in list(pkg_resources.iter_entry_points(namespace)):
+        s = "%s" % ep
+        if driver == s[:s.index(' =')]:
+            entry_point = ep
             break
+
     mock_ext_mgr = dispatch.NameDispatchExtensionManager(
                     'ironic.no-such-namespace',
                     lambda x: True)
@@ -48,25 +51,18 @@ def get_mockable_extension_manager(driver, namespace):
     return (mock_ext_mgr, mock_ext)
 
 
-def get_mocked_node_manager(control_driver="fake", deploy_driver="fake"):
-    """Get a mockable :class:NodeManager instance.
+def get_mocked_node_manager(driver="fake"):
+    """Mock :class:NodeManager and get a ref to the driver inside..
 
     To enable testing of NodeManagers, we need to control what plugins
     stevedore loads under the hood. To do that, we fake the plugin loading,
-    substitute NodeManager's _control_factory and _deploy_factory with the
-    fake managers, and then return handles to the actual objects.
+    substituting NodeManager's _driver_factory with an instance of the
+    specified driver only, and return a reference directly to that driver
+    instance.
 
-    :returns: A tuple of (control, deploy) drivers.
+    :returns: A driver instance.
     """
 
-    (mgr, ext) = get_mockable_extension_manager(control_driver,
-                                                'ironic.controllers')
-    resource_manager.NodeManager._control_factory = mgr
-    c = ext.obj
-
-    (mgr, ext) = get_mockable_extension_manager(deploy_driver,
-                                                'ironic.deployers')
-    resource_manager.NodeManager._deploy_factory = mgr
-    d = ext.obj
-
-    return (c, d)
+    (mgr, ext) = get_mockable_extension_manager(driver, 'ironic.drivers')
+    resource_manager.NodeManager._driver_factory = mgr
+    return ext.obj
