@@ -260,3 +260,15 @@ class IPMIFailure(IronicException):
 
 class SSHConnectFailed(IronicException):
     message = _("Failed to establish SSH connection to host %(host)s.")
+
+
+class UnsupportedObjectError(IronicException):
+    message = _('Unsupported object type %(objtype)s')
+
+
+class OrphanedObjectError(IronicException):
+    message = _('Cannot call %(method)s on orphaned %(objtype)s object')
+
+
+class IncompatibleObjectVersion(IronicException):
+    message = _('Version %(objver)s of %(objname)s is not supported')
