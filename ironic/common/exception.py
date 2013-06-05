@@ -256,3 +256,7 @@ class ExclusiveLockRequired(NotAuthorized):
 
 class IPMIFailure(IronicException):
     message = _("IPMI command failed: %(cmd)s.")
+
+
+class SSHConnectFailed(IronicException):
+    message = _("Failed to establish SSH connection to host %(host)s.")
