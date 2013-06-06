@@ -68,20 +68,22 @@ properties = json.dumps(
 
 
 def get_test_node(**kw):
-    node = models.Node()
-
-    node.id = kw.get('id', 123)
-    node.uuid = kw.get('uuid', '1be26c0b-03f2-4d2e-ae87-c02d7f33c123')
-    node.task_state = kw.get('task_state', 'NOSTATE')
-    node.instance_uuid = kw.get('instance_uuid',
-                                '8227348d-5f1d-4488-aad1-7c92b2d42504')
-
-    node.driver = kw.get('driver', 'fake')
-    node.driver_info = kw.get('driver_info', fake_info)
-
-    node.properties = kw.get('properties', properties)
-    node.extra = kw.get('extra', '{}')
-
+    node = {
+            'id': kw.get('id', 123),
+            'uuid': kw.get('uuid', '1be26c0b-03f2-4d2e-ae87-c02d7f33c123'),
+            'chassis_id': 5,
+            'task_start': None,
+            'task_state': kw.get('task_state', 'NOSTATE'),
+            'instance_uuid': kw.get('instance_uuid',
+                                    '8227348d-5f1d-4488-aad1-7c92b2d42504'),
+            'driver': kw.get('driver', 'fake'),
+            'driver_info': kw.get('driver_info', fake_info),
+            'properties': kw.get('properties', properties),
+            'reservation': None,
+            'extra': kw.get('extra', '{}'),
+            'updated_at': None,
+            'created_at': None,
+            }
     return node
 
 

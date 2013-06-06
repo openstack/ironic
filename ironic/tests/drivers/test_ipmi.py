@@ -197,7 +197,7 @@ class IPMIDriverTestCase(db_base.DbTestCase):
         ipmi._power_on(self.info).AndReturn(states.POWER_ON)
         self.mox.ReplayAll()
 
-        with task_manager.acquire([self.node.uuid]) as task:
+        with task_manager.acquire([self.node['uuid']]) as task:
             self.driver.power.set_power_state(
                     task, self.node, states.POWER_ON)
         self.mox.VerifyAll()
@@ -210,7 +210,7 @@ class IPMIDriverTestCase(db_base.DbTestCase):
         ipmi._power_off(self.info).AndReturn(states.POWER_OFF)
         self.mox.ReplayAll()
 
-        with task_manager.acquire([self.node.uuid]) as task:
+        with task_manager.acquire([self.node['uuid']]) as task:
             self.driver.power.set_power_state(
                     task, self.node, states.POWER_OFF)
         self.mox.VerifyAll()
@@ -224,7 +224,7 @@ class IPMIDriverTestCase(db_base.DbTestCase):
         ipmi._power_on(self.info).AndReturn(states.ERROR)
         self.mox.ReplayAll()
 
-        with task_manager.acquire([self.node.uuid]) as task:
+        with task_manager.acquire([self.node['uuid']]) as task:
             self.assertRaises(exception.PowerStateFailure,
                     self.driver.power.set_power_state,
                     task,
@@ -233,7 +233,7 @@ class IPMIDriverTestCase(db_base.DbTestCase):
         self.mox.VerifyAll()
 
     def test_set_power_invalid_state(self):
-        with task_manager.acquire([self.node.uuid]) as task:
+        with task_manager.acquire([self.node['uuid']]) as task:
             self.assertRaises(exception.IronicException,
                     self.driver.power.set_power_state,
                     task,
@@ -247,12 +247,12 @@ class IPMIDriverTestCase(db_base.DbTestCase):
                 AndReturn([None, None])
         self.mox.ReplayAll()
 
-        with task_manager.acquire([self.node.uuid]) as task:
+        with task_manager.acquire([self.node['uuid']]) as task:
             self.driver.power._set_boot_device(task, self.node, 'pxe')
         self.mox.VerifyAll()
 
     def test_set_boot_device_bad_device(self):
-        with task_manager.acquire([self.node.uuid]) as task:
+        with task_manager.acquire([self.node['uuid']]) as task:
             self.assertRaises(exception.InvalidParameterValue,
                     self.driver.power._set_boot_device,
                     task,
@@ -267,7 +267,7 @@ class IPMIDriverTestCase(db_base.DbTestCase):
         ipmi._power_on(self.info).AndReturn(states.POWER_ON)
         self.mox.ReplayAll()
 
-        with task_manager.acquire([self.node.uuid]) as task:
+        with task_manager.acquire([self.node['uuid']]) as task:
             self.driver.power.reboot(task, self.node)
 
         self.mox.VerifyAll()
@@ -280,7 +280,7 @@ class IPMIDriverTestCase(db_base.DbTestCase):
         ipmi._power_on(self.info).AndReturn(states.ERROR)
         self.mox.ReplayAll()
 
-        with task_manager.acquire([self.node.uuid]) as task:
+        with task_manager.acquire([self.node['uuid']]) as task:
             self.assertRaises(exception.PowerStateFailure,
                     self.driver.power.reboot,
                     task,

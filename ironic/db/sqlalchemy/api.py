@@ -26,6 +26,7 @@ from ironic.common import exception
 from ironic.common import utils
 from ironic.db import api
 from ironic.db.sqlalchemy import models
+from ironic.objects import node
 from ironic.openstack.common.db.sqlalchemy import session as db_session
 from ironic.openstack.common import log
 from ironic.openstack.common import uuidutils
@@ -81,15 +82,19 @@ class Connection(api.Connection):
     def __init__(self):
         pass
 
+    @node.objectify
     def get_nodes(self, columns):
         pass
 
+    @node.objectify
     def get_associated_nodes(self):
         pass
 
+    @node.objectify
     def get_unassociated_nodes(self):
         pass
 
+    @node.objectify
     def reserve_nodes(self, tag, nodes):
         # Ensure consistent sort order so we don't run into deadlocks.
         nodes.sort()
@@ -143,12 +148,14 @@ class Connection(api.Connection):
                         if ref['reservation'] is not None:
                             raise exception.NodeLocked(node=node)
 
+    @node.objectify
     def create_node(self, values):
         node = models.Node()
         node.update(values)
         node.save()
         return node
 
+    @node.objectify
     def get_node(self, node):
         query = model_query(models.Node)
         query = add_uuid_filter(query, node)
@@ -160,6 +167,7 @@ class Connection(api.Connection):
 
         return result
 
+    @node.objectify
     def get_node_by_instance(self, instance):
         query = model_query(models.Node)
         if uuidutils.is_uuid_like(instance):
@@ -184,6 +192,7 @@ class Connection(api.Connection):
             if count != 1:
                 raise exception.NodeNotFound(node=node)
 
+    @node.objectify
     def update_node(self, node, values):
         session = get_session()
         with session.begin():
