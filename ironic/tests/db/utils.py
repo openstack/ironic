@@ -47,9 +47,11 @@ ssh_info = json.dumps(
 pxe_info = json.dumps(
         {
             'pxe': {
-                "image_path": "/path/to/image.qcow2",
-                "image_source": "glance://image-uuid",
-                "deploy_image_source": "glance://deploy-image-uuid",
+                "instance_name": "fake_instance_name",
+                "image_source": "glance://image_uuid",
+                "deploy_kernel": "glance://deploy_kernel_uuid",
+                "deploy_ramdisk": "glance://deploy_ramdisk_uuid",
+                "root_gb": 100,
             }
         })
 

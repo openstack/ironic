@@ -22,3 +22,4 @@ websockify>=0.5.1,<0.6
 oslo.config>=1.1.0
 pecan>=0.2.0
 WSME>=0.5b2
+Cheetah>=2.4.4
