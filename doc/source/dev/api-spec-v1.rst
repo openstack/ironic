@@ -97,8 +97,8 @@ of the resource itself.
 
 For example, if a client wanted to change the deployment configuration for a
 specific node, the client could update the deployment part of the node's
-ManagementConfiguration_ with the new parameters directly at:
-/nodes/1/management_configuration/deploy
+DriverConfiguration_ with the new parameters directly at:
+/nodes/1/driver_configuration/deploy
 
 Security
 ---------
@@ -133,7 +133,7 @@ Top Level Resources
 Sub Resources
 ---------------
 
-- ManagementConfiguration_
+- DriverConfiguration_
 - MetaData_
 - State_
 
@@ -348,8 +348,8 @@ chassis
     The chassis this node belongs to see: Chassis_
 ports
     A list of available ports for this node see: Port_
-management_configuration
-    This node's management configuration see: ManagementConfiguration_
+driver_configuration
+    This node's driver configuration see: DriverConfiguration_
 
 Example
 ^^^^^^^^
@@ -412,55 +412,31 @@ JSON structure of a node::
         }
       ]
     },
-    "management_configuration": {
-      "type": "management_configuration",
-      "control": {
-        "driver": {
-          "links": [{
-              "rel": "self",
-              "href": "http://localhost:8080/v1/drivers/1"
-            }, {
-              "rel": "bookmark",
-              "href": "http://localhost:8080/drivers/1"
-            }
-          ]
-        },
-        "parameters": {
-          "ipmi_username": "admin",
-          "ipmi_password": "password",
-          "links": [{
-              "rel": "self",
-              "href": "http://localhost:8080/v1.0/nodes/1/management_configuration/control/parameters"
-            }, {
-              "rel": "bookmark",
-              "href": "http://localhost:8080/nodes/1/management_configuration/control/parameters"
-            }
-          ]
-        }
+    "driver_configuration": {
+      "type": "driver_configuration",
+      "driver": {
+        "links": [{
+            "rel": "self",
+            "href": "http://localhost:8080/v1/drivers/1"
+          }, {
+            "rel": "bookmark",
+            "href": "http://localhost:8080/drivers/1"
+          }
+        ]
       },
-      "deployment": {
-        "driver": {
-          "links": [{
-              "rel": "self",
-              "href": "http://localhost:8080/v1.0/drivers/1"
-            }, {
-              "rel": "bookmark",
-              "href": "http://localhost:8080/drivers/1"
-            }
-          ]
-        },
-        "parameters": {
-          "image_source": "glance://image-uuid",
-          "deploy_image_source": "glance://deploy-image-uuid",
-          "links": [{
-              "rel": "self",
-              "href": "http://localhost:8080/v1.0/nodes/1/management_configuration/control/parameters"
-            }, {
-              "rel": "bookmark",
-              "href": "http://localhost:8080/nodes/1/management_configuration/control/parameters"
-            }
-          ]
-        }
+      "parameters": {
+        "ipmi_username": "admin",
+        "ipmi_password": "password",
+        "image_source": "glance://image-uuid",
+        "deploy_image_source": "glance://deploy-image-uuid",
+        "links": [{
+            "rel": "self",
+            "href": "http://localhost:8080/v1.0/nodes/1/driver_configuration/parameters"
+          }, {
+            "rel": "bookmark",
+            "href": "http://localhost:8080/nodes/1/driver_configuration/control/parameters"
+          }
+        ]
       }
     }
   }
@@ -625,25 +601,16 @@ required_fields
 optional_fields
     An array containing optional fields for this driver
 
-DriverFunctions
-^^^^^^^^^^^^^^^^
-
-Drivers can have one of two types of functionality, control or deployment.  You
-must enter a driver or the correct function into the relevant pieces of the
-management configuration resource.  For example, you must enter a driver with
-function "control" into the control piece of the management configuration.
-
 Example Driver
 ^^^^^^^^^^^^^^^
 
 JSON structure of a driver::
 
   {
-    "id": "fake-driver-id",
+    "id": "ipmi_pxe",
     "type": "driver",
-    "name": "ipmi",
-    "function": "control",
-    "description": "power on/off using ipmi",
+    "name": "ipmi_pxe",
+    "description": "Uses pxe for booting and impi for power management",
     "meta-data": {
       "foo": "bar",
       "links": [{
@@ -658,7 +625,9 @@ JSON structure of a driver::
     "required_fields": [
       "ipmi_address",
       "ipmi_password",
-      "ipmi_username"
+      "ipmi_username",
+      "image_source",
+      "deploy_image_source",
     ],
     "optional_fields": [
       "ipmi_terminal_port",
@@ -742,180 +711,95 @@ JSON structure of an image::
     ]
   }
 
-ManagementConfiguration
+DriverConfiguration
 ------------------------
 
-The Management Configuration is a  sub resource (see: SubResource_) that
+The Configuration is a sub resource (see: SubResource_) that
 contains information about how to manage a particular node.
 This resource makes up part of the node resource description and can only be
 accessed from within a node URL structure.  For example:
-/nodes/1/management_configuration.  The ManagementConfiguration essentially
-defines the control and deployment driver setup.
+/nodes/1/driver_configuration.  The DriverConfiguration essentially
+defines the driver setup.
 
-An empty management configuration resource will be created upon node creation.
-Therefore only PUT and GET are defined on ManagementConfiguration resources.
+An empty driver configuration resource will be created upon node creation.
+Therefore only PUT and GET are defined on DriverConfiguration resources.
 
-Sections of the ManagementConfiguration also support GET and PUT operations.
-Such as the Control, Deployment, and Parameters sections.
-
-The Control Parameters and Deployment Parameters resources are not introspected
-by Ironic; they are passed directly to the respective drivers. Each driver
-defines a set of Required and Optional fields, which are validated when the
-resource is set to a non-empty value. Supplying partial or invalid data will
-result in an error and no data will be saved. PUT an empty resource to erase
-the existing data.  Changing the Control or Deployment section of the
-ManagementConfiguration will erase any existing Parameter section for that
-resource.
-
-Updating both the driver and driver parameters at once is allowed.
-
-For example::
-
-  PUT to /nodes/1/management_configuration/control
-  { "id": "ipmi", "parameters": { "ipmi_username": "foo", ...} }
+The Parameters resource is not introspected by Ironic; they are passed directly
+to the respective drivers. Each driver defines a set of Required and Optional
+fields, which are validated when the resource is set to a non-empty value.
+Supplying partial or invalid data will result in an error and no data will be
+saved. PUT an empty resource, such as '{}' to /nodes/1/driver_configuration
+to erase the existing data.
 
 
-Management Configuration Usage:
+driver configuration Usage:
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-=======  ==================================  ==========
+=======  ==================================  ================================
 Verb     Path                                Response
-=======  ==================================  ==========
-GET      /nodes/1/management_configuration   Retrieve a node's  management
+=======  ==================================  ================================
+GET      /nodes/1/driver_configuration       Retrieve a node's driver
                                              configuration
-PUT      /nodes/1/management_configuration   Update a node's  management
+PUT      /nodes/1/driver_configuration       Update a node's driver
                                              configuration
-=======  ==================================  ==========
+=======  ==================================  ================================
 
-Management Configuration / Control Usage:
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-=======  ==========================================   ==========
-Verb     Path                                         Response
-=======  ==========================================   ==========
-GET      /nodes/1/management_configuration/control    Retrieve a node's
-                                                      management control
-                                                      configuration
-PUT      /nodes/1/management_configuration/control    Update a node's
-                                                      management control
-                                                      configuration
-=======  ==========================================   ==========
-
-Management Configuration / Deployment Usage:
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-======  ============================================   ==========
-Verb     Path                                           Response
-======  ============================================   ==========
-GET     /nodes/1/management_configuration/deployment   Retrieve a node's
-                                                       management deployment
-                                                       configuration
-PUT     /nodes/1/management_configuration/deployment   Update a node's
-                                                       management deployment
-                                                       configuration
-======  ============================================   ==========
-
-Management Configuration / Control / Parameters Usage:
+driver configuration / Parameters Usage:
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-======  =====================================================  ==========
-Verb     Path                                                  Response
-======  =====================================================  ==========
-GET     /nodes/1/management_configuration/control/parameters   Retrieve a node's
-                                                               management control
-                                                               paramters
-PUT     /nodes/1/management_configuration/control/parameters   Update a node's
-                                                               management control
-                                                               paramters
-======  =====================================================  ==========
-
-Management Configuration / deployment / parameters Usage:
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-======  ========================================================  ==========
-Verb    Path                                                      Response
-======  ========================================================  ==========
-GET     /nodes/1/management_configuration/deployment/parameters   Retrieve a node's
-                                                                  management deployment
-                                                                  paramters
-PUT     /nodes/1/management_configuration/deployment/parameters   Update a node's
-                                                                  management deployment
-                                                                  paramters
-======  ========================================================  ==========
+======  =============================================  ==================
+Verb     Path                                          Response
+======  =============================================  ==================
+GET     /nodes/1/driver_configuration/parameters       Retrieve a node's
+                                                       driver parameters
+PUT     /nodes/1/driver_configuration/parameters       Update a node's
+                                                       driver parameters
+======  =============================================  ==================
 
 
 Fields
 ^^^^^^^
 
 type
-    The type of this resource, i.e. management_configuration, deployment,
+    The type of this resource, i.e. driver_configuration, deployment,
     control, parameters
-control
-    The control sub resource for specifying node control driver and parameters
-deployment
-    The deployment sub resource for specifying node deployment driver and
-    paramters
 driver
     Link to the driver resource for a deployment or control sub resource
 paramters
-    The parameters sub resource responsible for setting the driver paramters
-    for a control or deployment.  The required and optional parameters are
-    specified on the driver resource. see: Driver_
+    The parameters sub resource responsible for setting the driver paramters.
+    The required and optional parameters are specified on the driver resource.
+    see: Driver_
 
 Example
 ^^^^^^^^
 
-JSON structure of a management_configuration::
+JSON structure of a driver_configuration::
 
   {
-    "type": "management_configuration",
-    "control": {
-      "driver": {
-        "links": [{
-            "rel": "self",
-            "href": "http://localhost:8080/v1/drivers/ipmi"
-          }, {
-            "rel": "bookmark",
-            "href": "http://localhost:8080/drivers/ipmi"
-          }
-        ]
-      },
-      "parameters": {
-        "ipmi_username": "admin",
-        "ipmi_password": "password",
-        "links": [{
-            "rel": "self",
-            "href": "http://localhost:8080/v1.0/nodes/1/management_configuration/control/parameters"
-          }, {
-            "rel": "bookmark",
-            "href": "http://localhost:8080/nodes/1/management_configuration/control/parameters"
-          }
-        ]
-      }
+    "type": "driver_configuration",
+    "driver": {
+      "links": [{
+          "rel": "self",
+          "href": "http://localhost:8080/v1/drivers/1"
+        }, {
+          "rel": "bookmark",
+          "href": "http://localhost:8080/drivers/1"
+        }
+      ]
     },
-    "deployment": {
-      "driver": {
-        "links": [{
-            "rel": "self",
-            "href": "http://localhost:8080/v1.0/drivers/pxe"
-          }, {
-            "rel": "bookmark",
-            "href": "http://localhost:8080/drivers/pxe"
-          }
-        ]
-      },
-      "parameters": {
-        "image_source": "glance://image-uuid",
-        "deploy_image_source": "glance://deploy-image-uuid",
-        "links": [{
-            "rel": "self",
-            "href": "http://localhost:8080/version/1/nodes/1/management_configuration/control/parameters"
-          }, {
-            "rel": "bookmark",
-            "href": "http://localhost:8080/nodes/1/management_configuration/control/parameters"
-          }
-        ]
-      }
+    "parameters": {
+      "ipmi_username": "admin",
+      "ipmi_password": "password",
+      "image_source": "glance://image-uuid",
+      "deploy_image_source": "glance://deploy-image-uuid",
+      "links": [{
+          "rel": "self",
+          "href": "http://localhost:8080/v1.0/nodes/1/driver_configuration/parameters"
+        }, {
+          "rel": "bookmark",
+          "href": "http://localhost:8080/nodes/1/driver_configuration/control/parameters"
+        }
+      ]
     }
   }
 
