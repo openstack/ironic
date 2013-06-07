@@ -40,22 +40,29 @@ Manager service and the driver implementations. There are two types of drivers:
   Manager service.
 
 In addition to the two types of drivers, there are three categories of driver
-functionality: core, common, and vendor:
+functionality: core, standardized, and vendor:
 
-- `Core functionality` represents the minimal API for that driver type, eg.
-  power on/off for a ControlDriver.
-- `Common functionality` represents an extended but supported API, and any
-  driver which implements it must be consistent with all other driver
-  implementations of that functionality. For example, if a driver supports
-  enumerating PCI devices, it must return that list as well-structured JSON. In
-  this case, Ironic may validate the API input's structure, but will pass it
-  unaltered to the driver. This ensures compatibility for common features
-  across drivers.
+- `Core functionality` represents the essential functionality for Ironic within
+  OpenStack, and may be depended upon by other services. This is represented
+  internally by the driver's base class definitions, and is exposed directly in
+  the API in relation to the object. For example, a node's power state, which is
+  a core functionality of ControlDrivers, is exposed at the URI
+  "/nodes/<uuid>/state".
+- `Standardized functionality` represents functionality beyond the needs of
+  OpenStack, but which has been standardized across all drivers and becomes
+  part of Ironic's API.  If a driver implements this, it must adhere to the
+  standard. This is presented to encourage vendors to work together with the
+  Ironic project and implement common features in a consistent way, thus
+  reducing the burden on consumers of the API.  A ficticious example of this
+  might be a means to specify the Node's next-boot device. Initially, this
+  might be implemented differently by each driver, but over time it could be
+  moved from "/drivers/<name>/vendor_passthrough/" to "/node/<uuid>/nextboot".
 - `Vendor functionality` allows an excemption to the API contract when a vendor
   wishes to expose unique functionality provided by their hardware and is
-  unable to do so within the core or common APIs. In this case, Ironic will
-  neither store nor introspect the messages passed between the API and the
-  driver.
+  unable to do so within the core or standardized APIs. In this case, Ironic
+  will merely relay the message from the API service to the appropriate driver.
+  For example, if vendor "foo" wanted to expose a "bar" function, the URI might
+  look like this: "/drivers/foo/vendor_passthrough/bar".
 
 Default Drivers
 ===============
