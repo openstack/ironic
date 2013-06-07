@@ -248,9 +248,9 @@ def _power_off(ssh_obj, driver_info):
 
 def _get_nodes_mac_addresses(task, node):
     """Get all mac addresses for a node."""
-    interface_ports = task.dbapi.get_ports_by_node(node.get('id'))
-    macs = [p.address for p in interface_ports]
-    return macs
+    for r in task.resources:
+        if r.node.id == node['id']:
+            return [p.address for p in r.ports]
 
 
 class SSHPower(base.PowerInterface):
