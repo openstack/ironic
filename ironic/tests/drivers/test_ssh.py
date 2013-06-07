@@ -378,8 +378,8 @@ class SSHDriverTestCase(db_base.DbTestCase):
                 id=7,
                 address='dd:ee:ff',
                 uuid='4fc26c0b-03f2-4d2e-ae87-c02d7f33c234')]
-        self.dbapi.create_port(ports[0])
-        self.dbapi.create_port(ports[1])
+        ports[0] = self.dbapi.create_port(ports[0])
+        ports[1] = self.dbapi.create_port(ports[1])
 
         self.mox.StubOutWithMock(self.dbapi, 'get_ports_by_node')
         self.dbapi.get_ports_by_node(self.node.get('id')).\

@@ -19,19 +19,6 @@ from ironic.objects import base
 from ironic.objects import utils
 
 
-def objectify(fn):
-    """Decorator to convert database results into Node objects."""
-    def wrapper(*args, **kwargs):
-        result = fn(*args, **kwargs)
-        try:
-            return Node._from_db_object(Node(), result)
-        except TypeError:
-            # TODO(deva): handle lists of objects better
-            #             once support for those lands and is imported.
-            return [Node._from_db_object(Node(), obj) for obj in result]
-    return wrapper
-
-
 class Node(base.IronicObject):
 
     dbapi = db_api.get_instance()

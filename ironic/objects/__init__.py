@@ -11,3 +11,28 @@
 #    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 #    License for the specific language governing permissions and limitations
 #    under the License.
+
+from ironic.objects import node
+from ironic.objects import port
+
+
+def objectify(klass):
+    """Decorator to convert database results into specified objects."""
+    def the_decorator(fn):
+        def wrapper(*args, **kwargs):
+            result = fn(*args, **kwargs)
+            try:
+                return klass._from_db_object(klass(), result)
+            except TypeError:
+                # TODO(deva): handle lists of objects better
+                #             once support for those lands and is imported.
+                return [klass._from_db_object(klass(), obj) for obj in result]
+        return wrapper
+    return the_decorator
+
+Node = node.Node
+Port = port.Port
+
+__all__ = (Node,
+           Port,
+           objectify)

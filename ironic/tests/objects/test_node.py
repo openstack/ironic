@@ -17,7 +17,7 @@
 from ironic.common import context
 from ironic.db import api as db_api
 from ironic.db.sqlalchemy import models
-from ironic.objects import node
+from ironic import objects
 from ironic.tests.db import base
 from ironic.tests.db import utils
 
@@ -37,7 +37,7 @@ class TestNodeObject(base.DbTestCase):
         self.dbapi.get_node(uuid).AndReturn(self.fake_node)
         self.mox.ReplayAll()
 
-        node.Node.get_by_uuid(ctxt, uuid)
+        objects.Node.get_by_uuid(ctxt, uuid)
         self.mox.VerifyAll()
         # TODO(deva): add tests for load-on-demand info, eg. ports,
         #             once Port objects are created
@@ -52,7 +52,7 @@ class TestNodeObject(base.DbTestCase):
         self.dbapi.update_node(uuid, {'properties': "new property"})
         self.mox.ReplayAll()
 
-        n = node.Node.get_by_uuid(ctxt, uuid)
+        n = objects.Node.get_by_uuid(ctxt, uuid)
         n.properties = "new property"
         n.save()
         self.mox.VerifyAll()
@@ -68,7 +68,7 @@ class TestNodeObject(base.DbTestCase):
                 dict(self.fake_node, properties="second"))
         self.mox.ReplayAll()
 
-        n = node.Node.get_by_uuid(ctxt, uuid)
+        n = objects.Node.get_by_uuid(ctxt, uuid)
         self.assertEqual(n.properties, "first")
         n.refresh()
         self.assertEqual(n.properties, "second")
@@ -80,12 +80,12 @@ class TestNodeObject(base.DbTestCase):
             n.update(self.fake_node)
             return n
 
-        @node.objectify
+        @objects.objectify(objects.Node)
         def _convert_db_node():
             return _get_db_node()
 
         self.assertIsInstance(_get_db_node(), models.Node)
-        self.assertIsInstance(_convert_db_node(), node.Node)
+        self.assertIsInstance(_convert_db_node(), objects.Node)
 
     def test_objectify_many(self):
         def _get_db_nodes():
@@ -96,11 +96,11 @@ class TestNodeObject(base.DbTestCase):
                 nodes.append(n)
             return nodes
 
-        @node.objectify
+        @objects.objectify(objects.Node)
         def _convert_db_nodes():
             return _get_db_nodes()
 
         for n in _get_db_nodes():
             self.assertIsInstance(n, models.Node)
         for n in _convert_db_nodes():
-            self.assertIsInstance(n, node.Node)
+            self.assertIsInstance(n, objects.Node)
