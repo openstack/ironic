@@ -75,12 +75,12 @@ deployment using virtual machines), an `SSHPowerDriver`_ is also supplied.
 
 
 
-.. _API service: api/ironic.api.controllers.v1
-.. _Manager service: api/ironic.manager.manager
-.. _DB API: api/ironic.db.api
-.. _ControlDrivers: api/ironic.drivers.base#ironic.drivers.base.ControlDriver
-.. _DeployDrivers: api/ironic.drivers.base#ironic.drivers.base.DeployDriver
-.. _IPMIPowerDriver: api/ironic.drivers.ipmi#ironic.drivers.ipmi.IPMIPowerDriver
-.. _PXEDeployDriver: api/ironic.drivers.pxe#ironic.drivers.pxe.PXEDeployDriver
-.. _SSHPowerDriver: api/ironic.drivers.ssh#ironic.drivers.ssh.SSHPowerDriver
+.. _API service: /api/ironic.api.controllers.v1.html
+.. _Manager service: /api/ironic.manager.manager.html
+.. _DB API: /api/ironic.db.api.html
+.. _ControlDrivers: /api/ironic.drivers.base.html#ironic.drivers.base.ControlDriver
+.. _DeployDrivers: /api/ironic.drivers.base.html#ironic.drivers.base.DeployDriver
+.. _IPMIPowerDriver: /api/ironic.drivers.ipmi.html#ironic.drivers.ipmi.IPMIPowerDriver
+.. _PXEDeployDriver: /api/ironic.drivers.pxe.html#ironic.drivers.pxe.PXEDeployDriver
+.. _SSHPowerDriver: /api/ironic.drivers.ssh.html#ironic.drivers.ssh.SSHPowerDriver
 .. _diskimage-builder: https://github.com/stackforge/diskimage-builder
