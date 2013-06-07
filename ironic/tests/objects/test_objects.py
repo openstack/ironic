@@ -358,16 +358,15 @@ class _TestObject(object):
         obj = MyObj()
         obj.created_at = dt
         obj.updated_at = dt
-        obj.deleted_at = None
         expected = {'ironic_object.name': 'MyObj',
                     'ironic_object.namespace': 'ironic',
                     'ironic_object.version': '1.5',
                     'ironic_object.changes':
-                        ['created_at', 'deleted_at', 'updated_at'],
+                        ['created_at', 'updated_at'],
                     'ironic_object.data':
                         {'created_at': timeutils.isotime(dt),
                          'updated_at': timeutils.isotime(dt),
-                         'deleted_at': None}
+                        }
                     }
         self.assertEqual(obj.obj_to_primitive(), expected)
 
