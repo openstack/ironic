@@ -177,8 +177,6 @@ class IronicObject(object):
     fields = {
         'created_at': obj_utils.datetime_or_none,
         'updated_at': obj_utils.datetime_or_none,
-        'deleted_at': obj_utils.datetime_or_none,
-        'deleted': int,
         }
 
     def __init__(self):
