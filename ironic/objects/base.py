@@ -18,7 +18,9 @@ import collections
 
 from ironic.common import exception
 from ironic.objects import utils as obj_utils
+from ironic.openstack.common import context
 from ironic.openstack.common import log as logging
+from ironic.openstack.common.rpc import common as rpc_common
 from ironic.openstack.common.rpc import serializer as rpc_serializer
 
 
@@ -79,12 +81,13 @@ class IronicObjectMetaclass(type):
 # requested action and the result will be returned here.
 def remotable_classmethod(fn):
     """Decorator for remotable classmethods."""
-    def wrapper(cls, context, **kwargs):
+    def wrapper(cls, context, *args, **kwargs):
         if IronicObject.indirection_api:
             result = IronicObject.indirection_api.object_class_action(
-                context, cls.obj_name(), fn.__name__, cls.version, kwargs)
+                context, cls.obj_name(), fn.__name__, cls.version,
+                args, kwargs)
         else:
-            result = fn(cls, context, **kwargs)
+            result = fn(cls, context, *args, **kwargs)
             if isinstance(result, IronicObject):
                 result._context = context
         return result
@@ -98,22 +101,28 @@ def remotable_classmethod(fn):
 # "orphaned" and remotable methods cannot be called.
 def remotable(fn):
     """Decorator for remotable object methods."""
-    def wrapper(self, context=None, **kwargs):
-        if context is None:
-            context = self._context
-        if context is None:
+    def wrapper(self, *args, **kwargs):
+        ctxt = self._context
+        try:
+            if isinstance(args[0], (context.RequestContext,
+                                    rpc_common.CommonRpcContext)):
+                ctxt = args[0]
+                args = args[1:]
+        except IndexError:
+            pass
+        if ctxt is None:
             raise exception.OrphanedObjectError(method=fn.__name__,
                                                 objtype=self.obj_name())
         if IronicObject.indirection_api:
             updates, result = IronicObject.indirection_api.object_action(
-                context, self, fn.__name__, kwargs)
+                ctxt, self, fn.__name__, args, kwargs)
             for key, value in updates.iteritems():
                 if key in self.fields:
                     self[key] = self._attr_from_primitive(key, value)
             self._changed_fields = set(updates.get('obj_what_changed', []))
             return result
         else:
-            return fn(self, context, **kwargs)
+            return fn(self, ctxt, *args, **kwargs)
     return wrapper
 
 
