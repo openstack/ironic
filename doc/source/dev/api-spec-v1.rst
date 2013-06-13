@@ -294,7 +294,7 @@ JSON structure of a Version::
         }
       ]
     }
-    "nodess": {
+    "nodes": {
       "links": [{
           "rel": "self",
           "href": "http://localhost:8080/v1.0/nodes"
