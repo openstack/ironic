@@ -109,6 +109,7 @@ class Port(Base):
 
     __tablename__ = 'ports'
     id = Column(Integer, primary_key=True)
+    uuid = Column(String(36), unique=True)
     address = Column(String(18), unique=True)
     node_id = Column(Integer, ForeignKey('nodes.id'), nullable=True)
     extra = Column(JSONEncodedDict)

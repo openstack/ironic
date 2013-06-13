@@ -47,6 +47,10 @@ class DbPortTestCase(base.DbTestCase):
         res = self.dbapi.get_port(self.p['id'])
         self.assertEqual(self.p['address'], res['address'])
 
+        # test get-by-uuid
+        res = self.dbapi.get_port(self.p['uuid'])
+        self.assertEqual(self.p['id'], res['id'])
+
         # test get-by-address
         res = self.dbapi.get_port(self.p['address'])
         self.assertEqual(self.p['id'], res['id'])
