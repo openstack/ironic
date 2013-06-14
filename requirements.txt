@@ -22,6 +22,5 @@ python-keystoneclient>=0.2.0
 stevedore>=0.7
 websockify<0.4
 oslo.config>=1.1.0
-Flask==0.9
 pecan>=0.2.0
 wsme>=0.5b1
