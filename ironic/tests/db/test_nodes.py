@@ -31,22 +31,34 @@ class DbNodeTestCase(base.DbTestCase):
         super(DbNodeTestCase, self).setUp()
         self.dbapi = dbapi.get_instance()
 
+    def _create_test_node(self, **kwargs):
+        n = utils.get_test_node(**kwargs)
+        self.dbapi.create_node(n)
+        return n
+
+    def _create_many_test_nodes(self):
+        uuids = []
+        for i in xrange(1, 6):
+            n = self._create_test_node(id=i, uuid=uuidutils.generate_uuid())
+            uuids.append(n['uuid'])
+        uuids.sort()
+        return uuids
+
     def test_create_node(self):
-        n = utils.get_test_node()
-        self.dbapi.create_node(n)
+        self._create_test_node()
 
-    def test_get_node(self):
-        n = utils.get_test_node()
-        self.dbapi.create_node(n)
-
-        # test get-by-id
+    def test_get_node_by_id(self):
+        n = self._create_test_node()
         res = self.dbapi.get_node(n['id'])
         self.assertEqual(n['uuid'], res['uuid'])
 
-        # test get-by-uuid
+    def test_get_node_by_uuid(self):
+        n = self._create_test_node()
+
         res = self.dbapi.get_node(n['uuid'])
         self.assertEqual(n['id'], res['id'])
 
+    def test_get_node_that_does_not_exist(self):
         self.assertRaises(exception.NodeNotFound,
                           self.dbapi.get_node, 99)
         self.assertRaises(exception.NodeNotFound,
@@ -56,8 +68,7 @@ class DbNodeTestCase(base.DbTestCase):
                           self.dbapi.get_node, 'not-a-uuid')
 
     def test_get_node_by_instance(self):
-        n = utils.get_test_node()
-        self.dbapi.create_node(n)
+        n = self._create_test_node()
 
         res = self.dbapi.get_node_by_instance(n['instance_uuid'])
         self.assertEqual(n['uuid'], res['uuid'])
@@ -67,16 +78,14 @@ class DbNodeTestCase(base.DbTestCase):
                           '12345678-9999-0000-aaaa-123456789012')
 
     def test_destroy_node(self):
-        n = utils.get_test_node()
-        self.dbapi.create_node(n)
+        n = self._create_test_node()
 
         self.dbapi.destroy_node(n['id'])
         self.assertRaises(exception.NodeNotFound,
                           self.dbapi.destroy_node, n['id'])
 
     def test_update_node(self):
-        n = utils.get_test_node()
-        self.dbapi.create_node(n)
+        n = self._create_test_node()
 
         old_state = n['task_state']
         new_state = 'TESTSTATE'
@@ -86,12 +95,10 @@ class DbNodeTestCase(base.DbTestCase):
         self.assertEqual(new_state, res['task_state'])
 
     def test_reserve_one_node(self):
-        n = utils.get_test_node()
+        n = self._create_test_node()
         uuid = n['uuid']
-        self.dbapi.create_node(n)
 
         r1 = 'fake-reservation'
-        r2 = 'another-reservation'
 
         # reserve the node
         self.dbapi.reserve_nodes(r1, [uuid])
@@ -99,6 +106,28 @@ class DbNodeTestCase(base.DbTestCase):
         # check reservation
         res = self.dbapi.get_node(uuid)
         self.assertEqual(r1, res['reservation'])
+
+    def test_release_reservation(self):
+        n = self._create_test_node()
+        uuid = n['uuid']
+
+        r1 = 'fake-reservation'
+        self.dbapi.reserve_nodes(r1, [uuid])
+
+        # release reservation
+        self.dbapi.release_nodes(r1, [uuid])
+        res = self.dbapi.get_node(uuid)
+        self.assertEqual(None, res['reservation'])
+
+    def test_reservation_of_reserved_node_fails(self):
+        n = self._create_test_node()
+        uuid = n['uuid']
+
+        r1 = 'fake-reservation'
+        r2 = 'another-reservation'
+
+        # reserve the node
+        self.dbapi.reserve_nodes(r1, [uuid])
 
         # another host fails to reserve or release
         self.assertRaises(exception.NodeLocked,
@@ -108,10 +137,15 @@ class DbNodeTestCase(base.DbTestCase):
                           self.dbapi.release_nodes,
                           r2, [uuid])
 
-        # release reservation
+    def test_reservation_after_release(self):
+        n = self._create_test_node()
+        uuid = n['uuid']
+
+        r1 = 'fake-reservation'
+        r2 = 'another-reservation'
+
+        self.dbapi.reserve_nodes(r1, [uuid])
         self.dbapi.release_nodes(r1, [uuid])
-        res = self.dbapi.get_node(uuid)
-        self.assertEqual(None, res['reservation'])
 
         # another host succeeds
         self.dbapi.reserve_nodes(r2, [uuid])
@@ -119,20 +153,23 @@ class DbNodeTestCase(base.DbTestCase):
         self.assertEqual(r2, res['reservation'])
 
     def test_reserve_many_nodes(self):
-        uuids = []
-        for i in xrange(1, 6):
-            n = utils.get_test_node(id=i, uuid=uuidutils.generate_uuid())
-            self.dbapi.create_node(n)
-            uuids.append(n['uuid'])
+        uuids = self._create_many_test_nodes()
+        r1 = 'first-reservation'
 
-        uuids.sort()
+        self.dbapi.reserve_nodes(r1, uuids)
+
+        for uuid in uuids:
+            res = self.dbapi.get_node(uuid)
+            self.assertEqual(r1, res['reservation'])
+
+    def test_reserve_overlaping_ranges_fails(self):
+        uuids = self._create_many_test_nodes()
+
         r1 = 'first-reservation'
         r2 = 'second-reservation'
 
-        # nodes 1,2,3: r1. nodes 4,5: unreseved
         self.dbapi.reserve_nodes(r1, uuids[:3])
 
-        # overlapping ranges fail
         self.assertRaises(exception.NodeLocked,
                           self.dbapi.reserve_nodes,
                           r2, uuids)
@@ -140,14 +177,46 @@ class DbNodeTestCase(base.DbTestCase):
                           self.dbapi.reserve_nodes,
                           r2, uuids[2:])
 
-        # non-overlapping range succeeds
+    def test_reserve_non_overlaping_ranges(self):
+        uuids = self._create_many_test_nodes()
+
+        r1 = 'first-reservation'
+        r2 = 'second-reservation'
+
+        self.dbapi.reserve_nodes(r1, uuids[:3])
         self.dbapi.reserve_nodes(r2, uuids[3:])
 
-        # overlapping release fails
+        for i in range(0, len(uuids)):
+            res = self.dbapi.get_node(uuids[i])
+
+            reservation = r1 if i < 3 else r2
+            self.assertEqual(reservation, res['reservation'])
+
+    def test_release_overlaping_ranges_fails(self):
+        uuids = self._create_many_test_nodes()
+
+        r1 = 'first-reservation'
+        r2 = 'second-reservation'
+
+        self.dbapi.reserve_nodes(r1, uuids[:3])
+        self.dbapi.reserve_nodes(r2, uuids[3:])
+
         self.assertRaises(exception.NodeLocked,
                           self.dbapi.release_nodes,
                           r1, uuids)
 
-        # non-overlapping release succeeds
+    def test_release_non_ranges(self):
+        uuids = self._create_many_test_nodes()
+
+        r1 = 'first-reservation'
+        r2 = 'second-reservation'
+
+        self.dbapi.reserve_nodes(r1, uuids[:3])
+        self.dbapi.reserve_nodes(r2, uuids[3:])
+
         self.dbapi.release_nodes(r1, uuids[:3])
         self.dbapi.release_nodes(r2, uuids[3:])
+
+        for uuid in uuids:
+            res = self.dbapi.get_node(uuid)
+            self.assertEqual(None, res['reservation'])

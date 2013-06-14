@@ -26,32 +26,25 @@ from ironic.tests.db import utils
 class DbPortTestCase(base.DbTestCase):
 
     def setUp(self):
+        # This method creates a port for every test and
+        # replaces a test for creating a port.
         super(DbPortTestCase, self).setUp()
         self.dbapi = dbapi.get_instance()
-        self.n = None
-        self.p = None
 
-    def _init(self):
         self.n = utils.get_test_node()
         self.p = utils.get_test_port()
         self.dbapi.create_node(self.n)
         self.dbapi.create_port(self.p)
 
-    def test_create_port(self):
-        self._init()
-
-    def test_get_port(self):
-        self._init()
-
-        # test get-by-id
+    def test_get_port_by_id(self):
         res = self.dbapi.get_port(self.p['id'])
         self.assertEqual(self.p['address'], res['address'])
 
-        # test get-by-uuid
+    def test_get_port_by_uuid(self):
         res = self.dbapi.get_port(self.p['uuid'])
         self.assertEqual(self.p['id'], res['id'])
 
-        # test get-by-address
+    def test_get_port_by_address(self):
         res = self.dbapi.get_port(self.p['address'])
         self.assertEqual(self.p['id'], res['id'])
 
@@ -62,21 +55,32 @@ class DbPortTestCase(base.DbTestCase):
         self.assertRaises(exception.InvalidMAC,
                           self.dbapi.get_port, 'not-a-mac')
 
-    def test_get_ports_by_node(self):
-        self._init()
-
-        # test get-by-node-id
+    def test_get_ports_by_node_id(self):
         res = self.dbapi.get_ports_by_node(self.n['id'])
         self.assertEqual(self.p['address'], res[0]['address'])
 
-        # test get-by-node-uuid
+    def test_get_ports_by_node_uuid(self):
         res = self.dbapi.get_ports_by_node(self.n['uuid'])
         self.assertEqual(self.p['address'], res[0]['address'])
 
-        # same tests, but fail
+    def test_get_ports_by_node_that_does_not_exist(self):
         res = self.dbapi.get_ports_by_node(99)
         self.assertEqual(0, len(res))
 
         res = self.dbapi.get_ports_by_node(
                 '12345678-9999-0000-aaaa-123456789012')
         self.assertEqual(0, len(res))
+
+    def test_destroy_port(self):
+        self.dbapi.destroy_port(self.p['id'])
+        self.assertRaises(exception.PortNotFound,
+                          self.dbapi.destroy_port, self.p['id'])
+
+    def test_update_port(self):
+        old_address = self.p['address']
+        new_address = 'ff.ee.dd.cc.bb.aa'
+
+        self.assertNotEqual(old_address, new_address)
+
+        res = self.dbapi.update_port(self.p['id'], {'address': new_address})
+        self.assertEqual(new_address, res['address'])

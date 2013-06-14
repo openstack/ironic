@@ -202,8 +202,7 @@ class Connection(api.Connection):
             query = add_uuid_filter(query, node)
 
             print "Updating with %s." % values
-            count = query.update(values,
-                                 synchronize_session='fetch')
+            count = query.update(values, synchronize_session='fetch')
             if count != 1:
                 raise exception.NodeNotFound(node=node)
             ref = query.one()
