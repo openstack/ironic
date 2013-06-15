@@ -26,7 +26,7 @@ from ironic.common import exception
 from ironic.common import utils
 from ironic.db import api
 from ironic.db.sqlalchemy import models
-from ironic.objects import node
+from ironic import objects
 from ironic.openstack.common.db.sqlalchemy import session as db_session
 from ironic.openstack.common import log
 from ironic.openstack.common import uuidutils
@@ -84,19 +84,19 @@ class Connection(api.Connection):
     def __init__(self):
         pass
 
-    @node.objectify
+    @objects.objectify(objects.Node)
     def get_nodes(self, columns):
         pass
 
-    @node.objectify
+    @objects.objectify(objects.Node)
     def get_associated_nodes(self):
         pass
 
-    @node.objectify
+    @objects.objectify(objects.Node)
     def get_unassociated_nodes(self):
         pass
 
-    @node.objectify
+    @objects.objectify(objects.Node)
     def reserve_nodes(self, tag, nodes):
         # Ensure consistent sort order so we don't run into deadlocks.
         nodes.sort()
@@ -150,14 +150,14 @@ class Connection(api.Connection):
                         if ref['reservation'] is not None:
                             raise exception.NodeLocked(node=node)
 
-    @node.objectify
+    @objects.objectify(objects.Node)
     def create_node(self, values):
         node = models.Node()
         node.update(values)
         node.save()
         return node
 
-    @node.objectify
+    @objects.objectify(objects.Node)
     def get_node(self, node):
         query = model_query(models.Node)
         query = add_uuid_filter(query, node)
@@ -169,7 +169,7 @@ class Connection(api.Connection):
 
         return result
 
-    @node.objectify
+    @objects.objectify(objects.Node)
     def get_node_by_instance(self, instance):
         query = model_query(models.Node)
         if uuidutils.is_uuid_like(instance):
@@ -194,7 +194,7 @@ class Connection(api.Connection):
             if count != 1:
                 raise exception.NodeNotFound(node=node)
 
-    @node.objectify
+    @objects.objectify(objects.Node)
     def update_node(self, node, values):
         session = get_session()
         with session.begin():
@@ -209,6 +209,7 @@ class Connection(api.Connection):
             ref = query.one()
         return ref
 
+    @objects.objectify(objects.Port)
     def get_port(self, port):
         query = model_query(models.Port)
         query = add_port_filter(query, port)
@@ -220,9 +221,11 @@ class Connection(api.Connection):
 
         return result
 
+    @objects.objectify(objects.Port)
     def get_port_by_vif(self, vif):
         pass
 
+    @objects.objectify(objects.Port)
     def get_ports_by_node(self, node):
         session = get_session()
 
@@ -238,12 +241,14 @@ class Connection(api.Connection):
 
         return result
 
+    @objects.objectify(objects.Port)
     def create_port(self, values):
         port = models.Port()
         port.update(values)
         port.save()
         return port
 
+    @objects.objectify(objects.Port)
     def update_port(self, port, values):
         session = get_session()
         with session.begin():

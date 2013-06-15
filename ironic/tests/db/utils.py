@@ -16,7 +16,6 @@
 #    under the License.
 """Ironic test utilities."""
 
-from ironic.db.sqlalchemy import models
 from ironic.openstack.common import jsonutils as json
 
 
@@ -88,10 +87,14 @@ def get_test_node(**kw):
 
 
 def get_test_port(**kw):
-    port = models.Port()
-    port.id = kw.get('id', 987)
-    port.uuid = kw.get('uuid', '4fc26c0b-03f2-4d2e-ae87-c02d7f33c234')
-    port.node_id = kw.get('node_id', 123)
-    port.address = kw.get('address', '52:54:00:cf:2d:31')
+    port = {
+        'id': kw.get('id', 987),
+        'uuid': kw.get('uuid', '1be26c0b-03f2-4d2e-ae87-c02d7f33c781'),
+        'node_id': kw.get('node_id', 123),
+        'address': kw.get('address', '52:54:00:cf:2d:31'),
+        'extra': kw.get('extra', '{}'),
+        'created_at': kw.get('created_at'),
+        'updated_at': kw.get('updated_at'),
+    }
 
     return port
