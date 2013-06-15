@@ -67,11 +67,13 @@ def add_uuid_filter(query, value):
         raise exception.InvalidUUID(uuid=value)
 
 
-def add_mac_filter(query, value):
+def add_port_filter(query, value):
     if utils.is_int_like(value):
         return query.filter_by(id=value)
     elif utils.is_valid_mac(value):
         return query.filter_by(address=value)
+    elif uuidutils.is_uuid_like(value):
+        return add_uuid_filter(query, value)
     else:
         raise exception.InvalidMAC(mac=value)
 
@@ -209,7 +211,7 @@ class Connection(api.Connection):
 
     def get_port(self, port):
         query = model_query(models.Port)
-        query = add_mac_filter(query, port)
+        query = add_port_filter(query, port)
 
         try:
             result = query.one()
@@ -246,7 +248,7 @@ class Connection(api.Connection):
         session = get_session()
         with session.begin():
             query = model_query(models.Port, session=session)
-            query = add_mac_filter(query, port)
+            query = add_port_filter(query, port)
 
             count = query.update(values)
             if count != 1:
@@ -258,7 +260,7 @@ class Connection(api.Connection):
         session = get_session()
         with session.begin():
             query = model_query(models.Port, session=session)
-            query = add_mac_filter(query, port)
+            query = add_port_filter(query, port)
 
             count = query.delete()
             if count != 1:

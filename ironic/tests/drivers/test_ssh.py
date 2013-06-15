@@ -369,8 +369,15 @@ class SSHDriverTestCase(db_base.DbTestCase):
         class task(object):
             dbapi = self.dbapi
 
-        ports = [db_utils.get_test_port(id=6, address='aa:bb:cc'),
-                 db_utils.get_test_port(id=7, address='dd:ee:ff')]
+        ports = [
+            db_utils.get_test_port(
+                id=6,
+                address='aa:bb:cc',
+                uuid='bb43dc0b-03f2-4d2e-ae87-c02d7f33cc53'),
+            db_utils.get_test_port(
+                id=7,
+                address='dd:ee:ff',
+                uuid='4fc26c0b-03f2-4d2e-ae87-c02d7f33c234')]
         self.dbapi.create_port(ports[0])
         self.dbapi.create_port(ports[1])
 
