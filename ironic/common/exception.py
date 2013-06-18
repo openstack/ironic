@@ -249,6 +249,10 @@ class PortNotFound(NotFound):
     message = _("Port %(port)s could not be found.")
 
 
+class ChassisNotFound(NotFound):
+    message = _("Chassis %(chassis)s could not be found.")
+
+
 class PowerStateFailure(IronicException):
     message = _("Failed to set node power state to %(pstate)s.")
 

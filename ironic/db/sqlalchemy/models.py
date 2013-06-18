@@ -85,6 +85,7 @@ class Chassis(Base):
     __tablename__ = 'chassis'
     id = Column(Integer, primary_key=True)
     uuid = Column(String(36), unique=True)
+    extra = Column(JSONEncodedDict)
 
 
 class Node(Base):

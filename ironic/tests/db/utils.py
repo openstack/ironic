@@ -98,3 +98,15 @@ def get_test_port(**kw):
     }
 
     return port
+
+
+def get_test_chassis(**kw):
+    chassis = {
+        'id': kw.get('id', 42),
+        'uuid': kw.get('uuid', 'e74c40e0-d825-11e2-a28f-0800200c9a66'),
+        'extra': kw.get('extra', '{}'),
+        'created_at': kw.get('created_at'),
+        'updated_at': kw.get('updated_at'),
+    }
+
+    return chassis

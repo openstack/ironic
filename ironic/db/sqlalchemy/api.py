@@ -299,3 +299,40 @@ class Connection(api.Connection):
             count = query.delete()
             if count != 1:
                 raise exception.PortNotFound(port=port)
+
+    def get_chassis(self, chassis):
+        query = model_query(models.Chassis)
+        query = add_identity_filter(query, chassis)
+
+        try:
+            return query.one()
+        except NoResultFound:
+            raise exception.ChassisNotFound(chassis=chassis)
+
+    def create_chassis(self, values):
+        chassis = models.Chassis()
+        chassis.update(values)
+        chassis.save()
+        return chassis
+
+    def update_chassis(self, chassis, values):
+        session = get_session()
+        with session.begin():
+            query = model_query(models.Chassis, session=session)
+            query = add_identity_filter(query, chassis)
+
+            count = query.update(values)
+            if count != 1:
+                raise exception.ChassisNotFound(chassis=chassis)
+            ref = query.one()
+        return ref
+
+    def destroy_chassis(self, chassis):
+        session = get_session()
+        with session.begin():
+            query = model_query(models.Chassis, session=session)
+            query = add_identity_filter(query, chassis)
+
+            count = query.delete()
+            if count != 1:
+                raise exception.ChassisNotFound(chassis=chassis)

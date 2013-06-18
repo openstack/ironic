@@ -192,3 +192,34 @@ class Connection(object):
 
         :param port: The id or MAC of a port.
         """
+
+    @abc.abstractmethod
+    def create_chassis(self, values):
+        """Create a new chassis.
+
+        :param values: Dict of values.
+        """
+
+    @abc.abstractmethod
+    def get_chassis(self, chassis):
+        """Return a chassis representation.
+
+        :param chassis: The id or the UUID of a chassis.
+        :returns: A chassis.
+        """
+
+    @abc.abstractmethod
+    def update_chassis(self, chassis, values):
+        """Update properties of an chassis.
+
+        :param chassis: The id or the uuid of a chassis.
+        :param values: Dict of values to update.
+        :returns: A chassis.
+        """
+
+    @abc.abstractmethod
+    def destroy_chassis(self, chassis):
+        """Destroy a chassis.
+
+        :param chassis: The id or the uuid of a chassis.
+        """
