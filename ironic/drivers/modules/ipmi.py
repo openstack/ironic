@@ -18,9 +18,10 @@
 #    under the License.
 
 """
-Baremetal IPMI power manager.
+Ironic IPMI power manager.
 """
 
+import contextlib
 import os
 import stat
 import tempfile
@@ -33,6 +34,7 @@ from ironic.common import states
 from ironic.common import utils
 from ironic.drivers import base
 from ironic.manager import task_manager
+from ironic.openstack.common import excutils
 from ironic.openstack.common import jsonutils as json
 from ironic.openstack.common import log as logging
 from ironic.openstack.common import loopingcall
@@ -60,14 +62,19 @@ LOG = logging.getLogger(__name__)
 VALID_BOOT_DEVICES = ['pxe', 'disk', 'safe', 'cdrom', 'bios']
 
 
-# TODO(deva): replace this with remove_path_on_error once that is available
-#             https://review.openstack.org/#/c/31030
+@contextlib.contextmanager
 def _make_password_file(password):
-    fd, path = tempfile.mkstemp()
-    os.fchmod(fd, stat.S_IRUSR | stat.S_IWUSR)
-    with os.fdopen(fd, "w") as f:
-        f.write(password)
-    return path
+    try:
+        fd, path = tempfile.mkstemp()
+        os.fchmod(fd, stat.S_IRUSR | stat.S_IWUSR)
+        with os.fdopen(fd, "w") as f:
+            f.write(password)
+
+        yield path
+        utils.delete_if_exists(path)
+    except Exception:
+        with excutils.save_and_reraise_exception():
+            utils.delete_if_exists(path)
 
 
 def _parse_driver_info(node):
@@ -100,16 +107,13 @@ def _exec_ipmitool(driver_info, command):
             '-U',
             driver_info['username'],
             '-f']
-    try:
-        pwfile = _make_password_file(driver_info['password'])
-        args.append(pwfile)
+    with _make_password_file(driver_info['password']) as pw_file:
+        args.append(pw_file)
         args.extend(command.split(" "))
         out, err = utils.execute(*args, attempts=3)
         LOG.debug(_("ipmitool stdout: '%(out)s', stderr: '%(err)s'"),
                   locals())
         return out, err
-    finally:
-        utils.delete_if_exists(pwfile)
 
 
 def _power_on(driver_info):
