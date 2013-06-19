@@ -50,16 +50,14 @@ class IPMIPrivateMethodTestCase(base.TestCase):
         self.info = ipmi._parse_driver_info(self.node)
 
     def test__make_password_file(self):
-        fakepass = 'this is a fake password'
-        pw_file = ipmi._make_password_file(fakepass)
-        try:
+        with ipmi._make_password_file(self.info.get('password')) as pw_file:
+            del_chk_pw_file = pw_file
             self.assertTrue(os.path.isfile(pw_file))
             self.assertEqual(os.stat(pw_file)[stat.ST_MODE] & 0777, 0600)
             with open(pw_file, "r") as f:
                 password = f.read()
-            self.assertEqual(password, fakepass)
-        finally:
-            os.unlink(pw_file)
+            self.assertEqual(password, self.info.get('password'))
+        self.assertFalse(os.path.isfile(del_chk_pw_file))
 
     def test__parse_driver_info(self):
         # make sure we get back the expected things
@@ -83,21 +81,20 @@ class IPMIPrivateMethodTestCase(base.TestCase):
 
     def test__exec_ipmitool(self):
         pw_file = '/tmp/password_file'
+        file_handle = open(pw_file, "w")
 
         self.mox.StubOutWithMock(ipmi, '_make_password_file')
         self.mox.StubOutWithMock(utils, 'execute')
-        self.mox.StubOutWithMock(utils, 'delete_if_exists')
-        ipmi._make_password_file(self.info['password']).AndReturn(pw_file)
         args = [
-                'ipmitool',
-                '-I', 'lanplus',
-                '-H', self.info['address'],
-                '-U', self.info['username'],
-                '-f', pw_file,
-                'A', 'B', 'C',
-                ]
-        utils.execute(*args, attempts=3).AndReturn(('', ''))
-        utils.delete_if_exists(pw_file).AndReturn(None)
+            'ipmitool',
+            '-I', 'lanplus',
+            '-H', self.info['address'],
+            '-U', self.info['username'],
+            '-f', file_handle,
+            'A', 'B', 'C',
+            ]
+        ipmi._make_password_file(self.info['password']).AndReturn(file_handle)
+        utils.execute(*args, attempts=3).AndReturn((None, None))
         self.mox.ReplayAll()
 
         ipmi._exec_ipmitool(self.info, 'A B C')
