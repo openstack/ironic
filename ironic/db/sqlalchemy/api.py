@@ -89,6 +89,10 @@ class Connection(api.Connection):
     def get_nodes(self, columns):
         pass
 
+    def get_node_list(self):
+        query = model_query(models.Node.uuid)
+        return [i[0] for i in query.all()]
+
     @objects.objectify(objects.Node)
     def get_associated_nodes(self):
         pass

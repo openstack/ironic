@@ -67,6 +67,17 @@ class DbNodeTestCase(base.DbTestCase):
         self.assertRaises(exception.InvalidUUID,
                           self.dbapi.get_node, 'not-a-uuid')
 
+    def test_get_node_list(self):
+        uuids = []
+        for i in xrange(1, 6):
+            n = utils.get_test_node(id=i, uuid=uuidutils.generate_uuid())
+            self.dbapi.create_node(n)
+            uuids.append(unicode(n['uuid']))
+        res = self.dbapi.get_node_list()
+        uuids.sort()
+        res.sort()
+        self.assertEqual(uuids, res)
+
     def test_get_node_by_instance(self):
         n = self._create_test_node()
 
