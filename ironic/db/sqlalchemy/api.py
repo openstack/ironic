@@ -314,6 +314,7 @@ class Connection(api.Connection):
             if count != 1:
                 raise exception.PortNotFound(port=port)
 
+    @objects.objectify(objects.Chassis)
     def get_chassis(self, chassis):
         query = model_query(models.Chassis)
         query = add_identity_filter(query, chassis)
@@ -323,12 +324,14 @@ class Connection(api.Connection):
         except NoResultFound:
             raise exception.ChassisNotFound(chassis=chassis)
 
+    @objects.objectify(objects.Chassis)
     def create_chassis(self, values):
         chassis = models.Chassis()
         chassis.update(values)
         chassis.save()
         return chassis
 
+    @objects.objectify(objects.Chassis)
     def update_chassis(self, chassis, values):
         session = get_session()
         with session.begin():

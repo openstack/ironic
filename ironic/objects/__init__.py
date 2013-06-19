@@ -12,6 +12,9 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import functools
+
+from ironic.objects import chassis
 from ironic.objects import node
 from ironic.objects import port
 
@@ -19,6 +22,7 @@ from ironic.objects import port
 def objectify(klass):
     """Decorator to convert database results into specified objects."""
     def the_decorator(fn):
+        @functools.wraps(fn)
         def wrapper(*args, **kwargs):
             result = fn(*args, **kwargs)
             try:
@@ -30,9 +34,11 @@ def objectify(klass):
         return wrapper
     return the_decorator
 
+Chassis = chassis.Chassis
 Node = node.Node
 Port = port.Port
 
-__all__ = (Node,
+__all__ = (Chassis,
+           Node,
            Port,
            objectify)
