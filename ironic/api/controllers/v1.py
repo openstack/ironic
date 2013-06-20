@@ -90,6 +90,11 @@ class Node(APIBase):
 class NodesController(rest.RestController):
     """REST controller for Nodes."""
 
+    @wsme_pecan.wsexpose([unicode])
+    def get(self):
+        """Retrieve a list of nodes."""
+        return pecan.request.dbapi.get_node_list()
+
     @wsme_pecan.wsexpose(Node, unicode)
     def get_one(self, uuid):
         """Retrieve information about the given node."""

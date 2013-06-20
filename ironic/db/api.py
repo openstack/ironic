@@ -48,6 +48,10 @@ class Connection(object):
         """
 
     @abc.abstractmethod
+    def get_node_list(self):
+        """Return a list of node UUIDs."""
+
+    @abc.abstractmethod
     def get_associated_nodes(self):
         """Return a list of ids of all associated nodes."""
 
