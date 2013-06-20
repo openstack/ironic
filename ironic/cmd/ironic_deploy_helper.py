@@ -36,6 +36,7 @@ from ironic.common import exception
 from ironic.common import states
 from ironic.common import utils
 from ironic import db
+from ironic.openstack.common import excutils
 from ironic.openstack.common import log as logging
 
 
@@ -187,7 +188,12 @@ def work_on_disk(dev, root_mb, swap_mb, image_path):
         return
     dd(image_path, root_part)
     mkswap(swap_part)
-    root_uuid = block_uuid(root_part)
+
+    try:
+        root_uuid = block_uuid(root_part)
+    except exception.ProcessExecutionError:
+        with excutils.save_and_reraise_exception():
+            LOG.error("Failed to detect root device UUID.")
     return root_uuid
 
 
@@ -202,11 +208,12 @@ def deploy(address, port, iqn, lun, image_path, pxe_config_path,
     login_iscsi(address, port, iqn)
     try:
         root_uuid = work_on_disk(dev, root_mb, swap_mb, image_path)
-    except exception.ProcessExecutionError as err:
-        # Log output if there was a error
-        LOG.error("Cmd     : %s" % err.cmd)
-        LOG.error("StdOut  : %s" % err.stdout)
-        LOG.error("StdErr  : %s" % err.stderr)
+    except exception.ProcessExecutionError, err:
+        with excutils.save_and_reraise_exception():
+            # Log output if there was a error
+            LOG.error("Cmd     : %s" % err.cmd)
+            LOG.error("StdOut  : %s" % err.stdout)
+            LOG.error("StdErr  : %s" % err.stderr)
     finally:
         logout_iscsi(address, port, iqn)
     switch_pxe_config(pxe_config_path, root_uuid)
