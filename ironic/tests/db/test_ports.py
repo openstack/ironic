@@ -52,7 +52,7 @@ class DbPortTestCase(base.DbTestCase):
                           self.dbapi.get_port, 99)
         self.assertRaises(exception.PortNotFound,
                           self.dbapi.get_port, 'aa:bb:cc:dd:ee:ff')
-        self.assertRaises(exception.InvalidMAC,
+        self.assertRaises(exception.InvalidIdentity,
                           self.dbapi.get_port, 'not-a-mac')
 
     def test_get_ports_by_node_id(self):

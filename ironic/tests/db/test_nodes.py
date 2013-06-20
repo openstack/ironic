@@ -64,7 +64,7 @@ class DbNodeTestCase(base.DbTestCase):
         self.assertRaises(exception.NodeNotFound,
                           self.dbapi.get_node,
                           '12345678-9999-0000-aaaa-123456789012')
-        self.assertRaises(exception.InvalidUUID,
+        self.assertRaises(exception.InvalidIdentity,
                           self.dbapi.get_node, 'not-a-uuid')
 
     def test_get_node_by_instance(self):
