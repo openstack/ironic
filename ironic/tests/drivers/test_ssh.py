@@ -366,29 +366,23 @@ class SSHDriverTestCase(db_base.DbTestCase):
         self.sshclient = paramiko.SSHClient()
 
     def test__get_nodes_mac_addresses(self):
-        class task(object):
-            dbapi = self.dbapi
+        ports = []
+        ports.append(
+            self.dbapi.create_port(
+                db_utils.get_test_port(
+                    id=6,
+                    address='aa:bb:cc',
+                    uuid='bb43dc0b-03f2-4d2e-ae87-c02d7f33cc53')))
+        ports.append(
+            self.dbapi.create_port(
+                db_utils.get_test_port(
+                    id=7,
+                    address='dd:ee:ff',
+                    uuid='4fc26c0b-03f2-4d2e-ae87-c02d7f33c234')))
 
-        ports = [
-            db_utils.get_test_port(
-                id=6,
-                address='aa:bb:cc',
-                uuid='bb43dc0b-03f2-4d2e-ae87-c02d7f33cc53'),
-            db_utils.get_test_port(
-                id=7,
-                address='dd:ee:ff',
-                uuid='4fc26c0b-03f2-4d2e-ae87-c02d7f33c234')]
-        ports[0] = self.dbapi.create_port(ports[0])
-        ports[1] = self.dbapi.create_port(ports[1])
-
-        self.mox.StubOutWithMock(self.dbapi, 'get_ports_by_node')
-        self.dbapi.get_ports_by_node(self.node.get('id')).\
-            AndReturn(ports)
-        self.mox.ReplayAll()
-
-        node_macs = ssh._get_nodes_mac_addresses(task(), self.node)
+        with task_manager.acquire([self.node['uuid']]) as task:
+            node_macs = ssh._get_nodes_mac_addresses(task, self.node)
         self.assertEqual(node_macs, ['aa:bb:cc', 'dd:ee:ff'])
-        self.mox.VerifyAll()
 
     def test_reboot_good(self):
         info = ssh._parse_driver_info(self.node)
