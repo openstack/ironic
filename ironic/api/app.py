@@ -22,6 +22,7 @@ import pecan
 from ironic.api import acl
 from ironic.api import config
 from ironic.api import hooks
+from ironic.api import middleware
 
 auth_opts = [
     cfg.StrOpt('auth_strategy',
@@ -55,7 +56,6 @@ def setup_app(pecan_config=None, extra_hooks=None):
 
     pecan.configuration.set_config(dict(pecan_config), overwrite=True)
 
-# TODO(deva): add middleware.ParsableErrorMiddleware from Ceilometer
     app = pecan.make_app(
         pecan_config.app.root,
         static_root=pecan_config.app.static_root,
@@ -63,6 +63,7 @@ def setup_app(pecan_config=None, extra_hooks=None):
         debug=CONF.debug,
         force_canonical=getattr(pecan_config.app, 'force_canonical', True),
         hooks=app_hooks,
+        wrap_app=middleware.ParsableErrorMiddleware,
     )
 
     if pecan_config.app.enable_acl:
