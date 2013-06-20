@@ -14,6 +14,7 @@
 
 """Utility methods for objects"""
 
+import ast
 import datetime
 import netaddr
 
@@ -41,6 +42,19 @@ def str_or_none(val):
         return val
     else:
         return str(val)
+
+
+def dict_or_none(val):
+    """Attempt to dictify a value, or None."""
+    if val is None:
+        return {}
+    elif isinstance(val, str):
+        return dict(ast.literal_eval(val))
+    else:
+        try:
+            return dict(val)
+        except ValueError:
+            return {}
 
 
 def ip_or_none(version):

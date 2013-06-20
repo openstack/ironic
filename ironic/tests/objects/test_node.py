@@ -49,11 +49,11 @@ class TestNodeObject(base.DbTestCase):
         self.mox.StubOutWithMock(self.dbapi, 'update_node')
 
         self.dbapi.get_node(uuid).AndReturn(self.fake_node)
-        self.dbapi.update_node(uuid, {'properties': "new property"})
+        self.dbapi.update_node(uuid, {'properties': {"fake": "property"}})
         self.mox.ReplayAll()
 
         n = objects.Node.get_by_uuid(ctxt, uuid)
-        n.properties = "new property"
+        n.properties = {"fake": "property"}
         n.save()
         self.mox.VerifyAll()
 
@@ -63,15 +63,15 @@ class TestNodeObject(base.DbTestCase):
         self.mox.StubOutWithMock(self.dbapi, 'get_node')
 
         self.dbapi.get_node(uuid).AndReturn(
-                dict(self.fake_node, properties="first"))
+                dict(self.fake_node, properties={"fake": "first"}))
         self.dbapi.get_node(uuid).AndReturn(
-                dict(self.fake_node, properties="second"))
+                dict(self.fake_node, properties={"fake": "second"}))
         self.mox.ReplayAll()
 
         n = objects.Node.get_by_uuid(ctxt, uuid)
-        self.assertEqual(n.properties, "first")
+        self.assertEqual(n.properties, {"fake": "first"})
         n.refresh()
-        self.assertEqual(n.properties, "second")
+        self.assertEqual(n.properties, {"fake": "second"})
         self.mox.VerifyAll()
 
     def test_objectify(self):

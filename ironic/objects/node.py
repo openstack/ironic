@@ -27,19 +27,22 @@ class Node(base.IronicObject):
             'id': int,
 
             'uuid': utils.str_or_none,
+            # NOTE: chassis_id should be read-only after node is created
             'chassis_id': utils.int_or_none,
+            # NOTE: instance_uuid must be read-only when node is provisioned
             'instance_uuid': utils.str_or_none,
 
-            # NOTE(deva): should driver_info be a nested_object_or_none,
-            #             or does this bind the driver API too tightly?
+            # NOTE: driver should be read-only after node is created
             'driver': utils.str_or_none,
-            'driver_info': utils.str_or_none,
+            # NOTE: driver_info should probably be read-only when node
+            #       is provisioned
+            'driver_info': utils.dict_or_none,
 
-            'properties': utils.str_or_none,
+            'properties': utils.dict_or_none,
             'reservation': utils.str_or_none,
             'task_state': utils.str_or_none,
             'task_start': utils.datetime_or_none,
-            'extra': utils.str_or_none,
+            'extra': utils.dict_or_none,
             }
 
     @staticmethod
@@ -73,6 +76,10 @@ class Node(base.IronicObject):
 
         :param context: Security context
         """
+        # TODO(deva): enforce safe limits on what fields may be changed
+        #             depending on state. Eg., do not allow changing
+        #             instance_uuid of an already-provisioned node.
+        #             Raise exception if unsafe to change something.
         updates = {}
         changes = self.obj_what_changed()
         for field in changes:

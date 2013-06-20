@@ -23,6 +23,7 @@ from oslo.config import cfg
 from sqlalchemy.orm.exc import NoResultFound
 
 from ironic.common import exception
+from ironic.common import states
 from ironic.common import utils
 from ironic.db import api
 from ironic.db.sqlalchemy import models
@@ -166,6 +167,18 @@ class Connection(api.Connection):
 
     @objects.objectify(objects.Node)
     def create_node(self, values):
+        # ensure defaults are present for new nodes
+        if not values.get('uuid'):
+            values['uuid'] = uuidutils.generate_uuid()
+        if not values.get('task_state'):
+            values['task_state'] = states.NOSTATE
+        if not values.get('properties'):
+            values['properties'] = '{}'
+        if not values.get('extra'):
+            values['extra'] = '{}'
+        if not values.get('driver_info'):
+            values['driver_info'] = '{}'
+
         node = models.Node()
         node.update(values)
         node.save()

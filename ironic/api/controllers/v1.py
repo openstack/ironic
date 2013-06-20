@@ -18,8 +18,11 @@
 """
 Version 1 of the Ironic API
 
+NOTE: IN PROGRESS AND NOT FULLY IMPLEMENTED.
+
 Should maintain feature parity with Nova Baremetal Extension.
-Specification in ironic/doc/api/v1.rst
+
+Specification can be found at ironic/doc/api/v1.rst
 """
 
 import pecan
@@ -29,24 +32,13 @@ import wsme
 from wsme import types as wtypes
 import wsmeext.pecan as wsme_pecan
 
+from ironic.objects import node as node_obj
 from ironic.openstack.common import log
-
-# TODO(deva): The API shouldn't know what db IMPL is in use.
-#             Import ironic.db.models once that layer is written.
 
 LOG = log.getLogger(__name__)
 
 
-class Base(wtypes.Base):
-
-    def __init__(self, **kwargs):
-        self.fields = list(kwargs)
-        for k, v in kwargs.iteritems():
-            setattr(self, k, v)
-
-    @classmethod
-    def from_db_model(cls, m):
-        return cls(**m.as_dict())
+class APIBase(wtypes.Base):
 
     def as_dict(self):
         return dict((k, getattr(self, k))
@@ -55,145 +47,91 @@ class Base(wtypes.Base):
                     getattr(self, k) != wsme.Unset)
 
 
-class Interface(Base):
-    """A representation of a network interface for a baremetal node."""
+class Node(APIBase):
+    """API representation of a bare metal node.
 
-    node_id = int
-    address = wtypes.text
+    This class enforces type checking and value constraints, and converts
+    between the internal object model and the API representation of a node.
+    """
 
-    @classmethod
-    def sample(cls):
-        return cls(node_id=1,
-                   address='52:54:00:cf:2d:31',
-                   )
-
-
-class InterfacesController(rest.RestController):
-    """REST controller for Interfaces."""
-
-    @wsme_pecan.wsexpose(Interface, unicode)
-    def post(self, iface):
-        """Ceate a new interface."""
-        return Interface.sample()
-
-    @wsme_pecan.wsexpose()
-    def get_all(self):
-        """Retrieve a list of all interfaces."""
-        ifaces = [Interface.sample()]
-        return [(i.node_id, i.address) for i in ifaces]
-
-    @wsme_pecan.wsexpose(Interface, unicode)
-    def get_one(self, address):
-        """Retrieve information about the given interface."""
-        r = pecan.request.dbapi.get_iface(address)
-        return Interface.from_db_model(r)
-
-    @wsme_pecan.wsexpose()
-    def delete(self, iface_id):
-        """Delete an interface."""
-        pass
-
-    @wsme_pecan.wsexpose()
-    def put(self, iface_id):
-        """Update an interface."""
-        pass
-
-
-class Node(Base):
-    """A representation of a bare metal node."""
-
+    # NOTE: translate 'id' publicly to 'uuid' internally
     uuid = wtypes.text
-    cpu_arch = wtypes.text
-    cpu_num = int
-    memory = int
-    local_storage_max = int
-    task_state = wtypes.text
-    image_path = wtypes.text
     instance_uuid = wtypes.text
-    instance_name = wtypes.text
-    power_info = wtypes.text
-    extra = wtypes.text
 
-    @classmethod
-    def sample(cls):
-        power_info = "{'driver': 'ipmi', 'user': 'fake', " \
-                   + "'password': 'password', 'address': '1.2.3.4'}"
-        return cls(uuid='1be26c0b-03f2-4d2e-ae87-c02d7f33c123',
-                   cpu_arch='x86_64',
-                   cpu_num=4,
-                   memory=16384,
-                   local_storage_max=1000,
-                   task_state='NOSTATE',
-                   image_path='/fake/image/path',
-                   instance_uuid='8227348d-5f1d-4488-aad1-7c92b2d42504',
-                   power_info=power_info,
-                   extra='{}',
-                   )
+    # NOTE: task_* fields probably need to be reworked to match API spec
+    task_state = wtypes.text
+    task_start = wtypes.text
 
+    # NOTE: allow arbitrary dicts for driver_info and extra so that drivers
+    #       and vendors can expand on them without requiring API changes.
+    # NOTE: translate 'driver_info' internally to 'management_configuration'
+    driver = wtypes.text
+    driver_info = {wtypes.text: wtypes.text}
 
-class NodeIfaceController(rest.RestController):
-    """For GET /node/ifaces/<id>."""
+    # NOTE: translate 'extra' internally to 'meta_data' externally
+    extra = {wtypes.text: wtypes.text}
 
-    @wsme_pecan.wsexpose([Interface], unicode)
-    def get(self, node_id):
-        return [Interface.from_db_model(r)
-                for r in pecan.request.dbapi.get_ifaces_for_node(node_id)]
+    # NOTE: properties should use a class to enforce required properties
+    #       current list: arch, cpus, disk, ram, image
+    properties = {wtypes.text: wtypes.text}
 
+    # NOTE: translate 'chassis_id' to a link to the chassis resource
+    #       and accept a chassis uuid when creating a node.
+    chassis_id = int
 
-class NodePowerController(rest.RestController):
-    """Initial mock of an API for /node/<id>/power."""
+    # NOTE: also list / link to ports associated with this node
 
-    @wsme_pecan.wsexpose(unicode, unicode)
-    def get_one(self, node_id):
-        return pecan.request.rpcapi.get_node_power_state(
-                pecan.request.context,
-                node_id)
+    def __init__(self, **kwargs):
+        self.fields = node_obj.Node.fields.keys()
+        for k in self.fields:
+            setattr(self, k, kwargs.get(k))
 
 
 class NodesController(rest.RestController):
     """REST controller for Nodes."""
 
+    @wsme_pecan.wsexpose(Node, unicode)
+    def get_one(self, uuid):
+        """Retrieve information about the given node."""
+        node = node_obj.Node.get_by_uuid(pecan.request.context, uuid)
+        return node
+
     @wsme.validate(Node)
-    @wsme_pecan.wsexpose(Node, body=Node, status_code=201)
+    @wsme_pecan.wsexpose(Node, body=Node)
     def post(self, node):
         """Ceate a new node."""
         try:
-            d = node.as_dict()
-            r = pecan.request.dbapi.create_node(d)
+            new_node = pecan.request.dbapi.create_node(node.as_dict())
         except Exception as e:
             LOG.exception(e)
             raise wsme.exc.ClientSideError(_("Invalid data"))
-        return Node.from_db_model(r)
+        return new_node
 
-    @wsme_pecan.wsexpose()
-    def get_all(self):
-        """Retrieve a list of all nodes."""
-        pass
+    @wsme.validate(Node)
+    @wsme_pecan.wsexpose(Node, unicode, body=Node)
+    def put(self, uuid, delta_node):
+        """Update an existing node."""
+        node = node_obj.Node.get_by_uuid(pecan.request.context, uuid)
+        # NOTE: delta_node will be a full API Node instance, but only user-
+        #       supplied fields will be set, so we extract those by converting
+        #       the object to a dict, then scanning for non-None values, and
+        #       only applying those changes to the Node object instance.
+        items = delta_node.as_dict().items()
+        for k, v in [(k, v) for (k, v) in items if v]:
+            node[k] = v
 
-    @wsme_pecan.wsexpose(Node, unicode)
-    def get_one(self, node_id):
-        """Retrieve information about the given node."""
-        r = pecan.request.dbapi.get_node(node_id)
-        return Node.from_db_model(r)
+        # TODO(deva): catch exceptions here if node_obj refuses to save.
+        node.save()
+
+        return node
 
     @wsme_pecan.wsexpose()
     def delete(self, node_id):
         """Delete a node."""
         pecan.request.dbapi.destroy_node(node_id)
 
-    @wsme_pecan.wsexpose()
-    def put(self, node_id):
-        """Update a node."""
-        pass
-
-    ifaces = NodeIfaceController()
-    power = NodePowerController()
-
 
 class Controller(object):
     """Version 1 API controller root."""
 
-    # TODO(deva): _default and index
-
     nodes = NodesController()
-    interfaces = InterfacesController()
