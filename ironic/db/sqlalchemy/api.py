@@ -93,6 +93,15 @@ def add_port_filter(query, value):
         return add_identity_filter(query, value)
 
 
+def add_port_filter_by_node(query, value):
+        if utils.is_int_like(value):
+            return query.filter_by(node_id=value)
+        else:
+            query = query.join(models.Node,
+                               models.Port.node_id == models.Node.id)
+            return query.filter(models.Node.uuid == value)
+
+
 class Connection(api.Connection):
     """SqlAlchemy connection."""
 
@@ -221,9 +230,23 @@ class Connection(api.Connection):
             query = model_query(models.Node, session=session)
             query = add_identity_filter(query, node)
 
+            # Get node ID, if an UUID was supplied. The ID is
+            # required for deleting all ports, attached to the node.
+            if uuidutils.is_uuid_like(node):
+                try:
+                    node_id = query.one()['id']
+                except NoResultFound:
+                    raise exception.NodeNotFound(node=node)
+            else:
+                node_id = node
+
             count = query.delete()
             if count != 1:
                 raise exception.NodeNotFound(node=node)
+
+            query = model_query(models.Port, session=session)
+            query = add_port_filter_by_node(query, node_id)
+            query.delete()
 
     @objects.objectify(objects.Node)
     def update_node(self, node, values):
@@ -256,19 +279,10 @@ class Connection(api.Connection):
 
     @objects.objectify(objects.Port)
     def get_ports_by_node(self, node):
-        session = get_session()
+        query = model_query(models.Port)
+        query = add_port_filter_by_node(query, node)
 
-        if utils.is_int_like(node):
-            query = session.query(models.Port).\
-                        filter_by(node_id=node)
-        else:
-            query = session.query(models.Port).\
-                        join(models.Node,
-                             models.Port.node_id == models.Node.id).\
-                        filter(models.Node.uuid == node)
-        result = query.all()
-
-        return result
+        return query.all()
 
     @objects.objectify(objects.Port)
     def create_port(self, values):

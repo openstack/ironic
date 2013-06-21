@@ -93,7 +93,41 @@ class DbNodeTestCase(base.DbTestCase):
 
         self.dbapi.destroy_node(n['id'])
         self.assertRaises(exception.NodeNotFound,
-                          self.dbapi.destroy_node, n['id'])
+                          self.dbapi.get_node, n['id'])
+
+    def test_destroy_node_by_uuid(self):
+        n = self._create_test_node()
+
+        self.dbapi.destroy_node(n['uuid'])
+        self.assertRaises(exception.NodeNotFound,
+                          self.dbapi.get_node, n['uuid'])
+
+    def test_destroy_node_that_does_not_exist(self):
+        self.assertRaises(exception.NodeNotFound,
+                          self.dbapi.destroy_node,
+                          '12345678-9999-0000-aaaa-123456789012')
+
+    def test_ports_get_destroyed_after_destroying_a_node(self):
+        n = self._create_test_node()
+        node_id = n['id']
+
+        p = utils.get_test_port(node_id=node_id)
+        p = self.dbapi.create_port(p)
+
+        self.dbapi.destroy_node(node_id)
+
+        self.assertRaises(exception.PortNotFound, self.dbapi.get_port, p['id'])
+
+    def test_ports_get_destroyed_after_destroying_a_node_by_uuid(self):
+        n = self._create_test_node()
+        node_id = n['id']
+
+        p = utils.get_test_port(node_id=node_id)
+        p = self.dbapi.create_port(p)
+
+        self.dbapi.destroy_node(n['uuid'])
+
+        self.assertRaises(exception.PortNotFound, self.dbapi.get_port, p['id'])
 
     def test_update_node(self):
         n = self._create_test_node()
