@@ -16,17 +16,17 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-"""Tests for :class:`ironic.manager.task_manager`."""
+"""Tests for :class:`ironic.conductor.task_manager`."""
 
 from testtools import matchers
 
 from ironic.common import exception
+from ironic.conductor import task_manager
 from ironic.db import api as dbapi
-from ironic.manager import task_manager
 from ironic.openstack.common import uuidutils
+from ironic.tests.conductor import utils as mgr_utils
 from ironic.tests.db import base
 from ironic.tests.db import utils
-from ironic.tests.manager import utils as mgr_utils
 
 
 def create_fake_node(i):

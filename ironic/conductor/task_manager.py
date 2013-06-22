@@ -21,7 +21,7 @@ A context manager to peform a series of tasks on a set of resources.
 
 :class:`TaskManager` is a context manager, created on-demand to synchronize
 locking and simplify operations across a set of
-:class:`ironic.manager.resource_manager.NodeManager` instances.  Each
+:class:`ironic.conductor.resource_manager.NodeManager` instances.  Each
 NodeManager holds the data model for a node, as well as references to the
 driver singleton appropriate for that node.
 
@@ -30,13 +30,13 @@ indicated.  Multiple shared locks for the same resource may coexist with an
 exclusive lock, but only one exclusive lock will be granted across a
 deployment; attempting to allocate another will raise an exception.  An
 exclusive lock is represented in the database to coordinate between
-:class:`ironic.manager.manager` instances, even when deployed on
+:class:`ironic.conductor.manager` instances, even when deployed on
 different hosts.
 
 :class:`TaskManager` methods, as well as driver methods, may be decorated to
 determine whether their invocation requires an exclusive lock.  For example::
 
-    from ironic.manager import task_manager
+    from ironic.conductor import task_manager
 
     node_ids = [1, 2, 3]
     try:
@@ -66,8 +66,8 @@ import contextlib
 from oslo.config import cfg
 
 from ironic.common import exception
+from ironic.conductor import resource_manager
 from ironic.db import api as dbapi
-from ironic.manager import resource_manager
 
 CONF = cfg.CONF
 

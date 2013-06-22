@@ -21,19 +21,19 @@
 import mox
 
 from ironic.common import states
+from ironic.conductor import manager
 from ironic.db import api as dbapi
-from ironic.manager import manager
 from ironic.openstack.common import context
+from ironic.tests.conductor import utils as mgr_utils
 from ironic.tests.db import base
 from ironic.tests.db import utils
-from ironic.tests.manager import utils as mgr_utils
 
 
 class ManagerTestCase(base.DbTestCase):
 
     def setUp(self):
         super(ManagerTestCase, self).setUp()
-        self.service = manager.ManagerService('test-host', 'test-topic')
+        self.service = manager.ConductorManager('test-host', 'test-topic')
         self.context = context.get_admin_context()
         self.dbapi = dbapi.get_instance()
         self.driver = mgr_utils.get_mocked_node_manager()

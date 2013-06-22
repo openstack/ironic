@@ -19,9 +19,9 @@
 """
 Hold the data and drivers for a distinct node within a given context.
 
-Each :py:class:`ironic.manager.resource_manager.NodeManager` instance is a
+Each :py:class:`ironic.conductor.resource_manager.NodeManager` instance is a
 semi-singleton, keyed by the node id. It contains references to all
-:py:class:`ironic.manager.task_manager.TaskManager` which called it.  When no
+:py:class:`ironic.conductor.task_manager.TaskManager` which called it.  When no
 more TaskManagers reference a given NodeManager, it is automatically destroyed.
 
 Do not request a NodeManager directly; instead, you should use a TaskManager to

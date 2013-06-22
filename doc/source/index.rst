@@ -30,9 +30,10 @@ today, that is where you want to look.
 .. TODO
 .. - installation
 .. - configuration
+..   - DB and AMQP
+..   - API and Conductor services
 ..   - integration with other OS services
-..   - single or multiple managers
-..   - different drivers
+..   - any driver-specific configuration
 .. - hardware enrollment
 ..   - manual vs automatic
 ..   - hw plugins
@@ -70,7 +71,7 @@ Python API Quick Reference
   dev/common
   dev/db
   dev/drivers
-  dev/manager
+  dev/conductor
 
 Indices and tables
 ==================

@@ -32,8 +32,8 @@ from ironic.common import exception
 from ironic.common import paths
 from ironic.common import states
 from ironic.common import utils
+from ironic.conductor import task_manager
 from ironic.drivers import base
-from ironic.manager import task_manager
 from ironic.openstack.common import excutils
 from ironic.openstack.common import jsonutils as json
 from ironic.openstack.common import log as logging

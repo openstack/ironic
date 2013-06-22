@@ -21,7 +21,7 @@
 import pkg_resources
 from stevedore import dispatch
 
-from ironic.manager import resource_manager
+from ironic.conductor import resource_manager
 
 
 def get_mockable_extension_manager(driver, namespace):

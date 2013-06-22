@@ -19,8 +19,8 @@
 from oslo.config import cfg
 from pecan import hooks
 
+from ironic.conductor import rpcapi
 from ironic.db import api as dbapi
-from ironic.manager import rpcapi
 from ironic.openstack.common import context
 
 
@@ -50,4 +50,4 @@ class ContextHook(hooks.PecanHook):
 class RPCHook(hooks.PecanHook):
 
     def before(self, state):
-        state.request.rpcapi = rpcapi.ManagerAPI()
+        state.request.rpcapi = rpcapi.ConductorAPI()

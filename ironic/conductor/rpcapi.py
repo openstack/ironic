@@ -16,16 +16,16 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 """
-Client side of the manager RPC API.
+Client side of the conductor RPC API.
 """
 
 import ironic.openstack.common.rpc.proxy
 
-MANAGER_TOPIC = 'ironic.manager'
+MANAGER_TOPIC = 'ironic.conductor_manager'
 
 
-class ManagerAPI(ironic.openstack.common.rpc.proxy.RpcProxy):
-    """Client side of the manager RPC API.
+class ConductorAPI(ironic.openstack.common.rpc.proxy.RpcProxy):
+    """Client side of the conductor RPC API.
 
     API version history:
 
@@ -38,7 +38,7 @@ class ManagerAPI(ironic.openstack.common.rpc.proxy.RpcProxy):
         if topic is None:
             topic = MANAGER_TOPIC
 
-        super(ManagerAPI, self).__init__(
+        super(ConductorAPI, self).__init__(
                 topic=topic,
                 default_version=self.RPC_API_VERSION)
 

@@ -16,13 +16,13 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 """
-Unit Tests for :py:class:`ironic.manager.rpcapi.ManagerAPI`.
+Unit Tests for :py:class:`ironic.conductor.rpcapi.ConductorAPI`.
 """
 
 from oslo.config import cfg
 
+from ironic.conductor import rpcapi as conductor_rpcapi
 from ironic.db import api as dbapi
-from ironic.manager import rpcapi as manager_rpcapi
 from ironic.openstack.common import context
 from ironic.openstack.common import jsonutils as json
 from ironic.openstack.common import rpc
@@ -32,10 +32,10 @@ from ironic.tests.db import utils as dbutils
 CONF = cfg.CONF
 
 
-class ManagerRpcAPITestCase(base.DbTestCase):
+class RPCAPITestCase(base.DbTestCase):
 
     def setUp(self):
-        super(ManagerRpcAPITestCase, self).setUp()
+        super(RPCAPITestCase, self).setUp()
         self.context = context.get_admin_context()
         self.dbapi = dbapi.get_instance()
         self.fake_node = json.to_primitive(dbutils.get_test_node(
@@ -47,7 +47,7 @@ class ManagerRpcAPITestCase(base.DbTestCase):
 
     def _test_rpcapi(self, method, rpc_method, **kwargs):
         ctxt = context.get_admin_context()
-        rpcapi = manager_rpcapi.ManagerAPI(topic='fake-topic')
+        rpcapi = conductor_rpcapi.ConductorAPI(topic='fake-topic')
 
         expected_retval = 'hello world' if method == 'call' else None
         expected_version = kwargs.pop('version', rpcapi.RPC_API_VERSION)

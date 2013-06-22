@@ -29,7 +29,7 @@ from oslo.config import cfg
 from ironic.openstack.common import service
 
 from ironic.common import service as ironic_service
-from ironic.manager import manager
+from ironic.conductor import manager
 
 CONF = cfg.CONF
 
@@ -38,6 +38,6 @@ def main():
     # Pase config file and command line options, then start logging
     ironic_service.prepare_service(sys.argv)
 
-    mgr = manager.ManagerService(CONF.host, manager.MANAGER_TOPIC)
+    mgr = manager.ConductorManager(CONF.host, manager.MANAGER_TOPIC)
     launcher = service.launch(mgr)
     launcher.wait()

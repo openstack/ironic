@@ -22,13 +22,13 @@ from ironic.openstack.common import jsonutils as json
 
 from ironic.common import exception
 from ironic.common import states
+from ironic.conductor import task_manager
 from ironic.db import api as dbapi
 from ironic.drivers.modules import ssh
-from ironic.manager import task_manager
 from ironic.tests import base
+from ironic.tests.conductor import utils as mgr_utils
 from ironic.tests.db import base as db_base
 from ironic.tests.db import utils as db_utils
-from ironic.tests.manager import utils as mgr_utils
 
 INFO_DICT = json.loads(db_utils.ssh_info).get('ssh')
 

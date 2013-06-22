@@ -15,47 +15,47 @@
 #    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 #    License for the specific language governing permissions and limitations
 #    under the License.
-"""Handles all activity related to bare-metal deployments.
+"""Conduct all activity related to bare-metal deployments.
 
-A single instance of :py:class:`ironic.manager.manager.ManagerService` is
-created within the *ironic-manager* process, and is responsible for performing
-all actions on bare metal resources (Chassis, Nodes, and Ports). Commands are
-received via RPC calls. The manager service also performs periodic tasks, eg.
-to monitor the status of active deployments.
+A single instance of :py:class:`ironic.conductor.manager.ConductorManager` is
+created within the *ironic-conductor* process, and is responsible for
+performing all actions on bare metal resources (Chassis, Nodes, and Ports).
+Commands are received via RPC calls. The conductor service also performs
+periodic tasks, eg.  to monitor the status of active deployments.
 
 Drivers are loaded via entrypoints, by the
-:py:class:`ironic.manager.resource_manager.NodeManager` class. Each driver is
+:py:class:`ironic.conductor.resource_manager.NodeManager` class. Each driver is
 instantiated once and a ref to that singleton is included in each resource
 manager, depending on the node's configuration. In this way, a single
-ManagerService may use multiple drivers, and manage heterogeneous hardware.
+ConductorManager may use multiple drivers, and manage heterogeneous hardware.
 
-When multiple :py:class:`ManagerService` are run on different hosts, they are
+When multiple :py:class:`ConductorManager` are run on different hosts, they are
 all active and cooperatively manage all nodes in the deplyment.  Nodes are
-locked by each manager when performing actions which change the state of that
+locked by each conductor when performing actions which change the state of that
 node; these locks are represented by the
-:py:class:`ironic.manager.task_manager.TaskManager` class.
+:py:class:`ironic.conductor.task_manager.TaskManager` class.
 """
 
 from ironic.common import service
+from ironic.conductor import task_manager
 from ironic.db import api as dbapi
-from ironic.manager import task_manager
 from ironic.openstack.common import log
 
-MANAGER_TOPIC = 'ironic.manager'
+MANAGER_TOPIC = 'ironic.conductor_manager'
 
 LOG = log.getLogger(__name__)
 
 
-class ManagerService(service.PeriodicService):
-    """Ironic Manager service main class."""
+class ConductorManager(service.PeriodicService):
+    """Ironic Conductor service main class."""
 
     RPC_API_VERSION = '1.0'
 
     def __init__(self, host, topic):
-        super(ManagerService, self).__init__(host, topic)
+        super(ConductorManager, self).__init__(host, topic)
 
     def start(self):
-        super(ManagerService, self).start()
+        super(ConductorManager, self).start()
         self.dbapi = dbapi.get_instance()
 
     def initialize_service_hook(self, service):

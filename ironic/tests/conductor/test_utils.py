@@ -18,9 +18,9 @@
 
 """Tests for Ironic Manager test utils."""
 
-from ironic.manager import resource_manager
+from ironic.conductor import resource_manager
 from ironic.tests import base
-from ironic.tests.manager import utils
+from ironic.tests.conductor import utils
 
 
 class UtilsTestCase(base.TestCase):
