@@ -17,13 +17,34 @@
 #    under the License.
 
 """
-Possible baremetal node states for instances.
+Mapping of bare metal node states.
 
-Compute instance baremetal states represent the state of an instance as it
-pertains to a user or administrator. When combined with task states
-(task_states.py), a better picture can be formed regarding the instance's
-health.
+A node may have empty {} `properties` and `driver_info` in which case, it is
+said to be "initialized" but "not available", and the state is NOSTATE.
 
+When updating `properties`,  any data will be rejected if the data fails to be
+validated by the driver. Any node with non-empty `properties` is said to be
+"initialized", and the state is INIT.
+
+When the driver has received both `properties` and `driver_info`, it will check
+the power status of the node and update the `task_state` accordingly. If the
+driver fails to read the the power state from the node, it will reject the
+`driver_info` change, and the state will remain as INIT. If the power status
+check succeeds, `task_state` will change to one of POWER_ON or POWER_OFF,
+accordingly.
+
+At this point, the power state may be changed via the API, a console
+may be started, and a tenant may be associated.
+
+The `task_state` for a node which fails to transition will be set to ERROR.
+
+When `instance_uuid` is set to a non-empty / non-None value, the node is said
+to be "associated" with a tenant.
+
+An associated node can not be deleted.
+
+The `instance_uuid` field may be unset only if the node is in POWER_OFF or
+ERROR states.
 """
 
 NOSTATE = None
@@ -39,5 +60,5 @@ ERROR = 'error'
 
 POWER_ON = 'power on'
 POWER_OFF = 'power off'
-REBOOTING = 'rebooting'
+REBOOT = 'rebooting'
 SUSPEND = 'suspended'

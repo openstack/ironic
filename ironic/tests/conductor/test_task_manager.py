@@ -32,9 +32,7 @@ from ironic.tests.db import utils
 def create_fake_node(i):
     dbh = dbapi.get_instance()
     node = utils.get_test_node(id=i,
-                               uuid=uuidutils.generate_uuid(),
-                               control_driver='fake',
-                               deploy_driver='fake')
+                               uuid=uuidutils.generate_uuid())
     dbh.create_node(node)
     return node['uuid']
 

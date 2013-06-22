@@ -21,8 +21,10 @@ Unit Tests for :py:class:`ironic.conductor.rpcapi.ConductorAPI`.
 
 from oslo.config import cfg
 
+from ironic.common import states
 from ironic.conductor import rpcapi as conductor_rpcapi
 from ironic.db import api as dbapi
+from ironic import objects
 from ironic.openstack.common import context
 from ironic.openstack.common import jsonutils as json
 from ironic.openstack.common import rpc
@@ -38,9 +40,10 @@ class RPCAPITestCase(base.DbTestCase):
         super(RPCAPITestCase, self).setUp()
         self.context = context.get_admin_context()
         self.dbapi = dbapi.get_instance()
-        self.fake_node = json.to_primitive(dbutils.get_test_node(
-                                            control_driver='fake',
-                                            deploy_driver='fake'))
+        self.fake_node = json.to_primitive(dbutils.get_test_node())
+        self.fake_node_obj = objects.Node._from_db_object(
+                                                    objects.Node(),
+                                                    self.fake_node)
 
     def test_serialized_instance_has_uuid(self):
         self.assertTrue('uuid' in self.fake_node)
@@ -81,3 +84,14 @@ class RPCAPITestCase(base.DbTestCase):
         self._test_rpcapi('get_node_power_state',
                           'call',
                            node_id=123)
+
+    def test_update_node(self):
+        self._test_rpcapi('update_node',
+                          'call',
+                          node_obj=self.fake_node)
+
+    def test_start_state_change(self):
+        self._test_rpcapi('start_state_change',
+                          'cast',
+                          node_obj=self.fake_node,
+                          new_state=states.POWER_ON)

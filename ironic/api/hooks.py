@@ -65,8 +65,8 @@ class ContextHook(hooks.PecanHook):
         user_id = state.request.headers.get('X-User', user_id)
         tenant = state.request.headers.get('X-Tenant-Id')
         tenant = state.request.headers.get('X-Tenant', tenant)
-        auth_token = state.request.headers.get('X-Auth-Token')
-        creds = {'roles': state.request.headers.get('X-Roles').split(',')}
+        auth_token = state.request.headers.get('X-Auth-Token', None)
+        creds = {'roles': state.request.headers.get('X-Roles', '').split(',')}
         is_admin = policy.check('is_admin', state.request.headers, creds)
 
         state.request.context = context.RequestContext(

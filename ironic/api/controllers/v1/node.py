@@ -23,6 +23,7 @@ from wsme import types as wtypes
 import wsmeext.pecan as wsme_pecan
 
 from ironic.api.controllers.v1 import base
+from ironic.common import exception
 from ironic import objects
 from ironic.openstack.common import log
 
@@ -95,24 +96,55 @@ class NodesController(rest.RestController):
         return new_node
 
     @wsme.validate(Node)
-    @wsme_pecan.wsexpose(Node, unicode, body=Node)
-    def put(self, uuid, delta_node):
-        """Update an existing node."""
-        node = objects.Node.get_by_uuid(pecan.request.context, uuid)
-        # NOTE: delta_node will be a full API Node instance, but only user-
-        #       supplied fields will be set, so we extract those by converting
-        #       the object to a dict, then scanning for non-None values, and
-        #       only applying those changes to the Node object instance.
-        items = delta_node.as_dict().items()
-        for k, v in [(k, v) for (k, v) in items if v]:
-            node[k] = v
+    @wsme_pecan.wsexpose(Node, unicode, body=Node, status=200)
+    def patch(self, node_id, node_data):
+        """Update an existing node.
 
-        # TODO(deva): catch exceptions here if node_obj refuses to save.
-        node.save()
+        TODO(deva): add exception handling
+        """
+        # NOTE: WSME is creating an api v1 Node object with all fields
+        #       so we eliminate non-supplied fields by converting
+        #       to a dict and stripping keys with value=None
+        delta = node_data.as_terse_dict()
 
-        return node
+        # NOTE: state transitions are separate from informational changes
+        #       so don't pass a task_state to update_node.
+        new_state = delta.pop('task_state', None)
+
+        response = wsme.api.Response(Node(), status_code=200)
+        try:
+            node = objects.Node.get_by_uuid(
+                        pecan.request.context, node_id)
+            for k in delta.keys():
+                node[k] = delta[k]
+            node = pecan.request.rpcapi.update_node(
+                    pecan.request.context, node)
+            response.obj = node
+        except exception.InvalidParameterValue:
+            response.status_code = 400
+        except exception.NodeInWrongPowerState:
+            response.status_code = 409
+        except exception.IronicException as e:
+            LOG.exception(e)
+            response.status_code = 500
+
+        if new_state:
+            # NOTE: state change is async, so change the REST response
+            response.status_code = 202
+            pecan.request.rpcapi.start_state_change(pecan.request.context,
+                                                    node, new_state)
+
+        # TODO(deva): return the response object instead of raising
+        #             after wsme 0.5b3 is released
+        if response.status_code not in [200, 202]:
+            raise wsme.exc.ClientSideError(_(
+                    "Error updating node %s") % node_id)
+        return response.obj
 
     @wsme_pecan.wsexpose()
     def delete(self, node_id):
-        """Delete a node."""
+        """Delete a node.
+
+        TODO(deva): don't allow deletion of an associated node.
+        """
         pecan.request.dbapi.destroy_node(node_id)

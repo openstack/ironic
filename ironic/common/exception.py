@@ -262,6 +262,21 @@ class ExclusiveLockRequired(NotAuthorized):
                 "but the current context has a shared lock.")
 
 
+class NodeInUse(IronicException):
+    message = _("Unable to complete the requested action because node "
+                "%(node)s is currently in use by another process.")
+
+
+class NodeInWrongPowerState(IronicException):
+    message = _("Can not change instance association while node "
+            "%(node)s is in power state %(pstate)s.")
+
+
+class NodeNotConfigured(IronicException):
+    message = _("Can not change power state because node %(node)s "
+            "is not fully configured.")
+
+
 class IPMIFailure(IronicException):
     message = _("IPMI command failed: %(cmd)s.")
 

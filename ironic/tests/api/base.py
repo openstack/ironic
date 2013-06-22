@@ -24,6 +24,7 @@ import pecan
 import pecan.testing
 
 from ironic.api import acl
+from ironic.db import api as dbapi
 from ironic.tests.db import base
 
 
@@ -43,6 +44,7 @@ class FunctionalTest(base.DbTestCase):
         cfg.CONF.set_override("policy_file",
                               self.path_get('tests/policy.json'))
         self.app = self._make_app()
+        self.dbapi = dbapi.get_instance()
 
     def _make_app(self, enable_acl=False):
         # Determine where we are so we can set up paths in the config
@@ -63,6 +65,13 @@ class FunctionalTest(base.DbTestCase):
     def tearDown(self):
         super(FunctionalTest, self).tearDown()
         pecan.set_config({}, overwrite=True)
+
+    def patch_json(self, path, params, expect_errors=False, headers=None,
+                 extra_environ=None, status=None):
+        return self.post_json(path=path, params=params,
+                              expect_errors=expect_errors,
+                              headers=headers, extra_environ=extra_environ,
+                              status=status, method="patch")
 
     def put_json(self, path, params, expect_errors=False, headers=None,
                  extra_environ=None, status=None):

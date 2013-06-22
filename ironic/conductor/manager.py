@@ -36,9 +36,12 @@ node; these locks are represented by the
 :py:class:`ironic.conductor.task_manager.TaskManager` class.
 """
 
+from ironic.common import exception
 from ironic.common import service
+from ironic.common import states
 from ironic.conductor import task_manager
 from ironic.db import api as dbapi
+from ironic.objects import base as objects_base
 from ironic.openstack.common import log
 
 MANAGER_TOPIC = 'ironic.conductor_manager'
@@ -49,10 +52,12 @@ LOG = log.getLogger(__name__)
 class ConductorManager(service.PeriodicService):
     """Ironic Conductor service main class."""
 
-    RPC_API_VERSION = '1.0'
+    RPC_API_VERSION = '1.1'
 
     def __init__(self, host, topic):
-        super(ConductorManager, self).__init__(host, topic)
+        serializer = objects_base.IronicObjectSerializer()
+        super(ConductorManager, self).__init__(host, topic,
+                                               serializer=serializer)
 
     def start(self):
         super(ConductorManager, self).start()
@@ -79,4 +84,54 @@ class ConductorManager(service.PeriodicService):
             state = driver.power.get_power_state(task, node)
             return state
 
-    # TODO(deva)
+    def update_node(self, context, node_obj):
+        """Update a node with the supplied data.
+
+        This method is the main "hub" for PUT and PATCH requests in the API.
+        It ensures that the requested change is safe to perform,
+        validates the parameters with the node's driver, if necessary.
+
+        :param context: an admin context
+        :param node_obj: a changed (but not saved) node object.
+        """
+        node_id = node_obj.get('uuid')
+        LOG.debug("RPC update_node called for node %s." % node_id)
+
+        delta = node_obj.obj_what_changed()
+        if 'task_state' in delta:
+            raise exception.IronicException(_(
+                "Invalid method call: update_node can not change node state."))
+
+        with task_manager.acquire(node_id, shared=False) as task:
+            # NOTE(deva): invalid driver parameters should not be saved
+            #             don't proceed if these checks fail
+            if 'driver_info' in delta:
+                task.driver.deploy.validate(node_obj)
+                task.driver.power.validate(node_obj)
+                node_obj['task_state'] = task.driver.power.get_power_state
+
+            # TODO(deva): Determine what value will be passed by API when
+            #             instance_uuid needs to be unset, and handle it.
+            if 'instance_uuid' in delta:
+                if node_obj['task_state'] != states.POWER_OFF:
+                    raise exception.NodeInWrongPowerState(
+                            node=node_id,
+                            pstate=node_obj['task_state'])
+
+            # update any remaining parameters, then save
+            node_obj.save(context)
+
+            return node_obj
+
+    def start_state_change(self, context, node_obj, new_state):
+        """RPC method to encapsulate changes to a node's state.
+
+        Perform actions such as power on, power off, deploy, and cleanup.
+
+        TODO
+
+        :param context: an admin context
+        :param node_obj: an RPC-style node object
+        :param new_state: the desired state of the node
+        """
+        pass
