@@ -53,7 +53,7 @@ class IPMIPrivateMethodTestCase(base.TestCase):
         with ipmi._make_password_file(self.info.get('password')) as pw_file:
             del_chk_pw_file = pw_file
             self.assertTrue(os.path.isfile(pw_file))
-            self.assertEqual(os.stat(pw_file)[stat.ST_MODE] & 0777, 0600)
+            self.assertEqual(os.stat(pw_file)[stat.ST_MODE] & 0o777, 0o600)
             with open(pw_file, "r") as f:
                 password = f.read()
             self.assertEqual(password, self.info.get('password'))

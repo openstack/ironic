@@ -185,7 +185,7 @@ def trycmd(*args, **kwargs):
     try:
         out, err = execute(*args, **kwargs)
         failed = False
-    except exception.ProcessExecutionError, exn:
+    except exception.ProcessExecutionError as exn:
         out, err = '', str(exn)
         failed = True
 
@@ -490,7 +490,7 @@ def tempdir(**kwargs):
     finally:
         try:
             shutil.rmtree(tmpdir)
-        except OSError, e:
+        except OSError as e:
             LOG.error(_('Could not remove tmpdir: %s'), str(e))
 
 
