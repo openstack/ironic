@@ -48,11 +48,11 @@ class TestChassisObject(base.DbTestCase):
         self.mox.StubOutWithMock(self.dbapi, 'update_chassis')
         self.dbapi.get_chassis(uuid).AndReturn(self.fake_chassis)
 
-        self.dbapi.update_chassis(uuid, {'extra': '{"test": 123}'})
+        self.dbapi.update_chassis(uuid, {'extra': {"test": 123}})
         self.mox.ReplayAll()
 
         c = objects.Chassis.get_by_uuid(self.ctxt, uuid)
-        c.extra = '{"test": 123}'
+        c.extra = {"test": 123}
         c.save()
         self.mox.VerifyAll()
 

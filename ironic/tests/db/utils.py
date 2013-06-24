@@ -79,7 +79,7 @@ def get_test_node(**kw):
             'driver_info': kw.get('driver_info', fake_info),
             'properties': kw.get('properties', properties),
             'reservation': None,
-            'extra': kw.get('extra', '{}'),
+            'extra': kw.get('extra', {}),
             'updated_at': None,
             'created_at': None,
             }
@@ -92,7 +92,7 @@ def get_test_port(**kw):
         'uuid': kw.get('uuid', '1be26c0b-03f2-4d2e-ae87-c02d7f33c781'),
         'node_id': kw.get('node_id', 123),
         'address': kw.get('address', '52:54:00:cf:2d:31'),
-        'extra': kw.get('extra', '{}'),
+        'extra': kw.get('extra', {}),
         'created_at': kw.get('created_at'),
         'updated_at': kw.get('updated_at'),
     }
@@ -104,7 +104,7 @@ def get_test_chassis(**kw):
     chassis = {
         'id': kw.get('id', 42),
         'uuid': kw.get('uuid', 'e74c40e0-d825-11e2-a28f-0800200c9a66'),
-        'extra': kw.get('extra', '{}'),
+        'extra': kw.get('extra', {}),
         'created_at': kw.get('created_at'),
         'updated_at': kw.get('updated_at'),
     }

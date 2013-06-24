@@ -25,7 +25,7 @@ class Chassis(base.IronicObject):
     fields = {
         'id': int,
         'uuid': utils.str_or_none,
-        'extra': utils.str_or_none,
+        'extra': utils.dict_or_none,
     }
 
     @staticmethod

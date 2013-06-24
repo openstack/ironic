@@ -27,7 +27,7 @@ class Port(base.IronicObject):
         'uuid': utils.str_or_none,
         'node_id': utils.int_or_none,
         'address': utils.str_or_none,
-        'extra': utils.str_or_none,
+        'extra': utils.dict_or_none,
     }
 
     @staticmethod
