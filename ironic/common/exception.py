@@ -32,6 +32,7 @@ from ironic.common import safe_utils
 from ironic.openstack.common import excutils
 from ironic.openstack.common import log as logging
 
+
 LOG = logging.getLogger(__name__)
 
 exc_log_opts = [
@@ -303,3 +304,52 @@ class OrphanedObjectError(IronicException):
 
 class IncompatibleObjectVersion(IronicException):
     message = _('Version %(objver)s of %(objname)s is not supported')
+
+
+class GlanceConnectionFailed(IronicException):
+    message = "Connection to glance host %(host)s:%(port)s failed: %(reason)s"
+
+
+class ImageNotAuthorized(IronicException):
+    message = "Not authorized for image %(image_id)s."
+
+
+class InvalidImageRef(IronicException):
+    message = "Invalid image href %(image_href)s."
+    code = 400
+
+
+class ServiceUnavailable(IronicException):
+    message = "Connection failed"
+
+
+class Forbidden(IronicException):
+    message = "Requested OpenStack Images API is forbidden"
+
+
+class BadRequest(IronicException):
+    pass
+
+
+class HTTPException(IronicException):
+    message = "Requested version of OpenStack Images API is not available."
+
+
+class InvalidEndpoint(IronicException):
+    message = "The provided endpoint is invalid"
+
+
+class CommunicationError(IronicException):
+    message = "Unable to communicate with the server."
+
+
+class HTTPForbidden(Forbidden):
+    pass
+
+
+class Unauthorized(IronicException):
+    pass
+
+
+class HTTPNotFound(NotFound):
+    pass
