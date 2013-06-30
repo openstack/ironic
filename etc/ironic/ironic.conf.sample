@@ -79,14 +79,6 @@
 
 
 #
-# Options defined in ironic.db.sqlalchemy.models
-#
-
-# MySQL engine (string value)
-#mysql_engine=InnoDB
-
-
-#
 # Options defined in ironic.drivers.modules.ipmi
 #
 
@@ -469,6 +461,14 @@
 
 
 [database]
+
+#
+# Options defined in ironic.db.sqlalchemy.models
+#
+
+# MySQL engine (string value)
+#mysql_engine=InnoDB
+
 
 #
 # Options defined in ironic.openstack.common.db.api
