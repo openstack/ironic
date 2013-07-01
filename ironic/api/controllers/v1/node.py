@@ -15,16 +15,6 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-"""
-Version 1 of the Ironic API
-
-NOTE: IN PROGRESS AND NOT FULLY IMPLEMENTED.
-
-Should maintain feature parity with Nova Baremetal Extension.
-
-Specification can be found at ironic/doc/api/v1.rst
-"""
-
 import pecan
 from pecan import rest
 
@@ -32,22 +22,14 @@ import wsme
 from wsme import types as wtypes
 import wsmeext.pecan as wsme_pecan
 
-from ironic.objects import node as node_obj
+from ironic.api.controllers.v1 import base
+from ironic import objects
 from ironic.openstack.common import log
 
 LOG = log.getLogger(__name__)
 
 
-class APIBase(wtypes.Base):
-
-    def as_dict(self):
-        return dict((k, getattr(self, k))
-                    for k in self.fields
-                    if hasattr(self, k) and
-                    getattr(self, k) != wsme.Unset)
-
-
-class Node(APIBase):
+class Node(base.APIBase):
     """API representation of a bare metal node.
 
     This class enforces type checking and value constraints, and converts
@@ -82,7 +64,7 @@ class Node(APIBase):
     # NOTE: also list / link to ports associated with this node
 
     def __init__(self, **kwargs):
-        self.fields = node_obj.Node.fields.keys()
+        self.fields = objects.Node.fields.keys()
         for k in self.fields:
             setattr(self, k, kwargs.get(k))
 
@@ -98,7 +80,7 @@ class NodesController(rest.RestController):
     @wsme_pecan.wsexpose(Node, unicode)
     def get_one(self, uuid):
         """Retrieve information about the given node."""
-        node = node_obj.Node.get_by_uuid(pecan.request.context, uuid)
+        node = objects.Node.get_by_uuid(pecan.request.context, uuid)
         return node
 
     @wsme.validate(Node)
@@ -116,7 +98,7 @@ class NodesController(rest.RestController):
     @wsme_pecan.wsexpose(Node, unicode, body=Node)
     def put(self, uuid, delta_node):
         """Update an existing node."""
-        node = node_obj.Node.get_by_uuid(pecan.request.context, uuid)
+        node = objects.Node.get_by_uuid(pecan.request.context, uuid)
         # NOTE: delta_node will be a full API Node instance, but only user-
         #       supplied fields will be set, so we extract those by converting
         #       the object to a dict, then scanning for non-None values, and
@@ -134,9 +116,3 @@ class NodesController(rest.RestController):
     def delete(self, node_id):
         """Delete a node."""
         pecan.request.dbapi.destroy_node(node_id)
-
-
-class Controller(object):
-    """Version 1 API controller root."""
-
-    nodes = NodesController()
