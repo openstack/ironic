@@ -47,6 +47,7 @@ class Chassis(base.IronicObject):
         """Find a chassis based on uuid and return a :class:`Chassis` object.
 
         :param uuid: the uuid of a chassis.
+        :param context: Security context
         :returns: a :class:`Chassis` object.
         """
         db_chassis = cls.dbapi.get_chassis(uuid)
