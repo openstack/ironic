@@ -220,21 +220,6 @@ class TestCase(testtools.TestCase):
             return root
 
 
-class APICoverage(object):
-
-    cover_api = None
-
-    def test_api_methods(self):
-        self.assertTrue(self.cover_api is not None)
-        api_methods = [x for x in dir(self.cover_api)
-                       if not x.startswith('_')]
-        test_methods = [x[5:] for x in dir(self)
-                        if x.startswith('test_')]
-        self.assertThat(
-            test_methods,
-            testtools.matchers.ContainsAll(api_methods))
-
-
 class TimeOverride(fixtures.Fixture):
     """Fixture to start and remove time override."""
 
