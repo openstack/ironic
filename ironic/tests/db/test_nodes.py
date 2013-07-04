@@ -47,6 +47,27 @@ class DbNodeTestCase(base.DbTestCase):
     def test_create_node(self):
         self._create_test_node()
 
+    def test_get_nodes_by_chassis_id(self):
+        ch = utils.get_test_chassis()
+        ch = self.dbapi.create_chassis(ch)
+        n = self._create_test_node()
+        nodes = self.dbapi.get_nodes_by_chassis(ch['id'])
+        self.assertEqual(n['uuid'], nodes[0]['uuid'])
+
+    def test_get_nodes_by_chassis_uuid(self):
+        ch = utils.get_test_chassis()
+        ch = self.dbapi.create_chassis(ch)
+        n = self._create_test_node()
+        nodes = self.dbapi.get_nodes_by_chassis(ch['uuid'])
+        self.assertEqual(n['id'], nodes[0]['id'])
+
+    def test_get_nodes_by_chassis_that_does_not_exist(self):
+        nodes = self.dbapi.get_nodes_by_chassis(33)
+        self.assertEqual(0, len(nodes))
+
+        nodes = self.dbapi.get_nodes_by_chassis("1231231-123123-123123")
+        self.assertEqual(0, len(nodes))
+
     def test_get_node_by_id(self):
         n = self._create_test_node()
         res = self.dbapi.get_node(n['id'])
@@ -54,7 +75,6 @@ class DbNodeTestCase(base.DbTestCase):
 
     def test_get_node_by_uuid(self):
         n = self._create_test_node()
-
         res = self.dbapi.get_node(n['uuid'])
         self.assertEqual(n['id'], res['id'])
 

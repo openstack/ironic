@@ -70,7 +70,7 @@ def get_test_node(**kw):
     node = {
             'id': kw.get('id', 123),
             'uuid': kw.get('uuid', '1be26c0b-03f2-4d2e-ae87-c02d7f33c123'),
-            'chassis_id': 5,
+            'chassis_id': 42,
             'task_start': None,
             'task_state': kw.get('task_state', 'NOSTATE'),
             'instance_uuid': kw.get('instance_uuid',

@@ -94,12 +94,21 @@ def add_port_filter(query, value):
 
 
 def add_port_filter_by_node(query, value):
-        if utils.is_int_like(value):
-            return query.filter_by(node_id=value)
-        else:
-            query = query.join(models.Node,
-                               models.Port.node_id == models.Node.id)
-            return query.filter(models.Node.uuid == value)
+    if utils.is_int_like(value):
+        return query.filter_by(node_id=value)
+    else:
+        query = query.join(models.Node,
+                models.Port.node_id == models.Node.id)
+        return query.filter(models.Node.uuid == value)
+
+
+def add_node_filter_by_chassis(query, value):
+    if utils.is_int_like(value):
+        return query.filter_by(chassis_id=value)
+    else:
+        query = query.join(models.Chassis,
+                models.Node.chassis_id == models.Chassis.id)
+        return query.filter(models.Chassis.uuid == value)
 
 
 class Connection(api.Connection):
@@ -115,6 +124,13 @@ class Connection(api.Connection):
     def get_node_list(self):
         query = model_query(models.Node.uuid)
         return [i[0] for i in query.all()]
+
+    @objects.objectify(objects.Node)
+    def get_nodes_by_chassis(self, chassis):
+        query = model_query(models.Node)
+        query = add_node_filter_by_chassis(query, chassis)
+
+        return query.all()
 
     @objects.objectify(objects.Node)
     def get_associated_nodes(self):
@@ -323,6 +339,10 @@ class Connection(api.Connection):
             return query.one()
         except NoResultFound:
             raise exception.ChassisNotFound(chassis=chassis)
+
+    def get_chassis_list(self):
+        query = model_query(models.Chassis.uuid)
+        return [i[0] for i in query.all()]
 
     @objects.objectify(objects.Chassis)
     def create_chassis(self, values):

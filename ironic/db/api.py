@@ -121,6 +121,14 @@ class Connection(object):
         """
 
     @abc.abstractmethod
+    def get_nodes_by_chassis(self, chassis):
+        """List all the nodes for a given chassis.
+
+        :param chassis: The id or uuid of a chassis.
+        :returns: A list of nodes.
+        """
+
+    @abc.abstractmethod
     def destroy_node(self, node):
         """Destroy a node and all associated interfaces.
 
@@ -207,6 +215,10 @@ class Connection(object):
         :param chassis: The id or the UUID of a chassis.
         :returns: A chassis.
         """
+
+    @abc.abstractmethod
+    def get_chassis_list(self):
+        """Return a list of chassis UUIDs."""
 
     @abc.abstractmethod
     def update_chassis(self, chassis, values):
