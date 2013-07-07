@@ -171,6 +171,13 @@ class Connection(object):
         """
 
     @abc.abstractmethod
+    def get_port_list(self):
+        """Return a lists of port
+
+        :return: Port list.
+        """
+
+    @abc.abstractmethod
     def get_ports_by_node(self, node):
         """List all the ports for a given node.
 

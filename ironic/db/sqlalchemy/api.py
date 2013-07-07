@@ -293,6 +293,10 @@ class Connection(api.Connection):
     def get_port_by_vif(self, vif):
         pass
 
+    def get_port_list(self):
+        query = model_query(models.Port.uuid)
+        return [i[0] for i in query.all()]
+
     @objects.objectify(objects.Port)
     def get_ports_by_node(self, node):
         query = model_query(models.Port)
@@ -302,6 +306,10 @@ class Connection(api.Connection):
 
     @objects.objectify(objects.Port)
     def create_port(self, values):
+        if not values.get('uuid'):
+            values['uuid'] = uuidutils.generate_uuid()
+        if not values.get('extra'):
+            values['extra'] = '{}'
         port = models.Port()
         port.update(values)
         port.save()

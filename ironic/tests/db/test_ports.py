@@ -19,6 +19,7 @@
 
 from ironic.common import exception
 from ironic.db import api as dbapi
+from ironic.openstack.common import uuidutils
 from ironic.tests.db import base
 from ironic.tests.db import utils
 
@@ -33,18 +34,31 @@ class DbPortTestCase(base.DbTestCase):
 
         self.n = utils.get_test_node()
         self.p = utils.get_test_port()
-        self.dbapi.create_node(self.n)
-        self.dbapi.create_port(self.p)
 
     def test_get_port_by_id(self):
+        self.dbapi.create_port(self.p)
         res = self.dbapi.get_port(self.p['id'])
         self.assertEqual(self.p['address'], res['address'])
 
     def test_get_port_by_uuid(self):
+        self.dbapi.create_port(self.p)
         res = self.dbapi.get_port(self.p['uuid'])
         self.assertEqual(self.p['id'], res['id'])
 
+    def test_get_port_list(self):
+        uuids = []
+        for i in xrange(1, 6):
+            n = utils.get_test_port(id=i, uuid=uuidutils.generate_uuid())
+            self.dbapi.create_port(n)
+            uuids.append(unicode(n['uuid']))
+        res = self.dbapi.get_port_list()
+        uuids.sort()
+        res.sort()
+        self.assertEqual(uuids, res)
+
     def test_get_port_by_address(self):
+        self.dbapi.create_port(self.p)
+
         res = self.dbapi.get_port(self.p['address'])
         self.assertEqual(self.p['id'], res['id'])
 
@@ -56,14 +70,20 @@ class DbPortTestCase(base.DbTestCase):
                           self.dbapi.get_port, 'not-a-mac')
 
     def test_get_ports_by_node_id(self):
+        self.dbapi.create_node(self.n)
+        self.dbapi.create_port(self.p)
         res = self.dbapi.get_ports_by_node(self.n['id'])
         self.assertEqual(self.p['address'], res[0]['address'])
 
     def test_get_ports_by_node_uuid(self):
+        self.dbapi.create_node(self.n)
+        self.dbapi.create_port(self.p)
         res = self.dbapi.get_ports_by_node(self.n['uuid'])
         self.assertEqual(self.p['address'], res[0]['address'])
 
     def test_get_ports_by_node_that_does_not_exist(self):
+        self.dbapi.create_node(self.n)
+        self.dbapi.create_port(self.p)
         res = self.dbapi.get_ports_by_node(99)
         self.assertEqual(0, len(res))
 
@@ -72,11 +92,13 @@ class DbPortTestCase(base.DbTestCase):
         self.assertEqual(0, len(res))
 
     def test_destroy_port(self):
+        self.dbapi.create_port(self.p)
         self.dbapi.destroy_port(self.p['id'])
         self.assertRaises(exception.PortNotFound,
                           self.dbapi.destroy_port, self.p['id'])
 
     def test_update_port(self):
+        self.dbapi.create_port(self.p)
         old_address = self.p['address']
         new_address = 'ff.ee.dd.cc.bb.aa'
 

@@ -1,0 +1,95 @@
+# vim: tabstop=4 shiftwidth=4 softtabstop=4
+
+# Copyright 2013 UnitedStack Inc.
+# All Rights Reserved.
+#
+#    Licensed under the Apache License, Version 2.0 (the "License"); you may
+#    not use this file except in compliance with the License. You may obtain
+#    a copy of the License at
+#
+#         http://www.apache.org/licenses/LICENSE-2.0
+#
+#    Unless required by applicable law or agreed to in writing, software
+#    distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+#    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+#    License for the specific language governing permissions and limitations
+#    under the License.
+
+import pecan
+from pecan import rest
+
+import wsme
+from wsme import types as wtypes
+import wsmeext.pecan as wsme_pecan
+
+from ironic.api.controllers.v1 import base
+from ironic import objects
+from ironic.openstack.common import log
+
+LOG = log.getLogger(__name__)
+
+
+class Port(base.APIBase):
+    """API representation of a port.
+
+    This class enforces type checking and value constraints, and converts
+    between the internal object model and the API representation of a port.
+    """
+
+    # NOTE: translate 'id' publicly to 'uuid' internally
+    uuid = wtypes.text
+    address = wtypes.text
+
+    # NOTE: translate 'extra' internally to 'meta_data' externally
+    extra = {wtypes.text: wtypes.text}
+
+    node_id = int
+
+    def __init__(self, **kwargs):
+        self.fields = objects.Port.fields.keys()
+        for k in self.fields:
+            setattr(self, k, kwargs.get(k))
+
+
+class PortsController(rest.RestController):
+    """REST controller for Ports."""
+
+    @wsme_pecan.wsexpose([unicode])
+    def get_all(self):
+        """Retrieve a list of ports."""
+        return pecan.request.dbapi.get_port_list()
+
+    @wsme_pecan.wsexpose(Port, unicode)
+    def get_one(self, uuid):
+        """Retrieve information about the given port."""
+        port = objects.Port.get_by_uuid(pecan.request.context, uuid)
+        return port
+
+    @wsme.validate(Port)
+    @wsme_pecan.wsexpose(Port, body=Port)
+    def post(self, port):
+        """Ceate a new port."""
+        try:
+            new_port = pecan.request.dbapi.create_port(port.as_dict())
+        except Exception as e:
+            LOG.exception(e)
+            raise wsme.exc.ClientSideError(_("Invalid data"))
+        return new_port
+
+    @wsme.validate(Port)
+    @wsme_pecan.wsexpose(Port, unicode, body=Port)
+    def patch(self, uuid, port_data):
+        """Update an existing port."""
+        # TODO(wentian): add rpc handle,
+        #                  eg. if update fails because node is already locked
+        port = objects.Port.get_by_uuid(pecan.request.context, uuid)
+        nn_delta_p = port_data.as_terse_dict()
+        for k in nn_delta_p:
+            port[k] = nn_delta_p[k]
+        port.save()
+        return port
+
+    @wsme_pecan.wsexpose(None, unicode, status_code=204)
+    def delete(self, port_id):
+        """Delete a port."""
+        pecan.request.dbapi.destroy_port(port_id)
