@@ -59,19 +59,12 @@ class NodeManager(object):
         self.node = db.get_node(id)
         self.ports = db.get_ports_by_node(id)
 
-        def _get_instance(ext, *args, **kwds):
-            return ext.obj
-
-        # NOTE(deva): Driver loading here may get refactored, depend on:
-        #             https://github.com/dreamhost/stevedore/issues/15
+        driver_name = self.node.get('driver')
         try:
-            ref = NodeManager._driver_factory.map(
-                    [self.node.get('driver')], _get_instance)
-            self.driver = ref[0]
+            self.driver = NodeManager._driver_factory[driver_name].obj
         except KeyError:
             raise exception.IronicException(_(
-                "Failed to load driver %s.") %
-                        self.node.get('driver'))
+                "Failed to load driver %s.") % driver_name)
 
     @classmethod
     @lockutils.synchronized(RESOURCE_MANAGER_SEMAPHORE, 'ironic-')
