@@ -86,6 +86,7 @@ class Chassis(Base):
     id = Column(Integer, primary_key=True)
     uuid = Column(String(36), unique=True)
     extra = Column(JSONEncodedDict)
+    description = Column(String(255), nullable=True)
 
 
 class Node(Base):

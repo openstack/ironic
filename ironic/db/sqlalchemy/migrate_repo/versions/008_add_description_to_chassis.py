@@ -1,6 +1,5 @@
 # vim: tabstop=4 shiftwidth=4 softtabstop=4
-
-# All Rights Reserved.
+# -*- encoding: utf-8 -*-
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
 #    not use this file except in compliance with the License. You may obtain
@@ -14,14 +13,17 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-from ironic.api.controllers.v1 import chassis
-from ironic.api.controllers.v1 import node
-from ironic.api.controllers.v1 import port
+from sqlalchemy import Table, Column, MetaData, String
 
 
-class Controller(object):
-    """Version 1 API controller root."""
+def upgrade(migrate_engine):
+    meta = MetaData()
+    meta.bind = migrate_engine
 
-    nodes = node.NodesController()
-    ports = port.PortsController()
-    chassis = chassis.ChassisController()
+    chassis = Table('chassis', meta, autoload=True)
+
+    chassis.create_column(Column('description', String(255), nullable=True))
+
+
+def downgrade(migrate_engine):
+    raise NotImplementedError('Downgrade from version 008 is unsupported.')

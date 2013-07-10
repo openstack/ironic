@@ -354,6 +354,10 @@ class Connection(api.Connection):
 
     @objects.objectify(objects.Chassis)
     def create_chassis(self, values):
+        if not values.get('uuid'):
+            values['uuid'] = uuidutils.generate_uuid()
+        if not values.get('extra'):
+            values['extra'] = '{}'
         chassis = models.Chassis()
         chassis.update(values)
         chassis.save()
