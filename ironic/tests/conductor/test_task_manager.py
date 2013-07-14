@@ -159,3 +159,20 @@ class ExclusiveLockDecoratorTestCase(base.DbTestCase):
         for uuid in self.uuids:
             res = self.dbapi.get_node(uuid)
             self.assertEqual('test-state', res.task_state)
+
+    def test_one_node_per_task_properties(self):
+        with task_manager.acquire(self.uuids) as task:
+            self.assertEqual(task.node, task.resources[0].node)
+            self.assertEqual(task.driver, task.resources[0].driver)
+
+    def test_one_node_per_task_properties_fail(self):
+        self.uuids.append(create_fake_node(456))
+        with task_manager.acquire(self.uuids) as task:
+            def get_node():
+                return task.node
+
+            def get_driver():
+                return task.driver
+
+            self.assertRaises(AttributeError, get_node)
+            self.assertRaises(AttributeError, get_driver)

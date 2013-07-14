@@ -34,25 +34,9 @@ exclusive lock is represented in the database to coordinate between
 different hosts.
 
 :class:`TaskManager` methods, as well as driver methods, may be decorated to
-determine whether their invocation requires an exclusive lock.  For example::
+determine whether their invocation requires an exclusive lock.
 
-    from ironic.conductor import task_manager
-
-    node_ids = [1, 2, 3]
-    try:
-        # Get an exclusive lock so we can manage power state.
-        # This is the default behaviour of acquire_nodes.
-        with task_manager.acquire(node_ids) as task:
-            task.power_on()
-            states = task.get_power_state()
-    except exception.NodeLocked:
-        LOG.info(_("Unable to power nodes on."))
-        # Get a shared lock, just to check the power state.
-        with task_manager.acquire(node_ids, shared=True) as task:
-            states = nodes.get_power_state()
-
-In case :class:`TaskManager` does not provide a method wrapping a particular
-driver function, you can access the drivers directly in this way::
+For now, you can access the drivers directly in this way::
 
     with task_manager.acquire(node_ids) as task:
         states = []
@@ -60,6 +44,28 @@ driver function, you can access the drivers directly in this way::
                                         for r in task.resources]:
             # the driver is loaded based on that node's configuration.
             states.append(driver.power.get_power_state(task, node)
+
+If you have a task with just a single node, the `node` property provides
+a shorthand to access it. For example::
+
+    with task_manager.acquire(node_id) as task:
+        driver = task.node.driver
+        driver.power.power_on(task.node)
+
+Eventually, driver functionality may be wrapped by tasks to facilitate
+multi-node tasks more easily. Once implemented, it might look like this::
+
+    node_ids = [1, 2, 3]
+    try:
+        with task_manager.acquire(node_ids) as task:
+            task.power_on()
+            states = task.get_power_state()
+    except exception.NodeLocked:
+        LOG.info(_("Unable to power on nodes %s.") % node_ids)
+        # Get a shared lock, just to check the power state.
+        with task_manager.acquire(node_ids, shared=True) as task:
+            states = task.get_power_state()
+
 """
 
 import contextlib
@@ -106,6 +112,10 @@ def acquire(node_ids, shared=False):
 
     t = TaskManager(shared)
 
+    # instead of generating an exception, DTRT and convert to a list
+    if not isinstance(node_ids, list):
+        node_ids = [node_ids]
+
     try:
         if not shared:
             t.dbapi.reserve_nodes(CONF.host, node_ids)
@@ -126,3 +136,21 @@ class TaskManager(object):
         self.shared = shared
         self.resources = []
         self.dbapi = dbapi.get_instance()
+
+    @property
+    def node(self):
+        """Special accessor for single-node tasks."""
+        if len(self.resources) == 1:
+            return self.resources[0].node
+        else:
+            raise AttributeError(_("Multi-node TaskManager "
+                                   "has no attribute 'node'"))
+
+    @property
+    def driver(self):
+        """Special accessor for single-node tasks."""
+        if len(self.resources) == 1:
+            return self.resources[0].driver
+        else:
+            raise AttributeError(_("Multi-node TaskManager "
+                                   "has no attribute 'driver'"))
