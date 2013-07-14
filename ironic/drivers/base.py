@@ -84,7 +84,7 @@ class DeployInterface(object):
         deploy images to the node.
 
         :param node: a single Node to validate.
-        :returns: True or False, depending on capabilities.
+        :raises: InvalidParameterValue
         """
 
     @abc.abstractmethod
@@ -124,7 +124,7 @@ class PowerInterface(object):
         manage the power state of the node.
 
         :param node: a single Node to validate.
-        :returns: True or False, depending on capabilities.
+        :raises: InvalidParameterValue
         """
 
     @abc.abstractmethod
@@ -163,7 +163,7 @@ class ConsoleInterface(object):
         provide console access to the Node.
 
         :param node: a single Node to validate.
-        :returns: True or False, depending on capabilities.
+        :raises: InvalidParameterValue
         """
 
     @abc.abstractmethod
@@ -188,7 +188,11 @@ class RescueInterface(object):
 
     @abc.abstractmethod
     def validate(self, node):
-        """Validate the rescue info stored in the node' properties."""
+        """Validate the rescue info stored in the node' properties.
+
+        :param node: a single Node to validate.
+        :raises: InvalidParameterValue
+        """
 
     @abc.abstractmethod
     def rescue(self, task, node):
@@ -216,7 +220,11 @@ class VendorInterface(object):
 
     @abc.abstractmethod
     def validate(self, node):
-        """Validate vendor-specific info stored in the node' properties."""
+        """Validate vendor-specific info stored in the node' properties.
+
+        :param node: a single Node to validate.
+        :raises: InvalidParameterValue
+        """
 
     @abc.abstractmethod
     def vendor_passthru(self, task, node, *args, **kwargs):
