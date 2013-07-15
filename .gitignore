@@ -30,3 +30,4 @@ develop-eggs
 cover
 AUTHORS
 ChangeLog
+*.sqlite
