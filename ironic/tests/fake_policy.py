@@ -19,7 +19,7 @@ policy_data = """
 {
     "admin_api": "role:admin",
     "admin_or_owner": "is_admin:True or project_id:%(project_id)s",
-    "context_is_admin": "role:admin or role:administrator",
+    "is_admin": "role:admin or role:administrator",
     "default": "rule:admin_or_owner"
 }
 """

@@ -20,5 +20,5 @@ from ironic.tests.api import base
 
 class TestListNodes(base.FunctionalTest):
     def test_empty(self):
-        data = self.get_json('/nodes')
+        data = self.get_json('/nodes', headers={'X-Roles': 'admin'})
         self.assertEqual([], data)

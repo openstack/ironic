@@ -31,6 +31,8 @@ OPT_GROUP_NAME = 'keystone_authtoken'
 
 def register_opts(conf):
     """Register keystoneclient middleware options
+
+    :param conf: Ironic settings.
     """
     conf.register_opts(auth_token.opts,
                        group=OPT_GROUP_NAME)
@@ -41,16 +43,23 @@ register_opts(cfg.CONF)
 
 
 def install(app, conf):
-    """Install ACL check on application."""
-    return auth_token.AuthProtocol(app,
-                                   conf=dict(conf.get(OPT_GROUP_NAME)))
+    """Install ACL check on application.
+
+    :param app: A WSGI applicatin.
+    :param conf: Settings. Must include OPT_GROUP_NAME section.
+    :return: The same WSGI application with ACL installed.
+    """
+    keystone_config = dict(conf.get(OPT_GROUP_NAME))
+    return auth_token.AuthProtocol(app, conf=keystone_config)
 
 
 class AdminAuthHook(hooks.PecanHook):
-    """Verify that the user has admin rights
-    """
+    """Verify that the user has admin rights.
 
+    Checks whether the request context is an admin context and
+    rejects the request otherwise.
+
+    """
     def before(self, state):
-        headers = state.request.headers
-        if not policy.check_is_admin(headers.get('X-Roles', "").split(",")):
-            raise exc.HTTPUnauthorized()
+        if not policy.check_is_admin(state.request.context):
+            raise exc.HTTPForbidden()

@@ -83,7 +83,7 @@ def enforce(context, action, target, do_raise=True):
        :param do_raise: if True (the default), raises PolicyNotAuthorized;
            if False, returns False
 
-       :raises nova.exception.PolicyNotAuthorized: if verification fails
+       :raises ironic.exception.PolicyNotAuthorized: if verification fails
            and do_raise is True.
 
        :return: returns a non-False value (not necessarily "True") if
@@ -114,7 +114,7 @@ def check_is_admin(context):
     return policy.check('context_is_admin', target, credentials)
 
 
-@policy.register('is_admin')
+@policy.register('context_is_admin')
 class IsAdminCheck(policy.Check):
     """An explicit check for is_admin."""
 

@@ -16,7 +16,7 @@
 
 # Server Specific Configurations
 server = {
-    'port': '6382',
+    'port': '6385',
     'host': '0.0.0.0'
 }
 
@@ -27,12 +27,5 @@ app = {
     'static_root': '%(confdir)s/public',
     'template_path': '%(confdir)s/ironic/api/templates',
     'debug': False,
-    'enable_acl': False,
+    'enable_acl': True,
 }
-
-# Custom Configurations must be in Python dictionary format::
-#
-# foo = {'bar':'baz'}
-#
-# All configurations are accessible at::
-# pecan.conf

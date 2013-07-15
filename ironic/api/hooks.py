@@ -22,6 +22,7 @@ from pecan import hooks
 from ironic.conductor import rpcapi
 from ironic.db import api as dbapi
 from ironic.openstack.common import context
+from ironic.openstack.common import policy
 
 
 class ConfigHook(hooks.PecanHook):
@@ -40,11 +41,40 @@ class DBHook(hooks.PecanHook):
 
 
 class ContextHook(hooks.PecanHook):
+    """Configures a request context and attaches it to the request.
 
+    The following HTTP request headers are used:
+
+    X-User-Id or X-User:
+        Used for context.user_id.
+
+    X-Tenant-Id or X-Tenant:
+        Used for context.tenant.
+
+    X-Auth-Token:
+        Used for context.auth_token.
+
+    X-Roles:
+        Used for setting context.is_admin flag to either True or False.
+        The flag is set to True, if X-Roles contains either an administrator
+        or admin substring. Otherwise it is set to False.
+
+    """
     def before(self, state):
-        # TODO(deva): Making all requests have admin context for early
-        #             development. This needs to be fixed later!
-        state.request.context = context.get_admin_context()
+        user_id = state.request.headers.get('X-User-Id')
+        user_id = state.request.headers.get('X-User', user_id)
+        tenant = state.request.headers.get('X-Tenant-Id')
+        tenant = state.request.headers.get('X-Tenant', tenant)
+        auth_token = state.request.headers.get('X-Auth-Token')
+        creds = {'roles': state.request.headers.get('X-Roles').split(',')}
+        is_admin = policy.check('is_admin', state.request.headers, creds)
+
+        state.request.context = context.RequestContext(
+            auth_token=auth_token,
+            user=user_id,
+            tenant=tenant,
+            request_id=context.generate_request_id(),
+            is_admin=is_admin)
 
 
 class RPCHook(hooks.PecanHook):
