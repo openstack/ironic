@@ -191,12 +191,12 @@ def _power_status(driver_info):
 class IPMIPower(base.PowerInterface):
 
     def validate(self, node):
-        """Check that node['driver_info'] contains IPMI credentials."""
-        try:
-            _parse_driver_info(node)
-        except exception.InvalidParameterValue:
-            return False
-        return True
+        """Check that node['driver_info'] contains IPMI credentials.
+
+        :param node: Single node object.
+        :raises: InvalidParameterValue
+        """
+        _parse_driver_info(node)
 
     def get_power_state(self, task, node):
         """Get the current power state."""

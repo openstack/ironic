@@ -267,14 +267,9 @@ class SSHPower(base.PowerInterface):
         """Check that node['driver_info'] contains the requisite fields.
 
         :param node: Single node object.
-
-        :returns: True / False.
+        :raises: InvalidParameterValue
         """
-        try:
-            _parse_driver_info(node)
-        except exception.InvalidParameterValue:
-            return False
-        return True
+        _parse_driver_info(node)
 
     def get_power_state(self, task, node):
         """Get the current power state.
