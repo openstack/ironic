@@ -15,9 +15,11 @@
 #    under the License.
 
 from ironic.api.controllers.v1 import node
+from ironic.api.controllers.v1 import port
 
 
 class Controller(object):
     """Version 1 API controller root."""
 
     nodes = node.NodesController()
+    ports = port.PortsController()
