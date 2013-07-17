@@ -37,10 +37,10 @@ def make_class_properties(cls):
     cls.fields.update(IronicObject.fields)
     for name, typefn in cls.fields.iteritems():
 
-        def getter(self, name=name, typefn=typefn):
+        def getter(self, name=name):
             attrname = get_attrname(name)
             if not hasattr(self, attrname):
-                self.obj_load(name)
+                self.obj_load_attr(name)
             return getattr(self, attrname)
 
         def setter(self, value, name=name, typefn=typefn):
@@ -175,9 +175,10 @@ class IronicObject(object):
     # by subclasses, but that is a special case. Objects inheriting from
     # other objects will not receive this merging of fields contents.
     fields = {
-        'created_at': obj_utils.datetime_or_none,
-        'updated_at': obj_utils.datetime_or_none,
+        'created_at': obj_utils.datetime_or_str_or_none,
+        'updated_at': obj_utils.datetime_or_str_or_none,
         }
+    obj_extra_fields = []
 
     def __init__(self):
         self._changed_fields = set()
@@ -216,7 +217,6 @@ class IronicObject(object):
 
     _attr_created_at_from_primitive = obj_utils.dt_deserializer
     _attr_updated_at_from_primitive = obj_utils.dt_deserializer
-    _attr_deleted_at_from_primitive = obj_utils.dt_deserializer
 
     def _attr_from_primitive(self, attribute, value):
         """Attribute deserialization dispatcher.
@@ -231,7 +231,7 @@ class IronicObject(object):
         return value
 
     @classmethod
-    def obj_from_primitive(cls, primitive):
+    def obj_from_primitive(cls, primitive, context=None):
         """Simple base-case hydration.
 
         This calls self._attr_from_primitive() for each item in fields.
@@ -247,6 +247,7 @@ class IronicObject(object):
         objdata = primitive['ironic_object.data']
         objclass = cls.obj_class_from_name(objname, objver)
         self = objclass()
+        self._context = context
         for name in self.fields:
             if name in objdata:
                 setattr(self, name,
@@ -257,7 +258,6 @@ class IronicObject(object):
 
     _attr_created_at_to_primitive = obj_utils.dt_serializer('created_at')
     _attr_updated_at_to_primitive = obj_utils.dt_serializer('updated_at')
-    _attr_deleted_at_to_primitive = obj_utils.dt_serializer('deleted_at')
 
     def _attr_to_primitive(self, attribute):
         """Attribute serialization dispatcher.
@@ -307,7 +307,7 @@ class IronicObject(object):
         raise NotImplementedError('Cannot save anything in the base class')
 
     def obj_what_changed(self):
-        """Returns a list of fields that have been modified."""
+        """Returns a set of fields that have been modified."""
         return self._changed_fields
 
     def obj_reset_changes(self, fields=None):
@@ -326,8 +326,9 @@ class IronicObject(object):
 
         NOTE(danms): May be removed in the future.
         """
-        for name in self.fields:
-            if hasattr(self, get_attrname(name)):
+        for name in self.fields.keys() + self.obj_extra_fields:
+            if (hasattr(self, get_attrname(name)) or
+                    name in self.obj_extra_fields):
                 yield name, getattr(self, name)
 
     items = lambda self: list(self.iteritems())
@@ -346,12 +347,84 @@ class IronicObject(object):
         """
         setattr(self, name, value)
 
+    def __contains__(self, name):
+        """For backwards-compatibility with dict-based objects.
+
+        NOTE(danms): May be removed in the future.
+        """
+        return hasattr(self, get_attrname(name))
+
     def get(self, key, value=None):
         """For backwards-compatibility with dict-based objects.
 
         NOTE(danms): May be removed in the future.
         """
         return self[key]
+
+    def update(self, updates):
+        """For backwards-compatibility with dict-base objects.
+
+        NOTE(danms): May be removed in the future.
+        """
+        for key, value in updates.items():
+            self[key] = value
+
+
+class ObjectListBase(object):
+    """Mixin class for lists of objects.
+
+    This mixin class can be added as a base class for an object that
+    is implementing a list of objects. It adds a single field of 'objects',
+    which is the list store, and behaves like a list itself. It supports
+    serialization of the list of objects automatically.
+    """
+    fields = {
+        'objects': list,
+        }
+
+    def __iter__(self):
+        """List iterator interface."""
+        return iter(self.objects)
+
+    def __len__(self):
+        """List length."""
+        return len(self.objects)
+
+    def __getitem__(self, index):
+        """List index access."""
+        if isinstance(index, slice):
+            new_obj = self.__class__()
+            new_obj.objects = self.objects[index]
+            # NOTE(danms): We must be mixed in with an IronicObject!
+            new_obj.obj_reset_changes()
+            new_obj._context = self._context
+            return new_obj
+        return self.objects[index]
+
+    def __contains__(self, value):
+        """List membership test."""
+        return value in self.objects
+
+    def count(self, value):
+        """List count of value occurrences."""
+        return self.objects.count(value)
+
+    def index(self, value):
+        """List index of value."""
+        return self.objects.index(value)
+
+    def _attr_objects_to_primitive(self):
+        """Serialization of object list."""
+        return [x.obj_to_primitive() for x in self.objects]
+
+    def _attr_objects_from_primitive(self, value):
+        """Deserialization of object list."""
+        objects = []
+        for entity in value:
+            obj = IronicObject.obj_from_primitive(entity,
+                                                  context=self._context)
+            objects.append(obj)
+        return objects
 
 
 class IronicObjectSerializer(rpc_serializer.Serializer):
@@ -362,14 +435,53 @@ class IronicObjectSerializer(rpc_serializer.Serializer):
     that needs to accept or return IronicObjects as arguments or result values
     should pass this to its RpcProxy and RpcDispatcher objects.
     """
+
+    def _process_iterable(self, context, action_fn, values):
+        """Process an iterable, taking an action on each value.
+        :param:context: Request context
+        :param:action_fn: Action to take on each item in values
+        :param:values: Iterable container of things to take action on
+        :returns: A new container of the same type (except set) with
+                  items from values having had action applied.
+        """
+        iterable = values.__class__
+        if iterable == set:
+            # NOTE(danms): A set can't have an unhashable value inside, such as
+            # a dict. Convert sets to tuples, which is fine, since we can't
+            # send them over RPC anyway.
+            iterable = tuple
+        return iterable([action_fn(context, value) for value in values])
+
     def serialize_entity(self, context, entity):
-        if (hasattr(entity, 'obj_to_primitive') and
-            callable(entity.obj_to_primitive)):
+        if isinstance(entity, (tuple, list, set)):
+            entity = self._process_iterable(context, self.serialize_entity,
+                                            entity)
+        elif (hasattr(entity, 'obj_to_primitive') and
+                callable(entity.obj_to_primitive)):
             entity = entity.obj_to_primitive()
         return entity
 
     def deserialize_entity(self, context, entity):
         if isinstance(entity, dict) and 'ironic_object.name' in entity:
-            entity = IronicObject.obj_from_primitive(entity)
-            entity._context = context
+            entity = IronicObject.obj_from_primitive(entity, context=context)
+        elif isinstance(entity, (tuple, list, set)):
+            entity = self._process_iterable(context, self.deserialize_entity,
+                                            entity)
         return entity
+
+
+def obj_to_primitive(obj):
+    """Recursively turn an object into a python primitive.
+
+    An IronicObject becomes a dict, and anything that implements ObjectListBase
+    becomes a list.
+    """
+    if isinstance(obj, ObjectListBase):
+        return [obj_to_primitive(x) for x in obj]
+    elif isinstance(obj, IronicObject):
+        result = {}
+        for key, value in obj.iteritems():
+            result[key] = obj_to_primitive(value)
+        return result
+    else:
+        return obj

@@ -15,6 +15,7 @@
 import contextlib
 import datetime
 import gettext
+import iso8601
 import netaddr
 
 gettext.install('ironic')
@@ -24,7 +25,7 @@ from ironic.objects import base
 from ironic.objects import utils
 from ironic.openstack.common import context
 from ironic.openstack.common import timeutils
-from ironic.tests.db import base as test_base
+from ironic.tests import base as test_base
 
 
 class MyObj(base.IronicObject):
@@ -34,7 +35,7 @@ class MyObj(base.IronicObject):
               'missing': str,
               }
 
-    def obj_load(self, attrname):
+    def obj_load_attr(self, attrname):
         setattr(self, attrname, 'loaded!')
 
     @base.remotable_classmethod
@@ -83,7 +84,7 @@ class MyObj2(object):
         pass
 
 
-class TestMetaclass(test_base.DbTestCase):
+class TestMetaclass(test_base.TestCase):
     def test_obj_tracking(self):
 
         class NewBaseClass(object):
@@ -115,12 +116,24 @@ class TestMetaclass(test_base.DbTestCase):
         self.assertEqual(expected, Test2._obj_classes)
 
 
-class TestUtils(test_base.DbTestCase):
+class TestUtils(test_base.TestCase):
     def test_datetime_or_none(self):
-        dt = datetime.datetime.now()
+        naive_dt = datetime.datetime.now()
+        dt = timeutils.parse_isotime(timeutils.isotime(naive_dt))
         self.assertEqual(utils.datetime_or_none(dt), dt)
+        self.assertEqual(utils.datetime_or_none(dt),
+                         naive_dt.replace(tzinfo=iso8601.iso8601.Utc(),
+                                          microsecond=0))
         self.assertEqual(utils.datetime_or_none(None), None)
         self.assertRaises(ValueError, utils.datetime_or_none, 'foo')
+
+    def test_datetime_or_str_or_none(self):
+        dts = timeutils.isotime()
+        dt = timeutils.parse_isotime(dts)
+        self.assertEqual(utils.datetime_or_str_or_none(dt), dt)
+        self.assertEqual(utils.datetime_or_str_or_none(None), None)
+        self.assertEqual(utils.datetime_or_str_or_none(dts), dt)
+        self.assertRaises(ValueError, utils.datetime_or_str_or_none, 'foo')
 
     def test_int_or_none(self):
         self.assertEqual(utils.int_or_none(1), 1)
@@ -164,8 +177,33 @@ class TestUtils(test_base.DbTestCase):
         self.assertEqual(utils.dt_deserializer(None, None), None)
         self.assertRaises(ValueError, utils.dt_deserializer, None, 'foo')
 
+    def test_obj_to_primitive_list(self):
+        class MyList(base.ObjectListBase, base.IronicObject):
+            pass
+        mylist = MyList()
+        mylist.objects = [1, 2, 3]
+        self.assertEqual([1, 2, 3], base.obj_to_primitive(mylist))
 
-class _BaseTestCase(test_base.DbTestCase):
+    def test_obj_to_primitive_dict(self):
+        myobj = MyObj()
+        myobj.foo = 1
+        myobj.bar = 'foo'
+        self.assertEqual({'foo': 1, 'bar': 'foo'},
+                         base.obj_to_primitive(myobj))
+
+    def test_obj_to_primitive_recursive(self):
+        class MyList(base.ObjectListBase, base.IronicObject):
+            pass
+
+        mylist = MyList()
+        mylist.objects = [MyObj(), MyObj()]
+        for i, value in enumerate(mylist):
+            value.foo = i
+        self.assertEqual([{'foo': 0}, {'foo': 1}],
+                         base.obj_to_primitive(mylist))
+
+
+class _BaseTestCase(test_base.TestCase):
     def setUp(self):
         super(_BaseTestCase, self).setUp()
         self.remote_object_calls = list()
@@ -250,6 +288,19 @@ class _TestObject(object):
     def test_load(self):
         obj = MyObj()
         self.assertEqual(obj.bar, 'loaded!')
+
+    def test_load_in_base(self):
+        class Foo(base.IronicObject):
+            fields = {'foobar': int}
+        obj = Foo()
+        # NOTE(danms): Can't use assertRaisesRegexp() because of py26
+        raised = False
+        try:
+            obj.foobar
+        except NotImplementedError as ex:
+            raised = True
+        self.assertTrue(raised)
+        self.assertTrue('foobar' in str(ex))
 
     def test_loaded_in_primitive(self):
         obj = MyObj()
@@ -370,6 +421,87 @@ class _TestObject(object):
                     }
         self.assertEqual(obj.obj_to_primitive(), expected)
 
+    def test_contains(self):
+        obj = MyObj()
+        self.assertFalse('foo' in obj)
+        obj.foo = 1
+        self.assertTrue('foo' in obj)
+        self.assertFalse('does_not_exist' in obj)
+
 
 class TestObject(_LocalTest, _TestObject):
     pass
+
+
+class TestObjectListBase(test_base.TestCase):
+    def test_list_like_operations(self):
+        class Foo(base.ObjectListBase, base.IronicObject):
+            pass
+
+        objlist = Foo()
+        objlist._context = 'foo'
+        objlist.objects = [1, 2, 3]
+        self.assertTrue(list(objlist), objlist.objects)
+        self.assertEqual(len(objlist), 3)
+        self.assertIn(2, objlist)
+        self.assertEqual(list(objlist[:1]), [1])
+        self.assertEqual(objlist[:1]._context, 'foo')
+        self.assertEqual(objlist[2], 3)
+        self.assertEqual(objlist.count(1), 1)
+        self.assertEqual(objlist.index(2), 1)
+
+    def test_serialization(self):
+        class Foo(base.ObjectListBase, base.IronicObject):
+            pass
+
+        class Bar(base.IronicObject):
+            fields = {'foo': str}
+
+        obj = Foo()
+        obj.objects = []
+        for i in 'abc':
+            bar = Bar()
+            bar.foo = i
+            obj.objects.append(bar)
+
+        obj2 = base.IronicObject.obj_from_primitive(obj.obj_to_primitive())
+        self.assertFalse(obj is obj2)
+        self.assertEqual([x.foo for x in obj],
+                         [y.foo for y in obj2])
+
+
+class TestObjectSerializer(test_base.TestCase):
+    def test_serialize_entity_primitive(self):
+        ser = base.IronicObjectSerializer()
+        for thing in (1, 'foo', [1, 2], {'foo': 'bar'}):
+            self.assertEqual(thing, ser.serialize_entity(None, thing))
+
+    def test_deserialize_entity_primitive(self):
+        ser = base.IronicObjectSerializer()
+        for thing in (1, 'foo', [1, 2], {'foo': 'bar'}):
+            self.assertEqual(thing, ser.deserialize_entity(None, thing))
+
+    def test_object_serialization(self):
+        ser = base.IronicObjectSerializer()
+        ctxt = context.get_admin_context()
+        obj = MyObj()
+        primitive = ser.serialize_entity(ctxt, obj)
+        self.assertTrue('ironic_object.name' in primitive)
+        obj2 = ser.deserialize_entity(ctxt, primitive)
+        self.assertTrue(isinstance(obj2, MyObj))
+        self.assertEqual(ctxt, obj2._context)
+
+    def test_object_serialization_iterables(self):
+        ser = base.IronicObjectSerializer()
+        ctxt = context.get_admin_context()
+        obj = MyObj()
+        for iterable in (list, tuple, set):
+            thing = iterable([obj])
+            primitive = ser.serialize_entity(ctxt, thing)
+            self.assertEqual(1, len(primitive))
+            for item in primitive:
+                self.assertFalse(isinstance(item, base.IronicObject))
+            thing2 = ser.deserialize_entity(ctxt, primitive)
+            self.assertEqual(1, len(thing2))
+            for item in thing2:
+                self.assertTrue(isinstance(item, MyObj))

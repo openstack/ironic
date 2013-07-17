@@ -16,6 +16,7 @@
 
 import ast
 import datetime
+import iso8601
 import netaddr
 
 from ironic.openstack.common import timeutils
@@ -23,9 +24,23 @@ from ironic.openstack.common import timeutils
 
 def datetime_or_none(dt):
     """Validate a datetime or None value."""
-    if dt is None or isinstance(dt, datetime.datetime):
-        return dt
+    if dt is None:
+        return None
+    elif isinstance(dt, datetime.datetime):
+        if dt.utcoffset() is None:
+            # NOTE(danms): Legacy objects from sqlalchemy are stored in UTC,
+            # but are returned without a timezone attached.
+            # As a transitional aid, assume a tz-naive object is in UTC.
+            return dt.replace(tzinfo=iso8601.iso8601.Utc())
+        else:
+            return dt
     raise ValueError('A datetime.datetime is required here')
+
+
+def datetime_or_str_or_none(val):
+    if isinstance(val, basestring):
+        return timeutils.parse_isotime(val)
+    return datetime_or_none(val)
 
 
 def int_or_none(val):
@@ -67,6 +82,14 @@ def ip_or_none(version):
     return validator
 
 
+def nested_object_or_none(objclass):
+    def validator(val, objclass=objclass):
+        if val is None or isinstance(val, objclass):
+            return val
+        raise ValueError('An object of class %s is required here' % objclass)
+    return validator
+
+
 def dt_serializer(name):
     """Return a datetime serializer for a named attribute."""
     def serializer(self, name=name):
@@ -83,3 +106,12 @@ def dt_deserializer(instance, val):
         return None
     else:
         return timeutils.parse_isotime(val)
+
+
+def obj_serializer(name):
+    def serializer(self, name=name):
+        if getattr(self, name) is not None:
+            return getattr(self, name).obj_to_primitive()
+        else:
+            return None
+    return serializer
