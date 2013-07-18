@@ -370,6 +370,11 @@ class IronicObject(object):
         for key, value in updates.items():
             self[key] = value
 
+    def as_dict(self):
+        return dict((k, getattr(self, k))
+                for k in self.fields
+                if hasattr(self, k))
+
 
 class ObjectListBase(object):
     """Mixin class for lists of objects.

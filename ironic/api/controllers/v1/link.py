@@ -1,5 +1,7 @@
+#!/usr/bin/env python
 # vim: tabstop=4 shiftwidth=4 softtabstop=4
 
+# Copyright 2013 Red Hat, Inc.
 # All Rights Reserved.
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -14,26 +16,22 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import wsme
 from wsme import types as wtypes
 
+from ironic.api.controllers.v1 import base
 
-class APIBase(wtypes.Base):
 
-    def as_dict(self):
-        """Render this object as a dict of its fields."""
-        return dict((k, getattr(self, k))
-                    for k in self.fields
-                    if hasattr(self, k) and
-                    getattr(self, k) != wsme.Unset)
+class Link(base.APIBase):
+    """A link representation."""
 
-    def as_terse_dict(self):
-        """Render this object as a dict of its non-None fields."""
-        return dict((k, getattr(self, k))
-                    for k in self.fields
-                    if hasattr(self, k) and
-                    getattr(self, k) not in [wsme.Unset, None])
+    href = wtypes.text
+    "The url of a link."
+
+    rel = wtypes.text
+    "The name of a link."
 
     @classmethod
-    def from_rpc_object(cls, m):
-        return cls(**m.as_dict())
+    def make_link(cls, rel_name, url, resource, resouce_args, bookmark=False):
+        template = '%s/%s/%s' if bookmark else '%s/v1/%s/%s'
+        return Link(href=(template) % (url, resource, resouce_args),
+                    rel=rel_name)

@@ -23,8 +23,11 @@ import wsme
 from wsme import types as wtypes
 import wsmeext.pecan as wsme_pecan
 
-from ironic.api.controllers.v1 import base
 from ironic import objects
+
+from ironic.api.controllers.v1 import base
+from ironic.api.controllers.v1 import link
+from ironic.common import exception
 from ironic.openstack.common import log
 
 LOG = log.getLogger(__name__)
@@ -48,25 +51,45 @@ class Chassis(base.APIBase):
     extra = {wtypes.text: wtypes.text}
     "The metadata of the chassis"
 
+    links = [link.Link]
+    "A list containing a self link and associated chassis links"
+
     def __init__(self, **kwargs):
         self.fields = objects.Chassis.fields.keys()
         for k in self.fields:
             setattr(self, k, kwargs.get(k))
 
+    @classmethod
+    def convert_with_links(cls, rpc_chassis):
+        chassis = Chassis.from_rpc_object(rpc_chassis)
+        chassis.links = [link.Link.make_link('self', pecan.request.host_url,
+                                             'chassis', chassis.uuid),
+                         link.Link.make_link('bookmark',
+                                             pecan.request.host_url,
+                                             'chassis', chassis.uuid,
+                                             bookmark=True)
+                        ]
+        return chassis
+
 
 class ChassisController(rest.RestController):
     """REST controller for Chassis."""
 
-    @wsme_pecan.wsexpose([unicode])
+    @wsme_pecan.wsexpose([Chassis])
     def get_all(self):
         """Retrieve a list of chassis."""
-        return pecan.request.dbapi.get_chassis_list()
+        ch_list = []
+        for uuid in pecan.request.dbapi.get_chassis_list():
+            rpc_chassis = objects.Chassis.get_by_uuid(pecan.request.context,
+                                                      uuid)
+            ch_list.append(Chassis.convert_with_links(rpc_chassis))
+        return ch_list
 
     @wsme_pecan.wsexpose(Chassis, unicode)
     def get_one(self, uuid):
         """Retrieve information about the given chassis."""
-        chassis = objects.Chassis.get_by_uuid(pecan.request.context, uuid)
-        return chassis
+        rpc_chassis = objects.Chassis.get_by_uuid(pecan.request.context, uuid)
+        return Chassis.convert_with_links(rpc_chassis)
 
     @wsme.validate(Chassis)
     @wsme_pecan.wsexpose(Chassis, body=Chassis)
@@ -74,10 +97,10 @@ class ChassisController(rest.RestController):
         """Create a new chassis."""
         try:
             new_chassis = pecan.request.dbapi.create_chassis(chassis.as_dict())
-        except Exception as e:
+        except exception.IronicException as e:
             LOG.exception(e)
             raise wsme.exc.ClientSideError(_("Invalid data"))
-        return new_chassis
+        return Chassis.convert_with_links(new_chassis)
 
     @wsme.validate(Chassis)
     @wsme_pecan.wsexpose(Chassis, unicode, body=Chassis)
@@ -95,7 +118,7 @@ class ChassisController(rest.RestController):
             chassis[k] = nn_delta_ch[k]
         chassis.save()
 
-        return chassis
+        return Chassis.convert_with_links(chassis)
 
     @wsme_pecan.wsexpose(None, unicode, status_code=204)
     def delete(self, uuid):

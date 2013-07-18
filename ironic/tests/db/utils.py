@@ -60,9 +60,9 @@ pxe_ipmi_info = json.dumps(
 properties = json.dumps(
         {
             "cpu_arch": "x86_64",
-            "cpu_num": 8,
-            "storage": 1024,
-            "memory": 4096,
+            "cpu_num": "8",
+            "storage": "1024",
+            "memory": "4096",
         })
 
 

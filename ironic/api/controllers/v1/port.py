@@ -22,8 +22,11 @@ import wsme
 from wsme import types as wtypes
 import wsmeext.pecan as wsme_pecan
 
-from ironic.api.controllers.v1 import base
 from ironic import objects
+
+from ironic.api.controllers.v1 import base
+from ironic.api.controllers.v1 import link
+from ironic.common import exception
 from ironic.openstack.common import log
 
 LOG = log.getLogger(__name__)
@@ -38,32 +41,52 @@ class Port(base.APIBase):
 
     # NOTE: translate 'id' publicly to 'uuid' internally
     uuid = wtypes.text
+
     address = wtypes.text
 
-    # NOTE: translate 'extra' internally to 'meta_data' externally
     extra = {wtypes.text: wtypes.text}
 
     node_id = int
+
+    links = [link.Link]
+    "A list containing a self link and associated port links"
 
     def __init__(self, **kwargs):
         self.fields = objects.Port.fields.keys()
         for k in self.fields:
             setattr(self, k, kwargs.get(k))
 
+    @classmethod
+    def convert_with_links(cls, rpc_port):
+        port = Port.from_rpc_object(rpc_port)
+        port.links = [link.Link.make_link('self', pecan.request.host_url,
+                                          'ports', port.uuid),
+                      link.Link.make_link('bookmark',
+                                          pecan.request.host_url,
+                                          'ports', port.uuid,
+                                          bookmark=True)
+                     ]
+        return port
+
 
 class PortsController(rest.RestController):
     """REST controller for Ports."""
 
-    @wsme_pecan.wsexpose([unicode])
+    @wsme_pecan.wsexpose([Port])
     def get_all(self):
         """Retrieve a list of ports."""
-        return pecan.request.dbapi.get_port_list()
+        p_list = []
+        for uuid in pecan.request.dbapi.get_port_list():
+            rpc_port = objects.Port.get_by_uuid(pecan.request.context,
+                                                uuid)
+            p_list.append(Port.convert_with_links(rpc_port))
+        return p_list
 
     @wsme_pecan.wsexpose(Port, unicode)
     def get_one(self, uuid):
         """Retrieve information about the given port."""
-        port = objects.Port.get_by_uuid(pecan.request.context, uuid)
-        return port
+        rpc_port = objects.Port.get_by_uuid(pecan.request.context, uuid)
+        return Port.convert_with_links(rpc_port)
 
     @wsme.validate(Port)
     @wsme_pecan.wsexpose(Port, body=Port)
@@ -71,10 +94,10 @@ class PortsController(rest.RestController):
         """Ceate a new port."""
         try:
             new_port = pecan.request.dbapi.create_port(port.as_dict())
-        except Exception as e:
+        except exception.IronicException as e:
             LOG.exception(e)
             raise wsme.exc.ClientSideError(_("Invalid data"))
-        return new_port
+        return Port.convert_with_links(new_port)
 
     @wsme.validate(Port)
     @wsme_pecan.wsexpose(Port, unicode, body=Port)
@@ -87,7 +110,7 @@ class PortsController(rest.RestController):
         for k in nn_delta_p:
             port[k] = nn_delta_p[k]
         port.save()
-        return port
+        return Port.convert_with_links(port)
 
     @wsme_pecan.wsexpose(None, unicode, status_code=204)
     def delete(self, port_id):
