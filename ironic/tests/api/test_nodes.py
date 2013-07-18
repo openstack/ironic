@@ -121,3 +121,25 @@ class TestPatch(base.FunctionalTest):
         # TODO(deva): change to 409 when wsme 0.5b3 released
         self.assertEqual(response.status_code, 400)
         self.mox.VerifyAll()
+
+
+class TestPost(base.FunctionalTest):
+
+    def test_create_node(self):
+        ndict = dbutils.get_test_node()
+        self.post_json('/nodes', ndict)
+        result = self.get_json('/nodes/%s' % ndict['uuid'])
+        self.assertEqual(ndict['uuid'], result['uuid'])
+
+
+class TestDelete(base.FunctionalTest):
+
+    def test_delete_node(self):
+        ndict = dbutils.get_test_node()
+        self.post_json('/nodes', ndict)
+        self.delete('/nodes/%s' % ndict['uuid'])
+        response = self.get_json('/nodes/%s' % ndict['uuid'],
+                expect_errors=True)
+        self.assertEqual(response.status_int, 500)
+        self.assertEqual(response.content_type, 'application/json')
+        self.assertTrue(response.json['error_message'])

@@ -19,7 +19,7 @@
 from ironic.openstack.common import jsonutils as json
 
 
-fake_info = json.dumps({"foo": "bar"})
+fake_info = {"foo": "bar"}
 
 ipmi_info = json.dumps(
         {
@@ -57,13 +57,12 @@ pxe_ssh_info = json.dumps(
 pxe_ipmi_info = json.dumps(
         dict(json.loads(pxe_info), **json.loads(ipmi_info)))
 
-properties = json.dumps(
-        {
+properties = {
             "cpu_arch": "x86_64",
             "cpu_num": "8",
             "storage": "1024",
             "memory": "4096",
-        })
+        }
 
 
 def get_test_node(**kw):

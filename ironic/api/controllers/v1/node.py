@@ -165,7 +165,7 @@ class NodesController(rest.RestController):
                     "Error updating node %s") % node_id)
         return Node.convert_with_links(response.obj)
 
-    @wsme_pecan.wsexpose()
+    @wsme_pecan.wsexpose(None, unicode, status_code=204)
     def delete(self, node_id):
         """Delete a node.
 
