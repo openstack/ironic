@@ -208,7 +208,7 @@ def deploy(address, port, iqn, lun, image_path, pxe_config_path,
     login_iscsi(address, port, iqn)
     try:
         root_uuid = work_on_disk(dev, root_mb, swap_mb, image_path)
-    except exception.ProcessExecutionError, err:
+    except exception.ProcessExecutionError as err:
         with excutils.save_and_reraise_exception():
             # Log output if there was a error
             LOG.error("Cmd     : %s" % err.cmd)
@@ -242,7 +242,8 @@ class Worker(threading.Thread):
             else:
                 # Requests comes here from BareMetalDeploy.post()
                 LOG.info(_('start deployment for node %(node_id)s, '
-                           'params %(params)s') % locals())
+                           'params %(params)s') %
+                           {'node_id': node_id, 'params': params})
                 context = ironic_context.get_admin_context()
                 try:
                     db.bm_node_update(context, node_id,

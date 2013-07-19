@@ -57,9 +57,12 @@ class ProcessExecutionError(IOError):
             description = _('Unexpected error while running command.')
         if exit_code is None:
             exit_code = '-'
-        message = _('%(description)s\nCommand: %(cmd)s\n'
-                    'Exit code: %(exit_code)s\nStdout: %(stdout)r\n'
-                    'Stderr: %(stderr)r') % locals()
+        message = (_('%(description)s\nCommand: %(cmd)s\n'
+                     'Exit code: %(exit_code)s\nStdout: %(stdout)r\n'
+                     'Stderr: %(stderr)r') %
+                   {'description': description, 'cmd': cmd,
+                    'exit_code': exit_code, 'stdout': stdout,
+                    'stderr': stderr})
         IOError.__init__(self, message)
 
 

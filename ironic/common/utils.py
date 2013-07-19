@@ -547,7 +547,8 @@ def unlink_without_raise(path):
         if e.errno == errno.ENOENT:
             return
         else:
-            LOG.warn(_("Failed to unlink %(path)s, error: %(e)s") % locals())
+            LOG.warn(_("Failed to unlink %(path)s, error: %(e)s") %
+                      {'path': path, 'e': e})
 
 
 def rmtree_without_raise(path):
@@ -555,7 +556,8 @@ def rmtree_without_raise(path):
         if os.path.isdir(path):
             shutil.rmtree(path)
     except OSError as e:
-        LOG.warn(_("Failed to remove dir %(path)s, error: %(e)s") % locals())
+        LOG.warn(_("Failed to remove dir %(path)s, error: %(e)s") %
+                {'path': path, 'e': e})
 
 
 def write_to_file(path, contents):
@@ -571,4 +573,5 @@ def create_link_without_raise(source, link):
             return
         else:
             LOG.warn(_("Failed to create symlink from %(source)s to %(link)s"
-                       ", error: %(e)s") % locals())
+                       ", error: %(e)s") %
+                       {'source': source, 'link': link, 'e': e})

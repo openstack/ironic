@@ -296,7 +296,8 @@ class IronicObject(object):
         be useful for future load operations.
         """
         raise NotImplementedError(
-            _("Cannot load '%(attrname)s' in the base class") % locals())
+            _("Cannot load '%(attrname)s' in the base class") %
+            {'attrname': attrname})
 
     def save(self, context):
         """Save the changed fields back to the store.
