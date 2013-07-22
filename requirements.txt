@@ -12,7 +12,6 @@ greenlet>=0.3.2
 sqlalchemy-migrate>=0.7
 netaddr
 paramiko>=1.8.0
-babel>=0.9.6
 iso8601>=0.1.4
 setuptools_git>=0.4
 python-quantumclient>=2.2.0
