@@ -22,13 +22,16 @@ import ConfigParser
 import os
 import urlparse
 
+from migrate.versioning import repository
 import mock
 import sqlalchemy
 import sqlalchemy.exc
 
+from ironic.openstack.common.db.sqlalchemy import utils as db_utils
 from ironic.openstack.common import lockutils
 from ironic.openstack.common import log as logging
 
+import ironic.db.sqlalchemy.migrate_repo
 from ironic.tests import utils as test_utils
 
 LOG = logging.getLogger(__name__)
@@ -424,3 +427,127 @@ class TestWalkVersions(test_utils.BaseTestCase, WalkVersionsMixin):
             mock.call(self.engine, v, with_data=True) for v in versions
         ]
         self.assertEquals(upgraded, self._migrate_up.call_args_list)
+
+
+class TestMigrations(BaseMigrationTestCase, WalkVersionsMixin):
+
+    def __init__(self, *args, **kwargs):
+        super(TestMigrations, self).__init__(*args, **kwargs)
+
+        self.MIGRATE_FILE = ironic.db.sqlalchemy.migrate_repo.__file__
+        self.REPOSITORY = repository.Repository(
+                        os.path.abspath(os.path.dirname(self.MIGRATE_FILE)))
+
+    def setUp(self):
+        super(TestMigrations, self).setUp()
+
+        self.migration = __import__('ironic.db.migration',
+                globals(), locals(), ['INIT_VERSION'], -1)
+        self.INIT_VERSION = self.migration.INIT_VERSION
+        if self.migration_api is None:
+            temp = __import__('ironic.db.sqlalchemy.migration',
+                    globals(), locals(), ['versioning_api'], -1)
+            self.migration_api = temp.versioning_api
+
+    def test_walk_versions(self):
+        for engine in self.engines.values():
+            self._walk_versions(engine, snake_walk=False, downgrade=False)
+
+    def _check_001(self, engine, data):
+        nodes = db_utils.get_table(engine, 'nodes')
+        nodes_col = {
+            'id': 'Integer', 'uuid': 'String', 'power_info': 'Text',
+            'cpu_arch': 'String', 'cpu_num': 'Integer', 'memory': 'Integer',
+            'local_storage_max': 'Integer', 'task_state': 'String',
+            'image_path': 'String', 'instance_uuid': 'String',
+            'instance_name': 'String', 'extra': 'Text',
+            'created_at': 'DateTime', 'updated_at': 'DateTime'
+        }
+        for col, coltype in nodes_col.items():
+            self.assertTrue(isinstance(nodes.c[col].type,
+                                       getattr(sqlalchemy.types, coltype)))
+
+        ifaces = db_utils.get_table(engine, 'ifaces')
+        ifaces_col = {
+            'id': 'Integer', 'address': 'String', 'node_id': 'Integer',
+            'extra': 'Text', 'created_at': 'DateTime', 'updated_at': 'DateTime'
+        }
+        for col, coltype in ifaces_col.items():
+            self.assertTrue(isinstance(ifaces.c[col].type,
+                                       getattr(sqlalchemy.types, coltype)))
+
+        fkey, = ifaces.c.node_id.foreign_keys
+        self.assertEquals(nodes.c.id.name, fkey.column.name)
+        self.assertEquals(fkey.column.table.name, 'nodes')
+
+    def _check_002(self, engine, data):
+        nodes = db_utils.get_table(engine, 'nodes')
+        new_col = {
+            'chassis_id': 'Integer', 'task_start': 'DateTime',
+            'properties': 'Text', 'control_driver': 'String',
+            'control_info': 'Text', 'deploy_driver': 'String',
+            'deploy_info': 'Text', 'reservation': 'String'
+        }
+        for col, coltype in new_col.items():
+            self.assertTrue(isinstance(nodes.c[col].type,
+                                       getattr(sqlalchemy.types, coltype)))
+
+        deleted_cols = ['power_info', 'cpu_arch', 'cpu_num', 'memory',
+                        'local_storage_max', 'image_path', 'instance_name']
+        for column in nodes.c:
+            self.assertFalse(column.name in deleted_cols)
+
+    def _check_003(self, engine, data):
+        chassis = db_utils.get_table(engine, 'chassis')
+        self.assertTrue(isinstance(chassis.c.id.type,
+                                   sqlalchemy.types.Integer))
+        self.assertTrue(isinstance(chassis.c.uuid.type,
+                                   sqlalchemy.types.String))
+
+    def _check_004(self, engine, data):
+        self.assertTrue(engine.dialect.has_table(engine.connect(), 'ports'))
+        self.assertFalse(engine.dialect.has_table(engine.connect(), 'ifaces'))
+
+    def _check_005(self, engine, data):
+        nodes = db_utils.get_table(engine, 'nodes')
+        col_names = [column.name for column in nodes.c]
+        self.assertFalse('deploy_driver' in col_names)
+        self.assertFalse('deploy_info' in col_names)
+        self.assertTrue('driver' in col_names)
+        self.assertTrue('driver_info' in col_names)
+
+    def _check_006(self, engine, data):
+        ports = db_utils.get_table(engine, 'ports')
+        self.assertTrue(isinstance(ports.c.uuid.type, sqlalchemy.types.String))
+
+        nodes = db_utils.get_table(engine, 'nodes')
+        nodes_data = {
+             'id': 1, 'uuid': 'uuu-111', 'driver': 'driver1',
+             'driver_info': 'info1', 'task_state': 'state1',
+             'extra': 'extra1'
+            }
+        nodes.insert().values(nodes_data).execute()
+
+        ports_data = {
+                'address': 'address0', 'node_id': 1, 'uuid': 'uuu-222',
+                'extra': 'extra2'
+            }
+        ports.insert().values(ports_data).execute()
+        self.assertRaises(
+            sqlalchemy.exc.IntegrityError,
+            ports.insert().execute,
+            {'address': 'address1', 'node_id': 1, 'uuid': 'uuu-222',
+             'extra': 'extra3'})
+
+    def _check_007(self, engine, data):
+        chassis = db_utils.get_table(engine, 'chassis')
+        new_col = {'extra': 'Text', 'created_at': 'DateTime',
+                   'updated_at': 'DateTime'}
+        for col, coltype in new_col.items():
+            self.assertTrue(isinstance(chassis.c[col].type,
+                                       getattr(sqlalchemy.types, coltype)))
+
+    def _check_008(self, engine, data):
+        chassis = db_utils.get_table(engine, 'chassis')
+        self.assertTrue(isinstance(chassis.c.description.type,
+                                   sqlalchemy.types.String))
