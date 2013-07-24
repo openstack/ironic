@@ -14,7 +14,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-from ironic.common import context
+
 from ironic.db import api as db_api
 from ironic.db.sqlalchemy import models
 from ironic import objects
@@ -30,18 +30,16 @@ class TestPortObject(base.DbTestCase):
         self.dbapi = db_api.get_instance()
 
     def test_load(self):
-        ctxt = context.get_admin_context()
         uuid = self.fake_port['uuid']
         self.mox.StubOutWithMock(self.dbapi, 'get_port')
 
         self.dbapi.get_port(uuid).AndReturn(self.fake_port)
         self.mox.ReplayAll()
 
-        objects.Port.get_by_uuid(ctxt, uuid)
+        objects.Port.get_by_uuid(self.context, uuid)
         self.mox.VerifyAll()
 
     def test_save(self):
-        ctxt = context.get_admin_context()
         uuid = self.fake_port['uuid']
         self.mox.StubOutWithMock(self.dbapi, 'get_port')
         self.mox.StubOutWithMock(self.dbapi, 'update_port')
@@ -50,13 +48,12 @@ class TestPortObject(base.DbTestCase):
         self.dbapi.update_port(uuid, {'address': "b2:54:00:cf:2d:40"})
         self.mox.ReplayAll()
 
-        p = objects.Port.get_by_uuid(ctxt, uuid)
+        p = objects.Port.get_by_uuid(self.context, uuid)
         p.address = "b2:54:00:cf:2d:40"
         p.save()
         self.mox.VerifyAll()
 
     def test_refresh(self):
-        ctxt = context.get_admin_context()
         uuid = self.fake_port['uuid']
         self.mox.StubOutWithMock(self.dbapi, 'get_port')
 
@@ -66,7 +63,7 @@ class TestPortObject(base.DbTestCase):
 
         self.mox.ReplayAll()
 
-        p = objects.Port.get_by_uuid(ctxt, uuid)
+        p = objects.Port.get_by_uuid(self.context, uuid)
         self.assertEqual(p.address, "52:54:00:cf:2d:31")
 
         p.refresh()

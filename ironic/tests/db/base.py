@@ -15,7 +15,7 @@
 
 """Ironic DB test base class."""
 
-from ironic.common import context as ironic_context
+from ironic.openstack.common import context as ironic_context
 from ironic.tests import base
 
 

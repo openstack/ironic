@@ -14,7 +14,6 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-from ironic.common import context
 from ironic.db import api as db_api
 from ironic.db.sqlalchemy import models
 from ironic import objects
@@ -29,7 +28,6 @@ class TestChassisObject(base.DbTestCase):
         super(TestChassisObject, self).setUp()
         self.fake_chassis = utils.get_test_chassis()
         self.dbapi = db_api.get_instance()
-        self.ctxt = context.get_admin_context()
 
     def test_load(self):
         uuid = self.fake_chassis['uuid']
@@ -38,7 +36,7 @@ class TestChassisObject(base.DbTestCase):
         self.dbapi.get_chassis(uuid).AndReturn(self.fake_chassis)
         self.mox.ReplayAll()
 
-        objects.Chassis.get_by_uuid(self.ctxt, uuid)
+        objects.Chassis.get_by_uuid(self.context, uuid)
         self.mox.VerifyAll()
 
     def test_save(self):
@@ -51,7 +49,7 @@ class TestChassisObject(base.DbTestCase):
         self.dbapi.update_chassis(uuid, {'extra': {"test": 123}})
         self.mox.ReplayAll()
 
-        c = objects.Chassis.get_by_uuid(self.ctxt, uuid)
+        c = objects.Chassis.get_by_uuid(self.context, uuid)
         c.extra = {"test": 123}
         c.save()
         self.mox.VerifyAll()
@@ -68,7 +66,7 @@ class TestChassisObject(base.DbTestCase):
                 dict(self.fake_chassis, uuid=new_uuid))
         self.mox.ReplayAll()
 
-        c = objects.Chassis.get_by_uuid(self.ctxt, uuid)
+        c = objects.Chassis.get_by_uuid(self.context, uuid)
         self.assertEqual(c.uuid, uuid)
         c.refresh()
         self.assertEqual(c.uuid, new_uuid)

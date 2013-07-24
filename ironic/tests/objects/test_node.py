@@ -14,7 +14,6 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-from ironic.common import context
 from ironic.db import api as db_api
 from ironic.db.sqlalchemy import models
 from ironic import objects
@@ -30,20 +29,18 @@ class TestNodeObject(base.DbTestCase):
         self.dbapi = db_api.get_instance()
 
     def test_load(self):
-        ctxt = context.get_admin_context()
         uuid = self.fake_node['uuid']
         self.mox.StubOutWithMock(self.dbapi, 'get_node')
 
         self.dbapi.get_node(uuid).AndReturn(self.fake_node)
         self.mox.ReplayAll()
 
-        objects.Node.get_by_uuid(ctxt, uuid)
+        objects.Node.get_by_uuid(self.context, uuid)
         self.mox.VerifyAll()
         # TODO(deva): add tests for load-on-demand info, eg. ports,
         #             once Port objects are created
 
     def test_save(self):
-        ctxt = context.get_admin_context()
         uuid = self.fake_node['uuid']
         self.mox.StubOutWithMock(self.dbapi, 'get_node')
         self.mox.StubOutWithMock(self.dbapi, 'update_node')
@@ -52,13 +49,12 @@ class TestNodeObject(base.DbTestCase):
         self.dbapi.update_node(uuid, {'properties': {"fake": "property"}})
         self.mox.ReplayAll()
 
-        n = objects.Node.get_by_uuid(ctxt, uuid)
+        n = objects.Node.get_by_uuid(self.context, uuid)
         n.properties = {"fake": "property"}
         n.save()
         self.mox.VerifyAll()
 
     def test_refresh(self):
-        ctxt = context.get_admin_context()
         uuid = self.fake_node['uuid']
         self.mox.StubOutWithMock(self.dbapi, 'get_node')
 
@@ -68,7 +64,7 @@ class TestNodeObject(base.DbTestCase):
                 dict(self.fake_node, properties={"fake": "second"}))
         self.mox.ReplayAll()
 
-        n = objects.Node.get_by_uuid(ctxt, uuid)
+        n = objects.Node.get_by_uuid(self.context, uuid)
         self.assertEqual(n.properties, {"fake": "first"})
         n.refresh()
         self.assertEqual(n.properties, {"fake": "second"})

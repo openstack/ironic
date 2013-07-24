@@ -18,7 +18,6 @@ Tests for the API /nodes/ methods.
 
 import mox
 
-from ironic.common import context
 from ironic.common import exception
 from ironic.conductor import rpcapi
 from ironic.tests.api import base
@@ -52,7 +51,6 @@ class TestPatch(base.FunctionalTest):
     def setUp(self):
         super(TestPatch, self).setUp()
         ndict = dbutils.get_test_node()
-        self.context = context.get_admin_context()
         self.node = self.dbapi.create_node(ndict)
         self.mox.StubOutWithMock(rpcapi.ConductorAPI, 'update_node')
         self.mox.StubOutWithMock(rpcapi.ConductorAPI, 'start_state_change')
