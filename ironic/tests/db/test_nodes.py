@@ -94,9 +94,8 @@ class DbNodeTestCase(base.DbTestCase):
             self.dbapi.create_node(n)
             uuids.append(unicode(n['uuid']))
         res = self.dbapi.get_node_list()
-        uuids.sort()
-        res.sort()
-        self.assertEqual(uuids, res)
+        res_uuids = [r.uuid for r in res]
+        self.assertEqual(uuids.sort(), res_uuids.sort())
 
     def test_get_node_by_instance(self):
         n = self._create_test_node()

@@ -26,7 +26,9 @@ import wsmeext.pecan as wsme_pecan
 from ironic import objects
 
 from ironic.api.controllers.v1 import base
+from ironic.api.controllers.v1 import collection
 from ironic.api.controllers.v1 import link
+from ironic.api.controllers.v1 import utils
 from ironic.common import exception
 from ironic.openstack.common import log
 
@@ -72,18 +74,41 @@ class Chassis(base.APIBase):
         return chassis
 
 
+class ChassisCollection(collection.Collection):
+    """API representation of a collection of chassis."""
+
+    items = [Chassis]
+    "A list containing chassis objects"
+
+    @classmethod
+    def convert_with_links(cls, chassis, limit, **kwargs):
+        collection = ChassisCollection()
+        collection.type = 'chassis'
+        collection.items = [Chassis.convert_with_links(ch) for ch in chassis]
+        collection.links = collection.make_links(limit, 'chassis', **kwargs)
+        return collection
+
+
 class ChassisController(rest.RestController):
     """REST controller for Chassis."""
 
-    @wsme_pecan.wsexpose([Chassis])
-    def get_all(self):
+    @wsme_pecan.wsexpose(ChassisCollection, int, unicode, unicode, unicode)
+    def get_all(self, limit=None, marker=None, sort_key='id', sort_dir='asc'):
         """Retrieve a list of chassis."""
-        ch_list = []
-        for uuid in pecan.request.dbapi.get_chassis_list():
-            rpc_chassis = objects.Chassis.get_by_uuid(pecan.request.context,
-                                                      uuid)
-            ch_list.append(Chassis.convert_with_links(rpc_chassis))
-        return ch_list
+        limit = utils.validate_limit(limit)
+        sort_dir = utils.validate_sort_dir(sort_dir)
+
+        marker_obj = None
+        if marker:
+            marker_obj = objects.Chassis.get_by_uuid(pecan.request.context,
+                                                     marker)
+
+        chassis = pecan.request.dbapi.get_chassis_list(limit, marker_obj,
+                                                       sort_key=sort_key,
+                                                       sort_dir=sort_dir)
+        return ChassisCollection.convert_with_links(chassis, limit,
+                                                    sort_key=sort_key,
+                                                    sort_dir=sort_dir)
 
     @wsme_pecan.wsexpose(Chassis, unicode)
     def get_one(self, uuid):

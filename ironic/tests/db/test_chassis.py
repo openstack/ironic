@@ -42,9 +42,8 @@ class DbChassisTestCase(base.DbTestCase):
             self.dbapi.create_chassis(n)
             uuids.append(unicode(n['uuid']))
         res = self.dbapi.get_chassis_list()
-        uuids.sort()
-        res.sort()
-        self.assertEqual(uuids, res)
+        res_uuids = [r.uuid for r in res]
+        self.assertEqual(uuids.sort(), res_uuids.sort())
 
     def test_get_chassis_by_id(self):
         ch = self._create_test_chassis()

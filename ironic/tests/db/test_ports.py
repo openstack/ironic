@@ -52,9 +52,8 @@ class DbPortTestCase(base.DbTestCase):
             self.dbapi.create_port(n)
             uuids.append(unicode(n['uuid']))
         res = self.dbapi.get_port_list()
-        uuids.sort()
-        res.sort()
-        self.assertEqual(uuids, res)
+        res_uuids = [r.uuid for r in res]
+        self.assertEqual(uuids.sort(), res_uuids.sort())
 
     def test_get_port_by_address(self):
         self.dbapi.create_port(self.p)

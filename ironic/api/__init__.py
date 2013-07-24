@@ -27,7 +27,14 @@ API_SERVICE_OPTS = [
             default=6385,
             help='The port for the Ironic API server',
             ),
+        cfg.IntOpt('api_limit_max',
+               default=1000,
+               help='the maximum number of items returned in a single '
+                    'response from a collection resource'),
         ]
 
 CONF = cfg.CONF
+opt_group = cfg.OptGroup(name='api',
+                         title='Options for the ironic-api service')
+CONF.register_group(opt_group)
 CONF.register_opts(API_SERVICE_OPTS)

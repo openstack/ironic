@@ -16,22 +16,23 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-from wsme import types as wtypes
+import wsme
 
-from ironic.api.controllers.v1 import base
+from oslo.config import cfg
+
+CONF = cfg.CONF
 
 
-class Link(base.APIBase):
-    """A link representation."""
+def validate_limit(limit):
+    if limit and limit < 0:
+        raise wsme.exc.ClientSideError(_("Limit must be positive"))
 
-    href = wtypes.text
-    "The url of a link."
+    return min(CONF.api_limit_max, limit) or CONF.api_limit_max
 
-    rel = wtypes.text
-    "The name of a link."
 
-    @classmethod
-    def make_link(cls, rel_name, url, resource, resource_args, bookmark=False):
-        template = '%s/%s/%s' if bookmark else '%s/v1/%s/%s'
-        return Link(href=(template) % (url, resource, resource_args),
-                    rel=rel_name)
+def validate_sort_dir(sort_dir):
+    if sort_dir not in ['asc', 'desc']:
+        raise wsme.exc.ClientSideError(_("Invalid sort direction: %s. "
+                                         "Acceptable values are "
+                                         "'asc' or 'desc'") % sort_dir)
+    return sort_dir

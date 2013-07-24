@@ -29,13 +29,13 @@ class TestListNodes(base.FunctionalTest):
 
     def test_empty(self):
         data = self.get_json('/nodes')
-        self.assertEqual([], data)
+        self.assertEqual([], data['items'])
 
     def test_one(self):
         ndict = dbutils.get_test_node()
         node = self.dbapi.create_node(ndict)
         data = self.get_json('/nodes')
-        self.assertEqual(node['uuid'], data[0]["uuid"])
+        self.assertEqual(node['uuid'], data['items'][0]["uuid"])
 
     def test_many(self):
         nodes = []
@@ -45,9 +45,9 @@ class TestListNodes(base.FunctionalTest):
             node = self.dbapi.create_node(ndict)
             nodes.append(node['uuid'])
         data = self.get_json('/nodes')
-        self.assertEqual(len(nodes), len(data))
+        self.assertEqual(len(nodes), len(data['items']))
 
-        uuids = [n['uuid'] for n in data]
+        uuids = [n['uuid'] for n in data['items']]
         self.assertEqual(nodes.sort(), uuids.sort())
 
     def test_links(self):
@@ -58,6 +58,21 @@ class TestListNodes(base.FunctionalTest):
         self.assertIn('links', data.keys())
         self.assertEqual(len(data['links']), 2)
         self.assertIn(uuid, data['links'][0]['href'])
+
+    def test_collection_links(self):
+        nodes = []
+        for id in xrange(5):
+            ndict = dbutils.get_test_node(id=id,
+                                          uuid=uuidutils.generate_uuid())
+            node = self.dbapi.create_node(ndict)
+            nodes.append(node['uuid'])
+        data = self.get_json('/nodes/?limit=3')
+        self.assertEqual(data['type'], 'node')
+        self.assertEqual(len(data['items']), 3)
+
+        next_marker = data['items'][-1]['uuid']
+        next_link = [l['href'] for l in data['links'] if l['rel'] == 'next'][0]
+        self.assertIn(next_marker, next_link)
 
 
 class TestPatch(base.FunctionalTest):

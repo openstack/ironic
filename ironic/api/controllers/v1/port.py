@@ -25,7 +25,9 @@ import wsmeext.pecan as wsme_pecan
 from ironic import objects
 
 from ironic.api.controllers.v1 import base
+from ironic.api.controllers.v1 import collection
 from ironic.api.controllers.v1 import link
+from ironic.api.controllers.v1 import utils
 from ironic.common import exception
 from ironic.openstack.common import log
 
@@ -69,18 +71,41 @@ class Port(base.APIBase):
         return port
 
 
+class PortCollection(collection.Collection):
+    """API representation of a collection of ports."""
+
+    items = [Port]
+    "A list containing ports objects"
+
+    @classmethod
+    def convert_with_links(cls, ports, limit, **kwargs):
+        collection = PortCollection()
+        collection.type = 'port'
+        collection.items = [Port.convert_with_links(p) for p in ports]
+        collection.links = collection.make_links(limit, 'ports', **kwargs)
+        return collection
+
+
 class PortsController(rest.RestController):
     """REST controller for Ports."""
 
-    @wsme_pecan.wsexpose([Port])
-    def get_all(self):
+    @wsme_pecan.wsexpose(PortCollection, int, unicode, unicode, unicode)
+    def get_all(self, limit=None, marker=None, sort_key='id', sort_dir='asc'):
         """Retrieve a list of ports."""
-        p_list = []
-        for uuid in pecan.request.dbapi.get_port_list():
-            rpc_port = objects.Port.get_by_uuid(pecan.request.context,
-                                                uuid)
-            p_list.append(Port.convert_with_links(rpc_port))
-        return p_list
+        limit = utils.validate_limit(limit)
+        sort_dir = utils.validate_sort_dir(sort_dir)
+
+        marker_obj = None
+        if marker:
+            marker_obj = objects.Port.get_by_uuid(pecan.request.context,
+                                                  marker)
+
+        ports = pecan.request.dbapi.get_port_list(limit, marker_obj,
+                                                  sort_key=sort_key,
+                                                  sort_dir=sort_dir)
+        return PortCollection.convert_with_links(ports, limit,
+                                                 sort_key=sort_key,
+                                                 sort_dir=sort_dir)
 
     @wsme_pecan.wsexpose(Port, unicode)
     def get_one(self, uuid):

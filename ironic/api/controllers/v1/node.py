@@ -25,7 +25,9 @@ import wsmeext.pecan as wsme_pecan
 from ironic import objects
 
 from ironic.api.controllers.v1 import base
+from ironic.api.controllers.v1 import collection
 from ironic.api.controllers.v1 import link
+from ironic.api.controllers.v1 import utils
 from ironic.common import exception
 from ironic.openstack.common import log
 
@@ -89,18 +91,41 @@ class Node(base.APIBase):
         return node
 
 
+class NodeCollection(collection.Collection):
+    """API representation of a collection of nodes."""
+
+    items = [Node]
+    "A list containing nodes objects"
+
+    @classmethod
+    def convert_with_links(cls, nodes, limit, **kwargs):
+        collection = NodeCollection()
+        collection.type = 'node'
+        collection.items = [Node.convert_with_links(n) for n in nodes]
+        collection.links = collection.make_links(limit, 'nodes', **kwargs)
+        return collection
+
+
 class NodesController(rest.RestController):
     """REST controller for Nodes."""
 
-    @wsme_pecan.wsexpose([Node])
-    def get_all(self):
+    @wsme_pecan.wsexpose(NodeCollection, int, unicode, unicode, unicode)
+    def get_all(self, limit=None, marker=None, sort_key='id', sort_dir='asc'):
         """Retrieve a list of nodes."""
-        n_list = []
-        for uuid in pecan.request.dbapi.get_node_list():
-            rpc_node = objects.Node.get_by_uuid(pecan.request.context,
-                                                uuid)
-            n_list.append(Node.convert_with_links(rpc_node))
-        return n_list
+        limit = utils.validate_limit(limit)
+        sort_dir = utils.validate_sort_dir(sort_dir)
+
+        marker_obj = None
+        if marker:
+            marker_obj = objects.Node.get_by_uuid(pecan.request.context,
+                                                  marker)
+
+        nodes = pecan.request.dbapi.get_node_list(limit, marker_obj,
+                                                  sort_key=sort_key,
+                                                  sort_dir=sort_dir)
+        return NodeCollection.convert_with_links(nodes, limit,
+                                                 sort_key=sort_key,
+                                                 sort_dir=sort_dir)
 
     @wsme_pecan.wsexpose(Node, unicode)
     def get_one(self, uuid):

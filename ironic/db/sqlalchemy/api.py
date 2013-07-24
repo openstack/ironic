@@ -29,6 +29,7 @@ from ironic.db import api
 from ironic.db.sqlalchemy import models
 from ironic import objects
 from ironic.openstack.common.db.sqlalchemy import session as db_session
+from ironic.openstack.common.db.sqlalchemy import utils as db_utils
 from ironic.openstack.common import log
 from ironic.openstack.common import uuidutils
 
@@ -111,6 +112,17 @@ def add_node_filter_by_chassis(query, value):
         return query.filter(models.Chassis.uuid == value)
 
 
+def _paginate_query(model, limit=None, marker=None,
+                    sort_key=None, sort_dir=None):
+    query = model_query(model)
+    sort_keys = ['id']
+    if sort_key and sort_key not in sort_keys:
+        sort_keys.insert(0, sort_key)
+    query = db_utils.paginate_query(query, model, limit, sort_keys,
+                                    marker=marker, sort_dir=sort_dir)
+    return query.all()
+
+
 class Connection(api.Connection):
     """SqlAlchemy connection."""
 
@@ -121,9 +133,11 @@ class Connection(api.Connection):
     def get_nodes(self, columns):
         pass
 
-    def get_node_list(self):
-        query = model_query(models.Node.uuid)
-        return [i[0] for i in query.all()]
+    @objects.objectify(objects.Node)
+    def get_node_list(self, limit=None, marker=None,
+                      sort_key=None, sort_dir=None):
+        return _paginate_query(models.Node, limit, marker,
+                               sort_key, sort_dir)
 
     @objects.objectify(objects.Node)
     def get_nodes_by_chassis(self, chassis):
@@ -293,9 +307,11 @@ class Connection(api.Connection):
     def get_port_by_vif(self, vif):
         pass
 
-    def get_port_list(self):
-        query = model_query(models.Port.uuid)
-        return [i[0] for i in query.all()]
+    @objects.objectify(objects.Port)
+    def get_port_list(self, limit=None, marker=None,
+                      sort_key=None, sort_dir=None):
+        return _paginate_query(models.Port, limit, marker,
+                               sort_key, sort_dir)
 
     @objects.objectify(objects.Port)
     def get_ports_by_node(self, node):
@@ -348,9 +364,11 @@ class Connection(api.Connection):
         except NoResultFound:
             raise exception.ChassisNotFound(chassis=chassis)
 
-    def get_chassis_list(self):
-        query = model_query(models.Chassis.uuid)
-        return [i[0] for i in query.all()]
+    @objects.objectify(objects.Chassis)
+    def get_chassis_list(self, limit=None, marker=None,
+                         sort_key=None, sort_dir=None):
+        return _paginate_query(models.Chassis, limit, marker,
+                               sort_key, sort_dir)
 
     @objects.objectify(objects.Chassis)
     def create_chassis(self, values):

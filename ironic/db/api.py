@@ -48,8 +48,17 @@ class Connection(object):
         """
 
     @abc.abstractmethod
-    def get_node_list(self):
-        """Return a list of node UUIDs."""
+    def get_node_list(self, limit=None, marker=None,
+                      sort_key=None, sort_dir=None):
+        """Return a list of nodes.
+
+        :param limit: Maximum number of nodes to return.
+        :param marker: the last item of the previous page; we return the next
+                       result set.
+        :param sort_key: Attribute by which results should be sorted.
+        :param sort_dir: direction in which results should be sorted.
+                         (asc, desc)
+        """
 
     @abc.abstractmethod
     def get_associated_nodes(self):
@@ -171,10 +180,16 @@ class Connection(object):
         """
 
     @abc.abstractmethod
-    def get_port_list(self):
-        """Return a lists of port
+    def get_port_list(self, limit=None, marker=None,
+                      sort_key=None, sort_dir=None):
+        """Return a list of ports.
 
-        :return: Port list.
+        :param limit: Maximum number of ports to return.
+        :param marker: the last item of the previous page; we return the next
+                       result set.
+        :param sort_key: Attribute by which results should be sorted.
+        :param sort_dir: direction in which results should be sorted.
+                         (asc, desc)
         """
 
     @abc.abstractmethod
@@ -224,8 +239,17 @@ class Connection(object):
         """
 
     @abc.abstractmethod
-    def get_chassis_list(self):
-        """Return a list of chassis UUIDs."""
+    def get_chassis_list(self, limit=None, marker=None,
+                         sort_key=None, sort_dir=None):
+        """Return a list of chassis.
+
+        :param limit: Maximum number of chassis to return.
+        :param marker: the last item of the previous page; we return the next
+                       result set.
+        :param sort_key: Attribute by which results should be sorted.
+        :param sort_dir: direction in which results should be sorted.
+                         (asc, desc)
+        """
 
     @abc.abstractmethod
     def update_chassis(self, chassis, values):

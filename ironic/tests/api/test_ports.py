@@ -25,26 +25,26 @@ class TestListPorts(base.FunctionalTest):
 
     def test_empty(self):
         data = self.get_json('/ports')
-        self.assertEqual([], data)
+        self.assertEqual([], data['items'])
 
     def test_one(self):
         ndict = dbutils.get_test_port()
         port = self.dbapi.create_port(ndict)
         data = self.get_json('/ports')
-        self.assertEqual(port['uuid'], data[0]["uuid"])
+        self.assertEqual(port['uuid'], data['items'][0]["uuid"])
 
     def test_many(self):
-        ch_list = []
+        ports = []
         for id in xrange(5):
             ndict = dbutils.get_test_port(id=id,
                                           uuid=uuidutils.generate_uuid())
-            ports = self.dbapi.create_port(ndict)
-            ch_list.append(ports['uuid'])
+            port = self.dbapi.create_port(ndict)
+            ports.append(port['uuid'])
         data = self.get_json('/ports')
-        self.assertEqual(len(ch_list), len(data))
+        self.assertEqual(len(ports), len(data['items']))
 
-        uuids = [n['uuid'] for n in data]
-        self.assertEqual(ch_list.sort(), uuids.sort())
+        uuids = [n['uuid'] for n in data['items']]
+        self.assertEqual(ports.sort(), uuids.sort())
 
     def test_links(self):
         uuid = uuidutils.generate_uuid()
@@ -54,6 +54,21 @@ class TestListPorts(base.FunctionalTest):
         self.assertIn('links', data.keys())
         self.assertEqual(len(data['links']), 2)
         self.assertIn(uuid, data['links'][0]['href'])
+
+    def test_collection_links(self):
+        ports = []
+        for id in xrange(5):
+            ndict = dbutils.get_test_port(id=id,
+                                          uuid=uuidutils.generate_uuid())
+            port = self.dbapi.create_port(ndict)
+            ports.append(port['uuid'])
+        data = self.get_json('/ports/?limit=3')
+        self.assertEqual(data['type'], 'port')
+        self.assertEqual(len(data['items']), 3)
+
+        next_marker = data['items'][-1]['uuid']
+        next_link = [l['href'] for l in data['links'] if l['rel'] == 'next'][0]
+        self.assertIn(next_marker, next_link)
 
 
 class TestPatch(base.FunctionalTest):

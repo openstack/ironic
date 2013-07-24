@@ -25,13 +25,13 @@ class TestListChassis(base.FunctionalTest):
 
     def test_empty(self):
         data = self.get_json('/chassis')
-        self.assertEqual([], data)
+        self.assertEqual([], data['items'])
 
     def test_one(self):
         ndict = dbutils.get_test_chassis()
         chassis = self.dbapi.create_chassis(ndict)
         data = self.get_json('/chassis')
-        self.assertEqual(chassis['uuid'], data[0]["uuid"])
+        self.assertEqual(chassis['uuid'], data['items'][0]["uuid"])
 
     def test_many(self):
         ch_list = []
@@ -41,9 +41,9 @@ class TestListChassis(base.FunctionalTest):
             chassis = self.dbapi.create_chassis(ndict)
             ch_list.append(chassis['uuid'])
         data = self.get_json('/chassis')
-        self.assertEqual(len(ch_list), len(data))
+        self.assertEqual(len(ch_list), len(data['items']))
 
-        uuids = [n['uuid'] for n in data]
+        uuids = [n['uuid'] for n in data['items']]
         self.assertEqual(ch_list.sort(), uuids.sort())
 
     def test_links(self):
@@ -54,3 +54,18 @@ class TestListChassis(base.FunctionalTest):
         self.assertIn('links', data.keys())
         self.assertEqual(len(data['links']), 2)
         self.assertIn(uuid, data['links'][0]['href'])
+
+    def test_collection_links(self):
+        chassis = []
+        for id in xrange(5):
+            ndict = dbutils.get_test_chassis(id=id,
+                                             uuid=uuidutils.generate_uuid())
+            ch = self.dbapi.create_chassis(ndict)
+            chassis.append(ch['uuid'])
+        data = self.get_json('/chassis/?limit=3')
+        self.assertEqual(data['type'], 'chassis')
+        self.assertEqual(len(data['items']), 3)
+
+        next_marker = data['items'][-1]['uuid']
+        next_link = [l['href'] for l in data['links'] if l['rel'] == 'next'][0]
+        self.assertIn(next_marker, next_link)
