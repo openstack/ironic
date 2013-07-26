@@ -22,9 +22,11 @@ import wsme
 from wsme import types as wtypes
 import wsmeext.pecan as wsme_pecan
 
-from ironic.api.controllers.v1 import base
-from ironic.common import exception
 from ironic import objects
+
+from ironic.api.controllers.v1 import base
+from ironic.api.controllers.v1 import link
+from ironic.common import exception
 from ironic.openstack.common import log
 
 LOG = log.getLogger(__name__)
@@ -49,9 +51,13 @@ class Node(base.APIBase):
     #       and vendors can expand on them without requiring API changes.
     # NOTE: translate 'driver_info' internally to 'management_configuration'
     driver = wtypes.text
+
+    # FIXME(lucasagomes): it should accept at least wtypes.text or wtypes.int
+    #                     as value
     driver_info = {wtypes.text: wtypes.text}
 
-    # NOTE: translate 'extra' internally to 'meta_data' externally
+    # FIXME(lucasagomes): it should accept at least wtypes.text or wtypes.int
+    #                     as value
     extra = {wtypes.text: wtypes.text}
 
     # NOTE: properties should use a class to enforce required properties
@@ -62,27 +68,45 @@ class Node(base.APIBase):
     #       and accept a chassis uuid when creating a node.
     chassis_id = int
 
-    # NOTE: also list / link to ports associated with this node
+    links = [link.Link]
+    "A list containing a self link and associated node links"
 
     def __init__(self, **kwargs):
         self.fields = objects.Node.fields.keys()
         for k in self.fields:
             setattr(self, k, kwargs.get(k))
 
+    @classmethod
+    def convert_with_links(cls, rpc_node):
+        node = Node.from_rpc_object(rpc_node)
+        node.links = [link.Link.make_link('self', pecan.request.host_url,
+                                          'nodes', node.uuid),
+                      link.Link.make_link('bookmark',
+                                          pecan.request.host_url,
+                                          'nodes', node.uuid,
+                                          bookmark=True)
+                     ]
+        return node
+
 
 class NodesController(rest.RestController):
     """REST controller for Nodes."""
 
-    @wsme_pecan.wsexpose([unicode])
-    def get(self):
+    @wsme_pecan.wsexpose([Node])
+    def get_all(self):
         """Retrieve a list of nodes."""
-        return pecan.request.dbapi.get_node_list()
+        n_list = []
+        for uuid in pecan.request.dbapi.get_node_list():
+            rpc_node = objects.Node.get_by_uuid(pecan.request.context,
+                                                uuid)
+            n_list.append(Node.convert_with_links(rpc_node))
+        return n_list
 
     @wsme_pecan.wsexpose(Node, unicode)
     def get_one(self, uuid):
         """Retrieve information about the given node."""
-        node = objects.Node.get_by_uuid(pecan.request.context, uuid)
-        return node
+        rpc_node = objects.Node.get_by_uuid(pecan.request.context, uuid)
+        return Node.convert_with_links(rpc_node)
 
     @wsme.validate(Node)
     @wsme_pecan.wsexpose(Node, body=Node)
@@ -93,7 +117,7 @@ class NodesController(rest.RestController):
         except Exception as e:
             LOG.exception(e)
             raise wsme.exc.ClientSideError(_("Invalid data"))
-        return new_node
+        return Node.convert_with_links(new_node)
 
     @wsme.validate(Node)
     @wsme_pecan.wsexpose(Node, unicode, body=Node, status=200)
@@ -139,7 +163,7 @@ class NodesController(rest.RestController):
         if response.status_code not in [200, 202]:
             raise wsme.exc.ClientSideError(_(
                     "Error updating node %s") % node_id)
-        return response.obj
+        return Node.convert_with_links(response.obj)
 
     @wsme_pecan.wsexpose()
     def delete(self, node_id):

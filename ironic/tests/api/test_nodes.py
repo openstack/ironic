@@ -20,6 +20,7 @@ import mox
 
 from ironic.common import exception
 from ironic.conductor import rpcapi
+from ironic.openstack.common import uuidutils
 from ironic.tests.api import base
 from ironic.tests.db import utils as dbutils
 
@@ -34,16 +35,29 @@ class TestListNodes(base.FunctionalTest):
         ndict = dbutils.get_test_node()
         node = self.dbapi.create_node(ndict)
         data = self.get_json('/nodes')
-        self.assertEqual([node['uuid']], data)
+        self.assertEqual(node['uuid'], data[0]["uuid"])
 
     def test_many(self):
         nodes = []
         for id in xrange(5):
-            ndict = dbutils.get_test_node(id=id)
+            ndict = dbutils.get_test_node(id=id,
+                                          uuid=uuidutils.generate_uuid())
             node = self.dbapi.create_node(ndict)
             nodes.append(node['uuid'])
         data = self.get_json('/nodes')
-        self.assertEqual(nodes.sort(), data.sort())
+        self.assertEqual(len(nodes), len(data))
+
+        uuids = [n['uuid'] for n in data]
+        self.assertEqual(nodes.sort(), uuids.sort())
+
+    def test_links(self):
+        uuid = uuidutils.generate_uuid()
+        ndict = dbutils.get_test_node(id=1, uuid=uuid)
+        self.dbapi.create_node(ndict)
+        data = self.get_json('/nodes/1')
+        self.assertIn('links', data.keys())
+        self.assertEqual(len(data['links']), 2)
+        self.assertIn(uuid, data['links'][0]['href'])
 
 
 class TestPatch(base.FunctionalTest):
