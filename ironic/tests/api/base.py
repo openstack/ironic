@@ -67,20 +67,6 @@ class FunctionalTest(base.DbTestCase):
         super(FunctionalTest, self).tearDown()
         pecan.set_config({}, overwrite=True)
 
-    def patch_json(self, path, params, expect_errors=False, headers=None,
-                 extra_environ=None, status=None):
-        return self.post_json(path=path, params=params,
-                              expect_errors=expect_errors,
-                              headers=headers, extra_environ=extra_environ,
-                              status=status, method="patch")
-
-    def put_json(self, path, params, expect_errors=False, headers=None,
-                 extra_environ=None, status=None):
-        return self.post_json(path=path, params=params,
-                              expect_errors=expect_errors,
-                              headers=headers, extra_environ=extra_environ,
-                              status=status, method="put")
-
     def post_json(self, path, params, expect_errors=False, headers=None,
                   method="post", extra_environ=None, status=None):
         full_path = self.PATH_PREFIX + path
@@ -95,6 +81,14 @@ class FunctionalTest(base.DbTestCase):
         )
         print('GOT:%s' % response)
         return response
+
+    def put_json(self, *args, **kwargs):
+        kwargs['method'] = 'put'
+        return self.post_json(*args, **kwargs)
+
+    def patch_json(self, *args, **kwargs):
+        kwargs['method'] = 'patch'
+        return self.post_json(*args, **kwargs)
 
     def delete(self, path, expect_errors=False, headers=None,
                extra_environ=None, status=None):
