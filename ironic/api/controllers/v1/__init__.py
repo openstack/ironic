@@ -24,12 +24,16 @@ Should maintain feature parity with Nova Baremetal Extension.
 Specification can be found at ironic/doc/api/v1.rst
 """
 
-from ironic.api.controllers.v1 import controller
+from ironic.api.controllers.v1 import chassis
 from ironic.api.controllers.v1 import node
+from ironic.api.controllers.v1 import port
 
 
-Controller = controller.Controller
-NodesController = node.NodesController
+class Controller(object):
+    """Version 1 API controller root."""
 
-__all__ = (Controller,
-           NodesController,)
+    nodes = node.NodesController()
+    ports = port.PortsController()
+    chassis = chassis.ChassisController()
+
+__all__ = (Controller)
