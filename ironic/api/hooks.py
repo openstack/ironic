@@ -26,15 +26,14 @@ from ironic.openstack.common import policy
 
 
 class ConfigHook(hooks.PecanHook):
-    """Attach the configuration object to the request
-    so controllers can get to it.
-    """
+    """Attach the config object to the request so controllers can get to it."""
 
     def before(self, state):
         state.request.cfg = cfg.CONF
 
 
 class DBHook(hooks.PecanHook):
+    """Attach the dbapi object to the request so controllers can get to it."""
 
     def before(self, state):
         state.request.dbapi = dbapi.get_instance()
@@ -78,6 +77,7 @@ class ContextHook(hooks.PecanHook):
 
 
 class RPCHook(hooks.PecanHook):
+    """Attach the rpcapi object to the request so controllers can get to it."""
 
     def before(self, state):
         state.request.rpcapi = rpcapi.ConductorAPI()
