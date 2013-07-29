@@ -16,6 +16,29 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+"""
+Tests for database migrations. This test case reads the configuration
+file test_migrations.conf for database connection settings
+to use in the tests. For each connection found in the config file,
+the test case runs a series of test cases to ensure that migrations work
+properly.
+
+There are also "opportunistic" tests for both mysql and postgresql in here,
+which allows testing against all 3 databases (sqlite in memory, mysql, pg) in
+a properly configured unit test environment.
+
+For the opportunistic testing you need to set up a db named 'openstack_citest'
+with user 'openstack_citest' and password 'openstack_citest' on localhost.
+The test will then use that db and u/p combo to run the tests.
+
+For postgres on Ubuntu this can be done with the following commands:
+
+sudo -u postgres psql
+postgres=# create user openstack_citest with createdb login password
+      'openstack_citest';
+postgres=# create database openstack_citest with owner openstack_citest;
+
+"""
 
 import commands
 import ConfigParser
@@ -430,6 +453,9 @@ class TestWalkVersions(test_utils.BaseTestCase, WalkVersionsMixin):
 
 
 class TestMigrations(BaseMigrationTestCase, WalkVersionsMixin):
+    USER = "openstack_citest"
+    PASSWD = "openstack_citest"
+    DATABASE = "openstack_citest"
 
     def __init__(self, *args, **kwargs):
         super(TestMigrations, self).__init__(*args, **kwargs)
@@ -449,9 +475,88 @@ class TestMigrations(BaseMigrationTestCase, WalkVersionsMixin):
                     globals(), locals(), ['versioning_api'], -1)
             self.migration_api = temp.versioning_api
 
+    def _test_mysql_opportunistically(self):
+        # Test that table creation on mysql only builds InnoDB tables
+        if not _have_mysql(self.USER, self.PASSWD, self.DATABASE):
+            self.skipTest("mysql not available")
+        # add this to the global lists to make reset work with it, it's removed
+        # automatically in tearDown so no need to clean it up here.
+        connect_string = _get_connect_string("mysql", self.USER, self.PASSWD,
+                self.DATABASE)
+        (user, password, database, host) = \
+                get_db_connection_info(urlparse.urlparse(connect_string))
+        engine = sqlalchemy.create_engine(connect_string)
+        self.engines[database] = engine
+        self.test_databases[database] = connect_string
+
+        # build a fully populated mysql database with all the tables
+        self._reset_databases()
+        self._walk_versions(engine, False, False)
+
+        connection = engine.connect()
+        # sanity check
+        total = connection.execute("SELECT count(*) "
+                                   "from information_schema.TABLES "
+                                   "where TABLE_SCHEMA='%s'" % database)
+        self.assertTrue(total.scalar() > 0, "No tables found. Wrong schema?")
+
+        noninnodb = connection.execute("SELECT count(*) "
+                                       "from information_schema.TABLES "
+                                       "where TABLE_SCHEMA='%s' "
+                                       "and ENGINE!='InnoDB' "
+                                       "and TABLE_NAME!='migrate_version'" %
+                                       database)
+        count = noninnodb.scalar()
+        self.assertEqual(count, 0, "%d non InnoDB tables created" % count)
+        connection.close()
+
+    def _test_postgresql_opportunistically(self):
+        # Test postgresql database migration walk
+        if not _have_postgresql(self.USER, self.PASSWD, self.DATABASE):
+            self.skipTest("postgresql not available")
+        # add this to the global lists to make reset work with it, it's removed
+        # automatically in tearDown so no need to clean it up here.
+        connect_string = _get_connect_string("postgres", self.USER,
+                self.PASSWD, self.DATABASE)
+        engine = sqlalchemy.create_engine(connect_string)
+        (user, password, database, host) = \
+                get_db_connection_info(urlparse.urlparse(connect_string))
+        self.engines[database] = engine
+        self.test_databases[database] = connect_string
+
+        # build a fully populated postgresql database with all the tables
+        self._reset_databases()
+        self._walk_versions(engine, False, False)
+
     def test_walk_versions(self):
         for engine in self.engines.values():
             self._walk_versions(engine, snake_walk=False, downgrade=False)
+
+    def test_mysql_opportunistically(self):
+        self._test_mysql_opportunistically()
+
+    def test_mysql_connect_fail(self):
+        """Test that we can trigger a mysql connection failure
+
+        Test that we can fail gracefully to ensure we don't break people
+        without mysql
+        """
+        if _is_backend_avail('mysql', "openstack_cifail", self.PASSWD,
+                             self.DATABASE):
+            self.fail("Shouldn't have connected")
+
+    def test_postgresql_opportunistically(self):
+        self._test_postgresql_opportunistically()
+
+    def test_postgresql_connect_fail(self):
+        """Test that we can trigger a postgres connection failure
+
+        Test that we can fail gracefully to ensure we don't break people
+        without postgres
+        """
+        if _is_backend_avail('postgres', "openstack_cifail", self.PASSWD,
+                             self.DATABASE):
+            self.fail("Shouldn't have connected")
 
     def _check_001(self, engine, data):
         nodes = db_utils.get_table(engine, 'nodes')

@@ -6,6 +6,7 @@ mock>=0.8.0
 mox>=0.5.3
 Babel>=0.9.6
 MySQL-python
+psycopg2
 python-subunit
 sphinx>=1.1.2
 testrepository>=0.0.17
