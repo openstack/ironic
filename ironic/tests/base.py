@@ -32,8 +32,6 @@ import shutil
 import sys
 
 import fixtures
-import mox
-import stubout
 import testtools
 
 from oslo.config import cfg
@@ -43,6 +41,7 @@ from ironic.db import migration
 from ironic.common import paths
 from ironic.objects import base as objects_base
 from ironic.openstack.common.db.sqlalchemy import session
+from ironic.openstack.common.fixture import moxstubout
 from ironic.openstack.common import log as logging
 from ironic.openstack.common import timeutils
 from ironic.tests import conf_fixture
@@ -128,21 +127,6 @@ class ReplaceModule(fixtures.Fixture):
         self.addCleanup(self._restore, old_value)
 
 
-class MoxStubout(fixtures.Fixture):
-    """Deal with code around mox and stubout as a fixture."""
-
-    def setUp(self):
-        super(MoxStubout, self).setUp()
-        # emulate some of the mox stuff, we can't use the metaclass
-        # because it screws with our generators
-        self.mox = mox.Mox()
-        self.stubs = stubout.StubOutForTesting()
-        self.addCleanup(self.mox.UnsetStubs)
-        self.addCleanup(self.stubs.UnsetAll)
-        self.addCleanup(self.stubs.SmartUnsetAll)
-        self.addCleanup(self.mox.VerifyAll)
-
-
 class TestingException(Exception):
     pass
 
@@ -192,7 +176,7 @@ class TestCase(testtools.TestCase):
                 objects_base.IronicObject._obj_classes)
         self.addCleanup(self._restore_obj_registry)
 
-        mox_fixture = self.useFixture(MoxStubout())
+        mox_fixture = self.useFixture(moxstubout.MoxStubout())
         self.mox = mox_fixture.mox
         self.stubs = mox_fixture.stubs
         self.addCleanup(self._clear_attrs)
