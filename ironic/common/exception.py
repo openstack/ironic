@@ -280,6 +280,11 @@ class NodeNotConfigured(IronicException):
             "is not fully configured.")
 
 
+class ChassisNotEmpty(IronicException):
+    message = _("Cannot complete the requested action because chassis "
+                "%(chassis)s contains nodes.")
+
+
 class IPMIFailure(IronicException):
     message = _("IPMI command failed: %(cmd)s.")
 

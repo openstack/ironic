@@ -35,6 +35,10 @@ class DbChassisTestCase(base.DbTestCase):
         self.dbapi.create_chassis(ch)
         return ch
 
+    def _create_test_node(self, **kwargs):
+        node = utils.get_test_node(**kwargs)
+        return self.dbapi.create_node(node)
+
     def test_get_chassis_list(self):
         uuids = []
         for i in xrange(1, 6):
@@ -87,3 +91,10 @@ class DbChassisTestCase(base.DbTestCase):
     def test_destroy_chassis_that_does_not_exist(self):
         self.assertRaises(exception.ChassisNotFound,
                           self.dbapi.destroy_chassis, 666)
+
+    def test_destroy_chassis_with_nodes(self):
+        ch = self._create_test_chassis()
+        self._create_test_node(chassis_id=ch['id'])
+
+        self.assertRaises(exception.ChassisNotEmpty,
+                          self.dbapi.destroy_chassis, ch['id'])
