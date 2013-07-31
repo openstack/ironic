@@ -108,7 +108,6 @@ class NodesController(rest.RestController):
         rpc_node = objects.Node.get_by_uuid(pecan.request.context, uuid)
         return Node.convert_with_links(rpc_node)
 
-    @wsme.validate(Node)
     @wsme_pecan.wsexpose(Node, body=Node)
     def post(self, node):
         """Ceate a new node."""
@@ -119,7 +118,6 @@ class NodesController(rest.RestController):
             raise wsme.exc.ClientSideError(_("Invalid data"))
         return Node.convert_with_links(new_node)
 
-    @wsme.validate(Node)
     @wsme_pecan.wsexpose(Node, unicode, body=Node, status=200)
     def patch(self, node_id, node_data):
         """Update an existing node.

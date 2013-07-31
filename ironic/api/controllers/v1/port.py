@@ -88,7 +88,6 @@ class PortsController(rest.RestController):
         rpc_port = objects.Port.get_by_uuid(pecan.request.context, uuid)
         return Port.convert_with_links(rpc_port)
 
-    @wsme.validate(Port)
     @wsme_pecan.wsexpose(Port, body=Port)
     def post(self, port):
         """Ceate a new port."""
@@ -99,7 +98,6 @@ class PortsController(rest.RestController):
             raise wsme.exc.ClientSideError(_("Invalid data"))
         return Port.convert_with_links(new_port)
 
-    @wsme.validate(Port)
     @wsme_pecan.wsexpose(Port, unicode, body=Port)
     def patch(self, uuid, port_data):
         """Update an existing port."""

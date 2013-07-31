@@ -102,7 +102,6 @@ class ChassisController(rest.RestController):
             raise wsme.exc.ClientSideError(_("Invalid data"))
         return Chassis.convert_with_links(new_chassis)
 
-    @wsme.validate(Chassis)
     @wsme_pecan.wsexpose(Chassis, unicode, body=Chassis)
     def patch(self, uuid, delta_chassis):
         """Update an existing chassis."""
