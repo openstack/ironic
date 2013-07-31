@@ -29,6 +29,7 @@ import random
 import re
 import shutil
 import signal
+import six
 import tempfile
 
 from eventlet.green import subprocess
@@ -297,7 +298,7 @@ def is_valid_boolstr(val):
 def is_valid_mac(address):
     """Verify the format of a MAC addres."""
     m = "[0-9a-f]{2}([-:])[0-9a-f]{2}(\\1[0-9a-f]{2}){4}$"
-    if isinstance(address, str) and re.match(m, address.lower()):
+    if isinstance(address, six.string_types) and re.match(m, address.lower()):
         return True
     return False
 
