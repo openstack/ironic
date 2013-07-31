@@ -122,9 +122,10 @@ def _check_port_change_forbidden(port, session):
             raise exception.NodeLocked(node=node_id)
 
 
-def _paginate_query(model, limit=None, marker=None,
-                    sort_key=None, sort_dir=None):
-    query = model_query(model)
+def _paginate_query(model, limit=None, marker=None, sort_key=None,
+                    sort_dir=None, query=None):
+    if not query:
+        query = model_query(model)
     sort_keys = ['id']
     if sort_key and sort_key not in sort_keys:
         sort_keys.insert(0, sort_key)
@@ -150,11 +151,12 @@ class Connection(api.Connection):
                                sort_key, sort_dir)
 
     @objects.objectify(objects.Node)
-    def get_nodes_by_chassis(self, chassis):
+    def get_nodes_by_chassis(self, chassis, limit=None, marker=None,
+                             sort_key=None, sort_dir=None):
         query = model_query(models.Node)
         query = add_node_filter_by_chassis(query, chassis)
-
-        return query.all()
+        return _paginate_query(models.Node, limit, marker,
+                               sort_key, sort_dir, query)
 
     @objects.objectify(objects.Node)
     def get_associated_nodes(self):
@@ -326,11 +328,12 @@ class Connection(api.Connection):
                                sort_key, sort_dir)
 
     @objects.objectify(objects.Port)
-    def get_ports_by_node(self, node):
+    def get_ports_by_node(self, node, limit=None, marker=None,
+                          sort_key=None, sort_dir=None):
         query = model_query(models.Port)
         query = add_port_filter_by_node(query, node)
-
-        return query.all()
+        return _paginate_query(models.Port, limit, marker,
+                               sort_key, sort_dir, query)
 
     @objects.objectify(objects.Port)
     def create_port(self, values):

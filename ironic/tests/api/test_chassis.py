@@ -70,6 +70,33 @@ class TestListChassis(base.FunctionalTest):
         next_link = [l['href'] for l in data['links'] if l['rel'] == 'next'][0]
         self.assertIn(next_marker, next_link)
 
+    def test_nodes_subresource_link(self):
+        ndict = dbutils.get_test_chassis()
+        self.dbapi.create_chassis(ndict)
+
+        data = self.get_json('/chassis/%s' % ndict['uuid'])
+        self.assertIn('nodes', data.keys())
+
+    def test_nodes_subresource(self):
+        cdict = dbutils.get_test_chassis()
+        self.dbapi.create_chassis(cdict)
+
+        for id in xrange(2):
+            ndict = dbutils.get_test_node(id=id, chassis_id=cdict['id'],
+                                          uuid=uuidutils.generate_uuid())
+            self.dbapi.create_node(ndict)
+
+        data = self.get_json('/chassis/%s/nodes' % cdict['uuid'])
+        self.assertEqual(data['type'], 'node')
+        self.assertEqual(len(data['items']), 2)
+        self.assertEqual(len(data['links']), 0)
+
+        # Test collection pagination
+        data = self.get_json('/chassis/%s/nodes?limit=1' % cdict['uuid'])
+        self.assertEqual(data['type'], 'node')
+        self.assertEqual(len(data['items']), 1)
+        self.assertEqual(len(data['links']), 1)
+
 
 class TestPatch(base.FunctionalTest):
 

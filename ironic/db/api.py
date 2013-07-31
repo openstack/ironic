@@ -130,10 +130,17 @@ class Connection(object):
         """
 
     @abc.abstractmethod
-    def get_nodes_by_chassis(self, chassis):
+    def get_nodes_by_chassis(self, chassis, limit=None, marker=None,
+                             sort_key=None, sort_dir=None):
         """List all the nodes for a given chassis.
 
         :param chassis: The id or uuid of a chassis.
+        :param limit: Maximum number of nodes to return.
+        :param marker: the last item of the previous page; we returns the next
+                       results after this value.
+        :param sort_key: Attribute by which results should be sorted
+        :param sort_dir: direction in which results should be sorted
+                         (asc, desc)
         :returns: A list of nodes.
         """
 
@@ -193,10 +200,17 @@ class Connection(object):
         """
 
     @abc.abstractmethod
-    def get_ports_by_node(self, node):
+    def get_ports_by_node(self, node, limit=None, marker=None,
+                          sort_key=None, sort_dir=None):
         """List all the ports for a given node.
 
         :param node: The id or uuid of a node.
+        :param limit: Maximum number of ports to return.
+        :param marker: the last item of the previous page; we return the next
+                       result set.
+        :param sort_key: Attribute by which results should be sorted
+        :param sort_dir: direction in which results should be sorted
+                         (asc, desc)
         :returns: A list of ports.
         """
 

@@ -27,6 +27,7 @@ from ironic import objects
 from ironic.api.controllers.v1 import base
 from ironic.api.controllers.v1 import collection
 from ironic.api.controllers.v1 import link
+from ironic.api.controllers.v1 import port
 from ironic.api.controllers.v1 import utils
 from ironic.common import exception
 from ironic.openstack.common import log
@@ -73,6 +74,9 @@ class Node(base.APIBase):
     links = [link.Link]
     "A list containing a self link and associated node links"
 
+    ports = [link.Link]
+    "Links to the collection of ports on this node"
+
     def __init__(self, **kwargs):
         self.fields = objects.Node.fields.keys()
         for k in self.fields:
@@ -86,6 +90,13 @@ class Node(base.APIBase):
                       link.Link.make_link('bookmark',
                                           pecan.request.host_url,
                                           'nodes', node.uuid,
+                                          bookmark=True)
+                     ]
+        node.ports = [link.Link.make_link('self', pecan.request.host_url,
+                                          'nodes', node.uuid + "/ports"),
+                      link.Link.make_link('bookmark',
+                                          pecan.request.host_url,
+                                          'nodes', node.uuid + "/ports",
                                           bookmark=True)
                      ]
         return node
@@ -108,6 +119,10 @@ class NodeCollection(collection.Collection):
 
 class NodesController(rest.RestController):
     """REST controller for Nodes."""
+
+    _custom_actions = {
+        'ports': ['GET'],
+    }
 
     @wsme_pecan.wsexpose(NodeCollection, int, unicode, unicode, unicode)
     def get_all(self, limit=None, marker=None, sort_key='id', sort_dir='asc'):
@@ -195,3 +210,29 @@ class NodesController(rest.RestController):
         TODO(deva): don't allow deletion of an associated node.
         """
         pecan.request.dbapi.destroy_node(node_id)
+
+    @wsme_pecan.wsexpose(port.PortCollection, unicode, int, unicode,
+                         unicode, unicode)
+    def ports(self, node_uuid, limit=None, marker=None,
+              sort_key='id', sort_dir='asc'):
+        """Retrieve a list of ports on this node."""
+        limit = utils.validate_limit(limit)
+        sort_dir = utils.validate_sort_dir(sort_dir)
+
+        marker_obj = None
+        if marker:
+            marker_obj = objects.Port.get_by_uuid(pecan.request.context,
+                                                  marker)
+
+        ports = pecan.request.dbapi.get_ports_by_node(node_uuid, limit,
+                                                      marker_obj,
+                                                      sort_key=sort_key,
+                                                      sort_dir=sort_dir)
+        collection = port.PortCollection()
+        collection.type = 'port'
+        collection.items = [port.Port.convert_with_links(n) for n in ports]
+        resource_url = '/'.join(['nodes', node_uuid, 'ports'])
+        collection.links = collection.make_links(limit, resource_url,
+                                                 sort_key=sort_key,
+                                                 sort_dir=sort_dir)
+        return collection

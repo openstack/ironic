@@ -74,6 +74,33 @@ class TestListNodes(base.FunctionalTest):
         next_link = [l['href'] for l in data['links'] if l['rel'] == 'next'][0]
         self.assertIn(next_marker, next_link)
 
+    def test_ports_subresource_link(self):
+        ndict = dbutils.get_test_node()
+        self.dbapi.create_node(ndict)
+
+        data = self.get_json('/nodes/%s' % ndict['uuid'])
+        self.assertIn('ports', data.keys())
+
+    def test_ports_subresource(self):
+        ndict = dbutils.get_test_node()
+        self.dbapi.create_node(ndict)
+
+        for id in xrange(2):
+            pdict = dbutils.get_test_port(id=id, node_id=ndict['id'],
+                                          uuid=uuidutils.generate_uuid())
+            self.dbapi.create_port(pdict)
+
+        data = self.get_json('/nodes/%s/ports' % ndict['uuid'])
+        self.assertEqual(data['type'], 'port')
+        self.assertEqual(len(data['items']), 2)
+        self.assertEqual(len(data['links']), 0)
+
+        # Test collection pagination
+        data = self.get_json('/nodes/%s/ports?limit=1' % ndict['uuid'])
+        self.assertEqual(data['type'], 'port')
+        self.assertEqual(len(data['items']), 1)
+        self.assertEqual(len(data['links']), 1)
+
 
 class TestPatch(base.FunctionalTest):
 

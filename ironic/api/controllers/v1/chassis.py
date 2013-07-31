@@ -28,6 +28,7 @@ from ironic import objects
 from ironic.api.controllers.v1 import base
 from ironic.api.controllers.v1 import collection
 from ironic.api.controllers.v1 import link
+from ironic.api.controllers.v1 import node
 from ironic.api.controllers.v1 import utils
 from ironic.common import exception
 from ironic.openstack.common import log
@@ -56,6 +57,9 @@ class Chassis(base.APIBase):
     links = [link.Link]
     "A list containing a self link and associated chassis links"
 
+    nodes = [link.Link]
+    "Links to the collection of nodes contained in this chassis"
+
     def __init__(self, **kwargs):
         self.fields = objects.Chassis.fields.keys()
         for k in self.fields:
@@ -69,6 +73,15 @@ class Chassis(base.APIBase):
                          link.Link.make_link('bookmark',
                                              pecan.request.host_url,
                                              'chassis', chassis.uuid,
+                                             bookmark=True)
+                        ]
+        chassis.nodes = [link.Link.make_link('self', pecan.request.host_url,
+                                             'chassis',
+                                              chassis.uuid + "/nodes"),
+                         link.Link.make_link('bookmark',
+                                             pecan.request.host_url,
+                                             'chassis',
+                                             chassis.uuid + "/nodes",
                                              bookmark=True)
                         ]
         return chassis
@@ -91,6 +104,10 @@ class ChassisCollection(collection.Collection):
 
 class ChassisController(rest.RestController):
     """REST controller for Chassis."""
+
+    _custom_actions = {
+        'nodes': ['GET'],
+    }
 
     @wsme_pecan.wsexpose(ChassisCollection, int, unicode, unicode, unicode)
     def get_all(self, limit=None, marker=None, sort_key='id', sort_dir='asc'):
@@ -148,3 +165,29 @@ class ChassisController(rest.RestController):
     def delete(self, uuid):
         """Delete a chassis."""
         pecan.request.dbapi.destroy_chassis(uuid)
+
+    @wsme_pecan.wsexpose(node.NodeCollection, unicode, int, unicode,
+                         unicode, unicode)
+    def nodes(self, chassis_uuid, limit=None, marker=None,
+              sort_key='id', sort_dir='asc'):
+        """Retrieve a list of nodes contained in the chassis."""
+        limit = utils.validate_limit(limit)
+        sort_dir = utils.validate_sort_dir(sort_dir)
+
+        marker_obj = None
+        if marker:
+            marker_obj = objects.Node.get_by_uuid(pecan.request.context,
+                                                  marker)
+
+        nodes = pecan.request.dbapi.get_nodes_by_chassis(chassis_uuid, limit,
+                                                         marker_obj,
+                                                         sort_key=sort_key,
+                                                         sort_dir=sort_dir)
+        collection = node.NodeCollection()
+        collection.type = 'node'
+        collection.items = [node.Node.convert_with_links(n) for n in nodes]
+        resource_url = '/'.join(['chassis', chassis_uuid, 'nodes'])
+        collection.links = collection.make_links(limit, resource_url,
+                                                 sort_key=sort_key,
+                                                 sort_dir=sort_dir)
+        return collection

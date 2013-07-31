@@ -32,6 +32,11 @@ class Link(base.APIBase):
 
     @classmethod
     def make_link(cls, rel_name, url, resource, resource_args, bookmark=False):
-        template = '%s/%s/%s' if bookmark else '%s/v1/%s/%s'
+        template = '%s/%s' if bookmark else '%s/v1/%s'
+        # FIXME(lucasagomes): I'm getting a 404 when doing a GET on
+        # a nested resource that the URL ends with a  '/'.
+        # https://groups.google.com/forum/#!topic/pecan-dev/QfSeviLg5qs
+        template += '%s' if resource_args.startswith('?') else '/%s'
+
         return Link(href=(template) % (url, resource, resource_args),
                     rel=rel_name)
