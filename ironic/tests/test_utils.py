@@ -297,6 +297,12 @@ class GenericUtilsTestCase(base.TestCase):
                           utils.get_shortened_ipv6_cidr,
                           "failure")
 
+    def test_is_valid_mac(self):
+        self.assertTrue(utils.is_valid_mac("52:54:00:cf:2d:31"))
+        self.assertTrue(utils.is_valid_mac(u"52:54:00:cf:2d:31"))
+        self.assertFalse(utils.is_valid_mac("127.0.0.1"))
+        self.assertFalse(utils.is_valid_mac("not:a:mac:address"))
+
 
 class MkfsTestCase(base.TestCase):
 
