@@ -30,7 +30,7 @@ manager, depending on the node's configuration. In this way, a single
 ConductorManager may use multiple drivers, and manage heterogeneous hardware.
 
 When multiple :py:class:`ConductorManager` are run on different hosts, they are
-all active and cooperatively manage all nodes in the deplyment.  Nodes are
+all active and cooperatively manage all nodes in the deployment.  Nodes are
 locked by each conductor when performing actions which change the state of that
 node; these locks are represented by the
 :py:class:`ironic.conductor.task_manager.TaskManager` class.
