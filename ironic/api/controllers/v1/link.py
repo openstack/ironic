@@ -30,8 +30,12 @@ class Link(base.APIBase):
     rel = wtypes.text
     "The name of a link."
 
+    type = wtypes.text
+    "Indicates the type of document/link."
+
     @classmethod
-    def make_link(cls, rel_name, url, resource, resource_args, bookmark=False):
+    def make_link(cls, rel_name, url, resource, resource_args,
+                  bookmark=False, type=wtypes.Unset):
         template = '%s/%s' if bookmark else '%s/v1/%s'
         # FIXME(lucasagomes): I'm getting a 404 when doing a GET on
         # a nested resource that the URL ends with a  '/'.
@@ -39,4 +43,4 @@ class Link(base.APIBase):
         template += '%s' if resource_args.startswith('?') else '/%s'
 
         return Link(href=(template) % (url, resource, resource_args),
-                    rel=rel_name)
+                    rel=rel_name, type=type)

@@ -17,15 +17,66 @@
 # under the License.
 
 import pecan
+from pecan import rest
+
+from wsme import types as wtypes
+import wsmeext.pecan as wsme_pecan
 
 from ironic.api.controllers import v1
+from ironic.api.controllers.v1 import base
+from ironic.api.controllers.v1 import link
 
 
-class RootController(object):
+class Version(base.APIBase):
+    """An API version representation."""
+
+    id = wtypes.text
+    "The ID of the version, also acts as the release number"
+
+    links = [link.Link]
+    "A Link that point to a specific version of the API"
+
+    @classmethod
+    def convert(self, id):
+        version = Version()
+        version.id = id
+        version.links = [link.Link.make_link('self', pecan.request.host_url,
+                                             id, '', bookmark=True)]
+        return version
+
+
+class Root(base.APIBase):
+
+    name = wtypes.text
+    "The name of the API"
+
+    description = wtypes.text
+    "Some information about this API"
+
+    versions = [Version]
+    "Links to all the versions available in this API"
+
+    default_version = Version
+    "A link to the default version of the API"
+
+    @classmethod
+    def convert(self):
+        root = Root()
+        root.name = "OpenStack Ironic API"
+        root.description = ("Ironic is an OpenStack project which aims to "
+                            "provision baremetal machines.")
+        root.versions = [Version.convert('v1')]
+        root.default_version = Version.convert('v1')
+        return root
+
+
+class RootController(rest.RestController):
 
     v1 = v1.Controller()
 
-    @pecan.expose(generic=True)
-    def index(self):
-        # FIXME: GET / should return more than just ''
-        return ''
+    @wsme_pecan.wsexpose(Root)
+    def get(self):
+        # NOTE: The reason why convert() it's being called for every
+        #       request is because we need to get the host url from
+        #       the request object to make the links.
+        return Root.convert()

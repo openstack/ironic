@@ -28,14 +28,14 @@ from ironic.api import acl
 from ironic.db import api as dbapi
 from ironic.tests.db import base
 
+PATH_PREFIX = '/v1'
+
 
 class FunctionalTest(base.DbTestCase):
     """Used for functional tests of Pecan controllers where you need to
     test your literal application and its integration with the
     framework.
     """
-
-    PATH_PREFIX = '/v1'
 
     SOURCE_DATA = {'test_source': {'somekey': '666'}}
 
@@ -68,8 +68,9 @@ class FunctionalTest(base.DbTestCase):
         pecan.set_config({}, overwrite=True)
 
     def post_json(self, path, params, expect_errors=False, headers=None,
-                  method="post", extra_environ=None, status=None):
-        full_path = self.PATH_PREFIX + path
+                  method="post", extra_environ=None, status=None,
+                  path_prefix=PATH_PREFIX):
+        full_path = path_prefix + path
         print('%s: %s %s' % (method.upper(), full_path, params))
         response = getattr(self.app, "%s_json" % method)(
             str(full_path),
@@ -91,8 +92,8 @@ class FunctionalTest(base.DbTestCase):
         return self.post_json(*args, **kwargs)
 
     def delete(self, path, expect_errors=False, headers=None,
-               extra_environ=None, status=None):
-        full_path = self.PATH_PREFIX + path
+               extra_environ=None, status=None, path_prefix=PATH_PREFIX):
+        full_path = path_prefix + path
         print('DELETE: %s' % (full_path))
         response = self.app.delete(str(full_path),
                                    headers=headers,
@@ -103,8 +104,8 @@ class FunctionalTest(base.DbTestCase):
         return response
 
     def get_json(self, path, expect_errors=False, headers=None,
-                 extra_environ=None, q=[], **params):
-        full_path = self.PATH_PREFIX + path
+                 extra_environ=None, q=[], path_prefix=PATH_PREFIX, **params):
+        full_path = path_prefix + path
         query_params = {'q.field': [],
                         'q.value': [],
                         'q.op': [],
