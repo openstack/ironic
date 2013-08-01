@@ -147,6 +147,4 @@ class ChassisController(rest.RestController):
     @wsme_pecan.wsexpose(None, unicode, status_code=204)
     def delete(self, uuid):
         """Delete a chassis."""
-        # TODO(lucasagomes): be more cautious when deleting a chassis
-        # which has nodes
         pecan.request.dbapi.destroy_chassis(uuid)
