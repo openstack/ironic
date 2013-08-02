@@ -74,17 +74,42 @@ to perform some action.
 Pagination
 -----------
 
-HTTP Queries can be used to paginate collection response documents.
+Pagination is designed to return a subset of the larger collection
+while providing a link that can be used to retrieve the next. You should
+always check for the presence of a 'next' link and use it as the URI in
+a subsequent HTTP GET request. You should follow this pattern until the
+'next' link is no longer provided.
+
+Collections also take query parameters that serve to filter the returned
+list. It is important to note that the 'next' link will preserve any
+query parameters you send in your initial request. The following list
+details these query parameters:
+
+* ``sort_key=KEY``
+
+  Results will be ordered by the specified resource attribute
+  ``KEY``. Accepted values that are present in all resources are: ``id``
+  (default), ``created_at`` and ``updated_at``.
+
+* ``sort_dir=DIR``
+
+  Results will be sorted in the direction ``DIR``. Accepted values are
+  ``asc`` (default) for ascending or ``desc`` for descending.
+
+* ``marker=UUID``
+
+  A resource ``UUID`` marker may be specified. When present, only items
+  which occur after the identifier ``UUID`` will be listed, ie the items
+  which have a `sort_key` later than that of the marker ``UUID`` in the
+  `sort_dir` direction.
+
+* ``limit=LIMIT``
+
+  The maximum number of results returned will not exceed ``LIMIT``.
 
 Example::
 
-  /nodes/?limit=200&marker=105
-
-Link headers are used to return "next" and "previous" links for paginated
-collections.  The links will follow the same linking pattern used throughout
-the API based on the AtomPub protocol:
-
-  link rel="next" "href"="http://localhost:8080/nodes?limit=200&marker=201"
+  /nodes?limit=100&marker=1cd5bef6-b2e0-4296-a88f-d98a6c5486f2
 
 SubResource
 ------------
