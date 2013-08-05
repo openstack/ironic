@@ -15,7 +15,7 @@ An Ironic deployment will be composed of the following components:
   exposed via the `API service`_.  The Conductor and API services communicate via
   RPC.
 - A Database and `DB API`_ for storing the state of the Conductor and Drivers.
-- One or more Deployment Agents, which provide local control over the
+- A Deployment Ramdisk or Deployment Agent, which provide control over the
   hardware which is not available remotely to the Conductor.  A ramdisk should be
   built which contains one of these agents, eg. with `diskimage-builder`_.
   This ramdisk can be booted on-demand.
@@ -26,61 +26,44 @@ Drivers
 =======
 
 The internal driver API provides a consistent interface between the
-Conductor service and the driver implementations. There are two types of drivers:
+Conductor service and the driver implementations. A driver is defined by
+a class inheriting from the `BaseDriver`_ class, defining certain interfaces;
+each interface is an instance of the relevant driver module.
 
-- `ControlDrivers`_ manage the hardware, performing functions such as power
-  on/off, toggle boot device, etc.
-- `DeployDrivers`_ handle the task of booting a temporary ramdisk, formatting
-  drives, and putting a persistent image onto the hardware.
-- Driver implementations are loaded and instantiated via entrypoints when the
-  `Conductor service`_ starts. Each Node record stored in the database indicates
-  which drivers should manage it. When a task is started on that node,
-  information about the node and task is passed to the corresponding driver.
-  In this way, heterogeneous hardware deployments can be managed by a single
-  Conductor service.
+For example, a fake driver class might look like this::
 
-In addition to the two types of drivers, there are three categories of driver
-functionality: core, standardized, and vendor:
+    class FakePower(base.PowerInterface):
+        def get_power_state(self, task, node):
+            return states.NOSTATE
 
-- `Core functionality` represents the essential functionality for Ironic within
-  OpenStack, and may be depended upon by other services. This is represented
-  internally by the driver's base class definitions, and is exposed directly in
-  the API in relation to the object. For example, a node's power state, which is
-  a core functionality of ControlDrivers, is exposed at the URI
-  "/nodes/<uuid>/state".
-- `Standardized functionality` represents functionality beyond the needs of
-  OpenStack, but which has been standardized across all drivers and becomes
-  part of Ironic's API.  If a driver implements this, it must adhere to the
+        def set_power_state(self, task, node, power_state):
+            pass
+
+    class FakeDriver(base.BaseDriver):
+        def __init__(self):
+            self.power = FakePower()
+
+
+There are three categories of driver interfaces:
+
+- `Core` interfaces provide the essential functionality for Ironic within
+  OpenStack, and may be depended upon by other services. All drivers
+  must implement these interfaces. Presently, the Core interfaces are power and deploy.
+- `Standard` interfaces provide functionality beyond the needs of OpenStack,
+  but which has been standardized across all drivers and becomes part of
+  Ironic's API.  If a driver implements this interface, it must adhere to the
   standard. This is presented to encourage vendors to work together with the
   Ironic project and implement common features in a consistent way, thus
-  reducing the burden on consumers of the API.  A ficticious example of this
-  might be a means to specify the Node's next-boot device. Initially, this
-  might be implemented differently by each driver, but over time it could be
-  moved from "/drivers/<name>/vendor_passthrough/" to "/node/<uuid>/nextboot".
-- `Vendor functionality` allows an excemption to the API contract when a vendor
+  reducing the burden on consumers of the API.
+  Presently, the Standard interfaces are rescue and console.
+- The `Vendor` interface allows an exemption to the API contract when a vendor
   wishes to expose unique functionality provided by their hardware and is
-  unable to do so within the core or standardized APIs. In this case, Ironic
+  unable to do so within the core or standard interfaces. In this case, Ironic
   will merely relay the message from the API service to the appropriate driver.
-  For example, if vendor "foo" wanted to expose a "bar" function, the URI might
-  look like this: "/drivers/foo/vendor_passthrough/bar".
-
-Default Drivers
-===============
-
-The default drivers, suitable for most deployments will be the `IPMIPowerDriver`_
-and the `PXEDeployDriver`_.
-
-Additionally, for test environments that do not have IPMI (eg., when mocking a
-deployment using virtual machines), an `SSHPowerDriver`_ is also supplied.
-
 
 
 .. _API service: /api/ironic.api.controllers.v1.html
+.. _BaseDriver: /api/ironic.drivers.base.html#ironic.drivers.base.BaseDriver
 .. _Conductor service: /api/ironic.conductor.manager.html
 .. _DB API: /api/ironic.db.api.html
-.. _ControlDrivers: /api/ironic.drivers.base.html#ironic.drivers.base.ControlDriver
-.. _DeployDrivers: /api/ironic.drivers.base.html#ironic.drivers.base.DeployDriver
-.. _IPMIPowerDriver: /api/ironic.drivers.ipmi.html#ironic.drivers.ipmi.IPMIPowerDriver
-.. _PXEDeployDriver: /api/ironic.drivers.pxe.html#ironic.drivers.pxe.PXEDeployDriver
-.. _SSHPowerDriver: /api/ironic.drivers.ssh.html#ironic.drivers.ssh.SSHPowerDriver
 .. _diskimage-builder: https://github.com/stackforge/diskimage-builder
