@@ -395,8 +395,19 @@ class Connection(api.Connection):
         return ref
 
     def destroy_chassis(self, chassis):
+        def chassis_not_empty(session):
+            """Checks whether the chassis does not have nodes."""
+
+            query = model_query(models.Node, session=session)
+            query = add_node_filter_by_chassis(query, chassis)
+
+            return query.count() != 0
+
         session = get_session()
         with session.begin():
+            if chassis_not_empty(session):
+                raise exception.ChassisNotEmpty(chassis=chassis)
+
             query = model_query(models.Chassis, session=session)
             query = add_identity_filter(query, chassis)
 
