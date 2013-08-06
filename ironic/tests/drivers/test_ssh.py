@@ -371,12 +371,14 @@ class SSHDriverTestCase(db_base.DbTestCase):
             self.dbapi.create_port(
                 db_utils.get_test_port(
                     id=6,
+                    node_id=self.node['id'],
                     address='aa:bb:cc',
                     uuid='bb43dc0b-03f2-4d2e-ae87-c02d7f33cc53')))
         ports.append(
             self.dbapi.create_port(
                 db_utils.get_test_port(
                     id=7,
+                    node_id=self.node['id'],
                     address='dd:ee:ff',
                     uuid='4fc26c0b-03f2-4d2e-ae87-c02d7f33c234')))
 

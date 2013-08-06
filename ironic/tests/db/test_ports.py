@@ -69,15 +69,17 @@ class DbPortTestCase(base.DbTestCase):
                           self.dbapi.get_port, 'not-a-mac')
 
     def test_get_ports_by_node_id(self):
-        self.dbapi.create_node(self.n)
-        self.dbapi.create_port(self.p)
-        res = self.dbapi.get_ports_by_node(self.n['id'])
+        n = self.dbapi.create_node(self.n)
+        p = utils.get_test_port(node_id=n['id'])
+        self.dbapi.create_port(p)
+        res = self.dbapi.get_ports_by_node(n['id'])
         self.assertEqual(self.p['address'], res[0]['address'])
 
     def test_get_ports_by_node_uuid(self):
-        self.dbapi.create_node(self.n)
-        self.dbapi.create_port(self.p)
-        res = self.dbapi.get_ports_by_node(self.n['uuid'])
+        n = self.dbapi.create_node(self.n)
+        p = utils.get_test_port(node_id=n['id'])
+        self.dbapi.create_port(p)
+        res = self.dbapi.get_ports_by_node(n['uuid'])
         self.assertEqual(self.p['address'], res[0]['address'])
 
     def test_get_ports_by_node_that_does_not_exist(self):
@@ -105,3 +107,21 @@ class DbPortTestCase(base.DbTestCase):
 
         res = self.dbapi.update_port(self.p['id'], {'address': new_address})
         self.assertEqual(new_address, res['address'])
+
+    def test_destroy_port_on_reserved_node(self):
+        n = self.dbapi.create_node(self.n)
+        p = self.dbapi.create_port(utils.get_test_port(node_id=n['id']))
+        uuid = n['uuid']
+        self.dbapi.reserve_nodes('fake-reservation', [uuid])
+        self.assertRaises(exception.NodeLocked,
+                          self.dbapi.destroy_port, p['id'])
+
+    def test_update_port_on_reserved_node(self):
+        n = self.dbapi.create_node(self.n)
+        p = self.dbapi.create_port(utils.get_test_port(node_id=n['id']))
+        uuid = n['uuid']
+        self.dbapi.reserve_nodes('fake-reservation', [uuid])
+        new_address = 'ff.ee.dd.cc.bb.aa'
+        self.assertRaises(exception.NodeLocked,
+                          self.dbapi.update_port, p['id'],
+                          {'address': new_address})

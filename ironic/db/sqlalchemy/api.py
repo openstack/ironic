@@ -112,6 +112,16 @@ def add_node_filter_by_chassis(query, value):
         return query.filter(models.Chassis.uuid == value)
 
 
+def _check_port_change_forbidden(port, session):
+    node_id = port['node_id']
+    if node_id is not None:
+        query = model_query(models.Node, session=session)
+        query = query.filter_by(id=node_id)
+        node_ref = query.one()
+        if node_ref['reservation'] is not None:
+            raise exception.NodeLocked(node=node_id)
+
+
 def _paginate_query(model, limit=None, marker=None,
                     sort_key=None, sort_dir=None):
     query = model_query(model)
@@ -260,22 +270,24 @@ class Connection(api.Connection):
             query = model_query(models.Node, session=session)
             query = add_identity_filter(query, node)
 
+            try:
+                node_ref = query.one()
+            except NoResultFound:
+                raise exception.NodeNotFound(node=node)
+            if node_ref['reservation'] is not None:
+                raise exception.NodeLocked(node=node)
+
             # Get node ID, if an UUID was supplied. The ID is
             # required for deleting all ports, attached to the node.
             if uuidutils.is_uuid_like(node):
-                try:
-                    node_id = query.one()['id']
-                except NoResultFound:
-                    raise exception.NodeNotFound(node=node)
+                node_id = node_ref['id']
             else:
                 node_id = node
 
-            count = query.delete()
-            if count != 1:
-                raise exception.NodeNotFound(node=node)
+            port_query = model_query(models.Port, session=session)
+            port_query = add_port_filter_by_node(port_query, node_id)
+            port_query.delete()
 
-            query = model_query(models.Port, session=session)
-            query = add_port_filter_by_node(query, node_id)
             query.delete()
 
     @objects.objectify(objects.Node)
@@ -337,11 +349,14 @@ class Connection(api.Connection):
         with session.begin():
             query = model_query(models.Port, session=session)
             query = add_port_filter(query, port)
-
-            count = query.update(values)
-            if count != 1:
+            try:
+                ref = query.one()
+            except NoResultFound:
                 raise exception.PortNotFound(port=port)
-            ref = query.one()
+            _check_port_change_forbidden(ref, session)
+
+            ref.update(values)
+
         return ref
 
     def destroy_port(self, port):
@@ -350,9 +365,13 @@ class Connection(api.Connection):
             query = model_query(models.Port, session=session)
             query = add_port_filter(query, port)
 
-            count = query.delete()
-            if count != 1:
+            try:
+                ref = query.one()
+            except NoResultFound:
                 raise exception.PortNotFound(port=port)
+            _check_port_change_forbidden(ref, session)
+
+            query.delete()
 
     @objects.objectify(objects.Chassis)
     def get_chassis(self, chassis):
