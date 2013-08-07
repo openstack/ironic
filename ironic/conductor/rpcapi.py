@@ -32,7 +32,7 @@ class ConductorAPI(ironic.openstack.common.rpc.proxy.RpcProxy):
 
         1.0 - Initial version.
               Included get_node_power_status
-        1.1 - Added update_node and start_state_change.
+        1.1 - Added update_node and start_power_state_change.
     """
 
     RPC_API_VERSION = '1.1'
@@ -66,8 +66,8 @@ class ConductorAPI(ironic.openstack.common.rpc.proxy.RpcProxy):
         the core drivers. If instance_uuid is passed, it will be set or unset
         only if the node is properly configured.
 
-        Note that task_state should not be passed via this method.
-        Use start_state_change for initiating driver actions.
+        Note that power_state should not be passed via this method.
+        Use start_power_state_change for initiating driver actions.
 
         :param context: request context.
         :param node_obj: a changed (but not saved) node object.
@@ -77,7 +77,7 @@ class ConductorAPI(ironic.openstack.common.rpc.proxy.RpcProxy):
                          self.make_msg('update_node',
                                        node_obj=node_obj))
 
-    def start_state_change(self, context, node_obj, new_state):
+    def start_power_state_change(self, context, node_obj, new_state):
         """Asynchronously perform an action on a node.
 
         :param context: request context.
@@ -85,6 +85,6 @@ class ConductorAPI(ironic.openstack.common.rpc.proxy.RpcProxy):
         :param new_state: one of ironic.common.states power state values
         """
         self.cast(context,
-                  self.make_msg('start_state_change',
+                  self.make_msg('start_power_state_change',
                                 node_obj=node_obj,
                                 new_state=new_state))

@@ -16,6 +16,8 @@
 #    under the License.
 """Ironic test utilities."""
 
+from ironic.common import states
+
 from ironic.openstack.common import jsonutils as json
 
 
@@ -70,8 +72,10 @@ def get_test_node(**kw):
             'id': kw.get('id', 123),
             'uuid': kw.get('uuid', '1be26c0b-03f2-4d2e-ae87-c02d7f33c123'),
             'chassis_id': 42,
-            'task_start': None,
-            'task_state': kw.get('task_state', 'NOSTATE'),
+            'power_state': kw.get('power_state', states.NOSTATE),
+            'target_power_state': None,
+            'provision_state': kw.get('provision_state', states.NOSTATE),
+            'target_provision_state': None,
             'instance_uuid': kw.get('instance_uuid',
                                     '8227348d-5f1d-4488-aad1-7c92b2d42504'),
             'driver': kw.get('driver', 'fake'),

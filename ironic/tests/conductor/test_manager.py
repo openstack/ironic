@@ -96,7 +96,8 @@ class ManagerTestCase(base.DbTestCase):
 
     def test_update_node_invalid_state(self):
         ndict = utils.get_test_node(driver='fake', extra={'test': 'one'},
-                                instance_uuid=None, task_state=states.POWER_ON)
+                                instance_uuid=None,
+                                power_state=states.POWER_ON)
         node = self.dbapi.create_node(ndict)
 
         # check that it fails because state is POWER_ON

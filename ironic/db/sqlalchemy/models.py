@@ -25,7 +25,7 @@ import urlparse
 from oslo.config import cfg
 
 from sqlalchemy import Column, ForeignKey
-from sqlalchemy import Integer, String, DateTime
+from sqlalchemy import Integer, String
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.types import TypeDecorator, VARCHAR
 
@@ -97,8 +97,10 @@ class Node(Base):
     uuid = Column(String(36), unique=True)
     instance_uuid = Column(String(36), nullable=True, unique=True)
     chassis_id = Column(Integer, ForeignKey('chassis.id'), nullable=True)
-    task_start = Column(DateTime, nullable=True)
-    task_state = Column(String(15))
+    power_state = Column(String(15), nullable=True)
+    target_power_state = Column(String(15), nullable=True)
+    provision_state = Column(String(15), nullable=True)
+    target_provision_state = Column(String(15), nullable=True)
     properties = Column(JSONEncodedDict)
     driver = Column(String(15))
     driver_info = Column(JSONEncodedDict)

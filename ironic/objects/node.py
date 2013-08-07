@@ -40,8 +40,10 @@ class Node(base.IronicObject):
 
             'properties': utils.dict_or_none,
             'reservation': utils.str_or_none,
-            'task_state': utils.str_or_none,
-            'task_start': utils.datetime_or_none,
+            'power_state': utils.str_or_none,
+            'target_power_state': utils.str_or_none,
+            'provision_state': utils.str_or_none,
+            'target_provision_state': utils.str_or_none,
             'extra': utils.dict_or_none,
             }
 
@@ -70,7 +72,7 @@ class Node(base.IronicObject):
         """Save updates to this Node.
 
         Column-wise updates will be made based on the result of
-        self.what_changed(). If expected_task_state is provided,
+        self.what_changed(). If target_power_state is provided,
         it will be checked against the in-database copy of the
         node before updates are made.
 
