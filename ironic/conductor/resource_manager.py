@@ -38,7 +38,9 @@ from ironic.common import exception
 from ironic.db import api as dbapi
 
 LOG = log.getLogger(__name__)
+
 RESOURCE_MANAGER_SEMAPHORE = "node_resource"
+DRIVER_FACTORY_SEMAPHORE = "driver_factory"
 
 
 class NodeManager(object):
@@ -46,16 +48,21 @@ class NodeManager(object):
 
     _nodes = {}
 
-    _driver_factory = dispatch.NameDispatchExtensionManager(
-            namespace='ironic.drivers',
-            check_func=lambda x: True,
-            invoke_on_load=True)
+    # NOTE(deva): loading the driver factory as a class member will break
+    #             stevedore when it loads a driver, because the driver will
+    #             import this file (and thus instantiate another factory).
+    #             Instead, we instantiate a NameDispatchExtensionManager only
+    #             once, the first time NodeManager.__init__ is called.
+    _driver_factory = None
 
     def __init__(self, id, t):
-        db = dbapi.get_instance()
+        if not NodeManager._driver_factory:
+            NodeManager._init_driver_factory()
 
         self.id = id
         self.task_refs = [t]
+
+        db = dbapi.get_instance()
         self.node = db.get_node(id)
         self.ports = db.get_ports_by_node(id)
 
@@ -65,6 +72,20 @@ class NodeManager(object):
         except KeyError:
             raise exception.IronicException(_(
                 "Failed to load driver %s.") % driver_name)
+
+    # NOTE(deva): Use lockutils to avoid a potential race in eventlet
+    #             that might try to create two driver factories.
+    @classmethod
+    @lockutils.synchronized(DRIVER_FACTORY_SEMAPHORE, 'ironic-')
+    def _init_driver_factory(cls):
+        # NOTE(deva): In case multiple greenthreads queue up on this lock
+        #             before _driver_factory is initialized, prevent creation
+        #             of multiple NameDispatchExtensionManagers.
+        if not cls._driver_factory:
+            cls._driver_factory = dispatch.NameDispatchExtensionManager(
+                    namespace='ironic.drivers',
+                    check_func=lambda x: True,
+                    invoke_on_load=True)
 
     @classmethod
     @lockutils.synchronized(RESOURCE_MANAGER_SEMAPHORE, 'ironic-')
