@@ -53,7 +53,7 @@ LOG = log.getLogger(__name__)
 class ConductorManager(service.PeriodicService):
     """Ironic Conductor service main class."""
 
-    RPC_API_VERSION = '1.1'
+    RPC_API_VERSION = '1.2'
 
     def __init__(self, host, topic):
         serializer = objects_base.IronicObjectSerializer()
@@ -173,3 +173,33 @@ class ConductorManager(service.PeriodicService):
             node_obj['power_state'] = new_state
             node_obj['target_power_state'] = states.NOSTATE
             node_obj.save(context)
+
+    # NOTE(deva): There is a race condition in the RPC API for vendor_passthru.
+    # Between the validate_vendor_action and do_vendor_action calls, it's
+    # possible another conductor instance may acquire a lock, or change the
+    # state of the node, such that validate() succeeds but do() fails.
+    # TODO(deva): Implement an intent lock to prevent this race. Do this after
+    # we have implemented intelligent RPC routing so that the do() will be
+    # guaranteed to land on the same conductor instance that performed
+    # validate().
+    def validate_vendor_action(self, context, node_id, driver_method, info):
+        """Validate driver specific info or get driver status."""
+
+        LOG.debug(_("RPC call_driver called for node %s.") % node_id)
+        with task_manager.acquire(node_id, shared=True) as task:
+            if getattr(task.driver, 'vendor', None):
+                return task.driver.vendor.validate(task.node,
+                                                   method=driver_method,
+                                                   **info)
+            else:
+                raise exception.UnsupportedDriverExtension(
+                                        driver=task.node['driver'],
+                                        node=node_id,
+                                        extension='vendor passthru')
+
+    def do_vendor_action(self, context, node_id, driver_method, info):
+        """Run driver action asynchronously."""
+
+        with task_manager.acquire(node_id, shared=True) as task:
+                task.driver.vendor.vendor_passthru(task, task.node,
+                                                  method=driver_method, **info)

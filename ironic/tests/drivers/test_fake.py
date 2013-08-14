@@ -53,9 +53,12 @@ class FakeDriverTestCase(base.TestCase):
         self.driver.deploy.tear_down(None, None)
 
     def test_vendor_interface(self):
-        self.driver.vendor.validate(self.node)
-        self.driver.vendor.vendor_passthru(None, self.node,
-                method='foo', bar='baz')
-        self.assertRaises(exception.IronicException,
-                self.driver.vendor.vendor_passthru,
-                None, self.node, method='fake')
+        info = {'method': 'foo',
+                'bar': 'baz'}
+        self.assertTrue(self.driver.vendor.validate(self.node, **info))
+        self.assertTrue(self.driver.vendor.vendor_passthru(None,
+                                                self.node['uuid'], **info))
+        # no method
+        self.assertRaises(exception.InvalidParameterValue,
+                         self.driver.vendor.validate,
+                         self.node, bar='baz')

@@ -33,9 +33,10 @@ class ConductorAPI(ironic.openstack.common.rpc.proxy.RpcProxy):
         1.0 - Initial version.
               Included get_node_power_status
         1.1 - Added update_node and start_power_state_change.
+        1.2 - Added vendor_passhthru.
     """
 
-    RPC_API_VERSION = '1.1'
+    RPC_API_VERSION = '1.2'
 
     def __init__(self, topic=None):
         if topic is None:
@@ -88,3 +89,27 @@ class ConductorAPI(ironic.openstack.common.rpc.proxy.RpcProxy):
                   self.make_msg('start_power_state_change',
                                 node_obj=node_obj,
                                 new_state=new_state))
+
+    def vendor_passthru(self, context, node_id, driver_method, info):
+        """Pass vendor specific info to a node driver.
+
+        :param context: request context.
+        :param node_id: node id or uuid.
+        :param driver_method: name of method for driver.
+        :param info: info for node driver.
+        """
+        driver_data = self.call(context,
+                                self.make_msg('validate_vendor_action',
+                                node_id=node_id,
+                                driver_method=driver_method,
+                                info=info))
+
+        # this method can do nothing if 'driver_method' intended only
+        # for obtain 'driver_data'
+        self.cast(context,
+                  self.make_msg('do_vendor_action',
+                                node_id=node_id,
+                                driver_method=driver_method,
+                                info=info))
+
+        return driver_data
