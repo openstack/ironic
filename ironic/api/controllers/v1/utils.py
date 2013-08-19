@@ -16,6 +16,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import re
 import wsme
 
 from oslo.config import cfg
@@ -36,3 +37,35 @@ def validate_sort_dir(sort_dir):
                                          "Acceptable values are "
                                          "'asc' or 'desc'") % sort_dir)
     return sort_dir
+
+
+def validate_patch(patch):
+    """Performs a basic validation on patch."""
+
+    if not isinstance(patch, list):
+        patch = [patch]
+
+    for p in patch:
+        path_pattern = re.compile("^/[a-zA-Z0-9-_]+(/[a-zA-Z0-9-_]+)*$")
+
+        if not isinstance(p, dict) or \
+                any(key for key in ["path", "op"] if key not in p):
+            raise wsme.exc.ClientSideError(_("Invalid patch format: %s")
+                                             % str(p))
+
+        path = p["path"]
+        op = p["op"]
+
+        if op not in ["add", "replace", "remove"]:
+            raise wsme.exc.ClientSideError(_("Operation not supported: %s")
+                                             % op)
+
+        if not path_pattern.match(path):
+            raise wsme.exc.ClientSideError(_("Invalid path: %s") % path)
+
+        if op == "add":
+            if path.count('/') == 1:
+                raise wsme.exc.ClientSideError(_("Adding an additional "
+                                                 "attribute (%s) to the "
+                                                 "resource is not allowed")
+                                                 % path)

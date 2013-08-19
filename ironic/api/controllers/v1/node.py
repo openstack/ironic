@@ -15,14 +15,14 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import jsonpatch
+
 import pecan
 from pecan import rest
 
 import wsme
 from wsme import types as wtypes
 import wsmeext.pecan as wsme_pecan
-
-from ironic import objects
 
 from ironic.api.controllers.v1 import base
 from ironic.api.controllers.v1 import collection
@@ -31,6 +31,7 @@ from ironic.api.controllers.v1 import port
 from ironic.api.controllers.v1 import state
 from ironic.api.controllers.v1 import utils
 from ironic.common import exception
+from ironic import objects
 from ironic.openstack.common import log
 
 LOG = log.getLogger(__name__)
@@ -300,34 +301,46 @@ class NodesController(rest.RestController):
             raise wsme.exc.ClientSideError(_("Invalid data"))
         return Node.convert_with_links(new_node)
 
-    @wsme_pecan.wsexpose(Node, unicode, body=Node, status=200)
-    def patch(self, node_id, node_data):
+    @wsme_pecan.wsexpose(Node, unicode, body=[unicode])
+    def patch(self, uuid, patch):
         """Update an existing node.
 
         TODO(deva): add exception handling
         """
-        # NOTE: WSME is creating an api v1 Node object with all fields
-        #       so we eliminate non-supplied fields by converting
-        #       to a dict and stripping keys with value=None
-        delta = node_data.as_terse_dict()
+        node = objects.Node.get_by_uuid(pecan.request.context, uuid)
+        node_dict = node.as_dict()
+
+        # These are internal values that shouldn't be part of the patch
+        internal_attrs = ['id', 'updated_at', 'created_at']
+        [node_dict.pop(attr, None) for attr in internal_attrs]
+
+        utils.validate_patch(patch)
+        patch_obj = jsonpatch.JsonPatch(patch)
 
         # Prevent states from being updated
-        state_rel_attr = ['power_state', 'target_power_state',
-                          'provision_state', 'target_provision_state']
-        if any((getattr(node_data, attr) for attr in state_rel_attr)):
+        state_rel_path = ['/power_state', '/target_power_state',
+                          '/provision_state', '/target_provision_state']
+        if any(p['path'] in state_rel_path for p in patch_obj):
             raise wsme.exc.ClientSideError(_("Changing states is not allowed "
                                              "here; You must use the "
                                              "nodes/%s/state interface.")
-                                             % node_id)
+                                             % uuid)
+        try:
+            final_patch = jsonpatch.apply_patch(node_dict, patch_obj)
+        except jsonpatch.JsonPatchException as e:
+            LOG.exception(e)
+            raise wsme.exc.ClientSideError(_("Patching Error: %s") % e)
 
         response = wsme.api.Response(Node(), status_code=200)
         try:
-            node = objects.Node.get_by_uuid(
-                        pecan.request.context, node_id)
-            for k in delta.keys():
-                node[k] = delta[k]
-            node = pecan.request.rpcapi.update_node(
-                    pecan.request.context, node)
+            # In case of a remove operation, add the missing fields back to
+            # the document with their default value
+            defaults = objects.Node.get_defaults()
+            defaults.update(final_patch)
+
+            node.update(defaults)
+            node = pecan.request.rpcapi.update_node(pecan.request.context,
+                                                    node)
             response.obj = node
         except exception.InvalidParameterValue:
             response.status_code = 400
@@ -341,7 +354,8 @@ class NodesController(rest.RestController):
         #             after wsme 0.5b3 is released
         if response.status_code not in [200, 202]:
             raise wsme.exc.ClientSideError(_(
-                    "Error updating node %s") % node_id)
+                    "Error updating node %s") % uuid)
+
         return Node.convert_with_links(response.obj)
 
     @wsme_pecan.wsexpose(None, unicode, status_code=204)

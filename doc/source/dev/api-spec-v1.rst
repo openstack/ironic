@@ -21,6 +21,7 @@ General Concepts
 - SubResource_
 - Security_
 - Versioning_
+- `Updating Resources`_
 
 Links and Relationships
 ------------------------
@@ -140,6 +141,99 @@ API resource.  Failure to specify a version specific MIME type or a URL encoded
 with a particular version will result the API will assume the use of the
 default version.  When both URL version and MIME type are specified and
 conflicting the URL version takes precedence.
+
+Updating Resources
+-------------------
+
+The PATCH HTTP method is used to update a resource in the API. PATCH
+allows clients to do partial updates to a resource, sending only the
+attributes requiring modification. Operations supported are "remove",
+"add" and "replace", multiple operations can be combined in a single
+request.
+
+The request body must conform to the 'application/json-patch+json'
+media type (RFC 6902) and response body will represent the updated
+resource entity.
+
+Example::
+
+    PATCH /chassis/4505e16b-47d6-424c-ae78-e0ef1b600700
+
+    [
+     {"path": "/description", "value": "new description", "op": "replace"},
+     {"path": "/extra/foo", "value": "bar", "op": "add"},
+     {"path": "/extra/noop", "op": "remove"}
+    ]
+
+Different types of attributes that exists in the resource will be either
+removed, added or replaced according to the following rules:
+
+Singular attributes
+^^^^^^^^^^^^^^^^^^^^
+
+An "add" or "replace" operation replaces the value of an existing
+attribute with a new value. Adding new attributes to the root document
+of the resource is not allowed.
+
+The "remove" operation resets the target attribute to its default value.
+
+Example, replacing an attribute::
+
+    PATCH /chassis/4505e16b-47d6-424c-ae78-e0ef1b600700
+
+    [
+     {"path": "/description", "value": "new description", "op": "replace"}
+    ]
+
+
+Example, removing an attribute::
+
+    PATCH /chassis/4505e16b-47d6-424c-ae78-e0ef1b600700
+
+    [
+     {"path": "/description", "op": "remove"}
+    ]
+
+*Note: This operation will not remove the description attribute from
+the document but instead will reset it to its default value.*
+
+Multi-valued attributes
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+In case of an "add" operation the attribute is added to the collection
+if the it does not exist and merged if a matching attribute is present.
+
+The "remove" operation removes the target attribute from the collection.
+
+The "replace" operation replaces the value at the target attribute with
+a new value.
+
+Example, adding an attribute to the collection::
+
+    PATCH /chassis/4505e16b-47d6-424c-ae78-e0ef1b600700
+
+    [
+     {"path": "/extra/foo", "value": "bar", "op": "add"}
+    ]
+
+
+Example, removing an attribute from the collection::
+
+    PATCH /chassis/4505e16b-47d6-424c-ae78-e0ef1b600700
+
+    [
+     {"path": "/extra/foo", "op": "remove"}
+    ]
+
+
+Example, removing **all** attributes from the collection::
+
+    PATCH /chassis/4505e16b-47d6-424c-ae78-e0ef1b600700
+
+    [
+     {"path": "/extra", "op": "remove"}
+    ]
+
 
 Resource Definitions
 #####################
@@ -343,7 +437,7 @@ Verb     Path           Response
 GET      /nodes         List nodes.
 GET      /nodes/<id>    Retrieve a specific node.
 POST     /nodes         Create a new node
-PUT      /nodes/<id>    Update a node
+PATCH    /nodes/<id>    Update a node
 DELETE   /nodes/<id>    Delete node and all associated ports
 =======  =============  ==========
 
@@ -478,7 +572,7 @@ Verb     Path           Response
 GET      /chassis       List chassis
 GET      /chassis/<id>  Retrieve a specific chassis
 POST     /chassis       Create a new chassis
-PUT      /chassis/<id>  Update a chassis
+PATCH    /chassis/<id>  Update a chassis
 DELETE   /chassis/<id>  Delete chassis and remove all associations between
                         nodes
 =======  =============  ==========
@@ -543,7 +637,7 @@ Verb     Path           Response
 GET      /ports         List ports
 GET      /ports/<id>    Retrieve a specific port
 POST     /ports         Create a new port
-PUT      /ports/<id>    Update a port
+PATCH    /ports/<id>    Update a port
 DELETE   /ports/<id>    Delete port and remove all associations between nodes
 =======  =============  ==========
 

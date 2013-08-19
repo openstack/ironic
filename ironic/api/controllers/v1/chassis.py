@@ -16,6 +16,8 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import jsonpatch
+
 import pecan
 from pecan import rest
 
@@ -23,14 +25,13 @@ import wsme
 from wsme import types as wtypes
 import wsmeext.pecan as wsme_pecan
 
-from ironic import objects
-
 from ironic.api.controllers.v1 import base
 from ironic.api.controllers.v1 import collection
 from ironic.api.controllers.v1 import link
 from ironic.api.controllers.v1 import node
 from ironic.api.controllers.v1 import utils
 from ironic.common import exception
+from ironic import objects
 from ironic.openstack.common import log
 
 LOG = log.getLogger(__name__)
@@ -144,21 +145,31 @@ class ChassisController(rest.RestController):
             raise wsme.exc.ClientSideError(_("Invalid data"))
         return Chassis.convert_with_links(new_chassis)
 
-    @wsme_pecan.wsexpose(Chassis, unicode, body=Chassis)
-    def patch(self, uuid, delta_chassis):
+    @wsme_pecan.wsexpose(Chassis, unicode, body=[unicode])
+    def patch(self, uuid, patch):
         """Update an existing chassis."""
         chassis = objects.Chassis.get_by_uuid(pecan.request.context, uuid)
-        nn_delta_ch = delta_chassis.as_terse_dict()
-        # Ensure immutable keys are not present
-        # TODO(lucasagomes): Not sure if 'id' will ever be present here
-        # the translation should occur before it reaches this point
-        if any(v for v in nn_delta_ch if v in ("id", "uuid")):
-            raise wsme.exc.ClientSideError(_("'uuid' is immutable"))
+        chassis_dict = chassis.as_dict()
 
-        for k in nn_delta_ch:
-            chassis[k] = nn_delta_ch[k]
+        # These are internal values that shouldn't be part of the patch
+        internal_attrs = ['id', 'updated_at', 'created_at']
+        [chassis_dict.pop(attr, None) for attr in internal_attrs]
+
+        utils.validate_patch(patch)
+        try:
+            final_patch = jsonpatch.apply_patch(chassis_dict,
+                                                jsonpatch.JsonPatch(patch))
+        except jsonpatch.JsonPatchException as e:
+            LOG.exception(e)
+            raise wsme.exc.ClientSideError(_("Patching Error: %s") % e)
+
+        # In case of a remove operation, add the missing fields back to
+        # the document with their default value
+        defaults = objects.Chassis.get_defaults()
+        defaults.update(final_patch)
+
+        chassis.update(defaults)
         chassis.save()
-
         return Chassis.convert_with_links(chassis)
 
     @wsme_pecan.wsexpose(None, unicode, status_code=204)

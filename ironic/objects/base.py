@@ -375,6 +375,13 @@ class IronicObject(object):
                 for k in self.fields
                 if hasattr(self, k))
 
+    @classmethod
+    def get_defaults(cls):
+        """Return a dict of its fields with their default value."""
+        return dict((k, v(None))
+                    for k, v in cls.fields.iteritems()
+                    if k != "id" and callable(v))
+
 
 class ObjectListBase(object):
     """Mixin class for lists of objects.

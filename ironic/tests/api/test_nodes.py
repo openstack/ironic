@@ -152,7 +152,9 @@ class TestPatch(base.FunctionalTest):
         self.mox.ReplayAll()
 
         response = self.patch_json('/nodes/%s' % self.node['uuid'],
-                {'instance_uuid': 'fake instance uuid'})
+                                   [{'path': '/instance_uuid',
+                                     'value': 'fake instance uuid',
+                                     'op': 'replace'}])
         self.assertEqual(response.content_type, 'application/json')
         self.assertEqual(response.status_code, 200)
         self.mox.VerifyAll()
@@ -169,8 +171,13 @@ class TestPatch(base.FunctionalTest):
         self.mox.ReplayAll()
 
         response = self.patch_json('/nodes/%s' % self.node['uuid'],
-                {'driver_info': {'this': 'foo', 'that': 'bar'}},
-                expect_errors=True)
+                                   [{'path': '/driver_info/this',
+                                     'value': 'foo',
+                                     'op': 'add'},
+                                    {'path': '/driver_info/that',
+                                     'value': 'bar',
+                                     'op': 'add'}],
+                                   expect_errors=True)
         self.assertEqual(response.content_type, 'application/json')
         self.assertEqual(response.status_code, 400)
         self.mox.VerifyAll()
@@ -183,12 +190,49 @@ class TestPatch(base.FunctionalTest):
         self.mox.ReplayAll()
 
         response = self.patch_json('/nodes/%s' % self.node['uuid'],
-                {'instance_uuid': 'fake instance uuid'},
-                expect_errors=True)
+                                   [{'path': '/instance_uuid',
+                                     'value': 'fake instance uuid',
+                                     'op': 'replace'}],
+                                   expect_errors=True)
         self.assertEqual(response.content_type, 'application/json')
         # TODO(deva): change to 409 when wsme 0.5b3 released
         self.assertEqual(response.status_code, 400)
         self.mox.VerifyAll()
+
+    def test_add_ok(self):
+        rpcapi.ConductorAPI.update_node(mox.IgnoreArg(), mox.IgnoreArg()).\
+                AndReturn(self.node)
+        self.mox.ReplayAll()
+
+        response = self.patch_json('/nodes/%s' % self.node['uuid'],
+                                   [{'path': '/extra/foo',
+                                     'value': 'bar',
+                                     'op': 'add'}])
+        self.assertEqual(response.content_type, 'application/json')
+        self.assertEqual(response.status_code, 200)
+        self.mox.VerifyAll()
+
+    def test_add_fail(self):
+        self.assertRaises(webtest.app.AppError, self.patch_json,
+                          '/nodes/%s' % self.node['uuid'],
+                          [{'path': '/foo', 'value': 'bar', 'op': 'add'}])
+
+    def test_remove_ok(self):
+        rpcapi.ConductorAPI.update_node(mox.IgnoreArg(), mox.IgnoreArg()).\
+                AndReturn(self.node)
+        self.mox.ReplayAll()
+
+        response = self.patch_json('/nodes/%s' % self.node['uuid'],
+                                   [{'path': '/extra',
+                                     'op': 'remove'}])
+        self.assertEqual(response.content_type, 'application/json')
+        self.assertEqual(response.status_code, 200)
+        self.mox.VerifyAll()
+
+    def test_remove_fail(self):
+        self.assertRaises(webtest.app.AppError, self.patch_json,
+                          '/nodes/%s' % self.node['uuid'],
+                          [{'path': '/extra/non-existent', 'op': 'remove'}])
 
 
 class TestPost(base.FunctionalTest):
