@@ -2,6 +2,7 @@
 # coding=utf-8
 
 # Copyright 2013 Hewlett-Packard Development Company, L.P.
+# Copyright 2013 International Business Machines Corporation
 # All Rights Reserved.
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -127,12 +128,48 @@ class ConductorManager(service.PeriodicService):
     def start_power_state_change(self, context, node_obj, new_state):
         """RPC method to encapsulate changes to a node's state.
 
-        Perform actions such as power on and power off.
+        Perform actions such as power on, power off. It waits for the power
+        action to finish, then if succesful, it updates the power_state for
+        the node with the new power state.
 
-        TODO
-
-        :param context: an admin context
-        :param node_obj: an RPC-style node object
-        :param new_state: the desired power state of the node
+        :param context: an admin context.
+        :param node_obj: an RPC-style node object.
+        :param new_state: the desired power state of the node.
+        :raises: InvalidParameterValue when the wrong state is specified
+                 or the wrong driver info is specified.
+        :raises: NodeInWrongPowerState when the node is in the state.
+                  that cannot perform and requested power action.
+        :raises: other exceptins by the node's power driver if something
+                  wrong during the power action.
+        :
         """
-        pass
+        node_id = node_obj.get('uuid')
+        LOG.debug("RPC start_power_state_change called for node %s."
+            " The desired new state is %s." % (node_id, new_state))
+
+        with task_manager.acquire(node_id, shared=False) as task:
+            # an exception will be raised if validate fails.
+            task.driver.power.validate(node_obj)
+            curr_state = task.driver.power.get_power_state(task, node_obj)
+            if curr_state == new_state:
+                raise exception.NodeInWrongPowerState(node=node_id,
+                                                      pstate=curr_state)
+
+            # set the target_power_state.
+            # This will expose to other processes and clients that the work
+            # is in progress
+            node_obj['target_power_state'] = new_state
+            node_obj.save(context)
+
+            #take power action, set the power_state to error if fails
+            try:
+                task.driver.power.set_power_state(task, node_obj, new_state)
+            except exception.IronicException:
+                node_obj['power_state'] = states.ERROR
+                node_obj.save(context)
+                raise
+
+            # update the node power states
+            node_obj['power_state'] = new_state
+            node_obj['target_power_state'] = states.NOSTATE
+            node_obj.save(context)

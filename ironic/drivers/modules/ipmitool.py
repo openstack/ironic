@@ -213,8 +213,8 @@ class IPMIPower(base.PowerInterface):
         elif pstate == states.POWER_OFF:
             state = _power_off(driver_info)
         else:
-            raise exception.IronicException(_(
-                "set_power_state called with invalid power state."))
+            raise exception.InvalidParameterValue(_("set_power_state called "
+                    "with invalid power state %s.") % pstate)
 
         if state != pstate:
             raise exception.PowerStateFailure(pstate=pstate)
