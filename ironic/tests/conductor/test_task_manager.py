@@ -125,7 +125,7 @@ class ExclusiveLockDecoratorTestCase(base.DbTestCase):
         def do_state_change(task):
             for r in task.resources:
                 task.dbapi.update_node(r.node.uuid,
-                                       {'task_state': 'test-state'})
+                                       {'power_state': 'test-state'})
 
         with task_manager.acquire(self.uuids, shared=True) as task:
             self.assertRaises(exception.ExclusiveLockRequired,
@@ -137,13 +137,13 @@ class ExclusiveLockDecoratorTestCase(base.DbTestCase):
 
         for uuid in self.uuids:
             res = self.dbapi.get_node(uuid)
-            self.assertEqual('test-state', res.task_state)
+            self.assertEqual('test-state', res.power_state)
 
     @task_manager.require_exclusive_lock
     def _do_state_change(self, task):
         for r in task.resources:
             task.dbapi.update_node(r.node.uuid,
-                                   {'task_state': 'test-state'})
+                                   {'power_state': 'test-state'})
 
     def test_require_exclusive_lock_on_object(self):
         with task_manager.acquire(self.uuids, shared=True) as task:
@@ -156,7 +156,7 @@ class ExclusiveLockDecoratorTestCase(base.DbTestCase):
 
         for uuid in self.uuids:
             res = self.dbapi.get_node(uuid)
-            self.assertEqual('test-state', res.task_state)
+            self.assertEqual('test-state', res.power_state)
 
     def test_one_node_per_task_properties(self):
         with task_manager.acquire(self.uuids) as task:

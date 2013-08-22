@@ -158,12 +158,12 @@ class DbNodeTestCase(base.DbTestCase):
     def test_update_node(self):
         n = self._create_test_node()
 
-        old_state = n['task_state']
-        new_state = 'TESTSTATE'
-        self.assertNotEqual(old_state, new_state)
+        old_extra = n['extra']
+        new_extra = {'foo': 'bar'}
+        self.assertNotEqual(old_extra, new_extra)
 
-        res = self.dbapi.update_node(n['id'], {'task_state': new_state})
-        self.assertEqual(new_state, res['task_state'])
+        res = self.dbapi.update_node(n['id'], {'extra': new_extra})
+        self.assertEqual(new_extra, res['extra'])
 
     def test_reserve_one_node(self):
         n = self._create_test_node()

@@ -98,7 +98,7 @@ class ConductorManager(service.PeriodicService):
         LOG.debug("RPC update_node called for node %s." % node_id)
 
         delta = node_obj.obj_what_changed()
-        if 'task_state' in delta:
+        if 'power_state' in delta:
             raise exception.IronicException(_(
                 "Invalid method call: update_node can not change node state."))
 
@@ -108,30 +108,30 @@ class ConductorManager(service.PeriodicService):
             if 'driver_info' in delta:
                 task.driver.deploy.validate(node_obj)
                 task.driver.power.validate(node_obj)
-                node_obj['task_state'] = task.driver.power.get_power_state
+                node_obj['power_state'] = task.driver.power.get_power_state
 
             # TODO(deva): Determine what value will be passed by API when
             #             instance_uuid needs to be unset, and handle it.
             if 'instance_uuid' in delta:
-                if node_obj['task_state'] != states.POWER_OFF:
+                if node_obj['power_state'] != states.POWER_OFF:
                     raise exception.NodeInWrongPowerState(
                             node=node_id,
-                            pstate=node_obj['task_state'])
+                            pstate=node_obj['power_state'])
 
             # update any remaining parameters, then save
             node_obj.save(context)
 
             return node_obj
 
-    def start_state_change(self, context, node_obj, new_state):
+    def start_power_state_change(self, context, node_obj, new_state):
         """RPC method to encapsulate changes to a node's state.
 
-        Perform actions such as power on, power off, deploy, and cleanup.
+        Perform actions such as power on and power off.
 
         TODO
 
         :param context: an admin context
         :param node_obj: an RPC-style node object
-        :param new_state: the desired state of the node
+        :param new_state: the desired power state of the node
         """
         pass

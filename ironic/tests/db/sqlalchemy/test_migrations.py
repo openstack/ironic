@@ -656,3 +656,18 @@ class TestMigrations(BaseMigrationTestCase, WalkVersionsMixin):
         chassis = db_utils.get_table(engine, 'chassis')
         self.assertTrue(isinstance(chassis.c.description.type,
                                    sqlalchemy.types.String))
+
+    def _check_009(self, engine, data):
+        nodes = db_utils.get_table(engine, 'nodes')
+        col_names = [column.name for column in nodes.c]
+
+        self.assertFalse('task_start' in col_names)
+        self.assertFalse('task_state' in col_names)
+
+        new_col = {'power_state': 'String',
+                   'target_power_state': 'String',
+                   'provision_state': 'String',
+                   'target_provision_state': 'String'}
+        for col, coltype in new_col.items():
+            self.assertTrue(isinstance(nodes.c[col].type,
+                                       getattr(sqlalchemy.types, coltype)))

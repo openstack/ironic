@@ -17,8 +17,10 @@ Tests for the API /nodes/ methods.
 """
 
 import mox
+import webtest.app
 
 from ironic.common import exception
+from ironic.common import states
 from ironic.conductor import rpcapi
 from ironic.openstack.common import uuidutils
 from ironic.tests.api import base
@@ -101,6 +103,38 @@ class TestListNodes(base.FunctionalTest):
         self.assertEqual(len(data['items']), 1)
         self.assertEqual(len(data['links']), 1)
 
+    def test_state(self):
+        ndict = dbutils.get_test_node()
+        self.dbapi.create_node(ndict)
+        data = self.get_json('/nodes/%s/state' % ndict['uuid'])
+        [self.assertIn(key, data) for key in ['power', 'provision']]
+
+        # Check if it only returns a sub-set of the attributes
+        [self.assertIn(key, ['current', 'links'])
+                       for key in data['power'].keys()]
+        [self.assertIn(key, ['current', 'links'])
+                       for key in data['provision'].keys()]
+
+    def test_power_state(self):
+        ndict = dbutils.get_test_node()
+        self.dbapi.create_node(ndict)
+        data = self.get_json('/nodes/%s/state/power' % ndict['uuid'])
+        [self.assertIn(key, data) for key in
+                       ['available', 'current', 'target', 'links']]
+        #TODO(lucasagomes): Add more tests to check to which states it can
+        # transition to from the current one, and check if they are present
+        # in the available list.
+
+    def test_provision_state(self):
+        ndict = dbutils.get_test_node()
+        self.dbapi.create_node(ndict)
+        data = self.get_json('/nodes/%s/state/provision' % ndict['uuid'])
+        [self.assertIn(key, data) for key in
+                       ['available', 'current', 'target', 'links']]
+        #TODO(lucasagomes): Add more tests to check to which states it can
+        # transition to from the current one, and check if they are present
+        # in the available list.
+
 
 class TestPatch(base.FunctionalTest):
 
@@ -109,7 +143,8 @@ class TestPatch(base.FunctionalTest):
         ndict = dbutils.get_test_node()
         self.node = self.dbapi.create_node(ndict)
         self.mox.StubOutWithMock(rpcapi.ConductorAPI, 'update_node')
-        self.mox.StubOutWithMock(rpcapi.ConductorAPI, 'start_state_change')
+        self.mox.StubOutWithMock(rpcapi.ConductorAPI,
+                                 'start_power_state_change')
 
     def test_update_ok(self):
         rpcapi.ConductorAPI.update_node(mox.IgnoreArg(), mox.IgnoreArg()).\
@@ -123,18 +158,9 @@ class TestPatch(base.FunctionalTest):
         self.mox.VerifyAll()
 
     def test_update_state(self):
-        rpcapi.ConductorAPI.update_node(mox.IgnoreArg(), mox.IgnoreArg()).\
-                AndReturn(self.node)
-        rpcapi.ConductorAPI.start_state_change(mox.IgnoreArg(),
-                mox.IgnoreArg(), mox.IgnoreArg())
-        self.mox.ReplayAll()
-
-        response = self.patch_json('/nodes/%s' % self.node['uuid'],
-                {'task_state': 'new state'})
-        self.assertEqual(response.content_type, 'application/json')
-        # TODO(deva): change to 202 when wsme 0.5b3 is released
-        self.assertEqual(response.status_code, 200)
-        self.mox.VerifyAll()
+        self.assertRaises(webtest.app.AppError, self.patch_json,
+                          '/nodes/%s' % self.node['uuid'],
+                          {'power_state': 'new state'})
 
     def test_update_fails_bad_driver_info(self):
         fake_err = 'Fake Error Message'
@@ -185,3 +211,43 @@ class TestDelete(base.FunctionalTest):
         self.assertEqual(response.status_int, 500)
         self.assertEqual(response.content_type, 'application/json')
         self.assertTrue(response.json['error_message'])
+
+
+class TestPut(base.FunctionalTest):
+
+    def setUp(self):
+        super(TestPut, self).setUp()
+        ndict = dbutils.get_test_node()
+        self.node = self.dbapi.create_node(ndict)
+        self.mox.StubOutWithMock(rpcapi.ConductorAPI, 'update_node')
+        self.mox.StubOutWithMock(rpcapi.ConductorAPI,
+                                 'start_power_state_change')
+
+    def test_power_state(self):
+        rpcapi.ConductorAPI.update_node(mox.IgnoreArg(), mox.IgnoreArg()).\
+                AndReturn(self.node)
+        rpcapi.ConductorAPI.start_power_state_change(mox.IgnoreArg(),
+                                                     mox.IgnoreArg(),
+                                                     mox.IgnoreArg())
+        self.mox.ReplayAll()
+
+        response = self.put_json('/nodes/%s/state/power' % self.node['uuid'],
+                                 {'target': states.POWER_ON})
+        self.assertEqual(response.content_type, 'application/json')
+        # FIXME(lucasagomes): WSME should return 202 not 200
+        self.assertEqual(response.status_code, 200)
+        self.mox.VerifyAll()
+
+    def test_power_state_in_progress(self):
+        rpcapi.ConductorAPI.update_node(mox.IgnoreArg(), mox.IgnoreArg()).\
+                AndReturn(self.node)
+        rpcapi.ConductorAPI.start_power_state_change(mox.IgnoreArg(),
+                                                     mox.IgnoreArg(),
+                                                     mox.IgnoreArg())
+        self.mox.ReplayAll()
+        self.put_json('/nodes/%s/state/power' % self.node['uuid'],
+                      {'target': states.POWER_ON})
+        self.assertRaises(webtest.app.AppError, self.put_json,
+                          '/nodes/%s/state/power' % self.node['uuid'],
+                          {'target': states.POWER_ON})
+        self.mox.VerifyAll()

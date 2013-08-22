@@ -28,11 +28,142 @@ from ironic.api.controllers.v1 import base
 from ironic.api.controllers.v1 import collection
 from ironic.api.controllers.v1 import link
 from ironic.api.controllers.v1 import port
+from ironic.api.controllers.v1 import state
 from ironic.api.controllers.v1 import utils
 from ironic.common import exception
 from ironic.openstack.common import log
 
 LOG = log.getLogger(__name__)
+
+
+class NodePowerState(state.State):
+    @classmethod
+    def convert_with_links(cls, rpc_node, expand=True):
+        power_state = NodePowerState()
+        # FIXME(lucasagomes): this request could potentially take a
+        # while. It's dependent upon the driver talking to the hardware. At
+        # least with IPMI, this often times out, and even fails after 3
+        # retries at a statistically significant frequency....
+        power_state.current = pecan.request.rpcapi.get_node_power_state(
+                                                         pecan.request.context,
+                                                         rpc_node.uuid)
+        url_arg = '%s/state/power' % rpc_node.uuid
+        power_state.links = [link.Link.make_link('self',
+                                                 pecan.request.host_url,
+                                                 'nodes', url_arg),
+                             link.Link.make_link('bookmark',
+                                                 pecan.request.host_url,
+                                                 'nodes', url_arg,
+                                                 bookmark=True)
+                            ]
+        if expand:
+            power_state.target = rpc_node.target_power_state
+            # TODO(lucasagomes): get_next_power_available_states
+            power_state.available = []
+        return power_state
+
+
+class NodePowerStateController(rest.RestController):
+
+    # GET nodes/<uuid>/state/power
+    @wsme_pecan.wsexpose(NodePowerState, unicode)
+    def get(self, node_id):
+        node = objects.Node.get_by_uuid(pecan.request.context, node_id)
+        return NodePowerState.convert_with_links(node)
+
+    # PUT nodes/<uuid>/state/power
+    @wsme_pecan.wsexpose(NodePowerState, unicode, unicode, status=202)
+    def put(self, node_id, target):
+        """Set the power state of the machine."""
+        node = objects.Node.get_by_uuid(pecan.request.context, node_id)
+        if node.target_power_state is not None:
+            raise wsme.exc.ClientSideError(_("One power operation is "
+                                             "already in process"))
+        #TODO(lucasagomes): Test if target is a valid state and if it's able
+        # to transition to the target state from the current one
+
+        node['target_power_state'] = target
+        updated_node = pecan.request.rpcapi.update_node(pecan.request.context,
+                                                        node)
+        pecan.request.rpcapi.start_power_state_change(pecan.request.context,
+                                                      updated_node, target)
+        return NodePowerState.convert_with_links(updated_node, expand=False)
+
+
+class NodeProvisionState(state.State):
+    @classmethod
+    def convert_with_links(cls, rpc_node, expand=True):
+        provision_state = NodeProvisionState()
+        provision_state.current = rpc_node.provision_state
+        url_arg = '%s/state/provision' % rpc_node.uuid
+        provision_state.links = [link.Link.make_link('self',
+                                                     pecan.request.host_url,
+                                                     'nodes', url_arg),
+                                 link.Link.make_link('bookmark',
+                                                     pecan.request.host_url,
+                                                     'nodes', url_arg,
+                                                     bookmark=True)
+                                ]
+        if expand:
+            provision_state.target = rpc_node.target_provision_state
+            # TODO(lucasagomes): get_next_provision_available_states
+            provision_state.available = []
+        return provision_state
+
+
+class NodeProvisionStateController(rest.RestController):
+
+    # GET nodes/<uuid>/state/provision
+    @wsme_pecan.wsexpose(NodeProvisionState, unicode)
+    def get(self, node_id):
+        node = objects.Node.get_by_uuid(pecan.request.context, node_id)
+        provision_state = NodeProvisionState.convert_with_links(node)
+        return provision_state
+
+    # PUT nodes/<uuid>/state/provision
+    @wsme_pecan.wsexpose(NodeProvisionState, unicode, unicode, status=202)
+    def put(self, node_id, target):
+        """Set the provision state of the machine."""
+        #TODO(lucasagomes): Test if target is a valid state and if it's able
+        # to transition to the target state from the current one
+        # TODO(lucasagomes): rpcapi.start_provision_state_change()
+        raise NotImplementedError()
+
+
+class NodeStates(base.APIBase):
+    """API representation of the states of a node."""
+
+    power = NodePowerState
+    "The current power state of the node"
+
+    provision = NodeProvisionState
+    "The current provision state of the node"
+
+    @classmethod
+    def convert_with_links(cls, rpc_node):
+        states = NodeStates()
+        states.power = NodePowerState.convert_with_links(rpc_node,
+                                                         expand=False)
+        states.provision = NodeProvisionState.convert_with_links(rpc_node,
+                                                                 expand=False)
+        return states
+
+
+class NodeStatesController(rest.RestController):
+
+    power = NodePowerStateController()
+    "Expose the power controller action as a sub-element of state"
+
+    provision = NodeProvisionStateController()
+    "Expose the provision controller action as a sub-element of state"
+
+    # GET nodes/<uuid>/state
+    @wsme_pecan.wsexpose(NodeStates, unicode)
+    def get(self, node_id):
+        """List or update the state of a node."""
+        node = objects.Node.get_by_uuid(pecan.request.context, node_id)
+        state = NodeStates.convert_with_links(node)
+        return state
 
 
 class Node(base.APIBase):
@@ -46,9 +177,17 @@ class Node(base.APIBase):
     uuid = wtypes.text
     instance_uuid = wtypes.text
 
-    # NOTE: task_* fields probably need to be reworked to match API spec
-    task_state = wtypes.text
-    task_start = wtypes.text
+    power_state = wtypes.text
+    "Represent the current (not transition) power state of the node"
+
+    target_power_state = wtypes.text
+    "The user modified desired power state of the node."
+
+    provision_state = wtypes.text
+    "Represent the current (not transition) provision state of the node"
+
+    target_provision_state = wtypes.text
+    "The user modified desired provision state of the node."
 
     # NOTE: allow arbitrary dicts for driver_info and extra so that drivers
     #       and vendors can expand on them without requiring API changes.
@@ -120,6 +259,9 @@ class NodeCollection(collection.Collection):
 class NodesController(rest.RestController):
     """REST controller for Nodes."""
 
+    state = NodeStatesController()
+    "Expose the state controller action as a sub-element of nodes"
+
     _custom_actions = {
         'ports': ['GET'],
     }
@@ -169,9 +311,14 @@ class NodesController(rest.RestController):
         #       to a dict and stripping keys with value=None
         delta = node_data.as_terse_dict()
 
-        # NOTE: state transitions are separate from informational changes
-        #       so don't pass a task_state to update_node.
-        new_state = delta.pop('task_state', None)
+        # Prevent states from being updated
+        state_rel_attr = ['power_state', 'target_power_state',
+                          'provision_state', 'target_provision_state']
+        if any((getattr(node_data, attr) for attr in state_rel_attr)):
+            raise wsme.exc.ClientSideError(_("Changing states is not allowed "
+                                             "here; You must use the "
+                                             "nodes/%s/state interface.")
+                                             % node_id)
 
         response = wsme.api.Response(Node(), status_code=200)
         try:
@@ -189,12 +336,6 @@ class NodesController(rest.RestController):
         except exception.IronicException as e:
             LOG.exception(e)
             response.status_code = 500
-
-        if new_state:
-            # NOTE: state change is async, so change the REST response
-            response.status_code = 202
-            pecan.request.rpcapi.start_state_change(pecan.request.context,
-                                                    node, new_state)
 
         # TODO(deva): return the response object instead of raising
         #             after wsme 0.5b3 is released
