@@ -95,7 +95,7 @@ def require_exclusive_lock(f):
 
 
 @contextlib.contextmanager
-def acquire(node_ids, shared=False):
+def acquire(node_ids, shared=False, driver_name=None):
     """Context manager for acquiring a lock on one or more Nodes.
 
     Acquire a lock atomically on a non-empty set of nodes. The lock
@@ -106,6 +106,7 @@ def acquire(node_ids, shared=False):
     :param node_ids: A list of ids or uuids of nodes to lock.
     :param shared: Boolean indicating whether to take a shared or exclusive
                    lock. Default: False.
+    :param driver_name: Name of Driver. Default: None.
     :returns: An instance of :class:`TaskManager`.
 
     """
@@ -120,7 +121,8 @@ def acquire(node_ids, shared=False):
         if not shared:
             t.dbapi.reserve_nodes(CONF.host, node_ids)
         for id in node_ids:
-            t.resources.append(resource_manager.NodeManager.acquire(id, t))
+            t.resources.append(resource_manager.NodeManager.acquire(
+                                                        id, t, driver_name))
         yield t
     finally:
         for id in [r.id for r in t.resources]:
@@ -154,3 +156,12 @@ class TaskManager(object):
         else:
             raise AttributeError(_("Multi-node TaskManager "
                                    "has no attribute 'driver'"))
+
+    @property
+    def node_manager(self):
+        """Special accessor for single-node manager."""
+        if len(self.resources) == 1:
+            return self.resources[0]
+        else:
+            raise AttributeError(_("Multi-node TaskManager "
+                "can't select single node manager from the list"))

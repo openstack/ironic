@@ -17,7 +17,6 @@
 #    under the License.
 
 """Test class for Ironic ManagerService."""
-
 import mox
 
 from ironic.common import exception
@@ -95,9 +94,10 @@ class ManagerTestCase(base.DbTestCase):
         self.assertEqual(res['extra'], {'test': 'one'})
 
     def test_update_node_invalid_state(self):
-        ndict = utils.get_test_node(driver='fake', extra={'test': 'one'},
-                                instance_uuid=None,
-                                power_state=states.POWER_ON)
+        ndict = utils.get_test_node(driver='fake',
+                                    extra={'test': 'one'},
+                                    instance_uuid=None,
+                                    power_state=states.POWER_ON)
         node = self.dbapi.create_node(ndict)
 
         # check that it fails because state is POWER_ON
@@ -110,6 +110,26 @@ class ManagerTestCase(base.DbTestCase):
         # verify change did not happen
         res = objects.Node.get_by_uuid(self.context, node['uuid'])
         self.assertEqual(res['instance_uuid'], None)
+
+    def test_update_node_invalid_driver(self):
+        existing_driver = 'fake'
+        wrong_driver = 'wrong-driver'
+        ndict = utils.get_test_node(driver=existing_driver,
+                                    extra={'test': 'one'},
+                                    instance_uuid=None,
+                                    task_state=states.POWER_ON)
+        node = self.dbapi.create_node(ndict)
+        # check that it fails because driver not found
+        node['driver'] = wrong_driver
+        node['driver_info'] = {}
+        self.assertRaises(exception.DriverNotFound,
+                          self.service.update_node,
+                          self.context,
+                          node)
+
+        # verify change did not happen
+        res = objects.Node.get_by_uuid(self.context, node['uuid'])
+        self.assertEqual(res['driver'], existing_driver)
 
     def test_update_node_invalid_driver_info(self):
         # TODO(deva)

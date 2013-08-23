@@ -229,6 +229,10 @@ class DiskNotFound(NotFound):
     message = _("No disk at %(location)s")
 
 
+class DriverNotFound(NotFound):
+    message = _("Failed to load driver %(driver_name)s.")
+
+
 class ImageNotFound(NotFound):
     message = _("Image %(image_id)s could not be found.")
 
