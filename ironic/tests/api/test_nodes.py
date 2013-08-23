@@ -243,6 +243,29 @@ class TestPost(base.FunctionalTest):
         result = self.get_json('/nodes/%s' % ndict['uuid'])
         self.assertEqual(ndict['uuid'], result['uuid'])
 
+    def test_vendor_passthru(self):
+        ndict = dbutils.get_test_node()
+        self.post_json('/nodes', ndict)
+        uuid = ndict['uuid']
+        # TODO(lucasagomes): When vendor_passthru gets implemented
+        #                    remove the expect_errors parameter
+        response = self.post_json('/nodes/%s/vendor_passthru/method' % uuid,
+                                  {'foo': 'bar'},
+                                  expect_errors=True)
+        # TODO(lucasagomes): it's expected to return 202, but because we are
+        #                    passing expect_errors=True to the post_json
+        #                    function the return code will be 500. So change
+        #                    the return code when vendor_passthru gets
+        #                    implemented
+        self.assertEqual(response.status_code, 500)
+
+    def test_vendor_passthru_without_method(self):
+        ndict = dbutils.get_test_node()
+        self.post_json('/nodes', ndict)
+        self.assertRaises(webtest.app.AppError, self.post_json,
+                          '/nodes/%s/vendor_passthru' % ndict['uuid'],
+                          {'foo': 'bar'})
+
 
 class TestDelete(base.FunctionalTest):
 
@@ -251,7 +274,7 @@ class TestDelete(base.FunctionalTest):
         self.post_json('/nodes', ndict)
         self.delete('/nodes/%s' % ndict['uuid'])
         response = self.get_json('/nodes/%s' % ndict['uuid'],
-                expect_errors=True)
+                                 expect_errors=True)
         self.assertEqual(response.status_int, 500)
         self.assertEqual(response.content_type, 'application/json')
         self.assertTrue(response.json['error_message'])
