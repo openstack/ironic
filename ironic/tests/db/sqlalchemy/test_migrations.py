@@ -671,3 +671,12 @@ class TestMigrations(BaseMigrationTestCase, WalkVersionsMixin):
         for col, coltype in new_col.items():
             self.assertTrue(isinstance(nodes.c[col].type,
                                        getattr(sqlalchemy.types, coltype)))
+
+    def _check_010(self, engine, data):
+        insp = sqlalchemy.engine.reflection.Inspector.from_engine(engine)
+        f_keys = insp.get_foreign_keys('nodes')
+        self.assertEqual(len(f_keys), 1)
+        f_key = f_keys[0]
+        self.assertEqual(f_key['referred_table'], 'chassis')
+        self.assertEqual(f_key['referred_columns'], ['id'])
+        self.assertEqual(f_key['constrained_columns'], ['chassis_id'])
