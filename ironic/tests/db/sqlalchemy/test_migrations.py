@@ -680,3 +680,11 @@ class TestMigrations(BaseMigrationTestCase, WalkVersionsMixin):
         self.assertEqual(f_key['referred_table'], 'chassis')
         self.assertEqual(f_key['referred_columns'], ['id'])
         self.assertEqual(f_key['constrained_columns'], ['chassis_id'])
+
+    def _check_011(self, engine, data):
+        chassis = db_utils.get_table(engine, 'chassis')
+        chassis_data = {'uuid': 'uuu-111-222', 'extra': 'extra1'}
+        chassis.insert().values(chassis_data).execute()
+        self.assertRaises(sqlalchemy.exc.IntegrityError,
+                          chassis.insert().execute,
+                          {'uuid': 'uuu-111-222', 'extra': 'extra2'})

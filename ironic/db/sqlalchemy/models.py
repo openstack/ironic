@@ -84,6 +84,9 @@ class Chassis(Base):
     """Represents a hardware chassis."""
 
     __tablename__ = 'chassis'
+    __table_args__ = (
+        schema.UniqueConstraint('uuid', name='uniq_chassis0uuid'),
+        )
     id = Column(Integer, primary_key=True)
     uuid = Column(String(36))
     extra = Column(JSONEncodedDict)
