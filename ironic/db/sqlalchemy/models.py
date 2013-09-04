@@ -25,7 +25,8 @@ import urlparse
 from oslo.config import cfg
 
 from sqlalchemy import Column, ForeignKey
-from sqlalchemy import Integer, String
+from sqlalchemy import Integer, Index
+from sqlalchemy import schema, String
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.types import TypeDecorator, VARCHAR
 
@@ -84,7 +85,7 @@ class Chassis(Base):
 
     __tablename__ = 'chassis'
     id = Column(Integer, primary_key=True)
-    uuid = Column(String(36), unique=True)
+    uuid = Column(String(36))
     extra = Column(JSONEncodedDict)
     description = Column(String(255), nullable=True)
 
@@ -93,9 +94,12 @@ class Node(Base):
     """Represents a bare metal node."""
 
     __tablename__ = 'nodes'
+    __table_args__ = (
+        schema.UniqueConstraint('uuid', name='node_uuid_ux'),
+        Index('node_instance_uuid', 'instance_uuid'))
     id = Column(Integer, primary_key=True)
-    uuid = Column(String(36), unique=True)
-    instance_uuid = Column(String(36), nullable=True, unique=True)
+    uuid = Column(String(36))
+    instance_uuid = Column(String(36), nullable=True)
     chassis_id = Column(Integer, ForeignKey('chassis.id'), nullable=True)
     power_state = Column(String(15), nullable=True)
     target_power_state = Column(String(15), nullable=True)
@@ -112,8 +116,11 @@ class Port(Base):
     """Represents a network port of a bare metal node."""
 
     __tablename__ = 'ports'
+    __table_args__ = (
+        schema.UniqueConstraint('address', name='iface_address_ux'),
+        schema.UniqueConstraint('uuid', name='port_uuid_ux'))
     id = Column(Integer, primary_key=True)
-    uuid = Column(String(36), unique=True)
-    address = Column(String(18), unique=True)
+    uuid = Column(String(36))
+    address = Column(String(18))
     node_id = Column(Integer, ForeignKey('nodes.id'), nullable=True)
     extra = Column(JSONEncodedDict)
