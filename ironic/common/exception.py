@@ -202,6 +202,18 @@ class InvalidMAC(Invalid):
     message = _("Expected a MAC address but received %(mac)s.")
 
 
+class InstanceDeployFailure(Invalid):
+    message = _("Failed to deploy instance: %(reason)s")
+
+
+class ImageUnacceptable(Invalid):
+    message = _("Image %(image_id)s is unacceptable: %(reason)s")
+
+
+class ImageConvertFailed(Invalid):
+    message = _("Image %(image_id)s is unacceptable: %(reason)s")
+
+
 # Cannot be templated as the error syntax varies.
 # msg needs to be constructed when raised.
 class InvalidParameterValue(Invalid):
