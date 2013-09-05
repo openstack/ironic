@@ -38,7 +38,7 @@ class PXEAndIPMIToolDriver(base.BaseDriver):
         self.power = ipmitool.IPMIPower()
         self.deploy = pxe.PXEDeploy()
         self.rescue = self.deploy
-        self.vendor = pxe.IPMIVendorPassthru()
+        self.vendor = pxe.VendorPassthru()
 
 
 class PXEAndSSHDriver(base.BaseDriver):
@@ -75,4 +75,4 @@ class PXEAndIPMINativeDriver(base.BaseDriver):
         self.power = ipminative.NativeIPMIPower()
         self.deploy = pxe.PXEDeploy()
         self.rescue = self.deploy
-        self.vendor = pxe.IPMIVendorPassthru()
+        self.vendor = pxe.VendorPassthru()

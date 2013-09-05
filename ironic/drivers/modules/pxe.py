@@ -18,7 +18,6 @@
 PXE Driver and supporting meta-classes.
 """
 
-import datetime
 import os
 import tempfile
 
@@ -33,12 +32,12 @@ from ironic.common import states
 from ironic.common import utils
 
 from ironic.drivers import base
+from ironic.drivers.modules import deploy_utils
 from ironic.openstack.common import context
 from ironic.openstack.common import fileutils
 from ironic.openstack.common import lockutils
 from ironic.openstack.common import log as logging
 from ironic.openstack.common import loopingcall
-from ironic.openstack.common import timeutils
 
 
 pxe_opts = [
@@ -432,13 +431,14 @@ class PXEDeploy(base.DeployInterface):
         _parse_driver_info(node)
 
     def deploy(self, task, node):
-        """Perform a deployment to a node.
+        """Perform start deployment a node.
 
         Given a node with complete metadata, deploy the indicated image
         to the node.
 
         :param task: a TaskManager instance.
         :param node: the Node to act upon.
+        :returns: deploy state DEPLOYING.
         """
 
         pxe_info = _get_tftp_image_info(node)
@@ -446,46 +446,7 @@ class PXEDeploy(base.DeployInterface):
         _create_pxe_config(task, node, pxe_info)
         _cache_images(node, pxe_info)
 
-        local_status = {'error': '', 'started': False}
-
-        def _wait_for_deploy():
-            """Called at an interval until the deployment completes."""
-            try:
-                node.refresh()
-                status = node['provision_state']
-                if (status == states.DEPLOYING
-                    and local_status['started'] is False):
-                    LOG.info(_("PXE deploy started for instance %s")
-                                % node['instance_uuid'])
-                    local_status['started'] = True
-                elif status in (states.DEPLOYDONE,
-                                states.ACTIVE):
-                    LOG.info(_("PXE deploy completed for instance %s")
-                                % node['instance_uuid'])
-                    raise loopingcall.LoopingCallDone()
-                elif status == states.DEPLOYFAIL:
-                    local_status['error'] = _("PXE deploy failed for"
-                                              " instance %s")
-            except exception.NodeNotFound:
-                local_status['error'] = _("Baremetal node deleted"
-                                          "while waiting for deployment"
-                                          " of instance %s")
-
-            if (CONF.pxe.pxe_deploy_timeout and
-                    timeutils.utcnow() > expiration):
-                local_status['error'] = _("Timeout reached while waiting for "
-                                     "PXE deploy of instance %s")
-            if local_status['error']:
-                raise loopingcall.LoopingCallDone()
-
-        expiration = timeutils.utcnow() + datetime.timedelta(
-                            seconds=CONF.pxe.pxe_deploy_timeout)
-        timer = loopingcall.FixedIntervalLoopingCall(_wait_for_deploy)
-        timer.start(interval=1).wait()
-
-        if local_status['error']:
-            raise exception.InstanceDeployFailure(
-                    local_status['error'] % node['instance_uuid'])
+        return states.DEPLOYING
 
     def tear_down(self, task, node):
         """Tear down a previous deployment.
@@ -495,6 +456,7 @@ class PXEDeploy(base.DeployInterface):
 
         :param task: a TaskManager instance.
         :param node: the Node to act upon.
+        :returns: deploy state DELETED.
         """
         #FIXME(ghe): Possible error to get image info if eliminated from glance
         # Retrieve image info and store in db
@@ -518,6 +480,8 @@ class PXEDeploy(base.DeployInterface):
 
         _destroy_images(d_info)
 
+        return states.DELETED
+
 
 class PXERescue(base.RescueInterface):
 
@@ -531,18 +495,83 @@ class PXERescue(base.RescueInterface):
         pass
 
 
-class IPMIVendorPassthru(base.VendorInterface):
+class VendorPassthru(base.VendorInterface):
     """Interface to mix IPMI and PXE vendor-specific interfaces."""
 
-    def validate(self, node):
-        pass
+    def _get_deploy_info(self, node, **kwargs):
+        d_info = _parse_driver_info(node)
 
-    def vendor_passthru(self, task, node, *args, **kwargs):
-        method = kwargs.get('method')
+        params = {'address': kwargs.get('address'),
+                  'port': kwargs.get('port', '3260'),
+                  'iqn': kwargs.get('iqn'),
+                  'lun': kwargs.get('lun', '1'),
+                  'image_path': _get_image_file_path(d_info),
+                  'pxe_config_path': _get_pxe_config_file_path(
+                                                    node['instance_uuid']),
+                  'root_mb': 1024 * int(d_info['root_gb']),
+                  'swap_mb': int(d_info['swap_mb'])
+
+            }
+
+        missing = [key for key in params.keys() if params[key] is None]
+        if missing:
+            raise exception.InvalidParameterValue(_(
+                    "Parameters %s were not passed to ironic"
+                    " for deploy.") % missing)
+
+        return params
+
+    def validate(self, node, **kwargs):
+        method = kwargs['method']
+        if method == 'pass_deploy_info':
+            self._get_deploy_info(node, **kwargs)
+        elif method == 'set_boot_device':
+            # todo
+            pass
+        else:
+            raise exception.InvalidParameterValue(_(
+                "Unsupported method (%s) passed to PXE driver.")
+                % method)
+
+        return True
+
+    def _continue_deploy(self, task, node, **kwargs):
+        params = self._get_deploy_info(node, **kwargs)
+        ctx = context.get_admin_context()
+        node_id = node['uuid']
+
+        err_msg = kwargs.get('error')
+        if err_msg:
+            LOG.error(_('Node %(node_id)s deploy error message: %(error)s') %
+                        {'node_id': node_id, 'error': err_msg})
+
+        LOG.info(_('start deployment for node %(node_id)s, '
+                   'params %(params)s') %
+                   {'node_id': node_id, 'params': params})
+
+        try:
+            node['provision_state'] = states.DEPLOYING
+            node.save(ctx)
+            deploy_utils.deploy(**params)
+        except Exception as e:
+            LOG.error(_('deployment to node %s failed') % node_id)
+            node['provision_state'] = states.DEPLOYFAIL
+            node.save(ctx)
+            raise exception.InstanceDeployFailure(_(
+                    'Deploy error: "%(error)s" for node %(node_id)s') %
+                     {'error': e.message, 'node_id': node_id})
+        else:
+            LOG.info(_('deployment to node %s done') % node_id)
+            node['provision_state'] = states.DEPLOYDONE
+            node.save(ctx)
+
+    def vendor_passthru(self, task, node, **kwargs):
+        method = kwargs['method']
         if method == 'set_boot_device':
             return node.driver.vendor._set_boot_device(
                         task, node,
                         kwargs.get('device'),
                         kwargs.get('persistent'))
-        else:
-            return
+
+        elif method == 'pass_deploy_info':
+            self._continue_deploy(task, node, **kwargs)

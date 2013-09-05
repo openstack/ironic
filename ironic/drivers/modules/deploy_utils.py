@@ -15,32 +15,20 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-"""Starter script for Bare-Metal Deployment Service."""
-
 
 import os
-import sys
-import threading
 import time
 
-import cgi
-import Queue
 import re
 import socket
 import stat
-from wsgiref import simple_server
 
-from ironic.common import config
 from ironic.common import exception
-from ironic.common import states
 from ironic.common import utils
-from ironic import db
-from ironic.openstack.common import context as ironic_context
 from ironic.openstack.common import excutils
 from ironic.openstack.common import log as logging
 
 
-QUEUE = Queue.Queue()
 LOG = logging.getLogger(__name__)
 
 
@@ -136,7 +124,7 @@ def switch_pxe_config(path, root_uuid):
     with open(path) as f:
         lines = f.readlines()
     root = 'UUID=%s' % root_uuid
-    rre = re.compile(r'\$\{ROOT\}')
+    rre = re.compile(r'\{\{ ROOT \}\}')
     dre = re.compile('^default .*$')
     with open(path, 'w') as f:
         for line in lines:
@@ -177,14 +165,14 @@ def work_on_disk(dev, root_mb, swap_mb, image_path):
     swap_part = "%s-part2" % dev
 
     if not is_block_device(dev):
-        LOG.warn(_("parent device '%s' not found") % dev)
+        LOG.warn(_("parent device '%s' not found"), dev)
         return
     make_partitions(dev, root_mb, swap_mb)
     if not is_block_device(root_part):
-        LOG.warn(_("root device '%s' not found") % root_part)
+        LOG.warn(_("root device '%s' not found"), root_part)
         return
     if not is_block_device(swap_part):
-        LOG.warn(_("swap device '%s' not found") % swap_part)
+        LOG.warn(_("swap device '%s' not found"), swap_part)
         return
     dd(image_path, root_part)
     mkswap(swap_part)
@@ -193,7 +181,7 @@ def work_on_disk(dev, root_mb, swap_mb, image_path):
         root_uuid = block_uuid(root_part)
     except exception.ProcessExecutionError:
         with excutils.save_and_reraise_exception():
-            LOG.error("Failed to detect root device UUID.")
+            LOG.error(_("Failed to detect root device UUID."))
     return root_uuid
 
 
@@ -211,125 +199,13 @@ def deploy(address, port, iqn, lun, image_path, pxe_config_path,
     except exception.ProcessExecutionError as err:
         with excutils.save_and_reraise_exception():
             # Log output if there was a error
-            LOG.error("Cmd     : %s" % err.cmd)
-            LOG.error("StdOut  : %s" % err.stdout)
-            LOG.error("StdErr  : %s" % err.stderr)
+            LOG.error(_("Deploy to address %s failed.") % address)
+            LOG.error(_("Command: %s") % err.cmd)
+            LOG.error(_("StdOut: %r") % err.stdout)
+            LOG.error(_("StdErr: %r") % err.stderr)
     finally:
         logout_iscsi(address, port, iqn)
     switch_pxe_config(pxe_config_path, root_uuid)
     # Ensure the node started netcat on the port after POST the request.
     time.sleep(3)
     notify(address, 10000)
-
-
-class Worker(threading.Thread):
-    """Thread that handles requests in queue."""
-
-    def __init__(self):
-        super(Worker, self).__init__()
-        self.setDaemon(True)
-        self.stop = False
-        self.queue_timeout = 1
-
-    def run(self):
-        while not self.stop:
-            try:
-                # Set timeout to check self.stop periodically
-                (node_id, params) = QUEUE.get(block=True,
-                                                    timeout=self.queue_timeout)
-            except Queue.Empty:
-                pass
-            else:
-                # Requests comes here from BareMetalDeploy.post()
-                LOG.info(_('start deployment for node %(node_id)s, '
-                           'params %(params)s') %
-                           {'node_id': node_id, 'params': params})
-                context = ironic_context.get_admin_context()
-                try:
-                    db.bm_node_update(context, node_id,
-                          {'task_state': states.DEPLOYING})
-                    deploy(**params)
-                except Exception:
-                    LOG.error(_('deployment to node %s failed') % node_id)
-                    db.bm_node_update(context, node_id,
-                          {'task_state': states.DEPLOYFAIL})
-                else:
-                    LOG.info(_('deployment to node %s done') % node_id)
-                    db.bm_node_update(context, node_id,
-                          {'task_state': states.DEPLOYDONE})
-
-
-class BareMetalDeploy(object):
-    """WSGI server for bare-metal deployment."""
-
-    def __init__(self):
-        self.worker = Worker()
-        self.worker.start()
-
-    def __call__(self, environ, start_response):
-        method = environ['REQUEST_METHOD']
-        if method == 'POST':
-            return self.post(environ, start_response)
-        else:
-            start_response('501 Not Implemented',
-                           [('Content-type', 'text/plain')])
-            return 'Not Implemented'
-
-    def post(self, environ, start_response):
-        LOG.info(_("post: environ=%s") % environ)
-        inpt = environ['wsgi.input']
-        length = int(environ.get('CONTENT_LENGTH', 0))
-
-        x = inpt.read(length)
-        q = dict(cgi.parse_qsl(x))
-        try:
-            node_id = q['i']
-            deploy_key = q['k']
-            address = q['a']
-            port = q.get('p', '3260')
-            iqn = q['n']
-            lun = q.get('l', '1')
-            err_msg = q.get('e')
-        except KeyError as e:
-            start_response('400 Bad Request', [('Content-type', 'text/plain')])
-            return "parameter '%s' is not defined" % e
-
-        if err_msg:
-            LOG.error(_('Deploy agent error message: %s'), err_msg)
-
-        context = ironic_context.get_admin_context()
-        d = db.bm_node_get(context, node_id)
-
-        if d['deploy_key'] != deploy_key:
-            start_response('400 Bad Request', [('Content-type', 'text/plain')])
-            return 'key is not match'
-
-        params = {'address': address,
-                  'port': port,
-                  'iqn': iqn,
-                  'lun': lun,
-                  'image_path': d['image_path'],
-                  'pxe_config_path': d['pxe_config_path'],
-                  'root_mb': int(d['root_mb']),
-                  'swap_mb': int(d['swap_mb']),
-                 }
-        # Restart worker, if needed
-        if not self.worker.isAlive():
-            self.worker = Worker()
-            self.worker.start()
-        LOG.info(_("request is queued: node %(node_id)s, params %(params)s") %
-                {'node_id': node_id, 'params': params})
-        QUEUE.put((node_id, params))
-        # Requests go to Worker.run()
-        start_response('200 OK', [('Content-type', 'text/plain')])
-        return ''
-
-
-def main():
-    config.parse_args(sys.argv)
-    logging.setup("nova")
-    global LOG
-    LOG = logging.getLogger('nova.virt.baremetal.deploy_helper')
-    app = BareMetalDeploy()
-    srv = simple_server.make_server('', 10000, app)
-    srv.serve_forever()

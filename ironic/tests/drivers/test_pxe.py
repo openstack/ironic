@@ -35,6 +35,7 @@ from ironic.common import states
 from ironic.common import utils
 from ironic.conductor import task_manager
 from ironic.db import api as dbapi
+from ironic.drivers.modules import deploy_utils
 from ironic.drivers.modules import pxe
 from ironic.openstack.common import context
 from ironic.openstack.common import fileutils
@@ -415,7 +416,7 @@ class PXEDriverTestCase(db_base.DbTestCase):
 
     def setUp(self):
         super(PXEDriverTestCase, self).setUp()
-        self.driver = mgr_utils.get_mocked_node_manager(driver='fake_pxe')
+        mgr_utils.get_mocked_node_manager(driver='fake_pxe')
         n = db_utils.get_test_node(
                 driver='fake_pxe',
                 driver_info=json.loads(db_utils.pxe_info),
@@ -456,13 +457,18 @@ class PXEDriverTestCase(db_base.DbTestCase):
             node_macs = pxe._get_node_mac_addresses(task, self.node)
         self.assertEqual(node_macs, ['aa:bb:cc', 'dd:ee:ff'])
 
-    def test_deploy_good(self):
+    def test_vendor_passthru_validate_good(self):
+        with task_manager.acquire([self.node['uuid']], shared=True) as task:
+            task.resources[0].driver.vendor.validate(self.node,
+                    method='pass_deploy_info', address='123456', iqn='aaa-bbb')
 
-        def refresh():
-            pass
+    def test_vendor_passthru_validate_fail(self):
+        with task_manager.acquire([self.node['uuid']], shared=True) as task:
+            self.assertRaises(exception.InvalidParameterValue,
+                              task.resources[0].driver.vendor.validate,
+                              self.node, method='pass_deploy_info')
 
-        self.node.refresh = refresh
-
+    def test_start_deploy(self):
         self.mox.StubOutWithMock(pxe, '_create_pxe_config')
         self.mox.StubOutWithMock(pxe, '_cache_images')
         self.mox.StubOutWithMock(pxe, '_get_tftp_image_info')
@@ -472,82 +478,34 @@ class PXEDriverTestCase(db_base.DbTestCase):
         pxe._cache_images(self.node, None).AndReturn(None)
         self.mox.ReplayAll()
 
-        class handler_deploying(threading.Thread):
-            def __init__(self, node):
-                threading.Thread.__init__(self)
-                self.node = node
-
-            def run(self):
-                self.node['provision_state'] = states.DEPLOYING
-                time.sleep(2)
-                self.node['provision_state'] = states.ACTIVE
-
-        handler = handler_deploying(self.node)
-        handler.start()
-
         with task_manager.acquire([self.node['uuid']], shared=False) as task:
-            task.resources[0].driver.deploy.deploy(task, self.node)
+            state = task.resources[0].driver.deploy.deploy(task, self.node)
+        self.assertEqual(state, states.DEPLOYING)
         self.mox.VerifyAll()
 
-    def test_deploy_fail(self):
+    def test_continue_deploy_good(self):
 
-        def refresh():
+        def fake_deploy(**kwargs):
             pass
 
-        self.node.refresh = refresh
+        self.stubs.Set(deploy_utils, 'deploy', fake_deploy)
+        with task_manager.acquire([self.node['uuid']], shared=True) as task:
+            task.resources[0].driver.vendor.vendor_passthru(task, self.node,
+                    method='pass_deploy_info', address='123456', iqn='aaa-bbb')
+        self.assertEqual(self.node['provision_state'], states.DEPLOYDONE)
 
-        self.mox.StubOutWithMock(pxe, '_create_pxe_config')
-        self.mox.StubOutWithMock(pxe, '_cache_images')
-        self.mox.StubOutWithMock(pxe, '_get_tftp_image_info')
-        pxe._get_tftp_image_info(self.node).AndReturn(None)
-        pxe._create_pxe_config(mox.IgnoreArg(), self.node, None).\
-            AndReturn(None)
-        pxe._cache_images(self.node, None).AndReturn(None)
-        self.mox.ReplayAll()
+    def test_continue_deploy_fail(self):
 
-        class handler_deploying(threading.Thread):
-            def __init__(self, node):
-                threading.Thread.__init__(self)
-                self.node = node
+        def fake_deploy(**kwargs):
+            raise exception.InstanceDeployFailure()
 
-            def run(self):
-                self.node['provision_state'] = states.DEPLOYING
-                time.sleep(2)
-                self.node['provision_state'] = states.DEPLOYFAIL
-
-        handler = handler_deploying(self.node)
-        handler.start()
-        with task_manager.acquire([self.node['uuid']], shared=False) as task:
+        self.stubs.Set(deploy_utils, 'deploy', fake_deploy)
+        with task_manager.acquire([self.node['uuid']], shared=True) as task:
             self.assertRaises(exception.InstanceDeployFailure,
-                              task.resources[0].driver.deploy.deploy,
-                              task,
-                              self.node)
-        self.mox.VerifyAll()
-
-    def test_deploy_timeout_fail(self):
-
-        def refresh():
-            pass
-
-        self.node.refresh = refresh
-
-        self.mox.StubOutWithMock(pxe, '_create_pxe_config')
-        self.mox.StubOutWithMock(pxe, '_cache_images')
-        self.mox.StubOutWithMock(pxe, '_get_tftp_image_info')
-        pxe._get_tftp_image_info(self.node).AndReturn(None)
-        pxe._create_pxe_config(mox.IgnoreArg(), self.node, None).\
-            AndReturn(None)
-        pxe._cache_images(self.node, None).AndReturn(None)
-        self.mox.ReplayAll()
-
-        CONF.set_default('pxe_deploy_timeout', 2, group='pxe')
-
-        with task_manager.acquire([self.node['uuid']], shared=False) as task:
-            self.assertRaises(exception.InstanceDeployFailure,
-                              task.resources[0].driver.deploy.deploy,
-                              task,
-                              self.node)
-        self.mox.VerifyAll()
+                            task.resources[0].driver.vendor.vendor_passthru,
+                            task, self.node, method='pass_deploy_info',
+                            address='123456', iqn='aaa-bbb')
+        self.assertEqual(self.node['provision_state'], states.DEPLOYFAIL)
 
     def tear_down_config(self, master=None):
         temp_dir = tempfile.mkdtemp()
