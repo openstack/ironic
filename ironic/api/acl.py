@@ -18,11 +18,12 @@
 
 """Access Control Lists (ACL's) control access the API server."""
 
-from keystoneclient.middleware import auth_token
+from keystoneclient.middleware import auth_token as keystone_auth_token
 from oslo.config import cfg
 from pecan import hooks
 from webob import exc
 
+from ironic.api.middleware import auth_token
 from ironic.common import policy
 
 
@@ -34,23 +35,27 @@ def register_opts(conf):
 
     :param conf: Ironic settings.
     """
-    conf.register_opts(auth_token.opts,
-                       group=OPT_GROUP_NAME)
-    auth_token.CONF = conf
+    conf.register_opts(keystone_auth_token.opts, group=OPT_GROUP_NAME)
+    keystone_auth_token.CONF = conf
 
 
 register_opts(cfg.CONF)
 
 
-def install(app, conf):
+def install(app, conf, public_routes):
     """Install ACL check on application.
 
     :param app: A WSGI applicatin.
     :param conf: Settings. Must include OPT_GROUP_NAME section.
+    :param public_routes: The list of the routes which will be allowed to
+                          access without authentication.
     :return: The same WSGI application with ACL installed.
+
     """
     keystone_config = dict(conf.get(OPT_GROUP_NAME))
-    return auth_token.AuthProtocol(app, conf=keystone_config)
+    return auth_token.AuthTokenMiddleware(app,
+                                          conf=keystone_config,
+                                          public_api_routes=public_routes)
 
 
 class AdminAuthHook(hooks.PecanHook):
@@ -61,5 +66,7 @@ class AdminAuthHook(hooks.PecanHook):
 
     """
     def before(self, state):
-        if not policy.check_is_admin(state.request.context):
+        ctx = state.request.context
+
+        if not policy.check_is_admin(ctx) and not ctx.is_public_api:
             raise exc.HTTPForbidden()

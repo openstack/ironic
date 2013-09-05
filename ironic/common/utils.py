@@ -576,3 +576,19 @@ def create_link_without_raise(source, link):
             LOG.warn(_("Failed to create symlink from %(source)s to %(link)s"
                        ", error: %(e)s") %
                        {'source': source, 'link': link, 'e': e})
+
+
+def safe_rstrip(value, chars=None):
+    """Removes trailing characters from a string if that does not make it empty
+
+    :param value: A string value that will be stripped.
+    :param chars: Characters to remove.
+    :return: Stripped value.
+
+    """
+    if not isinstance(value, six.string_types):
+        LOG.warn(_("Failed to remove trailing character. Returning original "
+                   "object. Supplied object is not a string: %s,") % value)
+        return value
+
+    return value.rstrip(chars) or value

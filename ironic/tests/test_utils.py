@@ -303,6 +303,23 @@ class GenericUtilsTestCase(base.TestCase):
         self.assertFalse(utils.is_valid_mac("127.0.0.1"))
         self.assertFalse(utils.is_valid_mac("not:a:mac:address"))
 
+    def test_safe_rstrip(self):
+        value = '/test/'
+        rstripped_value = '/test'
+        not_rstripped = '/'
+
+        self.assertEqual(utils.safe_rstrip(value, '/'), rstripped_value)
+        self.assertEqual(utils.safe_rstrip(not_rstripped, '/'), not_rstripped)
+
+    def test_safe_rstrip_not_raises_exceptions(self):
+        # Supplying an integer should normally raise an exception because it
+        # does not save the rstrip() method.
+        value = 10
+
+        # In the case of raising an exception safe_rstrip() should return the
+        # original value.
+        self.assertEqual(utils.safe_rstrip(value), value)
+
 
 class MkfsTestCase(base.TestCase):
 

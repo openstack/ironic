@@ -76,3 +76,11 @@ class TestACL(base.FunctionalTest):
                                  expect_errors=True)
 
         self.assertEqual(response.status_int, 403)
+
+    def test_public_api(self):
+        # expect_errors should be set to True: If expect_errors is set to False
+        # the response gets converted to JSON and we cannot read the response
+        # code so easy.
+        response = self.get_json('/', expect_errors=True)
+
+        self.assertEqual(response.status_int, 200)
