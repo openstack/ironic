@@ -115,7 +115,7 @@ class PortsController(rest.RestController):
 
     @wsme_pecan.wsexpose(Port, body=Port)
     def post(self, port):
-        """Ceate a new port."""
+        """Create a new port."""
         try:
             new_port = pecan.request.dbapi.create_port(port.as_dict())
         except exception.IronicException as e:

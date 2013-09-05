@@ -292,7 +292,7 @@ class NodesController(rest.RestController):
 
     @wsme_pecan.wsexpose(Node, body=Node)
     def post(self, node):
-        """Ceate a new node."""
+        """Create a new node."""
         try:
             new_node = pecan.request.dbapi.create_node(node.as_dict())
         except Exception as e:
