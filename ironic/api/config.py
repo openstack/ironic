@@ -25,7 +25,6 @@ app = {
     'root': 'ironic.api.controllers.root.RootController',
     'modules': ['ironic.api'],
     'static_root': '%(confdir)s/public',
-    'template_path': '%(confdir)s/ironic/api/templates',
     'debug': False,
     'enable_acl': True,
 }
