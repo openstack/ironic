@@ -79,7 +79,7 @@
 
 
 #
-# Options defined in ironic.drivers.modules.ipmi
+# Options defined in ironic.drivers.modules.ipmitool
 #
 
 # path to baremetal terminal program (string value)

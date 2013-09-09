@@ -19,13 +19,13 @@ PXE Driver and supporting meta-classes.
 """
 
 from ironic.drivers import base
-from ironic.drivers.modules import ipmi
+from ironic.drivers.modules import ipmitool
 from ironic.drivers.modules import pxe
 from ironic.drivers.modules import ssh
 
 
-class PXEAndIPMIDriver(base.BaseDriver):
-    """PXE + IPMI driver.
+class PXEAndIPMIToolDriver(base.BaseDriver):
+    """PXE + IPMITool driver.
 
     This driver implements the `core` functionality, combinding
     :class:ironic.drivers.ipmi.IPMI for power on/off and reboot with
@@ -34,7 +34,7 @@ class PXEAndIPMIDriver(base.BaseDriver):
     """
 
     def __init__(self):
-        self.power = ipmi.IPMIPower()
+        self.power = ipmitool.IPMIPower()
         self.deploy = pxe.PXEDeploy()
         self.rescue = self.deploy
         self.vendor = pxe.IPMIVendorPassthru()

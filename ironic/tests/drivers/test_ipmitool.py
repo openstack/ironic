@@ -17,7 +17,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-"""Test class for IPMI driver module."""
+"""Test class for IPMITool driver module."""
 
 import os
 import stat
@@ -31,7 +31,7 @@ from ironic.common import states
 from ironic.common import utils
 from ironic.conductor import task_manager
 from ironic.db import api as db_api
-from ironic.drivers.modules import ipmi
+from ironic.drivers.modules import ipmitool as ipmi
 from ironic.tests import base
 from ironic.tests.conductor import utils as mgr_utils
 from ironic.tests.db import base as db_base
@@ -40,12 +40,12 @@ from ironic.tests.db import utils as db_utils
 CONF = cfg.CONF
 
 
-class IPMIPrivateMethodTestCase(base.TestCase):
+class IPMIToolPrivateMethodTestCase(base.TestCase):
 
     def setUp(self):
-        super(IPMIPrivateMethodTestCase, self).setUp()
+        super(IPMIToolPrivateMethodTestCase, self).setUp()
         self.node = db_utils.get_test_node(
-                driver='fake_ipmi',
+                driver='fake_ipmitool',
                 driver_info=db_utils.ipmi_info)
         self.info = ipmi._parse_driver_info(self.node)
 
@@ -152,15 +152,15 @@ class IPMIPrivateMethodTestCase(base.TestCase):
         self.assertEqual(state, states.ERROR)
 
 
-class IPMIDriverTestCase(db_base.DbTestCase):
+class IPMIToolDriverTestCase(db_base.DbTestCase):
 
     def setUp(self):
-        super(IPMIDriverTestCase, self).setUp()
+        super(IPMIToolDriverTestCase, self).setUp()
         self.dbapi = db_api.get_instance()
-        self.driver = mgr_utils.get_mocked_node_manager(driver='fake_ipmi')
+        self.driver = mgr_utils.get_mocked_node_manager(driver='fake_ipmitool')
 
         self.node = db_utils.get_test_node(
-                driver='fake_ipmi',
+                driver='fake_ipmitool',
                 driver_info=db_utils.ipmi_info)
         self.info = ipmi._parse_driver_info(self.node)
         self.dbapi.create_node(self.node)
