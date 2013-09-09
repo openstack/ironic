@@ -225,8 +225,10 @@ class Connection(api.Connection):
         # ensure defaults are present for new nodes
         if not values.get('uuid'):
             values['uuid'] = uuidutils.generate_uuid()
-        if not values.get('task_state'):
-            values['task_state'] = states.NOSTATE
+        if not values.get('power_state'):
+            values['power_state'] = states.NOSTATE
+        if not values.get('provision_state'):
+            values['provision_state'] = states.NOSTATE
         if not values.get('properties'):
             values['properties'] = '{}'
         if not values.get('extra'):

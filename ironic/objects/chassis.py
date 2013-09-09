@@ -59,9 +59,7 @@ class Chassis(base.IronicObject):
         """Save updates to this Chassis.
 
         Updates will be made column by column based on the result
-        of self.what_changed(). If expected_task_state is provided,
-        it will be checked against the in-database copy of the chassis
-        before updates are made.
+        of self.what_changed().
 
         :param context: Security context
         """

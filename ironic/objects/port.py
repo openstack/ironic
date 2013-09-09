@@ -54,9 +54,7 @@ class Port(base.IronicObject):
         """Save updates to this Port.
 
         Updates will be made column by column based on the result
-        of self.what_changed(). If expected_task_state is provided,
-        it will be checked against the in-database copy of the port
-        before updates are made.
+        of self.what_changed().
 
         :param context: Security context
         """

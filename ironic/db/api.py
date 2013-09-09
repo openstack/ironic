@@ -104,7 +104,8 @@ class Connection(object):
                         {
                          'uuid': uuidutils.generate_uuid(),
                          'instance_uuid': None,
-                         'task_state': states.NOSTATE,
+                         'power_state': states.NOSTATE,
+                         'provision_state': states.NOSTATE,
                          'driver': 'pxe_ipmi',
                          'driver_info': { ... },
                          'properties': { ... },
