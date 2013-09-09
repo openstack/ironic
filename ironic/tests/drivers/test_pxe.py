@@ -453,9 +453,9 @@ class PXEDriverTestCase(db_base.DbTestCase):
                 self.node = node
 
             def run(self):
-                self.node['task_state'] = states.DEPLOYING
+                self.node['provision_state'] = states.DEPLOYING
                 time.sleep(2)
-                self.node['task_state'] = states.ACTIVE
+                self.node['provision_state'] = states.ACTIVE
 
         handler = handler_deploying(self.node)
         handler.start()
@@ -486,9 +486,9 @@ class PXEDriverTestCase(db_base.DbTestCase):
                 self.node = node
 
             def run(self):
-                self.node['task_state'] = states.DEPLOYING
+                self.node['provision_state'] = states.DEPLOYING
                 time.sleep(2)
-                self.node['task_state'] = states.DEPLOYFAIL
+                self.node['provision_state'] = states.DEPLOYFAIL
 
         handler = handler_deploying(self.node)
         handler.start()

@@ -446,7 +446,7 @@ class PXEDeploy(base.DeployInterface):
             """Called at an interval until the deployment completes."""
             try:
                 node.refresh()
-                status = node['task_state']
+                status = node['provision_state']
                 if (status == states.DEPLOYING
                     and local_status['started'] is False):
                     LOG.info(_("PXE deploy started for instance %s")
