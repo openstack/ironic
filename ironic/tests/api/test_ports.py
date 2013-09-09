@@ -82,7 +82,9 @@ class TestPatch(base.FunctionalTest):
         pdict = dbutils.get_test_port()
         extra = {'foo': 'bar'}
         response = self.patch_json('/ports/%s' % pdict['uuid'],
-                                   {'extra': extra})
+                                   [{'path': '/extra/foo',
+                                     'value': 'bar',
+                                     'op': 'add'}])
         self.assertEqual(response.content_type, 'application/json')
         self.assertEqual(response.status_code, 200)
         result = self.get_json('/ports/%s' % pdict['uuid'])
@@ -92,7 +94,9 @@ class TestPatch(base.FunctionalTest):
         pdict = dbutils.get_test_port()
         extra = {'foo': 'bar'}
         response = self.patch_json('/ports/%s' % pdict['address'],
-                                   {'extra': extra})
+                                   [{'path': '/extra/foo',
+                                     'value': 'bar',
+                                     'op': 'add'}])
         self.assertEqual(response.content_type, 'application/json')
         self.assertEqual(response.status_code, 200)
         result = self.get_json('/ports/%s' % pdict['uuid'])
@@ -100,12 +104,108 @@ class TestPatch(base.FunctionalTest):
 
     def test_update_not_found(self):
         uuid = uuidutils.generate_uuid()
-        response = self.patch_json('/ports/%s' % uuid, {'extra': {'a': 'b'}},
-                                   expect_errors=True)
+        response = self.patch_json('/ports/%s' % uuid,
+                                   [{'path': '/extra/a',
+                                     'value': 'b',
+                                     'op': 'add'}],
+                             expect_errors=True)
         # TODO(yuriyz): change to 404 (bug 1200517)
         self.assertEqual(response.status_int, 500)
         self.assertEqual(response.content_type, 'application/json')
         self.assertTrue(response.json['error_message'])
+
+    def test_replace_singular(self):
+        pdict = dbutils.get_test_port()
+        address = 'AA:BB:CC:DD:EE:FF'
+        response = self.patch_json('/ports/%s' % pdict['uuid'],
+                                   [{'path': '/address',
+                                     'value': address, 'op': 'replace'}])
+        self.assertEqual(response.content_type, 'application/json')
+        self.assertEqual(response.status_code, 200)
+        result = self.get_json('/ports/%s' % pdict['uuid'])
+        self.assertEqual(result['address'], address)
+
+    def test_replace_multi(self):
+        extra = {"foo1": "bar1", "foo2": "bar2", "foo3": "bar3"}
+        pdict = dbutils.get_test_port(extra=extra,
+                                      uuid=uuidutils.generate_uuid())
+        self.post_json('/ports', pdict)
+        new_value = 'new value'
+        response = self.patch_json('/ports/%s' % pdict['uuid'],
+                                   [{'path': '/extra/foo2',
+                                     'value': new_value, 'op': 'replace'}])
+        self.assertEqual(response.content_type, 'application/json')
+        self.assertEqual(response.status_code, 200)
+        result = self.get_json('/ports/%s' % pdict['uuid'])
+
+        extra["foo2"] = new_value
+        self.assertEqual(result['extra'], extra)
+
+    def test_remove_singular(self):
+        pdict = dbutils.get_test_port(extra={'a': 'b'},
+                                      uuid=uuidutils.generate_uuid())
+        self.post_json('/ports', pdict)
+        response = self.patch_json('/ports/%s' % pdict['uuid'],
+                                   [{'path': '/address', 'op': 'remove'}])
+        self.assertEqual(response.content_type, 'application/json')
+        self.assertEqual(response.status_code, 200)
+        result = self.get_json('/ports/%s' % pdict['uuid'])
+        self.assertEqual(result['address'], None)
+
+        # Assert nothing else was changed
+        self.assertEqual(result['uuid'], pdict['uuid'])
+        self.assertEqual(result['extra'], pdict['extra'])
+
+    def test_remove_multi(self):
+        extra = {"foo1": "bar1", "foo2": "bar2", "foo3": "bar3"}
+        pdict = dbutils.get_test_port(extra=extra,
+                                      address="AA:BB:CC:DD:EE:FF",
+                                      uuid=uuidutils.generate_uuid())
+        self.post_json('/ports', pdict)
+
+        # Removing one item from the collection
+        response = self.patch_json('/ports/%s' % pdict['uuid'],
+                                   [{'path': '/extra/foo2', 'op': 'remove'}])
+        self.assertEqual(response.content_type, 'application/json')
+        self.assertEqual(response.status_code, 200)
+        result = self.get_json('/ports/%s' % pdict['uuid'])
+        extra.pop("foo2")
+        self.assertEqual(result['extra'], extra)
+
+        # Removing the collection
+        response = self.patch_json('/ports/%s' % pdict['uuid'],
+                                   [{'path': '/extra', 'op': 'remove'}])
+        self.assertEqual(response.content_type, 'application/json')
+        self.assertEqual(response.status_code, 200)
+        result = self.get_json('/ports/%s' % pdict['uuid'])
+        self.assertEqual(result['extra'], {})
+
+        # Assert nothing else was changed
+        self.assertEqual(result['uuid'], pdict['uuid'])
+        self.assertEqual(result['address'], pdict['address'])
+
+    def test_add_singular(self):
+        pdict = dbutils.get_test_port()
+        response = self.patch_json('/ports/%s' % pdict['uuid'],
+                                   [{'path': '/foo', 'value': 'bar',
+                                     'op': 'add'}],
+                                   expect_errors=True)
+        self.assertEqual(response.content_type, 'application/json')
+        self.assertEqual(response.status_int, 400)
+        self.assertTrue(response.json['error_message'])
+
+    def test_add_multi(self):
+        pdict = dbutils.get_test_port()
+        response = self.patch_json('/ports/%s' % pdict['uuid'],
+                                   [{'path': '/extra/foo1', 'value': 'bar1',
+                                     'op': 'add'},
+                                    {'path': '/extra/foo2', 'value': 'bar2',
+                                     'op': 'add'}])
+        self.assertEqual(response.content_type, 'application/json')
+        self.assertEqual(response.status_code, 200)
+        result = self.get_json('/ports/%s' % pdict['uuid'])
+        expected = {"foo1": "bar1", "foo2": "bar2"}
+        self.assertEqual(result['extra'], expected)
 
 
 class TestPost(base.FunctionalTest):

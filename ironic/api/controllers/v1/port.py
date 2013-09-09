@@ -15,6 +15,8 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import jsonpatch
+
 import pecan
 from pecan import rest
 
@@ -22,13 +24,12 @@ import wsme
 from wsme import types as wtypes
 import wsmeext.pecan as wsme_pecan
 
-from ironic import objects
-
 from ironic.api.controllers.v1 import base
 from ironic.api.controllers.v1 import collection
 from ironic.api.controllers.v1 import link
 from ironic.api.controllers.v1 import utils
 from ironic.common import exception
+from ironic import objects
 from ironic.openstack.common import log
 
 LOG = log.getLogger(__name__)
@@ -123,15 +124,30 @@ class PortsController(rest.RestController):
             raise wsme.exc.ClientSideError(_("Invalid data"))
         return Port.convert_with_links(new_port)
 
-    @wsme_pecan.wsexpose(Port, unicode, body=Port)
-    def patch(self, uuid, port_data):
+    @wsme_pecan.wsexpose(Port, unicode, body=[unicode])
+    def patch(self, uuid, patch):
         """Update an existing port."""
-        # TODO(wentian): add rpc handle,
-        #                  eg. if update fails because node is already locked
         port = objects.Port.get_by_uuid(pecan.request.context, uuid)
-        nn_delta_p = port_data.as_terse_dict()
-        for k in nn_delta_p:
-            port[k] = nn_delta_p[k]
+        port_dict = port.as_dict()
+
+        # These are internal values that shouldn't be part of the patch
+        internal_attrs = ['id', 'updated_at', 'created_at']
+        [port_dict.pop(attr, None) for attr in internal_attrs]
+
+        utils.validate_patch(patch)
+        try:
+            final_patch = jsonpatch.apply_patch(port_dict,
+                                                jsonpatch.JsonPatch(patch))
+        except jsonpatch.JsonPatchException as e:
+            LOG.exception(e)
+            raise wsme.exc.ClientSideError(_("Patching Error: %s") % e)
+
+        # In case of a remove operation, add the missing fields back to
+        # the document with their default value
+        defaults = objects.Port.get_defaults()
+        defaults.update(final_patch)
+
+        port.update(defaults)
         port.save()
         return Port.convert_with_links(port)
 

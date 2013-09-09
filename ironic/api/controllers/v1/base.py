@@ -27,13 +27,6 @@ class APIBase(wtypes.Base):
                     if hasattr(self, k) and
                     getattr(self, k) != wsme.Unset)
 
-    def as_terse_dict(self):
-        """Render this object as a dict of its non-None fields."""
-        return dict((k, getattr(self, k))
-                    for k in self.fields
-                    if hasattr(self, k) and
-                    getattr(self, k) not in [wsme.Unset, None])
-
     @classmethod
     def from_rpc_object(cls, m):
         return cls(**m.as_dict())
