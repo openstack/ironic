@@ -55,7 +55,7 @@ class NodeManager(object):
     #             once, the first time NodeManager.__init__ is called.
     _driver_factory = None
 
-    def __init__(self, id, t):
+    def __init__(self, id, t, driver_name=None):
         if not NodeManager._driver_factory:
             NodeManager._init_driver_factory()
 
@@ -66,12 +66,9 @@ class NodeManager(object):
         self.node = db.get_node(id)
         self.ports = db.get_ports_by_node(id)
 
-        driver_name = self.node.get('driver')
-        try:
-            self.driver = NodeManager._driver_factory[driver_name].obj
-        except KeyError:
-            raise exception.IronicException(_(
-                "Failed to load driver %s.") % driver_name)
+        # Select new driver's name if defined or select already defined in db.
+        driver_name = driver_name or self.node.get('driver')
+        self.driver = self.load_driver(driver_name)
 
     # NOTE(deva): Use lockutils to avoid a potential race in eventlet
     #             that might try to create two driver factories.
@@ -89,13 +86,13 @@ class NodeManager(object):
 
     @classmethod
     @lockutils.synchronized(RESOURCE_MANAGER_SEMAPHORE, 'ironic-')
-    def acquire(cls, id, t):
+    def acquire(cls, id, t, new_driver=None):
         """Acquire a NodeManager and associate to a TaskManager."""
         n = cls._nodes.get(id)
         if n:
             n.task_refs.append(t)
         else:
-            n = cls(id, t)
+            n = cls(id, t, new_driver)
             cls._nodes[id] = n
         return n
 
@@ -120,3 +117,17 @@ class NodeManager(object):
         # Delete the resource when no TaskManager references it.
         if len(n.task_refs) == 0:
             del(cls._nodes[id])
+
+    def load_driver(self, driver_name):
+        """Find a driver based on driver_name and return a driver object.
+
+        :param driver_name: The name of the driver.
+        :returns: A driver object.
+        :raises: DriverNotFound if any driver is not found.
+        """
+        try:
+            driver = NodeManager._driver_factory[driver_name]
+        except KeyError:
+            raise exception.DriverNotFound(driver_name=driver_name)
+
+        return driver.obj
