@@ -263,6 +263,10 @@ class DbNodeTestCase(base.DbTestCase):
             reservation = r1 if i < 3 else r2
             self.assertEqual(reservation, res['reservation'])
 
+    def test_reserve_empty(self):
+        self.assertRaises(exception.InvalidIdentity,
+                          self.dbapi.reserve_nodes, 'reserv1', [])
+
     def test_release_overlaping_ranges_fails(self):
         uuids = self._create_many_test_nodes()
 
