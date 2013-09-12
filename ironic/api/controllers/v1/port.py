@@ -130,24 +130,29 @@ class PortsController(rest.RestController):
         port = objects.Port.get_by_uuid(pecan.request.context, uuid)
         port_dict = port.as_dict()
 
-        # These are internal values that shouldn't be part of the patch
-        internal_attrs = ['id', 'updated_at', 'created_at']
-        [port_dict.pop(attr, None) for attr in internal_attrs]
-
         utils.validate_patch(patch)
         try:
-            final_patch = jsonpatch.apply_patch(port_dict,
-                                                jsonpatch.JsonPatch(patch))
+            patched_port = jsonpatch.apply_patch(port_dict,
+                                                 jsonpatch.JsonPatch(patch))
         except jsonpatch.JsonPatchException as e:
             LOG.exception(e)
             raise wsme.exc.ClientSideError(_("Patching Error: %s") % e)
 
-        # In case of a remove operation, add the missing fields back to
-        # the document with their default value
         defaults = objects.Port.get_defaults()
-        defaults.update(final_patch)
+        for key in defaults:
+            # Internal values that shouldn't be part of the patch
+            if key in ['id', 'updated_at', 'created_at']:
+                continue
 
-        port.update(defaults)
+            # In case of a remove operation, add the missing fields back
+            # to the document with their default value
+            if key in port_dict and key not in patched_port:
+                patched_port[key] = defaults[key]
+
+            # Update only the fields that have changed
+            if port[key] != patched_port[key]:
+                port[key] = patched_port[key]
+
         port.save()
         return Port.convert_with_links(port)
 
