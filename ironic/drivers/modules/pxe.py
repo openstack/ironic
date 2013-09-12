@@ -36,7 +36,6 @@ from ironic.common import utils
 from ironic.drivers import base
 from ironic.openstack.common import context
 from ironic.openstack.common import fileutils
-from ironic.openstack.common import jsonutils as json
 from ironic.openstack.common import lockutils
 from ironic.openstack.common import log as logging
 from ironic.openstack.common import loopingcall
@@ -91,7 +90,7 @@ def _parse_driver_info(node):
     :returns: A dict with the driver_info values.
     """
 
-    info = json.loads(node.get('driver_info', '')).get('pxe')
+    info = node.get('driver_info', '').get('pxe')
     d_info = {}
     d_info['instance_name'] = info.get('instance_name', None)
     d_info['image_source'] = info.get('image_source', None)
