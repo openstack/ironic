@@ -1013,6 +1013,35 @@ JSON structure of a meta_data::
       "bar": "foo"
   }
 
+VendorPassthru
+---------
+
+VendorPassthru allow vendors to expose a custom functionality in
+the Ironic API. Ironic will merely relay the message from here to the
+appropriate driver (see: Driver_), no introspection will be made in the
+message body.
+
+Usage:
+^^^^^^
+
+=======  ==================================  ==========================
+Verb     Path                                Response
+=======  ==================================  ==========================
+POST      /nodes/1/vendor_passthru/<method>  Invoke a specific <method>
+=======  ==================================  ==========================
+
+Example
+^^^^^^^^
+
+Invoking "custom_method"::
+
+  POST /nodes/1/vendor_passthru/custom_method
+  {
+    ...
+    "foo": "bar",
+    ...
+  }
+
 Areas To Be Defined
 ####################
 

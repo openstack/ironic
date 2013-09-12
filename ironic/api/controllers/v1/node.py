@@ -257,11 +257,38 @@ class NodeCollection(collection.Collection):
         return collection
 
 
+class NodeVendorPassthruController(rest.RestController):
+    """REST controller for VendorPassthru.
+
+    This controller allow vendors to expose a custom functionality in
+    the Ironic API. Ironic will merely relay the message from here to the
+    appropriate driver, no introspection will be made in the message body.
+    """
+
+    @wsme_pecan.wsexpose(None, unicode, unicode, body=unicode, status=202)
+    def _default(self, node_id, method, data):
+        # Only allow POST requests
+        if pecan.request.method.upper() != "POST":
+            raise exception.NotFound
+
+        # Raise an exception if node is not found
+        objects.Node.get_by_uuid(pecan.request.context, node_id)
+
+        # Raise an exception if method is not specified
+        if not method:
+            raise wsme.exc.ClientSideError(_("Method not specified"))
+
+        raise NotImplementedError()
+
+
 class NodesController(rest.RestController):
     """REST controller for Nodes."""
 
     state = NodeStatesController()
     "Expose the state controller action as a sub-element of nodes"
+
+    vendor_passthru = NodeVendorPassthruController()
+    "A resource used for vendors to expose a custom functionality in the API"
 
     _custom_actions = {
         'ports': ['GET'],
