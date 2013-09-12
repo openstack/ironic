@@ -137,9 +137,16 @@ def _build_pxe_config(node, pxe_info):
     """
     LOG.debug(_("Building PXE config for deployment %s.") % node['id'])
 
+    deploy_key = utils.random_alnum(32)
+    ctx = context.get_admin_context()
+    driver_info = node['driver_info']
+    driver_info['pxe_deploy_key'] = deploy_key
+    node['driver_info'] = driver_info
+    node.save(ctx)
+
     pxe_options = {
             'deployment_id': node['id'],
-            'deployment_key': utils.random_alnum(32),
+            'deployment_key': deploy_key,
             'deployment_iscsi_iqn': "iqn-%s" % node['instance_uuid'],
             'deployment_aki_path': pxe_info['deploy_kernel'][1],
             'deployment_ari_path': pxe_info['deploy_ramdisk'][1],
@@ -500,6 +507,10 @@ class VendorPassthru(base.VendorInterface):
 
     def _get_deploy_info(self, node, **kwargs):
         d_info = _parse_driver_info(node)
+
+        deploy_key = kwargs.get('key')
+        if node['driver_info'].get('pxe_deploy_key') != deploy_key:
+            raise exception.InvalidParameterValue(_("Deploy key is not match"))
 
         params = {'address': kwargs.get('address'),
                   'port': kwargs.get('port', '3260'),

@@ -258,8 +258,9 @@ class PXEPrivateMethodsTestCase(base.TestCase):
         template = 'ironic/tests/drivers/pxe_config.template'
         pxe_config_template = open(template, 'r').read()
 
+        fake_key = '0123456789ABCDEFGHIJKLMNOPQRSTUV'
         with mock.patch.object(utils, 'random_alnum') as random_alnum_mock:
-            random_alnum_mock.return_value = '0123456789ABCDEFGHIJKLMNOPQRSTUV'
+            random_alnum_mock.return_value = fake_key
 
             image_info = {'deploy_kernel': ['deploy_kernel',
                                             CONF.pxe.tftp_root + '/' +
@@ -278,6 +279,11 @@ class PXEPrivateMethodsTestCase(base.TestCase):
 
             random_alnum_mock.assert_called_once_with(32)
             self.assertEqual(pxe_config, pxe_config_template)
+
+        # test that deploy_key saved
+        db_node = self.dbapi.get_node(self.node['uuid'])
+        db_key = db_node['driver_info'].get('pxe_deploy_key')
+        self.assertEqual(db_key, fake_key)
 
     def test__get_pxe_config_file_path(self):
         self.assertEqual('/tftpboot/instance_uuid_123/config',
@@ -426,9 +432,11 @@ class PXEDriverTestCase(db_base.DbTestCase):
     def setUp(self):
         super(PXEDriverTestCase, self).setUp()
         mgr_utils.get_mocked_node_manager(driver='fake_pxe')
+        driver_info = json.loads(db_utils.pxe_info)
+        driver_info['pxe_deploy_key'] = 'fake-56789'
         n = db_utils.get_test_node(
                 driver='fake_pxe',
-                driver_info=json.loads(db_utils.pxe_info),
+                driver_info=driver_info,
                 instance_uuid='instance_uuid_123')
         self.dbapi = dbapi.get_instance()
         self.node = self.dbapi.create_node(n)
@@ -469,13 +477,23 @@ class PXEDriverTestCase(db_base.DbTestCase):
     def test_vendor_passthru_validate_good(self):
         with task_manager.acquire([self.node['uuid']], shared=True) as task:
             task.resources[0].driver.vendor.validate(self.node,
-                    method='pass_deploy_info', address='123456', iqn='aaa-bbb')
+                    method='pass_deploy_info', address='123456', iqn='aaa-bbb',
+                    key='fake-56789')
 
     def test_vendor_passthru_validate_fail(self):
         with task_manager.acquire([self.node['uuid']], shared=True) as task:
             self.assertRaises(exception.InvalidParameterValue,
                               task.resources[0].driver.vendor.validate,
-                              self.node, method='pass_deploy_info')
+                              self.node, method='pass_deploy_info',
+                              key='fake-56789')
+
+    def test_vendor_passthru_validate_key_notmatch(self):
+        with task_manager.acquire([self.node['uuid']], shared=True) as task:
+            self.assertRaises(exception.InvalidParameterValue,
+                              task.resources[0].driver.vendor.validate,
+                              self.node, method='pass_deploy_info',
+                              address='123456', iqn='aaa-bbb',
+                              key='fake-12345')
 
     def test_start_deploy(self):
         with mock.patch.object(pxe, '_create_pxe_config') \
@@ -508,7 +526,8 @@ class PXEDriverTestCase(db_base.DbTestCase):
         self.stubs.Set(deploy_utils, 'deploy', fake_deploy)
         with task_manager.acquire([self.node['uuid']], shared=True) as task:
             task.resources[0].driver.vendor.vendor_passthru(task, self.node,
-                    method='pass_deploy_info', address='123456', iqn='aaa-bbb')
+                    method='pass_deploy_info', address='123456', iqn='aaa-bbb',
+                    key='fake-56789')
         self.assertEqual(self.node['provision_state'], states.DEPLOYDONE)
 
     def test_continue_deploy_fail(self):
@@ -521,7 +540,7 @@ class PXEDriverTestCase(db_base.DbTestCase):
             self.assertRaises(exception.InstanceDeployFailure,
                             task.resources[0].driver.vendor.vendor_passthru,
                             task, self.node, method='pass_deploy_info',
-                            address='123456', iqn='aaa-bbb')
+                            address='123456', iqn='aaa-bbb', key='fake-56789')
         self.assertEqual(self.node['provision_state'], states.DEPLOYFAIL)
 
     def tear_down_config(self, master=None):
