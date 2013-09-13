@@ -234,6 +234,15 @@ class TestPatch(base.FunctionalTest):
                           '/nodes/%s' % self.node['uuid'],
                           [{'path': '/extra/non-existent', 'op': 'remove'}])
 
+    def test_update_state_in_progress(self):
+        ndict = dbutils.get_test_node(id=99, uuid=uuidutils.generate_uuid(),
+                                      target_power_state=states.POWER_OFF)
+        node = self.dbapi.create_node(ndict)
+        self.assertRaises(webtest.app.AppError, self.patch_json,
+                          '/nodes/%s' % node['uuid'],
+                          [{'path': '/extra/foo', 'value': 'bar',
+                            'op': 'add'}])
+
 
 class TestPost(base.FunctionalTest):
 
