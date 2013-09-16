@@ -128,6 +128,15 @@ class PXEValidateParametersTestCase(base.TestCase):
                 node)
         self.mox.VerifyAll()
 
+    def test__parse_driver_info_invalid_root_gb(self):
+        tmp_dict = dict(INFO_DICT)
+        tmp_dict['root_gb'] = 'foobar'
+        info = {'pxe': tmp_dict}
+        node = self._create_test_node(driver_info=info)
+        self.assertRaises(exception.InvalidParameterValue,
+                pxe._parse_driver_info,
+                node)
+
     def test__get_pxe_mac_path(self):
         mac = '00:11:22:33:44:55:66'
         self.assertEqual(pxe._get_pxe_mac_path(mac),
