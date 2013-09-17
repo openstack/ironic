@@ -106,7 +106,7 @@ class Connection(object):
                          'instance_uuid': None,
                          'power_state': states.NOSTATE,
                          'provision_state': states.NOSTATE,
-                         'driver': 'pxe_ipmi',
+                         'driver': 'pxe_ipmitool',
                          'driver_info': { ... },
                          'properties': { ... },
                          'extra': { ... },
