@@ -109,8 +109,7 @@ class TestPatch(base.FunctionalTest):
                                      'value': 'b',
                                      'op': 'add'}],
                              expect_errors=True)
-        # TODO(yuriyz): change to 404 (bug 1200517)
-        self.assertEqual(response.status_int, 500)
+        self.assertEqual(response.status_int, 404)
         self.assertEqual(response.content_type, 'application/json')
         self.assertTrue(response.json['error_message'])
 
@@ -237,8 +236,7 @@ class TestDelete(base.FunctionalTest):
         self.delete('/ports/%s' % pdict['uuid'])
         response = self.get_json('/ports/%s' % pdict['uuid'],
                                  expect_errors=True)
-        # TODO(yuriyz): change to 404 (bug 1200517)
-        self.assertEqual(response.status_int, 500)
+        self.assertEqual(response.status_int, 404)
         self.assertEqual(response.content_type, 'application/json')
         self.assertTrue(response.json['error_message'])
 
@@ -247,7 +245,6 @@ class TestDelete(base.FunctionalTest):
         self.delete('/ports/%s' % pdict['address'])
         response = self.get_json('/ports/%s' % pdict['uuid'],
                                  expect_errors=True)
-        # TODO(yuriyz): change to 404 (bug 1200517)
-        self.assertEqual(response.status_int, 500)
+        self.assertEqual(response.status_int, 404)
         self.assertEqual(response.content_type, 'application/json')
         self.assertTrue(response.json['error_message'])

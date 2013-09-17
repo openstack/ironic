@@ -275,7 +275,7 @@ class TestDelete(base.FunctionalTest):
         self.delete('/nodes/%s' % ndict['uuid'])
         response = self.get_json('/nodes/%s' % ndict['uuid'],
                                  expect_errors=True)
-        self.assertEqual(response.status_int, 500)
+        self.assertEqual(response.status_int, 404)
         self.assertEqual(response.content_type, 'application/json')
         self.assertTrue(response.json['error_message'])
 
