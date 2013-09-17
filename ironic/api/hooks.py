@@ -19,9 +19,10 @@
 from oslo.config import cfg
 from pecan import hooks
 
+from ironic.common import context
+from ironic.common import utils
 from ironic.conductor import rpcapi
 from ironic.db import api as dbapi
-from ironic.openstack.common import context
 from ironic.openstack.common import policy
 
 
@@ -59,21 +60,33 @@ class ContextHook(hooks.PecanHook):
         or admin substring. Otherwise it is set to False.
 
     """
+    def __init__(self, public_api_routes):
+        self.public_api_routes = public_api_routes
+        super(ContextHook, self).__init__()
+
     def before(self, state):
         user_id = state.request.headers.get('X-User-Id')
         user_id = state.request.headers.get('X-User', user_id)
         tenant = state.request.headers.get('X-Tenant-Id')
         tenant = state.request.headers.get('X-Tenant', tenant)
+        domain_id = state.request.headers.get('X-User-Domain-Id')
+        domain_name = state.request.headers.get('X-User-Domain-Name')
         auth_token = state.request.headers.get('X-Auth-Token', None)
         creds = {'roles': state.request.headers.get('X-Roles', '').split(',')}
+
         is_admin = policy.check('is_admin', state.request.headers, creds)
+
+        path = utils.safe_rstrip(state.request.path, '/')
+        is_public_api = path in self.public_api_routes
 
         state.request.context = context.RequestContext(
             auth_token=auth_token,
             user=user_id,
             tenant=tenant,
-            request_id=context.generate_request_id(),
-            is_admin=is_admin)
+            domain_id=domain_id,
+            domain_name=domain_name,
+            is_admin=is_admin,
+            is_public_api=is_public_api)
 
 
 class RPCHook(hooks.PecanHook):
