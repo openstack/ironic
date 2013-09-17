@@ -20,6 +20,7 @@ Fake drivers used in testing.
 
 from ironic.drivers import base
 from ironic.drivers.modules import fake
+from ironic.drivers.modules import ipminative
 from ironic.drivers.modules import ipmitool
 from ironic.drivers.modules import pxe
 from ironic.drivers.modules import ssh
@@ -58,3 +59,12 @@ class FakeSSHDriver(base.BaseDriver):
     def __init__(self):
         self.power = ssh.SSHPower()
         self.deploy = fake.FakeDeploy()
+
+
+class FakeIPMINativeDriver(base.BaseDriver):
+    """Example implementation of a Driver."""
+
+    def __init__(self):
+        self.power = ipminative.NativeIPMIPower()
+        self.deploy = fake.FakeDeploy()
+        self.vendor = self.power

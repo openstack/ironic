@@ -307,7 +307,7 @@ class ChassisNotEmpty(IronicException):
 
 
 class IPMIFailure(IronicException):
-    message = _("IPMI command failed: %(cmd)s.")
+    message = _("IPMI call failed: %(cmd)s.")
 
 
 class SSHConnectFailed(IronicException):
