@@ -13,7 +13,6 @@ sqlalchemy-migrate>=0.7
 netaddr
 paramiko>=1.8.0
 iso8601>=0.1.4
-setuptools_git>=0.4
 python-neutronclient>=2.2.3,<3
 python-glanceclient>=0.9.0
 python-keystoneclient>=0.3.0
