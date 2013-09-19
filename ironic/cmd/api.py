@@ -45,8 +45,9 @@ def main():
             app.VersionSelectorApplication())
 
     LOG = log.getLogger(__name__)
-    LOG.info("Serving on http://%s:%s" % (host, port))
-    LOG.info("Configuration:")
+    LOG.info(_("Serving on http://%(host)s:%(port)s") %
+             {'host': host, 'port': port})
+    LOG.info(_("Configuration:"))
     CONF.log_opt_values(LOG, logging.INFO)
 
     try:
