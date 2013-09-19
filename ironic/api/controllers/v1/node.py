@@ -352,6 +352,15 @@ class NodesController(rest.RestController):
                                              "here; You must use the "
                                              "nodes/%s/state interface.")
                                              % uuid)
+
+        # Prevent node from being updated when there's a state
+        # change in progress
+        if any(node.get(tgt) for tgt in ["target_power_state",
+                                         "target_provision_state"]):
+            raise wsme.exc.ClientSideError(_("Can not update node %s because "
+                                             "a state change is already in "
+                                             "progress.") % uuid)
+
         try:
             final_patch = jsonpatch.apply_patch(node_dict, patch_obj)
         except jsonpatch.JsonPatchException as e:
