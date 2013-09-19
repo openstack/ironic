@@ -21,10 +21,10 @@ Ironic source code should be pulled directly from git::
 Install prerequisites::
 
     # Ubuntu/Debian:
-    sudo apt-get install python-dev swig libssl-dev python-pip libmysqlclient-dev libxml2-dev libxslt-dev
+    sudo apt-get install python-dev swig libssl-dev python-pip libmysqlclient-dev libxml2-dev libxslt-dev libpq-dev
 
     # Fedora/RHEL:
-    sudo yum install python-devel swig openssl-devel python-pip mysql-libs libxml2-devel libxslt-devel
+    sudo yum install python-devel swig openssl-devel python-pip mysql-devel libxml2-devel libxslt-devel postgresql-devel
 
     sudo easy_install nose
     sudo pip install virtualenv setuptools-git flake8 tox
