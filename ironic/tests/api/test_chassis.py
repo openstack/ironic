@@ -111,8 +111,7 @@ class TestPatch(base.FunctionalTest):
                                    [{'path': '/extra/a', 'value': 'b',
                                      'op': 'add'}],
                                    expect_errors=True)
-        # TODO(yuriyz): change to 404 (bug 1200517)
-        self.assertEqual(response.status_int, 500)
+        self.assertEqual(response.status_int, 404)
         self.assertEqual(response.content_type, 'application/json')
         self.assertTrue(response.json['error_message'])
 
@@ -235,8 +234,7 @@ class TestDelete(base.FunctionalTest):
         self.delete('/chassis/%s' % cdict['uuid'])
         response = self.get_json('/chassis/%s' % cdict['uuid'],
                                  expect_errors=True)
-        # TODO(yuriyz): change to 404 (bug 1200517)
-        self.assertEqual(response.status_int, 500)
+        self.assertEqual(response.status_int, 404)
         self.assertEqual(response.content_type, 'application/json')
         self.assertTrue(response.json['error_message'])
 
@@ -254,7 +252,6 @@ class TestDelete(base.FunctionalTest):
     def test_delete_chassis_not_found(self):
         uuid = uuidutils.generate_uuid()
         response = self.delete('/chassis/%s' % uuid, expect_errors=True)
-        # TODO(yuriyz): change to 404 (bug 1200517)
-        self.assertEqual(response.status_int, 500)
+        self.assertEqual(response.status_int, 404)
         self.assertEqual(response.content_type, 'application/json')
         self.assertTrue(response.json['error_message'])
