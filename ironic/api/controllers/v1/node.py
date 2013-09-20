@@ -337,10 +337,6 @@ class NodesController(rest.RestController):
         node = objects.Node.get_by_uuid(pecan.request.context, uuid)
         node_dict = node.as_dict()
 
-        # These are internal values that shouldn't be part of the patch
-        internal_attrs = ['id', 'updated_at', 'created_at']
-        [node_dict.pop(attr, None) for attr in internal_attrs]
-
         utils.validate_patch(patch)
         patch_obj = jsonpatch.JsonPatch(patch)
 
@@ -362,19 +358,28 @@ class NodesController(rest.RestController):
                                              "progress.") % uuid)
 
         try:
-            final_patch = jsonpatch.apply_patch(node_dict, patch_obj)
+            patched_node = jsonpatch.apply_patch(node_dict, patch_obj)
         except jsonpatch.JsonPatchException as e:
             LOG.exception(e)
             raise wsme.exc.ClientSideError(_("Patching Error: %s") % e)
 
         response = wsme.api.Response(Node(), status_code=200)
         try:
-            # In case of a remove operation, add the missing fields back to
-            # the document with their default value
             defaults = objects.Node.get_defaults()
-            defaults.update(final_patch)
+            for key in defaults:
+                # Internal values that shouldn't be part of the patch
+                if key in ['id', 'updated_at', 'created_at']:
+                    continue
 
-            node.update(defaults)
+                # In case of a remove operation, add the missing fields back
+                # to the document with their default value
+                if key in node_dict and key not in patched_node:
+                    patched_node[key] = defaults[key]
+
+                # Update only the fields that have changed
+                if node[key] != patched_node[key]:
+                    node[key] = patched_node[key]
+
             node = pecan.request.rpcapi.update_node(pecan.request.context,
                                                     node)
             response.obj = node
