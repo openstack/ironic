@@ -71,7 +71,7 @@ latex_documents = [
         'index',
         '%s.tex' % project,
         u'%s Documentation' % project,
-        u'OpenStack LLC',
+        u'OpenStack Foundation',
         'manual'
     ),
 ]
