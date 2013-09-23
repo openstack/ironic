@@ -62,8 +62,8 @@ There are three categories of driver interfaces:
   will merely relay the message from the API service to the appropriate driver.
 
 
-.. _API service: ../api/ironic.api.controllers.v1.html
+.. _API service: ../dev/api-spec-v1.html
 .. _BaseDriver: ../api/ironic.drivers.base.html#ironic.drivers.base.BaseDriver
 .. _Conductor service: ../api/ironic.conductor.manager.html
 .. _DB API: ../api/ironic.db.api.html
-.. _diskimage-builder: https://github.com/stackforge/diskimage-builder
+.. _diskimage-builder: https://github.com/openstack/diskimage-builder
