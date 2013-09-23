@@ -434,8 +434,9 @@ Usage
 =======  =============  ==========
 Verb     Path           Response
 =======  =============  ==========
-GET      /nodes         List nodes.
-GET      /nodes/<id>    Retrieve a specific node.
+GET      /nodes         List nodes
+GET      /nodes/detail  Lists all details for all nodes
+GET      /nodes/<id>    Retrieve a specific node
 POST     /nodes         Create a new node
 PATCH    /nodes/<id>    Update a node
 DELETE   /nodes/<id>    Delete node and all associated ports
@@ -566,16 +567,17 @@ Chassis
 Usage
 ^^^^^^
 
-=======  =============  ==========
-Verb     Path           Response
-=======  =============  ==========
-GET      /chassis       List chassis
-GET      /chassis/<id>  Retrieve a specific chassis
-POST     /chassis       Create a new chassis
-PATCH    /chassis/<id>  Update a chassis
-DELETE   /chassis/<id>  Delete chassis and remove all associations between
-                        nodes
-=======  =============  ==========
+=======    =============    ==========
+Verb       Path             Response
+=======    =============    ==========
+GET        /chassis         List chassis
+GET        /chassis/detail  Lists all details for all chassis
+GET        /chassis/<id>    Retrieve a specific chassis
+POST       /chassis         Create a new chassis
+PATCH      /chassis/<id>    Update a chassis
+DELETE     /chassis/<id>    Delete chassis and remove all associations between
+                            nodes
+=======    =============    ==========
 
 
 Fields
@@ -635,6 +637,7 @@ Usage
 Verb     Path           Response
 =======  =============  ==========
 GET      /ports         List ports
+GET      /ports/detail  Lists all details for all ports
 GET      /ports/<id>    Retrieve a specific port
 POST     /ports         Create a new port
 PATCH    /ports/<id>    Update a port

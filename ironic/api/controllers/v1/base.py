@@ -28,5 +28,12 @@ class APIBase(wtypes.Base):
                     getattr(self, k) != wsme.Unset)
 
     @classmethod
-    def from_rpc_object(cls, m):
-        return cls(**m.as_dict())
+    def from_rpc_object(cls, m, fields=None):
+        """Convert a RPC object to an API object."""
+        obj_dict = m.as_dict()
+        # Unset non-required fields so they do not appear
+        # in the message body
+        obj_dict.update(dict((k, wsme.Unset)
+                        for k in obj_dict.keys()
+                        if fields and k not in fields))
+        return cls(**obj_dict)
