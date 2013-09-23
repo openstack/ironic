@@ -245,15 +245,17 @@ class Node(base.APIBase):
 class NodeCollection(collection.Collection):
     """API representation of a collection of nodes."""
 
-    items = [Node]
+    nodes = [Node]
     "A list containing nodes objects"
+
+    def __init__(self, **kwargs):
+        self._type = 'nodes'
 
     @classmethod
     def convert_with_links(cls, nodes, limit, **kwargs):
         collection = NodeCollection()
-        collection.type = 'node'
-        collection.items = [Node.convert_with_links(n) for n in nodes]
-        collection.links = collection.make_links(limit, 'nodes', **kwargs)
+        collection.nodes = [Node.convert_with_links(n) for n in nodes]
+        collection.next = collection.get_next(limit, **kwargs)
         return collection
 
 
@@ -425,10 +427,9 @@ class NodesController(rest.RestController):
                                                       sort_key=sort_key,
                                                       sort_dir=sort_dir)
         collection = port.PortCollection()
-        collection.type = 'port'
-        collection.items = [port.Port.convert_with_links(n) for n in ports]
+        collection.ports = [port.Port.convert_with_links(n) for n in ports]
         resource_url = '/'.join(['nodes', node_uuid, 'ports'])
-        collection.links = collection.make_links(limit, resource_url,
-                                                 sort_key=sort_key,
-                                                 sort_dir=sort_dir)
+        collection.next = collection.get_next(limit, url=resource_url,
+                                              sort_key=sort_key,
+                                              sort_dir=sort_dir)
         return collection

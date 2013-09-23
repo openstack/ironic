@@ -91,15 +91,17 @@ class Chassis(base.APIBase):
 class ChassisCollection(collection.Collection):
     """API representation of a collection of chassis."""
 
-    items = [Chassis]
+    chassis = [Chassis]
     "A list containing chassis objects"
+
+    def __init__(self, **kwargs):
+        self._type = 'chassis'
 
     @classmethod
     def convert_with_links(cls, chassis, limit, **kwargs):
         collection = ChassisCollection()
-        collection.type = 'chassis'
-        collection.items = [Chassis.convert_with_links(ch) for ch in chassis]
-        collection.links = collection.make_links(limit, 'chassis', **kwargs)
+        collection.chassis = [Chassis.convert_with_links(ch) for ch in chassis]
+        collection.next = collection.get_next(limit, **kwargs)
         return collection
 
 
@@ -200,10 +202,9 @@ class ChassisController(rest.RestController):
                                                          sort_key=sort_key,
                                                          sort_dir=sort_dir)
         collection = node.NodeCollection()
-        collection.type = 'node'
-        collection.items = [node.Node.convert_with_links(n) for n in nodes]
+        collection.nodes = [node.Node.convert_with_links(n) for n in nodes]
         resource_url = '/'.join(['chassis', chassis_uuid, 'nodes'])
-        collection.links = collection.make_links(limit, resource_url,
-                                                 sort_key=sort_key,
-                                                 sort_dir=sort_dir)
+        collection.next = collection.get_next(limit, url=resource_url,
+                                              sort_key=sort_key,
+                                              sort_dir=sort_dir)
         return collection

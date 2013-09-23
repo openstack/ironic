@@ -31,13 +31,13 @@ class TestListNodes(base.FunctionalTest):
 
     def test_empty(self):
         data = self.get_json('/nodes')
-        self.assertEqual([], data['items'])
+        self.assertEqual([], data['nodes'])
 
     def test_one(self):
         ndict = dbutils.get_test_node()
         node = self.dbapi.create_node(ndict)
         data = self.get_json('/nodes')
-        self.assertEqual(node['uuid'], data['items'][0]["uuid"])
+        self.assertEqual(node['uuid'], data['nodes'][0]["uuid"])
 
     def test_many(self):
         nodes = []
@@ -47,9 +47,9 @@ class TestListNodes(base.FunctionalTest):
             node = self.dbapi.create_node(ndict)
             nodes.append(node['uuid'])
         data = self.get_json('/nodes')
-        self.assertEqual(len(nodes), len(data['items']))
+        self.assertEqual(len(nodes), len(data['nodes']))
 
-        uuids = [n['uuid'] for n in data['items']]
+        uuids = [n['uuid'] for n in data['nodes']]
         self.assertEqual(nodes.sort(), uuids.sort())
 
     def test_links(self):
@@ -69,12 +69,10 @@ class TestListNodes(base.FunctionalTest):
             node = self.dbapi.create_node(ndict)
             nodes.append(node['uuid'])
         data = self.get_json('/nodes/?limit=3')
-        self.assertEqual(data['type'], 'node')
-        self.assertEqual(len(data['items']), 3)
+        self.assertEqual(len(data['nodes']), 3)
 
-        next_marker = data['items'][-1]['uuid']
-        next_link = [l['href'] for l in data['links'] if l['rel'] == 'next'][0]
-        self.assertIn(next_marker, next_link)
+        next_marker = data['nodes'][-1]['uuid']
+        self.assertIn(next_marker, data['next'])
 
     def test_ports_subresource_link(self):
         ndict = dbutils.get_test_node()
@@ -93,15 +91,13 @@ class TestListNodes(base.FunctionalTest):
             self.dbapi.create_port(pdict)
 
         data = self.get_json('/nodes/%s/ports' % ndict['uuid'])
-        self.assertEqual(data['type'], 'port')
-        self.assertEqual(len(data['items']), 2)
-        self.assertEqual(len(data['links']), 0)
+        self.assertEqual(len(data['ports']), 2)
+        self.assertNotIn('next', data.keys())
 
         # Test collection pagination
         data = self.get_json('/nodes/%s/ports?limit=1' % ndict['uuid'])
-        self.assertEqual(data['type'], 'port')
-        self.assertEqual(len(data['items']), 1)
-        self.assertEqual(len(data['links']), 1)
+        self.assertEqual(len(data['ports']), 1)
+        self.assertIn('next', data.keys())
 
     def test_state(self):
         ndict = dbutils.get_test_node()

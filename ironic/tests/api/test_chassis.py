@@ -25,13 +25,13 @@ class TestListChassis(base.FunctionalTest):
 
     def test_empty(self):
         data = self.get_json('/chassis')
-        self.assertEqual([], data['items'])
+        self.assertEqual([], data['chassis'])
 
     def test_one(self):
         ndict = dbutils.get_test_chassis()
         chassis = self.dbapi.create_chassis(ndict)
         data = self.get_json('/chassis')
-        self.assertEqual(chassis['uuid'], data['items'][0]["uuid"])
+        self.assertEqual(chassis['uuid'], data['chassis'][0]["uuid"])
 
     def test_many(self):
         ch_list = []
@@ -41,9 +41,9 @@ class TestListChassis(base.FunctionalTest):
             chassis = self.dbapi.create_chassis(ndict)
             ch_list.append(chassis['uuid'])
         data = self.get_json('/chassis')
-        self.assertEqual(len(ch_list), len(data['items']))
+        self.assertEqual(len(ch_list), len(data['chassis']))
 
-        uuids = [n['uuid'] for n in data['items']]
+        uuids = [n['uuid'] for n in data['chassis']]
         self.assertEqual(ch_list.sort(), uuids.sort())
 
     def test_links(self):
@@ -63,12 +63,10 @@ class TestListChassis(base.FunctionalTest):
             ch = self.dbapi.create_chassis(ndict)
             chassis.append(ch['uuid'])
         data = self.get_json('/chassis/?limit=3')
-        self.assertEqual(data['type'], 'chassis')
-        self.assertEqual(len(data['items']), 3)
+        self.assertEqual(len(data['chassis']), 3)
 
-        next_marker = data['items'][-1]['uuid']
-        next_link = [l['href'] for l in data['links'] if l['rel'] == 'next'][0]
-        self.assertIn(next_marker, next_link)
+        next_marker = data['chassis'][-1]['uuid']
+        self.assertIn(next_marker, data['next'])
 
     def test_nodes_subresource_link(self):
         ndict = dbutils.get_test_chassis()
@@ -87,15 +85,13 @@ class TestListChassis(base.FunctionalTest):
             self.dbapi.create_node(ndict)
 
         data = self.get_json('/chassis/%s/nodes' % cdict['uuid'])
-        self.assertEqual(data['type'], 'node')
-        self.assertEqual(len(data['items']), 2)
-        self.assertEqual(len(data['links']), 0)
+        self.assertEqual(len(data['nodes']), 2)
+        self.assertNotIn('next', data.keys())
 
         # Test collection pagination
         data = self.get_json('/chassis/%s/nodes?limit=1' % cdict['uuid'])
-        self.assertEqual(data['type'], 'node')
-        self.assertEqual(len(data['items']), 1)
-        self.assertEqual(len(data['links']), 1)
+        self.assertEqual(len(data['nodes']), 1)
+        self.assertIn('next', data.keys())
 
 
 class TestPatch(base.FunctionalTest):
@@ -222,8 +218,8 @@ class TestPost(base.FunctionalTest):
         self.post_json('/chassis', cdict)
         result = self.get_json('/chassis')
         self.assertEqual(cdict['description'],
-                         result['items'][0]['description'])
-        self.assertTrue(uuidutils.is_uuid_like(result['items'][0]['uuid']))
+                         result['chassis'][0]['description'])
+        self.assertTrue(uuidutils.is_uuid_like(result['chassis'][0]['uuid']))
 
 
 class TestDelete(base.FunctionalTest):

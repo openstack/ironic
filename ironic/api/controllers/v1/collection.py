@@ -25,29 +25,27 @@ from ironic.api.controllers.v1 import link
 
 class Collection(base.APIBase):
 
-    links = [link.Link]
-    "A list containing a link to retrieve the next subset of the collection"
+    next = wtypes.text
+    "A link to retrieve the next subset of the collection"
 
-    type = wtypes.text
-    "The type of the collection"
-
-    def _check_items(self):
-        if not hasattr(self, 'items') or self.items == wtypes.Unset:
-            raise AttributeError(_("Collection items are uninitialized"))
+    @property
+    def collection(self):
+        return getattr(self, self._type)
 
     def has_next(self, limit):
-        self._check_items()
-        return len(self.items) and len(self.items) == limit
+        """Return whether collection has more items."""
+        return len(self.collection) and len(self.collection) == limit
 
-    def make_links(self, limit, res_name, **kwargs):
-        self._check_items()
-        links = []
-        if self.has_next(limit):
-            q_args = ''.join(['%s=%s&' % (key, kwargs[key]) for key in kwargs])
-            next_args = '?%(args)slimit=%(limit)d&marker=%(marker)s' % {
-                                                'args': q_args, 'limit': limit,
-                                                'marker': self.items[-1].uuid}
-            links = [link.Link.make_link('next', pecan.request.host_url,
-                                         res_name, next_args)
-                    ]
-        return links
+    def get_next(self, limit, url=None, **kwargs):
+        """Return a link to the next subset of the collection."""
+        if not self.has_next(limit):
+            return wtypes.Unset
+
+        resource_url = url or self._type
+        q_args = ''.join(['%s=%s&' % (key, kwargs[key]) for key in kwargs])
+        next_args = '?%(args)slimit=%(limit)d&marker=%(marker)s' % {
+                                            'args': q_args, 'limit': limit,
+                                            'marker': self.collection[-1].uuid}
+
+        return link.Link.make_link('next', pecan.request.host_url,
+                                   resource_url, next_args).href

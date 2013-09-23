@@ -75,15 +75,17 @@ class Port(base.APIBase):
 class PortCollection(collection.Collection):
     """API representation of a collection of ports."""
 
-    items = [Port]
+    ports = [Port]
     "A list containing ports objects"
+
+    def __init__(self, **kwargs):
+        self._type = 'ports'
 
     @classmethod
     def convert_with_links(cls, ports, limit, **kwargs):
         collection = PortCollection()
-        collection.type = 'port'
-        collection.items = [Port.convert_with_links(p) for p in ports]
-        collection.links = collection.make_links(limit, 'ports', **kwargs)
+        collection.ports = [Port.convert_with_links(p) for p in ports]
+        collection.next = collection.get_next(limit, **kwargs)
         return collection
 
 

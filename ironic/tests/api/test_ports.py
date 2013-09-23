@@ -25,13 +25,13 @@ class TestListPorts(base.FunctionalTest):
 
     def test_empty(self):
         data = self.get_json('/ports')
-        self.assertEqual([], data['items'])
+        self.assertEqual([], data['ports'])
 
     def test_one(self):
         ndict = dbutils.get_test_port()
         port = self.dbapi.create_port(ndict)
         data = self.get_json('/ports')
-        self.assertEqual(port['uuid'], data['items'][0]["uuid"])
+        self.assertEqual(port['uuid'], data['ports'][0]["uuid"])
 
     def test_many(self):
         ports = []
@@ -41,9 +41,9 @@ class TestListPorts(base.FunctionalTest):
             port = self.dbapi.create_port(ndict)
             ports.append(port['uuid'])
         data = self.get_json('/ports')
-        self.assertEqual(len(ports), len(data['items']))
+        self.assertEqual(len(ports), len(data['ports']))
 
-        uuids = [n['uuid'] for n in data['items']]
+        uuids = [n['uuid'] for n in data['ports']]
         self.assertEqual(ports.sort(), uuids.sort())
 
     def test_links(self):
@@ -63,12 +63,10 @@ class TestListPorts(base.FunctionalTest):
             port = self.dbapi.create_port(ndict)
             ports.append(port['uuid'])
         data = self.get_json('/ports/?limit=3')
-        self.assertEqual(data['type'], 'port')
-        self.assertEqual(len(data['items']), 3)
+        self.assertEqual(len(data['ports']), 3)
 
-        next_marker = data['items'][-1]['uuid']
-        next_link = [l['href'] for l in data['links'] if l['rel'] == 'next'][0]
-        self.assertIn(next_marker, next_link)
+        next_marker = data['ports'][-1]['uuid']
+        self.assertIn(next_marker, data['next'])
 
 
 class TestPatch(base.FunctionalTest):
