@@ -113,6 +113,15 @@ def _parse_driver_info(node):
     #TODO(ghe): Should we get rid of swap partition?
     d_info['swap_mb'] = info.get('swap_mb', 1)
     d_info['key_data'] = info.get('key_data', None)
+
+    for param in ('root_gb', 'swap_mb'):
+        try:
+            int(d_info[param])
+        except ValueError:
+            raise exception.InvalidParameterValue(_(
+                "Can not validate PXE bootloader. Invalid "
+                "parameter %s") % param)
+
     return d_info
 
 
