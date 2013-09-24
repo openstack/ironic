@@ -2,6 +2,7 @@
 # coding=utf-8
 
 # Copyright 2013 Hewlett-Packard Development Company, L.P.
+# Copyright 2013 International Business Machines Corporation
 # All Rights Reserved.
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -150,3 +151,125 @@ class ManagerTestCase(base.DbTestCase):
     def test_update_node_unassociate_instance(self):
         # TODO(deva)
         pass
+
+    def test_start_power_state_change_power_on(self):
+        """Test if start_power_state to turn node power on
+        is successful or not.
+        """
+        ndict = utils.get_test_node(driver='fake',
+                                    power_state=states.POWER_OFF)
+        node = self.dbapi.create_node(ndict)
+
+        self.mox.StubOutWithMock(self.driver.power, 'get_power_state')
+        self.driver.power.get_power_state(mox.IgnoreArg(), node).\
+                AndReturn(states.POWER_OFF)
+        self.mox.ReplayAll()
+
+        self.service.start_power_state_change(self.context,
+                                              node, states.POWER_ON)
+        self.mox.VerifyAll()
+        self.assertEqual(node['power_state'], states.POWER_ON)
+        self.assertEqual(node['target_power_state'], None)
+
+    def test_start_power_state_change_power_off(self):
+        """Test if start_power_state to turn node power off
+        is successful or not.
+        """
+        ndict = utils.get_test_node(driver='fake',
+                                    power_state=states.POWER_ON)
+        node = self.dbapi.create_node(ndict)
+
+        self.mox.StubOutWithMock(self.driver.power, 'get_power_state')
+        self.driver.power.get_power_state(mox.IgnoreArg(), node).\
+                AndReturn(states.POWER_ON)
+        self.mox.ReplayAll()
+
+        self.service.start_power_state_change(self.context, node,
+                                              states.POWER_OFF)
+        self.mox.VerifyAll()
+        self.assertEqual(node['power_state'], states.POWER_OFF)
+        self.assertEqual(node['target_power_state'], None)
+
+    def test_start_power_state_change_already_locked(self):
+        """Test if an exception is thrown when applying an exclusive
+        lock to the node failed.
+        """
+        ndict = utils.get_test_node(driver='fake',
+                                    power_state=states.POWER_ON)
+        node = self.dbapi.create_node(ndict)
+
+        # check if the node is locked
+        with task_manager.acquire(node['id'], shared=False):
+            self.assertRaises(exception.NodeLocked,
+                              self.service.start_power_state_change,
+                              self.context,
+                              node,
+                              states.POWER_ON)
+
+    def test_start_power_state_change_invalid_state(self):
+        """Test if an NodeInWrongPowerState exception is thrown
+        when the node is in an invalid state to perform current operation.
+        """
+        ndict = utils.get_test_node(driver='fake',
+                                    power_state=states.POWER_ON)
+        node = self.dbapi.create_node(ndict)
+
+        self.mox.StubOutWithMock(self.driver.power, 'get_power_state')
+        self.driver.power.get_power_state(mox.IgnoreArg(), node).\
+                AndReturn(states.POWER_ON)
+        self.mox.ReplayAll()
+
+        self.assertRaises(exception.NodeInWrongPowerState,
+                          self.service.start_power_state_change,
+                          self.context,
+                          node,
+                          states.POWER_ON)
+
+        self.mox.VerifyAll()
+
+    def test_start_power_state_change_invalid_driver_info(self):
+        """Test if an exception is thrown when the driver validation is
+        failed.
+        """
+        ndict = utils.get_test_node(driver='fake',
+                                    power_state=states.POWER_ON)
+        node = self.dbapi.create_node(ndict)
+
+        self.mox.StubOutWithMock(self.driver.power, 'validate')
+        self.driver.power.validate(node).\
+                AndRaise(exception.InvalidParameterValue(
+                'wrong power driver info'))
+        self.mox.ReplayAll()
+
+        self.assertRaises(exception.InvalidParameterValue,
+                          self.service.start_power_state_change,
+                          self.context,
+                          node,
+                          states.POWER_ON)
+
+        self.mox.VerifyAll()
+
+    def test_start_power_state_change_set_power_failure(self):
+        """Test if an exception is thrown when the set_power call is
+        failed.
+        """
+        ndict = utils.get_test_node(driver='fake',
+                                    power_state=states.POWER_OFF)
+        node = self.dbapi.create_node(ndict)
+
+        self.mox.StubOutWithMock(self.driver.power, 'get_power_state')
+        self.mox.StubOutWithMock(self.driver.power, 'set_power_state')
+        self.driver.power.get_power_state(mox.IgnoreArg(), node).\
+            AndReturn(states.POWER_OFF)
+        self.driver.power.set_power_state(mox.IgnoreArg(), node,
+                                          states.POWER_ON).\
+                AndRaise(Exception('error returned from the power driver.'))
+        self.mox.ReplayAll()
+
+        self.assertRaises(Exception,
+                          self.service.start_power_state_change,
+                          self.context,
+                          node,
+                          states.POWER_ON)
+
+        self.mox.VerifyAll()
