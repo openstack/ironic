@@ -60,8 +60,9 @@ class Port(base.APIBase):
             setattr(self, k, kwargs.get(k))
 
     @classmethod
-    def convert_with_links(cls, rpc_port):
-        port = Port.from_rpc_object(rpc_port)
+    def convert_with_links(cls, rpc_port, expand=True):
+        fields = ['uuid', 'address'] if not expand else None
+        port = Port.from_rpc_object(rpc_port, fields)
         port.links = [link.Link.make_link('self', pecan.request.host_url,
                                           'ports', port.uuid),
                       link.Link.make_link('bookmark',
@@ -82,19 +83,29 @@ class PortCollection(collection.Collection):
         self._type = 'ports'
 
     @classmethod
-    def convert_with_links(cls, ports, limit, **kwargs):
+    def convert_with_links(cls, ports, limit, url=None,
+                           expand=False, **kwargs):
         collection = PortCollection()
-        collection.ports = [Port.convert_with_links(p) for p in ports]
-        collection.next = collection.get_next(limit, **kwargs)
+        collection.ports = [Port.convert_with_links(p, expand) for p in ports]
+        collection.next = collection.get_next(limit, url=url, **kwargs)
         return collection
 
 
 class PortsController(rest.RestController):
     """REST controller for Ports."""
 
-    @wsme_pecan.wsexpose(PortCollection, int, unicode, unicode, unicode)
-    def get_all(self, limit=None, marker=None, sort_key='id', sort_dir='asc'):
-        """Retrieve a list of ports."""
+    _custom_actions = {
+        'detail': ['GET'],
+    }
+
+    def __init__(self, from_nodes=False):
+        self._from_nodes = from_nodes
+
+    def _get_ports(self, node_id, marker, limit, sort_key, sort_dir):
+        if self._from_nodes and not node_id:
+            raise exception.InvalidParameterValue(_(
+                  "Node id not specified."))
+
         limit = utils.validate_limit(limit)
         sort_dir = utils.validate_sort_dir(sort_dir)
 
@@ -103,22 +114,60 @@ class PortsController(rest.RestController):
             marker_obj = objects.Port.get_by_uuid(pecan.request.context,
                                                   marker)
 
-        ports = pecan.request.dbapi.get_port_list(limit, marker_obj,
-                                                  sort_key=sort_key,
-                                                  sort_dir=sort_dir)
+        if node_id:
+            ports = pecan.request.dbapi.get_ports_by_node(node_id, limit,
+                                                          marker_obj,
+                                                          sort_key=sort_key,
+                                                          sort_dir=sort_dir)
+        else:
+            ports = pecan.request.dbapi.get_port_list(limit, marker_obj,
+                                                      sort_key=sort_key,
+                                                      sort_dir=sort_dir)
+        return ports
+
+    @wsme_pecan.wsexpose(PortCollection, unicode, unicode, int,
+                         unicode, unicode)
+    def get_all(self, node_id=None, marker=None, limit=None,
+                sort_key='id', sort_dir='asc'):
+        """Retrieve a list of ports."""
+        ports = self._get_ports(node_id, marker, limit, sort_key, sort_dir)
         return PortCollection.convert_with_links(ports, limit,
+                                                 sort_key=sort_key,
+                                                 sort_dir=sort_dir)
+
+    @wsme_pecan.wsexpose(PortCollection, unicode, unicode, int,
+                         unicode, unicode)
+    def detail(self, node_id=None, marker=None, limit=None,
+                sort_key='id', sort_dir='asc'):
+        """Retrieve a list of ports."""
+        # NOTE(lucasagomes): /detail should only work agaist collections
+        parent = pecan.request.path.split('/')[:-1][-1]
+        if parent != "ports":
+            raise exception.HTTPNotFound
+
+        ports = self._get_ports(node_id, marker, limit, sort_key, sort_dir)
+        resource_url = '/'.join(['ports', 'detail'])
+        return PortCollection.convert_with_links(ports, limit,
+                                                 url=resource_url,
+                                                 expand=True,
                                                  sort_key=sort_key,
                                                  sort_dir=sort_dir)
 
     @wsme_pecan.wsexpose(Port, unicode)
     def get_one(self, uuid):
         """Retrieve information about the given port."""
+        if self._from_nodes:
+            raise exception.OperationNotPermitted
+
         rpc_port = objects.Port.get_by_uuid(pecan.request.context, uuid)
         return Port.convert_with_links(rpc_port)
 
     @wsme_pecan.wsexpose(Port, body=Port)
     def post(self, port):
         """Create a new port."""
+        if self._from_nodes:
+            raise exception.OperationNotPermitted
+
         try:
             new_port = pecan.request.dbapi.create_port(port.as_dict())
         except exception.IronicException as e:
@@ -129,6 +178,9 @@ class PortsController(rest.RestController):
     @wsme_pecan.wsexpose(Port, unicode, body=[unicode])
     def patch(self, uuid, patch):
         """Update an existing port."""
+        if self._from_nodes:
+            raise exception.OperationNotPermitted
+
         port = objects.Port.get_by_uuid(pecan.request.context, uuid)
         port_dict = port.as_dict()
 
@@ -161,4 +213,7 @@ class PortsController(rest.RestController):
     @wsme_pecan.wsexpose(None, unicode, status_code=204)
     def delete(self, port_id):
         """Delete a port."""
+        if self._from_nodes:
+            raise exception.OperationNotPermitted
+
         pecan.request.dbapi.destroy_port(port_id)

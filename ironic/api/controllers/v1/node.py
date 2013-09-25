@@ -223,8 +223,12 @@ class Node(base.APIBase):
             setattr(self, k, kwargs.get(k))
 
     @classmethod
-    def convert_with_links(cls, rpc_node):
-        node = Node.from_rpc_object(rpc_node)
+    def convert_with_links(cls, rpc_node, expand=True):
+        minimum_fields = ['uuid', 'power_state', 'target_power_state',
+                          'provision_state', 'target_provision_state',
+                          'instance_uuid']
+        fields = minimum_fields if not expand else None
+        node = Node.from_rpc_object(rpc_node, fields)
         node.links = [link.Link.make_link('self', pecan.request.host_url,
                                           'nodes', node.uuid),
                       link.Link.make_link('bookmark',
@@ -232,13 +236,14 @@ class Node(base.APIBase):
                                           'nodes', node.uuid,
                                           bookmark=True)
                      ]
-        node.ports = [link.Link.make_link('self', pecan.request.host_url,
-                                          'nodes', node.uuid + "/ports"),
-                      link.Link.make_link('bookmark',
-                                          pecan.request.host_url,
-                                          'nodes', node.uuid + "/ports",
-                                          bookmark=True)
-                     ]
+        if expand:
+            node.ports = [link.Link.make_link('self', pecan.request.host_url,
+                                              'nodes', node.uuid + "/ports"),
+                          link.Link.make_link('bookmark',
+                                              pecan.request.host_url,
+                                              'nodes', node.uuid + "/ports",
+                                              bookmark=True)
+                         ]
         return node
 
 
@@ -252,10 +257,11 @@ class NodeCollection(collection.Collection):
         self._type = 'nodes'
 
     @classmethod
-    def convert_with_links(cls, nodes, limit, **kwargs):
+    def convert_with_links(cls, nodes, limit, url=None,
+                           expand=False, **kwargs):
         collection = NodeCollection()
-        collection.nodes = [Node.convert_with_links(n) for n in nodes]
-        collection.next = collection.get_next(limit, **kwargs)
+        collection.nodes = [Node.convert_with_links(n, expand) for n in nodes]
+        collection.next = collection.get_next(limit, url=url, **kwargs)
         return collection
 
 
@@ -292,13 +298,21 @@ class NodesController(rest.RestController):
     vendor_passthru = NodeVendorPassthruController()
     "A resource used for vendors to expose a custom functionality in the API"
 
+    ports = port.PortsController(from_nodes=True)
+    "Expose ports as a sub-element of nodes"
+
     _custom_actions = {
-        'ports': ['GET'],
+        'detail': ['GET'],
     }
 
-    @wsme_pecan.wsexpose(NodeCollection, int, unicode, unicode, unicode)
-    def get_all(self, limit=None, marker=None, sort_key='id', sort_dir='asc'):
-        """Retrieve a list of nodes."""
+    def __init__(self, from_chassis=False):
+        self._from_chassis = from_chassis
+
+    def _get_nodes(self, chassis_id, marker, limit, sort_key, sort_dir):
+        if self._from_chassis and not chassis_id:
+            raise exception.InvalidParameterValue(_(
+                  "Chassis id not specified."))
+
         limit = utils.validate_limit(limit)
         sort_dir = utils.validate_sort_dir(sort_dir)
 
@@ -307,22 +321,60 @@ class NodesController(rest.RestController):
             marker_obj = objects.Node.get_by_uuid(pecan.request.context,
                                                   marker)
 
-        nodes = pecan.request.dbapi.get_node_list(limit, marker_obj,
-                                                  sort_key=sort_key,
-                                                  sort_dir=sort_dir)
+        if chassis_id:
+            nodes = pecan.request.dbapi.get_nodes_by_chassis(chassis_id, limit,
+                                                             marker_obj,
+                                                             sort_key=sort_key,
+                                                             sort_dir=sort_dir)
+        else:
+            nodes = pecan.request.dbapi.get_node_list(limit, marker_obj,
+                                                      sort_key=sort_key,
+                                                      sort_dir=sort_dir)
+        return nodes
+
+    @wsme_pecan.wsexpose(NodeCollection, unicode, unicode, int,
+                         unicode, unicode)
+    def get_all(self, chassis_id=None, marker=None, limit=None,
+                sort_key='id', sort_dir='asc'):
+        """Retrieve a list of nodes."""
+        nodes = self._get_nodes(chassis_id, marker, limit, sort_key, sort_dir)
         return NodeCollection.convert_with_links(nodes, limit,
+                                                 sort_key=sort_key,
+                                                 sort_dir=sort_dir)
+
+    @wsme_pecan.wsexpose(NodeCollection, unicode, unicode, int,
+                         unicode, unicode)
+    def detail(self, chassis_id=None, marker=None, limit=None,
+                sort_key='id', sort_dir='asc'):
+        """Retrieve a list of nodes with detail."""
+        # /detail should only work agaist collections
+        parent = pecan.request.path.split('/')[:-1][-1]
+        if parent != "nodes":
+            raise exception.HTTPNotFound
+
+        nodes = self._get_nodes(chassis_id, marker, limit, sort_key, sort_dir)
+        resource_url = '/'.join(['nodes', 'detail'])
+        return NodeCollection.convert_with_links(nodes, limit,
+                                                 url=resource_url,
+                                                 expand=True,
                                                  sort_key=sort_key,
                                                  sort_dir=sort_dir)
 
     @wsme_pecan.wsexpose(Node, unicode)
     def get_one(self, uuid):
         """Retrieve information about the given node."""
+        if self._from_chassis:
+            raise exception.OperationNotPermitted
+
         rpc_node = objects.Node.get_by_uuid(pecan.request.context, uuid)
         return Node.convert_with_links(rpc_node)
 
     @wsme_pecan.wsexpose(Node, body=Node)
     def post(self, node):
         """Create a new node."""
+        if self._from_chassis:
+            raise exception.OperationNotPermitted
+
         try:
             new_node = pecan.request.dbapi.create_node(node.as_dict())
         except Exception as e:
@@ -336,6 +388,9 @@ class NodesController(rest.RestController):
 
         TODO(deva): add exception handling
         """
+        if self._from_chassis:
+            raise exception.OperationNotPermitted
+
         node = objects.Node.get_by_uuid(pecan.request.context, uuid)
         node_dict = node.as_dict()
 
@@ -407,29 +462,7 @@ class NodesController(rest.RestController):
 
         TODO(deva): don't allow deletion of an associated node.
         """
+        if self._from_chassis:
+            raise exception.OperationNotPermitted
+
         pecan.request.dbapi.destroy_node(node_id)
-
-    @wsme_pecan.wsexpose(port.PortCollection, unicode, int, unicode,
-                         unicode, unicode)
-    def ports(self, node_uuid, limit=None, marker=None,
-              sort_key='id', sort_dir='asc'):
-        """Retrieve a list of ports on this node."""
-        limit = utils.validate_limit(limit)
-        sort_dir = utils.validate_sort_dir(sort_dir)
-
-        marker_obj = None
-        if marker:
-            marker_obj = objects.Port.get_by_uuid(pecan.request.context,
-                                                  marker)
-
-        ports = pecan.request.dbapi.get_ports_by_node(node_uuid, limit,
-                                                      marker_obj,
-                                                      sort_key=sort_key,
-                                                      sort_dir=sort_dir)
-        collection = port.PortCollection()
-        collection.ports = [port.Port.convert_with_links(n) for n in ports]
-        resource_url = '/'.join(['nodes', node_uuid, 'ports'])
-        collection.next = collection.get_next(limit, url=resource_url,
-                                              sort_key=sort_key,
-                                              sort_dir=sort_dir)
-        return collection

@@ -38,6 +38,29 @@ class TestListNodes(base.FunctionalTest):
         node = self.dbapi.create_node(ndict)
         data = self.get_json('/nodes')
         self.assertEqual(node['uuid'], data['nodes'][0]["uuid"])
+        self.assertNotIn('driver', data['nodes'][0])
+        self.assertNotIn('driver_info', data['nodes'][0])
+        self.assertNotIn('extra', data['nodes'][0])
+        self.assertNotIn('properties', data['nodes'][0])
+        self.assertNotIn('chassis_id', data['nodes'][0])
+
+    def test_detail(self):
+        ndict = dbutils.get_test_node()
+        node = self.dbapi.create_node(ndict)
+        data = self.get_json('/nodes/detail')
+        self.assertEqual(node['uuid'], data['nodes'][0]["uuid"])
+        self.assertIn('driver', data['nodes'][0])
+        self.assertIn('driver_info', data['nodes'][0])
+        self.assertIn('extra', data['nodes'][0])
+        self.assertIn('properties', data['nodes'][0])
+        self.assertIn('chassis_id', data['nodes'][0])
+
+    def test_detail_against_single(self):
+        ndict = dbutils.get_test_node()
+        node = self.dbapi.create_node(ndict)
+        response = self.get_json('/nodes/%s/detail' % node['uuid'],
+                                 expect_errors=True)
+        self.assertEqual(response.status_int, 404)
 
     def test_many(self):
         nodes = []
@@ -98,6 +121,15 @@ class TestListNodes(base.FunctionalTest):
         data = self.get_json('/nodes/%s/ports?limit=1' % ndict['uuid'])
         self.assertEqual(len(data['ports']), 1)
         self.assertIn('next', data.keys())
+
+    def test_nodes_subresource_noid(self):
+        ndict = dbutils.get_test_node()
+        self.dbapi.create_node(ndict)
+        pdict = dbutils.get_test_port(node_id=ndict['id'])
+        self.dbapi.create_port(pdict)
+        # No node id specified
+        response = self.get_json('/nodes/ports', expect_errors=True)
+        self.assertEqual(response.status_int, 400)
 
     def test_state(self):
         ndict = dbutils.get_test_node()
@@ -239,6 +271,12 @@ class TestPatch(base.FunctionalTest):
                           [{'path': '/extra/foo', 'value': 'bar',
                             'op': 'add'}])
 
+    def test_patch_ports_subresource(self):
+        response = self.patch_json('/nodes/%s/ports' % self.node['uuid'],
+                                   [{'path': '/extra/foo', 'value': 'bar',
+                                     'op': 'add'}], expect_errors=True)
+        self.assertEqual(response.status_int, 403)
+
 
 class TestPost(base.FunctionalTest):
 
@@ -271,6 +309,14 @@ class TestPost(base.FunctionalTest):
                           '/nodes/%s/vendor_passthru' % ndict['uuid'],
                           {'foo': 'bar'})
 
+    def test_post_ports_subresource(self):
+        ndict = dbutils.get_test_node()
+        self.post_json('/nodes', ndict)
+        pdict = dbutils.get_test_port()
+        response = self.post_json('/nodes/ports', pdict,
+                                  expect_errors=True)
+        self.assertEqual(response.status_int, 403)
+
 
 class TestDelete(base.FunctionalTest):
 
@@ -283,6 +329,13 @@ class TestDelete(base.FunctionalTest):
         self.assertEqual(response.status_int, 404)
         self.assertEqual(response.content_type, 'application/json')
         self.assertTrue(response.json['error_message'])
+
+    def test_delete_ports_subresource(self):
+        ndict = dbutils.get_test_node()
+        self.post_json('/nodes', ndict)
+        response = self.delete('/nodes/%s/ports' % ndict['uuid'],
+                               expect_errors=True)
+        self.assertEqual(response.status_int, 403)
 
 
 class TestPut(base.FunctionalTest):

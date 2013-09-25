@@ -67,24 +67,28 @@ class Chassis(base.APIBase):
             setattr(self, k, kwargs.get(k))
 
     @classmethod
-    def convert_with_links(cls, rpc_chassis):
-        chassis = Chassis.from_rpc_object(rpc_chassis)
-        chassis.links = [link.Link.make_link('self', pecan.request.host_url,
+    def convert_with_links(cls, rpc_chassis, expand=True):
+        fields = ['uuid', 'description'] if not expand else None
+        chassis = Chassis.from_rpc_object(rpc_chassis, fields)
+        chassis.links = [link.Link.make_link('self',
+                                             pecan.request.host_url,
                                              'chassis', chassis.uuid),
                          link.Link.make_link('bookmark',
                                              pecan.request.host_url,
-                                             'chassis', chassis.uuid,
-                                             bookmark=True)
+                                             'chassis', chassis.uuid)
                         ]
-        chassis.nodes = [link.Link.make_link('self', pecan.request.host_url,
-                                             'chassis',
-                                              chassis.uuid + "/nodes"),
-                         link.Link.make_link('bookmark',
-                                             pecan.request.host_url,
-                                             'chassis',
-                                             chassis.uuid + "/nodes",
-                                             bookmark=True)
-                        ]
+
+        if expand:
+            chassis.nodes = [link.Link.make_link('self',
+                                                 pecan.request.host_url,
+                                                 'chassis',
+                                                 chassis.uuid + "/nodes"),
+                             link.Link.make_link('bookmark',
+                                                 pecan.request.host_url,
+                                                 'chassis',
+                                                 chassis.uuid + "/nodes",
+                                                 bookmark=True)
+                            ]
         return chassis
 
 
@@ -98,35 +102,59 @@ class ChassisCollection(collection.Collection):
         self._type = 'chassis'
 
     @classmethod
-    def convert_with_links(cls, chassis, limit, **kwargs):
+    def convert_with_links(cls, chassis, limit, url=None,
+                           expand=False, **kwargs):
         collection = ChassisCollection()
-        collection.chassis = [Chassis.convert_with_links(ch) for ch in chassis]
-        collection.next = collection.get_next(limit, **kwargs)
+        collection.chassis = [Chassis.convert_with_links(ch, expand)
+                              for ch in chassis]
+        url = url or None
+        collection.next = collection.get_next(limit, url=url, **kwargs)
         return collection
 
 
 class ChassisController(rest.RestController):
     """REST controller for Chassis."""
 
+    nodes = node.NodesController(from_chassis=True)
+    "Expose nodes as a sub-element of chassis"
+
     _custom_actions = {
-        'nodes': ['GET'],
+        'detail': ['GET'],
     }
 
-    @wsme_pecan.wsexpose(ChassisCollection, int, unicode, unicode, unicode)
-    def get_all(self, limit=None, marker=None, sort_key='id', sort_dir='asc'):
-        """Retrieve a list of chassis."""
+    def _get_chassis(self, marker, limit, sort_key, sort_dir):
         limit = utils.validate_limit(limit)
         sort_dir = utils.validate_sort_dir(sort_dir)
-
         marker_obj = None
         if marker:
             marker_obj = objects.Chassis.get_by_uuid(pecan.request.context,
                                                      marker)
-
         chassis = pecan.request.dbapi.get_chassis_list(limit, marker_obj,
                                                        sort_key=sort_key,
                                                        sort_dir=sort_dir)
+        return chassis
+
+    @wsme_pecan.wsexpose(ChassisCollection, unicode, int, unicode, unicode)
+    def get_all(self, marker=None, limit=None, sort_key='id', sort_dir='asc'):
+        """Retrieve a list of chassis."""
+        chassis = self._get_chassis(marker, limit, sort_key, sort_dir)
         return ChassisCollection.convert_with_links(chassis, limit,
+                                                    sort_key=sort_key,
+                                                    sort_dir=sort_dir)
+
+    @wsme_pecan.wsexpose(ChassisCollection, unicode, int, unicode, unicode)
+    def detail(self, marker=None, limit=None, sort_key='id', sort_dir='asc'):
+        """Retrieve a list of chassis with detail."""
+        # /detail should only work agaist collections
+        parent = pecan.request.path.split('/')[:-1][-1]
+        if parent != "chassis":
+            raise exception.HTTPNotFound
+
+        chassis = self._get_chassis(marker, limit, sort_key, sort_dir)
+        resource_url = '/'.join(['chassis', 'detail'])
+        return ChassisCollection.convert_with_links(chassis, limit,
+                                                    url=resource_url,
+                                                    expand=True,
                                                     sort_key=sort_key,
                                                     sort_dir=sort_dir)
 
@@ -183,28 +211,3 @@ class ChassisController(rest.RestController):
     def delete(self, uuid):
         """Delete a chassis."""
         pecan.request.dbapi.destroy_chassis(uuid)
-
-    @wsme_pecan.wsexpose(node.NodeCollection, unicode, int, unicode,
-                         unicode, unicode)
-    def nodes(self, chassis_uuid, limit=None, marker=None,
-              sort_key='id', sort_dir='asc'):
-        """Retrieve a list of nodes contained in the chassis."""
-        limit = utils.validate_limit(limit)
-        sort_dir = utils.validate_sort_dir(sort_dir)
-
-        marker_obj = None
-        if marker:
-            marker_obj = objects.Node.get_by_uuid(pecan.request.context,
-                                                  marker)
-
-        nodes = pecan.request.dbapi.get_nodes_by_chassis(chassis_uuid, limit,
-                                                         marker_obj,
-                                                         sort_key=sort_key,
-                                                         sort_dir=sort_dir)
-        collection = node.NodeCollection()
-        collection.nodes = [node.Node.convert_with_links(n) for n in nodes]
-        resource_url = '/'.join(['chassis', chassis_uuid, 'nodes'])
-        collection.next = collection.get_next(limit, url=resource_url,
-                                              sort_key=sort_key,
-                                              sort_dir=sort_dir)
-        return collection

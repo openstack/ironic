@@ -32,6 +32,21 @@ class TestListPorts(base.FunctionalTest):
         port = self.dbapi.create_port(ndict)
         data = self.get_json('/ports')
         self.assertEqual(port['uuid'], data['ports'][0]["uuid"])
+        self.assertNotIn('extra', data['ports'][0])
+
+    def test_detail(self):
+        pdict = dbutils.get_test_port()
+        port = self.dbapi.create_port(pdict)
+        data = self.get_json('/ports/detail')
+        self.assertEqual(port['uuid'], data['ports'][0]["uuid"])
+        self.assertIn('extra', data['ports'][0])
+
+    def test_detail_against_single(self):
+        pdict = dbutils.get_test_port()
+        port = self.dbapi.create_port(pdict)
+        response = self.get_json('/ports/%s/detail' % port['uuid'],
+                                 expect_errors=True)
+        self.assertEqual(response.status_int, 404)
 
     def test_many(self):
         ports = []

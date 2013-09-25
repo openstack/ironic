@@ -173,6 +173,10 @@ class PolicyNotAuthorized(NotAuthorized):
     message = _("Policy doesn't allow %(action)s to be performed.")
 
 
+class OperationNotPermitted(NotAuthorized):
+    message = _("Operation not permitted.")
+
+
 class Invalid(IronicException):
     message = _("Unacceptable parameters.")
     code = 400
