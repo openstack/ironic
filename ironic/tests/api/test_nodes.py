@@ -286,6 +286,17 @@ class TestPost(base.FunctionalTest):
         result = self.get_json('/nodes/%s' % ndict['uuid'])
         self.assertEqual(ndict['uuid'], result['uuid'])
 
+    def test_create_node_valid_extra(self):
+        ndict = dbutils.get_test_node(extra={'foo': 123})
+        self.post_json('/nodes', ndict)
+        result = self.get_json('/nodes/%s' % ndict['uuid'])
+        self.assertEqual(ndict['extra'], result['extra'])
+
+    def test_create_node_invalid_extra(self):
+        ndict = dbutils.get_test_node(extra={'foo': 0.123})
+        self.assertRaises(webtest.app.AppError, self.post_json, '/nodes',
+                          ndict)
+
     def test_vendor_passthru(self):
         ndict = dbutils.get_test_node()
         self.post_json('/nodes', ndict)

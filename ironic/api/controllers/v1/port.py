@@ -16,6 +16,7 @@
 #    under the License.
 
 import jsonpatch
+import six
 
 import pecan
 from pecan import rest
@@ -47,7 +48,7 @@ class Port(base.APIBase):
 
     address = wtypes.text
 
-    extra = {wtypes.text: wtypes.text}
+    extra = {wtypes.text: utils.ValidTypes(wtypes.text, six.integer_types)}
 
     node_id = int
 

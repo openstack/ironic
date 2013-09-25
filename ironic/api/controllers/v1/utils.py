@@ -69,3 +69,20 @@ def validate_patch(patch):
                                                  "attribute (%s) to the "
                                                  "resource is not allowed")
                                                  % path)
+
+
+class ValidTypes(wsme.types.UserType):
+    """User type for validate that value has one of a few types."""
+
+    def __init__(self, *types):
+        self.types = types
+
+    def validate(self, value):
+        for t in self.types:
+            if t is wsme.types.text and isinstance(value, wsme.types.bytes):
+                value = value.decode()
+            if isinstance(value, t):
+                return value
+        else:
+            raise ValueError("Wrong type. Expected '%s', got  '%s'" % (
+                             self.types, type(value)))

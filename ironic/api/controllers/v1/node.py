@@ -16,6 +16,7 @@
 #    under the License.
 
 import jsonpatch
+import six
 
 import pecan
 from pecan import rest
@@ -195,17 +196,15 @@ class Node(base.APIBase):
     # NOTE: translate 'driver_info' internally to 'management_configuration'
     driver = wtypes.text
 
-    # FIXME(lucasagomes): it should accept at least wtypes.text or wtypes.int
-    #                     as value
-    driver_info = {wtypes.text: wtypes.text}
+    driver_info = {wtypes.text: utils.ValidTypes(wtypes.text,
+                                                 six.integer_types)}
 
-    # FIXME(lucasagomes): it should accept at least wtypes.text or wtypes.int
-    #                     as value
-    extra = {wtypes.text: wtypes.text}
+    extra = {wtypes.text: utils.ValidTypes(wtypes.text, six.integer_types)}
 
     # NOTE: properties should use a class to enforce required properties
     #       current list: arch, cpus, disk, ram, image
-    properties = {wtypes.text: wtypes.text}
+    properties = {wtypes.text: utils.ValidTypes(wtypes.text,
+                                                six.integer_types)}
 
     # NOTE: translate 'chassis_id' to a link to the chassis resource
     #       and accept a chassis uuid when creating a node.

@@ -16,6 +16,8 @@
 Tests for the API /chassis/ methods.
 """
 
+import webtest.app
+
 from ironic.openstack.common import uuidutils
 from ironic.tests.api import base
 from ironic.tests.db import utils as dbutils
@@ -261,6 +263,17 @@ class TestPost(base.FunctionalTest):
         response = self.post_json('/chassis/nodes', ndict,
                                    expect_errors=True)
         self.assertEqual(response.status_int, 403)
+
+    def test_create_chassis_valid_extra(self):
+        cdict = dbutils.get_test_chassis(extra={'foo': 123})
+        self.post_json('/chassis', cdict)
+        result = self.get_json('/chassis/%s' % cdict['uuid'])
+        self.assertEqual(cdict['extra'], result['extra'])
+
+    def test_create_chassis_invalid_extra(self):
+        cdict = dbutils.get_test_chassis(extra={'foo': 0.123})
+        self.assertRaises(webtest.app.AppError, self.post_json, '/chassis',
+                          cdict)
 
 
 class TestDelete(base.FunctionalTest):

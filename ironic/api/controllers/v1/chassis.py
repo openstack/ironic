@@ -17,6 +17,7 @@
 #    under the License.
 
 import jsonpatch
+import six
 
 import pecan
 from pecan import rest
@@ -52,7 +53,7 @@ class Chassis(base.APIBase):
     description = wtypes.text
     "The description of the chassis"
 
-    extra = {wtypes.text: wtypes.text}
+    extra = {wtypes.text: utils.ValidTypes(wtypes.text, six.integer_types)}
     "The metadata of the chassis"
 
     links = [link.Link]
