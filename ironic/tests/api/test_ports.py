@@ -25,6 +25,11 @@ from ironic.tests.db import utils as dbutils
 
 class TestListPorts(base.FunctionalTest):
 
+    def setUp(self):
+        super(TestListPorts, self).setUp()
+        ndict = dbutils.get_test_node()
+        self.node = self.dbapi.create_node(ndict)
+
     def test_empty(self):
         data = self.get_json('/ports')
         self.assertEqual([], data['ports'])
@@ -90,6 +95,8 @@ class TestPatch(base.FunctionalTest):
 
     def setUp(self):
         super(TestPatch, self).setUp()
+        ndict = dbutils.get_test_node()
+        self.node = self.dbapi.create_node(ndict)
         pdict = dbutils.get_test_port()
         self.post_json('/ports', pdict)
 
@@ -139,9 +146,36 @@ class TestPatch(base.FunctionalTest):
         result = self.get_json('/ports/%s' % pdict['uuid'])
         self.assertEqual(result['address'], address)
 
+    def test_replace_address_already_exist(self):
+        address = '11:22:33:AA:BB:CC'
+        pdict = dbutils.get_test_port(address=address,
+                                      uuid=uuidutils.generate_uuid())
+        self.post_json('/ports', pdict)
+
+        pdict = dbutils.get_test_port()
+        response = self.patch_json('/ports/%s' % pdict['uuid'],
+                                   [{'path': '/address',
+                                     'value': address, 'op': 'replace'}],
+                                     expect_errors=True)
+        self.assertEqual(response.content_type, 'application/json')
+        self.assertEqual(response.status_code, 400)
+        self.assertTrue(response.json['error_message'])
+
+    def test_replace_nodeid_dont_exist(self):
+        pdict = dbutils.get_test_port()
+        response = self.patch_json('/ports/%s' % pdict['uuid'],
+                             [{'path': '/node_id',
+                               'value': '12506333-a81c-4d59-9987-889ed5f8687b',
+                               'op': 'replace'}],
+                             expect_errors=True)
+        self.assertEqual(response.content_type, 'application/json')
+        self.assertEqual(response.status_code, 400)
+        self.assertTrue(response.json['error_message'])
+
     def test_replace_multi(self):
         extra = {"foo1": "bar1", "foo2": "bar2", "foo3": "bar3"}
         pdict = dbutils.get_test_port(extra=extra,
+                                      address="AA:BB:CC:DD:EE:FF",
                                       uuid=uuidutils.generate_uuid())
         self.post_json('/ports', pdict)
         new_value = 'new value'
@@ -154,21 +188,6 @@ class TestPatch(base.FunctionalTest):
 
         extra["foo2"] = new_value
         self.assertEqual(result['extra'], extra)
-
-    def test_remove_singular(self):
-        pdict = dbutils.get_test_port(extra={'a': 'b'},
-                                      uuid=uuidutils.generate_uuid())
-        self.post_json('/ports', pdict)
-        response = self.patch_json('/ports/%s' % pdict['uuid'],
-                                   [{'path': '/address', 'op': 'remove'}])
-        self.assertEqual(response.content_type, 'application/json')
-        self.assertEqual(response.status_code, 200)
-        result = self.get_json('/ports/%s' % pdict['uuid'])
-        self.assertEqual(result['address'], None)
-
-        # Assert nothing else was changed
-        self.assertEqual(result['uuid'], pdict['uuid'])
-        self.assertEqual(result['extra'], pdict['extra'])
 
     def test_remove_multi(self):
         extra = {"foo1": "bar1", "foo2": "bar2", "foo3": "bar3"}
@@ -198,6 +217,17 @@ class TestPatch(base.FunctionalTest):
         self.assertEqual(result['uuid'], pdict['uuid'])
         self.assertEqual(result['address'], pdict['address'])
 
+    def test_remove_mandatory_field(self):
+        pdict = dbutils.get_test_port(address="AA:BB:CC:DD:EE:FF",
+                                      uuid=uuidutils.generate_uuid())
+        self.post_json('/ports', pdict)
+        response = self.patch_json('/ports/%s' % pdict['uuid'],
+                                   [{'path': '/address', 'op': 'remove'}],
+                                   expect_errors=True)
+        self.assertEqual(response.content_type, 'application/json')
+        self.assertEqual(response.status_code, 400)
+        self.assertTrue(response.json['error_message'])
+
     def test_add_singular(self):
         pdict = dbutils.get_test_port()
         response = self.patch_json('/ports/%s' % pdict['uuid'],
@@ -221,8 +251,19 @@ class TestPatch(base.FunctionalTest):
         expected = {"foo1": "bar1", "foo2": "bar2"}
         self.assertEqual(result['extra'], expected)
 
+    def test_remove_uuid(self):
+        pdict = dbutils.get_test_port()
+        self.assertRaises(webtest.app.AppError, self.patch_json,
+                          '/ports/%s' % pdict['uuid'],
+                          [{'path': '/uuid', 'op': 'remove'}])
+
 
 class TestPost(base.FunctionalTest):
+
+    def setUp(self):
+        super(TestPost, self).setUp()
+        ndict = dbutils.get_test_node()
+        self.node = self.dbapi.create_node(ndict)
 
     def test_create_port(self):
         pdict = dbutils.get_test_port()
@@ -249,11 +290,23 @@ class TestPost(base.FunctionalTest):
         self.assertRaises(webtest.app.AppError, self.post_json, '/ports',
                           pdict)
 
+    def test_create_port_no_mandatory_fields(self):
+        pdict = dbutils.get_test_port(address=None, node_id=None)
+        self.assertRaises(webtest.app.AppError, self.post_json, '/ports',
+                          pdict)
+
+    def test_create_port_invalid_addr_format(self):
+        pdict = dbutils.get_test_port(address='invalid-format')
+        self.assertRaises(webtest.app.AppError, self.post_json, '/ports',
+                          pdict)
+
 
 class TestDelete(base.FunctionalTest):
 
     def setUp(self):
         super(TestDelete, self).setUp()
+        ndict = dbutils.get_test_node()
+        self.node = self.dbapi.create_node(ndict)
         pdict = dbutils.get_test_port()
         self.post_json('/ports', pdict)
 

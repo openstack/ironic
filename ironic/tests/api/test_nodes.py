@@ -284,6 +284,12 @@ class TestPatch(base.FunctionalTest):
                                      'op': 'add'}], expect_errors=True)
         self.assertEqual(response.status_int, 403)
 
+    def test_remove_uuid(self):
+        ndict = dbutils.get_test_node()
+        self.assertRaises(webtest.app.AppError, self.patch_json,
+                          '/nodes/%s' % ndict['uuid'],
+                          [{'path': '/uuid', 'op': 'remove'}])
+
 
 class TestPost(base.FunctionalTest):
 

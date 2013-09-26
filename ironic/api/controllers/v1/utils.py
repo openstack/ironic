@@ -69,6 +69,10 @@ def validate_patch(patch):
                                                  "attribute (%s) to the "
                                                  "resource is not allowed")
                                                  % path)
+        if op in ["remove", "replace", "add"]:
+            if path.startswith('/uuid'):
+                raise wsme.exc.ClientSideError(_("UUIDs can not be removed "
+                                                 "or replaced"))
 
 
 class ValidTypes(wsme.types.UserType):
