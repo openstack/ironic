@@ -50,14 +50,14 @@ class DbNodeTestCase(base.DbTestCase):
     def test_get_nodes_by_chassis_id(self):
         ch = utils.get_test_chassis()
         ch = self.dbapi.create_chassis(ch)
-        n = self._create_test_node()
+        n = self._create_test_node(chassis_id=ch['id'])
         nodes = self.dbapi.get_nodes_by_chassis(ch['id'])
         self.assertEqual(n['uuid'], nodes[0]['uuid'])
 
     def test_get_nodes_by_chassis_uuid(self):
         ch = utils.get_test_chassis()
         ch = self.dbapi.create_chassis(ch)
-        n = self._create_test_node()
+        n = self._create_test_node(chassis_id=ch['id'])
         nodes = self.dbapi.get_nodes_by_chassis(ch['uuid'])
         self.assertEqual(n['id'], nodes[0]['id'])
 

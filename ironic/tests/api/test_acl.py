@@ -32,7 +32,7 @@ class TestACL(base.FunctionalTest):
         super(TestACL, self).setUp()
 
         self.environ = {'fake.cache': utils.FakeMemcache()}
-        self.fake_node = db_utils.get_test_node()
+        self.fake_node = db_utils.get_test_node(chassis_id=None)
         self.dbapi = db_api.get_instance()
         self.node_path = '/nodes/%s' % self.fake_node['uuid']
 
