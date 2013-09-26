@@ -24,3 +24,4 @@ six<1.4.0
 jsonpatch>=1.1
 WSME>=0.5b2
 Cheetah>=2.4.4
+pyghmi
