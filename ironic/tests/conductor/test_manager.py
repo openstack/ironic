@@ -152,7 +152,7 @@ class ManagerTestCase(base.DbTestCase):
         # TODO(deva)
         pass
 
-    def test_start_power_state_change_power_on(self):
+    def test_change_node_power_state_power_on(self):
         """Test if start_power_state to turn node power on
         is successful or not.
         """
@@ -165,13 +165,13 @@ class ManagerTestCase(base.DbTestCase):
                 AndReturn(states.POWER_OFF)
         self.mox.ReplayAll()
 
-        self.service.start_power_state_change(self.context,
+        self.service.change_node_power_state(self.context,
                                               node, states.POWER_ON)
         self.mox.VerifyAll()
         self.assertEqual(node['power_state'], states.POWER_ON)
         self.assertEqual(node['target_power_state'], None)
 
-    def test_start_power_state_change_power_off(self):
+    def test_change_node_power_state_power_off(self):
         """Test if start_power_state to turn node power off
         is successful or not.
         """
@@ -184,13 +184,13 @@ class ManagerTestCase(base.DbTestCase):
                 AndReturn(states.POWER_ON)
         self.mox.ReplayAll()
 
-        self.service.start_power_state_change(self.context, node,
+        self.service.change_node_power_state(self.context, node,
                                               states.POWER_OFF)
         self.mox.VerifyAll()
         self.assertEqual(node['power_state'], states.POWER_OFF)
         self.assertEqual(node['target_power_state'], None)
 
-    def test_start_power_state_change_already_locked(self):
+    def test_change_node_power_state_already_locked(self):
         """Test if an exception is thrown when applying an exclusive
         lock to the node failed.
         """
@@ -201,12 +201,12 @@ class ManagerTestCase(base.DbTestCase):
         # check if the node is locked
         with task_manager.acquire(node['id'], shared=False):
             self.assertRaises(exception.NodeLocked,
-                              self.service.start_power_state_change,
+                              self.service.change_node_power_state,
                               self.context,
                               node,
                               states.POWER_ON)
 
-    def test_start_power_state_change_invalid_state(self):
+    def test_change_node_power_state_invalid_state(self):
         """Test if an NodeInWrongPowerState exception is thrown
         when the node is in an invalid state to perform current operation.
         """
@@ -220,14 +220,14 @@ class ManagerTestCase(base.DbTestCase):
         self.mox.ReplayAll()
 
         self.assertRaises(exception.NodeInWrongPowerState,
-                          self.service.start_power_state_change,
+                          self.service.change_node_power_state,
                           self.context,
                           node,
                           states.POWER_ON)
 
         self.mox.VerifyAll()
 
-    def test_start_power_state_change_invalid_driver_info(self):
+    def test_change_node_power_state_invalid_driver_info(self):
         """Test if an exception is thrown when the driver validation is
         failed.
         """
@@ -242,14 +242,14 @@ class ManagerTestCase(base.DbTestCase):
         self.mox.ReplayAll()
 
         self.assertRaises(exception.InvalidParameterValue,
-                          self.service.start_power_state_change,
+                          self.service.change_node_power_state,
                           self.context,
                           node,
                           states.POWER_ON)
 
         self.mox.VerifyAll()
 
-    def test_start_power_state_change_set_power_failure(self):
+    def test_change_node_power_state_set_power_failure(self):
         """Test if an exception is thrown when the set_power call is
         failed.
         """
@@ -270,7 +270,7 @@ class ManagerTestCase(base.DbTestCase):
         self.mox.ReplayAll()
 
         self.assertRaises(TestException,
-                          self.service.start_power_state_change,
+                          self.service.change_node_power_state,
                           self.context,
                           node,
                           states.POWER_ON)

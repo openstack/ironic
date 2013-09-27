@@ -87,7 +87,7 @@ class NodePowerStateController(rest.RestController):
         node['target_power_state'] = target
         updated_node = pecan.request.rpcapi.update_node(pecan.request.context,
                                                         node)
-        pecan.request.rpcapi.start_power_state_change(pecan.request.context,
+        pecan.request.rpcapi.change_node_power_state(pecan.request.context,
                                                       updated_node, target)
         return NodePowerState.convert_with_links(updated_node, expand=False)
 
