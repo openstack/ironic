@@ -308,10 +308,10 @@ class TestPost(base.FunctionalTest):
                                   expect_errors=True)
         # TODO(lucasagomes): it's expected to return 202, but because we are
         #                    passing expect_errors=True to the post_json
-        #                    function the return code will be 500. So change
+        #                    function the return code will be 404. So change
         #                    the return code when vendor_passthru gets
         #                    implemented
-        self.assertEqual(response.status_code, 500)
+        self.assertEqual(response.status_code, 404)
 
     def test_vendor_passthru_without_method(self):
         ndict = dbutils.get_test_node()
