@@ -74,7 +74,7 @@ class FakeVendor(base.VendorInterface):
                 "Unsupported method (%s) passed through to vendor extension.")
                 % method)
 
-        return True if bar == 'baz' else False
+        return True
 
     def _foo(self, task, node, bar):
         return True if bar == 'baz' else False

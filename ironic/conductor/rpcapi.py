@@ -97,6 +97,9 @@ class ConductorAPI(ironic.openstack.common.rpc.proxy.RpcProxy):
         :param node_id: node id or uuid.
         :param driver_method: name of method for driver.
         :param info: info for node driver.
+
+        :raises: InvalidParameterValue for parameter errors.
+        :raises: UnsupportedDriverExtension for unsupported extensions.
         """
         driver_data = self.call(context,
                                 self.make_msg('validate_vendor_action',
