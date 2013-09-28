@@ -108,3 +108,13 @@ class RPCAPITestCase(base.DbTestCase):
         retval = rpcapi.vendor_passthru(ctxt, node_id=self.fake_node['uuid'],
                                     driver_method='foo', info={'bar': 'baz'})
         self.assertEqual(retval, expected_retval)
+
+    def test_do_node_deploy(self):
+        self._test_rpcapi('do_node_deploy',
+                          'cast',
+                          node_obj=self.fake_node)
+
+    def test_do_node_tear_down(self):
+        self._test_rpcapi('do_node_tear_down',
+                          'cast',
+                          node_obj=self.fake_node)

@@ -18,6 +18,8 @@
 #    under the License.
 
 """Test class for Ironic ManagerService."""
+
+import mock
 import mox
 
 from ironic.common import exception
@@ -314,3 +316,117 @@ class ManagerTestCase(base.DbTestCase):
         self.assertRaises(exception.UnsupportedDriverExtension,
                           self.service.validate_vendor_action,
                           self.context, n['uuid'], 'foo', info)
+
+    def test_do_node_deploy_invalid_state(self):
+        # test node['provision_state'] is not NOSTATE
+        ndict = utils.get_test_node(driver='fake',
+                                    provision_state=states.ACTIVE)
+        node = self.dbapi.create_node(ndict)
+        self.assertRaises(exception.InstanceDeployFailure,
+                          self.service.do_node_deploy,
+                          self.context, node)
+
+    def test_do_node_deploy_driver_raises_error(self):
+        # test when driver.deploy.deploy raises an exception
+        ndict = utils.get_test_node(driver='fake',
+                                    provision_state=states.NOSTATE)
+        node = self.dbapi.create_node(ndict)
+
+        with mock.patch('ironic.drivers.modules.fake.FakeDeploy.deploy') \
+                as deploy:
+            deploy.side_effect = exception.InstanceDeployFailure('test')
+            self.assertRaises(exception.InstanceDeployFailure,
+                              self.service.do_node_deploy,
+                              self.context, node)
+            self.assertEqual(node['provision_state'],
+                             states.ERROR)
+            deploy.assert_called_once()
+
+    def test_do_node_deploy_ok(self):
+        # test when driver.deploy.deploy returns DEPLOYDONE
+        ndict = utils.get_test_node(driver='fake',
+                                    provision_state=states.NOSTATE)
+        node = self.dbapi.create_node(ndict)
+
+        with mock.patch('ironic.drivers.modules.fake.FakeDeploy.deploy') \
+                as deploy:
+            deploy.return_value = states.DEPLOYDONE
+            self.service.do_node_deploy(self.context, node)
+            self.assertEqual(node['provision_state'],
+                             states.ACTIVE)
+            self.assertEqual(node['target_provision_state'],
+                             states.NOSTATE)
+            deploy.assert_called_once()
+
+    def test_do_node_deploy_partial_ok(self):
+        # test when driver.deploy.deploy doesn't return DEPLOYDONE
+        ndict = utils.get_test_node(driver='fake',
+                                    provision_state=states.NOSTATE)
+        node = self.dbapi.create_node(ndict)
+
+        with mock.patch('ironic.drivers.modules.fake.FakeDeploy.deploy') \
+                as deploy:
+            deploy.return_value = states.DEPLOYING
+            self.service.do_node_deploy(self.context, node)
+            self.assertEqual(node['provision_state'],
+                             states.DEPLOYING)
+            self.assertEqual(node['target_provision_state'],
+                             states.DEPLOYDONE)
+            deploy.assert_called_once()
+
+    def test_do_node_tear_down_invalid_state(self):
+        # test node['provision_state'] is incorrect for tear_down
+        ndict = utils.get_test_node(driver='fake',
+                                    provision_state=states.NOSTATE)
+        node = self.dbapi.create_node(ndict)
+        self.assertRaises(exception.InstanceDeployFailure,
+                          self.service.do_node_tear_down,
+                          self.context, node)
+
+    def test_do_node_tear_down_driver_raises_error(self):
+        # test when driver.deploy.tear_down raises exception
+        ndict = utils.get_test_node(driver='fake',
+                                    provision_state=states.ACTIVE)
+        node = self.dbapi.create_node(ndict)
+
+        with mock.patch('ironic.drivers.modules.fake.FakeDeploy.tear_down') \
+                as deploy:
+            deploy.side_effect = exception.InstanceDeployFailure('test')
+            self.assertRaises(exception.InstanceDeployFailure,
+                              self.service.do_node_tear_down,
+                              self.context, node)
+            self.assertEqual(node['provision_state'],
+                             states.ERROR)
+            deploy.assert_called_once()
+
+    def test_do_node_tear_down_ok(self):
+        # test when driver.deploy.tear_down returns DELETED
+        ndict = utils.get_test_node(driver='fake',
+                                    provision_state=states.ACTIVE)
+        node = self.dbapi.create_node(ndict)
+
+        with mock.patch('ironic.drivers.modules.fake.FakeDeploy.tear_down') \
+                as deploy:
+            deploy.return_value = states.DELETED
+            self.service.do_node_tear_down(self.context, node)
+            self.assertEqual(node['provision_state'],
+                             states.NOSTATE)
+            self.assertEqual(node['target_provision_state'],
+                             states.NOSTATE)
+            deploy.assert_called_once()
+
+    def test_do_node_tear_down_partial_ok(self):
+        # test when driver.deploy.tear_down doesn't return DELETED
+        ndict = utils.get_test_node(driver='fake',
+                                    provision_state=states.ACTIVE)
+        node = self.dbapi.create_node(ndict)
+
+        with mock.patch('ironic.drivers.modules.fake.FakeDeploy.tear_down') \
+                as deploy:
+            deploy.return_value = states.DELETING
+            self.service.do_node_tear_down(self.context, node)
+            self.assertEqual(node['provision_state'],
+                             states.DELETING)
+            self.assertEqual(node['target_provision_state'],
+                             states.DELETED)
+            deploy.assert_called_once()

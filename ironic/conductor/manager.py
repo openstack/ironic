@@ -43,6 +43,7 @@ from ironic.common import states
 from ironic.conductor import task_manager
 from ironic.db import api as dbapi
 from ironic.objects import base as objects_base
+from ironic.openstack.common import excutils
 from ironic.openstack.common import log
 
 MANAGER_TOPIC = 'ironic.conductor_manager'
@@ -53,7 +54,7 @@ LOG = log.getLogger(__name__)
 class ConductorManager(service.PeriodicService):
     """Ironic Conductor service main class."""
 
-    RPC_API_VERSION = '1.3'
+    RPC_API_VERSION = '1.4'
 
     def __init__(self, host, topic):
         serializer = objects_base.IronicObjectSerializer()
@@ -205,3 +206,86 @@ class ConductorManager(service.PeriodicService):
         with task_manager.acquire(node_id, shared=True) as task:
                 task.driver.vendor.vendor_passthru(task, task.node,
                                                   method=driver_method, **info)
+
+    def do_node_deploy(self, context, node_obj):
+        """RPC method to initiate deployment to a node.
+
+        :param context: an admin context.
+        :param node_obj: an RPC-style node object.
+        :raises: InstanceDeployFailure
+
+        """
+        node_id = node_obj.get('uuid')
+        LOG.debug(_("RPC do_node_deploy called for node %s.") % node_id)
+
+        with task_manager.acquire(node_id, shared=False) as task:
+            task.driver.deploy.validate(node_obj)
+            if node_obj['provision_state'] is not states.NOSTATE:
+                raise exception.InstanceDeployFailure(_(
+                    "RPC do_node_deploy called for %(node)s, but provision "
+                    "state is already %(state)s.") %
+                    {'node': node_id, 'state': node_obj['provision_state']})
+
+            # set target state to expose that work is in progress
+            node_obj['provision_state'] = states.DEPLOYING
+            node_obj['target_provision_state'] = states.DEPLOYDONE
+            node_obj.save(context)
+
+            try:
+                new_state = task.driver.deploy.deploy(task, node_obj)
+            except exception.IronicException:
+                with excutils.save_and_reraise_exception():
+                    node_obj['provision_state'] = states.ERROR
+                    node_obj.save(context)
+
+            # NOTE(deva): Some drivers may return states.DEPLOYING
+            #             eg. if they are waiting for a callback
+            if new_state == states.DEPLOYDONE:
+                node_obj['target_provision_state'] = states.NOSTATE
+                node_obj['provision_state'] = states.ACTIVE
+            else:
+                node_obj['provision_state'] = new_state
+            node_obj.save(context)
+
+    def do_node_tear_down(self, context, node_obj):
+        """RPC method to tear down an existing node deployment.
+
+        :param context: an admin context.
+        :param node_obj: an RPC-style node object.
+        :raises: InstanceDeployFailure
+
+        """
+        node_id = node_obj.get('uuid')
+        LOG.debug(_("RPC do_node_tear_down called for node %s.") % node_id)
+
+        with task_manager.acquire(node_id, shared=False) as task:
+            task.driver.deploy.validate(node_obj)
+
+            if node_obj['provision_state'] not in [states.ACTIVE,
+                                                   states.DEPLOYFAIL,
+                                                   states.ERROR]:
+                raise exception.InstanceDeployFailure(_(
+                    "RCP do_node_tear_down "
+                    "not allowed for node %(node)s in state %(state)s")
+                    % {'node': node_id, 'state': node_obj['provision_state']})
+
+            # set target state to expose that work is in progress
+            node_obj['provision_state'] = states.DELETING
+            node_obj['target_provision_state'] = states.DELETED
+            node_obj.save(context)
+
+            try:
+                new_state = task.driver.deploy.tear_down(task, node_obj)
+            except exception.IronicException:
+                with excutils.save_and_reraise_exception():
+                    node_obj['provision_state'] = states.ERROR
+                    node_obj.save(context)
+
+            # NOTE(deva): Some drivers may return states.DELETING
+            #             eg. if they are waiting for a callback
+            if new_state == states.DELETED:
+                node_obj['target_provision_state'] = states.NOSTATE
+                node_obj['provision_state'] = states.NOSTATE
+            else:
+                node_obj['provision_state'] = new_state
+            node_obj.save(context)

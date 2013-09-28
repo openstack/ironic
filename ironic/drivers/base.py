@@ -96,6 +96,7 @@ class DeployInterface(object):
 
         :param task: a TaskManager instance.
         :param node: the Node to act upon.
+        :returns: status of the deploy. One of ironic.common.states.
         """
 
     @abc.abstractmethod
@@ -107,6 +108,7 @@ class DeployInterface(object):
 
         :param task: a TaskManager instance.
         :param node: the Node to act upon.
+        :returns: status of the deploy. One of ironic.common.states.
         """
 
 
