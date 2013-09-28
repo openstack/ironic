@@ -322,6 +322,11 @@ class OrphanedObjectError(IronicException):
     message = _('Cannot call %(method)s on orphaned %(objtype)s object')
 
 
+class UnsupportedDriverExtension(IronicException):
+    message = _('Driver %(driver)s for node %(node)s does not '
+                'support %(extension)s.')
+
+
 class IncompatibleObjectVersion(IronicException):
     message = _('Version %(objver)s of %(objname)s is not supported')
 

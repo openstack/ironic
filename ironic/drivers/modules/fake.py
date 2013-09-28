@@ -57,22 +57,30 @@ class FakeDeploy(base.DeployInterface):
 class FakeVendor(base.VendorInterface):
     """Example implementation of a vendor passthru interface."""
 
-    def validate(self, node):
-        return True
-
-    def _foo(self, task, node, bar):
-        return True if bar else False
-
-    def vendor_passthru(self, task, node, *args, **kwargs):
+    def validate(self, node, **kwargs):
         method = kwargs.get('method')
         if not method:
-            raise exception.IronicException(_(
+            raise exception.InvalidParameterValue(_(
                 "Invalid vendor passthru, no 'method' specified."))
 
         if method == 'foo':
             bar = kwargs.get('bar')
-            return self._foo(task, node, bar)
+            if not bar:
+                raise exception.InvalidParameterValue(_(
+                                "Parameter not passed to Ironic."))
+
         else:
-            raise exception.IronicException(_(
+            raise exception.InvalidParameterValue(_(
                 "Unsupported method (%s) passed through to vendor extension.")
                 % method)
+
+        return True if bar == 'baz' else False
+
+    def _foo(self, task, node, bar):
+        return True if bar == 'baz' else False
+
+    def vendor_passthru(self, task, node, **kwargs):
+        method = kwargs.get('method')
+        if method == 'foo':
+            bar = kwargs.get('bar')
+            return self._foo(task, node, bar)

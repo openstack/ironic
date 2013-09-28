@@ -219,30 +219,19 @@ class VendorInterface(object):
     __metaclass__ = abc.ABCMeta
 
     @abc.abstractmethod
-    def validate(self, node):
-        """Validate vendor-specific info stored in the node' properties.
+    def validate(self, node, **kwargs):
+        """Validate vendor-specific actions.
 
-        :param node: a single Node to validate.
+        :param node: a single Node.
+        :param kwargs: info for action.
         :raises: InvalidParameterValue
         """
 
     @abc.abstractmethod
-    def vendor_passthru(self, task, node, *args, **kwargs):
-        """Receive RPC requests for vendor-specific actions.
+    def vendor_passthru(self, task, node, **kwargs):
+        """Receive requests for vendor-specific actions.
 
-        TODO: Mechanism for vendor_passthru and, in particular, where the
-              the interpretation of API requests will live, is still being
-              discussed.
-
-        One possible implementation of this method might look like::
-
-            method = args.get('method')
-            if not method:
-                raise ...
-
-            if hasattr(self, method):
-                callable = getattr(self, method)
-                self.callable(task, node, *args, **kwargs)
-            else:
-                raise ...
+        :param task: a task from TaskManager.
+        :param node: a single Node.
+        :param kwargs: info for action.
         """

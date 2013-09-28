@@ -273,3 +273,41 @@ class ManagerTestCase(base.DbTestCase):
                           states.POWER_ON)
 
         self.mox.VerifyAll()
+
+    def test_vendor_action(self):
+        n = utils.get_test_node(driver='fake')
+        self.dbapi.create_node(n)
+        info = {'bar': 'baz'}
+        self.service.do_vendor_action(self.context, n['uuid'], 'foo', info)
+
+    def test_validate_vendor_action(self):
+        n = utils.get_test_node(driver='fake')
+        self.dbapi.create_node(n)
+        info = {'bar': 'baz'}
+        self.assertTrue(self.service.validate_vendor_action(self.context,
+                                                     n['uuid'], 'foo', info))
+
+    def test_validate_vendor_action_unsupported_method(self):
+        n = utils.get_test_node(driver='fake')
+        self.dbapi.create_node(n)
+        info = {'bar': 'baz'}
+        self.assertRaises(exception.InvalidParameterValue,
+                          self.service.validate_vendor_action,
+                          self.context, n['uuid'], 'abc', info)
+
+    def test_validate_vendor_action_no_parameter(self):
+        n = utils.get_test_node(driver='fake')
+        self.dbapi.create_node(n)
+        info = {'fake': 'baz'}
+        self.assertRaises(exception.InvalidParameterValue,
+                          self.service.validate_vendor_action,
+                          self.context, n['uuid'], 'foo', info)
+
+    def test_validate_vendor_action_unsupported(self):
+        n = utils.get_test_node(driver='fake')
+        self.dbapi.create_node(n)
+        info = {'bar': 'baz'}
+        self.driver.vendor = None
+        self.assertRaises(exception.UnsupportedDriverExtension,
+                          self.service.validate_vendor_action,
+                          self.context, n['uuid'], 'foo', info)

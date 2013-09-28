@@ -52,7 +52,7 @@ class RPCAPITestCase(base.DbTestCase):
         ctxt = context.get_admin_context()
         rpcapi = conductor_rpcapi.ConductorAPI(topic='fake-topic')
 
-        expected_retval = 'hello world' if method == 'call' else None
+        expected_retval = 'hello world' if rpc_method == 'call' else None
         expected_version = kwargs.pop('version', rpcapi.RPC_API_VERSION)
         expected_msg = rpcapi.make_msg(method, **kwargs)
 
@@ -95,3 +95,16 @@ class RPCAPITestCase(base.DbTestCase):
                           'cast',
                           node_obj=self.fake_node,
                           new_state=states.POWER_ON)
+
+    def test_pass_vendor_info(self):
+        ctxt = context.get_admin_context()
+        rpcapi = conductor_rpcapi.ConductorAPI(topic='fake-topic')
+        expected_retval = 'hello world'
+
+        def _fake_rpc_method(*args, **kwargs):
+                return expected_retval
+
+        self.stubs.Set(rpc, 'call', _fake_rpc_method)
+        retval = rpcapi.vendor_passthru(ctxt, node_id=self.fake_node['uuid'],
+                                    driver_method='foo', info={'bar': 'baz'})
+        self.assertEqual(retval, expected_retval)
