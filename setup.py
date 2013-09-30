@@ -14,28 +14,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# THIS FILE IS MANAGED BY THE GLOBAL REQUIREMENTS REPO - DO NOT EDIT
 import setuptools
 
-from ironic.openstack.common import setup as common_setup
-
-project = 'ironic'
-
 setuptools.setup(
-    name=project,
-    version=common_setup.get_version(project, '2013.1'),
-    description='Bare Metal controller',
-    classifiers=[
-        'Environment :: OpenStack',
-        'Intended Audience :: Information Technology',
-        'Intended Audience :: System Administrators',
-        'License :: OSI Approved :: Apache Software License',
-        'Operating System :: POSIX :: Linux',
-        'Programming Language :: Python',
-        'Programming Language :: Python :: 2',
-        'Programming Language :: Python :: 2.7',
-        'Programming Language :: Python :: 2.6',
-    ],
-    include_package_data=True,
-    setup_requires=['d2to1>=0.2.10,<0.3', 'pbr>=0.5,<0.6'],
-    d2to1=True,
-)
+    setup_requires=['pbr'],
+    pbr=True)

@@ -253,6 +253,9 @@ class ManagerTestCase(base.DbTestCase):
         """Test if an exception is thrown when the set_power call is
         failed.
         """
+        class TestException(Exception):
+            pass
+
         ndict = utils.get_test_node(driver='fake',
                                     power_state=states.POWER_OFF)
         node = self.dbapi.create_node(ndict)
@@ -263,10 +266,10 @@ class ManagerTestCase(base.DbTestCase):
             AndReturn(states.POWER_OFF)
         self.driver.power.set_power_state(mox.IgnoreArg(), node,
                                           states.POWER_ON).\
-                AndRaise(Exception('error returned from the power driver.'))
+                AndRaise(TestException())
         self.mox.ReplayAll()
 
-        self.assertRaises(Exception,
+        self.assertRaises(TestException,
                           self.service.start_power_state_change,
                           self.context,
                           node,
