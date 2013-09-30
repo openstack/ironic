@@ -29,6 +29,11 @@ from ironic.tests.db import utils as dbutils
 
 class TestListNodes(base.FunctionalTest):
 
+    def setUp(self):
+        super(TestListNodes, self).setUp()
+        cdict = dbutils.get_test_chassis()
+        self.chassis = self.dbapi.create_chassis(cdict)
+
     def test_empty(self):
         data = self.get_json('/nodes')
         self.assertEqual([], data['nodes'])
@@ -168,6 +173,8 @@ class TestPatch(base.FunctionalTest):
 
     def setUp(self):
         super(TestPatch, self).setUp()
+        cdict = dbutils.get_test_chassis()
+        self.chassis = self.dbapi.create_chassis(cdict)
         ndict = dbutils.get_test_node()
         self.node = self.dbapi.create_node(ndict)
         self.mox.StubOutWithMock(rpcapi.ConductorAPI, 'update_node')
@@ -280,6 +287,11 @@ class TestPatch(base.FunctionalTest):
 
 class TestPost(base.FunctionalTest):
 
+    def setUp(self):
+        super(TestPost, self).setUp()
+        cdict = dbutils.get_test_chassis()
+        self.chassis = self.dbapi.create_chassis(cdict)
+
     def test_create_node(self):
         ndict = dbutils.get_test_node()
         self.post_json('/nodes', ndict)
@@ -331,6 +343,11 @@ class TestPost(base.FunctionalTest):
 
 class TestDelete(base.FunctionalTest):
 
+    def setUp(self):
+        super(TestDelete, self).setUp()
+        cdict = dbutils.get_test_chassis()
+        self.chassis = self.dbapi.create_chassis(cdict)
+
     def test_delete_node(self):
         ndict = dbutils.get_test_node()
         self.post_json('/nodes', ndict)
@@ -353,6 +370,8 @@ class TestPut(base.FunctionalTest):
 
     def setUp(self):
         super(TestPut, self).setUp()
+        cdict = dbutils.get_test_chassis()
+        self.chassis = self.dbapi.create_chassis(cdict)
         ndict = dbutils.get_test_node()
         self.node = self.dbapi.create_node(ndict)
         self.mox.StubOutWithMock(rpcapi.ConductorAPI, 'update_node')

@@ -50,7 +50,7 @@ class Port(base.APIBase):
 
     extra = {wtypes.text: utils.ValidTypes(wtypes.text, six.integer_types)}
 
-    node_id = int
+    node_id = utils.ValidTypes(wtypes.text, six.integer_types)
 
     links = [link.Link]
     "A list containing a self link and associated port links"
@@ -64,6 +64,13 @@ class Port(base.APIBase):
     def convert_with_links(cls, rpc_port, expand=True):
         fields = ['uuid', 'address'] if not expand else None
         port = Port.from_rpc_object(rpc_port, fields)
+
+        # translate id -> uuid
+        if port.node_id and isinstance(port.node_id, six.integer_types):
+            node_obj = objects.Node.get_by_uuid(pecan.request.context,
+                                                port.node_id)
+            port.node_id = node_obj.uuid
+
         port.links = [link.Link.make_link('self', pecan.request.host_url,
                                           'ports', port.uuid),
                       link.Link.make_link('bookmark',
@@ -126,6 +133,14 @@ class PortsController(rest.RestController):
                                                       sort_dir=sort_dir)
         return ports
 
+    def _convert_node_uuid_to_id(self, port_dict):
+        # NOTE(lucasagomes): translate uuid -> id, used internally to
+        #                    tune performance
+        if port_dict['node_id']:
+            node_obj = objects.Node.get_by_uuid(pecan.request.context,
+                                                port_dict['node_id'])
+            port_dict['node_id'] = node_obj.id
+
     @wsme_pecan.wsexpose(PortCollection, unicode, unicode, int,
                          unicode, unicode)
     def get_all(self, node_id=None, marker=None, limit=None,
@@ -169,8 +184,11 @@ class PortsController(rest.RestController):
         if self._from_nodes:
             raise exception.OperationNotPermitted
 
+        port_dict = port.as_dict()
+        self._convert_node_uuid_to_id(port_dict)
+
         try:
-            new_port = pecan.request.dbapi.create_port(port.as_dict())
+            new_port = pecan.request.dbapi.create_port(port_dict)
         except exception.IronicException as e:
             LOG.exception(e)
             raise wsme.exc.ClientSideError(_("Invalid data"))
@@ -192,6 +210,7 @@ class PortsController(rest.RestController):
         except jsonpatch.JsonPatchException as e:
             LOG.exception(e)
             raise wsme.exc.ClientSideError(_("Patching Error: %s") % e)
+        self._convert_node_uuid_to_id(patched_port)
 
         defaults = objects.Port.get_defaults()
         for key in defaults:

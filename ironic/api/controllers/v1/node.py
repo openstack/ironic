@@ -208,7 +208,7 @@ class Node(base.APIBase):
 
     # NOTE: translate 'chassis_id' to a link to the chassis resource
     #       and accept a chassis uuid when creating a node.
-    chassis_id = int
+    chassis_id = utils.ValidTypes(wtypes.text, six.integer_types)
 
     links = [link.Link]
     "A list containing a self link and associated node links"
@@ -228,6 +228,13 @@ class Node(base.APIBase):
                           'instance_uuid']
         fields = minimum_fields if not expand else None
         node = Node.from_rpc_object(rpc_node, fields)
+
+        # translate id -> uuid
+        if node.chassis_id and isinstance(node.chassis_id, six.integer_types):
+            chassis_obj = objects.Chassis.get_by_uuid(pecan.request.context,
+                                                      node.chassis_id)
+            node.chassis_id = chassis_obj.uuid
+
         node.links = [link.Link.make_link('self', pecan.request.host_url,
                                           'nodes', node.uuid),
                       link.Link.make_link('bookmark',
@@ -331,6 +338,14 @@ class NodesController(rest.RestController):
                                                       sort_dir=sort_dir)
         return nodes
 
+    def _convert_chassis_uuid_to_id(self, node_dict):
+        # NOTE(lucasagomes): translate uuid -> id, used internally to
+        #                    tune performance
+        if node_dict['chassis_id']:
+            chassis_obj = objects.Chassis.get_by_uuid(pecan.request.context,
+                                                      node_dict['chassis_id'])
+            node_dict['chassis_id'] = chassis_obj.id
+
     @wsme_pecan.wsexpose(NodeCollection, unicode, unicode, int,
                          unicode, unicode)
     def get_all(self, chassis_id=None, marker=None, limit=None,
@@ -374,8 +389,11 @@ class NodesController(rest.RestController):
         if self._from_chassis:
             raise exception.OperationNotPermitted
 
+        node_dict = node.as_dict()
+        self._convert_chassis_uuid_to_id(node_dict)
+
         try:
-            new_node = pecan.request.dbapi.create_node(node.as_dict())
+            new_node = pecan.request.dbapi.create_node(node_dict)
         except Exception as e:
             LOG.exception(e)
             raise wsme.exc.ClientSideError(_("Invalid data"))
@@ -421,6 +439,7 @@ class NodesController(rest.RestController):
 
         response = wsme.api.Response(Node(), status_code=200)
         try:
+            self. _convert_chassis_uuid_to_id(patched_node)
             defaults = objects.Node.get_defaults()
             for key in defaults:
                 # Internal values that shouldn't be part of the patch

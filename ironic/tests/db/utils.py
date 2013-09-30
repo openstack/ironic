@@ -73,7 +73,7 @@ def get_test_node(**kw):
     node = {
             'id': kw.get('id', 123),
             'uuid': kw.get('uuid', '1be26c0b-03f2-4d2e-ae87-c02d7f33c123'),
-            'chassis_id': 42,
+            'chassis_id': kw.get('chassis_id', 42),
             'power_state': kw.get('power_state', states.NOSTATE),
             'target_power_state': kw.get('target_power_state', states.NOSTATE),
             'provision_state': kw.get('provision_state', states.NOSTATE),
