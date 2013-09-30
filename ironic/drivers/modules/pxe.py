@@ -18,12 +18,11 @@
 PXE Driver and supporting meta-classes.
 """
 
-from Cheetah import Template
-
 import datetime
 import os
 import tempfile
 
+import jinja2
 from oslo.config import cfg
 
 from ironic.common import exception
@@ -138,7 +137,6 @@ def _build_pxe_config(node, pxe_info):
     :returns: A formated string with the file content.
     """
     LOG.debug(_("Building PXE config for deployment %s.") % node['id'])
-    cheetah = Template.Template
 
     pxe_options = {
             'deployment_id': node['id'],
@@ -151,12 +149,11 @@ def _build_pxe_config(node, pxe_info):
             'pxe_append_params': CONF.pxe.pxe_append_params,
         }
 
-    pxe_config = str(cheetah(
-            open(CONF.pxe.pxe_config_template).read(),
-            searchList=[{'pxe_options': pxe_options,
-                         'ROOT': '${ROOT}',
-            }]))
-    return pxe_config
+    tmpl_path, tmpl_file = os.path.split(CONF.pxe.pxe_config_template)
+    env = jinja2.Environment(loader=jinja2.FileSystemLoader(tmpl_path))
+    template = env.get_template(tmpl_file)
+    return template.render({'pxe_options': pxe_options,
+                            'ROOT': '{{ ROOT }}'})
 
 
 def _get_node_mac_addresses(task, node):

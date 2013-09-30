@@ -8,4 +8,4 @@ ipappend 3
 
 label boot
 kernel /tftpboot/instance_uuid_123/kernel
-append initrd=/tftpboot/instance_uuid_123/ramdisk root=${ROOT} ro test_param
+append initrd=/tftpboot/instance_uuid_123/ramdisk root={{ ROOT }} ro test_param
