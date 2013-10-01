@@ -19,6 +19,7 @@
 """
 Test class for Native IPMI power driver module.
 """
+import mock
 
 from ironic.common import exception
 from ironic.common import states
@@ -30,8 +31,6 @@ from ironic.tests.conductor import utils as mgr_utils
 from ironic.tests.db import base as db_base
 from ironic.tests.db import utils as db_utils
 from oslo.config import cfg
-from pyghmi.ipmi import command as ipmi_command
-
 
 CONF = cfg.CONF
 
@@ -47,10 +46,9 @@ class IPMINativePrivateMethodTestCase(base.TestCase):
         self.dbapi = db_api.get_instance()
         self.node = self.dbapi.create_node(n)
         self.info = ipminative._parse_driver_info(self.node)
-        self.mox.StubOutWithMock(ipmi_command.Command, '__init__')
-        ipmi_command.Command.__init__(bmc=self.info.get('address'),
-                 userid=self.info.get('username'),
-                 password=self.info.get('password')).AndReturn(None)
+        ipmi_patch = mock.patch('pyghmi.ipmi.command.Command')
+        self.ipmi_mock = ipmi_patch.start()
+        self.addCleanup(ipmi_patch.stop)
 
     def test__parse_driver_info(self):
         # make sure we get back the expected things
@@ -58,12 +56,6 @@ class IPMINativePrivateMethodTestCase(base.TestCase):
         self.assertIsNotNone(self.info.get('username'))
         self.assertIsNotNone(self.info.get('password'))
         self.assertIsNotNone(self.info.get('uuid'))
-
-        self.mox.ReplayAll()
-        ipmi_command.Command(bmc=self.info.get('address'),
-                             userid=self.info.get('username'),
-                             password=self.info.get('password'))
-        self.mox.VerifyAll()
 
         # make sure error is raised when info, eg. username, is missing
         _driver_info = {
@@ -78,60 +70,54 @@ class IPMINativePrivateMethodTestCase(base.TestCase):
                 node)
 
     def test__power_status_on(self):
-        self.mox.StubOutWithMock(ipmi_command.Command, 'get_power')
-        ipmi_command.Command.get_power().AndReturn({'powerstate': 'on'})
-        self.mox.ReplayAll()
+        ipmicmd = self.ipmi_mock.return_value
+        ipmicmd.get_power.return_value = {'powerstate': 'on'}
 
         state = ipminative._power_status(self.info)
-        self.mox.VerifyAll()
+        ipmicmd.get_power.assert_called_once_with()
         self.assertEqual(state, states.POWER_ON)
 
     def test__power_status_off(self):
-        self.mox.StubOutWithMock(ipmi_command.Command, 'get_power')
-        ipmi_command.Command.get_power().AndReturn({'powerstate': 'off'})
-        self.mox.ReplayAll()
+        ipmicmd = self.ipmi_mock.return_value
+        ipmicmd.get_power.return_value = {'powerstate': 'off'}
 
         state = ipminative._power_status(self.info)
-        self.mox.VerifyAll()
+        ipmicmd.get_power.assert_called_once_with()
         self.assertEqual(state, states.POWER_OFF)
 
     def test__power_status_error(self):
-        self.mox.StubOutWithMock(ipmi_command.Command, 'get_power')
-        ipmi_command.Command.get_power().AndReturn({'powerstate': 'Error'})
-        self.mox.ReplayAll()
+        ipmicmd = self.ipmi_mock.return_value
+        ipmicmd.get_power.return_value = {'powerstate': 'Error'}
 
         state = ipminative._power_status(self.info)
-        self.mox.VerifyAll()
+        ipmicmd.get_power.assert_called_once_with()
         self.assertEqual(state, states.ERROR)
 
     def test__power_on(self):
-        self.mox.StubOutWithMock(ipmi_command.Command, 'set_power')
-        ipmi_command.Command.set_power('on', 300).AndReturn(
-                   {'powerstate': 'on'})
-        self.mox.ReplayAll()
+        ipmicmd = self.ipmi_mock.return_value
+        ipmicmd.set_power.return_value = {'powerstate': 'on'}
 
+        self.config(native_ipmi_waiting_time=400)
         state = ipminative._power_on(self.info)
-        self.mox.VerifyAll()
+        ipmicmd.set_power.assert_called_once_with('on', 400)
         self.assertEqual(state, states.POWER_ON)
 
     def test__power_off(self):
-        self.mox.StubOutWithMock(ipmi_command.Command, 'set_power')
-        ipmi_command.Command.set_power('off', 300).AndReturn(
-                 {'powerstate': 'off'})
-        self.mox.ReplayAll()
+        ipmicmd = self.ipmi_mock.return_value
+        ipmicmd.set_power.return_value = {'powerstate': 'off'}
 
+        self.config(native_ipmi_waiting_time=500)
         state = ipminative._power_off(self.info)
-        self.mox.VerifyAll()
+        ipmicmd.set_power.assert_called_once_with('off', 500)
         self.assertEqual(state, states.POWER_OFF)
 
     def test__reboot(self):
-        self.mox.StubOutWithMock(ipmi_command.Command, 'set_power')
-        ipmi_command.Command.set_power('boot', 300).AndReturn(
-                 {'powerstate': 'on'})
-        self.mox.ReplayAll()
+        ipmicmd = self.ipmi_mock.return_value
+        ipmicmd.set_power.return_value = {'powerstate': 'on'}
 
+        self.config(native_ipmi_waiting_time=600)
         state = ipminative._reboot(self.info)
-        self.mox.VerifyAll()
+        ipmicmd.set_power.assert_called_once_with('boot', 600)
         self.assertEqual(state, states.POWER_ON)
 
 
@@ -153,88 +139,70 @@ class IPMINativeDriverTestCase(db_base.DbTestCase):
         self.info = ipminative._parse_driver_info(self.node)
 
     def test_get_power_state(self):
+        with mock.patch('pyghmi.ipmi.command.Command') as ipmi_mock:
+            ipmicmd = ipmi_mock.return_value
 
-        self.mox.StubOutWithMock(ipmi_command.Command, 'get_power')
-        self.mox.StubOutWithMock(ipmi_command.Command, '__init__')
-        ipmi_command.Command.__init__(bmc=self.info.get('address'),
-                 userid=self.info.get('username'),
-                 password=self.info.get('password')).AndReturn(None)
-        ipmi_command.Command.get_power().AndReturn({'powerstate': 'off'})
-        ipmi_command.Command.__init__(bmc=self.info.get('address'),
-                 userid=self.info.get('username'),
-                 password=self.info.get('password')).AndReturn(None)
-        ipmi_command.Command.get_power().AndReturn({'powerstate': 'on'})
-        ipmi_command.Command.__init__(bmc=self.info.get('address'),
-                 userid=self.info.get('username'),
-                 password=self.info.get('password')).AndReturn(None)
-        ipmi_command.Command.get_power().AndReturn({'powerstate': 'error'})
-        self.mox.ReplayAll()
+            return_values = [{'powerstate': 'error'},
+                             {'powerstate': 'on'},
+                             {'powerstate': 'off'}]
 
-        pstate = self.driver.power.get_power_state(None, self.node)
-        self.assertEqual(pstate, states.POWER_OFF)
+            def side_effect():
+                return return_values.pop()
 
-        pstate = self.driver.power.get_power_state(None, self.node)
-        self.assertEqual(pstate, states.POWER_ON)
+            ipmicmd.get_power.side_effect = side_effect
 
-        pstate = self.driver.power.get_power_state(None, self.node)
-        self.assertEqual(pstate, states.ERROR)
+            pstate = self.driver.power.get_power_state(None, self.node)
+            self.assertEqual(pstate, states.POWER_OFF)
 
-        self.mox.VerifyAll()
+            pstate = self.driver.power.get_power_state(None, self.node)
+            self.assertEqual(pstate, states.POWER_ON)
+
+            pstate = self.driver.power.get_power_state(None, self.node)
+            self.assertEqual(pstate, states.ERROR)
+            ipmicmd.get_power.assert_called
 
     def test_set_power_on_ok(self):
-        self.mox.StubOutWithMock(ipminative, '_power_on')
-        self.mox.StubOutWithMock(ipminative, '_power_off')
+        with mock.patch.object(ipminative, '_power_on') as power_on_mock:
+            power_on_mock.return_value = states.POWER_ON
 
-        ipminative._power_on(self.info).AndReturn(states.POWER_ON)
-        self.mox.ReplayAll()
-
-        with task_manager.acquire([self.node['uuid']]) as task:
-            self.driver.power.set_power_state(
+            with task_manager.acquire([self.node['uuid']]) as task:
+                self.driver.power.set_power_state(
                     task, self.node, states.POWER_ON)
-        self.mox.VerifyAll()
+            power_on_mock.assert_called_once_with(self.info)
 
     def test_set_power_off_ok(self):
-        self.mox.StubOutWithMock(ipminative, '_power_on')
-        self.mox.StubOutWithMock(ipminative, '_power_off')
+        with mock.patch.object(ipminative, '_power_off') as power_off_mock:
+            power_off_mock.return_value = states.POWER_OFF
 
-        ipminative._power_off(self.info).AndReturn(states.POWER_OFF)
-        self.mox.ReplayAll()
-
-        with task_manager.acquire([self.node['uuid']]) as task:
-            self.driver.power.set_power_state(
+            with task_manager.acquire([self.node['uuid']]) as task:
+                self.driver.power.set_power_state(
                     task, self.node, states.POWER_OFF)
-        self.mox.VerifyAll()
+            power_off_mock.assert_called_once_with(self.info)
 
     def test_set_power_on_fail(self):
-        self.mox.StubOutWithMock(ipmi_command.Command, 'set_power')
-        self.mox.StubOutWithMock(ipmi_command.Command, '__init__')
-        ipmi_command.Command.__init__(bmc=self.info.get('address'),
-                   userid=self.info.get('username'),
-                   password=self.info.get('password')).AndReturn(None)
-        ipmi_command.Command.set_power('on', 300).AndReturn(
-                   {'powerstate': 'error'})
-        self.mox.ReplayAll()
+        with mock.patch('pyghmi.ipmi.command.Command') as ipmi_mock:
+            ipmicmd = ipmi_mock.return_value
+            ipmicmd.set_power.return_value = {'powerstate': 'error'}
 
-        with task_manager.acquire([self.node['uuid']]) as task:
-            self.assertRaises(exception.PowerStateFailure,
-                    self.driver.power.set_power_state,
-                    task,
-                    self.node,
-                    states.POWER_ON)
-        self.mox.VerifyAll()
+            self.config(native_ipmi_waiting_time=500)
+            with task_manager.acquire([self.node['uuid']]) as task:
+                self.assertRaises(exception.PowerStateFailure,
+                                  self.driver.power.set_power_state,
+                                  task,
+                                  self.node,
+                                  states.POWER_ON)
+            ipmicmd.set_power.assert_called_once_with('on', 500)
 
     def test_set_boot_device_ok(self):
-        self.mox.StubOutWithMock(ipmi_command.Command, 'set_bootdev')
-        self.mox.StubOutWithMock(ipmi_command.Command, '__init__')
-        ipmi_command.Command.__init__(bmc=self.info.get('address'),
-                 userid=self.info.get('username'),
-                 password=self.info.get('password')).AndReturn(None)
-        ipmi_command.Command.set_bootdev('pxe').AndReturn(None)
-        self.mox.ReplayAll()
+        with mock.patch('pyghmi.ipmi.command.Command') as ipmi_mock:
+            ipmicmd = ipmi_mock.return_value
+            ipmicmd.set_bootdev.return_value = None
 
-        with task_manager.acquire([self.node['uuid']]) as task:
-            self.driver.power._set_boot_device(task, self.node, 'pxe')
-        self.mox.VerifyAll()
+            with task_manager.acquire([self.node['uuid']]) as task:
+                self.driver.power._set_boot_device(task,
+                                                   self.node,
+                                                   'pxe')
+            ipmicmd.set_bootdev.assert_called_once_with('pxe')
 
     def test_set_boot_device_bad_device(self):
         with task_manager.acquire([self.node['uuid']]) as task:
@@ -245,30 +213,22 @@ class IPMINativeDriverTestCase(db_base.DbTestCase):
                     'fake-device')
 
     def test_reboot_ok(self):
-        self.mox.StubOutWithMock(ipminative, '_reboot')
+        with mock.patch.object(ipminative, '_reboot') as reboot_mock:
+            reboot_mock.return_value = None
 
-        ipminative._reboot(self.info).AndReturn(None)
-        self.mox.ReplayAll()
-
-        with task_manager.acquire([self.node['uuid']]) as task:
-            self.driver.power.reboot(task, self.node)
-
-        self.mox.VerifyAll()
+            with task_manager.acquire([self.node['uuid']]) as task:
+                self.driver.power.reboot(task, self.node)
+            reboot_mock.assert_called_once_with(self.info)
 
     def test_reboot_fail(self):
-        self.mox.StubOutWithMock(ipmi_command.Command, 'set_power')
-        self.mox.StubOutWithMock(ipmi_command.Command, '__init__')
-        ipmi_command.Command.__init__(bmc=self.info.get('address'),
-                   userid=self.info.get('username'),
-                   password=self.info.get('password')).AndReturn(None)
-        ipmi_command.Command.set_power('boot', 300).AndReturn(
-                   {'powerstate': 'error'})
-        self.mox.ReplayAll()
+        with mock.patch('pyghmi.ipmi.command.Command') as ipmi_mock:
+            ipmicmd = ipmi_mock.return_value
+            ipmicmd.set_power.return_value = {'powerstate': 'error'}
 
-        with task_manager.acquire([self.node['uuid']]) as task:
-            self.assertRaises(exception.PowerStateFailure,
-                    self.driver.power.reboot,
-                    task,
-                    self.node)
-
-        self.mox.VerifyAll()
+            self.config(native_ipmi_waiting_time=500)
+            with task_manager.acquire([self.node['uuid']]) as task:
+                self.assertRaises(exception.PowerStateFailure,
+                                  self.driver.power.reboot,
+                                  task,
+                                  self.node)
+            ipmicmd.set_power.assert_called_once_with('boot', 500)
