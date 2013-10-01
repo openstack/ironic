@@ -45,9 +45,8 @@ def validate_patch(patch):
     if not isinstance(patch, list):
         patch = [patch]
 
+    path_pattern = re.compile("(/[\w-]+)+$")
     for p in patch:
-        path_pattern = re.compile("^/[a-zA-Z0-9-_]+(/[a-zA-Z0-9-_]+)*$")
-
         if not isinstance(p, dict) or \
                 any(key for key in ["path", "op"] if key not in p):
             raise wsme.exc.ClientSideError(_("Invalid patch format: %s")
