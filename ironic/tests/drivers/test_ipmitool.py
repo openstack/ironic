@@ -19,6 +19,7 @@
 
 """Test class for IPMITool driver module."""
 
+import mock
 import os
 import stat
 
@@ -82,9 +83,6 @@ class IPMIToolPrivateMethodTestCase(base.TestCase):
     def test__exec_ipmitool(self):
         pw_file = '/tmp/password_file'
         file_handle = open(pw_file, "w")
-
-        self.mox.StubOutWithMock(ipmi, '_make_password_file')
-        self.mox.StubOutWithMock(utils, 'execute')
         args = [
             'ipmitool',
             '-I', 'lanplus',
@@ -93,63 +91,73 @@ class IPMIToolPrivateMethodTestCase(base.TestCase):
             '-f', file_handle,
             'A', 'B', 'C',
             ]
-        ipmi._make_password_file(self.info['password']).AndReturn(file_handle)
-        utils.execute(*args, attempts=3).AndReturn((None, None))
-        self.mox.ReplayAll()
 
-        ipmi._exec_ipmitool(self.info, 'A B C')
-        self.mox.VerifyAll()
+        with mock.patch.object(ipmi, '_make_password_file',
+                               autospec=True) as mock_pwf:
+            mock_pwf.return_value = file_handle
+            with mock.patch.object(utils, 'execute',
+                                   autospec=True) as mock_exec:
+                mock_exec.return_value = (None, None)
+
+                ipmi._exec_ipmitool(self.info, 'A B C')
+
+                mock_pwf.assert_called_once_with(self.info['password'])
+                mock_exec.assert_called_once_with(*args, attempts=3)
 
     def test__power_status_on(self):
-        self.mox.StubOutWithMock(ipmi, '_exec_ipmitool')
-        ipmi._exec_ipmitool(self.info, "power status").AndReturn(
-                ["Chassis Power is on\n", None])
-        self.mox.ReplayAll()
+        with mock.patch.object(ipmi, '_exec_ipmitool',
+                               autospec=True) as mock_exec:
+            mock_exec.return_value = ["Chassis Power is on\n", None]
 
-        state = ipmi._power_status(self.info)
-        self.mox.VerifyAll()
-        self.assertEqual(state, states.POWER_ON)
+            state = ipmi._power_status(self.info)
+
+            mock_exec.assert_called_once_with(self.info, "power status")
+            self.assertEqual(state, states.POWER_ON)
 
     def test__power_status_off(self):
-        self.mox.StubOutWithMock(ipmi, '_exec_ipmitool')
-        ipmi._exec_ipmitool(self.info, "power status").AndReturn(
-                ["Chassis Power is off\n", None])
-        self.mox.ReplayAll()
+        with mock.patch.object(ipmi, '_exec_ipmitool',
+                               autospec=True) as mock_exec:
+            mock_exec.return_value = ["Chassis Power is off\n", None]
 
-        state = ipmi._power_status(self.info)
-        self.mox.VerifyAll()
-        self.assertEqual(state, states.POWER_OFF)
+            state = ipmi._power_status(self.info)
+
+            mock_exec.assert_called_once_with(self.info, "power status")
+            self.assertEqual(state, states.POWER_OFF)
 
     def test__power_status_error(self):
-        self.mox.StubOutWithMock(ipmi, '_exec_ipmitool')
-        ipmi._exec_ipmitool(self.info, "power status").AndReturn(
-                ["Chassis Power is badstate\n", None])
-        self.mox.ReplayAll()
+        with mock.patch.object(ipmi, '_exec_ipmitool',
+                               autospec=True) as mock_exec:
+            mock_exec.return_value = ["Chassis Power is badstate\n", None]
 
-        state = ipmi._power_status(self.info)
-        self.mox.VerifyAll()
-        self.assertEqual(state, states.ERROR)
+            state = ipmi._power_status(self.info)
+
+            mock_exec.assert_called_once_with(self.info, "power status")
+            self.assertEqual(state, states.ERROR)
 
     def test__power_on_max_retries(self):
         self.config(ipmi_power_retry=2)
-        self.mox.StubOutWithMock(ipmi, '_exec_ipmitool')
 
-        ipmi._exec_ipmitool(self.info, "power status").AndReturn(
-                ["Chassis Power is off\n", None])
-        ipmi._exec_ipmitool(self.info, "power on").AndReturn([None, None])
-        ipmi._exec_ipmitool(self.info, "power status").AndReturn(
-                ["Chassis Power is off\n", None])
-        ipmi._exec_ipmitool(self.info, "power on").AndReturn([None, None])
-        ipmi._exec_ipmitool(self.info, "power status").AndReturn(
-                ["Chassis Power is off\n", None])
-        ipmi._exec_ipmitool(self.info, "power on").AndReturn([None, None])
-        ipmi._exec_ipmitool(self.info, "power status").AndReturn(
-                ["Chassis Power is off\n", None])
-        self.mox.ReplayAll()
+        def side_effect(driver_info, command):
+            resp_dict = {"power status": ["Chassis Power is off\n", None],
+                         "power on": [None, None]}
+            return resp_dict.get(command, ["Bad\n", None])
 
-        state = ipmi._power_on(self.info)
-        self.mox.VerifyAll()
-        self.assertEqual(state, states.ERROR)
+        with mock.patch.object(ipmi, '_exec_ipmitool',
+                               autospec=True) as mock_exec:
+            mock_exec.side_effect = side_effect
+
+            expected = [mock.call(self.info, "power status"),
+                        mock.call(self.info, "power on"),
+                        mock.call(self.info, "power status"),
+                        mock.call(self.info, "power on"),
+                        mock.call(self.info, "power status"),
+                        mock.call(self.info, "power on"),
+                        mock.call(self.info, "power status")]
+
+            state = ipmi._power_on(self.info)
+
+            self.assertEqual(mock_exec.call_args_list, expected)
+            self.assertEqual(state, states.ERROR)
 
 
 class IPMIToolDriverTestCase(db_base.DbTestCase):
@@ -166,68 +174,73 @@ class IPMIToolDriverTestCase(db_base.DbTestCase):
         self.dbapi.create_node(self.node)
 
     def test_get_power_state(self):
-        self.mox.StubOutWithMock(ipmi, '_exec_ipmitool')
-        ipmi._exec_ipmitool(self.info, "power status").AndReturn(
-                ["Chassis Power is off\n", None])
-        ipmi._exec_ipmitool(self.info, "power status").AndReturn(
-                ["Chassis Power is on\n", None])
-        ipmi._exec_ipmitool(self.info, "power status").AndReturn(
-                ["\n", None])
-        self.mox.ReplayAll()
+        returns = [["Chassis Power is off\n", None],
+                   ["Chassis Power is on\n", None],
+                   ["\n", None]]
+        expected = [mock.call(self.info, "power status"),
+                    mock.call(self.info, "power status"),
+                    mock.call(self.info, "power status")]
+        with mock.patch.object(ipmi, '_exec_ipmitool', side_effect=returns,
+                               autospec=True) as mock_exec:
 
-        pstate = self.driver.power.get_power_state(None, self.node)
-        self.assertEqual(pstate, states.POWER_OFF)
+            pstate = self.driver.power.get_power_state(None, self.node)
+            self.assertEqual(pstate, states.POWER_OFF)
 
-        pstate = self.driver.power.get_power_state(None, self.node)
-        self.assertEqual(pstate, states.POWER_ON)
+            pstate = self.driver.power.get_power_state(None, self.node)
+            self.assertEqual(pstate, states.POWER_ON)
 
-        pstate = self.driver.power.get_power_state(None, self.node)
-        self.assertEqual(pstate, states.ERROR)
+            pstate = self.driver.power.get_power_state(None, self.node)
+            self.assertEqual(pstate, states.ERROR)
 
-        self.mox.VerifyAll()
+            self.assertEqual(mock_exec.call_args_list, expected)
 
     def test_set_power_on_ok(self):
         self.config(ipmi_power_retry=0)
-        self.mox.StubOutWithMock(ipmi, '_power_on')
-        self.mox.StubOutWithMock(ipmi, '_power_off')
 
-        ipmi._power_on(self.info).AndReturn(states.POWER_ON)
-        self.mox.ReplayAll()
+        with mock.patch.object(ipmi, '_power_on', autospec=True) as mock_on:
+            mock_on.return_value = states.POWER_ON
+            with mock.patch.object(ipmi, '_power_off',
+                                   autospec=True) as mock_off:
 
-        with task_manager.acquire([self.node['uuid']]) as task:
-            self.driver.power.set_power_state(
-                    task, self.node, states.POWER_ON)
-        self.mox.VerifyAll()
+                with task_manager.acquire([self.node['uuid']]) as task:
+                    self.driver.power.set_power_state(
+                            task, self.node, states.POWER_ON)
+
+                mock_on.assert_called_once_with(self.info)
+                self.assertFalse(mock_off.called)
 
     def test_set_power_off_ok(self):
         self.config(ipmi_power_retry=0)
-        self.mox.StubOutWithMock(ipmi, '_power_on')
-        self.mox.StubOutWithMock(ipmi, '_power_off')
 
-        ipmi._power_off(self.info).AndReturn(states.POWER_OFF)
-        self.mox.ReplayAll()
+        with mock.patch.object(ipmi, '_power_on', autospec=True) as mock_on:
+            with mock.patch.object(ipmi, '_power_off',
+                                   autospec=True) as mock_off:
+                mock_off.return_value = states.POWER_OFF
 
-        with task_manager.acquire([self.node['uuid']]) as task:
-            self.driver.power.set_power_state(
-                    task, self.node, states.POWER_OFF)
-        self.mox.VerifyAll()
+                with task_manager.acquire([self.node['uuid']]) as task:
+                    self.driver.power.set_power_state(
+                            task, self.node, states.POWER_OFF)
+
+                mock_off.assert_called_once_with(self.info)
+                self.assertFalse(mock_on.called)
 
     def test_set_power_on_fail(self):
         self.config(ipmi_power_retry=0)
 
-        self.mox.StubOutWithMock(ipmi, '_power_on')
-        self.mox.StubOutWithMock(ipmi, '_power_off')
+        with mock.patch.object(ipmi, '_power_on', autospec=True) as mock_on:
+            mock_on.return_value = states.ERROR
+            with mock.patch.object(ipmi, '_power_off',
+                                   autospec=True) as mock_off:
 
-        ipmi._power_on(self.info).AndReturn(states.ERROR)
-        self.mox.ReplayAll()
+                with task_manager.acquire([self.node['uuid']]) as task:
+                    self.assertRaises(exception.PowerStateFailure,
+                            self.driver.power.set_power_state,
+                            task,
+                            self.node,
+                            states.POWER_ON)
 
-        with task_manager.acquire([self.node['uuid']]) as task:
-            self.assertRaises(exception.PowerStateFailure,
-                    self.driver.power.set_power_state,
-                    task,
-                    self.node,
-                    states.POWER_ON)
-        self.mox.VerifyAll()
+                mock_on.assert_called_once_with(self.info)
+                self.assertFalse(mock_off.called)
 
     def test_set_power_invalid_state(self):
         with task_manager.acquire([self.node['uuid']]) as task:
@@ -238,15 +251,14 @@ class IPMIToolDriverTestCase(db_base.DbTestCase):
                     "fake state")
 
     def test_set_boot_device_ok(self):
-        self.mox.StubOutWithMock(ipmi, '_exec_ipmitool')
+        with mock.patch.object(ipmi, '_exec_ipmitool',
+                               autospec=True) as mock_exec:
+            mock_exec.return_value = [None, None]
 
-        ipmi._exec_ipmitool(self.info, "chassis bootdev pxe").\
-                AndReturn([None, None])
-        self.mox.ReplayAll()
+            with task_manager.acquire([self.node['uuid']]) as task:
+                self.driver.power._set_boot_device(task, self.node, 'pxe')
 
-        with task_manager.acquire([self.node['uuid']]) as task:
-            self.driver.power._set_boot_device(task, self.node, 'pxe')
-        self.mox.VerifyAll()
+            mock_exec.assert_called_once_with(self.info, "chassis bootdev pxe")
 
     def test_set_boot_device_bad_device(self):
         with task_manager.acquire([self.node['uuid']]) as task:
@@ -257,30 +269,38 @@ class IPMIToolDriverTestCase(db_base.DbTestCase):
                     'fake-device')
 
     def test_reboot_ok(self):
-        self.mox.StubOutWithMock(ipmi, '_power_off')
-        self.mox.StubOutWithMock(ipmi, '_power_on')
+        manager = mock.MagicMock()
+        #NOTE(rloo): if autospec is True, then manager.mock_calls is empty
+        with mock.patch.object(ipmi, '_power_off', autospec=False) as mock_off:
+            with mock.patch.object(ipmi, '_power_on',
+                                   autospec=False) as mock_on:
+                mock_on.return_value = states.POWER_ON
+                manager.attach_mock(mock_off, 'power_off')
+                manager.attach_mock(mock_on, 'power_on')
+                expected = [mock.call.power_off(self.info),
+                            mock.call.power_on(self.info)]
 
-        ipmi._power_off(self.info)
-        ipmi._power_on(self.info).AndReturn(states.POWER_ON)
-        self.mox.ReplayAll()
+                with task_manager.acquire([self.node['uuid']]) as task:
+                    self.driver.power.reboot(task, self.node)
 
-        with task_manager.acquire([self.node['uuid']]) as task:
-            self.driver.power.reboot(task, self.node)
-
-        self.mox.VerifyAll()
+                self.assertEqual(manager.mock_calls, expected)
 
     def test_reboot_fail(self):
-        self.mox.StubOutWithMock(ipmi, '_power_off')
-        self.mox.StubOutWithMock(ipmi, '_power_on')
+        manager = mock.MagicMock()
+        #NOTE(rloo): if autospec is True, then manager.mock_calls is empty
+        with mock.patch.object(ipmi, '_power_off', autospec=False) as mock_off:
+            with mock.patch.object(ipmi, '_power_on',
+                                   autospec=False) as mock_on:
+                mock_on.return_value = states.ERROR
+                manager.attach_mock(mock_off, 'power_off')
+                manager.attach_mock(mock_on, 'power_on')
+                expected = [mock.call.power_off(self.info),
+                            mock.call.power_on(self.info)]
 
-        ipmi._power_off(self.info)
-        ipmi._power_on(self.info).AndReturn(states.ERROR)
-        self.mox.ReplayAll()
+                with task_manager.acquire([self.node['uuid']]) as task:
+                    self.assertRaises(exception.PowerStateFailure,
+                            self.driver.power.reboot,
+                            task,
+                            self.node)
 
-        with task_manager.acquire([self.node['uuid']]) as task:
-            self.assertRaises(exception.PowerStateFailure,
-                    self.driver.power.reboot,
-                    task,
-                    self.node)
-
-        self.mox.VerifyAll()
+                self.assertEqual(manager.mock_calls, expected)
