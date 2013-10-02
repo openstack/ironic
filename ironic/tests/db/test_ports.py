@@ -31,8 +31,8 @@ class DbPortTestCase(base.DbTestCase):
         # replaces a test for creating a port.
         super(DbPortTestCase, self).setUp()
         self.dbapi = dbapi.get_instance()
-
-        self.n = utils.get_test_node()
+        ndict = utils.get_test_node()
+        self.n = self.dbapi.create_node(ndict)
         self.p = utils.get_test_port()
 
     def test_get_port_by_id(self):
@@ -69,21 +69,18 @@ class DbPortTestCase(base.DbTestCase):
                           self.dbapi.get_port, 'not-a-mac')
 
     def test_get_ports_by_node_id(self):
-        n = self.dbapi.create_node(self.n)
-        p = utils.get_test_port(node_id=n['id'])
+        p = utils.get_test_port(node_id=self.n['id'])
         self.dbapi.create_port(p)
-        res = self.dbapi.get_ports_by_node(n['id'])
+        res = self.dbapi.get_ports_by_node(self.n['id'])
         self.assertEqual(self.p['address'], res[0]['address'])
 
     def test_get_ports_by_node_uuid(self):
-        n = self.dbapi.create_node(self.n)
-        p = utils.get_test_port(node_id=n['id'])
+        p = utils.get_test_port(node_id=self.n['id'])
         self.dbapi.create_port(p)
-        res = self.dbapi.get_ports_by_node(n['uuid'])
+        res = self.dbapi.get_ports_by_node(self.n['uuid'])
         self.assertEqual(self.p['address'], res[0]['address'])
 
     def test_get_ports_by_node_that_does_not_exist(self):
-        self.dbapi.create_node(self.n)
         self.dbapi.create_port(self.p)
         res = self.dbapi.get_ports_by_node(99)
         self.assertEqual(0, len(res))
@@ -109,17 +106,15 @@ class DbPortTestCase(base.DbTestCase):
         self.assertEqual(new_address, res['address'])
 
     def test_destroy_port_on_reserved_node(self):
-        n = self.dbapi.create_node(self.n)
-        p = self.dbapi.create_port(utils.get_test_port(node_id=n['id']))
-        uuid = n['uuid']
+        p = self.dbapi.create_port(utils.get_test_port(node_id=self.n['id']))
+        uuid = self.n['uuid']
         self.dbapi.reserve_nodes('fake-reservation', [uuid])
         self.assertRaises(exception.NodeLocked,
                           self.dbapi.destroy_port, p['id'])
 
     def test_update_port_on_reserved_node(self):
-        n = self.dbapi.create_node(self.n)
-        p = self.dbapi.create_port(utils.get_test_port(node_id=n['id']))
-        uuid = n['uuid']
+        p = self.dbapi.create_port(utils.get_test_port(node_id=self.n['id']))
+        uuid = self.n['uuid']
         self.dbapi.reserve_nodes('fake-reservation', [uuid])
         new_address = 'ff.ee.dd.cc.bb.aa'
         self.assertRaises(exception.NodeLocked,
