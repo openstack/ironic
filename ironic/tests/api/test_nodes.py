@@ -395,8 +395,7 @@ class TestPut(base.FunctionalTest):
         response = self.put_json('/nodes/%s/state/power' % self.node['uuid'],
                                  {'target': states.POWER_ON})
         self.assertEqual(response.content_type, 'application/json')
-        # FIXME(lucasagomes): WSME should return 202 not 200
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, 202)
         self.mox.VerifyAll()
 
     def test_power_state_in_progress(self):

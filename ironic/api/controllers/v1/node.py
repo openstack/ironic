@@ -74,7 +74,7 @@ class NodePowerStateController(rest.RestController):
         return NodePowerState.convert_with_links(node)
 
     # PUT nodes/<uuid>/state/power
-    @wsme_pecan.wsexpose(NodePowerState, unicode, unicode, status=202)
+    @wsme_pecan.wsexpose(NodePowerState, unicode, unicode, status_code=202)
     def put(self, node_id, target):
         """Set the power state of the machine."""
         node = objects.Node.get_by_uuid(pecan.request.context, node_id)
@@ -123,7 +123,7 @@ class NodeProvisionStateController(rest.RestController):
         return provision_state
 
     # PUT nodes/<uuid>/state/provision
-    @wsme_pecan.wsexpose(NodeProvisionState, unicode, unicode, status=202)
+    @wsme_pecan.wsexpose(NodeProvisionState, unicode, unicode, status_code=202)
     def put(self, node_id, target):
         """Set the provision state of the machine."""
         #TODO(lucasagomes): Test if target is a valid state and if it's able
@@ -279,7 +279,7 @@ class NodeVendorPassthruController(rest.RestController):
     appropriate driver, no introspection will be made in the message body.
     """
 
-    @wsme_pecan.wsexpose(None, unicode, unicode, body=unicode, status=202)
+    @wsme_pecan.wsexpose(None, unicode, unicode, body=unicode, status_code=202)
     def _default(self, node_id, method, data):
         # Only allow POST requests
         if pecan.request.method.upper() != "POST":
