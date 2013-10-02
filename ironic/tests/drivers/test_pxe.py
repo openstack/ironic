@@ -18,7 +18,7 @@
 
 """Test class for PXE driver."""
 
-import mox
+import mock
 import os
 import tempfile
 import threading
@@ -72,7 +72,6 @@ class PXEValidateParametersTestCase(base.TestCase):
         self.assertIsNotNone(info.get('deploy_kernel'))
         self.assertIsNotNone(info.get('deploy_ramdisk'))
         self.assertIsNotNone(info.get('root_gb'))
-        self.mox.VerifyAll()
 
     def test__parse_driver_info_missing_instance_name(self):
         # make sure error is raised when info is missing
@@ -83,7 +82,6 @@ class PXEValidateParametersTestCase(base.TestCase):
         self.assertRaises(exception.InvalidParameterValue,
                 pxe._parse_driver_info,
                 node)
-        self.mox.VerifyAll()
 
     def test__parse_driver_info_missing_instance_source(self):
         # make sure error is raised when info is missing
@@ -94,7 +92,6 @@ class PXEValidateParametersTestCase(base.TestCase):
         self.assertRaises(exception.InvalidParameterValue,
                 pxe._parse_driver_info,
                 node)
-        self.mox.VerifyAll()
 
     def test__parse_driver_info_missing_deploy_kernel(self):
         # make sure error is raised when info is missing
@@ -105,7 +102,6 @@ class PXEValidateParametersTestCase(base.TestCase):
         self.assertRaises(exception.InvalidParameterValue,
                 pxe._parse_driver_info,
                 node)
-        self.mox.VerifyAll()
 
     def test__parse_driver_info_missing_deploy_ramdisk(self):
         # make sure error is raised when info is missing
@@ -116,7 +112,6 @@ class PXEValidateParametersTestCase(base.TestCase):
         self.assertRaises(exception.InvalidParameterValue,
                 pxe._parse_driver_info,
                 node)
-        self.mox.VerifyAll()
 
     def test__parse_driver_info_missing_root_gb(self):
         # make sure error is raised when info is missing
@@ -127,7 +122,6 @@ class PXEValidateParametersTestCase(base.TestCase):
         self.assertRaises(exception.InvalidParameterValue,
                 pxe._parse_driver_info,
                 node)
-        self.mox.VerifyAll()
 
     def test__parse_driver_info_invalid_root_gb(self):
         tmp_dict = dict(INFO_DICT)
@@ -249,14 +243,13 @@ class PXEPrivateMethodsTestCase(base.TestCase):
                          'deploy_kernel':
                          ['deploy_kernel_uuid',
                           '/tftpboot/instance_uuid_123/deploy_kernel']}
-        self.mox.StubOutWithMock(base_image_service.BaseImageService, '_show')
-        base_image_service.BaseImageService._show(
-            'glance://image_uuid',
-            method='get').AndReturn(properties)
-        self.mox.ReplayAll()
-        image_info = pxe._get_tftp_image_info(self.node)
-
-        self.assertEqual(image_info, expected_info)
+        with mock.patch.object(base_image_service.BaseImageService, '_show') \
+                as show_mock:
+            show_mock.return_value = properties
+            image_info = pxe._get_tftp_image_info(self.node)
+            show_mock.assert_called_once_with('glance://image_uuid',
+                                               method='get')
+            self.assertEqual(image_info, expected_info)
 
     def test__build_pxe_config(self):
         instance_uuid = 'instance_uuid_123'
@@ -265,29 +258,26 @@ class PXEPrivateMethodsTestCase(base.TestCase):
         template = 'ironic/tests/drivers/pxe_config.template'
         pxe_config_template = open(template, 'r').read()
 
-        self.mox.StubOutWithMock(utils, 'random_alnum')
+        with mock.patch.object(utils, 'random_alnum') as random_alnum_mock:
+            random_alnum_mock.return_value = '0123456789ABCDEFGHIJKLMNOPQRSTUV'
 
-        utils.random_alnum(32).AndReturn('0123456789ABCDEFGHIJKLMNOPQRSTUV')
+            image_info = {'deploy_kernel': ['deploy_kernel',
+                                            CONF.pxe.tftp_root + '/' +
+                                            instance_uuid + '/deploy_kernel'],
+                          'deploy_ramdisk': ['deploy_ramdisk',
+                                            CONF.pxe.tftp_root + '/' +
+                                            instance_uuid + '/deploy_ramdisk'],
+                          'kernel': ['kernel_id',
+                                     CONF.pxe.tftp_root + '/' + instance_uuid +
+                                     '/kernel'],
+                          'ramdisk': ['ramdisk_id',
+                                     CONF.pxe.tftp_root + '/' + instance_uuid +
+                                     '/ramdisk']
+                      }
+            pxe_config = pxe._build_pxe_config(self.node, image_info)
 
-        image_info = {'deploy_kernel': ['deploy_kernel',
-                                       CONF.pxe.tftp_root + '/' +
-                                        instance_uuid + '/deploy_kernel'],
-                     'deploy_ramdisk': ['deploy_ramdisk',
-                                         CONF.pxe.tftp_root + '/' +
-                                        instance_uuid + '/deploy_ramdisk'],
-                     'kernel': ['kernel_id',
-                                CONF.pxe.tftp_root + '/' + instance_uuid +
-                                '/kernel'],
-                     'ramdisk': ['ramdisk_id',
-                                 CONF.pxe.tftp_root + '/' + instance_uuid +
-                                 '/ramdisk']
-        }
-
-        self.mox.ReplayAll()
-
-        pxe_config = pxe._build_pxe_config(self.node, image_info)
-
-        self.assertEqual(pxe_config, pxe_config_template)
+            random_alnum_mock.assert_called_once_with(32)
+            self.assertEqual(pxe_config, pxe_config_template)
 
     def test__get_pxe_config_file_path(self):
         self.assertEqual('/tftpboot/instance_uuid_123/config',
@@ -323,15 +313,20 @@ class PXEPrivateMethodsTestCase(base.TestCase):
                                         '/instance_uuid_123/deploy_kernel']}
         fileutils.ensure_tree(CONF.pxe.tftp_master_path)
         fd, tmp_master_image = tempfile.mkstemp(dir=CONF.pxe.tftp_master_path)
-        self.mox.StubOutWithMock(images, 'fetch_to_raw')
-        self.mox.StubOutWithMock(tempfile, 'mkstemp')
-        tempfile.mkstemp(dir=CONF.pxe.tftp_master_path).\
-            AndReturn((fd, tmp_master_image))
-        images.fetch_to_raw(None, 'deploy_kernel', tmp_master_image, None).\
-            AndReturn(None)
-        self.mox.ReplayAll()
-        pxe._cache_tftp_images(None, self.node, image_info)
-        self.mox.VerifyAll()
+
+        with mock.patch.object(images, 'fetch_to_raw') as fetch_to_raw_mock:
+            with mock.patch.object(tempfile, 'mkstemp') as mkstemp_mock:
+                fetch_to_raw_mock.return_value = None
+                mkstemp_mock.return_value = (fd, tmp_master_image)
+
+                pxe._cache_tftp_images(None, self.node, image_info)
+
+                fetch_to_raw_mock.assert_called_once_with(None,
+                                                          'deploy_kernel',
+                                                          tmp_master_image,
+                                                          None)
+                mkstemp_mock.assert_called_once_with(
+                                                dir=CONF.pxe.tftp_master_path)
 
     def test__cache_tftp_images_no_master_path(self):
         temp_dir = tempfile.mkdtemp()
@@ -340,31 +335,34 @@ class PXEPrivateMethodsTestCase(base.TestCase):
         image_info = {'deploy_kernel': ['deploy_kernel',
                                         os.path.join(temp_dir,
                                         'instance_uuid_123/deploy_kernel')]}
-        self.mox.StubOutWithMock(images, 'fetch_to_raw')
-        images.fetch_to_raw(None, 'deploy_kernel',
-                            os.path.join(temp_dir,
-                                         'instance_uuid_123/deploy_kernel'),
-                            None).AndReturn(None)
-        self.mox.ReplayAll()
-        pxe._cache_tftp_images(None, self.node, image_info)
-        self.mox.VerifyAll()
+
+        with mock.patch.object(images, 'fetch_to_raw') as fetch_to_raw_mock:
+            fetch_to_raw_mock.return_value = None
+
+            pxe._cache_tftp_images(None, self.node, image_info)
+
+            fetch_to_raw_mock.assert_called_once_with(None,
+                    'deploy_kernel',
+                    os.path.join(temp_dir, 'instance_uuid_123/deploy_kernel'),
+                    None)
 
     def test__cache_instance_images_no_master_path(self):
         temp_dir = tempfile.mkdtemp()
         CONF.set_default('images_path', temp_dir, group='pxe')
         CONF.set_default('instance_master_path', None, group='pxe')
-        self.mox.StubOutWithMock(images, 'fetch_to_raw')
-        images.fetch_to_raw(None, 'glance://image_uuid',
-                            os.path.join(temp_dir,
-                                          'fake_instance_name/disk'),
-                            None).AndReturn(None)
-        self.mox.ReplayAll()
-        (uuid, image_path) = pxe._cache_instance_image(None, self.node)
-        self.mox.VerifyAll()
-        self.assertEqual(uuid, 'glance://image_uuid')
-        self.assertEqual(image_path,
-                         os.path.join(temp_dir,
-                                      'fake_instance_name/disk'))
+
+        with mock.patch.object(images, 'fetch_to_raw') as fetch_to_raw_mock:
+            fetch_to_raw_mock.return_value = None
+
+            (uuid, image_path) = pxe._cache_instance_image(None, self.node)
+
+            fetch_to_raw_mock.assert_called_once_with(None,
+                            'glance://image_uuid',
+                            os.path.join(temp_dir, 'fake_instance_name/disk'),
+                            None)
+            self.assertEqual(uuid, 'glance://image_uuid')
+            self.assertEqual(image_path,
+                             os.path.join(temp_dir, 'fake_instance_name/disk'))
 
     def test__cache_instance_images_master_path(self):
         temp_dir = tempfile.mkdtemp()
@@ -375,22 +373,32 @@ class PXEPrivateMethodsTestCase(base.TestCase):
         fileutils.ensure_tree(CONF.pxe.instance_master_path)
         fd, tmp_master_image = tempfile.mkstemp(
             dir=CONF.pxe.instance_master_path)
-        self.mox.StubOutWithMock(images, 'fetch_to_raw')
-        self.mox.StubOutWithMock(tempfile, 'mkstemp')
-        self.mox.StubOutWithMock(service_utils, 'parse_image_ref')
-        tempfile.mkstemp(dir=CONF.pxe.instance_master_path).\
-            AndReturn((fd, tmp_master_image))
-        images.fetch_to_raw(None, 'glance://image_uuid',
-                            tmp_master_image,
-                            None).\
-            AndReturn(None)
-        service_utils.parse_image_ref('glance://image_uuid').\
-            AndReturn(('image_uuid', None, None, None))
-        self.mox.ReplayAll()
-        (uuid, image_path) = pxe._cache_instance_image(None, self.node)
-        self.mox.VerifyAll()
-        self.assertEqual(uuid, 'glance://image_uuid')
-        self.assertEqual(image_path, temp_dir + '/fake_instance_name/disk')
+
+        with mock.patch.object(images, 'fetch_to_raw') as fetch_to_raw_mock:
+            with mock.patch.object(tempfile, 'mkstemp') as mkstemp_mock:
+                with mock.patch.object(service_utils, 'parse_image_ref') \
+                        as parse_image_ref_mock:
+                    mkstemp_mock.return_value = (fd, tmp_master_image)
+                    fetch_to_raw_mock.return_value = None
+                    parse_image_ref_mock.return_value = ('image_uuid',
+                                                         None,
+                                                         None,
+                                                         None)
+
+                    (uuid, image_path) = pxe._cache_instance_image(None,
+                                                                   self.node)
+
+                    mkstemp_mock.assert_called_once_with(
+                         dir=CONF.pxe.instance_master_path)
+                    fetch_to_raw_mock.assert_called_once_with(None,
+                                                       'glance://image_uuid',
+                                                       tmp_master_image,
+                                                       None)
+                    parse_image_ref_mock.assert_called_once_with(
+                                                       'glance://image_uuid')
+                    self.assertEqual(uuid, 'glance://image_uuid')
+                    self.assertEqual(
+                            image_path, temp_dir + '/fake_instance_name/disk')
 
     def test__get_image_download_in_progress(self):
         def _create_instance_path(*args):
@@ -402,14 +410,15 @@ class PXEPrivateMethodsTestCase(base.TestCase):
         master_uuid = 'instance_uuid'
         master_path = os.path.join(temp_dir, master_uuid)
         lock_file = os.path.join(temp_dir, 'instance_uuid.lock')
-        self.mox.StubOutWithMock(pxe, '_download_in_progress')
-        pxe._download_in_progress(lock_file).\
-            WithSideEffects(_create_instance_path).\
-            AndReturn(True)
-        self.mox.ReplayAll()
-        pxe._get_image(None, instance_path, master_uuid, temp_dir)
-        self.mox.VerifyAll()
-        self.assertTrue(os.path.exists(instance_path))
+
+        with mock.patch.object(pxe, '_download_in_progress') \
+                as download_in_progress_mock:
+            download_in_progress_mock.side_effect = _create_instance_path
+
+            pxe._get_image(None, instance_path, master_uuid, temp_dir)
+
+            download_in_progress_mock.assert_called_once_with(lock_file)
+            self.assertTrue(os.path.exists(instance_path))
 
 
 class PXEDriverTestCase(db_base.DbTestCase):
@@ -469,19 +478,27 @@ class PXEDriverTestCase(db_base.DbTestCase):
                               self.node, method='pass_deploy_info')
 
     def test_start_deploy(self):
-        self.mox.StubOutWithMock(pxe, '_create_pxe_config')
-        self.mox.StubOutWithMock(pxe, '_cache_images')
-        self.mox.StubOutWithMock(pxe, '_get_tftp_image_info')
-        pxe._get_tftp_image_info(self.node).AndReturn(None)
-        pxe._create_pxe_config(mox.IgnoreArg(), self.node, None).\
-            AndReturn(None)
-        pxe._cache_images(self.node, None).AndReturn(None)
-        self.mox.ReplayAll()
+        with mock.patch.object(pxe, '_create_pxe_config') \
+                as create_pxe_config_mock:
+            with mock.patch.object(pxe, '_cache_images') as cache_images_mock:
+                with mock.patch.object(pxe, '_get_tftp_image_info') \
+                        as get_tftp_image_info_mock:
+                    get_tftp_image_info_mock.return_value = None
+                    create_pxe_config_mock.return_value = None
+                    cache_images_mock.return_value = None
 
-        with task_manager.acquire([self.node['uuid']], shared=False) as task:
-            state = task.resources[0].driver.deploy.deploy(task, self.node)
-        self.assertEqual(state, states.DEPLOYING)
-        self.mox.VerifyAll()
+                    with task_manager.acquire([self.node['uuid']],
+                                              shared=False) as task:
+                        state = task.resources[0].driver.deploy.deploy(task,
+                                                                    self.node)
+                        get_tftp_image_info_mock.assert_called_once_with(
+                                                                  self.node)
+                        create_pxe_config_mock.assert_called_once_with(task,
+                                                                    self.node,
+                                                                    None)
+                        cache_images_mock.assert_called_once_with(self.node,
+                                                                  None)
+                        self.assertEqual(state, states.DEPLOYING)
 
     def test_continue_deploy_good(self):
 
@@ -525,62 +542,65 @@ class PXEDriverTestCase(db_base.DbTestCase):
                                      'instance_uuid_123/deploy_kernel')
         image_info = {'deploy_kernel': ['deploy_kernel_uuid', d_kernel_path]}
 
-        self.mox.StubOutWithMock(pxe, '_get_tftp_image_info')
-        pxe._get_tftp_image_info(self.node).AndReturn(image_info)
-        self.mox.ReplayAll()
+        with mock.patch.object(pxe, '_get_tftp_image_info') \
+                as get_tftp_image_info_mock:
+            get_tftp_image_info_mock.return_value = image_info
 
-        pxecfg_dir = os.path.join(temp_dir, 'pxelinux.cfg')
-        os.makedirs(pxecfg_dir)
+            pxecfg_dir = os.path.join(temp_dir, 'pxelinux.cfg')
+            os.makedirs(pxecfg_dir)
 
-        instance_dir = os.path.join(temp_dir, 'instance_uuid_123')
-        image_dir = os.path.join(temp_dir, 'fake_instance_name')
-        os.makedirs(instance_dir)
-        os.makedirs(image_dir)
-        config_path = os.path.join(instance_dir, 'config')
-        deploy_kernel_path = os.path.join(instance_dir, 'deploy_kernel')
-        pxe_mac_path = os.path.join(pxecfg_dir, '01-aa-bb-cc')
-        image_path = os.path.join(image_dir, 'disk')
-        open(config_path, 'w').close()
-        os.link(config_path, pxe_mac_path)
-        if master:
-            tftp_master_dir = os.path.join(temp_dir, 'tftp_master')
-            instance_master_dir = os.path.join(temp_dir, 'instance_master')
-            CONF.set_default('tftp_master_path', tftp_master_dir, group='pxe')
-            CONF.set_default('instance_master_path', instance_master_dir,
-                             group='pxe')
-            os.makedirs(tftp_master_dir)
-            os.makedirs(instance_master_dir)
-            master_deploy_kernel_path = os.path.join(tftp_master_dir,
-                                                     'deploy_kernel_uuid')
-            master_instance_path = os.path.join(instance_master_dir,
-                                                'image_uuid')
-            open(master_deploy_kernel_path, 'w').close()
-            open(master_instance_path, 'w').close()
+            instance_dir = os.path.join(temp_dir, 'instance_uuid_123')
+            image_dir = os.path.join(temp_dir, 'fake_instance_name')
+            os.makedirs(instance_dir)
+            os.makedirs(image_dir)
+            config_path = os.path.join(instance_dir, 'config')
+            deploy_kernel_path = os.path.join(instance_dir, 'deploy_kernel')
+            pxe_mac_path = os.path.join(pxecfg_dir, '01-aa-bb-cc')
+            image_path = os.path.join(image_dir, 'disk')
+            open(config_path, 'w').close()
+            os.link(config_path, pxe_mac_path)
+            if master:
+                tftp_master_dir = os.path.join(temp_dir, 'tftp_master')
+                instance_master_dir = os.path.join(temp_dir, 'instance_master')
+                CONF.set_default('tftp_master_path',
+                                 tftp_master_dir,
+                                 group='pxe')
+                CONF.set_default('instance_master_path', instance_master_dir,
+                                 group='pxe')
+                os.makedirs(tftp_master_dir)
+                os.makedirs(instance_master_dir)
+                master_deploy_kernel_path = os.path.join(tftp_master_dir,
+                                                         'deploy_kernel_uuid')
+                master_instance_path = os.path.join(instance_master_dir,
+                                                    'image_uuid')
+                open(master_deploy_kernel_path, 'w').close()
+                open(master_instance_path, 'w').close()
 
-            os.link(master_deploy_kernel_path, deploy_kernel_path)
-            os.link(master_instance_path, image_path)
-            if master == 'in_use':
-                deploy_kernel_link = os.path.join(temp_dir,
-                                                  'deploy_kernel_link')
-                image_link = os.path.join(temp_dir, 'image_link')
-                os.link(master_deploy_kernel_path, deploy_kernel_link)
-                os.link(master_instance_path, image_link)
+                os.link(master_deploy_kernel_path, deploy_kernel_path)
+                os.link(master_instance_path, image_path)
+                if master == 'in_use':
+                    deploy_kernel_link = os.path.join(temp_dir,
+                                                      'deploy_kernel_link')
+                    image_link = os.path.join(temp_dir, 'image_link')
+                    os.link(master_deploy_kernel_path, deploy_kernel_link)
+                    os.link(master_instance_path, image_link)
 
-        else:
-            CONF.set_default('tftp_master_path', '', group='pxe')
-            CONF.set_default('instance_master_path', '', group='pxe')
-            open(deploy_kernel_path, 'w').close()
-            open(image_path, 'w').close()
+            else:
+                CONF.set_default('tftp_master_path', '', group='pxe')
+                CONF.set_default('instance_master_path', '', group='pxe')
+                open(deploy_kernel_path, 'w').close()
+                open(image_path, 'w').close()
 
-        with task_manager.acquire([self.node['uuid']], shared=False) as task:
-            task.resources[0].driver.deploy.tear_down(task, self.node)
-        self.mox.VerifyAll()
-        assert_false_path = [config_path, deploy_kernel_path, image_path,
+            with task_manager.acquire([self.node['uuid']], shared=False) \
+                    as task:
+                task.resources[0].driver.deploy.tear_down(task, self.node)
+            get_tftp_image_info_mock.called_once_with(self.node)
+            assert_false_path = [config_path, deploy_kernel_path, image_path,
                                  pxe_mac_path, image_dir, instance_dir]
-        for path in assert_false_path:
-            self.assertFalse(os.path.exists(path))
+            for path in assert_false_path:
+                self.assertFalse(os.path.exists(path))
 
-        return temp_dir
+            return temp_dir
 
     def test_tear_down_no_master_images(self):
         self.tear_down_config(master=None)
