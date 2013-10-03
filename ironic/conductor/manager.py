@@ -53,7 +53,7 @@ LOG = log.getLogger(__name__)
 class ConductorManager(service.PeriodicService):
     """Ironic Conductor service main class."""
 
-    RPC_API_VERSION = '1.2'
+    RPC_API_VERSION = '1.3'
 
     def __init__(self, host, topic):
         serializer = objects_base.IronicObjectSerializer()
@@ -94,9 +94,10 @@ class ConductorManager(service.PeriodicService):
 
         :param context: an admin context
         :param node_obj: a changed (but not saved) node object.
+
         """
         node_id = node_obj.get('uuid')
-        LOG.debug("RPC update_node called for node %s." % node_id)
+        LOG.debug(_("RPC update_node called for node %s.") % node_id)
 
         delta = node_obj.obj_what_changed()
         if 'power_state' in delta:
@@ -125,7 +126,7 @@ class ConductorManager(service.PeriodicService):
 
             return node_obj
 
-    def start_power_state_change(self, context, node_obj, new_state):
+    def change_node_power_state(self, context, node_obj, new_state):
         """RPC method to encapsulate changes to a node's state.
 
         Perform actions such as power on, power off. It waits for the power
@@ -141,11 +142,12 @@ class ConductorManager(service.PeriodicService):
                   that cannot perform and requested power action.
         :raises: other exceptins by the node's power driver if something
                   wrong during the power action.
-        :
+
         """
         node_id = node_obj.get('uuid')
-        LOG.debug("RPC start_power_state_change called for node %s."
-            " The desired new state is %s." % (node_id, new_state))
+        LOG.debug(_("RPC change_node_power_state called for node %(node)s. "
+                    "The desired new state is %(state)s.")
+                    % {'node': node_id, 'state': new_state})
 
         with task_manager.acquire(node_id, shared=False) as task:
             # an exception will be raised if validate fails.

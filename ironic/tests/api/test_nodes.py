@@ -179,7 +179,7 @@ class TestPatch(base.FunctionalTest):
         self.node = self.dbapi.create_node(ndict)
         self.mox.StubOutWithMock(rpcapi.ConductorAPI, 'update_node')
         self.mox.StubOutWithMock(rpcapi.ConductorAPI,
-                                 'start_power_state_change')
+                                 'change_node_power_state')
 
     def test_update_ok(self):
         rpcapi.ConductorAPI.update_node(mox.IgnoreArg(), mox.IgnoreArg()).\
@@ -382,12 +382,12 @@ class TestPut(base.FunctionalTest):
         self.node = self.dbapi.create_node(ndict)
         self.mox.StubOutWithMock(rpcapi.ConductorAPI, 'update_node')
         self.mox.StubOutWithMock(rpcapi.ConductorAPI,
-                                 'start_power_state_change')
+                                 'change_node_power_state')
 
     def test_power_state(self):
         rpcapi.ConductorAPI.update_node(mox.IgnoreArg(), mox.IgnoreArg()).\
                 AndReturn(self.node)
-        rpcapi.ConductorAPI.start_power_state_change(mox.IgnoreArg(),
+        rpcapi.ConductorAPI.change_node_power_state(mox.IgnoreArg(),
                                                      mox.IgnoreArg(),
                                                      mox.IgnoreArg())
         self.mox.ReplayAll()
@@ -401,7 +401,7 @@ class TestPut(base.FunctionalTest):
     def test_power_state_in_progress(self):
         rpcapi.ConductorAPI.update_node(mox.IgnoreArg(), mox.IgnoreArg()).\
                 AndReturn(self.node)
-        rpcapi.ConductorAPI.start_power_state_change(mox.IgnoreArg(),
+        rpcapi.ConductorAPI.change_node_power_state(mox.IgnoreArg(),
                                                      mox.IgnoreArg(),
                                                      mox.IgnoreArg())
         self.mox.ReplayAll()

@@ -90,8 +90,8 @@ class RPCAPITestCase(base.DbTestCase):
                           'call',
                           node_obj=self.fake_node)
 
-    def test_start_power_state_change(self):
-        self._test_rpcapi('start_power_state_change',
+    def test_change_node_power_state(self):
+        self._test_rpcapi('change_node_power_state',
                           'cast',
                           node_obj=self.fake_node,
                           new_state=states.POWER_ON)
