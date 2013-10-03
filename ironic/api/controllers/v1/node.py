@@ -33,6 +33,7 @@ from ironic.api.controllers.v1 import state
 from ironic.api.controllers.v1 import utils
 from ironic.common import exception
 from ironic import objects
+from ironic.openstack.common import excutils
 from ironic.openstack.common import log
 
 LOG = log.getLogger(__name__)
@@ -403,7 +404,7 @@ class NodesController(rest.RestController):
     def patch(self, uuid, patch):
         """Update an existing node.
 
-        TODO(deva): add exception handling
+        TODO(yuriyz): improve exceptions handling
         """
         if self._from_chassis:
             raise exception.OperationNotPermitted
@@ -437,7 +438,6 @@ class NodesController(rest.RestController):
             LOG.exception(e)
             raise wsme.exc.ClientSideError(_("Patching Error: %s") % e)
 
-        response = wsme.api.Response(Node(), status_code=200)
         try:
             self. _convert_chassis_uuid_to_id(patched_node)
             defaults = objects.Node.get_defaults()
@@ -457,22 +457,12 @@ class NodesController(rest.RestController):
 
             node = pecan.request.rpcapi.update_node(pecan.request.context,
                                                     node)
-            response.obj = node
-        except exception.InvalidParameterValue:
-            response.status_code = 400
-        except exception.NodeInWrongPowerState:
-            response.status_code = 409
+
         except exception.IronicException as e:
-            LOG.exception(e)
-            response.status_code = 500
+            with excutils.save_and_reraise_exception():
+                LOG.exception(e)
 
-        # TODO(deva): return the response object instead of raising
-        #             after wsme 0.5b3 is released
-        if response.status_code not in [200, 202]:
-            raise wsme.exc.ClientSideError(_(
-                    "Error updating node %s") % uuid)
-
-        return Node.convert_with_links(response.obj)
+        return Node.convert_with_links(node)
 
     @wsme_pecan.wsexpose(None, unicode, status_code=204)
     def delete(self, node_id):

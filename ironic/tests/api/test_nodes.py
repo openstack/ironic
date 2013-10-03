@@ -230,8 +230,7 @@ class TestPatch(base.FunctionalTest):
                                      'op': 'replace'}],
                                    expect_errors=True)
         self.assertEqual(response.content_type, 'application/json')
-        # TODO(deva): change to 409 when wsme 0.5b3 released
-        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.status_code, 409)
         self.mox.VerifyAll()
 
     def test_add_ok(self):

@@ -182,6 +182,11 @@ class Invalid(IronicException):
     code = 400
 
 
+class InvalidState(IronicException):
+    message = _("Invalid resource state.")
+    code = 409
+
+
 class InvalidCPUInfo(Invalid):
     message = _("Unacceptable CPU info") + ": %(reason)s"
 
@@ -291,12 +296,12 @@ class NodeInUse(IronicException):
                 "%(node)s is currently in use by another process.")
 
 
-class NodeInWrongPowerState(IronicException):
+class NodeInWrongPowerState(InvalidState):
     message = _("Can not change instance association while node "
             "%(node)s is in power state %(pstate)s.")
 
 
-class NodeNotConfigured(IronicException):
+class NodeNotConfigured(InvalidState):
     message = _("Can not change power state because node %(node)s "
             "is not fully configured.")
 
