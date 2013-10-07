@@ -48,7 +48,7 @@ from ironic.tests.db import utils as db_utils
 
 CONF = cfg.CONF
 
-INFO_DICT = json.loads(db_utils.pxe_info).get('pxe')
+INFO_DICT = json.loads(db_utils.pxe_info)
 
 
 class PXEValidateParametersTestCase(base.TestCase):
@@ -65,7 +65,7 @@ class PXEValidateParametersTestCase(base.TestCase):
         # make sure we get back the expected things
         node = self._create_test_node(
                     driver='fake_pxe',
-                    driver_info=json.loads(db_utils.pxe_info))
+                    driver_info=INFO_DICT)
         info = pxe._parse_driver_info(node)
         self.assertIsNotNone(info.get('instance_name'))
         self.assertIsNotNone(info.get('image_source'))
@@ -75,9 +75,8 @@ class PXEValidateParametersTestCase(base.TestCase):
 
     def test__parse_driver_info_missing_instance_name(self):
         # make sure error is raised when info is missing
-        tmp_dict = dict(INFO_DICT)
-        del tmp_dict['instance_name']
-        info = {'pxe': tmp_dict}
+        info = dict(INFO_DICT)
+        del info['pxe_instance_name']
         node = self._create_test_node(driver_info=info)
         self.assertRaises(exception.InvalidParameterValue,
                 pxe._parse_driver_info,
@@ -85,9 +84,8 @@ class PXEValidateParametersTestCase(base.TestCase):
 
     def test__parse_driver_info_missing_instance_source(self):
         # make sure error is raised when info is missing
-        tmp_dict = dict(INFO_DICT)
-        del tmp_dict['image_source']
-        info = {'pxe': tmp_dict}
+        info = dict(INFO_DICT)
+        del info['pxe_image_source']
         node = self._create_test_node(driver_info=info)
         self.assertRaises(exception.InvalidParameterValue,
                 pxe._parse_driver_info,
@@ -95,9 +93,8 @@ class PXEValidateParametersTestCase(base.TestCase):
 
     def test__parse_driver_info_missing_deploy_kernel(self):
         # make sure error is raised when info is missing
-        tmp_dict = dict(INFO_DICT)
-        del tmp_dict['deploy_kernel']
-        info = {'pxe': tmp_dict}
+        info = dict(INFO_DICT)
+        del info['pxe_deploy_kernel']
         node = self._create_test_node(driver_info=info)
         self.assertRaises(exception.InvalidParameterValue,
                 pxe._parse_driver_info,
@@ -105,9 +102,8 @@ class PXEValidateParametersTestCase(base.TestCase):
 
     def test__parse_driver_info_missing_deploy_ramdisk(self):
         # make sure error is raised when info is missing
-        tmp_dict = dict(INFO_DICT)
-        del tmp_dict['deploy_ramdisk']
-        info = {'pxe': tmp_dict}
+        info = dict(INFO_DICT)
+        del info['pxe_deploy_ramdisk']
         node = self._create_test_node(driver_info=info)
         self.assertRaises(exception.InvalidParameterValue,
                 pxe._parse_driver_info,
@@ -115,18 +111,16 @@ class PXEValidateParametersTestCase(base.TestCase):
 
     def test__parse_driver_info_missing_root_gb(self):
         # make sure error is raised when info is missing
-        tmp_dict = dict(INFO_DICT)
-        del tmp_dict['root_gb']
-        info = {'pxe': tmp_dict}
+        info = dict(INFO_DICT)
+        del info['pxe_root_gb']
         node = self._create_test_node(driver_info=info)
         self.assertRaises(exception.InvalidParameterValue,
                 pxe._parse_driver_info,
                 node)
 
     def test__parse_driver_info_invalid_root_gb(self):
-        tmp_dict = dict(INFO_DICT)
-        tmp_dict['root_gb'] = 'foobar'
-        info = {'pxe': tmp_dict}
+        info = dict(INFO_DICT)
+        info['pxe_root_gb'] = 'foobar'
         node = self._create_test_node(driver_info=info)
         self.assertRaises(exception.InvalidParameterValue,
                 pxe._parse_driver_info,
@@ -217,7 +211,7 @@ class PXEPrivateMethodsTestCase(base.TestCase):
         super(PXEPrivateMethodsTestCase, self).setUp()
         n = {
               'driver': 'fake_pxe',
-              'driver_info': json.loads(db_utils.pxe_info),
+              'driver_info': INFO_DICT,
               'instance_uuid': 'instance_uuid_123',
               'id': 123}
         self.dbapi = dbapi.get_instance()
@@ -293,7 +287,7 @@ class PXEPrivateMethodsTestCase(base.TestCase):
         node = self._create_test_node(
             id=345,
             driver='fake_pxe',
-            driver_info=json.loads(db_utils.pxe_info),
+            driver_info=INFO_DICT,
         )
         info = pxe._parse_driver_info(node)
         self.assertEqual('/var/lib/ironic/images/fake_instance_name',
@@ -303,7 +297,7 @@ class PXEPrivateMethodsTestCase(base.TestCase):
         node = self._create_test_node(
             id=345,
             driver='fake_pxe',
-            driver_info=json.loads(db_utils.pxe_info),
+            driver_info=INFO_DICT,
         )
         info = pxe._parse_driver_info(node)
         self.assertEqual('/var/lib/ironic/images/fake_instance_name/disk',
@@ -432,7 +426,7 @@ class PXEDriverTestCase(db_base.DbTestCase):
     def setUp(self):
         super(PXEDriverTestCase, self).setUp()
         mgr_utils.get_mocked_node_manager(driver='fake_pxe')
-        driver_info = json.loads(db_utils.pxe_info)
+        driver_info = INFO_DICT
         driver_info['pxe_deploy_key'] = 'fake-56789'
         n = db_utils.get_test_node(
                 driver='fake_pxe',
@@ -446,9 +440,9 @@ class PXEDriverTestCase(db_base.DbTestCase):
             task.resources[0].driver.deploy.validate(self.node)
 
     def test_validate_fail(self):
-        tmp_dict = dict(INFO_DICT)
-        del tmp_dict['image_source']
-        self.node['driver_info'] = json.dumps({'pxe': tmp_dict})
+        info = dict(INFO_DICT)
+        del info['pxe_image_source']
+        self.node['driver_info'] = json.dumps(info)
         with task_manager.acquire([self.node['uuid']], shared=True) as task:
             self.assertRaises(exception.InvalidParameterValue,
                               task.resources[0].driver.deploy.validate,

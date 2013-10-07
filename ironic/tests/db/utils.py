@@ -46,13 +46,11 @@ ssh_info = json.dumps(
 
 pxe_info = json.dumps(
         {
-            'pxe': {
-                "instance_name": "fake_instance_name",
-                "image_source": "glance://image_uuid",
-                "deploy_kernel": "glance://deploy_kernel_uuid",
-                "deploy_ramdisk": "glance://deploy_ramdisk_uuid",
-                "root_gb": 100,
-            }
+            "pxe_instance_name": "fake_instance_name",
+            "pxe_image_source": "glance://image_uuid",
+            "pxe_deploy_kernel": "glance://deploy_kernel_uuid",
+            "pxe_deploy_ramdisk": "glance://deploy_ramdisk_uuid",
+            "pxe_root_gb": 100,
         })
 
 pxe_ssh_info = json.dumps(

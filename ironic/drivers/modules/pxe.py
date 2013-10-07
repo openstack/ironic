@@ -89,15 +89,15 @@ def _parse_driver_info(node):
     :returns: A dict with the driver_info values.
     """
 
-    info = node.get('driver_info', '').get('pxe')
+    info = node.get('driver_info', {})
     d_info = {}
-    d_info['instance_name'] = info.get('instance_name', None)
-    d_info['image_source'] = info.get('image_source', None)
-    d_info['deploy_kernel'] = info.get('deploy_kernel',
+    d_info['instance_name'] = info.get('pxe_instance_name', None)
+    d_info['image_source'] = info.get('pxe_image_source', None)
+    d_info['deploy_kernel'] = info.get('pxe_deploy_kernel',
                                        CONF.pxe.deploy_kernel)
-    d_info['deploy_ramdisk'] = info.get('deploy_ramdisk',
+    d_info['deploy_ramdisk'] = info.get('pxe_deploy_ramdisk',
                                         CONF.pxe.deploy_ramdisk)
-    d_info['root_gb'] = info.get('root_gb', None)
+    d_info['root_gb'] = info.get('pxe_root_gb', None)
 
     missing_info = []
     for label in d_info:
@@ -108,9 +108,12 @@ def _parse_driver_info(node):
                 "Can not validate PXE bootloader. The following paramenters "
                 "were not passed to ironic: %s") % missing_info)
 
+    # Internal use only
+    d_info['deploy_key'] = info.get('pxe_deploy_key', None)
+
     #TODO(ghe): Should we get rid of swap partition?
-    d_info['swap_mb'] = info.get('swap_mb', 1)
-    d_info['key_data'] = info.get('key_data', None)
+    d_info['swap_mb'] = info.get('pxe_swap_mb', 1)
+    d_info['key_data'] = info.get('pxe_key_data', None)
 
     for param in ('root_gb', 'swap_mb'):
         try:
@@ -509,7 +512,7 @@ class VendorPassthru(base.VendorInterface):
         d_info = _parse_driver_info(node)
 
         deploy_key = kwargs.get('key')
-        if node['driver_info'].get('pxe_deploy_key') != deploy_key:
+        if d_info['deploy_key'] != deploy_key:
             raise exception.InvalidParameterValue(_("Deploy key is not match"))
 
         params = {'address': kwargs.get('address'),
