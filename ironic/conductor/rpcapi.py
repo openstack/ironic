@@ -35,10 +35,11 @@ class ConductorAPI(ironic.openstack.common.rpc.proxy.RpcProxy):
         1.1 - Added update_node and start_power_state_change.
         1.2 - Added vendor_passhthru.
         1.3 - Rename start_power_state_change to change_node_power_state.
+        1.4 - Add do_node_deploy and do_node_tear_down.
 
     """
 
-    RPC_API_VERSION = '1.3'
+    RPC_API_VERSION = '1.4'
 
     def __init__(self, topic=None):
         if topic is None:
@@ -121,3 +122,31 @@ class ConductorAPI(ironic.openstack.common.rpc.proxy.RpcProxy):
                                 info=info))
 
         return driver_data
+
+    def do_node_deploy(self, context, node_obj):
+        """Signal to conductor service to perform a deployment.
+
+        :param context: request context.
+        :param node_obj: an RPC style node obj.
+
+        The node must already be configured and in the appropriate
+        undeployed state before this method is called.
+
+        """
+        self.cast(context,
+                  self.make_msg('do_node_deploy',
+                                node_obj=node_obj))
+
+    def do_node_tear_down(self, context, node_obj):
+        """Signal to conductor service to tear down a deployment.
+
+        :param context: request context.
+        :param node_obj: an RPC style node obj.
+
+        The node must already be configured and in the appropriate
+        deployed state before this method is called.
+
+        """
+        self.cast(context,
+                  self.make_msg('do_node_tear_down',
+                                node_obj=node_obj))

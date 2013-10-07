@@ -55,6 +55,7 @@ BUILDING = 'building'
 DEPLOYING = 'deploying'
 DEPLOYFAIL = 'deploy failed'
 DEPLOYDONE = 'deploy complete'
+DELETING = 'deleting'
 DELETED = 'deleted'
 ERROR = 'error'
 
