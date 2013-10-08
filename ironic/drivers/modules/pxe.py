@@ -32,6 +32,7 @@ from ironic.common import keystone
 from ironic.common import states
 from ironic.common import utils
 from ironic.conductor import task_manager
+from ironic.conductor import utils as manager_utils
 from ironic.drivers import base
 from ironic.drivers.modules import deploy_utils
 from ironic.openstack.common import context
@@ -466,6 +467,8 @@ class PXEDeploy(base.DeployInterface):
         _create_pxe_config(task, node, pxe_info)
         _cache_images(node, pxe_info)
 
+        manager_utils.node_power_action(task, node, states.REBOOT)
+
         return states.DEPLOYING
 
     @task_manager.require_exclusive_lock
@@ -500,6 +503,8 @@ class PXEDeploy(base.DeployInterface):
                 os.path.join(CONF.pxe.tftp_root, node['instance_uuid']))
 
         _destroy_images(d_info)
+
+        manager_utils.node_power_action(task, node, states.POWER_OFF)
 
         return states.DELETED
 

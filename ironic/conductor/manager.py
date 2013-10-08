@@ -44,6 +44,7 @@ from ironic.common import exception
 from ironic.common import service
 from ironic.common import states
 from ironic.conductor import task_manager
+from ironic.conductor import utils
 from ironic.db import api as dbapi
 from ironic.objects import base as objects_base
 from ironic.openstack.common import excutils
@@ -172,57 +173,7 @@ class ConductorManager(service.PeriodicService):
                     % {'node': node_id, 'state': new_state})
 
         with task_manager.acquire(context, node_id, shared=False) as task:
-            node = task.node
-            try:
-                task.driver.power.validate(node)
-                curr_state = task.driver.power.get_power_state(task, node)
-            except Exception as e:
-                with excutils.save_and_reraise_exception():
-                    node['last_error'] = \
-                        _("Failed to change power state to '%(target)s'. "
-                          "Error: %(error)s") % {
-                            'target': new_state, 'error': e}
-                    node.save(context)
-
-            if curr_state == new_state:
-                # Neither the ironic service nor the hardware has erred. The
-                # node is, for some reason, already in the requested state,
-                # though we don't know why. eg, perhaps the user previously
-                # requested the node POWER_ON, the network delayed those IPMI
-                # packets, and they are trying again -- but the node finally
-                # responds to the first request, and so the second request
-                # gets to this check and stops.
-                # This isn't an error, so we'll clear last_error field
-                # (from previous operation), log a warning, and return.
-                node['last_error'] = None
-                node.save(context)
-                LOG.warn(_("Not going to change_node_power_state because "
-                           "current state = requested state = '%(state)s'.")
-                           % {'state': curr_state})
-                return
-
-            # Set the target_power_state and clear any last_error, since we're
-            # starting a new operation. This will expose to other processes
-            # and clients that work is in progress.
-            node['target_power_state'] = new_state
-            node['last_error'] = None
-            node.save(context)
-
-            # take power action
-            try:
-                task.driver.power.set_power_state(task, node, new_state)
-            except Exception as e:
-                with excutils.save_and_reraise_exception():
-                    node['last_error'] = \
-                        _("Failed to change power state to '%(target)s'. "
-                          "Error: %(error)s") % {
-                            'target': new_state, 'error': e}
-            else:
-                # success!
-                node['power_state'] = new_state
-            finally:
-                node['target_power_state'] = states.NOSTATE
-                node.save(context)
+            utils.node_power_action(task, task.node, new_state)
 
     # NOTE(deva): There is a race condition in the RPC API for vendor_passthru.
     # Between the validate_vendor_action and do_vendor_action calls, it's
