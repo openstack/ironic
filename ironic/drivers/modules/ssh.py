@@ -36,7 +36,6 @@ from ironic.common import states
 from ironic.common import utils
 from ironic.conductor import task_manager
 from ironic.drivers import base
-from ironic.openstack.common import jsonutils as json
 from ironic.openstack.common import log as logging
 
 CONF = cfg.CONF
@@ -109,14 +108,13 @@ def _exec_ssh_command(ssh_obj, command):
 
 
 def _parse_driver_info(node):
-    driver_info = json.loads(node.get('driver_info', ''))
-    ssh_info = driver_info.get('ssh')
-    address = ssh_info.get('address', None)
-    username = ssh_info.get('username', None)
-    password = ssh_info.get('password', None)
-    port = ssh_info.get('port', 22)
-    key_filename = ssh_info.get('key_filename', None)
-    virt_type = ssh_info.get('virt_type', None)
+    info = node.get('driver_info', {})
+    address = info.get('ssh_address', None)
+    username = info.get('ssh_username', None)
+    password = info.get('ssh_password', None)
+    port = info.get('ssh_port', 22)
+    key_filename = info.get('ssh_key_filename', None)
+    virt_type = info.get('ssh_virt_type', None)
 
     # NOTE(deva): we map 'address' from API to 'host' for common utils
     res = {
