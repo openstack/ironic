@@ -47,6 +47,11 @@ class FunctionalTest(base.DbTestCase):
         self.app = self._make_app()
         self.dbapi = dbapi.get_instance()
 
+        def reset_pecan():
+            pecan.set_config({}, overwrite=True)
+
+        self.addCleanup(reset_pecan)
+
     def _make_app(self, enable_acl=False):
         # Determine where we are so we can set up paths in the config
         root_dir = self.path_get()
@@ -63,10 +68,6 @@ class FunctionalTest(base.DbTestCase):
         }
 
         return pecan.testing.load_test_app(self.config)
-
-    def tearDown(self):
-        super(FunctionalTest, self).tearDown()
-        pecan.set_config({}, overwrite=True)
 
     def post_json(self, path, params, expect_errors=False, headers=None,
                   method="post", extra_environ=None, status=None,
