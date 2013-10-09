@@ -30,7 +30,7 @@ from ironic.tests.conductor import utils as mgr_utils
 from ironic.tests.db import base as db_base
 from ironic.tests.db import utils as db_utils
 
-INFO_DICT = json.loads(db_utils.ssh_info).get('ssh')
+INFO_DICT = json.loads(db_utils.ssh_info)
 
 
 class SSHValidateParametersTestCase(base.TestCase):
@@ -39,7 +39,7 @@ class SSHValidateParametersTestCase(base.TestCase):
         # make sure we get back the expected things
         node = db_utils.get_test_node(
                     driver='fake_ssh',
-                    driver_info=db_utils.ssh_info)
+                    driver_info=INFO_DICT)
         info = ssh._parse_driver_info(node)
         self.assertIsNotNone(info.get('host'))
         self.assertIsNotNone(info.get('username'))
@@ -52,10 +52,9 @@ class SSHValidateParametersTestCase(base.TestCase):
 
     def test__parse_driver_info_missing_host(self):
         # make sure error is raised when info is missing
-        tmp_dict = dict(INFO_DICT)
-        del tmp_dict['address']
-        del tmp_dict['key_filename']
-        info = json.dumps({'ssh': tmp_dict})
+        info = dict(INFO_DICT)
+        del info['ssh_address']
+        del info['ssh_key_filename']
         node = db_utils.get_test_node(driver_info=info)
         self.assertRaises(exception.InvalidParameterValue,
                 ssh._parse_driver_info,
@@ -64,10 +63,9 @@ class SSHValidateParametersTestCase(base.TestCase):
 
     def test__parse_driver_info_missing_user(self):
         # make sure error is raised when info is missing
-        tmp_dict = dict(INFO_DICT)
-        del tmp_dict['username']
-        del tmp_dict['key_filename']
-        info = json.dumps({'ssh': tmp_dict})
+        info = dict(INFO_DICT)
+        del info['ssh_username']
+        del info['ssh_key_filename']
         node = db_utils.get_test_node(driver_info=info)
         self.assertRaises(exception.InvalidParameterValue,
                 ssh._parse_driver_info,
@@ -76,10 +74,9 @@ class SSHValidateParametersTestCase(base.TestCase):
 
     def test__parse_driver_info_missing_pass(self):
         # make sure error is raised when info is missing
-        tmp_dict = dict(INFO_DICT)
-        del tmp_dict['password']
-        del tmp_dict['key_filename']
-        info = json.dumps({'ssh': tmp_dict})
+        info = dict(INFO_DICT)
+        del info['ssh_password']
+        del info['ssh_key_filename']
         node = db_utils.get_test_node(driver_info=info)
         self.assertRaises(exception.InvalidParameterValue,
                 ssh._parse_driver_info,
@@ -88,10 +85,9 @@ class SSHValidateParametersTestCase(base.TestCase):
 
     def test__parse_driver_info_missing_virt_type(self):
         # make sure error is raised when info is missing
-        tmp_dict = dict(INFO_DICT)
-        del tmp_dict['virt_type']
-        del tmp_dict['key_filename']
-        info = json.dumps({'ssh': tmp_dict})
+        info = dict(INFO_DICT)
+        del info['ssh_virt_type']
+        del info['ssh_key_filename']
         node = db_utils.get_test_node(driver_info=info)
         self.assertRaises(exception.InvalidParameterValue,
                 ssh._parse_driver_info,
@@ -100,9 +96,8 @@ class SSHValidateParametersTestCase(base.TestCase):
 
     def test__parse_driver_info_missing_key(self):
         # make sure error is raised when info is missing
-        tmp_dict = dict(INFO_DICT)
-        del tmp_dict['password']
-        info = json.dumps({'ssh': tmp_dict})
+        info = dict(INFO_DICT)
+        del info['ssh_password']
         node = db_utils.get_test_node(driver_info=info)
         self.assertRaises(exception.FileNotFound,
                 ssh._parse_driver_info,
@@ -122,7 +117,7 @@ class SSHPrivateMethodsTestCase(base.TestCase):
         super(SSHPrivateMethodsTestCase, self).setUp()
         self.node = db_utils.get_test_node(
                         driver='fake_ssh',
-                        driver_info=db_utils.ssh_info)
+                        driver_info=INFO_DICT)
         self.sshclient = paramiko.SSHClient()
 
     def test__get_power_status_on(self):
@@ -360,7 +355,7 @@ class SSHDriverTestCase(db_base.DbTestCase):
         self.driver = mgr_utils.get_mocked_node_manager(driver='fake_ssh')
         self.node = db_utils.get_test_node(
                         driver='fake_ssh',
-                        driver_info=db_utils.ssh_info)
+                        driver_info=INFO_DICT)
         self.dbapi = dbapi.get_instance()
         self.dbapi.create_node(self.node)
         self.sshclient = paramiko.SSHClient()

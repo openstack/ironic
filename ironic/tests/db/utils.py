@@ -34,14 +34,12 @@ ipmi_info = json.dumps(
 
 ssh_info = json.dumps(
         {
-            'ssh': {
-                "address": "1.2.3.4",
-                "username": "admin",
-                "password": "fake",
-                "port": 22,
-                "virt_type": "vbox",
-                "key_filename": "/not/real/file",
-            }
+            "ssh_address": "1.2.3.4",
+            "ssh_username": "admin",
+            "ssh_password": "fake",
+            "ssh_port": 22,
+            "ssh_virt_type": "vbox",
+            "ssh_key_filename": "/not/real/file",
          })
 
 pxe_info = json.dumps(
