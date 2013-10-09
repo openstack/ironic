@@ -156,9 +156,10 @@ class SwitchPxeConfigTestCase(tests_base.TestCase):
         os.write(fd, _PXECONF_DEPLOY)
         os.close(fd)
 
-    def tearDown(self):
-        os.unlink(self.fname)
-        super(SwitchPxeConfigTestCase, self).tearDown()
+        def cleanup():
+            os.unlink(self.fname)
+
+        self.addCleanup(cleanup)
 
     def test_switch_pxe_config(self):
         utils.switch_pxe_config(self.fname,

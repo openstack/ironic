@@ -35,18 +35,16 @@ class BaseTestCase(testtools.TestCase):
         self.mox = moxfixture.mox
         self.stubs = moxfixture.stubs
         self.conf = conf
-        self.addCleanup(self.conf.reset)
         self.useFixture(fixtures.FakeLogger('openstack.common'))
         self.useFixture(fixtures.Timeout(30, True))
         self.config(fatal_exception_format_errors=True)
         self.useFixture(fixtures.NestedTempfile())
         self.tempdirs = []
 
-    def tearDown(self):
-        super(BaseTestCase, self).tearDown()
-        self.conf.reset()
-        self.stubs.UnsetAll()
-        self.stubs.SmartUnsetAll()
+        self.addCleanup(self.conf.reset)
+        self.addCleanup(self.conf.reset)
+        self.addCleanup(self.stubs.UnsetAll)
+        self.addCleanup(self.stubs.SmartUnsetAll)
 
     def create_tempfiles(self, files, ext='.conf'):
         tempfiles = []
@@ -72,8 +70,8 @@ class BaseTestCase(testtools.TestCase):
         If a group argument is supplied, the overrides are applied to
         the specified configuration option group.
 
-        All overrides are automatically cleared at the end of the current
-        test by the tearDown() method.
+        All overrides are automatically cleaned up at the end of the
+        current test.
         """
         group = kw.pop('group', None)
         for k, v in kw.iteritems():
