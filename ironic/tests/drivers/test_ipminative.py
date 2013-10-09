@@ -26,6 +26,7 @@ from ironic.common import states
 from ironic.conductor import task_manager
 from ironic.db import api as db_api
 from ironic.drivers.modules import ipminative
+from ironic.openstack.common import jsonutils as json
 from ironic.tests import base
 from ironic.tests.conductor import utils as mgr_utils
 from ironic.tests.db import base as db_base
@@ -33,6 +34,8 @@ from ironic.tests.db import utils as db_utils
 from oslo.config import cfg
 
 CONF = cfg.CONF
+
+INFO_DICT = json.loads(db_utils.ipmi_info)
 
 
 class IPMINativePrivateMethodTestCase(base.TestCase):
@@ -42,7 +45,7 @@ class IPMINativePrivateMethodTestCase(base.TestCase):
         super(IPMINativePrivateMethodTestCase, self).setUp()
         n = db_utils.get_test_node(
                 driver='fake_ipminative',
-                driver_info=db_utils.ipmi_info)
+                driver_info=INFO_DICT)
         self.dbapi = db_api.get_instance()
         self.node = self.dbapi.create_node(n)
         self.info = ipminative._parse_driver_info(self.node)
@@ -58,16 +61,13 @@ class IPMINativePrivateMethodTestCase(base.TestCase):
         self.assertIsNotNone(self.info.get('uuid'))
 
         # make sure error is raised when info, eg. username, is missing
-        _driver_info = {
-                         'ipmi': {
-                                   "address": "2.2.3.4",
-                                   "password": "fake",
-                                 }
-                       }
-        node = db_utils.get_test_node(driver_info=_driver_info)
+        info = dict(INFO_DICT)
+        del info['ipmi_username']
+
+        node = db_utils.get_test_node(driver_info=info)
         self.assertRaises(exception.InvalidParameterValue,
-                ipminative._parse_driver_info,
-                node)
+                          ipminative._parse_driver_info,
+                          node)
 
     def test__power_status_on(self):
         ipmicmd = self.ipmi_mock.return_value
@@ -133,7 +133,7 @@ class IPMINativeDriverTestCase(db_base.DbTestCase):
 
         n = db_utils.get_test_node(
                 driver='fake_ipminative',
-                driver_info=db_utils.ipmi_info)
+                driver_info=INFO_DICT)
         self.dbapi = db_api.get_instance()
         self.node = self.dbapi.create_node(n)
         self.info = ipminative._parse_driver_info(self.node)

@@ -25,11 +25,9 @@ fake_info = {"foo": "bar"}
 
 ipmi_info = json.dumps(
         {
-            'ipmi': {
-                "address": "1.2.3.4",
-                "username": "admin",
-                "password": "fake",
-            }
+            "ipmi_address": "1.2.3.4",
+            "ipmi_username": "admin",
+            "ipmi_password": "fake",
          })
 
 ssh_info = json.dumps(
