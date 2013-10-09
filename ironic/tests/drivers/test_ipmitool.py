@@ -40,6 +40,8 @@ from ironic.tests.db import utils as db_utils
 
 CONF = cfg.CONF
 
+INFO_DICT = json.loads(db_utils.ipmi_info)
+
 
 class IPMIToolPrivateMethodTestCase(base.TestCase):
 
@@ -47,7 +49,7 @@ class IPMIToolPrivateMethodTestCase(base.TestCase):
         super(IPMIToolPrivateMethodTestCase, self).setUp()
         self.node = db_utils.get_test_node(
                 driver='fake_ipmitool',
-                driver_info=db_utils.ipmi_info)
+                driver_info=INFO_DICT)
         self.info = ipmi._parse_driver_info(self.node)
 
     def test__make_password_file(self):
@@ -68,17 +70,13 @@ class IPMIToolPrivateMethodTestCase(base.TestCase):
         self.assertIsNotNone(self.info.get('uuid'))
 
         # make sure error is raised when info, eg. username, is missing
-        _driver_info = json.dumps(
-            {
-                'ipmi': {
-                    "address": "1.2.3.4",
-                    "password": "fake",
-                }
-             })
-        node = db_utils.get_test_node(driver_info=_driver_info)
+        info = dict(INFO_DICT)
+        del info['ipmi_username']
+
+        node = db_utils.get_test_node(driver_info=info)
         self.assertRaises(exception.InvalidParameterValue,
-                ipmi._parse_driver_info,
-                node)
+                          ipmi._parse_driver_info,
+                          node)
 
     def test__exec_ipmitool(self):
         pw_file = '/tmp/password_file'
@@ -169,7 +167,7 @@ class IPMIToolDriverTestCase(db_base.DbTestCase):
 
         self.node = db_utils.get_test_node(
                 driver='fake_ipmitool',
-                driver_info=db_utils.ipmi_info)
+                driver_info=INFO_DICT)
         self.info = ipmi._parse_driver_info(self.node)
         self.dbapi.create_node(self.node)
 

@@ -35,7 +35,6 @@ from ironic.common import utils
 from ironic.conductor import task_manager
 from ironic.drivers import base
 from ironic.openstack.common import excutils
-from ironic.openstack.common import jsonutils as json
 from ironic.openstack.common import log as logging
 from ironic.openstack.common import loopingcall
 
@@ -78,12 +77,11 @@ def _make_password_file(password):
 
 
 def _parse_driver_info(node):
-    driver_info = json.loads(node.get('driver_info', ''))
-    ipmi_info = driver_info.get('ipmi')
-    address = ipmi_info.get('address', None)
-    username = ipmi_info.get('username', None)
-    password = ipmi_info.get('password', None)
-    port = ipmi_info.get('terminal_port', None)
+    info = node.get('driver_info', {})
+    address = info.get('ipmi_address', None)
+    username = info.get('ipmi_username', None)
+    password = info.get('ipmi_password', None)
+    port = info.get('ipmi_terminal_port', None)
 
     if not address or not username or not password:
         raise exception.InvalidParameterValue(_(

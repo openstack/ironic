@@ -48,12 +48,11 @@ def _parse_driver_info(node):
               are missing.
     """
 
-    info = node.get('driver_info', '')
-    ipmi_info = info.get('ipmi')
+    info = node.get('driver_info', {})
     bmc_info = {}
-    bmc_info['address'] = ipmi_info.get('address')
-    bmc_info['username'] = ipmi_info.get('username')
-    bmc_info['password'] = ipmi_info.get('password')
+    bmc_info['address'] = info.get('ipmi_address')
+    bmc_info['username'] = info.get('ipmi_username')
+    bmc_info['password'] = info.get('ipmi_password')
 
     # address, username and password must be present
     missing_info = [key for key in bmc_info if not bmc_info[key]]
