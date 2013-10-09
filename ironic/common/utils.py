@@ -217,7 +217,8 @@ def ssh_connect(connection):
 
         # send TCP keepalive packets every 20 seconds
         ssh.get_transport().set_keepalive(20)
-    except Exception:
+    except Exception as e:
+        LOG.debug(_("SSH connect failed: %s") % e)
         raise exception.SSHConnectFailed(host=connection.get('host'))
 
     return ssh
