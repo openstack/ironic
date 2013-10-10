@@ -14,6 +14,8 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import mock
+
 from ironic.db import api as db_api
 from ironic.db.sqlalchemy import models
 from ironic import objects
@@ -31,46 +33,43 @@ class TestChassisObject(base.DbTestCase):
 
     def test_load(self):
         uuid = self.fake_chassis['uuid']
+        with mock.patch.object(self.dbapi, 'get_chassis',
+                               autospec=True) as mock_get_chassis:
+            mock_get_chassis.return_value = self.fake_chassis
 
-        self.mox.StubOutWithMock(self.dbapi, 'get_chassis')
-        self.dbapi.get_chassis(uuid).AndReturn(self.fake_chassis)
-        self.mox.ReplayAll()
+            objects.Chassis.get_by_uuid(self.context, uuid)
 
-        objects.Chassis.get_by_uuid(self.context, uuid)
-        self.mox.VerifyAll()
+            mock_get_chassis.assert_called_once_with(uuid)
 
     def test_save(self):
         uuid = self.fake_chassis['uuid']
+        with mock.patch.object(self.dbapi, 'get_chassis',
+                               autospec=True) as mock_get_chassis:
+            mock_get_chassis.return_value = self.fake_chassis
+            with mock.patch.object(self.dbapi, 'update_chassis',
+                                   autospec=True) as mock_update_chassis:
 
-        self.mox.StubOutWithMock(self.dbapi, 'get_chassis')
-        self.mox.StubOutWithMock(self.dbapi, 'update_chassis')
-        self.dbapi.get_chassis(uuid).AndReturn(self.fake_chassis)
+                c = objects.Chassis.get_by_uuid(self.context, uuid)
+                c.extra = {"test": 123}
+                c.save()
 
-        self.dbapi.update_chassis(uuid, {'extra': {"test": 123}})
-        self.mox.ReplayAll()
-
-        c = objects.Chassis.get_by_uuid(self.context, uuid)
-        c.extra = {"test": 123}
-        c.save()
-        self.mox.VerifyAll()
+                mock_get_chassis.assert_called_once_with(uuid)
+                mock_update_chassis.assert_called_once_with(
+                        uuid, {'extra': {"test": 123}})
 
     def test_refresh(self):
         uuid = self.fake_chassis['uuid']
         new_uuid = uuidutils.generate_uuid()
-
-        self.mox.StubOutWithMock(self.dbapi, 'get_chassis')
-
-        self.dbapi.get_chassis(uuid).AndReturn(
-                dict(self.fake_chassis, uuid=uuid))
-        self.dbapi.get_chassis(uuid).AndReturn(
-                dict(self.fake_chassis, uuid=new_uuid))
-        self.mox.ReplayAll()
-
-        c = objects.Chassis.get_by_uuid(self.context, uuid)
-        self.assertEqual(c.uuid, uuid)
-        c.refresh()
-        self.assertEqual(c.uuid, new_uuid)
-        self.mox.VerifyAll()
+        returns = [dict(self.fake_chassis, uuid=uuid),
+                   dict(self.fake_chassis, uuid=new_uuid)]
+        expected = [mock.call(uuid), mock.call(uuid)]
+        with mock.patch.object(self.dbapi, 'get_chassis', side_effect=returns,
+                               autospec=True) as mock_get_chassis:
+            c = objects.Chassis.get_by_uuid(self.context, uuid)
+            self.assertEqual(c.uuid, uuid)
+            c.refresh()
+            self.assertEqual(c.uuid, new_uuid)
+            self.assertEqual(mock_get_chassis.call_args_list, expected)
 
     def test_objectify(self):
         def _get_db_chassis():

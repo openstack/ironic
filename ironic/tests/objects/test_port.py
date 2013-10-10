@@ -14,6 +14,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import mock
 
 from ironic.db import api as db_api
 from ironic.db.sqlalchemy import models
@@ -31,45 +32,42 @@ class TestPortObject(base.DbTestCase):
 
     def test_load(self):
         uuid = self.fake_port['uuid']
-        self.mox.StubOutWithMock(self.dbapi, 'get_port')
+        with mock.patch.object(self.dbapi, 'get_port',
+                               autospec=True) as mock_get_port:
+            mock_get_port.return_value = self.fake_port
 
-        self.dbapi.get_port(uuid).AndReturn(self.fake_port)
-        self.mox.ReplayAll()
+            objects.Port.get_by_uuid(self.context, uuid)
 
-        objects.Port.get_by_uuid(self.context, uuid)
-        self.mox.VerifyAll()
+            mock_get_port.assert_called_once_with(uuid)
 
     def test_save(self):
         uuid = self.fake_port['uuid']
-        self.mox.StubOutWithMock(self.dbapi, 'get_port')
-        self.mox.StubOutWithMock(self.dbapi, 'update_port')
+        with mock.patch.object(self.dbapi, 'get_port',
+                               autospec=True) as mock_get_port:
+            mock_get_port.return_value = self.fake_port
+            with mock.patch.object(self.dbapi, 'update_port',
+                                   autospec=True) as mock_update_port:
+                p = objects.Port.get_by_uuid(self.context, uuid)
+                p.address = "b2:54:00:cf:2d:40"
+                p.save()
 
-        self.dbapi.get_port(uuid).AndReturn(self.fake_port)
-        self.dbapi.update_port(uuid, {'address': "b2:54:00:cf:2d:40"})
-        self.mox.ReplayAll()
-
-        p = objects.Port.get_by_uuid(self.context, uuid)
-        p.address = "b2:54:00:cf:2d:40"
-        p.save()
-        self.mox.VerifyAll()
+                mock_get_port.assert_called_once_with(uuid)
+                mock_update_port.assert_called_once_with(
+                        uuid, {'address': "b2:54:00:cf:2d:40"})
 
     def test_refresh(self):
         uuid = self.fake_port['uuid']
-        self.mox.StubOutWithMock(self.dbapi, 'get_port')
+        returns = [self.fake_port,
+                   utils.get_test_port(address="c3:54:00:cf:2d:40")]
+        expected = [mock.call(uuid), mock.call(uuid)]
+        with mock.patch.object(self.dbapi, 'get_port', side_effect=returns,
+                               autospec=True) as mock_get_port:
+            p = objects.Port.get_by_uuid(self.context, uuid)
+            self.assertEqual(p.address, "52:54:00:cf:2d:31")
+            p.refresh()
+            self.assertEqual(p.address, "c3:54:00:cf:2d:40")
 
-        self.dbapi.get_port(uuid).AndReturn(self.fake_port)
-        self.dbapi.get_port(uuid).AndReturn(
-            utils.get_test_port(address="c3:54:00:cf:2d:40"))
-
-        self.mox.ReplayAll()
-
-        p = objects.Port.get_by_uuid(self.context, uuid)
-        self.assertEqual(p.address, "52:54:00:cf:2d:31")
-
-        p.refresh()
-
-        self.assertEqual(p.address, "c3:54:00:cf:2d:40")
-        self.mox.VerifyAll()
+            self.assertEqual(mock_get_port.call_args_list, expected)
 
     def test_objectify(self):
         def _get_db_port():

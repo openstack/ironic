@@ -14,6 +14,8 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import mock
+
 from ironic.db import api as db_api
 from ironic.db.sqlalchemy import models
 from ironic import objects
@@ -30,45 +32,45 @@ class TestNodeObject(base.DbTestCase):
 
     def test_load(self):
         uuid = self.fake_node['uuid']
-        self.mox.StubOutWithMock(self.dbapi, 'get_node')
+        with mock.patch.object(self.dbapi, 'get_node',
+                               autospec=True) as mock_get_node:
+            mock_get_node.return_value = self.fake_node
 
-        self.dbapi.get_node(uuid).AndReturn(self.fake_node)
-        self.mox.ReplayAll()
+            objects.Node.get_by_uuid(self.context, uuid)
 
-        objects.Node.get_by_uuid(self.context, uuid)
-        self.mox.VerifyAll()
-        # TODO(deva): add tests for load-on-demand info, eg. ports,
-        #             once Port objects are created
+            mock_get_node.assert_called_once_with(uuid)
+
+            # TODO(deva): add tests for load-on-demand info, eg. ports,
+            #             once Port objects are created
 
     def test_save(self):
         uuid = self.fake_node['uuid']
-        self.mox.StubOutWithMock(self.dbapi, 'get_node')
-        self.mox.StubOutWithMock(self.dbapi, 'update_node')
+        with mock.patch.object(self.dbapi, 'get_node',
+                               autospec=True) as mock_get_node:
+            mock_get_node.return_value = self.fake_node
+            with mock.patch.object(self.dbapi, 'update_node',
+                                   autospec=True) as mock_update_node:
 
-        self.dbapi.get_node(uuid).AndReturn(self.fake_node)
-        self.dbapi.update_node(uuid, {'properties': {"fake": "property"}})
-        self.mox.ReplayAll()
+                n = objects.Node.get_by_uuid(self.context, uuid)
+                n.properties = {"fake": "property"}
+                n.save()
 
-        n = objects.Node.get_by_uuid(self.context, uuid)
-        n.properties = {"fake": "property"}
-        n.save()
-        self.mox.VerifyAll()
+                mock_get_node.assert_called_once_with(uuid)
+                mock_update_node.assert_called_once_with(
+                        uuid, {'properties': {"fake": "property"}})
 
     def test_refresh(self):
         uuid = self.fake_node['uuid']
-        self.mox.StubOutWithMock(self.dbapi, 'get_node')
-
-        self.dbapi.get_node(uuid).AndReturn(
-                dict(self.fake_node, properties={"fake": "first"}))
-        self.dbapi.get_node(uuid).AndReturn(
-                dict(self.fake_node, properties={"fake": "second"}))
-        self.mox.ReplayAll()
-
-        n = objects.Node.get_by_uuid(self.context, uuid)
-        self.assertEqual(n.properties, {"fake": "first"})
-        n.refresh()
-        self.assertEqual(n.properties, {"fake": "second"})
-        self.mox.VerifyAll()
+        returns = [dict(self.fake_node, properties={"fake": "first"}),
+                   dict(self.fake_node, properties={"fake": "second"})]
+        expected = [mock.call(uuid), mock.call(uuid)]
+        with mock.patch.object(self.dbapi, 'get_node', side_effect=returns,
+                               autospec=True) as mock_get_node:
+            n = objects.Node.get_by_uuid(self.context, uuid)
+            self.assertEqual(n.properties, {"fake": "first"})
+            n.refresh()
+            self.assertEqual(n.properties, {"fake": "second"})
+            self.assertEqual(mock_get_node.call_args_list, expected)
 
     def test_objectify(self):
         def _get_db_node():
