@@ -16,12 +16,13 @@
 Tests for the API /nodes/ methods.
 """
 
-import mox
+import mock
 import webtest.app
 
 from ironic.common import exception
 from ironic.common import states
 from ironic.conductor import rpcapi
+from ironic import objects
 from ironic.openstack.common import uuidutils
 from ironic.tests.api import base
 from ironic.tests.db import utils as dbutils
@@ -177,14 +178,15 @@ class TestPatch(base.FunctionalTest):
         self.chassis = self.dbapi.create_chassis(cdict)
         ndict = dbutils.get_test_node()
         self.node = self.dbapi.create_node(ndict)
-        self.mox.StubOutWithMock(rpcapi.ConductorAPI, 'update_node')
-        self.mox.StubOutWithMock(rpcapi.ConductorAPI,
-                                 'change_node_power_state')
+        p = mock.patch.object(rpcapi.ConductorAPI, 'update_node')
+        self.mock_update_node = p.start()
+        self.addCleanup(p.stop)
+        p = mock.patch.object(rpcapi.ConductorAPI, 'change_node_power_state')
+        self.mock_cnps = p.start()
+        self.addCleanup(p.stop)
 
     def test_update_ok(self):
-        rpcapi.ConductorAPI.update_node(mox.IgnoreArg(), mox.IgnoreArg()).\
-                AndReturn(self.node)
-        self.mox.ReplayAll()
+        self.mock_update_node.return_value = self.node
 
         response = self.patch_json('/nodes/%s' % self.node['uuid'],
                                    [{'path': '/instance_uuid',
@@ -192,7 +194,8 @@ class TestPatch(base.FunctionalTest):
                                      'op': 'replace'}])
         self.assertEqual(response.content_type, 'application/json')
         self.assertEqual(response.status_code, 200)
-        self.mox.VerifyAll()
+
+        self.mock_update_node.assert_called_once_with(mock.ANY, mock.ANY)
 
     def test_update_state(self):
         self.assertRaises(webtest.app.AppError, self.patch_json,
@@ -201,9 +204,8 @@ class TestPatch(base.FunctionalTest):
 
     def test_update_fails_bad_driver_info(self):
         fake_err = 'Fake Error Message'
-        rpcapi.ConductorAPI.update_node(mox.IgnoreArg(), mox.IgnoreArg()).\
-                AndRaise(exception.InvalidParameterValue(fake_err))
-        self.mox.ReplayAll()
+        self.mock_update_node.side_effect = exception.InvalidParameterValue(
+                                                fake_err)
 
         response = self.patch_json('/nodes/%s' % self.node['uuid'],
                                    [{'path': '/driver_info/this',
@@ -215,14 +217,13 @@ class TestPatch(base.FunctionalTest):
                                    expect_errors=True)
         self.assertEqual(response.content_type, 'application/json')
         self.assertEqual(response.status_code, 400)
-        self.mox.VerifyAll()
+
+        self.mock_update_node.assert_called_once_with(mock.ANY, mock.ANY)
 
     def test_update_fails_bad_state(self):
         fake_err = 'Fake Power State'
-        rpcapi.ConductorAPI.update_node(mox.IgnoreArg(), mox.IgnoreArg()).\
-                AndRaise(exception.NodeInWrongPowerState(
-                    node=self.node['uuid'], pstate=fake_err))
-        self.mox.ReplayAll()
+        self.mock_update_node.side_effect = exception.NodeInWrongPowerState(
+                    node=self.node['uuid'], pstate=fake_err)
 
         response = self.patch_json('/nodes/%s' % self.node['uuid'],
                                    [{'path': '/instance_uuid',
@@ -231,12 +232,11 @@ class TestPatch(base.FunctionalTest):
                                    expect_errors=True)
         self.assertEqual(response.content_type, 'application/json')
         self.assertEqual(response.status_code, 409)
-        self.mox.VerifyAll()
+
+        self.mock_update_node.assert_called_once_with(mock.ANY, mock.ANY)
 
     def test_add_ok(self):
-        rpcapi.ConductorAPI.update_node(mox.IgnoreArg(), mox.IgnoreArg()).\
-                AndReturn(self.node)
-        self.mox.ReplayAll()
+        self.mock_update_node.return_value = self.node
 
         response = self.patch_json('/nodes/%s' % self.node['uuid'],
                                    [{'path': '/extra/foo',
@@ -244,7 +244,8 @@ class TestPatch(base.FunctionalTest):
                                      'op': 'add'}])
         self.assertEqual(response.content_type, 'application/json')
         self.assertEqual(response.status_code, 200)
-        self.mox.VerifyAll()
+
+        self.mock_update_node.assert_called_once_with(mock.ANY, mock.ANY)
 
     def test_add_fail(self):
         self.assertRaises(webtest.app.AppError, self.patch_json,
@@ -252,16 +253,15 @@ class TestPatch(base.FunctionalTest):
                           [{'path': '/foo', 'value': 'bar', 'op': 'add'}])
 
     def test_remove_ok(self):
-        rpcapi.ConductorAPI.update_node(mox.IgnoreArg(), mox.IgnoreArg()).\
-                AndReturn(self.node)
-        self.mox.ReplayAll()
+        self.mock_update_node.return_value = self.node
 
         response = self.patch_json('/nodes/%s' % self.node['uuid'],
                                    [{'path': '/extra',
                                      'op': 'remove'}])
         self.assertEqual(response.content_type, 'application/json')
         self.assertEqual(response.status_code, 200)
-        self.mox.VerifyAll()
+
+        self.mock_update_node.assert_called_once_with(mock.ANY, mock.ANY)
 
     def test_remove_fail(self):
         self.assertRaises(webtest.app.AppError, self.patch_json,
@@ -379,34 +379,42 @@ class TestPut(base.FunctionalTest):
         self.chassis = self.dbapi.create_chassis(cdict)
         ndict = dbutils.get_test_node()
         self.node = self.dbapi.create_node(ndict)
-        self.mox.StubOutWithMock(rpcapi.ConductorAPI, 'update_node')
-        self.mox.StubOutWithMock(rpcapi.ConductorAPI,
-                                 'change_node_power_state')
+        p = mock.patch.object(rpcapi.ConductorAPI, 'update_node')
+        self.mock_update_node = p.start()
+        self.addCleanup(p.stop)
+        p = mock.patch.object(rpcapi.ConductorAPI, 'change_node_power_state')
+        self.mock_cnps = p.start()
+        self.addCleanup(p.stop)
 
     def test_power_state(self):
-        rpcapi.ConductorAPI.update_node(mox.IgnoreArg(), mox.IgnoreArg()).\
-                AndReturn(self.node)
-        rpcapi.ConductorAPI.change_node_power_state(mox.IgnoreArg(),
-                                                     mox.IgnoreArg(),
-                                                     mox.IgnoreArg())
-        self.mox.ReplayAll()
+        self.mock_update_node.return_value = self.node
 
         response = self.put_json('/nodes/%s/state/power' % self.node['uuid'],
                                  {'target': states.POWER_ON})
         self.assertEqual(response.content_type, 'application/json')
         self.assertEqual(response.status_code, 202)
-        self.mox.VerifyAll()
+
+        self.mock_update_node.assert_called_once_with(mock.ANY, mock.ANY)
+        self.mock_cnps.assert_called_once_with(mock.ANY, mock.ANY, mock.ANY)
 
     def test_power_state_in_progress(self):
-        rpcapi.ConductorAPI.update_node(mox.IgnoreArg(), mox.IgnoreArg()).\
-                AndReturn(self.node)
-        rpcapi.ConductorAPI.change_node_power_state(mox.IgnoreArg(),
-                                                     mox.IgnoreArg(),
-                                                     mox.IgnoreArg())
-        self.mox.ReplayAll()
-        self.put_json('/nodes/%s/state/power' % self.node['uuid'],
-                      {'target': states.POWER_ON})
-        self.assertRaises(webtest.app.AppError, self.put_json,
-                          '/nodes/%s/state/power' % self.node['uuid'],
+        self.mock_update_node.return_value = self.node
+        manager = mock.MagicMock()
+        with mock.patch.object(objects.Node, 'get_by_uuid') as mock_get_node:
+            mock_get_node.return_value = self.node
+            manager.attach_mock(mock_get_node, 'get_by_uuid')
+            manager.attach_mock(self.mock_update_node, 'update_node')
+            manager.attach_mock(self.mock_cnps, 'change_node_power_state')
+            expected = [mock.call.get_by_uuid(mock.ANY, self.node['uuid']),
+                        mock.call.update_node(mock.ANY, mock.ANY),
+                        mock.call.change_node_power_state(mock.ANY, mock.ANY,
+                                                          mock.ANY),
+                        mock.call.get_by_uuid(mock.ANY, self.node['uuid'])]
+
+            self.put_json('/nodes/%s/state/power' % self.node['uuid'],
                           {'target': states.POWER_ON})
-        self.mox.VerifyAll()
+            self.assertRaises(webtest.app.AppError, self.put_json,
+                              '/nodes/%s/state/power' % self.node['uuid'],
+                              {'target': states.POWER_ON})
+
+            self.assertEqual(manager.mock_calls, expected)
