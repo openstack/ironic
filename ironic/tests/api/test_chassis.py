@@ -301,7 +301,7 @@ class TestDelete(base.FunctionalTest):
         self.dbapi.create_node(ndict)
         response = self.delete('/chassis/%s' % cdict['uuid'],
                                expect_errors=True)
-        self.assertEqual(response.status_int, 500)
+        self.assertEqual(response.status_int, 400)
         self.assertEqual(response.content_type, 'application/json')
         self.assertTrue(response.json['error_message'])
 

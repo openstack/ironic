@@ -211,15 +211,15 @@ class InvalidMAC(Invalid):
     message = _("Expected a MAC address but received %(mac)s.")
 
 
-class InstanceDeployFailure(Invalid):
+class InstanceDeployFailure(IronicException):
     message = _("Failed to deploy instance: %(reason)s")
 
 
-class ImageUnacceptable(Invalid):
+class ImageUnacceptable(IronicException):
     message = _("Image %(image_id)s is unacceptable: %(reason)s")
 
 
-class ImageConvertFailed(Invalid):
+class ImageConvertFailed(IronicException):
     message = _("Image %(image_id)s is unacceptable: %(reason)s")
 
 
@@ -270,7 +270,7 @@ class NodeNotFound(NotFound):
     message = _("Node %(node)s could not be found.")
 
 
-class NodeLocked(NotFound):
+class NodeLocked(InvalidState):
     message = _("Node %(node)s is locked by another process.")
 
 
@@ -282,7 +282,7 @@ class ChassisNotFound(NotFound):
     message = _("Chassis %(chassis)s could not be found.")
 
 
-class PowerStateFailure(IronicException):
+class PowerStateFailure(InvalidState):
     message = _("Failed to set node power state to %(pstate)s.")
 
 
@@ -291,7 +291,7 @@ class ExclusiveLockRequired(NotAuthorized):
                 "but the current context has a shared lock.")
 
 
-class NodeInUse(IronicException):
+class NodeInUse(InvalidState):
     message = _("Unable to complete the requested action because node "
                 "%(node)s is currently in use by another process.")
 
@@ -306,7 +306,7 @@ class NodeNotConfigured(InvalidState):
             "is not fully configured.")
 
 
-class ChassisNotEmpty(IronicException):
+class ChassisNotEmpty(Invalid):
     message = _("Cannot complete the requested action because chassis "
                 "%(chassis)s contains nodes.")
 
@@ -327,7 +327,7 @@ class OrphanedObjectError(IronicException):
     message = _('Cannot call %(method)s on orphaned %(objtype)s object')
 
 
-class UnsupportedDriverExtension(IronicException):
+class UnsupportedDriverExtension(Invalid):
     message = _('Driver %(driver)s for node %(node)s does not '
                 'support %(extension)s.')
 
@@ -340,13 +340,12 @@ class GlanceConnectionFailed(IronicException):
     message = "Connection to glance host %(host)s:%(port)s failed: %(reason)s"
 
 
-class ImageNotAuthorized(IronicException):
+class ImageNotAuthorized(NotAuthorized):
     message = "Not authorized for image %(image_id)s."
 
 
-class InvalidImageRef(IronicException):
+class InvalidImageRef(Invalid):
     message = "Invalid image href %(image_href)s."
-    code = 400
 
 
 class ServiceUnavailable(IronicException):
