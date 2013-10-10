@@ -83,3 +83,17 @@ if not proliantutils:
 
 if 'ironic.drivers.ilo' in sys.modules:
     reload(sys.modules['ironic.drivers.ilo'])
+
+
+# attempt to load the external 'iboot' library, which is required by
+# the optional drivers.modules.iboot module
+iboot = importutils.try_import("iboot")
+if not iboot:
+    ib = mock.Mock()
+    ib.iBootInterface = mock.Mock()
+    sys.modules['iboot'] = ib
+
+# if anything has loaded the iboot driver yet, reload it now that the
+# external library has been mocked
+if 'ironic.drivers.modules.iboot' in sys.modules:
+    reload(sys.modules['ironic.drivers.modules.iboot'])

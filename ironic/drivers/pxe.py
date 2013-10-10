@@ -19,6 +19,7 @@ PXE Driver and supporting meta-classes.
 
 from ironic.common import exception
 from ironic.drivers import base
+from ironic.drivers.modules import iboot
 from ironic.drivers.modules import ipminative
 from ironic.drivers.modules import ipmitool
 from ironic.drivers.modules import pxe
@@ -111,3 +112,24 @@ class PXEAndSeaMicroDriver(base.BaseDriver):
                         'attach_volume': self.seamicro_vendor,
                         'set_node_vlan_id': self.seamicro_vendor}
         self.vendor = utils.MixinVendorInterface(self.mapping)
+
+
+class PXEAndIBootDriver(base.BaseDriver):
+    """PXE + IBoot PDU driver.
+
+    This driver implements the `core` functionality, combining
+    :class:ironic.drivers.modules.iboot.IBootPower for power
+    on/off and reboot with
+    :class:ironic.driver.modules.pxe.PXE for image deployment.
+    Implementations are in those respective classes;
+    this class is merely the glue between them.
+    """
+
+    def __init__(self):
+        if not importutils.try_import('iboot'):
+            raise exception.DriverLoadError(
+                    driver=self.__class__.__name__,
+                    reason="Unable to import iboot library")
+        self.power = iboot.IBootPower()
+        self.deploy = pxe.PXEDeploy()
+        self.vendor = pxe.VendorPassthru()

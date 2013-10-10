@@ -94,6 +94,14 @@ def get_test_agent_driver_info():
     }
 
 
+def get_test_iboot_info():
+    return {
+        "iboot_address": "1.2.3.4",
+        "iboot_username": "admin",
+        "iboot_password": "fake",
+    }
+
+
 def get_test_node(**kw):
     properties = {
         "cpu_arch": "x86_64",

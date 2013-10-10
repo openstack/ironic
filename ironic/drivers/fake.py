@@ -21,6 +21,7 @@ from ironic.common import exception
 from ironic.drivers import base
 from ironic.drivers.modules import agent
 from ironic.drivers.modules import fake
+from ironic.drivers.modules import iboot
 from ironic.drivers.modules import ipminative
 from ironic.drivers.modules import ipmitool
 from ironic.drivers.modules import pxe
@@ -105,3 +106,11 @@ class FakeAgentDriver(base.BaseDriver):
         self.power = fake.FakePower()
         self.deploy = agent.AgentDeploy()
         self.vendor = agent.AgentVendorInterface()
+
+
+class FakeIBootDriver(base.BaseDriver):
+    """Example implementation of a Driver."""
+
+    def __init__(self):
+        self.power = iboot.IBootPower()
+        self.deploy = fake.FakeDeploy()
