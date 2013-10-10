@@ -23,7 +23,7 @@ import os.path
 import StringIO
 import tempfile
 
-import mox
+import mock
 import netaddr
 from oslo.config import cfg
 
@@ -43,37 +43,28 @@ class BareMetalUtilsTestCase(base.TestCase):
         self.assertEqual(len(s), 100)
 
     def test_unlink(self):
-        self.mox.StubOutWithMock(os, "unlink")
-        os.unlink("/fake/path")
-
-        self.mox.ReplayAll()
-        utils.unlink_without_raise("/fake/path")
-        self.mox.VerifyAll()
+        with mock.patch.object(os, "unlink") as unlink_mock:
+            unlink_mock.return_value = None
+            utils.unlink_without_raise("/fake/path")
+            unlink_mock.assert_called_once_with("/fake/path")
 
     def test_unlink_ENOENT(self):
-        self.mox.StubOutWithMock(os, "unlink")
-        os.unlink("/fake/path").AndRaise(OSError(errno.ENOENT))
-
-        self.mox.ReplayAll()
-        utils.unlink_without_raise("/fake/path")
-        self.mox.VerifyAll()
+        with mock.patch.object(os, "unlink") as unlink_mock:
+            unlink_mock.side_effect = OSError(errno.ENOENT)
+            utils.unlink_without_raise("/fake/path")
+            unlink_mock.assert_called_once_with("/fake/path")
 
     def test_create_link(self):
-        self.mox.StubOutWithMock(os, "symlink")
-        os.symlink("/fake/source", "/fake/link")
-
-        self.mox.ReplayAll()
-        utils.create_link_without_raise("/fake/source", "/fake/link")
-        self.mox.VerifyAll()
+        with mock.patch.object(os, "symlink") as symlink_mock:
+            symlink_mock.return_value = None
+            utils.create_link_without_raise("/fake/source", "/fake/link")
+            symlink_mock.assert_called_once_with("/fake/source", "/fake/link")
 
     def test_create_link_EEXIST(self):
-        self.mox.StubOutWithMock(os, "symlink")
-        os.symlink("/fake/source", "/fake/link").AndRaise(
-                OSError(errno.EEXIST))
-
-        self.mox.ReplayAll()
-        utils.create_link_without_raise("/fake/source", "/fake/link")
-        self.mox.VerifyAll()
+        with mock.patch.object(os, "symlink") as symlink_mock:
+            symlink_mock.side_effect = OSError(errno.EEXIST)
+            utils.create_link_without_raise("/fake/source", "/fake/link")
+            symlink_mock.assert_called_once_with("/fake/source", "/fake/link")
 
 
 class ExecuteTestCase(base.TestCase):
@@ -185,42 +176,46 @@ class GenericUtilsTestCase(base.TestCase):
         self.assertEqual("hello", utils.sanitize_hostname(hostname))
 
     def test_read_cached_file(self):
-        self.mox.StubOutWithMock(os.path, "getmtime")
-        os.path.getmtime(mox.IgnoreArg()).AndReturn(1)
-        self.mox.ReplayAll()
+        with mock.patch.object(os.path, "getmtime") as getmtime_mock:
+            getmtime_mock.return_value = 1
 
-        cache_data = {"data": 1123, "mtime": 1}
-        data = utils.read_cached_file("/this/is/a/fake", cache_data)
-        self.assertEqual(cache_data["data"], data)
+            cache_data = {"data": 1123, "mtime": 1}
+            data = utils.read_cached_file("/this/is/a/fake", cache_data)
+            self.assertEqual(cache_data["data"], data)
+            getmtime_mock.assert_called_once_with(mock.ANY)
 
     def test_read_modified_cached_file(self):
-        self.mox.StubOutWithMock(os.path, "getmtime")
-        self.mox.StubOutWithMock(__builtin__, 'open')
-        os.path.getmtime(mox.IgnoreArg()).AndReturn(2)
+        with mock.patch.object(os.path, "getmtime") as getmtime_mock:
+            with mock.patch.object(__builtin__, 'open') as open_mock:
+                getmtime_mock.return_value = 2
+                fake_contents = "lorem ipsum"
+                fake_file = mock.Mock()
+                fake_file.read.return_value = fake_contents
+                fake_context_manager = mock.MagicMock()
+                fake_context_manager.__enter__.return_value = fake_file
+                fake_context_manager.__exit__.return_value = None
+                open_mock.return_value = fake_context_manager
 
-        fake_contents = "lorem ipsum"
-        fake_file = self.mox.CreateMockAnything()
-        fake_file.read().AndReturn(fake_contents)
-        fake_context_manager = self.mox.CreateMockAnything()
-        fake_context_manager.__enter__().AndReturn(fake_file)
-        fake_context_manager.__exit__(mox.IgnoreArg(),
-                                      mox.IgnoreArg(),
-                                      mox.IgnoreArg())
+                cache_data = {"data": 1123, "mtime": 1}
+                self.reload_called = False
 
-        __builtin__.open(mox.IgnoreArg()).AndReturn(fake_context_manager)
+                def test_reload(reloaded_data):
+                    self.assertEqual(reloaded_data, fake_contents)
+                    self.reload_called = True
 
-        self.mox.ReplayAll()
-        cache_data = {"data": 1123, "mtime": 1}
-        self.reload_called = False
+                data = utils.read_cached_file("/this/is/a/fake",
+                                              cache_data,
+                                              reload_func=test_reload)
 
-        def test_reload(reloaded_data):
-            self.assertEqual(reloaded_data, fake_contents)
-            self.reload_called = True
-
-        data = utils.read_cached_file("/this/is/a/fake", cache_data,
-                                                reload_func=test_reload)
-        self.assertEqual(data, fake_contents)
-        self.assertTrue(self.reload_called)
+                self.assertEqual(data, fake_contents)
+                self.assertTrue(self.reload_called)
+                getmtime_mock.assert_called_once_with(mock.ANY)
+                open_mock.assert_called_once_with(mock.ANY)
+                fake_file.read.called_once_with()
+                fake_context_manager.__exit__.assert_called_once_with(mock.ANY,
+                                                                      mock.ANY,
+                                                                      mock.ANY)
+                fake_context_manager.__enter__.assert_called_once_with()
 
     def test_hash_file(self):
         data = 'Mary had a little lamb, its fleece as white as snow'
@@ -324,28 +319,30 @@ class GenericUtilsTestCase(base.TestCase):
 class MkfsTestCase(base.TestCase):
 
     def test_mkfs(self):
-        self.mox.StubOutWithMock(utils, 'execute')
-        utils.execute('mkfs', '-t', 'ext4', '-F', '/my/block/dev')
-        utils.execute('mkfs', '-t', 'msdos', '/my/msdos/block/dev')
-        utils.execute('mkswap', '/my/swap/block/dev')
-        self.mox.ReplayAll()
+        with mock.patch.object(utils, 'execute') as execute_mock:
+            utils.mkfs('ext4', '/my/block/dev')
+            utils.mkfs('msdos', '/my/msdos/block/dev')
+            utils.mkfs('swap', '/my/swap/block/dev')
 
-        utils.mkfs('ext4', '/my/block/dev')
-        utils.mkfs('msdos', '/my/msdos/block/dev')
-        utils.mkfs('swap', '/my/swap/block/dev')
+            expected = [mock.call('mkfs', '-t', 'ext4', '-F', '/my/block/dev'),
+                        mock.call('mkfs', '-t', 'msdos',
+                                  '/my/msdos/block/dev'),
+                        mock.call('mkswap', '/my/swap/block/dev')]
+            self.assertEqual(execute_mock.call_args_list, expected)
 
     def test_mkfs_with_label(self):
-        self.mox.StubOutWithMock(utils, 'execute')
-        utils.execute('mkfs', '-t', 'ext4', '-F',
-                      '-L', 'ext4-vol', '/my/block/dev')
-        utils.execute('mkfs', '-t', 'msdos',
-                      '-n', 'msdos-vol', '/my/msdos/block/dev')
-        utils.execute('mkswap', '-L', 'swap-vol', '/my/swap/block/dev')
-        self.mox.ReplayAll()
+        with mock.patch.object(utils, 'execute') as execute_mock:
+            utils.mkfs('ext4', '/my/block/dev', 'ext4-vol')
+            utils.mkfs('msdos', '/my/msdos/block/dev', 'msdos-vol')
+            utils.mkfs('swap', '/my/swap/block/dev', 'swap-vol')
 
-        utils.mkfs('ext4', '/my/block/dev', 'ext4-vol')
-        utils.mkfs('msdos', '/my/msdos/block/dev', 'msdos-vol')
-        utils.mkfs('swap', '/my/swap/block/dev', 'swap-vol')
+            expected = [mock.call('mkfs', '-t', 'ext4', '-F', '-L',
+                                  'ext4-vol', '/my/block/dev'),
+                        mock.call('mkfs', '-t', 'msdos', '-n',
+                                  'msdos-vol', '/my/msdos/block/dev'),
+                        mock.call('mkswap', '-L', 'swap-vol',
+                                  '/my/swap/block/dev')]
+            self.assertEqual(execute_mock.call_args_list, expected)
 
 
 class IntLikeTestCase(base.TestCase):
