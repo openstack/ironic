@@ -156,13 +156,16 @@ def _get_power_status(ssh_obj, driver_info):
     """Returns a node's current power state."""
 
     power_state = None
-    cmd_to_exec = driver_info['cmd_set']['list_running']
-    running_list = _exec_ssh_command(ssh_obj, cmd_to_exec)
+    cmd_to_exec = "%s %s" % (driver_info['cmd_set']['base_cmd'],
+                             driver_info['cmd_set']['list_running'])
+    running_list = _exec_ssh_command(ssh_obj, cmd_to_exec)[0].split('\n')
     # Command should return a list of running vms. If the current node is
     # not listed then we can assume it is not powered on.
     node_name = _get_hosts_name_for_node(ssh_obj, driver_info)
     if node_name:
         for node in running_list:
+            if not node:
+                continue
             if node_name in node:
                 power_state = states.POWER_ON
                 break
@@ -182,17 +185,29 @@ def _get_hosts_name_for_node(ssh_obj, driver_info):
     """Get the name the host uses to reference the node."""
 
     matched_name = None
-    cmd_to_exec = driver_info['cmd_set']['list_all']
-    full_node_list = _exec_ssh_command(ssh_obj, cmd_to_exec)
+    cmd_to_exec = "%s %s" % (driver_info['cmd_set']['base_cmd'],
+                             driver_info['cmd_set']['list_all'])
+    full_node_list = _exec_ssh_command(ssh_obj, cmd_to_exec)[0].split('\n')
+    LOG.debug(_("Retrieved Node List: %s") % repr(full_node_list))
     # for each node check Mac Addresses
     for node in full_node_list:
-        cmd_to_exec = driver_info['cmd_set']['get_node_macs']
+        if not node:
+            continue
+        LOG.debug(_("Checking Node: %s's Mac address.") % node)
+        cmd_to_exec = "%s %s" % (driver_info['cmd_set']['base_cmd'],
+                                 driver_info['cmd_set']['get_node_macs'])
         cmd_to_exec = cmd_to_exec.replace('{_NodeName_}', node)
-        hosts_node_mac_list = _exec_ssh_command(ssh_obj, cmd_to_exec)
+        hosts_node_mac_list = _exec_ssh_command(ssh_obj,
+                                                cmd_to_exec)[0].split('\n')
 
         for host_mac in hosts_node_mac_list:
+            if not host_mac:
+                continue
             for node_mac in driver_info['macs']:
+                if not node_mac:
+                    continue
                 if _normalize_mac(host_mac) in _normalize_mac(node_mac):
+                    LOG.debug(_("Found Mac address: %s") % node_mac)
                     matched_name = node
                     break
 
@@ -212,7 +227,8 @@ def _power_on(ssh_obj, driver_info):
         _power_off(ssh_obj, driver_info)
 
     node_name = _get_hosts_name_for_node(ssh_obj, driver_info)
-    cmd_to_power_on = driver_info['cmd_set']['start_cmd']
+    cmd_to_power_on = "%s %s" % (driver_info['cmd_set']['base_cmd'],
+                                 driver_info['cmd_set']['start_cmd'])
     cmd_to_power_on = cmd_to_power_on.replace('{_NodeName_}', node_name)
 
     _exec_ssh_command(ssh_obj, cmd_to_power_on)
@@ -232,7 +248,8 @@ def _power_off(ssh_obj, driver_info):
         return current_pstate
 
     node_name = _get_hosts_name_for_node(ssh_obj, driver_info)
-    cmd_to_power_off = driver_info['cmd_set']['stop_cmd']
+    cmd_to_power_off = "%s %s" % (driver_info['cmd_set']['base_cmd'],
+                                  driver_info['cmd_set']['stop_cmd'])
     cmd_to_power_off = cmd_to_power_off.replace('{_NodeName_}', node_name)
 
     _exec_ssh_command(ssh_obj, cmd_to_power_off)

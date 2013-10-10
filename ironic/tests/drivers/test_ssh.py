@@ -133,9 +133,11 @@ class SSHPrivateMethodsTestCase(base.TestCase):
 
             pstate = ssh._get_power_status(self.sshclient, info)
 
+            ssh_cmd = "%s %s" % (info['cmd_set']['base_cmd'],
+                                 info['cmd_set']['list_running'])
             self.assertEqual(pstate, states.POWER_ON)
             self.exec_ssh_mock.assert_called_once_with(
-                    self.sshclient, info['cmd_set']['list_running'])
+                    self.sshclient, ssh_cmd)
             get_hosts_name_mock.assert_called_once_with(self.sshclient,
                                                         info)
 
@@ -149,9 +151,11 @@ class SSHPrivateMethodsTestCase(base.TestCase):
 
             pstate = ssh._get_power_status(self.sshclient, info)
 
+            ssh_cmd = "%s %s" % (info['cmd_set']['base_cmd'],
+                                 info['cmd_set']['list_running'])
             self.assertEqual(pstate, states.POWER_OFF)
             self.exec_ssh_mock.assert_called_once_with(self.sshclient,
-                    info['cmd_set']['list_running'])
+                    ssh_cmd)
             get_hosts_name_mock.assert_called_once_with(self.sshclient,
                                                         info)
 
@@ -165,19 +169,26 @@ class SSHPrivateMethodsTestCase(base.TestCase):
             get_hosts_name_mock.return_value = None
             pstate = ssh._get_power_status(self.sshclient, info)
 
+            ssh_cmd = "%s %s" % (info['cmd_set']['base_cmd'],
+                                 info['cmd_set']['list_running'])
+
             self.assertEqual(pstate, states.ERROR)
             self.exec_ssh_mock.assert_called_once_with(
-                    self.sshclient, info['cmd_set']['list_running'])
+                    self.sshclient, ssh_cmd)
             get_hosts_name_mock.assert_called_once_with(self.sshclient,
                                                         info)
 
     def test__get_hosts_name_for_node_match(self):
         info = ssh._parse_driver_info(self.node)
         info['macs'] = ["11:11:11:11:11:11", "52:54:00:cf:2d:31"]
-        cmd_to_exec = info['cmd_set']['get_node_macs']
+        ssh_cmd = "%s %s" % (info['cmd_set']['base_cmd'],
+                             info['cmd_set']['list_all'])
+
+        cmd_to_exec = "%s %s" % (info['cmd_set']['base_cmd'],
+                                 info['cmd_set']['get_node_macs'])
         cmd_to_exec = cmd_to_exec.replace('{_NodeName_}', 'NodeName')
         self.exec_ssh_mock.side_effect = [['NodeName'], ['52:54:00:cf:2d:31']]
-        expected = [mock.call(self.sshclient, info['cmd_set']['list_all']),
+        expected = [mock.call(self.sshclient, ssh_cmd),
                     mock.call(self.sshclient, cmd_to_exec)]
 
         found_name = ssh._get_hosts_name_for_node(self.sshclient, info)
@@ -189,9 +200,15 @@ class SSHPrivateMethodsTestCase(base.TestCase):
         info = ssh._parse_driver_info(self.node)
         info['macs'] = ["11:11:11:11:11:11", "22:22:22:22:22:22"]
         self.exec_ssh_mock.side_effect = [['NodeName'], ['52:54:00:cf:2d:31']]
-        cmd_to_exec = info['cmd_set']['get_node_macs']
+
+        ssh_cmd = "%s %s" % (info['cmd_set']['base_cmd'],
+                             info['cmd_set']['list_all'])
+
+        cmd_to_exec = "%s %s" % (info['cmd_set']['base_cmd'],
+                                 info['cmd_set']['get_node_macs'])
+
         cmd_to_exec = cmd_to_exec.replace('{_NodeName_}', 'NodeName')
-        expected = [mock.call(self.sshclient, info['cmd_set']['list_all']),
+        expected = [mock.call(self.sshclient, ssh_cmd),
                     mock.call(self.sshclient, cmd_to_exec)]
 
         found_name = ssh._get_hosts_name_for_node(self.sshclient, info)
@@ -214,7 +231,8 @@ class SSHPrivateMethodsTestCase(base.TestCase):
                 expected = [mock.call(self.sshclient, info),
                             mock.call(self.sshclient, info)]
 
-                cmd_to_exec = info['cmd_set']['start_cmd']
+                cmd_to_exec = "%s %s" % (info['cmd_set']['base_cmd'],
+                                         info['cmd_set']['start_cmd'])
                 cmd_to_exec = cmd_to_exec.replace('{_NodeName_}', 'NodeName')
                 current_state = ssh._power_on(self.sshclient, info)
 
@@ -240,7 +258,8 @@ class SSHPrivateMethodsTestCase(base.TestCase):
                 expected = [mock.call(self.sshclient, info),
                             mock.call(self.sshclient, info)]
 
-                cmd_to_exec = info['cmd_set']['start_cmd']
+                cmd_to_exec = "%s %s" % (info['cmd_set']['base_cmd'],
+                                         info['cmd_set']['start_cmd'])
                 cmd_to_exec = cmd_to_exec.replace('{_NodeName_}', 'NodeName')
                 current_state = ssh._power_on(self.sshclient, info)
 
@@ -266,7 +285,8 @@ class SSHPrivateMethodsTestCase(base.TestCase):
                 expected = [mock.call(self.sshclient, info),
                             mock.call(self.sshclient, info)]
 
-                cmd_to_exec = info['cmd_set']['stop_cmd']
+                cmd_to_exec = "%s %s" % (info['cmd_set']['base_cmd'],
+                                         info['cmd_set']['stop_cmd'])
                 cmd_to_exec = cmd_to_exec.replace('{_NodeName_}', 'NodeName')
                 current_state = ssh._power_off(self.sshclient, info)
 
@@ -292,7 +312,8 @@ class SSHPrivateMethodsTestCase(base.TestCase):
                 expected = [mock.call(self.sshclient, info),
                             mock.call(self.sshclient, info)]
 
-                cmd_to_exec = info['cmd_set']['stop_cmd']
+                cmd_to_exec = "%s %s" % (info['cmd_set']['base_cmd'],
+                                         info['cmd_set']['stop_cmd'])
                 cmd_to_exec = cmd_to_exec.replace('{_NodeName_}', 'NodeName')
                 current_state = ssh._power_off(self.sshclient, info)
 
