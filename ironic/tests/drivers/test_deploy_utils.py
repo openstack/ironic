@@ -16,6 +16,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import mock
 import os
 import tempfile
 import time
@@ -77,39 +78,44 @@ class PhysicalWorkTestCase(tests_base.TestCase):
         swap_part = '/dev/fake-part2'
         root_uuid = '12345678-1234-1234-12345678-12345678abcdef'
 
-        self.mox.StubOutWithMock(utils, 'get_dev')
-        self.mox.StubOutWithMock(utils, 'get_image_mb')
-        self.mox.StubOutWithMock(utils, 'discovery')
-        self.mox.StubOutWithMock(utils, 'login_iscsi')
-        self.mox.StubOutWithMock(utils, 'logout_iscsi')
-        self.mox.StubOutWithMock(utils, 'make_partitions')
-        self.mox.StubOutWithMock(utils, 'is_block_device')
-        self.mox.StubOutWithMock(utils, 'dd')
-        self.mox.StubOutWithMock(utils, 'mkswap')
-        self.mox.StubOutWithMock(utils, 'block_uuid')
-        self.mox.StubOutWithMock(utils, 'switch_pxe_config')
-        self.mox.StubOutWithMock(utils, 'notify')
+        name_list = ['get_dev', 'get_image_mb', 'discovery', 'login_iscsi',
+                     'logout_iscsi', 'make_partitions', 'is_block_device',
+                     'dd', 'mkswap', 'block_uuid', 'switch_pxe_config',
+                     'notify']
+        patch_list = [mock.patch.object(utils, name) for name in name_list]
+        mock_list = [patcher.start() for patcher in patch_list]
 
-        utils.get_dev(address, port, iqn, lun).AndReturn(dev)
-        utils.get_image_mb(image_path).AndReturn(1)  # < root_mb
-        utils.discovery(address, port)
-        utils.login_iscsi(address, port, iqn)
-        utils.is_block_device(dev).AndReturn(True)
-        utils.make_partitions(dev, root_mb, swap_mb)
-        utils.is_block_device(root_part).AndReturn(True)
-        utils.is_block_device(swap_part).AndReturn(True)
-        utils.dd(image_path, root_part)
-        utils.mkswap(swap_part)
-        utils.block_uuid(root_part).AndReturn(root_uuid)
-        utils.logout_iscsi(address, port, iqn)
-        utils.switch_pxe_config(pxe_config_path, root_uuid)
-        utils.notify(address, 10000)
-        self.mox.ReplayAll()
+        parent_mock = mock.MagicMock()
+        for mocker, name in zip(mock_list, name_list):
+            parent_mock.attach_mock(mocker, name)
+
+        parent_mock.get_dev.return_value = dev
+        parent_mock.get_image_mb.return_value = 1
+        parent_mock.is_block_device.return_value = True
+        parent_mock.block_uuid.return_value = root_uuid
+        calls_expected = [mock.call.get_dev(address, port, iqn, lun),
+                          mock.call.get_image_mb(image_path),
+                          mock.call.discovery(address, port),
+                          mock.call.login_iscsi(address, port, iqn),
+                          mock.call.is_block_device(dev),
+                          mock.call.make_partitions(dev, root_mb, swap_mb),
+                          mock.call.is_block_device(root_part),
+                          mock.call.is_block_device(swap_part),
+                          mock.call.dd(image_path, root_part),
+                          mock.call.mkswap(swap_part),
+                          mock.call.block_uuid(root_part),
+                          mock.call.logout_iscsi(address, port, iqn),
+                          mock.call.switch_pxe_config(pxe_config_path,
+                                                      root_uuid),
+                          mock.call.notify(address, 10000)]
 
         utils.deploy(address, port, iqn, lun, image_path, pxe_config_path,
-                    root_mb, swap_mb)
+                     root_mb, swap_mb)
 
-        self.mox.VerifyAll()
+        self.assertEqual(calls_expected, parent_mock.mock_calls)
+
+        for patcher in patch_list:
+            patcher.stop()
 
     def test_always_logout_iscsi(self):
         """logout_iscsi() must be called once login_iscsi() is called."""
@@ -124,29 +130,38 @@ class PhysicalWorkTestCase(tests_base.TestCase):
 
         dev = '/dev/fake'
 
-        self.mox.StubOutWithMock(utils, 'get_dev')
-        self.mox.StubOutWithMock(utils, 'get_image_mb')
-        self.mox.StubOutWithMock(utils, 'discovery')
-        self.mox.StubOutWithMock(utils, 'login_iscsi')
-        self.mox.StubOutWithMock(utils, 'logout_iscsi')
-        self.mox.StubOutWithMock(utils, 'work_on_disk')
-
         class TestException(Exception):
             pass
 
-        utils.get_dev(address, port, iqn, lun).AndReturn(dev)
-        utils.get_image_mb(image_path).AndReturn(1)  # < root_mb
-        utils.discovery(address, port)
-        utils.login_iscsi(address, port, iqn)
-        utils.work_on_disk(dev, root_mb, swap_mb, image_path).\
-                AndRaise(TestException)
-        utils.logout_iscsi(address, port, iqn)
-        self.mox.ReplayAll()
+        name_list = ['get_dev', 'get_image_mb', 'discovery', 'login_iscsi',
+                     'logout_iscsi', 'work_on_disk']
+        patch_list = [mock.patch.object(utils, name) for name in name_list]
+        mock_list = [patcher.start() for patcher in patch_list]
+
+        parent_mock = mock.MagicMock()
+        for mocker, name in zip(mock_list, name_list):
+            parent_mock.attach_mock(mocker, name)
+
+        parent_mock.get_dev.return_value = dev
+        parent_mock.get_image_mb.return_value = 1
+        parent_mock.work_on_disk.side_effect = TestException
+        calls_expected = [mock.call.get_dev(address, port, iqn, lun),
+                          mock.call.get_image_mb(image_path),
+                          mock.call.discovery(address, port),
+                          mock.call.login_iscsi(address, port, iqn),
+                          mock.call.work_on_disk(dev, root_mb, swap_mb,
+                                                 image_path),
+                          mock.call.logout_iscsi(address, port, iqn)]
 
         self.assertRaises(TestException,
                          utils.deploy,
                          address, port, iqn, lun, image_path,
                          pxe_config_path, root_mb, swap_mb)
+
+        self.assertEqual(calls_expected, parent_mock.mock_calls)
+
+        for patcher in patch_list:
+            patcher.stop()
 
 
 class SwitchPxeConfigTestCase(tests_base.TestCase):
