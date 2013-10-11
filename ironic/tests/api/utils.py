@@ -57,8 +57,8 @@ class FakeMemcache(object):
         self.token_expiration = None
 
     def get(self, key):
-        dt = datetime.datetime.now() + datetime.timedelta(minutes=5)
-        return json.dumps((self._cache.get(key), dt.strftime('%s')))
+        dt = datetime.datetime.utcnow() + datetime.timedelta(minutes=5)
+        return json.dumps((self._cache.get(key), dt.isoformat()))
 
     def set(self, key, value, timeout=None):
         self.set_value = value
