@@ -19,7 +19,7 @@ stevedore>=0.10
 websockify>=0.5.1,<0.6
 oslo.config>=1.2.0
 pecan>=0.2.0
-six
+six>=1.4.1
 jsonpatch>=1.1
 WSME>=0.5b5
 Jinja2
