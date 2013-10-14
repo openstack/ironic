@@ -131,8 +131,12 @@ def _parse_driver_info(node):
 
     cmd_set = COMMAND_SETS.get(virt_type, None)
     if not cmd_set:
+        valid_values = ', '.join(COMMAND_SETS.keys())
         raise exception.InvalidParameterValue(_(
-            "SSHPowerDriver unknown virt_type (%s).") % cmd_set)
+            "SSHPowerDriver '%(virt_type)s' is not a valid virt_type, "
+            "supported types are: %(valid)s") %
+            {'virt_type': virt_type, 'valid': valid_values})
+
     res['cmd_set'] = cmd_set
 
     if not address or not username:
