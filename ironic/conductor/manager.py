@@ -112,7 +112,8 @@ class ConductorManager(service.PeriodicService):
             if 'driver_info' in delta:
                 task.driver.deploy.validate(node_obj)
                 task.driver.power.validate(node_obj)
-                node_obj['power_state'] = task.driver.power.get_power_state
+                node_obj['power_state'] = \
+                               task.driver.power.get_power_state(task, node_id)
 
             # TODO(deva): Determine what value will be passed by API when
             #             instance_uuid needs to be unset, and handle it.
