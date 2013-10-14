@@ -18,6 +18,7 @@
 
 from oslo.config import cfg
 from pecan import hooks
+from webob import exc
 
 from ironic.common import context
 from ironic.common import utils
@@ -74,7 +75,7 @@ class ContextHook(hooks.PecanHook):
         auth_token = state.request.headers.get('X-Auth-Token', None)
         creds = {'roles': state.request.headers.get('X-Roles', '').split(',')}
 
-        is_admin = policy.check('is_admin', state.request.headers, creds)
+        is_admin = policy.check('admin', state.request.headers, creds)
 
         path = utils.safe_rstrip(state.request.path, '/')
         is_public_api = path in self.public_api_routes
@@ -94,3 +95,18 @@ class RPCHook(hooks.PecanHook):
 
     def before(self, state):
         state.request.rpcapi = rpcapi.ConductorAPI()
+
+
+class AdminAuthHook(hooks.PecanHook):
+    """Verify that the user has admin rights.
+
+    Checks whether the request context is an admin context and
+    rejects the request otherwise.
+
+    """
+    def before(self, state):
+        ctx = state.request.context
+        is_admin_api = policy.check('admin_api', {}, ctx.to_dict())
+
+        if not is_admin_api and not ctx.is_public_api:
+            raise exc.HTTPForbidden()

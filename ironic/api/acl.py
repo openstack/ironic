@@ -20,11 +20,8 @@
 
 from keystoneclient.middleware import auth_token as keystone_auth_token
 from oslo.config import cfg
-from pecan import hooks
-from webob import exc
 
 from ironic.api.middleware import auth_token
-from ironic.common import policy
 
 
 OPT_GROUP_NAME = 'keystone_authtoken'
@@ -56,17 +53,3 @@ def install(app, conf, public_routes):
     return auth_token.AuthTokenMiddleware(app,
                                           conf=keystone_config,
                                           public_api_routes=public_routes)
-
-
-class AdminAuthHook(hooks.PecanHook):
-    """Verify that the user has admin rights.
-
-    Checks whether the request context is an admin context and
-    rejects the request otherwise.
-
-    """
-    def before(self, state):
-        ctx = state.request.context
-
-        if not policy.check_is_admin(ctx) and not ctx.is_public_api:
-            raise exc.HTTPForbidden()
