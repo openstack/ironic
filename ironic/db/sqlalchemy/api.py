@@ -17,6 +17,8 @@
 
 """SQLAlchemy storage backend."""
 
+import datetime
+
 from oslo.config import cfg
 
 # TODO(deva): import MultipleResultsFound and handle it appropriately
@@ -28,9 +30,11 @@ from ironic.common import utils
 from ironic.db import api
 from ironic.db.sqlalchemy import models
 from ironic import objects
+from ironic.openstack.common.db import exception as db_exc
 from ironic.openstack.common.db.sqlalchemy import session as db_session
 from ironic.openstack.common.db.sqlalchemy import utils as db_utils
 from ironic.openstack.common import log
+from ironic.openstack.common import timeutils
 from ironic.openstack.common import uuidutils
 
 CONF = cfg.CONF
@@ -464,3 +468,58 @@ class Connection(api.Connection):
             count = query.delete()
             if count != 1:
                 raise exception.ChassisNotFound(chassis=chassis)
+
+    @objects.objectify(objects.Conductor)
+    def register_conductor(self, values):
+        try:
+            conductor = models.Conductor()
+            conductor.update(values)
+            # NOTE(deva): ensure updated_at field has a non-null initial value
+            if not conductor.get('updated_at'):
+                conductor.update({'updated_at': timeutils.utcnow()})
+            conductor.save()
+            return conductor
+        except db_exc.DBDuplicateEntry:
+            raise exception.ConductorAlreadyRegistered(
+                    conductor=values['hostname'])
+
+    @objects.objectify(objects.Conductor)
+    def get_conductor(self, hostname):
+        try:
+            return model_query(models.Conductor).\
+                            filter_by(hostname=hostname).\
+                            one()
+        except NoResultFound:
+            raise exception.ConductorNotFound(conductor=hostname)
+
+    def unregister_conductor(self, hostname):
+        session = get_session()
+        with session.begin():
+            query = model_query(models.Conductor, session=session).\
+                        filter_by(hostname=hostname)
+            count = query.delete()
+            if count == 0:
+                raise exception.ConductorNotFound(conductor=hostname)
+
+    def touch_conductor(self, hostname):
+        session = get_session()
+        with session.begin():
+            query = model_query(models.Conductor, session=session).\
+                        filter_by(hostname=hostname)
+            # since we're not changing any other field, manually set updated_at
+            count = query.update({'updated_at': timeutils.utcnow()})
+            if count == 0:
+                raise exception.ConductorNotFound(conductor=hostname)
+
+    def list_active_conductor_drivers(self, interval):
+        # TODO(deva): add configurable default 'interval', somewhere higher
+        #             up the code. This isn't a db-specific option.
+        limit = timeutils.utcnow() - datetime.timedelta(seconds=interval)
+        result = model_query(models.Conductor).\
+                    filter(models.Conductor.updated_at >= limit).\
+                    all()
+
+        driver_set = set()
+        for row in result:
+            driver_set.update(set(row['drivers']))
+        return list(driver_set)

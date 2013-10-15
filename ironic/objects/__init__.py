@@ -15,6 +15,7 @@
 import functools
 
 from ironic.objects import chassis
+from ironic.objects import conductor
 from ironic.objects import node
 from ironic.objects import port
 
@@ -35,10 +36,12 @@ def objectify(klass):
     return the_decorator
 
 Chassis = chassis.Chassis
+Conductor = conductor.Conductor
 Node = node.Node
 Port = port.Port
 
 __all__ = (Chassis,
+           Conductor,
            Node,
            Port,
            objectify)

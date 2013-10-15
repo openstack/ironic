@@ -281,3 +281,49 @@ class Connection(object):
 
         :param chassis: The id or the uuid of a chassis.
         """
+
+    @abc.abstractmethod
+    def register_conductor(self, values):
+        """Register a new conductor service at the specified hostname.
+
+        :param values: A dict of values which must contain the following:
+                       {
+                        'hostname': the unique hostname which identifies
+                                    this Conductor service.
+                        'drivers': a list of supported drivers.
+                       }
+        :returns: A conductor.
+        :raises: ConductorAlreadyRegistered
+        """
+
+    @abc.abstractmethod
+    def get_conductor(self, hostname):
+        """Retrieve a conductor service record from the database.
+
+        :param hostname: The hostname of the conductor service.
+        :returns: A conductor.
+        :raises: ConductorNotFound
+        """
+
+    @abc.abstractmethod
+    def unregister_conductor(self, hostname):
+        """Unregister this conductor with the service registry.
+
+        :param hostname: The hostname of this conductor service.
+        :raises: ConductorNotFound
+        """
+
+    @abc.abstractmethod
+    def touch_conductor(self, hostname):
+        """Mark a conductor as active by updating its 'updated_at' property.
+
+        :param hostname: The hostname of this conductor service.
+        :raises: ConductorNotFound
+        """
+
+    @abc.abstractmethod
+    def list_active_conductor_drivers(self, interval):
+        """Retrieve a list of drivers supported by the registered conductors.
+
+        :param interval: Time since last check-in of a conductor.
+        """

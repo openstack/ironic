@@ -684,3 +684,26 @@ class TestMigrations(BaseMigrationTestCase, WalkVersionsMixin):
         self.assertRaises(sqlalchemy.exc.IntegrityError,
                           chassis.insert().execute,
                           {'uuid': 'uuu-111-222', 'extra': 'extra2'})
+
+    def _check_012(self, engine, data):
+        self.assertTrue(engine.dialect.has_table(engine.connect(),
+                                                 'conductors'))
+        conductor = db_utils.get_table(engine, 'conductors')
+        conductor_data = {'hostname': 'test-host'}
+        conductor.insert().values(conductor_data).execute()
+        self.assertRaises(sqlalchemy.exc.IntegrityError,
+                          conductor.insert().execute,
+                          conductor_data)
+
+        # NOTE(deva): different backends raise different error here.
+        if isinstance(engine.dialect,
+                sqlalchemy.dialects.sqlite.pysqlite.SQLiteDialect_pysqlite):
+            self.assertRaises(sqlalchemy.exc.IntegrityError,
+                          conductor.insert().execute,
+                          {'hostname': None})
+        if isinstance(engine.dialect,
+                sqlalchemy.dialects.mysql.pymysql.MySQLDialect_pymysql):
+            self.assertRaises(sqlalchemy.exc.OperationalError,
+                          conductor.insert().execute,
+                          {'hostname': None})
+        # FIXME: add check for postgres

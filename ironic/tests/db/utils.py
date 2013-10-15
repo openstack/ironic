@@ -20,7 +20,6 @@ from ironic.common import states
 
 from ironic.openstack.common import jsonutils as json
 
-
 fake_info = {"foo": "bar"}
 
 ipmi_info = json.dumps(
@@ -79,8 +78,8 @@ def get_test_node(**kw):
             'properties': kw.get('properties', properties),
             'reservation': None,
             'extra': kw.get('extra', {}),
-            'updated_at': None,
-            'created_at': None,
+            'updated_at': kw.get('created_at'),
+            'created_at': kw.get('updated_at'),
             }
     return node
 
@@ -110,3 +109,15 @@ def get_test_chassis(**kw):
     }
 
     return chassis
+
+
+def get_test_conductor(**kw):
+    conductor = {
+            'id': kw.get('id', 6),
+            'hostname': kw.get('hostname', 'test-conductor-node'),
+            'drivers': kw.get('drivers', ['fake-driver', 'null-driver']),
+            'created_at': kw.get('created_at'),
+            'updated_at': kw.get('updated_at'),
+            }
+
+    return conductor

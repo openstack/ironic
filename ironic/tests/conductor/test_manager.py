@@ -21,6 +21,7 @@
 
 import mock
 
+from ironic.common import driver_factory
 from ironic.common import exception
 from ironic.common import states
 from ironic.conductor import manager
@@ -41,6 +42,38 @@ class ManagerTestCase(base.DbTestCase):
         self.context = context.get_admin_context()
         self.dbapi = dbapi.get_instance()
         self.driver = mgr_utils.get_mocked_node_manager()
+
+    def test_start_registers_conductor(self):
+        self.assertRaises(exception.ConductorNotFound,
+                          self.dbapi.get_conductor,
+                          'test-host')
+        self.service.start()
+        res = self.dbapi.get_conductor('test-host')
+        self.assertEqual(res['hostname'], 'test-host')
+
+    def test_start_registers_driver_names(self):
+        init_names = ['fake1', 'fake2']
+        restart_names = ['fake3', 'fake4']
+
+        df = driver_factory.DriverFactory()
+        with mock.patch.object(df._extension_manager, 'names') as mock_names:
+            # verify driver names are registered
+            mock_names.return_value = init_names
+            self.service.start()
+            res = self.dbapi.get_conductor('test-host')
+            self.assertEqual(res['drivers'], init_names)
+
+            # verify that restart registers new driver names
+            mock_names.return_value = restart_names
+            self.service.start()
+            res = self.dbapi.get_conductor('test-host')
+            self.assertEqual(res['drivers'], restart_names)
+
+    def test_periodic_keepalive(self):
+        self.service.start()
+        with mock.patch.object(self.dbapi, 'touch_conductor') as mock_touch:
+            self.service.periodic_tasks(self.context)
+            mock_touch.assert_called_once_with('test-host')
 
     def test_get_power_state(self):
         n = utils.get_test_node(driver='fake')
