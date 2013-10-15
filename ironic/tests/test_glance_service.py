@@ -27,9 +27,9 @@ from ironic.common.glance_service import base_image_service
 from ironic.common.glance_service import service_utils
 from ironic.common import image_service as service
 from ironic.openstack.common import context
+from ironic.tests import base
 from ironic.tests import matchers
 from ironic.tests import stubs
-from ironic.tests import utils
 
 from oslo.config import cfg
 
@@ -80,7 +80,7 @@ class TestGlanceSerializer(testtools.TestCase):
                          metadata)
 
 
-class TestGlanceImageService(utils.BaseTestCase):
+class TestGlanceImageService(base.TestCase):
     NOW_GLANCE_OLD_FORMAT = "2010-10-11T10:30:22"
     NOW_GLANCE_FORMAT = "2010-10-11T10:30:22.000000"
 
@@ -615,7 +615,7 @@ def _create_failing_glance_client(info):
     return MyGlanceStubClient()
 
 
-class TestGlanceUrl(utils.BaseTestCase):
+class TestGlanceUrl(base.TestCase):
 
     def test_generate_glance_http_url(self):
         self.config(glance_host="127.0.0.1", group='glance')
@@ -633,7 +633,7 @@ class TestGlanceUrl(utils.BaseTestCase):
         self.assertEqual(generated_url, https_url)
 
 
-class TestServiceUtils(utils.BaseTestCase):
+class TestServiceUtils(base.TestCase):
 
     def test_parse_image_ref_no_ssl(self):
         image_href = 'http://127.0.0.1:9292/image_path/image_uuid'

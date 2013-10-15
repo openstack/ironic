@@ -55,7 +55,7 @@ from ironic.openstack.common import lockutils
 from ironic.openstack.common import log as logging
 
 import ironic.db.sqlalchemy.migrate_repo
-from ironic.tests import utils as test_utils
+from ironic.tests import base
 
 LOG = logging.getLogger(__name__)
 
@@ -121,7 +121,7 @@ def get_db_connection_info(conn_pieces):
     return (user, password, database, host)
 
 
-class BaseMigrationTestCase(test_utils.BaseTestCase):
+class BaseMigrationTestCase(base.TestCase):
     """Base class fort testing of migration utils."""
 
     def __init__(self, *args, **kwargs):
@@ -314,7 +314,7 @@ class WalkVersionsMixin(object):
             raise
 
 
-class TestWalkVersions(test_utils.BaseTestCase, WalkVersionsMixin):
+class TestWalkVersions(base.TestCase, WalkVersionsMixin):
     def setUp(self):
         super(TestWalkVersions, self).setUp()
         self.migration_api = mock.MagicMock()
