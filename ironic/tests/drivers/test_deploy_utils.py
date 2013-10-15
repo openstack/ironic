@@ -16,11 +16,10 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import fixtures
 import mock
 import os
 import tempfile
-import time
-
 
 from ironic.drivers.modules import deploy_utils as utils
 from ironic.tests import base as tests_base
@@ -60,7 +59,7 @@ class PhysicalWorkTestCase(tests_base.TestCase):
         def noop(*args, **kwargs):
             pass
 
-        self.stubs.Set(time, 'sleep', noop)
+        self.useFixture(fixtures.MonkeyPatch('time.sleep', noop))
 
     def test_deploy(self):
         """Check loosely all functions are called with right args."""
@@ -197,7 +196,7 @@ class OtherFunctionTestCase(tests_base.TestCase):
         def fake_getsize(path):
             return size
 
-        self.stubs.Set(os.path, 'getsize', fake_getsize)
+        self.useFixture(fixtures.MonkeyPatch('os.path.getsize', fake_getsize))
         size = 0
         self.assertEqual(utils.get_image_mb('x'), 0)
         size = 1

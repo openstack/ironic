@@ -41,7 +41,6 @@ from ironic.db import migration
 from ironic.common import paths
 from ironic.objects import base as objects_base
 from ironic.openstack.common.db.sqlalchemy import session
-from ironic.openstack.common.fixture import moxstubout
 from ironic.openstack.common import log as logging
 from ironic.openstack.common import timeutils
 from ironic.tests import conf_fixture
@@ -176,9 +175,6 @@ class TestCase(testtools.TestCase):
                 objects_base.IronicObject._obj_classes)
         self.addCleanup(self._restore_obj_registry)
 
-        mox_fixture = self.useFixture(moxstubout.MoxStubout())
-        self.mox = mox_fixture.mox
-        self.stubs = mox_fixture.stubs
         self.addCleanup(self._clear_attrs)
         self.useFixture(fixtures.EnvironmentVariable('http_proxy'))
         self.policy = self.useFixture(policy_fixture.PolicyFixture())

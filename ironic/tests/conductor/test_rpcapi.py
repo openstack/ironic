@@ -19,6 +19,8 @@
 Unit Tests for :py:class:`ironic.conductor.rpcapi.ConductorAPI`.
 """
 
+import fixtures
+
 from oslo.config import cfg
 
 from ironic.common import states
@@ -27,7 +29,6 @@ from ironic.db import api as dbapi
 from ironic import objects
 from ironic.openstack.common import context
 from ironic.openstack.common import jsonutils as json
-from ironic.openstack.common import rpc
 from ironic.tests.db import base
 from ironic.tests.db import utils as dbutils
 
@@ -71,7 +72,9 @@ class RPCAPITestCase(base.DbTestCase):
             if expected_retval:
                 return expected_retval
 
-        self.stubs.Set(rpc, rpc_method, _fake_rpc_method)
+        self.useFixture(fixtures.MonkeyPatch(
+                "ironic.openstack.common.rpc.%s" % rpc_method,
+                _fake_rpc_method))
 
         retval = getattr(rpcapi, method)(ctxt, **kwargs)
 
@@ -104,7 +107,8 @@ class RPCAPITestCase(base.DbTestCase):
         def _fake_rpc_method(*args, **kwargs):
                 return expected_retval
 
-        self.stubs.Set(rpc, 'call', _fake_rpc_method)
+        self.useFixture(fixtures.MonkeyPatch(
+                'ironic.openstack.common.rpc.call', _fake_rpc_method))
         retval = rpcapi.vendor_passthru(ctxt, node_id=self.fake_node['uuid'],
                                     driver_method='foo', info={'bar': 'baz'})
         self.assertEqual(retval, expected_retval)

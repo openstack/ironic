@@ -16,12 +16,10 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import os
+import fixtures
 
 from ironic.common import exception
 from ironic.common import images
-from ironic.common import utils
-from ironic.openstack.common import fileutils
 from ironic.tests import base
 
 
@@ -60,12 +58,17 @@ class IronicImagesTestCase(base.TestCase):
 
             return FakeImgInfo()
 
-        self.stubs.Set(utils, 'execute', fake_execute)
-        self.stubs.Set(os, 'rename', fake_rename)
-        self.stubs.Set(os, 'unlink', fake_unlink)
-        self.stubs.Set(images, 'fetch', lambda *_: None)
-        self.stubs.Set(images, 'qemu_img_info', fake_qemu_img_info)
-        self.stubs.Set(fileutils, 'delete_if_exists', fake_rm_on_errror)
+        self.useFixture(fixtures.MonkeyPatch(
+                'ironic.common.utils.execute', fake_execute))
+        self.useFixture(fixtures.MonkeyPatch('os.rename', fake_rename))
+        self.useFixture(fixtures.MonkeyPatch('os.unlink', fake_unlink))
+        self.useFixture(fixtures.MonkeyPatch(
+                'ironic.common.images.fetch', lambda *_: None))
+        self.useFixture(fixtures.MonkeyPatch(
+                'ironic.common.images.qemu_img_info', fake_qemu_img_info))
+        self.useFixture(fixtures.MonkeyPatch(
+                'ironic.openstack.common.fileutils.delete_if_exists',
+                fake_rm_on_errror))
 
         context = 'opaque context'
         image_id = '4'

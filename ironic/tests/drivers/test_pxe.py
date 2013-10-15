@@ -18,6 +18,7 @@
 
 """Test class for PXE driver."""
 
+import fixtures
 import mock
 import os
 import tempfile
@@ -35,7 +36,6 @@ from ironic.common import states
 from ironic.common import utils
 from ironic.conductor import task_manager
 from ironic.db import api as dbapi
-from ironic.drivers.modules import deploy_utils
 from ironic.drivers.modules import pxe
 from ironic.openstack.common import context
 from ironic.openstack.common import fileutils
@@ -517,7 +517,8 @@ class PXEDriverTestCase(db_base.DbTestCase):
         def fake_deploy(**kwargs):
             pass
 
-        self.stubs.Set(deploy_utils, 'deploy', fake_deploy)
+        self.useFixture(fixtures.MonkeyPatch(
+                'ironic.drivers.modules.deploy_utils.deploy', fake_deploy))
         with task_manager.acquire([self.node['uuid']], shared=True) as task:
             task.resources[0].driver.vendor.vendor_passthru(task, self.node,
                     method='pass_deploy_info', address='123456', iqn='aaa-bbb',
@@ -529,7 +530,8 @@ class PXEDriverTestCase(db_base.DbTestCase):
         def fake_deploy(**kwargs):
             raise exception.InstanceDeployFailure()
 
-        self.stubs.Set(deploy_utils, 'deploy', fake_deploy)
+        self.useFixture(fixtures.MonkeyPatch(
+                'ironic.drivers.modules.deploy_utils.deploy', fake_deploy))
         with task_manager.acquire([self.node['uuid']], shared=True) as task:
             self.assertRaises(exception.InstanceDeployFailure,
                             task.resources[0].driver.vendor.vendor_passthru,
