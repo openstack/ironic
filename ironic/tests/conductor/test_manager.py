@@ -110,6 +110,23 @@ class ManagerTestCase(base.DbTestCase):
         res = objects.Node.get_by_uuid(self.context, node['uuid'])
         self.assertEqual(res['instance_uuid'], None)
 
+    def test_update_node_valid_state(self):
+        ndict = utils.get_test_node(driver='fake',
+                                    instance_uuid=None,
+                                    power_state=states.NOSTATE)
+        node = self.dbapi.create_node(ndict)
+
+        with mock.patch('ironic.drivers.modules.fake.FakePower.'
+                        'get_power_state') as mock_get_power_state:
+
+            mock_get_power_state.return_value = states.POWER_OFF
+            node['instance_uuid'] = 'fake-uuid'
+            self.service.update_node(self.context, node)
+
+            # Check if the change was applied
+            res = objects.Node.get_by_uuid(self.context, node['uuid'])
+            self.assertEqual(res['instance_uuid'], 'fake-uuid')
+
     def test_update_node_invalid_driver(self):
         existing_driver = 'fake'
         wrong_driver = 'wrong-driver'
