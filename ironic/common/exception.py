@@ -360,6 +360,19 @@ class InvalidImageRef(Invalid):
     message = "Invalid image href %(image_href)s."
 
 
+class CatalogUnauthorized(IronicException):
+    message = _("Unauthorised for keystone service catalog.")
+
+
+class CatalogFailure(IronicException):
+    pass
+
+
+class CatalogNotFound(IronicException):
+    message = _("Attr %(attr)s with value %(value)s not found in keystone "
+                "service catalog.")
+
+
 class ServiceUnavailable(IronicException):
     message = "Connection failed"
 
