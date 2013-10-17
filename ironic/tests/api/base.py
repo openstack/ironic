@@ -127,3 +127,14 @@ class FunctionalTest(base.DbTestCase):
             response = response.json
         print('GOT:%s' % response)
         return response
+
+    def validate_link(self, link):
+        """Checks if the given link can get correct data."""
+
+        # removes 'http://loicalhost' part
+        full_path = link.split('localhost', 1)[1]
+        try:
+            self.get_json(full_path, path_prefix='')
+            return True
+        except Exception:
+            return False
