@@ -49,7 +49,7 @@ opts = [
                default=paths.state_path_def('baremetal/console'),
                help='path to directory stores pidfiles of baremetal_terminal'),
     cfg.IntOpt('ipmi_power_retry',
-               default=5,
+               default=10,
                help='Maximum seconds to retry IPMI operations'),
     ]
 
@@ -132,8 +132,10 @@ def _power_on(driver_info):
             state[0] = states.ERROR
             raise loopingcall.LoopingCallDone()
         try:
+            # only issue "power on" once
+            if retries[0] == 0:
+                _exec_ipmitool(driver_info, "power on")
             retries[0] += 1
-            _exec_ipmitool(driver_info, "power on")
         except Exception:
             # Log failures but keep trying
             LOG.warning(_("IPMI power on failed for node %s.")
@@ -141,7 +143,7 @@ def _power_on(driver_info):
 
     timer = loopingcall.FixedIntervalLoopingCall(_wait_for_power_on,
                                                  state, retries)
-    timer.start(interval=1).wait()
+    timer.start(interval=1.0).wait()
     return state[0]
 
 
@@ -163,8 +165,10 @@ def _power_off(driver_info):
             state[0] = states.ERROR
             raise loopingcall.LoopingCallDone()
         try:
+            # only issue "power off" once
+            if retries[0] == 0:
+                _exec_ipmitool(driver_info, "power off")
             retries[0] += 1
-            _exec_ipmitool(driver_info, "power off")
         except Exception:
             # Log failures but keep trying
             LOG.warning(_("IPMI power off failed for node %s.")
@@ -172,7 +176,7 @@ def _power_off(driver_info):
 
     timer = loopingcall.FixedIntervalLoopingCall(_wait_for_power_off,
                                                  state=state, retries=retries)
-    timer.start(interval=1).wait()
+    timer.start(interval=1.0).wait()
     return state[0]
 
 

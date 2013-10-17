@@ -147,9 +147,7 @@ class IPMIToolPrivateMethodTestCase(base.TestCase):
             expected = [mock.call(self.info, "power status"),
                         mock.call(self.info, "power on"),
                         mock.call(self.info, "power status"),
-                        mock.call(self.info, "power on"),
                         mock.call(self.info, "power status"),
-                        mock.call(self.info, "power on"),
                         mock.call(self.info, "power status")]
 
             state = ipmi._power_on(self.info)
