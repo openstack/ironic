@@ -31,13 +31,13 @@ from pyghmi import exceptions as pyghmi_exception
 from pyghmi.ipmi import command as ipmi_command
 
 opts = [
-    cfg.IntOpt('native_ipmi_waiting_time',
+    cfg.IntOpt('retry_timeout',
                default=10,
-               help='Maximum time to retry Native IPMI operations'),
+               help='Maximum time in seconds to retry IPMI operations'),
     ]
 
 CONF = cfg.CONF
-CONF.register_opts(opts)
+CONF.register_opts(opts, group='ipmi')
 
 LOG = logging.getLogger(__name__)
 
@@ -84,7 +84,7 @@ def _power_on(driver_info):
         ipmicmd = ipmi_command.Command(bmc=driver_info['address'],
                            userid=driver_info['username'],
                            password=driver_info['password'])
-        wait = CONF.native_ipmi_waiting_time
+        wait = CONF.ipmi.retry_timeout
         ret = ipmicmd.set_power('on', wait)
     except pyghmi_exception.IpmiException as e:
         LOG.warning(msg % {'node_id': driver_info['uuid'], 'error': str(e)})
@@ -114,7 +114,7 @@ def _power_off(driver_info):
         ipmicmd = ipmi_command.Command(bmc=driver_info['address'],
                            userid=driver_info['username'],
                            password=driver_info['password'])
-        wait = CONF.native_ipmi_waiting_time
+        wait = CONF.ipmi.retry_timeout
         ret = ipmicmd.set_power('off', wait)
     except pyghmi_exception.IpmiException as e:
         LOG.warning(msg % {'node_id': driver_info['uuid'], 'error': str(e)})
@@ -146,7 +146,7 @@ def _reboot(driver_info):
         ipmicmd = ipmi_command.Command(bmc=driver_info['address'],
                            userid=driver_info['username'],
                            password=driver_info['password'])
-        wait = CONF.native_ipmi_waiting_time
+        wait = CONF.ipmi.retry_timeout
         ret = ipmicmd.set_power('boot', wait)
     except pyghmi_exception.IpmiException as e:
         LOG.warning(msg % {'node_id': driver_info['uuid'], 'error': str(e)})

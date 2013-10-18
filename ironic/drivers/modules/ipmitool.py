@@ -29,7 +29,6 @@ import tempfile
 from oslo.config import cfg
 
 from ironic.common import exception
-from ironic.common import paths
 from ironic.common import states
 from ironic.common import utils
 from ironic.conductor import task_manager
@@ -38,23 +37,7 @@ from ironic.openstack.common import excutils
 from ironic.openstack.common import log as logging
 from ironic.openstack.common import loopingcall
 
-opts = [
-    cfg.StrOpt('terminal',
-               default='shellinaboxd',
-               help='path to baremetal terminal program'),
-    cfg.StrOpt('terminal_cert_dir',
-               default=None,
-               help='path to baremetal terminal SSL cert(PEM)'),
-    cfg.StrOpt('terminal_pid_dir',
-               default=paths.state_path_def('baremetal/console'),
-               help='path to directory stores pidfiles of baremetal_terminal'),
-    cfg.IntOpt('ipmi_power_retry',
-               default=10,
-               help='Maximum seconds to retry IPMI operations'),
-    ]
-
 CONF = cfg.CONF
-CONF.register_opts(opts)
 
 LOG = logging.getLogger(__name__)
 
@@ -128,7 +111,7 @@ def _power_on(driver_info):
         if state[0] == states.POWER_ON:
             raise loopingcall.LoopingCallDone()
 
-        if retries[0] > CONF.ipmi_power_retry:
+        if retries[0] > CONF.ipmi.retry_timeout:
             state[0] = states.ERROR
             raise loopingcall.LoopingCallDone()
         try:
@@ -161,7 +144,7 @@ def _power_off(driver_info):
         if state[0] == states.POWER_OFF:
             raise loopingcall.LoopingCallDone()
 
-        if retries[0] > CONF.ipmi_power_retry:
+        if retries[0] > CONF.ipmi.retry_timeout:
             state[0] = states.ERROR
             raise loopingcall.LoopingCallDone()
         try:
