@@ -48,7 +48,6 @@ ERROR states.
 """
 
 NOSTATE = None
-NULL = None
 INIT = 'initializing'
 ACTIVE = 'active'
 BUILDING = 'building'
