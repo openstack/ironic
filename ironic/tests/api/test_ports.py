@@ -257,6 +257,16 @@ class TestPatch(base.FunctionalTest):
                           '/ports/%s' % pdict['uuid'],
                           [{'path': '/uuid', 'op': 'remove'}])
 
+    def test_update_byaddress_with_hyphens_delimiter(self):
+        pdict = dbutils.get_test_port()
+        pdict['address'] = pdict['address'].replace(':', '-')
+        self.assertRaises(webtest.app.AppError,
+                          self.patch_json,
+                          '/ports/%s' % pdict['address'],
+                          [{'path': '/extra/foo',
+                          'value': 'bar',
+                          'op': 'add'}])
+
 
 class TestPost(base.FunctionalTest):
 
@@ -300,6 +310,15 @@ class TestPost(base.FunctionalTest):
         self.assertRaises(webtest.app.AppError, self.post_json, '/ports',
                           pdict)
 
+    def test_create_port_with_hyphens_delimiter(self):
+        pdict = dbutils.get_test_port()
+        colonsMAC = pdict['address']
+        hyphensMAC = colonsMAC.replace(':', '-')
+        pdict['address'] = hyphensMAC
+        self.assertRaises(webtest.app.AppError,
+                          self.post_json,
+                          '/ports', pdict)
+
 
 class TestDelete(base.FunctionalTest):
 
@@ -327,3 +346,10 @@ class TestDelete(base.FunctionalTest):
         self.assertEqual(response.status_int, 404)
         self.assertEqual(response.content_type, 'application/json')
         self.assertTrue(response.json['error_message'])
+
+    def test_delete_port_byaddress_with_hyphens_delimiter(self):
+        pdict = dbutils.get_test_port()
+        pdict['address'] = pdict['address'].replace(':', '-')
+        self.assertRaises(webtest.app.AppError,
+                          self.delete,
+                          '/ports/%s' % pdict['address'])
