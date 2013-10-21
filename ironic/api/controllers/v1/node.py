@@ -80,8 +80,9 @@ class NodePowerStateController(rest.RestController):
         """Set the power state of the machine."""
         node = objects.Node.get_by_uuid(pecan.request.context, node_id)
         if node.target_power_state is not None:
-            raise wsme.exc.ClientSideError(_("One power operation is "
-                                             "already in process"))
+            raise wsme.exc.ClientSideError(_("Power operation for node %s is "
+                                             "already in progress.") %
+                                              node['uuid'], status_code=409)
         #TODO(lucasagomes): Test if target is a valid state and if it's able
         # to transition to the target state from the current one
 
@@ -402,10 +403,7 @@ class NodesController(rest.RestController):
 
     @wsme_pecan.wsexpose(Node, unicode, body=[unicode])
     def patch(self, uuid, patch):
-        """Update an existing node.
-
-        TODO(yuriyz): improve exceptions handling
-        """
+        """Update an existing node."""
         if self._from_chassis:
             raise exception.OperationNotPermitted
 
@@ -428,9 +426,10 @@ class NodesController(rest.RestController):
         # change in progress
         if any(node.get(tgt) for tgt in ["target_power_state",
                                          "target_provision_state"]):
-            raise wsme.exc.ClientSideError(_("Can not update node %s because "
-                                             "a state change is already in "
-                                             "progress.") % uuid)
+            raise wsme.exc.ClientSideError(_("Can not update node %s while "
+                                             "a state transition is in "
+                                             "progress.") % uuid,
+                                             status_code=409)
 
         try:
             patched_node = jsonpatch.apply_patch(node_dict, patch_obj)

@@ -276,6 +276,10 @@ class TestPatch(base.FunctionalTest):
                           '/nodes/%s' % node['uuid'],
                           [{'path': '/extra/foo', 'value': 'bar',
                             'op': 'add'}])
+        response = self.patch_json('/nodes/%s' % node['uuid'],
+                                   [{'path': '/extra/foo', 'value': 'bar',
+                                     'op': 'add'}], expect_errors=True)
+        self.assertEqual(response.status_code, 409)
 
     def test_patch_ports_subresource(self):
         response = self.patch_json('/nodes/%s/ports' % self.node['uuid'],
@@ -424,3 +428,11 @@ class TestPut(base.FunctionalTest):
                               {'target': states.POWER_ON})
 
             self.assertEqual(manager.mock_calls, expected)
+
+        # check status code
+        self.dbapi.update_node(self.node['uuid'],
+                               {'target_power_state': 'fake'})
+        response = self.put_json('/nodes/%s/state/power' % self.node['uuid'],
+                                 {'target': states.POWER_ON},
+                                 expect_errors=True)
+        self.assertEqual(response.status_code, 409)
