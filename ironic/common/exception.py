@@ -188,7 +188,7 @@ class InvalidState(IronicException):
 
 
 class InvalidCPUInfo(Invalid):
-    message = _("Unacceptable CPU info") + ": %(reason)s"
+    message = _("Unacceptable CPU info: %(reason)s")
 
 
 class InvalidIpAddressError(Invalid):
