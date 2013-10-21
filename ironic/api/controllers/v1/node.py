@@ -466,10 +466,7 @@ class NodesController(rest.RestController):
 
     @wsme_pecan.wsexpose(None, unicode, status_code=204)
     def delete(self, node_id):
-        """Delete a node.
-
-        TODO(deva): don't allow deletion of an associated node.
-        """
+        """Delete a node."""
         if self._from_chassis:
             raise exception.OperationNotPermitted
 

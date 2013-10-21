@@ -274,6 +274,10 @@ class NodeLocked(InvalidState):
     message = _("Node %(node)s is locked by another process.")
 
 
+class NodeAssociated(InvalidState):
+    message = _("Node %(node)s is associated with instance %(instance)s.")
+
+
 class PortNotFound(NotFound):
     message = _("Port %(port)s could not be found.")
 
