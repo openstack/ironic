@@ -29,36 +29,26 @@ manage the resource in a given context. See the documentation on TaskManager
 for an example.
 """
 
-from stevedore import dispatch
-
 from ironic.openstack.common import lockutils
 from ironic.openstack.common import log
 
+from ironic.common import driver_factory
 from ironic.common import exception
 from ironic.db import api as dbapi
 
 LOG = log.getLogger(__name__)
 
 RESOURCE_MANAGER_SEMAPHORE = "node_resource"
-DRIVER_FACTORY_SEMAPHORE = "driver_factory"
 
 
 class NodeManager(object):
     """The data model, state, and drivers to manage a Node."""
 
     _nodes = {}
-
-    # NOTE(deva): loading the driver factory as a class member will break
-    #             stevedore when it loads a driver, because the driver will
-    #             import this file (and thus instantiate another factory).
-    #             Instead, we instantiate a NameDispatchExtensionManager only
-    #             once, the first time NodeManager.__init__ is called.
     _driver_factory = None
 
     def __init__(self, id, t, driver_name=None):
-        if not NodeManager._driver_factory:
-            NodeManager._init_driver_factory()
-
+        self._driver_factory = driver_factory.DriverFactory()
         self.id = id
         self.task_refs = [t]
 
@@ -69,20 +59,6 @@ class NodeManager(object):
         # Select new driver's name if defined or select already defined in db.
         driver_name = driver_name or self.node.get('driver')
         self.driver = self.load_driver(driver_name)
-
-    # NOTE(deva): Use lockutils to avoid a potential race in eventlet
-    #             that might try to create two driver factories.
-    @classmethod
-    @lockutils.synchronized(DRIVER_FACTORY_SEMAPHORE, 'ironic-')
-    def _init_driver_factory(cls):
-        # NOTE(deva): In case multiple greenthreads queue up on this lock
-        #             before _driver_factory is initialized, prevent creation
-        #             of multiple NameDispatchExtensionManagers.
-        if not cls._driver_factory:
-            cls._driver_factory = dispatch.NameDispatchExtensionManager(
-                    namespace='ironic.drivers',
-                    check_func=lambda x: True,
-                    invoke_on_load=True)
 
     @classmethod
     @lockutils.synchronized(RESOURCE_MANAGER_SEMAPHORE, 'ironic-')

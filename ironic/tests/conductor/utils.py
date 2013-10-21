@@ -18,6 +18,7 @@
 
 """Test utils for Ironic Managers."""
 
+from ironic.common import driver_factory
 import pkg_resources
 from stevedore import dispatch
 
@@ -29,8 +30,7 @@ def get_mockable_extension_manager(driver, namespace):
 
     :param namespace: A string representing the namespace over which to
                       search for entrypoints.
-    :returns mock_ext_mgr: A NameDispatchExtensionManager that has been
-                           faked.
+    :returns mock_ext_mgr: A DriverFactory instance that has been faked.
     :returns mock_ext: A real plugin loaded by mock_ext_mgr in the specified
                        namespace.
 
@@ -42,12 +42,19 @@ def get_mockable_extension_manager(driver, namespace):
             entry_point = ep
             break
 
-    mock_ext_mgr = dispatch.NameDispatchExtensionManager(
-                    'ironic.no-such-namespace',
-                    lambda x: True)
-    mock_ext = mock_ext_mgr._load_one_plugin(entry_point, True, [], {})
-    mock_ext_mgr.extensions = [mock_ext]
-    mock_ext_mgr.by_name = dict((e.name, e) for e in [mock_ext])
+    # NOTE(lucasagomes): Initialize the _extension_manager before
+    #                    instantiaing a DriverFactory class to avoid
+    #                    a real NameDispatchExtensionManager to be created
+    #                    with the real namespace.
+    driver_factory.DriverFactory._extension_manager = \
+            dispatch.NameDispatchExtensionManager('ironic.no-such-namespace',
+                                                  lambda x: True)
+    mock_ext_mgr = driver_factory.DriverFactory()
+    mock_ext = mock_ext_mgr._extension_manager._load_one_plugin(
+                                                     entry_point, True, [], {})
+    mock_ext_mgr._extension_manager.extensions = [mock_ext]
+    mock_ext_mgr._extension_manager.by_name = dict((e.name, e)
+                                                   for e in [mock_ext])
     return (mock_ext_mgr, mock_ext)
 
 
