@@ -425,6 +425,7 @@ class PXEDriverTestCase(db_base.DbTestCase):
 
     def setUp(self):
         super(PXEDriverTestCase, self).setUp()
+        self.context = context.get_admin_context()
         mgr_utils.get_mocked_node_manager(driver='fake_pxe')
         driver_info = INFO_DICT
         driver_info['pxe_deploy_key'] = 'fake-56789'
@@ -436,14 +437,16 @@ class PXEDriverTestCase(db_base.DbTestCase):
         self.node = self.dbapi.create_node(n)
 
     def test_validate_good(self):
-        with task_manager.acquire([self.node['uuid']], shared=True) as task:
+        with task_manager.acquire(self.context, [self.node['uuid']],
+                                  shared=True) as task:
             task.resources[0].driver.deploy.validate(self.node)
 
     def test_validate_fail(self):
         info = dict(INFO_DICT)
         del info['pxe_image_source']
         self.node['driver_info'] = json.dumps(info)
-        with task_manager.acquire([self.node['uuid']], shared=True) as task:
+        with task_manager.acquire(self.context, [self.node['uuid']],
+                                  shared=True) as task:
             self.assertRaises(exception.InvalidParameterValue,
                               task.resources[0].driver.deploy.validate,
                               self.node)
@@ -464,25 +467,28 @@ class PXEDriverTestCase(db_base.DbTestCase):
                     address='dd:ee:ff',
                     uuid='4fc26c0b-03f2-4d2e-ae87-c02d7f33c234',
                     node_id='123')))
-        with task_manager.acquire([self.node['uuid']]) as task:
+        with task_manager.acquire(self.context, [self.node['uuid']]) as task:
             node_macs = pxe._get_node_mac_addresses(task, self.node)
         self.assertEqual(node_macs, ['aa:bb:cc', 'dd:ee:ff'])
 
     def test_vendor_passthru_validate_good(self):
-        with task_manager.acquire([self.node['uuid']], shared=True) as task:
+        with task_manager.acquire(self.context, [self.node['uuid']],
+                                  shared=True) as task:
             task.resources[0].driver.vendor.validate(self.node,
                     method='pass_deploy_info', address='123456', iqn='aaa-bbb',
                     key='fake-56789')
 
     def test_vendor_passthru_validate_fail(self):
-        with task_manager.acquire([self.node['uuid']], shared=True) as task:
+        with task_manager.acquire(self.context, [self.node['uuid']],
+                                  shared=True) as task:
             self.assertRaises(exception.InvalidParameterValue,
                               task.resources[0].driver.vendor.validate,
                               self.node, method='pass_deploy_info',
                               key='fake-56789')
 
     def test_vendor_passthru_validate_key_notmatch(self):
-        with task_manager.acquire([self.node['uuid']], shared=True) as task:
+        with task_manager.acquire(self.context, [self.node['uuid']],
+                                  shared=True) as task:
             self.assertRaises(exception.InvalidParameterValue,
                               task.resources[0].driver.vendor.validate,
                               self.node, method='pass_deploy_info',
@@ -499,8 +505,8 @@ class PXEDriverTestCase(db_base.DbTestCase):
                     create_pxe_config_mock.return_value = None
                     cache_images_mock.return_value = None
 
-                    with task_manager.acquire([self.node['uuid']],
-                                              shared=False) as task:
+                    with task_manager.acquire(self.context,
+                                    [self.node['uuid']], shared=False) as task:
                         state = task.resources[0].driver.deploy.deploy(task,
                                                                     self.node)
                         get_tftp_image_info_mock.assert_called_once_with(
@@ -519,7 +525,8 @@ class PXEDriverTestCase(db_base.DbTestCase):
 
         self.useFixture(fixtures.MonkeyPatch(
                 'ironic.drivers.modules.deploy_utils.deploy', fake_deploy))
-        with task_manager.acquire([self.node['uuid']], shared=True) as task:
+        with task_manager.acquire(self.context, [self.node['uuid']],
+                                  shared=True) as task:
             task.resources[0].driver.vendor.vendor_passthru(task, self.node,
                     method='pass_deploy_info', address='123456', iqn='aaa-bbb',
                     key='fake-56789')
@@ -532,7 +539,8 @@ class PXEDriverTestCase(db_base.DbTestCase):
 
         self.useFixture(fixtures.MonkeyPatch(
                 'ironic.drivers.modules.deploy_utils.deploy', fake_deploy))
-        with task_manager.acquire([self.node['uuid']], shared=True) as task:
+        with task_manager.acquire(self.context, [self.node['uuid']],
+                                  shared=True) as task:
             self.assertRaises(exception.InstanceDeployFailure,
                             task.resources[0].driver.vendor.vendor_passthru,
                             task, self.node, method='pass_deploy_info',
@@ -606,8 +614,8 @@ class PXEDriverTestCase(db_base.DbTestCase):
                 open(deploy_kernel_path, 'w').close()
                 open(image_path, 'w').close()
 
-            with task_manager.acquire([self.node['uuid']], shared=False) \
-                    as task:
+            with task_manager.acquire(self.context, [self.node['uuid']],
+                                      shared=False) as task:
                 task.resources[0].driver.deploy.tear_down(task, self.node)
             get_tftp_image_info_mock.called_once_with(self.node)
             assert_false_path = [config_path, deploy_kernel_path, image_path,

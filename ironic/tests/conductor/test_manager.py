@@ -81,7 +81,7 @@ class ManagerTestCase(base.DbTestCase):
         node = self.dbapi.create_node(ndict)
 
         # check that it fails if something else has locked it already
-        with task_manager.acquire(node['id'], shared=False):
+        with task_manager.acquire(self.context, node['id'], shared=False):
             node['extra'] = {'test': 'two'}
             self.assertRaises(exception.NodeLocked,
                               self.service.update_node,
@@ -214,7 +214,7 @@ class ManagerTestCase(base.DbTestCase):
         node = self.dbapi.create_node(ndict)
 
         # check if the node is locked
-        with task_manager.acquire(node['id'], shared=False):
+        with task_manager.acquire(self.context, node['id'], shared=False):
             self.assertRaises(exception.NodeLocked,
                               self.service.change_node_power_state,
                               self.context,
