@@ -127,7 +127,6 @@ class IPMINativeDriverTestCase(db_base.DbTestCase):
 
     def setUp(self):
         super(IPMINativeDriverTestCase, self).setUp()
-        self.dbapi = db_api.get_instance()
         self.driver = mgr_utils.get_mocked_node_manager(
                       driver='fake_ipminative')
 
