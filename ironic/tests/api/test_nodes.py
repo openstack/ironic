@@ -370,6 +370,12 @@ class TestDelete(base.FunctionalTest):
                                expect_errors=True)
         self.assertEqual(response.status_int, 403)
 
+    def test_delete_associated(self):
+        ndict = dbutils.get_test_node(instance_uuid='fake-uuid-1234')
+        self.post_json('/nodes', ndict)
+        response = self.delete('/nodes/%s' % ndict['uuid'], expect_errors=True)
+        self.assertEqual(response.status_int, 409)
+
 
 class TestPut(base.FunctionalTest):
 

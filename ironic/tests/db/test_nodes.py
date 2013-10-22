@@ -155,6 +155,11 @@ class DbNodeTestCase(base.DbTestCase):
         self.assertRaises(exception.NodeLocked,
                           self.dbapi.destroy_node, n['id'])
 
+    def test_destroy_associated_node(self):
+        n = self._create_test_node(instance_uuid='fake-uuid-1234')
+        self.assertRaises(exception.NodeAssociated,
+                          self.dbapi.destroy_node, n['uuid'])
+
     def test_ports_get_destroyed_after_destroying_a_node(self):
         n = self._create_test_node()
         node_id = n['id']

@@ -303,6 +303,9 @@ class Connection(api.Connection):
                 raise exception.NodeNotFound(node=node)
             if node_ref['reservation'] is not None:
                 raise exception.NodeLocked(node=node)
+            if node_ref['instance_uuid'] is not None:
+                raise exception.NodeAssociated(node=node,
+                                            instance=node_ref['instance_uuid'])
 
             # Get node ID, if an UUID was supplied. The ID is
             # required for deleting all ports, attached to the node.
