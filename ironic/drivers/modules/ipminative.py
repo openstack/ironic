@@ -32,8 +32,8 @@ from pyghmi.ipmi import command as ipmi_command
 
 opts = [
     cfg.IntOpt('native_ipmi_waiting_time',
-               default=300,
-               help='Waiting time for a native ipmi command in seconds'),
+               default=10,
+               help='Maximum time to retry Native IPMI operations'),
     ]
 
 CONF = cfg.CONF
