@@ -21,6 +21,16 @@ Client side of the conductor RPC API.
 
 from ironic.objects import base as objects_base
 import ironic.openstack.common.rpc.proxy
+from oslo.config import cfg
+
+conductor_opts = [
+    cfg.IntOpt('max_time_interval',
+               default=120,
+               help='Maximum time, in seconds, since the last '
+                    'check-in of a conductor'),
+]
+
+cfg.CONF.register_opts(conductor_opts, 'conductor')
 
 MANAGER_TOPIC = 'ironic.conductor_manager'
 
