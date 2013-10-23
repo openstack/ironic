@@ -45,7 +45,6 @@ class NodeManager(object):
     """The data model, state, and drivers to manage a Node."""
 
     _nodes = {}
-    _driver_factory = None
 
     def __init__(self, id, t, driver_name=None):
         self._driver_factory = driver_factory.DriverFactory()
@@ -102,7 +101,7 @@ class NodeManager(object):
         :raises: DriverNotFound if any driver is not found.
         """
         try:
-            driver = NodeManager._driver_factory[driver_name]
+            driver = self._driver_factory[driver_name]
         except KeyError:
             raise exception.DriverNotFound(driver_name=driver_name)
 

@@ -16,6 +16,7 @@
 import contextlib
 import mock
 
+from ironic.common import driver_factory
 from ironic.common import exception
 from ironic.conductor import resource_manager
 from ironic.tests import base
@@ -48,9 +49,10 @@ class NodeManagerTestCase(base.TestCase):
 
     def test_node_manager_init_id(self):
         NodeManager = resource_manager.NodeManager
+        DriverFactory = driver_factory.DriverFactory
         with contextlib.nested(
-                mock.patch.object(NodeManager,
-                                  '_driver_factory',
+                mock.patch.object(DriverFactory,
+                                  '_extension_manager',
                                   new=self.driver_factory),
                 mock.patch("ironic.conductor.resource_manager.dbapi",
                            self.dbapi)):
@@ -59,9 +61,10 @@ class NodeManagerTestCase(base.TestCase):
 
     def test_node_manager_init_task(self):
         NodeManager = resource_manager.NodeManager
+        DriverFactory = driver_factory.DriverFactory
         with contextlib.nested(
-                mock.patch.object(NodeManager,
-                                  '_driver_factory',
+                mock.patch.object(DriverFactory,
+                                  '_extension_manager',
                                   new=self.driver_factory),
                 mock.patch("ironic.conductor.resource_manager.dbapi",
                            self.dbapi)
@@ -71,9 +74,10 @@ class NodeManagerTestCase(base.TestCase):
 
     def test_node_manager_init_node(self):
         NodeManager = resource_manager.NodeManager
+        DriverFactory = driver_factory.DriverFactory
         with contextlib.nested(
-                mock.patch.object(NodeManager,
-                                  '_driver_factory',
+                mock.patch.object(DriverFactory,
+                                  '_extension_manager',
                                   new=self.driver_factory),
                 mock.patch("ironic.conductor.resource_manager.dbapi",
                            self.dbapi)
@@ -83,9 +87,10 @@ class NodeManagerTestCase(base.TestCase):
 
     def test_node_manager_init_ports(self):
         NodeManager = resource_manager.NodeManager
+        DriverFactory = driver_factory.DriverFactory
         with contextlib.nested(
-                mock.patch.object(NodeManager,
-                                  '_driver_factory',
+                mock.patch.object(DriverFactory,
+                                  '_extension_manager',
                                   new=self.driver_factory),
                 mock.patch("ironic.conductor.resource_manager.dbapi",
                            self.dbapi)
@@ -95,9 +100,10 @@ class NodeManagerTestCase(base.TestCase):
 
     def test_node_manager_init_driver(self):
         NodeManager = resource_manager.NodeManager
+        DriverFactory = driver_factory.DriverFactory
         with contextlib.nested(
-                mock.patch.object(NodeManager,
-                                  '_driver_factory',
+                mock.patch.object(DriverFactory,
+                                  '_extension_manager',
                                   new=self.driver_factory),
                 mock.patch("ironic.conductor.resource_manager.dbapi",
                            self.dbapi)
@@ -107,9 +113,10 @@ class NodeManagerTestCase(base.TestCase):
 
     def test_node_manager_init_new_driver(self):
         NodeManager = resource_manager.NodeManager
+        DriverFactory = driver_factory.DriverFactory
         with contextlib.nested(
-                mock.patch.object(NodeManager,
-                                  '_driver_factory',
+                mock.patch.object(DriverFactory,
+                                  '_extension_manager',
                                   new=self.driver_factory),
                 mock.patch("ironic.conductor.resource_manager.dbapi",
                            self.dbapi)
@@ -121,9 +128,10 @@ class NodeManagerTestCase(base.TestCase):
 
     def test_load_existing_driver(self):
         NodeManager = resource_manager.NodeManager
+        DriverFactory = driver_factory.DriverFactory
         with contextlib.nested(
-                mock.patch.object(NodeManager,
-                                  '_driver_factory',
+                mock.patch.object(DriverFactory,
+                                  '_extension_manager',
                                   new=self.driver_factory),
                 mock.patch.object(NodeManager,
                                   '__init__',
@@ -138,9 +146,10 @@ class NodeManagerTestCase(base.TestCase):
 
     def test_load_non_existing_driver(self):
         NodeManager = resource_manager.NodeManager
+        DriverFactory = driver_factory.DriverFactory
         with contextlib.nested(
-                mock.patch.object(NodeManager,
-                                  '_driver_factory',
+                mock.patch.object(DriverFactory,
+                                  '_extension_manager',
                                   new=self.driver_factory),
                 mock.patch.object(NodeManager,
                                   '__init__',
