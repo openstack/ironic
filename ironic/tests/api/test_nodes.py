@@ -17,6 +17,7 @@ Tests for the API /nodes/ methods.
 """
 
 import mock
+from testtools import matchers
 import webtest.app
 
 from ironic.common import exception
@@ -34,6 +35,27 @@ class TestListNodes(base.FunctionalTest):
         super(TestListNodes, self).setUp()
         cdict = dbutils.get_test_chassis()
         self.chassis = self.dbapi.create_chassis(cdict)
+
+    def _create_association_test_nodes(self):
+        #create some unassociated nodes
+        unassociated_nodes = []
+        for id in xrange(3):
+            ndict = dbutils.get_test_node(id=id,
+                                          uuid=uuidutils.generate_uuid())
+            node = self.dbapi.create_node(ndict)
+            unassociated_nodes.append(node['uuid'])
+
+        #created some associated nodes
+        associated_nodes = []
+        for id in xrange(3, 7):
+            ndict = dbutils.get_test_node(
+                        id=id,
+                        uuid=uuidutils.generate_uuid(),
+                        instance_uuid=uuidutils.generate_uuid())
+            node = self.dbapi.create_node(ndict)
+            associated_nodes.append(node['uuid'])
+        return {'associated': associated_nodes,
+                'unassociated': unassociated_nodes}
 
     def test_empty(self):
         data = self.get_json('/nodes')
@@ -79,7 +101,7 @@ class TestListNodes(base.FunctionalTest):
         self.assertEqual(len(nodes), len(data['nodes']))
 
         uuids = [n['uuid'] for n in data['nodes']]
-        self.assertEqual(nodes.sort(), uuids.sort())
+        self.assertEqual(sorted(nodes), sorted(uuids))
 
     def test_links(self):
         uuid = uuidutils.generate_uuid()
@@ -170,6 +192,110 @@ class TestListNodes(base.FunctionalTest):
         #TODO(lucasagomes): Add more tests to check to which states it can
         # transition to from the current one, and check if they are present
         # in the available list.
+
+    def test_node_by_instance_uuid(self):
+        ndict = dbutils.get_test_node(uuid=uuidutils.generate_uuid(),
+                                      instance_uuid=uuidutils.generate_uuid())
+        node = self.dbapi.create_node(ndict)
+        instance_uuid = node['instance_uuid']
+
+        data = self.get_json('/nodes?instance_uuid=%s' % instance_uuid)
+
+        self.assertThat(data['nodes'], matchers.HasLength(1))
+        self.assertEqual(node['instance_uuid'],
+                         data['nodes'][0]["instance_uuid"])
+
+    def test_node_by_instance_uuid_wrong_uuid(self):
+        ndict = dbutils.get_test_node(uuid=uuidutils.generate_uuid(),
+                                      instance_uuid=uuidutils.generate_uuid())
+        self.dbapi.create_node(ndict)
+        wrong_uuid = uuidutils.generate_uuid()
+
+        data = self.get_json('/nodes?instance_uuid=%s' % wrong_uuid)
+
+        self.assertThat(data['nodes'], matchers.HasLength(0))
+
+    def test_node_by_instance_uuid_invalid_uuid(self):
+        response = self.get_json('/nodes?instance_uuid=fake',
+                                 expect_errors=True)
+
+        self.assertEqual('application/json', response.content_type)
+        self.assertEqual(400, response.status_code)
+
+    def test_associated_nodes_insensitive(self):
+        associated_nodes = self._create_association_test_nodes().\
+                get('associated')
+
+        data = self.get_json('/nodes?associated=true')
+        data1 = self.get_json('/nodes?associated=True')
+
+        uuids = [n['uuid'] for n in data['nodes']]
+        uuids1 = [n['uuid'] for n in data1['nodes']]
+        self.assertEqual(sorted(associated_nodes), sorted(uuids1))
+        self.assertEqual(sorted(associated_nodes), sorted(uuids))
+
+    def test_associated_nodes_error(self):
+        self._create_association_test_nodes()
+
+        self.assertRaises(webtest.app.AppError, self.get_json,
+                          '/nodes?associated=blah')
+
+    def test_unassociated_nodes_insensitive(self):
+        unassociated_nodes = self._create_association_test_nodes().\
+                get('unassociated')
+
+        data = self.get_json('/nodes?associated=false')
+        data1 = self.get_json('/nodes?associated=FALSE')
+
+        uuids = [n['uuid'] for n in data['nodes']]
+        uuids1 = [n['uuid'] for n in data1['nodes']]
+        self.assertEqual(sorted(unassociated_nodes), sorted(uuids1))
+        self.assertEqual(sorted(unassociated_nodes), sorted(uuids))
+
+    def test_unassociated_nodes_with_limit(self):
+        unassociated_nodes = self._create_association_test_nodes().\
+                get('unassociated')
+
+        data = self.get_json('/nodes?associated=False&limit=2')
+
+        self.assertThat(data['nodes'], matchers.HasLength(2))
+        self.assertTrue(data['nodes'][0]['uuid'] in unassociated_nodes)
+
+    def test_next_link_with_association(self):
+        self._create_association_test_nodes()
+        data = self.get_json('/nodes/?limit=3&associated=True')
+        self.assertThat(data['nodes'], matchers.HasLength(3))
+        self.assertIn('associated=true', data['next'])
+
+    def test_detail_with_association_filter(self):
+        associated_nodes = self._create_association_test_nodes().\
+                get('associated')
+        data = self.get_json('/nodes/detail?associated=true')
+        self.assertIn('driver', data['nodes'][0])
+        self.assertEqual(len(associated_nodes), len(data['nodes']))
+
+    def test_next_link_with_association_with_detail(self):
+        self._create_association_test_nodes()
+        data = self.get_json('/nodes/detail?limit=3&associated=true')
+        self.assertThat(data['nodes'], matchers.HasLength(3))
+        self.assertIn('driver', data['nodes'][0])
+        self.assertIn('associated=true', data['next'])
+
+    def test_detail_with_instance_uuid(self):
+        ndict = dbutils.get_test_node(uuid=uuidutils.generate_uuid(),
+                                      instance_uuid=uuidutils.generate_uuid())
+        node = self.dbapi.create_node(ndict)
+        instance_uuid = node['instance_uuid']
+
+        data = self.get_json('/nodes/detail?instance_uuid=%s' % instance_uuid)
+
+        self.assertEqual(node['instance_uuid'],
+                         data['nodes'][0]["instance_uuid"])
+        self.assertIn('driver', data['nodes'][0])
+        self.assertIn('driver_info', data['nodes'][0])
+        self.assertIn('extra', data['nodes'][0])
+        self.assertIn('properties', data['nodes'][0])
+        self.assertIn('chassis_id', data['nodes'][0])
 
 
 class TestPatch(base.FunctionalTest):

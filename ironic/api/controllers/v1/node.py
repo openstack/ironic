@@ -36,6 +36,7 @@ from ironic import objects
 from ironic.openstack.common import excutils
 from ironic.openstack.common import log
 
+
 LOG = log.getLogger(__name__)
 
 
@@ -314,7 +315,8 @@ class NodesController(rest.RestController):
     def __init__(self, from_chassis=False):
         self._from_chassis = from_chassis
 
-    def _get_nodes(self, chassis_id, marker, limit, sort_key, sort_dir):
+    def _get_nodes(self, chassis_id, instance_uuid, associated, marker, limit,
+                   sort_key, sort_dir):
         if self._from_chassis and not chassis_id:
             raise exception.InvalidParameterValue(_(
                   "Chassis id not specified."))
@@ -332,10 +334,42 @@ class NodesController(rest.RestController):
                                                              marker_obj,
                                                              sort_key=sort_key,
                                                              sort_dir=sort_dir)
+        elif instance_uuid:
+            nodes = self._get_nodes_by_instance(instance_uuid)
+        elif associated:
+            nodes = self._get_nodes_by_instance_association(associated,
+                                                   limit, marker_obj,
+                                                   sort_key, sort_dir)
         else:
             nodes = pecan.request.dbapi.get_node_list(limit, marker_obj,
                                                       sort_key=sort_key,
                                                       sort_dir=sort_dir)
+        return nodes
+
+    def _get_nodes_by_instance(self, instance_uuid):
+        """Retrieve a node by its instance uuid.
+
+        It returns a list with the node, or an empty list if no node is found.
+        """
+        try:
+            node = pecan.request.dbapi.get_node_by_instance(instance_uuid)
+            return [node]
+        except exception.InstanceNotFound:
+            return []
+
+    def _get_nodes_by_instance_association(self, associated, limit, marker_obj,
+                                           sort_key, sort_dir):
+        """Retrieve nodes by instance association."""
+        if associated.lower() == 'true':
+            nodes = pecan.request.dbapi.get_associated_nodes(limit,
+                        marker_obj, sort_key=sort_key, sort_dir=sort_dir)
+        elif associated.lower() == 'false':
+            nodes = pecan.request.dbapi.get_unassociated_nodes(limit,
+                        marker_obj, sort_key=sort_key, sort_dir=sort_dir)
+        else:
+            raise wsme.exc.ClientSideError(_(
+                    "Invalid parameter value: %s, 'associated' "
+                    "can only be true or false.") % associated)
         return nodes
 
     def _convert_chassis_uuid_to_id(self, node_dict):
@@ -346,33 +380,40 @@ class NodesController(rest.RestController):
                                                       node_dict['chassis_id'])
             node_dict['chassis_id'] = chassis_obj.id
 
-    @wsme_pecan.wsexpose(NodeCollection, unicode, unicode, int,
-                         unicode, unicode)
-    def get_all(self, chassis_id=None, marker=None, limit=None,
-                sort_key='id', sort_dir='asc'):
+    @wsme_pecan.wsexpose(NodeCollection, unicode, unicode, unicode,
+                         unicode, int, unicode, unicode)
+    def get_all(self, chassis_id=None, instance_uuid=None, associated=None,
+                marker=None, limit=None, sort_key='id', sort_dir='asc'):
         """Retrieve a list of nodes."""
-        nodes = self._get_nodes(chassis_id, marker, limit, sort_key, sort_dir)
-        return NodeCollection.convert_with_links(nodes, limit,
-                                                 sort_key=sort_key,
-                                                 sort_dir=sort_dir)
+        nodes = self._get_nodes(chassis_id, instance_uuid, associated, marker,
+                                limit, sort_key, sort_dir)
 
-    @wsme_pecan.wsexpose(NodeCollection, unicode, unicode, int,
-                         unicode, unicode)
-    def detail(self, chassis_id=None, marker=None, limit=None,
-                sort_key='id', sort_dir='asc'):
+        parameters = {'sort_key': sort_key, 'sort_dir': sort_dir}
+        if associated:
+            parameters['associated'] = associated.lower()
+        return NodeCollection.convert_with_links(nodes, limit, **parameters)
+
+    @wsme_pecan.wsexpose(NodeCollection, unicode, unicode, unicode,
+                         unicode, int, unicode, unicode)
+    def detail(self, chassis_id=None, instance_uuid=None, associated=None,
+               marker=None, limit=None, sort_key='id', sort_dir='asc'):
         """Retrieve a list of nodes with detail."""
         # /detail should only work agaist collections
         parent = pecan.request.path.split('/')[:-1][-1]
         if parent != "nodes":
             raise exception.HTTPNotFound
 
-        nodes = self._get_nodes(chassis_id, marker, limit, sort_key, sort_dir)
+        nodes = self._get_nodes(chassis_id, instance_uuid, associated,
+                                marker, limit, sort_key, sort_dir)
         resource_url = '/'.join(['nodes', 'detail'])
+
+        parameters = {'sort_key': sort_key, 'sort_dir': sort_dir}
+        if associated:
+            parameters['associated'] = associated.lower()
         return NodeCollection.convert_with_links(nodes, limit,
                                                  url=resource_url,
                                                  expand=True,
-                                                 sort_key=sort_key,
-                                                 sort_dir=sort_dir)
+                                                 **parameters)
 
     @wsme_pecan.wsexpose(Node, unicode)
     def get_one(self, uuid):
