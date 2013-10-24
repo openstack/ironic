@@ -11,7 +11,7 @@ greenlet>=0.3.2
 sqlalchemy-migrate>=0.7.2
 netaddr>=0.7.6
 paramiko>=1.8.0
-iso8601>=0.1.4,!=0.1.5,!=0.1.6
+iso8601>=0.1.8
 python-neutronclient>=2.3.0,<3
 python-glanceclient>=0.9.0
 python-keystoneclient>=0.4.1
@@ -21,6 +21,6 @@ oslo.config>=1.2.0
 pecan>=0.2.0
 six>=1.4.1
 jsonpatch>=1.1
-WSME>=0.5b5
+WSME>=0.5b6
 Jinja2
 pyghmi
