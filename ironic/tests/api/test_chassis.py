@@ -73,6 +73,8 @@ class TestListChassis(base.FunctionalTest):
         self.assertIn('links', data.keys())
         self.assertEqual(len(data['links']), 2)
         self.assertIn(uuid, data['links'][0]['href'])
+        self.assertTrue(self.validate_link(data['links'][0]['href']))
+        self.assertTrue(self.validate_link(data['links'][1]['href']))
 
     def test_collection_links(self):
         chassis = []
