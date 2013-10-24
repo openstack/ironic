@@ -27,15 +27,10 @@ class Node(base.IronicObject):
             'id': int,
 
             'uuid': utils.str_or_none,
-            # NOTE: chassis_id should be read-only after node is created
             'chassis_id': utils.int_or_none,
-            # NOTE: instance_uuid must be read-only when node is provisioned
             'instance_uuid': utils.str_or_none,
 
-            # NOTE: driver should be read-only after node is created
             'driver': utils.str_or_none,
-            # NOTE: driver_info should probably be read-only when node
-            #       is provisioned
             'driver_info': utils.dict_or_none,
 
             'properties': utils.dict_or_none,
@@ -63,7 +58,6 @@ class Node(base.IronicObject):
         :param uuid: the uuid of a node.
         :returns: a :class:`Node` object.
         """
-        # TODO(deva): enable getting ports for this node
         db_node = cls.dbapi.get_node(uuid)
         return Node._from_db_object(cls(), db_node)
 
@@ -78,10 +72,6 @@ class Node(base.IronicObject):
 
         :param context: Security context
         """
-        # TODO(deva): enforce safe limits on what fields may be changed
-        #             depending on state. Eg., do not allow changing
-        #             instance_uuid of an already-provisioned node.
-        #             Raise exception if unsafe to change something.
         updates = {}
         changes = self.obj_what_changed()
         for field in changes:

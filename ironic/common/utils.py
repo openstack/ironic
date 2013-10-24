@@ -521,27 +521,6 @@ def mkfs(fs, path, label=None):
     execute(*args)
 
 
-# TODO(deva): Make these work in Ironic.
-#             Either copy nova/virt/utils (bad),
-#             or reimplement as a common lib,
-#             or make a driver that doesn't need to do this.
-#
-#def cache_image(context, target, image_id, user_id, project_id):
-#    if not os.path.exists(target):
-#        libvirt_utils.fetch_image(context, target, image_id,
-#                                  user_id, project_id)
-#
-#
-#def inject_into_image(image, key, net, metadata, admin_password,
-#        files, partition, use_cow=False):
-#    try:
-#        disk_api.inject_data(image, key, net, metadata, admin_password,
-#                files, partition, use_cow)
-#    except Exception as e:
-#        LOG.warn(_("Failed to inject data into image %(image)s. "
-#                   "Error: %(e)s") % locals())
-
-
 def unlink_without_raise(path):
     try:
         os.unlink(path)

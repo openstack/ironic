@@ -40,9 +40,6 @@ class TestNodeObject(base.DbTestCase):
 
             mock_get_node.assert_called_once_with(uuid)
 
-            # TODO(deva): add tests for load-on-demand info, eg. ports,
-            #             once Port objects are created
-
     def test_save(self):
         uuid = self.fake_node['uuid']
         with mock.patch.object(self.dbapi, 'get_node',

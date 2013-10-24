@@ -19,7 +19,6 @@
 
 from oslo.config import cfg
 
-# TODO(deva): import MultipleResultsFound and handle it appropriately
 from sqlalchemy.orm.exc import NoResultFound
 
 from ironic.common import exception
