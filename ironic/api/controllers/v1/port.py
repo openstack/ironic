@@ -147,11 +147,19 @@ class PortsController(rest.RestController):
 
     def _check_address(self, port_dict):
         if not utils.is_valid_mac(port_dict['address']):
-            raise wsme.exc.ClientSideError(_("Invalid MAC address format: %s")
-                                           % port_dict['address'])
+            if '-' in port_dict['address']:
+                msg = _("Does not support hyphens as separator: %s") \
+                        % port_dict['address']
+            else:
+                msg = _("Invalid MAC address format: %s") \
+                        % port_dict['address']
+            raise wsme.exc.ClientSideError(msg)
 
         try:
             if pecan.request.dbapi.get_port(port_dict['address']):
+            # TODO(whaom) - create a custom SQLAlchemy type like
+            # db.sqlalchemy.types.IPAddress in Nova for mac
+            # with 'macaddr' postgres type for postgres dialect
                 raise wsme.exc.ClientSideError(_("MAC address already "
                                                  "exists."))
         except exception.PortNotFound:
@@ -229,6 +237,7 @@ class PortsController(rest.RestController):
         port_dict = port.as_dict()
 
         api_utils.validate_patch(patch)
+
         try:
             patched_port = jsonpatch.apply_patch(port_dict,
                                                  jsonpatch.JsonPatch(patch))

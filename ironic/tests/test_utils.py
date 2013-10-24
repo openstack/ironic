@@ -297,6 +297,11 @@ class GenericUtilsTestCase(base.TestCase):
         self.assertTrue(utils.is_valid_mac(u"52:54:00:cf:2d:31"))
         self.assertFalse(utils.is_valid_mac("127.0.0.1"))
         self.assertFalse(utils.is_valid_mac("not:a:mac:address"))
+        self.assertFalse(utils.is_valid_mac("52-54-00-cf-2d-31"))
+        self.assertFalse(utils.is_valid_mac("aa bb cc dd ee ff"))
+        self.assertTrue(utils.is_valid_mac("AA:BB:CC:DD:EE:FF"))
+        self.assertFalse(utils.is_valid_mac("AA BB CC DD EE FF"))
+        self.assertFalse(utils.is_valid_mac("AA-BB-CC-DD-EE-FF"))
 
     def test_safe_rstrip(self):
         value = '/test/'
