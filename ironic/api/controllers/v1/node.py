@@ -396,8 +396,8 @@ class NodesController(rest.RestController):
         try:
             new_node = pecan.request.dbapi.create_node(node_dict)
         except Exception as e:
-            LOG.exception(e)
-            raise wsme.exc.ClientSideError(_("Invalid data"))
+            with excutils.save_and_reraise_exception():
+                LOG.exception(e)
         return Node.convert_with_links(new_node)
 
     @wsme_pecan.wsexpose(Node, unicode, body=[unicode])

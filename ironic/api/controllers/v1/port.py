@@ -32,6 +32,7 @@ from ironic.api.controllers.v1 import utils as api_utils
 from ironic.common import exception
 from ironic.common import utils
 from ironic import objects
+from ironic.openstack.common import excutils
 from ironic.openstack.common import log
 
 LOG = log.getLogger(__name__)
@@ -214,9 +215,9 @@ class PortsController(rest.RestController):
 
         try:
             new_port = pecan.request.dbapi.create_port(port_dict)
-        except exception.IronicException as e:
-            LOG.exception(e)
-            raise wsme.exc.ClientSideError(_("Invalid data"))
+        except Exception as e:
+            with excutils.save_and_reraise_exception():
+                LOG.exception(e)
         return Port.convert_with_links(new_port)
 
     @wsme_pecan.wsexpose(Port, unicode, body=[unicode])
