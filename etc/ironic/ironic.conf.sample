@@ -21,6 +21,10 @@
 # The port for the Ironic API server (integer value)
 #ironic_api_port=6385
 
+# the maximum number of items returned in a single response
+# from a collection resource (integer value)
+#api_limit_max=1000
+
 
 #
 # Options defined in ironic.api.app
@@ -36,6 +40,14 @@
 
 # make exception message format errors fatal (boolean value)
 #fatal_exception_format_errors=false
+
+
+#
+# Options defined in ironic.common.images
+#
+
+# Force backing images to raw format (boolean value)
+#force_raw_images=true
 
 
 #
@@ -76,24 +88,6 @@
 # Explicitly specify the temporary working directory (string
 # value)
 #tempdir=<None>
-
-
-#
-# Options defined in ironic.drivers.modules.ipmitool
-#
-
-# path to baremetal terminal program (string value)
-#terminal=shellinaboxd
-
-# path to baremetal terminal SSL cert(PEM) (string value)
-#terminal_cert_dir=<None>
-
-# path to directory stores pidfiles of baremetal_terminal
-# (string value)
-#terminal_pid_dir=$state_path/baremetal/console
-
-# Maximum seconds to retry IPMI operations (integer value)
-#ipmi_power_retry=5
 
 
 #
@@ -424,42 +418,6 @@
 #matchmaker_heartbeat_ttl=600
 
 
-[rpc_notifier2]
-
-#
-# Options defined in ironic.openstack.common.notifier.rpc_notifier2
-#
-
-# AMQP topic(s) used for openstack notifications (list value)
-#topics=notifications
-
-
-[matchmaker_redis]
-
-#
-# Options defined in ironic.openstack.common.rpc.matchmaker_redis
-#
-
-# Host to locate redis (string value)
-#host=127.0.0.1
-
-# Use this port to connect to redis host. (integer value)
-#port=6379
-
-# Password for Redis server. (optional) (string value)
-#password=<None>
-
-
-[matchmaker_ring]
-
-#
-# Options defined in ironic.openstack.common.rpc.matchmaker_ring
-#
-
-# Matchmaker ring file (JSON) (string value)
-#ringfile=/etc/oslo/matchmaker_ring.json
-
-
 [database]
 
 #
@@ -523,4 +481,138 @@
 #connection_trace=false
 
 
-# Total option count: 106
+[ipmi]
+
+#
+# Options defined in ironic.drivers.modules.ipminative
+#
+
+# Maximum time in seconds to retry IPMI operations (integer
+# value)
+#retry_timeout=10
+
+
+[rpc_notifier2]
+
+#
+# Options defined in ironic.openstack.common.notifier.rpc_notifier2
+#
+
+# AMQP topic(s) used for openstack notifications (list value)
+#topics=notifications
+
+
+[matchmaker_redis]
+
+#
+# Options defined in ironic.openstack.common.rpc.matchmaker_redis
+#
+
+# Host to locate redis (string value)
+#host=127.0.0.1
+
+# Use this port to connect to redis host. (integer value)
+#port=6379
+
+# Password for Redis server. (optional) (string value)
+#password=<None>
+
+
+[glance]
+
+#
+# Options defined in ironic.common.glance_service.v2.image_service
+#
+
+# A list of url scheme that can be downloaded directly via the
+# direct_url.  Currently supported schemes: [file]. (list
+# value)
+#allowed_direct_url_schemes=
+
+
+#
+# Options defined in ironic.common.image_service
+#
+
+# default glance hostname or ip (string value)
+#glance_host=$my_ip
+
+# default glance port (integer value)
+#glance_port=9292
+
+# Default protocol to use when connecting to glance. Set to
+# https for SSL. (string value)
+#glance_protocol=http
+
+# A list of the glance api servers available to nova. Prefix
+# with https:// for ssl-based glance api servers.
+# ([hostname|ip]:port) (string value)
+#glance_api_servers=<None>
+
+# Allow to perform insecure SSL (https) requests to glance
+# (boolean value)
+#glance_api_insecure=false
+
+# Number retries when downloading an image from glance
+# (integer value)
+#glance_num_retries=0
+
+# Default protocol to use when connecting to glance. Set to
+# https for SSL. (string value)
+#auth_strategy=keystone
+
+
+[matchmaker_ring]
+
+#
+# Options defined in ironic.openstack.common.rpc.matchmaker_ring
+#
+
+# Matchmaker ring file (JSON) (string value)
+#ringfile=/etc/oslo/matchmaker_ring.json
+
+
+[pxe]
+
+#
+# Options defined in ironic.drivers.modules.pxe
+#
+
+# Default kernel image ID used in deployment phase (string
+# value)
+#deploy_kernel=<None>
+
+# Default ramdisk image ID used in deployment phase (string
+# value)
+#deploy_ramdisk=<None>
+
+# Template file for injected network config (string value)
+#net_config_template=$pybasedir/ironic/net-dhcp.ubuntu.template
+
+# additional append parameters for baremetal PXE boot (string
+# value)
+#pxe_append_params=nofb nomodeset vga=normal
+
+# Template file for PXE configuration (string value)
+#pxe_config_template=$pybasedir/drivers/modules/pxe_config.template
+
+# Timeout for PXE deployments. Default: 0 (unlimited) (integer
+# value)
+#pxe_deploy_timeout=0
+
+# Ironic compute node's tftp root path (string value)
+#tftp_root=/tftpboot
+
+# Directory where images are stored on disk (string value)
+#images_path=/var/lib/ironic/images/
+
+# Directory where master tftp images are stored on disk
+# (string value)
+#tftp_master_path=/tftpboot/master_images
+
+# Directory where master tftp images are stored on disk
+# (string value)
+#instance_master_path=/var/lib/ironic/master_images
+
+
+# Total option count: 123
