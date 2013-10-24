@@ -316,21 +316,37 @@ class TestPost(base.FunctionalTest):
         self.assertRaises(webtest.app.AppError, self.post_json, '/nodes',
                           ndict)
 
-    def test_vendor_passthru(self):
+    def test_vendor_passthru_ok(self):
         ndict = dbutils.get_test_node()
         self.post_json('/nodes', ndict)
         uuid = ndict['uuid']
-        # TODO(lucasagomes): When vendor_passthru gets implemented
-        #                    remove the expect_errors parameter
-        response = self.post_json('/nodes/%s/vendor_passthru/method' % uuid,
-                                  {'foo': 'bar'},
-                                  expect_errors=True)
-        # TODO(lucasagomes): it's expected to return 202, but because we are
-        #                    passing expect_errors=True to the post_json
-        #                    function the return code will be 404. So change
-        #                    the return code when vendor_passthru gets
-        #                    implemented
-        self.assertEqual(response.status_code, 404)
+        info = {'foo': 'bar'}
+
+        with mock.patch.object(
+                rpcapi.ConductorAPI, 'vendor_passthru') as mock_vendor:
+            mock_vendor.return_value = 'OK'
+            response = self.post_json('/nodes/%s/vendor_passthru/test' % uuid,
+                                      info, expect_errors=False)
+            mock_vendor.assert_called_once_with(mock.ANY, uuid, 'test', info)
+            self.assertEqual(response.body, '"OK"')
+            self.assertEqual(response.status_code, 202)
+
+    def test_vendor_passthru_no_such_method(self):
+        ndict = dbutils.get_test_node()
+        self.post_json('/nodes', ndict)
+        uuid = ndict['uuid']
+        info = {'foo': 'bar'}
+
+        with mock.patch.object(
+                rpcapi.ConductorAPI, 'vendor_passthru') as mock_vendor:
+            mock_vendor.side_effect = exception.UnsupportedDriverExtension(
+                                        {'driver': ndict['driver'],
+                                         'node': uuid,
+                                         'extension': 'test'})
+            response = self.post_json('/nodes/%s/vendor_passthru/test' % uuid,
+                                      info, expect_errors=True)
+            mock_vendor.assert_called_once_with(mock.ANY, uuid, 'test', info)
+            self.assertEqual(response.status_code, 400)
 
     def test_vendor_passthru_without_method(self):
         ndict = dbutils.get_test_node()

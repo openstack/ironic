@@ -280,12 +280,9 @@ class NodeVendorPassthruController(rest.RestController):
     appropriate driver, no introspection will be made in the message body.
     """
 
-    @wsme_pecan.wsexpose(None, unicode, unicode, body=unicode, status_code=202)
-    def _default(self, node_id, method, data):
-        # Only allow POST requests
-        if pecan.request.method.upper() != "POST":
-            raise exception.NotFound
-
+    @wsme_pecan.wsexpose(unicode, unicode, unicode, body=unicode,
+                            status_code=202)
+    def post(self, node_id, method, data):
         # Raise an exception if node is not found
         objects.Node.get_by_uuid(pecan.request.context, node_id)
 
@@ -293,7 +290,8 @@ class NodeVendorPassthruController(rest.RestController):
         if not method:
             raise wsme.exc.ClientSideError(_("Method not specified"))
 
-        raise NotImplementedError()
+        return pecan.request.rpcapi.vendor_passthru(
+                pecan.request.context, node_id, method, data)
 
 
 class NodesController(rest.RestController):
