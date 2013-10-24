@@ -202,8 +202,8 @@ def image_to_raw(image_href, path, path_tmp):
         fmt = data.file_format
         if fmt is None:
             raise exception.ImageUnacceptable(
-                reason=_("'qemu-img info' parsing failed."),
-                image_id=image_href)
+                    reason=_("'qemu-img info' parsing failed."),
+                    image_id=image_href)
 
         backing_file = data.backing_file
         if backing_file is not None:
@@ -214,7 +214,8 @@ def image_to_raw(image_href, path, path_tmp):
 
         if fmt != "raw" and CONF.force_raw_images:
             staged = "%s.converted" % path
-            LOG.debug("%s was %s, converting to raw" % (image_href, fmt))
+            LOG.debug(_("%(image)s was %(format)s, converting to raw") %
+                    {'image': image_href, 'format': fmt})
             with fileutils.remove_path_on_error(staged):
                 convert_image(path_tmp, staged, 'raw')
                 os.unlink(path_tmp)
@@ -223,7 +224,7 @@ def image_to_raw(image_href, path, path_tmp):
                 if data.file_format != "raw":
                     raise exception.ImageConvertFailed(image_id=image_href,
                         reason=_("Converted to raw, but format is now %s") %
-                        data.file_format)
+                                 data.file_format)
 
                 os.rename(staged, path)
         else:

@@ -49,10 +49,9 @@ class ParsableErrorMiddleware(object):
                 status_code = int(status.split(' ')[0])
                 state['status_code'] = status_code
             except (ValueError, TypeError):  # pragma: nocover
-                raise Exception((
+                raise Exception(_(
                     'ErrorDocumentMiddleware received an invalid '
-                    'status %s' % status
-                ))
+                    'status %s') % status)
             else:
                 if (state['status_code'] / 100) not in (2, 3):
                     # Remove some headers so we can replace them later
@@ -78,7 +77,7 @@ class ParsableErrorMiddleware(object):
                                                       + '\n'.join(app_iter)
                                                       + '</error_message>'))]
                 except et.ElementTree.ParseError as err:
-                    LOG.error('Error parsing HTTP response: %s' % err)
+                    LOG.error(_('Error parsing HTTP response: %s') % err)
                     body = ['<error_message>%s' % state['status_code']
                             + '</error_message>']
                 state['headers'].append(('Content-Type', 'application/xml'))
