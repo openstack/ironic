@@ -37,6 +37,7 @@ node; these locks are represented by the
 :py:class:`ironic.conductor.task_manager.TaskManager` class.
 """
 
+from ironic.common import driver_factory
 from ironic.common import exception
 from ironic.common import service
 from ironic.common import states
@@ -45,6 +46,7 @@ from ironic.db import api as dbapi
 from ironic.objects import base as objects_base
 from ironic.openstack.common import excutils
 from ironic.openstack.common import log
+from ironic.openstack.common import periodic_task
 
 MANAGER_TOPIC = 'ironic.conductor_manager'
 
@@ -65,6 +67,21 @@ class ConductorManager(service.PeriodicService):
         super(ConductorManager, self).start()
         self.dbapi = dbapi.get_instance()
 
+        df = driver_factory.DriverFactory()
+        drivers = df.names
+        try:
+            self.dbapi.register_conductor({'hostname': self.host,
+                                           'drivers': drivers})
+        except exception.ConductorAlreadyRegistered:
+            LOG.warn(_("A conductor with hostname %(hostname)s "
+                       "was previously registered. Updating registration")
+                       % {'hostname': self.host})
+            self.dbapi.unregister_conductor(self.host)
+            self.dbapi.register_conductor({'hostname': self.host,
+                                           'drivers': drivers})
+
+    # TODO(deva): add stop() to call unregister_conductor
+
     def initialize_service_hook(self, service):
         pass
 
@@ -73,9 +90,9 @@ class ConductorManager(service.PeriodicService):
                         notification.get('event_type'))
         # TODO(deva)
 
-    def periodic_tasks(self, context):
-        # TODO(deva)
-        pass
+    def periodic_tasks(self, context, raise_on_error=False):
+        """Periodic tasks are run at pre-specified interval."""
+        return self.run_periodic_tasks(context, raise_on_error=raise_on_error)
 
     def get_node_power_state(self, context, node_id):
         """Get and return the power state for a single node."""
@@ -289,3 +306,7 @@ class ConductorManager(service.PeriodicService):
             else:
                 node_obj['provision_state'] = new_state
             node_obj.save(context)
+
+    @periodic_task.periodic_task
+    def _conductor_service_record_keepalive(self, context):
+        self.dbapi.touch_conductor(self.host)

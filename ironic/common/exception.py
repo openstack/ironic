@@ -286,6 +286,14 @@ class ChassisNotFound(NotFound):
     message = _("Chassis %(chassis)s could not be found.")
 
 
+class ConductorNotFound(NotFound):
+    message = _("Conductor %(conductor)s could not be found.")
+
+
+class ConductorAlreadyRegistered(IronicException):
+    message = _("Conductor %(conductor)s already registered.")
+
+
 class PowerStateFailure(InvalidState):
     message = _("Failed to set node power state to %(pstate)s.")
 

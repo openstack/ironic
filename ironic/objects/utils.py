@@ -72,6 +72,19 @@ def dict_or_none(val):
             return {}
 
 
+def list_or_none(val):
+    """Attempt to listify a value, or None."""
+    if val is None:
+        return []
+    elif isinstance(val, str):
+        return list(ast.literal_eval(val))
+    else:
+        try:
+            return list(val)
+        except ValueError:
+            return []
+
+
 def ip_or_none(version):
     """Return a version-specific IP address validator."""
     def validator(val, version=version):

@@ -23,6 +23,7 @@ from oslo.config import cfg
 
 from ironic.openstack.common import context
 from ironic.openstack.common import log
+from ironic.openstack.common import periodic_task
 from ironic.openstack.common import rpc
 from ironic.openstack.common.rpc import service as rpc_service
 
@@ -41,7 +42,7 @@ cfg.CONF.register_opts([
 ])
 
 
-class PeriodicService(rpc_service.Service):
+class PeriodicService(rpc_service.Service, periodic_task.PeriodicTasks):
 
     def start(self):
         super(PeriodicService, self).start()

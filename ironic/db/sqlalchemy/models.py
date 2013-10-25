@@ -93,6 +93,18 @@ class Chassis(Base):
     description = Column(String(255), nullable=True)
 
 
+class Conductor(Base):
+    """Represents a conductor service entry."""
+
+    __tablename__ = 'conductors'
+    __table_args__ = (
+        schema.UniqueConstraint('hostname', name='uniq_conductors0hostname'),
+        )
+    id = Column(Integer, primary_key=True)
+    hostname = Column(String(255), nullable=False)
+    drivers = Column(JSONEncodedDict)
+
+
 class Node(Base):
     """Represents a bare metal node."""
 
