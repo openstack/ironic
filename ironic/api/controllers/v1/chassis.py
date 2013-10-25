@@ -33,6 +33,7 @@ from ironic.api.controllers.v1 import node
 from ironic.api.controllers.v1 import utils
 from ironic.common import exception
 from ironic import objects
+from ironic.openstack.common import excutils
 from ironic.openstack.common import log
 
 LOG = log.getLogger(__name__)
@@ -165,15 +166,14 @@ class ChassisController(rest.RestController):
         rpc_chassis = objects.Chassis.get_by_uuid(pecan.request.context, uuid)
         return Chassis.convert_with_links(rpc_chassis)
 
-    @wsme.validate(Chassis)
     @wsme_pecan.wsexpose(Chassis, body=Chassis)
     def post(self, chassis):
         """Create a new chassis."""
         try:
             new_chassis = pecan.request.dbapi.create_chassis(chassis.as_dict())
-        except exception.IronicException as e:
-            LOG.exception(e)
-            raise wsme.exc.ClientSideError(_("Invalid data"))
+        except Exception as e:
+            with excutils.save_and_reraise_exception():
+                LOG.exception(e)
         return Chassis.convert_with_links(new_chassis)
 
     @wsme_pecan.wsexpose(Chassis, unicode, body=[unicode])
