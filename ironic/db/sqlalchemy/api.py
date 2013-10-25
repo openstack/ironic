@@ -195,16 +195,20 @@ class Connection(api.Connection):
                                sort_key, sort_dir, query)
 
     @objects.objectify(objects.Node)
-    def get_associated_nodes(self):
+    def get_associated_nodes(self, limit=None, marker=None,
+                      sort_key=None, sort_dir=None):
         query = model_query(models.Node).\
-                    filter(models.Node.instance_uuid != None)
-        return query.all()
+                filter(models.Node.instance_uuid != None)
+        return _paginate_query(models.Node, limit, marker,
+                               sort_key, sort_dir, query)
 
     @objects.objectify(objects.Node)
-    def get_unassociated_nodes(self):
+    def get_unassociated_nodes(self, limit=None, marker=None,
+                      sort_key=None, sort_dir=None):
         query = model_query(models.Node).\
-                    filter(models.Node.instance_uuid == None)
-        return query.all()
+                filter(models.Node.instance_uuid == None)
+        return _paginate_query(models.Node, limit, marker,
+                               sort_key, sort_dir, query)
 
     @objects.objectify(objects.Node)
     def reserve_nodes(self, tag, nodes):

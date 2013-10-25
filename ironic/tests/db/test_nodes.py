@@ -331,6 +331,15 @@ class DbNodeTestCase(base.DbTestCase):
         res_uuids.sort()
         self.assertEqual(uuids_with_instance, res_uuids)
 
+    def test_get_associated_nodes_with_limit(self):
+        (uuids, uuids_with_instance) = self._create_associated_nodes()
+
+        res = self.dbapi.get_associated_nodes(limit=1)
+
+        res_uuids = [r.uuid for r in res]
+        self.assertEqual(len(res_uuids), 1)
+        self.assertTrue(len(uuids_with_instance) > len(res_uuids))
+
     def test_get_unassociated_nodes(self):
         (uuids, uuids_with_instance) = self._create_associated_nodes()
         uuids_without_instance = list(set(uuids) - set(uuids_with_instance))
@@ -340,3 +349,13 @@ class DbNodeTestCase(base.DbTestCase):
         res_uuids = [r.uuid for r in res]
         res_uuids.sort()
         self.assertEqual(uuids_without_instance, res_uuids)
+
+    def test_get_unassociated_nodes_with_limit(self):
+        (uuids, uuids_with_instance) = self._create_associated_nodes()
+        uuids_without_instance = list(set(uuids) - set(uuids_with_instance))
+
+        res = self.dbapi.get_unassociated_nodes(limit=1)
+
+        res_uuids = [r.uuid for r in res]
+        self.assertEqual(len(res_uuids), 1)
+        self.assertTrue(len(uuids_without_instance) > len(res_uuids))
