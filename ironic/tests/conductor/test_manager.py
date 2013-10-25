@@ -125,7 +125,7 @@ class ManagerTestCase(base.DbTestCase):
         res = objects.Node.get_by_uuid(self.context, node['uuid'])
         self.assertEqual(res['extra'], {'test': 'one'})
 
-    def test_update_node_invalid_state(self):
+    def test_associate_node_invalid_state(self):
         ndict = utils.get_test_node(driver='fake',
                                     extra={'test': 'one'},
                                     instance_uuid=None,
@@ -143,7 +143,7 @@ class ManagerTestCase(base.DbTestCase):
         res = objects.Node.get_by_uuid(self.context, node['uuid'])
         self.assertEqual(res['instance_uuid'], None)
 
-    def test_update_node_valid_state(self):
+    def test_associate_node_valid_state(self):
         ndict = utils.get_test_node(driver='fake',
                                     instance_uuid=None,
                                     power_state=states.NOSTATE)
@@ -179,26 +179,6 @@ class ManagerTestCase(base.DbTestCase):
         # verify change did not happen
         res = objects.Node.get_by_uuid(self.context, node['uuid'])
         self.assertEqual(res['driver'], existing_driver)
-
-    def test_update_node_invalid_driver_info(self):
-        # TODO(deva)
-        pass
-
-    def test_update_node_get_power_state_failure(self):
-        # TODO(deva)
-        pass
-
-    def test_udpate_node_set_driver_info_and_power_state(self):
-        # TODO(deva)
-        pass
-
-    def test_update_node_associate_instance(self):
-        # TODO(deva)
-        pass
-
-    def test_update_node_unassociate_instance(self):
-        # TODO(deva)
-        pass
 
     def test_change_node_power_state_power_on(self):
         """Test if start_power_state to turn node power on
