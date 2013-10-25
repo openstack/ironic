@@ -97,7 +97,7 @@ class IPMINativePrivateMethodTestCase(base.TestCase):
         ipmicmd = self.ipmi_mock.return_value
         ipmicmd.set_power.return_value = {'powerstate': 'on'}
 
-        self.config(native_ipmi_waiting_time=400)
+        self.config(retry_timeout=400, group='ipmi')
         state = ipminative._power_on(self.info)
         ipmicmd.set_power.assert_called_once_with('on', 400)
         self.assertEqual(state, states.POWER_ON)
@@ -106,7 +106,7 @@ class IPMINativePrivateMethodTestCase(base.TestCase):
         ipmicmd = self.ipmi_mock.return_value
         ipmicmd.set_power.return_value = {'powerstate': 'off'}
 
-        self.config(native_ipmi_waiting_time=500)
+        self.config(retry_timeout=500, group='ipmi')
         state = ipminative._power_off(self.info)
         ipmicmd.set_power.assert_called_once_with('off', 500)
         self.assertEqual(state, states.POWER_OFF)
@@ -115,7 +115,7 @@ class IPMINativePrivateMethodTestCase(base.TestCase):
         ipmicmd = self.ipmi_mock.return_value
         ipmicmd.set_power.return_value = {'powerstate': 'on'}
 
-        self.config(native_ipmi_waiting_time=600)
+        self.config(retry_timeout=600, group='ipmi')
         state = ipminative._reboot(self.info)
         ipmicmd.set_power.assert_called_once_with('boot', 600)
         self.assertEqual(state, states.POWER_ON)
@@ -183,7 +183,7 @@ class IPMINativeDriverTestCase(db_base.DbTestCase):
             ipmicmd = ipmi_mock.return_value
             ipmicmd.set_power.return_value = {'powerstate': 'error'}
 
-            self.config(native_ipmi_waiting_time=500)
+            self.config(retry_timeout=500, group='ipmi')
             with task_manager.acquire([self.node['uuid']]) as task:
                 self.assertRaises(exception.PowerStateFailure,
                                   self.driver.power.set_power_state,
@@ -224,7 +224,7 @@ class IPMINativeDriverTestCase(db_base.DbTestCase):
             ipmicmd = ipmi_mock.return_value
             ipmicmd.set_power.return_value = {'powerstate': 'error'}
 
-            self.config(native_ipmi_waiting_time=500)
+            self.config(retry_timeout=500, group='ipmi')
             with task_manager.acquire([self.node['uuid']]) as task:
                 self.assertRaises(exception.PowerStateFailure,
                                   self.driver.power.reboot,

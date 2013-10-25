@@ -133,7 +133,7 @@ class IPMIToolPrivateMethodTestCase(base.TestCase):
             self.assertEqual(state, states.ERROR)
 
     def test__power_on_max_retries(self):
-        self.config(ipmi_power_retry=2)
+        self.config(retry_timeout=2, group='ipmi')
 
         def side_effect(driver_info, command):
             resp_dict = {"power status": ["Chassis Power is off\n", None],
@@ -191,7 +191,7 @@ class IPMIToolDriverTestCase(db_base.DbTestCase):
             self.assertEqual(mock_exec.call_args_list, expected)
 
     def test_set_power_on_ok(self):
-        self.config(ipmi_power_retry=0)
+        self.config(retry_timeout=0, group='ipmi')
 
         with mock.patch.object(ipmi, '_power_on', autospec=True) as mock_on:
             mock_on.return_value = states.POWER_ON
@@ -206,7 +206,7 @@ class IPMIToolDriverTestCase(db_base.DbTestCase):
                 self.assertFalse(mock_off.called)
 
     def test_set_power_off_ok(self):
-        self.config(ipmi_power_retry=0)
+        self.config(retry_timeout=0, group='ipmi')
 
         with mock.patch.object(ipmi, '_power_on', autospec=True) as mock_on:
             with mock.patch.object(ipmi, '_power_off',
@@ -221,7 +221,7 @@ class IPMIToolDriverTestCase(db_base.DbTestCase):
                 self.assertFalse(mock_on.called)
 
     def test_set_power_on_fail(self):
-        self.config(ipmi_power_retry=0)
+        self.config(retry_timeout=0, group='ipmi')
 
         with mock.patch.object(ipmi, '_power_on', autospec=True) as mock_on:
             mock_on.return_value = states.ERROR
