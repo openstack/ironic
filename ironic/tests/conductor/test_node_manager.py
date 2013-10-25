@@ -44,9 +44,6 @@ class NodeManagerTestCase(base.TestCase):
         self.dbapi = mock.MagicMock()
         self.dbapi.get_instance.return_value = mock.MagicMock(**db_keys)
 
-    def _fake_init(*args, **kwargs):
-        return None
-
     def test_node_manager_init_id(self):
         NodeManager = resource_manager.NodeManager
         DriverFactory = driver_factory.DriverFactory
@@ -133,11 +130,10 @@ class NodeManagerTestCase(base.TestCase):
                 mock.patch.object(DriverFactory,
                                   '_extension_manager',
                                   new=self.driver_factory),
-                mock.patch.object(NodeManager,
-                                  '__init__',
-                                  new=self._fake_init)
+                mock.patch("ironic.conductor.resource_manager.dbapi",
+                           self.dbapi)
                 ):
-            node_manager = NodeManager()
+            node_manager = NodeManager(id=self.test_id, t=self.test_task)
             self.assertEqual(node_manager.load_driver(
                                 self.existing_driver_name
                                 ),
@@ -151,11 +147,10 @@ class NodeManagerTestCase(base.TestCase):
                 mock.patch.object(DriverFactory,
                                   '_extension_manager',
                                   new=self.driver_factory),
-                mock.patch.object(NodeManager,
-                                  '__init__',
-                                  new=self._fake_init)
+                mock.patch("ironic.conductor.resource_manager.dbapi",
+                           self.dbapi)
                 ):
-            node_manager = NodeManager()
+            node_manager = NodeManager(id=self.test_id, t=self.test_task)
             self.assertRaises(exception.DriverNotFound,
                               node_manager.load_driver,
                               self.non_existing_driver_name)
