@@ -26,6 +26,7 @@ from ironic.common import states
 from ironic.conductor import task_manager
 from ironic.db import api as db_api
 from ironic.drivers.modules import ipminative
+from ironic.openstack.common import context
 from ironic.openstack.common import jsonutils as json
 from ironic.tests import base
 from ironic.tests.conductor import utils as mgr_utils
@@ -127,6 +128,7 @@ class IPMINativeDriverTestCase(db_base.DbTestCase):
 
     def setUp(self):
         super(IPMINativeDriverTestCase, self).setUp()
+        self.context = context.get_admin_context()
         self.driver = mgr_utils.get_mocked_node_manager(
                       driver='fake_ipminative')
 
@@ -164,7 +166,8 @@ class IPMINativeDriverTestCase(db_base.DbTestCase):
         with mock.patch.object(ipminative, '_power_on') as power_on_mock:
             power_on_mock.return_value = states.POWER_ON
 
-            with task_manager.acquire([self.node['uuid']]) as task:
+            with task_manager.acquire(self.context,
+                                     [self.node['uuid']]) as task:
                 self.driver.power.set_power_state(
                     task, self.node, states.POWER_ON)
             power_on_mock.assert_called_once_with(self.info)
@@ -173,7 +176,8 @@ class IPMINativeDriverTestCase(db_base.DbTestCase):
         with mock.patch.object(ipminative, '_power_off') as power_off_mock:
             power_off_mock.return_value = states.POWER_OFF
 
-            with task_manager.acquire([self.node['uuid']]) as task:
+            with task_manager.acquire(self.context,
+                                     [self.node['uuid']]) as task:
                 self.driver.power.set_power_state(
                     task, self.node, states.POWER_OFF)
             power_off_mock.assert_called_once_with(self.info)
@@ -184,7 +188,8 @@ class IPMINativeDriverTestCase(db_base.DbTestCase):
             ipmicmd.set_power.return_value = {'powerstate': 'error'}
 
             self.config(retry_timeout=500, group='ipmi')
-            with task_manager.acquire([self.node['uuid']]) as task:
+            with task_manager.acquire(self.context,
+                                     [self.node['uuid']]) as task:
                 self.assertRaises(exception.PowerStateFailure,
                                   self.driver.power.set_power_state,
                                   task,
@@ -197,14 +202,15 @@ class IPMINativeDriverTestCase(db_base.DbTestCase):
             ipmicmd = ipmi_mock.return_value
             ipmicmd.set_bootdev.return_value = None
 
-            with task_manager.acquire([self.node['uuid']]) as task:
+            with task_manager.acquire(self.context,
+                                     [self.node['uuid']]) as task:
                 self.driver.power._set_boot_device(task,
                                                    self.node,
                                                    'pxe')
             ipmicmd.set_bootdev.assert_called_once_with('pxe')
 
     def test_set_boot_device_bad_device(self):
-        with task_manager.acquire([self.node['uuid']]) as task:
+        with task_manager.acquire(self.context, [self.node['uuid']]) as task:
             self.assertRaises(exception.InvalidParameterValue,
                     self.driver.power._set_boot_device,
                     task,
@@ -215,7 +221,8 @@ class IPMINativeDriverTestCase(db_base.DbTestCase):
         with mock.patch.object(ipminative, '_reboot') as reboot_mock:
             reboot_mock.return_value = None
 
-            with task_manager.acquire([self.node['uuid']]) as task:
+            with task_manager.acquire(self.context,
+                                     [self.node['uuid']]) as task:
                 self.driver.power.reboot(task, self.node)
             reboot_mock.assert_called_once_with(self.info)
 
@@ -225,7 +232,8 @@ class IPMINativeDriverTestCase(db_base.DbTestCase):
             ipmicmd.set_power.return_value = {'powerstate': 'error'}
 
             self.config(retry_timeout=500, group='ipmi')
-            with task_manager.acquire([self.node['uuid']]) as task:
+            with task_manager.acquire(self.context,
+                                     [self.node['uuid']]) as task:
                 self.assertRaises(exception.PowerStateFailure,
                                   self.driver.power.reboot,
                                   task,

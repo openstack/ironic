@@ -97,7 +97,7 @@ class ConductorManager(service.PeriodicService):
     def get_node_power_state(self, context, node_id):
         """Get and return the power state for a single node."""
 
-        with task_manager.acquire([node_id], shared=True) as task:
+        with task_manager.acquire(context, [node_id], shared=True) as task:
             node = task.resources[0].node
             driver = task.resources[0].driver
             state = driver.power.get_power_state(task, node)
@@ -123,8 +123,7 @@ class ConductorManager(service.PeriodicService):
                 "Invalid method call: update_node can not change node state."))
 
         driver_name = node_obj.get('driver') if 'driver' in delta else None
-        with task_manager.acquire(node_id,
-                                  shared=False,
+        with task_manager.acquire(context, node_id, shared=False,
                                   driver_name=driver_name) as task:
 
             # TODO(deva): Determine what value will be passed by API when
@@ -167,7 +166,7 @@ class ConductorManager(service.PeriodicService):
                     "The desired new state is %(state)s.")
                     % {'node': node_id, 'state': new_state})
 
-        with task_manager.acquire(node_id, shared=False) as task:
+        with task_manager.acquire(context, node_id, shared=False) as task:
             # an exception will be raised if validate fails.
             task.driver.power.validate(node_obj)
             curr_state = task.driver.power.get_power_state(task, node_obj)
@@ -206,7 +205,7 @@ class ConductorManager(service.PeriodicService):
         """Validate driver specific info or get driver status."""
 
         LOG.debug(_("RPC call_driver called for node %s.") % node_id)
-        with task_manager.acquire(node_id, shared=True) as task:
+        with task_manager.acquire(context, node_id, shared=True) as task:
             if getattr(task.driver, 'vendor', None):
                 return task.driver.vendor.validate(task.node,
                                                    method=driver_method,
@@ -220,7 +219,7 @@ class ConductorManager(service.PeriodicService):
     def do_vendor_action(self, context, node_id, driver_method, info):
         """Run driver action asynchronously."""
 
-        with task_manager.acquire(node_id, shared=True) as task:
+        with task_manager.acquire(context, node_id, shared=True) as task:
                 task.driver.vendor.vendor_passthru(task, task.node,
                                                   method=driver_method, **info)
 
@@ -235,7 +234,7 @@ class ConductorManager(service.PeriodicService):
         node_id = node_obj.get('uuid')
         LOG.debug(_("RPC do_node_deploy called for node %s.") % node_id)
 
-        with task_manager.acquire(node_id, shared=False) as task:
+        with task_manager.acquire(context, node_id, shared=False) as task:
             task.driver.deploy.validate(node_obj)
             if node_obj['provision_state'] is not states.NOSTATE:
                 raise exception.InstanceDeployFailure(_(
@@ -275,7 +274,7 @@ class ConductorManager(service.PeriodicService):
         node_id = node_obj.get('uuid')
         LOG.debug(_("RPC do_node_tear_down called for node %s.") % node_id)
 
-        with task_manager.acquire(node_id, shared=False) as task:
+        with task_manager.acquire(context, node_id, shared=False) as task:
             task.driver.deploy.validate(node_obj)
 
             if node_obj['provision_state'] not in [states.ACTIVE,

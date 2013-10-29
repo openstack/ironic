@@ -95,7 +95,7 @@ def require_exclusive_lock(f):
 
 
 @contextlib.contextmanager
-def acquire(node_ids, shared=False, driver_name=None):
+def acquire(context, node_ids, shared=False, driver_name=None):
     """Context manager for acquiring a lock on one or more Nodes.
 
     Acquire a lock atomically on a non-empty set of nodes. The lock
@@ -103,6 +103,7 @@ def acquire(node_ids, shared=False, driver_name=None):
     read-only or non-disruptive actions only, and must be considerate
     to what other threads may be doing on the nodes at the same time.
 
+    :param context: Request context.
     :param node_ids: A list of ids or uuids of nodes to lock.
     :param shared: Boolean indicating whether to take a shared or exclusive
                    lock. Default: False.
@@ -111,7 +112,7 @@ def acquire(node_ids, shared=False, driver_name=None):
 
     """
 
-    t = TaskManager(shared)
+    t = TaskManager(context, shared)
 
     # instead of generating an exception, DTRT and convert to a list
     if not isinstance(node_ids, list):
@@ -134,7 +135,8 @@ def acquire(node_ids, shared=False, driver_name=None):
 class TaskManager(object):
     """Context manager for tasks."""
 
-    def __init__(self, shared):
+    def __init__(self, context, shared):
+        self.context = context
         self.shared = shared
         self.resources = []
         self.dbapi = dbapi.get_instance()

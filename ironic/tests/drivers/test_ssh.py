@@ -18,6 +18,7 @@
 import mock
 import paramiko
 
+from ironic.openstack.common import context
 from ironic.openstack.common import jsonutils as json
 
 from ironic.common import exception
@@ -391,6 +392,7 @@ class SSHDriverTestCase(db_base.DbTestCase):
 
     def setUp(self):
         super(SSHDriverTestCase, self).setUp()
+        self.context = context.get_admin_context()
         self.driver = mgr_utils.get_mocked_node_manager(driver='fake_ssh')
         self.node = db_utils.get_test_node(
                         driver='fake_ssh',
@@ -443,7 +445,7 @@ class SSHDriverTestCase(db_base.DbTestCase):
                     address='dd:ee:ff',
                     uuid='4fc26c0b-03f2-4d2e-ae87-c02d7f33c234')))
 
-        with task_manager.acquire([self.node['uuid']]) as task:
+        with task_manager.acquire(self.context, [self.node['uuid']]) as task:
             node_macs = ssh._get_nodes_mac_addresses(task, self.node)
         self.assertEqual(node_macs, ['aa:bb:cc', 'dd:ee:ff'])
 
@@ -464,8 +466,8 @@ class SSHDriverTestCase(db_base.DbTestCase):
                     power_off_mock.return_value = None
                     power_on_mock.return_value = states.POWER_ON
 
-                    with task_manager.acquire([info['uuid']], shared=False) \
-                            as task:
+                    with task_manager.acquire(self.context, [info['uuid']],
+                                              shared=False) as task:
                         task.resources[0].driver.power.reboot(task, self.node)
 
                     self.parse_drv_info_mock.assert_called_once_with(self.node)
@@ -495,8 +497,8 @@ class SSHDriverTestCase(db_base.DbTestCase):
                     power_off_mock.return_value = None
                     power_on_mock.return_value = states.POWER_OFF
 
-                    with task_manager.acquire([info['uuid']], shared=False) \
-                            as task:
+                    with task_manager.acquire(self.context, [info['uuid']],
+                                              shared=False) as task:
                         self.assertRaises(
                                 exception.PowerStateFailure,
                                 task.resources[0].driver.power.reboot,
@@ -521,7 +523,8 @@ class SSHDriverTestCase(db_base.DbTestCase):
         self.get_mac_addr_mock.return_value = info['macs']
         self.get_conn_mock.return_value = self.sshclient
 
-        with task_manager.acquire([info['uuid']], shared=False) as task:
+        with task_manager.acquire(self.context, [info['uuid']],
+                                  shared=False) as task:
             self.assertRaises(
                     exception.IronicException,
                     task.resources[0].driver.power.set_power_state,
@@ -544,7 +547,8 @@ class SSHDriverTestCase(db_base.DbTestCase):
         with mock.patch.object(ssh, '_power_on') as power_on_mock:
             power_on_mock.return_value = states.POWER_ON
 
-            with task_manager.acquire([info['uuid']], shared=False) as task:
+            with task_manager.acquire(self.context, [info['uuid']],
+                                      shared=False) as task:
                 task.resources[0].driver.power.set_power_state(task,
                                                                self.node,
                                                                states.POWER_ON)
@@ -567,7 +571,8 @@ class SSHDriverTestCase(db_base.DbTestCase):
         with mock.patch.object(ssh, '_power_on') as power_on_mock:
             power_on_mock.return_value = states.POWER_OFF
 
-            with task_manager.acquire([info['uuid']], shared=False) as task:
+            with task_manager.acquire(self.context, [info['uuid']],
+                                      shared=False) as task:
                 self.assertRaises(
                         exception.PowerStateFailure,
                         task.resources[0].driver.power.set_power_state,
@@ -592,7 +597,8 @@ class SSHDriverTestCase(db_base.DbTestCase):
         with mock.patch.object(ssh, '_power_off') as power_off_mock:
             power_off_mock.return_value = states.POWER_OFF
 
-            with task_manager.acquire([info['uuid']], shared=False) as task:
+            with task_manager.acquire(self.context, [info['uuid']],
+                                      shared=False) as task:
                 task.resources[0].driver.power.set_power_state(task,
                         self.node, states.POWER_OFF)
 
@@ -614,7 +620,8 @@ class SSHDriverTestCase(db_base.DbTestCase):
         with mock.patch.object(ssh, '_power_off') as power_off_mock:
             power_off_mock.return_value = states.POWER_ON
 
-            with task_manager.acquire([info['uuid']], shared=False) as task:
+            with task_manager.acquire(self.context, [info['uuid']],
+                                      shared=False) as task:
                 self.assertRaises(
                         exception.PowerStateFailure,
                         task.resources[0].driver.power.set_power_state,
