@@ -12,21 +12,6 @@
 
 
 #
-# Options defined in ironic.api
-#
-
-# IP for the Ironic API server to bind to (string value)
-#ironic_api_bind_ip=0.0.0.0
-
-# The port for the Ironic API server (integer value)
-#ironic_api_port=6385
-
-# the maximum number of items returned in a single response
-# from a collection resource (integer value)
-#api_limit_max=1000
-
-
-#
 # Options defined in ironic.api.app
 #
 
@@ -418,6 +403,17 @@
 #matchmaker_heartbeat_ttl=600
 
 
+[conductor]
+
+#
+# Options defined in ironic.conductor.rpcapi
+#
+
+# Maximum time, in seconds, since the last check-in of a
+# conductor (integer value)
+#max_time_interval=120
+
+
 [database]
 
 #
@@ -481,17 +477,6 @@
 #connection_trace=false
 
 
-[ipmi]
-
-#
-# Options defined in ironic.drivers.modules.ipminative
-#
-
-# Maximum time in seconds to retry IPMI operations (integer
-# value)
-#retry_timeout=10
-
-
 [rpc_notifier2]
 
 #
@@ -500,6 +485,23 @@
 
 # AMQP topic(s) used for openstack notifications (list value)
 #topics=notifications
+
+
+[api]
+
+#
+# Options defined in ironic.api
+#
+
+# The listen IP for the Ironic API server (string value)
+#host_ip=0.0.0.0
+
+# The port for the Ironic API server (integer value)
+#port=6385
+
+# The maximum number of items returned in a single response
+# from a collection resource (integer value)
+#max_limit=1000
 
 
 [matchmaker_redis]

@@ -35,7 +35,7 @@ class TestApiUtils(base.FunctionalTest):
 
         # max limit
         limit = utils.validate_limit(999999999)
-        self.assertEqual(limit, CONF.api_limit_max)
+        self.assertEqual(CONF.api.max_limit, limit)
 
         # negative
         self.assertRaises(wsme.exc.ClientSideError, utils.validate_limit, -1)

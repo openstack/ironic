@@ -19,22 +19,20 @@ from oslo.config import cfg
 
 
 API_SERVICE_OPTS = [
-        cfg.StrOpt('ironic_api_bind_ip',
-            default='0.0.0.0',
-            help='IP for the Ironic API server to bind to',
-            ),
-        cfg.IntOpt('ironic_api_port',
-            default=6385,
-            help='The port for the Ironic API server',
-            ),
-        cfg.IntOpt('api_limit_max',
+    cfg.StrOpt('host_ip',
+               default='0.0.0.0',
+               help='The listen IP for the Ironic API server'),
+    cfg.IntOpt('port',
+               default=6385,
+               help='The port for the Ironic API server'),
+    cfg.IntOpt('max_limit',
                default=1000,
-               help='the maximum number of items returned in a single '
+               help='The maximum number of items returned in a single '
                     'response from a collection resource'),
-        ]
+    ]
 
 CONF = cfg.CONF
 opt_group = cfg.OptGroup(name='api',
                          title='Options for the ironic-api service')
 CONF.register_group(opt_group)
-CONF.register_opts(API_SERVICE_OPTS)
+CONF.register_opts(API_SERVICE_OPTS, opt_group)
