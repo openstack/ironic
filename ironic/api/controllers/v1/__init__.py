@@ -32,6 +32,7 @@ import wsmeext.pecan as wsme_pecan
 
 from ironic.api.controllers.v1 import base
 from ironic.api.controllers.v1 import chassis
+from ironic.api.controllers.v1 import driver
 from ironic.api.controllers.v1 import link
 from ironic.api.controllers.v1 import node
 from ironic.api.controllers.v1 import port
@@ -113,6 +114,7 @@ class Controller(rest.RestController):
     nodes = node.NodesController()
     ports = port.PortsController()
     chassis = chassis.ChassisController()
+    drivers = driver.DriversController()
 
     @wsme_pecan.wsexpose(V1)
     def get(self):
