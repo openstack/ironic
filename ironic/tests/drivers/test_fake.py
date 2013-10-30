@@ -44,7 +44,10 @@ class FakeDriverTestCase(base.TestCase):
     def test_power_interface(self):
         self.driver.power.validate(self.node)
         self.driver.power.get_power_state(None, self.node)
-        self.driver.power.set_power_state(None, None, states.NOSTATE)
+        self.assertRaises(exception.InvalidParameterValue,
+                          self.driver.power.set_power_state,
+                          None, None, states.NOSTATE)
+        self.driver.power.set_power_state(None, None, states.POWER_ON)
         self.driver.power.reboot(None, None)
 
     def test_deploy_interface(self):

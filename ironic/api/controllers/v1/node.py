@@ -86,12 +86,12 @@ class NodePowerStateController(rest.RestController):
         #TODO(lucasagomes): Test if target is a valid state and if it's able
         # to transition to the target state from the current one
 
-        node['target_power_state'] = target
-        updated_node = pecan.request.rpcapi.update_node(pecan.request.context,
-                                                        node)
+        # Note that there is a race condition. The node state(s) could change
+        # by the time the RPC call is made and the TaskManager manager gets a
+        # lock.
         pecan.request.rpcapi.change_node_power_state(pecan.request.context,
-                                                      updated_node, target)
-        return NodePowerState.convert_with_links(updated_node, expand=False)
+                                                     node, target)
+        return NodePowerState.convert_with_links(node, expand=False)
 
 
 class NodeProvisionState(state.State):
@@ -187,6 +187,10 @@ class Node(base.APIBase):
     target_power_state = wtypes.text
     "The user modified desired power state of the node."
 
+    last_error = wtypes.text
+    "Any error from the most recent (last) asynchronous transaction that"
+    "started but failed to finish."
+
     provision_state = wtypes.text
     "Represent the current (not transition) provision state of the node"
 
@@ -227,6 +231,7 @@ class Node(base.APIBase):
     def convert_with_links(cls, rpc_node, expand=True):
         minimum_fields = ['uuid', 'power_state', 'target_power_state',
                           'provision_state', 'target_provision_state',
+                          'last_error',
                           'instance_uuid']
         fields = minimum_fields if not expand else None
         node = Node.from_rpc_object(rpc_node, fields)

@@ -28,7 +28,7 @@ validated by the driver. Any node with non-empty `properties` is said to be
 
 When the driver has received both `properties` and `driver_info`, it will check
 the power status of the node and update the `power_state` accordingly. If the
-driver fails to read the the power state from the node, it will reject the
+driver fails to read the power state from the node, it will reject the
 `driver_info` change, and the state will remain as INIT. If the power status
 check succeeds, `power_state` will change to one of POWER_ON or POWER_OFF,
 accordingly.
@@ -36,7 +36,9 @@ accordingly.
 At this point, the power state may be changed via the API, a console
 may be started, and a tenant may be associated.
 
-The `power_state` for a node which fails to transition will be set to ERROR.
+The `power_state` for a node always represents the current power state. Any
+power operation sets this to the actual state when done (whether successful or
+not). It is set to ERROR only when unable to get the power state from a node.
 
 When `instance_uuid` is set to a non-empty / non-None value, the node is said
 to be "associated" with a tenant.

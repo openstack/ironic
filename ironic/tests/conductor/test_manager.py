@@ -181,12 +181,13 @@ class ManagerTestCase(base.DbTestCase):
         self.assertEqual(res['driver'], existing_driver)
 
     def test_change_node_power_state_power_on(self):
-        """Test if start_power_state to turn node power on
+        """Test if change_node_power_state to turn node power on
         is successful or not.
         """
         ndict = utils.get_test_node(driver='fake',
                                     power_state=states.POWER_OFF)
         node = self.dbapi.create_node(ndict)
+        node = objects.Node.get_by_uuid(self.context, node['uuid'])
 
         with mock.patch.object(self.driver.power, 'get_power_state') \
                 as get_power_mock:
@@ -194,18 +195,20 @@ class ManagerTestCase(base.DbTestCase):
 
             self.service.change_node_power_state(self.context,
                                                  node, states.POWER_ON)
-
-            get_power_mock.assert_called_once_with(mock.ANY, node)
+            node.refresh()
+            get_power_mock.assert_called_once_with(mock.ANY, mock.ANY)
             self.assertEqual(node['power_state'], states.POWER_ON)
             self.assertEqual(node['target_power_state'], None)
+            self.assertEqual(node['last_error'], None)
 
     def test_change_node_power_state_power_off(self):
-        """Test if start_power_state to turn node power off
+        """Test if change_node_power_state to turn node power off
         is successful or not.
         """
         ndict = utils.get_test_node(driver='fake',
                                     power_state=states.POWER_ON)
         node = self.dbapi.create_node(ndict)
+        node = objects.Node.get_by_uuid(self.context, node['uuid'])
 
         with mock.patch.object(self.driver.power, 'get_power_state') \
                 as get_power_mock:
@@ -213,10 +216,43 @@ class ManagerTestCase(base.DbTestCase):
 
             self.service.change_node_power_state(self.context, node,
                                                  states.POWER_OFF)
-
-            get_power_mock.assert_called_once_with(mock.ANY, node)
+            node.refresh()
+            get_power_mock.assert_called_once_with(mock.ANY, mock.ANY)
             self.assertEqual(node['power_state'], states.POWER_OFF)
             self.assertEqual(node['target_power_state'], None)
+            self.assertEqual(node['last_error'], None)
+
+    def test_change_node_power_state_to_invalid_state(self):
+        """Test if an exception is thrown when changing to an invalid
+        power state.
+        """
+        ndict = utils.get_test_node(driver='fake',
+                                    power_state=states.POWER_ON)
+        node = self.dbapi.create_node(ndict)
+        node = objects.Node.get_by_uuid(self.context, node['uuid'])
+
+        with mock.patch.object(self.driver.power, 'get_power_state') \
+                as get_power_mock:
+            get_power_mock.return_value = states.POWER_ON
+
+            self.assertRaises(exception.InvalidParameterValue,
+                              self.service.change_node_power_state,
+                              self.context,
+                              node,
+                              "POWER")
+            node.refresh()
+            get_power_mock.assert_called_once_with(mock.ANY, mock.ANY)
+            self.assertEqual(node['power_state'], states.POWER_ON)
+            self.assertEqual(node['target_power_state'], None)
+            self.assertNotEqual(node['last_error'], None)
+
+            # last_error is cleared when a new transaction happens
+            self.service.change_node_power_state(self.context, node,
+                                                 states.POWER_OFF)
+            node.refresh()
+            self.assertEqual(node['power_state'], states.POWER_OFF)
+            self.assertEqual(node['target_power_state'], None)
+            self.assertEqual(node['last_error'], None)
 
     def test_change_node_power_state_already_locked(self):
         """Test if an exception is thrown when applying an exclusive
@@ -225,6 +261,7 @@ class ManagerTestCase(base.DbTestCase):
         ndict = utils.get_test_node(driver='fake',
                                     power_state=states.POWER_ON)
         node = self.dbapi.create_node(ndict)
+        node = objects.Node.get_by_uuid(self.context, node['uuid'])
 
         # check if the node is locked
         with task_manager.acquire(self.context, node['id'], shared=False):
@@ -233,33 +270,65 @@ class ManagerTestCase(base.DbTestCase):
                               self.context,
                               node,
                               states.POWER_ON)
+            node.refresh()
+            self.assertEqual(node['power_state'], states.POWER_ON)
+            self.assertEqual(node['target_power_state'], None)
+            self.assertEqual(node['last_error'], None)
 
-    def test_change_node_power_state_invalid_state(self):
-        """Test if an NodeInWrongPowerState exception is thrown
-        when the node is in an invalid state to perform current operation.
+    def test_change_node_power_state_already_being_processed(self):
+        """The target_power_state is expected to be None so it isn't
+        checked in the code. This is what happens if it is not None.
+        (Eg, if a conductor had died during a previous power-off
+        attempt and left the target_power_state set to states.POWER_OFF,
+        and the user is attempting to power-off again.)
         """
         ndict = utils.get_test_node(driver='fake',
+                                    power_state=states.POWER_ON,
+                                    target_power_state=states.POWER_OFF)
+        node = self.dbapi.create_node(ndict)
+        node = objects.Node.get_by_uuid(self.context, node['uuid'])
+
+        self.service.change_node_power_state(self.context, node,
+                                             states.POWER_OFF)
+        node.refresh()
+        self.assertEqual(node['power_state'], states.POWER_OFF)
+        self.assertEqual(node['target_power_state'], states.NOSTATE)
+        self.assertEqual(node['last_error'], None)
+
+    def test_change_node_power_state_in_same_state(self):
+        """Test that we don't try to set the power state if the requested
+        state is the same as the current state.
+        """
+        ndict = utils.get_test_node(driver='fake',
+                                    last_error='anything but None',
                                     power_state=states.POWER_ON)
         node = self.dbapi.create_node(ndict)
+        node = objects.Node.get_by_uuid(self.context, node['uuid'])
 
         with mock.patch.object(self.driver.power, 'get_power_state') \
                 as get_power_mock:
             get_power_mock.return_value = states.POWER_ON
+            with mock.patch.object(self.driver.power, 'set_power_state') \
+                    as set_power_mock:
+                set_power_mock.side_effect = exception.IronicException()
 
-            self.assertRaises(exception.NodeInWrongPowerState,
-                              self.service.change_node_power_state,
-                              self.context,
-                              node,
-                              states.POWER_ON)
-            get_power_mock.assert_called_once_with(mock.ANY, node)
+                self.service.change_node_power_state(self.context, node,
+                                                     states.POWER_ON)
+            node.refresh()
+            get_power_mock.assert_called_once_with(mock.ANY, mock.ANY)
+            self.assertFalse(set_power_mock.called)
+            self.assertEqual(node['power_state'], states.POWER_ON)
+            self.assertEqual(node['target_power_state'], None)
+            self.assertEqual(node['last_error'], None)
 
     def test_change_node_power_state_invalid_driver_info(self):
-        """Test if an exception is thrown when the driver validation is
-        failed.
+        """Test if an exception is thrown when the driver validation
+        fails.
         """
         ndict = utils.get_test_node(driver='fake',
                                     power_state=states.POWER_ON)
         node = self.dbapi.create_node(ndict)
+        node = objects.Node.get_by_uuid(self.context, node['uuid'])
 
         with mock.patch.object(self.driver.power, 'validate') \
                 as validate_mock:
@@ -271,34 +340,40 @@ class ManagerTestCase(base.DbTestCase):
                               self.context,
                               node,
                               states.POWER_ON)
-            validate_mock.assert_called_once_with(node)
+            node.refresh()
+            validate_mock.assert_called_once_with(mock.ANY)
+            self.assertEqual(node['power_state'], states.POWER_ON)
+            self.assertEqual(node['target_power_state'], None)
+            self.assertNotEqual(node['last_error'], None)
 
     def test_change_node_power_state_set_power_failure(self):
-        """Test if an exception is thrown when the set_power call is
-        failed.
+        """Test if an exception is thrown when the set_power call
+        fails.
         """
-        class TestException(Exception):
-            pass
-
         ndict = utils.get_test_node(driver='fake',
                                     power_state=states.POWER_OFF)
         node = self.dbapi.create_node(ndict)
+        node = objects.Node.get_by_uuid(self.context, node['uuid'])
 
         with mock.patch.object(self.driver.power, 'get_power_state') \
                 as get_power_mock:
             with mock.patch.object(self.driver.power, 'set_power_state') \
                     as set_power_mock:
                 get_power_mock.return_value = states.POWER_OFF
-                set_power_mock.side_effect = TestException()
+                set_power_mock.side_effect = exception.IronicException()
 
-                self.assertRaises(TestException,
+                self.assertRaises(exception.IronicException,
                                   self.service.change_node_power_state,
                                   self.context,
                                   node,
                                   states.POWER_ON)
-                get_power_mock.assert_called_once_with(mock.ANY, node)
-                set_power_mock.assert_called_once_with(mock.ANY, node,
+                node.refresh()
+                get_power_mock.assert_called_once_with(mock.ANY, mock.ANY)
+                set_power_mock.assert_called_once_with(mock.ANY, mock.ANY,
                                                        states.POWER_ON)
+                self.assertEqual(node['power_state'], states.POWER_OFF)
+                self.assertEqual(node['target_power_state'], None)
+                self.assertNotEqual(node['last_error'], None)
 
     def test_vendor_action(self):
         n = utils.get_test_node(driver='fake')

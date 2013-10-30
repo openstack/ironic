@@ -26,7 +26,7 @@ from oslo.config import cfg
 
 from sqlalchemy import Column, ForeignKey
 from sqlalchemy import Integer, Index
-from sqlalchemy import schema, String
+from sqlalchemy import schema, String, Text
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.types import TypeDecorator, VARCHAR
 
@@ -120,6 +120,7 @@ class Node(Base):
     target_power_state = Column(String(15), nullable=True)
     provision_state = Column(String(15), nullable=True)
     target_provision_state = Column(String(15), nullable=True)
+    last_error = Column(Text, nullable=True)
     properties = Column(JSONEncodedDict)
     driver = Column(String(15))
     driver_info = Column(JSONEncodedDict)
