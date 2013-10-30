@@ -318,6 +318,7 @@ class NodesController(rest.RestController):
 
     _custom_actions = {
         'detail': ['GET'],
+        'validate': ['GET'],
     }
 
     def __init__(self, from_chassis=False):
@@ -422,6 +423,14 @@ class NodesController(rest.RestController):
                                                  url=resource_url,
                                                  expand=True,
                                                  **parameters)
+
+    @wsme_pecan.wsexpose(wtypes.text, wtypes.text)
+    def validate(self, node_uuid):
+        """Validate the driver interfaces."""
+        # check if node exists
+        node = objects.Node.get_by_uuid(pecan.request.context, node_uuid)
+        return pecan.request.rpcapi.validate_driver_interfaces(
+                                        pecan.request.context, node.uuid)
 
     @wsme_pecan.wsexpose(Node, wtypes.text)
     def get_one(self, uuid):

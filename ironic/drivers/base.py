@@ -33,19 +33,25 @@ class BaseDriver(object):
     the interfaces are appropriate.
     """
 
+    core_interfaces = []
+    standard_interfaces = []
+
     power = None
+    core_interfaces.append('power')
     """`Core` attribute for managing power state.
 
     A reference to an instance of :class:PowerInterface.
     """
 
     deploy = None
+    core_interfaces.append('deploy')
     """`Core` attribute for managing deployments.
 
     A reference to an instance of :class:DeployInterface.
     """
 
     console = None
+    standard_interfaces.append('console')
     """`Standard` attribute for managing console access.
 
     A reference to an instance of :class:ConsoleInterface.
@@ -53,6 +59,7 @@ class BaseDriver(object):
     """
 
     rescue = None
+    standard_interfaces.append('rescue')
     """`Standard` attribute for accessing rescue features.
 
     A reference to an instance of :class:RescueInterface.

@@ -46,11 +46,12 @@ class ConductorAPI(ironic.openstack.common.rpc.proxy.RpcProxy):
         1.1 - Added update_node and start_power_state_change.
         1.2 - Added vendor_passhthru.
         1.3 - Rename start_power_state_change to change_node_power_state.
-        1.4 - Add do_node_deploy and do_node_tear_down.
+        1.4 - Added do_node_deploy and do_node_tear_down.
+        1.5 - Added validate_driver_interfaces.
 
     """
 
-    RPC_API_VERSION = '1.4'
+    RPC_API_VERSION = '1.5'
 
     def __init__(self, topic=None):
         if topic is None:
@@ -161,3 +162,16 @@ class ConductorAPI(ironic.openstack.common.rpc.proxy.RpcProxy):
         self.cast(context,
                   self.make_msg('do_node_tear_down',
                                 node_obj=node_obj))
+
+    def validate_driver_interfaces(self, context, node_id):
+        """Validate the `core` and `standardized` interfaces for drivers.
+
+        :param context: request context.
+        :param node_id: node id or uuid.
+        :returns: a dictionary containing the results of each
+                  interface validation.
+
+        """
+        return self.call(context,
+                         self.make_msg('validate_driver_interfaces',
+                                       node_id=node_id))

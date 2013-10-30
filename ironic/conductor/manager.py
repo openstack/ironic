@@ -79,7 +79,7 @@ CONF.register_opts(conductor_opts, 'conductor')
 class ConductorManager(service.PeriodicService):
     """Ironic Conductor service main class."""
 
-    RPC_API_VERSION = '1.4'
+    RPC_API_VERSION = '1.5'
 
     def __init__(self, host, topic):
         serializer = objects_base.IronicObjectSerializer()
@@ -358,3 +358,30 @@ class ConductorManager(service.PeriodicService):
                 #             or locked by another process,
                 #             silently ignore it and continue
                 continue
+
+    def validate_driver_interfaces(self, context, node_id):
+        """Validate the `core` and `standardized` interfaces for drivers.
+
+        :param context: request context.
+        :param node_id: node id or uuid.
+        :returns: a dictionary containing the results of each
+                  interface validation.
+
+        """
+        LOG.debug(_('RPC validate_driver_interfaces called for node %s.') %
+                    node_id)
+        result = {}
+        with task_manager.acquire(context, node_id, shared=True) as task:
+            for iface_name in (task.driver.core_interfaces +
+                               task.driver.standard_interfaces):
+                iface = getattr(task.driver, iface_name, None)
+                if iface:
+                    try:
+                        iface.validate(task.node)
+                        result[iface_name] = True
+                    except exception.InvalidParameterValue as e:
+                        LOG.exception(e)
+                        result[iface_name] = False
+                else:
+                    result[iface_name] = 'not supported'
+        return result

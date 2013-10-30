@@ -405,3 +405,14 @@ class ManagerTestCase(base.DbTestCase):
             self.assertEqual(node['target_provision_state'], states.DELETED)
             self.assertIsNone(node['last_error'])
             deploy.assert_called_once()
+
+    def test_validate_driver_interfaces(self):
+        ndict = utils.get_test_node(driver='fake',
+                                    provision_state=states.ACTIVE)
+        node = self.dbapi.create_node(ndict)
+        result = self.service.validate_driver_interfaces(self.context,
+                                                         node['uuid'])
+        self.assertTrue(result['power'])
+        self.assertTrue(result['deploy'])
+        self.assertEqual('not supported', result['console'])
+        self.assertEqual('not supported', result['rescue'])

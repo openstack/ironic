@@ -122,3 +122,8 @@ class RPCAPITestCase(base.DbTestCase):
         self._test_rpcapi('do_node_tear_down',
                           'cast',
                           node_obj=self.fake_node)
+
+    def test_validate_driver_interfaces(self):
+        self._test_rpcapi('validate_driver_interfaces',
+                          'call',
+                          node_id=self.fake_node['uuid'])
