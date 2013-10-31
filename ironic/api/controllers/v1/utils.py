@@ -87,5 +87,6 @@ class ValidTypes(wsme.types.UserType):
             if isinstance(value, t):
                 return value
         else:
-            raise ValueError("Wrong type. Expected '%s', got  '%s'" % (
-                             self.types, type(value)))
+            raise ValueError(
+                     _("Wrong type. Expected '%(type)s', got '%(value)s'")
+                     % {'type': self.types, 'value': type(value)})

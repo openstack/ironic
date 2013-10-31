@@ -34,7 +34,7 @@ def datetime_or_none(dt):
             return dt.replace(tzinfo=iso8601.iso8601.Utc())
         else:
             return dt
-    raise ValueError('A datetime.datetime is required here')
+    raise ValueError(_("A datetime.datetime is required here"))
 
 
 def datetime_or_str_or_none(val):
@@ -99,7 +99,8 @@ def nested_object_or_none(objclass):
     def validator(val, objclass=objclass):
         if val is None or isinstance(val, objclass):
             return val
-        raise ValueError('An object of class %s is required here' % objclass)
+        raise ValueError(_("An object of class %s is required here")
+                         % objclass)
     return validator
 
 

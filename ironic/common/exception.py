@@ -349,23 +349,24 @@ class IncompatibleObjectVersion(IronicException):
 
 
 class GlanceConnectionFailed(IronicException):
-    message = "Connection to glance host %(host)s:%(port)s failed: %(reason)s"
+    message = _("Connection to glance host %(host)s:%(port)s failed: "
+                "%(reason)s")
 
 
 class ImageNotAuthorized(NotAuthorized):
-    message = "Not authorized for image %(image_id)s."
+    message = _("Not authorized for image %(image_id)s.")
 
 
 class InvalidImageRef(Invalid):
-    message = "Invalid image href %(image_href)s."
+    message = _("Invalid image href %(image_href)s.")
 
 
 class ServiceUnavailable(IronicException):
-    message = "Connection failed"
+    message = _("Connection failed")
 
 
 class Forbidden(IronicException):
-    message = "Requested OpenStack Images API is forbidden"
+    message = _("Requested OpenStack Images API is forbidden")
 
 
 class BadRequest(IronicException):
@@ -373,15 +374,15 @@ class BadRequest(IronicException):
 
 
 class HTTPException(IronicException):
-    message = "Requested version of OpenStack Images API is not available."
+    message = _("Requested version of OpenStack Images API is not available.")
 
 
 class InvalidEndpoint(IronicException):
-    message = "The provided endpoint is invalid"
+    message = _("The provided endpoint is invalid")
 
 
 class CommunicationError(IronicException):
-    message = "Unable to communicate with the server."
+    message = _("Unable to communicate with the server.")
 
 
 class HTTPForbidden(Forbidden):
