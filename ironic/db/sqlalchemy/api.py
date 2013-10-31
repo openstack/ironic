@@ -192,8 +192,10 @@ class Connection(api.Connection):
     @objects.objectify(objects.Node)
     def get_nodes_by_chassis(self, chassis, limit=None, marker=None,
                              sort_key=None, sort_dir=None):
+        # get_chassis() to raise an exception if the chassis is not found
+        chassis_obj = self.get_chassis(chassis)
         query = model_query(models.Node)
-        query = add_node_filter_by_chassis(query, chassis)
+        query = query.filter_by(chassis_id=chassis_obj.id)
         return _paginate_query(models.Node, limit, marker,
                                sort_key, sort_dir, query)
 
@@ -368,8 +370,10 @@ class Connection(api.Connection):
     @objects.objectify(objects.Port)
     def get_ports_by_node(self, node, limit=None, marker=None,
                           sort_key=None, sort_dir=None):
+        # get_node() to raise an exception if the node is not found
+        node_obj = self.get_node(node)
         query = model_query(models.Port)
-        query = add_port_filter_by_node(query, node)
+        query = query.filter_by(node_id=node_obj.id)
         return _paginate_query(models.Port, limit, marker,
                                sort_key, sort_dir, query)
 
