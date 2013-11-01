@@ -16,6 +16,8 @@
 
 import collections
 
+import six
+
 from ironic.common import exception
 from ironic.objects import utils as obj_utils
 from ironic.openstack.common import context
@@ -150,6 +152,7 @@ def check_object_version(server, client):
             dict(client=client_minor, server=server_minor))
 
 
+@six.add_metaclass(IronicObjectMetaclass)
 class IronicObject(object):
     """Base class and object factory.
 
@@ -159,7 +162,6 @@ class IronicObject(object):
     necessary "get" classmethod routines as well as "save" object methods
     as appropriate.
     """
-    __metaclass__ = IronicObjectMetaclass
 
     # Version of this object (see rules above check_object_version())
     version = '1.0'
