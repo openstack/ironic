@@ -36,9 +36,6 @@ def register_opts(conf):
     keystone_auth_token.CONF = conf
 
 
-register_opts(cfg.CONF)
-
-
 def install(app, conf, public_routes):
     """Install ACL check on application.
 
@@ -49,6 +46,7 @@ def install(app, conf, public_routes):
     :return: The same WSGI application with ACL installed.
 
     """
+    register_opts(cfg.CONF)
     keystone_config = dict(conf.get(OPT_GROUP_NAME))
     return auth_token.AuthTokenMiddleware(app,
                                           conf=keystone_config,
