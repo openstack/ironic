@@ -40,7 +40,7 @@ def datetime_or_none(dt):
 
 
 def datetime_or_str_or_none(val):
-    if isinstance(val, basestring):
+    if isinstance(val, six.string_types):
         return timeutils.parse_isotime(val)
     return datetime_or_none(val)
 
@@ -65,7 +65,7 @@ def dict_or_none(val):
     """Attempt to dictify a value, or None."""
     if val is None:
         return {}
-    elif isinstance(val, str):
+    elif isinstance(val, six.string_types):
         return dict(ast.literal_eval(val))
     else:
         try:
@@ -78,7 +78,7 @@ def list_or_none(val):
     """Attempt to listify a value, or None."""
     if val is None:
         return []
-    elif isinstance(val, str):
+    elif isinstance(val, six.string_types):
         return list(ast.literal_eval(val))
     else:
         try:
