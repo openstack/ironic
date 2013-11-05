@@ -28,6 +28,7 @@ from ironic.common import exception
 from ironic.common.glance_service import service_utils
 from ironic.common import image_service as service
 from ironic.common import images
+from ironic.common import keystone
 from ironic.common import states
 from ironic.common import utils
 
@@ -140,6 +141,8 @@ def _build_pxe_config(node, pxe_info):
     """
     LOG.debug(_("Building PXE config for deployment %s.") % node['id'])
 
+    ironic_api = CONF.api_url or keystone.get_service_url()
+
     deploy_key = utils.random_alnum(32)
     ctx = context.get_admin_context()
     driver_info = node['driver_info']
@@ -148,13 +151,14 @@ def _build_pxe_config(node, pxe_info):
     node.save(ctx)
 
     pxe_options = {
-            'deployment_id': node['id'],
+            'deployment_id': node['uuid'],
             'deployment_key': deploy_key,
             'deployment_iscsi_iqn': "iqn-%s" % node['instance_uuid'],
             'deployment_aki_path': pxe_info['deploy_kernel'][1],
             'deployment_ari_path': pxe_info['deploy_ramdisk'][1],
             'aki_path': pxe_info['kernel'][1],
             'ari_path': pxe_info['ramdisk'][1],
+            'ironic_api_url': ironic_api,
             'pxe_append_params': CONF.pxe.pxe_append_params,
         }
 
