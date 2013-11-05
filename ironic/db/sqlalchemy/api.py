@@ -288,6 +288,9 @@ class Connection(api.Connection):
 
     @objects.objectify(objects.Node)
     def get_node_by_instance(self, instance):
+        if not uuidutils.is_uuid_like(instance):
+            raise exception.InvalidUUID(uuid=instance)
+
         query = model_query(models.Node).\
                         filter_by(instance_uuid=instance)
 

@@ -120,14 +120,24 @@ class DbNodeTestCase(base.DbTestCase):
         self.assertEqual(uuids.sort(), res_uuids.sort())
 
     def test_get_node_by_instance(self):
-        n = self._create_test_node(instance_uuid='fake-uuid-1234')
+        n = self._create_test_node(
+                instance_uuid='12345678-9999-0000-aaaa-123456789012')
 
         res = self.dbapi.get_node_by_instance(n['instance_uuid'])
         self.assertEqual(n['uuid'], res['uuid'])
 
+    def test_get_node_by_instance_wrong_uuid(self):
+        self._create_test_node(
+                instance_uuid='12345678-9999-0000-aaaa-123456789012')
+
         self.assertRaises(exception.InstanceNotFound,
                           self.dbapi.get_node_by_instance,
-                          '12345678-9999-0000-aaaa-123456789012')
+                          '12345678-9999-0000-bbbb-123456789012')
+
+    def test_get_node_by_instance_invalid_uuid(self):
+        self.assertRaises(exception.InvalidUUID,
+                          self.dbapi.get_node_by_instance,
+                          'fake_uuid')
 
     def test_destroy_node(self):
         n = self._create_test_node()
