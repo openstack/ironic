@@ -104,11 +104,11 @@ exit 1
             fp = open(tmpfilename2, 'r')
             runs = fp.read()
             fp.close()
-            self.assertNotEquals(runs.strip(), 'failure', 'stdin did not '
+            self.assertNotEqual(runs.strip(), 'failure', 'stdin did not '
                                                           'always get passed '
                                                           'correctly')
             runs = int(runs.strip())
-            self.assertEquals(runs, 10,
+            self.assertEqual(runs, 10,
                               'Ran %d times instead of 10.' % (runs,))
         finally:
             os.unlink(tmpfilename)
@@ -222,7 +222,7 @@ class GenericUtilsTestCase(base.TestCase):
         flo = StringIO.StringIO(data)
         h1 = utils.hash_file(flo)
         h2 = hashlib.sha1(data).hexdigest()
-        self.assertEquals(h1, h2)
+        self.assertEqual(h1, h2)
 
     def test_is_valid_boolstr(self):
         self.assertTrue(utils.is_valid_boolstr('true'))
@@ -267,12 +267,12 @@ class GenericUtilsTestCase(base.TestCase):
         self.assertFalse(utils.is_valid_ipv6_cidr("127.0.0.1"))
 
     def test_get_shortened_ipv6(self):
-        self.assertEquals("abcd:ef01:2345:6789:abcd:ef01:c0a8:fefe",
+        self.assertEqual("abcd:ef01:2345:6789:abcd:ef01:c0a8:fefe",
                           utils.get_shortened_ipv6(
                             "abcd:ef01:2345:6789:abcd:ef01:192.168.254.254"))
-        self.assertEquals("::1", utils.get_shortened_ipv6(
+        self.assertEqual("::1", utils.get_shortened_ipv6(
                                     "0000:0000:0000:0000:0000:0000:0000:0001"))
-        self.assertEquals("caca::caca:0:babe:201:102",
+        self.assertEqual("caca::caca:0:babe:201:102",
                           utils.get_shortened_ipv6(
                                     "caca:0000:0000:caca:0000:babe:0201:0102"))
         self.assertRaises(netaddr.AddrFormatError, utils.get_shortened_ipv6,
@@ -281,9 +281,9 @@ class GenericUtilsTestCase(base.TestCase):
                           "failure")
 
     def test_get_shortened_ipv6_cidr(self):
-        self.assertEquals("2600::/64", utils.get_shortened_ipv6_cidr(
+        self.assertEqual("2600::/64", utils.get_shortened_ipv6_cidr(
                 "2600:0000:0000:0000:0000:0000:0000:0000/64"))
-        self.assertEquals("2600::/64", utils.get_shortened_ipv6_cidr(
+        self.assertEqual("2600::/64", utils.get_shortened_ipv6_cidr(
                 "2600::1/64"))
         self.assertRaises(netaddr.AddrFormatError,
                           utils.get_shortened_ipv6_cidr,

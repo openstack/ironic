@@ -188,15 +188,15 @@ class TestGlanceImageService(base.TestCase):
         num_images = len(self.service.detail())
         image_id = self.service.create(fixture)['id']
 
-        self.assertNotEquals(None, image_id)
-        self.assertEquals(num_images + 1,
+        self.assertIsNotNone(image_id)
+        self.assertEqual(num_images + 1,
                           len(self.service.detail()))
 
     def test_create_and_show_non_existing_image(self):
         fixture = self._make_fixture(name='test image')
         image_id = self.service.create(fixture)['id']
 
-        self.assertNotEquals(None, image_id)
+        self.assertIsNotNone(image_id)
         self.assertRaises(exception.ImageNotFound,
                           self.service.show,
                           'bad image id')
@@ -229,7 +229,7 @@ class TestGlanceImageService(base.TestCase):
             ids.append(self.service.create(fixture)['id'])
 
         image_metas = self.service.detail(marker=ids[1])
-        self.assertEquals(len(image_metas), 8)
+        self.assertEqual(len(image_metas), 8)
         i = 2
         for meta in image_metas:
             expected = {
@@ -263,7 +263,7 @@ class TestGlanceImageService(base.TestCase):
             ids.append(self.service.create(fixture)['id'])
 
         image_metas = self.service.detail(limit=5)
-        self.assertEquals(len(image_metas), 5)
+        self.assertEqual(len(image_metas), 5)
 
     def test_detail_default_limit(self):
         fixtures = []
@@ -286,7 +286,7 @@ class TestGlanceImageService(base.TestCase):
             ids.append(self.service.create(fixture)['id'])
 
         image_metas = self.service.detail(marker=ids[3], limit=5)
-        self.assertEquals(len(image_metas), 5)
+        self.assertEqual(len(image_metas), 5)
         i = 4
         for meta in image_metas:
             expected = {
@@ -329,7 +329,7 @@ class TestGlanceImageService(base.TestCase):
         self.service.update(image_id, fixture)
 
         new_image_data = self.service.show(image_id)
-        self.assertEquals('new image name', new_image_data['name'])
+        self.assertEqual('new image name', new_image_data['name'])
 
     def test_delete(self):
         fixture1 = self._make_fixture(name='test image 1')
@@ -337,7 +337,7 @@ class TestGlanceImageService(base.TestCase):
         fixtures = [fixture1, fixture2]
 
         num_images = len(self.service.detail())
-        self.assertEquals(0, num_images)
+        self.assertEqual(0, num_images)
 
         ids = []
         for fixture in fixtures:
@@ -345,7 +345,7 @@ class TestGlanceImageService(base.TestCase):
             ids.append(new_id)
 
         num_images = len(self.service.detail())
-        self.assertEquals(2, num_images)
+        self.assertEqual(2, num_images)
 
         self.service.delete(ids[0])
         # When you delete an image from glance, it sets the status to DELETED
@@ -353,12 +353,12 @@ class TestGlanceImageService(base.TestCase):
 
         # Check the image is still there.
         num_images = len(self.service.detail())
-        self.assertEquals(2, num_images)
+        self.assertEqual(2, num_images)
 
         # Check the image is marked as deleted.
         num_images = reduce(lambda x, y: x + (0 if y['deleted'] else 1),
                             self.service.detail(), 0)
-        self.assertEquals(1, num_images)
+        self.assertEqual(1, num_images)
 
     def test_show_passes_through_to_client(self):
         fixture = self._make_fixture(name='image1', is_public=True)
