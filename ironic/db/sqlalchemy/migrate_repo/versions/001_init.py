@@ -69,7 +69,7 @@ def upgrade(migrate_engine):
             table.create()
         except Exception:
             LOG.info(repr(table))
-            LOG.Exception(_('Exception while creating table.'))
+            LOG.exception(_('Exception while creating table.'))
             raise
 
     indexes = [
