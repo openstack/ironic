@@ -547,6 +547,17 @@ class PXEDriverTestCase(db_base.DbTestCase):
                             address='123456', iqn='aaa-bbb', key='fake-56789')
         self.assertEqual(self.node['provision_state'], states.DEPLOYFAIL)
 
+    def test_lock_elevated(self):
+        with task_manager.acquire(self.context, [self.node['uuid']],
+                                  shared=True) as task:
+            with mock.patch.object(task.driver.vendor, '_continue_deploy') \
+                    as _continue_deploy_mock:
+                task.driver.vendor.vendor_passthru(task, self.node,
+                    method='pass_deploy_info', address='123456', iqn='aaa-bbb',
+                    key='fake-56789')
+                # lock elevated w/o exception
+                _continue_deploy_mock.assert_called_once()
+
     def tear_down_config(self, master=None):
         temp_dir = tempfile.mkdtemp()
         CONF.set_default('tftp_root', temp_dir, group='pxe')
