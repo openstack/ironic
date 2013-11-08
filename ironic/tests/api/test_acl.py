@@ -62,7 +62,7 @@ class TestACL(base.FunctionalTest):
             response = self.get_json(self.node_path,
                                  headers={'X-Auth-Token': utils.ADMIN_TOKEN})
 
-            self.assertEquals(response['uuid'], self.fake_node['uuid'])
+            self.assertEqual(response['uuid'], self.fake_node['uuid'])
             mock_get_node.assert_called_once_with(self.fake_node['uuid'])
 
     def test_non_admin(self):

@@ -553,7 +553,6 @@ class SSHDriverTestCase(db_base.DbTestCase):
                                                                self.node,
                                                                states.POWER_ON)
 
-            self.assert_(True)
             self.parse_drv_info_mock.assert_called_once_with(self.node)
             self.get_mac_addr_mock.assert_called_once_with(mock.ANY, self.node)
             self.get_conn_mock.assert_called_once_with(self.node)
@@ -602,7 +601,6 @@ class SSHDriverTestCase(db_base.DbTestCase):
                 task.resources[0].driver.power.set_power_state(task,
                         self.node, states.POWER_OFF)
 
-            self.assert_(True)
             self.parse_drv_info_mock.assert_called_once_with(self.node)
             self.get_mac_addr_mock.assert_called_once_with(mock.ANY, self.node)
             self.get_conn_mock.assert_called_once_with(self.node)
