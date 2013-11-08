@@ -16,8 +16,10 @@
 
 import ast
 import datetime
+
 import iso8601
 import netaddr
+import six
 
 from ironic.openstack.common import timeutils
 
@@ -52,11 +54,11 @@ def int_or_none(val):
 
 
 def str_or_none(val):
-    """Attempt to stringify a value, or None."""
+    """Attempt to stringify a value to unicode, or None."""
     if val is None:
         return val
     else:
-        return str(val)
+        return six.text_type(val)
 
 
 def dict_or_none(val):

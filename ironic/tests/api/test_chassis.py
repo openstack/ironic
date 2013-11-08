@@ -283,6 +283,13 @@ class TestPost(base.FunctionalTest):
         self.assertRaises(webtest.app.AppError, self.post_json, '/chassis',
                           cdict)
 
+    def test_create_chassis_unicode_description(self):
+        descr = u'\u0430\u043c\u043e'
+        cdict = dbutils.get_test_chassis(description=descr)
+        self.post_json('/chassis', cdict)
+        result = self.get_json('/chassis/%s' % cdict['uuid'])
+        self.assertEqual(descr, result['description'])
+
 
 class TestDelete(base.FunctionalTest):
 
