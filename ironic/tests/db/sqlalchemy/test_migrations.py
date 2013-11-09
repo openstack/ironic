@@ -40,9 +40,9 @@ postgres=# create database openstack_citest with owner openstack_citest;
 
 """
 
-import commands
 import ConfigParser
 import os
+import subprocess
 import urlparse
 
 from migrate.versioning import repository
@@ -167,9 +167,11 @@ class BaseMigrationTestCase(base.TestCase):
         self.addCleanup(self._reset_databases)
 
     def execute_cmd(self, cmd=None):
-        status, output = commands.getstatusoutput(cmd)
+        proc = subprocess.Popen(cmd, stdout=subprocess.PIPE,
+                                stderr=subprocess.STDOUT, shell=True)
+        output = proc.communicate()[0]
         LOG.debug(output)
-        self.assertEqual(0, status,
+        self.assertEqual(0, proc.returncode,
                          "Failed to run: %s\n%s" % (cmd, output))
 
     @lockutils.synchronized('pgadmin', 'tests-', external=True)
