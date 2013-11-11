@@ -21,6 +21,7 @@ import logging
 import urlparse
 
 from oslo.config import cfg
+import six
 
 from ironic.common import exception
 from ironic.openstack.common import jsonutils
@@ -89,10 +90,10 @@ def _convert(metadata, method):
             if attr in properties:
                 prop = properties[attr]
                 if method == 'from':
-                    if isinstance(prop, basestring):
+                    if isinstance(prop, six.string_types):
                         properties[attr] = jsonutils.loads(prop)
                 if method == 'to':
-                    if not isinstance(prop, basestring):
+                    if not isinstance(prop, six.string_types):
                         properties[attr] = jsonutils.dumps(prop)
     return metadata
 
