@@ -176,7 +176,11 @@ def _get_power_status(ssh_obj, driver_info):
         if not power_state:
             power_state = states.POWER_OFF
     else:
-        power_state = states.ERROR
+        err_msg = _('Node "%(host)s" with MAC address %(mac)s not found.')
+        LOG.error(err_msg, {'host': driver_info['host'],
+                            'mac': driver_info['macs']})
+
+        raise exception.NodeNotFound(node=driver_info['host'])
 
     return power_state
 
