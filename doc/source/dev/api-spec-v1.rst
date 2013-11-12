@@ -567,9 +567,9 @@ Chassis
 Usage
 ^^^^^^
 
-=======    =============    ==========
+=======    ===============  ==========
 Verb       Path             Response
-=======    =============    ==========
+=======    ===============  ==========
 GET        /chassis         List chassis
 GET        /chassis/detail  Lists all details for all chassis
 GET        /chassis/<id>    Retrieve a specific chassis
@@ -577,55 +577,55 @@ POST       /chassis         Create a new chassis
 PATCH      /chassis/<id>    Update a chassis
 DELETE     /chassis/<id>    Delete chassis and remove all associations between
                             nodes
-=======    =============    ==========
+=======    ===============  ==========
 
 
 Fields
 ^^^^^^^
 
-id
-    Unique ID for this chassis
-type
-    The type of this resource, i.e. chassis
+uuid
+    Unique UUID for this chassis
 description
     A user defined description
-meta_data
+extra
     This chassis's meta data see: MetaData_
 nodes
     A link to a collection of nodes associated with this chassis see: Node_
+links
+    A list containing a self link and associated chassis links see: `Links and Relationships`_
 
 Example
 ^^^^^^^^
 
 JSON structure of a chassis::
 
-    {
-      "id": "fake-chassis-id",
-      "type": "chassis",
-      "description": "data-center-1-chassis",
-      "meta_data": {
-        "data_centre": "us.east.1",
-        "function": "high-speed-cpu",
-        "links": [{
-            "rel": "self",
-            "href": "http://localhost:8080/v1.0/chassis/1/meta-data"
-          }, {
-            "rel": "bookmark",
-            "href": "http://localhost:8080/chassis/1/meta-data"
-          }
-        ]
+  {
+      "uuid": "64ec49cf-8881-4ceb-ba9e-cf9d67b63e70",
+      "description": "chassis1-datacenter1",
+      "extra": {
+          "foo": "bar",
       },
-      "nodes": {
-        "links": [{
-            "rel": "self",
-            "href": "http://localhost:8080/v1.0/chassis/1/nodes"
-          }, {
-            "rel": "bookmark",
-            "href": "http://localhost:8080/chassis/1/nodes"
+      "links": [
+          {
+              "href": "http://0.0.0.0:6385/v1/chassis/64ec49cf-8881-4ceb-ba9e-cf9d67b63e70",
+              "rel": "self"
+          },
+          {
+              "href": "http://0.0.0.0:6385/v1/chassis/64ec49cf-8881-4ceb-ba9e-cf9d67b63e70",
+              "rel": "bookmark"
           }
-        ]
-      }
-    }
+      ],
+      "nodes": [
+          {
+              "href": "http://0.0.0.0:6385/v1/chassis/64ec49cf-8881-4ceb-ba9e-cf9d67b63e70/nodes",
+              "rel": "self"
+          },
+          {
+              "href": "http://0.0.0.0:6385/chassis/64ec49cf-8881-4ceb-ba9e-cf9d67b63e70/nodes",
+              "rel": "bookmark"
+          }
+      ],
+  }
 
 Port
 -----
