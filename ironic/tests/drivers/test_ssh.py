@@ -167,13 +167,16 @@ class SSHPrivateMethodsTestCase(base.TestCase):
                 as get_hosts_name_mock:
             self.exec_ssh_mock.return_value = [
                     '"NodeName" {b43c4982-110c-4c29-9325-d5f41b053513}']
+            info['macs'] = ["11:11:11:11:11:11", "52:54:00:cf:2d:31"]
             get_hosts_name_mock.return_value = None
-            pstate = ssh._get_power_status(self.sshclient, info)
+            self.assertRaises(exception.NodeNotFound,
+                              ssh._get_power_status,
+                              self.sshclient,
+                              info)
 
             ssh_cmd = "%s %s" % (info['cmd_set']['base_cmd'],
                                  info['cmd_set']['list_running'])
 
-            self.assertEqual(pstate, states.ERROR)
             self.exec_ssh_mock.assert_called_once_with(
                     self.sshclient, ssh_cmd)
             get_hosts_name_mock.assert_called_once_with(self.sshclient,
