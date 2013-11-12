@@ -431,134 +431,100 @@ Node
 Usage
 ^^^^^^
 
-=======  =============  ==========
-Verb     Path           Response
-=======  =============  ==========
-GET      /nodes         List nodes
-GET      /nodes/detail  Lists all details for all nodes
-GET      /nodes/<id>    Retrieve a specific node
-POST     /nodes         Create a new node
-PATCH    /nodes/<id>    Update a node
-DELETE   /nodes/<id>    Delete node and all associated ports
-=======  =============  ==========
-
+=======  ===========================  =====================
+Verb     Path                         Response
+=======  ===========================  =====================
+GET      /nodes                       List nodes
+GET      /nodes/detail                Lists all details for all nodes
+GET      /nodes/<id>                  Retrieve a specific node
+GET      /nodes/<id>/ports            List the ports contained in the node
+GET      /nodes/<id>/state            Retrieve information about the power and provision state of the node
+GET      /nodes/<id>/state/power      Retrieve detailed information about the power state of the node
+GET      /nodes/<id>/state/provision  Retrieve detailed information about the provision state of the node
+PUT      /nodes/<id>/state/power      Set the power state of the node
+POST     /nodes                       Create a new node
+PATCH    /nodes/<id>                  Update a node
+DELETE   /nodes/<id>                  Delete node and all associated ports
+=======  ===========================  =====================
 
 Fields
 ^^^^^^^
 
-id
-    Unique ID for this node
-type
-    The type of this resource, i.e. node
-arch
-    The node CPU architecture
-cpus
-    The number of available CPUs
-disk
-    The amount of available storage space in GB
-ram
-    The amount of available RAM  in MB
-meta_data
+uuid
+    Unique UUID for this node
+instance_uuid
+    The UUID of the instance in nova-compute
+power_state
+    The current (not transition) power state of the node
+target_power_state
+    The user modified desired power state of the node
+provision_state
+    The current (not transition) provision state of the node
+target_provision_state
+    The desired provision state of the node
+driver
+    The driver responsible for controlling the node
+driver_info
+    This node's driver configuration see
+extra
     This node's meta data see: MetaData_
-image
-    A reference to this node's current image see: Image_
-state
-    This node's state, see State_
-chassis
-    The chassis this node belongs to see: Chassis_
+properties
+    The physical characteristics of the node, defining sizes for disk,
+    RAM, number of cores and so on
+chassis_id
+    The ID of the chassis this node belongs to see: Chassis_
 ports
     A list of available ports for this node see: Port_
-driver_configuration
-    This node's driver configuration see: DriverConfiguration_
+links
+    A list containing a self link and associated node links see: `Links and Relationships`_
+
 
 Example
 ^^^^^^^^
 JSON structure of a node::
 
-
   {
-    "id": "fake-node-id",
-    "type": "node",
-    "arch": "x86_64",
-    "cpus": 8,
-    "disk": 1024,
-    "ram": 4096,
-    "meta_data": {
-      "data_centre": "us.east.1",
-      "function": "high_speed_cpu",
-      "links": [{
-          "rel": "self",
-          "href": "http://localhost:8080/v1.0/nodes/1/meta-data"
-        }, {
-          "rel": "bookmark",
-          "href": "http://localhost:8080/nodes/1/meta-data"
-        }
-      ]
-    },
-    "image": {
-      "id": "fake-image-id",
-      "links": [{
-          "rel": "self",
-          "href": "http://localhost:8080/images/1"
-        }, {
-          "rel": "bookmark",
-          "href": "http://localhost:8080/images/1"
-        }, {
-          "rel": "alternate",
-          "href": "http://glance.api..."
-        }
-      ]
-    },
-    "state": {
-      "current": "OFF",
-      "available_states": ["DEPLOYED"],
-      "started": "2013 - 05 - 20 12: 34: 56",
-      "links ": [{
-          "rel ": "self ",
-          "href ": "http: //localhost:8080/v1/nodes/1/state"
-        }, {
-          "rel": "bookmark",
-          "href": "http://localhost:8080/ndoes/1/state"
-        }
-      ]
-    },
-    "ports": {
-      "links": [{
-          "rel": "self",
-          "href": "http://localhost:8080/v1/nodes/1/ports"
-        }, {
-          "rel": "bookmark",
-          "href": "http://localhost:8080/nodes/1/ports"
-        }
-      ]
-    },
-    "driver_configuration": {
-      "type": "driver_configuration",
-      "driver": {
-        "links": [{
-            "rel": "self",
-            "href": "http://localhost:8080/v1/drivers/1"
-          }, {
-            "rel": "bookmark",
-            "href": "http://localhost:8080/drivers/1"
-          }
-        ]
+      "uuid": "7b584bfa-cca0-40f8-b871-45ad409bf738",
+      "chassis_id": ff310fed-5dbf-45e6-9e82-841ddb62a8af,
+      "driver": "pxe_ipmitool",
+      "instance_uuid": null,
+      "power_state": null,
+      "target_power_state": null,
+      "provision_state": null,
+      "target_provision_state": null,
+      "extra": {
+          "foo": "bar",
       },
-      "parameters": {
-        "ipmi_username": "admin",
-        "ipmi_password": "password",
-        "image_source": "glance://image-uuid",
-        "deploy_image_source": "glance://deploy-image-uuid",
-        "links": [{
-            "rel": "self",
-            "href": "http://localhost:8080/v1.0/nodes/1/driver_configuration/parameters"
-          }, {
-            "rel": "bookmark",
-            "href": "http://localhost:8080/nodes/1/driver_configuration/control/parameters"
+      "driver_info": {
+          "ipmi_address": "1.2.3.4",
+          "ipmi_username": "admin",
+          "ipmi_password": "fake",
+      },
+      "properties": {
+          "cpu": "8",
+          "ram": "16",
+          "arch": "x86_64",
+      },
+      "links": [
+          {
+              "href": "http://0.0.0.0:6385/v1/nodes/7b584bfa-cca0-40f8-b871-45ad409bf738",
+              "rel": "self"
+          },
+          {
+              "href": "http://0.0.0.0:6385/nodes/7b584bfa-cca0-40f8-b871-45ad409bf738",
+              "rel": "bookmark"
           }
-        ]
-      }
-    }
+      ],
+      "ports": [
+          {
+              "href": "http://0.0.0.0:6385/v1/nodes/7b584bfa-cca0-40f8-b871-45ad409bf738/ports",
+              "rel": "self"
+          },
+          {
+              "href": "http://0.0.0.0:6385/nodes/7b584bfa-cca0-40f8-b871-45ad409bf738/ports",
+              "rel": "bookmark"
+          }
+      ],
   }
 
 Chassis
@@ -1017,7 +983,7 @@ JSON structure of a meta_data::
   }
 
 VendorPassthru
----------
+--------------
 
 VendorPassthru allow vendors to expose a custom functionality in
 the Ironic API. Ironic will merely relay the message from here to the
