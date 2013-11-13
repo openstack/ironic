@@ -212,8 +212,7 @@ class PXEPrivateMethodsTestCase(base.TestCase):
         n = {
               'driver': 'fake_pxe',
               'driver_info': INFO_DICT,
-              'instance_uuid': 'instance_uuid_123',
-              'id': 123}
+              'instance_uuid': 'instance_uuid_123'}
         self.dbapi = dbapi.get_instance()
         self.node = self._create_test_node(**n)
 
@@ -248,6 +247,7 @@ class PXEPrivateMethodsTestCase(base.TestCase):
     def test__build_pxe_config(self):
         instance_uuid = 'instance_uuid_123'
         CONF.set_default('pxe_append_params', 'test_param', group='pxe')
+        CONF.set_default('api_url', 'http://192.168.122.184:6385')
 
         template = 'ironic/tests/drivers/pxe_config.template'
         pxe_config_template = open(template, 'r').read()

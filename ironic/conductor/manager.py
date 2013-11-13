@@ -37,6 +37,8 @@ node; these locks are represented by the
 :py:class:`ironic.conductor.task_manager.TaskManager` class.
 """
 
+from oslo.config import cfg
+
 from ironic.common import driver_factory
 from ironic.common import exception
 from ironic.common import service
@@ -51,6 +53,11 @@ from ironic.openstack.common import periodic_task
 MANAGER_TOPIC = 'ironic.conductor_manager'
 
 LOG = log.getLogger(__name__)
+
+cfg.CONF.register_opt(cfg.StrOpt('api_url',
+                      default=None,
+                      help='Url of Ironic API service. If not set Ironic can '
+                      'get current value from Keystone service catalog.'))
 
 
 class ConductorManager(service.PeriodicService):
