@@ -110,3 +110,37 @@ class AdminAuthHook(hooks.PecanHook):
 
         if not is_admin_api and not ctx.is_public_api:
             raise exc.HTTPForbidden()
+
+
+class NoExceptionTracebackHook(hooks.PecanHook):
+    """Ensures that no exception traceback is built into the faultstring
+    (it's a workaround for the rpc.common: deserialize_remote_exception
+    behavior)
+    """
+
+    # NOTE(max_lobur): 'after' hook used instead of 'on_error' because
+    # 'on_error' never fired for wsme+pecan pair. wsme @wsexpose decorator
+    # catches and handles all the errors, so 'on_error' dedicated for unhandled
+    # exceptions never fired.
+    def after(self, state):
+        # Do not remove traceback when server in debug mode.
+        if cfg.CONF.debug:
+            return
+        # Do nothing if there is no error.
+        if 200 <= state.response.status_int < 400:
+            return
+        # Omit empty body. Some errors may not have body at this level yet.
+        if not state.response.body:
+            return
+
+        json_body = state.response.json
+        faultsting = json_body.get('faultstring')
+        traceback_marker = 'Traceback (most recent call last):'
+        if faultsting and (traceback_marker in faultsting):
+            # Cut-off traceback.
+            faultsting = faultsting.split(traceback_marker, 1)[0]
+            # Remove trailing newlines and spaces if any.
+            json_body['faultstring'] = faultsting.rstrip()
+            # Replace the whole json. Cannot change original one beacause it's
+            # generated on the fly.
+            state.response.json = json_body
