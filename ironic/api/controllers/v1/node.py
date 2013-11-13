@@ -70,13 +70,14 @@ class NodePowerState(state.State):
 class NodePowerStateController(rest.RestController):
 
     # GET nodes/<uuid>/state/power
-    @wsme_pecan.wsexpose(NodePowerState, unicode)
+    @wsme_pecan.wsexpose(NodePowerState, wtypes.text)
     def get(self, node_id):
         node = objects.Node.get_by_uuid(pecan.request.context, node_id)
         return NodePowerState.convert_with_links(node)
 
     # PUT nodes/<uuid>/state/power
-    @wsme_pecan.wsexpose(NodePowerState, unicode, unicode, status_code=202)
+    @wsme_pecan.wsexpose(NodePowerState, wtypes.text, wtypes.text,
+                         status_code=202)
     def put(self, node_id, target):
         """Set the power state of the machine."""
         node = objects.Node.get_by_uuid(pecan.request.context, node_id)
@@ -119,14 +120,15 @@ class NodeProvisionState(state.State):
 class NodeProvisionStateController(rest.RestController):
 
     # GET nodes/<uuid>/state/provision
-    @wsme_pecan.wsexpose(NodeProvisionState, unicode)
+    @wsme_pecan.wsexpose(NodeProvisionState, wtypes.text)
     def get(self, node_id):
         node = objects.Node.get_by_uuid(pecan.request.context, node_id)
         provision_state = NodeProvisionState.convert_with_links(node)
         return provision_state
 
     # PUT nodes/<uuid>/state/provision
-    @wsme_pecan.wsexpose(NodeProvisionState, unicode, unicode, status_code=202)
+    @wsme_pecan.wsexpose(NodeProvisionState, wtypes.text, wtypes.text,
+                         status_code=202)
     def put(self, node_id, target):
         """Set the provision state of the machine."""
         #TODO(lucasagomes): Test if target is a valid state and if it's able
@@ -163,7 +165,7 @@ class NodeStatesController(rest.RestController):
     "Expose the provision controller action as a sub-element of state"
 
     # GET nodes/<uuid>/state
-    @wsme_pecan.wsexpose(NodeStates, unicode)
+    @wsme_pecan.wsexpose(NodeStates, wtypes.text)
     def get(self, node_id):
         """List or update the state of a node."""
         node = objects.Node.get_by_uuid(pecan.request.context, node_id)
@@ -282,8 +284,9 @@ class NodeVendorPassthruController(rest.RestController):
     appropriate driver, no introspection will be made in the message body.
     """
 
-    @wsme_pecan.wsexpose(unicode, unicode, unicode, body=unicode,
-                            status_code=202)
+    @wsme_pecan.wsexpose(wtypes.text, wtypes.text, wtypes.text,
+                         body=wtypes.text,
+                         status_code=202)
     def post(self, node_id, method, data):
         # Raise an exception if node is not found
         objects.Node.get_by_uuid(pecan.request.context, node_id)
@@ -380,8 +383,8 @@ class NodesController(rest.RestController):
                                                       node_dict['chassis_id'])
             node_dict['chassis_id'] = chassis_obj.id
 
-    @wsme_pecan.wsexpose(NodeCollection, unicode, unicode, unicode,
-                         unicode, int, unicode, unicode)
+    @wsme_pecan.wsexpose(NodeCollection, wtypes.text, wtypes.text,
+               wtypes.text, wtypes.text, int, wtypes.text, wtypes.text)
     def get_all(self, chassis_id=None, instance_uuid=None, associated=None,
                 marker=None, limit=None, sort_key='id', sort_dir='asc'):
         """Retrieve a list of nodes."""
@@ -393,8 +396,8 @@ class NodesController(rest.RestController):
             parameters['associated'] = associated.lower()
         return NodeCollection.convert_with_links(nodes, limit, **parameters)
 
-    @wsme_pecan.wsexpose(NodeCollection, unicode, unicode, unicode,
-                         unicode, int, unicode, unicode)
+    @wsme_pecan.wsexpose(NodeCollection, wtypes.text, wtypes.text,
+            wtypes.text, wtypes.text, int, wtypes.text, wtypes.text)
     def detail(self, chassis_id=None, instance_uuid=None, associated=None,
                marker=None, limit=None, sort_key='id', sort_dir='asc'):
         """Retrieve a list of nodes with detail."""
@@ -415,7 +418,7 @@ class NodesController(rest.RestController):
                                                  expand=True,
                                                  **parameters)
 
-    @wsme_pecan.wsexpose(Node, unicode)
+    @wsme_pecan.wsexpose(Node, wtypes.text)
     def get_one(self, uuid):
         """Retrieve information about the given node."""
         if self._from_chassis:
@@ -440,7 +443,7 @@ class NodesController(rest.RestController):
                 LOG.exception(e)
         return Node.convert_with_links(new_node)
 
-    @wsme_pecan.wsexpose(Node, unicode, body=[unicode])
+    @wsme_pecan.wsexpose(Node, wtypes.text, body=[wtypes.text])
     def patch(self, uuid, patch):
         """Update an existing node."""
         if self._from_chassis:
@@ -502,7 +505,7 @@ class NodesController(rest.RestController):
 
         return Node.convert_with_links(node)
 
-    @wsme_pecan.wsexpose(None, unicode, status_code=204)
+    @wsme_pecan.wsexpose(None, wtypes.text, status_code=204)
     def delete(self, node_id):
         """Delete a node."""
         if self._from_chassis:
