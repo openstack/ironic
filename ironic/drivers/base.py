@@ -20,7 +20,10 @@ Abstract base classes for drivers.
 
 import abc
 
+import six
 
+
+@six.add_metaclass(abc.ABCMeta)
 class BaseDriver(object):
     """Base class for all drivers.
 
@@ -29,8 +32,6 @@ class BaseDriver(object):
     Actual implementation may instantiate one or more classes, as long as
     the interfaces are appropriate.
     """
-
-    __metaclass__ = abc.ABCMeta
 
     power = None
     """`Core` attribute for managing power state.
@@ -70,10 +71,9 @@ class BaseDriver(object):
         pass
 
 
+@six.add_metaclass(abc.ABCMeta)
 class DeployInterface(object):
     """Interface for deploy-related actions."""
-
-    __metaclass__ = abc.ABCMeta
 
     @abc.abstractmethod
     def validate(self, node):
@@ -112,10 +112,9 @@ class DeployInterface(object):
         """
 
 
+@six.add_metaclass(abc.ABCMeta)
 class PowerInterface(object):
     """Interface for power-related actions."""
-
-    __metaclass__ = abc.ABCMeta
 
     @abc.abstractmethod
     def validate(self, node):
@@ -151,10 +150,9 @@ class PowerInterface(object):
         """
 
 
+@six.add_metaclass(abc.ABCMeta)
 class ConsoleInterface(object):
     """Interface for console-related actions."""
-
-    __metaclass__ = abc.ABCMeta
 
     @abc.abstractmethod
     def validate(self, node):
@@ -183,10 +181,9 @@ class ConsoleInterface(object):
         """
 
 
+@six.add_metaclass(abc.ABCMeta)
 class RescueInterface(object):
     """Interface for rescue-related actions."""
-
-    __metaclass__ = abc.ABCMeta
 
     @abc.abstractmethod
     def validate(self, node):
@@ -211,14 +208,13 @@ class RescueInterface(object):
         """
 
 
+@six.add_metaclass(abc.ABCMeta)
 class VendorInterface(object):
     """Interface for all vendor passthru functionality.
 
     Additional vendor- or driver-specific capabilities should be implemented as
     private methods and invoked from vendor_passthru().
     """
-
-    __metaclass__ = abc.ABCMeta
 
     @abc.abstractmethod
     def validate(self, node, **kwargs):

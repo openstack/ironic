@@ -20,6 +20,8 @@ Base classes for storage engines
 
 import abc
 
+import six
+
 from ironic.openstack.common.db import api as db_api
 
 _BACKEND_MAPPING = {'sqlalchemy': 'ironic.db.sqlalchemy.api'}
@@ -31,10 +33,9 @@ def get_instance():
     return IMPL
 
 
+@six.add_metaclass(abc.ABCMeta)
 class Connection(object):
     """Base class for storage system connections."""
-
-    __metaclass__ = abc.ABCMeta
 
     @abc.abstractmethod
     def __init__(self):

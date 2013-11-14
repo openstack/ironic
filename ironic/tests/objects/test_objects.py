@@ -15,10 +15,10 @@
 import contextlib
 import datetime
 import gettext
+
 import iso8601
 import netaddr
-
-gettext.install('ironic')
+import six
 
 from ironic.common import exception
 from ironic.objects import base
@@ -26,6 +26,8 @@ from ironic.objects import utils
 from ironic.openstack.common import context
 from ironic.openstack.common import timeutils
 from ironic.tests import base as test_base
+
+gettext.install('ironic')
 
 
 class MyObj(base.IronicObject):
@@ -87,8 +89,8 @@ class MyObj2(object):
 class TestMetaclass(test_base.TestCase):
     def test_obj_tracking(self):
 
+        @six.add_metaclass(base.IronicObjectMetaclass)
         class NewBaseClass(object):
-            __metaclass__ = base.IronicObjectMetaclass
             fields = {}
 
             @classmethod

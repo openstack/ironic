@@ -17,11 +17,12 @@
 
 import abc
 
+import six
 
+
+@six.add_metaclass(abc.ABCMeta)
 class ImageService(object):
     """Provides storage and retrieval of disk image objects within Glance."""
-
-    __metaclass__ = abc.ABCMeta
 
     @abc.abstractmethod
     def __init__(self):
