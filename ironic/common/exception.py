@@ -410,3 +410,7 @@ class Unauthorized(IronicException):
 
 class HTTPNotFound(NotFound):
     pass
+
+
+class ConfigNotFound(IronicException):
+    message = _("Could not find config at %(path)s")
