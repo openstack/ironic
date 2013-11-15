@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version:  Ironic\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2013-11-13 06:00+0000\n"
+"POT-Creation-Date: 2013-11-15 06:00+0000\n"
 "PO-Revision-Date: 2013-11-12 16:15+0000\n"
 "Last-Translator: openstackjenkins <jenkins@openstack.org>\n"
 "Language-Team: Polish (Poland) "
@@ -20,32 +20,37 @@ msgstr ""
 "Generated-By: Babel 1.3\n"
 
 #: ironic/api/controllers/v1/chassis.py:191
-#: ironic/api/controllers/v1/node.py:436 ironic/api/controllers/v1/port.py:247
+#: ironic/api/controllers/v1/node.py:477 ironic/api/controllers/v1/port.py:247
 #, python-format
 msgid "Patching Error: %s"
 msgstr ""
 
-#: ironic/api/controllers/v1/node.py:83
+#: ironic/api/controllers/v1/node.py:84
 #, python-format
 msgid "Power operation for node %s is already in progress."
 msgstr ""
 
-#: ironic/api/controllers/v1/node.py:292
+#: ironic/api/controllers/v1/node.py:293
 msgid "Method not specified"
 msgstr ""
 
-#: ironic/api/controllers/v1/node.py:319
+#: ironic/api/controllers/v1/node.py:321
 msgid "Chassis id not specified."
 msgstr ""
 
-#: ironic/api/controllers/v1/node.py:418
+#: ironic/api/controllers/v1/node.py:370
+#, python-format
+msgid "Invalid parameter value: %s, 'associated' can only be true or false."
+msgstr ""
+
+#: ironic/api/controllers/v1/node.py:459
 #, python-format
 msgid ""
 "Changing states is not allowed here; You must use the nodes/%s/state "
 "interface."
 msgstr ""
 
-#: ironic/api/controllers/v1/node.py:427
+#: ironic/api/controllers/v1/node.py:468
 #, python-format
 msgid "Can not update node %s while a state transition is in progress."
 msgstr ""
@@ -535,57 +540,57 @@ msgstr ""
 msgid "Getting image metadata from glance. Image: %s"
 msgstr ""
 
-#: ironic/conductor/manager.py:76
+#: ironic/conductor/manager.py:83
 #, python-format
 msgid ""
 "A conductor with hostname %(hostname)s was previously registered. "
 "Updating registration"
 msgstr ""
 
-#: ironic/conductor/manager.py:89
+#: ironic/conductor/manager.py:96
 #, python-format
 msgid "Received notification: %r"
 msgstr ""
 
-#: ironic/conductor/manager.py:118
+#: ironic/conductor/manager.py:125
 #, python-format
 msgid "RPC update_node called for node %s."
 msgstr ""
 
-#: ironic/conductor/manager.py:122
+#: ironic/conductor/manager.py:129
 msgid "Invalid method call: update_node can not change node state."
 msgstr ""
 
-#: ironic/conductor/manager.py:165
+#: ironic/conductor/manager.py:172
 #, python-format
 msgid ""
 "RPC change_node_power_state called for node %(node)s. The desired new "
 "state is %(state)s."
 msgstr ""
 
-#: ironic/conductor/manager.py:207
+#: ironic/conductor/manager.py:214
 #, python-format
 msgid "RPC call_driver called for node %s."
 msgstr ""
 
-#: ironic/conductor/manager.py:235
+#: ironic/conductor/manager.py:242
 #, python-format
 msgid "RPC do_node_deploy called for node %s."
 msgstr ""
 
-#: ironic/conductor/manager.py:240
+#: ironic/conductor/manager.py:247
 #, python-format
 msgid ""
 "RPC do_node_deploy called for %(node)s, but provision state is already "
 "%(state)s."
 msgstr ""
 
-#: ironic/conductor/manager.py:275
+#: ironic/conductor/manager.py:282
 #, python-format
 msgid "RPC do_node_tear_down called for node %s."
 msgstr ""
 
-#: ironic/conductor/manager.py:283
+#: ironic/conductor/manager.py:290
 #, python-format
 msgid "RCP do_node_tear_down not allowed for node %(node)s in state %(state)s"
 msgstr ""
@@ -763,68 +768,68 @@ msgstr ""
 msgid "set_power_state called with invalid power state %s."
 msgstr ""
 
-#: ironic/drivers/modules/pxe.py:107
+#: ironic/drivers/modules/pxe.py:108
 #, python-format
 msgid ""
 "Can not validate PXE bootloader. The following paramenters were not "
 "passed to ironic: %s"
 msgstr ""
 
-#: ironic/drivers/modules/pxe.py:122
+#: ironic/drivers/modules/pxe.py:123
 #, python-format
 msgid "Can not validate PXE bootloader. Invalid parameter %s"
 msgstr ""
 
-#: ironic/drivers/modules/pxe.py:141
+#: ironic/drivers/modules/pxe.py:142
 #, python-format
 msgid "Building PXE config for deployment %s."
 msgstr ""
 
-#: ironic/drivers/modules/pxe.py:312
+#: ironic/drivers/modules/pxe.py:316
 #, python-format
 msgid "Fetching kernel and ramdisk for instance %s"
 msgstr ""
 
-#: ironic/drivers/modules/pxe.py:342
+#: ironic/drivers/modules/pxe.py:346
 #, python-format
 msgid "Fetching image %(ami)s for instance %(name)s"
 msgstr ""
 
-#: ironic/drivers/modules/pxe.py:516
+#: ironic/drivers/modules/pxe.py:520
 msgid "Deploy key is not match"
 msgstr ""
 
-#: ironic/drivers/modules/pxe.py:532
+#: ironic/drivers/modules/pxe.py:536
 #, python-format
 msgid "Parameters %s were not passed to ironic for deploy."
 msgstr ""
 
-#: ironic/drivers/modules/pxe.py:546
+#: ironic/drivers/modules/pxe.py:550
 #, python-format
 msgid "Unsupported method (%s) passed to PXE driver."
 msgstr ""
 
-#: ironic/drivers/modules/pxe.py:559
+#: ironic/drivers/modules/pxe.py:563
 #, python-format
 msgid "Node %(node_id)s deploy error message: %(error)s"
 msgstr ""
 
-#: ironic/drivers/modules/pxe.py:562
+#: ironic/drivers/modules/pxe.py:566
 #, python-format
 msgid "start deployment for node %(node_id)s, params %(params)s"
 msgstr ""
 
-#: ironic/drivers/modules/pxe.py:571
+#: ironic/drivers/modules/pxe.py:575
 #, python-format
 msgid "deployment to node %s failed"
 msgstr ""
 
-#: ironic/drivers/modules/pxe.py:574
+#: ironic/drivers/modules/pxe.py:578
 #, python-format
 msgid "Deploy error: \"%(error)s\" for node %(node_id)s"
 msgstr ""
 
-#: ironic/drivers/modules/pxe.py:578
+#: ironic/drivers/modules/pxe.py:582
 #, python-format
 msgid "deployment to node %s done"
 msgstr ""
@@ -873,26 +878,26 @@ msgstr ""
 msgid "Found Mac address: %s"
 msgstr ""
 
-#: ironic/objects/base.py:52
+#: ironic/objects/base.py:54
 #, python-format
 msgid "Error setting %(attr)s"
 msgstr ""
 
-#: ironic/objects/base.py:143
+#: ironic/objects/base.py:145
 msgid "Invalid version string"
 msgstr ""
 
-#: ironic/objects/base.py:198
+#: ironic/objects/base.py:200
 #, python-format
 msgid "Unable to instantiate unregistered object type %(objtype)s"
 msgstr ""
 
-#: ironic/objects/base.py:299
+#: ironic/objects/base.py:301
 #, python-format
 msgid "Cannot load '%(attrname)s' in the base class"
 msgstr ""
 
-#: ironic/objects/base.py:308
+#: ironic/objects/base.py:310
 msgid "Cannot save anything in the base class"
 msgstr ""
 

@@ -1,4 +1,4 @@
-# Vietnamese (Vietnam) translations for ironic.
+# Khmer translations for ironic.
 # Copyright (C) 2013 ORGANIZATION
 # This file is distributed under the same license as the ironic project.
 #
@@ -8,10 +8,10 @@ msgstr ""
 "Project-Id-Version:  Ironic\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
 "POT-Creation-Date: 2013-11-15 06:00+0000\n"
-"PO-Revision-Date: 2013-11-12 16:15+0000\n"
-"Last-Translator: openstackjenkins <jenkins@openstack.org>\n"
-"Language-Team: Vietnamese (Viet Nam) "
-"(http://www.transifex.com/projects/p/openstack/language/vi_VN/)\n"
+"PO-Revision-Date: 2013-11-15 02:27+0000\n"
+"Last-Translator: Tom Fifield <tom@openstack.org>\n"
+"Language-Team: Khmer "
+"(http://www.transifex.com/projects/p/openstack/language/km/)\n"
 "Plural-Forms: nplurals=1; plural=0\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
