@@ -13,12 +13,13 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import socket
 import uuid
 
 from oslo.config import cfg
 
 from ironic.openstack.common import context
-from ironic.openstack.common.gettextutils import _
+from ironic.openstack.common.gettextutils import _  # noqa
 from ironic.openstack.common import importutils
 from ironic.openstack.common import jsonutils
 from ironic.openstack.common import log as logging
@@ -35,7 +36,7 @@ notifier_opts = [
                default='INFO',
                help='Default notification level for outgoing notifications'),
     cfg.StrOpt('default_publisher_id',
-               default='$host',
+               default=None,
                help='Default publisher_id for outgoing notifications'),
 ]
 
@@ -56,7 +57,7 @@ class BadPriorityException(Exception):
 
 
 def notify_decorator(name, fn):
-    """ decorator for notify which is used from utils.monkey_patch()
+    """Decorator for notify which is used from utils.monkey_patch().
 
         :param name: name of the function
         :param function: - object of the function
@@ -74,7 +75,7 @@ def notify_decorator(name, fn):
 
         ctxt = context.get_context_from_function_and_args(fn, args, kwarg)
         notify(ctxt,
-               CONF.default_publisher_id,
+               CONF.default_publisher_id or socket.gethostname(),
                name,
                CONF.default_notification_level,
                body)
@@ -84,7 +85,10 @@ def notify_decorator(name, fn):
 
 def publisher_id(service, host=None):
     if not host:
-        host = CONF.host
+        try:
+            host = CONF.host
+        except AttributeError:
+            host = CONF.default_publisher_id or socket.gethostname()
     return "%s.%s" % (service, host)
 
 
@@ -153,27 +157,14 @@ def _get_drivers():
     if _drivers is None:
         _drivers = {}
         for notification_driver in CONF.notification_driver:
-            add_driver(notification_driver)
-
+            try:
+                driver = importutils.import_module(notification_driver)
+                _drivers[notification_driver] = driver
+            except ImportError:
+                LOG.exception(_("Failed to load notifier %s. "
+                                "These notifications will not be sent.") %
+                              notification_driver)
     return _drivers.values()
-
-
-def add_driver(notification_driver):
-    """Add a notification driver at runtime."""
-    # Make sure the driver list is initialized.
-    _get_drivers()
-    if isinstance(notification_driver, basestring):
-        # Load and add
-        try:
-            driver = importutils.import_module(notification_driver)
-            _drivers[notification_driver] = driver
-        except ImportError:
-            LOG.exception(_("Failed to load notifier %s. "
-                            "These notifications will not be sent.") %
-                          notification_driver)
-    else:
-        # Driver is already loaded; just add the object.
-        _drivers[notification_driver] = notification_driver
 
 
 def _reset_drivers():
