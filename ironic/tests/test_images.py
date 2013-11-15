@@ -16,10 +16,12 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import contextlib
 import fixtures
 
 from ironic.common import exception
 from ironic.common import images
+from ironic.openstack.common import excutils
 from ironic.tests import base
 
 
@@ -36,7 +38,15 @@ class IronicImagesTestCase(base.TestCase):
         def fake_unlink(path):
             self.executes.append(('rm', path))
 
-        def fake_rm_on_errror(path):
+        @contextlib.contextmanager
+        def fake_rm_on_error(path):
+            try:
+                yield
+            except Exception:
+                with excutils.save_and_reraise_exception():
+                    fake_del_if_exists(path)
+
+        def fake_del_if_exists(path):
             self.executes.append(('rm', '-f', path))
 
         def fake_qemu_img_info(path):
@@ -67,8 +77,11 @@ class IronicImagesTestCase(base.TestCase):
         self.useFixture(fixtures.MonkeyPatch(
                 'ironic.common.images.qemu_img_info', fake_qemu_img_info))
         self.useFixture(fixtures.MonkeyPatch(
+                'ironic.openstack.common.fileutils.remove_path_on_error',
+                fake_rm_on_error))
+        self.useFixture(fixtures.MonkeyPatch(
                 'ironic.openstack.common.fileutils.delete_if_exists',
-                fake_rm_on_errror))
+                fake_del_if_exists))
 
         context = 'opaque context'
         image_id = '4'
