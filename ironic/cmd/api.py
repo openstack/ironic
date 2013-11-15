@@ -38,8 +38,8 @@ def main():
     ironic_service.prepare_service(sys.argv)
 
     # Build and start the WSGI app
-    host = CONF.ironic_api_bind_ip
-    port = CONF.ironic_api_port
+    host = CONF.api.host_ip
+    port = CONF.api.port
     wsgi = simple_server.make_server(
             host, port,
             app.VersionSelectorApplication())
