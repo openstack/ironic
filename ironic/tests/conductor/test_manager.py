@@ -25,6 +25,7 @@ from oslo.config import cfg
 from ironic.common import driver_factory
 from ironic.common import exception
 from ironic.common import states
+from ironic.common import utils as ironic_utils
 from ironic.conductor import manager
 from ironic.conductor import task_manager
 from ironic.db import api as dbapi
@@ -77,6 +78,72 @@ class ManagerTestCase(base.DbTestCase):
         with mock.patch.object(self.dbapi, 'touch_conductor') as mock_touch:
             self.service._conductor_service_record_keepalive(self.context)
             mock_touch.assert_called_once_with('test-host')
+
+    def test__sync_power_state_no_sync(self):
+        self.service.start()
+        n = utils.get_test_node(driver='fake', power_state='fake-power')
+        self.dbapi.create_node(n)
+        with mock.patch.object(self.driver.power,
+                               'get_power_state') as get_power_mock:
+            get_power_mock.return_value = 'fake-power'
+            self.service._sync_power_states(self.context)
+            get_power_mock.assert_called_once_with(mock.ANY, mock.ANY)
+        node = self.dbapi.get_node(n['id'])
+        self.assertEqual(node['power_state'], 'fake-power')
+
+    def test__sync_power_state_do_sync(self):
+        self.service.start()
+        n = utils.get_test_node(driver='fake', power_state='fake-power')
+        self.dbapi.create_node(n)
+        with mock.patch.object(self.driver.power,
+                               'get_power_state') as get_power_mock:
+            get_power_mock.return_value = states.POWER_ON
+            self.service._sync_power_states(self.context)
+            get_power_mock.assert_called_once_with(mock.ANY, mock.ANY)
+        node = self.dbapi.get_node(n['id'])
+        self.assertEqual(node['power_state'], states.POWER_ON)
+
+    def test__sync_power_state_node_locked(self):
+        self.service.start()
+        n = utils.get_test_node(driver='fake', power_state='fake-power')
+        self.dbapi.create_node(n)
+        self.dbapi.reserve_nodes('fake-reserve', [n['id']])
+        with mock.patch.object(self.driver.power,
+                               'get_power_state') as get_power_mock:
+            self.service._sync_power_states(self.context)
+            self.assertFalse(get_power_mock.called)
+        node = self.dbapi.get_node(n['id'])
+        self.assertEqual('fake-power', node['power_state'])
+
+    def test__sync_power_state_multiple_nodes(self):
+        self.service.start()
+
+        # create three nodes
+        nodes = []
+        for i in range(0, 3):
+            n = utils.get_test_node(id=i, uuid=ironic_utils.generate_uuid(),
+                    driver='fake', power_state=states.POWER_OFF)
+            self.dbapi.create_node(n)
+            nodes.append(n['uuid'])
+
+        # lock the first node
+        self.dbapi.reserve_nodes('fake-reserve', [nodes[0]])
+
+        with mock.patch.object(self.driver.power,
+                               'get_power_state') as get_power_mock:
+            get_power_mock.return_value = states.POWER_ON
+            with mock.patch.object(self.dbapi,
+                                   'get_nodeinfo_list') as get_fnl_mock:
+                # delete the second node
+                self.dbapi.destroy_node(nodes[1])
+                get_fnl_mock.return_value = [[n] for n in nodes]
+                self.service._sync_power_states(self.context)
+            # check that get_power only called once, which updated third node
+            get_power_mock.assert_called_once_with(mock.ANY, mock.ANY)
+        n1 = self.dbapi.get_node(nodes[0])
+        n3 = self.dbapi.get_node(nodes[2])
+        self.assertEqual(n1['power_state'], states.POWER_OFF)
+        self.assertEqual(n3['power_state'], states.POWER_ON)
 
     def test_get_power_state(self):
         n = utils.get_test_node(driver='fake')

@@ -431,6 +431,10 @@
 # value)
 #heartbeat_timeout=60
 
+# Interval between syncing the node power state to the
+# database, in seconds. (integer value)
+#sync_power_state_interval=60
+
 
 [database]
 
