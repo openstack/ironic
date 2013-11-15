@@ -27,6 +27,8 @@ class APIBase(wtypes.Base):
                     if hasattr(self, k) and
                     getattr(self, k) != wsme.Unset)
 
+    # TODO(lucasagomes): Deprecated. Remove it after updating the chassis
+    #                    and nodes elements
     @classmethod
     def from_rpc_object(cls, m, fields=None):
         """Convert a RPC object to an API object."""
@@ -37,3 +39,16 @@ class APIBase(wtypes.Base):
                         for k in obj_dict.keys()
                         if fields and k not in fields))
         return cls(**obj_dict)
+
+    def unset_fields_except(self, except_list=None):
+        """Unset fields so they don't appear in the message body.
+
+        :param except_list: A list of fields that won't be touched.
+
+        """
+        if except_list is None:
+            except_list = []
+
+        for k in self.as_dict():
+            if k not in except_list:
+                setattr(self, k, wsme.Unset)

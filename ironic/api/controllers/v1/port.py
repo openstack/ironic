@@ -28,9 +28,9 @@ import wsmeext.pecan as wsme_pecan
 from ironic.api.controllers.v1 import base
 from ironic.api.controllers.v1 import collection
 from ironic.api.controllers.v1 import link
+from ironic.api.controllers.v1 import types
 from ironic.api.controllers.v1 import utils as api_utils
 from ironic.common import exception
-from ironic.common import utils
 from ironic import objects
 from ironic.openstack.common import excutils
 from ironic.openstack.common import log
@@ -45,14 +45,40 @@ class Port(base.APIBase):
     between the internal object model and the API representation of a port.
     """
 
-    # NOTE: translate 'id' publicly to 'uuid' internally
-    uuid = wtypes.text
+    _node_uuid = None
 
-    address = wtypes.text
+    def _get_node_uuid(self):
+        return self._node_uuid
+
+    def _set_node_uuid(self, value):
+        if value and self._node_uuid != value:
+            try:
+                node = objects.Node.get_by_uuid(pecan.request.context, value)
+                self._node_uuid = node.uuid
+                # NOTE(lucasagomes): Create the node_id attribute on-the-fly
+                #                    to satisfy the api -> rpc object
+                #                    conversion.
+                self.node_id = node.id
+            except exception.NodeNotFound as e:
+                # Change error code because 404 (NotFound) is inappropriate
+                # response for a POST request to create a Port
+                e.code = 400  # BadRequest
+                raise e
+        elif value == wtypes.Unset:
+            self._node_uuid = wtypes.Unset
+
+    uuid = types.uuid
+    "Unique UUID for this port"
+
+    address = wsme.wsattr(types.macaddress, mandatory=True)
+    "MAC Address for this port"
 
     extra = {wtypes.text: api_utils.ValidTypes(wtypes.text, six.integer_types)}
+    "This port's meta data"
 
-    node_id = api_utils.ValidTypes(wtypes.text, six.integer_types)
+    node_uuid = wsme.wsproperty(types.uuid, _get_node_uuid, _set_node_uuid,
+                                mandatory=True)
+    "The UUID of the node this port belongs to"
 
     links = [link.Link]
     "A list containing a self link and associated port links"
@@ -62,16 +88,19 @@ class Port(base.APIBase):
         for k in self.fields:
             setattr(self, k, kwargs.get(k))
 
+        # NOTE(lucasagomes): node_uuid is not part of objects.Port.fields
+        #                    because it's an API-only attribute
+        self.fields.append('node_uuid')
+        setattr(self, 'node_uuid', kwargs.get('node_id', None))
+
     @classmethod
     def convert_with_links(cls, rpc_port, expand=True):
-        fields = ['uuid', 'address'] if not expand else None
-        port = Port.from_rpc_object(rpc_port, fields)
+        port = Port(**rpc_port.as_dict())
+        if not expand:
+            port.unset_fields_except(['uuid', 'address'])
 
-        # translate id -> uuid
-        if port.node_id and isinstance(port.node_id, six.integer_types):
-            node_obj = objects.Node.get_by_uuid(pecan.request.context,
-                                                port.node_id)
-            port.node_id = node_obj.uuid
+        # never expose the node_id attribute
+        port.node_id = wtypes.Unset
 
         port.links = [link.Link.make_link('self', pecan.request.host_url,
                                           'ports', port.uuid),
@@ -93,10 +122,11 @@ class PortCollection(collection.Collection):
         self._type = 'ports'
 
     @classmethod
-    def convert_with_links(cls, ports, limit, url=None,
+    def convert_with_links(cls, rpc_ports, limit, url=None,
                            expand=False, **kwargs):
         collection = PortCollection()
-        collection.ports = [Port.convert_with_links(p, expand) for p in ports]
+        collection.ports = [Port.convert_with_links(p, expand)
+                            for p in rpc_ports]
         collection.next = collection.get_next(limit, url=url, **kwargs)
         return collection
 
@@ -111,8 +141,8 @@ class PortsController(rest.RestController):
     def __init__(self, from_nodes=False):
         self._from_nodes = from_nodes
 
-    def _get_ports(self, node_id, marker, limit, sort_key, sort_dir):
-        if self._from_nodes and not node_id:
+    def _get_ports(self, node_uuid, marker, limit, sort_key, sort_dir):
+        if self._from_nodes and not node_uuid:
             raise exception.InvalidParameterValue(_(
                   "Node id not specified."))
 
@@ -124,8 +154,8 @@ class PortsController(rest.RestController):
             marker_obj = objects.Port.get_by_uuid(pecan.request.context,
                                                   marker)
 
-        if node_id:
-            ports = pecan.request.dbapi.get_ports_by_node(node_id, limit,
+        if node_uuid:
+            ports = pecan.request.dbapi.get_ports_by_node(node_uuid, limit,
                                                           marker_obj,
                                                           sort_key=sort_key,
                                                           sort_dir=sort_dir)
@@ -135,27 +165,7 @@ class PortsController(rest.RestController):
                                                       sort_dir=sort_dir)
         return ports
 
-    def _convert_node_uuid_to_id(self, port_dict):
-        # NOTE(lucasagomes): translate uuid -> id, used internally to
-        #                    tune performance
-        try:
-            node_obj = objects.Node.get_by_uuid(pecan.request.context,
-                                                port_dict['node_id'])
-            port_dict['node_id'] = node_obj.id
-        except exception.NodeNotFound as e:
-            e.code = 400  # BadRequest
-            raise e
-
     def _check_address(self, port_dict):
-        if not utils.is_valid_mac(port_dict['address']):
-            if '-' in port_dict['address']:
-                msg = _("Does not support hyphens as separator: %s") \
-                        % port_dict['address']
-            else:
-                msg = _("Invalid MAC address format: %s") \
-                        % port_dict['address']
-            raise wsme.exc.ClientSideError(msg)
-
         try:
             if pecan.request.dbapi.get_port(port_dict['address']):
             # TODO(whaom) - create a custom SQLAlchemy type like
@@ -168,17 +178,17 @@ class PortsController(rest.RestController):
 
     @wsme_pecan.wsexpose(PortCollection, wtypes.text, wtypes.text, int,
                          wtypes.text, wtypes.text)
-    def get_all(self, node_id=None, marker=None, limit=None,
+    def get_all(self, node_uuid=None, marker=None, limit=None,
                 sort_key='id', sort_dir='asc'):
         """Retrieve a list of ports."""
-        ports = self._get_ports(node_id, marker, limit, sort_key, sort_dir)
+        ports = self._get_ports(node_uuid, marker, limit, sort_key, sort_dir)
         return PortCollection.convert_with_links(ports, limit,
                                                  sort_key=sort_key,
                                                  sort_dir=sort_dir)
 
     @wsme_pecan.wsexpose(PortCollection, wtypes.text, wtypes.text, int,
                          wtypes.text, wtypes.text)
-    def detail(self, node_id=None, marker=None, limit=None,
+    def detail(self, node_uuid=None, marker=None, limit=None,
                 sort_key='id', sort_dir='asc'):
         """Retrieve a list of ports."""
         # NOTE(lucasagomes): /detail should only work agaist collections
@@ -186,7 +196,7 @@ class PortsController(rest.RestController):
         if parent != "ports":
             raise exception.HTTPNotFound
 
-        ports = self._get_ports(node_id, marker, limit, sort_key, sort_dir)
+        ports = self._get_ports(node_uuid, marker, limit, sort_key, sort_dir)
         resource_url = '/'.join(['ports', 'detail'])
         return PortCollection.convert_with_links(ports, limit,
                                                  url=resource_url,
@@ -209,20 +219,8 @@ class PortsController(rest.RestController):
         if self._from_nodes:
             raise exception.OperationNotPermitted
 
-        port_dict = port.as_dict()
-
-        # Required fields
-        missing_attr = [attr for attr in ['address', 'node_id']
-                        if not port_dict[attr]]
-        if missing_attr:
-            msg = _("Missing %s attribute(s)")
-            raise wsme.exc.ClientSideError(msg % ', '.join(missing_attr))
-
-        self._check_address(port_dict)
-        self._convert_node_uuid_to_id(port_dict)
-
         try:
-            new_port = pecan.request.dbapi.create_port(port_dict)
+            new_port = pecan.request.dbapi.create_port(port.as_dict())
         except Exception as e:
             with excutils.save_and_reraise_exception():
                 LOG.exception(e)
@@ -253,10 +251,10 @@ class PortsController(rest.RestController):
             msg = _("Attribute(s): %s can not be removed")
             raise wsme.exc.ClientSideError(msg % ', '.join(missing_attr))
 
+        # FIXME(lucasagomes): This block should not exist, address should
+        #                     be unique and validated at the db level.
         if port_dict['address'] != patched_port['address']:
             self._check_address(patched_port)
-
-        self._convert_node_uuid_to_id(patched_port)
 
         defaults = objects.Port.get_defaults()
         for key in defaults:

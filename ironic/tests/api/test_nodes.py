@@ -496,7 +496,8 @@ class TestPost(base.FunctionalTest):
     def test_post_ports_subresource(self):
         ndict = dbutils.get_test_node()
         self.post_json('/nodes', ndict)
-        pdict = dbutils.get_test_port()
+        pdict = dbutils.get_test_port(node_id=None)
+        pdict['node_uuid'] = ndict['uuid']
         response = self.post_json('/nodes/ports', pdict,
                                   expect_errors=True)
         self.assertEqual(response.status_int, 403)
