@@ -17,6 +17,8 @@
 
 """Tests for manipulating Ports via the DB API"""
 
+import six
+
 from ironic.common import exception
 from ironic.db import api as dbapi
 from ironic.openstack.common import uuidutils
@@ -50,7 +52,7 @@ class DbPortTestCase(base.DbTestCase):
         for i in xrange(1, 6):
             n = utils.get_test_port(id=i, uuid=uuidutils.generate_uuid())
             self.dbapi.create_port(n)
-            uuids.append(unicode(n['uuid']))
+            uuids.append(six.text_type(n['uuid']))
         res = self.dbapi.get_port_list()
         res_uuids = [r.uuid for r in res]
         self.assertEqual(uuids.sort(), res_uuids.sort())

@@ -17,10 +17,11 @@
 
 """Tests for manipulating Nodes via the DB API"""
 
-from ironic.openstack.common import uuidutils
+import six
 
 from ironic.common import exception
 from ironic.db import api as dbapi
+from ironic.openstack.common import uuidutils
 from ironic.tests.db import base
 from ironic.tests.db import utils
 
@@ -50,10 +51,10 @@ class DbNodeTestCase(base.DbTestCase):
 
         for i in xrange(1, 5):
             uuid = uuidutils.generate_uuid()
-            uuids.append(unicode(uuid))
+            uuids.append(six.text_type(uuid))
             if i < 3:
                 instance_uuid = uuidutils.generate_uuid()
-                uuids_with_instance.append(unicode(uuid))
+                uuids_with_instance.append(six.text_type(uuid))
             else:
                 instance_uuid = None
 
@@ -114,7 +115,7 @@ class DbNodeTestCase(base.DbTestCase):
         for i in xrange(1, 6):
             n = utils.get_test_node(id=i, uuid=uuidutils.generate_uuid())
             self.dbapi.create_node(n)
-            uuids.append(unicode(n['uuid']))
+            uuids.append(six.text_type(n['uuid']))
         res = self.dbapi.get_node_list()
         res_uuids = [r.uuid for r in res]
         self.assertEqual(uuids.sort(), res_uuids.sort())

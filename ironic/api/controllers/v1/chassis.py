@@ -136,7 +136,8 @@ class ChassisController(rest.RestController):
                                                        sort_dir=sort_dir)
         return chassis
 
-    @wsme_pecan.wsexpose(ChassisCollection, unicode, int, unicode, unicode)
+    @wsme_pecan.wsexpose(ChassisCollection, wtypes.text,
+                         int, wtypes.text, wtypes.text)
     def get_all(self, marker=None, limit=None, sort_key='id', sort_dir='asc'):
         """Retrieve a list of chassis."""
         chassis = self._get_chassis(marker, limit, sort_key, sort_dir)
@@ -144,7 +145,8 @@ class ChassisController(rest.RestController):
                                                     sort_key=sort_key,
                                                     sort_dir=sort_dir)
 
-    @wsme_pecan.wsexpose(ChassisCollection, unicode, int, unicode, unicode)
+    @wsme_pecan.wsexpose(ChassisCollection, wtypes.text, int,
+                         wtypes.text, wtypes.text)
     def detail(self, marker=None, limit=None, sort_key='id', sort_dir='asc'):
         """Retrieve a list of chassis with detail."""
         # /detail should only work agaist collections
@@ -160,7 +162,7 @@ class ChassisController(rest.RestController):
                                                     sort_key=sort_key,
                                                     sort_dir=sort_dir)
 
-    @wsme_pecan.wsexpose(Chassis, unicode)
+    @wsme_pecan.wsexpose(Chassis, wtypes.text)
     def get_one(self, uuid):
         """Retrieve information about the given chassis."""
         rpc_chassis = objects.Chassis.get_by_uuid(pecan.request.context, uuid)
@@ -176,7 +178,7 @@ class ChassisController(rest.RestController):
                 LOG.exception(e)
         return Chassis.convert_with_links(new_chassis)
 
-    @wsme_pecan.wsexpose(Chassis, unicode, body=[unicode])
+    @wsme_pecan.wsexpose(Chassis, wtypes.text, body=[wtypes.text])
     def patch(self, uuid, patch):
         """Update an existing chassis."""
         chassis = objects.Chassis.get_by_uuid(pecan.request.context, uuid)
@@ -208,7 +210,7 @@ class ChassisController(rest.RestController):
         chassis.save()
         return Chassis.convert_with_links(chassis)
 
-    @wsme_pecan.wsexpose(None, unicode, status_code=204)
+    @wsme_pecan.wsexpose(None, wtypes.text, status_code=204)
     def delete(self, uuid):
         """Delete a chassis."""
         pecan.request.dbapi.destroy_chassis(uuid)

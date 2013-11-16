@@ -17,6 +17,8 @@
 
 """Tests for manipulating Chassis via the DB API"""
 
+import six
+
 from ironic.common import exception
 from ironic.db import api as dbapi
 from ironic.openstack.common import uuidutils
@@ -44,7 +46,7 @@ class DbChassisTestCase(base.DbTestCase):
         for i in xrange(1, 6):
             n = utils.get_test_chassis(id=i, uuid=uuidutils.generate_uuid())
             self.dbapi.create_chassis(n)
-            uuids.append(unicode(n['uuid']))
+            uuids.append(six.text_type(n['uuid']))
         res = self.dbapi.get_chassis_list()
         res_uuids = [r.uuid for r in res]
         self.assertEqual(uuids.sort(), res_uuids.sort())

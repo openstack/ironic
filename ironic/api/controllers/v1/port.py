@@ -166,8 +166,8 @@ class PortsController(rest.RestController):
         except exception.PortNotFound:
             pass
 
-    @wsme_pecan.wsexpose(PortCollection, unicode, unicode, int,
-                         unicode, unicode)
+    @wsme_pecan.wsexpose(PortCollection, wtypes.text, wtypes.text, int,
+                         wtypes.text, wtypes.text)
     def get_all(self, node_id=None, marker=None, limit=None,
                 sort_key='id', sort_dir='asc'):
         """Retrieve a list of ports."""
@@ -176,8 +176,8 @@ class PortsController(rest.RestController):
                                                  sort_key=sort_key,
                                                  sort_dir=sort_dir)
 
-    @wsme_pecan.wsexpose(PortCollection, unicode, unicode, int,
-                         unicode, unicode)
+    @wsme_pecan.wsexpose(PortCollection, wtypes.text, wtypes.text, int,
+                         wtypes.text, wtypes.text)
     def detail(self, node_id=None, marker=None, limit=None,
                 sort_key='id', sort_dir='asc'):
         """Retrieve a list of ports."""
@@ -194,7 +194,7 @@ class PortsController(rest.RestController):
                                                  sort_key=sort_key,
                                                  sort_dir=sort_dir)
 
-    @wsme_pecan.wsexpose(Port, unicode)
+    @wsme_pecan.wsexpose(Port, wtypes.text)
     def get_one(self, uuid):
         """Retrieve information about the given port."""
         if self._from_nodes:
@@ -228,7 +228,7 @@ class PortsController(rest.RestController):
                 LOG.exception(e)
         return Port.convert_with_links(new_port)
 
-    @wsme_pecan.wsexpose(Port, unicode, body=[unicode])
+    @wsme_pecan.wsexpose(Port, wtypes.text, body=[wtypes.text])
     def patch(self, uuid, patch):
         """Update an existing port."""
         if self._from_nodes:
@@ -276,7 +276,7 @@ class PortsController(rest.RestController):
         port.save()
         return Port.convert_with_links(port)
 
-    @wsme_pecan.wsexpose(None, unicode, status_code=204)
+    @wsme_pecan.wsexpose(None, wtypes.text, status_code=204)
     def delete(self, port_id):
         """Delete a port."""
         if self._from_nodes:

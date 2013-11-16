@@ -27,6 +27,7 @@ SHOULD include dedicated exception logging.
 import functools
 
 from oslo.config import cfg
+import six
 
 from ironic.common import safe_utils
 from ironic.openstack.common import excutils
@@ -157,7 +158,7 @@ class IronicException(Exception):
         if self.__class__.__name__.endswith('_Remote'):
             return self.args[0]
         else:
-            return unicode(self)
+            return six.text_type(self)
 
 
 class NotAuthorized(IronicException):
