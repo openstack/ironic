@@ -39,6 +39,7 @@ def validate_sort_dir(sort_dir):
     return sort_dir
 
 
+# TODO(lucasagomes): Deprecated. Remove it after updating chassis and nodes
 def validate_patch(patch):
     """Performs a basic validation on patch."""
 

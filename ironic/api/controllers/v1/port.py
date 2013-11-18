@@ -38,6 +38,13 @@ from ironic.openstack.common import log
 LOG = log.getLogger(__name__)
 
 
+class PortPatchType(types.JsonPatchType):
+
+    @staticmethod
+    def mandatory_attrs():
+        return ['/address', '/node_uuid']
+
+
 class Port(base.APIBase):
     """API representation of a port.
 
@@ -165,17 +172,6 @@ class PortsController(rest.RestController):
                                                       sort_dir=sort_dir)
         return ports
 
-    def _check_address(self, port_dict):
-        try:
-            if pecan.request.dbapi.get_port(port_dict['address']):
-            # TODO(whaom) - create a custom SQLAlchemy type like
-            # db.sqlalchemy.types.IPAddress in Nova for mac
-            # with 'macaddr' postgres type for postgres dialect
-                raise wsme.exc.ClientSideError(_("MAC address already "
-                                                 "exists."))
-        except exception.PortNotFound:
-            pass
-
     @wsme_pecan.wsexpose(PortCollection, wtypes.text, wtypes.text, int,
                          wtypes.text, wtypes.text)
     def get_all(self, node_uuid=None, marker=None, limit=None,
@@ -205,12 +201,12 @@ class PortsController(rest.RestController):
                                                  sort_dir=sort_dir)
 
     @wsme_pecan.wsexpose(Port, wtypes.text)
-    def get_one(self, uuid):
+    def get_one(self, port_uuid):
         """Retrieve information about the given port."""
         if self._from_nodes:
             raise exception.OperationNotPermitted
 
-        rpc_port = objects.Port.get_by_uuid(pecan.request.context, uuid)
+        rpc_port = objects.Port.get_by_uuid(pecan.request.context, port_uuid)
         return Port.convert_with_links(rpc_port)
 
     @wsme_pecan.wsexpose(Port, body=Port)
@@ -226,53 +222,28 @@ class PortsController(rest.RestController):
                 LOG.exception(e)
         return Port.convert_with_links(new_port)
 
-    @wsme_pecan.wsexpose(Port, wtypes.text, body=[wtypes.text])
-    def patch(self, uuid, patch):
+    @wsme.validate(wtypes.text, [PortPatchType])
+    @wsme_pecan.wsexpose(Port, wtypes.text, body=[PortPatchType])
+    def patch(self, port_uuid, patch):
         """Update an existing port."""
         if self._from_nodes:
             raise exception.OperationNotPermitted
 
-        port = objects.Port.get_by_uuid(pecan.request.context, uuid)
-        port_dict = port.as_dict()
-
-        api_utils.validate_patch(patch)
-
+        rpc_port = objects.Port.get_by_uuid(pecan.request.context, port_uuid)
         try:
-            patched_port = jsonpatch.apply_patch(port_dict,
-                                                 jsonpatch.JsonPatch(patch))
+            port = Port(**jsonpatch.apply_patch(rpc_port.as_dict(),
+                                                jsonpatch.JsonPatch(patch)))
         except jsonpatch.JsonPatchException as e:
             LOG.exception(e)
             raise wsme.exc.ClientSideError(_("Patching Error: %s") % e)
 
-        # Required fields
-        missing_attr = [attr for attr in ['address', 'node_id']
-                        if attr not in patched_port]
-        if missing_attr:
-            msg = _("Attribute(s): %s can not be removed")
-            raise wsme.exc.ClientSideError(msg % ', '.join(missing_attr))
+        # Update only the fields that have changed
+        for field in objects.Port.fields:
+            if rpc_port[field] != getattr(port, field):
+                rpc_port[field] = getattr(port, field)
 
-        # FIXME(lucasagomes): This block should not exist, address should
-        #                     be unique and validated at the db level.
-        if port_dict['address'] != patched_port['address']:
-            self._check_address(patched_port)
-
-        defaults = objects.Port.get_defaults()
-        for key in defaults:
-            # Internal values that shouldn't be part of the patch
-            if key in ['id', 'updated_at', 'created_at']:
-                continue
-
-            # In case of a remove operation, add the missing fields back
-            # to the document with their default value
-            if key in port_dict and key not in patched_port:
-                patched_port[key] = defaults[key]
-
-            # Update only the fields that have changed
-            if port[key] != patched_port[key]:
-                port[key] = patched_port[key]
-
-        port.save()
-        return Port.convert_with_links(port)
+        rpc_port.save()
+        return Port.convert_with_links(rpc_port)
 
     @wsme_pecan.wsexpose(None, wtypes.text, status_code=204)
     def delete(self, port_id):

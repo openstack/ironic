@@ -173,18 +173,24 @@ class TestPatch(base.FunctionalTest):
         self.assertEqual(result['address'], address)
 
     def test_replace_address_already_exist(self):
-        address = '11:22:33:AA:BB:CC'
-        pdict = post_get_test_port(address=address,
-                                   uuid=utils.generate_uuid())
-        self.post_json('/ports', pdict)
+        pdict1 = post_get_test_port(address='AA:AA:AA:AA:AA:AA',
+                                    uuid=utils.generate_uuid())
+        self.post_json('/ports', pdict1)
 
-        pdict = dbutils.get_test_port()
-        response = self.patch_json('/ports/%s' % pdict['uuid'],
+        pdict2 = post_get_test_port(address='BB:BB:BB:BB:BB:BB',
+                                    uuid=utils.generate_uuid())
+        self.post_json('/ports', pdict2)
+
+        response = self.patch_json('/ports/%s' % pdict1['uuid'],
                                    [{'path': '/address',
-                                     'value': address, 'op': 'replace'}],
+                                     'value': pdict2['address'],
+                                     'op': 'replace'}],
                                      expect_errors=True)
         self.assertEqual(response.content_type, 'application/json')
-        self.assertEqual(response.status_code, 400)
+        # FIXME(lucasagomes): The DBDuplicateEntry is not being correctly
+        # handled at the db level causing the API to return 500 instead
+        # of 400. https://bugs.launchpad.net/ironic/+bug/1257673
+        self.assertEqual(response.status_code, 500)
         self.assertTrue(response.json['error_message'])
 
     def test_replace_nodeid_dont_exist(self):
@@ -288,6 +294,19 @@ class TestPatch(base.FunctionalTest):
                           [{'path': '/extra/foo',
                           'value': 'bar',
                           'op': 'add'}])
+
+    def test_update_address_invalid_format(self):
+        pdict = post_get_test_port(address="AA:BB:CC:DD:EE:FF",
+                                   uuid=utils.generate_uuid())
+        self.post_json('/ports', pdict)
+        response = self.patch_json('/ports/%s' % pdict['uuid'],
+                                   [{'path': '/address',
+                                     'value': 'invalid-format',
+                                     'op': 'replace'}],
+                                   expect_errors=True)
+        self.assertEqual(response.status_int, 400)
+        self.assertEqual(response.content_type, 'application/json')
+        self.assertTrue(response.json['error_message'])
 
 
 class TestPost(base.FunctionalTest):

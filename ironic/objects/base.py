@@ -377,6 +377,7 @@ class IronicObject(object):
                 for k in self.fields
                 if hasattr(self, k))
 
+    # TODO(lucasagomes): Deprecated. Remove it after updating chassis and nodes
     @classmethod
     def get_defaults(cls):
         """Return a dict of its fields with their default value."""
