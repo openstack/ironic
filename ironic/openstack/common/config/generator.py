@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 # vim: tabstop=4 shiftwidth=4 softtabstop=4
 
 # Copyright 2012 SINA Corporation
@@ -16,9 +15,10 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 #
-# @author: Zhongyue Luo, SINA Corporation.
-#
+
 """Extracts OpenStack config option info from module(s)."""
+
+from __future__ import print_function
 
 import imp
 import os
@@ -28,6 +28,7 @@ import sys
 import textwrap
 
 from oslo.config import cfg
+import six
 
 from ironic.openstack.common import gettextutils
 from ironic.openstack.common import importutils
@@ -50,7 +51,6 @@ OPT_TYPES = {
     MULTISTROPT: 'multi valued',
 }
 
-OPTION_COUNT = 0
 OPTION_REGEX = re.compile(r"(%s)" % "|".join([STROPT, BOOLOPT, INTOPT,
                                               FLOATOPT, LISTOPT,
                                               MULTISTROPT]))
@@ -79,6 +79,13 @@ def generate(srcfiles):
     # The options list is a list of (module, options) tuples
     opts_by_group = {'DEFAULT': []}
 
+    for module_name in os.getenv(
+            "IRONIC_CONFIG_GENERATOR_EXTRA_MODULES", "").split(','):
+        module = _import_module(module_name)
+        if module:
+            for group, opts in _list_opts(module):
+                opts_by_group.setdefault(group, []).append((module_name, opts))
+
     for pkg_name in pkg_names:
         mods = mods_by_pkg.get(pkg_name)
         mods.sort()
@@ -88,7 +95,7 @@ def generate(srcfiles):
 
             mod_obj = _import_module(mod_str)
             if not mod_obj:
-                continue
+                raise RuntimeError("Unable to import module %s" % mod_str)
 
             for group, opts in _list_opts(mod_obj):
                 opts_by_group.setdefault(group, []).append((mod_str, opts))
@@ -96,8 +103,6 @@ def generate(srcfiles):
     print_group_opts('DEFAULT', opts_by_group.pop('DEFAULT', []))
     for group, opts in opts_by_group.items():
         print_group_opts(group, opts)
-
-    print "# Total option count: %d" % OPTION_COUNT
 
 
 def _import_module(mod_str):
@@ -161,18 +166,16 @@ def _list_opts(obj):
 
 
 def print_group_opts(group, opts_by_module):
-    print "[%s]" % group
-    print
-    global OPTION_COUNT
+    print("[%s]" % group)
+    print('')
     for mod, opts in opts_by_module:
-        OPTION_COUNT += len(opts)
-        print '#'
-        print '# Options defined in %s' % mod
-        print '#'
-        print
+        print('#')
+        print('# Options defined in %s' % mod)
+        print('#')
+        print('')
         for opt in opts:
             _print_opt(opt)
-        print
+        print('')
 
 
 def _get_my_ip():
@@ -186,25 +189,31 @@ def _get_my_ip():
         return None
 
 
-def _sanitize_default(s):
+def _sanitize_default(name, value):
     """Set up a reasonably sensible default for pybasedir, my_ip and host."""
-    if s.startswith(BASEDIR):
-        return s.replace(BASEDIR, '/usr/lib/python/site-packages')
-    elif BASEDIR in s:
-        return s.replace(BASEDIR, '')
-    elif s == _get_my_ip():
+    if value.startswith(sys.prefix):
+        # NOTE(jd) Don't use os.path.join, because it is likely to think the
+        # second part is an absolute pathname and therefore drop the first
+        # part.
+        value = os.path.normpath("/usr/" + value[len(sys.prefix):])
+    elif value.startswith(BASEDIR):
+        return value.replace(BASEDIR, '/usr/lib/python/site-packages')
+    elif BASEDIR in value:
+        return value.replace(BASEDIR, '')
+    elif value == _get_my_ip():
         return '10.0.0.1'
-    elif s == socket.gethostname():
+    elif value == socket.gethostname() and 'host' in name:
         return 'ironic'
-    elif s.strip() != s:
-        return '"%s"' % s
-    return s
+    elif value.strip() != value:
+        return '"%s"' % value
+    return value
 
 
 def _print_opt(opt):
     opt_name, opt_default, opt_help = opt.dest, opt.default, opt.help
     if not opt_help:
         sys.stderr.write('WARNING: "%s" is missing help string.\n' % opt_name)
+        opt_help = ""
     opt_type = None
     try:
         opt_type = OPTION_REGEX.search(str(type(opt))).group(0)
@@ -212,42 +221,48 @@ def _print_opt(opt):
         sys.stderr.write("%s\n" % str(err))
         sys.exit(1)
     opt_help += ' (' + OPT_TYPES[opt_type] + ')'
-    print '#', "\n# ".join(textwrap.wrap(opt_help, WORDWRAP_WIDTH))
+    print('#', "\n# ".join(textwrap.wrap(opt_help, WORDWRAP_WIDTH)))
+    if opt.deprecated_opts:
+        for deprecated_opt in opt.deprecated_opts:
+            if deprecated_opt.name:
+                deprecated_group = (deprecated_opt.group if
+                                    deprecated_opt.group else "DEFAULT")
+                print('# Deprecated group/name - [%s]/%s' %
+                      (deprecated_group,
+                       deprecated_opt.name))
     try:
         if opt_default is None:
-            print '#%s=<None>' % opt_name
+            print('#%s=<None>' % opt_name)
         elif opt_type == STROPT:
-            assert(isinstance(opt_default, basestring))
-            print '#%s=%s' % (opt_name, _sanitize_default(opt_default))
+            assert(isinstance(opt_default, six.string_types))
+            print('#%s=%s' % (opt_name, _sanitize_default(opt_name,
+                                                          opt_default)))
         elif opt_type == BOOLOPT:
             assert(isinstance(opt_default, bool))
-            print '#%s=%s' % (opt_name, str(opt_default).lower())
+            print('#%s=%s' % (opt_name, str(opt_default).lower()))
         elif opt_type == INTOPT:
             assert(isinstance(opt_default, int) and
                    not isinstance(opt_default, bool))
-            print '#%s=%s' % (opt_name, opt_default)
+            print('#%s=%s' % (opt_name, opt_default))
         elif opt_type == FLOATOPT:
             assert(isinstance(opt_default, float))
-            print '#%s=%s' % (opt_name, opt_default)
+            print('#%s=%s' % (opt_name, opt_default))
         elif opt_type == LISTOPT:
             assert(isinstance(opt_default, list))
-            print '#%s=%s' % (opt_name, ','.join(opt_default))
+            print('#%s=%s' % (opt_name, ','.join(opt_default)))
         elif opt_type == MULTISTROPT:
             assert(isinstance(opt_default, list))
             if not opt_default:
                 opt_default = ['']
             for default in opt_default:
-                print '#%s=%s' % (opt_name, default)
-        print
+                print('#%s=%s' % (opt_name, default))
+        print('')
     except Exception:
         sys.stderr.write('Error in option "%s"\n' % opt_name)
         sys.exit(1)
 
 
 def main():
-    if len(sys.argv) < 2:
-        print "usage: %s [srcfile]...\n" % sys.argv[0]
-        sys.exit(0)
     generate(sys.argv[1:])
 
 if __name__ == '__main__':
