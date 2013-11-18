@@ -190,10 +190,10 @@ class Connection(api.Connection):
                                sort_key, sort_dir)
 
     @objects.objectify(objects.Node)
-    def get_nodes_by_chassis(self, chassis, limit=None, marker=None,
+    def get_nodes_by_chassis(self, chassis_id, limit=None, marker=None,
                              sort_key=None, sort_dir=None):
         # get_chassis() to raise an exception if the chassis is not found
-        chassis_obj = self.get_chassis(chassis)
+        chassis_obj = self.get_chassis(chassis_id)
         query = model_query(models.Node)
         query = query.filter_by(chassis_id=chassis_obj.id)
         return _paginate_query(models.Node, limit, marker,
@@ -277,14 +277,14 @@ class Connection(api.Connection):
         return node
 
     @objects.objectify(objects.Node)
-    def get_node(self, node):
+    def get_node(self, node_id):
         query = model_query(models.Node)
-        query = add_identity_filter(query, node)
+        query = add_identity_filter(query, node_id)
 
         try:
             result = query.one()
         except NoResultFound:
-            raise exception.NodeNotFound(node=node)
+            raise exception.NodeNotFound(node=node_id)
 
         return result
 
@@ -303,28 +303,26 @@ class Connection(api.Connection):
 
         return result
 
-    def destroy_node(self, node):
+    def destroy_node(self, node_id):
         session = get_session()
         with session.begin():
             query = model_query(models.Node, session=session)
-            query = add_identity_filter(query, node)
+            query = add_identity_filter(query, node_id)
 
             try:
                 node_ref = query.one()
             except NoResultFound:
-                raise exception.NodeNotFound(node=node)
+                raise exception.NodeNotFound(node=node_id)
             if node_ref['reservation'] is not None:
-                raise exception.NodeLocked(node=node)
+                raise exception.NodeLocked(node=node_id)
             if node_ref['instance_uuid'] is not None:
-                raise exception.NodeAssociated(node=node,
+                raise exception.NodeAssociated(node=node_id,
                                             instance=node_ref['instance_uuid'])
 
             # Get node ID, if an UUID was supplied. The ID is
             # required for deleting all ports, attached to the node.
-            if uuidutils.is_uuid_like(node):
+            if uuidutils.is_uuid_like(node_id):
                 node_id = node_ref['id']
-            else:
-                node_id = node
 
             port_query = model_query(models.Port, session=session)
             port_query = add_port_filter_by_node(port_query, node_id)
@@ -333,27 +331,27 @@ class Connection(api.Connection):
             query.delete()
 
     @objects.objectify(objects.Node)
-    def update_node(self, node, values):
+    def update_node(self, node_id, values):
         session = get_session()
         with session.begin():
             query = model_query(models.Node, session=session)
-            query = add_identity_filter(query, node)
+            query = add_identity_filter(query, node_id)
 
             count = query.update(values, synchronize_session='fetch')
             if count != 1:
-                raise exception.NodeNotFound(node=node)
+                raise exception.NodeNotFound(node=node_id)
             ref = query.one()
         return ref
 
     @objects.objectify(objects.Port)
-    def get_port(self, port):
+    def get_port(self, port_id):
         query = model_query(models.Port)
-        query = add_port_filter(query, port)
+        query = add_port_filter(query, port_id)
 
         try:
             result = query.one()
         except NoResultFound:
-            raise exception.PortNotFound(port=port)
+            raise exception.PortNotFound(port=port_id)
 
         return result
 
@@ -368,10 +366,10 @@ class Connection(api.Connection):
                                sort_key, sort_dir)
 
     @objects.objectify(objects.Port)
-    def get_ports_by_node(self, node, limit=None, marker=None,
+    def get_ports_by_node(self, node_id, limit=None, marker=None,
                           sort_key=None, sort_dir=None):
         # get_node() to raise an exception if the node is not found
-        node_obj = self.get_node(node)
+        node_obj = self.get_node(node_id)
         query = model_query(models.Port)
         query = query.filter_by(node_id=node_obj.id)
         return _paginate_query(models.Port, limit, marker,
@@ -389,44 +387,44 @@ class Connection(api.Connection):
         return port
 
     @objects.objectify(objects.Port)
-    def update_port(self, port, values):
+    def update_port(self, port_id, values):
         session = get_session()
         with session.begin():
             query = model_query(models.Port, session=session)
-            query = add_port_filter(query, port)
+            query = add_port_filter(query, port_id)
             try:
                 ref = query.one()
             except NoResultFound:
-                raise exception.PortNotFound(port=port)
+                raise exception.PortNotFound(port=port_id)
             _check_port_change_forbidden(ref, session)
 
             ref.update(values)
 
         return ref
 
-    def destroy_port(self, port):
+    def destroy_port(self, port_id):
         session = get_session()
         with session.begin():
             query = model_query(models.Port, session=session)
-            query = add_port_filter(query, port)
+            query = add_port_filter(query, port_id)
 
             try:
                 ref = query.one()
             except NoResultFound:
-                raise exception.PortNotFound(port=port)
+                raise exception.PortNotFound(port=port_id)
             _check_port_change_forbidden(ref, session)
 
             query.delete()
 
     @objects.objectify(objects.Chassis)
-    def get_chassis(self, chassis):
+    def get_chassis(self, chassis_id):
         query = model_query(models.Chassis)
-        query = add_identity_filter(query, chassis)
+        query = add_identity_filter(query, chassis_id)
 
         try:
             return query.one()
         except NoResultFound:
-            raise exception.ChassisNotFound(chassis=chassis)
+            raise exception.ChassisNotFound(chassis=chassis_id)
 
     @objects.objectify(objects.Chassis)
     def get_chassis_list(self, limit=None, marker=None,
@@ -446,38 +444,38 @@ class Connection(api.Connection):
         return chassis
 
     @objects.objectify(objects.Chassis)
-    def update_chassis(self, chassis, values):
+    def update_chassis(self, chassis_id, values):
         session = get_session()
         with session.begin():
             query = model_query(models.Chassis, session=session)
-            query = add_identity_filter(query, chassis)
+            query = add_identity_filter(query, chassis_id)
 
             count = query.update(values)
             if count != 1:
-                raise exception.ChassisNotFound(chassis=chassis)
+                raise exception.ChassisNotFound(chassis=chassis_id)
             ref = query.one()
         return ref
 
-    def destroy_chassis(self, chassis):
+    def destroy_chassis(self, chassis_id):
         def chassis_not_empty(session):
             """Checks whether the chassis does not have nodes."""
 
             query = model_query(models.Node, session=session)
-            query = add_node_filter_by_chassis(query, chassis)
+            query = add_node_filter_by_chassis(query, chassis_id)
 
             return query.count() != 0
 
         session = get_session()
         with session.begin():
             if chassis_not_empty(session):
-                raise exception.ChassisNotEmpty(chassis=chassis)
+                raise exception.ChassisNotEmpty(chassis=chassis_id)
 
             query = model_query(models.Chassis, session=session)
-            query = add_identity_filter(query, chassis)
+            query = add_identity_filter(query, chassis_id)
 
             count = query.delete()
             if count != 1:
-                raise exception.ChassisNotFound(chassis=chassis)
+                raise exception.ChassisNotFound(chassis=chassis_id)
 
     @objects.objectify(objects.Conductor)
     def register_conductor(self, values):
