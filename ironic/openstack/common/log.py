@@ -29,26 +29,45 @@ It also allows setting of formatting information through conf.
 
 """
 
-import ConfigParser
-import cStringIO
 import inspect
 import itertools
 import logging
 import logging.config
 import logging.handlers
 import os
+import re
 import sys
 import traceback
 
 from oslo.config import cfg
+import six
+from six import moves
 
-from ironic.openstack.common.gettextutils import _
+from ironic.openstack.common.gettextutils import _  # noqa
 from ironic.openstack.common import importutils
 from ironic.openstack.common import jsonutils
 from ironic.openstack.common import local
 
 
 _DEFAULT_LOG_DATE_FORMAT = "%Y-%m-%d %H:%M:%S"
+
+_SANITIZE_KEYS = ['adminPass', 'admin_pass', 'password', 'admin_password']
+
+# NOTE(ldbragst): Let's build a list of regex objects using the list of
+# _SANITIZE_KEYS we already have. This way, we only have to add the new key
+# to the list of _SANITIZE_KEYS and we can generate regular expressions
+# for XML and JSON automatically.
+_SANITIZE_PATTERNS = []
+_FORMAT_PATTERNS = [r'(%(key)s\s*[=]\s*[\"\']).*?([\"\'])',
+                    r'(<%(key)s>).*?(</%(key)s>)',
+                    r'([\"\']%(key)s[\"\']\s*:\s*[\"\']).*?([\"\'])',
+                    r'([\'"].*?%(key)s[\'"]\s*:\s*u?[\'"]).*?([\'"])']
+
+for key in _SANITIZE_KEYS:
+    for pattern in _FORMAT_PATTERNS:
+        reg_ex = re.compile(pattern % {'key': key}, re.DOTALL)
+        _SANITIZE_PATTERNS.append(reg_ex)
+
 
 common_cli_opts = [
     cfg.BoolOpt('debug',
@@ -64,17 +83,20 @@ common_cli_opts = [
 ]
 
 logging_cli_opts = [
-    cfg.StrOpt('log-config',
+    cfg.StrOpt('log-config-append',
                metavar='PATH',
-               help='If this option is specified, the logging configuration '
-                    'file specified is used and overrides any other logging '
-                    'options specified. Please see the Python logging module '
+               deprecated_name='log-config',
+               help='The name of logging configuration file. It does not '
+                    'disable existing loggers, but just appends specified '
+                    'logging configuration to any other existing logging '
+                    'options. Please see the Python logging module '
                     'documentation for details on logging configuration '
                     'files.'),
     cfg.StrOpt('log-format',
                default=None,
                metavar='FORMAT',
-               help='A logging.Formatter log message format string which may '
+               help='DEPRECATED. '
+                    'A logging.Formatter log message format string which may '
                     'use any of the available logging.LogRecord attributes. '
                     'This option is deprecated.  Please use '
                     'logging_context_format_string and '
@@ -126,12 +148,14 @@ log_opts = [
                help='prefix each line of exception output with this format'),
     cfg.ListOpt('default_log_levels',
                 default=[
+                    'amqp=WARN',
                     'amqplib=WARN',
-                    'sqlalchemy=WARN',
                     'boto=WARN',
-                    'suds=INFO',
                     'keystone=INFO',
-                    'eventlet.wsgi.server=WARN'
+                    'qpid=WARN',
+                    'sqlalchemy=WARN',
+                    'suds=INFO',
+                    'iso8601=WARN',
                 ],
                 help='list of logger=LEVEL pairs'),
     cfg.BoolOpt('publish_errors',
@@ -207,6 +231,41 @@ def _get_log_file_path(binary=None):
         binary = binary or _get_binary_name()
         return '%s.log' % (os.path.join(logdir, binary),)
 
+    return None
+
+
+def mask_password(message, secret="***"):
+    """Replace password with 'secret' in message.
+
+    :param message: The string which includes security information.
+    :param secret: value with which to replace passwords, defaults to "***".
+    :returns: The unicode value of message with the password fields masked.
+
+    For example:
+    >>> mask_password("'adminPass' : 'aaaaa'")
+    "'adminPass' : '***'"
+    >>> mask_password("'admin_pass' : 'aaaaa'")
+    "'admin_pass' : '***'"
+    >>> mask_password('"password" : "aaaaa"')
+    '"password" : "***"'
+    >>> mask_password("'original_password' : 'aaaaa'")
+    "'original_password' : '***'"
+    >>> mask_password("u'original_password' :   u'aaaaa'")
+    "u'original_password' :   u'***'"
+    """
+    message = six.text_type(message)
+
+    # NOTE(ldbragst): Check to see if anything in message contains any key
+    # specified in _SANITIZE_KEYS, if not then just return the message since
+    # we don't have to mask any passwords.
+    if not any(key in message for key in _SANITIZE_KEYS):
+        return message
+
+    secret = r'\g<1>' + secret + r'\g<2>'
+    for pattern in _SANITIZE_PATTERNS:
+        message = re.sub(pattern, secret, message)
+    return message
+
 
 class BaseLoggerAdapter(logging.LoggerAdapter):
 
@@ -249,6 +308,13 @@ class ContextAdapter(BaseLoggerAdapter):
             self.warn(stdmsg, *args, **kwargs)
 
     def process(self, msg, kwargs):
+        # NOTE(mrodden): catch any Message/other object and
+        #                coerce to unicode before they can get
+        #                to the python logging and possibly
+        #                cause string encoding trouble
+        if not isinstance(msg, six.string_types):
+            msg = six.text_type(msg)
+
         if 'extra' not in kwargs:
             kwargs['extra'] = {}
         extra = kwargs['extra']
@@ -260,14 +326,14 @@ class ContextAdapter(BaseLoggerAdapter):
             extra.update(_dictify_context(context))
 
         instance = kwargs.pop('instance', None)
+        instance_uuid = (extra.get('instance_uuid', None) or
+                         kwargs.pop('instance_uuid', None))
         instance_extra = ''
         if instance:
             instance_extra = CONF.instance_format % instance
-        else:
-            instance_uuid = kwargs.pop('instance_uuid', None)
-            if instance_uuid:
-                instance_extra = (CONF.instance_uuid_format
-                                  % {'uuid': instance_uuid})
+        elif instance_uuid:
+            instance_extra = (CONF.instance_uuid_format
+                              % {'uuid': instance_uuid})
         extra.update({'instance': instance_extra})
 
         extra.update({"project": self.project})
@@ -323,10 +389,10 @@ class JSONFormatter(logging.Formatter):
 
 
 def _create_logging_excepthook(product_name):
-    def logging_excepthook(type, value, tb):
+    def logging_excepthook(exc_type, value, tb):
         extra = {}
         if CONF.verbose:
-            extra['exc_info'] = (type, value, tb)
+            extra['exc_info'] = (exc_type, value, tb)
         getLogger(product_name).critical(str(value), **extra)
     return logging_excepthook
 
@@ -344,17 +410,18 @@ class LogConfigError(Exception):
                                    err_msg=self.err_msg)
 
 
-def _load_log_config(log_config):
+def _load_log_config(log_config_append):
     try:
-        logging.config.fileConfig(log_config)
-    except ConfigParser.Error as exc:
-        raise LogConfigError(log_config, str(exc))
+        logging.config.fileConfig(log_config_append,
+                                  disable_existing_loggers=False)
+    except moves.configparser.Error as exc:
+        raise LogConfigError(log_config_append, str(exc))
 
 
 def setup(product_name):
     """Setup logging."""
-    if CONF.log_config:
-        _load_log_config(CONF.log_config)
+    if CONF.log_config_append:
+        _load_log_config(CONF.log_config_append)
     else:
         _setup_logging_from_conf()
     sys.excepthook = _create_logging_excepthook(product_name)
@@ -459,10 +526,11 @@ def getLogger(name='unknown', version='unknown'):
 
 
 def getLazyLogger(name='unknown', version='unknown'):
-    """
-    create a pass-through logger that does not create the real logger
+    """Returns lazy logger.
+
+    Creates a pass-through logger that does not create the real logger
     until it is really needed and delegates all calls to the real logger
-    once it is created
+    once it is created.
     """
     return LazyAdapter(name, version)
 
@@ -519,7 +587,7 @@ class ContextFormatter(logging.Formatter):
         if not record:
             return logging.Formatter.formatException(self, exc_info)
 
-        stringbuffer = cStringIO.StringIO()
+        stringbuffer = moves.StringIO()
         traceback.print_exception(exc_info[0], exc_info[1], exc_info[2],
                                   None, stringbuffer)
         lines = stringbuffer.getvalue().split('\n')
