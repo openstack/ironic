@@ -709,3 +709,22 @@ class TestMigrations(BaseMigrationTestCase, WalkVersionsMixin):
                           conductor.insert().execute,
                           {'hostname': None})
         # FIXME: add check for postgres
+
+    def _pre_upgrade_013(self, engine):
+        nodes = db_utils.get_table(engine, 'nodes')
+        col_names = set(column.name for column in nodes.c)
+
+        self.assertFalse('last_error' in col_names)
+        return col_names
+
+    def _check_013(self, engine, col_names_pre):
+        nodes = db_utils.get_table(engine, 'nodes')
+        col_names = set(column.name for column in nodes.c)
+
+        # didn't lose any columns in the migration
+        self.assertEqual(col_names_pre, col_names.intersection(col_names_pre))
+
+        # only added one 'last_error' column
+        self.assertEqual(len(col_names_pre), len(col_names) - 1)
+        self.assertTrue(isinstance(nodes.c['last_error'].type,
+                                   getattr(sqlalchemy.types, 'Text')))

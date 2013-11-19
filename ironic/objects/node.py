@@ -35,10 +35,22 @@ class Node(base.IronicObject):
 
             'properties': utils.dict_or_none,
             'reservation': utils.str_or_none,
+
+            # One of states.POWER_ON|POWER_OFF|NOSTATE|ERROR
             'power_state': utils.str_or_none,
+
+            # Set to one of states.POWER_ON|POWER_OFF when a power operation
+            # starts, and set to NOSTATE when the operation finishes
+            # (successfully or unsuccessfully).
             'target_power_state': utils.str_or_none,
+
             'provision_state': utils.str_or_none,
             'target_provision_state': utils.str_or_none,
+
+            # Any error from the most recent (last) asynchronous transaction
+            # that started but failed to finish.
+            'last_error': utils.str_or_none,
+
             'extra': utils.dict_or_none,
             }
 

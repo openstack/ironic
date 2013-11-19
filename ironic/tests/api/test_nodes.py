@@ -539,49 +539,37 @@ class TestPut(base.FunctionalTest):
         self.chassis = self.dbapi.create_chassis(cdict)
         ndict = dbutils.get_test_node()
         self.node = self.dbapi.create_node(ndict)
-        p = mock.patch.object(rpcapi.ConductorAPI, 'update_node')
-        self.mock_update_node = p.start()
-        self.addCleanup(p.stop)
         p = mock.patch.object(rpcapi.ConductorAPI, 'change_node_power_state')
         self.mock_cnps = p.start()
         self.addCleanup(p.stop)
 
     def test_power_state(self):
-        self.mock_update_node.return_value = self.node
-
         response = self.put_json('/nodes/%s/state/power' % self.node['uuid'],
                                  {'target': states.POWER_ON})
         self.assertEqual(response.content_type, 'application/json')
         self.assertEqual(response.status_code, 202)
 
-        self.mock_update_node.assert_called_once_with(mock.ANY, mock.ANY)
         self.mock_cnps.assert_called_once_with(mock.ANY, mock.ANY, mock.ANY)
 
     def test_power_state_in_progress(self):
-        self.mock_update_node.return_value = self.node
         manager = mock.MagicMock()
         with mock.patch.object(objects.Node, 'get_by_uuid') as mock_get_node:
             mock_get_node.return_value = self.node
             manager.attach_mock(mock_get_node, 'get_by_uuid')
-            manager.attach_mock(self.mock_update_node, 'update_node')
             manager.attach_mock(self.mock_cnps, 'change_node_power_state')
             expected = [mock.call.get_by_uuid(mock.ANY, self.node['uuid']),
-                        mock.call.update_node(mock.ANY, mock.ANY),
                         mock.call.change_node_power_state(mock.ANY, mock.ANY,
-                                                          mock.ANY),
-                        mock.call.get_by_uuid(mock.ANY, self.node['uuid'])]
+                                                          mock.ANY)]
 
             self.put_json('/nodes/%s/state/power' % self.node['uuid'],
                           {'target': states.POWER_ON})
-            self.assertRaises(webtest.app.AppError, self.put_json,
-                              '/nodes/%s/state/power' % self.node['uuid'],
-                              {'target': states.POWER_ON})
-
             self.assertEqual(manager.mock_calls, expected)
 
-        # check status code
         self.dbapi.update_node(self.node['uuid'],
                                {'target_power_state': 'fake'})
+        self.assertRaises(webtest.app.AppError, self.put_json,
+                          '/nodes/%s/state/power' % self.node['uuid'],
+                          {'target': states.POWER_ON})
         response = self.put_json('/nodes/%s/state/power' % self.node['uuid'],
                                  {'target': states.POWER_ON},
                                  expect_errors=True)
