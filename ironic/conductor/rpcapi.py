@@ -32,6 +32,16 @@ conductor_opts = [
 
 cfg.CONF.register_opts(conductor_opts, 'conductor')
 
+# NOTE(max_lobur): This is temporary override for Oslo setting defined in
+# ironic.openstack.common.rpc.__init__.py. Should stay while Oslo is not fixed.
+# *The setting shows what exceptions can be deserialized from RPC response.
+# *This won't be reflected in ironic.conf.sample
+# TODO(max_lobur): cover this by an integration test as
+# described in https://bugs.launchpad.net/ironic/+bug/1252824
+cfg.CONF.set_default('allowed_rpc_exception_modules',
+                     ['ironic.common.exception',
+                      'exceptions', ])
+
 MANAGER_TOPIC = 'ironic.conductor_manager'
 
 
