@@ -84,12 +84,12 @@ class DbPortTestCase(base.DbTestCase):
 
     def test_get_ports_by_node_that_does_not_exist(self):
         self.dbapi.create_port(self.p)
-        res = self.dbapi.get_ports_by_node(99)
-        self.assertEqual(0, len(res))
-
-        res = self.dbapi.get_ports_by_node(
-                '12345678-9999-0000-aaaa-123456789012')
-        self.assertEqual(0, len(res))
+        self.assertRaises(exception.NodeNotFound,
+                          self.dbapi.get_ports_by_node,
+                          99)
+        self.assertRaises(exception.NodeNotFound,
+                          self.dbapi.get_ports_by_node,
+                          '12345678-9999-0000-aaaa-123456789012')
 
     def test_destroy_port(self):
         self.dbapi.create_port(self.p)

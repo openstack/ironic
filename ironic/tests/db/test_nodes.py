@@ -85,11 +85,12 @@ class DbNodeTestCase(base.DbTestCase):
         self.assertEqual(n['id'], nodes[0]['id'])
 
     def test_get_nodes_by_chassis_that_does_not_exist(self):
-        nodes = self.dbapi.get_nodes_by_chassis(33)
-        self.assertEqual(0, len(nodes))
-
-        nodes = self.dbapi.get_nodes_by_chassis("1231231-123123-123123")
-        self.assertEqual(0, len(nodes))
+        self.assertRaises(exception.ChassisNotFound,
+                          self.dbapi.get_nodes_by_chassis,
+                          33)
+        self.assertRaises(exception.ChassisNotFound,
+                          self.dbapi.get_nodes_by_chassis,
+                          '12345678-9999-0000-aaaa-123456789012')
 
     def test_get_node_by_id(self):
         n = self._create_test_node()

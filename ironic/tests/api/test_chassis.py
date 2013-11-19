@@ -123,6 +123,12 @@ class TestListChassis(base.FunctionalTest):
         response = self.get_json('/chassis/nodes', expect_errors=True)
         self.assertEqual(response.status_int, 400)
 
+    def test_nodes_subresource_chassis_not_found(self):
+        non_existent_uuid = 'eeeeeeee-cccc-aaaa-bbbb-cccccccccccc'
+        response = self.get_json('/chassis/%s/nodes' % non_existent_uuid,
+                                 expect_errors=True)
+        self.assertEqual(response.status_int, 404)
+
 
 class TestPatch(base.FunctionalTest):
 

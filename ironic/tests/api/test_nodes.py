@@ -152,7 +152,7 @@ class TestListNodes(base.FunctionalTest):
         self.assertEqual(len(data['ports']), 1)
         self.assertIn('next', data.keys())
 
-    def test_nodes_subresource_noid(self):
+    def test_ports_subresource_noid(self):
         ndict = dbutils.get_test_node()
         self.dbapi.create_node(ndict)
         pdict = dbutils.get_test_port(node_id=ndict['id'])
@@ -160,6 +160,12 @@ class TestListNodes(base.FunctionalTest):
         # No node id specified
         response = self.get_json('/nodes/ports', expect_errors=True)
         self.assertEqual(response.status_int, 400)
+
+    def test_ports_subresource_node_not_found(self):
+        non_existent_uuid = 'eeeeeeee-cccc-aaaa-bbbb-cccccccccccc'
+        response = self.get_json('/nodes/%s/ports' % non_existent_uuid,
+                                 expect_errors=True)
+        self.assertEqual(response.status_int, 404)
 
     def test_state(self):
         ndict = dbutils.get_test_node()
