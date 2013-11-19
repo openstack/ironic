@@ -41,6 +41,7 @@ postgres=# create database openstack_citest with owner openstack_citest;
 """
 
 import ConfigParser
+import fixtures
 import os
 import subprocess
 import urlparse
@@ -161,6 +162,7 @@ class BaseMigrationTestCase(base.TestCase):
             self.engines[key] = sqlalchemy.create_engine(value)
 
         # We start each test case with a completely blank slate.
+        self.temp_dir = self.useFixture(fixtures.TempDir())
         self._reset_databases()
 
         # We also want to clean up, eg. in case of a failing test
@@ -174,27 +176,33 @@ class BaseMigrationTestCase(base.TestCase):
         self.assertEqual(0, proc.returncode,
                          "Failed to run: %s\n%s" % (cmd, output))
 
-    @lockutils.synchronized('pgadmin', 'tests-', external=True)
     def _reset_pg(self, conn_pieces):
-        (user, password, database, host) = get_db_connection_info(conn_pieces)
-        os.environ['PGPASSWORD'] = password
-        os.environ['PGUSER'] = user
-        # note(boris-42): We must create and drop database, we can't
-        # drop database which we have connected to, so for such
-        # operations there is a special database template1.
-        sqlcmd = ("psql -w -U %(user)s -h %(host)s -c"
-                  " '%(sql)s' -d template1")
+        @lockutils.synchronized('pgadmin', 'tests-', external=True,
+                                lock_path=self.temp_dir.path)
+        def _reset_pg_inner():
+            (user, password, database, host) = \
+                get_db_connection_info(conn_pieces)
 
-        sql = ("drop database if exists %s;") % database
-        droptable = sqlcmd % {'user': user, 'host': host, 'sql': sql}
-        self.execute_cmd(droptable)
+            os.environ['PGPASSWORD'] = password
+            os.environ['PGUSER'] = user
+            # note(boris-42): We must create and drop database, we can't
+            # drop database which we have connected to, so for such
+            # operations there is a special database template1.
+            sqlcmd = ("psql -w -U %(user)s -h %(host)s -c"
+                      " '%(sql)s' -d template1")
 
-        sql = ("create database %s;") % database
-        createtable = sqlcmd % {'user': user, 'host': host, 'sql': sql}
-        self.execute_cmd(createtable)
+            sql = ("drop database if exists %s;") % database
+            droptable = sqlcmd % {'user': user, 'host': host, 'sql': sql}
+            self.execute_cmd(droptable)
 
-        os.unsetenv('PGPASSWORD')
-        os.unsetenv('PGUSER')
+            sql = ("create database %s;") % database
+            createtable = sqlcmd % {'user': user, 'host': host, 'sql': sql}
+            self.execute_cmd(createtable)
+
+            os.unsetenv('PGPASSWORD')
+            os.unsetenv('PGUSER')
+
+        _reset_pg_inner()
 
     def _reset_databases(self):
         for key, engine in self.engines.items():
