@@ -23,6 +23,7 @@ from oslo.config import cfg
 
 from ironic.common import exception
 from ironic.common import utils
+from ironic.openstack.common.gettextutils import _
 from ironic.openstack.common import policy
 
 
