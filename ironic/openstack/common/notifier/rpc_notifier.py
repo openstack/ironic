@@ -16,7 +16,7 @@
 from oslo.config import cfg
 
 from ironic.openstack.common import context as req_context
-from ironic.openstack.common.gettextutils import _
+from ironic.openstack.common.gettextutils import _  # noqa
 from ironic.openstack.common import log as logging
 from ironic.openstack.common import rpc
 
@@ -24,14 +24,14 @@ LOG = logging.getLogger(__name__)
 
 notification_topic_opt = cfg.ListOpt(
     'notification_topics', default=['notifications', ],
-    help='AMQP topic used for openstack notifications')
+    help='AMQP topic used for OpenStack notifications')
 
 CONF = cfg.CONF
 CONF.register_opt(notification_topic_opt)
 
 
 def notify(context, message):
-    """Sends a notification via RPC"""
+    """Sends a notification via RPC."""
     if not context:
         context = req_context.get_admin_context()
     priority = message.get('priority',
@@ -43,4 +43,5 @@ def notify(context, message):
             rpc.notify(context, topic, message)
         except Exception:
             LOG.exception(_("Could not send notification to %(topic)s. "
-                            "Payload=%(message)s"), locals())
+                            "Payload=%(message)s"),
+                          {"topic": topic, "message": message})
