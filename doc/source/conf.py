@@ -8,7 +8,12 @@
 extensions = ['sphinx.ext.autodoc',
               'sphinx.ext.intersphinx',
               'sphinx.ext.viewcode',
+              'sphinxcontrib.httpdomain',
+              'sphinxcontrib.pecanwsme.rest',
+              'wsmeext.sphinxext',
               ]
+
+wsme_protocols = ['restjson', 'restxml']
 
 # autodoc generation is a bit aggressive and a nuisance when doing heavy
 # text edit cycles.
