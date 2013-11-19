@@ -31,6 +31,7 @@ import six
 
 from ironic.common import safe_utils
 from ironic.openstack.common import excutils
+from ironic.openstack.common.gettextutils import _
 from ironic.openstack.common import log as logging
 
 
