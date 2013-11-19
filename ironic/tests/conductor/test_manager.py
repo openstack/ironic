@@ -434,8 +434,10 @@ class ManagerTestCase(base.DbTestCase):
             self.assertRaises(exception.InstanceDeployFailure,
                               self.service.do_node_deploy,
                               self.context, node)
-            self.assertEqual(node['provision_state'],
-                             states.ERROR)
+            node.refresh(self.context)
+            self.assertEqual(node['provision_state'], states.ERROR)
+            self.assertEqual(node['target_provision_state'], states.NOSTATE)
+            self.assertIsNotNone(node['last_error'])
             deploy.assert_called_once()
 
     def test_do_node_deploy_ok(self):
@@ -448,10 +450,10 @@ class ManagerTestCase(base.DbTestCase):
                 as deploy:
             deploy.return_value = states.DEPLOYDONE
             self.service.do_node_deploy(self.context, node)
-            self.assertEqual(node['provision_state'],
-                             states.ACTIVE)
-            self.assertEqual(node['target_provision_state'],
-                             states.NOSTATE)
+            node.refresh(self.context)
+            self.assertEqual(node['provision_state'], states.ACTIVE)
+            self.assertEqual(node['target_provision_state'], states.NOSTATE)
+            self.assertIsNone(node['last_error'])
             deploy.assert_called_once()
 
     def test_do_node_deploy_partial_ok(self):
@@ -464,10 +466,10 @@ class ManagerTestCase(base.DbTestCase):
                 as deploy:
             deploy.return_value = states.DEPLOYING
             self.service.do_node_deploy(self.context, node)
-            self.assertEqual(node['provision_state'],
-                             states.DEPLOYING)
-            self.assertEqual(node['target_provision_state'],
-                             states.DEPLOYDONE)
+            node.refresh(self.context)
+            self.assertEqual(node['provision_state'], states.DEPLOYING)
+            self.assertEqual(node['target_provision_state'], states.DEPLOYDONE)
+            self.assertIsNone(node['last_error'])
             deploy.assert_called_once()
 
     def test_do_node_tear_down_invalid_state(self):
@@ -491,8 +493,10 @@ class ManagerTestCase(base.DbTestCase):
             self.assertRaises(exception.InstanceDeployFailure,
                               self.service.do_node_tear_down,
                               self.context, node)
-            self.assertEqual(node['provision_state'],
-                             states.ERROR)
+            node.refresh(self.context)
+            self.assertEqual(node['provision_state'], states.ERROR)
+            self.assertEqual(node['target_provision_state'], states.NOSTATE)
+            self.assertIsNotNone(node['last_error'])
             deploy.assert_called_once()
 
     def test_do_node_tear_down_ok(self):
@@ -505,10 +509,10 @@ class ManagerTestCase(base.DbTestCase):
                 as deploy:
             deploy.return_value = states.DELETED
             self.service.do_node_tear_down(self.context, node)
-            self.assertEqual(node['provision_state'],
-                             states.NOSTATE)
-            self.assertEqual(node['target_provision_state'],
-                             states.NOSTATE)
+            node.refresh(self.context)
+            self.assertEqual(node['provision_state'], states.NOSTATE)
+            self.assertEqual(node['target_provision_state'], states.NOSTATE)
+            self.assertIsNone(node['last_error'])
             deploy.assert_called_once()
 
     def test_do_node_tear_down_partial_ok(self):
@@ -521,8 +525,8 @@ class ManagerTestCase(base.DbTestCase):
                 as deploy:
             deploy.return_value = states.DELETING
             self.service.do_node_tear_down(self.context, node)
-            self.assertEqual(node['provision_state'],
-                             states.DELETING)
-            self.assertEqual(node['target_provision_state'],
-                             states.DELETED)
+            node.refresh(self.context)
+            self.assertEqual(node['provision_state'], states.DELETING)
+            self.assertEqual(node['target_provision_state'], states.DELETED)
+            self.assertIsNone(node['last_error'])
             deploy.assert_called_once()
