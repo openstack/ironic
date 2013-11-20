@@ -19,15 +19,12 @@
 
 """Test class for IPMITool driver module."""
 
-import mock
 import os
 import stat
 import tempfile
 
+import mock
 from oslo.config import cfg
-
-from ironic.openstack.common import context
-from ironic.openstack.common import jsonutils as json
 
 from ironic.common import exception
 from ironic.common import states
@@ -35,6 +32,8 @@ from ironic.common import utils
 from ironic.conductor import task_manager
 from ironic.db import api as db_api
 from ironic.drivers.modules import ipmitool as ipmi
+from ironic.openstack.common import context
+from ironic.openstack.common import jsonutils as json
 from ironic.tests import base
 from ironic.tests.conductor import utils as mgr_utils
 from ironic.tests.db import base as db_base
