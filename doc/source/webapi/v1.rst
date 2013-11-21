@@ -1,0 +1,103 @@
+============
+ V1 Web API
+============
+
+Chassis
+=======
+
+.. rest-controller:: ironic.api.controllers.v1.chassis:ChassisController
+   :webprefix: /v1/chassis
+
+.. autotype:: ironic.api.controllers.v1.chassis.ChassisCollection
+   :members:
+
+.. autotype:: ironic.api.controllers.v1.chassis.Chassis
+   :members:
+
+
+Drivers
+=======
+
+.. rest-controller:: ironic.api.controllers.v1.driver:DriversController
+   :webprefix: /v1/drivers
+
+.. autotype:: ironic.api.controllers.v1.driver.DriverList
+   :members:
+
+.. autotype:: ironic.api.controllers.v1.driver.Driver
+   :members:
+
+
+Links
+=====
+
+.. autotype:: ironic.api.controllers.v1.link:Link
+   :members:
+
+
+Nodes
+=====
+
+.. rest-controller:: ironic.api.controllers.v1.node:NodesController
+   :webprefix: /v1/nodes
+
+.. autotype:: ironic.api.controllers.v1.node.NodeCollection
+   :members:
+
+.. autotype:: ironic.api.controllers.v1.node.Node
+   :members:
+
+
+NodeStates
+==========
+
+.. rest-controller:: ironic.api.controllers.v1.node:NodeStatesController
+   :webprefix: /v1/nodes/<uuid>/state
+
+.. autotype:: ironic.api.controllers.v1.node.NodeStates
+   :members:
+
+
+NodePowerState
+==============
+
+The 'rest-controller' directive of this resource seems to be crashing
+sphinxcontrib-pecanwsme with "CRITICAL ironic [-] list index out of range"
+errors.
+
+.. autotype:: ironic.api.controllers.v1.node.NodePowerState
+   :members:
+
+
+NodeProvisionState
+==================
+
+The 'rest-controller' directive of this resource seems to be crashing
+sphinxcontrib-pecanwsme with "CRITICAL ironic [-] list index out of range"
+errors.
+
+.. autotype:: ironic.api.controllers.v1.node.NodeProvisionState
+   :members:
+
+
+NodeVendorPassthru
+==================
+
+The 'rest-controller' directive of this resource seems to be crashing
+sphinxcontrib-pecanwsme with "CRITICAL ironic [-] list index out of range"
+errors.
+
+
+Ports
+=====
+
+.. rest-controller:: ironic.api.controllers.v1.port:PortsController
+   :webprefix: /v1/ports
+
+.. autotype:: ironic.api.controllers.v1.port.PortCollection
+   :members:
+
+.. autotype:: ironic.api.controllers.v1.port.Port
+   :members:
+
+
