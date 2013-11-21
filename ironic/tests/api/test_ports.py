@@ -59,7 +59,8 @@ class TestListPorts(base.FunctionalTest):
         ports = []
         for id in xrange(5):
             ndict = dbutils.get_test_port(id=id,
-                                          uuid=utils.generate_uuid())
+                                          uuid=utils.generate_uuid(),
+                                          address='52:54:00:cf:2d:3%s' % id)
             port = self.dbapi.create_port(ndict)
             ports.append(port['uuid'])
         data = self.get_json('/ports')
@@ -83,7 +84,8 @@ class TestListPorts(base.FunctionalTest):
         ports = []
         for id in xrange(5):
             ndict = dbutils.get_test_port(id=id,
-                                          uuid=utils.generate_uuid())
+                                          uuid=utils.generate_uuid(),
+                                          address='52:54:00:cf:2d:3%s' % id)
             port = self.dbapi.create_port(ndict)
             ports.append(port['uuid'])
         data = self.get_json('/ports/?limit=3')

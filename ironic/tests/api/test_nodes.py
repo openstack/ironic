@@ -141,7 +141,8 @@ class TestListNodes(base.FunctionalTest):
 
         for id in xrange(2):
             pdict = dbutils.get_test_port(id=id, node_id=ndict['id'],
-                                          uuid=utils.generate_uuid())
+                                          uuid=utils.generate_uuid(),
+                                          address='52:54:00:cf:2d:3%s' % id)
             self.dbapi.create_port(pdict)
 
         data = self.get_json('/nodes/%s/ports' % ndict['uuid'])

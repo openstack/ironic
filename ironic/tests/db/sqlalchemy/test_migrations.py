@@ -736,3 +736,24 @@ class TestMigrations(BaseMigrationTestCase, WalkVersionsMixin):
         self.assertEqual(len(col_names_pre), len(col_names) - 1)
         self.assertTrue(isinstance(nodes.c['last_error'].type,
                                    getattr(sqlalchemy.types, 'Text')))
+
+    def _check_014(self, engine, data):
+        if engine.name == 'sqlite':
+            ports = db_utils.get_table(engine, 'ports')
+            ports_data = {'address': 'BB:BB:AA:AA:AA:AA', 'extra': 'extra1'}
+            ports.insert().values(ports_data).execute()
+            self.assertRaises(sqlalchemy.exc.IntegrityError,
+                              ports.insert().execute,
+                              {'address': 'BB:BB:AA:AA:AA:AA',
+                               'extra': 'extra2'})
+            # test recreate old UC
+            ports_data = {
+                          'address': 'BB:BB:AA:AA:AA:BB',
+                          'uuid': '1be26c0b-03f2-4d2e-ae87-c02d7f33c781',
+                          'extra': 'extra2'}
+            ports.insert().values(ports_data).execute()
+            self.assertRaises(sqlalchemy.exc.IntegrityError,
+                              ports.insert().execute,
+                              {'address': 'CC:BB:AA:AA:AA:CC',
+                               'uuid': '1be26c0b-03f2-4d2e-ae87-c02d7f33c781',
+                               'extra': 'extra3'})
