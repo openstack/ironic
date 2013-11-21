@@ -266,33 +266,44 @@ class ConductorManager(service.PeriodicService):
         LOG.debug(_("RPC do_node_deploy called for node %s.") % node_id)
 
         with task_manager.acquire(context, node_id, shared=False) as task:
-            task.driver.deploy.validate(node_obj)
-            if node_obj['provision_state'] is not states.NOSTATE:
+            node = task.node
+            if node['provision_state'] is not states.NOSTATE:
                 raise exception.InstanceDeployFailure(_(
                     "RPC do_node_deploy called for %(node)s, but provision "
                     "state is already %(state)s.") %
-                    {'node': node_id, 'state': node_obj['provision_state']})
-
-            # set target state to expose that work is in progress
-            node_obj['provision_state'] = states.DEPLOYING
-            node_obj['target_provision_state'] = states.DEPLOYDONE
-            node_obj.save(context)
+                    {'node': node_id, 'state': node['provision_state']})
 
             try:
-                new_state = task.driver.deploy.deploy(task, node_obj)
-            except Exception:
+                task.driver.deploy.validate(node)
+            except Exception as e:
                 with excutils.save_and_reraise_exception():
-                    node_obj['provision_state'] = states.ERROR
-                    node_obj.save(context)
-
-            # NOTE(deva): Some drivers may return states.DEPLOYING
-            #             eg. if they are waiting for a callback
-            if new_state == states.DEPLOYDONE:
-                node_obj['target_provision_state'] = states.NOSTATE
-                node_obj['provision_state'] = states.ACTIVE
+                    node['last_error'] = \
+                        _("Failed to validate deploy info. Error: %s") % e
             else:
-                node_obj['provision_state'] = new_state
-            node_obj.save(context)
+                # set target state to expose that work is in progress
+                node['provision_state'] = states.DEPLOYING
+                node['target_provision_state'] = states.DEPLOYDONE
+                node['last_error'] = None
+            finally:
+                node.save(context)
+
+            try:
+                new_state = task.driver.deploy.deploy(task, node)
+            except Exception as e:
+                with excutils.save_and_reraise_exception():
+                    node['last_error'] = _("Failed to deploy. Error: %s") % e
+                    node['provision_state'] = states.ERROR
+                    node['target_provision_state'] = states.NOSTATE
+            else:
+                # NOTE(deva): Some drivers may return states.DEPLOYING
+                #             eg. if they are waiting for a callback
+                if new_state == states.DEPLOYDONE:
+                    node['target_provision_state'] = states.NOSTATE
+                    node['provision_state'] = states.ACTIVE
+                else:
+                    node['provision_state'] = new_state
+            finally:
+                node.save(context)
 
     def do_node_tear_down(self, context, node_obj):
         """RPC method to tear down an existing node deployment.
@@ -306,36 +317,47 @@ class ConductorManager(service.PeriodicService):
         LOG.debug(_("RPC do_node_tear_down called for node %s.") % node_id)
 
         with task_manager.acquire(context, node_id, shared=False) as task:
-            task.driver.deploy.validate(node_obj)
-
-            if node_obj['provision_state'] not in [states.ACTIVE,
-                                                   states.DEPLOYFAIL,
-                                                   states.ERROR]:
+            node = task.node
+            if node['provision_state'] not in [states.ACTIVE,
+                                               states.DEPLOYFAIL,
+                                               states.ERROR]:
                 raise exception.InstanceDeployFailure(_(
                     "RCP do_node_tear_down "
                     "not allowed for node %(node)s in state %(state)s")
-                    % {'node': node_id, 'state': node_obj['provision_state']})
-
-            # set target state to expose that work is in progress
-            node_obj['provision_state'] = states.DELETING
-            node_obj['target_provision_state'] = states.DELETED
-            node_obj.save(context)
+                    % {'node': node_id, 'state': node['provision_state']})
 
             try:
-                new_state = task.driver.deploy.tear_down(task, node_obj)
-            except Exception:
+                task.driver.deploy.validate(node)
+            except Exception as e:
                 with excutils.save_and_reraise_exception():
-                    node_obj['provision_state'] = states.ERROR
-                    node_obj.save(context)
-
-            # NOTE(deva): Some drivers may return states.DELETING
-            #             eg. if they are waiting for a callback
-            if new_state == states.DELETED:
-                node_obj['target_provision_state'] = states.NOSTATE
-                node_obj['provision_state'] = states.NOSTATE
+                    node['last_error'] = \
+                        ("Failed to validate info for teardown. Error: %s") % e
             else:
-                node_obj['provision_state'] = new_state
-            node_obj.save(context)
+                # set target state to expose that work is in progress
+                node['provision_state'] = states.DELETING
+                node['target_provision_state'] = states.DELETED
+                node['last_error'] = None
+            finally:
+                node.save(context)
+
+            try:
+                new_state = task.driver.deploy.tear_down(task, node)
+            except Exception as e:
+                with excutils.save_and_reraise_exception():
+                    node['last_error'] = \
+                                      _("Failed to tear down. Error: %s") % e
+                    node['provision_state'] = states.ERROR
+                    node['target_provision_state'] = states.NOSTATE
+            else:
+                # NOTE(deva): Some drivers may return states.DELETING
+                #             eg. if they are waiting for a callback
+                if new_state == states.DELETED:
+                    node['target_provision_state'] = states.NOSTATE
+                    node['provision_state'] = states.NOSTATE
+                else:
+                    node['provision_state'] = new_state
+            finally:
+                node.save(context)
 
     @periodic_task.periodic_task
     def _conductor_service_record_keepalive(self, context):
