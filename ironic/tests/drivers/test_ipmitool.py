@@ -22,6 +22,7 @@
 import mock
 import os
 import stat
+import tempfile
 
 from oslo.config import cfg
 
@@ -70,17 +71,26 @@ class IPMIToolPrivateMethodTestCase(base.TestCase):
         self.assertIsNotNone(self.info.get('password'))
         self.assertIsNotNone(self.info.get('uuid'))
 
-        # make sure error is raised when info, eg. username, is missing
         info = dict(INFO_DICT)
-        del info['ipmi_username']
 
+        # ipmi_username / ipmi_password are not mandatory
+        del info['ipmi_username']
+        node = db_utils.get_test_node(driver_info=info)
+        ipmi._parse_driver_info(node)
+        del info['ipmi_password']
+        node = db_utils.get_test_node(driver_info=info)
+        ipmi._parse_driver_info(node)
+
+        # make sure error is raised when ipmi_address is missing
+        del info['ipmi_address']
         node = db_utils.get_test_node(driver_info=info)
         self.assertRaises(exception.InvalidParameterValue,
                           ipmi._parse_driver_info,
                           node)
 
     def test__exec_ipmitool(self):
-        pw_file = '/tmp/password_file'
+        pw_file_handle = tempfile.NamedTemporaryFile()
+        pw_file = pw_file_handle.name
         file_handle = open(pw_file, "w")
         args = [
             'ipmitool',
@@ -101,6 +111,53 @@ class IPMIToolPrivateMethodTestCase(base.TestCase):
                 ipmi._exec_ipmitool(self.info, 'A B C')
 
                 mock_pwf.assert_called_once_with(self.info['password'])
+                mock_exec.assert_called_once_with(*args, attempts=3)
+
+    def test__exec_ipmitool_without_password(self):
+        self.info['password'] = None
+        pw_file_handle = tempfile.NamedTemporaryFile()
+        pw_file = pw_file_handle.name
+        file_handle = open(pw_file, "w")
+        args = [
+            'ipmitool',
+            '-I', 'lanplus',
+            '-H', self.info['address'],
+            '-U', self.info['username'],
+            '-f', file_handle,
+            'A', 'B', 'C',
+            ]
+
+        with mock.patch.object(ipmi, '_make_password_file',
+                               autospec=True) as mock_pwf:
+            mock_pwf.return_value = file_handle
+            with mock.patch.object(utils, 'execute',
+                                   autospec=True) as mock_exec:
+                mock_exec.return_value = (None, None)
+                ipmi._exec_ipmitool(self.info, 'A B C')
+                self.assertTrue(mock_pwf.called)
+                mock_exec.assert_called_once_with(*args, attempts=3)
+
+    def test__exec_ipmitool_without_username(self):
+        self.info['username'] = None
+        pw_file_handle = tempfile.NamedTemporaryFile()
+        pw_file = pw_file_handle.name
+        file_handle = open(pw_file, "w")
+        args = [
+            'ipmitool',
+            '-I', 'lanplus',
+            '-H', self.info['address'],
+            '-f', file_handle,
+            'A', 'B', 'C',
+            ]
+
+        with mock.patch.object(ipmi, '_make_password_file',
+                               autospec=True) as mock_pwf:
+            mock_pwf.return_value = file_handle
+            with mock.patch.object(utils, 'execute',
+                                   autospec=True) as mock_exec:
+                mock_exec.return_value = (None, None)
+                ipmi._exec_ipmitool(self.info, 'A B C')
+                self.assertTrue(mock_pwf.called)
                 mock_exec.assert_called_once_with(*args, attempts=3)
 
     def test__power_status_on(self):

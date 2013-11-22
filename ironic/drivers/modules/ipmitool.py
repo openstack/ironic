@@ -66,9 +66,9 @@ def _parse_driver_info(node):
     password = info.get('ipmi_password', None)
     port = info.get('ipmi_terminal_port', None)
 
-    if not address or not username or not password:
+    if not address:
         raise exception.InvalidParameterValue(_(
-            "IPMI credentials not supplied to IPMI driver."))
+            "IPMI address not supplied to IPMI driver."))
 
     return {
             'address': address,
@@ -85,15 +85,22 @@ def _exec_ipmitool(driver_info, command):
             'lanplus',
             '-H',
             driver_info['address'],
-            '-U',
-            driver_info['username'],
-            '-f']
-    with _make_password_file(driver_info['password']) as pw_file:
+            ]
+
+    if driver_info['username']:
+        args.append('-U')
+        args.append(driver_info['username'])
+
+    # 'ipmitool' command will prompt password if there is no '-f' option,
+    # we set it to '\0' to write a password file to support empty password
+
+    with _make_password_file(driver_info['password'] or '\0') as pw_file:
+        args.append('-f')
         args.append(pw_file)
         args.extend(command.split(" "))
         out, err = utils.execute(*args, attempts=3)
         LOG.debug(_("ipmitool stdout: '%(out)s', stderr: '%(err)s'"),
-                  locals())
+                  {'out': out, 'err': err})
         return out, err
 
 
