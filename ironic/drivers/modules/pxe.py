@@ -31,7 +31,7 @@ from ironic.common import images
 from ironic.common import keystone
 from ironic.common import states
 from ironic.common import utils
-
+from ironic.conductor import task_manager
 from ironic.drivers import base
 from ironic.drivers.modules import deploy_utils
 from ironic.openstack.common import context
@@ -444,6 +444,7 @@ class PXEDeploy(base.DeployInterface):
         """
         _parse_driver_info(node)
 
+    @task_manager.require_exclusive_lock
     def deploy(self, task, node):
         """Perform start deployment a node.
 
@@ -462,6 +463,7 @@ class PXEDeploy(base.DeployInterface):
 
         return states.DEPLOYING
 
+    @task_manager.require_exclusive_lock
     def tear_down(self, task, node):
         """Tear down a previous deployment.
 
@@ -555,7 +557,7 @@ class VendorPassthru(base.VendorInterface):
 
     def _continue_deploy(self, task, node, **kwargs):
         params = self._get_deploy_info(node, **kwargs)
-        ctx = context.get_admin_context()
+        ctx = task.context
         node_id = node['uuid']
 
         err_msg = kwargs.get('error')
@@ -592,4 +594,6 @@ class VendorPassthru(base.VendorInterface):
                         kwargs.get('persistent'))
 
         elif method == 'pass_deploy_info':
-            self._continue_deploy(task, node, **kwargs)
+            ctx = context.get_admin_context()
+            with task_manager.acquire(ctx, node['uuid'], shared=False) as cdt:
+                self._continue_deploy(cdt, node, **kwargs)
