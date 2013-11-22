@@ -116,10 +116,10 @@ class Connection(object):
         """
 
     @abc.abstractmethod
-    def get_node(self, node):
+    def get_node(self, node_id):
         """Return a node.
 
-        :param node: The id or uuid of a node.
+        :param node_id: The id or uuid of a node.
         :returns: A node.
         """
 
@@ -132,11 +132,11 @@ class Connection(object):
         """
 
     @abc.abstractmethod
-    def get_nodes_by_chassis(self, chassis, limit=None, marker=None,
+    def get_nodes_by_chassis(self, chassis_id, limit=None, marker=None,
                              sort_key=None, sort_dir=None):
         """List all the nodes for a given chassis.
 
-        :param chassis: The id or uuid of a chassis.
+        :param chassis_id: The id or uuid of a chassis.
         :param limit: Maximum number of nodes to return.
         :param marker: the last item of the previous page; we returns the next
                        results after this value.
@@ -147,17 +147,17 @@ class Connection(object):
         """
 
     @abc.abstractmethod
-    def destroy_node(self, node):
+    def destroy_node(self, node_id):
         """Destroy a node and all associated interfaces.
 
-        :param node: The id or uuid of a node.
+        :param node_id: The id or uuid of a node.
         """
 
     @abc.abstractmethod
-    def update_node(self, node, values):
+    def update_node(self, node_id, values):
         """Update properties of a node.
 
-        :param node: The id or uuid of a node.
+        :param node_id: The id or uuid of a node.
         :param values: Dict of values to update.
                        May be a partial list, eg. when setting the
                        properties for a driver. For example:
@@ -173,10 +173,10 @@ class Connection(object):
         """
 
     @abc.abstractmethod
-    def get_port(self, port):
+    def get_port(self, port_id):
         """Return a network port representation.
 
-        :param port: The id or MAC of a port.
+        :param port_id: The id or MAC of a port.
         :returns: A port.
         """
 
@@ -202,11 +202,11 @@ class Connection(object):
         """
 
     @abc.abstractmethod
-    def get_ports_by_node(self, node, limit=None, marker=None,
+    def get_ports_by_node(self, node_id, limit=None, marker=None,
                           sort_key=None, sort_dir=None):
         """List all the ports for a given node.
 
-        :param node: The id or uuid of a node.
+        :param node_id: The id or uuid of a node.
         :param limit: Maximum number of ports to return.
         :param marker: the last item of the previous page; we return the next
                        result set.
@@ -224,19 +224,19 @@ class Connection(object):
         """
 
     @abc.abstractmethod
-    def update_port(self, port, values):
+    def update_port(self, port_id, values):
         """Update properties of an port.
 
-        :param port: The id or MAC of a port.
+        :param port_id: The id or MAC of a port.
         :param values: Dict of values to update.
         :returns: A port.
         """
 
     @abc.abstractmethod
-    def destroy_port(self, port):
+    def destroy_port(self, port_id):
         """Destroy an port.
 
-        :param port: The id or MAC of a port.
+        :param port_id: The id or MAC of a port.
         """
 
     @abc.abstractmethod
@@ -247,10 +247,10 @@ class Connection(object):
         """
 
     @abc.abstractmethod
-    def get_chassis(self, chassis):
+    def get_chassis(self, chassis_id):
         """Return a chassis representation.
 
-        :param chassis: The id or the UUID of a chassis.
+        :param chassis_id: The id or the UUID of a chassis.
         :returns: A chassis.
         """
 
@@ -268,19 +268,19 @@ class Connection(object):
         """
 
     @abc.abstractmethod
-    def update_chassis(self, chassis, values):
+    def update_chassis(self, chassis_id, values):
         """Update properties of an chassis.
 
-        :param chassis: The id or the uuid of a chassis.
+        :param chassis_id: The id or the uuid of a chassis.
         :param values: Dict of values to update.
         :returns: A chassis.
         """
 
     @abc.abstractmethod
-    def destroy_chassis(self, chassis):
+    def destroy_chassis(self, chassis_id):
         """Destroy a chassis.
 
-        :param chassis: The id or the uuid of a chassis.
+        :param chassis_id: The id or the uuid of a chassis.
         """
 
     @abc.abstractmethod
