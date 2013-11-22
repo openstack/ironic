@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version:  Ironic\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2013-11-21 06:00+0000\n"
+"POT-Creation-Date: 2013-11-22 06:00+0000\n"
 "PO-Revision-Date: 2013-11-12 16:15+0000\n"
 "Last-Translator: openstackjenkins <jenkins@openstack.org>\n"
 "Language-Team: Romanian "
@@ -420,6 +420,11 @@ msgstr ""
 msgid "Unable to communicate with the server."
 msgstr ""
 
+#: ironic/common/exception.py:416
+#, python-format
+msgid "Could not find config at %(path)s"
+msgstr ""
+
 #: ironic/common/images.py:112
 msgid "Snapshot list encountered but no header found!"
 msgstr ""
@@ -597,14 +602,29 @@ msgid ""
 "%(state)s."
 msgstr ""
 
-#: ironic/conductor/manager.py:306
+#: ironic/conductor/manager.py:281
+#, python-format
+msgid "Failed to validate deploy info. Error: %s"
+msgstr ""
+
+#: ironic/conductor/manager.py:294
+#, python-format
+msgid "Failed to deploy. Error: %s"
+msgstr ""
+
+#: ironic/conductor/manager.py:317
 #, python-format
 msgid "RPC do_node_tear_down called for node %s."
 msgstr ""
 
-#: ironic/conductor/manager.py:314
+#: ironic/conductor/manager.py:324
 #, python-format
 msgid "RCP do_node_tear_down not allowed for node %(node)s in state %(state)s"
+msgstr ""
+
+#: ironic/conductor/manager.py:348
+#, python-format
+msgid "Failed to tear down. Error: %s"
 msgstr ""
 
 #: ironic/conductor/resource_manager.py:81
@@ -807,41 +827,41 @@ msgstr ""
 msgid "Fetching image %(ami)s for instance %(name)s"
 msgstr ""
 
-#: ironic/drivers/modules/pxe.py:520
+#: ironic/drivers/modules/pxe.py:522
 msgid "Deploy key is not match"
 msgstr ""
 
-#: ironic/drivers/modules/pxe.py:536
+#: ironic/drivers/modules/pxe.py:538
 #, python-format
 msgid "Parameters %s were not passed to ironic for deploy."
 msgstr ""
 
-#: ironic/drivers/modules/pxe.py:550
+#: ironic/drivers/modules/pxe.py:552
 #, python-format
 msgid "Unsupported method (%s) passed to PXE driver."
 msgstr ""
 
-#: ironic/drivers/modules/pxe.py:563
+#: ironic/drivers/modules/pxe.py:565
 #, python-format
 msgid "Node %(node_id)s deploy error message: %(error)s"
 msgstr ""
 
-#: ironic/drivers/modules/pxe.py:566
+#: ironic/drivers/modules/pxe.py:568
 #, python-format
 msgid "start deployment for node %(node_id)s, params %(params)s"
 msgstr ""
 
-#: ironic/drivers/modules/pxe.py:575
+#: ironic/drivers/modules/pxe.py:577
 #, python-format
 msgid "deployment to node %s failed"
 msgstr ""
 
-#: ironic/drivers/modules/pxe.py:578
+#: ironic/drivers/modules/pxe.py:580
 #, python-format
 msgid "Deploy error: \"%(error)s\" for node %(node_id)s"
 msgstr ""
 
-#: ironic/drivers/modules/pxe.py:582
+#: ironic/drivers/modules/pxe.py:584
 #, python-format
 msgid "deployment to node %s done"
 msgstr ""
