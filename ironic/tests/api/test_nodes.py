@@ -17,7 +17,7 @@ Tests for the API /nodes/ methods.
 """
 
 import mock
-from testtools import matchers
+from testtools.matchers import HasLength
 import webtest.app
 
 from ironic.common import exception
@@ -207,7 +207,7 @@ class TestListNodes(base.FunctionalTest):
 
         data = self.get_json('/nodes?instance_uuid=%s' % instance_uuid)
 
-        self.assertThat(data['nodes'], matchers.HasLength(1))
+        self.assertThat(data['nodes'], HasLength(1))
         self.assertEqual(node['instance_uuid'],
                          data['nodes'][0]["instance_uuid"])
 
@@ -219,7 +219,7 @@ class TestListNodes(base.FunctionalTest):
 
         data = self.get_json('/nodes?instance_uuid=%s' % wrong_uuid)
 
-        self.assertThat(data['nodes'], matchers.HasLength(0))
+        self.assertThat(data['nodes'], HasLength(0))
 
     def test_node_by_instance_uuid_invalid_uuid(self):
         response = self.get_json('/nodes?instance_uuid=fake',
@@ -264,13 +264,13 @@ class TestListNodes(base.FunctionalTest):
 
         data = self.get_json('/nodes?associated=False&limit=2')
 
-        self.assertThat(data['nodes'], matchers.HasLength(2))
+        self.assertThat(data['nodes'], HasLength(2))
         self.assertTrue(data['nodes'][0]['uuid'] in unassociated_nodes)
 
     def test_next_link_with_association(self):
         self._create_association_test_nodes()
         data = self.get_json('/nodes/?limit=3&associated=True')
-        self.assertThat(data['nodes'], matchers.HasLength(3))
+        self.assertThat(data['nodes'], HasLength(3))
         self.assertIn('associated=true', data['next'])
 
     def test_detail_with_association_filter(self):
@@ -283,7 +283,7 @@ class TestListNodes(base.FunctionalTest):
     def test_next_link_with_association_with_detail(self):
         self._create_association_test_nodes()
         data = self.get_json('/nodes/detail?limit=3&associated=true')
-        self.assertThat(data['nodes'], matchers.HasLength(3))
+        self.assertThat(data['nodes'], HasLength(3))
         self.assertIn('driver', data['nodes'][0])
         self.assertIn('associated=true', data['next'])
 
