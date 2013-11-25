@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version:  Ironic\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2013-11-22 06:00+0000\n"
+"POT-Creation-Date: 2013-11-25 06:00+0000\n"
 "PO-Revision-Date: 2013-11-12 16:15+0000\n"
 "Last-Translator: openstackjenkins <jenkins@openstack.org>\n"
 "Language-Team: Hungarian "
@@ -763,7 +763,7 @@ msgid ""
 msgstr ""
 
 #: ironic/drivers/modules/ipminative.py:281
-#: ironic/drivers/modules/ipmitool.py:231
+#: ironic/drivers/modules/ipmitool.py:238
 #, python-format
 msgid "Invalid boot device %s specified."
 msgstr ""
@@ -776,25 +776,25 @@ msgid ""
 msgstr ""
 
 #: ironic/drivers/modules/ipmitool.py:70
-msgid "IPMI credentials not supplied to IPMI driver."
+msgid "IPMI address not supplied to IPMI driver."
 msgstr ""
 
-#: ironic/drivers/modules/ipmitool.py:95
+#: ironic/drivers/modules/ipmitool.py:102
 #, python-format
 msgid "ipmitool stdout: '%(out)s', stderr: '%(err)s'"
 msgstr ""
 
-#: ironic/drivers/modules/ipmitool.py:124
+#: ironic/drivers/modules/ipmitool.py:131
 #, python-format
 msgid "IPMI power on failed for node %s."
 msgstr ""
 
-#: ironic/drivers/modules/ipmitool.py:157
+#: ironic/drivers/modules/ipmitool.py:164
 #, python-format
 msgid "IPMI power off failed for node %s."
 msgstr ""
 
-#: ironic/drivers/modules/ipmitool.py:201 ironic/drivers/modules/ssh.py:335
+#: ironic/drivers/modules/ipmitool.py:208 ironic/drivers/modules/ssh.py:335
 #, python-format
 msgid "set_power_state called with invalid power state %s."
 msgstr ""
@@ -1696,5 +1696,8 @@ msgstr ""
 #~ msgstr ""
 
 #~ msgid ""
+#~ msgstr ""
+
+#~ msgid "IPMI credentials not supplied to IPMI driver."
 #~ msgstr ""
 
