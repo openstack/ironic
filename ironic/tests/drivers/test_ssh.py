@@ -18,14 +18,14 @@
 import mock
 import paramiko
 
-from ironic.openstack.common import context
-from ironic.openstack.common import jsonutils as json
-
 from ironic.common import exception
 from ironic.common import states
 from ironic.conductor import task_manager
 from ironic.db import api as dbapi
 from ironic.drivers.modules import ssh
+from ironic.openstack.common import context
+from ironic.openstack.common import jsonutils as json
+from ironic.openstack.common import processutils
 from ironic.tests import base
 from ironic.tests.conductor import utils as mgr_utils
 from ironic.tests.db import base as db_base
@@ -114,8 +114,8 @@ class SSHPrivateMethodsTestCase(base.TestCase):
                         driver_info=INFO_DICT)
         self.sshclient = paramiko.SSHClient()
 
-        #setup the mock for _exec_ssh_command because most tests use it
-        self.ssh_patcher = mock.patch.object(ssh, '_exec_ssh_command')
+        #setup the mock for processutils.ssh_execute because most tests use it
+        self.ssh_patcher = mock.patch.object(processutils, 'ssh_execute')
         self.exec_ssh_mock = self.ssh_patcher.start()
 
         def stop_patcher():
@@ -330,7 +330,8 @@ class SSHPrivateMethodsTestCase(base.TestCase):
                                                            cmd_to_exec)
 
     def test_exec_ssh_command_good(self):
-        #stop mocking the _exec_ssh_command because we are testing it here
+        # stop mocking the processutils.ssh_execute because we
+        # are testing it here
         self.ssh_patcher.stop()
         self.ssh_patcher = None
 
@@ -354,13 +355,15 @@ class SSHPrivateMethodsTestCase(base.TestCase):
             exec_command_mock.return_value = (Stream(),
                                               Stream('hello'),
                                               Stream())
-            stdout, stderr = ssh._exec_ssh_command(self.sshclient, "command")
+            stdout, stderr = processutils.ssh_execute(self.sshclient,
+                                                      "command")
 
             self.assertEqual(stdout, 'hello')
             exec_command_mock.assert_called_once_with("command")
 
     def test_exec_ssh_command_fail(self):
-        #stop mocking the _exec_ssh_command because we are testing it here
+        # stop mocking the processutils.ssh_execute because we
+        # are testing it here
         self.ssh_patcher.stop()
         self.ssh_patcher = None
 
@@ -384,8 +387,8 @@ class SSHPrivateMethodsTestCase(base.TestCase):
             exec_command_mock.return_value = (Stream(),
                                               Stream('hello'),
                                               Stream())
-            self.assertRaises(exception.ProcessExecutionError,
-                              ssh._exec_ssh_command,
+            self.assertRaises(processutils.ProcessExecutionError,
+                              processutils.ssh_execute,
                               self.sshclient,
                               "command")
             exec_command_mock.assert_called_once_with("command")
