@@ -103,7 +103,7 @@ class Connection(object):
                        into the Drivers when managing this node. For example:
 
                         {
-                         'uuid': uuidutils.generate_uuid(),
+                         'uuid': utils.generate_uuid(),
                          'instance_uuid': None,
                          'power_state': states.NOSTATE,
                          'provision_state': states.NOSTATE,

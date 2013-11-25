@@ -20,8 +20,9 @@
 import six
 
 from ironic.common import exception
+from ironic.common import utils as ironic_utils
 from ironic.db import api as dbapi
-from ironic.openstack.common import uuidutils
+
 from ironic.tests.db import base
 from ironic.tests.db import utils
 
@@ -40,7 +41,7 @@ class DbNodeTestCase(base.DbTestCase):
     def _create_many_test_nodes(self):
         uuids = []
         for i in xrange(1, 6):
-            n = self._create_test_node(id=i, uuid=uuidutils.generate_uuid())
+            n = self._create_test_node(id=i, uuid=ironic_utils.generate_uuid())
             uuids.append(n['uuid'])
         uuids.sort()
         return uuids
@@ -50,10 +51,10 @@ class DbNodeTestCase(base.DbTestCase):
         uuids_with_instance = []
 
         for i in xrange(1, 5):
-            uuid = uuidutils.generate_uuid()
+            uuid = ironic_utils.generate_uuid()
             uuids.append(six.text_type(uuid))
             if i < 3:
-                instance_uuid = uuidutils.generate_uuid()
+                instance_uuid = ironic_utils.generate_uuid()
                 uuids_with_instance.append(six.text_type(uuid))
             else:
                 instance_uuid = None
@@ -114,7 +115,7 @@ class DbNodeTestCase(base.DbTestCase):
     def test_get_node_list(self):
         uuids = []
         for i in xrange(1, 6):
-            n = utils.get_test_node(id=i, uuid=uuidutils.generate_uuid())
+            n = utils.get_test_node(id=i, uuid=ironic_utils.generate_uuid())
             self.dbapi.create_node(n)
             uuids.append(six.text_type(n['uuid']))
         res = self.dbapi.get_node_list()

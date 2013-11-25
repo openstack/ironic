@@ -31,6 +31,7 @@ import shutil
 import signal
 import six
 import tempfile
+import uuid
 
 from eventlet.green import subprocess
 from eventlet import greenthread
@@ -572,3 +573,7 @@ def safe_rstrip(value, chars=None):
         return value
 
     return value.rstrip(chars) or value
+
+
+def generate_uuid():
+    return str(uuid.uuid4())

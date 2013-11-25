@@ -20,8 +20,9 @@
 import six
 
 from ironic.common import exception
+from ironic.common import utils as ironic_utils
 from ironic.db import api as dbapi
-from ironic.openstack.common import uuidutils
+
 from ironic.tests.db import base
 from ironic.tests.db import utils
 
@@ -44,7 +45,7 @@ class DbChassisTestCase(base.DbTestCase):
     def test_get_chassis_list(self):
         uuids = []
         for i in xrange(1, 6):
-            n = utils.get_test_chassis(id=i, uuid=uuidutils.generate_uuid())
+            n = utils.get_test_chassis(id=i, uuid=ironic_utils.generate_uuid())
             self.dbapi.create_chassis(n)
             uuids.append(six.text_type(n['uuid']))
         res = self.dbapi.get_chassis_list()
@@ -69,7 +70,7 @@ class DbChassisTestCase(base.DbTestCase):
 
     def test_update_chassis(self):
         ch = self._create_test_chassis()
-        new_uuid = uuidutils.generate_uuid()
+        new_uuid = ironic_utils.generate_uuid()
 
         ch['uuid'] = new_uuid
         res = self.dbapi.update_chassis(ch['id'], {'uuid': new_uuid})
@@ -77,7 +78,7 @@ class DbChassisTestCase(base.DbTestCase):
         self.assertEqual(res['uuid'], new_uuid)
 
     def test_update_chassis_that_does_not_exist(self):
-        new_uuid = uuidutils.generate_uuid()
+        new_uuid = ironic_utils.generate_uuid()
 
         self.assertRaises(exception.ChassisNotFound,
                           self.dbapi.update_chassis, 666, {'uuid': new_uuid})

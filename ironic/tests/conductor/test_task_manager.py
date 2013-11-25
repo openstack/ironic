@@ -21,10 +21,11 @@
 from testtools import matchers
 
 from ironic.common import exception
+from ironic.common import utils as ironic_utils
 from ironic.conductor import task_manager
 from ironic.db import api as dbapi
 from ironic.openstack.common import context
-from ironic.openstack.common import uuidutils
+
 from ironic.tests.conductor import utils as mgr_utils
 from ironic.tests.db import base
 from ironic.tests.db import utils
@@ -33,7 +34,7 @@ from ironic.tests.db import utils
 def create_fake_node(i):
     dbh = dbapi.get_instance()
     node = utils.get_test_node(id=i,
-                               uuid=uuidutils.generate_uuid())
+                               uuid=ironic_utils.generate_uuid())
     dbh.create_node(node)
     return node['uuid']
 

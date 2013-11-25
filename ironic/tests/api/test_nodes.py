@@ -22,9 +22,10 @@ import webtest.app
 
 from ironic.common import exception
 from ironic.common import states
+from ironic.common import utils
 from ironic.conductor import rpcapi
 from ironic import objects
-from ironic.openstack.common import uuidutils
+
 from ironic.tests.api import base
 from ironic.tests.db import utils as dbutils
 
@@ -41,7 +42,7 @@ class TestListNodes(base.FunctionalTest):
         unassociated_nodes = []
         for id in xrange(3):
             ndict = dbutils.get_test_node(id=id,
-                                          uuid=uuidutils.generate_uuid())
+                                          uuid=utils.generate_uuid())
             node = self.dbapi.create_node(ndict)
             unassociated_nodes.append(node['uuid'])
 
@@ -50,8 +51,8 @@ class TestListNodes(base.FunctionalTest):
         for id in xrange(3, 7):
             ndict = dbutils.get_test_node(
                         id=id,
-                        uuid=uuidutils.generate_uuid(),
-                        instance_uuid=uuidutils.generate_uuid())
+                        uuid=utils.generate_uuid(),
+                        instance_uuid=utils.generate_uuid())
             node = self.dbapi.create_node(ndict)
             associated_nodes.append(node['uuid'])
         return {'associated': associated_nodes,
@@ -94,7 +95,7 @@ class TestListNodes(base.FunctionalTest):
         nodes = []
         for id in xrange(5):
             ndict = dbutils.get_test_node(id=id,
-                                          uuid=uuidutils.generate_uuid())
+                                          uuid=utils.generate_uuid())
             node = self.dbapi.create_node(ndict)
             nodes.append(node['uuid'])
         data = self.get_json('/nodes')
@@ -104,7 +105,7 @@ class TestListNodes(base.FunctionalTest):
         self.assertEqual(sorted(nodes), sorted(uuids))
 
     def test_links(self):
-        uuid = uuidutils.generate_uuid()
+        uuid = utils.generate_uuid()
         ndict = dbutils.get_test_node(id=1, uuid=uuid)
         self.dbapi.create_node(ndict)
         data = self.get_json('/nodes/1')
@@ -118,7 +119,7 @@ class TestListNodes(base.FunctionalTest):
         nodes = []
         for id in xrange(5):
             ndict = dbutils.get_test_node(id=id,
-                                          uuid=uuidutils.generate_uuid())
+                                          uuid=utils.generate_uuid())
             node = self.dbapi.create_node(ndict)
             nodes.append(node['uuid'])
         data = self.get_json('/nodes/?limit=3')
@@ -140,7 +141,7 @@ class TestListNodes(base.FunctionalTest):
 
         for id in xrange(2):
             pdict = dbutils.get_test_port(id=id, node_id=ndict['id'],
-                                          uuid=uuidutils.generate_uuid())
+                                          uuid=utils.generate_uuid())
             self.dbapi.create_port(pdict)
 
         data = self.get_json('/nodes/%s/ports' % ndict['uuid'])
@@ -200,8 +201,8 @@ class TestListNodes(base.FunctionalTest):
         # in the available list.
 
     def test_node_by_instance_uuid(self):
-        ndict = dbutils.get_test_node(uuid=uuidutils.generate_uuid(),
-                                      instance_uuid=uuidutils.generate_uuid())
+        ndict = dbutils.get_test_node(uuid=utils.generate_uuid(),
+                                      instance_uuid=utils.generate_uuid())
         node = self.dbapi.create_node(ndict)
         instance_uuid = node['instance_uuid']
 
@@ -212,10 +213,10 @@ class TestListNodes(base.FunctionalTest):
                          data['nodes'][0]["instance_uuid"])
 
     def test_node_by_instance_uuid_wrong_uuid(self):
-        ndict = dbutils.get_test_node(uuid=uuidutils.generate_uuid(),
-                                      instance_uuid=uuidutils.generate_uuid())
+        ndict = dbutils.get_test_node(uuid=utils.generate_uuid(),
+                                      instance_uuid=utils.generate_uuid())
         self.dbapi.create_node(ndict)
-        wrong_uuid = uuidutils.generate_uuid()
+        wrong_uuid = utils.generate_uuid()
 
         data = self.get_json('/nodes?instance_uuid=%s' % wrong_uuid)
 
@@ -288,8 +289,8 @@ class TestListNodes(base.FunctionalTest):
         self.assertIn('associated=true', data['next'])
 
     def test_detail_with_instance_uuid(self):
-        ndict = dbutils.get_test_node(uuid=uuidutils.generate_uuid(),
-                                      instance_uuid=uuidutils.generate_uuid())
+        ndict = dbutils.get_test_node(uuid=utils.generate_uuid(),
+                                      instance_uuid=utils.generate_uuid())
         node = self.dbapi.create_node(ndict)
         instance_uuid = node['instance_uuid']
 
@@ -403,7 +404,7 @@ class TestPatch(base.FunctionalTest):
                           [{'path': '/extra/non-existent', 'op': 'remove'}])
 
     def test_update_state_in_progress(self):
-        ndict = dbutils.get_test_node(id=99, uuid=uuidutils.generate_uuid(),
+        ndict = dbutils.get_test_node(id=99, uuid=utils.generate_uuid(),
                                       target_power_state=states.POWER_OFF)
         node = self.dbapi.create_node(ndict)
         self.assertRaises(webtest.app.AppError, self.patch_json,

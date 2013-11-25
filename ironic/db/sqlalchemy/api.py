@@ -259,7 +259,7 @@ class Connection(api.Connection):
     def create_node(self, values):
         # ensure defaults are present for new nodes
         if not values.get('uuid'):
-            values['uuid'] = uuidutils.generate_uuid()
+            values['uuid'] = utils.generate_uuid()
         if not values.get('power_state'):
             values['power_state'] = states.NOSTATE
         if not values.get('provision_state'):
@@ -378,7 +378,7 @@ class Connection(api.Connection):
     @objects.objectify(objects.Port)
     def create_port(self, values):
         if not values.get('uuid'):
-            values['uuid'] = uuidutils.generate_uuid()
+            values['uuid'] = utils.generate_uuid()
         if not values.get('extra'):
             values['extra'] = '{}'
         port = models.Port()
@@ -435,7 +435,7 @@ class Connection(api.Connection):
     @objects.objectify(objects.Chassis)
     def create_chassis(self, values):
         if not values.get('uuid'):
-            values['uuid'] = uuidutils.generate_uuid()
+            values['uuid'] = utils.generate_uuid()
         if not values.get('extra'):
             values['extra'] = '{}'
         chassis = models.Chassis()

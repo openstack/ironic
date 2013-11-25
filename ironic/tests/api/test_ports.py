@@ -18,6 +18,7 @@ Tests for the API /ports/ methods.
 
 import webtest.app
 
+from ironic.common import utils
 from ironic.openstack.common import uuidutils
 from ironic.tests.api import base
 from ironic.tests.db import utils as dbutils
@@ -59,7 +60,7 @@ class TestListPorts(base.FunctionalTest):
         ports = []
         for id in xrange(5):
             ndict = dbutils.get_test_port(id=id,
-                                          uuid=uuidutils.generate_uuid())
+                                          uuid=utils.generate_uuid())
             port = self.dbapi.create_port(ndict)
             ports.append(port['uuid'])
         data = self.get_json('/ports')
@@ -69,7 +70,7 @@ class TestListPorts(base.FunctionalTest):
         self.assertEqual(ports.sort(), uuids.sort())
 
     def test_links(self):
-        uuid = uuidutils.generate_uuid()
+        uuid = utils.generate_uuid()
         ndict = dbutils.get_test_port(id=1, uuid=uuid)
         self.dbapi.create_port(ndict)
         data = self.get_json('/ports/1')
@@ -83,7 +84,7 @@ class TestListPorts(base.FunctionalTest):
         ports = []
         for id in xrange(5):
             ndict = dbutils.get_test_port(id=id,
-                                          uuid=uuidutils.generate_uuid())
+                                          uuid=utils.generate_uuid())
             port = self.dbapi.create_port(ndict)
             ports.append(port['uuid'])
         data = self.get_json('/ports/?limit=3')
@@ -127,7 +128,7 @@ class TestPatch(base.FunctionalTest):
         self.assertEqual(result['extra'], extra)
 
     def test_update_not_found(self):
-        uuid = uuidutils.generate_uuid()
+        uuid = utils.generate_uuid()
         response = self.patch_json('/ports/%s' % uuid,
                                    [{'path': '/extra/a',
                                      'value': 'b',
@@ -151,7 +152,7 @@ class TestPatch(base.FunctionalTest):
     def test_replace_address_already_exist(self):
         address = '11:22:33:AA:BB:CC'
         pdict = dbutils.get_test_port(address=address,
-                                      uuid=uuidutils.generate_uuid())
+                                      uuid=utils.generate_uuid())
         self.post_json('/ports', pdict)
 
         pdict = dbutils.get_test_port()
@@ -178,7 +179,7 @@ class TestPatch(base.FunctionalTest):
         extra = {"foo1": "bar1", "foo2": "bar2", "foo3": "bar3"}
         pdict = dbutils.get_test_port(extra=extra,
                                       address="AA:BB:CC:DD:EE:FF",
-                                      uuid=uuidutils.generate_uuid())
+                                      uuid=utils.generate_uuid())
         self.post_json('/ports', pdict)
         new_value = 'new value'
         response = self.patch_json('/ports/%s' % pdict['uuid'],
@@ -195,7 +196,7 @@ class TestPatch(base.FunctionalTest):
         extra = {"foo1": "bar1", "foo2": "bar2", "foo3": "bar3"}
         pdict = dbutils.get_test_port(extra=extra,
                                       address="AA:BB:CC:DD:EE:FF",
-                                      uuid=uuidutils.generate_uuid())
+                                      uuid=utils.generate_uuid())
         self.post_json('/ports', pdict)
 
         # Removing one item from the collection
@@ -221,7 +222,7 @@ class TestPatch(base.FunctionalTest):
 
     def test_remove_mandatory_field(self):
         pdict = dbutils.get_test_port(address="AA:BB:CC:DD:EE:FF",
-                                      uuid=uuidutils.generate_uuid())
+                                      uuid=utils.generate_uuid())
         self.post_json('/ports', pdict)
         response = self.patch_json('/ports/%s' % pdict['uuid'],
                                    [{'path': '/address', 'op': 'remove'}],

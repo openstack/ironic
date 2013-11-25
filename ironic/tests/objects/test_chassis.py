@@ -16,10 +16,11 @@
 
 import mock
 
+from ironic.common import utils as ironic_utils
 from ironic.db import api as db_api
 from ironic.db.sqlalchemy import models
 from ironic import objects
-from ironic.openstack.common import uuidutils
+
 from ironic.tests.db import base
 from ironic.tests.db import utils
 
@@ -59,7 +60,7 @@ class TestChassisObject(base.DbTestCase):
 
     def test_refresh(self):
         uuid = self.fake_chassis['uuid']
-        new_uuid = uuidutils.generate_uuid()
+        new_uuid = ironic_utils.generate_uuid()
         returns = [dict(self.fake_chassis, uuid=uuid),
                    dict(self.fake_chassis, uuid=new_uuid)]
         expected = [mock.call(uuid), mock.call(uuid)]
