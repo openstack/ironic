@@ -22,6 +22,7 @@ import os
 import os.path
 import StringIO
 import tempfile
+import uuid
 
 import mock
 import netaddr
@@ -369,3 +370,22 @@ class IntLikeTestCase(base.TestCase):
         self.assertFalse(
             utils.is_int_like("0cc3346e-9fef-4445-abe6-5d2b2690ec64"))
         self.assertFalse(utils.is_int_like("a1"))
+
+
+class UUIDTestCase(base.TestCase):
+
+    def test_generate_uuid(self):
+        uuid_string = utils.generate_uuid()
+        self.assertTrue(isinstance(uuid_string, str))
+        self.assertEqual(len(uuid_string), 36)
+        # make sure there are 4 dashes
+        self.assertEqual(len(uuid_string.replace('-', '')), 32)
+
+    def test_is_uuid_like(self):
+        self.assertTrue(utils.is_uuid_like(str(uuid.uuid4())))
+
+    def test_id_is_uuid_like(self):
+        self.assertFalse(utils.is_uuid_like(1234567))
+
+    def test_name_is_uuid_like(self):
+        self.assertFalse(utils.is_uuid_like('zhongyueluo'))
