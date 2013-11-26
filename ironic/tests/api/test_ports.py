@@ -19,7 +19,6 @@ Tests for the API /ports/ methods.
 import webtest.app
 
 from ironic.common import utils
-from ironic.openstack.common import uuidutils
 from ironic.tests.api import base
 from ironic.tests.db import utils as dbutils
 
@@ -290,7 +289,7 @@ class TestPost(base.FunctionalTest):
         self.post_json('/ports', pdict)
         result = self.get_json('/ports/%s' % pdict['address'])
         self.assertEqual(pdict['address'], result['address'])
-        self.assertTrue(uuidutils.is_uuid_like(result['uuid']))
+        self.assertTrue(utils.is_uuid_like(result['uuid']))
 
     def test_create_port_valid_extra(self):
         pdict = dbutils.get_test_port(extra={'foo': 123})

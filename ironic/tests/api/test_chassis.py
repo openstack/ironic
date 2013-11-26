@@ -19,7 +19,6 @@ Tests for the API /chassis/ methods.
 import webtest.app
 
 from ironic.common import utils
-from ironic.openstack.common import uuidutils
 from ironic.tests.api import base
 from ironic.tests.db import utils as dbutils
 
@@ -269,7 +268,7 @@ class TestPost(base.FunctionalTest):
         result = self.get_json('/chassis')
         self.assertEqual(cdict['description'],
                          result['chassis'][0]['description'])
-        self.assertTrue(uuidutils.is_uuid_like(result['chassis'][0]['uuid']))
+        self.assertTrue(utils.is_uuid_like(result['chassis'][0]['uuid']))
 
     def test_post_nodes_subresource(self):
         cdict = dbutils.get_test_chassis()

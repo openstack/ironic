@@ -34,7 +34,6 @@ from ironic.openstack.common.db.sqlalchemy import session as db_session
 from ironic.openstack.common.db.sqlalchemy import utils as db_utils
 from ironic.openstack.common import log
 from ironic.openstack.common import timeutils
-from ironic.openstack.common import uuidutils
 
 CONF = cfg.CONF
 CONF.import_opt('connection',
@@ -75,7 +74,7 @@ def add_identity_filter(query, value):
     """
     if utils.is_int_like(value):
         return query.filter_by(id=value)
-    elif uuidutils.is_uuid_like(value):
+    elif utils.is_uuid_like(value):
         return query.filter_by(uuid=value)
     else:
         raise exception.InvalidIdentity(identity=value)
@@ -97,7 +96,7 @@ def add_filter_by_many_identities(query, model, values):
     value = values[0]
     if utils.is_int_like(value):
         return query.filter(getattr(model, 'id').in_(values)), 'id'
-    elif uuidutils.is_uuid_like(value):
+    elif utils.is_uuid_like(value):
         return query.filter(getattr(model, 'uuid').in_(values)), 'uuid'
     else:
         raise exception.InvalidIdentity(identity=value)
@@ -290,7 +289,7 @@ class Connection(api.Connection):
 
     @objects.objectify(objects.Node)
     def get_node_by_instance(self, instance):
-        if not uuidutils.is_uuid_like(instance):
+        if not utils.is_uuid_like(instance):
             raise exception.InvalidUUID(uuid=instance)
 
         query = model_query(models.Node).\
@@ -321,7 +320,7 @@ class Connection(api.Connection):
 
             # Get node ID, if an UUID was supplied. The ID is
             # required for deleting all ports, attached to the node.
-            if uuidutils.is_uuid_like(node_id):
+            if utils.is_uuid_like(node_id):
                 node_id = node_ref['id']
 
             port_query = model_query(models.Port, session=session)
