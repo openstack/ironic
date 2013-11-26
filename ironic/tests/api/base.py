@@ -17,8 +17,9 @@
 #    under the License.
 """Base classes for API tests."""
 
-# NOTE: Ported from ceilometer/tests/api.py
-#       https://bugs.launchpad.net/ceilometer/+bug/1193666
+# NOTE: Ported from ceilometer/tests/api.py (subsequently moved to
+#       ceilometer/tests/api/__init__.py). This should be oslo'ified:
+#       https://bugs.launchpad.net/ironic/+bug/1255115.
 
 from oslo.config import cfg
 import pecan
@@ -67,9 +68,23 @@ class FunctionalTest(base.DbTestCase):
 
         return pecan.testing.load_test_app(self.config)
 
-    def post_json(self, path, params, expect_errors=False, headers=None,
-                  method="post", extra_environ=None, status=None,
-                  path_prefix=PATH_PREFIX):
+    def _request_json(self, path, params, expect_errors=False, headers=None,
+                      method="post", extra_environ=None, status=None,
+                      path_prefix=PATH_PREFIX):
+        """Sends simulated HTTP request to Pecan test app.
+
+        :param path: url path of target service
+        :param params: content for wsgi.input of request
+        :param expect_errors: Boolean value; whether an error is expected based
+                              on request
+        :param headers: a dictionary of headers to send along with the request
+        :param method: Request method type. Appropriate method function call
+                       should be used rather than passing attribute in.
+        :param extra_environ: a dictionary of environ variables to send along
+                              with the request
+        :param status: expected status code of response
+        :param path_prefix: prefix of the url path
+        """
         full_path = path_prefix + path
         print('%s: %s %s' % (method.upper(), full_path, params))
         response = getattr(self.app, "%s_json" % method)(
@@ -83,16 +98,73 @@ class FunctionalTest(base.DbTestCase):
         print('GOT:%s' % response)
         return response
 
-    def put_json(self, *args, **kwargs):
-        kwargs['method'] = 'put'
-        return self.post_json(*args, **kwargs)
+    def put_json(self, path, params, expect_errors=False, headers=None,
+                 extra_environ=None, status=None):
+        """Sends simulated HTTP PUT request to Pecan test app.
 
-    def patch_json(self, *args, **kwargs):
-        kwargs['method'] = 'patch'
-        return self.post_json(*args, **kwargs)
+        :param path: url path of target service
+        :param params: content for wsgi.input of request
+        :param expect_errors: Boolean value; whether an error is expected based
+                              on request
+        :param headers: a dictionary of headers to send along with the request
+        :param extra_environ: a dictionary of environ variables to send along
+                              with the request
+        :param status: expected status code of response
+        """
+        return self._request_json(path=path, params=params,
+                                  expect_errors=expect_errors,
+                                  headers=headers, extra_environ=extra_environ,
+                                  status=status, method="put")
+
+    def post_json(self, path, params, expect_errors=False, headers=None,
+                  extra_environ=None, status=None):
+        """Sends simulated HTTP POST request to Pecan test app.
+
+        :param path: url path of target service
+        :param params: content for wsgi.input of request
+        :param expect_errors: Boolean value; whether an error is expected based
+                              on request
+        :param headers: a dictionary of headers to send along with the request
+        :param extra_environ: a dictionary of environ variables to send along
+                              with the request
+        :param status: expected status code of response
+        """
+        return self._request_json(path=path, params=params,
+                                  expect_errors=expect_errors,
+                                  headers=headers, extra_environ=extra_environ,
+                                  status=status, method="post")
+
+    def patch_json(self, path, params, expect_errors=False, headers=None,
+                   extra_environ=None, status=None):
+        """Sends simulated HTTP PATCH request to Pecan test app.
+
+        :param path: url path of target service
+        :param params: content for wsgi.input of request
+        :param expect_errors: Boolean value; whether an error is expected based
+                              on request
+        :param headers: a dictionary of headers to send along with the request
+        :param extra_environ: a dictionary of environ variables to send along
+                              with the request
+        :param status: expected status code of response
+        """
+        return self._request_json(path=path, params=params,
+                                  expect_errors=expect_errors,
+                                  headers=headers, extra_environ=extra_environ,
+                                  status=status, method="patch")
 
     def delete(self, path, expect_errors=False, headers=None,
                extra_environ=None, status=None, path_prefix=PATH_PREFIX):
+        """Sends simulated HTTP DELETE request to Pecan test app.
+
+        :param path: url path of target service
+        :param expect_errors: Boolean value; whether an error is expected based
+                              on request
+        :param headers: a dictionary of headers to send along with the request
+        :param extra_environ: a dictionary of environ variables to send along
+                              with the request
+        :param status: expected status code of response
+        :param path_prefix: prefix of the url path
+        """
         full_path = path_prefix + path
         print('DELETE: %s' % (full_path))
         response = self.app.delete(str(full_path),
@@ -105,6 +177,19 @@ class FunctionalTest(base.DbTestCase):
 
     def get_json(self, path, expect_errors=False, headers=None,
                  extra_environ=None, q=[], path_prefix=PATH_PREFIX, **params):
+        """Sends simulated HTTP GET request to Pecan test app.
+
+        :param path: url path of target service
+        :param expect_errors: Boolean value;whether an error is expected based
+                              on request
+        :param headers: a dictionary of headers to send along with the request
+        :param extra_environ: a dictionary of environ variables to send along
+                              with the request
+        :param q: list of queries consisting of: field, value, op, and type
+                  keys
+        :param path_prefix: prefix of the url path
+        :param params: content for wsgi.input of request
+        """
         full_path = path_prefix + path
         query_params = {'q.field': [],
                         'q.value': [],
