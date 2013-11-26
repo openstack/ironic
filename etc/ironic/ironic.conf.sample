@@ -101,8 +101,7 @@
 # Whether to disable inter-process locks (boolean value)
 #disable_process_locking=false
 
-# Directory to use for lock files. Default to a temp directory
-# (string value)
+# Directory to use for lock files. (string value)
 #lock_path=<None>
 
 
@@ -138,7 +137,7 @@
 #logging_exception_prefix=%(asctime)s.%(msecs)03d %(process)d TRACE %(name)s %(instance)s
 
 # list of logger=LEVEL pairs (list value)
-#default_log_levels=amqplib=WARN,sqlalchemy=WARN,boto=WARN,suds=INFO,keystone=INFO,eventlet.wsgi.server=WARN
+#default_log_levels=amqp=WARN,amqplib=WARN,boto=WARN,keystone=INFO,qpid=WARN,sqlalchemy=WARN,suds=INFO,iso8601=WARN
 
 # publish error events (boolean value)
 #publish_errors=false
@@ -154,16 +153,17 @@
 # it like this (string value)
 #instance_uuid_format="[instance: %(uuid)s] "
 
-# If this option is specified, the logging configuration file
-# specified is used and overrides any other logging options
-# specified. Please see the Python logging module
-# documentation for details on logging configuration files.
-# (string value)
-#log_config=<None>
+# The name of logging configuration file. It does not disable
+# existing loggers, but just appends specified logging
+# configuration to any other existing logging options. Please
+# see the Python logging module documentation for details on
+# logging configuration files. (string value)
+# Deprecated group/name - [DEFAULT]/log_config
+#log_config_append=<None>
 
-# A logging.Formatter log message format string which may use
-# any of the available logging.LogRecord attributes. This
-# option is deprecated.  Please use
+# DEPRECATED. A logging.Formatter log message format string
+# which may use any of the available logging.LogRecord
+# attributes. This option is deprecated.  Please use
 # logging_context_format_string and
 # logging_default_format_string instead. (string value)
 #log_format=<None>
@@ -174,10 +174,12 @@
 
 # (Optional) Name of log file to output to. If no default is
 # set, logging will go to stdout. (string value)
+# Deprecated group/name - [DEFAULT]/logfile
 #log_file=<None>
 
 # (Optional) The base directory used for relative --log-file
 # paths (string value)
+# Deprecated group/name - [DEFAULT]/logdir
 #log_dir=<None>
 
 # Use syslog for logging. (boolean value)
@@ -201,14 +203,14 @@
 
 # Default publisher_id for outgoing notifications (string
 # value)
-#default_publisher_id=$host
+#default_publisher_id=<None>
 
 
 #
 # Options defined in ironic.openstack.common.notifier.rpc_notifier
 #
 
-# AMQP topic used for openstack notifications (list value)
+# AMQP topic used for OpenStack notifications (list value)
 #notification_topics=notifications
 
 
@@ -429,10 +431,12 @@
 #
 
 # The backend to use for db (string value)
+# Deprecated group/name - [DEFAULT]/db_backend
 #backend=sqlalchemy
 
 # Enable the experimental use of thread pooling for all DB API
 # calls (boolean value)
+# Deprecated group/name - [DEFAULT]/dbapi_use_tpool
 #use_tpool=false
 
 
@@ -442,39 +446,78 @@
 
 # The SQLAlchemy connection string used to connect to the
 # database (string value)
+# Deprecated group/name - [DEFAULT]/sql_connection
 #connection=sqlite:////ironic/openstack/common/db/$sqlite_db
 
 # timeout before idle sql connections are reaped (integer
 # value)
+# Deprecated group/name - [DEFAULT]/sql_idle_timeout
 #idle_timeout=3600
 
 # Minimum number of SQL connections to keep open in a pool
 # (integer value)
+# Deprecated group/name - [DEFAULT]/sql_min_pool_size
 #min_pool_size=1
 
 # Maximum number of SQL connections to keep open in a pool
 # (integer value)
+# Deprecated group/name - [DEFAULT]/sql_max_pool_size
 #max_pool_size=5
 
 # maximum db connection retries during startup. (setting -1
 # implies an infinite retry count) (integer value)
+# Deprecated group/name - [DEFAULT]/sql_max_retries
 #max_retries=10
 
 # interval between retries of opening a sql connection
 # (integer value)
+# Deprecated group/name - [DEFAULT]/sql_retry_interval
 #retry_interval=10
 
 # If set, use this value for max_overflow with sqlalchemy
 # (integer value)
+# Deprecated group/name - [DEFAULT]/sql_max_overflow
 #max_overflow=<None>
 
 # Verbosity of SQL debugging information. 0=None,
 # 100=Everything (integer value)
+# Deprecated group/name - [DEFAULT]/sql_connection_debug
 #connection_debug=0
 
 # Add python stack traces to SQL as comment strings (boolean
 # value)
+# Deprecated group/name - [DEFAULT]/sql_connection_trace
 #connection_trace=false
+
+
+[ipmi]
+
+#
+# Options defined in ironic.drivers.modules.ipminative
+#
+
+# Maximum time in seconds to retry IPMI operations (integer
+# value)
+#retry_timeout=10
+
+
+[ssl]
+
+#
+# Options defined in ironic.openstack.common.sslutils
+#
+
+# CA certificate file to use to verify connecting clients
+# (string value)
+#ca_file=<None>
+
+# Certificate file to use when starting the server securely
+# (string value)
+#cert_file=<None>
+
+# Private key file to use when starting the server securely
+# (string value)
+#key_file=<None>
 
 
 [rpc_notifier2]
@@ -483,7 +526,7 @@
 # Options defined in ironic.openstack.common.notifier.rpc_notifier2
 #
 
-# AMQP topic(s) used for openstack notifications (list value)
+# AMQP topic(s) used for OpenStack notifications (list value)
 #topics=notifications
 
 
@@ -571,6 +614,7 @@
 #
 
 # Matchmaker ring file (JSON) (string value)
+# Deprecated group/name - [DEFAULT]/matchmaker_ringfile
 #ringfile=/etc/oslo/matchmaker_ring.json
 
 
@@ -602,7 +646,8 @@
 # value)
 #pxe_deploy_timeout=0
 
-# Ironic compute node's tftp server (string value)
+# IP address of Ironic compute node's tftp server (string
+# value)
 #tftp_server=$my_ip
 
 # Ironic compute node's tftp root path (string value)
@@ -620,4 +665,3 @@
 #instance_master_path=/var/lib/ironic/master_images
 
 
-# Total option count: 123
