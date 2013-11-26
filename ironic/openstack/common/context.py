@@ -1,5 +1,3 @@
-# vim: tabstop=4 shiftwidth=4 softtabstop=4
-
 # Copyright 2011 OpenStack Foundation.
 # All Rights Reserved.
 #
@@ -23,12 +21,11 @@ context or provide additional information in their specific WSGI pipeline.
 """
 
 import itertools
-
-from ironic.openstack.common import uuidutils
+import uuid
 
 
 def generate_request_id():
-    return 'req-%s' % uuidutils.generate_uuid()
+    return 'req-%s' % str(uuid.uuid4())
 
 
 class RequestContext(object):
