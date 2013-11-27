@@ -58,6 +58,11 @@ pxe_opts = [
     cfg.IntOpt('pxe_deploy_timeout',
                 help='Timeout for PXE deployments. Default: 0 (unlimited)',
                 default=0),
+    # TODO(sjing): when adding neutron-port configuration, use this option
+    # instead of assuming tftp server is on $my_ip
+    cfg.StrOpt('tftp_server',
+               default='$my_ip',
+               help='IP address of Ironic compute node\'s tftp server'),
     cfg.StrOpt('tftp_root',
                default='/tftpboot',
                help='Ironic compute node\'s tftp root path'),

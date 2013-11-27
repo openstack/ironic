@@ -602,6 +602,9 @@
 # value)
 #pxe_deploy_timeout=0
 
+# Ironic compute node's tftp server (string value)
+#tftp_server=$my_ip
+
 # Ironic compute node's tftp root path (string value)
 #tftp_root=/tftpboot
 
