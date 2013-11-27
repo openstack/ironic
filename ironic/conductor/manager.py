@@ -54,10 +54,21 @@ MANAGER_TOPIC = 'ironic.conductor_manager'
 
 LOG = log.getLogger(__name__)
 
-cfg.CONF.register_opt(cfg.StrOpt('api_url',
-                      default=None,
-                      help='Url of Ironic API service. If not set Ironic can '
-                      'get current value from Keystone service catalog.'))
+conductor_opts = [
+        cfg.StrOpt('api_url',
+                   default=None,
+                   help=('Url of Ironic API service. If not set Ironic can '
+                         'get current value from Keystone service catalog.')),
+        cfg.IntOpt('heartbeat_interval',
+                   default=10,
+                   help='Seconds between conductor heart beats.'),
+        cfg.IntOpt('heartbeat_timeout',
+                   default=60,
+                   help='Maximum time since the last check-in of a conductor'),
+]
+
+CONF = cfg.CONF
+CONF.register_opts(conductor_opts, 'conductor')
 
 
 class ConductorManager(service.PeriodicService):
@@ -359,6 +370,6 @@ class ConductorManager(service.PeriodicService):
             finally:
                 node.save(context)
 
-    @periodic_task.periodic_task
+    @periodic_task.periodic_task(spacing=CONF.conductor.heartbeat_interval)
     def _conductor_service_record_keepalive(self, context):
         self.dbapi.touch_conductor(self.host)

@@ -63,5 +63,5 @@ class DriversController(rest.RestController):
     def get_all(self):
         """Retrieve a list of drivers."""
         drivers = pecan.request.dbapi.list_active_conductor_drivers(
-                                     interval=CONF.conductor.max_time_interval)
+                                     interval=CONF.conductor.heartbeat_timeout)
         return DriverList.convert(drivers)

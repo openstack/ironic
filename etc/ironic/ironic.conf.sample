@@ -417,12 +417,19 @@
 [conductor]
 
 #
-# Options defined in ironic.conductor.rpcapi
+# Options defined in ironic.conductor.manager
 #
 
-# Maximum time, in seconds, since the last check-in of a
-# conductor (integer value)
-#max_time_interval=120
+# Url of Ironic API service. If not set Ironic can get current
+# value from Keystone service catalog. (string value)
+#api_url=<None>
+
+# Seconds between conductor heart beats. (integer value)
+#heartbeat_interval=10
+
+# Maximum time since the last check-in of a conductor (integer
+# value)
+#heartbeat_timeout=60
 
 
 [database]

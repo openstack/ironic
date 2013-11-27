@@ -23,15 +23,6 @@ from ironic.objects import base as objects_base
 import ironic.openstack.common.rpc.proxy
 from oslo.config import cfg
 
-conductor_opts = [
-    cfg.IntOpt('max_time_interval',
-               default=120,
-               help='Maximum time, in seconds, since the last '
-                    'check-in of a conductor'),
-]
-
-cfg.CONF.register_opts(conductor_opts, 'conductor')
-
 # NOTE(max_lobur): This is temporary override for Oslo setting defined in
 # ironic.openstack.common.rpc.__init__.py. Should stay while Oslo is not fixed.
 # *The setting shows what exceptions can be deserialized from RPC response.

@@ -146,7 +146,7 @@ def _build_pxe_config(node, pxe_info):
     """
     LOG.debug(_("Building PXE config for deployment %s.") % node['id'])
 
-    ironic_api = CONF.api_url or keystone.get_service_url()
+    ironic_api = CONF.conductor.api_url or keystone.get_service_url()
 
     deploy_key = utils.random_alnum(32)
     ctx = context.get_admin_context()

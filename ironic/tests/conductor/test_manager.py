@@ -20,6 +20,7 @@
 """Test class for Ironic ManagerService."""
 
 import mock
+from oslo.config import cfg
 
 from ironic.common import driver_factory
 from ironic.common import exception
@@ -32,6 +33,8 @@ from ironic.openstack.common import context
 from ironic.tests.conductor import utils as mgr_utils
 from ironic.tests.db import base
 from ironic.tests.db import utils
+
+CONF = cfg.CONF
 
 
 class ManagerTestCase(base.DbTestCase):
@@ -69,10 +72,10 @@ class ManagerTestCase(base.DbTestCase):
             res = self.dbapi.get_conductor('test-host')
             self.assertEqual(res['drivers'], restart_names)
 
-    def test_periodic_keepalive(self):
+    def test__conductor_service_record_keepalive(self):
         self.service.start()
         with mock.patch.object(self.dbapi, 'touch_conductor') as mock_touch:
-            self.service.periodic_tasks(self.context)
+            self.service._conductor_service_record_keepalive(self.context)
             mock_touch.assert_called_once_with('test-host')
 
     def test_get_power_state(self):
