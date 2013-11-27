@@ -20,9 +20,12 @@
 
 from ironic.common import exception
 from ironic.common import states
+from ironic.conductor import task_manager
+from ironic.db import api as db_api
 from ironic.drivers import base as driver_base
-from ironic.drivers import fake
+from ironic.openstack.common import context
 from ironic.tests import base
+from ironic.tests.conductor import utils as mgr_utils
 from ironic.tests.db import utils as db_utils
 
 
@@ -30,8 +33,11 @@ class FakeDriverTestCase(base.TestCase):
 
     def setUp(self):
         super(FakeDriverTestCase, self).setUp()
-        self.driver = fake.FakeDriver()
+        self.context = context.get_admin_context()
+        self.dbapi = db_api.get_instance()
+        self.driver = mgr_utils.get_mocked_node_manager(driver='fake')
         self.node = db_utils.get_test_node()
+        self.dbapi.create_node(self.node)
 
     def test_driver_interfaces(self):
         # fake driver implements only 3 out of 5 interfaces
@@ -43,12 +49,14 @@ class FakeDriverTestCase(base.TestCase):
 
     def test_power_interface(self):
         self.driver.power.validate(self.node)
-        self.driver.power.get_power_state(None, self.node)
-        self.assertRaises(exception.InvalidParameterValue,
-                          self.driver.power.set_power_state,
-                          None, None, states.NOSTATE)
-        self.driver.power.set_power_state(None, None, states.POWER_ON)
-        self.driver.power.reboot(None, None)
+        with task_manager.acquire(self.context,
+                                  [self.node['uuid']]) as task:
+            self.driver.power.get_power_state(task, self.node)
+            self.assertRaises(exception.InvalidParameterValue,
+                              self.driver.power.set_power_state,
+                              task, self.node, states.NOSTATE)
+            self.driver.power.set_power_state(task, self.node, states.POWER_ON)
+            self.driver.power.reboot(task, self.node)
 
     def test_deploy_interface(self):
         self.driver.deploy.validate(self.node)
@@ -60,8 +68,9 @@ class FakeDriverTestCase(base.TestCase):
                 'bar': 'baz'}
         self.assertTrue(self.driver.vendor.validate(self.node, **info))
         self.assertTrue(self.driver.vendor.vendor_passthru(None,
-                                                self.node['uuid'], **info))
+                                                           self.node['uuid'],
+                                                           **info))
         # no method
         self.assertRaises(exception.InvalidParameterValue,
-                         self.driver.vendor.validate,
-                         self.node, bar='baz')
+                          self.driver.vendor.validate,
+                          self.node, bar='baz')

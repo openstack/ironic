@@ -138,7 +138,7 @@ class ConductorManager(service.PeriodicService):
             if 'instance_uuid' in delta:
                 task.driver.power.validate(node_obj)
                 node_obj['power_state'] = \
-                        task.driver.power.get_power_state(task, node_id)
+                        task.driver.power.get_power_state(task, node_obj)
 
                 if node_obj['power_state'] != states.POWER_OFF:
                     raise exception.NodeInWrongPowerState(
