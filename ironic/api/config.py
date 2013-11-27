@@ -14,13 +14,17 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+from oslo.config import cfg
+
 # Server Specific Configurations
+# See https://pecan.readthedocs.org/en/latest/configuration.html#server-configuration # noqa
 server = {
     'port': '6385',
     'host': '0.0.0.0'
 }
 
 # Pecan Application Configurations
+# See https://pecan.readthedocs.org/en/latest/configuration.html#application-configuration # noqa
 app = {
     'root': 'ironic.api.controllers.root.RootController',
     'modules': ['ironic.api'],
@@ -28,4 +32,10 @@ app = {
     'debug': False,
     'enable_acl': True,
     'acl_public_routes': ['/', '/v1'],
+}
+
+# WSME Configurations
+# See https://wsme.readthedocs.org/en/latest/integrate.html#configuration
+wsme = {
+    'debug': cfg.CONF.debug,
 }
