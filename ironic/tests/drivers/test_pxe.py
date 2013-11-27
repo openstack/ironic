@@ -35,6 +35,7 @@ from ironic.common import images
 from ironic.common import states
 from ironic.common import utils
 from ironic.conductor import task_manager
+from ironic.conductor import utils as manager_utils
 from ironic.db import api as dbapi
 from ironic.drivers.modules import pxe
 from ironic.openstack.common import context
@@ -203,6 +204,10 @@ class PXEValidateParametersTestCase(base.TestCase):
                                                     'instance_uuid')))
         self.assertEqual(os.stat(os.path.join(master_path, 'instance_uuid')).
                              st_nlink, 2)
+
+    def test__update_neutron(self):
+        # FIXME: just a stub for the moment
+        pass
 
 
 class PXEPrivateMethodsTestCase(base.TestCase):
@@ -433,8 +438,9 @@ class PXEDriverTestCase(db_base.DbTestCase):
         super(PXEDriverTestCase, self).setUp()
         self.context = context.get_admin_context()
         self.context.auth_token = '4562138218392831'
-        temp_dir = tempfile.mkdtemp()
-        CONF.set_default('tftp_root', temp_dir, group='pxe')
+        self.temp_dir = tempfile.mkdtemp()
+        CONF.set_default('tftp_root', self.temp_dir, group='pxe')
+        CONF.set_default('images_path', self.temp_dir, group='pxe')
         mgr_utils.get_mocked_node_manager(driver='fake_pxe')
         driver_info = INFO_DICT
         driver_info['pxe_deploy_key'] = 'fake-56789'
@@ -509,20 +515,19 @@ class PXEDriverTestCase(db_base.DbTestCase):
                               address='123456', iqn='aaa-bbb',
                               key='fake-12345')
 
-    def test_start_deploy(self):
-        with mock.patch.object(pxe, '_create_pxe_config') \
-                as create_pxe_config_mock:
+    def test_prepare(self):
+        with mock.patch.object(pxe,
+                '_create_pxe_config') as create_pxe_config_mock:
             with mock.patch.object(pxe, '_cache_images') as cache_images_mock:
-                with mock.patch.object(pxe, '_get_tftp_image_info') \
-                        as get_tftp_image_info_mock:
+                with mock.patch.object(pxe,
+                        '_get_tftp_image_info') as get_tftp_image_info_mock:
                     get_tftp_image_info_mock.return_value = None
                     create_pxe_config_mock.return_value = None
                     cache_images_mock.return_value = None
 
                     with task_manager.acquire(self.context,
-                                    [self.node['uuid']], shared=False) as task:
-                        state = task.resources[0].driver.deploy.deploy(task,
-                                                                    self.node)
+                                    self.node['uuid'], shared=True) as task:
+                        task.driver.deploy.prepare(task, self.node)
                         get_tftp_image_info_mock.assert_called_once_with(
                                                                   self.node)
                         create_pxe_config_mock.assert_called_once_with(task,
@@ -530,11 +535,41 @@ class PXEDriverTestCase(db_base.DbTestCase):
                                                                     None)
                         cache_images_mock.assert_called_once_with(self.node,
                                                                   None)
-                        self.assertEqual(state, states.DEPLOYING)
 
-                        t_path = pxe._get_token_file_path(self.node['uuid'])
-                        token = open(t_path, 'r').read()
-                        self.assertEqual(self.context.auth_token, token)
+    def test_deploy(self):
+        with mock.patch.object(pxe, '_update_neutron') as update_neutron_mock:
+            with mock.patch.object(manager_utils,
+                    'node_power_action') as node_power_mock:
+                with task_manager.acquire(self.context,
+                        self.node['uuid'], shared=False) as task:
+                    state = task.driver.deploy.deploy(task, self.node)
+                    self.assertEqual(state, states.DEPLOYING)
+                    update_neutron_mock.assert_called_once_with(task,
+                                                                self.node)
+                    node_power_mock.assert_called_once_with(task, self.node,
+                                                            states.REBOOT)
+
+                    # ensure token file created
+                    t_path = pxe._get_token_file_path(self.node['uuid'])
+                    token = open(t_path, 'r').read()
+                    self.assertEqual(self.context.auth_token, token)
+
+    def test_tear_down(self):
+        with mock.patch.object(manager_utils,
+                'node_power_action') as node_power_mock:
+            with task_manager.acquire(self.context,
+                    self.node['uuid']) as task:
+                state = task.driver.deploy.tear_down(task, self.node)
+                self.assertEqual(state, states.DELETED)
+                node_power_mock.assert_called_once_with(task, self.node,
+                                                        states.POWER_OFF)
+
+    def test_take_over(self):
+        with mock.patch.object(pxe, '_update_neutron') as update_neutron_mock:
+            with task_manager.acquire(
+                    self.context, self.node['uuid'], shared=True) as task:
+                task.driver.deploy.take_over(task, self.node)
+                update_neutron_mock.assert_called_once_with(task, self.node)
 
     def test_continue_deploy_good(self):
         token_path = self._create_token_file()
@@ -580,11 +615,7 @@ class PXEDriverTestCase(db_base.DbTestCase):
                 # lock elevated w/o exception
                 _continue_deploy_mock.assert_called_once()
 
-    def tear_down_config(self, master=None):
-        temp_dir = tempfile.mkdtemp()
-        CONF.set_default('tftp_root', temp_dir, group='pxe')
-        CONF.set_default('images_path', temp_dir, group='pxe')
-
+    def clean_up_config(self, master=None):
         ports = []
         ports.append(
             self.dbapi.create_port(
@@ -594,7 +625,7 @@ class PXEDriverTestCase(db_base.DbTestCase):
                     uuid='bb43dc0b-03f2-4d2e-ae87-c02d7f33cc53',
                     node_id='123')))
 
-        d_kernel_path = os.path.join(temp_dir,
+        d_kernel_path = os.path.join(self.temp_dir,
                                      'instance_uuid_123/deploy_kernel')
         image_info = {'deploy_kernel': ['deploy_kernel_uuid', d_kernel_path]}
 
@@ -602,11 +633,11 @@ class PXEDriverTestCase(db_base.DbTestCase):
                 as get_tftp_image_info_mock:
             get_tftp_image_info_mock.return_value = image_info
 
-            pxecfg_dir = os.path.join(temp_dir, 'pxelinux.cfg')
+            pxecfg_dir = os.path.join(self.temp_dir, 'pxelinux.cfg')
             os.makedirs(pxecfg_dir)
 
-            instance_dir = os.path.join(temp_dir, 'instance_uuid_123')
-            image_dir = os.path.join(temp_dir, 'fake_instance_name')
+            instance_dir = os.path.join(self.temp_dir, 'instance_uuid_123')
+            image_dir = os.path.join(self.temp_dir, 'fake_instance_name')
             os.makedirs(instance_dir)
             os.makedirs(image_dir)
             config_path = os.path.join(instance_dir, 'config')
@@ -616,8 +647,9 @@ class PXEDriverTestCase(db_base.DbTestCase):
             open(config_path, 'w').close()
             os.link(config_path, pxe_mac_path)
             if master:
-                tftp_master_dir = os.path.join(temp_dir, 'tftp_master')
-                instance_master_dir = os.path.join(temp_dir, 'instance_master')
+                tftp_master_dir = os.path.join(self.temp_dir, 'tftp_master')
+                instance_master_dir = os.path.join(self.temp_dir,
+                                                   'instance_master')
                 CONF.set_default('tftp_master_path',
                                  tftp_master_dir,
                                  group='pxe')
@@ -635,9 +667,9 @@ class PXEDriverTestCase(db_base.DbTestCase):
                 os.link(master_deploy_kernel_path, deploy_kernel_path)
                 os.link(master_instance_path, image_path)
                 if master == 'in_use':
-                    deploy_kernel_link = os.path.join(temp_dir,
+                    deploy_kernel_link = os.path.join(self.temp_dir,
                                                       'deploy_kernel_link')
-                    image_link = os.path.join(temp_dir, 'image_link')
+                    image_link = os.path.join(self.temp_dir, 'image_link')
                     os.link(master_deploy_kernel_path, deploy_kernel_link)
                     os.link(master_instance_path, image_link)
 
@@ -648,36 +680,39 @@ class PXEDriverTestCase(db_base.DbTestCase):
                 open(image_path, 'w').close()
 
             with task_manager.acquire(self.context, [self.node['uuid']],
-                                      shared=False) as task:
-                task.resources[0].driver.deploy.tear_down(task, self.node)
+                                      shared=True) as task:
+                task.resources[0].driver.deploy.clean_up(task, self.node)
             get_tftp_image_info_mock.called_once_with(self.node)
             assert_false_path = [config_path, deploy_kernel_path, image_path,
                                  pxe_mac_path, image_dir, instance_dir]
             for path in assert_false_path:
                 self.assertFalse(os.path.exists(path))
 
-            return temp_dir
+    def test_clean_up_removes_token_file(self):
+        token_path = self._create_token_file()
+        self.clean_up_config(master=None)
+        self.assertFalse(os.path.exists(token_path))
 
-    def test_tear_down_no_master_images(self):
-        self.tear_down_config(master=None)
+    def test_clean_up_no_master_images(self):
+        self.clean_up_config(master=None)
 
-    def test_tear_down_master_images_not_in_use(self):
-        temp_dir = self.tear_down_config(master='not_in_use')
+    def test_clean_up_master_images_not_in_use(self):
+        self.clean_up_config(master='not_in_use')
 
-        master_d_kernel_path = os.path.join(temp_dir,
+        master_d_kernel_path = os.path.join(self.temp_dir,
                                             'tftp_master/deploy_kernel_uuid')
-        master_instance_path = os.path.join(temp_dir,
+        master_instance_path = os.path.join(self.temp_dir,
                                             'instance_master/image_uuid')
 
         self.assertFalse(os.path.exists(master_d_kernel_path))
         self.assertFalse(os.path.exists(master_instance_path))
 
-    def test_tear_down_master_images_in_use(self):
-        temp_dir = self.tear_down_config(master='in_use')
+    def test_clean_up_master_images_in_use(self):
+        self.clean_up_config(master='in_use')
 
-        master_d_kernel_path = os.path.join(temp_dir,
+        master_d_kernel_path = os.path.join(self.temp_dir,
                                             'tftp_master/deploy_kernel_uuid')
-        master_instance_path = os.path.join(temp_dir,
+        master_instance_path = os.path.join(self.temp_dir,
                                              'instance_master/image_uuid')
 
         self.assertTrue(os.path.exists(master_d_kernel_path))

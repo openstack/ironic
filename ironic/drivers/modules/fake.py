@@ -56,6 +56,15 @@ class FakeDeploy(base.DeployInterface):
     def tear_down(self, task, node):
         pass
 
+    def prepare(self, task, node):
+        pass
+
+    def clean_up(self, task, node):
+        pass
+
+    def take_over(self, task, node):
+        pass
+
 
 class FakeVendor(base.VendorInterface):
     """Example implementation of a vendor passthru interface."""
