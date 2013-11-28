@@ -37,6 +37,7 @@ from ironic.common import utils
 from ironic.conductor import task_manager
 from ironic.drivers import base
 from ironic.openstack.common import log as logging
+from ironic.openstack.common import processutils
 
 CONF = cfg.CONF
 
@@ -77,34 +78,6 @@ COMMAND_SETS = {
 
 def _normalize_mac(mac):
     return mac.translate(None, '-:').lower()
-
-
-def _exec_ssh_command(ssh_obj, command):
-    """Execute a SSH command on the host."""
-
-    LOG.debug(_('Running cmd (SSH): %s'), command)
-
-    stdin_stream, stdout_stream, stderr_stream = ssh_obj.exec_command(command)
-    channel = stdout_stream.channel
-
-    # NOTE(justinsb): This seems suspicious...
-    # ...other SSH clients have buffering issues with this approach
-    stdout = stdout_stream.read()
-    stderr = stderr_stream.read()
-    stdin_stream.close()
-
-    exit_status = channel.recv_exit_status()
-
-    # exit_status == -1 if no exit code was returned
-    if exit_status != -1:
-        LOG.debug(_('Result was %s') % exit_status)
-        if exit_status != 0:
-            raise exception.ProcessExecutionError(exit_code=exit_status,
-                                                  stdout=stdout,
-                                                  stderr=stderr,
-                                                  cmd=command)
-
-    return (stdout, stderr)
 
 
 def _parse_driver_info(node):
@@ -162,7 +135,8 @@ def _get_power_status(ssh_obj, driver_info):
     power_state = None
     cmd_to_exec = "%s %s" % (driver_info['cmd_set']['base_cmd'],
                              driver_info['cmd_set']['list_running'])
-    running_list = _exec_ssh_command(ssh_obj, cmd_to_exec)[0].split('\n')
+    running_list = processutils.ssh_execute(ssh_obj,
+                                            cmd_to_exec)[0].split('\n')
     # Command should return a list of running vms. If the current node is
     # not listed then we can assume it is not powered on.
     node_name = _get_hosts_name_for_node(ssh_obj, driver_info)
@@ -195,7 +169,8 @@ def _get_hosts_name_for_node(ssh_obj, driver_info):
     matched_name = None
     cmd_to_exec = "%s %s" % (driver_info['cmd_set']['base_cmd'],
                              driver_info['cmd_set']['list_all'])
-    full_node_list = _exec_ssh_command(ssh_obj, cmd_to_exec)[0].split('\n')
+    full_node_list = processutils.ssh_execute(ssh_obj,
+                                              cmd_to_exec)[0].split('\n')
     LOG.debug(_("Retrieved Node List: %s") % repr(full_node_list))
     # for each node check Mac Addresses
     for node in full_node_list:
@@ -205,8 +180,8 @@ def _get_hosts_name_for_node(ssh_obj, driver_info):
         cmd_to_exec = "%s %s" % (driver_info['cmd_set']['base_cmd'],
                                  driver_info['cmd_set']['get_node_macs'])
         cmd_to_exec = cmd_to_exec.replace('{_NodeName_}', node)
-        hosts_node_mac_list = _exec_ssh_command(ssh_obj,
-                                                cmd_to_exec)[0].split('\n')
+        hosts_node_mac_list = processutils.ssh_execute(ssh_obj,
+                                                    cmd_to_exec)[0].split('\n')
 
         for host_mac in hosts_node_mac_list:
             if not host_mac:
@@ -239,7 +214,7 @@ def _power_on(ssh_obj, driver_info):
                                  driver_info['cmd_set']['start_cmd'])
     cmd_to_power_on = cmd_to_power_on.replace('{_NodeName_}', node_name)
 
-    _exec_ssh_command(ssh_obj, cmd_to_power_on)
+    processutils.ssh_execute(ssh_obj, cmd_to_power_on)
 
     current_pstate = _get_power_status(ssh_obj, driver_info)
     if current_pstate == states.POWER_ON:
@@ -260,7 +235,7 @@ def _power_off(ssh_obj, driver_info):
                                   driver_info['cmd_set']['stop_cmd'])
     cmd_to_power_off = cmd_to_power_off.replace('{_NodeName_}', node_name)
 
-    _exec_ssh_command(ssh_obj, cmd_to_power_off)
+    processutils.ssh_execute(ssh_obj, cmd_to_power_off)
 
     current_pstate = _get_power_status(ssh_obj, driver_info)
     if current_pstate == states.POWER_OFF:

@@ -23,10 +23,10 @@ import re
 import socket
 import stat
 
-from ironic.common import exception
 from ironic.common import utils
 from ironic.openstack.common import excutils
 from ironic.openstack.common import log as logging
+from ironic.openstack.common import processutils
 
 
 LOG = logging.getLogger(__name__)
@@ -179,7 +179,7 @@ def work_on_disk(dev, root_mb, swap_mb, image_path):
 
     try:
         root_uuid = block_uuid(root_part)
-    except exception.ProcessExecutionError:
+    except processutils.ProcessExecutionError:
         with excutils.save_and_reraise_exception():
             LOG.error(_("Failed to detect root device UUID."))
     return root_uuid
@@ -196,7 +196,7 @@ def deploy(address, port, iqn, lun, image_path, pxe_config_path,
     login_iscsi(address, port, iqn)
     try:
         root_uuid = work_on_disk(dev, root_mb, swap_mb, image_path)
-    except exception.ProcessExecutionError as err:
+    except processutils.ProcessExecutionError as err:
         with excutils.save_and_reraise_exception():
             # Log output if there was a error
             LOG.error(_("Deploy to address %s failed.") % address)

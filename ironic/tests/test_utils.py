@@ -28,8 +28,8 @@ import mock
 import netaddr
 from oslo.config import cfg
 
-from ironic.common import exception
 from ironic.common import utils
+from ironic.openstack.common import processutils
 from ironic.tests import base
 
 CONF = cfg.CONF
@@ -97,7 +97,7 @@ exit 1
 ''')
             fp.close()
             os.chmod(tmpfilename, 0o755)
-            self.assertRaises(exception.ProcessExecutionError,
+            self.assertRaises(processutils.ProcessExecutionError,
                               utils.execute,
                               tmpfilename, tmpfilename2, attempts=10,
                               process_input='foo',
@@ -116,14 +116,14 @@ exit 1
             os.unlink(tmpfilename2)
 
     def test_unknown_kwargs_raises_error(self):
-        self.assertRaises(exception.IronicException,
+        self.assertRaises(processutils.UnknownArgumentError,
                           utils.execute,
                           '/usr/bin/env', 'true',
                           this_is_not_a_valid_kwarg=True)
 
     def test_check_exit_code_boolean(self):
         utils.execute('/usr/bin/env', 'false', check_exit_code=False)
-        self.assertRaises(exception.ProcessExecutionError,
+        self.assertRaises(processutils.ProcessExecutionError,
                           utils.execute,
                           '/usr/bin/env', 'false', check_exit_code=True)
 
