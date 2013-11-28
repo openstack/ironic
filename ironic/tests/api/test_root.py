@@ -34,8 +34,13 @@ class TestV1Root(base.FunctionalTest):
         data = self.get_json('/')
         self.assertEqual(data['id'], 'v1')
         # Check fields are not empty
-        [self.assertNotIn(f, ['', []]) for f in data.keys()]
-        # Check if the resources are present
-        [self.assertIn(r, data.keys()) for r in ('chassis', 'nodes', 'ports')]
+        for f in data.keys():
+            self.assertNotIn(f, ['', []])
+        # Check if all known resources are present and there are no extra ones.
+        not_resources = ('id', 'links', 'media_types')
+        actual_resources = tuple(set(data.keys()) - set(not_resources))
+        expected_resources = ('chassis', 'drivers', 'nodes', 'ports')
+        self.assertEqual(sorted(expected_resources), sorted(actual_resources))
+
         self.assertIn({'type': 'application/vnd.openstack.ironic.v1+json',
                        'base': 'application/json'}, data['media_types'])
