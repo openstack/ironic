@@ -304,6 +304,11 @@ class PXEPrivateMethodsTestCase(base.TestCase):
         self.assertEqual('/var/lib/ironic/images/fake_instance_name/disk',
                          pxe._get_image_file_path(info))
 
+    def test_get_token_file_path(self):
+        node_uuid = self.node['uuid']
+        self.assertEqual(pxe._get_token_file_path(node_uuid),
+                         '/tftpboot/token-' + node_uuid)
+
     def test__cache_tftp_images_master_path(self):
         temp_dir = tempfile.mkdtemp()
         CONF.set_default('tftp_root', temp_dir, group='pxe')
@@ -427,6 +432,9 @@ class PXEDriverTestCase(db_base.DbTestCase):
     def setUp(self):
         super(PXEDriverTestCase, self).setUp()
         self.context = context.get_admin_context()
+        self.context.auth_token = '4562138218392831'
+        temp_dir = tempfile.mkdtemp()
+        CONF.set_default('tftp_root', temp_dir, group='pxe')
         mgr_utils.get_mocked_node_manager(driver='fake_pxe')
         driver_info = INFO_DICT
         driver_info['pxe_deploy_key'] = 'fake-56789'
@@ -436,6 +444,11 @@ class PXEDriverTestCase(db_base.DbTestCase):
                 instance_uuid='instance_uuid_123')
         self.dbapi = dbapi.get_instance()
         self.node = self.dbapi.create_node(n)
+
+    def _create_token_file(self):
+        token_path = pxe._get_token_file_path(self.node['uuid'])
+        open(token_path, 'w').close()
+        return token_path
 
     def test_validate_good(self):
         with task_manager.acquire(self.context, [self.node['uuid']],
@@ -519,7 +532,12 @@ class PXEDriverTestCase(db_base.DbTestCase):
                                                                   None)
                         self.assertEqual(state, states.DEPLOYING)
 
+                        t_path = pxe._get_token_file_path(self.node['uuid'])
+                        token = open(t_path, 'r').read()
+                        self.assertEqual(self.context.auth_token, token)
+
     def test_continue_deploy_good(self):
+        token_path = self._create_token_file()
 
         def fake_deploy(**kwargs):
             pass
@@ -532,8 +550,10 @@ class PXEDriverTestCase(db_base.DbTestCase):
                     method='pass_deploy_info', address='123456', iqn='aaa-bbb',
                     key='fake-56789')
         self.assertEqual(self.node['provision_state'], states.DEPLOYDONE)
+        self.assertFalse(os.path.exists(token_path))
 
     def test_continue_deploy_fail(self):
+        token_path = self._create_token_file()
 
         def fake_deploy(**kwargs):
             raise exception.InstanceDeployFailure()
@@ -547,6 +567,7 @@ class PXEDriverTestCase(db_base.DbTestCase):
                             task, self.node, method='pass_deploy_info',
                             address='123456', iqn='aaa-bbb', key='fake-56789')
         self.assertEqual(self.node['provision_state'], states.DEPLOYFAIL)
+        self.assertFalse(os.path.exists(token_path))
 
     def test_lock_elevated(self):
         with task_manager.acquire(self.context, [self.node['uuid']],

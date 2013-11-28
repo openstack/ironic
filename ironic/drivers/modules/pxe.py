@@ -214,6 +214,11 @@ def _get_image_file_path(d_info):
     return os.path.join(_get_image_dir_path(d_info), 'disk')
 
 
+def _get_token_file_path(node_uuid):
+    """Generate the path for PKI token file."""
+    return os.path.join(CONF.pxe.tftp_root, 'token-' + node_uuid)
+
+
 @lockutils.synchronized('master_image', 'ironic-')
 def _link_master_image(path, dest_path):
     """Create a link from path to dest_path using locking to
@@ -416,6 +421,22 @@ def _destroy_images(d_info):
     _unlink_master_image(master_image)
 
 
+def _create_token_file(task, node):
+    """Save PKI token to file."""
+    token_file_path = _get_token_file_path(node['uuid'])
+    token = task.context.auth_token
+    if token:
+        utils.write_to_file(token_file_path, token)
+    else:
+        utils.unlink_without_raise(token_file_path)
+
+
+def _destroy_token_file(node):
+    """Delete PKI token file."""
+    token_file_path = _get_token_file_path(node['uuid'])
+    utils.unlink_without_raise(token_file_path)
+
+
 def _create_pxe_config(task, node, pxe_info):
     """Generate pxe configuration file and link mac ports to it for
     tftp booting.
@@ -465,6 +486,9 @@ class PXEDeploy(base.DeployInterface):
 
         _create_pxe_config(task, node, pxe_info)
         _cache_images(node, pxe_info)
+        # TODO(yuriyz): more secure way needed for pass auth token to
+        # deploy ramdisk
+        _create_token_file(task, node)
 
         return states.DEPLOYING
 
@@ -561,6 +585,8 @@ class VendorPassthru(base.VendorInterface):
         return True
 
     def _continue_deploy(self, task, node, **kwargs):
+        # token already not needed
+        _destroy_token_file(node)
         params = self._get_deploy_info(node, **kwargs)
         ctx = task.context
         node_id = node['uuid']
