@@ -83,6 +83,8 @@ class PhysicalWorkTestCase(tests_base.TestCase):
                      'notify']
         patch_list = [mock.patch.object(utils, name) for name in name_list]
         mock_list = [patcher.start() for patcher in patch_list]
+        for patcher in patch_list:
+            self.addCleanup(patcher.stop)
 
         parent_mock = mock.MagicMock()
         for mocker, name in zip(mock_list, name_list):
@@ -113,9 +115,6 @@ class PhysicalWorkTestCase(tests_base.TestCase):
 
         self.assertEqual(calls_expected, parent_mock.mock_calls)
 
-        for patcher in patch_list:
-            patcher.stop()
-
     def test_always_logout_iscsi(self):
         """logout_iscsi() must be called once login_iscsi() is called."""
         address = '127.0.0.1'
@@ -136,6 +135,8 @@ class PhysicalWorkTestCase(tests_base.TestCase):
                      'logout_iscsi', 'work_on_disk']
         patch_list = [mock.patch.object(utils, name) for name in name_list]
         mock_list = [patcher.start() for patcher in patch_list]
+        for patcher in patch_list:
+            self.addCleanup(patcher.stop)
 
         parent_mock = mock.MagicMock()
         for mocker, name in zip(mock_list, name_list):
@@ -159,9 +160,6 @@ class PhysicalWorkTestCase(tests_base.TestCase):
 
         self.assertEqual(calls_expected, parent_mock.mock_calls)
 
-        for patcher in patch_list:
-            patcher.stop()
-
 
 class SwitchPxeConfigTestCase(tests_base.TestCase):
     def setUp(self):
@@ -169,11 +167,7 @@ class SwitchPxeConfigTestCase(tests_base.TestCase):
         (fd, self.fname) = tempfile.mkstemp()
         os.write(fd, _PXECONF_DEPLOY)
         os.close(fd)
-
-        def cleanup():
-            os.unlink(self.fname)
-
-        self.addCleanup(cleanup)
+        self.addCleanup(os.unlink, self.fname)
 
     def test_switch_pxe_config(self):
         utils.switch_pxe_config(self.fname,
