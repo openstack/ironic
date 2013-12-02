@@ -129,13 +129,13 @@ def ssh_connect(connection):
 
 def generate_uid(topic, size=8):
     characters = '01234567890abcdefghijklmnopqrstuvwxyz'
-    choices = [random.choice(characters) for _x in xrange(size)]
+    choices = [random.choice(characters) for _x in range(size)]
     return '%s-%s' % (topic, ''.join(choices))
 
 
 def random_alnum(size=32):
     characters = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ'
-    return ''.join(random.choice(characters) for _ in xrange(size))
+    return ''.join(random.choice(characters) for _ in range(size))
 
 
 class LazyPluggable(object):

@@ -88,7 +88,7 @@ class TestChassisObject(base.DbTestCase):
     def test_objectify_many(self):
         def _get_many_db_chassis():
             chassis = []
-            for i in xrange(5):
+            for i in range(5):
                 c = models.Chassis()
                 c.update(self.fake_chassis)
                 chassis.append(c)

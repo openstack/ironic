@@ -40,7 +40,7 @@ class DbNodeTestCase(base.DbTestCase):
 
     def _create_many_test_nodes(self):
         uuids = []
-        for i in xrange(1, 6):
+        for i in range(1, 6):
             n = self._create_test_node(id=i, uuid=ironic_utils.generate_uuid())
             uuids.append(n['uuid'])
         uuids.sort()
@@ -50,7 +50,7 @@ class DbNodeTestCase(base.DbTestCase):
         uuids = []
         uuids_with_instance = []
 
-        for i in xrange(1, 5):
+        for i in range(1, 5):
             uuid = ironic_utils.generate_uuid()
             uuids.append(six.text_type(uuid))
             if i < 3:
@@ -114,7 +114,7 @@ class DbNodeTestCase(base.DbTestCase):
 
     def test_get_node_list(self):
         uuids = []
-        for i in xrange(1, 6):
+        for i in range(1, 6):
             n = utils.get_test_node(id=i, uuid=ironic_utils.generate_uuid())
             self.dbapi.create_node(n)
             uuids.append(six.text_type(n['uuid']))

@@ -45,7 +45,7 @@ class HashRing(object):
         self.replicas = replicas
         self.partition_shift = 32 - CONF.hash_partition_exponent
         self.part2host = array.array('H')
-        for p in xrange(2 ** CONF.hash_partition_exponent):
+        for p in range(2 ** CONF.hash_partition_exponent):
             self.part2host.append(p % len(hosts))
 
     def _get_partition(self, data):
@@ -73,7 +73,7 @@ class HashRing(object):
                                for h in ignore_hosts if h in self.hosts]
 
         partition = self._get_partition(data)
-        for replica in xrange(0, self.replicas):
+        for replica in range(0, self.replicas):
             if len(host_ids + ignore_host_ids) == len(self.hosts):
                 # prevent infinite loop
                 break
