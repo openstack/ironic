@@ -113,11 +113,13 @@ class AdminAuthHook(hooks.PecanHook):
 
 
 class NoExceptionTracebackHook(hooks.PecanHook):
-    """Ensures that no exception traceback is built into the faultstring
-    (it's a workaround for the rpc.common: deserialize_remote_exception
-    behavior)
-    """
+    """Workaround rpc.common: deserialize_remote_exception.
 
+    deserialize_remote_exception builds rpc exception traceback into error
+    message which is then sent to the client. Such behavior is a security
+    concern so this hook is aimed to cut-off traceback from the error message.
+
+    """
     # NOTE(max_lobur): 'after' hook used instead of 'on_error' because
     # 'on_error' never fired for wsme+pecan pair. wsme @wsexpose decorator
     # catches and handles all the errors, so 'on_error' dedicated for unhandled
