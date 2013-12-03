@@ -28,6 +28,15 @@
 
 
 #
+# Options defined in ironic.common.hash_ring
+#
+
+# Exponent to determine number of hash partitions to use when
+# distributing load across conductors. (integer value)
+#hash_partition_exponent=16
+
+
+#
 # Options defined in ironic.common.images
 #
 
