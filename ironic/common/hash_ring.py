@@ -47,13 +47,13 @@ class HashRing(object):
     def __init__(self, hosts, replicas=CONF.hash_distribution_replicas):
         """Create a new hash ring across the specified hosts.
 
-        :param hosts: list of hosts which will be mapped
+        :param hosts: an iterable of hosts which will be mapped.
         :param replicas: number of hosts to map to each hash partition,
                          or len(hosts), which ever is lesser.
                          Default: CONF.hash_distribution_replicas
 
         """
-        self.hosts = hosts
+        self.hosts = list(hosts)
         self.replicas = replicas if replicas <= len(hosts) else len(hosts)
         self.partition_shift = 32 - CONF.hash_partition_exponent
         self.part2host = array.array('H')

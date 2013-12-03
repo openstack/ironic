@@ -85,27 +85,87 @@ class DbConductorTestCase(base.DbTestCase):
                 self.dbapi.touch_conductor,
                 'bad-hostname')
 
-    def test_list_active_conductor_drivers(self):
-        # create some conductors with different timestamps
-        now = datetime.datetime(2000, 1, 1, 0, 0)
-        then = now + datetime.timedelta(hours=1)
+    def test_get_active_driver_dict_one_host_no_driver(self):
+        h = 'fake-host'
+        expected = {}
 
-        d1 = [u'not-this-one']
-        timeutils.set_time_override(override_time=now)
-        self._create_test_cdr(id=1, hostname='d1', drivers=d1)
+        timeutils.set_time_override()
+        self._create_test_cdr(hostname=h, drivers=[])
+        result = self.dbapi.get_active_driver_dict(interval=1)
+        self.assertEqual(expected, result)
 
-        d2 = [u'foo', u'bar']
-        d3 = [u'another']
-        timeutils.set_time_override(override_time=then)
-        self._create_test_cdr(id=2, hostname='d2', drivers=d2)
-        self._create_test_cdr(id=3, hostname='d3', drivers=d3)
+    def test_get_active_driver_dict_one_host_one_driver(self):
+        h = 'fake-host'
+        d = 'fake-driver'
+        expected = {d: set([h])}
 
-        # verify that res contains d2 and d3, but not the old d1
-        res = self.dbapi.list_active_conductor_drivers(interval=60)
-        drivers = d2 + d3
-        self.assertEqual(sorted(res), sorted(drivers))
+        timeutils.set_time_override()
+        self._create_test_cdr(hostname=h, drivers=[d])
+        result = self.dbapi.get_active_driver_dict(interval=1)
+        self.assertEqual(expected, result)
 
-        # change the interval, and verify that d1 appears
-        res = self.dbapi.list_active_conductor_drivers(interval=7200)
-        drivers = d1 + d2 + d3
-        self.assertEqual(sorted(res), sorted(drivers))
+    def test_get_active_driver_dict_one_host_many_drivers(self):
+        h = 'fake-host'
+        d1 = 'driver-one'
+        d2 = 'driver-two'
+        expected = {d1: set([h]), d2: set([h])}
+
+        timeutils.set_time_override()
+        self._create_test_cdr(hostname=h, drivers=[d1, d2])
+        result = self.dbapi.get_active_driver_dict(interval=1)
+        self.assertEqual(expected, result)
+
+    def test_get_active_driver_dict_many_hosts_one_driver(self):
+        h1 = 'host-one'
+        h2 = 'host-two'
+        d = 'fake-driver'
+        expected = {d: set([h1, h2])}
+
+        timeutils.set_time_override()
+        self._create_test_cdr(id=1, hostname=h1, drivers=[d])
+        self._create_test_cdr(id=2, hostname=h2, drivers=[d])
+        result = self.dbapi.get_active_driver_dict(interval=1)
+        self.assertEqual(expected, result)
+
+    def test_get_active_driver_dict_many_hosts_and_drivers(self):
+        h1 = 'host-one'
+        h2 = 'host-two'
+        h3 = 'host-three'
+        d1 = 'driver-one'
+        d2 = 'driver-two'
+        expected = {d1: set([h1, h2]), d2: set([h2, h3])}
+
+        timeutils.set_time_override()
+        self._create_test_cdr(id=1, hostname=h1, drivers=[d1])
+        self._create_test_cdr(id=2, hostname=h2, drivers=[d1, d2])
+        self._create_test_cdr(id=3, hostname=h3, drivers=[d2])
+        result = self.dbapi.get_active_driver_dict(interval=1)
+        self.assertEqual(expected, result)
+
+    def test_get_active_driver_dict_with_old_conductor(self):
+        past = datetime.datetime(2000, 1, 1, 0, 0)
+        present = past + datetime.timedelta(minutes=2)
+
+        d = 'common-driver'
+
+        h1 = 'old-host'
+        d1 = 'old-driver'
+        timeutils.set_time_override(override_time=past)
+        self._create_test_cdr(id=1, hostname=h1, drivers=[d, d1])
+
+        h2 = 'new-host'
+        d2 = 'new-driver'
+        timeutils.set_time_override(override_time=present)
+        self._create_test_cdr(id=2, hostname=h2, drivers=[d, d2])
+
+        # verify that old-host does not show up in current list
+        one_minute = 60
+        expected = {d: set([h2]), d2: set([h2])}
+        result = self.dbapi.get_active_driver_dict(interval=one_minute)
+        self.assertEqual(expected, result)
+
+        # change the interval, and verify that old-host appears
+        two_minute = one_minute * 2
+        expected = {d: set([h1, h2]), d1: set([h1]), d2: set([h2])}
+        result = self.dbapi.get_active_driver_dict(interval=two_minute)
+        self.assertEqual(expected, result)
