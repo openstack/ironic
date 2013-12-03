@@ -70,6 +70,9 @@ class V1(base.APIBase):
     ports = [link.Link]
     "Links to the ports resource"
 
+    drivers = [link.Link]
+    "Links to the drivers resource"
+
     @classmethod
     def convert(self):
         v1 = V1()
@@ -105,6 +108,13 @@ class V1(base.APIBase):
                                         'ports', '',
                                         bookmark=True)
                    ]
+        v1.drivers = [link.Link.make_link('self', pecan.request.host_url,
+                                          'drivers', ''),
+                      link.Link.make_link('bookmark',
+                                          pecan.request.host_url,
+                                          'drivers', '',
+                                          bookmark=True)
+                     ]
         return v1
 
 
