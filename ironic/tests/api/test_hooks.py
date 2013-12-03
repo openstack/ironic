@@ -13,9 +13,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-"""
-Tests for the Pecan API hooks.
-"""
+"""Tests for the Pecan API hooks."""
 
 import json
 import mock
