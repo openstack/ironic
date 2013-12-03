@@ -40,7 +40,7 @@ class TestListNodes(base.FunctionalTest):
     def _create_association_test_nodes(self):
         #create some unassociated nodes
         unassociated_nodes = []
-        for id in xrange(3):
+        for id in range(3):
             ndict = dbutils.get_test_node(id=id,
                                           uuid=utils.generate_uuid())
             node = self.dbapi.create_node(ndict)
@@ -48,7 +48,7 @@ class TestListNodes(base.FunctionalTest):
 
         #created some associated nodes
         associated_nodes = []
-        for id in xrange(3, 7):
+        for id in range(3, 7):
             ndict = dbutils.get_test_node(
                         id=id,
                         uuid=utils.generate_uuid(),
@@ -93,7 +93,7 @@ class TestListNodes(base.FunctionalTest):
 
     def test_many(self):
         nodes = []
-        for id in xrange(5):
+        for id in range(5):
             ndict = dbutils.get_test_node(id=id,
                                           uuid=utils.generate_uuid())
             node = self.dbapi.create_node(ndict)
@@ -117,7 +117,7 @@ class TestListNodes(base.FunctionalTest):
 
     def test_collection_links(self):
         nodes = []
-        for id in xrange(5):
+        for id in range(5):
             ndict = dbutils.get_test_node(id=id,
                                           uuid=utils.generate_uuid())
             node = self.dbapi.create_node(ndict)
@@ -139,7 +139,7 @@ class TestListNodes(base.FunctionalTest):
         ndict = dbutils.get_test_node()
         self.dbapi.create_node(ndict)
 
-        for id in xrange(2):
+        for id in range(2):
             pdict = dbutils.get_test_port(id=id, node_id=ndict['id'],
                                           uuid=utils.generate_uuid(),
                                           address='52:54:00:cf:2d:3%s' % id)

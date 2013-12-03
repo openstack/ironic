@@ -44,7 +44,7 @@ class DbChassisTestCase(base.DbTestCase):
 
     def test_get_chassis_list(self):
         uuids = []
-        for i in xrange(1, 6):
+        for i in range(1, 6):
             n = utils.get_test_chassis(id=i, uuid=ironic_utils.generate_uuid())
             self.dbapi.create_chassis(n)
             uuids.append(six.text_type(n['uuid']))

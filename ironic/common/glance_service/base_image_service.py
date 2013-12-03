@@ -116,7 +116,7 @@ class BaseImageService(object):
                       exception.BadRequest)
         num_attempts = 1 + CONF.glance.glance_num_retries
 
-        for attempt in xrange(1, num_attempts + 1):
+        for attempt in range(1, num_attempts + 1):
             try:
                 return getattr(self.client.images, method)(*args, **kwargs)
             except retry_excs as e:

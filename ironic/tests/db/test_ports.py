@@ -50,7 +50,7 @@ class DbPortTestCase(base.DbTestCase):
 
     def test_get_port_list(self):
         uuids = []
-        for i in xrange(1, 6):
+        for i in range(1, 6):
             n = utils.get_test_port(id=i, uuid=ironic_utils.generate_uuid(),
                                     address='52:54:00:cf:2d:3%s' % i)
             self.dbapi.create_port(n)

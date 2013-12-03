@@ -54,7 +54,7 @@ class TaskManagerTestCase(base.DbTestCase):
         self.context = context.get_admin_context()
         self.driver = mgr_utils.get_mocked_node_manager()
 
-        self.uuids = [create_fake_node(i) for i in xrange(1, 6)]
+        self.uuids = [create_fake_node(i) for i in range(1, 6)]
         self.uuids.sort()
 
     def test_get_one_node(self):

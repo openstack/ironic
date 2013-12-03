@@ -54,7 +54,7 @@ class TestListChassis(base.FunctionalTest):
 
     def test_many(self):
         ch_list = []
-        for id in xrange(5):
+        for id in range(5):
             ndict = dbutils.get_test_chassis(id=id,
                                              uuid=utils.generate_uuid())
             chassis = self.dbapi.create_chassis(ndict)
@@ -78,7 +78,7 @@ class TestListChassis(base.FunctionalTest):
 
     def test_collection_links(self):
         chassis = []
-        for id in xrange(5):
+        for id in range(5):
             ndict = dbutils.get_test_chassis(id=id,
                                              uuid=utils.generate_uuid())
             ch = self.dbapi.create_chassis(ndict)
@@ -100,7 +100,7 @@ class TestListChassis(base.FunctionalTest):
         cdict = dbutils.get_test_chassis()
         self.dbapi.create_chassis(cdict)
 
-        for id in xrange(2):
+        for id in range(2):
             ndict = dbutils.get_test_node(id=id, chassis_id=cdict['id'],
                                           uuid=utils.generate_uuid())
             self.dbapi.create_node(ndict)

@@ -57,7 +57,7 @@ class TestListPorts(base.FunctionalTest):
 
     def test_many(self):
         ports = []
-        for id in xrange(5):
+        for id in range(5):
             ndict = dbutils.get_test_port(id=id,
                                           uuid=utils.generate_uuid(),
                                           address='52:54:00:cf:2d:3%s' % id)
@@ -82,7 +82,7 @@ class TestListPorts(base.FunctionalTest):
 
     def test_collection_links(self):
         ports = []
-        for id in xrange(5):
+        for id in range(5):
             ndict = dbutils.get_test_port(id=id,
                                           uuid=utils.generate_uuid(),
                                           address='52:54:00:cf:2d:3%s' % id)

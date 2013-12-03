@@ -100,7 +100,7 @@ class TestConductorObject(base.DbTestCase):
     def test_objectify_many(self):
         def _get_db_conductors():
             conductors = []
-            for i in xrange(5):
+            for i in range(5):
                 c = models.Conductor()
                 c.update(self.fake_conductor)
                 conductors.append(c)

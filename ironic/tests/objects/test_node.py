@@ -85,7 +85,7 @@ class TestNodeObject(base.DbTestCase):
     def test_objectify_many(self):
         def _get_db_nodes():
             nodes = []
-            for i in xrange(5):
+            for i in range(5):
                 n = models.Node()
                 n.update(self.fake_node)
                 nodes.append(n)

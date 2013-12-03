@@ -85,7 +85,7 @@ class TestPortObject(base.DbTestCase):
     def test_objectify_many(self):
         def _get_db_ports():
             nodes = []
-            for i in xrange(5):
+            for i in range(5):
                 n = models.Port()
                 n.update(self.fake_port)
                 nodes.append(n)
