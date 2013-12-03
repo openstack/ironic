@@ -25,7 +25,17 @@ hash_opts = [
     cfg.IntOpt('hash_partition_exponent',
                default=16,
                help='Exponent to determine number of hash partitions to use '
-                    'when distributing load across conductors.'),
+                    'when distributing load across conductors. Larger values '
+                    'will result in more even distribution of load and less '
+                    'load when rebalancing the ring, but more memory usage. '
+                    'Number of partitions is (2^hash_partition_exponent).'),
+    cfg.IntOpt('hash_distribution_replicas',
+               default=2,
+               help='Number of hosts to map onto each hash partition. '
+                    'Setting this to more than one will cause additional '
+                    'conductor services to prepare deployment environments '
+                    'and potentially allow the Ironic cluster to recover '
+                    'more quickly if a conductor instance is terminated.'),
 ]
 
 CONF = cfg.CONF
@@ -34,15 +44,17 @@ CONF.register_opts(hash_opts)
 
 class HashRing(object):
 
-    def __init__(self, hosts, replicas=1):
+    def __init__(self, hosts, replicas=CONF.hash_distribution_replicas):
         """Create a new hash ring across the specified hosts.
 
-        :param hosts: array of hosts which will be mapped
-        :param replicas: number of replicas. Default: 1
+        :param hosts: list of hosts which will be mapped
+        :param replicas: number of hosts to map to each hash partition,
+                         or len(hosts), which ever is lesser.
+                         Default: CONF.hash_distribution_replicas
 
         """
         self.hosts = hosts
-        self.replicas = replicas
+        self.replicas = replicas if replicas <= len(hosts) else len(hosts)
         self.partition_shift = 32 - CONF.hash_partition_exponent
         self.part2host = array.array('H')
         for p in range(2 ** CONF.hash_partition_exponent):

@@ -73,7 +73,7 @@ class HashRingTestCase(base.TestCase):
 
     def test_ignore_hosts(self):
         hosts = ['foo', 'bar', 'baz']
-        ring = hash.HashRing(hosts)
+        ring = hash.HashRing(hosts, replicas=1)
         self.assertEqual(['bar'], ring.get_hosts('fake',
                                                  ignore_hosts=['foo']))
         self.assertEqual(['baz'], ring.get_hosts('fake',
@@ -102,6 +102,6 @@ class HashRingTestCase(base.TestCase):
 
     def test_ignore_non_existent_host(self):
         hosts = ['foo', 'bar']
-        ring = hash.HashRing(hosts)
+        ring = hash.HashRing(hosts, replicas=1)
         self.assertEqual(['foo'], ring.get_hosts('fake',
                                                  ignore_hosts=['baz']))
