@@ -405,23 +405,26 @@ class Connection(api.Connection):
             values['extra'] = '{}'
         port = models.Port()
         port.update(values)
-        port.save()
+        try:
+            port.save()
+        except db_exc.DBDuplicateEntry:
+            raise exception.MACAlreadyExists(mac=values['address'])
         return port
 
     @objects.objectify(objects.Port)
     def update_port(self, port_id, values):
         session = get_session()
-        with session.begin():
-            query = model_query(models.Port, session=session)
-            query = add_port_filter(query, port_id)
-            try:
+        try:
+            with session.begin():
+                query = model_query(models.Port, session=session)
+                query = add_port_filter(query, port_id)
                 ref = query.one()
-            except NoResultFound:
-                raise exception.PortNotFound(port=port_id)
-            _check_port_change_forbidden(ref, session)
-
-            ref.update(values)
-
+                _check_port_change_forbidden(ref, session)
+                ref.update(values)
+        except NoResultFound:
+            raise exception.PortNotFound(port=port_id)
+        except db_exc.DBDuplicateEntry:
+            raise exception.MACAlreadyExists(mac=values['address'])
         return ref
 
     def destroy_port(self, port_id):
