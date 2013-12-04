@@ -23,6 +23,7 @@ import re
 import socket
 import stat
 
+from ironic.common import exception
 from ironic.common import utils
 from ironic.openstack.common import excutils
 from ironic.openstack.common import log as logging
@@ -165,15 +166,16 @@ def work_on_disk(dev, root_mb, swap_mb, image_path):
     swap_part = "%s-part2" % dev
 
     if not is_block_device(dev):
-        LOG.warn(_("parent device '%s' not found"), dev)
-        return
+        raise exception.InstanceDeployFailure(_("Parent device '%s' not found")
+                                              % dev)
     make_partitions(dev, root_mb, swap_mb)
+
     if not is_block_device(root_part):
-        LOG.warn(_("root device '%s' not found"), root_part)
-        return
+        raise exception.InstanceDeployFailure(_("Root device '%s' not found")
+                                              % root_part)
     if not is_block_device(swap_part):
-        LOG.warn(_("swap device '%s' not found"), swap_part)
-        return
+        raise exception.InstanceDeployFailure(_("Swap device '%s' not found")
+                                              % swap_part)
     dd(image_path, root_part)
     mkswap(swap_part)
 
@@ -198,11 +200,14 @@ def deploy(address, port, iqn, lun, image_path, pxe_config_path,
         root_uuid = work_on_disk(dev, root_mb, swap_mb, image_path)
     except processutils.ProcessExecutionError as err:
         with excutils.save_and_reraise_exception():
-            # Log output if there was a error
             LOG.error(_("Deploy to address %s failed.") % address)
             LOG.error(_("Command: %s") % err.cmd)
             LOG.error(_("StdOut: %r") % err.stdout)
             LOG.error(_("StdErr: %r") % err.stderr)
+    except exception.InstanceDeployFailure as e:
+        with excutils.save_and_reraise_exception():
+            LOG.error(_("Deploy to address %s failed.") % address)
+            LOG.error(e)
     finally:
         logout_iscsi(address, port, iqn)
     switch_pxe_config(pxe_config_path, root_uuid)
