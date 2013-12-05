@@ -247,7 +247,8 @@ class PXEPrivateMethodsTestCase(base.TestCase):
     def test__build_pxe_config(self):
         instance_uuid = 'instance_uuid_123'
         CONF.set_default('pxe_append_params', 'test_param', group='pxe')
-        CONF.set_default('api_url', 'http://192.168.122.184:6385',
+        # NOTE: right '/' should be removed from url string
+        CONF.set_default('api_url', 'http://192.168.122.184:6385/',
                 group='conductor')
 
         template = 'ironic/tests/drivers/pxe_config.template'
