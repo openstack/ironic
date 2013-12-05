@@ -19,6 +19,8 @@
 import re
 
 import mock
+import webtest
+import wsme
 
 from ironic.api.controllers.v1 import types
 from ironic.common import exception
@@ -79,3 +81,104 @@ class TestStringType(base.FunctionalTest):
         v.validate('a')
         v.validate('A')
         self.assertRaises(ValueError, v.validate, '_')
+
+
+class MyPatchType(types.JsonPatchType):
+    """Helper class for TestJsonPatchType tests."""
+
+    @staticmethod
+    def mandatory_attrs():
+        return ['/mandatory']
+
+    @staticmethod
+    def internal_attrs():
+        return ['/internal']
+
+
+class MyRoot(wsme.WSRoot):
+    """Helper class for TestJsonPatchType tests."""
+
+    @wsme.expose([wsme.types.text], body=[MyPatchType])
+    @wsme.validate([MyPatchType])
+    def test(self, patch):
+        return patch
+
+
+class TestJsonPatchType(base.FunctionalTest):
+
+    def setUp(self):
+        super(TestJsonPatchType, self).setUp()
+        self.app = webtest.TestApp(MyRoot(['restjson']).wsgiapp())
+
+    def _patch_json(self, params, expect_errors=False):
+        return self.app.patch_json('/test', params=params,
+                              headers={'Accept': 'application/json'},
+                              expect_errors=expect_errors)
+
+    def test_valid_patches(self):
+        valid_patches = [{'path': '/extra/foo', 'op': 'remove'},
+                         {'path': '/extra/foo', 'op': 'add', 'value': 'bar'},
+                         {'path': '/foo', 'op': 'replace', 'value': 'bar'}]
+        ret = self._patch_json(valid_patches, False)
+        self.assertEqual(200, ret.status_int)
+        self.assertEqual(sorted(valid_patches), sorted(ret.json))
+
+    def test_cannot_update_internal_attr(self):
+        patch = [{'path': '/internal', 'op': 'replace', 'value': 'foo'}]
+        ret = self._patch_json(patch, True)
+        self.assertEqual(400, ret.status_int)
+        self.assertTrue(ret.json['faultstring'])
+
+    def test_mandatory_attr(self):
+        patch = [{'op': 'replace', 'path': '/mandatory', 'value': 'foo'}]
+        ret = self._patch_json(patch, False)
+        self.assertEqual(200, ret.status_int)
+        self.assertEqual(patch, ret.json)
+
+    def test_cannot_remove_mandatory_attr(self):
+        patch = [{'op': 'remove', 'path': '/mandatory'}]
+        ret = self._patch_json(patch, True)
+        self.assertEqual(400, ret.status_int)
+        self.assertTrue(ret.json['faultstring'])
+
+    def test_missing_required_fields_path(self):
+        missing_path = [{'op': 'remove'}]
+        ret = self._patch_json(missing_path, True)
+        self.assertEqual(400, ret.status_int)
+        self.assertTrue(ret.json['faultstring'])
+
+    def test_missing_required_fields_op(self):
+        missing_op = [{'path': '/foo'}]
+        ret = self._patch_json(missing_op, True)
+        self.assertEqual(400, ret.status_int)
+        self.assertTrue(ret.json['faultstring'])
+
+    def test_invalid_op(self):
+        patch = [{'path': '/foo', 'op': 'invalid'}]
+        ret = self._patch_json(patch, True)
+        self.assertEqual(400, ret.status_int)
+        self.assertTrue(ret.json['faultstring'])
+
+    def test_invalid_path(self):
+        patch = [{'path': 'invalid-path', 'op': 'remove'}]
+        ret = self._patch_json(patch, True)
+        self.assertEqual(400, ret.status_int)
+        self.assertTrue(ret.json['faultstring'])
+
+    def test_cannot_add_to_root(self):
+        patch = [{'path': '/foo', 'op': 'add', 'value': 'bar'}]
+        ret = self._patch_json(patch, True)
+        self.assertEqual(400, ret.status_int)
+        self.assertTrue(ret.json['faultstring'])
+
+    def test_cannot_add_with_no_value(self):
+        patch = [{'path': '/extra/foo', 'op': 'add'}]
+        ret = self._patch_json(patch, True)
+        self.assertEqual(400, ret.status_int)
+        self.assertTrue(ret.json['faultstring'])
+
+    def test_cannot_replace_with_no_value(self):
+        patch = [{'path': '/foo', 'op': 'replace'}]
+        ret = self._patch_json(patch, True)
+        self.assertEqual(400, ret.status_int)
+        self.assertTrue(ret.json['faultstring'])

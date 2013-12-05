@@ -19,6 +19,7 @@
 import re
 import six
 
+import wsme
 from wsme import types as wtypes
 
 from ironic.common import exception
@@ -110,3 +111,58 @@ class StringType(wtypes.UserType):
             raise ValueError(error)
 
         return value
+
+
+class JsonPatchType(wtypes.Base):
+    """A complex type that represents a single json-patch operation."""
+
+    path = wtypes.wsattr(StringType(pattern='^(/[\w-]+)+$'), mandatory=True)
+    op = wtypes.wsattr(wtypes.Enum(str, 'add', 'replace', 'remove'),
+                       mandatory=True)
+    value = wtypes.text
+
+    @staticmethod
+    def internal_attrs():
+        """Returns a list of internal attributes.
+
+        Internal attributes can't be added, replaced or removed. This
+        method may be overwritten by derived class.
+
+        """
+        return ['/created_at', '/id', '/links', '/updated_at', '/uuid']
+
+    @staticmethod
+    def mandatory_attrs():
+        """Retruns a list of mandatory attributes.
+
+        Mandatory attributes can't be removed from the document. This
+        method should be overwritten by derived class.
+
+        """
+        return []
+
+    @staticmethod
+    def validate(patch):
+        if patch.path in patch.internal_attrs():
+            msg = _("'%s' is an internal attribute and can not be updated")
+            raise wsme.exc.ClientSideError(msg % patch.path)
+
+        if patch.path in patch.mandatory_attrs() and patch.op == 'remove':
+            msg = _("'%s' is a mandatory attribute and can not be removed")
+            raise wsme.exc.ClientSideError(msg % patch.path)
+
+        if patch.op == 'add':
+            if patch.path.count('/') == 1:
+                msg = _('Adding a new attribute (%s) to the root of '
+                        ' the resource is not allowed')
+                raise wsme.exc.ClientSideError(msg % patch.path)
+
+        if patch.op != 'remove':
+            if not patch.value:
+                msg = _("'add' and 'replace' operations needs value")
+                raise wsme.exc.ClientSideError(msg)
+
+        ret = {'path': patch.path, 'op': patch.op}
+        if patch.value:
+            ret['value'] = patch.value
+        return ret
