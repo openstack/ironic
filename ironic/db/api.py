@@ -42,10 +42,23 @@ class Connection(object):
         """Constructor."""
 
     @abc.abstractmethod
-    def get_nodes(self, columns):
-        """Return a list of dicts of all nodes.
+    def get_nodeinfo_list(self, columns=None, filters=None, limit=None,
+                          marker=None, sort_key=None, sort_dir=None):
+        """Return a list of the specified columns for all nodes that match
+        the specified filters.
 
-        :param columns: List of columns to return.
+        :param columns: List of column names to return.
+                        Defaults to 'id' column when columns == None.
+        :param filters: Filters to apply. Defaults to None.
+                        'associated': True | False
+                        'reserved': True | False
+        :param limit: Maximum number of nodes to return.
+        :param marker: the last item of the previous page; we return the next
+                       result set.
+        :param sort_key: Attribute by which results should be sorted.
+        :param sort_dir: direction in which results should be sorted.
+                         (asc, desc)
+        :returns: A list of tuples of the specified columns.
         """
 
     @abc.abstractmethod

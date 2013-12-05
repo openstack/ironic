@@ -65,6 +65,10 @@ conductor_opts = [
         cfg.IntOpt('heartbeat_timeout',
                    default=60,
                    help='Maximum time since the last check-in of a conductor'),
+        cfg.IntOpt('sync_power_state_interval',
+                   default=60,
+                   help='Interval between syncing the node power state to the '
+                        'database, in seconds.'),
 ]
 
 CONF = cfg.CONF
@@ -373,3 +377,33 @@ class ConductorManager(service.PeriodicService):
     @periodic_task.periodic_task(spacing=CONF.conductor.heartbeat_interval)
     def _conductor_service_record_keepalive(self, context):
         self.dbapi.touch_conductor(self.host)
+
+    @periodic_task.periodic_task(
+            spacing=CONF.conductor.sync_power_state_interval)
+    def _sync_power_states(self, context):
+        # TODO(deva): add filter by conductor<->instance mapping
+        filters = {'reserved': False}
+        node_list = self.dbapi.get_nodeinfo_list(filters=filters)
+        for node_id, in node_list:
+            try:
+                with task_manager.acquire(context, node_id) as task:
+                    node = task.node
+                    power_state = task.driver.power.get_power_state(task, node)
+                    if power_state != node['power_state']:
+                        # NOTE(deva): don't log a warning the first time we
+                        #             sync a node's power state
+                        if node['power_state'] is not None:
+                            LOG.warning(_("During sync_power_state, node "
+                                "%(node)s out of sync. Expected: %(old)s. "
+                                "Actual: %(new)s. Updating DB.") %
+                                {'node': node['uuid'],
+                                 'old': node['power_state'],
+                                 'new': power_state})
+                        node['power_state'] = power_state
+                        node.save(context)
+
+            except (exception.NodeLocked, exception.NodeNotFound):
+                # NOTE(deva): if an instance is deleted during sync,
+                #             or locked by another process,
+                #             silently ignore it and continue
+                continue

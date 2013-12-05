@@ -112,6 +112,17 @@ class DbNodeTestCase(base.DbTestCase):
         self.assertRaises(exception.InvalidIdentity,
                           self.dbapi.get_node, 'not-a-uuid')
 
+    def test_get_nodeinfo_list_defaults(self):
+        for i in range(1, 6):
+            n = utils.get_test_node(id=i, uuid=ironic_utils.generate_uuid())
+            self.dbapi.create_node(n)
+        res = [i[0] for i in self.dbapi.get_nodeinfo_list()]
+        self.assertEqual(sorted(res), sorted(xrange(1, 6)))
+
+    # TODO(deva): add more tests for get_nodeinfo_list
+    #             - check each filter works
+    #             - check variable column return works
+
     def test_get_node_list(self):
         uuids = []
         for i in range(1, 6):

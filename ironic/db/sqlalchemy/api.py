@@ -178,9 +178,32 @@ class Connection(api.Connection):
     def __init__(self):
         pass
 
-    @objects.objectify(objects.Node)
-    def get_nodes(self, columns):
-        pass
+    def get_nodeinfo_list(self, columns=None, filters=None, limit=None,
+                          marker=None, sort_key=None, sort_dir=None):
+        # list-ify columns and filters default values because it is bad form
+        # to include a mutable list in function definitions.
+        if filters is None:
+            filters = []
+        if columns is None:
+            columns = [models.Node.id]
+        else:
+            columns = [getattr(models.Node, c) for c in columns]
+
+        query = model_query(*columns, base_model=models.Node)
+        if 'associated' in filters:
+            if filters['associated']:
+                query = query.filter(models.Node.instance_uuid != None)
+            else:
+                query = query.filter(models.Node.instance_uuid == None)
+        if 'reserved' in filters:
+            if filters['reserved']:
+                query = query.filter(models.Node.reservation != None)
+            else:
+                query = query.filter(models.Node.reservation == None)
+        if 'driver' in filters:
+            query = query.filter(models.Node.driver == filters['driver'])
+        return _paginate_query(models.Node, limit, marker,
+                               sort_key, sort_dir, query)
 
     @objects.objectify(objects.Node)
     def get_node_list(self, limit=None, marker=None,
