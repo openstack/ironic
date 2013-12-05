@@ -16,6 +16,8 @@
 Tests for the API /nodes/ methods.
 """
 
+import datetime
+
 import mock
 from testtools.matchers import HasLength
 import webtest.app
@@ -25,7 +27,7 @@ from ironic.common import states
 from ironic.common import utils
 from ironic.conductor import rpcapi
 from ironic import objects
-
+from ironic.openstack.common import timeutils
 from ironic.tests.api import base
 from ironic.tests.db import utils as dbutils
 
@@ -323,14 +325,16 @@ class TestPatch(base.FunctionalTest):
 
     def test_update_ok(self):
         self.mock_update_node.return_value = self.node
-
+        self.mock_update_node.return_value.updated_at = \
+                                   "2013-12-03T06:20:41.184720+00:00"
         response = self.patch_json('/nodes/%s' % self.node['uuid'],
                                    [{'path': '/instance_uuid',
                                      'value': 'fake instance uuid',
                                      'op': 'replace'}])
         self.assertEqual(response.content_type, 'application/json')
         self.assertEqual(response.status_code, 200)
-
+        self.assertEqual(self.mock_update_node.return_value.updated_at,
+                         timeutils.parse_isotime(response.json['updated_at']))
         self.mock_update_node.assert_called_once_with(mock.ANY, mock.ANY)
 
     def test_update_state(self):
@@ -436,12 +440,19 @@ class TestPost(base.FunctionalTest):
         super(TestPost, self).setUp()
         cdict = dbutils.get_test_chassis()
         self.chassis = self.dbapi.create_chassis(cdict)
+        self.addCleanup(timeutils.clear_time_override)
 
     def test_create_node(self):
         ndict = dbutils.get_test_node()
+        t1 = datetime.datetime(2000, 1, 1, 0, 0)
+        timeutils.set_time_override(t1)
         self.post_json('/nodes', ndict)
         result = self.get_json('/nodes/%s' % ndict['uuid'])
         self.assertEqual(ndict['uuid'], result['uuid'])
+        self.assertFalse(result['updated_at'])
+        return_created_at = timeutils.parse_isotime(
+                result['created_at']).replace(tzinfo=None)
+        self.assertEqual(t1, return_created_at)
 
     def test_create_node_valid_extra(self):
         ndict = dbutils.get_test_node(extra={'foo': 123})

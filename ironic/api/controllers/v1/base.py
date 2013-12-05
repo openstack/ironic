@@ -14,11 +14,19 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import datetime
+
 import wsme
 from wsme import types as wtypes
 
 
 class APIBase(wtypes.Base):
+
+    created_at = datetime.datetime
+    "The time in UTC at which the object is created"
+
+    updated_at = datetime.datetime
+    "The time in UTC at which the object is updated"
 
     def as_dict(self):
         """Render this object as a dict of its fields."""

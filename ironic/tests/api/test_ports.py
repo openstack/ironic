@@ -16,9 +16,12 @@
 Tests for the API /ports/ methods.
 """
 
+import datetime
+
 import webtest.app
 
 from ironic.common import utils
+from ironic.openstack.common import timeutils
 from ironic.tests.api import base
 from ironic.tests.db import utils as dbutils
 
@@ -119,9 +122,12 @@ class TestPatch(base.FunctionalTest):
         self.node = self.dbapi.create_node(ndict)
         self.pdict = post_get_test_port()
         self.post_json('/ports', self.pdict)
+        self.addCleanup(timeutils.clear_time_override)
 
     def test_update_byid(self):
         extra = {'foo': 'bar'}
+        t1 = datetime.datetime(2000, 1, 1, 0, 0)
+        timeutils.set_time_override(t1)
         response = self.patch_json('/ports/%s' % self.pdict['uuid'],
                                    [{'path': '/extra/foo',
                                      'value': 'bar',
@@ -130,6 +136,9 @@ class TestPatch(base.FunctionalTest):
         self.assertEqual(response.status_code, 200)
         result = self.get_json('/ports/%s' % self.pdict['uuid'])
         self.assertEqual(result['extra'], extra)
+        return_updated_at = timeutils.parse_isotime(
+                            result['updated_at']).replace(tzinfo=None)
+        self.assertEqual(t1, return_updated_at)
 
     def test_update_byaddress(self):
         extra = {'foo': 'bar'}
@@ -287,12 +296,19 @@ class TestPost(base.FunctionalTest):
         super(TestPost, self).setUp()
         ndict = dbutils.get_test_node()
         self.node = self.dbapi.create_node(ndict)
+        self.addCleanup(timeutils.clear_time_override)
 
     def test_create_port(self):
         pdict = post_get_test_port()
+        t1 = datetime.datetime(2000, 1, 1, 0, 0)
+        timeutils.set_time_override(t1)
         self.post_json('/ports', pdict)
         result = self.get_json('/ports/%s' % pdict['uuid'])
         self.assertEqual(pdict['uuid'], result['uuid'])
+        self.assertFalse(result['updated_at'])
+        return_created_at = timeutils.parse_isotime(
+                            result['created_at']).replace(tzinfo=None)
+        self.assertEqual(t1, return_created_at)
 
     def test_create_port_generate_uuid(self):
         pdict = post_get_test_port()

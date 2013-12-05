@@ -16,9 +16,12 @@
 Tests for the API /chassis/ methods.
 """
 
+import datetime
+
 import webtest.app
 
 from ironic.common import utils
+from ironic.openstack.common import timeutils
 from ironic.tests.api import base
 from ironic.tests.db import utils as dbutils
 
@@ -136,6 +139,7 @@ class TestPatch(base.FunctionalTest):
         super(TestPatch, self).setUp()
         cdict = dbutils.get_test_chassis()
         self.post_json('/chassis', cdict)
+        self.addCleanup(timeutils.clear_time_override)
 
     def test_update_not_found(self):
         uuid = utils.generate_uuid()
@@ -150,6 +154,8 @@ class TestPatch(base.FunctionalTest):
     def test_replace_singular(self):
         cdict = dbutils.get_test_chassis()
         description = 'chassis-new-description'
+        t1 = datetime.datetime(2000, 1, 1, 0, 0)
+        timeutils.set_time_override(t1)
         response = self.patch_json('/chassis/%s' % cdict['uuid'],
                                    [{'path': '/description',
                                      'value': description, 'op': 'replace'}])
@@ -157,6 +163,9 @@ class TestPatch(base.FunctionalTest):
         self.assertEqual(response.status_code, 200)
         result = self.get_json('/chassis/%s' % cdict['uuid'])
         self.assertEqual(result['description'], description)
+        return_updated_at = timeutils.parse_isotime(
+                            result['updated_at']).replace(tzinfo=None)
+        self.assertEqual(t1, return_updated_at)
 
     def test_replace_multi(self):
         extra = {"foo1": "bar1", "foo2": "bar2", "foo3": "bar3"}
@@ -255,11 +264,21 @@ class TestPatch(base.FunctionalTest):
 
 class TestPost(base.FunctionalTest):
 
+    def setUp(self):
+        super(TestPost, self).setUp()
+        self.addCleanup(timeutils.clear_time_override)
+
     def test_create_chassis(self):
         cdict = dbutils.get_test_chassis()
+        t1 = datetime.datetime(2000, 1, 1, 0, 0)
+        timeutils.set_time_override(t1)
         self.post_json('/chassis', cdict)
         result = self.get_json('/chassis/%s' % cdict['uuid'])
         self.assertEqual(cdict['uuid'], result['uuid'])
+        self.assertFalse(result['updated_at'])
+        return_created_at = timeutils.parse_isotime(
+                            result['created_at']).replace(tzinfo=None)
+        self.assertEqual(t1, return_created_at)
 
     def test_create_chassis_generate_uuid(self):
         cdict = dbutils.get_test_chassis()
