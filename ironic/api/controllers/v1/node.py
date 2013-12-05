@@ -28,7 +28,6 @@ from ironic.api.controllers.v1 import base
 from ironic.api.controllers.v1 import collection
 from ironic.api.controllers.v1 import link
 from ironic.api.controllers.v1 import port
-from ironic.api.controllers.v1 import state
 from ironic.api.controllers.v1 import types
 from ironic.api.controllers.v1 import utils as api_utils
 from ironic.common import exception
@@ -56,150 +55,79 @@ class NodePatchType(types.JsonPatchType):
         return ['/chassis_uuid', '/driver']
 
 
-class NodePowerState(state.State):
-    @classmethod
-    def convert_with_links(cls, rpc_node, expand=True):
-        power_state = NodePowerState()
-        # FIXME(lucasagomes): this request could potentially take a
-        # while. It's dependent upon the driver talking to the hardware. At
-        # least with IPMI, this often times out, and even fails after 3
-        # retries at a statistically significant frequency....
-        power_state.current = pecan.request.rpcapi.get_node_power_state(
-                                                         pecan.request.context,
-                                                         rpc_node.uuid)
-        url_arg = '%s/state/power' % rpc_node.uuid
-        power_state.links = [link.Link.make_link('self',
-                                                 pecan.request.host_url,
-                                                 'nodes', url_arg),
-                             link.Link.make_link('bookmark',
-                                                 pecan.request.host_url,
-                                                 'nodes', url_arg,
-                                                 bookmark=True)
-                            ]
-        if expand:
-            power_state.target = rpc_node.target_power_state
-            # TODO(lucasagomes): get_next_power_available_states
-            power_state.available = []
-        return power_state
-
-
-class NodePowerStateController(rest.RestController):
-
-    # GET nodes/<uuid>/state/power
-    @wsme_pecan.wsexpose(NodePowerState, wtypes.text)
-    def get(self, node_id):
-        node = objects.Node.get_by_uuid(pecan.request.context, node_id)
-        return NodePowerState.convert_with_links(node)
-
-    # PUT nodes/<uuid>/state/power
-    @wsme_pecan.wsexpose(NodePowerState, wtypes.text, wtypes.text,
-                         status_code=202)
-    def put(self, node_id, target):
-        """Asynchronous request to set the power state of the node.
-
-        This will set the target power state of the node, and a background task
-        will begin which actually applies the state change. This call will
-        return a 202 (Accepted) indicating that the request is being processed.
-        The client should continue to GET the status of this node to observe
-        the status of the requested action.
-
-        :param node_id: UUID of the node.
-        :param target: Desired power state.
-        """
-        node = objects.Node.get_by_uuid(pecan.request.context, node_id)
-        if node.target_power_state is not None:
-            raise wsme.exc.ClientSideError(_("Power operation for node %s is "
-                                             "already in progress.") %
-                                              node['uuid'], status_code=409)
-        #TODO(lucasagomes): Test if target is a valid state and if it's able
-        # to transition to the target state from the current one
-
-        # Note that there is a race condition. The node state(s) could change
-        # by the time the RPC call is made and the TaskManager manager gets a
-        # lock.
-        pecan.request.rpcapi.change_node_power_state(pecan.request.context,
-                                                     node, target)
-        return NodePowerState.convert_with_links(node, expand=False)
-
-
-class NodeProvisionState(state.State):
-    @classmethod
-    def convert_with_links(cls, rpc_node, expand=True):
-        provision_state = NodeProvisionState()
-        provision_state.current = rpc_node.provision_state
-        url_arg = '%s/state/provision' % rpc_node.uuid
-        provision_state.links = [link.Link.make_link('self',
-                                                     pecan.request.host_url,
-                                                     'nodes', url_arg),
-                                 link.Link.make_link('bookmark',
-                                                     pecan.request.host_url,
-                                                     'nodes', url_arg,
-                                                     bookmark=True)
-                                ]
-        if expand:
-            provision_state.target = rpc_node.target_provision_state
-            # TODO(lucasagomes): get_next_provision_available_states
-            provision_state.available = []
-        return provision_state
-
-
-class NodeProvisionStateController(rest.RestController):
-
-    # GET nodes/<uuid>/state/provision
-    @wsme_pecan.wsexpose(NodeProvisionState, wtypes.text)
-    def get(self, node_id):
-        node = objects.Node.get_by_uuid(pecan.request.context, node_id)
-        provision_state = NodeProvisionState.convert_with_links(node)
-        return provision_state
-
-    # PUT nodes/<uuid>/state/provision
-    @wsme_pecan.wsexpose(NodeProvisionState, wtypes.text, wtypes.text,
-                         status_code=202)
-    def put(self, node_id, target):
-        """Set the provision state of the machine."""
-        #TODO(lucasagomes): Test if target is a valid state and if it's able
-        # to transition to the target state from the current one
-        # TODO(lucasagomes): rpcapi.start_provision_state_change()
-        raise NotImplementedError()
-
-
 class NodeStates(base.APIBase):
     """API representation of the states of a node."""
 
-    power = NodePowerState
-    "The current power state of the node"
+    power_state = wtypes.text
 
-    provision = NodeProvisionState
-    "The current provision state of the node"
+    provision_state = wtypes.text
+
+    target_power_state = wtypes.text
+
+    target_provision_state = wtypes.text
+
+    last_error = wtypes.text
 
     @classmethod
-    def convert_with_links(cls, rpc_node):
+    def convert(cls, rpc_node):
+        attr_list = ['last_error', 'power_state', 'provision_state',
+                     'target_power_state', 'target_provision_state']
         states = NodeStates()
-        states.power = NodePowerState.convert_with_links(rpc_node,
-                                                         expand=False)
-        states.provision = NodeProvisionState.convert_with_links(rpc_node,
-                                                                 expand=False)
+        for attr in attr_list:
+            setattr(states, attr, getattr(rpc_node, attr))
         return states
 
 
 class NodeStatesController(rest.RestController):
 
-    power = NodePowerStateController()
-    "Expose the power controller action as a sub-element of state"
+    _custom_actions = {
+        'power': ['PUT'],
+    }
 
-    provision = NodeProvisionStateController()
-    "Expose the provision controller action as a sub-element of state"
-
-    # GET nodes/<uuid>/state
     @wsme_pecan.wsexpose(NodeStates, wtypes.text)
     def get(self, node_id):
-        """List or update the state of a node.
+        """List the states of the node.
 
         :param node_id: UUID of a node.
         """
-        node = objects.Node.get_by_uuid(pecan.request.context, node_id)
-        state = NodeStates.convert_with_links(node)
-        return state
+        # NOTE(lucasagomes): All these state values come from the
+        # DB. Ironic counts with a periodic task that verify the current
+        # power states of the nodes and update the DB accordingly.
+        rpc_node = objects.Node.get_by_uuid(pecan.request.context, node_id)
+        return NodeStates.convert(rpc_node)
+
+    @wsme_pecan.wsexpose(NodeStates, wtypes.text, wtypes.text, status_code=202)
+    def power(self, node_uuid, target):
+        """Set the power state of the node.
+
+        :param node_uuid: UUID of a node.
+        :param target: The desired power state of the node.
+        """
+        # TODO(lucasagomes): Test if target is a valid state and if it's able
+        # to transition to the target state from the current one
+        rpc_node = objects.Node.get_by_uuid(pecan.request.context, node_uuid)
+        if rpc_node.target_power_state is not None:
+            raise wsme.exc.ClientSideError(_("Power operation for node %s is "
+                                             "already in progress.") %
+                                              rpc_node['uuid'],
+                                              status_code=409)
+        # Note that there is a race condition. The node state(s) could change
+        # by the time the RPC call is made and the TaskManager manager gets a
+        # lock.
+        pecan.request.rpcapi.change_node_power_state(pecan.request.context,
+                                                     rpc_node, target)
+        return NodeStates.convert(rpc_node)
+
+    @wsme_pecan.wsexpose(NodeStates, wtypes.text, wtypes.text, status_code=202)
+    def provision(self, node_uuid, target):
+        """Set the provision state of the node.
+
+        :param node_uuid: UUID of a node.
+        :param target: The desired power state of the node.
+        """
+        # TODO(lucasagomes): Test if target is a valid state and if it's able
+        # to transition to the target state from the current one
+        raise NotImplementedError()
 
 
 class Node(base.APIBase):
@@ -370,7 +298,7 @@ class NodeVendorPassthruController(rest.RestController):
 class NodesController(rest.RestController):
     """REST controller for Nodes."""
 
-    state = NodeStatesController()
+    states = NodeStatesController()
     "Expose the state controller action as a sub-element of nodes"
 
     vendor_passthru = NodeVendorPassthruController()
