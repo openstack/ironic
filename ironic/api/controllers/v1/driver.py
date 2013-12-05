@@ -27,6 +27,8 @@ from ironic.openstack.common import log
 from oslo.config import cfg
 
 CONF = cfg.CONF
+CONF.import_opt('heartbeat_timeout', 'ironic.conductor.manager',
+        group='conductor')
 
 LOG = log.getLogger(__name__)
 
