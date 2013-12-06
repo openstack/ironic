@@ -77,7 +77,7 @@ COMMAND_SETS = {
 
 
 def _normalize_mac(mac):
-    return mac.translate(None, '-:').lower()
+    return mac.replace('-', '').replace(':', '').lower()
 
 
 def _parse_driver_info(node):

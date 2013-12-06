@@ -99,8 +99,13 @@ class SSHValidateParametersTestCase(base.TestCase):
                 ssh._parse_driver_info,
                 node)
 
-    def test__normalize_mac(self):
+    def test__normalize_mac_string(self):
         mac_raw = "0A:1B-2C-3D:4F"
+        mac_clean = ssh._normalize_mac(mac_raw)
+        self.assertEqual(mac_clean, "0a1b2c3d4f")
+
+    def test__normalize_mac_unicode(self):
+        mac_raw = u"0A:1B-2C-3D:4F"
         mac_clean = ssh._normalize_mac(mac_raw)
         self.assertEqual(mac_clean, "0a1b2c3d4f")
 
