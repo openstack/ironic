@@ -1,27 +1,87 @@
 #!/usr/bin/env bash
-# vim: tabstop=4 shiftwidth=4 softtabstop=4
 
-# Copyright 2012 SINA Corporation
-# All Rights Reserved.
-# Author: Zhongyue Luo <lzyeval@gmail.com>
-#
-# Licensed under the Apache License, Version 2.0 (the "License"); you may
-# not use this file except in compliance with the License. You may obtain
-# a copy of the License at
-#
-# http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
-# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
-# License for the specific language governing permissions and limitations
-# under the License.
+print_hint() {
+    echo "Try \`${0##*/} --help' for more information." >&2
+}
 
-FILES=$(find ironic -type f -name "*.py" ! -path "ironic/tests/*" \
-        ! -path "ironic/nova/*" -exec grep -l "Opt(" {} + | sort -u)
+PARSED_OPTIONS=$(getopt -n "${0##*/}" -o hb:p:o: \
+                 --long help,base-dir:,package-name:,output-dir: -- "$@")
+
+if [ $? != 0 ] ; then print_hint ; exit 1 ; fi
+
+eval set -- "$PARSED_OPTIONS"
+
+while true; do
+    case "$1" in
+        -h|--help)
+            echo "${0##*/} [options]"
+            echo ""
+            echo "options:"
+            echo "-h, --help                show brief help"
+            echo "-b, --base-dir=DIR        project base directory"
+            echo "-p, --package-name=NAME   project package name"
+            echo "-o, --output-dir=DIR      file output directory"
+            exit 0
+            ;;
+        -b|--base-dir)
+            shift
+            BASEDIR=`echo $1 | sed -e 's/\/*$//g'`
+            shift
+            ;;
+        -p|--package-name)
+            shift
+            PACKAGENAME=`echo $1`
+            shift
+            ;;
+        -o|--output-dir)
+            shift
+            OUTPUTDIR=`echo $1 | sed -e 's/\/*$//g'`
+            shift
+            ;;
+        --)
+            break
+            ;;
+    esac
+done
+
+BASEDIR=${BASEDIR:-`pwd`}
+if ! [ -d $BASEDIR ]
+then
+    echo "${0##*/}: missing project base directory" >&2 ; print_hint ; exit 1
+elif [[ $BASEDIR != /* ]]
+then
+    BASEDIR=$(cd "$BASEDIR" && pwd)
+fi
+
+PACKAGENAME=${PACKAGENAME:-${BASEDIR##*/}}
+TARGETDIR=$BASEDIR/$PACKAGENAME
+if ! [ -d $TARGETDIR ]
+then
+    echo "${0##*/}: invalid project package name" >&2 ; print_hint ; exit 1
+fi
+
+OUTPUTDIR=${OUTPUTDIR:-$BASEDIR/etc}
+# NOTE(bnemec): Some projects put their sample config in etc/,
+#               some in etc/$PACKAGENAME/
+if [ -d $OUTPUTDIR/$PACKAGENAME ]
+then
+    OUTPUTDIR=$OUTPUTDIR/$PACKAGENAME
+elif ! [ -d $OUTPUTDIR ]
+then
+    echo "${0##*/}: cannot access \`$OUTPUTDIR': No such file or directory" >&2
+    exit 1
+fi
+
+BASEDIRESC=`echo $BASEDIR | sed -e 's/\//\\\\\//g'`
+find $TARGETDIR -type f -name "*.pyc" -delete
+FILES=$(find $TARGETDIR -type f -name "*.py" ! -path "*/tests/*" \
+        -exec grep -l "Opt(" {} + | sed -e "s/^$BASEDIRESC\///g" | sort -u)
 
 export EVENTLET_NO_GREENDNS=yes
 
-MODULEPATH=$(dirname "$0")/../../ironic/openstack/common/config/generator.py
-OUTPUTPATH=etc/ironic/ironic.conf.sample
-PYTHONPATH=./:${PYTHONPATH} python $MODULEPATH $FILES > $OUTPUTPATH
+OS_VARS=$(set | sed -n '/^OS_/s/=[^=]*$//gp' | xargs)
+[ "$OS_VARS" ] && eval "unset \$OS_VARS"
+
+MODULEPATH=ironic.openstack.common.config.generator
+OUTPUTFILE=$OUTPUTDIR/$PACKAGENAME.conf.sample
+python -m $MODULEPATH $FILES > $OUTPUTFILE
