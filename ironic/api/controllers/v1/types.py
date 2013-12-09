@@ -34,9 +34,7 @@ class MacAddressType(wtypes.UserType):
 
     @staticmethod
     def validate(value):
-        if not utils.is_valid_mac(value):
-            raise exception.InvalidMAC(mac=value)
-        return value
+        return utils.validate_and_normalize_mac(value)
 
     @staticmethod
     def frombasetype(value):

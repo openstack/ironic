@@ -163,7 +163,7 @@ class TestPatch(base.FunctionalTest):
         self.assertTrue(response.json['error_message'])
 
     def test_replace_singular(self):
-        address = 'AA:BB:CC:DD:EE:FF'
+        address = 'aa:bb:cc:dd:ee:ff'
         response = self.patch_json('/ports/%s' % self.pdict['uuid'],
                                    [{'path': '/address',
                                      'value': address, 'op': 'replace'}])
@@ -223,7 +223,7 @@ class TestPatch(base.FunctionalTest):
     def test_remove_multi(self):
         extra = {"foo1": "bar1", "foo2": "bar2", "foo3": "bar3"}
         pdict = post_get_test_port(extra=extra,
-                                   address="AA:BB:CC:DD:EE:FF",
+                                   address="aa:bb:cc:dd:ee:ff",
                                    uuid=utils.generate_uuid())
         self.post_json('/ports', pdict)
 
@@ -308,6 +308,15 @@ class TestPatch(base.FunctionalTest):
         self.assertEqual(response.content_type, 'application/json')
         self.assertTrue(response.json['error_message'])
 
+    def test_update_port_address_normalized(self):
+        new_address = 'AA:BB:CC:DD:EE:FF'
+        response = self.patch_json('/ports/%s' % self.pdict['uuid'],
+                                   [{'path': '/address', 'value': new_address,
+                                     'op': 'replace'}])
+        self.assertEqual(response.status_code, 200)
+        result = self.get_json('/ports/%s' % self.pdict['uuid'])
+        self.assertEqual(new_address.lower(), result['address'])
+
 
 class TestPost(base.FunctionalTest):
 
@@ -368,6 +377,13 @@ class TestPost(base.FunctionalTest):
         pdict = post_get_test_port(address='invalid-format')
         self.assertRaises(webtest.app.AppError, self.post_json, '/ports',
                           pdict)
+
+    def test_create_port_address_normalized(self):
+        address = 'AA:BB:CC:DD:EE:FF'
+        pdict = post_get_test_port(address=address)
+        self.post_json('/ports', pdict)
+        result = self.get_json('/ports/%s' % pdict['uuid'])
+        self.assertEqual(address.lower(), result['address'])
 
     def test_create_port_with_hyphens_delimiter(self):
         pdict = post_get_test_port()
