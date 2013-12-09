@@ -262,12 +262,19 @@ class SSHPower(base.PowerInterface):
     """
 
     def validate(self, node):
-        """Check that node['driver_info'] contains the requisite fields.
+        """Check that node 'driver_info' is valid.
+
+        Check that node 'driver_info' contains the requisite fields and SSH
+        connection can be established.
 
         :param node: Single node object.
         :raises: InvalidParameterValue
         """
-        _parse_driver_info(node)
+        try:
+            _get_connection(node)
+        except exception.SSHConnectFailed as e:
+            raise exception.InvalidParameterValue(_("SSH connection cannot"
+                                                    " be established: %s") % e)
 
     def get_power_state(self, task, node):
         """Get the current power state.

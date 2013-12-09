@@ -20,6 +20,7 @@ import paramiko
 
 from ironic.common import exception
 from ironic.common import states
+from ironic.common import utils
 from ironic.conductor import task_manager
 from ironic.db import api as dbapi
 from ironic.drivers.modules import ssh
@@ -459,6 +460,22 @@ class SSHDriverTestCase(db_base.DbTestCase):
         with task_manager.acquire(self.context, [self.node['uuid']]) as task:
             node_macs = ssh._get_nodes_mac_addresses(task, self.node)
         self.assertEqual(node_macs, ['aa:bb:cc', 'dd:ee:ff'])
+
+    def test__validate_info_ssh_connect_failed(self):
+        info = ssh._parse_driver_info(self.node)
+        self.get_conn_patcher.stop()
+        self.get_conn_mock = None
+
+        with mock.patch.object(utils, 'ssh_connect') \
+                as ssh_connect_mock:
+            ssh_connect_mock.side_effect = exception.SSHConnectFailed(
+                                                                  host='fake')
+            with task_manager.acquire(self.context, [info['uuid']],
+                                      shared=False) as task:
+                self.assertRaises(exception.InvalidParameterValue,
+                                  task.resources[0].driver.power.validate,
+                                  self.node)
+                ssh_connect_mock.assert_called_once()
 
     def test_reboot_good(self):
         info = ssh._parse_driver_info(self.node)
