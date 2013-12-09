@@ -58,7 +58,7 @@ Client API Reference
 .. toctree::
   :maxdepth: 1
 
-  dev/api-spec-v1
+  webapi/v1
 
 Python API Quick Reference
 --------------------------
