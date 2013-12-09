@@ -63,7 +63,12 @@ class DriversController(rest.RestController):
 
     @wsme_pecan.wsexpose(DriverList)
     def get_all(self):
-        """Retrieve a list of drivers."""
+        """Retrieve a list of drivers.
+        """
+        # FIXME(deva): formatting of the auto-generated REST API docs
+        #              will break from a single-line doc string.
+        #              This is a result of a bug in sphinxcontrib-pecanwsme
+        # https://github.com/dreamhost/sphinxcontrib-pecanwsme/issues/8
         drivers = pecan.request.dbapi.list_active_conductor_drivers(
                                      interval=CONF.conductor.heartbeat_timeout)
         return DriverList.convert(drivers)

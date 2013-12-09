@@ -176,7 +176,14 @@ class PortsController(rest.RestController):
                          wtypes.text, wtypes.text)
     def get_all(self, node_uuid=None, marker=None, limit=None,
                 sort_key='id', sort_dir='asc'):
-        """Retrieve a list of ports."""
+        """Retrieve a list of ports.
+
+        :param node_uuid: UUID of a node, to get only ports for that node.
+        :param marker: pagination marker for large data sets.
+        :param limit: maximum number of resources to return in a single result.
+        :param sort_key: column to sort results by. Default: id.
+        :param sort_dir: direction to sort. "asc" or "desc". Default: asc.
+        """
         ports = self._get_ports(node_uuid, marker, limit, sort_key, sort_dir)
         return PortCollection.convert_with_links(ports, limit,
                                                  sort_key=sort_key,
@@ -186,7 +193,14 @@ class PortsController(rest.RestController):
                          wtypes.text, wtypes.text)
     def detail(self, node_uuid=None, marker=None, limit=None,
                 sort_key='id', sort_dir='asc'):
-        """Retrieve a list of ports."""
+        """Retrieve a list of ports with detail.
+
+        :param node_uuid: UUID of a node, to get only ports for that node.
+        :param marker: pagination marker for large data sets.
+        :param limit: maximum number of resources to return in a single result.
+        :param sort_key: column to sort results by. Default: id.
+        :param sort_dir: direction to sort. "asc" or "desc". Default: asc.
+        """
         # NOTE(lucasagomes): /detail should only work agaist collections
         parent = pecan.request.path.split('/')[:-1][-1]
         if parent != "ports":
@@ -202,7 +216,10 @@ class PortsController(rest.RestController):
 
     @wsme_pecan.wsexpose(Port, wtypes.text)
     def get_one(self, port_uuid):
-        """Retrieve information about the given port."""
+        """Retrieve information about the given port.
+
+        :param port_uuid: UUID of a port.
+        """
         if self._from_nodes:
             raise exception.OperationNotPermitted
 
@@ -211,7 +228,10 @@ class PortsController(rest.RestController):
 
     @wsme_pecan.wsexpose(Port, body=Port)
     def post(self, port):
-        """Create a new port."""
+        """Create a new port.
+
+        :param port: a port within the request body.
+        """
         if self._from_nodes:
             raise exception.OperationNotPermitted
 
@@ -225,7 +245,11 @@ class PortsController(rest.RestController):
     @wsme.validate(wtypes.text, [PortPatchType])
     @wsme_pecan.wsexpose(Port, wtypes.text, body=[PortPatchType])
     def patch(self, port_uuid, patch):
-        """Update an existing port."""
+        """Update an existing port.
+
+        :param port_uuid: UUID of a port.
+        :param patch: a json PATCH document to apply to this port.
+        """
         if self._from_nodes:
             raise exception.OperationNotPermitted
 
@@ -247,7 +271,10 @@ class PortsController(rest.RestController):
 
     @wsme_pecan.wsexpose(None, wtypes.text, status_code=204)
     def delete(self, port_id):
-        """Delete a port."""
+        """Delete a port.
+
+        :param port_id: UUID of a port.
+        """
         if self._from_nodes:
             raise exception.OperationNotPermitted
 
