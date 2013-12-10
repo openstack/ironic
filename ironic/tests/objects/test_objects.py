@@ -265,6 +265,16 @@ class _TestObject(object):
         obj.obj_reset_changes()
         self.assertEqual(obj.obj_to_primitive(), expected)
 
+    def test_get_updates(self):
+        obj = MyObj()
+        self.assertEqual({}, obj.obj_get_changes())
+        obj.foo = 123
+        self.assertEqual({'foo': 123}, obj.obj_get_changes())
+        obj.bar = 'test'
+        self.assertEqual({'foo': 123, 'bar': 'test'}, obj.obj_get_changes())
+        obj.obj_reset_changes()
+        self.assertEqual({}, obj.obj_get_changes())
+
     def test_object_property(self):
         obj = MyObj()
         obj.foo = 1
