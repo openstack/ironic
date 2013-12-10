@@ -31,6 +31,7 @@ from ironic.api.controllers.v1 import port
 from ironic.api.controllers.v1 import types
 from ironic.api.controllers.v1 import utils as api_utils
 from ironic.common import exception
+from ironic.common import states as ir_states
 from ironic import objects
 from ironic.openstack.common import excutils
 from ironic.openstack.common import log
@@ -82,6 +83,7 @@ class NodeStatesController(rest.RestController):
 
     _custom_actions = {
         'power': ['PUT'],
+        'provision': ['PUT'],
     }
 
     @wsme_pecan.wsexpose(NodeStates, types.uuid)
@@ -116,18 +118,59 @@ class NodeStatesController(rest.RestController):
         # lock.
         pecan.request.rpcapi.change_node_power_state(pecan.request.context,
                                                      node_uuid, target)
+        # FIXME(lucasagomes): Currently WSME doesn't support returning
+        # the Location header. Once it's implemented we should use the
+        # Location to point to the /states subresource of the node so
+        # that clients will know how to track the status of the request
+        # https://bugs.launchpad.net/wsme/+bug/1233687
         return NodeStates.convert(rpc_node)
 
-    @wsme_pecan.wsexpose(NodeStates, types.uuid, wtypes.text, status_code=202)
+    @wsme_pecan.wsexpose(None, types.uuid, wtypes.text, status_code=202)
     def provision(self, node_uuid, target):
-        """Set the provision state of the node.
+        """Asynchronous trigger the provisioning of the node.
+
+        This will set the target provision state of the node, and a
+        background task will begin which actually applies the state
+        change. This call will return a 202 (Accepted) indicating the
+        request was accepted and is in progress; the client should
+        continue to GET the status of this node to observe the status
+        of the requested action.
 
         :param node_uuid: UUID of a node.
-        :param target: The desired power state of the node.
+        :param target: The desired provision state of the node.
+
         """
-        # TODO(lucasagomes): Test if target is a valid state and if it's able
-        # to transition to the target state from the current one
-        raise NotImplementedError()
+        rpc_node = objects.Node.get_by_uuid(pecan.request.context, node_uuid)
+        if rpc_node.target_provision_state is not None:
+            msg = _('Node %s is already being provisioned.') % rpc_node['uuid']
+            LOG.exception(msg)
+            raise wsme.exc.ClientSideError(msg, status_code=409)  # Conflict
+
+        if target == rpc_node.provision_state:
+            msg = (_("Node %(node)s is already in the '%(state)s' state.") %
+                   {'node': rpc_node['uuid'], 'state': target})
+            LOG.exception(msg)
+            raise wsme.exc.ClientSideError(msg, status_code=400)
+        # Note that there is a race condition. The node state(s) could change
+        # by the time the RPC call is made and the TaskManager manager gets a
+        # lock.
+
+        if target == ir_states.ACTIVE:
+            pecan.request.rpcapi.do_node_deploy(pecan.request.context,
+                                                node_uuid)
+        elif target == ir_states.DELETED:
+            pecan.request.rpcapi.do_node_tear_down(pecan.request.context,
+                                                   node_uuid)
+        else:
+            msg = (_("Invalid state '%(state)s' requested for node %(node)s.")
+                   % {'state': target, 'node': node_uuid})
+            LOG.exception(msg)
+            raise wsme.exc.ClientSideError(msg, status_code=400)
+        # FIXME(lucasagomes): Currently WSME doesn't support returning
+        # the Location header. Once it's implemented we should use the
+        # Location to point to the /states subresource of this node so
+        # that clients will know how to track the status of the request
+        # https://bugs.launchpad.net/wsme/+bug/1233687
 
 
 class Node(base.APIBase):

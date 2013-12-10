@@ -629,6 +629,12 @@ class TestPut(base.FunctionalTest):
         p = mock.patch.object(rpcapi.ConductorAPI, 'change_node_power_state')
         self.mock_cnps = p.start()
         self.addCleanup(p.stop)
+        p = mock.patch.object(rpcapi.ConductorAPI, 'do_node_deploy')
+        self.mock_dnd = p.start()
+        self.addCleanup(p.stop)
+        p = mock.patch.object(rpcapi.ConductorAPI, 'do_node_tear_down')
+        self.mock_dntd = p.start()
+        self.addCleanup(p.stop)
 
     def test_power_state(self):
         response = self.put_json('/nodes/%s/states/power' % self.node['uuid'],
@@ -664,3 +670,39 @@ class TestPut(base.FunctionalTest):
                                  {'target': states.POWER_ON},
                                  expect_errors=True)
         self.assertEqual(response.status_code, 409)
+
+    def test_provision_with_deploy(self):
+        ret = self.put_json('/nodes/%s/states/provision' % self.node.uuid,
+                            {'target': states.ACTIVE})
+        self.assertEqual(ret.status_code, 202)
+        self.mock_dnd.assert_called_once_with(mock.ANY, self.node.uuid)
+
+    def test_provision_with_tear_down(self):
+        ret = self.put_json('/nodes/%s/states/provision' % self.node.uuid,
+                            {'target': states.DELETED})
+        self.assertEqual(ret.status_code, 202)
+        self.mock_dntd.assert_called_once_with(mock.ANY, self.node.uuid)
+
+    def test_provision_invalid_state_request(self):
+        ret = self.put_json('/nodes/%s/states/provision' % self.node.uuid,
+                            {'target': 'not-supported'}, expect_errors=True)
+        self.assertEqual(ret.status_code, 400)
+
+    def test_provision_already_in_progress(self):
+        ndict = dbutils.get_test_node(id=1, uuid=utils.generate_uuid(),
+                                      target_provision_state=states.ACTIVE)
+        node = self.dbapi.create_node(ndict)
+        ret = self.put_json('/nodes/%s/states/provision' % node.uuid,
+                            {'target': states.ACTIVE},
+                            expect_errors=True)
+        self.assertEqual(ret.status_code, 409)  # Conflict
+
+    def test_provision_already_in_state(self):
+        ndict = dbutils.get_test_node(id=1, uuid=utils.generate_uuid(),
+                                      target_provision_state=states.NOSTATE,
+                                      provision_state=states.ACTIVE)
+        node = self.dbapi.create_node(ndict)
+        ret = self.put_json('/nodes/%s/states/provision' % node.uuid,
+                            {'target': states.ACTIVE},
+                            expect_errors=True)
+        self.assertEqual(ret.status_code, 400)
