@@ -11,5 +11,5 @@ testrepository>=0.0.17
 testtools>=0.9.32
 
 # Doc requirements
-sphinx>=1.1.2
+sphinx>=1.1.2,<1.2
 sphinxcontrib-pecanwsme>=0.5
