@@ -59,8 +59,6 @@ pxe_opts = [
     cfg.IntOpt('pxe_deploy_timeout',
                 help='Timeout for PXE deployments. Default: 0 (unlimited)',
                 default=0),
-    # TODO(sjing): when adding neutron-port configuration, use this option
-    # instead of assuming tftp server is on $my_ip
     cfg.StrOpt('tftp_server',
                default='$my_ip',
                help='IP address of Ironic compute node\'s tftp server'),
@@ -75,7 +73,12 @@ pxe_opts = [
                help='Directory where master tftp images are stored on disk'),
     cfg.StrOpt('instance_master_path',
                default='/var/lib/ironic/master_images',
-               help='Directory where master tftp images are stored on disk')
+               help='Directory where master tftp images are stored on disk'),
+    # NOTE(dekehn): Additional boot files options may be created in the event
+    #  other architectures require different boot files.
+    cfg.StrOpt('pxe_bootfile_name',
+               default='pxelinux.0',
+               help='Neutron bootfile DHCP parameter.'),
     ]
 
 LOG = logging.getLogger(__name__)
@@ -203,6 +206,11 @@ def _get_pxe_mac_path(mac):
 def _get_pxe_config_file_path(instance_uuid):
     """Generate the path for an instances PXE config file."""
     return os.path.join(CONF.pxe.tftp_root, instance_uuid, 'config')
+
+
+def _get_pxe_bootfile_name():
+    """Returns the pxe_bootfile_name option."""
+    return CONF.pxe.pxe_bootfile_name
 
 
 def _get_image_dir_path(d_info):
@@ -436,6 +444,17 @@ def _destroy_token_file(node):
     """Delete PKI token file."""
     token_file_path = _get_token_file_path(node['uuid'])
     utils.unlink_without_raise(token_file_path)
+
+
+def _dhcp_options_for_instance():
+    """Retrives the DHCP PXE boot options."""
+    return [{'opt_name': 'bootfile-name',
+             'opt_value': _get_pxe_bootfile_name()},
+            {'opt_name': 'server-ip-address',
+             'opt_value': CONF.pxe.tftp_server},
+            {'opt_name': 'tftp-server',
+             'opt_value': CONF.pxe.tftp_server}
+            ]
 
 
 def _create_pxe_config(task, node, pxe_info):

@@ -280,6 +280,18 @@ class PXEPrivateMethodsTestCase(base.TestCase):
         db_key = db_node['driver_info'].get('pxe_deploy_key')
         self.assertEqual(db_key, fake_key)
 
+    def test__dhcp_options_for_instance(self):
+        CONF.set_default('pxe_bootfile_name', 'test_pxe_bootfile', group='pxe')
+        CONF.set_default('tftp_server', '192.0.2.1', group='pxe')
+        expected_info = [{'opt_name': 'bootfile-name',
+                          'opt_value': 'test_pxe_bootfile'},
+                         {'opt_name': 'server-ip-address',
+                          'opt_value': '192.0.2.1'},
+                         {'opt_name': 'tftp-server',
+                          'opt_value': '192.0.2.1'}
+                         ]
+        self.assertEqual(expected_info, pxe._dhcp_options_for_instance())
+
     def test__get_pxe_config_file_path(self):
         self.assertEqual('/tftpboot/instance_uuid_123/config',
                          pxe._get_pxe_config_file_path('instance_uuid_123'))
