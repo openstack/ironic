@@ -16,7 +16,7 @@
 #
 
 # Method to use for auth: noauth or keystone. (string value)
-#auth_strategy=noauth
+#auth_strategy=keystone
 
 
 #
