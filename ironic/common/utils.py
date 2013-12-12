@@ -65,11 +65,14 @@ BYTE_MULTIPLIERS = {
 }
 
 
+def _get_root_helper():
+    return 'sudo ironic-rootwrap %s' % CONF.rootwrap_config
+
+
 def execute(*cmd, **kwargs):
     """Convenience wrapper around oslo's execute() method."""
     if 'run_as_root' in kwargs and not 'root_helper' in kwargs:
-        kwargs['root_helper'] = ' '.join(['sudo', 'ironic-rootwrap',
-                                          CONF.rootwrap_config])
+        kwargs['root_helper'] = _get_root_helper()
     result = processutils.execute(*cmd, **kwargs)
     LOG.debug(_('Execution completed, command line is "%s"'), ' '.join(cmd))
     LOG.debug(_('Command stdout is: "%s"') % result[0])
@@ -78,30 +81,10 @@ def execute(*cmd, **kwargs):
 
 
 def trycmd(*args, **kwargs):
-    """A wrapper around execute() to more easily handle warnings and errors.
-
-    Returns an (out, err) tuple of strings containing the output of
-    the command's stdout and stderr.  If 'err' is not empty then the
-    command can be considered to have failed.
-
-    :discard_warnings   True | False. Defaults to False. If set to True,
-                        then for succeeding commands, stderr is cleared
-
-    """
-    discard_warnings = kwargs.pop('discard_warnings', False)
-
-    try:
-        out, err = execute(*args, **kwargs)
-        failed = False
-    except processutils.ProcessExecutionError as exn:
-        out, err = '', str(exn)
-        failed = True
-
-    if not failed and discard_warnings and err:
-        # Handle commands that output to stderr but otherwise succeed
-        err = ''
-
-    return out, err
+    """Convenience wrapper around oslo's trycmd() method."""
+    if 'run_as_root' in kwargs and not 'root_helper' in kwargs:
+        kwargs['root_helper'] = _get_root_helper()
+    return processutils.trycmd(*args, **kwargs)
 
 
 def ssh_connect(connection):
