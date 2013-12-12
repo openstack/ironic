@@ -32,9 +32,9 @@ class TestMacAddressType(base.FunctionalTest):
 
     def test_valid_mac_addr(self):
         test_mac = 'aa:bb:cc:11:22:33'
-        with mock.patch.object(utils, 'is_valid_mac') as mac_mock:
+        with mock.patch.object(utils, 'validate_and_normalize_mac') as m_mock:
             types.MacAddressType.validate(test_mac)
-            mac_mock.assert_called_once_with(test_mac)
+            m_mock.assert_called_once_with(test_mac)
 
     def test_invalid_mac_addr(self):
         self.assertRaises(exception.InvalidMAC,
