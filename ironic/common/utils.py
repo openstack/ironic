@@ -70,7 +70,11 @@ def execute(*cmd, **kwargs):
     if 'run_as_root' in kwargs and not 'root_helper' in kwargs:
         kwargs['root_helper'] = ' '.join(['sudo', 'ironic-rootwrap',
                                           CONF.rootwrap_config])
-    return processutils.execute(*cmd, **kwargs)
+    result = processutils.execute(*cmd, **kwargs)
+    LOG.debug(_('Execution completed, command line is "%s"'), ' '.join(cmd))
+    LOG.debug(_('Command stdout is: "%s"') % result[0])
+    LOG.debug(_('Command stderr is: "%s"') % result[1])
+    return result
 
 
 def trycmd(*args, **kwargs):
