@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version:  Ironic\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2013-12-02 06:00+0000\n"
+"POT-Creation-Date: 2013-12-12 06:00+0000\n"
 "PO-Revision-Date: 2013-11-12 16:15+0000\n"
 "Last-Translator: openstackjenkins <jenkins@openstack.org>\n"
 "Language-Team: English (Australia) "
@@ -19,7 +19,7 @@ msgstr ""
 "Generated-By: Babel 1.3\n"
 
 #: ironic/api/controllers/v1/chassis.py:193
-#: ironic/api/controllers/v1/node.py:485 ironic/api/controllers/v1/port.py:247
+#: ironic/api/controllers/v1/node.py:485 ironic/api/controllers/v1/port.py:238
 #, python-format
 msgid "Patching Error: %s"
 msgstr ""
@@ -54,32 +54,27 @@ msgstr ""
 msgid "Can not update node %s while a state transition is in progress."
 msgstr ""
 
-#: ironic/api/controllers/v1/port.py:116
+#: ironic/api/controllers/v1/port.py:153
 msgid "Node id not specified."
 msgstr ""
 
-#: ironic/api/controllers/v1/port.py:152
+#: ironic/api/controllers/v1/types.py:147
 #, python-format
-msgid "Does not support hyphens as separator: %s"
+msgid "'%s' is an internal attribute and can not be updated"
 msgstr ""
 
-#: ironic/api/controllers/v1/port.py:155
+#: ironic/api/controllers/v1/types.py:151
 #, python-format
-msgid "Invalid MAC address format: %s"
+msgid "'%s' is a mandatory attribute and can not be removed"
 msgstr ""
 
-#: ironic/api/controllers/v1/port.py:164
-msgid "MAC address already exists."
+#: ironic/api/controllers/v1/types.py:156
+#, python-format
+msgid "Adding a new attribute (%s) to the root of  the resource is not allowed"
 msgstr ""
 
-#: ironic/api/controllers/v1/port.py:218
-#, python-format
-msgid "Missing %s attribute(s)"
-msgstr ""
-
-#: ironic/api/controllers/v1/port.py:253
-#, python-format
-msgid "Attribute(s): %s can not be removed"
+#: ironic/api/controllers/v1/types.py:162
+msgid "'add' and 'replace' operations needs value"
 msgstr ""
 
 #: ironic/api/controllers/v1/utils.py:29
@@ -91,31 +86,31 @@ msgstr ""
 msgid "Invalid sort direction: %s. Acceptable values are 'asc' or 'desc'"
 msgstr ""
 
-#: ironic/api/controllers/v1/utils.py:52
+#: ironic/api/controllers/v1/utils.py:53
 #, python-format
 msgid "Invalid patch format: %s"
 msgstr ""
 
-#: ironic/api/controllers/v1/utils.py:59
+#: ironic/api/controllers/v1/utils.py:60
 #, python-format
 msgid "Operation not supported: %s"
 msgstr ""
 
-#: ironic/api/controllers/v1/utils.py:63
+#: ironic/api/controllers/v1/utils.py:64
 #, python-format
 msgid "Invalid path: %s"
 msgstr ""
 
-#: ironic/api/controllers/v1/utils.py:67
+#: ironic/api/controllers/v1/utils.py:68
 #, python-format
 msgid "Adding an additional attribute (%s) to the resource is not allowed"
 msgstr ""
 
-#: ironic/api/controllers/v1/utils.py:73
+#: ironic/api/controllers/v1/utils.py:74
 msgid "UUIDs can not be removed or replaced"
 msgstr ""
 
-#: ironic/api/controllers/v1/utils.py:91
+#: ironic/api/controllers/v1/utils.py:92
 #, python-format
 msgid "Wrong type. Expected '%(type)s', got '%(value)s'"
 msgstr ""
@@ -508,86 +503,81 @@ msgstr ""
 msgid "Getting image metadata from glance. Image: %s"
 msgstr ""
 
-#: ironic/conductor/manager.py:83
+#: ironic/conductor/manager.py:99
 #, python-format
 msgid ""
 "A conductor with hostname %(hostname)s was previously registered. "
 "Updating registration"
 msgstr ""
 
-#: ironic/conductor/manager.py:96
+#: ironic/conductor/manager.py:112
 #, python-format
 msgid "Received notification: %r"
 msgstr ""
 
-#: ironic/conductor/manager.py:125
+#: ironic/conductor/manager.py:141
 #, python-format
 msgid "RPC update_node called for node %s."
 msgstr ""
 
-#: ironic/conductor/manager.py:129
+#: ironic/conductor/manager.py:145
 msgid "Invalid method call: update_node can not change node state."
 msgstr ""
 
-#: ironic/conductor/manager.py:170
+#: ironic/conductor/manager.py:186
 #, python-format
 msgid ""
 "RPC change_node_power_state called for node %(node)s. The desired new "
 "state is %(state)s."
 msgstr ""
 
-#: ironic/conductor/manager.py:182 ironic/conductor/manager.py:217
-#, python-format
-msgid "Failed to change power state to '%(target)s'. Error: %(error)s"
-msgstr ""
-
-#: ironic/conductor/manager.py:199
-#, python-format
-msgid ""
-"Not going to change_node_power_state because current state = requested "
-"state = '%(state)s'."
-msgstr ""
-
-#: ironic/conductor/manager.py:238
+#: ironic/conductor/manager.py:204
 #, python-format
 msgid "RPC call_driver called for node %s."
 msgstr ""
 
-#: ironic/conductor/manager.py:266
+#: ironic/conductor/manager.py:232
 #, python-format
 msgid "RPC do_node_deploy called for node %s."
 msgstr ""
 
-#: ironic/conductor/manager.py:271
+#: ironic/conductor/manager.py:237
 #, python-format
 msgid ""
 "RPC do_node_deploy called for %(node)s, but provision state is already "
 "%(state)s."
 msgstr ""
 
-#: ironic/conductor/manager.py:281
+#: ironic/conductor/manager.py:247
 #, python-format
 msgid "Failed to validate deploy info. Error: %s"
 msgstr ""
 
-#: ironic/conductor/manager.py:294
+#: ironic/conductor/manager.py:260
 #, python-format
 msgid "Failed to deploy. Error: %s"
 msgstr ""
 
-#: ironic/conductor/manager.py:317
+#: ironic/conductor/manager.py:283
 #, python-format
 msgid "RPC do_node_tear_down called for node %s."
 msgstr ""
 
-#: ironic/conductor/manager.py:324
+#: ironic/conductor/manager.py:290
 #, python-format
 msgid "RCP do_node_tear_down not allowed for node %(node)s in state %(state)s"
 msgstr ""
 
-#: ironic/conductor/manager.py:348
+#: ironic/conductor/manager.py:314
 #, python-format
 msgid "Failed to tear down. Error: %s"
+msgstr ""
+
+#: ironic/conductor/manager.py:347
+#, python-format
+msgid ""
+"During sync_power_state, node %(node)s out of sync. Expected: %(old)s. "
+"Actual: %(new)s. Updating DB."
 msgstr ""
 
 #: ironic/conductor/resource_manager.py:81
@@ -612,6 +602,18 @@ msgstr ""
 msgid "Multi-node TaskManager can't select single node manager from the list"
 msgstr ""
 
+#: ironic/conductor/utils.py:43 ironic/conductor/utils.py:81
+#, python-format
+msgid "Failed to change power state to '%(target)s'. Error: %(error)s"
+msgstr ""
+
+#: ironic/conductor/utils.py:60
+#, python-format
+msgid ""
+"Not going to change_node_power_state because current state = requested "
+"state = '%(state)s'."
+msgstr ""
+
 #: ironic/db/sqlalchemy/migration.py:43
 msgid "version should be an integer"
 msgstr ""
@@ -629,41 +631,42 @@ msgstr ""
 msgid "Downgrade from version 012 is unsupported."
 msgstr ""
 
-#: ironic/drivers/modules/deploy_utils.py:168
+#: ironic/drivers/modules/deploy_utils.py:169
 #, python-format
-msgid "parent device '%s' not found"
+msgid "Parent device '%s' not found"
 msgstr ""
 
-#: ironic/drivers/modules/deploy_utils.py:172
+#: ironic/drivers/modules/deploy_utils.py:174
 #, python-format
-msgid "root device '%s' not found"
+msgid "Root device '%s' not found"
 msgstr ""
 
-#: ironic/drivers/modules/deploy_utils.py:175
+#: ironic/drivers/modules/deploy_utils.py:177
 #, python-format
-msgid "swap device '%s' not found"
+msgid "Swap device '%s' not found"
 msgstr ""
 
-#: ironic/drivers/modules/deploy_utils.py:184
+#: ironic/drivers/modules/deploy_utils.py:186
 msgid "Failed to detect root device UUID."
 msgstr ""
 
-#: ironic/drivers/modules/deploy_utils.py:202
+#: ironic/drivers/modules/deploy_utils.py:203
+#: ironic/drivers/modules/deploy_utils.py:209
 #, python-format
 msgid "Deploy to address %s failed."
 msgstr ""
 
-#: ironic/drivers/modules/deploy_utils.py:203
+#: ironic/drivers/modules/deploy_utils.py:204
 #, python-format
 msgid "Command: %s"
 msgstr ""
 
-#: ironic/drivers/modules/deploy_utils.py:204
+#: ironic/drivers/modules/deploy_utils.py:205
 #, python-format
 msgid "StdOut: %r"
 msgstr ""
 
-#: ironic/drivers/modules/deploy_utils.py:205
+#: ironic/drivers/modules/deploy_utils.py:206
 #, python-format
 msgid "StdErr: %r"
 msgstr ""
@@ -763,68 +766,68 @@ msgstr ""
 msgid "set_power_state called with invalid power state %s."
 msgstr ""
 
-#: ironic/drivers/modules/pxe.py:113
+#: ironic/drivers/modules/pxe.py:114
 #, python-format
 msgid ""
 "Can not validate PXE bootloader. The following paramenters were not "
 "passed to ironic: %s"
 msgstr ""
 
-#: ironic/drivers/modules/pxe.py:128
+#: ironic/drivers/modules/pxe.py:129
 #, python-format
 msgid "Can not validate PXE bootloader. Invalid parameter %s"
 msgstr ""
 
-#: ironic/drivers/modules/pxe.py:147
+#: ironic/drivers/modules/pxe.py:148
 #, python-format
 msgid "Building PXE config for deployment %s."
 msgstr ""
 
-#: ironic/drivers/modules/pxe.py:321
+#: ironic/drivers/modules/pxe.py:327
 #, python-format
 msgid "Fetching kernel and ramdisk for instance %s"
 msgstr ""
 
-#: ironic/drivers/modules/pxe.py:351
+#: ironic/drivers/modules/pxe.py:357
 #, python-format
 msgid "Fetching image %(ami)s for instance %(name)s"
 msgstr ""
 
-#: ironic/drivers/modules/pxe.py:527
+#: ironic/drivers/modules/pxe.py:556
 msgid "Deploy key is not match"
 msgstr ""
 
-#: ironic/drivers/modules/pxe.py:543
+#: ironic/drivers/modules/pxe.py:572
 #, python-format
 msgid "Parameters %s were not passed to ironic for deploy."
 msgstr ""
 
-#: ironic/drivers/modules/pxe.py:557
+#: ironic/drivers/modules/pxe.py:586
 #, python-format
 msgid "Unsupported method (%s) passed to PXE driver."
 msgstr ""
 
-#: ironic/drivers/modules/pxe.py:570
+#: ironic/drivers/modules/pxe.py:601
 #, python-format
 msgid "Node %(node_id)s deploy error message: %(error)s"
 msgstr ""
 
-#: ironic/drivers/modules/pxe.py:573
+#: ironic/drivers/modules/pxe.py:604
 #, python-format
 msgid "start deployment for node %(node_id)s, params %(params)s"
 msgstr ""
 
-#: ironic/drivers/modules/pxe.py:582
+#: ironic/drivers/modules/pxe.py:613
 #, python-format
 msgid "deployment to node %s failed"
 msgstr ""
 
-#: ironic/drivers/modules/pxe.py:585
+#: ironic/drivers/modules/pxe.py:616
 #, python-format
 msgid "Deploy error: \"%(error)s\" for node %(node_id)s"
 msgstr ""
 
-#: ironic/drivers/modules/pxe.py:589
+#: ironic/drivers/modules/pxe.py:620
 #, python-format
 msgid "deployment to node %s done"
 msgstr ""
@@ -1712,11 +1715,27 @@ msgstr ""
 #~ msgid "Unexpected error while running command."
 #~ msgstr ""
 
-#~ msgid ""
-#~ "%(description)s\n"
-#~ "Command: %(cmd)s\n"
-#~ "Exit code: %(exit_code)s\n"
-#~ "Stdout: %(stdout)r\n"
-#~ "Stderr: %(stderr)r"
+#~ msgid "Does not support hyphens as separator: %s"
+#~ msgstr ""
+
+#~ msgid "Invalid MAC address format: %s"
+#~ msgstr ""
+
+#~ msgid "MAC address already exists."
+#~ msgstr ""
+
+#~ msgid "Missing %s attribute(s)"
+#~ msgstr ""
+
+#~ msgid "Attribute(s): %s can not be removed"
+#~ msgstr ""
+
+#~ msgid "parent device '%s' not found"
+#~ msgstr ""
+
+#~ msgid "root device '%s' not found"
+#~ msgstr ""
+
+#~ msgid "swap device '%s' not found"
 #~ msgstr ""
 
