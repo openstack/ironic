@@ -15,12 +15,12 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import jsonpatch
-import six
+import datetime
 
+import jsonpatch
 import pecan
 from pecan import rest
-
+import six
 import wsme
 from wsme import types as wtypes
 import wsmeext.pecan as wsme_pecan
@@ -118,6 +118,18 @@ class Port(base.APIBase):
                      ]
         return port
 
+    @classmethod
+    def sample(cls):
+        sample = cls(uuid='27e3153e-d5bf-4b7e-b517-fb518e17f34c',
+                     address='fe:54:00:77:07:d9',
+                     extra={'foo': 'bar'},
+                     created_at=datetime.datetime.utcnow(),
+                     updated_at=datetime.datetime.utcnow())
+        # NOTE(lucasagomes): node_uuid getter() method look at the
+        # _node_uuid variable
+        sample._node_uuid = '7ae81bb3-dec3-4289-8d6c-da80bd8001ae'
+        return sample
+
 
 class PortCollection(collection.Collection):
     """API representation of a collection of ports."""
@@ -136,6 +148,12 @@ class PortCollection(collection.Collection):
                             for p in rpc_ports]
         collection.next = collection.get_next(limit, url=url, **kwargs)
         return collection
+
+    @classmethod
+    def sample(cls):
+        sample = cls()
+        sample.ports = [Port.sample()]
+        return sample
 
 
 class PortsController(rest.RestController):
