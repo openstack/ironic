@@ -162,9 +162,17 @@ class Invalid(IronicException):
     code = 400
 
 
-class InvalidState(IronicException):
-    message = _("Invalid resource state.")
+class Conflict(IronicException):
+    message = _('Conflict.')
     code = 409
+
+
+class InvalidState(Conflict):
+    message = _("Invalid resource state.")
+
+
+class MACAlreadyExists(Conflict):
+    message = _("A Port with MAC address (mac)s already exists.")
 
 
 class InvalidCPUInfo(Invalid):

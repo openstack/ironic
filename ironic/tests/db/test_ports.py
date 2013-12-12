@@ -124,3 +124,22 @@ class DbPortTestCase(base.DbTestCase):
         self.assertRaises(exception.NodeLocked,
                           self.dbapi.update_port, p['id'],
                           {'address': new_address})
+
+    def test_update_port_duplicated_address(self):
+        self.dbapi.create_port(self.p)
+        address1 = self.p['address']
+        address2 = 'aa-bb-cc-11-22-33'
+        p2 = utils.get_test_port(id=123, uuid=ironic_utils.generate_uuid(),
+                                 node_id=self.n['id'], address=address2)
+        self.dbapi.create_port(p2)
+        self.assertRaises(exception.MACAlreadyExists,
+                          self.dbapi.update_port, p2['id'],
+                          {'address': address1})
+
+    def test_create_port_duplicated_address(self):
+        self.dbapi.create_port(self.p)
+        dup_address = self.p['address']
+        p2 = utils.get_test_port(id=123, uuid=ironic_utils.generate_uuid(),
+                                 node_id=self.n['id'], address=dup_address)
+        self.assertRaises(exception.MACAlreadyExists,
+                          self.dbapi.create_port, p2)

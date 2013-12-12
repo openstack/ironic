@@ -187,10 +187,7 @@ class TestPatch(base.FunctionalTest):
                                      'op': 'replace'}],
                                      expect_errors=True)
         self.assertEqual(response.content_type, 'application/json')
-        # FIXME(lucasagomes): The DBDuplicateEntry is not being correctly
-        # handled at the db level causing the API to return 500 instead
-        # of 400. https://bugs.launchpad.net/ironic/+bug/1257673
-        self.assertEqual(response.status_code, 500)
+        self.assertEqual(response.status_code, 409)
         self.assertTrue(response.json['error_message'])
 
     def test_replace_nodeid_dont_exist(self):
@@ -398,6 +395,15 @@ class TestPost(base.FunctionalTest):
         response = self.post_json('/ports', pdict, expect_errors=True)
         self.assertEqual(response.content_type, 'application/json')
         self.assertEqual(response.status_int, 400)
+        self.assertTrue(response.json['error_message'])
+
+    def test_create_port_address_already_exist(self):
+        pdict = post_get_test_port(address='AA:AA:AA:11:22:33')
+        self.post_json('/ports', pdict)
+        pdict['uuid'] = utils.generate_uuid()
+        response = self.post_json('/ports', pdict, expect_errors=True)
+        self.assertEqual(response.status_int, 409)
+        self.assertEqual(response.content_type, 'application/json')
         self.assertTrue(response.json['error_message'])
 
 
