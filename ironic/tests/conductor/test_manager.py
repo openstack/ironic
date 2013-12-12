@@ -310,7 +310,7 @@ class ManagerTestCase(base.DbTestCase):
                               self.service.do_node_deploy,
                               self.context, node)
             node.refresh(self.context)
-            self.assertEqual(node['provision_state'], states.ERROR)
+            self.assertEqual(node['provision_state'], states.DEPLOYFAIL)
             self.assertEqual(node['target_provision_state'], states.NOSTATE)
             self.assertIsNotNone(node['last_error'])
             deploy.assert_called_once()

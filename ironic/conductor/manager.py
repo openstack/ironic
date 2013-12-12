@@ -258,7 +258,7 @@ class ConductorManager(service.PeriodicService):
             except Exception as e:
                 with excutils.save_and_reraise_exception():
                     node['last_error'] = _("Failed to deploy. Error: %s") % e
-                    node['provision_state'] = states.ERROR
+                    node['provision_state'] = states.DEPLOYFAIL
                     node['target_provision_state'] = states.NOSTATE
             else:
                 # NOTE(deva): Some drivers may return states.DEPLOYING
