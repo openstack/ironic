@@ -63,10 +63,7 @@ class Chassis(base.IronicObject):
 
         :param context: Security context
         """
-        updates = {}
-        changes = self.obj_what_changed()
-        for field in changes:
-            updates[field] = self[field]
+        updates = self.obj_get_changes()
         self.dbapi.update_chassis(self.uuid, updates)
 
         self.obj_reset_changes()

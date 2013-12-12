@@ -309,6 +309,13 @@ class IronicObject(object):
         """
         raise NotImplementedError(_("Cannot save anything in the base class"))
 
+    def obj_get_changes(self):
+        """Returns a dict of changed fields and their new values."""
+        changes = {}
+        for key in self.obj_what_changed():
+            changes[key] = self[key]
+        return changes
+
     def obj_what_changed(self):
         """Returns a set of fields that have been modified."""
         return self._changed_fields
