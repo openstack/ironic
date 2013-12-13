@@ -79,7 +79,17 @@ class NodePowerStateController(rest.RestController):
     @wsme_pecan.wsexpose(NodePowerState, wtypes.text, wtypes.text,
                          status_code=202)
     def put(self, node_id, target):
-        """Set the power state of the machine."""
+        """Asynchronous request to set the power state of the node.
+
+        This will set the target power state of the node, and a background task
+        will begin which actually applies the state change. This call will
+        return a 202 (Accepted) indicating that the request is being processed.
+        The client should continue to GET the status of this node to observe
+        the status of the requested action.
+
+        :param node_id: UUID of the node.
+        :param target: Desired power state.
+        """
         node = objects.Node.get_by_uuid(pecan.request.context, node_id)
         if node.target_power_state is not None:
             raise wsme.exc.ClientSideError(_("Power operation for node %s is "
@@ -167,7 +177,10 @@ class NodeStatesController(rest.RestController):
     # GET nodes/<uuid>/state
     @wsme_pecan.wsexpose(NodeStates, wtypes.text)
     def get(self, node_id):
-        """List or update the state of a node."""
+        """List or update the state of a node.
+
+        :param node_id: UUID of a node.
+        """
         node = objects.Node.get_by_uuid(pecan.request.context, node_id)
         state = NodeStates.convert_with_links(node)
         return state
@@ -293,6 +306,12 @@ class NodeVendorPassthruController(rest.RestController):
                          body=wtypes.text,
                          status_code=202)
     def post(self, node_id, method, data):
+        """Call a vendor extension.
+
+        :param node_id: UUID of the node.
+        :param method: name of the method in vendor driver.
+        :param data: body of data to supply to the specified method.
+        """
         # Raise an exception if node is not found
         objects.Node.get_by_uuid(pecan.request.context, node_id)
 
@@ -393,7 +412,20 @@ class NodesController(rest.RestController):
                wtypes.text, wtypes.text, int, wtypes.text, wtypes.text)
     def get_all(self, chassis_id=None, instance_uuid=None, associated=None,
                 marker=None, limit=None, sort_key='id', sort_dir='asc'):
-        """Retrieve a list of nodes."""
+        """Retrieve a list of nodes.
+
+        :param chassis_id: Optional UUID of a chassis, to get only nodes for
+                           that chassis.
+        :param instance_uuid: Optional UUID of an instance, to find the node
+                              associated with that instance.
+        :param associated: Optional boolean whether to return a list of
+                           associated or unassociated nodes. May be combined
+                           with other parameters.
+        :param marker: pagination marker for large data sets.
+        :param limit: maximum number of resources to return in a single result.
+        :param sort_key: column to sort results by. Default: id.
+        :param sort_dir: direction to sort. "asc" or "desc". Default: asc.
+        """
         nodes = self._get_nodes(chassis_id, instance_uuid, associated, marker,
                                 limit, sort_key, sort_dir)
 
@@ -406,7 +438,20 @@ class NodesController(rest.RestController):
             wtypes.text, wtypes.text, int, wtypes.text, wtypes.text)
     def detail(self, chassis_id=None, instance_uuid=None, associated=None,
                marker=None, limit=None, sort_key='id', sort_dir='asc'):
-        """Retrieve a list of nodes with detail."""
+        """Retrieve a list of nodes with detail.
+
+        :param chassis_id: Optional UUID of a chassis, to get only nodes for
+                           that chassis.
+        :param instance_uuid: Optional UUID of an instance, to find the node
+                              associated with that instance.
+        :param associated: Optional boolean whether to return a list of
+                           associated or unassociated nodes. May be combined
+                           with other parameters.
+        :param marker: pagination marker for large data sets.
+        :param limit: maximum number of resources to return in a single result.
+        :param sort_key: column to sort results by. Default: id.
+        :param sort_dir: direction to sort. "asc" or "desc". Default: asc.
+        """
         # /detail should only work agaist collections
         parent = pecan.request.path.split('/')[:-1][-1]
         if parent != "nodes":
@@ -434,7 +479,10 @@ class NodesController(rest.RestController):
 
     @wsme_pecan.wsexpose(Node, wtypes.text)
     def get_one(self, uuid):
-        """Retrieve information about the given node."""
+        """Retrieve information about the given node.
+
+        :param uuid: UUID of a node.
+        """
         if self._from_chassis:
             raise exception.OperationNotPermitted
 
@@ -443,7 +491,10 @@ class NodesController(rest.RestController):
 
     @wsme_pecan.wsexpose(Node, body=Node)
     def post(self, node):
-        """Create a new node."""
+        """Create a new node.
+
+        :param node: a node within the request body.
+        """
         if self._from_chassis:
             raise exception.OperationNotPermitted
 
@@ -459,7 +510,11 @@ class NodesController(rest.RestController):
 
     @wsme_pecan.wsexpose(Node, wtypes.text, body=[wtypes.text])
     def patch(self, uuid, patch):
-        """Update an existing node."""
+        """Update an existing node.
+
+        :param uuid: UUID of a node.
+        :param patch: a json PATCH document to apply to this node.
+        """
         if self._from_chassis:
             raise exception.OperationNotPermitted
 
@@ -521,7 +576,10 @@ class NodesController(rest.RestController):
 
     @wsme_pecan.wsexpose(None, wtypes.text, status_code=204)
     def delete(self, node_id):
-        """Delete a node."""
+        """Delete a node.
+
+        :param node_id: UUID of the node.
+        """
         if self._from_chassis:
             raise exception.OperationNotPermitted
 
