@@ -711,4 +711,7 @@
 # (string value)
 #instance_master_path=/var/lib/ironic/master_images
 
+# Neutron bootfile DHCP parameter. (string value)
+#pxe_bootfile_name=pxelinux.0
+
 
