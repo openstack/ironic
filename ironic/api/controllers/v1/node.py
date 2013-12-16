@@ -115,7 +115,7 @@ class NodeStatesController(rest.RestController):
         # by the time the RPC call is made and the TaskManager manager gets a
         # lock.
         pecan.request.rpcapi.change_node_power_state(pecan.request.context,
-                                                     rpc_node, target)
+                                                     node_uuid, target)
         return NodeStates.convert(rpc_node)
 
     @wsme_pecan.wsexpose(NodeStates, wtypes.text, wtypes.text, status_code=202)

@@ -48,10 +48,12 @@ class ConductorAPI(ironic.openstack.common.rpc.proxy.RpcProxy):
         1.3 - Rename start_power_state_change to change_node_power_state.
         1.4 - Added do_node_deploy and do_node_tear_down.
         1.5 - Added validate_driver_interfaces.
+        1.6 - change_node_power_state, do_node_deploy and do_node_tear_down
+              accept node id instead of node object.
 
     """
 
-    RPC_API_VERSION = '1.5'
+    RPC_API_VERSION = '1.6'
 
     def __init__(self, topic=None):
         if topic is None:
@@ -95,17 +97,17 @@ class ConductorAPI(ironic.openstack.common.rpc.proxy.RpcProxy):
                          self.make_msg('update_node',
                                        node_obj=node_obj))
 
-    def change_node_power_state(self, context, node_obj, new_state):
+    def change_node_power_state(self, context, node_id, new_state):
         """Asynchronously change power state of a node.
 
         :param context: request context.
-        :param node_obj: an RPC_style node object.
+        :param node_id: node id or uuid.
         :param new_state: one of ironic.common.states power state values
 
         """
         self.cast(context,
                   self.make_msg('change_node_power_state',
-                                node_obj=node_obj,
+                                node_id=node_id,
                                 new_state=new_state))
 
     def vendor_passthru(self, context, node_id, driver_method, info):
@@ -135,11 +137,11 @@ class ConductorAPI(ironic.openstack.common.rpc.proxy.RpcProxy):
 
         return driver_data
 
-    def do_node_deploy(self, context, node_obj):
+    def do_node_deploy(self, context, node_id):
         """Signal to conductor service to perform a deployment.
 
         :param context: request context.
-        :param node_obj: an RPC style node obj.
+        :param node_id: node id or uuid.
 
         The node must already be configured and in the appropriate
         undeployed state before this method is called.
@@ -147,13 +149,13 @@ class ConductorAPI(ironic.openstack.common.rpc.proxy.RpcProxy):
         """
         self.cast(context,
                   self.make_msg('do_node_deploy',
-                                node_obj=node_obj))
+                                node_id=node_id))
 
-    def do_node_tear_down(self, context, node_obj):
+    def do_node_tear_down(self, context, node_id):
         """Signal to conductor service to tear down a deployment.
 
         :param context: request context.
-        :param node_obj: an RPC style node obj.
+        :param node_id: node id or uuid.
 
         The node must already be configured and in the appropriate
         deployed state before this method is called.
@@ -161,7 +163,7 @@ class ConductorAPI(ironic.openstack.common.rpc.proxy.RpcProxy):
         """
         self.cast(context,
                   self.make_msg('do_node_tear_down',
-                                node_obj=node_obj))
+                                node_id=node_id))
 
     def validate_driver_interfaces(self, context, node_id):
         """Validate the `core` and `standardized` interfaces for drivers.

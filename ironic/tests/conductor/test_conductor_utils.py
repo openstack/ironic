@@ -47,7 +47,7 @@ class PowerActionTestCase(base.DbTestCase):
             get_power_mock.return_value = states.POWER_OFF
 
             self.service.change_node_power_state(self.context,
-                                                 node, states.POWER_ON)
+                                                 node['uuid'], states.POWER_ON)
             node.refresh(self.context)
             get_power_mock.assert_called_once_with(mock.ANY, mock.ANY)
             self.assertEqual(node['power_state'], states.POWER_ON)
@@ -66,7 +66,7 @@ class PowerActionTestCase(base.DbTestCase):
                 as get_power_mock:
             get_power_mock.return_value = states.POWER_ON
 
-            self.service.change_node_power_state(self.context, node,
+            self.service.change_node_power_state(self.context, node['uuid'],
                                                  states.POWER_OFF)
             node.refresh(self.context)
             get_power_mock.assert_called_once_with(mock.ANY, mock.ANY)
@@ -81,7 +81,7 @@ class PowerActionTestCase(base.DbTestCase):
         node = self.dbapi.create_node(ndict)
 
         with mock.patch.object(self.driver.power, 'reboot') as reboot_mock:
-            self.service.change_node_power_state(self.context, node,
+            self.service.change_node_power_state(self.context, node['uuid'],
                                                  states.REBOOT)
             node.refresh(self.context)
             reboot_mock.assert_called_once()
@@ -104,7 +104,7 @@ class PowerActionTestCase(base.DbTestCase):
             self.assertRaises(exception.InvalidParameterValue,
                               self.service.change_node_power_state,
                               self.context,
-                              node,
+                              node['uuid'],
                               "POWER")
             node.refresh(self.context)
             get_power_mock.assert_called_once_with(mock.ANY, mock.ANY)
@@ -113,7 +113,7 @@ class PowerActionTestCase(base.DbTestCase):
             self.assertNotEqual(node['last_error'], None)
 
             # last_error is cleared when a new transaction happens
-            self.service.change_node_power_state(self.context, node,
+            self.service.change_node_power_state(self.context, node['uuid'],
                                                  states.POWER_OFF)
             node.refresh(self.context)
             self.assertEqual(node['power_state'], states.POWER_OFF)
@@ -133,7 +133,7 @@ class PowerActionTestCase(base.DbTestCase):
             self.assertRaises(exception.NodeLocked,
                               self.service.change_node_power_state,
                               self.context,
-                              node,
+                              node['uuid'],
                               states.POWER_ON)
             node.refresh(self.context)
             self.assertEqual(node['power_state'], states.POWER_ON)
@@ -152,7 +152,7 @@ class PowerActionTestCase(base.DbTestCase):
                                     target_power_state=states.POWER_OFF)
         node = self.dbapi.create_node(ndict)
 
-        self.service.change_node_power_state(self.context, node,
+        self.service.change_node_power_state(self.context, node['uuid'],
                                              states.POWER_OFF)
         node.refresh(self.context)
         self.assertEqual(node['power_state'], states.POWER_OFF)
@@ -175,7 +175,8 @@ class PowerActionTestCase(base.DbTestCase):
                     as set_power_mock:
                 set_power_mock.side_effect = exception.IronicException()
 
-                self.service.change_node_power_state(self.context, node,
+                self.service.change_node_power_state(self.context,
+                                                     node['uuid'],
                                                      states.POWER_ON)
             node.refresh(self.context)
             get_power_mock.assert_called_once_with(mock.ANY, mock.ANY)
@@ -200,7 +201,7 @@ class PowerActionTestCase(base.DbTestCase):
             self.assertRaises(exception.InvalidParameterValue,
                               self.service.change_node_power_state,
                               self.context,
-                              node,
+                              node['uuid'],
                               states.POWER_ON)
             node.refresh(self.context)
             validate_mock.assert_called_once_with(mock.ANY)
@@ -226,7 +227,7 @@ class PowerActionTestCase(base.DbTestCase):
                 self.assertRaises(exception.IronicException,
                                   self.service.change_node_power_state,
                                   self.context,
-                                  node,
+                                  node['uuid'],
                                   states.POWER_ON)
                 node.refresh(self.context)
                 get_power_mock.assert_called_once_with(mock.ANY, mock.ANY)

@@ -622,7 +622,9 @@ class TestPut(base.FunctionalTest):
         self.assertEqual(response.content_type, 'application/json')
         self.assertEqual(response.status_code, 202)
 
-        self.mock_cnps.assert_called_once_with(mock.ANY, mock.ANY, mock.ANY)
+        self.mock_cnps.assert_called_once_with(mock.ANY,
+                                               self.node['uuid'],
+                                               states.POWER_ON)
 
     def test_power_state_in_progress(self):
         manager = mock.MagicMock()
@@ -631,8 +633,9 @@ class TestPut(base.FunctionalTest):
             manager.attach_mock(mock_get_node, 'get_by_uuid')
             manager.attach_mock(self.mock_cnps, 'change_node_power_state')
             expected = [mock.call.get_by_uuid(mock.ANY, self.node['uuid']),
-                        mock.call.change_node_power_state(mock.ANY, mock.ANY,
-                                                          mock.ANY)]
+                        mock.call.change_node_power_state(mock.ANY,
+                                                          self.node['uuid'],
+                                                          states.POWER_ON)]
 
             self.put_json('/nodes/%s/states/power' % self.node['uuid'],
                           {'target': states.POWER_ON})
