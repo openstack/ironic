@@ -54,6 +54,7 @@ class ConductorAPI(ironic.openstack.common.rpc.proxy.RpcProxy):
         1.6 - change_node_power_state, do_node_deploy and do_node_tear_down
               accept node id instead of node object.
         1.7 - Added topic parameter to RPC methods.
+        1.8 - Added change_node_maintenance_mode.
 
     """
 
@@ -220,3 +221,18 @@ class ConductorAPI(ironic.openstack.common.rpc.proxy.RpcProxy):
                          self.make_msg('validate_driver_interfaces',
                                        node_id=node_id),
                          topic=topic or self.topic)
+
+    def change_node_maintenance_mode(self, context, node_id, mode):
+        """Set node maintenance mode on or off.
+
+        :param context: request context.
+        :param node_id: node id or uuid.
+        :param mode: True or False.
+        :returns: a node object.
+        :raises: NodeMaintenanceFailure.
+
+        """
+        return self.call(context,
+                         self.make_msg('change_node_maintenance_mode',
+                                       node_id=node_id,
+                                       mode=mode))

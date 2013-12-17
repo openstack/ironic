@@ -149,3 +149,9 @@ class RPCAPITestCase(base.DbTestCase):
         self._test_rpcapi('validate_driver_interfaces',
                           'call',
                           node_id=self.fake_node['uuid'])
+
+    def test_change_node_maintenance_mode(self):
+        self._test_rpcapi('change_node_maintenance_mode',
+                          'call',
+                          node_id=self.fake_node['uuid'],
+                          mode=True)

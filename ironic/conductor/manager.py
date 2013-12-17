@@ -439,3 +439,29 @@ class ConductorManager(service.PeriodicService):
                 if reason is not None:
                     ret_dict[iface_name]['reason'] = reason
         return ret_dict
+
+    def change_node_maintenance_mode(self, context, node_id, mode):
+        """Set node maintenance mode on or off.
+
+        :param context: request context.
+        :param node_id: node id or uuid.
+        :param mode: True or False.
+        :raises: NodeMaintenanceFailure
+
+        """
+        LOG.debug(_("RPC change_node_maintenance_mode called for node %(node)s"
+                    " with maintanence mode: %(mode)s") % {'node': node_id,
+                                                           'mode': mode})
+
+        with task_manager.acquire(context, node_id, shared=True) as task:
+            node = task.node
+            if mode is not node.maintenance:
+                node.maintenance = mode
+                node.save(context)
+            else:
+                msg = _("The node is already in maintenance mode") if mode \
+                        else _("The node is not in maintenance mode")
+                raise exception.NodeMaintenanceFailure(node=node_id,
+                                                       reason=msg)
+
+            return node

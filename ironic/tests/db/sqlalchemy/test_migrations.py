@@ -757,3 +757,14 @@ class TestMigrations(BaseMigrationTestCase, WalkVersionsMixin):
                               {'address': 'CC:BB:AA:AA:AA:CC',
                                'uuid': '1be26c0b-03f2-4d2e-ae87-c02d7f33c781',
                                'extra': 'extra3'})
+
+    def _check_015(self, engine, data):
+        nodes = db_utils.get_table(engine, 'nodes')
+        col_names = [column.name for column in nodes.c]
+
+        self.assertIn('maintenance', col_names)
+        # in some backends bool type is integer
+        self.assertTrue(isinstance(nodes.c.maintenance.type,
+                                   sqlalchemy.types.Boolean) or
+                        isinstance(nodes.c.maintenance.type,
+                                   sqlalchemy.types.Integer))

@@ -438,3 +438,39 @@ class ManagerTestCase(base.DbTestCase):
                                                           node['uuid'])
             self.assertFalse(ret['deploy']['result'])
             self.assertEqual(reason, ret['deploy']['reason'])
+
+    def test_maintenance_mode_on(self):
+        ndict = utils.get_test_node(driver='fake')
+        node = self.dbapi.create_node(ndict)
+        self.service.change_node_maintenance_mode(self.context, node.uuid,
+                                                  True)
+        node.refresh(self.context)
+        self.assertTrue(node.maintenance)
+
+    def test_maintenance_mode_off(self):
+        ndict = utils.get_test_node(driver='fake',
+                                    maintenance=True)
+        node = self.dbapi.create_node(ndict)
+        self.service.change_node_maintenance_mode(self.context, node.uuid,
+                                                  False)
+        node.refresh(self.context)
+        self.assertFalse(node.maintenance)
+
+    def test_maintenance_mode_on_failed(self):
+        ndict = utils.get_test_node(driver='fake',
+                                    maintenance=True)
+        node = self.dbapi.create_node(ndict)
+        self.assertRaises(exception.NodeMaintenanceFailure,
+                          self.service.change_node_maintenance_mode,
+                          self.context, node.uuid, True)
+        node.refresh(self.context)
+        self.assertTrue(node.maintenance)
+
+    def test_maintenance_mode_off_failed(self):
+        ndict = utils.get_test_node(driver='fake')
+        node = self.dbapi.create_node(ndict)
+        self.assertRaises(exception.NodeMaintenanceFailure,
+                          self.service.change_node_maintenance_mode,
+                          self.context, node.uuid, False)
+        node.refresh(self.context)
+        self.assertFalse(node.maintenance)

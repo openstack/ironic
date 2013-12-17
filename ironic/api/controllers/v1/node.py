@@ -48,8 +48,9 @@ class NodePatchType(types.JsonPatchType):
     @staticmethod
     def internal_attrs():
         defaults = types.JsonPatchType.internal_attrs()
-        return defaults + ['/last_error', '/power_state', '/provision_state',
-                           '/target_power_state', '/target_provision_state']
+        return defaults + ['/last_error', '/maintenance', '/power_state',
+                           '/provision_state', '/target_power_state',
+                           '/target_provision_state']
 
     @staticmethod
     def mandatory_attrs():
@@ -239,6 +240,9 @@ class Node(base.APIBase):
 
     provision_state = wtypes.text
     "Represent the current (not transition) provision state of the node"
+
+    maintenance = wsme.wsattr(bool, default=False)
+    "Indicates whether the node is in maintenance mode."
 
     target_provision_state = wtypes.text
     "The user modified desired provision state of the node."
