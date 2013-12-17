@@ -164,3 +164,26 @@ class JsonPatchType(wtypes.Base):
         if patch.value:
             ret['value'] = patch.value
         return ret
+
+
+class MultiType(wtypes.UserType):
+    """A complex type that represents one or more types.
+
+    Used for validating that a value is an instance of one of the types.
+
+    :param *types: Variable-length list of types.
+
+    """
+    def __init__(self, *types):
+        self.types = types
+
+    def validate(self, value):
+        for t in self.types:
+            if t is wsme.types.text and isinstance(value, wsme.types.bytes):
+                value = value.decode()
+            if isinstance(value, t):
+                return value
+        else:
+            raise ValueError(
+                     _("Wrong type. Expected '%(type)s', got '%(value)s'")
+                     % {'type': self.types, 'value': type(value)})

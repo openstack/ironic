@@ -16,7 +16,6 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import six
 import wsme
 
 from ironic.api.controllers.v1 import utils
@@ -48,15 +47,3 @@ class TestApiUtils(base.FunctionalTest):
         self.assertRaises(wsme.exc.ClientSideError,
                           utils.validate_sort_dir,
                           'fake-sort')
-
-    def test_valid_types(self):
-        vt = utils.ValidTypes(wsme.types.text, six.integer_types)
-
-        value = vt.validate("hello")
-        self.assertEqual("hello", value)
-
-        value = vt.validate(10)
-        self.assertEqual(10, value)
-
-        # wrong value
-        self.assertRaises(ValueError, vt.validate, 0.10)
