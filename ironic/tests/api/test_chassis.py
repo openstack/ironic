@@ -117,12 +117,7 @@ class TestListChassis(base.FunctionalTest):
         self.assertEqual(len(data['nodes']), 1)
         self.assertIn('next', data.keys())
 
-    def test_nodes_subresource_noid(self):
-        cdict = dbutils.get_test_chassis()
-        self.dbapi.create_chassis(cdict)
-        ndict = dbutils.get_test_node(chassis_id=cdict['id'])
-        self.dbapi.create_node(ndict)
-        # No chassis id specified
+    def test_nodes_subresource_no_uuid(self):
         response = self.get_json('/chassis/nodes', expect_errors=True)
         self.assertEqual(response.status_int, 400)
 
@@ -292,7 +287,8 @@ class TestPost(base.FunctionalTest):
     def test_post_nodes_subresource(self):
         cdict = dbutils.get_test_chassis()
         self.post_json('/chassis', cdict)
-        ndict = dbutils.get_test_node(chassis_id=cdict['id'])
+        ndict = dbutils.get_test_node(chassis_id=None)
+        ndict['chassis_uuid'] = cdict['uuid']
         response = self.post_json('/chassis/nodes', ndict,
                                    expect_errors=True)
         self.assertEqual(response.status_int, 403)

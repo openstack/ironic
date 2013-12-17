@@ -16,11 +16,10 @@
 #    under the License.
 
 import jsonpatch
-import six
-
+from oslo.config import cfg
 import pecan
 from pecan import rest
-
+import six
 import wsme
 from wsme import types as wtypes
 import wsmeext.pecan as wsme_pecan
@@ -30,14 +29,31 @@ from ironic.api.controllers.v1 import collection
 from ironic.api.controllers.v1 import link
 from ironic.api.controllers.v1 import port
 from ironic.api.controllers.v1 import state
-from ironic.api.controllers.v1 import utils
+from ironic.api.controllers.v1 import types
+from ironic.api.controllers.v1 import utils as api_utils
 from ironic.common import exception
 from ironic import objects
 from ironic.openstack.common import excutils
 from ironic.openstack.common import log
 
+CONF = cfg.CONF
+CONF.import_opt('heartbeat_timeout', 'ironic.conductor.manager',
+                group='conductor')
 
 LOG = log.getLogger(__name__)
+
+
+class NodePatchType(types.JsonPatchType):
+
+    @staticmethod
+    def internal_attrs():
+        defaults = types.JsonPatchType.internal_attrs()
+        return defaults + ['/last_error', '/power_state', '/provision_state',
+                           '/target_power_state', '/target_provision_state']
+
+    @staticmethod
+    def mandatory_attrs():
+        return ['/chassis_uuid', '/driver']
 
 
 class NodePowerState(state.State):
@@ -193,9 +209,34 @@ class Node(base.APIBase):
     between the internal object model and the API representation of a node.
     """
 
-    # NOTE: translate 'id' publicly to 'uuid' internally
-    uuid = wtypes.text
-    instance_uuid = wtypes.text
+    _chassis_uuid = None
+
+    def _get_chassis_uuid(self):
+        return self._chassis_uuid
+
+    def _set_chassis_uuid(self, value):
+        if value and self._chassis_uuid != value:
+            try:
+                chassis = objects.Chassis.get_by_uuid(pecan.request.context,
+                                                      value)
+                self._chassis_uuid = chassis.uuid
+                # NOTE(lucasagomes): Create the chassis_id attribute on-the-fly
+                #                    to satisfy the api -> rpc object
+                #                    conversion.
+                self.chassis_id = chassis.id
+            except exception.ChassisNotFound as e:
+                # Change error code because 404 (NotFound) is inappropriate
+                # response for a POST request to create a Port
+                e.code = 400  # BadRequest
+                raise e
+        elif value == wtypes.Unset:
+            self._chassis_uuid = wtypes.Unset
+
+    uuid = types.uuid
+    "Unique UUID for this node"
+
+    instance_uuid = types.uuid
+    "The UUID of the instance in nova-compute"
 
     power_state = wtypes.text
     "Represent the current (not transition) power state of the node"
@@ -213,24 +254,25 @@ class Node(base.APIBase):
     target_provision_state = wtypes.text
     "The user modified desired provision state of the node."
 
-    # NOTE: allow arbitrary dicts for driver_info and extra so that drivers
-    #       and vendors can expand on them without requiring API changes.
-    # NOTE: translate 'driver_info' internally to 'management_configuration'
-    driver = wtypes.text
+    driver = wsme.wsattr(wtypes.text, mandatory=True)
+    "The driver responsible for controlling the node"
 
-    driver_info = {wtypes.text: utils.ValidTypes(wtypes.text,
+    driver_info = {wtypes.text: api_utils.ValidTypes(wtypes.text,
                                                  six.integer_types)}
+    "This node's driver configuration"
 
-    extra = {wtypes.text: utils.ValidTypes(wtypes.text, six.integer_types)}
+    extra = {wtypes.text: api_utils.ValidTypes(wtypes.text, six.integer_types)}
+    "This node's meta data"
 
     # NOTE: properties should use a class to enforce required properties
     #       current list: arch, cpus, disk, ram, image
-    properties = {wtypes.text: utils.ValidTypes(wtypes.text,
+    properties = {wtypes.text: api_utils.ValidTypes(wtypes.text,
                                                 six.integer_types)}
+    "The physical characteristics of this node"
 
-    # NOTE: translate 'chassis_id' to a link to the chassis resource
-    #       and accept a chassis uuid when creating a node.
-    chassis_id = utils.ValidTypes(wtypes.text, six.integer_types)
+    chassis_uuid = wsme.wsproperty(types.uuid, _get_chassis_uuid,
+                                   _set_chassis_uuid, mandatory=True)
+    "The UUID of the chassis this node belongs"
 
     links = [link.Link]
     "A list containing a self link and associated node links"
@@ -243,20 +285,30 @@ class Node(base.APIBase):
         for k in self.fields:
             setattr(self, k, kwargs.get(k))
 
+        # NOTE(lucasagomes): chassis_uuid is not part of objects.Node.fields
+        #                    because it's an API-only attribute
+        self.fields.append('chassis_uuid')
+        setattr(self, 'chassis_uuid', kwargs.get('chassis_id', None))
+
     @classmethod
     def convert_with_links(cls, rpc_node, expand=True):
-        minimum_fields = ['uuid', 'power_state', 'target_power_state',
-                          'provision_state', 'target_provision_state',
-                          'last_error',
-                          'instance_uuid']
-        fields = minimum_fields if not expand else None
-        node = Node.from_rpc_object(rpc_node, fields)
+        node = Node(**rpc_node.as_dict())
+        if not expand:
+            except_list = ['instance_uuid', 'power_state',
+                           'provision_state', 'uuid']
+            node.unset_fields_except(except_list)
+        else:
+            node.ports = [link.Link.make_link('self', pecan.request.host_url,
+                                              'nodes', node.uuid + "/ports"),
+                          link.Link.make_link('bookmark',
+                                              pecan.request.host_url,
+                                              'nodes', node.uuid + "/ports",
+                                              bookmark=True)
+                         ]
 
-        # translate id -> uuid
-        if node.chassis_id and isinstance(node.chassis_id, six.integer_types):
-            chassis_obj = objects.Chassis.get_by_uuid(pecan.request.context,
-                                                      node.chassis_id)
-            node.chassis_id = chassis_obj.uuid
+        # NOTE(lucasagomes): The numeric ID should not be exposed to
+        #                    the user, it's internal only.
+        node.chassis_id = wtypes.Unset
 
         node.links = [link.Link.make_link('self', pecan.request.host_url,
                                           'nodes', node.uuid),
@@ -265,14 +317,6 @@ class Node(base.APIBase):
                                           'nodes', node.uuid,
                                           bookmark=True)
                      ]
-        if expand:
-            node.ports = [link.Link.make_link('self', pecan.request.host_url,
-                                              'nodes', node.uuid + "/ports"),
-                          link.Link.make_link('bookmark',
-                                              pecan.request.host_url,
-                                              'nodes', node.uuid + "/ports",
-                                              bookmark=True)
-                         ]
         return node
 
 
@@ -343,23 +387,23 @@ class NodesController(rest.RestController):
     def __init__(self, from_chassis=False):
         self._from_chassis = from_chassis
 
-    def _get_nodes(self, chassis_id, instance_uuid, associated, marker, limit,
-                   sort_key, sort_dir):
-        if self._from_chassis and not chassis_id:
+    def _get_nodes(self, chassis_uuid, instance_uuid, associated, marker,
+                   limit, sort_key, sort_dir):
+        if self._from_chassis and not chassis_uuid:
             raise exception.InvalidParameterValue(_(
                   "Chassis id not specified."))
 
-        limit = utils.validate_limit(limit)
-        sort_dir = utils.validate_sort_dir(sort_dir)
+        limit = api_utils.validate_limit(limit)
+        sort_dir = api_utils.validate_sort_dir(sort_dir)
 
         marker_obj = None
         if marker:
             marker_obj = objects.Node.get_by_uuid(pecan.request.context,
                                                   marker)
 
-        if chassis_id:
-            nodes = pecan.request.dbapi.get_nodes_by_chassis(chassis_id, limit,
-                                                             marker_obj,
+        if chassis_uuid:
+            nodes = pecan.request.dbapi.get_nodes_by_chassis(chassis_uuid,
+                                                             limit, marker_obj,
                                                              sort_key=sort_key,
                                                              sort_dir=sort_dir)
         elif instance_uuid:
@@ -400,14 +444,6 @@ class NodesController(rest.RestController):
                     "can only be true or false.") % associated)
         return nodes
 
-    def _convert_chassis_uuid_to_id(self, node_dict):
-        # NOTE(lucasagomes): translate uuid -> id, used internally to
-        #                    tune performance
-        if node_dict['chassis_id']:
-            chassis_obj = objects.Chassis.get_by_uuid(pecan.request.context,
-                                                      node_dict['chassis_id'])
-            node_dict['chassis_id'] = chassis_obj.id
-
     @wsme_pecan.wsexpose(NodeCollection, wtypes.text, wtypes.text,
                wtypes.text, wtypes.text, int, wtypes.text, wtypes.text)
     def get_all(self, chassis_id=None, instance_uuid=None, associated=None,
@@ -428,7 +464,6 @@ class NodesController(rest.RestController):
         """
         nodes = self._get_nodes(chassis_id, instance_uuid, associated, marker,
                                 limit, sort_key, sort_dir)
-
         parameters = {'sort_key': sort_key, 'sort_dir': sort_dir}
         if associated:
             parameters['associated'] = associated.lower()
@@ -498,17 +533,15 @@ class NodesController(rest.RestController):
         if self._from_chassis:
             raise exception.OperationNotPermitted
 
-        node_dict = node.as_dict()
-        self._convert_chassis_uuid_to_id(node_dict)
-
         try:
-            new_node = pecan.request.dbapi.create_node(node_dict)
+            new_node = pecan.request.dbapi.create_node(node.as_dict())
         except Exception as e:
             with excutils.save_and_reraise_exception():
                 LOG.exception(e)
         return Node.convert_with_links(new_node)
 
-    @wsme_pecan.wsexpose(Node, wtypes.text, body=[wtypes.text])
+    @wsme.validate(wtypes.text, [NodePatchType])
+    @wsme_pecan.wsexpose(Node, wtypes.text, body=[NodePatchType])
     def patch(self, uuid, patch):
         """Update an existing node.
 
@@ -518,61 +551,35 @@ class NodesController(rest.RestController):
         if self._from_chassis:
             raise exception.OperationNotPermitted
 
-        node = objects.Node.get_by_uuid(pecan.request.context, uuid)
-        node_dict = node.as_dict()
+        rpc_node = objects.Node.get_by_uuid(pecan.request.context, uuid)
 
-        utils.validate_patch(patch)
-        patch_obj = jsonpatch.JsonPatch(patch)
-
-        # Prevent states from being updated
-        state_rel_path = ['/power_state', '/target_power_state',
-                          '/provision_state', '/target_provision_state']
-        if any(p['path'] in state_rel_path for p in patch_obj):
-            raise wsme.exc.ClientSideError(_("Changing states is not allowed "
-                                             "here; You must use the "
-                                             "nodes/%s/state interface.")
-                                             % uuid)
-
-        # Prevent node from being updated when there's a state
-        # change in progress
-        if any(node.get(tgt) for tgt in ["target_power_state",
-                                         "target_provision_state"]):
-            raise wsme.exc.ClientSideError(_("Can not update node %s while "
-                                             "a state transition is in "
-                                             "progress.") % uuid,
-                                             status_code=409)
+        # Check if node is transitioning state
+        if rpc_node['target_power_state'] or \
+             rpc_node['target_provision_state']:
+            msg = _("Node %s can not be updated while a state transition"
+                    "is in progress.")
+            raise wsme.exc.ClientSideError(msg % uuid, status_code=409)
 
         try:
-            patched_node = jsonpatch.apply_patch(node_dict, patch_obj)
+            node = Node(**jsonpatch.apply_patch(rpc_node.as_dict(),
+                                                jsonpatch.JsonPatch(patch)))
         except jsonpatch.JsonPatchException as e:
             LOG.exception(e)
             raise wsme.exc.ClientSideError(_("Patching Error: %s") % e)
 
+        # Update only the fields that have changed
+        for field in objects.Node.fields:
+            if rpc_node[field] != getattr(node, field):
+                rpc_node[field] = getattr(node, field)
+
         try:
-            self. _convert_chassis_uuid_to_id(patched_node)
-            defaults = objects.Node.get_defaults()
-            for key in defaults:
-                # Internal values that shouldn't be part of the patch
-                if key in ['id', 'updated_at', 'created_at']:
-                    continue
-
-                # In case of a remove operation, add the missing fields back
-                # to the document with their default value
-                if key in node_dict and key not in patched_node:
-                    patched_node[key] = defaults[key]
-
-                # Update only the fields that have changed
-                if node[key] != patched_node[key]:
-                    node[key] = patched_node[key]
-
-            node = pecan.request.rpcapi.update_node(pecan.request.context,
-                                                    node)
-
-        except exception.IronicException as e:
+            new_node = pecan.request.rpcapi.update_node(pecan.request.context,
+                                                        rpc_node)
+        except Exception as e:
             with excutils.save_and_reraise_exception():
                 LOG.exception(e)
 
-        return Node.convert_with_links(node)
+        return Node.convert_with_links(new_node)
 
     @wsme_pecan.wsexpose(None, wtypes.text, status_code=204)
     def delete(self, node_id):
