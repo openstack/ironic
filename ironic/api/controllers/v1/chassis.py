@@ -124,7 +124,8 @@ class ChassisController(rest.RestController):
         'detail': ['GET'],
     }
 
-    def _get_chassis(self, marker, limit, sort_key, sort_dir):
+    def _get_chassis_collection(self, marker, limit, sort_key, sort_dir,
+                                expand=False, resource_url=None):
         limit = utils.validate_limit(limit)
         sort_dir = utils.validate_sort_dir(sort_dir)
         marker_obj = None
@@ -134,7 +135,11 @@ class ChassisController(rest.RestController):
         chassis = pecan.request.dbapi.get_chassis_list(limit, marker_obj,
                                                        sort_key=sort_key,
                                                        sort_dir=sort_dir)
-        return chassis
+        return ChassisCollection.convert_with_links(chassis, limit,
+                                                    url=resource_url,
+                                                    expand=expand,
+                                                    sort_key=sort_key,
+                                                    sort_dir=sort_dir)
 
     @wsme_pecan.wsexpose(ChassisCollection, wtypes.text,
                          int, wtypes.text, wtypes.text)
@@ -146,10 +151,7 @@ class ChassisController(rest.RestController):
         :param sort_key: column to sort results by. Default: id.
         :param sort_dir: direction to sort. "asc" or "desc". Default: asc.
         """
-        chassis = self._get_chassis(marker, limit, sort_key, sort_dir)
-        return ChassisCollection.convert_with_links(chassis, limit,
-                                                    sort_key=sort_key,
-                                                    sort_dir=sort_dir)
+        return self._get_chassis_collection(marker, limit, sort_key, sort_dir)
 
     @wsme_pecan.wsexpose(ChassisCollection, wtypes.text, int,
                          wtypes.text, wtypes.text)
@@ -166,13 +168,10 @@ class ChassisController(rest.RestController):
         if parent != "chassis":
             raise exception.HTTPNotFound
 
-        chassis = self._get_chassis(marker, limit, sort_key, sort_dir)
+        expand = True
         resource_url = '/'.join(['chassis', 'detail'])
-        return ChassisCollection.convert_with_links(chassis, limit,
-                                                    url=resource_url,
-                                                    expand=True,
-                                                    sort_key=sort_key,
-                                                    sort_dir=sort_dir)
+        return self._get_chassis_collection(marker, limit, sort_key, sort_dir,
+                                            expand, resource_url)
 
     @wsme_pecan.wsexpose(Chassis, wtypes.text)
     def get_one(self, uuid):

@@ -166,7 +166,8 @@ class PortsController(rest.RestController):
     def __init__(self, from_nodes=False):
         self._from_nodes = from_nodes
 
-    def _get_ports(self, node_uuid, marker, limit, sort_key, sort_dir):
+    def _get_ports_collection(self, node_uuid, marker, limit, sort_key,
+                              sort_dir, expand=False, resource_url=None):
         if self._from_nodes and not node_uuid:
             raise exception.InvalidParameterValue(_(
                   "Node id not specified."))
@@ -188,7 +189,12 @@ class PortsController(rest.RestController):
             ports = pecan.request.dbapi.get_port_list(limit, marker_obj,
                                                       sort_key=sort_key,
                                                       sort_dir=sort_dir)
-        return ports
+
+        return PortCollection.convert_with_links(ports, limit,
+                                                 url=resource_url,
+                                                 expand=expand,
+                                                 sort_key=sort_key,
+                                                 sort_dir=sort_dir)
 
     @wsme_pecan.wsexpose(PortCollection, wtypes.text, wtypes.text, int,
                          wtypes.text, wtypes.text)
@@ -202,10 +208,8 @@ class PortsController(rest.RestController):
         :param sort_key: column to sort results by. Default: id.
         :param sort_dir: direction to sort. "asc" or "desc". Default: asc.
         """
-        ports = self._get_ports(node_uuid, marker, limit, sort_key, sort_dir)
-        return PortCollection.convert_with_links(ports, limit,
-                                                 sort_key=sort_key,
-                                                 sort_dir=sort_dir)
+        return self._get_ports_collection(node_uuid, marker, limit,
+                                          sort_key, sort_dir)
 
     @wsme_pecan.wsexpose(PortCollection, wtypes.text, wtypes.text, int,
                          wtypes.text, wtypes.text)
@@ -224,13 +228,10 @@ class PortsController(rest.RestController):
         if parent != "ports":
             raise exception.HTTPNotFound
 
-        ports = self._get_ports(node_uuid, marker, limit, sort_key, sort_dir)
+        expand = True
         resource_url = '/'.join(['ports', 'detail'])
-        return PortCollection.convert_with_links(ports, limit,
-                                                 url=resource_url,
-                                                 expand=True,
-                                                 sort_key=sort_key,
-                                                 sort_dir=sort_dir)
+        return self._get_ports_collection(node_uuid, marker, limit, sort_key,
+                                          sort_dir, expand, resource_url)
 
     @wsme_pecan.wsexpose(Port, wtypes.text)
     def get_one(self, port_uuid):
