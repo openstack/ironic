@@ -185,37 +185,21 @@ class TestListNodes(base.FunctionalTest):
                                  expect_errors=True)
         self.assertEqual(response.status_int, 404)
 
-    def test_state(self):
-        ndict = dbutils.get_test_node()
+    def test_node_states(self):
+        fake_state = 'fake-state'
+        fake_error = 'fake-error'
+        ndict = dbutils.get_test_node(power_state=fake_state,
+                                      target_power_state=fake_state,
+                                      provision_state=fake_state,
+                                      target_provision_state=fake_state,
+                                      last_error=fake_error)
         self.dbapi.create_node(ndict)
-        data = self.get_json('/nodes/%s/state' % ndict['uuid'])
-        [self.assertIn(key, data) for key in ['power', 'provision']]
-
-        # Check if it only returns a sub-set of the attributes
-        [self.assertIn(key, ['current', 'links'])
-                       for key in data['power'].keys()]
-        [self.assertIn(key, ['current', 'links'])
-                       for key in data['provision'].keys()]
-
-    def test_power_state(self):
-        ndict = dbutils.get_test_node()
-        self.dbapi.create_node(ndict)
-        data = self.get_json('/nodes/%s/state/power' % ndict['uuid'])
-        [self.assertIn(key, data) for key in
-                       ['available', 'current', 'target', 'links']]
-        #TODO(lucasagomes): Add more tests to check to which states it can
-        # transition to from the current one, and check if they are present
-        # in the available list.
-
-    def test_provision_state(self):
-        ndict = dbutils.get_test_node()
-        self.dbapi.create_node(ndict)
-        data = self.get_json('/nodes/%s/state/provision' % ndict['uuid'])
-        [self.assertIn(key, data) for key in
-                       ['available', 'current', 'target', 'links']]
-        #TODO(lucasagomes): Add more tests to check to which states it can
-        # transition to from the current one, and check if they are present
-        # in the available list.
+        data = self.get_json('/nodes/%s/states' % ndict['uuid'])
+        self.assertEqual(fake_state, data['power_state'])
+        self.assertEqual(fake_state, data['target_power_state'])
+        self.assertEqual(fake_state, data['provision_state'])
+        self.assertEqual(fake_state, data['target_provision_state'])
+        self.assertEqual(fake_error, data['last_error'])
 
     def test_node_by_instance_uuid(self):
         ndict = dbutils.get_test_node(uuid=utils.generate_uuid(),
@@ -633,7 +617,7 @@ class TestPut(base.FunctionalTest):
         self.addCleanup(p.stop)
 
     def test_power_state(self):
-        response = self.put_json('/nodes/%s/state/power' % self.node['uuid'],
+        response = self.put_json('/nodes/%s/states/power' % self.node['uuid'],
                                  {'target': states.POWER_ON})
         self.assertEqual(response.content_type, 'application/json')
         self.assertEqual(response.status_code, 202)
@@ -650,16 +634,16 @@ class TestPut(base.FunctionalTest):
                         mock.call.change_node_power_state(mock.ANY, mock.ANY,
                                                           mock.ANY)]
 
-            self.put_json('/nodes/%s/state/power' % self.node['uuid'],
+            self.put_json('/nodes/%s/states/power' % self.node['uuid'],
                           {'target': states.POWER_ON})
             self.assertEqual(manager.mock_calls, expected)
 
         self.dbapi.update_node(self.node['uuid'],
                                {'target_power_state': 'fake'})
         self.assertRaises(webtest.app.AppError, self.put_json,
-                          '/nodes/%s/state/power' % self.node['uuid'],
+                          '/nodes/%s/states/power' % self.node['uuid'],
                           {'target': states.POWER_ON})
-        response = self.put_json('/nodes/%s/state/power' % self.node['uuid'],
+        response = self.put_json('/nodes/%s/states/power' % self.node['uuid'],
                                  {'target': states.POWER_ON},
                                  expect_errors=True)
         self.assertEqual(response.status_code, 409)
