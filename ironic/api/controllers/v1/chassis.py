@@ -30,6 +30,7 @@ from ironic.api.controllers.v1 import base
 from ironic.api.controllers.v1 import collection
 from ironic.api.controllers.v1 import link
 from ironic.api.controllers.v1 import node
+from ironic.api.controllers.v1 import types
 from ironic.api.controllers.v1 import utils
 from ironic.common import exception
 from ironic import objects
@@ -37,6 +38,10 @@ from ironic.openstack.common import excutils
 from ironic.openstack.common import log
 
 LOG = log.getLogger(__name__)
+
+
+class ChassisPatchType(types.JsonPatchType):
+    pass
 
 
 class Chassis(base.APIBase):
@@ -47,8 +52,7 @@ class Chassis(base.APIBase):
     a chassis.
     """
 
-    # NOTE: translate 'id' publicly to 'uuid' internally
-    uuid = wtypes.text
+    uuid = types.uuid
     "The UUID of the chassis"
 
     description = wtypes.text
@@ -70,17 +74,10 @@ class Chassis(base.APIBase):
 
     @classmethod
     def convert_with_links(cls, rpc_chassis, expand=True):
-        fields = ['uuid', 'description'] if not expand else None
-        chassis = Chassis.from_rpc_object(rpc_chassis, fields)
-        chassis.links = [link.Link.make_link('self',
-                                             pecan.request.host_url,
-                                             'chassis', chassis.uuid),
-                         link.Link.make_link('bookmark',
-                                             pecan.request.host_url,
-                                             'chassis', chassis.uuid)
-                        ]
-
-        if expand:
+        chassis = Chassis(**rpc_chassis.as_dict())
+        if not expand:
+            chassis.unset_fields_except(['uuid', 'description'])
+        else:
             chassis.nodes = [link.Link.make_link('self',
                                                  pecan.request.host_url,
                                                  'chassis',
@@ -91,6 +88,13 @@ class Chassis(base.APIBase):
                                                  chassis.uuid + "/nodes",
                                                  bookmark=True)
                             ]
+        chassis.links = [link.Link.make_link('self',
+                                             pecan.request.host_url,
+                                             'chassis', chassis.uuid),
+                         link.Link.make_link('bookmark',
+                                             pecan.request.host_url,
+                                             'chassis', chassis.uuid)
+                        ]
         return chassis
 
 
@@ -196,41 +200,29 @@ class ChassisController(rest.RestController):
                 LOG.exception(e)
         return Chassis.convert_with_links(new_chassis)
 
-    @wsme_pecan.wsexpose(Chassis, wtypes.text, body=[wtypes.text])
+    @wsme.validate(wtypes.text, [ChassisPatchType])
+    @wsme_pecan.wsexpose(Chassis, wtypes.text, body=[ChassisPatchType])
     def patch(self, uuid, patch):
         """Update an existing chassis.
 
         :param uuid: UUID of a chassis.
         :param patch: a json PATCH document to apply to this chassis.
         """
-        chassis = objects.Chassis.get_by_uuid(pecan.request.context, uuid)
-        chassis_dict = chassis.as_dict()
-
-        utils.validate_patch(patch)
+        rpc_chassis = objects.Chassis.get_by_uuid(pecan.request.context, uuid)
         try:
-            patched_chassis = jsonpatch.apply_patch(chassis_dict,
-                                                    jsonpatch.JsonPatch(patch))
+            chassis = Chassis(**jsonpatch.apply_patch(rpc_chassis.as_dict(),
+                                                   jsonpatch.JsonPatch(patch)))
         except jsonpatch.JsonPatchException as e:
             LOG.exception(e)
             raise wsme.exc.ClientSideError(_("Patching Error: %s") % e)
 
-        defaults = objects.Chassis.get_defaults()
-        for key in defaults:
-            # Internal values that shouldn't be part of the patch
-            if key in ['id', 'updated_at', 'created_at']:
-                continue
+        # Update only the fields that have changed
+        for field in objects.Chassis.fields:
+            if rpc_chassis[field] != getattr(chassis, field):
+                rpc_chassis[field] = getattr(chassis, field)
 
-            # In case of a remove operation, add the missing fields back
-            # to the document with their default value
-            if key in chassis_dict and key not in patched_chassis:
-                patched_chassis[key] = defaults[key]
-
-            # Update only the fields that have changed
-            if chassis[key] != patched_chassis[key]:
-                chassis[key] = patched_chassis[key]
-
-        chassis.save()
-        return Chassis.convert_with_links(chassis)
+        rpc_chassis.save()
+        return Chassis.convert_with_links(rpc_chassis)
 
     @wsme_pecan.wsexpose(None, wtypes.text, status_code=204)
     def delete(self, uuid):
