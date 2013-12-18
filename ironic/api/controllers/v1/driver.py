@@ -24,11 +24,6 @@ import wsmeext.pecan as wsme_pecan
 
 from ironic.api.controllers.v1 import base
 from ironic.openstack.common import log
-from oslo.config import cfg
-
-CONF = cfg.CONF
-CONF.import_opt('heartbeat_timeout', 'ironic.conductor.manager',
-        group='conductor')
 
 LOG = log.getLogger(__name__)
 
@@ -69,6 +64,5 @@ class DriversController(rest.RestController):
         #              will break from a single-line doc string.
         #              This is a result of a bug in sphinxcontrib-pecanwsme
         # https://github.com/dreamhost/sphinxcontrib-pecanwsme/issues/8
-        drivers = pecan.request.dbapi.list_active_conductor_drivers(
-                                     interval=CONF.conductor.heartbeat_timeout)
-        return DriverList.convert(drivers)
+        d2c = pecan.request.dbapi.get_active_driver_dict()
+        return DriverList.convert(d2c.keys())

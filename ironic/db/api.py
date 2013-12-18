@@ -336,8 +336,12 @@ class Connection(object):
         """
 
     @abc.abstractmethod
-    def list_active_conductor_drivers(self, interval):
-        """Retrieve a list of drivers supported by the registered conductors.
+    def get_active_driver_dict(self, interval):
+        """Retrieve drivers for the registered and active conductors.
 
-        :param interval: Time since last check-in of a conductor.
+        :param interval: Seconds since last check-in of a conductor.
+        :returns: A dict which maps driver names to the set of hosts
+                  which support them. For example:
+                    {driverA: set([host1, host2]),
+                     driverB: set([host2, host3])}
         """

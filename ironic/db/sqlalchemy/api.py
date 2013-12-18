@@ -17,10 +17,10 @@
 
 """SQLAlchemy storage backend."""
 
+import collections
 import datetime
 
 from oslo.config import cfg
-
 from sqlalchemy.orm.exc import NoResultFound
 
 from ironic.common import exception
@@ -39,6 +39,9 @@ CONF = cfg.CONF
 CONF.import_opt('connection',
                 'ironic.openstack.common.db.sqlalchemy.session',
                 group='database')
+CONF.import_opt('heartbeat_timeout',
+                'ironic.conductor.manager',
+                group='conductor')
 
 LOG = log.getLogger(__name__)
 
@@ -544,15 +547,18 @@ class Connection(api.Connection):
             if count == 0:
                 raise exception.ConductorNotFound(conductor=hostname)
 
-    def list_active_conductor_drivers(self, interval):
-        # TODO(deva): add configurable default 'interval', somewhere higher
-        #             up the code. This isn't a db-specific option.
+    def get_active_driver_dict(self, interval=None):
+        if interval is None:
+            interval = CONF.conductor.heartbeat_timeout
+
         limit = timeutils.utcnow() - datetime.timedelta(seconds=interval)
         result = model_query(models.Conductor).\
                     filter(models.Conductor.updated_at >= limit).\
                     all()
 
-        driver_set = set()
+        # build mapping of drivers to the set of hosts which support them
+        d2c = collections.defaultdict(set)
         for row in result:
-            driver_set.update(set(row['drivers']))
-        return list(driver_set)
+            for driver in row['drivers']:
+                d2c[driver].add(row['hostname'])
+        return d2c
