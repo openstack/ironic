@@ -16,19 +16,27 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+from testtools.matchers import HasLength
 
 from ironic.tests.api import base
 
 
 class TestListDrivers(base.FunctionalTest):
 
-    def test_many(self):
-        drivers = ['fake-driver', 'foobar-driver']
-        self.node = self.dbapi.register_conductor({'hostname': 'fake-host',
-                                                   'drivers': drivers})
+    def test_drivers(self):
+        d1 = 'fake-driver1'
+        d2 = 'fake-driver2'
+        h1 = 'fake-host1'
+        h2 = 'fake-host2'
+        self.dbapi.register_conductor({'hostname': h1, 'drivers': [d1, d2]})
+        self.dbapi.register_conductor({'hostname': h2, 'drivers': [d2]})
+        expected = [{'name': d1, 'hosts': [h1]},
+                    {'name': d2, 'hosts': [h1, h2]}]
         data = self.get_json('/drivers')
+        self.assertThat(data['drivers'], HasLength(2))
+        self.assertEqual(sorted(expected), sorted(data['drivers']))
 
-        self.assertEqual(len(drivers), len(data['drivers']))
-        # Assert all drivers were listed
-        self.assertEqual(sorted(drivers),
-                         sorted([d['name'] for d in data['drivers']]))
+    def test_drivers_no_active_conductor(self):
+        data = self.get_json('/drivers')
+        self.assertThat(data['drivers'], HasLength(0))
+        self.assertEqual([], data['drivers'])

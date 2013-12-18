@@ -32,11 +32,16 @@ class Driver(base.APIBase):
     """API representation of a driver."""
 
     name = wtypes.text
+    "The name of the driver"
+
+    hosts = [wtypes.text]
+    "A list of active conductors that support this driver"
 
     @classmethod
-    def convert(cls, name):
+    def convert(cls, name, hosts):
         driver = Driver()
         driver.name = name
+        driver.hosts = hosts
         return driver
 
 
@@ -49,7 +54,8 @@ class DriverList(base.APIBase):
     @classmethod
     def convert(cls, drivers):
         collection = DriverList()
-        collection.drivers = [Driver.convert(driver) for driver in drivers]
+        collection.drivers = [Driver.convert(dname, list(drivers[dname]))
+                              for dname in drivers]
         return collection
 
 
@@ -64,5 +70,5 @@ class DriversController(rest.RestController):
         #              will break from a single-line doc string.
         #              This is a result of a bug in sphinxcontrib-pecanwsme
         # https://github.com/dreamhost/sphinxcontrib-pecanwsme/issues/8
-        d2c = pecan.request.dbapi.get_active_driver_dict()
-        return DriverList.convert(d2c.keys())
+        driver_list = pecan.request.dbapi.get_active_driver_dict()
+        return DriverList.convert(driver_list)
