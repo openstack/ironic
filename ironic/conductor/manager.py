@@ -201,17 +201,23 @@ class ConductorManager(service.PeriodicService):
     def validate_vendor_action(self, context, node_id, driver_method, info):
         """Validate driver specific info or get driver status."""
 
-        LOG.debug(_("RPC call_driver called for node %s.") % node_id)
+        LOG.debug(_("RPC validate_vendor_action called for node %s.")
+                    % node_id)
         with task_manager.acquire(context, node_id, shared=True) as task:
-            if getattr(task.driver, 'vendor', None):
-                return task.driver.vendor.validate(task.node,
-                                                   method=driver_method,
-                                                   **info)
-            else:
-                raise exception.UnsupportedDriverExtension(
-                                        driver=task.node['driver'],
-                                        node=node_id,
-                                        extension='vendor passthru')
+            try:
+                if getattr(task.driver, 'vendor', None):
+                    return task.driver.vendor.validate(task.node,
+                                                       method=driver_method,
+                                                       **info)
+                else:
+                    raise exception.UnsupportedDriverExtension(
+                                            driver=task.node.driver,
+                                            extension='vendor passthru')
+            except Exception as e:
+                with excutils.save_and_reraise_exception():
+                    task.node.last_error = \
+                        _("Failed to validate vendor info. Error: %s") % e
+                    task.node.save(context)
 
     def do_vendor_action(self, context, node_id, driver_method, info):
         """Run driver action asynchronously."""

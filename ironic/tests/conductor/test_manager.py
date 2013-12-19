@@ -258,35 +258,43 @@ class ManagerTestCase(base.DbTestCase):
 
     def test_validate_vendor_action(self):
         n = utils.get_test_node(driver='fake')
-        self.dbapi.create_node(n)
+        node = self.dbapi.create_node(n)
         info = {'bar': 'baz'}
         self.assertTrue(self.service.validate_vendor_action(self.context,
                                                      n['uuid'], 'foo', info))
+        node.refresh(self.context)
+        self.assertIsNone(node.last_error)
 
     def test_validate_vendor_action_unsupported_method(self):
         n = utils.get_test_node(driver='fake')
-        self.dbapi.create_node(n)
+        node = self.dbapi.create_node(n)
         info = {'bar': 'baz'}
         self.assertRaises(exception.InvalidParameterValue,
                           self.service.validate_vendor_action,
                           self.context, n['uuid'], 'abc', info)
+        node.refresh(self.context)
+        self.assertIsNotNone(node.last_error)
 
     def test_validate_vendor_action_no_parameter(self):
         n = utils.get_test_node(driver='fake')
-        self.dbapi.create_node(n)
+        node = self.dbapi.create_node(n)
         info = {'fake': 'baz'}
         self.assertRaises(exception.InvalidParameterValue,
                           self.service.validate_vendor_action,
                           self.context, n['uuid'], 'foo', info)
+        node.refresh(self.context)
+        self.assertIsNotNone(node.last_error)
 
     def test_validate_vendor_action_unsupported(self):
         n = utils.get_test_node(driver='fake')
-        self.dbapi.create_node(n)
+        node = self.dbapi.create_node(n)
         info = {'bar': 'baz'}
         self.driver.vendor = None
         self.assertRaises(exception.UnsupportedDriverExtension,
                           self.service.validate_vendor_action,
                           self.context, n['uuid'], 'foo', info)
+        node.refresh(self.context)
+        self.assertIsNotNone(node.last_error)
 
     def test_do_node_deploy_invalid_state(self):
         # test node['provision_state'] is not NOSTATE
