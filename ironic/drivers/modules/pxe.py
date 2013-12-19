@@ -150,7 +150,10 @@ def _build_pxe_config(node, pxe_info):
     """
     LOG.debug(_("Building PXE config for deployment %s.") % node['id'])
 
-    ironic_api = CONF.conductor.api_url or keystone.get_service_url()
+    # NOTE: we should strip '/' from the end because this is intended for
+    # hardcoded ramdisk script
+    ironic_api = (CONF.conductor.api_url or
+                  keystone.get_service_url()).rstrip('/')
 
     deploy_key = utils.random_alnum(32)
     ctx = context.get_admin_context()
