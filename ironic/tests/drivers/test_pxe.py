@@ -551,35 +551,68 @@ class PXEDriverTestCase(db_base.DbTestCase):
 
     def test_continue_deploy_good(self):
         token_path = self._create_token_file()
+        self.node.power_state = states.POWER_ON
+        self.node.save(self.context)
 
         def fake_deploy(**kwargs):
             pass
 
         self.useFixture(fixtures.MonkeyPatch(
-                'ironic.drivers.modules.deploy_utils.deploy', fake_deploy))
-        with task_manager.acquire(self.context, [self.node['uuid']],
+                'ironic.drivers.modules.deploy_utils.deploy',
+                fake_deploy))
+
+        with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
             task.resources[0].driver.vendor.vendor_passthru(task, self.node,
                     method='pass_deploy_info', address='123456', iqn='aaa-bbb',
                     key='fake-56789')
-        self.assertEqual(self.node['provision_state'], states.DEPLOYDONE)
+        self.assertEqual(states.ACTIVE, self.node.provision_state)
+        self.assertEqual(states.POWER_ON, self.node.power_state)
+        self.assertIsNone(self.node.last_error)
         self.assertFalse(os.path.exists(token_path))
 
     def test_continue_deploy_fail(self):
         token_path = self._create_token_file()
+        self.node.power_state = states.POWER_ON
+        self.node.save(self.context)
 
         def fake_deploy(**kwargs):
-            raise exception.InstanceDeployFailure()
+            raise exception.InstanceDeployFailure("test deploy error")
 
         self.useFixture(fixtures.MonkeyPatch(
-                'ironic.drivers.modules.deploy_utils.deploy', fake_deploy))
-        with task_manager.acquire(self.context, [self.node['uuid']],
+                'ironic.drivers.modules.deploy_utils.deploy',
+                fake_deploy))
+
+        with task_manager.acquire(self.context, [self.node.uuid],
                                   shared=True) as task:
-            self.assertRaises(exception.InstanceDeployFailure,
-                            task.resources[0].driver.vendor.vendor_passthru,
-                            task, self.node, method='pass_deploy_info',
-                            address='123456', iqn='aaa-bbb', key='fake-56789')
-        self.assertEqual(self.node['provision_state'], states.DEPLOYFAIL)
+            task.resources[0].driver.vendor.vendor_passthru(task, self.node,
+                    method='pass_deploy_info', address='123456', iqn='aaa-bbb',
+                    key='fake-56789')
+        self.assertEqual(states.DEPLOYFAIL, self.node.provision_state)
+        self.assertEqual(states.POWER_OFF, self.node.power_state)
+        self.assertIsNotNone(self.node.last_error)
+        self.assertFalse(os.path.exists(token_path))
+
+    def test_continue_deploy_ramdisk_fails(self):
+        token_path = self._create_token_file()
+        self.node.power_state = states.POWER_ON
+        self.node.save(self.context)
+
+        def fake_deploy(**kwargs):
+            pass
+
+        self.useFixture(fixtures.MonkeyPatch(
+                'ironic.drivers.modules.deploy_utils.deploy',
+                fake_deploy))
+
+        with task_manager.acquire(self.context, [self.node.uuid],
+                                  shared=True) as task:
+            task.resources[0].driver.vendor.vendor_passthru(task, self.node,
+                    method='pass_deploy_info', address='123456', iqn='aaa-bbb',
+                    key='fake-56789', error='test ramdisk error')
+        self.assertEqual(states.DEPLOYFAIL, self.node.provision_state)
+        self.assertEqual(states.POWER_OFF, self.node.power_state)
+        self.assertIsNotNone(self.node.last_error)
         self.assertFalse(os.path.exists(token_path))
 
     def test_lock_elevated(self):

@@ -612,36 +612,56 @@ class VendorPassthru(base.VendorInterface):
         return True
 
     def _continue_deploy(self, task, node, **kwargs):
-        # token already not needed
+        """Resume a deployment upon getting POST data from deploy ramdisk.
+
+        This method raises no exceptions because it is intended to be
+        invoked asynchronously as a callback from the deploy ramdisk.
+        """
+
+        def _set_failed_state(msg):
+            node.provision_state = states.DEPLOYFAIL
+            node.target_provision_state = states.NOSTATE
+            node.save(task.context)
+            try:
+                manager_utils.node_power_action(task, node, states.POWER_OFF)
+            except Exception:
+                msg = (_('Node %s failed to power off while handling deploy '
+                         'failure. This may be a serious condition. Node '
+                         'should be removed from Ironic or put in maintenance '
+                         'mode until the problem is resolved.') % node.uuid)
+                LOG.error(msg)
+            finally:
+                # NOTE(deva): node_power_action() erases node.last_error
+                #             so we need to set it again here.
+                node.last_error = msg
+                node.save(task.context)
+
+        # remove cached keystone token immediately
         _destroy_token_file(node)
+
         params = self._get_deploy_info(node, **kwargs)
-        ctx = task.context
-        node_id = node['uuid']
+        ramdisk_error = kwargs.get('error')
 
-        err_msg = kwargs.get('error')
-        if err_msg:
-            LOG.error(_('Node %(node_id)s deploy error message: %(error)s') %
-                        {'node_id': node_id, 'error': err_msg})
+        if ramdisk_error:
+            LOG.error(_('Error returned from PXE deploy ramdisk: %s')
+                    % ramdisk_error)
+            _set_failed_state(_('Failure in PXE deploy ramdisk.'))
+            return
 
-        LOG.info(_('start deployment for node %(node_id)s, '
-                   'params %(params)s') %
-                   {'node_id': node_id, 'params': params})
+        LOG.info(_('Continuing deployment for node %(node)s, params '
+                   '%(params)s') % {'node': node.uuid, 'params': params})
 
         try:
-            node['provision_state'] = states.DEPLOYING
-            node.save(ctx)
             deploy_utils.deploy(**params)
-        except Exception as e:
-            LOG.error(_('deployment to node %s failed') % node_id)
-            node['provision_state'] = states.DEPLOYFAIL
-            node.save(ctx)
-            raise exception.InstanceDeployFailure(_(
-                    'Deploy error: "%(error)s" for node %(node_id)s') %
-                     {'error': e.message, 'node_id': node_id})
+        except Exception:
+            # NOTE(deva): deploy() already logs any failure
+            #             so we don't need to log it again here.
+            _set_failed_state(_('PXE driver failed to continue deployment.'))
         else:
-            LOG.info(_('deployment to node %s done') % node_id)
-            node['provision_state'] = states.DEPLOYDONE
-            node.save(ctx)
+            LOG.info(_('Deployment to node %s done') % node.uuid)
+            node.provision_state = states.ACTIVE
+            node.target_provision_state = states.NOSTATE
+            node.save(task.context)
 
     def vendor_passthru(self, task, node, **kwargs):
         method = kwargs['method']
@@ -653,5 +673,5 @@ class VendorPassthru(base.VendorInterface):
 
         elif method == 'pass_deploy_info':
             ctx = context.get_admin_context()
-            with task_manager.acquire(ctx, node['uuid'], shared=False) as cdt:
-                self._continue_deploy(cdt, node, **kwargs)
+            with task_manager.acquire(ctx, node['uuid']) as inner_task:
+                self._continue_deploy(inner_task, node, **kwargs)
