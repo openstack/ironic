@@ -18,6 +18,7 @@ Tests for the API /ports/ methods.
 
 import datetime
 
+from oslo.config import cfg
 import webtest.app
 
 from ironic.common import utils
@@ -108,6 +109,21 @@ class TestListPorts(base.FunctionalTest):
             port = self.dbapi.create_port(ndict)
             ports.append(port['uuid'])
         data = self.get_json('/ports/?limit=3')
+        self.assertEqual(len(data['ports']), 3)
+
+        next_marker = data['ports'][-1]['uuid']
+        self.assertIn(next_marker, data['next'])
+
+    def test_collection_links_default_limit(self):
+        cfg.CONF.set_override('max_limit', 3, 'api')
+        ports = []
+        for id in range(5):
+            ndict = dbutils.get_test_port(id=id,
+                                          uuid=utils.generate_uuid(),
+                                          address='52:54:00:cf:2d:3%s' % id)
+            port = self.dbapi.create_port(ndict)
+            ports.append(port['uuid'])
+        data = self.get_json('/ports')
         self.assertEqual(len(data['ports']), 3)
 
         next_marker = data['ports'][-1]['uuid']

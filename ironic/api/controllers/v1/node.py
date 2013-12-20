@@ -315,8 +315,9 @@ class NodesController(rest.RestController):
     def __init__(self, from_chassis=False):
         self._from_chassis = from_chassis
 
-    def _get_nodes(self, chassis_uuid, instance_uuid, associated, marker,
-                   limit, sort_key, sort_dir):
+    def _get_nodes_collection(self, chassis_uuid, instance_uuid, associated,
+                              marker, limit, sort_key, sort_dir,
+                              expand=False, resource_url=None):
         if self._from_chassis and not chassis_uuid:
             raise exception.InvalidParameterValue(_(
                   "Chassis id not specified."))
@@ -344,7 +345,14 @@ class NodesController(rest.RestController):
             nodes = pecan.request.dbapi.get_node_list(limit, marker_obj,
                                                       sort_key=sort_key,
                                                       sort_dir=sort_dir)
-        return nodes
+
+        parameters = {'sort_key': sort_key, 'sort_dir': sort_dir}
+        if associated:
+            parameters['associated'] = associated.lower()
+        return NodeCollection.convert_with_links(nodes, limit,
+                                                 url=resource_url,
+                                                 expand=expand,
+                                                 **parameters)
 
     def _get_nodes_by_instance(self, instance_uuid):
         """Retrieve a node by its instance uuid.
@@ -390,12 +398,9 @@ class NodesController(rest.RestController):
         :param sort_key: column to sort results by. Default: id.
         :param sort_dir: direction to sort. "asc" or "desc". Default: asc.
         """
-        nodes = self._get_nodes(chassis_id, instance_uuid, associated, marker,
-                                limit, sort_key, sort_dir)
-        parameters = {'sort_key': sort_key, 'sort_dir': sort_dir}
-        if associated:
-            parameters['associated'] = associated.lower()
-        return NodeCollection.convert_with_links(nodes, limit, **parameters)
+        return self._get_nodes_collection(chassis_id, instance_uuid,
+                                          associated, marker, limit,
+                                          sort_key, sort_dir)
 
     @wsme_pecan.wsexpose(NodeCollection, wtypes.text, wtypes.text,
             wtypes.text, wtypes.text, int, wtypes.text, wtypes.text)
@@ -420,17 +425,12 @@ class NodesController(rest.RestController):
         if parent != "nodes":
             raise exception.HTTPNotFound
 
-        nodes = self._get_nodes(chassis_id, instance_uuid, associated,
-                                marker, limit, sort_key, sort_dir)
+        expand = True
         resource_url = '/'.join(['nodes', 'detail'])
-
-        parameters = {'sort_key': sort_key, 'sort_dir': sort_dir}
-        if associated:
-            parameters['associated'] = associated.lower()
-        return NodeCollection.convert_with_links(nodes, limit,
-                                                 url=resource_url,
-                                                 expand=True,
-                                                 **parameters)
+        return self._get_nodes_collection(chassis_id, instance_uuid,
+                                          associated, marker, limit,
+                                          sort_key, sort_dir,
+                                          expand, resource_url)
 
     @wsme_pecan.wsexpose(wtypes.text, wtypes.text)
     def validate(self, node_uuid):

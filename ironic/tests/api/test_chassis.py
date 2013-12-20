@@ -18,6 +18,7 @@ Tests for the API /chassis/ methods.
 
 import datetime
 
+from oslo.config import cfg
 import webtest.app
 
 from ironic.common import utils
@@ -87,6 +88,20 @@ class TestListChassis(base.FunctionalTest):
             ch = self.dbapi.create_chassis(ndict)
             chassis.append(ch['uuid'])
         data = self.get_json('/chassis/?limit=3')
+        self.assertEqual(len(data['chassis']), 3)
+
+        next_marker = data['chassis'][-1]['uuid']
+        self.assertIn(next_marker, data['next'])
+
+    def test_collection_links_default_limit(self):
+        cfg.CONF.set_override('max_limit', 3, 'api')
+        chassis = []
+        for id in range(5):
+            ndict = dbutils.get_test_chassis(id=id,
+                                             uuid=utils.generate_uuid())
+            ch = self.dbapi.create_chassis(ndict)
+            chassis.append(ch['uuid'])
+        data = self.get_json('/chassis')
         self.assertEqual(len(data['chassis']), 3)
 
         next_marker = data['chassis'][-1]['uuid']

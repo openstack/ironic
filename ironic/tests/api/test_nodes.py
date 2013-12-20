@@ -19,6 +19,7 @@ Tests for the API /nodes/ methods.
 import datetime
 
 import mock
+from oslo.config import cfg
 from testtools.matchers import HasLength
 import webtest.app
 
@@ -139,6 +140,20 @@ class TestListNodes(base.FunctionalTest):
             node = self.dbapi.create_node(ndict)
             nodes.append(node['uuid'])
         data = self.get_json('/nodes/?limit=3')
+        self.assertEqual(len(data['nodes']), 3)
+
+        next_marker = data['nodes'][-1]['uuid']
+        self.assertIn(next_marker, data['next'])
+
+    def test_collection_links_default_limit(self):
+        cfg.CONF.set_override('max_limit', 3, 'api')
+        nodes = []
+        for id in range(5):
+            ndict = dbutils.get_test_node(id=id,
+                                          uuid=utils.generate_uuid())
+            node = self.dbapi.create_node(ndict)
+            nodes.append(node['uuid'])
+        data = self.get_json('/nodes')
         self.assertEqual(len(data['nodes']), 3)
 
         next_marker = data['nodes'][-1]['uuid']
