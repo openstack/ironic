@@ -415,12 +415,24 @@ class ManagerTestCase(base.DbTestCase):
             deploy.assert_called_once()
 
     def test_validate_driver_interfaces(self):
-        ndict = utils.get_test_node(driver='fake',
-                                    provision_state=states.ACTIVE)
+        ndict = utils.get_test_node(driver='fake')
         node = self.dbapi.create_node(ndict)
-        result = self.service.validate_driver_interfaces(self.context,
-                                                         node['uuid'])
-        self.assertTrue(result['power'])
-        self.assertTrue(result['deploy'])
-        self.assertEqual('not supported', result['console'])
-        self.assertEqual('not supported', result['rescue'])
+        ret = self.service.validate_driver_interfaces(self.context,
+                                                      node['uuid'])
+        expected = {'console': {'result': None, 'reason': 'not supported'},
+                    'rescue': {'result': None, 'reason': 'not supported'},
+                    'power': {'result': True},
+                    'deploy': {'result': True}}
+        self.assertEqual(expected, ret)
+
+    def test_validate_driver_interfaces_validation_fail(self):
+        ndict = utils.get_test_node(driver='fake')
+        node = self.dbapi.create_node(ndict)
+        with mock.patch('ironic.drivers.modules.fake.FakeDeploy.validate') \
+                as deploy:
+            reason = 'fake reason'
+            deploy.side_effect = exception.InvalidParameterValue(reason)
+            ret = self.service.validate_driver_interfaces(self.context,
+                                                          node['uuid'])
+            self.assertFalse(ret['deploy']['result'])
+            self.assertEqual(reason, ret['deploy']['reason'])
