@@ -295,7 +295,7 @@ class ManagerTestCase(base.DbTestCase):
         node = self.dbapi.create_node(ndict)
         self.assertRaises(exception.InstanceDeployFailure,
                           self.service.do_node_deploy,
-                          self.context, node)
+                          self.context, node['uuid'])
 
     def test_do_node_deploy_driver_raises_error(self):
         # test when driver.deploy.deploy raises an exception
@@ -308,7 +308,7 @@ class ManagerTestCase(base.DbTestCase):
             deploy.side_effect = exception.InstanceDeployFailure('test')
             self.assertRaises(exception.InstanceDeployFailure,
                               self.service.do_node_deploy,
-                              self.context, node)
+                              self.context, node['uuid'])
             node.refresh(self.context)
             self.assertEqual(node['provision_state'], states.DEPLOYFAIL)
             self.assertEqual(node['target_provision_state'], states.NOSTATE)
@@ -324,7 +324,7 @@ class ManagerTestCase(base.DbTestCase):
         with mock.patch('ironic.drivers.modules.fake.FakeDeploy.deploy') \
                 as deploy:
             deploy.return_value = states.DEPLOYDONE
-            self.service.do_node_deploy(self.context, node)
+            self.service.do_node_deploy(self.context, node['uuid'])
             node.refresh(self.context)
             self.assertEqual(node['provision_state'], states.ACTIVE)
             self.assertEqual(node['target_provision_state'], states.NOSTATE)
@@ -340,7 +340,7 @@ class ManagerTestCase(base.DbTestCase):
         with mock.patch('ironic.drivers.modules.fake.FakeDeploy.deploy') \
                 as deploy:
             deploy.return_value = states.DEPLOYING
-            self.service.do_node_deploy(self.context, node)
+            self.service.do_node_deploy(self.context, node['uuid'])
             node.refresh(self.context)
             self.assertEqual(node['provision_state'], states.DEPLOYING)
             self.assertEqual(node['target_provision_state'], states.DEPLOYDONE)
@@ -354,7 +354,7 @@ class ManagerTestCase(base.DbTestCase):
         node = self.dbapi.create_node(ndict)
         self.assertRaises(exception.InstanceDeployFailure,
                           self.service.do_node_tear_down,
-                          self.context, node)
+                          self.context, node['uuid'])
 
     def test_do_node_tear_down_driver_raises_error(self):
         # test when driver.deploy.tear_down raises exception
@@ -367,7 +367,7 @@ class ManagerTestCase(base.DbTestCase):
             deploy.side_effect = exception.InstanceDeployFailure('test')
             self.assertRaises(exception.InstanceDeployFailure,
                               self.service.do_node_tear_down,
-                              self.context, node)
+                              self.context, node['uuid'])
             node.refresh(self.context)
             self.assertEqual(node['provision_state'], states.ERROR)
             self.assertEqual(node['target_provision_state'], states.NOSTATE)
@@ -383,7 +383,7 @@ class ManagerTestCase(base.DbTestCase):
         with mock.patch('ironic.drivers.modules.fake.FakeDeploy.tear_down') \
                 as deploy:
             deploy.return_value = states.DELETED
-            self.service.do_node_tear_down(self.context, node)
+            self.service.do_node_tear_down(self.context, node['uuid'])
             node.refresh(self.context)
             self.assertEqual(node['provision_state'], states.NOSTATE)
             self.assertEqual(node['target_provision_state'], states.NOSTATE)
@@ -399,7 +399,7 @@ class ManagerTestCase(base.DbTestCase):
         with mock.patch('ironic.drivers.modules.fake.FakeDeploy.tear_down') \
                 as deploy:
             deploy.return_value = states.DELETING
-            self.service.do_node_tear_down(self.context, node)
+            self.service.do_node_tear_down(self.context, node['uuid'])
             node.refresh(self.context)
             self.assertEqual(node['provision_state'], states.DELETING)
             self.assertEqual(node['target_provision_state'], states.DELETED)

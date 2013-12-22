@@ -79,7 +79,7 @@ CONF.register_opts(conductor_opts, 'conductor')
 class ConductorManager(service.PeriodicService):
     """Ironic Conductor service main class."""
 
-    RPC_API_VERSION = '1.5'
+    RPC_API_VERSION = '1.6'
 
     def __init__(self, host, topic):
         serializer = objects_base.IronicObjectSerializer()
@@ -166,7 +166,7 @@ class ConductorManager(service.PeriodicService):
 
             return node_obj
 
-    def change_node_power_state(self, context, node_obj, new_state):
+    def change_node_power_state(self, context, node_id, new_state):
         """RPC method to encapsulate changes to a node's state.
 
         Perform actions such as power on, power off. It waits for the power
@@ -174,7 +174,7 @@ class ConductorManager(service.PeriodicService):
         the node with the new power state.
 
         :param context: an admin context.
-        :param node_obj: an RPC-style node object.
+        :param node_id: the id or uuid of a node.
         :param new_state: the desired power state of the node.
         :raises: InvalidParameterValue when the wrong state is specified
                  or the wrong driver info is specified.
@@ -182,7 +182,6 @@ class ConductorManager(service.PeriodicService):
                  wrong occurred during the power action.
 
         """
-        node_id = node_obj.get('uuid')
         LOG.debug(_("RPC change_node_power_state called for node %(node)s. "
                     "The desired new state is %(state)s.")
                     % {'node': node_id, 'state': new_state})
@@ -220,15 +219,14 @@ class ConductorManager(service.PeriodicService):
                 task.driver.vendor.vendor_passthru(task, task.node,
                                                   method=driver_method, **info)
 
-    def do_node_deploy(self, context, node_obj):
+    def do_node_deploy(self, context, node_id):
         """RPC method to initiate deployment to a node.
 
         :param context: an admin context.
-        :param node_obj: an RPC-style node object.
+        :param node_id: the id or uuid of a node.
         :raises: InstanceDeployFailure
 
         """
-        node_id = node_obj.get('uuid')
         LOG.debug(_("RPC do_node_deploy called for node %s.") % node_id)
 
         with task_manager.acquire(context, node_id, shared=False) as task:
@@ -271,15 +269,14 @@ class ConductorManager(service.PeriodicService):
             finally:
                 node.save(context)
 
-    def do_node_tear_down(self, context, node_obj):
+    def do_node_tear_down(self, context, node_id):
         """RPC method to tear down an existing node deployment.
 
         :param context: an admin context.
-        :param node_obj: an RPC-style node object.
+        :param node_id: the id or uuid of a node.
         :raises: InstanceDeployFailure
 
         """
-        node_id = node_obj.get('uuid')
         LOG.debug(_("RPC do_node_tear_down called for node %s.") % node_id)
 
         with task_manager.acquire(context, node_id, shared=False) as task:

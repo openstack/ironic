@@ -96,7 +96,7 @@ class RPCAPITestCase(base.DbTestCase):
     def test_change_node_power_state(self):
         self._test_rpcapi('change_node_power_state',
                           'cast',
-                          node_obj=self.fake_node,
+                          node_id=self.fake_node['uuid'],
                           new_state=states.POWER_ON)
 
     def test_pass_vendor_info(self):
@@ -116,12 +116,12 @@ class RPCAPITestCase(base.DbTestCase):
     def test_do_node_deploy(self):
         self._test_rpcapi('do_node_deploy',
                           'cast',
-                          node_obj=self.fake_node)
+                          node_id=self.fake_node['uuid'])
 
     def test_do_node_tear_down(self):
         self._test_rpcapi('do_node_tear_down',
                           'cast',
-                          node_obj=self.fake_node)
+                          node_id=self.fake_node['uuid'])
 
     def test_validate_driver_interfaces(self):
         self._test_rpcapi('validate_driver_interfaces',
