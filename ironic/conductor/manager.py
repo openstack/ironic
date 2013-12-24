@@ -255,6 +255,11 @@ class ConductorManager(service.PeriodicService):
                     "state is already %(state)s.") %
                     {'node': node_id, 'state': node['provision_state']})
 
+            if node.maintenance:
+                raise exception.InstanceDeployFailure(_(
+                    "RPC do_node_deploy called for %s, but node is in "
+                    "maintenance mode.") % node_id)
+
             try:
                 task.driver.deploy.validate(node)
             except Exception as e:
