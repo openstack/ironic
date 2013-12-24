@@ -324,6 +324,47 @@ class TestListNodes(base.FunctionalTest):
         # never expose the chassis_id
         self.assertNotIn('chassis_id', data['nodes'][0])
 
+    def test_maintenance_nodes(self):
+        nodes = []
+        for id in range(5):
+            ndict = dbutils.get_test_node(id=id, uuid=utils.generate_uuid(),
+                                          maintenance=id % 2)
+            node = self.dbapi.create_node(ndict)
+            nodes.append(node)
+
+        data = self.get_json('/nodes?maintenance=true')
+        uuids = [n['uuid'] for n in data['nodes']]
+        test_uuids_1 = [n.uuid for n in nodes if n.maintenance]
+        self.assertEqual(sorted(test_uuids_1), sorted(uuids))
+
+        data = self.get_json('/nodes?maintenance=false')
+        uuids = [n['uuid'] for n in data['nodes']]
+        test_uuids_0 = [n.uuid for n in nodes if not n.maintenance]
+        self.assertEqual(sorted(test_uuids_0), sorted(uuids))
+
+    def test_maintenance_nodes_error(self):
+        response = self.get_json('/nodes?associated=true&maintenance=blah',
+                                 expect_errors=True)
+        self.assertEqual('application/json', response.content_type)
+        self.assertEqual(400, response.status_code)
+        self.assertTrue(response.json['error_message'])
+
+    def test_maintenance_nodes_associated(self):
+        self._create_association_test_nodes()
+        ndict = dbutils.get_test_node(instance_uuid=utils.generate_uuid(),
+                                      maintenance=True)
+        node = self.dbapi.create_node(ndict)
+
+        data = self.get_json('/nodes?associated=true&maintenance=false')
+        uuids = [n['uuid'] for n in data['nodes']]
+        self.assertNotIn(node.uuid, uuids)
+        data = self.get_json('/nodes?associated=true&maintenance=true')
+        uuids = [n['uuid'] for n in data['nodes']]
+        self.assertIn(node.uuid, uuids)
+        data = self.get_json('/nodes?associated=true&maintenance=TruE')
+        uuids = [n['uuid'] for n in data['nodes']]
+        self.assertIn(node.uuid, uuids)
+
 
 class TestPatch(base.FunctionalTest):
 

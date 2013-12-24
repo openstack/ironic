@@ -183,18 +183,14 @@ class Connection(api.Connection):
     def __init__(self):
         pass
 
-    def get_nodeinfo_list(self, columns=None, filters=None, limit=None,
-                          marker=None, sort_key=None, sort_dir=None):
-        # list-ify columns and filters default values because it is bad form
-        # to include a mutable list in function definitions.
+    def _add_nodes_filters(self, query, filters):
         if filters is None:
             filters = []
-        if columns is None:
-            columns = [models.Node.id]
-        else:
-            columns = [getattr(models.Node, c) for c in columns]
 
-        query = model_query(*columns, base_model=models.Node)
+        if 'chassis_uuid' in filters:
+            # get_chassis() to raise an exception if the chassis is not found
+            chassis_obj = self.get_chassis(filters['chassis_uuid'])
+            query = query.filter_by(chassis_id=chassis_obj.id)
         if 'associated' in filters:
             if filters['associated']:
                 query = query.filter(models.Node.instance_uuid != None)
@@ -205,40 +201,32 @@ class Connection(api.Connection):
                 query = query.filter(models.Node.reservation != None)
             else:
                 query = query.filter(models.Node.reservation == None)
+        if 'maintenance' in filters:
+            query = query.filter_by(maintenance=filters['maintenance'])
         if 'driver' in filters:
-            query = query.filter(models.Node.driver == filters['driver'])
+            query = query.filter_by(driver=filters['driver'])
+
+        return query
+
+    def get_nodeinfo_list(self, columns=None, filters=None, limit=None,
+                          marker=None, sort_key=None, sort_dir=None):
+        # list-ify columns default values because it is bad form
+        # to include a mutable list in function definitions.
+        if columns is None:
+            columns = [models.Node.id]
+        else:
+            columns = [getattr(models.Node, c) for c in columns]
+
+        query = model_query(*columns, base_model=models.Node)
+        query = self._add_nodes_filters(query, filters)
         return _paginate_query(models.Node, limit, marker,
                                sort_key, sort_dir, query)
 
     @objects.objectify(objects.Node)
-    def get_node_list(self, limit=None, marker=None,
+    def get_node_list(self, filters=None, limit=None, marker=None,
                       sort_key=None, sort_dir=None):
-        return _paginate_query(models.Node, limit, marker,
-                               sort_key, sort_dir)
-
-    @objects.objectify(objects.Node)
-    def get_nodes_by_chassis(self, chassis_id, limit=None, marker=None,
-                             sort_key=None, sort_dir=None):
-        # get_chassis() to raise an exception if the chassis is not found
-        chassis_obj = self.get_chassis(chassis_id)
         query = model_query(models.Node)
-        query = query.filter_by(chassis_id=chassis_obj.id)
-        return _paginate_query(models.Node, limit, marker,
-                               sort_key, sort_dir, query)
-
-    @objects.objectify(objects.Node)
-    def get_associated_nodes(self, limit=None, marker=None,
-                      sort_key=None, sort_dir=None):
-        query = model_query(models.Node).\
-                filter(models.Node.instance_uuid != None)
-        return _paginate_query(models.Node, limit, marker,
-                               sort_key, sort_dir, query)
-
-    @objects.objectify(objects.Node)
-    def get_unassociated_nodes(self, limit=None, marker=None,
-                      sort_key=None, sort_dir=None):
-        query = model_query(models.Node).\
-                filter(models.Node.instance_uuid == None)
+        query = self._add_nodes_filters(query, filters)
         return _paginate_query(models.Node, limit, marker,
                                sort_key, sort_dir, query)
 
