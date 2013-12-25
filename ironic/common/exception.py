@@ -128,7 +128,7 @@ class InvalidState(Conflict):
 
 
 class MACAlreadyExists(Conflict):
-    message = _("A Port with MAC address (mac)s already exists.")
+    message = _("A Port with MAC address %(mac)s already exists.")
 
 
 class InvalidCPUInfo(Invalid):

@@ -430,13 +430,16 @@ class TestPost(base.FunctionalTest):
         self.assertTrue(response.json['error_message'])
 
     def test_create_port_address_already_exist(self):
-        pdict = post_get_test_port(address='AA:AA:AA:11:22:33')
+        address = 'AA:AA:AA:11:22:33'
+        pdict = post_get_test_port(address=address)
         self.post_json('/ports', pdict)
         pdict['uuid'] = utils.generate_uuid()
         response = self.post_json('/ports', pdict, expect_errors=True)
         self.assertEqual(response.status_int, 409)
         self.assertEqual(response.content_type, 'application/json')
-        self.assertTrue(response.json['error_message'])
+        error_msg = response.json['error_message']
+        self.assertTrue(error_msg)
+        self.assertIn(address, error_msg.upper())
 
 
 class TestDelete(base.FunctionalTest):
