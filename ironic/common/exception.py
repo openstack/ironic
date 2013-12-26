@@ -361,3 +361,15 @@ class ConfigInvalid(IronicException):
 
 class DriverLoadError(IronicException):
     message = _("Driver %(driver)s could not be loaded. Reason: %(reason)s.")
+
+
+class NoConsolePid(NotFound):
+    message = _("Could not find pid in pid file %(pid_path)s")
+
+
+class ConsoleSubprocessFailed(IronicException):
+    message = _("Console subprocess failed to start. %(error)s")
+
+
+class PasswordFileFailedToCreate(IronicException):
+    message = _("Failed to create the password file. %(error)s")

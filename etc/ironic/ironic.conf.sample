@@ -504,6 +504,32 @@
 #workers_pool_size=100
 
 
+[console]
+
+#
+# Options defined in ironic.drivers.modules.console_utils
+#
+
+# Path to serial console terminal program (string value)
+#terminal=shellinaboxd
+
+# Directory containing the terminal SSL cert(PEM) for serial
+# console access (string value)
+#terminal_cert_dir=<None>
+
+# Directory for holding terminal pid files. If not specified,
+# the temporary directory will be used. (string value)
+#terminal_pid_dir=<None>
+
+# Time interval (in seconds) for checking the status of
+# console subprocess. (integer value)
+#subprocess_checking_interval=1
+
+# Time (in seconds) to wait for the console subprocess to
+# start. (integer value)
+#subprocess_timeout=10
+
+
 [database]
 
 #

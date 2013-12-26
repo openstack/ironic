@@ -50,6 +50,7 @@ class FakeIPMIToolDriver(base.BaseDriver):
 
     def __init__(self):
         self.power = ipmitool.IPMIPower()
+        self.console = ipmitool.IPMIShellinaboxConsole()
         self.deploy = fake.FakeDeploy()
         self.vendor = ipmitool.VendorPassthru()
 

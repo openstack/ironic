@@ -2,6 +2,7 @@
 
 # Copyright 2012 Hewlett-Packard Development Company, L.P.
 # Copyright (c) 2012 NTT DOCOMO, INC.
+# Copyright 2014 International Business Machines Corporation
 # All Rights Reserved.
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -18,11 +19,11 @@
 
 """Test class for IPMITool driver module."""
 
+import mock
 import os
 import stat
 import tempfile
 
-import mock
 from oslo.config import cfg
 
 from ironic.common import driver_factory
@@ -31,6 +32,7 @@ from ironic.common import states
 from ironic.common import utils
 from ironic.conductor import task_manager
 from ironic.db import api as db_api
+from ironic.drivers.modules import console_utils
 from ironic.drivers.modules import ipmitool as ipmi
 from ironic.openstack.common import context
 from ironic.openstack.common import processutils
@@ -478,3 +480,57 @@ class IPMIToolDriverTestCase(db_base.DbTestCase):
                               task.driver.power.validate, task,
                               task.node)
             exec_mock.assert_called_once()
+
+    @mock.patch.object(console_utils, 'start_shellinabox_console',
+                       autospec=True)
+    def test_start_console(self, mock_exec):
+        mock_exec.return_value = None
+
+        with task_manager.acquire(self.context,
+                                  [self.node['uuid']]) as task:
+            self.driver.console.start_console(task, self.node)
+
+        mock_exec.assert_called_once_with(self.info['uuid'],
+                                          self.info['port'],
+                                          mock.ANY)
+        self.assertTrue(mock_exec.called)
+
+    @mock.patch.object(console_utils, 'start_shellinabox_console',
+                       autospec=True)
+    def test_start_console_fail(self, mock_exec):
+        mock_exec.side_effect = exception.ConsoleSubprocessFailed(
+                error='error')
+
+        with task_manager.acquire(self.context,
+                                  [self.node['uuid']]) as task:
+            self.assertRaises(exception.ConsoleSubprocessFailed,
+                              self.driver.console.start_console,
+                              task, self.node)
+
+    @mock.patch.object(console_utils, 'stop_shellinabox_console',
+                       autospec=True)
+    def test_stop_console(self, mock_exec):
+        mock_exec.return_value = None
+
+        with task_manager.acquire(self.context,
+                                  [self.node['uuid']]) as task:
+            self.driver.console.stop_console(task, self.node)
+
+        mock_exec.assert_called_once_with(self.info['uuid'])
+        self.assertTrue(mock_exec.called)
+
+    @mock.patch.object(console_utils, 'get_shellinabox_console_url',
+                       utospec=True)
+    def test_get_console(self, mock_exec):
+        url = 'http://localhost:4201'
+        mock_exec.return_value = url
+        expected = {'type': 'shellinabox', 'url': url}
+
+        with task_manager.acquire(self.context,
+                                  [self.node['uuid']]) as task:
+            console_info = self.driver.console.get_console(task,
+                                                           self.node)
+
+        self.assertEqual(expected, console_info)
+        mock_exec.assert_called_once_with(self.info['port'])
+        self.assertTrue(mock_exec.called)
