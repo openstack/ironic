@@ -47,8 +47,8 @@ class DbConductorTestCase(base.DbTestCase):
 
     def test_get_conductor(self):
         c1 = self._create_test_cdr()
-        c2 = self.dbapi.get_conductor(c1['hostname'])
-        self.assertEqual(c1['id'], c2['id'])
+        c2 = self.dbapi.get_conductor(c1.hostname)
+        self.assertEqual(c1.id, c2.id)
 
     def test_get_conductor_not_found(self):
         self._create_test_cdr()
@@ -59,24 +59,24 @@ class DbConductorTestCase(base.DbTestCase):
 
     def test_unregister_conductor(self):
         c = self._create_test_cdr()
-        self.dbapi.unregister_conductor(c['hostname'])
+        self.dbapi.unregister_conductor(c.hostname)
         self.assertRaises(
                 exception.ConductorNotFound,
                 self.dbapi.unregister_conductor,
-                c['hostname'])
+                c.hostname)
 
     @mock.patch.object(timeutils, 'utcnow')
     def test_touch_conductor(self, mock_utcnow):
         test_time = datetime.datetime(2000, 1, 1, 0, 0)
         mock_utcnow.return_value = test_time
         c = self._create_test_cdr(updated_at=test_time)
-        self.assertEqual(test_time, timeutils.normalize_time(c['updated_at']))
+        self.assertEqual(test_time, timeutils.normalize_time(c.updated_at))
 
         test_time = datetime.datetime(2000, 1, 1, 0, 1)
         mock_utcnow.return_value = test_time
-        self.dbapi.touch_conductor(c['hostname'])
-        c = self.dbapi.get_conductor(c['hostname'])
-        self.assertEqual(test_time, timeutils.normalize_time(c['updated_at']))
+        self.dbapi.touch_conductor(c.hostname)
+        c = self.dbapi.get_conductor(c.hostname)
+        self.assertEqual(test_time, timeutils.normalize_time(c.updated_at))
 
     def test_touch_conductor_not_found(self):
         self._create_test_cdr()

@@ -24,7 +24,7 @@ from ironic.common import utils as ironic_utils
 from ironic.db import api as dbapi
 
 from ironic.tests.db import base
-from ironic.tests.db import utils
+from ironic.tests.db import utils as db_utils
 
 
 class DbPortTestCase(base.DbTestCase):
@@ -34,24 +34,24 @@ class DbPortTestCase(base.DbTestCase):
         # replaces a test for creating a port.
         super(DbPortTestCase, self).setUp()
         self.dbapi = dbapi.get_instance()
-        ndict = utils.get_test_node()
+        ndict = db_utils.get_test_node()
         self.n = self.dbapi.create_node(ndict)
-        self.p = utils.get_test_port()
+        self.p = db_utils.get_test_port()
 
     def test_get_port_by_id(self):
         self.dbapi.create_port(self.p)
         res = self.dbapi.get_port(self.p['id'])
-        self.assertEqual(self.p['address'], res['address'])
+        self.assertEqual(self.p['address'], res.address)
 
     def test_get_port_by_uuid(self):
         self.dbapi.create_port(self.p)
         res = self.dbapi.get_port(self.p['uuid'])
-        self.assertEqual(self.p['id'], res['id'])
+        self.assertEqual(self.p['id'], res.id)
 
     def test_get_port_list(self):
         uuids = []
         for i in range(1, 6):
-            n = utils.get_test_port(id=i, uuid=ironic_utils.generate_uuid(),
+            n = db_utils.get_test_port(id=i, uuid=ironic_utils.generate_uuid(),
                                     address='52:54:00:cf:2d:3%s' % i)
             self.dbapi.create_port(n)
             uuids.append(six.text_type(n['uuid']))
@@ -63,7 +63,7 @@ class DbPortTestCase(base.DbTestCase):
         self.dbapi.create_port(self.p)
 
         res = self.dbapi.get_port(self.p['address'])
-        self.assertEqual(self.p['id'], res['id'])
+        self.assertEqual(self.p['id'], res.id)
 
         self.assertRaises(exception.PortNotFound,
                           self.dbapi.get_port, 99)
@@ -73,16 +73,16 @@ class DbPortTestCase(base.DbTestCase):
                           self.dbapi.get_port, 'not-a-mac')
 
     def test_get_ports_by_node_id(self):
-        p = utils.get_test_port(node_id=self.n['id'])
+        p = db_utils.get_test_port(node_id=self.n.id)
         self.dbapi.create_port(p)
-        res = self.dbapi.get_ports_by_node(self.n['id'])
-        self.assertEqual(self.p['address'], res[0]['address'])
+        res = self.dbapi.get_ports_by_node(self.n.id)
+        self.assertEqual(self.p['address'], res[0].address)
 
     def test_get_ports_by_node_uuid(self):
-        p = utils.get_test_port(node_id=self.n['id'])
+        p = db_utils.get_test_port(node_id=self.n.id)
         self.dbapi.create_port(p)
-        res = self.dbapi.get_ports_by_node(self.n['uuid'])
-        self.assertEqual(self.p['address'], res[0]['address'])
+        res = self.dbapi.get_ports_by_node(self.n.uuid)
+        self.assertEqual(self.p['address'], res[0].address)
 
     def test_get_ports_by_node_that_does_not_exist(self):
         self.dbapi.create_port(self.p)
@@ -107,30 +107,30 @@ class DbPortTestCase(base.DbTestCase):
         self.assertNotEqual(old_address, new_address)
 
         res = self.dbapi.update_port(self.p['id'], {'address': new_address})
-        self.assertEqual(new_address, res['address'])
+        self.assertEqual(new_address, res.address)
 
     def test_destroy_port_on_reserved_node(self):
-        p = self.dbapi.create_port(utils.get_test_port(node_id=self.n['id']))
-        uuid = self.n['uuid']
+        p = self.dbapi.create_port(db_utils.get_test_port(node_id=self.n.id))
+        uuid = self.n.uuid
         self.dbapi.reserve_nodes('fake-reservation', [uuid])
         self.assertRaises(exception.NodeLocked,
-                          self.dbapi.destroy_port, p['id'])
+                          self.dbapi.destroy_port, p.id)
 
     def test_update_port_on_reserved_node(self):
-        p = self.dbapi.create_port(utils.get_test_port(node_id=self.n['id']))
-        uuid = self.n['uuid']
+        p = self.dbapi.create_port(db_utils.get_test_port(node_id=self.n.id))
+        uuid = self.n.uuid
         self.dbapi.reserve_nodes('fake-reservation', [uuid])
         new_address = 'ff.ee.dd.cc.bb.aa'
         self.assertRaises(exception.NodeLocked,
-                          self.dbapi.update_port, p['id'],
+                          self.dbapi.update_port, p.id,
                           {'address': new_address})
 
     def test_update_port_duplicated_address(self):
         self.dbapi.create_port(self.p)
         address1 = self.p['address']
         address2 = 'aa-bb-cc-11-22-33'
-        p2 = utils.get_test_port(id=123, uuid=ironic_utils.generate_uuid(),
-                                 node_id=self.n['id'], address=address2)
+        p2 = db_utils.get_test_port(id=123, uuid=ironic_utils.generate_uuid(),
+                                 node_id=self.n.id, address=address2)
         self.dbapi.create_port(p2)
         self.assertRaises(exception.MACAlreadyExists,
                           self.dbapi.update_port, p2['id'],
@@ -139,7 +139,7 @@ class DbPortTestCase(base.DbTestCase):
     def test_create_port_duplicated_address(self):
         self.dbapi.create_port(self.p)
         dup_address = self.p['address']
-        p2 = utils.get_test_port(id=123, uuid=ironic_utils.generate_uuid(),
-                                 node_id=self.n['id'], address=dup_address)
+        p2 = db_utils.get_test_port(id=123, uuid=ironic_utils.generate_uuid(),
+                                 node_id=self.n.id, address=dup_address)
         self.assertRaises(exception.MACAlreadyExists,
                           self.dbapi.create_port, p2)
