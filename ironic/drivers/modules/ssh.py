@@ -72,7 +72,27 @@ COMMAND_SETS = {
             "'"
             '" '
             "'{print $2}' | tr -d ':'")
-    }
+    },
+    "vmware": {
+        'base_cmd': '/bin/vim-cmd',
+        'start_cmd': 'vmsvc/power.on {_NodeName_}',
+        'stop_cmd': 'vmsvc/power.off {_NodeName_}',
+        'reboot_cmd': 'vmsvc/power.reboot {_NodeName_}',
+        'list_all': "vmsvc/getallvms | awk '$1 ~ /^[0-9]+$/ {print $1}'",
+        # NOTE(arata): In spite of its name, list_running_cmd shows a single
+        #              vmid, not a list. But it is OK.
+        'list_running': (
+            "vmsvc/power.getstate {_NodeName_} | "
+            "grep 'Powered on' >/dev/null && "
+            "echo '\"{_NodeName_}\"' || true"),
+        # NOTE(arata): `true` is needed to handle a false vmid, which can be
+        #              returned by list_cmd. In that case, get_node_macs
+        #              returns an empty list rather than fails with non-zero
+        #              status code.
+        'get_node_macs': (
+            "vmsvc/device.getdevices {_NodeName_} | "
+            "grep macAddress | awk -F '\"' '{print $2}' || true"),
+    },
 }
 
 
