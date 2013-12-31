@@ -119,9 +119,47 @@ class DbNodeTestCase(base.DbTestCase):
         res = [i[0] for i in self.dbapi.get_nodeinfo_list()]
         self.assertEqual(sorted(res), sorted(xrange(1, 6)))
 
-    # TODO(deva): add more tests for get_nodeinfo_list
-    #             - check each filter works
-    #             - check variable column return works
+    def test_get_nodeinfo_list_with_cols(self):
+        uuids = {}
+        extras = {}
+        for i in range(1, 6):
+            uuid = ironic_utils.generate_uuid()
+            extra = {'foo': i}
+            uuids[i] = uuid
+            extras[i] = extra
+            n = utils.get_test_node(id=i, extra=extra, uuid=uuid)
+            self.dbapi.create_node(n)
+        res = self.dbapi.get_nodeinfo_list(columns=['id', 'extra', 'uuid'])
+        self.assertEqual(extras, dict((r[0], r[1]) for r in res))
+        self.assertEqual(uuids, dict((r[0], r[2]) for r in res))
+
+    def test_get_nodeinfo_list_with_filters(self):
+        n1 = utils.get_test_node(id=1, driver='driver-one',
+                                 instance_uuid=ironic_utils.generate_uuid(),
+                                 reservation='fake-host',
+                                 uuid=ironic_utils.generate_uuid())
+        n2 = utils.get_test_node(id=2, driver='driver-two',
+                                 uuid=ironic_utils.generate_uuid())
+        self.dbapi.create_node(n1)
+        self.dbapi.create_node(n2)
+
+        res = self.dbapi.get_nodeinfo_list(filters={'driver': 'driver-one'})
+        self.assertEqual([1], [r[0] for r in res])
+
+        res = self.dbapi.get_nodeinfo_list(filters={'driver': 'bad-driver'})
+        self.assertEqual([], [r[0] for r in res])
+
+        res = self.dbapi.get_nodeinfo_list(filters={'associated': True})
+        self.assertEqual([1], [r[0] for r in res])
+
+        res = self.dbapi.get_nodeinfo_list(filters={'associated': False})
+        self.assertEqual([2], [r[0] for r in res])
+
+        res = self.dbapi.get_nodeinfo_list(filters={'reserved': True})
+        self.assertEqual([1], [r[0] for r in res])
+
+        res = self.dbapi.get_nodeinfo_list(filters={'reserved': False})
+        self.assertEqual([2], [r[0] for r in res])
 
     def test_get_node_list(self):
         uuids = []
