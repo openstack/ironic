@@ -71,6 +71,11 @@ class DbNodeTestCase(base.DbTestCase):
     def test_create_node(self):
         self._create_test_node()
 
+    def test_create_node_nullable_chassis_id(self):
+        n = utils.get_test_node()
+        del n['chassis_id']
+        self.dbapi.create_node(n)
+
     def test_get_nodes_by_chassis_id(self):
         ch = utils.get_test_chassis()
         ch = self.dbapi.create_chassis(ch)

@@ -199,7 +199,7 @@ class Node(base.APIBase):
     "The physical characteristics of this node"
 
     chassis_uuid = wsme.wsproperty(types.uuid, _get_chassis_uuid,
-                                   _set_chassis_uuid, mandatory=True)
+                                   _set_chassis_uuid)
     "The UUID of the chassis this node belongs"
 
     links = [link.Link]
