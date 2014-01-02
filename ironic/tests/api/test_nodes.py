@@ -552,8 +552,8 @@ class TestPost(base.FunctionalTest):
         self.assertTrue(response.json['error_message'])
 
     def test_vendor_passthru_ok(self):
-        ndict = post_get_test_node()
-        self.post_json('/nodes', ndict)
+        ndict = dbutils.get_test_node()
+        self.dbapi.create_node(ndict)
         uuid = ndict['uuid']
         info = {'foo': 'bar'}
 
@@ -568,8 +568,8 @@ class TestPost(base.FunctionalTest):
             self.assertEqual(202, response.status_code)
 
     def test_vendor_passthru_no_such_method(self):
-        ndict = post_get_test_node()
-        self.post_json('/nodes', ndict)
+        ndict = dbutils.get_test_node()
+        self.dbapi.create_node(ndict)
         uuid = ndict['uuid']
         info = {'foo': 'bar'}
 
@@ -586,8 +586,8 @@ class TestPost(base.FunctionalTest):
             self.assertEqual(400, response.status_code)
 
     def test_vendor_passthru_without_method(self):
-        ndict = post_get_test_node()
-        self.post_json('/nodes', ndict)
+        ndict = dbutils.get_test_node()
+        self.dbapi.create_node(ndict)
         response = self.post_json('/nodes/%s/vendor_passthru' % ndict['uuid'],
                                   {'foo': 'bar'}, expect_errors=True)
         self.assertEqual('application/json', response.content_type, )
@@ -595,8 +595,8 @@ class TestPost(base.FunctionalTest):
         self.assertTrue(response.json['error_message'])
 
     def test_post_ports_subresource(self):
-        ndict = post_get_test_node()
-        self.post_json('/nodes', ndict)
+        ndict = dbutils.get_test_node()
+        self.dbapi.create_node(ndict)
         pdict = dbutils.get_test_port(node_id=None)
         pdict['node_uuid'] = ndict['uuid']
         response = self.post_json('/nodes/ports', pdict,
@@ -635,8 +635,8 @@ class TestDelete(base.FunctionalTest):
         self.chassis = self.dbapi.create_chassis(cdict)
 
     def test_delete_node(self):
-        ndict = post_get_test_node()
-        self.post_json('/nodes', ndict)
+        ndict = dbutils.get_test_node()
+        self.dbapi.create_node(ndict)
         self.delete('/nodes/%s' % ndict['uuid'])
         response = self.get_json('/nodes/%s' % ndict['uuid'],
                                  expect_errors=True)
@@ -645,16 +645,16 @@ class TestDelete(base.FunctionalTest):
         self.assertTrue(response.json['error_message'])
 
     def test_delete_ports_subresource(self):
-        ndict = post_get_test_node()
-        self.post_json('/nodes', ndict)
+        ndict = dbutils.get_test_node()
+        self.dbapi.create_node(ndict)
         response = self.delete('/nodes/%s/ports' % ndict['uuid'],
                                expect_errors=True)
         self.assertEqual(403, response.status_int)
 
     def test_delete_associated(self):
-        ndict = post_get_test_node(
+        ndict = dbutils.get_test_node(
                           instance_uuid='aaaaaaaa-1111-bbbb-2222-cccccccccccc')
-        self.post_json('/nodes', ndict)
+        self.dbapi.create_node(ndict)
         response = self.delete('/nodes/%s' % ndict['uuid'], expect_errors=True)
         self.assertEqual(409, response.status_int)
 
