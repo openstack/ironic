@@ -73,7 +73,7 @@ class TestListChassis(base.FunctionalTest):
         uuid = utils.generate_uuid()
         ndict = dbutils.get_test_chassis(id=1, uuid=uuid)
         self.dbapi.create_chassis(ndict)
-        data = self.get_json('/chassis/1')
+        data = self.get_json('/chassis/%s' % uuid)
         self.assertIn('links', data.keys())
         self.assertEqual(len(data['links']), 2)
         self.assertIn(uuid, data['links'][0]['href'])

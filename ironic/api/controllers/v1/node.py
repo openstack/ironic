@@ -84,7 +84,7 @@ class NodeStatesController(rest.RestController):
         'power': ['PUT'],
     }
 
-    @wsme_pecan.wsexpose(NodeStates, wtypes.text)
+    @wsme_pecan.wsexpose(NodeStates, types.uuid)
     def get(self, node_uuid):
         """List the states of the node.
 
@@ -96,7 +96,7 @@ class NodeStatesController(rest.RestController):
         rpc_node = objects.Node.get_by_uuid(pecan.request.context, node_uuid)
         return NodeStates.convert(rpc_node)
 
-    @wsme_pecan.wsexpose(NodeStates, wtypes.text, wtypes.text, status_code=202)
+    @wsme_pecan.wsexpose(NodeStates, types.uuid, wtypes.text, status_code=202)
     def power(self, node_uuid, target):
         """Set the power state of the node.
 
@@ -118,7 +118,7 @@ class NodeStatesController(rest.RestController):
                                                      node_uuid, target)
         return NodeStates.convert(rpc_node)
 
-    @wsme_pecan.wsexpose(NodeStates, wtypes.text, wtypes.text, status_code=202)
+    @wsme_pecan.wsexpose(NodeStates, types.uuid, wtypes.text, status_code=202)
     def provision(self, node_uuid, target):
         """Set the provision state of the node.
 
@@ -274,7 +274,7 @@ class NodeVendorPassthruController(rest.RestController):
     appropriate driver, no introspection will be made in the message body.
     """
 
-    @wsme_pecan.wsexpose(wtypes.text, wtypes.text, wtypes.text,
+    @wsme_pecan.wsexpose(wtypes.text, types.uuid, wtypes.text,
                          body=wtypes.text,
                          status_code=202)
     def post(self, node_uuid, method, data):
@@ -380,8 +380,8 @@ class NodesController(rest.RestController):
                     "can only be true or false.") % associated)
         return nodes
 
-    @wsme_pecan.wsexpose(NodeCollection, wtypes.text, wtypes.text,
-               wtypes.text, wtypes.text, int, wtypes.text, wtypes.text)
+    @wsme_pecan.wsexpose(NodeCollection, types.uuid, types.uuid,
+               wtypes.text, types.uuid, int, wtypes.text, wtypes.text)
     def get_all(self, chassis_uuid=None, instance_uuid=None, associated=None,
                 marker=None, limit=None, sort_key='id', sort_dir='asc'):
         """Retrieve a list of nodes.
@@ -402,8 +402,8 @@ class NodesController(rest.RestController):
                                           associated, marker, limit,
                                           sort_key, sort_dir)
 
-    @wsme_pecan.wsexpose(NodeCollection, wtypes.text, wtypes.text,
-            wtypes.text, wtypes.text, int, wtypes.text, wtypes.text)
+    @wsme_pecan.wsexpose(NodeCollection, types.uuid, types.uuid,
+            wtypes.text, types.uuid, int, wtypes.text, wtypes.text)
     def detail(self, chassis_uuid=None, instance_uuid=None, associated=None,
                marker=None, limit=None, sort_key='id', sort_dir='asc'):
         """Retrieve a list of nodes with detail.
@@ -432,7 +432,7 @@ class NodesController(rest.RestController):
                                           sort_key, sort_dir,
                                           expand, resource_url)
 
-    @wsme_pecan.wsexpose(wtypes.text, wtypes.text)
+    @wsme_pecan.wsexpose(wtypes.text, types.uuid)
     def validate(self, node_uuid):
         """Validate the driver interfaces."""
         # check if node exists
@@ -440,7 +440,7 @@ class NodesController(rest.RestController):
         return pecan.request.rpcapi.validate_driver_interfaces(
                                         pecan.request.context, node.uuid)
 
-    @wsme_pecan.wsexpose(Node, wtypes.text)
+    @wsme_pecan.wsexpose(Node, types.uuid)
     def get_one(self, node_uuid):
         """Retrieve information about the given node.
 
@@ -468,8 +468,8 @@ class NodesController(rest.RestController):
                 LOG.exception(e)
         return Node.convert_with_links(new_node)
 
-    @wsme.validate(wtypes.text, [NodePatchType])
-    @wsme_pecan.wsexpose(Node, wtypes.text, body=[NodePatchType])
+    @wsme.validate(types.uuid, [NodePatchType])
+    @wsme_pecan.wsexpose(Node, types.uuid, body=[NodePatchType])
     def patch(self, node_uuid, patch):
         """Update an existing node.
 
@@ -509,7 +509,7 @@ class NodesController(rest.RestController):
 
         return Node.convert_with_links(new_node)
 
-    @wsme_pecan.wsexpose(None, wtypes.text, status_code=204)
+    @wsme_pecan.wsexpose(None, types.uuid, status_code=204)
     def delete(self, node_uuid):
         """Delete a node.
 

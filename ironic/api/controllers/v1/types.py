@@ -41,13 +41,16 @@ class MacAddressType(wtypes.UserType):
         return MacAddressType.validate(value)
 
 
-# TODO(lucasagomes): WSME already has one UuidType implementation on trunk,
-#                    so remove it on the next WSME release (> 0.5b6)
 class UuidType(wtypes.UserType):
     """A simple UUID type."""
 
     basetype = wtypes.text
     name = 'uuid'
+    # FIXME(lucasagomes): When used with wsexpose decorator WSME will try
+    # to get the name of the type by accessing it's __name__ attribute.
+    # Remove this __name__ attribute once it's fixed in WSME.
+    # https://bugs.launchpad.net/wsme/+bug/1265590
+    __name__ = name
 
     @staticmethod
     def validate(value):
@@ -57,6 +60,8 @@ class UuidType(wtypes.UserType):
 
     @staticmethod
     def frombasetype(value):
+        if value is None:
+            return None
         return UuidType.validate(value)
 
 

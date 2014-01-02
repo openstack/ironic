@@ -125,7 +125,7 @@ class TestListNodes(base.FunctionalTest):
         uuid = utils.generate_uuid()
         ndict = dbutils.get_test_node(id=1, uuid=uuid)
         self.dbapi.create_node(ndict)
-        data = self.get_json('/nodes/1')
+        data = self.get_json('/nodes/%s' % uuid)
         self.assertIn('links', data.keys())
         self.assertEqual(len(data['links']), 2)
         self.assertIn(uuid, data['links'][0]['href'])

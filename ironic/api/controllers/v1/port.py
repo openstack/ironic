@@ -196,7 +196,7 @@ class PortsController(rest.RestController):
                                                  sort_key=sort_key,
                                                  sort_dir=sort_dir)
 
-    @wsme_pecan.wsexpose(PortCollection, wtypes.text, wtypes.text, int,
+    @wsme_pecan.wsexpose(PortCollection, types.uuid, types.uuid, int,
                          wtypes.text, wtypes.text)
     def get_all(self, node_uuid=None, marker=None, limit=None,
                 sort_key='id', sort_dir='asc'):
@@ -211,7 +211,7 @@ class PortsController(rest.RestController):
         return self._get_ports_collection(node_uuid, marker, limit,
                                           sort_key, sort_dir)
 
-    @wsme_pecan.wsexpose(PortCollection, wtypes.text, wtypes.text, int,
+    @wsme_pecan.wsexpose(PortCollection, types.uuid, types.uuid, int,
                          wtypes.text, wtypes.text)
     def detail(self, node_uuid=None, marker=None, limit=None,
                 sort_key='id', sort_dir='asc'):
@@ -233,7 +233,7 @@ class PortsController(rest.RestController):
         return self._get_ports_collection(node_uuid, marker, limit, sort_key,
                                           sort_dir, expand, resource_url)
 
-    @wsme_pecan.wsexpose(Port, wtypes.text)
+    @wsme_pecan.wsexpose(Port, types.uuid)
     def get_one(self, port_uuid):
         """Retrieve information about the given port.
 
@@ -261,8 +261,8 @@ class PortsController(rest.RestController):
                 LOG.exception(e)
         return Port.convert_with_links(new_port)
 
-    @wsme.validate(wtypes.text, [PortPatchType])
-    @wsme_pecan.wsexpose(Port, wtypes.text, body=[PortPatchType])
+    @wsme.validate(types.uuid, [PortPatchType])
+    @wsme_pecan.wsexpose(Port, types.uuid, body=[PortPatchType])
     def patch(self, port_uuid, patch):
         """Update an existing port.
 
@@ -288,7 +288,7 @@ class PortsController(rest.RestController):
         rpc_port.save()
         return Port.convert_with_links(rpc_port)
 
-    @wsme_pecan.wsexpose(None, wtypes.text, status_code=204)
+    @wsme_pecan.wsexpose(None, types.uuid, status_code=204)
     def delete(self, port_uuid):
         """Delete a port.
 

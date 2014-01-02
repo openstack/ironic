@@ -145,7 +145,7 @@ class ChassisController(rest.RestController):
                                                     sort_key=sort_key,
                                                     sort_dir=sort_dir)
 
-    @wsme_pecan.wsexpose(ChassisCollection, wtypes.text,
+    @wsme_pecan.wsexpose(ChassisCollection, types.uuid,
                          int, wtypes.text, wtypes.text)
     def get_all(self, marker=None, limit=None, sort_key='id', sort_dir='asc'):
         """Retrieve a list of chassis.
@@ -157,7 +157,7 @@ class ChassisController(rest.RestController):
         """
         return self._get_chassis_collection(marker, limit, sort_key, sort_dir)
 
-    @wsme_pecan.wsexpose(ChassisCollection, wtypes.text, int,
+    @wsme_pecan.wsexpose(ChassisCollection, types.uuid, int,
                          wtypes.text, wtypes.text)
     def detail(self, marker=None, limit=None, sort_key='id', sort_dir='asc'):
         """Retrieve a list of chassis with detail.
@@ -177,7 +177,7 @@ class ChassisController(rest.RestController):
         return self._get_chassis_collection(marker, limit, sort_key, sort_dir,
                                             expand, resource_url)
 
-    @wsme_pecan.wsexpose(Chassis, wtypes.text)
+    @wsme_pecan.wsexpose(Chassis, types.uuid)
     def get_one(self, chassis_uuid):
         """Retrieve information about the given chassis.
 
@@ -200,8 +200,8 @@ class ChassisController(rest.RestController):
                 LOG.exception(e)
         return Chassis.convert_with_links(new_chassis)
 
-    @wsme.validate(wtypes.text, [ChassisPatchType])
-    @wsme_pecan.wsexpose(Chassis, wtypes.text, body=[ChassisPatchType])
+    @wsme.validate(types.uuid, [ChassisPatchType])
+    @wsme_pecan.wsexpose(Chassis, types.uuid, body=[ChassisPatchType])
     def patch(self, chassis_uuid, patch):
         """Update an existing chassis.
 
@@ -225,7 +225,7 @@ class ChassisController(rest.RestController):
         rpc_chassis.save()
         return Chassis.convert_with_links(rpc_chassis)
 
-    @wsme_pecan.wsexpose(None, wtypes.text, status_code=204)
+    @wsme_pecan.wsexpose(None, types.uuid, status_code=204)
     def delete(self, chassis_uuid):
         """Delete a chassis.
 
