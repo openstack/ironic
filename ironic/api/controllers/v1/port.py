@@ -80,7 +80,7 @@ class Port(base.APIBase):
     address = wsme.wsattr(types.macaddress, mandatory=True)
     "MAC Address for this port"
 
-    extra = {wtypes.text: api_utils.ValidTypes(wtypes.text, six.integer_types)}
+    extra = {wtypes.text: types.MultiType(wtypes.text, six.integer_types)}
     "This port's meta data"
 
     node_uuid = wsme.wsproperty(types.uuid, _get_node_uuid, _set_node_uuid,

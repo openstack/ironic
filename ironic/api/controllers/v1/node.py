@@ -185,17 +185,17 @@ class Node(base.APIBase):
     driver = wsme.wsattr(wtypes.text, mandatory=True)
     "The driver responsible for controlling the node"
 
-    driver_info = {wtypes.text: api_utils.ValidTypes(wtypes.text,
-                                                 six.integer_types)}
+    driver_info = {wtypes.text: types.MultiType(wtypes.text,
+                                                six.integer_types)}
     "This node's driver configuration"
 
-    extra = {wtypes.text: api_utils.ValidTypes(wtypes.text, six.integer_types)}
+    extra = {wtypes.text: types.MultiType(wtypes.text, six.integer_types)}
     "This node's meta data"
 
     # NOTE: properties should use a class to enforce required properties
     #       current list: arch, cpus, disk, ram, image
-    properties = {wtypes.text: api_utils.ValidTypes(wtypes.text,
-                                                six.integer_types)}
+    properties = {wtypes.text: types.MultiType(wtypes.text,
+                                               six.integer_types)}
     "The physical characteristics of this node"
 
     chassis_uuid = wsme.wsproperty(types.uuid, _get_chassis_uuid,

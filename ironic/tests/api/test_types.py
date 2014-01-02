@@ -19,6 +19,7 @@
 import re
 
 import mock
+import six
 import webtest
 import wsme
 
@@ -182,3 +183,18 @@ class TestJsonPatchType(base.FunctionalTest):
         ret = self._patch_json(patch, True)
         self.assertEqual(400, ret.status_int)
         self.assertTrue(ret.json['faultstring'])
+
+
+class TestMultiType(base.FunctionalTest):
+
+    def test_valid_values(self):
+        vt = types.MultiType(wsme.types.text, six.integer_types)
+        value = vt.validate("hello")
+        self.assertEqual("hello", value)
+        value = vt.validate(10)
+        self.assertEqual(10, value)
+
+    def test_invalid_values(self):
+        vt = types.MultiType(wsme.types.text, six.integer_types)
+        self.assertRaises(ValueError, vt.validate, 0.10)
+        self.assertRaises(ValueError, vt.validate, object())
