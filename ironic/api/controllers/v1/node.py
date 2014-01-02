@@ -85,15 +85,15 @@ class NodeStatesController(rest.RestController):
     }
 
     @wsme_pecan.wsexpose(NodeStates, wtypes.text)
-    def get(self, node_id):
+    def get(self, node_uuid):
         """List the states of the node.
 
-        :param node_id: UUID of a node.
+        :param node_uuid: UUID of a node.
         """
         # NOTE(lucasagomes): All these state values come from the
         # DB. Ironic counts with a periodic task that verify the current
         # power states of the nodes and update the DB accordingly.
-        rpc_node = objects.Node.get_by_uuid(pecan.request.context, node_id)
+        rpc_node = objects.Node.get_by_uuid(pecan.request.context, node_uuid)
         return NodeStates.convert(rpc_node)
 
     @wsme_pecan.wsexpose(NodeStates, wtypes.text, wtypes.text, status_code=202)
@@ -277,22 +277,22 @@ class NodeVendorPassthruController(rest.RestController):
     @wsme_pecan.wsexpose(wtypes.text, wtypes.text, wtypes.text,
                          body=wtypes.text,
                          status_code=202)
-    def post(self, node_id, method, data):
+    def post(self, node_uuid, method, data):
         """Call a vendor extension.
 
-        :param node_id: UUID of the node.
+        :param node_uuid: UUID of the node.
         :param method: name of the method in vendor driver.
         :param data: body of data to supply to the specified method.
         """
         # Raise an exception if node is not found
-        objects.Node.get_by_uuid(pecan.request.context, node_id)
+        objects.Node.get_by_uuid(pecan.request.context, node_uuid)
 
         # Raise an exception if method is not specified
         if not method:
             raise wsme.exc.ClientSideError(_("Method not specified"))
 
         return pecan.request.rpcapi.vendor_passthru(
-                pecan.request.context, node_id, method, data)
+                pecan.request.context, node_uuid, method, data)
 
 
 class NodesController(rest.RestController):
@@ -382,11 +382,11 @@ class NodesController(rest.RestController):
 
     @wsme_pecan.wsexpose(NodeCollection, wtypes.text, wtypes.text,
                wtypes.text, wtypes.text, int, wtypes.text, wtypes.text)
-    def get_all(self, chassis_id=None, instance_uuid=None, associated=None,
+    def get_all(self, chassis_uuid=None, instance_uuid=None, associated=None,
                 marker=None, limit=None, sort_key='id', sort_dir='asc'):
         """Retrieve a list of nodes.
 
-        :param chassis_id: Optional UUID of a chassis, to get only nodes for
+        :param chassis_uuid: Optional UUID of a chassis, to get only nodes for
                            that chassis.
         :param instance_uuid: Optional UUID of an instance, to find the node
                               associated with that instance.
@@ -398,17 +398,17 @@ class NodesController(rest.RestController):
         :param sort_key: column to sort results by. Default: id.
         :param sort_dir: direction to sort. "asc" or "desc". Default: asc.
         """
-        return self._get_nodes_collection(chassis_id, instance_uuid,
+        return self._get_nodes_collection(chassis_uuid, instance_uuid,
                                           associated, marker, limit,
                                           sort_key, sort_dir)
 
     @wsme_pecan.wsexpose(NodeCollection, wtypes.text, wtypes.text,
             wtypes.text, wtypes.text, int, wtypes.text, wtypes.text)
-    def detail(self, chassis_id=None, instance_uuid=None, associated=None,
+    def detail(self, chassis_uuid=None, instance_uuid=None, associated=None,
                marker=None, limit=None, sort_key='id', sort_dir='asc'):
         """Retrieve a list of nodes with detail.
 
-        :param chassis_id: Optional UUID of a chassis, to get only nodes for
+        :param chassis_uuid: Optional UUID of a chassis, to get only nodes for
                            that chassis.
         :param instance_uuid: Optional UUID of an instance, to find the node
                               associated with that instance.
@@ -427,7 +427,7 @@ class NodesController(rest.RestController):
 
         expand = True
         resource_url = '/'.join(['nodes', 'detail'])
-        return self._get_nodes_collection(chassis_id, instance_uuid,
+        return self._get_nodes_collection(chassis_uuid, instance_uuid,
                                           associated, marker, limit,
                                           sort_key, sort_dir,
                                           expand, resource_url)
@@ -441,15 +441,15 @@ class NodesController(rest.RestController):
                                         pecan.request.context, node.uuid)
 
     @wsme_pecan.wsexpose(Node, wtypes.text)
-    def get_one(self, uuid):
+    def get_one(self, node_uuid):
         """Retrieve information about the given node.
 
-        :param uuid: UUID of a node.
+        :param node_uuid: UUID of a node.
         """
         if self._from_chassis:
             raise exception.OperationNotPermitted
 
-        rpc_node = objects.Node.get_by_uuid(pecan.request.context, uuid)
+        rpc_node = objects.Node.get_by_uuid(pecan.request.context, node_uuid)
         return Node.convert_with_links(rpc_node)
 
     @wsme_pecan.wsexpose(Node, body=Node)
@@ -470,23 +470,23 @@ class NodesController(rest.RestController):
 
     @wsme.validate(wtypes.text, [NodePatchType])
     @wsme_pecan.wsexpose(Node, wtypes.text, body=[NodePatchType])
-    def patch(self, uuid, patch):
+    def patch(self, node_uuid, patch):
         """Update an existing node.
 
-        :param uuid: UUID of a node.
+        :param node_uuid: UUID of a node.
         :param patch: a json PATCH document to apply to this node.
         """
         if self._from_chassis:
             raise exception.OperationNotPermitted
 
-        rpc_node = objects.Node.get_by_uuid(pecan.request.context, uuid)
+        rpc_node = objects.Node.get_by_uuid(pecan.request.context, node_uuid)
 
         # Check if node is transitioning state
         if rpc_node['target_power_state'] or \
              rpc_node['target_provision_state']:
             msg = _("Node %s can not be updated while a state transition"
                     "is in progress.")
-            raise wsme.exc.ClientSideError(msg % uuid, status_code=409)
+            raise wsme.exc.ClientSideError(msg % node_uuid, status_code=409)
 
         try:
             node = Node(**jsonpatch.apply_patch(rpc_node.as_dict(),
@@ -510,12 +510,12 @@ class NodesController(rest.RestController):
         return Node.convert_with_links(new_node)
 
     @wsme_pecan.wsexpose(None, wtypes.text, status_code=204)
-    def delete(self, node_id):
+    def delete(self, node_uuid):
         """Delete a node.
 
-        :param node_id: UUID of the node.
+        :param node_uuid: UUID of the node.
         """
         if self._from_chassis:
             raise exception.OperationNotPermitted
 
-        pecan.request.dbapi.destroy_node(node_id)
+        pecan.request.dbapi.destroy_node(node_uuid)

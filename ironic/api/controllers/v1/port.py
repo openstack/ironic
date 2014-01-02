@@ -289,12 +289,12 @@ class PortsController(rest.RestController):
         return Port.convert_with_links(rpc_port)
 
     @wsme_pecan.wsexpose(None, wtypes.text, status_code=204)
-    def delete(self, port_id):
+    def delete(self, port_uuid):
         """Delete a port.
 
-        :param port_id: UUID of a port.
+        :param port_uuid: UUID of a port.
         """
         if self._from_nodes:
             raise exception.OperationNotPermitted
 
-        pecan.request.dbapi.destroy_port(port_id)
+        pecan.request.dbapi.destroy_port(port_uuid)
