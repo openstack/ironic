@@ -478,6 +478,12 @@ def _create_pxe_config(task, node, pxe_info):
         utils.create_link_without_raise(pxe_config_file_path, mac_path)
 
 
+def _update_neutron(task, node):
+    """Send the DHCP BOOT options to Neutron for this node."""
+    # FIXME: just a stub for the moment.
+    pass
+
+
 class PXEDeploy(base.DeployInterface):
     """PXE Deploy Interface: just a stub until the real driver is ported."""
 
@@ -504,15 +510,10 @@ class PXEDeploy(base.DeployInterface):
         :param node: the Node to act upon.
         :returns: deploy state DEPLOYING.
         """
-
-        pxe_info = _get_tftp_image_info(node)
-
-        _create_pxe_config(task, node, pxe_info)
-        _cache_images(node, pxe_info)
-        # TODO(yuriyz): more secure way needed for pass auth token to
-        # deploy ramdisk
+        # TODO(yuriyz): more secure way needed for pass auth token
+        #               to deploy ramdisk
         _create_token_file(task, node)
-
+        _update_neutron(task, node)
         manager_utils.node_power_action(task, node, states.REBOOT)
 
         return states.DEPLOYING
@@ -528,9 +529,21 @@ class PXEDeploy(base.DeployInterface):
         :param node: the Node to act upon.
         :returns: deploy state DELETED.
         """
-        #FIXME(ghe): Possible error to get image info if eliminated from glance
-        # Retrieve image info and store in db
-        # If we keep master images, no need to get the info, we may ignore this
+        manager_utils.node_power_action(task, node, states.POWER_OFF)
+
+        return states.DELETED
+
+    def prepare(self, task, node):
+        # TODO(deva): optimize this if rerun on existing files
+        pxe_info = _get_tftp_image_info(node)
+        _create_pxe_config(task, node, pxe_info)
+        _cache_images(node, pxe_info)
+
+    def clean_up(self, task, node):
+        # FIXME(ghe): Possible error to get image info if eliminated from
+        #             glance. Retrieve image info and store in db.
+        #             If we keep master images, no need to get the info,
+        #             and we may ignore this.
         pxe_info = _get_tftp_image_info(node)
         d_info = _parse_driver_info(node)
         for label in pxe_info:
@@ -549,10 +562,10 @@ class PXEDeploy(base.DeployInterface):
                 os.path.join(CONF.pxe.tftp_root, node['instance_uuid']))
 
         _destroy_images(d_info)
+        _destroy_token_file(node)
 
-        manager_utils.node_power_action(task, node, states.POWER_OFF)
-
-        return states.DELETED
+    def take_over(self, task, node):
+        _update_neutron(task, node)
 
 
 class PXERescue(base.RescueInterface):

@@ -258,6 +258,7 @@ class ConductorManager(service.PeriodicService):
                 node.save(context)
 
             try:
+                task.driver.deploy.prepare(task, node)
                 new_state = task.driver.deploy.deploy(task, node)
             except Exception as e:
                 with excutils.save_and_reraise_exception():
@@ -310,6 +311,7 @@ class ConductorManager(service.PeriodicService):
                 node.save(context)
 
             try:
+                task.driver.deploy.clean_up(task, node)
                 new_state = task.driver.deploy.tear_down(task, node)
             except Exception as e:
                 with excutils.save_and_reraise_exception():
