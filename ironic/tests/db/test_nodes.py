@@ -216,6 +216,30 @@ class DbNodeTestCase(base.DbTestCase):
         res = self.dbapi.update_node(n['id'], {'extra': new_extra})
         self.assertEqual(new_extra, res['extra'])
 
+    def test_update_node_not_found(self):
+        node_uuid = ironic_utils.generate_uuid()
+        new_extra = {'foo': 'bar'}
+        self.assertRaises(exception.NodeNotFound, self.dbapi.update_node,
+                          node_uuid, {'extra': new_extra})
+
+    def test_update_node_associate_and_disassociate(self):
+        n = self._create_test_node()
+        new_i_uuid = ironic_utils.generate_uuid()
+        res = self.dbapi.update_node(n['id'], {'instance_uuid': new_i_uuid})
+        self.assertEqual(new_i_uuid, res['instance_uuid'])
+        res = self.dbapi.update_node(n['id'], {'instance_uuid': None})
+        self.assertIsNone(res['instance_uuid'])
+
+    def test_update_node_already_assosicated(self):
+        n = self._create_test_node()
+        new_i_uuid_one = ironic_utils.generate_uuid()
+        self.dbapi.update_node(n['id'], {'instance_uuid': new_i_uuid_one})
+        new_i_uuid_two = ironic_utils.generate_uuid()
+        self.assertRaises(exception.NodeAssociated,
+                          self.dbapi.update_node,
+                          n['id'],
+                          {'instance_uuid': new_i_uuid_two})
+
     def test_reserve_one_node(self):
         n = self._create_test_node()
         uuid = n['uuid']

@@ -361,11 +361,16 @@ class Connection(api.Connection):
         with session.begin():
             query = model_query(models.Node, session=session)
             query = add_identity_filter(query, node_id)
-
-            count = query.update(values, synchronize_session='fetch')
-            if count != 1:
+            try:
+                ref = query.with_lockmode('update').one()
+            except NoResultFound:
                 raise exception.NodeNotFound(node=node_id)
-            ref = query.one()
+
+            # Prevent instance_uuid overwriting
+            if values.get("instance_uuid") and ref.instance_uuid:
+                raise exception.NodeAssociated(node=node_id,
+                                instance=values['instance_uuid'])
+            ref.update(values)
         return ref
 
     @objects.objectify(objects.Port)

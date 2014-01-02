@@ -183,6 +183,8 @@ class Connection(object):
                             }
                        }
         :returns: A node.
+        :raises: NodeAssociated
+        :raises: NodeNotFound
         """
 
     @abc.abstractmethod
