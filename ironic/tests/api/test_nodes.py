@@ -570,13 +570,12 @@ class TestPost(base.FunctionalTest):
         self.assertEqual(response.content_type, 'application/json')
         self.assertTrue(response.json['error_message'])
 
-    def test_create_node_no_mandatory_field_chassis_uuid(self):
+    def test_create_node_no_chassis_uuid(self):
         ndict = post_get_test_node()
         del ndict['chassis_uuid']
-        response = self.post_json('/nodes', ndict, expect_errors=True)
-        self.assertEqual(response.status_int, 400)
+        response = self.post_json('/nodes', ndict)
         self.assertEqual(response.content_type, 'application/json')
-        self.assertTrue(response.json['error_message'])
+        self.assertEqual(response.status_int, 200)
 
     def test_create_node_chassis_uuid_not_found(self):
         ndict = post_get_test_node(
