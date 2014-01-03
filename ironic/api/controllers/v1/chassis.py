@@ -178,12 +178,13 @@ class ChassisController(rest.RestController):
                                             expand, resource_url)
 
     @wsme_pecan.wsexpose(Chassis, wtypes.text)
-    def get_one(self, uuid):
+    def get_one(self, chassis_uuid):
         """Retrieve information about the given chassis.
 
-        :param uuid: UUID of a chassis.
+        :param chassis_uuid: UUID of a chassis.
         """
-        rpc_chassis = objects.Chassis.get_by_uuid(pecan.request.context, uuid)
+        rpc_chassis = objects.Chassis.get_by_uuid(pecan.request.context,
+                                                  chassis_uuid)
         return Chassis.convert_with_links(rpc_chassis)
 
     @wsme_pecan.wsexpose(Chassis, body=Chassis)
@@ -201,13 +202,14 @@ class ChassisController(rest.RestController):
 
     @wsme.validate(wtypes.text, [ChassisPatchType])
     @wsme_pecan.wsexpose(Chassis, wtypes.text, body=[ChassisPatchType])
-    def patch(self, uuid, patch):
+    def patch(self, chassis_uuid, patch):
         """Update an existing chassis.
 
-        :param uuid: UUID of a chassis.
+        :param chassis_uuid: UUID of a chassis.
         :param patch: a json PATCH document to apply to this chassis.
         """
-        rpc_chassis = objects.Chassis.get_by_uuid(pecan.request.context, uuid)
+        rpc_chassis = objects.Chassis.get_by_uuid(pecan.request.context,
+                                                  chassis_uuid)
         try:
             chassis = Chassis(**jsonpatch.apply_patch(rpc_chassis.as_dict(),
                                                    jsonpatch.JsonPatch(patch)))
@@ -224,9 +226,9 @@ class ChassisController(rest.RestController):
         return Chassis.convert_with_links(rpc_chassis)
 
     @wsme_pecan.wsexpose(None, wtypes.text, status_code=204)
-    def delete(self, uuid):
+    def delete(self, chassis_uuid):
         """Delete a chassis.
 
-        :param uuid: UUID of a chassis.
+        :param chassis_uuid: UUID of a chassis.
         """
-        pecan.request.dbapi.destroy_chassis(uuid)
+        pecan.request.dbapi.destroy_chassis(chassis_uuid)
