@@ -35,12 +35,19 @@ all active and cooperatively manage all nodes in the deployment.  Nodes are
 locked by each conductor when performing actions which change the state of that
 node; these locks are represented by the
 :py:class:`ironic.conductor.task_manager.TaskManager` class.
+
+A :py:class:`ironic.common.hash_ring.HashRing` is used to distribute nodes
+across the set of active conductors which support each node's driver.
+Rebalancing this ring can trigger various actions by each conductor, such as
+building or tearing down the TFTP environment for a node, notifying Neutron of
+a change, etc.
 """
 
 from oslo.config import cfg
 
 from ironic.common import driver_factory
 from ironic.common import exception
+from ironic.common import hash_ring as hash
 from ironic.common import service
 from ironic.common import states
 from ironic.conductor import task_manager
@@ -79,7 +86,7 @@ CONF.register_opts(conductor_opts, 'conductor')
 class ConductorManager(service.PeriodicService):
     """Ironic Conductor service main class."""
 
-    RPC_API_VERSION = '1.6'
+    RPC_API_VERSION = '1.7'
 
     def __init__(self, host, topic):
         serializer = objects_base.IronicObjectSerializer()
@@ -91,17 +98,22 @@ class ConductorManager(service.PeriodicService):
         self.dbapi = dbapi.get_instance()
 
         df = driver_factory.DriverFactory()
-        drivers = df.names
+        self.drivers = df.names
+        """List of driver names which this conductor supports."""
+
         try:
             self.dbapi.register_conductor({'hostname': self.host,
-                                           'drivers': drivers})
+                                           'drivers': self.drivers})
         except exception.ConductorAlreadyRegistered:
             LOG.warn(_("A conductor with hostname %(hostname)s "
                        "was previously registered. Updating registration")
                        % {'hostname': self.host})
             self.dbapi.unregister_conductor(self.host)
             self.dbapi.register_conductor({'hostname': self.host,
-                                           'drivers': drivers})
+                                           'drivers': self.drivers})
+
+        self.driver_rings = self._get_current_driver_rings()
+        """Consistent hash ring which maps drivers to conductors."""
 
     # TODO(deva): add stop() to call unregister_conductor
 
@@ -137,7 +149,7 @@ class ConductorManager(service.PeriodicService):
         :param node_obj: a changed (but not saved) node object.
 
         """
-        node_id = node_obj.get('uuid')
+        node_id = node_obj.uuid
         LOG.debug(_("RPC update_node called for node %s.") % node_id)
 
         delta = node_obj.obj_what_changed()
@@ -337,10 +349,16 @@ class ConductorManager(service.PeriodicService):
     @periodic_task.periodic_task(
             spacing=CONF.conductor.sync_power_state_interval)
     def _sync_power_states(self, context):
-        # TODO(deva): add filter by conductor<->instance mapping
         filters = {'reserved': False}
-        node_list = self.dbapi.get_nodeinfo_list(filters=filters)
-        for node_id, in node_list:
+        columns = ['id', 'uuid', 'driver']
+        node_list = self.dbapi.get_nodeinfo_list(columns=columns,
+                                                 filters=filters)
+        for (node_id, node_uuid, driver) in node_list:
+            # only sync power states for nodes mapped to this conductor
+            mapped_hosts = self.driver_rings[driver].get_hosts(node_uuid)
+            if self.host not in mapped_hosts:
+                continue
+
             try:
                 with task_manager.acquire(context, node_id) as task:
                     node = task.node
@@ -358,11 +376,36 @@ class ConductorManager(service.PeriodicService):
                         node['power_state'] = power_state
                         node.save(context)
 
-            except (exception.NodeLocked, exception.NodeNotFound):
-                # NOTE(deva): if an instance is deleted during sync,
-                #             or locked by another process,
-                #             silently ignore it and continue
+            except exception.NodeNotFound:
+                LOG.info(_("During sync_power_state, node %(node)s was not "
+                           "found and presumed deleted by another process.") %
+                           {'node': node_uuid})
                 continue
+            except exception.NodeLocked:
+                LOG.info(_("During sync_power_state, node %(node)s was "
+                           "already locked by another process. Skip.") %
+                           {'node': node_uuid})
+                continue
+
+    def _get_current_driver_rings(self):
+        """Build the current hash ring for this ConductorManager's drivers."""
+
+        ring = {}
+        d2c = self.dbapi.get_active_driver_dict()
+
+        for driver in self.drivers:
+            ring[driver] = hash.HashRing(d2c[driver])
+        return ring
+
+    def rebalance_node_ring(self):
+        """Perform any actions necessary when rebalancing the consistent hash.
+
+        This may trigger several actions, such as calling driver.deploy.prepare
+        for nodes which are now mapped to this conductor.
+
+        """
+        # TODO(deva): implement this
+        pass
 
     def validate_driver_interfaces(self, context, node_id):
         """Validate the `core` and `standardized` interfaces for drivers.

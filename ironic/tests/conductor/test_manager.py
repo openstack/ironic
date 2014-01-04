@@ -120,11 +120,13 @@ class ManagerTestCase(base.DbTestCase):
 
         # create three nodes
         nodes = []
+        nodeinfo = []
         for i in range(0, 3):
             n = utils.get_test_node(id=i, uuid=ironic_utils.generate_uuid(),
                     driver='fake', power_state=states.POWER_OFF)
             self.dbapi.create_node(n)
             nodes.append(n['uuid'])
+            nodeinfo.append([i, n['uuid'], 'fake'])
 
         # lock the first node
         self.dbapi.reserve_nodes('fake-reserve', [nodes[0]])
@@ -136,7 +138,7 @@ class ManagerTestCase(base.DbTestCase):
                                    'get_nodeinfo_list') as get_fnl_mock:
                 # delete the second node
                 self.dbapi.destroy_node(nodes[1])
-                get_fnl_mock.return_value = [[n] for n in nodes]
+                get_fnl_mock.return_value = nodeinfo
                 self.service._sync_power_states(self.context)
             # check that get_power only called once, which updated third node
             get_power_mock.assert_called_once_with(mock.ANY, mock.ANY)

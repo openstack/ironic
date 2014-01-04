@@ -41,13 +41,34 @@ class RPCAPITestCase(base.DbTestCase):
         super(RPCAPITestCase, self).setUp()
         self.context = context.get_admin_context()
         self.dbapi = dbapi.get_instance()
-        self.fake_node = json.to_primitive(dbutils.get_test_node())
+        self.fake_node = json.to_primitive(dbutils.get_test_node(
+                driver='fake-driver'))
         self.fake_node_obj = objects.Node._from_db_object(
                                                     objects.Node(),
                                                     self.fake_node)
 
     def test_serialized_instance_has_uuid(self):
         self.assertTrue('uuid' in self.fake_node)
+
+    def test_get_topic_for_known_driver(self):
+        CONF.set_override('host', 'fake-host')
+        self.dbapi.register_conductor({'hostname': 'fake-host',
+                                       'drivers': ['fake-driver']})
+
+        rpcapi = conductor_rpcapi.ConductorAPI(topic='fake-topic')
+        expected_topic = 'fake-topic.fake-host'
+        self.assertEqual(expected_topic,
+                         rpcapi.get_topic_for(self.fake_node_obj))
+
+    def test_get_topic_for_unknown_driver(self):
+        CONF.set_override('host', 'fake-host')
+        self.dbapi.register_conductor({'hostname': 'fake-host',
+                                       'drivers': ['other-driver']})
+
+        rpcapi = conductor_rpcapi.ConductorAPI(topic='fake-topic')
+        expected_topic = 'fake-topic'
+        self.assertEqual(expected_topic,
+                         rpcapi.get_topic_for(self.fake_node_obj))
 
     def _test_rpcapi(self, method, rpc_method, **kwargs):
         ctxt = context.get_admin_context()
@@ -69,6 +90,7 @@ class RPCAPITestCase(base.DbTestCase):
         def _fake_rpc_method(*args, **kwargs):
             self.fake_args = args
             self.fake_kwargs = kwargs
+
             if expected_retval:
                 return expected_retval
 

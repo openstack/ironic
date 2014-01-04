@@ -331,6 +331,10 @@ class TestPatch(base.FunctionalTest):
         self.chassis = self.dbapi.create_chassis(cdict)
         ndict = dbutils.get_test_node()
         self.node = self.dbapi.create_node(ndict)
+        p = mock.patch.object(rpcapi.ConductorAPI, 'get_topic_for')
+        self.mock_gtf = p.start()
+        self.mock_gtf.return_value = 'test-topic'
+        self.addCleanup(p.stop)
         p = mock.patch.object(rpcapi.ConductorAPI, 'update_node')
         self.mock_update_node = p.start()
         self.addCleanup(p.stop)
@@ -350,7 +354,8 @@ class TestPatch(base.FunctionalTest):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(self.mock_update_node.return_value.updated_at,
                          timeutils.parse_isotime(response.json['updated_at']))
-        self.mock_update_node.assert_called_once_with(mock.ANY, mock.ANY)
+        self.mock_update_node.assert_called_once_with(
+                mock.ANY, mock.ANY, 'test-topic')
 
     def test_update_state(self):
         self.assertRaises(webtest.app.AppError, self.patch_json,
@@ -373,7 +378,8 @@ class TestPatch(base.FunctionalTest):
         self.assertEqual(response.content_type, 'application/json')
         self.assertEqual(response.status_code, 400)
 
-        self.mock_update_node.assert_called_once_with(mock.ANY, mock.ANY)
+        self.mock_update_node.assert_called_once_with(
+                mock.ANY, mock.ANY, 'test-topic')
 
     def test_update_fails_bad_state(self):
         fake_err = 'Fake Power State'
@@ -388,7 +394,8 @@ class TestPatch(base.FunctionalTest):
         self.assertEqual(response.content_type, 'application/json')
         self.assertEqual(response.status_code, 409)
 
-        self.mock_update_node.assert_called_once_with(mock.ANY, mock.ANY)
+        self.mock_update_node.assert_called_once_with(
+                mock.ANY, mock.ANY, 'test-topic')
 
     def test_add_ok(self):
         self.mock_update_node.return_value = self.node
@@ -400,7 +407,8 @@ class TestPatch(base.FunctionalTest):
         self.assertEqual(response.content_type, 'application/json')
         self.assertEqual(response.status_code, 200)
 
-        self.mock_update_node.assert_called_once_with(mock.ANY, mock.ANY)
+        self.mock_update_node.assert_called_once_with(
+                mock.ANY, mock.ANY, 'test-topic')
 
     def test_add_fail(self):
         self.assertRaises(webtest.app.AppError, self.patch_json,
@@ -416,7 +424,8 @@ class TestPatch(base.FunctionalTest):
         self.assertEqual(response.content_type, 'application/json')
         self.assertEqual(response.status_code, 200)
 
-        self.mock_update_node.assert_called_once_with(mock.ANY, mock.ANY)
+        self.mock_update_node.assert_called_once_with(
+                mock.ANY, mock.ANY, 'test-topic')
 
     def test_remove_fail(self):
         self.assertRaises(webtest.app.AppError, self.patch_json,
@@ -490,6 +499,10 @@ class TestPost(base.FunctionalTest):
         cdict = dbutils.get_test_chassis()
         self.chassis = self.dbapi.create_chassis(cdict)
         self.addCleanup(timeutils.clear_time_override)
+        p = mock.patch.object(rpcapi.ConductorAPI, 'get_topic_for')
+        self.mock_gtf = p.start()
+        self.mock_gtf.return_value = 'test-topic'
+        self.addCleanup(p.stop)
 
     def test_create_node(self):
         ndict = post_get_test_node()
@@ -525,7 +538,8 @@ class TestPost(base.FunctionalTest):
             mock_vendor.return_value = 'OK'
             response = self.post_json('/nodes/%s/vendor_passthru/test' % uuid,
                                       info, expect_errors=False)
-            mock_vendor.assert_called_once_with(mock.ANY, uuid, 'test', info)
+            mock_vendor.assert_called_once_with(
+                    mock.ANY, uuid, 'test', info, 'test-topic')
             self.assertEqual(response.body, '"OK"')
             self.assertEqual(response.status_code, 202)
 
@@ -543,7 +557,8 @@ class TestPost(base.FunctionalTest):
                                          'extension': 'test'})
             response = self.post_json('/nodes/%s/vendor_passthru/test' % uuid,
                                       info, expect_errors=True)
-            mock_vendor.assert_called_once_with(mock.ANY, uuid, 'test', info)
+            mock_vendor.assert_called_once_with(
+                    mock.ANY, uuid, 'test', info, 'test-topic')
             self.assertEqual(response.status_code, 400)
 
     def test_vendor_passthru_without_method(self):
@@ -626,6 +641,10 @@ class TestPut(base.FunctionalTest):
         self.chassis = self.dbapi.create_chassis(cdict)
         ndict = dbutils.get_test_node()
         self.node = self.dbapi.create_node(ndict)
+        p = mock.patch.object(rpcapi.ConductorAPI, 'get_topic_for')
+        self.mock_gtf = p.start()
+        self.mock_gtf.return_value = 'test-topic'
+        self.addCleanup(p.stop)
         p = mock.patch.object(rpcapi.ConductorAPI, 'change_node_power_state')
         self.mock_cnps = p.start()
         self.addCleanup(p.stop)
@@ -644,7 +663,8 @@ class TestPut(base.FunctionalTest):
 
         self.mock_cnps.assert_called_once_with(mock.ANY,
                                                self.node['uuid'],
-                                               states.POWER_ON)
+                                               states.POWER_ON,
+                                               'test-topic')
 
     def test_power_state_in_progress(self):
         manager = mock.MagicMock()
@@ -655,7 +675,8 @@ class TestPut(base.FunctionalTest):
             expected = [mock.call.get_by_uuid(mock.ANY, self.node['uuid']),
                         mock.call.change_node_power_state(mock.ANY,
                                                           self.node['uuid'],
-                                                          states.POWER_ON)]
+                                                          states.POWER_ON,
+                                                          'test-topic')]
 
             self.put_json('/nodes/%s/states/power' % self.node['uuid'],
                           {'target': states.POWER_ON})
@@ -680,13 +701,15 @@ class TestPut(base.FunctionalTest):
         ret = self.put_json('/nodes/%s/states/provision' % self.node.uuid,
                             {'target': states.ACTIVE})
         self.assertEqual(ret.status_code, 202)
-        self.mock_dnd.assert_called_once_with(mock.ANY, self.node.uuid)
+        self.mock_dnd.assert_called_once_with(
+                mock.ANY, self.node.uuid, 'test-topic')
 
     def test_provision_with_tear_down(self):
         ret = self.put_json('/nodes/%s/states/provision' % self.node.uuid,
                             {'target': states.DELETED})
         self.assertEqual(ret.status_code, 202)
-        self.mock_dntd.assert_called_once_with(mock.ANY, self.node.uuid)
+        self.mock_dntd.assert_called_once_with(
+                mock.ANY, self.node.uuid, 'test-topic')
 
     def test_provision_invalid_state_request(self):
         ret = self.put_json('/nodes/%s/states/provision' % self.node.uuid,
