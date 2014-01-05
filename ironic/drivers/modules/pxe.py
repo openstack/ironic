@@ -112,10 +112,10 @@ def _parse_driver_info(node):
     missing_info = []
     for label in d_info:
         if not d_info[label]:
-            missing_info.append(label)
+            missing_info.append("pxe_%s" % label)
     if missing_info:
         raise exception.InvalidParameterValue(_(
-                "Can not validate PXE bootloader. The following paramenters "
+                "Can not validate PXE bootloader. The following parameters "
                 "were not passed to ironic: %s") % missing_info)
 
     # Internal use only
