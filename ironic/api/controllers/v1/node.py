@@ -104,9 +104,14 @@ class NodeStatesController(rest.RestController):
 
         :param node_uuid: UUID of a node.
         :param target: The desired power state of the node.
+        :raises: ClientSideError (HTTP 409) if a power operation is
+                 already in progress.
+        :raises: InvalidStateRequested (HTTP 400) if the requested target
+                 state is not valid.
+
         """
-        # TODO(lucasagomes): Test if target is a valid state and if it's able
-        # to transition to the target state from the current one
+        # TODO(lucasagomes): Test if it's able to transition to the
+        #                    target state from the current one
         rpc_node = objects.Node.get_by_uuid(pecan.request.context, node_uuid)
         if rpc_node.target_power_state is not None:
             raise wsme.exc.ClientSideError(_("Power operation for node %s is "
@@ -116,8 +121,13 @@ class NodeStatesController(rest.RestController):
         # Note that there is a race condition. The node state(s) could change
         # by the time the RPC call is made and the TaskManager manager gets a
         # lock.
-        pecan.request.rpcapi.change_node_power_state(pecan.request.context,
-                                                     node_uuid, target)
+        if target in [ir_states.POWER_ON,
+                      ir_states.POWER_OFF,
+                      ir_states.REBOOT]:
+            pecan.request.rpcapi.change_node_power_state(pecan.request.context,
+                                                         node_uuid, target)
+        else:
+            raise exception.InvalidStateRequested(state=target, node=node_uuid)
         # FIXME(lucasagomes): Currently WSME doesn't support returning
         # the Location header. Once it's implemented we should use the
         # Location to point to the /states subresource of the node so
@@ -138,6 +148,12 @@ class NodeStatesController(rest.RestController):
 
         :param node_uuid: UUID of a node.
         :param target: The desired provision state of the node.
+        :raises: ClientSideError (HTTP 409) if the node is already being
+                 provisioned.
+        :raises: ClientSideError (HTTP 400) if the node is already in
+                 the requested state.
+        :raises: InvalidStateRequested (HTTP 400) if the requested target
+                 state is not valid.
 
         """
         rpc_node = objects.Node.get_by_uuid(pecan.request.context, node_uuid)
@@ -162,10 +178,7 @@ class NodeStatesController(rest.RestController):
             pecan.request.rpcapi.do_node_tear_down(pecan.request.context,
                                                    node_uuid)
         else:
-            msg = (_("Invalid state '%(state)s' requested for node %(node)s.")
-                   % {'state': target, 'node': node_uuid})
-            LOG.exception(msg)
-            raise wsme.exc.ClientSideError(msg, status_code=400)
+            raise exception.InvalidStateRequested(state=target, node=node_uuid)
         # FIXME(lucasagomes): Currently WSME doesn't support returning
         # the Location header. Once it's implemented we should use the
         # Location to point to the /states subresource of this node so
