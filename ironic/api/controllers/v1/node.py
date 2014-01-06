@@ -323,7 +323,7 @@ class NodeVendorPassthruController(rest.RestController):
     def post(self, node_uuid, method, data):
         """Call a vendor extension.
 
-        :param node_uuid: UUID of the node.
+        :param node_uuid: UUID of a node.
         :param method: name of the method in vendor driver.
         :param data: body of data to supply to the specified method.
         """
@@ -556,7 +556,7 @@ class NodesController(rest.RestController):
     def delete(self, node_uuid):
         """Delete a node.
 
-        :param node_uuid: UUID of the node.
+        :param node_uuid: UUID of a node.
         """
         if self._from_chassis:
             raise exception.OperationNotPermitted
