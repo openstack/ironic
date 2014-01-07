@@ -344,7 +344,18 @@ class ConductorManager(service.PeriodicService):
             try:
                 with task_manager.acquire(context, node_id) as task:
                     node = task.node
-                    power_state = task.driver.power.get_power_state(task, node)
+
+                    try:
+                        power_state = task.driver.power.get_power_state(task,
+                                                                        node)
+                    except Exception as e:
+                        #TODO(rloo): change to IronicException, after
+                        # https://bugs.launchpad.net/ironic/+bug/1267693
+                        LOG.debug(_("During sync_power_state, could not get "
+                            "power state for node %(node)s. Error: %(err)s.") %
+                            {'node': node.uuid, 'err': e})
+                        continue
+
                     if power_state != node['power_state']:
                         # NOTE(deva): don't log a warning the first time we
                         #             sync a node's power state

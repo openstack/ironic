@@ -21,6 +21,7 @@
 
 import mock
 from oslo.config import cfg
+from testtools.matchers import HasLength
 
 from ironic.common import driver_factory
 from ironic.common import exception
@@ -144,6 +145,40 @@ class ManagerTestCase(base.DbTestCase):
         n3 = self.dbapi.get_node(nodes[2])
         self.assertEqual(n1['power_state'], states.POWER_OFF)
         self.assertEqual(n3['power_state'], states.POWER_ON)
+
+    def test__sync_power_state_node_no_power_state(self):
+        self.service.start()
+
+        # create three nodes
+        nodes = []
+        for i in range(0, 3):
+            n = utils.get_test_node(id=i, uuid=ironic_utils.generate_uuid(),
+                    driver='fake', power_state=states.POWER_OFF)
+            self.dbapi.create_node(n)
+            nodes.append(n['uuid'])
+
+        # cannot get power state of node 2; only nodes 1 & 3 have
+        # their power states changed.
+        with mock.patch.object(self.driver.power,
+                               'get_power_state') as get_power_mock:
+            returns = [states.POWER_ON,
+                       exception.InvalidParameterValue("invalid"),
+                       states.POWER_ON]
+
+            def side_effect(*args):
+                result = returns.pop(0)
+                if isinstance(result, Exception):
+                    raise result
+                return result
+
+            get_power_mock.side_effect = side_effect
+            self.service._sync_power_states(self.context)
+            self.assertThat(returns, HasLength(0))
+
+        final = [states.POWER_ON, states.POWER_OFF, states.POWER_ON]
+        for i in range(0, 3):
+            n = self.dbapi.get_node(nodes[i])
+            self.assertEqual(n.power_state, final[i])
 
     def test_get_power_state(self):
         n = utils.get_test_node(driver='fake')
