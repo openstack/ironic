@@ -15,6 +15,8 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import datetime
+
 import jsonpatch
 from oslo.config import cfg
 import pecan
@@ -284,18 +286,16 @@ class Node(base.APIBase):
         setattr(self, 'chassis_uuid', kwargs.get('chassis_id', None))
 
     @classmethod
-    def convert_with_links(cls, rpc_node, expand=True):
-        node = Node(**rpc_node.as_dict())
+    def _convert_with_links(cls, node, url, expand=True):
         if not expand:
             except_list = ['instance_uuid', 'power_state',
                            'provision_state', 'uuid']
             node.unset_fields_except(except_list)
         else:
-            node.ports = [link.Link.make_link('self', pecan.request.host_url,
-                                              'nodes', node.uuid + "/ports"),
-                          link.Link.make_link('bookmark',
-                                              pecan.request.host_url,
-                                              'nodes', node.uuid + "/ports",
+            node.ports = [link.Link.make_link('self', url, 'nodes',
+                                              node.uuid + "/ports"),
+                          link.Link.make_link('bookmark', url, 'nodes',
+                                              node.uuid + "/ports",
                                               bookmark=True)
                          ]
 
@@ -303,14 +303,36 @@ class Node(base.APIBase):
         #                    the user, it's internal only.
         node.chassis_id = wtypes.Unset
 
-        node.links = [link.Link.make_link('self', pecan.request.host_url,
-                                          'nodes', node.uuid),
-                      link.Link.make_link('bookmark',
-                                          pecan.request.host_url,
-                                          'nodes', node.uuid,
-                                          bookmark=True)
+        node.links = [link.Link.make_link('self', url, 'nodes',
+                                          node.uuid),
+                      link.Link.make_link('bookmark', url, 'nodes',
+                                          node.uuid, bookmark=True)
                      ]
         return node
+
+    @classmethod
+    def convert_with_links(cls, rpc_node, expand=True):
+        node = Node(**rpc_node.as_dict())
+        return cls._convert_with_links(node, pecan.request.host_url,
+                                       expand)
+
+    @classmethod
+    def sample(cls, expand=True):
+        time = datetime.datetime(2000, 1, 1, 12, 0, 0)
+        node_uuid = '1be26c0b-03f2-4d2e-ae87-c02d7f33c123'
+        instance_uuid = 'dcf1fbc5-93fc-4596-9395-b80572f6267b'
+        sample = cls(uuid=node_uuid, instance_uuid=instance_uuid,
+                     power_state=ir_states.POWER_ON,
+                     target_power_state=ir_states.NOSTATE,
+                     last_error=None, provision_state=ir_states.ACTIVE,
+                     target_provision_state=ir_states.NOSTATE,
+                     driver='fake', driver_info={}, extra={},
+                     properties={'memory_mb': '1024', 'local_gb': '10',
+                     'cpus': '1'}, updated_at=time, created_at=time)
+        # NOTE(matty_dubs): The chassis_uuid getter() is based on the
+        # _chassis_uuid variable:
+        sample._chassis_uuid = 'edcad704-b2da-41d5-96d9-afd580ecfa12'
+        return cls._convert_with_links(sample, 'http://localhost:6385', expand)
 
 
 class NodeCollection(collection.Collection):
@@ -329,6 +351,13 @@ class NodeCollection(collection.Collection):
         collection.nodes = [Node.convert_with_links(n, expand) for n in nodes]
         collection.next = collection.get_next(limit, url=url, **kwargs)
         return collection
+
+    @classmethod
+    def sample(cls):
+        sample = cls()
+        node = Node.sample(expand=False)
+        sample.nodes = [node]
+        return sample
 
 
 class NodeVendorPassthruController(rest.RestController):
