@@ -375,18 +375,24 @@ class ConductorManager(service.PeriodicService):
         """
         LOG.debug(_('RPC validate_driver_interfaces called for node %s.') %
                     node_id)
-        result = {}
+        ret_dict = {}
         with task_manager.acquire(context, node_id, shared=True) as task:
             for iface_name in (task.driver.core_interfaces +
                                task.driver.standard_interfaces):
                 iface = getattr(task.driver, iface_name, None)
+                result = reason = None
                 if iface:
                     try:
                         iface.validate(task.node)
-                        result[iface_name] = True
+                        result = True
                     except exception.InvalidParameterValue as e:
-                        LOG.exception(e)
-                        result[iface_name] = False
+                        result = False
+                        reason = str(e)
                 else:
-                    result[iface_name] = 'not supported'
-        return result
+                    reason = _('not supported')
+
+                ret_dict[iface_name] = {}
+                ret_dict[iface_name]['result'] = result
+                if reason is not None:
+                    ret_dict[iface_name]['reason'] = reason
+        return ret_dict
