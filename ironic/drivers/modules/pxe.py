@@ -215,14 +215,14 @@ def _get_pxe_bootfile_name():
     return CONF.pxe.pxe_bootfile_name
 
 
-def _get_image_dir_path(d_info):
+def _get_image_dir_path(node_uuid):
     """Generate the dir for an instances disk."""
-    return os.path.join(CONF.pxe.images_path, d_info['instance_name'])
+    return os.path.join(CONF.pxe.images_path, node_uuid)
 
 
-def _get_image_file_path(d_info):
+def _get_image_file_path(node_uuid):
     """Generate the full path for an instances disk."""
-    return os.path.join(_get_image_dir_path(d_info), 'disk')
+    return os.path.join(_get_image_dir_path(node_uuid), 'disk')
 
 
 def _get_token_file_path(node_uuid):
@@ -360,8 +360,8 @@ def _cache_instance_image(ctx, node):
 
     """
     d_info = _parse_driver_info(node)
-    fileutils.ensure_tree(_get_image_dir_path(d_info))
-    image_path = _get_image_file_path(d_info)
+    fileutils.ensure_tree(_get_image_dir_path(node.uuid))
+    image_path = _get_image_file_path(node.uuid)
     uuid = d_info['image_source']
 
     LOG.debug(_("Fetching image %(ami)s for instance %(name)s") %
@@ -421,11 +421,11 @@ def _cache_images(node, pxe_info, ctx):
     # _inject_into_image(d_info, network_info, injected_files, admin_password)
 
 
-def _destroy_images(d_info):
+def _destroy_images(d_info, node_uuid):
     """Delete instance's image file."""
     image_uuid = service_utils.parse_image_ref(d_info['image_source'])[0]
-    utils.unlink_without_raise(_get_image_file_path(d_info))
-    utils.rmtree_without_raise(_get_image_dir_path(d_info))
+    utils.unlink_without_raise(_get_image_file_path(node_uuid))
+    utils.rmtree_without_raise(_get_image_dir_path(node_uuid))
     master_image = os.path.join(CONF.pxe.instance_master_path, image_uuid)
     _unlink_master_image(master_image)
 
@@ -558,7 +558,7 @@ class PXEDeploy(base.DeployInterface):
         utils.rmtree_without_raise(
                 os.path.join(CONF.pxe.tftp_root, node['instance_uuid']))
 
-        _destroy_images(d_info)
+        _destroy_images(d_info, node.uuid)
         _destroy_token_file(node)
 
     def take_over(self, task, node):
@@ -591,7 +591,7 @@ class VendorPassthru(base.VendorInterface):
                   'port': kwargs.get('port', '3260'),
                   'iqn': kwargs.get('iqn'),
                   'lun': kwargs.get('lun', '1'),
-                  'image_path': _get_image_file_path(d_info),
+                  'image_path': _get_image_file_path(node.uuid),
                   'pxe_config_path': _get_pxe_config_file_path(
                                                     node['instance_uuid']),
                   'root_mb': 1024 * int(d_info['root_gb']),

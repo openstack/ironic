@@ -217,7 +217,8 @@ class PXEPrivateMethodsTestCase(base.TestCase):
         n = {
               'driver': 'fake_pxe',
               'driver_info': INFO_DICT,
-              'instance_uuid': 'instance_uuid_123'}
+              'instance_uuid': 'instance_uuid_123'
+        }
         self.dbapi = dbapi.get_instance()
         self.node = self._create_test_node(**n)
         self.context = context.get_admin_context()
@@ -306,24 +307,15 @@ class PXEPrivateMethodsTestCase(base.TestCase):
                          pxe._get_pxe_config_file_path('instance_uuid_123'))
 
     def test__get_image_dir_path(self):
-        node = self._create_test_node(
-            id=345,
-            driver='fake_pxe',
-            driver_info=INFO_DICT,
-        )
-        info = pxe._parse_driver_info(node)
-        self.assertEqual('/var/lib/ironic/images/fake_instance_name',
-                         pxe._get_image_dir_path(info))
+        self.assertEqual(os.path.join('/var/lib/ironic/images/',
+                                      self.node.uuid),
+                         pxe._get_image_dir_path(self.node.uuid))
 
     def test__get_image_file_path(self):
-        node = self._create_test_node(
-            id=345,
-            driver='fake_pxe',
-            driver_info=INFO_DICT,
-        )
-        info = pxe._parse_driver_info(node)
-        self.assertEqual('/var/lib/ironic/images/fake_instance_name/disk',
-                         pxe._get_image_file_path(info))
+        self.assertEqual(os.path.join('/var/lib/ironic/images/',
+                                      self.node.uuid,
+                                      'disk'),
+                         pxe._get_image_file_path(self.node.uuid))
 
     def test_get_token_file_path(self):
         node_uuid = self.node['uuid']
@@ -385,11 +377,11 @@ class PXEPrivateMethodsTestCase(base.TestCase):
 
             fetch_to_raw_mock.assert_called_once_with(None,
                             'glance://image_uuid',
-                            os.path.join(temp_dir, 'fake_instance_name/disk'),
+                            os.path.join(temp_dir, self.node.uuid, 'disk'),
                             None)
             self.assertEqual(uuid, 'glance://image_uuid')
             self.assertEqual(image_path,
-                             os.path.join(temp_dir, 'fake_instance_name/disk'))
+                             os.path.join(temp_dir, self.node.uuid, 'disk'))
 
     def test__cache_instance_images_master_path(self):
         temp_dir = tempfile.mkdtemp()
@@ -424,8 +416,10 @@ class PXEPrivateMethodsTestCase(base.TestCase):
                     parse_image_ref_mock.assert_called_once_with(
                                                        'glance://image_uuid')
                     self.assertEqual(uuid, 'glance://image_uuid')
-                    self.assertEqual(
-                            image_path, temp_dir + '/fake_instance_name/disk')
+                    self.assertEqual(image_path,
+                                     os.path.join(temp_dir,
+                                                  self.node.uuid,
+                                                  'disk'))
 
     def test__get_image_download_in_progress(self):
         def _create_instance_path(*args):
@@ -456,6 +450,7 @@ class PXEDriverTestCase(db_base.DbTestCase):
         self.context.auth_token = '4562138218392831'
         self.temp_dir = tempfile.mkdtemp()
         CONF.set_default('tftp_root', self.temp_dir, group='pxe')
+        self.temp_dir = tempfile.mkdtemp()
         CONF.set_default('images_path', self.temp_dir, group='pxe')
         mgr_utils.get_mocked_node_manager(driver='fake_pxe')
         driver_info = INFO_DICT
@@ -676,7 +671,7 @@ class PXEDriverTestCase(db_base.DbTestCase):
                     uuid='bb43dc0b-03f2-4d2e-ae87-c02d7f33cc53',
                     node_id='123')))
 
-        d_kernel_path = os.path.join(self.temp_dir,
+        d_kernel_path = os.path.join(CONF.pxe.tftp_root,
                                      'instance_uuid_123/deploy_kernel')
         image_info = {'deploy_kernel': ['deploy_kernel_uuid', d_kernel_path]}
 
@@ -684,11 +679,12 @@ class PXEDriverTestCase(db_base.DbTestCase):
                 as get_tftp_image_info_mock:
             get_tftp_image_info_mock.return_value = image_info
 
-            pxecfg_dir = os.path.join(self.temp_dir, 'pxelinux.cfg')
+            pxecfg_dir = os.path.join(CONF.pxe.tftp_root, 'pxelinux.cfg')
             os.makedirs(pxecfg_dir)
 
-            instance_dir = os.path.join(self.temp_dir, 'instance_uuid_123')
-            image_dir = os.path.join(self.temp_dir, 'fake_instance_name')
+            instance_dir = os.path.join(CONF.pxe.tftp_root,
+                                        'instance_uuid_123')
+            image_dir = os.path.join(CONF.pxe.images_path, self.node.uuid)
             os.makedirs(instance_dir)
             os.makedirs(image_dir)
             config_path = os.path.join(instance_dir, 'config')
@@ -698,8 +694,9 @@ class PXEDriverTestCase(db_base.DbTestCase):
             open(config_path, 'w').close()
             os.link(config_path, pxe_mac_path)
             if master:
-                tftp_master_dir = os.path.join(self.temp_dir, 'tftp_master')
-                instance_master_dir = os.path.join(self.temp_dir,
+                tftp_master_dir = os.path.join(CONF.pxe.tftp_root,
+                                               'tftp_master')
+                instance_master_dir = os.path.join(CONF.pxe.images_path,
                                                    'instance_master')
                 CONF.set_default('tftp_master_path',
                                  tftp_master_dir,
@@ -718,9 +715,10 @@ class PXEDriverTestCase(db_base.DbTestCase):
                 os.link(master_deploy_kernel_path, deploy_kernel_path)
                 os.link(master_instance_path, image_path)
                 if master == 'in_use':
-                    deploy_kernel_link = os.path.join(self.temp_dir,
+                    deploy_kernel_link = os.path.join(CONF.pxe.tftp_root,
                                                       'deploy_kernel_link')
-                    image_link = os.path.join(self.temp_dir, 'image_link')
+                    image_link = os.path.join(CONF.pxe.images_path,
+                                              'image_link')
                     os.link(master_deploy_kernel_path, deploy_kernel_link)
                     os.link(master_instance_path, image_link)
 
@@ -750,10 +748,10 @@ class PXEDriverTestCase(db_base.DbTestCase):
     def test_clean_up_master_images_not_in_use(self):
         self.clean_up_config(master='not_in_use')
 
-        master_d_kernel_path = os.path.join(self.temp_dir,
-                                            'tftp_master/deploy_kernel_uuid')
-        master_instance_path = os.path.join(self.temp_dir,
-                                            'instance_master/image_uuid')
+        master_d_kernel_path = os.path.join(CONF.pxe.tftp_master_path,
+                                            'deploy_kernel_uuid')
+        master_instance_path = os.path.join(CONF.pxe.instance_master_path,
+                                            self.node.uuid)
 
         self.assertFalse(os.path.exists(master_d_kernel_path))
         self.assertFalse(os.path.exists(master_instance_path))
@@ -761,10 +759,10 @@ class PXEDriverTestCase(db_base.DbTestCase):
     def test_clean_up_master_images_in_use(self):
         self.clean_up_config(master='in_use')
 
-        master_d_kernel_path = os.path.join(self.temp_dir,
-                                            'tftp_master/deploy_kernel_uuid')
-        master_instance_path = os.path.join(self.temp_dir,
-                                             'instance_master/image_uuid')
+        master_d_kernel_path = os.path.join(CONF.pxe.tftp_master_path,
+                                            'deploy_kernel_uuid')
+        master_instance_path = os.path.join(CONF.pxe.instance_master_path,
+                                             'image_uuid')
 
         self.assertTrue(os.path.exists(master_d_kernel_path))
         self.assertTrue(os.path.exists(master_instance_path))
