@@ -123,7 +123,8 @@ def _parse_driver_info(node):
                 "SSHPowerDriver requires either password or "
                 "key_filename be set."))
         if not os.path.isfile(key_filename):
-            raise exception.FileNotFound(file_path=key_filename)
+            raise exception.InvalidParameterValue(_(
+                "SSH key file %s not found.") % key_filename)
         res['key_filename'] = key_filename
 
     return res

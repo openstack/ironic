@@ -96,7 +96,7 @@ class SSHValidateParametersTestCase(base.TestCase):
         info = dict(INFO_DICT)
         del info['ssh_password']
         node = db_utils.get_test_node(driver_info=info)
-        self.assertRaises(exception.FileNotFound,
+        self.assertRaises(exception.InvalidParameterValue,
                 ssh._parse_driver_info,
                 node)
 
