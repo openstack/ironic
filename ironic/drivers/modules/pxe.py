@@ -35,7 +35,6 @@ from ironic.conductor import task_manager
 from ironic.conductor import utils as manager_utils
 from ironic.drivers import base
 from ironic.drivers.modules import deploy_utils
-from ironic.openstack.common import context
 from ironic.openstack.common import fileutils
 from ironic.openstack.common import lockutils
 from ironic.openstack.common import log as logging
@@ -136,7 +135,7 @@ def _parse_driver_info(node):
     return d_info
 
 
-def _build_pxe_config(node, pxe_info):
+def _build_pxe_config(node, pxe_info, ctx):
     """Build the PXE config file for a node
 
     This method builds the PXE boot configuration file for a node,
@@ -156,7 +155,6 @@ def _build_pxe_config(node, pxe_info):
                   keystone.get_service_url()).rstrip('/')
 
     deploy_key = utils.random_alnum(32)
-    ctx = context.get_admin_context()
     driver_info = node['driver_info']
     driver_info['pxe_deploy_key'] = deploy_key
     node['driver_info'] = driver_info
@@ -374,7 +372,7 @@ def _cache_instance_image(ctx, node):
     return (uuid, image_path)
 
 
-def _get_tftp_image_info(node):
+def _get_tftp_image_info(node, ctx):
     """Generate the paths for tftp files for this instance
 
     Raises IronicException if
@@ -395,7 +393,6 @@ def _get_tftp_image_info(node):
         image_info[label][1] = os.path.join(CONF.pxe.tftp_root,
                                             node['instance_uuid'], label)
 
-    ctx = context.get_admin_context()
     glance_service = service.Service(version=1, context=ctx)
     iproperties = glance_service.show(d_info['image_source'])['properties']
     for label in ('kernel', 'ramdisk'):
@@ -407,9 +404,8 @@ def _get_tftp_image_info(node):
     return image_info
 
 
-def _cache_images(node, pxe_info):
+def _cache_images(node, pxe_info, ctx):
     """Prepare all the images for this instance."""
-    ctx = context.get_admin_context()
     #TODO(ghe):parallized downloads
 
     #TODO(ghe): Embedded image client in ramdisk
@@ -470,7 +466,7 @@ def _create_pxe_config(task, node, pxe_info):
                                        'pxelinux.cfg'))
 
     pxe_config_file_path = _get_pxe_config_file_path(node['instance_uuid'])
-    pxe_config = _build_pxe_config(node, pxe_info)
+    pxe_config = _build_pxe_config(node, pxe_info, task.context)
     utils.write_to_file(pxe_config_file_path, pxe_config)
     for port in _get_node_mac_addresses(task, node):
         mac_path = _get_pxe_mac_path(port)
@@ -535,16 +531,16 @@ class PXEDeploy(base.DeployInterface):
 
     def prepare(self, task, node):
         # TODO(deva): optimize this if rerun on existing files
-        pxe_info = _get_tftp_image_info(node)
+        pxe_info = _get_tftp_image_info(node, task.context)
         _create_pxe_config(task, node, pxe_info)
-        _cache_images(node, pxe_info)
+        _cache_images(node, pxe_info, task.context)
 
     def clean_up(self, task, node):
         # FIXME(ghe): Possible error to get image info if eliminated from
         #             glance. Retrieve image info and store in db.
         #             If we keep master images, no need to get the info,
         #             and we may ignore this.
-        pxe_info = _get_tftp_image_info(node)
+        pxe_info = _get_tftp_image_info(node, task.context)
         d_info = _parse_driver_info(node)
         for label in pxe_info:
             (uuid, path) = pxe_info[label]
@@ -685,6 +681,6 @@ class VendorPassthru(base.VendorInterface):
                         kwargs.get('persistent'))
 
         elif method == 'pass_deploy_info':
-            ctx = context.get_admin_context()
+            ctx = task.context
             with task_manager.acquire(ctx, node['uuid']) as inner_task:
                 self._continue_deploy(inner_task, node, **kwargs)

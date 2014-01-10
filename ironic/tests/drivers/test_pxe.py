@@ -220,6 +220,7 @@ class PXEPrivateMethodsTestCase(base.TestCase):
               'instance_uuid': 'instance_uuid_123'}
         self.dbapi = dbapi.get_instance()
         self.node = self._create_test_node(**n)
+        self.context = context.get_admin_context()
 
     def _create_test_node(self, **kwargs):
         n = db_utils.get_test_node(**kwargs)
@@ -244,7 +245,7 @@ class PXEPrivateMethodsTestCase(base.TestCase):
         with mock.patch.object(base_image_service.BaseImageService, '_show') \
                 as show_mock:
             show_mock.return_value = properties
-            image_info = pxe._get_tftp_image_info(self.node)
+            image_info = pxe._get_tftp_image_info(self.node, self.context)
             show_mock.assert_called_once_with('glance://image_uuid',
                                                method='get')
             self.assertEqual(image_info, expected_info)
@@ -276,7 +277,9 @@ class PXEPrivateMethodsTestCase(base.TestCase):
                                      CONF.pxe.tftp_root + '/' + instance_uuid +
                                      '/ramdisk']
                       }
-            pxe_config = pxe._build_pxe_config(self.node, image_info)
+            pxe_config = pxe._build_pxe_config(self.node,
+                                               image_info,
+                                               self.context)
 
             random_alnum_mock.assert_called_once_with(32)
             self.assertEqual(pxe_config, pxe_config_template)
@@ -542,12 +545,14 @@ class PXEDriverTestCase(db_base.DbTestCase):
                                     self.node['uuid'], shared=True) as task:
                         task.driver.deploy.prepare(task, self.node)
                         get_tftp_image_info_mock.assert_called_once_with(
-                                                                  self.node)
+                                                                  self.node,
+                                                                  self.context)
                         create_pxe_config_mock.assert_called_once_with(task,
                                                                     self.node,
                                                                     None)
                         cache_images_mock.assert_called_once_with(self.node,
-                                                                  None)
+                                                                  None,
+                                                                  self.context)
 
     def test_deploy(self):
         with mock.patch.object(pxe, '_update_neutron') as update_neutron_mock:
