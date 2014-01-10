@@ -12,4 +12,4 @@ testtools>=0.9.32
 
 # Doc requirements
 sphinx>=1.1.2,<1.2
-sphinxcontrib-pecanwsme>=0.5
+sphinxcontrib-pecanwsme>=0.6
