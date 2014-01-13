@@ -155,6 +155,10 @@ class InvalidMAC(Invalid):
     message = _("Expected a MAC address but received %(mac)s.")
 
 
+class InvalidStateRequested(Invalid):
+    message = _("Invalid state '%(state)s' requested for node %(node)s.")
+
+
 class InstanceDeployFailure(IronicException):
     message = _("Failed to deploy instance: %(reason)s")
 

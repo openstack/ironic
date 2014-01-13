@@ -671,6 +671,11 @@ class TestPut(base.FunctionalTest):
                                  expect_errors=True)
         self.assertEqual(response.status_code, 409)
 
+    def test_power_invalid_state_request(self):
+        ret = self.put_json('/nodes/%s/states/power' % self.node.uuid,
+                            {'target': 'not-supported'}, expect_errors=True)
+        self.assertEqual(ret.status_code, 400)
+
     def test_provision_with_deploy(self):
         ret = self.put_json('/nodes/%s/states/provision' % self.node.uuid,
                             {'target': states.ACTIVE})
