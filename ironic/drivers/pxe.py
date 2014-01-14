@@ -57,7 +57,7 @@ class PXEAndSSHDriver(base.BaseDriver):
         self.power = ssh.SSHPower()
         self.deploy = pxe.PXEDeploy()
         self.rescue = self.deploy
-        self.vendor = None
+        self.vendor = pxe.VendorPassthru()
 
 
 class PXEAndIPMINativeDriver(base.BaseDriver):
