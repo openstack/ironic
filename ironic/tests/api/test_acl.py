@@ -83,6 +83,13 @@ class TestACL(base.FunctionalTest):
         # expect_errors should be set to True: If expect_errors is set to False
         # the response gets converted to JSON and we cannot read the response
         # code so easy.
-        response = self.get_json('/', expect_errors=True)
+        for route in ('/', '/v1'):
+            response = self.get_json(route,
+                                     path_prefix='', expect_errors=True)
+            self.assertEqual(200, response.status_int)
 
-        self.assertEqual(200, response.status_int)
+    def test_public_api_with_path_extensions(self):
+        for route in ('/v1/', '/v1.json', '/v1.xml'):
+            response = self.get_json(route,
+                                     path_prefix='', expect_errors=True)
+            self.assertEqual(200, response.status_int)

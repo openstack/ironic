@@ -349,3 +349,7 @@ class NoFreeConductorWorker(TemporaryFailure):
 
 class VendorPassthruException(IronicException):
     pass
+
+
+class ConfigInvalid(IronicException):
+    message = _("Invalid configuration file. %(error_msg)s")

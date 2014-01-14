@@ -21,7 +21,6 @@ from pecan import hooks
 from webob import exc
 
 from ironic.common import context
-from ironic.common import utils
 from ironic.conductor import rpcapi
 from ironic.db import api as dbapi
 from ironic.openstack.common import policy
@@ -75,10 +74,8 @@ class ContextHook(hooks.PecanHook):
         auth_token = state.request.headers.get('X-Auth-Token')
         creds = {'roles': state.request.headers.get('X-Roles', '').split(',')}
 
+        is_public_api = state.request.environ.get('is_public_api', False)
         is_admin = policy.check('admin', state.request.headers, creds)
-
-        path = utils.safe_rstrip(state.request.path, '/')
-        is_public_api = path in self.public_api_routes
 
         state.request.context = context.RequestContext(
             auth_token=auth_token,
