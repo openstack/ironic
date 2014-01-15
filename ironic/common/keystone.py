@@ -24,8 +24,7 @@ CONF = cfg.CONF
 acl.register_opts(CONF)
 
 
-def get_service_url(attr='name', filter_value='ironic',
-                    service_type='baremetal', endpoint_type='internal'):
+def get_service_url(service_type='baremetal', endpoint_type='internal'):
     """Wrapper for get service url from keystone service catalog."""
     auth_url = CONF.keystone_authtoken.auth_uri or ''
     api_v3 = CONF.keystone_authtoken.auth_version == 'v3.0' or \
@@ -53,11 +52,10 @@ def get_service_url(attr='name', filter_value='ironic',
         raise exception.CatalogFailure(_('No keystone service catalog loaded'))
 
     try:
-        endpoint = ksclient.service_catalog.url_for(attr=attr,
-                                                   filter_value=filter_value,
-                                                   service_type=service_type,
-                                                   endpoint_type=endpoint_type)
+        endpoint = ksclient.service_catalog.url_for(service_type=service_type,
+                                                endpoint_type=endpoint_type)
     except ksexception.EndpointNotFound:
-        raise exception.CatalogNotFound(attr=attr, value=filter_value)
+        raise exception.CatalogNotFound(service_type=service_type,
+                                        endpoint_type=endpoint_type)
 
     return endpoint

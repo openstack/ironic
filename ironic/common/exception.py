@@ -317,8 +317,8 @@ class CatalogFailure(IronicException):
 
 
 class CatalogNotFound(IronicException):
-    message = _("Attr %(attr)s with value %(value)s not found in keystone "
-                "service catalog.")
+    message = _("Service type %(service_type)s with endpoint type "
+                "%(endpoint_type)s not found in keystone service catalog.")
 
 
 class ServiceUnavailable(IronicException):
