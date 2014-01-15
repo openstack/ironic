@@ -58,14 +58,14 @@
 # Options defined in ironic.common.paths
 #
 
-# Directory where the nova python module is installed (string
-# value)
+# Directory where the ironic python module is installed
+# (string value)
 #pybasedir=/usr/lib/python/site-packages/ironic
 
-# Directory where nova binaries are installed (string value)
+# Directory where ironic binaries are installed (string value)
 #bindir=$pybasedir/bin
 
-# Top-level directory for maintaining nova's state (string
+# Top-level directory for maintaining ironic's state (string
 # value)
 #state_path=$pybasedir
 

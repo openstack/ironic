@@ -29,6 +29,7 @@ from ironic.common.glance_service import service_utils
 from ironic.common import image_service as service
 from ironic.common import images
 from ironic.common import keystone
+from ironic.common import paths
 from ironic.common import states
 from ironic.common import utils
 from ironic.conductor import task_manager
@@ -40,20 +41,20 @@ from ironic.openstack.common import lockutils
 from ironic.openstack.common import log as logging
 from ironic.openstack.common import loopingcall
 
-
 pxe_opts = [
     cfg.StrOpt('deploy_kernel',
                help='Default kernel image ID used in deployment phase'),
     cfg.StrOpt('deploy_ramdisk',
                help='Default ramdisk image ID used in deployment phase'),
     cfg.StrOpt('net_config_template',
-               default='$pybasedir/ironic/net-dhcp.ubuntu.template',
+               default=paths.basedir_def('ironic/net-dhcp.ubuntu.template'),
                help='Template file for injected network config'),
     cfg.StrOpt('pxe_append_params',
                default='nofb nomodeset vga=normal',
                help='additional append parameters for baremetal PXE boot'),
     cfg.StrOpt('pxe_config_template',
-               default='$pybasedir/drivers/modules/pxe_config.template',
+               default=paths.basedir_def(
+                    'drivers/modules/pxe_config.template'),
                help='Template file for PXE configuration'),
     cfg.IntOpt('pxe_deploy_timeout',
                 help='Timeout for PXE deployments. Default: 0 (unlimited)',
