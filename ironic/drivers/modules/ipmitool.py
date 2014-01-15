@@ -171,7 +171,22 @@ def _power_off(driver_info):
 
 
 def _power_status(driver_info):
-    out_err = _exec_ipmitool(driver_info, "power status")
+    """Get the power status for a node.
+
+    :param driver_info: the ipmitool access parameters for a node.
+    :returns: one of ironic.common.states POWER_OFF, POWER_ON or ERROR.
+    :raises: IPMIFailure on an error from ipmitool.
+
+    """
+    cmd = "power status"
+    try:
+        out_err = _exec_ipmitool(driver_info, cmd)
+    except Exception as e:
+        LOG.warning(_("IPMI power status failed for node %(node_id)s with "
+                      "error: %(error)s.")
+                    % {'node_id': driver_info['uuid'], 'error': e})
+        raise exception.IPMIFailure(cmd=cmd)
+
     if out_err[0] == "Chassis Power is on\n":
         return states.POWER_ON
     elif out_err[0] == "Chassis Power is off\n":
