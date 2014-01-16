@@ -284,6 +284,10 @@ class SSHConnectFailed(IronicException):
     message = _("Failed to establish SSH connection to host %(host)s.")
 
 
+class SSHCommandFailed(IronicException):
+    message = _("Failed to execute command via SSH: %(cmd)s.")
+
+
 class UnsupportedObjectError(IronicException):
     message = _('Unsupported object type %(objtype)s')
 
