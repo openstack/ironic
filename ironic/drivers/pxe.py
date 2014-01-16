@@ -29,8 +29,8 @@ class PXEAndIPMIToolDriver(base.BaseDriver):
     """PXE + IPMITool driver.
 
     This driver implements the `core` functionality, combinding
-    :class:ironic.drivers.ipmi.IPMI for power on/off and reboot with
-    :class:ironic.driver.pxe.PXE for image deployment. Implementations are in
+    :class:`ironic.drivers.ipmi.IPMI` for power on/off and reboot with
+    :class:`ironic.driver.pxe.PXE` for image deployment. Implementations are in
     those respective classes; this class is merely the glue between them.
     """
 
@@ -47,8 +47,8 @@ class PXEAndSSHDriver(base.BaseDriver):
     NOTE: This driver is meant only for testing environments.
 
     This driver implements the `core` functionality, combinding
-    :class:ironic.drivers.ssh.SSH for power on/off and reboot of virtual
-    machines tunneled over SSH, with :class:ironic.driver.pxe.PXE for image
+    :class:`ironic.drivers.ssh.SSH` for power on/off and reboot of virtual
+    machines tunneled over SSH, with :class:`ironic.driver.pxe.PXE` for image
     deployment. Implementations are in those respective classes; this class is
     merely the glue between them.
     """
@@ -64,9 +64,9 @@ class PXEAndIPMINativeDriver(base.BaseDriver):
     """PXE + Native IPMI driver.
 
     This driver implements the `core` functionality, combining
-    :class:ironic.drivers.modules.ipminative.NativeIPMIPower for power
+    :class:`ironic.drivers.modules.ipminative.NativeIPMIPower` for power
     on/off and reboot with
-    :class:ironic.driver.modules.pxe.PXE for image deployment.
+    :class:`ironic.driver.modules.pxe.PXE` for image deployment.
     Implementations are in those respective classes;
     this class is merely the glue between them.
     """
