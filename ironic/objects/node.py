@@ -47,6 +47,8 @@ class Node(base.IronicObject):
             'provision_state': utils.str_or_none,
             'target_provision_state': utils.str_or_none,
 
+            'maintenance': bool,
+
             # Any error from the most recent (last) asynchronous transaction
             # that started but failed to finish.
             'last_error': utils.str_or_none,

@@ -78,6 +78,7 @@ def get_test_node(**kw):
             'driver_info': kw.get('driver_info', fake_info),
             'properties': kw.get('properties', properties),
             'reservation': kw.get('reservation', None),
+            'maintenance': kw.get('maintenance', False),
             'extra': kw.get('extra', {}),
             'updated_at': kw.get('created_at'),
             'created_at': kw.get('updated_at'),

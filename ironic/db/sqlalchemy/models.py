@@ -24,7 +24,7 @@ import urlparse
 
 from oslo.config import cfg
 
-from sqlalchemy import Column, ForeignKey
+from sqlalchemy import Boolean, Column, ForeignKey
 from sqlalchemy import Integer, Index
 from sqlalchemy import schema, String, Text
 from sqlalchemy.ext.declarative import declarative_base
@@ -125,6 +125,7 @@ class Node(Base):
     driver = Column(String(15))
     driver_info = Column(JSONEncodedDict)
     reservation = Column(String(255), nullable=True)
+    maintenance = Column(Boolean, default=False)
     extra = Column(JSONEncodedDict)
 
 
