@@ -62,8 +62,26 @@ There are three categories of driver interfaces:
   will merely relay the message from the API service to the appropriate driver.
 
 
-.. _API service: ../dev/api-spec-v1.html
+Message Routing
+===============
+
+Each Conductor registers itself in the database upon start-up, and periodically
+updates the timestamp of its record. Contained within this registration is a
+list of the drivers which this Conductor instance supports.  This allows all
+services to maintain a consistent view of which Conductors and which drivers
+are available at all times.
+
+Based on their respective driver, all nodes are mapped across the set of
+available Conductors using a `consistent hashing algorithm`_. Node-specific
+tasks are dispatched from the API tier to the appropriate conductor using
+conductor-specific RPC channels.  As Conductor instances join or leave the
+cluster, nodes may be remapped to different Conductors, thus triggering various
+driver actions such as take-over or clean-up.
+
+
+.. _API service: ../webapi/v1.html
 .. _BaseDriver: ../api/ironic.drivers.base.html#ironic.drivers.base.BaseDriver
 .. _Conductor service: ../api/ironic.conductor.manager.html
 .. _DB API: ../api/ironic.db.api.html
 .. _diskimage-builder: https://github.com/openstack/diskimage-builder
+.. _consistent hashing algorithm: ../api/ironic.common.hash_ring.html

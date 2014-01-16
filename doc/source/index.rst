@@ -17,15 +17,19 @@ together multiple drivers, each of which implement some portion of that
 functionality with respect to physical hardware.
 
 For an in-depth look at the project's scope and structure, see the
-:doc:`dev/architecture` page.
+:doc:`developer/architecture` page.
 
 
-Status: Hard Hat Required!
-==========================
+Status: Alpha Quality
+=====================
 
-Ironic is under rapid initial development, forked from Nova's `Baremetal
-driver`_.  If you're looking for an OpenStack service to provision bare metal
-today, that is where you want to look.
+Ironic is targeting inclusion in the OpenStack Icehouse release. The current
+codebase should be considered "alpha" quality. All major functional components
+exist but there are many known bugs which will prevent general use at this
+time.  Additionally, usage documentation still needs to be written.
+
+If you are looking for the preceding baremetal service, which was included in
+OpenStack Grizzly and Havana releases, please see Nova's `Baremetal driver`_.
 
 .. TODO
 .. - installation
@@ -39,18 +43,18 @@ today, that is where you want to look.
 ..   - hw plugins
 
 
-Developer Docs
-==============
+Developer Documentation
+=======================
 
-For those wishing to develop Ironic itself, or add drivers to extend Ironic's
-functionality, the following documentation is provided.
+Overview
+--------
 
 .. toctree::
   :maxdepth: 1
 
-  dev/architecture
-  dev/contributing
-  dev/dev-quickstart
+  developer/architecture
+  developer/contributing
+  developer/dev-quickstart
 
 Client API Reference
 --------------------
@@ -64,14 +68,13 @@ Python API Quick Reference
 --------------------------
 
 .. toctree::
-  :maxdepth: 2
+  :maxdepth: 1
 
-  dev/api
-  dev/cmd
-  dev/common
-  dev/db
-  dev/drivers
-  dev/conductor
+  developer/api
+  developer/common
+  developer/db
+  developer/drivers
+  developer/conductor
 
 Indices and tables
 ==================
