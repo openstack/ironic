@@ -483,10 +483,6 @@ class PXEDeploy(base.DeployInterface):
     def validate(self, node):
         """Validate the driver-specific Node deployment info.
 
-        This method validates whether the 'driver_info' property of the
-        supplied node contains the required information for this driver to
-        deploy images to the node.
-
         :param node: a single Node to validate.
         :returns: InvalidParameterValue.
         """
@@ -496,8 +492,11 @@ class PXEDeploy(base.DeployInterface):
     def deploy(self, task, node):
         """Perform start deployment a node.
 
-        Given a node with complete metadata, deploy the indicated image
-        to the node.
+        Creates a temporary keystone token file, updates the Neutron DHCP port
+        options for next boot, and issues a reboot request to the power driver.
+        This causes the node to boot into the deployment ramdisk and triggers
+        the next phase of PXE-based deployment via
+        VendorPassthru._continue_deploy().
 
         :param task: a TaskManager instance.
         :param node: the Node to act upon.
@@ -515,8 +514,8 @@ class PXEDeploy(base.DeployInterface):
     def tear_down(self, task, node):
         """Tear down a previous deployment.
 
-        Given a node that has been previously deployed to,
-        do all cleanup and tear down necessary to "un-deploy" that node.
+        Power off the node. All actual clean-up is done in the clean_up()
+        method which should be called separately.
 
         :param task: a TaskManager instance.
         :param node: the Node to act upon.
@@ -527,12 +526,31 @@ class PXEDeploy(base.DeployInterface):
         return states.DELETED
 
     def prepare(self, task, node):
+        """Prepare the deployment environment for this node.
+
+        Generates the TFTP configuration for PXE-booting both the deployment
+        and user images, fetches the images from Glance and adds them to the
+        local cache.
+
+        :param task: a TaskManager instance.
+        :param node: the Node to act upon.
+        """
         # TODO(deva): optimize this if rerun on existing files
         pxe_info = _get_tftp_image_info(node, task.context)
         _create_pxe_config(task, node, pxe_info)
         _cache_images(node, pxe_info, task.context)
 
     def clean_up(self, task, node):
+        """Clean up the deployment environment for this node.
+
+        Delete the deploy and user images from the local cache, if no remaining
+        active nodes require them. Removes the TFTP configuration files for
+        this node. As a precaution, this method also ensures the keystone auth
+        token file was removed.
+
+        :param task: a TaskManager instance.
+        :param node: the Node to act upon.
+        """
         # FIXME(ghe): Possible error to get image info if eliminated from
         #             glance. Retrieve image info and store in db.
         #             If we keep master images, no need to get the info,
