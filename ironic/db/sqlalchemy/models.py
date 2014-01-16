@@ -110,7 +110,7 @@ class Node(Base):
 
     __tablename__ = 'nodes'
     __table_args__ = (
-        schema.UniqueConstraint('uuid', name='node_uuid_ux'),
+        schema.UniqueConstraint('uuid', name='uniq_nodes0uuid'),
         Index('node_instance_uuid', 'instance_uuid'))
     id = Column(Integer, primary_key=True)
     uuid = Column(String(36))
@@ -137,8 +137,8 @@ class Port(Base):
 
     __tablename__ = 'ports'
     __table_args__ = (
-        schema.UniqueConstraint('address', name='iface_address_ux'),
-        schema.UniqueConstraint('uuid', name='port_uuid_ux'))
+        schema.UniqueConstraint('address', name='uniq_ports0address'),
+        schema.UniqueConstraint('uuid', name='uniq_ports0uuid'))
     id = Column(Integer, primary_key=True)
     uuid = Column(String(36))
     address = Column(String(18))
