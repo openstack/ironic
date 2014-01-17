@@ -575,8 +575,8 @@ class TestMigrations(BaseMigrationTestCase, WalkVersionsMixin):
             'created_at': 'DateTime', 'updated_at': 'DateTime'
         }
         for col, coltype in nodes_col.items():
-            self.assertTrue(isinstance(nodes.c[col].type,
-                                       getattr(sqlalchemy.types, coltype)))
+            self.assertIsInstance(nodes.c[col].type,
+                                  getattr(sqlalchemy.types, coltype))
 
         ifaces = db_utils.get_table(engine, 'ifaces')
         ifaces_col = {
@@ -584,8 +584,8 @@ class TestMigrations(BaseMigrationTestCase, WalkVersionsMixin):
             'extra': 'Text', 'created_at': 'DateTime', 'updated_at': 'DateTime'
         }
         for col, coltype in ifaces_col.items():
-            self.assertTrue(isinstance(ifaces.c[col].type,
-                                       getattr(sqlalchemy.types, coltype)))
+            self.assertIsInstance(ifaces.c[col].type,
+                                  getattr(sqlalchemy.types, coltype))
 
         fkey, = ifaces.c.node_id.foreign_keys
         self.assertEqual(nodes.c.id.name, fkey.column.name)
@@ -600,8 +600,8 @@ class TestMigrations(BaseMigrationTestCase, WalkVersionsMixin):
             'deploy_info': 'Text', 'reservation': 'String'
         }
         for col, coltype in new_col.items():
-            self.assertTrue(isinstance(nodes.c[col].type,
-                                       getattr(sqlalchemy.types, coltype)))
+            self.assertIsInstance(nodes.c[col].type,
+                                  getattr(sqlalchemy.types, coltype))
 
         deleted_cols = ['power_info', 'cpu_arch', 'cpu_num', 'memory',
                         'local_storage_max', 'image_path', 'instance_name']
@@ -610,10 +610,8 @@ class TestMigrations(BaseMigrationTestCase, WalkVersionsMixin):
 
     def _check_003(self, engine, data):
         chassis = db_utils.get_table(engine, 'chassis')
-        self.assertTrue(isinstance(chassis.c.id.type,
-                                   sqlalchemy.types.Integer))
-        self.assertTrue(isinstance(chassis.c.uuid.type,
-                                   sqlalchemy.types.String))
+        self.assertIsInstance(chassis.c.id.type, sqlalchemy.types.Integer)
+        self.assertIsInstance(chassis.c.uuid.type, sqlalchemy.types.String)
 
     def _check_004(self, engine, data):
         self.assertTrue(engine.dialect.has_table(engine.connect(), 'ports'))
@@ -629,7 +627,7 @@ class TestMigrations(BaseMigrationTestCase, WalkVersionsMixin):
 
     def _check_006(self, engine, data):
         ports = db_utils.get_table(engine, 'ports')
-        self.assertTrue(isinstance(ports.c.uuid.type, sqlalchemy.types.String))
+        self.assertIsInstance(ports.c.uuid.type, sqlalchemy.types.String)
 
         nodes = db_utils.get_table(engine, 'nodes')
         nodes_data = {
@@ -655,13 +653,13 @@ class TestMigrations(BaseMigrationTestCase, WalkVersionsMixin):
         new_col = {'extra': 'Text', 'created_at': 'DateTime',
                    'updated_at': 'DateTime'}
         for col, coltype in new_col.items():
-            self.assertTrue(isinstance(chassis.c[col].type,
-                                       getattr(sqlalchemy.types, coltype)))
+            self.assertIsInstance(chassis.c[col].type,
+                                  getattr(sqlalchemy.types, coltype))
 
     def _check_008(self, engine, data):
         chassis = db_utils.get_table(engine, 'chassis')
-        self.assertTrue(isinstance(chassis.c.description.type,
-                                   sqlalchemy.types.String))
+        self.assertIsInstance(chassis.c.description.type,
+                              sqlalchemy.types.String)
 
     def _check_009(self, engine, data):
         nodes = db_utils.get_table(engine, 'nodes')
@@ -675,8 +673,8 @@ class TestMigrations(BaseMigrationTestCase, WalkVersionsMixin):
                    'provision_state': 'String',
                    'target_provision_state': 'String'}
         for col, coltype in new_col.items():
-            self.assertTrue(isinstance(nodes.c[col].type,
-                                       getattr(sqlalchemy.types, coltype)))
+            self.assertIsInstance(nodes.c[col].type,
+                                  getattr(sqlalchemy.types, coltype))
 
     def _check_010(self, engine, data):
         insp = sqlalchemy.engine.reflection.Inspector.from_engine(engine)
@@ -734,8 +732,8 @@ class TestMigrations(BaseMigrationTestCase, WalkVersionsMixin):
 
         # only added one 'last_error' column
         self.assertEqual(len(col_names_pre), len(col_names) - 1)
-        self.assertTrue(isinstance(nodes.c['last_error'].type,
-                                   getattr(sqlalchemy.types, 'Text')))
+        self.assertIsInstance(nodes.c['last_error'].type,
+                              getattr(sqlalchemy.types, 'Text'))
 
     def _check_014(self, engine, data):
         if engine.name == 'sqlite':

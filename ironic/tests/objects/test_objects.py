@@ -500,7 +500,7 @@ class TestObjectSerializer(test_base.TestCase):
         primitive = ser.serialize_entity(ctxt, obj)
         self.assertTrue('ironic_object.name' in primitive)
         obj2 = ser.deserialize_entity(ctxt, primitive)
-        self.assertTrue(isinstance(obj2, MyObj))
+        self.assertIsInstance(obj2, MyObj)
         self.assertEqual(ctxt, obj2._context)
 
     def test_object_serialization_iterables(self):
@@ -516,4 +516,4 @@ class TestObjectSerializer(test_base.TestCase):
             thing2 = ser.deserialize_entity(ctxt, primitive)
             self.assertEqual(1, len(thing2))
             for item in thing2:
-                self.assertTrue(isinstance(item, MyObj))
+                self.assertIsInstance(item, MyObj)

@@ -390,7 +390,7 @@ class UUIDTestCase(base.TestCase):
 
     def test_generate_uuid(self):
         uuid_string = utils.generate_uuid()
-        self.assertTrue(isinstance(uuid_string, str))
+        self.assertIsInstance(uuid_string, str)
         self.assertEqual(len(uuid_string), 36)
         # make sure there are 4 dashes
         self.assertEqual(len(uuid_string.replace('-', '')), 32)
