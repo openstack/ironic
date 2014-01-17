@@ -93,4 +93,7 @@ class PXEAndSeaMicroDriver(base.BaseDriver):
         self.power = seamicro.Power()
         self.deploy = pxe.PXEDeploy()
         self.rescue = self.deploy
-        self.vendor = pxe.VendorPassthru()
+        self.seamicro_vendor = seamicro.VendorPassthru()
+        self.pxe_vendor = pxe.VendorPassthru()
+        self.vendor = seamicro.SeaMicroPXEMultipleVendorInterface(
+            self.seamicro_vendor, self.pxe_vendor)

@@ -82,6 +82,7 @@ class FakeSeaMicroDriver(base.BaseDriver):
         self.power = seamicro.Power()
         self.deploy = fake.FakeDeploy()
         self.rescue = self.deploy
-        a = fake.FakeVendorA()
-        b = fake.FakeVendorB()
-        self.vendor = fake.MultipleVendorInterface(a, b)
+        self.seamicro_vendor = seamicro.VendorPassthru()
+        self.pxe_vendor = pxe.VendorPassthru()
+        self.vendor = seamicro.SeaMicroPXEMultipleVendorInterface(
+            self.seamicro_vendor, self.pxe_vendor)

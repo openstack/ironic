@@ -344,3 +344,8 @@ class NodeLocked(TemporaryFailure):
 class NoFreeConductorWorker(TemporaryFailure):
     message = _('Requested action cannot be performed due to lack of free '
                 'conductor workers.')
+    code = 503  # Service Unavailable (temporary).
+
+
+class VendorPassthruException(IronicException):
+    pass
