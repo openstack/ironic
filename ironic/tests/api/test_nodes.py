@@ -684,9 +684,8 @@ class TestPut(base.FunctionalTest):
     def test_power_state(self):
         response = self.put_json('/nodes/%s/states/power' % self.node['uuid'],
                                  {'target': states.POWER_ON})
-        self.assertEqual('application/json', response.content_type)
         self.assertEqual(202, response.status_code)
-
+        self.assertEqual('', response.body)
         self.mock_cnps.assert_called_once_with(mock.ANY,
                                                self.node['uuid'],
                                                states.POWER_ON,
@@ -726,6 +725,7 @@ class TestPut(base.FunctionalTest):
         ret = self.put_json('/nodes/%s/states/provision' % self.node.uuid,
                             {'target': states.ACTIVE})
         self.assertEqual(202, ret.status_code)
+        self.assertEqual('', ret.body)
         self.mock_dnd.assert_called_once_with(
                 mock.ANY, self.node.uuid, 'test-topic')
 
@@ -733,6 +733,7 @@ class TestPut(base.FunctionalTest):
         ret = self.put_json('/nodes/%s/states/provision' % self.node.uuid,
                             {'target': states.DELETED})
         self.assertEqual(202, ret.status_code)
+        self.assertEqual('', ret.body)
         self.mock_dntd.assert_called_once_with(
                 mock.ANY, self.node.uuid, 'test-topic')
 

@@ -101,7 +101,7 @@ class NodeStatesController(rest.RestController):
         rpc_node = objects.Node.get_by_uuid(pecan.request.context, node_uuid)
         return NodeStates.convert(rpc_node)
 
-    @wsme_pecan.wsexpose(NodeStates, types.uuid, wtypes.text, status_code=202)
+    @wsme_pecan.wsexpose(None, types.uuid, wtypes.text, status_code=202)
     def power(self, node_uuid, target):
         """Set the power state of the node.
 
@@ -133,13 +133,11 @@ class NodeStatesController(rest.RestController):
                     pecan.request.context, node_uuid, target, topic)
         else:
             raise exception.InvalidStateRequested(state=target, node=node_uuid)
-
         # FIXME(lucasagomes): Currently WSME doesn't support returning
         # the Location header. Once it's implemented we should use the
         # Location to point to the /states subresource of the node so
         # that clients will know how to track the status of the request
         # https://bugs.launchpad.net/wsme/+bug/1233687
-        return NodeStates.convert(rpc_node)
 
     @wsme_pecan.wsexpose(None, types.uuid, wtypes.text, status_code=202)
     def provision(self, node_uuid, target):
