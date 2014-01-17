@@ -19,10 +19,11 @@
 
 import datetime
 
-from ironic.openstack.common import timeutils
+import mock
 
 from ironic.common import exception
 from ironic.db import api as dbapi
+from ironic.openstack.common import timeutils
 from ironic.tests.db import base
 from ironic.tests.db import utils
 
@@ -32,8 +33,6 @@ class DbConductorTestCase(base.DbTestCase):
     def setUp(self):
         super(DbConductorTestCase, self).setUp()
         self.dbapi = dbapi.get_instance()
-        timeutils.set_time_override()
-        self.addCleanup(timeutils.clear_time_override)
 
     def _create_test_cdr(self, **kwargs):
         c = utils.get_test_conductor(**kwargs)
@@ -66,17 +65,18 @@ class DbConductorTestCase(base.DbTestCase):
                 self.dbapi.unregister_conductor,
                 c['hostname'])
 
-    def test_touch_conductor(self):
-        t = datetime.datetime(2000, 1, 1, 0, 0)
-        timeutils.set_time_override(override_time=t)
-        c = self._create_test_cdr(updated_at=t)
-        self.assertEqual(t, timeutils.normalize_time(c['updated_at']))
+    @mock.patch.object(timeutils, 'utcnow')
+    def test_touch_conductor(self, mock_utcnow):
+        test_time = datetime.datetime(2000, 1, 1, 0, 0)
+        mock_utcnow.return_value = test_time
+        c = self._create_test_cdr(updated_at=test_time)
+        self.assertEqual(test_time, timeutils.normalize_time(c['updated_at']))
 
-        t = datetime.datetime(2000, 1, 1, 0, 1)
-        timeutils.set_time_override(override_time=t)
+        test_time = datetime.datetime(2000, 1, 1, 0, 1)
+        mock_utcnow.return_value = test_time
         self.dbapi.touch_conductor(c['hostname'])
         c = self.dbapi.get_conductor(c['hostname'])
-        self.assertEqual(t, timeutils.normalize_time(c['updated_at']))
+        self.assertEqual(test_time, timeutils.normalize_time(c['updated_at']))
 
     def test_touch_conductor_not_found(self):
         self._create_test_cdr()
@@ -85,49 +85,54 @@ class DbConductorTestCase(base.DbTestCase):
                 self.dbapi.touch_conductor,
                 'bad-hostname')
 
-    def test_get_active_driver_dict_one_host_no_driver(self):
+    @mock.patch.object(timeutils, 'utcnow')
+    def test_get_active_driver_dict_one_host_no_driver(self, mock_utcnow):
         h = 'fake-host'
         expected = {}
 
-        timeutils.set_time_override()
+        mock_utcnow.return_value = datetime.datetime.utcnow()
         self._create_test_cdr(hostname=h, drivers=[])
-        result = self.dbapi.get_active_driver_dict(interval=1)
+        result = self.dbapi.get_active_driver_dict()
         self.assertEqual(expected, result)
 
-    def test_get_active_driver_dict_one_host_one_driver(self):
+    @mock.patch.object(timeutils, 'utcnow')
+    def test_get_active_driver_dict_one_host_one_driver(self, mock_utcnow):
         h = 'fake-host'
         d = 'fake-driver'
         expected = {d: set([h])}
 
-        timeutils.set_time_override()
+        mock_utcnow.return_value = datetime.datetime.utcnow()
         self._create_test_cdr(hostname=h, drivers=[d])
-        result = self.dbapi.get_active_driver_dict(interval=1)
+        result = self.dbapi.get_active_driver_dict()
         self.assertEqual(expected, result)
 
-    def test_get_active_driver_dict_one_host_many_drivers(self):
+    @mock.patch.object(timeutils, 'utcnow')
+    def test_get_active_driver_dict_one_host_many_drivers(self, mock_utcnow):
         h = 'fake-host'
         d1 = 'driver-one'
         d2 = 'driver-two'
         expected = {d1: set([h]), d2: set([h])}
 
-        timeutils.set_time_override()
+        mock_utcnow.return_value = datetime.datetime.utcnow()
         self._create_test_cdr(hostname=h, drivers=[d1, d2])
-        result = self.dbapi.get_active_driver_dict(interval=1)
+        result = self.dbapi.get_active_driver_dict()
         self.assertEqual(expected, result)
 
-    def test_get_active_driver_dict_many_hosts_one_driver(self):
+    @mock.patch.object(timeutils, 'utcnow')
+    def test_get_active_driver_dict_many_hosts_one_driver(self, mock_utcnow):
         h1 = 'host-one'
         h2 = 'host-two'
         d = 'fake-driver'
         expected = {d: set([h1, h2])}
 
-        timeutils.set_time_override()
+        mock_utcnow.return_value = datetime.datetime.utcnow()
         self._create_test_cdr(id=1, hostname=h1, drivers=[d])
         self._create_test_cdr(id=2, hostname=h2, drivers=[d])
-        result = self.dbapi.get_active_driver_dict(interval=1)
+        result = self.dbapi.get_active_driver_dict()
         self.assertEqual(expected, result)
 
-    def test_get_active_driver_dict_many_hosts_and_drivers(self):
+    @mock.patch.object(timeutils, 'utcnow')
+    def test_get_active_driver_dict_many_hosts_and_drivers(self, mock_utcnow):
         h1 = 'host-one'
         h2 = 'host-two'
         h3 = 'host-three'
@@ -135,14 +140,15 @@ class DbConductorTestCase(base.DbTestCase):
         d2 = 'driver-two'
         expected = {d1: set([h1, h2]), d2: set([h2, h3])}
 
-        timeutils.set_time_override()
+        mock_utcnow.return_value = datetime.datetime.utcnow()
         self._create_test_cdr(id=1, hostname=h1, drivers=[d1])
         self._create_test_cdr(id=2, hostname=h2, drivers=[d1, d2])
         self._create_test_cdr(id=3, hostname=h3, drivers=[d2])
-        result = self.dbapi.get_active_driver_dict(interval=1)
+        result = self.dbapi.get_active_driver_dict()
         self.assertEqual(expected, result)
 
-    def test_get_active_driver_dict_with_old_conductor(self):
+    @mock.patch.object(timeutils, 'utcnow')
+    def test_get_active_driver_dict_with_old_conductor(self, mock_utcnow):
         past = datetime.datetime(2000, 1, 1, 0, 0)
         present = past + datetime.timedelta(minutes=2)
 
@@ -150,12 +156,12 @@ class DbConductorTestCase(base.DbTestCase):
 
         h1 = 'old-host'
         d1 = 'old-driver'
-        timeutils.set_time_override(override_time=past)
+        mock_utcnow.return_value = past
         self._create_test_cdr(id=1, hostname=h1, drivers=[d, d1])
 
         h2 = 'new-host'
         d2 = 'new-driver'
-        timeutils.set_time_override(override_time=present)
+        mock_utcnow.return_value = present
         self._create_test_cdr(id=2, hostname=h2, drivers=[d, d2])
 
         # verify that old-host does not show up in current list
