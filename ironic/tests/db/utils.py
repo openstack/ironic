@@ -45,6 +45,15 @@ def get_test_pxe_info():
     }
 
 
+def get_test_seamicro_info():
+    return {
+        "seamicro_api_endpoint": "http://1.2.3.4",
+        "seamicro_username": "admin",
+        "seamicro_password": "fake",
+        "seamicro_server_id": "0/0",
+    }
+
+
 def get_test_node(**kw):
     properties = {
         "cpu_arch": "x86_64",
