@@ -70,6 +70,17 @@ def logout_iscsi(portal_address, portal_port, target_iqn):
                   check_exit_code=[0])
 
 
+def delete_iscsi(portal_address, portal_port, target_iqn):
+    """Delete the iSCSI target."""
+    utils.execute('iscsiadm',
+                  '-m', 'node',
+                  '-p', '%s:%s' % (portal_address, portal_port),
+                  '-T', target_iqn,
+                  '-o', 'delete',
+                  run_as_root=True,
+                  check_exit_code=[0])
+
+
 def make_partitions(dev, root_mb, swap_mb):
     """Create partitions for root and swap on a disk device."""
     # Lead in with 1MB to allow room for the partition table itself, otherwise
@@ -210,6 +221,7 @@ def deploy(address, port, iqn, lun, image_path, pxe_config_path,
             LOG.error(e)
     finally:
         logout_iscsi(address, port, iqn)
+        delete_iscsi(address, port, iqn)
     switch_pxe_config(pxe_config_path, root_uuid)
     # Ensure the node started netcat on the port after POST the request.
     time.sleep(3)

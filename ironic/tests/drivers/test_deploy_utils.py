@@ -79,9 +79,9 @@ class PhysicalWorkTestCase(tests_base.TestCase):
         root_uuid = '12345678-1234-1234-12345678-12345678abcdef'
 
         name_list = ['get_dev', 'get_image_mb', 'discovery', 'login_iscsi',
-                     'logout_iscsi', 'make_partitions', 'is_block_device',
-                     'dd', 'mkswap', 'block_uuid', 'switch_pxe_config',
-                     'notify']
+                     'logout_iscsi', 'delete_iscsi', 'make_partitions',
+                     'is_block_device', 'dd', 'mkswap', 'block_uuid',
+                     'switch_pxe_config', 'notify']
         patch_list = [mock.patch.object(utils, name) for name in name_list]
         mock_list = [patcher.start() for patcher in patch_list]
         for patcher in patch_list:
@@ -107,6 +107,7 @@ class PhysicalWorkTestCase(tests_base.TestCase):
                           mock.call.mkswap(swap_part),
                           mock.call.block_uuid(root_part),
                           mock.call.logout_iscsi(address, port, iqn),
+                          mock.call.delete_iscsi(address, port, iqn),
                           mock.call.switch_pxe_config(pxe_config_path,
                                                       root_uuid),
                           mock.call.notify(address, 10000)]
@@ -116,8 +117,13 @@ class PhysicalWorkTestCase(tests_base.TestCase):
 
         self.assertEqual(calls_expected, parent_mock.mock_calls)
 
-    def test_always_logout_iscsi(self):
-        """logout_iscsi() must be called once login_iscsi() is called."""
+    def test_always_logout_and_delete_iscsi(self):
+        """Check if logout_iscsi() and delete_iscsi() are called.
+
+        Make sure that logout_iscsi() and delete_iscsi() are called once
+        login_iscsi() is invoked.
+
+        """
         address = '127.0.0.1'
         port = 3306
         iqn = 'iqn.xyz'
@@ -133,7 +139,7 @@ class PhysicalWorkTestCase(tests_base.TestCase):
             pass
 
         name_list = ['get_dev', 'get_image_mb', 'discovery', 'login_iscsi',
-                     'logout_iscsi', 'work_on_disk']
+                     'logout_iscsi', 'delete_iscsi', 'work_on_disk']
         patch_list = [mock.patch.object(utils, name) for name in name_list]
         mock_list = [patcher.start() for patcher in patch_list]
         for patcher in patch_list:
@@ -152,7 +158,8 @@ class PhysicalWorkTestCase(tests_base.TestCase):
                           mock.call.login_iscsi(address, port, iqn),
                           mock.call.work_on_disk(dev, root_mb, swap_mb,
                                                  image_path),
-                          mock.call.logout_iscsi(address, port, iqn)]
+                          mock.call.logout_iscsi(address, port, iqn),
+                          mock.call.delete_iscsi(address, port, iqn)]
 
         self.assertRaises(TestException,
                          utils.deploy,
