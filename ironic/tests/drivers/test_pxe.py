@@ -68,20 +68,10 @@ class PXEValidateParametersTestCase(base.TestCase):
                     driver='fake_pxe',
                     driver_info=INFO_DICT)
         info = pxe._parse_driver_info(node)
-        self.assertIsNotNone(info.get('instance_name'))
         self.assertIsNotNone(info.get('image_source'))
         self.assertIsNotNone(info.get('deploy_kernel'))
         self.assertIsNotNone(info.get('deploy_ramdisk'))
         self.assertIsNotNone(info.get('root_gb'))
-
-    def test__parse_driver_info_missing_instance_name(self):
-        # make sure error is raised when info is missing
-        info = dict(INFO_DICT)
-        del info['pxe_instance_name']
-        node = self._create_test_node(driver_info=info)
-        self.assertRaises(exception.InvalidParameterValue,
-                pxe._parse_driver_info,
-                node)
 
     def test__parse_driver_info_missing_instance_source(self):
         # make sure error is raised when info is missing
