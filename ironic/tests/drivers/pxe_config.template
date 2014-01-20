@@ -1,11 +1,11 @@
 default deploy
 
 label deploy
-kernel /tftpboot/instance_uuid_123/deploy_kernel
-append initrd=/tftpboot/instance_uuid_123/deploy_ramdisk selinux=0 disk=cciss/c0d0,sda,hda,vda iscsi_target_iqn=iqn-instance_uuid_123 deployment_id=1be26c0b-03f2-4d2e-ae87-c02d7f33c123 deployment_key=0123456789ABCDEFGHIJKLMNOPQRSTUV ironic_api_url=http://192.168.122.184:6385 troubleshoot=0 test_param
+kernel /tftpboot/1be26c0b-03f2-4d2e-ae87-c02d7f33c123/deploy_kernel
+append initrd=/tftpboot/1be26c0b-03f2-4d2e-ae87-c02d7f33c123/deploy_ramdisk selinux=0 disk=cciss/c0d0,sda,hda,vda iscsi_target_iqn=iqn-1be26c0b-03f2-4d2e-ae87-c02d7f33c123 deployment_id=1be26c0b-03f2-4d2e-ae87-c02d7f33c123 deployment_key=0123456789ABCDEFGHIJKLMNOPQRSTUV ironic_api_url=http://192.168.122.184:6385 troubleshoot=0 test_param
 ipappend 3
 
 
 label boot
-kernel /tftpboot/instance_uuid_123/kernel
-append initrd=/tftpboot/instance_uuid_123/ramdisk root={{ ROOT }} ro test_param
+kernel /tftpboot/1be26c0b-03f2-4d2e-ae87-c02d7f33c123/kernel
+append initrd=/tftpboot/1be26c0b-03f2-4d2e-ae87-c02d7f33c123/ramdisk root={{ ROOT }} ro test_param

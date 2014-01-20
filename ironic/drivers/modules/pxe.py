@@ -164,7 +164,7 @@ def _build_pxe_config(node, pxe_info, ctx):
     pxe_options = {
             'deployment_id': node['uuid'],
             'deployment_key': deploy_key,
-            'deployment_iscsi_iqn': "iqn-%s" % node['instance_uuid'],
+            'deployment_iscsi_iqn': "iqn-%s" % node.uuid,
             'deployment_aki_path': pxe_info['deploy_kernel'][1],
             'deployment_ari_path': pxe_info['deploy_ramdisk'][1],
             'aki_path': pxe_info['kernel'][1],
@@ -205,9 +205,9 @@ def _get_pxe_mac_path(mac):
         )
 
 
-def _get_pxe_config_file_path(instance_uuid):
+def _get_pxe_config_file_path(node_uuid):
     """Generate the path for an instances PXE config file."""
-    return os.path.join(CONF.pxe.tftp_root, instance_uuid, 'config')
+    return os.path.join(CONF.pxe.tftp_root, node_uuid, 'config')
 
 
 def _get_pxe_bootfile_name():
@@ -333,7 +333,7 @@ def _cache_tftp_images(ctx, node, pxe_info):
     """Fetch the necessary kernels and ramdisks for the instance."""
     d_info = _parse_driver_info(node)
     fileutils.ensure_tree(
-        os.path.join(CONF.pxe.tftp_root, node['instance_uuid']))
+        os.path.join(CONF.pxe.tftp_root, node.uuid))
     LOG.debug(_("Fetching kernel and ramdisk for instance %s") %
               d_info['instance_name'])
     for label in pxe_info:
@@ -392,7 +392,7 @@ def _get_tftp_image_info(node, ctx):
     for label in image_info:
         image_info[label][0] = str(d_info[label]).split('/')[-1]
         image_info[label][1] = os.path.join(CONF.pxe.tftp_root,
-                                            node['instance_uuid'], label)
+                                            node.uuid, label)
 
     glance_service = service.Service(version=1, context=ctx)
     iproperties = glance_service.show(d_info['image_source'])['properties']
@@ -400,7 +400,7 @@ def _get_tftp_image_info(node, ctx):
         image_info[label] = [None, None]
         image_info[label][0] = str(iproperties[label + '_id']).split('/')[-1]
         image_info[label][1] = os.path.join(CONF.pxe.tftp_root,
-                                            node['instance_uuid'], label)
+                                            node.uuid, label)
 
     return image_info
 
@@ -462,11 +462,11 @@ def _create_pxe_config(task, node, pxe_info):
     tftp booting.
     """
     fileutils.ensure_tree(os.path.join(CONF.pxe.tftp_root,
-                                       node['instance_uuid']))
+                                       node.uuid))
     fileutils.ensure_tree(os.path.join(CONF.pxe.tftp_root,
                                        'pxelinux.cfg'))
 
-    pxe_config_file_path = _get_pxe_config_file_path(node['instance_uuid'])
+    pxe_config_file_path = _get_pxe_config_file_path(node.uuid)
     pxe_config = _build_pxe_config(node, pxe_info, task.context)
     utils.write_to_file(pxe_config_file_path, pxe_config)
     for port in _get_node_mac_addresses(task, node):
@@ -550,13 +550,13 @@ class PXEDeploy(base.DeployInterface):
             _unlink_master_image(master_path)
 
         utils.unlink_without_raise(_get_pxe_config_file_path(
-                node['instance_uuid']))
+                node.uuid))
         for port in _get_node_mac_addresses(task, node):
             mac_path = _get_pxe_mac_path(port)
             utils.unlink_without_raise(mac_path)
 
         utils.rmtree_without_raise(
-                os.path.join(CONF.pxe.tftp_root, node['instance_uuid']))
+                os.path.join(CONF.pxe.tftp_root, node.uuid))
 
         _destroy_images(d_info, node.uuid)
         _destroy_token_file(node)
@@ -593,7 +593,7 @@ class VendorPassthru(base.VendorInterface):
                   'lun': kwargs.get('lun', '1'),
                   'image_path': _get_image_file_path(node.uuid),
                   'pxe_config_path': _get_pxe_config_file_path(
-                                                    node['instance_uuid']),
+                                                    node.uuid),
                   'root_mb': 1024 * int(d_info['root_gb']),
                   'swap_mb': int(d_info['swap_mb'])
 

@@ -176,13 +176,13 @@ class PXEValidateParametersTestCase(base.TestCase):
             CONF.register_opts(opts)
 
         ctx = context.RequestContext(auth_token=True)
-        uuid = 'instance_uuid'
+        uuid = 'node_uuid'
         temp_dir = tempfile.mkdtemp()
         master_path = os.path.join(temp_dir, 'master_path')
         instance_path = os.path.join(temp_dir, 'instance_path')
         os.mkdir(master_path)
         os.mkdir(instance_path)
-        lock_file = os.path.join(master_path, 'instance_uuid.lock')
+        lock_file = os.path.join(master_path, 'node_uuid.lock')
         open(lock_file, 'w').close()
 
         class handler_deploying(threading.Thread):
@@ -192,17 +192,17 @@ class PXEValidateParametersTestCase(base.TestCase):
 
             def run(self):
                 time.sleep(2)
-                open(os.path.join(master_path, 'instance_uuid'), 'w').close()
+                open(os.path.join(master_path, 'node_uuid'), 'w').close()
                 pxe._remove_download_in_progress_lock(self.lock_file)
 
         handler = handler_deploying(lock_file)
         handler.start()
-        pxe._get_image(ctx, os.path.join(instance_path, 'instance_uuid'),
+        pxe._get_image(ctx, os.path.join(instance_path, 'node_uuid'),
                        uuid, master_path)
         self.assertFalse(os.path.exists(lock_file))
         self.assertTrue(os.path.exists(os.path.join(instance_path,
-                                                    'instance_uuid')))
-        self.assertEqual(os.stat(os.path.join(master_path, 'instance_uuid')).
+                                                    'node_uuid')))
+        self.assertEqual(os.stat(os.path.join(master_path, 'node_uuid')).
                              st_nlink, 2)
 
     def test__update_neutron(self):
@@ -216,8 +216,7 @@ class PXEPrivateMethodsTestCase(base.TestCase):
         super(PXEPrivateMethodsTestCase, self).setUp()
         n = {
               'driver': 'fake_pxe',
-              'driver_info': INFO_DICT,
-              'instance_uuid': 'instance_uuid_123'
+              'driver_info': INFO_DICT
         }
         self.dbapi = dbapi.get_instance()
         self.node = self._create_test_node(**n)
@@ -233,16 +232,24 @@ class PXEPrivateMethodsTestCase(base.TestCase):
 
         expected_info = {'ramdisk':
                          ['instance_ramdisk_uuid',
-                          '/tftpboot/instance_uuid_123/ramdisk'],
+                          os.path.join(CONF.pxe.tftp_root,
+                                       self.node.uuid,
+                                       'ramdisk')],
                          'kernel':
                          ['instance_kernel_uuid',
-                          '/tftpboot/instance_uuid_123/kernel'],
+                          os.path.join(CONF.pxe.tftp_root,
+                                       self.node.uuid,
+                                       'kernel')],
                          'deploy_ramdisk':
                          ['deploy_ramdisk_uuid',
-                           '/tftpboot/instance_uuid_123/deploy_ramdisk'],
+                           os.path.join(CONF.pxe.tftp_root,
+                                        self.node.uuid,
+                                        'deploy_ramdisk')],
                          'deploy_kernel':
                          ['deploy_kernel_uuid',
-                          '/tftpboot/instance_uuid_123/deploy_kernel']}
+                          os.path.join(CONF.pxe.tftp_root,
+                                       self.node.uuid,
+                                       'deploy_kernel')]}
         with mock.patch.object(base_image_service.BaseImageService, '_show') \
                 as show_mock:
             show_mock.return_value = properties
@@ -252,7 +259,6 @@ class PXEPrivateMethodsTestCase(base.TestCase):
             self.assertEqual(image_info, expected_info)
 
     def test__build_pxe_config(self):
-        instance_uuid = 'instance_uuid_123'
         CONF.set_default('pxe_append_params', 'test_param', group='pxe')
         # NOTE: right '/' should be removed from url string
         CONF.set_default('api_url', 'http://192.168.122.184:6385/',
@@ -266,17 +272,21 @@ class PXEPrivateMethodsTestCase(base.TestCase):
             random_alnum_mock.return_value = fake_key
 
             image_info = {'deploy_kernel': ['deploy_kernel',
-                                            CONF.pxe.tftp_root + '/' +
-                                            instance_uuid + '/deploy_kernel'],
+                                            os.path.join(CONF.pxe.tftp_root,
+                                                         self.node.uuid,
+                                                         'deploy_kernel')],
                           'deploy_ramdisk': ['deploy_ramdisk',
-                                            CONF.pxe.tftp_root + '/' +
-                                            instance_uuid + '/deploy_ramdisk'],
+                                            os.path.join(CONF.pxe.tftp_root,
+                                                         self.node.uuid,
+                                                         'deploy_ramdisk')],
                           'kernel': ['kernel_id',
-                                     CONF.pxe.tftp_root + '/' + instance_uuid +
-                                     '/kernel'],
+                                     os.path.join(CONF.pxe.tftp_root,
+                                                  self.node.uuid,
+                                                  'kernel')],
                           'ramdisk': ['ramdisk_id',
-                                     CONF.pxe.tftp_root + '/' + instance_uuid +
-                                     '/ramdisk']
+                                     os.path.join(CONF.pxe.tftp_root,
+                                                  self.node.uuid,
+                                                  'ramdisk')]
                       }
             pxe_config = pxe._build_pxe_config(self.node,
                                                image_info,
@@ -303,16 +313,17 @@ class PXEPrivateMethodsTestCase(base.TestCase):
         self.assertEqual(expected_info, pxe._dhcp_options_for_instance())
 
     def test__get_pxe_config_file_path(self):
-        self.assertEqual('/tftpboot/instance_uuid_123/config',
-                         pxe._get_pxe_config_file_path('instance_uuid_123'))
+        self.assertEqual(os.path.join(CONF.pxe.tftp_root,
+                                      self.node.uuid,
+                                      'config'),
+                         pxe._get_pxe_config_file_path(self.node.uuid))
 
     def test__get_image_dir_path(self):
-        self.assertEqual(os.path.join('/var/lib/ironic/images/',
-                                      self.node.uuid),
+        self.assertEqual(os.path.join(CONF.pxe.images_path, self.node.uuid),
                          pxe._get_image_dir_path(self.node.uuid))
 
     def test__get_image_file_path(self):
-        self.assertEqual(os.path.join('/var/lib/ironic/images/',
+        self.assertEqual(os.path.join(CONF.pxe.images_path,
                                       self.node.uuid,
                                       'disk'),
                          pxe._get_image_file_path(self.node.uuid))
@@ -328,8 +339,10 @@ class PXEPrivateMethodsTestCase(base.TestCase):
         CONF.set_default('tftp_master_path', os.path.join(temp_dir,
                                                           'tftp_master_path'),
                          group='pxe')
-        image_info = {'deploy_kernel': ['deploy_kernel', temp_dir +
-                                        '/instance_uuid_123/deploy_kernel']}
+        image_info = {'deploy_kernel': ['deploy_kernel',
+                                        os.path.join(temp_dir,
+                                                     self.node.uuid,
+                                                     'deploy_kernel')]}
         fileutils.ensure_tree(CONF.pxe.tftp_master_path)
         fd, tmp_master_image = tempfile.mkstemp(dir=CONF.pxe.tftp_master_path)
 
@@ -353,7 +366,7 @@ class PXEPrivateMethodsTestCase(base.TestCase):
         CONF.set_default('tftp_master_path', None, group='pxe')
         image_info = {'deploy_kernel': ['deploy_kernel',
                                         os.path.join(temp_dir,
-                                        'instance_uuid_123/deploy_kernel')]}
+                                        self.node.uuid, 'deploy_kernel')]}
 
         with mock.patch.object(images, 'fetch_to_raw') as fetch_to_raw_mock:
             fetch_to_raw_mock.return_value = None
@@ -362,7 +375,7 @@ class PXEPrivateMethodsTestCase(base.TestCase):
 
             fetch_to_raw_mock.assert_called_once_with(None,
                     'deploy_kernel',
-                    os.path.join(temp_dir, 'instance_uuid_123/deploy_kernel'),
+                    os.path.join(temp_dir, self.node.uuid, 'deploy_kernel'),
                     None)
 
     def test__cache_instance_images_no_master_path(self):
@@ -428,15 +441,14 @@ class PXEPrivateMethodsTestCase(base.TestCase):
         temp_dir = tempfile.mkdtemp()
         instance_path = os.path.join(temp_dir, 'instance_path')
         fileutils.ensure_tree(temp_dir)
-        master_uuid = 'instance_uuid'
-        master_path = os.path.join(temp_dir, master_uuid)
-        lock_file = os.path.join(temp_dir, 'instance_uuid.lock')
+        master_path = os.path.join(temp_dir, self.node.uuid)
+        lock_file = os.path.join(temp_dir, self.node.uuid + '.lock')
 
         with mock.patch.object(pxe, '_download_in_progress') \
                 as download_in_progress_mock:
             download_in_progress_mock.side_effect = _create_instance_path
 
-            pxe._get_image(None, instance_path, master_uuid, temp_dir)
+            pxe._get_image(None, instance_path, self.node.uuid, temp_dir)
 
             download_in_progress_mock.assert_called_once_with(lock_file)
             self.assertTrue(os.path.exists(instance_path))
@@ -457,8 +469,7 @@ class PXEDriverTestCase(db_base.DbTestCase):
         driver_info['pxe_deploy_key'] = 'fake-56789'
         n = db_utils.get_test_node(
                 driver='fake_pxe',
-                driver_info=driver_info,
-                instance_uuid='instance_uuid_123')
+                driver_info=driver_info)
         self.dbapi = dbapi.get_instance()
         self.node = self.dbapi.create_node(n)
 
@@ -672,7 +683,7 @@ class PXEDriverTestCase(db_base.DbTestCase):
                     node_id='123')))
 
         d_kernel_path = os.path.join(CONF.pxe.tftp_root,
-                                     'instance_uuid_123/deploy_kernel')
+                                     self.node.uuid, 'deploy_kernel')
         image_info = {'deploy_kernel': ['deploy_kernel_uuid', d_kernel_path]}
 
         with mock.patch.object(pxe, '_get_tftp_image_info') \
@@ -683,7 +694,7 @@ class PXEDriverTestCase(db_base.DbTestCase):
             os.makedirs(pxecfg_dir)
 
             instance_dir = os.path.join(CONF.pxe.tftp_root,
-                                        'instance_uuid_123')
+                                        self.node.uuid)
             image_dir = os.path.join(CONF.pxe.images_path, self.node.uuid)
             os.makedirs(instance_dir)
             os.makedirs(image_dir)
@@ -751,7 +762,7 @@ class PXEDriverTestCase(db_base.DbTestCase):
         master_d_kernel_path = os.path.join(CONF.pxe.tftp_master_path,
                                             'deploy_kernel_uuid')
         master_instance_path = os.path.join(CONF.pxe.instance_master_path,
-                                            self.node.uuid)
+                                            'image_uuid')
 
         self.assertFalse(os.path.exists(master_d_kernel_path))
         self.assertFalse(os.path.exists(master_instance_path))
