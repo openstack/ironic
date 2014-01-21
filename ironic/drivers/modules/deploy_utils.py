@@ -173,10 +173,23 @@ def get_image_mb(image_path):
     return image_mb
 
 
-def work_on_disk(dev, root_mb, swap_mb, ephemeral_mb,
-                 ephemeral_format, image_path):
-    """Creates partitions and write an image to the root partition."""
+def work_on_disk(dev, root_mb, swap_mb, ephemeral_mb, ephemeral_format,
+                 image_path, preserve_ephemeral=False):
+    """Create partitions and copy an image to the root partition.
 
+    :param dev: Path for the device to work on.
+    :param root_mb: Size of the root partition in megabytes.
+    :param swap_mb: Size of the swap partition in megabytes.
+    :param ephemeral_mb: Size of the ephemeral partition in megabytes. If 0,
+        no ephemeral partition will be created.
+    :param ephemeral_format: The type of file system to format the ephemeral
+        partition.
+    :param image_path: Path for the instance's disk image.
+    :param preserve_ephemeral: If True, no filesystem is written to the
+        ephemeral block device, preserving whatever content it had (if the
+        partition table has not changed).
+
+    """
     # NOTE(lucasagomes): When there's an ephemeral partition we want
     # root to be last because that would allow root to resize and make it
     # safer to do takeovernode with slightly larger images
@@ -206,7 +219,7 @@ def work_on_disk(dev, root_mb, swap_mb, ephemeral_mb,
     dd(image_path, root_part)
     mkswap(swap_part)
 
-    if ephemeral_mb:
+    if ephemeral_mb and not preserve_ephemeral:
         mkfs_ephemeral(ephemeral_part, ephemeral_format)
 
     try:
@@ -218,8 +231,27 @@ def work_on_disk(dev, root_mb, swap_mb, ephemeral_mb,
 
 
 def deploy(address, port, iqn, lun, image_path, pxe_config_path,
-           root_mb, swap_mb, ephemeral_mb, ephemeral_format):
-    """All-in-one function to deploy a node."""
+           root_mb, swap_mb, ephemeral_mb, ephemeral_format,
+           preserve_ephemeral=False):
+    """All-in-one function to deploy a node.
+
+    :param address: The iSCSI IP address.
+    :param port: The iSCSI port number.
+    :param iqn: The iSCSI qualified name.
+    :param lun: The iSCSI logical unit number.
+    :param image_path: Path for the instance's disk image.
+    :param pxe_config_path: Path for the instance PXE config file.
+    :param root_mb: Size of the root partition in megabytes.
+    :param swap_mb: Size of the swap partition in megabytes.
+    :param ephemeral_mb: Size of the ephemeral partition in megabytes. If 0,
+        no ephemeral partition will be created.
+    :param ephemeral_format: The type of file system to format the ephemeral
+        partition.
+    :param preserve_ephemeral: If True, no filesystem is written to the
+        ephemeral block device, preserving whatever content it had (if the
+        partition table has not changed).
+
+    """
     dev = get_dev(address, port, iqn, lun)
     image_mb = get_image_mb(image_path)
     if image_mb > root_mb:
@@ -228,7 +260,8 @@ def deploy(address, port, iqn, lun, image_path, pxe_config_path,
     login_iscsi(address, port, iqn)
     try:
         root_uuid = work_on_disk(dev, root_mb, swap_mb, ephemeral_mb,
-                                 ephemeral_format, image_path)
+                                 ephemeral_format, image_path,
+                                 preserve_ephemeral)
     except processutils.ProcessExecutionError as err:
         with excutils.save_and_reraise_exception():
             LOG.error(_("Deploy to address %s failed.") % address)

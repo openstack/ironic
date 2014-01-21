@@ -177,6 +177,63 @@ class PhysicalWorkTestCase(tests_base.TestCase):
 
         self.assertEqual(calls_expected, parent_mock.mock_calls)
 
+    def test_deploy_preserve_ephemeral(self):
+        """Check if all functions are called with right args."""
+        address = '127.0.0.1'
+        port = 3306
+        iqn = 'iqn.xyz'
+        lun = 1
+        image_path = '/tmp/xyz/image'
+        pxe_config_path = '/tmp/abc/pxeconfig'
+        root_mb = 128
+        swap_mb = 64
+        ephemeral_mb = 256
+        ephemeral_format = 'exttest'
+
+        dev = '/dev/fake'
+        ephemeral_part = '/dev/fake-part1'
+        swap_part = '/dev/fake-part2'
+        root_part = '/dev/fake-part3'
+        root_uuid = '12345678-1234-1234-12345678-12345678abcdef'
+
+        mock_mkfs_eph = mock.patch.object(utils, 'mkfs_ephemeral').start()
+        self.addCleanup(mock_mkfs_eph.stop)
+
+        name_list = ['get_dev', 'get_image_mb', 'discovery', 'login_iscsi',
+                     'logout_iscsi', 'delete_iscsi', 'make_partitions',
+                     'is_block_device', 'dd', 'mkswap', 'block_uuid',
+                     'switch_pxe_config', 'notify']
+        parent_mock = self._mock_calls(name_list)
+        parent_mock.get_dev.return_value = dev
+        parent_mock.get_image_mb.return_value = 1
+        parent_mock.is_block_device.return_value = True
+        parent_mock.block_uuid.return_value = root_uuid
+        calls_expected = [mock.call.get_dev(address, port, iqn, lun),
+                          mock.call.get_image_mb(image_path),
+                          mock.call.discovery(address, port),
+                          mock.call.login_iscsi(address, port, iqn),
+                          mock.call.is_block_device(dev),
+                          mock.call.make_partitions(dev, root_mb, swap_mb,
+                                                    ephemeral_mb),
+                          mock.call.is_block_device(root_part),
+                          mock.call.is_block_device(swap_part),
+                          mock.call.is_block_device(ephemeral_part),
+                          mock.call.dd(image_path, root_part),
+                          mock.call.mkswap(swap_part),
+                          mock.call.block_uuid(root_part),
+                          mock.call.logout_iscsi(address, port, iqn),
+                          mock.call.delete_iscsi(address, port, iqn),
+                          mock.call.switch_pxe_config(pxe_config_path,
+                                                      root_uuid),
+                          mock.call.notify(address, 10000)]
+
+        utils.deploy(address, port, iqn, lun, image_path, pxe_config_path,
+                     root_mb, swap_mb, ephemeral_mb, ephemeral_format,
+                     preserve_ephemeral=True)
+        self.assertEqual(calls_expected, parent_mock.mock_calls)
+        # mkfs_ephemeral should not be called
+        self.assertFalse(mock_mkfs_eph.called)
+
     def test_always_logout_and_delete_iscsi(self):
         """Check if logout_iscsi() and delete_iscsi() are called.
 
@@ -220,7 +277,8 @@ class PhysicalWorkTestCase(tests_base.TestCase):
                           mock.call.login_iscsi(address, port, iqn),
                           mock.call.work_on_disk(dev, root_mb, swap_mb,
                                                  ephemeral_mb,
-                                                 ephemeral_format, image_path),
+                                                 ephemeral_format, image_path,
+                                                 False),
                           mock.call.logout_iscsi(address, port, iqn),
                           mock.call.delete_iscsi(address, port, iqn)]
 
@@ -295,7 +353,7 @@ class WorkOnDiskTestCase(tests_base.TestCase):
         self.assertRaises(exception.InstanceDeployFailure,
                           utils.work_on_disk, self.dev, self.root_mb,
                           self.swap_mb, self.ephemeral_mb,
-                          self.ephemeral_format, self.image_path)
+                          self.ephemeral_format, self.image_path, False)
         self.mock_ibd.assert_called_once_with(self.dev)
         self.assertFalse(self.mock_mp.called,
                          "make_partitions mock was unexpectedly called.")
@@ -307,7 +365,7 @@ class WorkOnDiskTestCase(tests_base.TestCase):
         self.assertRaises(exception.InstanceDeployFailure,
                           utils.work_on_disk, self.dev, self.root_mb,
                           self.swap_mb, self.ephemeral_mb,
-                          self.ephemeral_format, self.image_path)
+                          self.ephemeral_format, self.image_path, False)
         self.assertEqual(self.mock_ibd.call_args_list, calls)
         self.mock_mp.assert_called_once_with(self.dev, self.root_mb,
                                              self.swap_mb, self.ephemeral_mb)
@@ -320,7 +378,7 @@ class WorkOnDiskTestCase(tests_base.TestCase):
         self.assertRaises(exception.InstanceDeployFailure,
                           utils.work_on_disk, self.dev, self.root_mb,
                           self.swap_mb, self.ephemeral_mb,
-                          self.ephemeral_format, self.image_path)
+                          self.ephemeral_format, self.image_path, False)
         self.assertEqual(self.mock_ibd.call_args_list, calls)
         self.mock_mp.assert_called_once_with(self.dev, self.root_mb,
                                              self.swap_mb, self.ephemeral_mb)
@@ -340,7 +398,7 @@ class WorkOnDiskTestCase(tests_base.TestCase):
         self.assertRaises(exception.InstanceDeployFailure,
                           utils.work_on_disk, self.dev, self.root_mb,
                           self.swap_mb, ephemeral_mb, ephemeral_format,
-                          self.image_path)
+                          self.image_path, False)
         self.assertEqual(self.mock_ibd.call_args_list, calls)
         self.mock_mp.assert_called_once_with(self.dev, self.root_mb,
                                              self.swap_mb, ephemeral_mb)
