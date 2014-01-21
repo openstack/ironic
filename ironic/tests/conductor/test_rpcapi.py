@@ -23,6 +23,7 @@ import fixtures
 
 from oslo.config import cfg
 
+from ironic.common import exception
 from ironic.common import states
 from ironic.conductor import rpcapi as conductor_rpcapi
 from ironic.db import api as dbapi
@@ -66,9 +67,9 @@ class RPCAPITestCase(base.DbTestCase):
                                        'drivers': ['other-driver']})
 
         rpcapi = conductor_rpcapi.ConductorAPI(topic='fake-topic')
-        expected_topic = 'fake-topic'
-        self.assertEqual(expected_topic,
-                         rpcapi.get_topic_for(self.fake_node_obj))
+        self.assertRaises(exception.NoValidHost,
+                         rpcapi.get_topic_for,
+                         self.fake_node_obj)
 
     def _test_rpcapi(self, method, rpc_method, **kwargs):
         ctxt = context.get_admin_context()

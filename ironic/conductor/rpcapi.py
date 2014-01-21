@@ -21,6 +21,7 @@ Client side of the conductor RPC API.
 
 from oslo.config import cfg
 
+from ironic.common import exception
 from ironic.common import hash_ring as hash
 from ironic.conductor import manager
 from ironic.db import api as dbapi
@@ -80,6 +81,7 @@ class ConductorAPI(ironic.openstack.common.rpc.proxy.RpcProxy):
 
         :param node: a node object.
         :returns: an RPC topic string.
+        :raises: NoValidHost
 
         """
         try:
@@ -87,7 +89,9 @@ class ConductorAPI(ironic.openstack.common.rpc.proxy.RpcProxy):
             dest = ring.get_hosts(node.uuid)
             return self.topic + "." + dest[0]
         except KeyError:
-            return self.topic
+            reason = (_('No conductor service registered which supports '
+                        'driver %s.') % node.driver)
+            raise exception.NoValidHost(reason=reason)
 
     def get_node_power_state(self, context, node_id, topic=None):
         """Ask a conductor for the node power state.

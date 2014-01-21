@@ -174,6 +174,10 @@ class ImageNotFound(NotFound):
     message = _("Image %(image_id)s could not be found.")
 
 
+class NoValidHost(NotFound):
+    message = _("No valid host was found. Reason: %(reason)s")
+
+
 class InstanceNotFound(NotFound):
     message = _("Instance %(instance)s could not be found.")
 
