@@ -422,7 +422,7 @@ def mkfs(fs, path, label=None):
             label_opt = '-L'
         args.extend([label_opt, label])
     args.append(path)
-    execute(*args)
+    execute(*args, run_as_root=True)
 
 
 def unlink_without_raise(path):
