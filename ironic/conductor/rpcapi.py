@@ -22,6 +22,7 @@ Client side of the conductor RPC API.
 from oslo.config import cfg
 
 from ironic.common import hash_ring as hash
+from ironic.conductor import manager
 from ironic.db import api as dbapi
 from ironic.objects import base as objects_base
 import ironic.openstack.common.rpc.proxy
@@ -35,8 +36,6 @@ import ironic.openstack.common.rpc.proxy
 cfg.CONF.set_default('allowed_rpc_exception_modules',
                      ['ironic.common.exception',
                       'exceptions', ])
-
-MANAGER_TOPIC = 'ironic.conductor_manager'
 
 
 class ConductorAPI(ironic.openstack.common.rpc.proxy.RpcProxy):
@@ -62,7 +61,7 @@ class ConductorAPI(ironic.openstack.common.rpc.proxy.RpcProxy):
 
     def __init__(self, topic=None):
         if topic is None:
-            topic = MANAGER_TOPIC
+            topic = manager.MANAGER_TOPIC
 
         # Initialize consistent hash ring
         self.hash_rings = {}
