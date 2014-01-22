@@ -52,6 +52,31 @@ a shorthand to access it. For example::
         driver = task.node.driver
         driver.power.power_on(task.node)
 
+If you need to execute task-requiring code in the background thread the
+TaskManager provides the interface to manage resource locks manually. Common
+approach is to use manager._spawn_worker method and release resources using
+link method of the returned thread object.
+For example (somewhere inside conductor manager)::
+
+    task = task_manager.TaskManager(context)
+    task.acquire_resources(node_id, shared=False)
+
+    try:
+        # Start requested action in the background.
+        thread = self._spawn_worker(utils.node_power_action,
+                                    task, task.node, new_state)
+        # Release node lock at the end.
+        thread.link(lambda t: task.release_resources())
+    except Exception:
+        with excutils.save_and_reraise_exception():
+            # Release node lock if error occurred.
+            task.release_resources()
+
+link callback will be called whenever:
+    - background task finished with no errors.
+    - background task has crashed with exception.
+    - callback was added after the background task has finished or crashed.
+
 Eventually, driver functionality may be wrapped by tasks to facilitate
 multi-node tasks more easily. Once implemented, it might look like this::
 
@@ -67,8 +92,6 @@ multi-node tasks more easily. Once implemented, it might look like this::
             states = task.get_power_state()
 
 """
-
-import contextlib
 from oslo.config import cfg
 
 from ironic.common import exception
@@ -94,14 +117,8 @@ def require_exclusive_lock(f):
     return wrapper
 
 
-@contextlib.contextmanager
 def acquire(context, node_ids, shared=False, driver_name=None):
-    """Context manager for acquiring a lock on one or more Nodes.
-
-    Acquire a lock atomically on a non-empty set of nodes. The lock
-    can be either shared or exclusive. Shared locks may be used for
-    read-only or non-disruptive actions only, and must be considerate
-    to what other threads may be doing on the nodes at the same time.
+    """Shortcut for acquiring a lock on one or more Nodes.
 
     :param context: Request context.
     :param node_ids: A list of ids or uuids of nodes to lock.
@@ -111,35 +128,65 @@ def acquire(context, node_ids, shared=False, driver_name=None):
     :returns: An instance of :class:`TaskManager`.
 
     """
-
-    t = TaskManager(context, shared)
-
-    # instead of generating an exception, DTRT and convert to a list
-    if not isinstance(node_ids, list):
-        node_ids = [node_ids]
-
-    try:
-        if not shared:
-            t.dbapi.reserve_nodes(CONF.host, node_ids)
-        for id in node_ids:
-            t.resources.append(resource_manager.NodeManager.acquire(
-                                                        id, t, driver_name))
-        yield t
-    finally:
-        for id in [r.id for r in t.resources]:
-            resource_manager.NodeManager.release(id, t)
-        if not shared:
-            t.dbapi.release_nodes(CONF.host, node_ids)
+    mgr = TaskManager(context)
+    mgr.acquire_resources(node_ids, shared, driver_name)
+    return mgr
 
 
 class TaskManager(object):
     """Context manager for tasks."""
 
-    def __init__(self, context, shared):
+    def __init__(self, context):
         self.context = context
-        self.shared = shared
         self.resources = []
+        self.shared = False
         self.dbapi = dbapi.get_instance()
+
+    def acquire_resources(self, node_ids, shared=False, driver_name=None):
+        """Acquire a lock on one or more Nodes.
+
+        Acquire a lock atomically on a non-empty set of nodes. The lock
+        can be either shared or exclusive. Shared locks may be used for
+        read-only or non-disruptive actions only, and must be considerate
+        to what other threads may be doing on the nodes at the same time.
+
+        :param node_ids: A list of ids or uuids of nodes to lock.
+        :param shared: Boolean indicating whether to take a shared or exclusive
+                       lock. Default: False.
+        :param driver_name: Name of Driver. Default: None.
+
+        """
+        # Do not allow multiple acquire calls.
+        if self.resources:
+            raise exception.IronicException(
+                _("Task manager already has resources."))
+
+        self.shared = shared
+
+        # instead of generating an exception, DTRT and convert to a list
+        if not isinstance(node_ids, list):
+            node_ids = [node_ids]
+
+        if not self.shared:
+            self.dbapi.reserve_nodes(CONF.host, node_ids)
+        for node_id in node_ids:
+            node_mgr = resource_manager.NodeManager.acquire(node_id, self,
+                                                            driver_name)
+            self.resources.append(node_mgr)
+
+    def release_resources(self):
+        """Release all the resources acquired for this TaskManager."""
+        # Do not allow multiple release calls.
+        if not self.resources:
+            raise exception.IronicException(
+                _("Task manager doesn't have resources to release."))
+
+        node_ids = [r.id for r in self.resources]
+        for node_id in node_ids:
+            resource_manager.NodeManager.release(node_id, self)
+        if not self.shared:
+            self.dbapi.release_nodes(CONF.host, node_ids)
+        self.resources = []
 
     @property
     def node(self):
@@ -167,3 +214,9 @@ class TaskManager(object):
         else:
             raise AttributeError(_("Multi-node TaskManager "
                 "can't select single node manager from the list"))
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.release_resources()

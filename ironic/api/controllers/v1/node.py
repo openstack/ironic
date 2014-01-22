@@ -120,21 +120,14 @@ class NodeStatesController(rest.RestController):
         rpc_node = objects.Node.get_by_uuid(pecan.request.context, node_uuid)
         topic = pecan.request.rpcapi.get_topic_for(rpc_node)
 
-        if rpc_node.target_power_state is not None:
-            raise wsme.exc.ClientSideError(_("Power operation for node %s is "
-                                             "already in progress.") %
-                                              rpc_node['uuid'],
-                                              status_code=409)
-        # Note that there is a race condition. The node state(s) could change
-        # by the time the RPC call is made and the TaskManager manager gets a
-        # lock.
-        if target in [ir_states.POWER_ON,
-                      ir_states.POWER_OFF,
-                      ir_states.REBOOT]:
-            pecan.request.rpcapi.change_node_power_state(
-                    pecan.request.context, node_uuid, target, topic)
-        else:
+        if target not in [ir_states.POWER_ON,
+                          ir_states.POWER_OFF,
+                          ir_states.REBOOT]:
             raise exception.InvalidStateRequested(state=target, node=node_uuid)
+
+        pecan.request.rpcapi.change_node_power_state(pecan.request.context,
+                                                     node_uuid, target, topic)
+
         # FIXME(lucasagomes): Currently WSME doesn't support returning
         # the Location header. Once it's implemented we should use the
         # Location to point to the /states subresource of the node so

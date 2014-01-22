@@ -127,19 +127,22 @@ class ConductorAPI(ironic.openstack.common.rpc.proxy.RpcProxy):
                          topic=topic or self.topic)
 
     def change_node_power_state(self, context, node_id, new_state, topic=None):
-        """Asynchronously change power state of a node.
+        """Synchronously, acquire lock and start the conductor background task
+        to change power state of a node.
 
         :param context: request context.
         :param node_id: node id or uuid.
         :param new_state: one of ironic.common.states power state values
         :param topic: RPC topic. Defaults to self.topic.
+        :raises: NoFreeConductorWorker when there is no free worker to start
+                 async task.
 
         """
-        self.cast(context,
-                  self.make_msg('change_node_power_state',
-                                node_id=node_id,
-                                new_state=new_state),
-                  topic=topic or self.topic)
+        return self.call(context,
+                         self.make_msg('change_node_power_state',
+                                       node_id=node_id,
+                                       new_state=new_state),
+                         topic=topic or self.topic)
 
     def vendor_passthru(self, context, node_id, driver_method, info,
                         topic=None):
