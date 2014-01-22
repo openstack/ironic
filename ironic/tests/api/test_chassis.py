@@ -234,6 +234,15 @@ class TestPatch(base.FunctionalTest):
         self.assertEqual(result['uuid'], cdict['uuid'])
         self.assertEqual(result['description'], cdict['description'])
 
+    def test_remove_non_existent_property_fail(self):
+        cdict = dbutils.get_test_chassis()
+        response = self.patch_json('/chassis/%s' % cdict['uuid'],
+                             [{'path': '/extra/non-existent', 'op': 'remove'}],
+                             expect_errors=True)
+        self.assertEqual(response.content_type, 'application/json')
+        self.assertEqual(response.status_code, 400)
+        self.assertTrue(response.json['error_message'])
+
     def test_add_singular(self):
         cdict = dbutils.get_test_chassis()
         response = self.patch_json('/chassis/%s' % cdict['uuid'],

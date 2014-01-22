@@ -139,6 +139,10 @@ class InvalidStateRequested(Invalid):
     message = _("Invalid state '%(state)s' requested for node %(node)s.")
 
 
+class PatchError(Invalid):
+    message = _("Couldn't apply patch '%(patch)s'. Reason: %(reason)s")
+
+
 class InstanceDeployFailure(IronicException):
     message = _("Failed to deploy instance: %(reason)s")
 

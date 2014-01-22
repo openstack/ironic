@@ -16,11 +16,17 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import jsonpatch
 import wsme
 
 from oslo.config import cfg
 
 CONF = cfg.CONF
+
+
+JSONPATCH_EXCEPTIONS = (jsonpatch.JsonPatchException,
+                        jsonpatch.JsonPointerException,
+                        KeyError)
 
 
 def validate_limit(limit):
