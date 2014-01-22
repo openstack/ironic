@@ -49,20 +49,38 @@ def table_args():
     return None
 
 
-class JSONEncodedDict(TypeDecorator):
-    """Represents an immutable structure as a json-encoded string."""
-
+class JsonEncodedType(TypeDecorator):
+    """Abstract base type serialized as json-encoded string in db."""
+    type = None
     impl = VARCHAR
 
     def process_bind_param(self, value, dialect):
-        if value is not None:
-            value = json.dumps(value)
-        return value
+        if value is None:
+            # Save default value according to current type to keep the
+            # interface the consistent.
+            value = self.type()
+        elif not isinstance(value, self.type):
+            raise TypeError("%s supposes to store %s objects, but %s given"
+                            % (self.__class__.__name__,
+                               self.type.__name__,
+                               type(value).__name__))
+        serialized_value = json.dumps(value)
+        return serialized_value
 
     def process_result_value(self, value, dialect):
         if value is not None:
             value = json.loads(value)
         return value
+
+
+class JSONEncodedDict(JsonEncodedType):
+    """Represents dict serialized as json-encoded string in db."""
+    type = dict
+
+
+class JSONEncodedList(JsonEncodedType):
+    """Represents list serialized as json-encoded string in db."""
+    type = list
 
 
 class IronicBase(models.TimestampMixin,
@@ -102,7 +120,7 @@ class Conductor(Base):
         )
     id = Column(Integer, primary_key=True)
     hostname = Column(String(255), nullable=False)
-    drivers = Column(JSONEncodedDict)
+    drivers = Column(JSONEncodedList)
 
 
 class Node(Base):
