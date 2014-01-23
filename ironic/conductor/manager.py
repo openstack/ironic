@@ -86,7 +86,7 @@ CONF.register_opts(conductor_opts, 'conductor')
 class ConductorManager(service.PeriodicService):
     """Ironic Conductor service main class."""
 
-    RPC_API_VERSION = '1.7'
+    RPC_API_VERSION = '1.8'
 
     def __init__(self, host, topic):
         serializer = objects_base.IronicObjectSerializer()

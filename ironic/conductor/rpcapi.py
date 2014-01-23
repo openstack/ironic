@@ -57,7 +57,7 @@ class ConductorAPI(ironic.openstack.common.rpc.proxy.RpcProxy):
 
     """
 
-    RPC_API_VERSION = '1.7'
+    RPC_API_VERSION = '1.8'
 
     def __init__(self, topic=None):
         if topic is None:
