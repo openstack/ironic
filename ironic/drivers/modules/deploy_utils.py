@@ -116,11 +116,7 @@ def dd(src, dst):
 
 def mkswap(dev, label='swap1'):
     """Execute mkswap on a device."""
-    utils.execute('mkswap',
-                  '-L', label,
-                  dev,
-                  run_as_root=True,
-                  check_exit_code=[0])
+    utils.mkfs('swap', dev, label)
 
 
 def block_uuid(dev):
