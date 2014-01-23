@@ -101,7 +101,6 @@ def _parse_driver_info(node):
 
     info = node.get('driver_info', {})
     d_info = {}
-    d_info['instance_name'] = info.get('pxe_instance_name', None)
     d_info['image_source'] = info.get('pxe_image_source', None)
     d_info['deploy_kernel'] = info.get('pxe_deploy_kernel',
                                        CONF.pxe.deploy_kernel)
@@ -124,6 +123,7 @@ def _parse_driver_info(node):
     #TODO(ghe): Should we get rid of swap partition?
     d_info['swap_mb'] = info.get('pxe_swap_mb', 1)
     d_info['key_data'] = info.get('pxe_key_data', None)
+    d_info['instance_name'] = info.get('pxe_instance_name', None)
 
     for param in ('root_gb', 'swap_mb'):
         try:
@@ -331,11 +331,10 @@ def _get_image(ctx, path, uuid, master_path=None, image_service=None):
 
 def _cache_tftp_images(ctx, node, pxe_info):
     """Fetch the necessary kernels and ramdisks for the instance."""
-    d_info = _parse_driver_info(node)
     fileutils.ensure_tree(
         os.path.join(CONF.pxe.tftp_root, node.uuid))
-    LOG.debug(_("Fetching kernel and ramdisk for instance %s") %
-              d_info['instance_name'])
+    LOG.debug(_("Fetching kernel and ramdisk for node %s") %
+              node.uuid)
     for label in pxe_info:
         (uuid, path) = pxe_info[label]
         if not os.path.exists(path):
@@ -364,8 +363,8 @@ def _cache_instance_image(ctx, node):
     image_path = _get_image_file_path(node.uuid)
     uuid = d_info['image_source']
 
-    LOG.debug(_("Fetching image %(ami)s for instance %(name)s") %
-              {'ami': uuid, 'name': d_info['instance_name']})
+    LOG.debug(_("Fetching image %(ami)s for node %(uuid)s") %
+              {'ami': uuid, 'uuid': node.uuid})
 
     if not os.path.exists(image_path):
         _get_image(ctx, image_path, uuid, CONF.pxe.instance_master_path)
