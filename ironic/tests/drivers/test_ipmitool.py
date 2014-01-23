@@ -458,3 +458,21 @@ class IPMIToolDriverTestCase(db_base.DbTestCase):
                                                    device='pxe')
             boot_mock.assert_called_once_with(task, self.node,
                                               'pxe', False)
+
+    @mock.patch.object(ipmi, '_exec_ipmitool')
+    def test_validate_ok(self, exec_mock):
+        exec_mock.return_value = ('System GUID: fake', '')
+        with task_manager.acquire(self.context,
+                                  [self.node['uuid']]) as task:
+            task.driver.power.validate(task, task.node)
+            exec_mock.assert_called_once()
+
+    @mock.patch.object(ipmi, '_exec_ipmitool')
+    def test_validate_fail(self, exec_mock):
+        exec_mock.side_effect = Exception
+        with task_manager.acquire(self.context,
+                                  [self.node['uuid']]) as task:
+            self.assertRaises(exception.InvalidParameterValue,
+                              task.driver.power.validate, task,
+                              task.node)
+            exec_mock.assert_called_once()
