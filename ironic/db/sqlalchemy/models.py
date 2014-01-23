@@ -114,6 +114,9 @@ class Node(Base):
         Index('node_instance_uuid', 'instance_uuid'))
     id = Column(Integer, primary_key=True)
     uuid = Column(String(36))
+    # NOTE(deva): we store instance_uuid directly on the node so that we can
+    #             filter on it more efficiently, even though it is
+    #             user-settable, and would otherwise be in node.properties.
     instance_uuid = Column(String(36), nullable=True)
     chassis_id = Column(Integer, ForeignKey('chassis.id'), nullable=True)
     power_state = Column(String(15), nullable=True)
