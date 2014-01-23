@@ -1,5 +1,5 @@
 pbr>=0.5.21,<1.0
-SQLAlchemy>=0.7.8,<=0.7.99
+SQLAlchemy>=0.7.8,<=0.8.99
 amqplib>=0.6.1
 anyjson>=0.3.3
 argparse
