@@ -34,6 +34,7 @@ from ironic.db import api as db_api
 from ironic.drivers.modules import ipmitool as ipmi
 from ironic.openstack.common import context
 from ironic.openstack.common import jsonutils as json
+from ironic.openstack.common import processutils
 from ironic.tests import base
 from ironic.tests.conductor import utils as mgr_utils
 from ironic.tests.db import base as db_base
@@ -159,6 +160,31 @@ class IPMIToolPrivateMethodTestCase(base.TestCase):
                 self.assertTrue(mock_pwf.called)
                 mock_exec.assert_called_once_with(*args, attempts=3)
 
+    def test__exec_ipmitool_exception(self):
+        pw_file_handle = tempfile.NamedTemporaryFile()
+        pw_file = pw_file_handle.name
+        file_handle = open(pw_file, "w")
+        args = [
+            'ipmitool',
+            '-I', 'lanplus',
+            '-H', self.info['address'],
+            '-U', self.info['username'],
+            '-f', file_handle,
+            'A', 'B', 'C',
+            ]
+
+        with mock.patch.object(ipmi, '_make_password_file',
+                               autospec=True) as mock_pwf:
+            mock_pwf.return_value = file_handle
+            with mock.patch.object(utils, 'execute',
+                                   autospec=True) as mock_exec:
+                mock_exec.side_effect = processutils.ProcessExecutionError("x")
+                self.assertRaises(processutils.ProcessExecutionError,
+                                  ipmi._exec_ipmitool,
+                                  self.info, 'A B C')
+                mock_pwf.assert_called_once_with(self.info['password'])
+                mock_exec.assert_called_once_with(*args, attempts=3)
+
     def test__power_status_on(self):
         with mock.patch.object(ipmi, '_exec_ipmitool',
                                autospec=True) as mock_exec:
@@ -188,6 +214,15 @@ class IPMIToolPrivateMethodTestCase(base.TestCase):
 
             mock_exec.assert_called_once_with(self.info, "power status")
             self.assertEqual(state, states.ERROR)
+
+    def test__power_status_exception(self):
+        with mock.patch.object(ipmi, '_exec_ipmitool',
+                side_effect=processutils.ProcessExecutionError("error"),
+                autospec=True) as mock_exec:
+            self.assertRaises(exception.IPMIFailure,
+                              ipmi._power_status,
+                              self.info)
+            mock_exec.assert_called_once_with(self.info, "power status")
 
     def test__power_on_max_retries(self):
         self.config(retry_timeout=2, group='ipmi')
@@ -248,6 +283,16 @@ class IPMIToolDriverTestCase(db_base.DbTestCase):
 
             self.assertEqual(mock_exec.call_args_list, expected)
 
+    def test_get_power_state_exception(self):
+        with mock.patch.object(ipmi, '_exec_ipmitool',
+                side_effect=processutils.ProcessExecutionError("error"),
+                autospec=True) as mock_exec:
+            self.assertRaises(exception.IPMIFailure,
+                              self.driver.power.get_power_state,
+                              None,
+                              self.node)
+        mock_exec.assert_called_once_with(self.info, "power status")
+
     def test_set_power_on_ok(self):
         self.config(retry_timeout=0, group='ipmi')
 
@@ -301,7 +346,7 @@ class IPMIToolDriverTestCase(db_base.DbTestCase):
 
     def test_set_power_invalid_state(self):
         with task_manager.acquire(self.context, [self.node['uuid']]) as task:
-            self.assertRaises(exception.IronicException,
+            self.assertRaises(exception.InvalidParameterValue,
                     self.driver.power.set_power_state,
                     task,
                     self.node,
