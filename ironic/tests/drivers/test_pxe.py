@@ -566,7 +566,7 @@ class PXEDriverTestCase(db_base.DbTestCase):
     def test_validate_good(self):
         with task_manager.acquire(self.context, [self.node['uuid']],
                                   shared=True) as task:
-            task.resources[0].driver.deploy.validate(self.node)
+            task.resources[0].driver.deploy.validate(task, self.node)
 
     def test_validate_fail(self):
         info = dict(INFO_DICT)
@@ -576,12 +576,12 @@ class PXEDriverTestCase(db_base.DbTestCase):
                                   shared=True) as task:
             self.assertRaises(exception.InvalidParameterValue,
                               task.resources[0].driver.deploy.validate,
-                              self.node)
+                              task, self.node)
 
     def test_vendor_passthru_validate_good(self):
         with task_manager.acquire(self.context, [self.node['uuid']],
                                   shared=True) as task:
-            task.resources[0].driver.vendor.validate(self.node,
+            task.resources[0].driver.vendor.validate(task, self.node,
                     method='pass_deploy_info', address='123456', iqn='aaa-bbb',
                     key='fake-56789')
 
@@ -590,7 +590,7 @@ class PXEDriverTestCase(db_base.DbTestCase):
                                   shared=True) as task:
             self.assertRaises(exception.InvalidParameterValue,
                               task.resources[0].driver.vendor.validate,
-                              self.node, method='pass_deploy_info',
+                              task, self.node, method='pass_deploy_info',
                               key='fake-56789')
 
     def test_vendor_passthru_validate_key_notmatch(self):
@@ -598,7 +598,7 @@ class PXEDriverTestCase(db_base.DbTestCase):
                                   shared=True) as task:
             self.assertRaises(exception.InvalidParameterValue,
                               task.resources[0].driver.vendor.validate,
-                              self.node, method='pass_deploy_info',
+                              task, self.node, method='pass_deploy_info',
                               address='123456', iqn='aaa-bbb',
                               key='fake-12345')
 

@@ -48,9 +48,9 @@ class FakeDriverTestCase(base.TestCase):
         self.assertIsNone(self.driver.console)
 
     def test_power_interface(self):
-        self.driver.power.validate(self.node)
         with task_manager.acquire(self.context,
                                   [self.node['uuid']]) as task:
+            self.driver.power.validate(task, self.node)
             self.driver.power.get_power_state(task, self.node)
             self.assertRaises(exception.InvalidParameterValue,
                               self.driver.power.set_power_state,
@@ -59,7 +59,7 @@ class FakeDriverTestCase(base.TestCase):
             self.driver.power.reboot(task, self.node)
 
     def test_deploy_interface(self):
-        self.driver.deploy.validate(self.node)
+        self.driver.deploy.validate(None, self.node)
 
         self.driver.deploy.prepare(None, None)
         self.driver.deploy.deploy(None, None)
@@ -71,7 +71,7 @@ class FakeDriverTestCase(base.TestCase):
 
     def test_vendor_interface_route_valid_methods(self):
         info = {'method': 'first_method', 'bar': 'baz'}
-        self.driver.vendor.validate(self.node, **info)
+        self.driver.vendor.validate(None, self.node, **info)
         self.assertTrue(self.driver.vendor.vendor_passthru(
                 None, self.node, **info))
 
@@ -80,7 +80,7 @@ class FakeDriverTestCase(base.TestCase):
                 None, self.node, **info))
 
         info['method'] = 'second_method'
-        self.driver.vendor.validate(self.node, **info)
+        self.driver.vendor.validate(None, self.node, **info)
         self.assertFalse(self.driver.vendor.vendor_passthru(
                 None, self.node, **info))
 
@@ -92,10 +92,10 @@ class FakeDriverTestCase(base.TestCase):
         info = {'method': 'first_method'}
         self.assertRaises(exception.InvalidParameterValue,
                           self.driver.vendor.validate,
-                          self.node, **info)
+                          None, self.node, **info)
 
     def test_vendor_interface_bad_method(self):
         info = {'method': 'bad_method', 'bar': 'kazoo'}
         self.assertRaises(exception.InvalidParameterValue,
                           self.driver.vendor.validate,
-                          self.node, **info)
+                          None, self.node, **info)

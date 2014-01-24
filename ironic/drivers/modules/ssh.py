@@ -347,12 +347,13 @@ class SSHPower(base.PowerInterface):
     NOTE: This driver does not currently support multi-node operations.
     """
 
-    def validate(self, node):
+    def validate(self, task, node):
         """Check that the node's 'driver_info' is valid.
 
         Check that the node's 'driver_info' contains the requisite fields
         and that an SSH connection to the node can be established.
 
+        :param task: a task from TaskManager.
         :param node: Single node object.
         :raises: InvalidParameterValue if any connection parameters are
             incorrect or if ssh failed to connect to the node.

@@ -171,7 +171,7 @@ class ConductorManager(service.PeriodicService):
             # TODO(deva): Determine what value will be passed by API when
             #             instance_uuid needs to be unset, and handle it.
             if 'instance_uuid' in delta:
-                task.driver.power.validate(node_obj)
+                task.driver.power.validate(task, node_obj)
                 node_obj['power_state'] = \
                         task.driver.power.get_power_state(task, node_obj)
 
@@ -233,7 +233,7 @@ class ConductorManager(service.PeriodicService):
         with task_manager.acquire(context, node_id, shared=True) as task:
             try:
                 if getattr(task.driver, 'vendor', None):
-                    return task.driver.vendor.validate(task.node,
+                    return task.driver.vendor.validate(task, task.node,
                                                        method=driver_method,
                                                        **info)
                 else:
@@ -277,7 +277,7 @@ class ConductorManager(service.PeriodicService):
                     "maintenance mode.") % node_id)
 
             try:
-                task.driver.deploy.validate(node)
+                task.driver.deploy.validate(task, node)
             except Exception as e:
                 with excutils.save_and_reraise_exception():
                     node['last_error'] = \
@@ -330,7 +330,7 @@ class ConductorManager(service.PeriodicService):
                     % {'node': node_id, 'state': node['provision_state']})
 
             try:
-                task.driver.deploy.validate(node)
+                task.driver.deploy.validate(task, node)
             except Exception as e:
                 with excutils.save_and_reraise_exception():
                     node['last_error'] = \
@@ -458,7 +458,7 @@ class ConductorManager(service.PeriodicService):
                 result = reason = None
                 if iface:
                     try:
-                        iface.validate(task.node)
+                        iface.validate(task, task.node)
                         result = True
                     except exception.InvalidParameterValue as e:
                         result = False

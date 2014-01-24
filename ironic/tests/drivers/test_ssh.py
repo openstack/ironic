@@ -610,7 +610,7 @@ class SSHDriverTestCase(db_base.DbTestCase):
                                       shared=False) as task:
                 self.assertRaises(exception.InvalidParameterValue,
                                   task.resources[0].driver.power.validate,
-                                  self.node)
+                                  task, self.node)
                 driver_info = ssh._parse_driver_info(self.node)
                 ssh_connect_mock.assert_called_once_with(driver_info)
 

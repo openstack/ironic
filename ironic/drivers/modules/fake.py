@@ -42,7 +42,7 @@ def _raise_unsupported_error(method=None):
 class FakePower(base.PowerInterface):
     """Example implementation of a simple power interface."""
 
-    def validate(self, node):
+    def validate(self, task, node):
         pass
 
     def get_power_state(self, task, node):
@@ -63,7 +63,7 @@ class FakeDeploy(base.DeployInterface):
        separate power interface.
     """
 
-    def validate(self, node):
+    def validate(self, task, node):
         pass
 
     def deploy(self, task, node):
@@ -85,7 +85,7 @@ class FakeDeploy(base.DeployInterface):
 class FakeVendorA(base.VendorInterface):
     """Example implementation of a vendor passthru interface."""
 
-    def validate(self, node, **kwargs):
+    def validate(self, task, node, **kwargs):
         method = kwargs.get('method')
         if method == 'first_method':
             bar = kwargs.get('bar')
@@ -109,7 +109,7 @@ class FakeVendorA(base.VendorInterface):
 class FakeVendorB(base.VendorInterface):
     """Example implementation of a secondary vendor passthru."""
 
-    def validate(self, node, **kwargs):
+    def validate(self, task, node, **kwargs):
         method = kwargs.get('method')
         if method == 'second_method':
             bar = kwargs.get('bar')
