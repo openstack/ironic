@@ -98,10 +98,10 @@
 # Options defined in ironic.openstack.common.db.sqlalchemy.session
 #
 
-# the filename to use with sqlite (string value)
+# The file name to use with SQLite (string value)
 #sqlite_db=ironic.sqlite
 
-# If true, use synchronous mode for sqlite (boolean value)
+# If True, SQLite uses synchronous mode (boolean value)
 #sqlite_synchronous=true
 
 
@@ -485,10 +485,11 @@
 # slave database (string value)
 #slave_connection=
 
-# timeout before idle sql connections are reaped (integer
+# Timeout before idle sql connections are reaped (integer
 # value)
 # Deprecated group/name - [DEFAULT]/sql_idle_timeout
 # Deprecated group/name - [DATABASE]/sql_idle_timeout
+# Deprecated group/name - [sql]/idle_timeout
 #idle_timeout=3600
 
 # Minimum number of SQL connections to keep open in a pool
@@ -503,13 +504,13 @@
 # Deprecated group/name - [DATABASE]/sql_max_pool_size
 #max_pool_size=<None>
 
-# maximum db connection retries during startup. (setting -1
+# Maximum db connection retries during startup. (setting -1
 # implies an infinite retry count) (integer value)
 # Deprecated group/name - [DEFAULT]/sql_max_retries
 # Deprecated group/name - [DATABASE]/sql_max_retries
 #max_retries=10
 
-# interval between retries of opening a sql connection
+# Interval between retries of opening a sql connection
 # (integer value)
 # Deprecated group/name - [DEFAULT]/sql_retry_interval
 # Deprecated group/name - [DATABASE]/reconnect_interval
