@@ -523,6 +523,9 @@ class PXEDeploy(base.DeployInterface):
         :param node: a single Node to validate.
         :returns: InvalidParameterValue.
         """
+        if not _get_node_mac_addresses(task, node):
+            raise exception.InvalidParameterValue(_("Node %s does not have "
+                                "any port associated with it.") % node.uuid)
         _parse_driver_info(node)
 
     @task_manager.require_exclusive_lock

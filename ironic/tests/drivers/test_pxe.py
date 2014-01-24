@@ -557,6 +557,8 @@ class PXEDriverTestCase(db_base.DbTestCase):
                 driver_info=driver_info)
         self.dbapi = dbapi.get_instance()
         self.node = self.dbapi.create_node(n)
+        self.port = self.dbapi.create_port(db_utils.get_test_port(
+                                                         node_id=self.node.id))
 
     def _create_token_file(self):
         token_path = pxe._get_token_file_path(self.node['uuid'])
@@ -577,6 +579,37 @@ class PXEDriverTestCase(db_base.DbTestCase):
             self.assertRaises(exception.InvalidParameterValue,
                               task.resources[0].driver.deploy.validate,
                               task, self.node)
+
+    def test_validate_fail_no_port(self):
+        new_node = self.dbapi.create_node(db_utils.get_test_node(id=321,
+                                   uuid='aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee',
+                                   driver='fake_pxe', driver_info=INFO_DICT))
+        with task_manager.acquire(self.context, [new_node.uuid],
+                                  shared=True) as task:
+            self.assertRaises(exception.InvalidParameterValue,
+                              task.resources[0].driver.deploy.validate,
+                              task, new_node)
+
+    def test__get_nodes_mac_addresses(self):
+        ports = []
+        ports.append(self.port)
+        ports.append(
+            self.dbapi.create_port(
+                db_utils.get_test_port(
+                    id=6,
+                    address='aa:bb:cc',
+                    uuid='bb43dc0b-03f2-4d2e-ae87-c02d7f33cc53',
+                    node_id='123')))
+        ports.append(
+            self.dbapi.create_port(
+                db_utils.get_test_port(
+                    id=7,
+                    address='dd:ee:ff',
+                    uuid='4fc26c0b-03f2-4d2e-ae87-c02d7f33c234',
+                    node_id='123')))
+        with task_manager.acquire(self.context, [self.node['uuid']]) as task:
+            node_macs = pxe._get_node_mac_addresses(task, self.node)
+        self.assertEqual(sorted(node_macs), sorted([p.address for p in ports]))
 
     def test_vendor_passthru_validate_good(self):
         with task_manager.acquire(self.context, [self.node['uuid']],

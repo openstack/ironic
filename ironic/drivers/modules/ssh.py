@@ -358,6 +358,9 @@ class SSHPower(base.PowerInterface):
         :raises: InvalidParameterValue if any connection parameters are
             incorrect or if ssh failed to connect to the node.
         """
+        if not _get_nodes_mac_addresses(task, node):
+            raise exception.InvalidParameterValue(_("Node %s does not have "
+                                "any port associated with it.") % node.uuid)
         try:
             _get_connection(node)
         except exception.SSHConnectFailed as e:
