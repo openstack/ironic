@@ -5,6 +5,7 @@ anyjson>=0.3.3
 argparse
 eventlet>=0.13.0
 kombu>=2.4.8
+lockfile>=0.8
 lxml>=2.3
 WebOb>=1.2.3,<1.3
 greenlet>=0.3.2
