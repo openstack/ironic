@@ -56,9 +56,6 @@ pxe_opts = [
                default=paths.basedir_def(
                     'drivers/modules/pxe_config.template'),
                help='Template file for PXE configuration'),
-    cfg.IntOpt('pxe_deploy_timeout',
-                help='Timeout for PXE deployments. Default: 0 (unlimited)',
-                default=0),
     cfg.StrOpt('tftp_server',
                default='$my_ip',
                help='IP address of Ironic compute node\'s tftp server'),
