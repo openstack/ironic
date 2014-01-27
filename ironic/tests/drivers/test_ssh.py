@@ -120,9 +120,11 @@ class SSHPrivateMethodsTestCase(base.TestCase):
                         driver_info=INFO_DICT)
         self.sshclient = paramiko.SSHClient()
 
-        #setup the mock for processutils.ssh_execute because most tests use it
+        # Set up the mock for processutils.ssh_execute because most tests use
+        # it. processutils.ssh_execute returns (stdout, stderr).
         self.ssh_patcher = mock.patch.object(processutils, 'ssh_execute')
         self.exec_ssh_mock = self.ssh_patcher.start()
+        self.exec_ssh_mock.return_value = ('', '')
 
         def stop_patcher():
             if self.ssh_patcher:
@@ -134,8 +136,8 @@ class SSHPrivateMethodsTestCase(base.TestCase):
         info = ssh._parse_driver_info(self.node)
         with mock.patch.object(ssh, '_get_hosts_name_for_node') \
                 as get_hosts_name_mock:
-            self.exec_ssh_mock.return_value = [
-                    '"NodeName" {b43c4982-110c-4c29-9325-d5f41b053513}']
+            self.exec_ssh_mock.return_value = (
+                    '"NodeName" {b43c4982-110c-4c29-9325-d5f41b053513}', '')
             get_hosts_name_mock.return_value = "NodeName"
 
             pstate = ssh._get_power_status(self.sshclient, info)
@@ -152,8 +154,8 @@ class SSHPrivateMethodsTestCase(base.TestCase):
         info = ssh._parse_driver_info(self.node)
         with mock.patch.object(ssh, '_get_hosts_name_for_node') \
                 as get_hosts_name_mock:
-            self.exec_ssh_mock.return_value = [
-                    '"NodeName" {b43c4982-110c-4c29-9325-d5f41b053513}']
+            self.exec_ssh_mock.return_value = (
+                    '"NodeName" {b43c4982-110c-4c29-9325-d5f41b053513}', '')
             get_hosts_name_mock.return_value = "NotNodeName"
 
             pstate = ssh._get_power_status(self.sshclient, info)
@@ -171,8 +173,8 @@ class SSHPrivateMethodsTestCase(base.TestCase):
 
         with mock.patch.object(ssh, '_get_hosts_name_for_node') \
                 as get_hosts_name_mock:
-            self.exec_ssh_mock.return_value = [
-                    '"NodeName" {b43c4982-110c-4c29-9325-d5f41b053513}']
+            self.exec_ssh_mock.return_value = (
+                    '"NodeName" {b43c4982-110c-4c29-9325-d5f41b053513}', '')
             info['macs'] = ["11:11:11:11:11:11", "52:54:00:cf:2d:31"]
             get_hosts_name_mock.return_value = None
             self.assertRaises(exception.NodeNotFound,
@@ -197,7 +199,8 @@ class SSHPrivateMethodsTestCase(base.TestCase):
         cmd_to_exec = "%s %s" % (info['cmd_set']['base_cmd'],
                                  info['cmd_set']['get_node_macs'])
         cmd_to_exec = cmd_to_exec.replace('{_NodeName_}', 'NodeName')
-        self.exec_ssh_mock.side_effect = [['NodeName'], ['52:54:00:cf:2d:31']]
+        self.exec_ssh_mock.side_effect = [('NodeName', ''),
+                                          ('52:54:00:cf:2d:31', '')]
         expected = [mock.call(self.sshclient, ssh_cmd),
                     mock.call(self.sshclient, cmd_to_exec)]
 
@@ -209,7 +212,8 @@ class SSHPrivateMethodsTestCase(base.TestCase):
     def test__get_hosts_name_for_node_no_match(self):
         info = ssh._parse_driver_info(self.node)
         info['macs'] = ["11:11:11:11:11:11", "22:22:22:22:22:22"]
-        self.exec_ssh_mock.side_effect = [['NodeName'], ['52:54:00:cf:2d:31']]
+        self.exec_ssh_mock.side_effect = [('NodeName', ''),
+                                          ('52:54:00:cf:2d:31', '')]
 
         ssh_cmd = "%s %s" % (info['cmd_set']['base_cmd'],
                              info['cmd_set']['list_all'])
@@ -237,7 +241,6 @@ class SSHPrivateMethodsTestCase(base.TestCase):
                 get_power_status_mock.side_effect = [states.POWER_OFF,
                                                      states.POWER_ON]
                 get_hosts_name_mock.return_value = "NodeName"
-                self.exec_ssh_mock.return_value = None
                 expected = [mock.call(self.sshclient, info),
                             mock.call(self.sshclient, info)]
 
@@ -264,7 +267,6 @@ class SSHPrivateMethodsTestCase(base.TestCase):
                 get_power_status_mock.side_effect = [states.POWER_OFF,
                                                      states.POWER_OFF]
                 get_hosts_name_mock.return_value = "NodeName"
-                self.exec_ssh_mock.return_value = None
                 expected = [mock.call(self.sshclient, info),
                             mock.call(self.sshclient, info)]
 
@@ -291,7 +293,6 @@ class SSHPrivateMethodsTestCase(base.TestCase):
                 get_power_status_mock.side_effect = [states.POWER_ON,
                                                      states.POWER_OFF]
                 get_hosts_name_mock.return_value = "NodeName"
-                self.exec_ssh_mock.return_value = None
                 expected = [mock.call(self.sshclient, info),
                             mock.call(self.sshclient, info)]
 
@@ -318,7 +319,6 @@ class SSHPrivateMethodsTestCase(base.TestCase):
                 get_power_status_mock.side_effect = [states.POWER_ON,
                                                      states.POWER_ON]
                 get_hosts_name_mock.return_value = "NodeName"
-                self.exec_ssh_mock.return_value = None
                 expected = [mock.call(self.sshclient, info),
                             mock.call(self.sshclient, info)]
 
