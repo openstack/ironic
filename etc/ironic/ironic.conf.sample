@@ -605,20 +605,39 @@
 #max_limit=1000
 
 
-[matchmaker_redis]
+[pxe]
 
 #
-# Options defined in ironic.openstack.common.rpc.matchmaker_redis
+# Options defined in ironic.drivers.modules.pxe
 #
 
-# Host to locate redis (string value)
-#host=127.0.0.1
+# additional append parameters for baremetal PXE boot (string
+# value)
+#pxe_append_params=nofb nomodeset vga=normal
 
-# Use this port to connect to redis host. (integer value)
-#port=6379
+# Template file for PXE configuration (string value)
+#pxe_config_template=$pybasedir/drivers/modules/pxe_config.template
 
-# Password for Redis server. (optional) (string value)
-#password=<None>
+# IP address of Ironic compute node's tftp server (string
+# value)
+#tftp_server=$my_ip
+
+# Ironic compute node's tftp root path (string value)
+#tftp_root=/tftpboot
+
+# Directory where images are stored on disk (string value)
+#images_path=/var/lib/ironic/images/
+
+# Directory where master tftp images are stored on disk
+# (string value)
+#tftp_master_path=/tftpboot/master_images
+
+# Directory where master tftp images are stored on disk
+# (string value)
+#instance_master_path=/var/lib/ironic/master_images
+
+# Neutron bootfile DHCP parameter. (string value)
+#pxe_bootfile_name=pxelinux.0
 
 
 [keystone_authtoken]
@@ -785,38 +804,33 @@
 #auth_strategy=keystone
 
 
-[pxe]
+[neutron]
 
 #
-# Options defined in ironic.drivers.modules.pxe
+# Options defined in ironic.common.neutron
 #
 
-# additional append parameters for baremetal PXE boot (string
+# URL for connecting to neutron (string value)
+#url=http://127.0.0.1:9696
+
+# timeout value for connecting to neutron in seconds (integer
 # value)
-#pxe_append_params=nofb nomodeset vga=normal
+#url_timeout=30
 
-# Template file for PXE configuration (string value)
-#pxe_config_template=$pybasedir/drivers/modules/pxe_config.template
 
-# IP address of Ironic compute node's tftp server (string
-# value)
-#tftp_server=$my_ip
+[matchmaker_redis]
 
-# Ironic compute node's tftp root path (string value)
-#tftp_root=/tftpboot
+#
+# Options defined in ironic.openstack.common.rpc.matchmaker_redis
+#
 
-# Directory where images are stored on disk (string value)
-#images_path=/var/lib/ironic/images/
+# Host to locate redis (string value)
+#host=127.0.0.1
 
-# Directory where master tftp images are stored on disk
-# (string value)
-#tftp_master_path=/tftpboot/master_images
+# Use this port to connect to redis host. (integer value)
+#port=6379
 
-# Directory where master tftp images are stored on disk
-# (string value)
-#instance_master_path=/var/lib/ironic/master_images
-
-# Neutron bootfile DHCP parameter. (string value)
-#pxe_bootfile_name=pxelinux.0
+# Password for Redis server. (optional) (string value)
+#password=<None>
 
 
