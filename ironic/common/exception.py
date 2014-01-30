@@ -101,14 +101,6 @@ class NotAuthorized(IronicException):
     code = 403
 
 
-class AdminRequired(NotAuthorized):
-    message = _("User does not have admin privileges")
-
-
-class PolicyNotAuthorized(NotAuthorized):
-    message = _("Policy doesn't allow %(action)s to be performed.")
-
-
 class OperationNotPermitted(NotAuthorized):
     message = _("Operation not permitted.")
 
@@ -129,18 +121,6 @@ class InvalidState(Conflict):
 
 class MACAlreadyExists(Conflict):
     message = _("A Port with MAC address %(mac)s already exists.")
-
-
-class InvalidCPUInfo(Invalid):
-    message = _("Unacceptable CPU info: %(reason)s")
-
-
-class InvalidIpAddressError(Invalid):
-    message = _("%(address)s is not a valid IP v4/6 address.")
-
-
-class InvalidDiskFormat(Invalid):
-    message = _("Disk format %(disk_format)s is not acceptable")
 
 
 class InvalidUUID(Invalid):
@@ -182,32 +162,12 @@ class NotFound(IronicException):
     code = 404
 
 
-class DiskNotFound(NotFound):
-    message = _("No disk at %(location)s")
-
-
 class DriverNotFound(NotFound):
     message = _("Failed to load driver %(driver_name)s.")
 
 
 class ImageNotFound(NotFound):
     message = _("Image %(image_id)s could not be found.")
-
-
-class HostNotFound(NotFound):
-    message = _("Host %(host)s could not be found.")
-
-
-class ConsoleNotFound(NotFound):
-    message = _("Console %(console_id)s could not be found.")
-
-
-class FileNotFound(NotFound):
-    message = _("File %(file_path)s could not be found.")
-
-
-class NoValidHost(NotFound):
-    message = _("No valid host was found. %(reason)s")
 
 
 class InstanceNotFound(NotFound):
@@ -256,19 +216,9 @@ class NodeMaintenanceFailure(Invalid):
                 "for node %(node)s: %(reason)s")
 
 
-class NodeInUse(InvalidState):
-    message = _("Unable to complete the requested action because node "
-                "%(node)s is currently in use by another process.")
-
-
 class NodeInWrongPowerState(InvalidState):
     message = _("Can not change instance association while node "
                 "%(node)s is in power state %(pstate)s.")
-
-
-class NodeNotConfigured(InvalidState):
-    message = _("Can not change power state because node %(node)s "
-                "is not fully configured.")
 
 
 class ChassisNotEmpty(Invalid):
@@ -336,10 +286,6 @@ class Forbidden(IronicException):
 
 class BadRequest(IronicException):
     pass
-
-
-class HTTPException(IronicException):
-    message = _("Requested version of OpenStack Images API is not available.")
 
 
 class InvalidEndpoint(IronicException):
