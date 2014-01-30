@@ -344,10 +344,12 @@ class MkfsTestCase(base.TestCase):
             utils.mkfs('msdos', '/my/msdos/block/dev')
             utils.mkfs('swap', '/my/swap/block/dev')
 
-            expected = [mock.call('mkfs', '-t', 'ext4', '-F', '/my/block/dev'),
-                        mock.call('mkfs', '-t', 'msdos',
-                                  '/my/msdos/block/dev'),
-                        mock.call('mkswap', '/my/swap/block/dev')]
+            expected = [mock.call('mkfs', '-t', 'ext4', '-F', '/my/block/dev',
+                                  run_as_root=True),
+                        mock.call('mkfs', '-t', 'msdos', '/my/msdos/block/dev',
+                                  run_as_root=True),
+                        mock.call('mkswap', '/my/swap/block/dev',
+                                  run_as_root=True)]
             self.assertEqual(execute_mock.call_args_list, expected)
 
     def test_mkfs_with_label(self):
@@ -356,12 +358,12 @@ class MkfsTestCase(base.TestCase):
             utils.mkfs('msdos', '/my/msdos/block/dev', 'msdos-vol')
             utils.mkfs('swap', '/my/swap/block/dev', 'swap-vol')
 
-            expected = [mock.call('mkfs', '-t', 'ext4', '-F', '-L',
-                                  'ext4-vol', '/my/block/dev'),
-                        mock.call('mkfs', '-t', 'msdos', '-n',
-                                  'msdos-vol', '/my/msdos/block/dev'),
+            expected = [mock.call('mkfs', '-t', 'ext4', '-F', '-L', 'ext4-vol',
+                                  '/my/block/dev', run_as_root=True),
+                        mock.call('mkfs', '-t', 'msdos', '-n', 'msdos-vol',
+                                  '/my/msdos/block/dev', run_as_root=True),
                         mock.call('mkswap', '-L', 'swap-vol',
-                                  '/my/swap/block/dev')]
+                                  '/my/swap/block/dev', run_as_root=True)]
             self.assertEqual(execute_mock.call_args_list, expected)
 
 
