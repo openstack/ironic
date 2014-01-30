@@ -42,10 +42,6 @@ from ironic.openstack.common import log as logging
 from ironic.openstack.common import loopingcall
 
 pxe_opts = [
-    cfg.StrOpt('deploy_kernel',
-               help='Default kernel image ID used in deployment phase'),
-    cfg.StrOpt('deploy_ramdisk',
-               help='Default ramdisk image ID used in deployment phase'),
     cfg.StrOpt('net_config_template',
                default=paths.basedir_def('ironic/net-dhcp.ubuntu.template'),
                help='Template file for injected network config'),
@@ -99,10 +95,8 @@ def _parse_driver_info(node):
     info = node.get('driver_info', {})
     d_info = {}
     d_info['image_source'] = info.get('pxe_image_source', None)
-    d_info['deploy_kernel'] = info.get('pxe_deploy_kernel',
-                                       CONF.pxe.deploy_kernel)
-    d_info['deploy_ramdisk'] = info.get('pxe_deploy_ramdisk',
-                                        CONF.pxe.deploy_ramdisk)
+    d_info['deploy_kernel'] = info.get('pxe_deploy_kernel', None)
+    d_info['deploy_ramdisk'] = info.get('pxe_deploy_ramdisk', None)
     d_info['root_gb'] = info.get('pxe_root_gb', None)
 
     missing_info = []

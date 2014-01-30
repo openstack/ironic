@@ -791,14 +791,6 @@
 # Options defined in ironic.drivers.modules.pxe
 #
 
-# Default kernel image ID used in deployment phase (string
-# value)
-#deploy_kernel=<None>
-
-# Default ramdisk image ID used in deployment phase (string
-# value)
-#deploy_ramdisk=<None>
-
 # Template file for injected network config (string value)
 #net_config_template=$pybasedir/ironic/net-dhcp.ubuntu.template
 
