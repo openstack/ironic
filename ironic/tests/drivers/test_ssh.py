@@ -146,7 +146,8 @@ class SSHPrivateMethodsTestCase(base.TestCase):
             ssh_connect_mock.return_value = self.sshclient
             client = ssh._get_connection(self.node)
             self.assertEqual(self.sshclient, client)
-            ssh_connect_mock.assert_called_once(self.node)
+            driver_info = ssh._parse_driver_info(self.node)
+            ssh_connect_mock.assert_called_once_with(driver_info)
 
     def test__get_connection_exception(self):
         with mock.patch.object(
@@ -156,7 +157,8 @@ class SSHPrivateMethodsTestCase(base.TestCase):
             self.assertRaises(exception.SSHConnectFailed,
                               ssh._get_connection,
                               self.node)
-            ssh_connect_mock.assert_called_once(self.node)
+            driver_info = ssh._parse_driver_info(self.node)
+            ssh_connect_mock.assert_called_once_with(driver_info)
 
     def test__ssh_execute(self):
         ssh_cmd = "somecmd"
@@ -609,7 +611,8 @@ class SSHDriverTestCase(db_base.DbTestCase):
                 self.assertRaises(exception.InvalidParameterValue,
                                   task.resources[0].driver.power.validate,
                                   self.node)
-                ssh_connect_mock.assert_called_once()
+                driver_info = ssh._parse_driver_info(self.node)
+                ssh_connect_mock.assert_called_once_with(driver_info)
 
     def test_reboot_good(self):
         info = ssh._parse_driver_info(self.node)

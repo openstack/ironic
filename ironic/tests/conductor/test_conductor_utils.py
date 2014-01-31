@@ -90,7 +90,7 @@ class NodePowerActionTestCase(base.DbTestCase):
                                               states.REBOOT)
 
             node.refresh(self.context)
-            reboot_mock.assert_called_once()
+            reboot_mock.assert_called_once_with(mock.ANY, mock.ANY)
             self.assertEqual(node['power_state'], states.POWER_ON)
             self.assertIsNone(node['target_power_state'])
             self.assertIsNone(node['last_error'])

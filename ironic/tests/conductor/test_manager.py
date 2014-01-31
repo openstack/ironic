@@ -487,7 +487,7 @@ class ManagerTestCase(base.DbTestCase):
             self.assertEqual(node['provision_state'], states.DEPLOYFAIL)
             self.assertEqual(node['target_provision_state'], states.NOSTATE)
             self.assertIsNotNone(node['last_error'])
-            deploy.assert_called_once()
+            deploy.assert_called_once_with(mock.ANY, mock.ANY)
 
     def test_do_node_deploy_ok(self):
         # test when driver.deploy.deploy returns DEPLOYDONE
@@ -503,7 +503,7 @@ class ManagerTestCase(base.DbTestCase):
             self.assertEqual(node['provision_state'], states.ACTIVE)
             self.assertEqual(node['target_provision_state'], states.NOSTATE)
             self.assertIsNone(node['last_error'])
-            deploy.assert_called_once()
+            deploy.assert_called_once_with(mock.ANY, mock.ANY)
 
     def test_do_node_deploy_partial_ok(self):
         # test when driver.deploy.deploy doesn't return DEPLOYDONE
@@ -519,7 +519,7 @@ class ManagerTestCase(base.DbTestCase):
             self.assertEqual(node['provision_state'], states.DEPLOYING)
             self.assertEqual(node['target_provision_state'], states.DEPLOYDONE)
             self.assertIsNone(node['last_error'])
-            deploy.assert_called_once()
+            deploy.assert_called_once_with(mock.ANY, mock.ANY)
 
     def test_do_node_tear_down_invalid_state(self):
         # test node['provision_state'] is incorrect for tear_down
@@ -546,7 +546,7 @@ class ManagerTestCase(base.DbTestCase):
             self.assertEqual(node['provision_state'], states.ERROR)
             self.assertEqual(node['target_provision_state'], states.NOSTATE)
             self.assertIsNotNone(node['last_error'])
-            deploy.assert_called_once()
+            deploy.assert_called_once_with(mock.ANY, mock.ANY)
 
     def test_do_node_tear_down_ok(self):
         # test when driver.deploy.tear_down returns DELETED
@@ -562,7 +562,7 @@ class ManagerTestCase(base.DbTestCase):
             self.assertEqual(node['provision_state'], states.NOSTATE)
             self.assertEqual(node['target_provision_state'], states.NOSTATE)
             self.assertIsNone(node['last_error'])
-            deploy.assert_called_once()
+            deploy.assert_called_once_with(mock.ANY, mock.ANY)
 
     def test_do_node_tear_down_partial_ok(self):
         # test when driver.deploy.tear_down doesn't return DELETED
@@ -578,7 +578,7 @@ class ManagerTestCase(base.DbTestCase):
             self.assertEqual(node['provision_state'], states.DELETING)
             self.assertEqual(node['target_provision_state'], states.DELETED)
             self.assertIsNone(node['last_error'])
-            deploy.assert_called_once()
+            deploy.assert_called_once_with(mock.ANY, mock.ANY)
 
     def test_validate_driver_interfaces(self):
         ndict = utils.get_test_node(driver='fake')
