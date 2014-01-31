@@ -202,7 +202,7 @@ class TestPatch(base.FunctionalTest):
         self.assertEqual('application/json', response.content_type)
         self.assertEqual(200, response.status_code)
         result = self.get_json('/chassis/%s' % cdict['uuid'])
-        self.assertEqual(None, result['description'])
+        self.assertIsNone(result['description'])
 
         # Assert nothing else was changed
         self.assertEqual(cdict['uuid'], result['uuid'])

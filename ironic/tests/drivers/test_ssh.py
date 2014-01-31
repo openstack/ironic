@@ -283,7 +283,7 @@ class SSHPrivateMethodsTestCase(base.TestCase):
 
         found_name = ssh._get_hosts_name_for_node(self.sshclient, info)
 
-        self.assertEqual(found_name, None)
+        self.assertIsNone(found_name)
         self.assertEqual(self.exec_ssh_mock.call_args_list, expected)
 
     def test__get_hosts_name_for_node_exception(self):

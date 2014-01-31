@@ -344,7 +344,7 @@ class DbNodeTestCase(base.DbTestCase):
         # release reservation
         self.dbapi.release_nodes(r1, [uuid])
         res = self.dbapi.get_node(uuid)
-        self.assertEqual(None, res['reservation'])
+        self.assertIsNone(res['reservation'])
 
     def test_reservation_of_reserved_node_fails(self):
         n = self._create_test_node()
@@ -461,4 +461,4 @@ class DbNodeTestCase(base.DbTestCase):
 
         for uuid in uuids:
             res = self.dbapi.get_node(uuid)
-            self.assertEqual(None, res['reservation'])
+            self.assertIsNone(res['reservation'])
