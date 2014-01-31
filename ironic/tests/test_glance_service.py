@@ -99,9 +99,9 @@ class TestGlanceImageService(base.TestCase):
         self.context.project_id = 'fake'
         self.service = service.Service(client, 1, self.context)
 
-        CONF.set_default('glance_host', 'localhost', group='glance')
+        self.config(glance_host='localhost', group='glance')
         try:
-            CONF.set_default('auth_strategy', 'keystone', group='glance')
+            self.config(auth_strategy='keystone', group='glance')
         except Exception:
             opts = [
                 cfg.StrOpt('auth_strategy', default='keystone'),
@@ -647,9 +647,9 @@ class TestServiceUtils(base.TestCase):
 
     def test_generate_image_url(self):
         image_href = 'image_uuid'
-        CONF.set_default('glance_host', '123.123.123.123', group='glance')
-        CONF.set_default('glance_port', 1234, group='glance')
-        CONF.set_default('glance_protocol', 'https', group='glance')
+        self.config(glance_host='123.123.123.123', group='glance')
+        self.config(glance_port=1234, group='glance')
+        self.config(glance_protocol='https', group='glance')
         generated_url = service_utils.generate_image_url(image_href)
         self.assertEqual(generated_url,
                          'https://123.123.123.123:1234/images/image_uuid')
