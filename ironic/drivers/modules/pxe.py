@@ -42,9 +42,6 @@ from ironic.openstack.common import log as logging
 from ironic.openstack.common import loopingcall
 
 pxe_opts = [
-    cfg.StrOpt('net_config_template',
-               default=paths.basedir_def('ironic/net-dhcp.ubuntu.template'),
-               help='Template file for injected network config'),
     cfg.StrOpt('pxe_append_params',
                default='nofb nomodeset vga=normal',
                help='additional append parameters for baremetal PXE boot'),
