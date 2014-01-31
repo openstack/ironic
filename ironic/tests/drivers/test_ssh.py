@@ -91,6 +91,15 @@ class SSHValidateParametersTestCase(base.TestCase):
                 ssh._parse_driver_info,
                 node)
 
+    def test__parse_driver_info_ssh_port_wrong_type(self):
+        # make sure error is raised when ssh_port is not integer
+        info = dict(INFO_DICT)
+        info['ssh_port'] = 'wrong_port_value'
+        node = db_utils.get_test_node(driver_info=info)
+        self.assertRaises(exception.InvalidParameterValue,
+                ssh._parse_driver_info,
+                node)
+
     def test__parse_driver_info_missing_key(self):
         # make sure error is raised when info is missing
         info = dict(INFO_DICT)

@@ -108,7 +108,11 @@ def _parse_driver_info(node):
     address = info.get('ssh_address', None)
     username = info.get('ssh_username', None)
     password = info.get('ssh_password', None)
-    port = info.get('ssh_port', 22)
+    try:
+        port = int(info.get('ssh_port', 22))
+    except ValueError:
+        raise exception.InvalidParameterValue(_(
+            "SSHPowerDriver requires ssh_port to be integer value"))
     key_filename = info.get('ssh_key_filename', None)
     virt_type = info.get('ssh_virt_type', None)
 
