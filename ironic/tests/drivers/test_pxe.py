@@ -290,6 +290,26 @@ class PXEPrivateMethodsTestCase(base.TestCase):
         db_key = db_node['driver_info'].get('pxe_deploy_key')
         self.assertEqual(db_key, fake_key)
 
+    def test__get_nodes_mac_addresses(self):
+        ports = []
+        ports.append(
+            self.dbapi.create_port(
+                db_utils.get_test_port(
+                    id=6,
+                    address='aa:bb:cc',
+                    uuid='bb43dc0b-03f2-4d2e-ae87-c02d7f33cc53',
+                    node_id='123')))
+        ports.append(
+            self.dbapi.create_port(
+                db_utils.get_test_port(
+                    id=7,
+                    address='dd:ee:ff',
+                    uuid='4fc26c0b-03f2-4d2e-ae87-c02d7f33c234',
+                    node_id='123')))
+        with task_manager.acquire(self.context, [self.node['uuid']]) as task:
+            node_macs = pxe._get_node_mac_addresses(task, self.node)
+        self.assertEqual(node_macs, ['aa:bb:cc', 'dd:ee:ff'])
+
     def test__dhcp_options_for_instance(self):
         CONF.set_default('pxe_bootfile_name', 'test_pxe_bootfile', group='pxe')
         CONF.set_default('tftp_server', '192.0.2.1', group='pxe')
@@ -482,26 +502,6 @@ class PXEDriverTestCase(db_base.DbTestCase):
             self.assertRaises(exception.InvalidParameterValue,
                               task.resources[0].driver.deploy.validate,
                               self.node)
-
-    def test__get_nodes_mac_addresses(self):
-        ports = []
-        ports.append(
-            self.dbapi.create_port(
-                db_utils.get_test_port(
-                    id=6,
-                    address='aa:bb:cc',
-                    uuid='bb43dc0b-03f2-4d2e-ae87-c02d7f33cc53',
-                    node_id='123')))
-        ports.append(
-            self.dbapi.create_port(
-                db_utils.get_test_port(
-                    id=7,
-                    address='dd:ee:ff',
-                    uuid='4fc26c0b-03f2-4d2e-ae87-c02d7f33c234',
-                    node_id='123')))
-        with task_manager.acquire(self.context, [self.node['uuid']]) as task:
-            node_macs = pxe._get_node_mac_addresses(task, self.node)
-        self.assertEqual(node_macs, ['aa:bb:cc', 'dd:ee:ff'])
 
     def test_vendor_passthru_validate_good(self):
         with task_manager.acquire(self.context, [self.node['uuid']],
