@@ -151,6 +151,18 @@ grep foo
             os.unlink(tmpfilename)
             os.unlink(tmpfilename2)
 
+    def test_execute_get_root_helper(self):
+        with mock.patch.object(processutils, 'execute') as execute_mock:
+            helper = utils._get_root_helper()
+            utils.execute('foo', run_as_root=True)
+            execute_mock.assert_called_once_with('foo', run_as_root=True,
+                                                 root_helper=helper)
+
+    def test_execute_without_root_helper(self):
+        with mock.patch.object(processutils, 'execute') as execute_mock:
+            utils.execute('foo', run_as_root=False)
+            execute_mock.assert_called_once_with('foo', run_as_root=False)
+
 
 class GenericUtilsTestCase(base.TestCase):
     def test_hostname_unicode_sanitization(self):
