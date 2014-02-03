@@ -19,7 +19,6 @@ Tests for the API /chassis/ methods.
 import datetime
 
 from oslo.config import cfg
-import webtest.app
 
 from ironic.common import utils
 from ironic.openstack.common import timeutils
@@ -267,9 +266,12 @@ class TestPatch(base.FunctionalTest):
 
     def test_remove_uuid(self):
         cdict = dbutils.get_test_chassis()
-        self.assertRaises(webtest.app.AppError, self.patch_json,
-                          '/chassis/%s' % cdict['uuid'],
-                          [{'path': '/uuid', 'op': 'remove'}])
+        response = self.patch_json('/chassis/%s' % cdict['uuid'],
+                                   [{'path': '/uuid', 'op': 'remove'}],
+                                   expect_errors=True)
+        self.assertEqual(response.status_int, 400)
+        self.assertEqual(response.content_type, 'application/json')
+        self.assertTrue(response.json['error_message'])
 
 
 class TestPost(base.FunctionalTest):
@@ -316,8 +318,10 @@ class TestPost(base.FunctionalTest):
 
     def test_create_chassis_invalid_extra(self):
         cdict = dbutils.get_test_chassis(extra={'foo': 0.123})
-        self.assertRaises(webtest.app.AppError, self.post_json, '/chassis',
-                          cdict)
+        response = self.post_json('/chassis', cdict, expect_errors=True)
+        self.assertEqual(response.status_int, 400)
+        self.assertEqual(response.content_type, 'application/json')
+        self.assertTrue(response.json['error_message'])
 
     def test_create_chassis_unicode_description(self):
         descr = u'\u0430\u043c\u043e'
