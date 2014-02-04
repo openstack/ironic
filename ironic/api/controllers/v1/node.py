@@ -51,8 +51,8 @@ class NodePatchType(types.JsonPatchType):
     def internal_attrs():
         defaults = types.JsonPatchType.internal_attrs()
         return defaults + ['/last_error', '/maintenance', '/power_state',
-                           '/provision_state', '/target_power_state',
-                           '/target_provision_state']
+                           '/provision_state', '/reservation',
+                           '/target_power_state', '/target_provision_state']
 
     @staticmethod
     def mandatory_attrs():
@@ -243,6 +243,10 @@ class Node(base.APIBase):
     provision_state = wtypes.text
     "Represent the current (not transition) provision state of the node"
 
+     # TODO(yuriyz): make 'reservation' read-only for users
+    reservation = wtypes.text
+    "The hostname of the conductor that holds an exclusive lock on the node."
+
     maintenance = wsme.wsattr(bool, default=False)
     "Indicates whether the node is in maintenance mode."
 
@@ -326,7 +330,7 @@ class Node(base.APIBase):
                      target_power_state=ir_states.NOSTATE,
                      last_error=None, provision_state=ir_states.ACTIVE,
                      target_provision_state=ir_states.NOSTATE,
-                     driver='fake', driver_info={}, extra={},
+                     reservation=None, driver='fake', driver_info={}, extra={},
                      properties={'memory_mb': '1024', 'local_gb': '10',
                      'cpus': '1'}, updated_at=time, created_at=time)
         # NOTE(matty_dubs): The chassis_uuid getter() is based on the
