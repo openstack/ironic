@@ -88,7 +88,5 @@ class NeutronAPI(object):
         try:
             self.client.update_port(port_id, port_req_body)
         except neutron_client_exc.NeutronClientException:
-            LOG.exception(_('Neutron error updating port: %s') %
-                          port_id)
-            raise exception.FailedToUpdateDHCPOptOnPort(
-                port_id=port_id)
+            LOG.exception(_("Failed to update Neutron port %s."), port_id)
+            raise exception.FailedToUpdateDHCPOptOnPort(port_id=port_id)
