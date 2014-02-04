@@ -158,7 +158,7 @@ class PXEValidateParametersTestCase(base.TestCase):
 
     def test__download_in_progress_wait(self):
         try:
-            CONF.set_default('auth_strategy', 'keystone')
+            self.config(auth_strategy='keystone')
         except Exception:
             opts = [
                 cfg.StrOpt('auth_strategy', default='keystone'),
@@ -249,10 +249,9 @@ class PXEPrivateMethodsTestCase(base.TestCase):
             self.assertEqual(image_info, expected_info)
 
     def test__build_pxe_config(self):
-        CONF.set_default('pxe_append_params', 'test_param', group='pxe')
+        self.config(pxe_append_params='test_param', group='pxe')
         # NOTE: right '/' should be removed from url string
-        CONF.set_default('api_url', 'http://192.168.122.184:6385/',
-                group='conductor')
+        self.config(api_url='http://192.168.122.184:6385/', group='conductor')
 
         template = 'ironic/tests/drivers/pxe_config.template'
         pxe_config_template = open(template, 'r').read()
@@ -291,8 +290,8 @@ class PXEPrivateMethodsTestCase(base.TestCase):
         self.assertEqual(db_key, fake_key)
 
     def test__dhcp_options_for_instance(self):
-        CONF.set_default('pxe_bootfile_name', 'test_pxe_bootfile', group='pxe')
-        CONF.set_default('tftp_server', '192.0.2.1', group='pxe')
+        self.config(pxe_bootfile_name='test_pxe_bootfile', group='pxe')
+        self.config(tftp_server='192.0.2.1', group='pxe')
         expected_info = [{'opt_name': 'bootfile-name',
                           'opt_value': 'test_pxe_bootfile'},
                          {'opt_name': 'server-ip-address',
@@ -325,10 +324,10 @@ class PXEPrivateMethodsTestCase(base.TestCase):
 
     def test__cache_tftp_images_master_path(self):
         temp_dir = tempfile.mkdtemp()
-        CONF.set_default('tftp_root', temp_dir, group='pxe')
-        CONF.set_default('tftp_master_path', os.path.join(temp_dir,
-                                                          'tftp_master_path'),
-                         group='pxe')
+        self.config(tftp_root=temp_dir, group='pxe')
+        self.config(tftp_master_path=os.path.join(temp_dir,
+                                                  'tftp_master_path'),
+                    group='pxe')
         image_info = {'deploy_kernel': ['deploy_kernel',
                                         os.path.join(temp_dir,
                                                      self.node.uuid,
@@ -352,8 +351,8 @@ class PXEPrivateMethodsTestCase(base.TestCase):
 
     def test__cache_tftp_images_no_master_path(self):
         temp_dir = tempfile.mkdtemp()
-        CONF.set_default('tftp_root', temp_dir, group='pxe')
-        CONF.set_default('tftp_master_path', None, group='pxe')
+        self.config(tftp_root=temp_dir, group='pxe')
+        self.config(tftp_master_path=None, group='pxe')
         image_info = {'deploy_kernel': ['deploy_kernel',
                                         os.path.join(temp_dir,
                                         self.node.uuid, 'deploy_kernel')]}
@@ -370,8 +369,8 @@ class PXEPrivateMethodsTestCase(base.TestCase):
 
     def test__cache_instance_images_no_master_path(self):
         temp_dir = tempfile.mkdtemp()
-        CONF.set_default('images_path', temp_dir, group='pxe')
-        CONF.set_default('instance_master_path', None, group='pxe')
+        self.config(images_path=temp_dir, group='pxe')
+        self.config(instance_master_path=None, group='pxe')
 
         with mock.patch.object(images, 'fetch_to_raw') as fetch_to_raw_mock:
             fetch_to_raw_mock.return_value = None
@@ -388,9 +387,9 @@ class PXEPrivateMethodsTestCase(base.TestCase):
 
     def test__cache_instance_images_master_path(self):
         temp_dir = tempfile.mkdtemp()
-        CONF.set_default('images_path', temp_dir, group='pxe')
-        CONF.set_default('instance_master_path',
-                         os.path.join(temp_dir, 'instance_master_path'),
+        self.config(images_path=temp_dir, group='pxe')
+        self.config(instance_master_path=os.path.join(temp_dir,
+                                                      'instance_master_path'),
                          group='pxe')
         fileutils.ensure_tree(CONF.pxe.instance_master_path)
         fd, tmp_master_image = tempfile.mkstemp(
@@ -451,9 +450,9 @@ class PXEDriverTestCase(db_base.DbTestCase):
         self.context = context.get_admin_context()
         self.context.auth_token = '4562138218392831'
         self.temp_dir = tempfile.mkdtemp()
-        CONF.set_default('tftp_root', self.temp_dir, group='pxe')
+        self.config(tftp_root=self.temp_dir, group='pxe')
         self.temp_dir = tempfile.mkdtemp()
-        CONF.set_default('images_path', self.temp_dir, group='pxe')
+        self.config(images_path=self.temp_dir, group='pxe')
         mgr_utils.get_mocked_node_manager(driver='fake_pxe')
         driver_info = INFO_DICT
         driver_info['pxe_deploy_key'] = 'fake-56789'
@@ -699,11 +698,9 @@ class PXEDriverTestCase(db_base.DbTestCase):
                                                'tftp_master')
                 instance_master_dir = os.path.join(CONF.pxe.images_path,
                                                    'instance_master')
-                CONF.set_default('tftp_master_path',
-                                 tftp_master_dir,
-                                 group='pxe')
-                CONF.set_default('instance_master_path', instance_master_dir,
-                                 group='pxe')
+                self.config(tftp_master_path=tftp_master_dir, group='pxe')
+                self.config(instance_master_path=instance_master_dir,
+                            group='pxe')
                 os.makedirs(tftp_master_dir)
                 os.makedirs(instance_master_dir)
                 master_deploy_kernel_path = os.path.join(tftp_master_dir,
@@ -724,8 +721,8 @@ class PXEDriverTestCase(db_base.DbTestCase):
                     os.link(master_instance_path, image_link)
 
             else:
-                CONF.set_default('tftp_master_path', '', group='pxe')
-                CONF.set_default('instance_master_path', '', group='pxe')
+                self.config(tftp_master_path='', group='pxe')
+                self.config(instance_master_path='', group='pxe')
                 open(deploy_kernel_path, 'w').close()
                 open(image_path, 'w').close()
 
