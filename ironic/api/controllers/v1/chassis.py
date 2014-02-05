@@ -187,7 +187,7 @@ class ChassisController(rest.RestController):
                                                   chassis_uuid)
         return Chassis.convert_with_links(rpc_chassis)
 
-    @wsme_pecan.wsexpose(Chassis, body=Chassis)
+    @wsme_pecan.wsexpose(Chassis, body=Chassis, status_code=201)
     def post(self, chassis):
         """Create a new chassis.
 

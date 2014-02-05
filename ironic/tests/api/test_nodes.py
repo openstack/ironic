@@ -527,7 +527,8 @@ class TestPost(base.FunctionalTest):
         ndict = post_get_test_node()
         t1 = datetime.datetime(2000, 1, 1, 0, 0)
         timeutils.set_time_override(t1)
-        self.post_json('/nodes', ndict)
+        response = self.post_json('/nodes', ndict)
+        self.assertEqual(201, response.status_int)
         result = self.get_json('/nodes/%s' % ndict['uuid'])
         self.assertEqual(ndict['uuid'], result['uuid'])
         self.assertFalse(result['updated_at'])
@@ -613,7 +614,7 @@ class TestPost(base.FunctionalTest):
         del ndict['chassis_uuid']
         response = self.post_json('/nodes', ndict)
         self.assertEqual(response.content_type, 'application/json')
-        self.assertEqual(response.status_int, 200)
+        self.assertEqual(response.status_int, 201)
 
     def test_create_node_chassis_uuid_not_found(self):
         ndict = post_get_test_node(

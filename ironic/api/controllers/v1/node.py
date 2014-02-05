@@ -548,7 +548,7 @@ class NodesController(rest.RestController):
         rpc_node = objects.Node.get_by_uuid(pecan.request.context, node_uuid)
         return Node.convert_with_links(rpc_node)
 
-    @wsme_pecan.wsexpose(Node, body=Node)
+    @wsme_pecan.wsexpose(Node, body=Node, status_code=201)
     def post(self, node):
         """Create a new node.
 

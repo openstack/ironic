@@ -245,7 +245,7 @@ class PortsController(rest.RestController):
         rpc_port = objects.Port.get_by_uuid(pecan.request.context, port_uuid)
         return Port.convert_with_links(rpc_port)
 
-    @wsme_pecan.wsexpose(Port, body=Port)
+    @wsme_pecan.wsexpose(Port, body=Port, status_code=201)
     def post(self, port):
         """Create a new port.
 
