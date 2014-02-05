@@ -556,7 +556,7 @@ class PXEDriverTestCase(db_base.DbTestCase):
                 with task_manager.acquire(self.context,
                         self.node['uuid'], shared=False) as task:
                     state = task.driver.deploy.deploy(task, self.node)
-                    self.assertEqual(state, states.DEPLOYING)
+                    self.assertEqual(state, states.DEPLOYWAIT)
                     update_neutron_mock.assert_called_once_with(task,
                                                                 self.node)
                     node_power_mock.assert_called_once_with(task, self.node,
@@ -587,6 +587,7 @@ class PXEDriverTestCase(db_base.DbTestCase):
     def test_continue_deploy_good(self):
         token_path = self._create_token_file()
         self.node.power_state = states.POWER_ON
+        self.node.provision_state = states.DEPLOYWAIT
         self.node.save(self.context)
 
         def fake_deploy(**kwargs):
@@ -609,6 +610,7 @@ class PXEDriverTestCase(db_base.DbTestCase):
     def test_continue_deploy_fail(self):
         token_path = self._create_token_file()
         self.node.power_state = states.POWER_ON
+        self.node.provision_state = states.DEPLOYWAIT
         self.node.save(self.context)
 
         def fake_deploy(**kwargs):
@@ -631,6 +633,7 @@ class PXEDriverTestCase(db_base.DbTestCase):
     def test_continue_deploy_ramdisk_fails(self):
         token_path = self._create_token_file()
         self.node.power_state = states.POWER_ON
+        self.node.provision_state = states.DEPLOYWAIT
         self.node.save(self.context)
 
         def fake_deploy(**kwargs):
@@ -649,6 +652,19 @@ class PXEDriverTestCase(db_base.DbTestCase):
         self.assertEqual(states.POWER_OFF, self.node.power_state)
         self.assertIsNotNone(self.node.last_error)
         self.assertFalse(os.path.exists(token_path))
+
+    def test_continue_deploy_invalid(self):
+        self.node.power_state = states.POWER_ON
+        self.node.provision_state = 'FAKE'
+        self.node.save(self.context)
+
+        with task_manager.acquire(self.context, [self.node.uuid],
+                                  shared=True) as task:
+            task.resources[0].driver.vendor.vendor_passthru(task, self.node,
+                    method='pass_deploy_info', address='123456', iqn='aaa-bbb',
+                    key='fake-56789', error='test ramdisk error')
+        self.assertEqual('FAKE', self.node.provision_state)
+        self.assertEqual(states.POWER_ON, self.node.power_state)
 
     def test_lock_elevated(self):
         with task_manager.acquire(self.context, [self.node['uuid']],

@@ -499,7 +499,7 @@ class PXEDeploy(base.DeployInterface):
         _update_neutron(task, node)
         manager_utils.node_power_action(task, node, states.REBOOT)
 
-        return states.DEPLOYING
+        return states.DEPLOYWAIT
 
     @task_manager.require_exclusive_lock
     def tear_down(self, task, node):
@@ -651,6 +651,12 @@ class VendorPassthru(base.VendorInterface):
                 node.last_error = msg
                 node.save(task.context)
 
+        if node.provision_state != states.DEPLOYWAIT:
+            LOG.error(_('Node %s is not waiting to be deployed.') %
+                      node.uuid)
+            return
+        node.provision_state = states.DEPLOYING
+        node.save(task.context)
         # remove cached keystone token immediately
         _destroy_token_file(node)
 

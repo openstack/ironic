@@ -283,7 +283,7 @@ class ConductorManager(service.PeriodicService):
                     node['provision_state'] = states.DEPLOYFAIL
                     node['target_provision_state'] = states.NOSTATE
             else:
-                # NOTE(deva): Some drivers may return states.DEPLOYING
+                # NOTE(deva): Some drivers may return states.DEPLOYWAIT
                 #             eg. if they are waiting for a callback
                 if new_state == states.DEPLOYDONE:
                     node['target_provision_state'] = states.NOSTATE
@@ -307,7 +307,8 @@ class ConductorManager(service.PeriodicService):
             node = task.node
             if node['provision_state'] not in [states.ACTIVE,
                                                states.DEPLOYFAIL,
-                                               states.ERROR]:
+                                               states.ERROR,
+                                               states.DEPLOYWAIT]:
                 raise exception.InstanceDeployFailure(_(
                     "RCP do_node_tear_down "
                     "not allowed for node %(node)s in state %(state)s")
