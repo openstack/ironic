@@ -21,6 +21,8 @@ import struct
 
 from oslo.config import cfg
 
+from ironic.common import exception
+
 hash_opts = [
     cfg.IntOpt('hash_partition_exponent',
                default=16,
@@ -53,16 +55,25 @@ class HashRing(object):
                          Default: CONF.hash_distribution_replicas
 
         """
-        self.hosts = list(hosts)
-        self.replicas = replicas if replicas <= len(hosts) else len(hosts)
+        try:
+            self.hosts = list(hosts)
+            self.replicas = replicas if replicas <= len(hosts) else len(hosts)
+        except TypeError:
+            raise exception.Invalid(
+                    _("Invalid hosts supplied when building HashRing."))
+
         self.partition_shift = 32 - CONF.hash_partition_exponent
         self.part2host = array.array('H')
         for p in range(2 ** CONF.hash_partition_exponent):
             self.part2host.append(p % len(hosts))
 
     def _get_partition(self, data):
-        return (struct.unpack_from('>I', hashlib.md5(data).digest())[0]
-                >> self.partition_shift)
+        try:
+            return (struct.unpack_from('>I', hashlib.md5(data).digest())[0]
+                    >> self.partition_shift)
+        except TypeError:
+            raise exception.Invalid(
+                    _("Invalid data supplied to HashRing.get_hosts."))
 
     def get_hosts(self, data, ignore_hosts=None):
         """Get the list of hosts which the supplied data maps onto.
