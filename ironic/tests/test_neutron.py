@@ -16,6 +16,7 @@
 
 import mock
 
+from neutronclient.common import exceptions as neutron_client_exc
 from neutronclient.v2_0 import client
 from oslo.config import cfg
 
@@ -108,7 +109,7 @@ class TestNeutron(base.TestCase):
             with mock.patch.object(client.Client,
                                    "update_port") as mock_update_port:
                 mock_update_port.side_effect = (
-                    exception.FailedToUpdateDHCPOptOnPort("test exception"))
+                    neutron_client_exc.NeutronClientException())
                 self.assertRaises(
                         exception.FailedToUpdateDHCPOptOnPort,
                         api.update_port_dhcp_opts,
