@@ -17,7 +17,7 @@ together multiple drivers, each of which implement some portion of that
 functionality with respect to physical hardware.
 
 For an in-depth look at the project's scope and structure, see the
-:doc:`developer/architecture` page.
+:doc:`dev/architecture` page.
 
 
 Status: Alpha Quality
@@ -52,9 +52,9 @@ Overview
 .. toctree::
   :maxdepth: 1
 
-  developer/architecture
-  developer/contributing
-  developer/dev-quickstart
+  dev/architecture
+  dev/contributing
+  dev/dev-quickstart
 
 Client API Reference
 --------------------
@@ -70,11 +70,11 @@ Python API Quick Reference
 .. toctree::
   :maxdepth: 1
 
-  developer/api
-  developer/common
-  developer/db
-  developer/drivers
-  developer/conductor
+  dev/api
+  dev/common
+  dev/db
+  dev/drivers
+  dev/conductor
 
 Indices and tables
 ==================
