@@ -146,7 +146,8 @@ def _check_port_change_forbidden(port, session):
         query = query.filter_by(id=node_id)
         node_ref = query.one()
         if node_ref['reservation'] is not None:
-            raise exception.NodeLocked(node=node_id)
+            raise exception.NodeLocked(node=node_id,
+                                       host=node_ref['reservation'])
 
 
 def _paginate_query(model, limit=None, marker=None, sort_key=None,
@@ -165,7 +166,8 @@ def _check_node_already_locked(query, query_by):
     no_reserv = None
     locked_ref = query.filter(models.Node.reservation != no_reserv).first()
     if locked_ref:
-        raise exception.NodeLocked(node=locked_ref[query_by])
+        raise exception.NodeLocked(node=locked_ref[query_by],
+                                   host=locked_ref['reservation'])
 
 
 def _handle_node_lock_not_found(nodes, query, query_by):
@@ -339,7 +341,8 @@ class Connection(api.Connection):
             except NoResultFound:
                 raise exception.NodeNotFound(node=node_id)
             if node_ref['reservation'] is not None:
-                raise exception.NodeLocked(node=node_id)
+                raise exception.NodeLocked(node=node_id,
+                                           host=node_ref['reservation'])
             if node_ref['instance_uuid'] is not None:
                 raise exception.NodeAssociated(node=node_id,
                                             instance=node_ref['instance_uuid'])

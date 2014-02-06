@@ -385,6 +385,17 @@ class DbNodeTestCase(base.DbTestCase):
         self.assertRaises(exception.InvalidIdentity,
                           self.dbapi.reserve_nodes, 'reserv1', [])
 
+    def test_reservation_in_exception_message(self):
+        n = self._create_test_node()
+        uuid = n['uuid']
+
+        r = 'fake-reservation'
+        self.dbapi.reserve_nodes(r, [uuid])
+        try:
+            self.dbapi.reserve_nodes('another', [uuid])
+        except exception.NodeLocked as e:
+            self.assertIn(r, str(e))
+
     def test_release_overlaping_ranges_fails(self):
         uuids = self._create_many_test_nodes()
 
