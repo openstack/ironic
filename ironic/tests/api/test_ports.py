@@ -19,7 +19,6 @@ Tests for the API /ports/ methods.
 import datetime
 
 from oslo.config import cfg
-import webtest.app
 
 from ironic.common import utils
 from ironic.openstack.common import timeutils
@@ -291,9 +290,12 @@ class TestPatch(base.FunctionalTest):
         self.assertEqual(result['extra'], expected)
 
     def test_remove_uuid(self):
-        self.assertRaises(webtest.app.AppError, self.patch_json,
-                          '/ports/%s' % self.pdict['uuid'],
-                          [{'path': '/uuid', 'op': 'remove'}])
+        response = self.patch_json('/ports/%s' % self.pdict['uuid'],
+                                   [{'path': '/uuid', 'op': 'remove'}],
+                                   expect_errors=True)
+        self.assertEqual(response.status_int, 400)
+        self.assertEqual(response.content_type, 'application/json')
+        self.assertTrue(response.json['error_message'])
 
     def test_update_address_invalid_format(self):
         pdict = post_get_test_port(address="AA:BB:CC:DD:EE:FF",
@@ -354,8 +356,10 @@ class TestPost(base.FunctionalTest):
 
     def test_create_port_invalid_extra(self):
         pdict = post_get_test_port(extra={'foo': 0.123})
-        self.assertRaises(webtest.app.AppError, self.post_json, '/ports',
-                          pdict)
+        response = self.post_json('/ports', pdict, expect_errors=True)
+        self.assertEqual(response.status_int, 400)
+        self.assertEqual(response.content_type, 'application/json')
+        self.assertTrue(response.json['error_message'])
 
     def test_create_port_no_mandatory_field_address(self):
         pdict = post_get_test_port()
@@ -375,8 +379,10 @@ class TestPost(base.FunctionalTest):
 
     def test_create_port_invalid_addr_format(self):
         pdict = post_get_test_port(address='invalid-format')
-        self.assertRaises(webtest.app.AppError, self.post_json, '/ports',
-                          pdict)
+        response = self.post_json('/ports', pdict, expect_errors=True)
+        self.assertEqual(response.status_int, 400)
+        self.assertEqual(response.content_type, 'application/json')
+        self.assertTrue(response.json['error_message'])
 
     def test_create_port_address_normalized(self):
         address = 'AA:BB:CC:DD:EE:FF'
@@ -390,9 +396,10 @@ class TestPost(base.FunctionalTest):
         colonsMAC = pdict['address']
         hyphensMAC = colonsMAC.replace(':', '-')
         pdict['address'] = hyphensMAC
-        self.assertRaises(webtest.app.AppError,
-                          self.post_json,
-                          '/ports', pdict)
+        response = self.post_json('/ports', pdict, expect_errors=True)
+        self.assertEqual(response.status_int, 400)
+        self.assertEqual(response.content_type, 'application/json')
+        self.assertTrue(response.json['error_message'])
 
     def test_create_port_invalid_node_uuid_format(self):
         pdict = post_get_test_port(node_uuid='invalid-format')
