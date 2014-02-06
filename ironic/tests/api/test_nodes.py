@@ -433,13 +433,12 @@ class TestPatch(base.FunctionalTest):
         self.mock_update_node.assert_called_once_with(
                 mock.ANY, mock.ANY, 'test-topic')
 
-    def test_remove_fail(self):
+    def test_remove_non_existent_property_fail(self):
         response = self.patch_json('/nodes/%s' % self.node['uuid'],
                              [{'path': '/extra/non-existent', 'op': 'remove'}],
                              expect_errors=True)
         self.assertEqual(response.content_type, 'application/json')
-        # FIXME(lucasagomes): It should return 400 instead of 500
-        self.assertEqual(response.status_code, 500)
+        self.assertEqual(response.status_code, 400)
         self.assertTrue(response.json['error_message'])
 
     def test_update_state_in_progress(self):

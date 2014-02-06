@@ -588,9 +588,8 @@ class NodesController(rest.RestController):
         try:
             node = Node(**jsonpatch.apply_patch(rpc_node.as_dict(),
                                                 jsonpatch.JsonPatch(patch)))
-        except jsonpatch.JsonPatchException as e:
-            LOG.exception(e)
-            raise wsme.exc.ClientSideError(_("Patching Error: %s") % e)
+        except api_utils.JSONPATCH_EXCEPTIONS as e:
+            raise exception.PatchError(patch=patch, reason=e)
 
         # Update only the fields that have changed
         for field in objects.Node.fields:

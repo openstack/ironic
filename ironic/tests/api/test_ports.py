@@ -257,6 +257,14 @@ class TestPatch(base.FunctionalTest):
         self.assertEqual(result['uuid'], pdict['uuid'])
         self.assertEqual(result['address'], pdict['address'])
 
+    def test_remove_non_existent_property_fail(self):
+        response = self.patch_json('/ports/%s' % self.pdict['uuid'],
+                             [{'path': '/extra/non-existent', 'op': 'remove'}],
+                             expect_errors=True)
+        self.assertEqual(response.content_type, 'application/json')
+        self.assertEqual(response.status_code, 400)
+        self.assertTrue(response.json['error_message'])
+
     def test_remove_mandatory_field(self):
         pdict = post_get_test_port(address="AA:BB:CC:DD:EE:FF",
                                    uuid=utils.generate_uuid())
