@@ -1,4 +1,4 @@
-pbr>=0.5.21,<1.0
+pbr>=0.6,<1.0
 SQLAlchemy>=0.7.8,<=0.8.99
 amqplib>=0.6.1
 anyjson>=0.3.3
@@ -16,7 +16,7 @@ paramiko>=1.9.0
 iso8601>=0.1.8
 python-neutronclient>=2.3.3,<3
 python-glanceclient>=0.9.0
-python-keystoneclient>=0.4.2
+python-keystoneclient>=0.5.0
 stevedore>=0.14
 websockify>=0.5.1,<0.6
 oslo.config>=1.2.0
@@ -24,6 +24,6 @@ oslo.rootwrap
 pecan>=0.2.0
 six>=1.4.1
 jsonpatch>=1.1
-WSME>=0.5b6
+WSME>=0.6
 Jinja2
 pyghmi>=0.5.8
