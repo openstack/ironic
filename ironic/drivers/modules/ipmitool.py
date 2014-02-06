@@ -302,6 +302,9 @@ class IPMIPower(base.PowerInterface):
         if state != states.POWER_ON:
             raise exception.PowerStateFailure(pstate=states.POWER_ON)
 
+
+class VendorPassthru(base.VendorInterface):
+
     @task_manager.require_exclusive_lock
     def _set_boot_device(self, task, node, device, persistent=False):
         """Set the boot device for a node.
@@ -328,3 +331,25 @@ class IPMIPower(base.PowerInterface):
             # TODO(deva): validate (out, err) and add unit test for failure
         except Exception:
             raise exception.IPMIFailure(cmd=cmd)
+
+    def validate(self, node, **kwargs):
+        method = kwargs['method']
+        if method == 'set_boot_device':
+            device = kwargs.get('device', None)
+            if device not in VALID_BOOT_DEVICES:
+                raise exception.InvalidParameterValue(_(
+                    "Invalid boot device %s specified.") % device)
+        else:
+            raise exception.InvalidParameterValue(_(
+                "Unsupported method (%s) passed to IPMItool driver.")
+                % method)
+
+        return True
+
+    def vendor_passthru(self, task, node, **kwargs):
+        method = kwargs['method']
+        if method == 'set_boot_device':
+            return self._set_boot_device(
+                        task, node,
+                        kwargs.get('device'),
+                        kwargs.get('persistent', False))
