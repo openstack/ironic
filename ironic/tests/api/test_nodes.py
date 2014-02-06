@@ -105,7 +105,7 @@ class TestListNodes(base.FunctionalTest):
         node = self.dbapi.create_node(ndict)
         response = self.get_json('/nodes/%s/detail' % node['uuid'],
                                  expect_errors=True)
-        self.assertEqual(response.status_int, 404)
+        self.assertEqual(404, response.status_int)
 
     def test_many(self):
         nodes = []
@@ -126,7 +126,7 @@ class TestListNodes(base.FunctionalTest):
         self.dbapi.create_node(ndict)
         data = self.get_json('/nodes/%s' % uuid)
         self.assertIn('links', data.keys())
-        self.assertEqual(len(data['links']), 2)
+        self.assertEqual(2, len(data['links']))
         self.assertIn(uuid, data['links'][0]['href'])
         self.assertTrue(self.validate_link(data['links'][0]['href']))
         self.assertTrue(self.validate_link(data['links'][1]['href']))
@@ -139,7 +139,7 @@ class TestListNodes(base.FunctionalTest):
             node = self.dbapi.create_node(ndict)
             nodes.append(node['uuid'])
         data = self.get_json('/nodes/?limit=3')
-        self.assertEqual(len(data['nodes']), 3)
+        self.assertEqual(3, len(data['nodes']))
 
         next_marker = data['nodes'][-1]['uuid']
         self.assertIn(next_marker, data['next'])
@@ -153,7 +153,7 @@ class TestListNodes(base.FunctionalTest):
             node = self.dbapi.create_node(ndict)
             nodes.append(node['uuid'])
         data = self.get_json('/nodes')
-        self.assertEqual(len(data['nodes']), 3)
+        self.assertEqual(3, len(data['nodes']))
 
         next_marker = data['nodes'][-1]['uuid']
         self.assertIn(next_marker, data['next'])
@@ -176,12 +176,12 @@ class TestListNodes(base.FunctionalTest):
             self.dbapi.create_port(pdict)
 
         data = self.get_json('/nodes/%s/ports' % ndict['uuid'])
-        self.assertEqual(len(data['ports']), 2)
+        self.assertEqual(2, len(data['ports']))
         self.assertNotIn('next', data.keys())
 
         # Test collection pagination
         data = self.get_json('/nodes/%s/ports?limit=1' % ndict['uuid'])
-        self.assertEqual(len(data['ports']), 1)
+        self.assertEqual(1, len(data['ports']))
         self.assertIn('next', data.keys())
 
     def test_ports_subresource_noid(self):
@@ -191,13 +191,13 @@ class TestListNodes(base.FunctionalTest):
         self.dbapi.create_port(pdict)
         # No node id specified
         response = self.get_json('/nodes/ports', expect_errors=True)
-        self.assertEqual(response.status_int, 400)
+        self.assertEqual(400, response.status_int)
 
     def test_ports_subresource_node_not_found(self):
         non_existent_uuid = 'eeeeeeee-cccc-aaaa-bbbb-cccccccccccc'
         response = self.get_json('/nodes/%s/ports' % non_existent_uuid,
                                  expect_errors=True)
-        self.assertEqual(response.status_int, 404)
+        self.assertEqual(404, response.status_int)
 
     def test_node_states(self):
         fake_state = 'fake-state'
@@ -259,8 +259,8 @@ class TestListNodes(base.FunctionalTest):
     def test_associated_nodes_error(self):
         self._create_association_test_nodes()
         response = self.get_json('/nodes?associated=blah', expect_errors=True)
-        self.assertEqual(response.content_type, 'application/json')
-        self.assertEqual(response.status_code, 400)
+        self.assertEqual('application/json', response.content_type)
+        self.assertEqual(400, response.status_code)
         self.assertTrue(response.json['error_message'])
 
     def test_unassociated_nodes_insensitive(self):
@@ -350,8 +350,8 @@ class TestPatch(base.FunctionalTest):
                              [{'path': '/instance_uuid',
                                'value': 'aaaaaaaa-1111-bbbb-2222-cccccccccccc',
                                'op': 'replace'}])
-        self.assertEqual(response.content_type, 'application/json')
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual('application/json', response.content_type)
+        self.assertEqual(200, response.status_code)
         self.assertEqual(self.mock_update_node.return_value.updated_at,
                          timeutils.parse_isotime(response.json['updated_at']))
         self.mock_update_node.assert_called_once_with(
@@ -361,8 +361,8 @@ class TestPatch(base.FunctionalTest):
         response = self.patch_json('/nodes/%s' % self.node['uuid'],
                                    [{'power_state': 'new state'}],
                                    expect_errors=True)
-        self.assertEqual(response.content_type, 'application/json')
-        self.assertEqual(response.status_code, 400)
+        self.assertEqual('application/json', response.content_type)
+        self.assertEqual(400, response.status_code)
         self.assertTrue(response.json['error_message'])
 
     def test_update_fails_bad_driver_info(self):
@@ -378,8 +378,8 @@ class TestPatch(base.FunctionalTest):
                                      'value': 'bar',
                                      'op': 'add'}],
                                    expect_errors=True)
-        self.assertEqual(response.content_type, 'application/json')
-        self.assertEqual(response.status_code, 400)
+        self.assertEqual('application/json', response.content_type)
+        self.assertEqual(400, response.status_code)
 
         self.mock_update_node.assert_called_once_with(
                 mock.ANY, mock.ANY, 'test-topic')
@@ -394,8 +394,8 @@ class TestPatch(base.FunctionalTest):
                                'value': 'aaaaaaaa-1111-bbbb-2222-cccccccccccc',
                                'op': 'replace'}],
                                 expect_errors=True)
-        self.assertEqual(response.content_type, 'application/json')
-        self.assertEqual(response.status_code, 409)
+        self.assertEqual('application/json', response.content_type)
+        self.assertEqual(409, response.status_code)
 
         self.mock_update_node.assert_called_once_with(
                 mock.ANY, mock.ANY, 'test-topic')
@@ -407,8 +407,8 @@ class TestPatch(base.FunctionalTest):
                                    [{'path': '/extra/foo',
                                      'value': 'bar',
                                      'op': 'add'}])
-        self.assertEqual(response.content_type, 'application/json')
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual('application/json', response.content_type)
+        self.assertEqual(200, response.status_code)
 
         self.mock_update_node.assert_called_once_with(
                 mock.ANY, mock.ANY, 'test-topic')
@@ -417,8 +417,8 @@ class TestPatch(base.FunctionalTest):
         response = self.patch_json('/nodes/%s' % self.node['uuid'],
                                [{'path': '/foo', 'value': 'bar', 'op': 'add'}],
                                expect_errors=True)
-        self.assertEqual(response.content_type, 'application/json')
-        self.assertEqual(response.status_code, 400)
+        self.assertEqual('application/json', response.content_type)
+        self.assertEqual(400, response.status_code)
         self.assertTrue(response.json['error_message'])
 
     def test_remove_ok(self):
@@ -427,8 +427,8 @@ class TestPatch(base.FunctionalTest):
         response = self.patch_json('/nodes/%s' % self.node['uuid'],
                                    [{'path': '/extra',
                                      'op': 'remove'}])
-        self.assertEqual(response.content_type, 'application/json')
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual('application/json', response.content_type)
+        self.assertEqual(200, response.status_code)
 
         self.mock_update_node.assert_called_once_with(
                 mock.ANY, mock.ANY, 'test-topic')
@@ -437,8 +437,8 @@ class TestPatch(base.FunctionalTest):
         response = self.patch_json('/nodes/%s' % self.node['uuid'],
                              [{'path': '/extra/non-existent', 'op': 'remove'}],
                              expect_errors=True)
-        self.assertEqual(response.content_type, 'application/json')
-        self.assertEqual(response.status_code, 400)
+        self.assertEqual('application/json', response.content_type)
+        self.assertEqual(400, response.status_code)
         self.assertTrue(response.json['error_message'])
 
     def test_update_state_in_progress(self):
@@ -448,31 +448,31 @@ class TestPatch(base.FunctionalTest):
         response = self.patch_json('/nodes/%s' % node['uuid'],
                                    [{'path': '/extra/foo', 'value': 'bar',
                                      'op': 'add'}], expect_errors=True)
-        self.assertEqual(response.content_type, 'application/json')
-        self.assertEqual(response.status_code, 409)
+        self.assertEqual('application/json', response.content_type)
+        self.assertEqual(409, response.status_code)
         self.assertTrue(response.json['error_message'])
 
     def test_patch_ports_subresource(self):
         response = self.patch_json('/nodes/%s/ports' % self.node['uuid'],
                                    [{'path': '/extra/foo', 'value': 'bar',
                                      'op': 'add'}], expect_errors=True)
-        self.assertEqual(response.status_int, 403)
+        self.assertEqual(403, response.status_int)
 
     def test_remove_uuid(self):
         ndict = dbutils.get_test_node()
         response = self.patch_json('/nodes/%s' % ndict['uuid'],
                                    [{'path': '/uuid', 'op': 'remove'}],
                                    expect_errors=True)
-        self.assertEqual(response.content_type, 'application/json')
-        self.assertEqual(response.status_code, 400)
+        self.assertEqual('application/json', response.content_type)
+        self.assertEqual(400, response.status_code)
         self.assertTrue(response.json['error_message'])
 
     def test_remove_mandatory_field(self):
         response = self.patch_json('/nodes/%s' % self.node['uuid'],
                                    [{'path': '/driver', 'op': 'remove'}],
                                    expect_errors=True)
-        self.assertEqual(response.content_type, 'application/json')
-        self.assertEqual(response.status_code, 400)
+        self.assertEqual('application/json', response.content_type)
+        self.assertEqual(400, response.status_code)
         self.assertTrue(response.json['error_message'])
 
     def test_replace_non_existent_chassis_uuid(self):
@@ -480,16 +480,16 @@ class TestPatch(base.FunctionalTest):
                              [{'path': '/chassis_uuid',
                                'value': 'eeeeeeee-dddd-cccc-bbbb-aaaaaaaaaaaa',
                                'op': 'replace'}], expect_errors=True)
-        self.assertEqual(response.content_type, 'application/json')
-        self.assertEqual(response.status_code, 400)
+        self.assertEqual('application/json', response.content_type)
+        self.assertEqual(400, response.status_code)
         self.assertTrue(response.json['error_message'])
 
     def test_remove_internal_field(self):
         response = self.patch_json('/nodes/%s' % self.node['uuid'],
                                    [{'path': '/last_error', 'op': 'remove'}],
                                    expect_errors=True)
-        self.assertEqual(response.content_type, 'application/json')
-        self.assertEqual(response.status_code, 400)
+        self.assertEqual('application/json', response.content_type)
+        self.assertEqual(400, response.status_code)
         self.assertTrue(response.json['error_message'])
 
     def test_replace_internal_field(self):
@@ -497,8 +497,8 @@ class TestPatch(base.FunctionalTest):
                                    [{'path': '/power_state', 'op': 'replace',
                                      'value': 'fake-state'}],
                                    expect_errors=True)
-        self.assertEqual(response.content_type, 'application/json')
-        self.assertEqual(response.status_code, 400)
+        self.assertEqual('application/json', response.content_type)
+        self.assertEqual(400, response.status_code)
         self.assertTrue(response.json['error_message'])
 
     def test_replace_maintenance(self):
@@ -506,8 +506,8 @@ class TestPatch(base.FunctionalTest):
                                    [{'path': '/maintenance', 'op': 'replace',
                                      'value': 'fake'}],
                                    expect_errors=True)
-        self.assertEqual(response.content_type, 'application/json')
-        self.assertEqual(response.status_code, 400)
+        self.assertEqual('application/json', response.content_type)
+        self.assertEqual(400, response.status_code)
         self.assertTrue(response.json['error_message'])
 
 
@@ -545,8 +545,8 @@ class TestPost(base.FunctionalTest):
     def test_create_node_invalid_extra(self):
         ndict = post_get_test_node(extra={'foo': 0.123})
         response = self.post_json('/nodes', ndict, expect_errors=True)
-        self.assertEqual(response.content_type, 'application/json')
-        self.assertEqual(response.status_code, 400)
+        self.assertEqual('application/json', response.content_type)
+        self.assertEqual(400, response.status_code)
         self.assertTrue(response.json['error_message'])
 
     def test_vendor_passthru_ok(self):
@@ -562,8 +562,8 @@ class TestPost(base.FunctionalTest):
                                       info, expect_errors=False)
             mock_vendor.assert_called_once_with(
                     mock.ANY, uuid, 'test', info, 'test-topic')
-            self.assertEqual(response.body, '"OK"')
-            self.assertEqual(response.status_code, 202)
+            self.assertEqual('"OK"', response.body)
+            self.assertEqual(202, response.status_code)
 
     def test_vendor_passthru_no_such_method(self):
         ndict = post_get_test_node()
@@ -581,15 +581,15 @@ class TestPost(base.FunctionalTest):
                                       info, expect_errors=True)
             mock_vendor.assert_called_once_with(
                     mock.ANY, uuid, 'test', info, 'test-topic')
-            self.assertEqual(response.status_code, 400)
+            self.assertEqual(400, response.status_code)
 
     def test_vendor_passthru_without_method(self):
         ndict = post_get_test_node()
         self.post_json('/nodes', ndict)
         response = self.post_json('/nodes/%s/vendor_passthru' % ndict['uuid'],
                                   {'foo': 'bar'}, expect_errors=True)
-        self.assertEqual(response.content_type, 'application/json')
-        self.assertEqual(response.status_code, 400)
+        self.assertEqual('application/json', response.content_type, )
+        self.assertEqual(400, response.status_code)
         self.assertTrue(response.json['error_message'])
 
     def test_post_ports_subresource(self):
@@ -599,29 +599,29 @@ class TestPost(base.FunctionalTest):
         pdict['node_uuid'] = ndict['uuid']
         response = self.post_json('/nodes/ports', pdict,
                                   expect_errors=True)
-        self.assertEqual(response.status_int, 403)
+        self.assertEqual(403, response.status_int)
 
     def test_create_node_no_mandatory_field_driver(self):
         ndict = post_get_test_node()
         del ndict['driver']
         response = self.post_json('/nodes', ndict, expect_errors=True)
-        self.assertEqual(response.status_int, 400)
-        self.assertEqual(response.content_type, 'application/json')
+        self.assertEqual(400, response.status_int)
+        self.assertEqual('application/json', response.content_type)
         self.assertTrue(response.json['error_message'])
 
     def test_create_node_no_chassis_uuid(self):
         ndict = post_get_test_node()
         del ndict['chassis_uuid']
         response = self.post_json('/nodes', ndict)
-        self.assertEqual(response.content_type, 'application/json')
-        self.assertEqual(response.status_int, 201)
+        self.assertEqual('application/json', response.content_type)
+        self.assertEqual(201, response.status_int)
 
     def test_create_node_chassis_uuid_not_found(self):
         ndict = post_get_test_node(
                            chassis_uuid='1a1a1a1a-2b2b-3c3c-4d4d-5e5e5e5e5e5e')
         response = self.post_json('/nodes', ndict, expect_errors=True)
-        self.assertEqual(response.content_type, 'application/json')
-        self.assertEqual(response.status_int, 400)
+        self.assertEqual('application/json', response.content_type)
+        self.assertEqual(400, response.status_int)
         self.assertTrue(response.json['error_message'])
 
 
@@ -638,8 +638,8 @@ class TestDelete(base.FunctionalTest):
         self.delete('/nodes/%s' % ndict['uuid'])
         response = self.get_json('/nodes/%s' % ndict['uuid'],
                                  expect_errors=True)
-        self.assertEqual(response.status_int, 404)
-        self.assertEqual(response.content_type, 'application/json')
+        self.assertEqual(404, response.status_int)
+        self.assertEqual('application/json', response.content_type)
         self.assertTrue(response.json['error_message'])
 
     def test_delete_ports_subresource(self):
@@ -647,14 +647,14 @@ class TestDelete(base.FunctionalTest):
         self.post_json('/nodes', ndict)
         response = self.delete('/nodes/%s/ports' % ndict['uuid'],
                                expect_errors=True)
-        self.assertEqual(response.status_int, 403)
+        self.assertEqual(403, response.status_int)
 
     def test_delete_associated(self):
         ndict = post_get_test_node(
                           instance_uuid='aaaaaaaa-1111-bbbb-2222-cccccccccccc')
         self.post_json('/nodes', ndict)
         response = self.delete('/nodes/%s' % ndict['uuid'], expect_errors=True)
-        self.assertEqual(response.status_int, 409)
+        self.assertEqual(409, response.status_int)
 
 
 class TestPut(base.FunctionalTest):
@@ -682,8 +682,8 @@ class TestPut(base.FunctionalTest):
     def test_power_state(self):
         response = self.put_json('/nodes/%s/states/power' % self.node['uuid'],
                                  {'target': states.POWER_ON})
-        self.assertEqual(response.content_type, 'application/json')
-        self.assertEqual(response.status_code, 202)
+        self.assertEqual('application/json', response.content_type)
+        self.assertEqual(202, response.status_code)
 
         self.mock_cnps.assert_called_once_with(mock.ANY,
                                                self.node['uuid'],
@@ -704,40 +704,40 @@ class TestPut(base.FunctionalTest):
 
             self.put_json('/nodes/%s/states/power' % self.node['uuid'],
                           {'target': states.POWER_ON})
-            self.assertEqual(manager.mock_calls, expected)
+            self.assertEqual(expected, manager.mock_calls)
 
         self.dbapi.update_node(self.node['uuid'],
                                {'target_power_state': 'fake'})
         response = self.put_json('/nodes/%s/states/power' % self.node['uuid'],
                                  {'target': states.POWER_ON},
                                  expect_errors=True)
-        self.assertEqual(response.content_type, 'application/json')
-        self.assertEqual(response.status_code, 409)
+        self.assertEqual('application/json', response.content_type)
+        self.assertEqual(409, response.status_code)
         self.assertTrue(response.json['error_message'])
 
     def test_power_invalid_state_request(self):
         ret = self.put_json('/nodes/%s/states/power' % self.node.uuid,
                             {'target': 'not-supported'}, expect_errors=True)
-        self.assertEqual(ret.status_code, 400)
+        self.assertEqual(400, ret.status_code)
 
     def test_provision_with_deploy(self):
         ret = self.put_json('/nodes/%s/states/provision' % self.node.uuid,
                             {'target': states.ACTIVE})
-        self.assertEqual(ret.status_code, 202)
+        self.assertEqual(202, ret.status_code)
         self.mock_dnd.assert_called_once_with(
                 mock.ANY, self.node.uuid, 'test-topic')
 
     def test_provision_with_tear_down(self):
         ret = self.put_json('/nodes/%s/states/provision' % self.node.uuid,
                             {'target': states.DELETED})
-        self.assertEqual(ret.status_code, 202)
+        self.assertEqual(202, ret.status_code)
         self.mock_dntd.assert_called_once_with(
                 mock.ANY, self.node.uuid, 'test-topic')
 
     def test_provision_invalid_state_request(self):
         ret = self.put_json('/nodes/%s/states/provision' % self.node.uuid,
                             {'target': 'not-supported'}, expect_errors=True)
-        self.assertEqual(ret.status_code, 400)
+        self.assertEqual(400, ret.status_code)
 
     def test_provision_already_in_progress(self):
         ndict = dbutils.get_test_node(id=1, uuid=utils.generate_uuid(),
@@ -746,7 +746,7 @@ class TestPut(base.FunctionalTest):
         ret = self.put_json('/nodes/%s/states/provision' % node.uuid,
                             {'target': states.ACTIVE},
                             expect_errors=True)
-        self.assertEqual(ret.status_code, 409)  # Conflict
+        self.assertEqual(409, ret.status_code)  # Conflict
 
     def test_provision_already_in_state(self):
         ndict = dbutils.get_test_node(id=1, uuid=utils.generate_uuid(),
@@ -756,4 +756,4 @@ class TestPut(base.FunctionalTest):
         ret = self.put_json('/nodes/%s/states/provision' % node.uuid,
                             {'target': states.ACTIVE},
                             expect_errors=True)
-        self.assertEqual(ret.status_code, 400)
+        self.assertEqual(400, ret.status_code)
