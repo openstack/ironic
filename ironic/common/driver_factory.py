@@ -17,6 +17,7 @@
 #    under the License.
 
 
+from ironic.common import exception
 from ironic.openstack.common import lockutils
 from ironic.openstack.common import log
 from stevedore import dispatch
@@ -25,6 +26,27 @@ from stevedore import dispatch
 LOG = log.getLogger(__name__)
 
 EM_SEMAPHORE = 'extension_manager'
+
+
+def get_driver(driver_name):
+    """Simple method to get a ref to an instance of a driver.
+
+    Driver loading is handled by the DriverFactory class. This method
+    conveniently wraps that class and returns the actual driver object.
+
+    :param driver_name: the name of the driver class to load
+    :returns: An instance of a class which implements
+              ironic.drivers.base.BaseDriver
+    :raises: DriverNotFound if the requested driver_name could not be
+             found in the "ironic.drivers" namespace.
+
+    """
+
+    try:
+        factory = DriverFactory()
+        return factory[driver_name].obj
+    except KeyError:
+        raise exception.DriverNotFound(driver_name=driver_name)
 
 
 class DriverFactory(object):

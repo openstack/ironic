@@ -21,6 +21,7 @@ Test class for Native IPMI power driver module.
 """
 import mock
 
+from ironic.common import driver_factory
 from ironic.common import exception
 from ironic.common import states
 from ironic.conductor import task_manager
@@ -128,8 +129,8 @@ class IPMINativeDriverTestCase(db_base.DbTestCase):
     def setUp(self):
         super(IPMINativeDriverTestCase, self).setUp()
         self.context = context.get_admin_context()
-        self.driver = mgr_utils.get_mocked_node_manager(
-                      driver='fake_ipminative')
+        mgr_utils.mock_the_extension_manager(driver="fake_ipminative")
+        self.driver = driver_factory.get_driver("fake_ipminative")
 
         n = db_utils.get_test_node(
                 driver='fake_ipminative',

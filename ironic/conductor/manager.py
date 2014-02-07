@@ -24,10 +24,9 @@ performing all actions on bare metal resources (Chassis, Nodes, and Ports).
 Commands are received via RPC calls. The conductor service also performs
 periodic tasks, eg.  to monitor the status of active deployments.
 
-Drivers are loaded via entrypoints, by the
-:py:class:`ironic.conductor.resource_manager.NodeManager` class. Each driver is
-instantiated once and a ref to that singleton is included in each resource
-manager, depending on the node's configuration. In this way, a single
+Drivers are loaded via entrypoints by the
+:py:class:`ironic.common.driver_factory` class. Each driver is instantiated
+only once, when the ConductorManager service starts.  In this way, a single
 ConductorManager may use multiple drivers, and manage heterogeneous hardware.
 
 When multiple :py:class:`ConductorManager` are run on different hosts, they are
@@ -101,6 +100,10 @@ class ConductorManager(service.PeriodicService):
         super(ConductorManager, self).start()
         self.dbapi = dbapi.get_instance()
 
+        # create a DriverFactory instance, which initializes the stevedore
+        # extension manager, when the service starts.
+        # TODO(deva): Enable re-loading of the DriverFactory to load new
+        #             extensions without restarting the whole service.
         df = driver_factory.DriverFactory()
         self.drivers = df.names
         """List of driver names which this conductor supports."""

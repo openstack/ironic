@@ -49,7 +49,8 @@ class ManagerTestCase(base.DbTestCase):
         self.service = manager.ConductorManager('test-host', 'test-topic')
         self.context = context.get_admin_context()
         self.dbapi = dbapi.get_instance()
-        self.driver = mgr_utils.get_mocked_node_manager()
+        mgr_utils.mock_the_extension_manager()
+        self.driver = driver_factory.get_driver("fake")
 
     def test_start_registers_conductor(self):
         self.assertRaises(exception.ConductorNotFound,

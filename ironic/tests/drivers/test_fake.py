@@ -18,6 +18,7 @@
 
 """Test class for Fake driver."""
 
+from ironic.common import driver_factory
 from ironic.common import exception
 from ironic.common import states
 from ironic.conductor import task_manager
@@ -35,7 +36,8 @@ class FakeDriverTestCase(base.TestCase):
         super(FakeDriverTestCase, self).setUp()
         self.context = context.get_admin_context()
         self.dbapi = db_api.get_instance()
-        self.driver = mgr_utils.get_mocked_node_manager(driver='fake')
+        mgr_utils.mock_the_extension_manager()
+        self.driver = driver_factory.get_driver("fake")
         self.node = db_utils.get_test_node()
         self.dbapi.create_node(self.node)
 

@@ -18,9 +18,6 @@
 
 """Tests for Ironic Manager test utils."""
 
-import mock
-
-from ironic.conductor import resource_manager
 from ironic.tests import base
 from ironic.tests.conductor import utils
 
@@ -31,17 +28,17 @@ class UtilsTestCase(base.TestCase):
 
     def test_fails_to_load_extension(self):
         self.assertRaises(AttributeError,
-                          utils.get_mockable_extension_manager,
+                          utils.mock_the_extension_manager,
                           'fake',
                           'bad.namespace')
         self.assertRaises(AttributeError,
-                          utils.get_mockable_extension_manager,
+                          utils.mock_the_extension_manager,
                           'no-such-driver',
                           'ironic.drivers')
 
     def test_get_mockable_ext_mgr(self):
-        (mgr, ext) = utils.get_mockable_extension_manager('fake',
-                                                          'ironic.drivers')
+        (mgr, ext) = utils.mock_the_extension_manager('fake',
+                                                      'ironic.drivers')
 
         # confirm that stevedore did not scan the actual entrypoints
         self.assertNotEqual(mgr._extension_manager.namespace, 'ironic.drivers')
@@ -54,21 +51,3 @@ class UtilsTestCase(base.TestCase):
                          "fake = ironic.drivers.fake:FakeDriver")
         # Confirm driver is loaded
         self.assertIn('fake', mgr.names)
-
-    def test_get_mocked_node_mgr(self):
-
-        class ext(object):
-            def __init__(self, name):
-                self.obj = name
-
-        with mock.patch.object(utils, 'get_mockable_extension_manager') \
-                as get_mockable_mock:
-            get_mockable_mock.return_value = ('foo-manager',
-                                              ext('foo-extension'))
-
-            driver = utils.get_mocked_node_manager('foo')
-
-            self.assertEqual(resource_manager.NodeManager._driver_factory,
-                             'foo-manager')
-            self.assertEqual(driver, 'foo-extension')
-            get_mockable_mock.assert_called_once_with('foo', 'ironic.drivers')

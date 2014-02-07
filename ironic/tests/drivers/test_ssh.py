@@ -18,6 +18,7 @@
 import mock
 import paramiko
 
+from ironic.common import driver_factory
 from ironic.common import exception
 from ironic.common import states
 from ironic.common import utils
@@ -541,7 +542,8 @@ class SSHDriverTestCase(db_base.DbTestCase):
     def setUp(self):
         super(SSHDriverTestCase, self).setUp()
         self.context = context.get_admin_context()
-        self.driver = mgr_utils.get_mocked_node_manager(driver='fake_ssh')
+        mgr_utils.mock_the_extension_manager(driver="fake_ssh")
+        self.driver = driver_factory.get_driver("fake_ssh")
         n = db_utils.get_test_node(
                 driver='fake_ssh',
                 driver_info=INFO_DICT)

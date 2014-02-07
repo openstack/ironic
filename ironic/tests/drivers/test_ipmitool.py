@@ -26,6 +26,7 @@ import tempfile
 import mock
 from oslo.config import cfg
 
+from ironic.common import driver_factory
 from ironic.common import exception
 from ironic.common import states
 from ironic.common import utils
@@ -269,7 +270,8 @@ class IPMIToolDriverTestCase(db_base.DbTestCase):
         super(IPMIToolDriverTestCase, self).setUp()
         self.context = context.get_admin_context()
         self.dbapi = db_api.get_instance()
-        self.driver = mgr_utils.get_mocked_node_manager(driver='fake_ipmitool')
+        mgr_utils.mock_the_extension_manager(driver="fake_ipmitool")
+        self.driver = driver_factory.get_driver("fake_ipmitool")
 
         self.node = db_utils.get_test_node(
                 driver='fake_ipmitool',

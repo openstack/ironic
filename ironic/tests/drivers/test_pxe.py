@@ -27,7 +27,6 @@ import time
 
 from oslo.config import cfg
 
-
 from ironic.common import exception
 from ironic.common.glance_service import base_image_service
 from ironic.common.glance_service import service_utils
@@ -205,7 +204,7 @@ class PXEPrivateMethodsTestCase(db_base.DbTestCase):
               'driver': 'fake_pxe',
               'driver_info': INFO_DICT
         }
-        mgr_utils.get_mocked_node_manager(driver='fake_pxe')
+        mgr_utils.mock_the_extension_manager(driver="fake_pxe")
         self.dbapi = dbapi.get_instance()
         self.node = self._create_test_node(**n)
         self.context = context.get_admin_context()
@@ -549,7 +548,7 @@ class PXEDriverTestCase(db_base.DbTestCase):
         self.config(tftp_root=self.temp_dir, group='pxe')
         self.temp_dir = tempfile.mkdtemp()
         self.config(images_path=self.temp_dir, group='pxe')
-        mgr_utils.get_mocked_node_manager(driver='fake_pxe')
+        mgr_utils.mock_the_extension_manager(driver="fake_pxe")
         driver_info = INFO_DICT
         driver_info['pxe_deploy_key'] = 'fake-56789'
         n = db_utils.get_test_node(

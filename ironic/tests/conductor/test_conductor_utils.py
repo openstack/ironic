@@ -14,6 +14,7 @@
 
 import mock
 
+from ironic.common import driver_factory
 from ironic.common import exception
 from ironic.common import states
 from ironic.common import utils as cmn_utils
@@ -32,7 +33,8 @@ class NodePowerActionTestCase(base.DbTestCase):
         super(NodePowerActionTestCase, self).setUp()
         self.context = context.get_admin_context()
         self.dbapi = dbapi.get_instance()
-        self.driver = mgr_utils.get_mocked_node_manager()
+        mgr_utils.mock_the_extension_manager()
+        self.driver = driver_factory.get_driver("fake")
 
     def test_node_power_action_power_on(self):
         """Test node_power_action to turn node power on."""
