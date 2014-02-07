@@ -685,6 +685,16 @@ class PXEDriverTestCase(db_base.DbTestCase):
                 node_power_mock.assert_called_once_with(task, self.node,
                                                         states.POWER_OFF)
 
+    @mock.patch.object(manager_utils, 'node_power_action')
+    def test_tear_down_removes_pxe_deploy_key(self, mock_npa):
+        self.assertIn('pxe_deploy_key', self.node.driver_info)
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            task.driver.deploy.tear_down(task, self.node)
+
+        self.node.refresh(self.context)
+        self.assertNotIn('pxe_deploy_key', self.node.driver_info)
+        mock_npa.assert_called_once_with(task, self.node, states.POWER_OFF)
+
     def test_take_over(self):
         with mock.patch.object(pxe, '_update_neutron') as update_neutron_mock:
             with task_manager.acquire(

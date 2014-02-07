@@ -562,6 +562,12 @@ class PXEDeploy(base.DeployInterface):
         """
         manager_utils.node_power_action(task, node, states.POWER_OFF)
 
+        # Remove the internal pxe_deploy_key attribute
+        driver_info = node.driver_info
+        if driver_info.pop('pxe_deploy_key', None):
+            node.driver_info = driver_info
+            node.save(task.context)
+
         return states.DELETED
 
     def prepare(self, task, node):
