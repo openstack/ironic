@@ -53,7 +53,7 @@ class TestListChassis(base.FunctionalTest):
         chassis = self.dbapi.create_chassis(cdict)
         response = self.get_json('/chassis/%s/detail' % chassis['uuid'],
                                  expect_errors=True)
-        self.assertEqual(response.status_int, 404)
+        self.assertEqual(404, response.status_int)
 
     def test_many(self):
         ch_list = []
@@ -63,10 +63,9 @@ class TestListChassis(base.FunctionalTest):
             chassis = self.dbapi.create_chassis(ndict)
             ch_list.append(chassis['uuid'])
         data = self.get_json('/chassis')
-        self.assertEqual(len(ch_list), len(data['chassis']))
-
+        self.assertEqual(len(data['chassis']), len(ch_list))
         uuids = [n['uuid'] for n in data['chassis']]
-        self.assertEqual(ch_list.sort(), uuids.sort())
+        self.assertEqual(uuids.sort(), ch_list.sort())
 
     def test_links(self):
         uuid = utils.generate_uuid()
@@ -74,7 +73,7 @@ class TestListChassis(base.FunctionalTest):
         self.dbapi.create_chassis(ndict)
         data = self.get_json('/chassis/%s' % uuid)
         self.assertIn('links', data.keys())
-        self.assertEqual(len(data['links']), 2)
+        self.assertEqual(2, len(data['links']))
         self.assertIn(uuid, data['links'][0]['href'])
         self.assertTrue(self.validate_link(data['links'][0]['href']))
         self.assertTrue(self.validate_link(data['links'][1]['href']))
@@ -87,7 +86,7 @@ class TestListChassis(base.FunctionalTest):
             ch = self.dbapi.create_chassis(ndict)
             chassis.append(ch['uuid'])
         data = self.get_json('/chassis/?limit=3')
-        self.assertEqual(len(data['chassis']), 3)
+        self.assertEqual(3, len(data['chassis']))
 
         next_marker = data['chassis'][-1]['uuid']
         self.assertIn(next_marker, data['next'])
@@ -101,7 +100,7 @@ class TestListChassis(base.FunctionalTest):
             ch = self.dbapi.create_chassis(ndict)
             chassis.append(ch['uuid'])
         data = self.get_json('/chassis')
-        self.assertEqual(len(data['chassis']), 3)
+        self.assertEqual(3, len(data['chassis']))
 
         next_marker = data['chassis'][-1]['uuid']
         self.assertIn(next_marker, data['next'])
@@ -123,23 +122,23 @@ class TestListChassis(base.FunctionalTest):
             self.dbapi.create_node(ndict)
 
         data = self.get_json('/chassis/%s/nodes' % cdict['uuid'])
-        self.assertEqual(len(data['nodes']), 2)
+        self.assertEqual(2, len(data['nodes']))
         self.assertNotIn('next', data.keys())
 
         # Test collection pagination
         data = self.get_json('/chassis/%s/nodes?limit=1' % cdict['uuid'])
-        self.assertEqual(len(data['nodes']), 1)
+        self.assertEqual(1, len(data['nodes']))
         self.assertIn('next', data.keys())
 
     def test_nodes_subresource_no_uuid(self):
         response = self.get_json('/chassis/nodes', expect_errors=True)
-        self.assertEqual(response.status_int, 400)
+        self.assertEqual(400, response.status_int)
 
     def test_nodes_subresource_chassis_not_found(self):
         non_existent_uuid = 'eeeeeeee-cccc-aaaa-bbbb-cccccccccccc'
         response = self.get_json('/chassis/%s/nodes' % non_existent_uuid,
                                  expect_errors=True)
-        self.assertEqual(response.status_int, 404)
+        self.assertEqual(404, response.status_int)
 
 
 class TestPatch(base.FunctionalTest):
@@ -156,8 +155,8 @@ class TestPatch(base.FunctionalTest):
                                    [{'path': '/extra/a', 'value': 'b',
                                      'op': 'add'}],
                                    expect_errors=True)
-        self.assertEqual(response.status_int, 404)
-        self.assertEqual(response.content_type, 'application/json')
+        self.assertEqual(404, response.status_int)
+        self.assertEqual('application/json', response.content_type)
         self.assertTrue(response.json['error_message'])
 
     def test_replace_singular(self):
@@ -168,10 +167,10 @@ class TestPatch(base.FunctionalTest):
         response = self.patch_json('/chassis/%s' % cdict['uuid'],
                                    [{'path': '/description',
                                      'value': description, 'op': 'replace'}])
-        self.assertEqual(response.content_type, 'application/json')
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual('application/json', response.content_type)
+        self.assertEqual(200, response.status_code)
         result = self.get_json('/chassis/%s' % cdict['uuid'])
-        self.assertEqual(result['description'], description)
+        self.assertEqual(description, result['description'])
         return_updated_at = timeutils.parse_isotime(
                             result['updated_at']).replace(tzinfo=None)
         self.assertEqual(t1, return_updated_at)
@@ -185,12 +184,12 @@ class TestPatch(base.FunctionalTest):
         response = self.patch_json('/chassis/%s' % cdict['uuid'],
                                    [{'path': '/extra/foo2',
                                      'value': new_value, 'op': 'replace'}])
-        self.assertEqual(response.content_type, 'application/json')
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual('application/json', response.content_type)
+        self.assertEqual(200, response.status_code)
         result = self.get_json('/chassis/%s' % cdict['uuid'])
 
         extra["foo2"] = new_value
-        self.assertEqual(result['extra'], extra)
+        self.assertEqual(extra, result['extra'])
 
     def test_remove_singular(self):
         cdict = dbutils.get_test_chassis(extra={'a': 'b'},
@@ -198,14 +197,14 @@ class TestPatch(base.FunctionalTest):
         self.post_json('/chassis', cdict)
         response = self.patch_json('/chassis/%s' % cdict['uuid'],
                                    [{'path': '/description', 'op': 'remove'}])
-        self.assertEqual(response.content_type, 'application/json')
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual('application/json', response.content_type)
+        self.assertEqual(200, response.status_code)
         result = self.get_json('/chassis/%s' % cdict['uuid'])
-        self.assertEqual(result['description'], None)
+        self.assertEqual(None, result['description'])
 
         # Assert nothing else was changed
-        self.assertEqual(result['uuid'], cdict['uuid'])
-        self.assertEqual(result['extra'], cdict['extra'])
+        self.assertEqual(cdict['uuid'], result['uuid'])
+        self.assertEqual(cdict['extra'], result['extra'])
 
     def test_remove_multi(self):
         extra = {"foo1": "bar1", "foo2": "bar2", "foo3": "bar3"}
@@ -216,31 +215,31 @@ class TestPatch(base.FunctionalTest):
         # Removing one item from the collection
         response = self.patch_json('/chassis/%s' % cdict['uuid'],
                                    [{'path': '/extra/foo2', 'op': 'remove'}])
-        self.assertEqual(response.content_type, 'application/json')
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual('application/json', response.content_type)
+        self.assertEqual(200, response.status_code)
         result = self.get_json('/chassis/%s' % cdict['uuid'])
         extra.pop("foo2")
-        self.assertEqual(result['extra'], extra)
+        self.assertEqual(extra, result['extra'])
 
         # Removing the collection
         response = self.patch_json('/chassis/%s' % cdict['uuid'],
                                    [{'path': '/extra', 'op': 'remove'}])
-        self.assertEqual(response.content_type, 'application/json')
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual('application/json', response.content_type)
+        self.assertEqual(200, response.status_code)
         result = self.get_json('/chassis/%s' % cdict['uuid'])
-        self.assertEqual(result['extra'], {})
+        self.assertEqual({}, result['extra'])
 
         # Assert nothing else was changed
-        self.assertEqual(result['uuid'], cdict['uuid'])
-        self.assertEqual(result['description'], cdict['description'])
+        self.assertEqual(cdict['uuid'], result['uuid'])
+        self.assertEqual(cdict['description'], result['description'])
 
     def test_remove_non_existent_property_fail(self):
         cdict = dbutils.get_test_chassis()
         response = self.patch_json('/chassis/%s' % cdict['uuid'],
                              [{'path': '/extra/non-existent', 'op': 'remove'}],
                              expect_errors=True)
-        self.assertEqual(response.content_type, 'application/json')
-        self.assertEqual(response.status_code, 400)
+        self.assertEqual('application/json', response.content_type)
+        self.assertEqual(400, response.status_code)
         self.assertTrue(response.json['error_message'])
 
     def test_add_singular(self):
@@ -249,8 +248,8 @@ class TestPatch(base.FunctionalTest):
                                    [{'path': '/foo', 'value': 'bar',
                                      'op': 'add'}],
                                    expect_errors=True)
-        self.assertEqual(response.content_type, 'application/json')
-        self.assertEqual(response.status_int, 400)
+        self.assertEqual('application/json', response.content_type)
+        self.assertEqual(400, response.status_int)
         self.assertTrue(response.json['error_message'])
 
     def test_add_multi(self):
@@ -260,26 +259,26 @@ class TestPatch(base.FunctionalTest):
                                      'op': 'add'},
                                     {'path': '/extra/foo2', 'value': 'bar2',
                                      'op': 'add'}])
-        self.assertEqual(response.content_type, 'application/json')
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual('application/json', response.content_type)
+        self.assertEqual(200, response.status_code)
         result = self.get_json('/chassis/%s' % cdict['uuid'])
         expected = {"foo1": "bar1", "foo2": "bar2"}
-        self.assertEqual(result['extra'], expected)
+        self.assertEqual(expected, result['extra'])
 
     def test_patch_nodes_subresource(self):
         cdict = dbutils.get_test_chassis()
         response = self.patch_json('/chassis/%s/nodes' % cdict['uuid'],
                                    [{'path': '/extra/foo', 'value': 'bar',
                                      'op': 'add'}], expect_errors=True)
-        self.assertEqual(response.status_int, 403)
+        self.assertEqual(403, response.status_int)
 
     def test_remove_uuid(self):
         cdict = dbutils.get_test_chassis()
         response = self.patch_json('/chassis/%s' % cdict['uuid'],
                                    [{'path': '/uuid', 'op': 'remove'}],
                                    expect_errors=True)
-        self.assertEqual(response.status_int, 400)
-        self.assertEqual(response.content_type, 'application/json')
+        self.assertEqual(400, response.status_int)
+        self.assertEqual('application/json', response.content_type)
         self.assertTrue(response.json['error_message'])
 
 
@@ -318,7 +317,7 @@ class TestPost(base.FunctionalTest):
         ndict['chassis_uuid'] = cdict['uuid']
         response = self.post_json('/chassis/nodes', ndict,
                                    expect_errors=True)
-        self.assertEqual(response.status_int, 403)
+        self.assertEqual(403, response.status_int)
 
     def test_create_chassis_valid_extra(self):
         cdict = dbutils.get_test_chassis(extra={'foo': 123})
@@ -329,8 +328,8 @@ class TestPost(base.FunctionalTest):
     def test_create_chassis_invalid_extra(self):
         cdict = dbutils.get_test_chassis(extra={'foo': 0.123})
         response = self.post_json('/chassis', cdict, expect_errors=True)
-        self.assertEqual(response.status_int, 400)
-        self.assertEqual(response.content_type, 'application/json')
+        self.assertEqual(400, response.status_int)
+        self.assertEqual('application/json', response.content_type)
         self.assertTrue(response.json['error_message'])
 
     def test_create_chassis_unicode_description(self):
@@ -349,8 +348,8 @@ class TestDelete(base.FunctionalTest):
         self.delete('/chassis/%s' % cdict['uuid'])
         response = self.get_json('/chassis/%s' % cdict['uuid'],
                                  expect_errors=True)
-        self.assertEqual(response.status_int, 404)
-        self.assertEqual(response.content_type, 'application/json')
+        self.assertEqual(404, response.status_int)
+        self.assertEqual('application/json', response.content_type)
         self.assertTrue(response.json['error_message'])
 
     def test_delete_chassis_with_node(self):
@@ -360,15 +359,15 @@ class TestDelete(base.FunctionalTest):
         self.dbapi.create_node(ndict)
         response = self.delete('/chassis/%s' % cdict['uuid'],
                                expect_errors=True)
-        self.assertEqual(response.status_int, 400)
-        self.assertEqual(response.content_type, 'application/json')
+        self.assertEqual(400, response.status_int)
+        self.assertEqual('application/json', response.content_type)
         self.assertTrue(response.json['error_message'])
 
     def test_delete_chassis_not_found(self):
         uuid = utils.generate_uuid()
         response = self.delete('/chassis/%s' % uuid, expect_errors=True)
-        self.assertEqual(response.status_int, 404)
-        self.assertEqual(response.content_type, 'application/json')
+        self.assertEqual(404, response.status_int)
+        self.assertEqual('application/json', response.content_type)
         self.assertTrue(response.json['error_message'])
 
     def test_delete_nodes_subresource(self):
@@ -376,4 +375,4 @@ class TestDelete(base.FunctionalTest):
         self.post_json('/chassis', cdict)
         response = self.delete('/chassis/%s/nodes' % cdict['uuid'],
                                expect_errors=True)
-        self.assertEqual(response.status_int, 403)
+        self.assertEqual(403, response.status_int)
