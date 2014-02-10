@@ -288,7 +288,7 @@ def _get_image(ctx, path, uuid, master_path=None, image_service=None):
         if not os.path.exists(lock_file):
             raise loopingcall.LoopingCallDone()
     # If the download of the image needed is in progress (lock file present)
-    # we wait until the locks dissapears and create the link.
+    # we wait until the locks disappears and create the link.
 
     if master_path is None:
         #NOTE(ghe): We don't share images between instances/hosts

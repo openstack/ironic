@@ -32,5 +32,5 @@ class PolicyTestCase(base.TestCase):
 
     def test_policy_file_not_found(self):
         ironic_policy.reset()
-        CONF.set_override('policy_file', '/non/existant/policy/file')
+        CONF.set_override('policy_file', '/non/existent/policy/file')
         self.assertRaises(exception.ConfigNotFound, ironic_policy.init)

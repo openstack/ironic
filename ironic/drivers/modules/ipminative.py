@@ -62,7 +62,7 @@ def _parse_driver_info(node):
             " to IPMI driver: %s."
              ) % missing_info)
 
-    # get additonal info
+    # get additional info
     bmc_info['uuid'] = node.get('uuid')
 
     return bmc_info
