@@ -1,11 +1,13 @@
-# ironic-rootwrap command filters for ironic-deploy-helper
+# ironic-rootwrap command filters for disk manipulation
 # This file should be owned by (and only-writeable by) the root user
 
 [Filters]
-# ironic-deploy-helper
+# ironic/drivers/modules/deploy_utils.py
 iscsiadm: CommandFilter, iscsiadm, root
 sfdisk: CommandFilter, sfdisk, root
 dd: CommandFilter, dd, root
-mkswap: CommandFilter, mkswap, root
 blkid: CommandFilter, blkid, root
+
+# ironic/common/utils.py
+mkswap: CommandFilter, mkswap, root
 mkfs: CommandFilter, mkfs, root
