@@ -183,7 +183,7 @@ class NodeNotFound(NotFound):
 
 
 class NodeLocked(InvalidState):
-    message = _("Node %(node)s is locked by another process.")
+    message = _("Node %(node)s is locked by host %(host)s.")
 
 
 class NodeAssociated(InvalidState):
