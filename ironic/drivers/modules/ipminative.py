@@ -263,6 +263,9 @@ class NativeIPMIPower(base.PowerInterface):
         driver_info = _parse_driver_info(node)
         _reboot(driver_info)
 
+
+class VendorPassthru(base.VendorInterface):
+
     @task_manager.require_exclusive_lock
     def _set_boot_device(self, task, node, device, persistent=False):
         """Set the boot device for a node.
@@ -292,3 +295,38 @@ class NativeIPMIPower(base.PowerInterface):
                           "with the following error: %(error)s")
                           % {'node_id': driver_info['uuid'], 'error': str(e)})
             raise exception.IPMIFailure(cmd=str(e))
+
+    def validate(self, node, **kwargs):
+        """Validate vendor-specific actions.
+        :param node: The node
+        :param kwargs: the keyword arguments supplied
+
+        :raises: InvalidParameterValue if an invalid boot device is specified,
+                 required ipmi credentials are missing or and invalid method
+                 is requested to the driver.
+        """
+        method = kwargs['method']
+        if method == 'set_boot_device':
+            device = kwargs.get('device', None)
+            if device not in ipmi_command.boot_devices:
+                raise exception.InvalidParameterValue(_(
+                    "Invalid boot device %s specified.") % device)
+        else:
+            raise exception.InvalidParameterValue(_(
+                "Unsupported method (%s) passed to IPMINative driver.")
+                % method)
+        _parse_driver_info(node)
+        return True
+
+    def vendor_passthru(self, task, node, **kwargs):
+        """Receive requests for vendor-specific actions.
+        :param task: a TaskManager instance.
+        :param node: The node
+        :param kwargs: the keyword arguments supplied
+        """
+        method = kwargs['method']
+        if method == 'set_boot_device':
+            return self._set_boot_device(
+                        task, node,
+                        kwargs.get('device'),
+                        kwargs.get('persistent', False))

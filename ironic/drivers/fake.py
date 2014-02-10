@@ -71,4 +71,4 @@ class FakeIPMINativeDriver(base.BaseDriver):
     def __init__(self):
         self.power = ipminative.NativeIPMIPower()
         self.deploy = fake.FakeDeploy()
-        self.vendor = self.power
+        self.vendor = ipminative.VendorPassthru()
