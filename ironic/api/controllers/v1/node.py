@@ -287,7 +287,7 @@ class Node(base.APIBase):
         # NOTE(lucasagomes): chassis_uuid is not part of objects.Node.fields
         #                    because it's an API-only attribute
         self.fields.append('chassis_uuid')
-        setattr(self, 'chassis_uuid', kwargs.get('chassis_id', None))
+        setattr(self, 'chassis_uuid', kwargs.get('chassis_id'))
 
     @classmethod
     def _convert_with_links(cls, node, url, expand=True):

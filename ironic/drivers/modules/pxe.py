@@ -92,10 +92,10 @@ def _parse_driver_info(node):
 
     info = node.get('driver_info', {})
     d_info = {}
-    d_info['image_source'] = info.get('pxe_image_source', None)
-    d_info['deploy_kernel'] = info.get('pxe_deploy_kernel', None)
-    d_info['deploy_ramdisk'] = info.get('pxe_deploy_ramdisk', None)
-    d_info['root_gb'] = info.get('pxe_root_gb', None)
+    d_info['image_source'] = info.get('pxe_image_source')
+    d_info['deploy_kernel'] = info.get('pxe_deploy_kernel')
+    d_info['deploy_ramdisk'] = info.get('pxe_deploy_ramdisk')
+    d_info['root_gb'] = info.get('pxe_root_gb')
 
     missing_info = []
     for label in d_info:
@@ -107,12 +107,12 @@ def _parse_driver_info(node):
                 "were not passed to ironic: %s") % missing_info)
 
     # Internal use only
-    d_info['deploy_key'] = info.get('pxe_deploy_key', None)
+    d_info['deploy_key'] = info.get('pxe_deploy_key')
 
     #TODO(ghe): Should we get rid of swap partition?
     d_info['swap_mb'] = info.get('pxe_swap_mb', 1)
-    d_info['key_data'] = info.get('pxe_key_data', None)
-    d_info['instance_name'] = info.get('pxe_instance_name', None)
+    d_info['key_data'] = info.get('pxe_key_data')
+    d_info['instance_name'] = info.get('pxe_instance_name')
 
     for param in ('root_gb', 'swap_mb'):
         try:

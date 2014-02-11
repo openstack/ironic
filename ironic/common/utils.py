@@ -90,9 +90,9 @@ def ssh_connect(connection):
         ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
         ssh.connect(connection.get('host'),
                     username=connection.get('username'),
-                    password=connection.get('password', None),
+                    password=connection.get('password'),
                     port=connection.get('port', 22),
-                    key_filename=connection.get('key_filename', None),
+                    key_filename=connection.get('key_filename'),
                     timeout=connection.get('timeout', 10))
 
         # send TCP keepalive packets every 20 seconds

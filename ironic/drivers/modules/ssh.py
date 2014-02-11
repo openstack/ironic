@@ -133,16 +133,16 @@ def _parse_driver_info(node):
 
     """
     info = node.get('driver_info', {})
-    address = info.get('ssh_address', None)
-    username = info.get('ssh_username', None)
-    password = info.get('ssh_password', None)
+    address = info.get('ssh_address')
+    username = info.get('ssh_username')
+    password = info.get('ssh_password')
     try:
         port = int(info.get('ssh_port', 22))
     except ValueError:
         raise exception.InvalidParameterValue(_(
             "SSHPowerDriver requires ssh_port to be integer value"))
-    key_filename = info.get('ssh_key_filename', None)
-    virt_type = info.get('ssh_virt_type', None)
+    key_filename = info.get('ssh_key_filename')
+    virt_type = info.get('ssh_virt_type')
 
     # NOTE(deva): we map 'address' from API to 'host' for common utils
     res = {
@@ -157,7 +157,7 @@ def _parse_driver_info(node):
         raise exception.InvalidParameterValue(_(
             "SSHPowerDriver requires virt_type be set."))
 
-    cmd_set = COMMAND_SETS.get(virt_type, None)
+    cmd_set = COMMAND_SETS.get(virt_type)
     if not cmd_set:
         valid_values = ', '.join(COMMAND_SETS.keys())
         raise exception.InvalidParameterValue(_(

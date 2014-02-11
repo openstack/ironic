@@ -68,7 +68,7 @@ def check_image_service(func):
         if self.client:
             return func(self, *args, **kwargs)
 
-        image_href = kwargs.get('image_href', None)
+        image_href = kwargs.get('image_href')
         (image_id, self.glance_host,
          self.glance_port, use_ssl) = service_utils.parse_image_ref(image_href)
 
