@@ -49,6 +49,10 @@ class TestListNodes(base.FunctionalTest):
         super(TestListNodes, self).setUp()
         cdict = dbutils.get_test_chassis()
         self.chassis = self.dbapi.create_chassis(cdict)
+        p = mock.patch.object(rpcapi.ConductorAPI, 'get_topic_for')
+        self.mock_gtf = p.start()
+        self.mock_gtf.return_value = 'test-topic'
+        self.addCleanup(p.stop)
 
     def _create_association_test_nodes(self):
         #create some unassociated nodes
@@ -87,6 +91,7 @@ class TestListNodes(base.FunctionalTest):
         self.assertNotIn('chassis_uuid', data['nodes'][0])
         self.assertNotIn('reservation', data['nodes'][0])
         self.assertNotIn('maintenance', data['nodes'][0])
+        self.assertNotIn('console_enabled', data['nodes'][0])
         # never expose the chassis_id
         self.assertNotIn('chassis_id', data['nodes'][0])
 
@@ -219,6 +224,7 @@ class TestListNodes(base.FunctionalTest):
         self.assertEqual(fake_state, data['provision_state'])
         self.assertEqual(fake_state, data['target_provision_state'])
         self.assertEqual(fake_error, data['last_error'])
+        self.assertFalse(data['console_enabled'])
 
     def test_node_by_instance_uuid(self):
         ndict = dbutils.get_test_node(uuid=utils.generate_uuid(),
@@ -367,6 +373,27 @@ class TestListNodes(base.FunctionalTest):
         data = self.get_json('/nodes?associated=true&maintenance=TruE')
         uuids = [n['uuid'] for n in data['nodes']]
         self.assertIn(node.uuid, uuids)
+
+    def test_get_console_information(self):
+        node = self.dbapi.create_node(dbutils.get_test_node())
+        expected_data = {'test': 'test-data'}
+        with mock.patch.object(rpcapi.ConductorAPI,
+                               'get_console_information') as mock_gci:
+            mock_gci.return_value = expected_data
+            data = self.get_json('/nodes/%s/states/console' % node.uuid)
+            self.assertEqual(expected_data, data)
+            mock_gci.assert_called_once_with(mock.ANY, node.uuid, 'test-topic')
+
+    def test_get_console_information_not_supported(self):
+        node = self.dbapi.create_node(dbutils.get_test_node())
+        with mock.patch.object(rpcapi.ConductorAPI,
+                               'get_console_information') as mock_gci:
+            mock_gci.side_effect = exception.UnsupportedDriverExtension(
+                                   extension='console', driver='test-driver')
+            ret = self.get_json('/nodes/%s/states/console' % node.uuid,
+                                expect_errors=True)
+            self.assertEqual(400, ret.status_code)
+            mock_gci.assert_called_once_with(mock.ANY, node.uuid, 'test-topic')
 
 
 class TestPatch(base.FunctionalTest):
@@ -563,6 +590,15 @@ class TestPatch(base.FunctionalTest):
         response = self.patch_json('/nodes/%s' % self.node['uuid'],
                                    [{'path': '/maintenance', 'op': 'replace',
                                      'value': 'fake'}],
+                                   expect_errors=True)
+        self.assertEqual('application/json', response.content_type)
+        self.assertEqual(400, response.status_code)
+        self.assertTrue(response.json['error_message'])
+
+    def test_replace_consoled_enabled(self):
+        response = self.patch_json('/nodes/%s' % self.node['uuid'],
+                                   [{'path': '/console_enabled',
+                                     'op': 'replace', 'value': True}],
                                    expect_errors=True)
         self.assertEqual('application/json', response.content_type)
         self.assertEqual(400, response.status_code)
@@ -824,3 +860,53 @@ class TestPut(base.FunctionalTest):
                             {'target': states.ACTIVE},
                             expect_errors=True)
         self.assertEqual(400, ret.status_code)
+
+    def test_set_console_mode_enabled(self):
+        with mock.patch.object(rpcapi.ConductorAPI, 'set_console_mode') \
+                as mock_scm:
+            ret = self.put_json('/nodes/%s/states/console' % self.node.uuid,
+                                {'enabled': "true"})
+            self.assertEqual(202, ret.status_code)
+            self.assertEqual('', ret.body)
+            mock_scm.assert_called_once_with(mock.ANY, self.node.uuid,
+                                             True, 'test-topic')
+
+    def test_set_console_mode_disabled(self):
+        with mock.patch.object(rpcapi.ConductorAPI, 'set_console_mode') \
+                as mock_scm:
+            ret = self.put_json('/nodes/%s/states/console' % self.node.uuid,
+                                {'enabled': "false"})
+            self.assertEqual(202, ret.status_code)
+            self.assertEqual('', ret.body)
+            mock_scm.assert_called_once_with(mock.ANY, self.node.uuid,
+                                             False, 'test-topic')
+
+    def test_set_console_mode_bad_request(self):
+        with mock.patch.object(rpcapi.ConductorAPI, 'set_console_mode') \
+                as mock_scm:
+            ret = self.put_json('/nodes/%s/states/console' % self.node.uuid,
+                                {'enabled': "invalid-value"},
+                                expect_errors=True)
+            self.assertEqual(400, ret.status_code)
+            # assert set_console_mode wasn't called
+            assert not mock_scm.called
+
+    def test_set_console_mode_bad_request_missing_parameter(self):
+        with mock.patch.object(rpcapi.ConductorAPI, 'set_console_mode') \
+                as mock_scm:
+            ret = self.put_json('/nodes/%s/states/console' % self.node.uuid,
+                                {}, expect_errors=True)
+            self.assertEqual(400, ret.status_code)
+            # assert set_console_mode wasn't called
+            assert not mock_scm.called
+
+    def test_set_console_mode_console_not_supported(self):
+        with mock.patch.object(rpcapi.ConductorAPI, 'set_console_mode') \
+                as mock_scm:
+            mock_scm.side_effect = exception.UnsupportedDriverExtension(
+                                   extension='console', driver='test-driver')
+            ret = self.put_json('/nodes/%s/states/console' % self.node.uuid,
+                                {'enabled': "true"}, expect_errors=True)
+            self.assertEqual(400, ret.status_code)
+            mock_scm.assert_called_once_with(mock.ANY, self.node.uuid,
+                                             True, 'test-topic')

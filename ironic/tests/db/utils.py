@@ -72,6 +72,7 @@ def get_test_node(**kw):
         'properties': kw.get('properties', properties),
         'reservation': kw.get('reservation'),
         'maintenance': kw.get('maintenance', False),
+        'console_enabled': kw.get('console_enabled', False),
         'extra': kw.get('extra', {}),
         'updated_at': kw.get('created_at'),
         'created_at': kw.get('updated_at'),

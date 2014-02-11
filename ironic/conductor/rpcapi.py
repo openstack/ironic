@@ -57,10 +57,11 @@ class ConductorAPI(ironic.openstack.common.rpc.proxy.RpcProxy):
         1.8 - Added change_node_maintenance_mode.
         1.9 - Added destroy_node.
         1.10 - Remove get_node_power_state
+        1.11 - Added get_console_information, set_console_mode.
 
     """
 
-    RPC_API_VERSION = '1.10'
+    RPC_API_VERSION = '1.11'
 
     def __init__(self, topic=None):
         if topic is None:
@@ -247,3 +248,36 @@ class ConductorAPI(ironic.openstack.common.rpc.proxy.RpcProxy):
                          self.make_msg('destroy_node',
                                        node_id=node_id),
                          topic=topic or self.topic)
+
+    def get_console_information(self, context, node_id, topic=None):
+        """Get connection information about the console.
+
+        :param context: request context.
+        :param node_id: node id or uuid.
+        :param topic: RPC topic. Defaults to self.topic.
+        :raises: UnsupportedDriverExtension if the node's driver doesn't
+                 support console.
+        :raises: InvalidParameterValue when the wrong driver info is specified.
+        """
+        return self.call(context,
+                         self.make_msg('get_console_information',
+                                       node_id=node_id),
+                         topic=topic or self.topic)
+
+    def set_console_mode(self, context, node_id, enabled, topic=None):
+        """Enable/Disable the console.
+
+        :param context: request context.
+        :param node_id: node id or uuid.
+        :param topic: RPC topic. Defaults to self.topic.
+        :param enabled: Boolean value; whether the console is enabled or
+                        disabled.
+        :raises: UnsupportedDriverExtension if the node's driver doesn't
+                 support console.
+        :raises: InvalidParameterValue when the wrong driver info is specified.
+        """
+        self.cast(context,
+                  self.make_msg('set_console_mode',
+                                node_id=node_id,
+                                enabled=enabled),
+                  topic=topic or self.topic)

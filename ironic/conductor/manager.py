@@ -102,7 +102,7 @@ CONF.register_opts(conductor_opts, 'conductor')
 class ConductorManager(service.PeriodicService):
     """Ironic Conductor service main class."""
 
-    RPC_API_VERSION = '1.10'
+    RPC_API_VERSION = '1.11'
 
     def __init__(self, host, topic):
         serializer = objects_base.IronicObjectSerializer()
@@ -585,3 +585,84 @@ class ConductorManager(service.PeriodicService):
                 raise exception.NodeAssociated(node=node.uuid,
                                                instance=node.instance_uuid)
             self.dbapi.destroy_node(node_id)
+
+    def get_console_information(self, context, node_id):
+        """Get connection information about the console.
+
+        :param context: request context.
+        :param node_id: node id or uuid.
+        :raises: UnsupportedDriverExtension if the node's driver doesn't
+                 support console.
+        :raises: NodeConsoleNotEnabled if the console is not enabled.
+        :raises: InvalidParameterValue when the wrong driver info is specified.
+        """
+        LOG.debug(_('RPC get_console_information called for node %s')
+                  % node_id)
+
+        with task_manager.acquire(context, node_id, shared=True) as task:
+            node = task.node
+
+            if not getattr(task.driver, 'console', None):
+                raise exception.UnsupportedDriverExtension(driver=node.driver,
+                                                           extension='console')
+            if not node.console_enabled:
+                raise exception.NodeConsoleNotEnabled(node=node_id)
+
+            task.driver.console.validate(task, node)
+            return task.driver.console.get_console(task, node)
+
+    def set_console_mode(self, context, node_id, enabled):
+        """Enable/Disable the console.
+
+        :param context: request context.
+        :param node_id: node id or uuid.
+        :param enabled: Boolean value; whether the console is enabled or
+                        disabled.
+        :raises: UnsupportedDriverExtension if the node's driver doesn't
+                 support console.
+        :raises: InvalidParameterValue when the wrong driver info is specified.
+        """
+        LOG.debug(_('RPC set_console_mode called for node %(node)s with '
+                    'enabled %(enabled)s') % {'node': node_id,
+                                              'enabled': enabled})
+
+        with task_manager.acquire(context, node_id) as task:
+            node = task.node
+
+            if not getattr(task.driver, 'console', None):
+                exc = exception.UnsupportedDriverExtension(driver=node.driver,
+                                                           extension='console')
+                node.last_error = exc.format_message()
+                node.save(context)
+                raise exc
+
+            try:
+                task.driver.console.validate(task, node)
+            except exception.InvalidParameterValue as e:
+                with excutils.save_and_reraise_exception():
+                    node.last_error = (_("Failed to validate console info. "
+                                         "Error: %s") % e)
+                    node.save(context)
+
+            try:
+                if enabled and not node.console_enabled:
+                    task.driver.console.start_console(task, node)
+                elif not enabled and node.console_enabled:
+                    task.driver.console.stop_console(task, node)
+                else:
+                    op = _('enabled') if enabled else _('disabled')
+                    LOG.info(_("No console action was triggered because the "
+                               "console is already %s") % op)
+            except Exception as e:
+                with excutils.save_and_reraise_exception():
+                    op = _('enabling') if enabled else _('disabling')
+                    msg = (_('Error %(op)s the console on node %(node)s. '
+                            'Reason: %(error)s') % {'op': op,
+                                                    'node': node.uuid,
+                                                    'error': e})
+                    node.last_error = msg
+            else:
+                node.console_enabled = enabled
+                node.last_error = None
+            finally:
+                node.save(context)

@@ -36,6 +36,7 @@ class FakeDriver(base.BaseDriver):
         a = fake.FakeVendorA()
         b = fake.FakeVendorB()
         self.vendor = fake.MultipleVendorInterface(a, b)
+        self.console = fake.FakeConsole()
 
 
 class FakeIPMIToolDriver(base.BaseDriver):
