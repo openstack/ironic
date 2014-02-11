@@ -248,6 +248,18 @@ class ConsoleInterface(object):
         TODO
         """
 
+    @abc.abstractmethod
+    def get_console(self, task, node):
+        """Get connection information about the console.
+
+        This method should return the necessary information for the
+        client to access the console.
+
+        :param task: a task from TaskManager.
+        :param node: a single Node.
+        :returns: the console connection information.
+        """
+
 
 @six.add_metaclass(abc.ABCMeta)
 class RescueInterface(object):
