@@ -37,6 +37,8 @@ from ironic.common import states as ir_states
 from ironic import objects
 from ironic.openstack.common import excutils
 from ironic.openstack.common import log
+from ironic.openstack.common import strutils
+
 
 CONF = cfg.CONF
 CONF.import_opt('heartbeat_timeout', 'ironic.conductor.manager',
@@ -415,7 +417,7 @@ class NodesController(rest.RestController):
         self._from_chassis = from_chassis
 
     def _get_nodes_collection(self, chassis_uuid, instance_uuid, associated,
-                              marker, limit, sort_key, sort_dir,
+                              maintenance, marker, limit, sort_key, sort_dir,
                               expand=False, resource_url=None):
         if self._from_chassis and not chassis_uuid:
             raise exception.InvalidParameterValue(_(
@@ -429,25 +431,36 @@ class NodesController(rest.RestController):
             marker_obj = objects.Node.get_by_uuid(pecan.request.context,
                                                   marker)
 
-        if chassis_uuid:
-            nodes = pecan.request.dbapi.get_nodes_by_chassis(chassis_uuid,
-                                                             limit, marker_obj,
-                                                             sort_key=sort_key,
-                                                             sort_dir=sort_dir)
-        elif instance_uuid:
+        if instance_uuid:
             nodes = self._get_nodes_by_instance(instance_uuid)
-        elif associated:
-            nodes = self._get_nodes_by_instance_association(associated,
-                                                   limit, marker_obj,
-                                                   sort_key, sort_dir)
         else:
-            nodes = pecan.request.dbapi.get_node_list(limit, marker_obj,
+            filters = {}
+            if chassis_uuid:
+                filters['chassis_uuid'] = chassis_uuid
+            try:
+                if associated:
+                    param = 'associated'
+                    filters[param] = strutils.bool_from_string(associated,
+                                                               strict=True)
+                if maintenance:
+                    param = 'maintenance'
+                    filters[param] = strutils.bool_from_string(maintenance,
+                                                               strict=True)
+            except ValueError as e:
+                raise wsme.exc.ClientSideError(_(
+                            "Invalid parameter '%(param)s' value: %(msg)s") %
+                            {'param': param, 'msg': e})
+
+            nodes = pecan.request.dbapi.get_node_list(filters, limit,
+                                                      marker_obj,
                                                       sort_key=sort_key,
                                                       sort_dir=sort_dir)
 
         parameters = {'sort_key': sort_key, 'sort_dir': sort_dir}
         if associated:
             parameters['associated'] = associated.lower()
+        if maintenance:
+            parameters['maintenance'] = maintenance.lower()
         return NodeCollection.convert_with_links(nodes, limit,
                                                  url=resource_url,
                                                  expand=expand,
@@ -464,25 +477,12 @@ class NodesController(rest.RestController):
         except exception.InstanceNotFound:
             return []
 
-    def _get_nodes_by_instance_association(self, associated, limit, marker_obj,
-                                           sort_key, sort_dir):
-        """Retrieve nodes by instance association."""
-        if associated.lower() == 'true':
-            nodes = pecan.request.dbapi.get_associated_nodes(limit,
-                        marker_obj, sort_key=sort_key, sort_dir=sort_dir)
-        elif associated.lower() == 'false':
-            nodes = pecan.request.dbapi.get_unassociated_nodes(limit,
-                        marker_obj, sort_key=sort_key, sort_dir=sort_dir)
-        else:
-            raise wsme.exc.ClientSideError(_(
-                    "Invalid parameter value: %s, 'associated' "
-                    "can only be true or false.") % associated)
-        return nodes
-
     @wsme_pecan.wsexpose(NodeCollection, types.uuid, types.uuid,
-               wtypes.text, types.uuid, int, wtypes.text, wtypes.text)
+               wtypes.text, wtypes.text, types.uuid, int, wtypes.text,
+               wtypes.text)
     def get_all(self, chassis_uuid=None, instance_uuid=None, associated=None,
-                marker=None, limit=None, sort_key='id', sort_dir='asc'):
+                maintenance=None, marker=None, limit=None, sort_key='id',
+                sort_dir='asc'):
         """Retrieve a list of nodes.
 
         :param chassis_uuid: Optional UUID of a chassis, to get only nodes for
@@ -492,19 +492,24 @@ class NodesController(rest.RestController):
         :param associated: Optional boolean whether to return a list of
                            associated or unassociated nodes. May be combined
                            with other parameters.
+        :param maintenance: Optional boolean value that indicates whether
+                            to get nodes in maintenance mode ("True"), or not
+                            in maintenance mode ("False").
         :param marker: pagination marker for large data sets.
         :param limit: maximum number of resources to return in a single result.
         :param sort_key: column to sort results by. Default: id.
         :param sort_dir: direction to sort. "asc" or "desc". Default: asc.
         """
         return self._get_nodes_collection(chassis_uuid, instance_uuid,
-                                          associated, marker, limit,
-                                          sort_key, sort_dir)
+                                          associated, maintenance, marker,
+                                          limit, sort_key, sort_dir)
 
     @wsme_pecan.wsexpose(NodeCollection, types.uuid, types.uuid,
-            wtypes.text, types.uuid, int, wtypes.text, wtypes.text)
+            wtypes.text, wtypes.text, types.uuid, int, wtypes.text,
+            wtypes.text)
     def detail(self, chassis_uuid=None, instance_uuid=None, associated=None,
-               marker=None, limit=None, sort_key='id', sort_dir='asc'):
+               maintenance=None, marker=None, limit=None, sort_key='id',
+               sort_dir='asc'):
         """Retrieve a list of nodes with detail.
 
         :param chassis_uuid: Optional UUID of a chassis, to get only nodes for
@@ -514,6 +519,9 @@ class NodesController(rest.RestController):
         :param associated: Optional boolean whether to return a list of
                            associated or unassociated nodes. May be combined
                            with other parameters.
+        :param maintenance: Optional boolean value that indicates whether
+                            to get nodes in maintenance mode ("True"), or not
+                            in maintenance mode ("False").
         :param marker: pagination marker for large data sets.
         :param limit: maximum number of resources to return in a single result.
         :param sort_key: column to sort results by. Default: id.
@@ -527,9 +535,9 @@ class NodesController(rest.RestController):
         expand = True
         resource_url = '/'.join(['nodes', 'detail'])
         return self._get_nodes_collection(chassis_uuid, instance_uuid,
-                                          associated, marker, limit,
-                                          sort_key, sort_dir,
-                                          expand, resource_url)
+                                          associated, maintenance, marker,
+                                          limit, sort_key, sort_dir, expand,
+                                          resource_url)
 
     @wsme_pecan.wsexpose(wtypes.text, types.uuid)
     def validate(self, node_uuid):

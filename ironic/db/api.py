@@ -52,6 +52,9 @@ class Connection(object):
         :param filters: Filters to apply. Defaults to None.
                         'associated': True | False
                         'reserved': True | False
+                        'maintenance': True | False
+                        'chassis_uuid': uuid of chassis
+                        'driver': driver's name
         :param limit: Maximum number of nodes to return.
         :param marker: the last item of the previous page; we return the next
                        result set.
@@ -62,10 +65,16 @@ class Connection(object):
         """
 
     @abc.abstractmethod
-    def get_node_list(self, limit=None, marker=None,
+    def get_node_list(self, filters=None, limit=None, marker=None,
                       sort_key=None, sort_dir=None):
         """Return a list of nodes.
 
+        :param filters: Filters to apply. Defaults to None.
+                        'associated': True | False
+                        'reserved': True | False
+                        'maintenance': True | False
+                        'chassis_uuid': uuid of chassis
+                        'driver': driver's name
         :param limit: Maximum number of nodes to return.
         :param marker: the last item of the previous page; we return the next
                        result set.
@@ -73,14 +82,6 @@ class Connection(object):
         :param sort_dir: direction in which results should be sorted.
                          (asc, desc)
         """
-
-    @abc.abstractmethod
-    def get_associated_nodes(self):
-        """Return a list of ids of all associated nodes."""
-
-    @abc.abstractmethod
-    def get_unassociated_nodes(self):
-        """Return a list of ids of all unassociated nodes."""
 
     @abc.abstractmethod
     def reserve_nodes(self, tag, nodes):
@@ -142,21 +143,6 @@ class Connection(object):
 
         :param instance: The instance name or uuid to search for.
         :returns: A node.
-        """
-
-    @abc.abstractmethod
-    def get_nodes_by_chassis(self, chassis_id, limit=None, marker=None,
-                             sort_key=None, sort_dir=None):
-        """List all the nodes for a given chassis.
-
-        :param chassis_id: The id or uuid of a chassis.
-        :param limit: Maximum number of nodes to return.
-        :param marker: the last item of the previous page; we returns the next
-                       results after this value.
-        :param sort_key: Attribute by which results should be sorted
-        :param sort_dir: direction in which results should be sorted
-                         (asc, desc)
-        :returns: A list of nodes.
         """
 
     @abc.abstractmethod
