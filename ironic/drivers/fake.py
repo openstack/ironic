@@ -32,7 +32,10 @@ class FakeDriver(base.BaseDriver):
     def __init__(self):
         self.power = fake.FakePower()
         self.deploy = fake.FakeDeploy()
-        self.vendor = fake.FakeVendor()
+
+        a = fake.FakeVendorA()
+        b = fake.FakeVendorB()
+        self.vendor = fake.MultipleVendorInterface(a, b)
 
 
 class FakeIPMIToolDriver(base.BaseDriver):

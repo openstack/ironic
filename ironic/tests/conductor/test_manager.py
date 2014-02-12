@@ -291,14 +291,15 @@ class ManagerTestCase(base.DbTestCase):
         n = utils.get_test_node(driver='fake')
         self.dbapi.create_node(n)
         info = {'bar': 'baz'}
-        self.service.do_vendor_action(self.context, n['uuid'], 'foo', info)
+        self.service.do_vendor_action(
+                self.context, n['uuid'], 'first_method', info)
 
     def test_validate_vendor_action(self):
         n = utils.get_test_node(driver='fake')
         node = self.dbapi.create_node(n)
         info = {'bar': 'baz'}
-        self.assertTrue(self.service.validate_vendor_action(self.context,
-                                                     n['uuid'], 'foo', info))
+        self.service.validate_vendor_action(
+                self.context, n['uuid'], 'first_method', info)
         node.refresh(self.context)
         self.assertIsNone(node.last_error)
 
@@ -318,7 +319,7 @@ class ManagerTestCase(base.DbTestCase):
         info = {'fake': 'baz'}
         self.assertRaises(exception.InvalidParameterValue,
                           self.service.validate_vendor_action,
-                          self.context, n['uuid'], 'foo', info)
+                          self.context, n['uuid'], 'first_method', info)
         node.refresh(self.context)
         self.assertIsNotNone(node.last_error)
 

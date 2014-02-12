@@ -16,6 +16,13 @@
 # under the License.
 """
 Fake driver interfaces used in testing.
+
+This is also an example of some kinds of things which can be done within
+drivers.  For instance, the MultipleVendorInterface class demonstrates how to
+load more than one interface and wrap them in some logic to route incoming
+vendor_passthru requests appropriately. This can be useful eg. when mixing
+functionality between a power interface and a deploy interface, when both rely
+on seprate vendor_passthru methods.
 """
 
 from ironic.common import exception
@@ -23,11 +30,20 @@ from ironic.common import states
 from ironic.drivers import base
 
 
+def _raise_unsupported_error(method=None):
+    if method:
+        raise exception.InvalidParameterValue(_(
+            "Unsupported method (%s) passed through to vendor extension.")
+            % method)
+    raise exception.InvalidParameterValue(_(
+        "Method not specified when calling vendor extension."))
+
+
 class FakePower(base.PowerInterface):
     """Example implementation of a simple power interface."""
 
     def validate(self, node):
-        return True
+        pass
 
     def get_power_state(self, task, node):
         return node.get('power_state', states.NOSTATE)
@@ -48,7 +64,7 @@ class FakeDeploy(base.DeployInterface):
     """
 
     def validate(self, node):
-        return True
+        pass
 
     def deploy(self, task, node):
         pass
@@ -66,33 +82,80 @@ class FakeDeploy(base.DeployInterface):
         pass
 
 
-class FakeVendor(base.VendorInterface):
+class FakeVendorA(base.VendorInterface):
     """Example implementation of a vendor passthru interface."""
 
     def validate(self, node, **kwargs):
         method = kwargs.get('method')
-        if not method:
-            raise exception.InvalidParameterValue(_(
-                "Invalid vendor passthru, no 'method' specified."))
-
-        if method == 'foo':
+        if method == 'first_method':
             bar = kwargs.get('bar')
             if not bar:
                 raise exception.InvalidParameterValue(_(
-                                "Parameter not passed to Ironic."))
+                    "Parameter 'bar' not passed to method 'first_method'."))
+            return
+        _raise_unsupported_error(method)
 
-        else:
-            raise exception.InvalidParameterValue(_(
-                "Unsupported method (%s) passed through to vendor extension.")
-                % method)
-
-        return True
-
-    def _foo(self, task, node, bar):
+    def _private_method(self, task, node, bar):
         return True if bar == 'baz' else False
 
     def vendor_passthru(self, task, node, **kwargs):
         method = kwargs.get('method')
-        if method == 'foo':
+        if method == 'first_method':
             bar = kwargs.get('bar')
-            return self._foo(task, node, bar)
+            return self._private_method(task, node, bar)
+        _raise_unsupported_error(method)
+
+
+class FakeVendorB(base.VendorInterface):
+    """Example implementation of a secondary vendor passthru."""
+
+    def validate(self, node, **kwargs):
+        method = kwargs.get('method')
+        if method == 'second_method':
+            bar = kwargs.get('bar')
+            if not bar:
+                raise exception.InvalidParameterValue(_(
+                    "Parameter 'bar' not passed to method 'second_method'."))
+            return
+        _raise_unsupported_error(method)
+
+    def _private_method(self, task, node, bar):
+        return True if bar == 'kazoo' else False
+
+    def vendor_passthru(self, task, node, **kwargs):
+        method = kwargs.get('method')
+        if method == 'second_method':
+            bar = kwargs.get('bar')
+            return self._private_method(task, node, bar)
+        _raise_unsupported_error(method)
+
+
+class MultipleVendorInterface(base.VendorInterface):
+    """Example of a wrapper around two VendorInterfaces."""
+
+    def __init__(self, first, second):
+        self.interface_one = first
+        self.interface_two = second
+        self.mapping = {'first_method': self.interface_one,
+                        'second_method': self.interface_two}
+
+    def _map(self, **kwargs):
+        """Map methods to interfaces.
+
+        :returns: an instance of a VendorInterface
+        :raises: InvalidParameterValue if **kwargs does not contain 'method'
+                 or if the method can not be mapped to an interface.
+
+        """
+        method = kwargs.get('method')
+        return self.mapping.get(method) or _raise_unsupported_error(method)
+
+    def validate(self, *args, **kwargs):
+        """Call validate on the appropriate interface only."""
+        route = self._map(**kwargs)
+        route.validate(*args, **kwargs)
+
+    def vendor_passthru(self, task, node, **kwargs):
+        """Call vendor_passthru on the appropriate interface only."""
+        route = self._map(**kwargs)
+        return route.vendor_passthru(task, node, **kwargs)
