@@ -18,10 +18,10 @@
 
 import copy
 import logging
-import urlparse
 
 from oslo.config import cfg
 import six
+import six.moves.urllib.parse as urlparse
 
 from ironic.common import exception
 from ironic.openstack.common import jsonutils
