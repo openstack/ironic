@@ -91,7 +91,7 @@ CONF.register_opts(conductor_opts, 'conductor')
 class ConductorManager(service.PeriodicService):
     """Ironic Conductor service main class."""
 
-    RPC_API_VERSION = '1.9'
+    RPC_API_VERSION = '1.10'
 
     def __init__(self, host, topic):
         serializer = objects_base.IronicObjectSerializer()
@@ -140,15 +140,6 @@ class ConductorManager(service.PeriodicService):
     def periodic_tasks(self, context, raise_on_error=False):
         """Periodic tasks are run at pre-specified interval."""
         return self.run_periodic_tasks(context, raise_on_error=raise_on_error)
-
-    def get_node_power_state(self, context, node_id):
-        """Get and return the power state for a single node."""
-
-        with task_manager.acquire(context, [node_id], shared=True) as task:
-            node = task.resources[0].node
-            driver = task.resources[0].driver
-            state = driver.power.get_power_state(task, node)
-            return state
 
     def update_node(self, context, node_obj):
         """Update a node with the supplied data.

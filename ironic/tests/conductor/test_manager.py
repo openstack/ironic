@@ -196,31 +196,6 @@ class ManagerTestCase(base.DbTestCase):
             self.service._sync_power_states(self.context)
             self.assertFalse(get_power_mock.called)
 
-    def test_get_power_state(self):
-        n = utils.get_test_node(driver='fake')
-        self.dbapi.create_node(n)
-
-        # FakeControlDriver.get_power_state will "pass"
-        # and states.NOSTATE is None, so this test should pass.
-        state = self.service.get_node_power_state(self.context, n['uuid'])
-        self.assertEqual(state, states.NOSTATE)
-
-    def test_get_power_state_with_mock(self):
-        n = utils.get_test_node(driver='fake')
-        self.dbapi.create_node(n)
-
-        with mock.patch.object(self.driver.power, 'get_power_state') \
-                as get_power_mock:
-            get_power_mock.side_effect = [states.POWER_OFF, states.POWER_ON]
-            expected = [mock.call(mock.ANY, mock.ANY),
-                        mock.call(mock.ANY, mock.ANY)]
-
-            state = self.service.get_node_power_state(self.context, n['uuid'])
-            self.assertEqual(state, states.POWER_OFF)
-            state = self.service.get_node_power_state(self.context, n['uuid'])
-            self.assertEqual(state, states.POWER_ON)
-            self.assertEqual(get_power_mock.call_args_list, expected)
-
     def test_change_node_power_state_power_on(self):
         # Test change_node_power_state including integration with
         # conductor.utils.node_power_action and lower.

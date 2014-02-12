@@ -106,11 +106,6 @@ class RPCAPITestCase(base.DbTestCase):
         for arg, expected_arg in zip(self.fake_args, expected_args):
             self.assertEqual(arg, expected_arg)
 
-    def test_get_node_power_state(self):
-        self._test_rpcapi('get_node_power_state',
-                          'call',
-                           node_id=123)
-
     def test_update_node(self):
         self._test_rpcapi('update_node',
                           'call',

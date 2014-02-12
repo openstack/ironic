@@ -56,10 +56,11 @@ class ConductorAPI(ironic.openstack.common.rpc.proxy.RpcProxy):
         1.7 - Added topic parameter to RPC methods.
         1.8 - Added change_node_maintenance_mode.
         1.9 - Added destroy_node.
+        1.10 - Remove get_node_power_state
 
     """
 
-    RPC_API_VERSION = '1.9'
+    RPC_API_VERSION = '1.10'
 
     def __init__(self, topic=None):
         if topic is None:
@@ -93,20 +94,6 @@ class ConductorAPI(ironic.openstack.common.rpc.proxy.RpcProxy):
             reason = (_('No conductor service registered which supports '
                         'driver %s.') % node.driver)
             raise exception.NoValidHost(reason=reason)
-
-    def get_node_power_state(self, context, node_id, topic=None):
-        """Ask a conductor for the node power state.
-
-        :param context: request context.
-        :param node_id: node id or uuid.
-        :param topic: RPC topic. Defaults to self.topic.
-        :returns: power status.
-
-        """
-        return self.call(context,
-                         self.make_msg('get_node_power_state',
-                                       node_id=node_id),
-                         topic=topic or self.topic)
 
     def update_node(self, context, node_obj, topic=None):
         """Synchronously, have a conductor update the node's information.
