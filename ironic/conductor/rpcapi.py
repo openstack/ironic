@@ -224,12 +224,13 @@ class ConductorAPI(ironic.openstack.common.rpc.proxy.RpcProxy):
                                        node_id=node_id),
                          topic=topic or self.topic)
 
-    def change_node_maintenance_mode(self, context, node_id, mode):
+    def change_node_maintenance_mode(self, context, node_id, mode, topic=None):
         """Set node maintenance mode on or off.
 
         :param context: request context.
         :param node_id: node id or uuid.
         :param mode: True or False.
+        :param topic: RPC topic. Defaults to self.topic.
         :returns: a node object.
         :raises: NodeMaintenanceFailure.
 
@@ -237,4 +238,5 @@ class ConductorAPI(ironic.openstack.common.rpc.proxy.RpcProxy):
         return self.call(context,
                          self.make_msg('change_node_maintenance_mode',
                                        node_id=node_id,
-                                       mode=mode))
+                                       mode=mode),
+                         topic=topic or self.topic)
