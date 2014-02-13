@@ -135,8 +135,8 @@ class TestPatch(base.FunctionalTest):
         super(TestPatch, self).setUp()
         ndict = dbutils.get_test_node()
         self.node = self.dbapi.create_node(ndict)
-        self.pdict = post_get_test_port()
-        self.post_json('/ports', self.pdict)
+        self.pdict = dbutils.get_test_port(id=None)
+        self.dbapi.create_port(self.pdict)
         self.addCleanup(timeutils.clear_time_override)
 
     def test_update_byid(self):
@@ -185,13 +185,15 @@ class TestPatch(base.FunctionalTest):
         self.assertEqual(address, result['address'])
 
     def test_replace_address_already_exist(self):
-        pdict1 = post_get_test_port(address='AA:AA:AA:AA:AA:AA',
-                                    uuid=utils.generate_uuid())
-        self.post_json('/ports', pdict1)
+        pdict1 = dbutils.get_test_port(address='aa:aa:aa:aa:aa:aa',
+                                       uuid=utils.generate_uuid(),
+                                       id=None)
+        self.dbapi.create_port(pdict1)
 
-        pdict2 = post_get_test_port(address='BB:BB:BB:BB:BB:BB',
-                                    uuid=utils.generate_uuid())
-        self.post_json('/ports', pdict2)
+        pdict2 = dbutils.get_test_port(address='bb:bb:bb:bb:bb:bb',
+                                       uuid=utils.generate_uuid(),
+                                       id=None)
+        self.dbapi.create_port(pdict2)
 
         response = self.patch_json('/ports/%s' % pdict1['uuid'],
                                    [{'path': '/address',
@@ -214,10 +216,11 @@ class TestPatch(base.FunctionalTest):
 
     def test_replace_multi(self):
         extra = {"foo1": "bar1", "foo2": "bar2", "foo3": "bar3"}
-        pdict = post_get_test_port(extra=extra,
+        pdict = dbutils.get_test_port(extra=extra,
                                    address="AA:BB:CC:DD:EE:FF",
                                    uuid=utils.generate_uuid())
-        self.post_json('/ports', pdict)
+        self.dbapi.create_port(pdict)
+
         new_value = 'new value'
         response = self.patch_json('/ports/%s' % pdict['uuid'],
                                    [{'path': '/extra/foo2',
@@ -231,10 +234,10 @@ class TestPatch(base.FunctionalTest):
 
     def test_remove_multi(self):
         extra = {"foo1": "bar1", "foo2": "bar2", "foo3": "bar3"}
-        pdict = post_get_test_port(extra=extra,
+        pdict = dbutils.get_test_port(extra=extra,
                                    address="aa:bb:cc:dd:ee:ff",
                                    uuid=utils.generate_uuid())
-        self.post_json('/ports', pdict)
+        self.dbapi.create_port(pdict)
 
         # Removing one item from the collection
         response = self.patch_json('/ports/%s' % pdict['uuid'],
@@ -266,9 +269,10 @@ class TestPatch(base.FunctionalTest):
         self.assertTrue(response.json['error_message'])
 
     def test_remove_mandatory_field(self):
-        pdict = post_get_test_port(address="AA:BB:CC:DD:EE:FF",
+        pdict = dbutils.get_test_port(address="AA:BB:CC:DD:EE:FF",
                                    uuid=utils.generate_uuid())
-        self.post_json('/ports', pdict)
+        self.dbapi.create_port(pdict)
+
         response = self.patch_json('/ports/%s' % pdict['uuid'],
                                    [{'path': '/address', 'op': 'remove'}],
                                    expect_errors=True)
@@ -306,9 +310,9 @@ class TestPatch(base.FunctionalTest):
         self.assertTrue(response.json['error_message'])
 
     def test_update_address_invalid_format(self):
-        pdict = post_get_test_port(address="AA:BB:CC:DD:EE:FF",
+        pdict = dbutils.get_test_port(address="AA:BB:CC:DD:EE:FF",
                                    uuid=utils.generate_uuid())
-        self.post_json('/ports', pdict)
+        self.dbapi.create_port(pdict)
         response = self.patch_json('/ports/%s' % pdict['uuid'],
                                    [{'path': '/address',
                                      'value': 'invalid-format',
@@ -451,8 +455,8 @@ class TestDelete(base.FunctionalTest):
         super(TestDelete, self).setUp()
         ndict = dbutils.get_test_node()
         self.node = self.dbapi.create_node(ndict)
-        pdict = post_get_test_port()
-        self.post_json('/ports', pdict)
+        pdict = dbutils.get_test_port()
+        self.dbapi.create_port(pdict)
 
     def test_delete_port_byid(self):
         pdict = dbutils.get_test_port()
