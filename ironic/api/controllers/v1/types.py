@@ -24,6 +24,7 @@ from wsme import types as wtypes
 
 from ironic.common import exception
 from ironic.common import utils
+from ironic.openstack.common import strutils
 
 
 class MacAddressType(wtypes.UserType):
@@ -65,8 +66,35 @@ class UuidType(wtypes.UserType):
         return UuidType.validate(value)
 
 
+class BooleanType(wtypes.UserType):
+    """A simple boolean type."""
+
+    basetype = wtypes.text
+    name = 'boolean'
+    # FIXME(lucasagomes): When used with wsexpose decorator WSME will try
+    # to get the name of the type by accessing it's __name__ attribute.
+    # Remove this __name__ attribute once it's fixed in WSME.
+    # https://bugs.launchpad.net/wsme/+bug/1265590
+    __name__ = name
+
+    @staticmethod
+    def validate(value):
+        try:
+            return strutils.bool_from_string(value, strict=True)
+        except ValueError as e:
+            # raise Invalid to return 400 (BadRequest) in the API
+            raise exception.Invalid(e)
+
+    @staticmethod
+    def frombasetype(value):
+        if value is None:
+            return None
+        return BooleanType.validate(value)
+
+
 macaddress = MacAddressType()
 uuid = UuidType()
+boolean = BooleanType()
 
 
 # TODO(lucasagomes): WSME already has this StringType implementation on trunk,

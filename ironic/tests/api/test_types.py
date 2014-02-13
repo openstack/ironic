@@ -198,3 +198,33 @@ class TestMultiType(base.FunctionalTest):
         vt = types.MultiType(wsme.types.text, six.integer_types)
         self.assertRaises(ValueError, vt.validate, 0.10)
         self.assertRaises(ValueError, vt.validate, object())
+
+
+class TestBooleanType(base.FunctionalTest):
+
+    def test_valid_true_values(self):
+        v = types.BooleanType()
+        self.assertTrue(v.validate("true"))
+        self.assertTrue(v.validate("TRUE"))
+        self.assertTrue(v.validate("True"))
+        self.assertTrue(v.validate("t"))
+        self.assertTrue(v.validate("1"))
+        self.assertTrue(v.validate("y"))
+        self.assertTrue(v.validate("yes"))
+        self.assertTrue(v.validate("on"))
+
+    def test_valid_false_values(self):
+        v = types.BooleanType()
+        self.assertFalse(v.validate("false"))
+        self.assertFalse(v.validate("FALSE"))
+        self.assertFalse(v.validate("False"))
+        self.assertFalse(v.validate("f"))
+        self.assertFalse(v.validate("0"))
+        self.assertFalse(v.validate("n"))
+        self.assertFalse(v.validate("no"))
+        self.assertFalse(v.validate("off"))
+
+    def test_invalid_value(self):
+        v = types.BooleanType()
+        self.assertRaises(exception.Invalid, v.validate, "invalid-value")
+        self.assertRaises(exception.Invalid, v.validate, "01")
