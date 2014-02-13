@@ -37,7 +37,6 @@ from ironic.common import states as ir_states
 from ironic import objects
 from ironic.openstack.common import excutils
 from ironic.openstack.common import log
-from ironic.openstack.common import strutils
 
 
 CONF = cfg.CONF
@@ -421,26 +420,16 @@ class NodesController(rest.RestController):
         if marker:
             marker_obj = objects.Node.get_by_uuid(pecan.request.context,
                                                   marker)
-
         if instance_uuid:
             nodes = self._get_nodes_by_instance(instance_uuid)
         else:
             filters = {}
             if chassis_uuid:
                 filters['chassis_uuid'] = chassis_uuid
-            try:
-                if associated:
-                    param = 'associated'
-                    filters[param] = strutils.bool_from_string(associated,
-                                                               strict=True)
-                if maintenance:
-                    param = 'maintenance'
-                    filters[param] = strutils.bool_from_string(maintenance,
-                                                               strict=True)
-            except ValueError as e:
-                raise wsme.exc.ClientSideError(_(
-                            "Invalid parameter '%(param)s' value: %(msg)s") %
-                            {'param': param, 'msg': e})
+            if associated is not None:
+                filters['associated'] = associated
+            if maintenance is not None:
+                filters['maintenance'] = maintenance
 
             nodes = pecan.request.dbapi.get_node_list(filters, limit,
                                                       marker_obj,
@@ -449,9 +438,9 @@ class NodesController(rest.RestController):
 
         parameters = {'sort_key': sort_key, 'sort_dir': sort_dir}
         if associated:
-            parameters['associated'] = associated.lower()
+            parameters['associated'] = associated
         if maintenance:
-            parameters['maintenance'] = maintenance.lower()
+            parameters['maintenance'] = maintenance
         return NodeCollection.convert_with_links(nodes, limit,
                                                  url=resource_url,
                                                  expand=expand,
@@ -469,7 +458,7 @@ class NodesController(rest.RestController):
             return []
 
     @wsme_pecan.wsexpose(NodeCollection, types.uuid, types.uuid,
-               wtypes.text, wtypes.text, types.uuid, int, wtypes.text,
+               types.boolean, types.boolean, types.uuid, int, wtypes.text,
                wtypes.text)
     def get_all(self, chassis_uuid=None, instance_uuid=None, associated=None,
                 maintenance=None, marker=None, limit=None, sort_key='id',
@@ -496,7 +485,7 @@ class NodesController(rest.RestController):
                                           limit, sort_key, sort_dir)
 
     @wsme_pecan.wsexpose(NodeCollection, types.uuid, types.uuid,
-            wtypes.text, wtypes.text, types.uuid, int, wtypes.text,
+            types.boolean, types.boolean, types.uuid, int, wtypes.text,
             wtypes.text)
     def detail(self, chassis_uuid=None, instance_uuid=None, associated=None,
                maintenance=None, marker=None, limit=None, sort_key='id',
