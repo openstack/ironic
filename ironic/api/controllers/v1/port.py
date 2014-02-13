@@ -98,7 +98,7 @@ class Port(base.APIBase):
         # NOTE(lucasagomes): node_uuid is not part of objects.Port.fields
         #                    because it's an API-only attribute
         self.fields.append('node_uuid')
-        setattr(self, 'node_uuid', kwargs.get('node_id', None))
+        setattr(self, 'node_uuid', kwargs.get('node_id'))
 
     @classmethod
     def convert_with_links(cls, rpc_port, expand=True):

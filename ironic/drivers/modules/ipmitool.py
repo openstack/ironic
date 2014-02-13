@@ -74,10 +74,10 @@ def _parse_driver_info(node):
 
     """
     info = node.get('driver_info', {})
-    address = info.get('ipmi_address', None)
-    username = info.get('ipmi_username', None)
-    password = info.get('ipmi_password', None)
-    port = info.get('ipmi_terminal_port', None)
+    address = info.get('ipmi_address')
+    username = info.get('ipmi_username')
+    password = info.get('ipmi_password')
+    port = info.get('ipmi_terminal_port')
 
     if not address:
         raise exception.InvalidParameterValue(_(
