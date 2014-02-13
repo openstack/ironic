@@ -25,11 +25,19 @@ LOG = log.getLogger(__name__)
 def node_power_action(task, node, state):
     """Change power state or reset for a node.
 
+    Validate whether the given power transition is possible and perform
+    power action.
+
     :param task: a TaskManager instance.
     :param node: the Node object to act upon.
     :param state: Any power state from ironic.common.states. If the
         state is 'REBOOT' then a reboot will be attempted, otherwise
         the node power state is directly set to 'state'.
+    :raises: InvalidParameterValue when the wrong state is specified
+             or the wrong driver info is specified.
+    :raises: other exceptions by the node's power driver if something
+             wrong occurred during the power action.
+
     """
     context = task.context
     new_state = states.POWER_ON if state == states.REBOOT else state

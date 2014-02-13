@@ -19,6 +19,8 @@
 
 """Test class for Ironic ManagerService."""
 
+import time
+
 import mock
 from oslo.config import cfg
 from testtools.matchers import HasLength
@@ -29,6 +31,7 @@ from ironic.common import states
 from ironic.common import utils as ironic_utils
 from ironic.conductor import manager
 from ironic.conductor import task_manager
+from ironic.conductor import utils as conductor_utils
 from ironic.db import api as dbapi
 from ironic import objects
 from ironic.openstack.common import context
@@ -206,6 +209,124 @@ class ManagerTestCase(base.DbTestCase):
             state = self.service.get_node_power_state(self.context, n['uuid'])
             self.assertEqual(state, states.POWER_ON)
             self.assertEqual(get_power_mock.call_args_list, expected)
+
+    def test_change_node_power_state_power_on(self):
+        # Test change_node_power_state including integration with
+        # conductor.utils.node_power_action and lower.
+        n = utils.get_test_node(driver='fake',
+                                power_state=states.POWER_OFF)
+        db_node = self.dbapi.create_node(n)
+        self.service.start()
+
+        with mock.patch.object(self.driver.power, 'get_power_state') \
+                as get_power_mock:
+            get_power_mock.return_value = states.POWER_OFF
+
+            self.service.change_node_power_state(self.context,
+                                                 db_node.uuid,
+                                                 states.POWER_ON)
+            self.service._worker_pool.waitall()
+
+            get_power_mock.assert_called_once_with(mock.ANY, mock.ANY)
+            db_node.refresh(self.context)
+            self.assertEqual(states.POWER_ON, db_node.power_state)
+            self.assertIsNone(db_node.target_power_state)
+            self.assertIsNone(db_node.last_error)
+            # Verify the reservation has been cleared by
+            # background task's link callback.
+            self.assertIsNone(db_node.reservation)
+
+    @mock.patch.object(conductor_utils, 'node_power_action')
+    def test_change_node_power_state_node_already_locked(self,
+                                                         pwr_act_mock):
+        # Test change_node_power_state with mocked
+        # conductor.utils.node_power_action.
+        fake_reservation = 'fake-reserv'
+        pwr_state = states.POWER_ON
+        n = utils.get_test_node(driver='fake',
+                                power_state=pwr_state,
+                                reservation=fake_reservation)
+        db_node = self.dbapi.create_node(n)
+        self.service.start()
+
+        self.assertRaises(exception.NodeLocked,
+                          self.service.change_node_power_state,
+                          self.context,
+                          db_node.uuid,
+                          states.POWER_ON)
+        # In this test worker should not be spawned, but waiting to make sure
+        # the below perform_mock assertion is valid.
+        self.service._worker_pool.waitall()
+        self.assertFalse(pwr_act_mock.called, 'node_power_action has been '
+                                              'unexpectedly called.')
+        # Verify existing reservation wasn't broken.
+        db_node.refresh(self.context)
+        self.assertEqual(fake_reservation, db_node.reservation)
+
+    def test_change_node_power_state_worker_pool_full(self):
+        # Test change_node_power_state including integration with
+        # conductor.utils.node_power_action and lower.
+        initial_state = states.POWER_OFF
+        n = utils.get_test_node(driver='fake',
+                                power_state=initial_state)
+        db_node = self.dbapi.create_node(n)
+        self.service.start()
+
+        with mock.patch.object(self.service, '_spawn_worker') \
+                as spawn_mock:
+            spawn_mock.side_effect = exception.NoFreeConductorWorker()
+
+            self.assertRaises(exception.NoFreeConductorWorker,
+                              self.service.change_node_power_state,
+                              self.context,
+                              db_node.uuid,
+                              states.POWER_ON)
+
+            spawn_mock.assert_called_once_with(mock.ANY, mock.ANY,
+                                               mock.ANY, mock.ANY)
+            db_node.refresh(self.context)
+            self.assertEqual(initial_state, db_node.power_state)
+            self.assertIsNone(db_node.target_power_state)
+            self.assertIsNone(db_node.last_error)
+            # Verify the picked reservation has been cleared due to full pool.
+            self.assertIsNone(db_node.reservation)
+
+    def test_change_node_power_state_exception_in_background_task(
+            self):
+        # Test change_node_power_state including integration with
+        # conductor.utils.node_power_action and lower.
+        initial_state = states.POWER_OFF
+        n = utils.get_test_node(driver='fake',
+                                power_state=initial_state)
+        db_node = self.dbapi.create_node(n)
+        self.service.start()
+
+        with mock.patch.object(self.driver.power, 'get_power_state') \
+                as get_power_mock:
+            get_power_mock.return_value = states.POWER_OFF
+
+            with mock.patch.object(self.driver.power, 'set_power_state') \
+                    as set_power_mock:
+                new_state = states.POWER_ON
+                set_power_mock.side_effect = exception.PowerStateFailure(
+                    pstate=new_state
+                )
+
+                self.service.change_node_power_state(self.context,
+                                                     db_node.uuid,
+                                                     new_state)
+                self.service._worker_pool.waitall()
+
+                get_power_mock.assert_called_once_with(mock.ANY, mock.ANY)
+                set_power_mock.assert_called_once_with(mock.ANY, mock.ANY,
+                                                       new_state)
+                db_node.refresh(self.context)
+                self.assertEqual(initial_state, db_node.power_state)
+                self.assertIsNone(db_node.target_power_state)
+                self.assertIsNotNone(db_node.last_error)
+                # Verify the reservation has been cleared by background task's
+                # link callback despite exception in background task.
+                self.assertIsNone(db_node.reservation)
 
     def test_update_node(self):
         ndict = utils.get_test_node(driver='fake', extra={'test': 'one'})
@@ -517,3 +638,71 @@ class ManagerTestCase(base.DbTestCase):
                           self.context, node.uuid, False)
         node.refresh(self.context)
         self.assertFalse(node.maintenance)
+
+    def test__spawn_worker(self):
+        func_mock = mock.Mock()
+        args = (1, 2, "test")
+        kwargs = dict(kw1='test1', kw2='test2')
+        self.service.start()
+
+        thread = self.service._spawn_worker(func_mock, *args, **kwargs)
+        self.service._worker_pool.waitall()
+
+        self.assertIsNotNone(thread)
+        func_mock.assert_called_once_with(*args, **kwargs)
+
+    # The tests below related to greenthread. We have they to assert our
+    # assumptions about greenthread behavior.
+
+    def test__spawn_link_callback_added_during_execution(self):
+        def func():
+            time.sleep(1)
+        link_callback = mock.Mock()
+        self.service.start()
+
+        thread = self.service._spawn_worker(func)
+        # func_mock executing at this moment
+        thread.link(link_callback)
+        self.service._worker_pool.waitall()
+
+        link_callback.assert_called_once_with(thread)
+
+    def test__spawn_link_callback_added_after_execution(self):
+        def func():
+            pass
+        link_callback = mock.Mock()
+        self.service.start()
+
+        thread = self.service._spawn_worker(func)
+        self.service._worker_pool.waitall()
+        # func_mock finished at this moment
+        thread.link(link_callback)
+
+        link_callback.assert_called_once_with(thread)
+
+    def test__spawn_link_callback_exception_inside_thread(self):
+        def func():
+            time.sleep(1)
+            raise Exception()
+        link_callback = mock.Mock()
+        self.service.start()
+
+        thread = self.service._spawn_worker(func)
+        # func_mock executing at this moment
+        thread.link(link_callback)
+        self.service._worker_pool.waitall()
+
+        link_callback.assert_called_once_with(thread)
+
+    def test__spawn_link_callback_added_after_exception_inside_thread(self):
+        def func():
+            raise Exception()
+        link_callback = mock.Mock()
+        self.service.start()
+
+        thread = self.service._spawn_worker(func)
+        self.service._worker_pool.waitall()
+        # func_mock finished at this moment
+        thread.link(link_callback)
+
+        link_callback.assert_called_once_with(thread)

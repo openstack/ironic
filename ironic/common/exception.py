@@ -322,3 +322,9 @@ class HTTPNotFound(NotFound):
 
 class ConfigNotFound(IronicException):
     message = _("Could not find config at %(path)s")
+
+
+class NoFreeConductorWorker(IronicException):
+    message = _('Requested action cannot be performed due to lack of free '
+                'conductor workers.')
+    code = 503  # Service Unavailable (temporary).

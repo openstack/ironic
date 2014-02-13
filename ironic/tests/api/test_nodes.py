@@ -26,7 +26,6 @@ from ironic.common import exception
 from ironic.common import states
 from ironic.common import utils
 from ironic.conductor import rpcapi
-from ironic import objects
 from ironic.openstack.common import timeutils
 from ironic.tests.api import base
 from ironic.tests.db import utils as dbutils
@@ -731,31 +730,6 @@ class TestPut(base.FunctionalTest):
                                                self.node['uuid'],
                                                states.POWER_ON,
                                                'test-topic')
-
-    def test_power_state_in_progress(self):
-        manager = mock.MagicMock()
-        with mock.patch.object(objects.Node, 'get_by_uuid') as mock_get_node:
-            mock_get_node.return_value = self.node
-            manager.attach_mock(mock_get_node, 'get_by_uuid')
-            manager.attach_mock(self.mock_cnps, 'change_node_power_state')
-            expected = [mock.call.get_by_uuid(mock.ANY, self.node['uuid']),
-                        mock.call.change_node_power_state(mock.ANY,
-                                                          self.node['uuid'],
-                                                          states.POWER_ON,
-                                                          'test-topic')]
-
-            self.put_json('/nodes/%s/states/power' % self.node['uuid'],
-                          {'target': states.POWER_ON})
-            self.assertEqual(expected, manager.mock_calls)
-
-        self.dbapi.update_node(self.node['uuid'],
-                               {'target_power_state': 'fake'})
-        response = self.put_json('/nodes/%s/states/power' % self.node['uuid'],
-                                 {'target': states.POWER_ON},
-                                 expect_errors=True)
-        self.assertEqual('application/json', response.content_type)
-        self.assertEqual(409, response.status_code)
-        self.assertTrue(response.json['error_message'])
 
     def test_power_invalid_state_request(self):
         ret = self.put_json('/nodes/%s/states/power' % self.node.uuid,

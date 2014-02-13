@@ -43,6 +43,8 @@ building or tearing down the TFTP environment for a node, notifying Neutron of
 a change, etc.
 """
 
+from eventlet import greenpool
+
 from oslo.config import cfg
 
 from ironic.common import driver_factory
@@ -55,10 +57,12 @@ from ironic.conductor import utils
 from ironic.db import api as dbapi
 from ironic.objects import base as objects_base
 from ironic.openstack.common import excutils
+from ironic.openstack.common import lockutils
 from ironic.openstack.common import log
 from ironic.openstack.common import periodic_task
 
 MANAGER_TOPIC = 'ironic.conductor_manager'
+WORKER_SPAWN_lOCK = "conductor_worker_spawn"
 
 LOG = log.getLogger(__name__)
 
@@ -114,6 +118,9 @@ class ConductorManager(service.PeriodicService):
 
         self.driver_rings = self._get_current_driver_rings()
         """Consistent hash ring which maps drivers to conductors."""
+
+        self._worker_pool = greenpool.GreenPool(size=CONF.rpc_thread_pool_size)
+        """GreenPool of background workers for performing tasks async."""
 
     # TODO(deva): add stop() to call unregister_conductor
 
@@ -181,25 +188,35 @@ class ConductorManager(service.PeriodicService):
     def change_node_power_state(self, context, node_id, new_state):
         """RPC method to encapsulate changes to a node's state.
 
-        Perform actions such as power on, power off. It waits for the power
-        action to finish, then if successful, it updates the power_state for
-        the node with the new power state.
+        Perform actions such as power on, power off. The validation and power
+        action are performed in background (async). Once the power action is
+        finished and successful, it updates the power_state for the node with
+        the new power state.
 
         :param context: an admin context.
         :param node_id: the id or uuid of a node.
         :param new_state: the desired power state of the node.
-        :raises: InvalidParameterValue when the wrong state is specified
-                 or the wrong driver info is specified.
-        :raises: other exceptions by the node's power driver if something
-                 wrong occurred during the power action.
+        :raises: NoFreeConductorWorker when there is no free worker to start
+                 async task.
 
         """
         LOG.debug(_("RPC change_node_power_state called for node %(node)s. "
                     "The desired new state is %(state)s.")
                     % {'node': node_id, 'state': new_state})
 
-        with task_manager.acquire(context, node_id, shared=False) as task:
-            utils.node_power_action(task, task.node, new_state)
+        task = task_manager.TaskManager(context)
+        task.acquire_resources(node_id, shared=False)
+
+        try:
+            # Start requested action in the background.
+            thread = self._spawn_worker(utils.node_power_action,
+                                        task, task.node, new_state)
+            # Release node lock at the end.
+            thread.link(lambda t: task.release_resources())
+        except Exception:
+            with excutils.save_and_reraise_exception():
+                # Release node lock if error occurred.
+                task.release_resources()
 
     # NOTE(deva): There is a race condition in the RPC API for vendor_passthru.
     # Between the validate_vendor_action and do_vendor_action calls, it's
@@ -481,3 +498,20 @@ class ConductorManager(service.PeriodicService):
                                                        reason=msg)
 
             return node
+
+    @lockutils.synchronized(WORKER_SPAWN_lOCK, 'ironic-')
+    def _spawn_worker(self, func, *args, **kwargs):
+
+        """Create a greenthread to run func(*args, **kwargs).
+
+        Spawns a greenthread if there are free slots in pool, otherwise raises
+        exception. Execution control returns immediately to the caller.
+
+        :returns: GreenThread object.
+        :raises: NoFreeConductorWorker if worker pool is currently full.
+
+        """
+        if self._worker_pool.free():
+            return self._worker_pool.spawn(func, *args, **kwargs)
+        else:
+            raise exception.NoFreeConductorWorker()
