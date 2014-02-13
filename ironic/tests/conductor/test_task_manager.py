@@ -18,10 +18,12 @@
 
 """Tests for :class:`ironic.conductor.task_manager`."""
 
+import mock
 from testtools import matchers
 
 from ironic.common import exception
 from ironic.common import utils as ironic_utils
+from ironic.conductor import resource_manager
 from ironic.conductor import task_manager
 from ironic.db import api as dbapi
 from ironic.openstack.common import context
@@ -58,14 +60,20 @@ class TaskManagerTestCase(base.DbTestCase):
         self.uuids.sort()
 
     def test_get_one_node(self):
-        uuids = [self.uuids[0]]
+        node_uuid = self.uuids[0]
 
         self.config(host='test-host')
 
-        with task_manager.acquire(self.context, uuids) as task:
+        with task_manager.acquire(self.context, node_uuid) as task:
             node = task.resources[0].node
-            self.assertEqual(uuids[0], node.uuid)
+            self.assertEqual(node_uuid, node.uuid)
             self.assertEqual('test-host', node.reservation)
+            # Check that db reservation is set.
+            node.refresh(self.context)
+            self.assertEqual('test-host', node.reservation)
+            # Check that resource has been cached in NodeManager
+            self.assertIsNotNone(
+                resource_manager.NodeManager._nodes.get(node_uuid))
 
     def test_get_many_nodes(self):
         uuids = self.uuids[1:3]
@@ -87,19 +95,6 @@ class TaskManagerTestCase(base.DbTestCase):
                                       more_uuids) as another_task:
                 self.assertThat(another_task, ContainsUUIDs(more_uuids))
 
-    def test_get_locked_node(self):
-        uuids = self.uuids[0:2]
-
-        def _lock_again(u):
-            with task_manager.acquire(self.context, u):
-                raise exception.IronicException("Acquired lock twice.")
-
-        with task_manager.acquire(self.context, uuids) as task:
-            self.assertThat(task, ContainsUUIDs(uuids))
-            self.assertRaises(exception.NodeLocked,
-                              _lock_again,
-                              uuids)
-
     def test_get_shared_lock(self):
         uuids = self.uuids[0:2]
 
@@ -116,6 +111,40 @@ class TaskManagerTestCase(base.DbTestCase):
             with task_manager.acquire(self.context, uuids,
                                       shared=True) as inner_task:
                 self.assertThat(inner_task, ContainsUUIDs(uuids))
+
+    def test_get_one_node_driver_load_exception(self):
+        node_uuid = self.uuids[0]
+
+        with mock.patch.object(resource_manager.NodeManager, 'acquire') \
+                as acquire_mock:
+            acquire_mock.side_effect = exception.DriverNotFound(
+                driver_name='test'
+            )
+
+            self.assertRaises(exception.DriverNotFound,
+                              task_manager.TaskManager,
+                              self.context, node_uuid)
+            # Check that db node reservation is not set.
+            node = self.dbapi.get_node(node_uuid)
+            self.assertIsNone(node.reservation)
+            # Check that resource has not been cached in NodeManager
+            self.assertNotIn(node.uuid, resource_manager.NodeManager._nodes)
+
+    def test_get_one_node_locked_exception(self):
+        node_uuid = self.uuids[0]
+
+        with mock.patch.object(self.dbapi, 'reserve_nodes') as reserve_mock:
+            reserve_mock.side_effect = exception.NodeLocked(node='test',
+                                                            host='host1')
+
+            self.assertRaises(exception.NodeLocked,
+                              task_manager.TaskManager,
+                              self.context, node_uuid)
+            # Check that db node reservation is not set.
+            node = self.dbapi.get_node(node_uuid)
+            self.assertIsNone(node.reservation)
+            # Check that resource has not been cached in NodeManager
+            self.assertNotIn(node.uuid, resource_manager.NodeManager._nodes)
 
 
 class ExclusiveLockDecoratorTestCase(base.DbTestCase):

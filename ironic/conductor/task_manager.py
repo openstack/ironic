@@ -58,8 +58,7 @@ approach is to use manager._spawn_worker method and release resources using
 link method of the returned thread object.
 For example (somewhere inside conductor manager)::
 
-    task = task_manager.TaskManager(context)
-    task.acquire_resources(node_id, shared=False)
+    task = task_manager.TaskManager(context, node_id, shared=False)
 
     try:
         # Start requested action in the background.
@@ -93,6 +92,8 @@ multi-node tasks more easily. Once implemented, it might look like this::
 
 """
 from oslo.config import cfg
+
+from ironic.openstack.common import excutils
 
 from ironic.common import exception
 from ironic.conductor import resource_manager
@@ -128,21 +129,20 @@ def acquire(context, node_ids, shared=False, driver_name=None):
     :returns: An instance of :class:`TaskManager`.
 
     """
-    mgr = TaskManager(context)
-    mgr.acquire_resources(node_ids, shared, driver_name)
-    return mgr
+    return TaskManager(context, node_ids, shared, driver_name)
 
 
 class TaskManager(object):
     """Context manager for tasks."""
 
-    def __init__(self, context):
+    def __init__(self, context, node_ids, shared=False, driver_name=None):
         self.context = context
         self.resources = []
-        self.shared = False
+        self.shared = shared
         self.dbapi = dbapi.get_instance()
+        self._acquire_resources(node_ids, driver_name)
 
-    def acquire_resources(self, node_ids, shared=False, driver_name=None):
+    def _acquire_resources(self, node_ids, driver_name=None):
         """Acquire a lock on one or more Nodes.
 
         Acquire a lock atomically on a non-empty set of nodes. The lock
@@ -156,12 +156,6 @@ class TaskManager(object):
         :param driver_name: Name of Driver. Default: None.
 
         """
-        # Do not allow multiple acquire calls.
-        if self.resources:
-            raise exception.IronicException(
-                _("Task manager already has resources."))
-
-        self.shared = shared
 
         # instead of generating an exception, DTRT and convert to a list
         if not isinstance(node_ids, list):
@@ -169,23 +163,34 @@ class TaskManager(object):
 
         if not self.shared:
             self.dbapi.reserve_nodes(CONF.host, node_ids)
-        for node_id in node_ids:
-            node_mgr = resource_manager.NodeManager.acquire(node_id, self,
-                                                            driver_name)
-            self.resources.append(node_mgr)
+
+        try:
+            for node_id in node_ids:
+                node_mgr = resource_manager.NodeManager.acquire(
+                    node_id, self, driver_name)
+                self.resources.append(node_mgr)
+
+        except Exception:
+            with excutils.save_and_reraise_exception():
+                # Revert db changes for all the resources.
+                if not self.shared:
+                    self.dbapi.release_nodes(CONF.host, node_ids)
+                # Release NodeManager resources which has been already loaded.
+                for node_id in [r.id for r in self.resources]:
+                    resource_manager.NodeManager.release(node_id, self)
 
     def release_resources(self):
         """Release all the resources acquired for this TaskManager."""
-        # Do not allow multiple release calls.
         if not self.resources:
-            raise exception.IronicException(
-                _("Task manager doesn't have resources to release."))
+            # Nothing to release.
+            return
 
         node_ids = [r.id for r in self.resources]
         for node_id in node_ids:
             resource_manager.NodeManager.release(node_id, self)
         if not self.shared:
             self.dbapi.release_nodes(CONF.host, node_ids)
+
         self.resources = []
 
     @property

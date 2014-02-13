@@ -33,7 +33,6 @@ class NodePowerActionTestCase(base.DbTestCase):
         self.context = context.get_admin_context()
         self.dbapi = dbapi.get_instance()
         self.driver = mgr_utils.get_mocked_node_manager()
-        self.task = task_manager.TaskManager(self.context)
 
     def test_node_power_action_power_on(self):
         """Test node_power_action to turn node power on."""
@@ -41,13 +40,13 @@ class NodePowerActionTestCase(base.DbTestCase):
                                     driver='fake',
                                     power_state=states.POWER_OFF)
         node = self.dbapi.create_node(ndict)
-        self.task.acquire_resources(node.uuid)
+        task = task_manager.TaskManager(self.context, node.uuid)
 
         with mock.patch.object(self.driver.power, 'get_power_state') \
                 as get_power_mock:
             get_power_mock.return_value = states.POWER_OFF
 
-            conductor_utils.node_power_action(self.task, self.task.node,
+            conductor_utils.node_power_action(task, task.node,
                                               states.POWER_ON)
 
             node.refresh(self.context)
@@ -62,13 +61,13 @@ class NodePowerActionTestCase(base.DbTestCase):
                                     driver='fake',
                                     power_state=states.POWER_ON)
         node = self.dbapi.create_node(ndict)
-        self.task.acquire_resources(node.uuid)
+        task = task_manager.TaskManager(self.context, node.uuid)
 
         with mock.patch.object(self.driver.power, 'get_power_state') \
                 as get_power_mock:
             get_power_mock.return_value = states.POWER_ON
 
-            conductor_utils.node_power_action(self.task, self.task.node,
+            conductor_utils.node_power_action(task, task.node,
                                               states.POWER_OFF)
 
             node.refresh(self.context)
@@ -83,10 +82,10 @@ class NodePowerActionTestCase(base.DbTestCase):
                                     driver='fake',
                                     power_state=states.POWER_ON)
         node = self.dbapi.create_node(ndict)
-        self.task.acquire_resources(node.uuid)
+        task = task_manager.TaskManager(self.context, node.uuid)
 
         with mock.patch.object(self.driver.power, 'reboot') as reboot_mock:
-            conductor_utils.node_power_action(self.task, self.task.node,
+            conductor_utils.node_power_action(task, task.node,
                                               states.REBOOT)
 
             node.refresh(self.context)
@@ -103,7 +102,7 @@ class NodePowerActionTestCase(base.DbTestCase):
                                     driver='fake',
                                     power_state=states.POWER_ON)
         node = self.dbapi.create_node(ndict)
-        self.task.acquire_resources(node.uuid)
+        task = task_manager.TaskManager(self.context, node.uuid)
 
         with mock.patch.object(self.driver.power, 'get_power_state') \
                 as get_power_mock:
@@ -111,8 +110,8 @@ class NodePowerActionTestCase(base.DbTestCase):
 
             self.assertRaises(exception.InvalidParameterValue,
                               conductor_utils.node_power_action,
-                              self.task,
-                              self.task.node,
+                              task,
+                              task.node,
                               "INVALID_POWER_STATE")
 
             node.refresh(self.context)
@@ -122,7 +121,7 @@ class NodePowerActionTestCase(base.DbTestCase):
             self.assertIsNotNone(node['last_error'])
 
             # last_error is cleared when a new transaction happens
-            conductor_utils.node_power_action(self.task, self.task.node,
+            conductor_utils.node_power_action(task, task.node,
                                               states.POWER_OFF)
             node.refresh(self.context)
             self.assertEqual(node['power_state'], states.POWER_OFF)
@@ -141,9 +140,9 @@ class NodePowerActionTestCase(base.DbTestCase):
                                     power_state=states.POWER_ON,
                                     target_power_state=states.POWER_OFF)
         node = self.dbapi.create_node(ndict)
-        self.task.acquire_resources(node.uuid)
+        task = task_manager.TaskManager(self.context, node.uuid)
 
-        conductor_utils.node_power_action(self.task, self.task.node,
+        conductor_utils.node_power_action(task, task.node,
                                           states.POWER_OFF)
 
         node.refresh(self.context)
@@ -160,7 +159,7 @@ class NodePowerActionTestCase(base.DbTestCase):
                                     last_error='anything but None',
                                     power_state=states.POWER_ON)
         node = self.dbapi.create_node(ndict)
-        self.task.acquire_resources(node.uuid)
+        task = task_manager.TaskManager(self.context, node.uuid)
 
         with mock.patch.object(self.driver.power, 'get_power_state') \
                 as get_power_mock:
@@ -168,7 +167,7 @@ class NodePowerActionTestCase(base.DbTestCase):
 
             with mock.patch.object(self.driver.power, 'set_power_state') \
                     as set_power_mock:
-                conductor_utils.node_power_action(self.task, self.task.node,
+                conductor_utils.node_power_action(task, task.node,
                                                   states.POWER_ON)
 
                 node.refresh(self.context)
@@ -187,7 +186,7 @@ class NodePowerActionTestCase(base.DbTestCase):
                                     driver='fake',
                                     power_state=states.POWER_ON)
         node = self.dbapi.create_node(ndict)
-        self.task.acquire_resources(node.uuid)
+        task = task_manager.TaskManager(self.context, node.uuid)
 
         with mock.patch.object(self.driver.power, 'validate') \
                 as validate_mock:
@@ -196,8 +195,8 @@ class NodePowerActionTestCase(base.DbTestCase):
 
             self.assertRaises(exception.InvalidParameterValue,
                               conductor_utils.node_power_action,
-                              self.task,
-                              self.task.node,
+                              task,
+                              task.node,
                               states.POWER_ON)
 
             node.refresh(self.context)
@@ -214,7 +213,7 @@ class NodePowerActionTestCase(base.DbTestCase):
                                     driver='fake',
                                     power_state=states.POWER_OFF)
         node = self.dbapi.create_node(ndict)
-        self.task.acquire_resources(node.uuid)
+        task = task_manager.TaskManager(self.context, node.uuid)
 
         with mock.patch.object(self.driver.power, 'get_power_state') \
                 as get_power_mock:
@@ -226,8 +225,8 @@ class NodePowerActionTestCase(base.DbTestCase):
                 self.assertRaises(
                     exception.IronicException,
                     conductor_utils.node_power_action,
-                    self.task,
-                    self.task.node,
+                    task,
+                    task.node,
                     states.POWER_ON)
 
                 node.refresh(self.context)

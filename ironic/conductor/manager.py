@@ -204,8 +204,7 @@ class ConductorManager(service.PeriodicService):
                     "The desired new state is %(state)s.")
                     % {'node': node_id, 'state': new_state})
 
-        task = task_manager.TaskManager(context)
-        task.acquire_resources(node_id, shared=False)
+        task = task_manager.TaskManager(context, node_id, shared=False)
 
         try:
             # Start requested action in the background.
