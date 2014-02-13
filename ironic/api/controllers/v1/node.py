@@ -223,27 +223,26 @@ class Node(base.APIBase):
     instance_uuid = types.uuid
     "The UUID of the instance in nova-compute"
 
-    power_state = wtypes.text
+    power_state = wsme.wsattr(wtypes.text, readonly=True)
     "Represent the current (not transition) power state of the node"
 
-    target_power_state = wtypes.text
+    target_power_state = wsme.wsattr(wtypes.text, readonly=True)
     "The user modified desired power state of the node."
 
-    last_error = wtypes.text
+    last_error = wsme.wsattr(wtypes.text, readonly=True)
     "Any error from the most recent (last) asynchronous transaction that"
     "started but failed to finish."
 
-    provision_state = wtypes.text
+    provision_state = wsme.wsattr(wtypes.text, readonly=True)
     "Represent the current (not transition) provision state of the node"
 
-     # TODO(yuriyz): make 'reservation' read-only for users
-    reservation = wtypes.text
+    reservation = wsme.wsattr(wtypes.text, readonly=True)
     "The hostname of the conductor that holds an exclusive lock on the node."
 
     maintenance = wsme.wsattr(bool, default=False)
     "Indicates whether the node is in maintenance mode."
 
-    target_provision_state = wtypes.text
+    target_provision_state = wsme.wsattr(wtypes.text, readonly=True)
     "The user modified desired provision state of the node."
 
     driver = wsme.wsattr(wtypes.text, mandatory=True)
@@ -266,10 +265,10 @@ class Node(base.APIBase):
                                    _set_chassis_uuid)
     "The UUID of the chassis this node belongs"
 
-    links = [link.Link]
+    links = wsme.wsattr([link.Link], readonly=True)
     "A list containing a self link and associated node links"
 
-    ports = [link.Link]
+    ports = wsme.wsattr([link.Link], readonly=True)
     "Links to the collection of ports on this node"
 
     def __init__(self, **kwargs):

@@ -19,6 +19,9 @@ Utils for testing the API service.
 import datetime
 import json
 
+from ironic.api.controllers.v1 import node as node_controller
+from ironic.tests.db import utils
+
 ADMIN_TOKEN = '4562138218392831'
 MEMBER_TOKEN = '4562138218392832'
 
@@ -63,3 +66,13 @@ class FakeMemcache(object):
     def set(self, key, value, timeout=None):
         self.set_value = value
         self.set_key = key
+
+
+def node_post_data(**kw):
+    node = utils.get_test_node(**kw)
+    # NOTE(yuriyz): internal attributes should not be posted, except uuid
+    internal = node_controller.NodePatchType.internal_attrs()
+    internal = [attr.lstrip('/') for attr in internal if attr != '/uuid']
+    node_post = dict([(k, v) for (k, v) in node.iteritems()
+                     if k not in internal])
+    return node_post
