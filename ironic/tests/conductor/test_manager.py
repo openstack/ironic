@@ -369,7 +369,7 @@ class ManagerTestCase(base.DbTestCase):
 
         # verify change did not happen
         res = objects.Node.get_by_uuid(self.context, node['uuid'])
-        self.assertEqual(res['instance_uuid'], None)
+        self.assertIsNone(res['instance_uuid'])
 
     def test_associate_node_valid_state(self):
         ndict = utils.get_test_node(driver='fake',
