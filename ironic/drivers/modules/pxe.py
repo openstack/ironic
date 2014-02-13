@@ -29,6 +29,7 @@ from ironic.common.glance_service import service_utils
 from ironic.common import image_service as service
 from ironic.common import images
 from ironic.common import keystone
+from ironic.common import neutron
 from ironic.common import paths
 from ironic.common import states
 from ironic.common import utils
@@ -178,6 +179,22 @@ def _get_node_mac_addresses(task, node):
     for r in task.resources:
         if r.node.id == node['id']:
             return [p.address for p in r.ports]
+
+
+def _get_node_vif_ids(task):
+    """Get all Neutron VIF ids for a node.
+       This function does not handle multi node operations.
+
+    :param task: a TaskManager instance.
+    :returns: A dict of the Node's port UUIDs and their associated VIFs
+
+    """
+    port_vifs = {}
+    for port in task.resources[0].ports:
+        vif = port.extra.get('vif_port_id')
+        if vif:
+            port_vifs[port.uuid] = vif
+    return port_vifs
 
 
 def _get_pxe_mac_path(mac):
@@ -444,6 +461,40 @@ def _dhcp_options_for_instance():
             ]
 
 
+def _update_neutron(task, node):
+    """Send or update the DHCP BOOT options to Neutron for this node."""
+    options = _dhcp_options_for_instance()
+    vifs = _get_node_vif_ids(task)
+    if not vifs:
+        LOG.warning(_("No VIFs found for node %(node)s when attempting to "
+                      "update Neutron DHCP BOOT options."),
+                      {'node': node.uuid})
+        return
+
+    # TODO(deva): decouple instantiation of NeutronAPI from task.context.
+    #             Try to use the user's task.context.auth_token, but if it
+    #             is not present, fall back to a server-generated context.
+    #             We don't need to recreate this in every method call.
+    api = neutron.NeutronAPI(task.context)
+    failures = []
+    for port_id, port_vif in vifs.iteritems():
+        try:
+            api.update_port_dhcp_opts(port_vif, options)
+        except exception.FailedToUpdateDHCPOptOnPort:
+            failures.append(port_id)
+
+    if failures:
+        if len(failures) == len(vifs):
+            raise exception.FailedToUpdateDHCPOptOnPort(_(
+                "Failed to set DHCP BOOT options for any port on node %s.") %
+                node.uuid)
+        else:
+            LOG.warning(_("Some errors were encountered when updating the "
+                          "DHCP BOOT options for node %(node)s on the "
+                          "following ports: %(ports)s."),
+                          {'node': node.uuid, 'ports': failures})
+
+
 def _create_pxe_config(task, node, pxe_info):
     """Generate pxe configuration file and link mac ports to it for
     tftp booting.
@@ -460,12 +511,6 @@ def _create_pxe_config(task, node, pxe_info):
         mac_path = _get_pxe_mac_path(port)
         utils.unlink_without_raise(mac_path)
         utils.create_link_without_raise(pxe_config_file_path, mac_path)
-
-
-def _update_neutron(task, node):
-    """Send the DHCP BOOT options to Neutron for this node."""
-    # FIXME: just a stub for the moment.
-    pass
 
 
 class PXEDeploy(base.DeployInterface):

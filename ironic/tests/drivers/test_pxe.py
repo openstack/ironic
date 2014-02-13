@@ -32,6 +32,7 @@ from ironic.common import exception
 from ironic.common.glance_service import base_image_service
 from ironic.common.glance_service import service_utils
 from ironic.common import images
+from ironic.common import neutron
 from ironic.common import states
 from ironic.common import utils
 from ironic.conductor import task_manager
@@ -195,10 +196,6 @@ class PXEValidateParametersTestCase(base.TestCase):
         self.assertEqual(os.stat(os.path.join(master_path, 'node_uuid')).
                              st_nlink, 2)
 
-    def test__update_neutron(self):
-        # FIXME: just a stub for the moment
-        pass
-
 
 class PXEPrivateMethodsTestCase(base.TestCase):
 
@@ -215,6 +212,10 @@ class PXEPrivateMethodsTestCase(base.TestCase):
     def _create_test_node(self, **kwargs):
         n = db_utils.get_test_node(**kwargs)
         return self.dbapi.create_node(n)
+
+    def _create_test_port(self, **kwargs):
+        p = db_utils.get_test_port(**kwargs)
+        return self.dbapi.create_port(p)
 
     def test__get_tftp_image_info(self):
         properties = {'properties': {u'kernel_id': u'instance_kernel_uuid',
@@ -290,24 +291,98 @@ class PXEPrivateMethodsTestCase(base.TestCase):
         self.assertEqual(db_key, fake_key)
 
     def test__get_nodes_mac_addresses(self):
-        ports = []
-        ports.append(
-            self.dbapi.create_port(
-                db_utils.get_test_port(
-                    id=6,
-                    address='aa:bb:cc',
-                    uuid='bb43dc0b-03f2-4d2e-ae87-c02d7f33cc53',
-                    node_id='123')))
-        ports.append(
-            self.dbapi.create_port(
-                db_utils.get_test_port(
-                    id=7,
-                    address='dd:ee:ff',
-                    uuid='4fc26c0b-03f2-4d2e-ae87-c02d7f33c234',
-                    node_id='123')))
-        with task_manager.acquire(self.context, [self.node['uuid']]) as task:
+        self._create_test_port(node_id=self.node.id,
+                               address='aa:bb:cc',
+                               uuid=utils.generate_uuid(),
+                               id=6)
+        self._create_test_port(node_id=self.node.id,
+                               address='dd:ee:ff',
+                               uuid=utils.generate_uuid(),
+                               id=7)
+
+        expected = ['aa:bb:cc', 'dd:ee:ff']
+        with task_manager.acquire(self.context, self.node.uuid) as task:
             node_macs = pxe._get_node_mac_addresses(task, self.node)
-        self.assertEqual(node_macs, ['aa:bb:cc', 'dd:ee:ff'])
+        self.assertEqual(expected, node_macs)
+
+    def test__get_node_vif_ids_no_ports(self):
+        expected = {}
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            result = pxe._get_node_vif_ids(task)
+        self.assertEqual(expected, result)
+
+    def test__get_node_vif_ids_one_port(self):
+        port1 = self._create_test_port(node_id=self.node.id, id=6,
+                                       address='aa:bb:cc',
+                                       uuid=utils.generate_uuid(),
+                                       extra={'vif_port_id': 'test-vif-A'})
+        expected = {port1.uuid: 'test-vif-A'}
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            result = pxe._get_node_vif_ids(task)
+        self.assertEqual(expected, result)
+
+    def test__get_node_vif_ids_two_ports(self):
+        port1 = self._create_test_port(node_id=self.node.id, id=6,
+                                       address='aa:bb:cc',
+                                       uuid=utils.generate_uuid(),
+                                       extra={'vif_port_id': 'test-vif-A'})
+        port2 = self._create_test_port(node_id=self.node.id, id=7,
+                                       address='dd:ee:ff',
+                                       uuid=utils.generate_uuid(),
+                                       extra={'vif_port_id': 'test-vif-B'})
+        expected = {port1.uuid: 'test-vif-A', port2.uuid: 'test-vif-B'}
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            result = pxe._get_node_vif_ids(task)
+        self.assertEqual(expected, result)
+
+    def test__update_neutron(self):
+        opts = pxe._dhcp_options_for_instance()
+        with mock.patch.object(pxe, '_get_node_vif_ids') as mock_gnvi:
+            mock_gnvi.return_value = {'port-uuid': 'vif-uuid'}
+            with mock.patch.object(neutron.NeutronAPI,
+                                   'update_port_dhcp_opts') as mock_updo:
+                with task_manager.acquire(self.context,
+                                          self.node.uuid) as task:
+                    pxe._update_neutron(task, self.node)
+                mock_updo.assertCalleOnceWith('vif-uuid', opts)
+
+    def test__update_neutron_no_vif_data(self):
+        with mock.patch.object(pxe, '_get_node_vif_ids') as mock_gnvi:
+            mock_gnvi.return_value = {}
+            with mock.patch.object(neutron.NeutronAPI,
+                                   '__init__') as mock_init:
+                with task_manager.acquire(self.context,
+                                          self.node.uuid) as task:
+                    pxe._update_neutron(task, self.node)
+                mock_init.assert_not_called()
+
+    def test__update_neutron_some_failures(self):
+        # confirm update is called twice, one fails, but no exception raised
+        with mock.patch.object(pxe, '_get_node_vif_ids') as mock_gnvi:
+            mock_gnvi.return_value = {'p1': 'v1', 'p2': 'v2'}
+            with mock.patch.object(neutron.NeutronAPI,
+                                   'update_port_dhcp_opts') as mock_updo:
+                exc = exception.FailedToUpdateDHCPOptOnPort('fake exception')
+                mock_updo.side_effect = [None, exc]
+                with task_manager.acquire(self.context,
+                                          self.node.uuid) as task:
+                    pxe._update_neutron(task, self.node)
+                self.assertEqual(2, mock_updo.call_count)
+
+    def test__update_neutron_fails(self):
+        # confirm update is called twice, both fail, and exception is raised
+        with mock.patch.object(pxe, '_get_node_vif_ids') as mock_gnvi:
+            mock_gnvi.return_value = {'p1': 'v1', 'p2': 'v2'}
+            with mock.patch.object(neutron.NeutronAPI,
+                                   'update_port_dhcp_opts') as mock_updo:
+                exc = exception.FailedToUpdateDHCPOptOnPort('fake exception')
+                mock_updo.side_effect = [exc, exc]
+                with task_manager.acquire(self.context,
+                                          self.node.uuid) as task:
+                    self.assertRaises(exception.FailedToUpdateDHCPOptOnPort,
+                                      pxe._update_neutron,
+                                      task, self.node)
+                self.assertEqual(2, mock_updo.call_count)
 
     def test__dhcp_options_for_instance(self):
         self.config(pxe_bootfile_name='test_pxe_bootfile', group='pxe')
