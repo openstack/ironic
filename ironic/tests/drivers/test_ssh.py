@@ -192,116 +192,99 @@ class SSHPrivateMethodsTestCase(base.TestCase):
                         driver_info=db_utils.get_test_ssh_info())
         self.sshclient = paramiko.SSHClient()
 
-        # Set up the mock for processutils.ssh_execute because most tests use
-        # it. processutils.ssh_execute returns (stdout, stderr).
-        self.ssh_patcher = mock.patch.object(processutils, 'ssh_execute')
-        self.exec_ssh_mock = self.ssh_patcher.start()
-        self.exec_ssh_mock.return_value = ('', '')
+    @mock.patch.object(utils, 'ssh_connect')
+    def test__get_connection_client(self, ssh_connect_mock):
+        ssh_connect_mock.return_value = self.sshclient
+        client = ssh._get_connection(self.node)
+        self.assertEqual(self.sshclient, client)
+        driver_info = ssh._parse_driver_info(self.node)
+        ssh_connect_mock.assert_called_once_with(driver_info)
 
-        def stop_patcher():
-            if self.ssh_patcher:
-                self.ssh_patcher.stop()
+    @mock.patch.object(utils, 'ssh_connect')
+    def test__get_connection_exception(self, ssh_connect_mock):
+        ssh_connect_mock.side_effect = exception.SSHConnectFailed(host='fake')
+        self.assertRaises(exception.SSHConnectFailed,
+                          ssh._get_connection,
+                          self.node)
+        driver_info = ssh._parse_driver_info(self.node)
+        ssh_connect_mock.assert_called_once_with(driver_info)
 
-        self.addCleanup(stop_patcher)
-
-    def test__get_connection_client(self):
-        with mock.patch.object(
-                utils, 'ssh_connect') as ssh_connect_mock:
-            ssh_connect_mock.return_value = self.sshclient
-            client = ssh._get_connection(self.node)
-            self.assertEqual(self.sshclient, client)
-            driver_info = ssh._parse_driver_info(self.node)
-            ssh_connect_mock.assert_called_once_with(driver_info)
-
-    def test__get_connection_exception(self):
-        with mock.patch.object(
-                utils, 'ssh_connect') as ssh_connect_mock:
-            ssh_connect_mock.side_effect = exception.SSHConnectFailed(
-                                                                  host='fake')
-            self.assertRaises(exception.SSHConnectFailed,
-                              ssh._get_connection,
-                              self.node)
-            driver_info = ssh._parse_driver_info(self.node)
-            ssh_connect_mock.assert_called_once_with(driver_info)
-
-    def test__ssh_execute(self):
+    @mock.patch.object(processutils, 'ssh_execute')
+    def test__ssh_execute(self, exec_ssh_mock):
         ssh_cmd = "somecmd"
         expected = ['a', 'b', 'c']
-        self.exec_ssh_mock.return_value = ('\n'.join(expected), '')
+        exec_ssh_mock.return_value = ('\n'.join(expected), '')
         lst = ssh._ssh_execute(self.sshclient, ssh_cmd)
-        self.exec_ssh_mock.assert_called_once_with(self.sshclient, ssh_cmd)
+        exec_ssh_mock.assert_called_once_with(self.sshclient, ssh_cmd)
         self.assertEqual(expected, lst)
 
-    def test__ssh_execute_exception(self):
+    @mock.patch.object(processutils, 'ssh_execute')
+    def test__ssh_execute_exception(self, exec_ssh_mock):
         ssh_cmd = "somecmd"
-        self.exec_ssh_mock.side_effect = processutils.ProcessExecutionError
+        exec_ssh_mock.side_effect = processutils.ProcessExecutionError
         self.assertRaises(exception.SSHCommandFailed,
                           ssh._ssh_execute,
                           self.sshclient,
                           ssh_cmd)
-        self.exec_ssh_mock.assert_called_once_with(self.sshclient, ssh_cmd)
+        exec_ssh_mock.assert_called_once_with(self.sshclient, ssh_cmd)
 
-    def test__get_power_status_on(self):
+    @mock.patch.object(processutils, 'ssh_execute')
+    @mock.patch.object(ssh, '_get_hosts_name_for_node')
+    def test__get_power_status_on(self, get_hosts_name_mock, exec_ssh_mock):
         info = ssh._parse_driver_info(self.node)
-        with mock.patch.object(ssh, '_get_hosts_name_for_node') \
-                as get_hosts_name_mock:
-            self.exec_ssh_mock.return_value = (
-                    '"NodeName" {b43c4982-110c-4c29-9325-d5f41b053513}', '')
-            get_hosts_name_mock.return_value = "NodeName"
+        exec_ssh_mock.return_value = (
+            '"NodeName" {b43c4982-110c-4c29-9325-d5f41b053513}', '')
+        get_hosts_name_mock.return_value = "NodeName"
 
-            pstate = ssh._get_power_status(self.sshclient, info)
+        pstate = ssh._get_power_status(self.sshclient, info)
 
-            ssh_cmd = "%s %s" % (info['cmd_set']['base_cmd'],
-                                 info['cmd_set']['list_running'])
-            self.assertEqual(states.POWER_ON, pstate)
-            self.exec_ssh_mock.assert_called_once_with(
-                    self.sshclient, ssh_cmd)
-            get_hosts_name_mock.assert_called_once_with(self.sshclient,
-                                                        info)
+        ssh_cmd = "%s %s" % (info['cmd_set']['base_cmd'],
+                             info['cmd_set']['list_running'])
+        self.assertEqual(states.POWER_ON, pstate)
+        exec_ssh_mock.assert_called_once_with(self.sshclient, ssh_cmd)
+        get_hosts_name_mock.assert_called_once_with(self.sshclient, info)
 
-    def test__get_power_status_off(self):
+    @mock.patch.object(processutils, 'ssh_execute')
+    @mock.patch.object(ssh, '_get_hosts_name_for_node')
+    def test__get_power_status_off(self, get_hosts_name_mock, exec_ssh_mock):
         info = ssh._parse_driver_info(self.node)
-        with mock.patch.object(ssh, '_get_hosts_name_for_node') \
-                as get_hosts_name_mock:
-            self.exec_ssh_mock.return_value = (
-                    '"NodeName" {b43c4982-110c-4c29-9325-d5f41b053513}', '')
-            get_hosts_name_mock.return_value = "NotNodeName"
+        exec_ssh_mock.return_value = (
+            '"NodeName" {b43c4982-110c-4c29-9325-d5f41b053513}', '')
+        get_hosts_name_mock.return_value = "NotNodeName"
 
-            pstate = ssh._get_power_status(self.sshclient, info)
+        pstate = ssh._get_power_status(self.sshclient, info)
 
-            ssh_cmd = "%s %s" % (info['cmd_set']['base_cmd'],
-                                 info['cmd_set']['list_running'])
-            self.assertEqual(states.POWER_OFF, pstate)
-            self.exec_ssh_mock.assert_called_once_with(self.sshclient,
-                    ssh_cmd)
-            get_hosts_name_mock.assert_called_once_with(self.sshclient,
-                                                        info)
+        ssh_cmd = "%s %s" % (info['cmd_set']['base_cmd'],
+                             info['cmd_set']['list_running'])
+        self.assertEqual(states.POWER_OFF, pstate)
+        exec_ssh_mock.assert_called_once_with(self.sshclient, ssh_cmd)
+        get_hosts_name_mock.assert_called_once_with(self.sshclient, info)
 
-    def test__get_power_status_error(self):
+    @mock.patch.object(processutils, 'ssh_execute')
+    @mock.patch.object(ssh, '_get_hosts_name_for_node')
+    def test__get_power_status_error(self, get_hosts_name_mock, exec_ssh_mock):
+
         info = ssh._parse_driver_info(self.node)
 
-        with mock.patch.object(ssh, '_get_hosts_name_for_node') \
-                as get_hosts_name_mock:
-            self.exec_ssh_mock.return_value = (
-                    '"NodeName" {b43c4982-110c-4c29-9325-d5f41b053513}', '')
-            info['macs'] = ["11:11:11:11:11:11", "52:54:00:cf:2d:31"]
-            get_hosts_name_mock.return_value = None
-            self.assertRaises(exception.NodeNotFound,
-                              ssh._get_power_status,
-                              self.sshclient,
-                              info)
+        exec_ssh_mock.return_value = (
+            '"NodeName" {b43c4982-110c-4c29-9325-d5f41b053513}', '')
+        info['macs'] = ["11:11:11:11:11:11", "52:54:00:cf:2d:31"]
+        get_hosts_name_mock.return_value = None
+        self.assertRaises(exception.NodeNotFound,
+                          ssh._get_power_status,
+                          self.sshclient,
+                          info)
 
-            ssh_cmd = "%s %s" % (info['cmd_set']['base_cmd'],
-                                 info['cmd_set']['list_running'])
+        ssh_cmd = "%s %s" % (info['cmd_set']['base_cmd'],
+                             info['cmd_set']['list_running'])
 
-            self.exec_ssh_mock.assert_called_once_with(
-                    self.sshclient, ssh_cmd)
-            get_hosts_name_mock.assert_called_once_with(self.sshclient,
-                                                        info)
+        exec_ssh_mock.assert_called_once_with(self.sshclient, ssh_cmd)
+        get_hosts_name_mock.assert_called_once_with(self.sshclient, info)
 
-    def test__get_power_status_exception(self):
+    @mock.patch.object(processutils, 'ssh_execute')
+    def test__get_power_status_exception(self, exec_ssh_mock):
         info = ssh._parse_driver_info(self.node)
-        self.exec_ssh_mock.side_effect = processutils.ProcessExecutionError
+        exec_ssh_mock.side_effect = processutils.ProcessExecutionError
 
         self.assertRaises(exception.SSHCommandFailed,
                           ssh._get_power_status,
@@ -309,10 +292,11 @@ class SSHPrivateMethodsTestCase(base.TestCase):
                           info)
         ssh_cmd = "%s %s" % (info['cmd_set']['base_cmd'],
                              info['cmd_set']['list_running'])
-        self.exec_ssh_mock.assert_called_once_with(
+        exec_ssh_mock.assert_called_once_with(
                 self.sshclient, ssh_cmd)
 
-    def test__get_hosts_name_for_node_match(self):
+    @mock.patch.object(processutils, 'ssh_execute')
+    def test__get_hosts_name_for_node_match(self, exec_ssh_mock):
         info = ssh._parse_driver_info(self.node)
         info['macs'] = ["11:11:11:11:11:11", "52:54:00:cf:2d:31"]
         ssh_cmd = "%s %s" % (info['cmd_set']['base_cmd'],
@@ -321,7 +305,7 @@ class SSHPrivateMethodsTestCase(base.TestCase):
         cmd_to_exec = "%s %s" % (info['cmd_set']['base_cmd'],
                                  info['cmd_set']['get_node_macs'])
         cmd_to_exec = cmd_to_exec.replace('{_NodeName_}', 'NodeName')
-        self.exec_ssh_mock.side_effect = [('NodeName', ''),
+        exec_ssh_mock.side_effect = [('NodeName', ''),
                                           ('52:54:00:cf:2d:31', '')]
         expected = [mock.call(self.sshclient, ssh_cmd),
                     mock.call(self.sshclient, cmd_to_exec)]
@@ -329,12 +313,13 @@ class SSHPrivateMethodsTestCase(base.TestCase):
         found_name = ssh._get_hosts_name_for_node(self.sshclient, info)
 
         self.assertEqual('NodeName', found_name)
-        self.assertEqual(expected, self.exec_ssh_mock.call_args_list)
+        self.assertEqual(expected, exec_ssh_mock.call_args_list)
 
-    def test__get_hosts_name_for_node_no_match(self):
+    @mock.patch.object(processutils, 'ssh_execute')
+    def test__get_hosts_name_for_node_no_match(self, exec_ssh_mock):
         info = ssh._parse_driver_info(self.node)
         info['macs'] = ["11:11:11:11:11:11", "22:22:22:22:22:22"]
-        self.exec_ssh_mock.side_effect = [('NodeName', ''),
+        exec_ssh_mock.side_effect = [('NodeName', ''),
                                           ('52:54:00:cf:2d:31', '')]
 
         ssh_cmd = "%s %s" % (info['cmd_set']['base_cmd'],
@@ -350,9 +335,10 @@ class SSHPrivateMethodsTestCase(base.TestCase):
         found_name = ssh._get_hosts_name_for_node(self.sshclient, info)
 
         self.assertIsNone(found_name)
-        self.assertEqual(expected, self.exec_ssh_mock.call_args_list)
+        self.assertEqual(expected, exec_ssh_mock.call_args_list)
 
-    def test__get_hosts_name_for_node_exception(self):
+    @mock.patch.object(processutils, 'ssh_execute')
+    def test__get_hosts_name_for_node_exception(self, exec_ssh_mock):
         info = ssh._parse_driver_info(self.node)
         info['macs'] = ["11:11:11:11:11:11", "52:54:00:cf:2d:31"]
         ssh_cmd = "%s %s" % (info['cmd_set']['base_cmd'],
@@ -362,8 +348,8 @@ class SSHPrivateMethodsTestCase(base.TestCase):
                                  info['cmd_set']['get_node_macs'])
         cmd_to_exec = cmd_to_exec.replace('{_NodeName_}', 'NodeName')
 
-        self.exec_ssh_mock.side_effect = [('NodeName', ''),
-                                          processutils.ProcessExecutionError]
+        exec_ssh_mock.side_effect = [('NodeName', ''),
+                                     processutils.ProcessExecutionError]
         expected = [mock.call(self.sshclient, ssh_cmd),
                     mock.call(self.sshclient, cmd_to_exec)]
 
@@ -371,176 +357,149 @@ class SSHPrivateMethodsTestCase(base.TestCase):
                           ssh._get_hosts_name_for_node,
                           self.sshclient,
                           info)
-        self.assertEqual(expected, self.exec_ssh_mock.call_args_list)
+        self.assertEqual(expected, exec_ssh_mock.call_args_list)
 
-    def test__power_on_good(self):
+    @mock.patch.object(processutils, 'ssh_execute')
+    @mock.patch.object(ssh, '_get_power_status')
+    @mock.patch.object(ssh, '_get_hosts_name_for_node')
+    def test__power_on_good(self, get_hosts_name_mock, get_power_status_mock,
+                            exec_ssh_mock):
         info = ssh._parse_driver_info(self.node)
         info['macs'] = ["11:11:11:11:11:11", "52:54:00:cf:2d:31"]
 
-        with mock.patch.object(ssh, '_get_power_status') \
-                as get_power_status_mock:
-            with mock.patch.object(ssh, '_get_hosts_name_for_node') \
-                    as get_hosts_name_mock:
-                get_power_status_mock.side_effect = [states.POWER_OFF,
-                                                     states.POWER_ON]
-                get_hosts_name_mock.return_value = "NodeName"
-                expected = [mock.call(self.sshclient, info),
-                            mock.call(self.sshclient, info)]
+        get_power_status_mock.side_effect = [states.POWER_OFF,
+                                             states.POWER_ON]
+        get_hosts_name_mock.return_value = "NodeName"
+        expected = [mock.call(self.sshclient, info),
+                    mock.call(self.sshclient, info)]
 
-                cmd_to_exec = "%s %s" % (info['cmd_set']['base_cmd'],
-                                         info['cmd_set']['start_cmd'])
-                cmd_to_exec = cmd_to_exec.replace('{_NodeName_}', 'NodeName')
-                current_state = ssh._power_on(self.sshclient, info)
+        cmd_to_exec = "%s %s" % (info['cmd_set']['base_cmd'],
+                                 info['cmd_set']['start_cmd'])
+        cmd_to_exec = cmd_to_exec.replace('{_NodeName_}', 'NodeName')
+        current_state = ssh._power_on(self.sshclient, info)
 
-                self.assertEqual(states.POWER_ON, current_state)
-                self.assertEqual(expected,
-                                 get_power_status_mock.call_args_list)
-                get_hosts_name_mock.assert_called_once_with(self.sshclient,
-                                                            info)
-                self.exec_ssh_mock.assert_called_once_with(self.sshclient,
-                                                           cmd_to_exec)
+        self.assertEqual(states.POWER_ON, current_state)
+        self.assertEqual(expected, get_power_status_mock.call_args_list)
+        get_hosts_name_mock.assert_called_once_with(self.sshclient, info)
+        exec_ssh_mock.assert_called_once_with(self.sshclient, cmd_to_exec)
 
-    def test__power_on_fail(self):
+    @mock.patch.object(processutils, 'ssh_execute')
+    @mock.patch.object(ssh, '_get_power_status')
+    @mock.patch.object(ssh, '_get_hosts_name_for_node')
+    def test__power_on_fail(self, get_hosts_name_mock, get_power_status_mock,
+                            exec_ssh_mock):
         info = ssh._parse_driver_info(self.node)
         info['macs'] = ["11:11:11:11:11:11", "52:54:00:cf:2d:31"]
-        with mock.patch.object(ssh, '_get_power_status') \
-                as get_power_status_mock:
-            with mock.patch.object(ssh, '_get_hosts_name_for_node') \
-                    as get_hosts_name_mock:
-                get_power_status_mock.side_effect = [states.POWER_OFF,
-                                                     states.POWER_OFF]
-                get_hosts_name_mock.return_value = "NodeName"
-                expected = [mock.call(self.sshclient, info),
-                            mock.call(self.sshclient, info)]
+        get_power_status_mock.side_effect = [states.POWER_OFF,
+                                             states.POWER_OFF]
+        get_hosts_name_mock.return_value = "NodeName"
+        expected = [mock.call(self.sshclient, info),
+                    mock.call(self.sshclient, info)]
 
-                cmd_to_exec = "%s %s" % (info['cmd_set']['base_cmd'],
-                                         info['cmd_set']['start_cmd'])
-                cmd_to_exec = cmd_to_exec.replace('{_NodeName_}', 'NodeName')
-                current_state = ssh._power_on(self.sshclient, info)
+        cmd_to_exec = "%s %s" % (info['cmd_set']['base_cmd'],
+                                 info['cmd_set']['start_cmd'])
+        cmd_to_exec = cmd_to_exec.replace('{_NodeName_}', 'NodeName')
+        current_state = ssh._power_on(self.sshclient, info)
 
-                self.assertEqual(states.ERROR, current_state)
-                self.assertEqual(expected,
-                                 get_power_status_mock.call_args_list)
-                get_hosts_name_mock.assert_called_once_with(self.sshclient,
-                                                            info)
-                self.exec_ssh_mock.assert_called_once_with(self.sshclient,
-                                                           cmd_to_exec)
+        self.assertEqual(states.ERROR, current_state)
+        self.assertEqual(expected, get_power_status_mock.call_args_list)
+        get_hosts_name_mock.assert_called_once_with(self.sshclient, info)
+        exec_ssh_mock.assert_called_once_with(self.sshclient, cmd_to_exec)
 
-    def test__power_on_exception(self):
+    @mock.patch.object(processutils, 'ssh_execute')
+    @mock.patch.object(ssh, '_get_power_status')
+    @mock.patch.object(ssh, '_get_hosts_name_for_node')
+    def test__power_on_exception(self, get_hosts_name_mock,
+                                 get_power_status_mock, exec_ssh_mock):
         info = ssh._parse_driver_info(self.node)
         info['macs'] = ["11:11:11:11:11:11", "52:54:00:cf:2d:31"]
 
-        self.exec_ssh_mock.side_effect = processutils.ProcessExecutionError
-        with mock.patch.object(
-                ssh, '_get_power_status') as get_power_status_mock:
-            with mock.patch.object(
-                    ssh, '_get_hosts_name_for_node') as get_hosts_name_mock:
-                get_power_status_mock.side_effect = [states.POWER_OFF,
-                                                     states.POWER_ON]
-                get_hosts_name_mock.return_value = "NodeName"
+        exec_ssh_mock.side_effect = processutils.ProcessExecutionError
+        get_power_status_mock.side_effect = [states.POWER_OFF,
+                                             states.POWER_ON]
+        get_hosts_name_mock.return_value = "NodeName"
 
-                cmd_to_exec = "%s %s" % (info['cmd_set']['base_cmd'],
-                                         info['cmd_set']['start_cmd'])
-                cmd_to_exec = cmd_to_exec.replace('{_NodeName_}', 'NodeName')
+        cmd_to_exec = "%s %s" % (info['cmd_set']['base_cmd'],
+                                 info['cmd_set']['start_cmd'])
+        cmd_to_exec = cmd_to_exec.replace('{_NodeName_}', 'NodeName')
 
-                self.assertRaises(exception.SSHCommandFailed,
-                                  ssh._power_on,
-                                  self.sshclient,
-                                  info)
-                get_power_status_mock.assert_called_once_with(self.sshclient,
-                                                              info)
-                get_hosts_name_mock.assert_called_once_with(self.sshclient,
-                                                            info)
-                self.exec_ssh_mock.assert_called_once_with(self.sshclient,
-                                                           cmd_to_exec)
+        self.assertRaises(exception.SSHCommandFailed,
+                          ssh._power_on,
+                          self.sshclient,
+                          info)
+        get_power_status_mock.assert_called_once_with(self.sshclient, info)
+        get_hosts_name_mock.assert_called_once_with(self.sshclient, info)
+        exec_ssh_mock.assert_called_once_with(self.sshclient, cmd_to_exec)
 
-    def test__power_off_good(self):
+    @mock.patch.object(processutils, 'ssh_execute')
+    @mock.patch.object(ssh, '_get_power_status')
+    @mock.patch.object(ssh, '_get_hosts_name_for_node')
+    def test__power_off_good(self, get_hosts_name_mock,
+                             get_power_status_mock, exec_ssh_mock):
         info = ssh._parse_driver_info(self.node)
         info['macs'] = ["11:11:11:11:11:11", "52:54:00:cf:2d:31"]
-        with mock.patch.object(ssh, '_get_power_status') \
-                as get_power_status_mock:
-            with mock.patch.object(ssh, '_get_hosts_name_for_node') \
-                    as get_hosts_name_mock:
-                get_power_status_mock.side_effect = [states.POWER_ON,
-                                                     states.POWER_OFF]
-                get_hosts_name_mock.return_value = "NodeName"
-                expected = [mock.call(self.sshclient, info),
-                            mock.call(self.sshclient, info)]
+        get_power_status_mock.side_effect = [states.POWER_ON,
+                                             states.POWER_OFF]
+        get_hosts_name_mock.return_value = "NodeName"
+        expected = [mock.call(self.sshclient, info),
+                    mock.call(self.sshclient, info)]
 
-                cmd_to_exec = "%s %s" % (info['cmd_set']['base_cmd'],
-                                         info['cmd_set']['stop_cmd'])
-                cmd_to_exec = cmd_to_exec.replace('{_NodeName_}', 'NodeName')
-                current_state = ssh._power_off(self.sshclient, info)
+        cmd_to_exec = "%s %s" % (info['cmd_set']['base_cmd'],
+                                 info['cmd_set']['stop_cmd'])
+        cmd_to_exec = cmd_to_exec.replace('{_NodeName_}', 'NodeName')
+        current_state = ssh._power_off(self.sshclient, info)
 
-                self.assertEqual(states.POWER_OFF, current_state)
-                self.assertEqual(expected,
-                                 get_power_status_mock.call_args_list)
-                get_hosts_name_mock.assert_called_once_with(self.sshclient,
-                                                            info)
-                self.exec_ssh_mock.assert_called_once_with(self.sshclient,
-                                                           cmd_to_exec)
+        self.assertEqual(states.POWER_OFF, current_state)
+        self.assertEqual(expected, get_power_status_mock.call_args_list)
+        get_hosts_name_mock.assert_called_once_with(self.sshclient, info)
+        exec_ssh_mock.assert_called_once_with(self.sshclient, cmd_to_exec)
 
-    def test__power_off_fail(self):
+    @mock.patch.object(processutils, 'ssh_execute')
+    @mock.patch.object(ssh, '_get_power_status')
+    @mock.patch.object(ssh, '_get_hosts_name_for_node')
+    def test__power_off_fail(self, get_hosts_name_mock,
+                             get_power_status_mock, exec_ssh_mock):
         info = ssh._parse_driver_info(self.node)
         info['macs'] = ["11:11:11:11:11:11", "52:54:00:cf:2d:31"]
-        with mock.patch.object(ssh, '_get_power_status') \
-                as get_power_status_mock:
-            with mock.patch.object(ssh, '_get_hosts_name_for_node') \
-                    as get_hosts_name_mock:
-                get_power_status_mock.side_effect = [states.POWER_ON,
-                                                     states.POWER_ON]
-                get_hosts_name_mock.return_value = "NodeName"
-                expected = [mock.call(self.sshclient, info),
-                            mock.call(self.sshclient, info)]
+        get_power_status_mock.side_effect = [states.POWER_ON,
+                                             states.POWER_ON]
+        get_hosts_name_mock.return_value = "NodeName"
+        expected = [mock.call(self.sshclient, info),
+                    mock.call(self.sshclient, info)]
 
-                cmd_to_exec = "%s %s" % (info['cmd_set']['base_cmd'],
-                                         info['cmd_set']['stop_cmd'])
-                cmd_to_exec = cmd_to_exec.replace('{_NodeName_}', 'NodeName')
-                current_state = ssh._power_off(self.sshclient, info)
+        cmd_to_exec = "%s %s" % (info['cmd_set']['base_cmd'],
+                                 info['cmd_set']['stop_cmd'])
+        cmd_to_exec = cmd_to_exec.replace('{_NodeName_}', 'NodeName')
+        current_state = ssh._power_off(self.sshclient, info)
 
-                self.assertEqual(states.ERROR, current_state)
-                self.assertEqual(expected,
-                                 get_power_status_mock.call_args_list)
-                get_hosts_name_mock.assert_called_once_with(self.sshclient,
-                                                            info)
-                self.exec_ssh_mock.assert_called_once_with(self.sshclient,
-                                                           cmd_to_exec)
+        self.assertEqual(states.ERROR, current_state)
+        self.assertEqual(expected, get_power_status_mock.call_args_list)
+        get_hosts_name_mock.assert_called_once_with(self.sshclient, info)
+        exec_ssh_mock.assert_called_once_with(self.sshclient, cmd_to_exec)
 
-    def test__power_off_exception(self):
+    @mock.patch.object(processutils, 'ssh_execute')
+    @mock.patch.object(ssh, '_get_power_status')
+    @mock.patch.object(ssh, '_get_hosts_name_for_node')
+    def test__power_off_exception(self, get_hosts_name_mock,
+                                  get_power_status_mock, exec_ssh_mock):
         info = ssh._parse_driver_info(self.node)
         info['macs'] = ["11:11:11:11:11:11", "52:54:00:cf:2d:31"]
-        self.exec_ssh_mock.side_effect = processutils.ProcessExecutionError
-        with mock.patch.object(
-                ssh, '_get_power_status') as get_power_status_mock:
-            with mock.patch.object(
-                    ssh, '_get_hosts_name_for_node') as get_hosts_name_mock:
-                self.exec_ssh_mock.side_effect = (
-                        processutils.ProcessExecutionError)
-                get_power_status_mock.side_effect = [states.POWER_ON,
-                                                     states.POWER_OFF]
-                get_hosts_name_mock.return_value = "NodeName"
+        exec_ssh_mock.side_effect = processutils.ProcessExecutionError
+        get_power_status_mock.side_effect = [states.POWER_ON,
+                                             states.POWER_OFF]
+        get_hosts_name_mock.return_value = "NodeName"
 
-                cmd_to_exec = "%s %s" % (info['cmd_set']['base_cmd'],
-                                         info['cmd_set']['stop_cmd'])
-                cmd_to_exec = cmd_to_exec.replace('{_NodeName_}', 'NodeName')
+        cmd_to_exec = "%s %s" % (info['cmd_set']['base_cmd'],
+                                 info['cmd_set']['stop_cmd'])
+        cmd_to_exec = cmd_to_exec.replace('{_NodeName_}', 'NodeName')
 
-                self.assertRaises(exception.SSHCommandFailed,
-                                  ssh._power_off,
-                                  self.sshclient,
-                                  info)
-                get_power_status_mock.assert_called_once_with(self.sshclient,
-                                                            info)
-                get_hosts_name_mock.assert_called_once_with(self.sshclient,
-                                                            info)
-                self.exec_ssh_mock.assert_called_once_with(self.sshclient,
-                                                           cmd_to_exec)
+        self.assertRaises(exception.SSHCommandFailed, ssh._power_off,
+                          self.sshclient, info)
+        get_power_status_mock.assert_called_once_with(self.sshclient, info)
+        get_hosts_name_mock.assert_called_once_with(self.sshclient, info)
+        exec_ssh_mock.assert_called_once_with(self.sshclient, cmd_to_exec)
 
     def test_exec_ssh_command_good(self):
-        # stop mocking the processutils.ssh_execute because we
-        # are testing it here
-        self.ssh_patcher.stop()
-        self.ssh_patcher = None
-
         class Channel(object):
             def recv_exit_status(self):
                 return 0
@@ -568,11 +527,6 @@ class SSHPrivateMethodsTestCase(base.TestCase):
             exec_command_mock.assert_called_once_with("command")
 
     def test_exec_ssh_command_fail(self):
-        # stop mocking the processutils.ssh_execute because we
-        # are testing it here
-        self.ssh_patcher.stop()
-        self.ssh_patcher = None
-
         class Channel(object):
             def recv_exit_status(self):
                 return 127
@@ -614,49 +568,20 @@ class SSHDriverTestCase(db_base.DbTestCase):
                                                          node_id=self.node.id))
         self.sshclient = paramiko.SSHClient()
 
-        #setup these mocks because most tests use them
-        self.parse_drv_info_patcher = mock.patch.object(ssh,
-                                                        '_parse_driver_info')
-        self.parse_drv_info_mock = None
-        self.get_mac_addr_patcher = mock.patch.object(
-                driver_utils,
-                'get_node_mac_addresses')
-        self.get_mac_addr_mock = self.get_mac_addr_patcher.start()
-        self.get_conn_patcher = mock.patch.object(ssh, '_get_connection')
-        self.get_conn_mock = self.get_conn_patcher.start()
-
-        def stop_patchers():
-            if self.parse_drv_info_mock:
-                self.parse_drv_info_patcher.stop()
-            if self.get_mac_addr_mock:
-                self.get_mac_addr_patcher.stop()
-            if self.get_conn_mock:
-                self.get_conn_patcher.stop()
-
-        self.addCleanup(stop_patchers)
-
-    def test__validate_info_ssh_connect_failed(self):
+    @mock.patch.object(utils, 'ssh_connect')
+    def test__validate_info_ssh_connect_failed(self, ssh_connect_mock):
         info = ssh._parse_driver_info(self.node)
-        self.get_conn_patcher.stop()
-        self.get_conn_mock = None
 
-        with mock.patch.object(utils, 'ssh_connect') \
-                as ssh_connect_mock:
-            ssh_connect_mock.side_effect = exception.SSHConnectFailed(
-                                                                  host='fake')
-            with task_manager.acquire(self.context, [info['uuid']],
-                                      shared=False) as task:
-                self.assertRaises(exception.InvalidParameterValue,
-                                  task.resources[0].driver.power.validate,
-                                  task, self.node)
-                driver_info = ssh._parse_driver_info(self.node)
-                ssh_connect_mock.assert_called_once_with(driver_info)
+        ssh_connect_mock.side_effect = exception.SSHConnectFailed(host='fake')
+        with task_manager.acquire(self.context, [info['uuid']],
+                                  shared=False) as task:
+            self.assertRaises(exception.InvalidParameterValue,
+                              task.resources[0].driver.power.validate,
+                              task, self.node)
+            driver_info = ssh._parse_driver_info(self.node)
+            ssh_connect_mock.assert_called_once_with(driver_info)
 
     def test_validate_fail_no_port(self):
-        # stop the get_mac_addr mock, it's needed for this test
-        self.get_mac_addr_patcher.stop()
-        self.get_mac_addr_mock = None
-
         new_node = obj_utils.create_test_node(
                 self.context,
                 id=321,
@@ -669,185 +594,186 @@ class SSHDriverTestCase(db_base.DbTestCase):
                               task.resources[0].driver.power.validate,
                               task, new_node)
 
-    def test_reboot_good(self):
+    @mock.patch.object(driver_utils, 'get_node_mac_addresses')
+    @mock.patch.object(ssh, '_get_connection')
+    @mock.patch.object(ssh, '_get_power_status')
+    @mock.patch.object(ssh, '_power_off')
+    @mock.patch.object(ssh, '_power_on')
+    def test_reboot_good(self, power_on_mock, power_off_mock,
+                         get_power_stat_mock, get_conn_mock,
+                         get_mac_addr_mock):
         info = ssh._parse_driver_info(self.node)
         info['macs'] = ["11:11:11:11:11:11", "52:54:00:cf:2d:31"]
+        get_mac_addr_mock.return_value = info['macs']
+        get_conn_mock.return_value = self.sshclient
+        get_power_stat_mock.return_value = states.POWER_ON
+        power_off_mock.return_value = None
+        power_on_mock.return_value = states.POWER_ON
+        with mock.patch.object(ssh,
+                               '_parse_driver_info') as parse_drv_info_mock:
+            parse_drv_info_mock.return_value = info
+            with task_manager.acquire(self.context, [info['uuid']],
+                                      shared=False) as task:
+                task.resources[0].driver.power.reboot(task, self.node)
 
-        self.parse_drv_info_mock = self.parse_drv_info_patcher.start()
-        self.parse_drv_info_mock.return_value = info
-        self.get_mac_addr_mock.return_value = info['macs']
-        self.get_conn_mock.return_value = self.sshclient
+            parse_drv_info_mock.assert_called_once_with(self.node)
+        get_mac_addr_mock.assert_called_once_with(mock.ANY, self.node)
+        get_conn_mock.assert_called_once_with(self.node)
+        get_power_stat_mock.assert_called_once_with(self.sshclient, info)
+        power_off_mock.assert_called_once_with(self.sshclient, info)
+        power_on_mock.assert_called_once_with(self.sshclient, info)
 
-        with mock.patch.object(ssh, '_get_power_status') \
-                as get_power_stat_mock:
-            with mock.patch.object(ssh, '_power_off') as power_off_mock:
-                with mock.patch.object(ssh, '_power_on') as power_on_mock:
-                    get_power_stat_mock.return_value = states.POWER_ON
-                    power_off_mock.return_value = None
-                    power_on_mock.return_value = states.POWER_ON
-
-                    with task_manager.acquire(self.context, [info['uuid']],
-                                              shared=False) as task:
-                        task.resources[0].driver.power.reboot(task, self.node)
-
-                    self.parse_drv_info_mock.assert_called_once_with(self.node)
-                    self.get_mac_addr_mock.assert_called_once_with(mock.ANY,
-                                                                   self.node)
-                    self.get_conn_mock.assert_called_once_with(self.node)
-                    get_power_stat_mock.assert_called_once_with(self.sshclient,
-                                                                info)
-                    power_off_mock.assert_called_once_with(self.sshclient,
-                                                           info)
-                    power_on_mock.assert_called_once_with(self.sshclient, info)
-
-    def test_reboot_fail(self):
+    @mock.patch.object(driver_utils, 'get_node_mac_addresses')
+    @mock.patch.object(ssh, '_get_connection')
+    @mock.patch.object(ssh, '_get_power_status')
+    @mock.patch.object(ssh, '_power_off')
+    @mock.patch.object(ssh, '_power_on')
+    def test_reboot_fail(self, power_on_mock, power_off_mock,
+                         get_power_stat_mock, get_conn_mock,
+                         get_mac_addr_mock):
         info = ssh._parse_driver_info(self.node)
         info['macs'] = ["11:11:11:11:11:11", "52:54:00:cf:2d:31"]
+        get_mac_addr_mock.return_value = info['macs']
+        get_conn_mock.return_value = self.sshclient
+        get_power_stat_mock.return_value = states.POWER_ON
+        power_off_mock.return_value = None
+        power_on_mock.return_value = states.POWER_OFF
+        with mock.patch.object(ssh,
+                               '_parse_driver_info') as parse_drv_info_mock:
+            parse_drv_info_mock.return_value = info
+            with task_manager.acquire(self.context, [info['uuid']],
+                                      shared=False) as task:
+                self.assertRaises(exception.PowerStateFailure,
+                                  task.resources[0].driver.power.reboot,
+                                  task,
+                                  self.node)
+            parse_drv_info_mock.assert_called_once_with(self.node)
+        get_mac_addr_mock.assert_called_once_with(mock.ANY, self.node)
+        get_conn_mock.assert_called_once_with(self.node)
+        get_power_stat_mock.assert_called_once_with(self.sshclient, info)
+        power_off_mock.assert_called_once_with(self.sshclient, info)
+        power_on_mock.assert_called_once_with(self.sshclient, info)
 
-        self.parse_drv_info_mock = self.parse_drv_info_patcher.start()
-        self.parse_drv_info_mock.return_value = info
-        self.get_mac_addr_mock.return_value = info['macs']
-        self.get_conn_mock.return_value = self.sshclient
-
-        with mock.patch.object(ssh, '_get_power_status') \
-                as get_power_stat_mock:
-            with mock.patch.object(ssh, '_power_off') as power_off_mock:
-                with mock.patch.object(ssh, '_power_on') as power_on_mock:
-                    get_power_stat_mock.return_value = states.POWER_ON
-                    power_off_mock.return_value = None
-                    power_on_mock.return_value = states.POWER_OFF
-
-                    with task_manager.acquire(self.context, [info['uuid']],
-                                              shared=False) as task:
-                        self.assertRaises(
-                                exception.PowerStateFailure,
-                                task.resources[0].driver.power.reboot,
-                                task,
-                                self.node)
-                    self.parse_drv_info_mock.assert_called_once_with(self.node)
-                    self.get_mac_addr_mock.assert_called_once_with(mock.ANY,
-                                                                   self.node)
-                    self.get_conn_mock.assert_called_once_with(self.node)
-                    get_power_stat_mock.assert_called_once_with(self.sshclient,
-                                                                info)
-                    power_off_mock.assert_called_once_with(self.sshclient,
-                                                           info)
-                    power_on_mock.assert_called_once_with(self.sshclient, info)
-
-    def test_set_power_state_bad_state(self):
+    @mock.patch.object(driver_utils, 'get_node_mac_addresses')
+    @mock.patch.object(ssh, '_get_connection')
+    def test_set_power_state_bad_state(self, get_conn_mock,
+                                       get_mac_addr_mock):
         info = ssh._parse_driver_info(self.node)
         info['macs'] = ["11:11:11:11:11:11", "52:54:00:cf:2d:31"]
-
-        self.parse_drv_info_mock = self.parse_drv_info_patcher.start()
-        self.parse_drv_info_mock.return_value = info
-        self.get_mac_addr_mock.return_value = info['macs']
-        self.get_conn_mock.return_value = self.sshclient
-
-        with task_manager.acquire(self.context, [info['uuid']],
-                                  shared=False) as task:
-            self.assertRaises(
+        get_mac_addr_mock.return_value = info['macs']
+        get_conn_mock.return_value = self.sshclient
+        with mock.patch.object(ssh,
+                               '_parse_driver_info') as parse_drv_info_mock:
+            parse_drv_info_mock.return_value = info
+            with task_manager.acquire(self.context, [info['uuid']],
+                                      shared=False) as task:
+                self.assertRaises(
                     exception.InvalidParameterValue,
                     task.resources[0].driver.power.set_power_state,
                     task,
                     self.node,
                     "BAD_PSTATE")
 
-        self. parse_drv_info_mock.assert_called_once_with(self.node)
-        self.get_mac_addr_mock.assert_called_once_with(mock.ANY, self.node)
-        self.get_conn_mock.assert_called_once_with(self.node)
+            parse_drv_info_mock.assert_called_once_with(self.node)
+        get_mac_addr_mock.assert_called_once_with(mock.ANY, self.node)
+        get_conn_mock.assert_called_once_with(self.node)
 
-    def test_set_power_state_on_good(self):
+    @mock.patch.object(driver_utils, 'get_node_mac_addresses')
+    @mock.patch.object(ssh, '_get_connection')
+    @mock.patch.object(ssh, '_power_on')
+    def test_set_power_state_on_good(self, power_on_mock, get_conn_mock,
+                                     get_mac_addr_mock):
         info = ssh._parse_driver_info(self.node)
         info['macs'] = ["11:11:11:11:11:11", "52:54:00:cf:2d:31"]
-
-        self.parse_drv_info_mock = self.parse_drv_info_patcher.start()
-        self.parse_drv_info_mock.return_value = info
-        self.get_mac_addr_mock.return_value = info['macs']
-        self.get_conn_mock.return_value = self.sshclient
-        with mock.patch.object(ssh, '_power_on') as power_on_mock:
-            power_on_mock.return_value = states.POWER_ON
-
+        get_mac_addr_mock.return_value = info['macs']
+        get_conn_mock.return_value = self.sshclient
+        power_on_mock.return_value = states.POWER_ON
+        with mock.patch.object(ssh,
+                               '_parse_driver_info') as parse_drv_info_mock:
+            parse_drv_info_mock.return_value = info
             with task_manager.acquire(self.context, [info['uuid']],
                                       shared=False) as task:
-                task.resources[0].driver.power.set_power_state(task,
-                                                               self.node,
+                task.resources[0].driver.power.set_power_state(task, self.node,
                                                                states.POWER_ON)
 
-            self.parse_drv_info_mock.assert_called_once_with(self.node)
-            self.get_mac_addr_mock.assert_called_once_with(mock.ANY, self.node)
-            self.get_conn_mock.assert_called_once_with(self.node)
-            power_on_mock.assert_called_once_with(self.sshclient, info)
+            parse_drv_info_mock.assert_called_once_with(self.node)
+        get_mac_addr_mock.assert_called_once_with(mock.ANY, self.node)
+        get_conn_mock.assert_called_once_with(self.node)
+        power_on_mock.assert_called_once_with(self.sshclient, info)
 
-    def test_set_power_state_on_fail(self):
+    @mock.patch.object(driver_utils, 'get_node_mac_addresses')
+    @mock.patch.object(ssh, '_get_connection')
+    @mock.patch.object(ssh, '_power_on')
+    def test_set_power_state_on_fail(self, power_on_mock, get_conn_mock,
+                                     get_mac_addr_mock):
         info = ssh._parse_driver_info(self.node)
         info['macs'] = ["11:11:11:11:11:11", "52:54:00:cf:2d:31"]
-
-        self.parse_drv_info_mock = self.parse_drv_info_patcher.start()
-        self.parse_drv_info_mock.return_value = info
-        self.get_mac_addr_mock.return_value = info['macs']
-        self.get_conn_mock.return_value = self.sshclient
-
-        with mock.patch.object(ssh, '_power_on') as power_on_mock:
-            power_on_mock.return_value = states.POWER_OFF
-
+        get_mac_addr_mock.return_value = info['macs']
+        get_conn_mock.return_value = self.sshclient
+        power_on_mock.return_value = states.POWER_OFF
+        with mock.patch.object(ssh,
+                               '_parse_driver_info') as parse_drv_info_mock:
+            parse_drv_info_mock.return_value = info
             with task_manager.acquire(self.context, [info['uuid']],
                                       shared=False) as task:
                 self.assertRaises(
-                        exception.PowerStateFailure,
-                        task.resources[0].driver.power.set_power_state,
-                        task,
-                        self.node,
-                        states.POWER_ON)
+                    exception.PowerStateFailure,
+                    task.resources[0].driver.power.set_power_state,
+                    task,
+                    self.node,
+                    states.POWER_ON)
 
-            self.parse_drv_info_mock.assert_called_once_with(self.node)
-            self.get_mac_addr_mock.assert_called_once_with(mock.ANY, self.node)
-            self.get_conn_mock.assert_called_once_with(self.node)
-            power_on_mock.assert_called_once_with(self.sshclient, info)
+            parse_drv_info_mock.assert_called_once_with(self.node)
+        get_mac_addr_mock.assert_called_once_with(mock.ANY, self.node)
+        get_conn_mock.assert_called_once_with(self.node)
+        power_on_mock.assert_called_once_with(self.sshclient, info)
 
-    def test_set_power_state_off_good(self):
+    @mock.patch.object(driver_utils, 'get_node_mac_addresses')
+    @mock.patch.object(ssh, '_get_connection')
+    @mock.patch.object(ssh, '_power_off')
+    def test_set_power_state_off_good(self, power_off_mock, get_conn_mock,
+                                      get_mac_addr_mock):
         info = ssh._parse_driver_info(self.node)
         info['macs'] = ["11:11:11:11:11:11", "52:54:00:cf:2d:31"]
-
-        self.parse_drv_info_mock = self.parse_drv_info_patcher.start()
-        self.parse_drv_info_mock.return_value = info
-        self.get_mac_addr_mock.return_value = info['macs']
-        self.get_conn_mock.return_value = self.sshclient
-
-        with mock.patch.object(ssh, '_power_off') as power_off_mock:
-            power_off_mock.return_value = states.POWER_OFF
-
+        get_mac_addr_mock.return_value = info['macs']
+        get_conn_mock.return_value = self.sshclient
+        power_off_mock.return_value = states.POWER_OFF
+        with mock.patch.object(ssh,
+                               '_parse_driver_info') as parse_drv_info_mock:
+            parse_drv_info_mock.return_value = info
             with task_manager.acquire(self.context, [info['uuid']],
                                       shared=False) as task:
-                task.resources[0].driver.power.set_power_state(task,
-                        self.node, states.POWER_OFF)
+                task.resources[0].driver.power.set_power_state(
+                    task, self.node, states.POWER_OFF)
 
-            self.parse_drv_info_mock.assert_called_once_with(self.node)
-            self.get_mac_addr_mock.assert_called_once_with(mock.ANY, self.node)
-            self.get_conn_mock.assert_called_once_with(self.node)
-            power_off_mock.assert_called_once_with(self.sshclient, info)
+            parse_drv_info_mock.assert_called_once_with(self.node)
+        get_mac_addr_mock.assert_called_once_with(mock.ANY, self.node)
+        get_conn_mock.assert_called_once_with(self.node)
+        power_off_mock.assert_called_once_with(self.sshclient, info)
 
-    def test_set_power_state_off_fail(self):
+    @mock.patch.object(driver_utils, 'get_node_mac_addresses')
+    @mock.patch.object(ssh, '_get_connection')
+    @mock.patch.object(ssh, '_power_off')
+    def test_set_power_state_off_fail(self, power_off_mock, get_conn_mock,
+                                      get_mac_addr_mock):
         info = ssh._parse_driver_info(self.node)
         info['macs'] = ["11:11:11:11:11:11", "52:54:00:cf:2d:31"]
-
-        self.parse_drv_info_mock = self.parse_drv_info_patcher.start()
-        self.parse_drv_info_mock.return_value = info
-        self.get_mac_addr_mock.return_value = info['macs']
-        self.get_conn_mock.return_value = self.sshclient
-
-        with mock.patch.object(ssh, '_power_off') as power_off_mock:
-            power_off_mock.return_value = states.POWER_ON
-
+        get_mac_addr_mock.return_value = info['macs']
+        get_conn_mock.return_value = self.sshclient
+        power_off_mock.return_value = states.POWER_ON
+        with mock.patch.object(ssh,
+                               '_parse_driver_info') as parse_drv_info_mock:
+            parse_drv_info_mock.return_value = info
             with task_manager.acquire(self.context, [info['uuid']],
                                       shared=False) as task:
                 self.assertRaises(
-                        exception.PowerStateFailure,
-                        task.resources[0].driver.power.set_power_state,
-                        task,
-                        self.node,
-                        states.POWER_OFF)
+                    exception.PowerStateFailure,
+                    task.resources[0].driver.power.set_power_state,
+                    task,
+                    self.node,
+                    states.POWER_OFF)
 
-            self.parse_drv_info_mock.assert_called_once_with(self.node)
-            self.get_mac_addr_mock.assert_called_once_with(mock.ANY, self.node)
-            self.get_conn_mock.assert_called_once_with(self.node)
-            power_off_mock.assert_called_once_with(self.sshclient, info)
+            parse_drv_info_mock.assert_called_once_with(self.node)
+        get_mac_addr_mock.assert_called_once_with(mock.ANY, self.node)
+        get_conn_mock.assert_called_once_with(self.node)
+        power_off_mock.assert_called_once_with(self.sshclient, info)

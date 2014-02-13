@@ -198,7 +198,8 @@ class PXEPrivateMethodsTestCase(db_base.DbTestCase):
         p = db_utils.get_test_port(**kwargs)
         return self.dbapi.create_port(p)
 
-    def test__get_tftp_image_info(self):
+    @mock.patch.object(base_image_service.BaseImageService, '_show')
+    def test__get_tftp_image_info(self, show_mock):
         properties = {'properties': {u'kernel_id': u'instance_kernel_uuid',
                      u'ramdisk_id': u'instance_ramdisk_uuid'}}
 
@@ -222,26 +223,24 @@ class PXEPrivateMethodsTestCase(db_base.DbTestCase):
                           os.path.join(CONF.pxe.tftp_root,
                                        self.node.uuid,
                                        'deploy_kernel')]}
-        with mock.patch.object(base_image_service.BaseImageService, '_show') \
-                as show_mock:
-            show_mock.return_value = properties
-            image_info = pxe._get_tftp_image_info(self.node, self.context)
-            show_mock.assert_called_once_with('glance://image_uuid',
-                                               method='get')
-            self.assertEqual(expected_info, image_info)
+        show_mock.return_value = properties
+        image_info = pxe._get_tftp_image_info(self.node, self.context)
+        show_mock.assert_called_once_with('glance://image_uuid',
+                                           method='get')
+        self.assertEqual(expected_info, image_info)
 
         # test with saved info
-        with mock.patch.object(base_image_service.BaseImageService, '_show') \
-                as show_mock:
-            image_info = pxe._get_tftp_image_info(self.node, self.context)
-            self.assertEqual(expected_info, image_info)
-            self.assertFalse(show_mock.called)
-            self.assertEqual('instance_kernel_uuid',
-                             self.node.driver_info.get('pxe_kernel'))
-            self.assertEqual('instance_ramdisk_uuid',
-                             self.node.driver_info.get('pxe_ramdisk'))
+        show_mock.reset_mock()
+        image_info = pxe._get_tftp_image_info(self.node, self.context)
+        self.assertEqual(expected_info, image_info)
+        self.assertFalse(show_mock.called)
+        self.assertEqual('instance_kernel_uuid',
+                         self.node.driver_info.get('pxe_kernel'))
+        self.assertEqual('instance_ramdisk_uuid',
+                         self.node.driver_info.get('pxe_ramdisk'))
 
-    def test__build_pxe_config(self):
+    @mock.patch.object(utils, 'random_alnum')
+    def test__build_pxe_config(self, random_alnum_mock):
         self.config(pxe_append_params='test_param', group='pxe')
         # NOTE: right '/' should be removed from url string
         self.config(api_url='http://192.168.122.184:6385/', group='conductor')
@@ -250,32 +249,31 @@ class PXEPrivateMethodsTestCase(db_base.DbTestCase):
         pxe_config_template = open(template, 'r').read()
 
         fake_key = '0123456789ABCDEFGHIJKLMNOPQRSTUV'
-        with mock.patch.object(utils, 'random_alnum') as random_alnum_mock:
-            random_alnum_mock.return_value = fake_key
+        random_alnum_mock.return_value = fake_key
 
-            image_info = {'deploy_kernel': ['deploy_kernel',
-                                            os.path.join(CONF.pxe.tftp_root,
-                                                         self.node.uuid,
-                                                         'deploy_kernel')],
-                          'deploy_ramdisk': ['deploy_ramdisk',
-                                            os.path.join(CONF.pxe.tftp_root,
-                                                         self.node.uuid,
-                                                         'deploy_ramdisk')],
-                          'kernel': ['kernel_id',
-                                     os.path.join(CONF.pxe.tftp_root,
-                                                  self.node.uuid,
-                                                  'kernel')],
-                          'ramdisk': ['ramdisk_id',
-                                     os.path.join(CONF.pxe.tftp_root,
-                                                  self.node.uuid,
-                                                  'ramdisk')]
+        image_info = {'deploy_kernel': ['deploy_kernel',
+                                        os.path.join(CONF.pxe.tftp_root,
+                                                     self.node.uuid,
+                                                     'deploy_kernel')],
+                      'deploy_ramdisk': ['deploy_ramdisk',
+                                         os.path.join(CONF.pxe.tftp_root,
+                                                      self.node.uuid,
+                                                      'deploy_ramdisk')],
+                      'kernel': ['kernel_id',
+                                 os.path.join(CONF.pxe.tftp_root,
+                                              self.node.uuid,
+                                              'kernel')],
+                      'ramdisk': ['ramdisk_id',
+                                  os.path.join(CONF.pxe.tftp_root,
+                                               self.node.uuid,
+                                               'ramdisk')]
                       }
-            pxe_config = pxe._build_pxe_config(self.node,
-                                               image_info,
-                                               self.context)
+        pxe_config = pxe._build_pxe_config(self.node,
+                                           image_info,
+                                           self.context)
 
-            random_alnum_mock.assert_called_once_with(32)
-            self.assertEqual(pxe_config_template, pxe_config)
+        random_alnum_mock.assert_called_once_with(32)
+        self.assertEqual(pxe_config_template, pxe_config)
 
         # test that deploy_key saved
         db_node = self.dbapi.get_node_by_uuid(self.node.uuid)
@@ -312,54 +310,50 @@ class PXEPrivateMethodsTestCase(db_base.DbTestCase):
             result = pxe._get_node_vif_ids(task)
         self.assertEqual(expected, result)
 
-    def test__update_neutron(self):
+    @mock.patch.object(pxe, '_get_node_vif_ids')
+    @mock.patch.object(neutron.NeutronAPI, 'update_port_dhcp_opts')
+    def test__update_neutron(self, mock_updo, mock_gnvi):
         opts = pxe._dhcp_options_for_instance()
-        with mock.patch.object(pxe, '_get_node_vif_ids') as mock_gnvi:
-            mock_gnvi.return_value = {'port-uuid': 'vif-uuid'}
-            with mock.patch.object(neutron.NeutronAPI,
-                                   'update_port_dhcp_opts') as mock_updo:
-                with task_manager.acquire(self.context,
-                                          self.node.uuid) as task:
-                    pxe._update_neutron(task, self.node)
-                mock_updo.assertCalleOnceWith('vif-uuid', opts)
+        mock_gnvi.return_value = {'port-uuid': 'vif-uuid'}
+        with task_manager.acquire(self.context,
+                                  self.node.uuid) as task:
+            pxe._update_neutron(task, self.node)
+        mock_updo.assertCalleOnceWith('vif-uuid', opts)
 
-    def test__update_neutron_no_vif_data(self):
-        with mock.patch.object(pxe, '_get_node_vif_ids') as mock_gnvi:
-            mock_gnvi.return_value = {}
-            with mock.patch.object(neutron.NeutronAPI,
-                                   '__init__') as mock_init:
-                with task_manager.acquire(self.context,
-                                          self.node.uuid) as task:
-                    pxe._update_neutron(task, self.node)
-                mock_init.assert_not_called()
+    @mock.patch.object(pxe, '_get_node_vif_ids')
+    @mock.patch.object(neutron.NeutronAPI, '__init__')
+    def test__update_neutron_no_vif_data(self, mock_init, mock_gnvi):
+        mock_gnvi.return_value = {}
+        with task_manager.acquire(self.context,
+                                  self.node.uuid) as task:
+            pxe._update_neutron(task, self.node)
+        mock_init.assert_not_called()
 
-    def test__update_neutron_some_failures(self):
+    @mock.patch.object(pxe, '_get_node_vif_ids')
+    @mock.patch.object(neutron.NeutronAPI, 'update_port_dhcp_opts')
+    def test__update_neutron_some_failures(self, mock_updo, mock_gnvi):
         # confirm update is called twice, one fails, but no exception raised
-        with mock.patch.object(pxe, '_get_node_vif_ids') as mock_gnvi:
-            mock_gnvi.return_value = {'p1': 'v1', 'p2': 'v2'}
-            with mock.patch.object(neutron.NeutronAPI,
-                                   'update_port_dhcp_opts') as mock_updo:
-                exc = exception.FailedToUpdateDHCPOptOnPort('fake exception')
-                mock_updo.side_effect = [None, exc]
-                with task_manager.acquire(self.context,
-                                          self.node.uuid) as task:
-                    pxe._update_neutron(task, self.node)
-                self.assertEqual(2, mock_updo.call_count)
+        mock_gnvi.return_value = {'p1': 'v1', 'p2': 'v2'}
+        exc = exception.FailedToUpdateDHCPOptOnPort('fake exception')
+        mock_updo.side_effect = [None, exc]
+        with task_manager.acquire(self.context,
+                                  self.node.uuid) as task:
+            pxe._update_neutron(task, self.node)
+        self.assertEqual(2, mock_updo.call_count)
 
-    def test__update_neutron_fails(self):
+    @mock.patch.object(pxe, '_get_node_vif_ids')
+    @mock.patch.object(neutron.NeutronAPI, 'update_port_dhcp_opts')
+    def test__update_neutron_fails(self, mock_updo, mock_gnvi):
         # confirm update is called twice, both fail, and exception is raised
-        with mock.patch.object(pxe, '_get_node_vif_ids') as mock_gnvi:
-            mock_gnvi.return_value = {'p1': 'v1', 'p2': 'v2'}
-            with mock.patch.object(neutron.NeutronAPI,
-                                   'update_port_dhcp_opts') as mock_updo:
-                exc = exception.FailedToUpdateDHCPOptOnPort('fake exception')
-                mock_updo.side_effect = [exc, exc]
-                with task_manager.acquire(self.context,
-                                          self.node.uuid) as task:
-                    self.assertRaises(exception.FailedToUpdateDHCPOptOnPort,
-                                      pxe._update_neutron,
-                                      task, self.node)
-                self.assertEqual(2, mock_updo.call_count)
+        mock_gnvi.return_value = {'p1': 'v1', 'p2': 'v2'}
+        exc = exception.FailedToUpdateDHCPOptOnPort('fake exception')
+        mock_updo.side_effect = [exc, exc]
+        with task_manager.acquire(self.context,
+                                  self.node.uuid) as task:
+            self.assertRaises(exception.FailedToUpdateDHCPOptOnPort,
+                              pxe._update_neutron,
+                              task, self.node)
+        self.assertEqual(2, mock_updo.call_count)
 
     def test__dhcp_options_for_instance(self):
         self.config(pxe_bootfile_name='test_pxe_bootfile', group='pxe')
@@ -591,39 +585,37 @@ class PXEDriverTestCase(db_base.DbTestCase):
             mock_img_path.assert_called_once_with(task.node.uuid)
             mock_get_img_mb.assert_called_once_with(fake_img_path)
 
-    def test_deploy(self):
-        with mock.patch.object(pxe, '_update_neutron') as update_neutron_mock:
-            with mock.patch.object(manager_utils,
-                    'node_power_action') as node_power_mock:
-                with mock.patch.object(manager_utils,
-                        'node_set_boot_device') as node_set_boot_mock:
-                    with task_manager.acquire(self.context,
-                        self.node.uuid, shared=False) as task:
-                        state = task.driver.deploy.deploy(task, self.node)
-                        self.assertEqual(state, states.DEPLOYWAIT)
-                        update_neutron_mock.assert_called_once_with(task,
-                                                                    self.node)
-                        node_set_boot_mock.assert_called_once_with(task,
-                                                            'pxe',
-                                                            persistent=True)
-                        node_power_mock.assert_called_once_with(task,
-                                                                self.node,
-                                                                states.REBOOT)
+    @mock.patch.object(pxe, '_update_neutron')
+    @mock.patch.object(manager_utils, 'node_power_action')
+    @mock.patch.object(manager_utils, 'node_set_boot_device')
+    def test_deploy(self, node_set_boot_mock, node_power_mock,
+                    update_neutron_mock):
+        with task_manager.acquire(self.context,
+                                  self.node.uuid, shared=False) as task:
+            state = task.driver.deploy.deploy(task, self.node)
+            self.assertEqual(state, states.DEPLOYWAIT)
+            update_neutron_mock.assert_called_once_with(task,
+                                                        self.node)
+            node_set_boot_mock.assert_called_once_with(task,
+                                                       'pxe',
+                                                       persistent=True)
+            node_power_mock.assert_called_once_with(task,
+                                                    self.node,
+                                                    states.REBOOT)
 
-                        # ensure token file created
-                        t_path = pxe._get_token_file_path(self.node.uuid)
-                        token = open(t_path, 'r').read()
-                        self.assertEqual(self.context.auth_token, token)
+            # ensure token file created
+            t_path = pxe._get_token_file_path(self.node.uuid)
+            token = open(t_path, 'r').read()
+            self.assertEqual(self.context.auth_token, token)
 
-    def test_tear_down(self):
-        with mock.patch.object(manager_utils,
-                'node_power_action') as node_power_mock:
-            with task_manager.acquire(self.context,
-                    self.node.uuid) as task:
-                state = task.driver.deploy.tear_down(task, self.node)
-                self.assertEqual(states.DELETED, state)
-                node_power_mock.assert_called_once_with(task, self.node,
-                                                        states.POWER_OFF)
+    @mock.patch.object(manager_utils, 'node_power_action')
+    def test_tear_down(self, node_power_mock):
+        with task_manager.acquire(self.context,
+                                  self.node.uuid) as task:
+            state = task.driver.deploy.tear_down(task, self.node)
+            self.assertEqual(states.DELETED, state)
+            node_power_mock.assert_called_once_with(task, self.node,
+                                                    states.POWER_OFF)
 
     @mock.patch.object(manager_utils, 'node_power_action')
     def test_tear_down_removes_internal_attrs(self, mock_npa):
@@ -643,12 +635,12 @@ class PXEDriverTestCase(db_base.DbTestCase):
         self.assertNotIn('pxe_ramdisk', self.node.driver_info)
         mock_npa.assert_called_once_with(task, self.node, states.POWER_OFF)
 
-    def test_take_over(self):
-        with mock.patch.object(pxe, '_update_neutron') as update_neutron_mock:
-            with task_manager.acquire(
-                    self.context, self.node.uuid, shared=True) as task:
-                task.driver.deploy.take_over(task, self.node)
-                update_neutron_mock.assert_called_once_with(task, self.node)
+    @mock.patch.object(pxe, '_update_neutron')
+    def test_take_over(self, update_neutron_mock):
+        with task_manager.acquire(
+                self.context, self.node.uuid, shared=True) as task:
+            task.driver.deploy.take_over(task, self.node)
+            update_neutron_mock.assert_called_once_with(task, self.node)
 
     def test_continue_deploy_good(self):
         token_path = self._create_token_file()
@@ -743,7 +735,8 @@ class PXEDriverTestCase(db_base.DbTestCase):
                 self.assertEqual(1, _continue_deploy_mock.call_count,
                             "_continue_deploy was not called once.")
 
-    def clean_up_config(self, master=None):
+    @mock.patch.object(pxe, '_get_tftp_image_info')
+    def clean_up_config(self, get_tftp_image_info_mock, master=None):
         temp_dir = tempfile.mkdtemp()
         self.config(tftp_root=temp_dir, group='pxe')
         tftp_master_dir = os.path.join(CONF.pxe.tftp_root,
@@ -770,57 +763,55 @@ class PXEDriverTestCase(db_base.DbTestCase):
                                      self.node.uuid, 'deploy_kernel')
         image_info = {'deploy_kernel': ['deploy_kernel_uuid', d_kernel_path]}
 
-        with mock.patch.object(pxe, '_get_tftp_image_info') \
-                as get_tftp_image_info_mock:
-            get_tftp_image_info_mock.return_value = image_info
+        get_tftp_image_info_mock.return_value = image_info
 
-            pxecfg_dir = os.path.join(CONF.pxe.tftp_root, 'pxelinux.cfg')
-            os.makedirs(pxecfg_dir)
+        pxecfg_dir = os.path.join(CONF.pxe.tftp_root, 'pxelinux.cfg')
+        os.makedirs(pxecfg_dir)
 
-            instance_dir = os.path.join(CONF.pxe.tftp_root,
-                                        self.node.uuid)
-            image_dir = os.path.join(CONF.pxe.images_path, self.node.uuid)
-            os.makedirs(instance_dir)
-            os.makedirs(image_dir)
-            config_path = os.path.join(instance_dir, 'config')
-            deploy_kernel_path = os.path.join(instance_dir, 'deploy_kernel')
-            pxe_mac_path = os.path.join(pxecfg_dir, '01-aa-bb-cc')
-            image_path = os.path.join(image_dir, 'disk')
-            open(config_path, 'w').close()
-            os.link(config_path, pxe_mac_path)
-            if master:
-                master_deploy_kernel_path = os.path.join(tftp_master_dir,
-                                                         'deploy_kernel_uuid')
-                master_instance_path = os.path.join(instance_master_dir,
-                                                    'image_uuid')
-                open(master_deploy_kernel_path, 'w').close()
-                open(master_instance_path, 'w').close()
+        instance_dir = os.path.join(CONF.pxe.tftp_root,
+                                    self.node.uuid)
+        image_dir = os.path.join(CONF.pxe.images_path, self.node.uuid)
+        os.makedirs(instance_dir)
+        os.makedirs(image_dir)
+        config_path = os.path.join(instance_dir, 'config')
+        deploy_kernel_path = os.path.join(instance_dir, 'deploy_kernel')
+        pxe_mac_path = os.path.join(pxecfg_dir, '01-aa-bb-cc')
+        image_path = os.path.join(image_dir, 'disk')
+        open(config_path, 'w').close()
+        os.link(config_path, pxe_mac_path)
+        if master:
+            master_deploy_kernel_path = os.path.join(tftp_master_dir,
+                                                     'deploy_kernel_uuid')
+            master_instance_path = os.path.join(instance_master_dir,
+                                                'image_uuid')
+            open(master_deploy_kernel_path, 'w').close()
+            open(master_instance_path, 'w').close()
 
-                os.link(master_deploy_kernel_path, deploy_kernel_path)
-                os.link(master_instance_path, image_path)
-                if master == 'in_use':
-                    deploy_kernel_link = os.path.join(CONF.pxe.tftp_root,
-                                                      'deploy_kernel_link')
-                    image_link = os.path.join(CONF.pxe.images_path,
-                                              'image_link')
-                    os.link(master_deploy_kernel_path, deploy_kernel_link)
-                    os.link(master_instance_path, image_link)
+            os.link(master_deploy_kernel_path, deploy_kernel_path)
+            os.link(master_instance_path, image_path)
+            if master == 'in_use':
+                deploy_kernel_link = os.path.join(CONF.pxe.tftp_root,
+                                                  'deploy_kernel_link')
+                image_link = os.path.join(CONF.pxe.images_path,
+                                          'image_link')
+                os.link(master_deploy_kernel_path, deploy_kernel_link)
+                os.link(master_instance_path, image_link)
 
-            else:
-                open(deploy_kernel_path, 'w').close()
-                open(image_path, 'w').close()
-            token_path = self._create_token_file()
-            self.config(image_cache_size=0, group='pxe')
+        else:
+            open(deploy_kernel_path, 'w').close()
+            open(image_path, 'w').close()
+        token_path = self._create_token_file()
+        self.config(image_cache_size=0, group='pxe')
 
-            with task_manager.acquire(self.context, [self.node.uuid],
-                                      shared=True) as task:
-                task.resources[0].driver.deploy.clean_up(task, self.node)
-            get_tftp_image_info_mock.called_once_with(self.node)
-            assert_false_path = [config_path, deploy_kernel_path, image_path,
-                                 pxe_mac_path, image_dir, instance_dir,
-                                 token_path]
-            for path in assert_false_path:
-                self.assertFalse(os.path.exists(path))
+        with task_manager.acquire(self.context, [self.node.uuid],
+                                  shared=True) as task:
+            task.resources[0].driver.deploy.clean_up(task, self.node)
+        get_tftp_image_info_mock.called_once_with(self.node)
+        assert_false_path = [config_path, deploy_kernel_path, image_path,
+                             pxe_mac_path, image_dir, instance_dir,
+                             token_path]
+        for path in assert_false_path:
+            self.assertFalse(os.path.exists(path))
 
     def test_clean_up_no_master_images(self):
         self.clean_up_config(master=None)
