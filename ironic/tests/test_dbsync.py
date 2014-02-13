@@ -1,7 +1,4 @@
-# vim: tabstop=4 shiftwidth=4 softtabstop=4
 # -*- encoding: utf-8 -*-
-#
-# vim: tabstop=4 shiftwidth=4 softtabstop=4
 #
 # Copyright 2013 Hewlett-Packard Development Company, L.P.
 # All Rights Reserved.
