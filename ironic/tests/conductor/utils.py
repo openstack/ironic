@@ -50,15 +50,8 @@ def get_mockable_extension_manager(driver, namespace):
             dispatch.NameDispatchExtensionManager('ironic.no-such-namespace',
                                                   lambda x: True)
     mock_ext_mgr = driver_factory.DriverFactory()
-    try:
-        mock_ext = mock_ext_mgr._extension_manager._load_one_plugin(
-                                                     entry_point, True, [], {},
-                                                     False)
-    except TypeError:
-        # TODO(deva): remove this after I7f4cec7071 lands and stevedore is
-        #             pinned >= 0.14 in requirements.txt
-        mock_ext = mock_ext_mgr._extension_manager._load_one_plugin(
-                                                     entry_point, True, [], {})
+    mock_ext = mock_ext_mgr._extension_manager._load_one_plugin(
+                                              entry_point, True, [], {}, False)
     mock_ext_mgr._extension_manager.extensions = [mock_ext]
     mock_ext_mgr._extension_manager.by_name = dict((e.name, e)
                                                    for e in [mock_ext])
