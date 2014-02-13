@@ -20,6 +20,10 @@ import collections
 import datetime
 
 from oslo.config import cfg
+from oslo.db import exception as db_exc
+from oslo.db import options as db_options
+from oslo.db.sqlalchemy import session as db_session
+from oslo.db.sqlalchemy import utils as db_utils
 from sqlalchemy.orm.exc import NoResultFound
 
 from ironic.common import exception
@@ -29,17 +33,10 @@ from ironic.common import utils
 from ironic.db import api
 from ironic.db.sqlalchemy import models
 from ironic import objects
-from ironic.openstack.common.db import exception as db_exc
-from ironic.openstack.common.db import options as db_options
-from ironic.openstack.common.db.sqlalchemy import session as db_session
-from ironic.openstack.common.db.sqlalchemy import utils as db_utils
 from ironic.openstack.common import log
 from ironic.openstack.common import timeutils
 
 CONF = cfg.CONF
-CONF.import_opt('connection',
-                'ironic.openstack.common.db.options',
-                group='database')
 CONF.import_opt('heartbeat_timeout',
                 'ironic.conductor.manager',
                 group='conductor')
@@ -47,7 +44,7 @@ CONF.import_opt('heartbeat_timeout',
 LOG = log.getLogger(__name__)
 
 _DEFAULT_SQL_CONNECTION = 'sqlite:///' + paths.state_path_def('ironic.sqlite')
-db_options.set_defaults(_DEFAULT_SQL_CONNECTION, 'ironic.sqlite')
+db_options.set_defaults(CONF, _DEFAULT_SQL_CONNECTION, 'ironic.sqlite')
 
 
 _FACADE = None
@@ -56,10 +53,7 @@ _FACADE = None
 def _create_facade_lazily():
     global _FACADE
     if _FACADE is None:
-        _FACADE = db_session.EngineFacade(
-            CONF.database.connection,
-            **dict(CONF.database.iteritems())
-        )
+        _FACADE = db_session.EngineFacade.from_config(CONF)
     return _FACADE
 
 

@@ -19,6 +19,7 @@ import datetime
 
 import mock
 from oslo.config import cfg
+from oslo.db.openstack.common import timeutils as db_timeutils
 from six.moves.urllib import parse as urlparse
 
 from ironic.common import utils
@@ -170,7 +171,7 @@ class TestPatch(base.FunctionalTest):
         self.assertEqual('application/json', response.content_type)
         self.assertTrue(response.json['error_message'])
 
-    @mock.patch.object(timeutils, 'utcnow')
+    @mock.patch.object(db_timeutils, 'utcnow')
     def test_replace_singular(self, mock_utcnow):
         cdict = dbutils.get_test_chassis()
         description = 'chassis-new-description'
@@ -308,7 +309,7 @@ class TestPatch(base.FunctionalTest):
 
 class TestPost(base.FunctionalTest):
 
-    @mock.patch.object(timeutils, 'utcnow')
+    @mock.patch.object(db_timeutils, 'utcnow')
     def test_create_chassis(self, mock_utcnow):
         cdict = apiutils.chassis_post_data()
         test_time = datetime.datetime(2000, 1, 1, 0, 0)

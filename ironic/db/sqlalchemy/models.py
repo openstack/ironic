@@ -21,15 +21,14 @@ SQLAlchemy models for baremetal data.
 import json
 
 from oslo.config import cfg
+from oslo.db.sqlalchemy import models
 import six.moves.urllib.parse as urlparse
-
 from sqlalchemy import Boolean, Column, DateTime
 from sqlalchemy import ForeignKey, Integer
 from sqlalchemy import schema, String, Text
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.types import TypeDecorator, TEXT
 
-from ironic.openstack.common.db.sqlalchemy import models
 
 sql_opts = [
     cfg.StrOpt('mysql_engine',
