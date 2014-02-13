@@ -33,7 +33,6 @@ from ironic.conductor import task_manager
 from ironic.db import api as db_api
 from ironic.drivers.modules import ipmitool as ipmi
 from ironic.openstack.common import context
-from ironic.openstack.common import jsonutils as json
 from ironic.openstack.common import processutils
 from ironic.tests import base
 from ironic.tests.conductor import utils as mgr_utils
@@ -42,7 +41,7 @@ from ironic.tests.db import utils as db_utils
 
 CONF = cfg.CONF
 
-INFO_DICT = json.loads(db_utils.ipmi_info)
+INFO_DICT = db_utils.get_test_impi_info()
 
 
 class IPMIToolPrivateMethodTestCase(base.TestCase):

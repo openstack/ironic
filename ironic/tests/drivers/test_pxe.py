@@ -49,7 +49,7 @@ from ironic.tests.db import utils as db_utils
 
 CONF = cfg.CONF
 
-INFO_DICT = json.loads(db_utils.pxe_info)
+INFO_DICT = db_utils.get_test_pxe_info()
 
 
 class PXEValidateParametersTestCase(base.TestCase):

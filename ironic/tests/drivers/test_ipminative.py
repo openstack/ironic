@@ -27,7 +27,6 @@ from ironic.conductor import task_manager
 from ironic.db import api as db_api
 from ironic.drivers.modules import ipminative
 from ironic.openstack.common import context
-from ironic.openstack.common import jsonutils as json
 from ironic.tests import base
 from ironic.tests.conductor import utils as mgr_utils
 from ironic.tests.db import base as db_base
@@ -36,7 +35,7 @@ from oslo.config import cfg
 
 CONF = cfg.CONF
 
-INFO_DICT = json.loads(db_utils.ipmi_info)
+INFO_DICT = db_utils.get_test_impi_info()
 
 
 class IPMINativePrivateMethodTestCase(base.TestCase):

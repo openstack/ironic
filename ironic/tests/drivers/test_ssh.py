@@ -25,14 +25,13 @@ from ironic.conductor import task_manager
 from ironic.db import api as dbapi
 from ironic.drivers.modules import ssh
 from ironic.openstack.common import context
-from ironic.openstack.common import jsonutils as json
 from ironic.openstack.common import processutils
 from ironic.tests import base
 from ironic.tests.conductor import utils as mgr_utils
 from ironic.tests.db import base as db_base
 from ironic.tests.db import utils as db_utils
 
-INFO_DICT = json.loads(db_utils.ssh_info)
+INFO_DICT = db_utils.get_test_ssh_info()
 
 
 class SSHValidateParametersTestCase(base.TestCase):
