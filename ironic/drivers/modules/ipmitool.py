@@ -148,6 +148,8 @@ def _power_on(driver_info):
             raise loopingcall.LoopingCallDone()
 
         if retries[0] > CONF.ipmi.retry_timeout:
+            LOG.error(_('IPMI power on timed out after %(tries)s retries.'),
+                        {'tries': retries[0]})
             state[0] = states.ERROR
             raise loopingcall.LoopingCallDone()
         try:
@@ -186,6 +188,8 @@ def _power_off(driver_info):
             raise loopingcall.LoopingCallDone()
 
         if retries[0] > CONF.ipmi.retry_timeout:
+            LOG.error(_('IPMI power off timed out after %(tries)s retries.'),
+                        {'tries': retries[0]})
             state[0] = states.ERROR
             raise loopingcall.LoopingCallDone()
         try:
