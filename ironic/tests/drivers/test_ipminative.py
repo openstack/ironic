@@ -140,16 +140,16 @@ class IPMINativeDriverTestCase(db_base.DbTestCase):
 
     def test_get_power_state(self):
         with mock.patch('pyghmi.ipmi.command.Command') as ipmi_mock:
-            ipmicmd = ipmi_mock.return_value
+            # Getting the mocked command.
+            cmd_mock = ipmi_mock.return_value
+            # Getting the get power mock.
+            get_power_mock = cmd_mock.get_power
 
             return_values = [{'powerstate': 'error'},
                              {'powerstate': 'on'},
                              {'powerstate': 'off'}]
 
-            def side_effect():
-                return return_values.pop()
-
-            ipmicmd.get_power.side_effect = side_effect
+            get_power_mock.side_effect = lambda: return_values.pop()
 
             pstate = self.driver.power.get_power_state(None, self.node)
             self.assertEqual(pstate, states.POWER_OFF)
@@ -159,7 +159,9 @@ class IPMINativeDriverTestCase(db_base.DbTestCase):
 
             pstate = self.driver.power.get_power_state(None, self.node)
             self.assertEqual(pstate, states.ERROR)
-            ipmicmd.get_power.assert_called
+            self.assertEqual(3, get_power_mock.call_count,
+                             "pyghmi.ipmi.command.Command.get_power was not"
+                             " called 3 times.")
 
     def test_set_power_on_ok(self):
         with mock.patch.object(ipminative, '_power_on') as power_on_mock:

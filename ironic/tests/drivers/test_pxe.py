@@ -734,7 +734,8 @@ class PXEDriverTestCase(db_base.DbTestCase):
                     method='pass_deploy_info', address='123456', iqn='aaa-bbb',
                     key='fake-56789')
                 # lock elevated w/o exception
-                _continue_deploy_mock.assert_called_once()
+                self.assertEqual(1, _continue_deploy_mock.call_count,
+                            "_continue_deploy was not called once.")
 
     def clean_up_config(self, master=None):
         ports = []

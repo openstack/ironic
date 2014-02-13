@@ -231,7 +231,8 @@ class WorkOnDiskTestCase(tests_base.TestCase):
                           utils.work_on_disk, self.dev, self.root_mb,
                           self.swap_mb, self.image_path)
         self.mock_ibd.assert_called_once_with(self.dev)
-        self.mock_mp.assert_not_called()
+        self.assertFalse(self.mock_mp.called,
+                         "make_partitions mock was unexpectedly called.")
 
     def test_no_root_partition(self):
         self.mock_ibd.side_effect = [True, False]
