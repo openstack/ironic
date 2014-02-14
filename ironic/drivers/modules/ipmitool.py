@@ -42,6 +42,7 @@ CONF = cfg.CONF
 LOG = logging.getLogger(__name__)
 
 VALID_BOOT_DEVICES = ['pxe', 'disk', 'safe', 'cdrom', 'bios']
+VALID_PRIV_LEVELS = ['ADMINISTRATOR', 'CALLBACK', 'OPERATOR', 'USER']
 
 
 @contextlib.contextmanager
@@ -78,17 +79,26 @@ def _parse_driver_info(node):
     username = info.get('ipmi_username')
     password = info.get('ipmi_password')
     port = info.get('ipmi_terminal_port')
+    priv_level = info.get('ipmi_priv_level', 'ADMINISTRATOR')
 
     if not address:
         raise exception.InvalidParameterValue(_(
             "IPMI address not supplied to IPMI driver."))
+
+    if priv_level not in VALID_PRIV_LEVELS:
+        valid_priv_lvls = ', '.join(VALID_PRIV_LEVELS)
+        raise exception.InvalidParameterValue(_(
+            "Invalid privilege level value:%(priv_level)s, the valid value"
+            " can be one of %(valid_levels)s") %
+            {'priv_level': priv_level, 'valid_levels': valid_priv_lvls})
 
     return {
             'address': address,
             'username': username,
             'password': password,
             'port': port,
-            'uuid': node.get('uuid')
+            'uuid': node.get('uuid'),
+            'priv_level': priv_level
            }
 
 
@@ -109,6 +119,7 @@ def _exec_ipmitool(driver_info, command):
             'lanplus',
             '-H',
             driver_info['address'],
+            '-L', driver_info.get('priv_level')
             ]
 
     if driver_info['username']:

@@ -72,6 +72,11 @@ class IPMIToolPrivateMethodTestCase(base.TestCase):
 
         info = dict(INFO_DICT)
 
+        # test the default value for 'priv_level'
+        node = db_utils.get_test_node(driver_info=info)
+        ret = ipmi._parse_driver_info(node)
+        self.assertEqual('ADMINISTRATOR', ret['priv_level'])
+
         # ipmi_username / ipmi_password are not mandatory
         del info['ipmi_username']
         node = db_utils.get_test_node(driver_info=info)
@@ -87,6 +92,13 @@ class IPMIToolPrivateMethodTestCase(base.TestCase):
                           ipmi._parse_driver_info,
                           node)
 
+        # test the invalid priv_level value
+        self.info['priv_level'] = 'ABCD'
+        node = db_utils.get_test_node(driver_info=info)
+        self.assertRaises(exception.InvalidParameterValue,
+                          ipmi._parse_driver_info,
+                          node)
+
     def test__exec_ipmitool(self):
         pw_file_handle = tempfile.NamedTemporaryFile()
         pw_file = pw_file_handle.name
@@ -95,6 +107,7 @@ class IPMIToolPrivateMethodTestCase(base.TestCase):
             'ipmitool',
             '-I', 'lanplus',
             '-H', self.info['address'],
+            '-L', self.info['priv_level'],
             '-U', self.info['username'],
             '-f', file_handle,
             'A', 'B', 'C',
@@ -121,6 +134,7 @@ class IPMIToolPrivateMethodTestCase(base.TestCase):
             'ipmitool',
             '-I', 'lanplus',
             '-H', self.info['address'],
+            '-L', self.info['priv_level'],
             '-U', self.info['username'],
             '-f', file_handle,
             'A', 'B', 'C',
@@ -145,6 +159,7 @@ class IPMIToolPrivateMethodTestCase(base.TestCase):
             'ipmitool',
             '-I', 'lanplus',
             '-H', self.info['address'],
+            '-L', self.info['priv_level'],
             '-f', file_handle,
             'A', 'B', 'C',
             ]
@@ -167,6 +182,7 @@ class IPMIToolPrivateMethodTestCase(base.TestCase):
             'ipmitool',
             '-I', 'lanplus',
             '-H', self.info['address'],
+            '-L', self.info['priv_level'],
             '-U', self.info['username'],
             '-f', file_handle,
             'A', 'B', 'C',
