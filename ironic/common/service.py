@@ -28,7 +28,7 @@ from ironic.openstack.common import rpc
 from ironic.openstack.common.rpc import service as rpc_service
 
 
-cfg.CONF.register_opts([
+service_opts = [
     cfg.IntOpt('periodic_interval',
                default=60,
                help='seconds between running periodic tasks'),
@@ -39,7 +39,9 @@ cfg.CONF.register_opts([
                'However, the node name must be valid within '
                'an AMQP key, and if using ZeroMQ, a valid '
                'hostname, FQDN, or IP address'),
-])
+]
+
+cfg.CONF.register_opts(service_opts)
 
 
 class PeriodicService(rpc_service.Service, periodic_task.PeriodicTasks):
