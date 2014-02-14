@@ -37,8 +37,8 @@ Setting up a local environment for development can be done with tox::
     # activate the virtualenv
     source .tox/venv/bin/activate
 
-    # install requirements within the virtualenv
-    pip install -U -r requirements.txt test-requirements.txt
+    # update/install requirements within the virtualenv
+    pip install -U -r requirements.txt -r test-requirements.txt
 
     # initialize testr
     testr init
@@ -78,6 +78,7 @@ First, install prerequisites::
 
     # Fedora/RHEL:
     sudo yum install rabbitmq-server
+    sudo service rabbitmq-server start
 
     # install ironic CLI
     sudo pip install python-ironicclient
@@ -91,7 +92,7 @@ everything else within that::
 
     # activate the virtualenv
     source .tox/venv/bin/activate
-    
+
     # install ironic within the virtualenv
     python setup.py develop
 
@@ -101,10 +102,8 @@ everything else within that::
 
     # copy sample config and modify it as necessary
     cp etc/ironic/ironic.conf.sample etc/ironic/ironic.conf.local
-    cat >> etc/ironic/ironic.conf.local <<EOL
-    host = test-host
-    auth_strategy = noauth
-    EOL
+    sed -i "s/#auth_strategy=keystone/auth_strategy=noauth/" etc/ironic/ironic.conf.local
+    sed -i "s/#host=.*/host=test-host/" etc/ironic/ironic.conf.local
 
     # start services and observe their output
     # for each service, open a separate window and active the virtualenv in it
@@ -144,7 +143,7 @@ address security issues with running a web server on your laptop.
 
     # Install Apache on Fedora/RHEL
     sudo yum install httpd
-    sudo systemctl start httpd
+    sudo service httpd start
 
     # Add symlink to build output. For this example, let's assume your
     # Apache DocumentRoot is /var/www and ironic source is at /opt/stack/ironic
