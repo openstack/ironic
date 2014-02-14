@@ -13,14 +13,5 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-# TODO(deva): move eventlet imports to ironic.__init__ once we move to PBR
-import os
-
-os.environ['EVENTLET_NO_GREENDNS'] = 'yes'
-
-import eventlet
-
-eventlet.monkey_patch(os=False)
-
 from ironic.openstack.common import gettextutils
 gettextutils.install('ironic')
