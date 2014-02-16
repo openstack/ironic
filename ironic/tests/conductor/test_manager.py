@@ -459,52 +459,103 @@ class ManagerTestCase(base.DbTestCase):
         res = objects.Node.get_by_uuid(self.context, node['uuid'])
         self.assertEqual(existing_driver, res['driver'])
 
-    def test_vendor_action(self):
-        n = utils.get_test_node(driver='fake')
-        self.dbapi.create_node(n)
-        info = {'bar': 'baz'}
-        self.service.do_vendor_action(
-                self.context, n['uuid'], 'first_method', info)
-
-    def test_validate_vendor_action(self):
+    def test_vendor_passthru_success(self):
         n = utils.get_test_node(driver='fake')
         node = self.dbapi.create_node(n)
         info = {'bar': 'baz'}
-        self.service.validate_vendor_action(
-                self.context, n['uuid'], 'first_method', info)
+        self.service.start()
+
+        self.service.vendor_passthru(
+            self.context, n['uuid'], 'first_method', info)
+        # Waiting to make sure the below assertions are valid.
+        self.service._worker_pool.waitall()
+
         node.refresh(self.context)
         self.assertIsNone(node.last_error)
+        # Verify reservation has been cleared.
+        self.assertIsNone(node.reservation)
 
-    def test_validate_vendor_action_unsupported_method(self):
+    def test_vendor_passthru_node_already_locked(self):
+        fake_reservation = 'test_reserv'
+        n = utils.get_test_node(driver='fake', reservation=fake_reservation)
+        node = self.dbapi.create_node(n)
+        info = {'bar': 'baz'}
+        self.service.start()
+
+        self.assertRaises(exception.NodeLocked,
+                          self.service.vendor_passthru,
+                          self.context, n['uuid'], 'first_method', info)
+
+        node.refresh(self.context)
+        self.assertIsNone(node.last_error)
+        # Verify the existing reservation is not broken.
+        self.assertEqual(fake_reservation, node.reservation)
+
+    def test_vendor_passthru_unsupported_method(self):
         n = utils.get_test_node(driver='fake')
         node = self.dbapi.create_node(n)
         info = {'bar': 'baz'}
-        self.assertRaises(exception.InvalidParameterValue,
-                          self.service.validate_vendor_action,
-                          self.context, n['uuid'], 'abc', info)
-        node.refresh(self.context)
-        self.assertIsNotNone(node.last_error)
+        self.service.start()
 
-    def test_validate_vendor_action_no_parameter(self):
+        self.assertRaises(exception.InvalidParameterValue,
+                          self.service.vendor_passthru,
+                          self.context, n['uuid'], 'unsupported_method', info)
+
+        node.refresh(self.context)
+        self.assertIsNone(node.last_error)
+        # Verify reservation has been cleared.
+        self.assertIsNone(node.reservation)
+
+    def test_vendor_passthru_invalid_method_parameters(self):
         n = utils.get_test_node(driver='fake')
         node = self.dbapi.create_node(n)
-        info = {'fake': 'baz'}
-        self.assertRaises(exception.InvalidParameterValue,
-                          self.service.validate_vendor_action,
-                          self.context, n['uuid'], 'first_method', info)
-        node.refresh(self.context)
-        self.assertIsNotNone(node.last_error)
+        info = {'invalid_param': 'whatever'}
+        self.service.start()
 
-    def test_validate_vendor_action_unsupported(self):
+        self.assertRaises(exception.InvalidParameterValue,
+                          self.service.vendor_passthru,
+                          self.context, n['uuid'], 'first_method', info)
+
+        node.refresh(self.context)
+        self.assertIsNone(node.last_error)
+        # Verify reservation has been cleared.
+        self.assertIsNone(node.reservation)
+
+    def test_vendor_passthru_vendor_interface_not_supported(self):
         n = utils.get_test_node(driver='fake')
         node = self.dbapi.create_node(n)
         info = {'bar': 'baz'}
         self.driver.vendor = None
+        self.service.start()
+
         self.assertRaises(exception.UnsupportedDriverExtension,
-                          self.service.validate_vendor_action,
-                          self.context, n['uuid'], 'foo', info)
+                          self.service.vendor_passthru,
+                          self.context, n['uuid'], 'whatever_method', info)
+
         node.refresh(self.context)
-        self.assertIsNotNone(node.last_error)
+        # Verify reservation has been cleared.
+        self.assertIsNone(node.reservation)
+
+    def test_vendor_passthru_worker_pool_full(self):
+        n = utils.get_test_node(driver='fake')
+        node = self.dbapi.create_node(n)
+        info = {'bar': 'baz'}
+        self.service.start()
+
+        with mock.patch.object(self.service, '_spawn_worker') \
+                as spawn_mock:
+            spawn_mock.side_effect = exception.NoFreeConductorWorker()
+
+            self.assertRaises(exception.NoFreeConductorWorker,
+                              self.service.vendor_passthru,
+                              self.context, n['uuid'], 'first_method', info)
+            # Waiting to make sure the below assertions are valid.
+            self.service._worker_pool.waitall()
+
+            node.refresh(self.context)
+            self.assertIsNone(node.last_error)
+            # Verify reservation has been cleared.
+            self.assertIsNone(node.reservation)
 
     def test_do_node_deploy_invalid_state(self):
         # test node['provision_state'] is not NOSTATE

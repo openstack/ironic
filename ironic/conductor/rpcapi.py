@@ -57,10 +57,12 @@ class ConductorAPI(ironic.openstack.common.rpc.proxy.RpcProxy):
         1.9 - Added destroy_node.
         1.10 - Remove get_node_power_state
         1.11 - Added get_console_information, set_console_mode.
+        1.12 - validate_vendor_action, do_vendor_action replaced by single
+              vendor_passthru method.
 
     """
 
-    RPC_API_VERSION = '1.11'
+    RPC_API_VERSION = '1.12'
 
     def __init__(self, topic=None):
         if topic is None:
@@ -138,36 +140,28 @@ class ConductorAPI(ironic.openstack.common.rpc.proxy.RpcProxy):
 
     def vendor_passthru(self, context, node_id, driver_method, info,
                         topic=None):
-        """Pass vendor specific info to a node driver.
+        """Synchronously, acquire lock, validate given parameters and start
+        the conductor background task for specified vendor action.
 
         :param context: request context.
         :param node_id: node id or uuid.
         :param driver_method: name of method for driver.
         :param info: info for node driver.
         :param topic: RPC topic. Defaults to self.topic.
-        :raises: InvalidParameterValue for parameter errors.
-        :raises: UnsupportedDriverExtension for unsupported extensions.
+        :raises: InvalidParameterValue if supplied info is not valid.
+        :raises: UnsupportedDriverExtension if current driver does not have
+                 vendor interface.
+        :raises: NoFreeConductorWorker when there is no free worker to start
+                 async task.
 
         """
         topic = topic or self.topic
-
-        driver_data = self.call(context,
-                                self.make_msg('validate_vendor_action',
-                                    node_id=node_id,
-                                    driver_method=driver_method,
-                                    info=info),
-                                topic=topic)
-
-        # this method can do nothing if 'driver_method' intended only
-        # for obtain 'driver_data'
-        self.cast(context,
-                  self.make_msg('do_vendor_action',
-                                node_id=node_id,
-                                driver_method=driver_method,
-                                info=info),
-                  topic=topic)
-
-        return driver_data
+        return self.call(context,
+                         self.make_msg('vendor_passthru',
+                                       node_id=node_id,
+                                       driver_method=driver_method,
+                                       info=info),
+                         topic=topic)
 
     def do_node_deploy(self, context, node_id, topic=None):
         """Signal to conductor service to perform a deployment.

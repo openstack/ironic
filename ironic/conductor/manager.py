@@ -157,7 +157,7 @@ def _do_sync_power_state(task):
 class ConductorManager(service.PeriodicService):
     """Ironic Conductor service main class."""
 
-    RPC_API_VERSION = '1.11'
+    RPC_API_VERSION = '1.12'
 
     def __init__(self, host, topic):
         serializer = objects_base.IronicObjectSerializer()
@@ -279,41 +279,50 @@ class ConductorManager(service.PeriodicService):
                 # Release node lock if error occurred.
                 task.release_resources()
 
-    # NOTE(deva): There is a race condition in the RPC API for vendor_passthru.
-    # Between the validate_vendor_action and do_vendor_action calls, it's
-    # possible another conductor instance may acquire a lock, or change the
-    # state of the node, such that validate() succeeds but do() fails.
-    # TODO(deva): Implement an intent lock to prevent this race. Do this after
-    # we have implemented intelligent RPC routing so that the do() will be
-    # guaranteed to land on the same conductor instance that performed
-    # validate().
-    def validate_vendor_action(self, context, node_id, driver_method, info):
-        """Validate driver specific info or get driver status."""
+    def vendor_passthru(self, context, node_id, driver_method, info):
+        """RPC method to encapsulate vendor action.
 
-        LOG.debug(_("RPC validate_vendor_action called for node %s.")
+        Synchronously validate driver specific info or get driver status,
+        and if successful, start background worker to perform vendor action
+        asynchronously.
+
+        :param context: an admin context.
+        :param node_id: the id or uuid of a node.
+        :param driver_method: the name of the vendor method.
+        :param info: vendor method args.
+        :raises: InvalidParameterValue if supplied info is not valid.
+        :raises: UnsupportedDriverExtension if current driver does not have
+                 vendor interface.
+        :raises: NoFreeConductorWorker when there is no free worker to start
+                 async task.
+
+        """
+        LOG.debug(_("RPC vendor_passthru called for node %s.")
                     % node_id)
-        with task_manager.acquire(context, node_id, shared=True) as task:
-            try:
-                if getattr(task.driver, 'vendor', None):
-                    return task.driver.vendor.validate(task, task.node,
-                                                       method=driver_method,
-                                                       **info)
-                else:
-                    raise exception.UnsupportedDriverExtension(
-                                            driver=task.node.driver,
-                                            extension='vendor passthru')
-            except Exception as e:
-                with excutils.save_and_reraise_exception():
-                    task.node.last_error = \
-                        _("Failed to validate vendor info. Error: %s") % e
-                    task.node.save(context)
+        # NOTE(max_lobur): Even though not all vendor_passthru calls may
+        # require an exclusive lock, we need to do so to guarantee that the
+        # state doesn't unexpectedly change between doing a vendor.validate
+        # and vendor.vendor_passthru.
+        task = task_manager.TaskManager(context, node_id, shared=False)
 
-    def do_vendor_action(self, context, node_id, driver_method, info):
-        """Run driver action asynchronously."""
+        try:
+            if not getattr(task.driver, 'vendor', None):
+                raise exception.UnsupportedDriverExtension(
+                    driver=task.node.driver,
+                    extension='vendor passthru')
 
-        with task_manager.acquire(context, node_id, shared=True) as task:
-                task.driver.vendor.vendor_passthru(task, task.node,
-                                                  method=driver_method, **info)
+            task.driver.vendor.validate(task, task.node, method=driver_method,
+                                        **info)
+            # Start requested action in the background.
+            thread = self._spawn_worker(task.driver.vendor.vendor_passthru,
+                                        task, task.node, method=driver_method,
+                                        **info)
+            # Release node lock at the end of async action.
+            thread.link(lambda t: task.release_resources())
+        except Exception:
+            with excutils.save_and_reraise_exception():
+                # Release node lock if error occurred.
+                task.release_resources()
 
     def do_node_deploy(self, context, node_id):
         """RPC method to initiate deployment to a node.

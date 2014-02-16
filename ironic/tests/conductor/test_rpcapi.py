@@ -117,18 +117,11 @@ class RPCAPITestCase(base.DbTestCase):
                           new_state=states.POWER_ON)
 
     def test_pass_vendor_info(self):
-        ctxt = context.get_admin_context()
-        rpcapi = conductor_rpcapi.ConductorAPI(topic='fake-topic')
-        expected_retval = 'hello world'
-
-        def _fake_rpc_method(*args, **kwargs):
-                return expected_retval
-
-        self.useFixture(fixtures.MonkeyPatch(
-                'ironic.openstack.common.rpc.call', _fake_rpc_method))
-        retval = rpcapi.vendor_passthru(ctxt, node_id=self.fake_node['uuid'],
-                                    driver_method='foo', info={'bar': 'baz'})
-        self.assertEqual(expected_retval, retval)
+        self._test_rpcapi('vendor_passthru',
+                          'call',
+                          node_id=self.fake_node['uuid'],
+                          driver_method='test-driver-method',
+                          info={"test_info": "test_value"})
 
     def test_do_node_deploy(self):
         self._test_rpcapi('do_node_deploy',
