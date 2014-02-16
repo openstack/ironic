@@ -26,7 +26,7 @@ class DbSyncTestCase(base.DbTestCase):
     def setUp(self):
         super(DbSyncTestCase, self).setUp()
 
-    def test_sync_and_version(self):
-        migration.db_sync()
-        v = migration.db_version()
-        self.assertTrue(v > migration.INIT_VERSION)
+    def test_upgrade_and_version(self):
+        migration.upgrade('head')
+        v = migration.version()
+        self.assertTrue(v)

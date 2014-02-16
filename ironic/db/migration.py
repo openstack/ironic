@@ -28,18 +28,29 @@ CONF.import_opt('backend',
                 group='database')
 
 IMPL = utils.LazyPluggable(
-        pivot='backend',
-        config_group='database',
-        sqlalchemy='ironic.db.sqlalchemy.migration')
+    pivot='backend',
+    config_group='database',
+    sqlalchemy='ironic.db.sqlalchemy.migration')
 
 INIT_VERSION = 0
 
 
-def db_sync(version=None):
+def upgrade(version=None):
     """Migrate the database to `version` or the most recent version."""
-    return IMPL.db_sync(version=version)
+    return IMPL.upgrade(version)
 
 
-def db_version():
-    """Display the current database version."""
-    return IMPL.db_version()
+def downgrade(version=None):
+    return IMPL.downgrade(version)
+
+
+def version():
+    return IMPL.version()
+
+
+def stamp(version):
+    return IMPL.stamp(version)
+
+
+def revision(message, autogenerate):
+    return IMPL.revision(message, autogenerate)

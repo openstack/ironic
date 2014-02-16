@@ -1,0 +1,16 @@
+Please see https://alembic.readthedocs.org/en/latest/index.html for general documentation
+
+To create alembic migrations use:
+$ ironic-dbsync revision --message --autogenerate
+
+Stamp db with most recent migration version, without actually running migrations
+$ ironic-dbsync stamp --revision head
+
+Upgrade can be performed by:
+$ ironic-dbsync - for backward compatibility
+$ ironic-dbsync upgrade
+# ironic-dbsync upgrade --revision head
+
+Downgrading db:
+$ ironic-dbsync downgrade
+$ ironic-dbsync downgrade --revision base
