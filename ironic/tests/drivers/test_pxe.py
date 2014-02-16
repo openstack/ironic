@@ -197,7 +197,7 @@ class PXEValidateParametersTestCase(base.TestCase):
                              st_nlink, 2)
 
 
-class PXEPrivateMethodsTestCase(base.TestCase):
+class PXEPrivateMethodsTestCase(db_base.DbTestCase):
 
     def setUp(self):
         super(PXEPrivateMethodsTestCase, self).setUp()
@@ -205,6 +205,7 @@ class PXEPrivateMethodsTestCase(base.TestCase):
               'driver': 'fake_pxe',
               'driver_info': INFO_DICT
         }
+        mgr_utils.get_mocked_node_manager(driver='fake_pxe')
         self.dbapi = dbapi.get_instance()
         self.node = self._create_test_node(**n)
         self.context = context.get_admin_context()
