@@ -289,7 +289,7 @@ class TestListNodes(base.FunctionalTest):
         self._create_association_test_nodes()
         data = self.get_json('/nodes/?limit=3&associated=True')
         self.assertThat(data['nodes'], HasLength(3))
-        self.assertIn('associated=true', data['next'])
+        self.assertIn('associated=True', data['next'])
 
     def test_detail_with_association_filter(self):
         associated_nodes = self._create_association_test_nodes().\
@@ -303,7 +303,7 @@ class TestListNodes(base.FunctionalTest):
         data = self.get_json('/nodes/detail?limit=3&associated=true')
         self.assertThat(data['nodes'], HasLength(3))
         self.assertIn('driver', data['nodes'][0])
-        self.assertIn('associated=true', data['next'])
+        self.assertIn('associated=True', data['next'])
 
     def test_detail_with_instance_uuid(self):
         ndict = dbutils.get_test_node(uuid=utils.generate_uuid(),
