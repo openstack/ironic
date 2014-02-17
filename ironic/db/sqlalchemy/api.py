@@ -279,12 +279,6 @@ class Connection(api.Connection):
             values['power_state'] = states.NOSTATE
         if not values.get('provision_state'):
             values['provision_state'] = states.NOSTATE
-        if not values.get('properties'):
-            values['properties'] = '{}'
-        if not values.get('extra'):
-            values['extra'] = '{}'
-        if not values.get('driver_info'):
-            values['driver_info'] = '{}'
 
         node = models.Node()
         node.update(values)
@@ -400,8 +394,6 @@ class Connection(api.Connection):
     def create_port(self, values):
         if not values.get('uuid'):
             values['uuid'] = utils.generate_uuid()
-        if not values.get('extra'):
-            values['extra'] = '{}'
         port = models.Port()
         port.update(values)
         try:
@@ -460,8 +452,6 @@ class Connection(api.Connection):
     def create_chassis(self, values):
         if not values.get('uuid'):
             values['uuid'] = utils.generate_uuid()
-        if not values.get('extra'):
-            values['extra'] = '{}'
         chassis = models.Chassis()
         chassis.update(values)
         chassis.save()
