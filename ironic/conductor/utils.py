@@ -42,7 +42,7 @@ def node_power_action(task, node, state):
     context = task.context
     new_state = states.POWER_ON if state == states.REBOOT else state
     try:
-        task.driver.power.validate(node)
+        task.driver.power.validate(task, node)
         if state != states.REBOOT:
             curr_state = task.driver.power.get_power_state(task, node)
     except Exception as e:

@@ -198,9 +198,10 @@ def _power_status(driver_info):
 class NativeIPMIPower(base.PowerInterface):
     """The power driver using native python-ipmi library."""
 
-    def validate(self, node):
+    def validate(self, task, node):
         """Check that node['driver_info'] contains IPMI credentials.
 
+        :param task: a task from TaskManager.
         :param node: a single node to validate.
         :raises: InvalidParameterValue when required ipmi credentials
                  are missing.

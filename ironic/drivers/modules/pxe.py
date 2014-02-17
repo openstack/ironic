@@ -516,9 +516,10 @@ def _create_pxe_config(task, node, pxe_info):
 class PXEDeploy(base.DeployInterface):
     """PXE Deploy Interface: just a stub until the real driver is ported."""
 
-    def validate(self, node):
+    def validate(self, task, node):
         """Validate the driver-specific Node deployment info.
 
+        :param task: a task from TaskManager.
         :param node: a single Node to validate.
         :returns: InvalidParameterValue.
         """
@@ -617,7 +618,7 @@ class PXEDeploy(base.DeployInterface):
 
 class PXERescue(base.RescueInterface):
 
-    def validate(self, node):
+    def validate(self, task, node):
         pass
 
     def rescue(self, task, node):
@@ -657,7 +658,7 @@ class VendorPassthru(base.VendorInterface):
 
         return params
 
-    def validate(self, node, **kwargs):
+    def validate(self, task, node, **kwargs):
         method = kwargs['method']
         if method == 'pass_deploy_info':
             self._get_deploy_info(node, **kwargs)
