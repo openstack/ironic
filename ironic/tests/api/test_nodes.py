@@ -435,8 +435,8 @@ class TestPatch(base.FunctionalTest):
                                      'op': 'replace'}],
                                    expect_errors=True)
 
-        self.assertEqual(response.content_type, 'application/json')
-        self.assertEqual(response.status_code, 400)
+        self.assertEqual('application/json', response.content_type)
+        self.assertEqual(400, response.status_code)
 
     def test_update_fails_bad_state(self):
         fake_err = 'Fake Power State'
@@ -667,8 +667,8 @@ class TestPost(base.FunctionalTest):
         ndict = post_get_test_node()
         self.mock_gtf.side_effect = exception.NoValidHost('Fake Error')
         response = self.post_json('/nodes', ndict, expect_errors=True)
-        self.assertEqual(response.status_int, 400)
-        self.assertEqual(response.content_type, 'application/json')
+        self.assertEqual(400, response.status_int)
+        self.assertEqual('application/json', response.content_type)
         self.assertTrue(response.json['error_message'])
 
     def test_create_node_no_chassis_uuid(self):
