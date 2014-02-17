@@ -426,6 +426,18 @@ class TestPatch(base.FunctionalTest):
         self.mock_update_node.assert_called_once_with(
                 mock.ANY, mock.ANY, 'test-topic')
 
+    def test_update_fails_bad_driver(self):
+        self.mock_gtf.side_effect = exception.NoValidHost('Fake Error')
+
+        response = self.patch_json('/nodes/%s' % self.node['uuid'],
+                                   [{'path': '/driver',
+                                     'value': 'bad-driver',
+                                     'op': 'replace'}],
+                                   expect_errors=True)
+
+        self.assertEqual(response.content_type, 'application/json')
+        self.assertEqual(response.status_code, 400)
+
     def test_update_fails_bad_state(self):
         fake_err = 'Fake Power State'
         self.mock_update_node.side_effect = exception.NodeInWrongPowerState(
@@ -651,6 +663,14 @@ class TestPost(base.FunctionalTest):
         self.assertEqual('application/json', response.content_type)
         self.assertTrue(response.json['error_message'])
 
+    def test_create_node_invalid_driver(self):
+        ndict = post_get_test_node()
+        self.mock_gtf.side_effect = exception.NoValidHost('Fake Error')
+        response = self.post_json('/nodes', ndict, expect_errors=True)
+        self.assertEqual(response.status_int, 400)
+        self.assertEqual(response.content_type, 'application/json')
+        self.assertTrue(response.json['error_message'])
+
     def test_create_node_no_chassis_uuid(self):
         ndict = post_get_test_node()
         del ndict['chassis_uuid']
@@ -673,6 +693,10 @@ class TestDelete(base.FunctionalTest):
         super(TestDelete, self).setUp()
         cdict = dbutils.get_test_chassis()
         self.chassis = self.dbapi.create_chassis(cdict)
+        p = mock.patch.object(rpcapi.ConductorAPI, 'get_topic_for')
+        self.mock_gtf = p.start()
+        self.mock_gtf.return_value = 'test-topic'
+        self.addCleanup(p.stop)
 
     def test_delete_node(self):
         ndict = dbutils.get_test_node()

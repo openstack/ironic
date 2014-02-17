@@ -34,6 +34,7 @@ from ironic.api.controllers.v1 import types
 from ironic.api.controllers.v1 import utils as api_utils
 from ironic.common import exception
 from ironic.common import states as ir_states
+from ironic.common import utils
 from ironic import objects
 from ironic.openstack.common import excutils
 from ironic.openstack.common import log
@@ -549,6 +550,22 @@ class NodesController(rest.RestController):
         if self._from_chassis:
             raise exception.OperationNotPermitted
 
+        # NOTE(deva): get_topic_for checks if node.driver is in the hash ring
+        #             and raises NoValidHost if it is not.
+        #             We need to ensure that node has a UUID before it can
+        #             be mapped onto the hash ring.
+        if not node.uuid:
+            node.uuid = utils.generate_uuid()
+
+        try:
+            pecan.request.rpcapi.get_topic_for(node)
+        except exception.NoValidHost as e:
+            # NOTE(deva): convert from 404 to 400 because client can see
+            #             list of available drivers and shouldn't request
+            #             one that doesn't exist.
+            e.code = 400
+            raise e
+
         try:
             new_node = pecan.request.dbapi.create_node(node.as_dict())
         except Exception as e:
@@ -568,12 +585,11 @@ class NodesController(rest.RestController):
             raise exception.OperationNotPermitted
 
         rpc_node = objects.Node.get_by_uuid(pecan.request.context, node_uuid)
-        topic = pecan.request.rpcapi.get_topic_for(rpc_node)
 
         # Check if node is transitioning state
         if rpc_node['target_power_state'] or \
              rpc_node['target_provision_state']:
-            msg = _("Node %s can not be updated while a state transition"
+            msg = _("Node %s can not be updated while a state transition "
                     "is in progress.")
             raise wsme.exc.ClientSideError(msg % node_uuid, status_code=409)
 
@@ -587,6 +603,19 @@ class NodesController(rest.RestController):
         for field in objects.Node.fields:
             if rpc_node[field] != getattr(node, field):
                 rpc_node[field] = getattr(node, field)
+
+        # NOTE(deva): we calculate the rpc topic here in case node.driver
+        #             has changed, so that update is sent to the
+        #             new conductor, not the old one which may fail to
+        #             load the new driver.
+        try:
+            topic = pecan.request.rpcapi.get_topic_for(rpc_node)
+        except exception.NoValidHost as e:
+            # NOTE(deva): convert from 404 to 400 because client can see
+            #             list of available drivers and shouldn't request
+            #             one that doesn't exist.
+            e.code = 400
+            raise e
 
         try:
             new_node = pecan.request.rpcapi.update_node(
