@@ -161,6 +161,9 @@ class MultiType(wtypes.UserType):
     def __init__(self, *types):
         self.types = types
 
+    def __str__(self):
+        return ' | '.join(map(str, self.types))
+
     def validate(self, value):
         for t in self.types:
             if t is wsme.types.text and isinstance(value, wsme.types.bytes):

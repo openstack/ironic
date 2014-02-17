@@ -168,6 +168,12 @@ class TestMultiType(base.FunctionalTest):
         self.assertRaises(ValueError, vt.validate, 0.10)
         self.assertRaises(ValueError, vt.validate, object())
 
+    def test_multitype_tostring(self):
+        vt = types.MultiType(str, int)
+        vts = str(vt)
+        self.assertIn(str(str), vts)
+        self.assertIn(str(int), vts)
+
 
 class TestBooleanType(base.FunctionalTest):
 
