@@ -542,11 +542,13 @@ class SSHDriverTestCase(db_base.DbTestCase):
         super(SSHDriverTestCase, self).setUp()
         self.context = context.get_admin_context()
         self.driver = mgr_utils.get_mocked_node_manager(driver='fake_ssh')
-        self.node = db_utils.get_test_node(
-                        driver='fake_ssh',
-                        driver_info=INFO_DICT)
+        n = db_utils.get_test_node(
+                driver='fake_ssh',
+                driver_info=INFO_DICT)
         self.dbapi = dbapi.get_instance()
-        self.dbapi.create_node(self.node)
+        self.node = self.dbapi.create_node(n)
+        self.port = self.dbapi.create_port(db_utils.get_test_port(
+                                                         node_id=self.node.id))
         self.sshclient = paramiko.SSHClient()
 
         #setup these mocks because most tests use them
@@ -578,6 +580,7 @@ class SSHDriverTestCase(db_base.DbTestCase):
         self.get_conn_mock = None
 
         ports = []
+        ports.append(self.port)
         ports.append(
             self.dbapi.create_port(
                 db_utils.get_test_port(
@@ -595,7 +598,7 @@ class SSHDriverTestCase(db_base.DbTestCase):
 
         with task_manager.acquire(self.context, [self.node['uuid']]) as task:
             node_macs = ssh._get_nodes_mac_addresses(task, self.node)
-        self.assertEqual(node_macs, ['aa:bb:cc', 'dd:ee:ff'])
+        self.assertEqual(sorted(node_macs), sorted([p.address for p in ports]))
 
     def test__validate_info_ssh_connect_failed(self):
         info = ssh._parse_driver_info(self.node)
@@ -613,6 +616,20 @@ class SSHDriverTestCase(db_base.DbTestCase):
                                   task, self.node)
                 driver_info = ssh._parse_driver_info(self.node)
                 ssh_connect_mock.assert_called_once_with(driver_info)
+
+    def test_validate_fail_no_port(self):
+        # stop the get_mac_addr mock, it's needed for this test
+        self.get_mac_addr_patcher.stop()
+        self.get_mac_addr_mock = None
+
+        new_node = self.dbapi.create_node(db_utils.get_test_node(id=321,
+                                   uuid='aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee',
+                                   driver='fake_ssh', driver_info=INFO_DICT))
+        with task_manager.acquire(self.context, [new_node.uuid],
+                                  shared=True) as task:
+            self.assertRaises(exception.InvalidParameterValue,
+                              task.resources[0].driver.power.validate,
+                              task, new_node)
 
     def test_reboot_good(self):
         info = ssh._parse_driver_info(self.node)
