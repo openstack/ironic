@@ -39,61 +39,80 @@ from ironic.drivers import base
 from ironic.openstack.common import log as logging
 from ironic.openstack.common import processutils
 
+libvirt_opts = [
+    cfg.StrOpt('libvirt_uri',
+               default='qemu:///system',
+               help='libvirt uri')
+]
+
 CONF = cfg.CONF
+CONF.register_opts(libvirt_opts, group='ssh')
 
 LOG = logging.getLogger(__name__)
 
-COMMAND_SETS = {
-    'vbox': {
-        'base_cmd': '/usr/bin/VBoxManage',
-        'start_cmd': 'startvm {_NodeName_}',
-        'stop_cmd': 'controlvm {_NodeName_} poweroff',
-        'reboot_cmd': 'controlvm {_NodeName_} reset',
-        'list_all': "list vms|awk -F'\"' '{print $2}'",
-        'list_running': 'list runningvms',
-        'get_node_macs': ("showvminfo --machinereadable {_NodeName_} | "
-            "grep "
-            '"macaddress" | awk -F '
-            "'"
-            '"'
-            "' '{print $2}'")
-    },
-    "virsh": {
-        'base_cmd': '/usr/bin/virsh',
-        'start_cmd': 'start {_NodeName_}',
-        'stop_cmd': 'destroy {_NodeName_}',
-        'reboot_cmd': 'reset {_NodeName_}',
-        'list_all': "list --all | tail -n +2 | awk -F\" \" '{print $2}'",
-        'list_running':
-            "list --all|grep running|awk -v qc='\"' -F\" \" '{print qc$2qc}'",
-        'get_node_macs': ("dumpxml {_NodeName_} | grep "
-            '"mac address" | awk -F'
-            '"'
-            "'"
-            '" '
-            "'{print $2}' | tr -d ':'")
-    },
-    "vmware": {
-        'base_cmd': '/bin/vim-cmd',
-        'start_cmd': 'vmsvc/power.on {_NodeName_}',
-        'stop_cmd': 'vmsvc/power.off {_NodeName_}',
-        'reboot_cmd': 'vmsvc/power.reboot {_NodeName_}',
-        'list_all': "vmsvc/getallvms | awk '$1 ~ /^[0-9]+$/ {print $1}'",
-        # NOTE(arata): In spite of its name, list_running_cmd shows a single
-        #              vmid, not a list. But it is OK.
-        'list_running': (
-            "vmsvc/power.getstate {_NodeName_} | "
-            "grep 'Powered on' >/dev/null && "
-            "echo '\"{_NodeName_}\"' || true"),
-        # NOTE(arata): `true` is needed to handle a false vmid, which can be
-        #              returned by list_cmd. In that case, get_node_macs
-        #              returns an empty list rather than fails with non-zero
-        #              status code.
-        'get_node_macs': (
-            "vmsvc/device.getdevices {_NodeName_} | "
-            "grep macAddress | awk -F '\"' '{print $2}' || true"),
-    },
-}
+
+def _get_command_sets(virt_type):
+    if virt_type == 'vbox':
+        return {
+            'base_cmd': '/usr/bin/VBoxManage',
+            'start_cmd': 'startvm {_NodeName_}',
+            'stop_cmd': 'controlvm {_NodeName_} poweroff',
+            'reboot_cmd': 'controlvm {_NodeName_} reset',
+            'list_all': "list vms|awk -F'\"' '{print $2}'",
+            'list_running': 'list runningvms',
+            'get_node_macs': ("showvminfo --machinereadable {_NodeName_} | "
+                "grep "
+                '"macaddress" | awk -F '
+                "'"
+                '"'
+                "' '{print $2}'")
+            }
+    elif virt_type == 'vmware':
+        return {
+            'base_cmd': '/bin/vim-cmd',
+            'start_cmd': 'vmsvc/power.on {_NodeName_}',
+            'stop_cmd': 'vmsvc/power.off {_NodeName_}',
+            'reboot_cmd': 'vmsvc/power.reboot {_NodeName_}',
+            'list_all': "vmsvc/getallvms | awk '$1 ~ /^[0-9]+$/ {print $1}'",
+            # NOTE(arata): In spite of its name, list_running_cmd shows a
+            #              single vmid, not a list. But it is OK.
+            'list_running': (
+                "vmsvc/power.getstate {_NodeName_} | "
+                "grep 'Powered on' >/dev/null && "
+                "echo '\"{_NodeName_}\"' || true"),
+            # NOTE(arata): `true` is needed to handle a false vmid, which can
+            #              be returned by list_cmd. In that case, get_node_macs
+            #              returns an empty list rather than fails with
+            #              non-zero status code.
+            'get_node_macs': (
+                "vmsvc/device.getdevices {_NodeName_} | "
+                "grep macAddress | awk -F '\"' '{print $2}' || true"),
+        }
+    elif virt_type == "virsh":
+        virsh_cmds = {
+            'base_cmd': '/usr/bin/virsh',
+            'start_cmd': 'start {_NodeName_}',
+            'stop_cmd': 'destroy {_NodeName_}',
+            'reboot_cmd': 'reset {_NodeName_}',
+            'list_all': "list --all | tail -n +2 | awk -F\" \" '{print $2}'",
+            'list_running': ("list --all|grep running | "
+                "awk -v qc='\"' -F\" \" '{print qc$2qc}'"),
+            'get_node_macs': ("dumpxml {_NodeName_} | grep "
+                '"mac address" | awk -F'
+                '"'
+                "'"
+                '" '
+                "'{print $2}' | tr -d ':'")
+        }
+
+        if CONF.ssh.libvirt_uri:
+            virsh_cmds['base_cmd'] += ' --connect %s' % CONF.ssh.libvirt_uri
+
+        return virsh_cmds
+    else:
+        raise exception.InvalidParameterValue(_(
+            "SSHPowerDriver '%(virt_type)s' is not a valid virt_type, ") %
+            {'virt_type': virt_type})
 
 
 def _normalize_mac(mac):
@@ -157,14 +176,7 @@ def _parse_driver_info(node):
         raise exception.InvalidParameterValue(_(
             "SSHPowerDriver requires virt_type be set."))
 
-    cmd_set = COMMAND_SETS.get(virt_type)
-    if not cmd_set:
-        valid_values = ', '.join(COMMAND_SETS.keys())
-        raise exception.InvalidParameterValue(_(
-            "SSHPowerDriver '%(virt_type)s' is not a valid virt_type, "
-            "supported types are: %(valid)s") %
-            {'virt_type': virt_type, 'valid': valid_values})
-
+    cmd_set = _get_command_sets(virt_type)
     res['cmd_set'] = cmd_set
 
     if not address or not username:

@@ -32,6 +32,9 @@ from ironic.tests.conductor import utils as mgr_utils
 from ironic.tests.db import base as db_base
 from ironic.tests.db import utils as db_utils
 
+from oslo.config import cfg
+
+CONF = cfg.CONF
 INFO_DICT = db_utils.get_test_ssh_info()
 
 
@@ -118,6 +121,15 @@ class SSHValidateParametersTestCase(base.TestCase):
         mac_raw = u"0A:1B-2C-3D:4F"
         mac_clean = ssh._normalize_mac(mac_raw)
         self.assertEqual(mac_clean, "0a1b2c3d4f")
+
+    def test__parse_driver_info_with_custom_libvirt_uri(self):
+        CONF.set_override('libvirt_uri', 'qemu:///foo', 'ssh')
+        expected_base_cmd = "/usr/bin/virsh --connect qemu:///foo"
+
+        node = db_utils.get_test_node(driver='fake_ssh', driver_info=INFO_DICT)
+        node['driver_info']['ssh_virt_type'] = 'virsh'
+        info = ssh._parse_driver_info(node)
+        self.assertEqual(expected_base_cmd, info['cmd_set']['base_cmd'])
 
 
 class SSHPrivateMethodsTestCase(base.TestCase):
