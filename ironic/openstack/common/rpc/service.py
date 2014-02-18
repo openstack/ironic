@@ -1,5 +1,3 @@
-# vim: tabstop=4 shiftwidth=4 softtabstop=4
-
 # Copyright 2010 United States Government as represented by the
 # Administrator of the National Aeronautics and Space Administration.
 # All Rights Reserved.
@@ -30,7 +28,8 @@ LOG = logging.getLogger(__name__)
 class Service(service.Service):
     """Service object for binaries running on hosts.
 
-    A service enables rpc by listening to queues based on topic and host."""
+    A service enables rpc by listening to queues based on topic and host.
+    """
     def __init__(self, host, topic, manager=None, serializer=None):
         super(Service, self).__init__()
         self.host = host

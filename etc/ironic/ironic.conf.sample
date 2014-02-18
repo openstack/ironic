@@ -282,9 +282,9 @@
 # by impl_zmq. (integer value)
 #rpc_cast_timeout=30
 
-# Modules of exceptions that are permitted to be recreatedupon
-# receiving exception data from an rpc call. (list value)
-#allowed_rpc_exception_modules=ironic.openstack.common.exception,nova.exception,cinder.exception,exceptions
+# Modules of exceptions that are permitted to be recreated
+# upon receiving exception data from an rpc call. (list value)
+#allowed_rpc_exception_modules=nova.exception,cinder.exception,exceptions
 
 # If passed, use a fake RabbitMQ provider (boolean value)
 #fake_rabbit=false
@@ -298,17 +298,21 @@
 # Options defined in ironic.openstack.common.rpc.amqp
 #
 
-# Enable a fast single reply queue if using AMQP based RPC
-# like RabbitMQ or Qpid. (boolean value)
-#amqp_rpc_single_reply_queue=false
+# Use durable queues in amqp. (boolean value)
+# Deprecated group/name - [DEFAULT]/rabbit_durable_queues
+#amqp_durable_queues=false
+
+# Auto-delete queues in amqp. (boolean value)
+#amqp_auto_delete=false
 
 
 #
 # Options defined in ironic.openstack.common.rpc.impl_kombu
 #
 
-# SSL version to use (valid only if SSL enabled) (string
-# value)
+# If SSL is enabled, the SSL version to use. Valid values are
+# TLSv1, SSLv23 and SSLv3. SSLv2 might be available on some
+# distributions. (string value)
 #kombu_ssl_version=
 
 # SSL key file (valid only if SSL enabled) (string value)
@@ -332,36 +336,32 @@
 # RabbitMQ HA cluster host:port pairs (list value)
 #rabbit_hosts=$rabbit_host:$rabbit_port
 
-# connect over SSL for RabbitMQ (boolean value)
+# Connect over SSL for RabbitMQ (boolean value)
 #rabbit_use_ssl=false
 
-# the RabbitMQ userid (string value)
+# The RabbitMQ userid (string value)
 #rabbit_userid=guest
 
-# the RabbitMQ password (string value)
+# The RabbitMQ password (string value)
 #rabbit_password=guest
 
-# the RabbitMQ virtual host (string value)
+# The RabbitMQ virtual host (string value)
 #rabbit_virtual_host=/
 
-# how frequently to retry connecting with RabbitMQ (integer
+# How frequently to retry connecting with RabbitMQ (integer
 # value)
 #rabbit_retry_interval=1
 
-# how long to backoff for between retries when connecting to
+# How long to backoff for between retries when connecting to
 # RabbitMQ (integer value)
 #rabbit_retry_backoff=2
 
-# maximum retries with trying to connect to RabbitMQ (the
-# default of 0 implies an infinite retry count) (integer
-# value)
+# Maximum number of RabbitMQ connection retries. Default is 0
+# (infinite retry count) (integer value)
 #rabbit_max_retries=0
 
-# use durable queues in RabbitMQ (boolean value)
-#rabbit_durable_queues=false
-
-# use H/A queues in RabbitMQ (x-ha-policy: all).You need to
-# wipe RabbitMQ database when changing this option. (boolean
+# Use HA queues in RabbitMQ (x-ha-policy: all). If you change
+# this option, you must wipe the RabbitMQ database. (boolean
 # value)
 #rabbit_ha_queues=false
 
@@ -398,6 +398,14 @@
 
 # Disable Nagle algorithm (boolean value)
 #qpid_tcp_nodelay=true
+
+# The qpid topology version to use.  Version 1 is what was
+# originally used by impl_qpid.  Version 2 includes some
+# backwards-incompatible changes that allow broker federation
+# to work.  Users should update to version 2 when they are
+# able to take everything down, as it requires a clean break.
+# (integer value)
+#qpid_topology_version=1
 
 
 #
