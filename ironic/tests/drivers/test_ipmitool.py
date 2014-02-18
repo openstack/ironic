@@ -358,14 +358,14 @@ class IPMIToolDriverTestCase(db_base.DbTestCase):
 
             with task_manager.acquire(self.context,
                                      [self.node['uuid']]) as task:
-                self.driver.power._set_boot_device(task, self.node, 'pxe')
+                self.driver.vendor._set_boot_device(task, self.node, 'pxe')
 
             mock_exec.assert_called_once_with(self.info, "chassis bootdev pxe")
 
     def test_set_boot_device_bad_device(self):
         with task_manager.acquire(self.context, [self.node['uuid']]) as task:
             self.assertRaises(exception.InvalidParameterValue,
-                    self.driver.power._set_boot_device,
+                    self.driver.vendor._set_boot_device,
                     task,
                     self.node,
                     'fake-device')
@@ -408,3 +408,36 @@ class IPMIToolDriverTestCase(db_base.DbTestCase):
                             self.node)
 
                 self.assertEqual(manager.mock_calls, expected)
+
+    def test_vendor_passthru_validate__set_boot_device_good(self):
+        self.driver.vendor.validate(self.node,
+                                    method='set_boot_device',
+                                    device='pxe')
+
+    def test_vendor_passthru_validate__set_boot_device_fail(self):
+        self.assertRaises(exception.InvalidParameterValue,
+                          self.driver.vendor.validate,
+                          self.node, method='set_boot_device',
+                          device='fake')
+
+    def test_vendor_passthru_validate__set_boot_device_fail_no_device(self):
+        self.assertRaises(exception.InvalidParameterValue,
+                          self.driver.vendor.validate,
+                          self.node, method='set_boot_device')
+
+    def test_vendor_passthru_validate_method_notmatch(self):
+        self.assertRaises(exception.InvalidParameterValue,
+                          self.driver.vendor.validate,
+                          self.node, method='fake_method')
+
+    def test_vendor_passthru_call_set_boot_device(self):
+        with task_manager.acquire(self.context, [self.node['uuid']],
+                                  shared=False) as task:
+            with mock.patch.object(ipmi.VendorPassthru,
+                                   '_set_boot_device') as boot_mock:
+                self.driver.vendor.vendor_passthru(task,
+                                                   self.node,
+                                                   method='set_boot_device',
+                                                   device='pxe')
+            boot_mock.assert_called_once_with(task, self.node,
+                                              'pxe', False)

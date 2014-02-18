@@ -44,7 +44,7 @@ class FakeIPMIToolDriver(base.BaseDriver):
     def __init__(self):
         self.power = ipmitool.IPMIPower()
         self.deploy = fake.FakeDeploy()
-        self.vendor = self.power
+        self.vendor = ipmitool.VendorPassthru()
 
 
 class FakePXEDriver(base.BaseDriver):
