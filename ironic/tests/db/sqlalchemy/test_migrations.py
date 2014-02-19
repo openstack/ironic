@@ -54,6 +54,7 @@ import sqlalchemy.exc
 
 from ironic.db.sqlalchemy import migration
 from ironic.openstack.common.db.sqlalchemy import session
+from ironic.openstack.common.db.sqlalchemy import utils as db_utils
 from ironic.openstack.common import lockutils
 from ironic.openstack.common import log as logging
 from ironic.tests import base
@@ -499,3 +500,10 @@ class TestMigrations(BaseMigrationTestCase, WalkVersionsMixin):
         if _is_backend_avail('postgres', "openstack_cifail", self.PASSWD,
                              self.DATABASE):
             self.fail("Shouldn't have connected")
+
+    def _check_21b331f883ef(self, engine, data):
+        nodes = db_utils.get_table(engine, 'nodes')
+        col_names = [column.name for column in nodes.c]
+        self.assertIn('provision_updated_at', col_names)
+        self.assertIsInstance(nodes.c.provision_updated_at.type,
+                              sqlalchemy.types.DateTime)
