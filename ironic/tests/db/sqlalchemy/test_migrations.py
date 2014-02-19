@@ -259,12 +259,14 @@ class WalkVersionsMixin(object):
 
             self.assertIsNone(self.migration_api.version(alembic_cfg))
 
-            for version in script_directory.walk_revisions():
+            versions = [ver for ver in script_directory.walk_revisions()]
+
+            for version in reversed(versions):
                 self._migrate_up(engine, alembic_cfg,
                                  version.revision, with_data=True)
 
             if downgrade:
-                for version in reversed(script_directory.walk_revisions()):
+                for version in versions:
                     self._migrate_down(engine, alembic_cfg, version.revision)
 
     def _migrate_down(self, engine, config, version, with_data=False):
@@ -323,7 +325,7 @@ class TestWalkVersions(base.TestCase, WalkVersionsMixin):
         self.migration_api = mock.MagicMock()
         self.engine = mock.MagicMock()
         self.config = mock.MagicMock()
-        self.versions = [mock.Mock(revision='1a1'), mock.Mock(revision='2b2')]
+        self.versions = [mock.Mock(revision='2b2'), mock.Mock(revision='1a1')]
 
     def test_migrate_up(self):
         self.migration_api.version.return_value = 'dsa123'
@@ -377,12 +379,12 @@ class TestWalkVersions(base.TestCase, WalkVersionsMixin):
 
         self.migration_api.version.assert_called_with(self.config)
 
-        upgraded = [mock.call(self.engine, self.config,
-                    v.revision, with_data=True) for v in self.versions]
+        upgraded = [mock.call(self.engine, self.config, v.revision,
+                    with_data=True) for v in reversed(self.versions)]
         self.assertEqual(self._migrate_up.call_args_list, upgraded)
 
         downgraded = [mock.call(self.engine, self.config, v.revision)
-                      for v in reversed(self.versions)]
+                      for v in self.versions]
         self.assertEqual(self._migrate_down.call_args_list, downgraded)
 
     @mock.patch.object(script, 'ScriptDirectory')
@@ -396,10 +398,8 @@ class TestWalkVersions(base.TestCase, WalkVersionsMixin):
 
         self._walk_versions(self.engine, self.config, downgrade=False)
 
-        upgraded = [
-            mock.call(self.engine, self.config,
-                      v.revision, with_data=True) for v in self.versions
-        ]
+        upgraded = [mock.call(self.engine, self.config, v.revision,
+                    with_data=True) for v in reversed(self.versions)]
         self.assertEqual(upgraded, self._migrate_up.call_args_list)
 
 
