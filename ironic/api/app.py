@@ -28,7 +28,7 @@ from ironic.common import policy
 auth_opts = [
     cfg.StrOpt('auth_strategy',
         default='keystone',
-        help='Method to use for auth: noauth or keystone.'),
+        help='Method to use for authentication: noauth or keystone.'),
     ]
 
 CONF = cfg.CONF

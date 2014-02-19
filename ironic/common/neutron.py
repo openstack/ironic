@@ -27,10 +27,10 @@ from ironic.openstack.common import log as logging
 neutron_opts = [
     cfg.StrOpt('url',
                default='http://127.0.0.1:9696',
-               help='URL for connecting to neutron'),
+               help='URL for connecting to neutron.'),
     cfg.IntOpt('url_timeout',
                default=30,
-               help='timeout value for connecting to neutron in seconds'),
+               help='Timeout value for connecting to neutron in seconds.'),
    ]
 
 CONF = cfg.CONF

@@ -35,7 +35,7 @@ from ironic.openstack.common.db.sqlalchemy import models
 sql_opts = [
     cfg.StrOpt('mysql_engine',
                default='InnoDB',
-               help='MySQL engine')
+               help='MySQL engine to use.')
 ]
 
 cfg.CONF.register_opts(sql_opts, 'database')

@@ -69,14 +69,16 @@ LOG = log.getLogger(__name__)
 conductor_opts = [
         cfg.StrOpt('api_url',
                    default=None,
-                   help=('Url of Ironic API service. If not set Ironic can '
-                         'get current value from Keystone service catalog.')),
+                   help=('URL of Ironic API service. If not set ironic can '
+                         'get the current value from the keystone service '
+                         'catalog.')),
         cfg.IntOpt('heartbeat_interval',
                    default=10,
                    help='Seconds between conductor heart beats.'),
         cfg.IntOpt('heartbeat_timeout',
                    default=60,
-                   help='Maximum time since the last check-in of a conductor'),
+                   help='Maximum time (in seconds) since the last check-in '
+                        'of a conductor.'),
         cfg.IntOpt('sync_power_state_interval',
                    default=60,
                    help='Interval between syncing the node power state to the '

@@ -51,7 +51,7 @@ from ironic.tests import policy_fixture
 test_opts = [
     cfg.StrOpt('sqlite_clean_db',
                default='clean.sqlite',
-               help='File name of clean sqlite db'),
+               help='File name of clean sqlite db.'),
     ]
 
 CONF = cfg.CONF

@@ -41,7 +41,7 @@ LOG = logging.getLogger(__name__)
 
 util_opts = [
     cfg.BoolOpt('disable_process_locking', default=False,
-                help='Whether to disable inter-process locks'),
+                help='Whether to disable inter-process locks.'),
     cfg.StrOpt('lock_path',
                default=os.environ.get("IRONIC_LOCK_PATH"),
                help=('Directory to use for lock files.'))
