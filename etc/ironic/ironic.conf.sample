@@ -497,6 +497,12 @@
 # 0 - unlimited. (integer value)
 #deploy_callback_timeout=1800
 
+# During sync_power_state, should the hardware power state be
+# set to the state recorded in the database (True) or should
+# the database be updated based on the hardware state (False).
+# (boolean value)
+#force_power_state_during_sync=true
+
 
 [database]
 

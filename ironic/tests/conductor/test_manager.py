@@ -98,9 +98,9 @@ class ManagerTestCase(base.DbTestCase):
         node = self.dbapi.get_node(n['id'])
         self.assertEqual(node['power_state'], 'fake-power')
 
-    def test__sync_power_state_do_sync(self):
+    def test__sync_power_state_not_set(self):
         self.service.start()
-        n = utils.get_test_node(driver='fake', power_state='fake-power')
+        n = utils.get_test_node(driver='fake', power_state=None)
         self.dbapi.create_node(n)
         with mock.patch.object(self.driver.power,
                                'get_power_state') as get_power_mock:
@@ -109,6 +109,68 @@ class ManagerTestCase(base.DbTestCase):
             get_power_mock.assert_called_once_with(mock.ANY, mock.ANY)
         node = self.dbapi.get_node(n['id'])
         self.assertEqual(node['power_state'], states.POWER_ON)
+
+    @mock.patch.object(objects.node.Node, 'save')
+    def test__sync_power_state_unchanged(self, save_mock):
+        self.service.start()
+        n = utils.get_test_node(driver='fake', power_state=states.POWER_ON)
+        self.dbapi.create_node(n)
+        with mock.patch.object(self.driver.power,
+                               'get_power_state') as get_power_mock:
+            get_power_mock.return_value = states.POWER_ON
+            self.service._sync_power_states(self.context)
+            get_power_mock.assert_called_once_with(mock.ANY, mock.ANY)
+            self.assertFalse(save_mock.called)
+
+    @mock.patch.object(conductor_utils, 'node_power_action')
+    @mock.patch.object(objects.node.Node, 'save')
+    def test__sync_power_state_changed_sync(self, save_mock, npa_mock):
+        self.service.start()
+        self.config(force_power_state_during_sync=True, group='conductor')
+        n = utils.get_test_node(driver='fake', power_state=states.POWER_ON)
+        self.dbapi.create_node(n)
+        with mock.patch.object(self.driver.power,
+                               'get_power_state') as get_power_mock:
+            get_power_mock.return_value = states.POWER_OFF
+            self.service._sync_power_states(self.context)
+            get_power_mock.assert_called_once_with(mock.ANY, mock.ANY)
+            npa_mock.assert_called_once_with(mock.ANY, mock.ANY,
+                                             states.POWER_ON)
+            self.assertFalse(save_mock.called)
+
+    @mock.patch.object(conductor_utils, 'node_power_action')
+    @mock.patch.object(objects.node.Node, 'save')
+    def test__sync_power_state_changed_failed(self, save_mock, npa_mock):
+        self.service.start()
+        self.config(force_power_state_during_sync=True, group='conductor')
+        n = utils.get_test_node(driver='fake', power_state=states.POWER_ON)
+        self.dbapi.create_node(n)
+        with mock.patch.object(self.driver.power,
+                               'get_power_state') as get_power_mock:
+            get_power_mock.return_value = states.POWER_OFF
+            npa_mock.side_effect = exception.IronicException('test')
+            # we are testing that this does NOT raise an exception
+            # so don't assertRaises here
+            self.service._sync_power_states(self.context)
+            get_power_mock.assert_called_once_with(mock.ANY, mock.ANY)
+            npa_mock.assert_called_once_with(mock.ANY, mock.ANY,
+                                             states.POWER_ON)
+            self.assertFalse(save_mock.called)
+
+    @mock.patch.object(conductor_utils, 'node_power_action')
+    @mock.patch.object(objects.node.Node, 'save')
+    def test__sync_power_state_changed_save(self, save_mock, npa_mock):
+        self.service.start()
+        self.config(force_power_state_during_sync=False, group='conductor')
+        n = utils.get_test_node(driver='fake', power_state=states.POWER_OFF)
+        self.dbapi.create_node(n)
+        with mock.patch.object(self.driver.power,
+                               'get_power_state') as get_power_mock:
+            get_power_mock.return_value = states.POWER_ON
+            self.service._sync_power_states(self.context)
+            get_power_mock.assert_called_once_with(mock.ANY, mock.ANY)
+            self.assertFalse(npa_mock.called)
+            self.assertTrue(save_mock.called)
 
     def test__sync_power_state_node_locked(self):
         self.service.start()
@@ -124,6 +186,7 @@ class ManagerTestCase(base.DbTestCase):
 
     def test__sync_power_state_multiple_nodes(self):
         self.service.start()
+        self.config(force_power_state_during_sync=False, group='conductor')
 
         # create three nodes
         nodes = []
@@ -156,6 +219,7 @@ class ManagerTestCase(base.DbTestCase):
 
     def test__sync_power_state_node_no_power_state(self):
         self.service.start()
+        self.config(force_power_state_during_sync=False, group='conductor')
 
         # create three nodes
         nodes = []
