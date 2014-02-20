@@ -112,8 +112,6 @@ def _parse_driver_info(node):
 
     #TODO(ghe): Should we get rid of swap partition?
     d_info['swap_mb'] = info.get('pxe_swap_mb', 1)
-    d_info['key_data'] = info.get('pxe_key_data')
-    d_info['instance_name'] = info.get('pxe_instance_name')
 
     for param in ('root_gb', 'swap_mb'):
         try:
