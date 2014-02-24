@@ -489,6 +489,14 @@
 # database, in seconds. (integer value)
 #sync_power_state_interval=60
 
+# Interval between checks of provision timeouts, in seconds.
+# (integer value)
+#check_provision_state_interval=60
+
+# Timeout (seconds) for waiting callback from deploy ramdisk.
+# 0 - unlimited. (integer value)
+#deploy_callback_timeout=1800
+
 
 [database]
 

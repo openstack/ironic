@@ -19,6 +19,7 @@
 
 """Test class for Ironic ManagerService."""
 
+import datetime
 import time
 
 import mock
@@ -35,6 +36,7 @@ from ironic.conductor import utils as conductor_utils
 from ironic.db import api as dbapi
 from ironic import objects
 from ironic.openstack.common import context
+from ironic.openstack.common import timeutils
 from ironic.tests.conductor import utils as mgr_utils
 from ironic.tests.db import base
 from ironic.tests.db import utils
@@ -749,3 +751,74 @@ class ManagerTestCase(base.DbTestCase):
         # Verify reservation was released.
         node.refresh(self.context)
         self.assertIsNone(node.reservation)
+
+    @mock.patch.object(timeutils, 'utcnow')
+    def test__check_deploy_timeouts_timeout(self, mock_utcnow):
+        self.config(deploy_callback_timeout=60, group='conductor')
+        past = datetime.datetime(2000, 1, 1, 0, 0)
+        present = past + datetime.timedelta(minutes=5)
+        mock_utcnow.return_value = past
+        self.service.start()
+        n = utils.get_test_node(provision_state=states.DEPLOYWAIT,
+                                target_provision_state=states.DEPLOYDONE,
+                                provision_updated_at=past)
+        node = self.dbapi.create_node(n)
+        mock_utcnow.return_value = present
+        with mock.patch.object(self.driver.deploy, 'clean_up') as clean_mock:
+            self.service._check_deploy_timeouts(self.context)
+            self.service._worker_pool.waitall()
+            node.refresh(self.context)
+            self.assertEqual(states.DEPLOYFAIL, node.provision_state)
+            self.assertEqual(states.NOSTATE, node.target_provision_state)
+            self.assertIsNotNone(node.last_error)
+            clean_mock.assert_called_once_with(mock.ANY, mock.ANY)
+
+    @mock.patch.object(timeutils, 'utcnow')
+    def test__check_deploy_timeouts_no_timeout(self, mock_utcnow):
+        self.config(deploy_callback_timeout=600, group='conductor')
+        past = datetime.datetime(2000, 1, 1, 0, 0)
+        present = past + datetime.timedelta(minutes=5)
+        mock_utcnow.return_value = past
+        self.service.start()
+        n = utils.get_test_node(provision_state=states.DEPLOYWAIT,
+                                target_provision_state=states.DEPLOYDONE,
+                                provision_updated_at=past)
+        node = self.dbapi.create_node(n)
+        mock_utcnow.return_value = present
+        with mock.patch.object(self.driver.deploy, 'clean_up') as clean_mock:
+            self.service._check_deploy_timeouts(self.context)
+            node.refresh(self.context)
+            self.assertEqual(states.DEPLOYWAIT, node.provision_state)
+            self.assertEqual(states.DEPLOYDONE, node.target_provision_state)
+            self.assertIsNone(node.last_error)
+            self.assertFalse(clean_mock.called)
+
+    def test__check_deploy_timeouts_disabled(self):
+        self.config(deploy_callback_timeout=0, group='conductor')
+        self.service.start()
+        with mock.patch.object(self.dbapi, 'get_nodeinfo_list') as get_mock:
+            self.service._check_deploy_timeouts(self.context)
+            self.assertFalse(get_mock.called)
+
+    @mock.patch.object(timeutils, 'utcnow')
+    def test__check_deploy_timeouts_cleanup_failed(self, mock_utcnow):
+        self.config(deploy_callback_timeout=60, group='conductor')
+        past = datetime.datetime(2000, 1, 1, 0, 0)
+        present = past + datetime.timedelta(minutes=5)
+        mock_utcnow.return_value = past
+        self.service.start()
+        n = utils.get_test_node(provision_state=states.DEPLOYWAIT,
+                                target_provision_state=states.DEPLOYDONE,
+                                provision_updated_at=past)
+        node = self.dbapi.create_node(n)
+        mock_utcnow.return_value = present
+        with mock.patch.object(self.driver.deploy, 'clean_up') as clean_mock:
+            error = 'test-123'
+            clean_mock.side_effect = exception.IronicException(message=error)
+            self.service._check_deploy_timeouts(self.context)
+            self.service._worker_pool.waitall()
+            node.refresh(self.context)
+            self.assertEqual(states.DEPLOYFAIL, node.provision_state)
+            self.assertEqual(states.NOSTATE, node.target_provision_state)
+            self.assertIn(error, node.last_error)
+            self.assertIsNone(node.reservation)

@@ -42,6 +42,8 @@ building or tearing down the TFTP environment for a node, notifying Neutron of
 a change, etc.
 """
 
+import datetime
+
 from eventlet import greenpool
 
 from oslo.config import cfg
@@ -59,6 +61,7 @@ from ironic.openstack.common import excutils
 from ironic.openstack.common import lockutils
 from ironic.openstack.common import log
 from ironic.openstack.common import periodic_task
+from ironic.openstack.common import timeutils
 
 MANAGER_TOPIC = 'ironic.conductor_manager'
 WORKER_SPAWN_lOCK = "conductor_worker_spawn"
@@ -82,6 +85,14 @@ conductor_opts = [
                    default=60,
                    help='Interval between syncing the node power state to the '
                         'database, in seconds.'),
+        cfg.IntOpt('check_provision_state_interval',
+                   default=60,
+                   help='Interval between checks of provision timeouts, '
+                        'in seconds.'),
+        cfg.IntOpt('deploy_callback_timeout',
+                   default=1800,
+                   help='Timeout (seconds) for waiting callback from deploy '
+                        'ramdisk. 0 - unlimited.'),
 ]
 
 CONF = cfg.CONF
@@ -429,6 +440,47 @@ class ConductorManager(service.PeriodicService):
                            "already locked by another process. Skip.") %
                            {'node': node_uuid})
                 continue
+
+    @periodic_task.periodic_task(
+            spacing=CONF.conductor.check_provision_state_interval)
+    def _check_deploy_timeouts(self, context):
+        if not CONF.conductor.deploy_callback_timeout:
+            return
+
+        filters = {'reserved': False, 'maintenance': False}
+        columns = ['uuid', 'driver', 'provision_state', 'provision_updated_at']
+        node_list = self.dbapi.get_nodeinfo_list(columns=columns,
+                                                 filters=filters)
+
+        for (node_uuid, driver, state, update_time) in node_list:
+            mapped_hosts = self.driver_rings[driver].get_hosts(node_uuid)
+            if self.host not in mapped_hosts:
+                continue
+
+            if state == states.DEPLOYWAIT:
+                limit = (timeutils.utcnow() - datetime.timedelta(
+                         seconds=CONF.conductor.deploy_callback_timeout))
+                if timeutils.normalize_time(update_time) <= limit:
+                    try:
+                        task = task_manager.TaskManager(context, node_uuid)
+                    except (exception.NodeLocked, exception.NodeNotFound):
+                        continue
+
+                    node = task.node
+                    node.provision_state = states.DEPLOYFAIL
+                    node.target_provision_state = states.NOSTATE
+                    msg = (_('Timeout reached when waiting callback for '
+                             'node %s') % node_uuid)
+                    node.last_error = msg
+                    LOG.error(msg)
+                    node.save(task.context)
+
+                    try:
+                        thread = self._spawn_worker(
+                                            utils.cleanup_after_timeout, task)
+                        thread.link(lambda t: task.release_resources())
+                    except exception.NoFreeConductorWorker:
+                        task.release_resources()
 
     def _get_current_driver_rings(self):
         """Build the current hash ring for this ConductorManager's drivers."""
