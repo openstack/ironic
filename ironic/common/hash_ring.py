@@ -46,7 +46,7 @@ CONF.register_opts(hash_opts)
 
 class HashRing(object):
 
-    def __init__(self, hosts, replicas=CONF.hash_distribution_replicas):
+    def __init__(self, hosts, replicas=None):
         """Create a new hash ring across the specified hosts.
 
         :param hosts: an iterable of hosts which will be mapped.
@@ -55,6 +55,9 @@ class HashRing(object):
                          Default: CONF.hash_distribution_replicas
 
         """
+        if replicas is None:
+            replicas = CONF.hash_distribution_replicas
+
         try:
             self.hosts = list(hosts)
             self.replicas = replicas if replicas <= len(hosts) else len(hosts)
