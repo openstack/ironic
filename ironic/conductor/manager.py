@@ -387,6 +387,11 @@ class ConductorManager(service.PeriodicService):
                 continue
 
             try:
+                # prevent nodes in DEPLOYWAIT state from locking
+                node = self.dbapi.get_node(node_uuid)
+                if node.provision_state == states.DEPLOYWAIT:
+                    continue
+
                 with task_manager.acquire(context, node_id) as task:
                     node = task.node
 
