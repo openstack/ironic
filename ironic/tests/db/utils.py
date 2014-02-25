@@ -40,7 +40,6 @@ def get_test_ssh_info():
 
 def get_test_pxe_info():
     return {
-        "pxe_instance_name": "fake_instance_name",
         "pxe_image_source": "glance://image_uuid",
         "pxe_deploy_kernel": "glance://deploy_kernel_uuid",
         "pxe_deploy_ramdisk": "glance://deploy_ramdisk_uuid",
