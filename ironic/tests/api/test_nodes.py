@@ -91,6 +91,9 @@ class TestListNodes(base.FunctionalTest):
         self.assertNotIn('reservation', data['nodes'][0])
         self.assertNotIn('maintenance', data['nodes'][0])
         self.assertNotIn('console_enabled', data['nodes'][0])
+        self.assertNotIn('target_power_state', data['nodes'][0])
+        self.assertNotIn('target_provision_state', data['nodes'][0])
+        self.assertNotIn('provision_updated_at', data['nodes'][0])
         # never expose the chassis_id
         self.assertNotIn('chassis_id', data['nodes'][0])
 
@@ -106,6 +109,10 @@ class TestListNodes(base.FunctionalTest):
         self.assertIn('chassis_uuid', data['nodes'][0])
         self.assertIn('reservation', data['nodes'][0])
         self.assertIn('maintenance', data['nodes'][0])
+        self.assertIn('console_enabled', data['nodes'][0])
+        self.assertIn('target_power_state', data['nodes'][0])
+        self.assertIn('target_provision_state', data['nodes'][0])
+        self.assertIn('provision_updated_at', data['nodes'][0])
         # never expose the chassis_id
         self.assertNotIn('chassis_id', data['nodes'][0])
 
@@ -208,13 +215,17 @@ class TestListNodes(base.FunctionalTest):
                                  expect_errors=True)
         self.assertEqual(404, response.status_int)
 
-    def test_node_states(self):
+    @mock.patch.object(timeutils, 'utcnow')
+    def test_node_states(self, mock_utcnow):
         fake_state = 'fake-state'
         fake_error = 'fake-error'
+        test_time = datetime.datetime(2000, 1, 1, 0, 0)
+        mock_utcnow.return_value = test_time
         ndict = dbutils.get_test_node(power_state=fake_state,
                                       target_power_state=fake_state,
                                       provision_state=fake_state,
                                       target_provision_state=fake_state,
+                                      provision_updated_at=test_time,
                                       last_error=fake_error)
         self.dbapi.create_node(ndict)
         data = self.get_json('/nodes/%s/states' % ndict['uuid'])
@@ -222,6 +233,9 @@ class TestListNodes(base.FunctionalTest):
         self.assertEqual(fake_state, data['target_power_state'])
         self.assertEqual(fake_state, data['provision_state'])
         self.assertEqual(fake_state, data['target_provision_state'])
+        prov_up_at = timeutils.parse_isotime(
+                        data['provision_updated_at']).replace(tzinfo=None)
+        self.assertEqual(test_time, prov_up_at)
         self.assertEqual(fake_error, data['last_error'])
         self.assertFalse(data['console_enabled'])
 
@@ -598,6 +612,16 @@ class TestPatch(base.FunctionalTest):
         response = self.patch_json('/nodes/%s' % self.node['uuid'],
                                    [{'path': '/console_enabled',
                                      'op': 'replace', 'value': True}],
+                                   expect_errors=True)
+        self.assertEqual('application/json', response.content_type)
+        self.assertEqual(400, response.status_code)
+        self.assertTrue(response.json['error_message'])
+
+    def test_replace_provision_updated_at(self):
+        test_time = '2000-01-01 00:00:00'
+        response = self.patch_json('/nodes/%s' % self.node['uuid'],
+                                   [{'path': '/provision_updated_at',
+                                     'op': 'replace', 'value': test_time}],
                                    expect_errors=True)
         self.assertEqual('application/json', response.content_type)
         self.assertEqual(400, response.status_code)

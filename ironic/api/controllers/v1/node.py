@@ -52,7 +52,8 @@ class NodePatchType(types.JsonPatchType):
         defaults = types.JsonPatchType.internal_attrs()
         return defaults + ['/console_enabled', '/last_error', '/maintenance',
                            '/power_state', '/provision_state', '/reservation',
-                           '/target_power_state', '/target_provision_state']
+                           '/target_power_state', '/target_provision_state',
+                           '/provision_updated_at']
 
     @staticmethod
     def mandatory_attrs():
@@ -95,6 +96,8 @@ class NodeStates(base.APIBase):
 
     provision_state = wtypes.text
 
+    provision_updated_at = datetime.datetime
+
     target_power_state = wtypes.text
 
     target_provision_state = wtypes.text
@@ -105,7 +108,7 @@ class NodeStates(base.APIBase):
     def convert(cls, rpc_node):
         attr_list = ['console_enabled', 'last_error', 'power_state',
                      'provision_state', 'target_power_state',
-                     'target_provision_state']
+                     'target_provision_state', 'provision_updated_at']
         states = NodeStates()
         for attr in attr_list:
             setattr(states, attr, getattr(rpc_node, attr))
@@ -270,6 +273,9 @@ class Node(base.APIBase):
     reservation = wsme.wsattr(wtypes.text, readonly=True)
     "The hostname of the conductor that holds an exclusive lock on the node."
 
+    provision_updated_at = datetime.datetime
+    "The UTC date and time of the last provision state change"
+
     maintenance = types.boolean
     "Indicates whether the node is in maintenance mode."
 
@@ -358,7 +364,8 @@ class Node(base.APIBase):
                      target_provision_state=ir_states.NOSTATE,
                      reservation=None, driver='fake', driver_info={}, extra={},
                      properties={'memory_mb': '1024', 'local_gb': '10',
-                     'cpus': '1'}, updated_at=time, created_at=time)
+                     'cpus': '1'}, updated_at=time, created_at=time,
+                     provision_updated_at=time)
         # NOTE(matty_dubs): The chassis_uuid getter() is based on the
         # _chassis_uuid variable:
         sample._chassis_uuid = 'edcad704-b2da-41d5-96d9-afd580ecfa12'
