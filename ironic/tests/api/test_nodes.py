@@ -85,6 +85,7 @@ class TestListNodes(base.FunctionalTest):
         self.assertNotIn('properties', data['nodes'][0])
         self.assertNotIn('chassis_uuid', data['nodes'][0])
         self.assertNotIn('reservation', data['nodes'][0])
+        self.assertNotIn('maintenance', data['nodes'][0])
         # never expose the chassis_id
         self.assertNotIn('chassis_id', data['nodes'][0])
 
@@ -99,6 +100,7 @@ class TestListNodes(base.FunctionalTest):
         self.assertIn('properties', data['nodes'][0])
         self.assertIn('chassis_uuid', data['nodes'][0])
         self.assertIn('reservation', data['nodes'][0])
+        self.assertIn('maintenance', data['nodes'][0])
         # never expose the chassis_id
         self.assertNotIn('chassis_id', data['nodes'][0])
 

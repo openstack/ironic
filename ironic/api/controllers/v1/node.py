@@ -240,7 +240,7 @@ class Node(base.APIBase):
     reservation = wtypes.text
     "The hostname of the conductor that holds an exclusive lock on the node."
 
-    maintenance = wsme.wsattr(bool, default=False)
+    maintenance = types.boolean
     "Indicates whether the node is in maintenance mode."
 
     target_provision_state = wtypes.text
