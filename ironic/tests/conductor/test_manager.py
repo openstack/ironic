@@ -186,6 +186,16 @@ class ManagerTestCase(base.DbTestCase):
             n = self.dbapi.get_node(nodes[i])
             self.assertEqual(n.power_state, final[i])
 
+    def test__sync_power_state_node_deploywait(self):
+        self.service.start()
+        n = utils.get_test_node(provision_state=states.DEPLOYWAIT)
+        self.dbapi.create_node(n)
+
+        with mock.patch.object(self.driver.power,
+                               'get_power_state') as get_power_mock:
+            self.service._sync_power_states(self.context)
+            self.assertFalse(get_power_mock.called)
+
     def test_get_power_state(self):
         n = utils.get_test_node(driver='fake')
         self.dbapi.create_node(n)
