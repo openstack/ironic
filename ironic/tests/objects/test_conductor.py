@@ -78,10 +78,10 @@ class TestConductorObject(base.DbTestCase):
                                autospec=True) as mock_get_cdr:
             c = objects.Conductor.get_by_hostname(self.context, host)
             # ensure timestamps have tzinfo
-            self.assertEqual(c.updated_at, obj_utils.datetime_or_none(t0))
+            self.assertEqual(obj_utils.datetime_or_none(t0), c.updated_at)
             c.refresh()
-            self.assertEqual(c.updated_at, obj_utils.datetime_or_none(t1))
-            self.assertEqual(mock_get_cdr.call_args_list, expected)
+            self.assertEqual(obj_utils.datetime_or_none(t1), c.updated_at)
+            self.assertEqual(expected, mock_get_cdr.call_args_list)
 
     def test_objectify(self):
         def _get_db_conductor():

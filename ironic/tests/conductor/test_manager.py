@@ -59,7 +59,7 @@ class ManagerTestCase(base.DbTestCase):
                           'test-host')
         self.service.start()
         res = self.dbapi.get_conductor('test-host')
-        self.assertEqual(res['hostname'], 'test-host')
+        self.assertEqual('test-host', res['hostname'])
 
     def test_start_registers_driver_names(self):
         init_names = ['fake1', 'fake2']
@@ -71,13 +71,13 @@ class ManagerTestCase(base.DbTestCase):
             mock_names.return_value = init_names
             self.service.start()
             res = self.dbapi.get_conductor('test-host')
-            self.assertEqual(res['drivers'], init_names)
+            self.assertEqual(init_names, res['drivers'])
 
             # verify that restart registers new driver names
             mock_names.return_value = restart_names
             self.service.start()
             res = self.dbapi.get_conductor('test-host')
-            self.assertEqual(res['drivers'], restart_names)
+            self.assertEqual(restart_names, res['drivers'])
 
     def test__conductor_service_record_keepalive(self):
         self.service.start()
@@ -95,7 +95,7 @@ class ManagerTestCase(base.DbTestCase):
             self.service._sync_power_states(self.context)
             get_power_mock.assert_called_once_with(mock.ANY, mock.ANY)
         node = self.dbapi.get_node(n['id'])
-        self.assertEqual(node['power_state'], 'fake-power')
+        self.assertEqual('fake-power', node['power_state'])
 
     def test__sync_power_state_not_set(self):
         self.service.start()
@@ -107,7 +107,7 @@ class ManagerTestCase(base.DbTestCase):
             self.service._sync_power_states(self.context)
             get_power_mock.assert_called_once_with(mock.ANY, mock.ANY)
         node = self.dbapi.get_node(n['id'])
-        self.assertEqual(node['power_state'], states.POWER_ON)
+        self.assertEqual(states.POWER_ON, node['power_state'])
 
     @mock.patch.object(objects.node.Node, 'save')
     def test__sync_power_state_unchanged(self, save_mock):
@@ -213,8 +213,8 @@ class ManagerTestCase(base.DbTestCase):
             get_power_mock.assert_called_once_with(mock.ANY, mock.ANY)
         n1 = self.dbapi.get_node(nodes[0])
         n3 = self.dbapi.get_node(nodes[2])
-        self.assertEqual(n1['power_state'], states.POWER_OFF)
-        self.assertEqual(n3['power_state'], states.POWER_ON)
+        self.assertEqual(states.POWER_OFF, n1['power_state'])
+        self.assertEqual(states.POWER_ON, n3['power_state'])
 
     def test__sync_power_state_node_no_power_state(self):
         self.service.start()
@@ -249,7 +249,7 @@ class ManagerTestCase(base.DbTestCase):
         final = [states.POWER_ON, states.POWER_OFF, states.POWER_ON]
         for i in range(0, 3):
             n = self.dbapi.get_node(nodes[i])
-            self.assertEqual(n.power_state, final[i])
+            self.assertEqual(final[i], n.power_state)
 
     def test__sync_power_state_node_deploywait(self):
         self.service.start()
@@ -386,7 +386,7 @@ class ManagerTestCase(base.DbTestCase):
         # check that ManagerService.update_node actually updates the node
         node['extra'] = {'test': 'two'}
         res = self.service.update_node(self.context, node)
-        self.assertEqual(res['extra'], {'test': 'two'})
+        self.assertEqual({'test': 'two'}, res['extra'])
 
     def test_update_node_already_locked(self):
         ndict = utils.get_test_node(driver='fake', extra={'test': 'one'})
@@ -402,7 +402,7 @@ class ManagerTestCase(base.DbTestCase):
 
         # verify change did not happen
         res = objects.Node.get_by_uuid(self.context, node['uuid'])
-        self.assertEqual(res['extra'], {'test': 'one'})
+        self.assertEqual({'test': 'one'}, res['extra'])
 
     def test_associate_node_invalid_state(self):
         ndict = utils.get_test_node(driver='fake',
@@ -437,7 +437,7 @@ class ManagerTestCase(base.DbTestCase):
 
             # Check if the change was applied
             res = objects.Node.get_by_uuid(self.context, node['uuid'])
-            self.assertEqual(res['instance_uuid'], 'fake-uuid')
+            self.assertEqual('fake-uuid', res['instance_uuid'])
 
     def test_update_node_invalid_driver(self):
         existing_driver = 'fake'
@@ -457,7 +457,7 @@ class ManagerTestCase(base.DbTestCase):
 
         # verify change did not happen
         res = objects.Node.get_by_uuid(self.context, node['uuid'])
-        self.assertEqual(res['driver'], existing_driver)
+        self.assertEqual(existing_driver, res['driver'])
 
     def test_vendor_action(self):
         n = utils.get_test_node(driver='fake')
@@ -535,8 +535,8 @@ class ManagerTestCase(base.DbTestCase):
                               self.service.do_node_deploy,
                               self.context, node['uuid'])
             node.refresh(self.context)
-            self.assertEqual(node['provision_state'], states.DEPLOYFAIL)
-            self.assertEqual(node['target_provision_state'], states.NOSTATE)
+            self.assertEqual(states.DEPLOYFAIL, node['provision_state'])
+            self.assertEqual(states.NOSTATE, node['target_provision_state'])
             self.assertIsNotNone(node['last_error'])
             deploy.assert_called_once_with(mock.ANY, mock.ANY)
 
@@ -551,8 +551,8 @@ class ManagerTestCase(base.DbTestCase):
             deploy.return_value = states.DEPLOYDONE
             self.service.do_node_deploy(self.context, node['uuid'])
             node.refresh(self.context)
-            self.assertEqual(node['provision_state'], states.ACTIVE)
-            self.assertEqual(node['target_provision_state'], states.NOSTATE)
+            self.assertEqual(states.ACTIVE, node['provision_state'])
+            self.assertEqual(states.NOSTATE, node['target_provision_state'])
             self.assertIsNone(node['last_error'])
             deploy.assert_called_once_with(mock.ANY, mock.ANY)
 
@@ -567,8 +567,8 @@ class ManagerTestCase(base.DbTestCase):
             deploy.return_value = states.DEPLOYING
             self.service.do_node_deploy(self.context, node['uuid'])
             node.refresh(self.context)
-            self.assertEqual(node['provision_state'], states.DEPLOYING)
-            self.assertEqual(node['target_provision_state'], states.DEPLOYDONE)
+            self.assertEqual(states.DEPLOYING, node['provision_state'])
+            self.assertEqual(states.DEPLOYDONE, node['target_provision_state'])
             self.assertIsNone(node['last_error'])
             deploy.assert_called_once_with(mock.ANY, mock.ANY)
 
@@ -594,8 +594,8 @@ class ManagerTestCase(base.DbTestCase):
                               self.service.do_node_tear_down,
                               self.context, node['uuid'])
             node.refresh(self.context)
-            self.assertEqual(node['provision_state'], states.ERROR)
-            self.assertEqual(node['target_provision_state'], states.NOSTATE)
+            self.assertEqual(states.ERROR, node['provision_state'])
+            self.assertEqual(states.NOSTATE, node['target_provision_state'])
             self.assertIsNotNone(node['last_error'])
             deploy.assert_called_once_with(mock.ANY, mock.ANY)
 
@@ -610,8 +610,8 @@ class ManagerTestCase(base.DbTestCase):
             deploy.return_value = states.DELETED
             self.service.do_node_tear_down(self.context, node['uuid'])
             node.refresh(self.context)
-            self.assertEqual(node['provision_state'], states.NOSTATE)
-            self.assertEqual(node['target_provision_state'], states.NOSTATE)
+            self.assertEqual(states.NOSTATE, node['provision_state'])
+            self.assertEqual(states.NOSTATE, node['target_provision_state'])
             self.assertIsNone(node['last_error'])
             deploy.assert_called_once_with(mock.ANY, mock.ANY)
 
@@ -627,7 +627,7 @@ class ManagerTestCase(base.DbTestCase):
             self.service.do_node_tear_down(self.context, node['uuid'])
             node.refresh(self.context)
             self.assertEqual(node['provision_state'], states.DELETING)
-            self.assertEqual(node['target_provision_state'], states.DELETED)
+            self.assertEqual(states.DELETED, node['target_provision_state'])
             self.assertIsNone(node['last_error'])
             deploy.assert_called_once_with(mock.ANY, mock.ANY)
 

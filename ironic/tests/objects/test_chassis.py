@@ -66,10 +66,10 @@ class TestChassisObject(base.DbTestCase):
         with mock.patch.object(self.dbapi, 'get_chassis', side_effect=returns,
                                autospec=True) as mock_get_chassis:
             c = objects.Chassis.get_by_uuid(self.context, uuid)
-            self.assertEqual(c.uuid, uuid)
+            self.assertEqual(uuid, c.uuid)
             c.refresh()
-            self.assertEqual(c.uuid, new_uuid)
-            self.assertEqual(mock_get_chassis.call_args_list, expected)
+            self.assertEqual(new_uuid, c.uuid)
+            self.assertEqual(expected, mock_get_chassis.call_args_list)
 
     def test_objectify(self):
         def _get_db_chassis():

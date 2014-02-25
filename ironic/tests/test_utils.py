@@ -38,9 +38,9 @@ class BareMetalUtilsTestCase(base.TestCase):
 
     def test_random_alnum(self):
         s = utils.random_alnum(10)
-        self.assertEqual(len(s), 10)
+        self.assertEqual(10, len(s))
         s = utils.random_alnum(100)
-        self.assertEqual(len(s), 100)
+        self.assertEqual(100, len(s))
 
     def test_unlink(self):
         with mock.patch.object(os, "unlink") as unlink_mock:
@@ -108,7 +108,7 @@ exit 1
                                                           'always get passed '
                                                           'correctly')
             runs = int(runs.strip())
-            self.assertEqual(runs, 10,
+            self.assertEqual(10, runs,
                               'Ran %d times instead of 10.' % (runs,))
         finally:
             os.unlink(tmpfilename)
@@ -212,14 +212,14 @@ class GenericUtilsTestCase(base.TestCase):
                 self.reload_called = False
 
                 def test_reload(reloaded_data):
-                    self.assertEqual(reloaded_data, fake_contents)
+                    self.assertEqual(fake_contents, reloaded_data)
                     self.reload_called = True
 
                 data = utils.read_cached_file("/this/is/a/fake",
                                               cache_data,
                                               reload_func=test_reload)
 
-                self.assertEqual(data, fake_contents)
+                self.assertEqual(fake_contents, data)
                 self.assertTrue(self.reload_called)
                 getmtime_mock.assert_called_once_with(mock.ANY)
                 open_mock.assert_called_once_with(mock.ANY)
@@ -333,8 +333,8 @@ class GenericUtilsTestCase(base.TestCase):
         rstripped_value = '/test'
         not_rstripped = '/'
 
-        self.assertEqual(utils.safe_rstrip(value, '/'), rstripped_value)
-        self.assertEqual(utils.safe_rstrip(not_rstripped, '/'), not_rstripped)
+        self.assertEqual(rstripped_value, utils.safe_rstrip(value, '/'))
+        self.assertEqual(not_rstripped, utils.safe_rstrip(not_rstripped, '/'))
 
     def test_safe_rstrip_not_raises_exceptions(self):
         # Supplying an integer should normally raise an exception because it
@@ -343,7 +343,7 @@ class GenericUtilsTestCase(base.TestCase):
 
         # In the case of raising an exception safe_rstrip() should return the
         # original value.
-        self.assertEqual(utils.safe_rstrip(value), value)
+        self.assertEqual(value, utils.safe_rstrip(value))
 
 
 class MkfsTestCase(base.TestCase):
@@ -360,7 +360,7 @@ class MkfsTestCase(base.TestCase):
                                   run_as_root=True),
                         mock.call('mkswap', '/my/swap/block/dev',
                                   run_as_root=True)]
-            self.assertEqual(execute_mock.call_args_list, expected)
+            self.assertEqual(expected, execute_mock.call_args_list)
 
     def test_mkfs_with_label(self):
         with mock.patch.object(utils, 'execute') as execute_mock:
@@ -374,7 +374,7 @@ class MkfsTestCase(base.TestCase):
                                   '/my/msdos/block/dev', run_as_root=True),
                         mock.call('mkswap', '-L', 'swap-vol',
                                   '/my/swap/block/dev', run_as_root=True)]
-            self.assertEqual(execute_mock.call_args_list, expected)
+            self.assertEqual(expected, execute_mock.call_args_list)
 
 
 class IntLikeTestCase(base.TestCase):
@@ -403,9 +403,9 @@ class UUIDTestCase(base.TestCase):
     def test_generate_uuid(self):
         uuid_string = utils.generate_uuid()
         self.assertIsInstance(uuid_string, str)
-        self.assertEqual(len(uuid_string), 36)
+        self.assertEqual(36, len(uuid_string))
         # make sure there are 4 dashes
-        self.assertEqual(len(uuid_string.replace('-', '')), 32)
+        self.assertEqual(32, len(uuid_string.replace('-', '')))
 
     def test_is_uuid_like(self):
         self.assertTrue(utils.is_uuid_like(str(uuid.uuid4())))

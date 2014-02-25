@@ -166,7 +166,7 @@ class TestUtils(test_base.TestCase):
 
         obj = Obj()
         obj.bar = timeutils.parse_isotime('1955-11-05T00:00:00Z')
-        self.assertEqual(obj.foo(), '1955-11-05T00:00:00Z')
+        self.assertEqual('1955-11-05T00:00:00Z', obj.foo())
         obj.bar = None
         self.assertIsNone(obj.foo())
         obj.bar = 'foo'
@@ -218,7 +218,7 @@ class _LocalTest(_BaseTestCase):
         base.IronicObject.indirection_api = None
 
     def assertRemotes(self):
-        self.assertEqual(self.remote_object_calls, [])
+        self.assertEqual([], self.remote_object_calls)
 
 
 @contextlib.contextmanager
@@ -245,7 +245,7 @@ class _TestObject(object):
                      'ironic_object.version': '1.5',
                      'ironic_object.data': {'foo': 1}}
         obj = MyObj.obj_from_primitive(primitive)
-        self.assertEqual(obj.foo, 1)
+        self.assertEqual(1, obj.foo)
 
     def test_hydration_bad_ns(self):
         primitive = {'ironic_object.name': 'MyObj',
@@ -263,7 +263,7 @@ class _TestObject(object):
         obj = MyObj()
         obj.foo = 1
         obj.obj_reset_changes()
-        self.assertEqual(obj.obj_to_primitive(), expected)
+        self.assertEqual(expected, obj.obj_to_primitive())
 
     def test_get_updates(self):
         obj = MyObj()
@@ -278,7 +278,7 @@ class _TestObject(object):
     def test_object_property(self):
         obj = MyObj()
         obj.foo = 1
-        self.assertEqual(obj.foo, 1)
+        self.assertEqual(1, obj.foo)
 
     def test_object_property_type_error(self):
         obj = MyObj()
@@ -291,15 +291,15 @@ class _TestObject(object):
         obj = MyObj()
         obj.foo = 123
         obj.bar = 'bar'
-        self.assertEqual(obj['foo'], 123)
-        self.assertEqual(sorted(obj.items(), key=lambda x: x[0]),
-                         [('bar', 'bar'), ('foo', 123)])
-        self.assertEqual(sorted(list(obj.iteritems()), key=lambda x: x[0]),
-                         [('bar', 'bar'), ('foo', 123)])
+        self.assertEqual(123, obj['foo'])
+        self.assertEqual([('bar', 'bar'), ('foo', 123)],
+                         sorted(obj.items(), key=lambda x: x[0]))
+        self.assertEqual([('bar', 'bar'), ('foo', 123)],
+                         sorted(list(obj.iteritems()), key=lambda x: x[0]))
 
     def test_load(self):
         obj = MyObj()
-        self.assertEqual(obj.bar, 'loaded!')
+        self.assertEqual('loaded!', obj.bar)
 
     def test_load_in_base(self):
         class Foo(base.IronicObject):
@@ -318,25 +318,25 @@ class _TestObject(object):
         obj = MyObj()
         obj.foo = 1
         obj.obj_reset_changes()
-        self.assertEqual(obj.bar, 'loaded!')
+        self.assertEqual('loaded!', obj.bar)
         expected = {'ironic_object.name': 'MyObj',
                     'ironic_object.namespace': 'ironic',
                     'ironic_object.version': '1.5',
                     'ironic_object.changes': ['bar'],
                     'ironic_object.data': {'foo': 1,
                                          'bar': 'loaded!'}}
-        self.assertEqual(obj.obj_to_primitive(), expected)
+        self.assertEqual(expected, obj.obj_to_primitive())
 
     def test_changes_in_primitive(self):
         obj = MyObj()
         obj.foo = 123
-        self.assertEqual(obj.obj_what_changed(), set(['foo']))
+        self.assertEqual(set(['foo']), obj.obj_what_changed())
         primitive = obj.obj_to_primitive()
         self.assertTrue('ironic_object.changes' in primitive)
         obj2 = MyObj.obj_from_primitive(primitive)
-        self.assertEqual(obj2.obj_what_changed(), set(['foo']))
+        self.assertEqual(set(['foo']), obj2.obj_what_changed())
         obj2.obj_reset_changes()
-        self.assertEqual(obj2.obj_what_changed(), set())
+        self.assertEqual(set(), obj2.obj_what_changed())
 
     def test_unknown_objtype(self):
         self.assertRaises(exception.UnsupportedObjectError,
@@ -347,7 +347,7 @@ class _TestObject(object):
         ctxt2 = context.RequestContext('bar', tenant='alternate')
         obj = MyObj.get(ctxt1)
         obj.update_test(ctxt2)
-        self.assertEqual(obj.bar, 'alternate-context')
+        self.assertEqual('alternate-context', obj.bar)
         self.assertRemotes()
 
     def test_orphaned_object(self):
@@ -362,58 +362,58 @@ class _TestObject(object):
         ctxt = context.get_admin_context()
         obj = MyObj.get(ctxt)
         obj.foo = 123
-        self.assertEqual(obj.obj_what_changed(), set(['foo']))
+        self.assertEqual(set(['foo']), obj.obj_what_changed())
         obj.update_test(ctxt)
-        self.assertEqual(obj.obj_what_changed(), set(['foo', 'bar']))
-        self.assertEqual(obj.foo, 123)
+        self.assertEqual(set(['foo', 'bar']), obj.obj_what_changed())
+        self.assertEqual(123, obj.foo)
         self.assertRemotes()
 
     def test_changed_2(self):
         ctxt = context.get_admin_context()
         obj = MyObj.get(ctxt)
         obj.foo = 123
-        self.assertEqual(obj.obj_what_changed(), set(['foo']))
+        self.assertEqual(set(['foo']), obj.obj_what_changed())
         obj.save(ctxt)
-        self.assertEqual(obj.obj_what_changed(), set([]))
-        self.assertEqual(obj.foo, 123)
+        self.assertEqual(set([]), obj.obj_what_changed())
+        self.assertEqual(123, obj.foo)
         self.assertRemotes()
 
     def test_changed_3(self):
         ctxt = context.get_admin_context()
         obj = MyObj.get(ctxt)
         obj.foo = 123
-        self.assertEqual(obj.obj_what_changed(), set(['foo']))
+        self.assertEqual(set(['foo']), obj.obj_what_changed())
         obj.refresh(ctxt)
-        self.assertEqual(obj.obj_what_changed(), set([]))
-        self.assertEqual(obj.foo, 321)
-        self.assertEqual(obj.bar, 'refreshed')
+        self.assertEqual(set([]), obj.obj_what_changed())
+        self.assertEqual(321, obj.foo)
+        self.assertEqual('refreshed', obj.bar)
         self.assertRemotes()
 
     def test_changed_4(self):
         ctxt = context.get_admin_context()
         obj = MyObj.get(ctxt)
         obj.bar = 'something'
-        self.assertEqual(obj.obj_what_changed(), set(['bar']))
+        self.assertEqual(set(['bar']), obj.obj_what_changed())
         obj.modify_save_modify(ctxt)
-        self.assertEqual(obj.obj_what_changed(), set(['foo']))
-        self.assertEqual(obj.foo, 42)
-        self.assertEqual(obj.bar, 'meow')
+        self.assertEqual(set(['foo']), obj.obj_what_changed())
+        self.assertEqual(42, obj.foo)
+        self.assertEqual('meow', obj.bar)
         self.assertRemotes()
 
     def test_static_result(self):
         ctxt = context.get_admin_context()
         obj = MyObj.get(ctxt)
-        self.assertEqual(obj.bar, 'bar')
+        self.assertEqual('bar', obj.bar)
         result = obj.marco()
-        self.assertEqual(result, 'polo')
+        self.assertEqual('polo', result)
         self.assertRemotes()
 
     def test_updates(self):
         ctxt = context.get_admin_context()
         obj = MyObj.get(ctxt)
-        self.assertEqual(obj.foo, 1)
+        self.assertEqual(1, obj.foo)
         obj.update_test()
-        self.assertEqual(obj.bar, 'updated')
+        self.assertEqual('updated', obj.bar)
         self.assertRemotes()
 
     def test_base_attributes(self):
@@ -431,7 +431,7 @@ class _TestObject(object):
                          'updated_at': timeutils.isotime(dt),
                         }
                     }
-        self.assertEqual(obj.obj_to_primitive(), expected)
+        self.assertEqual(expected, obj.obj_to_primitive())
 
     def test_contains(self):
         obj = MyObj()
@@ -454,13 +454,13 @@ class TestObjectListBase(test_base.TestCase):
         objlist._context = 'foo'
         objlist.objects = [1, 2, 3]
         self.assertEqual(list(objlist), objlist.objects)
-        self.assertEqual(len(objlist), 3)
+        self.assertEqual(3, len(objlist))
         self.assertIn(2, objlist)
-        self.assertEqual(list(objlist[:1]), [1])
-        self.assertEqual(objlist[:1]._context, 'foo')
-        self.assertEqual(objlist[2], 3)
-        self.assertEqual(objlist.count(1), 1)
-        self.assertEqual(objlist.index(2), 1)
+        self.assertEqual([1], list(objlist[:1]))
+        self.assertEqual('foo', objlist[:1]._context)
+        self.assertEqual(3, objlist[2])
+        self.assertEqual(1, objlist.count(1))
+        self.assertEqual(1, objlist.index(2))
 
     def test_serialization(self):
         class Foo(base.ObjectListBase, base.IronicObject):

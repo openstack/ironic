@@ -64,9 +64,9 @@ class TestListChassis(base.FunctionalTest):
             chassis = self.dbapi.create_chassis(ndict)
             ch_list.append(chassis['uuid'])
         data = self.get_json('/chassis')
-        self.assertEqual(len(data['chassis']), len(ch_list))
+        self.assertEqual(len(ch_list), len(data['chassis']))
         uuids = [n['uuid'] for n in data['chassis']]
-        self.assertEqual(uuids.sort(), ch_list.sort())
+        self.assertEqual(ch_list.sort(), uuids.sort())
 
     def test_links(self):
         uuid = utils.generate_uuid()

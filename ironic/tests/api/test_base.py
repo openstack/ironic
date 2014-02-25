@@ -25,6 +25,6 @@ class TestBase(base.FunctionalTest):
         response = self.get_json('/bad/path',
                                  expect_errors=True,
                                  headers={"Accept": "application/json"})
-        self.assertEqual(response.status_int, 404)
-        self.assertEqual(response.content_type, "application/json")
+        self.assertEqual(404, response.status_int)
+        self.assertEqual("application/json", response.content_type)
         self.assertTrue(response.json['error_message'])

@@ -42,11 +42,11 @@ class UtilsTestCase(base.TestCase):
         # confirm that stevedore did not scan the actual entrypoints
         self.assertNotEqual(mgr._extension_manager.namespace, 'ironic.drivers')
         # confirm mgr has only one extension
-        self.assertEqual(len(mgr._extension_manager.extensions), 1)
+        self.assertEqual(1, len(mgr._extension_manager.extensions))
         # confirm that we got a reference to the extension in this manager
-        self.assertEqual(mgr._extension_manager.extensions[0], ext)
+        self.assertEqual(ext, mgr._extension_manager.extensions[0])
         # confirm that it is the "fake" driver we asked for
-        self.assertEqual("%s" % ext.entry_point,
-                         "fake = ironic.drivers.fake:FakeDriver")
+        self.assertEqual("fake = ironic.drivers.fake:FakeDriver",
+                         "%s" % ext.entry_point)
         # Confirm driver is loaded
         self.assertIn('fake', mgr.names)

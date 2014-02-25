@@ -57,10 +57,10 @@ class IPMIToolPrivateMethodTestCase(base.TestCase):
         with ipmi._make_password_file(self.info.get('password')) as pw_file:
             del_chk_pw_file = pw_file
             self.assertTrue(os.path.isfile(pw_file))
-            self.assertEqual(os.stat(pw_file)[stat.ST_MODE] & 0o777, 0o600)
+            self.assertEqual(0o600, os.stat(pw_file)[stat.ST_MODE] & 0o777)
             with open(pw_file, "r") as f:
                 password = f.read()
-            self.assertEqual(password, self.info.get('password'))
+            self.assertEqual(self.info.get('password'), password)
         self.assertFalse(os.path.isfile(del_chk_pw_file))
 
     def test__parse_driver_info(self):
@@ -208,7 +208,7 @@ class IPMIToolPrivateMethodTestCase(base.TestCase):
             state = ipmi._power_status(self.info)
 
             mock_exec.assert_called_once_with(self.info, "power status")
-            self.assertEqual(state, states.POWER_ON)
+            self.assertEqual(states.POWER_ON, state)
 
     def test__power_status_off(self):
         with mock.patch.object(ipmi, '_exec_ipmitool',
@@ -218,7 +218,7 @@ class IPMIToolPrivateMethodTestCase(base.TestCase):
             state = ipmi._power_status(self.info)
 
             mock_exec.assert_called_once_with(self.info, "power status")
-            self.assertEqual(state, states.POWER_OFF)
+            self.assertEqual(states.POWER_OFF, state)
 
     def test__power_status_error(self):
         with mock.patch.object(ipmi, '_exec_ipmitool',
@@ -228,7 +228,7 @@ class IPMIToolPrivateMethodTestCase(base.TestCase):
             state = ipmi._power_status(self.info)
 
             mock_exec.assert_called_once_with(self.info, "power status")
-            self.assertEqual(state, states.ERROR)
+            self.assertEqual(states.ERROR, state)
 
     def test__power_status_exception(self):
         with mock.patch.object(ipmi, '_exec_ipmitool',
@@ -260,7 +260,7 @@ class IPMIToolPrivateMethodTestCase(base.TestCase):
             state = ipmi._power_on(self.info)
 
             self.assertEqual(mock_exec.call_args_list, expected)
-            self.assertEqual(state, states.ERROR)
+            self.assertEqual(states.ERROR, state)
 
 
 class IPMIToolDriverTestCase(db_base.DbTestCase):
@@ -289,13 +289,13 @@ class IPMIToolDriverTestCase(db_base.DbTestCase):
                                autospec=True) as mock_exec:
 
             pstate = self.driver.power.get_power_state(None, self.node)
-            self.assertEqual(pstate, states.POWER_OFF)
+            self.assertEqual(states.POWER_OFF, pstate)
 
             pstate = self.driver.power.get_power_state(None, self.node)
-            self.assertEqual(pstate, states.POWER_ON)
+            self.assertEqual(states.POWER_ON, pstate)
 
             pstate = self.driver.power.get_power_state(None, self.node)
-            self.assertEqual(pstate, states.ERROR)
+            self.assertEqual(states.ERROR, pstate)
 
             self.assertEqual(mock_exec.call_args_list, expected)
 

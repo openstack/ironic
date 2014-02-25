@@ -51,7 +51,7 @@ class TestACL(base.FunctionalTest):
 
     def test_non_authenticated(self):
         response = self.get_json(self.node_path, expect_errors=True)
-        self.assertEqual(response.status_int, 401)
+        self.assertEqual(401, response.status_int)
 
     def test_authenticated(self):
         with mock.patch.object(self.dbapi, 'get_node',
@@ -61,7 +61,7 @@ class TestACL(base.FunctionalTest):
             response = self.get_json(self.node_path,
                                  headers={'X-Auth-Token': utils.ADMIN_TOKEN})
 
-            self.assertEqual(response['uuid'], self.fake_node['uuid'])
+            self.assertEqual(self.fake_node['uuid'], response['uuid'])
             mock_get_node.assert_called_once_with(self.fake_node['uuid'])
 
     def test_non_admin(self):
@@ -69,7 +69,7 @@ class TestACL(base.FunctionalTest):
                                  headers={'X-Auth-Token': utils.MEMBER_TOKEN},
                                  expect_errors=True)
 
-        self.assertEqual(response.status_int, 403)
+        self.assertEqual(403, response.status_int)
 
     def test_non_admin_with_admin_header(self):
         response = self.get_json(self.node_path,
@@ -77,7 +77,7 @@ class TestACL(base.FunctionalTest):
                                           'X-Roles': 'admin'},
                                  expect_errors=True)
 
-        self.assertEqual(response.status_int, 403)
+        self.assertEqual(403, response.status_int)
 
     def test_public_api(self):
         # expect_errors should be set to True: If expect_errors is set to False
@@ -85,4 +85,4 @@ class TestACL(base.FunctionalTest):
         # code so easy.
         response = self.get_json('/', expect_errors=True)
 
-        self.assertEqual(response.status_int, 200)
+        self.assertEqual(200, response.status_int)
