@@ -115,6 +115,11 @@ class Conflict(IronicException):
     code = 409
 
 
+class TemporaryFailure(IronicException):
+    message = _("Resource temporarily unavailable, please retry.")
+    code = 503
+
+
 class InvalidState(Conflict):
     message = _("Invalid resource state.")
 
@@ -184,10 +189,6 @@ class InstanceNotFound(NotFound):
 
 class NodeNotFound(NotFound):
     message = _("Node %(node)s could not be found.")
-
-
-class NodeLocked(InvalidState):
-    message = _("Node %(node)s is locked by host %(host)s.")
 
 
 class NodeAssociated(InvalidState):
@@ -328,7 +329,11 @@ class ConfigNotFound(IronicException):
     message = _("Could not find config at %(path)s")
 
 
-class NoFreeConductorWorker(IronicException):
+class NodeLocked(TemporaryFailure):
+    message = _("Node %(node)s is locked by host %(host)s, please retry "
+                "after the current operation is completed.")
+
+
+class NoFreeConductorWorker(TemporaryFailure):
     message = _('Requested action cannot be performed due to lack of free '
                 'conductor workers.')
-    code = 503  # Service Unavailable (temporary).
