@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 # Copyright (c) 2012 NTT DOCOMO, INC.
 # All Rights Reserved.
 #
