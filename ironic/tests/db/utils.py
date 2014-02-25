@@ -64,6 +64,7 @@ def get_test_node(**kw):
         'provision_state': kw.get('provision_state', states.NOSTATE),
         'target_provision_state': kw.get('target_provision_state',
                                          states.NOSTATE),
+        'provision_updated_at': kw.get('provision_updated_at'),
         'last_error': kw.get('last_error'),
         'instance_uuid': kw.get('instance_uuid'),
         'driver': kw.get('driver', 'fake'),

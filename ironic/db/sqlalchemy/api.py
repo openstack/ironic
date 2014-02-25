@@ -355,6 +355,10 @@ class Connection(api.Connection):
             if values.get("instance_uuid") and ref.instance_uuid:
                 raise exception.NodeAssociated(node=node_id,
                                 instance=values['instance_uuid'])
+
+            if 'provision_state' in values:
+                values['provision_updated_at'] = timeutils.utcnow()
+
             ref.update(values)
         return ref
 

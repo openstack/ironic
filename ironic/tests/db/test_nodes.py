@@ -17,12 +17,15 @@
 
 """Tests for manipulating Nodes via the DB API"""
 
+import datetime
+
+import mock
 import six
 
 from ironic.common import exception
 from ironic.common import utils as ironic_utils
 from ironic.db import api as dbapi
-
+from ironic.openstack.common import timeutils
 from ironic.tests.db import base
 from ironic.tests.db import utils
 
@@ -320,6 +323,20 @@ class DbNodeTestCase(base.DbTestCase):
                           self.dbapi.update_node,
                           n['id'],
                           {'instance_uuid': new_i_uuid_two})
+
+    @mock.patch.object(timeutils, 'utcnow')
+    def test_update_node_provision(self, mock_utcnow):
+        mocked_time = datetime.datetime(2000, 1, 1, 0, 0)
+        mock_utcnow.return_value = mocked_time
+        n = self._create_test_node()
+        res = self.dbapi.update_node(n['id'], {'provision_state': 'fake'})
+        self.assertEqual(mocked_time,
+                         timeutils.normalize_time(res['provision_updated_at']))
+
+    def test_update_node_no_provision(self):
+        n = self._create_test_node()
+        res = self.dbapi.update_node(n['id'], {'extra': {'foo': 'bar'}})
+        self.assertIsNone(res['provision_updated_at'])
 
     def test_reserve_one_node(self):
         n = self._create_test_node()
