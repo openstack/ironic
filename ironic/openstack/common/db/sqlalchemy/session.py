@@ -16,33 +16,24 @@
 
 """Session Handling for SQLAlchemy backend.
 
-Initializing:
-
-* Call set_defaults with the minimal of the following kwargs:
-    sql_connection, sqlite_db
-
-  Example::
-
-    session.set_defaults(
-        sql_connection="sqlite:///var/lib/ironic/sqlite.db",
-        sqlite_db="/var/lib/ironic/sqlite.db")
-
 Recommended ways to use sessions within this framework:
 
-* Don't use them explicitly; this is like running with AUTOCOMMIT=1.
-  model_query() will implicitly use a session when called without one
+* Don't use them explicitly; this is like running with ``AUTOCOMMIT=1``.
+  `model_query()` will implicitly use a session when called without one
   supplied. This is the ideal situation because it will allow queries
   to be automatically retried if the database connection is interrupted.
 
-    Note: Automatic retry will be enabled in a future patch.
+  .. note:: Automatic retry will be enabled in a future patch.
 
   It is generally fine to issue several queries in a row like this. Even though
   they may be run in separate transactions and/or separate sessions, each one
   will see the data from the prior calls. If needed, undo- or rollback-like
   functionality should be handled at a logical level. For an example, look at
-  the code around quotas and reservation_rollback().
+  the code around quotas and `reservation_rollback()`.
 
-  Examples::
+  Examples:
+
+  .. code:: python
 
     def get_foo(context, foo):
         return (model_query(context, models.Foo).
@@ -61,28 +52,29 @@ Recommended ways to use sessions within this framework:
         return foo_ref
 
 
-* Within the scope of a single method, keeping all the reads and writes within
-  the context managed by a single session. In this way, the session's __exit__
-  handler will take care of calling flush() and commit() for you.
-  If using this approach, you should not explicitly call flush() or commit().
-  Any error within the context of the session will cause the session to emit
-  a ROLLBACK. Database Errors like IntegrityError will be raised in
-  session's __exit__ handler, and any try/except within the context managed
-  by session will not be triggered. And catching other non-database errors in
-  the session will not trigger the ROLLBACK, so exception handlers should
-  always be outside the session, unless the developer wants to do a partial
-  commit on purpose. If the connection is dropped before this is possible,
-  the database will implicitly roll back the transaction.
+* Within the scope of a single method, keep all the reads and writes within
+  the context managed by a single session. In this way, the session's
+  `__exit__` handler will take care of calling `flush()` and `commit()` for
+  you. If using this approach, you should not explicitly call `flush()` or
+  `commit()`. Any error within the context of the session will cause the
+  session to emit a `ROLLBACK`. Database errors like `IntegrityError` will be
+  raised in `session`'s `__exit__` handler, and any try/except within the
+  context managed by `session` will not be triggered. And catching other
+  non-database errors in the session will not trigger the ROLLBACK, so
+  exception handlers should  always be outside the session, unless the
+  developer wants to do a partial commit on purpose. If the connection is
+  dropped before this is possible, the database will implicitly roll back the
+  transaction.
 
-     Note: statements in the session scope will not be automatically retried.
+  .. note:: Statements in the session scope will not be automatically retried.
 
   If you create models within the session, they need to be added, but you
-  do not need to call model.save()
+  do not need to call `model.save()`:
 
-  ::
+  .. code:: python
 
     def create_many_foo(context, foos):
-        session = get_session()
+        session = sessionmaker()
         with session.begin():
             for foo in foos:
                 foo_ref = models.Foo()
@@ -90,7 +82,7 @@ Recommended ways to use sessions within this framework:
                 session.add(foo_ref)
 
     def update_bar(context, foo_id, newbar):
-        session = get_session()
+        session = sessionmaker()
         with session.begin():
             foo_ref = (model_query(context, models.Foo, session).
                         filter_by(id=foo_id).
@@ -99,11 +91,16 @@ Recommended ways to use sessions within this framework:
                         filter_by(id=foo_ref['bar_id']).
                         update({'bar': newbar}))
 
-  Note: update_bar is a trivially simple example of using "with session.begin".
-  Whereas create_many_foo is a good example of when a transaction is needed,
-  it is always best to use as few queries as possible. The two queries in
-  update_bar can be better expressed using a single query which avoids
-  the need for an explicit transaction. It can be expressed like so::
+  .. note:: `update_bar` is a trivially simple example of using
+     ``with session.begin``. Whereas `create_many_foo` is a good example of
+     when a transaction is needed, it is always best to use as few queries as
+     possible.
+
+  The two queries in `update_bar` can be better expressed using a single query
+  which avoids the need for an explicit transaction. It can be expressed like
+  so:
+
+  .. code:: python
 
     def update_bar(context, foo_id, newbar):
         subq = (model_query(context, models.Foo.id).
@@ -114,21 +111,25 @@ Recommended ways to use sessions within this framework:
                 filter_by(id=subq.as_scalar()).
                 update({'bar': newbar}))
 
-  For reference, this emits approximately the following SQL statement::
+  For reference, this emits approximately the following SQL statement:
+
+  .. code:: sql
 
     UPDATE bar SET bar = ${newbar}
         WHERE id=(SELECT bar_id FROM foo WHERE id = ${foo_id} LIMIT 1);
 
-  Note: create_duplicate_foo is a trivially simple example of catching an
-  exception while using "with session.begin". Here create two duplicate
-  instances with same primary key, must catch the exception out of context
-  managed by a single session:
+  .. note:: `create_duplicate_foo` is a trivially simple example of catching an
+     exception while using ``with session.begin``. Here create two duplicate
+     instances with same primary key, must catch the exception out of context
+     managed by a single session:
+
+  .. code:: python
 
     def create_duplicate_foo(context):
         foo1 = models.Foo()
         foo2 = models.Foo()
         foo1.id = foo2.id = 1
-        session = get_session()
+        session = sessionmaker()
         try:
             with session.begin():
                 session.add(foo1)
@@ -138,7 +139,7 @@ Recommended ways to use sessions within this framework:
 
 * Passing an active session between methods. Sessions should only be passed
   to private methods. The private method must use a subtransaction; otherwise
-  SQLAlchemy will throw an error when you call session.begin() on an existing
+  SQLAlchemy will throw an error when you call `session.begin()` on an existing
   transaction. Public methods should not accept a session parameter and should
   not be involved in sessions within the caller's scope.
 
@@ -151,10 +152,10 @@ Recommended ways to use sessions within this framework:
   becomes less clear in this situation. When this is needed for code clarity,
   it should be clearly documented.
 
-  ::
+  .. code:: python
 
     def myfunc(foo):
-        session = get_session()
+        session = sessionmaker()
         with session.begin():
             # do some database things
             bar = _private_func(foo, session)
@@ -162,7 +163,7 @@ Recommended ways to use sessions within this framework:
 
     def _private_func(foo, session=None):
         if not session:
-            session = get_session()
+            session = sessionmaker()
         with session.begin(subtransaction=True):
             # do some other database things
         return bar
@@ -172,13 +173,13 @@ There are some things which it is best to avoid:
 
 * Don't keep a transaction open any longer than necessary.
 
-  This means that your "with session.begin()" block should be as short
+  This means that your ``with session.begin()`` block should be as short
   as possible, while still containing all the related calls for that
   transaction.
 
-* Avoid "with_lockmode('UPDATE')" when possible.
+* Avoid ``with_lockmode('UPDATE')`` when possible.
 
-  In MySQL/InnoDB, when a "SELECT ... FOR UPDATE" query does not match
+  In MySQL/InnoDB, when a ``SELECT ... FOR UPDATE`` query does not match
   any rows, it will take a gap-lock. This is a form of write-lock on the
   "gap" where no rows exist, and prevents any other writes to that space.
   This can effectively prevent any INSERT into a table by locking the gap
@@ -189,15 +190,18 @@ There are some things which it is best to avoid:
   number of rows matching a query, and if only one row is returned,
   then issue the SELECT FOR UPDATE.
 
-  The better long-term solution is to use INSERT .. ON DUPLICATE KEY UPDATE.
+  The better long-term solution is to use
+  ``INSERT .. ON DUPLICATE KEY UPDATE``.
   However, this can not be done until the "deleted" columns are removed and
   proper UNIQUE constraints are added to the tables.
 
 
 Enabling soft deletes:
 
-* To use/enable soft-deletes, the SoftDeleteMixin must be added
-  to your model class. For example::
+* To use/enable soft-deletes, the `SoftDeleteMixin` must be added
+  to your model class. For example:
+
+  .. code:: python
 
       class NovaBase(models.SoftDeleteMixin, models.ModelBase):
           pass
@@ -205,15 +209,16 @@ Enabling soft deletes:
 
 Efficient use of soft deletes:
 
-* There are two possible ways to mark a record as deleted::
+* There are two possible ways to mark a record as deleted:
+  `model.soft_delete()` and `query.soft_delete()`.
 
-    model.soft_delete() and query.soft_delete().
+  The `model.soft_delete()` method works with a single already-fetched entry.
+  `query.soft_delete()` makes only one db request for all entries that
+  correspond to the query.
 
-  model.soft_delete() method works with single already fetched entry.
-  query.soft_delete() makes only one db request for all entries that correspond
-  to query.
+* In almost all cases you should use `query.soft_delete()`. Some examples:
 
-* In almost all cases you should use query.soft_delete(). Some examples::
+  .. code:: python
 
         def soft_delete_bar():
             count = model_query(BarModel).find(some_condition).soft_delete()
@@ -222,7 +227,7 @@ Efficient use of soft deletes:
 
         def complex_soft_delete_with_synchronization_bar(session=None):
             if session is None:
-                session = get_session()
+                session = sessionmaker()
             with session.begin(subtransactions=True):
                 count = (model_query(BarModel).
                             find(some_condition).
@@ -232,24 +237,26 @@ Efficient use of soft deletes:
                 if count == 0:
                     raise Exception("0 entries were soft deleted")
 
-* There is only one situation where model.soft_delete() is appropriate: when
+* There is only one situation where `model.soft_delete()` is appropriate: when
   you fetch a single record, work with it, and mark it as deleted in the same
   transaction.
 
-  ::
+  .. code:: python
 
         def soft_delete_bar_model():
-            session = get_session()
+            session = sessionmaker()
             with session.begin():
                 bar_ref = model_query(BarModel).find(some_condition).first()
                 # Work with bar_ref
                 bar_ref.soft_delete(session=session)
 
   However, if you need to work with all entries that correspond to query and
-  then soft delete them you should use query.soft_delete() method::
+  then soft delete them you should use the `query.soft_delete()` method:
+
+  .. code:: python
 
         def soft_delete_multi_models():
-            session = get_session()
+            session = sessionmaker()
             with session.begin():
                 query = (model_query(BarModel, session=session).
                             find(some_condition))
@@ -260,22 +267,22 @@ Efficient use of soft deletes:
                 # session and these entries are not used after this.
 
   When working with many rows, it is very important to use query.soft_delete,
-  which issues a single query. Using model.soft_delete(), as in the following
+  which issues a single query. Using `model.soft_delete()`, as in the following
   example, is very inefficient.
 
-  ::
+  .. code:: python
 
         for bar_ref in bar_refs:
             bar_ref.soft_delete(session=session)
         # This will produce count(bar_refs) db requests.
+
 """
 
 import functools
-import os.path
+import logging
 import re
 import time
 
-from oslo.config import cfg
 import six
 from sqlalchemy import exc as sqla_exc
 from sqlalchemy.interfaces import PoolListener
@@ -284,150 +291,11 @@ from sqlalchemy.pool import NullPool, StaticPool
 from sqlalchemy.sql.expression import literal_column
 
 from ironic.openstack.common.db import exception
-from ironic.openstack.common.gettextutils import _
-from ironic.openstack.common import log as logging
+from ironic.openstack.common.gettextutils import _LE, _LW, _LI
 from ironic.openstack.common import timeutils
 
-sqlite_db_opts = [
-    cfg.StrOpt('sqlite_db',
-               default='ironic.sqlite',
-               help='The file name to use with SQLite'),
-    cfg.BoolOpt('sqlite_synchronous',
-                default=True,
-                help='If True, SQLite uses synchronous mode'),
-]
-
-database_opts = [
-    cfg.StrOpt('connection',
-               default='sqlite:///' +
-                       os.path.abspath(os.path.join(os.path.dirname(__file__),
-                       '../', '$sqlite_db')),
-               help='The SQLAlchemy connection string used to connect to the '
-                    'database',
-               secret=True,
-               deprecated_opts=[cfg.DeprecatedOpt('sql_connection',
-                                                  group='DEFAULT'),
-                                cfg.DeprecatedOpt('sql_connection',
-                                                  group='DATABASE'),
-                                cfg.DeprecatedOpt('connection',
-                                                  group='sql'), ]),
-    cfg.StrOpt('slave_connection',
-               default='',
-               secret=True,
-               help='The SQLAlchemy connection string used to connect to the '
-                    'slave database'),
-    cfg.IntOpt('idle_timeout',
-               default=3600,
-               deprecated_opts=[cfg.DeprecatedOpt('sql_idle_timeout',
-                                                  group='DEFAULT'),
-                                cfg.DeprecatedOpt('sql_idle_timeout',
-                                                  group='DATABASE'),
-                                cfg.DeprecatedOpt('idle_timeout',
-                                                  group='sql')],
-               help='Timeout before idle sql connections are reaped'),
-    cfg.IntOpt('min_pool_size',
-               default=1,
-               deprecated_opts=[cfg.DeprecatedOpt('sql_min_pool_size',
-                                                  group='DEFAULT'),
-                                cfg.DeprecatedOpt('sql_min_pool_size',
-                                                  group='DATABASE')],
-               help='Minimum number of SQL connections to keep open in a '
-                    'pool'),
-    cfg.IntOpt('max_pool_size',
-               default=None,
-               deprecated_opts=[cfg.DeprecatedOpt('sql_max_pool_size',
-                                                  group='DEFAULT'),
-                                cfg.DeprecatedOpt('sql_max_pool_size',
-                                                  group='DATABASE')],
-               help='Maximum number of SQL connections to keep open in a '
-                    'pool'),
-    cfg.IntOpt('max_retries',
-               default=10,
-               deprecated_opts=[cfg.DeprecatedOpt('sql_max_retries',
-                                                  group='DEFAULT'),
-                                cfg.DeprecatedOpt('sql_max_retries',
-                                                  group='DATABASE')],
-               help='Maximum db connection retries during startup. '
-                    '(setting -1 implies an infinite retry count)'),
-    cfg.IntOpt('retry_interval',
-               default=10,
-               deprecated_opts=[cfg.DeprecatedOpt('sql_retry_interval',
-                                                  group='DEFAULT'),
-                                cfg.DeprecatedOpt('reconnect_interval',
-                                                  group='DATABASE')],
-               help='Interval between retries of opening a sql connection'),
-    cfg.IntOpt('max_overflow',
-               default=None,
-               deprecated_opts=[cfg.DeprecatedOpt('sql_max_overflow',
-                                                  group='DEFAULT'),
-                                cfg.DeprecatedOpt('sqlalchemy_max_overflow',
-                                                  group='DATABASE')],
-               help='If set, use this value for max_overflow with sqlalchemy'),
-    cfg.IntOpt('connection_debug',
-               default=0,
-               deprecated_opts=[cfg.DeprecatedOpt('sql_connection_debug',
-                                                  group='DEFAULT')],
-               help='Verbosity of SQL debugging information. 0=None, '
-                    '100=Everything'),
-    cfg.BoolOpt('connection_trace',
-                default=False,
-                deprecated_opts=[cfg.DeprecatedOpt('sql_connection_trace',
-                                                   group='DEFAULT')],
-                help='Add python stack traces to SQL as comment strings'),
-    cfg.IntOpt('pool_timeout',
-               default=None,
-               deprecated_opts=[cfg.DeprecatedOpt('sqlalchemy_pool_timeout',
-                                                  group='DATABASE')],
-               help='If set, use this value for pool_timeout with sqlalchemy'),
-]
-
-CONF = cfg.CONF
-CONF.register_opts(sqlite_db_opts)
-CONF.register_opts(database_opts, 'database')
 
 LOG = logging.getLogger(__name__)
-
-_ENGINE = None
-_MAKER = None
-_SLAVE_ENGINE = None
-_SLAVE_MAKER = None
-
-
-def set_defaults(sql_connection, sqlite_db, max_pool_size=None,
-                 max_overflow=None, pool_timeout=None):
-    """Set defaults for configuration variables."""
-    cfg.set_defaults(database_opts,
-                     connection=sql_connection)
-    cfg.set_defaults(sqlite_db_opts,
-                     sqlite_db=sqlite_db)
-    # Update the QueuePool defaults
-    if max_pool_size is not None:
-        cfg.set_defaults(database_opts,
-                         max_pool_size=max_pool_size)
-    if max_overflow is not None:
-        cfg.set_defaults(database_opts,
-                         max_overflow=max_overflow)
-    if pool_timeout is not None:
-        cfg.set_defaults(database_opts,
-                         pool_timeout=pool_timeout)
-
-
-def cleanup():
-    global _ENGINE, _MAKER
-    global _SLAVE_ENGINE, _SLAVE_MAKER
-
-    if _MAKER:
-        _MAKER.close_all()
-        _MAKER = None
-    if _ENGINE:
-        _ENGINE.dispose()
-        _ENGINE = None
-    if _SLAVE_MAKER:
-        _SLAVE_MAKER.close_all()
-        _SLAVE_MAKER = None
-    if _SLAVE_ENGINE:
-        _SLAVE_ENGINE.dispose()
-        _SLAVE_ENGINE = None
 
 
 class SqliteForeignKeysListener(PoolListener):
@@ -441,30 +309,6 @@ class SqliteForeignKeysListener(PoolListener):
         dbapi_con.execute('pragma foreign_keys=ON')
 
 
-def get_session(autocommit=True, expire_on_commit=False, sqlite_fk=False,
-                slave_session=False, mysql_traditional_mode=False):
-    """Return a SQLAlchemy session."""
-    global _MAKER
-    global _SLAVE_MAKER
-    maker = _MAKER
-
-    if slave_session:
-        maker = _SLAVE_MAKER
-
-    if maker is None:
-        engine = get_engine(sqlite_fk=sqlite_fk, slave_engine=slave_session,
-                            mysql_traditional_mode=mysql_traditional_mode)
-        maker = get_maker(engine, autocommit, expire_on_commit)
-
-    if slave_session:
-        _SLAVE_MAKER = maker
-    else:
-        _MAKER = maker
-
-    session = maker()
-    return session
-
-
 # note(boris-42): In current versions of DB backends unique constraint
 # violation messages follow the structure:
 #
@@ -473,9 +317,9 @@ def get_session(autocommit=True, expire_on_commit=False, sqlite_fk=False,
 # N columns - (IntegrityError) column c1, c2, ..., N are not unique
 #
 # sqlite since 3.7.16:
-# 1 column - (IntegrityError) UNIQUE constraint failed: k1
+# 1 column - (IntegrityError) UNIQUE constraint failed: tbl.k1
 #
-# N columns - (IntegrityError) UNIQUE constraint failed: k1, k2
+# N columns - (IntegrityError) UNIQUE constraint failed: tbl.k1, tbl.k2
 #
 # postgres:
 # 1 column - (IntegrityError) duplicate key value violates unique
@@ -488,11 +332,20 @@ def get_session(autocommit=True, expire_on_commit=False, sqlite_fk=False,
 #               'c1'")
 # N columns - (IntegrityError) (1062, "Duplicate entry 'values joined
 #               with -' for key 'name_of_our_constraint'")
+#
+# ibm_db_sa:
+# N columns - (IntegrityError) SQL0803N  One or more values in the INSERT
+#                statement, UPDATE statement, or foreign key update caused by a
+#                DELETE statement are not valid because the primary key, unique
+#                constraint or unique index identified by "2" constrains table
+#                "NOVA.KEY_PAIRS" from having duplicate values for the index
+#                key.
 _DUP_KEY_RE_DB = {
     "sqlite": (re.compile(r"^.*columns?([^)]+)(is|are)\s+not\s+unique$"),
                re.compile(r"^.*UNIQUE\s+constraint\s+failed:\s+(.+)$")),
     "postgresql": (re.compile(r"^.*duplicate\s+key.*\"([^\"]+)\"\s*\n.*$"),),
-    "mysql": (re.compile(r"^.*\(1062,.*'([^\']+)'\"\)$"),)
+    "mysql": (re.compile(r"^.*\(1062,.*'([^\']+)'\"\)$"),),
+    "ibm_db_sa": (re.compile(r"^.*SQL0803N.*$"),),
 }
 
 
@@ -514,7 +367,7 @@ def _raise_if_duplicate_entry_error(integrity_error, engine_name):
             return [columns]
         return columns[len(uniqbase):].split("0")[1:]
 
-    if engine_name not in ["mysql", "sqlite", "postgresql"]:
+    if engine_name not in ["ibm_db_sa", "mysql", "sqlite", "postgresql"]:
         return
 
     # FIXME(johannes): The usage of the .message attribute has been
@@ -529,10 +382,15 @@ def _raise_if_duplicate_entry_error(integrity_error, engine_name):
     else:
         return
 
-    columns = match.group(1)
+    # NOTE(mriedem): The ibm_db_sa integrity error message doesn't provide the
+    # columns so we have to omit that from the DBDuplicateEntry error.
+    columns = ''
+
+    if engine_name != 'ibm_db_sa':
+        columns = match.group(1)
 
     if engine_name == "sqlite":
-        columns = columns.strip().split(", ")
+        columns = [c.split('.')[-1] for c in columns.strip().split(", ")]
     else:
         columns = get_columns_from_uniq_cons_or_name(columns)
     raise exception.DBDuplicateEntry(columns, integrity_error)
@@ -570,55 +428,37 @@ def _raise_if_deadlock_error(operational_error, engine_name):
 
 
 def _wrap_db_error(f):
+    #TODO(rpodolyaka): in a subsequent commit make this a class decorator to
+    # ensure it can only applied to Session subclasses instances (as we use
+    # Session instance bind attribute below)
+
     @functools.wraps(f)
-    def _wrap(*args, **kwargs):
+    def _wrap(self, *args, **kwargs):
         try:
-            return f(*args, **kwargs)
+            return f(self, *args, **kwargs)
         except UnicodeEncodeError:
             raise exception.DBInvalidUnicodeParameter()
-        # note(boris-42): We should catch unique constraint violation and
-        # wrap it by our own DBDuplicateEntry exception. Unique constraint
-        # violation is wrapped by IntegrityError.
         except sqla_exc.OperationalError as e:
-            _raise_if_deadlock_error(e, get_engine().name)
+            _raise_if_db_connection_lost(e, self.bind)
+            _raise_if_deadlock_error(e, self.bind.dialect.name)
             # NOTE(comstud): A lot of code is checking for OperationalError
             # so let's not wrap it for now.
             raise
+        # note(boris-42): We should catch unique constraint violation and
+        # wrap it by our own DBDuplicateEntry exception. Unique constraint
+        # violation is wrapped by IntegrityError.
         except sqla_exc.IntegrityError as e:
             # note(boris-42): SqlAlchemy doesn't unify errors from different
             # DBs so we must do this. Also in some tables (for example
             # instance_types) there are more than one unique constraint. This
             # means we should get names of columns, which values violate
             # unique constraint, from error message.
-            _raise_if_duplicate_entry_error(e, get_engine().name)
+            _raise_if_duplicate_entry_error(e, self.bind.dialect.name)
             raise exception.DBError(e)
         except Exception as e:
-            LOG.exception(_('DB exception wrapped.'))
+            LOG.exception(_LE('DB exception wrapped.'))
             raise exception.DBError(e)
     return _wrap
-
-
-def get_engine(sqlite_fk=False, slave_engine=False,
-               mysql_traditional_mode=False):
-    """Return a SQLAlchemy engine."""
-    global _ENGINE
-    global _SLAVE_ENGINE
-    engine = _ENGINE
-    db_uri = CONF.database.connection
-
-    if slave_engine:
-        engine = _SLAVE_ENGINE
-        db_uri = CONF.database.slave_connection
-
-    if engine is None:
-        engine = create_engine(db_uri, sqlite_fk=sqlite_fk,
-                               mysql_traditional_mode=mysql_traditional_mode)
-    if slave_engine:
-        _SLAVE_ENGINE = engine
-    else:
-        _ENGINE = engine
-
-    return engine
 
 
 def _synchronous_switch_listener(dbapi_conn, connection_rec):
@@ -662,7 +502,7 @@ def _ping_listener(engine, dbapi_conn, connection_rec, connection_proxy):
         cursor.execute(ping_sql)
     except Exception as ex:
         if engine.dialect.is_disconnect(ex, dbapi_conn, cursor):
-            msg = _('Database server has gone away: %s') % ex
+            msg = _LW('Database server has gone away: %s') % ex
             LOG.warning(msg)
             raise sqla_exc.DisconnectionError(msg)
         else:
@@ -677,7 +517,44 @@ def _set_mode_traditional(dbapi_con, connection_rec, connection_proxy):
     than a declared field just with warning. That is fraught with data
     corruption.
     """
-    dbapi_con.cursor().execute("SET SESSION sql_mode = TRADITIONAL;")
+    _set_session_sql_mode(dbapi_con, connection_rec,
+                          connection_proxy, 'TRADITIONAL')
+
+
+def _set_session_sql_mode(dbapi_con, connection_rec,
+                          connection_proxy, sql_mode=None):
+    """Set the sql_mode session variable.
+
+    MySQL supports several server modes. The default is None, but sessions
+    may choose to enable server modes like TRADITIONAL, ANSI,
+    several STRICT_* modes and others.
+
+    Note: passing in '' (empty string) for sql_mode clears
+    the SQL mode for the session, overriding a potentially set
+    server default. Passing in None (the default) makes this
+    a no-op, meaning if a server-side SQL mode is set, it still applies.
+    """
+    cursor = dbapi_con.cursor()
+    if sql_mode is not None:
+        cursor.execute("SET SESSION sql_mode = %s", [sql_mode])
+
+    # Check against the real effective SQL mode. Even when unset by
+    # our own config, the server may still be operating in a specific
+    # SQL mode as set by the server configuration
+    cursor.execute("SHOW VARIABLES LIKE 'sql_mode'")
+    row = cursor.fetchone()
+    if row is None:
+        LOG.warning(_LW('Unable to detect effective SQL mode'))
+        return
+    realmode = row[1]
+    LOG.info(_LI('MySQL server mode set to %s') % realmode)
+    # 'TRADITIONAL' mode enables several other modes, so
+    # we need a substring match here
+    if not ('TRADITIONAL' in realmode.upper() or
+            'STRICT_ALL_TABLES' in realmode.upper()):
+        LOG.warning(_LW("MySQL SQL mode is '%s', "
+                        "consider enabling TRADITIONAL or STRICT_ALL_TABLES")
+                    % realmode)
 
 
 def _is_db_connection_error(args):
@@ -692,66 +569,79 @@ def _is_db_connection_error(args):
     return False
 
 
-def create_engine(sql_connection, sqlite_fk=False,
-                  mysql_traditional_mode=False):
+def _raise_if_db_connection_lost(error, engine):
+    # NOTE(vsergeyev): Function is_disconnect(e, connection, cursor)
+    #                  requires connection and cursor in incoming parameters,
+    #                  but we have no possibility to create connection if DB
+    #                  is not available, so in such case reconnect fails.
+    #                  But is_disconnect() ignores these parameters, so it
+    #                  makes sense to pass to function None as placeholder
+    #                  instead of connection and cursor.
+    if engine.dialect.is_disconnect(error, None, None):
+        raise exception.DBConnectionError(error)
+
+
+def create_engine(sql_connection, sqlite_fk=False, mysql_sql_mode=None,
+                  mysql_traditional_mode=False, idle_timeout=3600,
+                  connection_debug=0, max_pool_size=None, max_overflow=None,
+                  pool_timeout=None, sqlite_synchronous=True,
+                  connection_trace=False, max_retries=10, retry_interval=10):
     """Return a new SQLAlchemy engine."""
-    # NOTE(geekinutah): At this point we could be connecting to the normal
-    #                   db handle or the slave db handle. Things like
-    #                   _wrap_db_error aren't going to work well if their
-    #                   backends don't match. Let's check.
-    _assert_matching_drivers()
+
     connection_dict = sqlalchemy.engine.url.make_url(sql_connection)
 
     engine_args = {
-        "pool_recycle": CONF.database.idle_timeout,
-        "echo": False,
+        "pool_recycle": idle_timeout,
         'convert_unicode': True,
     }
 
-    # Map our SQL debug level to SQLAlchemy's options
-    if CONF.database.connection_debug >= 100:
-        engine_args['echo'] = 'debug'
-    elif CONF.database.connection_debug >= 50:
-        engine_args['echo'] = True
+    logger = logging.getLogger('sqlalchemy.engine')
+
+    # Map SQL debug level to Python log level
+    if connection_debug >= 100:
+        logger.setLevel(logging.DEBUG)
+    elif connection_debug >= 50:
+        logger.setLevel(logging.INFO)
+    else:
+        logger.setLevel(logging.WARNING)
 
     if "sqlite" in connection_dict.drivername:
         if sqlite_fk:
             engine_args["listeners"] = [SqliteForeignKeysListener()]
         engine_args["poolclass"] = NullPool
 
-        if CONF.database.connection == "sqlite://":
+        if sql_connection == "sqlite://":
             engine_args["poolclass"] = StaticPool
             engine_args["connect_args"] = {'check_same_thread': False}
     else:
-        if CONF.database.max_pool_size is not None:
-            engine_args['pool_size'] = CONF.database.max_pool_size
-        if CONF.database.max_overflow is not None:
-            engine_args['max_overflow'] = CONF.database.max_overflow
-        if CONF.database.pool_timeout is not None:
-            engine_args['pool_timeout'] = CONF.database.pool_timeout
+        if max_pool_size is not None:
+            engine_args['pool_size'] = max_pool_size
+        if max_overflow is not None:
+            engine_args['max_overflow'] = max_overflow
+        if pool_timeout is not None:
+            engine_args['pool_timeout'] = pool_timeout
 
     engine = sqlalchemy.create_engine(sql_connection, **engine_args)
 
     sqlalchemy.event.listen(engine, 'checkin', _thread_yield)
 
     if engine.name in ['mysql', 'ibm_db_sa']:
-        callback = functools.partial(_ping_listener, engine)
-        sqlalchemy.event.listen(engine, 'checkout', callback)
-        if mysql_traditional_mode:
-            sqlalchemy.event.listen(engine, 'checkout', _set_mode_traditional)
-        else:
-            LOG.warning(_("This application has not enabled MySQL traditional"
-                          " mode, which means silent data corruption may"
-                          " occur. Please encourage the application"
-                          " developers to enable this mode."))
+        ping_callback = functools.partial(_ping_listener, engine)
+        sqlalchemy.event.listen(engine, 'checkout', ping_callback)
+        if engine.name == 'mysql':
+            if mysql_traditional_mode:
+                mysql_sql_mode = 'TRADITIONAL'
+            if mysql_sql_mode:
+                mode_callback = functools.partial(_set_session_sql_mode,
+                                                  sql_mode=mysql_sql_mode)
+                sqlalchemy.event.listen(engine, 'checkout', mode_callback)
     elif 'sqlite' in connection_dict.drivername:
-        if not CONF.sqlite_synchronous:
+        if not sqlite_synchronous:
             sqlalchemy.event.listen(engine, 'connect',
                                     _synchronous_switch_listener)
         sqlalchemy.event.listen(engine, 'connect', _add_regexp_listener)
 
-    if (CONF.database.connection_trace and
-            engine.dialect.dbapi.__name__ == 'MySQLdb'):
+    if connection_trace and engine.dialect.dbapi.__name__ == 'MySQLdb':
         _patch_mysqldb_with_stacktrace_comments()
 
     try:
@@ -760,15 +650,15 @@ def create_engine(sql_connection, sqlite_fk=False,
         if not _is_db_connection_error(e.args[0]):
             raise
 
-        remaining = CONF.database.max_retries
+        remaining = max_retries
         if remaining == -1:
             remaining = 'infinite'
         while True:
-            msg = _('SQL connection failed. %s attempts left.')
+            msg = _LW('SQL connection failed. %s attempts left.')
             LOG.warning(msg % remaining)
             if remaining != 'infinite':
                 remaining -= 1
-            time.sleep(CONF.database.retry_interval)
+            time.sleep(retry_interval)
             try:
                 engine.connect()
                 break
@@ -855,13 +745,116 @@ def _patch_mysqldb_with_stacktrace_comments():
     setattr(MySQLdb.cursors.BaseCursor, '_do_query', _do_query)
 
 
-def _assert_matching_drivers():
-    """Make sure slave handle and normal handle have the same driver."""
-    # NOTE(geekinutah): There's no use case for writing to one backend and
-    #                 reading from another. Who knows what the future holds?
-    if CONF.database.slave_connection == '':
-        return
+class EngineFacade(object):
+    """A helper class for removing of global engine instances from ironic.db.
 
-    normal = sqlalchemy.engine.url.make_url(CONF.database.connection)
-    slave = sqlalchemy.engine.url.make_url(CONF.database.slave_connection)
-    assert normal.drivername == slave.drivername
+    As a library, ironic.db can't decide where to store/when to create engine
+    and sessionmaker instances, so this must be left for a target application.
+
+    On the other hand, in order to simplify the adoption of ironic.db changes,
+    we'll provide a helper class, which creates engine and sessionmaker
+    on its instantiation and provides get_engine()/get_session() methods
+    that are compatible with corresponding utility functions that currently
+    exist in target projects, e.g. in Nova.
+
+    engine/sessionmaker instances will still be global (and they are meant to
+    be global), but they will be stored in the app context, rather that in the
+    ironic.db context.
+
+    Note: using of this helper is completely optional and you are encouraged to
+    integrate engine/sessionmaker instances into your apps any way you like
+    (e.g. one might want to bind a session to a request context). Two important
+    things to remember:
+        1. An Engine instance is effectively a pool of DB connections, so it's
+           meant to be shared (and it's thread-safe).
+        2. A Session instance is not meant to be shared and represents a DB
+           transactional context (i.e. it's not thread-safe). sessionmaker is
+           a factory of sessions.
+
+    """
+
+    def __init__(self, sql_connection,
+                 sqlite_fk=False, mysql_sql_mode=None,
+                 autocommit=True, expire_on_commit=False, **kwargs):
+        """Initialize engine and sessionmaker instances.
+
+        :param sqlite_fk: enable foreign keys in SQLite
+        :type sqlite_fk: bool
+
+        :param mysql_sql_mode: set SQL mode in MySQL
+        :type mysql_sql_mode: string
+
+        :param autocommit: use autocommit mode for created Session instances
+        :type autocommit: bool
+
+        :param expire_on_commit: expire session objects on commit
+        :type expire_on_commit: bool
+
+        Keyword arguments:
+
+        :keyword idle_timeout: timeout before idle sql connections are reaped
+                               (defaults to 3600)
+        :keyword connection_debug: verbosity of SQL debugging information.
+                                   0=None, 100=Everything (defaults to 0)
+        :keyword max_pool_size: maximum number of SQL connections to keep open
+                                in a pool (defaults to SQLAlchemy settings)
+        :keyword max_overflow: if set, use this value for max_overflow with
+                               sqlalchemy (defaults to SQLAlchemy settings)
+        :keyword pool_timeout: if set, use this value for pool_timeout with
+                               sqlalchemy (defaults to SQLAlchemy settings)
+        :keyword sqlite_synchronous: if True, SQLite uses synchronous mode
+                                     (defaults to True)
+        :keyword connection_trace: add python stack traces to SQL as comment
+                                   strings (defaults to False)
+        :keyword max_retries: maximum db connection retries during startup.
+                              (setting -1 implies an infinite retry count)
+                              (defaults to 10)
+        :keyword retry_interval: interval between retries of opening a sql
+                                 connection (defaults to 10)
+
+        """
+
+        super(EngineFacade, self).__init__()
+
+        self._engine = create_engine(
+            sql_connection=sql_connection,
+            sqlite_fk=sqlite_fk,
+            mysql_sql_mode=mysql_sql_mode,
+            idle_timeout=kwargs.get('idle_timeout', 3600),
+            connection_debug=kwargs.get('connection_debug', 0),
+            max_pool_size=kwargs.get('max_pool_size'),
+            max_overflow=kwargs.get('max_overflow'),
+            pool_timeout=kwargs.get('pool_timeout'),
+            sqlite_synchronous=kwargs.get('sqlite_synchronous', True),
+            connection_trace=kwargs.get('connection_trace', False),
+            max_retries=kwargs.get('max_retries', 10),
+            retry_interval=kwargs.get('retry_interval', 10))
+        self._session_maker = get_maker(
+            engine=self._engine,
+            autocommit=autocommit,
+            expire_on_commit=expire_on_commit)
+
+    def get_engine(self):
+        """Get the engine instance (note, that it's shared)."""
+
+        return self._engine
+
+    def get_session(self, **kwargs):
+        """Get a Session instance.
+
+        If passed, keyword arguments values override the ones used when the
+        sessionmaker instance was created.
+
+        :keyword autocommit: use autocommit mode for created Session instances
+        :type autocommit: bool
+
+        :keyword expire_on_commit: expire session objects on commit
+        :type expire_on_commit: bool
+
+        """
+
+        for arg in kwargs:
+            if arg not in ('autocommit', 'expire_on_commit'):
+                del kwargs[arg]
+
+        return self._session_maker(**kwargs)

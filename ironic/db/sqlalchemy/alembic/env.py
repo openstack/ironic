@@ -14,8 +14,8 @@ from logging import config as log_config
 
 from alembic import context
 
+from ironic.db.sqlalchemy import api as sqla_api
 from ironic.db.sqlalchemy import models
-import ironic.openstack.common.db.sqlalchemy.session as sqlalchemy_session
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
@@ -43,7 +43,7 @@ def run_migrations_online():
     and associate a connection with the context.
 
     """
-    engine = sqlalchemy_session.get_engine()
+    engine = sqla_api.get_engine()
     with engine.connect() as connection:
         context.configure(connection=connection,
                           target_metadata=target_metadata)

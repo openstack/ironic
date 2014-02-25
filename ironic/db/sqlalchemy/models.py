@@ -94,6 +94,13 @@ class IronicBase(models.TimestampMixin,
             d[c.name] = self[c.name]
         return d
 
+    def save(self, session=None):
+        import ironic.db.sqlalchemy.api as db_api
+
+        if session is None:
+            session = db_api.get_session()
+
+        super(IronicBase, self).save(session)
 
 Base = declarative_base(cls=IronicBase)
 
