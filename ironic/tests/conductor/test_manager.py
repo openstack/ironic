@@ -975,3 +975,20 @@ class ManagerTestCase(base.DbTestCase):
             self.assertRaises(exception.InvalidParameterValue,
                               self.service.get_console_information,
                               self.context, node.uuid)
+
+    def test_destroy_node_power_on(self):
+        self.service.start()
+        ndict = utils.get_test_node(power_state=states.POWER_ON)
+        node = self.dbapi.create_node(ndict)
+
+        self.assertRaises(exception.NodeInWrongPowerState,
+                          self.service.destroy_node, self.context, node.uuid)
+        # Verify reservation was released.
+        node.refresh(self.context)
+        self.assertIsNone(node.reservation)
+
+    def test_destroy_node_power_off(self):
+        self.service.start()
+        ndict = utils.get_test_node(power_state=states.POWER_OFF)
+        node = self.dbapi.create_node(ndict)
+        self.service.destroy_node(self.context, node.uuid)

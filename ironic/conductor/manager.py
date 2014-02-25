@@ -608,6 +608,7 @@ class ConductorManager(service.PeriodicService):
         :raises: NodeLocked if node is locked by another conductor.
         :raises: NodeAssociated if the node contains an instance
             associated with it.
+        :raises: NodeInWrongPowerState if the node is not powered off.
 
         """
         with task_manager.acquire(context, node_id) as task:
@@ -615,6 +616,11 @@ class ConductorManager(service.PeriodicService):
             if node.instance_uuid is not None:
                 raise exception.NodeAssociated(node=node.uuid,
                                                instance=node.instance_uuid)
+            if node.power_state not in [states.POWER_OFF, states.NOSTATE]:
+                msg = (_("Node %s can't be deleted because it's not "
+                         "powered off") % node.uuid)
+                raise exception.NodeInWrongPowerState(msg)
+
             self.dbapi.destroy_node(node_id)
 
     def get_console_information(self, context, node_id):

@@ -241,6 +241,7 @@ class ConductorAPI(ironic.openstack.common.rpc.proxy.RpcProxy):
         :raises: NodeLocked if node is locked by another conductor.
         :raises: NodeAssociated if the node contains an instance
             associated with it.
+        :raises: NodeInWrongPowerState if the node is not powered off.
 
         """
         return self.call(context,
