@@ -635,4 +635,12 @@ class NodesController(rest.RestController):
         if self._from_chassis:
             raise exception.OperationNotPermitted
 
-        pecan.request.dbapi.destroy_node(node_uuid)
+        rpc_node = objects.Node.get_by_uuid(pecan.request.context, node_uuid)
+        try:
+            topic = pecan.request.rpcapi.get_topic_for(rpc_node)
+        except exception.NoValidHost as e:
+            e.code = 400
+            raise e
+
+        pecan.request.rpcapi.destroy_node(pecan.request.context,
+                                          node_uuid, topic)

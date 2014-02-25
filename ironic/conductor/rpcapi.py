@@ -55,10 +55,11 @@ class ConductorAPI(ironic.openstack.common.rpc.proxy.RpcProxy):
               accept node id instead of node object.
         1.7 - Added topic parameter to RPC methods.
         1.8 - Added change_node_maintenance_mode.
+        1.9 - Added destroy_node.
 
     """
 
-    RPC_API_VERSION = '1.8'
+    RPC_API_VERSION = '1.9'
 
     def __init__(self, topic=None):
         if topic is None:
@@ -243,4 +244,19 @@ class ConductorAPI(ironic.openstack.common.rpc.proxy.RpcProxy):
                          self.make_msg('change_node_maintenance_mode',
                                        node_id=node_id,
                                        mode=mode),
+                         topic=topic or self.topic)
+
+    def destroy_node(self, context, node_id, topic=None):
+        """Delete a node.
+
+        :param context: request context.
+        :param node_id: node id or uuid.
+        :raises: NodeLocked if node is locked by another conductor.
+        :raises: NodeAssociated if the node contains an instance
+            associated with it.
+
+        """
+        return self.call(context,
+                         self.make_msg('destroy_node',
+                                       node_id=node_id),
                          topic=topic or self.topic)

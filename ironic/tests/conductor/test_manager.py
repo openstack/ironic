@@ -717,3 +717,35 @@ class ManagerTestCase(base.DbTestCase):
         thread.link(link_callback)
 
         link_callback.assert_called_once_with(thread)
+
+    def test_destroy_node(self):
+        self.service.start()
+        ndict = utils.get_test_node(driver='fake')
+        node = self.dbapi.create_node(ndict)
+        self.service.destroy_node(self.context, node.uuid)
+        self.assertRaises(exception.NodeNotFound,
+                          self.dbapi.get_node,
+                          node.uuid)
+
+    def test_destroy_node_reserved(self):
+        self.service.start()
+        fake_reservation = 'fake-reserv'
+        ndict = utils.get_test_node(reservation=fake_reservation)
+        node = self.dbapi.create_node(ndict)
+
+        self.assertRaises(exception.NodeLocked, self.service.destroy_node,
+                          self.context, node.uuid)
+        # Verify existing reservation wasn't broken.
+        node.refresh(self.context)
+        self.assertEqual(fake_reservation, node.reservation)
+
+    def test_destroy_node_associated(self):
+        self.service.start()
+        ndict = utils.get_test_node(instance_uuid='fake-uuid')
+        node = self.dbapi.create_node(ndict)
+
+        self.assertRaises(exception.NodeAssociated, self.service.destroy_node,
+                          self.context, node.uuid)
+        # Verify reservation was released.
+        node.refresh(self.context)
+        self.assertIsNone(node.reservation)

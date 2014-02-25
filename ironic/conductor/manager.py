@@ -91,7 +91,7 @@ CONF.register_opts(conductor_opts, 'conductor')
 class ConductorManager(service.PeriodicService):
     """Ironic Conductor service main class."""
 
-    RPC_API_VERSION = '1.8'
+    RPC_API_VERSION = '1.9'
 
     def __init__(self, host, topic):
         serializer = objects_base.IronicObjectSerializer()
@@ -525,3 +525,20 @@ class ConductorManager(service.PeriodicService):
             return self._worker_pool.spawn(func, *args, **kwargs)
         else:
             raise exception.NoFreeConductorWorker()
+
+    def destroy_node(self, context, node_id):
+        """Delete a node.
+
+        :param context: request context.
+        :param node_id: node id or uuid.
+        :raises: NodeLocked if node is locked by another conductor.
+        :raises: NodeAssociated if the node contains an instance
+            associated with it.
+
+        """
+        with task_manager.acquire(context, node_id) as task:
+            node = task.node
+            if node.instance_uuid is not None:
+                raise exception.NodeAssociated(node=node.uuid,
+                                               instance=node.instance_uuid)
+            self.dbapi.destroy_node(node_id)

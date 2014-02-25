@@ -183,7 +183,12 @@ class TaskManager(object):
         if not self.shared:
             if self.resources:
                 node_ids = [r.node.id for r in self.resources]
-                self.dbapi.release_nodes(CONF.host, node_ids)
+                try:
+                    self.dbapi.release_nodes(CONF.host, node_ids)
+                except exception.NodeNotFound:
+                    # squelch the exception if the node was deleted
+                    # within the task's context.
+                    pass
         self.resources = []
 
     @property

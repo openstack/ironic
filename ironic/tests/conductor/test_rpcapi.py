@@ -156,3 +156,8 @@ class RPCAPITestCase(base.DbTestCase):
                           'call',
                           node_id=self.fake_node['uuid'],
                           mode=True)
+
+    def test_destroy_node(self):
+        self._test_rpcapi('destroy_node',
+                          'call',
+                          node_id=self.fake_node['uuid'])

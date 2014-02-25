@@ -26,6 +26,7 @@ from ironic.common import exception
 from ironic.common import states
 from ironic.common import utils
 from ironic.conductor import rpcapi
+from ironic import objects
 from ironic.openstack.common import timeutils
 from ironic.tests.api import base
 from ironic.tests.db import utils as dbutils
@@ -698,15 +699,23 @@ class TestDelete(base.FunctionalTest):
         self.mock_gtf.return_value = 'test-topic'
         self.addCleanup(p.stop)
 
-    def test_delete_node(self):
+    @mock.patch.object(rpcapi.ConductorAPI, 'destroy_node')
+    def test_delete_node(self, mock_dn):
         ndict = dbutils.get_test_node()
         self.dbapi.create_node(ndict)
         self.delete('/nodes/%s' % ndict['uuid'])
-        response = self.get_json('/nodes/%s' % ndict['uuid'],
-                                 expect_errors=True)
+        mock_dn.assert_called_once_with(mock.ANY, ndict['uuid'], 'test-topic')
+
+    @mock.patch.object(objects.Node, 'get_by_uuid')
+    def test_delete_node_not_found(self, mock_gbu):
+        ndict = dbutils.get_test_node()
+        mock_gbu.side_effect = exception.NodeNotFound(node=ndict['uuid'])
+
+        response = self.delete('/nodes/%s' % ndict['uuid'], expect_errors=True)
         self.assertEqual(404, response.status_int)
         self.assertEqual('application/json', response.content_type)
         self.assertTrue(response.json['error_message'])
+        mock_gbu.assert_called_once_with(mock.ANY, ndict['uuid'])
 
     def test_delete_ports_subresource(self):
         ndict = dbutils.get_test_node()
@@ -715,12 +724,17 @@ class TestDelete(base.FunctionalTest):
                                expect_errors=True)
         self.assertEqual(403, response.status_int)
 
-    def test_delete_associated(self):
+    @mock.patch.object(rpcapi.ConductorAPI, 'destroy_node')
+    def test_delete_associated(self, mock_dn):
         ndict = dbutils.get_test_node(
                           instance_uuid='aaaaaaaa-1111-bbbb-2222-cccccccccccc')
-        self.dbapi.create_node(ndict)
+        node = self.dbapi.create_node(ndict)
+        mock_dn.side_effect = exception.NodeAssociated(node=node.uuid,
+                                                   instance=node.instance_uuid)
+
         response = self.delete('/nodes/%s' % ndict['uuid'], expect_errors=True)
         self.assertEqual(409, response.status_int)
+        mock_dn.assert_called_once_with(mock.ANY, node.uuid, 'test-topic')
 
 
 class TestPut(base.FunctionalTest):

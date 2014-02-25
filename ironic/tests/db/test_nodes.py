@@ -256,18 +256,6 @@ class DbNodeTestCase(base.DbTestCase):
                           self.dbapi.destroy_node,
                           '12345678-9999-0000-aaaa-123456789012')
 
-    def test_destroy_reserved_node(self):
-        n = self._create_test_node()
-        uuid = n['uuid']
-        self.dbapi.reserve_nodes('fake-reservation', [uuid])
-        self.assertRaises(exception.NodeLocked,
-                          self.dbapi.destroy_node, n['id'])
-
-    def test_destroy_associated_node(self):
-        n = self._create_test_node(instance_uuid='fake-uuid-1234')
-        self.assertRaises(exception.NodeAssociated,
-                          self.dbapi.destroy_node, n['uuid'])
-
     def test_ports_get_destroyed_after_destroying_a_node(self):
         n = self._create_test_node()
         node_id = n['id']
