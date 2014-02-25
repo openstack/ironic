@@ -43,7 +43,6 @@ from ironic.common import paths
 from ironic.objects import base as objects_base
 from ironic.openstack.common.db.sqlalchemy import session
 from ironic.openstack.common import log as logging
-from ironic.openstack.common import timeutils
 from ironic.tests import conf_fixture
 from ironic.tests import policy_fixture
 
@@ -220,12 +219,3 @@ class TestCase(testtools.TestCase):
             return os.path.join(root, project_file)
         else:
             return root
-
-
-class TimeOverride(fixtures.Fixture):
-    """Fixture to start and remove time override."""
-
-    def setUp(self):
-        super(TimeOverride, self).setUp()
-        timeutils.set_time_override()
-        self.addCleanup(timeutils.clear_time_override)

@@ -571,16 +571,16 @@ class TestPost(base.FunctionalTest):
         super(TestPost, self).setUp()
         cdict = dbutils.get_test_chassis()
         self.chassis = self.dbapi.create_chassis(cdict)
-        self.addCleanup(timeutils.clear_time_override)
         p = mock.patch.object(rpcapi.ConductorAPI, 'get_topic_for')
         self.mock_gtf = p.start()
         self.mock_gtf.return_value = 'test-topic'
         self.addCleanup(p.stop)
 
-    def test_create_node(self):
+    @mock.patch.object(timeutils, 'utcnow')
+    def test_create_node(self, mock_utcnow):
         ndict = post_get_test_node()
-        t1 = datetime.datetime(2000, 1, 1, 0, 0)
-        timeutils.set_time_override(t1)
+        test_time = datetime.datetime(2000, 1, 1, 0, 0)
+        mock_utcnow.return_value = test_time
         response = self.post_json('/nodes', ndict)
         self.assertEqual(201, response.status_int)
         result = self.get_json('/nodes/%s' % ndict['uuid'])
@@ -588,7 +588,7 @@ class TestPost(base.FunctionalTest):
         self.assertFalse(result['updated_at'])
         return_created_at = timeutils.parse_isotime(
                 result['created_at']).replace(tzinfo=None)
-        self.assertEqual(t1, return_created_at)
+        self.assertEqual(test_time, return_created_at)
 
     def test_create_node_valid_extra(self):
         ndict = post_get_test_node(extra={'foo': 123})
