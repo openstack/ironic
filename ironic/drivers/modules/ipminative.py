@@ -33,7 +33,7 @@ from pyghmi.ipmi import command as ipmi_command
 opts = [
     cfg.IntOpt('retry_timeout',
                default=10,
-               help='Maximum time in seconds to retry IPMI operations'),
+               help='Maximum time in seconds to retry IPMI operations.'),
     ]
 
 CONF = cfg.CONF

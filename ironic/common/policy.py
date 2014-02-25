@@ -30,10 +30,10 @@ from ironic.openstack.common import policy
 policy_opts = [
     cfg.StrOpt('policy_file',
                default='policy.json',
-               help=_('JSON file representing policy')),
+               help=_('JSON file representing policy.')),
     cfg.StrOpt('policy_default_rule',
                default='default',
-               help=_('Rule checked when requested rule is not found')),
+               help=_('Rule checked when requested rule is not found.')),
     ]
 
 CONF = cfg.CONF

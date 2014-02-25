@@ -4,10 +4,10 @@
 # Options defined in ironic.netconf
 #
 
-# ip address of this host (string value)
+# IP address of this host. (string value)
 #my_ip=10.0.0.1
 
-# use ipv6 (boolean value)
+# Use IPv6. (boolean value)
 #use_ipv6=false
 
 
@@ -15,7 +15,8 @@
 # Options defined in ironic.api.app
 #
 
-# Method to use for auth: noauth or keystone. (string value)
+# Method to use for authentication: noauth or keystone.
+# (string value)
 #auth_strategy=keystone
 
 
@@ -23,7 +24,7 @@
 # Options defined in ironic.common.exception
 #
 
-# make exception message format errors fatal (boolean value)
+# Make exception message format errors fatal. (boolean value)
 #fatal_exception_format_errors=false
 
 
@@ -50,7 +51,7 @@
 # Options defined in ironic.common.images
 #
 
-# Force backing images to raw format (boolean value)
+# Force backing images to raw format. (boolean value)
 #force_raw_images=true
 
 
@@ -58,14 +59,15 @@
 # Options defined in ironic.common.paths
 #
 
-# Directory where the ironic python module is installed
+# Directory where the ironic python module is installed.
 # (string value)
 #pybasedir=/usr/lib/python/site-packages/ironic
 
-# Directory where ironic binaries are installed (string value)
+# Directory where ironic binaries are installed. (string
+# value)
 #bindir=$pybasedir/bin
 
-# Top-level directory for maintaining ironic's state (string
+# Top-level directory for maintaining ironic's state. (string
 # value)
 #state_path=$pybasedir
 
@@ -74,10 +76,11 @@
 # Options defined in ironic.common.policy
 #
 
-# JSON file representing policy (string value)
+# JSON file representing policy. (string value)
 #policy_file=policy.json
 
-# Rule checked when requested rule is not found (string value)
+# Rule checked when requested rule is not found. (string
+# value)
 #policy_default_rule=default
 
 
@@ -85,13 +88,14 @@
 # Options defined in ironic.common.service
 #
 
-# seconds between running periodic tasks (integer value)
+# Seconds between running periodic tasks. (integer value)
 #periodic_interval=60
 
 # Name of this node.  This can be an opaque identifier.  It is
 # not necessarily a hostname, FQDN, or IP address. However,
 # the node name must be valid within an AMQP key, and if using
-# ZeroMQ, a valid hostname, FQDN, or IP address (string value)
+# ZeroMQ, a valid hostname, FQDN, or IP address. (string
+# value)
 #host=ironic
 
 
@@ -100,10 +104,10 @@
 #
 
 # Path to the rootwrap configuration file to use for running
-# commands as root (string value)
+# commands as root. (string value)
 #rootwrap_config=/etc/ironic/rootwrap.conf
 
-# Explicitly specify the temporary working directory (string
+# Explicitly specify the temporary working directory. (string
 # value)
 #tempdir=<None>
 
@@ -131,7 +135,7 @@
 # Options defined in ironic.openstack.common.lockutils
 #
 
-# Whether to disable inter-process locks (boolean value)
+# Whether to disable inter-process locks. (boolean value)
 #disable_process_locking=false
 
 # Directory to use for lock files. (string value)
@@ -444,15 +448,16 @@
 # Options defined in ironic.conductor.manager
 #
 
-# Url of Ironic API service. If not set Ironic can get current
-# value from Keystone service catalog. (string value)
+# URL of Ironic API service. If not set ironic can get the
+# current value from the keystone service catalog. (string
+# value)
 #api_url=<None>
 
 # Seconds between conductor heart beats. (integer value)
 #heartbeat_interval=10
 
-# Maximum time since the last check-in of a conductor (integer
-# value)
+# Maximum time (in seconds) since the last check-in of a
+# conductor. (integer value)
 #heartbeat_timeout=60
 
 # Interval between syncing the node power state to the
@@ -466,7 +471,7 @@
 # Options defined in ironic.db.sqlalchemy.models
 #
 
-# MySQL engine (string value)
+# MySQL engine to use. (string value)
 #mysql_engine=InnoDB
 
 
@@ -558,7 +563,7 @@
 # Options defined in ironic.drivers.modules.ipminative
 #
 
-# Maximum time in seconds to retry IPMI operations (integer
+# Maximum time in seconds to retry IPMI operations. (integer
 # value)
 #retry_timeout=10
 
@@ -609,14 +614,14 @@
 # Options defined in ironic.api
 #
 
-# The listen IP for the Ironic API server (string value)
+# The listen IP for the Ironic API server. (string value)
 #host_ip=0.0.0.0
 
-# The port for the Ironic API server (integer value)
+# The port for the Ironic API server. (integer value)
 #port=6385
 
 # The maximum number of items returned in a single response
-# from a collection resource (integer value)
+# from a collection resource. (integer value)
 #max_limit=1000
 
 
@@ -626,28 +631,28 @@
 # Options defined in ironic.drivers.modules.pxe
 #
 
-# additional append parameters for baremetal PXE boot (string
+# Additional append parameters for baremetal PXE boot. (string
 # value)
 #pxe_append_params=nofb nomodeset vga=normal
 
-# Template file for PXE configuration (string value)
+# Template file for PXE configuration. (string value)
 #pxe_config_template=$pybasedir/drivers/modules/pxe_config.template
 
-# IP address of Ironic compute node's tftp server (string
+# IP address of Ironic compute node's tftp server. (string
 # value)
 #tftp_server=$my_ip
 
-# Ironic compute node's tftp root path (string value)
+# Ironic compute node's tftp root path. (string value)
 #tftp_root=/tftpboot
 
-# Directory where images are stored on disk (string value)
+# Directory where images are stored on disk. (string value)
 #images_path=/var/lib/ironic/images/
 
-# Directory where master tftp images are stored on disk
+# Directory where master tftp images are stored on disk.
 # (string value)
 #tftp_master_path=/tftpboot/master_images
 
-# Directory where master tftp images are stored on disk
+# Directory where master instance images are stored on disk.
 # (string value)
 #instance_master_path=/var/lib/ironic/master_images
 
@@ -792,8 +797,8 @@
 # Options defined in ironic.common.glance_service.v2.image_service
 #
 
-# A list of url scheme that can be downloaded directly via the
-# direct_url.  Currently supported schemes: [file]. (list
+# A list of URL schemes that can be downloaded directly via
+# the direct_url.  Currently supported schemes: [file]. (list
 # value)
 #allowed_direct_url_schemes=
 
@@ -802,10 +807,10 @@
 # Options defined in ironic.common.image_service
 #
 
-# default glance hostname or ip (string value)
+# Default glance hostname or IP address. (string value)
 #glance_host=$my_ip
 
-# default glance port (integer value)
+# Default glance port. (integer value)
 #glance_port=9292
 
 # Default protocol to use when connecting to glance. Set to
@@ -813,15 +818,15 @@
 #glance_protocol=http
 
 # A list of the glance api servers available to nova. Prefix
-# with https:// for ssl-based glance api servers.
-# ([hostname|ip]:port) (string value)
+# with https:// for SSL-based glance API servers. Format is
+# [hostname|IP]:port. (string value)
 #glance_api_servers=<None>
 
-# Allow to perform insecure SSL (https) requests to glance
+# Allow to perform insecure SSL (https) requests to glance.
 # (boolean value)
 #glance_api_insecure=false
 
-# Number retries when downloading an image from glance
+# Number of retries when downloading an image from glance.
 # (integer value)
 #glance_num_retries=0
 
@@ -836,10 +841,10 @@
 # Options defined in ironic.common.neutron
 #
 
-# URL for connecting to neutron (string value)
+# URL for connecting to neutron. (string value)
 #url=http://127.0.0.1:9696
 
-# timeout value for connecting to neutron in seconds (integer
+# Timeout value for connecting to neutron in seconds. (integer
 # value)
 #url_timeout=30
 

@@ -38,7 +38,7 @@ LOG = logging.getLogger(__name__)
 image_opts = [
     cfg.BoolOpt('force_raw_images',
                 default=True,
-                help='Force backing images to raw format'),
+                help='Force backing images to raw format.'),
 ]
 
 CONF = cfg.CONF
