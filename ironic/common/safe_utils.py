@@ -36,10 +36,10 @@ def getcallargs(function, *args, **kwargs):
     # argnames but not in args or kwargs.  Uses 'in' rather than '==' because
     # some tests use 'self2'.
     if 'self' in argnames[0] or 'cls' == argnames[0]:
-        # The function may not actually be a method or have im_self.
+        # The function may not actually be a method or have __self__.
         # Typically seen when it's stubbed with mox.
-        if inspect.ismethod(function) and hasattr(function, 'im_self'):
-            keyed_args[argnames[0]] = function.im_self
+        if inspect.ismethod(function) and hasattr(function, '__self__'):
+            keyed_args[argnames[0]] = function.__self__
         else:
             keyed_args[argnames[0]] = None
 
