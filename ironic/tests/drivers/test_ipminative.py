@@ -247,13 +247,13 @@ class IPMINativeDriverTestCase(db_base.DbTestCase):
                                     method='set_boot_device',
                                     device='pxe')
 
-    def test_vendor_passthru_validate__set_boot_device_fail(self):
+    def test_vendor_passthru_val__set_boot_device_fail_unknown_device(self):
         self.assertRaises(exception.InvalidParameterValue,
                           self.driver.vendor.validate,
                           self.node, method='set_boot_device',
-                          device='fake')
+                          device='non-existent')
 
-    def test_vendor_passthru_validate__set_boot_device_fail_no_device(self):
+    def test_vendor_passthru_val__set_boot_device_fail_missed_device_arg(self):
         self.assertRaises(exception.InvalidParameterValue,
                           self.driver.vendor.validate,
                           self.node, method='set_boot_device')
@@ -261,7 +261,7 @@ class IPMINativeDriverTestCase(db_base.DbTestCase):
     def test_vendor_passthru_validate_method_notmatch(self):
         self.assertRaises(exception.InvalidParameterValue,
                           self.driver.vendor.validate,
-                          self.node, method='fake_method')
+                          self.node, method='non-existent-method')
 
     def test_vendor_passthru_call__set_boot_device(self):
         with task_manager.acquire(self.context, [self.node['uuid']],

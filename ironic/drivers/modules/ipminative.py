@@ -302,7 +302,7 @@ class VendorPassthru(base.VendorInterface):
         :param kwargs: the keyword arguments supplied
 
         :raises: InvalidParameterValue if an invalid boot device is specified,
-                 required ipmi credentials are missing or and invalid method
+                 required ipmi credentials are missing or an invalid method
                  is requested to the driver.
         """
         method = kwargs['method']
@@ -316,7 +316,6 @@ class VendorPassthru(base.VendorInterface):
                 "Unsupported method (%s) passed to IPMINative driver.")
                 % method)
         _parse_driver_info(node)
-        return True
 
     def vendor_passthru(self, task, node, **kwargs):
         """Receive requests for vendor-specific actions.
