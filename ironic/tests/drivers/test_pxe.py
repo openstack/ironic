@@ -145,6 +145,34 @@ class PXEValidateParametersTestCase(base.TestCase):
                 pxe._parse_driver_info,
                 node)
 
+    def test__parse_driver_info_valid_preserve_ephemeral_true(self):
+        info = dict(INFO_DICT)
+        for _id, opt in enumerate(['true', 'TRUE', 'True', 't',
+                                   'on', 'yes', 'y', '1']):
+            info['pxe_preserve_ephemeral'] = opt
+            node = self._create_test_node(id=_id, uuid=utils.generate_uuid(),
+                                          driver_info=info)
+            data = pxe._parse_driver_info(node)
+            self.assertTrue(data.get('preserve_ephemeral'))
+
+    def test__parse_driver_info_valid_preserve_ephemeral_false(self):
+        info = dict(INFO_DICT)
+        for _id, opt in enumerate(['false', 'FALSE', 'False', 'f',
+                                   'off', 'no', 'n', '0']):
+            info['pxe_preserve_ephemeral'] = opt
+            node = self._create_test_node(id=_id, uuid=utils.generate_uuid(),
+                                          driver_info=info)
+            data = pxe._parse_driver_info(node)
+            self.assertFalse(data.get('preserve_ephemeral'))
+
+    def test__parse_driver_info_invalid_preserve_ephemeral(self):
+        info = dict(INFO_DICT)
+        info['pxe_preserve_ephemeral'] = 'foobar'
+        node = self._create_test_node(driver_info=info)
+        self.assertRaises(exception.InvalidParameterValue,
+                pxe._parse_driver_info,
+                node)
+
     def test__get_pxe_mac_path(self):
         mac = '00:11:22:33:44:55:66'
         self.assertEqual(pxe._get_pxe_mac_path(mac),

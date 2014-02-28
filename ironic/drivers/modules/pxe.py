@@ -40,6 +40,7 @@ from ironic.openstack.common import fileutils
 from ironic.openstack.common import lockutils
 from ironic.openstack.common import log as logging
 from ironic.openstack.common import loopingcall
+from ironic.openstack.common import strutils
 
 pxe_opts = [
     cfg.StrOpt('pxe_append_params',
@@ -114,13 +115,15 @@ def _parse_driver_info(node):
     d_info['ephemeral_gb'] = info.get('pxe_ephemeral_gb', 0)
     d_info['ephemeral_format'] = info.get('pxe_ephemeral_format')
 
+    err_msg_invalid = _("Can not validate PXE bootloader. Invalid parameter "
+                        "pxe_%(param)s. Reason: %(reason)s")
     for param in ('root_gb', 'swap_mb', 'ephemeral_gb'):
         try:
             int(d_info[param])
         except ValueError:
-            raise exception.InvalidParameterValue(_(
-                "Can not validate PXE bootloader. Invalid "
-                "parameter %s") % param)
+            reason = _("'%s' is not an integer value.") % d_info[param]
+            raise exception.InvalidParameterValue(err_msg_invalid %
+                                            {'param': param, 'reason': reason})
 
     if d_info['ephemeral_gb'] and not d_info['ephemeral_format']:
         msg = _("The deploy contains an ephemeral partition, but no "
@@ -128,6 +131,13 @@ def _parse_driver_info(node):
                 "parameter")
         raise exception.InvalidParameterValue(msg)
 
+    preserve_ephemeral = info.get('pxe_preserve_ephemeral', False)
+    try:
+        d_info['preserve_ephemeral'] = strutils.bool_from_string(
+                                            preserve_ephemeral, strict=True)
+    except ValueError as e:
+        raise exception.InvalidParameterValue(err_msg_invalid %
+                                  {'param': 'preserve_ephemeral', 'reason': e})
     return d_info
 
 
@@ -657,6 +667,7 @@ class VendorPassthru(base.VendorInterface):
                   'root_mb': 1024 * int(d_info['root_gb']),
                   'swap_mb': int(d_info['swap_mb']),
                   'ephemeral_mb': 1024 * int(d_info['ephemeral_gb']),
+                  'preserve_ephemeral': d_info['preserve_ephemeral'],
             }
 
         missing = [key for key in params.keys() if params[key] is None]
