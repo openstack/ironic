@@ -29,13 +29,14 @@ from ironic.conductor import rpcapi
 from ironic import objects
 from ironic.openstack.common import timeutils
 from ironic.tests.api import base
+from ironic.tests.api import utils as apiutils
 from ironic.tests.db import utils as dbutils
 
 
 # NOTE(lucasagomes): When creating a node via API (POST)
 #                    we have to use chassis_uuid
 def post_get_test_node(**kw):
-    node = dbutils.get_test_node(**kw)
+    node = apiutils.node_post_data(**kw)
     chassis = dbutils.get_test_chassis()
     node['chassis_id'] = None
     node['chassis_uuid'] = kw.get('chassis_uuid', chassis['uuid'])
@@ -682,6 +683,14 @@ class TestPost(base.FunctionalTest):
     def test_create_node_chassis_uuid_not_found(self):
         ndict = post_get_test_node(
                            chassis_uuid='1a1a1a1a-2b2b-3c3c-4d4d-5e5e5e5e5e5e')
+        response = self.post_json('/nodes', ndict, expect_errors=True)
+        self.assertEqual('application/json', response.content_type)
+        self.assertEqual(400, response.status_int)
+        self.assertTrue(response.json['error_message'])
+
+    def test_create_node_with_internal_field(self):
+        ndict = post_get_test_node()
+        ndict['reservation'] = 'fake'
         response = self.post_json('/nodes', ndict, expect_errors=True)
         self.assertEqual('application/json', response.content_type)
         self.assertEqual(400, response.status_int)

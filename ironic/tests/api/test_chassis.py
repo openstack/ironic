@@ -24,6 +24,7 @@ from oslo.config import cfg
 from ironic.common import utils
 from ironic.openstack.common import timeutils
 from ironic.tests.api import base
+from ironic.tests.api import utils as apiutils
 from ironic.tests.db import utils as dbutils
 
 
@@ -315,7 +316,7 @@ class TestPost(base.FunctionalTest):
     def test_post_nodes_subresource(self):
         cdict = dbutils.get_test_chassis()
         self.dbapi.create_chassis(cdict)
-        ndict = dbutils.get_test_node(chassis_id=None)
+        ndict = apiutils.node_post_data(chassis_id=None)
         ndict['chassis_uuid'] = cdict['uuid']
         response = self.post_json('/chassis/nodes', ndict,
                                    expect_errors=True)
