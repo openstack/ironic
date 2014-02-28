@@ -743,9 +743,10 @@ class VendorPassthru(base.VendorInterface):
 
         try:
             deploy_utils.deploy(**params)
-        except Exception:
-            # NOTE(deva): deploy() already logs any failure
-            #             so we don't need to log it again here.
+        except Exception as e:
+            LOG.error(_('PXE deploy failed for instance %(instance)s. '
+                        'Error: %(error)s') % {'instance': node.instance_uuid,
+                                               'error': e})
             _set_failed_state(_('PXE driver failed to continue deployment.'))
         else:
             LOG.info(_('Deployment to node %s done') % node.uuid)
