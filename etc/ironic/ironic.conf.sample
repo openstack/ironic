@@ -854,6 +854,16 @@
 #topics=notifications
 
 
+[ssh]
+
+#
+# Options defined in ironic.drivers.modules.ssh
+#
+
+# libvirt uri (string value)
+#libvirt_uri=qemu:///system
+
+
 [ssl]
 
 #
