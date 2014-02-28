@@ -72,6 +72,7 @@ class PXEValidateParametersTestCase(base.TestCase):
         self.assertIsNotNone(info.get('deploy_kernel'))
         self.assertIsNotNone(info.get('deploy_ramdisk'))
         self.assertIsNotNone(info.get('root_gb'))
+        self.assertEqual(0, info.get('ephemeral_gb'))
 
     def test__parse_driver_info_missing_instance_source(self):
         # make sure error is raised when info is missing
@@ -112,6 +113,34 @@ class PXEValidateParametersTestCase(base.TestCase):
     def test__parse_driver_info_invalid_root_gb(self):
         info = dict(INFO_DICT)
         info['pxe_root_gb'] = 'foobar'
+        node = self._create_test_node(driver_info=info)
+        self.assertRaises(exception.InvalidParameterValue,
+                pxe._parse_driver_info,
+                node)
+
+    def test__parse_driver_info_valid_ephemeral_gb(self):
+        ephemeral_gb = 10
+        info = dict(INFO_DICT)
+        info['pxe_ephemeral_gb'] = ephemeral_gb
+        info['pxe_ephemeral_format'] = 'exttest'
+        node = self._create_test_node(driver_info=info)
+        data = pxe._parse_driver_info(node)
+        self.assertEqual(ephemeral_gb, data.get('ephemeral_gb'))
+
+    def test__parse_driver_info_invalid_ephemeral_gb(self):
+        info = dict(INFO_DICT)
+        info['pxe_ephemeral_gb'] = 'foobar'
+        info['pxe_ephemeral_format'] = 'exttest'
+        node = self._create_test_node(driver_info=info)
+        self.assertRaises(exception.InvalidParameterValue,
+                pxe._parse_driver_info,
+                node)
+
+    def test__parse_driver_info_valid_ephemeral_missing_format(self):
+        ephemeral_gb = 10
+        info = dict(INFO_DICT)
+        info['pxe_ephemeral_gb'] = ephemeral_gb
+        info['pxe_ephemeral_format'] = None
         node = self._create_test_node(driver_info=info)
         self.assertRaises(exception.InvalidParameterValue,
                 pxe._parse_driver_info,

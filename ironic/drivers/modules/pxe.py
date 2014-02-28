@@ -112,14 +112,22 @@ def _parse_driver_info(node):
 
     #TODO(ghe): Should we get rid of swap partition?
     d_info['swap_mb'] = info.get('pxe_swap_mb', 1)
+    d_info['ephemeral_gb'] = info.get('pxe_ephemeral_gb', 0)
+    d_info['ephemeral_format'] = info.get('pxe_ephemeral_format')
 
-    for param in ('root_gb', 'swap_mb'):
+    for param in ('root_gb', 'swap_mb', 'ephemeral_gb'):
         try:
             int(d_info[param])
         except ValueError:
             raise exception.InvalidParameterValue(_(
                 "Can not validate PXE bootloader. Invalid "
                 "parameter %s") % param)
+
+    if d_info['ephemeral_gb'] and not d_info['ephemeral_format']:
+        msg = _("The deploy contains an ephemeral partition, but no "
+                "filesystem type was specified by the pxe_ephemeral_format "
+                "parameter")
+        raise exception.InvalidParameterValue(msg)
 
     return d_info
 
@@ -648,8 +656,8 @@ class VendorPassthru(base.VendorInterface):
                   'pxe_config_path': _get_pxe_config_file_path(
                                                     node.uuid),
                   'root_mb': 1024 * int(d_info['root_gb']),
-                  'swap_mb': int(d_info['swap_mb'])
-
+                  'swap_mb': int(d_info['swap_mb']),
+                  'ephemeral_mb': 1024 * int(d_info['ephemeral_gb']),
             }
 
         missing = [key for key in params.keys() if params[key] is None]
@@ -657,6 +665,9 @@ class VendorPassthru(base.VendorInterface):
             raise exception.InvalidParameterValue(_(
                     "Parameters %s were not passed to ironic"
                     " for deploy.") % missing)
+
+        # ephemeral_format is nullable
+        params['ephemeral_format'] = d_info.get('ephemeral_format')
 
         return params
 
