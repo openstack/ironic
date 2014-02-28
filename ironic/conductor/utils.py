@@ -13,6 +13,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+from ironic.common import exception
 from ironic.common import states
 from ironic.conductor import task_manager
 from ironic.openstack.common import excutils
@@ -94,4 +95,30 @@ def node_power_action(task, node, state):
         node['power_state'] = new_state
     finally:
         node['target_power_state'] = states.NOSTATE
+        node.save(context)
+
+
+@task_manager.require_exclusive_lock
+def cleanup_after_timeout(task):
+    """Cleanup deploy task after timeout.
+
+    :param task: a TaskManager instance.
+    """
+    node = task.node
+    context = task.context
+    error_msg = _('Cleanup failed for node %(node)s after deploy timeout: '
+                  ' %(error)s')
+    try:
+        task.driver.deploy.clean_up(task, node)
+    except exception.IronicException as e:
+        msg = error_msg % {'node': node.uuid, 'error': e}
+        LOG.error(msg)
+        node.last_error = msg
+        node.save(context)
+    except Exception as e:
+        msg = error_msg % {'node': node.uuid, 'error': e}
+        LOG.error(msg)
+        node.last_error = _('Deploy timed out, but an unhandled exception was '
+                            'encountered while aborting. More info may be '
+                            'found in the log file.')
         node.save(context)
