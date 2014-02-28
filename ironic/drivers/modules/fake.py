@@ -159,3 +159,19 @@ class MultipleVendorInterface(base.VendorInterface):
         """Call vendor_passthru on the appropriate interface only."""
         route = self._map(**kwargs)
         return route.vendor_passthru(task, node, **kwargs)
+
+
+class FakeConsole(base.ConsoleInterface):
+    """Example implementation of a simple console interface."""
+
+    def validate(self, task, node):
+        return True
+
+    def start_console(self, task, node):
+        pass
+
+    def stop_console(self, task, node):
+        pass
+
+    def get_console(self, task, node):
+        return {}

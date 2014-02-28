@@ -46,8 +46,9 @@ class FakeDriverTestCase(base.TestCase):
         self.assertIsInstance(self.driver.power, driver_base.PowerInterface)
         self.assertIsInstance(self.driver.deploy, driver_base.DeployInterface)
         self.assertIsInstance(self.driver.vendor, driver_base.VendorInterface)
+        self.assertIsInstance(self.driver.console,
+                                                  driver_base.ConsoleInterface)
         self.assertIsNone(self.driver.rescue)
-        self.assertIsNone(self.driver.console)
 
     def test_power_interface(self):
         with task_manager.acquire(self.context,

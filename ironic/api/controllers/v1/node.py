@@ -52,8 +52,8 @@ class NodePatchType(types.JsonPatchType):
     @staticmethod
     def internal_attrs():
         defaults = types.JsonPatchType.internal_attrs()
-        return defaults + ['/last_error', '/maintenance', '/power_state',
-                           '/provision_state', '/reservation',
+        return defaults + ['/console_enabled', '/last_error', '/maintenance',
+                           '/power_state', '/provision_state', '/reservation',
                            '/target_power_state', '/target_provision_state']
 
     @staticmethod
@@ -61,8 +61,37 @@ class NodePatchType(types.JsonPatchType):
         return ['/chassis_uuid', '/driver']
 
 
+class NodeConsoleController(rest.RestController):
+
+    @wsme_pecan.wsexpose(wtypes.text, types.uuid)
+    def get(self, node_uuid):
+        """Get connection information about the console.
+
+        :param node_uuid: UUID of a node.
+        """
+        rpc_node = objects.Node.get_by_uuid(pecan.request.context, node_uuid)
+        topic = pecan.request.rpcapi.get_topic_for(rpc_node)
+        return pecan.request.rpcapi.get_console_information(
+                                       pecan.request.context, node_uuid, topic)
+
+    @wsme_pecan.wsexpose(None, types.uuid, types.boolean, status_code=202)
+    def put(self, node_uuid, enabled):
+        """Start and stop the node console.
+
+        :param node_uuid: UUID of a node.
+        :param enabled: Boolean value; whether the console is enabled or
+                        disabled.
+        """
+        rpc_node = objects.Node.get_by_uuid(pecan.request.context, node_uuid)
+        topic = pecan.request.rpcapi.get_topic_for(rpc_node)
+        pecan.request.rpcapi.set_console_mode(pecan.request.context, node_uuid,
+                                              enabled, topic)
+
+
 class NodeStates(base.APIBase):
     """API representation of the states of a node."""
+
+    console_enabled = types.boolean
 
     power_state = wtypes.text
 
@@ -76,8 +105,9 @@ class NodeStates(base.APIBase):
 
     @classmethod
     def convert(cls, rpc_node):
-        attr_list = ['last_error', 'power_state', 'provision_state',
-                     'target_power_state', 'target_provision_state']
+        attr_list = ['console_enabled', 'last_error', 'power_state',
+                     'provision_state', 'target_power_state',
+                     'target_provision_state']
         states = NodeStates()
         for attr in attr_list:
             setattr(states, attr, getattr(rpc_node, attr))
@@ -90,6 +120,9 @@ class NodeStatesController(rest.RestController):
         'power': ['PUT'],
         'provision': ['PUT'],
     }
+
+    console = NodeConsoleController()
+    "Expose console as a sub-element of states"
 
     @wsme_pecan.wsexpose(NodeStates, types.uuid)
     def get(self, node_uuid):
@@ -244,6 +277,9 @@ class Node(base.APIBase):
 
     target_provision_state = wsme.wsattr(wtypes.text, readonly=True)
     "The user modified desired provision state of the node."
+
+    console_enabled = types.boolean
+    "Indicates whether the console access is enabled or disabled on the node."
 
     driver = wsme.wsattr(wtypes.text, mandatory=True)
     "The driver responsible for controlling the node"

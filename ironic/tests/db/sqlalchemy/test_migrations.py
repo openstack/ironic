@@ -507,3 +507,14 @@ class TestMigrations(BaseMigrationTestCase, WalkVersionsMixin):
         self.assertIn('provision_updated_at', col_names)
         self.assertIsInstance(nodes.c.provision_updated_at.type,
                               sqlalchemy.types.DateTime)
+
+    def _check_3cb628139ea4(self, engine, data):
+        nodes = db_utils.get_table(engine, 'nodes')
+        col_names = [column.name for column in nodes.c]
+
+        self.assertIn('console_enabled', col_names)
+        # in some backends bool type is integer
+        self.assertTrue(isinstance(nodes.c.console_enabled.type,
+                                   sqlalchemy.types.Boolean) or
+                        isinstance(nodes.c.console_enabled.type,
+                                   sqlalchemy.types.Integer))

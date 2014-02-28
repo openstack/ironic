@@ -148,6 +148,7 @@ class Node(Base):
     driver_info = Column(JSONEncodedDict)
     reservation = Column(String(255), nullable=True)
     maintenance = Column(Boolean, default=False)
+    console_enabled = Column(Boolean, default=False)
     extra = Column(JSONEncodedDict)
 
 

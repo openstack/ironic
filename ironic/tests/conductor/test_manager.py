@@ -573,7 +573,7 @@ class ManagerTestCase(base.DbTestCase):
         node = self.dbapi.create_node(ndict)
         ret = self.service.validate_driver_interfaces(self.context,
                                                       node['uuid'])
-        expected = {'console': {'result': None, 'reason': 'not supported'},
+        expected = {'console': {'result': True},
                     'rescue': {'result': None, 'reason': 'not supported'},
                     'power': {'result': True},
                     'deploy': {'result': True}}
@@ -797,3 +797,118 @@ class ManagerTestCase(base.DbTestCase):
             self.assertEqual(states.NOSTATE, node.target_provision_state)
             self.assertIn(error, node.last_error)
             self.assertIsNone(node.reservation)
+
+    def test_set_console_mode_enabled(self):
+        ndict = utils.get_test_node(driver='fake')
+        node = self.dbapi.create_node(ndict)
+        self.service.set_console_mode(self.context, node.uuid, True)
+        node.refresh(self.context)
+        self.assertTrue(node.console_enabled)
+
+    def test_set_console_mode_disabled(self):
+        ndict = utils.get_test_node(driver='fake')
+        node = self.dbapi.create_node(ndict)
+        self.service.set_console_mode(self.context, node.uuid, False)
+        node.refresh(self.context)
+        self.assertFalse(node.console_enabled)
+
+    def test_set_console_mode_not_supported(self):
+        ndict = utils.get_test_node(driver='fake', last_error=None)
+        node = self.dbapi.create_node(ndict)
+        # null the console interface
+        self.driver.console = None
+        self.assertRaises(exception.UnsupportedDriverExtension,
+                          self.service.set_console_mode, self.context,
+                          node.uuid, True)
+        node.refresh(self.context)
+        self.assertIsNotNone(node.last_error)
+
+    def test_set_console_mode_validation_fail(self):
+        ndict = utils.get_test_node(driver='fake', last_error=None)
+        node = self.dbapi.create_node(ndict)
+        with mock.patch.object(self.driver.console, 'validate') as mock_val:
+            mock_val.side_effect = exception.InvalidParameterValue('error')
+            self.assertRaises(exception.InvalidParameterValue,
+                              self.service.set_console_mode, self.context,
+                              node.uuid, True)
+            node.refresh(self.context)
+            self.assertIsNotNone(node.last_error)
+
+    def test_set_console_mode_start_fail(self):
+        ndict = utils.get_test_node(driver='fake', last_error=None,
+                                    console_enabled=False)
+        node = self.dbapi.create_node(ndict)
+        with mock.patch.object(self.driver.console, 'start_console') \
+                as mock_sc:
+            mock_sc.side_effect = exception.IronicException('test-error')
+            self.assertRaises(exception.IronicException,
+                              self.service.set_console_mode, self.context,
+                              node.uuid, True)
+            mock_sc.assert_called_once_with(mock.ANY, mock.ANY)
+            node.refresh(self.context)
+            self.assertIsNotNone(node.last_error)
+
+    def test_set_console_mode_stop_fail(self):
+        ndict = utils.get_test_node(driver='fake', last_error=None,
+                                    console_enabled=True)
+        node = self.dbapi.create_node(ndict)
+        with mock.patch.object(self.driver.console, 'stop_console') \
+                as mock_sc:
+            mock_sc.side_effect = exception.IronicException('test-error')
+            self.assertRaises(exception.IronicException,
+                              self.service.set_console_mode, self.context,
+                              node.uuid, False)
+            mock_sc.assert_called_once_with(mock.ANY, mock.ANY)
+            node.refresh(self.context)
+            self.assertIsNotNone(node.last_error)
+
+    def test_enable_console_already_enabled(self):
+        ndict = utils.get_test_node(driver='fake', console_enabled=True)
+        node = self.dbapi.create_node(ndict)
+        with mock.patch.object(self.driver.console, 'start_console') \
+                as mock_sc:
+            self.service.set_console_mode(self.context, node.uuid, True)
+            self.assertFalse(mock_sc.called)
+
+    def test_disable_console_already_disabled(self):
+        ndict = utils.get_test_node(driver='fake', console_enabled=False)
+        node = self.dbapi.create_node(ndict)
+        with mock.patch.object(self.driver.console, 'stop_console') \
+                as mock_sc:
+            self.service.set_console_mode(self.context, node.uuid, False)
+            self.assertFalse(mock_sc.called)
+
+    def test_get_console(self):
+        ndict = utils.get_test_node(driver='fake', console_enabled=True)
+        node = self.dbapi.create_node(ndict)
+        console_info = {'test': 'test info'}
+        with mock.patch.object(self.driver.console, 'get_console') as mock_gc:
+            mock_gc.return_value = console_info
+            data = self.service.get_console_information(self.context,
+                                                        node.uuid)
+            self.assertEqual(console_info, data)
+
+    def test_get_console_not_supported(self):
+        ndict = utils.get_test_node(driver='fake', console_enabled=True)
+        node = self.dbapi.create_node(ndict)
+        # null the console interface
+        self.driver.console = None
+        self.assertRaises(exception.UnsupportedDriverExtension,
+                          self.service.get_console_information,
+                          self.context, node.uuid)
+
+    def test_get_console_disabled(self):
+        ndict = utils.get_test_node(driver='fake', console_enabled=False)
+        node = self.dbapi.create_node(ndict)
+        self.assertRaises(exception.NodeConsoleNotEnabled,
+                          self.service.get_console_information,
+                          self.context, node.uuid)
+
+    def test_get_console_validate_fail(self):
+        ndict = utils.get_test_node(driver='fake', console_enabled=True)
+        node = self.dbapi.create_node(ndict)
+        with mock.patch.object(self.driver.console, 'validate') as mock_gc:
+            mock_gc.side_effect = exception.InvalidParameterValue('error')
+            self.assertRaises(exception.InvalidParameterValue,
+                              self.service.get_console_information,
+                              self.context, node.uuid)
