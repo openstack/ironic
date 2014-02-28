@@ -20,9 +20,9 @@ SQLAlchemy models for baremetal data.
 """
 
 import json
-import urlparse
 
 from oslo.config import cfg
+import six.moves.urllib.parse as urlparse
 
 from sqlalchemy import Boolean, Column, DateTime
 from sqlalchemy import ForeignKey, Integer, Index

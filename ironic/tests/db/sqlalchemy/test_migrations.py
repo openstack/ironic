@@ -45,10 +45,10 @@ import contextlib
 import fixtures
 import os
 import subprocess
-import urlparse
 
 from alembic import script
 import mock
+import six.moves.urllib.parse as urlparse
 import sqlalchemy
 import sqlalchemy.exc
 
