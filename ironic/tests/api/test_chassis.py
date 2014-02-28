@@ -292,9 +292,10 @@ class TestPost(base.FunctionalTest):
 
     @mock.patch.object(timeutils, 'utcnow')
     def test_create_chassis(self, mock_utcnow):
-        cdict = dbutils.get_test_chassis()
+        cdict = apiutils.chassis_post_data()
         test_time = datetime.datetime(2000, 1, 1, 0, 0)
         mock_utcnow.return_value = test_time
+
         response = self.post_json('/chassis', cdict)
         self.assertEqual(201, response.status_int)
         result = self.get_json('/chassis/%s' % cdict['uuid'])
@@ -305,7 +306,7 @@ class TestPost(base.FunctionalTest):
         self.assertEqual(test_time, return_created_at)
 
     def test_create_chassis_generate_uuid(self):
-        cdict = dbutils.get_test_chassis()
+        cdict = apiutils.chassis_post_data()
         del cdict['uuid']
         self.post_json('/chassis', cdict)
         result = self.get_json('/chassis')
@@ -323,13 +324,13 @@ class TestPost(base.FunctionalTest):
         self.assertEqual(403, response.status_int)
 
     def test_create_chassis_valid_extra(self):
-        cdict = dbutils.get_test_chassis(extra={'foo': 123})
+        cdict = apiutils.chassis_post_data(extra={'foo': 123})
         self.post_json('/chassis', cdict)
         result = self.get_json('/chassis/%s' % cdict['uuid'])
         self.assertEqual(cdict['extra'], result['extra'])
 
     def test_create_chassis_invalid_extra(self):
-        cdict = dbutils.get_test_chassis(extra={'foo': 0.123})
+        cdict = apiutils.chassis_post_data(extra={'foo': 0.123})
         response = self.post_json('/chassis', cdict, expect_errors=True)
         self.assertEqual(400, response.status_int)
         self.assertEqual('application/json', response.content_type)
@@ -337,7 +338,7 @@ class TestPost(base.FunctionalTest):
 
     def test_create_chassis_unicode_description(self):
         descr = u'\u0430\u043c\u043e'
-        cdict = dbutils.get_test_chassis(description=descr)
+        cdict = apiutils.chassis_post_data(description=descr)
         self.post_json('/chassis', cdict)
         result = self.get_json('/chassis/%s' % cdict['uuid'])
         self.assertEqual(descr, result['description'])

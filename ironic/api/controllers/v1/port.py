@@ -87,7 +87,7 @@ class Port(base.APIBase):
                                 mandatory=True)
     "The UUID of the node this port belongs to"
 
-    links = [link.Link]
+    links = wsme.wsattr([link.Link], readonly=True)
     "A list containing a self link and associated port links"
 
     def __init__(self, **kwargs):

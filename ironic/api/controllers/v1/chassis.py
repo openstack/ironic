@@ -60,10 +60,10 @@ class Chassis(base.APIBase):
     extra = {wtypes.text: types.MultiType(wtypes.text, six.integer_types)}
     "The metadata of the chassis"
 
-    links = [link.Link]
+    links = wsme.wsattr([link.Link], readonly=True)
     "A list containing a self link and associated chassis links"
 
-    nodes = [link.Link]
+    nodes = wsme.wsattr([link.Link], readonly=True)
     "Links to the collection of nodes contained in this chassis"
 
     def __init__(self, **kwargs):

@@ -24,13 +24,14 @@ from oslo.config import cfg
 from ironic.common import utils
 from ironic.openstack.common import timeutils
 from ironic.tests.api import base
+from ironic.tests.api import utils as apiutils
 from ironic.tests.db import utils as dbutils
 
 
 # NOTE(lucasagomes): When creating a port via API (POST)
 #                    we have to use node_uuid
 def post_get_test_port(**kw):
-    port = dbutils.get_test_port(**kw)
+    port = apiutils.port_post_data(**kw)
     node = dbutils.get_test_node()
     del port['node_id']
     port['node_uuid'] = kw.get('node_uuid', node['uuid'])

@@ -19,7 +19,9 @@ Utils for testing the API service.
 import datetime
 import json
 
+from ironic.api.controllers.v1 import chassis as chassis_controller
 from ironic.api.controllers.v1 import node as node_controller
+from ironic.api.controllers.v1 import port as port_controller
 from ironic.tests.db import utils
 
 ADMIN_TOKEN = '4562138218392831'
@@ -68,11 +70,25 @@ class FakeMemcache(object):
         self.set_key = key
 
 
+def remove_internal(values, internal):
+    # NOTE(yuriyz): internal attributes should not be posted, except uuid
+    int_attr = [attr.lstrip('/') for attr in internal if attr != '/uuid']
+    return dict([(k, v) for (k, v) in values.iteritems() if k not in int_attr])
+
+
 def node_post_data(**kw):
     node = utils.get_test_node(**kw)
-    # NOTE(yuriyz): internal attributes should not be posted, except uuid
     internal = node_controller.NodePatchType.internal_attrs()
-    internal = [attr.lstrip('/') for attr in internal if attr != '/uuid']
-    node_post = dict([(k, v) for (k, v) in node.iteritems()
-                     if k not in internal])
-    return node_post
+    return remove_internal(node, internal)
+
+
+def port_post_data(**kw):
+    port = utils.get_test_port(**kw)
+    internal = port_controller.PortPatchType.internal_attrs()
+    return remove_internal(port, internal)
+
+
+def chassis_post_data(**kw):
+    chassis = utils.get_test_chassis(**kw)
+    internal = chassis_controller.ChassisPatchType.internal_attrs()
+    return remove_internal(chassis, internal)
