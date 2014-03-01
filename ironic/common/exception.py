@@ -231,6 +231,11 @@ class NodeConsoleNotEnabled(Invalid):
     message = _("Console access is not enabled on node %(node)s")
 
 
+class NodeInMaintenance(Invalid):
+    message = _("The %(op)s operation can't be performed on node "
+                "%(node)s because it's in maintenance mode.")
+
+
 class NodeInWrongPowerState(InvalidState):
     message = _("Can not change instance association while node "
                 "%(node)s is in power state %(pstate)s.")

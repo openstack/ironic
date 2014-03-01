@@ -912,3 +912,13 @@ class TestPut(base.FunctionalTest):
             self.assertEqual(400, ret.status_code)
             mock_scm.assert_called_once_with(mock.ANY, self.node.uuid,
                                              True, 'test-topic')
+
+    def test_provision_node_in_maintenance_fail(self):
+        ndict = dbutils.get_test_node(id=1, uuid=utils.generate_uuid(),
+                                      maintenance=True)
+        node = self.dbapi.create_node(ndict)
+        ret = self.put_json('/nodes/%s/states/provision' % node.uuid,
+                            {'target': states.ACTIVE},
+                            expect_errors=True)
+        self.assertEqual(400, ret.status_code)
+        self.assertTrue(ret.json['error_message'])
