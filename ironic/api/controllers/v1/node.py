@@ -50,7 +50,7 @@ class NodePatchType(types.JsonPatchType):
     @staticmethod
     def internal_attrs():
         defaults = types.JsonPatchType.internal_attrs()
-        return defaults + ['/console_enabled', '/last_error', '/maintenance',
+        return defaults + ['/console_enabled', '/last_error',
                            '/power_state', '/provision_state', '/reservation',
                            '/target_power_state', '/target_provision_state']
 

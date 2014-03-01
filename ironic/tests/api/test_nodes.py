@@ -586,13 +586,16 @@ class TestPatch(base.FunctionalTest):
         self.assertTrue(response.json['error_message'])
 
     def test_replace_maintenance(self):
-        response = self.patch_json('/nodes/%s' % self.node['uuid'],
+        self.mock_update_node.return_value = self.node
+
+        response = self.patch_json('/nodes/%s' % self.node.uuid,
                                    [{'path': '/maintenance', 'op': 'replace',
-                                     'value': 'fake'}],
-                                   expect_errors=True)
+                                     'value': 'true'}])
         self.assertEqual('application/json', response.content_type)
-        self.assertEqual(400, response.status_code)
-        self.assertTrue(response.json['error_message'])
+        self.assertEqual(200, response.status_code)
+
+        self.mock_update_node.assert_called_once_with(
+                mock.ANY, mock.ANY, 'test-topic')
 
     def test_replace_consoled_enabled(self):
         response = self.patch_json('/nodes/%s' % self.node['uuid'],
