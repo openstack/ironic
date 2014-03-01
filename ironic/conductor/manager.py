@@ -92,10 +92,66 @@ conductor_opts = [
                    default=1800,
                    help='Timeout (seconds) for waiting callback from deploy '
                         'ramdisk. 0 - unlimited.'),
+        cfg.BoolOpt('force_power_state_during_sync',
+                   default=True,
+                   help='During sync_power_state, should the hardware power '
+                        'state be set to the state recorded in the database '
+                        '(True) or should the database be updated based on '
+                        'the hardware state (False).'),
 ]
 
 CONF = cfg.CONF
 CONF.register_opts(conductor_opts, 'conductor')
+
+
+def _do_sync_power_state(task):
+    node = task.node
+
+    try:
+        power_state = task.driver.power.get_power_state(task, node)
+    except Exception as e:
+        # TODO(rloo): change to IronicException, after
+        #             https://bugs.launchpad.net/ironic/+bug/1267693
+        LOG.warning(_("During sync_power_state, could not get power state for "
+                      "node %(node)s. Error: %(err)s."),
+                      {'node': node.uuid, 'err': e})
+        return
+
+    if node.power_state is None:
+        LOG.info(_("During sync_power_state, node %(node)s has no previous "
+                   "known state. Recording current state '%(state)s'."),
+                   {'node': node.uuid, 'state': power_state})
+        node.power_state = power_state
+        node.save(task.context)
+
+    if power_state == node.power_state:
+        return
+
+    if CONF.conductor.force_power_state_during_sync:
+        LOG.warning(_("During sync_power_state, node %(node)s state "
+                      "'%(actual)s' does not match expected state. "
+                      "Changing hardware state to '%(state)s'."),
+                      {'node': node.uuid, 'actual': power_state,
+                       'state': node.power_state})
+        try:
+            # node_power_action will update the node record
+            # so don't do that again here.
+            utils.node_power_action(task, task.node,
+                                    node.power_state)
+        except Exception as e:
+            # TODO(rloo): change to IronicException after
+            # https://bugs.launchpad.net/ironic/+bug/1267693
+            LOG.error(_("Failed to change power state of node %(node)s "
+                        "to '%(state)s'."), {'node': node.uuid,
+                                             'state': node.power_state})
+    else:
+        LOG.warning(_("During sync_power_state, node %(node)s state "
+                      "does not match expected state '%(state)s'. "
+                      "Updating recorded state to '%(actual)s'."),
+                      {'node': node.uuid, 'actual': power_state,
+                       'state': node.power_state})
+        node.power_state = power_state
+        node.save(task.context)
 
 
 class ConductorManager(service.PeriodicService):
@@ -394,31 +450,7 @@ class ConductorManager(service.PeriodicService):
                     continue
 
                 with task_manager.acquire(context, node_id) as task:
-                    node = task.node
-
-                    try:
-                        power_state = task.driver.power.get_power_state(task,
-                                                                        node)
-                    except Exception as e:
-                        #TODO(rloo): change to IronicException, after
-                        # https://bugs.launchpad.net/ironic/+bug/1267693
-                        LOG.debug(_("During sync_power_state, could not get "
-                            "power state for node %(node)s. Error: %(err)s.") %
-                            {'node': node.uuid, 'err': e})
-                        continue
-
-                    if power_state != node['power_state']:
-                        # NOTE(deva): don't log a warning the first time we
-                        #             sync a node's power state
-                        if node['power_state'] is not None:
-                            LOG.warning(_("During sync_power_state, node "
-                                "%(node)s out of sync. Expected: %(old)s. "
-                                "Actual: %(new)s. Updating DB.") %
-                                {'node': node['uuid'],
-                                 'old': node['power_state'],
-                                 'new': power_state})
-                        node['power_state'] = power_state
-                        node.save(context)
+                    _do_sync_power_state(task)
 
             except exception.NodeNotFound:
                 LOG.info(_("During sync_power_state, node %(node)s was not "
