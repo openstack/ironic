@@ -334,9 +334,8 @@ class ConductorManager(service.PeriodicService):
                     {'node': node_id, 'state': node['provision_state']})
 
             if node.maintenance:
-                raise exception.InstanceDeployFailure(_(
-                    "RPC do_node_deploy called for %s, but node is in "
-                    "maintenance mode.") % node_id)
+                raise exception.NodeInMaintenance(op=_('provisioning'),
+                                                  node=node.uuid)
 
             try:
                 task.driver.deploy.validate(task, node)

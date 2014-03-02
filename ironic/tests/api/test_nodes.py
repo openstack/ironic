@@ -938,11 +938,15 @@ class TestPut(base.FunctionalTest):
                                              True, 'test-topic')
 
     def test_provision_node_in_maintenance_fail(self):
-        ndict = dbutils.get_test_node(id=1, uuid=utils.generate_uuid(),
-                                      maintenance=True)
-        node = self.dbapi.create_node(ndict)
-        ret = self.put_json('/nodes/%s/states/provision' % node.uuid,
-                            {'target': states.ACTIVE},
-                            expect_errors=True)
-        self.assertEqual(400, ret.status_code)
-        self.assertTrue(ret.json['error_message'])
+        with mock.patch.object(rpcapi.ConductorAPI, 'do_node_deploy') as dnd:
+            ndict = dbutils.get_test_node(id=1, uuid=utils.generate_uuid(),
+                                          maintenance=True)
+            node = self.dbapi.create_node(ndict)
+            dnd.side_effect = exception.NodeInMaintenance(op='provisioning',
+                                                          node=node.uuid)
+
+            ret = self.put_json('/nodes/%s/states/provision' % node.uuid,
+                                {'target': states.ACTIVE},
+                                expect_errors=True)
+            self.assertEqual(400, ret.status_code)
+            self.assertTrue(ret.json['error_message'])

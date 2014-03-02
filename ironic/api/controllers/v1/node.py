@@ -187,14 +187,9 @@ class NodeStatesController(rest.RestController):
                  the requested state.
         :raises: InvalidStateRequested (HTTP 400) if the requested target
                  state is not valid.
-
         """
         rpc_node = objects.Node.get_by_uuid(pecan.request.context, node_uuid)
         topic = pecan.request.rpcapi.get_topic_for(rpc_node)
-
-        if rpc_node.maintenance:
-            op = _('provisioning')
-            raise exception.NodeInMaintenance(op=op, node=node_uuid)
 
         if rpc_node.target_provision_state is not None:
             msg = _('Node %s is already being provisioned.') % rpc_node['uuid']

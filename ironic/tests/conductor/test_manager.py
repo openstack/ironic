@@ -518,7 +518,7 @@ class ManagerTestCase(base.DbTestCase):
     def test_do_node_deploy_maintenance(self):
         ndict = utils.get_test_node(driver='fake', maintenance=True)
         node = self.dbapi.create_node(ndict)
-        self.assertRaises(exception.InstanceDeployFailure,
+        self.assertRaises(exception.NodeInMaintenance,
                           self.service.do_node_deploy,
                           self.context, node['uuid'])
 
