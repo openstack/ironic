@@ -150,6 +150,35 @@ class ManagerTestCase(base.DbTestCase):
 
     @mock.patch.object(conductor_utils, 'node_power_action')
     @mock.patch.object(objects.node.Node, 'save')
+    def test__sync_power_state_max_retries_exceeded(self, save_mock, npa_mock):
+        """Force sync node power state and check if max retry
+            limit for force sync is honoured
+        """
+        self.service.start()
+        self.config(force_power_state_during_sync=True, group='conductor')
+        self.config(power_state_sync_max_retries=1, group='conductor')
+        n = utils.get_test_node(driver='fake', power_state=states.POWER_ON)
+        self.dbapi.create_node(n)
+        with mock.patch.object(self.driver.power,
+                               'get_power_state') as get_power_mock:
+            get_power_mock.return_value = states.POWER_OFF
+            self.service._sync_power_states(self.context)
+            self.assertEqual(1, get_power_mock.call_count)
+            npa_mock.assert_called_once_with(mock.ANY, mock.ANY,
+                                             states.POWER_ON)
+            self.assertEqual(0, save_mock.call_count)
+
+            npa_mock.reset_mock()
+            save_mock.reset_mock()
+            get_power_mock.reset_mock()
+            # This try wont succeed
+            self.service._sync_power_states(self.context)
+            self.assertEqual(0, npa_mock.call_count)
+            self.assertEqual(1, get_power_mock.call_count)
+            self.assertEqual(1, save_mock.call_count)
+
+    @mock.patch.object(conductor_utils, 'node_power_action')
+    @mock.patch.object(objects.node.Node, 'save')
     def test__sync_power_state_changed_failed(self, save_mock, npa_mock):
         self.service.start()
         self.config(force_power_state_during_sync=True, group='conductor')

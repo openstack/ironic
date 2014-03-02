@@ -493,6 +493,11 @@
 # (boolean value)
 #force_power_state_during_sync=true
 
+# During sync_power_state failures, limit the number of times
+# Ironic should try syncing the hardware node power state with
+# the node power state in DB (integer value)
+#power_state_sync_max_retries=3
+
 
 [database]
 

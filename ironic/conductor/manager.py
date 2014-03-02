@@ -41,6 +41,7 @@ building or tearing down the TFTP environment for a node, notifying Neutron of
 a change, etc.
 """
 
+import collections
 import datetime
 
 from eventlet import greenpool
@@ -99,60 +100,16 @@ conductor_opts = [
                         'state be set to the state recorded in the database '
                         '(True) or should the database be updated based on '
                         'the hardware state (False).'),
+        cfg.IntOpt('power_state_sync_max_retries',
+                   default=3,
+                   help='During sync_power_state failures, limit the '
+                        'number of times Ironic should try syncing the '
+                        'hardware node power state with the node power state '
+                        'in DB')
 ]
 
 CONF = cfg.CONF
 CONF.register_opts(conductor_opts, 'conductor')
-
-
-def _do_sync_power_state(task):
-    node = task.node
-
-    try:
-        power_state = task.driver.power.get_power_state(task, node)
-    except Exception as e:
-        # TODO(rloo): change to IronicException, after
-        #             https://bugs.launchpad.net/ironic/+bug/1267693
-        LOG.warning(_("During sync_power_state, could not get power state for "
-                      "node %(node)s. Error: %(err)s."),
-                      {'node': node.uuid, 'err': e})
-        return
-
-    if node.power_state is None:
-        LOG.info(_("During sync_power_state, node %(node)s has no previous "
-                   "known state. Recording current state '%(state)s'."),
-                   {'node': node.uuid, 'state': power_state})
-        node.power_state = power_state
-        node.save(task.context)
-
-    if power_state == node.power_state:
-        return
-
-    if CONF.conductor.force_power_state_during_sync:
-        LOG.warning(_("During sync_power_state, node %(node)s state "
-                      "'%(actual)s' does not match expected state. "
-                      "Changing hardware state to '%(state)s'."),
-                      {'node': node.uuid, 'actual': power_state,
-                       'state': node.power_state})
-        try:
-            # node_power_action will update the node record
-            # so don't do that again here.
-            utils.node_power_action(task, task.node,
-                                    node.power_state)
-        except Exception as e:
-            # TODO(rloo): change to IronicException after
-            # https://bugs.launchpad.net/ironic/+bug/1267693
-            LOG.error(_("Failed to change power state of node %(node)s "
-                        "to '%(state)s'."), {'node': node.uuid,
-                                             'state': node.power_state})
-    else:
-        LOG.warning(_("During sync_power_state, node %(node)s state "
-                      "does not match expected state '%(state)s'. "
-                      "Updating recorded state to '%(actual)s'."),
-                      {'node': node.uuid, 'actual': power_state,
-                       'state': node.power_state})
-        node.power_state = power_state
-        node.save(task.context)
 
 
 class ConductorManager(service.PeriodicService):
@@ -164,6 +121,8 @@ class ConductorManager(service.PeriodicService):
         serializer = objects_base.IronicObjectSerializer()
         super(ConductorManager, self).__init__(host, topic,
                                                serializer=serializer)
+
+        self.power_state_sync_count = collections.defaultdict(int)
 
     def start(self):
         super(ConductorManager, self).start()
@@ -493,10 +452,103 @@ class ConductorManager(service.PeriodicService):
     def _conductor_service_record_keepalive(self, context):
         self.dbapi.touch_conductor(self.host)
 
+    def _handle_sync_power_state_max_retries_exceeded(self, task,
+                                                      actual_power_state):
+        node = task.node
+        msg = (_("During sync_power_state, max retries exceeded "
+                  "for node %(node)s, node state %(actual)s "
+                  "does not match expected state '%(state)s'. "
+                  "Updating DB state to '%(actual)s' "
+                  "Switching node to maintenance mode."),
+                  {'node': node.uuid, 'actual': actual_power_state,
+                   'state': node.power_state})
+        node.power_state = actual_power_state
+        node.last_error = msg
+        node.maintenance = True
+        node.save(task.context)
+        LOG.error(msg)
+
+    def _do_sync_power_state(self, task):
+        node = task.node
+        power_state = None
+
+        try:
+            power_state = task.driver.power.get_power_state(task, node)
+        except Exception as e:
+            # TODO(rloo): change to IronicException, after
+            #             https://bugs.launchpad.net/ironic/+bug/1267693
+            LOG.warning(_("During sync_power_state, could not get power "
+                          "state for node %(node)s. Error: %(err)s."),
+                          {'node': node.uuid, 'err': e})
+            self.power_state_sync_count[node.uuid] += 1
+
+            if (self.power_state_sync_count[node.uuid] >=
+                CONF.conductor.power_state_sync_max_retries):
+                self._handle_sync_power_state_max_retries_exceeded(task,
+                                                                   power_state)
+            return
+
+        if node.power_state is None:
+            LOG.info(_("During sync_power_state, node %(node)s has no "
+                       "previous known state. Recording current state "
+                       "'%(state)s'."),
+                       {'node': node.uuid, 'state': power_state})
+            node.power_state = power_state
+            node.save(task.context)
+
+        if power_state == node.power_state:
+            if node.uuid in self.power_state_sync_count:
+                del self.power_state_sync_count[node.uuid]
+            return
+
+        if not CONF.conductor.force_power_state_during_sync:
+            LOG.warning(_("During sync_power_state, node %(node)s state "
+                          "does not match expected state '%(state)s'. "
+                          "Updating recorded state to '%(actual)s'."),
+                          {'node': node.uuid, 'actual': power_state,
+                           'state': node.power_state})
+            node.power_state = power_state
+            node.save(task.context)
+            return
+
+        if (self.power_state_sync_count[node.uuid] >=
+            CONF.conductor.power_state_sync_max_retries):
+            self._handle_sync_power_state_max_retries_exceeded(task,
+                                                               power_state)
+            return
+
+        # Force actual power_state of node equal to DB power_state of node
+        LOG.warning(_("During sync_power_state, node %(node)s state "
+                      "'%(actual)s' does not match expected state. "
+                      "Changing hardware state to '%(state)s'."),
+                      {'node': node.uuid, 'actual': power_state,
+                       'state': node.power_state})
+        try:
+            # node_power_action will update the node record
+            # so don't do that again here.
+            utils.node_power_action(task, task.node,
+                                    node.power_state)
+        except Exception as e:
+            # TODO(rloo): change to IronicException after
+            # https://bugs.launchpad.net/ironic/+bug/1267693
+            LOG.error(_("Failed to change power state of node %(node)s "
+                        "to '%(state)s'."), {'node': node.uuid,
+                                             'state': node.power_state})
+            attempts_left = (CONF.conductor.power_state_sync_max_retries -
+                             self.power_state_sync_count[node.uuid]) - 1
+            msg = (_("%(left)s attempts remaining to "
+                     "sync_power_state for node %(node)s"),
+                   {'left': attempts_left,
+                    'node': node.uuid})
+            LOG.warning(msg)
+        finally:
+            # Update power state sync count for current node
+            self.power_state_sync_count[node.uuid] += 1
+
     @periodic_task.periodic_task(
             spacing=CONF.conductor.sync_power_state_interval)
     def _sync_power_states(self, context):
-        filters = {'reserved': False}
+        filters = {'reserved': False, 'maintenance': False}
         columns = ['id', 'uuid', 'driver']
         node_list = self.dbapi.get_nodeinfo_list(columns=columns,
                                                  filters=filters)
@@ -513,7 +565,7 @@ class ConductorManager(service.PeriodicService):
                     continue
 
                 with task_manager.acquire(context, node_id) as task:
-                    _do_sync_power_state(task)
+                    self._do_sync_power_state(task)
 
             except exception.NodeNotFound:
                 LOG.info(_("During sync_power_state, node %(node)s was not "
