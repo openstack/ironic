@@ -868,6 +868,20 @@
 #topics=notifications
 
 
+[seamicro]
+
+#
+# Options defined in ironic.drivers.modules.seamicro
+#
+
+# Maximum retries for SeaMicro operations (integer value)
+#max_retry=3
+
+# Seconds to wait for power action to be completed (integer
+# value)
+#action_timeout=10
+
+
 [ssh]
 
 #

@@ -22,6 +22,7 @@ from ironic.drivers.modules import fake
 from ironic.drivers.modules import ipminative
 from ironic.drivers.modules import ipmitool
 from ironic.drivers.modules import pxe
+from ironic.drivers.modules import seamicro
 from ironic.drivers.modules import ssh
 
 
@@ -72,3 +73,15 @@ class FakeIPMINativeDriver(base.BaseDriver):
         self.power = ipminative.NativeIPMIPower()
         self.deploy = fake.FakeDeploy()
         self.vendor = ipminative.VendorPassthru()
+
+
+class FakeSeaMicroDriver(base.BaseDriver):
+    """Fake SeaMicro driver."""
+
+    def __init__(self):
+        self.power = seamicro.Power()
+        self.deploy = fake.FakeDeploy()
+        self.rescue = self.deploy
+        a = fake.FakeVendorA()
+        b = fake.FakeVendorB()
+        self.vendor = fake.MultipleVendorInterface(a, b)

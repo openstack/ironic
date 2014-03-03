@@ -28,3 +28,4 @@ jsonpatch>=1.1
 WSME>=0.6
 Jinja2
 pyghmi>=0.5.8
+python-seamicroclient>=0.1.0,<2.0
