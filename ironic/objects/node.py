@@ -44,7 +44,7 @@ class Node(base.IronicObject):
             'target_power_state': utils.str_or_none,
 
             'provision_state': utils.str_or_none,
-            'provision_updated_at': utils.datetime_or_none,
+            'provision_updated_at': utils.datetime_or_str_or_none,
             'target_provision_state': utils.str_or_none,
 
             'maintenance': bool,
