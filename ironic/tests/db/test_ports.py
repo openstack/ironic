@@ -114,15 +114,6 @@ class DbPortTestCase(base.DbTestCase):
         self.assertRaises(exception.NodeLocked,
                           self.dbapi.destroy_port, p.id)
 
-    def test_update_port_on_reserved_node(self):
-        p = self.dbapi.create_port(db_utils.get_test_port(node_id=self.n.id))
-        uuid = self.n.uuid
-        self.dbapi.reserve_nodes('fake-reservation', [uuid])
-        new_address = 'ff.ee.dd.cc.bb.aa'
-        self.assertRaises(exception.NodeLocked,
-                          self.dbapi.update_port, p.id,
-                          {'address': new_address})
-
     def test_update_port_duplicated_address(self):
         self.dbapi.create_port(self.p)
         address1 = self.p['address']

@@ -17,10 +17,12 @@ Tests for the API /ports/ methods.
 
 import datetime
 
+import fixtures
 import mock
 from oslo.config import cfg
 
 from ironic.common import utils
+from ironic.conductor import manager
 from ironic.openstack.common import timeutils
 from ironic.tests.api import base
 from ironic.tests.api import utils as apiutils
@@ -138,6 +140,22 @@ class TestPatch(base.FunctionalTest):
         self.node = self.dbapi.create_node(ndict)
         self.pdict = dbutils.get_test_port(id=None)
         self.dbapi.create_port(self.pdict)
+
+        def noop(*args, **kwargs):
+            pass
+
+        self.useFixture(fixtures.MonkeyPatch(
+                        'ironic.conductor.rpcapi.ConductorAPI.get_topic_for',
+                         noop))
+
+        service = manager.ConductorManager('test-host', 'test-topic')
+
+        def manager_update_port(*args, **kwargs):
+            return service.update_port(*args[1:3])
+
+        self.useFixture(fixtures.MonkeyPatch(
+                        'ironic.conductor.rpcapi.ConductorAPI.update_port',
+                         manager_update_port))
 
     @mock.patch.object(timeutils, 'utcnow')
     def test_update_byid(self, mock_utcnow):
