@@ -1244,3 +1244,48 @@ class ManagerTestCase(base.DbTestCase):
                                 self.context, port)
         # Compare true exception hidden by @messaging.client_exceptions
         self.assertEqual(exc._exc_info[0], exception.NodeLocked)
+
+    @mock.patch('ironic.common.neutron.NeutronAPI.update_port_address')
+    def test_update_port_address(self, mac_update_mock):
+        ndict = utils.get_test_node(driver='fake')
+        self.dbapi.create_node(ndict)
+
+        pdict = utils.get_test_port(extra={'vif_port_id': 'fake-id'})
+        port = self.dbapi.create_port(pdict)
+        new_address = '11:22:33:44:55:bb'
+        port.address = new_address
+        res = self.service.update_port(self.context, port)
+        self.assertEqual(new_address, res.address)
+        mac_update_mock.assert_called_once_with('fake-id', new_address)
+
+    @mock.patch('ironic.common.neutron.NeutronAPI.update_port_address')
+    def test_update_port_address_fail(self, mac_update_mock):
+        ndict = utils.get_test_node(driver='fake')
+        self.dbapi.create_node(ndict)
+
+        pdict = utils.get_test_port(extra={'vif_port_id': 'fake-id'})
+        port = self.dbapi.create_port(pdict)
+        old_address = port.address
+        port.address = '11:22:33:44:55:bb'
+        mac_update_mock.side_effect = exception.FailedToUpdateMacOnPort(
+                                                            port_id=port.uuid)
+        exc = self.assertRaises(messaging.ClientException,
+                                self.service.update_port,
+                                self.context, port)
+        # Compare true exception hidden by @messaging.client_exceptions
+        self.assertEqual(exc._exc_info[0], exception.FailedToUpdateMacOnPort)
+        port.refresh(self.context)
+        self.assertEqual(old_address, port.address)
+
+    @mock.patch('ironic.common.neutron.NeutronAPI.update_port_address')
+    def test_update_port_address_no_vif_id(self, mac_update_mock):
+        ndict = utils.get_test_node(driver='fake')
+        self.dbapi.create_node(ndict)
+
+        pdict = utils.get_test_port()
+        port = self.dbapi.create_port(pdict)
+        new_address = '11:22:33:44:55:bb'
+        port.address = new_address
+        res = self.service.update_port(self.context, port)
+        self.assertEqual(new_address, res.address)
+        self.assertFalse(mac_update_mock.called)

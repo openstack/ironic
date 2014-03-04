@@ -201,6 +201,10 @@ class FailedToUpdateDHCPOptOnPort(IronicException):
     message = _("Update DHCP options on port: %(port_id)s failed.")
 
 
+class FailedToUpdateMacOnPort(IronicException):
+    message = _("Update MAC address on port: %(port_id)s failed.")
+
+
 class ChassisNotFound(NotFound):
     message = _("Chassis %(chassis)s could not be found.")
 

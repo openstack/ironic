@@ -114,3 +114,32 @@ class TestNeutron(base.TestCase):
                         exception.FailedToUpdateDHCPOptOnPort,
                         api.update_port_dhcp_opts,
                         port_id, opts)
+
+    @mock.patch.object(client.Client, 'update_port')
+    @mock.patch.object(client.Client, '__init__')
+    def test_neutron_address_update(self, mock_client_init, mock_update_port):
+        address = 'fe:54:00:77:07:d9'
+        port_id = 'fake-port-id'
+        expected = {'port': {'mac_address': address}}
+        my_context = context.RequestContext(user='test-user',
+                                            tenant='test-tenant')
+        mock_client_init.return_value = None
+        api = neutron.NeutronAPI(my_context)
+        mock_update_port.return_value = None
+        api.update_port_address(port_id, address)
+        mock_update_port.assert_called_once_with(port_id, expected)
+
+    @mock.patch.object(client.Client, 'update_port')
+    @mock.patch.object(client.Client, '__init__')
+    def test_neutron_address_update_with_exception(self, mock_client_init,
+                                                   mock_update_port):
+        address = 'fe:54:00:77:07:d9'
+        port_id = 'fake-port-id'
+        my_context = context.RequestContext(user='test-user',
+                                            tenant='test-tenant')
+        mock_client_init.return_value = None
+        api = neutron.NeutronAPI(my_context)
+        mock_update_port.side_effect = (
+                                neutron_client_exc.NeutronClientException())
+        self.assertRaises(exception.FailedToUpdateMacOnPort,
+                          api.update_port_address, port_id, address)

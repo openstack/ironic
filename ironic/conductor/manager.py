@@ -50,6 +50,7 @@ from oslo.config import cfg
 from ironic.common import driver_factory
 from ironic.common import exception
 from ironic.common import hash_ring as hash
+from ironic.common import neutron
 from ironic.common import service
 from ironic.common import states
 from ironic.conductor import task_manager
@@ -800,18 +801,34 @@ class ConductorManager(service.PeriodicService):
         finally:
             node.save(task.context)
 
-    @messaging.client_exceptions(exception.NodeLocked)
+    @messaging.client_exceptions(exception.NodeLocked,
+                                 exception.FailedToUpdateMacOnPort)
     def update_port(self, context, port_obj):
         """Update a port.
 
         :param context: request context.
         :param port_obj: a changed (but not saved) port object.
+        :raises: FailedToUpdateMacOnPort if MAC address changed and update
+                 Neutron failed.
         """
-        LOG.debug(_("RPC update_port called for port %s.") % port_obj.uuid)
+        port_uuid = port_obj.uuid
+        LOG.debug(_("RPC update_port called for port %s."), port_uuid)
 
-        with task_manager.acquire(context, port_obj.node_id):
+        with task_manager.acquire(context, port_obj.node_id) as task:
+            node = task.node
+            if 'address' in port_obj.obj_what_changed():
+                vif = port_obj.extra.get('vif_port_id')
+                if vif:
+                    api = neutron.NeutronAPI(context)
+                    api.update_port_address(vif, port_obj.address)
+                # Log warning if there is no vif_port_id and an instance
+                # is associated with the node.
+                elif node.instance_uuid:
+                    LOG.warning(_("No VIF found for instance %(instance)s "
+                        "port %(port)s when attempting to update Neutron "
+                        "port MAC address."),
+                        {'port': port_uuid, 'instance': node.instance_uuid})
 
-            # TODO(yuriyz): Update Neutron when mac address changed
             port_obj.save(context)
 
             return port_obj
