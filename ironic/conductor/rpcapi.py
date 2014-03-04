@@ -175,15 +175,19 @@ class ConductorAPI(ironic.openstack.common.rpc.proxy.RpcProxy):
         :param context: request context.
         :param node_id: node id or uuid.
         :param topic: RPC topic. Defaults to self.topic.
+        :raises: InstanceDeployFailure
+        :raises: InvalidParameterValue if validation fails
+        :raises: NoFreeConductorWorker when there is no free worker to start
+                 async task.
 
         The node must already be configured and in the appropriate
         undeployed state before this method is called.
 
         """
-        self.cast(context,
-                  self.make_msg('do_node_deploy',
-                                node_id=node_id),
-                  topic=topic or self.topic)
+        return self.call(context,
+                         self.make_msg('do_node_deploy',
+                                       node_id=node_id),
+                         topic=topic or self.topic)
 
     def do_node_tear_down(self, context, node_id, topic=None):
         """Signal to conductor service to tear down a deployment.

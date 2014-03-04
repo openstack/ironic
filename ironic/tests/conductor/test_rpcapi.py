@@ -132,7 +132,7 @@ class RPCAPITestCase(base.DbTestCase):
 
     def test_do_node_deploy(self):
         self._test_rpcapi('do_node_deploy',
-                          'cast',
+                          'call',
                           node_id=self.fake_node['uuid'])
 
     def test_do_node_tear_down(self):
