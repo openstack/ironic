@@ -86,7 +86,7 @@ fi
 
 BASEDIRESC=`echo $BASEDIR | sed -e 's/\//\\\\\//g'`
 find $TARGETDIR -type f -name "*.pyc" -delete
-FILES=$(find $TARGETDIR -type f -name "*.py" ! -path "*/tests/*" \
+FILES=$(find $TARGETDIR -type f -name "*.py" ! -path "*/tests/*" ! -path "*/nova/*" \
         -exec grep -l "Opt(" {} + | sed -e "s/^$BASEDIRESC\///g" | sort -u)
 
 RC_FILE="`dirname $0`/oslo.config.generator.rc"
