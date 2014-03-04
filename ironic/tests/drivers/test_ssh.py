@@ -115,12 +115,12 @@ class SSHValidateParametersTestCase(base.TestCase):
     def test__normalize_mac_string(self):
         mac_raw = "0A:1B-2C-3D:4F"
         mac_clean = ssh._normalize_mac(mac_raw)
-        self.assertEqual(mac_clean, "0a1b2c3d4f")
+        self.assertEqual("0a1b2c3d4f", mac_clean)
 
     def test__normalize_mac_unicode(self):
         mac_raw = u"0A:1B-2C-3D:4F"
         mac_clean = ssh._normalize_mac(mac_raw)
-        self.assertEqual(mac_clean, "0a1b2c3d4f")
+        self.assertEqual("0a1b2c3d4f", mac_clean)
 
     def test__parse_driver_info_with_custom_libvirt_uri(self):
         CONF.set_override('libvirt_uri', 'qemu:///foo', 'ssh')
@@ -202,7 +202,7 @@ class SSHPrivateMethodsTestCase(base.TestCase):
 
             ssh_cmd = "%s %s" % (info['cmd_set']['base_cmd'],
                                  info['cmd_set']['list_running'])
-            self.assertEqual(pstate, states.POWER_ON)
+            self.assertEqual(states.POWER_ON, pstate)
             self.exec_ssh_mock.assert_called_once_with(
                     self.sshclient, ssh_cmd)
             get_hosts_name_mock.assert_called_once_with(self.sshclient,
@@ -220,7 +220,7 @@ class SSHPrivateMethodsTestCase(base.TestCase):
 
             ssh_cmd = "%s %s" % (info['cmd_set']['base_cmd'],
                                  info['cmd_set']['list_running'])
-            self.assertEqual(pstate, states.POWER_OFF)
+            self.assertEqual(states.POWER_OFF, pstate)
             self.exec_ssh_mock.assert_called_once_with(self.sshclient,
                     ssh_cmd)
             get_hosts_name_mock.assert_called_once_with(self.sshclient,
@@ -277,8 +277,8 @@ class SSHPrivateMethodsTestCase(base.TestCase):
 
         found_name = ssh._get_hosts_name_for_node(self.sshclient, info)
 
-        self.assertEqual(found_name, 'NodeName')
-        self.assertEqual(self.exec_ssh_mock.call_args_list, expected)
+        self.assertEqual('NodeName', found_name)
+        self.assertEqual(expected, self.exec_ssh_mock.call_args_list)
 
     def test__get_hosts_name_for_node_no_match(self):
         info = ssh._parse_driver_info(self.node)
@@ -299,7 +299,7 @@ class SSHPrivateMethodsTestCase(base.TestCase):
         found_name = ssh._get_hosts_name_for_node(self.sshclient, info)
 
         self.assertIsNone(found_name)
-        self.assertEqual(self.exec_ssh_mock.call_args_list, expected)
+        self.assertEqual(expected, self.exec_ssh_mock.call_args_list)
 
     def test__get_hosts_name_for_node_exception(self):
         info = ssh._parse_driver_info(self.node)
@@ -341,9 +341,9 @@ class SSHPrivateMethodsTestCase(base.TestCase):
                 cmd_to_exec = cmd_to_exec.replace('{_NodeName_}', 'NodeName')
                 current_state = ssh._power_on(self.sshclient, info)
 
-                self.assertEqual(current_state, states.POWER_ON)
-                self.assertEqual(get_power_status_mock.call_args_list,
-                                 expected)
+                self.assertEqual(states.POWER_ON, current_state)
+                self.assertEqual(expected,
+                                 get_power_status_mock.call_args_list)
                 get_hosts_name_mock.assert_called_once_with(self.sshclient,
                                                             info)
                 self.exec_ssh_mock.assert_called_once_with(self.sshclient,
@@ -367,9 +367,9 @@ class SSHPrivateMethodsTestCase(base.TestCase):
                 cmd_to_exec = cmd_to_exec.replace('{_NodeName_}', 'NodeName')
                 current_state = ssh._power_on(self.sshclient, info)
 
-                self.assertEqual(current_state, states.ERROR)
-                self.assertEqual(get_power_status_mock.call_args_list,
-                                 expected)
+                self.assertEqual(states.ERROR, current_state)
+                self.assertEqual(expected,
+                                 get_power_status_mock.call_args_list)
                 get_hosts_name_mock.assert_called_once_with(self.sshclient,
                                                             info)
                 self.exec_ssh_mock.assert_called_once_with(self.sshclient,
@@ -421,9 +421,9 @@ class SSHPrivateMethodsTestCase(base.TestCase):
                 cmd_to_exec = cmd_to_exec.replace('{_NodeName_}', 'NodeName')
                 current_state = ssh._power_off(self.sshclient, info)
 
-                self.assertEqual(current_state, states.POWER_OFF)
-                self.assertEqual(get_power_status_mock.call_args_list,
-                                 expected)
+                self.assertEqual(states.POWER_OFF, current_state)
+                self.assertEqual(expected,
+                                 get_power_status_mock.call_args_list)
                 get_hosts_name_mock.assert_called_once_with(self.sshclient,
                                                             info)
                 self.exec_ssh_mock.assert_called_once_with(self.sshclient,
@@ -447,9 +447,9 @@ class SSHPrivateMethodsTestCase(base.TestCase):
                 cmd_to_exec = cmd_to_exec.replace('{_NodeName_}', 'NodeName')
                 current_state = ssh._power_off(self.sshclient, info)
 
-                self.assertEqual(current_state, states.ERROR)
-                self.assertEqual(get_power_status_mock.call_args_list,
-                                 expected)
+                self.assertEqual(states.ERROR, current_state)
+                self.assertEqual(expected,
+                                 get_power_status_mock.call_args_list)
                 get_hosts_name_mock.assert_called_once_with(self.sshclient,
                                                             info)
                 self.exec_ssh_mock.assert_called_once_with(self.sshclient,
@@ -513,7 +513,7 @@ class SSHPrivateMethodsTestCase(base.TestCase):
             stdout, stderr = processutils.ssh_execute(self.sshclient,
                                                       "command")
 
-            self.assertEqual(stdout, 'hello')
+            self.assertEqual('hello', stdout)
             exec_command_mock.assert_called_once_with("command")
 
     def test_exec_ssh_command_fail(self):
@@ -612,7 +612,7 @@ class SSHDriverTestCase(db_base.DbTestCase):
 
         with task_manager.acquire(self.context, [self.node['uuid']]) as task:
             node_macs = ssh._get_nodes_mac_addresses(task, self.node)
-        self.assertEqual(sorted(node_macs), sorted([p.address for p in ports]))
+        self.assertEqual(sorted([p.address for p in ports]), sorted(node_macs))
 
     def test__validate_info_ssh_connect_failed(self):
         info = ssh._parse_driver_info(self.node)

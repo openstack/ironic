@@ -301,7 +301,7 @@ class SwitchPxeConfigTestCase(tests_base.TestCase):
                                '12345678-1234-1234-1234-1234567890abcdef')
         with open(self.fname, 'r') as f:
             pxeconf = f.read()
-        self.assertEqual(pxeconf, _PXECONF_BOOT)
+        self.assertEqual(_PXECONF_BOOT, pxeconf)
 
 
 class OtherFunctionTestCase(tests_base.TestCase):
@@ -319,13 +319,13 @@ class OtherFunctionTestCase(tests_base.TestCase):
 
         self.useFixture(fixtures.MonkeyPatch('os.path.getsize', fake_getsize))
         size = 0
-        self.assertEqual(utils.get_image_mb('x'), 0)
+        self.assertEqual(0, utils.get_image_mb('x'))
         size = 1
-        self.assertEqual(utils.get_image_mb('x'), 1)
+        self.assertEqual(1, utils.get_image_mb('x'))
         size = mb
-        self.assertEqual(utils.get_image_mb('x'), 1)
+        self.assertEqual(1, utils.get_image_mb('x'))
         size = mb + 1
-        self.assertEqual(utils.get_image_mb('x'), 2)
+        self.assertEqual(2, utils.get_image_mb('x'))
 
 
 class WorkOnDiskTestCase(tests_base.TestCase):

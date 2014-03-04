@@ -93,13 +93,13 @@ class IronicImagesTestCase(base.TestCase):
                              ('rm', 't.qcow2.part'),
                              ('mv', 't.qcow2.converted', 't.qcow2')]
         images.fetch_to_raw(context, image_id, target)
-        self.assertEqual(self.executes, expected_commands)
+        self.assertEqual(expected_commands, self.executes)
 
         target = 't.raw'
         self.executes = []
         expected_commands = [('mv', 't.raw.part', 't.raw')]
         images.fetch_to_raw(context, image_id, target)
-        self.assertEqual(self.executes, expected_commands)
+        self.assertEqual(expected_commands, self.executes)
 
         target = 'backing.qcow2'
         self.executes = []
@@ -107,6 +107,6 @@ class IronicImagesTestCase(base.TestCase):
         self.assertRaises(exception.ImageUnacceptable,
                           images.fetch_to_raw,
                           context, image_id, target)
-        self.assertEqual(self.executes, expected_commands)
+        self.assertEqual(expected_commands, self.executes)
 
         del self.executes

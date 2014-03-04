@@ -75,7 +75,7 @@ class IPMINativePrivateMethodTestCase(base.TestCase):
 
         state = ipminative._power_status(self.info)
         ipmicmd.get_power.assert_called_once_with()
-        self.assertEqual(state, states.POWER_ON)
+        self.assertEqual(states.POWER_ON, state)
 
     def test__power_status_off(self):
         ipmicmd = self.ipmi_mock.return_value
@@ -83,7 +83,7 @@ class IPMINativePrivateMethodTestCase(base.TestCase):
 
         state = ipminative._power_status(self.info)
         ipmicmd.get_power.assert_called_once_with()
-        self.assertEqual(state, states.POWER_OFF)
+        self.assertEqual(states.POWER_OFF, state)
 
     def test__power_status_error(self):
         ipmicmd = self.ipmi_mock.return_value
@@ -91,7 +91,7 @@ class IPMINativePrivateMethodTestCase(base.TestCase):
 
         state = ipminative._power_status(self.info)
         ipmicmd.get_power.assert_called_once_with()
-        self.assertEqual(state, states.ERROR)
+        self.assertEqual(states.ERROR, state)
 
     def test__power_on(self):
         ipmicmd = self.ipmi_mock.return_value
@@ -100,7 +100,7 @@ class IPMINativePrivateMethodTestCase(base.TestCase):
         self.config(retry_timeout=400, group='ipmi')
         state = ipminative._power_on(self.info)
         ipmicmd.set_power.assert_called_once_with('on', 400)
-        self.assertEqual(state, states.POWER_ON)
+        self.assertEqual(states.POWER_ON, state)
 
     def test__power_off(self):
         ipmicmd = self.ipmi_mock.return_value
@@ -109,7 +109,7 @@ class IPMINativePrivateMethodTestCase(base.TestCase):
         self.config(retry_timeout=500, group='ipmi')
         state = ipminative._power_off(self.info)
         ipmicmd.set_power.assert_called_once_with('off', 500)
-        self.assertEqual(state, states.POWER_OFF)
+        self.assertEqual(states.POWER_OFF, state)
 
     def test__reboot(self):
         ipmicmd = self.ipmi_mock.return_value
@@ -118,7 +118,7 @@ class IPMINativePrivateMethodTestCase(base.TestCase):
         self.config(retry_timeout=600, group='ipmi')
         state = ipminative._reboot(self.info)
         ipmicmd.set_power.assert_called_once_with('boot', 600)
-        self.assertEqual(state, states.POWER_ON)
+        self.assertEqual(states.POWER_ON, state)
 
 
 class IPMINativeDriverTestCase(db_base.DbTestCase):
@@ -152,13 +152,13 @@ class IPMINativeDriverTestCase(db_base.DbTestCase):
             get_power_mock.side_effect = lambda: return_values.pop()
 
             pstate = self.driver.power.get_power_state(None, self.node)
-            self.assertEqual(pstate, states.POWER_OFF)
+            self.assertEqual(states.POWER_OFF, pstate)
 
             pstate = self.driver.power.get_power_state(None, self.node)
-            self.assertEqual(pstate, states.POWER_ON)
+            self.assertEqual(states.POWER_ON, pstate)
 
             pstate = self.driver.power.get_power_state(None, self.node)
-            self.assertEqual(pstate, states.ERROR)
+            self.assertEqual(states.ERROR, pstate)
             self.assertEqual(3, get_power_mock.call_count,
                              "pyghmi.ipmi.command.Command.get_power was not"
                              " called 3 times.")

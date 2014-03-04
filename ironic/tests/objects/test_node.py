@@ -66,10 +66,10 @@ class TestNodeObject(base.DbTestCase):
         with mock.patch.object(self.dbapi, 'get_node', side_effect=returns,
                                autospec=True) as mock_get_node:
             n = objects.Node.get_by_uuid(self.context, uuid)
-            self.assertEqual(n.properties, {"fake": "first"})
+            self.assertEqual({"fake": "first"}, n.properties)
             n.refresh()
-            self.assertEqual(n.properties, {"fake": "second"})
-            self.assertEqual(mock_get_node.call_args_list, expected)
+            self.assertEqual({"fake": "second"}, n.properties)
+            self.assertEqual(expected, mock_get_node.call_args_list)
 
     def test_objectify(self):
         def _get_db_node():

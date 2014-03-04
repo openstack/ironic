@@ -100,10 +100,10 @@ class RPCAPITestCase(base.DbTestCase):
 
         retval = getattr(rpcapi, method)(ctxt, **kwargs)
 
-        self.assertEqual(retval, expected_retval)
+        self.assertEqual(expected_retval, retval)
         expected_args = [ctxt, expected_topic, expected_msg]
         for arg, expected_arg in zip(self.fake_args, expected_args):
-            self.assertEqual(arg, expected_arg)
+            self.assertEqual(expected_arg, arg)
 
     def test_update_node(self):
         self._test_rpcapi('update_node',
@@ -128,7 +128,7 @@ class RPCAPITestCase(base.DbTestCase):
                 'ironic.openstack.common.rpc.call', _fake_rpc_method))
         retval = rpcapi.vendor_passthru(ctxt, node_id=self.fake_node['uuid'],
                                     driver_method='foo', info={'bar': 'baz'})
-        self.assertEqual(retval, expected_retval)
+        self.assertEqual(expected_retval, retval)
 
     def test_do_node_deploy(self):
         self._test_rpcapi('do_node_deploy',

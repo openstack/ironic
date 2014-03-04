@@ -448,7 +448,7 @@ class TestMigrations(BaseMigrationTestCase, WalkVersionsMixin):
                                        "and TABLE_NAME!='alembic_version'" %
                                        database)
         count = noninnodb.scalar()
-        self.assertEqual(count, 0, "%d non InnoDB tables created" % count)
+        self.assertEqual(0, count, "%d non InnoDB tables created" % count)
         connection.close()
 
     def _test_postgresql_opportunistically(self):

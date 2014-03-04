@@ -73,9 +73,9 @@ class TestGlanceSerializer(testtools.TestCase):
                 '{"virtual_device": "ephemeral0", '
                 '"device_name": "/dev/fake0"}]'}}
         converted = service_utils._convert(metadata, 'to')
-        self.assertEqual(converted, converted_expected)
-        self.assertEqual(service_utils._convert(converted, 'from'),
-                         metadata)
+        self.assertEqual(converted_expected, converted)
+        self.assertEqual(metadata,
+                         service_utils._convert(converted, 'from'))
 
 
 class TestGlanceImageService(base.TestCase):
@@ -215,8 +215,8 @@ class TestGlanceImageService(base.TestCase):
         self.context.project_id = proj
 
         self.assertEqual(1, len(image_metas))
-        self.assertEqual(image_metas[0]['name'], 'test image')
-        self.assertEqual(image_metas[0]['is_public'], False)
+        self.assertEqual('test image', image_metas[0]['name'])
+        self.assertEqual(False, image_metas[0]['is_public'])
 
     def test_detail_marker(self):
         fixtures = []
@@ -227,7 +227,7 @@ class TestGlanceImageService(base.TestCase):
             ids.append(self.service.create(fixture)['id'])
 
         image_metas = self.service.detail(marker=ids[1])
-        self.assertEqual(len(image_metas), 8)
+        self.assertEqual(8, len(image_metas))
         i = 2
         for meta in image_metas:
             expected = {
@@ -261,7 +261,7 @@ class TestGlanceImageService(base.TestCase):
             ids.append(self.service.create(fixture)['id'])
 
         image_metas = self.service.detail(limit=5)
-        self.assertEqual(len(image_metas), 5)
+        self.assertEqual(5, len(image_metas))
 
     def test_detail_default_limit(self):
         fixtures = []
@@ -284,7 +284,7 @@ class TestGlanceImageService(base.TestCase):
             ids.append(self.service.create(fixture)['id'])
 
         image_metas = self.service.detail(marker=ids[3], limit=5)
-        self.assertEqual(len(image_metas), 5)
+        self.assertEqual(5, len(image_metas))
         i = 4
         for meta in image_metas:
             expected = {
@@ -381,7 +381,7 @@ class TestGlanceImageService(base.TestCase):
             'properties': {},
             'owner': None,
         }
-        self.assertEqual(image_meta, expected)
+        self.assertEqual(expected, image_meta)
 
     def test_show_raises_when_no_authtoken_in_the_context(self):
         fixture = self._make_fixture(name='image1',
@@ -417,21 +417,21 @@ class TestGlanceImageService(base.TestCase):
                 'owner': None,
             },
         ]
-        self.assertEqual(image_metas, expected)
+        self.assertEqual(expected, image_metas)
 
     def test_show_makes_datetimes(self):
         fixture = self._make_datetime_fixture()
         image_id = self.service.create(fixture)['id']
         image_meta = self.service.show(image_id)
-        self.assertEqual(image_meta['created_at'], self.NOW_DATETIME)
-        self.assertEqual(image_meta['updated_at'], self.NOW_DATETIME)
+        self.assertEqual(self.NOW_DATETIME, image_meta['created_at'])
+        self.assertEqual(self.NOW_DATETIME, image_meta['updated_at'])
 
     def test_detail_makes_datetimes(self):
         fixture = self._make_datetime_fixture()
         self.service.create(fixture)
         image_meta = self.service.detail()[0]
-        self.assertEqual(image_meta['created_at'], self.NOW_DATETIME)
-        self.assertEqual(image_meta['updated_at'], self.NOW_DATETIME)
+        self.assertEqual(self.NOW_DATETIME, image_meta['created_at'])
+        self.assertEqual(self.NOW_DATETIME, image_meta['updated_at'])
 
     def test_download_with_retries(self):
         tries = [0]
@@ -620,7 +620,7 @@ class TestGlanceUrl(base.TestCase):
         generated_url = service_utils.generate_glance_url()
         http_url = "http://%s:%d" % (CONF.glance.glance_host,
                                      CONF.glance.glance_port)
-        self.assertEqual(generated_url, http_url)
+        self.assertEqual(http_url, generated_url)
 
     def test_generate_glance_https_url(self):
         self.config(glance_protocol="https", group='glance')
@@ -628,7 +628,7 @@ class TestGlanceUrl(base.TestCase):
         generated_url = service_utils.generate_glance_url()
         https_url = "https://%s:%d" % (CONF.glance.glance_host,
                                        CONF.glance.glance_port)
-        self.assertEqual(generated_url, https_url)
+        self.assertEqual(https_url, generated_url)
 
 
 class TestServiceUtils(base.TestCase):
@@ -636,12 +636,12 @@ class TestServiceUtils(base.TestCase):
     def test_parse_image_ref_no_ssl(self):
         image_href = 'http://127.0.0.1:9292/image_path/image_uuid'
         parsed_href = service_utils.parse_image_ref(image_href)
-        self.assertEqual(parsed_href, ('image_uuid', '127.0.0.1', 9292, False))
+        self.assertEqual(('image_uuid', '127.0.0.1', 9292, False), parsed_href)
 
     def test_parse_image_ref_ssl(self):
         image_href = 'https://127.0.0.1:9292/image_path/image_uuid'
         parsed_href = service_utils.parse_image_ref(image_href)
-        self.assertEqual(parsed_href, ('image_uuid', '127.0.0.1', 9292, True))
+        self.assertEqual(('image_uuid', '127.0.0.1', 9292, True), parsed_href)
 
     def test_generate_image_url(self):
         image_href = 'image_uuid'
@@ -649,5 +649,5 @@ class TestServiceUtils(base.TestCase):
         self.config(glance_port=1234, group='glance')
         self.config(glance_protocol='https', group='glance')
         generated_url = service_utils.generate_image_url(image_href)
-        self.assertEqual(generated_url,
-                         'https://123.123.123.123:1234/images/image_uuid')
+        self.assertEqual('https://123.123.123.123:1234/images/image_uuid',
+                         generated_url)

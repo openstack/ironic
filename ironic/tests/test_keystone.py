@@ -51,7 +51,7 @@ class KeystoneTestCase(base.TestCase):
                         _fake_client))
 
         res = keystone.get_service_url()
-        self.assertEqual(res, fake_url)
+        self.assertEqual(fake_url, res)
 
     def test_url_not_found(self):
 

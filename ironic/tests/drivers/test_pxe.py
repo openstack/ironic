@@ -175,8 +175,8 @@ class PXEValidateParametersTestCase(base.TestCase):
 
     def test__get_pxe_mac_path(self):
         mac = '00:11:22:33:44:55:66'
-        self.assertEqual(pxe._get_pxe_mac_path(mac),
-                         '/tftpboot/pxelinux.cfg/01-00-11-22-33-44-55-66')
+        self.assertEqual('/tftpboot/pxelinux.cfg/01-00-11-22-33-44-55-66',
+                         pxe._get_pxe_mac_path(mac))
 
     def test__link_master_image(self):
         temp_dir = tempfile.mkdtemp()
@@ -185,7 +185,7 @@ class PXEValidateParametersTestCase(base.TestCase):
         open(orig_path, 'w').close()
         pxe._link_master_image(orig_path, dest_path)
         self.assertIsNotNone(os.path.exists(dest_path))
-        self.assertEqual(os.stat(dest_path).st_nlink, 2)
+        self.assertEqual(2, os.stat(dest_path).st_nlink)
 
     def test__unlink_master_image(self):
         temp_dir = tempfile.mkdtemp()
@@ -204,7 +204,7 @@ class PXEValidateParametersTestCase(base.TestCase):
         self.assertTrue(os.path.exists(master_path))
         self.assertTrue(os.path.exists(instance_path))
         self.assertFalse(os.path.exists(tmp_path))
-        self.assertEqual(os.stat(master_path).st_nlink, 2)
+        self.assertEqual(2, os.stat(master_path).st_nlink)
 
     def test__download_in_progress(self):
         temp_dir = tempfile.mkdtemp()
@@ -248,8 +248,8 @@ class PXEValidateParametersTestCase(base.TestCase):
         self.assertFalse(os.path.exists(lock_file))
         self.assertTrue(os.path.exists(os.path.join(instance_path,
                                                     'node_uuid')))
-        self.assertEqual(os.stat(os.path.join(master_path, 'node_uuid')).
-                             st_nlink, 2)
+        self.assertEqual(2, os.stat(os.path.join(master_path, 'node_uuid')).
+                             st_nlink)
 
 
 class PXEPrivateMethodsTestCase(db_base.DbTestCase):
@@ -303,7 +303,7 @@ class PXEPrivateMethodsTestCase(db_base.DbTestCase):
             image_info = pxe._get_tftp_image_info(self.node, self.context)
             show_mock.assert_called_once_with('glance://image_uuid',
                                                method='get')
-            self.assertEqual(image_info, expected_info)
+            self.assertEqual(expected_info, image_info)
 
     def test__build_pxe_config(self):
         self.config(pxe_append_params='test_param', group='pxe')
@@ -339,12 +339,12 @@ class PXEPrivateMethodsTestCase(db_base.DbTestCase):
                                                self.context)
 
             random_alnum_mock.assert_called_once_with(32)
-            self.assertEqual(pxe_config, pxe_config_template)
+            self.assertEqual(pxe_config_template, pxe_config)
 
         # test that deploy_key saved
         db_node = self.dbapi.get_node(self.node['uuid'])
         db_key = db_node['driver_info'].get('pxe_deploy_key')
-        self.assertEqual(db_key, fake_key)
+        self.assertEqual(fake_key, db_key)
 
     def test__get_nodes_mac_addresses(self):
         self._create_test_port(node_id=self.node.id,
@@ -470,8 +470,8 @@ class PXEPrivateMethodsTestCase(db_base.DbTestCase):
 
     def test_get_token_file_path(self):
         node_uuid = self.node['uuid']
-        self.assertEqual(pxe._get_token_file_path(node_uuid),
-                         '/tftpboot/token-' + node_uuid)
+        self.assertEqual('/tftpboot/token-' + node_uuid,
+                         pxe._get_token_file_path(node_uuid))
 
     def test__cache_tftp_images_master_path(self):
         temp_dir = tempfile.mkdtemp()
@@ -532,9 +532,9 @@ class PXEPrivateMethodsTestCase(db_base.DbTestCase):
                             'glance://image_uuid',
                             os.path.join(temp_dir, self.node.uuid, 'disk'),
                             None)
-            self.assertEqual(uuid, 'glance://image_uuid')
-            self.assertEqual(image_path,
-                             os.path.join(temp_dir, self.node.uuid, 'disk'))
+            self.assertEqual('glance://image_uuid', uuid)
+            self.assertEqual(os.path.join(temp_dir, self.node.uuid, 'disk'),
+                             image_path)
 
     def test__cache_instance_images_master_path(self):
         temp_dir = tempfile.mkdtemp()
@@ -568,11 +568,11 @@ class PXEPrivateMethodsTestCase(db_base.DbTestCase):
                                                        None)
                     parse_image_ref_mock.assert_called_once_with(
                                                        'glance://image_uuid')
-                    self.assertEqual(uuid, 'glance://image_uuid')
-                    self.assertEqual(image_path,
-                                     os.path.join(temp_dir,
+                    self.assertEqual('glance://image_uuid', uuid)
+                    self.assertEqual(os.path.join(temp_dir,
                                                   self.node.uuid,
-                                                  'disk'))
+                                                  'disk'),
+                                     image_path)
 
     def test__get_image_download_in_progress(self):
         def _create_instance_path(*args):
@@ -664,7 +664,7 @@ class PXEDriverTestCase(db_base.DbTestCase):
                     node_id='123')))
         with task_manager.acquire(self.context, [self.node['uuid']]) as task:
             node_macs = pxe._get_node_mac_addresses(task, self.node)
-        self.assertEqual(sorted(node_macs), sorted([p.address for p in ports]))
+        self.assertEqual(sorted([p.address for p in ports]), sorted(node_macs))
 
     def test_vendor_passthru_validate_good(self):
         with task_manager.acquire(self.context, [self.node['uuid']],
@@ -720,7 +720,7 @@ class PXEDriverTestCase(db_base.DbTestCase):
                 with task_manager.acquire(self.context,
                         self.node['uuid'], shared=False) as task:
                     state = task.driver.deploy.deploy(task, self.node)
-                    self.assertEqual(state, states.DEPLOYWAIT)
+                    self.assertEqual(states.DEPLOYWAIT, state)
                     update_neutron_mock.assert_called_once_with(task,
                                                                 self.node)
                     node_power_mock.assert_called_once_with(task, self.node,
@@ -737,7 +737,7 @@ class PXEDriverTestCase(db_base.DbTestCase):
             with task_manager.acquire(self.context,
                     self.node['uuid']) as task:
                 state = task.driver.deploy.tear_down(task, self.node)
-                self.assertEqual(state, states.DELETED)
+                self.assertEqual(states.DELETED, state)
                 node_power_mock.assert_called_once_with(task, self.node,
                                                         states.POWER_OFF)
 

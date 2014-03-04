@@ -51,7 +51,7 @@ class NodePowerActionTestCase(base.DbTestCase):
 
             node.refresh(self.context)
             get_power_mock.assert_called_once_with(mock.ANY, mock.ANY)
-            self.assertEqual(node['power_state'], states.POWER_ON)
+            self.assertEqual(states.POWER_ON, node['power_state'])
             self.assertIsNone(node['target_power_state'])
             self.assertIsNone(node['last_error'])
 
@@ -72,7 +72,7 @@ class NodePowerActionTestCase(base.DbTestCase):
 
             node.refresh(self.context)
             get_power_mock.assert_called_once_with(mock.ANY, mock.ANY)
-            self.assertEqual(node['power_state'], states.POWER_OFF)
+            self.assertEqual(states.POWER_OFF, node['power_state'])
             self.assertIsNone(node['target_power_state'])
             self.assertIsNone(node['last_error'])
 
@@ -90,7 +90,7 @@ class NodePowerActionTestCase(base.DbTestCase):
 
             node.refresh(self.context)
             reboot_mock.assert_called_once_with(mock.ANY, mock.ANY)
-            self.assertEqual(node['power_state'], states.POWER_ON)
+            self.assertEqual(states.POWER_ON, node['power_state'])
             self.assertIsNone(node['target_power_state'])
             self.assertIsNone(node['last_error'])
 
@@ -116,7 +116,7 @@ class NodePowerActionTestCase(base.DbTestCase):
 
             node.refresh(self.context)
             get_power_mock.assert_called_once_with(mock.ANY, mock.ANY)
-            self.assertEqual(node['power_state'], states.POWER_ON)
+            self.assertEqual(states.POWER_ON, node['power_state'])
             self.assertIsNone(node['target_power_state'])
             self.assertIsNotNone(node['last_error'])
 
@@ -124,7 +124,7 @@ class NodePowerActionTestCase(base.DbTestCase):
             conductor_utils.node_power_action(task, task.node,
                                               states.POWER_OFF)
             node.refresh(self.context)
-            self.assertEqual(node['power_state'], states.POWER_OFF)
+            self.assertEqual(states.POWER_OFF, node['power_state'])
             self.assertIsNone(node['target_power_state'])
             self.assertIsNone(node['last_error'])
 
@@ -146,8 +146,8 @@ class NodePowerActionTestCase(base.DbTestCase):
                                           states.POWER_OFF)
 
         node.refresh(self.context)
-        self.assertEqual(node['power_state'], states.POWER_OFF)
-        self.assertEqual(node['target_power_state'], states.NOSTATE)
+        self.assertEqual(states.POWER_OFF, node['power_state'])
+        self.assertEqual(states.NOSTATE, node['target_power_state'])
         self.assertIsNone(node['last_error'])
 
     def test_node_power_action_in_same_state(self):
@@ -174,7 +174,7 @@ class NodePowerActionTestCase(base.DbTestCase):
                 get_power_mock.assert_called_once_with(mock.ANY, mock.ANY)
                 self.assertFalse(set_power_mock.called,
                                  "set_power_state unexpectedly called")
-                self.assertEqual(node['power_state'], states.POWER_ON)
+                self.assertEqual(states.POWER_ON, node['power_state'])
                 self.assertIsNone(node['target_power_state'])
                 self.assertIsNone(node['last_error'])
 
@@ -201,7 +201,7 @@ class NodePowerActionTestCase(base.DbTestCase):
 
             node.refresh(self.context)
             validate_mock.assert_called_once_with(mock.ANY, mock.ANY)
-            self.assertEqual(node['power_state'], states.POWER_ON)
+            self.assertEqual(states.POWER_ON, node['power_state'])
             self.assertIsNone(node['target_power_state'])
             self.assertIsNotNone(node['last_error'])
 
@@ -233,6 +233,6 @@ class NodePowerActionTestCase(base.DbTestCase):
                 get_power_mock.assert_called_once_with(mock.ANY, mock.ANY)
                 set_power_mock.assert_called_once_with(mock.ANY, mock.ANY,
                                                        states.POWER_ON)
-                self.assertEqual(node['power_state'], states.POWER_OFF)
+                self.assertEqual(states.POWER_OFF, node['power_state'])
                 self.assertIsNone(node['target_power_state'])
                 self.assertIsNotNone(node['last_error'])

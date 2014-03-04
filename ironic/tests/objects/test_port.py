@@ -62,11 +62,11 @@ class TestPortObject(base.DbTestCase):
         with mock.patch.object(self.dbapi, 'get_port', side_effect=returns,
                                autospec=True) as mock_get_port:
             p = objects.Port.get_by_uuid(self.context, uuid)
-            self.assertEqual(p.address, "52:54:00:cf:2d:31")
+            self.assertEqual("52:54:00:cf:2d:31", p.address)
             p.refresh()
-            self.assertEqual(p.address, "c3:54:00:cf:2d:40")
+            self.assertEqual("c3:54:00:cf:2d:40", p.address)
 
-            self.assertEqual(mock_get_port.call_args_list, expected)
+            self.assertEqual(expected, mock_get_port.call_args_list)
 
     def test_objectify(self):
         def _get_db_port():
