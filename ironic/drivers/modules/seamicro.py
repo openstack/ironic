@@ -1,4 +1,3 @@
-# vim: tabstop=4 shiftwidth=4 softtabstop=4
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
 #    not use this file except in compliance with the License. You may obtain
 #    a copy of the License at
@@ -68,13 +67,14 @@ def _parse_driver_info(node):
 
     :param node: An Ironic node object.
     :returns: SeaMicro driver info.
+    :raises: InvalidParameterValue if any required parameters are missing.
     """
 
     info = node.get('driver_info', {})
-    api_endpoint = info.get('seamicro_api_endpoint', None)
-    username = info.get('seamicro_username', None)
-    password = info.get('seamicro_password', None)
-    server_id = info.get('seamicro_server_id', None)
+    api_endpoint = info.get('seamicro_api_endpoint')
+    username = info.get('seamicro_username')
+    password = info.get('seamicro_password')
+    server_id = info.get('seamicro_server_id')
     api_version = info.get('seamicro_api_version', "2")
 
     if not api_endpoint:
@@ -110,6 +110,9 @@ def _get_power_status(node):
     """Get current power state of this node
 
     :param node: Ironic node one of :class:`ironic.db.models.Node`
+    :raises: InvalidParameterValue if required seamicro parameters are
+        missing.
+    :raises: ServiceUnavailable on an error from SeaMicro Client.
     :returns: Power state of the given node
     """
 
@@ -124,10 +127,10 @@ def _get_power_status(node):
             return states.POWER_ON
 
     except seamicro_client_exception.NotFound:
-        raise exception.NodeNotFound(node=seamicro_info['uuid'])
+        raise exception.NodeNotFound(node=node.uuid)
     except seamicro_client_exception.ClientException as ex:
         LOG.error(_("SeaMicro client exception %(msg)s for node %(uuid)s"),
-                  {'msg': ex.message, 'uuid': seamicro_info['uuid']})
+                  {'msg': ex.message, 'uuid': node.uuid})
         raise exception.ServiceUnavailable(message=ex.message)
 
 
@@ -136,6 +139,8 @@ def _power_on(node, timeout=None):
 
     :param node: An Ironic node object.
     :param timeout: Time in seconds to wait till power on is complete.
+    :raises: InvalidParameterValue if required seamicro parameters are
+        missing.
     :returns: Power state of the given node.
     """
     if timeout is None:
@@ -160,7 +165,7 @@ def _power_on(node, timeout=None):
             server.power_on()
         except seamicro_client_exception.ClientException:
             LOG.warning(_("Power-on failed for node %s."),
-                        seamicro_info['uuid'])
+                        node.uuid)
 
     timer = loopingcall.FixedIntervalLoopingCall(_wait_for_power_on,
                                                  state, retries)
@@ -173,6 +178,8 @@ def _power_off(node, timeout=None):
 
     :param node: Ironic node one of :class:`ironic.db.models.Node`
     :param timeout: Time in seconds to wait till power off is compelete
+    :raises: InvalidParameterValue if required seamicro parameters are
+        missing.
     :returns: Power state of the given node
     """
     if timeout is None:
@@ -197,7 +204,7 @@ def _power_off(node, timeout=None):
             server.power_off()
         except seamicro_client_exception.ClientException:
             LOG.warning(_("Power-off failed for node %s."),
-                        seamicro_info['uuid'])
+                        node.uuid)
 
     timer = loopingcall.FixedIntervalLoopingCall(_wait_for_power_off,
                                                  state, retries)
@@ -209,6 +216,8 @@ def _reboot(node, timeout=None):
     """Reboot this node
     :param node: Ironic node one of :class:`ironic.db.models.Node`
     :param timeout: Time in seconds to wait till reboot is compelete
+    :raises: InvalidParameterValue if required seamicro parameters are
+        missing.
     :returns: Power state of the given node
     """
     if timeout is None:
@@ -234,7 +243,7 @@ def _reboot(node, timeout=None):
             server.reset()
         except seamicro_client_exception.ClientException:
             LOG.warning(_("Reboot failed for node %s."),
-                        seamicro_info['uuid'])
+                        node.uuid)
 
     timer = loopingcall.FixedIntervalLoopingCall(_wait_for_reboot,
                                                  state, retries)
@@ -256,7 +265,8 @@ class Power(base.PowerInterface):
         Check that node 'driver_info' contains the required fields.
 
         :param node: Single node object.
-        :raises: InvalidParameterValue
+        :raises: InvalidParameterValue if required seamicro parameters are
+            missing.
         """
         _parse_driver_info(node)
 
@@ -267,7 +277,9 @@ class Power(base.PowerInterface):
 
         :param task: A instance of `ironic.manager.task_manager.TaskManager`.
         :param node: A single node.
-
+        :raises: InvalidParameterValue if required seamicro parameters are
+            missing.
+        :raises: ServiceUnavailable on an error from SeaMicro Client.
         :returns: power state. One of :class:`ironic.common.states`.
         """
         return _get_power_status(node)
@@ -282,6 +294,8 @@ class Power(base.PowerInterface):
         :param node: A single node.
         :param pstate: Either POWER_ON or POWER_OFF from :class:
             `ironic.common.states`.
+        :raises: InvalidParameterValue if an invalid power state was specified.
+        :raises: PowerStateFailure if the desired power state couldn't be set.
         """
 
         if pstate == states.POWER_ON:
@@ -289,7 +303,7 @@ class Power(base.PowerInterface):
         elif pstate == states.POWER_OFF:
             state = _power_off(node)
         else:
-            raise exception.IronicException(_(
+            raise exception.InvalidParameterValue(_(
                 "set_power_state called with invalid power state."))
 
         if state != pstate:
@@ -301,7 +315,10 @@ class Power(base.PowerInterface):
 
         :param task: a TaskManager instance.
         :param node: An Ironic node object.
-
+        :raises: InvalidParameterValue if required seamicro parameters are
+            missing.
+        :raises: PowerStateFailure if the final state of the node is not
+            POWER_ON.
         """
         state = _reboot(node)
 
