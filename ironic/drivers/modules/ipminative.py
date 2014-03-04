@@ -306,7 +306,7 @@ class VendorPassthru(base.VendorInterface):
         """
         method = kwargs['method']
         if method == 'set_boot_device':
-            device = kwargs.get('device', None)
+            device = kwargs.get('device')
             if device not in ipmi_command.boot_devices:
                 raise exception.InvalidParameterValue(_(
                     "Invalid boot device %s specified.") % device)
