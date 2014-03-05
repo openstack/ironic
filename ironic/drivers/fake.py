@@ -25,6 +25,7 @@ from ironic.drivers.modules import ipmitool
 from ironic.drivers.modules import pxe
 from ironic.drivers.modules import seamicro
 from ironic.drivers.modules import ssh
+from ironic.drivers import utils
 from ironic.openstack.common import importutils
 
 
@@ -35,9 +36,11 @@ class FakeDriver(base.BaseDriver):
         self.power = fake.FakePower()
         self.deploy = fake.FakeDeploy()
 
-        a = fake.FakeVendorA()
-        b = fake.FakeVendorB()
-        self.vendor = fake.MultipleVendorInterface(a, b)
+        self.a = fake.FakeVendorA()
+        self.b = fake.FakeVendorB()
+        self.mapping = {'first_method': self.a,
+                        'second_method': self.b}
+        self.vendor = utils.MixinVendorInterface(self.mapping)
         self.console = fake.FakeConsole()
 
 

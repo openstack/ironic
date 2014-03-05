@@ -129,37 +129,6 @@ class FakeVendorB(base.VendorInterface):
         _raise_unsupported_error(method)
 
 
-class MultipleVendorInterface(base.VendorInterface):
-    """Example of a wrapper around two VendorInterfaces."""
-
-    def __init__(self, first, second):
-        self.interface_one = first
-        self.interface_two = second
-        self.mapping = {'first_method': self.interface_one,
-                        'second_method': self.interface_two}
-
-    def _map(self, **kwargs):
-        """Map methods to interfaces.
-
-        :returns: an instance of a VendorInterface
-        :raises: InvalidParameterValue if **kwargs does not contain 'method'
-                 or if the method can not be mapped to an interface.
-
-        """
-        method = kwargs.get('method')
-        return self.mapping.get(method) or _raise_unsupported_error(method)
-
-    def validate(self, *args, **kwargs):
-        """Call validate on the appropriate interface only."""
-        route = self._map(**kwargs)
-        route.validate(*args, **kwargs)
-
-    def vendor_passthru(self, task, node, **kwargs):
-        """Call vendor_passthru on the appropriate interface only."""
-        route = self._map(**kwargs)
-        return route.vendor_passthru(task, node, **kwargs)
-
-
 class FakeConsole(base.ConsoleInterface):
     """Example implementation of a simple console interface."""
 

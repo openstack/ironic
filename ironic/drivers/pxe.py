@@ -24,6 +24,7 @@ from ironic.drivers.modules import ipmitool
 from ironic.drivers.modules import pxe
 from ironic.drivers.modules import seamicro
 from ironic.drivers.modules import ssh
+from ironic.drivers import utils
 from ironic.openstack.common import importutils
 
 
@@ -40,7 +41,11 @@ class PXEAndIPMIToolDriver(base.BaseDriver):
         self.power = ipmitool.IPMIPower()
         self.deploy = pxe.PXEDeploy()
         self.rescue = self.deploy
-        self.vendor = pxe.VendorPassthru()
+        self.pxe_vendor = pxe.VendorPassthru()
+        self.ipmi_vendor = ipmitool.VendorPassthru()
+        self.mapping = {'pass_deploy_info': self.pxe_vendor,
+                        'set_boot_device': self.ipmi_vendor}
+        self.vendor = utils.MixinVendorInterface(self.mapping)
 
 
 class PXEAndSSHDriver(base.BaseDriver):
@@ -77,7 +82,11 @@ class PXEAndIPMINativeDriver(base.BaseDriver):
         self.power = ipminative.NativeIPMIPower()
         self.deploy = pxe.PXEDeploy()
         self.rescue = self.deploy
-        self.vendor = pxe.VendorPassthru()
+        self.pxe_vendor = pxe.VendorPassthru()
+        self.ipmi_vendor = ipminative.VendorPassthru()
+        self.mapping = {'pass_deploy_info': self.pxe_vendor,
+                        'set_boot_device': self.ipmi_vendor}
+        self.vendor = utils.MixinVendorInterface(self.mapping)
 
 
 class PXEAndSeaMicroDriver(base.BaseDriver):

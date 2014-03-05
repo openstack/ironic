@@ -70,34 +70,3 @@ class FakeDriverTestCase(base.TestCase):
 
         self.driver.deploy.clean_up(None, None)
         self.driver.deploy.tear_down(None, None)
-
-    def test_vendor_interface_route_valid_methods(self):
-        info = {'method': 'first_method', 'bar': 'baz'}
-        self.driver.vendor.validate(None, self.node, **info)
-        self.assertTrue(self.driver.vendor.vendor_passthru(
-                None, self.node, **info))
-
-        info['bar'] = 'bad info'
-        self.assertFalse(self.driver.vendor.vendor_passthru(
-                None, self.node, **info))
-
-        info['method'] = 'second_method'
-        self.driver.vendor.validate(None, self.node, **info)
-        self.assertFalse(self.driver.vendor.vendor_passthru(
-                None, self.node, **info))
-
-        info['bar'] = 'kazoo'
-        self.assertTrue(self.driver.vendor.vendor_passthru(
-                None, self.node, **info))
-
-    def test_vendor_interface_missing_param(self):
-        info = {'method': 'first_method'}
-        self.assertRaises(exception.InvalidParameterValue,
-                          self.driver.vendor.validate,
-                          None, self.node, **info)
-
-    def test_vendor_interface_bad_method(self):
-        info = {'method': 'bad_method', 'bar': 'kazoo'}
-        self.assertRaises(exception.InvalidParameterValue,
-                          self.driver.vendor.validate,
-                          None, self.node, **info)
