@@ -114,6 +114,17 @@ class NodeStates(base.APIBase):
             setattr(states, attr, getattr(rpc_node, attr))
         return states
 
+    @classmethod
+    def sample(cls):
+        sample = cls(target_power_state=ir_states.POWER_ON,
+                     target_provision_state=ir_states.ACTIVE,
+                     last_error=None,
+                     console_enabled=False,
+                     provision_updated_at=None,
+                     power_state=ir_states.POWER_ON,
+                     provision_state=None)
+        return sample
+
 
 class NodeStatesController(rest.RestController):
 

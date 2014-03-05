@@ -41,6 +41,12 @@ class Driver(base.APIBase):
         driver.hosts = hosts
         return driver
 
+    @classmethod
+    def sample(cls):
+        sample = cls(name="sample-driver",
+                     hosts=["fake-host"])
+        return sample
+
 
 class DriverList(base.APIBase):
     """API representation of a list of drivers."""
@@ -54,6 +60,12 @@ class DriverList(base.APIBase):
         collection.drivers = [Driver.convert(dname, list(drivers[dname]))
                               for dname in drivers]
         return collection
+
+    @classmethod
+    def sample(cls):
+        sample = cls()
+        sample.drivers = [Driver.sample()]
+        return sample
 
 
 class DriversController(rest.RestController):
