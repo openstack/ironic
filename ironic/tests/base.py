@@ -38,8 +38,8 @@ from ironic.db.sqlalchemy import migration
 from ironic.db.sqlalchemy import models
 
 from ironic.common import paths
+from ironic.db.sqlalchemy import api as sqla_api
 from ironic.objects import base as objects_base
-from ironic.openstack.common.db.sqlalchemy import session
 from ironic.openstack.common import log as logging
 from ironic.tests import conf_fixture
 from ironic.tests import policy_fixture
@@ -54,9 +54,10 @@ test_opts = [
 CONF = cfg.CONF
 CONF.register_opts(test_opts)
 CONF.import_opt('connection',
-                'ironic.openstack.common.db.sqlalchemy.session',
+                'ironic.openstack.common.db.options',
                 group='database')
-CONF.import_opt('sqlite_db', 'ironic.openstack.common.db.sqlalchemy.session')
+CONF.import_opt('sqlite_db', 'ironic.openstack.common.db.options',
+                group='database')
 CONF.set_override('use_stderr', False)
 
 logging.setup('ironic')
@@ -66,13 +67,13 @@ _DB_CACHE = None
 
 class Database(fixtures.Fixture):
 
-    def __init__(self, db_session, db_migrate, sql_connection,
+    def __init__(self, db_api, db_migrate, sql_connection,
                     sqlite_db, sqlite_clean_db):
         self.sql_connection = sql_connection
         self.sqlite_db = sqlite_db
         self.sqlite_clean_db = sqlite_clean_db
 
-        self.engine = db_session.get_engine()
+        self.engine = db_api.get_engine()
         self.engine.dispose()
         conn = self.engine.connect()
         if sql_connection == "sqlite://":
@@ -167,9 +168,9 @@ class TestCase(testtools.TestCase):
 
         global _DB_CACHE
         if not _DB_CACHE:
-            _DB_CACHE = Database(session, migration,
+            _DB_CACHE = Database(sqla_api, migration,
                                     sql_connection=CONF.database.connection,
-                                    sqlite_db=CONF.sqlite_db,
+                                    sqlite_db=CONF.database.sqlite_db,
                                     sqlite_clean_db=CONF.sqlite_clean_db)
         self.useFixture(_DB_CACHE)
 

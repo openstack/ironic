@@ -50,8 +50,8 @@ import six.moves.urllib.parse as urlparse
 import sqlalchemy
 import sqlalchemy.exc
 
+from ironic.db.sqlalchemy import api as sqla_api
 from ironic.db.sqlalchemy import migration
-from ironic.openstack.common.db.sqlalchemy import session
 from ironic.openstack.common.db.sqlalchemy import utils as db_utils
 from ironic.openstack.common import lockutils
 from ironic.openstack.common import log as logging
@@ -123,14 +123,10 @@ def get_db_connection_info(conn_pieces):
 
 @contextlib.contextmanager
 def patch_with_engine(engine):
-    with mock.patch(('ironic.openstack.common.db'
-                     '.sqlalchemy.session.get_engine')) as patch_migration:
-        with mock.patch(('ironic.db.sqlalchemy.migration'
-                         '.db_session.get_engine')) as patch_env:
-            patch_migration.return_value = engine
-            patch_env.return_value = engine
-
-            yield
+    with mock.patch(('ironic.db'
+                     '.sqlalchemy.api.get_engine')) as patch_migration:
+        patch_migration.return_value = engine
+        yield
 
 
 class BaseMigrationTestCase(base.TestCase):
@@ -169,7 +165,7 @@ class BaseMigrationTestCase(base.TestCase):
 
         self.engines = {}
         for key, value in self.test_databases.items():
-            self.engines[key] = session.create_engine(value)
+            self.engines[key] = sqla_api.create_engine(value)
 
         # We start each test case with a completely blank slate.
         self.temp_dir = self.useFixture(fixtures.TempDir())

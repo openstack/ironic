@@ -20,7 +20,7 @@ import alembic
 from alembic import config as alembic_config
 import alembic.migration as alembic_migration
 
-from ironic.openstack.common.db.sqlalchemy import session as db_session
+from ironic.db.sqlalchemy import api as sqla_api
 
 
 def _alembic_config():
@@ -35,7 +35,7 @@ def version(config=None):
     :returns: Database version
     :rtype: string
     """
-    engine = db_session.get_engine()
+    engine = sqla_api.get_engine()
     with engine.connect() as conn:
         context = alembic_migration.MigrationContext.configure(conn)
         return context.get_current_revision()

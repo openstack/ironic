@@ -22,7 +22,7 @@ from ironic.common import utils
 
 CONF = cfg.CONF
 CONF.import_opt('backend',
-                'ironic.openstack.common.db.api',
+                'ironic.openstack.common.db.options',
                 group='database')
 
 IMPL = utils.LazyPluggable(

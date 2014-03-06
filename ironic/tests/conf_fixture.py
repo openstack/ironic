@@ -39,7 +39,7 @@ class ConfFixture(fixtures.Fixture):
         self.conf.set_default('rpc_cast_timeout', 5)
         self.conf.set_default('rpc_response_timeout', 5)
         self.conf.set_default('connection', "sqlite://", group='database')
-        self.conf.set_default('sqlite_synchronous', False)
+        self.conf.set_default('sqlite_synchronous', False, group='database')
         self.conf.set_default('use_ipv6', True)
         self.conf.set_default('verbose', True)
         config.parse_args([], default_config_files=[])

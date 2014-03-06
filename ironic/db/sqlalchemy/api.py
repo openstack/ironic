@@ -36,7 +36,7 @@ from ironic.openstack.common import timeutils
 
 CONF = cfg.CONF
 CONF.import_opt('connection',
-                'ironic.openstack.common.db.sqlalchemy.session',
+                'ironic.openstack.common.db.options',
                 group='database')
 CONF.import_opt('heartbeat_timeout',
                 'ironic.conductor.manager',
@@ -44,8 +44,27 @@ CONF.import_opt('heartbeat_timeout',
 
 LOG = log.getLogger(__name__)
 
-get_engine = db_session.get_engine
-get_session = db_session.get_session
+_FACADE = None
+
+
+def _create_facade_lazily():
+    global _FACADE
+    if _FACADE is None:
+        _FACADE = db_session.EngineFacade(
+            CONF.database.connection,
+            **dict(CONF.database.iteritems())
+        )
+    return _FACADE
+
+
+def get_engine():
+    facade = _create_facade_lazily()
+    return facade.get_engine()
+
+
+def get_session(**kwargs):
+    facade = _create_facade_lazily()
+    return facade.get_session(**kwargs)
 
 
 def get_backend():
