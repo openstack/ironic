@@ -15,10 +15,10 @@ an OpenStack project.
 Install prerequisites::
 
     # Ubuntu/Debian:
-    sudo apt-get install python-dev libssl-dev python-pip libmysqlclient-dev libxml2-dev libxslt-dev libpq-dev git git-review
+    sudo apt-get install python-dev libssl-dev python-pip libmysqlclient-dev libxml2-dev libxslt-dev libpq-dev git git-review libffi-dev
 
     # Fedora/RHEL:
-    sudo yum install python-devel openssl-devel python-pip mysql-devel libxml2-devel libxslt-devel postgresql-devel git git-review
+    sudo yum install python-devel openssl-devel python-pip mysql-devel libxml2-devel libxslt-devel postgresql-devel git git-review libffi-devel
 
     sudo easy_install nose
     sudo pip install virtualenv setuptools-git flake8 tox testrepository
