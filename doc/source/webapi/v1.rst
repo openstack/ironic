@@ -58,36 +58,6 @@ NodeStates
    :members:
 
 
-NodePowerState
-==============
-
-The 'rest-controller' directive of this resource seems to be crashing
-sphinxcontrib-pecanwsme with "CRITICAL ironic [-] list index out of range"
-errors.
-
-.. autotype:: ironic.api.controllers.v1.node.NodePowerState
-   :members:
-
-
-NodeProvisionState
-==================
-
-The 'rest-controller' directive of this resource seems to be crashing
-sphinxcontrib-pecanwsme with "CRITICAL ironic [-] list index out of range"
-errors.
-
-.. autotype:: ironic.api.controllers.v1.node.NodeProvisionState
-   :members:
-
-
-NodeVendorPassthru
-==================
-
-The 'rest-controller' directive of this resource seems to be crashing
-sphinxcontrib-pecanwsme with "CRITICAL ironic [-] list index out of range"
-errors.
-
-
 Ports
 =====
 
