@@ -24,9 +24,9 @@ import wsme
 from wsme import types as wtypes
 import wsmeext.pecan as wsme_pecan
 
-from ironic.api.controllers.v1 import base
+from ironic.api.controllers import base
+from ironic.api.controllers import link
 from ironic.api.controllers.v1 import collection
-from ironic.api.controllers.v1 import link
 from ironic.api.controllers.v1 import port
 from ironic.api.controllers.v1 import types
 from ironic.api.controllers.v1 import utils as api_utils
