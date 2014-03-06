@@ -61,7 +61,8 @@ def prepare_service(argv=[]):
                                          'sqlalchemy=WARN',
                                          'keystoneclient=INFO',
                                          'stevedore=INFO',
-                                         'eventlet.wsgi.server=WARN'
+                                         'eventlet.wsgi.server=WARN',
+                                         'iso8601=WARN'
                                          ])
     cfg.CONF(argv[1:], project='ironic')
     log.setup('ironic')
