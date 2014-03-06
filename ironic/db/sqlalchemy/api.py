@@ -229,6 +229,12 @@ class Connection(api.Connection):
             query = query.filter_by(maintenance=filters['maintenance'])
         if 'driver' in filters:
             query = query.filter_by(driver=filters['driver'])
+        if 'provision_state' in filters:
+            query = query.filter_by(provision_state=filters['provision_state'])
+        if 'provisioned_before' in filters:
+            limit = timeutils.utcnow() - datetime.timedelta(
+                                         seconds=filters['provisioned_before'])
+            query = query.filter(models.Node.provision_updated_at < limit)
 
         return query
 

@@ -60,6 +60,9 @@ class Connection(object):
                         'maintenance': True | False
                         'chassis_uuid': uuid of chassis
                         'driver': driver's name
+                        'provision_state': provision state of node
+                        'provisioned_before': nodes with provision_updated_at
+                         field before this interval in seconds
         :param limit: Maximum number of nodes to return.
         :param marker: the last item of the previous page; we return the next
                        result set.
@@ -80,6 +83,9 @@ class Connection(object):
                         'maintenance': True | False
                         'chassis_uuid': uuid of chassis
                         'driver': driver's name
+                        'provision_state': provision state of node
+                        'provisioned_before': nodes with provision_updated_at
+                         field before this interval in seconds
         :param limit: Maximum number of nodes to return.
         :param marker: the last item of the previous page; we return the next
                        result set.

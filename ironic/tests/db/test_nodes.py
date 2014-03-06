@@ -21,6 +21,7 @@ import mock
 import six
 
 from ironic.common import exception
+from ironic.common import states
 from ironic.common import utils as ironic_utils
 from ironic.db import api as dbapi
 from ironic.openstack.common import timeutils
@@ -151,6 +152,34 @@ class DbNodeTestCase(base.DbTestCase):
 
         res = self.dbapi.get_node_list(filters={'maintenance': False})
         self.assertEqual([1], [r.id for r in res])
+
+    @mock.patch.object(timeutils, 'utcnow')
+    def test_get_nodeinfo_list_provision(self, mock_utcnow):
+        past = datetime.datetime(2000, 1, 1, 0, 0)
+        next = past + datetime.timedelta(minutes=8)
+        present = past + datetime.timedelta(minutes=10)
+        mock_utcnow.return_value = past
+
+        # node with provision_updated timeout
+        n1 = utils.get_test_node(id=1, uuid=ironic_utils.generate_uuid(),
+                                 provision_updated_at=past)
+        # node with None in provision_updated_at
+        n2 = utils.get_test_node(id=2, uuid=ironic_utils.generate_uuid(),
+                                 provision_state=states.DEPLOYWAIT)
+        # node without timeout
+        n3 = utils.get_test_node(id=3, uuid=ironic_utils.generate_uuid(),
+                                 provision_updated_at=next)
+        self.dbapi.create_node(n1)
+        self.dbapi.create_node(n2)
+        self.dbapi.create_node(n3)
+
+        mock_utcnow.return_value = present
+        res = self.dbapi.get_nodeinfo_list(filters={'provisioned_before': 300})
+        self.assertEqual([1], [r[0] for r in res])
+
+        res = self.dbapi.get_nodeinfo_list(filters={'provision_state':
+                                                    states.DEPLOYWAIT})
+        self.assertEqual([2], [r[0] for r in res])
 
     def test_get_node_list(self):
         uuids = []
