@@ -17,8 +17,10 @@ import mock
 
 from ironic.common import driver_factory
 from ironic.common import exception
+from ironic.conductor import task_manager
 from ironic.db import api as db_api
 from ironic.drivers.modules import fake
+from ironic.drivers import utils as driver_utils
 from ironic.openstack.common import context
 from ironic.tests import base
 from ironic.tests.conductor import utils as mgr_utils
@@ -33,8 +35,8 @@ class UtilsTestCase(base.TestCase):
         self.dbapi = db_api.get_instance()
         mgr_utils.mock_the_extension_manager()
         self.driver = driver_factory.get_driver("fake")
-        self.node = db_utils.get_test_node()
-        self.dbapi.create_node(self.node)
+        ndict = db_utils.get_test_node()
+        self.node = self.dbapi.create_node(ndict)
 
     @mock.patch.object(fake.FakeVendorA, 'validate')
     def test_vendor_interface_validate_valid_methods(self,
@@ -68,3 +70,23 @@ class UtilsTestCase(base.TestCase):
                                             'node',
                                             method='second_method',
                                             param1='fake1', param2='fake2')
+
+    def test_get_node_mac_addresses(self):
+        ports = []
+        ports.append(
+            self.dbapi.create_port(
+                db_utils.get_test_port(
+                    id=6,
+                    address='aa:bb:cc',
+                    uuid='bb43dc0b-03f2-4d2e-ae87-c02d7f33cc53',
+                    node_id='123')))
+        ports.append(
+            self.dbapi.create_port(
+                db_utils.get_test_port(
+                    id=7,
+                    address='dd:ee:ff',
+                    uuid='4fc26c0b-03f2-4d2e-ae87-c02d7f33c234',
+                    node_id='123')))
+        with task_manager.acquire(self.context, [self.node.uuid]) as task:
+            node_macs = driver_utils.get_node_mac_addresses(task, self.node)
+        self.assertEqual(sorted([p.address for p in ports]), sorted(node_macs))

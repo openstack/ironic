@@ -64,3 +64,15 @@ class MixinVendorInterface(base.VendorInterface):
         """
         route = self._map(**kwargs)
         return route.vendor_passthru(task, node, **kwargs)
+
+
+def get_node_mac_addresses(task, node):
+    """Get all mac addresses for a node.
+
+    :param task: a TaskManager instance.
+    :param node: the Node to act upon.
+    :returns: A list of macs address in the format xx:xx:xx:xx:xx:xx.
+    """
+    for r in task.resources:
+        if r.node.id == node.id:
+            return [p.address for p in r.ports]

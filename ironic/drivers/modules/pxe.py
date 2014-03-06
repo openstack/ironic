@@ -36,6 +36,7 @@ from ironic.conductor import task_manager
 from ironic.conductor import utils as manager_utils
 from ironic.drivers import base
 from ironic.drivers.modules import deploy_utils
+from ironic.drivers import utils as driver_utils
 from ironic.openstack.common import fileutils
 from ironic.openstack.common import lockutils
 from ironic.openstack.common import log as logging
@@ -189,18 +190,6 @@ def _build_pxe_config(node, pxe_info, ctx):
     template = env.get_template(tmpl_file)
     return template.render({'pxe_options': pxe_options,
                             'ROOT': '{{ ROOT }}'})
-
-
-def _get_node_mac_addresses(task, node):
-    """Get all mac addresses for a node.
-
-    :param task: a TaskManager instance.
-    :param node: the Node to act upon.
-    :returns: A list of macs address in the format xx:xx:xx:xx:xx:xx.
-    """
-    for r in task.resources:
-        if r.node.id == node['id']:
-            return [p.address for p in r.ports]
 
 
 def _get_node_vif_ids(task):
@@ -529,7 +518,7 @@ def _create_pxe_config(task, node, pxe_info):
     pxe_config_file_path = _get_pxe_config_file_path(node.uuid)
     pxe_config = _build_pxe_config(node, pxe_info, task.context)
     utils.write_to_file(pxe_config_file_path, pxe_config)
-    for port in _get_node_mac_addresses(task, node):
+    for port in driver_utils.get_node_mac_addresses(task, node):
         mac_path = _get_pxe_mac_path(port)
         utils.unlink_without_raise(mac_path)
         utils.create_link_without_raise(pxe_config_file_path, mac_path)
@@ -545,7 +534,7 @@ class PXEDeploy(base.DeployInterface):
         :param node: a single Node to validate.
         :returns: InvalidParameterValue.
         """
-        if not _get_node_mac_addresses(task, node):
+        if not driver_utils.get_node_mac_addresses(task, node):
             raise exception.InvalidParameterValue(_("Node %s does not have "
                                 "any port associated with it.") % node.uuid)
         _parse_driver_info(node)
@@ -645,7 +634,7 @@ class PXEDeploy(base.DeployInterface):
 
         utils.unlink_without_raise(_get_pxe_config_file_path(
                 node.uuid))
-        for port in _get_node_mac_addresses(task, node):
+        for port in driver_utils.get_node_mac_addresses(task, node):
             mac_path = _get_pxe_mac_path(port)
             utils.unlink_without_raise(mac_path)
 

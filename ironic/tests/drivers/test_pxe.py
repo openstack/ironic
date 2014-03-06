@@ -354,21 +354,6 @@ class PXEPrivateMethodsTestCase(db_base.DbTestCase):
         db_key = db_node['driver_info'].get('pxe_deploy_key')
         self.assertEqual(fake_key, db_key)
 
-    def test__get_nodes_mac_addresses(self):
-        self._create_test_port(node_id=self.node.id,
-                               address='aa:bb:cc',
-                               uuid=utils.generate_uuid(),
-                               id=6)
-        self._create_test_port(node_id=self.node.id,
-                               address='dd:ee:ff',
-                               uuid=utils.generate_uuid(),
-                               id=7)
-
-        expected = ['aa:bb:cc', 'dd:ee:ff']
-        with task_manager.acquire(self.context, self.node.uuid) as task:
-            node_macs = pxe._get_node_mac_addresses(task, self.node)
-        self.assertEqual(expected, node_macs)
-
     def test__get_node_vif_ids_no_ports(self):
         expected = {}
         with task_manager.acquire(self.context, self.node.uuid) as task:
@@ -689,27 +674,6 @@ class PXEDriverTestCase(db_base.DbTestCase):
                               task.resources[0].driver.deploy.validate,
                               task, self.node)
             mock_ks.assert_called_once_with()
-
-    def test__get_nodes_mac_addresses(self):
-        ports = []
-        ports.append(self.port)
-        ports.append(
-            self.dbapi.create_port(
-                db_utils.get_test_port(
-                    id=6,
-                    address='aa:bb:cc',
-                    uuid='bb43dc0b-03f2-4d2e-ae87-c02d7f33cc53',
-                    node_id='123')))
-        ports.append(
-            self.dbapi.create_port(
-                db_utils.get_test_port(
-                    id=7,
-                    address='dd:ee:ff',
-                    uuid='4fc26c0b-03f2-4d2e-ae87-c02d7f33c234',
-                    node_id='123')))
-        with task_manager.acquire(self.context, [self.node['uuid']]) as task:
-            node_macs = pxe._get_node_mac_addresses(task, self.node)
-        self.assertEqual(sorted([p.address for p in ports]), sorted(node_macs))
 
     def test_vendor_passthru_validate_good(self):
         with task_manager.acquire(self.context, [self.node['uuid']],
