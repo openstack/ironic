@@ -668,7 +668,7 @@ class ManagerTestCase(base.DbTestCase):
             self.assertIsNone(node.reservation)
 
     def test_do_node_tear_down_invalid_state(self):
-        # test node['provision_state'] is incorrect for tear_down
+        # test node.provision_state is incorrect for tear_down
         ndict = utils.get_test_node(driver='fake',
                                     provision_state=states.NOSTATE)
         node = self.dbapi.create_node(ndict)
@@ -676,55 +676,86 @@ class ManagerTestCase(base.DbTestCase):
                           self.service.do_node_tear_down,
                           self.context, node['uuid'])
 
-    def test_do_node_tear_down_driver_raises_error(self):
+    @mock.patch('ironic.drivers.modules.fake.FakeDeploy.validate')
+    def test_do_node_tear_down_validate_fail(self, mock_validate):
+        mock_validate.side_effect = exception.InvalidParameterValue('error')
+        ndict = utils.get_test_node(driver='fake')
+        ndict['provision_state'] = states.ACTIVE
+        node = self.dbapi.create_node(ndict)
+        self.assertRaises(exception.InvalidParameterValue,
+                          self.service.do_node_tear_down,
+                          self.context, node.uuid)
+
+    @mock.patch('ironic.drivers.modules.fake.FakeDeploy.tear_down')
+    def test_do_node_tear_down_driver_raises_error(self, mock_tear_down):
         # test when driver.deploy.tear_down raises exception
         ndict = utils.get_test_node(driver='fake',
                                     provision_state=states.ACTIVE)
         node = self.dbapi.create_node(ndict)
 
-        with mock.patch('ironic.drivers.modules.fake.FakeDeploy.tear_down') \
-                as deploy:
-            deploy.side_effect = exception.InstanceDeployFailure('test')
-            self.assertRaises(exception.InstanceDeployFailure,
-                              self.service.do_node_tear_down,
-                              self.context, node['uuid'])
-            node.refresh(self.context)
-            self.assertEqual(states.ERROR, node['provision_state'])
-            self.assertEqual(states.NOSTATE, node['target_provision_state'])
-            self.assertIsNotNone(node['last_error'])
-            deploy.assert_called_once_with(mock.ANY, mock.ANY)
+        task = task_manager.TaskManager(self.context, node.uuid)
+        self.service.start()
+        mock_tear_down.side_effect = exception.InstanceDeployFailure('test')
+        self.assertRaises(exception.InstanceDeployFailure,
+                          self.service._do_node_tear_down,
+                          self.context, task)
+        node.refresh(self.context)
+        self.assertEqual(states.ERROR, node.provision_state)
+        self.assertEqual(states.NOSTATE, node.target_provision_state)
+        self.assertIsNotNone(node.last_error)
+        mock_tear_down.assert_called_once_with(mock.ANY, mock.ANY)
 
-    def test_do_node_tear_down_ok(self):
+    @mock.patch('ironic.drivers.modules.fake.FakeDeploy.tear_down')
+    def test_do_node_tear_down_ok(self, mock_tear_down):
         # test when driver.deploy.tear_down returns DELETED
         ndict = utils.get_test_node(driver='fake',
                                     provision_state=states.ACTIVE)
         node = self.dbapi.create_node(ndict)
 
-        with mock.patch('ironic.drivers.modules.fake.FakeDeploy.tear_down') \
-                as deploy:
-            deploy.return_value = states.DELETED
-            self.service.do_node_tear_down(self.context, node['uuid'])
-            node.refresh(self.context)
-            self.assertEqual(states.NOSTATE, node['provision_state'])
-            self.assertEqual(states.NOSTATE, node['target_provision_state'])
-            self.assertIsNone(node['last_error'])
-            deploy.assert_called_once_with(mock.ANY, mock.ANY)
+        task = task_manager.TaskManager(self.context, node.uuid)
+        self.service.start()
+        mock_tear_down.return_value = states.DELETED
+        self.service._do_node_tear_down(self.context, task)
+        node.refresh(self.context)
+        self.assertEqual(states.NOSTATE, node.provision_state)
+        self.assertEqual(states.NOSTATE, node.target_provision_state)
+        self.assertIsNone(node.last_error)
+        mock_tear_down.assert_called_once_with(mock.ANY, mock.ANY)
 
-    def test_do_node_tear_down_partial_ok(self):
+    @mock.patch('ironic.drivers.modules.fake.FakeDeploy.tear_down')
+    def test_do_node_tear_down_partial_ok(self, mock_tear_down):
         # test when driver.deploy.tear_down doesn't return DELETED
         ndict = utils.get_test_node(driver='fake',
                                     provision_state=states.ACTIVE)
         node = self.dbapi.create_node(ndict)
 
-        with mock.patch('ironic.drivers.modules.fake.FakeDeploy.tear_down') \
-                as deploy:
-            deploy.return_value = states.DELETING
-            self.service.do_node_tear_down(self.context, node['uuid'])
-            node.refresh(self.context)
-            self.assertEqual(node['provision_state'], states.DELETING)
-            self.assertEqual(states.DELETED, node['target_provision_state'])
-            self.assertIsNone(node['last_error'])
-            deploy.assert_called_once_with(mock.ANY, mock.ANY)
+        self.service.start()
+        task = task_manager.TaskManager(self.context, node.uuid)
+        mock_tear_down.return_value = states.DELETING
+        self.service._do_node_tear_down(self.context, task)
+        node.refresh(self.context)
+        self.assertEqual(states.DELETING, node.provision_state)
+        self.assertIsNone(node.last_error)
+        mock_tear_down.assert_called_once_with(mock.ANY, mock.ANY)
+
+    @mock.patch('ironic.conductor.manager.ConductorManager._spawn_worker')
+    def test_do_node_tear_down_worker_pool_full(self, mock_spawn):
+        ndict = utils.get_test_node(driver='fake',
+                                    provision_state=states.ACTIVE)
+        node = self.dbapi.create_node(ndict)
+        self.service.start()
+
+        mock_spawn.side_effect = exception.NoFreeConductorWorker()
+
+        self.assertRaises(exception.NoFreeConductorWorker,
+                          self.service.do_node_tear_down,
+                          self.context, node.uuid)
+        self.service._worker_pool.waitall()
+        node.refresh(self.context)
+        # This is a sync operation last_error should be None.
+        self.assertIsNone(node.last_error)
+        # Verify reservation has been cleared.
+        self.assertIsNone(node.reservation)
 
     def test_validate_driver_interfaces(self):
         ndict = utils.get_test_node(driver='fake')
