@@ -281,7 +281,7 @@ class IronicDriver(virt_driver.ComputeDriver):
                 except ironic_exception.HTTPBadRequest:
                     pass
 
-        self.unplug_vifs(instance, network_info)
+        self._unplug_vifs(node, instance, network_info)
         self._stop_firewall(instance, network_info)
 
     @classmethod
@@ -406,7 +406,7 @@ class IronicDriver(virt_driver.ComputeDriver):
 
         # prepare for the deploy
         try:
-            self.plug_vifs(instance, network_info)
+            self._plug_vifs(node, instance, network_info)
             self._start_firewall(instance, network_info)
         except Exception:
             with excutils.save_and_reraise_exception():
@@ -551,14 +551,13 @@ class IronicDriver(virt_driver.ComputeDriver):
     def unfilter_instance(self, instance_ref, network_info):
         pass
 
-    def plug_vifs(self, instance, network_info):
+    def _plug_vifs(self, node, instance, network_info):
         LOG.debug(_("plug: instance_uuid=%(uuid)s vif=%(network_info)s")
                   % {'uuid': instance['uuid'], 'network_info': network_info})
         # start by ensuring the ports are clear
-        self.unplug_vifs(instance, network_info)
+        self._unplug_vifs(node, instance, network_info)
 
         icli = self._get_client()
-        node = icli.node.get(instance['node'])
         ports = icli.node.list_ports(node.uuid)
 
         if len(network_info) > len(ports):
@@ -585,12 +584,11 @@ class IronicDriver(virt_driver.ComputeDriver):
                            % pif.uuid)
                     raise exception.NovaException(msg)
 
-    def unplug_vifs(self, instance, network_info):
+    def _unplug_vifs(self, node, instance, network_info):
         LOG.debug(_("unplug: instance_uuid=%(uuid)s vif=%(network_info)s")
                   % {'uuid': instance['uuid'], 'network_info': network_info})
         if network_info and len(network_info) > 0:
             icli = self._get_client()
-            node = icli.node.get(instance['node'])
             ports = icli.node.list_ports(node.uuid)
 
             # not needed if no vif are defined
@@ -605,3 +603,13 @@ class IronicDriver(virt_driver.ComputeDriver):
                     LOG.warning(msg)
                 except ironic_exception.HTTPBadRequest:
                     pass
+
+    def plug_vifs(self, instance, network_info):
+        icli = self._get_client()
+        node = icli.node.get(instance['node'])
+        self._plug_vifs(node, instance, network_info)
+
+    def unplug_vifs(self, instance, network_info):
+        icli = self._get_client()
+        node = icli.node.get(instance['node'])
+        self._unplug_vifs(node, instance, network_info)
