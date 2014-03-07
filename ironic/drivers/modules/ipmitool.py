@@ -346,7 +346,7 @@ class VendorPassthru(base.VendorInterface):
     def validate(self, node, **kwargs):
         method = kwargs['method']
         if method == 'set_boot_device':
-            device = kwargs.get('device', None)
+            device = kwargs.get('device')
             if device not in VALID_BOOT_DEVICES:
                 raise exception.InvalidParameterValue(_(
                     "Invalid boot device %s specified.") % device)
