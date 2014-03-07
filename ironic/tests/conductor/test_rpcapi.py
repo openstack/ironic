@@ -28,7 +28,6 @@ from ironic.conductor import rpcapi as conductor_rpcapi
 from ironic.db import api as dbapi
 from ironic import objects
 from ironic.openstack.common import context
-from ironic.openstack.common import jsonutils as json
 from ironic.tests.db import base
 from ironic.tests.db import utils as dbutils
 
@@ -41,8 +40,7 @@ class RPCAPITestCase(base.DbTestCase):
         super(RPCAPITestCase, self).setUp()
         self.context = context.get_admin_context()
         self.dbapi = dbapi.get_instance()
-        self.fake_node = json.to_primitive(dbutils.get_test_node(
-                driver='fake-driver'))
+        self.fake_node = dbutils.get_test_node(driver='fake-driver')
         self.fake_node_obj = objects.Node._from_db_object(
                                                     objects.Node(),
                                                     self.fake_node)
