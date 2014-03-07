@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version:  Ironic\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2014-02-04 06:05+0000\n"
+"POT-Creation-Date: 2014-03-06 06:06+0000\n"
 "PO-Revision-Date: 2013-11-12 16:15+0000\n"
 "Last-Translator: openstackjenkins <jenkins@openstack.org>\n"
 "Language-Team: Bengali (India) "
@@ -18,78 +18,62 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Generated-By: Babel 1.3\n"
 
-#: ironic/api/controllers/v1/chassis.py:218
-#: ironic/api/controllers/v1/node.py:593 ironic/api/controllers/v1/port.py:281
-#, python-format
-msgid "Patching Error: %s"
-msgstr ""
-
-#: ironic/api/controllers/v1/node.py:122
-#, python-format
-msgid "Power operation for node %s is already in progress."
-msgstr ""
-
-#: ironic/api/controllers/v1/node.py:169
+#: ironic/api/controllers/v1/node.py:195
 #, python-format
 msgid "Node %s is already being provisioned."
 msgstr ""
 
-#: ironic/api/controllers/v1/node.py:174
+#: ironic/api/controllers/v1/node.py:200
 #, python-format
 msgid "Node %(node)s is already in the '%(state)s' state."
 msgstr ""
 
-#: ironic/api/controllers/v1/node.py:387
+#: ironic/api/controllers/v1/node.py:423
 msgid "Method not specified"
 msgstr ""
 
-#: ironic/api/controllers/v1/node.py:417
+#: ironic/api/controllers/v1/node.py:453
 msgid "Chassis id not specified."
 msgstr ""
 
-#: ironic/api/controllers/v1/node.py:473
+#: ironic/api/controllers/v1/node.py:631
 #, python-format
-msgid "Invalid parameter value: %s, 'associated' can only be true or false."
+msgid "Node %s can not be updated while a state transition is in progress."
 msgstr ""
 
-#: ironic/api/controllers/v1/node.py:584
-#, python-format
-msgid "Node %s can not be updated while a state transitionis in progress."
-msgstr ""
-
-#: ironic/api/controllers/v1/port.py:172
+#: ironic/api/controllers/v1/port.py:170
 msgid "Node id not specified."
 msgstr ""
 
-#: ironic/api/controllers/v1/types.py:150
+#: ironic/api/controllers/v1/types.py:128
 #, python-format
 msgid "'%s' is an internal attribute and can not be updated"
 msgstr ""
 
-#: ironic/api/controllers/v1/types.py:154
+#: ironic/api/controllers/v1/types.py:132
 #, python-format
 msgid "'%s' is a mandatory attribute and can not be removed"
 msgstr ""
 
-#: ironic/api/controllers/v1/types.py:159
+#: ironic/api/controllers/v1/types.py:137
 #, python-format
 msgid "Adding a new attribute (%s) to the root of  the resource is not allowed"
 msgstr ""
 
-#: ironic/api/controllers/v1/types.py:165
+#: ironic/api/controllers/v1/types.py:143
 msgid "'add' and 'replace' operations needs value"
 msgstr ""
 
-#: ironic/api/controllers/v1/types.py:193
+#: ironic/api/controllers/v1/types.py:174
 #, python-format
 msgid "Wrong type. Expected '%(type)s', got '%(value)s'"
 msgstr ""
 
-#: ironic/api/controllers/v1/utils.py:28
+#: ironic/api/controllers/v1/utils.py:31
 msgid "Limit must be positive"
 msgstr ""
 
-#: ironic/api/controllers/v1/utils.py:35
+#: ironic/api/controllers/v1/utils.py:38
 #, python-format
 msgid "Invalid sort direction: %s. Acceptable values are 'asc' or 'desc'"
 msgstr ""
@@ -104,735 +88,914 @@ msgstr ""
 msgid "Error parsing HTTP response: %s"
 msgstr ""
 
-#: ironic/cmd/api.py:48
+#: ironic/cmd/api.py:53
 #, python-format
 msgid "Serving on http://%(host)s:%(port)s"
 msgstr ""
 
-#: ironic/cmd/api.py:50
+#: ironic/cmd/api.py:55
 msgid "Configuration:"
 msgstr ""
 
-#: ironic/common/exception.py:59
+#: ironic/common/exception.py:57
 msgid "An unknown exception occurred."
 msgstr ""
 
-#: ironic/common/exception.py:80 ironic/openstack/common/rpc/common.py:87
+#: ironic/common/exception.py:78 ironic/openstack/common/rpc/common.py:88
 msgid "Exception in string format operation"
 msgstr ""
 
-#: ironic/common/exception.py:100
+#: ironic/common/exception.py:98
 msgid "Not authorized."
 msgstr ""
 
-#: ironic/common/exception.py:105
+#: ironic/common/exception.py:103
 msgid "Operation not permitted."
 msgstr ""
 
-#: ironic/common/exception.py:109
+#: ironic/common/exception.py:107
 msgid "Unacceptable parameters."
 msgstr ""
 
-#: ironic/common/exception.py:114
+#: ironic/common/exception.py:112
 msgid "Conflict."
 msgstr ""
 
-#: ironic/common/exception.py:119
+#: ironic/common/exception.py:117
+msgid "Resource temporarily unavailable, please retry."
+msgstr ""
+
+#: ironic/common/exception.py:122
 msgid "Invalid resource state."
 msgstr ""
 
-#: ironic/common/exception.py:123
+#: ironic/common/exception.py:126
 #, python-format
 msgid "A Port with MAC address %(mac)s already exists."
 msgstr ""
 
-#: ironic/common/exception.py:127
+#: ironic/common/exception.py:130
 #, python-format
 msgid "Expected a uuid but received %(uuid)s."
 msgstr ""
 
-#: ironic/common/exception.py:131
+#: ironic/common/exception.py:134
 #, python-format
 msgid "Expected an uuid or int but received %(identity)s."
 msgstr ""
 
-#: ironic/common/exception.py:135
+#: ironic/common/exception.py:138
 #, python-format
 msgid "Expected a MAC address but received %(mac)s."
 msgstr ""
 
-#: ironic/common/exception.py:139
+#: ironic/common/exception.py:142
 #, python-format
 msgid "Invalid state '%(state)s' requested for node %(node)s."
 msgstr ""
 
-#: ironic/common/exception.py:143
+#: ironic/common/exception.py:146
+#, python-format
+msgid "Couldn't apply patch '%(patch)s'. Reason: %(reason)s"
+msgstr ""
+
+#: ironic/common/exception.py:150
 #, python-format
 msgid "Failed to deploy instance: %(reason)s"
 msgstr ""
 
-#: ironic/common/exception.py:147 ironic/common/exception.py:151
+#: ironic/common/exception.py:154 ironic/common/exception.py:158
 #, python-format
 msgid "Image %(image_id)s is unacceptable: %(reason)s"
 msgstr ""
 
-#: ironic/common/exception.py:157
+#: ironic/common/exception.py:164
 #, python-format
 msgid "%(err)s"
 msgstr ""
 
-#: ironic/common/exception.py:161
+#: ironic/common/exception.py:168
 msgid "Resource could not be found."
 msgstr ""
 
-#: ironic/common/exception.py:166
+#: ironic/common/exception.py:173
 #, python-format
 msgid "Failed to load driver %(driver_name)s."
 msgstr ""
 
-#: ironic/common/exception.py:170
+#: ironic/common/exception.py:177
 #, python-format
 msgid "Image %(image_id)s could not be found."
 msgstr ""
 
-#: ironic/common/exception.py:174
+#: ironic/common/exception.py:181
+#, python-format
+msgid "No valid host was found. Reason: %(reason)s"
+msgstr ""
+
+#: ironic/common/exception.py:185
 #, python-format
 msgid "Instance %(instance)s could not be found."
 msgstr ""
 
-#: ironic/common/exception.py:178
+#: ironic/common/exception.py:189
 #, python-format
 msgid "Node %(node)s could not be found."
 msgstr ""
 
-#: ironic/common/exception.py:182
-#, python-format
-msgid "Node %(node)s is locked by another process."
-msgstr ""
-
-#: ironic/common/exception.py:186
+#: ironic/common/exception.py:193
 #, python-format
 msgid "Node %(node)s is associated with instance %(instance)s."
 msgstr ""
 
-#: ironic/common/exception.py:190
+#: ironic/common/exception.py:197
 #, python-format
 msgid "Port %(port)s could not be found."
 msgstr ""
 
-#: ironic/common/exception.py:194
+#: ironic/common/exception.py:201
 #, python-format
 msgid "Update DHCP options on port: %(port_id)s failed."
 msgstr ""
 
-#: ironic/common/exception.py:198
+#: ironic/common/exception.py:205
 #, python-format
 msgid "Chassis %(chassis)s could not be found."
 msgstr ""
 
-#: ironic/common/exception.py:202
+#: ironic/common/exception.py:209
 #, python-format
 msgid "Conductor %(conductor)s could not be found."
 msgstr ""
 
-#: ironic/common/exception.py:206
+#: ironic/common/exception.py:213
 #, python-format
 msgid "Conductor %(conductor)s already registered."
 msgstr ""
 
-#: ironic/common/exception.py:210
+#: ironic/common/exception.py:217
 #, python-format
 msgid "Failed to set node power state to %(pstate)s."
 msgstr ""
 
-#: ironic/common/exception.py:214
+#: ironic/common/exception.py:221
 msgid "An exclusive lock is required, but the current context has a shared lock."
 msgstr ""
 
-#: ironic/common/exception.py:219
+#: ironic/common/exception.py:226
 #, python-format
 msgid "Failed to toggle maintenance-mode flag for node %(node)s: %(reason)s"
 msgstr ""
 
-#: ironic/common/exception.py:224
+#: ironic/common/exception.py:231
+#, python-format
+msgid "Console access is not enabled on node %(node)s"
+msgstr ""
+
+#: ironic/common/exception.py:235
+#, python-format
+msgid ""
+"The %(op)s operation can't be performed on node %(node)s because it's in "
+"maintenance mode."
+msgstr ""
+
+#: ironic/common/exception.py:240
 #, python-format
 msgid ""
 "Can not change instance association while node %(node)s is in power state"
 " %(pstate)s."
 msgstr ""
 
-#: ironic/common/exception.py:229
+#: ironic/common/exception.py:245
 #, python-format
 msgid ""
 "Cannot complete the requested action because chassis %(chassis)s contains"
 " nodes."
 msgstr ""
 
-#: ironic/common/exception.py:234
+#: ironic/common/exception.py:250
 #, python-format
 msgid "IPMI call failed: %(cmd)s."
 msgstr ""
 
-#: ironic/common/exception.py:238
+#: ironic/common/exception.py:254
 #, python-format
 msgid "Failed to establish SSH connection to host %(host)s."
 msgstr ""
 
-#: ironic/common/exception.py:242
+#: ironic/common/exception.py:258
 #, python-format
 msgid "Failed to execute command via SSH: %(cmd)s."
 msgstr ""
 
-#: ironic/common/exception.py:246
+#: ironic/common/exception.py:262
 #, python-format
 msgid "Unsupported object type %(objtype)s"
 msgstr ""
 
-#: ironic/common/exception.py:250
+#: ironic/common/exception.py:266
 #, python-format
 msgid "Cannot call %(method)s on orphaned %(objtype)s object"
 msgstr ""
 
-#: ironic/common/exception.py:254
+#: ironic/common/exception.py:270
 #, python-format
 msgid "Driver %(driver)s does not support %(extension)s."
 msgstr ""
 
-#: ironic/common/exception.py:258
+#: ironic/common/exception.py:274
 #, python-format
 msgid "Version %(objver)s of %(objname)s is not supported"
 msgstr ""
 
-#: ironic/common/exception.py:262
+#: ironic/common/exception.py:278
 #, python-format
 msgid "Connection to glance host %(host)s:%(port)s failed: %(reason)s"
 msgstr ""
 
-#: ironic/common/exception.py:267
+#: ironic/common/exception.py:283
 #, python-format
 msgid "Not authorized for image %(image_id)s."
 msgstr ""
 
-#: ironic/common/exception.py:271
+#: ironic/common/exception.py:287
 #, python-format
 msgid "Invalid image href %(image_href)s."
 msgstr ""
 
-#: ironic/common/exception.py:275
+#: ironic/common/exception.py:291
 msgid "Unauthorised for keystone service catalog."
 msgstr ""
 
-#: ironic/common/exception.py:283
+#: ironic/common/exception.py:299
 #, python-format
 msgid ""
 "Service type %(service_type)s with endpoint type %(endpoint_type)s not "
 "found in keystone service catalog."
 msgstr ""
 
-#: ironic/common/exception.py:288
+#: ironic/common/exception.py:304
 msgid "Connection failed"
 msgstr ""
 
-#: ironic/common/exception.py:292
+#: ironic/common/exception.py:308
 msgid "Requested OpenStack Images API is forbidden"
 msgstr ""
 
-#: ironic/common/exception.py:300
+#: ironic/common/exception.py:316
 msgid "The provided endpoint is invalid"
 msgstr ""
 
-#: ironic/common/exception.py:304
+#: ironic/common/exception.py:320
 msgid "Unable to communicate with the server."
 msgstr ""
 
-#: ironic/common/exception.py:320
+#: ironic/common/exception.py:336
 #, python-format
 msgid "Could not find config at %(path)s"
 msgstr ""
 
-#: ironic/common/images.py:112
+#: ironic/common/exception.py:340
+#, python-format
+msgid ""
+"Node %(node)s is locked by host %(host)s, please retry after the current "
+"operation is completed."
+msgstr ""
+
+#: ironic/common/exception.py:345
+msgid ""
+"Requested action cannot be performed due to lack of free conductor "
+"workers."
+msgstr ""
+
+#: ironic/common/hash_ring.py:64
+msgid "Invalid hosts supplied when building HashRing."
+msgstr ""
+
+#: ironic/common/hash_ring.py:77
+msgid "Invalid data supplied to HashRing.get_hosts."
+msgstr ""
+
+#: ironic/common/images.py:110
 msgid "Snapshot list encountered but no header found!"
 msgstr ""
 
-#: ironic/common/images.py:205
+#: ironic/common/images.py:203
 msgid "'qemu-img info' parsing failed."
 msgstr ""
 
-#: ironic/common/images.py:211
+#: ironic/common/images.py:209
 #, python-format
 msgid "fmt=%(fmt)s backed by: %(backing_file)s"
 msgstr ""
 
-#: ironic/common/images.py:217
+#: ironic/common/images.py:215
 #, python-format
 msgid "%(image)s was %(format)s, converting to raw"
 msgstr ""
 
-#: ironic/common/images.py:226
+#: ironic/common/images.py:224
 #, python-format
 msgid "Converted to raw, but format is now %s"
 msgstr ""
 
-#: ironic/common/keystone.py:47
+#: ironic/common/keystone.py:46
 #, python-format
 msgid "Could not perform authorization process for service catalog: %s"
 msgstr ""
 
-#: ironic/common/keystone.py:52
+#: ironic/common/keystone.py:51
 msgid "No keystone service catalog loaded"
 msgstr ""
 
 #: ironic/common/neutron.py:91
 #, python-format
-msgid "Neutron error updating port: %s"
+msgid "Failed to update Neutron port %s."
 msgstr ""
 
-#: ironic/common/policy.py:33
-msgid "JSON file representing policy"
+#: ironic/common/policy.py:31
+msgid "JSON file representing policy."
 msgstr ""
 
-#: ironic/common/policy.py:36
-msgid "Rule checked when requested rule is not found"
+#: ironic/common/policy.py:34
+msgid "Rule checked when requested rule is not found."
 msgstr ""
 
-#: ironic/common/utils.py:67
+#: ironic/common/utils.py:65
 #, python-format
 msgid "Execution completed, command line is \"%s\""
 msgstr ""
 
-#: ironic/common/utils.py:68
+#: ironic/common/utils.py:66
 #, python-format
 msgid "Command stdout is: \"%s\""
 msgstr ""
 
-#: ironic/common/utils.py:69
+#: ironic/common/utils.py:67
 #, python-format
 msgid "Command stderr is: \"%s\""
 msgstr ""
 
-#: ironic/common/utils.py:101
+#: ironic/common/utils.py:99
 #, python-format
 msgid "SSH connect failed: %s"
 msgstr ""
 
-#: ironic/common/utils.py:134
+#: ironic/common/utils.py:132
 #, python-format
 msgid "Invalid backend: %s"
 msgstr ""
 
-#: ironic/common/utils.py:312 ironic/openstack/common/fileutils.py:65
+#: ironic/common/utils.py:310 ironic/openstack/common/fileutils.py:65
 #, python-format
 msgid "Reloading cached file %s"
 msgstr ""
 
-#: ironic/common/utils.py:400
+#: ironic/common/utils.py:398
 #, python-format
 msgid "Could not remove tmpdir: %s"
 msgstr ""
 
-#: ironic/common/utils.py:435
+#: ironic/common/utils.py:433
 #, python-format
 msgid "Failed to unlink %(path)s, error: %(e)s"
 msgstr ""
 
-#: ironic/common/utils.py:444
+#: ironic/common/utils.py:442
 #, python-format
 msgid "Failed to remove dir %(path)s, error: %(e)s"
 msgstr ""
 
-#: ironic/common/utils.py:460
+#: ironic/common/utils.py:458
 #, python-format
 msgid "Failed to create symlink from %(source)s to %(link)s, error: %(e)s"
 msgstr ""
 
-#: ironic/common/utils.py:474
+#: ironic/common/utils.py:472
 #, python-format
 msgid ""
 "Failed to remove trailing character. Returning original object. Supplied "
 "object is not a string: %s,"
 msgstr ""
 
-#: ironic/common/glance_service/base_image_service.py:126
+#: ironic/common/glance_service/base_image_service.py:125
 #, python-format
 msgid ""
 "Error contacting glance server '%(host)s:%(port)s' for '%(method)s', "
 "%(extra)s."
 msgstr ""
 
-#: ironic/common/glance_service/base_image_service.py:162
+#: ironic/common/glance_service/base_image_service.py:161
 msgid "Getting a full list of images metadata from glance."
 msgstr ""
 
-#: ironic/common/glance_service/base_image_service.py:183
+#: ironic/common/glance_service/base_image_service.py:182
 #, python-format
 msgid "Getting image metadata from glance. Image: %s"
 msgstr ""
 
-#: ironic/conductor/manager.py:108
-#, python-format
-msgid ""
-"A conductor with hostname %(hostname)s was previously registered. "
-"Updating registration"
-msgstr ""
-
-#: ironic/conductor/manager.py:124
-#, python-format
-msgid "Received notification: %r"
-msgstr ""
-
-#: ironic/conductor/manager.py:153
-#, python-format
-msgid "RPC update_node called for node %s."
-msgstr ""
-
-#: ironic/conductor/manager.py:157
-msgid "Invalid method call: update_node can not change node state."
-msgstr ""
-
-#: ironic/conductor/manager.py:197
-#, python-format
-msgid ""
-"RPC change_node_power_state called for node %(node)s. The desired new "
-"state is %(state)s."
-msgstr ""
-
-#: ironic/conductor/manager.py:215
-#, python-format
-msgid "RPC validate_vendor_action called for node %s."
-msgstr ""
-
-#: ironic/conductor/manager.py:230
-#, python-format
-msgid "Failed to validate vendor info. Error: %s"
-msgstr ""
-
-#: ironic/conductor/manager.py:248
-#, python-format
-msgid "RPC do_node_deploy called for node %s."
-msgstr ""
-
-#: ironic/conductor/manager.py:253
-#, python-format
-msgid ""
-"RPC do_node_deploy called for %(node)s, but provision state is already "
-"%(state)s."
-msgstr ""
-
-#: ironic/conductor/manager.py:259
-#, python-format
-msgid "RPC do_node_deploy called for %s, but node is in maintenance mode."
-msgstr ""
-
-#: ironic/conductor/manager.py:268
-#, python-format
-msgid "Failed to validate deploy info. Error: %s"
-msgstr ""
-
-#: ironic/conductor/manager.py:282
-#, python-format
-msgid "Failed to deploy. Error: %s"
-msgstr ""
-
-#: ironic/conductor/manager.py:304
-#, python-format
-msgid "RPC do_node_tear_down called for node %s."
-msgstr ""
-
-#: ironic/conductor/manager.py:311
-#, python-format
-msgid "RCP do_node_tear_down not allowed for node %(node)s in state %(state)s"
-msgstr ""
-
-#: ironic/conductor/manager.py:336
-#, python-format
-msgid "Failed to tear down. Error: %s"
-msgstr ""
-
-#: ironic/conductor/manager.py:377
+#: ironic/conductor/manager.py:115
 #, python-format
 msgid ""
 "During sync_power_state, could not get power state for node %(node)s. "
 "Error: %(err)s."
 msgstr ""
 
-#: ironic/conductor/manager.py:386
+#: ironic/conductor/manager.py:121
 #, python-format
 msgid ""
-"During sync_power_state, node %(node)s out of sync. Expected: %(old)s. "
-"Actual: %(new)s. Updating DB."
+"During sync_power_state, node %(node)s has no previous known state. "
+"Recording current state '%(state)s'."
 msgstr ""
 
-#: ironic/conductor/manager.py:396
+#: ironic/conductor/manager.py:131
+#, python-format
+msgid ""
+"During sync_power_state, node %(node)s state '%(actual)s' does not match "
+"expected state. Changing hardware state to '%(state)s'."
+msgstr ""
+
+#: ironic/conductor/manager.py:144
+#, python-format
+msgid "Failed to change power state of node %(node)s to '%(state)s'."
+msgstr ""
+
+#: ironic/conductor/manager.py:148
+#, python-format
+msgid ""
+"During sync_power_state, node %(node)s state does not match expected "
+"state '%(state)s'. Updating recorded state to '%(actual)s'."
+msgstr ""
+
+#: ironic/conductor/manager.py:183
+#, python-format
+msgid ""
+"A conductor with hostname %(hostname)s was previously registered. "
+"Updating registration"
+msgstr ""
+
+#: ironic/conductor/manager.py:202
+#, python-format
+msgid "Received notification: %r"
+msgstr ""
+
+#: ironic/conductor/manager.py:222
+#, python-format
+msgid "RPC update_node called for node %s."
+msgstr ""
+
+#: ironic/conductor/manager.py:226
+msgid "Invalid method call: update_node can not change node state."
+msgstr ""
+
+#: ironic/conductor/manager.py:265
+#, python-format
+msgid ""
+"RPC change_node_power_state called for node %(node)s. The desired new "
+"state is %(state)s."
+msgstr ""
+
+#: ironic/conductor/manager.py:293
+#, python-format
+msgid "RPC validate_vendor_action called for node %s."
+msgstr ""
+
+#: ironic/conductor/manager.py:308
+#, python-format
+msgid "Failed to validate vendor info. Error: %s"
+msgstr ""
+
+#: ironic/conductor/manager.py:326
+#, python-format
+msgid "RPC do_node_deploy called for node %s."
+msgstr ""
+
+#: ironic/conductor/manager.py:331
+#, python-format
+msgid ""
+"RPC do_node_deploy called for %(node)s, but provision state is already "
+"%(state)s."
+msgstr ""
+
+#: ironic/conductor/manager.py:337
+msgid "provisioning"
+msgstr ""
+
+#: ironic/conductor/manager.py:345
+#, python-format
+msgid "Failed to validate deploy info. Error: %s"
+msgstr ""
+
+#: ironic/conductor/manager.py:359
+#, python-format
+msgid "Failed to deploy. Error: %s"
+msgstr ""
+
+#: ironic/conductor/manager.py:381
+#, python-format
+msgid "RPC do_node_tear_down called for node %s."
+msgstr ""
+
+#: ironic/conductor/manager.py:389
+#, python-format
+msgid "RCP do_node_tear_down not allowed for node %(node)s in state %(state)s"
+msgstr ""
+
+#: ironic/conductor/manager.py:414
+#, python-format
+msgid "Failed to tear down. Error: %s"
+msgstr ""
+
+#: ironic/conductor/manager.py:455
 #, python-format
 msgid ""
 "During sync_power_state, node %(node)s was not found and presumed deleted"
 " by another process."
 msgstr ""
 
-#: ironic/conductor/manager.py:401
+#: ironic/conductor/manager.py:460
 #, python-format
 msgid ""
 "During sync_power_state, node %(node)s was already locked by another "
 "process. Skip."
 msgstr ""
 
-#: ironic/conductor/manager.py:435
+#: ironic/conductor/manager.py:493
+#, python-format
+msgid "Timeout reached when waiting callback for node %s"
+msgstr ""
+
+#: ironic/conductor/manager.py:535
 #, python-format
 msgid "RPC validate_driver_interfaces called for node %s."
 msgstr ""
 
-#: ironic/conductor/manager.py:451
+#: ironic/conductor/manager.py:551
 msgid "not supported"
 msgstr ""
 
-#: ironic/conductor/manager.py:468
+#: ironic/conductor/manager.py:568
 #, python-format
 msgid ""
 "RPC change_node_maintenance_mode called for node %(node)s with "
 "maintanence mode: %(mode)s"
 msgstr ""
 
-#: ironic/conductor/manager.py:478
+#: ironic/conductor/manager.py:578
 msgid "The node is already in maintenance mode"
 msgstr ""
 
-#: ironic/conductor/manager.py:479
+#: ironic/conductor/manager.py:579
 msgid "The node is not in maintenance mode"
 msgstr ""
 
-#: ironic/conductor/resource_manager.py:81
+#: ironic/conductor/manager.py:619
 #, python-format
-msgid "Release called on node %s for which no lock has been acquired."
+msgid "Node %s can't be deleted because it's not powered off"
 msgstr ""
 
-#: ironic/conductor/resource_manager.py:88
+#: ironic/conductor/manager.py:635
 #, python-format
-msgid "Can not release node %s because it was not reserved by this tracker."
+msgid "RPC get_console_information called for node %s"
 msgstr ""
 
-#: ironic/conductor/task_manager.py:150
+#: ironic/conductor/manager.py:661
+#, python-format
+msgid "RPC set_console_mode called for node %(node)s with enabled %(enabled)s"
+msgstr ""
+
+#: ironic/conductor/manager.py:679
+#, python-format
+msgid "Failed to validate console info. Error: %s"
+msgstr ""
+
+#: ironic/conductor/manager.py:689
+msgid "enabled"
+msgstr ""
+
+#: ironic/conductor/manager.py:689
+msgid "disabled"
+msgstr ""
+
+#: ironic/conductor/manager.py:690
+#, python-format
+msgid "No console action was triggered because the console is already %s"
+msgstr ""
+
+#: ironic/conductor/manager.py:694
+msgid "enabling"
+msgstr ""
+
+#: ironic/conductor/manager.py:694
+msgid "disabling"
+msgstr ""
+
+#: ironic/conductor/manager.py:695
+#, python-format
+msgid "Error %(op)s the console on node %(node)s. Reason: %(error)s"
+msgstr ""
+
+#: ironic/conductor/rpcapi.py:94
+#, python-format
+msgid "No conductor service registered which supports driver %s."
+msgstr ""
+
+#: ironic/conductor/task_manager.py:199
 msgid "Multi-node TaskManager has no attribute 'node'"
 msgstr ""
 
-#: ironic/conductor/task_manager.py:159
+#: ironic/conductor/task_manager.py:208
+msgid "Multi-node TaskManager has no attribute 'ports'"
+msgstr ""
+
+#: ironic/conductor/task_manager.py:217
 msgid "Multi-node TaskManager has no attribute 'driver'"
 msgstr ""
 
-#: ironic/conductor/task_manager.py:168
+#: ironic/conductor/task_manager.py:226
 msgid "Multi-node TaskManager can't select single node manager from the list"
 msgstr ""
 
-#: ironic/conductor/utils.py:43 ironic/conductor/utils.py:81
+#: ironic/conductor/utils.py:51 ironic/conductor/utils.py:89
 #, python-format
 msgid "Failed to change power state to '%(target)s'. Error: %(error)s"
 msgstr ""
 
-#: ironic/conductor/utils.py:60
+#: ironic/conductor/utils.py:68
 #, python-format
 msgid ""
 "Not going to change_node_power_state because current state = requested "
 "state = '%(state)s'."
 msgstr ""
 
-#: ironic/db/sqlalchemy/migration.py:43
-msgid "version should be an integer"
+#: ironic/conductor/utils.py:108
+#, python-format
+msgid "Cleanup failed for node %(node)s after deploy timeout:  %(error)s"
 msgstr ""
 
-#: ironic/db/sqlalchemy/migration.py:70
-msgid "Upgrade DB using Essex release first."
+#: ironic/conductor/utils.py:120
+msgid ""
+"Deploy timed out, but an unhandled exception was encountered while "
+"aborting. More info may be found in the log file."
 msgstr ""
 
-#: ironic/db/sqlalchemy/migrate_repo/versions/001_init.py:72
-#: ironic/db/sqlalchemy/migrate_repo/versions/012_add_conductor_table.py:46
-msgid "Exception while creating table."
-msgstr ""
-
-#: ironic/db/sqlalchemy/migrate_repo/versions/012_add_conductor_table.py:56
-msgid "Downgrade from version 012 is unsupported."
-msgstr ""
-
-#: ironic/drivers/modules/deploy_utils.py:180
+#: ironic/drivers/modules/deploy_utils.py:205
 #, python-format
 msgid "Parent device '%s' not found"
 msgstr ""
 
-#: ironic/drivers/modules/deploy_utils.py:185
+#: ironic/drivers/modules/deploy_utils.py:210
 #, python-format
 msgid "Root device '%s' not found"
 msgstr ""
 
-#: ironic/drivers/modules/deploy_utils.py:188
+#: ironic/drivers/modules/deploy_utils.py:213
 #, python-format
 msgid "Swap device '%s' not found"
 msgstr ""
 
-#: ironic/drivers/modules/deploy_utils.py:197
+#: ironic/drivers/modules/deploy_utils.py:217
+#, python-format
+msgid "Ephemeral device '%s' not found"
+msgstr ""
+
+#: ironic/drivers/modules/deploy_utils.py:229
 msgid "Failed to detect root device UUID."
 msgstr ""
 
-#: ironic/drivers/modules/deploy_utils.py:214
-#: ironic/drivers/modules/deploy_utils.py:220
+#: ironic/drivers/modules/deploy_utils.py:267
+#: ironic/drivers/modules/deploy_utils.py:273
 #, python-format
 msgid "Deploy to address %s failed."
 msgstr ""
 
-#: ironic/drivers/modules/deploy_utils.py:215
+#: ironic/drivers/modules/deploy_utils.py:268
 #, python-format
 msgid "Command: %s"
 msgstr ""
 
-#: ironic/drivers/modules/deploy_utils.py:216
+#: ironic/drivers/modules/deploy_utils.py:269
 #, python-format
 msgid "StdOut: %r"
 msgstr ""
 
-#: ironic/drivers/modules/deploy_utils.py:217
+#: ironic/drivers/modules/deploy_utils.py:270
 #, python-format
 msgid "StdErr: %r"
 msgstr ""
 
-#: ironic/drivers/modules/fake.py:37 ironic/drivers/modules/ipminative.py:245
-#, python-format
-msgid "set_power_state called with an invalid power state: %s."
-msgstr ""
-
-#: ironic/drivers/modules/fake.py:75
-msgid "Invalid vendor passthru, no 'method' specified."
-msgstr ""
-
-#: ironic/drivers/modules/fake.py:81
-msgid "Parameter not passed to Ironic."
-msgstr ""
-
-#: ironic/drivers/modules/fake.py:85
+#: ironic/drivers/modules/fake.py:34
 #, python-format
 msgid "Unsupported method (%s) passed through to vendor extension."
 msgstr ""
 
-#: ironic/drivers/modules/ipminative.py:60
+#: ironic/drivers/modules/fake.py:37
+msgid "Method not specified when calling vendor extension."
+msgstr ""
+
+#: ironic/drivers/modules/fake.py:52 ironic/drivers/modules/ipminative.py:245
+#, python-format
+msgid "set_power_state called with an invalid power state: %s."
+msgstr ""
+
+#: ironic/drivers/modules/fake.py:92
+msgid "Parameter 'bar' not passed to method 'first_method'."
+msgstr ""
+
+#: ironic/drivers/modules/fake.py:116
+msgid "Parameter 'bar' not passed to method 'second_method'."
+msgstr ""
+
+#: ironic/drivers/modules/ipminative.py:59
 #, python-format
 msgid "The following IPMI credentials are not supplied to IPMI driver: %s."
 msgstr ""
 
-#: ironic/drivers/modules/ipminative.py:81
+#: ironic/drivers/modules/ipminative.py:80
 #, python-format
 msgid ""
 "IPMI power on failed for node %(node_id)s with the following error: "
 "%(error)s"
 msgstr ""
 
-#: ironic/drivers/modules/ipminative.py:111
+#: ironic/drivers/modules/ipminative.py:110
 #, python-format
 msgid ""
 "IPMI power off failed for node %(node_id)s with the following error: "
 "%(error)s"
 msgstr ""
 
-#: ironic/drivers/modules/ipminative.py:143
+#: ironic/drivers/modules/ipminative.py:142
 #, python-format
 msgid ""
 "IPMI power reboot failed for node %(node_id)s with the following error: "
 "%(error)s"
 msgstr ""
 
-#: ironic/drivers/modules/ipminative.py:178
+#: ironic/drivers/modules/ipminative.py:177
 #, python-format
 msgid ""
 "IPMI get power state failed for node %(node_id)s with the following "
 "error: %(error)s"
 msgstr ""
 
-#: ironic/drivers/modules/ipminative.py:192
+#: ironic/drivers/modules/ipminative.py:191
 #, python-format
 msgid ""
 "IPMI get power state for node %(node_id)s returns the  following details:"
 " %(detail)s"
 msgstr ""
 
-#: ironic/drivers/modules/ipminative.py:281
-#: ironic/drivers/modules/ipmitool.py:316
+#: ironic/drivers/modules/ipminative.py:284
+#: ironic/drivers/modules/ipminative.py:311
+#: ironic/drivers/modules/ipmitool.py:334
+#: ironic/drivers/modules/ipmitool.py:351
 #, python-format
 msgid "Invalid boot device %s specified."
 msgstr ""
 
-#: ironic/drivers/modules/ipminative.py:290
+#: ironic/drivers/modules/ipminative.py:293
 #, python-format
 msgid ""
 "IPMI set boot device failed for node %(node_id)s with the following "
 "error: %(error)s"
 msgstr ""
 
-#: ironic/drivers/modules/ipmitool.py:83
+#: ironic/drivers/modules/ipminative.py:314
+#, python-format
+msgid "Unsupported method (%s) passed to IPMINative driver."
+msgstr ""
+
+#: ironic/drivers/modules/ipmitool.py:84
 msgid "IPMI address not supplied to IPMI driver."
 msgstr ""
 
-#: ironic/drivers/modules/ipmitool.py:126
+#: ironic/drivers/modules/ipmitool.py:89
+#, python-format
+msgid ""
+"Invalid privilege level value:%(priv_level)s, the valid value can be one "
+"of %(valid_levels)s"
+msgstr ""
+
+#: ironic/drivers/modules/ipmitool.py:136
 #, python-format
 msgid "ipmitool stdout: '%(out)s', stderr: '%(err)s'"
 msgstr ""
 
-#: ironic/drivers/modules/ipmitool.py:160
+#: ironic/drivers/modules/ipmitool.py:161
+#, python-format
+msgid "IPMI power on timed out after %(tries)s retries."
+msgstr ""
+
+#: ironic/drivers/modules/ipmitool.py:172
 #, python-format
 msgid "IPMI power on failed for node %s."
 msgstr ""
 
-#: ironic/drivers/modules/ipmitool.py:198
+#: ironic/drivers/modules/ipmitool.py:201
+#, python-format
+msgid "IPMI power off timed out after %(tries)s retries."
+msgstr ""
+
+#: ironic/drivers/modules/ipmitool.py:212
 #, python-format
 msgid "IPMI power off failed for node %s."
 msgstr ""
 
-#: ironic/drivers/modules/ipmitool.py:219
+#: ironic/drivers/modules/ipmitool.py:233
 #, python-format
 msgid "IPMI power status failed for node %(node_id)s with error: %(error)s."
 msgstr ""
 
-#: ironic/drivers/modules/ipmitool.py:277 ironic/drivers/modules/ssh.py:393
+#: ironic/drivers/modules/ipmitool.py:292 ironic/drivers/modules/ssh.py:427
 #, python-format
 msgid "set_power_state called with invalid power state %s."
 msgstr ""
 
-#: ironic/drivers/modules/pxe.py:104
+#: ironic/drivers/modules/ipmitool.py:354
+#, python-format
+msgid "Unsupported method (%s) passed to IPMItool driver."
+msgstr ""
+
+#: ironic/drivers/modules/pxe.py:106
 #, python-format
 msgid ""
 "Can not validate PXE bootloader. The following parameters were not passed"
 " to ironic: %s"
 msgstr ""
 
-#: ironic/drivers/modules/pxe.py:120
+#: ironic/drivers/modules/pxe.py:118
 #, python-format
-msgid "Can not validate PXE bootloader. Invalid parameter %s"
+msgid ""
+"Can not validate PXE bootloader. Invalid parameter pxe_%(param)s. Reason:"
+" %(reason)s"
 msgstr ""
 
-#: ironic/drivers/modules/pxe.py:139
+#: ironic/drivers/modules/pxe.py:124
+#, python-format
+msgid "'%s' is not an integer value."
+msgstr ""
+
+#: ironic/drivers/modules/pxe.py:129
+msgid ""
+"The deploy contains an ephemeral partition, but no filesystem type was "
+"specified by the pxe_ephemeral_format parameter"
+msgstr ""
+
+#: ironic/drivers/modules/pxe.py:156
 #, python-format
 msgid "Building PXE config for deployment %s."
 msgstr ""
 
-#: ironic/drivers/modules/pxe.py:324
+#: ironic/drivers/modules/pxe.py:357
 #, python-format
 msgid "Fetching kernel and ramdisk for node %s"
 msgstr ""
 
-#: ironic/drivers/modules/pxe.py:354
+#: ironic/drivers/modules/pxe.py:387
 #, python-format
 msgid "Fetching image %(ami)s for node %(uuid)s"
 msgstr ""
 
-#: ironic/drivers/modules/pxe.py:593
+#: ironic/drivers/modules/pxe.py:485
+#, python-format
+msgid ""
+"No VIFs found for node %(node)s when attempting to update Neutron DHCP "
+"BOOT options."
+msgstr ""
+
+#: ironic/drivers/modules/pxe.py:504
+#, python-format
+msgid "Failed to set DHCP BOOT options for any port on node %s."
+msgstr ""
+
+#: ironic/drivers/modules/pxe.py:508
+#, python-format
+msgid ""
+"Some errors were encountered when updating the DHCP BOOT options for node"
+" %(node)s on the following ports: %(ports)s."
+msgstr ""
+
+#: ironic/drivers/modules/pxe.py:543 ironic/drivers/modules/ssh.py:372
+#, python-format
+msgid "Node %s does not have any port associated with it."
+msgstr ""
+
+#: ironic/drivers/modules/pxe.py:664
 msgid "Deploy key is not match"
 msgstr ""
 
-#: ironic/drivers/modules/pxe.py:609
+#: ironic/drivers/modules/pxe.py:681
 #, python-format
 msgid "Parameters %s were not passed to ironic for deploy."
 msgstr ""
 
-#: ironic/drivers/modules/pxe.py:623
+#: ironic/drivers/modules/pxe.py:698
 #, python-format
 msgid "Unsupported method (%s) passed to PXE driver."
 msgstr ""
 
-#: ironic/drivers/modules/pxe.py:643
+#: ironic/drivers/modules/pxe.py:718
 #, python-format
 msgid ""
 "Node %s failed to power off while handling deploy failure. This may be a "
@@ -840,83 +1003,167 @@ msgid ""
 "maintenance mode until the problem is resolved."
 msgstr ""
 
-#: ironic/drivers/modules/pxe.py:661
+#: ironic/drivers/modules/pxe.py:730
+#, python-format
+msgid "Node %s is not waiting to be deployed."
+msgstr ""
+
+#: ironic/drivers/modules/pxe.py:742
 #, python-format
 msgid "Error returned from PXE deploy ramdisk: %s"
 msgstr ""
 
-#: ironic/drivers/modules/pxe.py:663
+#: ironic/drivers/modules/pxe.py:744
 msgid "Failure in PXE deploy ramdisk."
 msgstr ""
 
-#: ironic/drivers/modules/pxe.py:666
+#: ironic/drivers/modules/pxe.py:747
 #, python-format
 msgid "Continuing deployment for node %(node)s, params %(params)s"
 msgstr ""
 
-#: ironic/drivers/modules/pxe.py:674
+#: ironic/drivers/modules/pxe.py:753
+#, python-format
+msgid "PXE deploy failed for instance %(instance)s. Error: %(error)s"
+msgstr ""
+
+#: ironic/drivers/modules/pxe.py:756
 msgid "PXE driver failed to continue deployment."
 msgstr ""
 
-#: ironic/drivers/modules/pxe.py:676
+#: ironic/drivers/modules/pxe.py:758
 #, python-format
 msgid "Deployment to node %s done"
 msgstr ""
 
-#: ironic/drivers/modules/ssh.py:99
+#: ironic/drivers/modules/seamicro.py:88
+msgid "SeaMicro driver requires api_endpoint be set"
+msgstr ""
+
+#: ironic/drivers/modules/seamicro.py:92
+msgid "SeaMicro driver requires both username and password be set"
+msgstr ""
+
+#: ironic/drivers/modules/seamicro.py:96
+msgid "SeaMicro driver requires server_id be set"
+msgstr ""
+
+#: ironic/drivers/modules/seamicro.py:146
+#, python-format
+msgid "SeaMicro client exception %(msg)s for node %(uuid)s"
+msgstr ""
+
+#: ironic/drivers/modules/seamicro.py:181
+#, python-format
+msgid "Power-on failed for node %s."
+msgstr ""
+
+#: ironic/drivers/modules/seamicro.py:220
+#, python-format
+msgid "Power-off failed for node %s."
+msgstr ""
+
+#: ironic/drivers/modules/seamicro.py:259
+#, python-format
+msgid "Reboot failed for node %s."
+msgstr ""
+
+#: ironic/drivers/modules/seamicro.py:284
+msgid "Invalid volume id specified"
+msgstr ""
+
+#: ironic/drivers/modules/seamicro.py:300
+msgid "No storage pools found for ironic"
+msgstr ""
+
+#: ironic/drivers/modules/seamicro.py:360
+msgid "set_power_state called with invalid power state."
+msgstr ""
+
+#: ironic/drivers/modules/seamicro.py:391
+#, python-format
+msgid "Unsupported method (%s) passed to SeaMicro driver."
+msgstr ""
+
+#: ironic/drivers/modules/seamicro.py:409
+msgid "No vlan id provided"
+msgstr ""
+
+#: ironic/drivers/modules/seamicro.py:421
+#: ironic/drivers/modules/seamicro.py:456
+#, python-format
+msgid "SeaMicro client exception: %s"
+msgstr ""
+
+#: ironic/drivers/modules/seamicro.py:446
+msgid "No volume size provided for creating volume"
+msgstr ""
+
+#: ironic/drivers/modules/seamicro.py:472
+msgid "No boot device provided"
+msgstr ""
+
+#: ironic/drivers/modules/seamicro.py:475
+msgid "Boot device is invalid"
+msgstr ""
+
+#: ironic/drivers/modules/seamicro.py:485
+#, python-format
+msgid "set_boot_device error:  %s"
+msgstr ""
+
+#: ironic/drivers/modules/ssh.py:111
+#, python-format
+msgid "SSHPowerDriver '%(virt_type)s' is not a valid virt_type, "
+msgstr ""
+
+#: ironic/drivers/modules/ssh.py:136
 #, python-format
 msgid "Cannot execute SSH cmd %(cmd)s. Reason: %(err)s."
 msgstr ""
 
-#: ironic/drivers/modules/ssh.py:122
+#: ironic/drivers/modules/ssh.py:159
 msgid "SSHPowerDriver requires ssh_port to be integer value"
 msgstr ""
 
-#: ironic/drivers/modules/ssh.py:137
+#: ironic/drivers/modules/ssh.py:174
 msgid "SSHPowerDriver requires virt_type be set."
 msgstr ""
 
-#: ironic/drivers/modules/ssh.py:143
-#, python-format
-msgid ""
-"SSHPowerDriver '%(virt_type)s' is not a valid virt_type, supported types "
-"are: %(valid)s"
-msgstr ""
-
-#: ironic/drivers/modules/ssh.py:151
+#: ironic/drivers/modules/ssh.py:181
 msgid "SSHPowerDriver requires both address and username be set."
 msgstr ""
 
-#: ironic/drivers/modules/ssh.py:157
+#: ironic/drivers/modules/ssh.py:187
 msgid "SSHPowerDriver requires either password or key_filename be set."
 msgstr ""
 
-#: ironic/drivers/modules/ssh.py:161
+#: ironic/drivers/modules/ssh.py:191
 #, python-format
 msgid "SSH key file %s not found."
 msgstr ""
 
-#: ironic/drivers/modules/ssh.py:194
+#: ironic/drivers/modules/ssh.py:224
 #, python-format
 msgid "Node \"%(host)s\" with MAC address %(mac)s not found."
 msgstr ""
 
-#: ironic/drivers/modules/ssh.py:225
+#: ironic/drivers/modules/ssh.py:255
 #, python-format
 msgid "Retrieved Node List: %s"
 msgstr ""
 
-#: ironic/drivers/modules/ssh.py:230
+#: ironic/drivers/modules/ssh.py:260
 #, python-format
 msgid "Checking Node: %s's Mac address."
 msgstr ""
 
-#: ironic/drivers/modules/ssh.py:243
+#: ironic/drivers/modules/ssh.py:273
 #, python-format
 msgid "Found Mac address: %s"
 msgstr ""
 
-#: ironic/drivers/modules/ssh.py:343
+#: ironic/drivers/modules/ssh.py:377
 #, python-format
 msgid "SSH connection cannot be established: %s"
 msgstr ""
@@ -944,7 +1191,7 @@ msgstr ""
 msgid "Cannot save anything in the base class"
 msgstr ""
 
-#: ironic/objects/conductor.py:55
+#: ironic/objects/conductor.py:54
 msgid "Cannot update a conductor record directly."
 msgstr ""
 
@@ -965,6 +1212,16 @@ msgstr ""
 #: ironic/openstack/common/excutils.py:93
 #, python-format
 msgid "Unexpected exception occurred %d time(s)... retrying."
+msgstr ""
+
+#: ironic/openstack/common/gettextutils.py:297
+msgid "Message objects do not support addition."
+msgstr ""
+
+#: ironic/openstack/common/gettextutils.py:306
+msgid ""
+"Message objects do not support str() because they may contain non-ascii "
+"characters. Please use unicode() or translate() instead."
 msgstr ""
 
 #: ironic/openstack/common/lockutils.py:105
@@ -1119,64 +1376,64 @@ msgstr ""
 msgid "process_input not supported over SSH"
 msgstr ""
 
-#: ironic/openstack/common/service.py:136
-#: ironic/openstack/common/service.py:348
+#: ironic/openstack/common/service.py:166
+#: ironic/openstack/common/service.py:384
 msgid "Full set of CONF:"
 msgstr ""
 
-#: ironic/openstack/common/service.py:145
-#: ironic/openstack/common/service.py:233
+#: ironic/openstack/common/service.py:175
+#: ironic/openstack/common/service.py:269
 #, python-format
 msgid "Caught %s, exiting"
 msgstr ""
 
-#: ironic/openstack/common/service.py:157
+#: ironic/openstack/common/service.py:187
 msgid "Exception during rpc cleanup."
 msgstr ""
 
-#: ironic/openstack/common/service.py:202
+#: ironic/openstack/common/service.py:238
 msgid "Parent process has died unexpectedly, exiting"
 msgstr ""
 
-#: ironic/openstack/common/service.py:239
+#: ironic/openstack/common/service.py:275
 msgid "Unhandled exception"
 msgstr ""
 
-#: ironic/openstack/common/service.py:272
+#: ironic/openstack/common/service.py:308
 msgid "Forking too fast, sleeping"
 msgstr ""
 
-#: ironic/openstack/common/service.py:291
+#: ironic/openstack/common/service.py:327
 #, python-format
 msgid "Started child %d"
 msgstr ""
 
-#: ironic/openstack/common/service.py:301
+#: ironic/openstack/common/service.py:337
 #, python-format
 msgid "Starting %d workers"
 msgstr ""
 
-#: ironic/openstack/common/service.py:318
+#: ironic/openstack/common/service.py:354
 #, python-format
 msgid "Child %(pid)d killed by signal %(sig)d"
 msgstr ""
 
-#: ironic/openstack/common/service.py:322
+#: ironic/openstack/common/service.py:358
 #, python-format
 msgid "Child %(pid)s exited with status %(code)d"
 msgstr ""
 
-#: ironic/openstack/common/service.py:326
+#: ironic/openstack/common/service.py:362
 #, python-format
 msgid "pid %d not in child list"
 msgstr ""
 
-#: ironic/openstack/common/service.py:356
+#: ironic/openstack/common/service.py:392
 #, python-format
 msgid "Caught %s, stopping children"
 msgstr ""
 
-#: ironic/openstack/common/service.py:374
+#: ironic/openstack/common/service.py:410
 #, python-format
 msgid "Waiting on %d children to exit"
 msgstr ""
@@ -1226,53 +1483,93 @@ msgstr ""
 msgid "Invalid Parameter: Unicode is not supported by the current database."
 msgstr ""
 
-#: ironic/openstack/common/db/sqlalchemy/session.py:553
+#: ironic/openstack/common/db/sqlalchemy/migration.py:191
+msgid "version should be an integer"
+msgstr ""
+
+#: ironic/openstack/common/db/sqlalchemy/migration.py:214
+#, python-format
+msgid ""
+"Tables \"%s\" have non utf8 collation, please make sure all tables are "
+"CHARSET=utf8"
+msgstr ""
+
+#: ironic/openstack/common/db/sqlalchemy/migration.py:238
+msgid ""
+"The database is not under version control, but has tables. Please stamp "
+"the current version of the schema manually."
+msgstr ""
+
+#: ironic/openstack/common/db/sqlalchemy/session.py:596
 msgid "DB exception wrapped."
 msgstr ""
 
-#: ironic/openstack/common/db/sqlalchemy/session.py:616
+#: ironic/openstack/common/db/sqlalchemy/session.py:665
 #, python-format
-msgid "Got mysql server has gone away: %s"
+msgid "Database server has gone away: %s"
 msgstr ""
 
-#: ironic/openstack/common/db/sqlalchemy/session.py:697
+#: ironic/openstack/common/db/sqlalchemy/session.py:743
+msgid ""
+"This application has not enabled MySQL traditional mode, which means "
+"silent data corruption may occur. Please encourage the application "
+"developers to enable this mode."
+msgstr ""
+
+#: ironic/openstack/common/db/sqlalchemy/session.py:767
 #, python-format
 msgid "SQL connection failed. %s attempts left."
 msgstr ""
 
-#: ironic/openstack/common/db/sqlalchemy/utils.py:60
+#: ironic/openstack/common/db/sqlalchemy/test_migrations.py:103
+#, python-format
+msgid "Got lock \"%s\""
+msgstr ""
+
+#: ironic/openstack/common/db/sqlalchemy/test_migrations.py:106
+#, python-format
+msgid "Lock released \"%s\""
+msgstr ""
+
+#: ironic/openstack/common/db/sqlalchemy/utils.py:58
 msgid "Sort key supplied was not valid."
 msgstr ""
 
-#: ironic/openstack/common/db/sqlalchemy/utils.py:99
+#: ironic/openstack/common/db/sqlalchemy/utils.py:97
 msgid "Id not in sort_keys; is sort_keys unique?"
 msgstr ""
 
-#: ironic/openstack/common/db/sqlalchemy/utils.py:121
+#: ironic/openstack/common/db/sqlalchemy/utils.py:119
 msgid "Unknown sort direction, must be 'desc' or 'asc'"
 msgstr ""
 
-#: ironic/openstack/common/db/sqlalchemy/utils.py:196
+#: ironic/openstack/common/db/sqlalchemy/utils.py:194
 #, python-format
 msgid ""
 "Please specify column %s in col_name_col_instance param. It is required "
 "because column has unsupported type by sqlite)."
 msgstr ""
 
-#: ironic/openstack/common/db/sqlalchemy/utils.py:202
+#: ironic/openstack/common/db/sqlalchemy/utils.py:200
 #, python-format
 msgid ""
 "col_name_col_instance param has wrong type of column instance for column "
 "%s It should be instance of sqlalchemy.Column."
 msgstr ""
 
-#: ironic/openstack/common/db/sqlalchemy/utils.py:282
+#: ironic/openstack/common/db/sqlalchemy/utils.py:280
 #, python-format
 msgid "Deleting duplicated row with id: %(id)s from table: %(table)s"
 msgstr ""
 
-#: ironic/openstack/common/db/sqlalchemy/utils.py:303
+#: ironic/openstack/common/db/sqlalchemy/utils.py:301
 msgid "Unsupported id columns type"
+msgstr ""
+
+#: ironic/openstack/common/db/sqlalchemy/migration_cli/ext_migrate.py:58
+msgid ""
+"Migration number for migrate plugin must be valid integer or empty, if "
+"you want to downgrade to initial state"
 msgstr ""
 
 #: ironic/openstack/common/notifier/api.py:129
@@ -1298,451 +1595,430 @@ msgstr ""
 msgid "Could not send notification to %(topic)s. Payload=%(message)s"
 msgstr ""
 
-#: ironic/openstack/common/rpc/__init__.py:106
-#, python-format
-msgid ""
-"A RPC is being made while holding a lock. The locks currently held are "
-"%(locks)s. This is probably a bug. Please report it. Include the "
-"following: [%(stack)s]."
-msgstr ""
-
 #: ironic/openstack/common/rpc/amqp.py:75
 msgid "Pool creating new connection"
 msgstr ""
 
-#: ironic/openstack/common/rpc/amqp.py:200
+#: ironic/openstack/common/rpc/amqp.py:202
 #, python-format
-msgid "no calling threads waiting for msg_id : %(msg_id)s, message : %(data)s"
+msgid "No calling threads waiting for msg_id : %(msg_id)s, message : %(data)s"
 msgstr ""
 
-#: ironic/openstack/common/rpc/amqp.py:209
+#: ironic/openstack/common/rpc/amqp.py:205
+#, python-format
+msgid "_call_waiters: %s"
+msgstr ""
+
+#: ironic/openstack/common/rpc/amqp.py:212
 #, python-format
 msgid ""
-"Number of call waiters is greater than warning threshhold: %d. There "
-"could be a MulticallProxyWaiter leak."
+"Number of call waiters is greater than warning threshold: %d. There could"
+" be a MulticallProxyWaiter leak."
 msgstr ""
 
-#: ironic/openstack/common/rpc/amqp.py:292
+#: ironic/openstack/common/rpc/amqp.py:290
 #, python-format
 msgid "unpacked context: %s"
 msgstr ""
 
-#: ironic/openstack/common/rpc/amqp.py:338
+#: ironic/openstack/common/rpc/amqp.py:342
 #, python-format
 msgid "UNIQUE_ID is %s."
 msgstr ""
 
-#: ironic/openstack/common/rpc/amqp.py:407
+#: ironic/openstack/common/rpc/amqp.py:435
 #, python-format
 msgid "received %s"
 msgstr ""
 
-#: ironic/openstack/common/rpc/amqp.py:415
+#: ironic/openstack/common/rpc/amqp.py:443
 #, python-format
 msgid "no method for message: %s"
 msgstr ""
 
-#: ironic/openstack/common/rpc/amqp.py:416
+#: ironic/openstack/common/rpc/amqp.py:444
 #, python-format
 msgid "No method for message: %s"
 msgstr ""
 
-#: ironic/openstack/common/rpc/amqp.py:444
-#: ironic/openstack/common/rpc/impl_zmq.py:286
+#: ironic/openstack/common/rpc/amqp.py:472
+#: ironic/openstack/common/rpc/impl_zmq.py:280
 #, python-format
 msgid "Expected exception during message handling (%s)"
 msgstr ""
 
-#: ironic/openstack/common/rpc/amqp.py:452
-#: ironic/openstack/common/rpc/impl_zmq.py:292
+#: ironic/openstack/common/rpc/amqp.py:480
+#: ironic/openstack/common/rpc/impl_zmq.py:286
 msgid "Exception during message handling"
 msgstr ""
 
-#: ironic/openstack/common/rpc/amqp.py:587
+#: ironic/openstack/common/rpc/amqp.py:554
 #, python-format
 msgid "Making synchronous call on %s ..."
 msgstr ""
 
-#: ironic/openstack/common/rpc/amqp.py:590
+#: ironic/openstack/common/rpc/amqp.py:557
 #, python-format
 msgid "MSG_ID is %s"
 msgstr ""
 
-#: ironic/openstack/common/rpc/amqp.py:624
+#: ironic/openstack/common/rpc/amqp.py:583
 #, python-format
 msgid "Making asynchronous cast on %s..."
 msgstr ""
 
-#: ironic/openstack/common/rpc/amqp.py:633
+#: ironic/openstack/common/rpc/amqp.py:592
 msgid "Making asynchronous fanout cast..."
 msgstr ""
 
-#: ironic/openstack/common/rpc/amqp.py:661
+#: ironic/openstack/common/rpc/amqp.py:620
 #, python-format
 msgid "Sending %(event_type)s on %(topic)s"
 msgstr ""
 
-#: ironic/openstack/common/rpc/common.py:75
+#: ironic/openstack/common/rpc/common.py:76
 msgid "An unknown RPC related exception occurred."
 msgstr ""
 
-#: ironic/openstack/common/rpc/common.py:105
+#: ironic/openstack/common/rpc/common.py:106
 #, python-format
 msgid ""
 "Remote error: %(exc_type)s %(value)s\n"
 "%(traceback)s."
 msgstr ""
 
-#: ironic/openstack/common/rpc/common.py:122
+#: ironic/openstack/common/rpc/common.py:123
 #, python-format
 msgid ""
 "Timeout while waiting on RPC response - topic: \"%(topic)s\", RPC method:"
 " \"%(method)s\" info: \"%(info)s\""
 msgstr ""
 
-#: ironic/openstack/common/rpc/common.py:138
-#: ironic/openstack/common/rpc/common.py:139
 #: ironic/openstack/common/rpc/common.py:140
+#: ironic/openstack/common/rpc/common.py:141
+#: ironic/openstack/common/rpc/common.py:142
 msgid "<unknown>"
 msgstr ""
 
-#: ironic/openstack/common/rpc/common.py:144
+#: ironic/openstack/common/rpc/common.py:146
 #, python-format
 msgid "Found duplicate message(%(msg_id)s). Skipping it."
 msgstr ""
 
-#: ironic/openstack/common/rpc/common.py:148
+#: ironic/openstack/common/rpc/common.py:150
 msgid "Invalid reuse of an RPC connection."
 msgstr ""
 
-#: ironic/openstack/common/rpc/common.py:152
+#: ironic/openstack/common/rpc/common.py:154
 #, python-format
 msgid "Specified RPC version, %(version)s, not supported by this endpoint."
 msgstr ""
 
-#: ironic/openstack/common/rpc/common.py:157
+#: ironic/openstack/common/rpc/common.py:159
 #, python-format
 msgid ""
 "Specified RPC envelope version, %(version)s, not supported by this "
 "endpoint."
 msgstr ""
 
-#: ironic/openstack/common/rpc/common.py:162
+#: ironic/openstack/common/rpc/common.py:164
 #, python-format
 msgid "Specified RPC version cap, %(version_cap)s, is too low"
 msgstr ""
 
-#: ironic/openstack/common/rpc/common.py:285
-#, python-format
-msgid "Failed to sanitize %(item)s. Key error %(err)s"
-msgstr ""
-
-#: ironic/openstack/common/rpc/common.py:307
+#: ironic/openstack/common/rpc/common.py:292
 #, python-format
 msgid "Returning exception %s to caller"
 msgstr ""
 
-#: ironic/openstack/common/rpc/impl_kombu.py:169
-#: ironic/openstack/common/rpc/impl_qpid.py:133
-msgid "Failed to process message... skipping it."
+#: ironic/openstack/common/rpc/impl_kombu.py:156
+msgid "Failed to process message ... skipping it."
 msgstr ""
 
-#: ironic/openstack/common/rpc/impl_kombu.py:480
+#: ironic/openstack/common/rpc/impl_kombu.py:160
+msgid "Failed to process message ... will requeue."
+msgstr ""
+
+#: ironic/openstack/common/rpc/impl_kombu.py:495
 #, python-format
 msgid "Reconnecting to AMQP server on %(hostname)s:%(port)d"
 msgstr ""
 
-#: ironic/openstack/common/rpc/impl_kombu.py:502
+#: ironic/openstack/common/rpc/impl_kombu.py:517
 #, python-format
 msgid "Connected to AMQP server on %(hostname)s:%(port)d"
 msgstr ""
 
-#: ironic/openstack/common/rpc/impl_kombu.py:539
+#: ironic/openstack/common/rpc/impl_kombu.py:554
 #, python-format
 msgid ""
 "Unable to connect to AMQP server on %(hostname)s:%(port)d after "
 "%(max_retries)d tries: %(err_str)s"
 msgstr ""
 
-#: ironic/openstack/common/rpc/impl_kombu.py:555
+#: ironic/openstack/common/rpc/impl_kombu.py:568
 #, python-format
 msgid ""
 "AMQP server on %(hostname)s:%(port)d is unreachable: %(err_str)s. Trying "
 "again in %(sleep_time)d seconds."
 msgstr ""
 
-#: ironic/openstack/common/rpc/impl_kombu.py:609
-#: ironic/openstack/common/rpc/impl_qpid.py:404
+#: ironic/openstack/common/rpc/impl_kombu.py:622
+#: ironic/openstack/common/rpc/impl_qpid.py:573
 #, python-format
 msgid "Failed to declare consumer for topic '%(topic)s': %(err_str)s"
 msgstr ""
 
-#: ironic/openstack/common/rpc/impl_kombu.py:627
-#: ironic/openstack/common/rpc/impl_qpid.py:419
+#: ironic/openstack/common/rpc/impl_kombu.py:640
+#: ironic/openstack/common/rpc/impl_qpid.py:588
 #, python-format
 msgid "Timed out waiting for RPC response: %s"
 msgstr ""
 
-#: ironic/openstack/common/rpc/impl_kombu.py:631
-#: ironic/openstack/common/rpc/impl_qpid.py:423
+#: ironic/openstack/common/rpc/impl_kombu.py:644
+#: ironic/openstack/common/rpc/impl_qpid.py:592
 #, python-format
 msgid "Failed to consume message from queue: %s"
 msgstr ""
 
-#: ironic/openstack/common/rpc/impl_kombu.py:670
-#: ironic/openstack/common/rpc/impl_qpid.py:458
+#: ironic/openstack/common/rpc/impl_kombu.py:683
+#: ironic/openstack/common/rpc/impl_qpid.py:627
 #, python-format
 msgid "Failed to publish message to topic '%(topic)s': %(err_str)s"
 msgstr ""
 
-#: ironic/openstack/common/rpc/impl_qpid.py:352
+#: ironic/openstack/common/rpc/impl_qpid.py:87
+#, python-format
+msgid "Invalid value for qpid_topology_version: %d"
+msgstr ""
+
+#: ironic/openstack/common/rpc/impl_qpid.py:191
+msgid "Failed to process message... skipping it."
+msgstr ""
+
+#: ironic/openstack/common/rpc/impl_qpid.py:515
 #, python-format
 msgid "Unable to connect to AMQP server: %(e)s. Sleeping %(delay)s seconds"
 msgstr ""
 
-#: ironic/openstack/common/rpc/impl_qpid.py:358
+#: ironic/openstack/common/rpc/impl_qpid.py:521
 #, python-format
 msgid "Connected to AMQP server on %s"
 msgstr ""
 
-#: ironic/openstack/common/rpc/impl_qpid.py:371
+#: ironic/openstack/common/rpc/impl_qpid.py:534
 msgid "Re-established AMQP queues"
 msgstr ""
 
-#: ironic/openstack/common/rpc/impl_qpid.py:431
+#: ironic/openstack/common/rpc/impl_qpid.py:600
 msgid "Error processing message.  Skipping it."
 msgstr ""
 
-#: ironic/openstack/common/rpc/impl_zmq.py:97
+#: ironic/openstack/common/rpc/impl_zmq.py:96
 msgid "JSON serialization failed."
 msgstr ""
 
-#: ironic/openstack/common/rpc/impl_zmq.py:104
+#: ironic/openstack/common/rpc/impl_zmq.py:101
 #, python-format
 msgid "Deserializing: %s"
 msgstr ""
 
-#: ironic/openstack/common/rpc/impl_zmq.py:140
+#: ironic/openstack/common/rpc/impl_zmq.py:136
 #, python-format
 msgid "Connecting to %(addr)s with %(type)s"
 msgstr ""
 
-#: ironic/openstack/common/rpc/impl_zmq.py:141
+#: ironic/openstack/common/rpc/impl_zmq.py:137
 #, python-format
 msgid "-> Subscribed to %(subscribe)s"
 msgstr ""
 
-#: ironic/openstack/common/rpc/impl_zmq.py:142
+#: ironic/openstack/common/rpc/impl_zmq.py:138
 #, python-format
 msgid "-> bind: %(bind)s"
 msgstr ""
 
-#: ironic/openstack/common/rpc/impl_zmq.py:150
+#: ironic/openstack/common/rpc/impl_zmq.py:146
 msgid "Could not open socket."
 msgstr ""
 
-#: ironic/openstack/common/rpc/impl_zmq.py:162
+#: ironic/openstack/common/rpc/impl_zmq.py:158
 #, python-format
 msgid "Subscribing to %s"
 msgstr ""
 
-#: ironic/openstack/common/rpc/impl_zmq.py:204
+#: ironic/openstack/common/rpc/impl_zmq.py:195
+msgid "ZeroMQ socket could not be closed."
+msgstr ""
+
+#: ironic/openstack/common/rpc/impl_zmq.py:200
 msgid "You cannot recv on this socket."
 msgstr ""
 
-#: ironic/openstack/common/rpc/impl_zmq.py:209
+#: ironic/openstack/common/rpc/impl_zmq.py:205
 msgid "You cannot send on this socket."
 msgstr ""
 
-#: ironic/openstack/common/rpc/impl_zmq.py:273
+#: ironic/openstack/common/rpc/impl_zmq.py:267
 #, python-format
 msgid "Running func with context: %s"
 msgstr ""
 
-#: ironic/openstack/common/rpc/impl_zmq.py:311
+#: ironic/openstack/common/rpc/impl_zmq.py:305
 msgid "Sending reply"
 msgstr ""
 
-#: ironic/openstack/common/rpc/impl_zmq.py:345
+#: ironic/openstack/common/rpc/impl_zmq.py:339
 msgid "RPC message did not include method."
 msgstr ""
 
-#: ironic/openstack/common/rpc/impl_zmq.py:380
+#: ironic/openstack/common/rpc/impl_zmq.py:371
 msgid "Registering reactor"
 msgstr ""
 
-#: ironic/openstack/common/rpc/impl_zmq.py:392
+#: ironic/openstack/common/rpc/impl_zmq.py:383
 msgid "In reactor registered"
 msgstr ""
 
-#: ironic/openstack/common/rpc/impl_zmq.py:407
-msgid "Out reactor registered"
-msgstr ""
-
-#: ironic/openstack/common/rpc/impl_zmq.py:411
+#: ironic/openstack/common/rpc/impl_zmq.py:388
 msgid "Consuming socket"
 msgstr ""
 
-#: ironic/openstack/common/rpc/impl_zmq.py:453
-#, python-format
-msgid "CONSUMER GOT %s"
-msgstr ""
-
-#: ironic/openstack/common/rpc/impl_zmq.py:465
+#: ironic/openstack/common/rpc/impl_zmq.py:438
 #, python-format
 msgid "Creating proxy for topic: %s"
 msgstr ""
 
-#: ironic/openstack/common/rpc/impl_zmq.py:471
+#: ironic/openstack/common/rpc/impl_zmq.py:444
 msgid "Topic contained dangerous characters."
 msgstr ""
 
-#: ironic/openstack/common/rpc/impl_zmq.py:496
-#, python-format
-msgid "ROUTER RELAY-OUT SUCCEEDED %(data)s"
-msgstr ""
-
-#: ironic/openstack/common/rpc/impl_zmq.py:505
+#: ironic/openstack/common/rpc/impl_zmq.py:476
 msgid "Topic socket file creation failed."
 msgstr ""
 
-#: ironic/openstack/common/rpc/impl_zmq.py:510
-#, python-format
-msgid "ROUTER RELAY-OUT QUEUED %(data)s"
-msgstr ""
-
-#: ironic/openstack/common/rpc/impl_zmq.py:513
+#: ironic/openstack/common/rpc/impl_zmq.py:482
 #, python-format
 msgid "Local per-topic backlog buffer full for topic %(topic)s. Dropping message."
 msgstr ""
 
-#: ironic/openstack/common/rpc/impl_zmq.py:532
+#: ironic/openstack/common/rpc/impl_zmq.py:498
 #, python-format
-msgid "Could not create IPC directory %s"
+msgid "Required IPC directory does not exist at %s"
 msgstr ""
 
-#: ironic/openstack/common/rpc/impl_zmq.py:542
+#: ironic/openstack/common/rpc/impl_zmq.py:507
+#, python-format
+msgid "Permission denied to IPC directory at %s"
+msgstr ""
+
+#: ironic/openstack/common/rpc/impl_zmq.py:510
 msgid "Could not create ZeroMQ receiver daemon. Socket may already be in use."
 msgstr ""
 
-#: ironic/openstack/common/rpc/impl_zmq.py:576
+#: ironic/openstack/common/rpc/impl_zmq.py:544
 #, python-format
 msgid "CONSUMER RECEIVED DATA: %s"
 msgstr ""
 
-#: ironic/openstack/common/rpc/impl_zmq.py:578
-#, python-format
-msgid "ROUTER RELAY-OUT %(data)s"
-msgstr ""
-
-#: ironic/openstack/common/rpc/impl_zmq.py:600
+#: ironic/openstack/common/rpc/impl_zmq.py:563
 msgid "ZMQ Envelope version unsupported or unknown."
 msgstr ""
 
-#: ironic/openstack/common/rpc/impl_zmq.py:628
+#: ironic/openstack/common/rpc/impl_zmq.py:591
 msgid "Skipping topic registration. Already registered."
 msgstr ""
 
-#: ironic/openstack/common/rpc/impl_zmq.py:635
+#: ironic/openstack/common/rpc/impl_zmq.py:598
 #, python-format
 msgid "Consumer is a zmq.%s"
 msgstr ""
 
-#: ironic/openstack/common/rpc/impl_zmq.py:687
+#: ironic/openstack/common/rpc/impl_zmq.py:650
 msgid "Creating payload"
 msgstr ""
 
-#: ironic/openstack/common/rpc/impl_zmq.py:700
+#: ironic/openstack/common/rpc/impl_zmq.py:663
 msgid "Creating queue socket for reply waiter"
 msgstr ""
 
-#: ironic/openstack/common/rpc/impl_zmq.py:713
+#: ironic/openstack/common/rpc/impl_zmq.py:676
 msgid "Sending cast"
 msgstr ""
 
-#: ironic/openstack/common/rpc/impl_zmq.py:716
+#: ironic/openstack/common/rpc/impl_zmq.py:679
 msgid "Cast sent; Waiting reply"
 msgstr ""
 
-#: ironic/openstack/common/rpc/impl_zmq.py:719
+#: ironic/openstack/common/rpc/impl_zmq.py:682
 #, python-format
 msgid "Received message: %s"
 msgstr ""
 
-#: ironic/openstack/common/rpc/impl_zmq.py:720
+#: ironic/openstack/common/rpc/impl_zmq.py:683
 msgid "Unpacking response"
 msgstr ""
 
-#: ironic/openstack/common/rpc/impl_zmq.py:729
+#: ironic/openstack/common/rpc/impl_zmq.py:692
 msgid "Unsupported or unknown ZMQ envelope returned."
 msgstr ""
 
-#: ironic/openstack/common/rpc/impl_zmq.py:736
+#: ironic/openstack/common/rpc/impl_zmq.py:699
 msgid "RPC Message Invalid."
 msgstr ""
 
-#: ironic/openstack/common/rpc/impl_zmq.py:760
+#: ironic/openstack/common/rpc/impl_zmq.py:722
 #, python-format
 msgid "%(msg)s"
 msgstr ""
 
-#: ironic/openstack/common/rpc/impl_zmq.py:763
+#: ironic/openstack/common/rpc/impl_zmq.py:725
 #, python-format
 msgid "Sending message(s) to: %s"
 msgstr ""
 
-#: ironic/openstack/common/rpc/impl_zmq.py:767
+#: ironic/openstack/common/rpc/impl_zmq.py:729
 msgid "No matchmaker results. Not casting."
 msgstr ""
 
-#: ironic/openstack/common/rpc/impl_zmq.py:770
+#: ironic/openstack/common/rpc/impl_zmq.py:732
 msgid "No match from matchmaker."
 msgstr ""
 
-#: ironic/openstack/common/rpc/impl_zmq.py:852
+#: ironic/openstack/common/rpc/impl_zmq.py:814
 #, python-format
 msgid "rpc_zmq_matchmaker = %(orig)s is deprecated; use %(new)s instead"
 msgstr ""
 
-#: ironic/openstack/common/rpc/matchmaker.py:47
+#: ironic/openstack/common/rpc/matchmaker.py:46
 msgid "Match not found by MatchMaker."
 msgstr ""
 
-#: ironic/openstack/common/rpc/matchmaker.py:83
+#: ironic/openstack/common/rpc/matchmaker.py:80
 msgid "Matchmaker does not implement registration or heartbeat."
 msgstr ""
 
-#: ironic/openstack/common/rpc/matchmaker.py:233
+#: ironic/openstack/common/rpc/matchmaker.py:216
 #, python-format
 msgid "Matchmaker unregistered: %(key)s, %(host)s"
 msgstr ""
 
-#: ironic/openstack/common/rpc/matchmaker.py:245
+#: ironic/openstack/common/rpc/matchmaker.py:228
 msgid "Register before starting heartbeat."
 msgstr ""
 
-#: ironic/openstack/common/rpc/matchmaker_ring.py:81
-#: ironic/openstack/common/rpc/matchmaker_ring.py:99
+#: ironic/openstack/common/rpc/matchmaker_ring.py:75
+#: ironic/openstack/common/rpc/matchmaker_ring.py:93
 #, python-format
 msgid "No key defining hosts for topic '%s', see ringfile"
 msgstr ""
 
-#: ironic/openstack/common/rpc/service.py:48
+#: ironic/openstack/common/rpc/service.py:47
 #, python-format
 msgid "Creating Consumer connection for Service %s"
 msgstr ""
 
-#: ironic/tests/db/sqlalchemy/test_migrations.py:145
-#, python-format
-msgid "config_path is %s"
-msgstr ""
-
-#: ironic/tests/db/sqlalchemy/test_migrations.py:251
-#, python-format
-msgid "latest version is %s"
-msgstr ""
-
-#: ironic/tests/db/sqlalchemy/test_migrations.py:322
+#: ironic/tests/db/sqlalchemy/test_migrations.py:316
 #, python-format
 msgid "Failed to migrate to version %(version)s on engine %(engine)s"
 msgstr ""
@@ -1858,17 +2134,6 @@ msgstr ""
 #~ msgid "No valid host was found. %(reason)s"
 #~ msgstr ""
 
-#~ msgid ""
-#~ "Unable to complete the requested action"
-#~ " because node %(node)s is currently "
-#~ "in use by another process."
-#~ msgstr ""
-
-#~ msgid ""
-#~ "Can not change power state because "
-#~ "node %(node)s is not fully configured."
-#~ msgstr ""
-
 #~ msgid "Requested version of OpenStack Images API is not available."
 #~ msgstr ""
 
@@ -1876,5 +2141,115 @@ msgstr ""
 #~ msgstr ""
 
 #~ msgid "Fetching image %(ami)s for instance %(name)s"
+#~ msgstr ""
+
+#~ msgid "Patching Error: %s"
+#~ msgstr ""
+
+#~ msgid "Power operation for node %s is already in progress."
+#~ msgstr ""
+
+#~ msgid "Invalid parameter value: %s, 'associated' can only be true or false."
+#~ msgstr ""
+
+#~ msgid "Node %s can not be updated while a state transitionis in progress."
+#~ msgstr ""
+
+#~ msgid "Node %(node)s is locked by another process."
+#~ msgstr ""
+
+#~ msgid "Neutron error updating port: %s"
+#~ msgstr ""
+
+#~ msgid "JSON file representing policy"
+#~ msgstr ""
+
+#~ msgid "Rule checked when requested rule is not found"
+#~ msgstr ""
+
+#~ msgid "RPC do_node_deploy called for %s, but node is in maintenance mode."
+#~ msgstr ""
+
+#~ msgid ""
+#~ "During sync_power_state, node %(node)s out "
+#~ "of sync. Expected: %(old)s. Actual: "
+#~ "%(new)s. Updating DB."
+#~ msgstr ""
+
+#~ msgid "Release called on node %s for which no lock has been acquired."
+#~ msgstr ""
+
+#~ msgid "Can not release node %s because it was not reserved by this tracker."
+#~ msgstr ""
+
+#~ msgid "Upgrade DB using Essex release first."
+#~ msgstr ""
+
+#~ msgid "Exception while creating table."
+#~ msgstr ""
+
+#~ msgid "Downgrade from version 012 is unsupported."
+#~ msgstr ""
+
+#~ msgid "Invalid vendor passthru, no 'method' specified."
+#~ msgstr ""
+
+#~ msgid "Parameter not passed to Ironic."
+#~ msgstr ""
+
+#~ msgid "Can not validate PXE bootloader. Invalid parameter %s"
+#~ msgstr ""
+
+#~ msgid ""
+#~ "SSHPowerDriver '%(virt_type)s' is not a "
+#~ "valid virt_type, supported types are: "
+#~ "%(valid)s"
+#~ msgstr ""
+
+#~ msgid "Got mysql server has gone away: %s"
+#~ msgstr ""
+
+#~ msgid ""
+#~ "A RPC is being made while holding"
+#~ " a lock. The locks currently held "
+#~ "are %(locks)s. This is probably a "
+#~ "bug. Please report it. Include the "
+#~ "following: [%(stack)s]."
+#~ msgstr ""
+
+#~ msgid "no calling threads waiting for msg_id : %(msg_id)s, message : %(data)s"
+#~ msgstr ""
+
+#~ msgid ""
+#~ "Number of call waiters is greater "
+#~ "than warning threshhold: %d. There could"
+#~ " be a MulticallProxyWaiter leak."
+#~ msgstr ""
+
+#~ msgid "Failed to sanitize %(item)s. Key error %(err)s"
+#~ msgstr ""
+
+#~ msgid "Out reactor registered"
+#~ msgstr ""
+
+#~ msgid "CONSUMER GOT %s"
+#~ msgstr ""
+
+#~ msgid "ROUTER RELAY-OUT SUCCEEDED %(data)s"
+#~ msgstr ""
+
+#~ msgid "ROUTER RELAY-OUT QUEUED %(data)s"
+#~ msgstr ""
+
+#~ msgid "Could not create IPC directory %s"
+#~ msgstr ""
+
+#~ msgid "ROUTER RELAY-OUT %(data)s"
+#~ msgstr ""
+
+#~ msgid "config_path is %s"
+#~ msgstr ""
+
+#~ msgid "latest version is %s"
 #~ msgstr ""
 
