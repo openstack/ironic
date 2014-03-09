@@ -327,57 +327,72 @@ class ConductorManager(service.PeriodicService):
     def do_node_deploy(self, context, node_id):
         """RPC method to initiate deployment to a node.
 
+        Initiate the deployment of a node. Validations are done
+        synchronously and the actual deploy work is performed in
+        background (asynchronously).
+
         :param context: an admin context.
         :param node_id: the id or uuid of a node.
         :raises: InstanceDeployFailure
+        :raises: NodeInMaintenance if the node is in maintenance mode.
+        :raises: InvalidParameterValue if validation fails
+        :raises: NoFreeConductorWorker when there is no free worker to start
+                 async task.
 
         """
         LOG.debug(_("RPC do_node_deploy called for node %s.") % node_id)
 
-        with task_manager.acquire(context, node_id, shared=False) as task:
-            node = task.node
-            if node['provision_state'] is not states.NOSTATE:
+        task = task_manager.TaskManager(context, node_id, shared=False)
+        node = task.node
+        try:
+            if node.provision_state is not states.NOSTATE:
                 raise exception.InstanceDeployFailure(_(
                     "RPC do_node_deploy called for %(node)s, but provision "
                     "state is already %(state)s.") %
-                    {'node': node_id, 'state': node['provision_state']})
+                    {'node': node.uuid, 'state': node.provision_state})
 
             if node.maintenance:
                 raise exception.NodeInMaintenance(op=_('provisioning'),
                                                   node=node.uuid)
 
-            try:
-                task.driver.deploy.validate(task, node)
-            except Exception as e:
-                with excutils.save_and_reraise_exception():
-                    node['last_error'] = \
-                        _("Failed to validate deploy info. Error: %s") % e
-            else:
-                # set target state to expose that work is in progress
-                node['provision_state'] = states.DEPLOYING
-                node['target_provision_state'] = states.DEPLOYDONE
-                node['last_error'] = None
-            finally:
-                node.save(context)
+            task.driver.deploy.validate(task, node)
 
-            try:
-                task.driver.deploy.prepare(task, node)
-                new_state = task.driver.deploy.deploy(task, node)
-            except Exception as e:
-                with excutils.save_and_reraise_exception():
-                    node['last_error'] = _("Failed to deploy. Error: %s") % e
-                    node['provision_state'] = states.DEPLOYFAIL
-                    node['target_provision_state'] = states.NOSTATE
+            # Set target state to expose that work is in progress
+            node.provision_state = states.DEPLOYING
+            node.target_provision_state = states.DEPLOYDONE
+            node.last_error = None
+            node.save(context)
+
+            # Start requested action in the background.
+            thread = self._spawn_worker(self._do_node_deploy, context, task)
+            # Release node lock at the end.
+            thread.link(lambda t: task.release_resources())
+        except Exception:
+            with excutils.save_and_reraise_exception():
+                # Release node lock if error occurred.
+                task.release_resources()
+
+    def _do_node_deploy(self, context, task):
+        """Prepare the environment and deploy a node."""
+        node = task.node
+        try:
+            task.driver.deploy.prepare(task, node)
+            new_state = task.driver.deploy.deploy(task, node)
+        except Exception as e:
+            with excutils.save_and_reraise_exception():
+                node.last_error = _("Failed to deploy. Error: %s") % e
+                node.provision_state = states.DEPLOYFAIL
+                node.target_provision_state = states.NOSTATE
+        else:
+            # NOTE(deva): Some drivers may return states.DEPLOYWAIT
+            #             eg. if they are waiting for a callback
+            if new_state == states.DEPLOYDONE:
+                node.target_provision_state = states.NOSTATE
+                node.provision_state = states.ACTIVE
             else:
-                # NOTE(deva): Some drivers may return states.DEPLOYWAIT
-                #             eg. if they are waiting for a callback
-                if new_state == states.DEPLOYDONE:
-                    node['target_provision_state'] = states.NOSTATE
-                    node['provision_state'] = states.ACTIVE
-                else:
-                    node['provision_state'] = new_state
-            finally:
-                node.save(context)
+                node.provision_state = new_state
+        finally:
+            node.save(context)
 
     def do_node_tear_down(self, context, node_id):
         """RPC method to tear down an existing node deployment.
