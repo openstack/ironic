@@ -771,8 +771,7 @@ class PXEDriverTestCase(db_base.DbTestCase):
                 'ironic.drivers.modules.deploy_utils.deploy',
                 fake_deploy))
 
-        with task_manager.acquire(self.context, self.node.uuid,
-                                  shared=True) as task:
+        with task_manager.acquire(self.context, self.node.uuid) as task:
             task.resources[0].driver.vendor.vendor_passthru(task, self.node,
                     method='pass_deploy_info', address='123456', iqn='aaa-bbb',
                     key='fake-56789')
@@ -794,8 +793,7 @@ class PXEDriverTestCase(db_base.DbTestCase):
                 'ironic.drivers.modules.deploy_utils.deploy',
                 fake_deploy))
 
-        with task_manager.acquire(self.context, [self.node.uuid],
-                                  shared=True) as task:
+        with task_manager.acquire(self.context, [self.node.uuid]) as task:
             task.resources[0].driver.vendor.vendor_passthru(task, self.node,
                     method='pass_deploy_info', address='123456', iqn='aaa-bbb',
                     key='fake-56789')
@@ -817,8 +815,7 @@ class PXEDriverTestCase(db_base.DbTestCase):
                 'ironic.drivers.modules.deploy_utils.deploy',
                 fake_deploy))
 
-        with task_manager.acquire(self.context, [self.node.uuid],
-                                  shared=True) as task:
+        with task_manager.acquire(self.context, [self.node.uuid]) as task:
             task.resources[0].driver.vendor.vendor_passthru(task, self.node,
                     method='pass_deploy_info', address='123456', iqn='aaa-bbb',
                     key='fake-56789', error='test ramdisk error')
@@ -832,8 +829,7 @@ class PXEDriverTestCase(db_base.DbTestCase):
         self.node.provision_state = 'FAKE'
         self.node.save(self.context)
 
-        with task_manager.acquire(self.context, [self.node.uuid],
-                                  shared=True) as task:
+        with task_manager.acquire(self.context, [self.node.uuid]) as task:
             task.resources[0].driver.vendor.vendor_passthru(task, self.node,
                     method='pass_deploy_info', address='123456', iqn='aaa-bbb',
                     key='fake-56789', error='test ramdisk error')
@@ -841,8 +837,7 @@ class PXEDriverTestCase(db_base.DbTestCase):
         self.assertEqual(states.POWER_ON, self.node.power_state)
 
     def test_lock_elevated(self):
-        with task_manager.acquire(self.context, [self.node['uuid']],
-                                  shared=True) as task:
+        with task_manager.acquire(self.context, [self.node['uuid']]) as task:
             with mock.patch.object(task.driver.vendor, '_continue_deploy') \
                     as _continue_deploy_mock:
                 task.driver.vendor.vendor_passthru(task, self.node,

@@ -701,6 +701,7 @@ class VendorPassthru(base.VendorInterface):
 
         return True
 
+    @task_manager.require_exclusive_lock
     def _continue_deploy(self, task, node, **kwargs):
         """Resume a deployment upon getting POST data from deploy ramdisk.
 
@@ -769,6 +770,4 @@ class VendorPassthru(base.VendorInterface):
                         kwargs.get('persistent'))
 
         elif method == 'pass_deploy_info':
-            ctx = task.context
-            with task_manager.acquire(ctx, node['uuid']) as inner_task:
-                self._continue_deploy(inner_task, node, **kwargs)
+            self._continue_deploy(task, node, **kwargs)
