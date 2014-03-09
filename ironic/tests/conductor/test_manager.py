@@ -48,7 +48,8 @@ class ManagerTestCase(base.DbTestCase):
 
     def setUp(self):
         super(ManagerTestCase, self).setUp()
-        self.service = manager.ConductorManager('test-host', 'test-topic')
+        self.hostname = 'test-host'
+        self.service = manager.ConductorManager(self.hostname, 'test-topic')
         self.context = context.get_admin_context()
         self.dbapi = dbapi.get_instance()
         mgr_utils.mock_the_extension_manager()
@@ -57,10 +58,19 @@ class ManagerTestCase(base.DbTestCase):
     def test_start_registers_conductor(self):
         self.assertRaises(exception.ConductorNotFound,
                           self.dbapi.get_conductor,
-                          'test-host')
+                          self.hostname)
         self.service.start()
-        res = self.dbapi.get_conductor('test-host')
-        self.assertEqual('test-host', res['hostname'])
+        res = self.dbapi.get_conductor(self.hostname)
+        self.assertEqual(self.hostname, res['hostname'])
+
+    def test_stop_unregisters_conductor(self):
+        self.service.start()
+        res = self.dbapi.get_conductor(self.hostname)
+        self.assertEqual(self.hostname, res['hostname'])
+        self.service.stop()
+        self.assertRaises(exception.ConductorNotFound,
+                          self.dbapi.get_conductor,
+                          self.hostname)
 
     def test_start_registers_driver_names(self):
         init_names = ['fake1', 'fake2']
@@ -71,20 +81,20 @@ class ManagerTestCase(base.DbTestCase):
             # verify driver names are registered
             mock_names.return_value = init_names
             self.service.start()
-            res = self.dbapi.get_conductor('test-host')
+            res = self.dbapi.get_conductor(self.hostname)
             self.assertEqual(init_names, res['drivers'])
 
             # verify that restart registers new driver names
             mock_names.return_value = restart_names
             self.service.start()
-            res = self.dbapi.get_conductor('test-host')
+            res = self.dbapi.get_conductor(self.hostname)
             self.assertEqual(restart_names, res['drivers'])
 
     def test__conductor_service_record_keepalive(self):
         self.service.start()
         with mock.patch.object(self.dbapi, 'touch_conductor') as mock_touch:
             self.service._conductor_service_record_keepalive(self.context)
-            mock_touch.assert_called_once_with('test-host')
+            mock_touch.assert_called_once_with(self.hostname)
 
     def test__sync_power_state_no_sync(self):
         self.service.start()
