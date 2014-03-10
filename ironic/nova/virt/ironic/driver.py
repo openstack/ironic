@@ -142,13 +142,13 @@ class IronicDriver(virt_driver.ComputeDriver):
 
         self.extra_specs = extra_specs
 
-    def _retry_on_conflict(self, func, *args):
+    def _retry_if_service_is_unavailable(self, func, *args):
         """Rety the request if the API returns 409 (Conflict)."""
         def _request_api():
             try:
                 func(*args)
                 raise loopingcall.LoopingCallDone()
-            except ironic_exception.HTTPConflict:
+            except ironic_exception.HTTPServiceUnavailable:
                 pass
 
             if self.tries >= CONF.ironic.api_max_retries:
@@ -249,7 +249,8 @@ class IronicDriver(virt_driver.ComputeDriver):
                                           eval(field['nova_object']),
                                                field['object_field']))}]
                 try:
-                    self._retry_on_conflict(icli.node.update, node.uuid, patch)
+                    self._retry_if_service_is_unavailable(icli.node.update,
+                                                          node.uuid, patch)
                 except MaximumRetriesReached:
                     msg = (_("Adding the parameter %(param)s on node %(node)s "
                              "failed after %(retries)d retries")
@@ -272,7 +273,8 @@ class IronicDriver(virt_driver.ComputeDriver):
                 patch = [{'op': 'remove', 'path': path_to_remove}]
 
                 try:
-                    self._retry_on_conflict(icli.node.update, node.uuid, patch)
+                    self._retry_if_service_is_unavailable(icli.node.update,
+                                                          node.uuid, patch)
                 except MaximumRetriesReached:
                     LOG.warning(_("Removing the parameter %(param)s on node "
                                   "%(node)s failed after %(retries)d retries")
@@ -380,7 +382,8 @@ class IronicDriver(virt_driver.ComputeDriver):
             patch = [{'op': 'replace',
                       'path': '/instance_uuid',
                       'value': instance['uuid']}]
-            self._retry_on_conflict(icli.node.update, node_uuid, patch)
+            self._retry_if_service_is_unavailable(icli.node.update,
+                                                  node_uuid, patch)
         except (ironic_exception.HTTPBadRequest, MaximumRetriesReached):
             msg = _("Unable to set instance UUID for node %s") % node_uuid
             LOG.error(msg)
@@ -418,8 +421,8 @@ class IronicDriver(virt_driver.ComputeDriver):
 
         # trigger the node deploy
         try:
-            self._retry_on_conflict(icli.node.set_provision_state,
-                                    node_uuid, 'active')
+            self._retry_if_service_is_unavailable(
+                            icli.node.set_provision_state, node_uuid, 'active')
         except MaximumRetriesReached:
             msg = (_("Error triggering the node %s to start the deployment")
                    % node_uuid)
@@ -435,8 +438,8 @@ class IronicDriver(virt_driver.ComputeDriver):
 
         # do node tear down and wait for the state change
         try:
-            self._retry_on_conflict(icli.node.set_provision_state,
-                                    node_uuid, 'deleted')
+            self._retry_if_service_is_unavailable(
+                           icli.node.set_provision_state, node_uuid, 'deleted')
         except MaximumRetriesReached:
             msg = (_("Error triggering the unprovisioning of the node %s")
                    % node_uuid)
@@ -467,7 +470,8 @@ class IronicDriver(virt_driver.ComputeDriver):
         # remove the instance uuid
         patch = [{'op': 'remove', 'path': '/instance_uuid'}]
         try:
-            self._retry_on_conflict(icli.node.update, node_uuid, patch)
+            self._retry_if_service_is_unavailable(icli.node.update,
+                                                  node_uuid, patch)
         except MaximumRetriesReached:
             msg = (_("Failed to unassociate the instance %(instance)s "
                     "with node %(node)s") % {'instance': instance['uuid'],
@@ -578,7 +582,8 @@ class IronicDriver(virt_driver.ComputeDriver):
                           'path': '/extra/vif_port_id',
                           'value': port_id}]
                 try:
-                    self._retry_on_conflict(icli.port.update, pif.uuid, patch)
+                    self._retry_if_service_is_unavailable(icli.port.update,
+                                                          pif.uuid, patch)
                 except MaximumRetriesReached:
                     msg = (_("Failed to set the VIF networking for port %s")
                            % pif.uuid)
@@ -596,7 +601,8 @@ class IronicDriver(virt_driver.ComputeDriver):
                 # we can not attach a dict directly
                 patch = [{'op': 'remove', 'path': '/extra/vif_port_id'}]
                 try:
-                    self._retry_on_conflict(icli.port.update, pif.uuid, patch)
+                    self._retry_if_service_is_unavailable(icli.port.update,
+                                                          pif.uuid, patch)
                 except MaximumRetriesReached:
                     msg = (_("Failed to remove the VIF networking for port %s")
                            % pif.uuid)
