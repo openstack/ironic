@@ -20,6 +20,9 @@ from ironic.objects import utils
 
 class Node(base.IronicObject):
 
+    # Version 1.1: Added instance_info
+    version = '1.1'
+
     dbapi = db_api.get_instance()
 
     fields = {
@@ -32,6 +35,7 @@ class Node(base.IronicObject):
             'driver': utils.str_or_none,
             'driver_info': utils.dict_or_none,
 
+            'instance_info': utils.dict_or_none,
             'properties': utils.dict_or_none,
             'reservation': utils.str_or_none,
 

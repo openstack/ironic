@@ -149,6 +149,7 @@ class Node(Base):
     target_provision_state = Column(String(15), nullable=True)
     provision_updated_at = Column(DateTime, nullable=True)
     last_error = Column(Text, nullable=True)
+    instance_info = Column(JSONEncodedDict)
     properties = Column(JSONEncodedDict)
     driver = Column(String(15))
     driver_info = Column(JSONEncodedDict)
