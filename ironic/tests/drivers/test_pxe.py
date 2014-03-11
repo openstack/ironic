@@ -30,6 +30,7 @@ from ironic.common import exception
 from ironic.common.glance_service import base_image_service
 from ironic.common.glance_service import service_utils
 from ironic.common import images
+from ironic.common import keystone
 from ironic.common import neutron
 from ironic.common import states
 from ironic.common import utils
@@ -614,6 +615,7 @@ class PXEDriverTestCase(db_base.DbTestCase):
         self.node = self.dbapi.create_node(n)
         self.port = self.dbapi.create_port(db_utils.get_test_port(
                                                          node_id=self.node.id))
+        self.config(group='conductor', api_url='http://127.0.0.1:1234/')
 
     def _create_token_file(self):
         token_path = pxe._get_token_file_path(self.node['uuid'])
@@ -644,6 +646,42 @@ class PXEDriverTestCase(db_base.DbTestCase):
             self.assertRaises(exception.InvalidParameterValue,
                               task.resources[0].driver.deploy.validate,
                               task, new_node)
+
+    @mock.patch.object(keystone, 'get_service_url')
+    def test_validate_good_api_url_from_config_file(self, mock_ks):
+        # not present in the keystone catalog
+        mock_ks.side_effect = exception.CatalogFailure
+
+        with task_manager.acquire(self.context, [self.node.uuid],
+                                  shared=True) as task:
+            task.resources[0].driver.deploy.validate(task, self.node)
+            self.assertFalse(mock_ks.called)
+
+    @mock.patch.object(keystone, 'get_service_url')
+    def test_validate_good_api_url_from_keystone(self, mock_ks):
+        # present in the keystone catalog
+        mock_ks.return_value = 'http://127.0.0.1:1234'
+        # not present in the config file
+        self.config(group='conductor', api_url=None)
+
+        with task_manager.acquire(self.context, [self.node.uuid],
+                                  shared=True) as task:
+            task.resources[0].driver.deploy.validate(task, self.node)
+            mock_ks.assert_called_once_with()
+
+    @mock.patch.object(keystone, 'get_service_url')
+    def test_validate_fail_no_api_url(self, mock_ks):
+        # not present in the keystone catalog
+        mock_ks.side_effect = exception.CatalogFailure
+        # not present in the config file
+        self.config(group='conductor', api_url=None)
+
+        with task_manager.acquire(self.context, [self.node.uuid],
+                                  shared=True) as task:
+            self.assertRaises(exception.InvalidParameterValue,
+                              task.resources[0].driver.deploy.validate,
+                              task, self.node)
+            mock_ks.assert_called_once_with()
 
     def test__get_nodes_mac_addresses(self):
         ports = []

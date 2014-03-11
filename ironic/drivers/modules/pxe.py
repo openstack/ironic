@@ -544,6 +544,17 @@ class PXEDeploy(base.DeployInterface):
                                 "any port associated with it.") % node.uuid)
         _parse_driver_info(node)
 
+        # Try to get the URL of the Ironic API
+        try:
+            # TODO(lucasagomes): Validate the format of the URL
+            CONF.conductor.api_url or keystone.get_service_url()
+        except (exception.CatalogFailure,
+                exception.CatalogNotFound,
+                exception.CatalogUnauthorized):
+            raise exception.InvalidParameterValue(_(
+                "Couldn't get the URL of the Ironic API service from the "
+                "configuration file or keystone catalog."))
+
     @task_manager.require_exclusive_lock
     def deploy(self, task, node):
         """Perform start deployment a node.
