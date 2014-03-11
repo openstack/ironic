@@ -20,16 +20,19 @@ Provides vendor passthru methods for SeaMicro specific functionality.
 """
 
 from oslo.config import cfg
-from seamicroclient import client as seamicro_client
-from seamicroclient import exceptions as seamicro_client_exception
-
 
 from ironic.common import exception
 from ironic.common import states
 from ironic.conductor import task_manager
 from ironic.drivers import base
+from ironic.openstack.common import importutils
 from ironic.openstack.common import log as logging
 from ironic.openstack.common import loopingcall
+
+seamicroclient = importutils.try_import('seamicroclient')
+if seamicroclient:
+    from seamicroclient import client as seamicro_client
+    from seamicroclient import exceptions as seamicro_client_exception
 
 opts = [
     cfg.IntOpt('max_retry',

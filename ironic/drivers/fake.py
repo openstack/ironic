@@ -17,6 +17,7 @@
 Fake drivers used in testing.
 """
 
+from ironic.common import exception
 from ironic.drivers import base
 from ironic.drivers.modules import fake
 from ironic.drivers.modules import ipminative
@@ -24,6 +25,7 @@ from ironic.drivers.modules import ipmitool
 from ironic.drivers.modules import pxe
 from ironic.drivers.modules import seamicro
 from ironic.drivers.modules import ssh
+from ironic.openstack.common import importutils
 
 
 class FakeDriver(base.BaseDriver):
@@ -79,6 +81,8 @@ class FakeSeaMicroDriver(base.BaseDriver):
     """Fake SeaMicro driver."""
 
     def __init__(self):
+        if not importutils.try_import('seamicroclient'):
+            raise exception.DriverNotFound('FakeSeaMicroDriver')
         self.power = seamicro.Power()
         self.deploy = fake.FakeDeploy()
         self.rescue = self.deploy
