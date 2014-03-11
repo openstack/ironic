@@ -15,7 +15,6 @@
 import uuid
 
 import mock
-from seamicroclient import exceptions as seamicro_client_exception
 
 from ironic.common import driver_factory
 from ironic.common import exception
@@ -23,12 +22,17 @@ from ironic.common import states
 from ironic.conductor import task_manager
 from ironic.db import api as dbapi
 from ironic.drivers.modules import seamicro
+from ironic.openstack.common import importutils
 from ironic.tests import base
 from ironic.tests.conductor import utils as mgr_utils
 from ironic.tests.db import base as db_base
 from ironic.tests.db import utils as db_utils
 
 INFO_DICT = db_utils.get_test_seamicro_info()
+
+seamicroclient = importutils.try_import("seamicroclient")
+if seamicroclient:
+    from seamicroclient import exceptions as seamicro_client_exception
 
 
 class Fake_Server():
@@ -251,6 +255,8 @@ class SeaMicroPowerDriverTestCase(db_base.DbTestCase):
 
     def setUp(self):
         super(SeaMicroPowerDriverTestCase, self).setUp()
+        if not seamicroclient:
+            self.skipTest("Seamicroclient library not found")
         mgr_utils.mock_the_extension_manager(driver='fake_seamicro')
         self.driver = driver_factory.get_driver('fake_seamicro')
         self.node = db_utils.get_test_node(driver='fake_seamicro',

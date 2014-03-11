@@ -17,12 +17,14 @@
 PXE Driver and supporting meta-classes.
 """
 
+from ironic.common import exception
 from ironic.drivers import base
 from ironic.drivers.modules import ipminative
 from ironic.drivers.modules import ipmitool
 from ironic.drivers.modules import pxe
 from ironic.drivers.modules import seamicro
 from ironic.drivers.modules import ssh
+from ironic.openstack.common import importutils
 
 
 class PXEAndIPMIToolDriver(base.BaseDriver):
@@ -90,6 +92,8 @@ class PXEAndSeaMicroDriver(base.BaseDriver):
     """
 
     def __init__(self):
+        if not importutils.try_import('seamicroclient'):
+            raise exception.DriverNotFound('PXEAndSeaMicroDriver')
         self.power = seamicro.Power()
         self.deploy = pxe.PXEDeploy()
         self.rescue = self.deploy
