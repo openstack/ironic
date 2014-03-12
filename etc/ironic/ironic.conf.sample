@@ -39,12 +39,13 @@
 # partitions is (2^hash_partition_exponent). (integer value)
 #hash_partition_exponent=16
 
-# Number of hosts to map onto each hash partition. Setting
-# this to more than one will cause additional conductor
-# services to prepare deployment environments and potentially
-# allow the Ironic cluster to recover more quickly if a
-# conductor instance is terminated. (integer value)
-#hash_distribution_replicas=2
+# [Experimental Feature] Number of hosts to map onto each hash
+# partition. Setting this to more than one will cause
+# additional conductor services to prepare deployment
+# environments and potentially allow the Ironic cluster to
+# recover more quickly if a conductor instance is terminated.
+# (integer value)
+#hash_distribution_replicas=1
 
 
 #

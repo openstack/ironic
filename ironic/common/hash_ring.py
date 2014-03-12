@@ -30,8 +30,9 @@ hash_opts = [
                     'load when rebalancing the ring, but more memory usage. '
                     'Number of partitions is (2^hash_partition_exponent).'),
     cfg.IntOpt('hash_distribution_replicas',
-               default=2,
-               help='Number of hosts to map onto each hash partition. '
+               default=1,
+               help='[Experimental Feature] '
+                    'Number of hosts to map onto each hash partition. '
                     'Setting this to more than one will cause additional '
                     'conductor services to prepare deployment environments '
                     'and potentially allow the Ironic cluster to recover '
