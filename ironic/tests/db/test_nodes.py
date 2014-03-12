@@ -101,7 +101,7 @@ class DbNodeTestCase(base.DbTestCase):
             n = utils.get_test_node(id=i, uuid=ironic_utils.generate_uuid())
             self.dbapi.create_node(n)
         res = [i[0] for i in self.dbapi.get_nodeinfo_list()]
-        self.assertEqual(sorted(res), sorted(xrange(1, 6)))
+        self.assertEqual(sorted(res), sorted(range(1, 6)))
 
     def test_get_nodeinfo_list_with_cols(self):
         uuids = {}
