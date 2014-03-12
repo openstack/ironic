@@ -23,12 +23,14 @@ from oslo.config import cfg
 from sqlalchemy.orm.exc import NoResultFound
 
 from ironic.common import exception
+from ironic.common import paths
 from ironic.common import states
 from ironic.common import utils
 from ironic.db import api
 from ironic.db.sqlalchemy import models
 from ironic import objects
 from ironic.openstack.common.db import exception as db_exc
+from ironic.openstack.common.db import options as db_options
 from ironic.openstack.common.db.sqlalchemy import session as db_session
 from ironic.openstack.common.db.sqlalchemy import utils as db_utils
 from ironic.openstack.common import log
@@ -43,6 +45,10 @@ CONF.import_opt('heartbeat_timeout',
                 group='conductor')
 
 LOG = log.getLogger(__name__)
+
+_DEFAULT_SQL_CONNECTION = 'sqlite:///' + paths.state_path_def('ironic.sqlite')
+db_options.set_defaults(_DEFAULT_SQL_CONNECTION, 'ironic.sqlite')
+
 
 _FACADE = None
 

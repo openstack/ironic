@@ -133,7 +133,7 @@ created in the previous section to run everything else within::
     sed -i "s/#host=.*/host=test-host/" etc/ironic/ironic.conf.local
 
     # initialize the ironic database
-    # this defaults to storing data in ./ironic/openstack/common/db/ironic.sqlite
+    # this defaults to storing data in ./ironic/ironic.sqlite
 
     # If using MySQL, you need to create the initial database
     # mysql -u root -e "create schema ironic"
