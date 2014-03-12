@@ -426,7 +426,6 @@ class Connection(api.Connection):
                 query = model_query(models.Port, session=session)
                 query = add_port_filter(query, port_id)
                 ref = query.one()
-                _check_port_change_forbidden(ref, session)
                 ref.update(values)
         except NoResultFound:
             raise exception.PortNotFound(port=port_id)

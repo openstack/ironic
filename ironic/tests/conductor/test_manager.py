@@ -1087,3 +1087,24 @@ class ManagerTestCase(base.DbTestCase):
         ndict = utils.get_test_node(power_state=states.POWER_OFF)
         node = self.dbapi.create_node(ndict)
         self.service.destroy_node(self.context, node.uuid)
+
+    def test_update_port(self):
+        ndict = utils.get_test_node(driver='fake')
+        self.dbapi.create_node(ndict)
+
+        pdict = utils.get_test_port(extra={'foo': 'bar'})
+        port = self.dbapi.create_port(pdict)
+        new_extra = {'foo': 'baz'}
+        port.extra = new_extra
+        res = self.service.update_port(self.context, port)
+        self.assertEqual(new_extra, res.extra)
+
+    def test_update_port_node_locked(self):
+        ndict = utils.get_test_node(driver='fake', reservation='fake-reserv')
+        self.dbapi.create_node(ndict)
+
+        pdict = utils.get_test_port()
+        port = self.dbapi.create_port(pdict)
+        port.extra = {'foo': 'baz'}
+        self.assertRaises(exception.NodeLocked, self.service.update_port,
+                          self.context, port)

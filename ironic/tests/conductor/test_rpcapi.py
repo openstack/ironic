@@ -157,3 +157,9 @@ class RPCAPITestCase(base.DbTestCase):
                           'cast',
                           node_id=self.fake_node['uuid'],
                           enabled=True)
+
+    def test_update_port(self):
+        fake_port = dbutils.get_test_port()
+        self._test_rpcapi('update_port',
+                          'call',
+                          port_obj=fake_port)

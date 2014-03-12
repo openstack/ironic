@@ -157,7 +157,7 @@ def _do_sync_power_state(task):
 class ConductorManager(service.PeriodicService):
     """Ironic Conductor service main class."""
 
-    RPC_API_VERSION = '1.12'
+    RPC_API_VERSION = '1.13'
 
     def __init__(self, host, topic):
         serializer = objects_base.IronicObjectSerializer()
@@ -726,3 +726,18 @@ class ConductorManager(service.PeriodicService):
                 node.last_error = None
             finally:
                 node.save(context)
+
+    def update_port(self, context, port_obj):
+        """Update a port.
+
+        :param context: request context.
+        :param port_obj: a changed (but not saved) port object.
+        """
+        LOG.debug(_("RPC update_port called for port %s.") % port_obj.uuid)
+
+        with task_manager.acquire(context, port_obj.node_id):
+
+            # TODO(yuriyz): Update Neutron when mac address changed
+            port_obj.save(context)
+
+            return port_obj

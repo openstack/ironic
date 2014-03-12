@@ -59,10 +59,11 @@ class ConductorAPI(ironic.openstack.common.rpc.proxy.RpcProxy):
         1.11 - Added get_console_information, set_console_mode.
         1.12 - validate_vendor_action, do_vendor_action replaced by single
               vendor_passthru method.
+        1.13 - Added update_port.
 
     """
 
-    RPC_API_VERSION = '1.12'
+    RPC_API_VERSION = '1.13'
 
     def __init__(self, topic=None):
         if topic is None:
@@ -279,3 +280,21 @@ class ConductorAPI(ironic.openstack.common.rpc.proxy.RpcProxy):
                                 node_id=node_id,
                                 enabled=enabled),
                   topic=topic or self.topic)
+
+    def update_port(self, context, port_obj, topic=None):
+        """Synchronously, have a conductor update the port's information.
+
+        Update the port's information in the database and return a port object.
+        The conductor will lock related node and trigger specific driver
+        actions if they are needed.
+
+        :param context: request context.
+        :param port_obj: a changed (but not saved) port object.
+        :param topic: RPC topic. Defaults to self.topic.
+        :returns: updated port object, including all fields.
+
+        """
+        return self.call(context,
+                         self.make_msg('update_port',
+                                       port_obj=port_obj),
+                         topic=topic or self.topic)

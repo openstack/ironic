@@ -282,8 +282,14 @@ class PortsController(rest.RestController):
             if rpc_port[field] != getattr(port, field):
                 rpc_port[field] = getattr(port, field)
 
-        rpc_port.save()
-        return Port.convert_with_links(rpc_port)
+        rpc_node = objects.Node.get_by_uuid(pecan.request.context,
+                                            rpc_port.node_id)
+        topic = pecan.request.rpcapi.get_topic_for(rpc_node)
+
+        new_port = pecan.request.rpcapi.update_port(
+                                        pecan.request.context, rpc_port, topic)
+
+        return Port.convert_with_links(new_port)
 
     @wsme_pecan.wsexpose(None, types.uuid, status_code=204)
     def delete(self, port_uuid):
