@@ -292,7 +292,7 @@ class ConductorManager(service.PeriodicService):
         :param info: vendor method args.
         :raises: InvalidParameterValue if supplied info is not valid.
         :raises: UnsupportedDriverExtension if current driver does not have
-                 vendor interface.
+                 vendor interface or method is unsupported.
         :raises: NoFreeConductorWorker when there is no free worker to start
                  async task.
 
@@ -580,7 +580,8 @@ class ConductorManager(service.PeriodicService):
                     try:
                         iface.validate(task, task.node)
                         result = True
-                    except exception.InvalidParameterValue as e:
+                    except (exception.InvalidParameterValue,
+                            exception.UnsupportedDriverExtension) as e:
                         result = False
                         reason = str(e)
                 else:
