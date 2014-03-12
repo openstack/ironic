@@ -87,7 +87,4 @@ class FakeSeaMicroDriver(base.BaseDriver):
             raise exception.DriverNotFound('FakeSeaMicroDriver')
         self.power = seamicro.Power()
         self.deploy = fake.FakeDeploy()
-        self.seamicro_vendor = seamicro.VendorPassthru()
-        self.pxe_vendor = pxe.VendorPassthru()
-        self.vendor = seamicro.SeaMicroPXEMultipleVendorInterface(
-            self.seamicro_vendor, self.pxe_vendor)
+        self.vendor = seamicro.VendorPassthru()

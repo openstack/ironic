@@ -104,5 +104,8 @@ class PXEAndSeaMicroDriver(base.BaseDriver):
         self.deploy = pxe.PXEDeploy()
         self.seamicro_vendor = seamicro.VendorPassthru()
         self.pxe_vendor = pxe.VendorPassthru()
-        self.vendor = seamicro.SeaMicroPXEMultipleVendorInterface(
-            self.seamicro_vendor, self.pxe_vendor)
+        self.mapping = {'pass_deploy_info': self.pxe_vendor,
+                        'attach_volume': self.seamicro_vendor,
+                        'set_boot_device': self.seamicro_vendor,
+                        'set_node_vlan_id': self.seamicro_vendor}
+        self.vendor = utils.MixinVendorInterface(self.mapping)
