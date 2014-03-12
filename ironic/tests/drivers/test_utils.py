@@ -71,6 +71,42 @@ class UtilsTestCase(base.TestCase):
                                             method='second_method',
                                             param1='fake1', param2='fake2')
 
+    def test_driver_passthru_mixin_success(self):
+        vendor_a = fake.FakeVendorA()
+        vendor_a.driver_vendor_passthru = mock.Mock()
+        vendor_b = fake.FakeVendorB()
+        vendor_b.driver_vendor_passthru = mock.Mock()
+        driver_vendor_mapping = {
+            'method_a': vendor_a,
+            'method_b': vendor_b,
+        }
+        mixed_vendor = driver_utils.MixinVendorInterface(
+            {},
+            driver_vendor_mapping)
+        mixed_vendor.driver_vendor_passthru('context',
+                                            'method_a',
+                                            param1='p1')
+        vendor_a.driver_vendor_passthru.assert_called_once_with(
+            'context',
+            'method_a',
+            param1='p1')
+
+    def test_driver_passthru_mixin_unsupported(self):
+        mixed_vendor = driver_utils.MixinVendorInterface({}, {})
+        self.assertRaises(exception.UnsupportedDriverExtension,
+                          mixed_vendor.driver_vendor_passthru,
+                          'context',
+                          'fake_method',
+                          param='p1')
+
+    def test_driver_passthru_mixin_unspecified(self):
+        mixed_vendor = driver_utils.MixinVendorInterface({})
+        self.assertRaises(exception.UnsupportedDriverExtension,
+                          mixed_vendor.driver_vendor_passthru,
+                          'context',
+                          'fake_method',
+                          param='p1')
+
     def test_get_node_mac_addresses(self):
         ports = []
         ports.append(

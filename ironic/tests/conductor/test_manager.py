@@ -478,6 +478,58 @@ class ManagerTestCase(tests_db_base.DbTestCase):
             # Verify reservation has been cleared.
             self.assertIsNone(node.reservation)
 
+    def test_driver_vendor_passthru_success(self):
+        expected = {'foo': 'bar'}
+        self.driver.vendor = vendor = mock.Mock()
+        vendor.driver_vendor_passthru.return_value = expected
+        self.service.start()
+        got = self.service.driver_vendor_passthru(self.context,
+                                                  'fake',
+                                                  'test_method',
+                                                  {'test': 'arg'})
+        self.assertEqual(expected, got)
+        vendor.driver_vendor_passthru.assert_called_once_with(
+            mock.ANY,
+            method='test_method',
+            test='arg')
+
+    def test_driver_vendor_passthru_vendor_interface_not_supported(self):
+        # Test for when no vendor interface is set at all
+        self.driver.vendor = None
+        self.service.start()
+        exc = self.assertRaises(messaging.ClientException,
+                                self.service.driver_vendor_passthru,
+                                self.context,
+                                'fake',
+                                'test_method',
+                                {})
+        # Compare true exception hidden by @messaging.client_exceptions
+        self.assertEqual(exception.UnsupportedDriverExtension,
+                         exc._exc_info[0])
+
+    def test_driver_vendor_passthru_not_supported(self):
+        # Test for when the vendor interface is set, but hasn't passed a
+        # driver_passthru_mapping to MixinVendorInterface
+        self.service.start()
+        exc = self.assertRaises(messaging.ClientException,
+                                self.service.driver_vendor_passthru,
+                                self.context,
+                                'fake',
+                                'test_method',
+                                {})
+        # Compare true exception hidden by @messaging.client_exceptions
+        self.assertEqual(exception.UnsupportedDriverExtension,
+                         exc._exc_info[0])
+
+    def test_driver_vendor_passthru_driver_not_found(self):
+        self.service.start()
+        self.assertRaises(messaging.ClientException,
+                          self.service.driver_vendor_passthru,
+                          self.context,
+                          'does_not_exist',
+                          'test_method',
+                          {})
+
     def test_do_node_deploy_invalid_state(self):
         # test node['provision_state'] is not NOSTATE
         ndict = utils.get_test_node(driver='fake',

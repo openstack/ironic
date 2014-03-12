@@ -21,6 +21,8 @@ import abc
 
 import six
 
+from ironic.common import exception
+
 
 @six.add_metaclass(abc.ABCMeta)
 class BaseDriver(object):
@@ -298,7 +300,11 @@ class VendorInterface(object):
     """Interface for all vendor passthru functionality.
 
     Additional vendor- or driver-specific capabilities should be implemented as
-    private methods and invoked from vendor_passthru().
+    private methods and invoked from vendor_passthru() or
+    driver_vendor_passthru().
+
+    driver_vendor_passthru() is a blocking call - methods implemented here
+    should be short-lived.
     """
 
     @abc.abstractmethod
@@ -325,3 +331,20 @@ class VendorInterface(object):
                  the supported interfaces.
         :raises: InvalidParameterValue if **kwargs does not contain 'method'.
         """
+
+    def driver_vendor_passthru(self, context, method, **kwargs):
+        """Handle top-level (ie, no node is specified) vendor actions. These
+        allow a vendor interface to expose additional cross-node API
+        functionality.
+
+        VendorInterface subclasses are explicitly not required to implement
+        this in order to maintain backwards compatibility with existing
+        drivers.
+
+        :param context: a context for this action.
+        :param method: an arbitrary string describing the action to be taken.
+        :param kwargs: arbitrary parameters to the passthru method.
+        """
+        raise exception.UnsupportedDriverExtension(
+            _('Vendor interface does not support driver vendor_passthru '
+              'method: %s') % method)

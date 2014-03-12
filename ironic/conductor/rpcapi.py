@@ -18,6 +18,8 @@
 Client side of the conductor RPC API.
 """
 
+import random
+
 from oslo.config import cfg
 
 from ironic.common import exception
@@ -59,10 +61,11 @@ class ConductorAPI(ironic.openstack.common.rpc.proxy.RpcProxy):
         1.12 - validate_vendor_action, do_vendor_action replaced by single
               vendor_passthru method.
         1.13 - Added update_port.
+        1.14 - Added driver_vendor_passthru.
 
     """
 
-    RPC_API_VERSION = '1.13'
+    RPC_API_VERSION = '1.14'
 
     def __init__(self, topic=None):
         if topic is None:
@@ -92,6 +95,20 @@ class ConductorAPI(ironic.openstack.common.rpc.proxy.RpcProxy):
             reason = (_('No conductor service registered which supports '
                         'driver %s.') % node.driver)
             raise exception.NoValidHost(reason=reason)
+
+    def get_topic_for_driver(self, driver_name):
+        """Get an RPC topic which will route messages to a conductor which
+        supports the specified driver. A conductor is selected at
+        random from the set of qualified conductors.
+
+        :param driver_name: the name of the driver to route to.
+        :returns: an RPC topic string.
+        :raises: DriverNotFound
+
+        """
+        hash_ring = self.ring_manager.get_hash_ring(driver_name)
+        host = random.choice(hash_ring.hosts)
+        return self.topic + "." + host
 
     def update_node(self, context, node_obj, topic=None):
         """Synchronously, have a conductor update the node's information.
@@ -155,6 +172,30 @@ class ConductorAPI(ironic.openstack.common.rpc.proxy.RpcProxy):
         return self.call(context,
                          self.make_msg('vendor_passthru',
                                        node_id=node_id,
+                                       driver_method=driver_method,
+                                       info=info),
+                         topic=topic)
+
+    def driver_vendor_passthru(self, context, driver_name, driver_method, info,
+                        topic=None):
+        """Pass vendor-specific calls which don't specify a node to a driver.
+
+        :param context: request context.
+        :param driver_name: name of the driver on which to call the method.
+        :param driver_method: name of the vendor method, for use by the driver.
+        :param info: data to pass through to the driver.
+        :param topic: RPC topic. Defaults to self.topic.
+        :raises: InvalidParameterValue for parameter errors.
+        :raises: UnsupportedDriverExtension if the driver doesn't have a vendor
+                 interface, or if the vendor interface does not support the
+                 specified driver_method.
+
+        """
+        topic = topic or self.topic
+
+        return self.call(context,
+                         self.make_msg('driver_vendor_passthru',
+                                       driver_name=driver_name,
                                        driver_method=driver_method,
                                        info=info),
                          topic=topic)
