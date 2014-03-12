@@ -562,6 +562,7 @@ class PXEDeploy(base.DeployInterface):
         #               to deploy ramdisk
         _create_token_file(task, node)
         _update_neutron(task, node)
+        manager_utils.node_set_boot_device(task, node, 'pxe', persistent=True)
         manager_utils.node_power_action(task, node, states.REBOOT)
 
         return states.DEPLOYWAIT
@@ -691,9 +692,6 @@ class VendorPassthru(base.VendorInterface):
         method = kwargs['method']
         if method == 'pass_deploy_info':
             self._get_deploy_info(node, **kwargs)
-        elif method == 'set_boot_device':
-            # todo
-            pass
         else:
             raise exception.InvalidParameterValue(_(
                 "Unsupported method (%s) passed to PXE driver.")
@@ -763,11 +761,5 @@ class VendorPassthru(base.VendorInterface):
 
     def vendor_passthru(self, task, node, **kwargs):
         method = kwargs['method']
-        if method == 'set_boot_device':
-            return node.driver.vendor._set_boot_device(
-                        task, node,
-                        kwargs.get('device'),
-                        kwargs.get('persistent'))
-
-        elif method == 'pass_deploy_info':
+        if method == 'pass_deploy_info':
             self._continue_deploy(task, node, **kwargs)
