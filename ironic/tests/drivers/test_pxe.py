@@ -717,19 +717,26 @@ class PXEDriverTestCase(db_base.DbTestCase):
         with mock.patch.object(pxe, '_update_neutron') as update_neutron_mock:
             with mock.patch.object(manager_utils,
                     'node_power_action') as node_power_mock:
-                with task_manager.acquire(self.context,
+                with mock.patch.object(manager_utils,
+                        'node_set_boot_device') as node_set_boot_mock:
+                    with task_manager.acquire(self.context,
                         self.node['uuid'], shared=False) as task:
-                    state = task.driver.deploy.deploy(task, self.node)
-                    self.assertEqual(states.DEPLOYWAIT, state)
-                    update_neutron_mock.assert_called_once_with(task,
-                                                                self.node)
-                    node_power_mock.assert_called_once_with(task, self.node,
-                                                            states.REBOOT)
+                        state = task.driver.deploy.deploy(task, self.node)
+                        self.assertEqual(state, states.DEPLOYWAIT)
+                        update_neutron_mock.assert_called_once_with(task,
+                                                                    self.node)
+                        node_set_boot_mock.assert_called_once_with(task,
+                                                            self.node,
+                                                            'pxe',
+                                                            persistent=True)
+                        node_power_mock.assert_called_once_with(task,
+                                                                self.node,
+                                                                states.REBOOT)
 
-                    # ensure token file created
-                    t_path = pxe._get_token_file_path(self.node['uuid'])
-                    token = open(t_path, 'r').read()
-                    self.assertEqual(self.context.auth_token, token)
+                        # ensure token file created
+                        t_path = pxe._get_token_file_path(self.node['uuid'])
+                        token = open(t_path, 'r').read()
+                        self.assertEqual(self.context.auth_token, token)
 
     def test_tear_down(self):
         with mock.patch.object(manager_utils,

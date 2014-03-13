@@ -25,6 +25,47 @@ from ironic.tests.db import base
 from ironic.tests.db import utils
 
 
+class NodeSetBootDeviceTestCase(base.DbTestCase):
+    def setUp(self):
+        super(NodeSetBootDeviceTestCase, self).setUp()
+        self.context = context.get_admin_context()
+        self.dbapi = dbapi.get_instance()
+
+    def test_node_set_boot_device_non_existent_device(self):
+        mgr_utils.mock_the_extension_manager(driver="fake_ipmitool")
+        self.driver = driver_factory.get_driver("fake_ipmitool")
+        ndict = utils.get_test_node(uuid=cmn_utils.generate_uuid(),
+                                    driver='fake_ipmitool')
+        node = self.dbapi.create_node(ndict)
+        task = task_manager.TaskManager(self.context, node.uuid)
+        self.assertRaises(exception.InvalidParameterValue,
+                          conductor_utils.node_set_boot_device,
+                          task,
+                          task.node,
+                          device='fake')
+
+    def test_node_set_boot_device_valid(self):
+        mgr_utils.mock_the_extension_manager(driver="fake_ipmitool")
+        self.driver = driver_factory.get_driver("fake_ipmitool")
+        ipmi_info = utils.get_test_ipmi_info()
+        ndict = utils.get_test_node(uuid=cmn_utils.generate_uuid(),
+                                    driver='fake_ipmitool',
+                                    driver_info=ipmi_info)
+        node = self.dbapi.create_node(ndict)
+        task = task_manager.TaskManager(self.context, node.uuid)
+
+        with mock.patch.object(self.driver.vendor,
+                               'vendor_passthru') as driver_vpassthru:
+            conductor_utils.node_set_boot_device(task,
+                                                 task.node,
+                                                 device='pxe')
+            driver_vpassthru.assert_called_once_with(task,
+                                                task.node,
+                                                device='pxe',
+                                                persistent=False,
+                                                method='set_boot_device')
+
+
 class NodePowerActionTestCase(base.DbTestCase):
 
     def setUp(self):
