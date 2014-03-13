@@ -306,7 +306,9 @@ class VendorInterface(object):
         :param task: a task from TaskManager.
         :param node: a single Node.
         :param kwargs: info for action.
-        :raises: InvalidParameterValue
+        :raises: UnsupportedDriverExtension if 'method' can not be mapped to
+                 the supported interfaces.
+        :raises: InvalidParameterValue if **kwargs does not contain 'method'.
         """
 
     @abc.abstractmethod
@@ -316,4 +318,8 @@ class VendorInterface(object):
         :param task: a task from TaskManager.
         :param node: a single Node.
         :param kwargs: info for action.
+
+        :raises: UnsupportedDriverExtension if 'method' can not be mapped to
+                 the supported interfaces.
+        :raises: InvalidParameterValue if **kwargs does not contain 'method'.
         """

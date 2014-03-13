@@ -43,7 +43,7 @@ class UtilsTestCase(base.TestCase):
         mock_fakea_validate.assert_called_once_with(method='first_method')
 
     def test_vendor_interface_validate_bad_method(self):
-            self.assertRaises(exception.InvalidParameterValue,
+        self.assertRaises(exception.UnsupportedDriverExtension,
                           self.driver.vendor.validate, method='fake_method')
 
     def test_vendor_interface_validate_none_method(self):

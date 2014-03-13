@@ -497,7 +497,7 @@ class ManagerTestCase(base.DbTestCase):
         info = {'bar': 'baz'}
         self.service.start()
 
-        self.assertRaises(exception.InvalidParameterValue,
+        self.assertRaises(exception.UnsupportedDriverExtension,
                           self.service.vendor_passthru,
                           self.context, n['uuid'], 'unsupported_method', info)
 

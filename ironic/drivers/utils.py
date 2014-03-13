@@ -18,7 +18,7 @@ from ironic.drivers import base
 
 def _raise_unsupported_error(method=None):
     if method:
-        raise exception.InvalidParameterValue(_(
+        raise exception.UnsupportedDriverExtension(_(
             "Unsupported method (%s) passed through to vendor extension.")
             % method)
     raise exception.InvalidParameterValue(_(
@@ -29,24 +29,38 @@ class MixinVendorInterface(base.VendorInterface):
     """Wrapper around multiple VendorInterfaces."""
 
     def __init__(self, mapping):
+        """Wrapper around multiple VendorInterfaces.
+
+        :param mapping: dict of {'method': interface} specifying how to combine
+                        multiple vendor interfaces into one vendor driver.
+
+        """
         self.mapping = mapping
 
     def _map(self, **kwargs):
-        """Map methods to interfaces.
-
-        :returns: an instance of a VendorInterface
-        :raises: InvalidParameterValue if **kwargs does not contain 'method'
-                 or if the method can not be mapped to an interface.
-        """
         method = kwargs.get('method')
         return self.mapping.get(method) or _raise_unsupported_error(method)
 
     def validate(self, *args, **kwargs):
-        """Call validate on the appropriate interface only."""
+        """Call validate on the appropriate interface only.
+
+        :raises: UnsupportedDriverExtension if 'method' can not be mapped to
+                 the supported interfaces.
+        :raises: InvalidParameterValue if **kwargs does not contain 'method'.
+
+        """
         route = self._map(**kwargs)
         route.validate(*args, **kwargs)
 
     def vendor_passthru(self, task, node, **kwargs):
-        """Call vendor_passthru on the appropriate interface only."""
+        """Call vendor_passthru on the appropriate interface only.
+
+        Returns or raises according to the requested vendor_passthru method.
+
+        :raises: UnsupportedDriverExtension if 'method' can not be mapped to
+                 the supported interfaces.
+        :raises: InvalidParameterValue if **kwargs does not contain 'method'.
+
+        """
         route = self._map(**kwargs)
         return route.vendor_passthru(task, node, **kwargs)
