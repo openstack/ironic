@@ -467,9 +467,9 @@ class VendorPassthru(base.VendorInterface):
     def _set_boot_device(self, task, node, **kwargs):
         """Set the boot device of the node.
 
-        @kwargs boot_device: Boot device. One of [pxe, disk]
+        @kwargs device: Boot device. One of [pxe, disk]
         """
-        boot_device = kwargs.get('boot_device')
+        boot_device = kwargs.get('device')
 
         if boot_device is None:
             raise exception.InvalidParameterValue(_("No boot device provided"))
