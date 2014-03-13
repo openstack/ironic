@@ -58,7 +58,7 @@ opts = [
                'parameter when the dhcp_options_enabled is set.',
                default='pxelinux.0'),
     cfg.StrOpt('admin_tenant_name',
-               help='Ironic keystone tenet name.'),
+               help='Ironic keystone tenant name.'),
     cfg.ListOpt('instance_type_extra_specs',
                 default=[],
                 help='A list of additional capabilities corresponding to '
