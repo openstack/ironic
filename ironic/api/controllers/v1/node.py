@@ -202,16 +202,26 @@ class NodeStatesController(rest.RestController):
         rpc_node = objects.Node.get_by_uuid(pecan.request.context, node_uuid)
         topic = pecan.request.rpcapi.get_topic_for(rpc_node)
 
-        if rpc_node.target_provision_state is not None:
-            msg = _('Node %s is already being provisioned.') % rpc_node['uuid']
-            LOG.exception(msg)
-            raise wsme.exc.ClientSideError(msg, status_code=409)  # Conflict
-
         if target == rpc_node.provision_state:
             msg = (_("Node %(node)s is already in the '%(state)s' state.") %
                    {'node': rpc_node['uuid'], 'state': target})
             LOG.exception(msg)
             raise wsme.exc.ClientSideError(msg, status_code=400)
+
+        if target == ir_states.ACTIVE:
+            processing = rpc_node.target_provision_state is not None
+        elif target == ir_states.DELETED:
+            processing = (rpc_node.target_provision_state is not None and
+                        rpc_node.provision_state != ir_states.DEPLOYWAIT)
+        else:
+            raise exception.InvalidStateRequested(state=target, node=node_uuid)
+
+        if processing:
+            msg = (_('Node %s is already being provisioned or decommissioned.')
+                   % rpc_node.uuid)
+            LOG.exception(msg)
+            raise wsme.exc.ClientSideError(msg, status_code=409)  # Conflict
+
         # Note that there is a race condition. The node state(s) could change
         # by the time the RPC call is made and the TaskManager manager gets a
         # lock.
@@ -222,8 +232,6 @@ class NodeStatesController(rest.RestController):
         elif target == ir_states.DELETED:
             pecan.request.rpcapi.do_node_tear_down(
                     pecan.request.context, node_uuid, topic)
-        else:
-            raise exception.InvalidStateRequested(state=target, node=node_uuid)
         # FIXME(lucasagomes): Currently WSME doesn't support returning
         # the Location header. Once it's implemented we should use the
         # Location to point to the /states subresource of this node so
