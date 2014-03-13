@@ -41,7 +41,7 @@ from ironic.tests.db import utils as db_utils
 
 CONF = cfg.CONF
 
-INFO_DICT = db_utils.get_test_impi_info()
+INFO_DICT = db_utils.get_test_ipmi_info()
 
 
 class IPMIToolPrivateMethodTestCase(base.TestCase):

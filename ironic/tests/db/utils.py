@@ -17,7 +17,7 @@
 from ironic.common import states
 
 
-def get_test_impi_info():
+def get_test_ipmi_info():
     return {
         "ipmi_address": "1.2.3.4",
         "ipmi_username": "admin",

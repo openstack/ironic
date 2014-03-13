@@ -35,7 +35,7 @@ from oslo.config import cfg
 
 CONF = cfg.CONF
 
-INFO_DICT = db_utils.get_test_impi_info()
+INFO_DICT = db_utils.get_test_ipmi_info()
 
 
 class IPMINativePrivateMethodTestCase(base.TestCase):
