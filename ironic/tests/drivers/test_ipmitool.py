@@ -251,9 +251,7 @@ class IPMIToolPrivateMethodTestCase(base.TestCase):
                                autospec=True) as mock_exec:
             mock_exec.side_effect = side_effect
 
-            expected = [mock.call(self.info, "power status"),
-                        mock.call(self.info, "power on"),
-                        mock.call(self.info, "power status"),
+            expected = [mock.call(self.info, "power on"),
                         mock.call(self.info, "power status"),
                         mock.call(self.info, "power status")]
 
