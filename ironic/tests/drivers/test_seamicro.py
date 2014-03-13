@@ -497,7 +497,7 @@ class SeaMicroPowerDriverTestCase(db_base.DbTestCase):
         mock_get_server.return_value = self.Server(active="true")
         with task_manager.acquire(self.context, [info['uuid']],
                                   shared=False) as task:
-            kwargs = {'boot_device': boot_device, 'method': 'set_boot_device'}
+            kwargs = {'device': boot_device, 'method': 'set_boot_device'}
             task.resources[0].driver.vendor.\
                 vendor_passthru(task, self.node, **kwargs)
         mock_get_server.assert_called_once_with(info)
@@ -518,7 +518,7 @@ class SeaMicroPowerDriverTestCase(db_base.DbTestCase):
         mock_get_server.return_value = self.Server(active="true")
         with task_manager.acquire(self.context, [info['uuid']],
                                   shared=False) as task:
-            kwargs = {'boot_device': boot_device, 'method': 'set_boot_device'}
+            kwargs = {'device': boot_device, 'method': 'set_boot_device'}
             self.assertRaises(exception.InvalidParameterValue,
                               task.resources[0].driver.vendor.
                               vendor_passthru, task, self.node, **kwargs)
@@ -535,7 +535,7 @@ class SeaMicroPowerDriverTestCase(db_base.DbTestCase):
         mock_get_server.return_value = server
         with task_manager.acquire(self.context, [info['uuid']],
                                   shared=False) as task:
-            kwargs = {'boot_device': boot_device, 'method': 'set_boot_device'}
+            kwargs = {'device': boot_device, 'method': 'set_boot_device'}
             self.assertRaises(exception.IronicException,
                               task.resources[0].driver.vendor.
                               vendor_passthru, task, self.node, **kwargs)
