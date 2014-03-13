@@ -43,9 +43,9 @@ class IronicHostManagerTestCase(test.NoDBTestCase):
         super(IronicHostManagerTestCase, self).setUp()
         self.host_manager = ironic_host_manager.IronicHostManager()
         self.fake_hosts = [ironic_host_manager.IronicNodeState(
-                'fake_host%s' % x, 'fake-node') for x in xrange(1, 5)]
+                'fake_host%s' % x, 'fake-node') for x in range(1, 5)]
         self.fake_hosts += [ironic_host_manager.IronicNodeState(
-                'fake_multihost', 'fake-node%s' % x) for x in xrange(1, 5)]
+                'fake_multihost', 'fake-node%s' % x) for x in range(1, 5)]
         self.addCleanup(timeutils.clear_time_override)
 
     def test_get_all_host_states(self):
@@ -62,7 +62,7 @@ class IronicHostManagerTestCase(test.NoDBTestCase):
 
         self.assertEqual(len(host_states_map), 4)
         # Check that .service is set properly
-        for i in xrange(4):
+        for i in range(4):
             compute_node = ironic_fakes.COMPUTE_NODES[i]
             host = compute_node['service']['host']
             node = compute_node['hypervisor_hostname']
@@ -208,9 +208,9 @@ class IronicHostManagerTestFilters(test.NoDBTestCase):
         super(IronicHostManagerTestFilters, self).setUp()
         self.host_manager = ironic_host_manager.IronicHostManager()
         self.fake_hosts = [ironic_host_manager.IronicNodeState(
-                'fake_host%s' % x, 'fake-node') for x in xrange(1, 5)]
+                'fake_host%s' % x, 'fake-node') for x in range(1, 5)]
         self.fake_hosts += [ironic_host_manager.IronicNodeState(
-                'fake_multihost', 'fake-node%s' % x) for x in xrange(1, 5)]
+                'fake_multihost', 'fake-node%s' % x) for x in range(1, 5)]
         self.addCleanup(timeutils.clear_time_override)
 
     def test_choose_host_filters_not_found(self):
