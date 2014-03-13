@@ -430,6 +430,38 @@ class IronicDriver(virt_driver.ComputeDriver):
             self._cleanup_deploy(node, instance, network_info)
             raise exception.NovaException(msg)
 
+        # wait for the node to be marked as ACTIVE in Ironic
+        def _wait_for_active(node_uuid):
+            try:
+                node = icli.node.get_by_instance_uuid(instance['uuid'])
+            except ironic_exception.HTTPNotFound:
+                raise exception.InstanceNotFound(instance_id=instance['uuid'])
+
+            if node.provision_state == ironic_states.ACTIVE:
+                # job is done
+                raise loopingcall.LoopingCallDone()
+
+            if node.target_provision_state == ironic_states.DELETED:
+                # ironic is trying to delete it now
+                raise exception.InstanceNotFound(instance_id=instance['uuid'])
+
+            if node.provision_state == ironic_states.NOSTATE:
+                # ironic already deleted it
+                raise exception.InstanceNotFound(instance_id=instance['uuid'])
+
+            if node.provision_state == ironic_states.DEPLOYFAIL:
+                # ironic failed to deploy
+                msg = (_("Failed to provision instance %(inst)s: %(reason)s")
+                       % {'inst': instance['uuid'], 'reason': node.last_error})
+                LOG.error(msg)
+                raise exception.InstanceDeployFailure(msg)
+
+        timer = loopingcall.FixedIntervalLoopingCall(_wait_for_active,
+                                                     node_uuid)
+        # TODO(lucasagomes): Make the time configurable
+        timer.start(interval=10).wait()
+
+
     def destroy(self, context, instance, network_info,
                 block_device_info=None):
 
