@@ -157,12 +157,6 @@ class IronicDriverTestCase(test.NoDBTestCase):
     def test_get_hypervisor_version(self):
         self.assertEqual(self.driver.get_hypervisor_version(), 1)
 
-    def test__require_node(self):
-        node_uuid = '1b67c895-9ef8-42ac-a59c-7bf84fe24e82'
-        test_instance = fake_instance.fake_instance_obj(self.ctx,
-                                                        node=node_uuid)
-        self.assertEqual(self.driver._require_node(test_instance), node_uuid)
-
     def test__get_client_no_context(self):
         # stop _get_client mock
         self.mock_cli_patcher.stop()
