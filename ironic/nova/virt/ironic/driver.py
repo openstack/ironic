@@ -120,6 +120,7 @@ def _get_nodes_supported_instances(cpu_arch=''):
     """Return supported instances for a node."""
     return [(cpu_arch, 'baremetal', 'baremetal')]
 
+
 class IronicDriver(virt_driver.ComputeDriver):
     """Hypervisor driver for Ironic - bare metal provisioning."""
 
@@ -131,7 +132,8 @@ class IronicDriver(virt_driver.ComputeDriver):
         self.firewall_driver = firewall.load_driver(default=_FIREWALL_DRIVER)
         # TODO(deva): sort out extra_specs and nova-scheduler interaction
         extra_specs = {}
-        extra_specs["ironic_driver"] = "ironic.nova.virt.ironic.driver.IronicDriver"
+        extra_specs["ironic_driver"] = \
+                "ironic.nova.virt.ironic.driver.IronicDriver"
         # cpu_arch set per node.
         extra_specs['cpu_arch'] = ''
         for pair in CONF.ironic.instance_type_extra_specs:
@@ -460,7 +462,6 @@ class IronicDriver(virt_driver.ComputeDriver):
                                                      node_uuid)
         # TODO(lucasagomes): Make the time configurable
         timer.start(interval=10).wait()
-
 
     def destroy(self, context, instance, network_info,
                 block_device_info=None):

@@ -122,6 +122,7 @@ class FakeNodeClient(object):
 
 
 class FakeClient(object):
+
     node = FakeNodeClient()
     port = FakePortClient()
 
