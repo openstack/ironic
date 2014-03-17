@@ -158,12 +158,13 @@ class IronicDriverTestCase(test.NoDBTestCase):
     def test_get_hypervisor_version(self):
         self.assertEqual(self.driver.get_hypervisor_version(), 1)
 
-    def test__get_client_no_context(self):
+    def test__get_client_no_auth_token(self):
+        self.flags(admin_auth_token=None, group='ironic')
+
         # stop _get_client mock
         self.mock_cli_patcher.stop()
         self.mock_cli = None
 
-        self.ctx.auth_token = None
         with mock.patch.object(nova_context, 'get_admin_context') as mock_ctx:
             mock_ctx.return_value = self.ctx
             with mock.patch.object(ironic_client, 'get_client') as mock_ir_cli:
@@ -177,12 +178,13 @@ class IronicDriverTestCase(test.NoDBTestCase):
                 mock_ir_cli.assert_called_once_with(CONF.ironic.api_version,
                                                     **expected)
 
-    def test__get_client_with_context(self):
+    def test__get_client_with_auth_token(self):
+        self.flags(admin_auth_token='fake-token', group='ironic')
+
         # stop _get_client mock
         self.mock_cli_patcher.stop()
         self.mock_cli = None
 
-        self.ctx.auth_token = 'fake-token'
         with mock.patch.object(nova_context, 'get_admin_context') as mock_ctx:
             mock_ctx.return_value = self.ctx
             with mock.patch.object(ironic_client, 'get_client') as mock_ir_cli:

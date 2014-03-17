@@ -27,7 +27,6 @@ from oslo.config import cfg
 
 from ironic.nova.virt.ironic import ironic_states
 from nova.compute import power_state
-from nova import context as nova_context
 from nova import exception
 from nova.objects import flavor as flavor_obj
 from nova.openstack.common import excutils
@@ -51,6 +50,8 @@ opts = [
                help='Ironic keystone admin name'),
     cfg.StrOpt('admin_password',
                help='Ironic keystone admin password.'),
+    cfg.StrOpt('admin_auth_token',
+               help='Ironic keystone auth token.'),
     cfg.StrOpt('admin_url',
                help='Ironic public api endpoint.'),
     cfg.StrOpt('pxe_bootfile_name',
@@ -165,9 +166,8 @@ class IronicDriver(virt_driver.ComputeDriver):
     def _get_client(self):
         # TODO(deva): save and reuse existing client & auth token
         #             until it expires or is no longer valid
-        ctx = nova_context.get_admin_context()
-
-        if ctx.auth_token is None:
+        auth_token = CONF.ironic.admin_auth_token
+        if auth_token is None:
             kwargs = {'os_username': CONF.ironic.admin_username,
                       'os_password': CONF.ironic.admin_password,
                       'os_auth_url': CONF.ironic.admin_url,
@@ -175,7 +175,7 @@ class IronicDriver(virt_driver.ComputeDriver):
                       'os_service_type': 'baremetal',
                       'os_endpoint_type': 'public'}
         else:
-            kwargs = {'os_auth_token': ctx.auth_token,
+            kwargs = {'os_auth_token': auth_token,
                       'ironic_url': CONF.ironic.api_endpoint}
         return ironic_client.get_client(CONF.ironic.api_version, **kwargs)
 
