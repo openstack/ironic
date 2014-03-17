@@ -19,7 +19,6 @@ Tests For IronicHostManager
 
 from nova import db
 from nova import exception
-from nova.openstack.common import timeutils
 from nova.scheduler import filters
 from nova.scheduler import ironic_host_manager
 from nova import test
@@ -46,7 +45,6 @@ class IronicHostManagerTestCase(test.NoDBTestCase):
                 'fake_host%s' % x, 'fake-node') for x in range(1, 5)]
         self.fake_hosts += [ironic_host_manager.IronicNodeState(
                 'fake_multihost', 'fake-node%s' % x) for x in range(1, 5)]
-        self.addCleanup(timeutils.clear_time_override)
 
     def test_get_all_host_states(self):
         # Ensure .service is set and we have the values we expect to.
@@ -109,7 +107,6 @@ class IronicHostManagerChangedNodesTestCase(test.NoDBTestCase):
                             supported_instances=
                                         '[["i386", "baremetal", "baremetal"]]',
                             free_disk_gb=10, free_ram_mb=1024)
-        self.addCleanup(timeutils.clear_time_override)
 
     def test_get_all_host_states(self):
         context = 'fake_context'
@@ -211,7 +208,6 @@ class IronicHostManagerTestFilters(test.NoDBTestCase):
                 'fake_host%s' % x, 'fake-node') for x in range(1, 5)]
         self.fake_hosts += [ironic_host_manager.IronicNodeState(
                 'fake_multihost', 'fake-node%s' % x) for x in range(1, 5)]
-        self.addCleanup(timeutils.clear_time_override)
 
     def test_choose_host_filters_not_found(self):
         self.flags(scheduler_default_filters='FakeFilterClass3')
