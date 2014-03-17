@@ -160,7 +160,7 @@ start the conductor service and watch its output::
 You should now be able to interact with Ironic via the python client (installed
 in the first window) and observe both services' debug outputs in the other two
 windows. This is a good way to test new features or play with the functionality
-without necessarily starting devstack.
+without necessarily starting DevStack.
 
 To get started, list the available commands and resources::
 
@@ -203,6 +203,162 @@ Here is an example walkthrough of creating a node::
 If you make some code changes and want to test their effects,
 install again with "python setup.py develop", stop the services
 with Ctrl-C, and restart them.
+
+================================
+Deploying Ironic with DevStack
+================================
+
+DevStack may be configured to deploy Ironic, setup Nova to use the Ironic
+driver and provide hardware resources (network, baremetal compute nodes)
+using a combination of OpenVSwitch and libvirt.  It is highly recommended
+to deploy on an expendable virtual machine and not on your personal work
+station.
+
+.. seealso::
+
+    https://devstack.org
+
+Prepare the system (Ubuntu 12.04)::
+
+    sudo apt-get update
+    sudo apt-get install python-software-properties git
+    sudo add-apt-repository cloud-archive:havana
+    sudo apt-get update
+
+Clone DevStack::
+
+    cd ~
+    git clone https://github.com/openstack-dev/devstack.git devstack
+
+Create devstack/localrc with minimal settings required to enable Ironic::
+
+    cd devstack
+    cat >localrc <<END
+    # Enable Ironic API and Ironic Conductor
+    enable_service ironic
+    enable_service ir-api
+    enable_service ir-cond
+
+    # Enable Neutron which is required by Ironic and disable nova-network.
+    disable_service n-net
+    enable_service q-svc
+    enable_service q-agt
+    enable_service q-dhcp
+    enable_service q-l3
+    enable_service q-meta
+    enable_service neutron
+
+    # Instruct DevStack to build a deployment kernel and ramdisk using
+    # diskimage-builder.
+    BM_BUILD_DEPLOY_RAMDISK=True
+    BM_DEPLOY_FLAVOR='-a amd64 ubuntu deploy-ironic'
+
+    # Create 3 virtual machines with 512M memory and 10G disk to
+    # pose as Ironic's baremetal nodes.
+    IRONIC_BAREMETAL_BASIC_OPS=True
+    IRONIC_VM_COUNT=3
+    IRONIC_VM_SPECS_RAM=512
+    IRONIC_VM_SPECS_DISK=10
+    IRONIC_VM_SSH_PORT=22
+
+    VIRT_DRIVER=ironic
+
+    # By default, DevStack creates a 10.0.0.0/24 network for instances.
+    # If this overlaps with the hosts network, you may adjust with the
+    # following.
+    NETWORK_GATEWAY=10.1.0.1
+    FIXED_RANGE=10.1.0.0/24
+    FIXED_NETWORK_SIZE=256
+
+    # Log all devstack output to a log file
+    LOGFILE=$HOME/devstack.log
+
+    END
+
+Run stack.sh::
+
+    ./stack.sh
+
+Source credentials, create a key, spawn an instance::
+
+    source ~/devstack/openrc
+
+    # query the image id of the default cirros-0.3.1-x86_64-uec image
+    nova image-list
+    image=21eef080-e562-4586-ba80-3fc57de25fd2
+
+    # create keypair
+    ssh-keygen
+    nova keypair-add default --pub-key ~/.ssh/id_rsa.pub
+
+    # spawn instance
+    nova boot --flavor baremetal --image $image --key-name default testing
+
+As the demo tenant, you should now see a Nova instance building::
+
+    nova list
+    +--------------------------------------+---------+--------+------------+-------------+----------+
+    | ID                                   | Name    | Status | Task State | Power State | Networks |
+    +--------------------------------------+---------+--------+------------+-------------+----------+
+    | a2c7f812-e386-4a22-b393-fe1802abd56e | testing | BUILD  | spawning   | NOSTATE     |          |
+    +--------------------------------------+---------+--------+------------+-------------+----------+
+
+Nova will be interfacing with Ironic conductor to spawn the node.  On the
+Ironic side, you should see an Ironic node associated with this Nova instance.
+It should be powered on and in a 'wait call-back' provisioning state::
+
+    # Note that 'ironic' calls must be made with admin credentials
+    . ~/devstack/openrc admin admin
+    ironic node-list
+    +--------------------------------------+--------------------------------------+-------------+--------------------+
+    | UUID                                 | Instance UUID                        | Power State | Provisioning State |
+    +--------------------------------------+--------------------------------------+-------------+--------------------+
+    | 9e592cbe-e492-4e4f-bf8f-4c9e0ad1868f | None                                 | power off   | None               |
+    | ec0c6384-cc3a-4edf-b7db-abde1998be96 | None                                 | power off   | None               |
+    | 4099e31c-576c-48f8-b460-75e1b14e497f | a2c7f812-e386-4a22-b393-fe1802abd56e | power on    | wait call-back     |
+    +--------------------------------------+--------------------------------------+-------------+--------------------+
+
+At this point, Ironic conductor has called to libvirt via SSH to power on a
+virtual machine, which will PXE + TFTP boot from the conductor node and
+progress through the Ironic provisioning workflow.  One libvirt domain should
+be active now::
+
+    sudo virsh list --all
+     Id    Name                           State
+    ----------------------------------------------------
+     2     baremetalbrbm_2                running
+     -     baremetalbrbm_0                shut off
+     -     baremetalbrbm_1                shut off
+
+This provisioning process may take some time depending on the performance of
+the host system, but Ironic should eventually show the node as having an
+'active' provisioning state::
+
+    ironic node-list
+    +--------------------------------------+--------------------------------------+-------------+--------------------+
+    | UUID                                 | Instance UUID                        | Power State | Provisioning State |
+    +--------------------------------------+--------------------------------------+-------------+--------------------+
+    | 9e592cbe-e492-4e4f-bf8f-4c9e0ad1868f | None                                 | power off   | None               |
+    | ec0c6384-cc3a-4edf-b7db-abde1998be96 | None                                 | power off   | None               |
+    | 4099e31c-576c-48f8-b460-75e1b14e497f | a2c7f812-e386-4a22-b393-fe1802abd56e | power on    | active             |
+    +--------------------------------------+--------------------------------------+-------------+--------------------+
+
+This should also be reflected in the Nova instance state, which at this point
+should be ACTIVE, Running and an associated private IP::
+
+    # Note that 'nova' calls must be made with the credentials of the demo tenant
+    . ~/devstack/openrc demo demo
+    nova list
+    +--------------------------------------+---------+--------+------------+-------------+------------------+
+    | ID                                   | Name    | Status | Task State | Power State | Networks         |
+    +--------------------------------------+---------+--------+------------+-------------+------------------+
+    | a2c7f812-e386-4a22-b393-fe1802abd56e | testing | ACTIVE | -          | Running     | private=10.1.0.4 |
+    +--------------------------------------+---------+--------+------------+-------------+------------------+
+
+The server should now be accessible via SSH::
+
+    ssh cirros@10.1.0.4
+    $
 
 ================================
 Building developer documentation
