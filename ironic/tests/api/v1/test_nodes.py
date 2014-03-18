@@ -877,6 +877,18 @@ class TestPut(base.FunctionalTest):
                             expect_errors=True)
         self.assertEqual(409, ret.status_code)  # Conflict
 
+    def test_provision_with_tear_down_in_progress_deploywait(self):
+        ndict = dbutils.get_test_node(id=1, uuid=utils.generate_uuid(),
+                                      provision_state=states.DEPLOYWAIT,
+                                      target_provision_state=states.DEPLOYDONE)
+        node = self.dbapi.create_node(ndict)
+        ret = self.put_json('/nodes/%s/states/provision' % node.uuid,
+                            {'target': states.DELETED})
+        self.assertEqual(202, ret.status_code)
+        self.assertEqual('', ret.body)
+        self.mock_dntd.assert_called_once_with(
+                mock.ANY, node.uuid, 'test-topic')
+
     def test_provision_already_in_state(self):
         ndict = dbutils.get_test_node(id=1, uuid=utils.generate_uuid(),
                                       target_provision_state=states.NOSTATE,
