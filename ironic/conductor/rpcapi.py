@@ -278,12 +278,14 @@ class ConductorAPI(ironic.openstack.common.rpc.proxy.RpcProxy):
         :raises: UnsupportedDriverExtension if the node's driver doesn't
                  support console.
         :raises: InvalidParameterValue when the wrong driver info is specified.
+        :raises: NoFreeConductorWorker when there is no free worker to start
+                 async task.
         """
-        self.cast(context,
-                  self.make_msg('set_console_mode',
-                                node_id=node_id,
-                                enabled=enabled),
-                  topic=topic or self.topic)
+        return self.call(context,
+                         self.make_msg('set_console_mode',
+                                       node_id=node_id,
+                                       enabled=enabled),
+                         topic=topic or self.topic)
 
     def update_port(self, context, port_obj, topic=None):
         """Synchronously, have a conductor update the port's information.

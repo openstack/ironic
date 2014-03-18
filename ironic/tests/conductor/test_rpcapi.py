@@ -154,7 +154,7 @@ class RPCAPITestCase(base.DbTestCase):
 
     def test_set_console_mode(self):
         self._test_rpcapi('set_console_mode',
-                          'cast',
+                          'call',
                           node_id=self.fake_node['uuid'],
                           enabled=True)
 

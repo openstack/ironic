@@ -720,11 +720,15 @@ class ConductorManager(service.PeriodicService):
             task.driver.console.validate(task, node)
             return task.driver.console.get_console(task, node)
 
-    @messaging.client_exceptions(exception.NodeLocked,
+    @messaging.client_exceptions(exception.NoFreeConductorWorker,
+                                 exception.NodeLocked,
                                  exception.UnsupportedDriverExtension,
                                  exception.InvalidParameterValue)
     def set_console_mode(self, context, node_id, enabled):
         """Enable/Disable the console.
+
+        Validate driver specific information synchronously, and then
+        spawn a background worker to set console mode asynchronously.
 
         :param context: request context.
         :param node_id: node id or uuid.
@@ -733,14 +737,17 @@ class ConductorManager(service.PeriodicService):
         :raises: UnsupportedDriverExtension if the node's driver doesn't
                  support console.
         :raises: InvalidParameterValue when the wrong driver info is specified.
+        :raises: NoFreeConductorWorker when there is no free worker to start
+                 async task
         """
         LOG.debug(_('RPC set_console_mode called for node %(node)s with '
                     'enabled %(enabled)s') % {'node': node_id,
                                               'enabled': enabled})
 
-        with task_manager.acquire(context, node_id) as task:
-            node = task.node
+        task = task_manager.TaskManager(context, node_id, shared=False)
+        node = task.node
 
+        try:
             if not getattr(task.driver, 'console', None):
                 exc = exception.UnsupportedDriverExtension(driver=node.driver,
                                                            extension='console')
@@ -748,36 +755,48 @@ class ConductorManager(service.PeriodicService):
                 node.save(context)
                 raise exc
 
-            try:
-                task.driver.console.validate(task, node)
-            except exception.InvalidParameterValue as e:
-                with excutils.save_and_reraise_exception():
-                    node.last_error = (_("Failed to validate console info. "
-                                         "Error: %s") % e)
-                    node.save(context)
+            task.driver.console.validate(task, node)
 
-            try:
-                if enabled and not node.console_enabled:
-                    task.driver.console.start_console(task, node)
-                elif not enabled and node.console_enabled:
-                    task.driver.console.stop_console(task, node)
-                else:
-                    op = _('enabled') if enabled else _('disabled')
-                    LOG.info(_("No console action was triggered because the "
-                               "console is already %s") % op)
-            except Exception as e:
-                with excutils.save_and_reraise_exception():
-                    op = _('enabling') if enabled else _('disabling')
-                    msg = (_('Error %(op)s the console on node %(node)s. '
-                            'Reason: %(error)s') % {'op': op,
-                                                    'node': node.uuid,
-                                                    'error': e})
-                    node.last_error = msg
+            if enabled == node.console_enabled:
+                op = _('enabled') if enabled else _('disabled')
+                LOG.info(_("No console action was triggered because the "
+                           "console is already %s") % op)
             else:
-                node.console_enabled = enabled
                 node.last_error = None
-            finally:
                 node.save(context)
+
+                # Start the requested action in the background.
+                thread = self._spawn_worker(self._set_console_mode,
+                                            task, enabled)
+                # Release node lock at the end.
+                thread.link(lambda t: task.release_resources())
+
+        except Exception:
+            with excutils.save_and_reraise_exception():
+                # Release node lock if error occurred.
+                task.release_resources()
+
+    def _set_console_mode(self, task, enabled):
+        """Internal method to set console mode on a node."""
+        node = task.node
+        try:
+            if enabled:
+                task.driver.console.start_console(task, node)
+            else:
+                task.driver.console.stop_console(task, node)
+        except Exception as e:
+            with excutils.save_and_reraise_exception():
+                op = _('enabling') if enabled else _('disabling')
+                msg = (_('Error %(op)s the console on node %(node)s. '
+                        'Reason: %(error)s') % {'op': op,
+                                                'node': node.uuid,
+                                                'error': e})
+                node.last_error = msg
+        else:
+            node.console_enabled = enabled
+            node.last_error = None
+        finally:
+            node.save(task.context)
 
     @messaging.client_exceptions(exception.NodeLocked)
     def update_port(self, context, port_obj):

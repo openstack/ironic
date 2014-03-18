@@ -1040,23 +1040,44 @@ class ManagerTestCase(base.DbTestCase):
             self.assertIn(error, node.last_error)
             self.assertIsNone(node.reservation)
 
+    def test_set_console_mode_worker_pool_full(self):
+        ndict = utils.get_test_node(driver='fake')
+        node = self.dbapi.create_node(ndict)
+        self.service.start()
+        with mock.patch.object(self.service, '_spawn_worker') \
+                as spawn_mock:
+            spawn_mock.side_effect = exception.NoFreeConductorWorker()
+
+            exc = self.assertRaises(messaging.ClientException,
+                                    self.service.set_console_mode,
+                                    self.context, node.uuid, True)
+            # Compare true exception hidden by @messaging.client_exceptions
+            self.assertEqual(exc._exc_info[0], exception.NoFreeConductorWorker)
+            self.service._worker_pool.waitall()
+            spawn_mock.assert_called_once_with(mock.ANY, mock.ANY, mock.ANY)
+
     def test_set_console_mode_enabled(self):
         ndict = utils.get_test_node(driver='fake')
         node = self.dbapi.create_node(ndict)
+        self.service.start()
         self.service.set_console_mode(self.context, node.uuid, True)
+        self.service._worker_pool.waitall()
         node.refresh(self.context)
         self.assertTrue(node.console_enabled)
 
     def test_set_console_mode_disabled(self):
         ndict = utils.get_test_node(driver='fake')
         node = self.dbapi.create_node(ndict)
+        self.service.start()
         self.service.set_console_mode(self.context, node.uuid, False)
+        self.service._worker_pool.waitall()
         node.refresh(self.context)
         self.assertFalse(node.console_enabled)
 
     def test_set_console_mode_not_supported(self):
         ndict = utils.get_test_node(driver='fake', last_error=None)
         node = self.dbapi.create_node(ndict)
+        self.service.start()
         # null the console interface
         self.driver.console = None
         exc = self.assertRaises(messaging.ClientException,
@@ -1065,12 +1086,14 @@ class ManagerTestCase(base.DbTestCase):
         # Compare true exception hidden by @messaging.client_exceptions
         self.assertEqual(exc._exc_info[0],
                          exception.UnsupportedDriverExtension)
+        self.service._worker_pool.waitall()
         node.refresh(self.context)
         self.assertIsNotNone(node.last_error)
 
     def test_set_console_mode_validation_fail(self):
         ndict = utils.get_test_node(driver='fake', last_error=None)
         node = self.dbapi.create_node(ndict)
+        self.service.start()
         with mock.patch.object(self.driver.console, 'validate') as mock_val:
             mock_val.side_effect = exception.InvalidParameterValue('error')
             exc = self.assertRaises(messaging.ClientException,
@@ -1078,19 +1101,17 @@ class ManagerTestCase(base.DbTestCase):
                                     self.context, node.uuid, True)
             # Compare true exception hidden by @messaging.client_exceptions
             self.assertEqual(exc._exc_info[0], exception.InvalidParameterValue)
-            node.refresh(self.context)
-            self.assertIsNotNone(node.last_error)
 
     def test_set_console_mode_start_fail(self):
         ndict = utils.get_test_node(driver='fake', last_error=None,
                                     console_enabled=False)
         node = self.dbapi.create_node(ndict)
+        self.service.start()
         with mock.patch.object(self.driver.console, 'start_console') \
                 as mock_sc:
             mock_sc.side_effect = exception.IronicException('test-error')
-            self.assertRaises(exception.IronicException,
-                              self.service.set_console_mode, self.context,
-                              node.uuid, True)
+            self.service.set_console_mode(self.context, node.uuid, True)
+            self.service._worker_pool.waitall()
             mock_sc.assert_called_once_with(mock.ANY, mock.ANY)
             node.refresh(self.context)
             self.assertIsNotNone(node.last_error)
@@ -1099,12 +1120,12 @@ class ManagerTestCase(base.DbTestCase):
         ndict = utils.get_test_node(driver='fake', last_error=None,
                                     console_enabled=True)
         node = self.dbapi.create_node(ndict)
+        self.service.start()
         with mock.patch.object(self.driver.console, 'stop_console') \
                 as mock_sc:
             mock_sc.side_effect = exception.IronicException('test-error')
-            self.assertRaises(exception.IronicException,
-                              self.service.set_console_mode, self.context,
-                              node.uuid, False)
+            self.service.set_console_mode(self.context, node.uuid, False)
+            self.service._worker_pool.waitall()
             mock_sc.assert_called_once_with(mock.ANY, mock.ANY)
             node.refresh(self.context)
             self.assertIsNotNone(node.last_error)
@@ -1112,17 +1133,21 @@ class ManagerTestCase(base.DbTestCase):
     def test_enable_console_already_enabled(self):
         ndict = utils.get_test_node(driver='fake', console_enabled=True)
         node = self.dbapi.create_node(ndict)
+        self.service.start()
         with mock.patch.object(self.driver.console, 'start_console') \
                 as mock_sc:
             self.service.set_console_mode(self.context, node.uuid, True)
+            self.service._worker_pool.waitall()
             self.assertFalse(mock_sc.called)
 
     def test_disable_console_already_disabled(self):
         ndict = utils.get_test_node(driver='fake', console_enabled=False)
         node = self.dbapi.create_node(ndict)
+        self.service.start()
         with mock.patch.object(self.driver.console, 'stop_console') \
                 as mock_sc:
             self.service.set_console_mode(self.context, node.uuid, False)
+            self.service._worker_pool.waitall()
             self.assertFalse(mock_sc.called)
 
     def test_get_console(self):
