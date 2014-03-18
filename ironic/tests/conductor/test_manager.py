@@ -805,7 +805,6 @@ class ManagerTestCase(base.DbTestCase):
         ret = self.service.validate_driver_interfaces(self.context,
                                                       node['uuid'])
         expected = {'console': {'result': True},
-                    'rescue': {'result': None, 'reason': 'not supported'},
                     'power': {'result': True},
                     'deploy': {'result': True}}
         self.assertEqual(expected, ret)
