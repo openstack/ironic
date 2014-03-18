@@ -62,7 +62,8 @@ def prepare_service(argv=[]):
                                          'keystoneclient=INFO',
                                          'stevedore=INFO',
                                          'eventlet.wsgi.server=WARN',
-                                         'iso8601=WARN'
+                                         'iso8601=WARN',
+                                         'paramiko=WARN',
                                          ])
     cfg.CONF(argv[1:], project='ironic')
     log.setup('ironic')
