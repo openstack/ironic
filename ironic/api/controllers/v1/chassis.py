@@ -32,10 +32,6 @@ from ironic.api.controllers.v1 import types
 from ironic.api.controllers.v1 import utils as api_utils
 from ironic.common import exception
 from ironic import objects
-from ironic.openstack.common import excutils
-from ironic.openstack.common import log
-
-LOG = log.getLogger(__name__)
 
 
 class ChassisPatchType(types.JsonPatchType):
@@ -210,11 +206,8 @@ class ChassisController(rest.RestController):
 
         :param chassis: a chassis within the request body.
         """
-        try:
-            new_chassis = pecan.request.dbapi.create_chassis(chassis.as_dict())
-        except Exception as e:
-            with excutils.save_and_reraise_exception():
-                LOG.exception(e)
+        new_chassis = pecan.request.dbapi.create_chassis(chassis.as_dict())
+
         return Chassis.convert_with_links(new_chassis)
 
     @wsme.validate(types.uuid, [ChassisPatchType])

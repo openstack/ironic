@@ -34,15 +34,11 @@ from ironic.common import exception
 from ironic.common import states as ir_states
 from ironic.common import utils
 from ironic import objects
-from ironic.openstack.common import excutils
-from ironic.openstack.common import log
 
 
 CONF = cfg.CONF
 CONF.import_opt('heartbeat_timeout', 'ironic.conductor.manager',
                 group='conductor')
-
-LOG = log.getLogger(__name__)
 
 
 class NodePatchType(types.JsonPatchType):
@@ -205,7 +201,6 @@ class NodeStatesController(rest.RestController):
         if target == rpc_node.provision_state:
             msg = (_("Node %(node)s is already in the '%(state)s' state.") %
                    {'node': rpc_node['uuid'], 'state': target})
-            LOG.exception(msg)
             raise wsme.exc.ClientSideError(msg, status_code=400)
 
         if target == ir_states.ACTIVE:
@@ -219,7 +214,6 @@ class NodeStatesController(rest.RestController):
         if processing:
             msg = (_('Node %s is already being provisioned or decommissioned.')
                    % rpc_node.uuid)
-            LOG.exception(msg)
             raise wsme.exc.ClientSideError(msg, status_code=409)  # Conflict
 
         # Note that there is a race condition. The node state(s) could change
@@ -624,11 +618,8 @@ class NodesController(rest.RestController):
             e.code = 400
             raise e
 
-        try:
-            new_node = pecan.request.dbapi.create_node(node.as_dict())
-        except Exception as e:
-            with excutils.save_and_reraise_exception():
-                LOG.exception(e)
+        new_node = pecan.request.dbapi.create_node(node.as_dict())
+
         return Node.convert_with_links(new_node)
 
     @wsme.validate(types.uuid, [NodePatchType])
@@ -675,12 +666,8 @@ class NodesController(rest.RestController):
             e.code = 400
             raise e
 
-        try:
-            new_node = pecan.request.rpcapi.update_node(
-                    pecan.request.context, rpc_node, topic)
-        except Exception as e:
-            with excutils.save_and_reraise_exception():
-                LOG.exception(e)
+        new_node = pecan.request.rpcapi.update_node(
+                         pecan.request.context, rpc_node, topic)
 
         return Node.convert_with_links(new_node)
 
