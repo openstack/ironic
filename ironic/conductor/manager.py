@@ -349,7 +349,6 @@ class ConductorManager(service.PeriodicService):
         :param node_id: the id or uuid of a node.
         :raises: InstanceDeployFailure
         :raises: NodeInMaintenance if the node is in maintenance mode.
-        :raises: InvalidParameterValue if validation fails
         :raises: NoFreeConductorWorker when there is no free worker to start
                  async task.
 
@@ -369,7 +368,12 @@ class ConductorManager(service.PeriodicService):
                 raise exception.NodeInMaintenance(op=_('provisioning'),
                                                   node=node.uuid)
 
-            task.driver.deploy.validate(task, node)
+            try:
+                task.driver.deploy.validate(task, node)
+            except exception.InvalidParameterValue as e:
+                raise exception.InstanceDeployFailure(_(
+                    "RPC do_node_deploy failed to validate deploy info. "
+                    "Error: %(msg)s") % {'msg': e})
 
             # Set target state to expose that work is in progress
             node.provision_state = states.DEPLOYING
@@ -420,7 +424,6 @@ class ConductorManager(service.PeriodicService):
         :param context: an admin context.
         :param node_id: the id or uuid of a node.
         :raises: InstanceDeployFailure
-        :raises: InvalidParameterValue if validation fails
         :raises: NoFreeConductorWorker when there is no free worker to start
                  async task
 
@@ -435,11 +438,17 @@ class ConductorManager(service.PeriodicService):
                                             states.ERROR,
                                             states.DEPLOYWAIT]:
                 raise exception.InstanceDeployFailure(_(
-                    "RCP do_node_tear_down "
+                    "RPC do_node_tear_down "
                     "not allowed for node %(node)s in state %(state)s")
                     % {'node': node_id, 'state': node.provision_state})
 
-            task.driver.deploy.validate(task, node)
+            try:
+                task.driver.deploy.validate(task, node)
+            except exception.InvalidParameterValue as e:
+                raise exception.InstanceDeployFailure(_(
+                    "RPC do_node_tear_down failed to validate deploy info. "
+                    "Error: %(msg)s") % {'msg': e})
+
             node.provision_state = states.DELETING
             node.target_provision_state = states.DELETED
             node.last_error = None

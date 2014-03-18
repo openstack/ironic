@@ -613,12 +613,15 @@ class ManagerTestCase(base.DbTestCase):
 
     @mock.patch('ironic.drivers.modules.fake.FakeDeploy.validate')
     def test_do_node_deploy_validate_fail(self, mock_validate):
+        # InvalidParameterValue should be re-raised as InstanceDeployFailure
         mock_validate.side_effect = exception.InvalidParameterValue('error')
         ndict = utils.get_test_node(driver='fake')
         node = self.dbapi.create_node(ndict)
-        self.assertRaises(exception.InvalidParameterValue,
-                          self.service.do_node_deploy,
-                          self.context, node.uuid)
+        exc = self.assertRaises(messaging.ClientException,
+                                self.service.do_node_deploy,
+                                self.context, node.uuid)
+        # Compare true exception hidden by @messaging.client_exceptions
+        self.assertEqual(exc._exc_info[0], exception.InstanceDeployFailure)
         # This is a sync operation last_error should be None.
         self.assertIsNone(node.last_error)
         # Verify reservation has been cleared.
@@ -712,13 +715,16 @@ class ManagerTestCase(base.DbTestCase):
 
     @mock.patch('ironic.drivers.modules.fake.FakeDeploy.validate')
     def test_do_node_tear_down_validate_fail(self, mock_validate):
+        # InvalidParameterValue should be re-raised as InstanceDeployFailure
         mock_validate.side_effect = exception.InvalidParameterValue('error')
         ndict = utils.get_test_node(driver='fake')
         ndict['provision_state'] = states.ACTIVE
         node = self.dbapi.create_node(ndict)
-        self.assertRaises(exception.InvalidParameterValue,
-                          self.service.do_node_tear_down,
-                          self.context, node.uuid)
+        exc = self.assertRaises(messaging.ClientException,
+                               self.service.do_node_tear_down,
+                               self.context, node.uuid)
+        # Compare true exception hidden by @messaging.client_exceptions
+        self.assertEqual(exc._exc_info[0], exception.InstanceDeployFailure)
 
     @mock.patch('ironic.drivers.modules.fake.FakeDeploy.tear_down')
     def test_do_node_tear_down_driver_raises_error(self, mock_tear_down):
