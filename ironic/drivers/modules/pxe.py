@@ -653,18 +653,6 @@ class PXEDeploy(base.DeployInterface):
         _update_neutron(task, node)
 
 
-class PXERescue(base.RescueInterface):
-
-    def validate(self, task, node):
-        pass
-
-    def rescue(self, task, node):
-        pass
-
-    def unrescue(self, task, node):
-        pass
-
-
 class VendorPassthru(base.VendorInterface):
     """Interface to mix IPMI and PXE vendor-specific interfaces."""
 
