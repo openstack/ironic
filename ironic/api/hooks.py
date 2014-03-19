@@ -125,17 +125,20 @@ class NoExceptionTracebackHook(hooks.PecanHook):
     # catches and handles all the errors, so 'on_error' dedicated for unhandled
     # exceptions never fired.
     def after(self, state):
-        # Do not remove traceback when server in debug mode.
-        if cfg.CONF.debug:
-            return
-        # Do nothing if there is no error.
-        if 200 <= state.response.status_int < 400:
-            return
         # Omit empty body. Some errors may not have body at this level yet.
         if not state.response.body:
             return
 
+        # Do nothing if there is no error.
+        if 200 <= state.response.status_int < 400:
+            return
+
         json_body = state.response.json
+        # Do not remove traceback when server in debug mode (except 'Server'
+        # errors when 'debuginfo' will be used for traces).
+        if cfg.CONF.debug and json_body.get('faultcode') != 'Server':
+            return
+
         faultsting = json_body.get('faultstring')
         traceback_marker = 'Traceback (most recent call last):'
         if faultsting and (traceback_marker in faultsting):
