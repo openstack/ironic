@@ -27,7 +27,7 @@ from sqlalchemy import Boolean, Column, DateTime
 from sqlalchemy import ForeignKey, Integer, Index
 from sqlalchemy import schema, String, Text
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.types import TypeDecorator, VARCHAR
+from sqlalchemy.types import TypeDecorator, TEXT
 
 from ironic.openstack.common.db.sqlalchemy import models
 
@@ -51,7 +51,7 @@ def table_args():
 class JsonEncodedType(TypeDecorator):
     """Abstract base type serialized as json-encoded string in db."""
     type = None
-    impl = VARCHAR
+    impl = TEXT
 
     def process_bind_param(self, value, dialect):
         if value is None:
