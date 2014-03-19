@@ -87,6 +87,14 @@ Overview
 
   deploy/userguide
 
+Install Guide
+-------------
+
+.. toctree::
+  :maxdepth: 1
+
+  install/ironic-install
+
 Indices and tables
 ==================
 
