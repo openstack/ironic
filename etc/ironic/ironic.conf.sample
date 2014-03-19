@@ -695,6 +695,47 @@
 # value)
 #allowed_direct_url_schemes=
 
+# The secret token given to Swift to allow temporary URL
+# downloads. Required for temporary URLs. (string value)
+#swift_temp_url_key=<None>
+
+# The length of time in seconds that the temporary URL will be
+# valid for. Defaults to 20 minutes. If some deploys get a 401
+# response code when trying to download from the temporary
+# URL, try raising this duration. (integer value)
+#swift_temp_url_duration=1200
+
+# The "endpoint" (scheme, hostname, optional port) for the
+# Swift URL of the form
+# "endpoint_url/api_version/account/container/object_id". Do
+# not include trailing "/". For example, use
+# "https://swift.example.com". Required for temporary URLs.
+# (string value)
+#swift_endpoint_url=<None>
+
+# The Swift API version to create a temporary URL for.
+# Defaults to "v1". Swift temporary URL format:
+# "endpoint_url/api_version/account/container/object_id"
+# (string value)
+#swift_api_version=v1
+
+# The account that Glance uses to communicate with Swift. The
+# format is "AUTH_uuid". "uuid" is the UUID for the account
+# configured in the glance-api.conf. Required for temporary
+# URLs. For example:
+# "AUTH_a422b2-91f3-2f46-74b7-d7c9e8958f5d30". Swift temporary
+# URL format:
+# "endpoint_url/api_version/account/container/object_id"
+# (string value)
+#swift_account=<None>
+
+# The Swift container Glance is configured to store its images
+# in. Defaults to "glance", which is the default in glance-
+# api.conf. Swift temporary URL format:
+# "endpoint_url/api_version/account/container/object_id"
+# (string value)
+#swift_container=glance
+
 
 #
 # Options defined in ironic.common.image_service
