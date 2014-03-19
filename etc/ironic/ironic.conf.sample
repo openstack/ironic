@@ -628,7 +628,7 @@
 # https for SSL. (string value)
 #glance_protocol=http
 
-# A list of the glance api servers available to nova. Prefix
+# A list of the glance api servers available to ironic. Prefix
 # with https:// for SSL-based glance API servers. Format is
 # [hostname|IP]:port. (string value)
 #glance_api_servers=<None>

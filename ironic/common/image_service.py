@@ -32,7 +32,7 @@ glance_opts = [
                help='Default protocol to use when connecting to glance. '
                'Set to https for SSL.'),
     cfg.StrOpt('glance_api_servers',
-               help='A list of the glance api servers available to nova. '
+               help='A list of the glance api servers available to ironic. '
                'Prefix with https:// for SSL-based glance API servers. '
                'Format is [hostname|IP]:port.'),
     cfg.BoolOpt('glance_api_insecure',
