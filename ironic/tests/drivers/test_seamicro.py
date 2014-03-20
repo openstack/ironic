@@ -141,6 +141,8 @@ class SeaMicroPrivateMethodsTestCase(base.TestCase):
         self.Server = Fake_Server
         self.Volume = Fake_Volume
         self.Pool = Fake_Pool
+        self.config(action_timeout=0, group='seamicro')
+        self.config(max_retry=2, group='seamicro')
 
     def _create_test_node(self, **kwargs):
         n = db_utils.get_test_node(**kwargs)
@@ -167,7 +169,7 @@ class SeaMicroPrivateMethodsTestCase(base.TestCase):
     @mock.patch.object(seamicro, "_get_server")
     def test__power_on_good(self, mock_get_server):
         mock_get_server.return_value = self.Server(active=False)
-        pstate = seamicro._power_on(self.node, timeout=2)
+        pstate = seamicro._power_on(self.node)
         self.assertEqual(states.POWER_ON, pstate)
 
     @mock.patch.object(seamicro, "_get_server")
@@ -178,13 +180,13 @@ class SeaMicroPrivateMethodsTestCase(base.TestCase):
         server = self.Server(active=False)
         server.power_on = fake_power_on
         mock_get_server.return_value = server
-        pstate = seamicro._power_on(self.node, timeout=2)
+        pstate = seamicro._power_on(self.node)
         self.assertEqual(states.ERROR, pstate)
 
     @mock.patch.object(seamicro, "_get_server")
     def test__power_off_good(self, mock_get_server):
         mock_get_server.return_value = self.Server(active=True)
-        pstate = seamicro._power_off(self.node, timeout=2)
+        pstate = seamicro._power_off(self.node)
         self.assertEqual(states.POWER_OFF, pstate)
 
     @mock.patch.object(seamicro, "_get_server")
@@ -194,13 +196,13 @@ class SeaMicroPrivateMethodsTestCase(base.TestCase):
         server = self.Server(active=True)
         server.power_off = fake_power_off
         mock_get_server.return_value = server
-        pstate = seamicro._power_off(self.node, timeout=2)
+        pstate = seamicro._power_off(self.node)
         self.assertEqual(states.ERROR, pstate)
 
     @mock.patch.object(seamicro, "_get_server")
     def test__reboot_good(self, mock_get_server):
         mock_get_server.return_value = self.Server(active=True)
-        pstate = seamicro._reboot(self.node, timeout=2)
+        pstate = seamicro._reboot(self.node)
         self.assertEqual(states.POWER_ON, pstate)
 
     @mock.patch.object(seamicro, "_get_server")
@@ -210,7 +212,7 @@ class SeaMicroPrivateMethodsTestCase(base.TestCase):
         server = self.Server(active=False)
         server.reset = fake_reboot
         mock_get_server.return_value = server
-        pstate = seamicro._reboot(self.node, timeout=2)
+        pstate = seamicro._reboot(self.node)
         self.assertEqual(states.ERROR, pstate)
 
     @mock.patch.object(seamicro, "_get_volume")
