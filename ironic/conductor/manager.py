@@ -194,7 +194,9 @@ class ConductorManager(service.PeriodicService):
         self._worker_pool = greenpool.GreenPool(size=CONF.rpc_thread_pool_size)
         """GreenPool of background workers for performing tasks async."""
 
-    # TODO(deva): add stop() to call unregister_conductor
+    def stop(self):
+        self.dbapi.unregister_conductor(self.host)
+        super(ConductorManager, self).stop()
 
     def initialize_service_hook(self, service):
         pass
