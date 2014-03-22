@@ -104,6 +104,23 @@ def map_power_state(state):
         return power_state.NOSTATE
 
 
+def validate_instance_and_node(icli, instance):
+    """Get and validate a node's uuid out of a manager instance dict.
+
+    The compute manager is meant to know the node uuid, so missing uuid
+    a significant issue - it may mean we've been passed someone elses data.
+
+    Check with the Ironic service that this node is still associated with
+    this instance. This catches situations where Nova's instance dict
+    contains stale data (eg, a delete on an instance that's already gone).
+
+    """
+    try:
+        return icli.node.get_by_instance_uuid(instance['uuid'])
+    except ironic_exception.HTTPNotFound:
+        raise exception.InstanceNotFound(instance_id=instance['uuid'])
+
+
 def _get_required_value(key, value):
     """Return the requested value."""
     if '/' in value:
@@ -178,19 +195,6 @@ class IronicDriver(virt_driver.ComputeDriver):
             kwargs = {'os_auth_token': auth_token,
                       'ironic_url': CONF.ironic.api_endpoint}
         return ironic_client.get_client(CONF.ironic.api_version, **kwargs)
-
-    def _require_node(self, instance):
-        """Get a node's uuid out of a manager instance dict.
-
-        The compute manager is meant to know the node uuid, so missing uuid
-        a significant issue - it may mean we've been passed someone elses data.
-        """
-        node_uuid = instance.get('node')
-        if not node_uuid:
-            raise exception.NovaException(
-                _("Ironic node uuid not supplied to driver for %r")
-                % instance['uuid'])
-        return node_uuid
 
     def _node_resource(self, node):
         # TODO(deva): refactor this to match ironic node datastruct
@@ -372,15 +376,20 @@ class IronicDriver(virt_driver.ComputeDriver):
 
     def spawn(self, context, instance, image_meta, injected_files,
               admin_password, network_info=None, block_device_info=None):
-        node_uuid = self._require_node(instance)
-
+        # The compute manager is meant to know the node uuid, so missing uuid
+        # is a significant issue. It may mean we've been passed the wrong data.
+        node_uuid = instance.get('node')
+        if not node_uuid:
+            raise exception.NovaException(_("Ironic node uuid not supplied to "
+                    "driver for instance %s.") % instance['uuid'])
         icli = self._get_client()
         node = icli.node.get(node_uuid)
 
         # Associate the node to this instance
         try:
-            # FIXME: this SHOULD function as a lock, so no other instance
-            #        can be associated to this node. BUT IT DOESN'T!
+            # NOTE(deva): this may raise a NodeAlreadyAssociated exception
+            #             which we allow to propagate up to the scheduler,
+            #             so it retries on another node.
             patch = [{'op': 'replace',
                       'path': '/instance_uuid',
                       'value': instance['uuid']}]
@@ -433,7 +442,7 @@ class IronicDriver(virt_driver.ComputeDriver):
             raise exception.NovaException(msg)
 
         # wait for the node to be marked as ACTIVE in Ironic
-        def _wait_for_active(node_uuid):
+        def _wait_for_active():
             try:
                 node = icli.node.get_by_instance_uuid(instance['uuid'])
             except ironic_exception.HTTPNotFound:
@@ -458,16 +467,24 @@ class IronicDriver(virt_driver.ComputeDriver):
                 LOG.error(msg)
                 raise exception.InstanceDeployFailure(msg)
 
-        timer = loopingcall.FixedIntervalLoopingCall(_wait_for_active,
-                                                     node_uuid)
+        timer = loopingcall.FixedIntervalLoopingCall(_wait_for_active)
         # TODO(lucasagomes): Make the time configurable
         timer.start(interval=10).wait()
 
     def destroy(self, context, instance, network_info,
                 block_device_info=None):
-
-        node_uuid = self._require_node(instance)
         icli = self._get_client()
+        try:
+            node = validate_instance_and_node(icli, instance)
+            node_uuid = node.uuid
+        except exception.InstanceNotFound:
+            LOG.debug(_("Destroy called on non-existing instance %s.")
+                        % instance['uuid'])
+            # NOTE(deva): if nova.compute.ComputeManager._delete_instance()
+            #             is called on a non-existing instance, the only way
+            #             to delete it is to return from this method
+            #             without raising any exceptions.
+            return
 
         # do node tear down and wait for the state change
         try:
@@ -478,16 +495,27 @@ class IronicDriver(virt_driver.ComputeDriver):
                    % node_uuid)
             LOG.error(msg)
             raise exception.NovaException(msg)
+        except Exception as e:
+            # if the node is already in a deprovisioned state, continue
+            # This should be fixed in Ironic.
+            # TODO(deva): This exception should be added to python-ironicclient
+            #             and matched directly, rather than via __name__.
+            if e.__name__ == 'InstanceDeployFailure':
+                pass
 
-        def _wait_for_provision_state(node_uuid):
-            node = icli.node.get(node_uuid)
+        def _wait_for_provision_state():
+            try:
+                node = icli.node.get_by_instance_uuid(instance['uuid'])
+            except ironic_exception.HTTPNotFound:
+                raise exception.InstanceNotFound(instance_id=instance['uuid'])
+
             if not node.provision_state:
                 raise loopingcall.LoopingCallDone()
 
             if self.tries >= CONF.ironic.api_max_retries:
-                msg = (_("Error unprovisioning the node %(node)s: Provision "
-                         "state still marked as '%(state)s'")
-                       % {'state': node.provision_state, 'node': node_uuid})
+                msg = (_("Error destroying the instance on node %(node)s. "
+                         "Provision state still '%(state)s'.")
+                       % {'state': node.provision_state, 'node': node.uuid})
                 LOG.error(msg)
                 raise exception.NovaException(msg)
             else:
@@ -498,11 +526,9 @@ class IronicDriver(virt_driver.ComputeDriver):
                                                      node_uuid)
         timer.start(interval=CONF.ironic.api_retry_interval).wait()
 
-        node = icli.node.get(node_uuid)
-
         # remove the instance uuid
-        patch = [{'op': 'remove', 'path': '/instance_uuid'}]
         try:
+            patch = [{'op': 'remove', 'path': '/instance_uuid'}]
             self._retry_if_service_is_unavailable(icli.node.update,
                                                   node_uuid, patch)
         except MaximumRetriesReached:
@@ -522,16 +548,16 @@ class IronicDriver(virt_driver.ComputeDriver):
 
     def power_off(self, instance, node=None):
         # TODO(nobodycam): check the current power state first.
-        node_uuid = self._require_node(instance)
         icli = self._get_client()
-        icli.node.set_power_state(node_uuid, 'off')
+        node = validate_instance_and_node(icli, instance)
+        icli.node.set_power_state(node.uuid, 'off')
 
     def power_on(self, context, instance, network_info, block_device_info=None,
                  node=None):
         # TODO(nobodycam): check the current power state first.
-        node_uuid = self._require_node(instance)
         icli = self._get_client()
-        icli.node.set_power_state(node_uuid, 'on')
+        node = validate_instance_and_node(icli, instance)
+        icli.node.set_power_state(node.uuid, 'on')
 
     def get_host_stats(self, refresh=False):
         caps = []
