@@ -522,8 +522,7 @@ class IronicDriver(virt_driver.ComputeDriver):
                 self.tries += 1
 
         self.tries = 0
-        timer = loopingcall.FixedIntervalLoopingCall(_wait_for_provision_state,
-                                                     node_uuid)
+        timer = loopingcall.FixedIntervalLoopingCall(_wait_for_provision_state)
         timer.start(interval=CONF.ironic.api_retry_interval).wait()
 
         # remove the instance uuid
