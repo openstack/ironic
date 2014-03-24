@@ -74,9 +74,21 @@ class TestNoExceptionTracebackHook(base.FunctionalTest):
         actual_msg = json.loads(response.json['error_message'])['faultstring']
         self.assertEqual(msg, actual_msg)
 
-    def test_hook_server_debug_on(self):
+    def test_hook_server_debug_on_serverfault(self):
         cfg.CONF.set_override('debug', True)
         self.root_convert_mock.side_effect = Exception(self.MSG_WITH_TRACE)
+
+        response = self.get_json('/', path_prefix='', expect_errors=True)
+
+        actual_msg = json.loads(
+            response.json['error_message'])['faultstring']
+        self.assertEqual(self.MSG_WITHOUT_TRACE, actual_msg)
+
+    def test_hook_server_debug_on_clientfault(self):
+        cfg.CONF.set_override('debug', True)
+        client_error = Exception(self.MSG_WITH_TRACE)
+        client_error.code = 400
+        self.root_convert_mock.side_effect = client_error
 
         response = self.get_json('/', path_prefix='', expect_errors=True)
 
