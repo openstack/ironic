@@ -15,6 +15,7 @@
 
 """Test class for Ironic SSH power driver."""
 
+import fixtures
 import mock
 import paramiko
 
@@ -35,16 +36,15 @@ from ironic.tests.db import utils as db_utils
 from oslo.config import cfg
 
 CONF = cfg.CONF
-INFO_DICT = db_utils.get_test_ssh_info()
 
 
 class SSHValidateParametersTestCase(base.TestCase):
 
-    def test__parse_driver_info_good(self):
+    def test__parse_driver_info_good_password(self):
         # make sure we get back the expected things
         node = db_utils.get_test_node(
                     driver='fake_ssh',
-                    driver_info=INFO_DICT)
+                    driver_info=db_utils.get_test_ssh_info('password'))
         info = ssh._parse_driver_info(node)
         self.assertIsNotNone(info.get('host'))
         self.assertIsNotNone(info.get('username'))
@@ -54,11 +54,54 @@ class SSHValidateParametersTestCase(base.TestCase):
         self.assertIsNotNone(info.get('cmd_set'))
         self.assertIsNotNone(info.get('uuid'))
 
+    def test__parse_driver_info_good_key(self):
+        # make sure we get back the expected things
+        node = db_utils.get_test_node(
+                    driver='fake_ssh',
+                    driver_info=db_utils.get_test_ssh_info('key'))
+        info = ssh._parse_driver_info(node)
+        self.assertIsNotNone(info.get('host'))
+        self.assertIsNotNone(info.get('username'))
+        self.assertIsNotNone(info.get('key_contents'))
+        self.assertIsNotNone(info.get('port'))
+        self.assertIsNotNone(info.get('virt_type'))
+        self.assertIsNotNone(info.get('cmd_set'))
+        self.assertIsNotNone(info.get('uuid'))
+
+    def test__parse_driver_info_good_file(self):
+        # make sure we get back the expected things
+        d_info = db_utils.get_test_ssh_info('file')
+        tempdir = self.useFixture(fixtures.TempDir())
+        key_path = tempdir.path + '/foo'
+        open(key_path, 'wt').close()
+        d_info['ssh_key_filename'] = key_path
+        node = db_utils.get_test_node(driver='fake_ssh', driver_info=d_info)
+        info = ssh._parse_driver_info(node)
+        self.assertIsNotNone(info.get('host'))
+        self.assertIsNotNone(info.get('username'))
+        self.assertIsNotNone(info.get('key_filename'))
+        self.assertIsNotNone(info.get('port'))
+        self.assertIsNotNone(info.get('virt_type'))
+        self.assertIsNotNone(info.get('cmd_set'))
+        self.assertIsNotNone(info.get('uuid'))
+
+    def test__parse_driver_info_bad_file(self):
+        # A filename that doesn't exist errors.
+        info = db_utils.get_test_ssh_info('file')
+        node = db_utils.get_test_node(driver='fake_ssh', driver_info=info)
+        self.assertRaises(
+            exception.InvalidParameterValue, ssh._parse_driver_info, node)
+
+    def test__parse_driver_info_too_many(self):
+        info = db_utils.get_test_ssh_info('too_many')
+        node = db_utils.get_test_node(driver='fake_ssh', driver_info=info)
+        self.assertRaises(
+            exception.InvalidParameterValue, ssh._parse_driver_info, node)
+
     def test__parse_driver_info_missing_host(self):
         # make sure error is raised when info is missing
-        info = dict(INFO_DICT)
+        info = db_utils.get_test_ssh_info()
         del info['ssh_address']
-        del info['ssh_key_filename']
         node = db_utils.get_test_node(driver_info=info)
         self.assertRaises(exception.InvalidParameterValue,
                 ssh._parse_driver_info,
@@ -66,19 +109,16 @@ class SSHValidateParametersTestCase(base.TestCase):
 
     def test__parse_driver_info_missing_user(self):
         # make sure error is raised when info is missing
-        info = dict(INFO_DICT)
+        info = db_utils.get_test_ssh_info()
         del info['ssh_username']
-        del info['ssh_key_filename']
         node = db_utils.get_test_node(driver_info=info)
         self.assertRaises(exception.InvalidParameterValue,
                 ssh._parse_driver_info,
                 node)
 
-    def test__parse_driver_info_missing_pass(self):
+    def test__parse_driver_info_missing_creds(self):
         # make sure error is raised when info is missing
-        info = dict(INFO_DICT)
-        del info['ssh_password']
-        del info['ssh_key_filename']
+        info = db_utils.get_test_ssh_info('no-creds')
         node = db_utils.get_test_node(driver_info=info)
         self.assertRaises(exception.InvalidParameterValue,
                 ssh._parse_driver_info,
@@ -86,9 +126,8 @@ class SSHValidateParametersTestCase(base.TestCase):
 
     def test__parse_driver_info_missing_virt_type(self):
         # make sure error is raised when info is missing
-        info = dict(INFO_DICT)
+        info = db_utils.get_test_ssh_info()
         del info['ssh_virt_type']
-        del info['ssh_key_filename']
         node = db_utils.get_test_node(driver_info=info)
         self.assertRaises(exception.InvalidParameterValue,
                 ssh._parse_driver_info,
@@ -96,17 +135,8 @@ class SSHValidateParametersTestCase(base.TestCase):
 
     def test__parse_driver_info_ssh_port_wrong_type(self):
         # make sure error is raised when ssh_port is not integer
-        info = dict(INFO_DICT)
+        info = db_utils.get_test_ssh_info()
         info['ssh_port'] = 'wrong_port_value'
-        node = db_utils.get_test_node(driver_info=info)
-        self.assertRaises(exception.InvalidParameterValue,
-                ssh._parse_driver_info,
-                node)
-
-    def test__parse_driver_info_missing_key(self):
-        # make sure error is raised when info is missing
-        info = dict(INFO_DICT)
-        del info['ssh_password']
         node = db_utils.get_test_node(driver_info=info)
         self.assertRaises(exception.InvalidParameterValue,
                 ssh._parse_driver_info,
@@ -126,7 +156,9 @@ class SSHValidateParametersTestCase(base.TestCase):
         CONF.set_override('libvirt_uri', 'qemu:///foo', 'ssh')
         expected_base_cmd = "/usr/bin/virsh --connect qemu:///foo"
 
-        node = db_utils.get_test_node(driver='fake_ssh', driver_info=INFO_DICT)
+        node = db_utils.get_test_node(
+                    driver='fake_ssh',
+                    driver_info=db_utils.get_test_ssh_info())
         node['driver_info']['ssh_virt_type'] = 'virsh'
         info = ssh._parse_driver_info(node)
         self.assertEqual(expected_base_cmd, info['cmd_set']['base_cmd'])
@@ -138,7 +170,7 @@ class SSHPrivateMethodsTestCase(base.TestCase):
         super(SSHPrivateMethodsTestCase, self).setUp()
         self.node = db_utils.get_test_node(
                         driver='fake_ssh',
-                        driver_info=INFO_DICT)
+                        driver_info=db_utils.get_test_ssh_info())
         self.sshclient = paramiko.SSHClient()
 
         # Set up the mock for processutils.ssh_execute because most tests use
@@ -558,7 +590,7 @@ class SSHDriverTestCase(db_base.DbTestCase):
         self.driver = driver_factory.get_driver("fake_ssh")
         n = db_utils.get_test_node(
                 driver='fake_ssh',
-                driver_info=INFO_DICT)
+                driver_info=db_utils.get_test_ssh_info())
         self.dbapi = dbapi.get_instance()
         self.node = self.dbapi.create_node(n)
         self.port = self.dbapi.create_port(db_utils.get_test_port(
@@ -638,7 +670,8 @@ class SSHDriverTestCase(db_base.DbTestCase):
 
         new_node = self.dbapi.create_node(db_utils.get_test_node(id=321,
                                    uuid='aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee',
-                                   driver='fake_ssh', driver_info=INFO_DICT))
+                                   driver='fake_ssh',
+                                   driver_info=db_utils.get_test_ssh_info()))
         with task_manager.acquire(self.context, [new_node.uuid],
                                   shared=True) as task:
             self.assertRaises(exception.InvalidParameterValue,

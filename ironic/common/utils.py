@@ -86,10 +86,23 @@ def ssh_connect(connection):
     try:
         ssh = paramiko.SSHClient()
         ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+        key_contents = connection.get('key_contents')
+        if key_contents:
+            data = six.moves.StringIO(key_contents)
+            if "BEGIN RSA PRIVATE" in key_contents:
+                pkey = paramiko.RSAKey.from_private_key(data)
+            elif "BEGIN DSA PRIVATE" in key_contents:
+                pkey = paramiko.DSSKey.from_private_key(data)
+            else:
+                # Can't include the key contents - secure material.
+                raise ValueError(_("Invalid private key"))
+        else:
+            pkey = None
         ssh.connect(connection.get('host'),
                     username=connection.get('username'),
                     password=connection.get('password'),
                     port=connection.get('port', 22),
+                    pkey=pkey,
                     key_filename=connection.get('key_filename'),
                     timeout=connection.get('timeout', 10))
 

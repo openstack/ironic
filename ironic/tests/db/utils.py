@@ -25,15 +25,26 @@ def get_test_ipmi_info():
     }
 
 
-def get_test_ssh_info():
-    return {
+def get_test_ssh_info(auth_type='password'):
+    result = {
         "ssh_address": "1.2.3.4",
         "ssh_username": "admin",
-        "ssh_password": "fake",
         "ssh_port": 22,
         "ssh_virt_type": "vbox",
-        "ssh_key_filename": "/not/real/file",
     }
+    if 'password' == auth_type:
+        result['ssh_password'] = 'fake'
+    elif 'file' == auth_type:
+        result['ssh_key_filename'] = '/not/real/file'
+    elif 'key' == auth_type:
+        result['ssh_key_contents'] = '--BEGIN PRIVATE ...blah'
+    elif 'too_many' == auth_type:
+        result['ssh_password'] = 'fake'
+        result['ssh_key_filename'] = '/not/real/file'
+    else:
+        # No auth details (is invalid)
+        pass
+    return result
 
 
 def get_test_pxe_info():
