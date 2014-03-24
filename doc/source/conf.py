@@ -39,9 +39,9 @@ copyright = u'OpenStack Foundation'
 # The short X.Y version.
 from ironic import version as ironic_version
 # The full version, including alpha/beta/rc tags.
-release = ironic_version.version_string_with_vcs()
+release = ironic_version.version_info.release_string()
 # The short X.Y version.
-version = ironic_version.canonical_version_string()
+version = ironic_version.version_info.version_string()
 
 # A list of ignored prefixes for module index sorting.
 modindex_common_prefix = ['ironic.']

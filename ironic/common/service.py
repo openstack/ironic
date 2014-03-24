@@ -20,10 +20,10 @@ import socket
 
 from oslo.config import cfg
 
+from ironic.common import config
 from ironic.openstack.common import context
 from ironic.openstack.common import log
 from ironic.openstack.common import periodic_task
-from ironic.openstack.common import rpc
 from ironic.openstack.common.rpc import service as rpc_service
 
 
@@ -54,7 +54,7 @@ class PeriodicService(rpc_service.Service, periodic_task.PeriodicTasks):
 
 
 def prepare_service(argv=[]):
-    rpc.set_defaults(control_exchange='ironic')
+    config.parse_args(argv)
     cfg.set_defaults(log.log_opts,
                      default_log_levels=['amqplib=WARN',
                                          'qpid.messaging=INFO',
@@ -65,5 +65,4 @@ def prepare_service(argv=[]):
                                          'iso8601=WARN',
                                          'paramiko=WARN',
                                          ])
-    cfg.CONF(argv[1:], project='ironic')
     log.setup('ironic')
