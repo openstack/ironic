@@ -58,7 +58,9 @@ class BaseDriver(object):
     """
 
     rescue = None
-    standard_interfaces.append('rescue')
+    # NOTE(deva): hide rescue from the interface list in Icehouse
+    #             because the API for this has not been created yet.
+    # standard_interfaces.append('rescue')
     """`Standard` attribute for accessing rescue features.
 
     A reference to an instance of :class:RescueInterface.
