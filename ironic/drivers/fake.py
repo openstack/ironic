@@ -59,7 +59,6 @@ class FakePXEDriver(base.BaseDriver):
     def __init__(self):
         self.power = fake.FakePower()
         self.deploy = pxe.PXEDeploy()
-        self.rescue = self.deploy
         self.vendor = pxe.VendorPassthru()
 
 
@@ -88,7 +87,6 @@ class FakeSeaMicroDriver(base.BaseDriver):
             raise exception.DriverNotFound('FakeSeaMicroDriver')
         self.power = seamicro.Power()
         self.deploy = fake.FakeDeploy()
-        self.rescue = self.deploy
         self.seamicro_vendor = seamicro.VendorPassthru()
         self.pxe_vendor = pxe.VendorPassthru()
         self.vendor = seamicro.SeaMicroPXEMultipleVendorInterface(

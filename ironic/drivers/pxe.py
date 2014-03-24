@@ -40,7 +40,6 @@ class PXEAndIPMIToolDriver(base.BaseDriver):
     def __init__(self):
         self.power = ipmitool.IPMIPower()
         self.deploy = pxe.PXEDeploy()
-        self.rescue = self.deploy
         self.pxe_vendor = pxe.VendorPassthru()
         self.ipmi_vendor = ipmitool.VendorPassthru()
         self.mapping = {'pass_deploy_info': self.pxe_vendor,
@@ -63,7 +62,6 @@ class PXEAndSSHDriver(base.BaseDriver):
     def __init__(self):
         self.power = ssh.SSHPower()
         self.deploy = pxe.PXEDeploy()
-        self.rescue = self.deploy
         self.vendor = pxe.VendorPassthru()
 
 
@@ -81,7 +79,6 @@ class PXEAndIPMINativeDriver(base.BaseDriver):
     def __init__(self):
         self.power = ipminative.NativeIPMIPower()
         self.deploy = pxe.PXEDeploy()
-        self.rescue = self.deploy
         self.pxe_vendor = pxe.VendorPassthru()
         self.ipmi_vendor = ipminative.VendorPassthru()
         self.mapping = {'pass_deploy_info': self.pxe_vendor,
@@ -105,7 +102,6 @@ class PXEAndSeaMicroDriver(base.BaseDriver):
             raise exception.DriverNotFound('PXEAndSeaMicroDriver')
         self.power = seamicro.Power()
         self.deploy = pxe.PXEDeploy()
-        self.rescue = self.deploy
         self.seamicro_vendor = seamicro.VendorPassthru()
         self.pxe_vendor = pxe.VendorPassthru()
         self.vendor = seamicro.SeaMicroPXEMultipleVendorInterface(
