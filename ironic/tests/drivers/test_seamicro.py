@@ -144,6 +144,9 @@ class SeaMicroPrivateMethodsTestCase(base.TestCase):
         self.config(action_timeout=0, group='seamicro')
         self.config(max_retry=2, group='seamicro')
 
+        self.patcher = mock.patch('eventlet.greenthread.sleep')
+        self.mock_sleep = self.patcher.start()
+
     def _create_test_node(self, **kwargs):
         n = db_utils.get_test_node(**kwargs)
         return self.dbapi.create_node(n)
