@@ -1027,6 +1027,7 @@ class ManagerTestCase(base.DbTestCase):
                                 provision_updated_at=past)
         node = self.dbapi.create_node(n)
         mock_utcnow.return_value = present
+        self.service._conductor_service_record_keepalive(self.context)
         with mock.patch.object(self.driver.deploy, 'clean_up') as clean_mock:
             self.service._check_deploy_timeouts(self.context)
             self.service._worker_pool.waitall()
@@ -1048,6 +1049,7 @@ class ManagerTestCase(base.DbTestCase):
                                 provision_updated_at=past)
         node = self.dbapi.create_node(n)
         mock_utcnow.return_value = present
+        self.service._conductor_service_record_keepalive(self.context)
         with mock.patch.object(self.driver.deploy, 'clean_up') as clean_mock:
             self.service._check_deploy_timeouts(self.context)
             node.refresh(self.context)
@@ -1075,6 +1077,7 @@ class ManagerTestCase(base.DbTestCase):
                                 provision_updated_at=past)
         node = self.dbapi.create_node(n)
         mock_utcnow.return_value = present
+        self.service._conductor_service_record_keepalive(self.context)
         with mock.patch.object(self.driver.deploy, 'clean_up') as clean_mock:
             error = 'test-123'
             clean_mock.side_effect = exception.IronicException(message=error)

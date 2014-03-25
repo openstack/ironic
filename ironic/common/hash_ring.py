@@ -16,10 +16,12 @@
 import array
 import hashlib
 import struct
+import threading
 
 from oslo.config import cfg
 
 from ironic.common import exception
+from ironic.db import api as dbapi
 
 hash_opts = [
     cfg.IntOpt('hash_partition_exponent',
@@ -108,3 +110,36 @@ class HashRing(object):
                     partition = 0
             host_ids.append(self.part2host[partition])
         return [self.hosts[h] for h in host_ids]
+
+
+class HashRingManager(object):
+    def __init__(self):
+        self._lock = threading.Lock()
+        self.dbapi = dbapi.get_instance()
+        self.hash_rings = None
+
+    def _load_hash_rings(self):
+        rings = {}
+        d2c = self.dbapi.get_active_driver_dict()
+
+        for driver_name, hosts in d2c.iteritems():
+            rings[driver_name] = HashRing(hosts)
+        return rings
+
+    def _ensure_rings_fresh(self):
+        # Hot path, no lock
+        # TODO(russell_h): Consider adding time-based invalidation of rings
+        if self.hash_rings is not None:
+            return
+
+        with self._lock:
+            if self.hash_rings is None:
+                self.hash_rings = self._load_hash_rings()
+
+    def get_hash_ring(self, driver_name):
+        self._ensure_rings_fresh()
+
+        try:
+            return self.hash_rings[driver_name]
+        except KeyError:
+            raise exception.DriverNotFound(driver_name=driver_name)

@@ -148,7 +148,7 @@ class ConductorManager(service.PeriodicService):
             self.dbapi.register_conductor({'hostname': self.host,
                                            'drivers': self.drivers})
 
-        self.driver_rings = self._get_current_driver_rings()
+        self.ring_manager = hash.HashRingManager()
         """Consistent hash ring which maps drivers to conductors."""
 
         self._worker_pool = greenpool.GreenPool(size=CONF.rpc_thread_pool_size)
@@ -617,16 +617,6 @@ class ConductorManager(service.PeriodicService):
                     except exception.NoFreeConductorWorker:
                         task.release_resources()
 
-    def _get_current_driver_rings(self):
-        """Build the current hash ring for this ConductorManager's drivers."""
-
-        ring = {}
-        d2c = self.dbapi.get_active_driver_dict()
-
-        for driver in self.drivers:
-            ring[driver] = hash.HashRing(d2c[driver])
-        return ring
-
     def rebalance_node_ring(self):
         """Perform any actions necessary when rebalancing the consistent hash.
 
@@ -638,11 +628,19 @@ class ConductorManager(service.PeriodicService):
         pass
 
     def _mapped_to_this_conductor(self, node_uuid, driver):
-        """Check that node is mapped to this conductor."""
-        if driver in self.drivers:
-            mapped_hosts = self.driver_rings[driver].get_hosts(node_uuid)
-            return self.host == mapped_hosts[0]
-        return False
+        """Check that node is mapped to this conductor.
+
+        Note that because mappings are eventually consistent, it is possible
+        for two conductors to simultaneously believe that a node is mapped to
+        them. Any operation that depends on exclusive control of a node should
+        take out a lock.
+        """
+        try:
+            ring = self.ring_manager.get_hash_ring(driver)
+        except exception.DriverNotFound:
+            return False
+
+        return self.host == ring.get_hosts(node_uuid)[0]
 
     @messaging.client_exceptions(exception.NodeLocked)
     def validate_driver_interfaces(self, context, node_id):
