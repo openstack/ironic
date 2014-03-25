@@ -500,8 +500,10 @@ class IronicDriver(virt_driver.ComputeDriver):
             # This should be fixed in Ironic.
             # TODO(deva): This exception should be added to python-ironicclient
             #             and matched directly, rather than via __name__.
-            if e.__name__ == 'InstanceDeployFailure':
+            if getattr(e, '__name__', None) == 'InstanceDeployFailure':
                 pass
+            else:
+                raise
 
         def _wait_for_provision_state():
             try:
