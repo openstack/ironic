@@ -22,6 +22,7 @@ from oslo.config import cfg
 
 from ironic.common import config
 from ironic.openstack.common import context
+from ironic.openstack.common import importutils
 from ironic.openstack.common import log
 from ironic.openstack.common import periodic_task
 from ironic.openstack.common.rpc import service as rpc_service
@@ -66,3 +67,9 @@ def prepare_service(argv=[]):
                                          'paramiko=WARN',
                                          ])
     log.setup('ironic')
+
+
+def load_manager(manager_modulename, manager_classname, host):
+    manager_module = importutils.import_module(manager_modulename)
+    manager_class = getattr(manager_module, manager_classname)
+    return manager_class(host, manager_module.MANAGER_TOPIC)
