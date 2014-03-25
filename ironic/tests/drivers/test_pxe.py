@@ -238,7 +238,7 @@ class PXEValidateParametersTestCase(base.TestCase):
                 self.lock_file = lock_file
 
             def run(self):
-                time.sleep(2)
+                time.sleep(0.2)
                 open(os.path.join(master_path, 'node_uuid'), 'w').close()
                 pxe._remove_download_in_progress_lock(self.lock_file)
 

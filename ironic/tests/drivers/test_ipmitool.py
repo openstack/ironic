@@ -239,7 +239,8 @@ class IPMIToolPrivateMethodTestCase(base.TestCase):
                               self.info)
             mock_exec.assert_called_once_with(self.info, "power status")
 
-    def test__power_on_max_retries(self):
+    @mock.patch('eventlet.greenthread.sleep')
+    def test__power_on_max_retries(self, sleep_mock):
         self.config(retry_timeout=2, group='ipmi')
 
         def side_effect(driver_info, command):

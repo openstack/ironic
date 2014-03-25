@@ -142,6 +142,9 @@ class SeaMicroPrivateMethodsTestCase(base.TestCase):
         self.Volume = Fake_Volume
         self.Pool = Fake_Pool
 
+        self.patcher = mock.patch('eventlet.greenthread.sleep')
+        self.mock_sleep = self.patcher.start()
+
     def _create_test_node(self, **kwargs):
         n = db_utils.get_test_node(**kwargs)
         return self.dbapi.create_node(n)
