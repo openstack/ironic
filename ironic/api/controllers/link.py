@@ -15,7 +15,7 @@
 
 from wsme import types as wtypes
 
-from ironic.api.controllers.v1 import base
+from ironic.api.controllers import base
 
 
 class Link(base.APIBase):
