@@ -160,8 +160,9 @@ class PortsController(rest.RestController):
     def __init__(self, from_nodes=False):
         self._from_nodes = from_nodes
 
-    def _get_ports_collection(self, node_uuid, marker, limit, sort_key,
-                              sort_dir, expand=False, resource_url=None):
+    def _get_ports_collection(self, node_uuid, address, marker, limit,
+                              sort_key, sort_dir, expand=False,
+                              resource_url=None):
         if self._from_nodes and not node_uuid:
             raise exception.InvalidParameterValue(_(
                   "Node id not specified."))
@@ -179,6 +180,8 @@ class PortsController(rest.RestController):
                                                           marker_obj,
                                                           sort_key=sort_key,
                                                           sort_dir=sort_dir)
+        elif address:
+            ports = self._get_ports_by_address(address)
         else:
             ports = pecan.request.dbapi.get_port_list(limit, marker_obj,
                                                       sort_key=sort_key,
@@ -190,28 +193,46 @@ class PortsController(rest.RestController):
                                                  sort_key=sort_key,
                                                  sort_dir=sort_dir)
 
-    @wsme_pecan.wsexpose(PortCollection, types.uuid, types.uuid, int,
-                         wtypes.text, wtypes.text)
-    def get_all(self, node_uuid=None, marker=None, limit=None,
+    def _get_ports_by_address(self, address):
+        """Retrieve a port by its address.
+
+        :param address: MAC address of a port, to get the port which has
+                        this MAC address.
+        :returns: a list with the port, or an empty list if no port is found.
+
+        """
+        try:
+            port = pecan.request.dbapi.get_port(address)
+            return [port]
+        except exception.PortNotFound:
+            return []
+
+    @wsme_pecan.wsexpose(PortCollection, types.uuid, types.macaddress,
+                         types.uuid, int, wtypes.text, wtypes.text)
+    def get_all(self, node_uuid=None, address=None, marker=None, limit=None,
                 sort_key='id', sort_dir='asc'):
         """Retrieve a list of ports.
 
         :param node_uuid: UUID of a node, to get only ports for that node.
+        :param address: MAC address of a port, to get the port which has
+                        this MAC address.
         :param marker: pagination marker for large data sets.
         :param limit: maximum number of resources to return in a single result.
         :param sort_key: column to sort results by. Default: id.
         :param sort_dir: direction to sort. "asc" or "desc". Default: asc.
         """
-        return self._get_ports_collection(node_uuid, marker, limit,
+        return self._get_ports_collection(node_uuid, address, marker, limit,
                                           sort_key, sort_dir)
 
-    @wsme_pecan.wsexpose(PortCollection, types.uuid, types.uuid, int,
-                         wtypes.text, wtypes.text)
-    def detail(self, node_uuid=None, marker=None, limit=None,
+    @wsme_pecan.wsexpose(PortCollection, types.uuid, types.macaddress,
+                         types.uuid, int, wtypes.text, wtypes.text)
+    def detail(self, node_uuid=None, address=None, marker=None, limit=None,
                 sort_key='id', sort_dir='asc'):
         """Retrieve a list of ports with detail.
 
         :param node_uuid: UUID of a node, to get only ports for that node.
+        :param address: MAC address of a port, to get the port which has
+                        this MAC address.
         :param marker: pagination marker for large data sets.
         :param limit: maximum number of resources to return in a single result.
         :param sort_key: column to sort results by. Default: id.
@@ -224,8 +245,9 @@ class PortsController(rest.RestController):
 
         expand = True
         resource_url = '/'.join(['ports', 'detail'])
-        return self._get_ports_collection(node_uuid, marker, limit, sort_key,
-                                          sort_dir, expand, resource_url)
+        return self._get_ports_collection(node_uuid, address, marker, limit,
+                                          sort_key, sort_dir, expand,
+                                          resource_url)
 
     @wsme_pecan.wsexpose(Port, types.uuid)
     def get_one(self, port_uuid):
