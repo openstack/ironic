@@ -49,9 +49,10 @@ class PeriodicService(rpc_service.Service, periodic_task.PeriodicTasks):
     def start(self):
         super(PeriodicService, self).start()
         admin_context = context.RequestContext('admin', 'admin', is_admin=True)
-        self.tg.add_timer(cfg.CONF.periodic_interval,
-                          self.manager.periodic_tasks,
-                          context=admin_context)
+        self.tg.add_dynamic_timer(
+                self.manager.periodic_tasks,
+                periodic_interval_max=cfg.CONF.periodic_interval,
+                context=admin_context)
 
 
 def prepare_service(argv=[]):
