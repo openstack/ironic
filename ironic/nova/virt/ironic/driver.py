@@ -263,7 +263,7 @@ class IronicDriver(virt_driver.ComputeDriver):
                            % {'param': path_to_add, 'node': node.uuid,
                               'retries': CONF.ironic.api_max_retries})
                     LOG.error(msg)
-                    exception.NovaException(msg)
+                    raise exception.NovaException(msg)
 
     def _cleanup_deploy(self, node, instance, network_info):
         icli = self._get_client()
