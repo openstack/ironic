@@ -138,6 +138,80 @@ def _exec_ipmitool(driver_info, command):
         return out, err
 
 
+def _sleep_time(iter):
+    """Return the time-to-sleep for the n'th iteration of a retry loop.
+    This implementation increases exponentially.
+
+    :param iter: iteration number
+    :returns: number of seconds to sleep
+
+    """
+    if iter <= 1:
+        return 1
+    return iter ** 2
+
+
+def _set_and_wait(target_state, driver_info):
+    """Helper function for DynamicLoopingCall.
+
+    This method changes the power state and polls the BMCuntil the desired
+    power state is reached, or CONF.ipmi.retry_timeout would be exceeded by the
+    next iteration.
+
+    This method assumes the caller knows the current power state and does not
+    check it prior to changing the power state. Most BMCs should be fine, but
+    if a driver is concerned, the state should be checked prior to calling this
+    method.
+
+    :param target_state: desired power state
+    :param driver_info: the ipmitool parameters for accessing a node.
+    :returns: one of ironic.common.states
+    :raises: IPMIFailure on an error from ipmitool (from _power_status call).
+
+    """
+    if target_state == states.POWER_ON:
+        state_name = "on"
+    elif target_state == states.POWER_OFF:
+        state_name = "off"
+
+    def _wait(mutable):
+        try:
+            # Only issue power change command once
+            if mutable['iter'] < 0:
+                _exec_ipmitool(driver_info, "power %s" % state_name)
+            else:
+                mutable['power'] = _power_status(driver_info)
+        except Exception:
+            # Log failures but keep trying
+            LOG.warning(_("IPMI power %(state)s failed for node %(node)s."),
+                         {'state': state_name, 'node': driver_info['uuid']})
+        finally:
+            mutable['iter'] += 1
+
+        if mutable['power'] == target_state:
+            raise loopingcall.LoopingCallDone()
+
+        sleep_time = _sleep_time(mutable['iter'])
+        if (sleep_time + mutable['total_time']) > CONF.ipmi.retry_timeout:
+            # Stop if the next loop would exceed maximum retry_timeout
+            LOG.error(_('IPMI power %(state)s timed out after '
+                        '%(tries)s retries.'),
+                        {'state': state_name, 'tries': mutable['iter']})
+            mutable['power'] = states.ERROR
+            raise loopingcall.LoopingCallDone()
+        else:
+            mutable['total_time'] += sleep_time
+            return sleep_time
+
+    # Use mutable objects so the looped method can change them.
+    # Start 'iter' from -1 so that the first two checks are one second apart.
+    status = {'power': None, 'iter': -1, 'total_time': 0}
+
+    timer = loopingcall.DynamicLoopingCall(_wait, status)
+    timer.start().wait()
+    return status['power']
+
+
 def _power_on(driver_info):
     """Turn the power ON for this node.
 
@@ -146,36 +220,7 @@ def _power_on(driver_info):
     :raises: IPMIFailure on an error from ipmitool (from _power_status call).
 
     """
-    # use mutable objects so the looped method can change them
-    state = [None]
-    retries = [0]
-
-    def _wait_for_power_on(state, retries):
-        """Called at an interval until the node's power is on."""
-
-        state[0] = _power_status(driver_info)
-        if state[0] == states.POWER_ON:
-            raise loopingcall.LoopingCallDone()
-
-        if retries[0] > CONF.ipmi.retry_timeout:
-            LOG.error(_('IPMI power on timed out after %(tries)s retries.'),
-                        {'tries': retries[0]})
-            state[0] = states.ERROR
-            raise loopingcall.LoopingCallDone()
-        try:
-            # only issue "power on" once
-            if retries[0] == 0:
-                _exec_ipmitool(driver_info, "power on")
-            retries[0] += 1
-        except Exception:
-            # Log failures but keep trying
-            LOG.warning(_("IPMI power on failed for node %s.")
-                    % driver_info['uuid'])
-
-    timer = loopingcall.FixedIntervalLoopingCall(_wait_for_power_on,
-                                                 state, retries)
-    timer.start(interval=1.0).wait()
-    return state[0]
+    return _set_and_wait(states.POWER_ON, driver_info)
 
 
 def _power_off(driver_info):
@@ -186,36 +231,7 @@ def _power_off(driver_info):
     :raises: IPMIFailure on an error from ipmitool (from _power_status call).
 
     """
-    # use mutable objects so the looped method can change them
-    state = [None]
-    retries = [0]
-
-    def _wait_for_power_off(state, retries):
-        """Called at an interval until the node's power is off."""
-
-        state[0] = _power_status(driver_info)
-        if state[0] == states.POWER_OFF:
-            raise loopingcall.LoopingCallDone()
-
-        if retries[0] > CONF.ipmi.retry_timeout:
-            LOG.error(_('IPMI power off timed out after %(tries)s retries.'),
-                        {'tries': retries[0]})
-            state[0] = states.ERROR
-            raise loopingcall.LoopingCallDone()
-        try:
-            # only issue "power off" once
-            if retries[0] == 0:
-                _exec_ipmitool(driver_info, "power off")
-            retries[0] += 1
-        except Exception:
-            # Log failures but keep trying
-            LOG.warning(_("IPMI power off failed for node %s.")
-                    % driver_info['uuid'])
-
-    timer = loopingcall.FixedIntervalLoopingCall(_wait_for_power_off,
-                                                 state=state, retries=retries)
-    timer.start(interval=1.0).wait()
-    return state[0]
+    return _set_and_wait(states.POWER_OFF, driver_info)
 
 
 def _power_status(driver_info):

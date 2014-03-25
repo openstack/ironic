@@ -659,7 +659,7 @@
 
 # Maximum time in seconds to retry IPMI operations. (integer
 # value)
-#retry_timeout=10
+#retry_timeout=60
 
 
 [keystone_authtoken]
