@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version:  Ironic\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2014-03-24 06:06+0000\n"
+"POT-Creation-Date: 2014-03-25 06:09+0000\n"
 "PO-Revision-Date: 2014-01-02 13:42+0000\n"
 "Last-Translator: openstackjenkins <jenkins@openstack.org>\n"
 "Language-Team: Icelandic (Iceland) "
@@ -440,42 +440,46 @@ msgstr ""
 msgid "Command stderr is: \"%s\""
 msgstr ""
 
-#: ironic/common/utils.py:99
+#: ironic/common/utils.py:98
+msgid "Invalid private key"
+msgstr ""
+
+#: ironic/common/utils.py:112
 #, python-format
 msgid "SSH connect failed: %s"
 msgstr ""
 
-#: ironic/common/utils.py:132
+#: ironic/common/utils.py:145
 #, python-format
 msgid "Invalid backend: %s"
 msgstr ""
 
-#: ironic/common/utils.py:310 ironic/openstack/common/fileutils.py:65
+#: ironic/common/utils.py:323 ironic/openstack/common/fileutils.py:65
 #, python-format
 msgid "Reloading cached file %s"
 msgstr ""
 
-#: ironic/common/utils.py:398
+#: ironic/common/utils.py:411
 #, python-format
 msgid "Could not remove tmpdir: %s"
 msgstr ""
 
-#: ironic/common/utils.py:433
+#: ironic/common/utils.py:446
 #, python-format
 msgid "Failed to unlink %(path)s, error: %(e)s"
 msgstr ""
 
-#: ironic/common/utils.py:442
+#: ironic/common/utils.py:455
 #, python-format
 msgid "Failed to remove dir %(path)s, error: %(e)s"
 msgstr ""
 
-#: ironic/common/utils.py:458
+#: ironic/common/utils.py:471
 #, python-format
 msgid "Failed to create symlink from %(source)s to %(link)s, error: %(e)s"
 msgstr ""
 
-#: ironic/common/utils.py:472
+#: ironic/common/utils.py:485
 #, python-format
 msgid ""
 "Failed to remove trailing character. Returning original object. Supplied "
@@ -916,7 +920,7 @@ msgstr ""
 msgid "BMC inaccessible for node %(node)s: %(error)s"
 msgstr ""
 
-#: ironic/drivers/modules/ipmitool.py:301 ironic/drivers/modules/ssh.py:427
+#: ironic/drivers/modules/ipmitool.py:301 ironic/drivers/modules/ssh.py:432
 #, python-format
 msgid "set_power_state called with invalid power state %s."
 msgstr ""
@@ -985,7 +989,7 @@ msgid ""
 " %(node)s on the following ports: %(ports)s."
 msgstr ""
 
-#: ironic/drivers/modules/pxe.py:543 ironic/drivers/modules/ssh.py:372
+#: ironic/drivers/modules/pxe.py:543 ironic/drivers/modules/ssh.py:377
 #, python-format
 msgid "Node %s does not have any port associated with it."
 msgstr ""
@@ -996,21 +1000,21 @@ msgid ""
 "file or keystone catalog."
 msgstr ""
 
-#: ironic/drivers/modules/pxe.py:676
+#: ironic/drivers/modules/pxe.py:664
 msgid "Deploy key is not match"
 msgstr ""
 
-#: ironic/drivers/modules/pxe.py:693
+#: ironic/drivers/modules/pxe.py:681
 #, python-format
 msgid "Parameters %s were not passed to ironic for deploy."
 msgstr ""
 
-#: ironic/drivers/modules/pxe.py:707
+#: ironic/drivers/modules/pxe.py:695
 #, python-format
 msgid "Unsupported method (%s) passed to PXE driver."
 msgstr ""
 
-#: ironic/drivers/modules/pxe.py:728
+#: ironic/drivers/modules/pxe.py:716
 #, python-format
 msgid ""
 "Node %s failed to power off while handling deploy failure. This may be a "
@@ -1018,35 +1022,35 @@ msgid ""
 "maintenance mode until the problem is resolved."
 msgstr ""
 
-#: ironic/drivers/modules/pxe.py:740
+#: ironic/drivers/modules/pxe.py:728
 #, python-format
 msgid "Node %s is not waiting to be deployed."
 msgstr ""
 
-#: ironic/drivers/modules/pxe.py:752
+#: ironic/drivers/modules/pxe.py:740
 #, python-format
 msgid "Error returned from PXE deploy ramdisk: %s"
 msgstr ""
 
-#: ironic/drivers/modules/pxe.py:754
+#: ironic/drivers/modules/pxe.py:742
 msgid "Failure in PXE deploy ramdisk."
 msgstr ""
 
-#: ironic/drivers/modules/pxe.py:757
+#: ironic/drivers/modules/pxe.py:745
 #, python-format
 msgid "Continuing deployment for node %(node)s, params %(params)s"
 msgstr ""
 
-#: ironic/drivers/modules/pxe.py:763
+#: ironic/drivers/modules/pxe.py:751
 #, python-format
 msgid "PXE deploy failed for instance %(instance)s. Error: %(error)s"
 msgstr ""
 
-#: ironic/drivers/modules/pxe.py:766
+#: ironic/drivers/modules/pxe.py:754
 msgid "PXE driver failed to continue deployment."
 msgstr ""
 
-#: ironic/drivers/modules/pxe.py:768
+#: ironic/drivers/modules/pxe.py:756
 #, python-format
 msgid "Deployment to node %s done"
 msgstr ""
@@ -1141,44 +1145,46 @@ msgstr ""
 msgid "SSHPowerDriver requires ssh_port to be integer value"
 msgstr ""
 
-#: ironic/drivers/modules/ssh.py:174
+#: ironic/drivers/modules/ssh.py:175
 msgid "SSHPowerDriver requires virt_type be set."
 msgstr ""
 
-#: ironic/drivers/modules/ssh.py:181
+#: ironic/drivers/modules/ssh.py:182
 msgid "SSHPowerDriver requires both address and username be set."
 msgstr ""
 
 #: ironic/drivers/modules/ssh.py:187
-msgid "SSHPowerDriver requires either password or key_filename be set."
+msgid ""
+"SSHPowerDriver requires one and only one of password, key_contents and "
+"key_filename to be set."
 msgstr ""
 
-#: ironic/drivers/modules/ssh.py:191
+#: ironic/drivers/modules/ssh.py:196
 #, python-format
 msgid "SSH key file %s not found."
 msgstr ""
 
-#: ironic/drivers/modules/ssh.py:224
+#: ironic/drivers/modules/ssh.py:229
 #, python-format
 msgid "Node \"%(host)s\" with MAC address %(mac)s not found."
 msgstr ""
 
-#: ironic/drivers/modules/ssh.py:255
+#: ironic/drivers/modules/ssh.py:260
 #, python-format
 msgid "Retrieved Node List: %s"
 msgstr ""
 
-#: ironic/drivers/modules/ssh.py:260
+#: ironic/drivers/modules/ssh.py:265
 #, python-format
 msgid "Checking Node: %s's Mac address."
 msgstr ""
 
-#: ironic/drivers/modules/ssh.py:273
+#: ironic/drivers/modules/ssh.py:278
 #, python-format
 msgid "Found Mac address: %s"
 msgstr ""
 
-#: ironic/drivers/modules/ssh.py:377
+#: ironic/drivers/modules/ssh.py:382
 #, python-format
 msgid "SSH connection cannot be established: %s"
 msgstr ""
@@ -1261,34 +1267,34 @@ msgid ""
 "'%(state)s'."
 msgstr ""
 
-#: ironic/nova/virt/ironic/driver.py:535
+#: ironic/nova/virt/ironic/driver.py:534
 #, python-format
 msgid "Failed to unassociate the instance %(instance)s with node %(node)s"
 msgstr ""
 
-#: ironic/nova/virt/ironic/driver.py:618
+#: ironic/nova/virt/ironic/driver.py:617
 #, python-format
 msgid "plug: instance_uuid=%(uuid)s vif=%(network_info)s"
 msgstr ""
 
-#: ironic/nova/virt/ironic/driver.py:627
+#: ironic/nova/virt/ironic/driver.py:626
 #, python-format
 msgid ""
 "Ironic node: %(id)s virtual to physical interface count  missmatch (Vif "
 "count: %(vif_count)d, Pif count: %(pif_count)d)"
 msgstr ""
 
-#: ironic/nova/virt/ironic/driver.py:647
+#: ironic/nova/virt/ironic/driver.py:646
 #, python-format
 msgid "Failed to set the VIF networking for port %s"
 msgstr ""
 
-#: ironic/nova/virt/ironic/driver.py:652
+#: ironic/nova/virt/ironic/driver.py:651
 #, python-format
 msgid "unplug: instance_uuid=%(uuid)s vif=%(network_info)s"
 msgstr ""
 
-#: ironic/nova/virt/ironic/driver.py:666
+#: ironic/nova/virt/ironic/driver.py:665
 #, python-format
 msgid "Failed to remove the VIF networking for port %s"
 msgstr ""
@@ -2288,14 +2294,6 @@ msgstr ""
 #~ msgid "Database server has gone away: %s"
 #~ msgstr ""
 
-#~ msgid ""
-#~ "This application has not enabled MySQL"
-#~ " traditional mode, which means silent "
-#~ "data corruption may occur. Please "
-#~ "encourage the application developers to "
-#~ "enable this mode."
-#~ msgstr ""
-
 #~ msgid "SQL connection failed. %s attempts left."
 #~ msgstr ""
 
@@ -2311,10 +2309,6 @@ msgstr ""
 #~ msgid "Deleting duplicated row with id: %(id)s from table: %(table)s"
 #~ msgstr ""
 
-#~ msgid ""
-#~ "Migration number for migrate plugin must"
-#~ " be valid integer or empty, if "
-#~ "you want to downgrade to initial "
-#~ "state"
+#~ msgid "SSHPowerDriver requires either password or key_filename be set."
 #~ msgstr ""
 
