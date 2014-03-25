@@ -23,9 +23,6 @@ import wsmeext.pecan as wsme_pecan
 from ironic.api.controllers import base
 from ironic.api.controllers import link
 from ironic.common import exception
-from ironic.openstack.common import log
-
-LOG = log.getLogger(__name__)
 
 
 class Driver(base.APIBase):
