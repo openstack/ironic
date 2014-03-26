@@ -25,6 +25,7 @@ from ironicclient import client as ironic_client
 from ironicclient import exc as ironic_exception
 from oslo.config import cfg
 
+from ironic.nova.virt.ironic import client_wrapper
 from ironic.nova.virt.ironic import ironic_states
 from nova.compute import power_state
 from nova import exception
@@ -331,19 +332,15 @@ class IronicDriver(virt_driver.ComputeDriver):
         return CONF.ironic.api_version
 
     def list_instances(self):
-        try:
-            icli = self._get_client()
-        except ironic_exception.Unauthorized:
-            LOG.error(_("Unable to authenticate Ironic client."))
-            return []
-
-        instances = [i for i in icli.node.list() if i.instance_uuid]
+        icli = client_wrapper.IronicClientWrapper()
+        node_list = icli.call("node.list")
+        instances = [i for i in node_list if i.instance_uuid]
         return instances
 
     def get_available_nodes(self, refresh=False):
         nodes = []
-        icli = self._get_client()
-        node_list = icli.node.list()
+        icli = client_wrapper.IronicClientWrapper()
+        node_list = icli.call("node.list")
 
         for n in node_list:
             # for now we'll use the nodes power state. if power_state is None
@@ -590,8 +587,9 @@ class IronicDriver(virt_driver.ComputeDriver):
 
     def get_host_stats(self, refresh=False):
         caps = []
-        icli = self._get_client()
-        for node in icli.node.list():
+        icli = client_wrapper.IronicClientWrapper()
+        node_list = icli.call("node.list")
+        for node in node_list:
             data = self._node_resource(node)
             caps.append(data)
         return caps

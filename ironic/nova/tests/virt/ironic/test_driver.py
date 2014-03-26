@@ -22,6 +22,7 @@ from ironicclient import exc as ironic_exception
 import mock
 from oslo.config import cfg
 
+from ironic.nova.virt.ironic import client_wrapper as cw
 from ironic.nova.virt.ironic import driver as ironic_driver
 from ironic.nova.virt.ironic import ironic_states
 
@@ -326,11 +327,12 @@ class IronicDriverTestCase(test.NoDBTestCase):
         # append a node w/o instance_uuid which shouldn't be listed
         nodes.append(get_test_node(instance_uuid=None))
 
-        with mock.patch.object(FAKE_CLIENT.node, 'list') as mock_list:
+        with mock.patch.object(cw.IronicClientWrapper, 'call') as mock_list:
             mock_list.return_value = nodes
 
             expected = [n for n in nodes if n.instance_uuid]
             instances = self.driver.list_instances()
+            mock_list.assert_called_with("node.list")
             self.assertEqual(sorted(expected), sorted(instances))
             self.assertEqual(num_nodes, len(instances))
 
@@ -343,11 +345,12 @@ class IronicDriverTestCase(test.NoDBTestCase):
         # append a node w/o power_state which shouldn't be listed
         nodes.append(get_test_node(power_state=None))
 
-        with mock.patch.object(FAKE_CLIENT.node, 'list') as mock_list:
+        with mock.patch.object(cw.IronicClientWrapper, 'call') as mock_list:
             mock_list.return_value = nodes
 
             expected = [n.uuid for n in nodes if n.power_state]
             available_nodes = self.driver.get_available_nodes()
+            mock_list.assert_called_with("node.list")
             self.assertEqual(sorted(expected), sorted(available_nodes))
             self.assertEqual(num_nodes, len(available_nodes))
 
