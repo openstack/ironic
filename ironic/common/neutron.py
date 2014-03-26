@@ -94,14 +94,14 @@ class NeutronAPI(object):
     def update_port_address(self, port_id, address):
         """Update a port's mac address.
 
-        :param port_id: id of the port.
-        :param address: new mac address.
+        :param port_id: Neutron port id.
+        :param address: new MAC address.
         :raises: FailedToUpdateMacOnPort
         """
         port_req_body = {'port': {'mac_address': address}}
         try:
             self.client.update_port(port_id, port_req_body)
         except neutron_client_exc.NeutronClientException:
-            LOG.exception(_("Failed to update mac on Neutron port %s."),
-                          port_id)
+            LOG.exception(_("Failed to update MAC address on Neutron port %s."
+                           ), port_id)
             raise exception.FailedToUpdateMacOnPort(port_id=port_id)
