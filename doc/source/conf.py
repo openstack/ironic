@@ -11,6 +11,7 @@ extensions = ['sphinx.ext.autodoc',
               'sphinxcontrib.httpdomain',
               'sphinxcontrib.pecanwsme.rest',
               'wsmeext.sphinxext',
+              'oslosphinx',
               ]
 
 wsme_protocols = ['restjson', 'restxml']
@@ -60,9 +61,9 @@ pygments_style = 'sphinx'
 
 # The theme to use for HTML and HTML Help pages.  Major themes that come with
 # Sphinx are currently 'default' and 'sphinxdoc'.
-html_theme_path = ["."]
-html_theme = '_theme'
-html_static_path = ['_static']
+#html_theme_path = ["."]
+#html_theme = '_theme'
+#html_static_path = ['_static']
 
 # Output file base name for HTML help builder.
 htmlhelp_basename = '%sdoc' % project
