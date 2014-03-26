@@ -42,6 +42,10 @@ class PXE(object):
                  'nova_object': 'instance',
                  'object_field': 'root_gb'},
                 {'ironic_path': '/driver_info',
+                 'ironic_variable': 'pxe_swap_mb',
+                 'nova_object': 'flavor',
+                 'object_field': 'swap'},
+                {'ironic_path': '/driver_info',
                  'ironic_variable': 'pxe_deploy_kernel',
                  'nova_object': 'flavor',
                  'object_field': 'extra_specs/'
