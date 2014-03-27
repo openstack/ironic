@@ -17,13 +17,14 @@ Tests for the API /ports/ methods.
 
 import datetime
 
-import fixtures
 import mock
 from oslo.config import cfg
 from testtools.matchers import HasLength
 
+from ironic.common import exception
 from ironic.common import utils
-from ironic.conductor import manager
+from ironic.conductor import rpcapi
+from ironic.openstack.common import context
 from ironic.openstack.common import timeutils
 from ironic.tests.api import base
 from ironic.tests.api import utils as apiutils
@@ -173,231 +174,264 @@ class TestListPorts(base.FunctionalTest):
         self.assertIn(invalid_address, response.json['error_message'])
 
 
+@mock.patch.object(rpcapi.ConductorAPI, 'update_port')
 class TestPatch(base.FunctionalTest):
 
     def setUp(self):
         super(TestPatch, self).setUp()
         ndict = dbutils.get_test_node()
         self.node = self.dbapi.create_node(ndict)
-        self.pdict = dbutils.get_test_port(id=None)
-        self.dbapi.create_port(self.pdict)
+        pdict = dbutils.get_test_port(id=None)
+        self.port = self.dbapi.create_port(pdict)
 
-        def noop(*args, **kwargs):
-            pass
+        p = mock.patch.object(rpcapi.ConductorAPI, 'get_topic_for')
+        self.mock_gtf = p.start()
+        self.mock_gtf.return_value = 'test-topic'
+        self.addCleanup(p.stop)
 
-        self.useFixture(fixtures.MonkeyPatch(
-                        'ironic.conductor.rpcapi.ConductorAPI.get_topic_for',
-                         noop))
-
-        service = manager.ConductorManager('test-host', 'test-topic')
-
-        def manager_update_port(*args, **kwargs):
-            return service.update_port(*args[1:3])
-
-        self.useFixture(fixtures.MonkeyPatch(
-                        'ironic.conductor.rpcapi.ConductorAPI.update_port',
-                         manager_update_port))
-
-    @mock.patch.object(timeutils, 'utcnow')
-    def test_update_byid(self, mock_utcnow):
+    def test_update_byid(self, mock_upd):
         extra = {'foo': 'bar'}
-        test_time = datetime.datetime(2000, 1, 1, 0, 0)
-        mock_utcnow.return_value = test_time
-        response = self.patch_json('/ports/%s' % self.pdict['uuid'],
+        mock_upd.return_value = self.port
+        mock_upd.return_value.extra = extra
+        response = self.patch_json('/ports/%s' % self.port.uuid,
                                    [{'path': '/extra/foo',
                                      'value': 'bar',
                                      'op': 'add'}])
         self.assertEqual('application/json', response.content_type)
         self.assertEqual(200, response.status_code)
-        result = self.get_json('/ports/%s' % self.pdict['uuid'])
-        self.assertEqual(extra, result['extra'])
-        return_updated_at = timeutils.parse_isotime(
-                            result['updated_at']).replace(tzinfo=None)
-        self.assertEqual(test_time, return_updated_at)
+        self.assertEqual(extra, response.json['extra'])
 
-    def test_update_byaddress(self):
-        response = self.patch_json('/ports/%s' % self.pdict['address'],
-                                   [{'path': '/extra/foo', 'value': 'bar',
-                                     'op': 'add'}], expect_errors=True)
-        self.assertEqual(400, response.status_int)
+        kargs = mock_upd.call_args[0][1]
+        self.assertEqual(extra, kargs.extra)
+
+    def test_update_byaddress_not_allowed(self, mock_upd):
+        extra = {'foo': 'bar'}
+        mock_upd.return_value = self.port
+        mock_upd.return_value.extra = extra
+        response = self.patch_json('/ports/%s' % self.port.address,
+                                   [{'path': '/extra/foo',
+                                     'value': 'bar',
+                                     'op': 'add'}],
+                                   expect_errors=True)
         self.assertEqual('application/json', response.content_type)
-        self.assertIn(self.pdict['address'], response.json['error_message'])
+        self.assertEqual(400, response.status_int)
+        self.assertIn(self.port.address, response.json['error_message'])
+        self.assertFalse(mock_upd.called)
 
-    def test_update_not_found(self):
+    def test_update_not_found(self, mock_upd):
         uuid = utils.generate_uuid()
         response = self.patch_json('/ports/%s' % uuid,
-                                   [{'path': '/extra/a',
-                                     'value': 'b',
+                                   [{'path': '/extra/foo',
+                                     'value': 'bar',
                                      'op': 'add'}],
-                             expect_errors=True)
-        self.assertEqual(404, response.status_int)
+                                   expect_errors=True)
         self.assertEqual('application/json', response.content_type)
+        self.assertEqual(404, response.status_int)
         self.assertTrue(response.json['error_message'])
+        self.assertFalse(mock_upd.called)
 
-    def test_replace_singular(self):
+    def test_replace_singular(self, mock_upd):
         address = 'aa:bb:cc:dd:ee:ff'
-        response = self.patch_json('/ports/%s' % self.pdict['uuid'],
+        mock_upd.return_value = self.port
+        mock_upd.return_value.address = address
+        response = self.patch_json('/ports/%s' % self.port.uuid,
                                    [{'path': '/address',
-                                     'value': address, 'op': 'replace'}])
+                                     'value': address,
+                                     'op': 'replace'}])
         self.assertEqual('application/json', response.content_type)
         self.assertEqual(200, response.status_code)
-        result = self.get_json('/ports/%s' % self.pdict['uuid'])
-        self.assertEqual(address, result['address'])
+        self.assertEqual(address, response.json['address'])
+        self.assertTrue(mock_upd.called)
 
-    def test_replace_address_already_exist(self):
-        pdict1 = dbutils.get_test_port(address='aa:aa:aa:aa:aa:aa',
-                                       uuid=utils.generate_uuid(),
-                                       id=None)
-        self.dbapi.create_port(pdict1)
+        kargs = mock_upd.call_args[0][1]
+        self.assertEqual(address, kargs.address)
 
-        pdict2 = dbutils.get_test_port(address='bb:bb:bb:bb:bb:bb',
-                                       uuid=utils.generate_uuid(),
-                                       id=None)
-        self.dbapi.create_port(pdict2)
-
-        response = self.patch_json('/ports/%s' % pdict1['uuid'],
+    def test_replace_address_already_exist(self, mock_upd):
+        address = 'aa:aa:aa:aa:aa:aa'
+        dup = dbutils.get_test_port(address=address,
+                                    uuid=utils.generate_uuid(),
+                                    id=None)
+        self.dbapi.create_port(dup)
+        mock_upd.side_effect = exception.MACAlreadyExists(
+                                                mac=address)
+        response = self.patch_json('/ports/%s' % self.port.uuid,
                                    [{'path': '/address',
-                                     'value': pdict2['address'],
+                                     'value': address,
                                      'op': 'replace'}],
                                      expect_errors=True)
         self.assertEqual('application/json', response.content_type)
         self.assertEqual(409, response.status_code)
         self.assertTrue(response.json['error_message'])
+        self.assertTrue(mock_upd.called)
 
-    def test_replace_nodeid_dont_exist(self):
-        response = self.patch_json('/ports/%s' % self.pdict['uuid'],
+        kargs = mock_upd.call_args[0][1]
+        self.assertEqual(address, kargs.address)
+
+    def test_replace_nodeid_doesnt_exist(self, mock_upd):
+        node_uuid = '12506333-a81c-4d59-9987-889ed5f8687b'
+        response = self.patch_json('/ports/%s' % self.port.uuid,
                              [{'path': '/node_uuid',
-                               'value': '12506333-a81c-4d59-9987-889ed5f8687b',
+                               'value': node_uuid,
                                'op': 'replace'}],
                              expect_errors=True)
         self.assertEqual('application/json', response.content_type)
         self.assertEqual(400, response.status_code)
-        self.assertTrue(response.json['error_message'])
+        self.assertIn(node_uuid, response.json['error_message'])
+        self.assertFalse(mock_upd.called)
 
-    def test_replace_multi(self):
+    def test_replace_multi(self, mock_upd):
         extra = {"foo1": "bar1", "foo2": "bar2", "foo3": "bar3"}
-        pdict = dbutils.get_test_port(extra=extra,
-                                   address="AA:BB:CC:DD:EE:FF",
-                                   uuid=utils.generate_uuid())
-        self.dbapi.create_port(pdict)
+        self.port.extra = extra
+        self.port.save(context.get_admin_context())
 
-        new_value = 'new value'
-        response = self.patch_json('/ports/%s' % pdict['uuid'],
-                                   [{'path': '/extra/foo2',
-                                     'value': new_value, 'op': 'replace'}])
+        # mutate extra so we replace all of them
+        extra = dict((k, extra[k] + 'x') for k in extra.keys())
+
+        patch = []
+        for k in extra.keys():
+            patch.append({'path': '/extra/%s' % k,
+                          'value': extra[k],
+                          'op': 'replace'})
+        mock_upd.return_value = self.port
+        mock_upd.return_value.extra = extra
+        response = self.patch_json('/ports/%s' % self.port.uuid,
+                                   patch)
         self.assertEqual('application/json', response.content_type)
         self.assertEqual(200, response.status_code)
-        result = self.get_json('/ports/%s' % pdict['uuid'])
+        self.assertEqual(extra, response.json['extra'])
+        kargs = mock_upd.call_args[0][1]
+        self.assertEqual(extra, kargs.extra)
 
-        extra["foo2"] = new_value
-        self.assertEqual(extra, result['extra'])
-
-    def test_remove_multi(self):
+    def test_remove_multi(self, mock_upd):
         extra = {"foo1": "bar1", "foo2": "bar2", "foo3": "bar3"}
-        pdict = dbutils.get_test_port(extra=extra,
-                                   address="aa:bb:cc:dd:ee:ff",
-                                   uuid=utils.generate_uuid())
-        self.dbapi.create_port(pdict)
+        self.port.extra = extra
+        self.port.save(context.get_admin_context())
 
         # Removing one item from the collection
-        response = self.patch_json('/ports/%s' % pdict['uuid'],
-                                   [{'path': '/extra/foo2', 'op': 'remove'}])
+        extra.pop('foo1')
+        mock_upd.return_value = self.port
+        mock_upd.return_value.extra = extra
+        response = self.patch_json('/ports/%s' % self.port.uuid,
+                                   [{'path': '/extra/foo1',
+                                     'op': 'remove'}])
         self.assertEqual('application/json', response.content_type)
         self.assertEqual(200, response.status_code)
-        result = self.get_json('/ports/%s' % pdict['uuid'])
-        extra.pop("foo2")
-        self.assertEqual(extra, result['extra'])
+        self.assertEqual(extra, response.json['extra'])
+        kargs = mock_upd.call_args[0][1]
+        self.assertEqual(extra, kargs.extra)
 
         # Removing the collection
-        response = self.patch_json('/ports/%s' % pdict['uuid'],
+        extra = {}
+        mock_upd.return_value.extra = extra
+        response = self.patch_json('/ports/%s' % self.port.uuid,
                                    [{'path': '/extra', 'op': 'remove'}])
         self.assertEqual('application/json', response.content_type)
         self.assertEqual(200, response.status_code)
-        result = self.get_json('/ports/%s' % pdict['uuid'])
-        self.assertEqual({}, result['extra'])
+        self.assertEqual({}, response.json['extra'])
+        kargs = mock_upd.call_args[0][1]
+        self.assertEqual(extra, kargs.extra)
 
         # Assert nothing else was changed
-        self.assertEqual(pdict['uuid'], result['uuid'])
-        self.assertEqual(pdict['address'], result['address'])
+        self.assertEqual(self.port.uuid, response.json['uuid'])
+        self.assertEqual(self.port.address, response.json['address'])
 
-    def test_remove_non_existent_property_fail(self):
-        response = self.patch_json('/ports/%s' % self.pdict['uuid'],
-                             [{'path': '/extra/non-existent', 'op': 'remove'}],
-                             expect_errors=True)
-        self.assertEqual('application/json', response.content_type, )
-        self.assertEqual(400, response.status_code)
-        self.assertTrue(response.json['error_message'])
-
-    def test_remove_mandatory_field(self):
-        pdict = dbutils.get_test_port(address="AA:BB:CC:DD:EE:FF",
-                                   uuid=utils.generate_uuid())
-        self.dbapi.create_port(pdict)
-
-        response = self.patch_json('/ports/%s' % pdict['uuid'],
-                                   [{'path': '/address', 'op': 'remove'}],
+    def test_remove_non_existent_property_fail(self, mock_upd):
+        response = self.patch_json('/ports/%s' % self.port.uuid,
+                                   [{'path': '/extra/non-existent',
+                                     'op': 'remove'}],
                                    expect_errors=True)
         self.assertEqual('application/json', response.content_type)
         self.assertEqual(400, response.status_code)
         self.assertTrue(response.json['error_message'])
+        self.assertFalse(mock_upd.called)
 
-    def test_add_root(self):
+    def test_remove_mandatory_field(self, mock_upd):
+        response = self.patch_json('/ports/%s' % self.port.uuid,
+                                   [{'path': '/address',
+                                     'op': 'remove'}],
+                                   expect_errors=True)
+        self.assertEqual('application/json', response.content_type)
+        self.assertEqual(400, response.status_code)
+        self.assertTrue(response.json['error_message'])
+        self.assertFalse(mock_upd.called)
+
+    def test_add_root(self, mock_upd):
         address = 'aa:bb:cc:dd:ee:ff'
-        response = self.patch_json('/ports/%s' % self.pdict['uuid'],
-                                   [{'path': '/address', 'value': address,
+        mock_upd.return_value = self.port
+        mock_upd.return_value.address = address
+        response = self.patch_json('/ports/%s' % self.port.uuid,
+                                   [{'path': '/address',
+                                     'value': address,
                                      'op': 'add'}])
         self.assertEqual('application/json', response.content_type)
-        self.assertEqual(200, response.status_int)
+        self.assertEqual(200, response.status_code)
+        self.assertEqual(address, response.json['address'])
+        self.assertTrue(mock_upd.called)
+        kargs = mock_upd.call_args[0][1]
+        self.assertEqual(address, kargs.address)
 
-    def test_add_root_non_existent(self):
-        response = self.patch_json('/ports/%s' % self.pdict['uuid'],
-                                   [{'path': '/foo', 'value': 'bar',
+    def test_add_root_non_existent(self, mock_upd):
+        response = self.patch_json('/ports/%s' % self.port.uuid,
+                                   [{'path': '/foo',
+                                     'value': 'bar',
                                      'op': 'add'}],
                                    expect_errors=True)
         self.assertEqual('application/json', response.content_type)
         self.assertEqual(400, response.status_int)
         self.assertTrue(response.json['error_message'])
+        self.assertFalse(mock_upd.called)
 
-    def test_add_multi(self):
-        response = self.patch_json('/ports/%s' % self.pdict['uuid'],
-                                   [{'path': '/extra/foo1', 'value': 'bar1',
-                                     'op': 'add'},
-                                    {'path': '/extra/foo2', 'value': 'bar2',
-                                     'op': 'add'}])
+    def test_add_multi(self, mock_upd):
+        extra = {"foo1": "bar1", "foo2": "bar2", "foo3": "bar3"}
+        patch = []
+        for k in extra.keys():
+            patch.append({'path': '/extra/%s' % k,
+                          'value': extra[k],
+                          'op': 'add'})
+        mock_upd.return_value = self.port
+        mock_upd.return_value.extra = extra
+        response = self.patch_json('/ports/%s' % self.port.uuid,
+                                   patch)
         self.assertEqual('application/json', response.content_type)
         self.assertEqual(200, response.status_code)
-        result = self.get_json('/ports/%s' % self.pdict['uuid'])
-        expected = {"foo1": "bar1", "foo2": "bar2"}
-        self.assertEqual(expected, result['extra'])
+        self.assertEqual(extra, response.json['extra'])
+        kargs = mock_upd.call_args[0][1]
+        self.assertEqual(extra, kargs.extra)
 
-    def test_remove_uuid(self):
-        response = self.patch_json('/ports/%s' % self.pdict['uuid'],
-                                   [{'path': '/uuid', 'op': 'remove'}],
+    def test_remove_uuid(self, mock_upd):
+        response = self.patch_json('/ports/%s' % self.port.uuid,
+                                   [{'path': '/uuid',
+                                     'op': 'remove'}],
                                    expect_errors=True)
         self.assertEqual(400, response.status_int)
         self.assertEqual('application/json', response.content_type)
         self.assertTrue(response.json['error_message'])
+        self.assertFalse(mock_upd.called)
 
-    def test_update_address_invalid_format(self):
-        pdict = dbutils.get_test_port(address="AA:BB:CC:DD:EE:FF",
-                                   uuid=utils.generate_uuid())
-        self.dbapi.create_port(pdict)
-        response = self.patch_json('/ports/%s' % pdict['uuid'],
+    def test_update_address_invalid_format(self, mock_upd):
+        response = self.patch_json('/ports/%s' % self.port.uuid,
                                    [{'path': '/address',
                                      'value': 'invalid-format',
                                      'op': 'replace'}],
                                    expect_errors=True)
-        self.assertEqual(400, response.status_int)
         self.assertEqual('application/json', response.content_type)
+        self.assertEqual(400, response.status_int)
         self.assertTrue(response.json['error_message'])
+        self.assertFalse(mock_upd.called)
 
-    def test_update_port_address_normalized(self):
-        new_address = 'AA:BB:CC:DD:EE:FF'
-        response = self.patch_json('/ports/%s' % self.pdict['uuid'],
-                                   [{'path': '/address', 'value': new_address,
+    def test_update_port_address_normalized(self, mock_upd):
+        address = 'AA:BB:CC:DD:EE:FF'
+        mock_upd.return_value = self.port
+        mock_upd.return_value.address = address.lower()
+        response = self.patch_json('/ports/%s' % self.port.uuid,
+                                   [{'path': '/address',
+                                     'value': address,
                                      'op': 'replace'}])
+        self.assertEqual('application/json', response.content_type)
         self.assertEqual(200, response.status_code)
-        result = self.get_json('/ports/%s' % self.pdict['uuid'])
-        self.assertEqual(new_address.lower(), result['address'])
+        self.assertEqual(address.lower(), response.json['address'])
+        kargs = mock_upd.call_args[0][1]
+        self.assertEqual(address.lower(), kargs.address)
 
 
 class TestPost(base.FunctionalTest):

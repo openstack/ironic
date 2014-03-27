@@ -21,6 +21,16 @@
 
 
 #
+# Options defined in ironic.common.driver_factory
+#
+
+# List of drivers to enable. Missing drivers, or drivers which
+# can not be loaded will be treated as a fatal exception.
+# (list value)
+#enabled_drivers=fake,pxe_ipmitool,pxe_ssh
+
+
+#
 # Options defined in ironic.common.exception
 #
 

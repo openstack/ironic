@@ -357,3 +357,7 @@ class VendorPassthruException(IronicException):
 
 class ConfigInvalid(IronicException):
     message = _("Invalid configuration file. %(error_msg)s")
+
+
+class DriverLoadError(IronicException):
+    message = _("Driver %(driver)s could not be loaded. Reason: %(reason)s.")

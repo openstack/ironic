@@ -49,6 +49,7 @@ class ManagerTestCase(base.DbTestCase):
     def setUp(self):
         super(ManagerTestCase, self).setUp()
         self.hostname = 'test-host'
+        self.config(enabled_drivers=['fake'])
         self.service = manager.ConductorManager(self.hostname, 'test-topic')
         self.context = context.get_admin_context()
         self.dbapi = dbapi.get_instance()
@@ -90,16 +91,27 @@ class ManagerTestCase(base.DbTestCase):
         df = driver_factory.DriverFactory()
         with mock.patch.object(df._extension_manager, 'names') as mock_names:
             # verify driver names are registered
+            self.config(enabled_drivers=init_names)
             mock_names.return_value = init_names
             self._start_service()
             res = self.dbapi.get_conductor(self.hostname)
             self.assertEqual(init_names, res['drivers'])
 
             # verify that restart registers new driver names
+            self.config(enabled_drivers=restart_names)
             mock_names.return_value = restart_names
             self._start_service()
             res = self.dbapi.get_conductor(self.hostname)
             self.assertEqual(restart_names, res['drivers'])
+
+    @mock.patch.object(driver_factory.DriverFactory, '__init__')
+    def test_start_fails_on_missing_driver(self, mock_df):
+        mock_df.side_effect = exception.DriverNotFound('test')
+        with mock.patch.object(self.dbapi, 'register_conductor') as mock_reg:
+            self.assertRaises(exception.DriverNotFound,
+                              self.service.start)
+            self.assertTrue(mock_df.called)
+            self.assertFalse(mock_reg.called)
 
     def test__mapped_to_this_conductor(self):
         self._start_service()

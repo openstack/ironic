@@ -13,6 +13,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+from oslo.config import cfg
 
 from ironic.common import exception
 from ironic.openstack.common import lockutils
@@ -21,6 +22,20 @@ from stevedore import dispatch
 
 
 LOG = log.getLogger(__name__)
+
+# TODO(deva): remove 'fake' and 'pxe_ssh' testing drivers from the defaults
+#             once appropriate test environments (devstack & triple)
+#             are updated
+driver_opts = [
+        cfg.ListOpt('enabled_drivers',
+                    default=['fake', 'pxe_ipmitool', 'pxe_ssh'],
+                    help='List of drivers to enable. Missing drivers, or '
+                         'drivers which can not be loaded will be '
+                         'treated as a fatal exception.'),
+]
+
+CONF = cfg.CONF
+CONF.register_opts(driver_opts)
 
 EM_SEMAPHORE = 'extension_manager'
 
@@ -71,11 +86,33 @@ class DriverFactory(object):
         # NOTE(deva): In case multiple greenthreads queue up on this lock
         #             before _extension_manager is initialized, prevent
         #             creation of multiple NameDispatchExtensionManagers.
-        if not cls._extension_manager:
-            cls._extension_manager = \
-                    dispatch.NameDispatchExtensionManager('ironic.drivers',
-                                                          lambda x: True,
-                                                          invoke_on_load=True)
+        if cls._extension_manager:
+            return
+
+        # NOTE(deva): Drivers raise "DriverNotFound" if they are unable to be
+        #             loaded, eg. due to missing external dependencies.
+        #             We capture that exception, and, only if it is for an
+        #             enabled driver, raise it from here. If the exception
+        #             is for a non-enabled driver, we suppress it.
+        def _catch_driver_not_found(mgr, ep, exc):
+            # NOTE(deva): stevedore loads plugins *before* evaluating
+            #             _check_func, so we need to check here, too.
+            if (isinstance(exc, exception.DriverLoadError) and
+                    ep.name not in CONF.enabled_drivers):
+                return
+            raise exc
+
+        def _check_func(ext):
+            return ext.name in CONF.enabled_drivers
+
+        cls._extension_manager = \
+                dispatch.NameDispatchExtensionManager(
+                        'ironic.drivers',
+                        _check_func,
+                        invoke_on_load=True,
+                        on_load_failure_callback=_catch_driver_not_found)
+        LOG.info(_("Loaded the following drivers: %s"),
+                cls._extension_manager.names())
 
     @property
     def names(self):

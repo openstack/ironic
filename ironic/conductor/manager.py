@@ -106,7 +106,7 @@ conductor_opts = [
                    help='During sync_power_state failures, limit the '
                         'number of times Ironic should try syncing the '
                         'hardware node power state with the node power state '
-                        'in DB')
+                        'in DB'),
 ]
 
 CONF = cfg.CONF
@@ -129,11 +129,8 @@ class ConductorManager(service.PeriodicService):
         super(ConductorManager, self).start()
         self.dbapi = dbapi.get_instance()
 
-        # create a DriverFactory instance, which initializes the stevedore
-        # extension manager, when the service starts.
-        # TODO(deva): Enable re-loading of the DriverFactory to load new
-        #             extensions without restarting the whole service.
         df = driver_factory.DriverFactory()
+
         self.drivers = df.names
         """List of driver names which this conductor supports."""
 
@@ -155,7 +152,10 @@ class ConductorManager(service.PeriodicService):
         """GreenPool of background workers for performing tasks async."""
 
     def stop(self):
-        self.dbapi.unregister_conductor(self.host)
+        try:
+            self.dbapi.unregister_conductor(self.host)
+        except exception.ConductorNotFound:
+            pass
         super(ConductorManager, self).stop()
 
     def initialize_service_hook(self, service):
