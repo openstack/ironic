@@ -13,7 +13,6 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import __builtin__
 import errno
 import hashlib
 import os
@@ -25,6 +24,7 @@ import mock
 import netaddr
 from oslo.config import cfg
 import six
+import six.moves.builtins as __builtin__
 
 from ironic.common import exception
 from ironic.common import utils
