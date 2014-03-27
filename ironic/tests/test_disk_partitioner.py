@@ -13,6 +13,8 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import time
+
 import mock
 from testtools.matchers import HasLength
 
@@ -21,13 +23,9 @@ from ironic.common import utils
 from ironic.tests import base
 
 
+@mock.patch.object(time, 'sleep', lambda _: None)
+@mock.patch.object(utils, 'execute', lambda _: None)
 class DiskPartitionerTestCase(base.TestCase):
-
-    def setUp(self):
-        super(DiskPartitionerTestCase, self).setUp()
-        self.mock_exc = mock.patch.object(utils, 'execute')
-        self.mock_exc.start()
-        self.addCleanup(self.mock_exc.stop)
 
     def test_add_partition(self):
         dp = disk_partitioner.DiskPartitioner('/dev/fake')
