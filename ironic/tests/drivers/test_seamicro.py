@@ -362,8 +362,8 @@ class SeaMicroPowerDriverTestCase(db_base.DbTestCase):
         with task_manager.acquire(self.context, [self.node['uuid']],
                                   shared=True) as task:
             for method in seamicro.VENDOR_PASSTHRU_METHODS:
-                task.resources[0].driver.vendor.validate(self.node,
-                                                         **{'method': method})
+                task.resources[0].driver.vendor.validate(
+                        task, self.node, **{'method': method})
 
     def test_vendor_passthru_validate_fail(self):
         with task_manager.acquire(self.context, [self.node['uuid']],
