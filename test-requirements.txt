@@ -13,3 +13,4 @@ testtools>=0.9.34
 # Doc requirements
 sphinx>=1.1.2,<1.2
 sphinxcontrib-pecanwsme>=0.6
+oslosphinx
