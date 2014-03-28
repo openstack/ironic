@@ -87,6 +87,10 @@ def _get_command_sets(virt_type):
                 "grep macAddress | awk -F '\"' '{print $2}' || true"),
         }
     elif virt_type == "virsh":
+        # NOTE(NobodyCam): changes to the virsh commands will impact CI
+        #                  see https://review.openstack.org/83906
+        #                  Change-Id: I160e4202952b7551b855dc7d91784d6a184cb0ed
+        #                  for more detail.
         virsh_cmds = {
             'base_cmd': '/usr/bin/virsh',
             'start_cmd': 'start {_NodeName_}',
