@@ -248,11 +248,6 @@ Create devstack/localrc with minimal settings required to enable Ironic::
     enable_service q-meta
     enable_service neutron
 
-    # Instruct DevStack to build a deployment kernel and ramdisk using
-    # diskimage-builder.
-    BM_BUILD_DEPLOY_RAMDISK=True
-    BM_DEPLOY_FLAVOR='-a amd64 ubuntu deploy-ironic'
-
     # Create 3 virtual machines with 512M memory and 10G disk to
     # pose as Ironic's baremetal nodes.
     IRONIC_BAREMETAL_BASIC_OPS=True
