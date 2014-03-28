@@ -20,9 +20,34 @@ This host manager will consume all cpu's, disk space, and
 ram from a host / node as it is supporting Baremetal hosts, which can not be
 subdivided into multiple instances.
 """
+from oslo.config import cfg
 
 from nova.openstack.common import log as logging
 from nova.scheduler import host_manager
+
+host_manager_opts = [
+    cfg.ListOpt('baremetal_scheduler_default_filters',
+                default=[
+                  'RetryFilter',
+                  'AvailabilityZoneFilter',
+                  'ComputeFilter',
+                  'ComputeCapabilitiesFilter',
+                  'ImagePropertiesFilter',
+                  'ExactRamFilter',
+                  'ExactDiskFilter',
+                  'ExactCoreFilter',
+                  ],
+                help='Which filter class names to use for filtering '
+                     'baremetal hosts when not specified in the request.'),
+    cfg.BoolOpt('scheduler_use_baremetal_filters',
+                default=False,
+                help='Flag to decide whether to use '
+                     'baremetal_scheduler_default_filters or not.'),
+
+    ]
+
+CONF = cfg.CONF
+CONF.register_opts(host_manager_opts)
 
 LOG = logging.getLogger(__name__)
 
@@ -76,3 +101,6 @@ class IronicHostManager(host_manager.HostManager):
 
     def __init__(self):
         super(IronicHostManager, self).__init__()
+        if CONF.scheduler_use_baremetal_filters:
+            baremetal_default = CONF.baremetal_scheduler_default_filters
+            CONF.scheduler_default_filters = baremetal_default
