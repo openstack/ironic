@@ -386,7 +386,7 @@ class Power(base.PowerInterface):
 class VendorPassthru(base.VendorInterface):
     """SeaMicro vendor-specific methods."""
 
-    def validate(self, node, **kwargs):
+    def validate(self, task, node, **kwargs):
         method = kwargs['method']
         if method in VENDOR_PASSTHRU_METHODS:
             return True
