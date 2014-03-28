@@ -2160,18 +2160,3 @@ msgstr ""
 msgid "Failed to migrate to version %(version)s on engine %(engine)s"
 msgstr ""
 
-#~ msgid "SSHPowerDriver requires either password or key_filename be set."
-#~ msgstr ""
-
-#~ msgid "IPMI power on timed out after %(tries)s retries."
-#~ msgstr ""
-
-#~ msgid "IPMI power on failed for node %s."
-#~ msgstr ""
-
-#~ msgid "IPMI power off timed out after %(tries)s retries."
-#~ msgstr ""
-
-#~ msgid "IPMI power off failed for node %s."
-#~ msgstr ""
-
