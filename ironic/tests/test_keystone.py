@@ -12,7 +12,6 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import fixtures
 from keystoneclient import exceptions as ksexception
 import mock
 
@@ -34,8 +33,6 @@ class FakeClient:
         return True
 
 
-# TODO(lucasagomes): Replace fixtures with mock for some of the tests in
-#                    the KeystoneTestCase class
 class KeystoneTestCase(base.TestCase):
 
     def setUp(self):
@@ -48,71 +45,32 @@ class KeystoneTestCase(base.TestCase):
     def test_failure_authorization(self):
         self.assertRaises(exception.CatalogFailure, keystone.get_service_url)
 
-    def test_get_url(self):
+    @mock.patch.object(FakeCatalog, 'url_for')
+    @mock.patch('keystoneclient.v2_0.client.Client')
+    def test_get_url(self, mock_ks, mock_uf):
         fake_url = 'http://127.0.0.1:6385'
-
-        class _fake_catalog:
-            def url_for(self, **kwargs):
-                return fake_url
-
-        class _fake_client:
-            def __init__(self, **kwargs):
-                self.service_catalog = _fake_catalog()
-
-            def has_service_catalog(self):
-                return True
-
-        self.useFixture(fixtures.MonkeyPatch(
-                        'keystoneclient.v2_0.client.Client',
-                        _fake_client))
-
+        mock_uf.return_value = fake_url
+        mock_ks.return_value = FakeClient()
         res = keystone.get_service_url()
         self.assertEqual(fake_url, res)
 
-    def test_url_not_found(self):
-
-        class _fake_catalog:
-            def url_for(self, **kwargs):
-                raise ksexception.EndpointNotFound
-
-        class _fake_client:
-            def __init__(self, **kwargs):
-                self.service_catalog = _fake_catalog()
-
-            def has_service_catalog(self):
-                return True
-
-        self.useFixture(fixtures.MonkeyPatch(
-                        'keystoneclient.v2_0.client.Client',
-                        _fake_client))
-
+    @mock.patch.object(FakeCatalog, 'url_for')
+    @mock.patch('keystoneclient.v2_0.client.Client')
+    def test_url_not_found(self, mock_ks, mock_uf):
+        mock_uf.side_effect = ksexception.EndpointNotFound
+        mock_ks.return_value = FakeClient()
         self.assertRaises(exception.CatalogNotFound, keystone.get_service_url)
 
-    def test_no_catalog(self):
-
-        class _fake_client:
-            def __init__(self, **kwargs):
-                pass
-
-            def has_service_catalog(self):
-                return False
-
-        self.useFixture(fixtures.MonkeyPatch(
-                        'keystoneclient.v2_0.client.Client',
-                        _fake_client))
-
+    @mock.patch.object(FakeClient, 'has_service_catalog')
+    @mock.patch('keystoneclient.v2_0.client.Client')
+    def test_no_catalog(self, mock_ks, mock_hsc):
+        mock_hsc.return_value = False
+        mock_ks.return_value = FakeClient()
         self.assertRaises(exception.CatalogFailure, keystone.get_service_url)
 
-    def test_unauthorized(self):
-
-        class _fake_client:
-            def __init__(self, **kwargs):
-                raise ksexception.Unauthorized
-
-        self.useFixture(fixtures.MonkeyPatch(
-                        'keystoneclient.v2_0.client.Client',
-                        _fake_client))
-
+    @mock.patch('keystoneclient.v2_0.client.Client')
+    def test_unauthorized(self, mock_ks):
+        mock_ks.side_effect = ksexception.Unauthorized
         self.assertRaises(exception.CatalogUnauthorized,
                           keystone.get_service_url)
 
