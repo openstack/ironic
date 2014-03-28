@@ -12,9 +12,15 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+import re
+
 from keystoneclient.middleware import auth_token
 
+from ironic.common import exception
 from ironic.common import utils
+from ironic.openstack.common import log
+
+LOG = log.getLogger(__name__)
 
 
 class AuthTokenMiddleware(auth_token.AuthProtocol):
@@ -25,14 +31,29 @@ class AuthTokenMiddleware(auth_token.AuthProtocol):
 
     """
     def __init__(self, app, conf, public_api_routes=[]):
-        self.public_api_routes = set(public_api_routes)
+        route_pattern_tpl = '%s(\.json|\.xml)?$'
+
+        try:
+            self.public_api_routes = [re.compile(route_pattern_tpl % route_tpl)
+                                      for route_tpl in public_api_routes]
+        except re.error as e:
+            msg = _('Cannot compile public API routes: %s') % e
+
+            LOG.error(msg)
+            raise exception.ConfigInvalid(error_msg=msg)
 
         super(AuthTokenMiddleware, self).__init__(app, conf)
 
     def __call__(self, env, start_response):
         path = utils.safe_rstrip(env.get('PATH_INFO'), '/')
 
-        if path in self.public_api_routes:
+        # The information whether the API call is being performed against the
+        # public API is required for some other components. Saving it to the
+        # WSGI environment is reasonable thereby.
+        env['is_public_api'] = any(map(lambda pattern: re.match(pattern, path),
+                                       self.public_api_routes))
+
+        if env['is_public_api']:
             return self.app(env, start_response)
 
         return super(AuthTokenMiddleware, self).__call__(env, start_response)
