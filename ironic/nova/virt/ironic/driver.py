@@ -197,10 +197,7 @@ class IronicDriver(virt_driver.ComputeDriver):
         return ironic_client.get_client(CONF.ironic.api_version, **kwargs)
 
     def _node_resource(self, node):
-        # TODO(deva): refactor this to match ironic node datastruct
-        vcpus_used = 0
-        memory_mb_used = 0
-        local_gb_used = 0
+        """Helper method to create resource dict from node stats."""
 
         vcpus = int(node.properties.get('cpus', 0))
         memory_mb = int(node.properties.get('memory_mb', 0))
@@ -213,21 +210,33 @@ class IronicDriver(virt_driver.ComputeDriver):
             vcpus_used = vcpus
             memory_mb_used = memory_mb
             local_gb_used = local_gb
+        else:
+            vcpus_used = 0
+            memory_mb_used = 0
+            local_gb_used = 0
 
-        dic = {'vcpus': vcpus,
-               'memory_mb': memory_mb,
-               'local_gb': local_gb,
-               'vcpus_used': vcpus_used,
-               'memory_mb_used': memory_mb_used,
-               'local_gb_used': local_gb_used,
+        dic = {'node': str(node.uuid),
+               'hypervisor_hostname': str(node.uuid),
                'hypervisor_type': self.get_hypervisor_type(),
                'hypervisor_version': self.get_hypervisor_version(),
-               'hypervisor_hostname': str(node.uuid),
                'cpu_info': 'baremetal cpu',
+               'vcpus': vcpus,
+               'vcpus_used': vcpus_used,
+               'local_gb': local_gb,
+               'local_gb_used': local_gb_used,
+               'disk_total': local_gb,
+               'disk_used': local_gb_used,
+               'disk_available': local_gb - local_gb_used,
+               'memory_mb': memory_mb,
+               'memory_mb_used': memory_mb_used,
+               'host_memory_total': memory_mb,
+               'host_memory_free': memory_mb - memory_mb_used,
                'supported_instances': jsonutils.dumps(
                                      _get_nodes_supported_instances(cpu_arch)),
-               'stats': jsonutils.dumps(nodes_extra_specs)
+               'stats': jsonutils.dumps(nodes_extra_specs),
+               'host': CONF.host,
                }
+        dic.update(nodes_extra_specs)
         return dic
 
     def _start_firewall(self, instance, network_info):
@@ -563,31 +572,8 @@ class IronicDriver(virt_driver.ComputeDriver):
     def get_host_stats(self, refresh=False):
         caps = []
         icli = self._get_client()
-
         for node in icli.node.list():
-            res = self._node_resource(node)
-            nodename = str(node.uuid)
-            cpu_arch = str(node.properties.get('cpu_arch', 'NotFound'))
-
-            nodes_extra_specs = self.extra_specs
-            nodes_extra_specs['cpu_arch'] = cpu_arch
-            data = {}
-            data['vcpus'] = res['vcpus']
-            data['vcpus_used'] = res['vcpus_used']
-            data['cpu_info'] = res['cpu_info']
-            data['disk_total'] = res['local_gb']
-            data['disk_used'] = res['local_gb_used']
-            data['disk_available'] = res['local_gb'] - res['local_gb_used']
-            data['host_memory_total'] = res['memory_mb']
-            data['host_memory_free'] = res['memory_mb'] - res['memory_mb_used']
-            data['hypervisor_type'] = res['hypervisor_type']
-            data['hypervisor_version'] = res['hypervisor_version']
-            data['supported_instances'] = _get_nodes_supported_instances(
-                                                                    cpu_arch)
-            data.update(nodes_extra_specs)
-            data['host'] = CONF.host
-            data['hypervisor_hostname'] = nodename
-            data['node'] = nodename
+            data = self._node_resource(node)
             caps.append(data)
         return caps
 
