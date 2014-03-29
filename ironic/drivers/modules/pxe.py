@@ -18,15 +18,12 @@ PXE Driver and supporting meta-classes.
 """
 
 import os
-import tempfile
 
 import jinja2
 from oslo.config import cfg
 
 from ironic.common import exception
-from ironic.common.glance_service import service_utils
 from ironic.common import image_service as service
-from ironic.common import images
 from ironic.common import keystone
 from ironic.common import neutron
 from ironic.common import paths
@@ -36,12 +33,12 @@ from ironic.conductor import task_manager
 from ironic.conductor import utils as manager_utils
 from ironic.drivers import base
 from ironic.drivers.modules import deploy_utils
+from ironic.drivers.modules import image_cache
 from ironic.drivers import utils as driver_utils
 from ironic.openstack.common import fileutils
-from ironic.openstack.common import lockutils
 from ironic.openstack.common import log as logging
-from ironic.openstack.common import loopingcall
 from ironic.openstack.common import strutils
+
 
 pxe_opts = [
     cfg.StrOpt('pxe_append_params',
@@ -76,6 +73,13 @@ pxe_opts = [
     cfg.StrOpt('pxe_bootfile_name',
                default='pxelinux.0',
                help='Neutron bootfile DHCP parameter.'),
+    cfg.IntOpt('image_cache_size',
+               default=1024,
+               help='Maximum size (in MiB) of cache for master images, '
+               'including those in use'),
+    cfg.IntOpt('image_cache_ttl',
+               default=60,
+               help='Maximum TTL (in minutes) for old master images in cache'),
     ]
 
 LOG = logging.getLogger(__name__)
@@ -247,103 +251,15 @@ def _get_token_file_path(node_uuid):
     return os.path.join(CONF.pxe.tftp_root, 'token-' + node_uuid)
 
 
-@lockutils.synchronized('master_image', 'ironic-')
-def _link_master_image(path, dest_path):
-    """Create a link from path to dest_path using locking to
-    avoid image manipulation during the process.
-    """
-    if os.path.exists(path):
-        os.link(path, dest_path)
-
-
-@lockutils.synchronized('master_image', 'ironic-')
-def _unlink_master_image(path):
-    #TODO(ghe): keep images for a while (kind of local cache)
-    # If an image has been used, it-s likely to be used again
-    # With no space problems, we can keep it, so next time
-    # only a new link needs to be created.
-    # Replace algorithm to look: disk space (trigger)
-    # lru, aged...
-    # os.statvfs
-    # heapq.nlargest(1, [(f, os.stat('./' + f).st_ctime) for f in
-    # os.listdir('.') if os.stat('./' + f).st_nlink == 1], key=lambda s: s[1])
-    if os.path.exists(path) and os.stat(path).st_nlink == 1:
-        utils.unlink_without_raise(path)
-
-
-@lockutils.synchronized('master_image', 'ironic-')
-def _create_master_image(tmp_path, master_uuid, path):
-    """With recently download image, use it as master image, and link to
-    instances uuid. Uses file locking to avoid image maniputalion
-    during the process.
-    """
-    if not os.path.exists(master_uuid):
-        os.link(tmp_path, master_uuid)
-    os.link(master_uuid, path)
-    os.unlink(tmp_path)
-
-
-@lockutils.synchronized('get_image', 'ironic-')
-def _download_in_progress(lock_file):
-    """Get image file lock to avoid downloading the same image
-    simultaneously.
-    """
-    if not os.path.exists(lock_file):
-        open(lock_file, 'w')
-        return False
-
-    else:
-        return True
-
-
-@lockutils.synchronized('get_image', 'ironic-')
-def _remove_download_in_progress_lock(lock_file):
-    """Removes image file lock to indicate that image download has finished
-     and we can start to use it.
-     """
-    fileutils.delete_if_exists(lock_file)
-
-
-def _get_image(ctx, path, uuid, master_path=None, image_service=None):
-    #TODO(ghe): Revise this logic and cdocument process Bug #1199665
-    # When master_path defined, we save the images in this dir using the iamge
-    # uuid as the file name. Deployments that use this images, creates a hard
-    # link to keep track of this. When the link count of a master image is
-    # equal to 1, can be deleted.
-    #TODO(ghe): have hard links and count links the same behaviour in all fs
-
-    #TODO(ghe): timeout and retry for downloads
-    def _wait_for_download():
-        if not os.path.exists(lock_file):
-            raise loopingcall.LoopingCallDone()
-    # If the download of the image needed is in progress (lock file present)
-    # we wait until the locks disappears and create the link.
-
-    if master_path is None:
-        #NOTE(ghe): We don't share images between instances/hosts
-        images.fetch_to_raw(ctx, uuid, path, image_service)
-
-    else:
-        master_uuid = os.path.join(master_path,
-                                   service_utils.parse_image_ref(uuid)[0])
-        lock_file = os.path.join(master_path, master_uuid + '.lock')
-        _link_master_image(master_uuid, path)
-        if not os.path.exists(path):
-            fileutils.ensure_tree(master_path)
-            if not _download_in_progress(lock_file):
-                with fileutils.remove_path_on_error(lock_file):
-                    #TODO(ghe): logging when image cannot be created
-                    fd, tmp_path = tempfile.mkstemp(dir=master_path)
-                    os.close(fd)
-                    images.fetch_to_raw(ctx, uuid, tmp_path, image_service)
-                    _create_master_image(tmp_path, master_uuid, path)
-                _remove_download_in_progress_lock(lock_file)
-            else:
-                #TODO(ghe): expiration time
-                timer = loopingcall.FixedIntervalLoopingCall(
-                    _wait_for_download)
-                timer.start(interval=1).wait()
-                _link_master_image(master_uuid, path)
+class PXEImageCache(image_cache.ImageCache):
+    def __init__(self, master_dir, image_service=None):
+        super(PXEImageCache, self).__init__(
+            master_dir,
+            # MiB -> B
+            cache_size=CONF.pxe.image_cache_size * 1024 * 1024,
+            # min -> sec
+            cache_ttl=CONF.pxe.image_cache_ttl * 60,
+            image_service=image_service)
 
 
 def _cache_tftp_images(ctx, node, pxe_info):
@@ -352,10 +268,10 @@ def _cache_tftp_images(ctx, node, pxe_info):
         os.path.join(CONF.pxe.tftp_root, node.uuid))
     LOG.debug(_("Fetching kernel and ramdisk for node %s") %
               node.uuid)
+    image_cache = PXEImageCache(CONF.pxe.tftp_master_path)
     for label in pxe_info:
         (uuid, path) = pxe_info[label]
-        if not os.path.exists(path):
-            _get_image(ctx, path, uuid, CONF.pxe.tftp_master_path, None)
+        image_cache.fetch_image(uuid, path, ctx=ctx)
 
 
 def _cache_instance_image(ctx, node):
@@ -383,8 +299,8 @@ def _cache_instance_image(ctx, node):
     LOG.debug(_("Fetching image %(ami)s for node %(uuid)s") %
               {'ami': uuid, 'uuid': node.uuid})
 
-    if not os.path.exists(image_path):
-        _get_image(ctx, image_path, uuid, CONF.pxe.instance_master_path)
+    image_cache = PXEImageCache(CONF.pxe.instance_master_path)
+    image_cache.fetch_image(uuid, image_path, ctx=ctx)
 
     return (uuid, image_path)
 
@@ -447,11 +363,9 @@ def _cache_images(node, pxe_info, ctx):
 
 def _destroy_images(d_info, node_uuid):
     """Delete instance's image file."""
-    image_uuid = service_utils.parse_image_ref(d_info['image_source'])[0]
     utils.unlink_without_raise(_get_image_file_path(node_uuid))
     utils.rmtree_without_raise(_get_image_dir_path(node_uuid))
-    master_image = os.path.join(CONF.pxe.instance_master_path, image_uuid)
-    _unlink_master_image(master_image)
+    PXEImageCache(CONF.pxe.instance_master_path).clean_up()
 
 
 def _create_token_file(task, node):
@@ -637,10 +551,9 @@ class PXEDeploy(base.DeployInterface):
         pxe_info = _get_tftp_image_info(node, task.context)
         d_info = _parse_driver_info(node)
         for label in pxe_info:
-            (uuid, path) = pxe_info[label]
-            master_path = os.path.join(CONF.pxe.tftp_master_path, uuid)
+            path = pxe_info[label][1]
             utils.unlink_without_raise(path)
-            _unlink_master_image(master_path)
+        PXEImageCache(CONF.pxe.tftp_master_path).clean_up()
 
         utils.unlink_without_raise(_get_pxe_config_file_path(
                 node.uuid))

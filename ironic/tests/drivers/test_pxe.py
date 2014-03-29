@@ -21,15 +21,11 @@ import fixtures
 import mock
 import os
 import tempfile
-import threading
-import time
 
 from oslo.config import cfg
 
 from ironic.common import exception
 from ironic.common.glance_service import base_image_service
-from ironic.common.glance_service import service_utils
-from ironic.common import images
 from ironic.common import keystone
 from ironic.common import neutron
 from ironic.common import states
@@ -37,6 +33,7 @@ from ironic.common import utils
 from ironic.conductor import task_manager
 from ironic.conductor import utils as manager_utils
 from ironic.db import api as dbapi
+from ironic.drivers.modules import image_cache
 from ironic.drivers.modules import pxe
 from ironic.openstack.common import context
 from ironic.openstack.common import fileutils
@@ -188,79 +185,6 @@ class PXEValidateParametersTestCase(base.TestCase):
         mac = '00:11:22:33:44:55:66'
         self.assertEqual('/tftpboot/pxelinux.cfg/01-00-11-22-33-44-55-66',
                          pxe._get_pxe_mac_path(mac))
-
-    def test__link_master_image(self):
-        temp_dir = tempfile.mkdtemp()
-        orig_path = os.path.join(temp_dir, 'orig_path')
-        dest_path = os.path.join(temp_dir, 'dest_path')
-        open(orig_path, 'w').close()
-        pxe._link_master_image(orig_path, dest_path)
-        self.assertIsNotNone(os.path.exists(dest_path))
-        self.assertEqual(2, os.stat(dest_path).st_nlink)
-
-    def test__unlink_master_image(self):
-        temp_dir = tempfile.mkdtemp()
-        orig_path = os.path.join(temp_dir, 'orig_path')
-        open(orig_path, 'w').close()
-        pxe._unlink_master_image(orig_path)
-        self.assertFalse(os.path.exists(orig_path))
-
-    def test__create_master_image(self):
-        temp_dir = tempfile.mkdtemp()
-        master_path = os.path.join(temp_dir, 'master_path')
-        instance_path = os.path.join(temp_dir, 'instance_path')
-        tmp_path = os.path.join(temp_dir, 'tmp_path')
-        open(tmp_path, 'w').close()
-        pxe._create_master_image(tmp_path, master_path, instance_path)
-        self.assertTrue(os.path.exists(master_path))
-        self.assertTrue(os.path.exists(instance_path))
-        self.assertFalse(os.path.exists(tmp_path))
-        self.assertEqual(2, os.stat(master_path).st_nlink)
-
-    def test__download_in_progress(self):
-        temp_dir = tempfile.mkdtemp()
-        lock_file = os.path.join(temp_dir, 'lock_file')
-        self.assertFalse(pxe._download_in_progress(lock_file))
-        self.assertTrue(os.path.exists(lock_file))
-
-    def test__download_in_progress_wait(self):
-        try:
-            self.config(auth_strategy='keystone')
-        except Exception:
-            opts = [
-                cfg.StrOpt('auth_strategy', default='keystone'),
-                ]
-            CONF.register_opts(opts)
-
-        ctx = context.RequestContext(auth_token=True)
-        uuid = 'node_uuid'
-        temp_dir = tempfile.mkdtemp()
-        master_path = os.path.join(temp_dir, 'master_path')
-        instance_path = os.path.join(temp_dir, 'instance_path')
-        os.mkdir(master_path)
-        os.mkdir(instance_path)
-        lock_file = os.path.join(master_path, 'node_uuid.lock')
-        open(lock_file, 'w').close()
-
-        class handler_deploying(threading.Thread):
-            def __init__(self, lock_file):
-                threading.Thread.__init__(self)
-                self.lock_file = lock_file
-
-            def run(self):
-                time.sleep(0.2)
-                open(os.path.join(master_path, 'node_uuid'), 'w').close()
-                pxe._remove_download_in_progress_lock(self.lock_file)
-
-        handler = handler_deploying(lock_file)
-        handler.start()
-        pxe._get_image(ctx, os.path.join(instance_path, 'node_uuid'),
-                       uuid, master_path)
-        self.assertFalse(os.path.exists(lock_file))
-        self.assertTrue(os.path.exists(os.path.join(instance_path,
-                                                    'node_uuid')))
-        self.assertEqual(2, os.stat(os.path.join(master_path, 'node_uuid')).
-                             st_nlink)
 
 
 class PXEPrivateMethodsTestCase(db_base.DbTestCase):
@@ -480,125 +404,41 @@ class PXEPrivateMethodsTestCase(db_base.DbTestCase):
         self.assertEqual('/tftpboot/token-' + node_uuid,
                          pxe._get_token_file_path(node_uuid))
 
-    def test__cache_tftp_images_master_path(self):
+    @mock.patch.object(image_cache.ImageCache, 'fetch_image')
+    def test__cache_tftp_images_master_path(self, mock_fetch_image):
         temp_dir = tempfile.mkdtemp()
         self.config(tftp_root=temp_dir, group='pxe')
         self.config(tftp_master_path=os.path.join(temp_dir,
                                                   'tftp_master_path'),
                     group='pxe')
-        image_info = {'deploy_kernel': ['deploy_kernel',
-                                        os.path.join(temp_dir,
-                                                     self.node.uuid,
-                                                     'deploy_kernel')]}
+        image_path = os.path.join(temp_dir, self.node.uuid,
+                                  'deploy_kernel')
+        image_info = {'deploy_kernel': ['deploy_kernel', image_path]}
         fileutils.ensure_tree(CONF.pxe.tftp_master_path)
-        fd, tmp_master_image = tempfile.mkstemp(dir=CONF.pxe.tftp_master_path)
 
-        with mock.patch.object(images, 'fetch_to_raw') as fetch_to_raw_mock:
-            with mock.patch.object(tempfile, 'mkstemp') as mkstemp_mock:
-                fetch_to_raw_mock.return_value = None
-                mkstemp_mock.return_value = (fd, tmp_master_image)
+        pxe._cache_tftp_images(None, self.node, image_info)
 
-                pxe._cache_tftp_images(None, self.node, image_info)
+        mock_fetch_image.assert_called_once_with('deploy_kernel',
+                                                 image_path,
+                                                 ctx=None)
 
-                fetch_to_raw_mock.assert_called_once_with(None,
-                                                          'deploy_kernel',
-                                                          tmp_master_image,
-                                                          None)
-                mkstemp_mock.assert_called_once_with(
-                                                dir=CONF.pxe.tftp_master_path)
-
-    def test__cache_tftp_images_no_master_path(self):
-        temp_dir = tempfile.mkdtemp()
-        self.config(tftp_root=temp_dir, group='pxe')
-        self.config(tftp_master_path=None, group='pxe')
-        image_info = {'deploy_kernel': ['deploy_kernel',
-                                        os.path.join(temp_dir,
-                                        self.node.uuid, 'deploy_kernel')]}
-
-        with mock.patch.object(images, 'fetch_to_raw') as fetch_to_raw_mock:
-            fetch_to_raw_mock.return_value = None
-
-            pxe._cache_tftp_images(None, self.node, image_info)
-
-            fetch_to_raw_mock.assert_called_once_with(None,
-                    'deploy_kernel',
-                    os.path.join(temp_dir, self.node.uuid, 'deploy_kernel'),
-                    None)
-
-    def test__cache_instance_images_no_master_path(self):
-        temp_dir = tempfile.mkdtemp()
-        self.config(images_path=temp_dir, group='pxe')
-        self.config(instance_master_path=None, group='pxe')
-
-        with mock.patch.object(images, 'fetch_to_raw') as fetch_to_raw_mock:
-            fetch_to_raw_mock.return_value = None
-
-            (uuid, image_path) = pxe._cache_instance_image(None, self.node)
-
-            fetch_to_raw_mock.assert_called_once_with(None,
-                            'glance://image_uuid',
-                            os.path.join(temp_dir, self.node.uuid, 'disk'),
-                            None)
-            self.assertEqual('glance://image_uuid', uuid)
-            self.assertEqual(os.path.join(temp_dir, self.node.uuid, 'disk'),
-                             image_path)
-
-    def test__cache_instance_images_master_path(self):
+    @mock.patch.object(image_cache.ImageCache, 'fetch_image')
+    def test__cache_instance_images_master_path(self, mock_fetch_image):
         temp_dir = tempfile.mkdtemp()
         self.config(images_path=temp_dir, group='pxe')
         self.config(instance_master_path=os.path.join(temp_dir,
                                                       'instance_master_path'),
-                         group='pxe')
+                    group='pxe')
         fileutils.ensure_tree(CONF.pxe.instance_master_path)
-        fd, tmp_master_image = tempfile.mkstemp(
-            dir=CONF.pxe.instance_master_path)
 
-        with mock.patch.object(images, 'fetch_to_raw') as fetch_to_raw_mock:
-            with mock.patch.object(tempfile, 'mkstemp') as mkstemp_mock:
-                with mock.patch.object(service_utils, 'parse_image_ref') \
-                        as parse_image_ref_mock:
-                    mkstemp_mock.return_value = (fd, tmp_master_image)
-                    fetch_to_raw_mock.return_value = None
-                    parse_image_ref_mock.return_value = ('image_uuid',
-                                                         None,
-                                                         None,
-                                                         None)
-
-                    (uuid, image_path) = pxe._cache_instance_image(None,
-                                                                   self.node)
-
-                    mkstemp_mock.assert_called_once_with(
-                         dir=CONF.pxe.instance_master_path)
-                    fetch_to_raw_mock.assert_called_once_with(None,
-                                                       'glance://image_uuid',
-                                                       tmp_master_image,
-                                                       None)
-                    parse_image_ref_mock.assert_called_once_with(
-                                                       'glance://image_uuid')
-                    self.assertEqual('glance://image_uuid', uuid)
-                    self.assertEqual(os.path.join(temp_dir,
-                                                  self.node.uuid,
-                                                  'disk'),
-                                     image_path)
-
-    def test__get_image_download_in_progress(self):
-        def _create_instance_path(*args):
-            open(master_path, 'w').close()
-            return True
-        temp_dir = tempfile.mkdtemp()
-        instance_path = os.path.join(temp_dir, 'instance_path')
-        fileutils.ensure_tree(temp_dir)
-        master_path = os.path.join(temp_dir, self.node.uuid)
-        lock_file = os.path.join(temp_dir, self.node.uuid + '.lock')
-
-        with mock.patch.object(pxe, '_download_in_progress') \
-                as download_in_progress_mock:
-            download_in_progress_mock.side_effect = _create_instance_path
-
-            pxe._get_image(None, instance_path, self.node.uuid, temp_dir)
-
-            download_in_progress_mock.assert_called_once_with(lock_file)
-            self.assertTrue(os.path.exists(instance_path))
+        (uuid, image_path) = pxe._cache_instance_image(None,
+                                                       self.node)
+        mock_fetch_image.assert_called_once_with(uuid, image_path, ctx=None)
+        self.assertEqual('glance://image_uuid', uuid)
+        self.assertEqual(os.path.join(temp_dir,
+                                      self.node.uuid,
+                                      'disk'),
+                         image_path)
 
 
 class PXEDriverTestCase(db_base.DbTestCase):
@@ -889,6 +729,19 @@ class PXEDriverTestCase(db_base.DbTestCase):
                             "_continue_deploy was not called once.")
 
     def clean_up_config(self, master=None):
+        temp_dir = tempfile.mkdtemp()
+        self.config(tftp_root=temp_dir, group='pxe')
+        tftp_master_dir = os.path.join(CONF.pxe.tftp_root,
+                                       'tftp_master')
+        self.config(tftp_master_path=tftp_master_dir, group='pxe')
+        os.makedirs(tftp_master_dir)
+
+        instance_master_dir = os.path.join(CONF.pxe.images_path,
+                                           'instance_master')
+        self.config(instance_master_path=instance_master_dir,
+                    group='pxe')
+        os.makedirs(instance_master_dir)
+
         ports = []
         ports.append(
             self.dbapi.create_port(
@@ -921,15 +774,6 @@ class PXEDriverTestCase(db_base.DbTestCase):
             open(config_path, 'w').close()
             os.link(config_path, pxe_mac_path)
             if master:
-                tftp_master_dir = os.path.join(CONF.pxe.tftp_root,
-                                               'tftp_master')
-                instance_master_dir = os.path.join(CONF.pxe.images_path,
-                                                   'instance_master')
-                self.config(tftp_master_path=tftp_master_dir, group='pxe')
-                self.config(instance_master_path=instance_master_dir,
-                            group='pxe')
-                os.makedirs(tftp_master_dir)
-                os.makedirs(instance_master_dir)
                 master_deploy_kernel_path = os.path.join(tftp_master_dir,
                                                          'deploy_kernel_uuid')
                 master_instance_path = os.path.join(instance_master_dir,
@@ -948,40 +792,29 @@ class PXEDriverTestCase(db_base.DbTestCase):
                     os.link(master_instance_path, image_link)
 
             else:
-                self.config(tftp_master_path='', group='pxe')
-                self.config(instance_master_path='', group='pxe')
                 open(deploy_kernel_path, 'w').close()
                 open(image_path, 'w').close()
+            token_path = self._create_token_file()
+            self.config(image_cache_size=0, group='pxe')
 
             with task_manager.acquire(self.context, [self.node['uuid']],
                                       shared=True) as task:
                 task.resources[0].driver.deploy.clean_up(task, self.node)
             get_tftp_image_info_mock.called_once_with(self.node)
             assert_false_path = [config_path, deploy_kernel_path, image_path,
-                                 pxe_mac_path, image_dir, instance_dir]
+                                 pxe_mac_path, image_dir, instance_dir,
+                                 token_path]
             for path in assert_false_path:
                 self.assertFalse(os.path.exists(path))
-
-    def test_clean_up_removes_token_file(self):
-        token_path = self._create_token_file()
-        self.clean_up_config(master=None)
-        self.assertFalse(os.path.exists(token_path))
 
     def test_clean_up_no_master_images(self):
         self.clean_up_config(master=None)
 
-    def test_clean_up_master_images_not_in_use(self):
-        self.clean_up_config(master='not_in_use')
-
-        master_d_kernel_path = os.path.join(CONF.pxe.tftp_master_path,
-                                            'deploy_kernel_uuid')
-        master_instance_path = os.path.join(CONF.pxe.instance_master_path,
-                                            'image_uuid')
-
-        self.assertFalse(os.path.exists(master_d_kernel_path))
-        self.assertFalse(os.path.exists(master_instance_path))
-
     def test_clean_up_master_images_in_use(self):
+        # NOTE(dtantsur): ensure agressive caching
+        self.config(image_cache_size=1, group='pxe')
+        self.config(image_cache_ttl=0, group='pxe')
+
         self.clean_up_config(master='in_use')
 
         master_d_kernel_path = os.path.join(CONF.pxe.tftp_master_path,
