@@ -90,6 +90,14 @@ class ManagerTestCase(base.DbTestCase):
             res = self.dbapi.get_conductor(self.hostname)
             self.assertEqual(restart_names, res['drivers'])
 
+    def test__mapped_to_this_conductor(self):
+        self.service.start()
+        n = utils.get_test_node()
+        self.assertTrue(self.service._mapped_to_this_conductor(n['uuid'],
+                                                               'fake'))
+        self.assertFalse(self.service._mapped_to_this_conductor(n['uuid'],
+                                                                'otherdriver'))
+
     def test__conductor_service_record_keepalive(self):
         self.service.start()
         with mock.patch.object(self.dbapi, 'touch_conductor') as mock_touch:
