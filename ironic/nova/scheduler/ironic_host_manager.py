@@ -23,6 +23,7 @@ subdivided into multiple instances.
 from oslo.config import cfg
 
 from nova.openstack.common import log as logging
+from nova.openstack.common import timeutils
 from nova.scheduler import host_manager
 
 host_manager_opts = [
@@ -68,14 +69,18 @@ class IronicNodeState(host_manager.HostState):
         self.free_ram_mb = free_ram_mb
         self.total_usable_ram_mb = all_ram_mb
         self.free_disk_mb = free_disk_mb
+        self.total_usable_disk_gb = compute['local_gb']
         self.vcpus_total = compute['vcpus']
         self.vcpus_used = compute['vcpus_used']
+
+        self.updated = compute['updated_at']
 
     def consume_from_instance(self, instance):
         """Consume nodes entire resources regardless of instance request."""
         self.free_ram_mb = 0
         self.free_disk_mb = 0
         self.vcpus_used = self.vcpus_total
+        self.updated = timeutils.utcnow()
 
 
 def new_host_state(self, host, node, capabilities=None, service=None):
