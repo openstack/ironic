@@ -110,8 +110,8 @@ def _parse_driver_info(node):
     # Internal use only
     d_info['deploy_key'] = info.get('pxe_deploy_key')
 
-    #TODO(ghe): Should we get rid of swap partition?
-    d_info['swap_mb'] = info.get('pxe_swap_mb', 1)
+    # TODO(ghe): Should we get rid of swap partition?
+    d_info['swap_mb'] = info.get('pxe_swap_mb', 0)
     d_info['ephemeral_gb'] = info.get('pxe_ephemeral_gb', 0)
     d_info['ephemeral_format'] = info.get('pxe_ephemeral_format')
 
@@ -124,6 +124,12 @@ def _parse_driver_info(node):
             reason = _("'%s' is not an integer value.") % d_info[param]
             raise exception.InvalidParameterValue(err_msg_invalid %
                                             {'param': param, 'reason': reason})
+
+    # NOTE(lucasagomes): For simpler code paths on the deployment side,
+    #                    we always create a swap partition. if the size is
+    #                    <= 0 we default to 1MB
+    if int(d_info['swap_mb']) <= 0:
+        d_info['swap_mb'] = 1
 
     if d_info['ephemeral_gb'] and not d_info['ephemeral_format']:
         msg = _("The deploy contains an ephemeral partition, but no "
