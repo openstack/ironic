@@ -53,7 +53,7 @@ opts = [
     cfg.StrOpt('admin_auth_token',
                help='Ironic keystone auth token.'),
     cfg.StrOpt('admin_url',
-               help='Ironic public api endpoint.'),
+               help='Keystone public API endpoint.'),
     cfg.StrOpt('pxe_bootfile_name',
                help='This gets passed to Neutron as the bootfile dhcp '
                'parameter when the dhcp_options_enabled is set.',
