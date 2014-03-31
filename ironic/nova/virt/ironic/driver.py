@@ -340,6 +340,12 @@ class IronicDriver(virt_driver.ComputeDriver):
         instances = [i for i in icli.node.list() if i.instance_uuid]
         return instances
 
+    def node_is_available(self, nodename):
+        icli = self._get_client()
+        node = icli.node.get(nodename)
+        return not node.instance_uuid and not node.maintenance \
+            and node.power_state == ironic_states.POWER_OFF
+
     def get_available_nodes(self, refresh=False):
         nodes = []
         icli = self._get_client()

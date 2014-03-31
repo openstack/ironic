@@ -334,6 +334,34 @@ class IronicDriverTestCase(test.NoDBTestCase):
             self.assertEqual(sorted(expected), sorted(instances))
             self.assertEqual(num_nodes, len(instances))
 
+    @mock.patch.object(FAKE_CLIENT.node, 'get')
+    def test_node_is_available(self, mock_get):
+        no_guid = None
+        any_guid = uuidutils.generate_uuid()
+        in_maintenance = True
+        is_available = True
+        not_in_maintenance = False
+        not_available = False
+        power_off = ironic_states.POWER_OFF
+        not_power_off = ironic_states.POWER_ON
+
+        testing_set = {(no_guid, not_in_maintenance, power_off):is_available,
+                       (no_guid, not_in_maintenance, not_power_off):not_available,
+                       (no_guid, in_maintenance, power_off):not_available,
+                       (no_guid, in_maintenance, not_power_off):not_available,
+                       (any_guid, not_in_maintenance, power_off):not_available,
+                       (any_guid, not_in_maintenance, not_power_off):not_available,
+                       (any_guid, in_maintenance, power_off):not_available,
+                       (any_guid, in_maintenance, not_power_off):not_available}
+
+        for key in testing_set.keys():
+            node = get_test_node(instance_uuid=key[0],
+                             maintenance=key[1], power_state=key[2])
+            mock_get.return_value = node
+            expected = testing_set[key]
+            observed = self.driver.node_is_available("dummy_nodename")
+            self.assertEqual(expected, observed)
+
     def test_get_available_nodes(self):
         num_nodes = 2
         nodes = []
