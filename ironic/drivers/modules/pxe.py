@@ -667,7 +667,8 @@ class VendorPassthru(base.VendorInterface):
 
         deploy_key = kwargs.get('key')
         if d_info['deploy_key'] != deploy_key:
-            raise exception.InvalidParameterValue(_("Deploy key is not match"))
+            raise exception.InvalidParameterValue(_("Deploy key does not"
+                                                    " match"))
 
         params = {'address': kwargs.get('address'),
                   'port': kwargs.get('port', '3260'),
