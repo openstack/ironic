@@ -13,52 +13,56 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+from ironic.common import exception
+from ironic.common import utils
 from ironic.db import api as db_api
 from ironic.objects import base
-from ironic.objects import utils
+from ironic.objects import utils as obj_utils
 
 
 class Node(base.IronicObject):
     # Version 1.0: Initial version
     # Version 1.1: Added instance_info
-    VERSION = '1.1'
+    # Version 1.2: Add get() and get_by_id() and make get_by_uuid()
+    #              only work with a uuid
+    VERSION = '1.2'
 
     dbapi = db_api.get_instance()
 
     fields = {
             'id': int,
 
-            'uuid': utils.str_or_none,
-            'chassis_id': utils.int_or_none,
-            'instance_uuid': utils.str_or_none,
+            'uuid': obj_utils.str_or_none,
+            'chassis_id': obj_utils.int_or_none,
+            'instance_uuid': obj_utils.str_or_none,
 
-            'driver': utils.str_or_none,
-            'driver_info': utils.dict_or_none,
+            'driver': obj_utils.str_or_none,
+            'driver_info': obj_utils.dict_or_none,
 
-            'instance_info': utils.dict_or_none,
-            'properties': utils.dict_or_none,
-            'reservation': utils.str_or_none,
+            'instance_info': obj_utils.dict_or_none,
+            'properties': obj_utils.dict_or_none,
+            'reservation': obj_utils.str_or_none,
 
             # One of states.POWER_ON|POWER_OFF|NOSTATE|ERROR
-            'power_state': utils.str_or_none,
+            'power_state': obj_utils.str_or_none,
 
             # Set to one of states.POWER_ON|POWER_OFF when a power operation
             # starts, and set to NOSTATE when the operation finishes
             # (successfully or unsuccessfully).
-            'target_power_state': utils.str_or_none,
+            'target_power_state': obj_utils.str_or_none,
 
-            'provision_state': utils.str_or_none,
-            'provision_updated_at': utils.datetime_or_str_or_none,
-            'target_provision_state': utils.str_or_none,
+            'provision_state': obj_utils.str_or_none,
+            'provision_updated_at': obj_utils.datetime_or_str_or_none,
+            'target_provision_state': obj_utils.str_or_none,
 
             'maintenance': bool,
             'console_enabled': bool,
 
             # Any error from the most recent (last) asynchronous transaction
             # that started but failed to finish.
-            'last_error': utils.str_or_none,
+            'last_error': obj_utils.str_or_none,
 
-            'extra': utils.dict_or_none,
+            'extra': obj_utils.dict_or_none,
             }
 
     @staticmethod
@@ -66,8 +70,35 @@ class Node(base.IronicObject):
         """Converts a database entity to a formal object."""
         for field in node.fields:
             node[field] = db_node[field]
-
         node.obj_reset_changes()
+        return node
+
+    @base.remotable_classmethod
+    def get(cls, context, node_id):
+        """Find a node based on its id or uuid and return a Node object.
+
+        :param node_id: the id *or* uuid of a node.
+        :returns: a :class:`Node` object.
+        """
+        if utils.is_int_like(node_id):
+            return cls.get_by_id(context, node_id)
+        elif utils.is_uuid_like(node_id):
+            return cls.get_by_uuid(context, node_id)
+        else:
+            raise exception.InvalidIdentity(identity=node_id)
+
+    @base.remotable_classmethod
+    def get_by_id(cls, context, node_id):
+        """Find a node based on its integer id and return a Node object.
+
+        :param node_id: the id of a node.
+        :returns: a :class:`Node` object.
+        """
+        db_node = cls.dbapi.get_node_by_id(node_id)
+        node = Node._from_db_object(cls(), db_node)
+        # FIXME(comstud): Setting of the context should be moved to
+        # _from_db_object().
+        node._context = context
         return node
 
     @base.remotable_classmethod
@@ -77,11 +108,15 @@ class Node(base.IronicObject):
         :param uuid: the uuid of a node.
         :returns: a :class:`Node` object.
         """
-        db_node = cls.dbapi.get_node(uuid)
-        return Node._from_db_object(cls(), db_node)
+        db_node = cls.dbapi.get_node_by_uuid(uuid)
+        node = Node._from_db_object(cls(), db_node)
+        # FIXME(comstud): Setting of the context should be moved to
+        # _from_db_object().
+        node._context = context
+        return node
 
     @base.remotable
-    def save(self, context):
+    def save(self, context=None):
         """Save updates to this Node.
 
         Column-wise updates will be made based on the result of
@@ -89,16 +124,21 @@ class Node(base.IronicObject):
         it will be checked against the in-database copy of the
         node before updates are made.
 
-        :param context: Security context
+        :param context: Security context. NOTE: This is only used
+                        internally by the indirection_api.
         """
         updates = self.obj_get_changes()
         self.dbapi.update_node(self.uuid, updates)
-
         self.obj_reset_changes()
 
     @base.remotable
-    def refresh(self, context):
-        current = self.__class__.get_by_uuid(context, uuid=self.uuid)
+    def refresh(self, context=None):
+        """Refresh the object by re-fetching from the DB.
+
+        :param context: Security context. NOTE: This is only used
+                        internally by the indirection_api.
+        """
+        current = self.__class__.get_by_uuid(self._context, self.uuid)
         for field in self.fields:
             if (hasattr(self, base.get_attrname(field)) and
                     self[field] != current[field]):

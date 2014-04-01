@@ -658,7 +658,9 @@ class SSHDriverTestCase(db_base.DbTestCase):
         self.get_mac_addr_patcher.stop()
         self.get_mac_addr_mock = None
 
-        new_node = self.dbapi.create_node(db_utils.get_test_node(id=321,
+        new_node = self.dbapi.create_node(
+                    db_utils.get_test_node(
+                                   id=321,
                                    uuid='aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee',
                                    driver='fake_ssh',
                                    driver_info=db_utils.get_test_ssh_info()))

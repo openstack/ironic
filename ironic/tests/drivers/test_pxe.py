@@ -361,7 +361,7 @@ class PXEPrivateMethodsTestCase(db_base.DbTestCase):
             self.assertEqual(pxe_config_template, pxe_config)
 
         # test that deploy_key saved
-        db_node = self.dbapi.get_node(self.node['uuid'])
+        db_node = self.dbapi.get_node_by_uuid(self.node['uuid'])
         db_key = db_node['driver_info'].get('pxe_deploy_key')
         self.assertEqual(fake_key, db_key)
 

@@ -830,7 +830,7 @@ class ManagerTestCase(tests_db_base.DbTestCase):
         node = self.dbapi.create_node(ndict)
         self.service.destroy_node(self.context, node.uuid)
         self.assertRaises(exception.NodeNotFound,
-                          self.dbapi.get_node,
+                          self.dbapi.get_node_by_uuid,
                           node.uuid)
 
     def test_destroy_node_reserved(self):
@@ -1357,7 +1357,7 @@ class ManagerDoSyncPowerStateTestCase(tests_base.TestCase):
 @mock.patch.object(manager.ConductorManager, '_do_sync_power_state')
 @mock.patch.object(task_manager, 'acquire')
 @mock.patch.object(manager.ConductorManager, '_mapped_to_this_conductor')
-@mock.patch.object(dbapi.IMPL, 'get_node')
+@mock.patch.object(objects.Node, 'get_by_id')
 @mock.patch.object(dbapi.IMPL, 'get_nodeinfo_list')
 class ManagerSyncPowerStatesTestCase(tests_base.TestCase):
     def setUp(self):
@@ -1441,7 +1441,7 @@ class ManagerSyncPowerStatesTestCase(tests_base.TestCase):
                 columns=self.columns, filters=self.filters)
         mapped_mock.assert_called_once_with(self.node.uuid,
                                             self.node.driver)
-        get_node_mock.assert_called_once_with(self.node.id)
+        get_node_mock.assert_called_once_with(self.context, self.node.id)
         self.assertFalse(acquire_mock.called)
         self.assertFalse(sync_mock.called)
 
@@ -1457,7 +1457,7 @@ class ManagerSyncPowerStatesTestCase(tests_base.TestCase):
                 columns=self.columns, filters=self.filters)
         mapped_mock.assert_called_once_with(self.node.uuid,
                                             self.node.driver)
-        get_node_mock.assert_called_once_with(self.node.id)
+        get_node_mock.assert_called_once_with(self.context, self.node.id)
         self.assertFalse(acquire_mock.called)
         self.assertFalse(sync_mock.called)
 
@@ -1473,7 +1473,7 @@ class ManagerSyncPowerStatesTestCase(tests_base.TestCase):
                 columns=self.columns, filters=self.filters)
         mapped_mock.assert_called_once_with(self.node.uuid,
                                             self.node.driver)
-        get_node_mock.assert_called_once_with(self.node.id)
+        get_node_mock.assert_called_once_with(self.context, self.node.id)
         self.assertFalse(acquire_mock.called)
         self.assertFalse(sync_mock.called)
 
@@ -1489,7 +1489,7 @@ class ManagerSyncPowerStatesTestCase(tests_base.TestCase):
                 columns=self.columns, filters=self.filters)
         mapped_mock.assert_called_once_with(self.node.uuid,
                                             self.node.driver)
-        get_node_mock.assert_called_once_with(self.node.id)
+        get_node_mock.assert_called_once_with(self.context, self.node.id)
         self.assertFalse(acquire_mock.called)
         self.assertFalse(sync_mock.called)
 
@@ -1507,7 +1507,7 @@ class ManagerSyncPowerStatesTestCase(tests_base.TestCase):
                 columns=self.columns, filters=self.filters)
         mapped_mock.assert_called_once_with(self.node.uuid,
                                             self.node.driver)
-        get_node_mock.assert_called_once_with(self.node.id)
+        get_node_mock.assert_called_once_with(self.context, self.node.id)
         acquire_mock.assert_called_once_with(self.context, self.node.id)
         self.assertFalse(sync_mock.called)
 
@@ -1527,7 +1527,7 @@ class ManagerSyncPowerStatesTestCase(tests_base.TestCase):
                 columns=self.columns, filters=self.filters)
         mapped_mock.assert_called_once_with(self.node.uuid,
                                             self.node.driver)
-        get_node_mock.assert_called_once_with(self.node.id)
+        get_node_mock.assert_called_once_with(self.context, self.node.id)
         acquire_mock.assert_called_once_with(self.context, self.node.id)
         self.assertFalse(sync_mock.called)
 
@@ -1546,7 +1546,7 @@ class ManagerSyncPowerStatesTestCase(tests_base.TestCase):
                 columns=self.columns, filters=self.filters)
         mapped_mock.assert_called_once_with(self.node.uuid,
                                             self.node.driver)
-        get_node_mock.assert_called_once_with(self.node.id)
+        get_node_mock.assert_called_once_with(self.context, self.node.id)
         acquire_mock.assert_called_once_with(self.context, self.node.id)
         self.assertFalse(sync_mock.called)
 
@@ -1565,7 +1565,7 @@ class ManagerSyncPowerStatesTestCase(tests_base.TestCase):
                 columns=self.columns, filters=self.filters)
         mapped_mock.assert_called_once_with(self.node.uuid,
                                             self.node.driver)
-        get_node_mock.assert_called_once_with(self.node.id)
+        get_node_mock.assert_called_once_with(self.context, self.node.id)
         acquire_mock.assert_called_once_with(self.context, self.node.id)
         self.assertFalse(sync_mock.called)
 
@@ -1583,7 +1583,7 @@ class ManagerSyncPowerStatesTestCase(tests_base.TestCase):
                 columns=self.columns, filters=self.filters)
         mapped_mock.assert_called_once_with(self.node.uuid,
                                             self.node.driver)
-        get_node_mock.assert_called_once_with(self.node.id)
+        get_node_mock.assert_called_once_with(self.context, self.node.id)
         acquire_mock.assert_called_once_with(self.context, self.node.id)
         sync_mock.assert_called_once_with(task)
 
@@ -1628,7 +1628,7 @@ class ManagerSyncPowerStatesTestCase(tests_base.TestCase):
                  self._create_task(dict(id=10, maintenance=True)),
                  self._create_task(dict(id=11))]
 
-        def _get_node_side_effect(node_id):
+        def _get_node_side_effect(ctxt, node_id):
             if node_id == 6:
                 # Make this node disappear
                 raise exception.NodeNotFound(node=node_id)
@@ -1649,7 +1649,8 @@ class ManagerSyncPowerStatesTestCase(tests_base.TestCase):
                 columns=self.columns, filters=self.filters)
         mapped_calls = [mock.call(n.uuid, n.driver) for n in nodes]
         self.assertEqual(mapped_calls, mapped_mock.call_args_list)
-        get_node_calls = [mock.call(n.id) for n in nodes[:1] + nodes[2:]]
+        get_node_calls = [mock.call(self.context, n.id)
+                for n in nodes[:1] + nodes[2:]]
         self.assertEqual(get_node_calls,
                          get_node_mock.call_args_list)
         acquire_calls = [mock.call(self.context, n.id)

@@ -83,6 +83,7 @@ from ironic.openstack.common import excutils
 from ironic.common import driver_factory
 from ironic.common import exception
 from ironic.db import api as dbapi
+from ironic import objects
 
 CONF = cfg.CONF
 
@@ -164,7 +165,7 @@ class TaskManager(object):
                     node = self.dbapi.reserve_nodes(CONF.host, [id])[0]
                     locked_node_list.append(node.id)
                 else:
-                    node = self.dbapi.get_node(id)
+                    node = objects.Node.get(context, id)
                 ports = self.dbapi.get_ports_by_node_id(node.id)
                 driver = driver_factory.get_driver(driver_name or node.driver)
 

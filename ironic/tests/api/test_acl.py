@@ -54,7 +54,7 @@ class TestACL(base.FunctionalTest):
         self.assertEqual(401, response.status_int)
 
     def test_authenticated(self):
-        with mock.patch.object(self.dbapi, 'get_node',
+        with mock.patch.object(self.dbapi, 'get_node_by_uuid',
                                autospec=True) as mock_get_node:
             mock_get_node.return_value = self.fake_db_node
 

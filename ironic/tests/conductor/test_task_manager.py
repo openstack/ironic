@@ -24,6 +24,7 @@ from ironic.common import exception
 from ironic.common import utils as ironic_utils
 from ironic.conductor import task_manager
 from ironic.db import api as dbapi
+from ironic import objects
 from ironic.openstack.common import context
 
 from ironic.tests.conductor import utils as mgr_utils
@@ -72,7 +73,7 @@ class TaskManagerTestCase(TaskManagerSetup):
 
     def test_task_manager_updates_db(self):
         node_uuid = self.uuids[0]
-        node = self.dbapi.get_node(node_uuid)
+        node = objects.Node.get_by_uuid(self.context, node_uuid)
         self.assertIsNone(node.reservation)
 
         with task_manager.acquire(self.context, node_uuid) as task:
@@ -93,7 +94,7 @@ class TaskManagerTestCase(TaskManagerSetup):
 
         # Ensure all reservations are cleared
         for uuid in self.uuids:
-            node = self.dbapi.get_node(uuid)
+            node = objects.Node.get_by_uuid(self.context, uuid)
             self.assertIsNone(node.reservation)
 
     def test_get_nodes_nested(self):
@@ -132,7 +133,7 @@ class TaskManagerTestCase(TaskManagerSetup):
         self.assertRaises(exception.NodeLocked,
                           task_manager.TaskManager,
                           self.context, node_uuid)
-        node = self.dbapi.get_node(node_uuid)
+        node = objects.Node.get_by_uuid(self.context, node_uuid)
         self.assertEqual('test-host', node.reservation)
 
     def test_get_many_nodes_some_already_locked(self):
@@ -146,10 +147,10 @@ class TaskManagerTestCase(TaskManagerSetup):
                           task_manager.TaskManager,
                           self.context,
                           self.uuids)
-        node = self.dbapi.get_node(locked_node_uuid)
+        node = objects.Node.get_by_uuid(self.context, locked_node_uuid)
         self.assertEqual('test-host', node.reservation)
         for uuid in unlocked_node_uuids:
-            node = self.dbapi.get_node(uuid)
+            node = objects.Node.get_by_uuid(self.context, uuid)
             self.assertIsNone(node.reservation)
 
     def test_get_one_node_driver_load_exception(self):
@@ -160,7 +161,7 @@ class TaskManagerTestCase(TaskManagerSetup):
                           driver_name='no-such-driver')
 
         # Check that db node reservation is not set.
-        node = self.dbapi.get_node(node_uuid)
+        node = objects.Node.get_by_uuid(self.context, node_uuid)
         self.assertIsNone(node.reservation)
 
 
@@ -188,7 +189,7 @@ class ExclusiveLockDecoratorTestCase(TaskManagerSetup):
             do_state_change(task)
 
         for uuid in self.uuids:
-            res = self.dbapi.get_node(uuid)
+            res = objects.Node.get_by_uuid(self.context, uuid)
             self.assertEqual('test-state', res.power_state)
 
     @task_manager.require_exclusive_lock
@@ -209,7 +210,7 @@ class ExclusiveLockDecoratorTestCase(TaskManagerSetup):
             self._do_state_change(task)
 
         for uuid in self.uuids:
-            res = self.dbapi.get_node(uuid)
+            res = objects.Node.get_by_uuid(self.context, uuid)
             self.assertEqual('test-state', res.power_state)
 
     def test_one_node_per_task_properties(self):
