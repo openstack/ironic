@@ -687,7 +687,7 @@ class ConductorManager(service.PeriodicService):
 
         """
         LOG.debug(_("RPC change_node_maintenance_mode called for node %(node)s"
-                    " with maintanence mode: %(mode)s") % {'node': node_id,
+                    " with maintenance mode: %(mode)s") % {'node': node_id,
                                                            'mode': mode})
 
         with task_manager.acquire(context, node_id, shared=True) as task:
