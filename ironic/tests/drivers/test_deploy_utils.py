@@ -20,6 +20,7 @@ import os
 import tempfile
 
 from ironic.common import exception
+from ironic.common import utils as common_utils
 from ironic.drivers.modules import deploy_utils as utils
 from ironic.tests import base as tests_base
 
@@ -400,3 +401,38 @@ class WorkOnDiskTestCase(tests_base.TestCase):
         self.assertEqual(self.mock_ibd.call_args_list, calls)
         self.mock_mp.assert_called_once_with(self.dev, self.root_mb,
                                              self.swap_mb, ephemeral_mb)
+
+
+@mock.patch.object(common_utils, 'execute')
+class MakePartitionsTestCase(tests_base.TestCase):
+
+    def setUp(self):
+        super(MakePartitionsTestCase, self).setUp()
+        self.dev = 'fake-dev'
+        self.root_mb = 1024
+        self.swap_mb = 512
+        self.ephemeral_mb = 0
+        self.parted_static_cmd = ['parted', '-a', 'optimal', '-s', self.dev,
+                                  '--', 'mklabel', 'msdos', 'unit', 'MiB']
+
+    def test_make_partitions(self, mock_exc):
+        expected_mkpart = ['mkpart', 'primary', '', '1', '1025',
+                           'mkpart', 'primary', 'linux-swap', '1025', '1537']
+        cmd = self.parted_static_cmd + expected_mkpart
+        utils.make_partitions(self.dev, self.root_mb, self.swap_mb,
+                              self.ephemeral_mb)
+        mock_exc.assert_called_once_with(*cmd,
+                                         run_as_root=True, attempts=3,
+                                         check_exit_code=[0])
+
+    def test_make_partitions_with_ephemeral(self, mock_exc):
+        self.ephemeral_mb = 2048
+        expected_mkpart = ['mkpart', 'primary', '', '1', '2049',
+                           'mkpart', 'primary', 'linux-swap', '2049', '2561',
+                           'mkpart', 'primary', '', '2561', '3585']
+        cmd = self.parted_static_cmd + expected_mkpart
+        utils.make_partitions(self.dev, self.root_mb, self.swap_mb,
+                              self.ephemeral_mb)
+        mock_exc.assert_called_once_with(*cmd,
+                                         run_as_root=True, attempts=3,
+                                         check_exit_code=[0])

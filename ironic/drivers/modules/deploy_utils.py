@@ -80,21 +80,25 @@ def delete_iscsi(portal_address, portal_port, target_iqn):
 
 def make_partitions(dev, root_mb, swap_mb, ephemeral_mb):
     """Create partitions for root and swap on a disk device."""
-    # Lead in with 1MB to allow room for the partition table itself, otherwise
-    # the way sfdisk adjusts doesn't shift the partition up to compensate, and
-    # we lose the space.
-    # http://bazaar.launchpad.net/~ubuntu-branches/ubuntu/raring/util-linux/
-    # raring/view/head:/fdisk/sfdisk.c#L1940
+    cmd = []
+
+    def add_partition(start, size, fs_type=''):
+        end = start + size
+        cmd.extend(['mkpart', 'primary', fs_type, str(start), str(end)])
+        return end
+
+    offset = 1
     if ephemeral_mb:
-        stdin_command = ('1,%d,83;\n,%d,82;\n,%d,83;\n0,0;\n' %
-                (ephemeral_mb, swap_mb, root_mb))
+        offset = add_partition(offset, ephemeral_mb)
+        offset = add_partition(offset, swap_mb, fs_type='linux-swap')
+        offset = add_partition(offset, root_mb)
     else:
-        stdin_command = ('1,%d,83;\n,%d,82;\n0,0;\n0,0;\n' %
-                (root_mb, swap_mb))
-    utils.execute('sfdisk', '-uM', dev, process_input=stdin_command,
-            run_as_root=True,
-            attempts=3,
-            check_exit_code=[0])
+        offset = add_partition(offset, root_mb)
+        offset = add_partition(offset, swap_mb, fs_type='linux-swap')
+
+    utils.execute('parted', '-a', 'optimal', '-s', dev, '--', 'mklabel',
+                  'msdos', 'unit', 'MiB', *cmd, run_as_root=True, attempts=3,
+                  check_exit_code=[0])
     # avoid "device is busy"
     time.sleep(3)
 
