@@ -66,6 +66,11 @@ def prepare_service(argv=[]):
                                          'eventlet.wsgi.server=WARN',
                                          'iso8601=WARN',
                                          'paramiko=WARN',
+                                         'amqp=WARN',
+                                         'requests=WARN',
+                                         'neutronclient=WARN',
+                                         'glanceclient=WARN',
+                                         'ironic.openstack.common=WARN',
                                          ])
     log.setup('ironic')
 
