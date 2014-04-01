@@ -219,9 +219,9 @@ class NodePowerActionTestCase(base.DbTestCase):
                 self.assertIsNone(node['target_power_state'])
                 self.assertIsNone(node['last_error'])
 
-    def test_node_power_action_invalid_driver_info(self):
-        """Test if an exception is thrown when the driver validation
-        fails.
+    def test_node_power_action_failed_getting_state(self):
+        """Test if an exception is thrown when we can't get the
+        current power state.
         """
         ndict = utils.get_test_node(uuid=cmn_utils.generate_uuid(),
                                     driver='fake',
@@ -229,10 +229,10 @@ class NodePowerActionTestCase(base.DbTestCase):
         node = self.dbapi.create_node(ndict)
         task = task_manager.TaskManager(self.context, node.uuid)
 
-        with mock.patch.object(self.driver.power, 'validate') \
-                as validate_mock:
-            validate_mock.side_effect = exception.InvalidParameterValue(
-                'wrong power driver info')
+        with mock.patch.object(self.driver.power, 'get_power_state') \
+                as get_power_state_mock:
+            get_power_state_mock.side_effect = \
+                exception.InvalidParameterValue('failed getting power state')
 
             self.assertRaises(exception.InvalidParameterValue,
                               conductor_utils.node_power_action,
@@ -241,7 +241,7 @@ class NodePowerActionTestCase(base.DbTestCase):
                               states.POWER_ON)
 
             node.refresh(self.context)
-            validate_mock.assert_called_once_with(mock.ANY, mock.ANY)
+            get_power_state_mock.assert_called_once_with(mock.ANY, mock.ANY)
             self.assertEqual(states.POWER_ON, node['power_state'])
             self.assertIsNone(node['target_power_state'])
             self.assertIsNotNone(node['last_error'])
