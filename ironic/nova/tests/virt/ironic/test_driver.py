@@ -578,80 +578,125 @@ class IronicDriverTestCase(test.NoDBTestCase):
                                                 instance['instance_type_id'])
             mock_cleanup_deploy.assert_called_once_with(node, instance, None)
 
-    def test_destroy(self):
+    def test_spawn_node_trigger_deploy_fail2(self):
         node_uuid = 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee'
-        network_info = 'foo'
-
         node = get_test_node(driver='fake', uuid=node_uuid)
         instance = fake_instance.fake_instance_obj(self.ctx, node=node_uuid)
 
-        mock_get_by_iuuid = mock.patch.object(
-            FAKE_CLIENT.node, 'get_by_instance_uuid').start()
-        mock_get_by_iuuid.return_value = node
-        self.addCleanup(mock_get_by_iuuid.stop)
-        mock_sps = mock.patch.object(FAKE_CLIENT.node,
-                                     'set_provision_state').start()
-        self.addCleanup(mock_sps.stop)
-        mock_update = mock.patch.object(FAKE_CLIENT.node, 'update').start()
-        self.addCleanup(mock_update.stop)
-        mock_cleanupd = mock.patch.object(
+        mock_get = mock.patch.object(FAKE_CLIENT.node, 'get').start()
+        mock_get.return_value = node
+        self.addCleanup(mock_get.stop)
+        mock_validate = mock.patch.object(FAKE_CLIENT.node, 'validate').start()
+        mock_validate.return_value = get_test_validation()
+        self.addCleanup(mock_validate.stop)
+
+        mock_fg_bid = mock.patch.object(flavor_obj, 'get_by_id').start()
+        self.addCleanup(mock_fg_bid.stop)
+        mock_pvifs = mock.patch.object(self.driver, '_plug_vifs').start()
+        self.addCleanup(mock_pvifs.stop)
+        mock_sf = mock.patch.object(self.driver, '_start_firewall').start()
+        self.addCleanup(mock_sf.stop)
+        mock_cleanup_deploy = mock.patch.object(
             self.driver, '_cleanup_deploy').start()
-        self.addCleanup(mock_cleanupd.stop)
+        self.addCleanup(mock_cleanup_deploy.stop)
 
-        self.driver.destroy(self.ctx, instance, network_info, None)
-        mock_sps.assert_called_once_with(node_uuid, 'deleted')
-        mock_get_by_iuuid.assert_called_with(instance.uuid)
-        mock_cleanupd.assert_called_with(node, instance, network_info)
+        with mock.patch.object(FAKE_CLIENT.node, 'set_provision_state') \
+                as mock_sps:
+            mock_sps.side_effect = ironic_exception.HTTPBadRequest
+            self.assertRaises(exception.InstanceDeployFailure,
+                              self.driver.spawn,
+                              self.ctx, instance, None, [], None)
 
-    def test_destroy_trigger_undeploy_fail(self):
+            mock_get.assert_called_once_with(node_uuid)
+            mock_validate.assert_called_once_with(node_uuid)
+            mock_fg_bid.assert_called_once_with(self.ctx,
+                                                instance['instance_type_id'])
+            mock_cleanup_deploy.assert_called_once_with(node, instance, None)
+
+    @mock.patch.object(FAKE_CLIENT.node, 'update')
+    @mock.patch.object(FAKE_CLIENT.node, 'set_provision_state')
+    @mock.patch.object(FAKE_CLIENT.node, 'get_by_instance_uuid')
+    def test_destroy(self, mock_get_by_iuuid, mock_sps, mock_update):
         node_uuid = 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee'
-        node = get_test_node(driver='fake', uuid=node_uuid)
-        with mock.patch.object(ironic_driver, 'validate_instance_and_node') \
-            as fake_validate:
-            fake_validate.return_value = node
-            instance = fake_instance.fake_instance_obj(self.ctx,
-                                                       node=node_uuid)
-            with mock.patch.object(FAKE_CLIENT.node, 'set_provision_state') \
-                    as mock_sps:
-                mock_sps.side_effect = ironic_driver.MaximumRetriesReached
-                self.assertRaises(exception.NovaException, self.driver.destroy,
-                              self.ctx, instance, None, None)
+        network_info = 'foo'
 
-    def test_destroy_unprovision_fail(self):
+        node = get_test_node(driver='fake', uuid=node_uuid,
+                             provision_state=ironic_states.ACTIVE)
+        instance = fake_instance.fake_instance_obj(self.ctx, node=node_uuid)
+
+        def fake_set_provision_state(*_):
+            node.provision_state = None
+
+        mock_get_by_iuuid.return_value = node
+        mock_sps.side_effect = fake_set_provision_state
+        with mock.patch.object(self.driver, '_cleanup_deploy') \
+                as mock_cleanupd:
+            self.driver.destroy(self.ctx, instance, network_info, None)
+            mock_sps.assert_called_once_with(node_uuid, 'deleted')
+            mock_get_by_iuuid.assert_called_with(instance.uuid)
+            mock_cleanupd.assert_called_with(node, instance, network_info)
+
+    @mock.patch.object(FAKE_CLIENT.node, 'update')
+    @mock.patch.object(FAKE_CLIENT.node, 'set_provision_state')
+    @mock.patch.object(FAKE_CLIENT.node, 'get_by_instance_uuid')
+    def test_destroy_ignore_unexpected_state(self, mock_get_by_iuuid,
+                                             mock_sps, mock_update):
+        node_uuid = 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee'
+        network_info = 'foo'
+
+        node = get_test_node(driver='fake', uuid=node_uuid,
+                             provision_state=ironic_states.DELETING)
+        instance = fake_instance.fake_instance_obj(self.ctx, node=node_uuid)
+
+        mock_get_by_iuuid.return_value = node
+        with mock.patch.object(self.driver, '_cleanup_deploy') \
+                as mock_cleanupd:
+            self.driver.destroy(self.ctx, instance, network_info, None)
+            self.assertFalse(mock_sps.called)
+            mock_get_by_iuuid.assert_called_with(instance.uuid)
+            mock_cleanupd.assert_called_with(node, instance, network_info)
+
+    @mock.patch.object(FAKE_CLIENT.node, 'set_provision_state')
+    @mock.patch.object(ironic_driver, 'validate_instance_and_node')
+    def test_destroy_trigger_undeploy_fail(self, fake_validate, mock_sps):
+        node_uuid = 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee'
+        node = get_test_node(driver='fake', uuid=node_uuid,
+                             provision_state=ironic_states.ACTIVE)
+        fake_validate.return_value = node
+        instance = fake_instance.fake_instance_obj(self.ctx,
+                                                   node=node_uuid)
+        mock_sps.side_effect = ironic_driver.MaximumRetriesReached
+        self.assertRaises(exception.NovaException, self.driver.destroy,
+                          self.ctx, instance, None, None)
+
+    @mock.patch.object(FAKE_CLIENT.node, 'set_provision_state')
+    @mock.patch.object(FAKE_CLIENT.node, 'get_by_instance_uuid')
+    def test_destroy_unprovision_fail(self, mock_get_by_iuuid, mock_sps):
         CONF.set_default('api_max_retries', default=1, group='ironic')
         CONF.set_default('api_retry_interval', default=0, group='ironic')
 
         node_uuid = 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee'
         node = get_test_node(driver='fake', uuid=node_uuid,
-                             provision_state='fake-state')
+                             provision_state=ironic_states.ACTIVE)
         instance = fake_instance.fake_instance_obj(self.ctx, node=node_uuid)
 
-        mock_get_by_iuuid = mock.patch.object(
-            FAKE_CLIENT.node, 'get_by_instance_uuid').start()
+        def fake_set_provision_state(*_):
+            node.provision_state = ironic_states.ERROR
+
         mock_get_by_iuuid.return_value = node
-        self.addCleanup(mock_get_by_iuuid.stop)
-
-        mock_sps = mock.patch.object(FAKE_CLIENT.node,
-                                     'set_provision_state').start()
-        self.addCleanup(mock_sps.stop)
-
         self.assertRaises(exception.NovaException, self.driver.destroy,
                           self.ctx, instance, None, None)
         mock_sps.assert_called_once_with(node_uuid, 'deleted')
 
-    def test_destroy_unassociate_fail(self):
+    @mock.patch.object(FAKE_CLIENT.node, 'set_provision_state')
+    @mock.patch.object(FAKE_CLIENT.node, 'get_by_instance_uuid')
+    def test_destroy_unassociate_fail(self, mock_get_by_iuuid, mock_sps):
         node_uuid = 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee'
-        node = get_test_node(driver='fake', uuid=node_uuid)
+        node = get_test_node(driver='fake', uuid=node_uuid,
+                             provision_state=ironic_states.ACTIVE)
         instance = fake_instance.fake_instance_obj(self.ctx, node=node_uuid)
 
-        mock_get_by_iuuid = mock.patch.object(
-            FAKE_CLIENT.node, 'get_by_instance_uuid').start()
         mock_get_by_iuuid.return_value = node
-        self.addCleanup(mock_get_by_iuuid.stop)
-        mock_sps = mock.patch.object(FAKE_CLIENT.node,
-                                     'set_provision_state').start()
-        self.addCleanup(mock_sps.stop)
-
         with mock.patch.object(FAKE_CLIENT.node, 'update') as mock_update:
             mock_update.side_effect = ironic_driver.MaximumRetriesReached()
             self.assertRaises(exception.NovaException, self.driver.destroy,
