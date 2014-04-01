@@ -41,6 +41,14 @@ class TestListChassis(base.FunctionalTest):
         self.assertNotIn('extra', data['chassis'][0])
         self.assertNotIn('nodes', data['chassis'][0])
 
+    def test_get_one(self):
+        cdict = dbutils.get_test_chassis()
+        chassis = self.dbapi.create_chassis(cdict)
+        data = self.get_json('/chassis/%s' % chassis['uuid'])
+        self.assertEqual(chassis['uuid'], data['uuid'])
+        self.assertIn('extra', data)
+        self.assertIn('nodes', data)
+
     def test_detail(self):
         cdict = dbutils.get_test_chassis()
         chassis = self.dbapi.create_chassis(cdict)

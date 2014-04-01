@@ -97,6 +97,20 @@ class TestListNodes(base.FunctionalTest):
         # never expose the chassis_id
         self.assertNotIn('chassis_id', data['nodes'][0])
 
+    def test_get_one(self):
+        ndict = dbutils.get_test_node()
+        node = self.dbapi.create_node(ndict)
+        data = self.get_json('/nodes/%s' % node['uuid'])
+        self.assertEqual(node['uuid'], data['uuid'])
+        self.assertIn('driver', data)
+        self.assertIn('driver_info', data)
+        self.assertIn('extra', data)
+        self.assertIn('properties', data)
+        self.assertIn('chassis_uuid', data)
+        self.assertIn('reservation', data)
+        # never expose the chassis_id
+        self.assertNotIn('chassis_id', data)
+
     def test_detail(self):
         ndict = dbutils.get_test_node()
         node = self.dbapi.create_node(ndict)
