@@ -60,6 +60,16 @@ class TestListPorts(base.FunctionalTest):
         # never expose the node_id
         self.assertNotIn('node_id', data['ports'][0])
 
+    def test_get_one(self):
+        pdict = dbutils.get_test_port()
+        port = self.dbapi.create_port(pdict)
+        data = self.get_json('/ports/%s' % port['uuid'])
+        self.assertEqual(port['uuid'], data['uuid'])
+        self.assertIn('extra', data)
+        self.assertIn('node_uuid', data)
+        # never expose the node_id
+        self.assertNotIn('node_id', data)
+
     def test_detail(self):
         pdict = dbutils.get_test_port()
         port = self.dbapi.create_port(pdict)
