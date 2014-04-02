@@ -37,8 +37,8 @@ class FakeDriverTestCase(base.TestCase):
         self.dbapi = db_api.get_instance()
         mgr_utils.mock_the_extension_manager()
         self.driver = driver_factory.get_driver("fake")
-        self.node = db_utils.get_test_node()
-        self.dbapi.create_node(self.node)
+        db_node = db_utils.get_test_node()
+        self.node = self.dbapi.create_node(db_node)
 
     def test_driver_interfaces(self):
         # fake driver implements only 3 out of 5 interfaces
@@ -51,7 +51,7 @@ class FakeDriverTestCase(base.TestCase):
 
     def test_power_interface(self):
         with task_manager.acquire(self.context,
-                                  [self.node['uuid']]) as task:
+                                  [self.node.uuid]) as task:
             self.driver.power.validate(task, self.node)
             self.driver.power.get_power_state(task, self.node)
             self.assertRaises(exception.InvalidParameterValue,
