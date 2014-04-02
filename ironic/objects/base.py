@@ -15,6 +15,7 @@
 """Ironic common internal object model"""
 
 import collections
+import copy
 
 import six
 
@@ -24,9 +25,14 @@ from ironic.openstack.common import context
 from ironic.openstack.common import log as logging
 from ironic.openstack.common.rpc import common as rpc_common
 from ironic.openstack.common.rpc import serializer as rpc_serializer
+from ironic.openstack.common import versionutils
 
 
 LOG = logging.getLogger('object')
+
+
+class NotSpecifiedSentinel:
+    pass
 
 
 def get_attrname(name):
@@ -35,8 +41,18 @@ def get_attrname(name):
 
 
 def make_class_properties(cls):
-    # NOTE(danms): Inherit IronicObject's base fields only
-    cls.fields.update(IronicObject.fields)
+    # NOTE(danms/comstud): Inherit fields from super classes.
+    # mro() returns the current class first and returns 'object' last, so
+    # those can be skipped.  Also be careful to not overwrite any fields
+    # that already exist.  And make sure each cls has its own copy of
+    # fields and that it is not sharing the dict with a super class.
+    cls.fields = dict(cls.fields)
+    for supercls in cls.mro()[1:-1]:
+        if not hasattr(supercls, 'fields'):
+            continue
+        for name, field in supercls.fields.items():
+            if name not in cls.fields:
+                cls.fields[name] = field
     for name, typefn in cls.fields.iteritems():
 
         def getter(self, name=name):
@@ -86,7 +102,7 @@ def remotable_classmethod(fn):
     def wrapper(cls, context, *args, **kwargs):
         if IronicObject.indirection_api:
             result = IronicObject.indirection_api.object_class_action(
-                context, cls.obj_name(), fn.__name__, cls.version,
+                context, cls.obj_name(), fn.__name__, cls.VERSION,
                 args, kwargs)
         else:
             result = fn(cls, context, *args, **kwargs)
@@ -164,7 +180,7 @@ class IronicObject(object):
     """
 
     # Version of this object (see rules above check_object_version())
-    version = '1.0'
+    VERSION = '1.0'
 
     # The fields present in this object as key:typefn pairs. For example:
     #
@@ -182,9 +198,15 @@ class IronicObject(object):
         }
     obj_extra_fields = []
 
-    def __init__(self):
+    _attr_created_at_from_primitive = obj_utils.dt_deserializer
+    _attr_updated_at_from_primitive = obj_utils.dt_deserializer
+    _attr_created_at_to_primitive = obj_utils.dt_serializer('created_at')
+    _attr_updated_at_to_primitive = obj_utils.dt_serializer('updated_at')
+
+    def __init__(self, context=None, **kwargs):
         self._changed_fields = set()
-        self._context = None
+        self._context = context
+        self.update(kwargs)
 
     @classmethod
     def obj_name(cls):
@@ -201,24 +223,28 @@ class IronicObject(object):
                         '%(objtype)s') % dict(objtype=objname))
             raise exception.UnsupportedObjectError(objtype=objname)
 
+        latest = None
         compatible_match = None
         for objclass in cls._obj_classes[objname]:
-            if objclass.version == objver:
+            if objclass.VERSION == objver:
                 return objclass
-            try:
-                check_object_version(objclass.version, objver)
+
+            version_bits = tuple([int(x) for x in objclass.VERSION.split(".")])
+            if latest is None:
+                latest = version_bits
+            elif latest < version_bits:
+                latest = version_bits
+
+            if versionutils.is_compatible(objver, objclass.VERSION):
                 compatible_match = objclass
-            except exception.IncompatibleObjectVersion:
-                pass
 
         if compatible_match:
             return compatible_match
 
+        latest_ver = '%i.%i' % latest
         raise exception.IncompatibleObjectVersion(objname=objname,
-                                                  objver=objver)
-
-    _attr_created_at_from_primitive = obj_utils.dt_deserializer
-    _attr_updated_at_from_primitive = obj_utils.dt_deserializer
+                                                  objver=objver,
+                                                  supported=latest_ver)
 
     def _attr_from_primitive(self, attribute, value):
         """Attribute deserialization dispatcher.
@@ -231,6 +257,20 @@ class IronicObject(object):
         if hasattr(self, handler):
             return getattr(self, handler)(value)
         return value
+
+    @classmethod
+    def _obj_from_primitive(cls, context, objver, primitive):
+        self = cls()
+        self._context = context
+        self.VERSION = objver
+        objdata = primitive['ironic_object.data']
+        changes = primitive.get('ironic_object.changes', [])
+        for name in self.fields:
+            if name in objdata:
+                setattr(self, name,
+                        self._attr_from_primitive(name, objdata[name]))
+        self._changed_fields = set([x for x in changes if x in self.fields])
+        return self
 
     @classmethod
     def obj_from_primitive(cls, primitive, context=None):
@@ -246,20 +286,30 @@ class IronicObject(object):
                                    primitive['ironic_object.name']))
         objname = primitive['ironic_object.name']
         objver = primitive['ironic_object.version']
-        objdata = primitive['ironic_object.data']
         objclass = cls.obj_class_from_name(objname, objver)
-        self = objclass()
-        self._context = context
-        for name in self.fields:
-            if name in objdata:
-                setattr(self, name,
-                        self._attr_from_primitive(name, objdata[name]))
-        changes = primitive.get('ironic_object.changes', [])
-        self._changed_fields = set([x for x in changes if x in self.fields])
-        return self
+        return objclass._obj_from_primitive(context, objver, primitive)
 
-    _attr_created_at_to_primitive = obj_utils.dt_serializer('created_at')
-    _attr_updated_at_to_primitive = obj_utils.dt_serializer('updated_at')
+    def __deepcopy__(self, memo):
+        """Efficiently make a deep copy of this object."""
+
+        # NOTE(danms): A naive deepcopy would copy more than we need,
+        # and since we have knowledge of the volatile bits of the
+        # object, we can be smarter here. Also, nested entities within
+        # some objects may be uncopyable, so we can avoid those sorts
+        # of issues by copying only our field data.
+
+        nobj = self.__class__()
+        nobj._context = self._context
+        for name in self.fields:
+            if self.obj_attr_is_set(name):
+                nval = copy.deepcopy(getattr(self, name), memo)
+                setattr(nobj, name, nval)
+        nobj._changed_fields = set(self._changed_fields)
+        return nobj
+
+    def obj_clone(self):
+        """Create a copy."""
+        return copy.deepcopy(self)
 
     def _attr_to_primitive(self, attribute):
         """Attribute serialization dispatcher.
@@ -285,7 +335,7 @@ class IronicObject(object):
                 primitive[name] = self._attr_to_primitive(name)
         obj = {'ironic_object.name': self.obj_name(),
                'ironic_object.namespace': 'ironic',
-               'ironic_object.version': self.version,
+               'ironic_object.version': self.VERSION,
                'ironic_object.data': primitive}
         if self.obj_what_changed():
             obj['ironic_object.changes'] = list(self.obj_what_changed())
@@ -330,6 +380,23 @@ class IronicObject(object):
         else:
             self._changed_fields.clear()
 
+    def obj_attr_is_set(self, attrname):
+        """Test object to see if attrname is present.
+
+        Returns True if the named attribute has a value set, or
+        False if not. Raises AttributeError if attrname is not
+        a valid attribute for this object.
+        """
+        if attrname not in self.obj_fields:
+            raise AttributeError(
+                _("%(objname)s object has no attribute '%(attrname)s'") %
+                {'objname': self.obj_name(), 'attrname': attrname})
+        return hasattr(self, get_attrname(attrname))
+
+    @property
+    def obj_fields(self):
+        return self.fields.keys() + self.obj_extra_fields
+
     # dictish syntactic sugar
     def iteritems(self):
         """For backwards-compatibility with dict-based objects.
@@ -364,12 +431,18 @@ class IronicObject(object):
         """
         return hasattr(self, get_attrname(name))
 
-    def get(self, key, value=None):
+    def get(self, key, value=NotSpecifiedSentinel):
         """For backwards-compatibility with dict-based objects.
 
         NOTE(danms): May be removed in the future.
         """
-        return self[key]
+        if key not in self.obj_fields:
+            raise AttributeError("'%s' object has no attribute '%s'" % (
+                    self.__class__, key))
+        if value != NotSpecifiedSentinel and not self.obj_attr_is_set(key):
+            return value
+        else:
+            return self[key]
 
     def update(self, updates):
         """For backwards-compatibility with dict-base objects.
