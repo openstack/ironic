@@ -208,11 +208,11 @@ class Connection(object):
         """
 
     @abc.abstractmethod
-    def get_ports_by_node(self, node_id, limit=None, marker=None,
-                          sort_key=None, sort_dir=None):
+    def get_ports_by_node_id(self, node_id, limit=None, marker=None,
+                             sort_key=None, sort_dir=None):
         """List all the ports for a given node.
 
-        :param node_id: The id or uuid of a node.
+        :param node_id: The integer node ID.
         :param limit: Maximum number of ports to return.
         :param marker: the last item of the previous page; we return the next
                        result set.

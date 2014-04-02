@@ -165,7 +165,7 @@ class TaskManager(object):
                     locked_node_list.append(node.id)
                 else:
                     node = self.dbapi.get_node(id)
-                ports = self.dbapi.get_ports_by_node(id)
+                ports = self.dbapi.get_ports_by_node_id(node.id)
                 driver = driver_factory.get_driver(driver_name or node.driver)
 
                 self.resources.append(NodeResource(node, ports, driver))

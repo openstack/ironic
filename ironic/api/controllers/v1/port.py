@@ -175,10 +175,15 @@ class PortsController(rest.RestController):
                                                   marker)
 
         if node_uuid:
-            ports = pecan.request.dbapi.get_ports_by_node(node_uuid, limit,
-                                                          marker_obj,
-                                                          sort_key=sort_key,
-                                                          sort_dir=sort_dir)
+            # FIXME(comstud): Since all we need is the node ID, we can
+            #                 make this more efficient by only querying
+            #                 for that column. This will get cleaned up
+            #                 as we move to the object interface.
+            node = pecan.request.dbapi.get_node(node_uuid)
+            ports = pecan.request.dbapi.get_ports_by_node_id(node.id, limit,
+                                                             marker_obj,
+                                                             sort_key=sort_key,
+                                                             sort_dir=sort_dir)
         elif address:
             ports = self._get_ports_by_address(address)
         else:
