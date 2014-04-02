@@ -324,8 +324,13 @@ class Node(base.APIBase):
     "Links to the collection of ports on this node"
 
     def __init__(self, **kwargs):
-        self.fields = objects.Node.fields.keys()
-        for k in self.fields:
+        self.fields = []
+        fields = objects.Node.fields.keys()
+        for k in fields:
+            # Skip fields we do not expose.
+            if not hasattr(self, k):
+                continue
+            self.fields.append(k)
             setattr(self, k, kwargs.get(k))
 
         # NOTE(lucasagomes): chassis_uuid is not part of objects.Node.fields
@@ -650,8 +655,13 @@ class NodesController(rest.RestController):
 
         # Update only the fields that have changed
         for field in objects.Node.fields:
-            if rpc_node[field] != getattr(node, field):
-                rpc_node[field] = getattr(node, field)
+            try:
+                patch_val = getattr(node, field)
+            except AttributeError:
+                # Ignore fields that aren't exposed in the API
+                continue
+            if rpc_node[field] != patch_val:
+                rpc_node[field] = patch_val
 
         # NOTE(deva): we calculate the rpc topic here in case node.driver
         #             has changed, so that update is sent to the

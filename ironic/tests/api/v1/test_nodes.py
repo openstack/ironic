@@ -656,6 +656,17 @@ class TestPost(base.FunctionalTest):
                 result['created_at']).replace(tzinfo=None)
         self.assertEqual(test_time, return_created_at)
 
+    def test_create_node_doesnt_contain_id(self):
+        with mock.patch.object(self.dbapi, 'create_node',
+                               wraps=self.dbapi.create_node) as cn_mock:
+            ndict = post_get_test_node(extra={'foo': 123})
+            self.post_json('/nodes', ndict)
+            result = self.get_json('/nodes/%s' % ndict['uuid'])
+            self.assertEqual(ndict['extra'], result['extra'])
+            cn_mock.assert_called_once_with(mock.ANY)
+            # Check that 'id' is not in first arg of positional args
+            self.assertNotIn('id', cn_mock.call_args[0][0])
+
     def test_create_node_valid_extra(self):
         ndict = post_get_test_node(extra={'foo': 123})
         self.post_json('/nodes', ndict)
