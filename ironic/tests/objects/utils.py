@@ -29,3 +29,12 @@ def get_test_node(ctxt, **kw):
     for key in db_node:
         setattr(node, key, db_node[key])
     return node
+
+
+def create_test_node(ctxt, **kw):
+    """Create a node in the DB and return a Node object with appropriate
+    attributes.
+    """
+    node = get_test_node(ctxt, **kw)
+    node.create()
+    return node

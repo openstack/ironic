@@ -274,10 +274,9 @@ class IPMIToolDriverTestCase(db_base.DbTestCase):
         mgr_utils.mock_the_extension_manager(driver="fake_ipmitool")
         self.driver = driver_factory.get_driver("fake_ipmitool")
 
-        db_node = db_utils.get_test_node(
-                driver='fake_ipmitool',
-                driver_info=INFO_DICT)
-        self.node = self.dbapi.create_node(db_node)
+        self.node = obj_utils.create_test_node(self.context,
+                                               driver='fake_ipmitool',
+                                               driver_info=INFO_DICT)
         self.info = ipmi._parse_driver_info(self.node)
 
     def test_get_power_state(self):

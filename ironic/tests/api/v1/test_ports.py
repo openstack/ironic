@@ -29,6 +29,7 @@ from ironic.openstack.common import timeutils
 from ironic.tests.api import base
 from ironic.tests.api import utils as apiutils
 from ironic.tests.db import utils as dbutils
+from ironic.tests.objects import utils as obj_utils
 
 
 # NOTE(lucasagomes): When creating a port via API (POST)
@@ -45,8 +46,7 @@ class TestListPorts(base.FunctionalTest):
 
     def setUp(self):
         super(TestListPorts, self).setUp()
-        ndict = dbutils.get_test_node()
-        self.node = self.dbapi.create_node(ndict)
+        self.node = obj_utils.create_test_node(context.get_admin_context())
 
     def test_empty(self):
         data = self.get_json('/ports')
@@ -179,10 +179,9 @@ class TestPatch(base.FunctionalTest):
 
     def setUp(self):
         super(TestPatch, self).setUp()
-        ndict = dbutils.get_test_node()
-        self.node = self.dbapi.create_node(ndict)
-        pdict = dbutils.get_test_port(id=None)
-        self.port = self.dbapi.create_port(pdict)
+        self.node = obj_utils.create_test_node(context.get_admin_context())
+        self.pdict = dbutils.get_test_port(id=None)
+        self.port = self.dbapi.create_port(self.pdict)
 
         p = mock.patch.object(rpcapi.ConductorAPI, 'get_topic_for')
         self.mock_gtf = p.start()
@@ -438,8 +437,7 @@ class TestPost(base.FunctionalTest):
 
     def setUp(self):
         super(TestPost, self).setUp()
-        ndict = dbutils.get_test_node()
-        self.node = self.dbapi.create_node(ndict)
+        self.node = obj_utils.create_test_node(context.get_admin_context())
 
     @mock.patch.object(timeutils, 'utcnow')
     def test_create_port(self, mock_utcnow):
@@ -555,8 +553,7 @@ class TestDelete(base.FunctionalTest):
 
     def setUp(self):
         super(TestDelete, self).setUp()
-        ndict = dbutils.get_test_node()
-        self.node = self.dbapi.create_node(ndict)
+        self.node = obj_utils.create_test_node(context.get_admin_context())
         pdict = dbutils.get_test_port()
         self.dbapi.create_port(pdict)
 

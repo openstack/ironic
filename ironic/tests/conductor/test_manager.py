@@ -42,6 +42,7 @@ from ironic.tests import base as tests_base
 from ironic.tests.conductor import utils as mgr_utils
 from ironic.tests.db import base as tests_db_base
 from ironic.tests.db import utils
+from ironic.tests.objects import utils as obj_utils
 
 CONF = cfg.CONF
 
@@ -131,9 +132,9 @@ class ManagerTestCase(tests_db_base.DbTestCase):
     def test_change_node_power_state_power_on(self):
         # Test change_node_power_state including integration with
         # conductor.utils.node_power_action and lower.
-        n = utils.get_test_node(driver='fake',
-                                power_state=states.POWER_OFF)
-        db_node = self.dbapi.create_node(n)
+        node = obj_utils.create_test_node(self.context,
+                                          driver='fake',
+                                          power_state=states.POWER_OFF)
         self._start_service()
 
         with mock.patch.object(self.driver.power, 'get_power_state') \
@@ -141,18 +142,18 @@ class ManagerTestCase(tests_db_base.DbTestCase):
             get_power_mock.return_value = states.POWER_OFF
 
             self.service.change_node_power_state(self.context,
-                                                 db_node.uuid,
+                                                 node.uuid,
                                                  states.POWER_ON)
             self.service._worker_pool.waitall()
 
             get_power_mock.assert_called_once_with(mock.ANY, mock.ANY)
-            db_node.refresh(self.context)
-            self.assertEqual(states.POWER_ON, db_node.power_state)
-            self.assertIsNone(db_node.target_power_state)
-            self.assertIsNone(db_node.last_error)
+            node.refresh()
+            self.assertEqual(states.POWER_ON, node.power_state)
+            self.assertIsNone(node.target_power_state)
+            self.assertIsNone(node.last_error)
             # Verify the reservation has been cleared by
             # background task's link callback.
-            self.assertIsNone(db_node.reservation)
+            self.assertIsNone(node.reservation)
 
     @mock.patch.object(conductor_utils, 'node_power_action')
     def test_change_node_power_state_node_already_locked(self,
@@ -161,16 +162,15 @@ class ManagerTestCase(tests_db_base.DbTestCase):
         # conductor.utils.node_power_action.
         fake_reservation = 'fake-reserv'
         pwr_state = states.POWER_ON
-        n = utils.get_test_node(driver='fake',
-                                power_state=pwr_state,
-                                reservation=fake_reservation)
-        db_node = self.dbapi.create_node(n)
+        node = obj_utils.create_test_node(self.context, driver='fake',
+                                          power_state=pwr_state,
+                                          reservation=fake_reservation)
         self._start_service()
 
         exc = self.assertRaises(messaging.rpc.ExpectedException,
                                 self.service.change_node_power_state,
                                 self.context,
-                                db_node.uuid,
+                                node.uuid,
                                 states.POWER_ON)
         # Compare true exception hidden by @messaging.expected_exceptions
         self.assertEqual(exception.NodeLocked, exc.exc_info[0])
@@ -181,16 +181,15 @@ class ManagerTestCase(tests_db_base.DbTestCase):
         self.assertFalse(pwr_act_mock.called, 'node_power_action has been '
                                               'unexpectedly called.')
         # Verify existing reservation wasn't broken.
-        db_node.refresh(self.context)
-        self.assertEqual(fake_reservation, db_node.reservation)
+        node.refresh()
+        self.assertEqual(fake_reservation, node.reservation)
 
     def test_change_node_power_state_worker_pool_full(self):
         # Test change_node_power_state including integration with
         # conductor.utils.node_power_action and lower.
         initial_state = states.POWER_OFF
-        n = utils.get_test_node(driver='fake',
-                                power_state=initial_state)
-        db_node = self.dbapi.create_node(n)
+        node = obj_utils.create_test_node(self.context, driver='fake',
+                                          power_state=initial_state)
         self._start_service()
 
         with mock.patch.object(self.service, '_spawn_worker') \
@@ -200,28 +199,27 @@ class ManagerTestCase(tests_db_base.DbTestCase):
             exc = self.assertRaises(messaging.rpc.ExpectedException,
                                     self.service.change_node_power_state,
                                     self.context,
-                                    db_node.uuid,
+                                    node.uuid,
                                     states.POWER_ON)
             # Compare true exception hidden by @messaging.expected_exceptions
             self.assertEqual(exception.NoFreeConductorWorker, exc.exc_info[0])
 
             spawn_mock.assert_called_once_with(mock.ANY, mock.ANY,
                                                mock.ANY, mock.ANY)
-            db_node.refresh(self.context)
-            self.assertEqual(initial_state, db_node.power_state)
-            self.assertIsNone(db_node.target_power_state)
-            self.assertIsNone(db_node.last_error)
+            node.refresh()
+            self.assertEqual(initial_state, node.power_state)
+            self.assertIsNone(node.target_power_state)
+            self.assertIsNone(node.last_error)
             # Verify the picked reservation has been cleared due to full pool.
-            self.assertIsNone(db_node.reservation)
+            self.assertIsNone(node.reservation)
 
     def test_change_node_power_state_exception_in_background_task(
             self):
         # Test change_node_power_state including integration with
         # conductor.utils.node_power_action and lower.
         initial_state = states.POWER_OFF
-        n = utils.get_test_node(driver='fake',
-                                power_state=initial_state)
-        db_node = self.dbapi.create_node(n)
+        node = obj_utils.create_test_node(self.context, driver='fake',
+                                          power_state=initial_state)
         self._start_service()
 
         with mock.patch.object(self.driver.power, 'get_power_state') \
@@ -236,28 +234,27 @@ class ManagerTestCase(tests_db_base.DbTestCase):
                 )
 
                 self.service.change_node_power_state(self.context,
-                                                     db_node.uuid,
+                                                     node.uuid,
                                                      new_state)
                 self.service._worker_pool.waitall()
 
                 get_power_mock.assert_called_once_with(mock.ANY, mock.ANY)
                 set_power_mock.assert_called_once_with(mock.ANY, mock.ANY,
                                                        new_state)
-                db_node.refresh(self.context)
-                self.assertEqual(initial_state, db_node.power_state)
-                self.assertIsNone(db_node.target_power_state)
-                self.assertIsNotNone(db_node.last_error)
+                node.refresh()
+                self.assertEqual(initial_state, node.power_state)
+                self.assertIsNone(node.target_power_state)
+                self.assertIsNotNone(node.last_error)
                 # Verify the reservation has been cleared by background task's
                 # link callback despite exception in background task.
-                self.assertIsNone(db_node.reservation)
+                self.assertIsNone(node.reservation)
 
     def test_change_node_power_state_validate_fail(self):
         # Test change_node_power_state where task.driver.power.validate
         # fails and raises an exception
         initial_state = states.POWER_ON
-        n = utils.get_test_node(driver='fake',
-                                power_state=initial_state)
-        db_node = self.dbapi.create_node(n)
+        node = obj_utils.create_test_node(self.context, driver='fake',
+                                          power_state=initial_state)
         self._start_service()
 
         with mock.patch.object(self.driver.power, 'validate') \
@@ -268,33 +265,33 @@ class ManagerTestCase(tests_db_base.DbTestCase):
             exc = self.assertRaises(messaging.rpc.ExpectedException,
                                     self.service.change_node_power_state,
                                     self.context,
-                                    db_node.uuid,
+                                    node.uuid,
                                     states.POWER_ON)
 
             self.assertEqual(exception.InvalidParameterValue, exc.exc_info[0])
 
-            db_node.refresh(self.context)
+            node.refresh()
             validate_mock.assert_called_once_with(mock.ANY, mock.ANY)
-            self.assertEqual(states.POWER_ON, db_node.power_state)
-            self.assertIsNone(db_node.target_power_state)
-            self.assertIsNone(db_node.last_error)
+            self.assertEqual(states.POWER_ON, node.power_state)
+            self.assertIsNone(node.target_power_state)
+            self.assertIsNone(node.last_error)
 
     def test_update_node(self):
-        ndict = utils.get_test_node(driver='fake', extra={'test': 'one'})
-        node = self.dbapi.create_node(ndict)
+        node = obj_utils.create_test_node(self.context, driver='fake',
+                                          extra={'test': 'one'})
 
         # check that ManagerService.update_node actually updates the node
-        node['extra'] = {'test': 'two'}
+        node.extra = {'test': 'two'}
         res = self.service.update_node(self.context, node)
         self.assertEqual({'test': 'two'}, res['extra'])
 
     def test_update_node_already_locked(self):
-        ndict = utils.get_test_node(driver='fake', extra={'test': 'one'})
-        node = self.dbapi.create_node(ndict)
+        node = obj_utils.create_test_node(self.context, driver='fake',
+                                          extra={'test': 'one'})
 
         # check that it fails if something else has locked it already
         with task_manager.acquire(self.context, node['id'], shared=False):
-            node['extra'] = {'test': 'two'}
+            node.extra = {'test': 'two'}
             exc = self.assertRaises(messaging.rpc.ExpectedException,
                                     self.service.update_node,
                                     self.context,
@@ -307,14 +304,13 @@ class ManagerTestCase(tests_db_base.DbTestCase):
         self.assertEqual({'test': 'one'}, res['extra'])
 
     def test_associate_node_invalid_state(self):
-        ndict = utils.get_test_node(driver='fake',
-                                    extra={'test': 'one'},
-                                    instance_uuid=None,
-                                    power_state=states.POWER_ON)
-        node = self.dbapi.create_node(ndict)
+        node = obj_utils.create_test_node(self.context, driver='fake',
+                                          extra={'test': 'one'},
+                                 instance_uuid=None,
+                                 power_state=states.POWER_ON)
 
         # check that it fails because state is POWER_ON
-        node['instance_uuid'] = 'fake-uuid'
+        node.instance_uuid = 'fake-uuid'
         exc = self.assertRaises(messaging.rpc.ExpectedException,
                                 self.service.update_node,
                                 self.context,
@@ -323,34 +319,34 @@ class ManagerTestCase(tests_db_base.DbTestCase):
         self.assertEqual(exception.NodeInWrongPowerState, exc.exc_info[0])
 
         # verify change did not happen
-        res = objects.Node.get_by_uuid(self.context, node['uuid'])
-        self.assertIsNone(res['instance_uuid'])
+        node.refresh()
+        self.assertIsNone(node.instance_uuid)
 
     def test_associate_node_valid_state(self):
-        ndict = utils.get_test_node(driver='fake',
-                                    instance_uuid=None,
-                                    power_state=states.NOSTATE)
-        node = self.dbapi.create_node(ndict)
+        node = obj_utils.create_test_node(self.context, driver='fake',
+                                          instance_uuid=None,
+                                          power_state=states.NOSTATE)
 
         with mock.patch('ironic.drivers.modules.fake.FakePower.'
                         'get_power_state') as mock_get_power_state:
 
             mock_get_power_state.return_value = states.POWER_OFF
-            node['instance_uuid'] = 'fake-uuid'
+            node.instance_uuid = 'fake-uuid'
             self.service.update_node(self.context, node)
 
             # Check if the change was applied
-            res = objects.Node.get_by_uuid(self.context, node['uuid'])
-            self.assertEqual('fake-uuid', res['instance_uuid'])
+            node.instance_uuid = 'meow'
+            node.refresh()
+            self.assertEqual('fake-uuid', node.instance_uuid)
 
     def test_update_node_invalid_driver(self):
         existing_driver = 'fake'
         wrong_driver = 'wrong-driver'
-        ndict = utils.get_test_node(driver=existing_driver,
-                                    extra={'test': 'one'},
-                                    instance_uuid=None,
-                                    task_state=states.POWER_ON)
-        node = self.dbapi.create_node(ndict)
+        node = obj_utils.create_test_node(self.context,
+                                          driver=existing_driver,
+                                          extra={'test': 'one'},
+                                          instance_uuid=None,
+                                          task_state=states.POWER_ON)
         # check that it fails because driver not found
         node.driver = wrong_driver
         node.driver_info = {}
@@ -360,82 +356,78 @@ class ManagerTestCase(tests_db_base.DbTestCase):
                           node)
 
         # verify change did not happen
-        res = objects.Node.get_by_uuid(self.context, node['uuid'])
-        self.assertEqual(existing_driver, res['driver'])
+        node.refresh()
+        self.assertEqual(existing_driver, node.driver)
 
     def test_vendor_passthru_success(self):
-        n = utils.get_test_node(driver='fake')
-        node = self.dbapi.create_node(n)
+        node = obj_utils.create_test_node(self.context, driver='fake')
         info = {'bar': 'baz'}
         self._start_service()
 
         self.service.vendor_passthru(
-            self.context, n['uuid'], 'first_method', info)
+            self.context, node.uuid, 'first_method', info)
         # Waiting to make sure the below assertions are valid.
         self.service._worker_pool.waitall()
 
-        node.refresh(self.context)
+        node.refresh()
         self.assertIsNone(node.last_error)
         # Verify reservation has been cleared.
         self.assertIsNone(node.reservation)
 
     def test_vendor_passthru_node_already_locked(self):
         fake_reservation = 'test_reserv'
-        n = utils.get_test_node(driver='fake', reservation=fake_reservation)
-        node = self.dbapi.create_node(n)
+        node = obj_utils.create_test_node(self.context, driver='fake',
+                                          reservation=fake_reservation)
         info = {'bar': 'baz'}
         self._start_service()
 
         exc = self.assertRaises(messaging.rpc.ExpectedException,
                                 self.service.vendor_passthru,
-                                self.context, n['uuid'], 'first_method', info)
+                                self.context, node.uuid, 'first_method', info)
         # Compare true exception hidden by @messaging.expected_exceptions
         self.assertEqual(exception.NodeLocked, exc.exc_info[0])
 
-        node.refresh(self.context)
+        node.refresh()
         self.assertIsNone(node.last_error)
         # Verify the existing reservation is not broken.
         self.assertEqual(fake_reservation, node.reservation)
 
     def test_vendor_passthru_unsupported_method(self):
-        n = utils.get_test_node(driver='fake')
-        node = self.dbapi.create_node(n)
+        node = obj_utils.create_test_node(self.context, driver='fake')
         info = {'bar': 'baz'}
         self._start_service()
 
         exc = self.assertRaises(messaging.rpc.ExpectedException,
                                 self.service.vendor_passthru,
                                 self.context,
-                                n['uuid'], 'unsupported_method', info)
+                                node.uuid, 'unsupported_method', info)
         # Compare true exception hidden by @messaging.expected_exceptions
         self.assertEqual(exception.UnsupportedDriverExtension,
                          exc.exc_info[0])
 
-        node.refresh(self.context)
+        node.refresh()
         self.assertIsNone(node.last_error)
         # Verify reservation has been cleared.
         self.assertIsNone(node.reservation)
 
     def test_vendor_passthru_invalid_method_parameters(self):
-        n = utils.get_test_node(driver='fake')
-        node = self.dbapi.create_node(n)
+        node = obj_utils.create_test_node(self.context, driver='fake')
         info = {'invalid_param': 'whatever'}
         self._start_service()
 
         exc = self.assertRaises(messaging.rpc.ExpectedException,
                                 self.service.vendor_passthru,
-                                self.context, n['uuid'], 'first_method', info)
+                                self.context, node.uuid, 'first_method', info)
         # Compare true exception hidden by @messaging.expected_exceptions
         self.assertEqual(exception.InvalidParameterValue, exc.exc_info[0])
 
-        node.refresh(self.context)
+        node.refresh()
         self.assertIsNone(node.last_error)
         # Verify reservation has been cleared.
         self.assertIsNone(node.reservation)
 
     def test_vendor_passthru_vendor_interface_not_supported(self):
-        n = utils.get_test_node(driver='fake')
-        node = self.dbapi.create_node(n)
+        node = obj_utils.create_test_node(self.context, driver='fake')
         info = {'bar': 'baz'}
         self.driver.vendor = None
         self._start_service()
@@ -443,18 +435,17 @@ class ManagerTestCase(tests_db_base.DbTestCase):
         exc = self.assertRaises(messaging.rpc.ExpectedException,
                                 self.service.vendor_passthru,
                                 self.context,
-                                n['uuid'], 'whatever_method', info)
+                                node.uuid, 'whatever_method', info)
         # Compare true exception hidden by @messaging.expected_exceptions
         self.assertEqual(exception.UnsupportedDriverExtension,
                          exc.exc_info[0])
 
-        node.refresh(self.context)
+        node.refresh()
         # Verify reservation has been cleared.
         self.assertIsNone(node.reservation)
 
     def test_vendor_passthru_worker_pool_full(self):
-        n = utils.get_test_node(driver='fake')
-        node = self.dbapi.create_node(n)
+        node = obj_utils.create_test_node(self.context, driver='fake')
         info = {'bar': 'baz'}
         self._start_service()
 
@@ -465,14 +456,14 @@ class ManagerTestCase(tests_db_base.DbTestCase):
             exc = self.assertRaises(messaging.rpc.ExpectedException,
                                     self.service.vendor_passthru,
                                     self.context,
-                                    n['uuid'], 'first_method', info)
+                                    node.uuid, 'first_method', info)
             # Compare true exception hidden by @messaging.expected_exceptions
             self.assertEqual(exception.NoFreeConductorWorker, exc.exc_info[0])
 
             # Waiting to make sure the below assertions are valid.
             self.service._worker_pool.waitall()
 
-            node.refresh(self.context)
+            node.refresh()
             self.assertIsNone(node.last_error)
             # Verify reservation has been cleared.
             self.assertIsNone(node.reservation)
@@ -531,9 +522,8 @@ class ManagerTestCase(tests_db_base.DbTestCase):
 
     def test_do_node_deploy_invalid_state(self):
         # test node['provision_state'] is not NOSTATE
-        ndict = utils.get_test_node(driver='fake',
-                                    provision_state=states.ACTIVE)
-        node = self.dbapi.create_node(ndict)
+        node = obj_utils.create_test_node(self.context, driver='fake',
+                                          provision_state=states.ACTIVE)
         exc = self.assertRaises(messaging.rpc.ExpectedException,
                                 self.service.do_node_deploy,
                                 self.context, node['uuid'])
@@ -545,8 +535,8 @@ class ManagerTestCase(tests_db_base.DbTestCase):
         self.assertIsNone(node.reservation)
 
     def test_do_node_deploy_maintenance(self):
-        ndict = utils.get_test_node(driver='fake', maintenance=True)
-        node = self.dbapi.create_node(ndict)
+        node = obj_utils.create_test_node(self.context, driver='fake',
+                                          maintenance=True)
         exc = self.assertRaises(messaging.rpc.ExpectedException,
                                 self.service.do_node_deploy,
                                 self.context, node['uuid'])
@@ -561,8 +551,7 @@ class ManagerTestCase(tests_db_base.DbTestCase):
     def test_do_node_deploy_validate_fail(self, mock_validate):
         # InvalidParameterValue should be re-raised as InstanceDeployFailure
         mock_validate.side_effect = exception.InvalidParameterValue('error')
-        ndict = utils.get_test_node(driver='fake')
-        node = self.dbapi.create_node(ndict)
+        node = obj_utils.create_test_node(self.context, driver='fake')
         exc = self.assertRaises(messaging.rpc.ExpectedException,
                                 self.service.do_node_deploy,
                                 self.context, node.uuid)
@@ -577,15 +566,14 @@ class ManagerTestCase(tests_db_base.DbTestCase):
     def test__do_node_deploy_driver_raises_error(self, mock_deploy):
         # test when driver.deploy.deploy raises an exception
         mock_deploy.side_effect = exception.InstanceDeployFailure('test')
-        ndict = utils.get_test_node(driver='fake',
-                                    provision_state=states.NOSTATE)
-        node = self.dbapi.create_node(ndict)
+        node = obj_utils.create_test_node(self.context, driver='fake',
+                                          provision_state=states.NOSTATE)
         task = task_manager.TaskManager(self.context, node.uuid)
 
         self.assertRaises(exception.InstanceDeployFailure,
                           self.service._do_node_deploy,
                           self.context, task)
-        node.refresh(self.context)
+        node.refresh()
         self.assertEqual(states.DEPLOYFAIL, node.provision_state)
         self.assertEqual(states.NOSTATE, node.target_provision_state)
         self.assertIsNotNone(node.last_error)
@@ -595,13 +583,12 @@ class ManagerTestCase(tests_db_base.DbTestCase):
     def test__do_node_deploy_ok(self, mock_deploy):
         # test when driver.deploy.deploy returns DEPLOYDONE
         mock_deploy.return_value = states.DEPLOYDONE
-        ndict = utils.get_test_node(driver='fake',
-                                    provision_state=states.NOSTATE)
-        node = self.dbapi.create_node(ndict)
+        node = obj_utils.create_test_node(self.context, driver='fake',
+                                          provision_state=states.NOSTATE)
         task = task_manager.TaskManager(self.context, node.uuid)
 
         self.service._do_node_deploy(self.context, task)
-        node.refresh(self.context)
+        node.refresh()
         self.assertEqual(states.ACTIVE, node.provision_state)
         self.assertEqual(states.NOSTATE, node.target_provision_state)
         self.assertIsNone(node.last_error)
@@ -613,13 +600,12 @@ class ManagerTestCase(tests_db_base.DbTestCase):
         with mock.patch.object(self.service, '_spawn_worker') as mock_spawn:
             mock_spawn.return_value = thread
 
-            ndict = utils.get_test_node(driver='fake',
-                                        provision_state=states.NOSTATE)
-            node = self.dbapi.create_node(ndict)
+            node = obj_utils.create_test_node(self.context, driver='fake',
+                                              provision_state=states.NOSTATE)
 
             self.service.do_node_deploy(self.context, node.uuid)
             self.service._worker_pool.waitall()
-            node.refresh(self.context)
+            node.refresh()
             self.assertEqual(states.DEPLOYING, node.provision_state)
             self.assertEqual(states.DEPLOYDONE, node.target_provision_state)
             # This is a sync operation last_error should be None.
@@ -629,8 +615,7 @@ class ManagerTestCase(tests_db_base.DbTestCase):
             mock_spawn.assert_called_once_with(mock.ANY, mock.ANY, mock.ANY)
 
     def test_do_node_deploy_worker_pool_full(self):
-        ndict = utils.get_test_node(driver='fake')
-        node = self.dbapi.create_node(ndict)
+        node = obj_utils.create_test_node(self.context, driver='fake')
         self._start_service()
 
         with mock.patch.object(self.service, '_spawn_worker') as mock_spawn:
@@ -642,7 +627,7 @@ class ManagerTestCase(tests_db_base.DbTestCase):
             # Compare true exception hidden by @messaging.expected_exceptions
             self.assertEqual(exception.NoFreeConductorWorker, exc.exc_info[0])
             self.service._worker_pool.waitall()
-            node.refresh(self.context)
+            node.refresh()
             # This is a sync operation last_error should be None.
             self.assertIsNone(node.last_error)
             # Verify reservation has been cleared.
@@ -650,9 +635,8 @@ class ManagerTestCase(tests_db_base.DbTestCase):
 
     def test_do_node_tear_down_invalid_state(self):
         # test node.provision_state is incorrect for tear_down
-        ndict = utils.get_test_node(driver='fake',
-                                    provision_state=states.NOSTATE)
-        node = self.dbapi.create_node(ndict)
+        node = obj_utils.create_test_node(self.context, driver='fake',
+                                          provision_state=states.NOSTATE)
         exc = self.assertRaises(messaging.rpc.ExpectedException,
                                 self.service.do_node_tear_down,
                                 self.context, node['uuid'])
@@ -663,9 +647,8 @@ class ManagerTestCase(tests_db_base.DbTestCase):
     def test_do_node_tear_down_validate_fail(self, mock_validate):
         # InvalidParameterValue should be re-raised as InstanceDeployFailure
         mock_validate.side_effect = exception.InvalidParameterValue('error')
-        ndict = utils.get_test_node(driver='fake')
-        ndict['provision_state'] = states.ACTIVE
-        node = self.dbapi.create_node(ndict)
+        node = obj_utils.create_test_node(self.context, driver='fake',
+                                          provision_state=states.ACTIVE)
         exc = self.assertRaises(messaging.rpc.ExpectedException,
                                self.service.do_node_tear_down,
                                self.context, node.uuid)
@@ -675,9 +658,8 @@ class ManagerTestCase(tests_db_base.DbTestCase):
     @mock.patch('ironic.drivers.modules.fake.FakeDeploy.tear_down')
     def test_do_node_tear_down_driver_raises_error(self, mock_tear_down):
         # test when driver.deploy.tear_down raises exception
-        ndict = utils.get_test_node(driver='fake',
-                                    provision_state=states.ACTIVE)
-        node = self.dbapi.create_node(ndict)
+        node = obj_utils.create_test_node(self.context, driver='fake',
+                                          provision_state=states.ACTIVE)
 
         task = task_manager.TaskManager(self.context, node.uuid)
         self._start_service()
@@ -685,7 +667,7 @@ class ManagerTestCase(tests_db_base.DbTestCase):
         self.assertRaises(exception.InstanceDeployFailure,
                           self.service._do_node_tear_down,
                           self.context, task)
-        node.refresh(self.context)
+        node.refresh()
         self.assertEqual(states.ERROR, node.provision_state)
         self.assertEqual(states.NOSTATE, node.target_provision_state)
         self.assertIsNotNone(node.last_error)
@@ -694,15 +676,14 @@ class ManagerTestCase(tests_db_base.DbTestCase):
     @mock.patch('ironic.drivers.modules.fake.FakeDeploy.tear_down')
     def test_do_node_tear_down_ok(self, mock_tear_down):
         # test when driver.deploy.tear_down returns DELETED
-        ndict = utils.get_test_node(driver='fake',
-                                    provision_state=states.ACTIVE)
-        node = self.dbapi.create_node(ndict)
+        node = obj_utils.create_test_node(self.context, driver='fake',
+                                          provision_state=states.ACTIVE)
 
         task = task_manager.TaskManager(self.context, node.uuid)
         self._start_service()
         mock_tear_down.return_value = states.DELETED
         self.service._do_node_tear_down(self.context, task)
-        node.refresh(self.context)
+        node.refresh()
         self.assertEqual(states.NOSTATE, node.provision_state)
         self.assertEqual(states.NOSTATE, node.target_provision_state)
         self.assertIsNone(node.last_error)
@@ -711,24 +692,22 @@ class ManagerTestCase(tests_db_base.DbTestCase):
     @mock.patch('ironic.drivers.modules.fake.FakeDeploy.tear_down')
     def test_do_node_tear_down_partial_ok(self, mock_tear_down):
         # test when driver.deploy.tear_down doesn't return DELETED
-        ndict = utils.get_test_node(driver='fake',
-                                    provision_state=states.ACTIVE)
-        node = self.dbapi.create_node(ndict)
+        node = obj_utils.create_test_node(self.context, driver='fake',
+                                          provision_state=states.ACTIVE)
 
         self._start_service()
         task = task_manager.TaskManager(self.context, node.uuid)
         mock_tear_down.return_value = states.DELETING
         self.service._do_node_tear_down(self.context, task)
-        node.refresh(self.context)
+        node.refresh()
         self.assertEqual(states.DELETING, node.provision_state)
         self.assertIsNone(node.last_error)
         mock_tear_down.assert_called_once_with(mock.ANY, mock.ANY)
 
     @mock.patch('ironic.conductor.manager.ConductorManager._spawn_worker')
     def test_do_node_tear_down_worker_pool_full(self, mock_spawn):
-        ndict = utils.get_test_node(driver='fake',
-                                    provision_state=states.ACTIVE)
-        node = self.dbapi.create_node(ndict)
+        node = obj_utils.create_test_node(self.context, driver='fake',
+                                          provision_state=states.ACTIVE)
         self._start_service()
 
         mock_spawn.side_effect = exception.NoFreeConductorWorker()
@@ -739,17 +718,16 @@ class ManagerTestCase(tests_db_base.DbTestCase):
         # Compare true exception hidden by @messaging.expected_exceptions
         self.assertEqual(exception.NoFreeConductorWorker, exc.exc_info[0])
         self.service._worker_pool.waitall()
-        node.refresh(self.context)
+        node.refresh()
         # This is a sync operation last_error should be None.
         self.assertIsNone(node.last_error)
         # Verify reservation has been cleared.
         self.assertIsNone(node.reservation)
 
     def test_validate_driver_interfaces(self):
-        ndict = utils.get_test_node(driver='fake')
-        node = self.dbapi.create_node(ndict)
+        node = obj_utils.create_test_node(self.context, driver='fake')
         ret = self.service.validate_driver_interfaces(self.context,
-                                                      node['uuid'])
+                                                      node.uuid)
         expected = {'console': {'result': True},
                     'power': {'result': True},
                     'management': {'result': True},
@@ -757,38 +735,34 @@ class ManagerTestCase(tests_db_base.DbTestCase):
         self.assertEqual(expected, ret)
 
     def test_validate_driver_interfaces_validation_fail(self):
-        ndict = utils.get_test_node(driver='fake')
-        node = self.dbapi.create_node(ndict)
+        node = obj_utils.create_test_node(self.context, driver='fake')
         with mock.patch('ironic.drivers.modules.fake.FakeDeploy.validate') \
                 as deploy:
             reason = 'fake reason'
             deploy.side_effect = exception.InvalidParameterValue(reason)
             ret = self.service.validate_driver_interfaces(self.context,
-                                                          node['uuid'])
+                                                          node.uuid)
             self.assertFalse(ret['deploy']['result'])
             self.assertEqual(reason, ret['deploy']['reason'])
 
     def test_maintenance_mode_on(self):
-        ndict = utils.get_test_node(driver='fake')
-        node = self.dbapi.create_node(ndict)
+        node = obj_utils.create_test_node(self.context, driver='fake')
         self.service.change_node_maintenance_mode(self.context, node.uuid,
                                                   True)
-        node.refresh(self.context)
+        node.refresh()
         self.assertTrue(node.maintenance)
 
     def test_maintenance_mode_off(self):
-        ndict = utils.get_test_node(driver='fake',
-                                    maintenance=True)
-        node = self.dbapi.create_node(ndict)
+        node = obj_utils.create_test_node(self.context, driver='fake',
+                                          maintenance=True)
         self.service.change_node_maintenance_mode(self.context, node.uuid,
                                                   False)
-        node.refresh(self.context)
+        node.refresh()
         self.assertFalse(node.maintenance)
 
     def test_maintenance_mode_on_failed(self):
-        ndict = utils.get_test_node(driver='fake',
-                                    maintenance=True)
-        node = self.dbapi.create_node(ndict)
+        node = obj_utils.create_test_node(self.context, driver='fake',
+                                          maintenance=True)
         exc = self.assertRaises(messaging.rpc.ExpectedException,
                                 self.service.change_node_maintenance_mode,
                                 self.context, node.uuid, True)
@@ -798,8 +772,7 @@ class ManagerTestCase(tests_db_base.DbTestCase):
         self.assertTrue(node.maintenance)
 
     def test_maintenance_mode_off_failed(self):
-        ndict = utils.get_test_node(driver='fake')
-        node = self.dbapi.create_node(ndict)
+        node = obj_utils.create_test_node(self.context, driver='fake')
         exc = self.assertRaises(messaging.rpc.ExpectedException,
                                 self.service.change_node_maintenance_mode,
                                 self.context, node.uuid, False)
@@ -810,8 +783,7 @@ class ManagerTestCase(tests_db_base.DbTestCase):
 
     def test_destroy_node(self):
         self._start_service()
-        ndict = utils.get_test_node(driver='fake')
-        node = self.dbapi.create_node(ndict)
+        node = obj_utils.create_test_node(self.context, driver='fake')
         self.service.destroy_node(self.context, node.uuid)
         self.assertRaises(exception.NodeNotFound,
                           self.dbapi.get_node_by_uuid,
@@ -820,8 +792,8 @@ class ManagerTestCase(tests_db_base.DbTestCase):
     def test_destroy_node_reserved(self):
         self._start_service()
         fake_reservation = 'fake-reserv'
-        ndict = utils.get_test_node(reservation=fake_reservation)
-        node = self.dbapi.create_node(ndict)
+        node = obj_utils.create_test_node(self.context,
+                                          reservation=fake_reservation)
 
         exc = self.assertRaises(messaging.rpc.ExpectedException,
                                 self.service.destroy_node,
@@ -829,13 +801,13 @@ class ManagerTestCase(tests_db_base.DbTestCase):
         # Compare true exception hidden by @messaging.expected_exceptions
         self.assertEqual(exception.NodeLocked, exc.exc_info[0])
         # Verify existing reservation wasn't broken.
-        node.refresh(self.context)
+        node.refresh()
         self.assertEqual(fake_reservation, node.reservation)
 
     def test_destroy_node_associated(self):
         self._start_service()
-        ndict = utils.get_test_node(instance_uuid='fake-uuid')
-        node = self.dbapi.create_node(ndict)
+        node = obj_utils.create_test_node(self.context,
+                                          instance_uuid='fake-uuid')
 
         exc = self.assertRaises(messaging.rpc.ExpectedException,
                                 self.service.destroy_node,
@@ -844,7 +816,7 @@ class ManagerTestCase(tests_db_base.DbTestCase):
         self.assertEqual(exception.NodeAssociated, exc.exc_info[0])
 
         # Verify reservation was released.
-        node.refresh(self.context)
+        node.refresh()
         self.assertIsNone(node.reservation)
 
     @mock.patch.object(timeutils, 'utcnow')
@@ -854,16 +826,16 @@ class ManagerTestCase(tests_db_base.DbTestCase):
         present = past + datetime.timedelta(minutes=5)
         mock_utcnow.return_value = past
         self._start_service()
-        n = utils.get_test_node(provision_state=states.DEPLOYWAIT,
-                                target_provision_state=states.DEPLOYDONE,
-                                provision_updated_at=past)
-        node = self.dbapi.create_node(n)
+        node = obj_utils.create_test_node(
+                self.context, provision_state=states.DEPLOYWAIT,
+                target_provision_state=states.DEPLOYDONE,
+                provision_updated_at=past)
         mock_utcnow.return_value = present
         self.service._conductor_service_record_keepalive(self.context)
         with mock.patch.object(self.driver.deploy, 'clean_up') as clean_mock:
             self.service._check_deploy_timeouts(self.context)
             self.service._worker_pool.waitall()
-            node.refresh(self.context)
+            node.refresh()
             self.assertEqual(states.DEPLOYFAIL, node.provision_state)
             self.assertEqual(states.NOSTATE, node.target_provision_state)
             self.assertIsNotNone(node.last_error)
@@ -876,15 +848,15 @@ class ManagerTestCase(tests_db_base.DbTestCase):
         present = past + datetime.timedelta(minutes=5)
         mock_utcnow.return_value = past
         self._start_service()
-        n = utils.get_test_node(provision_state=states.DEPLOYWAIT,
-                                target_provision_state=states.DEPLOYDONE,
-                                provision_updated_at=past)
-        node = self.dbapi.create_node(n)
+        node = obj_utils.create_test_node(self.context,
+                provision_state=states.DEPLOYWAIT,
+                target_provision_state=states.DEPLOYDONE,
+                provision_updated_at=past)
         mock_utcnow.return_value = present
         self.service._conductor_service_record_keepalive(self.context)
         with mock.patch.object(self.driver.deploy, 'clean_up') as clean_mock:
             self.service._check_deploy_timeouts(self.context)
-            node.refresh(self.context)
+            node.refresh()
             self.assertEqual(states.DEPLOYWAIT, node.provision_state)
             self.assertEqual(states.DEPLOYDONE, node.target_provision_state)
             self.assertIsNone(node.last_error)
@@ -904,10 +876,10 @@ class ManagerTestCase(tests_db_base.DbTestCase):
         present = past + datetime.timedelta(minutes=5)
         mock_utcnow.return_value = past
         self._start_service()
-        n = utils.get_test_node(provision_state=states.DEPLOYWAIT,
-                                target_provision_state=states.DEPLOYDONE,
-                                provision_updated_at=past)
-        node = self.dbapi.create_node(n)
+        node = obj_utils.create_test_node(self.context,
+                provision_state=states.DEPLOYWAIT,
+                target_provision_state=states.DEPLOYDONE,
+                provision_updated_at=past)
         mock_utcnow.return_value = present
         self.service._conductor_service_record_keepalive(self.context)
         with mock.patch.object(self.driver.deploy, 'clean_up') as clean_mock:
@@ -915,15 +887,14 @@ class ManagerTestCase(tests_db_base.DbTestCase):
             clean_mock.side_effect = exception.IronicException(message=error)
             self.service._check_deploy_timeouts(self.context)
             self.service._worker_pool.waitall()
-            node.refresh(self.context)
+            node.refresh()
             self.assertEqual(states.DEPLOYFAIL, node.provision_state)
             self.assertEqual(states.NOSTATE, node.target_provision_state)
             self.assertIn(error, node.last_error)
             self.assertIsNone(node.reservation)
 
     def test_set_console_mode_worker_pool_full(self):
-        ndict = utils.get_test_node(driver='fake')
-        node = self.dbapi.create_node(ndict)
+        node = obj_utils.create_test_node(self.context, driver='fake')
         self._start_service()
         with mock.patch.object(self.service, '_spawn_worker') \
                 as spawn_mock:
@@ -949,12 +920,13 @@ class ManagerTestCase(tests_db_base.DbTestCase):
         test_nodes = []
         for i in range(3):
             next = past + datetime.timedelta(minutes=i)
-            n = utils.get_test_node(provision_state=states.DEPLOYWAIT,
-                                    target_provision_state=states.DEPLOYDONE,
-                                    provision_updated_at=next,
-                                    uuid=ironic_utils.generate_uuid())
-            del n['id']
-            node = self.dbapi.create_node(n)
+            node = obj_utils.create_test_node(
+                    self.context,
+                    id=i + 1,
+                    provision_state=states.DEPLOYWAIT,
+                    target_provision_state=states.DEPLOYDONE,
+                    provision_updated_at=next,
+                    uuid=ironic_utils.generate_uuid())
             test_nodes.append(node)
 
         mock_utcnow.return_value = present
@@ -977,26 +949,24 @@ class ManagerTestCase(tests_db_base.DbTestCase):
             self.assertEqual(2, clean_mock.call_count)
 
     def test_set_console_mode_enabled(self):
-        ndict = utils.get_test_node(driver='fake')
-        node = self.dbapi.create_node(ndict)
+        node = obj_utils.create_test_node(self.context, driver='fake')
         self._start_service()
         self.service.set_console_mode(self.context, node.uuid, True)
         self.service._worker_pool.waitall()
-        node.refresh(self.context)
+        node.refresh()
         self.assertTrue(node.console_enabled)
 
     def test_set_console_mode_disabled(self):
-        ndict = utils.get_test_node(driver='fake')
-        node = self.dbapi.create_node(ndict)
+        node = obj_utils.create_test_node(self.context, driver='fake')
         self._start_service()
         self.service.set_console_mode(self.context, node.uuid, False)
         self.service._worker_pool.waitall()
-        node.refresh(self.context)
+        node.refresh()
         self.assertFalse(node.console_enabled)
 
     def test_set_console_mode_not_supported(self):
-        ndict = utils.get_test_node(driver='fake', last_error=None)
-        node = self.dbapi.create_node(ndict)
+        node = obj_utils.create_test_node(self.context, driver='fake',
+                                          last_error=None)
         self._start_service()
         # null the console interface
         self.driver.console = None
@@ -1007,11 +977,11 @@ class ManagerTestCase(tests_db_base.DbTestCase):
         self.assertEqual(exception.UnsupportedDriverExtension,
                          exc.exc_info[0])
         self.service._worker_pool.waitall()
-        node.refresh(self.context)
+        node.refresh()
 
     def test_set_console_mode_validation_fail(self):
-        ndict = utils.get_test_node(driver='fake', last_error=None)
-        node = self.dbapi.create_node(ndict)
+        node = obj_utils.create_test_node(self.context, driver='fake',
+                                          last_error=None)
         self._start_service()
         with mock.patch.object(self.driver.console, 'validate') as mock_val:
             mock_val.side_effect = exception.InvalidParameterValue('error')
@@ -1022,9 +992,9 @@ class ManagerTestCase(tests_db_base.DbTestCase):
             self.assertEqual(exception.InvalidParameterValue, exc.exc_info[0])
 
     def test_set_console_mode_start_fail(self):
-        ndict = utils.get_test_node(driver='fake', last_error=None,
-                                    console_enabled=False)
-        node = self.dbapi.create_node(ndict)
+        node = obj_utils.create_test_node(self.context, driver='fake',
+                                          last_error=None,
+                                          console_enabled=False)
         self._start_service()
         with mock.patch.object(self.driver.console, 'start_console') \
                 as mock_sc:
@@ -1032,13 +1002,13 @@ class ManagerTestCase(tests_db_base.DbTestCase):
             self.service.set_console_mode(self.context, node.uuid, True)
             self.service._worker_pool.waitall()
             mock_sc.assert_called_once_with(mock.ANY, mock.ANY)
-            node.refresh(self.context)
+            node.refresh()
             self.assertIsNotNone(node.last_error)
 
     def test_set_console_mode_stop_fail(self):
-        ndict = utils.get_test_node(driver='fake', last_error=None,
-                                    console_enabled=True)
-        node = self.dbapi.create_node(ndict)
+        node = obj_utils.create_test_node(self.context, driver='fake',
+                                          last_error=None,
+                                          console_enabled=True)
         self._start_service()
         with mock.patch.object(self.driver.console, 'stop_console') \
                 as mock_sc:
@@ -1046,12 +1016,12 @@ class ManagerTestCase(tests_db_base.DbTestCase):
             self.service.set_console_mode(self.context, node.uuid, False)
             self.service._worker_pool.waitall()
             mock_sc.assert_called_once_with(mock.ANY, mock.ANY)
-            node.refresh(self.context)
+            node.refresh()
             self.assertIsNotNone(node.last_error)
 
     def test_enable_console_already_enabled(self):
-        ndict = utils.get_test_node(driver='fake', console_enabled=True)
-        node = self.dbapi.create_node(ndict)
+        node = obj_utils.create_test_node(self.context, driver='fake',
+                                          console_enabled=True)
         self._start_service()
         with mock.patch.object(self.driver.console, 'start_console') \
                 as mock_sc:
@@ -1060,8 +1030,8 @@ class ManagerTestCase(tests_db_base.DbTestCase):
             self.assertFalse(mock_sc.called)
 
     def test_disable_console_already_disabled(self):
-        ndict = utils.get_test_node(driver='fake', console_enabled=False)
-        node = self.dbapi.create_node(ndict)
+        node = obj_utils.create_test_node(self.context, driver='fake',
+                                          console_enabled=False)
         self._start_service()
         with mock.patch.object(self.driver.console, 'stop_console') \
                 as mock_sc:
@@ -1070,8 +1040,8 @@ class ManagerTestCase(tests_db_base.DbTestCase):
             self.assertFalse(mock_sc.called)
 
     def test_get_console(self):
-        ndict = utils.get_test_node(driver='fake', console_enabled=True)
-        node = self.dbapi.create_node(ndict)
+        node = obj_utils.create_test_node(self.context, driver='fake',
+                                          console_enabled=True)
         console_info = {'test': 'test info'}
         with mock.patch.object(self.driver.console, 'get_console') as mock_gc:
             mock_gc.return_value = console_info
@@ -1080,8 +1050,8 @@ class ManagerTestCase(tests_db_base.DbTestCase):
             self.assertEqual(console_info, data)
 
     def test_get_console_not_supported(self):
-        ndict = utils.get_test_node(driver='fake', console_enabled=True)
-        node = self.dbapi.create_node(ndict)
+        node = obj_utils.create_test_node(self.context, driver='fake',
+                                          console_enabled=True)
         # null the console interface
         self.driver.console = None
         exc = self.assertRaises(messaging.rpc.ExpectedException,
@@ -1092,8 +1062,8 @@ class ManagerTestCase(tests_db_base.DbTestCase):
                          exc.exc_info[0])
 
     def test_get_console_disabled(self):
-        ndict = utils.get_test_node(driver='fake', console_enabled=False)
-        node = self.dbapi.create_node(ndict)
+        node = obj_utils.create_test_node(self.context, driver='fake',
+                                          console_enabled=False)
         exc = self.assertRaises(messaging.rpc.ExpectedException,
                                 self.service.get_console_information,
                                 self.context, node.uuid)
@@ -1101,8 +1071,8 @@ class ManagerTestCase(tests_db_base.DbTestCase):
         self.assertEqual(exception.NodeConsoleNotEnabled, exc.exc_info[0])
 
     def test_get_console_validate_fail(self):
-        ndict = utils.get_test_node(driver='fake', console_enabled=True)
-        node = self.dbapi.create_node(ndict)
+        node = obj_utils.create_test_node(self.context, driver='fake',
+                                          console_enabled=True)
         with mock.patch.object(self.driver.console, 'validate') as mock_gc:
             mock_gc.side_effect = exception.InvalidParameterValue('error')
             exc = self.assertRaises(messaging.rpc.ExpectedException,
@@ -1113,8 +1083,8 @@ class ManagerTestCase(tests_db_base.DbTestCase):
 
     def test_destroy_node_power_on(self):
         self._start_service()
-        ndict = utils.get_test_node(power_state=states.POWER_ON)
-        node = self.dbapi.create_node(ndict)
+        node = obj_utils.create_test_node(self.context,
+                                          power_state=states.POWER_ON)
 
         exc = self.assertRaises(messaging.rpc.ExpectedException,
                                 self.service.destroy_node,
@@ -1122,18 +1092,17 @@ class ManagerTestCase(tests_db_base.DbTestCase):
         # Compare true exception hidden by @messaging.expected_exceptions
         self.assertEqual(exception.NodeInWrongPowerState, exc.exc_info[0])
         # Verify reservation was released.
-        node.refresh(self.context)
+        node.refresh()
         self.assertIsNone(node.reservation)
 
     def test_destroy_node_power_off(self):
         self._start_service()
-        ndict = utils.get_test_node(power_state=states.POWER_OFF)
-        node = self.dbapi.create_node(ndict)
+        node = obj_utils.create_test_node(self.context,
+                                          power_state=states.POWER_OFF)
         self.service.destroy_node(self.context, node.uuid)
 
     def test_update_port(self):
-        ndict = utils.get_test_node(driver='fake')
-        self.dbapi.create_node(ndict)
+        obj_utils.create_test_node(self.context, driver='fake')
 
         pdict = utils.get_test_port(extra={'foo': 'bar'})
         port = self.dbapi.create_port(pdict)
@@ -1143,8 +1112,8 @@ class ManagerTestCase(tests_db_base.DbTestCase):
         self.assertEqual(new_extra, res.extra)
 
     def test_update_port_node_locked(self):
-        ndict = utils.get_test_node(driver='fake', reservation='fake-reserv')
-        self.dbapi.create_node(ndict)
+        obj_utils.create_test_node(self.context, driver='fake',
+                                   reservation='fake-reserv')
 
         pdict = utils.get_test_port()
         port = self.dbapi.create_port(pdict)
@@ -1157,8 +1126,7 @@ class ManagerTestCase(tests_db_base.DbTestCase):
 
     @mock.patch('ironic.common.neutron.NeutronAPI.update_port_address')
     def test_update_port_address(self, mac_update_mock):
-        ndict = utils.get_test_node(driver='fake')
-        self.dbapi.create_node(ndict)
+        obj_utils.create_test_node(self.context, driver='fake')
 
         pdict = utils.get_test_port(extra={'vif_port_id': 'fake-id'})
         port = self.dbapi.create_port(pdict)
@@ -1170,8 +1138,7 @@ class ManagerTestCase(tests_db_base.DbTestCase):
 
     @mock.patch('ironic.common.neutron.NeutronAPI.update_port_address')
     def test_update_port_address_fail(self, mac_update_mock):
-        ndict = utils.get_test_node(driver='fake')
-        self.dbapi.create_node(ndict)
+        obj_utils.create_test_node(self.context, driver='fake')
 
         pdict = utils.get_test_port(extra={'vif_port_id': 'fake-id'})
         port = self.dbapi.create_port(pdict)
@@ -1189,8 +1156,7 @@ class ManagerTestCase(tests_db_base.DbTestCase):
 
     @mock.patch('ironic.common.neutron.NeutronAPI.update_port_address')
     def test_update_port_address_no_vif_id(self, mac_update_mock):
-        ndict = utils.get_test_node(driver='fake')
-        self.dbapi.create_node(ndict)
+        obj_utils.create_test_node(self.context, driver='fake')
 
         pdict = utils.get_test_port()
         port = self.dbapi.create_port(pdict)

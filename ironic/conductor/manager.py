@@ -779,8 +779,9 @@ class ConductorManager(periodic_task.PeriodicTasks):
                 msg = (_("Node %s can't be deleted because it's not "
                          "powered off") % node.uuid)
                 raise exception.NodeInWrongPowerState(msg)
-
-            self.dbapi.destroy_node(node_id)
+            # FIXME(comstud): Remove context argument after we ensure
+            # every instantiation of Node includes the context
+            node.destroy(context)
 
     @messaging.expected_exceptions(exception.NodeLocked,
                                    exception.UnsupportedDriverExtension,

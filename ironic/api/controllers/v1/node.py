@@ -657,8 +657,9 @@ class NodesController(rest.RestController):
             e.code = 400
             raise e
 
-        new_node = pecan.request.dbapi.create_node(node.as_dict())
-
+        new_node = objects.Node(context=pecan.request.context,
+                                **node.as_dict())
+        new_node.create()
         return Node.convert_with_links(new_node)
 
     @wsme.validate(types.uuid, [NodePatchType])

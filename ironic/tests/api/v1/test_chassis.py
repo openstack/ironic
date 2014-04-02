@@ -25,6 +25,7 @@ from ironic.openstack.common import timeutils
 from ironic.tests.api import base
 from ironic.tests.api import utils as apiutils
 from ironic.tests.db import utils as dbutils
+from ironic.tests.objects import utils as obj_utils
 
 
 class TestListChassis(base.FunctionalTest):
@@ -126,9 +127,9 @@ class TestListChassis(base.FunctionalTest):
         self.dbapi.create_chassis(cdict)
 
         for id in range(2):
-            ndict = dbutils.get_test_node(id=id, chassis_id=cdict['id'],
-                                          uuid=utils.generate_uuid())
-            self.dbapi.create_node(ndict)
+            obj_utils.create_test_node(self.context, id=id,
+                                       chassis_id=cdict['id'],
+                                       uuid=utils.generate_uuid())
 
         data = self.get_json('/chassis/%s/nodes' % cdict['uuid'])
         self.assertEqual(2, len(data['nodes']))
@@ -374,8 +375,7 @@ class TestDelete(base.FunctionalTest):
     def test_delete_chassis_with_node(self):
         cdict = dbutils.get_test_chassis()
         self.dbapi.create_chassis(cdict)
-        ndict = dbutils.get_test_node(chassis_id=cdict['id'])
-        self.dbapi.create_node(ndict)
+        obj_utils.create_test_node(self.context, chassis_id=cdict['id'])
         response = self.delete('/chassis/%s' % cdict['uuid'],
                                expect_errors=True)
         self.assertEqual(400, response.status_int)

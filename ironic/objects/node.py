@@ -25,7 +25,8 @@ class Node(base.IronicObject):
     # Version 1.1: Added instance_info
     # Version 1.2: Add get() and get_by_id() and make get_by_uuid()
     #              only work with a uuid
-    VERSION = '1.2'
+    # Version 1.3: Add create() and destroy()
+    VERSION = '1.3'
 
     dbapi = db_api.get_instance()
 
@@ -114,6 +115,41 @@ class Node(base.IronicObject):
         # _from_db_object().
         node._context = context
         return node
+
+    @base.remotable
+    def create(self, context=None):
+        """Create a Node record in the DB.
+
+        Column-wise updates will be made based on the result of
+        self.what_changed(). If target_power_state is provided,
+        it will be checked against the in-database copy of the
+        node before updates are made.
+
+        :param context: Security context. NOTE: This should only
+                        be used internally by the indirection_api.
+                        Unfortunately, RPC requires context as the first
+                        argument, even though we don't use it.
+                        A context should be set when instantiating the
+                        object, e.g.: Node(context=context)
+
+        """
+        values = self.obj_get_changes()
+        db_node = self.dbapi.create_node(values)
+        self._from_db_object(self, db_node)
+
+    @base.remotable
+    def destroy(self, context=None):
+        """Delete the Node from the DB.
+
+        :param context: Security context. NOTE: This should only
+                        be used internally by the indirection_api.
+                        Unfortunately, RPC requires context as the first
+                        argument, even though we don't use it.
+                        A context should be set when instantiating the
+                        object, e.g.: Node(context=context)
+        """
+        self.dbapi.destroy_node(self.id)
+        self.obj_reset_changes()
 
     @base.remotable
     def save(self, context=None):
