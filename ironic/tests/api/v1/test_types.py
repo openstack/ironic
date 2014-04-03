@@ -134,12 +134,6 @@ class TestJsonPatchType(base.FunctionalTest):
         self.assertEqual(400, ret.status_int)
         self.assertTrue(ret.json['faultstring'])
 
-    def test_cannot_add_to_root(self):
-        patch = [{'path': '/foo', 'op': 'add', 'value': 'bar'}]
-        ret = self._patch_json(patch, True)
-        self.assertEqual(400, ret.status_int)
-        self.assertTrue(ret.json['faultstring'])
-
     def test_cannot_add_with_no_value(self):
         patch = [{'path': '/extra/foo', 'op': 'add'}]
         ret = self._patch_json(patch, True)

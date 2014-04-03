@@ -15,7 +15,6 @@
 
 import datetime
 
-import jsonpatch
 import pecan
 from pecan import rest
 import six
@@ -265,8 +264,7 @@ class PortsController(rest.RestController):
 
         rpc_port = objects.Port.get_by_uuid(pecan.request.context, port_uuid)
         try:
-            port = Port(**jsonpatch.apply_patch(rpc_port.as_dict(),
-                                                jsonpatch.JsonPatch(patch)))
+            port = Port(**api_utils.apply_jsonpatch(rpc_port.as_dict(), patch))
         except api_utils.JSONPATCH_EXCEPTIONS as e:
             raise exception.PatchError(patch=patch, reason=e)
 

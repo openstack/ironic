@@ -15,7 +15,6 @@
 
 import datetime
 
-import jsonpatch
 from oslo.config import cfg
 import pecan
 from pecan import rest
@@ -647,8 +646,7 @@ class NodesController(rest.RestController):
             raise wsme.exc.ClientSideError(msg % node_uuid, status_code=409)
 
         try:
-            node = Node(**jsonpatch.apply_patch(rpc_node.as_dict(),
-                                                jsonpatch.JsonPatch(patch)))
+            node = Node(**api_utils.apply_jsonpatch(rpc_node.as_dict(), patch))
         except api_utils.JSONPATCH_EXCEPTIONS as e:
             raise exception.PatchError(patch=patch, reason=e)
 

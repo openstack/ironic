@@ -309,7 +309,15 @@ class TestPatch(base.FunctionalTest):
         self.assertEqual(400, response.status_code)
         self.assertTrue(response.json['error_message'])
 
-    def test_add_singular(self):
+    def test_add_root(self):
+        address = 'aa:bb:cc:dd:ee:ff'
+        response = self.patch_json('/ports/%s' % self.pdict['uuid'],
+                                   [{'path': '/address', 'value': address,
+                                     'op': 'add'}])
+        self.assertEqual('application/json', response.content_type)
+        self.assertEqual(200, response.status_int)
+
+    def test_add_root_non_existent(self):
         response = self.patch_json('/ports/%s' % self.pdict['uuid'],
                                    [{'path': '/foo', 'value': 'bar',
                                      'op': 'add'}],

@@ -132,12 +132,6 @@ class JsonPatchType(wtypes.Base):
             msg = _("'%s' is a mandatory attribute and can not be removed")
             raise wsme.exc.ClientSideError(msg % patch.path)
 
-        if patch.op == 'add':
-            if patch.path.count('/') == 1:
-                msg = _('Adding a new attribute (%s) to the root of '
-                        ' the resource is not allowed')
-                raise wsme.exc.ClientSideError(msg % patch.path)
-
         if patch.op != 'remove':
             if not patch.value:
                 msg = _("'add' and 'replace' operations needs value")

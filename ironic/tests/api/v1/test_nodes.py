@@ -529,7 +529,18 @@ class TestPatch(base.FunctionalTest):
         self.mock_update_node.assert_called_once_with(
                 mock.ANY, mock.ANY, 'test-topic')
 
-    def test_add_fail(self):
+    def test_add_root(self):
+        self.mock_update_node.return_value = self.node
+        response = self.patch_json('/nodes/%s' % self.node['uuid'],
+                             [{'path': '/instance_uuid',
+                               'value': 'aaaaaaaa-1111-bbbb-2222-cccccccccccc',
+                               'op': 'add'}])
+        self.assertEqual('application/json', response.content_type)
+        self.assertEqual(200, response.status_code)
+        self.mock_update_node.assert_called_once_with(
+                mock.ANY, mock.ANY, 'test-topic')
+
+    def test_add_root_non_existent(self):
         response = self.patch_json('/nodes/%s' % self.node['uuid'],
                                [{'path': '/foo', 'value': 'bar', 'op': 'add'}],
                                expect_errors=True)
