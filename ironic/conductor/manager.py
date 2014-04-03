@@ -460,7 +460,7 @@ class ConductorManager(service.PeriodicService):
                   "for node %(node)s, node state %(actual)s "
                   "does not match expected state '%(state)s'. "
                   "Updating DB state to '%(actual)s' "
-                  "Switching node to maintenance mode."),
+                  "Switching node to maintenance mode.") %
                   {'node': node.uuid, 'actual': actual_power_state,
                    'state': node.power_state})
         node.power_state = actual_power_state
@@ -537,11 +537,10 @@ class ConductorManager(service.PeriodicService):
                                              'state': node.power_state})
             attempts_left = (CONF.conductor.power_state_sync_max_retries -
                              self.power_state_sync_count[node.uuid]) - 1
-            msg = (_("%(left)s attempts remaining to "
-                     "sync_power_state for node %(node)s"),
-                   {'left': attempts_left,
-                    'node': node.uuid})
-            LOG.warning(msg)
+            LOG.warning(_("%(left)s attempts remaining to "
+                          "sync_power_state for node %(node)s"),
+                          {'left': attempts_left,
+                           'node': node.uuid})
         finally:
             # Update power state sync count for current node
             self.power_state_sync_count[node.uuid] += 1
