@@ -649,60 +649,6 @@ class IronicDriverTestCase(test.NoDBTestCase):
                                  utils.get_test_network_info())
             mock_sp.assert_called_once_with(node_uuid, 'on')
 
-    def test_get_host_stats(self):
-        node_uuid = 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee'
-        cpu_arch = 'x86_64'
-        node = get_test_node(uuid=node_uuid,
-                             properties={'cpu_arch': cpu_arch})
-        supported_instances = 'fake-supported-instances'
-        resource = {'supported_instances': supported_instances,
-                    'hypervisor_hostname': uuidutils.generate_uuid(),
-                    'cpu_info': 'baremetal cpu',
-                    'hypervisor_version': 1,
-                    'local_gb': 10,
-                    'memory_mb_used': 512,
-                    'stats': {'cpu_arch': 'x86_64',
-                              'ironic_driver':
-                                        'nova.virt.ironic.driver.IronicDriver',
-                              'test_spec': 'test_value'},
-                    'vcpus_used': 2,
-                    'hypervisor_type': 'ironic',
-                    'local_gb_used': 10,
-                    'memory_mb': 512,
-                    'vcpus': 2}
-
-        # Reset driver specs
-        test_extra_spec = 'test-spec'
-        self.driver.extra_specs = {test_extra_spec: test_extra_spec}
-
-        with mock.patch.object(FAKE_CLIENT.node, 'list') as mock_list:
-            mock_list.return_value = [node]
-            with mock.patch.object(self.driver, '_node_resource') as mock_nr:
-                mock_nr.return_value = resource
-                with mock.patch.object(ironic_driver,
-                                '_get_nodes_supported_instances') as mock_gnsi:
-                    mock_gnsi.return_value = supported_instances
-
-                    expected = {'vcpus': resource['vcpus'],
-                          'vcpus_used': resource['vcpus_used'],
-                          'cpu_info': resource['cpu_info'],
-                          'disk_total': resource['local_gb'],
-                          'disk_used': resource['local_gb'],
-                          'disk_available': 0,
-                          'host_memory_total': resource['memory_mb'],
-                          'host_memory_free': 0,
-                          'hypervisor_type': resource['hypervisor_type'],
-                          'hypervisor_version': resource['hypervisor_version'],
-                          'supported_instances': supported_instances,
-                          'host': CONF.host,
-                          'hypervisor_hostname': node_uuid,
-                          'node': node_uuid,
-                          'cpu_arch': cpu_arch,
-                          test_extra_spec: test_extra_spec}
-
-                    result = self.driver.get_host_stats()
-                    self.assertEqual([expected], result)
-
     def test_plug_vifs(self):
         node_uuid = 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee'
         node = get_test_node(uuid=node_uuid)
