@@ -17,12 +17,13 @@
 Tests For IronicHostManager
 """
 
+from ironic.nova.scheduler import ironic_host_manager
+from ironic.nova.tests.scheduler import ironic_fakes
+
 from nova import db
 from nova import exception
 from nova.scheduler import filters
-from nova.scheduler import ironic_host_manager
 from nova import test
-from nova.tests.scheduler import ironic_fakes
 
 
 class FakeFilterClass1(filters.BaseHostFilter):
