@@ -340,7 +340,7 @@ class Node(base.APIBase):
     @classmethod
     def _convert_with_links(cls, node, url, expand=True):
         if not expand:
-            except_list = ['instance_uuid', 'power_state',
+            except_list = ['instance_uuid', 'maintenance', 'power_state',
                            'provision_state', 'uuid']
             node.unset_fields_except(except_list)
         else:
