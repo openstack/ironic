@@ -268,14 +268,30 @@ class SeaMicroPowerDriverTestCase(db_base.DbTestCase):
                                            driver_info=INFO_DICT)
         self.dbapi = dbapi.get_instance()
         self.node = self.dbapi.create_node(self.node)
-        self.parse_drv_info_patcher = mock.patch.object(seamicro,
-                                                        '_parse_driver_info')
-        self.parse_drv_info_mock = None
         self.get_server_patcher = mock.patch.object(seamicro, '_get_server')
 
         self.get_server_mock = None
         self.Server = Fake_Server
         self.Volume = Fake_Volume
+
+    @mock.patch.object(seamicro, '_parse_driver_info')
+    def test_power_interface_validate_good(self, parse_drv_info_mock):
+        with task_manager.acquire(self.context, [self.node['uuid']],
+                                  shared=True) as task:
+            task.resources[0].driver.power.validate(
+                        task, self.node)
+        self.assertEqual(1, parse_drv_info_mock.call_count)
+
+    @mock.patch.object(seamicro, '_parse_driver_info')
+    def test_power_interface_validate_fails(self, parse_drv_info_mock):
+        side_effect = exception.InvalidParameterValue("Bad input")
+        parse_drv_info_mock.side_effect = side_effect
+        with task_manager.acquire(self.context, [self.node['uuid']],
+                                  shared=True) as task:
+            self.assertRaises(exception.InvalidParameterValue,
+                              task.resources[0].driver.power.validate,
+                              task, self.node)
+        self.assertEqual(1, parse_drv_info_mock.call_count)
 
     @mock.patch.object(seamicro, '_reboot')
     def test_reboot(self, mock_reboot):
