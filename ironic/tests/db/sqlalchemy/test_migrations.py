@@ -512,3 +512,10 @@ class TestMigrations(BaseMigrationTestCase, WalkVersionsMixin):
                                    sqlalchemy.types.Boolean) or
                         isinstance(nodes.c.console_enabled.type,
                                    sqlalchemy.types.Integer))
+
+    def _check_31baaf680d2b(self, engine, data):
+        nodes = db_utils.get_table(engine, 'nodes')
+        col_names = [column.name for column in nodes.c]
+        self.assertIn('instance_info', col_names)
+        self.assertIsInstance(nodes.c.instance_info.type,
+                              sqlalchemy.types.TEXT)
