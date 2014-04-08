@@ -24,6 +24,7 @@ functionality between a power interface and a deploy interface, when both rely
 on seprate vendor_passthru methods.
 """
 
+from ironic.common import boot_devices
 from ironic.common import exception
 from ironic.common import states
 from ironic.drivers import base
@@ -143,3 +144,21 @@ class FakeConsole(base.ConsoleInterface):
 
     def get_console(self, task, node):
         return {}
+
+
+class FakeManagement(base.ManagementInterface):
+    """Example implementation of a simple management interface."""
+
+    def validate(self, task, node):
+        return True
+
+    def get_supported_boot_devices(self):
+        return [boot_devices.PXE]
+
+    def set_boot_device(self, task, device, **kwargs):
+        if device not in self.get_supported_boot_devices():
+            raise exception.InvalidParameterValue(_(
+                "Invalid boot device %s specified.") % device)
+
+    def get_boot_device(self, task):
+        return boot_devices.PXE
