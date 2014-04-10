@@ -81,11 +81,8 @@ class PXEAndIPMINativeDriver(base.BaseDriver):
                     reason=_("Unable to import pyghmi library"))
         self.power = ipminative.NativeIPMIPower()
         self.deploy = pxe.PXEDeploy()
-        self.pxe_vendor = pxe.VendorPassthru()
-        self.ipmi_vendor = ipminative.VendorPassthru()
-        self.mapping = {'pass_deploy_info': self.pxe_vendor,
-                        'set_boot_device': self.ipmi_vendor}
-        self.vendor = utils.MixinVendorInterface(self.mapping)
+        self.management = ipminative.NativeIPMIManagement()
+        self.vendor = pxe.VendorPassthru()
 
 
 class PXEAndSeaMicroDriver(base.BaseDriver):

@@ -79,7 +79,7 @@ class FakeIPMINativeDriver(base.BaseDriver):
     def __init__(self):
         self.power = ipminative.NativeIPMIPower()
         self.deploy = fake.FakeDeploy()
-        self.vendor = ipminative.VendorPassthru()
+        self.management = ipminative.NativeIPMIManagement()
 
 
 class FakeSeaMicroDriver(base.BaseDriver):
