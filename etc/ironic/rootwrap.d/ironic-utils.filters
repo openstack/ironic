@@ -4,7 +4,7 @@
 [Filters]
 # ironic/drivers/modules/deploy_utils.py
 iscsiadm: CommandFilter, iscsiadm, root
-sfdisk: CommandFilter, sfdisk, root
+parted: CommandFilter, parted, root
 dd: CommandFilter, dd, root
 blkid: CommandFilter, blkid, root
 
