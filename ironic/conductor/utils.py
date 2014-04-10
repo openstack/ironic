@@ -47,8 +47,7 @@ def node_set_boot_device(task, node, device, persistent=False):
 def node_power_action(task, node, state):
     """Change power state or reset for a node.
 
-    Validate whether the given power transition is possible and perform
-    power action.
+    Perform the requested power action if the transition is required.
 
     :param task: a TaskManager instance.
     :param node: the Node object to act upon.
@@ -63,34 +62,34 @@ def node_power_action(task, node, state):
     """
     context = task.context
     new_state = states.POWER_ON if state == states.REBOOT else state
-    try:
-        task.driver.power.validate(task, node)
-        if state != states.REBOOT:
-            curr_state = task.driver.power.get_power_state(task, node)
-    except Exception as e:
-        with excutils.save_and_reraise_exception():
-            node['last_error'] = \
-                 _("Failed to change power state to '%(target)s'. "
-                   "Error: %(error)s") % {
-                     'target': new_state, 'error': e}
-            node.save(context)
 
-    if state != states.REBOOT and curr_state == new_state:
-        # Neither the ironic service nor the hardware has erred. The
-        # node is, for some reason, already in the requested state,
-        # though we don't know why. eg, perhaps the user previously
-        # requested the node POWER_ON, the network delayed those IPMI
-        # packets, and they are trying again -- but the node finally
-        # responds to the first request, and so the second request
-        # gets to this check and stops.
-        # This isn't an error, so we'll clear last_error field
-        # (from previous operation), log a warning, and return.
-        node['last_error'] = None
-        node.save(context)
-        LOG.warn(_("Not going to change_node_power_state because "
-                    "current state = requested state = '%(state)s'.")
-                    % {'state': curr_state})
-        return
+    if state != states.REBOOT:
+        try:
+            curr_state = task.driver.power.get_power_state(task, node)
+        except Exception as e:
+            with excutils.save_and_reraise_exception():
+                node['last_error'] = \
+                    _("Failed to change power state to '%(target)s'. "
+                      "Error: %(error)s") % {
+                      'target': new_state, 'error': e}
+                node.save(context)
+
+        if curr_state == new_state:
+            # Neither the ironic service nor the hardware has erred. The
+            # node is, for some reason, already in the requested state,
+            # though we don't know why. eg, perhaps the user previously
+            # requested the node POWER_ON, the network delayed those IPMI
+            # packets, and they are trying again -- but the node finally
+            # responds to the first request, and so the second request
+            # gets to this check and stops.
+            # This isn't an error, so we'll clear last_error field
+            # (from previous operation), log a warning, and return.
+            node['last_error'] = None
+            node.save(context)
+            LOG.warn(_("Not going to change_node_power_state because "
+                       "current state = requested state = '%(state)s'.")
+                        % {'state': curr_state})
+            return
 
     # Set the target_power_state and clear any last_error, since we're
     # starting a new operation. This will expose to other processes

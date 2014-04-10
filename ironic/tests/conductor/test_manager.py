@@ -432,6 +432,34 @@ class ManagerTestCase(base.DbTestCase):
                 # link callback despite exception in background task.
                 self.assertIsNone(db_node.reservation)
 
+    def test_change_node_power_state_validate_fail(self):
+        # Test change_node_power_state where task.driver.power.validate
+        # fails and raises an exception
+        initial_state = states.POWER_ON
+        n = utils.get_test_node(driver='fake',
+                                power_state=initial_state)
+        db_node = self.dbapi.create_node(n)
+        self.service.start()
+
+        with mock.patch.object(self.driver.power, 'validate') \
+                as validate_mock:
+            validate_mock.side_effect = exception.InvalidParameterValue(
+                'wrong power driver info')
+
+            exc = self.assertRaises(messaging.ClientException,
+                                    self.service.change_node_power_state,
+                                    self.context,
+                                    db_node.uuid,
+                                    states.POWER_ON)
+
+            self.assertEqual(exc._exc_info[0], exception.InvalidParameterValue)
+
+            db_node.refresh(self.context)
+            validate_mock.assert_called_once_with(mock.ANY, mock.ANY)
+            self.assertEqual(states.POWER_ON, db_node.power_state)
+            self.assertIsNone(db_node.target_power_state)
+            self.assertIsNone(db_node.last_error)
+
     def test_update_node(self):
         ndict = utils.get_test_node(driver='fake', extra={'test': 'one'})
         node = self.dbapi.create_node(ndict)

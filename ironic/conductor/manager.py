@@ -213,15 +213,17 @@ class ConductorManager(service.PeriodicService):
 
             return node_obj
 
-    @messaging.client_exceptions(exception.NoFreeConductorWorker,
+    @messaging.client_exceptions(exception.InvalidParameterValue,
+                                 exception.NoFreeConductorWorker,
                                  exception.NodeLocked)
     def change_node_power_state(self, context, node_id, new_state):
         """RPC method to encapsulate changes to a node's state.
 
-        Perform actions such as power on, power off. The validation and power
-        action are performed in background (async). Once the power action is
-        finished and successful, it updates the power_state for the node with
-        the new power state.
+        Perform actions such as power on, power off. The validation is
+        performed synchronously, and if successful, the power action is
+        updated in the background (asynchronously). Once the power action
+        is finished and successful, it updates the power_state for the
+        node with the new power state.
 
         :param context: an admin context.
         :param node_id: the id or uuid of a node.
@@ -237,6 +239,8 @@ class ConductorManager(service.PeriodicService):
         task = task_manager.TaskManager(context, node_id, shared=False)
 
         try:
+            task.driver.power.validate(task, task.node)
+
             # Start requested action in the background.
             thread = self._spawn_worker(utils.node_power_action,
                                         task, task.node, new_state)
