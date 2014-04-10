@@ -27,6 +27,7 @@ from oslo.config import cfg
 
 from ironic.nova.virt.ironic import client_wrapper
 from ironic.nova.virt.ironic import ironic_states
+from ironic.nova.virt.ironic import patcher
 from nova.compute import power_state
 from nova import exception
 from nova.objects import flavor as flavor_obj
@@ -248,70 +249,41 @@ class IronicDriver(virt_driver.ComputeDriver):
     def _stop_firewall(self, instance, network_info):
         self.firewall_driver.unfilter_instance(instance, network_info)
 
-    def _add_driver_fields(self, node, instance, image_meta, flavor=None):
+    def _add_driver_fields(self, node, instance, image_meta, flavor):
         icli = self._get_client()
-        if 'pxe' in node.driver:
-            # add required fields
-            pxe_fields = importutils.import_class(
-                'ironic.nova.virt.ironic.ironic_driver_fields.PXE')
+        patch = patcher.create(node).get_deploy_patch(
+                instance, image_meta, flavor)
 
-            patch = []
-            for field in pxe_fields.required:
-                path_to_add = "%s/%s" % (field['ironic_path'],
-                                         field['ironic_variable'])
-                patch = [{'op': 'add',
-                         'path': path_to_add,
-                         'value': unicode(_get_required_value(
-                                          eval(field['nova_object']),
-                                               field['object_field']))}]
-                try:
-                    self._retry_if_service_is_unavailable(icli.node.update,
-                                                          node.uuid, patch)
-                except MaximumRetriesReached:
-                    msg = (_("Adding the parameter %(param)s on node %(node)s "
-                             "failed after %(retries)d retries")
-                           % {'param': path_to_add, 'node': node.uuid,
-                              'retries': CONF.ironic.api_max_retries})
-                    LOG.error(msg)
-                    raise exception.NovaException(msg)
+        # Associate the node with an instance
+        patch.append({'path': '/instance_uuid', 'op': 'add',
+                      'value': instance['uuid']})
+        try:
+            self._retry_if_service_is_unavailable(icli.node.update,
+                                                  node.uuid, patch)
+        except (MaximumRetriesReached, ironic_exception.HTTPBadRequest):
+            msg = (_("Failed to add deploy parameters on node %(node)s "
+                     "when provisioning the instance %(instance)s")
+                   % {'node': node.uuid, 'instance': instance['uuid']})
+            LOG.error(msg)
+            raise exception.InstanceDeployFailure(msg)
 
     def _cleanup_deploy(self, node, instance, network_info):
         icli = self._get_client()
+        patch = patcher.create(node).get_cleanup_patch(
+                instance, network_info)
 
-        # remove the instance uuid
-        if node.instance_uuid and node.instance_uuid == instance['uuid']:
-            try:
-                patch = [{'op': 'remove', 'path': '/instance_uuid'}]
-                self._retry_if_service_is_unavailable(icli.node.update,
-                                                      node.uuid, patch)
-            except MaximumRetriesReached:
-                LOG.warning(_("Failed to unassociate the instance "
-                              "%(instance)s with node %(node)s") %
-                             {'instance': instance['uuid'], 'node': node.uuid})
-            except ironic_exception.HTTPBadRequest:
-                pass
-
-        if 'pxe' in node.driver:
-            # add required fields
-            pxe_fields = importutils.import_class(
-                'ironic.nova.virt.ironic.ironic_driver_fields.PXE')
-
-            patch = []
-            for field in pxe_fields.required:
-                path_to_remove = "%s/%s" % (field['ironic_path'],
-                                            field['ironic_variable'])
-                patch = [{'op': 'remove', 'path': path_to_remove}]
-
-                try:
-                    self._retry_if_service_is_unavailable(icli.node.update,
-                                                          node.uuid, patch)
-                except MaximumRetriesReached:
-                    LOG.warning(_("Removing the parameter %(param)s on node "
-                                  "%(node)s failed after %(retries)d retries")
-                                % {'param': path_to_remove, 'node': node.uuid,
-                                   'retries': CONF.ironic.api_max_retries})
-                except ironic_exception.HTTPBadRequest:
-                    pass
+        # Unassociate the node
+        patch.append({'op': 'remove', 'path': '/instance_uuid'})
+        try:
+            self._retry_if_service_is_unavailable(icli.node.update,
+                                                  node.uuid, patch)
+        except (MaximumRetriesReached, ironic_exception.HTTPBadRequest):
+            msg = (_("Failed clean up the parameters on node %(node)s "
+                     "when unprovisioning the instance %(instance)s")
+                   % {'node': node.uuid, 'instance': instance['uuid']})
+            LOG.error(msg)
+            reason = _("Fail to clean up node %s parameters") % node.uuid
+            raise exception.InstanceTerminationFailure(reason=reason)
 
         self._unplug_vifs(node, instance, network_info)
         self._stop_firewall(instance, network_info)
@@ -372,7 +344,6 @@ class IronicDriver(virt_driver.ComputeDriver):
         return self._node_resource(node)
 
     def get_info(self, instance):
-
         icli = self._get_client()
         try:
             node = icli.node.get_by_instance_uuid(instance['uuid'])
@@ -411,23 +382,6 @@ class IronicDriver(virt_driver.ComputeDriver):
         icli = self._get_client()
         node = icli.node.get(node_uuid)
 
-        # Associate the node to this instance
-        try:
-            # NOTE(deva): this may raise a NodeAlreadyAssociated exception
-            #             which we allow to propagate up to the scheduler,
-            #             so it retries on another node.
-            patch = [{'op': 'replace',
-                      'path': '/instance_uuid',
-                      'value': instance['uuid']}]
-            self._retry_if_service_is_unavailable(icli.node.update,
-                                                  node_uuid, patch)
-        except (ironic_exception.HTTPBadRequest, MaximumRetriesReached):
-            msg = _("Unable to set instance UUID for node %s") % node_uuid
-            LOG.error(msg)
-            raise exception.NovaException(msg)
-
-        # Set image id, and other driver info so we can pass it down to Ironic
-        # use the ironic_driver_fields file to import
         flavor = flavor_obj.Flavor.get_by_id(context,
                                              instance['instance_type_id'])
         self._add_driver_fields(node, instance, image_meta, flavor)
