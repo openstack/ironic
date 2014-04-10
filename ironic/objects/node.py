@@ -19,9 +19,9 @@ from ironic.objects import utils
 
 
 class Node(base.IronicObject):
-
+    # Version 1.0: Initial version
     # Version 1.1: Added instance_info
-    version = '1.1'
+    VERSION = '1.1'
 
     dbapi = db_api.get_instance()
 
