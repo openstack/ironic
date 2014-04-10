@@ -309,6 +309,17 @@ class ManagerTestCase(base.DbTestCase):
             self.service._sync_power_states(self.context)
             self.assertFalse(get_power_mock.called)
 
+    @mock.patch('ironic.drivers.modules.fake.FakePower.get_power_state')
+    @mock.patch('ironic.drivers.modules.fake.FakePower.validate')
+    def test__sync_power_state_validate_fail(self, mock_validate, mock_get):
+        self.service.start()
+        n = utils.get_test_node(power_state=states.NOSTATE)
+        self.dbapi.create_node(n)
+        mock_validate.side_effect = exception.InvalidParameterValue('error')
+        self.service._sync_power_states(self.context)
+        self.assertFalse(mock_get.called)
+        mock_validate.assert_called_once_with(mock.ANY, mock.ANY)
+
     def test_change_node_power_state_power_on(self):
         # Test change_node_power_state including integration with
         # conductor.utils.node_power_action and lower.
