@@ -26,6 +26,7 @@ from ironic.common import utils
 from ironic.conductor import task_manager
 from ironic.db import api as dbapi
 from ironic.drivers.modules import ssh
+from ironic.drivers import utils as driver_utils
 from ironic.openstack.common import context
 from ironic.openstack.common import processutils
 from ironic.tests import base
@@ -602,8 +603,8 @@ class SSHDriverTestCase(db_base.DbTestCase):
                                                         '_parse_driver_info')
         self.parse_drv_info_mock = None
         self.get_mac_addr_patcher = mock.patch.object(
-                ssh,
-                '_get_nodes_mac_addresses')
+                driver_utils,
+                'get_node_mac_addresses')
         self.get_mac_addr_mock = self.get_mac_addr_patcher.start()
         self.get_conn_patcher = mock.patch.object(ssh, '_get_connection')
         self.get_conn_mock = self.get_conn_patcher.start()
@@ -617,34 +618,6 @@ class SSHDriverTestCase(db_base.DbTestCase):
                 self.get_conn_patcher.stop()
 
         self.addCleanup(stop_patchers)
-
-    def test__get_nodes_mac_addresses(self):
-        #stop all the mocks because this test does not use them
-        self.get_mac_addr_patcher.stop()
-        self.get_mac_addr_mock = None
-        self.get_conn_patcher.stop()
-        self.get_conn_mock = None
-
-        ports = []
-        ports.append(self.port)
-        ports.append(
-            self.dbapi.create_port(
-                db_utils.get_test_port(
-                    id=6,
-                    node_id=self.node['id'],
-                    address='aa:bb:cc',
-                    uuid='bb43dc0b-03f2-4d2e-ae87-c02d7f33cc53')))
-        ports.append(
-            self.dbapi.create_port(
-                db_utils.get_test_port(
-                    id=7,
-                    node_id=self.node['id'],
-                    address='dd:ee:ff',
-                    uuid='4fc26c0b-03f2-4d2e-ae87-c02d7f33c234')))
-
-        with task_manager.acquire(self.context, [self.node['uuid']]) as task:
-            node_macs = ssh._get_nodes_mac_addresses(task, self.node)
-        self.assertEqual(sorted([p.address for p in ports]), sorted(node_macs))
 
     def test__validate_info_ssh_connect_failed(self):
         info = ssh._parse_driver_info(self.node)
