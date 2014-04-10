@@ -554,8 +554,7 @@ class ConductorManager(service.PeriodicService):
                                                  filters=filters)
         for (node_id, node_uuid, driver) in node_list:
             # only sync power states for nodes mapped to this conductor
-            mapped_hosts = self.driver_rings[driver].get_hosts(node_uuid)
-            if self.host not in mapped_hosts:
+            if not self._mapped_to_this_conductor(node_uuid, driver):
                 continue
 
             try:
@@ -590,8 +589,7 @@ class ConductorManager(service.PeriodicService):
                                                  filters=filters)
 
         for (node_uuid, driver, state, update_time) in node_list:
-            mapped_hosts = self.driver_rings[driver].get_hosts(node_uuid)
-            if self.host not in mapped_hosts:
+            if not self._mapped_to_this_conductor(node_uuid, driver):
                 continue
 
             if state == states.DEPLOYWAIT:
@@ -638,6 +636,13 @@ class ConductorManager(service.PeriodicService):
         """
         # TODO(deva): implement this
         pass
+
+    def _mapped_to_this_conductor(self, node_uuid, driver):
+        """Check that node is mapped to this conductor."""
+        if driver in self.drivers:
+            mapped_hosts = self.driver_rings[driver].get_hosts(node_uuid)
+            return self.host == mapped_hosts[0]
+        return False
 
     @messaging.client_exceptions(exception.NodeLocked)
     def validate_driver_interfaces(self, context, node_id):
