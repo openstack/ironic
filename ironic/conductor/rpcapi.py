@@ -23,7 +23,6 @@ from oslo.config import cfg
 from ironic.common import exception
 from ironic.common import hash_ring as hash
 from ironic.conductor import manager
-from ironic.db import api as dbapi
 from ironic.objects import base as objects_base
 import ironic.openstack.common.rpc.proxy
 
@@ -69,11 +68,7 @@ class ConductorAPI(ironic.openstack.common.rpc.proxy.RpcProxy):
         if topic is None:
             topic = manager.MANAGER_TOPIC
 
-        # Initialize consistent hash ring
-        self.hash_rings = {}
-        d2c = dbapi.get_instance().get_active_driver_dict()
-        for driver in d2c.keys():
-            self.hash_rings[driver] = hash.HashRing(d2c[driver])
+        self.ring_manager = hash.HashRingManager()
 
         super(ConductorAPI, self).__init__(
                 topic=topic,
@@ -90,10 +85,10 @@ class ConductorAPI(ironic.openstack.common.rpc.proxy.RpcProxy):
 
         """
         try:
-            ring = self.hash_rings[node.driver]
+            ring = self.ring_manager.get_hash_ring(node.driver)
             dest = ring.get_hosts(node.uuid)
             return self.topic + "." + dest[0]
-        except KeyError:
+        except exception.DriverNotFound:
             reason = (_('No conductor service registered which supports '
                         'driver %s.') % node.driver)
             raise exception.NoValidHost(reason=reason)

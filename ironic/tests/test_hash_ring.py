@@ -17,7 +17,10 @@ from oslo.config import cfg
 
 from ironic.common import exception
 from ironic.common import hash_ring as hash
+from ironic.db import api as dbapi
+from ironic.openstack.common import context
 from ironic.tests import base
+from ironic.tests.db import base as db_base
 
 CONF = cfg.CONF
 
@@ -117,3 +120,45 @@ class HashRingTestCase(base.TestCase):
         self.assertRaises(exception.Invalid,
                           ring.get_hosts,
                           None)
+
+
+class HashRingManagerTestCase(db_base.DbTestCase):
+
+    def setUp(self):
+        super(HashRingManagerTestCase, self).setUp()
+        self.ring_manager = hash.HashRingManager()
+        self.context = context.get_admin_context()
+        self.dbapi = dbapi.get_instance()
+
+    def register_conductors(self):
+        self.dbapi.register_conductor({
+            'hostname': 'host1',
+            'drivers': ['driver1', 'driver2'],
+        })
+        self.dbapi.register_conductor({
+            'hostname': 'host2',
+            'drivers': ['driver1'],
+        })
+
+    def test_hash_ring_manager_get_ring_success(self):
+        self.register_conductors()
+        ring = self.ring_manager.get_hash_ring('driver1')
+        self.assertEqual(sorted(['host1', 'host2']), sorted(ring.hosts))
+
+    def test_hash_ring_manager_driver_not_found(self):
+        self.register_conductors()
+        self.assertRaises(exception.DriverNotFound,
+                          self.ring_manager.get_hash_ring,
+                          'driver3')
+
+    def test_hash_ring_manager_no_refresh(self):
+        # If a new conductor is registered after the ring manager is
+        # initialized, it won't be seen. Long term this is probably
+        # undesirable, but today is the intended behavior.
+        self.assertRaises(exception.DriverNotFound,
+                          self.ring_manager.get_hash_ring,
+                          'driver1')
+        self.register_conductors()
+        self.assertRaises(exception.DriverNotFound,
+                          self.ring_manager.get_hash_ring,
+                          'driver1')
