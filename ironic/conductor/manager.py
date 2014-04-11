@@ -477,6 +477,14 @@ class ConductorManager(service.PeriodicService):
         node = task.node
         power_state = None
 
+        # Power driver info should be set properly for new node, otherwise
+        # prevent node from switching to maintenance mode.
+        if node.power_state is None:
+            try:
+                task.driver.power.validate(task, node)
+            except exception.InvalidParameterValue:
+                return
+
         try:
             power_state = task.driver.power.get_power_state(task, node)
         except Exception as e:
