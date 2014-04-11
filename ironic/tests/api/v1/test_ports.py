@@ -20,6 +20,7 @@ import datetime
 import fixtures
 import mock
 from oslo.config import cfg
+from testtools.matchers import HasLength
 
 from ironic.common import utils
 from ironic.conductor import manager
@@ -140,6 +141,36 @@ class TestListPorts(base.FunctionalTest):
 
         next_marker = data['ports'][-1]['uuid']
         self.assertIn(next_marker, data['next'])
+
+    def test_port_by_address(self):
+        address_template = "aa:bb:cc:dd:ee:f%d"
+        for id_ in range(3):
+            pdict = dbutils.get_test_port(id=id_,
+                                          uuid=utils.generate_uuid(),
+                                          address=address_template % id_)
+            self.dbapi.create_port(pdict)
+
+        target_address = address_template % 1
+        data = self.get_json('/ports?address=%s' % target_address)
+        self.assertThat(data['ports'], HasLength(1))
+        self.assertEqual(target_address, data['ports'][0]['address'])
+
+    def test_port_by_address_non_existent_address(self):
+        pdict = dbutils.get_test_port()
+        self.dbapi.create_port(pdict)
+        # non-existent address
+        data = self.get_json('/ports?address=%s' % 'aa:bb:cc:dd:ee:ff')
+        self.assertThat(data['ports'], HasLength(0))
+
+    def test_port_by_address_invalid_address_format(self):
+        pdict = dbutils.get_test_port()
+        self.dbapi.create_port(pdict)
+        invalid_address = 'invalid-mac-format'
+        response = self.get_json('/ports?address=%s' % invalid_address,
+                                 expect_errors=True)
+        self.assertEqual(400, response.status_int)
+        self.assertEqual('application/json', response.content_type)
+        self.assertIn(invalid_address, response.json['error_message'])
 
 
 class TestPatch(base.FunctionalTest):
