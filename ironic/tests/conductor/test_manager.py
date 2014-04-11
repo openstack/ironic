@@ -376,7 +376,7 @@ class ManagerTestCase(base.DbTestCase):
                                 db_node.uuid,
                                 states.POWER_ON)
         # Compare true exception hidden by @messaging.client_exceptions
-        self.assertEqual(exc._exc_info[0], exception.NodeLocked)
+        self.assertEqual(exception.NodeLocked, exc._exc_info[0])
 
         # In this test worker should not be spawned, but waiting to make sure
         # the below perform_mock assertion is valid.
@@ -406,7 +406,7 @@ class ManagerTestCase(base.DbTestCase):
                                     db_node.uuid,
                                     states.POWER_ON)
             # Compare true exception hidden by @messaging.client_exceptions
-            self.assertEqual(exc._exc_info[0], exception.NoFreeConductorWorker)
+            self.assertEqual(exception.NoFreeConductorWorker, exc._exc_info[0])
 
             spawn_mock.assert_called_once_with(mock.ANY, mock.ANY,
                                                mock.ANY, mock.ANY)
@@ -474,7 +474,7 @@ class ManagerTestCase(base.DbTestCase):
                                     db_node.uuid,
                                     states.POWER_ON)
 
-            self.assertEqual(exc._exc_info[0], exception.InvalidParameterValue)
+            self.assertEqual(exception.InvalidParameterValue, exc._exc_info[0])
 
             db_node.refresh(self.context)
             validate_mock.assert_called_once_with(mock.ANY, mock.ANY)
@@ -503,7 +503,7 @@ class ManagerTestCase(base.DbTestCase):
                                     self.context,
                                     node)
             # Compare true exception hidden by @messaging.client_exceptions
-            self.assertEqual(exc._exc_info[0], exception.NodeLocked)
+            self.assertEqual(exception.NodeLocked, exc._exc_info[0])
 
         # verify change did not happen
         res = objects.Node.get_by_uuid(self.context, node['uuid'])
@@ -523,7 +523,7 @@ class ManagerTestCase(base.DbTestCase):
                                 self.context,
                                 node)
         # Compare true exception hidden by @messaging.client_exceptions
-        self.assertEqual(exc._exc_info[0], exception.NodeInWrongPowerState)
+        self.assertEqual(exception.NodeInWrongPowerState, exc._exc_info[0])
 
         # verify change did not happen
         res = objects.Node.get_by_uuid(self.context, node['uuid'])
@@ -593,7 +593,7 @@ class ManagerTestCase(base.DbTestCase):
                                 self.service.vendor_passthru,
                                 self.context, n['uuid'], 'first_method', info)
         # Compare true exception hidden by @messaging.client_exceptions
-        self.assertEqual(exc._exc_info[0], exception.NodeLocked)
+        self.assertEqual(exception.NodeLocked, exc._exc_info[0])
 
         node.refresh(self.context)
         self.assertIsNone(node.last_error)
@@ -611,8 +611,8 @@ class ManagerTestCase(base.DbTestCase):
                                 self.context,
                                 n['uuid'], 'unsupported_method', info)
         # Compare true exception hidden by @messaging.client_exceptions
-        self.assertEqual(exc._exc_info[0],
-                         exception.UnsupportedDriverExtension)
+        self.assertEqual(exception.UnsupportedDriverExtension,
+                         exc._exc_info[0])
 
         node.refresh(self.context)
         self.assertIsNone(node.last_error)
@@ -629,7 +629,7 @@ class ManagerTestCase(base.DbTestCase):
                                 self.service.vendor_passthru,
                                 self.context, n['uuid'], 'first_method', info)
         # Compare true exception hidden by @messaging.client_exceptions
-        self.assertEqual(exc._exc_info[0], exception.InvalidParameterValue)
+        self.assertEqual(exception.InvalidParameterValue, exc._exc_info[0])
 
         node.refresh(self.context)
         self.assertIsNone(node.last_error)
@@ -648,8 +648,8 @@ class ManagerTestCase(base.DbTestCase):
                                 self.context,
                                 n['uuid'], 'whatever_method', info)
         # Compare true exception hidden by @messaging.client_exceptions
-        self.assertEqual(exc._exc_info[0],
-                         exception.UnsupportedDriverExtension)
+        self.assertEqual(exception.UnsupportedDriverExtension,
+                         exc._exc_info[0])
 
         node.refresh(self.context)
         # Verify reservation has been cleared.
@@ -670,7 +670,7 @@ class ManagerTestCase(base.DbTestCase):
                                     self.context,
                                     n['uuid'], 'first_method', info)
             # Compare true exception hidden by @messaging.client_exceptions
-            self.assertEqual(exc._exc_info[0], exception.NoFreeConductorWorker)
+            self.assertEqual(exception.NoFreeConductorWorker, exc._exc_info[0])
 
             # Waiting to make sure the below assertions are valid.
             self.service._worker_pool.waitall()
@@ -689,7 +689,7 @@ class ManagerTestCase(base.DbTestCase):
                                 self.service.do_node_deploy,
                                 self.context, node['uuid'])
         # Compare true exception hidden by @messaging.client_exceptions
-        self.assertEqual(exc._exc_info[0], exception.InstanceDeployFailure)
+        self.assertEqual(exception.InstanceDeployFailure, exc._exc_info[0])
         # This is a sync operation last_error should be None.
         self.assertIsNone(node.last_error)
         # Verify reservation has been cleared.
@@ -702,7 +702,7 @@ class ManagerTestCase(base.DbTestCase):
                                 self.service.do_node_deploy,
                                 self.context, node['uuid'])
         # Compare true exception hidden by @messaging.client_exceptions
-        self.assertEqual(exc._exc_info[0], exception.NodeInMaintenance)
+        self.assertEqual(exception.NodeInMaintenance, exc._exc_info[0])
         # This is a sync operation last_error should be None.
         self.assertIsNone(node.last_error)
         # Verify reservation has been cleared.
@@ -718,7 +718,7 @@ class ManagerTestCase(base.DbTestCase):
                                 self.service.do_node_deploy,
                                 self.context, node.uuid)
         # Compare true exception hidden by @messaging.client_exceptions
-        self.assertEqual(exc._exc_info[0], exception.InstanceDeployFailure)
+        self.assertEqual(exception.InstanceDeployFailure, exc._exc_info[0])
         # This is a sync operation last_error should be None.
         self.assertIsNone(node.last_error)
         # Verify reservation has been cleared.
@@ -737,8 +737,8 @@ class ManagerTestCase(base.DbTestCase):
                           self.service._do_node_deploy,
                           self.context, task)
         node.refresh(self.context)
-        self.assertEqual(node.provision_state, states.DEPLOYFAIL)
-        self.assertEqual(node.target_provision_state, states.NOSTATE)
+        self.assertEqual(states.DEPLOYFAIL, node.provision_state)
+        self.assertEqual(states.NOSTATE, node.target_provision_state)
         self.assertIsNotNone(node.last_error)
         mock_deploy.assert_called_once_with(mock.ANY, mock.ANY)
 
@@ -753,8 +753,8 @@ class ManagerTestCase(base.DbTestCase):
 
         self.service._do_node_deploy(self.context, task)
         node.refresh(self.context)
-        self.assertEqual(node.provision_state, states.ACTIVE)
-        self.assertEqual(node.target_provision_state, states.NOSTATE)
+        self.assertEqual(states.ACTIVE, node.provision_state)
+        self.assertEqual(states.NOSTATE, node.target_provision_state)
         self.assertIsNone(node.last_error)
         mock_deploy.assert_called_once_with(mock.ANY, mock.ANY)
 
@@ -771,8 +771,8 @@ class ManagerTestCase(base.DbTestCase):
             self.service.do_node_deploy(self.context, node.uuid)
             self.service._worker_pool.waitall()
             node.refresh(self.context)
-            self.assertEqual(node.provision_state, states.DEPLOYING)
-            self.assertEqual(node.target_provision_state, states.DEPLOYDONE)
+            self.assertEqual(states.DEPLOYING, node.provision_state)
+            self.assertEqual(states.DEPLOYDONE, node.target_provision_state)
             # This is a sync operation last_error should be None.
             self.assertIsNone(node.last_error)
             # Verify reservation has been cleared.
@@ -791,7 +791,7 @@ class ManagerTestCase(base.DbTestCase):
                                     self.service.do_node_deploy,
                                     self.context, node.uuid)
             # Compare true exception hidden by @messaging.client_exceptions
-            self.assertEqual(exc._exc_info[0], exception.NoFreeConductorWorker)
+            self.assertEqual(exception.NoFreeConductorWorker, exc._exc_info[0])
             self.service._worker_pool.waitall()
             node.refresh(self.context)
             # This is a sync operation last_error should be None.
@@ -808,7 +808,7 @@ class ManagerTestCase(base.DbTestCase):
                                 self.service.do_node_tear_down,
                                 self.context, node['uuid'])
         # Compare true exception hidden by @messaging.client_exceptions
-        self.assertEqual(exc._exc_info[0], exception.InstanceDeployFailure)
+        self.assertEqual(exception.InstanceDeployFailure, exc._exc_info[0])
 
     @mock.patch('ironic.drivers.modules.fake.FakeDeploy.validate')
     def test_do_node_tear_down_validate_fail(self, mock_validate):
@@ -821,7 +821,7 @@ class ManagerTestCase(base.DbTestCase):
                                self.service.do_node_tear_down,
                                self.context, node.uuid)
         # Compare true exception hidden by @messaging.client_exceptions
-        self.assertEqual(exc._exc_info[0], exception.InstanceDeployFailure)
+        self.assertEqual(exception.InstanceDeployFailure, exc._exc_info[0])
 
     @mock.patch('ironic.drivers.modules.fake.FakeDeploy.tear_down')
     def test_do_node_tear_down_driver_raises_error(self, mock_tear_down):
@@ -888,7 +888,7 @@ class ManagerTestCase(base.DbTestCase):
                                 self.service.do_node_tear_down,
                                 self.context, node.uuid)
         # Compare true exception hidden by @messaging.client_exceptions
-        self.assertEqual(exc._exc_info[0], exception.NoFreeConductorWorker)
+        self.assertEqual(exception.NoFreeConductorWorker, exc._exc_info[0])
         self.service._worker_pool.waitall()
         node.refresh(self.context)
         # This is a sync operation last_error should be None.
@@ -943,7 +943,7 @@ class ManagerTestCase(base.DbTestCase):
                                 self.service.change_node_maintenance_mode,
                                 self.context, node.uuid, True)
         # Compare true exception hidden by @messaging.client_exceptions
-        self.assertEqual(exc._exc_info[0], exception.NodeMaintenanceFailure)
+        self.assertEqual(exception.NodeMaintenanceFailure, exc._exc_info[0])
         node.refresh(self.context)
         self.assertTrue(node.maintenance)
 
@@ -954,7 +954,7 @@ class ManagerTestCase(base.DbTestCase):
                                 self.service.change_node_maintenance_mode,
                                 self.context, node.uuid, False)
         # Compare true exception hidden by @messaging.client_exceptions
-        self.assertEqual(exc._exc_info[0], exception.NodeMaintenanceFailure)
+        self.assertEqual(exception.NodeMaintenanceFailure, exc._exc_info[0])
         node.refresh(self.context)
         self.assertFalse(node.maintenance)
 
@@ -1045,7 +1045,7 @@ class ManagerTestCase(base.DbTestCase):
                                 self.service.destroy_node,
                                 self.context, node.uuid)
         # Compare true exception hidden by @messaging.client_exceptions
-        self.assertEqual(exc._exc_info[0], exception.NodeLocked)
+        self.assertEqual(exception.NodeLocked, exc._exc_info[0])
         # Verify existing reservation wasn't broken.
         node.refresh(self.context)
         self.assertEqual(fake_reservation, node.reservation)
@@ -1059,7 +1059,7 @@ class ManagerTestCase(base.DbTestCase):
                                 self.service.destroy_node,
                                 self.context, node.uuid)
         # Compare true exception hidden by @messaging.client_exceptions
-        self.assertEqual(exc._exc_info[0], exception.NodeAssociated)
+        self.assertEqual(exception.NodeAssociated, exc._exc_info[0])
 
         # Verify reservation was released.
         node.refresh(self.context)
@@ -1151,7 +1151,7 @@ class ManagerTestCase(base.DbTestCase):
                                     self.service.set_console_mode,
                                     self.context, node.uuid, True)
             # Compare true exception hidden by @messaging.client_exceptions
-            self.assertEqual(exc._exc_info[0], exception.NoFreeConductorWorker)
+            self.assertEqual(exception.NoFreeConductorWorker, exc._exc_info[0])
             self.service._worker_pool.waitall()
             spawn_mock.assert_called_once_with(mock.ANY, mock.ANY, mock.ANY)
 
@@ -1183,8 +1183,8 @@ class ManagerTestCase(base.DbTestCase):
                                 self.service.set_console_mode, self.context,
                                 node.uuid, True)
         # Compare true exception hidden by @messaging.client_exceptions
-        self.assertEqual(exc._exc_info[0],
-                         exception.UnsupportedDriverExtension)
+        self.assertEqual(exception.UnsupportedDriverExtension,
+                         exc._exc_info[0])
         self.service._worker_pool.waitall()
         node.refresh(self.context)
         self.assertIsNotNone(node.last_error)
@@ -1199,7 +1199,7 @@ class ManagerTestCase(base.DbTestCase):
                                     self.service.set_console_mode,
                                     self.context, node.uuid, True)
             # Compare true exception hidden by @messaging.client_exceptions
-            self.assertEqual(exc._exc_info[0], exception.InvalidParameterValue)
+            self.assertEqual(exception.InvalidParameterValue, exc._exc_info[0])
 
     def test_set_console_mode_start_fail(self):
         ndict = utils.get_test_node(driver='fake', last_error=None,
@@ -1268,8 +1268,8 @@ class ManagerTestCase(base.DbTestCase):
                           self.service.get_console_information,
                           self.context, node.uuid)
         # Compare true exception hidden by @messaging.client_exceptions
-        self.assertEqual(exc._exc_info[0],
-                         exception.UnsupportedDriverExtension)
+        self.assertEqual(exception.UnsupportedDriverExtension,
+                         exc._exc_info[0])
 
     def test_get_console_disabled(self):
         ndict = utils.get_test_node(driver='fake', console_enabled=False)
@@ -1278,7 +1278,7 @@ class ManagerTestCase(base.DbTestCase):
                                 self.service.get_console_information,
                                 self.context, node.uuid)
         # Compare true exception hidden by @messaging.client_exceptions
-        self.assertEqual(exc._exc_info[0], exception.NodeConsoleNotEnabled)
+        self.assertEqual(exception.NodeConsoleNotEnabled, exc._exc_info[0])
 
     def test_get_console_validate_fail(self):
         ndict = utils.get_test_node(driver='fake', console_enabled=True)
@@ -1289,7 +1289,7 @@ class ManagerTestCase(base.DbTestCase):
                                     self.service.get_console_information,
                                     self.context, node.uuid)
             # Compare true exception hidden by @messaging.client_exceptions
-            self.assertEqual(exc._exc_info[0], exception.InvalidParameterValue)
+            self.assertEqual(exception.InvalidParameterValue, exc._exc_info[0])
 
     def test_destroy_node_power_on(self):
         self._start_service()
@@ -1300,7 +1300,7 @@ class ManagerTestCase(base.DbTestCase):
                                 self.service.destroy_node,
                                 self.context, node.uuid)
         # Compare true exception hidden by @messaging.client_exceptions
-        self.assertEqual(exc._exc_info[0], exception.NodeInWrongPowerState)
+        self.assertEqual(exception.NodeInWrongPowerState, exc._exc_info[0])
         # Verify reservation was released.
         node.refresh(self.context)
         self.assertIsNone(node.reservation)
@@ -1333,7 +1333,7 @@ class ManagerTestCase(base.DbTestCase):
                                 self.service.update_port,
                                 self.context, port)
         # Compare true exception hidden by @messaging.client_exceptions
-        self.assertEqual(exc._exc_info[0], exception.NodeLocked)
+        self.assertEqual(exception.NodeLocked, exc._exc_info[0])
 
     @mock.patch('ironic.common.neutron.NeutronAPI.update_port_address')
     def test_update_port_address(self, mac_update_mock):
@@ -1363,7 +1363,7 @@ class ManagerTestCase(base.DbTestCase):
                                 self.service.update_port,
                                 self.context, port)
         # Compare true exception hidden by @messaging.client_exceptions
-        self.assertEqual(exc._exc_info[0], exception.FailedToUpdateMacOnPort)
+        self.assertEqual(exception.FailedToUpdateMacOnPort, exc._exc_info[0])
         port.refresh(self.context)
         self.assertEqual(old_address, port.address)
 
