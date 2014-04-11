@@ -47,7 +47,7 @@ def _parse_driver_info(node):
               are missing.
     """
 
-    info = node.get('driver_info', {})
+    info = node.driver_info or {}
     bmc_info = {}
     bmc_info['address'] = info.get('ipmi_address')
     bmc_info['username'] = info.get('ipmi_username')
@@ -62,7 +62,7 @@ def _parse_driver_info(node):
              ) % missing_info)
 
     # get additional info
-    bmc_info['uuid'] = node.get('uuid')
+    bmc_info['uuid'] = node.uuid
 
     return bmc_info
 

@@ -192,7 +192,7 @@ class ConductorManager(service.PeriodicService):
             raise exception.IronicException(_(
                 "Invalid method call: update_node can not change node state."))
 
-        driver_name = node_obj.get('driver') if 'driver' in delta else None
+        driver_name = node_obj.driver if 'driver' in delta else None
         with task_manager.acquire(context, node_id, shared=False,
                                   driver_name=driver_name) as task:
 

@@ -92,7 +92,7 @@ def _parse_driver_info(node):
     :returns: A dict with the driver_info values.
     """
 
-    info = node.get('driver_info', {})
+    info = node.driver_info or {}
     d_info = {}
     d_info['image_source'] = info.get('pxe_image_source')
     d_info['deploy_kernel'] = info.get('pxe_deploy_kernel')

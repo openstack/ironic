@@ -154,7 +154,7 @@ def _parse_driver_info(node):
         or incorrect.
 
     """
-    info = node.get('driver_info', {})
+    info = node.driver_info or {}
     address = info.get('ssh_address')
     username = info.get('ssh_username')
     password = info.get('ssh_password')
@@ -173,7 +173,7 @@ def _parse_driver_info(node):
            'username': username,
            'port': port,
            'virt_type': virt_type,
-           'uuid': node.get('uuid')
+           'uuid': node.uuid
           }
 
     if not virt_type:

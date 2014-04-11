@@ -73,7 +73,7 @@ def _parse_driver_info(node):
     :raises: InvalidParameterValue if any required parameters are missing.
 
     """
-    info = node.get('driver_info', {})
+    info = node.driver_info or {}
     address = info.get('ipmi_address')
     username = info.get('ipmi_username')
     password = info.get('ipmi_password')
@@ -96,7 +96,7 @@ def _parse_driver_info(node):
             'username': username,
             'password': password,
             'port': port,
-            'uuid': node.get('uuid'),
+            'uuid': node.uuid,
             'priv_level': priv_level
            }
 

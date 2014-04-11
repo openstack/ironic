@@ -544,8 +544,8 @@ class ManagerTestCase(base.DbTestCase):
                                     task_state=states.POWER_ON)
         node = self.dbapi.create_node(ndict)
         # check that it fails because driver not found
-        node['driver'] = wrong_driver
-        node['driver_info'] = {}
+        node.driver = wrong_driver
+        node.driver_info = {}
         self.assertRaises(exception.DriverNotFound,
                           self.service.update_node,
                           self.context,

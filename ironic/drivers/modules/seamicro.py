@@ -80,7 +80,7 @@ def _parse_driver_info(node):
     :raises: InvalidParameterValue if any required parameters are missing.
     """
 
-    info = node.get('driver_info', {})
+    info = node.driver_info or {}
     api_endpoint = info.get('seamicro_api_endpoint')
     username = info.get('seamicro_username')
     password = info.get('seamicro_password')
@@ -104,7 +104,7 @@ def _parse_driver_info(node):
            'api_endpoint': api_endpoint,
            'server_id': server_id,
            'api_version': api_version,
-           'uuid': node.get('uuid')}
+           'uuid': node.uuid}
 
     return res
 

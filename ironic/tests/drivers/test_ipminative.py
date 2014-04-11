@@ -31,6 +31,7 @@ from ironic.tests import base
 from ironic.tests.conductor import utils as mgr_utils
 from ironic.tests.db import base as db_base
 from ironic.tests.db import utils as db_utils
+from ironic.tests.objects import utils as obj_utils
 from oslo.config import cfg
 
 CONF = cfg.CONF
@@ -43,6 +44,7 @@ class IPMINativePrivateMethodTestCase(base.TestCase):
 
     def setUp(self):
         super(IPMINativePrivateMethodTestCase, self).setUp()
+        self.context = context.get_admin_context()
         n = db_utils.get_test_node(
                 driver='fake_ipminative',
                 driver_info=INFO_DICT)
@@ -64,7 +66,7 @@ class IPMINativePrivateMethodTestCase(base.TestCase):
         info = dict(INFO_DICT)
         del info['ipmi_username']
 
-        node = db_utils.get_test_node(driver_info=info)
+        node = obj_utils.get_test_node(self.context, driver_info=info)
         self.assertRaises(exception.InvalidParameterValue,
                           ipminative._parse_driver_info,
                           node)

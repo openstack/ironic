@@ -33,9 +33,9 @@ class TestACL(base.FunctionalTest):
         super(TestACL, self).setUp()
 
         self.environ = {'fake.cache': utils.FakeMemcache()}
-        self.fake_node = db_utils.get_test_node(chassis_id=None)
+        self.fake_db_node = db_utils.get_test_node(chassis_id=None)
         self.dbapi = db_api.get_instance()
-        self.node_path = '/nodes/%s' % self.fake_node['uuid']
+        self.node_path = '/nodes/%s' % self.fake_db_node['uuid']
 
     def get_json(self, path, expect_errors=False, headers=None, q=[], **param):
         return super(TestACL, self).get_json(path,
@@ -56,13 +56,13 @@ class TestACL(base.FunctionalTest):
     def test_authenticated(self):
         with mock.patch.object(self.dbapi, 'get_node',
                                autospec=True) as mock_get_node:
-            mock_get_node.return_value = self.fake_node
+            mock_get_node.return_value = self.fake_db_node
 
             response = self.get_json(self.node_path,
                                  headers={'X-Auth-Token': utils.ADMIN_TOKEN})
 
-            self.assertEqual(self.fake_node['uuid'], response['uuid'])
-            mock_get_node.assert_called_once_with(self.fake_node['uuid'])
+            self.assertEqual(self.fake_db_node['uuid'], response['uuid'])
+            mock_get_node.assert_called_once_with(self.fake_db_node['uuid'])
 
     def test_non_admin(self):
         response = self.get_json(self.node_path,

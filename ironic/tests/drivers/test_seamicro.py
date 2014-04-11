@@ -22,11 +22,13 @@ from ironic.common import states
 from ironic.conductor import task_manager
 from ironic.db import api as dbapi
 from ironic.drivers.modules import seamicro
+from ironic.openstack.common import context
 from ironic.openstack.common import importutils
 from ironic.tests import base
 from ironic.tests.conductor import utils as mgr_utils
 from ironic.tests.db import base as db_base
 from ironic.tests.db import utils as db_utils
+from ironic.tests.objects import utils as obj_utils
 
 INFO_DICT = db_utils.get_test_seamicro_info()
 
@@ -79,11 +81,16 @@ class Fake_Pool():
 
 
 class SeaMicroValidateParametersTestCase(base.TestCase):
+    def setUp(self):
+        super(SeaMicroValidateParametersTestCase, self).setUp()
+        self.context = context.get_admin_context()
 
     def test__parse_driver_info_good(self):
         # make sure we get back the expected things
-        node = db_utils.get_test_node(driver='fake_seamicro',
-                                      driver_info=INFO_DICT)
+        node = obj_utils.get_test_node(
+                self.context,
+                driver='fake_seamicro',
+                driver_info=INFO_DICT)
         info = seamicro._parse_driver_info(node)
         self.assertIsNotNone(info.get('api_endpoint'))
         self.assertIsNotNone(info.get('username'))
@@ -95,7 +102,7 @@ class SeaMicroValidateParametersTestCase(base.TestCase):
         # make sure error is raised when info is missing
         info = dict(INFO_DICT)
         del info['seamicro_api_endpoint']
-        node = db_utils.get_test_node(driver_info=info)
+        node = obj_utils.get_test_node(self.context, driver_info=info)
         self.assertRaises(exception.InvalidParameterValue,
                           seamicro._parse_driver_info,
                           node)
@@ -104,7 +111,7 @@ class SeaMicroValidateParametersTestCase(base.TestCase):
         # make sure error is raised when info is missing
         info = dict(INFO_DICT)
         del info['seamicro_username']
-        node = db_utils.get_test_node(driver_info=info)
+        node = obj_utils.get_test_node(self.context, driver_info=info)
         self.assertRaises(exception.InvalidParameterValue,
                           seamicro._parse_driver_info,
                           node)
@@ -113,7 +120,7 @@ class SeaMicroValidateParametersTestCase(base.TestCase):
         # make sure error is raised when info is missing
         info = dict(INFO_DICT)
         del info['seamicro_password']
-        node = db_utils.get_test_node(driver_info=info)
+        node = obj_utils.get_test_node(self.context, driver_info=info)
         self.assertRaises(exception.InvalidParameterValue,
                           seamicro._parse_driver_info,
                           node)
@@ -122,7 +129,7 @@ class SeaMicroValidateParametersTestCase(base.TestCase):
         # make sure error is raised when info is missing
         info = dict(INFO_DICT)
         del info['seamicro_server_id']
-        node = db_utils.get_test_node(driver_info=info)
+        node = obj_utils.get_test_node(self.context, driver_info=info)
         self.assertRaises(exception.InvalidParameterValue,
                           seamicro._parse_driver_info,
                           node)
@@ -136,6 +143,7 @@ class SeaMicroPrivateMethodsTestCase(base.TestCase):
             'driver': 'fake_seamicro',
             'driver_info': INFO_DICT
         }
+        self.context = context.get_admin_context()
         self.dbapi = dbapi.get_instance()
         self.node = self._create_test_node(**n)
         self.Server = Fake_Server
@@ -264,10 +272,10 @@ class SeaMicroPowerDriverTestCase(db_base.DbTestCase):
             self.skipTest("Seamicroclient library not found")
         mgr_utils.mock_the_extension_manager(driver='fake_seamicro')
         self.driver = driver_factory.get_driver('fake_seamicro')
-        self.node = db_utils.get_test_node(driver='fake_seamicro',
-                                           driver_info=INFO_DICT)
+        db_node = db_utils.get_test_node(driver='fake_seamicro',
+                                         driver_info=INFO_DICT)
         self.dbapi = dbapi.get_instance()
-        self.node = self.dbapi.create_node(self.node)
+        self.node = self.dbapi.create_node(db_node)
         self.get_server_patcher = mock.patch.object(seamicro, '_get_server')
 
         self.get_server_mock = None

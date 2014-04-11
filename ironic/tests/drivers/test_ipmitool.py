@@ -38,6 +38,7 @@ from ironic.tests import base
 from ironic.tests.conductor import utils as mgr_utils
 from ironic.tests.db import base as db_base
 from ironic.tests.db import utils as db_utils
+from ironic.tests.objects import utils as obj_utils
 
 CONF = cfg.CONF
 
@@ -48,7 +49,9 @@ class IPMIToolPrivateMethodTestCase(base.TestCase):
 
     def setUp(self):
         super(IPMIToolPrivateMethodTestCase, self).setUp()
-        self.node = db_utils.get_test_node(
+        self.context = context.get_admin_context()
+        self.node = obj_utils.get_test_node(
+                self.context,
                 driver='fake_ipmitool',
                 driver_info=INFO_DICT)
         self.info = ipmi._parse_driver_info(self.node)
@@ -73,28 +76,28 @@ class IPMIToolPrivateMethodTestCase(base.TestCase):
         info = dict(INFO_DICT)
 
         # test the default value for 'priv_level'
-        node = db_utils.get_test_node(driver_info=info)
+        node = obj_utils.get_test_node(self.context, driver_info=info)
         ret = ipmi._parse_driver_info(node)
         self.assertEqual('ADMINISTRATOR', ret['priv_level'])
 
         # ipmi_username / ipmi_password are not mandatory
         del info['ipmi_username']
-        node = db_utils.get_test_node(driver_info=info)
+        node = obj_utils.get_test_node(self.context, driver_info=info)
         ipmi._parse_driver_info(node)
         del info['ipmi_password']
-        node = db_utils.get_test_node(driver_info=info)
+        node = obj_utils.get_test_node(self.context, driver_info=info)
         ipmi._parse_driver_info(node)
 
         # make sure error is raised when ipmi_address is missing
         del info['ipmi_address']
-        node = db_utils.get_test_node(driver_info=info)
+        node = obj_utils.get_test_node(self.context, driver_info=info)
         self.assertRaises(exception.InvalidParameterValue,
                           ipmi._parse_driver_info,
                           node)
 
         # test the invalid priv_level value
         self.info['priv_level'] = 'ABCD'
-        node = db_utils.get_test_node(driver_info=info)
+        node = obj_utils.get_test_node(self.context, driver_info=info)
         self.assertRaises(exception.InvalidParameterValue,
                           ipmi._parse_driver_info,
                           node)
@@ -271,11 +274,11 @@ class IPMIToolDriverTestCase(db_base.DbTestCase):
         mgr_utils.mock_the_extension_manager(driver="fake_ipmitool")
         self.driver = driver_factory.get_driver("fake_ipmitool")
 
-        self.node = db_utils.get_test_node(
+        db_node = db_utils.get_test_node(
                 driver='fake_ipmitool',
                 driver_info=INFO_DICT)
+        self.node = self.dbapi.create_node(db_node)
         self.info = ipmi._parse_driver_info(self.node)
-        self.dbapi.create_node(self.node)
 
     def test_get_power_state(self):
         returns = [["Chassis Power is off\n", None],
