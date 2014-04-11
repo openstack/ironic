@@ -55,16 +55,27 @@ class ManagerTestCase(base.DbTestCase):
         mgr_utils.mock_the_extension_manager()
         self.driver = driver_factory.get_driver("fake")
 
+    def _stop_service(self):
+        try:
+            self.dbapi.get_conductor(self.hostname)
+        except exception.ConductorNotFound:
+            return
+        self.service.stop()
+
+    def _start_service(self):
+        self.service.start()
+        self.addCleanup(self._stop_service)
+
     def test_start_registers_conductor(self):
         self.assertRaises(exception.ConductorNotFound,
                           self.dbapi.get_conductor,
                           self.hostname)
-        self.service.start()
+        self._start_service()
         res = self.dbapi.get_conductor(self.hostname)
         self.assertEqual(self.hostname, res['hostname'])
 
     def test_stop_unregisters_conductor(self):
-        self.service.start()
+        self._start_service()
         res = self.dbapi.get_conductor(self.hostname)
         self.assertEqual(self.hostname, res['hostname'])
         self.service.stop()
@@ -80,13 +91,13 @@ class ManagerTestCase(base.DbTestCase):
         with mock.patch.object(df._extension_manager, 'names') as mock_names:
             # verify driver names are registered
             mock_names.return_value = init_names
-            self.service.start()
+            self._start_service()
             res = self.dbapi.get_conductor(self.hostname)
             self.assertEqual(init_names, res['drivers'])
 
             # verify that restart registers new driver names
             mock_names.return_value = restart_names
-            self.service.start()
+            self._start_service()
             res = self.dbapi.get_conductor(self.hostname)
             self.assertEqual(restart_names, res['drivers'])
 
@@ -99,13 +110,13 @@ class ManagerTestCase(base.DbTestCase):
                                                                 'otherdriver'))
 
     def test__conductor_service_record_keepalive(self):
-        self.service.start()
+        self._start_service()
         with mock.patch.object(self.dbapi, 'touch_conductor') as mock_touch:
             self.service._conductor_service_record_keepalive(self.context)
             mock_touch.assert_called_once_with(self.hostname)
 
     def test__sync_power_state_no_sync(self):
-        self.service.start()
+        self._start_service()
         n = utils.get_test_node(driver='fake', power_state='fake-power')
         self.dbapi.create_node(n)
         with mock.patch.object(self.driver.power,
@@ -117,7 +128,7 @@ class ManagerTestCase(base.DbTestCase):
         self.assertEqual('fake-power', node['power_state'])
 
     def test__sync_power_state_not_set(self):
-        self.service.start()
+        self._start_service()
         n = utils.get_test_node(driver='fake', power_state=None)
         self.dbapi.create_node(n)
         with mock.patch.object(self.driver.power,
@@ -130,7 +141,7 @@ class ManagerTestCase(base.DbTestCase):
 
     @mock.patch.object(objects.node.Node, 'save')
     def test__sync_power_state_unchanged(self, save_mock):
-        self.service.start()
+        self._start_service()
         n = utils.get_test_node(driver='fake', power_state=states.POWER_ON)
         self.dbapi.create_node(n)
         with mock.patch.object(self.driver.power,
@@ -143,7 +154,7 @@ class ManagerTestCase(base.DbTestCase):
     @mock.patch.object(conductor_utils, 'node_power_action')
     @mock.patch.object(objects.node.Node, 'save')
     def test__sync_power_state_changed_sync(self, save_mock, npa_mock):
-        self.service.start()
+        self._start_service()
         self.config(force_power_state_during_sync=True, group='conductor')
         n = utils.get_test_node(driver='fake', power_state=states.POWER_ON)
         self.dbapi.create_node(n)
@@ -162,7 +173,7 @@ class ManagerTestCase(base.DbTestCase):
         """Force sync node power state and check if max retry
             limit for force sync is honoured
         """
-        self.service.start()
+        self._start_service()
         self.config(force_power_state_during_sync=True, group='conductor')
         self.config(power_state_sync_max_retries=1, group='conductor')
         n = utils.get_test_node(driver='fake', power_state=states.POWER_ON)
@@ -188,7 +199,7 @@ class ManagerTestCase(base.DbTestCase):
     @mock.patch.object(conductor_utils, 'node_power_action')
     @mock.patch.object(objects.node.Node, 'save')
     def test__sync_power_state_changed_failed(self, save_mock, npa_mock):
-        self.service.start()
+        self._start_service()
         self.config(force_power_state_during_sync=True, group='conductor')
         n = utils.get_test_node(driver='fake', power_state=states.POWER_ON)
         self.dbapi.create_node(n)
@@ -207,7 +218,7 @@ class ManagerTestCase(base.DbTestCase):
     @mock.patch.object(conductor_utils, 'node_power_action')
     @mock.patch.object(objects.node.Node, 'save')
     def test__sync_power_state_changed_save(self, save_mock, npa_mock):
-        self.service.start()
+        self._start_service()
         self.config(force_power_state_during_sync=False, group='conductor')
         n = utils.get_test_node(driver='fake', power_state=states.POWER_OFF)
         self.dbapi.create_node(n)
@@ -220,7 +231,7 @@ class ManagerTestCase(base.DbTestCase):
             self.assertTrue(save_mock.called)
 
     def test__sync_power_state_node_locked(self):
-        self.service.start()
+        self._start_service()
         n = utils.get_test_node(driver='fake', power_state='fake-power')
         self.dbapi.create_node(n)
         self.dbapi.reserve_nodes('fake-reserve', [n['id']])
@@ -232,7 +243,7 @@ class ManagerTestCase(base.DbTestCase):
         self.assertEqual('fake-power', node['power_state'])
 
     def test__sync_power_state_multiple_nodes(self):
-        self.service.start()
+        self._start_service()
         self.config(force_power_state_during_sync=False, group='conductor')
 
         # create three nodes
@@ -265,7 +276,7 @@ class ManagerTestCase(base.DbTestCase):
         self.assertEqual(states.POWER_ON, n3['power_state'])
 
     def test__sync_power_state_node_no_power_state(self):
-        self.service.start()
+        self._start_service()
         self.config(force_power_state_during_sync=False, group='conductor')
 
         # create three nodes
@@ -300,7 +311,7 @@ class ManagerTestCase(base.DbTestCase):
             self.assertEqual(final[i], n.power_state)
 
     def test__sync_power_state_node_deploywait(self):
-        self.service.start()
+        self._start_service()
         n = utils.get_test_node(provision_state=states.DEPLOYWAIT)
         self.dbapi.create_node(n)
 
@@ -315,7 +326,7 @@ class ManagerTestCase(base.DbTestCase):
         n = utils.get_test_node(driver='fake',
                                 power_state=states.POWER_OFF)
         db_node = self.dbapi.create_node(n)
-        self.service.start()
+        self._start_service()
 
         with mock.patch.object(self.driver.power, 'get_power_state') \
                 as get_power_mock:
@@ -346,7 +357,7 @@ class ManagerTestCase(base.DbTestCase):
                                 power_state=pwr_state,
                                 reservation=fake_reservation)
         db_node = self.dbapi.create_node(n)
-        self.service.start()
+        self._start_service()
 
         exc = self.assertRaises(messaging.ClientException,
                                 self.service.change_node_power_state,
@@ -372,7 +383,7 @@ class ManagerTestCase(base.DbTestCase):
         n = utils.get_test_node(driver='fake',
                                 power_state=initial_state)
         db_node = self.dbapi.create_node(n)
-        self.service.start()
+        self._start_service()
 
         with mock.patch.object(self.service, '_spawn_worker') \
                 as spawn_mock:
@@ -403,7 +414,7 @@ class ManagerTestCase(base.DbTestCase):
         n = utils.get_test_node(driver='fake',
                                 power_state=initial_state)
         db_node = self.dbapi.create_node(n)
-        self.service.start()
+        self._start_service()
 
         with mock.patch.object(self.driver.power, 'get_power_state') \
                 as get_power_mock:
@@ -548,7 +559,7 @@ class ManagerTestCase(base.DbTestCase):
         n = utils.get_test_node(driver='fake')
         node = self.dbapi.create_node(n)
         info = {'bar': 'baz'}
-        self.service.start()
+        self._start_service()
 
         self.service.vendor_passthru(
             self.context, n['uuid'], 'first_method', info)
@@ -565,7 +576,7 @@ class ManagerTestCase(base.DbTestCase):
         n = utils.get_test_node(driver='fake', reservation=fake_reservation)
         node = self.dbapi.create_node(n)
         info = {'bar': 'baz'}
-        self.service.start()
+        self._start_service()
 
         exc = self.assertRaises(messaging.ClientException,
                                 self.service.vendor_passthru,
@@ -582,7 +593,7 @@ class ManagerTestCase(base.DbTestCase):
         n = utils.get_test_node(driver='fake')
         node = self.dbapi.create_node(n)
         info = {'bar': 'baz'}
-        self.service.start()
+        self._start_service()
 
         exc = self.assertRaises(messaging.ClientException,
                                 self.service.vendor_passthru,
@@ -601,7 +612,7 @@ class ManagerTestCase(base.DbTestCase):
         n = utils.get_test_node(driver='fake')
         node = self.dbapi.create_node(n)
         info = {'invalid_param': 'whatever'}
-        self.service.start()
+        self._start_service()
 
         exc = self.assertRaises(messaging.ClientException,
                                 self.service.vendor_passthru,
@@ -619,7 +630,7 @@ class ManagerTestCase(base.DbTestCase):
         node = self.dbapi.create_node(n)
         info = {'bar': 'baz'}
         self.driver.vendor = None
-        self.service.start()
+        self._start_service()
 
         exc = self.assertRaises(messaging.ClientException,
                                 self.service.vendor_passthru,
@@ -637,7 +648,7 @@ class ManagerTestCase(base.DbTestCase):
         n = utils.get_test_node(driver='fake')
         node = self.dbapi.create_node(n)
         info = {'bar': 'baz'}
-        self.service.start()
+        self._start_service()
 
         with mock.patch.object(self.service, '_spawn_worker') \
                 as spawn_mock:
@@ -737,7 +748,7 @@ class ManagerTestCase(base.DbTestCase):
         mock_deploy.assert_called_once_with(mock.ANY, mock.ANY)
 
     def test_do_node_deploy_partial_ok(self):
-        self.service.start()
+        self._start_service()
         thread = self.service._spawn_worker(lambda: None)
         with mock.patch.object(self.service, '_spawn_worker') as mock_spawn:
             mock_spawn.return_value = thread
@@ -760,7 +771,7 @@ class ManagerTestCase(base.DbTestCase):
     def test_do_node_deploy_worker_pool_full(self):
         ndict = utils.get_test_node(driver='fake')
         node = self.dbapi.create_node(ndict)
-        self.service.start()
+        self._start_service()
 
         with mock.patch.object(self.service, '_spawn_worker') as mock_spawn:
             mock_spawn.side_effect = exception.NoFreeConductorWorker()
@@ -809,7 +820,7 @@ class ManagerTestCase(base.DbTestCase):
         node = self.dbapi.create_node(ndict)
 
         task = task_manager.TaskManager(self.context, node.uuid)
-        self.service.start()
+        self._start_service()
         mock_tear_down.side_effect = exception.InstanceDeployFailure('test')
         self.assertRaises(exception.InstanceDeployFailure,
                           self.service._do_node_tear_down,
@@ -828,7 +839,7 @@ class ManagerTestCase(base.DbTestCase):
         node = self.dbapi.create_node(ndict)
 
         task = task_manager.TaskManager(self.context, node.uuid)
-        self.service.start()
+        self._start_service()
         mock_tear_down.return_value = states.DELETED
         self.service._do_node_tear_down(self.context, task)
         node.refresh(self.context)
@@ -844,7 +855,7 @@ class ManagerTestCase(base.DbTestCase):
                                     provision_state=states.ACTIVE)
         node = self.dbapi.create_node(ndict)
 
-        self.service.start()
+        self._start_service()
         task = task_manager.TaskManager(self.context, node.uuid)
         mock_tear_down.return_value = states.DELETING
         self.service._do_node_tear_down(self.context, task)
@@ -858,7 +869,7 @@ class ManagerTestCase(base.DbTestCase):
         ndict = utils.get_test_node(driver='fake',
                                     provision_state=states.ACTIVE)
         node = self.dbapi.create_node(ndict)
-        self.service.start()
+        self._start_service()
 
         mock_spawn.side_effect = exception.NoFreeConductorWorker()
 
@@ -940,7 +951,7 @@ class ManagerTestCase(base.DbTestCase):
         func_mock = mock.Mock()
         args = (1, 2, "test")
         kwargs = dict(kw1='test1', kw2='test2')
-        self.service.start()
+        self._start_service()
 
         thread = self.service._spawn_worker(func_mock, *args, **kwargs)
         self.service._worker_pool.waitall()
@@ -955,7 +966,7 @@ class ManagerTestCase(base.DbTestCase):
         def func():
             time.sleep(1)
         link_callback = mock.Mock()
-        self.service.start()
+        self._start_service()
 
         thread = self.service._spawn_worker(func)
         # func_mock executing at this moment
@@ -968,7 +979,7 @@ class ManagerTestCase(base.DbTestCase):
         def func():
             pass
         link_callback = mock.Mock()
-        self.service.start()
+        self._start_service()
 
         thread = self.service._spawn_worker(func)
         self.service._worker_pool.waitall()
@@ -982,7 +993,7 @@ class ManagerTestCase(base.DbTestCase):
             time.sleep(1)
             raise Exception()
         link_callback = mock.Mock()
-        self.service.start()
+        self._start_service()
 
         thread = self.service._spawn_worker(func)
         # func_mock executing at this moment
@@ -995,7 +1006,7 @@ class ManagerTestCase(base.DbTestCase):
         def func():
             raise Exception()
         link_callback = mock.Mock()
-        self.service.start()
+        self._start_service()
 
         thread = self.service._spawn_worker(func)
         self.service._worker_pool.waitall()
@@ -1005,7 +1016,7 @@ class ManagerTestCase(base.DbTestCase):
         link_callback.assert_called_once_with(thread)
 
     def test_destroy_node(self):
-        self.service.start()
+        self._start_service()
         ndict = utils.get_test_node(driver='fake')
         node = self.dbapi.create_node(ndict)
         self.service.destroy_node(self.context, node.uuid)
@@ -1014,7 +1025,7 @@ class ManagerTestCase(base.DbTestCase):
                           node.uuid)
 
     def test_destroy_node_reserved(self):
-        self.service.start()
+        self._start_service()
         fake_reservation = 'fake-reserv'
         ndict = utils.get_test_node(reservation=fake_reservation)
         node = self.dbapi.create_node(ndict)
@@ -1029,7 +1040,7 @@ class ManagerTestCase(base.DbTestCase):
         self.assertEqual(fake_reservation, node.reservation)
 
     def test_destroy_node_associated(self):
-        self.service.start()
+        self._start_service()
         ndict = utils.get_test_node(instance_uuid='fake-uuid')
         node = self.dbapi.create_node(ndict)
 
@@ -1049,7 +1060,7 @@ class ManagerTestCase(base.DbTestCase):
         past = datetime.datetime(2000, 1, 1, 0, 0)
         present = past + datetime.timedelta(minutes=5)
         mock_utcnow.return_value = past
-        self.service.start()
+        self._start_service()
         n = utils.get_test_node(provision_state=states.DEPLOYWAIT,
                                 target_provision_state=states.DEPLOYDONE,
                                 provision_updated_at=past)
@@ -1071,7 +1082,7 @@ class ManagerTestCase(base.DbTestCase):
         past = datetime.datetime(2000, 1, 1, 0, 0)
         present = past + datetime.timedelta(minutes=5)
         mock_utcnow.return_value = past
-        self.service.start()
+        self._start_service()
         n = utils.get_test_node(provision_state=states.DEPLOYWAIT,
                                 target_provision_state=states.DEPLOYDONE,
                                 provision_updated_at=past)
@@ -1088,7 +1099,7 @@ class ManagerTestCase(base.DbTestCase):
 
     def test__check_deploy_timeouts_disabled(self):
         self.config(deploy_callback_timeout=0, group='conductor')
-        self.service.start()
+        self._start_service()
         with mock.patch.object(self.dbapi, 'get_nodeinfo_list') as get_mock:
             self.service._check_deploy_timeouts(self.context)
             self.assertFalse(get_mock.called)
@@ -1099,7 +1110,7 @@ class ManagerTestCase(base.DbTestCase):
         past = datetime.datetime(2000, 1, 1, 0, 0)
         present = past + datetime.timedelta(minutes=5)
         mock_utcnow.return_value = past
-        self.service.start()
+        self._start_service()
         n = utils.get_test_node(provision_state=states.DEPLOYWAIT,
                                 target_provision_state=states.DEPLOYDONE,
                                 provision_updated_at=past)
@@ -1120,7 +1131,7 @@ class ManagerTestCase(base.DbTestCase):
     def test_set_console_mode_worker_pool_full(self):
         ndict = utils.get_test_node(driver='fake')
         node = self.dbapi.create_node(ndict)
-        self.service.start()
+        self._start_service()
         with mock.patch.object(self.service, '_spawn_worker') \
                 as spawn_mock:
             spawn_mock.side_effect = exception.NoFreeConductorWorker()
@@ -1136,7 +1147,7 @@ class ManagerTestCase(base.DbTestCase):
     def test_set_console_mode_enabled(self):
         ndict = utils.get_test_node(driver='fake')
         node = self.dbapi.create_node(ndict)
-        self.service.start()
+        self._start_service()
         self.service.set_console_mode(self.context, node.uuid, True)
         self.service._worker_pool.waitall()
         node.refresh(self.context)
@@ -1145,7 +1156,7 @@ class ManagerTestCase(base.DbTestCase):
     def test_set_console_mode_disabled(self):
         ndict = utils.get_test_node(driver='fake')
         node = self.dbapi.create_node(ndict)
-        self.service.start()
+        self._start_service()
         self.service.set_console_mode(self.context, node.uuid, False)
         self.service._worker_pool.waitall()
         node.refresh(self.context)
@@ -1154,7 +1165,7 @@ class ManagerTestCase(base.DbTestCase):
     def test_set_console_mode_not_supported(self):
         ndict = utils.get_test_node(driver='fake', last_error=None)
         node = self.dbapi.create_node(ndict)
-        self.service.start()
+        self._start_service()
         # null the console interface
         self.driver.console = None
         exc = self.assertRaises(messaging.ClientException,
@@ -1170,7 +1181,7 @@ class ManagerTestCase(base.DbTestCase):
     def test_set_console_mode_validation_fail(self):
         ndict = utils.get_test_node(driver='fake', last_error=None)
         node = self.dbapi.create_node(ndict)
-        self.service.start()
+        self._start_service()
         with mock.patch.object(self.driver.console, 'validate') as mock_val:
             mock_val.side_effect = exception.InvalidParameterValue('error')
             exc = self.assertRaises(messaging.ClientException,
@@ -1183,7 +1194,7 @@ class ManagerTestCase(base.DbTestCase):
         ndict = utils.get_test_node(driver='fake', last_error=None,
                                     console_enabled=False)
         node = self.dbapi.create_node(ndict)
-        self.service.start()
+        self._start_service()
         with mock.patch.object(self.driver.console, 'start_console') \
                 as mock_sc:
             mock_sc.side_effect = exception.IronicException('test-error')
@@ -1197,7 +1208,7 @@ class ManagerTestCase(base.DbTestCase):
         ndict = utils.get_test_node(driver='fake', last_error=None,
                                     console_enabled=True)
         node = self.dbapi.create_node(ndict)
-        self.service.start()
+        self._start_service()
         with mock.patch.object(self.driver.console, 'stop_console') \
                 as mock_sc:
             mock_sc.side_effect = exception.IronicException('test-error')
@@ -1210,7 +1221,7 @@ class ManagerTestCase(base.DbTestCase):
     def test_enable_console_already_enabled(self):
         ndict = utils.get_test_node(driver='fake', console_enabled=True)
         node = self.dbapi.create_node(ndict)
-        self.service.start()
+        self._start_service()
         with mock.patch.object(self.driver.console, 'start_console') \
                 as mock_sc:
             self.service.set_console_mode(self.context, node.uuid, True)
@@ -1220,7 +1231,7 @@ class ManagerTestCase(base.DbTestCase):
     def test_disable_console_already_disabled(self):
         ndict = utils.get_test_node(driver='fake', console_enabled=False)
         node = self.dbapi.create_node(ndict)
-        self.service.start()
+        self._start_service()
         with mock.patch.object(self.driver.console, 'stop_console') \
                 as mock_sc:
             self.service.set_console_mode(self.context, node.uuid, False)
@@ -1270,7 +1281,7 @@ class ManagerTestCase(base.DbTestCase):
             self.assertEqual(exc._exc_info[0], exception.InvalidParameterValue)
 
     def test_destroy_node_power_on(self):
-        self.service.start()
+        self._start_service()
         ndict = utils.get_test_node(power_state=states.POWER_ON)
         node = self.dbapi.create_node(ndict)
 
@@ -1284,7 +1295,7 @@ class ManagerTestCase(base.DbTestCase):
         self.assertIsNone(node.reservation)
 
     def test_destroy_node_power_off(self):
-        self.service.start()
+        self._start_service()
         ndict = utils.get_test_node(power_state=states.POWER_OFF)
         node = self.dbapi.create_node(ndict)
         self.service.destroy_node(self.context, node.uuid)
