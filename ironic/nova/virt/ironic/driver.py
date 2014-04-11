@@ -267,6 +267,20 @@ class IronicDriver(virt_driver.ComputeDriver):
 
     def _cleanup_deploy(self, node, instance, network_info):
         icli = self._get_client()
+
+        # remove the instance uuid
+        if node.instance_uuid and node.instance_uuid == instance['uuid']:
+            try:
+                patch = [{'op': 'remove', 'path': '/instance_uuid'}]
+                self._retry_if_service_is_unavailable(icli.node.update,
+                                                      node.uuid, patch)
+            except MaximumRetriesReached:
+                LOG.warning(_("Failed to unassociate the instance "
+                              "%(instance)s with node %(node)s") %
+                             {'instance': instance['uuid'], 'node': node.uuid})
+            except ironic_exception.HTTPBadRequest:
+                pass
+
         if 'pxe' in node.driver:
             # add required fields
             pxe_fields = importutils.import_class(
@@ -440,6 +454,14 @@ class IronicDriver(virt_driver.ComputeDriver):
             LOG.error(msg)
             self._cleanup_deploy(node, instance, network_info)
             raise exception.NovaException(msg)
+        except (ironic_exception.HTTPInternalServerError,  # Validations
+                ironic_exception.HTTPBadRequest) as e:     # Maintenance
+            msg = (_("Failed to request Ironic to provision instance "
+                     "%(inst)s: %(reason)s") % {'inst': instance['uuid'],
+                                                'reason': str(e)})
+            LOG.error(msg)
+            self._cleanup_deploy(node, instance, network_info)
+            raise exception.InstanceDeployFailure(msg)
 
         # wait for the node to be marked as ACTIVE in Ironic
         def _wait_for_active():
@@ -471,35 +493,24 @@ class IronicDriver(virt_driver.ComputeDriver):
         # TODO(lucasagomes): Make the time configurable
         timer.start(interval=10).wait()
 
-    def destroy(self, context, instance, network_info,
-                block_device_info=None):
-        icli = self._get_client()
-        try:
-            node = validate_instance_and_node(icli, instance)
-            node_uuid = node.uuid
-        except exception.InstanceNotFound:
-            LOG.debug(_("Destroy called on non-existing instance %s.")
-                        % instance['uuid'])
-            # NOTE(deva): if nova.compute.ComputeManager._delete_instance()
-            #             is called on a non-existing instance, the only way
-            #             to delete it is to return from this method
-            #             without raising any exceptions.
-            return
-
-        # do node tear down and wait for the state change
+    def _unprovision(self, icli, instance, node):
+        """This method is called from destroy() to unprovision
+        already provisioned node after required checks.
+        """
         try:
             self._retry_if_service_is_unavailable(
-                           icli.node.set_provision_state, node_uuid, 'deleted')
+                icli.node.set_provision_state, node.uuid, 'deleted')
         except MaximumRetriesReached:
             msg = (_("Error triggering the unprovisioning of the node %s")
-                   % node_uuid)
+                   % node.uuid)
             LOG.error(msg)
             raise exception.NovaException(msg)
         except Exception as e:
             # if the node is already in a deprovisioned state, continue
             # This should be fixed in Ironic.
-            # TODO(deva): This exception should be added to python-ironicclient
-            #             and matched directly, rather than via __name__.
+            # TODO(deva): This exception should be added to
+            #             python-ironicclient and matched directly,
+            #             rather than via __name__.
             if getattr(e, '__name__', None) == 'InstanceDeployFailure':
                 pass
             else:
@@ -517,29 +528,37 @@ class IronicDriver(virt_driver.ComputeDriver):
             if self.tries >= CONF.ironic.api_max_retries:
                 msg = (_("Error destroying the instance on node %(node)s. "
                          "Provision state still '%(state)s'.")
-                       % {'state': node.provision_state, 'node': node.uuid})
+                       % {'state': node.provision_state,
+                          'node': node.uuid})
                 LOG.error(msg)
                 raise exception.NovaException(msg)
             else:
                 self.tries += 1
 
+        # wait for the state transition to finish
         self.tries = 0
         timer = loopingcall.FixedIntervalLoopingCall(_wait_for_provision_state)
         timer.start(interval=CONF.ironic.api_retry_interval).wait()
 
-        # remove the instance uuid
+    def destroy(self, context, instance, network_info,
+                block_device_info=None):
+        icli = self._get_client()
         try:
-            patch = [{'op': 'remove', 'path': '/instance_uuid'}]
-            self._retry_if_service_is_unavailable(icli.node.update,
-                                                  node_uuid, patch)
-        except MaximumRetriesReached:
-            msg = (_("Failed to unassociate the instance %(instance)s "
-                    "with node %(node)s") % {'instance': instance['uuid'],
-                                             'node': node_uuid})
-            LOG.error(msg)
-            raise exception.NovaException(msg)
-        except ironic_exception.HTTPBadRequest:
-            pass
+            node = validate_instance_and_node(icli, instance)
+        except exception.InstanceNotFound:
+            LOG.debug(_("Destroy called on non-existing instance %s.")
+                        % instance['uuid'])
+            # NOTE(deva): if nova.compute.ComputeManager._delete_instance()
+            #             is called on a non-existing instance, the only way
+            #             to delete it is to return from this method
+            #             without raising any exceptions.
+            return
+
+        if node.provision_state in (ironic_states.ACTIVE,
+                                    ironic_states.DEPLOYFAIL,
+                                    ironic_states.ERROR,
+                                    ironic_states.DEPLOYWAIT):
+            self._unprovision(icli, instance, node)
 
         self._cleanup_deploy(node, instance, network_info)
 
