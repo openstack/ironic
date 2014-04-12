@@ -313,6 +313,17 @@ class PXEPrivateMethodsTestCase(db_base.DbTestCase):
                                                method='get')
             self.assertEqual(expected_info, image_info)
 
+        # test with saved info
+        with mock.patch.object(base_image_service.BaseImageService, '_show') \
+                as show_mock:
+            image_info = pxe._get_tftp_image_info(self.node, self.context)
+            self.assertEqual(expected_info, image_info)
+            self.assertFalse(show_mock.called)
+            self.assertEqual('instance_kernel_uuid',
+                             self.node.driver_info.get('pxe_kernel'))
+            self.assertEqual('instance_ramdisk_uuid',
+                             self.node.driver_info.get('pxe_ramdisk'))
+
     def test__build_pxe_config(self):
         self.config(pxe_append_params='test_param', group='pxe')
         # NOTE: right '/' should be removed from url string
@@ -758,13 +769,21 @@ class PXEDriverTestCase(db_base.DbTestCase):
                                                         states.POWER_OFF)
 
     @mock.patch.object(manager_utils, 'node_power_action')
-    def test_tear_down_removes_pxe_deploy_key(self, mock_npa):
+    def test_tear_down_removes_internal_attrs(self, mock_npa):
         self.assertIn('pxe_deploy_key', self.node.driver_info)
+        # add internal image info
+        info = self.node.driver_info
+        info['pxe_kernel'] = 'fake-123'
+        info['pxe_ramdisk'] = 'fake-345'
+        self.node.driver_info = info
+        self.node.save(self.context)
         with task_manager.acquire(self.context, self.node.uuid) as task:
             task.driver.deploy.tear_down(task, self.node)
 
         self.node.refresh(self.context)
         self.assertNotIn('pxe_deploy_key', self.node.driver_info)
+        self.assertNotIn('pxe_kernel', self.node.driver_info)
+        self.assertNotIn('pxe_ramdisk', self.node.driver_info)
         mock_npa.assert_called_once_with(task, self.node, states.POWER_OFF)
 
     def test_take_over(self):

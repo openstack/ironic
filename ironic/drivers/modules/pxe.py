@@ -397,7 +397,6 @@ def _get_tftp_image_info(node, ctx):
       driver_info and defaults are not set
 
     """
-    #TODO(ghe): Called multiples times. Should we store image_info?
     d_info = _parse_driver_info(node)
     image_info = {
             'deploy_kernel': [None, None],
@@ -409,11 +408,20 @@ def _get_tftp_image_info(node, ctx):
         image_info[label][1] = os.path.join(CONF.pxe.tftp_root,
                                             node.uuid, label)
 
-    glance_service = service.Service(version=1, context=ctx)
-    iproperties = glance_service.show(d_info['image_source'])['properties']
-    for label in ('kernel', 'ramdisk'):
+    driver_info = node.driver_info
+    labels = ('kernel', 'ramdisk')
+    if not (driver_info.get('pxe_kernel') and driver_info.get('pxe_ramdisk')):
+        glance_service = service.Service(version=1, context=ctx)
+        iproperties = glance_service.show(d_info['image_source'])['properties']
+        for label in labels:
+            driver_info['pxe_' + label] = str(iproperties[label +
+                                              '_id']).split('/')[-1]
+        node.driver_info = driver_info
+        node.save(ctx)
+
+    for label in labels:
         image_info[label] = [None, None]
-        image_info[label][0] = str(iproperties[label + '_id']).split('/')[-1]
+        image_info[label][0] = driver_info['pxe_' + label]
         image_info[label][1] = os.path.join(CONF.pxe.tftp_root,
                                             node.uuid, label)
 
@@ -459,6 +467,16 @@ def _destroy_token_file(node):
     """Delete PKI token file."""
     token_file_path = _get_token_file_path(node['uuid'])
     utils.unlink_without_raise(token_file_path)
+
+
+def _remove_internal_attrs(task, node):
+    """Remove internal attributes from driver_info."""
+    internal_attrs = ('pxe_deploy_key', 'pxe_kernel', 'pxe_ramdisk')
+    driver_info = node.driver_info
+    for attr in internal_attrs:
+        driver_info.pop(attr, None)
+    node.driver_info = driver_info
+    node.save(task.context)
 
 
 def _dhcp_options_for_instance():
@@ -585,12 +603,7 @@ class PXEDeploy(base.DeployInterface):
         :returns: deploy state DELETED.
         """
         manager_utils.node_power_action(task, node, states.POWER_OFF)
-
-        # Remove the internal pxe_deploy_key attribute
-        driver_info = node.driver_info
-        if driver_info.pop('pxe_deploy_key', None):
-            node.driver_info = driver_info
-            node.save(task.context)
+        _remove_internal_attrs(task, node)
 
         return states.DELETED
 
@@ -620,10 +633,6 @@ class PXEDeploy(base.DeployInterface):
         :param task: a TaskManager instance.
         :param node: the Node to act upon.
         """
-        # FIXME(ghe): Possible error to get image info if eliminated from
-        #             glance. Retrieve image info and store in db.
-        #             If we keep master images, no need to get the info,
-        #             and we may ignore this.
         pxe_info = _get_tftp_image_info(node, task.context)
         d_info = _parse_driver_info(node)
         for label in pxe_info:
