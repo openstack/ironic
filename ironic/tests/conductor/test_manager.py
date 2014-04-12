@@ -102,7 +102,7 @@ class ManagerTestCase(base.DbTestCase):
             self.assertEqual(restart_names, res['drivers'])
 
     def test__mapped_to_this_conductor(self):
-        self.service.start()
+        self._start_service()
         n = utils.get_test_node()
         self.assertTrue(self.service._mapped_to_this_conductor(n['uuid'],
                                                                'fake'))
@@ -323,7 +323,7 @@ class ManagerTestCase(base.DbTestCase):
     @mock.patch('ironic.drivers.modules.fake.FakePower.get_power_state')
     @mock.patch('ironic.drivers.modules.fake.FakePower.validate')
     def test__sync_power_state_validate_fail(self, mock_validate, mock_get):
-        self.service.start()
+        self._start_service()
         n = utils.get_test_node(power_state=states.NOSTATE)
         self.dbapi.create_node(n)
         mock_validate.side_effect = exception.InvalidParameterValue('error')
@@ -461,7 +461,7 @@ class ManagerTestCase(base.DbTestCase):
         n = utils.get_test_node(driver='fake',
                                 power_state=initial_state)
         db_node = self.dbapi.create_node(n)
-        self.service.start()
+        self._start_service()
 
         with mock.patch.object(self.driver.power, 'validate') \
                 as validate_mock:
