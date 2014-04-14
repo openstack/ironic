@@ -120,12 +120,14 @@ class PXEValidateParametersTestCase(base.TestCase):
 
     def test__parse_driver_info_valid_ephemeral_gb(self):
         ephemeral_gb = 10
+        ephemeral_fmt = 'test-fmt'
         info = dict(INFO_DICT)
         info['pxe_ephemeral_gb'] = ephemeral_gb
-        info['pxe_ephemeral_format'] = 'exttest'
+        info['pxe_ephemeral_format'] = ephemeral_fmt
         node = self._create_test_node(driver_info=info)
         data = pxe._parse_driver_info(node)
         self.assertEqual(ephemeral_gb, data.get('ephemeral_gb'))
+        self.assertEqual(ephemeral_fmt, data.get('ephemeral_format'))
 
     def test__parse_driver_info_invalid_ephemeral_gb(self):
         info = dict(INFO_DICT)
@@ -138,13 +140,14 @@ class PXEValidateParametersTestCase(base.TestCase):
 
     def test__parse_driver_info_valid_ephemeral_missing_format(self):
         ephemeral_gb = 10
+        ephemeral_fmt = 'test-fmt'
         info = dict(INFO_DICT)
         info['pxe_ephemeral_gb'] = ephemeral_gb
         info['pxe_ephemeral_format'] = None
+        self.config(default_ephemeral_format=ephemeral_fmt, group='pxe')
         node = self._create_test_node(driver_info=info)
-        self.assertRaises(exception.InvalidParameterValue,
-                pxe._parse_driver_info,
-                node)
+        driver_info = pxe._parse_driver_info(node)
+        self.assertEqual(ephemeral_fmt, driver_info['ephemeral_format'])
 
     def test__parse_driver_info_valid_preserve_ephemeral_true(self):
         info = dict(INFO_DICT)

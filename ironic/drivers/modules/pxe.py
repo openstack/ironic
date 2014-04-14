@@ -51,6 +51,10 @@ pxe_opts = [
                default=paths.basedir_def(
                     'drivers/modules/pxe_config.template'),
                help='Template file for PXE configuration.'),
+    cfg.StrOpt('default_ephemeral_format',
+               default='ext4',
+               help='Default file system format for ephemeral partition, '
+                    'if one is created.'),
     cfg.StrOpt('tftp_server',
                default='$my_ip',
                help='IP address of Ironic compute node\'s tftp server.'),
@@ -133,10 +137,7 @@ def _parse_driver_info(node):
         d_info['swap_mb'] = 1
 
     if d_info['ephemeral_gb'] and not d_info['ephemeral_format']:
-        msg = _("The deploy contains an ephemeral partition, but no "
-                "filesystem type was specified by the pxe_ephemeral_format "
-                "parameter")
-        raise exception.InvalidParameterValue(msg)
+        d_info['ephemeral_format'] = CONF.pxe.default_ephemeral_format
 
     preserve_ephemeral = info.get('pxe_preserve_ephemeral', False)
     try:
