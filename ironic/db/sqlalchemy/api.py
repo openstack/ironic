@@ -403,12 +403,10 @@ class Connection(api.Connection):
                                sort_key, sort_dir)
 
     @objects.objectify(objects.Port)
-    def get_ports_by_node(self, node_id, limit=None, marker=None,
-                          sort_key=None, sort_dir=None):
-        # get_node() to raise an exception if the node is not found
-        node_obj = self.get_node(node_id)
+    def get_ports_by_node_id(self, node_id, limit=None, marker=None,
+                             sort_key=None, sort_dir=None):
         query = model_query(models.Port)
-        query = query.filter_by(node_id=node_obj.id)
+        query = query.filter_by(node_id=node_id)
         return _paginate_query(models.Port, limit, marker,
                                sort_key, sort_dir, query)
 
