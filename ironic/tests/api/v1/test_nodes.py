@@ -407,10 +407,24 @@ class TestListNodes(base.FunctionalTest):
 
     def test_get_console_information(self):
         node = self.dbapi.create_node(dbutils.get_test_node())
-        expected_data = {'test': 'test-data'}
+        expected_console_info = {'test': 'test-data'}
+        expected_data = {'console_enabled': True,
+                         'console_info': expected_console_info}
         with mock.patch.object(rpcapi.ConductorAPI,
                                'get_console_information') as mock_gci:
-            mock_gci.return_value = expected_data
+            mock_gci.return_value = expected_console_info
+            data = self.get_json('/nodes/%s/states/console' % node.uuid)
+            self.assertEqual(expected_data, data)
+            mock_gci.assert_called_once_with(mock.ANY, node.uuid, 'test-topic')
+
+    def test_get_console_information_console_disabled(self):
+        node = self.dbapi.create_node(dbutils.get_test_node())
+        expected_data = {'console_enabled': False,
+                         'console_info': None}
+        with mock.patch.object(rpcapi.ConductorAPI,
+                               'get_console_information') as mock_gci:
+            mock_gci.side_effect = exception.NodeConsoleNotEnabled(
+                    node=node.uuid)
             data = self.get_json('/nodes/%s/states/console' % node.uuid)
             self.assertEqual(expected_data, data)
             mock_gci.assert_called_once_with(mock.ANY, node.uuid, 'test-topic')
