@@ -372,7 +372,7 @@ class Connection(api.Connection):
             # Prevent instance_uuid overwriting
             if values.get("instance_uuid") and ref.instance_uuid:
                 raise exception.NodeAssociated(node=node_id,
-                                instance=values['instance_uuid'])
+                                instance=ref.instance_uuid)
 
             if 'provision_state' in values:
                 values['provision_updated_at'] = timeutils.utcnow()
