@@ -76,6 +76,17 @@ Python API Quick Reference
   dev/drivers
   dev/conductor
 
+Admin Guide
+=======================
+
+Overview
+----------
+
+.. toctree::
+  :maxdepth: 1
+
+  deploy/userguide
+
 Indices and tables
 ==================
 
