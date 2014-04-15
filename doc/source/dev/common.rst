@@ -1,5 +1,3 @@
-.. _common:
-
 ============================
 Common Modules and Utilities
 ============================
@@ -8,7 +6,6 @@ Common Modules and Utilities
     ../api/ironic.common.driver_factory
     ../api/ironic.common.exception
     ../api/ironic.common.hash_ring
-    ../api/ironic.common.images
     ../api/ironic.common.states
     ../api/ironic.common.utils
 

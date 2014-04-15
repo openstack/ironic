@@ -16,68 +16,43 @@ VM, and so on), then Ironic may be thought of as a *hypervisor API* gluing
 together multiple drivers, each of which implement some portion of that
 functionality with respect to physical hardware.
 
-For an in-depth look at the project's scope and structure, see the
-:doc:`dev/architecture` page.
+Ironic should be considered Beta quality as of the Icehouse release, and will
+make the best effort to maintain backwards compatibility from this point
+forward. Release notes are available here:
+https://wiki.openstack.org/wiki/Ironic/ReleaseNotes/Icehouse
 
+The developer documentation provided here is continually kept up-to-date based
+on the latest code, and may not represent the state of our APIs at any given
+release.
 
-Status: Alpha Quality
-=====================
+Developer Guide
+===============
 
-Ironic is targeting inclusion in the OpenStack Icehouse release. The current
-codebase should be considered "alpha" quality. All major functional components
-exist but there are many known bugs which will prevent general use at this
-time.  Additionally, usage documentation still needs to be written.
-
-If you are looking for the preceding baremetal service, which was included in
-OpenStack Grizzly and Havana releases, please see Nova's `Baremetal driver`_.
-
-.. TODO
-.. - installation
-.. - configuration
-..   - DB and AMQP
-..   - API and Conductor services
-..   - integration with other OS services
-..   - any driver-specific configuration
-.. - hardware enrollment
-..   - manual vs automatic
-..   - hw plugins
-
-
-Developer Documentation
-=======================
-
-Overview
---------
+Introduction
+------------
 
 .. toctree::
   :maxdepth: 1
 
   dev/architecture
   dev/contributing
+
+.. toctree::
   dev/dev-quickstart
 
-Client API Reference
---------------------
+API References
+--------------
 
 .. toctree::
   :maxdepth: 1
 
   webapi/v1
-
-Python API Quick Reference
---------------------------
-
-.. toctree::
-  :maxdepth: 1
-
-  dev/api
   dev/common
   dev/db
   dev/drivers
-  dev/conductor
 
 Admin Guide
-=======================
+===========
 
 Overview
 ----------
@@ -85,15 +60,8 @@ Overview
 .. toctree::
   :maxdepth: 1
 
-  deploy/userguide
-
-Install Guide
--------------
-
-.. toctree::
-  :maxdepth: 1
-
-  install/ironic-install
+  deploy/user-guide
+  deploy/install-guide
 
 Indices and tables
 ==================
@@ -101,6 +69,3 @@ Indices and tables
 * :ref:`genindex`
 * :ref:`modindex`
 * :ref:`search`
-
-
-.. _Baremetal Driver: https://wiki.openstack.org/wiki/Baremetal
