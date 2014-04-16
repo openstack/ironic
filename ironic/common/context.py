@@ -41,10 +41,19 @@ class RequestContext(context.RequestContext):
                                              request_id=request_id)
 
     def to_dict(self):
-        result = {'domain_id': self.domain_id,
-                  'domain_name': self.domain_name,
-                  'is_public_api': self.is_public_api}
+        return {'auth_token': self.auth_token,
+                'user': self.user,
+                'tenant': self.tenant,
+                'is_admin': self.is_admin,
+                'read_only': self.read_only,
+                'show_deleted': self.show_deleted,
+                'request_id': self.request_id,
+                'domain_id': self.domain_id,
+                'domain_name': self.domain_name,
+                'is_public_api': self.is_public_api}
 
-        result.update(super(RequestContext, self).to_dict())
-
-        return result
+    @classmethod
+    def from_dict(cls, values):
+        values.pop('user', None)
+        values.pop('tenant', None)
+        return cls(**values)

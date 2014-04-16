@@ -17,7 +17,7 @@
 
 from oslo.config import cfg
 
-from ironic.openstack.common import rpc
+from ironic.common import rpc
 from ironic import version
 
 
@@ -27,3 +27,4 @@ def parse_args(argv, default_config_files=None):
              project='ironic',
              version=version.version_info.release_string(),
              default_config_files=default_config_files)
+    rpc.init(cfg.CONF)

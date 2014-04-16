@@ -18,8 +18,9 @@
 Unit Tests for :py:class:`ironic.conductor.rpcapi.ConductorAPI`.
 """
 
-import fixtures
+import copy
 
+import mock
 from oslo.config import cfg
 
 from ironic.common import exception
@@ -94,35 +95,41 @@ class RPCAPITestCase(base.DbTestCase):
         rpcapi = conductor_rpcapi.ConductorAPI(topic='fake-topic')
 
         expected_retval = 'hello world' if rpc_method == 'call' else None
-        expected_version = kwargs.pop('version', rpcapi.RPC_API_VERSION)
-        expected_msg = rpcapi.make_msg(method, **kwargs)
-
-        expected_msg['version'] = expected_version
 
         expected_topic = 'fake-topic'
         if 'host' in kwargs:
             expected_topic += ".%s" % kwargs['host']
 
+        target = {
+            "topic": expected_topic,
+            "version": kwargs.pop('version', rpcapi.RPC_API_VERSION)
+        }
+        expected_msg = copy.deepcopy(kwargs)
+
         self.fake_args = None
         self.fake_kwargs = None
+
+        def _fake_prepare_method(*args, **kwargs):
+            for kwd in kwargs:
+                self.assertEqual(kwargs[kwd], target[kwd])
+            return rpcapi.client
 
         def _fake_rpc_method(*args, **kwargs):
             self.fake_args = args
             self.fake_kwargs = kwargs
-
             if expected_retval:
                 return expected_retval
 
-        self.useFixture(fixtures.MonkeyPatch(
-                "ironic.openstack.common.rpc.%s" % rpc_method,
-                _fake_rpc_method))
+        with mock.patch.object(rpcapi.client, "prepare") as mock_prepared:
+            mock_prepared.side_effect = _fake_prepare_method
 
-        retval = getattr(rpcapi, method)(ctxt, **kwargs)
-
-        self.assertEqual(expected_retval, retval)
-        expected_args = [ctxt, expected_topic, expected_msg]
-        for arg, expected_arg in zip(self.fake_args, expected_args):
-            self.assertEqual(expected_arg, arg)
+            with mock.patch.object(rpcapi.client, rpc_method) as mock_method:
+                mock_method.side_effect = _fake_rpc_method
+                retval = getattr(rpcapi, method)(ctxt, **kwargs)
+                self.assertEqual(retval, expected_retval)
+                expected_args = [ctxt, method, expected_msg]
+                for arg, expected_arg in zip(self.fake_args, expected_args):
+                    self.assertEqual(arg, expected_arg)
 
     def test_update_node(self):
         self._test_rpcapi('update_node',
