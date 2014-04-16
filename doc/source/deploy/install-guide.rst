@@ -1,8 +1,11 @@
-.. _ironic-install:
+.. _install-guide:
 
-===========================
-Bare Metal Service Overview
-===========================
+=====================================
+Bare Metal Service Installation Guide
+=====================================
+
+Service Overview
+================
 
 The Bare Metal Service is a collection of components that provides support to
 manage and provision physical machines.
@@ -25,22 +28,25 @@ The Bare Metal Service includes the following components:
   ipmi or ssh; provisions/deploys/decommissions bare metal nodes.
 - Ironic client. A command-line interface (CLI) for interacting with
   the Bare Metal Service.
-- Database. Stores node-related information. You can set the database
-  backend type and location,
-  but it is typically set to use the same database backend as the
-  Compute Service.
+
+Additionally, the Bare Metal Servive has certain external dependencies, which are
+very similar to other OpenStack Services:
+
+- A database to store hardware information and state. You can set the database
+  backend type and location. A simple approach is to use the same database
+  backend as the Compute Service. Another approach is to use a separate
+  database backend to further isolate bare metal resources (and associated
+  metadata) from users.
 - A queue. A central hub for passing messages. It should use the same
   implementation as that of the Compute Service (typically RabbitMQ).
 
-==============================
-Install the Bare Metal Service
-==============================
+Install and Configure Prerequisites
+===================================
 
-The Bare Metal Service is a collection of components that provides support
-to manage and
-provision physical machines. You can configure these components to run on
-separate nodes or the same node. In this guide, the components run on one node,
-typically the Compute Service's compute node.
+The Bare Metal Service is a collection of components that provides support to
+manage and provision physical machines. You can configure these components to
+run on separate nodes or the same node. In this guide, the components run on
+one node, typically the Compute Service's compute node.
 
 This section shows you how to install and configure the components.
 
@@ -93,14 +99,13 @@ MySQL database that is used by other OpenStack services.
 Install the Bare Metal Service
 ------------------------------
 
-#. Install these packages::
+#. Install from packages::
 
     # Available in Ubuntu 14.04 (trusty)
     apt-get install ironic-api ironic-conductor python-ironicclient
 
-
 Configure the Bare Metal Service
---------------------------------
+================================
 
 The Bare Metal Service is configured via its configuration file. This file
 is typically located at ``/etc/ironic/ironic.conf``.
@@ -114,8 +119,7 @@ configured for your needs.
 
    Configure the location of the database via the ``connection`` option. In the
    following, replace IRONIC_DBPASSWORD with the password of your ``ironic``
-   user, and replace
-   DB_IP with the IP address where the DB server is located::
+   user, and replace DB_IP with the IP address where the DB server is located::
 
     [database]
     ...
@@ -239,11 +243,10 @@ configured for your needs.
 
 
 Configure Compute Service to use the Bare Metal Service
--------------------------------------------------------
+=======================================================
 
 The Compute Service needs to be configured to use the Bare Metal Service's
-driver.
-The configuration file for the Compute Service is typically located at
+driver.  The configuration file for the Compute Service is typically located at
 ``/etc/nova/nova.conf``. *This configuration file must be modified on the
 Compute Service's controller nodes and compute nodes.*
 
@@ -319,7 +322,7 @@ Compute Service's controller nodes and compute nodes.*
 PXE Setup
 ---------
 
-On the Bare Metal Service node where ``ironic-conductor`` is running,
+On the Bare Metal Service node(s) where ``ironic-conductor`` is running,
 PXE needs to be set up.
 
 #. Make sure these directories exist::

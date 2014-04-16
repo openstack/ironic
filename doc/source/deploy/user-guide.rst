@@ -1,3 +1,4 @@
+.. _user-guide:
 
 =======================
 Introduction to Ironic

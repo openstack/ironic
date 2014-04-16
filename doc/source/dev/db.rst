@@ -1,7 +1,7 @@
 .. _db:
 
 ============
-DB API Layer
+Database API
 ============
 
 .. toctree::
