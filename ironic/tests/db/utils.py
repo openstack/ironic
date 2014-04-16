@@ -124,6 +124,21 @@ def get_test_iboot_info():
     }
 
 
+def get_test_snmp_info(**kw):
+    result = {
+        "snmp_driver": kw.get("snmp_driver", "teltronix"),
+        "snmp_address": kw.get("snmp_address", "1.2.3.4"),
+        "snmp_port": kw.get("snmp_port", "161"),
+        "snmp_outlet": kw.get("snmp_outlet", "1"),
+        "snmp_version": kw.get("snmp_version", "1")
+    }
+    if result["snmp_version"] in ("1", "2c"):
+        result["snmp_community"] = kw.get("snmp_community", "public")
+    elif result["snmp_version"] == "3":
+        result["snmp_security"] = kw.get("snmp_security", "public")
+    return result
+
+
 def get_test_node(**kw):
     properties = {
         "cpu_arch": "x86_64",
