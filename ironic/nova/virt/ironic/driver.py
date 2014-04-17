@@ -376,7 +376,8 @@ class IronicDriver(virt_driver.ComputeDriver):
 
         # trigger the node deploy
         try:
-            icli.call("node.set_provision_state", node_uuid, 'active')
+            icli.call("node.set_provision_state", node_uuid,
+                      ironic_states.ACTIVE)
         except (exception.NovaException,                   # Retry failed
                 ironic_exception.HTTPInternalServerError,  # Validations
                 ironic_exception.HTTPBadRequest) as e:     # Maintenance
