@@ -22,6 +22,7 @@ import contextlib
 import datetime
 import time
 
+import eventlet
 import mock
 from oslo.config import cfg
 
@@ -1440,7 +1441,7 @@ class ManagerSyncPowerStatesTestCase(tests_base.TestCase):
                 columns=self.columns, filters=self.filters)
         mapped_mock.assert_called_once_with(self.node.uuid,
                                             self.node.driver)
-        get_node_mock.assert_called_once_with(self.node.uuid)
+        get_node_mock.assert_called_once_with(self.node.id)
         self.assertFalse(acquire_mock.called)
         self.assertFalse(sync_mock.called)
 
@@ -1456,7 +1457,39 @@ class ManagerSyncPowerStatesTestCase(tests_base.TestCase):
                 columns=self.columns, filters=self.filters)
         mapped_mock.assert_called_once_with(self.node.uuid,
                                             self.node.driver)
-        get_node_mock.assert_called_once_with(self.node.uuid)
+        get_node_mock.assert_called_once_with(self.node.id)
+        self.assertFalse(acquire_mock.called)
+        self.assertFalse(sync_mock.called)
+
+    def test_node_in_maintenance(self, get_nodeinfo_mock, get_node_mock,
+                                 mapped_mock, acquire_mock, sync_mock):
+        get_nodeinfo_mock.return_value = self._get_nodeinfo_list_response()
+        get_node_mock.return_value = self.node
+        self.node.maintenance = True
+
+        self.service._sync_power_states(self.context)
+
+        get_nodeinfo_mock.assert_called_once_with(
+                columns=self.columns, filters=self.filters)
+        mapped_mock.assert_called_once_with(self.node.uuid,
+                                            self.node.driver)
+        get_node_mock.assert_called_once_with(self.node.id)
+        self.assertFalse(acquire_mock.called)
+        self.assertFalse(sync_mock.called)
+
+    def test_node_has_reservation(self, get_nodeinfo_mock, get_node_mock,
+                                  mapped_mock, acquire_mock, sync_mock):
+        get_nodeinfo_mock.return_value = self._get_nodeinfo_list_response()
+        get_node_mock.return_value = self.node
+        self.node.reservation = 'fake'
+
+        self.service._sync_power_states(self.context)
+
+        get_nodeinfo_mock.assert_called_once_with(
+                columns=self.columns, filters=self.filters)
+        mapped_mock.assert_called_once_with(self.node.uuid,
+                                            self.node.driver)
+        get_node_mock.assert_called_once_with(self.node.id)
         self.assertFalse(acquire_mock.called)
         self.assertFalse(sync_mock.called)
 
@@ -1474,7 +1507,46 @@ class ManagerSyncPowerStatesTestCase(tests_base.TestCase):
                 columns=self.columns, filters=self.filters)
         mapped_mock.assert_called_once_with(self.node.uuid,
                                             self.node.driver)
-        get_node_mock.assert_called_once_with(self.node.uuid)
+        get_node_mock.assert_called_once_with(self.node.id)
+        acquire_mock.assert_called_once_with(self.context, self.node.id)
+        self.assertFalse(sync_mock.called)
+
+    def test_node_in_deploywait_on_acquire(self, get_nodeinfo_mock,
+                                           get_node_mock, mapped_mock,
+                                           acquire_mock, sync_mock):
+        get_nodeinfo_mock.return_value = self._get_nodeinfo_list_response()
+        get_node_mock.return_value = self.node
+        mapped_mock.return_value = True
+        task = self._create_task(dict(provision_state=states.DEPLOYWAIT,
+                                      id=self.node.id))
+        acquire_mock.side_effect = self._get_acquire_side_effect(task)
+
+        self.service._sync_power_states(self.context)
+
+        get_nodeinfo_mock.assert_called_once_with(
+                columns=self.columns, filters=self.filters)
+        mapped_mock.assert_called_once_with(self.node.uuid,
+                                            self.node.driver)
+        get_node_mock.assert_called_once_with(self.node.id)
+        acquire_mock.assert_called_once_with(self.context, self.node.id)
+        self.assertFalse(sync_mock.called)
+
+    def test_node_in_maintenance_on_acquire(self, get_nodeinfo_mock,
+                                            get_node_mock, mapped_mock,
+                                            acquire_mock, sync_mock):
+        get_nodeinfo_mock.return_value = self._get_nodeinfo_list_response()
+        get_node_mock.return_value = self.node
+        mapped_mock.return_value = True
+        task = self._create_task(dict(maintenance=True, id=self.node.id))
+        acquire_mock.side_effect = self._get_acquire_side_effect(task)
+
+        self.service._sync_power_states(self.context)
+
+        get_nodeinfo_mock.assert_called_once_with(
+                columns=self.columns, filters=self.filters)
+        mapped_mock.assert_called_once_with(self.node.uuid,
+                                            self.node.driver)
+        get_node_mock.assert_called_once_with(self.node.id)
         acquire_mock.assert_called_once_with(self.context, self.node.id)
         self.assertFalse(sync_mock.called)
 
@@ -1493,7 +1565,7 @@ class ManagerSyncPowerStatesTestCase(tests_base.TestCase):
                 columns=self.columns, filters=self.filters)
         mapped_mock.assert_called_once_with(self.node.uuid,
                                             self.node.driver)
-        get_node_mock.assert_called_once_with(self.node.uuid)
+        get_node_mock.assert_called_once_with(self.node.id)
         acquire_mock.assert_called_once_with(self.context, self.node.id)
         self.assertFalse(sync_mock.called)
 
@@ -1511,28 +1583,37 @@ class ManagerSyncPowerStatesTestCase(tests_base.TestCase):
                 columns=self.columns, filters=self.filters)
         mapped_mock.assert_called_once_with(self.node.uuid,
                                             self.node.driver)
-        get_node_mock.assert_called_once_with(self.node.uuid)
+        get_node_mock.assert_called_once_with(self.node.id)
         acquire_mock.assert_called_once_with(self.context, self.node.id)
         sync_mock.assert_called_once_with(task)
 
     def test__sync_power_state_multiple_nodes(self, get_nodeinfo_mock,
                                               get_node_mock, mapped_mock,
                                               acquire_mock, sync_mock):
-        # Create 6 nodes:
+        # Create 11 nodes:
         # 1st node: Should acquire and try to sync
         # 2nd node: Not mapped to this conductor
         # 3rd node: In DEPLOYWAIT provision_state
-        # 4th node: Disappears after getting nodeinfo list.
-        # 5th node: task_manger.acquire() fails due to lock
-        # 6th node: Should acquire and try to sync
+        # 4th node: In maintenance mode
+        # 5th node: Has a reservation
+        # 6th node: Disappears after getting nodeinfo list.
+        # 7th node: task_manger.acquire() fails due to lock
+        # 8th node: task_manger.acquire() fails due to node disappearing
+        # 9th node: In DEPLOYWAIT provision_state acquire()
+        # 10th node: In maintenance mode on acquire()
+        # 11th node: Should acquire and try to sync
         nodes = []
         get_node_map = {}
         mapped_map = {}
-        for i in range(1, 7):
+        for i in range(1, 12):
             attrs = {'id': i,
                      'uuid': ironic_utils.generate_uuid()}
             if i == 3:
                 attrs['provision_state'] = states.DEPLOYWAIT
+            elif i == 4:
+                attrs['maintenance'] = True
+            elif i == 5:
+                attrs['reservation'] = 'fake'
 
             n = self._create_node(**attrs)
             nodes.append(n)
@@ -1540,15 +1621,18 @@ class ManagerSyncPowerStatesTestCase(tests_base.TestCase):
             get_node_map[n.uuid] = n
 
         tasks = [self._create_task(dict(id=1)),
-                 exception.NodeLocked(node=5, host='fake'),
-                 self._create_task(dict(id=6))]
+                 exception.NodeLocked(node=7, host='fake'),
+                 exception.NodeNotFound(node=8, host='fake'),
+                 self._create_task(dict(id=9,
+                                        provision_state=states.DEPLOYWAIT)),
+                 self._create_task(dict(id=10, maintenance=True)),
+                 self._create_task(dict(id=11))]
 
-        def _get_node_side_effect(node_uuid):
-            node = get_node_map[node_uuid]
-            if node.id == 4:
+        def _get_node_side_effect(node_id):
+            if node_id == 6:
                 # Make this node disappear
-                raise exception.NodeNotFound(node=node_uuid)
-            return node
+                raise exception.NodeNotFound(node=node_id)
+            return nodes[node_id - 1]
 
         get_nodeinfo_mock.return_value = self._get_nodeinfo_list_response(
                 nodes)
@@ -1556,17 +1640,20 @@ class ManagerSyncPowerStatesTestCase(tests_base.TestCase):
         get_node_mock.side_effect = _get_node_side_effect
         acquire_mock.side_effect = self._get_acquire_side_effect(tasks)
 
-        self.service._sync_power_states(self.context)
+        with mock.patch.object(eventlet, 'sleep') as sleep_mock:
+            self.service._sync_power_states(self.context)
+            # Ensure we've yielded on every iteration
+            self.assertEqual(len(nodes), sleep_mock.call_count)
 
         get_nodeinfo_mock.assert_called_once_with(
                 columns=self.columns, filters=self.filters)
         mapped_calls = [mock.call(n.uuid, n.driver) for n in nodes]
         self.assertEqual(mapped_calls, mapped_mock.call_args_list)
-        get_node_calls = [mock.call(n.uuid) for n in nodes[:1] + nodes[2:]]
+        get_node_calls = [mock.call(n.id) for n in nodes[:1] + nodes[2:]]
         self.assertEqual(get_node_calls,
                          get_node_mock.call_args_list)
         acquire_calls = [mock.call(self.context, n.id)
-                for n in nodes[:1] + nodes[4:]]
+                for n in nodes[:1] + nodes[6:]]
         self.assertEqual(acquire_calls, acquire_mock.call_args_list)
-        sync_calls = [mock.call(tasks[0]), mock.call(tasks[2])]
+        sync_calls = [mock.call(tasks[0]), mock.call(tasks[5])]
         self.assertEqual(sync_calls, sync_mock.call_args_list)

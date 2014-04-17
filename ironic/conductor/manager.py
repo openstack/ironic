@@ -44,6 +44,7 @@ a change, etc.
 import collections
 import datetime
 
+import eventlet
 from eventlet import greenpool
 
 from oslo.config import cfg
@@ -321,6 +322,10 @@ class ConductorManager(service.PeriodicService):
         """
         LOG.debug(_("RPC do_node_deploy called for node %s.") % node_id)
 
+        # NOTE(comstud): If the _sync_power_states() periodic task happens
+        # to have locked this node, we'll fail to acquire the lock. The
+        # client should perhaps retry in this case unless we decide we
+        # want to add retries or extra synchronization here.
         task = task_manager.TaskManager(context, node_id, shared=False)
         node = task.node
         try:
@@ -560,34 +565,62 @@ class ConductorManager(service.PeriodicService):
     @periodic_task.periodic_task(
             spacing=CONF.conductor.sync_power_state_interval)
     def _sync_power_states(self, context):
+        """Periodic task to sync power states for the nodes.
+
+        Attempt to grab a lock and sync only if the following
+        conditions are met:
+
+        1) Node is mapped to this conductor.
+        2) Node is not in maintenance mode.
+        3) Node is not in DEPLOYWAIT provision state.
+        4) Node doesn't have a reservation
+
+        NOTE: Grabbing a lock here can cause other methods to fail to
+        grab it. We want to avoid trying to grab a lock while a
+        node is in the DEPLOYWAIT state so we don't unnecessarily
+        cause a deploy callback to fail. There's not much we can do
+        here to avoid failing a brand new deploy to a node that we've
+        locked here, though.
+        """
+        # FIXME(comstud): Since our initial state checks are outside
+        # of the lock (to try to avoid the lock), some checks are
+        # repeated after grabbing the lock so we can unlock quickly.
+        # The node mapping is not re-checked because it doesn't much
+        # matter if things happened to re-balance.
+        #
+        # This is inefficient and racey. We end up with calling DB API's
+        # get_node() twice (once here, and once in acquire(). Ideally we
+        # add a way to pass constraints to task_manager.acquire()
+        # (through to its DB API call) so that we can eliminate our call
+        # and first set of checks below.
+
         filters = {'reserved': False, 'maintenance': False}
         columns = ['id', 'uuid', 'driver']
         node_list = self.dbapi.get_nodeinfo_list(columns=columns,
                                                  filters=filters)
         for (node_id, node_uuid, driver) in node_list:
-            # only sync power states for nodes mapped to this conductor
-            if not self._mapped_to_this_conductor(node_uuid, driver):
-                continue
-
             try:
-                # prevent nodes in DEPLOYWAIT state from locking
-                node = self.dbapi.get_node(node_uuid)
-                if node.provision_state == states.DEPLOYWAIT:
+                if not self._mapped_to_this_conductor(node_uuid, driver):
                     continue
-
+                node = self.dbapi.get_node(node_id)
+                if (node.provision_state == states.DEPLOYWAIT or
+                        node.maintenance or node.reservation is not None):
+                    continue
                 with task_manager.acquire(context, node_id) as task:
-                    self._do_sync_power_state(task)
-
+                    if (task.node.provision_state != states.DEPLOYWAIT and
+                            not task.node.maintenance):
+                        self._do_sync_power_state(task)
             except exception.NodeNotFound:
                 LOG.info(_("During sync_power_state, node %(node)s was not "
                            "found and presumed deleted by another process.") %
                            {'node': node_uuid})
-                continue
             except exception.NodeLocked:
                 LOG.info(_("During sync_power_state, node %(node)s was "
                            "already locked by another process. Skip.") %
                            {'node': node_uuid})
-                continue
+            finally:
+                # Yield on every iteration
+                eventlet.sleep(0)
 
     @periodic_task.periodic_task(
             spacing=CONF.conductor.check_provision_state_interval)
