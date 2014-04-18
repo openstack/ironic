@@ -20,6 +20,7 @@ import socket
 import stat
 import time
 
+from ironic.common import disk_partitioner
 from ironic.common import exception
 from ironic.common import utils
 from ironic.openstack.common import excutils
@@ -80,27 +81,15 @@ def delete_iscsi(portal_address, portal_port, target_iqn):
 
 def make_partitions(dev, root_mb, swap_mb, ephemeral_mb):
     """Create partitions for root and swap on a disk device."""
-    cmd = []
-
-    def add_partition(start, size, fs_type=''):
-        end = start + size
-        cmd.extend(['mkpart', 'primary', fs_type, str(start), str(end)])
-        return end
-
-    offset = 1
+    dp = disk_partitioner.DiskPartitioner(dev)
     if ephemeral_mb:
-        offset = add_partition(offset, ephemeral_mb)
-        offset = add_partition(offset, swap_mb, fs_type='linux-swap')
-        offset = add_partition(offset, root_mb)
+        dp.add_partition(ephemeral_mb)
+        dp.add_partition(swap_mb, fs_type='linux-swap')
+        dp.add_partition(root_mb)
     else:
-        offset = add_partition(offset, root_mb)
-        offset = add_partition(offset, swap_mb, fs_type='linux-swap')
-
-    utils.execute('parted', '-a', 'optimal', '-s', dev, '--', 'mklabel',
-                  'msdos', 'unit', 'MiB', *cmd, run_as_root=True, attempts=3,
-                  check_exit_code=[0])
-    # avoid "device is busy"
-    time.sleep(3)
+        dp.add_partition(root_mb)
+        dp.add_partition(swap_mb, fs_type='linux-swap')
+    dp.commit()
 
 
 def is_block_device(dev):

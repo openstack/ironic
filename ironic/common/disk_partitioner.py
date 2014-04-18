@@ -13,6 +13,8 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import time
+
 from ironic.common import utils
 
 
@@ -90,3 +92,7 @@ class DiskPartitioner(object):
             start = end
 
         self._exec(*cmd_args)
+        # TODO(lucasagomes): Do not sleep, use another mechanism to avoid
+        #                    the "device is busy" problem. lsof, fuser...
+        # avoid "device is busy"
+        time.sleep(3)

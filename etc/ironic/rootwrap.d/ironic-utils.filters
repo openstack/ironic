@@ -4,10 +4,12 @@
 [Filters]
 # ironic/drivers/modules/deploy_utils.py
 iscsiadm: CommandFilter, iscsiadm, root
-parted: CommandFilter, parted, root
 dd: CommandFilter, dd, root
 blkid: CommandFilter, blkid, root
 
 # ironic/common/utils.py
 mkswap: CommandFilter, mkswap, root
 mkfs: CommandFilter, mkfs, root
+
+# ironic/common/disk_partitioner.py
+parted: CommandFilter, parted, root

@@ -14,6 +14,8 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import time
+
 import fixtures
 import mock
 import os
@@ -403,6 +405,7 @@ class WorkOnDiskTestCase(tests_base.TestCase):
                                              self.swap_mb, ephemeral_mb)
 
 
+@mock.patch.object(time, 'sleep', lambda _: None)
 @mock.patch.object(common_utils, 'execute')
 class MakePartitionsTestCase(tests_base.TestCase):
 
@@ -413,7 +416,7 @@ class MakePartitionsTestCase(tests_base.TestCase):
         self.swap_mb = 512
         self.ephemeral_mb = 0
         self.parted_static_cmd = ['parted', '-a', 'optimal', '-s', self.dev,
-                                  '--', 'mklabel', 'msdos', 'unit', 'MiB']
+                                  '--', 'unit', 'MiB', 'mklabel', 'msdos']
 
     def test_make_partitions(self, mock_exc):
         expected_mkpart = ['mkpart', 'primary', '', '1', '1025',
@@ -421,8 +424,7 @@ class MakePartitionsTestCase(tests_base.TestCase):
         cmd = self.parted_static_cmd + expected_mkpart
         utils.make_partitions(self.dev, self.root_mb, self.swap_mb,
                               self.ephemeral_mb)
-        mock_exc.assert_called_once_with(*cmd,
-                                         run_as_root=True, attempts=3,
+        mock_exc.assert_called_once_with(*cmd, run_as_root=True,
                                          check_exit_code=[0])
 
     def test_make_partitions_with_ephemeral(self, mock_exc):
@@ -433,6 +435,5 @@ class MakePartitionsTestCase(tests_base.TestCase):
         cmd = self.parted_static_cmd + expected_mkpart
         utils.make_partitions(self.dev, self.root_mb, self.swap_mb,
                               self.ephemeral_mb)
-        mock_exc.assert_called_once_with(*cmd,
-                                         run_as_root=True, attempts=3,
+        mock_exc.assert_called_once_with(*cmd, run_as_root=True,
                                          check_exit_code=[0])
