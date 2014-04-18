@@ -21,7 +21,6 @@ A driver wrapping the Ironic API, such that Nova may provision
 bare metal resources.
 """
 
-from ironicclient import client as ironic_client
 from ironicclient import exc as ironic_exception
 from oslo.config import cfg
 
@@ -33,7 +32,6 @@ from nova import exception
 from nova.objects import flavor as flavor_obj
 from nova.openstack.common import excutils
 from nova.openstack.common.gettextutils import _
-from nova.openstack.common import importutils
 from nova.openstack.common import jsonutils
 from nova.openstack.common import log as logging
 from nova.openstack.common import loopingcall
@@ -160,9 +158,16 @@ class IronicDriver(virt_driver.ComputeDriver):
 
         self.extra_specs = extra_specs
 
+    def _node_resources_unavailable(self, node_obj):
+        """Determines whether the node's resources should be presented
+        to Nova for use based on the current power and maintenance state.
+        """
+        bad_states = [ironic_states.ERROR, ironic_states.NOSTATE]
+        return (node_obj.maintenance or
+                node_obj.power_state in bad_states)
+
     def _node_resource(self, node):
         """Helper method to create resource dict from node stats."""
-
         vcpus = int(node.properties.get('cpus', 0))
         memory_mb = int(node.properties.get('memory_mb', 0))
         local_gb = int(node.properties.get('local_gb', 0))
@@ -170,14 +175,21 @@ class IronicDriver(virt_driver.ComputeDriver):
         nodes_extra_specs = self.extra_specs
         nodes_extra_specs['cpu_arch'] = cpu_arch
 
+        vcpus_used = 0
+        memory_mb_used = 0
+        local_gb_used = 0
+
         if node.instance_uuid:
+            # Node has an instance, report all resource as unavailable
             vcpus_used = vcpus
             memory_mb_used = memory_mb
             local_gb_used = local_gb
-        else:
-            vcpus_used = 0
-            memory_mb_used = 0
-            local_gb_used = 0
+        elif self._node_resources_unavailable(node):
+            # The node's current state is such that it should not present any
+            # of its resources to Nova
+            vcpus = 0
+            memory_mb = 0
+            local_gb = 0
 
         dic = {'node': str(node.uuid),
                'hypervisor_hostname': str(node.uuid),
@@ -270,22 +282,18 @@ class IronicDriver(virt_driver.ComputeDriver):
         return instances
 
     def node_is_available(self, nodename):
+        """Confirms a Nova hypervisor node exists in the Ironic inventory."""
         icli = client_wrapper.IronicClientWrapper()
-        node = icli.call("node.get", nodename)
-        return not node.instance_uuid and not node.maintenance \
-            and node.power_state == ironic_states.POWER_OFF
+        try:
+            icli.call("node.get", nodename)
+            return True
+        except ironic_exception.HTTPNotFound:
+            return False
 
     def get_available_nodes(self, refresh=False):
-        nodes = []
         icli = client_wrapper.IronicClientWrapper()
         node_list = icli.call("node.list")
-
-        for n in node_list:
-            # for now we'll use the nodes power state. if power_state is None
-            # we'll assume it is not ready to be presented to Nova.
-            if n.power_state:
-                nodes.append(n.uuid)
-
+        nodes = [n.uuid for n in node_list]
         LOG.debug("Returning Nodes: %s" % nodes)
         return nodes
 
