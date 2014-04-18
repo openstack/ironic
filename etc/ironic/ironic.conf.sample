@@ -218,10 +218,15 @@
 # Options defined in ironic.common.driver_factory
 #
 
-# List of drivers to enable. Missing drivers, or drivers which
-# can not be loaded will be treated as a fatal exception.
-# (list value)
-#enabled_drivers=fake,pxe_ipmitool,pxe_ssh
+# Specify the list of drivers to load during service
+# initialization. Missing drivers, or drivers which fail to
+# initialize, will prevent the conductor service from
+# starting. The option default is a recommended set of
+# production-oriented drivers. A complete list of drivers
+# present on your system may be found by enumerating the
+# "ironic.drivers" entrypoint. An example may be found in the
+# developer documentation online. (list value)
+#enabled_drivers=pxe_ipmitool
 
 
 #
