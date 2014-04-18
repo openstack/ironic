@@ -263,6 +263,23 @@ class IronicDriver(virt_driver.ComputeDriver):
     def get_hypervisor_version(self):
         return CONF.ironic.api_version
 
+    def instance_exists(self, instance):
+        """Checks the existence of an instance.
+
+        Checks the existence of an instance. This is an override of the
+        base method for efficiency.
+
+        :param instance: The instance object.
+        :returns: True if the instance exists. False if not.
+
+        """
+        icli = client_wrapper.IronicClientWrapper()
+        try:
+            icli.call("node.get_by_instance_uuid", instance['uuid'])
+            return True
+        except ironic_exception.HTTPNotFound:
+            return False
+
     def list_instances(self):
         # NOTE(adam_g): This is currently returning nodes, not instance names.
         icli = client_wrapper.IronicClientWrapper()
