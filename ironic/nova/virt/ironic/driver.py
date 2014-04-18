@@ -304,10 +304,14 @@ class IronicDriver(virt_driver.ComputeDriver):
         return CONF.ironic.api_version
 
     def list_instances(self):
+        # NOTE(adam_g): This is currently returning nodes, not instance names.
         icli = client_wrapper.IronicClientWrapper()
         node_list = icli.call("node.list")
         instances = [i for i in node_list if i.instance_uuid]
         return instances
+
+    def list_instance_uuids(self):
+        return [i.instance_uuid for i in self.list_instances()]
 
     def node_is_available(self, nodename):
         icli = self._get_client()

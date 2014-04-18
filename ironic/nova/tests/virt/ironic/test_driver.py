@@ -296,6 +296,20 @@ class IronicDriverTestCase(test.NoDBTestCase):
             self.assertEqual(sorted(expected), sorted(instances))
             self.assertEqual(num_nodes, len(instances))
 
+    def test_list_instance_uuids(self):
+        num_nodes = 2
+        nodes = []
+        for n in range(num_nodes):
+            nodes.append(ironic_utils.get_test_node(
+                                      instance_uuid=uuidutils.generate_uuid()))
+
+        with mock.patch.object(self.driver, 'list_instances') as mock_list:
+            mock_list.return_value = nodes
+            uuids = self.driver.list_instance_uuids()
+            self.assertTrue(mock_list.called)
+            expected = [n.instance_uuid for n in nodes]
+            self.assertEquals(sorted(expected), sorted(uuids))
+
     @mock.patch.object(FAKE_CLIENT.node, 'get')
     def test_node_is_available(self, mock_get):
         no_guid = None
