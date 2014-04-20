@@ -650,11 +650,14 @@ class ConductorManager(periodic_task.PeriodicTasks):
     @periodic_task.periodic_task(
             spacing=CONF.conductor.check_provision_state_interval)
     def _check_deploy_timeouts(self, context):
-        if not CONF.conductor.deploy_callback_timeout:
+        callback_timeout = CONF.conductor.deploy_callback_timeout
+        if not callback_timeout:
             return
 
-        filters = {'reserved': False, 'provision_state': states.DEPLOYWAIT,
-                 'provisioned_before': CONF.conductor.deploy_callback_timeout}
+        filters = {'reserved': False,
+                   'provision_state': states.DEPLOYWAIT,
+                   'maintenance': False,
+                   'provisioned_before': callback_timeout}
         columns = ['uuid', 'driver']
         node_list = self.dbapi.get_nodeinfo_list(
                                     columns=columns,
@@ -668,10 +671,19 @@ class ConductorManager(periodic_task.PeriodicTasks):
                 continue
             try:
                 with task_manager.acquire(context, node_uuid) as task:
+                    # NOTE(comstud): Recheck maintenance and provision_state
+                    # now that we have the lock. We don't need to re-check
+                    # updated_at unless we expect the state to have flipped
+                    # to something else and then back to DEPLOYWAIT between
+                    # the call to get_nodeinfo_list and now.
+                    if (task.node.maintenance or
+                            task.node.provision_state != states.DEPLOYWAIT):
+                        continue
                     task.spawn_after(self._spawn_worker,
                                      utils.cleanup_after_timeout, task)
-            except (exception.NodeLocked, exception.NodeNotFound,
-                    exception.NoFreeConductorWorker):
+            except exception.NoFreeConductorWorker:
+                break
+            except (exception.NodeLocked, exception.NodeNotFound):
                 continue
             workers_count += 1
             if workers_count == CONF.conductor.periodic_max_workers:

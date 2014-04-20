@@ -19,7 +19,9 @@ from ironic.common import utils as cmn_utils
 from ironic.conductor import task_manager
 from ironic.conductor import utils as conductor_utils
 from ironic.db import api as dbapi
+from ironic import objects
 from ironic.openstack.common import context
+from ironic.tests import base as tests_base
 from ironic.tests.conductor import utils as mgr_utils
 from ironic.tests.db import base
 from ironic.tests.db import utils
@@ -266,3 +268,56 @@ class NodePowerActionTestCase(base.DbTestCase):
                 self.assertEqual(states.POWER_OFF, node['power_state'])
                 self.assertIsNone(node['target_power_state'])
                 self.assertIsNotNone(node['last_error'])
+
+
+class CleanupAfterTimeoutTestCase(tests_base.TestCase):
+    def setUp(self):
+        super(CleanupAfterTimeoutTestCase, self).setUp()
+        self.task = mock.Mock(spec=task_manager.TaskManager)
+        self.task.context = mock.sentinel.context
+        self.task.driver = mock.Mock(spec_set=['deploy'])
+        self.task.shared = False
+        self.task.node = mock.Mock(spec_set=objects.Node)
+        self.node = self.task.node
+
+    def test_cleanup_after_timeout(self):
+        conductor_utils.cleanup_after_timeout(self.task)
+
+        self.node.save.assert_called_once_with(self.task.context)
+        self.task.driver.deploy.clean_up.assert_called_once_with(self.task)
+        self.assertEqual(states.DEPLOYFAIL, self.node.provision_state)
+        self.assertEqual(states.NOSTATE, self.node.target_provision_state)
+        self.assertIn('Timeout reached', self.node.last_error)
+
+    def test_cleanup_after_timeout_shared_lock(self):
+        self.task.shared = True
+
+        self.assertRaises(exception.ExclusiveLockRequired,
+                          conductor_utils.cleanup_after_timeout,
+                          self.task)
+
+    def test_cleanup_after_timeout_cleanup_ironic_exception(self):
+        clean_up_mock = self.task.driver.deploy.clean_up
+        clean_up_mock.side_effect = exception.IronicException('moocow')
+
+        conductor_utils.cleanup_after_timeout(self.task)
+
+        self.task.driver.deploy.clean_up.assert_called_once_with(self.task)
+        self.assertEqual([mock.call(self.task.context)] * 2,
+                         self.node.save.call_args_list)
+        self.assertEqual(states.DEPLOYFAIL, self.node.provision_state)
+        self.assertEqual(states.NOSTATE, self.node.target_provision_state)
+        self.assertIn('moocow', self.node.last_error)
+
+    def test_cleanup_after_timeout_cleanup_random_exception(self):
+        clean_up_mock = self.task.driver.deploy.clean_up
+        clean_up_mock.side_effect = Exception('moocow')
+
+        conductor_utils.cleanup_after_timeout(self.task)
+
+        self.task.driver.deploy.clean_up.assert_called_once_with(self.task)
+        self.assertEqual([mock.call(self.task.context)] * 2,
+                         self.node.save.call_args_list)
+        self.assertEqual(states.DEPLOYFAIL, self.node.provision_state)
+        self.assertEqual(states.NOSTATE, self.node.target_provision_state)
+        self.assertIn('Deploy timed out', self.node.last_error)
