@@ -241,20 +241,10 @@ class ConductorManager(service.PeriodicService):
                     "The desired new state is %(state)s.")
                     % {'node': node_id, 'state': new_state})
 
-        task = task_manager.TaskManager(context, node_id, shared=False)
-
-        try:
+        with task_manager.acquire(context, node_id, shared=False) as task:
             task.driver.power.validate(task, task.node)
-
-            # Start requested action in the background.
-            thread = self._spawn_worker(utils.node_power_action,
-                                        task, task.node, new_state)
-            # Release node lock at the end.
-            thread.link(lambda t: task.release_resources())
-        except Exception:
-            with excutils.save_and_reraise_exception():
-                # Release node lock if error occurred.
-                task.release_resources()
+            task.spawn_after(self._spawn_worker, utils.node_power_action,
+                             task, task.node, new_state)
 
     @messaging.client_exceptions(exception.NoFreeConductorWorker,
                                  exception.NodeLocked,
@@ -284,9 +274,7 @@ class ConductorManager(service.PeriodicService):
         # require an exclusive lock, we need to do so to guarantee that the
         # state doesn't unexpectedly change between doing a vendor.validate
         # and vendor.vendor_passthru.
-        task = task_manager.TaskManager(context, node_id, shared=False)
-
-        try:
+        with task_manager.acquire(context, node_id, shared=False) as task:
             if not getattr(task.driver, 'vendor', None):
                 raise exception.UnsupportedDriverExtension(
                     driver=task.node.driver,
@@ -294,16 +282,9 @@ class ConductorManager(service.PeriodicService):
 
             task.driver.vendor.validate(task, task.node, method=driver_method,
                                         **info)
-            # Start requested action in the background.
-            thread = self._spawn_worker(task.driver.vendor.vendor_passthru,
-                                        task, task.node, method=driver_method,
-                                        **info)
-            # Release node lock at the end of async action.
-            thread.link(lambda t: task.release_resources())
-        except Exception:
-            with excutils.save_and_reraise_exception():
-                # Release node lock if error occurred.
-                task.release_resources()
+            task.spawn_after(self._spawn_worker,
+                             task.driver.vendor.vendor_passthru, task,
+                             task.node, method=driver_method, **info)
 
     @messaging.client_exceptions(exception.NoFreeConductorWorker,
                                  exception.NodeLocked,
@@ -330,9 +311,8 @@ class ConductorManager(service.PeriodicService):
         # to have locked this node, we'll fail to acquire the lock. The
         # client should perhaps retry in this case unless we decide we
         # want to add retries or extra synchronization here.
-        task = task_manager.TaskManager(context, node_id, shared=False)
-        node = task.node
-        try:
+        with task_manager.acquire(context, node_id, shared=False) as task:
+            node = task.node
             if node.provision_state is not states.NOSTATE:
                 raise exception.InstanceDeployFailure(_(
                     "RPC do_node_deploy called for %(node)s, but provision "
@@ -355,15 +335,8 @@ class ConductorManager(service.PeriodicService):
             node.target_provision_state = states.DEPLOYDONE
             node.last_error = None
             node.save(context)
-
-            # Start requested action in the background.
-            thread = self._spawn_worker(self._do_node_deploy, context, task)
-            # Release node lock at the end.
-            thread.link(lambda t: task.release_resources())
-        except Exception:
-            with excutils.save_and_reraise_exception():
-                # Release node lock if error occurred.
-                task.release_resources()
+            task.spawn_after(self._spawn_worker, self._do_node_deploy,
+                             context, task)
 
     def _do_node_deploy(self, context, task):
         """Prepare the environment and deploy a node."""
@@ -405,9 +378,8 @@ class ConductorManager(service.PeriodicService):
         """
         LOG.debug(_("RPC do_node_tear_down called for node %s.") % node_id)
 
-        task = task_manager.TaskManager(context, node_id, shared=False)
-        node = task.node
-        try:
+        with task_manager.acquire(context, node_id, shared=False) as task:
+            node = task.node
             if node.provision_state not in [states.ACTIVE,
                                             states.DEPLOYFAIL,
                                             states.ERROR,
@@ -428,17 +400,8 @@ class ConductorManager(service.PeriodicService):
             node.target_provision_state = states.DELETED
             node.last_error = None
             node.save(context)
-
-            # Start requested action in the background.
-            thread = self._spawn_worker(self._do_node_tear_down, context, task)
-
-            # Release node lock at the end.
-            thread.link(lambda t: task.release_resources())
-
-        except Exception:
-            with excutils.save_and_reraise_exception():
-                # Release node lock if error occurred.
-                task.release_resources()
+            task.spawn_after(self._spawn_worker, self._do_node_tear_down,
+                             context, task)
 
     def _do_node_tear_down(self, context, task):
         """Internal RPC method to tear down an existing node deployment."""
@@ -645,19 +608,13 @@ class ConductorManager(service.PeriodicService):
         for node_uuid, driver in node_list:
             if not self._mapped_to_this_conductor(node_uuid, driver):
                 continue
-
             try:
-                task = task_manager.TaskManager(context, node_uuid)
-            except (exception.NodeLocked, exception.NodeNotFound):
+                with task_manager.acquire(context, node_uuid) as task:
+                    task.spawn_after(self._spawn_worker,
+                                     utils.cleanup_after_timeout, task)
+            except (exception.NodeLocked, exception.NodeNotFound,
+                    exception.NoFreeConductorWorker):
                 continue
-
-            try:
-                thread = self._spawn_worker(utils.cleanup_after_timeout, task)
-                thread.link(lambda t: task.release_resources())
-            except exception.NoFreeConductorWorker:
-                task.release_resources()
-                break
-
             workers_count += 1
             if workers_count == CONF.conductor.periodic_max_workers:
                 break
@@ -846,10 +803,8 @@ class ConductorManager(service.PeriodicService):
                     'enabled %(enabled)s') % {'node': node_id,
                                               'enabled': enabled})
 
-        task = task_manager.TaskManager(context, node_id, shared=False)
-        node = task.node
-
-        try:
+        with task_manager.acquire(context, node_id, shared=False) as task:
+            node = task.node
             if not getattr(task.driver, 'console', None):
                 exc = exception.UnsupportedDriverExtension(driver=node.driver,
                                                            extension='console')
@@ -867,17 +822,8 @@ class ConductorManager(service.PeriodicService):
             else:
                 node.last_error = None
                 node.save(context)
-
-                # Start the requested action in the background.
-                thread = self._spawn_worker(self._set_console_mode,
-                                            task, enabled)
-                # Release node lock at the end.
-                thread.link(lambda t: task.release_resources())
-
-        except Exception:
-            with excutils.save_and_reraise_exception():
-                # Release node lock if error occurred.
-                task.release_resources()
+                task.spawn_after(self._spawn_worker,
+                                 self._set_console_mode, task, enabled)
 
     def _set_console_mode(self, task, enabled):
         """Internal method to set console mode on a node."""

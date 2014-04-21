@@ -20,7 +20,6 @@
 
 import contextlib
 import datetime
-import time
 
 import eventlet
 import mock
@@ -756,74 +755,6 @@ class ManagerTestCase(tests_db_base.DbTestCase):
         node.refresh(self.context)
         self.assertFalse(node.maintenance)
 
-    def test__spawn_worker(self):
-        func_mock = mock.Mock()
-        args = (1, 2, "test")
-        kwargs = dict(kw1='test1', kw2='test2')
-        self._start_service()
-
-        thread = self.service._spawn_worker(func_mock, *args, **kwargs)
-        self.service._worker_pool.waitall()
-
-        self.assertIsNotNone(thread)
-        func_mock.assert_called_once_with(*args, **kwargs)
-
-    # The tests below related to greenthread. We have they to assert our
-    # assumptions about greenthread behavior.
-
-    def test__spawn_link_callback_added_during_execution(self):
-        def func():
-            time.sleep(1)
-        link_callback = mock.Mock()
-        self._start_service()
-
-        thread = self.service._spawn_worker(func)
-        # func_mock executing at this moment
-        thread.link(link_callback)
-        self.service._worker_pool.waitall()
-
-        link_callback.assert_called_once_with(thread)
-
-    def test__spawn_link_callback_added_after_execution(self):
-        def func():
-            pass
-        link_callback = mock.Mock()
-        self._start_service()
-
-        thread = self.service._spawn_worker(func)
-        self.service._worker_pool.waitall()
-        # func_mock finished at this moment
-        thread.link(link_callback)
-
-        link_callback.assert_called_once_with(thread)
-
-    def test__spawn_link_callback_exception_inside_thread(self):
-        def func():
-            time.sleep(1)
-            raise Exception()
-        link_callback = mock.Mock()
-        self._start_service()
-
-        thread = self.service._spawn_worker(func)
-        # func_mock executing at this moment
-        thread.link(link_callback)
-        self.service._worker_pool.waitall()
-
-        link_callback.assert_called_once_with(thread)
-
-    def test__spawn_link_callback_added_after_exception_inside_thread(self):
-        def func():
-            raise Exception()
-        link_callback = mock.Mock()
-        self._start_service()
-
-        thread = self.service._spawn_worker(func)
-        self.service._worker_pool.waitall()
-        # func_mock finished at this moment
-        thread.link(link_callback)
-
-        link_callback.assert_called_once_with(thread)
-
     def test_destroy_node(self):
         self._start_service()
         ndict = utils.get_test_node(driver='fake')
@@ -1216,6 +1147,32 @@ class ManagerTestCase(tests_db_base.DbTestCase):
         res = self.service.update_port(self.context, port)
         self.assertEqual(new_address, res.address)
         self.assertFalse(mac_update_mock.called)
+
+
+class ManagerSpawnWorkerTestCase(tests_base.TestCase):
+    def setUp(self):
+        super(ManagerSpawnWorkerTestCase, self).setUp()
+        self.service = manager.ConductorManager('hostname', 'test-topic')
+
+    def test__spawn_worker(self):
+        worker_pool = mock.Mock(spec_set=['free', 'spawn'])
+        worker_pool.free.return_value = True
+        self.service._worker_pool = worker_pool
+
+        self.service._spawn_worker('fake', 1, 2, foo='bar', cat='meow')
+
+        worker_pool.spawn.assert_called_once_with(
+                'fake', 1, 2, foo='bar', cat='meow')
+
+    def test__spawn_worker_none_free(self):
+        worker_pool = mock.Mock(spec_set=['free', 'spawn'])
+        worker_pool.free.return_value = False
+        self.service._worker_pool = worker_pool
+
+        self.assertRaises(exception.NoFreeConductorWorker,
+                          self.service._spawn_worker, 'fake')
+
+        self.assertFalse(worker_pool.spawn.called)
 
 
 @mock.patch.object(conductor_utils, 'node_power_action')

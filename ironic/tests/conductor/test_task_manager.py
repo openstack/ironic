@@ -19,6 +19,10 @@
 
 from testtools import matchers
 
+import eventlet
+from eventlet import greenpool
+import mock
+
 from ironic.common import driver_factory
 from ironic.common import exception
 from ironic.common import utils as ironic_utils
@@ -27,8 +31,9 @@ from ironic.db import api as dbapi
 from ironic import objects
 from ironic.openstack.common import context
 
+from ironic.tests import base as tests_base
 from ironic.tests.conductor import utils as mgr_utils
-from ironic.tests.db import base
+from ironic.tests.db import base as db_base
 from ironic.tests.db import utils
 
 
@@ -48,7 +53,7 @@ def ContainsUUIDs(uuids):
             _task_uuids, matchers.Equals(uuids))
 
 
-class TaskManagerSetup(base.DbTestCase):
+class TaskManagerSetup(db_base.DbTestCase):
 
     def setUp(self):
         super(TaskManagerSetup, self).setUp()
@@ -164,6 +169,89 @@ class TaskManagerTestCase(TaskManagerSetup):
         node = objects.Node.get_by_uuid(self.context, node_uuid)
         self.assertIsNone(node.reservation)
 
+    @mock.patch.object(driver_factory, 'get_driver')
+    @mock.patch.object(dbapi.IMPL, 'get_ports_by_node_id')
+    @mock.patch.object(dbapi.IMPL, 'reserve_nodes')
+    def test_spawn_after(self, reserve_mock, get_ports_mock,
+                         get_driver_mock):
+        thread_mock = mock.Mock(spec_set=['link', 'cancel'])
+        spawn_mock = mock.Mock(return_value=thread_mock)
+        release_mock = mock.Mock()
+
+        with task_manager.TaskManager(self.context, 'node-id') as task:
+            task.spawn_after(spawn_mock, 1, 2, foo='bar', cat='meow')
+            task.release_resources = release_mock
+
+        spawn_mock.assert_called_once_with(1, 2, foo='bar', cat='meow')
+        thread_mock.link.assert_called_once_with(
+                task._thread_release_resources)
+        self.assertFalse(thread_mock.cancel.called)
+        # Since we mocked link(), we're testing that __exit__ didn't
+        # release resources pending the finishing of the background
+        # thread
+        self.assertFalse(release_mock.called)
+
+    @mock.patch.object(driver_factory, 'get_driver')
+    @mock.patch.object(dbapi.IMPL, 'get_ports_by_node_id')
+    @mock.patch.object(dbapi.IMPL, 'reserve_nodes')
+    def test_spawn_after_exception_while_yielded(self, reserve_mock,
+                                                 get_ports_mock,
+                                                 get_driver_mock):
+        spawn_mock = mock.Mock()
+        release_mock = mock.Mock()
+
+        def _test_it():
+            with task_manager.TaskManager(self.context, 'node-id') as task:
+                task.spawn_after(spawn_mock, 1, 2, foo='bar', cat='meow')
+                task.release_resources = release_mock
+                raise exception.IronicException('foo')
+
+        self.assertRaises(exception.IronicException, _test_it)
+        self.assertFalse(spawn_mock.called)
+        release_mock.assert_called_once_with()
+
+    @mock.patch.object(driver_factory, 'get_driver')
+    @mock.patch.object(dbapi.IMPL, 'get_ports_by_node_id')
+    @mock.patch.object(dbapi.IMPL, 'reserve_nodes')
+    def test_spawn_after_spawn_fails(self, reserve_mock, get_ports_mock,
+                                     get_driver_mock):
+        spawn_mock = mock.Mock(side_effect=exception.IronicException('foo'))
+        release_mock = mock.Mock()
+
+        def _test_it():
+            with task_manager.TaskManager(self.context, 'node-id') as task:
+                task.spawn_after(spawn_mock, 1, 2, foo='bar', cat='meow')
+                task.release_resources = release_mock
+
+        self.assertRaises(exception.IronicException, _test_it)
+
+        spawn_mock.assert_called_once_with(1, 2, foo='bar', cat='meow')
+        release_mock.assert_called_once_with()
+
+    @mock.patch.object(driver_factory, 'get_driver')
+    @mock.patch.object(dbapi.IMPL, 'get_ports_by_node_id')
+    @mock.patch.object(dbapi.IMPL, 'reserve_nodes')
+    def test_spawn_after_link_fails(self, reserve_mock, get_ports_mock,
+                                     get_driver_mock):
+        thread_mock = mock.Mock(spec_set=['link', 'cancel'])
+        thread_mock.link.side_effect = exception.IronicException('foo')
+        spawn_mock = mock.Mock(return_value=thread_mock)
+        release_mock = mock.Mock()
+        thr_release_mock = mock.Mock(spec_set=[])
+
+        def _test_it():
+            with task_manager.TaskManager(self.context, 'node-id') as task:
+                task.spawn_after(spawn_mock, 1, 2, foo='bar', cat='meow')
+                task._thread_release_resources = thr_release_mock
+                task.release_resources = release_mock
+
+        self.assertRaises(exception.IronicException, _test_it)
+
+        spawn_mock.assert_called_once_with(1, 2, foo='bar', cat='meow')
+        thread_mock.link.assert_called_once_with(thr_release_mock)
+        thread_mock.cancel.assert_called_once_with()
+        release_mock.assert_called_once_with()
+
 
 class ExclusiveLockDecoratorTestCase(TaskManagerSetup):
 
@@ -234,3 +322,75 @@ class ExclusiveLockDecoratorTestCase(TaskManagerSetup):
             self.assertRaises(AttributeError, get_node)
             self.assertRaises(AttributeError, get_driver)
             self.assertRaises(AttributeError, get_node_manager)
+
+
+class TaskManagerGreenThreadTestCase(tests_base.TestCase):
+    """Class to assert our assumptions about greenthread behavior."""
+    def test_gt_link_callback_added_during_execution(self):
+        pool = greenpool.GreenPool()
+        q1 = eventlet.Queue()
+        q2 = eventlet.Queue()
+
+        def func():
+            q1.put(None)
+            q2.get()
+
+        link_callback = mock.Mock()
+
+        thread = pool.spawn(func)
+        q1.get()
+        thread.link(link_callback)
+        q2.put(None)
+        pool.waitall()
+        link_callback.assert_called_once_with(thread)
+
+    def test_gt_link_callback_added_after_execution(self):
+        pool = greenpool.GreenPool()
+        link_callback = mock.Mock()
+
+        thread = pool.spawn(lambda: None)
+        pool.waitall()
+        thread.link(link_callback)
+        link_callback.assert_called_once_with(thread)
+
+    def test_gt_link_callback_exception_inside_thread(self):
+        pool = greenpool.GreenPool()
+        q1 = eventlet.Queue()
+        q2 = eventlet.Queue()
+
+        def func():
+            q1.put(None)
+            q2.get()
+            raise Exception()
+
+        link_callback = mock.Mock()
+
+        thread = pool.spawn(func)
+        q1.get()
+        thread.link(link_callback)
+        q2.put(None)
+        pool.waitall()
+        link_callback.assert_called_once_with(thread)
+
+    def test_gt_link_callback_added_after_exception_inside_thread(self):
+        pool = greenpool.GreenPool()
+
+        def func():
+            raise Exception()
+
+        link_callback = mock.Mock()
+
+        thread = pool.spawn(func)
+        pool.waitall()
+        thread.link(link_callback)
+
+        link_callback.assert_called_once_with(thread)
+
+    def test_gt_cancel_doesnt_run_thread(self):
+        pool = greenpool.GreenPool()
+        func = mock.Mock()
+        thread = pool.spawn(func)
+        thread.link(lambda t: None)
+        thread.cancel()
+        pool.waitall()
+        self.assertFalse(func.called)
