@@ -283,6 +283,10 @@ Compute Service's controller nodes and compute nodes.*
     #reserved_host_disk_mb=0
     reserved_host_memory_mb=0
 
+    # Full class name for the Manager for compute (string value)
+    #compute_manager=nova.compute.manager.ComputeManager
+    compute_manager=ironic.nova.compute.manager.ClusteredComputeManager
+
 2. Change these configuration options in the ``ironic`` section.
    Replace:
 
