@@ -953,6 +953,45 @@ class ManagerTestCase(tests_db_base.DbTestCase):
             self.service._worker_pool.waitall()
             spawn_mock.assert_called_once_with(mock.ANY, mock.ANY, mock.ANY)
 
+    @mock.patch.object(timeutils, 'utcnow')
+    def test__check_deploy_timeouts_limit(self, mock_utcnow):
+        self.config(deploy_callback_timeout=60, group='conductor')
+        self.config(periodic_max_workers=2, group='conductor')
+        past = datetime.datetime(2000, 1, 1, 0, 0)
+        present = past + datetime.timedelta(minutes=10)
+        mock_utcnow.return_value = past
+        self._start_service()
+
+        test_nodes = []
+        for i in range(3):
+            next = past + datetime.timedelta(minutes=i)
+            n = utils.get_test_node(provision_state=states.DEPLOYWAIT,
+                                    target_provision_state=states.DEPLOYDONE,
+                                    provision_updated_at=next,
+                                    uuid=ironic_utils.generate_uuid())
+            del n['id']
+            node = self.dbapi.create_node(n)
+            test_nodes.append(node)
+
+        mock_utcnow.return_value = present
+        self.service._conductor_service_record_keepalive(self.context)
+        with mock.patch.object(self.driver.deploy, 'clean_up') as clean_mock:
+            self.service._check_deploy_timeouts(self.context)
+            self.service._worker_pool.waitall()
+            for node in test_nodes[:-1]:
+                node.refresh(self.context)
+                self.assertEqual(states.DEPLOYFAIL, node.provision_state)
+                self.assertEqual(states.NOSTATE, node.target_provision_state)
+                self.assertIsNotNone(node.last_error)
+
+            last_node = test_nodes[2]
+            last_node.refresh(self.context)
+            self.assertEqual(states.DEPLOYWAIT, last_node.provision_state)
+            self.assertEqual(states.DEPLOYDONE,
+                             last_node.target_provision_state)
+            self.assertIsNone(last_node.last_error)
+            self.assertEqual(2, clean_mock.call_count)
+
     def test_set_console_mode_enabled(self):
         ndict = utils.get_test_node(driver='fake')
         node = self.dbapi.create_node(ndict)

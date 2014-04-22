@@ -508,6 +508,11 @@
 # the node power state in DB (integer value)
 #power_state_sync_max_retries=3
 
+# Maximum number of worker threads that can be started
+# simultaneously by a periodic task. Should be less than RPC
+# thread pool size. (integer value)
+#periodic_max_workers=8
+
 
 [database]
 

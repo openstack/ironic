@@ -42,7 +42,6 @@ a change, etc.
 """
 
 import collections
-import datetime
 
 import eventlet
 from eventlet import greenpool
@@ -64,7 +63,6 @@ from ironic.openstack.common import lockutils
 from ironic.openstack.common import log
 from ironic.openstack.common import periodic_task
 from ironic.openstack.common.rpc import common as messaging
-from ironic.openstack.common import timeutils
 
 MANAGER_TOPIC = 'ironic.conductor_manager'
 WORKER_SPAWN_lOCK = "conductor_worker_spawn"
@@ -108,6 +106,11 @@ conductor_opts = [
                         'number of times Ironic should try syncing the '
                         'hardware node power state with the node power state '
                         'in DB'),
+        cfg.IntOpt('periodic_max_workers',
+                   default=8,
+                   help='Maximum number of worker threads that can be started '
+                        'simultaneously by a periodic task. Should be less '
+                        'than RPC thread pool size.'),
 ]
 
 CONF = cfg.CONF
@@ -628,39 +631,35 @@ class ConductorManager(service.PeriodicService):
         if not CONF.conductor.deploy_callback_timeout:
             return
 
-        filters = {'reserved': False, 'maintenance': False}
-        columns = ['uuid', 'driver', 'provision_state', 'provision_updated_at']
-        node_list = self.dbapi.get_nodeinfo_list(columns=columns,
-                                                 filters=filters)
+        filters = {'reserved': False, 'provision_state': states.DEPLOYWAIT,
+                 'provisioned_before': CONF.conductor.deploy_callback_timeout}
+        columns = ['uuid', 'driver']
+        node_list = self.dbapi.get_nodeinfo_list(
+                                    columns=columns,
+                                    filters=filters,
+                                    sort_key='provision_updated_at',
+                                    sort_dir='asc')
 
-        for (node_uuid, driver, state, update_time) in node_list:
+        workers_count = 0
+        for node_uuid, driver in node_list:
             if not self._mapped_to_this_conductor(node_uuid, driver):
                 continue
 
-            if state == states.DEPLOYWAIT:
-                limit = (timeutils.utcnow() - datetime.timedelta(
-                         seconds=CONF.conductor.deploy_callback_timeout))
-                if timeutils.normalize_time(update_time) <= limit:
-                    try:
-                        task = task_manager.TaskManager(context, node_uuid)
-                    except (exception.NodeLocked, exception.NodeNotFound):
-                        continue
+            try:
+                task = task_manager.TaskManager(context, node_uuid)
+            except (exception.NodeLocked, exception.NodeNotFound):
+                continue
 
-                    node = task.node
-                    node.provision_state = states.DEPLOYFAIL
-                    node.target_provision_state = states.NOSTATE
-                    msg = (_('Timeout reached when waiting callback for '
-                             'node %s') % node_uuid)
-                    node.last_error = msg
-                    LOG.error(msg)
-                    node.save(task.context)
+            try:
+                thread = self._spawn_worker(utils.cleanup_after_timeout, task)
+                thread.link(lambda t: task.release_resources())
+            except exception.NoFreeConductorWorker:
+                task.release_resources()
+                break
 
-                    try:
-                        thread = self._spawn_worker(
-                                            utils.cleanup_after_timeout, task)
-                        thread.link(lambda t: task.release_resources())
-                    except exception.NoFreeConductorWorker:
-                        task.release_resources()
+            workers_count += 1
+            if workers_count == CONF.conductor.periodic_max_workers:
+                break
 
     def rebalance_node_ring(self):
         """Perform any actions necessary when rebalancing the consistent hash.

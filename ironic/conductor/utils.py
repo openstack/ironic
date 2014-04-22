@@ -126,6 +126,14 @@ def cleanup_after_timeout(task):
     """
     node = task.node
     context = task.context
+    node.provision_state = states.DEPLOYFAIL
+    node.target_provision_state = states.NOSTATE
+    msg = (_('Timeout reached while waiting for callback for node %s')
+             % node.uuid)
+    node.last_error = msg
+    LOG.error(msg)
+    node.save(context)
+
     error_msg = _('Cleanup failed for node %(node)s after deploy timeout: '
                   ' %(error)s')
     try:
