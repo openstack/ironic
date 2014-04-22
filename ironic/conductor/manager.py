@@ -863,6 +863,7 @@ class ConductorManager(service.PeriodicService):
                 op = _('enabled') if enabled else _('disabled')
                 LOG.info(_("No console action was triggered because the "
                            "console is already %s") % op)
+                task.release_resources()
             else:
                 node.last_error = None
                 node.save(context)

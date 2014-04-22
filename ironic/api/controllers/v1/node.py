@@ -55,26 +55,51 @@ class NodePatchType(types.JsonPatchType):
         return ['/chassis_uuid', '/driver']
 
 
+class ConsoleInfo(base.APIBase):
+    """API representation of the console information for a node."""
+
+    console_enabled = types.boolean
+    "The console state: if the console is enabled or not."
+
+    console_info = {wtypes.text: types.MultiType(wtypes.text,
+                                                 six.integer_types)}
+    "The console information. It typically includes the url to access the"
+    "console and the type of the application that hosts the console."
+
+    @classmethod
+    def sample(cls):
+        console = {'type': 'shellinabox', 'url': 'http://<hostname>:4201'}
+        return cls(console_enabled=True, console_info=console)
+
+
 class NodeConsoleController(rest.RestController):
 
-    @wsme_pecan.wsexpose(wtypes.text, types.uuid)
+    @wsme_pecan.wsexpose(ConsoleInfo, types.uuid)
     def get(self, node_uuid):
         """Get connection information about the console.
 
         :param node_uuid: UUID of a node.
         """
-        rpc_node = objects.Node.get_by_uuid(pecan.request.context, node_uuid)
+        rpc_node = objects.Node.get_by_uuid(pecan.request.context,
+                                            node_uuid)
         topic = pecan.request.rpcapi.get_topic_for(rpc_node)
-        return pecan.request.rpcapi.get_console_information(
-                                       pecan.request.context, node_uuid, topic)
+        try:
+            console = pecan.request.rpcapi.get_console_information(
+                pecan.request.context, node_uuid, topic)
+            console_state = True
+        except exception.NodeConsoleNotEnabled:
+            console = None
+            console_state = False
+
+        return ConsoleInfo(console_enabled=console_state, console_info=console)
 
     @wsme_pecan.wsexpose(None, types.uuid, types.boolean, status_code=202)
     def put(self, node_uuid, enabled):
         """Start and stop the node console.
 
         :param node_uuid: UUID of a node.
-        :param enabled: Boolean value; whether the console is enabled or
-                        disabled.
+        :param enabled: Boolean value; whether to enable or disable the
+                console.
         """
         rpc_node = objects.Node.get_by_uuid(pecan.request.context, node_uuid)
         topic = pecan.request.rpcapi.get_topic_for(rpc_node)
