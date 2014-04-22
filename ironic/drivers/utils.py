@@ -67,11 +67,11 @@ class MixinVendorInterface(base.VendorInterface):
 
 
 def get_node_mac_addresses(task, node):
-    """Get all mac addresses for a node.
+    """Get all MAC addresses for a node.
 
     :param task: a TaskManager instance.
     :param node: the Node to act upon.
-    :returns: A list of macs address in the format xx:xx:xx:xx:xx:xx.
+    :returns: A list of MAC addresses in the format xx:xx:xx:xx:xx:xx.
     """
     for r in task.resources:
         if r.node.id == node.id:
