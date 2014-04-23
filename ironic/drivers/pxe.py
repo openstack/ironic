@@ -60,6 +60,7 @@ class PXEAndSSHDriver(base.BaseDriver):
     def __init__(self):
         self.power = ssh.SSHPower()
         self.deploy = pxe.PXEDeploy()
+        self.management = ssh.SSHManagement()
         self.vendor = pxe.VendorPassthru()
 
 

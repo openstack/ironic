@@ -29,7 +29,9 @@ import os
 
 from oslo.config import cfg
 
+from ironic.common import boot_devices
 from ironic.common import exception
+from ironic.common import i18n
 from ironic.common import states
 from ironic.common import utils
 from ironic.conductor import task_manager
@@ -44,6 +46,9 @@ libvirt_opts = [
                default='qemu:///system',
                help='libvirt uri')
 ]
+
+_LW = i18n._LW
+_LE = i18n._LE
 
 CONF = cfg.CONF
 CONF.register_opts(libvirt_opts, group='ssh')
@@ -70,6 +75,12 @@ OTHER_PROPERTIES = {
 }
 COMMON_PROPERTIES = REQUIRED_PROPERTIES.copy()
 COMMON_PROPERTIES.update(OTHER_PROPERTIES)
+
+_BOOT_DEVICES_MAP = {
+    boot_devices.DISK: 'hd',
+    boot_devices.PXE: 'network',
+    boot_devices.CDROM: 'cdrom',
+}
 
 
 def _get_command_sets(virt_type):
@@ -127,7 +138,15 @@ def _get_command_sets(virt_type):
                 '"'
                 "'"
                 '" '
-                "'{print $2}' | tr -d ':'")
+                "'{print $2}' | tr -d ':'"),
+            'set_boot_device': ("EDITOR=\"sed -i '/<boot \(dev\|order\)=*\>/d;"
+                "/<\/os>/i\<boot dev=\\\"{_BootDevice_}\\\"/>'\" "
+                "{_BaseCmd_} edit {_NodeName_}"),
+            'get_boot_device': ("{_BaseCmd_} dumpxml {_NodeName_} | "
+                "awk '/boot dev=/ { gsub( \".*dev=\" Q, \"\" ); "
+                "gsub( Q \".*\", \"\" ); print; }' "
+                "Q=\"'\" RS=\"[<>]\" | "
+                "head -1"),
         }
 
         if CONF.ssh.libvirt_uri:
@@ -142,6 +161,52 @@ def _get_command_sets(virt_type):
 
 def _normalize_mac(mac):
     return mac.replace('-', '').replace(':', '').lower()
+
+
+def _get_boot_device(ssh_obj, driver_info):
+    """Get the current boot device.
+
+    :param ssh_obj: paramiko.SSHClient, an active ssh connection.
+    :param driver_info: information for accessing the node.
+    :raises: SSHCommandFailed on an error from ssh.
+    :raises: NotImplementedError if the virt_type does not support
+        getting the boot device.
+
+    """
+    cmd_to_exec = driver_info['cmd_set'].get('get_boot_device')
+    if cmd_to_exec:
+        node_name = _get_hosts_name_for_node(ssh_obj, driver_info)
+        base_cmd = driver_info['cmd_set']['base_cmd']
+        cmd_to_exec = cmd_to_exec.replace('{_NodeName_}', node_name)
+        cmd_to_exec = cmd_to_exec.replace('{_BaseCmd_}', base_cmd)
+        stdout, stderr = _ssh_execute(ssh_obj, cmd_to_exec)
+        return next((dev for dev, hdev in _BOOT_DEVICES_MAP.items()
+                     if hdev == stdout), None)
+    else:
+        raise NotImplementedError()
+
+
+def _set_boot_device(ssh_obj, driver_info, device):
+    """Set the boot device.
+
+    :param ssh_obj: paramiko.SSHClient, an active ssh connection.
+    :param driver_info: information for accessing the node.
+    :param device: the boot device.
+    :raises: SSHCommandFailed on an error from ssh.
+    :raises: NotImplementedError if the virt_type does not support
+        setting the boot device.
+
+    """
+    cmd_to_exec = driver_info['cmd_set'].get('set_boot_device')
+    if cmd_to_exec:
+        node_name = _get_hosts_name_for_node(ssh_obj, driver_info)
+        base_cmd = driver_info['cmd_set']['base_cmd']
+        cmd_to_exec = cmd_to_exec.replace('{_NodeName_}', node_name)
+        cmd_to_exec = cmd_to_exec.replace('{_BootDevice_}', device)
+        cmd_to_exec = cmd_to_exec.replace('{_BaseCmd_}', base_cmd)
+        _ssh_execute(ssh_obj, cmd_to_exec)
+    else:
+        raise NotImplementedError()
 
 
 def _ssh_execute(ssh_obj, cmd_to_exec):
@@ -471,3 +536,100 @@ class SSHPower(base.PowerInterface):
 
         if state != states.POWER_ON:
             raise exception.PowerStateFailure(pstate=states.POWER_ON)
+
+
+class SSHManagement(base.ManagementInterface):
+
+    def get_properties(self):
+        return COMMON_PROPERTIES
+
+    def validate(self, task):
+        """Check that 'driver_info' contains SSH credentials.
+
+        Validates whether the 'driver_info' property of the supplied
+        task's node contains the required credentials information.
+
+        :param task: a task from TaskManager.
+        :raises: InvalidParameterValue if any connection parameters are
+            incorrect.
+
+        """
+        _parse_driver_info(task.node)
+
+    def get_supported_boot_devices(self):
+        """Get a list of the supported boot devices.
+
+        :returns: A list with the supported boot devices defined
+                  in :mod:`ironic.common.boot_devices`.
+
+        """
+        return list(_BOOT_DEVICES_MAP.keys())
+
+    @task_manager.require_exclusive_lock
+    def set_boot_device(self, task, device, persistent=False):
+        """Set the boot device for the task's node.
+
+        Set the boot device to use on next reboot of the node.
+
+        :param task: a task from TaskManager.
+        :param device: the boot device, one of
+                       :mod:`ironic.common.boot_devices`.
+        :param persistent: Boolean value. True if the boot device will
+                           persist to all future boots, False if not.
+                           Default: False. Ignored by this driver.
+        :raises: InvalidParameterValue if an invalid boot device is
+                 specified or if any connection parameters are incorrect.
+        :raises: SSHConnectFailed if ssh failed to connect to the node.
+        :raises: SSHCommandFailed on an error from ssh.
+        :raises: NotImplementedError if the virt_type does not support
+            setting the boot device.
+
+        """
+        node = task.node
+        driver_info = _parse_driver_info(node)
+        if device not in self.get_supported_boot_devices():
+            raise exception.InvalidParameterValue(_(
+                "Invalid boot device %s specified.") % device)
+        driver_info['macs'] = driver_utils.get_node_mac_addresses(task)
+        ssh_obj = _get_connection(node)
+        try:
+            _set_boot_device(ssh_obj, driver_info, _BOOT_DEVICES_MAP[device])
+        except NotImplementedError:
+            LOG.error(_LE("Failed to set boot device for node %(node)s, "
+                          "virt_type %(vtype)s does not support this "
+                          "operation") % {'node': node.uuid,
+                                          'vtype': driver_info['virt_type']})
+            raise
+
+    def get_boot_device(self, task):
+        """Get the current boot device for the task's node.
+
+        Provides the current boot device of the node. Be aware that not
+        all drivers support this.
+
+        :param task: a task from TaskManager.
+        :raises: InvalidParameterValue if any connection parameters are
+            incorrect.
+        :raises: SSHConnectFailed if ssh failed to connect to the node.
+        :raises: SSHCommandFailed on an error from ssh.
+        :returns: a dictionary containing:
+
+            :boot_device: the boot device, one of
+                :mod:`ironic.common.boot_devices` or None if it is unknown.
+            :persistent: Whether the boot device will persist to all
+                future boots or not, None if it is unknown.
+
+        """
+        node = task.node
+        driver_info = _parse_driver_info(node)
+        driver_info['macs'] = driver_utils.get_node_mac_addresses(task)
+        ssh_obj = _get_connection(node)
+        response = {'boot_device': None, 'persistent': None}
+        try:
+            response['boot_device'] = _get_boot_device(ssh_obj, driver_info)
+        except NotImplementedError:
+            LOG.warning(_LW("Failed to get boot device for node %(node)s, "
+                            "virt_type %(vtype)s does not support this "
+                            "operation"),
+                        {'node': node.uuid, 'vtype': driver_info['virt_type']})
+        return response
