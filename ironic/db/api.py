@@ -141,10 +141,18 @@ class Connection(object):
         """
 
     @abc.abstractmethod
-    def get_node(self, node_id):
+    def get_node_by_id(self, node_id):
         """Return a node.
 
-        :param node_id: The id or uuid of a node.
+        :param node_id: The id of a node.
+        :returns: A node.
+        """
+
+    @abc.abstractmethod
+    def get_node_by_uuid(self, node_uuid):
+        """Return a node.
+
+        :param node_uuid: The uuid of a node.
         :returns: A node.
         """
 

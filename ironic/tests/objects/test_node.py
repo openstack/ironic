@@ -17,6 +17,7 @@ import datetime
 
 import mock
 
+from ironic.common import exception
 from ironic.db import api as db_api
 from ironic.db.sqlalchemy import models
 from ironic import objects
@@ -32,25 +33,39 @@ class TestNodeObject(base.DbTestCase):
         self.fake_node = utils.get_test_node()
         self.dbapi = db_api.get_instance()
 
-    def test_load(self):
-        uuid = self.fake_node['uuid']
-        with mock.patch.object(self.dbapi, 'get_node',
+    def test_get_by_id(self):
+        node_id = self.fake_node['id']
+        with mock.patch.object(self.dbapi, 'get_node_by_id',
                                autospec=True) as mock_get_node:
             mock_get_node.return_value = self.fake_node
 
-            objects.Node.get_by_uuid(self.context, uuid)
+            objects.Node.get(self.context, node_id)
+
+            mock_get_node.assert_called_once_with(node_id)
+
+    def test_get_by_uuid(self):
+        uuid = self.fake_node['uuid']
+        with mock.patch.object(self.dbapi, 'get_node_by_uuid',
+                               autospec=True) as mock_get_node:
+            mock_get_node.return_value = self.fake_node
+
+            objects.Node.get(self.context, uuid)
 
             mock_get_node.assert_called_once_with(uuid)
 
+    def test_get_bad_id_and_uuid(self):
+        self.assertRaises(exception.InvalidIdentity,
+                          objects.Node.get, self.context, 'not-a-uuid')
+
     def test_save(self):
         uuid = self.fake_node['uuid']
-        with mock.patch.object(self.dbapi, 'get_node',
+        with mock.patch.object(self.dbapi, 'get_node_by_uuid',
                                autospec=True) as mock_get_node:
             mock_get_node.return_value = self.fake_node
             with mock.patch.object(self.dbapi, 'update_node',
                                    autospec=True) as mock_update_node:
 
-                n = objects.Node.get_by_uuid(self.context, uuid)
+                n = objects.Node.get(self.context, uuid)
                 n.properties = {"fake": "property"}
                 n.save()
 
@@ -63,9 +78,10 @@ class TestNodeObject(base.DbTestCase):
         returns = [dict(self.fake_node, properties={"fake": "first"}),
                    dict(self.fake_node, properties={"fake": "second"})]
         expected = [mock.call(uuid), mock.call(uuid)]
-        with mock.patch.object(self.dbapi, 'get_node', side_effect=returns,
+        with mock.patch.object(self.dbapi, 'get_node_by_uuid',
+                               side_effect=returns,
                                autospec=True) as mock_get_node:
-            n = objects.Node.get_by_uuid(self.context, uuid)
+            n = objects.Node.get(self.context, uuid)
             self.assertEqual({"fake": "first"}, n.properties)
             n.refresh()
             self.assertEqual({"fake": "second"}, n.properties)

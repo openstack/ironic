@@ -57,6 +57,7 @@ from ironic.common import states
 from ironic.conductor import task_manager
 from ironic.conductor import utils
 from ironic.db import api as dbapi
+from ironic import objects
 from ironic.objects import base as objects_base
 from ironic.openstack.common import excutils
 from ironic.openstack.common import lockutils
@@ -605,7 +606,7 @@ class ConductorManager(service.PeriodicService):
             try:
                 if not self._mapped_to_this_conductor(node_uuid, driver):
                     continue
-                node = self.dbapi.get_node(node_id)
+                node = objects.Node.get_by_id(context, node_id)
                 if (node.provision_state == states.DEPLOYWAIT or
                         node.maintenance or node.reservation is not None):
                     continue

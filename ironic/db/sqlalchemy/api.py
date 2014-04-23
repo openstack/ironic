@@ -315,17 +315,19 @@ class Connection(api.Connection):
         node.save()
         return node
 
-    @objects.objectify(objects.Node)
-    def get_node(self, node_id):
-        query = model_query(models.Node)
-        query = add_identity_filter(query, node_id)
-
+    def get_node_by_id(self, node_id):
+        query = model_query(models.Node).filter_by(id=node_id)
         try:
-            result = query.one()
+            return query.one()
         except NoResultFound:
             raise exception.NodeNotFound(node=node_id)
 
-        return result
+    def get_node_by_uuid(self, node_uuid):
+        query = model_query(models.Node).filter_by(uuid=node_uuid)
+        try:
+            return query.one()
+        except NoResultFound:
+            raise exception.NodeNotFound(node=node_uuid)
 
     @objects.objectify(objects.Node)
     def get_node_by_instance(self, instance):

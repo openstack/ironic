@@ -53,7 +53,10 @@ class Port(base.APIBase):
     def _set_node_uuid(self, value):
         if value and self._node_uuid != value:
             try:
-                node = objects.Node.get_by_uuid(pecan.request.context, value)
+                # FIXME(comstud): One should only allow UUID here, but
+                # there seems to be a bug in that tests are passing an
+                # ID. See bug #1301046 for more details.
+                node = objects.Node.get(pecan.request.context, value)
                 self._node_uuid = node.uuid
                 # NOTE(lucasagomes): Create the node_id attribute on-the-fly
                 #                    to satisfy the api -> rpc object
@@ -179,7 +182,7 @@ class PortsController(rest.RestController):
             #                 make this more efficient by only querying
             #                 for that column. This will get cleaned up
             #                 as we move to the object interface.
-            node = pecan.request.dbapi.get_node(node_uuid)
+            node = objects.Node.get_by_uuid(pecan.request.context, node_uuid)
             ports = pecan.request.dbapi.get_ports_by_node_id(node.id, limit,
                                                              marker_obj,
                                                              sort_key=sort_key,
@@ -300,8 +303,8 @@ class PortsController(rest.RestController):
             if rpc_port[field] != getattr(port, field):
                 rpc_port[field] = getattr(port, field)
 
-        rpc_node = objects.Node.get_by_uuid(pecan.request.context,
-                                            rpc_port.node_id)
+        rpc_node = objects.Node.get_by_id(pecan.request.context,
+                                          rpc_port.node_id)
         topic = pecan.request.rpcapi.get_topic_for(rpc_node)
 
         new_port = pecan.request.rpcapi.update_port(
