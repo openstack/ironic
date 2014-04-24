@@ -14,10 +14,8 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import itertools
-import time
-
 import fixtures
+import itertools
 import mock
 import os
 import tempfile
@@ -490,7 +488,6 @@ class WorkOnDiskTestCase(tests_base.TestCase):
                                              commit=True)
 
 
-@mock.patch.object(time, 'sleep', lambda _: None)
 @mock.patch.object(common_utils, 'execute')
 class MakePartitionsTestCase(tests_base.TestCase):
 
@@ -504,13 +501,19 @@ class MakePartitionsTestCase(tests_base.TestCase):
                                   '--', 'unit', 'MiB', 'mklabel', 'msdos']
 
     def test_make_partitions(self, mock_exc):
-        expected_mkpart = ['mkpart', 'primary', 'linux-swap', '1', '513',
-                           'mkpart', 'primary', '', '513', '1537']
-        cmd = self.parted_static_cmd + expected_mkpart
+        mock_exc.return_value = (None, None)
         utils.make_partitions(self.dev, self.root_mb, self.swap_mb,
                               self.ephemeral_mb)
-        mock_exc.assert_called_once_with(*cmd, run_as_root=True,
-                                         check_exit_code=[0])
+
+        expected_mkpart = ['mkpart', 'primary', 'linux-swap', '1', '513',
+                           'mkpart', 'primary', '', '513', '1537']
+        parted_cmd = self.parted_static_cmd + expected_mkpart
+        parted_call = mock.call(*parted_cmd, run_as_root=True,
+                                check_exit_code=[0])
+        fuser_cmd = ['fuser', 'fake-dev']
+        fuser_call = mock.call(*fuser_cmd, run_as_root=True,
+                               check_exit_code=[0, 1])
+        mock_exc.assert_has_calls([parted_call, fuser_call])
 
     def test_make_partitions_with_ephemeral(self, mock_exc):
         self.ephemeral_mb = 2048
@@ -518,10 +521,12 @@ class MakePartitionsTestCase(tests_base.TestCase):
                            'mkpart', 'primary', 'linux-swap', '2049', '2561',
                            'mkpart', 'primary', '', '2561', '3585']
         cmd = self.parted_static_cmd + expected_mkpart
+        mock_exc.return_value = (None, None)
         utils.make_partitions(self.dev, self.root_mb, self.swap_mb,
                               self.ephemeral_mb)
-        mock_exc.assert_called_once_with(*cmd, run_as_root=True,
-                                         check_exit_code=[0])
+
+        parted_call = mock.call(*cmd, run_as_root=True, check_exit_code=[0])
+        mock_exc.assert_has_calls(parted_call)
 
 
 @mock.patch.object(utils, 'get_dev_block_size')
@@ -592,8 +597,6 @@ class GetDeviceBlockSizeTestCase(tests_base.TestCase):
 @mock.patch.object(utils, 'block_uuid', lambda p: 'uuid')
 @mock.patch.object(utils, 'dd', lambda *_: None)
 @mock.patch.object(common_utils, 'mkfs', lambda *_: None)
-# TODO(dtantsur): remove once https://review.openstack.org/90126 lands
-@mock.patch.object(time, 'sleep', lambda *_: None)
 # NOTE(dtantsur): destroy_disk_metadata resets file size, disabling it
 @mock.patch.object(utils, 'destroy_disk_metadata', lambda *_: None)
 class RealFilePartitioningTestCase(tests_base.TestCase):
@@ -611,8 +614,10 @@ class RealFilePartitioningTestCase(tests_base.TestCase):
             common_utils.execute('parted', '--version')
         except OSError as exc:
             self.skipTest('parted utility was not found: %s' % exc)
-        self.file = tempfile.NamedTemporaryFile()
-        self.addCleanup(lambda: self.file.close())
+        self.file = tempfile.NamedTemporaryFile(delete=False)
+        # NOTE(ifarkas): the file needs to be closed, so fuser won't report
+        #                any usage
+        self.file.close()
         # NOTE(dtantsur): 20 MiB file with zeros
         common_utils.execute('dd', 'if=/dev/zero', 'of=%s' % self.file.name,
                              'bs=1', 'count=0', 'seek=20MiB')

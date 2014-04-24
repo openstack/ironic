@@ -13,19 +13,26 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import time
-
+import fixtures
 import mock
 from testtools.matchers import HasLength
 
 from ironic.common import disk_partitioner
+from ironic.common import exception
 from ironic.common import utils
 from ironic.tests import base
 
 
-@mock.patch.object(time, 'sleep', lambda _: None)
-@mock.patch.object(utils, 'execute', lambda _: None)
 class DiskPartitionerTestCase(base.TestCase):
+
+    def setUp(self):
+        super(DiskPartitionerTestCase, self).setUp()
+
+        def noop(*args, **kwargs):
+            pass
+
+        self.useFixture(fixtures.MonkeyPatch('eventlet.greenthread.sleep',
+                                             noop))
 
     def test_add_partition(self):
         dp = disk_partitioner.DiskPartitioner('/dev/fake')
@@ -49,7 +56,8 @@ class DiskPartitionerTestCase(base.TestCase):
         self.assertEqual(expected, partitions)
 
     @mock.patch.object(disk_partitioner.DiskPartitioner, '_exec')
-    def test_commit(self, mock_exec):
+    @mock.patch.object(utils, 'execute')
+    def test_commit(self, mock_utils_exc, mock_disk_partitioner_exec):
         dp = disk_partitioner.DiskPartitioner('/dev/fake')
         fake_parts = [(1, {'bootable': False,
                            'fs_type': 'fake-fs-type',
@@ -61,11 +69,98 @@ class DiskPartitionerTestCase(base.TestCase):
                            'size': 1})]
         with mock.patch.object(dp, 'get_partitions') as mock_gp:
             mock_gp.return_value = fake_parts
+            mock_utils_exc.return_value = (None, None)
             dp.commit()
-        mock_exec.assert_called_once_with('mklabel', 'msdos',
-                               'mkpart', 'fake-type', 'fake-fs-type', '1', '2',
-                               'mkpart', 'fake-type', 'fake-fs-type', '2', '3',
-                               'set', '2', 'boot', 'on')
+
+        mock_disk_partitioner_exec.assert_called_once_with('mklabel', 'msdos',
+            'mkpart', 'fake-type', 'fake-fs-type', '1', '2',
+            'mkpart', 'fake-type', 'fake-fs-type', '2', '3',
+            'set', '2', 'boot', 'on')
+        mock_utils_exc.assert_called_once_with('fuser', '/dev/fake',
+            run_as_root=True, check_exit_code=[0, 1])
+
+    @mock.patch.object(disk_partitioner.DiskPartitioner, '_exec')
+    @mock.patch.object(utils, 'execute')
+    def test_commit_with_device_is_busy_once(self, mock_utils_exc,
+                                             mock_disk_partitioner_exec):
+        dp = disk_partitioner.DiskPartitioner('/dev/fake')
+        fake_parts = [(1, {'bootable': False,
+                           'fs_type': 'fake-fs-type',
+                           'type': 'fake-type',
+                           'size': 1}),
+                      (2, {'bootable': True,
+                           'fs_type': 'fake-fs-type',
+                           'type': 'fake-type',
+                           'size': 1})]
+        fuser_outputs = [("/dev/fake: 10000 10001", None), (None, None)]
+
+        with mock.patch.object(dp, 'get_partitions') as mock_gp:
+            mock_gp.return_value = fake_parts
+            mock_utils_exc.side_effect = fuser_outputs
+            dp.commit()
+
+        mock_disk_partitioner_exec.assert_called_once_with('mklabel', 'msdos',
+            'mkpart', 'fake-type', 'fake-fs-type', '1', '2',
+            'mkpart', 'fake-type', 'fake-fs-type', '2', '3',
+            'set', '2', 'boot', 'on')
+        mock_utils_exc.assert_called_with('fuser', '/dev/fake',
+            run_as_root=True, check_exit_code=[0, 1])
+        self.assertEqual(2, mock_utils_exc.call_count)
+
+    @mock.patch.object(disk_partitioner.DiskPartitioner, '_exec')
+    @mock.patch.object(utils, 'execute')
+    def test_commit_with_device_is_always_busy(self, mock_utils_exc,
+                                               mock_disk_partitioner_exec):
+        dp = disk_partitioner.DiskPartitioner('/dev/fake')
+        fake_parts = [(1, {'bootable': False,
+                           'fs_type': 'fake-fs-type',
+                           'type': 'fake-type',
+                           'size': 1}),
+                      (2, {'bootable': True,
+                           'fs_type': 'fake-fs-type',
+                           'type': 'fake-type',
+                           'size': 1})]
+
+        with mock.patch.object(dp, 'get_partitions') as mock_gp:
+            mock_gp.return_value = fake_parts
+            mock_utils_exc.return_value = ("/dev/fake: 10000 10001", None)
+            self.assertRaises(exception.InstanceDeployFailure, dp.commit)
+
+        mock_disk_partitioner_exec.assert_called_once_with('mklabel', 'msdos',
+            'mkpart', 'fake-type', 'fake-fs-type', '1', '2',
+            'mkpart', 'fake-type', 'fake-fs-type', '2', '3',
+            'set', '2', 'boot', 'on')
+        mock_utils_exc.assert_called_with('fuser', '/dev/fake',
+            run_as_root=True, check_exit_code=[0, 1])
+        self.assertEqual(20, mock_utils_exc.call_count)
+
+    @mock.patch.object(disk_partitioner.DiskPartitioner, '_exec')
+    @mock.patch.object(utils, 'execute')
+    def test_commit_with_device_disconnected(self, mock_utils_exc,
+                                             mock_disk_partitioner_exec):
+        dp = disk_partitioner.DiskPartitioner('/dev/fake')
+        fake_parts = [(1, {'bootable': False,
+                           'fs_type': 'fake-fs-type',
+                           'type': 'fake-type',
+                           'size': 1}),
+                      (2, {'bootable': True,
+                           'fs_type': 'fake-fs-type',
+                           'type': 'fake-type',
+                           'size': 1})]
+
+        with mock.patch.object(dp, 'get_partitions') as mock_gp:
+            mock_gp.return_value = fake_parts
+            mock_utils_exc.return_value = (None, "Specified filename /dev/fake"
+                                                 " does not exist.")
+            self.assertRaises(exception.InstanceDeployFailure, dp.commit)
+
+        mock_disk_partitioner_exec.assert_called_once_with('mklabel', 'msdos',
+            'mkpart', 'fake-type', 'fake-fs-type', '1', '2',
+            'mkpart', 'fake-type', 'fake-fs-type', '2', '3',
+            'set', '2', 'boot', 'on')
+        mock_utils_exc.assert_called_with('fuser', '/dev/fake',
+            run_as_root=True, check_exit_code=[0, 1])
+        self.assertEqual(20, mock_utils_exc.call_count)
 
 
 @mock.patch.object(utils, 'execute')

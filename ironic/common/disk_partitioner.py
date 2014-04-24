@@ -14,11 +14,35 @@
 #    under the License.
 
 import re
-import time
 
+from oslo.config import cfg
+
+from ironic.common import exception
 from ironic.common import utils
 from ironic.openstack.common import log as logging
+from ironic.openstack.common import loopingcall
+from ironic.openstack.common import processutils
 
+opts = [
+    cfg.IntOpt('check_device_interval',
+               default=1,
+               help='After Ironic has completed creating the partition table, '
+                    'it continues to check for activity on the attached iSCSI '
+                    'device status at this interval prior to copying the image'
+                    ' to the node, in seconds'),
+    cfg.IntOpt('check_device_max_retries',
+               default=20,
+               help='The maximum number of times to check that the device is '
+                    'not accessed by another process. If the device is still '
+                    'busy after that, the disk partitioning will be treated as'
+                    ' having failed.'),
+]
+
+CONF = cfg.CONF
+opt_group = cfg.OptGroup(name='disk_partitioner',
+                         title='Options for the disk partitioner')
+CONF.register_group(opt_group)
+CONF.register_opts(opts, opt_group)
 
 LOG = logging.getLogger(__name__)
 
@@ -41,6 +65,7 @@ class DiskPartitioner(object):
         self._disk_label = disk_label
         self._alignment = alignment
         self._partitions = []
+        self._fuser_pids_re = re.compile(r'((\d)+\s*)+')
 
     def _exec(self, *args):
         # NOTE(lucasagomes): utils.execute() is already a wrapper on top
@@ -82,6 +107,30 @@ class DiskPartitioner(object):
         """
         return enumerate(self._partitions, 1)
 
+    def _wait_for_disk_to_become_available(self, retries, max_retries, pids,
+                                           stderr):
+        retries[0] += 1
+        if retries[0] > max_retries:
+            raise loopingcall.LoopingCallDone()
+
+        try:
+            # NOTE(ifarkas): fuser returns a non-zero return code if none of
+            #                the specified files is accessed
+            out, err = utils.execute('fuser', self._device,
+                                     check_exit_code=[0, 1], run_as_root=True)
+
+            if not out and not err:
+                raise loopingcall.LoopingCallDone()
+            else:
+                if err:
+                    stderr[0] = err
+                if out:
+                    pids_match = re.search(self._fuser_pids_re, out)
+                    pids[0] = pids_match.group()
+        except processutils.ProcessExecutionError as exc:
+            LOG.warning(_('Failed to check the device %(device)s with fuser: '
+                          ' %(err)s') % {'device': self._device, 'err': exc})
+
     def commit(self):
         """Write to the disk."""
         cmd_args = ['mklabel', self._disk_label]
@@ -97,10 +146,31 @@ class DiskPartitioner(object):
             start = end
 
         self._exec(*cmd_args)
-        # TODO(lucasagomes): Do not sleep, use another mechanism to avoid
-        #                    the "device is busy" problem. lsof, fuser...
-        # avoid "device is busy"
-        time.sleep(3)
+
+        retries = [0]
+        pids = ['']
+        fuser_err = ['']
+        interval = CONF.disk_partitioner.check_device_interval
+        max_retries = CONF.disk_partitioner.check_device_max_retries
+
+        timer = loopingcall.FixedIntervalLoopingCall(
+                    self._wait_for_disk_to_become_available,
+                    retries, max_retries, pids, fuser_err)
+        timer.start(interval=interval).wait()
+
+        if retries[0] > max_retries:
+            if pids[0]:
+                raise exception.InstanceDeployFailure(
+                    _('Disk partitioning failed on device %(device)s. '
+                      'Processes with the following PIDs are holding it: '
+                      '%(pids)s. Time out waiting for completion.')
+                    % {'device': self._device, 'pids': pids[0]})
+            else:
+                raise exception.InstanceDeployFailure(
+                    _('Disk partitioning failed on device %(device)s. Fuser '
+                      'exited with "%(fuser_err)s". Time out waiting for '
+                      'completion.')
+                    % {'device': self._device, 'fuser_err': fuser_err[0]})
 
 
 _PARTED_PRINT_RE = re.compile(r"^\d+:([\d\.]+)MiB:"
