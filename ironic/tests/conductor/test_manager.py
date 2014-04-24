@@ -23,6 +23,7 @@ import mock
 from oslo.config import cfg
 from oslo import messaging
 
+from ironic.common import boot_devices
 from ironic.common import driver_factory
 from ironic.common import exception
 from ironic.common import states
@@ -1287,6 +1288,100 @@ class UpdatePortTestCase(_ServiceSetUpMixin, tests_db_base.DbTestCase):
             self.assertFalse(_mapped_to_this_conductor_mock.called)
             self.assertFalse(acquire_mock.called)
             self.assertFalse(get_sensors_data_mock.called)
+
+    def test_set_boot_device(self):
+        node = obj_utils.create_test_node(self.context, driver='fake')
+        with mock.patch.object(self.driver.management, 'validate') as mock_val:
+            with mock.patch.object(self.driver.management, 'set_boot_device') \
+                    as mock_sbd:
+                self.service.set_boot_device(self.context, node.uuid,
+                                             boot_devices.PXE)
+                mock_val.assert_called_once_with(mock.ANY)
+                mock_sbd.assert_called_once_with(mock.ANY, boot_devices.PXE,
+                                                 persistent=False)
+
+    def test_set_boot_device_node_locked(self):
+        node = obj_utils.create_test_node(self.context, driver='fake',
+                                          reservation='fake-reserv')
+        exc = self.assertRaises(messaging.rpc.ExpectedException,
+                                self.service.set_boot_device,
+                                self.context, node.uuid, boot_devices.DISK)
+        # Compare true exception hidden by @messaging.expected_exceptions
+        self.assertEqual(exception.NodeLocked, exc.exc_info[0])
+
+    def test_set_boot_device_not_supported(self):
+        node = obj_utils.create_test_node(self.context, driver='fake')
+        # null the console interface
+        self.driver.management = None
+        exc = self.assertRaises(messaging.rpc.ExpectedException,
+                          self.service.set_boot_device,
+                          self.context, node.uuid, boot_devices.DISK)
+        # Compare true exception hidden by @messaging.expected_exceptions
+        self.assertEqual(exception.UnsupportedDriverExtension,
+                         exc.exc_info[0])
+
+    def test_set_boot_device_validate_fail(self):
+        node = obj_utils.create_test_node(self.context, driver='fake')
+        with mock.patch.object(self.driver.management, 'validate') as mock_val:
+            mock_val.side_effect = exception.InvalidParameterValue('error')
+            exc = self.assertRaises(messaging.rpc.ExpectedException,
+                                    self.service.set_boot_device,
+                                    self.context, node.uuid, boot_devices.DISK)
+            # Compare true exception hidden by @messaging.expected_exceptions
+            self.assertEqual(exception.InvalidParameterValue, exc.exc_info[0])
+
+    def test_get_boot_device(self):
+        node = obj_utils.create_test_node(self.context, driver='fake')
+        bootdev = self.service.get_boot_device(self.context, node.uuid)
+        expected = {'boot_device': boot_devices.PXE, 'persistent': False}
+        self.assertEqual(expected, bootdev)
+
+    def test_get_boot_device_node_locked(self):
+        node = obj_utils.create_test_node(self.context, driver='fake',
+                                          reservation='fake-reserv')
+        exc = self.assertRaises(messaging.rpc.ExpectedException,
+                                self.service.get_boot_device,
+                                self.context, node.uuid)
+        # Compare true exception hidden by @messaging.expected_exceptions
+        self.assertEqual(exception.NodeLocked, exc.exc_info[0])
+
+    def test_get_boot_device_not_supported(self):
+        node = obj_utils.create_test_node(self.context, driver='fake')
+        # null the management interface
+        self.driver.management = None
+        exc = self.assertRaises(messaging.rpc.ExpectedException,
+                          self.service.get_boot_device,
+                          self.context, node.uuid)
+        # Compare true exception hidden by @messaging.expected_exceptions
+        self.assertEqual(exception.UnsupportedDriverExtension,
+                         exc.exc_info[0])
+
+    def test_get_boot_device_validate_fail(self):
+        node = obj_utils.create_test_node(self.context, driver='fake')
+        with mock.patch.object(self.driver.management, 'validate') as mock_val:
+            mock_val.side_effect = exception.InvalidParameterValue('error')
+            exc = self.assertRaises(messaging.rpc.ExpectedException,
+                                    self.service.get_boot_device,
+                                    self.context, node.uuid)
+            # Compare true exception hidden by @messaging.expected_exceptions
+            self.assertEqual(exception.InvalidParameterValue, exc.exc_info[0])
+
+    def test_get_supported_boot_devices(self):
+        node = obj_utils.create_test_node(self.context, driver='fake')
+        bootdevs = self.service.get_supported_boot_devices(self.context,
+                                                           node.uuid)
+        self.assertEqual([boot_devices.PXE], bootdevs)
+
+    def test_get_supported_boot_devices_iface_not_supported(self):
+        node = obj_utils.create_test_node(self.context, driver='fake')
+        # null the management interface
+        self.driver.management = None
+        exc = self.assertRaises(messaging.rpc.ExpectedException,
+                          self.service.get_supported_boot_devices,
+                          self.context, node.uuid)
+        # Compare true exception hidden by @messaging.expected_exceptions
+        self.assertEqual(exception.UnsupportedDriverExtension,
+                         exc.exc_info[0])
 
 
 class ManagerSpawnWorkerTestCase(tests_base.TestCase):

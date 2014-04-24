@@ -54,11 +54,13 @@ class ConductorAPI(object):
         1.14 - Added driver_vendor_passthru.
         1.15 - Added rebuild parameter to do_node_deploy.
         1.16 - Added get_driver_properties.
+        1.17 - Added set_boot_device, get_boot_device and
+               get_supported_boot_devices.
 
     """
 
     # NOTE(rloo): This must be in sync with manager.ConductorManager's.
-    RPC_API_VERSION = '1.16'
+    RPC_API_VERSION = '1.17'
 
     def __init__(self, topic=None):
         super(ConductorAPI, self).__init__()
@@ -327,3 +329,69 @@ class ConductorAPI(object):
         cctxt = self.client.prepare(topic=topic or self.topic, version='1.16')
         return cctxt.call(context, 'get_driver_properties',
                           driver_name=driver_name)
+
+    def set_boot_device(self, context, node_id, device, persistent=False,
+                        topic=None):
+        """Set the boot device for a node.
+
+        Set the boot device to use on next reboot of the node. Be aware
+        that not all drivers support this.
+
+        :param context: request context.
+        :param node_id: node id or uuid.
+        :param device: the boot device, one of
+                       :mod:`ironic.common.boot_devices`.
+        :param persistent: Whether to set next-boot, or make the change
+                           permanent. Default: False.
+        :raises: NodeLocked if node is locked by another conductor.
+        :raises: UnsupportedDriverExtension if the node's driver doesn't
+                 support management.
+        :raises: InvalidParameterValue when the wrong driver info is
+                 specified or an invalid boot device is specified.
+        """
+        cctxt = self.client.prepare(topic=topic or self.topic, version='1.17')
+        return cctxt.call(context, 'set_boot_device', node_id=node_id,
+                          device=device, persistent=persistent)
+
+    def get_boot_device(self, context, node_id, topic=None):
+        """Get the current boot device.
+
+        Returns the current boot device of a node.
+
+        :param context: request context.
+        :param node_id: node id or uuid.
+        :raises: NodeLocked if node is locked by another conductor.
+        :raises: UnsupportedDriverExtension if the node's driver doesn't
+                 support management.
+        :raises: InvalidParameterValue when the wrong driver info is
+                 specified.
+        :returns: a dictionary containing:
+
+            :boot_device: the boot device, one of
+                :mod:`ironic.common.boot_devices` or None if it is unknown.
+            :persistent: Whether the boot device will persist to all
+                future boots or not, None if it is unknown.
+
+        """
+        cctxt = self.client.prepare(topic=topic or self.topic, version='1.17')
+        return cctxt.call(context, 'get_boot_device', node_id=node_id)
+
+    def get_supported_boot_devices(self, context, node_id, topic=None):
+        """Get the list of supported devices.
+
+        Returns the list of supported boot devices of a node.
+
+        :param context: request context.
+        :param node_id: node id or uuid.
+        :raises: NodeLocked if node is locked by another conductor.
+        :raises: UnsupportedDriverExtension if the node's driver doesn't
+                 support management.
+        :raises: InvalidParameterValue when the wrong driver info is
+                 specified.
+        :returns: A list with the supported boot devices defined
+                  in :mod:`ironic.common.boot_devices`.
+
+        """
+        cctxt = self.client.prepare(topic=topic or self.topic, version='1.17')
+        return cctxt.call(context, 'get_supported_boot_devices',
+                          node_id=node_id)
