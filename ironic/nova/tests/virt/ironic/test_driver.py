@@ -180,7 +180,7 @@ class IronicDriverTestCase(test.NoDBTestCase):
         icli = cw.IronicClientWrapper()
         with mock.patch.object(FAKE_CLIENT.node, 'get_by_instance_uuid') \
             as mock_gbiui:
-            mock_gbiui.side_effect = ironic_exception.HTTPNotFound()
+            mock_gbiui.side_effect = ironic_exception.NotFound()
             instance_uuid = uuidutils.generate_uuid(),
             instance = fake_instance.fake_instance_obj(self.ctx,
                                                        uuid=instance_uuid)
@@ -304,7 +304,7 @@ class IronicDriverTestCase(test.NoDBTestCase):
 
     @mock.patch.object(cw.IronicClientWrapper, 'call')
     def test_instance_exists_fail(self, mock_call):
-        mock_call.side_effect = ironic_exception.HTTPNotFound
+        mock_call.side_effect = ironic_exception.NotFound
         instance_uuid = 'fake-uuid'
         instance = fake_instance.fake_instance_obj(self.ctx,
                                                    uuid=instance_uuid)
@@ -351,7 +351,7 @@ class IronicDriverTestCase(test.NoDBTestCase):
         self.assertTrue(self.driver.node_is_available(node.uuid))
         mock_get.assert_called_with(node.uuid)
 
-        mock_get.side_effect = ironic_exception.HTTPNotFound
+        mock_get.side_effect = ironic_exception.NotFound
         self.assertFalse(self.driver.node_is_available(node.uuid))
 
     def test__node_resources_unavailable(self):
@@ -439,7 +439,7 @@ class IronicDriverTestCase(test.NoDBTestCase):
     def test_get_info_http_not_found(self):
         with mock.patch.object(FAKE_CLIENT.node, 'get_by_instance_uuid') \
                 as mock_gbiu:
-            mock_gbiu.side_effect = ironic_exception.HTTPNotFound()
+            mock_gbiu.side_effect = ironic_exception.NotFound()
 
             expected = {'state': nova_states.NOSTATE,
                         'max_mem': 0,
@@ -468,7 +468,7 @@ class IronicDriverTestCase(test.NoDBTestCase):
 
     def test_macs_for_instance_http_not_found(self):
         with mock.patch.object(FAKE_CLIENT.node, 'get') as mock_get:
-            mock_get.side_effect = ironic_exception.HTTPNotFound()
+            mock_get.side_effect = ironic_exception.NotFound()
 
             instance = fake_instance.fake_instance_obj(
                                       self.ctx, node=uuidutils.generate_uuid())
@@ -530,7 +530,7 @@ class IronicDriverTestCase(test.NoDBTestCase):
 
     @mock.patch.object(FAKE_CLIENT.node, 'update')
     def test__add_driver_fields_fail(self, mock_update):
-        mock_update.side_effect = ironic_exception.HTTPBadRequest()
+        mock_update.side_effect = ironic_exception.BadRequest()
         node = ironic_utils.get_test_node(driver='fake')
         instance = fake_instance.fake_instance_obj(self.ctx,
                                                    node=node.uuid)
@@ -549,7 +549,7 @@ class IronicDriverTestCase(test.NoDBTestCase):
 
     @mock.patch.object(FAKE_CLIENT.node, 'update')
     def test__cleanup_deploy_fail(self, mock_update):
-        mock_update.side_effect = ironic_exception.HTTPBadRequest()
+        mock_update.side_effect = ironic_exception.BadRequest()
         node = ironic_utils.get_test_node(driver='fake', instance_uuid='fake-id')
         instance = fake_instance.fake_instance_obj(self.ctx,
                                                    node=node.uuid)
@@ -672,7 +672,7 @@ class IronicDriverTestCase(test.NoDBTestCase):
 
         with mock.patch.object(FAKE_CLIENT.node, 'set_provision_state') \
                 as mock_sps:
-            mock_sps.side_effect = ironic_exception.HTTPBadRequest
+            mock_sps.side_effect = ironic_exception.BadRequest
             self.assertRaises(exception.InstanceDeployFailure,
                               self.driver.spawn,
                               self.ctx, instance, None, [], None)
