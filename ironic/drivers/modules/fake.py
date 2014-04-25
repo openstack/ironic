@@ -85,7 +85,7 @@ class FakeDeploy(base.DeployInterface):
 class FakeVendorA(base.VendorInterface):
     """Example implementation of a vendor passthru interface."""
 
-    def validate(self, task, node, **kwargs):
+    def validate(self, task, **kwargs):
         method = kwargs.get('method')
         if method == 'first_method':
             bar = kwargs.get('bar')
@@ -95,21 +95,21 @@ class FakeVendorA(base.VendorInterface):
             return
         _raise_unsupported_error(method)
 
-    def _private_method(self, task, node, bar):
+    def _private_method(self, task, bar):
         return True if bar == 'baz' else False
 
-    def vendor_passthru(self, task, node, **kwargs):
+    def vendor_passthru(self, task, **kwargs):
         method = kwargs.get('method')
         if method == 'first_method':
             bar = kwargs.get('bar')
-            return self._private_method(task, node, bar)
+            return self._private_method(task, bar)
         _raise_unsupported_error(method)
 
 
 class FakeVendorB(base.VendorInterface):
     """Example implementation of a secondary vendor passthru."""
 
-    def validate(self, task, node, **kwargs):
+    def validate(self, task, **kwargs):
         method = kwargs.get('method')
         if method == 'second_method':
             bar = kwargs.get('bar')
@@ -119,14 +119,14 @@ class FakeVendorB(base.VendorInterface):
             return
         _raise_unsupported_error(method)
 
-    def _private_method(self, task, node, bar):
+    def _private_method(self, task, bar):
         return True if bar == 'kazoo' else False
 
-    def vendor_passthru(self, task, node, **kwargs):
+    def vendor_passthru(self, task, **kwargs):
         method = kwargs.get('method')
         if method == 'second_method':
             bar = kwargs.get('bar')
-            return self._private_method(task, node, bar)
+            return self._private_method(task, bar)
         _raise_unsupported_error(method)
 
 

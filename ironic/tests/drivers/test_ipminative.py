@@ -207,9 +207,7 @@ class IPMINativeDriverTestCase(db_base.DbTestCase):
 
             with task_manager.acquire(self.context,
                                      [self.node['uuid']]) as task:
-                self.driver.vendor._set_boot_device(task,
-                                                   self.node,
-                                                   'pxe')
+                self.driver.vendor._set_boot_device(task, 'pxe')
             ipmicmd.set_bootdev.assert_called_once_with('pxe')
 
     def test_set_boot_device_bad_device(self):
@@ -217,7 +215,6 @@ class IPMINativeDriverTestCase(db_base.DbTestCase):
             self.assertRaises(exception.InvalidParameterValue,
                     self.driver.vendor._set_boot_device,
                     task,
-                    self.node,
                     'fake-device')
 
     def test_reboot_ok(self):
@@ -244,25 +241,33 @@ class IPMINativeDriverTestCase(db_base.DbTestCase):
             ipmicmd.set_power.assert_called_once_with('boot', 500)
 
     def test_vendor_passthru_validate__set_boot_device_good(self):
-        self.driver.vendor.validate(self.node,
-                                    method='set_boot_device',
-                                    device='pxe')
+        with task_manager.acquire(self.context,
+                                 [self.node['uuid']]) as task:
+            self.driver.vendor.validate(task,
+                                        method='set_boot_device',
+                                        device='pxe')
 
     def test_vendor_passthru_val__set_boot_device_fail_unknown_device(self):
-        self.assertRaises(exception.InvalidParameterValue,
-                          self.driver.vendor.validate,
-                          self.node, method='set_boot_device',
-                          device='non-existent')
+        with task_manager.acquire(self.context,
+                                 [self.node['uuid']]) as task:
+            self.assertRaises(exception.InvalidParameterValue,
+                              self.driver.vendor.validate,
+                              task, method='set_boot_device',
+                              device='non-existent')
 
     def test_vendor_passthru_val__set_boot_device_fail_missed_device_arg(self):
-        self.assertRaises(exception.InvalidParameterValue,
-                          self.driver.vendor.validate,
-                          self.node, method='set_boot_device')
+        with task_manager.acquire(self.context,
+                                 [self.node['uuid']]) as task:
+            self.assertRaises(exception.InvalidParameterValue,
+                              self.driver.vendor.validate,
+                              task, method='set_boot_device')
 
     def test_vendor_passthru_validate_method_notmatch(self):
-        self.assertRaises(exception.InvalidParameterValue,
-                          self.driver.vendor.validate,
-                          self.node, method='non-existent-method')
+        with task_manager.acquire(self.context,
+                                 [self.node['uuid']]) as task:
+            self.assertRaises(exception.InvalidParameterValue,
+                              self.driver.vendor.validate,
+                              task, method='non-existent-method')
 
     def test_vendor_passthru_call__set_boot_device(self):
         with task_manager.acquire(self.context, [self.node['uuid']],
@@ -270,8 +275,6 @@ class IPMINativeDriverTestCase(db_base.DbTestCase):
             with mock.patch.object(ipminative.VendorPassthru,
                                    '_set_boot_device') as boot_mock:
                 self.driver.vendor.vendor_passthru(task,
-                                                   self.node,
                                                    method='set_boot_device',
                                                    device='pxe')
-                boot_mock.assert_called_once_with(task, self.node,
-                                                  'pxe', False)
+                boot_mock.assert_called_once_with(task, 'pxe', False)

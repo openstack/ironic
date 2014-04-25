@@ -266,11 +266,10 @@ class NativeIPMIPower(base.PowerInterface):
 class VendorPassthru(base.VendorInterface):
 
     @task_manager.require_exclusive_lock
-    def _set_boot_device(self, task, node, device, persistent=False):
+    def _set_boot_device(self, task, device, persistent=False):
         """Set the boot device for a node.
 
         :param task: a TaskManager instance.
-        :param node: The Node.
         :param device: Boot device. One of [net, network, pxe, hd, cd,
             cdrom, dvd, floppy, default, setup, f1]
         :param persistent: Whether to set next-boot, or make the change
@@ -279,11 +278,10 @@ class VendorPassthru(base.VendorInterface):
                  or required ipmi credentials are missing.
         :raises: IPMIFailure when the native ipmi call fails.
         """
-
         if device not in ipmi_command.boot_devices:
             raise exception.InvalidParameterValue(_(
                 "Invalid boot device %s specified.") % device)
-        driver_info = _parse_driver_info(node)
+        driver_info = _parse_driver_info(task.node)
         try:
             ipmicmd = ipmi_command.Command(bmc=driver_info['address'],
                                userid=driver_info['username'],
@@ -295,9 +293,9 @@ class VendorPassthru(base.VendorInterface):
                           % {'node_id': driver_info['uuid'], 'error': str(e)})
             raise exception.IPMIFailure(cmd=str(e))
 
-    def validate(self, node, **kwargs):
+    def validate(self, task, **kwargs):
         """Validate vendor-specific actions.
-        :param node: The node
+        :param task: a TaskManager instance.
         :param kwargs: the keyword arguments supplied
 
         :raises: InvalidParameterValue if an invalid boot device is specified,
@@ -314,17 +312,16 @@ class VendorPassthru(base.VendorInterface):
             raise exception.InvalidParameterValue(_(
                 "Unsupported method (%s) passed to IPMINative driver.")
                 % method)
-        _parse_driver_info(node)
+        _parse_driver_info(task.node)
 
-    def vendor_passthru(self, task, node, **kwargs):
+    def vendor_passthru(self, task, **kwargs):
         """Receive requests for vendor-specific actions.
         :param task: a TaskManager instance.
-        :param node: The node
         :param kwargs: the keyword arguments supplied
         """
         method = kwargs['method']
         if method == 'set_boot_device':
             return self._set_boot_device(
-                        task, node,
+                        task,
                         kwargs.get('device'),
                         kwargs.get('persistent', False))

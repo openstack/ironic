@@ -273,11 +273,11 @@ class ConductorManager(periodic_task.PeriodicTasks):
                     driver=task.node.driver,
                     extension='vendor passthru')
 
-            task.driver.vendor.validate(task, task.node, method=driver_method,
+            task.driver.vendor.validate(task, method=driver_method,
                                         **info)
             task.spawn_after(self._spawn_worker,
                              task.driver.vendor.vendor_passthru, task,
-                             task.node, method=driver_method, **info)
+                             method=driver_method, **info)
 
     @messaging.expected_exceptions(exception.InvalidParameterValue,
                                    exception.UnsupportedDriverExtension,

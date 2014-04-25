@@ -41,7 +41,6 @@ class NodeSetBootDeviceTestCase(base.DbTestCase):
         self.assertRaises(exception.InvalidParameterValue,
                           conductor_utils.node_set_boot_device,
                           task,
-                          task.node,
                           device='fake')
 
     def test_node_set_boot_device_valid(self):
@@ -57,10 +56,8 @@ class NodeSetBootDeviceTestCase(base.DbTestCase):
         with mock.patch.object(self.driver.vendor,
                                'vendor_passthru') as driver_vpassthru:
             conductor_utils.node_set_boot_device(task,
-                                                 task.node,
                                                  device='pxe')
             driver_vpassthru.assert_called_once_with(task,
-                                                task.node,
                                                 device='pxe',
                                                 persistent=False,
                                                 method='set_boot_device')

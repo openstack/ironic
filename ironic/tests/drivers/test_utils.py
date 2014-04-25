@@ -56,18 +56,16 @@ class UtilsTestCase(base.TestCase):
     @mock.patch.object(fake.FakeVendorB, 'vendor_passthru')
     def test_vendor_interface_route_valid_method(self, mock_fakeb_vendor,
                                                  mock_fakea_vendor):
-        self.driver.vendor.vendor_passthru('task', 'node',
+        self.driver.vendor.vendor_passthru('task',
                                            method='first_method',
                                            param1='fake1', param2='fake2')
         mock_fakea_vendor.assert_called_once_with('task',
-                                            'node',
                                             method='first_method',
                                             param1='fake1', param2='fake2')
-        self.driver.vendor.vendor_passthru('task', 'node',
+        self.driver.vendor.vendor_passthru('task',
                                            method='second_method',
                                            param1='fake1', param2='fake2')
         mock_fakeb_vendor.assert_called_once_with('task',
-                                            'node',
                                             method='second_method',
                                             param1='fake1', param2='fake2')
 

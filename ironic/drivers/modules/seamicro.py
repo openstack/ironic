@@ -387,7 +387,7 @@ class Power(base.PowerInterface):
 class VendorPassthru(base.VendorInterface):
     """SeaMicro vendor-specific methods."""
 
-    def validate(self, task, node, **kwargs):
+    def validate(self, task, **kwargs):
         method = kwargs['method']
         if method in VENDOR_PASSTHRU_METHODS:
             return True
@@ -396,18 +396,18 @@ class VendorPassthru(base.VendorInterface):
                 "Unsupported method (%s) passed to SeaMicro driver.")
                 % method)
 
-    def vendor_passthru(self, task, node, **kwargs):
+    def vendor_passthru(self, task, **kwargs):
         """Dispatch vendor specific method calls."""
         method = kwargs['method']
         if method in VENDOR_PASSTHRU_METHODS:
-            return getattr(self, "_" + method)(task, node, **kwargs)
+            return getattr(self, "_" + method)(task, **kwargs)
 
-    def _set_node_vlan_id(self, task, node, **kwargs):
+    def _set_node_vlan_id(self, task, **kwargs):
         """Sets a untagged vlan id for NIC 0 of node.
 
         @kwargs vlan_id: id of untagged vlan for NIC 0 of node
         """
-
+        node = task.node
         vlan_id = kwargs.get('vlan_id')
         if not vlan_id:
             raise exception.InvalidParameterValue(_("No vlan id provided"))
@@ -430,7 +430,7 @@ class VendorPassthru(base.VendorInterface):
         node.properties = properties
         node.save(task.context)
 
-    def _attach_volume(self, task, node, **kwargs):
+    def _attach_volume(self, task, **kwargs):
         """Attach volume from SeaMicro storage pools for ironic to node.
             If kwargs['volume_id'] not given, Create volume in SeaMicro
             storage pool and attach to node.
@@ -440,6 +440,7 @@ class VendorPassthru(base.VendorInterface):
         @kwargs volume_size: size of new volume to be created and attached
                              as root volume of node
         """
+        node = task.node
         seamicro_info = _parse_driver_info(node)
         volume_id = kwargs.get('volume_id')
 
@@ -465,7 +466,7 @@ class VendorPassthru(base.VendorInterface):
             node.properties = properties
             node.save(task.context)
 
-    def _set_boot_device(self, task, node, **kwargs):
+    def _set_boot_device(self, task, **kwargs):
         """Set the boot device of the node.
 
         @kwargs device: Boot device. One of [pxe, disk]
@@ -478,7 +479,7 @@ class VendorPassthru(base.VendorInterface):
         if boot_device not in VALID_BOOT_DEVICES:
             raise exception.InvalidParameterValue(_("Boot device is invalid"))
 
-        seamicro_info = _parse_driver_info(node)
+        seamicro_info = _parse_driver_info(task.node)
         try:
             server = _get_server(seamicro_info)
             if boot_device == "disk":

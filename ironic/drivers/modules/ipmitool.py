@@ -342,11 +342,10 @@ class IPMIPower(base.PowerInterface):
 class VendorPassthru(base.VendorInterface):
 
     @task_manager.require_exclusive_lock
-    def _set_boot_device(self, task, node, device, persistent=False):
+    def _set_boot_device(self, task, device, persistent=False):
         """Set the boot device for a node.
 
         :param task: a TaskManager instance.
-        :param node: The Node.
         :param device: Boot device. One of [pxe, disk, cdrom, safe, bios].
         :param persistent: Whether to set next-boot, or make the change
             permanent. Default: False.
@@ -361,14 +360,14 @@ class VendorPassthru(base.VendorInterface):
         cmd = "chassis bootdev %s" % device
         if persistent:
             cmd = cmd + " options=persistent"
-        driver_info = _parse_driver_info(node)
+        driver_info = _parse_driver_info(task.node)
         try:
             out, err = _exec_ipmitool(driver_info, cmd)
             # TODO(deva): validate (out, err) and add unit test for failure
         except Exception:
             raise exception.IPMIFailure(cmd=cmd)
 
-    def validate(self, node, **kwargs):
+    def validate(self, task, **kwargs):
         method = kwargs['method']
         if method == 'set_boot_device':
             device = kwargs.get('device')
@@ -382,10 +381,10 @@ class VendorPassthru(base.VendorInterface):
 
         return True
 
-    def vendor_passthru(self, task, node, **kwargs):
+    def vendor_passthru(self, task, **kwargs):
         method = kwargs['method']
         if method == 'set_boot_device':
             return self._set_boot_device(
-                        task, node,
+                        task,
                         kwargs.get('device'),
                         kwargs.get('persistent', False))
