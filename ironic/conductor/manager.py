@@ -322,7 +322,7 @@ class ConductorManager(periodic_task.PeriodicTasks):
                                    exception.NodeLocked,
                                    exception.NodeInMaintenance,
                                    exception.InstanceDeployFailure)
-    def do_node_deploy(self, context, node_id):
+    def do_node_deploy(self, context, node_id, rebuild=False):
         """RPC method to initiate deployment to a node.
 
         Initiate the deployment of a node. Validations are done
@@ -331,6 +331,10 @@ class ConductorManager(periodic_task.PeriodicTasks):
 
         :param context: an admin context.
         :param node_id: the id or uuid of a node.
+        :param rebuild: True if this is a rebuild request. A rebuild will
+                        recreate the instance on the same node, overwriting
+                        all disk. The ephemeral partition, if it exists, can
+                        optionally be preserved.
         :raises: InstanceDeployFailure
         :raises: NodeInMaintenance if the node is in maintenance mode.
         :raises: NoFreeConductorWorker when there is no free worker to start
@@ -345,7 +349,14 @@ class ConductorManager(periodic_task.PeriodicTasks):
         # want to add retries or extra synchronization here.
         with task_manager.acquire(context, node_id, shared=False) as task:
             node = task.node
-            if node.provision_state is not states.NOSTATE:
+            # May only rebuild a node in ACTIVE state
+            if rebuild and (node.provision_state != states.ACTIVE):
+                raise exception.InstanceDeployFailure(_(
+                    "RPC do_node_deploy called to rebuild %(node)s, but "
+                    "provision state is %(curstate)s. Must be %(state)s.") %
+                    {'node': node.uuid, 'curstate': node.provision_state,
+                     'state': states.ACTIVE})
+            elif node.provision_state is not states.NOSTATE and not rebuild:
                 raise exception.InstanceDeployFailure(_(
                     "RPC do_node_deploy called for %(node)s, but provision "
                     "state is already %(state)s.") %

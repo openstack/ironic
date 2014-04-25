@@ -58,6 +58,7 @@ DEPLOYDONE = 'deploy complete'
 DELETING = 'deleting'
 DELETED = 'deleted'
 ERROR = 'error'
+REBUILD = 'rebuild'
 
 POWER_ON = 'power on'
 POWER_OFF = 'power off'

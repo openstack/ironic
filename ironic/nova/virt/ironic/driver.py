@@ -29,6 +29,7 @@ from ironic.nova.virt.ironic import client_wrapper
 from ironic.nova.virt.ironic import ironic_states
 from ironic.nova.virt.ironic import patcher
 from nova.compute import power_state
+from nova.compute import task_states
 from nova import exception
 from nova.objects import flavor as flavor_obj
 from nova.openstack.common import excutils
@@ -248,6 +249,31 @@ class IronicDriver(virt_driver.ComputeDriver):
         self._unplug_vifs(node, instance, network_info)
         self._stop_firewall(instance, network_info)
 
+    def _wait_for_active(self, icli, instance):
+        """ Wait for the node to be marked as ACTIVE in Ironic """
+        try:
+            node = icli.call("node.get_by_instance_uuid", instance['uuid'])
+        except ironic_exception.HTTPNotFound:
+            raise exception.InstanceNotFound(instance_id=instance['uuid'])
+
+        if node.provision_state == ironic_states.ACTIVE:
+            # job is done
+            raise loopingcall.LoopingCallDone()
+
+        if node.target_provision_state == ironic_states.DELETED:
+            # ironic is trying to delete it now
+            raise exception.InstanceNotFound(instance_id=instance['uuid'])
+
+        if node.provision_state == ironic_states.NOSTATE:
+            # ironic already deleted it
+            raise exception.InstanceNotFound(instance_id=instance['uuid'])
+
+        if node.provision_state == ironic_states.DEPLOYFAIL:
+            # ironic failed to deploy
+            msg = (_("Failed to provision instance %(inst)s: %(reason)s")
+                   % {'inst': instance['uuid'], 'reason': node.last_error})
+            raise exception.InstanceDeployFailure(msg)
+
     @classmethod
     def instance(cls):
         if not hasattr(cls, '_instance'):
@@ -387,33 +413,8 @@ class IronicDriver(virt_driver.ComputeDriver):
             self._cleanup_deploy(node, instance, network_info)
             raise exception.InstanceDeployFailure(msg)
 
-        # wait for the node to be marked as ACTIVE in Ironic
-        def _wait_for_active():
-            try:
-                node = icli.call("node.get_by_instance_uuid", instance['uuid'])
-            except ironic_exception.HTTPNotFound:
-                raise exception.InstanceNotFound(instance_id=instance['uuid'])
-
-            if node.provision_state == ironic_states.ACTIVE:
-                # job is done
-                raise loopingcall.LoopingCallDone()
-
-            if node.target_provision_state == ironic_states.DELETED:
-                # ironic is trying to delete it now
-                raise exception.InstanceNotFound(instance_id=instance['uuid'])
-
-            if node.provision_state == ironic_states.NOSTATE:
-                # ironic already deleted it
-                raise exception.InstanceNotFound(instance_id=instance['uuid'])
-
-            if node.provision_state == ironic_states.DEPLOYFAIL:
-                # ironic failed to deploy
-                msg = (_("Failed to provision instance %(inst)s: %(reason)s")
-                       % {'inst': instance['uuid'], 'reason': node.last_error})
-                LOG.error(msg)
-                raise exception.InstanceDeployFailure(msg)
-
-        timer = loopingcall.FixedIntervalLoopingCall(_wait_for_active)
+        timer = loopingcall.FixedIntervalLoopingCall(self._wait_for_active,
+                                                     icli, instance)
         # TODO(lucasagomes): Make the time configurable
         timer.start(interval=10).wait()
 
@@ -583,3 +584,54 @@ class IronicDriver(virt_driver.ComputeDriver):
         icli = client_wrapper.IronicClientWrapper()
         node = icli.call("node.get", instance['node'])
         self._unplug_vifs(node, instance, network_info)
+
+    def rebuild(self, context, instance, image_meta, injected_files,
+                admin_password, bdms, detach_block_devices,
+                attach_block_devices, network_info=None,
+                recreate=False, block_device_info=None,
+                preserve_ephemeral=False):
+        """ Rebuild/redeploy an instance.
+
+        This version of rebuild() allows for supporting the option to
+        preserve the ephemeral partition. We cannot call spawn() from
+        here because it will attempt to set the instance_uuid value
+        again, which is not allowed by the Ironic API. It also requires
+        the instance to not have an 'active' provision state, but we
+        cannot safely change that. Given that, we implement only the
+        portions of spawn() we need within rebuild().
+        """
+        instance.task_state = task_states.REBUILD_SPAWNING
+        instance.save(expected_task_state=[task_states.REBUILDING])
+
+        node_uuid = instance.get('node')
+
+        icli = client_wrapper.IronicClientWrapper()
+
+        # Update driver_info for the ephemeral preservation value.
+        patch = []
+        patch.append({'path': '/driver_info/pxe_preserve_ephemeral',
+                      'op': 'add', 'value': str(preserve_ephemeral)})
+        try:
+            icli.call('node.update', node_uuid, patch)
+        except ironic_exception.HTTPBadRequest:
+            msg = (_("Failed to add deploy parameters on node %(node)s "
+                     "when rebuilding the instance %(instance)s")
+                   % {'node': node_uuid, 'instance': instance['uuid']})
+            raise exception.InstanceDeployFailure(msg)
+
+        # Trigger the node rebuild/redeploy.
+        try:
+            icli.call("node.set_provision_state", node_uuid, ironic_states.REBUILD)
+        except (exception.NovaException,                   # Retry failed
+                ironic_exception.HTTPInternalServerError,  # Validations
+                ironic_exception.HTTPBadRequest) as e:     # Maintenance
+            msg = (_("Failed to request Ironic to rebuild instance "
+                     "%(inst)s: %(reason)s") % {'inst': instance['uuid'],
+                                                'reason': str(e)})
+            raise exception.InstanceDeployFailure(msg)
+
+        # Although the target provision state is REBUILD, it will actually go
+        # to ACTIVE once the redeploy is finished.
+        timer = loopingcall.FixedIntervalLoopingCall(self._wait_for_active,
+                                                     icli, instance)
+        timer.start(interval=CONF.ironic.api_retry_interval).wait()

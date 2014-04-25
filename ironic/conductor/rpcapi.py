@@ -52,10 +52,11 @@ class ConductorAPI(object):
               vendor_passthru method.
         1.13 - Added update_port.
         1.14 - Added driver_vendor_passthru.
+        1.15 - Added rebuild parameter to do_node_deploy.
 
     """
 
-    RPC_API_VERSION = '1.14'
+    RPC_API_VERSION = '1.15'
 
     def __init__(self, topic=None):
         super(ConductorAPI, self).__init__()
@@ -181,11 +182,12 @@ class ConductorAPI(object):
                           river_method=driver_method,
                           info=info)
 
-    def do_node_deploy(self, context, node_id, topic=None):
+    def do_node_deploy(self, context, node_id, rebuild, topic=None):
         """Signal to conductor service to perform a deployment.
 
         :param context: request context.
         :param node_id: node id or uuid.
+        :param rebuild: True if this is a rebuild request.
         :param topic: RPC topic. Defaults to self.topic.
         :raises: InstanceDeployFailure
         :raises: InvalidParameterValue if validation fails
@@ -197,7 +199,8 @@ class ConductorAPI(object):
 
         """
         cctxt = self.client.prepare(topic=topic or self.topic)
-        return cctxt.call(context, 'do_node_deploy', node_id=node_id)
+        return cctxt.call(context, 'do_node_deploy', node_id=node_id,
+                          rebuild=rebuild)
 
     def do_node_tear_down(self, context, node_id, topic=None):
         """Signal to conductor service to tear down a deployment.
