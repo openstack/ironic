@@ -23,7 +23,7 @@ websockify>=0.5.1,<0.6
 oslo.config>=1.2.0
 oslo.rootwrap
 pecan>=0.4.5
-six>=1.5.2
+six>=1.6.0
 jsonpatch>=1.1
 WSME>=0.6
 Jinja2
