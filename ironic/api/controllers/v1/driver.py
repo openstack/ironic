@@ -81,8 +81,37 @@ class DriverList(base.APIBase):
         return sample
 
 
+class DriverPassthruController(rest.RestController):
+    """REST controller for driver passthru.
+
+    This controller allow vendors to expose cross-node functionality in the
+    Ironic API. Ironic will merely relay the message from here to the specified
+    driver, no introspection will be made in the message body.
+    """
+
+    @wsme_pecan.wsexpose(wtypes.text, wtypes.text, wtypes.text,
+                         body=wtypes.text,
+                         status_code=200)
+    def post(self, driver_name, method, data):
+        """Call a driver API extension.
+
+        :param driver_name: name of the driver to call.
+        :param method: name of the method, to be passed to the vendor
+                       implementation.
+        :param data: body of data to supply to the specified method.
+        """
+        if not method:
+            raise wsme.exc.ClientSideError(_("Method not specified"))
+
+        topic = pecan.request.rpcapi.get_topic_for_driver(driver_name)
+        return pecan.request.rpcapi.driver_vendor_passthru(
+                pecan.request.context, driver_name, method, data, topic=topic)
+
+
 class DriversController(rest.RestController):
     """REST controller for Drivers."""
+
+    vendor_passthru = DriverPassthruController()
 
     @wsme_pecan.wsexpose(DriverList)
     def get_all(self):

@@ -68,6 +68,27 @@ class RPCAPITestCase(base.DbTestCase):
                          rpcapi.get_topic_for,
                          self.fake_node_obj)
 
+    def test_get_topic_for_driver_known_driver(self):
+        CONF.set_override('host', 'fake-host')
+        self.dbapi.register_conductor({
+            'hostname': 'fake-host',
+            'drivers': ['fake-driver'],
+        })
+        rpcapi = conductor_rpcapi.ConductorAPI(topic='fake-topic')
+        self.assertEqual('fake-topic.fake-host',
+                         rpcapi.get_topic_for_driver('fake-driver'))
+
+    def test_get_topic_for_driver_unknown_driver(self):
+        CONF.set_override('host', 'fake-host')
+        self.dbapi.register_conductor({
+            'hostname': 'fake-host',
+            'drivers': ['other-driver'],
+        })
+        rpcapi = conductor_rpcapi.ConductorAPI(topic='fake-topic')
+        self.assertRaises(exception.DriverNotFound,
+                          rpcapi.get_topic_for_driver,
+                          'fake-driver')
+
     def _test_rpcapi(self, method, rpc_method, **kwargs):
         ctxt = context.get_admin_context()
         rpcapi = conductor_rpcapi.ConductorAPI(topic='fake-topic')
@@ -120,6 +141,13 @@ class RPCAPITestCase(base.DbTestCase):
                           node_id=self.fake_node['uuid'],
                           driver_method='test-driver-method',
                           info={"test_info": "test_value"})
+
+    def test_driver_vendor_passthru(self):
+        self._test_rpcapi('driver_vendor_passthru',
+                          'call',
+                          driver_name='test-driver-name',
+                          driver_method='test-driver-method',
+                          info={'test_key': 'test_value'})
 
     def test_do_node_deploy(self):
         self._test_rpcapi('do_node_deploy',
