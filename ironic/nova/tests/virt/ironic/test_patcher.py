@@ -13,6 +13,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+from oslo.config import cfg
 
 from ironic.nova.virt.ironic import patcher
 from ironic.nova.tests.virt.ironic import utils as ironic_utils
@@ -22,6 +23,8 @@ from nova import context as nova_context
 from nova import test
 from nova.objects.flavor import Flavor as flavor_obj
 from nova.tests import fake_instance
+
+CONF = cfg.CONF
 
 
 class IronicDriverFieldsTestCase(test.NoDBTestCase):
@@ -54,6 +57,20 @@ class IronicDriverFieldsTestCase(test.NoDBTestCase):
         patch = patcher.create(node).get_deploy_patch(
                 instance, self.image_meta, self.flavor)
         self.assertEqual(sorted(expected), sorted(patch))
+
+    def test_pxe_get_deploy_patch_with_ephemeral(self):
+        node = ironic_utils.get_test_node(driver='pxe_fake')
+        instance = fake_instance.fake_instance_obj(
+                        self.ctx, node=node.uuid, ephemeral_gb=10)
+        CONF.set_override('default_ephemeral_format', 'testfmt')
+        patch = patcher.create(node).get_deploy_patch(
+                instance, self.image_meta, self.flavor)
+        expected1 = {'path': '/driver_info/pxe_ephemeral_gb',
+                     'value': '10', 'op': 'add'}
+        expected2 = {'path': '/driver_info/pxe_ephemeral_format',
+                     'value': 'testfmt', 'op': 'add'}
+        self.assertIn(expected1, patch)
+        self.assertIn(expected2, patch)
 
     def test_pxe_get_deploy_patch_fail_no_kr_id(self):
         self.flavor = ironic_utils.get_test_flavor(extra_specs={})

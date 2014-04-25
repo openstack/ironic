@@ -20,9 +20,13 @@
 Helper classes for Ironic HTTP PATCH creation.
 """
 
+from oslo.config import cfg
+
 from nova.openstack.common import log as logging
 from nova import exception
 
+CONF = cfg.CONF
+CONF.import_opt('default_ephemeral_format', 'nova.virt.driver')
 LOG = logging.getLogger(__name__)
 
 
@@ -91,6 +95,15 @@ class PXEDriverFields(GenericDriverFields):
                       'value': str(instance['root_gb'])})
         patch.append({'path': '/driver_info/pxe_swap_mb', 'op': 'add',
                       'value': str(flavor['swap'])})
+
+        if instance.get('ephemeral_gb'):
+            patch.append({'path': '/driver_info/pxe_ephemeral_gb',
+                          'op': 'add',
+                          'value': str(instance['ephemeral_gb'])})
+            if CONF.default_ephemeral_format:
+                patch.append({'path': '/driver_info/pxe_ephemeral_format',
+                              'op': 'add',
+                              'value': CONF.default_ephemeral_format})
         return patch
 
     def get_cleanup_patch(self, instance, network_info):
@@ -107,7 +120,8 @@ class PXEDriverFields(GenericDriverFields):
         patch = []
         driver_info = self.node.driver_info
         fields = ['pxe_image_source', 'pxe_root_gb', 'pxe_swap_mb',
-                  'pxe_deploy_kernel', 'pxe_deploy_ramdisk']
+                  'pxe_deploy_kernel', 'pxe_deploy_ramdisk',
+                  'pxe_ephemeral_gb', 'pxe_default_format']
         for field in fields:
             if field in driver_info:
                 patch.append({'op': 'remove',

@@ -866,6 +866,10 @@
 # Template file for PXE configuration. (string value)
 #pxe_config_template=$pybasedir/drivers/modules/pxe_config.template
 
+# Default file system format for ephemeral partition, if one
+# is created. (string value)
+#default_ephemeral_format=ext4
+
 # IP address of Ironic compute node's tftp server. (string
 # value)
 #tftp_server=$my_ip
