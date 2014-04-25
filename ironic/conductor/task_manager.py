@@ -46,34 +46,23 @@ If you have a task with just a single node, the TaskManager instance
 exposes additional properties to access the node, driver, and ports
 in a short-hand fashion. For example:
 
-    with task_manager.acquire(node_id) as task:
+    with task_manager.acquire(context, node_id) as task:
         driver = task.node.driver
         driver.power.power_on(task.node)
 
-If you need to execute task-requiring code in the background thread the
-TaskManager provides the interface to manage resource locks manually. Common
-approach is to use manager._spawn_worker method and release resources using
-link method of the returned thread object.
-For example (somewhere inside conductor manager)::
+If you need to execute task-requiring code in the background thread, the
+TaskManager instance provides an interface to handle this for you, making
+sure to release resources when exceptions occur or when the thread finishes.
+Common use of this is within the Manager like so:
 
-    task = task_manager.TaskManager(context, node_id, shared=False)
+    with task_manager.acquire(context, node_id) as task:
+        <do some work>
+        task.spawn_after(self._spawn_worker,
+                         utils.node_power_action, task, task.node,
+                         new_state)
 
-    try:
-        # Start requested action in the background.
-        thread = self._spawn_worker(utils.node_power_action,
-                                    task, task.node, new_state)
-        # Release node lock at the end.
-        thread.link(lambda t: task.release_resources())
-    except Exception:
-        with excutils.save_and_reraise_exception():
-            # Release node lock if error occurred.
-            task.release_resources()
-
-The linked callback will be called whenever:
-    - background task finished with no errors.
-    - background task has crashed with exception.
-    - callback was added after the background task has finished or crashed.
-
+All exceptions that occur in the current greenthread as part of the spawn
+handling are re-raised.
 """
 
 from oslo.config import cfg
@@ -149,6 +138,7 @@ class TaskManager(object):
         self.resources = []
         self.shared = shared
         self.dbapi = dbapi.get_instance()
+        self._spawn_method = None
 
         # instead of generating an exception, DTRT and convert to a list
         if not isinstance(node_ids, list):
@@ -175,6 +165,12 @@ class TaskManager(object):
                 if locked_node_list:
                     self.dbapi.release_nodes(CONF.host, locked_node_list)
 
+    def spawn_after(self, _spawn_method, *args, **kwargs):
+        """Call this to spawn a thread to complete the task."""
+        self._spawn_method = _spawn_method
+        self._spawn_args = args
+        self._spawn_kwargs = kwargs
+
     def release_resources(self):
         """Release any resources for which this TaskManager
         was holding an exclusive lock.
@@ -190,6 +186,10 @@ class TaskManager(object):
                     # within the task's context.
                     pass
         self.resources = []
+
+    def _thread_release_resources(self, t):
+        """Thread.link() callback to release resources."""
+        self.release_resources()
 
     @property
     def node(self):
@@ -231,6 +231,36 @@ class TaskManager(object):
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
+        if exc_type is None and self._spawn_method is not None:
+            # Spawn a worker to complete the task
+            # The linked callback below will be called whenever:
+            #   - background task finished with no errors.
+            #   - background task has crashed with exception.
+            #   - callback was added after the background task has
+            #     finished or crashed. While eventlet currently doesn't
+            #     schedule the new thread until the current thread blocks
+            #     for some reason, this is true.
+            # All of the above are asserted in tests such that we'll
+            # catch if eventlet ever changes this behavior.
+            thread = None
+            try:
+                thread = self._spawn_method(*self._spawn_args,
+                                            **self._spawn_kwargs)
+
+                # NOTE(comstud): Trying to use a lambda here causes
+                # the callback to not occur for some reason. This
+                # also makes it easier to test.
+                thread.link(self._thread_release_resources)
+                # Don't unlock! The unlock will occur when the
+                # thread finshes.
+                return
+            except Exception:
+                with excutils.save_and_reraise_exception():
+                    if thread is not None:
+                        # This means the link() failed for some
+                        # reason. Nuke the thread.
+                        thread.cancel()
+                    self.release_resources()
         self.release_resources()
 
 
