@@ -17,14 +17,13 @@
 import collections
 import copy
 
+from oslo import messaging
 import six
 
 from ironic.common import exception
 from ironic.objects import utils as obj_utils
 from ironic.openstack.common import context
 from ironic.openstack.common import log as logging
-from ironic.openstack.common.rpc import common as rpc_common
-from ironic.openstack.common.rpc import serializer as rpc_serializer
 from ironic.openstack.common import versionutils
 
 
@@ -122,8 +121,7 @@ def remotable(fn):
     def wrapper(self, *args, **kwargs):
         ctxt = self._context
         try:
-            if isinstance(args[0], (context.RequestContext,
-                                    rpc_common.CommonRpcContext)):
+            if isinstance(args[0], (context.RequestContext)):
                 ctxt = args[0]
                 args = args[1:]
         except IndexError:
@@ -536,7 +534,7 @@ class ObjectListBase(object):
         return changes
 
 
-class IronicObjectSerializer(rpc_serializer.Serializer):
+class IronicObjectSerializer(messaging.NoOpSerializer):
     """A IronicObject-aware Serializer.
 
     This implements the Oslo Serializer interface and provides the

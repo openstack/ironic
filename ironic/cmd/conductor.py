@@ -34,8 +34,8 @@ def main():
     # Pase config file and command line options, then start logging
     ironic_service.prepare_service(sys.argv)
 
-    mgr = ironic_service.load_manager('ironic.conductor.manager',
-                                      'ConductorManager',
-                                       CONF.host)
+    mgr = ironic_service.RPCService(CONF.host,
+                                    'ironic.conductor.manager',
+                                    'ConductorManager')
     launcher = service.launch(mgr)
     launcher.wait()

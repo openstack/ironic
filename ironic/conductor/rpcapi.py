@@ -20,26 +20,16 @@ Client side of the conductor RPC API.
 
 import random
 
-from oslo.config import cfg
+from oslo import messaging
 
 from ironic.common import exception
 from ironic.common import hash_ring as hash
+from ironic.common import rpc
 from ironic.conductor import manager
 from ironic.objects import base as objects_base
-import ironic.openstack.common.rpc.proxy
-
-# NOTE(max_lobur): This is temporary override for Oslo setting defined in
-# ironic.openstack.common.rpc.__init__.py. Should stay while Oslo is not fixed.
-# *The setting shows what exceptions can be deserialized from RPC response.
-# *This won't be reflected in ironic.conf.sample
-# TODO(max_lobur): cover this by an integration test as
-# described in https://bugs.launchpad.net/ironic/+bug/1252824
-cfg.CONF.set_default('allowed_rpc_exception_modules',
-                     ['ironic.common.exception',
-                      'exceptions', ])
 
 
-class ConductorAPI(ironic.openstack.common.rpc.proxy.RpcProxy):
+class ConductorAPI(object):
     """Client side of the conductor RPC API.
 
     API version history:
@@ -68,15 +58,17 @@ class ConductorAPI(ironic.openstack.common.rpc.proxy.RpcProxy):
     RPC_API_VERSION = '1.14'
 
     def __init__(self, topic=None):
-        if topic is None:
-            topic = manager.MANAGER_TOPIC
+        super(ConductorAPI, self).__init__()
+        self.topic = topic
+        if self.topic is None:
+            self.topic = manager.MANAGER_TOPIC
 
+        target = messaging.Target(topic=self.topic, version='1.0')
+        serializer = objects_base.IronicObjectSerializer()
+        self.client = rpc.get_client(target,
+                                     version_cap=self.RPC_API_VERSION,
+                                     serializer=serializer)
         self.ring_manager = hash.HashRingManager()
-
-        super(ConductorAPI, self).__init__(
-                topic=topic,
-                serializer=objects_base.IronicObjectSerializer(),
-                default_version=self.RPC_API_VERSION)
 
     def get_topic_for(self, node):
         """Get the RPC topic for the conductor service which the node
@@ -128,10 +120,8 @@ class ConductorAPI(ironic.openstack.common.rpc.proxy.RpcProxy):
         :returns: updated node object, including all fields.
 
         """
-        return self.call(context,
-                         self.make_msg('update_node',
-                                       node_obj=node_obj),
-                         topic=topic or self.topic)
+        cctxt = self.client.prepare(topic=topic or self.topic)
+        return cctxt.call(context, 'update_node', node_obj=node_obj)
 
     def change_node_power_state(self, context, node_id, new_state, topic=None):
         """Synchronously, acquire lock and start the conductor background task
@@ -145,11 +135,9 @@ class ConductorAPI(ironic.openstack.common.rpc.proxy.RpcProxy):
                  async task.
 
         """
-        return self.call(context,
-                         self.make_msg('change_node_power_state',
-                                       node_id=node_id,
-                                       new_state=new_state),
-                         topic=topic or self.topic)
+        cctxt = self.client.prepare(topic=topic or self.topic)
+        return cctxt.call(context, 'change_node_power_state', node_id=node_id,
+                          new_state=new_state)
 
     def vendor_passthru(self, context, node_id, driver_method, info,
                         topic=None):
@@ -168,13 +156,9 @@ class ConductorAPI(ironic.openstack.common.rpc.proxy.RpcProxy):
                  async task.
 
         """
-        topic = topic or self.topic
-        return self.call(context,
-                         self.make_msg('vendor_passthru',
-                                       node_id=node_id,
-                                       driver_method=driver_method,
-                                       info=info),
-                         topic=topic)
+        cctxt = self.client.prepare(topic=topic or self.topic)
+        return cctxt.call(context, 'vendor_passthru', node_id=node_id,
+                          driver_method=driver_method, info=info)
 
     def driver_vendor_passthru(self, context, driver_name, driver_method, info,
                         topic=None):
@@ -191,14 +175,11 @@ class ConductorAPI(ironic.openstack.common.rpc.proxy.RpcProxy):
                  specified driver_method.
 
         """
-        topic = topic or self.topic
-
-        return self.call(context,
-                         self.make_msg('driver_vendor_passthru',
-                                       driver_name=driver_name,
-                                       driver_method=driver_method,
-                                       info=info),
-                         topic=topic)
+        cctxt = self.client.prepare(topic=topic or self.topic)
+        return cctxt.call(context, 'driver_vendor_passthru',
+                          driver_name=driver_name,
+                          river_method=driver_method,
+                          info=info)
 
     def do_node_deploy(self, context, node_id, topic=None):
         """Signal to conductor service to perform a deployment.
@@ -215,10 +196,8 @@ class ConductorAPI(ironic.openstack.common.rpc.proxy.RpcProxy):
         undeployed state before this method is called.
 
         """
-        return self.call(context,
-                         self.make_msg('do_node_deploy',
-                                       node_id=node_id),
-                         topic=topic or self.topic)
+        cctxt = self.client.prepare(topic=topic or self.topic)
+        return cctxt.call(context, 'do_node_deploy', node_id=node_id)
 
     def do_node_tear_down(self, context, node_id, topic=None):
         """Signal to conductor service to tear down a deployment.
@@ -235,10 +214,8 @@ class ConductorAPI(ironic.openstack.common.rpc.proxy.RpcProxy):
         deployed state before this method is called.
 
         """
-        return self.call(context,
-                        self.make_msg('do_node_tear_down',
-                                      node_id=node_id),
-                        topic=topic or self.topic)
+        cctxt = self.client.prepare(topic=topic or self.topic)
+        return cctxt.call(context, 'do_node_tear_down', node_id=node_id)
 
     def validate_driver_interfaces(self, context, node_id, topic=None):
         """Validate the `core` and `standardized` interfaces for drivers.
@@ -250,10 +227,9 @@ class ConductorAPI(ironic.openstack.common.rpc.proxy.RpcProxy):
                   interface validation.
 
         """
-        return self.call(context,
-                         self.make_msg('validate_driver_interfaces',
-                                       node_id=node_id),
-                         topic=topic or self.topic)
+        cctxt = self.client.prepare(topic=topic or self.topic)
+        return cctxt.call(context, 'validate_driver_interfaces',
+                          node_id=node_id)
 
     def change_node_maintenance_mode(self, context, node_id, mode, topic=None):
         """Set node maintenance mode on or off.
@@ -266,11 +242,9 @@ class ConductorAPI(ironic.openstack.common.rpc.proxy.RpcProxy):
         :raises: NodeMaintenanceFailure.
 
         """
-        return self.call(context,
-                         self.make_msg('change_node_maintenance_mode',
-                                       node_id=node_id,
-                                       mode=mode),
-                         topic=topic or self.topic)
+        cctxt = self.client.prepare(topic=topic or self.topic)
+        return cctxt.call(context, 'change_node_maintenance_mode',
+                          node_id=node_id, mode=mode)
 
     def destroy_node(self, context, node_id, topic=None):
         """Delete a node.
@@ -283,10 +257,8 @@ class ConductorAPI(ironic.openstack.common.rpc.proxy.RpcProxy):
         :raises: NodeInWrongPowerState if the node is not powered off.
 
         """
-        return self.call(context,
-                         self.make_msg('destroy_node',
-                                       node_id=node_id),
-                         topic=topic or self.topic)
+        cctxt = self.client.prepare(topic=topic or self.topic)
+        return cctxt.call(context, 'destroy_node', node_id=node_id)
 
     def get_console_information(self, context, node_id, topic=None):
         """Get connection information about the console.
@@ -298,10 +270,8 @@ class ConductorAPI(ironic.openstack.common.rpc.proxy.RpcProxy):
                  support console.
         :raises: InvalidParameterValue when the wrong driver info is specified.
         """
-        return self.call(context,
-                         self.make_msg('get_console_information',
-                                       node_id=node_id),
-                         topic=topic or self.topic)
+        cctxt = self.client.prepare(topic=topic or self.topic)
+        return cctxt.call(context, 'get_console_information', node_id=node_id)
 
     def set_console_mode(self, context, node_id, enabled, topic=None):
         """Enable/Disable the console.
@@ -317,11 +287,9 @@ class ConductorAPI(ironic.openstack.common.rpc.proxy.RpcProxy):
         :raises: NoFreeConductorWorker when there is no free worker to start
                  async task.
         """
-        return self.call(context,
-                         self.make_msg('set_console_mode',
-                                       node_id=node_id,
-                                       enabled=enabled),
-                         topic=topic or self.topic)
+        cctxt = self.client.prepare(topic=topic or self.topic)
+        return cctxt.call(context, 'set_console_mode', node_id=node_id,
+                          enabled=enabled)
 
     def update_port(self, context, port_obj, topic=None):
         """Synchronously, have a conductor update the port's information.
@@ -336,7 +304,5 @@ class ConductorAPI(ironic.openstack.common.rpc.proxy.RpcProxy):
         :returns: updated port object, including all fields.
 
         """
-        return self.call(context,
-                         self.make_msg('update_port',
-                                       port_obj=port_obj),
-                         topic=topic or self.topic)
+        cctxt = self.client.prepare(topic=topic or self.topic)
+        return cctxt.call(context, 'update_port', port_obj=port_obj)

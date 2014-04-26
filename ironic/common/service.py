@@ -19,13 +19,15 @@
 import socket
 
 from oslo.config import cfg
+from oslo import messaging
 
 from ironic.common import config
+from ironic.common import rpc
+from ironic.objects import base as objects_base
 from ironic.openstack.common import context
 from ironic.openstack.common import importutils
 from ironic.openstack.common import log
-from ironic.openstack.common import periodic_task
-from ironic.openstack.common.rpc import service as rpc_service
+from ironic.openstack.common import service
 
 
 service_opts = [
@@ -43,16 +45,49 @@ service_opts = [
 
 cfg.CONF.register_opts(service_opts)
 
+LOG = log.getLogger(__name__)
 
-class PeriodicService(rpc_service.Service, periodic_task.PeriodicTasks):
+
+class RPCService(service.Service):
+
+    def __init__(self, host, manager_module, manager_class):
+        super(RPCService, self).__init__()
+        self.host = host
+        manager_module = importutils.import_module(manager_module)
+        manager_class = getattr(manager_module, manager_class)
+        self.manager = manager_class(host, manager_module.MANAGER_TOPIC)
+        self.topic = self.manager.topic
+        self.rpcserver = None
 
     def start(self):
-        super(PeriodicService, self).start()
+        super(RPCService, self).start()
         admin_context = context.RequestContext('admin', 'admin', is_admin=True)
         self.tg.add_dynamic_timer(
                 self.manager.periodic_tasks,
                 periodic_interval_max=cfg.CONF.periodic_interval,
                 context=admin_context)
+
+        self.manager.init_host()
+        LOG.debug(_("Creating RPC server for service %s"), self.topic)
+        target = messaging.Target(topic=self.topic, server=self.host)
+        endpoints = [self.manager]
+        serializer = objects_base.IronicObjectSerializer()
+        self.rpcserver = rpc.get_server(target, endpoints, serializer)
+        self.rpcserver.start()
+
+    def stop(self):
+        super(RPCService, self).stop()
+        try:
+            self.rpcserver.stop()
+            self.rpcserver.wait()
+        except Exception as e:
+            LOG.exception(_('Service error occurred when stopping the '
+                            'RPC server. Error: %s'), e)
+        try:
+            self.manager.del_host()
+        except Exception as e:
+            LOG.exception(_('Service error occurred when cleaning up '
+                            'the RPC manager. Error: %s'), e)
 
 
 def prepare_service(argv=[]):
@@ -73,9 +108,3 @@ def prepare_service(argv=[]):
                                          'ironic.openstack.common=WARN',
                                          ])
     log.setup('ironic')
-
-
-def load_manager(manager_modulename, manager_classname, host):
-    manager_module = importutils.import_module(manager_modulename)
-    manager_class = getattr(manager_module, manager_classname)
-    return manager_class(host, manager_module.MANAGER_TOPIC)

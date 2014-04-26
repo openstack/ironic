@@ -17,9 +17,9 @@
 import json
 import mock
 from oslo.config import cfg
+from oslo import messaging
 
 from ironic.api.controllers import root
-from ironic.openstack.common.rpc import common as rpc_common
 from ironic.tests.api import base
 
 
@@ -50,7 +50,7 @@ class TestNoExceptionTracebackHook(base.FunctionalTest):
 
     def test_hook_remote_error_success(self):
         test_exc_type = 'TestException'
-        self.root_convert_mock.side_effect = rpc_common.RemoteError(
+        self.root_convert_mock.side_effect = messaging.rpc.RemoteError(
             test_exc_type, self.MSG_WITHOUT_TRACE, self.TRACE)
 
         response = self.get_json('/', path_prefix='', expect_errors=True)

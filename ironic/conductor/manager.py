@@ -47,23 +47,21 @@ import eventlet
 from eventlet import greenpool
 
 from oslo.config import cfg
+from oslo import messaging
 
 from ironic.common import driver_factory
 from ironic.common import exception
 from ironic.common import hash_ring as hash
 from ironic.common import neutron
-from ironic.common import service
 from ironic.common import states
 from ironic.conductor import task_manager
 from ironic.conductor import utils
 from ironic.db import api as dbapi
 from ironic import objects
-from ironic.objects import base as objects_base
 from ironic.openstack.common import excutils
 from ironic.openstack.common import lockutils
 from ironic.openstack.common import log
 from ironic.openstack.common import periodic_task
-from ironic.openstack.common.rpc import common as messaging
 
 MANAGER_TOPIC = 'ironic.conductor_manager'
 WORKER_SPAWN_lOCK = "conductor_worker_spawn"
@@ -112,26 +110,30 @@ conductor_opts = [
                    help='Maximum number of worker threads that can be started '
                         'simultaneously by a periodic task. Should be less '
                         'than RPC thread pool size.'),
+        cfg.IntOpt('workers_pool_size',
+                   default=100,
+                   help='The size of the workers greenthread pool.'),
 ]
 
 CONF = cfg.CONF
 CONF.register_opts(conductor_opts, 'conductor')
 
 
-class ConductorManager(service.PeriodicService):
-    """Ironic Conductor service main class."""
+class ConductorManager(periodic_task.PeriodicTasks):
+    """Ironic Conductor manager main class."""
 
     RPC_API_VERSION = '1.14'
 
-    def __init__(self, host, topic):
-        serializer = objects_base.IronicObjectSerializer()
-        super(ConductorManager, self).__init__(host, topic,
-                                               serializer=serializer)
+    target = messaging.Target(version=RPC_API_VERSION)
 
+    def __init__(self, host, topic):
+        if not host:
+            host = CONF.host
+        self.host = host
+        self.topic = topic
         self.power_state_sync_count = collections.defaultdict(int)
 
-    def start(self):
-        super(ConductorManager, self).start()
+    def init_host(self):
         self.dbapi = dbapi.get_instance()
 
         self.driver_factory = driver_factory.DriverFactory()
@@ -152,31 +154,23 @@ class ConductorManager(service.PeriodicService):
         self.ring_manager = hash.HashRingManager()
         """Consistent hash ring which maps drivers to conductors."""
 
-        self._worker_pool = greenpool.GreenPool(size=CONF.rpc_thread_pool_size)
+        self._worker_pool = greenpool.GreenPool(
+                                size=CONF.conductor.workers_pool_size)
         """GreenPool of background workers for performing tasks async."""
 
-    def stop(self):
+    def del_host(self):
         try:
             self.dbapi.unregister_conductor(self.host)
         except exception.ConductorNotFound:
             pass
-        super(ConductorManager, self).stop()
-
-    def initialize_service_hook(self, service):
-        pass
-
-    def process_notification(self, notification):
-        LOG.debug(_('Received notification: %r') %
-                        notification.get('event_type'))
-        # TODO(deva)
 
     def periodic_tasks(self, context, raise_on_error=False):
         """Periodic tasks are run at pre-specified interval."""
         return self.run_periodic_tasks(context, raise_on_error=raise_on_error)
 
-    @messaging.client_exceptions(exception.InvalidParameterValue,
-                                 exception.NodeLocked,
-                                 exception.NodeInWrongPowerState)
+    @messaging.expected_exceptions(exception.InvalidParameterValue,
+                                   exception.NodeLocked,
+                                   exception.NodeInWrongPowerState)
     def update_node(self, context, node_obj):
         """Update a node with the supplied data.
 
@@ -217,9 +211,9 @@ class ConductorManager(service.PeriodicService):
 
             return node_obj
 
-    @messaging.client_exceptions(exception.InvalidParameterValue,
-                                 exception.NoFreeConductorWorker,
-                                 exception.NodeLocked)
+    @messaging.expected_exceptions(exception.InvalidParameterValue,
+                                   exception.NoFreeConductorWorker,
+                                   exception.NodeLocked)
     def change_node_power_state(self, context, node_id, new_state):
         """RPC method to encapsulate changes to a node's state.
 
@@ -245,10 +239,10 @@ class ConductorManager(service.PeriodicService):
             task.spawn_after(self._spawn_worker, utils.node_power_action,
                              task, task.node, new_state)
 
-    @messaging.client_exceptions(exception.NoFreeConductorWorker,
-                                 exception.NodeLocked,
-                                 exception.InvalidParameterValue,
-                                 exception.UnsupportedDriverExtension)
+    @messaging.expected_exceptions(exception.NoFreeConductorWorker,
+                                   exception.NodeLocked,
+                                   exception.InvalidParameterValue,
+                                   exception.UnsupportedDriverExtension)
     def vendor_passthru(self, context, node_id, driver_method, info):
         """RPC method to encapsulate vendor action.
 
@@ -285,9 +279,9 @@ class ConductorManager(service.PeriodicService):
                              task.driver.vendor.vendor_passthru, task,
                              task.node, method=driver_method, **info)
 
-    @messaging.client_exceptions(exception.InvalidParameterValue,
-                                 exception.UnsupportedDriverExtension,
-                                 exception.DriverNotFound)
+    @messaging.expected_exceptions(exception.InvalidParameterValue,
+                                   exception.UnsupportedDriverExtension,
+                                   exception.DriverNotFound)
     def driver_vendor_passthru(self, context, driver_name, driver_method,
                                   info):
         """RPC method which synchronously handles driver-level vendor passthru
@@ -324,10 +318,10 @@ class ConductorManager(service.PeriodicService):
                                                     method=driver_method,
                                                     **info)
 
-    @messaging.client_exceptions(exception.NoFreeConductorWorker,
-                                 exception.NodeLocked,
-                                 exception.NodeInMaintenance,
-                                 exception.InstanceDeployFailure)
+    @messaging.expected_exceptions(exception.NoFreeConductorWorker,
+                                   exception.NodeLocked,
+                                   exception.NodeInMaintenance,
+                                   exception.InstanceDeployFailure)
     def do_node_deploy(self, context, node_id):
         """RPC method to initiate deployment to a node.
 
@@ -398,9 +392,9 @@ class ConductorManager(service.PeriodicService):
         finally:
             node.save(context)
 
-    @messaging.client_exceptions(exception.NoFreeConductorWorker,
-                                 exception.NodeLocked,
-                                 exception.InstanceDeployFailure)
+    @messaging.expected_exceptions(exception.NoFreeConductorWorker,
+                                   exception.NodeLocked,
+                                   exception.InstanceDeployFailure)
     def do_node_tear_down(self, context, node_id):
         """RPC method to tear down an existing node deployment.
 
@@ -682,7 +676,7 @@ class ConductorManager(service.PeriodicService):
 
         return self.host == ring.get_hosts(node_uuid)[0]
 
-    @messaging.client_exceptions(exception.NodeLocked)
+    @messaging.expected_exceptions(exception.NodeLocked)
     def validate_driver_interfaces(self, context, node_id):
         """Validate the `core` and `standardized` interfaces for drivers.
 
@@ -717,8 +711,8 @@ class ConductorManager(service.PeriodicService):
                     ret_dict[iface_name]['reason'] = reason
         return ret_dict
 
-    @messaging.client_exceptions(exception.NodeLocked,
-                                 exception.NodeMaintenanceFailure)
+    @messaging.expected_exceptions(exception.NodeLocked,
+                                   exception.NodeMaintenanceFailure)
     def change_node_maintenance_mode(self, context, node_id, mode):
         """Set node maintenance mode on or off.
 
@@ -762,9 +756,9 @@ class ConductorManager(service.PeriodicService):
         else:
             raise exception.NoFreeConductorWorker()
 
-    @messaging.client_exceptions(exception.NodeLocked,
-                                 exception.NodeAssociated,
-                                 exception.NodeInWrongPowerState)
+    @messaging.expected_exceptions(exception.NodeLocked,
+                                   exception.NodeAssociated,
+                                   exception.NodeInWrongPowerState)
     def destroy_node(self, context, node_id):
         """Delete a node.
 
@@ -788,10 +782,10 @@ class ConductorManager(service.PeriodicService):
 
             self.dbapi.destroy_node(node_id)
 
-    @messaging.client_exceptions(exception.NodeLocked,
-                                 exception.UnsupportedDriverExtension,
-                                 exception.NodeConsoleNotEnabled,
-                                 exception.InvalidParameterValue)
+    @messaging.expected_exceptions(exception.NodeLocked,
+                                   exception.UnsupportedDriverExtension,
+                                   exception.NodeConsoleNotEnabled,
+                                   exception.InvalidParameterValue)
     def get_console_information(self, context, node_id):
         """Get connection information about the console.
 
@@ -817,10 +811,10 @@ class ConductorManager(service.PeriodicService):
             task.driver.console.validate(task, node)
             return task.driver.console.get_console(task, node)
 
-    @messaging.client_exceptions(exception.NoFreeConductorWorker,
-                                 exception.NodeLocked,
-                                 exception.UnsupportedDriverExtension,
-                                 exception.InvalidParameterValue)
+    @messaging.expected_exceptions(exception.NoFreeConductorWorker,
+                                   exception.NodeLocked,
+                                   exception.UnsupportedDriverExtension,
+                                   exception.InvalidParameterValue)
     def set_console_mode(self, context, node_id, enabled):
         """Enable/Disable the console.
 
@@ -885,8 +879,8 @@ class ConductorManager(service.PeriodicService):
         finally:
             node.save(task.context)
 
-    @messaging.client_exceptions(exception.NodeLocked,
-                                 exception.FailedToUpdateMacOnPort)
+    @messaging.expected_exceptions(exception.NodeLocked,
+                                   exception.FailedToUpdateMacOnPort)
     def update_port(self, context, port_obj):
         """Update a port.
 
