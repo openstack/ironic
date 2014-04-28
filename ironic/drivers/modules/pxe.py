@@ -200,7 +200,7 @@ def _get_node_vif_ids(task):
 
     """
     port_vifs = {}
-    for port in task.resources[0].ports:
+    for port in task.ports:
         vif = port.extra.get('vif_port_id')
         if vif:
             port_vifs[port.uuid] = vif

@@ -92,6 +92,4 @@ def get_node_mac_addresses(task):
     :param task: a TaskManager instance containing the node to act on.
     :returns: A list of MAC addresses in the format xx:xx:xx:xx:xx:xx.
     """
-    for r in task.resources:
-        if r.node.id == task.node.id:
-            return [p.address for p in r.ports]
+    return [p.address for p in task.ports]

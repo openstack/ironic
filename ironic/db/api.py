@@ -95,28 +95,29 @@ class Connection(object):
         """
 
     @abc.abstractmethod
-    def reserve_nodes(self, tag, nodes):
-        """Reserve a set of nodes atomically.
+    def reserve_node(self, tag, node_id):
+        """Reserve a node.
 
         To prevent other ManagerServices from manipulating the given
-        Nodes while a Task is performed, mark them all reserved by this host.
+        Node while a Task is performed, mark it reserved by this host.
 
         :param tag: A string uniquely identifying the reservation holder.
-        :param nodes: A list of node id or uuid.
-        :returns: A list of the reserved node refs.
-        :raises: NodeNotFound if any node is not found.
-        :raises: NodeAlreadyReserved if any node is already reserved.
+        :param node_id: A node id or uuid.
+        :returns: A Node object.
+        :raises: NodeNotFound if the node is not found.
+        :raises: NodeLocked if the node is already reserved.
         """
 
     @abc.abstractmethod
-    def release_nodes(self, tag, nodes):
-        """Release the reservation on a set of nodes atomically.
+    def release_node(self, tag, node_id):
+        """Release the reservation on a node.
 
         :param tag: A string uniquely identifying the reservation holder.
-        :param nodes: A list of node id or uuid.
-        :raises: NodeNotFound if any node is not found.
-        :raises: NodeAlreadyReserved if any node could not be released
-                 because it was not reserved by this host.
+        :param node_id: A node id or uuid.
+        :raises: NodeNotFound if the node is not found.
+        :raises: NodeLocked if the node is reserved by another host.
+        :raises: NodeNotLocked if the node was found to not have a
+                 reservation at all.
         """
 
     @abc.abstractmethod
