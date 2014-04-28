@@ -89,8 +89,8 @@ class PhysicalWorkTestCase(tests_base.TestCase):
         ephemeral_format = None
 
         dev = '/dev/fake'
-        root_part = '/dev/fake-part1'
-        swap_part = '/dev/fake-part2'
+        swap_part = '/dev/fake-part1'
+        root_part = '/dev/fake-part2'
         root_uuid = '12345678-1234-1234-12345678-12345678abcdef'
 
         name_list = ['get_dev', 'get_image_mb', 'discovery', 'login_iscsi',
@@ -483,8 +483,8 @@ class MakePartitionsTestCase(tests_base.TestCase):
                                   '--', 'unit', 'MiB', 'mklabel', 'msdos']
 
     def test_make_partitions(self, mock_exc):
-        expected_mkpart = ['mkpart', 'primary', '', '1', '1025',
-                           'mkpart', 'primary', 'linux-swap', '1025', '1537']
+        expected_mkpart = ['mkpart', 'primary', 'linux-swap', '1', '513',
+                           'mkpart', 'primary', '', '513', '1537']
         cmd = self.parted_static_cmd + expected_mkpart
         utils.make_partitions(self.dev, self.root_mb, self.swap_mb,
                               self.ephemeral_mb)
