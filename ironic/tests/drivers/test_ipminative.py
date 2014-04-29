@@ -154,17 +154,18 @@ class IPMINativeDriverTestCase(db_base.DbTestCase):
 
         get_power_mock.side_effect = lambda: return_values.pop()
 
-        pstate = self.driver.power.get_power_state(None, self.node)
-        self.assertEqual(states.POWER_OFF, pstate)
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            pstate = self.driver.power.get_power_state(task)
+            self.assertEqual(states.POWER_OFF, pstate)
 
-        pstate = self.driver.power.get_power_state(None, self.node)
-        self.assertEqual(states.POWER_ON, pstate)
+            pstate = self.driver.power.get_power_state(task)
+            self.assertEqual(states.POWER_ON, pstate)
 
-        pstate = self.driver.power.get_power_state(None, self.node)
-        self.assertEqual(states.ERROR, pstate)
-        self.assertEqual(3, get_power_mock.call_count,
-                         "pyghmi.ipmi.command.Command.get_power was not"
-                         " called 3 times.")
+            pstate = self.driver.power.get_power_state(task)
+            self.assertEqual(states.ERROR, pstate)
+            self.assertEqual(3, get_power_mock.call_count,
+                             "pyghmi.ipmi.command.Command.get_power was not"
+                             " called 3 times.")
 
     @mock.patch.object(ipminative, '_power_on')
     def test_set_power_on_ok(self, power_on_mock):
@@ -173,7 +174,7 @@ class IPMINativeDriverTestCase(db_base.DbTestCase):
         with task_manager.acquire(self.context,
                                   [self.node.uuid]) as task:
             self.driver.power.set_power_state(
-                task, self.node, states.POWER_ON)
+                task, states.POWER_ON)
         power_on_mock.assert_called_once_with(self.info)
 
     @mock.patch.object(ipminative, '_power_off')
@@ -183,7 +184,7 @@ class IPMINativeDriverTestCase(db_base.DbTestCase):
         with task_manager.acquire(self.context,
                                   [self.node.uuid]) as task:
             self.driver.power.set_power_state(
-                task, self.node, states.POWER_OFF)
+                task, states.POWER_OFF)
         power_off_mock.assert_called_once_with(self.info)
 
     @mock.patch('pyghmi.ipmi.command.Command')
@@ -197,7 +198,6 @@ class IPMINativeDriverTestCase(db_base.DbTestCase):
             self.assertRaises(exception.PowerStateFailure,
                               self.driver.power.set_power_state,
                               task,
-                              self.node,
                               states.POWER_ON)
         ipmicmd.set_power.assert_called_once_with('on', 500)
 
@@ -224,7 +224,7 @@ class IPMINativeDriverTestCase(db_base.DbTestCase):
 
         with task_manager.acquire(self.context,
                                   [self.node.uuid]) as task:
-            self.driver.power.reboot(task, self.node)
+            self.driver.power.reboot(task)
         reboot_mock.assert_called_once_with(self.info)
 
     @mock.patch('pyghmi.ipmi.command.Command')
@@ -237,8 +237,7 @@ class IPMINativeDriverTestCase(db_base.DbTestCase):
                                   [self.node.uuid]) as task:
             self.assertRaises(exception.PowerStateFailure,
                               self.driver.power.reboot,
-                              task,
-                              self.node)
+                              task)
         ipmicmd.set_power.assert_called_once_with('boot', 500)
 
     def test_vendor_passthru_validate__set_boot_device_good(self):

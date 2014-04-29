@@ -698,8 +698,7 @@ class PXEDriverTestCase(db_base.DbTestCase):
             mock_update_neutron.assert_called_once_with(task)
             mock_node_set_boot.assert_called_once_with(task, 'pxe',
                                                        persistent=True)
-            mock_node_power_action.assert_called_once_with(task, task.node,
-                                                           states.REBOOT)
+            mock_node_power_action.assert_called_once_with(task, states.REBOOT)
 
             # ensure token file created
             t_path = pxe._get_token_file_path(self.node.uuid)
@@ -732,8 +731,7 @@ class PXEDriverTestCase(db_base.DbTestCase):
                                   self.node.uuid) as task:
             state = task.driver.deploy.tear_down(task)
             self.assertEqual(states.DELETED, state)
-            node_power_mock.assert_called_once_with(task, task.node,
-                                                    states.POWER_OFF)
+            node_power_mock.assert_called_once_with(task, states.POWER_OFF)
 
     @mock.patch.object(manager_utils, 'node_power_action')
     def test_tear_down_removes_internal_attrs(self, mock_npa):
@@ -746,7 +744,7 @@ class PXEDriverTestCase(db_base.DbTestCase):
         self.node.save()
         with task_manager.acquire(self.context, self.node.uuid) as task:
             task.driver.deploy.tear_down(task)
-            mock_npa.assert_called_once_with(task, task.node, states.POWER_OFF)
+            mock_npa.assert_called_once_with(task, states.POWER_OFF)
 
         self.node.refresh()
         self.assertNotIn('pxe_deploy_key', self.node.driver_info)

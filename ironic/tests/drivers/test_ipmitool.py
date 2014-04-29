@@ -278,24 +278,25 @@ class IPMIToolDriverTestCase(db_base.DbTestCase):
                     mock.call(self.info, "power status")]
         mock_exec.side_effect = returns
 
-        pstate = self.driver.power.get_power_state(None, self.node)
-        self.assertEqual(states.POWER_OFF, pstate)
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            pstate = self.driver.power.get_power_state(task)
+            self.assertEqual(states.POWER_OFF, pstate)
 
-        pstate = self.driver.power.get_power_state(None, self.node)
-        self.assertEqual(states.POWER_ON, pstate)
+            pstate = self.driver.power.get_power_state(task)
+            self.assertEqual(states.POWER_ON, pstate)
 
-        pstate = self.driver.power.get_power_state(None, self.node)
-        self.assertEqual(states.ERROR, pstate)
+            pstate = self.driver.power.get_power_state(task)
+            self.assertEqual(states.ERROR, pstate)
 
         self.assertEqual(mock_exec.call_args_list, expected)
 
     @mock.patch.object(ipmi, '_exec_ipmitool', autospec=True)
     def test_get_power_state_exception(self, mock_exec):
         mock_exec.side_effect = processutils.ProcessExecutionError("error")
-        self.assertRaises(exception.IPMIFailure,
-                          self.driver.power.get_power_state,
-                          None,
-                          self.node)
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            self.assertRaises(exception.IPMIFailure,
+                              self.driver.power.get_power_state,
+                              task)
         mock_exec.assert_called_once_with(self.info, "power status")
 
     @mock.patch.object(ipmi, '_power_on', autospec=True)
@@ -307,7 +308,6 @@ class IPMIToolDriverTestCase(db_base.DbTestCase):
         with task_manager.acquire(self.context,
                                   [self.node['uuid']]) as task:
             self.driver.power.set_power_state(task,
-                                              self.node,
                                               states.POWER_ON)
 
         mock_on.assert_called_once_with(self.info)
@@ -323,7 +323,6 @@ class IPMIToolDriverTestCase(db_base.DbTestCase):
         with task_manager.acquire(self.context,
                                   [self.node['uuid']]) as task:
             self.driver.power.set_power_state(task,
-                                              self.node,
                                               states.POWER_OFF)
 
         mock_off.assert_called_once_with(self.info)
@@ -340,7 +339,6 @@ class IPMIToolDriverTestCase(db_base.DbTestCase):
             self.assertRaises(exception.PowerStateFailure,
                               self.driver.power.set_power_state,
                               task,
-                              self.node,
                               states.POWER_ON)
 
         mock_on.assert_called_once_with(self.info)
@@ -351,7 +349,6 @@ class IPMIToolDriverTestCase(db_base.DbTestCase):
             self.assertRaises(exception.InvalidParameterValue,
                     self.driver.power.set_power_state,
                     task,
-                    self.node,
                     "fake state")
 
     @mock.patch.object(ipmi, '_exec_ipmitool', autospec=True)
@@ -384,7 +381,7 @@ class IPMIToolDriverTestCase(db_base.DbTestCase):
 
         with task_manager.acquire(self.context,
                                   [self.node['uuid']]) as task:
-            self.driver.power.reboot(task, self.node)
+            self.driver.power.reboot(task)
 
         self.assertEqual(manager.mock_calls, expected)
 
@@ -403,8 +400,7 @@ class IPMIToolDriverTestCase(db_base.DbTestCase):
                                  [self.node['uuid']]) as task:
             self.assertRaises(exception.PowerStateFailure,
                               self.driver.power.reboot,
-                              task,
-                              self.node)
+                              task)
 
         self.assertEqual(manager.mock_calls, expected)
 

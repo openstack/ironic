@@ -205,29 +205,27 @@ class NativeIPMIPower(base.PowerInterface):
         :raises: InvalidParameterValue when required ipmi credentials
                  are missing.
         """
-        _parse_driver_info(node)
+        _parse_driver_info(task.node)
 
-    def get_power_state(self, task, node):
-        """Get the current power state.
+    def get_power_state(self, task):
+        """Get the current power state of the task's node.
 
-        :param task: a TaskManager instance.
-        :param node: the node info.
+        :param task: a TaskManager instance containing the node to act on.
         :returns:  power state POWER_ON, POWER_OFF or ERROR defined in
                  :class:`ironic.common.states`.
         :raises: InvalidParameterValue when required ipmi credentials
                  are missing.
         :raises: IPMIFailure when the native ipmi call fails.
         """
-        driver_info = _parse_driver_info(node)
+        driver_info = _parse_driver_info(task.node)
         return _power_status(driver_info)
 
     @task_manager.require_exclusive_lock
-    def set_power_state(self, task, node, pstate):
+    def set_power_state(self, task, pstate):
         """Turn the power on or off.
 
-        :param task: a TaskManager instance.
-        :param node: the node info.
-        :param pstate: a power state that will be set on the given node.
+        :param task: a TaskManager instance containing the node to act on.
+        :param pstate: a power state that will be set on the task's node.
         :raises: IPMIFailure when the native ipmi call fails.
         :raises: InvalidParameterValue when an invalid power state
                  is specified or required ipmi credentials are missing.
@@ -235,7 +233,7 @@ class NativeIPMIPower(base.PowerInterface):
                  from ipmi.
         """
 
-        driver_info = _parse_driver_info(node)
+        driver_info = _parse_driver_info(task.node)
 
         if pstate == states.POWER_ON:
             _power_on(driver_info)
@@ -247,11 +245,10 @@ class NativeIPMIPower(base.PowerInterface):
                 ) % pstate)
 
     @task_manager.require_exclusive_lock
-    def reboot(self, task, node):
-        """Cycles the power to a node.
+    def reboot(self, task):
+        """Cycles the power to the task's node.
 
-        :param task: a TaskManager instance.
-        :param node: the node info.
+        :param task: a TaskManager instance containing the node to act on.
         :raises: IPMIFailure when the native ipmi call fails.
         :raises: InvalidParameterValue when required ipmi credentials
                  are missing.
@@ -259,7 +256,7 @@ class NativeIPMIPower(base.PowerInterface):
                  from ipmi.
         """
 
-        driver_info = _parse_driver_info(node)
+        driver_info = _parse_driver_info(task.node)
         _reboot(driver_info)
 
 

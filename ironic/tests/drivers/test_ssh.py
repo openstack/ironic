@@ -614,14 +614,15 @@ class SSHDriverTestCase(db_base.DbTestCase):
             parse_drv_info_mock.return_value = info
             with task_manager.acquire(self.context, [info['uuid']],
                                       shared=False) as task:
-                task.resources[0].driver.power.reboot(task, self.node)
+                task.resources[0].driver.power.reboot(task)
 
-            parse_drv_info_mock.assert_called_once_with(self.node)
-        get_mac_addr_mock.assert_called_once_with(mock.ANY)
-        get_conn_mock.assert_called_once_with(self.node)
-        get_power_stat_mock.assert_called_once_with(self.sshclient, info)
-        power_off_mock.assert_called_once_with(self.sshclient, info)
-        power_on_mock.assert_called_once_with(self.sshclient, info)
+                parse_drv_info_mock.assert_called_once_with(task.node)
+                get_mac_addr_mock.assert_called_once_with(mock.ANY)
+                get_conn_mock.assert_called_once_with(task.node)
+                get_power_stat_mock.assert_called_once_with(self.sshclient,
+                                                            info)
+                power_off_mock.assert_called_once_with(self.sshclient, info)
+                power_on_mock.assert_called_once_with(self.sshclient, info)
 
     @mock.patch.object(driver_utils, 'get_node_mac_addresses')
     @mock.patch.object(ssh, '_get_connection')
@@ -645,14 +646,14 @@ class SSHDriverTestCase(db_base.DbTestCase):
                                       shared=False) as task:
                 self.assertRaises(exception.PowerStateFailure,
                                   task.resources[0].driver.power.reboot,
-                                  task,
-                                  self.node)
-            parse_drv_info_mock.assert_called_once_with(self.node)
-        get_mac_addr_mock.assert_called_once_with(mock.ANY)
-        get_conn_mock.assert_called_once_with(self.node)
-        get_power_stat_mock.assert_called_once_with(self.sshclient, info)
-        power_off_mock.assert_called_once_with(self.sshclient, info)
-        power_on_mock.assert_called_once_with(self.sshclient, info)
+                                  task)
+                parse_drv_info_mock.assert_called_once_with(task.node)
+                get_mac_addr_mock.assert_called_once_with(mock.ANY)
+                get_conn_mock.assert_called_once_with(task.node)
+                get_power_stat_mock.assert_called_once_with(self.sshclient,
+                                                            info)
+                power_off_mock.assert_called_once_with(self.sshclient, info)
+                power_on_mock.assert_called_once_with(self.sshclient, info)
 
     @mock.patch.object(driver_utils, 'get_node_mac_addresses')
     @mock.patch.object(ssh, '_get_connection')
@@ -671,12 +672,11 @@ class SSHDriverTestCase(db_base.DbTestCase):
                     exception.InvalidParameterValue,
                     task.resources[0].driver.power.set_power_state,
                     task,
-                    self.node,
                     "BAD_PSTATE")
 
-            parse_drv_info_mock.assert_called_once_with(self.node)
-        get_mac_addr_mock.assert_called_once_with(mock.ANY)
-        get_conn_mock.assert_called_once_with(self.node)
+                parse_drv_info_mock.assert_called_once_with(task.node)
+                get_mac_addr_mock.assert_called_once_with(mock.ANY)
+                get_conn_mock.assert_called_once_with(task.node)
 
     @mock.patch.object(driver_utils, 'get_node_mac_addresses')
     @mock.patch.object(ssh, '_get_connection')
@@ -693,13 +693,13 @@ class SSHDriverTestCase(db_base.DbTestCase):
             parse_drv_info_mock.return_value = info
             with task_manager.acquire(self.context, [info['uuid']],
                                       shared=False) as task:
-                task.resources[0].driver.power.set_power_state(task, self.node,
+                task.resources[0].driver.power.set_power_state(task,
                                                                states.POWER_ON)
 
-            parse_drv_info_mock.assert_called_once_with(self.node)
-        get_mac_addr_mock.assert_called_once_with(mock.ANY)
-        get_conn_mock.assert_called_once_with(self.node)
-        power_on_mock.assert_called_once_with(self.sshclient, info)
+                parse_drv_info_mock.assert_called_once_with(task.node)
+                get_mac_addr_mock.assert_called_once_with(mock.ANY)
+                get_conn_mock.assert_called_once_with(task.node)
+                power_on_mock.assert_called_once_with(self.sshclient, info)
 
     @mock.patch.object(driver_utils, 'get_node_mac_addresses')
     @mock.patch.object(ssh, '_get_connection')
@@ -720,13 +720,12 @@ class SSHDriverTestCase(db_base.DbTestCase):
                     exception.PowerStateFailure,
                     task.resources[0].driver.power.set_power_state,
                     task,
-                    self.node,
                     states.POWER_ON)
 
-            parse_drv_info_mock.assert_called_once_with(self.node)
-        get_mac_addr_mock.assert_called_once_with(mock.ANY)
-        get_conn_mock.assert_called_once_with(self.node)
-        power_on_mock.assert_called_once_with(self.sshclient, info)
+                parse_drv_info_mock.assert_called_once_with(task.node)
+                get_mac_addr_mock.assert_called_once_with(mock.ANY)
+                get_conn_mock.assert_called_once_with(task.node)
+                power_on_mock.assert_called_once_with(self.sshclient, info)
 
     @mock.patch.object(driver_utils, 'get_node_mac_addresses')
     @mock.patch.object(ssh, '_get_connection')
@@ -744,12 +743,12 @@ class SSHDriverTestCase(db_base.DbTestCase):
             with task_manager.acquire(self.context, [info['uuid']],
                                       shared=False) as task:
                 task.resources[0].driver.power.set_power_state(
-                    task, self.node, states.POWER_OFF)
+                                                        task, states.POWER_OFF)
 
-            parse_drv_info_mock.assert_called_once_with(self.node)
-        get_mac_addr_mock.assert_called_once_with(mock.ANY)
-        get_conn_mock.assert_called_once_with(self.node)
-        power_off_mock.assert_called_once_with(self.sshclient, info)
+                parse_drv_info_mock.assert_called_once_with(task.node)
+                get_mac_addr_mock.assert_called_once_with(mock.ANY)
+                get_conn_mock.assert_called_once_with(task.node)
+                power_off_mock.assert_called_once_with(self.sshclient, info)
 
     @mock.patch.object(driver_utils, 'get_node_mac_addresses')
     @mock.patch.object(ssh, '_get_connection')
@@ -770,10 +769,9 @@ class SSHDriverTestCase(db_base.DbTestCase):
                     exception.PowerStateFailure,
                     task.resources[0].driver.power.set_power_state,
                     task,
-                    self.node,
                     states.POWER_OFF)
 
-            parse_drv_info_mock.assert_called_once_with(self.node)
-        get_mac_addr_mock.assert_called_once_with(mock.ANY)
-        get_conn_mock.assert_called_once_with(self.node)
-        power_off_mock.assert_called_once_with(self.sshclient, info)
+                parse_drv_info_mock.assert_called_once_with(task.node)
+                get_mac_addr_mock.assert_called_once_with(mock.ANY)
+                get_conn_mock.assert_called_once_with(task.node)
+                power_off_mock.assert_called_once_with(self.sshclient, info)

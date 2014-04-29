@@ -43,13 +43,12 @@ def node_set_boot_device(task, device, persistent=False):
 
 
 @task_manager.require_exclusive_lock
-def node_power_action(task, node, state):
+def node_power_action(task, state):
     """Change power state or reset for a node.
 
     Perform the requested power action if the transition is required.
 
-    :param task: a TaskManager instance.
-    :param node: the Node object to act upon.
+    :param task: a TaskManager instance containing the node to act on.
     :param state: Any power state from ironic.common.states. If the
         state is 'REBOOT' then a reboot will be attempted, otherwise
         the node power state is directly set to 'state'.
@@ -59,12 +58,13 @@ def node_power_action(task, node, state):
              wrong occurred during the power action.
 
     """
+    node = task.node
     context = task.context
     new_state = states.POWER_ON if state == states.REBOOT else state
 
     if state != states.REBOOT:
         try:
-            curr_state = task.driver.power.get_power_state(task, node)
+            curr_state = task.driver.power.get_power_state(task)
         except Exception as e:
             with excutils.save_and_reraise_exception():
                 node['last_error'] = \
@@ -100,9 +100,9 @@ def node_power_action(task, node, state):
     # take power action
     try:
         if state != states.REBOOT:
-            task.driver.power.set_power_state(task, node, new_state)
+            task.driver.power.set_power_state(task, new_state)
         else:
-            task.driver.power.reboot(task, node)
+            task.driver.power.reboot(task)
     except Exception as e:
         with excutils.save_and_reraise_exception():
             node['last_error'] = \

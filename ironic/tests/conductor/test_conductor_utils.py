@@ -85,11 +85,10 @@ class NodePowerActionTestCase(base.DbTestCase):
                 as get_power_mock:
             get_power_mock.return_value = states.POWER_OFF
 
-            conductor_utils.node_power_action(task, task.node,
-                                              states.POWER_ON)
+            conductor_utils.node_power_action(task, states.POWER_ON)
 
             node.refresh()
-            get_power_mock.assert_called_once_with(mock.ANY, mock.ANY)
+            get_power_mock.assert_called_once_with(mock.ANY)
             self.assertEqual(states.POWER_ON, node['power_state'])
             self.assertIsNone(node['target_power_state'])
             self.assertIsNone(node['last_error'])
@@ -106,11 +105,10 @@ class NodePowerActionTestCase(base.DbTestCase):
                 as get_power_mock:
             get_power_mock.return_value = states.POWER_ON
 
-            conductor_utils.node_power_action(task, task.node,
-                                              states.POWER_OFF)
+            conductor_utils.node_power_action(task, states.POWER_OFF)
 
             node.refresh()
-            get_power_mock.assert_called_once_with(mock.ANY, mock.ANY)
+            get_power_mock.assert_called_once_with(mock.ANY)
             self.assertEqual(states.POWER_OFF, node['power_state'])
             self.assertIsNone(node['target_power_state'])
             self.assertIsNone(node['last_error'])
@@ -124,11 +122,10 @@ class NodePowerActionTestCase(base.DbTestCase):
         task = task_manager.TaskManager(self.context, node.uuid)
 
         with mock.patch.object(self.driver.power, 'reboot') as reboot_mock:
-            conductor_utils.node_power_action(task, task.node,
-                                              states.REBOOT)
+            conductor_utils.node_power_action(task, states.REBOOT)
 
             node.refresh()
-            reboot_mock.assert_called_once_with(mock.ANY, mock.ANY)
+            reboot_mock.assert_called_once_with(mock.ANY)
             self.assertEqual(states.POWER_ON, node['power_state'])
             self.assertIsNone(node['target_power_state'])
             self.assertIsNone(node['last_error'])
@@ -150,18 +147,16 @@ class NodePowerActionTestCase(base.DbTestCase):
             self.assertRaises(exception.InvalidParameterValue,
                               conductor_utils.node_power_action,
                               task,
-                              task.node,
                               "INVALID_POWER_STATE")
 
             node.refresh()
-            get_power_mock.assert_called_once_with(mock.ANY, mock.ANY)
+            get_power_mock.assert_called_once_with(mock.ANY)
             self.assertEqual(states.POWER_ON, node['power_state'])
             self.assertIsNone(node['target_power_state'])
             self.assertIsNotNone(node['last_error'])
 
             # last_error is cleared when a new transaction happens
-            conductor_utils.node_power_action(task, task.node,
-                                              states.POWER_OFF)
+            conductor_utils.node_power_action(task, states.POWER_OFF)
             node.refresh()
             self.assertEqual(states.POWER_OFF, node['power_state'])
             self.assertIsNone(node['target_power_state'])
@@ -181,8 +176,7 @@ class NodePowerActionTestCase(base.DbTestCase):
                                           target_power_state=states.POWER_OFF)
         task = task_manager.TaskManager(self.context, node.uuid)
 
-        conductor_utils.node_power_action(task, task.node,
-                                          states.POWER_OFF)
+        conductor_utils.node_power_action(task, states.POWER_OFF)
 
         node.refresh()
         self.assertEqual(states.POWER_OFF, node['power_state'])
@@ -206,11 +200,10 @@ class NodePowerActionTestCase(base.DbTestCase):
 
             with mock.patch.object(self.driver.power, 'set_power_state') \
                     as set_power_mock:
-                conductor_utils.node_power_action(task, task.node,
-                                                  states.POWER_ON)
+                conductor_utils.node_power_action(task, states.POWER_ON)
 
                 node.refresh()
-                get_power_mock.assert_called_once_with(mock.ANY, mock.ANY)
+                get_power_mock.assert_called_once_with(mock.ANY)
                 self.assertFalse(set_power_mock.called,
                                  "set_power_state unexpectedly called")
                 self.assertEqual(states.POWER_ON, node['power_state'])
@@ -235,11 +228,10 @@ class NodePowerActionTestCase(base.DbTestCase):
             self.assertRaises(exception.InvalidParameterValue,
                               conductor_utils.node_power_action,
                               task,
-                              task.node,
                               states.POWER_ON)
 
             node.refresh()
-            get_power_state_mock.assert_called_once_with(mock.ANY, mock.ANY)
+            get_power_state_mock.assert_called_once_with(mock.ANY)
             self.assertEqual(states.POWER_ON, node['power_state'])
             self.assertIsNone(node['target_power_state'])
             self.assertIsNotNone(node['last_error'])
@@ -265,12 +257,11 @@ class NodePowerActionTestCase(base.DbTestCase):
                     exception.IronicException,
                     conductor_utils.node_power_action,
                     task,
-                    task.node,
                     states.POWER_ON)
 
                 node.refresh()
-                get_power_mock.assert_called_once_with(mock.ANY, mock.ANY)
-                set_power_mock.assert_called_once_with(mock.ANY, mock.ANY,
+                get_power_mock.assert_called_once_with(mock.ANY)
+                set_power_mock.assert_called_once_with(mock.ANY,
                                                        states.POWER_ON)
                 self.assertEqual(states.POWER_OFF, node['power_state'])
                 self.assertIsNone(node['target_power_state'])
