@@ -264,6 +264,25 @@ class IronicDriverTestCase(test.NoDBTestCase):
             self.driver._stop_firewall(fake_inst, fake_net_info)
             mock_ui.assert_called_once_with(fake_inst, fake_net_info)
 
+    @mock.patch.object(cw.IronicClientWrapper, 'call')
+    def test_instance_exists(self, mock_call):
+        instance_uuid = 'fake-uuid'
+        instance = fake_instance.fake_instance_obj(self.ctx,
+                                                   uuid=instance_uuid)
+        self.assertTrue(self.driver.instance_exists(instance))
+        mock_call.assert_called_once_with('node.get_by_instance_uuid',
+                                          instance_uuid)
+
+    @mock.patch.object(cw.IronicClientWrapper, 'call')
+    def test_instance_exists_fail(self, mock_call):
+        mock_call.side_effect = ironic_exception.HTTPNotFound
+        instance_uuid = 'fake-uuid'
+        instance = fake_instance.fake_instance_obj(self.ctx,
+                                                   uuid=instance_uuid)
+        self.assertFalse(self.driver.instance_exists(instance))
+        mock_call.assert_called_once_with('node.get_by_instance_uuid',
+                                          instance_uuid)
+
     def test_list_instances(self):
         num_nodes = 2
         nodes = []
