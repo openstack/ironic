@@ -353,17 +353,16 @@ class IPMIPower(base.PowerInterface):
             #             is not present on the system.
             pass
 
-    def validate(self, task, node):
+    def validate(self, task):
         """Validate driver_info for ipmitool driver.
 
         Check that node['driver_info'] contains IPMI credentials.
 
-        :param task: a task from TaskManager.
-        :param node: Single node object.
+        :param task: a TaskManager instance containing the node to act on.
         :raises: InvalidParameterValue if required ipmi parameters are missing.
 
         """
-        _parse_driver_info(node)
+        _parse_driver_info(task.node)
         # NOTE(deva): don't actually touch the BMC in validate because it is
         #             called too often, and BMCs are too fragile.
         #             This is a temporary measure to mitigate problems while
@@ -485,13 +484,13 @@ class IPMIShellinaboxConsole(base.ConsoleInterface):
             # is not present on the system.
             pass
 
-    def validate(self, task, node):
+    def validate(self, task):
         """Validate the Node console info.
 
-        :param node: a single Node to validate.
+        :param task: a task from TaskManager.
         :raises: InvalidParameterValue
         """
-        driver_info = _parse_driver_info(node)
+        driver_info = _parse_driver_info(task.node)
         if not driver_info['port']:
             raise exception.InvalidParameterValue(_(
                 "IPMI terminal port not supplied to IPMI driver."))

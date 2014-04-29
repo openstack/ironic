@@ -542,7 +542,7 @@ def _validate_glance_image(ctx, driver_info):
 class PXEDeploy(base.DeployInterface):
     """PXE Deploy Interface: just a stub until the real driver is ported."""
 
-    def validate(self, task, node):
+    def validate(self, task):
         """Validate the driver-specific Node deployment info.
 
         :param task: a TaskManager instance containing the node to act on.

@@ -316,13 +316,12 @@ class Power(base.PowerInterface):
     state of servers in a seamicro chassis.
     """
 
-    def validate(self, task, node):
+    def validate(self, task):
         """Check that node 'driver_info' is valid.
 
         Check that node 'driver_info' contains the required fields.
 
         :param task: a TaskManager instance containing the node to act on.
-        :param node: Single node object.
         :raises: InvalidParameterValue if required seamicro parameters are
             missing.
         """

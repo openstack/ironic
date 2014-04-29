@@ -576,9 +576,8 @@ class SSHDriverTestCase(db_base.DbTestCase):
         with task_manager.acquire(self.context, info['uuid'],
                                   shared=False) as task:
             self.assertRaises(exception.InvalidParameterValue,
-                              task.driver.power.validate,
-                              task, self.node)
-            driver_info = ssh._parse_driver_info(self.node)
+                              task.driver.power.validate, task)
+            driver_info = ssh._parse_driver_info(task.node)
             ssh_connect_mock.assert_called_once_with(driver_info)
 
     def test_validate_fail_no_port(self):
@@ -592,7 +591,7 @@ class SSHDriverTestCase(db_base.DbTestCase):
                                   shared=True) as task:
             self.assertRaises(exception.InvalidParameterValue,
                               task.driver.power.validate,
-                              task, new_node)
+                              task)
 
     @mock.patch.object(driver_utils, 'get_node_mac_addresses')
     @mock.patch.object(ssh, '_get_connection')

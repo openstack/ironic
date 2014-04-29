@@ -208,7 +208,7 @@ class ConductorManager(periodic_task.PeriodicTasks):
             # TODO(deva): Determine what value will be passed by API when
             #             instance_uuid needs to be unset, and handle it.
             if 'instance_uuid' in delta:
-                task.driver.power.validate(task, node_obj)
+                task.driver.power.validate(task)
                 node_obj['power_state'] = \
                         task.driver.power.get_power_state(task)
 
@@ -246,7 +246,7 @@ class ConductorManager(periodic_task.PeriodicTasks):
                   % {'node': node_id, 'state': new_state})
 
         with task_manager.acquire(context, node_id, shared=False) as task:
-            task.driver.power.validate(task, task.node)
+            task.driver.power.validate(task)
             task.spawn_after(self._spawn_worker, utils.node_power_action,
                              task, new_state)
 
@@ -376,7 +376,7 @@ class ConductorManager(periodic_task.PeriodicTasks):
                                                   node=node.uuid)
 
             try:
-                task.driver.deploy.validate(task, node)
+                task.driver.deploy.validate(task)
             except exception.InvalidParameterValue as e:
                 raise exception.InstanceDeployFailure(_(
                     "RPC do_node_deploy failed to validate deploy info. "
@@ -444,7 +444,7 @@ class ConductorManager(periodic_task.PeriodicTasks):
                     % {'node': node_id, 'state': node.provision_state})
 
             try:
-                task.driver.deploy.validate(task, node)
+                task.driver.deploy.validate(task)
             except exception.InvalidParameterValue as e:
                 raise exception.InstanceDeployFailure(_(
                     "RPC do_node_tear_down failed to validate deploy info. "
@@ -510,7 +510,7 @@ class ConductorManager(periodic_task.PeriodicTasks):
         # prevent node from switching to maintenance mode.
         if node.power_state is None:
             try:
-                task.driver.power.validate(task, node)
+                task.driver.power.validate(task)
             except exception.InvalidParameterValue:
                 return
 
@@ -720,7 +720,7 @@ class ConductorManager(periodic_task.PeriodicTasks):
                 result = reason = None
                 if iface:
                     try:
-                        iface.validate(task, task.node)
+                        iface.validate(task)
                         result = True
                     except (exception.InvalidParameterValue,
                             exception.UnsupportedDriverExtension) as e:
@@ -832,7 +832,7 @@ class ConductorManager(periodic_task.PeriodicTasks):
             if not node.console_enabled:
                 raise exception.NodeConsoleNotEnabled(node=node_id)
 
-            task.driver.console.validate(task, node)
+            task.driver.console.validate(task)
             return task.driver.console.get_console(task)
 
     @messaging.expected_exceptions(exception.NoFreeConductorWorker,
@@ -865,7 +865,7 @@ class ConductorManager(periodic_task.PeriodicTasks):
                 raise exception.UnsupportedDriverExtension(driver=node.driver,
                                                            extension='console')
 
-            task.driver.console.validate(task, node)
+            task.driver.console.validate(task)
 
             if enabled == node.console_enabled:
                 op = _('enabled') if enabled else _('disabled')
