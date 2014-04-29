@@ -798,6 +798,14 @@ class TestPost(base.FunctionalTest):
         self.assertEqual('application/json', response.content_type)
         self.assertEqual(201, response.status_int)
 
+    def test_create_node_with_chassis_uuid(self):
+        ndict = post_get_test_node(chassis_uuid=self.chassis.uuid)
+        response = self.post_json('/nodes', ndict)
+        self.assertEqual('application/json', response.content_type)
+        self.assertEqual(201, response.status_int)
+        result = self.get_json('/nodes/%s' % ndict['uuid'])
+        self.assertEqual(ndict['chassis_uuid'], result['chassis_uuid'])
+
     def test_create_node_chassis_uuid_not_found(self):
         ndict = post_get_test_node(
                            chassis_uuid='1a1a1a1a-2b2b-3c3c-4d4d-5e5e5e5e5e5e')

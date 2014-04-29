@@ -361,8 +361,14 @@ class Node(base.APIBase):
             self.fields.append(k)
             setattr(self, k, kwargs.get(k))
 
+        # NOTE(lucasagomes): chassis_id is an attribute created on-the-fly
+        # by _set_chassis_uuid(), it needs to be present in the fields so
+        # that as_dict() will contain chassis_id field when converting it
+        # before saving it in the database.
+        self.fields.append('chassis_id')
+
         # NOTE(lucasagomes): chassis_uuid is not part of objects.Node.fields
-        #                    because it's an API-only attribute
+        # because it's an API-only attribute.
         self.fields.append('chassis_uuid')
         setattr(self, 'chassis_uuid', kwargs.get('chassis_id'))
 
