@@ -136,7 +136,7 @@ def cleanup_after_timeout(task):
     error_msg = _('Cleanup failed for node %(node)s after deploy timeout: '
                   ' %(error)s')
     try:
-        task.driver.deploy.clean_up(task, node)
+        task.driver.deploy.clean_up(task)
     except exception.IronicException as e:
         msg = error_msg % {'node': node.uuid, 'error': e}
         LOG.error(msg)

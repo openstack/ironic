@@ -365,7 +365,7 @@ class SSHPower(base.PowerInterface):
         :raises: InvalidParameterValue if any connection parameters are
             incorrect or if ssh failed to connect to the node.
         """
-        if not driver_utils.get_node_mac_addresses(task, node):
+        if not driver_utils.get_node_mac_addresses(task):
             raise exception.InvalidParameterValue(_("Node %s does not have "
                                 "any port associated with it.") % node.uuid)
         try:
@@ -390,7 +390,7 @@ class SSHPower(base.PowerInterface):
         :raises: SSHConnectFailed if ssh failed to connect to the node.
         """
         driver_info = _parse_driver_info(node)
-        driver_info['macs'] = driver_utils.get_node_mac_addresses(task, node)
+        driver_info['macs'] = driver_utils.get_node_mac_addresses(task)
         ssh_obj = _get_connection(node)
         return _get_power_status(ssh_obj, driver_info)
 
@@ -413,7 +413,7 @@ class SSHPower(base.PowerInterface):
         :raises: SSHConnectFailed if ssh failed to connect to the node.
         """
         driver_info = _parse_driver_info(node)
-        driver_info['macs'] = driver_utils.get_node_mac_addresses(task, node)
+        driver_info['macs'] = driver_utils.get_node_mac_addresses(task)
         ssh_obj = _get_connection(node)
 
         if pstate == states.POWER_ON:
@@ -444,7 +444,7 @@ class SSHPower(base.PowerInterface):
         :raises: SSHConnectFailed if ssh failed to connect to the node.
         """
         driver_info = _parse_driver_info(node)
-        driver_info['macs'] = driver_utils.get_node_mac_addresses(task, node)
+        driver_info['macs'] = driver_utils.get_node_mac_addresses(task)
         ssh_obj = _get_connection(node)
         current_pstate = _get_power_status(ssh_obj, driver_info)
         if current_pstate == states.POWER_ON:

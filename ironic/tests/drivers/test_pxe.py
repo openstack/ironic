@@ -317,7 +317,7 @@ class PXEPrivateMethodsTestCase(db_base.DbTestCase):
         mock_gnvi.return_value = {'port-uuid': 'vif-uuid'}
         with task_manager.acquire(self.context,
                                   self.node.uuid) as task:
-            pxe._update_neutron(task, self.node)
+            pxe._update_neutron(task)
         mock_updo.assert_called_once_with('vif-uuid', opts)
 
     @mock.patch.object(pxe, '_get_node_vif_ids')
@@ -326,7 +326,7 @@ class PXEPrivateMethodsTestCase(db_base.DbTestCase):
         mock_gnvi.return_value = {}
         with task_manager.acquire(self.context,
                                   self.node.uuid) as task:
-            pxe._update_neutron(task, self.node)
+            pxe._update_neutron(task)
         self.assertFalse(mock_init.called)
 
     @mock.patch.object(pxe, '_get_node_vif_ids')
@@ -338,7 +338,7 @@ class PXEPrivateMethodsTestCase(db_base.DbTestCase):
         mock_updo.side_effect = [None, exc]
         with task_manager.acquire(self.context,
                                   self.node.uuid) as task:
-            pxe._update_neutron(task, self.node)
+            pxe._update_neutron(task)
         self.assertEqual(2, mock_updo.call_count)
 
     @mock.patch.object(pxe, '_get_node_vif_ids')
@@ -352,7 +352,7 @@ class PXEPrivateMethodsTestCase(db_base.DbTestCase):
                                   self.node.uuid) as task:
             self.assertRaises(exception.FailedToUpdateDHCPOptOnPort,
                               pxe._update_neutron,
-                              task, self.node)
+                              task)
         self.assertEqual(2, mock_updo.call_count)
 
     def test__dhcp_options_for_instance(self):
@@ -462,9 +462,10 @@ class PXEDriverTestCase(db_base.DbTestCase):
         self.node['driver_info'] = json.dumps(info)
         with task_manager.acquire(self.context, [self.node.uuid],
                                   shared=True) as task:
+            task.node['driver_info'] = json.dumps(info)
             self.assertRaises(exception.InvalidParameterValue,
                               task.resources[0].driver.deploy.validate,
-                              task, self.node)
+                              task, task.node)
 
     def test_validate_fail_no_port(self):
         new_node = obj_utils.create_test_node(
@@ -546,12 +547,12 @@ class PXEDriverTestCase(db_base.DbTestCase):
         mock_pxe_config.return_value = None
         mock_cache_tftp_images.return_value = None
         with task_manager.acquire(self.context, self.node.uuid) as task:
-            task.driver.deploy.prepare(task, self.node)
-            mock_tftp_img_info.assert_called_once_with(self.node,
+            task.driver.deploy.prepare(task)
+            mock_tftp_img_info.assert_called_once_with(task.node,
                                                        self.context)
-            mock_pxe_config.assert_called_once_with(task, self.node, None)
+            mock_pxe_config.assert_called_once_with(task, None)
             mock_cache_tftp_images.assert_called_once_with(self.context,
-                                                           self.node, None)
+                                                           task.node, None)
 
     @mock.patch.object(deploy_utils, 'get_image_mb')
     @mock.patch.object(pxe, '_get_image_file_path')
@@ -568,17 +569,16 @@ class PXEDriverTestCase(db_base.DbTestCase):
 
         with task_manager.acquire(self.context,
             self.node.uuid, shared=False) as task:
-            state = task.driver.deploy.deploy(task, self.node)
+            state = task.driver.deploy.deploy(task)
             self.assertEqual(state, states.DEPLOYWAIT)
             mock_cache_instance_image.assert_called_once_with(
-                self.context, self.node)
+                self.context, task.node)
             mock_get_image_file_path.assert_called_once_with(task.node.uuid)
             mock_get_image_mb.assert_called_once_with(fake_img_path)
-            mock_update_neutron.assert_called_once_with(task,
-                                                        self.node)
+            mock_update_neutron.assert_called_once_with(task)
             mock_node_set_boot.assert_called_once_with(task, 'pxe',
                                                        persistent=True)
-            mock_node_power_action.assert_called_once_with(task, self.node,
+            mock_node_power_action.assert_called_once_with(task, task.node,
                                                            states.REBOOT)
 
             # ensure token file created
@@ -600,9 +600,9 @@ class PXEDriverTestCase(db_base.DbTestCase):
                                   self.node.uuid, shared=False) as task:
             # state = task.driver.deploy.deploy(task, self.node)
             self.assertRaises(exception.InstanceDeployFailure,
-                task.driver.deploy.deploy, task, self.node)
+                task.driver.deploy.deploy, task)
             mock_cache_instance_image.assert_called_once_with(
-                self.context, self.node)
+                self.context, task.node)
             mock_get_image_file_path.assert_called_once_with(task.node.uuid)
             mock_get_image_mb.assert_called_once_with(fake_img_path)
 
@@ -610,9 +610,9 @@ class PXEDriverTestCase(db_base.DbTestCase):
     def test_tear_down(self, node_power_mock):
         with task_manager.acquire(self.context,
                                   self.node.uuid) as task:
-            state = task.driver.deploy.tear_down(task, self.node)
+            state = task.driver.deploy.tear_down(task)
             self.assertEqual(states.DELETED, state)
-            node_power_mock.assert_called_once_with(task, self.node,
+            node_power_mock.assert_called_once_with(task, task.node,
                                                     states.POWER_OFF)
 
     @mock.patch.object(manager_utils, 'node_power_action')
@@ -625,20 +625,20 @@ class PXEDriverTestCase(db_base.DbTestCase):
         self.node.driver_info = info
         self.node.save()
         with task_manager.acquire(self.context, self.node.uuid) as task:
-            task.driver.deploy.tear_down(task, self.node)
+            task.driver.deploy.tear_down(task)
+            mock_npa.assert_called_once_with(task, task.node, states.POWER_OFF)
 
         self.node.refresh()
         self.assertNotIn('pxe_deploy_key', self.node.driver_info)
         self.assertNotIn('pxe_kernel', self.node.driver_info)
         self.assertNotIn('pxe_ramdisk', self.node.driver_info)
-        mock_npa.assert_called_once_with(task, self.node, states.POWER_OFF)
 
     @mock.patch.object(pxe, '_update_neutron')
     def test_take_over(self, update_neutron_mock):
         with task_manager.acquire(
                 self.context, self.node.uuid, shared=True) as task:
-            task.driver.deploy.take_over(task, self.node)
-            update_neutron_mock.assert_called_once_with(task, self.node)
+            task.driver.deploy.take_over(task)
+            update_neutron_mock.assert_called_once_with(task)
 
     @mock.patch.object(pxe, 'InstanceImageCache')
     def test_continue_deploy_good(self, mock_image_cache):
@@ -812,8 +812,8 @@ class PXEDriverTestCase(db_base.DbTestCase):
 
         with task_manager.acquire(self.context, [self.node.uuid],
                                   shared=True) as task:
-            task.resources[0].driver.deploy.clean_up(task, self.node)
-        get_tftp_image_info_mock.called_once_with(self.node)
+            task.resources[0].driver.deploy.clean_up(task)
+            get_tftp_image_info_mock.called_once_with(task.node)
         assert_false_path = [config_path, deploy_kernel_path, image_path,
                              pxe_mac_path, image_dir, instance_dir,
                              token_path]

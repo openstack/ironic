@@ -66,13 +66,13 @@ class FakeDriverTestCase(base.TestCase):
     def test_deploy_interface(self):
         self.driver.deploy.validate(None, self.node)
 
-        self.driver.deploy.prepare(None, None)
-        self.driver.deploy.deploy(None, None)
+        self.driver.deploy.prepare(None)
+        self.driver.deploy.deploy(None)
 
-        self.driver.deploy.take_over(None, None)
+        self.driver.deploy.take_over(None)
 
-        self.driver.deploy.clean_up(None, None)
-        self.driver.deploy.tear_down(None, None)
+        self.driver.deploy.clean_up(None)
+        self.driver.deploy.tear_down(None)
 
     def test_management_interface_validate(self):
         self.driver.management.validate(self.task, self.node)

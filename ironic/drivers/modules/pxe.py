@@ -354,9 +354,9 @@ def _destroy_images(d_info, node_uuid):
     InstanceImageCache().clean_up()
 
 
-def _create_token_file(task, node):
+def _create_token_file(task):
     """Save PKI token to file."""
-    token_file_path = _get_token_file_path(node['uuid'])
+    token_file_path = _get_token_file_path(task.node.uuid)
     token = task.context.auth_token
     if token:
         utils.write_to_file(token_file_path, token)
@@ -370,14 +370,14 @@ def _destroy_token_file(node):
     utils.unlink_without_raise(token_file_path)
 
 
-def _remove_internal_attrs(task, node):
+def _remove_internal_attrs(task):
     """Remove internal attributes from driver_info."""
     internal_attrs = ('pxe_deploy_key', 'pxe_kernel', 'pxe_ramdisk')
-    driver_info = node.driver_info
+    driver_info = task.node.driver_info
     for attr in internal_attrs:
         driver_info.pop(attr, None)
-    node.driver_info = driver_info
-    node.save(task.context)
+    task.node.driver_info = driver_info
+    task.node.save(task.context)
 
 
 def _dhcp_options_for_instance():
@@ -391,14 +391,14 @@ def _dhcp_options_for_instance():
             ]
 
 
-def _update_neutron(task, node):
+def _update_neutron(task):
     """Send or update the DHCP BOOT options to Neutron for this node."""
     options = _dhcp_options_for_instance()
     vifs = _get_node_vif_ids(task)
     if not vifs:
         LOG.warning(_("No VIFs found for node %(node)s when attempting to "
                       "update Neutron DHCP BOOT options."),
-                      {'node': node.uuid})
+                      {'node': task.node.uuid})
         return
 
     # TODO(deva): decouple instantiation of NeutronAPI from task.context.
@@ -417,27 +417,27 @@ def _update_neutron(task, node):
         if len(failures) == len(vifs):
             raise exception.FailedToUpdateDHCPOptOnPort(_(
                 "Failed to set DHCP BOOT options for any port on node %s.") %
-                node.uuid)
+                task.node.uuid)
         else:
             LOG.warning(_("Some errors were encountered when updating the "
                           "DHCP BOOT options for node %(node)s on the "
                           "following ports: %(ports)s."),
-                          {'node': node.uuid, 'ports': failures})
+                          {'node': task.node.uuid, 'ports': failures})
 
 
-def _create_pxe_config(task, node, pxe_info):
+def _create_pxe_config(task, pxe_info):
     """Generate pxe configuration file and link mac ports to it for
     tftp booting.
     """
     fileutils.ensure_tree(os.path.join(CONF.pxe.tftp_root,
-                                       node.uuid))
+                                       task.node.uuid))
     fileutils.ensure_tree(os.path.join(CONF.pxe.tftp_root,
                                        'pxelinux.cfg'))
 
-    pxe_config_file_path = _get_pxe_config_file_path(node.uuid)
-    pxe_config = _build_pxe_config(node, pxe_info, task.context)
+    pxe_config_file_path = _get_pxe_config_file_path(task.node.uuid)
+    pxe_config = _build_pxe_config(task.node, pxe_info, task.context)
     utils.write_to_file(pxe_config_file_path, pxe_config)
-    for port in driver_utils.get_node_mac_addresses(task, node):
+    for port in driver_utils.get_node_mac_addresses(task):
         mac_path = _get_pxe_mac_path(port)
         utils.unlink_without_raise(mac_path)
         utils.create_link_without_raise(pxe_config_file_path, mac_path)
@@ -462,11 +462,11 @@ class PXEDeploy(base.DeployInterface):
     def validate(self, task, node):
         """Validate the driver-specific Node deployment info.
 
-        :param task: a task from TaskManager.
-        :param node: a single Node to validate.
+        :param task: a TaskManager instance containing the node to act on.
         :returns: InvalidParameterValue.
         """
-        if not driver_utils.get_node_mac_addresses(task, node):
+        node = task.node
+        if not driver_utils.get_node_mac_addresses(task):
             raise exception.InvalidParameterValue(_("Node %s does not have "
                                 "any port associated with it.") % node.uuid)
         _parse_driver_info(node)
@@ -483,8 +483,8 @@ class PXEDeploy(base.DeployInterface):
                 "configuration file or keystone catalog."))
 
     @task_manager.require_exclusive_lock
-    def deploy(self, task, node):
-        """Perform start deployment a node.
+    def deploy(self, task):
+        """Start deployment of the task's node'.
 
         Fetches instance image, creates a temporary keystone token file,
         updates the Neutron DHCP port options for next boot, and issues a
@@ -493,63 +493,60 @@ class PXEDeploy(base.DeployInterface):
         the next phase of PXE-based deployment via
         VendorPassthru._continue_deploy().
 
-        :param task: a TaskManager instance.
-        :param node: the Node to act upon.
+        :param task: a TaskManager instance containing the node to act on.
         :returns: deploy state DEPLOYING.
         """
-        _cache_instance_image(task.context, node)
+        _cache_instance_image(task.context, task.node)
         _check_image_size(task)
 
         # TODO(yuriyz): more secure way needed for pass auth token
         #               to deploy ramdisk
-        _create_token_file(task, node)
-        _update_neutron(task, node)
+        _create_token_file(task)
+        _update_neutron(task)
         manager_utils.node_set_boot_device(task, 'pxe', persistent=True)
-        manager_utils.node_power_action(task, node, states.REBOOT)
+        manager_utils.node_power_action(task, task.node, states.REBOOT)
 
         return states.DEPLOYWAIT
 
     @task_manager.require_exclusive_lock
-    def tear_down(self, task, node):
-        """Tear down a previous deployment.
+    def tear_down(self, task):
+        """Tear down a previous deployment on the task's node.
 
         Power off the node. All actual clean-up is done in the clean_up()
         method which should be called separately.
 
-        :param task: a TaskManager instance.
-        :param node: the Node to act upon.
+        :param task: a TaskManager instance containing the node to act on.
         :returns: deploy state DELETED.
         """
-        manager_utils.node_power_action(task, node, states.POWER_OFF)
-        _remove_internal_attrs(task, node)
+        manager_utils.node_power_action(task, task.node, states.POWER_OFF)
+        _remove_internal_attrs(task)
 
         return states.DELETED
 
-    def prepare(self, task, node):
-        """Prepare the deployment environment for this node.
+    def prepare(self, task):
+        """Prepare the deployment environment for this task's node.
 
         Generates the TFTP configuration for PXE-booting both the deployment
         and user images, fetches the TFTP image from Glance and add it to the
         local cache.
 
-        :param task: a TaskManager instance.
-        :param node: the Node to act upon.
+        :param task: a TaskManager instance containing the node to act on.
         """
         # TODO(deva): optimize this if rerun on existing files
-        pxe_info = _get_tftp_image_info(node, task.context)
-        _create_pxe_config(task, node, pxe_info)
-        _cache_tftp_images(task.context, node, pxe_info)
+        pxe_info = _get_tftp_image_info(task.node, task.context)
+        _create_pxe_config(task, pxe_info)
+        _cache_tftp_images(task.context, task.node, pxe_info)
 
-    def clean_up(self, task, node):
-        """Clean up the deployment environment for this node.
+    def clean_up(self, task):
+        """Clean up the deployment environment for the task's node.
 
         Unlinks TFTP and instance images and triggers image cache cleanup.
         Removes the TFTP configuration files for this node. As a precaution,
         this method also ensures the keystone auth token file was removed.
 
-        :param task: a TaskManager instance.
-        :param node: the Node to act upon.
+        :param task: a TaskManager instance containing the node to act on.
         """
+        node = task.node
         pxe_info = _get_tftp_image_info(node, task.context)
         d_info = _parse_driver_info(node)
         for label in pxe_info:
@@ -559,7 +556,7 @@ class PXEDeploy(base.DeployInterface):
 
         utils.unlink_without_raise(_get_pxe_config_file_path(
                 node.uuid))
-        for port in driver_utils.get_node_mac_addresses(task, node):
+        for port in driver_utils.get_node_mac_addresses(task):
             mac_path = _get_pxe_mac_path(port)
             utils.unlink_without_raise(mac_path)
 
@@ -569,8 +566,8 @@ class PXEDeploy(base.DeployInterface):
         _destroy_images(d_info, node.uuid)
         _destroy_token_file(node)
 
-    def take_over(self, task, node):
-        _update_neutron(task, node)
+    def take_over(self, task):
+        _update_neutron(task)
 
 
 class VendorPassthru(base.VendorInterface):

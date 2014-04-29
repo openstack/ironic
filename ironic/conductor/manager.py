@@ -384,8 +384,8 @@ class ConductorManager(periodic_task.PeriodicTasks):
         """Prepare the environment and deploy a node."""
         node = task.node
         try:
-            task.driver.deploy.prepare(task, node)
-            new_state = task.driver.deploy.deploy(task, node)
+            task.driver.deploy.prepare(task)
+            new_state = task.driver.deploy.deploy(task)
         except Exception as e:
             with excutils.save_and_reraise_exception():
                 node.last_error = _("Failed to deploy. Error: %s") % e
@@ -449,8 +449,8 @@ class ConductorManager(periodic_task.PeriodicTasks):
         """Internal RPC method to tear down an existing node deployment."""
         node = task.node
         try:
-            task.driver.deploy.clean_up(task, node)
-            new_state = task.driver.deploy.tear_down(task, node)
+            task.driver.deploy.clean_up(task)
+            new_state = task.driver.deploy.tear_down(task)
         except Exception as e:
             with excutils.save_and_reraise_exception():
                 node.last_error = _("Failed to tear down. Error: %s") % e

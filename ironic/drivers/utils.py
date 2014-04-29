@@ -86,13 +86,12 @@ class MixinVendorInterface(base.VendorInterface):
         return iface.driver_vendor_passthru(context, method, **kwargs)
 
 
-def get_node_mac_addresses(task, node):
-    """Get all MAC addresses for a node.
+def get_node_mac_addresses(task):
+    """Get all MAC addresses for the ports belonging to this task's node.
 
-    :param task: a TaskManager instance.
-    :param node: the Node to act upon.
+    :param task: a TaskManager instance containing the node to act on.
     :returns: A list of MAC addresses in the format xx:xx:xx:xx:xx:xx.
     """
     for r in task.resources:
-        if r.node.id == node.id:
+        if r.node.id == task.node.id:
             return [p.address for p in r.ports]

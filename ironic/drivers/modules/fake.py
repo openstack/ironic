@@ -66,19 +66,19 @@ class FakeDeploy(base.DeployInterface):
     def validate(self, task, node):
         pass
 
-    def deploy(self, task, node):
+    def deploy(self, task):
         pass
 
-    def tear_down(self, task, node):
+    def tear_down(self, task):
         pass
 
-    def prepare(self, task, node):
+    def prepare(self, task):
         pass
 
-    def clean_up(self, task, node):
+    def clean_up(self, task):
         pass
 
-    def take_over(self, task, node):
+    def take_over(self, task):
         pass
 
 

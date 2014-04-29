@@ -577,7 +577,7 @@ class ManagerTestCase(tests_db_base.DbTestCase):
         self.assertEqual(states.DEPLOYFAIL, node.provision_state)
         self.assertEqual(states.NOSTATE, node.target_provision_state)
         self.assertIsNotNone(node.last_error)
-        mock_deploy.assert_called_once_with(mock.ANY, mock.ANY)
+        mock_deploy.assert_called_once_with(mock.ANY)
 
     @mock.patch('ironic.drivers.modules.fake.FakeDeploy.deploy')
     def test__do_node_deploy_ok(self, mock_deploy):
@@ -592,7 +592,7 @@ class ManagerTestCase(tests_db_base.DbTestCase):
         self.assertEqual(states.ACTIVE, node.provision_state)
         self.assertEqual(states.NOSTATE, node.target_provision_state)
         self.assertIsNone(node.last_error)
-        mock_deploy.assert_called_once_with(mock.ANY, mock.ANY)
+        mock_deploy.assert_called_once_with(mock.ANY)
 
     def test_do_node_deploy_partial_ok(self):
         self._start_service()
@@ -671,7 +671,7 @@ class ManagerTestCase(tests_db_base.DbTestCase):
         self.assertEqual(states.ERROR, node.provision_state)
         self.assertEqual(states.NOSTATE, node.target_provision_state)
         self.assertIsNotNone(node.last_error)
-        mock_tear_down.assert_called_once_with(mock.ANY, mock.ANY)
+        mock_tear_down.assert_called_once_with(mock.ANY)
 
     @mock.patch('ironic.drivers.modules.fake.FakeDeploy.tear_down')
     def test_do_node_tear_down_ok(self, mock_tear_down):
@@ -687,7 +687,7 @@ class ManagerTestCase(tests_db_base.DbTestCase):
         self.assertEqual(states.NOSTATE, node.provision_state)
         self.assertEqual(states.NOSTATE, node.target_provision_state)
         self.assertIsNone(node.last_error)
-        mock_tear_down.assert_called_once_with(mock.ANY, mock.ANY)
+        mock_tear_down.assert_called_once_with(mock.ANY)
 
     @mock.patch('ironic.drivers.modules.fake.FakeDeploy.tear_down')
     def test_do_node_tear_down_partial_ok(self, mock_tear_down):
@@ -702,7 +702,7 @@ class ManagerTestCase(tests_db_base.DbTestCase):
         node.refresh()
         self.assertEqual(states.DELETING, node.provision_state)
         self.assertIsNone(node.last_error)
-        mock_tear_down.assert_called_once_with(mock.ANY, mock.ANY)
+        mock_tear_down.assert_called_once_with(mock.ANY)
 
     @mock.patch('ironic.conductor.manager.ConductorManager._spawn_worker')
     def test_do_node_tear_down_worker_pool_full(self, mock_spawn):
@@ -839,7 +839,7 @@ class ManagerTestCase(tests_db_base.DbTestCase):
             self.assertEqual(states.DEPLOYFAIL, node.provision_state)
             self.assertEqual(states.NOSTATE, node.target_provision_state)
             self.assertIsNotNone(node.last_error)
-            clean_mock.assert_called_once_with(mock.ANY, mock.ANY)
+            clean_mock.assert_called_once_with(mock.ANY)
 
     @mock.patch.object(timeutils, 'utcnow')
     def test__check_deploy_timeouts_no_timeout(self, mock_utcnow):

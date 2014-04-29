@@ -617,7 +617,7 @@ class SSHDriverTestCase(db_base.DbTestCase):
                 task.resources[0].driver.power.reboot(task, self.node)
 
             parse_drv_info_mock.assert_called_once_with(self.node)
-        get_mac_addr_mock.assert_called_once_with(mock.ANY, self.node)
+        get_mac_addr_mock.assert_called_once_with(mock.ANY)
         get_conn_mock.assert_called_once_with(self.node)
         get_power_stat_mock.assert_called_once_with(self.sshclient, info)
         power_off_mock.assert_called_once_with(self.sshclient, info)
@@ -648,7 +648,7 @@ class SSHDriverTestCase(db_base.DbTestCase):
                                   task,
                                   self.node)
             parse_drv_info_mock.assert_called_once_with(self.node)
-        get_mac_addr_mock.assert_called_once_with(mock.ANY, self.node)
+        get_mac_addr_mock.assert_called_once_with(mock.ANY)
         get_conn_mock.assert_called_once_with(self.node)
         get_power_stat_mock.assert_called_once_with(self.sshclient, info)
         power_off_mock.assert_called_once_with(self.sshclient, info)
@@ -675,7 +675,7 @@ class SSHDriverTestCase(db_base.DbTestCase):
                     "BAD_PSTATE")
 
             parse_drv_info_mock.assert_called_once_with(self.node)
-        get_mac_addr_mock.assert_called_once_with(mock.ANY, self.node)
+        get_mac_addr_mock.assert_called_once_with(mock.ANY)
         get_conn_mock.assert_called_once_with(self.node)
 
     @mock.patch.object(driver_utils, 'get_node_mac_addresses')
@@ -697,7 +697,7 @@ class SSHDriverTestCase(db_base.DbTestCase):
                                                                states.POWER_ON)
 
             parse_drv_info_mock.assert_called_once_with(self.node)
-        get_mac_addr_mock.assert_called_once_with(mock.ANY, self.node)
+        get_mac_addr_mock.assert_called_once_with(mock.ANY)
         get_conn_mock.assert_called_once_with(self.node)
         power_on_mock.assert_called_once_with(self.sshclient, info)
 
@@ -724,7 +724,7 @@ class SSHDriverTestCase(db_base.DbTestCase):
                     states.POWER_ON)
 
             parse_drv_info_mock.assert_called_once_with(self.node)
-        get_mac_addr_mock.assert_called_once_with(mock.ANY, self.node)
+        get_mac_addr_mock.assert_called_once_with(mock.ANY)
         get_conn_mock.assert_called_once_with(self.node)
         power_on_mock.assert_called_once_with(self.sshclient, info)
 
@@ -747,7 +747,7 @@ class SSHDriverTestCase(db_base.DbTestCase):
                     task, self.node, states.POWER_OFF)
 
             parse_drv_info_mock.assert_called_once_with(self.node)
-        get_mac_addr_mock.assert_called_once_with(mock.ANY, self.node)
+        get_mac_addr_mock.assert_called_once_with(mock.ANY)
         get_conn_mock.assert_called_once_with(self.node)
         power_off_mock.assert_called_once_with(self.sshclient, info)
 
@@ -774,6 +774,6 @@ class SSHDriverTestCase(db_base.DbTestCase):
                     states.POWER_OFF)
 
             parse_drv_info_mock.assert_called_once_with(self.node)
-        get_mac_addr_mock.assert_called_once_with(mock.ANY, self.node)
+        get_mac_addr_mock.assert_called_once_with(mock.ANY)
         get_conn_mock.assert_called_once_with(self.node)
         power_off_mock.assert_called_once_with(self.sshclient, info)
