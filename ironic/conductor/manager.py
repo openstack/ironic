@@ -834,7 +834,7 @@ class ConductorManager(periodic_task.PeriodicTasks):
                 raise exception.NodeConsoleNotEnabled(node=node_id)
 
             task.driver.console.validate(task, node)
-            return task.driver.console.get_console(task, node)
+            return task.driver.console.get_console(task)
 
     @messaging.expected_exceptions(exception.NoFreeConductorWorker,
                                    exception.NodeLocked,
@@ -884,9 +884,9 @@ class ConductorManager(periodic_task.PeriodicTasks):
         node = task.node
         try:
             if enabled:
-                task.driver.console.start_console(task, node)
+                task.driver.console.start_console(task)
             else:
-                task.driver.console.stop_console(task, node)
+                task.driver.console.stop_console(task)
         except Exception as e:
             with excutils.save_and_reraise_exception():
                 op = _('enabling') if enabled else _('disabling')

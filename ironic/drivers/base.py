@@ -236,6 +236,9 @@ class PowerInterface(object):
 class ConsoleInterface(object):
     """Interface for console-related actions."""
 
+    # TODO(lucasagomes): The 'node' parameter needs to be passed to validate()
+    # because of the ConductorManager.validate_driver_interfaces().
+    # Remove it after all cleaning all the interfaces
     @abc.abstractmethod
     def validate(self, task, node):
         """Validate the driver-specific Node console info.
@@ -244,34 +247,33 @@ class ConsoleInterface(object):
         supplied node contains the required information for this driver to
         provide console access to the Node.
 
-        :param task: a task from TaskManager.
+        :param task: a TaskManager instance containing the node to act on.
         :param node: a single Node to validate.
         :raises: InvalidParameterValue
         """
 
     @abc.abstractmethod
-    def start_console(self, task, node):
-        """Start a remote console for the node.
+    def start_console(self, task):
+        """Start a remote console for the task's node.
 
-        TODO
+        :param task: a TaskManager instance containing the node to act on.
         """
 
     @abc.abstractmethod
-    def stop_console(self, task, node):
-        """Stop the remote console session for the node.
+    def stop_console(self, task):
+        """Stop the remote console session for the task's node.
 
-        TODO
+        :param task: a TaskManager instance containing the node to act on.
         """
 
     @abc.abstractmethod
-    def get_console(self, task, node):
+    def get_console(self, task):
         """Get connection information about the console.
 
         This method should return the necessary information for the
         client to access the console.
 
-        :param task: a task from TaskManager.
-        :param node: a single Node.
+        :param task: a TaskManager instance containing the node to act on.
         :returns: the console connection information.
         """
 
@@ -280,27 +282,30 @@ class ConsoleInterface(object):
 class RescueInterface(object):
     """Interface for rescue-related actions."""
 
+    # TODO(lucasagomes): The 'node' parameter needs to be passed to validate()
+    # because of the ConductorManager.validate_driver_interfaces().
+    # Remove it after all cleaning all the interfaces
     @abc.abstractmethod
     def validate(self, task, node):
         """Validate the rescue info stored in the node' properties.
 
-        :param task: a task from TaskManager.
+        :param task: a TaskManager instance containing the node to act on.
         :param node: a single Node to validate.
         :raises: InvalidParameterValue
         """
 
     @abc.abstractmethod
-    def rescue(self, task, node):
-        """Boot the node into a rescue environment.
+    def rescue(self, task):
+        """Boot the task's node into a rescue environment.
 
-        TODO
+        :param task: a TaskManager instance containing the node to act on.
         """
 
     @abc.abstractmethod
-    def unrescue(self, task, node):
+    def unrescue(self, task):
         """Tear down the rescue environment, and return to normal.
 
-        TODO
+        :param task: a TaskManager instance containing the node to act on.
         """
 
 

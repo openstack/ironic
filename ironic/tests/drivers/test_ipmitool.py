@@ -463,7 +463,7 @@ class IPMIToolDriverTestCase(db_base.DbTestCase):
 
         with task_manager.acquire(self.context,
                                   self.node['uuid']) as task:
-            self.driver.console.start_console(task, self.node)
+            self.driver.console.start_console(task)
 
         mock_exec.assert_called_once_with(self.info['uuid'],
                                           self.info['port'],
@@ -480,7 +480,7 @@ class IPMIToolDriverTestCase(db_base.DbTestCase):
                                   self.node['uuid']) as task:
             self.assertRaises(exception.ConsoleSubprocessFailed,
                               self.driver.console.start_console,
-                              task, self.node)
+                              task)
 
     @mock.patch.object(console_utils, 'stop_shellinabox_console',
                        autospec=True)
@@ -489,7 +489,7 @@ class IPMIToolDriverTestCase(db_base.DbTestCase):
 
         with task_manager.acquire(self.context,
                                   self.node['uuid']) as task:
-            self.driver.console.stop_console(task, self.node)
+            self.driver.console.stop_console(task)
 
         mock_exec.assert_called_once_with(self.info['uuid'])
         self.assertTrue(mock_exec.called)
@@ -503,8 +503,7 @@ class IPMIToolDriverTestCase(db_base.DbTestCase):
 
         with task_manager.acquire(self.context,
                                   self.node['uuid']) as task:
-            console_info = self.driver.console.get_console(task,
-                                                           self.node)
+            console_info = self.driver.console.get_console(task)
 
         self.assertEqual(expected, console_info)
         mock_exec.assert_called_once_with(self.info['port'])
