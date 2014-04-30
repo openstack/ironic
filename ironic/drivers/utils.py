@@ -57,7 +57,7 @@ class MixinVendorInterface(base.VendorInterface):
         route = self._map(**kwargs)
         route.validate(*args, **kwargs)
 
-    def vendor_passthru(self, task, node, **kwargs):
+    def vendor_passthru(self, task, **kwargs):
         """Call vendor_passthru on the appropriate interface only.
 
         Returns or raises according to the requested vendor_passthru method.
@@ -68,7 +68,7 @@ class MixinVendorInterface(base.VendorInterface):
 
         """
         route = self._map(**kwargs)
-        return route.vendor_passthru(task, node, **kwargs)
+        return route.vendor_passthru(task, **kwargs)
 
     def driver_vendor_passthru(self, context, method, **kwargs):
         """Call driver_vendor_passthru on a mapped interface based on the

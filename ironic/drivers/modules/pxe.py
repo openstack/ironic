@@ -587,7 +587,7 @@ class PXEDeploy(base.DeployInterface):
         #               to deploy ramdisk
         _create_token_file(task, node)
         _update_neutron(task, node)
-        manager_utils.node_set_boot_device(task, node, 'pxe', persistent=True)
+        manager_utils.node_set_boot_device(task, 'pxe', persistent=True)
         manager_utils.node_power_action(task, node, states.REBOOT)
 
         return states.DEPLOYWAIT
@@ -693,10 +693,10 @@ class VendorPassthru(base.VendorInterface):
 
         return params
 
-    def validate(self, task, node, **kwargs):
+    def validate(self, task, **kwargs):
         method = kwargs['method']
         if method == 'pass_deploy_info':
-            self._get_deploy_info(node, **kwargs)
+            self._get_deploy_info(task.node, **kwargs)
         else:
             raise exception.InvalidParameterValue(_(
                 "Unsupported method (%s) passed to PXE driver.")
@@ -705,12 +705,13 @@ class VendorPassthru(base.VendorInterface):
         return True
 
     @task_manager.require_exclusive_lock
-    def _continue_deploy(self, task, node, **kwargs):
+    def _continue_deploy(self, task, **kwargs):
         """Resume a deployment upon getting POST data from deploy ramdisk.
 
         This method raises no exceptions because it is intended to be
         invoked asynchronously as a callback from the deploy ramdisk.
         """
+        node = task.node
 
         def _set_failed_state(msg):
             node.provision_state = states.DEPLOYFAIL
@@ -764,7 +765,7 @@ class VendorPassthru(base.VendorInterface):
             node.target_provision_state = states.NOSTATE
             node.save(task.context)
 
-    def vendor_passthru(self, task, node, **kwargs):
+    def vendor_passthru(self, task, **kwargs):
         method = kwargs['method']
         if method == 'pass_deploy_info':
-            self._continue_deploy(task, node, **kwargs)
+            self._continue_deploy(task, **kwargs)

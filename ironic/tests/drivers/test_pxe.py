@@ -692,7 +692,7 @@ class PXEDriverTestCase(db_base.DbTestCase):
     def test_vendor_passthru_validate_good(self):
         with task_manager.acquire(self.context, [self.node['uuid']],
                                   shared=True) as task:
-            task.resources[0].driver.vendor.validate(task, self.node,
+            task.resources[0].driver.vendor.validate(task,
                     method='pass_deploy_info', address='123456', iqn='aaa-bbb',
                     key='fake-56789')
 
@@ -701,7 +701,7 @@ class PXEDriverTestCase(db_base.DbTestCase):
                                   shared=True) as task:
             self.assertRaises(exception.InvalidParameterValue,
                               task.resources[0].driver.vendor.validate,
-                              task, self.node, method='pass_deploy_info',
+                              task, method='pass_deploy_info',
                               key='fake-56789')
 
     def test_vendor_passthru_validate_key_notmatch(self):
@@ -709,7 +709,7 @@ class PXEDriverTestCase(db_base.DbTestCase):
                                   shared=True) as task:
             self.assertRaises(exception.InvalidParameterValue,
                               task.resources[0].driver.vendor.validate,
-                              task, self.node, method='pass_deploy_info',
+                              task, method='pass_deploy_info',
                               address='123456', iqn='aaa-bbb',
                               key='fake-12345')
 
@@ -749,7 +749,6 @@ class PXEDriverTestCase(db_base.DbTestCase):
                         update_neutron_mock.assert_called_once_with(task,
                                                                     self.node)
                         node_set_boot_mock.assert_called_once_with(task,
-                                                            self.node,
                                                             'pxe',
                                                             persistent=True)
                         node_power_mock.assert_called_once_with(task,
@@ -810,9 +809,10 @@ class PXEDriverTestCase(db_base.DbTestCase):
                 fake_deploy))
 
         with task_manager.acquire(self.context, self.node.uuid) as task:
-            task.resources[0].driver.vendor.vendor_passthru(task, self.node,
+            task.resources[0].driver.vendor.vendor_passthru(task,
                     method='pass_deploy_info', address='123456', iqn='aaa-bbb',
                     key='fake-56789')
+        self.node.refresh(self.context)
         self.assertEqual(states.ACTIVE, self.node.provision_state)
         self.assertEqual(states.POWER_ON, self.node.power_state)
         self.assertIsNone(self.node.last_error)
@@ -832,9 +832,10 @@ class PXEDriverTestCase(db_base.DbTestCase):
                 fake_deploy))
 
         with task_manager.acquire(self.context, [self.node.uuid]) as task:
-            task.resources[0].driver.vendor.vendor_passthru(task, self.node,
+            task.resources[0].driver.vendor.vendor_passthru(task,
                     method='pass_deploy_info', address='123456', iqn='aaa-bbb',
                     key='fake-56789')
+        self.node.refresh(self.context)
         self.assertEqual(states.DEPLOYFAIL, self.node.provision_state)
         self.assertEqual(states.POWER_OFF, self.node.power_state)
         self.assertIsNotNone(self.node.last_error)
@@ -854,9 +855,10 @@ class PXEDriverTestCase(db_base.DbTestCase):
                 fake_deploy))
 
         with task_manager.acquire(self.context, [self.node.uuid]) as task:
-            task.resources[0].driver.vendor.vendor_passthru(task, self.node,
+            task.resources[0].driver.vendor.vendor_passthru(task,
                     method='pass_deploy_info', address='123456', iqn='aaa-bbb',
                     key='fake-56789', error='test ramdisk error')
+        self.node.refresh(self.context)
         self.assertEqual(states.DEPLOYFAIL, self.node.provision_state)
         self.assertEqual(states.POWER_OFF, self.node.power_state)
         self.assertIsNotNone(self.node.last_error)
@@ -868,9 +870,10 @@ class PXEDriverTestCase(db_base.DbTestCase):
         self.node.save(self.context)
 
         with task_manager.acquire(self.context, [self.node.uuid]) as task:
-            task.resources[0].driver.vendor.vendor_passthru(task, self.node,
+            task.resources[0].driver.vendor.vendor_passthru(task,
                     method='pass_deploy_info', address='123456', iqn='aaa-bbb',
                     key='fake-56789', error='test ramdisk error')
+        self.node.refresh(self.context)
         self.assertEqual('FAKE', self.node.provision_state)
         self.assertEqual(states.POWER_ON, self.node.power_state)
 
@@ -878,7 +881,7 @@ class PXEDriverTestCase(db_base.DbTestCase):
         with task_manager.acquire(self.context, [self.node['uuid']]) as task:
             with mock.patch.object(task.driver.vendor, '_continue_deploy') \
                     as _continue_deploy_mock:
-                task.driver.vendor.vendor_passthru(task, self.node,
+                task.driver.vendor.vendor_passthru(task,
                     method='pass_deploy_info', address='123456', iqn='aaa-bbb',
                     key='fake-56789')
                 # lock elevated w/o exception

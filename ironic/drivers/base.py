@@ -316,11 +316,10 @@ class VendorInterface(object):
     """
 
     @abc.abstractmethod
-    def validate(self, task, node, **kwargs):
+    def validate(self, task, **kwargs):
         """Validate vendor-specific actions.
 
         :param task: a task from TaskManager.
-        :param node: a single Node.
         :param kwargs: info for action.
         :raises: UnsupportedDriverExtension if 'method' can not be mapped to
                  the supported interfaces.
@@ -328,11 +327,10 @@ class VendorInterface(object):
         """
 
     @abc.abstractmethod
-    def vendor_passthru(self, task, node, **kwargs):
+    def vendor_passthru(self, task, **kwargs):
         """Receive requests for vendor-specific actions.
 
         :param task: a task from TaskManager.
-        :param node: a single Node.
         :param kwargs: info for action.
 
         :raises: UnsupportedDriverExtension if 'method' can not be mapped to

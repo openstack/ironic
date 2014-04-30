@@ -22,18 +22,17 @@ LOG = log.getLogger(__name__)
 
 
 @task_manager.require_exclusive_lock
-def node_set_boot_device(task, node, device, persistent=False):
+def node_set_boot_device(task, device, persistent=False):
     """Set the boot device for a node.
 
     :param task: a TaskManager instance.
-    :param node: The Node.
     :param device: Boot device. Values are vendor-specific.
     :param persistent: Whether to set next-boot, or make the change
         permanent. Default: False.
 
     """
     try:
-        task.driver.vendor.vendor_passthru(task, node,
+        task.driver.vendor.vendor_passthru(task,
                                            device=device,
                                            persistent=persistent,
                                            method='set_boot_device')
