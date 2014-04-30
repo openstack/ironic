@@ -1008,7 +1008,6 @@ class ManagerTestCase(tests_db_base.DbTestCase):
                          exc.exc_info[0])
         self.service._worker_pool.waitall()
         node.refresh(self.context)
-        self.assertIsNotNone(node.last_error)
 
     def test_set_console_mode_validation_fail(self):
         ndict = utils.get_test_node(driver='fake', last_error=None)

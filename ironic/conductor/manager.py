@@ -838,11 +838,8 @@ class ConductorManager(periodic_task.PeriodicTasks):
         with task_manager.acquire(context, node_id, shared=False) as task:
             node = task.node
             if not getattr(task.driver, 'console', None):
-                exc = exception.UnsupportedDriverExtension(driver=node.driver,
+                raise exception.UnsupportedDriverExtension(driver=node.driver,
                                                            extension='console')
-                node.last_error = exc.format_message()
-                node.save(context)
-                raise exc
 
             task.driver.console.validate(task, node)
 
