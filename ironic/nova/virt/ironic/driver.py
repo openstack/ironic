@@ -433,8 +433,7 @@ class IronicDriver(virt_driver.ComputeDriver):
 
         timer = loopingcall.FixedIntervalLoopingCall(self._wait_for_active,
                                                      icli, instance)
-        # TODO(lucasagomes): Make the time configurable
-        timer.start(interval=10).wait()
+        timer.start(interval=CONF.ironic.api_retry_interval).wait()
 
     def _unprovision(self, icli, instance, node):
         """This method is called from destroy() to unprovision
