@@ -69,6 +69,14 @@ class BaseDriver(object):
     May be None, if unsupported by a driver.
     """
 
+    management = None
+    """`Standard` attribute for management related features.
+
+    A reference to an instance of :class:ManagementInterface.
+    May be None, if unsupported by a driver.
+    """
+    standard_interfaces.append('management')
+
     vendor = None
     """Attribute for accessing any vendor-specific extensions.
 
@@ -348,3 +356,55 @@ class VendorInterface(object):
         raise exception.UnsupportedDriverExtension(
             _('Vendor interface does not support driver vendor_passthru '
               'method: %s') % method)
+
+
+@six.add_metaclass(abc.ABCMeta)
+class ManagementInterface(object):
+    """Interface for management related actions."""
+
+    # TODO(lucasagomes): The 'node' parameter
+    # needs to be passed to validate() because of the
+    # ConductorManager.validate_driver_interfaces(). Remove it as part of
+    # https://bugs.launchpad.net/ironic/+bug/1312632.
+    @abc.abstractmethod
+    def validate(self, task, node):
+        """Validate the driver-specific management information.
+
+        :param task: a task from TaskManager.
+        :param node: a single Node to validate.
+        :raises: InvalidParameterValue
+        """
+
+    @abc.abstractmethod
+    def get_supported_boot_devices(self):
+        """Get a list of the supported boot devices.
+
+        :returns: A list with the supported boot devices defined
+                  in :mod:`ironic.common.boot_devices`.
+        """
+
+    @abc.abstractmethod
+    def set_boot_device(self, task, device, **kwargs):
+        """Set the boot device for a node.
+
+        Set the boot device to use on next reboot of the node.
+
+        :param task: a task from TaskManager.
+        :param device: the boot device, one of
+                       :mod:`ironic.common.boot_devices`.
+        :param kwargs: extra driver-specific parameters.
+        :raises: InvalidParameterValue if an invalid boot device is
+                 specified.
+        """
+
+    @abc.abstractmethod
+    def get_boot_device(self, task):
+        """Get the current boot device for a node.
+
+        Provides the current boot device of the node. Be aware that not
+        all drivers support this.
+
+        :param task: a task from TaskManager.
+        :returns: the boot device, one of :mod:`ironic.common.boot_devices`
+                  or None if it is unknown.
+        """

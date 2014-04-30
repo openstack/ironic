@@ -42,6 +42,7 @@ class FakeDriver(base.BaseDriver):
                         'second_method': self.b}
         self.vendor = utils.MixinVendorInterface(self.mapping)
         self.console = fake.FakeConsole()
+        self.management = fake.FakeManagement()
 
 
 class FakeIPMIToolDriver(base.BaseDriver):
