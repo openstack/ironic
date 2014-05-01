@@ -356,7 +356,7 @@ class ConductorManager(periodic_task.PeriodicTasks):
                     "provision state is %(curstate)s. Must be %(state)s.") %
                     {'node': node.uuid, 'curstate': node.provision_state,
                      'state': states.ACTIVE})
-            elif node.provision_state is not states.NOSTATE and not rebuild:
+            elif node.provision_state != states.NOSTATE and not rebuild:
                 raise exception.InstanceDeployFailure(_(
                     "RPC do_node_deploy called for %(node)s, but provision "
                     "state is already %(state)s.") %
