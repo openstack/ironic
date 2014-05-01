@@ -178,7 +178,7 @@ class ConductorAPI(object):
         cctxt = self.client.prepare(topic=topic or self.topic)
         return cctxt.call(context, 'driver_vendor_passthru',
                           driver_name=driver_name,
-                          river_method=driver_method,
+                          driver_method=driver_method,
                           info=info)
 
     def do_node_deploy(self, context, node_id, topic=None):
