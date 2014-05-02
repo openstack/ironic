@@ -196,28 +196,35 @@ class TestNeutron(base.TestCase):
             result = neutron.get_node_vif_ids(task)
         self.assertEqual(expected, result)
 
+    @mock.patch('ironic.common.neutron._wait_for_neutron_update')
     @mock.patch('ironic.common.neutron.NeutronAPI.update_port_dhcp_opts')
     @mock.patch('ironic.common.neutron.get_node_vif_ids')
-    def test_update_neutron(self, mock_gnvi, mock_updo):
+    def test_update_neutron(self, mock_gnvi, mock_updo, mock_wait_neutron):
         opts = tftp.dhcp_options_for_instance(CONF.pxe.pxe_bootfile_name)
         mock_gnvi.return_value = {'port-uuid': 'vif-uuid'}
         with task_manager.acquire(self.context,
                                   self.node.uuid) as task:
             neutron.update_neutron(task, self.node)
         mock_updo.assertCalleOnceWith('vif-uuid', opts)
+        mock_wait_neutron.assert_called_once_with(task)
 
+    @mock.patch('ironic.common.neutron._wait_for_neutron_update')
     @mock.patch('ironic.common.neutron.NeutronAPI.__init__')
     @mock.patch('ironic.common.neutron.get_node_vif_ids')
-    def test_update_neutron_no_vif_data(self, mock_gnvi, mock_init):
+    def test_update_neutron_no_vif_data(self, mock_gnvi, mock_init,
+                                        mock_wait_neutron):
         mock_gnvi.return_value = {}
         with task_manager.acquire(self.context,
                                   self.node.uuid) as task:
             neutron.update_neutron(task, self.node)
-        mock_init.assert_not_called()
+        self.assertFalse(mock_init.called)
+        self.assertFalse(mock_wait_neutron.called)
 
+    @mock.patch('ironic.common.neutron._wait_for_neutron_update')
     @mock.patch('ironic.common.neutron.NeutronAPI.update_port_dhcp_opts')
     @mock.patch('ironic.common.neutron.get_node_vif_ids')
-    def test_update_neutron_some_failures(self, mock_gnvi, mock_updo):
+    def test_update_neutron_some_failures(self, mock_gnvi, mock_updo,
+                                          mock_wait_neutron):
         # confirm update is called twice, one fails, but no exception raised
         mock_gnvi.return_value = {'p1': 'v1', 'p2': 'v2'}
         exc = exception.FailedToUpdateDHCPOptOnPort('fake exception')
@@ -226,10 +233,13 @@ class TestNeutron(base.TestCase):
                                   self.node.uuid) as task:
             neutron.update_neutron(task, self.node)
         self.assertEqual(2, mock_updo.call_count)
+        mock_wait_neutron.assert_called_once_with(task)
 
+    @mock.patch('ironic.common.neutron._wait_for_neutron_update')
     @mock.patch('ironic.common.neutron.NeutronAPI.update_port_dhcp_opts')
     @mock.patch('ironic.common.neutron.get_node_vif_ids')
-    def test_update_neutron_fails(self, mock_gnvi, mock_updo):
+    def test_update_neutron_fails(self, mock_gnvi, mock_updo,
+                                  mock_wait_neutron):
         # confirm update is called twice, both fail, and exception is raised
         mock_gnvi.return_value = {'p1': 'v1', 'p2': 'v2'}
         exc = exception.FailedToUpdateDHCPOptOnPort('fake exception')
@@ -240,3 +250,23 @@ class TestNeutron(base.TestCase):
                               neutron.update_neutron,
                               task, self.node)
         self.assertEqual(2, mock_updo.call_count)
+        self.assertFalse(mock_wait_neutron.called)
+
+    def test__wait_for_neutron_update(self):
+        kw = {
+            'id': 190238451205398,
+            'uuid': utils.generate_uuid(),
+            'driver': 'fake_ssh'
+        }
+        node = object_utils.create_test_node(self.context, **kw)
+        mgr_utils.mock_the_extension_manager(driver="fake_ssh")
+        with task_manager.acquire(self.context, node.uuid) as task:
+            with mock.patch('time.sleep') as mock_sleep:
+                neutron._wait_for_neutron_update(task)
+                mock_sleep.assert_called_once_with(15)
+
+    def test__wait_for_neutron_update_no_sleep(self):
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            with mock.patch('time.sleep') as mock_sleep:
+                neutron._wait_for_neutron_update(task)
+                self.assertFalse(mock_sleep.called)
