@@ -13,7 +13,7 @@ testtools>=0.9.34
 
 # Doc requirements
 sphinx>=1.1.2,<1.2
-sphinxcontrib-pecanwsme>=0.6
+sphinxcontrib-pecanwsme>=0.8
 oslosphinx
 
 # Required for Nova unit tests in ironic/nova/tests/ and can be removed
