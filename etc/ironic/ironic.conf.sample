@@ -890,22 +890,3 @@
 #libvirt_uri=qemu:///system
 
 
-[ssl]
-
-#
-# Options defined in ironic.openstack.common.sslutils
-#
-
-# CA certificate file to use to verify connecting clients
-# (string value)
-#ca_file=<None>
-
-# Certificate file to use when starting the server securely
-# (string value)
-#cert_file=<None>
-
-# Private key file to use when starting the server securely
-# (string value)
-#key_file=<None>
-
-
