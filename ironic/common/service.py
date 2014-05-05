@@ -93,7 +93,8 @@ class RPCService(service.Service):
 def prepare_service(argv=[]):
     config.parse_args(argv)
     cfg.set_defaults(log.log_opts,
-                     default_log_levels=['amqplib=WARN',
+                     default_log_levels=['amqp=WARN',
+                                         'amqplib=WARN',
                                          'qpid.messaging=INFO',
                                          'sqlalchemy=WARN',
                                          'keystoneclient=INFO',
@@ -101,7 +102,6 @@ def prepare_service(argv=[]):
                                          'eventlet.wsgi.server=WARN',
                                          'iso8601=WARN',
                                          'paramiko=WARN',
-                                         'amqp=WARN',
                                          'requests=WARN',
                                          'neutronclient=WARN',
                                          'glanceclient=WARN',
