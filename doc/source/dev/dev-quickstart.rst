@@ -256,6 +256,9 @@ Create devstack/localrc with minimal settings required to enable Ironic::
     IRONIC_VM_SPECS_DISK=10
     IRONIC_VM_SSH_PORT=22
 
+    # Size of the ephemeral partition in GB. Use 0 for no ephemeral partition.
+    IRONIC_VM_EPHEMERAL_DISK=0
+
     VIRT_DRIVER=ironic
 
     # By default, DevStack creates a 10.0.0.0/24 network for instances.
