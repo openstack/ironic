@@ -26,10 +26,12 @@ from ironic.common import states
 from ironic.common import utils
 from ironic.conductor import rpcapi
 from ironic import objects
+from ironic.openstack.common import context
 from ironic.openstack.common import timeutils
 from ironic.tests.api import base
 from ironic.tests.api import utils as apiutils
 from ironic.tests.db import utils as dbutils
+from ironic.tests.objects import utils as obj_utils
 
 
 # NOTE(lucasagomes): When creating a node via API (POST)
@@ -57,19 +59,17 @@ class TestListNodes(base.FunctionalTest):
         #create some unassociated nodes
         unassociated_nodes = []
         for id in range(3):
-            ndict = dbutils.get_test_node(id=id,
-                                          uuid=utils.generate_uuid())
-            node = self.dbapi.create_node(ndict)
-            unassociated_nodes.append(node['uuid'])
+            node = obj_utils.create_test_node(self.context,
+                                              id=id,
+                                              uuid=utils.generate_uuid())
+            unassociated_nodes.append(node.uuid)
 
         #created some associated nodes
         associated_nodes = []
         for id in range(3, 7):
-            ndict = dbutils.get_test_node(
-                        id=id,
-                        uuid=utils.generate_uuid(),
-                        instance_uuid=utils.generate_uuid())
-            node = self.dbapi.create_node(ndict)
+            node = obj_utils.create_test_node(
+                    self.context, id=id, uuid=utils.generate_uuid(),
+                    instance_uuid=utils.generate_uuid())
             associated_nodes.append(node['uuid'])
         return {'associated': associated_nodes,
                 'unassociated': unassociated_nodes}
@@ -79,8 +79,7 @@ class TestListNodes(base.FunctionalTest):
         self.assertEqual([], data['nodes'])
 
     def test_one(self):
-        ndict = dbutils.get_test_node()
-        node = self.dbapi.create_node(ndict)
+        node = obj_utils.create_test_node(self.context)
         data = self.get_json('/nodes')
         self.assertIn('instance_uuid', data['nodes'][0])
         self.assertIn('maintenance', data['nodes'][0])
@@ -102,10 +101,9 @@ class TestListNodes(base.FunctionalTest):
         self.assertNotIn('chassis_id', data['nodes'][0])
 
     def test_get_one(self):
-        ndict = dbutils.get_test_node()
-        node = self.dbapi.create_node(ndict)
+        node = obj_utils.create_test_node(self.context)
         data = self.get_json('/nodes/%s' % node['uuid'])
-        self.assertEqual(node['uuid'], data['uuid'])
+        self.assertEqual(node.uuid, data['uuid'])
         self.assertIn('driver', data)
         self.assertIn('driver_info', data)
         self.assertIn('extra', data)
@@ -116,8 +114,7 @@ class TestListNodes(base.FunctionalTest):
         self.assertNotIn('chassis_id', data)
 
     def test_detail(self):
-        ndict = dbutils.get_test_node()
-        node = self.dbapi.create_node(ndict)
+        node = obj_utils.create_test_node(self.context)
         data = self.get_json('/nodes/detail')
         self.assertEqual(node['uuid'], data['nodes'][0]["uuid"])
         self.assertIn('driver', data['nodes'][0])
@@ -135,8 +132,7 @@ class TestListNodes(base.FunctionalTest):
         self.assertNotIn('chassis_id', data['nodes'][0])
 
     def test_detail_against_single(self):
-        ndict = dbutils.get_test_node()
-        node = self.dbapi.create_node(ndict)
+        node = obj_utils.create_test_node(self.context)
         response = self.get_json('/nodes/%s/detail' % node['uuid'],
                                  expect_errors=True)
         self.assertEqual(404, response.status_int)
@@ -144,10 +140,9 @@ class TestListNodes(base.FunctionalTest):
     def test_many(self):
         nodes = []
         for id in range(5):
-            ndict = dbutils.get_test_node(id=id,
-                                          uuid=utils.generate_uuid())
-            node = self.dbapi.create_node(ndict)
-            nodes.append(node['uuid'])
+            node = obj_utils.create_test_node(self.context, id=id,
+                                              uuid=utils.generate_uuid())
+            nodes.append(node.uuid)
         data = self.get_json('/nodes')
         self.assertEqual(len(nodes), len(data['nodes']))
 
@@ -156,8 +151,7 @@ class TestListNodes(base.FunctionalTest):
 
     def test_links(self):
         uuid = utils.generate_uuid()
-        ndict = dbutils.get_test_node(id=1, uuid=uuid)
-        self.dbapi.create_node(ndict)
+        obj_utils.create_test_node(self.context, id=1, uuid=uuid)
         data = self.get_json('/nodes/%s' % uuid)
         self.assertIn('links', data.keys())
         self.assertEqual(2, len(data['links']))
@@ -168,10 +162,9 @@ class TestListNodes(base.FunctionalTest):
     def test_collection_links(self):
         nodes = []
         for id in range(5):
-            ndict = dbutils.get_test_node(id=id,
-                                          uuid=utils.generate_uuid())
-            node = self.dbapi.create_node(ndict)
-            nodes.append(node['uuid'])
+            node = obj_utils.create_test_node(self.context, id=id,
+                                              uuid=utils.generate_uuid())
+            nodes.append(node.uuid)
         data = self.get_json('/nodes/?limit=3')
         self.assertEqual(3, len(data['nodes']))
 
@@ -182,10 +175,9 @@ class TestListNodes(base.FunctionalTest):
         cfg.CONF.set_override('max_limit', 3, 'api')
         nodes = []
         for id in range(5):
-            ndict = dbutils.get_test_node(id=id,
-                                          uuid=utils.generate_uuid())
-            node = self.dbapi.create_node(ndict)
-            nodes.append(node['uuid'])
+            node = obj_utils.create_test_node(self.context, id=id,
+                                              uuid=utils.generate_uuid())
+            nodes.append(node.uuid)
         data = self.get_json('/nodes')
         self.assertEqual(3, len(data['nodes']))
 
@@ -193,35 +185,31 @@ class TestListNodes(base.FunctionalTest):
         self.assertIn(next_marker, data['next'])
 
     def test_ports_subresource_link(self):
-        ndict = dbutils.get_test_node()
-        self.dbapi.create_node(ndict)
-
-        data = self.get_json('/nodes/%s' % ndict['uuid'])
+        node = obj_utils.create_test_node(self.context)
+        data = self.get_json('/nodes/%s' % node.uuid)
         self.assertIn('ports', data.keys())
 
     def test_ports_subresource(self):
-        ndict = dbutils.get_test_node()
-        self.dbapi.create_node(ndict)
+        node = obj_utils.create_test_node(self.context)
 
         for id in range(2):
-            pdict = dbutils.get_test_port(id=id, node_id=ndict['id'],
+            pdict = dbutils.get_test_port(id=id, node_id=node.id,
                                           uuid=utils.generate_uuid(),
                                           address='52:54:00:cf:2d:3%s' % id)
             self.dbapi.create_port(pdict)
 
-        data = self.get_json('/nodes/%s/ports' % ndict['uuid'])
+        data = self.get_json('/nodes/%s/ports' % node.uuid)
         self.assertEqual(2, len(data['ports']))
         self.assertNotIn('next', data.keys())
 
         # Test collection pagination
-        data = self.get_json('/nodes/%s/ports?limit=1' % ndict['uuid'])
+        data = self.get_json('/nodes/%s/ports?limit=1' % node.uuid)
         self.assertEqual(1, len(data['ports']))
         self.assertIn('next', data.keys())
 
     def test_ports_subresource_noid(self):
-        ndict = dbutils.get_test_node()
-        self.dbapi.create_node(ndict)
-        pdict = dbutils.get_test_port(node_id=ndict['id'])
+        node = obj_utils.create_test_node(self.context)
+        pdict = dbutils.get_test_port(node_id=node.id)
         self.dbapi.create_port(pdict)
         # No node id specified
         response = self.get_json('/nodes/ports', expect_errors=True)
@@ -239,14 +227,14 @@ class TestListNodes(base.FunctionalTest):
         fake_error = 'fake-error'
         test_time = datetime.datetime(2000, 1, 1, 0, 0)
         mock_utcnow.return_value = test_time
-        ndict = dbutils.get_test_node(power_state=fake_state,
-                                      target_power_state=fake_state,
-                                      provision_state=fake_state,
-                                      target_provision_state=fake_state,
-                                      provision_updated_at=test_time,
-                                      last_error=fake_error)
-        self.dbapi.create_node(ndict)
-        data = self.get_json('/nodes/%s/states' % ndict['uuid'])
+        node = obj_utils.create_test_node(self.context,
+                                          power_state=fake_state,
+                                          target_power_state=fake_state,
+                                          provision_state=fake_state,
+                                          target_provision_state=fake_state,
+                                          provision_updated_at=test_time,
+                                          last_error=fake_error)
+        data = self.get_json('/nodes/%s/states' % node.uuid)
         self.assertEqual(fake_state, data['power_state'])
         self.assertEqual(fake_state, data['target_power_state'])
         self.assertEqual(fake_state, data['provision_state'])
@@ -258,10 +246,10 @@ class TestListNodes(base.FunctionalTest):
         self.assertFalse(data['console_enabled'])
 
     def test_node_by_instance_uuid(self):
-        ndict = dbutils.get_test_node(uuid=utils.generate_uuid(),
-                                      instance_uuid=utils.generate_uuid())
-        node = self.dbapi.create_node(ndict)
-        instance_uuid = node['instance_uuid']
+        node = obj_utils.create_test_node(self.context,
+                                          uuid=utils.generate_uuid(),
+                                          instance_uuid=utils.generate_uuid())
+        instance_uuid = node.instance_uuid
 
         data = self.get_json('/nodes?instance_uuid=%s' % instance_uuid)
 
@@ -270,9 +258,8 @@ class TestListNodes(base.FunctionalTest):
                          data['nodes'][0]["instance_uuid"])
 
     def test_node_by_instance_uuid_wrong_uuid(self):
-        ndict = dbutils.get_test_node(uuid=utils.generate_uuid(),
-                                      instance_uuid=utils.generate_uuid())
-        self.dbapi.create_node(ndict)
+        obj_utils.create_test_node(self.context, uuid=utils.generate_uuid(),
+                                   instance_uuid=utils.generate_uuid())
         wrong_uuid = utils.generate_uuid()
 
         data = self.get_json('/nodes?instance_uuid=%s' % wrong_uuid)
@@ -347,10 +334,10 @@ class TestListNodes(base.FunctionalTest):
         self.assertIn('associated=True', data['next'])
 
     def test_detail_with_instance_uuid(self):
-        ndict = dbutils.get_test_node(uuid=utils.generate_uuid(),
-                                      instance_uuid=utils.generate_uuid())
-        node = self.dbapi.create_node(ndict)
-        instance_uuid = node['instance_uuid']
+        node = obj_utils.create_test_node(self.context,
+                                          uuid=utils.generate_uuid(),
+                                          instance_uuid=utils.generate_uuid())
+        instance_uuid = node.instance_uuid
 
         data = self.get_json('/nodes/detail?instance_uuid=%s' % instance_uuid)
 
@@ -367,9 +354,9 @@ class TestListNodes(base.FunctionalTest):
     def test_maintenance_nodes(self):
         nodes = []
         for id in range(5):
-            ndict = dbutils.get_test_node(id=id, uuid=utils.generate_uuid(),
-                                          maintenance=id % 2)
-            node = self.dbapi.create_node(ndict)
+            node = obj_utils.create_test_node(self.context, id=id,
+                                              uuid=utils.generate_uuid(),
+                                              maintenance=id % 2)
             nodes.append(node)
 
         data = self.get_json('/nodes?maintenance=true')
@@ -391,9 +378,9 @@ class TestListNodes(base.FunctionalTest):
 
     def test_maintenance_nodes_associated(self):
         self._create_association_test_nodes()
-        ndict = dbutils.get_test_node(instance_uuid=utils.generate_uuid(),
-                                      maintenance=True)
-        node = self.dbapi.create_node(ndict)
+        node = obj_utils.create_test_node(self.context,
+                                          instance_uuid=utils.generate_uuid(),
+                                          maintenance=True)
 
         data = self.get_json('/nodes?associated=true&maintenance=false')
         uuids = [n['uuid'] for n in data['nodes']]
@@ -406,7 +393,7 @@ class TestListNodes(base.FunctionalTest):
         self.assertIn(node.uuid, uuids)
 
     def test_get_console_information(self):
-        node = self.dbapi.create_node(dbutils.get_test_node())
+        node = obj_utils.create_test_node(self.context)
         expected_console_info = {'test': 'test-data'}
         expected_data = {'console_enabled': True,
                          'console_info': expected_console_info}
@@ -418,7 +405,7 @@ class TestListNodes(base.FunctionalTest):
             mock_gci.assert_called_once_with(mock.ANY, node.uuid, 'test-topic')
 
     def test_get_console_information_console_disabled(self):
-        node = self.dbapi.create_node(dbutils.get_test_node())
+        node = obj_utils.create_test_node(self.context)
         expected_data = {'console_enabled': False,
                          'console_info': None}
         with mock.patch.object(rpcapi.ConductorAPI,
@@ -430,7 +417,7 @@ class TestListNodes(base.FunctionalTest):
             mock_gci.assert_called_once_with(mock.ANY, node.uuid, 'test-topic')
 
     def test_get_console_information_not_supported(self):
-        node = self.dbapi.create_node(dbutils.get_test_node())
+        node = obj_utils.create_test_node(self.context)
         with mock.patch.object(rpcapi.ConductorAPI,
                                'get_console_information') as mock_gci:
             mock_gci.side_effect = exception.UnsupportedDriverExtension(
@@ -447,8 +434,7 @@ class TestPatch(base.FunctionalTest):
         super(TestPatch, self).setUp()
         cdict = dbutils.get_test_chassis()
         self.chassis = self.dbapi.create_chassis(cdict)
-        ndict = dbutils.get_test_node()
-        self.node = self.dbapi.create_node(ndict)
+        self.node = obj_utils.create_test_node(self.context)
         p = mock.patch.object(rpcapi.ConductorAPI, 'get_topic_for')
         self.mock_gtf = p.start()
         self.mock_gtf.return_value = 'test-topic'
@@ -583,10 +569,10 @@ class TestPatch(base.FunctionalTest):
         self.assertTrue(response.json['error_message'])
 
     def test_update_state_in_progress(self):
-        ndict = dbutils.get_test_node(id=99, uuid=utils.generate_uuid(),
-                                      target_power_state=states.POWER_OFF)
-        node = self.dbapi.create_node(ndict)
-        response = self.patch_json('/nodes/%s' % node['uuid'],
+        node = obj_utils.create_test_node(self.context, id=99,
+                                          uuid=utils.generate_uuid(),
+                                          target_power_state=states.POWER_OFF)
+        response = self.patch_json('/nodes/%s' % node.uuid,
                                    [{'path': '/extra/foo', 'value': 'bar',
                                      'op': 'add'}], expect_errors=True)
         self.assertEqual('application/json', response.content_type)
@@ -600,8 +586,7 @@ class TestPatch(base.FunctionalTest):
         self.assertEqual(403, response.status_int)
 
     def test_remove_uuid(self):
-        ndict = dbutils.get_test_node()
-        response = self.patch_json('/nodes/%s' % ndict['uuid'],
+        response = self.patch_json('/nodes/%s' % self.node.uuid,
                                    [{'path': '/uuid', 'op': 'remove'}],
                                    expect_errors=True)
         self.assertEqual('application/json', response.content_type)
@@ -700,6 +685,11 @@ class TestPost(base.FunctionalTest):
         self.assertEqual(test_time, return_created_at)
 
     def test_create_node_doesnt_contain_id(self):
+        # FIXME(comstud): I'd like to make this test not use the
+        # dbapi, however, no matter what I do when trying to mock
+        # Node.create(), the API fails to convert the objects.Node
+        # into the API Node object correctly (it leaves all fields
+        # as Unset).
         with mock.patch.object(self.dbapi, 'create_node',
                                wraps=self.dbapi.create_node) as cn_mock:
             ndict = post_get_test_node(extra={'foo': 123})
@@ -724,9 +714,8 @@ class TestPost(base.FunctionalTest):
         self.assertTrue(response.json['error_message'])
 
     def test_vendor_passthru_ok(self):
-        ndict = dbutils.get_test_node()
-        self.dbapi.create_node(ndict)
-        uuid = ndict['uuid']
+        node = obj_utils.create_test_node(self.context)
+        uuid = node.uuid
         info = {'foo': 'bar'}
 
         with mock.patch.object(
@@ -740,15 +729,14 @@ class TestPost(base.FunctionalTest):
             self.assertEqual(202, response.status_code)
 
     def test_vendor_passthru_no_such_method(self):
-        ndict = dbutils.get_test_node()
-        self.dbapi.create_node(ndict)
-        uuid = ndict['uuid']
+        node = obj_utils.create_test_node(self.context)
+        uuid = node.uuid
         info = {'foo': 'bar'}
 
         with mock.patch.object(
                 rpcapi.ConductorAPI, 'vendor_passthru') as mock_vendor:
             mock_vendor.side_effect = exception.UnsupportedDriverExtension(
-                                        {'driver': ndict['driver'],
+                                        {'driver': node.driver,
                                          'node': uuid,
                                          'extension': 'test'})
             response = self.post_json('/nodes/%s/vendor_passthru/test' % uuid,
@@ -758,19 +746,17 @@ class TestPost(base.FunctionalTest):
             self.assertEqual(400, response.status_code)
 
     def test_vendor_passthru_without_method(self):
-        ndict = dbutils.get_test_node()
-        self.dbapi.create_node(ndict)
-        response = self.post_json('/nodes/%s/vendor_passthru' % ndict['uuid'],
+        node = obj_utils.create_test_node(self.context)
+        response = self.post_json('/nodes/%s/vendor_passthru' % node.uuid,
                                   {'foo': 'bar'}, expect_errors=True)
         self.assertEqual('application/json', response.content_type, )
         self.assertEqual(400, response.status_code)
         self.assertTrue(response.json['error_message'])
 
     def test_post_ports_subresource(self):
-        ndict = dbutils.get_test_node()
-        self.dbapi.create_node(ndict)
+        node = obj_utils.create_test_node(self.context)
         pdict = apiutils.port_post_data(node_id=None)
-        pdict['node_uuid'] = ndict['uuid']
+        pdict['node_uuid'] = node.uuid
         response = self.post_json('/nodes/ports', pdict,
                                   expect_errors=True)
         self.assertEqual(403, response.status_int)
@@ -836,38 +822,36 @@ class TestDelete(base.FunctionalTest):
 
     @mock.patch.object(rpcapi.ConductorAPI, 'destroy_node')
     def test_delete_node(self, mock_dn):
-        ndict = dbutils.get_test_node()
-        self.dbapi.create_node(ndict)
-        self.delete('/nodes/%s' % ndict['uuid'])
-        mock_dn.assert_called_once_with(mock.ANY, ndict['uuid'], 'test-topic')
+        node = obj_utils.create_test_node(self.context)
+        self.delete('/nodes/%s' % node.uuid)
+        mock_dn.assert_called_once_with(mock.ANY, node.uuid, 'test-topic')
 
     @mock.patch.object(objects.Node, 'get_by_uuid')
     def test_delete_node_not_found(self, mock_gbu):
-        ndict = dbutils.get_test_node()
-        mock_gbu.side_effect = exception.NodeNotFound(node=ndict['uuid'])
+        node = obj_utils.get_test_node(context.get_admin_context())
+        mock_gbu.side_effect = exception.NodeNotFound(node=node.uuid)
 
-        response = self.delete('/nodes/%s' % ndict['uuid'], expect_errors=True)
+        response = self.delete('/nodes/%s' % node.uuid, expect_errors=True)
         self.assertEqual(404, response.status_int)
         self.assertEqual('application/json', response.content_type)
         self.assertTrue(response.json['error_message'])
-        mock_gbu.assert_called_once_with(mock.ANY, ndict['uuid'])
+        mock_gbu.assert_called_once_with(mock.ANY, node.uuid)
 
     def test_delete_ports_subresource(self):
-        ndict = dbutils.get_test_node()
-        self.dbapi.create_node(ndict)
-        response = self.delete('/nodes/%s/ports' % ndict['uuid'],
+        node = obj_utils.create_test_node(self.context)
+        response = self.delete('/nodes/%s/ports' % node.uuid,
                                expect_errors=True)
         self.assertEqual(403, response.status_int)
 
     @mock.patch.object(rpcapi.ConductorAPI, 'destroy_node')
     def test_delete_associated(self, mock_dn):
-        ndict = dbutils.get_test_node(
-                          instance_uuid='aaaaaaaa-1111-bbbb-2222-cccccccccccc')
-        node = self.dbapi.create_node(ndict)
+        node = obj_utils.create_test_node(
+                self.context,
+                instance_uuid='aaaaaaaa-1111-bbbb-2222-cccccccccccc')
         mock_dn.side_effect = exception.NodeAssociated(node=node.uuid,
                                                    instance=node.instance_uuid)
 
-        response = self.delete('/nodes/%s' % ndict['uuid'], expect_errors=True)
+        response = self.delete('/nodes/%s' % node.uuid, expect_errors=True)
         self.assertEqual(409, response.status_int)
         mock_dn.assert_called_once_with(mock.ANY, node.uuid, 'test-topic')
 
@@ -878,8 +862,7 @@ class TestPut(base.FunctionalTest):
         super(TestPut, self).setUp()
         cdict = dbutils.get_test_chassis()
         self.chassis = self.dbapi.create_chassis(cdict)
-        ndict = dbutils.get_test_node()
-        self.node = self.dbapi.create_node(ndict)
+        self.node = obj_utils.create_test_node(self.context)
         p = mock.patch.object(rpcapi.ConductorAPI, 'get_topic_for')
         self.mock_gtf = p.start()
         self.mock_gtf.return_value = 'test-topic'
@@ -931,19 +914,19 @@ class TestPut(base.FunctionalTest):
         self.assertEqual(400, ret.status_code)
 
     def test_provision_already_in_progress(self):
-        ndict = dbutils.get_test_node(id=1, uuid=utils.generate_uuid(),
-                                      target_provision_state=states.ACTIVE)
-        node = self.dbapi.create_node(ndict)
+        node = obj_utils.create_test_node(self.context, id=1,
+                                          uuid=utils.generate_uuid(),
+                                          target_provision_state=states.ACTIVE)
         ret = self.put_json('/nodes/%s/states/provision' % node.uuid,
                             {'target': states.ACTIVE},
                             expect_errors=True)
         self.assertEqual(409, ret.status_code)  # Conflict
 
     def test_provision_with_tear_down_in_progress_deploywait(self):
-        ndict = dbutils.get_test_node(id=1, uuid=utils.generate_uuid(),
-                                      provision_state=states.DEPLOYWAIT,
-                                      target_provision_state=states.DEPLOYDONE)
-        node = self.dbapi.create_node(ndict)
+        node = obj_utils.create_test_node(
+                self.context, id=1, uuid=utils.generate_uuid(),
+                provision_state=states.DEPLOYWAIT,
+                target_provision_state=states.DEPLOYDONE)
         ret = self.put_json('/nodes/%s/states/provision' % node.uuid,
                             {'target': states.DELETED})
         self.assertEqual(202, ret.status_code)
@@ -952,10 +935,10 @@ class TestPut(base.FunctionalTest):
                 mock.ANY, node.uuid, 'test-topic')
 
     def test_provision_already_in_state(self):
-        ndict = dbutils.get_test_node(id=1, uuid=utils.generate_uuid(),
-                                      target_provision_state=states.NOSTATE,
-                                      provision_state=states.ACTIVE)
-        node = self.dbapi.create_node(ndict)
+        node = obj_utils.create_test_node(
+                self.context, id=1, uuid=utils.generate_uuid(),
+                target_provision_state=states.NOSTATE,
+                provision_state=states.ACTIVE)
         ret = self.put_json('/nodes/%s/states/provision' % node.uuid,
                             {'target': states.ACTIVE},
                             expect_errors=True)
@@ -1013,9 +996,9 @@ class TestPut(base.FunctionalTest):
 
     def test_provision_node_in_maintenance_fail(self):
         with mock.patch.object(rpcapi.ConductorAPI, 'do_node_deploy') as dnd:
-            ndict = dbutils.get_test_node(id=1, uuid=utils.generate_uuid(),
-                                          maintenance=True)
-            node = self.dbapi.create_node(ndict)
+            node = obj_utils.create_test_node(self.context, id=1,
+                                              uuid=utils.generate_uuid(),
+                                              maintenance=True)
             dnd.side_effect = exception.NodeInMaintenance(op='provisioning',
                                                           node=node.uuid)
 

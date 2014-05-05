@@ -145,7 +145,7 @@ class SeaMicroPrivateMethodsTestCase(base.TestCase):
         }
         self.context = context.get_admin_context()
         self.dbapi = dbapi.get_instance()
-        self.node = self._create_test_node(**n)
+        self.node = obj_utils.create_test_node(self.context, **n)
         self.Server = Fake_Server
         self.Volume = Fake_Volume
         self.Pool = Fake_Pool
@@ -154,10 +154,6 @@ class SeaMicroPrivateMethodsTestCase(base.TestCase):
 
         self.patcher = mock.patch('eventlet.greenthread.sleep')
         self.mock_sleep = self.patcher.start()
-
-    def _create_test_node(self, **kwargs):
-        n = db_utils.get_test_node(**kwargs)
-        return self.dbapi.create_node(n)
 
     @mock.patch.object(seamicro, "_get_server")
     def test__get_power_status_on(self, mock_get_server):
@@ -272,10 +268,10 @@ class SeaMicroPowerDriverTestCase(db_base.DbTestCase):
             self.skipTest("Seamicroclient library not found")
         mgr_utils.mock_the_extension_manager(driver='fake_seamicro')
         self.driver = driver_factory.get_driver('fake_seamicro')
-        db_node = db_utils.get_test_node(driver='fake_seamicro',
-                                         driver_info=INFO_DICT)
+        self.node = obj_utils.create_test_node(self.context,
+                                               driver='fake_seamicro',
+                                               driver_info=INFO_DICT)
         self.dbapi = dbapi.get_instance()
-        self.node = self.dbapi.create_node(db_node)
         self.get_server_patcher = mock.patch.object(seamicro, '_get_server')
 
         self.get_server_mock = None

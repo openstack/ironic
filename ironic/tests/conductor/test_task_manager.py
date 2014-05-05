@@ -34,15 +34,14 @@ from ironic.openstack.common import context
 from ironic.tests import base as tests_base
 from ironic.tests.conductor import utils as mgr_utils
 from ironic.tests.db import base as db_base
-from ironic.tests.db import utils
+from ironic.tests.objects import utils as obj_utils
 
 
-def create_fake_node(i):
-    dbh = dbapi.get_instance()
-    node = utils.get_test_node(id=i,
-                               uuid=ironic_utils.generate_uuid())
-    dbh.create_node(node)
-    return node['uuid']
+def create_fake_node(ctxt, i):
+    node = obj_utils.create_test_node(ctxt,
+                                      id=i,
+                                      uuid=ironic_utils.generate_uuid())
+    return node.uuid
 
 
 def ContainsUUIDs(uuids):
@@ -68,7 +67,7 @@ class TaskManagerTestCase(TaskManagerSetup):
 
     def setUp(self):
         super(TaskManagerTestCase, self).setUp()
-        self.uuids = [create_fake_node(i) for i in range(1, 6)]
+        self.uuids = [create_fake_node(self.context, i) for i in range(1, 6)]
         self.uuids.sort()
 
     def test_task_manager_gets_node(self):
@@ -257,7 +256,7 @@ class ExclusiveLockDecoratorTestCase(TaskManagerSetup):
 
     def setUp(self):
         super(ExclusiveLockDecoratorTestCase, self).setUp()
-        self.uuids = [create_fake_node(123)]
+        self.uuids = [create_fake_node(self.context, 123)]
 
     def test_require_exclusive_lock(self):
         @task_manager.require_exclusive_lock
@@ -308,7 +307,7 @@ class ExclusiveLockDecoratorTestCase(TaskManagerSetup):
             self.assertEqual(task.node_manager, task.resources[0])
 
     def test_one_node_per_task_properties_fail(self):
-        self.uuids.append(create_fake_node(456))
+        self.uuids.append(create_fake_node(self.context, 456))
         with task_manager.acquire(self.context, self.uuids) as task:
             def get_node():
                 return task.node

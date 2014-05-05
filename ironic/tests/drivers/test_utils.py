@@ -25,6 +25,7 @@ from ironic.openstack.common import context
 from ironic.tests import base
 from ironic.tests.conductor import utils as mgr_utils
 from ironic.tests.db import utils as db_utils
+from ironic.tests.objects import utils as obj_utils
 
 
 class UtilsTestCase(base.TestCase):
@@ -35,8 +36,7 @@ class UtilsTestCase(base.TestCase):
         self.dbapi = db_api.get_instance()
         mgr_utils.mock_the_extension_manager()
         self.driver = driver_factory.get_driver("fake")
-        ndict = db_utils.get_test_node()
-        self.node = self.dbapi.create_node(ndict)
+        self.node = obj_utils.create_test_node(self.context)
 
     @mock.patch.object(fake.FakeVendorA, 'validate')
     def test_vendor_interface_validate_valid_methods(self,

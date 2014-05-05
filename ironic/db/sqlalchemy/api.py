@@ -300,7 +300,6 @@ class Connection(api.Connection):
                     # one or more node had reservation != tag
                     _check_node_already_locked(query, query_by)
 
-    @objects.objectify(objects.Node)
     def create_node(self, values):
         # ensure defaults are present for new nodes
         if not values.get('uuid'):

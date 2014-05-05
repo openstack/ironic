@@ -45,11 +45,10 @@ class IPMINativePrivateMethodTestCase(base.TestCase):
     def setUp(self):
         super(IPMINativePrivateMethodTestCase, self).setUp()
         self.context = context.get_admin_context()
-        n = db_utils.get_test_node(
-                driver='fake_ipminative',
-                driver_info=INFO_DICT)
+        self.node = obj_utils.create_test_node(self.context,
+                                               driver='fake_ipminative',
+                                               driver_info=INFO_DICT)
         self.dbapi = db_api.get_instance()
-        self.node = self.dbapi.create_node(n)
         self.info = ipminative._parse_driver_info(self.node)
         ipmi_patch = mock.patch('pyghmi.ipmi.command.Command')
         self.ipmi_mock = ipmi_patch.start()
@@ -133,11 +132,10 @@ class IPMINativeDriverTestCase(db_base.DbTestCase):
         mgr_utils.mock_the_extension_manager(driver="fake_ipminative")
         self.driver = driver_factory.get_driver("fake_ipminative")
 
-        n = db_utils.get_test_node(
-                driver='fake_ipminative',
-                driver_info=INFO_DICT)
+        self.node = obj_utils.create_test_node(self.context,
+                                               driver='fake_ipminative',
+                                               driver_info=INFO_DICT)
         self.dbapi = db_api.get_instance()
-        self.node = self.dbapi.create_node(n)
         self.info = ipminative._parse_driver_info(self.node)
 
     def test_get_power_state(self):
@@ -170,7 +168,7 @@ class IPMINativeDriverTestCase(db_base.DbTestCase):
             power_on_mock.return_value = states.POWER_ON
 
             with task_manager.acquire(self.context,
-                                     [self.node['uuid']]) as task:
+                                     [self.node.uuid]) as task:
                 self.driver.power.set_power_state(
                     task, self.node, states.POWER_ON)
             power_on_mock.assert_called_once_with(self.info)
@@ -180,7 +178,7 @@ class IPMINativeDriverTestCase(db_base.DbTestCase):
             power_off_mock.return_value = states.POWER_OFF
 
             with task_manager.acquire(self.context,
-                                     [self.node['uuid']]) as task:
+                                     [self.node.uuid]) as task:
                 self.driver.power.set_power_state(
                     task, self.node, states.POWER_OFF)
             power_off_mock.assert_called_once_with(self.info)
@@ -192,7 +190,7 @@ class IPMINativeDriverTestCase(db_base.DbTestCase):
 
             self.config(retry_timeout=500, group='ipmi')
             with task_manager.acquire(self.context,
-                                     [self.node['uuid']]) as task:
+                                     [self.node.uuid]) as task:
                 self.assertRaises(exception.PowerStateFailure,
                                   self.driver.power.set_power_state,
                                   task,
@@ -206,12 +204,12 @@ class IPMINativeDriverTestCase(db_base.DbTestCase):
             ipmicmd.set_bootdev.return_value = None
 
             with task_manager.acquire(self.context,
-                                     [self.node['uuid']]) as task:
+                                     [self.node.uuid]) as task:
                 self.driver.vendor._set_boot_device(task, 'pxe')
             ipmicmd.set_bootdev.assert_called_once_with('pxe')
 
     def test_set_boot_device_bad_device(self):
-        with task_manager.acquire(self.context, [self.node['uuid']]) as task:
+        with task_manager.acquire(self.context, [self.node.uuid]) as task:
             self.assertRaises(exception.InvalidParameterValue,
                     self.driver.vendor._set_boot_device,
                     task,
@@ -222,7 +220,7 @@ class IPMINativeDriverTestCase(db_base.DbTestCase):
             reboot_mock.return_value = None
 
             with task_manager.acquire(self.context,
-                                     [self.node['uuid']]) as task:
+                                     [self.node.uuid]) as task:
                 self.driver.power.reboot(task, self.node)
             reboot_mock.assert_called_once_with(self.info)
 
@@ -233,7 +231,7 @@ class IPMINativeDriverTestCase(db_base.DbTestCase):
 
             self.config(retry_timeout=500, group='ipmi')
             with task_manager.acquire(self.context,
-                                     [self.node['uuid']]) as task:
+                                     [self.node.uuid]) as task:
                 self.assertRaises(exception.PowerStateFailure,
                                   self.driver.power.reboot,
                                   task,
@@ -270,7 +268,7 @@ class IPMINativeDriverTestCase(db_base.DbTestCase):
                               task, method='non-existent-method')
 
     def test_vendor_passthru_call__set_boot_device(self):
-        with task_manager.acquire(self.context, [self.node['uuid']],
+        with task_manager.acquire(self.context, [self.node.uuid],
                                   shared=False) as task:
             with mock.patch.object(ipminative.VendorPassthru,
                                    '_set_boot_device') as boot_mock:

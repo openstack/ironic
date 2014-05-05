@@ -606,11 +606,10 @@ class SSHDriverTestCase(db_base.DbTestCase):
         super(SSHDriverTestCase, self).setUp()
         mgr_utils.mock_the_extension_manager(driver="fake_ssh")
         self.driver = driver_factory.get_driver("fake_ssh")
-        n = db_utils.get_test_node(
-                driver='fake_ssh',
+        self.node = obj_utils.create_test_node(
+                self.context, driver='fake_ssh',
                 driver_info=db_utils.get_test_ssh_info())
         self.dbapi = dbapi.get_instance()
-        self.node = self.dbapi.create_node(n)
         self.port = self.dbapi.create_port(db_utils.get_test_port(
                                                          node_id=self.node.id))
         self.sshclient = paramiko.SSHClient()
@@ -658,12 +657,12 @@ class SSHDriverTestCase(db_base.DbTestCase):
         self.get_mac_addr_patcher.stop()
         self.get_mac_addr_mock = None
 
-        new_node = self.dbapi.create_node(
-                    db_utils.get_test_node(
-                                   id=321,
-                                   uuid='aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee',
-                                   driver='fake_ssh',
-                                   driver_info=db_utils.get_test_ssh_info()))
+        new_node = obj_utils.create_test_node(
+                self.context,
+                id=321,
+                uuid='aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee',
+                driver='fake_ssh',
+                driver_info=db_utils.get_test_ssh_info())
         with task_manager.acquire(self.context, [new_node.uuid],
                                   shared=True) as task:
             self.assertRaises(exception.InvalidParameterValue,
