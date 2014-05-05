@@ -227,7 +227,7 @@ class NodeStatesController(rest.RestController):
                    {'node': rpc_node['uuid'], 'state': target})
             raise wsme.exc.ClientSideError(msg, status_code=400)
 
-        if target == ir_states.ACTIVE:
+        if target in (ir_states.ACTIVE, ir_states.REBUILD):
             processing = rpc_node.target_provision_state is not None
         elif target == ir_states.DELETED:
             processing = (rpc_node.target_provision_state is not None and
@@ -244,9 +244,10 @@ class NodeStatesController(rest.RestController):
         # by the time the RPC call is made and the TaskManager manager gets a
         # lock.
 
-        if target == ir_states.ACTIVE:
+        if target in (ir_states.ACTIVE, ir_states.REBUILD):
+            rebuild = (target == ir_states.REBUILD)
             pecan.request.rpcapi.do_node_deploy(
-                    pecan.request.context, node_uuid, topic)
+                    pecan.request.context, node_uuid, rebuild, topic)
         elif target == ir_states.DELETED:
             pecan.request.rpcapi.do_node_tear_down(
                     pecan.request.context, node_uuid, topic)

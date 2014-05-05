@@ -915,7 +915,7 @@ class TestPut(base.FunctionalTest):
         self.assertEqual(202, ret.status_code)
         self.assertEqual('', ret.body)
         self.mock_dnd.assert_called_once_with(
-                mock.ANY, self.node.uuid, 'test-topic')
+                mock.ANY, self.node.uuid, False, 'test-topic')
 
     def test_provision_with_tear_down(self):
         ret = self.put_json('/nodes/%s/states/provision' % self.node.uuid,
