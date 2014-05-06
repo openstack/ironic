@@ -69,11 +69,12 @@ class IronicClientWrapper(object):
             obj = getattr(obj, attribute)
         return obj
 
-    def call(self, method, *args):
+    def call(self, method, *args, **kwargs):
         """Call an Ironic client method and retry on errors.
 
         :param method: Name of the client method to call as a string.
         :param args: Client method arguments.
+        :param kwargs: Client method keyword arguments.
 
         :raises: NovaException if all retries failed.
         """
@@ -84,7 +85,7 @@ class IronicClientWrapper(object):
         for attempt in range(1, num_attempts + 1):
             client = self._get_client()
             try:
-                return self._multi_getattr(client, method)(*args)
+                return self._multi_getattr(client, method)(*args, **kwargs)
             except retry_excs:
                 msg = (_("Error contacting Ironic server for '%(method)s'. "
                          "Attempt %(attempt)d of %(total)d")
