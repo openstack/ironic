@@ -39,6 +39,7 @@ class PXEAndIPMIToolDriver(base.BaseDriver):
 
     def __init__(self):
         self.power = ipmitool.IPMIPower()
+        self.console = ipmitool.IPMIShellinaboxConsole()
         self.deploy = pxe.PXEDeploy()
         self.pxe_vendor = pxe.VendorPassthru()
         self.ipmi_vendor = ipmitool.VendorPassthru()

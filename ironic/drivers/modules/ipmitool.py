@@ -2,6 +2,7 @@
 
 # Copyright 2012 Hewlett-Packard Development Company, L.P.
 # Copyright (c) 2012 NTT DOCOMO, INC.
+# Copyright 2014 International Business Machines Corporation
 # All Rights Reserved.
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -32,6 +33,7 @@ from ironic.common import states
 from ironic.common import utils
 from ironic.conductor import task_manager
 from ironic.drivers import base
+from ironic.drivers.modules import console_utils
 from ironic.openstack.common import excutils
 from ironic.openstack.common import log as logging
 from ironic.openstack.common import loopingcall
@@ -42,6 +44,12 @@ LOG = logging.getLogger(__name__)
 
 VALID_BOOT_DEVICES = ['pxe', 'disk', 'safe', 'cdrom', 'bios']
 VALID_PRIV_LEVELS = ['ADMINISTRATOR', 'CALLBACK', 'OPERATOR', 'USER']
+
+
+def _console_pwfile_path(uuid):
+    """Return the file path for storing the ipmi password for a console."""
+    file_name = "%(uuid)s.pw" % {'uuid': uuid}
+    return os.path.join(tempfile.gettempdir(), file_name)
 
 
 @contextlib.contextmanager
@@ -79,6 +87,13 @@ def _parse_driver_info(node):
     password = info.get('ipmi_password')
     port = info.get('ipmi_terminal_port')
     priv_level = info.get('ipmi_priv_level', 'ADMINISTRATOR')
+
+    if port:
+        try:
+            port = int(port)
+        except ValueError:
+            raise exception.InvalidParameterValue(_(
+                "IPMI terminal port is not an integer."))
 
     if not address:
         raise exception.InvalidParameterValue(_(
@@ -388,3 +403,52 @@ class VendorPassthru(base.VendorInterface):
                         task,
                         kwargs.get('device'),
                         kwargs.get('persistent', False))
+
+
+class IPMIShellinaboxConsole(base.ConsoleInterface):
+    """A ConsoleInterface that uses ipmitool and shellinabox."""
+
+    def validate(self, task, node):
+        """Validate the Node console info.
+
+        :param node: a single Node to validate.
+        :raises: InvalidParameterValue
+        """
+        driver_info = _parse_driver_info(node)
+        if not driver_info['port']:
+            raise exception.InvalidParameterValue(_(
+                "IPMI terminal port not supplied to IPMI driver."))
+
+    def start_console(self, task, node):
+        """Start a remote console for the node."""
+        driver_info = _parse_driver_info(node)
+
+        path = _console_pwfile_path(driver_info['uuid'])
+        pw_file = console_utils.make_persistent_password_file(
+                path, driver_info['password'])
+
+        ipmi_cmd = "/:%(uid)s:%(gid)s:HOME:ipmitool -H %(address)s" \
+                   " -I lanplus -U %(user)s -f %(pwfile)s"  \
+                   % {'uid': os.getuid(),
+                      'gid': os.getgid(),
+                      'address': driver_info['address'],
+                      'user': driver_info['username'],
+                      'pwfile': pw_file}
+        if CONF.debug:
+            ipmi_cmd += " -v"
+        ipmi_cmd += " sol activate"
+        console_utils.start_shellinabox_console(driver_info['uuid'],
+                                                driver_info['port'],
+                                                ipmi_cmd)
+
+    def stop_console(self, task, node):
+        """Stop the remote console session for the node."""
+        driver_info = _parse_driver_info(node)
+        console_utils.stop_shellinabox_console(driver_info['uuid'])
+        utils.unlink_without_raise(_console_pwfile_path(driver_info['uuid']))
+
+    def get_console(self, task, node):
+        """Get the type and connection information about the console."""
+        driver_info = _parse_driver_info(node)
+        url = console_utils.get_shellinabox_console_url(driver_info['port'])
+        return {'type': 'shellinabox', 'url': url}
