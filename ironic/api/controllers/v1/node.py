@@ -105,6 +105,9 @@ class NodeConsoleController(rest.RestController):
         topic = pecan.request.rpcapi.get_topic_for(rpc_node)
         pecan.request.rpcapi.set_console_mode(pecan.request.context, node_uuid,
                                               enabled, topic)
+        # Set the HTTP Location Header
+        url_args = '/'.join([node_uuid, 'states', 'console'])
+        pecan.response.location = link.build_url('nodes', url_args)
 
 
 class NodeStates(base.APIBase):
@@ -192,12 +195,9 @@ class NodeStatesController(rest.RestController):
 
         pecan.request.rpcapi.change_node_power_state(pecan.request.context,
                                                      node_uuid, target, topic)
-
-        # FIXME(lucasagomes): Currently WSME doesn't support returning
-        # the Location header. Once it's implemented we should use the
-        # Location to point to the /states subresource of the node so
-        # that clients will know how to track the status of the request
-        # https://bugs.launchpad.net/wsme/+bug/1233687
+        # Set the HTTP Location Header
+        url_args = '/'.join([node_uuid, 'states'])
+        pecan.response.location = link.build_url('nodes', url_args)
 
     @wsme_pecan.wsexpose(None, types.uuid, wtypes.text, status_code=202)
     def provision(self, node_uuid, target):
@@ -251,11 +251,9 @@ class NodeStatesController(rest.RestController):
         elif target == ir_states.DELETED:
             pecan.request.rpcapi.do_node_tear_down(
                     pecan.request.context, node_uuid, topic)
-        # FIXME(lucasagomes): Currently WSME doesn't support returning
-        # the Location header. Once it's implemented we should use the
-        # Location to point to the /states subresource of this node so
-        # that clients will know how to track the status of the request
-        # https://bugs.launchpad.net/wsme/+bug/1233687
+        # Set the HTTP Location Header
+        url_args = '/'.join([node_uuid, 'states'])
+        pecan.response.location = link.build_url('nodes', url_args)
 
 
 class Node(base.APIBase):
