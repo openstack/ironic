@@ -774,9 +774,15 @@ class IronicDriverTestCase(test.NoDBTestCase):
             mock_sps.assert_called_once_with(node_uuid, 'deleted')
             mock_get_by_iuuid.assert_called_with(instance.uuid)
 
-    def test_reboot(self):
-        #TODO(lucasagomes): Not implemented in the driver.py
-        pass
+    @mock.patch.object(FAKE_CLIENT.node, 'set_power_state')
+    @mock.patch.object(ironic_driver, 'validate_instance_and_node')
+    def test_reboot(self, mock_val_inst, mock_set_power):
+        node = ironic_utils.get_test_node()
+        mock_val_inst.return_value = node
+        instance = fake_instance.fake_instance_obj(self.ctx,
+                                                   node=node.uuid)
+        self.driver.reboot(self.ctx, instance, None, None)
+        mock_set_power.assert_called_once_with(node.uuid, 'reboot')
 
     def test_power_off(self):
         node_uuid = 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee'
