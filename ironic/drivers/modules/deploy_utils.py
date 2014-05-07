@@ -80,16 +80,38 @@ def delete_iscsi(portal_address, portal_port, target_iqn):
 
 
 def make_partitions(dev, root_mb, swap_mb, ephemeral_mb):
-    """Create partitions for root and swap on a disk device."""
+    """Create partitions for root, swap and ephemeral on a disk device.
+
+    :param root_mb: Size of the root partition in mebibytes (MiB).
+    :param swap_mb: Size of the swap partition in mebibytes (MiB). If 0,
+        no swap partition will be created.
+    :param ephemeral_mb: Size of the ephemeral partition in mebibytes (MiB).
+        If 0, no ephemeral partition will be created.
+    :returns: A dictionary containing the partition type as Key and partition
+              path as Value for the partitions created by this method.
+
+    """
+    part_template = dev + '-part%d'
+    part_dict = {}
     dp = disk_partitioner.DiskPartitioner(dev)
     if ephemeral_mb:
-        dp.add_partition(ephemeral_mb)
-        dp.add_partition(swap_mb, fs_type='linux-swap')
-        dp.add_partition(root_mb)
+        part_num = dp.add_partition(ephemeral_mb)
+        part_dict['ephemeral'] = part_template % part_num
+        if swap_mb:
+            part_num = dp.add_partition(swap_mb, fs_type='linux-swap')
+            part_dict['swap'] = part_template % part_num
+        part_num = dp.add_partition(root_mb)
+        part_dict['root'] = part_template % part_num
     else:
-        dp.add_partition(root_mb)
-        dp.add_partition(swap_mb, fs_type='linux-swap')
+        part_num = dp.add_partition(root_mb)
+        part_dict['root'] = part_template % part_num
+        if swap_mb:
+            part_num = dp.add_partition(swap_mb, fs_type='linux-swap')
+            part_dict['swap'] = part_template % part_num
+
+    # write to the disk
     dp.commit()
+    return part_dict
 
 
 def is_block_device(dev):
@@ -183,36 +205,31 @@ def work_on_disk(dev, root_mb, swap_mb, ephemeral_mb, ephemeral_format,
         partition table has not changed).
 
     """
-    # NOTE(lucasagomes): When there's an ephemeral partition we want
-    # root to be last because that would allow root to resize and make it
-    # safer to do takeovernode with slightly larger images
-    if ephemeral_mb:
-        ephemeral_part = "%s-part1" % dev
-        swap_part = "%s-part2" % dev
-        root_part = "%s-part3" % dev
-    else:
-        root_part = "%s-part1" % dev
-        swap_part = "%s-part2" % dev
-
     if not is_block_device(dev):
         raise exception.InstanceDeployFailure(_("Parent device '%s' not found")
                                               % dev)
-    make_partitions(dev, root_mb, swap_mb, ephemeral_mb)
+
+    part_dict = make_partitions(dev, root_mb, swap_mb, ephemeral_mb)
+    ephemeral_part = part_dict.get('ephemeral')
+    swap_part = part_dict.get('swap')
+    root_part = part_dict.get('root')
 
     if not is_block_device(root_part):
         raise exception.InstanceDeployFailure(_("Root device '%s' not found")
                                               % root_part)
-    if not is_block_device(swap_part):
+    if swap_part and not is_block_device(swap_part):
         raise exception.InstanceDeployFailure(_("Swap device '%s' not found")
                                               % swap_part)
-    if ephemeral_mb and not is_block_device(ephemeral_part):
+    if ephemeral_part and not is_block_device(ephemeral_part):
         raise exception.InstanceDeployFailure(
                          _("Ephemeral device '%s' not found") % ephemeral_part)
 
     dd(image_path, root_part)
-    mkswap(swap_part)
 
-    if ephemeral_mb and not preserve_ephemeral:
+    if swap_part:
+        mkswap(swap_part)
+
+    if ephemeral_part and not preserve_ephemeral:
         mkfs_ephemeral(ephemeral_part, ephemeral_format)
 
     try:

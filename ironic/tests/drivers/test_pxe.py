@@ -174,13 +174,6 @@ class PXEValidateParametersTestCase(base.TestCase):
                 pxe._parse_driver_info,
                 node)
 
-    def test__parse_driver_info_swap_defaults_to_1mb(self):
-        info = dict(INFO_DICT)
-        info['pxe_swap_mb'] = 0
-        node = obj_utils.create_test_node(self.context, driver_info=info)
-        data = pxe._parse_driver_info(node)
-        self.assertEqual(1, data.get('swap_mb'))
-
     def test__get_pxe_mac_path(self):
         mac = '00:11:22:33:44:55:66'
         self.assertEqual('/tftpboot/pxelinux.cfg/01-00-11-22-33-44-55-66',
