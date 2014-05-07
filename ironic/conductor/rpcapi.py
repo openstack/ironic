@@ -65,7 +65,8 @@ class ConductorAPI(object):
         if self.topic is None:
             self.topic = manager.MANAGER_TOPIC
 
-        target = messaging.Target(topic=self.topic, version='1.0')
+        target = messaging.Target(topic=self.topic,
+                                  version=self.RPC_API_VERSION)
         serializer = objects_base.IronicObjectSerializer()
         self.client = rpc.get_client(target,
                                      version_cap=self.RPC_API_VERSION,
