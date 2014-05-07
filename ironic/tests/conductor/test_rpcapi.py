@@ -25,14 +25,24 @@ from oslo.config import cfg
 
 from ironic.common import exception
 from ironic.common import states
+from ironic.conductor import manager as conductor_manager
 from ironic.conductor import rpcapi as conductor_rpcapi
 from ironic.db import api as dbapi
 from ironic import objects
 from ironic.openstack.common import context
+from ironic.tests import base as tests_base
 from ironic.tests.db import base
 from ironic.tests.db import utils as dbutils
 
 CONF = cfg.CONF
+
+
+class ConductorRPCAPITestCase(tests_base.TestCase):
+
+    def test_versions_in_sync(self):
+        self.assertEqual(
+            conductor_manager.ConductorManager.RPC_API_VERSION,
+            conductor_rpcapi.ConductorAPI.RPC_API_VERSION)
 
 
 class RPCAPITestCase(base.DbTestCase):

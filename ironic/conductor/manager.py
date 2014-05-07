@@ -122,7 +122,8 @@ CONF.register_opts(conductor_opts, 'conductor')
 class ConductorManager(periodic_task.PeriodicTasks):
     """Ironic Conductor manager main class."""
 
-    RPC_API_VERSION = '1.14'
+    # NOTE(rloo): This must be in sync with rpcapi.ConductorAPI's.
+    RPC_API_VERSION = '1.15'
 
     target = messaging.Target(version=RPC_API_VERSION)
 

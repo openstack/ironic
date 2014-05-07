@@ -56,6 +56,7 @@ class ConductorAPI(object):
 
     """
 
+    # NOTE(rloo): This must be in sync with manager.ConductorManager's.
     RPC_API_VERSION = '1.15'
 
     def __init__(self, topic=None):
