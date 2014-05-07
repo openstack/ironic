@@ -206,7 +206,8 @@ class ChassisController(rest.RestController):
         :param chassis: a chassis within the request body.
         """
         new_chassis = pecan.request.dbapi.create_chassis(chassis.as_dict())
-
+        # Set the HTTP Location Header
+        pecan.response.location = link.build_url('chassis', new_chassis.uuid)
         return Chassis.convert_with_links(new_chassis)
 
     @wsme.validate(types.uuid, [ChassisPatchType])

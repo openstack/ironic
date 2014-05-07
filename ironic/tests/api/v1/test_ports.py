@@ -19,6 +19,7 @@ import datetime
 
 import mock
 from oslo.config import cfg
+from six.moves.urllib import parse as urlparse
 from testtools.matchers import HasLength
 
 from ironic.common import exception
@@ -453,6 +454,11 @@ class TestPost(base.FunctionalTest):
         return_created_at = timeutils.parse_isotime(
                             result['created_at']).replace(tzinfo=None)
         self.assertEqual(test_time, return_created_at)
+        # Check location header
+        self.assertIsNotNone(response.location)
+        expected_location = '/v1/ports/%s' % pdict['uuid']
+        self.assertEqual(urlparse.urlparse(response.location).path,
+                         expected_location)
 
     def test_create_port_generate_uuid(self):
         pdict = post_get_test_port()

@@ -278,7 +278,8 @@ class PortsController(rest.RestController):
             raise exception.OperationNotPermitted
 
         new_port = pecan.request.dbapi.create_port(port.as_dict())
-
+        # Set the HTTP Location Header
+        pecan.response.location = link.build_url('ports', new_port.uuid)
         return Port.convert_with_links(new_port)
 
     @wsme.validate(types.uuid, [PortPatchType])
