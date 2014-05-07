@@ -57,7 +57,7 @@ class ImageCache(object):
         :param cache_ttl: cache entity TTL in seconds
         :param image_service: Glance image service to use, None for default
         """
-        self._master_dir = master_dir
+        self.master_dir = master_dir
         self._cache_size = cache_size
         self._cache_ttl = cache_ttl
         self._image_service = image_service
@@ -76,7 +76,7 @@ class ImageCache(object):
         :param ctx: context
         """
         img_download_lock_name = 'download-image'
-        if self._master_dir is None:
+        if self.master_dir is None:
             #NOTE(ghe): We don't share images between instances/hosts
             if not CONF.parallel_image_downloads:
                 with lockutils.lock(img_download_lock_name, 'ironic-'):
@@ -90,7 +90,7 @@ class ImageCache(object):
         #TODO(ghe): have hard links and counts the same behaviour in all fs
 
         master_file_name = service_utils.parse_image_ref(uuid)[0]
-        master_path = os.path.join(self._master_dir, master_file_name)
+        master_path = os.path.join(self.master_dir, master_file_name)
 
         if CONF.parallel_image_downloads:
             img_download_lock_name = 'download-image:%s' % master_file_name
@@ -133,7 +133,7 @@ class ImageCache(object):
         """
         #TODO(ghe): timeout and retry for downloads
         #TODO(ghe): logging when image cannot be created
-        fd, tmp_path = tempfile.mkstemp(dir=self._master_dir)
+        fd, tmp_path = tempfile.mkstemp(dir=self.master_dir)
         os.close(fd)
         images.fetch_to_raw(ctx, uuid, tmp_path,
                             self._image_service)
@@ -151,13 +151,13 @@ class ImageCache(object):
         Protected by global lock, so that no one messes with master images
         after we get listing and before we actually delete files.
         """
-        if self._master_dir is None:
+        if self.master_dir is None:
             return
 
         LOG.debug("Starting clean up for master image cache %(dir)s" %
-                  {'dir': self._master_dir})
+                  {'dir': self.master_dir})
 
-        listing = _find_candidates_for_deletion(self._master_dir)
+        listing = _find_candidates_for_deletion(self.master_dir)
         survived = self._clean_up_too_old(listing)
         self._clean_up_ensure_cache_size(survived)
 
@@ -187,8 +187,8 @@ class ImageCache(object):
         listing = sorted(listing,
                          key=lambda entry: entry[1],
                          reverse=True)
-        total_listing = (os.path.join(self._master_dir, f)
-                         for f in os.listdir(self._master_dir))
+        total_listing = (os.path.join(self.master_dir, f)
+                         for f in os.listdir(self.master_dir))
         total_size = sum(os.path.getsize(f)
                          for f in total_listing)
         while total_size > self._cache_size and listing:
@@ -206,7 +206,7 @@ class ImageCache(object):
             LOG.info(_("After cleaning up cache dir %(dir)s "
                        "cache size %(actual)d is still larger than "
                        "threshold %(expected)d") %
-                     {'dir': self._master_dir, 'actual': total_size,
+                     {'dir': self.master_dir, 'actual': total_size,
                       'expected': self._cache_size})
 
 

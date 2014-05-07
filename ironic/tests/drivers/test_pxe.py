@@ -26,6 +26,7 @@ from oslo.config import cfg
 
 from ironic.common import exception
 from ironic.common.glance_service import base_image_service
+from ironic.common import image_service
 from ironic.common import keystone
 from ironic.common import neutron
 from ironic.common import states
@@ -34,7 +35,6 @@ from ironic.conductor import task_manager
 from ironic.conductor import utils as manager_utils
 from ironic.db import api as dbapi
 from ironic.drivers.modules import deploy_utils
-from ironic.drivers.modules import image_cache
 from ironic.drivers.modules import pxe
 from ironic.openstack.common import context
 from ironic.openstack.common import fileutils
@@ -204,25 +204,25 @@ class PXEPrivateMethodsTestCase(db_base.DbTestCase):
                      u'ramdisk_id': u'instance_ramdisk_uuid'}}
 
         expected_info = {'ramdisk':
-                         ['instance_ramdisk_uuid',
+                         ('instance_ramdisk_uuid',
                           os.path.join(CONF.pxe.tftp_root,
                                        self.node.uuid,
-                                       'ramdisk')],
+                                       'ramdisk')),
                          'kernel':
-                         ['instance_kernel_uuid',
+                         ('instance_kernel_uuid',
                           os.path.join(CONF.pxe.tftp_root,
                                        self.node.uuid,
-                                       'kernel')],
+                                       'kernel')),
                          'deploy_ramdisk':
-                         ['deploy_ramdisk_uuid',
+                         ('deploy_ramdisk_uuid',
                            os.path.join(CONF.pxe.tftp_root,
                                         self.node.uuid,
-                                        'deploy_ramdisk')],
+                                        'deploy_ramdisk')),
                          'deploy_kernel':
-                         ['deploy_kernel_uuid',
+                         ('deploy_kernel_uuid',
                           os.path.join(CONF.pxe.tftp_root,
                                        self.node.uuid,
-                                       'deploy_kernel')]}
+                                       'deploy_kernel'))}
         show_mock.return_value = properties
         image_info = pxe._get_tftp_image_info(self.node, self.context)
         show_mock.assert_called_once_with('glance://image_uuid',
@@ -251,22 +251,22 @@ class PXEPrivateMethodsTestCase(db_base.DbTestCase):
         fake_key = '0123456789ABCDEFGHIJKLMNOPQRSTUV'
         random_alnum_mock.return_value = fake_key
 
-        image_info = {'deploy_kernel': ['deploy_kernel',
+        image_info = {'deploy_kernel': ('deploy_kernel',
                                         os.path.join(CONF.pxe.tftp_root,
                                                      self.node.uuid,
-                                                     'deploy_kernel')],
-                      'deploy_ramdisk': ['deploy_ramdisk',
+                                                     'deploy_kernel')),
+                      'deploy_ramdisk': ('deploy_ramdisk',
                                          os.path.join(CONF.pxe.tftp_root,
                                                       self.node.uuid,
-                                                      'deploy_ramdisk')],
-                      'kernel': ['kernel_id',
+                                                      'deploy_ramdisk')),
+                      'kernel': ('kernel_id',
                                  os.path.join(CONF.pxe.tftp_root,
                                               self.node.uuid,
-                                              'kernel')],
-                      'ramdisk': ['ramdisk_id',
+                                              'kernel')),
+                      'ramdisk': ('ramdisk_id',
                                   os.path.join(CONF.pxe.tftp_root,
                                                self.node.uuid,
-                                               'ramdisk')]
+                                               'ramdisk'))
                       }
         pxe_config = pxe._build_pxe_config(self.node,
                                            image_info,
@@ -388,7 +388,7 @@ class PXEPrivateMethodsTestCase(db_base.DbTestCase):
         self.assertEqual('/tftpboot/token-' + node_uuid,
                          pxe._get_token_file_path(node_uuid))
 
-    @mock.patch.object(image_cache.ImageCache, 'fetch_image')
+    @mock.patch.object(pxe, '_fetch_images')
     def test__cache_tftp_images_master_path(self, mock_fetch_image):
         temp_dir = tempfile.mkdtemp()
         self.config(tftp_root=temp_dir, group='pxe')
@@ -397,16 +397,17 @@ class PXEPrivateMethodsTestCase(db_base.DbTestCase):
                     group='pxe')
         image_path = os.path.join(temp_dir, self.node.uuid,
                                   'deploy_kernel')
-        image_info = {'deploy_kernel': ['deploy_kernel', image_path]}
+        image_info = {'deploy_kernel': ('deploy_kernel', image_path)}
         fileutils.ensure_tree(CONF.pxe.tftp_master_path)
 
         pxe._cache_tftp_images(None, self.node, image_info)
 
-        mock_fetch_image.assert_called_once_with('deploy_kernel',
-                                                 image_path,
-                                                 ctx=None)
+        mock_fetch_image.assert_called_once_with(None,
+                                                 mock.ANY,
+                                                 [('deploy_kernel',
+                                                   image_path)])
 
-    @mock.patch.object(image_cache.ImageCache, 'fetch_image')
+    @mock.patch.object(pxe, '_fetch_images')
     def test__cache_instance_images_master_path(self, mock_fetch_image):
         temp_dir = tempfile.mkdtemp()
         self.config(images_path=temp_dir, group='pxe')
@@ -417,12 +418,131 @@ class PXEPrivateMethodsTestCase(db_base.DbTestCase):
 
         (uuid, image_path) = pxe._cache_instance_image(None,
                                                        self.node)
-        mock_fetch_image.assert_called_once_with(uuid, image_path, ctx=None)
+        mock_fetch_image.assert_called_once_with(None,
+                                                 mock.ANY,
+                                                 [(uuid, image_path)])
         self.assertEqual('glance://image_uuid', uuid)
         self.assertEqual(os.path.join(temp_dir,
                                       self.node.uuid,
                                       'disk'),
                          image_path)
+
+
+@mock.patch.object(pxe, 'TFTPImageCache')
+@mock.patch.object(pxe, 'InstanceImageCache')
+@mock.patch.object(os, 'statvfs')
+@mock.patch.object(image_service, 'Service')
+class PXEPrivateFetchImagesTestCase(db_base.DbTestCase):
+
+    def test_no_clean_up(self, mock_image_service, mock_statvfs,
+                         mock_instance_cache, mock_tftp_cache):
+        # Enough space found - no clean up
+        mock_show = mock_image_service.return_value.show
+        mock_show.return_value = dict(size=42)
+        mock_statvfs.return_value = mock.Mock(f_frsize=1, f_bavail=1024)
+
+        cache = mock.Mock(master_dir='master_dir')
+        pxe._fetch_images(None, cache, [('uuid', 'path')])
+
+        mock_show.assert_called_once_with('uuid')
+        mock_statvfs.assert_called_once_with('master_dir')
+        cache.fetch_image.assert_called_once_with('uuid', 'path', ctx=None)
+        self.assertFalse(mock_instance_cache.return_value.clean_up.called)
+        self.assertFalse(mock_tftp_cache.return_value.clean_up.called)
+
+    @mock.patch.object(os, 'stat')
+    def test_one_clean_up(self, mock_stat, mock_image_service, mock_statvfs,
+                          mock_instance_cache, mock_tftp_cache):
+        # Not enough space, instance cache clean up is enough
+        mock_stat.return_value.st_dev = 1
+        mock_show = mock_image_service.return_value.show
+        mock_show.return_value = dict(size=42)
+        mock_statvfs.side_effect = [
+            mock.Mock(f_frsize=1, f_bavail=1),
+            mock.Mock(f_frsize=1, f_bavail=1024)
+        ]
+
+        cache = mock.Mock(master_dir='master_dir')
+        pxe._fetch_images(None, cache, [('uuid', 'path')])
+
+        mock_show.assert_called_once_with('uuid')
+        mock_statvfs.assert_called_with('master_dir')
+        self.assertEqual(2, mock_statvfs.call_count)
+        cache.fetch_image.assert_called_once_with('uuid', 'path', ctx=None)
+        mock_instance_cache.return_value.clean_up.assert_called_once_with()
+        self.assertFalse(mock_tftp_cache.return_value.clean_up.called)
+        self.assertEqual(3, mock_stat.call_count)
+
+    @mock.patch.object(os, 'stat')
+    def test_clean_up_another_fs(self, mock_stat, mock_image_service,
+                                 mock_statvfs, mock_instance_cache,
+                                 mock_tftp_cache):
+        # Not enough space, instance cache on another partition
+        mock_stat.side_effect = [mock.Mock(st_dev=1),
+                                 mock.Mock(st_dev=2),
+                                 mock.Mock(st_dev=1)]
+        mock_show = mock_image_service.return_value.show
+        mock_show.return_value = dict(size=42)
+        mock_statvfs.side_effect = [
+            mock.Mock(f_frsize=1, f_bavail=1),
+            mock.Mock(f_frsize=1, f_bavail=1024)
+        ]
+
+        cache = mock.Mock(master_dir='master_dir')
+        pxe._fetch_images(None, cache, [('uuid', 'path')])
+
+        mock_show.assert_called_once_with('uuid')
+        mock_statvfs.assert_called_with('master_dir')
+        self.assertEqual(2, mock_statvfs.call_count)
+        cache.fetch_image.assert_called_once_with('uuid', 'path', ctx=None)
+        mock_tftp_cache.return_value.clean_up.assert_called_once_with()
+        self.assertFalse(mock_instance_cache.return_value.clean_up.called)
+        self.assertEqual(3, mock_stat.call_count)
+
+    @mock.patch.object(os, 'stat')
+    def test_both_clean_up(self, mock_stat, mock_image_service, mock_statvfs,
+                           mock_instance_cache, mock_tftp_cache):
+        # Not enough space, clean up of both caches required
+        mock_stat.return_value.st_dev = 1
+        mock_show = mock_image_service.return_value.show
+        mock_show.return_value = dict(size=42)
+        mock_statvfs.side_effect = [
+            mock.Mock(f_frsize=1, f_bavail=1),
+            mock.Mock(f_frsize=1, f_bavail=1),
+            mock.Mock(f_frsize=1, f_bavail=1024)
+        ]
+
+        cache = mock.Mock(master_dir='master_dir')
+        pxe._fetch_images(None, cache, [('uuid', 'path')])
+
+        mock_show.assert_called_once_with('uuid')
+        mock_statvfs.assert_called_with('master_dir')
+        self.assertEqual(3, mock_statvfs.call_count)
+        cache.fetch_image.assert_called_once_with('uuid', 'path', ctx=None)
+        mock_instance_cache.return_value.clean_up.assert_called_once_with()
+        mock_tftp_cache.return_value.clean_up.assert_called_once_with()
+        self.assertEqual(3, mock_stat.call_count)
+
+    @mock.patch.object(os, 'stat')
+    def test_clean_up_fail(self, mock_stat, mock_image_service, mock_statvfs,
+                           mock_instance_cache, mock_tftp_cache):
+        # Not enough space even after cleaning both caches - failure
+        mock_stat.return_value.st_dev = 1
+        mock_show = mock_image_service.return_value.show
+        mock_show.return_value = dict(size=42)
+        mock_statvfs.return_value = mock.Mock(f_frsize=1, f_bavail=1)
+
+        cache = mock.Mock(master_dir='master_dir')
+        self.assertRaises(exception.InstanceDeployFailure, pxe._fetch_images,
+                          None, cache, [('uuid', 'path')])
+
+        mock_show.assert_called_once_with('uuid')
+        mock_statvfs.assert_called_with('master_dir')
+        self.assertEqual(3, mock_statvfs.call_count)
+        self.assertFalse(cache.return_value.fetch_image.called)
+        mock_instance_cache.return_value.clean_up.assert_called_once_with()
+        mock_tftp_cache.return_value.clean_up.assert_called_once_with()
+        self.assertEqual(3, mock_stat.call_count)
 
 
 class PXEDriverTestCase(db_base.DbTestCase):
@@ -768,7 +888,7 @@ class PXEDriverTestCase(db_base.DbTestCase):
 
         d_kernel_path = os.path.join(CONF.pxe.tftp_root,
                                      self.node.uuid, 'deploy_kernel')
-        image_info = {'deploy_kernel': ['deploy_kernel_uuid', d_kernel_path]}
+        image_info = {'deploy_kernel': ('deploy_kernel_uuid', d_kernel_path)}
 
         get_tftp_image_info_mock.return_value = image_info
 
