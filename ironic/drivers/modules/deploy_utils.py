@@ -97,17 +97,16 @@ def make_partitions(dev, root_mb, swap_mb, ephemeral_mb):
     if ephemeral_mb:
         part_num = dp.add_partition(ephemeral_mb)
         part_dict['ephemeral'] = part_template % part_num
-        if swap_mb:
-            part_num = dp.add_partition(swap_mb, fs_type='linux-swap')
-            part_dict['swap'] = part_template % part_num
-        part_num = dp.add_partition(root_mb)
-        part_dict['root'] = part_template % part_num
-    else:
-        part_num = dp.add_partition(root_mb)
-        part_dict['root'] = part_template % part_num
-        if swap_mb:
-            part_num = dp.add_partition(swap_mb, fs_type='linux-swap')
-            part_dict['swap'] = part_template % part_num
+
+    if swap_mb:
+        part_num = dp.add_partition(swap_mb, fs_type='linux-swap')
+        part_dict['swap'] = part_template % part_num
+
+    # NOTE(lucasagomes): Make the root partition the last partition. This
+    # enables tools like cloud-init's growroot utility to expand the root
+    # partition until the end of the disk.
+    part_num = dp.add_partition(root_mb)
+    part_dict['root'] = part_template % part_num
 
     # write to the disk
     dp.commit()
