@@ -19,6 +19,7 @@ python-neutronclient>=2.3.4,<3
 python-glanceclient>=0.9.0
 python-keystoneclient>=0.8.0
 stevedore>=0.14
+pysendfile==2.0.0
 websockify>=0.5.1,<0.6
 oslo.config>=1.2.0
 oslo.rootwrap
