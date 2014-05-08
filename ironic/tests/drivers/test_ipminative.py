@@ -18,7 +18,10 @@
 """
 Test class for Native IPMI power driver module.
 """
+
 import mock
+
+from oslo.config import cfg
 
 from ironic.common import driver_factory
 from ironic.common import exception
@@ -32,7 +35,6 @@ from ironic.tests.conductor import utils as mgr_utils
 from ironic.tests.db import base as db_base
 from ironic.tests.db import utils as db_utils
 from ironic.tests.objects import utils as obj_utils
-from oslo.config import cfg
 
 CONF = cfg.CONF
 
