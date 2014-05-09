@@ -25,8 +25,8 @@ from ironic.common import disk_partitioner
 from ironic.common import exception
 from ironic.common import utils as common_utils
 from ironic.drivers.modules import deploy_utils as utils
+from ironic.openstack.common import processutils
 from ironic.tests import base as tests_base
-
 
 _PXECONF_DEPLOY = """
 default deploy
@@ -87,6 +87,7 @@ class PhysicalWorkTestCase(tests_base.TestCase):
         swap_mb = 64
         ephemeral_mb = 0
         ephemeral_format = None
+        node_uuid = "12345678-1234-1234-1234-1234567890abcxyz"
 
         dev = '/dev/fake'
         swap_part = '/dev/fake-part1'
@@ -96,7 +97,7 @@ class PhysicalWorkTestCase(tests_base.TestCase):
         name_list = ['get_dev', 'get_image_mb', 'discovery', 'login_iscsi',
                      'logout_iscsi', 'delete_iscsi', 'make_partitions',
                      'is_block_device', 'dd', 'mkswap', 'block_uuid',
-                     'switch_pxe_config', 'notify']
+                     'switch_pxe_config', 'notify', 'destroy_disk_metadata']
         parent_mock = self._mock_calls(name_list)
         parent_mock.get_dev.return_value = dev
         parent_mock.get_image_mb.return_value = 1
@@ -109,6 +110,7 @@ class PhysicalWorkTestCase(tests_base.TestCase):
                           mock.call.discovery(address, port),
                           mock.call.login_iscsi(address, port, iqn),
                           mock.call.is_block_device(dev),
+                          mock.call.destroy_disk_metadata(dev, node_uuid),
                           mock.call.make_partitions(dev, root_mb, swap_mb,
                                                     ephemeral_mb,
                                                     commit=True),
@@ -124,7 +126,8 @@ class PhysicalWorkTestCase(tests_base.TestCase):
                           mock.call.notify(address, 10000)]
 
         utils.deploy(address, port, iqn, lun, image_path, pxe_config_path,
-                     root_mb, swap_mb, ephemeral_mb, ephemeral_format)
+                     root_mb, swap_mb, ephemeral_mb, ephemeral_format,
+                     node_uuid)
 
         self.assertEqual(calls_expected, parent_mock.mock_calls)
 
@@ -140,6 +143,7 @@ class PhysicalWorkTestCase(tests_base.TestCase):
         swap_mb = 0
         ephemeral_mb = 0
         ephemeral_format = None
+        node_uuid = "12345678-1234-1234-1234-1234567890abcxyz"
 
         dev = '/dev/fake'
         root_part = '/dev/fake-part1'
@@ -148,7 +152,7 @@ class PhysicalWorkTestCase(tests_base.TestCase):
         name_list = ['get_dev', 'get_image_mb', 'discovery', 'login_iscsi',
                      'logout_iscsi', 'delete_iscsi', 'make_partitions',
                      'is_block_device', 'dd', 'block_uuid',
-                     'switch_pxe_config', 'notify']
+                     'switch_pxe_config', 'notify', 'destroy_disk_metadata']
         parent_mock = self._mock_calls(name_list)
         parent_mock.get_dev.return_value = dev
         parent_mock.get_image_mb.return_value = 1
@@ -160,6 +164,7 @@ class PhysicalWorkTestCase(tests_base.TestCase):
                           mock.call.discovery(address, port),
                           mock.call.login_iscsi(address, port, iqn),
                           mock.call.is_block_device(dev),
+                          mock.call.destroy_disk_metadata(dev, node_uuid),
                           mock.call.make_partitions(dev, root_mb, swap_mb,
                                                     ephemeral_mb,
                                                     commit=True),
@@ -173,7 +178,8 @@ class PhysicalWorkTestCase(tests_base.TestCase):
                           mock.call.notify(address, 10000)]
 
         utils.deploy(address, port, iqn, lun, image_path, pxe_config_path,
-                     root_mb, swap_mb, ephemeral_mb, ephemeral_format)
+                     root_mb, swap_mb, ephemeral_mb, ephemeral_format,
+                     node_uuid)
 
         self.assertEqual(calls_expected, parent_mock.mock_calls)
 
@@ -189,6 +195,7 @@ class PhysicalWorkTestCase(tests_base.TestCase):
         swap_mb = 64
         ephemeral_mb = 256
         ephemeral_format = 'exttest'
+        node_uuid = "12345678-1234-1234-1234-1234567890abcxyz"
 
         dev = '/dev/fake'
         ephemeral_part = '/dev/fake-part1'
@@ -199,7 +206,8 @@ class PhysicalWorkTestCase(tests_base.TestCase):
         name_list = ['get_dev', 'get_image_mb', 'discovery', 'login_iscsi',
                      'logout_iscsi', 'delete_iscsi', 'make_partitions',
                      'is_block_device', 'dd', 'mkswap', 'block_uuid',
-                     'switch_pxe_config', 'notify', 'mkfs_ephemeral']
+                     'switch_pxe_config', 'notify', 'mkfs_ephemeral',
+                     'destroy_disk_metadata']
         parent_mock = self._mock_calls(name_list)
         parent_mock.get_dev.return_value = dev
         parent_mock.get_image_mb.return_value = 1
@@ -213,6 +221,7 @@ class PhysicalWorkTestCase(tests_base.TestCase):
                           mock.call.discovery(address, port),
                           mock.call.login_iscsi(address, port, iqn),
                           mock.call.is_block_device(dev),
+                          mock.call.destroy_disk_metadata(dev, node_uuid),
                           mock.call.make_partitions(dev, root_mb, swap_mb,
                                                     ephemeral_mb,
                                                     commit=True),
@@ -231,7 +240,8 @@ class PhysicalWorkTestCase(tests_base.TestCase):
                           mock.call.notify(address, 10000)]
 
         utils.deploy(address, port, iqn, lun, image_path, pxe_config_path,
-                     root_mb, swap_mb, ephemeral_mb, ephemeral_format)
+                     root_mb, swap_mb, ephemeral_mb, ephemeral_format,
+                     node_uuid)
 
         self.assertEqual(calls_expected, parent_mock.mock_calls)
 
@@ -247,6 +257,7 @@ class PhysicalWorkTestCase(tests_base.TestCase):
         swap_mb = 64
         ephemeral_mb = 256
         ephemeral_format = 'exttest'
+        node_uuid = "12345678-1234-1234-1234-1234567890abcxyz"
 
         dev = '/dev/fake'
         ephemeral_part = '/dev/fake-part1'
@@ -254,13 +265,11 @@ class PhysicalWorkTestCase(tests_base.TestCase):
         root_part = '/dev/fake-part3'
         root_uuid = '12345678-1234-1234-12345678-12345678abcdef'
 
-        mock_mkfs_eph = mock.patch.object(utils, 'mkfs_ephemeral').start()
-        self.addCleanup(mock_mkfs_eph.stop)
-
         name_list = ['get_dev', 'get_image_mb', 'discovery', 'login_iscsi',
                      'logout_iscsi', 'delete_iscsi', 'make_partitions',
                      'is_block_device', 'dd', 'mkswap', 'block_uuid',
-                     'switch_pxe_config', 'notify']
+                     'switch_pxe_config', 'notify', 'mkfs_ephemeral',
+                     'get_dev_block_size']
         parent_mock = self._mock_calls(name_list)
         parent_mock.get_dev.return_value = dev
         parent_mock.get_image_mb.return_value = 1
@@ -292,10 +301,10 @@ class PhysicalWorkTestCase(tests_base.TestCase):
 
         utils.deploy(address, port, iqn, lun, image_path, pxe_config_path,
                      root_mb, swap_mb, ephemeral_mb, ephemeral_format,
-                     preserve_ephemeral=True)
+                     node_uuid, preserve_ephemeral=True)
         self.assertEqual(calls_expected, parent_mock.mock_calls)
-        # mkfs_ephemeral should not be called
-        self.assertFalse(mock_mkfs_eph.called)
+        self.assertFalse(parent_mock.mkfs_ephemeral.called)
+        self.assertFalse(parent_mock.get_dev_block_size.called)
 
     def test_always_logout_and_delete_iscsi(self):
         """Check if logout_iscsi() and delete_iscsi() are called.
@@ -314,6 +323,7 @@ class PhysicalWorkTestCase(tests_base.TestCase):
         swap_mb = 64
         ephemeral_mb = 256
         ephemeral_format = 'exttest'
+        node_uuid = "12345678-1234-1234-1234-1234567890abcxyz"
 
         dev = '/dev/fake'
 
@@ -341,14 +351,14 @@ class PhysicalWorkTestCase(tests_base.TestCase):
                           mock.call.work_on_disk(dev, root_mb, swap_mb,
                                                  ephemeral_mb,
                                                  ephemeral_format, image_path,
-                                                 False),
+                                                 node_uuid, False),
                           mock.call.logout_iscsi(address, port, iqn),
                           mock.call.delete_iscsi(address, port, iqn)]
 
         self.assertRaises(TestException, utils.deploy,
                           address, port, iqn, lun, image_path,
                           pxe_config_path, root_mb, swap_mb, ephemeral_mb,
-                          ephemeral_format)
+                          ephemeral_format, node_uuid)
 
         self.assertEqual(calls_expected, parent_mock.mock_calls)
 
@@ -411,6 +421,9 @@ class WorkOnDiskTestCase(tests_base.TestCase):
         self.mock_mp = mock.patch.object(utils, 'make_partitions').start()
         self.addCleanup(self.mock_ibd.stop)
         self.addCleanup(self.mock_mp.stop)
+        self.mock_remlbl = mock.patch.object(utils,
+                                             'destroy_disk_metadata').start()
+        self.addCleanup(self.mock_remlbl.stop)
         self.mock_mp.return_value = {'swap': self.swap_part,
                                      'root': self.root_part}
 
@@ -508,3 +521,67 @@ class MakePartitionsTestCase(tests_base.TestCase):
                               self.ephemeral_mb)
         mock_exc.assert_called_once_with(*cmd, run_as_root=True,
                                          check_exit_code=[0])
+
+
+@mock.patch.object(utils, 'get_dev_block_size')
+@mock.patch.object(common_utils, 'execute')
+class DestroyMetaDataTestCase(tests_base.TestCase):
+
+    def setUp(self):
+        super(DestroyMetaDataTestCase, self).setUp()
+        self.dev = 'fake-dev'
+        self.node_uuid = "12345678-1234-1234-1234-1234567890abcxyz"
+
+    def test_destroy_disk_metadata(self, mock_exec, mock_gz):
+        mock_gz.return_value = 64
+        expected_calls = [mock.call('dd', 'if=/dev/zero', 'of=fake-dev',
+                                    'bs=512', 'count=36', run_as_root=True,
+                                    check_exit_code=[0]),
+                          mock.call('dd', 'if=/dev/zero', 'of=fake-dev',
+                                    'bs=512', 'count=36', 'seek=28',
+                                    run_as_root=True,
+                                    check_exit_code=[0])]
+        utils.destroy_disk_metadata(self.dev, self.node_uuid)
+        mock_exec.assert_has_calls(expected_calls)
+        self.assertTrue(mock_gz.called)
+
+    def test_destroy_disk_metadata_get_dev_size_fail(self, mock_exec, mock_gz):
+        mock_gz.side_effect = processutils.ProcessExecutionError
+
+        expected_call = [mock.call('dd', 'if=/dev/zero', 'of=fake-dev',
+                            'bs=512', 'count=36', run_as_root=True,
+                            check_exit_code=[0])]
+        self.assertRaises(processutils.ProcessExecutionError,
+                          utils.destroy_disk_metadata,
+                          self.dev,
+                          self.node_uuid)
+        mock_exec.assert_has_calls(expected_call)
+
+    def test_destroy_disk_metadata_dd_fail(self, mock_exec, mock_gz):
+        mock_exec.side_effect = processutils.ProcessExecutionError
+
+        expected_call = [mock.call('dd', 'if=/dev/zero', 'of=fake-dev',
+                            'bs=512', 'count=36', run_as_root=True,
+                            check_exit_code=[0])]
+        self.assertRaises(processutils.ProcessExecutionError,
+                          utils.destroy_disk_metadata,
+                          self.dev,
+                          self.node_uuid)
+        mock_exec.assert_has_calls(expected_call)
+        self.assertFalse(mock_gz.called)
+
+
+@mock.patch.object(common_utils, 'execute')
+class GetDeviceBlockSizeTestCase(tests_base.TestCase):
+
+    def setUp(self):
+        super(GetDeviceBlockSizeTestCase, self).setUp()
+        self.dev = 'fake-dev'
+        self.node_uuid = "12345678-1234-1234-1234-1234567890abcxyz"
+
+    def test_get_dev_block_size(self, mock_exec):
+        mock_exec.return_value = ("64", "")
+        expected_call = [mock.call('blockdev', '--getsz', self.dev,
+                                     run_as_root=True, check_exit_code=[0])]
+        utils.get_dev_block_size(self.dev)
+        mock_exec.assert_has_calls(expected_call)

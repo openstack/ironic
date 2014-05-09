@@ -641,6 +641,7 @@ class VendorPassthru(base.VendorInterface):
                   'swap_mb': int(d_info['swap_mb']),
                   'ephemeral_mb': 1024 * int(d_info['ephemeral_gb']),
                   'preserve_ephemeral': d_info['preserve_ephemeral'],
+                  'node_uuid': node.uuid,
             }
 
         missing = [key for key in params.keys() if params[key] is None]
