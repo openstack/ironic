@@ -255,16 +255,26 @@ class PXEImageCache(image_cache.ImageCache):
             image_service=image_service)
 
 
+class TFTPImageCache(PXEImageCache):
+    def __init__(self, image_service=None):
+        super(TFTPImageCache, self).__init__(CONF.pxe.tftp_master_path)
+
+
+class InstanceImageCache(PXEImageCache):
+    def __init__(self, image_service=None):
+        super(InstanceImageCache, self).__init__(CONF.pxe.instance_master_path)
+
+
 def _cache_tftp_images(ctx, node, pxe_info):
     """Fetch the necessary kernels and ramdisks for the instance."""
     fileutils.ensure_tree(
         os.path.join(CONF.pxe.tftp_root, node.uuid))
     LOG.debug(_("Fetching kernel and ramdisk for node %s") %
               node.uuid)
-    image_cache = PXEImageCache(CONF.pxe.tftp_master_path)
+    master_cache = TFTPImageCache()
     for label in pxe_info:
         (uuid, path) = pxe_info[label]
-        image_cache.fetch_image(uuid, path, ctx=ctx)
+        master_cache.fetch_image(uuid, path, ctx=ctx)
 
 
 def _cache_instance_image(ctx, node):
@@ -292,8 +302,7 @@ def _cache_instance_image(ctx, node):
     LOG.debug(_("Fetching image %(ami)s for node %(uuid)s") %
               {'ami': uuid, 'uuid': node.uuid})
 
-    image_cache = PXEImageCache(CONF.pxe.instance_master_path)
-    image_cache.fetch_image(uuid, image_path, ctx=ctx)
+    InstanceImageCache().fetch_image(uuid, image_path, ctx=ctx)
 
     return (uuid, image_path)
 
@@ -358,7 +367,7 @@ def _destroy_images(d_info, node_uuid):
     """Delete instance's image file."""
     utils.unlink_without_raise(_get_image_file_path(node_uuid))
     utils.rmtree_without_raise(_get_image_dir_path(node_uuid))
-    PXEImageCache(CONF.pxe.instance_master_path).clean_up()
+    InstanceImageCache().clean_up()
 
 
 def _create_token_file(task, node):
@@ -546,7 +555,7 @@ class PXEDeploy(base.DeployInterface):
         for label in pxe_info:
             path = pxe_info[label][1]
             utils.unlink_without_raise(path)
-        PXEImageCache(CONF.pxe.tftp_master_path).clean_up()
+        TFTPImageCache().clean_up()
 
         utils.unlink_without_raise(_get_pxe_config_file_path(
                 node.uuid))
