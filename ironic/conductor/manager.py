@@ -42,6 +42,7 @@ a change, etc.
 """
 
 import collections
+import threading
 
 import eventlet
 from eventlet import greenpool
@@ -159,7 +160,17 @@ class ConductorManager(periodic_task.PeriodicTasks):
                                 size=CONF.conductor.workers_pool_size)
         """GreenPool of background workers for performing tasks async."""
 
+        # Spawn a dedicated greenthread for the keepalive
+        try:
+            self._keepalive_evt = threading.Event()
+            self._spawn_worker(self._conductor_service_record_keepalive)
+        except exception.NoFreeConductorWorker:
+            with excutils.save_and_reraise_exception():
+                LOG.critical(_('Failed to start keepalive'))
+                self.del_host()
+
     def del_host(self):
+        self._keepalive_evt.set()
         try:
             self.dbapi.unregister_conductor(self.host)
         except exception.ConductorNotFound:
@@ -469,9 +480,10 @@ class ConductorManager(periodic_task.PeriodicTasks):
         finally:
             node.save(context)
 
-    @periodic_task.periodic_task(spacing=CONF.conductor.heartbeat_interval)
-    def _conductor_service_record_keepalive(self, context):
-        self.dbapi.touch_conductor(self.host)
+    def _conductor_service_record_keepalive(self):
+        while not self._keepalive_evt.is_set():
+            self.dbapi.touch_conductor(self.host)
+            self._keepalive_evt.wait(CONF.conductor.heartbeat_interval)
 
     def _handle_sync_power_state_max_retries_exceeded(self, task,
                                                       actual_power_state):

@@ -57,6 +57,15 @@ class ManagerTestCase(tests_db_base.DbTestCase):
         self.dbapi = dbapi.get_instance()
         mgr_utils.mock_the_extension_manager()
         self.driver = driver_factory.get_driver("fake")
+        self.mock_keepalive_patcher = mock.patch.object(self.service,
+            '_conductor_service_record_keepalive')
+        self.mock_keepalive = self.mock_keepalive_patcher.start()
+
+        def stop_patchers():
+            if self.mock_keepalive:
+                self.mock_keepalive_patcher.stop()
+
+        self.addCleanup(stop_patchers)
 
     def _stop_service(self):
         try:
@@ -124,9 +133,18 @@ class ManagerTestCase(tests_db_base.DbTestCase):
                                                                 'otherdriver'))
 
     def test__conductor_service_record_keepalive(self):
+        # stop mock_keepalive mock
+        self.mock_keepalive_patcher.stop()
+        self.mock_keepalive = None
+
         self._start_service()
+        # avoid wasting time at the event.wait()
+        CONF.set_override('heartbeat_interval', 0, 'conductor')
         with mock.patch.object(self.dbapi, 'touch_conductor') as mock_touch:
-            self.service._conductor_service_record_keepalive(self.context)
+            with mock.patch.object(self.service._keepalive_evt, 'is_set') as \
+                    mock_is_set:
+                mock_is_set.side_effect = [False, True]
+                self.service._conductor_service_record_keepalive()
             mock_touch.assert_called_once_with(self.hostname)
 
     def test_change_node_power_state_power_on(self):
@@ -831,7 +849,7 @@ class ManagerTestCase(tests_db_base.DbTestCase):
                 target_provision_state=states.DEPLOYDONE,
                 provision_updated_at=past)
         mock_utcnow.return_value = present
-        self.service._conductor_service_record_keepalive(self.context)
+        self.dbapi.touch_conductor(self.service.host)
         with mock.patch.object(self.driver.deploy, 'clean_up') as clean_mock:
             self.service._check_deploy_timeouts(self.context)
             self.service._worker_pool.waitall()
@@ -853,7 +871,7 @@ class ManagerTestCase(tests_db_base.DbTestCase):
                 target_provision_state=states.DEPLOYDONE,
                 provision_updated_at=past)
         mock_utcnow.return_value = present
-        self.service._conductor_service_record_keepalive(self.context)
+        self.dbapi.touch_conductor(self.service.host)
         with mock.patch.object(self.driver.deploy, 'clean_up') as clean_mock:
             self.service._check_deploy_timeouts(self.context)
             node.refresh()
@@ -881,7 +899,7 @@ class ManagerTestCase(tests_db_base.DbTestCase):
                 target_provision_state=states.DEPLOYDONE,
                 provision_updated_at=past)
         mock_utcnow.return_value = present
-        self.service._conductor_service_record_keepalive(self.context)
+        self.dbapi.touch_conductor(self.service.host)
         with mock.patch.object(self.driver.deploy, 'clean_up') as clean_mock:
             error = 'test-123'
             clean_mock.side_effect = exception.IronicException(message=error)
@@ -930,7 +948,7 @@ class ManagerTestCase(tests_db_base.DbTestCase):
             test_nodes.append(node)
 
         mock_utcnow.return_value = present
-        self.service._conductor_service_record_keepalive(self.context)
+        self.dbapi.touch_conductor(self.service.host)
         with mock.patch.object(self.driver.deploy, 'clean_up') as clean_mock:
             self.service._check_deploy_timeouts(self.context)
             self.service._worker_pool.waitall()
