@@ -86,7 +86,8 @@ class IronicDriverFieldsTestCase(test.NoDBTestCase):
                        'pxe_deploy_ramdisk': 'fake-ramdisk-id',
                        'pxe_root_gb': '1024',
                        'pxe_swap_mb': '512',
-                       'pxe_preserve_ephemeral': True}
+                       'pxe_preserve_ephemeral': True,
+                       'pxe_ephemeral_format': 'fake-format'}
         node = ironic_utils.get_test_node(driver='pxe_fake',
                                           driver_info=driver_info)
         instance = fake_instance.fake_instance_obj(self.ctx, node=node.uuid)
@@ -102,5 +103,7 @@ class IronicDriverFieldsTestCase(test.NoDBTestCase):
                     {'path': '/driver_info/pxe_swap_mb',
                      'op': 'remove'},
                     {'path': '/driver_info/pxe_preserve_ephemeral',
+                     'op': 'remove'},
+                    {'path': '/driver_info/pxe_ephemeral_format',
                      'op': 'remove'}]
         self.assertEqual(sorted(expected), sorted(patch))
