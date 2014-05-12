@@ -148,7 +148,7 @@ def _exec_ipmitool(driver_info, command):
         args.append(pw_file)
         args.extend(command.split(" "))
         out, err = utils.execute(*args, attempts=3)
-        LOG.debug(_("ipmitool stdout: '%(out)s', stderr: '%(err)s'"),
+        LOG.debug("ipmitool stdout: '%(out)s', stderr: '%(err)s'",
                   {'out': out, 'err': err})
         return out, err
 

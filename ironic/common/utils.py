@@ -62,9 +62,9 @@ def execute(*cmd, **kwargs):
     if kwargs.get('run_as_root') and not 'root_helper' in kwargs:
         kwargs['root_helper'] = _get_root_helper()
     result = processutils.execute(*cmd, **kwargs)
-    LOG.debug(_('Execution completed, command line is "%s"'), ' '.join(cmd))
-    LOG.debug(_('Command stdout is: "%s"') % result[0])
-    LOG.debug(_('Command stderr is: "%s"') % result[1])
+    LOG.debug('Execution completed, command line is "%s"', ' '.join(cmd))
+    LOG.debug('Command stdout is: "%s"' % result[0])
+    LOG.debug('Command stderr is: "%s"' % result[1])
     return result
 
 
@@ -109,7 +109,7 @@ def ssh_connect(connection):
         # send TCP keepalive packets every 20 seconds
         ssh.get_transport().set_keepalive(20)
     except Exception as e:
-        LOG.debug(_("SSH connect failed: %s") % e)
+        LOG.debug("SSH connect failed: %s" % e)
         raise exception.SSHConnectFailed(host=connection.get('host'))
 
     return ssh
@@ -320,7 +320,7 @@ def read_cached_file(filename, cache_info, reload_func=None):
     """
     mtime = os.path.getmtime(filename)
     if not cache_info or mtime != cache_info.get('mtime'):
-        LOG.debug(_("Reloading cached file %s") % filename)
+        LOG.debug("Reloading cached file %s" % filename)
         with open(filename) as fap:
             cache_info['data'] = fap.read()
         cache_info['mtime'] = mtime

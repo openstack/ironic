@@ -158,7 +158,7 @@ class BaseImageService(object):
 
         :returns: A list of dicts containing image metadata.
         """
-        LOG.debug(_("Getting a full list of images metadata from glance."))
+        LOG.debug("Getting a full list of images metadata from glance.")
         params = service_utils.extract_query_params(kwargs, self.version)
 
         images = self.call(method, **params)
@@ -179,7 +179,7 @@ class BaseImageService(object):
 
         :raises: ImageNotFound
         """
-        LOG.debug(_("Getting image metadata from glance. Image: %s")
+        LOG.debug("Getting image metadata from glance. Image: %s"
                   % image_href)
         (image_id, self.glance_host,
          self.glance_port, use_ssl) = service_utils.parse_image_ref(image_href)

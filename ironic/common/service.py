@@ -68,7 +68,7 @@ class RPCService(service.Service):
                 context=admin_context)
 
         self.manager.init_host()
-        LOG.debug(_("Creating RPC server for service %s"), self.topic)
+        LOG.debug("Creating RPC server for service %s", self.topic)
         target = messaging.Target(topic=self.topic, server=self.host)
         endpoints = [self.manager]
         serializer = objects_base.IronicObjectSerializer()

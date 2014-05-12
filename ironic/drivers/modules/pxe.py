@@ -158,7 +158,7 @@ def _build_pxe_config(node, pxe_info, ctx):
     :param pxe_options: A dict of values to set on the configuarion file
     :returns: A formated string with the file content.
     """
-    LOG.debug(_("Building PXE config for deployment %s.") % node['id'])
+    LOG.debug("Building PXE config for deployment %s." % node['id'])
 
     # NOTE: we should strip '/' from the end because this is intended for
     # hardcoded ramdisk script
@@ -269,7 +269,7 @@ def _cache_tftp_images(ctx, node, pxe_info):
     """Fetch the necessary kernels and ramdisks for the instance."""
     fileutils.ensure_tree(
         os.path.join(CONF.pxe.tftp_root, node.uuid))
-    LOG.debug(_("Fetching kernel and ramdisk for node %s") %
+    LOG.debug("Fetching kernel and ramdisk for node %s" %
               node.uuid)
     master_cache = TFTPImageCache()
     for label in pxe_info:
@@ -299,7 +299,7 @@ def _cache_instance_image(ctx, node):
     image_path = _get_image_file_path(node.uuid)
     uuid = d_info['image_source']
 
-    LOG.debug(_("Fetching image %(ami)s for node %(uuid)s") %
+    LOG.debug("Fetching image %(ami)s for node %(uuid)s" %
               {'ami': uuid, 'uuid': node.uuid})
 
     InstanceImageCache().fetch_image(uuid, image_path, ctx=ctx)

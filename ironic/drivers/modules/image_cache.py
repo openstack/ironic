@@ -79,8 +79,8 @@ class ImageCache(object):
         # TODO(dtantsur): lock expiration time
         with lockutils.lock('download-image:%s' % master_file_name, 'ironic-'):
             if os.path.exists(dest_path):
-                LOG.debug(_("Destination %(dest)s already exists for "
-                            "image %(uuid)s") %
+                LOG.debug("Destination %(dest)s already exists for "
+                            "image %(uuid)s" %
                           {'uuid': uuid,
                            'dest': dest_path})
                 return
@@ -94,7 +94,7 @@ class ImageCache(object):
                            "starting download") %
                          {'uuid': uuid})
             else:
-                LOG.debug(_("Master cache hit for image %(uuid)s") %
+                LOG.debug("Master cache hit for image %(uuid)s",
                           {'uuid': uuid})
                 return
 
@@ -135,7 +135,7 @@ class ImageCache(object):
         if self._master_dir is None:
             return
 
-        LOG.debug(_("Starting clean up for master image cache %(dir)s") %
+        LOG.debug("Starting clean up for master image cache %(dir)s" %
                   {'dir': self._master_dir})
 
         listing = _find_candidates_for_deletion(self._master_dir)

@@ -138,7 +138,7 @@ def _ssh_execute(ssh_obj, cmd_to_exec):
         output_list = processutils.ssh_execute(ssh_obj,
                                                cmd_to_exec)[0].split('\n')
     except Exception as e:
-        LOG.debug(_("Cannot execute SSH cmd %(cmd)s. Reason: %(err)s.")
+        LOG.debug("Cannot execute SSH cmd %(cmd)s. Reason: %(err)s."
                 % {'cmd': cmd_to_exec, 'err': e})
         raise exception.SSHCommandFailed(cmd=cmd_to_exec)
 
@@ -262,12 +262,12 @@ def _get_hosts_name_for_node(ssh_obj, driver_info):
     cmd_to_exec = "%s %s" % (driver_info['cmd_set']['base_cmd'],
                              driver_info['cmd_set']['list_all'])
     full_node_list = _ssh_execute(ssh_obj, cmd_to_exec)
-    LOG.debug(_("Retrieved Node List: %s") % repr(full_node_list))
+    LOG.debug("Retrieved Node List: %s" % repr(full_node_list))
     # for each node check Mac Addresses
     for node in full_node_list:
         if not node:
             continue
-        LOG.debug(_("Checking Node: %s's Mac address.") % node)
+        LOG.debug("Checking Node: %s's Mac address." % node)
         cmd_to_exec = "%s %s" % (driver_info['cmd_set']['base_cmd'],
                                  driver_info['cmd_set']['get_node_macs'])
         cmd_to_exec = cmd_to_exec.replace('{_NodeName_}', node)
@@ -280,7 +280,7 @@ def _get_hosts_name_for_node(ssh_obj, driver_info):
                 if not node_mac:
                     continue
                 if _normalize_mac(host_mac) in _normalize_mac(node_mac):
-                    LOG.debug(_("Found Mac address: %s") % node_mac)
+                    LOG.debug("Found Mac address: %s" % node_mac)
                     matched_name = node
                     break
 

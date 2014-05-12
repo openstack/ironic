@@ -31,9 +31,9 @@ class ExactDiskFilter(filters.BaseHostFilter):
                          instance_type['swap'])
 
         if requested_disk != host_state.free_disk_mb:
-            LOG.debug(_("%(host_state)s does not have %(requested_disk)s MB "
-                    "usable disk, it only has %(usable_disk_mb)s MB usable "
-                    "disk."), {'host_state': host_state,
+            LOG.debug("%(host_state)s does not have %(requested_disk)s MB "
+                      "usable disk, it only has %(usable_disk_mb)s MB usable "
+                      "disk.", {'host_state': host_state,
                                'requested_disk': requested_disk,
                                'usable_disk_mb': host_state.free_disk_mb})
             return False

@@ -153,7 +153,7 @@ def start_shellinabox_console(node_uuid, port, console_cmd):
 
     # run the command as a subprocess
     try:
-        LOG.debug(_('Running subprocess: %s'), ' '.join(args))
+        LOG.debug('Running subprocess: %s', ' '.join(args))
         # use pipe here to catch the error in case shellinaboxd
         # failed to start.
         obj = subprocess.Popen(args,

@@ -184,7 +184,7 @@ class ConductorManager(periodic_task.PeriodicTasks):
 
         """
         node_id = node_obj.uuid
-        LOG.debug(_("RPC update_node called for node %s.") % node_id)
+        LOG.debug("RPC update_node called for node %s." % node_id)
 
         delta = node_obj.obj_what_changed()
         if 'power_state' in delta:
@@ -231,9 +231,9 @@ class ConductorManager(periodic_task.PeriodicTasks):
                  async task.
 
         """
-        LOG.debug(_("RPC change_node_power_state called for node %(node)s. "
-                    "The desired new state is %(state)s.")
-                    % {'node': node_id, 'state': new_state})
+        LOG.debug("RPC change_node_power_state called for node %(node)s. "
+                  "The desired new state is %(state)s."
+                  % {'node': node_id, 'state': new_state})
 
         with task_manager.acquire(context, node_id, shared=False) as task:
             task.driver.power.validate(task, task.node)
@@ -262,8 +262,7 @@ class ConductorManager(periodic_task.PeriodicTasks):
                  async task.
 
         """
-        LOG.debug(_("RPC vendor_passthru called for node %s.")
-                    % node_id)
+        LOG.debug("RPC vendor_passthru called for node %s." % node_id)
         # NOTE(max_lobur): Even though not all vendor_passthru calls may
         # require an exclusive lock, we need to do so to guarantee that the
         # state doesn't unexpectedly change between doing a vendor.validate
@@ -303,8 +302,7 @@ class ConductorManager(periodic_task.PeriodicTasks):
         """
         # Any locking in a top-level vendor action will need to be done by the
         # implementation, as there is little we could reasonably lock on here.
-        LOG.debug(_("RPC driver_vendor_passthru for driver %s.")
-                   % driver_name)
+        LOG.debug("RPC driver_vendor_passthru for driver %s." % driver_name)
         try:
             driver = self.driver_factory[driver_name].obj
         except KeyError:
@@ -342,7 +340,7 @@ class ConductorManager(periodic_task.PeriodicTasks):
                  async task.
 
         """
-        LOG.debug(_("RPC do_node_deploy called for node %s.") % node_id)
+        LOG.debug("RPC do_node_deploy called for node %s." % node_id)
 
         # NOTE(comstud): If the _sync_power_states() periodic task happens
         # to have locked this node, we'll fail to acquire the lock. The
@@ -420,7 +418,7 @@ class ConductorManager(periodic_task.PeriodicTasks):
                  async task
 
         """
-        LOG.debug(_("RPC do_node_tear_down called for node %s.") % node_id)
+        LOG.debug("RPC do_node_tear_down called for node %s." % node_id)
 
         with task_manager.acquire(context, node_id, shared=False) as task:
             node = task.node
@@ -698,8 +696,8 @@ class ConductorManager(periodic_task.PeriodicTasks):
                   interface validation.
 
         """
-        LOG.debug(_('RPC validate_driver_interfaces called for node %s.') %
-                    node_id)
+        LOG.debug('RPC validate_driver_interfaces called for node %s.',
+                  node_id)
         ret_dict = {}
         with task_manager.acquire(context, node_id, shared=True) as task:
             for iface_name in (task.driver.core_interfaces +
@@ -734,9 +732,9 @@ class ConductorManager(periodic_task.PeriodicTasks):
         :raises: NodeMaintenanceFailure
 
         """
-        LOG.debug(_("RPC change_node_maintenance_mode called for node %(node)s"
-                    " with maintenance mode: %(mode)s") % {'node': node_id,
-                                                           'mode': mode})
+        LOG.debug("RPC change_node_maintenance_mode called for node %(node)s"
+                  " with maintenance mode: %(mode)s" % {'node': node_id,
+                                                        'mode': mode})
 
         with task_manager.acquire(context, node_id, shared=True) as task:
             node = task.node
@@ -809,8 +807,7 @@ class ConductorManager(periodic_task.PeriodicTasks):
         :raises: NodeConsoleNotEnabled if the console is not enabled.
         :raises: InvalidParameterValue when the wrong driver info is specified.
         """
-        LOG.debug(_('RPC get_console_information called for node %s')
-                  % node_id)
+        LOG.debug('RPC get_console_information called for node %s' % node_id)
 
         with task_manager.acquire(context, node_id, shared=True) as task:
             node = task.node
@@ -844,9 +841,9 @@ class ConductorManager(periodic_task.PeriodicTasks):
         :raises: NoFreeConductorWorker when there is no free worker to start
                  async task
         """
-        LOG.debug(_('RPC set_console_mode called for node %(node)s with '
-                    'enabled %(enabled)s') % {'node': node_id,
-                                              'enabled': enabled})
+        LOG.debug('RPC set_console_mode called for node %(node)s with '
+                  'enabled %(enabled)s' % {'node': node_id,
+                                           'enabled': enabled})
 
         with task_manager.acquire(context, node_id, shared=False) as task:
             node = task.node
@@ -900,7 +897,7 @@ class ConductorManager(periodic_task.PeriodicTasks):
                  Neutron failed.
         """
         port_uuid = port_obj.uuid
-        LOG.debug(_("RPC update_port called for port %s."), port_uuid)
+        LOG.debug("RPC update_port called for port %s.", port_uuid)
 
         with task_manager.acquire(context, port_obj.node_id) as task:
             node = task.node
