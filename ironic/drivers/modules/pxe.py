@@ -459,6 +459,19 @@ def _create_pxe_config(task, node, pxe_info):
         utils.create_link_without_raise(pxe_config_file_path, mac_path)
 
 
+def _check_image_size(task):
+    """Check if the requested image is larger than the root partition size."""
+    driver_info = _parse_driver_info(task.node)
+    image_path = _get_image_file_path(task.node.uuid)
+    image_mb = deploy_utils.get_image_mb(image_path)
+    root_mb = 1024 * int(driver_info['root_gb'])
+    if image_mb > root_mb:
+        msg = (_('Root partition is too small for requested image. '
+                 'Image size: %(image_mb)d MB, Root size: %(root_mb)d MB')
+               % {'image_mb': image_mb, 'root_mb': root_mb})
+        raise exception.InstanceDeployFailure(msg)
+
+
 class PXEDeploy(base.DeployInterface):
     """PXE Deploy Interface: just a stub until the real driver is ported."""
 
@@ -538,6 +551,7 @@ class PXEDeploy(base.DeployInterface):
         pxe_info = _get_tftp_image_info(node, task.context)
         _create_pxe_config(task, node, pxe_info)
         _cache_images(node, pxe_info, task.context)
+        _check_image_size(task)
 
     def clean_up(self, task, node):
         """Clean up the deployment environment for this node.

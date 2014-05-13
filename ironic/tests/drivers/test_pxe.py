@@ -33,6 +33,7 @@ from ironic.common import utils
 from ironic.conductor import task_manager
 from ironic.conductor import utils as manager_utils
 from ironic.db import api as dbapi
+from ironic.drivers.modules import deploy_utils
 from ironic.drivers.modules import image_cache
 from ironic.drivers.modules import pxe
 from ironic.openstack.common import context
@@ -542,28 +543,53 @@ class PXEDriverTestCase(db_base.DbTestCase):
                               address='123456', iqn='aaa-bbb',
                               key='fake-12345')
 
-    def test_prepare(self):
-        with mock.patch.object(pxe,
-                '_create_pxe_config') as create_pxe_config_mock:
-            with mock.patch.object(pxe, '_cache_images') as cache_images_mock:
-                with mock.patch.object(pxe,
-                        '_get_tftp_image_info') as get_tftp_image_info_mock:
-                    get_tftp_image_info_mock.return_value = None
-                    create_pxe_config_mock.return_value = None
-                    cache_images_mock.return_value = None
+    @mock.patch.object(deploy_utils, 'get_image_mb')
+    @mock.patch.object(pxe, '_get_image_file_path')
+    @mock.patch.object(pxe, '_get_tftp_image_info')
+    @mock.patch.object(pxe, '_cache_images')
+    @mock.patch.object(pxe, '_create_pxe_config')
+    def test_prepare(self, mock_pxe_config, mock_cache_images,
+                     mock_tftp_img_info, mock_img_path, mock_get_img_mb):
+        fake_img_path = '/test/path/test.img'
+        mock_tftp_img_info.return_value = None
+        mock_pxe_config.return_value = None
+        mock_cache_images.return_value = None
+        mock_img_path.return_value = fake_img_path
+        mock_get_img_mb.return_value = 1
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            task.driver.deploy.prepare(task, self.node)
+            mock_tftp_img_info.assert_called_once_with(self.node,
+                                                       self.context)
+            mock_pxe_config.assert_called_once_with(task, self.node, None)
+            mock_cache_images.assert_called_once_with(self.node, None,
+                                                      self.context)
+            mock_img_path.assert_called_once_with(task.node.uuid)
+            mock_get_img_mb.assert_called_once_with(fake_img_path)
 
-                    with task_manager.acquire(self.context,
-                                    self.node.uuid, shared=True) as task:
-                        task.driver.deploy.prepare(task, self.node)
-                        get_tftp_image_info_mock.assert_called_once_with(
-                                                                  self.node,
-                                                                  self.context)
-                        create_pxe_config_mock.assert_called_once_with(task,
-                                                                    self.node,
-                                                                    None)
-                        cache_images_mock.assert_called_once_with(self.node,
-                                                                  None,
-                                                                  self.context)
+    @mock.patch.object(deploy_utils, 'get_image_mb')
+    @mock.patch.object(pxe, '_get_image_file_path')
+    @mock.patch.object(pxe, '_get_tftp_image_info')
+    @mock.patch.object(pxe, '_cache_images')
+    @mock.patch.object(pxe, '_create_pxe_config')
+    def test_prepare_image_too_large(self, mock_pxe_config,
+                                     mock_cache_images, mock_tftp_img_info,
+                                     mock_img_path, mock_get_img_mb):
+        fake_img_path = '/test/path/test.img'
+        mock_tftp_img_info.return_value = None
+        mock_pxe_config.return_value = None
+        mock_cache_images.return_value = None
+        mock_img_path.return_value = fake_img_path
+        mock_get_img_mb.return_value = 999999
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            self.assertRaises(exception.InstanceDeployFailure,
+                              task.driver.deploy.prepare, task, self.node)
+            mock_tftp_img_info.assert_called_once_with(self.node,
+                                                       self.context)
+            mock_pxe_config.assert_called_once_with(task, self.node, None)
+            mock_cache_images.assert_called_once_with(self.node, None,
+                                                      self.context)
+            mock_img_path.assert_called_once_with(task.node.uuid)
+            mock_get_img_mb.assert_called_once_with(fake_img_path)
 
     def test_deploy(self):
         with mock.patch.object(pxe, '_update_neutron') as update_neutron_mock:
