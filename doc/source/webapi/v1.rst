@@ -52,7 +52,7 @@ NodeStates
 ==========
 
 .. rest-controller:: ironic.api.controllers.v1.node:NodeStatesController
-   :webprefix: /v1/nodes/<uuid>/state
+   :webprefix: /v1/nodes/<uuid>/states
 
 .. autotype:: ironic.api.controllers.v1.node.NodeStates
    :members:
