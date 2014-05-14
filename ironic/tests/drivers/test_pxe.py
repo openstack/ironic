@@ -318,7 +318,7 @@ class PXEPrivateMethodsTestCase(db_base.DbTestCase):
         with task_manager.acquire(self.context,
                                   self.node.uuid) as task:
             pxe._update_neutron(task, self.node)
-        mock_updo.assertCalleOnceWith('vif-uuid', opts)
+        mock_updo.assert_called_once_with('vif-uuid', opts)
 
     @mock.patch.object(pxe, '_get_node_vif_ids')
     @mock.patch.object(neutron.NeutronAPI, '__init__')
@@ -327,7 +327,7 @@ class PXEPrivateMethodsTestCase(db_base.DbTestCase):
         with task_manager.acquire(self.context,
                                   self.node.uuid) as task:
             pxe._update_neutron(task, self.node)
-        mock_init.assert_not_called()
+        self.assertFalse(mock_init.called)
 
     @mock.patch.object(pxe, '_get_node_vif_ids')
     @mock.patch.object(neutron.NeutronAPI, 'update_port_dhcp_opts')
