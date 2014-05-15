@@ -70,7 +70,7 @@ opts = [
                 'host to advertise. Valid entries are name=value, pairs '
                 'For example, "key1:val1, key2:val2"'),
     cfg.IntOpt('api_max_retries',
-               default=5,
+               default=60,
                help=('How many retries when a request does conflict.')),
     cfg.IntOpt('api_retry_interval',
                default=2,
