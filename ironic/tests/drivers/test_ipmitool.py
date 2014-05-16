@@ -448,7 +448,7 @@ class IPMIToolDriverTestCase(db_base.DbTestCase):
         with task_manager.acquire(self.context,
                                   [self.node['uuid']]) as task:
             task.driver.power.validate(task, task.node)
-            exec_mock.assert_called_once()
+            exec_mock.assert_called_once_with(mock.ANY, "mc guid")
 
     @mock.patch.object(ipmi, '_exec_ipmitool')
     def test_validate_fail(self, exec_mock):
@@ -458,7 +458,7 @@ class IPMIToolDriverTestCase(db_base.DbTestCase):
             self.assertRaises(exception.InvalidParameterValue,
                               task.driver.power.validate, task,
                               task.node)
-            exec_mock.assert_called_once()
+            exec_mock.assert_called_once_with(mock.ANY, "mc guid")
 
     @mock.patch.object(console_utils, 'start_shellinabox_console',
                        autospec=True)
