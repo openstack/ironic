@@ -112,6 +112,10 @@ class IronicDriverTestCase(test.NoDBTestCase):
 
         self.addCleanup(stop_patchers)
 
+        # mock retries configs to avoid sleeps and make tests run quicker
+        CONF.set_default('api_max_retries', default=1, group='ironic')
+        CONF.set_default('api_retry_interval', default=0, group='ironic')
+
     def test_validate_driver_loading(self):
         self.assertIsInstance(self.driver, ironic_driver.IronicDriver)
 
@@ -742,9 +746,6 @@ class IronicDriverTestCase(test.NoDBTestCase):
     @mock.patch.object(FAKE_CLIENT.node, 'set_provision_state')
     @mock.patch.object(FAKE_CLIENT.node, 'get_by_instance_uuid')
     def test_destroy_unprovision_fail(self, mock_get_by_iuuid, mock_sps):
-        CONF.set_default('api_max_retries', default=1, group='ironic')
-        CONF.set_default('api_retry_interval', default=0, group='ironic')
-
         node_uuid = 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee'
         node = ironic_utils.get_test_node(driver='fake', uuid=node_uuid,
                                           provision_state=ironic_states.ACTIVE)
