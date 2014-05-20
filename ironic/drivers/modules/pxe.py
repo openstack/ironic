@@ -277,7 +277,9 @@ def _cleanup_caches_if_required(ctx, cache, images_info):
         caches = [c for c in (InstanceImageCache(), TFTPImageCache())
                   if os.stat(c.master_dir).st_dev == st_dev]
         for cache_to_clean in caches:
-            cache_to_clean.clean_up()
+            # NOTE(dtantsur): multiplying by 2 is an attempt to account for
+            # images converting to raw format
+            cache_to_clean.clean_up(amount=(2 * total_size - free))
             free = _free_disk_space_for(cache.master_dir)
             if total_size < free:
                 break

@@ -117,6 +117,7 @@ class TestImageCacheCleanUp(base.TestCase):
 
     @mock.patch.object(image_cache.ImageCache, '_clean_up_ensure_cache_size')
     def test_clean_up_old_deleted(self, mock_clean_size):
+        mock_clean_size.return_value = None
         files = [os.path.join(self.master_dir, str(i))
                  for i in range(2)]
         for filename in files:
@@ -127,6 +128,7 @@ class TestImageCacheCleanUp(base.TestCase):
         with mock.patch.object(time, 'time', lambda: new_current_time):
             self.cache.clean_up()
 
+        mock_clean_size.assert_called_once_with(mock.ANY, None)
         survived = mock_clean_size.call_args[0][0]
         self.assertEqual(1, len(survived))
         self.assertEqual(files[0], survived[0][0])
@@ -136,7 +138,23 @@ class TestImageCacheCleanUp(base.TestCase):
                          int(survived[0][2].st_mtime))
 
     @mock.patch.object(image_cache.ImageCache, '_clean_up_ensure_cache_size')
+    def test_clean_up_old_with_amount(self, mock_clean_size):
+        files = [os.path.join(self.master_dir, str(i))
+                 for i in range(2)]
+        for filename in files:
+            open(filename, 'wb').write('X')
+        new_current_time = time.time() + 900
+        with mock.patch.object(time, 'time', lambda: new_current_time):
+            self.cache.clean_up(amount=1)
+
+        self.assertFalse(mock_clean_size.called)
+        # Exactly one file is expected to be deleted
+        self.assertTrue(any(os.path.exists(f) for f in files))
+        self.assertFalse(all(os.path.exists(f) for f in files))
+
+    @mock.patch.object(image_cache.ImageCache, '_clean_up_ensure_cache_size')
     def test_clean_up_files_with_links_untouched(self, mock_clean_size):
+        mock_clean_size.return_value = None
         files = [os.path.join(self.master_dir, str(i))
                  for i in range(2)]
         for filename in files:
@@ -149,11 +167,11 @@ class TestImageCacheCleanUp(base.TestCase):
 
         for filename in files:
             self.assertTrue(os.path.exists(filename))
-        mock_clean_size.assert_called_once_with([])
+        mock_clean_size.assert_called_once_with([], None)
 
     @mock.patch.object(image_cache.ImageCache, '_clean_up_too_old')
     def test_clean_up_ensure_cache_size(self, mock_clean_ttl):
-        mock_clean_ttl.side_effect = lambda listing: listing
+        mock_clean_ttl.side_effect = lambda *xx: xx
         # NOTE(dtantsur): Cache size in test is 10 bytes, we create 6 files
         # with 3 bytes each and expect 3 to be deleted
         files = [os.path.join(self.master_dir, str(i))
@@ -175,10 +193,36 @@ class TestImageCacheCleanUp(base.TestCase):
         for filename in files[3:]:
             self.assertFalse(os.path.exists(filename))
 
+        mock_clean_ttl.assert_called_once_with(mock.ANY, None)
+
+    @mock.patch.object(image_cache.ImageCache, '_clean_up_too_old')
+    def test_clean_up_ensure_cache_size_with_amount(self, mock_clean_ttl):
+        mock_clean_ttl.side_effect = lambda *xx: xx
+        # NOTE(dtantsur): Cache size in test is 10 bytes, we create 6 files
+        # with 3 bytes each and set amount to be 15, 5 files are to be deleted
+        files = [os.path.join(self.master_dir, str(i))
+                 for i in range(6)]
+        for filename in files:
+            with open(filename, 'w') as fp:
+                fp.write('123')
+        # NOTE(dtantsur): Make 1 file 'newer' to check that
+        # old ones are deleted first
+        new_current_time = time.time() + 100
+        os.utime(files[0], (new_current_time, new_current_time))
+
+        with mock.patch.object(time, 'time', lambda: new_current_time):
+            self.cache.clean_up(amount=15)
+
+        self.assertTrue(os.path.exists(files[0]))
+        for filename in files[5:]:
+            self.assertFalse(os.path.exists(filename))
+
+        mock_clean_ttl.assert_called_once_with(mock.ANY, 15)
+
     @mock.patch.object(image_cache.LOG, 'info')
     @mock.patch.object(image_cache.ImageCache, '_clean_up_too_old')
     def test_clean_up_cache_still_large(self, mock_clean_ttl, mock_log):
-        mock_clean_ttl.side_effect = lambda listing: listing
+        mock_clean_ttl.side_effect = lambda *xx: xx
         # NOTE(dtantsur): Cache size in test is 10 bytes, we create 2 files
         # than cannot be deleted and expected this to be logged
         files = [os.path.join(self.master_dir, str(i))
@@ -193,6 +237,7 @@ class TestImageCacheCleanUp(base.TestCase):
         for filename in files:
             self.assertTrue(os.path.exists(filename))
         self.assertTrue(mock_log.called)
+        mock_clean_ttl.assert_called_once_with(mock.ANY, None)
 
     @mock.patch.object(utils, 'rmtree_without_raise')
     @mock.patch.object(images, 'fetch_to_raw')
@@ -219,3 +264,13 @@ class TestImageCacheCleanUp(base.TestCase):
                           self.cache._download_image,
                           'uuid', 'fake', 'fake')
         self.assertTrue(mock_rmtree.called)
+
+    @mock.patch.object(image_cache.LOG, 'warn')
+    @mock.patch.object(image_cache.ImageCache, '_clean_up_too_old')
+    @mock.patch.object(image_cache.ImageCache, '_clean_up_ensure_cache_size')
+    def test_clean_up_amount_not_satisfied(self, mock_clean_size,
+                                           mock_clean_ttl, mock_log):
+        mock_clean_ttl.side_effect = lambda *xx: xx
+        mock_clean_size.side_effect = lambda listing, amount: amount
+        self.cache.clean_up(amount=15)
+        self.assertTrue(mock_log.called)

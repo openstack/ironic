@@ -410,7 +410,8 @@ class PXEPrivateFetchImagesTestCase(db_base.DbTestCase):
         mock_statvfs.assert_called_with('master_dir')
         self.assertEqual(2, mock_statvfs.call_count)
         cache.fetch_image.assert_called_once_with('uuid', 'path', ctx=None)
-        mock_instance_cache.return_value.clean_up.assert_called_once_with()
+        mock_instance_cache.return_value.clean_up.assert_called_once_with(
+            amount=(42 * 2 - 1))
         self.assertFalse(mock_tftp_cache.return_value.clean_up.called)
         self.assertEqual(3, mock_stat.call_count)
 
@@ -436,7 +437,8 @@ class PXEPrivateFetchImagesTestCase(db_base.DbTestCase):
         mock_statvfs.assert_called_with('master_dir')
         self.assertEqual(2, mock_statvfs.call_count)
         cache.fetch_image.assert_called_once_with('uuid', 'path', ctx=None)
-        mock_tftp_cache.return_value.clean_up.assert_called_once_with()
+        mock_tftp_cache.return_value.clean_up.assert_called_once_with(
+            amount=(42 * 2 - 1))
         self.assertFalse(mock_instance_cache.return_value.clean_up.called)
         self.assertEqual(3, mock_stat.call_count)
 
@@ -449,7 +451,7 @@ class PXEPrivateFetchImagesTestCase(db_base.DbTestCase):
         mock_show.return_value = dict(size=42)
         mock_statvfs.side_effect = [
             mock.Mock(f_frsize=1, f_bavail=1),
-            mock.Mock(f_frsize=1, f_bavail=1),
+            mock.Mock(f_frsize=1, f_bavail=2),
             mock.Mock(f_frsize=1, f_bavail=1024)
         ]
 
@@ -460,8 +462,10 @@ class PXEPrivateFetchImagesTestCase(db_base.DbTestCase):
         mock_statvfs.assert_called_with('master_dir')
         self.assertEqual(3, mock_statvfs.call_count)
         cache.fetch_image.assert_called_once_with('uuid', 'path', ctx=None)
-        mock_instance_cache.return_value.clean_up.assert_called_once_with()
-        mock_tftp_cache.return_value.clean_up.assert_called_once_with()
+        mock_instance_cache.return_value.clean_up.assert_called_once_with(
+            amount=(42 * 2 - 1))
+        mock_tftp_cache.return_value.clean_up.assert_called_once_with(
+            amount=(42 * 2 - 2))
         self.assertEqual(3, mock_stat.call_count)
 
     @mock.patch.object(os, 'stat')
@@ -481,8 +485,10 @@ class PXEPrivateFetchImagesTestCase(db_base.DbTestCase):
         mock_statvfs.assert_called_with('master_dir')
         self.assertEqual(3, mock_statvfs.call_count)
         self.assertFalse(cache.return_value.fetch_image.called)
-        mock_instance_cache.return_value.clean_up.assert_called_once_with()
-        mock_tftp_cache.return_value.clean_up.assert_called_once_with()
+        mock_instance_cache.return_value.clean_up.assert_called_once_with(
+            amount=(42 * 2 - 1))
+        mock_tftp_cache.return_value.clean_up.assert_called_once_with(
+            amount=(42 * 2 - 1))
         self.assertEqual(3, mock_stat.call_count)
 
 

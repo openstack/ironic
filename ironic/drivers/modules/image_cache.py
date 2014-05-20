@@ -146,12 +146,16 @@ class ImageCache(object):
             utils.rmtree_without_raise(tmp_dir)
 
     @lockutils.synchronized('master_image', 'ironic-')
-    def clean_up(self):
+    def clean_up(self, amount=None):
         """Clean up directory with images, keeping cache of the latest images.
 
         Files with link count >1 are never deleted.
         Protected by global lock, so that no one messes with master images
         after we get listing and before we actually delete files.
+
+        :param amount: if present, amount of space to reclaim in bytes,
+                       cleaning will stop, if this goal was reached,
+                       even if it is possible to clean up more files
         """
         if self.master_dir is None:
             return
@@ -159,31 +163,63 @@ class ImageCache(object):
         LOG.debug("Starting clean up for master image cache %(dir)s" %
                   {'dir': self.master_dir})
 
+        amount_copy = amount
         listing = _find_candidates_for_deletion(self.master_dir)
-        survived = self._clean_up_too_old(listing)
-        self._clean_up_ensure_cache_size(survived)
+        survived, amount = self._clean_up_too_old(listing, amount)
+        if amount is not None and amount <= 0:
+            return
+        amount = self._clean_up_ensure_cache_size(survived, amount)
+        if amount is not None and amount > 0:
+            LOG.warn(_("Cache clean up was unable to reclaim %(required)d MiB "
+                       "of disk space, still %(left)d MiB required"),
+                     {'required': amount_copy / 1024 / 1024,
+                      'left': amount / 1024 / 1024})
 
-    def _clean_up_too_old(self, listing):
+    def _clean_up_too_old(self, listing, amount):
         """Clean up stage 1: drop images that are older than TTL.
 
+        This method removes files all files older than TTL seconds
+        unless 'amount' is non-None. If 'amount' is non-None,
+        it starts removing files older than TTL seconds,
+        oldest first, until the required 'amount' of space is reclaimed.
+
         :param listing: list of tuples (file name, last used time)
-        :returns: list of files left after clean up
+        :param amount: if not None, amount of space to reclaim in bytes,
+                       cleaning will stop, if this goal was reached,
+                       even if it is possible to clean up more files
+        :returns: tuple (list of files left after clean up,
+                         amount still to reclaim)
         """
         threshold = time.time() - self._cache_ttl
         survived = []
         for file_name, last_used, stat in listing:
             if last_used < threshold:
-                utils.unlink_without_raise(file_name)
+                try:
+                    os.unlink(file_name)
+                except EnvironmentError as exc:
+                    LOG.warn(_("Unable to delete file %(name)s from "
+                               "master image cache: %(exc)s") %
+                             {'name': file_name, 'exc': exc})
+                else:
+                    if amount is not None:
+                        amount -= stat.st_size
+                        if amount <= 0:
+                            amount = 0
+                            break
             else:
                 survived.append((file_name, last_used, stat))
-        return survived
+        return survived, amount
 
-    def _clean_up_ensure_cache_size(self, listing):
+    def _clean_up_ensure_cache_size(self, listing, amount):
         """Clean up stage 2: try to ensure cache size < threshold.
         Try to delete the oldest files until conditions is satisfied
         or no more files are eligable for delition.
 
         :param listing: list of tuples (file name, last used time)
+        :param amount: amount of space to reclaim, if possible.
+                       if amount is not None, it has higher priority than
+                       cache size in settings
+        :returns: amount of space still required after clean up
         """
         # NOTE(dtantsur): Sort listing to delete the oldest files first
         listing = sorted(listing,
@@ -193,7 +229,8 @@ class ImageCache(object):
                          for f in os.listdir(self.master_dir))
         total_size = sum(os.path.getsize(f)
                          for f in total_listing)
-        while total_size > self._cache_size and listing:
+        while listing and (total_size > self._cache_size or
+               (amount is not None and amount > 0)):
             file_name, last_used, stat = listing.pop()
             try:
                 os.unlink(file_name)
@@ -203,6 +240,8 @@ class ImageCache(object):
                          {'name': file_name, 'exc': exc})
             else:
                 total_size -= stat.st_size
+                if amount is not None:
+                    amount -= stat.st_size
 
         if total_size > self._cache_size:
             LOG.info(_("After cleaning up cache dir %(dir)s "
@@ -210,6 +249,7 @@ class ImageCache(object):
                        "threshold %(expected)d") %
                      {'dir': self.master_dir, 'actual': total_size,
                       'expected': self._cache_size})
+        return max(amount, 0)
 
 
 def _find_candidates_for_deletion(master_dir):
