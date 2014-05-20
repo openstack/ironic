@@ -66,7 +66,7 @@ class ConductorAPI(object):
             self.topic = manager.MANAGER_TOPIC
 
         target = messaging.Target(topic=self.topic,
-                                  version=self.RPC_API_VERSION)
+                                  version='1.0')
         serializer = objects_base.IronicObjectSerializer()
         self.client = rpc.get_client(target,
                                      version_cap=self.RPC_API_VERSION,
@@ -123,7 +123,7 @@ class ConductorAPI(object):
         :returns: updated node object, including all fields.
 
         """
-        cctxt = self.client.prepare(topic=topic or self.topic)
+        cctxt = self.client.prepare(topic=topic or self.topic, version='1.1')
         return cctxt.call(context, 'update_node', node_obj=node_obj)
 
     def change_node_power_state(self, context, node_id, new_state, topic=None):
@@ -138,7 +138,7 @@ class ConductorAPI(object):
                  async task.
 
         """
-        cctxt = self.client.prepare(topic=topic or self.topic)
+        cctxt = self.client.prepare(topic=topic or self.topic, version='1.6')
         return cctxt.call(context, 'change_node_power_state', node_id=node_id,
                           new_state=new_state)
 
@@ -159,7 +159,7 @@ class ConductorAPI(object):
                  async task.
 
         """
-        cctxt = self.client.prepare(topic=topic or self.topic)
+        cctxt = self.client.prepare(topic=topic or self.topic, version='1.12')
         return cctxt.call(context, 'vendor_passthru', node_id=node_id,
                           driver_method=driver_method, info=info)
 
@@ -178,7 +178,7 @@ class ConductorAPI(object):
                  specified driver_method.
 
         """
-        cctxt = self.client.prepare(topic=topic or self.topic)
+        cctxt = self.client.prepare(topic=topic or self.topic, version='1.14')
         return cctxt.call(context, 'driver_vendor_passthru',
                           driver_name=driver_name,
                           driver_method=driver_method,
@@ -200,7 +200,7 @@ class ConductorAPI(object):
         undeployed state before this method is called.
 
         """
-        cctxt = self.client.prepare(topic=topic or self.topic)
+        cctxt = self.client.prepare(topic=topic or self.topic, version='1.15')
         return cctxt.call(context, 'do_node_deploy', node_id=node_id,
                           rebuild=rebuild)
 
@@ -219,7 +219,7 @@ class ConductorAPI(object):
         deployed state before this method is called.
 
         """
-        cctxt = self.client.prepare(topic=topic or self.topic)
+        cctxt = self.client.prepare(topic=topic or self.topic, version='1.6')
         return cctxt.call(context, 'do_node_tear_down', node_id=node_id)
 
     def validate_driver_interfaces(self, context, node_id, topic=None):
@@ -232,7 +232,7 @@ class ConductorAPI(object):
                   interface validation.
 
         """
-        cctxt = self.client.prepare(topic=topic or self.topic)
+        cctxt = self.client.prepare(topic=topic or self.topic, version='1.5')
         return cctxt.call(context, 'validate_driver_interfaces',
                           node_id=node_id)
 
@@ -247,7 +247,7 @@ class ConductorAPI(object):
         :raises: NodeMaintenanceFailure.
 
         """
-        cctxt = self.client.prepare(topic=topic or self.topic)
+        cctxt = self.client.prepare(topic=topic or self.topic, version='1.8')
         return cctxt.call(context, 'change_node_maintenance_mode',
                           node_id=node_id, mode=mode)
 
@@ -262,7 +262,7 @@ class ConductorAPI(object):
         :raises: NodeInWrongPowerState if the node is not powered off.
 
         """
-        cctxt = self.client.prepare(topic=topic or self.topic)
+        cctxt = self.client.prepare(topic=topic or self.topic, version='1.9')
         return cctxt.call(context, 'destroy_node', node_id=node_id)
 
     def get_console_information(self, context, node_id, topic=None):
@@ -275,7 +275,7 @@ class ConductorAPI(object):
                  support console.
         :raises: InvalidParameterValue when the wrong driver info is specified.
         """
-        cctxt = self.client.prepare(topic=topic or self.topic)
+        cctxt = self.client.prepare(topic=topic or self.topic, version='1.11')
         return cctxt.call(context, 'get_console_information', node_id=node_id)
 
     def set_console_mode(self, context, node_id, enabled, topic=None):
@@ -292,7 +292,7 @@ class ConductorAPI(object):
         :raises: NoFreeConductorWorker when there is no free worker to start
                  async task.
         """
-        cctxt = self.client.prepare(topic=topic or self.topic)
+        cctxt = self.client.prepare(topic=topic or self.topic, version='1.11')
         return cctxt.call(context, 'set_console_mode', node_id=node_id,
                           enabled=enabled)
 
@@ -309,5 +309,5 @@ class ConductorAPI(object):
         :returns: updated port object, including all fields.
 
         """
-        cctxt = self.client.prepare(topic=topic or self.topic)
+        cctxt = self.client.prepare(topic=topic or self.topic, version='1.13')
         return cctxt.call(context, 'update_port', port_obj=port_obj)

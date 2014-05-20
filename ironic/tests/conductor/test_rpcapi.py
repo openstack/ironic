@@ -144,17 +144,20 @@ class RPCAPITestCase(base.DbTestCase):
     def test_update_node(self):
         self._test_rpcapi('update_node',
                           'call',
+                          version='1.1',
                           node_obj=self.fake_node)
 
     def test_change_node_power_state(self):
         self._test_rpcapi('change_node_power_state',
                           'call',
+                          version='1.6',
                           node_id=self.fake_node['uuid'],
                           new_state=states.POWER_ON)
 
     def test_pass_vendor_info(self):
         self._test_rpcapi('vendor_passthru',
                           'call',
+                          version='1.12',
                           node_id=self.fake_node['uuid'],
                           driver_method='test-driver-method',
                           info={"test_info": "test_value"})
@@ -162,6 +165,7 @@ class RPCAPITestCase(base.DbTestCase):
     def test_driver_vendor_passthru(self):
         self._test_rpcapi('driver_vendor_passthru',
                           'call',
+                          version='1.14',
                           driver_name='test-driver-name',
                           driver_method='test-driver-method',
                           info={'test_key': 'test_value'})
@@ -169,38 +173,45 @@ class RPCAPITestCase(base.DbTestCase):
     def test_do_node_deploy(self):
         self._test_rpcapi('do_node_deploy',
                           'call',
+                          version='1.15',
                           node_id=self.fake_node['uuid'],
                           rebuild=False)
 
     def test_do_node_tear_down(self):
         self._test_rpcapi('do_node_tear_down',
                           'call',
+                          version='1.6',
                           node_id=self.fake_node['uuid'])
 
     def test_validate_driver_interfaces(self):
         self._test_rpcapi('validate_driver_interfaces',
                           'call',
+                          version='1.5',
                           node_id=self.fake_node['uuid'])
 
     def test_change_node_maintenance_mode(self):
         self._test_rpcapi('change_node_maintenance_mode',
                           'call',
+                          version='1.8',
                           node_id=self.fake_node['uuid'],
                           mode=True)
 
     def test_destroy_node(self):
         self._test_rpcapi('destroy_node',
                           'call',
+                          version='1.9',
                           node_id=self.fake_node['uuid'])
 
     def test_get_console_information(self):
         self._test_rpcapi('get_console_information',
                           'call',
+                          version='1.11',
                           node_id=self.fake_node['uuid'])
 
     def test_set_console_mode(self):
         self._test_rpcapi('set_console_mode',
                           'call',
+                          version='1.11',
                           node_id=self.fake_node['uuid'],
                           enabled=True)
 
@@ -208,4 +219,5 @@ class RPCAPITestCase(base.DbTestCase):
         fake_port = dbutils.get_test_port()
         self._test_rpcapi('update_port',
                           'call',
+                          version='1.13',
                           port_obj=fake_port)
