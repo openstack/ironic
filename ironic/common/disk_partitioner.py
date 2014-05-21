@@ -13,9 +13,14 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import re
 import time
 
 from ironic.common import utils
+from ironic.openstack.common import log as logging
+
+
+LOG = logging.getLogger(__name__)
 
 
 class DiskPartitioner(object):
@@ -96,3 +101,35 @@ class DiskPartitioner(object):
         #                    the "device is busy" problem. lsof, fuser...
         # avoid "device is busy"
         time.sleep(3)
+
+
+_PARTED_PRINT_RE = re.compile(r"^\d+:([\d\.]+)MiB:"
+                              "([\d\.]+)MiB:([\d\.]+)MiB:(\w*)::(\w*)")
+
+
+def list_partitions(device):
+    """Get partitions information from given device.
+
+    :param device: The device path.
+    :returns: list of dictionaries (one per partition) with keys:
+              start, end, size (in MiB), filesystem, flags
+    """
+    output = utils.execute(
+        'parted', '-s', '-m', device, 'unit', 'MiB', 'print')[0]
+    lines = [line for line in output.split('\n') if line.strip()][2:]
+    # Example of line: 1:1.00MiB:501MiB:500MiB:ext4::boot
+    fields = ('start', 'end', 'size', 'filesystem', 'flags')
+    result = []
+    for line in lines:
+        match = _PARTED_PRINT_RE.match(line)
+        if match is None:
+            LOG.warn(_("Partition information from parted for device "
+                       "%(device)s does not match "
+                       "expected format: %(line)s"),
+                     dict(device=device, line=line))
+            continue
+        # Cast int fields to ints (some are floats and we round them down)
+        groups = [int(float(x)) if i < 3 else x
+                  for i, x in enumerate(match.groups())]
+        result.append(dict(zip(fields, groups)))
+    return result

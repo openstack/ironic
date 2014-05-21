@@ -14,6 +14,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import itertools
 import time
 
 import fixtures
@@ -585,3 +586,80 @@ class GetDeviceBlockSizeTestCase(tests_base.TestCase):
                                      run_as_root=True, check_exit_code=[0])]
         utils.get_dev_block_size(self.dev)
         mock_exec.assert_has_calls(expected_call)
+
+
+@mock.patch.object(utils, 'is_block_device', lambda d: True)
+@mock.patch.object(utils, 'block_uuid', lambda p: 'uuid')
+@mock.patch.object(utils, 'dd', lambda *_: None)
+@mock.patch.object(common_utils, 'mkfs', lambda *_: None)
+# TODO(dtantsur): remove once https://review.openstack.org/90126 lands
+@mock.patch.object(time, 'sleep', lambda *_: None)
+# NOTE(dtantsur): destroy_disk_metadata resets file size, disabling it
+@mock.patch.object(utils, 'destroy_disk_metadata', lambda *_: None)
+class RealFilePartitioningTestCase(tests_base.TestCase):
+    """This test applies some real-world partitioning scenario to a file.
+
+    This test covers the whole partitioning, mocking everything not possible
+    on a file. That helps us assure, that we do all partitioning math properly
+    and also conducts integration testing of DiskPartitioner.
+    """
+
+    def setUp(self):
+        super(RealFilePartitioningTestCase, self).setUp()
+        # NOTE(dtantsur): no parted utility on gate-ironic-python26
+        try:
+            common_utils.execute('parted', '--version')
+        except OSError as exc:
+            self.skipTest('parted utility was not found: %s' % exc)
+        self.file = tempfile.NamedTemporaryFile()
+        self.addCleanup(lambda: self.file.close())
+        # NOTE(dtantsur): 20 MiB file with zeros
+        common_utils.execute('dd', 'if=/dev/zero', 'of=%s' % self.file.name,
+                             'bs=1', 'count=0', 'seek=20MiB')
+
+    @staticmethod
+    def _run_without_root(func, *args, **kwargs):
+        """Make sure root is not required when using utils.execute."""
+        real_execute = common_utils.execute
+
+        def fake_execute(*cmd, **kwargs):
+            kwargs['run_as_root'] = False
+            return real_execute(*cmd, **kwargs)
+
+        with mock.patch.object(common_utils, 'execute', fake_execute):
+            return func(*args, **kwargs)
+
+    def test_different_sizes(self):
+        # NOTE(dtantsur): Keep this list in order with expected partitioning
+        fields = ['ephemeral_mb', 'swap_mb', 'root_mb']
+        variants = itertools.product([0, 1, 5], repeat=3)
+        for variant in variants:
+            if variant == (0, 0, 0):
+                continue
+            kwargs = dict(zip(fields, variant))
+            self._run_without_root(utils.work_on_disk, self.file.name,
+                                   ephemeral_format='ext4', node_uuid='',
+                                   image_path='path', **kwargs)
+            part_table = self._run_without_root(
+                disk_partitioner.list_partitions, self.file.name)
+            for part, expected_size in zip(part_table, filter(None, variant)):
+                self.assertEqual(expected_size, part['size'],
+                                 "comparison failed for %s" % list(variant))
+
+    def test_whole_disk(self):
+        # 6 MiB ephemeral + 3 MiB swap + 9 MiB root + 1 MiB for MBR
+        # + 1 MiB MAGIC == 20 MiB whole disk
+        # TODO(dtantsur): figure out why we need 'magic' 1 more MiB
+        # and why the is different on Ubuntu and Fedora (see below)
+        self._run_without_root(utils.work_on_disk, self.file.name,
+                               root_mb=9, ephemeral_mb=6, swap_mb=3,
+                               ephemeral_format='ext4', node_uuid='',
+                               image_path='path')
+        part_table = self._run_without_root(
+            disk_partitioner.list_partitions, self.file.name)
+        sizes = [part['size'] for part in part_table]
+        # NOTE(dtantsur): parted in Ubuntu 12.04 will occupy the last MiB,
+        # parted in Fedora 20 won't - thus two possible variants for last part
+        self.assertEqual([6, 3], sizes[:2],
+                         "unexpected partitioning %s" % part_table)
+        self.assertIn(sizes[2], (9, 10))
