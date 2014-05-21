@@ -21,6 +21,7 @@ from oslo.config import cfg
 from ironic.api import acl
 from ironic.common import exception
 from ironic.common import keystone
+from ironic.common import tftp
 from ironic.openstack.common import log as logging
 
 
@@ -30,10 +31,12 @@ neutron_opts = [
                help='URL for connecting to neutron.'),
     cfg.IntOpt('url_timeout',
                default=30,
-               help='Timeout value for connecting to neutron in seconds.'),
-   ]
+               help='Timeout value for connecting to neutron in seconds.')
+    ]
+
 
 CONF = cfg.CONF
+CONF.import_opt('my_ip', 'ironic.netconf')
 CONF.register_opts(neutron_opts, group='neutron')
 acl.register_opts(CONF)
 LOG = logging.getLogger(__name__)
@@ -105,3 +108,54 @@ class NeutronAPI(object):
             LOG.exception(_("Failed to update MAC address on Neutron port %s."
                            ), port_id)
             raise exception.FailedToUpdateMacOnPort(port_id=port_id)
+
+
+def get_node_vif_ids(task):
+    """Get all Neutron VIF ids for a node.
+
+    This function does not handle multi node operations.
+
+    :param task: a TaskManager instance.
+    :returns: A dict of the Node's port UUIDs and their associated VIFs
+
+    """
+    port_vifs = {}
+    for port in task.ports:
+        vif = port.extra.get('vif_port_id')
+        if vif:
+            port_vifs[port.uuid] = vif
+    return port_vifs
+
+
+def update_neutron(task, pxe_bootfile_name):
+    """Send or update the DHCP BOOT options to Neutron for this node."""
+    options = tftp.dhcp_options_for_instance(pxe_bootfile_name)
+    vifs = get_node_vif_ids(task)
+    if not vifs:
+        LOG.warning(_("No VIFs found for node %(node)s when attempting to "
+                      "update Neutron DHCP BOOT options."),
+                      {'node': task.node.uuid})
+        return
+
+    # TODO(deva): decouple instantiation of NeutronAPI from task.context.
+    #             Try to use the user's task.context.auth_token, but if it
+    #             is not present, fall back to a server-generated context.
+    #             We don't need to recreate this in every method call.
+    api = NeutronAPI(task.context)
+    failures = []
+    for port_id, port_vif in vifs.iteritems():
+        try:
+            api.update_port_dhcp_opts(port_vif, options)
+        except exception.FailedToUpdateDHCPOptOnPort:
+            failures.append(port_id)
+
+    if failures:
+        if len(failures) == len(vifs):
+            raise exception.FailedToUpdateDHCPOptOnPort(_(
+                "Failed to set DHCP BOOT options for any port on node %s.") %
+                task.node.uuid)
+        else:
+            LOG.warning(_("Some errors were encountered when updating the "
+                          "DHCP BOOT options for node %(node)s on the "
+                          "following ports: %(ports)s."),
+                          {'node': task.node.uuid, 'ports': failures})

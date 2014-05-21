@@ -19,7 +19,6 @@ PXE Driver and supporting meta-classes.
 
 import os
 
-import jinja2
 from oslo.config import cfg
 
 from ironic.common import exception
@@ -29,6 +28,7 @@ from ironic.common import keystone
 from ironic.common import neutron
 from ironic.common import paths
 from ironic.common import states
+from ironic.common import tftp
 from ironic.common import utils
 from ironic.conductor import task_manager
 from ironic.conductor import utils as manager_utils
@@ -53,12 +53,6 @@ pxe_opts = [
                default='ext4',
                help='Default file system format for ephemeral partition, '
                     'if one is created.'),
-    cfg.StrOpt('tftp_server',
-               default='$my_ip',
-               help='IP address of Ironic compute node\'s tftp server.'),
-    cfg.StrOpt('tftp_root',
-               default='/tftpboot',
-               help='Ironic compute node\'s tftp root path.'),
     cfg.StrOpt('images_path',
                default='/var/lib/ironic/images/',
                help='Directory where images are stored on disk.'),
@@ -147,20 +141,19 @@ def _parse_driver_info(node):
     return d_info
 
 
-def _build_pxe_config(node, pxe_info, ctx):
-    """Build the PXE config file for a node
+def _build_pxe_config_options(node, pxe_info, ctx):
+    """Build the PXE config options for a node
 
-    This method builds the PXE boot configuration file for a node,
+    This method builds the PXE boot options for a node,
     given all the required parameters.
 
-    The resulting file has both a "deploy" and "boot" label, which correspond
-    to the two phases of booting. This may be extended later.
+    The options should then be passed to tftp.create_pxe_config to create
+    the actual config files.
 
-    :param pxe_options: A dict of values to set on the configuarion file
-    :returns: A formated string with the file content.
+    :param pxe_options: A dict of values to set on the configuration file
+    :returns: A dictionary of pxe options to be used in the pxe bootfile
+        template.
     """
-    LOG.debug("Building PXE config for deployment %s." % node.uuid)
-
     # NOTE: we should strip '/' from the end because this is intended for
     # hardcoded ramdisk script
     ironic_api = (CONF.conductor.api_url or
@@ -173,61 +166,18 @@ def _build_pxe_config(node, pxe_info, ctx):
     node.save(ctx)
 
     pxe_options = {
-            'deployment_id': node['uuid'],
-            'deployment_key': deploy_key,
-            'deployment_iscsi_iqn': "iqn-%s" % node.uuid,
-            'deployment_aki_path': pxe_info['deploy_kernel'][1],
-            'deployment_ari_path': pxe_info['deploy_ramdisk'][1],
-            'aki_path': pxe_info['kernel'][1],
-            'ari_path': pxe_info['ramdisk'][1],
-            'ironic_api_url': ironic_api,
-            'pxe_append_params': CONF.pxe.pxe_append_params,
-        }
 
-    tmpl_path, tmpl_file = os.path.split(CONF.pxe.pxe_config_template)
-    env = jinja2.Environment(loader=jinja2.FileSystemLoader(tmpl_path))
-    template = env.get_template(tmpl_file)
-    return template.render({'pxe_options': pxe_options,
-                            'ROOT': '{{ ROOT }}'})
-
-
-def _get_node_vif_ids(task):
-    """Get all Neutron VIF ids for a node.
-       This function does not handle multi node operations.
-
-    :param task: a TaskManager instance.
-    :returns: A dict of the Node's port UUIDs and their associated VIFs
-
-    """
-    port_vifs = {}
-    for port in task.ports:
-        vif = port.extra.get('vif_port_id')
-        if vif:
-            port_vifs[port.uuid] = vif
-    return port_vifs
-
-
-def _get_pxe_mac_path(mac):
-    """Convert a MAC address into a PXE config file name.
-
-    :param mac: A mac address string in the format xx:xx:xx:xx:xx:xx.
-    :returns: the path to the config file.
-    """
-    return os.path.join(
-            CONF.pxe.tftp_root,
-            'pxelinux.cfg',
-            "01-" + mac.replace(":", "-").lower()
-        )
-
-
-def _get_pxe_config_file_path(node_uuid):
-    """Generate the path for an instances PXE config file."""
-    return os.path.join(CONF.pxe.tftp_root, node_uuid, 'config')
-
-
-def _get_pxe_bootfile_name():
-    """Returns the pxe_bootfile_name option."""
-    return CONF.pxe.pxe_bootfile_name
+        'deployment_id': node['uuid'],
+        'deployment_key': deploy_key,
+        'deployment_iscsi_iqn': "iqn-%s" % node.uuid,
+        'deployment_aki_path': pxe_info['deploy_kernel'][1],
+        'deployment_ari_path': pxe_info['deploy_ramdisk'][1],
+        'aki_path': pxe_info['kernel'][1],
+        'ari_path': pxe_info['ramdisk'][1],
+        'ironic_api_url': ironic_api,
+        'pxe_append_params': CONF.pxe.pxe_append_params,
+    }
+    return pxe_options
 
 
 def _get_image_dir_path(node_uuid):
@@ -242,7 +192,7 @@ def _get_image_file_path(node_uuid):
 
 def _get_token_file_path(node_uuid):
     """Generate the path for PKI token file."""
-    return os.path.join(CONF.pxe.tftp_root, 'token-' + node_uuid)
+    return os.path.join(CONF.tftp.tftp_root, 'token-' + node_uuid)
 
 
 class PXEImageCache(image_cache.ImageCache):
@@ -322,8 +272,8 @@ def _fetch_images(ctx, cache, images_info):
 def _cache_tftp_images(ctx, node, pxe_info):
     """Fetch the necessary kernels and ramdisks for the instance."""
     fileutils.ensure_tree(
-        os.path.join(CONF.pxe.tftp_root, node.uuid))
-    LOG.debug("Fetching kernel and ramdisk for node %s" %
+        os.path.join(CONF.tftp.tftp_root, node.uuid))
+    LOG.debug("Fetching kernel and ramdisk for node %s",
               node.uuid)
     _fetch_images(ctx, TFTPImageCache(), pxe_info.values())
 
@@ -336,7 +286,7 @@ def _cache_instance_image(ctx, node):
     to the appropriate places on local disk.
 
     Both sets of kernel and ramdisk are needed for PXE booting, so these
-    are stored under CONF.pxe.tftp_root.
+    are stored under CONF.tftp.tftp_root.
 
     At present, the AMI is cached and certain files are injected.
     Debian/ubuntu-specific assumptions are made regarding the injected
@@ -373,7 +323,7 @@ def _get_tftp_image_info(node, ctx):
     for label in ('deploy_kernel', 'deploy_ramdisk'):
         image_info[label] = (
             str(d_info[label]).split('/')[-1],
-            os.path.join(CONF.pxe.tftp_root, node.uuid, label)
+            os.path.join(CONF.tftp.tftp_root, node.uuid, label)
         )
 
     driver_info = node.driver_info
@@ -390,7 +340,7 @@ def _get_tftp_image_info(node, ctx):
     for label in labels:
         image_info[label] = (
             driver_info['pxe_' + label],
-            os.path.join(CONF.pxe.tftp_root, node.uuid, label)
+            os.path.join(CONF.tftp.tftp_root, node.uuid, label)
         )
 
     return image_info
@@ -427,69 +377,6 @@ def _remove_internal_attrs(task):
         driver_info.pop(attr, None)
     task.node.driver_info = driver_info
     task.node.save(task.context)
-
-
-def _dhcp_options_for_instance():
-    """Retrives the DHCP PXE boot options."""
-    return [{'opt_name': 'bootfile-name',
-             'opt_value': _get_pxe_bootfile_name()},
-            {'opt_name': 'server-ip-address',
-             'opt_value': CONF.pxe.tftp_server},
-            {'opt_name': 'tftp-server',
-             'opt_value': CONF.pxe.tftp_server}
-            ]
-
-
-def _update_neutron(task):
-    """Send or update the DHCP BOOT options to Neutron for this node."""
-    options = _dhcp_options_for_instance()
-    vifs = _get_node_vif_ids(task)
-    if not vifs:
-        LOG.warning(_("No VIFs found for node %(node)s when attempting to "
-                      "update Neutron DHCP BOOT options."),
-                      {'node': task.node.uuid})
-        return
-
-    # TODO(deva): decouple instantiation of NeutronAPI from task.context.
-    #             Try to use the user's task.context.auth_token, but if it
-    #             is not present, fall back to a server-generated context.
-    #             We don't need to recreate this in every method call.
-    api = neutron.NeutronAPI(task.context)
-    failures = []
-    for port_id, port_vif in vifs.iteritems():
-        try:
-            api.update_port_dhcp_opts(port_vif, options)
-        except exception.FailedToUpdateDHCPOptOnPort:
-            failures.append(port_id)
-
-    if failures:
-        if len(failures) == len(vifs):
-            raise exception.FailedToUpdateDHCPOptOnPort(_(
-                "Failed to set DHCP BOOT options for any port on node %s.") %
-                task.node.uuid)
-        else:
-            LOG.warning(_("Some errors were encountered when updating the "
-                          "DHCP BOOT options for node %(node)s on the "
-                          "following ports: %(ports)s."),
-                          {'node': task.node.uuid, 'ports': failures})
-
-
-def _create_pxe_config(task, pxe_info):
-    """Generate pxe configuration file and link mac ports to it for
-    tftp booting.
-    """
-    fileutils.ensure_tree(os.path.join(CONF.pxe.tftp_root,
-                                       task.node.uuid))
-    fileutils.ensure_tree(os.path.join(CONF.pxe.tftp_root,
-                                       'pxelinux.cfg'))
-
-    pxe_config_file_path = _get_pxe_config_file_path(task.node.uuid)
-    pxe_config = _build_pxe_config(task.node, pxe_info, task.context)
-    utils.write_to_file(pxe_config_file_path, pxe_config)
-    for port in driver_utils.get_node_mac_addresses(task):
-        mac_path = _get_pxe_mac_path(port)
-        utils.unlink_without_raise(mac_path)
-        utils.create_link_without_raise(pxe_config_file_path, mac_path)
 
 
 def _check_image_size(task):
@@ -587,7 +474,7 @@ class PXEDeploy(base.DeployInterface):
         # TODO(yuriyz): more secure way needed for pass auth token
         #               to deploy ramdisk
         _create_token_file(task)
-        _update_neutron(task)
+        neutron.update_neutron(task, CONF.pxe.pxe_bootfile_name)
         manager_utils.node_set_boot_device(task, 'pxe', persistent=True)
         manager_utils.node_power_action(task, states.REBOOT)
 
@@ -619,7 +506,9 @@ class PXEDeploy(base.DeployInterface):
         """
         # TODO(deva): optimize this if rerun on existing files
         pxe_info = _get_tftp_image_info(task.node, task.context)
-        _create_pxe_config(task, pxe_info)
+        pxe_options = _build_pxe_config_options(task.node, pxe_info,
+                                                task.context)
+        tftp.create_pxe_config(task, pxe_options, CONF.pxe.pxe_config_template)
         _cache_tftp_images(task.context, task.node, pxe_info)
 
     def clean_up(self, task):
@@ -639,20 +528,13 @@ class PXEDeploy(base.DeployInterface):
             utils.unlink_without_raise(path)
         TFTPImageCache().clean_up()
 
-        utils.unlink_without_raise(_get_pxe_config_file_path(
-                node.uuid))
-        for port in driver_utils.get_node_mac_addresses(task):
-            mac_path = _get_pxe_mac_path(port)
-            utils.unlink_without_raise(mac_path)
-
-        utils.rmtree_without_raise(
-                os.path.join(CONF.pxe.tftp_root, node.uuid))
+        tftp.clean_up_pxe_config(task)
 
         _destroy_images(d_info, node.uuid)
         _destroy_token_file(node)
 
     def take_over(self, task):
-        _update_neutron(task)
+        neutron.update_neutron(task, CONF.pxe.pxe_bootfile_name)
 
 
 class VendorPassthru(base.VendorInterface):
@@ -671,8 +553,8 @@ class VendorPassthru(base.VendorInterface):
                   'iqn': kwargs.get('iqn'),
                   'lun': kwargs.get('lun', '1'),
                   'image_path': _get_image_file_path(node.uuid),
-                  'pxe_config_path': _get_pxe_config_file_path(
-                                                    node.uuid),
+                  'pxe_config_path':
+                      tftp.get_pxe_config_file_path(node.uuid),
                   'root_mb': 1024 * int(d_info['root_gb']),
                   'swap_mb': int(d_info['swap_mb']),
                   'ephemeral_mb': 1024 * int(d_info['ephemeral_gb']),

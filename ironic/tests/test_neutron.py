@@ -15,15 +15,22 @@
 #    under the License.
 
 import mock
-
 from neutronclient.common import exceptions as neutron_client_exc
 from neutronclient.v2_0 import client
 from oslo.config import cfg
 
 from ironic.common import exception
 from ironic.common import neutron
+from ironic.common import tftp
+from ironic.common import utils
+from ironic.conductor import task_manager
+from ironic.db import api as dbapi
 from ironic.openstack.common import context
 from ironic.tests import base
+from ironic.tests.conductor import utils as mgr_utils
+from ironic.tests.db import utils as db_utils
+from ironic.tests.objects import utils as object_utils
+
 
 CONF = cfg.CONF
 
@@ -32,6 +39,8 @@ class TestNeutron(base.TestCase):
 
     def setUp(self):
         super(TestNeutron, self).setUp()
+        mgr_utils.mock_the_extension_manager(driver='fake')
+        self.config(enabled_drivers=['fake'])
         self.config(url='test-url',
                     url_timeout=30,
                     group='neutron')
@@ -42,6 +51,13 @@ class TestNeutron(base.TestCase):
                     admin_password='test-admin-password',
                     auth_uri='test-auth-uri',
                     group='keystone_authtoken')
+        self.dbapi = dbapi.get_instance()
+        self.context = context.get_admin_context()
+        self.node = object_utils.create_test_node(self.context)
+
+    def _create_test_port(self, **kwargs):
+        p = db_utils.get_test_port(**kwargs)
+        return self.dbapi.create_port(p)
 
     def test_create_with_token(self):
         token = 'test-token-123'
@@ -143,3 +159,84 @@ class TestNeutron(base.TestCase):
                                 neutron_client_exc.NeutronClientException())
         self.assertRaises(exception.FailedToUpdateMacOnPort,
                           api.update_port_address, port_id, address)
+
+    def test_get_node_vif_ids_no_ports(self):
+        expected = {}
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            result = neutron.get_node_vif_ids(task)
+        self.assertEqual(expected, result)
+
+    def test__get_node_vif_ids_one_port(self):
+        port1 = self._create_test_port(node_id=self.node.id,
+                                       id=6,
+                                       address='aa:bb:cc',
+                                       uuid=utils.generate_uuid(),
+                                       extra={'vif_port_id': 'test-vif-A'},
+                                       driver='fake')
+        expected = {port1.uuid: 'test-vif-A'}
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            result = neutron.get_node_vif_ids(task)
+        self.assertEqual(expected, result)
+
+    def test__get_node_vif_ids_two_ports(self):
+        port1 = self._create_test_port(node_id=self.node.id,
+                                       id=6,
+                                       address='aa:bb:cc',
+                                       uuid=utils.generate_uuid(),
+                                       extra={'vif_port_id': 'test-vif-A'},
+                                       driver='fake')
+        port2 = self._create_test_port(node_id=self.node.id,
+                                       id=7,
+                                       address='dd:ee:ff',
+                                       uuid=utils.generate_uuid(),
+                                       extra={'vif_port_id': 'test-vif-B'},
+                                       driver='fake')
+        expected = {port1.uuid: 'test-vif-A', port2.uuid: 'test-vif-B'}
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            result = neutron.get_node_vif_ids(task)
+        self.assertEqual(expected, result)
+
+    @mock.patch('ironic.common.neutron.NeutronAPI.update_port_dhcp_opts')
+    @mock.patch('ironic.common.neutron.get_node_vif_ids')
+    def test_update_neutron(self, mock_gnvi, mock_updo):
+        opts = tftp.dhcp_options_for_instance(CONF.pxe.pxe_bootfile_name)
+        mock_gnvi.return_value = {'port-uuid': 'vif-uuid'}
+        with task_manager.acquire(self.context,
+                                  self.node.uuid) as task:
+            neutron.update_neutron(task, self.node)
+        mock_updo.assertCalleOnceWith('vif-uuid', opts)
+
+    @mock.patch('ironic.common.neutron.NeutronAPI.__init__')
+    @mock.patch('ironic.common.neutron.get_node_vif_ids')
+    def test_update_neutron_no_vif_data(self, mock_gnvi, mock_init):
+        mock_gnvi.return_value = {}
+        with task_manager.acquire(self.context,
+                                  self.node.uuid) as task:
+            neutron.update_neutron(task, self.node)
+        mock_init.assert_not_called()
+
+    @mock.patch('ironic.common.neutron.NeutronAPI.update_port_dhcp_opts')
+    @mock.patch('ironic.common.neutron.get_node_vif_ids')
+    def test_update_neutron_some_failures(self, mock_gnvi, mock_updo):
+        # confirm update is called twice, one fails, but no exception raised
+        mock_gnvi.return_value = {'p1': 'v1', 'p2': 'v2'}
+        exc = exception.FailedToUpdateDHCPOptOnPort('fake exception')
+        mock_updo.side_effect = [None, exc]
+        with task_manager.acquire(self.context,
+                                  self.node.uuid) as task:
+            neutron.update_neutron(task, self.node)
+        self.assertEqual(2, mock_updo.call_count)
+
+    @mock.patch('ironic.common.neutron.NeutronAPI.update_port_dhcp_opts')
+    @mock.patch('ironic.common.neutron.get_node_vif_ids')
+    def test_update_neutron_fails(self, mock_gnvi, mock_updo):
+        # confirm update is called twice, both fail, and exception is raised
+        mock_gnvi.return_value = {'p1': 'v1', 'p2': 'v2'}
+        exc = exception.FailedToUpdateDHCPOptOnPort('fake exception')
+        mock_updo.side_effect = [exc, exc]
+        with task_manager.acquire(self.context,
+                                  self.node.uuid) as task:
+            self.assertRaises(exception.FailedToUpdateDHCPOptOnPort,
+                              neutron.update_neutron,
+                              task, self.node)
+        self.assertEqual(2, mock_updo.call_count)
