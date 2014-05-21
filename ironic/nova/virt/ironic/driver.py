@@ -491,8 +491,8 @@ class IronicDriver(virt_driver.ComputeDriver):
         try:
             node = validate_instance_and_node(icli, instance)
         except exception.InstanceNotFound:
-            LOG.debug(_("Destroy called on non-existing instance %s.")
-                        % instance['uuid'])
+            LOG.debug("Destroy called on non-existing instance %s."
+                      % instance['uuid'])
             # NOTE(deva): if nova.compute.ComputeManager._delete_instance()
             #             is called on a non-existing instance, the only way
             #             to delete it is to return from this method
@@ -558,7 +558,7 @@ class IronicDriver(virt_driver.ComputeDriver):
         pass
 
     def _plug_vifs(self, node, instance, network_info):
-        LOG.debug(_("plug: instance_uuid=%(uuid)s vif=%(network_info)s")
+        LOG.debug("plug: instance_uuid=%(uuid)s vif=%(network_info)s"
                   % {'uuid': instance['uuid'], 'network_info': network_info})
         # start by ensuring the ports are clear
         self._unplug_vifs(node, instance, network_info)
@@ -586,7 +586,7 @@ class IronicDriver(virt_driver.ComputeDriver):
                 icli.call("port.update", pif.uuid, patch)
 
     def _unplug_vifs(self, node, instance, network_info):
-        LOG.debug(_("unplug: instance_uuid=%(uuid)s vif=%(network_info)s")
+        LOG.debug("unplug: instance_uuid=%(uuid)s vif=%(network_info)s"
                   % {'uuid': instance['uuid'], 'network_info': network_info})
         if network_info and len(network_info) > 0:
             icli = client_wrapper.IronicClientWrapper()

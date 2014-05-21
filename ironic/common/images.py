@@ -212,7 +212,7 @@ def image_to_raw(image_href, path, path_tmp):
 
         if fmt != "raw" and CONF.force_raw_images:
             staged = "%s.converted" % path
-            LOG.debug(_("%(image)s was %(format)s, converting to raw") %
+            LOG.debug("%(image)s was %(format)s, converting to raw" %
                     {'image': image_href, 'format': fmt})
             with fileutils.remove_path_on_error(staged):
                 convert_image(path_tmp, staged, 'raw')

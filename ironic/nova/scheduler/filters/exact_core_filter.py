@@ -39,12 +39,12 @@ class ExactCoreFilter(filters.BaseHostFilter):
         usable_vcpus = host_state.vcpus_total - host_state.vcpus_used
 
         if required_vcpus != usable_vcpus:
-            LOG.debug(_("%(host_state)s does not have %(requested_vcpus)s "
-                        "cores of usable vcpu, it only has %(usable_vcpus)s "
-                        "cores of usable vcpu."),
-                        {'host_state': host_state,
-                        'requested_vcpus': required_vcpus,
-                        'usable_vcpus': usable_vcpus})
+            LOG.debug("%(host_state)s does not have %(requested_vcpus)s "
+                      "cores of usable vcpu, it only has %(usable_vcpus)s "
+                      "cores of usable vcpu.",
+                      {'host_state': host_state,
+                      'requested_vcpus': required_vcpus,
+                      'usable_vcpus': usable_vcpus})
             return False
 
         return True
