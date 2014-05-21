@@ -121,7 +121,8 @@ class PXEDriverFields(GenericDriverFields):
         driver_info = self.node.driver_info
         fields = ['pxe_image_source', 'pxe_root_gb', 'pxe_swap_mb',
                   'pxe_deploy_kernel', 'pxe_deploy_ramdisk',
-                  'pxe_ephemeral_gb', 'pxe_default_format']
+                  'pxe_ephemeral_gb', 'pxe_default_format',
+                  'pxe_preserve_ephemeral']
         for field in fields:
             if field in driver_info:
                 patch.append({'op': 'remove',
