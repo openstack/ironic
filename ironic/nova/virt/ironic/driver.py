@@ -114,7 +114,7 @@ def validate_instance_and_node(icli, instance):
     """
     try:
         return icli.call("node.get_by_instance_uuid", instance['uuid'])
-    except ironic_exception.HTTPNotFound:
+    except ironic_exception.NotFound:
         raise exception.InstanceNotFound(instance_id=instance['uuid'])
 
 
@@ -234,7 +234,7 @@ class IronicDriver(virt_driver.ComputeDriver):
                       'value': instance['uuid']})
         try:
             icli.call('node.update', node.uuid, patch)
-        except ironic_exception.HTTPBadRequest:
+        except ironic_exception.BadRequest:
             msg = (_("Failed to add deploy parameters on node %(node)s "
                      "when provisioning the instance %(instance)s")
                    % {'node': node.uuid, 'instance': instance['uuid']})
@@ -250,7 +250,7 @@ class IronicDriver(virt_driver.ComputeDriver):
         patch.append({'op': 'remove', 'path': '/instance_uuid'})
         try:
             icli.call('node.update', node.uuid, patch)
-        except ironic_exception.HTTPBadRequest:
+        except ironic_exception.BadRequest:
             msg = (_("Failed clean up the parameters on node %(node)s "
                      "when unprovisioning the instance %(instance)s")
                    % {'node': node.uuid, 'instance': instance['uuid']})
@@ -265,7 +265,7 @@ class IronicDriver(virt_driver.ComputeDriver):
         """ Wait for the node to be marked as ACTIVE in Ironic """
         try:
             node = icli.call("node.get_by_instance_uuid", instance['uuid'])
-        except ironic_exception.HTTPNotFound:
+        except ironic_exception.NotFound:
             raise exception.InstanceNotFound(instance_id=instance['uuid'])
 
         if node.provision_state == ironic_states.ACTIVE:
@@ -315,7 +315,7 @@ class IronicDriver(virt_driver.ComputeDriver):
         try:
             icli.call("node.get_by_instance_uuid", instance['uuid'])
             return True
-        except ironic_exception.HTTPNotFound:
+        except ironic_exception.NotFound:
             return False
 
     def list_instances(self):
@@ -334,7 +334,7 @@ class IronicDriver(virt_driver.ComputeDriver):
         try:
             icli.call("node.get", nodename)
             return True
-        except ironic_exception.HTTPNotFound:
+        except ironic_exception.NotFound:
             return False
 
     def get_available_nodes(self, refresh=False):
@@ -362,7 +362,7 @@ class IronicDriver(virt_driver.ComputeDriver):
         icli = client_wrapper.IronicClientWrapper()
         try:
             node = icli.call("node.get_by_instance_uuid", instance['uuid'])
-        except ironic_exception.HTTPNotFound:
+        except ironic_exception.NotFound:
             return {'state': map_power_state(ironic_states.NOSTATE),
                     'max_mem': 0,
                     'mem': 0,
@@ -381,7 +381,7 @@ class IronicDriver(virt_driver.ComputeDriver):
         icli = client_wrapper.IronicClientWrapper()
         try:
             node = icli.call("node.get", instance['node'])
-        except ironic_exception.HTTPNotFound:
+        except ironic_exception.NotFound:
             return []
         ports = icli.call("node.list_ports", node.uuid)
         return [p.address for p in ports]
@@ -429,9 +429,9 @@ class IronicDriver(virt_driver.ComputeDriver):
         try:
             icli.call("node.set_provision_state", node_uuid,
                       ironic_states.ACTIVE)
-        except (exception.NovaException,                   # Retry failed
-                ironic_exception.HTTPInternalServerError,  # Validations
-                ironic_exception.HTTPBadRequest) as e:     # Maintenance
+        except (exception.NovaException,               # Retry failed
+                ironic_exception.InternalServerError,  # Validations
+                ironic_exception.BadRequest) as e:     # Maintenance
             msg = (_("Failed to request Ironic to provision instance "
                      "%(inst)s: %(reason)s") % {'inst': instance['uuid'],
                                                 'reason': str(e)})
@@ -463,7 +463,7 @@ class IronicDriver(virt_driver.ComputeDriver):
         def _wait_for_provision_state():
             try:
                 node = icli.call("node.get_by_instance_uuid", instance['uuid'])
-            except ironic_exception.HTTPNotFound:
+            except ironic_exception.NotFound:
                 raise exception.InstanceNotFound(instance_id=instance['uuid'])
 
             if not node.provision_state:
@@ -597,7 +597,7 @@ class IronicDriver(virt_driver.ComputeDriver):
                 patch = [{'op': 'remove', 'path': '/extra/vif_port_id'}]
                 try:
                     icli.call("port.update", pif.uuid, patch)
-                except ironic_exception.HTTPBadRequest:
+                except ironic_exception.BadRequest:
                     pass
 
     def plug_vifs(self, instance, network_info):
@@ -638,7 +638,7 @@ class IronicDriver(virt_driver.ComputeDriver):
                       'op': 'add', 'value': str(preserve_ephemeral)})
         try:
             icli.call('node.update', node_uuid, patch)
-        except ironic_exception.HTTPBadRequest:
+        except ironic_exception.BadRequest:
             msg = (_("Failed to add deploy parameters on node %(node)s "
                      "when rebuilding the instance %(instance)s")
                    % {'node': node_uuid, 'instance': instance['uuid']})
@@ -648,8 +648,8 @@ class IronicDriver(virt_driver.ComputeDriver):
         try:
             icli.call("node.set_provision_state", node_uuid, ironic_states.REBUILD)
         except (exception.NovaException,                   # Retry failed
-                ironic_exception.HTTPInternalServerError,  # Validations
-                ironic_exception.HTTPBadRequest) as e:     # Maintenance
+                ironic_exception.InternalServerError,  # Validations
+                ironic_exception.BadRequest) as e:     # Maintenance
             msg = (_("Failed to request Ironic to rebuild instance "
                      "%(inst)s: %(reason)s") % {'inst': instance['uuid'],
                                                 'reason': str(e)})

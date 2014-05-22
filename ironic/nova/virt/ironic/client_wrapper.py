@@ -77,8 +77,8 @@ class IronicClientWrapper(object):
 
         :raises: NovaException if all retries failed.
         """
-        retry_excs = (ironic_exception.HTTPServiceUnavailable,
-                      ironic_exception.CommunicationError)
+        retry_excs = (ironic_exception.ServiceUnavailable,
+                      ironic_exception.ConnectionRefused)
         num_attempts = CONF.ironic.api_max_retries
 
         for attempt in range(1, num_attempts + 1):
