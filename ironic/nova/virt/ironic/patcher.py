@@ -89,19 +89,19 @@ class PXEDriverFields(GenericDriverFields):
                       'value': deploy_kernel})
         patch.append({'path': '/driver_info/pxe_deploy_ramdisk', 'op': 'add',
                       'value': deploy_ramdisk})
-        patch.append({'path': '/driver_info/pxe_image_source', 'op': 'add',
+        patch.append({'path': '/instance_info/image_source', 'op': 'add',
                       'value': image_meta['id']})
-        patch.append({'path': '/driver_info/pxe_root_gb', 'op': 'add',
+        patch.append({'path': '/instance_info/root_gb', 'op': 'add',
                       'value': str(instance['root_gb'])})
-        patch.append({'path': '/driver_info/pxe_swap_mb', 'op': 'add',
+        patch.append({'path': '/instance_info/swap_mb', 'op': 'add',
                       'value': str(flavor['swap'])})
 
         if instance.get('ephemeral_gb'):
-            patch.append({'path': '/driver_info/pxe_ephemeral_gb',
+            patch.append({'path': '/instance_info/ephemeral_gb',
                           'op': 'add',
                           'value': str(instance['ephemeral_gb'])})
             if CONF.default_ephemeral_format:
-                patch.append({'path': '/driver_info/pxe_ephemeral_format',
+                patch.append({'path': '/instance_info/ephemeral_format',
                               'op': 'add',
                               'value': CONF.default_ephemeral_format})
         return patch
@@ -110,7 +110,9 @@ class PXEDriverFields(GenericDriverFields):
         """Build a patch to clean up the fields.
 
         Build a json-patch to remove the fields used to deploy a node
-        using the PXE driver.
+        using the PXE driver. Note that the fields added to the Node's
+        instance_info don't need to be removed because they are purged
+        during the Node's tear down.
 
         :param instance: the instance object.
         :param network_info: the instance network information.
@@ -119,10 +121,7 @@ class PXEDriverFields(GenericDriverFields):
         """
         patch = []
         driver_info = self.node.driver_info
-        fields = ['pxe_image_source', 'pxe_root_gb', 'pxe_swap_mb',
-                  'pxe_deploy_kernel', 'pxe_deploy_ramdisk',
-                  'pxe_ephemeral_gb', 'pxe_ephemeral_format',
-                  'pxe_preserve_ephemeral']
+        fields = ['pxe_deploy_kernel', 'pxe_deploy_ramdisk']
         for field in fields:
             if field in driver_info:
                 patch.append({'op': 'remove',

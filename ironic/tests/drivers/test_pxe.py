@@ -49,7 +49,8 @@ from ironic.tests.objects import utils as obj_utils
 
 CONF = cfg.CONF
 
-INFO_DICT = db_utils.get_test_pxe_info()
+INST_INFO_DICT = db_utils.get_test_pxe_instance_info()
+DRV_INFO_DICT = db_utils.get_test_pxe_driver_info()
 
 
 class PXEValidateParametersTestCase(base.TestCase):
@@ -59,30 +60,22 @@ class PXEValidateParametersTestCase(base.TestCase):
         self.context = context.get_admin_context()
         self.dbapi = dbapi.get_instance()
 
-    def test__parse_driver_info_good(self):
+    def test__parse_deploy_info(self):
         # make sure we get back the expected things
         node = obj_utils.create_test_node(self.context,
                                           driver='fake_pxe',
-                                          driver_info=INFO_DICT)
-        info = pxe._parse_driver_info(node)
-        self.assertIsNotNone(info.get('image_source'))
-        self.assertIsNotNone(info.get('deploy_kernel'))
+                                          instance_info=INST_INFO_DICT,
+                                          driver_info=DRV_INFO_DICT)
+        info = pxe._parse_deploy_info(node)
         self.assertIsNotNone(info.get('deploy_ramdisk'))
+        self.assertIsNotNone(info.get('deploy_kernel'))
+        self.assertIsNotNone(info.get('image_source'))
         self.assertIsNotNone(info.get('root_gb'))
         self.assertEqual(0, info.get('ephemeral_gb'))
 
-    def test__parse_driver_info_missing_instance_source(self):
-        # make sure error is raised when info is missing
-        info = dict(INFO_DICT)
-        del info['pxe_image_source']
-        node = obj_utils.create_test_node(self.context, driver_info=info)
-        self.assertRaises(exception.InvalidParameterValue,
-                pxe._parse_driver_info,
-                node)
-
     def test__parse_driver_info_missing_deploy_kernel(self):
         # make sure error is raised when info is missing
-        info = dict(INFO_DICT)
+        info = dict(DRV_INFO_DICT)
         del info['pxe_deploy_kernel']
         node = obj_utils.create_test_node(self.context, driver_info=info)
         self.assertRaises(exception.InvalidParameterValue,
@@ -91,89 +84,117 @@ class PXEValidateParametersTestCase(base.TestCase):
 
     def test__parse_driver_info_missing_deploy_ramdisk(self):
         # make sure error is raised when info is missing
-        info = dict(INFO_DICT)
+        info = dict(DRV_INFO_DICT)
         del info['pxe_deploy_ramdisk']
         node = obj_utils.create_test_node(self.context, driver_info=info)
         self.assertRaises(exception.InvalidParameterValue,
                 pxe._parse_driver_info,
                 node)
 
-    def test__parse_driver_info_missing_root_gb(self):
+    def test__parse_driver_info_good(self):
+        # make sure we get back the expected things
+        node = obj_utils.create_test_node(self.context,
+                                          driver='fake_pxe',
+                                          driver_info=DRV_INFO_DICT)
+        info = pxe._parse_driver_info(node)
+        self.assertIsNotNone(info.get('deploy_ramdisk'))
+        self.assertIsNotNone(info.get('deploy_kernel'))
+
+    def test__parse_instance_info_good(self):
+        # make sure we get back the expected things
+        node = obj_utils.create_test_node(self.context,
+                                          driver='fake_pxe',
+                                          instance_info=INST_INFO_DICT)
+        info = pxe._parse_instance_info(node)
+        self.assertIsNotNone(info.get('image_source'))
+        self.assertIsNotNone(info.get('root_gb'))
+        self.assertEqual(0, info.get('ephemeral_gb'))
+
+    def test__parse_instance_info_missing_instance_source(self):
         # make sure error is raised when info is missing
-        info = dict(INFO_DICT)
-        del info['pxe_root_gb']
-        node = obj_utils.create_test_node(self.context, driver_info=info)
+        info = dict(INST_INFO_DICT)
+        del info['image_source']
+        node = obj_utils.create_test_node(self.context, instance_info=info)
         self.assertRaises(exception.InvalidParameterValue,
-                pxe._parse_driver_info,
+                pxe._parse_instance_info,
                 node)
 
-    def test__parse_driver_info_invalid_root_gb(self):
-        info = dict(INFO_DICT)
-        info['pxe_root_gb'] = 'foobar'
-        node = obj_utils.create_test_node(self.context, driver_info=info)
+    def test__parse_instance_info_missing_root_gb(self):
+        # make sure error is raised when info is missing
+        info = dict(INST_INFO_DICT)
+        del info['root_gb']
+        node = obj_utils.create_test_node(self.context, instance_info=info)
         self.assertRaises(exception.InvalidParameterValue,
-                pxe._parse_driver_info,
+                pxe._parse_instance_info,
                 node)
 
-    def test__parse_driver_info_valid_ephemeral_gb(self):
+    def test__parse_instance_info_invalid_root_gb(self):
+        info = dict(INST_INFO_DICT)
+        info['root_gb'] = 'foobar'
+        node = obj_utils.create_test_node(self.context, instance_info=info)
+        self.assertRaises(exception.InvalidParameterValue,
+                pxe._parse_instance_info,
+                node)
+
+    def test__parse_instance_info_valid_ephemeral_gb(self):
         ephemeral_gb = 10
         ephemeral_fmt = 'test-fmt'
-        info = dict(INFO_DICT)
-        info['pxe_ephemeral_gb'] = ephemeral_gb
-        info['pxe_ephemeral_format'] = ephemeral_fmt
-        node = obj_utils.create_test_node(self.context, driver_info=info)
-        data = pxe._parse_driver_info(node)
+        info = dict(INST_INFO_DICT)
+        info['ephemeral_gb'] = ephemeral_gb
+        info['ephemeral_format'] = ephemeral_fmt
+        node = obj_utils.create_test_node(self.context, instance_info=info)
+        data = pxe._parse_instance_info(node)
         self.assertEqual(ephemeral_gb, data.get('ephemeral_gb'))
         self.assertEqual(ephemeral_fmt, data.get('ephemeral_format'))
 
-    def test__parse_driver_info_invalid_ephemeral_gb(self):
-        info = dict(INFO_DICT)
-        info['pxe_ephemeral_gb'] = 'foobar'
-        info['pxe_ephemeral_format'] = 'exttest'
-        node = obj_utils.create_test_node(self.context, driver_info=info)
+    def test__parse_instance_info_invalid_ephemeral_gb(self):
+        info = dict(INST_INFO_DICT)
+        info['ephemeral_gb'] = 'foobar'
+        info['ephemeral_format'] = 'exttest'
+        node = obj_utils.create_test_node(self.context, instance_info=info)
         self.assertRaises(exception.InvalidParameterValue,
-                pxe._parse_driver_info,
+                pxe._parse_instance_info,
                 node)
 
-    def test__parse_driver_info_valid_ephemeral_missing_format(self):
+    def test__parse_instance_info_valid_ephemeral_missing_format(self):
         ephemeral_gb = 10
         ephemeral_fmt = 'test-fmt'
-        info = dict(INFO_DICT)
-        info['pxe_ephemeral_gb'] = ephemeral_gb
-        info['pxe_ephemeral_format'] = None
+        info = dict(INST_INFO_DICT)
+        info['ephemeral_gb'] = ephemeral_gb
+        info['ephemeral_format'] = None
         self.config(default_ephemeral_format=ephemeral_fmt, group='pxe')
-        node = obj_utils.create_test_node(self.context, driver_info=info)
-        driver_info = pxe._parse_driver_info(node)
-        self.assertEqual(ephemeral_fmt, driver_info['ephemeral_format'])
+        node = obj_utils.create_test_node(self.context, instance_info=info)
+        instance_info = pxe._parse_instance_info(node)
+        self.assertEqual(ephemeral_fmt, instance_info['ephemeral_format'])
 
-    def test__parse_driver_info_valid_preserve_ephemeral_true(self):
-        info = dict(INFO_DICT)
+    def test__parse_instance_info_valid_preserve_ephemeral_true(self):
+        info = dict(INST_INFO_DICT)
         for _id, opt in enumerate(['true', 'TRUE', 'True', 't',
                                    'on', 'yes', 'y', '1']):
-            info['pxe_preserve_ephemeral'] = opt
+            info['preserve_ephemeral'] = opt
             node = obj_utils.create_test_node(self.context, id=_id,
                                               uuid=utils.generate_uuid(),
-                                              driver_info=info)
-            data = pxe._parse_driver_info(node)
+                                              instance_info=info)
+            data = pxe._parse_instance_info(node)
             self.assertTrue(data.get('preserve_ephemeral'))
 
-    def test__parse_driver_info_valid_preserve_ephemeral_false(self):
-        info = dict(INFO_DICT)
+    def test__parse_instance_info_valid_preserve_ephemeral_false(self):
+        info = dict(INST_INFO_DICT)
         for _id, opt in enumerate(['false', 'FALSE', 'False', 'f',
                                    'off', 'no', 'n', '0']):
-            info['pxe_preserve_ephemeral'] = opt
+            info['preserve_ephemeral'] = opt
             node = obj_utils.create_test_node(self.context, id=_id,
                                               uuid=utils.generate_uuid(),
-                                              driver_info=info)
-            data = pxe._parse_driver_info(node)
+                                              instance_info=info)
+            data = pxe._parse_instance_info(node)
             self.assertFalse(data.get('preserve_ephemeral'))
 
-    def test__parse_driver_info_invalid_preserve_ephemeral(self):
-        info = dict(INFO_DICT)
-        info['pxe_preserve_ephemeral'] = 'foobar'
-        node = obj_utils.create_test_node(self.context, driver_info=info)
+    def test__parse_instance_info_invalid_preserve_ephemeral(self):
+        info = dict(INST_INFO_DICT)
+        info['preserve_ephemeral'] = 'foobar'
+        node = obj_utils.create_test_node(self.context, instance_info=info)
         self.assertRaises(exception.InvalidParameterValue,
-                pxe._parse_driver_info,
+                pxe._parse_instance_info,
                 node)
 
 
@@ -183,7 +204,8 @@ class PXEPrivateMethodsTestCase(db_base.DbTestCase):
         super(PXEPrivateMethodsTestCase, self).setUp()
         n = {
               'driver': 'fake_pxe',
-              'driver_info': INFO_DICT
+              'instance_info': INST_INFO_DICT,
+              'driver_info': DRV_INFO_DICT,
         }
         mgr_utils.mock_the_extension_manager(driver="fake_pxe")
         self.dbapi = dbapi.get_instance()
@@ -231,9 +253,9 @@ class PXEPrivateMethodsTestCase(db_base.DbTestCase):
         self.assertEqual(expected_info, image_info)
         self.assertFalse(show_mock.called)
         self.assertEqual('instance_kernel_uuid',
-                         self.node.driver_info.get('pxe_kernel'))
+                         self.node.instance_info.get('kernel'))
         self.assertEqual('instance_ramdisk_uuid',
-                         self.node.driver_info.get('pxe_ramdisk'))
+                         self.node.instance_info.get('ramdisk'))
 
     @mock.patch.object(utils, 'random_alnum')
     @mock.patch.object(tftp, 'build_pxe_config')
@@ -289,7 +311,7 @@ class PXEPrivateMethodsTestCase(db_base.DbTestCase):
 
         # test that deploy_key saved
         db_node = self.dbapi.get_node_by_uuid(self.node.uuid)
-        db_key = db_node['driver_info'].get('pxe_deploy_key')
+        db_key = db_node.instance_info.get('deploy_key')
         self.assertEqual(fake_key, db_key)
 
     def test__get_image_dir_path(self):
@@ -475,11 +497,12 @@ class PXEDriverTestCase(db_base.DbTestCase):
         self.temp_dir = tempfile.mkdtemp()
         self.config(images_path=self.temp_dir, group='pxe')
         mgr_utils.mock_the_extension_manager(driver="fake_pxe")
-        driver_info = INFO_DICT
-        driver_info['pxe_deploy_key'] = 'fake-56789'
+        instance_info = INST_INFO_DICT
+        instance_info['deploy_key'] = 'fake-56789'
         self.node = obj_utils.create_test_node(self.context,
                                                driver='fake_pxe',
-                                               driver_info=driver_info)
+                                               instance_info=instance_info,
+                                               driver_info=DRV_INFO_DICT)
         self.dbapi = dbapi.get_instance()
         self.port = self.dbapi.create_port(db_utils.get_test_port(
                                                          node_id=self.node.id))
@@ -499,12 +522,12 @@ class PXEDriverTestCase(db_base.DbTestCase):
             task.driver.deploy.validate(task)
 
     def test_validate_fail(self):
-        info = dict(INFO_DICT)
-        del info['pxe_image_source']
-        self.node['driver_info'] = json.dumps(info)
+        info = dict(INST_INFO_DICT)
+        del info['image_source']
+        self.node.instance_info = json.dumps(info)
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
-            task.node['driver_info'] = json.dumps(info)
+            task.node['instance_info'] = json.dumps(info)
             self.assertRaises(exception.InvalidParameterValue,
                               task.driver.deploy.validate, task)
 
@@ -512,7 +535,8 @@ class PXEDriverTestCase(db_base.DbTestCase):
         new_node = obj_utils.create_test_node(
                 self.context,
                 id=321, uuid='aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee',
-                driver='fake_pxe', driver_info=INFO_DICT)
+                driver='fake_pxe', instance_info=INST_INFO_DICT,
+                driver_info=DRV_INFO_DICT)
         with task_manager.acquire(self.context, new_node.uuid,
                                   shared=True) as task:
             self.assertRaises(exception.InvalidParameterValue,
@@ -691,24 +715,6 @@ class PXEDriverTestCase(db_base.DbTestCase):
             state = task.driver.deploy.tear_down(task)
             self.assertEqual(states.DELETED, state)
             node_power_mock.assert_called_once_with(task, states.POWER_OFF)
-
-    @mock.patch.object(manager_utils, 'node_power_action')
-    def test_tear_down_removes_internal_attrs(self, mock_npa):
-        self.assertIn('pxe_deploy_key', self.node.driver_info)
-        # add internal image info
-        info = self.node.driver_info
-        info['pxe_kernel'] = 'fake-123'
-        info['pxe_ramdisk'] = 'fake-345'
-        self.node.driver_info = info
-        self.node.save()
-        with task_manager.acquire(self.context, self.node.uuid) as task:
-            task.driver.deploy.tear_down(task)
-            mock_npa.assert_called_once_with(task, states.POWER_OFF)
-
-        self.node.refresh()
-        self.assertNotIn('pxe_deploy_key', self.node.driver_info)
-        self.assertNotIn('pxe_kernel', self.node.driver_info)
-        self.assertNotIn('pxe_ramdisk', self.node.driver_info)
 
     @mock.patch.object(neutron, 'update_neutron')
     def test_take_over(self, update_neutron_mock):

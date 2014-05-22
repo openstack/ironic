@@ -84,61 +84,100 @@ CONF.register_opts(pxe_opts, group='pxe')
 CONF.import_opt('use_ipv6', 'ironic.netconf')
 
 
-def _parse_driver_info(node):
-    """Gets the driver-specific Node deployment info.
-
-    This method validates whether the 'driver_info' property of the
-    supplied node contains the required information for this driver to
-    deploy images to the node.
-
-    :param node: a single Node to validate.
-    :returns: A dict with the driver_info values.
-    """
-
-    info = node.driver_info or {}
-    d_info = {}
-    d_info['image_source'] = info.get('pxe_image_source')
-    d_info['deploy_kernel'] = info.get('pxe_deploy_kernel')
-    d_info['deploy_ramdisk'] = info.get('pxe_deploy_ramdisk')
-    d_info['root_gb'] = info.get('pxe_root_gb')
-
+def _check_for_missing_params(info_dict, param_prefix=''):
     missing_info = []
-    for label in d_info:
-        if not d_info[label]:
-            missing_info.append("pxe_%s" % label)
+    for label, value in info_dict.items():
+        if not value:
+            missing_info.append(param_prefix + label)
+
     if missing_info:
         raise exception.InvalidParameterValue(_(
                 "Can not validate PXE bootloader. The following parameters "
                 "were not passed to ironic: %s") % missing_info)
 
-    # Internal use only
-    d_info['deploy_key'] = info.get('pxe_deploy_key')
 
-    d_info['swap_mb'] = info.get('pxe_swap_mb', 0)
-    d_info['ephemeral_gb'] = info.get('pxe_ephemeral_gb', 0)
-    d_info['ephemeral_format'] = info.get('pxe_ephemeral_format')
+def _parse_driver_info(node):
+    """Gets the driver specific Node deployment info.
+
+    This method validates whether the 'driver_info' property of the
+    supplied node contains the required information for this driver to
+    deploy images to the node.
+
+    :param node: a single Node.
+    :returns: A dict with the driver_info values.
+    """
+    info = node.driver_info
+    d_info = {}
+    d_info['deploy_kernel'] = info.get('pxe_deploy_kernel')
+    d_info['deploy_ramdisk'] = info.get('pxe_deploy_ramdisk')
+
+    _check_for_missing_params(d_info, 'pxe_')
+
+    return d_info
+
+
+def _parse_instance_info(node):
+    """Gets the instance specific Node deployment info.
+
+    This method validates whether the 'instance_info' property of the
+    supplied node contains the required information for this driver to
+    deploy images to the node.
+
+    :param node: a single Node.
+    :returns: A dict with the instance_info values.
+    """
+
+    info = node.instance_info
+    i_info = {}
+    i_info['image_source'] = info.get('image_source')
+    i_info['root_gb'] = info.get('root_gb')
+
+    _check_for_missing_params(i_info)
+
+    # Internal use only
+    i_info['deploy_key'] = info.get('deploy_key')
+
+    i_info['swap_mb'] = info.get('swap_mb', 0)
+    i_info['ephemeral_gb'] = info.get('ephemeral_gb', 0)
+    i_info['ephemeral_format'] = info.get('ephemeral_format')
 
     err_msg_invalid = _("Can not validate PXE bootloader. Invalid parameter "
-                        "pxe_%(param)s. Reason: %(reason)s")
+                        "%(param)s. Reason: %(reason)s")
     for param in ('root_gb', 'swap_mb', 'ephemeral_gb'):
         try:
-            int(d_info[param])
+            int(i_info[param])
         except ValueError:
-            reason = _("'%s' is not an integer value.") % d_info[param]
+            reason = _("'%s' is not an integer value.") % i_info[param]
             raise exception.InvalidParameterValue(err_msg_invalid %
                                             {'param': param, 'reason': reason})
 
-    if d_info['ephemeral_gb'] and not d_info['ephemeral_format']:
-        d_info['ephemeral_format'] = CONF.pxe.default_ephemeral_format
+    if i_info['ephemeral_gb'] and not i_info['ephemeral_format']:
+        i_info['ephemeral_format'] = CONF.pxe.default_ephemeral_format
 
-    preserve_ephemeral = info.get('pxe_preserve_ephemeral', False)
+    preserve_ephemeral = info.get('preserve_ephemeral', False)
     try:
-        d_info['preserve_ephemeral'] = strutils.bool_from_string(
+        i_info['preserve_ephemeral'] = strutils.bool_from_string(
                                             preserve_ephemeral, strict=True)
     except ValueError as e:
         raise exception.InvalidParameterValue(err_msg_invalid %
                                   {'param': 'preserve_ephemeral', 'reason': e})
-    return d_info
+    return i_info
+
+
+def _parse_deploy_info(node):
+    """Gets the instance and driver specific Node deployment info.
+
+    This method validates whether the 'instance_info' and 'driver_info'
+    property of the supplied node contains the required information for
+    this driver to deploy images to the node.
+
+    :param node: a single Node.
+    :returns: A dict with the instance_info and driver_info values.
+    """
+    info = {}
+    info.update(_parse_instance_info(node))
+    info.update(_parse_driver_info(node))
+    return info
 
 
 def _build_pxe_config_options(node, pxe_info, ctx):
@@ -150,7 +189,9 @@ def _build_pxe_config_options(node, pxe_info, ctx):
     The options should then be passed to tftp.create_pxe_config to create
     the actual config files.
 
-    :param pxe_options: A dict of values to set on the configuration file
+    :param node: a single Node.
+    :param pxe_info: a dict of values to set on the configuration file
+    :param ctx: security context
     :returns: A dictionary of pxe options to be used in the pxe bootfile
         template.
     """
@@ -160,13 +201,12 @@ def _build_pxe_config_options(node, pxe_info, ctx):
                   keystone.get_service_url()).rstrip('/')
 
     deploy_key = utils.random_alnum(32)
-    driver_info = node['driver_info']
-    driver_info['pxe_deploy_key'] = deploy_key
-    node['driver_info'] = driver_info
+    i_info = node.instance_info
+    i_info['deploy_key'] = deploy_key
+    node.instance_info = i_info
     node.save(ctx)
 
     pxe_options = {
-
         'deployment_id': node['uuid'],
         'deployment_key': deploy_key,
         'deployment_iscsi_iqn': "iqn-%s" % node.uuid,
@@ -295,10 +335,10 @@ def _cache_instance_image(ctx, node):
     fetch from Glance directly, and write its own last-mile configuration.
 
     """
-    d_info = _parse_driver_info(node)
+    i_info = _parse_instance_info(node)
     fileutils.ensure_tree(_get_image_dir_path(node.uuid))
     image_path = _get_image_file_path(node.uuid)
-    uuid = d_info['image_source']
+    uuid = i_info['image_source']
 
     LOG.debug("Fetching image %(ami)s for node %(uuid)s" %
               {'ami': uuid, 'uuid': node.uuid})
@@ -317,7 +357,7 @@ def _get_tftp_image_info(node, ctx):
       driver_info and defaults are not set
 
     """
-    d_info = _parse_driver_info(node)
+    d_info = _parse_deploy_info(node)
     image_info = {}
 
     for label in ('deploy_kernel', 'deploy_ramdisk'):
@@ -326,20 +366,19 @@ def _get_tftp_image_info(node, ctx):
             os.path.join(CONF.tftp.tftp_root, node.uuid, label)
         )
 
-    driver_info = node.driver_info
+    i_info = node.instance_info
     labels = ('kernel', 'ramdisk')
-    if not (driver_info.get('pxe_kernel') and driver_info.get('pxe_ramdisk')):
+    if not (i_info.get('kernel') and i_info.get('ramdisk')):
         glance_service = service.Service(version=1, context=ctx)
         iproperties = glance_service.show(d_info['image_source'])['properties']
         for label in labels:
-            driver_info['pxe_' + label] = str(iproperties[label +
-                                              '_id']).split('/')[-1]
-        node.driver_info = driver_info
+            i_info[label] = str(iproperties[label + '_id']).split('/')[-1]
+        node.instance_info = i_info
         node.save(ctx)
 
     for label in labels:
         image_info[label] = (
-            driver_info['pxe_' + label],
+            i_info[label],
             os.path.join(CONF.tftp.tftp_root, node.uuid, label)
         )
 
@@ -369,22 +408,12 @@ def _destroy_token_file(node):
     utils.unlink_without_raise(token_file_path)
 
 
-def _remove_internal_attrs(task):
-    """Remove internal attributes from driver_info."""
-    internal_attrs = ('pxe_deploy_key', 'pxe_kernel', 'pxe_ramdisk')
-    driver_info = task.node.driver_info
-    for attr in internal_attrs:
-        driver_info.pop(attr, None)
-    task.node.driver_info = driver_info
-    task.node.save(task.context)
-
-
 def _check_image_size(task):
     """Check if the requested image is larger than the root partition size."""
-    driver_info = _parse_driver_info(task.node)
+    i_info = _parse_instance_info(task.node)
     image_path = _get_image_file_path(task.node.uuid)
     image_mb = deploy_utils.get_image_mb(image_path)
-    root_mb = 1024 * int(driver_info['root_gb'])
+    root_mb = 1024 * int(i_info['root_gb'])
     if image_mb > root_mb:
         msg = (_('Root partition is too small for requested image. '
                  'Image size: %(image_mb)d MB, Root size: %(root_mb)d MB')
@@ -392,7 +421,7 @@ def _check_image_size(task):
         raise exception.InstanceDeployFailure(msg)
 
 
-def _validate_glance_image(ctx, driver_info):
+def _validate_glance_image(ctx, deploy_info):
     """Validate the image in Glance.
 
     Check if the image exist in Glance and if it contains the
@@ -400,7 +429,7 @@ def _validate_glance_image(ctx, driver_info):
 
     :raises: InvalidParameterValue.
     """
-    image_id = driver_info['image_source']
+    image_id = deploy_info['image_source']
     try:
         glance_service = service.Service(version=1, context=ctx)
         image_props = glance_service.show(image_id)['properties']
@@ -430,7 +459,7 @@ class PXEDeploy(base.DeployInterface):
     """PXE Deploy Interface: just a stub until the real driver is ported."""
 
     def validate(self, task):
-        """Validate the driver-specific Node deployment info.
+        """Validate the deployment information for the task's node.
 
         :param task: a TaskManager instance containing the node to act on.
         :raises: InvalidParameterValue.
@@ -439,7 +468,8 @@ class PXEDeploy(base.DeployInterface):
         if not driver_utils.get_node_mac_addresses(task):
             raise exception.InvalidParameterValue(_("Node %s does not have "
                                 "any port associated with it.") % node.uuid)
-        d_info = _parse_driver_info(node)
+
+        d_info = _parse_deploy_info(node)
 
         # Try to get the URL of the Ironic API
         try:
@@ -491,8 +521,6 @@ class PXEDeploy(base.DeployInterface):
         :returns: deploy state DELETED.
         """
         manager_utils.node_power_action(task, states.POWER_OFF)
-        _remove_internal_attrs(task)
-
         return states.DELETED
 
     def prepare(self, task):
@@ -522,7 +550,7 @@ class PXEDeploy(base.DeployInterface):
         """
         node = task.node
         pxe_info = _get_tftp_image_info(node, task.context)
-        d_info = _parse_driver_info(node)
+        d_info = _parse_deploy_info(node)
         for label in pxe_info:
             path = pxe_info[label][1]
             utils.unlink_without_raise(path)
@@ -541,7 +569,7 @@ class VendorPassthru(base.VendorInterface):
     """Interface to mix IPMI and PXE vendor-specific interfaces."""
 
     def _get_deploy_info(self, node, **kwargs):
-        d_info = _parse_driver_info(node)
+        d_info = _parse_deploy_info(node)
 
         deploy_key = kwargs.get('key')
         if d_info['deploy_key'] != deploy_key:

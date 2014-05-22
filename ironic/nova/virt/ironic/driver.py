@@ -654,9 +654,9 @@ class IronicDriver(virt_driver.ComputeDriver):
 
         icli = client_wrapper.IronicClientWrapper()
 
-        # Update driver_info for the ephemeral preservation value.
+        # Update instance_info for the ephemeral preservation value.
         patch = []
-        patch.append({'path': '/driver_info/pxe_preserve_ephemeral',
+        patch.append({'path': '/instance_info/preserve_ephemeral',
                       'op': 'add', 'value': str(preserve_ephemeral)})
         try:
             icli.call('node.update', node_uuid, patch)
