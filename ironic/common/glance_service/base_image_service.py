@@ -17,9 +17,11 @@
 
 import functools
 import logging
-import shutil
+import os
 import sys
 import time
+
+import sendfile
 
 from glanceclient import client
 import six.moves.urllib.parse as urlparse
@@ -209,14 +211,8 @@ class BaseImageService(object):
             url = urlparse.urlparse(location)
             if url.scheme == "file":
                 with open(url.path, "r") as f:
-                    #TODO(ghe): Use system call for downloading files.
-                    # Bug #1199522
-
-                    # FIXME(jbresnah) a system call to cp could have
-                    # significant performance advantages, however we
-                    # do not have the path to files at this point in
-                    # the abstraction.
-                    shutil.copyfileobj(f, data)
+                    filesize = os.path.getsize(f.name)
+                    sendfile.sendfile(data.fileno(), f.fileno(), 0, filesize)
                 return
 
         image_chunks = self.call(method, image_id)
