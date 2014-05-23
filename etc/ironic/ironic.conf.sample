@@ -318,6 +318,15 @@
 
 
 #
+# Options defined in ironic.drivers.modules.image_cache
+#
+
+# Run image downloads and raw format conversions in parallel.
+# (boolean value)
+#parallel_image_downloads=false
+
+
+#
 # Options defined in ironic.openstack.common.eventlet_backdoor
 #
 

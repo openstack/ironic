@@ -22,6 +22,8 @@ import os
 import tempfile
 import time
 
+from oslo.config import cfg
+
 from ironic.common.glance_service import service_utils
 from ironic.common import images
 from ironic.common import utils
@@ -31,6 +33,16 @@ from ironic.openstack.common import log as logging
 
 
 LOG = logging.getLogger(__name__)
+
+img_cache_opts = [
+    cfg.BoolOpt('parallel_image_downloads',
+                default=False,
+                help='Run image downloads and raw format conversions in '
+                     'parallel.'),
+]
+
+CONF = cfg.CONF
+CONF.register_opts(img_cache_opts)
 
 
 class ImageCache(object):
@@ -63,10 +75,16 @@ class ImageCache(object):
         :param dest_path: destination file path
         :param ctx: context
         """
+        img_download_lock_name = 'download-image'
         if self._master_dir is None:
             #NOTE(ghe): We don't share images between instances/hosts
-            images.fetch_to_raw(ctx, uuid, dest_path,
-                                self._image_service)
+            if not CONF.parallel_image_downloads:
+                with lockutils.lock(img_download_lock_name, 'ironic-'):
+                    images.fetch_to_raw(ctx, uuid, dest_path,
+                                        self._image_service)
+            else:
+                images.fetch_to_raw(ctx, uuid, dest_path,
+                                    self._image_service)
             return
 
         #TODO(ghe): have hard links and counts the same behaviour in all fs
@@ -74,10 +92,11 @@ class ImageCache(object):
         master_file_name = service_utils.parse_image_ref(uuid)[0]
         master_path = os.path.join(self._master_dir, master_file_name)
 
-        # NOTE(dtantsur): hold only specific lock, so that we don't
-        # serialize _all_ downloads; take general lock when required
+        if CONF.parallel_image_downloads:
+            img_download_lock_name = 'download-image:%s' % master_file_name
+
         # TODO(dtantsur): lock expiration time
-        with lockutils.lock('download-image:%s' % master_file_name, 'ironic-'):
+        with lockutils.lock(img_download_lock_name, 'ironic-'):
             if os.path.exists(dest_path):
                 LOG.debug("Destination %(dest)s already exists for "
                             "image %(uuid)s" %
