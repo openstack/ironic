@@ -347,22 +347,6 @@ def _get_tftp_image_info(node, ctx):
     return image_info
 
 
-def _cache_images(node, pxe_info, ctx):
-    """Prepare all the images for this instance."""
-    #TODO(ghe):parallized downloads
-
-    #TODO(ghe): Embedded image client in ramdisk
-    # - Get rid of iscsi, image location in baremetal service node and
-    # image service, no master image, no image outdated...
-    # - security concerns
-    _cache_tftp_images(ctx, node, pxe_info)
-    _cache_instance_image(ctx, node)
-    #TODO(ghe): file injection
-    # http://lists.openstack.org/pipermail/openstack-dev/2013-May/008728.html
-    # http://lists.openstack.org/pipermail/openstack-dev/2013-July/011769.html
-    # _inject_into_image(d_info, network_info, injected_files, admin_password)
-
-
 def _destroy_images(d_info, node_uuid):
     """Delete instance's image file."""
     utils.unlink_without_raise(_get_image_file_path(node_uuid))
@@ -502,8 +486,9 @@ class PXEDeploy(base.DeployInterface):
     def deploy(self, task, node):
         """Perform start deployment a node.
 
-        Creates a temporary keystone token file, updates the Neutron DHCP port
-        options for next boot, and issues a reboot request to the power driver.
+        Fetches instance image, creates a temporary keystone token file,
+        updates the Neutron DHCP port options for next boot, and issues a
+        reboot request to the power driver.
         This causes the node to boot into the deployment ramdisk and triggers
         the next phase of PXE-based deployment via
         VendorPassthru._continue_deploy().
@@ -512,6 +497,9 @@ class PXEDeploy(base.DeployInterface):
         :param node: the Node to act upon.
         :returns: deploy state DEPLOYING.
         """
+        _cache_instance_image(task.context, node)
+        _check_image_size(task)
+
         # TODO(yuriyz): more secure way needed for pass auth token
         #               to deploy ramdisk
         _create_token_file(task, node)
@@ -541,7 +529,7 @@ class PXEDeploy(base.DeployInterface):
         """Prepare the deployment environment for this node.
 
         Generates the TFTP configuration for PXE-booting both the deployment
-        and user images, fetches the images from Glance and adds them to the
+        and user images, fetches the TFTP image from Glance and add it to the
         local cache.
 
         :param task: a TaskManager instance.
@@ -550,16 +538,14 @@ class PXEDeploy(base.DeployInterface):
         # TODO(deva): optimize this if rerun on existing files
         pxe_info = _get_tftp_image_info(node, task.context)
         _create_pxe_config(task, node, pxe_info)
-        _cache_images(node, pxe_info, task.context)
-        _check_image_size(task)
+        _cache_tftp_images(task.context, node, pxe_info)
 
     def clean_up(self, task, node):
         """Clean up the deployment environment for this node.
 
-        Delete the deploy and user images from the local cache, if no remaining
-        active nodes require them. Removes the TFTP configuration files for
-        this node. As a precaution, this method also ensures the keystone auth
-        token file was removed.
+        Unlinks TFTP and instance images and triggers image cache cleanup.
+        Removes the TFTP configuration files for this node. As a precaution,
+        this method also ensures the keystone auth token file was removed.
 
         :param task: a TaskManager instance.
         :param node: the Node to act upon.
@@ -641,6 +627,7 @@ class VendorPassthru(base.VendorInterface):
         invoked asynchronously as a callback from the deploy ramdisk.
         """
         node = task.node
+        driver_info = _parse_driver_info(node)
 
         def _set_failed_state(msg):
             node.provision_state = states.DEPLOYFAIL
@@ -676,6 +663,7 @@ class VendorPassthru(base.VendorInterface):
             LOG.error(_('Error returned from PXE deploy ramdisk: %s')
                     % ramdisk_error)
             _set_failed_state(_('Failure in PXE deploy ramdisk.'))
+            _destroy_images(driver_info, node.uuid)
             return
 
         LOG.info(_('Continuing deployment for node %(node)s, params '
@@ -693,6 +681,8 @@ class VendorPassthru(base.VendorInterface):
             node.provision_state = states.ACTIVE
             node.target_provision_state = states.NOSTATE
             node.save(task.context)
+
+        _destroy_images(driver_info, node.uuid)
 
     def vendor_passthru(self, task, **kwargs):
         method = kwargs['method']
