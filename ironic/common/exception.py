@@ -340,7 +340,7 @@ class ConfigNotFound(IronicException):
     message = _("Could not find config at %(path)s")
 
 
-class NodeLocked(TemporaryFailure):
+class NodeLocked(Conflict):
     message = _("Node %(node)s is locked by host %(host)s, please retry "
                 "after the current operation is completed.")
 
