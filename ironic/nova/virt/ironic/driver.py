@@ -508,7 +508,22 @@ class IronicDriver(virt_driver.ComputeDriver):
 
     def reboot(self, context, instance, network_info, reboot_type,
                block_device_info=None, bad_volumes_callback=None):
-        pass
+        """Reboot the specified instance.
+
+        :param instance: The instance object.
+        :param network_info: Instance network information. Ignored by
+            this driver.
+        :param reboot_type: Either a HARD or SOFT reboot. Ignored by
+            this driver.
+        :param block_device_info: Info pertaining to attached volumes.
+            Ignored by this driver.
+        :param bad_volumes_callback: Function to handle any bad volumes
+            encountered. Ignored by this driver.
+
+        """
+        icli = client_wrapper.IronicClientWrapper()
+        node = validate_instance_and_node(icli, instance)
+        icli.call("node.set_power_state", node.uuid, 'reboot')
 
     def power_off(self, instance, node=None):
         # TODO(nobodycam): check the current power state first.
