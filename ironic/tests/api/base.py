@@ -23,6 +23,7 @@
 from oslo.config import cfg
 import pecan
 import pecan.testing
+from six.moves.urllib import parse as urlparse
 
 from ironic.api import acl
 from ironic.db import api as dbapi
@@ -212,11 +213,17 @@ class FunctionalTest(base.DbTestCase):
         print('GOT:%s' % response)
         return response
 
-    def validate_link(self, link):
+    def validate_link(self, link, bookmark=False):
         """Checks if the given link can get correct data."""
+        # removes the scheme and net location parts of the link
+        url_parts = list(urlparse.urlparse(link))
+        url_parts[0] = url_parts[1] = ''
 
-        # removes 'http://loicalhost' part
-        full_path = link.split('localhost', 1)[1]
+        # bookmark link should not have the version in the URL
+        if bookmark and url_parts[2].startswith(PATH_PREFIX):
+            return False
+
+        full_path = urlparse.urlunparse(url_parts)
         try:
             self.get_json(full_path, path_prefix='')
             return True

@@ -84,7 +84,8 @@ class Chassis(base.APIBase):
                                              'chassis', chassis.uuid),
                          link.Link.make_link('bookmark',
                                              url,
-                                             'chassis', chassis.uuid)
+                                             'chassis', chassis.uuid,
+                                             bookmark=True)
                         ]
         return chassis
 
