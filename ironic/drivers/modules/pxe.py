@@ -24,6 +24,7 @@ from oslo.config import cfg
 
 from ironic.common import exception
 from ironic.common import image_service as service
+from ironic.common import images
 from ironic.common import keystone
 from ironic.common import neutron
 from ironic.common import paths
@@ -265,16 +266,66 @@ class InstanceImageCache(PXEImageCache):
         super(InstanceImageCache, self).__init__(CONF.pxe.instance_master_path)
 
 
+def _free_disk_space_for(path):
+    """Get free disk space on a drive where path is located."""
+    stat = os.statvfs(path)
+    return stat.f_frsize * stat.f_bavail
+
+
+def _cleanup_caches_if_required(ctx, cache, images_info):
+    # NOTE(dtantsur): I'd prefer to have this code inside ImageCache. But:
+    # To reclaim disk space efficiently, this code needs to be aware of
+    # all existing caches (e.g. cleaning instance image cache can be
+    # much more efficient, than cleaning TFTP cache).
+    total_size = sum(images.download_size(ctx, uuid)
+                     for (uuid, path) in images_info)
+    free = _free_disk_space_for(cache.master_dir)
+    if total_size >= free:
+        # NOTE(dtantsur): instance cache is larger - always clean it first
+        # NOTE(dtantsur): filter caches, whose directory is on the same device
+        st_dev = os.stat(cache.master_dir).st_dev
+        caches = [c for c in (InstanceImageCache(), TFTPImageCache())
+                  if os.stat(c.master_dir).st_dev == st_dev]
+        for cache_to_clean in caches:
+            cache_to_clean.clean_up()
+            free = _free_disk_space_for(cache.master_dir)
+            if total_size < free:
+                break
+        else:
+            msg = _("Disk volume where '%(path)s' is located doesn't have "
+                    "enough disk space. Required %(required)d MiB, "
+                    "only %(actual)d MiB available space present.")
+            raise exception.InstanceDeployFailure(reason=msg % {
+                'path': cache.master_dir,
+                'required': total_size / 1024 / 1024,
+                'actual': free / 1024 / 1024
+            })
+
+
+def _fetch_images(ctx, cache, images_info):
+    """Check for available disk space and fetch images using ImageCache.
+
+    :param ctx: context
+    :param cache: ImageCache instance to use for fetching
+    :param images_info: list of tuples (image uuid, destination path)
+    :raises: InstanceDeployFailure if unable to find enough disk space
+    """
+    _cleanup_caches_if_required(ctx, cache, images_info)
+    # NOTE(dtantsur): This code can suffer from race condition,
+    # if disk space is used between the check and actual download.
+    # This is probably unavoidable, as we can't control other
+    # (probably unrelated) processes
+    for uuid, path in images_info:
+        cache.fetch_image(uuid, path, ctx=ctx)
+
+
 def _cache_tftp_images(ctx, node, pxe_info):
     """Fetch the necessary kernels and ramdisks for the instance."""
     fileutils.ensure_tree(
         os.path.join(CONF.pxe.tftp_root, node.uuid))
     LOG.debug("Fetching kernel and ramdisk for node %s" %
               node.uuid)
-    master_cache = TFTPImageCache()
-    for label in pxe_info:
-        (uuid, path) = pxe_info[label]
-        master_cache.fetch_image(uuid, path, ctx=ctx)
+    _fetch_images(ctx, TFTPImageCache(), pxe_info.values())
 
 
 def _cache_instance_image(ctx, node):
@@ -302,7 +353,7 @@ def _cache_instance_image(ctx, node):
     LOG.debug("Fetching image %(ami)s for node %(uuid)s" %
               {'ami': uuid, 'uuid': node.uuid})
 
-    InstanceImageCache().fetch_image(uuid, image_path, ctx=ctx)
+    _fetch_images(ctx, InstanceImageCache(), [(uuid, image_path)])
 
     return (uuid, image_path)
 
@@ -317,15 +368,13 @@ def _get_tftp_image_info(node, ctx):
 
     """
     d_info = _parse_driver_info(node)
-    image_info = {
-            'deploy_kernel': [None, None],
-            'deploy_ramdisk': [None, None],
-            }
+    image_info = {}
 
-    for label in image_info:
-        image_info[label][0] = str(d_info[label]).split('/')[-1]
-        image_info[label][1] = os.path.join(CONF.pxe.tftp_root,
-                                            node.uuid, label)
+    for label in ('deploy_kernel', 'deploy_ramdisk'):
+        image_info[label] = (
+            str(d_info[label]).split('/')[-1],
+            os.path.join(CONF.pxe.tftp_root, node.uuid, label)
+        )
 
     driver_info = node.driver_info
     labels = ('kernel', 'ramdisk')
@@ -339,10 +388,10 @@ def _get_tftp_image_info(node, ctx):
         node.save(ctx)
 
     for label in labels:
-        image_info[label] = [None, None]
-        image_info[label][0] = driver_info['pxe_' + label]
-        image_info[label][1] = os.path.join(CONF.pxe.tftp_root,
-                                            node.uuid, label)
+        image_info[label] = (
+            driver_info['pxe_' + label],
+            os.path.join(CONF.pxe.tftp_root, node.uuid, label)
+        )
 
     return image_info
 

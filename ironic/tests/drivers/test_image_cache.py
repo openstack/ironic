@@ -46,7 +46,7 @@ class TestImageCacheFetch(base.TestCase):
     @mock.patch.object(image_cache.ImageCache, '_download_image')
     def test_fetch_image_no_master_dir(self, mock_download, mock_clean_up,
                                        mock_fetch_to_raw):
-        self.cache._master_dir = None
+        self.cache.master_dir = None
         self.cache.fetch_image('uuid', self.dest_path)
         self.assertFalse(mock_download.called)
         mock_fetch_to_raw.assert_called_once_with(

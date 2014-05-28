@@ -227,3 +227,9 @@ def image_to_raw(image_href, path, path_tmp):
                 os.rename(staged, path)
         else:
             os.rename(path_tmp, path)
+
+
+def download_size(context, image_href, image_service=None):
+    if not image_service:
+        image_service = service.Service(version=1, context=context)
+    return image_service.show(image_href)['size']
