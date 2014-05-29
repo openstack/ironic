@@ -33,6 +33,7 @@ import contextlib
 import os
 import stat
 import tempfile
+import time
 
 from oslo.config import cfg
 
@@ -60,7 +61,7 @@ LOG = logging.getLogger(__name__)
 
 VALID_BOOT_DEVICES = ['pxe', 'disk', 'safe', 'cdrom', 'bios']
 VALID_PRIV_LEVELS = ['ADMINISTRATOR', 'CALLBACK', 'OPERATOR', 'USER']
-
+LAST_CMD_TIME = {}
 TIMING_SUPPORT = None
 
 
@@ -210,14 +211,20 @@ def _exec_ipmitool(driver_info, command):
 
     # 'ipmitool' command will prompt password if there is no '-f' option,
     # we set it to '\0' to write a password file to support empty password
-
     with _make_password_file(driver_info['password'] or '\0') as pw_file:
         args.append('-f')
         args.append(pw_file)
         args.extend(command.split(" "))
-        out, err = utils.execute(*args)
-        LOG.debug("ipmitool stdout: '%(out)s', stderr: '%(err)s'",
-                  {'out': out, 'err': err})
+        # NOTE(deva): ensure that no communications are sent to a BMC more
+        #             often than once every min_command_interval seconds.
+        time_till_next_poll = CONF.ipmi.min_command_interval - (
+                time.time() - LAST_CMD_TIME.get(driver_info['address'], 0))
+        if time_till_next_poll > 0:
+            time.sleep(time_till_next_poll)
+        try:
+            out, err = utils.execute(*args)
+        finally:
+            LAST_CMD_TIME[driver_info['address']] = time.time()
         return out, err
 
 
