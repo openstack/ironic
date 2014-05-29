@@ -879,3 +879,51 @@ class IronicDriverTestCase(test.NoDBTestCase):
 
         # assert port.update() was not called
         self.assertFalse(mock_update.called)
+
+    @mock.patch.object(firewall.NoopFirewallDriver,'unfilter_instance',
+                       create=True)
+    def test_unfilter_instance(self, mock_ui):
+        instance = fake_instance.fake_instance_obj(self.ctx)
+        network_info = utils.get_test_network_info()
+        self.driver.unfilter_instance(instance, network_info)
+        mock_ui.assert_called_once_with(instance, network_info)
+
+    @mock.patch.object(firewall.NoopFirewallDriver, 'setup_basic_filtering',
+                       create=True)
+    @mock.patch.object(firewall.NoopFirewallDriver, 'prepare_instance_filter',
+                       create=True)
+    def test_ensure_filtering_rules_for_instance(self, mock_pif, mock_sbf):
+        instance = fake_instance.fake_instance_obj(self.ctx)
+        network_info = utils.get_test_network_info()
+        self.driver.ensure_filtering_rules_for_instance(instance,
+                                                        network_info)
+        mock_sbf.assert_called_once_with(instance, network_info)
+        mock_pif.assert_called_once_with(instance, network_info)
+
+    @mock.patch.object(firewall.NoopFirewallDriver,
+                       'refresh_instance_security_rules', create=True)
+    def test_refresh_instance_security_rules(self, mock_risr):
+        instance = fake_instance.fake_instance_obj(self.ctx)
+        self.driver.refresh_instance_security_rules(instance)
+        mock_risr.assert_called_once_with(instance)
+
+    @mock.patch.object(firewall.NoopFirewallDriver,
+                       'refresh_provider_fw_rules', create=True)
+    def test_refresh_provider_fw_rules(self, mock_rpfr):
+        instance = fake_instance.fake_instance_obj(self.ctx)
+        self.driver.refresh_provider_fw_rules()
+        mock_rpfr.assert_called_once_with()
+
+    @mock.patch.object(firewall.NoopFirewallDriver,
+                       'refresh_security_group_members', create=True)
+    def test_refresh_security_group_members(self, mock_rsgm):
+        fake_group = 'fake-security-group-members'
+        self.driver.refresh_security_group_members(fake_group)
+        mock_rsgm.assert_called_once_with(fake_group)
+
+    @mock.patch.object(firewall.NoopFirewallDriver,
+                      'refresh_instance_security_rules', create=True)
+    def test_refresh_security_group_rules(self, mock_risr):
+        fake_group = 'fake-security-group-members'
+        self.driver.refresh_instance_security_rules(fake_group)
+        mock_risr.assert_called_once_with(fake_group)
