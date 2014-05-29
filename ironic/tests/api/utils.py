@@ -33,7 +33,8 @@ class FakeMemcache(object):
     _cache = {
         'tokens/%s' % ADMIN_TOKEN: {
             'access': {
-                'token': {'id': ADMIN_TOKEN},
+                'token': {'id': ADMIN_TOKEN,
+                          'expires': '2100-09-11T00:00:00'},
                 'user': {'id': 'user_id1',
                          'name': 'user_name1',
                          'tenantId': '123i2910',
@@ -44,7 +45,8 @@ class FakeMemcache(object):
         },
         'tokens/%s' % MEMBER_TOKEN: {
             'access': {
-                'token': {'id': MEMBER_TOKEN},
+                'token': {'id': MEMBER_TOKEN,
+                          'expires': '2100-09-11T00:00:00'},
                 'user': {'id': 'user_id2',
                          'name': 'user-good',
                          'tenantId': 'project-good',
@@ -64,7 +66,7 @@ class FakeMemcache(object):
         dt = datetime.datetime.utcnow() + datetime.timedelta(minutes=5)
         return json.dumps((self._cache.get(key), dt.isoformat()))
 
-    def set(self, key, value, timeout=None):
+    def set(self, key, value, time=0, min_compress_len=0):
         self.set_value = value
         self.set_key = key
 
