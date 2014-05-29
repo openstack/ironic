@@ -192,6 +192,9 @@ class DeployInterface(object):
 class PowerInterface(object):
     """Interface for power-related actions."""
 
+    # TODO(lucasagomes): The 'node' parameter needs to be passed to validate()
+    # because of the ConductorManager.validate_driver_interfaces().
+    # Remove it after all cleaning all the interfaces
     @abc.abstractmethod
     def validate(self, task, node):
         """Validate the driver-specific Node power info.
@@ -200,30 +203,32 @@ class PowerInterface(object):
         supplied node contains the required information for this driver to
         manage the power state of the node.
 
-        :param task: a task from TaskManager.
+        :param task: a TaskManager instance containing the node to act on.
         :param node: a single Node to validate.
         :raises: InvalidParameterValue
         """
 
     @abc.abstractmethod
-    def get_power_state(self, task, node):
-        """Return the power state of the node.
+    def get_power_state(self, task):
+        """Return the power state of the task's node.
 
-        TODO
+        :param task: a TaskManager instance containing the node to act on.
+        :returns: a power state. One of :mod:`ironic.common.states`.
         """
 
     @abc.abstractmethod
-    def set_power_state(self, task, node, power_state):
-        """Set the power state of the node.
+    def set_power_state(self, task, power_state):
+        """Set the power state of the task's node.
 
-        TODO
+        :param task: a TaskManager instance containing the node to act on.
+        :param power_state: Any power state from :mod:`ironic.common.states`.
         """
 
     @abc.abstractmethod
-    def reboot(self, task, node):
-        """Perform a hard reboot of the node.
+    def reboot(self, task):
+        """Perform a hard reboot of the task's node.
 
-        TODO
+        :param task: a TaskManager instance containing the node to act on.
         """
 
 

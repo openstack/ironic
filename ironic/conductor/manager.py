@@ -211,7 +211,7 @@ class ConductorManager(periodic_task.PeriodicTasks):
             if 'instance_uuid' in delta:
                 task.driver.power.validate(task, node_obj)
                 node_obj['power_state'] = \
-                        task.driver.power.get_power_state(task, node_obj)
+                        task.driver.power.get_power_state(task)
 
                 if node_obj['power_state'] != states.POWER_OFF:
                     raise exception.NodeInWrongPowerState(
@@ -249,7 +249,7 @@ class ConductorManager(periodic_task.PeriodicTasks):
         with task_manager.acquire(context, node_id, shared=False) as task:
             task.driver.power.validate(task, task.node)
             task.spawn_after(self._spawn_worker, utils.node_power_action,
-                             task, task.node, new_state)
+                             task, new_state)
 
     @messaging.expected_exceptions(exception.NoFreeConductorWorker,
                                    exception.NodeLocked,
@@ -512,7 +512,7 @@ class ConductorManager(periodic_task.PeriodicTasks):
                 return
 
         try:
-            power_state = task.driver.power.get_power_state(task, node)
+            power_state = task.driver.power.get_power_state(task)
         except Exception as e:
             # TODO(rloo): change to IronicException, after
             #             https://bugs.launchpad.net/ironic/+bug/1267693
@@ -565,8 +565,7 @@ class ConductorManager(periodic_task.PeriodicTasks):
         try:
             # node_power_action will update the node record
             # so don't do that again here.
-            utils.node_power_action(task, task.node,
-                                    node.power_state)
+            utils.node_power_action(task, node.power_state)
         except Exception as e:
             # TODO(rloo): change to IronicException after
             # https://bugs.launchpad.net/ironic/+bug/1267693

@@ -305,9 +305,9 @@ class SeaMicroPowerDriverTestCase(db_base.DbTestCase):
 
         with task_manager.acquire(self.context, [info['uuid']],
                                   shared=False) as task:
-            task.resources[0].driver.power.reboot(task, self.node)
+            task.resources[0].driver.power.reboot(task)
 
-        mock_reboot.assert_called_once_with(self.node)
+            mock_reboot.assert_called_once_with(task.node)
 
     def test_set_power_state_bad_state(self):
         info = seamicro ._parse_driver_info(self.node)
@@ -318,7 +318,7 @@ class SeaMicroPowerDriverTestCase(db_base.DbTestCase):
                                   shared=False) as task:
             self.assertRaises(exception.IronicException,
                               task.resources[0].driver.power.set_power_state,
-                              task, self.node, "BAD_PSTATE")
+                              task, "BAD_PSTATE")
         self.get_server_patcher.stop()
 
     @mock.patch.object(seamicro, '_power_on')
@@ -330,10 +330,9 @@ class SeaMicroPowerDriverTestCase(db_base.DbTestCase):
         with task_manager.acquire(self.context, [info['uuid']],
                                   shared=False) as task:
             task.resources[0].driver.power.set_power_state(task,
-                                                           self.node,
                                                            states.POWER_ON)
 
-        mock_power_on.assert_called_once_with(self.node)
+            mock_power_on.assert_called_once_with(task.node)
 
     @mock.patch.object(seamicro, '_power_on')
     def test_set_power_state_on_fail(self, mock_power_on):
@@ -346,9 +345,9 @@ class SeaMicroPowerDriverTestCase(db_base.DbTestCase):
             self.assertRaises(exception.PowerStateFailure,
                               task.resources[0]
                               .driver.power.set_power_state,
-                              task, self.node, states.POWER_ON)
+                              task, states.POWER_ON)
 
-        mock_power_on.assert_called_once_with(self.node)
+            mock_power_on.assert_called_once_with(task.node)
 
     @mock.patch.object(seamicro, '_power_off')
     def test_set_power_state_off_good(self, mock_power_off):
@@ -359,9 +358,9 @@ class SeaMicroPowerDriverTestCase(db_base.DbTestCase):
         with task_manager.acquire(self.context, [info['uuid']],
                                   shared=False) as task:
             task.resources[0].driver.power.\
-                set_power_state(task, self.node, states.POWER_OFF)
+                set_power_state(task, states.POWER_OFF)
 
-        mock_power_off.assert_called_once_with(self.node)
+            mock_power_off.assert_called_once_with(task.node)
 
     @mock.patch.object(seamicro, '_power_off')
     def test_set_power_state_off_fail(self, mock_power_off):
@@ -374,9 +373,9 @@ class SeaMicroPowerDriverTestCase(db_base.DbTestCase):
             self.assertRaises(exception.PowerStateFailure,
                               task.resources[0]
                               .driver.power.set_power_state,
-                              task, self.node, states.POWER_OFF)
+                              task, states.POWER_OFF)
 
-        mock_power_off.assert_called_once_with(self.node)
+            mock_power_off.assert_called_once_with(task.node)
 
     def test_vendor_passthru_validate_good(self):
         with task_manager.acquire(self.context, [self.node['uuid']],

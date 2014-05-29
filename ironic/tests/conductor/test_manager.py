@@ -164,7 +164,7 @@ class ManagerTestCase(tests_db_base.DbTestCase):
                                                  states.POWER_ON)
             self.service._worker_pool.waitall()
 
-            get_power_mock.assert_called_once_with(mock.ANY, mock.ANY)
+            get_power_mock.assert_called_once_with(mock.ANY)
             node.refresh()
             self.assertEqual(states.POWER_ON, node.power_state)
             self.assertIsNone(node.target_power_state)
@@ -223,7 +223,7 @@ class ManagerTestCase(tests_db_base.DbTestCase):
             self.assertEqual(exception.NoFreeConductorWorker, exc.exc_info[0])
 
             spawn_mock.assert_called_once_with(mock.ANY, mock.ANY,
-                                               mock.ANY, mock.ANY)
+                                               mock.ANY)
             node.refresh()
             self.assertEqual(initial_state, node.power_state)
             self.assertIsNone(node.target_power_state)
@@ -256,9 +256,8 @@ class ManagerTestCase(tests_db_base.DbTestCase):
                                                      new_state)
                 self.service._worker_pool.waitall()
 
-                get_power_mock.assert_called_once_with(mock.ANY, mock.ANY)
-                set_power_mock.assert_called_once_with(mock.ANY, mock.ANY,
-                                                       new_state)
+                get_power_mock.assert_called_once_with(mock.ANY)
+                set_power_mock.assert_called_once_with(mock.ANY, new_state)
                 node.refresh()
                 self.assertEqual(initial_state, node.power_state)
                 self.assertIsNone(node.target_power_state)
@@ -1248,8 +1247,7 @@ class ManagerDoSyncPowerStateTestCase(tests_base.TestCase):
         self._do_sync_power_state('fake-power', 'fake-power')
 
         self.assertFalse(self.power.validate.called)
-        self.power.get_power_state.assert_called_once_with(self.task,
-                                                           self.node)
+        self.power.get_power_state.assert_called_once_with(self.task)
         self.assertEqual('fake-power', self.node.power_state)
         self.assertFalse(self.node.save.called)
         self.assertFalse(node_power_action.called)
@@ -1258,8 +1256,7 @@ class ManagerDoSyncPowerStateTestCase(tests_base.TestCase):
         self._do_sync_power_state(None, states.POWER_ON)
 
         self.power.validate.assert_called_once_with(self.task, self.node)
-        self.power.get_power_state.assert_called_once_with(self.task,
-                                                           self.node)
+        self.power.get_power_state.assert_called_once_with(self.task)
         self.node.save.assert_called_once_with(self.context)
         self.assertFalse(node_power_action.called)
         self.assertEqual(states.POWER_ON, self.node.power_state)
@@ -1268,7 +1265,7 @@ class ManagerDoSyncPowerStateTestCase(tests_base.TestCase):
         self._do_sync_power_state(None, states.POWER_ON,
                                   fail_validate=True)
 
-        self.power.validate.assert_called_once_with(self.task, self.node)
+        self.power.validate.assert_called_once_with(self.task, self.task.node)
         self.assertFalse(self.power.get_power_state.called)
         self.assertFalse(self.node.save.called)
         self.assertFalse(node_power_action.called)
@@ -1279,8 +1276,7 @@ class ManagerDoSyncPowerStateTestCase(tests_base.TestCase):
                                   exception.IronicException('foo'))
 
         self.assertFalse(self.power.validate.called)
-        self.power.get_power_state.assert_called_once_with(self.task,
-                                                           self.node)
+        self.power.get_power_state.assert_called_once_with(self.task)
         self.assertFalse(self.node.save.called)
         self.assertFalse(node_power_action.called)
         self.assertEqual('fake', self.node.power_state)
@@ -1291,8 +1287,7 @@ class ManagerDoSyncPowerStateTestCase(tests_base.TestCase):
         self._do_sync_power_state(states.POWER_ON, states.POWER_OFF)
 
         self.assertFalse(self.power.validate.called)
-        self.power.get_power_state.assert_called_once_with(self.task,
-                                                           self.node)
+        self.power.get_power_state.assert_called_once_with(self.task)
         self.node.save.assert_called_once_with(self.context)
         self.assertFalse(node_power_action.called)
         self.assertEqual(states.POWER_OFF, self.node.power_state)
@@ -1304,11 +1299,9 @@ class ManagerDoSyncPowerStateTestCase(tests_base.TestCase):
         self._do_sync_power_state(states.POWER_ON, states.POWER_OFF)
 
         self.assertFalse(self.power.validate.called)
-        self.power.get_power_state.assert_called_once_with(self.task,
-                                                           self.node)
+        self.power.get_power_state.assert_called_once_with(self.task)
         self.assertFalse(self.node.save.called)
-        node_power_action.assert_called_once_with(self.task, self.node,
-                                                  states.POWER_ON)
+        node_power_action.assert_called_once_with(self.task, states.POWER_ON)
         self.assertEqual(states.POWER_ON, self.node.power_state)
 
     def test_state_changed_sync_failed(self, node_power_action):
@@ -1319,11 +1312,9 @@ class ManagerDoSyncPowerStateTestCase(tests_base.TestCase):
 
         # Just testing that this test doesn't raise.
         self.assertFalse(self.power.validate.called)
-        self.power.get_power_state.assert_called_once_with(self.task,
-                                                           self.node)
+        self.power.get_power_state.assert_called_once_with(self.task)
         self.assertFalse(self.node.save.called)
-        node_power_action.assert_called_once_with(self.task, self.node,
-                                                  states.POWER_ON)
+        node_power_action.assert_called_once_with(self.task, states.POWER_ON)
         self.assertEqual(states.POWER_ON, self.node.power_state)
         self.assertEqual(1,
                          self.service.power_state_sync_count[self.node.uuid])
@@ -1336,12 +1327,11 @@ class ManagerDoSyncPowerStateTestCase(tests_base.TestCase):
                                                     states.POWER_OFF])
 
         self.assertFalse(self.power.validate.called)
-        power_exp_calls = [mock.call(self.task, self.node)] * 2
+        power_exp_calls = [mock.call(self.task)] * 2
         self.assertEqual(power_exp_calls,
                          self.power.get_power_state.call_args_list)
         self.node.save.assert_called_once_with(self.context)
-        node_power_action.assert_called_once_with(self.task, self.node,
-                                                  states.POWER_ON)
+        node_power_action.assert_called_once_with(self.task, states.POWER_ON)
         self.assertEqual(states.POWER_OFF, self.node.power_state)
         self.assertEqual(1,
                          self.service.power_state_sync_count[self.node.uuid])
@@ -1355,12 +1345,11 @@ class ManagerDoSyncPowerStateTestCase(tests_base.TestCase):
                                                     states.POWER_OFF])
 
         self.assertFalse(self.power.validate.called)
-        power_exp_calls = [mock.call(self.task, self.node)] * 3
+        power_exp_calls = [mock.call(self.task)] * 3
         self.assertEqual(power_exp_calls,
                          self.power.get_power_state.call_args_list)
         self.node.save.assert_called_once_with(self.context)
-        npa_exp_calls = [mock.call(self.task, self.node,
-                                   states.POWER_ON)] * 2
+        npa_exp_calls = [mock.call(self.task, states.POWER_ON)] * 2
         self.assertEqual(npa_exp_calls, node_power_action.call_args_list)
         self.assertEqual(states.POWER_OFF, self.node.power_state)
         self.assertEqual(2,
@@ -1375,12 +1364,11 @@ class ManagerDoSyncPowerStateTestCase(tests_base.TestCase):
                                                     states.POWER_ON])
 
         self.assertFalse(self.power.validate.called)
-        power_exp_calls = [mock.call(self.task, self.node)] * 3
+        power_exp_calls = [mock.call(self.task)] * 3
         self.assertEqual(power_exp_calls,
                          self.power.get_power_state.call_args_list)
         self.assertFalse(self.node.save.called)
-        npa_exp_calls = [mock.call(self.task, self.node,
-                                   states.POWER_ON)] * 2
+        npa_exp_calls = [mock.call(self.task, states.POWER_ON)] * 2
         self.assertEqual(npa_exp_calls, node_power_action.call_args_list)
         self.assertEqual(states.POWER_ON, self.node.power_state)
         self.assertNotIn(self.node.uuid, self.service.power_state_sync_count)

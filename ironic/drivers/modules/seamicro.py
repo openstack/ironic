@@ -321,35 +321,33 @@ class Power(base.PowerInterface):
 
         Check that node 'driver_info' contains the required fields.
 
-        :param task: A instance of `ironic.manager.task_manager.TaskManager`.
+        :param task: a TaskManager instance containing the node to act on.
         :param node: Single node object.
         :raises: InvalidParameterValue if required seamicro parameters are
             missing.
         """
-        _parse_driver_info(node)
+        _parse_driver_info(task.node)
 
-    def get_power_state(self, task, node):
-        """Get the current power state.
+    def get_power_state(self, task):
+        """Get the current power state of the task's node.
 
         Poll the host for the current power state of the node.
 
-        :param task: A instance of `ironic.manager.task_manager.TaskManager`.
-        :param node: A single node.
+        :param task: a TaskManager instance containing the node to act on.
         :raises: InvalidParameterValue if required seamicro parameters are
             missing.
         :raises: ServiceUnavailable on an error from SeaMicro Client.
         :returns: power state. One of :class:`ironic.common.states`.
         """
-        return _get_power_status(node)
+        return _get_power_status(task.node)
 
     @task_manager.require_exclusive_lock
-    def set_power_state(self, task, node, pstate):
+    def set_power_state(self, task, pstate):
         """Turn the power on or off.
 
         Set the power state of a node.
 
-        :param task: A instance of `ironic.manager.task_manager.TaskManager`.
-        :param node: A single node.
+        :param task: a TaskManager instance containing the node to act on.
         :param pstate: Either POWER_ON or POWER_OFF from :class:
             `ironic.common.states`.
         :raises: InvalidParameterValue if an invalid power state was specified.
@@ -357,9 +355,9 @@ class Power(base.PowerInterface):
         """
 
         if pstate == states.POWER_ON:
-            state = _power_on(node)
+            state = _power_on(task.node)
         elif pstate == states.POWER_OFF:
-            state = _power_off(node)
+            state = _power_off(task.node)
         else:
             raise exception.InvalidParameterValue(_(
                 "set_power_state called with invalid power state."))
@@ -368,17 +366,16 @@ class Power(base.PowerInterface):
             raise exception.PowerStateFailure(pstate=pstate)
 
     @task_manager.require_exclusive_lock
-    def reboot(self, task, node):
-        """Cycles the power to a node.
+    def reboot(self, task):
+        """Cycles the power to the task's node.
 
-        :param task: a TaskManager instance.
-        :param node: An Ironic node object.
+        :param task: a TaskManager instance containing the node to act on.
         :raises: InvalidParameterValue if required seamicro parameters are
             missing.
         :raises: PowerStateFailure if the final state of the node is not
             POWER_ON.
         """
-        state = _reboot(node)
+        state = _reboot(task.node)
 
         if state != states.POWER_ON:
             raise exception.PowerStateFailure(pstate=states.POWER_ON)

@@ -295,26 +295,24 @@ class IPMIPower(base.PowerInterface):
                     "%(error)s") % {'node': node.uuid, 'error': e}
             raise exception.InvalidParameterValue(msg)
 
-    def get_power_state(self, task, node):
-        """Get the current power state.
+    def get_power_state(self, task):
+        """Get the current power state of the task's node.
 
-        :param task: a TaskManager instance.
-        :param node: The Node.
+        :param task: a TaskManager instance containing the node to act on.
         :returns: one of ironic.common.states POWER_OFF, POWER_ON or ERROR.
         :raises: InvalidParameterValue if required ipmi parameters are missing.
         :raises: IPMIFailure on an error from ipmitool (from _power_status
             call).
 
         """
-        driver_info = _parse_driver_info(node)
+        driver_info = _parse_driver_info(task.node)
         return _power_status(driver_info)
 
     @task_manager.require_exclusive_lock
-    def set_power_state(self, task, node, pstate):
+    def set_power_state(self, task, pstate):
         """Turn the power on or off.
 
-        :param task: a TaskManager instance.
-        :param node: The Node.
+        :param task: a TaskManager instance containing the node to act on.
         :param pstate: The desired power state, one of ironic.common.states
             POWER_ON, POWER_OFF.
         :raises: InvalidParameterValue if required ipmi parameters are missing
@@ -322,7 +320,7 @@ class IPMIPower(base.PowerInterface):
         :raises: PowerStateFailure if the power couldn't be set to pstate.
 
         """
-        driver_info = _parse_driver_info(node)
+        driver_info = _parse_driver_info(task.node)
 
         if pstate == states.POWER_ON:
             state = _power_on(driver_info)
@@ -336,17 +334,16 @@ class IPMIPower(base.PowerInterface):
             raise exception.PowerStateFailure(pstate=pstate)
 
     @task_manager.require_exclusive_lock
-    def reboot(self, task, node):
-        """Cycles the power to a node.
+    def reboot(self, task):
+        """Cycles the power to the task's node.
 
-        :param task: a TaskManager instance.
-        :param node: The Node.
+        :param task: a TaskManager instance containing the node to act on.
         :raises: InvalidParameterValue if required ipmi parameters are missing.
         :raises: PowerStateFailure if the final state of the node is not
             POWER_ON.
 
         """
-        driver_info = _parse_driver_info(node)
+        driver_info = _parse_driver_info(task.node)
         _power_off(driver_info)
         state = _power_on(driver_info)
 

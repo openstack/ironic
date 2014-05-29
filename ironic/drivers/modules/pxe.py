@@ -553,7 +553,7 @@ class PXEDeploy(base.DeployInterface):
         _create_token_file(task)
         _update_neutron(task)
         manager_utils.node_set_boot_device(task, 'pxe', persistent=True)
-        manager_utils.node_power_action(task, task.node, states.REBOOT)
+        manager_utils.node_power_action(task, states.REBOOT)
 
         return states.DEPLOYWAIT
 
@@ -567,7 +567,7 @@ class PXEDeploy(base.DeployInterface):
         :param task: a TaskManager instance containing the node to act on.
         :returns: deploy state DELETED.
         """
-        manager_utils.node_power_action(task, task.node, states.POWER_OFF)
+        manager_utils.node_power_action(task, states.POWER_OFF)
         _remove_internal_attrs(task)
 
         return states.DELETED
@@ -680,7 +680,7 @@ class VendorPassthru(base.VendorInterface):
             node.target_provision_state = states.NOSTATE
             node.save(task.context)
             try:
-                manager_utils.node_power_action(task, node, states.POWER_OFF)
+                manager_utils.node_power_action(task, states.POWER_OFF)
             except Exception:
                 msg = (_('Node %s failed to power off while handling deploy '
                          'failure. This may be a serious condition. Node '

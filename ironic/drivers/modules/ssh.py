@@ -369,19 +369,17 @@ class SSHPower(base.PowerInterface):
             raise exception.InvalidParameterValue(_("Node %s does not have "
                                 "any port associated with it.") % node.uuid)
         try:
-            _get_connection(node)
+            _get_connection(task.node)
         except exception.SSHConnectFailed as e:
             raise exception.InvalidParameterValue(_("SSH connection cannot"
                                                     " be established: %s") % e)
 
-    def get_power_state(self, task, node):
-        """Get the current power state.
+    def get_power_state(self, task):
+        """Get the current power state of the task's node.
 
-        Poll the host for the current power state of the node.
+        Poll the host for the current power state of the task's node.
 
-        :param task: An instance of `ironic.manager.task_manager.TaskManager`.
-        :param node: A single node.
-
+        :param task: a TaskManager instance containing the node to act on.
         :returns: power state. One of :class:`ironic.common.states`.
         :raises: InvalidParameterValue if any connection parameters are
             incorrect.
@@ -389,22 +387,20 @@ class SSHPower(base.PowerInterface):
         :raises: SSHCommandFailed on an error from ssh.
         :raises: SSHConnectFailed if ssh failed to connect to the node.
         """
-        driver_info = _parse_driver_info(node)
+        driver_info = _parse_driver_info(task.node)
         driver_info['macs'] = driver_utils.get_node_mac_addresses(task)
-        ssh_obj = _get_connection(node)
+        ssh_obj = _get_connection(task.node)
         return _get_power_status(ssh_obj, driver_info)
 
     @task_manager.require_exclusive_lock
-    def set_power_state(self, task, node, pstate):
+    def set_power_state(self, task, pstate):
         """Turn the power on or off.
 
-        Set the power state of a node.
+        Set the power state of the task's node.
 
-        :param task: An instance of `ironic.manager.task_manager.TaskManager`.
-        :param node: A single node.
+        :param task: a TaskManager instance containing the node to act on.
         :param pstate: Either POWER_ON or POWER_OFF from :class:
             `ironic.common.states`.
-
         :raises: InvalidParameterValue if any connection parameters are
             incorrect, or if the desired power state is invalid.
         :raises: NodeNotFound.
@@ -412,9 +408,9 @@ class SSHPower(base.PowerInterface):
         :raises: SSHCommandFailed on an error from ssh.
         :raises: SSHConnectFailed if ssh failed to connect to the node.
         """
-        driver_info = _parse_driver_info(node)
+        driver_info = _parse_driver_info(task.node)
         driver_info['macs'] = driver_utils.get_node_mac_addresses(task)
-        ssh_obj = _get_connection(node)
+        ssh_obj = _get_connection(task.node)
 
         if pstate == states.POWER_ON:
             state = _power_on(ssh_obj, driver_info)
@@ -428,14 +424,12 @@ class SSHPower(base.PowerInterface):
             raise exception.PowerStateFailure(pstate=pstate)
 
     @task_manager.require_exclusive_lock
-    def reboot(self, task, node):
-        """Cycles the power to a node.
+    def reboot(self, task):
+        """Cycles the power to the task's node.
 
         Power cycles a node.
 
-        :param task: An instance of `ironic.manager.task_manager.TaskManager`.
-        :param node: A single node.
-
+        :param task: a TaskManager instance containing the node to act on.
         :raises: InvalidParameterValue if any connection parameters are
             incorrect.
         :raises: NodeNotFound.
@@ -443,9 +437,9 @@ class SSHPower(base.PowerInterface):
         :raises: SSHCommandFailed on an error from ssh.
         :raises: SSHConnectFailed if ssh failed to connect to the node.
         """
-        driver_info = _parse_driver_info(node)
+        driver_info = _parse_driver_info(task.node)
         driver_info['macs'] = driver_utils.get_node_mac_addresses(task)
-        ssh_obj = _get_connection(node)
+        ssh_obj = _get_connection(task.node)
         current_pstate = _get_power_status(ssh_obj, driver_info)
         if current_pstate == states.POWER_ON:
             _power_off(ssh_obj, driver_info)
