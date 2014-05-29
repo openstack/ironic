@@ -70,13 +70,17 @@ def logout_iscsi(portal_address, portal_port, target_iqn):
 
 def delete_iscsi(portal_address, portal_port, target_iqn):
     """Delete the iSCSI target."""
+    # Retry delete until it succeeds (exit code 0) or until there is
+    # no longer a target to delete (exit code 21).
     utils.execute('iscsiadm',
                   '-m', 'node',
                   '-p', '%s:%s' % (portal_address, portal_port),
                   '-T', target_iqn,
                   '-o', 'delete',
                   run_as_root=True,
-                  check_exit_code=[0])
+                  check_exit_code=[0, 21],
+                  attempts=5,
+                  delay_on_retry=True)
 
 
 def make_partitions(dev, root_mb, swap_mb, ephemeral_mb):
