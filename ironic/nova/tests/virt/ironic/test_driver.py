@@ -31,6 +31,7 @@ from nova.compute import power_state as nova_states
 from nova import context as nova_context
 from nova import exception
 from nova.objects.flavor import Flavor as flavor_obj
+from nova.objects import instance as instance_obj
 from nova.openstack.common import uuidutils
 from nova import test
 from nova.tests import fake_instance
@@ -273,23 +274,28 @@ class IronicDriverTestCase(test.NoDBTestCase):
         mock_call.assert_called_once_with('node.get_by_instance_uuid',
                                           instance_uuid)
 
-    def test_list_instances(self):
-        num_nodes = 2
+    @mock.patch.object(cw.IronicClientWrapper, 'call')
+    @mock.patch.object(instance_obj.Instance, 'get_by_uuid')
+    def test_list_instances(self, mock_inst_by_uuid, mock_call):
         nodes = []
-        for n in range(num_nodes):
-            nodes.append(ironic_utils.get_test_node(
-                                      instance_uuid=uuidutils.generate_uuid()))
-        # append a node w/o instance_uuid which shouldn't be listed
-        nodes.append(ironic_utils.get_test_node(instance_uuid=None))
+        instances = []
+        for i in range(2):
+            uuid = uuidutils.generate_uuid()
+            instances.append(fake_instance.fake_instance_obj(self.ctx,
+                                                             id=i,
+                                                             uuid=uuid))
+            nodes.append(ironic_utils.get_test_node(instance_uuid=uuid))
 
-        with mock.patch.object(cw.IronicClientWrapper, 'call') as mock_list:
-            mock_list.return_value = nodes
+        mock_inst_by_uuid.side_effect = instances
+        mock_call.return_value = nodes
 
-            expected = [n for n in nodes if n.instance_uuid]
-            instances = self.driver.list_instances()
-            mock_list.assert_called_with("node.list")
-            self.assertEqual(sorted(expected), sorted(instances))
-            self.assertEqual(num_nodes, len(instances))
+        response = self.driver.list_instances()
+        mock_call.assert_called_with("node.list", associated=True)
+        expected_calls = [mock.call(mock.ANY, instances[0].uuid),
+                          mock.call(mock.ANY, instances[1].uuid)]
+        mock_inst_by_uuid.assert_has_calls(expected_calls)
+        self.assertEqual(['instance-00000000', 'instance-00000001'],
+                          sorted(response))
 
     def test_list_instance_uuids(self):
         num_nodes = 2

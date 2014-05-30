@@ -27,10 +27,12 @@ from oslo.config import cfg
 from ironic.nova.virt.ironic import client_wrapper
 from ironic.nova.virt.ironic import ironic_states
 from ironic.nova.virt.ironic import patcher
+from nova import context as nova_context
 from nova.compute import power_state
 from nova.compute import task_states
 from nova import exception
 from nova.objects import flavor as flavor_obj
+from nova.objects import instance as instance_obj
 from nova.openstack.common import excutils
 from nova.openstack.common.gettextutils import _
 from nova.openstack.common import jsonutils
@@ -319,11 +321,13 @@ class IronicDriver(virt_driver.ComputeDriver):
             return False
 
     def list_instances(self):
-        # NOTE(adam_g): This is currently returning nodes, not instance names.
+        """Return the names of all the instances provisioned."""
         icli = client_wrapper.IronicClientWrapper()
-        node_list = icli.call("node.list")
-        instances = [i for i in node_list if i.instance_uuid]
-        return instances
+        node_list = icli.call("node.list", associated=True)
+        context = nova_context.get_admin_context()
+        return [instance_obj.Instance.get_by_uuid(context,
+                                                  i.instance_uuid).name
+                for i in node_list]
 
     def list_instance_uuids(self):
         return [i.instance_uuid for i in self.list_instances()]
