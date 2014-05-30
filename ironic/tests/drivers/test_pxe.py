@@ -571,7 +571,10 @@ class PXEDriverTestCase(db_base.DbTestCase):
         open(token_path, 'w').close()
         return token_path
 
-    def test_validate_good(self):
+    @mock.patch.object(base_image_service.BaseImageService, '_show')
+    def test_validate_good(self, mock_glance):
+        mock_glance.return_value = {'properties': {'kernel_id': 'fake-kernel',
+                                                   'ramdisk_id': 'fake-initr'}}
         with task_manager.acquire(self.context, [self.node.uuid],
                                   shared=True) as task:
             task.resources[0].driver.deploy.validate(task, self.node)
@@ -598,8 +601,12 @@ class PXEDriverTestCase(db_base.DbTestCase):
                               task.resources[0].driver.deploy.validate,
                               task, new_node)
 
+    @mock.patch.object(base_image_service.BaseImageService, '_show')
     @mock.patch.object(keystone, 'get_service_url')
-    def test_validate_good_api_url_from_config_file(self, mock_ks):
+    def test_validate_good_api_url_from_config_file(self, mock_ks,
+                                                    mock_glance):
+        mock_glance.return_value = {'properties': {'kernel_id': 'fake-kernel',
+                                                   'ramdisk_id': 'fake-initr'}}
         # not present in the keystone catalog
         mock_ks.side_effect = exception.CatalogFailure
 
@@ -608,8 +615,11 @@ class PXEDriverTestCase(db_base.DbTestCase):
             task.resources[0].driver.deploy.validate(task, self.node)
             self.assertFalse(mock_ks.called)
 
+    @mock.patch.object(base_image_service.BaseImageService, '_show')
     @mock.patch.object(keystone, 'get_service_url')
-    def test_validate_good_api_url_from_keystone(self, mock_ks):
+    def test_validate_good_api_url_from_keystone(self, mock_ks, mock_glance):
+        mock_glance.return_value = {'properties': {'kernel_id': 'fake-kernel',
+                                                   'ramdisk_id': 'fake-initr'}}
         # present in the keystone catalog
         mock_ks.return_value = 'http://127.0.0.1:1234'
         # not present in the config file
@@ -633,6 +643,37 @@ class PXEDriverTestCase(db_base.DbTestCase):
                               task.resources[0].driver.deploy.validate,
                               task, self.node)
             mock_ks.assert_called_once_with()
+
+    @mock.patch.object(base_image_service.BaseImageService, '_show')
+    def test_validate_fail_no_image_kernel_ramdisk_props(self, mock_glance):
+        mock_glance.return_value = {'properties': {}}
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            self.assertRaises(exception.InvalidParameterValue,
+                              task.driver.deploy.validate,
+                              task, self.node)
+
+    @mock.patch.object(base_image_service.BaseImageService, '_show')
+    def test_validate_fail_glance_image_doesnt_exists(self, mock_glance):
+        mock_glance.side_effect = exception.ImageNotFound('not found')
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            self.assertRaises(exception.InvalidParameterValue,
+                              task.driver.deploy.validate,
+                              task, self.node)
+
+    @mock.patch.object(base_image_service.BaseImageService, '_show')
+    def test_validate_fail_glance_conn_problem(self, mock_glance):
+        exceptions = (exception.GlanceConnectionFailed('connection fail'),
+                      exception.ImageNotAuthorized('not authorized'),
+                      exception.Invalid('invalid'))
+        mock_glance.side_effect = exceptions
+        for exc in exceptions:
+            with task_manager.acquire(self.context, self.node.uuid,
+                                      shared=True) as task:
+                self.assertRaises(exception.InvalidParameterValue,
+                                  task.driver.deploy.validate,
+                                  task, self.node)
 
     def test_vendor_passthru_validate_good(self):
         with task_manager.acquire(self.context, [self.node.uuid],
