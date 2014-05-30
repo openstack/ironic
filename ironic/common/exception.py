@@ -377,3 +377,7 @@ class ConsoleSubprocessFailed(IronicException):
 
 class PasswordFileFailedToCreate(IronicException):
     message = _("Failed to create the password file. %(error)s")
+
+
+class IloOperationError(IronicException):
+    message = _("%(operation)s failed, error: %(error)s")

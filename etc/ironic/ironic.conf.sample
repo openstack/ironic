@@ -715,6 +715,32 @@
 #auth_strategy=keystone
 
 
+[ilo]
+
+#
+# Options defined in ironic.drivers.modules.ilo.common
+#
+
+# Timeout (in seconds) for iLO operations (integer value)
+#client_timeout=60
+
+# Port to be used for iLO operations (integer value)
+#client_port=443
+
+
+#
+# Options defined in ironic.drivers.modules.ilo.power
+#
+
+# Number of times a power operation needs to be retried
+# (integer value)
+#power_retry=6
+
+# Amount of time in seconds to wait in between power
+# operations (integer value)
+#power_wait=2
+
+
 [ipmi]
 
 #
