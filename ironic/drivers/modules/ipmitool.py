@@ -18,7 +18,15 @@
 #    under the License.
 
 """
-Ironic IPMI power manager.
+IPMI power manager driver.
+
+Uses the 'ipmitool' command (http://ipmitool.sourceforge.net/) to remotely
+manage hardware.  This includes setting the boot device, getting a
+serial-over-LAN console, and controlling the power state of the machine.
+
+NOTE THAT CERTAIN DISTROS MAY INSTALL openipmi BY DEFAULT, INSTEAD OF ipmitool,
+WHICH PROVIDES DIFFERENT COMMAND-LINE OPTIONS AND *IS NOT SUPPORTED* BY THIS
+DRIVER.
 """
 
 import contextlib
@@ -37,13 +45,63 @@ from ironic.drivers.modules import console_utils
 from ironic.openstack.common import excutils
 from ironic.openstack.common import log as logging
 from ironic.openstack.common import loopingcall
+from ironic.openstack.common import processutils
+
 
 CONF = cfg.CONF
+CONF.import_opt('retry_timeout',
+                'ironic.drivers.modules.ipminative',
+                group='ipmi')
+CONF.import_opt('min_command_interval',
+                'ironic.drivers.modules.ipminative',
+                group='ipmi')
 
 LOG = logging.getLogger(__name__)
 
 VALID_BOOT_DEVICES = ['pxe', 'disk', 'safe', 'cdrom', 'bios']
 VALID_PRIV_LEVELS = ['ADMINISTRATOR', 'CALLBACK', 'OPERATOR', 'USER']
+
+TIMING_SUPPORT = None
+
+
+def _is_timing_supported(is_supported=None):
+    # shim to allow module variable to be mocked in unit tests
+    global TIMING_SUPPORT
+
+    if (TIMING_SUPPORT is None) and (is_supported is not None):
+        TIMING_SUPPORT = is_supported
+    return TIMING_SUPPORT
+
+
+def check_timing_support():
+    """Check the installed version of ipmitool for -N -R option support.
+
+    Support was added in 1.8.12 for the -N -R options, which enable
+    more precise control over timing of ipmi packets. Prior to this,
+    the default behavior was to retry each command up to 18 times at
+    1 to 5 second intervals.
+    http://ipmitool.cvs.sourceforge.net/viewvc/ipmitool/ipmitool/ChangeLog?revision=1.37  # noqa
+
+    This method updates the module-level TIMING_SUPPORT variable so that
+    it is accessible by any driver interface class in this module. It is
+    intended to be called from the __init__ method of such classes only.
+
+    :returns: boolean indicating whether support for -N -R is present
+    :raises: OSError
+    """
+    if _is_timing_supported() is None:
+        # Directly check ipmitool for support of -N and -R options. Because
+        # of the way ipmitool processes' command line options, if the local
+        # ipmitool does not support setting the timing options, the command
+        # below will fail.
+        try:
+            out, err = utils.execute(*['ipmitool', '-N', '0', '-R', '0', '-h'])
+        except processutils.ProcessExecutionError:
+            # the local ipmitool does not support the -N and -R options.
+            _is_timing_supported(False)
+        else:
+            # looks like ipmitool supports timing options.
+            _is_timing_supported(True)
 
 
 def _console_pwfile_path(uuid):
@@ -140,6 +198,16 @@ def _exec_ipmitool(driver_info, command):
         args.append('-U')
         args.append(driver_info['username'])
 
+    # specify retry timing more precisely, if supported
+    if _is_timing_supported():
+        num_tries = max(
+            (CONF.ipmi.retry_timeout // CONF.ipmi.min_command_interval), 1)
+        args.append('-R')
+        args.append(str(num_tries))
+
+        args.append('-N')
+        args.append(str(CONF.ipmi.min_command_interval))
+
     # 'ipmitool' command will prompt password if there is no '-f' option,
     # we set it to '\0' to write a password file to support empty password
 
@@ -147,10 +215,9 @@ def _exec_ipmitool(driver_info, command):
         args.append('-f')
         args.append(pw_file)
         args.extend(command.split(" "))
-        out, err = utils.execute(*args, attempts=3)
-        LOG.debug("ipmitool stdout: '%(out)s', stderr: '%(err)s', from node "
-                  "%(node_id)s",
-                  {'out': out, 'err': err, 'node_id': driver_info['uuid']})
+        out, err = utils.execute(*args)
+        LOG.debug("ipmitool stdout: '%(out)s', stderr: '%(err)s'",
+                  {'out': out, 'err': err})
         return out, err
 
 
@@ -278,6 +345,14 @@ def _power_status(driver_info):
 
 class IPMIPower(base.PowerInterface):
 
+    def __init__(self):
+        try:
+            check_timing_support()
+        except OSError:
+            # TODO(deva): raise a DriverLoadError if ipmitool
+            #             is not present on the system.
+            pass
+
     def validate(self, task, node):
         """Validate driver_info for ipmitool driver.
 
@@ -403,6 +478,14 @@ class VendorPassthru(base.VendorInterface):
 
 class IPMIShellinaboxConsole(base.ConsoleInterface):
     """A ConsoleInterface that uses ipmitool and shellinabox."""
+
+    def __init__(self):
+        try:
+            check_timing_support()
+        except OSError:
+            # TODO(deva): raise DriverLoadError if ipmitool
+            # is not present on the system.
+            pass
 
     def validate(self, task, node):
         """Validate the Node console info.
