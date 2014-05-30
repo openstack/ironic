@@ -46,50 +46,7 @@ IRONIC_FLAGS = dict(
     group='ironic',
 )
 
-
-class FakePortClient(object):
-
-    def get(self, port_uuid):
-        pass
-
-    def update(self, port_uuid, patch):
-        pass
-
-
-class FakeNodeClient(object):
-
-    def list(self):
-        return []
-
-    def get(self, node_uuid):
-        pass
-
-    def get_by_instance_uuid(self, instance_uuid):
-        pass
-
-    def list_ports(self, node_uuid):
-        pass
-
-    def set_power_state(self, node_uuid, target):
-        pass
-
-    def set_provision_state(self, node_uuid, target):
-        pass
-
-    def update(self, node_uuid, patch):
-        pass
-
-    def validate(self, node_uuid):
-        pass
-
-
-class FakeClient(object):
-
-    node = FakeNodeClient()
-    port = FakePortClient()
-
-
-FAKE_CLIENT = FakeClient()
+FAKE_CLIENT = ironic_utils.FakeClient()
 
 
 class IronicDriverTestCase(test.NoDBTestCase):

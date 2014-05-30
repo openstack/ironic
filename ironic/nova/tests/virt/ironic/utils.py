@@ -70,3 +70,45 @@ def get_test_flavor(**kw):
 
 def get_test_image_meta(**kw):
     return {'id': kw.get('id','cccccccc-cccc-cccc-cccc-cccccccccccc')}
+
+
+class FakePortClient(object):
+
+    def get(self, port_uuid):
+        pass
+
+    def update(self, port_uuid, patch):
+        pass
+
+
+class FakeNodeClient(object):
+
+    def list(self):
+        return []
+
+    def get(self, node_uuid):
+        pass
+
+    def get_by_instance_uuid(self, instance_uuid):
+        pass
+
+    def list_ports(self, node_uuid):
+        pass
+
+    def set_power_state(self, node_uuid, target):
+        pass
+
+    def set_provision_state(self, node_uuid, target):
+        pass
+
+    def update(self, node_uuid, patch):
+        pass
+
+    def validate(self, node_uuid):
+        pass
+
+
+class FakeClient(object):
+
+    node = FakeNodeClient()
+    port = FakePortClient()
