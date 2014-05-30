@@ -33,10 +33,16 @@ each interface is an instance of the relevant driver module.
 For example, a fake driver class might look like this::
 
     class FakePower(base.PowerInterface):
-        def get_power_state(self, task, node):
+        def validate(self, task):
+            pass
+
+        def get_power_state(self, task):
             return states.NOSTATE
 
-        def set_power_state(self, task, node, power_state):
+        def set_power_state(self, task, power_state):
+            pass
+
+        def reboot(self, task):
             pass
 
     class FakeDriver(base.BaseDriver):
