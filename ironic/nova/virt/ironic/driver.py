@@ -20,6 +20,7 @@
 A driver wrapping the Ironic API, such that Nova may provision
 bare metal resources.
 """
+import logging as py_logging
 
 from ironicclient import exc as ironic_exception
 from oslo.config import cfg
@@ -57,6 +58,10 @@ opts = [
                help='Ironic keystone auth token.'),
     cfg.StrOpt('admin_url',
                help='Keystone public API endpoint.'),
+    cfg.StrOpt('client_log_level',
+               help='Log level override for ironicclient. Set this in '
+                    'order to override the global "default_log_levels", '
+                    '"verbose", and "debug" settings.'),
     cfg.StrOpt('pxe_bootfile_name',
                help='This gets passed to Neutron as the bootfile dhcp '
                'parameter when the dhcp_options_enabled is set.',
@@ -175,6 +180,12 @@ class IronicDriver(virt_driver.ComputeDriver):
             extra_specs[keyval[0]] = keyval[1]
 
         self.extra_specs = extra_specs
+
+        icli_log_level = CONF.ironic.client_log_level
+        if icli_log_level:
+            level = py_logging.getLevelName(icli_log_level)
+            logger = py_logging.getLogger('ironicclient')
+            logger.setLevel(level)
 
     def _node_resources_unavailable(self, node_obj):
         """Determines whether the node's resources should be presented
