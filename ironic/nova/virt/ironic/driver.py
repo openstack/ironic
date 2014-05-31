@@ -138,6 +138,21 @@ def _get_nodes_supported_instances(cpu_arch=''):
     return [(cpu_arch, 'baremetal', 'baremetal')]
 
 
+def _log_ironic_polling(what, node, instance):
+    prov_state = (None if node.provision_state is None else
+                  '"%s"' % node.provision_state)
+    tgt_prov_state = (None if node.target_provision_state is None else
+                      '"%s"' % node.target_provision_state)
+    LOG.debug('Still waiting for ironic node %(node)s to %(what)s: '
+              'provision_state=%(prov_state)s, '
+              'target_provision_state=%(tgt_prov_state)s',
+              dict(what=what,
+                   node=node.uuid,
+                   prov_state=prov_state,
+                   tgt_prov_state=tgt_prov_state),
+              instance=instance)
+
+
 class IronicDriver(virt_driver.ComputeDriver):
     """Hypervisor driver for Ironic - bare metal provisioning."""
 
@@ -268,6 +283,8 @@ class IronicDriver(virt_driver.ComputeDriver):
         node = validate_instance_and_node(icli, instance)
         if node.provision_state == ironic_states.ACTIVE:
             # job is done
+            LOG.debug("Ironic node %(node)s is now ACTIVE",
+                      dict(node=node.uuid), instance=instance)
             raise loopingcall.LoopingCallDone()
 
         if node.target_provision_state == ironic_states.DELETED:
@@ -283,6 +300,8 @@ class IronicDriver(virt_driver.ComputeDriver):
             msg = (_("Failed to provision instance %(inst)s: %(reason)s")
                    % {'inst': instance['uuid'], 'reason': node.last_error})
             raise exception.InstanceDeployFailure(msg)
+
+        _log_ironic_polling('become ACTIVE', node, instance)
 
     @classmethod
     def instance(cls):
@@ -343,7 +362,8 @@ class IronicDriver(virt_driver.ComputeDriver):
         icli = client_wrapper.IronicClientWrapper()
         node_list = icli.call("node.list")
         nodes = [n.uuid for n in node_list]
-        LOG.debug("Returning Nodes: %s" % nodes)
+        LOG.debug("Returning %(num_nodes)s available node(s): %(nodes)s",
+                  dict(num_nodes=len(nodes), nodes=nodes))
         return nodes
 
     def get_available_resource(self, node):
@@ -475,6 +495,8 @@ class IronicDriver(virt_driver.ComputeDriver):
         def _wait_for_provision_state():
             node = validate_instance_and_node(icli, instance)
             if not node.provision_state:
+                LOG.debug("Ironic node %(node)s is now unprovisioned",
+                          dict(node=node.uuid), instance=instance)
                 raise loopingcall.LoopingCallDone()
 
             if data['tries'] >= CONF.ironic.api_max_retries:
@@ -486,6 +508,8 @@ class IronicDriver(virt_driver.ComputeDriver):
                 raise exception.NovaException(msg)
             else:
                 data['tries'] += 1
+
+            _log_ironic_polling('unprovision', node, instance)
 
         # wait for the state transition to finish
         timer = loopingcall.FixedIntervalLoopingCall(_wait_for_provision_state)
