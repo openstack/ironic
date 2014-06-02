@@ -86,6 +86,7 @@ class FakeIPMINativeDriver(base.BaseDriver):
 
     def __init__(self):
         self.power = ipminative.NativeIPMIPower()
+        self.console = ipminative.NativeIPMIShellinaboxConsole()
         self.deploy = fake.FakeDeploy()
         self.management = ipminative.NativeIPMIManagement()
 
