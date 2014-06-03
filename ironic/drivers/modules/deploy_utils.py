@@ -79,7 +79,7 @@ def delete_iscsi(portal_address, portal_port, target_iqn):
                   check_exit_code=[0])
 
 
-def make_partitions(dev, root_mb, swap_mb, ephemeral_mb):
+def make_partitions(dev, root_mb, swap_mb, ephemeral_mb, commit=True):
     """Create partitions for root, swap and ephemeral on a disk device.
 
     :param root_mb: Size of the root partition in mebibytes (MiB).
@@ -87,8 +87,10 @@ def make_partitions(dev, root_mb, swap_mb, ephemeral_mb):
         no swap partition will be created.
     :param ephemeral_mb: Size of the ephemeral partition in mebibytes (MiB).
         If 0, no ephemeral partition will be created.
+    :param commit: True/False. Default for this setting is True. If False
+        partitions will not be written to disk.
     :returns: A dictionary containing the partition type as Key and partition
-              path as Value for the partitions created by this method.
+        path as Value for the partitions created by this method.
 
     """
     part_template = dev + '-part%d'
@@ -108,8 +110,9 @@ def make_partitions(dev, root_mb, swap_mb, ephemeral_mb):
     part_num = dp.add_partition(root_mb)
     part_dict['root'] = part_template % part_num
 
-    # write to the disk
-    dp.commit()
+    if commit:
+        # write to the disk
+        dp.commit()
     return part_dict
 
 
@@ -208,7 +211,12 @@ def work_on_disk(dev, root_mb, swap_mb, ephemeral_mb, ephemeral_format,
         raise exception.InstanceDeployFailure(_("Parent device '%s' not found")
                                               % dev)
 
-    part_dict = make_partitions(dev, root_mb, swap_mb, ephemeral_mb)
+    # the only way for preserve_ephemeral to be set to true is if we are
+    # rebuilding an instance with --preserve_ephemeral.
+    commit = not preserve_ephemeral
+    part_dict = make_partitions(dev, root_mb, swap_mb, ephemeral_mb,
+                                commit=commit)
+
     ephemeral_part = part_dict.get('ephemeral')
     swap_part = part_dict.get('swap')
     root_part = part_dict.get('root')
