@@ -366,18 +366,34 @@ class SeaMicroPowerDriverTestCase(db_base.DbTestCase):
 
             mock_power_off.assert_called_once_with(task.node)
 
-    def test_vendor_passthru_validate_good(self):
+    @mock.patch.object(seamicro, '_parse_driver_info')
+    def test_vendor_passthru_validate_good(self, mock_info):
         with task_manager.acquire(self.context, self.node['uuid'],
                                   shared=True) as task:
             for method in seamicro.VENDOR_PASSTHRU_METHODS:
                 task.driver.vendor.validate(task, **{'method': method})
+            self.assertEqual(len(seamicro.VENDOR_PASSTHRU_METHODS),
+                             mock_info.call_count)
 
-    def test_vendor_passthru_validate_fail(self):
+    @mock.patch.object(seamicro, '_parse_driver_info')
+    def test_vendor_passthru_validate_fail(self, mock_info):
         with task_manager.acquire(self.context, self.node['uuid'],
                                   shared=True) as task:
             self.assertRaises(exception.InvalidParameterValue,
                               task.driver.vendor.validate,
                               task, **{'method': 'invalid_method'})
+            self.assertFalse(mock_info.called)
+
+    @mock.patch.object(seamicro, '_parse_driver_info')
+    def test_vendor_passthru_validate_parse_driver_info_fail(self, mock_info):
+        mock_info.side_effect = exception.InvalidParameterValue("bad")
+        with task_manager.acquire(self.context, self.node['uuid'],
+                                  shared=True) as task:
+            method = seamicro.VENDOR_PASSTHRU_METHODS[0]
+            self.assertRaises(exception.InvalidParameterValue,
+                              task.driver.vendor.validate,
+                              task, **{'method': method})
+            mock_info.assert_called_once_with(task.node)
 
     @mock.patch.object(seamicro, '_get_server')
     def test_set_node_vlan_id_good(self, mock_get_server):

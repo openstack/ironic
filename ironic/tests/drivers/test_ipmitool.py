@@ -455,30 +455,48 @@ class IPMIToolDriverTestCase(db_base.DbTestCase):
 
         self.assertEqual(manager.mock_calls, expected)
 
-    def test_vendor_passthru_validate__set_boot_device_good(self):
+    @mock.patch.object(ipmi, '_parse_driver_info')
+    def test_vendor_passthru_validate__set_boot_device_good(self, info_mock):
         with task_manager.acquire(self.context, self.node['uuid']) as task:
             self.driver.vendor.validate(task,
                                         method='set_boot_device',
                                         device='pxe')
+            info_mock.assert_called_once_with(task.node)
 
-    def test_vendor_passthru_validate__set_boot_device_fail(self):
+    @mock.patch.object(ipmi, '_parse_driver_info')
+    def test_vendor_passthru_validate__set_boot_device_fail(self, info_mock):
         with task_manager.acquire(self.context, self.node['uuid']) as task:
             self.assertRaises(exception.InvalidParameterValue,
                               self.driver.vendor.validate,
                               task, method='set_boot_device',
                               device='fake')
+            self.assertFalse(info_mock.called)
 
-    def test_vendor_passthru_validate__set_boot_device_fail_no_device(self):
+    @mock.patch.object(ipmi, '_parse_driver_info')
+    def test_vendor_passthru_validate__set_boot_device_fail_no_device(
+                self, info_mock):
         with task_manager.acquire(self.context, self.node['uuid']) as task:
             self.assertRaises(exception.InvalidParameterValue,
                               self.driver.vendor.validate,
                               task, method='set_boot_device')
+            self.assertFalse(info_mock.called)
 
-    def test_vendor_passthru_validate_method_notmatch(self):
+    @mock.patch.object(ipmi, '_parse_driver_info')
+    def test_vendor_passthru_validate_method_notmatch(self, info_mock):
         with task_manager.acquire(self.context, self.node['uuid']) as task:
             self.assertRaises(exception.InvalidParameterValue,
                               self.driver.vendor.validate,
                               task, method='fake_method')
+            self.assertFalse(info_mock.called)
+
+    @mock.patch.object(ipmi, '_parse_driver_info')
+    def test_vendor_passthru_validate__parse_driver_info_fail(self, info_mock):
+        info_mock.side_effect = exception.InvalidParameterValue("bad")
+        with task_manager.acquire(self.context, self.node['uuid']) as task:
+            self.assertRaises(exception.InvalidParameterValue,
+                              self.driver.vendor.validate,
+                              task, method='set_boot_device', device='pxe')
+            info_mock.assert_called_once_with(task.node)
 
     @mock.patch.object(ipmi.VendorPassthru, '_set_boot_device')
     def test_vendor_passthru_call_set_boot_device(self, boot_mock):
