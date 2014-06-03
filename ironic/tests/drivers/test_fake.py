@@ -45,7 +45,7 @@ class FakeDriverTestCase(base.TestCase):
         self.task.driver = self.driver
 
     def test_driver_interfaces(self):
-        # fake driver implements only 3 out of 5 interfaces
+        # fake driver implements only 5 out of 6 interfaces
         self.assertIsInstance(self.driver.power, driver_base.PowerInterface)
         self.assertIsInstance(self.driver.deploy, driver_base.DeployInterface)
         self.assertIsInstance(self.driver.vendor, driver_base.VendorInterface)
@@ -72,6 +72,12 @@ class FakeDriverTestCase(base.TestCase):
 
         self.driver.deploy.clean_up(None)
         self.driver.deploy.tear_down(None)
+
+    def test_console_interface(self):
+        self.driver.console.validate(self.task)
+        self.driver.console.start_console(self.task)
+        self.driver.console.stop_console(self.task)
+        self.driver.console.get_console(self.task)
 
     def test_management_interface_validate(self):
         self.driver.management.validate(self.task)
