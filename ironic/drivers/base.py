@@ -102,7 +102,8 @@ class DeployInterface(object):
 
         This method validates whether the 'driver_info' property of the
         task's node contains the required information for this driver to
-        deploy images to the node.
+        deploy images to the node. If invalid, raises an exception; otherwise
+        returns None.
 
         :param task: a TaskManager instance containing the node to act on.
         :param node: a single Node to validate.
@@ -201,7 +202,8 @@ class PowerInterface(object):
 
         This method validates whether the 'driver_info' property of the
         supplied node contains the required information for this driver to
-        manage the power state of the node.
+        manage the power state of the node. If invalid, raises an exception;
+        otherwise, returns None.
 
         :param task: a TaskManager instance containing the node to act on.
         :param node: a single Node to validate.
@@ -245,7 +247,8 @@ class ConsoleInterface(object):
 
         This method validates whether the 'driver_info' property of the
         supplied node contains the required information for this driver to
-        provide console access to the Node.
+        provide console access to the Node. If invalid, raises an exception;
+        otherwise returns None.
 
         :param task: a TaskManager instance containing the node to act on.
         :param node: a single Node to validate.
@@ -289,6 +292,8 @@ class RescueInterface(object):
     def validate(self, task, node):
         """Validate the rescue info stored in the node' properties.
 
+        If invalid, raises an exception; otherwise returns None.
+
         :param task: a TaskManager instance containing the node to act on.
         :param node: a single Node to validate.
         :raises: InvalidParameterValue
@@ -324,6 +329,8 @@ class VendorInterface(object):
     @abc.abstractmethod
     def validate(self, task, **kwargs):
         """Validate vendor-specific actions.
+
+        If invalid, raises an exception; otherwise returns None.
 
         :param task: a task from TaskManager.
         :param kwargs: info for action.
@@ -373,6 +380,8 @@ class ManagementInterface(object):
     @abc.abstractmethod
     def validate(self, task, node):
         """Validate the driver-specific management information.
+
+        If invalid, raises an exception; otherwise returns None.
 
         :param task: a task from TaskManager.
         :param node: a single Node to validate.
