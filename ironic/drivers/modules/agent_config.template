@@ -2,4 +2,4 @@ default deploy
 
 label deploy
 kernel {{ pxe_options.deployment_aki_path }}
-append initrd={{ pxe_options.deployment_ari_path }} {{ pxe_options.pxe_append_params }} {% if pxe_options.ipa_api_url %}ipa-api-url={{ pxe_options.ipa_api_url }}{% endif %} {% if pxe_options.ipa_advertise_host %}ipa-advertise-host={{ pxe_options.ipa_advertise_host }}{% endif %}
+append initrd={{ pxe_options.deployment_ari_path }} text {{ pxe_options.pxe_append_params }} {% if pxe_options.ipa_api_url %}ipa-api-url={{ pxe_options.ipa_api_url }}{% endif %} {% if pxe_options.ipa_advertise_host %}ipa-advertise-host={{ pxe_options.ipa_advertise_host }}{% endif %}

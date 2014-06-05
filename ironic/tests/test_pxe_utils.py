@@ -61,9 +61,9 @@ class TestPXEUtils(db_base.DbTestCase):
                 self.pxe_options, CONF.pxe.pxe_config_template)
 
         expected_template = open(
-            'ironic/tests/drivers/pxe_config.template').read()
+            'ironic/tests/drivers/pxe_config.template').read().rstrip()
 
-        self.assertEqual(rendered_template, expected_template)
+        self.assertEqual(rendered_template, unicode(expected_template))
 
     @mock.patch('ironic.common.utils.create_link_without_raise')
     @mock.patch('ironic.common.utils.unlink_without_raise')
