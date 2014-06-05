@@ -30,6 +30,7 @@ import uuid
 
 import netaddr
 from oslo.config import cfg
+from oslo.utils import excutils
 import paramiko
 import six
 
@@ -436,7 +437,21 @@ def mkfs(fs, path, label=None):
             label_opt = '-L'
         args.extend([label_opt, label])
     args.append(path)
-    execute(*args, run_as_root=True)
+    try:
+        env = os.environ.copy()
+        env['LC_ALL'] = 'C'
+        execute(*args, run_as_root=True, env_variables=env)
+    except processutils.ProcessExecutionError as e:
+        with excutils.save_and_reraise_exception() as ctx:
+            if os.strerror(errno.ENOENT) in e.stderr:
+                ctx.reraise = False
+                LOG.exception(_LE('Failed to make file system. '
+                                  'File system %s is not supported.'), fs)
+                raise exception.FileSystemNotSupported(fs=fs)
+            else:
+                LOG.exception(_LE('Failed to create a file system '
+                                  'in %(path)s. Error: %(error)s'),
+                              {'path': path, 'error': e})
 
 
 def unlink_without_raise(path):
