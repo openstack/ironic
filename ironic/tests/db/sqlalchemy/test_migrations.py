@@ -50,6 +50,7 @@ import six.moves.urllib.parse as urlparse
 import sqlalchemy
 import sqlalchemy.exc
 
+from ironic.common import utils
 from ironic.db.sqlalchemy import migration
 from ironic.openstack.common.db.sqlalchemy import utils as db_utils
 from ironic.openstack.common import lockutils
@@ -521,3 +522,14 @@ class TestMigrations(BaseMigrationTestCase, WalkVersionsMixin):
         self.assertIn('instance_info', col_names)
         self.assertIsInstance(nodes.c.instance_info.type,
                               sqlalchemy.types.TEXT)
+
+    def _check_3bea56f25597(self, engine, data):
+        nodes = db_utils.get_table(engine, 'nodes')
+        instance_uuid = 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee'
+        data = {'driver': 'fake',
+                'uuid': utils.generate_uuid(),
+                'instance_uuid': instance_uuid}
+        nodes.insert().values(data).execute()
+        data['uuid'] = utils.generate_uuid()
+        self.assertRaises(sqlalchemy.exc.IntegrityError,
+                          nodes.insert().execute, data)

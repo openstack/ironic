@@ -24,7 +24,7 @@ from oslo.config import cfg
 import six.moves.urllib.parse as urlparse
 
 from sqlalchemy import Boolean, Column, DateTime
-from sqlalchemy import ForeignKey, Integer, Index
+from sqlalchemy import ForeignKey, Integer
 from sqlalchemy import schema, String, Text
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.types import TypeDecorator, TEXT
@@ -135,7 +135,8 @@ class Node(Base):
     __tablename__ = 'nodes'
     __table_args__ = (
         schema.UniqueConstraint('uuid', name='uniq_nodes0uuid'),
-        Index('node_instance_uuid', 'instance_uuid'))
+        schema.UniqueConstraint('instance_uuid',
+                                name='uniq_nodes0instance_uuid'))
     id = Column(Integer, primary_key=True)
     uuid = Column(String(36))
     # NOTE(deva): we store instance_uuid directly on the node so that we can
