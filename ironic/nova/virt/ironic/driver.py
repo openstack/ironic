@@ -464,6 +464,9 @@ class IronicDriver(virt_driver.ComputeDriver):
             else:
                 raise
 
+        # using a dict because this is modified in the local method
+        data = {'tries': 0}
+
         def _wait_for_provision_state():
             try:
                 node = icli.call("node.get_by_instance_uuid", instance['uuid'])
@@ -473,7 +476,7 @@ class IronicDriver(virt_driver.ComputeDriver):
             if not node.provision_state:
                 raise loopingcall.LoopingCallDone()
 
-            if self.tries >= CONF.ironic.api_max_retries:
+            if data['tries'] >= CONF.ironic.api_max_retries:
                 msg = (_("Error destroying the instance on node %(node)s. "
                          "Provision state still '%(state)s'.")
                        % {'state': node.provision_state,
@@ -481,10 +484,9 @@ class IronicDriver(virt_driver.ComputeDriver):
                 LOG.error(msg)
                 raise exception.NovaException(msg)
             else:
-                self.tries += 1
+                data['tries'] += 1
 
         # wait for the state transition to finish
-        self.tries = 0
         timer = loopingcall.FixedIntervalLoopingCall(_wait_for_provision_state)
         timer.start(interval=CONF.ironic.api_retry_interval).wait()
 
