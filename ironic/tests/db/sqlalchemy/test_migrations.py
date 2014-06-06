@@ -50,7 +50,6 @@ import six.moves.urllib.parse as urlparse
 import sqlalchemy
 import sqlalchemy.exc
 
-from ironic.db.sqlalchemy import api as sqla_api
 from ironic.db.sqlalchemy import migration
 from ironic.openstack.common.db.sqlalchemy import utils as db_utils
 from ironic.openstack.common import lockutils
@@ -165,7 +164,7 @@ class BaseMigrationTestCase(base.TestCase):
 
         self.engines = {}
         for key, value in self.test_databases.items():
-            self.engines[key] = sqla_api.create_engine(value)
+            self.engines[key] = sqlalchemy.create_engine(value)
 
         # We start each test case with a completely blank slate.
         self.temp_dir = self.useFixture(fixtures.TempDir())
