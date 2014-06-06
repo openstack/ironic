@@ -41,7 +41,9 @@ def discovery(portal_address, portal_port):
                   '-t', 'st',
                   '-p', '%s:%s' % (portal_address, portal_port),
                   run_as_root=True,
-                  check_exit_code=[0])
+                  check_exit_code=[0],
+                  attempts=5,
+                  delay_on_retry=True)
 
 
 def login_iscsi(portal_address, portal_port, target_iqn):
@@ -52,7 +54,9 @@ def login_iscsi(portal_address, portal_port, target_iqn):
                   '-T', target_iqn,
                   '--login',
                   run_as_root=True,
-                  check_exit_code=[0])
+                  check_exit_code=[0],
+                  attempts=5,
+                  delay_on_retry=True)
     # Ensure the login complete
     time.sleep(3)
 
@@ -65,7 +69,9 @@ def logout_iscsi(portal_address, portal_port, target_iqn):
                   '-T', target_iqn,
                   '--logout',
                   run_as_root=True,
-                  check_exit_code=[0])
+                  check_exit_code=[0],
+                  attempts=5,
+                  delay_on_retry=True)
 
 
 def delete_iscsi(portal_address, portal_port, target_iqn):
