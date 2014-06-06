@@ -159,7 +159,7 @@ def _build_pxe_config(node, pxe_info, ctx):
     :param pxe_options: A dict of values to set on the configuarion file
     :returns: A formated string with the file content.
     """
-    LOG.debug("Building PXE config for deployment %s." % node['id'])
+    LOG.debug("Building PXE config for deployment %s." % node.uuid)
 
     # NOTE: we should strip '/' from the end because this is intended for
     # hardcoded ramdisk script
