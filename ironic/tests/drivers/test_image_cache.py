@@ -21,7 +21,9 @@ import os
 import tempfile
 import time
 
+from ironic.common import exception
 from ironic.common import images
+from ironic.common import utils
 from ironic.drivers.modules import image_cache
 from ironic.tests import base
 
@@ -89,8 +91,8 @@ class TestImageCacheFetch(base.TestCase):
     def test__download_image(self, mock_fetch_to_raw):
         def _fake_fetch_to_raw(ctx, uuid, tmp_path, *args):
             self.assertEqual(self.uuid, uuid)
-            self.assertTrue(os.path.isfile(tmp_path))
             self.assertNotEqual(self.dest_path, tmp_path)
+            self.assertNotEqual(os.path.dirname(tmp_path), self.master_dir)
             with open(tmp_path, 'w') as fp:
                 fp.write("TEST")
 
@@ -191,3 +193,29 @@ class TestImageCacheCleanUp(base.TestCase):
         for filename in files:
             self.assertTrue(os.path.exists(filename))
         self.assertTrue(mock_log.called)
+
+    @mock.patch.object(utils, 'rmtree_without_raise')
+    @mock.patch.object(images, 'fetch_to_raw')
+    def test_temp_images_not_cleaned(self, mock_fetch_to_raw, mock_rmtree):
+        def _fake_fetch_to_raw(ctx, uuid, tmp_path, *args):
+            with open(tmp_path, 'w') as fp:
+                fp.write("TEST" * 10)
+
+            # assume cleanup from another thread at this moment
+            self.cache.clean_up()
+            self.assertTrue(os.path.exists(tmp_path))
+
+        mock_fetch_to_raw.side_effect = _fake_fetch_to_raw
+        master_path = os.path.join(self.master_dir, 'uuid')
+        dest_path = os.path.join(tempfile.mkdtemp(), 'dest')
+        self.cache._download_image('uuid', master_path, dest_path)
+        self.assertTrue(mock_rmtree.called)
+
+    @mock.patch.object(utils, 'rmtree_without_raise')
+    @mock.patch.object(images, 'fetch_to_raw')
+    def test_temp_dir_exception(self, mock_fetch_to_raw, mock_rmtree):
+        mock_fetch_to_raw.side_effect = exception.IronicException
+        self.assertRaises(exception.IronicException,
+                          self.cache._download_image,
+                          'uuid', 'fake', 'fake')
+        self.assertTrue(mock_rmtree.called)
