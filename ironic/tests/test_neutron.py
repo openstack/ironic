@@ -59,6 +59,16 @@ class TestNeutron(base.TestCase):
         p = db_utils.get_test_port(**kwargs)
         return self.dbapi.create_port(p)
 
+    def test_invalid_auth_strategy(self):
+        self.config(auth_strategy='wrong_config', group='neutron')
+        token = 'test-token-123'
+        my_context = context.RequestContext(user='test-user',
+                                            tenant='test-tenant',
+                                            auth_token=token)
+        self.assertRaises(exception.ConfigInvalid,
+                          neutron.NeutronAPI,
+                          my_context)
+
     def test_create_with_token(self):
         token = 'test-token-123'
         my_context = context.RequestContext(user='test-user',
@@ -87,6 +97,20 @@ class TestNeutron(base.TestCase):
                     'tenant_name': 'test-admin-tenant',
                     'password': 'test-admin-password',
                     'auth_url': 'test-auth-uri'}
+
+        with mock.patch.object(client.Client, "__init__") as mock_client_init:
+            mock_client_init.return_value = None
+            neutron.NeutronAPI(my_context)
+            mock_client_init.assert_called_once_with(**expected)
+
+    def test_create_noauth(self):
+        self.config(auth_strategy='noauth', group='neutron')
+        my_context = context.RequestContext()
+        expected = {'ca_cert': 'test-file',
+                    'insecure': False,
+                    'endpoint_url': 'test-url',
+                    'timeout': 30,
+                    'auth_strategy': 'noauth'}
 
         with mock.patch.object(client.Client, "__init__") as mock_client_init:
             mock_client_init.return_value = None

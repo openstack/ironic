@@ -892,6 +892,13 @@
 # value)
 #url_timeout=30
 
+# Default authentication strategy to use when connecting to
+# neutron. Can be either "keystone" or "noauth". Running
+# neutron in noauth mode (related to but not affected by this
+# setting) is insecure and should only be used for testing.
+# (string value)
+#auth_strategy=keystone
+
 
 [pxe]
 
