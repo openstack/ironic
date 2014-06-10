@@ -19,6 +19,7 @@ import datetime
 
 import mock
 from oslo.config import cfg
+from six.moves.urllib import parse as urlparse
 
 from ironic.common import utils
 from ironic.openstack.common import timeutils
@@ -321,6 +322,11 @@ class TestPost(base.FunctionalTest):
         return_created_at = timeutils.parse_isotime(
                             result['created_at']).replace(tzinfo=None)
         self.assertEqual(test_time, return_created_at)
+        # Check location header
+        self.assertIsNotNone(response.location)
+        expected_location = '/v1/chassis/%s' % cdict['uuid']
+        self.assertEqual(urlparse.urlparse(response.location).path,
+                         expected_location)
 
     def test_create_chassis_generate_uuid(self):
         cdict = apiutils.chassis_post_data()

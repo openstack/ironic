@@ -19,6 +19,7 @@ import datetime
 
 import mock
 from oslo.config import cfg
+from six.moves.urllib import parse as urlparse
 from testtools.matchers import HasLength
 
 from ironic.common import exception
@@ -684,6 +685,11 @@ class TestPost(base.FunctionalTest):
         return_created_at = timeutils.parse_isotime(
                 result['created_at']).replace(tzinfo=None)
         self.assertEqual(test_time, return_created_at)
+        # Check location header
+        self.assertIsNotNone(response.location)
+        expected_location = '/v1/nodes/%s' % ndict['uuid']
+        self.assertEqual(urlparse.urlparse(response.location).path,
+                         expected_location)
 
     def test_create_node_doesnt_contain_id(self):
         # FIXME(comstud): I'd like to make this test not use the
@@ -784,6 +790,11 @@ class TestPost(base.FunctionalTest):
         response = self.post_json('/nodes', ndict)
         self.assertEqual('application/json', response.content_type)
         self.assertEqual(201, response.status_int)
+        # Check location header
+        self.assertIsNotNone(response.location)
+        expected_location = '/v1/nodes/%s' % ndict['uuid']
+        self.assertEqual(urlparse.urlparse(response.location).path,
+                         expected_location)
 
     def test_create_node_with_chassis_uuid(self):
         ndict = post_get_test_node(chassis_uuid=self.chassis.uuid)
@@ -792,6 +803,11 @@ class TestPost(base.FunctionalTest):
         self.assertEqual(201, response.status_int)
         result = self.get_json('/nodes/%s' % ndict['uuid'])
         self.assertEqual(ndict['chassis_uuid'], result['chassis_uuid'])
+        # Check location header
+        self.assertIsNotNone(response.location)
+        expected_location = '/v1/nodes/%s' % ndict['uuid']
+        self.assertEqual(urlparse.urlparse(response.location).path,
+                         expected_location)
 
     def test_create_node_chassis_uuid_not_found(self):
         ndict = post_get_test_node(

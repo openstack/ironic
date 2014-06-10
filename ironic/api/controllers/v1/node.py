@@ -661,6 +661,8 @@ class NodesController(rest.RestController):
         new_node = objects.Node(context=pecan.request.context,
                                 **node.as_dict())
         new_node.create()
+        # Set the HTTP Location Header
+        pecan.response.location = link.build_url('nodes', new_node.uuid)
         return Node.convert_with_links(new_node)
 
     @wsme.validate(types.uuid, [NodePatchType])
