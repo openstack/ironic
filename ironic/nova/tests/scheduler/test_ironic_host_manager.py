@@ -17,6 +17,8 @@
 Tests For IronicHostManager
 """
 
+import mock
+
 from ironic.nova.scheduler import ironic_host_manager
 from ironic.nova.tests.scheduler import ironic_fakes
 
@@ -24,6 +26,7 @@ from nova import db
 from nova import exception
 from nova.openstack.common import jsonutils
 from nova.scheduler import filters
+from nova.scheduler import host_manager
 from nova import test
 
 
@@ -86,6 +89,22 @@ class IronicHostManagerChangedNodesTestCase(test.NoDBTestCase):
                             supported_instances=
                                         '[["i386", "baremetal", "baremetal"]]',
                             free_disk_gb=10, free_ram_mb=1024)
+
+    @mock.patch.object(ironic_host_manager.IronicNodeState, '__init__')
+    def test_create_ironic_node_state(self, init_mock):
+        init_mock.return_value = None
+        compute = {'cpu_info': 'baremetal cpu'}
+        host_state = self.host_manager.host_state_cls('fake-host', 'fake-node',
+                                                      compute=compute)
+        self.assertIs(ironic_host_manager.IronicNodeState, type(host_state))
+
+    @mock.patch.object(host_manager.HostState, '__init__')
+    def test_create_non_ironic_host_state(self, init_mock):
+        init_mock.return_value = None
+        compute = {'cpu_info': 'other cpu'}
+        host_state = self.host_manager.host_state_cls('fake-host', 'fake-node',
+                                                      compute=compute)
+        self.assertIs(host_manager.HostState, type(host_state))
 
     def test_get_all_host_states_after_delete_one(self):
         context = 'fake_context'
