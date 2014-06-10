@@ -399,6 +399,8 @@ class ConductorManager(periodic_task.PeriodicTasks):
             new_state = task.driver.deploy.deploy(task)
         except Exception as e:
             with excutils.save_and_reraise_exception():
+                LOG.warning(_('Error in deploy of node %(node)s: %(err)s'),
+                            {'node': task.node.uuid, 'err': e})
                 node.last_error = _("Failed to deploy. Error: %s") % e
                 node.provision_state = states.DEPLOYFAIL
                 node.target_provision_state = states.NOSTATE
@@ -464,6 +466,8 @@ class ConductorManager(periodic_task.PeriodicTasks):
             new_state = task.driver.deploy.tear_down(task)
         except Exception as e:
             with excutils.save_and_reraise_exception():
+                LOG.warning(_('Error in tear_down of node %(node)s: %(err)s'),
+                            {'node': task.node.uuid, 'err': e})
                 node.last_error = _("Failed to tear down. Error: %s") % e
                 node.provision_state = states.ERROR
                 node.target_provision_state = states.NOSTATE
