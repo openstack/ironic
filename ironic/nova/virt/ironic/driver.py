@@ -330,7 +330,9 @@ class IronicDriver(virt_driver.ComputeDriver):
                 for i in node_list]
 
     def list_instance_uuids(self):
-        return [i.instance_uuid for i in self.list_instances()]
+        icli = client_wrapper.IronicClientWrapper()
+        node_list = icli.call("node.list", associated=True)
+        return list(set(n.instance_uuid for n in node_list))
 
     def node_is_available(self, nodename):
         """Confirms a Nova hypervisor node exists in the Ironic inventory."""

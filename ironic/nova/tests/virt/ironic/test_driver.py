@@ -276,19 +276,19 @@ class IronicDriverTestCase(test.NoDBTestCase):
         self.assertEqual(['instance-00000000', 'instance-00000001'],
                           sorted(response))
 
-    def test_list_instance_uuids(self):
+    @mock.patch.object(cw.IronicClientWrapper, 'call')
+    def test_list_instance_uuids(self, mock_call):
         num_nodes = 2
         nodes = []
         for n in range(num_nodes):
             nodes.append(ironic_utils.get_test_node(
                                       instance_uuid=uuidutils.generate_uuid()))
 
-        with mock.patch.object(self.driver, 'list_instances') as mock_list:
-            mock_list.return_value = nodes
-            uuids = self.driver.list_instance_uuids()
-            self.assertTrue(mock_list.called)
-            expected = [n.instance_uuid for n in nodes]
-            self.assertEquals(sorted(expected), sorted(uuids))
+        mock_call.return_value = nodes
+        uuids = self.driver.list_instance_uuids()
+        mock_call.assert_called_with('node.list', associated=True)
+        expected = [n.instance_uuid for n in nodes]
+        self.assertEquals(sorted(expected), sorted(uuids))
 
     @mock.patch.object(cw.IronicClientWrapper, '_get_client')
     @mock.patch.object(FAKE_CLIENT.node, 'get')
