@@ -903,6 +903,11 @@ class TestPut(base.FunctionalTest):
                                                self.node['uuid'],
                                                states.POWER_ON,
                                                'test-topic')
+        # Check location header
+        self.assertIsNotNone(response.location)
+        expected_location = '/v1/nodes/%s/states' % self.node.uuid
+        self.assertEqual(urlparse.urlparse(response.location).path,
+                         expected_location)
 
     def test_power_invalid_state_request(self):
         ret = self.put_json('/nodes/%s/states/power' % self.node.uuid,
@@ -916,6 +921,11 @@ class TestPut(base.FunctionalTest):
         self.assertEqual('', ret.body)
         self.mock_dnd.assert_called_once_with(
                 mock.ANY, self.node.uuid, False, 'test-topic')
+        # Check location header
+        self.assertIsNotNone(ret.location)
+        expected_location = '/v1/nodes/%s/states' % self.node.uuid
+        self.assertEqual(urlparse.urlparse(ret.location).path,
+                         expected_location)
 
     def test_provision_with_tear_down(self):
         ret = self.put_json('/nodes/%s/states/provision' % self.node.uuid,
@@ -924,6 +934,11 @@ class TestPut(base.FunctionalTest):
         self.assertEqual('', ret.body)
         self.mock_dntd.assert_called_once_with(
                 mock.ANY, self.node.uuid, 'test-topic')
+        # Check location header
+        self.assertIsNotNone(ret.location)
+        expected_location = '/v1/nodes/%s/states' % self.node.uuid
+        self.assertEqual(urlparse.urlparse(ret.location).path,
+                         expected_location)
 
     def test_provision_invalid_state_request(self):
         ret = self.put_json('/nodes/%s/states/provision' % self.node.uuid,
@@ -950,6 +965,11 @@ class TestPut(base.FunctionalTest):
         self.assertEqual('', ret.body)
         self.mock_dntd.assert_called_once_with(
                 mock.ANY, node.uuid, 'test-topic')
+        # Check location header
+        self.assertIsNotNone(ret.location)
+        expected_location = '/v1/nodes/%s/states' % node.uuid
+        self.assertEqual(urlparse.urlparse(ret.location).path,
+                         expected_location)
 
     def test_provision_already_in_state(self):
         node = obj_utils.create_test_node(
@@ -970,6 +990,11 @@ class TestPut(base.FunctionalTest):
             self.assertEqual('', ret.body)
             mock_scm.assert_called_once_with(mock.ANY, self.node.uuid,
                                              True, 'test-topic')
+            # Check location header
+            self.assertIsNotNone(ret.location)
+            expected_location = '/v1/nodes/%s/states/console' % self.node.uuid
+            self.assertEqual(urlparse.urlparse(ret.location).path,
+                             expected_location)
 
     def test_set_console_mode_disabled(self):
         with mock.patch.object(rpcapi.ConductorAPI, 'set_console_mode') \
@@ -980,6 +1005,11 @@ class TestPut(base.FunctionalTest):
             self.assertEqual('', ret.body)
             mock_scm.assert_called_once_with(mock.ANY, self.node.uuid,
                                              False, 'test-topic')
+            # Check location header
+            self.assertIsNotNone(ret.location)
+            expected_location = '/v1/nodes/%s/states/console' % self.node.uuid
+            self.assertEqual(urlparse.urlparse(ret.location).path,
+                             expected_location)
 
     def test_set_console_mode_bad_request(self):
         with mock.patch.object(rpcapi.ConductorAPI, 'set_console_mode') \
