@@ -148,8 +148,9 @@ def _exec_ipmitool(driver_info, command):
         args.append(pw_file)
         args.extend(command.split(" "))
         out, err = utils.execute(*args, attempts=3)
-        LOG.debug("ipmitool stdout: '%(out)s', stderr: '%(err)s'",
-                  {'out': out, 'err': err})
+        LOG.debug("ipmitool stdout: '%(out)s', stderr: '%(err)s', from node "
+                  "%(node_id)s",
+                  {'out': out, 'err': err, 'node_id': driver_info['uuid']})
         return out, err
 
 
@@ -210,8 +211,9 @@ def _set_and_wait(target_state, driver_info):
         if (sleep_time + mutable['total_time']) > CONF.ipmi.retry_timeout:
             # Stop if the next loop would exceed maximum retry_timeout
             LOG.error(_('IPMI power %(state)s timed out after '
-                        '%(tries)s retries.'),
-                        {'state': state_name, 'tries': mutable['iter']})
+                        '%(tries)s retries on node %(node_id)s.'),
+                        {'state': state_name, 'tries': mutable['iter'],
+                        'node_id': driver_info['uuid']})
             mutable['power'] = states.ERROR
             raise loopingcall.LoopingCallDone()
         else:
