@@ -110,7 +110,8 @@ class PhysicalWorkTestCase(tests_base.TestCase):
                           mock.call.login_iscsi(address, port, iqn),
                           mock.call.is_block_device(dev),
                           mock.call.make_partitions(dev, root_mb, swap_mb,
-                                                    ephemeral_mb),
+                                                    ephemeral_mb,
+                                                    commit=True),
                           mock.call.is_block_device(root_part),
                           mock.call.is_block_device(swap_part),
                           mock.call.dd(image_path, root_part),
@@ -160,7 +161,8 @@ class PhysicalWorkTestCase(tests_base.TestCase):
                           mock.call.login_iscsi(address, port, iqn),
                           mock.call.is_block_device(dev),
                           mock.call.make_partitions(dev, root_mb, swap_mb,
-                                                    ephemeral_mb),
+                                                    ephemeral_mb,
+                                                    commit=True),
                           mock.call.is_block_device(root_part),
                           mock.call.dd(image_path, root_part),
                           mock.call.block_uuid(root_part),
@@ -212,7 +214,8 @@ class PhysicalWorkTestCase(tests_base.TestCase):
                           mock.call.login_iscsi(address, port, iqn),
                           mock.call.is_block_device(dev),
                           mock.call.make_partitions(dev, root_mb, swap_mb,
-                                                    ephemeral_mb),
+                                                    ephemeral_mb,
+                                                    commit=True),
                           mock.call.is_block_device(root_part),
                           mock.call.is_block_device(swap_part),
                           mock.call.is_block_device(ephemeral_part),
@@ -273,7 +276,8 @@ class PhysicalWorkTestCase(tests_base.TestCase):
                           mock.call.login_iscsi(address, port, iqn),
                           mock.call.is_block_device(dev),
                           mock.call.make_partitions(dev, root_mb, swap_mb,
-                                                    ephemeral_mb),
+                                                    ephemeral_mb,
+                                                    commit=False),
                           mock.call.is_block_device(root_part),
                           mock.call.is_block_device(swap_part),
                           mock.call.is_block_device(ephemeral_part),
@@ -430,7 +434,8 @@ class WorkOnDiskTestCase(tests_base.TestCase):
                           self.ephemeral_format, self.image_path, False)
         self.assertEqual(self.mock_ibd.call_args_list, calls)
         self.mock_mp.assert_called_once_with(self.dev, self.root_mb,
-                                             self.swap_mb, self.ephemeral_mb)
+                                             self.swap_mb, self.ephemeral_mb,
+                                             commit=True)
 
     def test_no_swap_partition(self):
         self.mock_ibd.side_effect = [True, True, False]
@@ -443,7 +448,8 @@ class WorkOnDiskTestCase(tests_base.TestCase):
                           self.ephemeral_format, self.image_path, False)
         self.assertEqual(self.mock_ibd.call_args_list, calls)
         self.mock_mp.assert_called_once_with(self.dev, self.root_mb,
-                                             self.swap_mb, self.ephemeral_mb)
+                                             self.swap_mb, self.ephemeral_mb,
+                                             commit=True)
 
     def test_no_ephemeral_partition(self):
         ephemeral_part = '/dev/fake-part1'
@@ -466,7 +472,8 @@ class WorkOnDiskTestCase(tests_base.TestCase):
                           self.image_path, False)
         self.assertEqual(self.mock_ibd.call_args_list, calls)
         self.mock_mp.assert_called_once_with(self.dev, self.root_mb,
-                                             self.swap_mb, ephemeral_mb)
+                                             self.swap_mb, ephemeral_mb,
+                                             commit=True)
 
 
 @mock.patch.object(time, 'sleep', lambda _: None)
