@@ -85,6 +85,19 @@ if 'ironic.drivers.ilo' in sys.modules:
     reload(sys.modules['ironic.drivers.ilo'])
 
 
+# attempt to load the external 'pywsman' library, which is required by
+# the optional drivers.modules.drac module
+pywsman = importutils.try_import('pywsman')
+if not pywsman:
+    pywsman = mock.Mock()
+    sys.modules['pywsman'] = pywsman
+
+# if anything has loaded the drac driver yet, reload it now that the
+# external library has been mocked
+if 'ironic.drivers.modules.drac' in sys.modules:
+    reload(sys.modules['ironic.drivers.modules.drac'])
+
+
 # attempt to load the external 'iboot' library, which is required by
 # the optional drivers.modules.iboot module
 iboot = importutils.try_import("iboot")

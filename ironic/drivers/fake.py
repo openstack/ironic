@@ -22,6 +22,7 @@ from oslo.utils import importutils
 from ironic.common import exception
 from ironic.drivers import base
 from ironic.drivers.modules import agent
+from ironic.drivers.modules.drac import power as drac_power
 from ironic.drivers.modules import fake
 from ironic.drivers.modules import iboot
 from ironic.drivers.modules.ilo import power as ilo_power
@@ -127,4 +128,17 @@ class FakeIloDriver(base.BaseDriver):
                     driver=self.__class__.__name__,
                     reason=_("Unable to import proliantutils library"))
         self.power = ilo_power.IloPower()
+        self.deploy = fake.FakeDeploy()
+
+
+class FakeDracDriver(base.BaseDriver):
+    """Fake Drac driver."""
+
+    def __init__(self):
+        if not importutils.try_import('pywsman'):
+            raise exception.DriverLoadError(
+                    driver=self.__class__.__name__,
+                    reason=_('Unable to import pywsman library'))
+
+        self.power = drac_power.DracPower()
         self.deploy = fake.FakeDeploy()

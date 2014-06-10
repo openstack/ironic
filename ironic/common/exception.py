@@ -408,6 +408,17 @@ class IloOperationError(IronicException):
     message = _("%(operation)s failed, error: %(error)s")
 
 
+class DracClientError(IronicException):
+    message = _('DRAC client failed. '
+                'Last error (cURL error code): %(last_error)s, '
+                'fault string: "%(fault_string)s" '
+                'response_code: %(response_code)s')
+
+
+class DracOperationError(IronicException):
+    message = _('DRAC %(operation)s failed. Reason: %(error)s')
+
+
 class FailedToGetSensorData(IronicException):
     message = _("Failed to get sensor data for node %(node)s. "
                 "Error: %(error)s")
