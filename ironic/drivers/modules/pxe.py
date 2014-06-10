@@ -505,6 +505,40 @@ def _check_image_size(task):
         raise exception.InstanceDeployFailure(msg)
 
 
+def _validate_glance_image(ctx, driver_info):
+    """Validate the image in Glance.
+
+    Check if the image exist in Glance and if it contains the
+    'kernel_id' and 'ramdisk_id' properties.
+
+    :raises: InvalidParameterValue.
+    """
+    image_id = driver_info['image_source']
+    try:
+        glance_service = service.Service(version=1, context=ctx)
+        image_props = glance_service.show(image_id)['properties']
+    except (exception.GlanceConnectionFailed,
+            exception.ImageNotAuthorized,
+            exception.Invalid):
+        raise exception.InvalidParameterValue(_(
+            "Failed to connect to Glance to get the properties "
+            "of the image %s") % image_id)
+    except exception.ImageNotFound:
+        raise exception.InvalidParameterValue(_(
+            "Image %s not found in Glance") % image_id)
+
+    missing_props = []
+    for prop in ('kernel_id', 'ramdisk_id'):
+        if not image_props.get(prop):
+            missing_props.append(prop)
+
+    if missing_props:
+        props = ', '.join(missing_props)
+        raise exception.InvalidParameterValue(_(
+            "Image %(image)s is missing the following properties: "
+            "%(properties)s") % {'image': image_id, 'properties': props})
+
+
 class PXEDeploy(base.DeployInterface):
     """PXE Deploy Interface: just a stub until the real driver is ported."""
 
@@ -512,13 +546,13 @@ class PXEDeploy(base.DeployInterface):
         """Validate the driver-specific Node deployment info.
 
         :param task: a TaskManager instance containing the node to act on.
-        :returns: InvalidParameterValue.
+        :raises: InvalidParameterValue.
         """
         node = task.node
         if not driver_utils.get_node_mac_addresses(task):
             raise exception.InvalidParameterValue(_("Node %s does not have "
                                 "any port associated with it.") % node.uuid)
-        _parse_driver_info(node)
+        d_info = _parse_driver_info(node)
 
         # Try to get the URL of the Ironic API
         try:
@@ -530,6 +564,8 @@ class PXEDeploy(base.DeployInterface):
             raise exception.InvalidParameterValue(_(
                 "Couldn't get the URL of the Ironic API service from the "
                 "configuration file or keystone catalog."))
+
+        _validate_glance_image(task.context, d_info)
 
     @task_manager.require_exclusive_lock
     def deploy(self, task):
