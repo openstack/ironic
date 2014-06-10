@@ -22,6 +22,7 @@ subdivided into multiple instances.
 """
 from oslo.config import cfg
 
+from nova.openstack.common import jsonutils
 from nova.openstack.common import log as logging
 from nova.openstack.common import timeutils
 from nova.scheduler import host_manager
@@ -69,6 +70,9 @@ class IronicNodeState(host_manager.HostState):
 
         self.vcpus_total = compute['vcpus']
         self.vcpus_used = compute['vcpus_used']
+
+        stats = compute.get('stats', '{}')
+        self.stats = jsonutils.loads(stats)
 
         self.updated = compute['updated_at']
 
