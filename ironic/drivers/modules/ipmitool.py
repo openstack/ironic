@@ -279,21 +279,18 @@ class IPMIPower(base.PowerInterface):
     def validate(self, task, node):
         """Validate driver_info for ipmitool driver.
 
-        Check that node['driver_info'] contains IPMI credentials and BMC is
-        accessible with this credentials.
+        Check that node['driver_info'] contains IPMI credentials.
 
         :param task: a task from TaskManager.
         :param node: Single node object.
         :raises: InvalidParameterValue if required ipmi parameters are missing.
 
         """
-        driver_info = _parse_driver_info(node)
-        try:
-            _exec_ipmitool(driver_info, "mc guid")
-        except Exception as e:
-            msg = _("BMC inaccessible for node %(node)s: "
-                    "%(error)s") % {'node': node.uuid, 'error': e}
-            raise exception.InvalidParameterValue(msg)
+        _parse_driver_info(node)
+        # NOTE(deva): don't actually touch the BMC in validate because it is
+        #             called too often, and BMCs are too fragile.
+        #             This is a temporary measure to mitigate problems while
+        #             1314954 and 1314961 are resolved.
 
     def get_power_state(self, task):
         """Get the current power state of the task's node.
