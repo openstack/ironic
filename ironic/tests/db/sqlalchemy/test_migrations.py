@@ -465,6 +465,9 @@ class TestMigrations(BaseMigrationTestCase, WalkVersionsMixin):
         self._walk_versions(engine, self.config, downgrade=False)
 
     def test_walk_versions(self):
+        if not len(self.engines.values()):
+            self.skipTest("No engines initialized")
+
         for engine in self.engines.values():
             self._walk_versions(engine, self.config, downgrade=False)
 
