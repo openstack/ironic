@@ -23,15 +23,18 @@ from stevedore import dispatch
 
 LOG = log.getLogger(__name__)
 
-# TODO(deva): remove 'fake' and 'pxe_ssh' testing drivers from the defaults
-#             once appropriate test environments (devstack & triple)
-#             are updated
 driver_opts = [
         cfg.ListOpt('enabled_drivers',
-                    default=['fake', 'pxe_ipmitool', 'pxe_ssh'],
-                    help='List of drivers to enable. Missing drivers, or '
-                         'drivers which can not be loaded will be '
-                         'treated as a fatal exception.'),
+                    default=['pxe_ipmitool'],
+                    help='Specify the list of drivers to load during service '
+                         'initialization. Missing drivers, or drivers which '
+                         'fail to initialize, will prevent the conductor '
+                         'service from starting. The option default is a '
+                         'recommended set of production-oriented drivers. A '
+                         'complete list of drivers present on your system may '
+                         'be found by enumerating the "ironic.drivers" '
+                         'entrypoint. An example may be found in the '
+                         'developer documentation online.'),
 ]
 
 CONF = cfg.CONF
