@@ -306,7 +306,7 @@ class IPMIToolDriverTestCase(db_base.DbTestCase):
 
         mock_on.return_value = states.POWER_ON
         with task_manager.acquire(self.context,
-                                  [self.node['uuid']]) as task:
+                                  self.node['uuid']) as task:
             self.driver.power.set_power_state(task,
                                               states.POWER_ON)
 
@@ -321,7 +321,7 @@ class IPMIToolDriverTestCase(db_base.DbTestCase):
         mock_off.return_value = states.POWER_OFF
 
         with task_manager.acquire(self.context,
-                                  [self.node['uuid']]) as task:
+                                  self.node['uuid']) as task:
             self.driver.power.set_power_state(task,
                                               states.POWER_OFF)
 
@@ -335,7 +335,7 @@ class IPMIToolDriverTestCase(db_base.DbTestCase):
 
         mock_on.return_value = states.ERROR
         with task_manager.acquire(self.context,
-                                  [self.node['uuid']]) as task:
+                                  self.node['uuid']) as task:
             self.assertRaises(exception.PowerStateFailure,
                               self.driver.power.set_power_state,
                               task,
@@ -345,7 +345,7 @@ class IPMIToolDriverTestCase(db_base.DbTestCase):
         self.assertFalse(mock_off.called)
 
     def test_set_power_invalid_state(self):
-        with task_manager.acquire(self.context, [self.node['uuid']]) as task:
+        with task_manager.acquire(self.context, self.node['uuid']) as task:
             self.assertRaises(exception.InvalidParameterValue,
                     self.driver.power.set_power_state,
                     task,
@@ -356,13 +356,13 @@ class IPMIToolDriverTestCase(db_base.DbTestCase):
         mock_exec.return_value = [None, None]
 
         with task_manager.acquire(self.context,
-                                  [self.node['uuid']]) as task:
+                                  self.node['uuid']) as task:
             self.driver.vendor._set_boot_device(task, 'pxe')
 
         mock_exec.assert_called_once_with(self.info, "chassis bootdev pxe")
 
     def test_set_boot_device_bad_device(self):
-        with task_manager.acquire(self.context, [self.node['uuid']]) as task:
+        with task_manager.acquire(self.context, self.node['uuid']) as task:
             self.assertRaises(exception.InvalidParameterValue,
                     self.driver.vendor._set_boot_device,
                     task,
@@ -380,7 +380,7 @@ class IPMIToolDriverTestCase(db_base.DbTestCase):
                     mock.call.power_on(self.info)]
 
         with task_manager.acquire(self.context,
-                                  [self.node['uuid']]) as task:
+                                  self.node['uuid']) as task:
             self.driver.power.reboot(task)
 
         self.assertEqual(manager.mock_calls, expected)
@@ -397,7 +397,7 @@ class IPMIToolDriverTestCase(db_base.DbTestCase):
                     mock.call.power_on(self.info)]
 
         with task_manager.acquire(self.context,
-                                 [self.node['uuid']]) as task:
+                                  self.node['uuid']) as task:
             self.assertRaises(exception.PowerStateFailure,
                               self.driver.power.reboot,
                               task)
@@ -431,7 +431,7 @@ class IPMIToolDriverTestCase(db_base.DbTestCase):
 
     @mock.patch.object(ipmi.VendorPassthru, '_set_boot_device')
     def test_vendor_passthru_call_set_boot_device(self, boot_mock):
-        with task_manager.acquire(self.context, [self.node['uuid']],
+        with task_manager.acquire(self.context, self.node['uuid'],
                                   shared=False) as task:
             self.driver.vendor.vendor_passthru(task,
                                                method='set_boot_device',
@@ -442,7 +442,7 @@ class IPMIToolDriverTestCase(db_base.DbTestCase):
     def test_validate_ok(self, exec_mock):
         exec_mock.return_value = ('System GUID: fake', '')
         with task_manager.acquire(self.context,
-                                  [self.node['uuid']]) as task:
+                                  self.node['uuid']) as task:
             task.driver.power.validate(task, task.node)
             exec_mock.assert_called_once_with(mock.ANY, "mc guid")
 
@@ -450,7 +450,7 @@ class IPMIToolDriverTestCase(db_base.DbTestCase):
     def test_validate_fail(self, exec_mock):
         exec_mock.side_effect = Exception
         with task_manager.acquire(self.context,
-                                  [self.node['uuid']]) as task:
+                                  self.node['uuid']) as task:
             self.assertRaises(exception.InvalidParameterValue,
                               task.driver.power.validate, task,
                               task.node)
@@ -462,7 +462,7 @@ class IPMIToolDriverTestCase(db_base.DbTestCase):
         mock_exec.return_value = None
 
         with task_manager.acquire(self.context,
-                                  [self.node['uuid']]) as task:
+                                  self.node['uuid']) as task:
             self.driver.console.start_console(task, self.node)
 
         mock_exec.assert_called_once_with(self.info['uuid'],
@@ -477,7 +477,7 @@ class IPMIToolDriverTestCase(db_base.DbTestCase):
                 error='error')
 
         with task_manager.acquire(self.context,
-                                  [self.node['uuid']]) as task:
+                                  self.node['uuid']) as task:
             self.assertRaises(exception.ConsoleSubprocessFailed,
                               self.driver.console.start_console,
                               task, self.node)
@@ -488,7 +488,7 @@ class IPMIToolDriverTestCase(db_base.DbTestCase):
         mock_exec.return_value = None
 
         with task_manager.acquire(self.context,
-                                  [self.node['uuid']]) as task:
+                                  self.node['uuid']) as task:
             self.driver.console.stop_console(task, self.node)
 
         mock_exec.assert_called_once_with(self.info['uuid'])
@@ -502,7 +502,7 @@ class IPMIToolDriverTestCase(db_base.DbTestCase):
         expected = {'type': 'shellinabox', 'url': url}
 
         with task_manager.acquire(self.context,
-                                  [self.node['uuid']]) as task:
+                                  self.node['uuid']) as task:
             console_info = self.driver.console.get_console(task,
                                                            self.node)
 

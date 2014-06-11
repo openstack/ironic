@@ -172,7 +172,7 @@ class IPMINativeDriverTestCase(db_base.DbTestCase):
         power_on_mock.return_value = states.POWER_ON
 
         with task_manager.acquire(self.context,
-                                  [self.node.uuid]) as task:
+                                  self.node.uuid) as task:
             self.driver.power.set_power_state(
                 task, states.POWER_ON)
         power_on_mock.assert_called_once_with(self.info)
@@ -182,7 +182,7 @@ class IPMINativeDriverTestCase(db_base.DbTestCase):
         power_off_mock.return_value = states.POWER_OFF
 
         with task_manager.acquire(self.context,
-                                  [self.node.uuid]) as task:
+                                  self.node.uuid) as task:
             self.driver.power.set_power_state(
                 task, states.POWER_OFF)
         power_off_mock.assert_called_once_with(self.info)
@@ -194,7 +194,7 @@ class IPMINativeDriverTestCase(db_base.DbTestCase):
 
         self.config(retry_timeout=500, group='ipmi')
         with task_manager.acquire(self.context,
-                                  [self.node.uuid]) as task:
+                                  self.node.uuid) as task:
             self.assertRaises(exception.PowerStateFailure,
                               self.driver.power.set_power_state,
                               task,
@@ -207,12 +207,12 @@ class IPMINativeDriverTestCase(db_base.DbTestCase):
         ipmicmd.set_bootdev.return_value = None
 
         with task_manager.acquire(self.context,
-                                  [self.node.uuid]) as task:
+                                  self.node.uuid) as task:
             self.driver.vendor._set_boot_device(task, 'pxe')
         ipmicmd.set_bootdev.assert_called_once_with('pxe')
 
     def test_set_boot_device_bad_device(self):
-        with task_manager.acquire(self.context, [self.node.uuid]) as task:
+        with task_manager.acquire(self.context, self.node.uuid) as task:
             self.assertRaises(exception.InvalidParameterValue,
                     self.driver.vendor._set_boot_device,
                     task,
@@ -223,7 +223,7 @@ class IPMINativeDriverTestCase(db_base.DbTestCase):
         reboot_mock.return_value = None
 
         with task_manager.acquire(self.context,
-                                  [self.node.uuid]) as task:
+                                  self.node.uuid) as task:
             self.driver.power.reboot(task)
         reboot_mock.assert_called_once_with(self.info)
 
@@ -234,7 +234,7 @@ class IPMINativeDriverTestCase(db_base.DbTestCase):
 
         self.config(retry_timeout=500, group='ipmi')
         with task_manager.acquire(self.context,
-                                  [self.node.uuid]) as task:
+                                  self.node.uuid) as task:
             self.assertRaises(exception.PowerStateFailure,
                               self.driver.power.reboot,
                               task)
@@ -242,14 +242,14 @@ class IPMINativeDriverTestCase(db_base.DbTestCase):
 
     def test_vendor_passthru_validate__set_boot_device_good(self):
         with task_manager.acquire(self.context,
-                                 [self.node['uuid']]) as task:
+                                  self.node['uuid']) as task:
             self.driver.vendor.validate(task,
                                         method='set_boot_device',
                                         device='pxe')
 
     def test_vendor_passthru_val__set_boot_device_fail_unknown_device(self):
         with task_manager.acquire(self.context,
-                                 [self.node['uuid']]) as task:
+                                  self.node['uuid']) as task:
             self.assertRaises(exception.InvalidParameterValue,
                               self.driver.vendor.validate,
                               task, method='set_boot_device',
@@ -257,21 +257,21 @@ class IPMINativeDriverTestCase(db_base.DbTestCase):
 
     def test_vendor_passthru_val__set_boot_device_fail_missed_device_arg(self):
         with task_manager.acquire(self.context,
-                                 [self.node['uuid']]) as task:
+                                  self.node['uuid']) as task:
             self.assertRaises(exception.InvalidParameterValue,
                               self.driver.vendor.validate,
                               task, method='set_boot_device')
 
     def test_vendor_passthru_validate_method_notmatch(self):
         with task_manager.acquire(self.context,
-                                 [self.node['uuid']]) as task:
+                                  self.node['uuid']) as task:
             self.assertRaises(exception.InvalidParameterValue,
                               self.driver.vendor.validate,
                               task, method='non-existent-method')
 
     @mock.patch.object(ipminative.VendorPassthru, '_set_boot_device')
     def test_vendor_passthru_call__set_boot_device(self, boot_mock):
-        with task_manager.acquire(self.context, [self.node.uuid],
+        with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
             self.driver.vendor.vendor_passthru(task,
                                                method='set_boot_device',

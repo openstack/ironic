@@ -345,6 +345,10 @@ class NodeLocked(Conflict):
                 "after the current operation is completed.")
 
 
+class NodeNotLocked(Invalid):
+    message = _("Node %(node)s found not to be locked on release")
+
+
 class NoFreeConductorWorker(TemporaryFailure):
     message = _('Requested action cannot be performed due to lack of free '
                 'conductor workers.')

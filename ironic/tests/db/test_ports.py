@@ -99,7 +99,7 @@ class DbPortTestCase(base.DbTestCase):
     def test_destroy_port_on_reserved_node(self):
         p = self.dbapi.create_port(db_utils.get_test_port(node_id=self.n.id))
         uuid = self.n.uuid
-        self.dbapi.reserve_nodes('fake-reservation', [uuid])
+        self.dbapi.reserve_node('fake-reservation', uuid)
         self.assertRaises(exception.NodeLocked,
                           self.dbapi.destroy_port, p.id)
 

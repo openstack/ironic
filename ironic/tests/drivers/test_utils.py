@@ -121,6 +121,6 @@ class UtilsTestCase(base.TestCase):
                     address='dd:ee:ff',
                     uuid='4fc26c0b-03f2-4d2e-ae87-c02d7f33c234',
                     node_id=self.node.id)))
-        with task_manager.acquire(self.context, [self.node.uuid]) as task:
+        with task_manager.acquire(self.context, self.node.uuid) as task:
             node_macs = driver_utils.get_node_mac_addresses(task)
         self.assertEqual(sorted([p.address for p in ports]), sorted(node_macs))

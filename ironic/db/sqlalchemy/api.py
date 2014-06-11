@@ -107,28 +107,6 @@ def add_identity_filter(query, value):
         raise exception.InvalidIdentity(identity=value)
 
 
-def add_filter_by_many_identities(query, model, values):
-    """Adds an identity filter to a query for values list.
-
-    Filters results by ID, if supplied values contain a valid integer.
-    Otherwise attempts to filter results by UUID.
-
-    :param query: Initial query to add filter to.
-    :param model: Model for filter.
-    :param values: Values for filtering results by.
-    :return: tuple (Modified query, filter field name).
-    """
-    if not values:
-        raise exception.InvalidIdentity(identity=values)
-    value = values[0]
-    if utils.is_int_like(value):
-        return query.filter(getattr(model, 'id').in_(values)), 'id'
-    elif utils.is_uuid_like(value):
-        return query.filter(getattr(model, 'uuid').in_(values)), 'uuid'
-    else:
-        raise exception.InvalidIdentity(identity=value)
-
-
 def add_port_filter(query, value):
     """Adds a port-specific filter to a query.
 
@@ -184,21 +162,6 @@ def _paginate_query(model, limit=None, marker=None, sort_key=None,
     query = db_utils.paginate_query(query, model, limit, sort_keys,
                                     marker=marker, sort_dir=sort_dir)
     return query.all()
-
-
-def _check_node_already_locked(query, query_by):
-    no_reserv = None
-    locked_ref = query.filter(models.Node.reservation != no_reserv).first()
-    if locked_ref:
-        raise exception.NodeLocked(node=locked_ref[query_by],
-                                   host=locked_ref['reservation'])
-
-
-def _handle_node_lock_not_found(nodes, query, query_by):
-    refs = query.all()
-    existing = [ref[query_by] for ref in refs]
-    missing = set(nodes) - set(existing)
-    raise exception.NodeNotFound(node=missing.pop())
 
 
 class Connection(api.Connection):
@@ -261,44 +224,43 @@ class Connection(api.Connection):
                                sort_key, sort_dir, query)
 
     @objects.objectify(objects.Node)
-    def reserve_nodes(self, tag, nodes):
-        # assume nodes does not contain duplicates
-        # Ensure consistent sort order so we don't run into deadlocks.
-        nodes.sort()
+    def reserve_node(self, tag, node_id):
         session = get_session()
         with session.begin():
             query = model_query(models.Node, session=session)
-            query, query_by = add_filter_by_many_identities(query, models.Node,
-                                                            nodes)
-            # Be optimistic and assume we usually get a reservation.
-            _check_node_already_locked(query, query_by)
-            count = query.update({'reservation': tag},
-                                 synchronize_session=False)
+            query = add_identity_filter(query, node_id)
+            # be optimistic and assume we usually create a reservation
+            count = query.filter_by(reservation=None).update(
+                        {'reservation': tag}, synchronize_session=False)
+            try:
+                node = query.one()
+                if count != 1:
+                    # Nothing updated and node exists. Must already be
+                    # locked.
+                    raise exception.NodeLocked(node=node_id,
+                                               host=node['reservation'])
+                return node
+            except NoResultFound:
+                raise exception.NodeNotFound(node_id)
 
-            if count != len(nodes):
-                # one or more node id not found
-                _handle_node_lock_not_found(nodes, query, query_by)
-
-        return query.all()
-
-    def release_nodes(self, tag, nodes):
-        # assume nodes does not contain duplicates
+    def release_node(self, tag, node_id):
         session = get_session()
         with session.begin():
             query = model_query(models.Node, session=session)
-            query, query_by = add_filter_by_many_identities(query, models.Node,
-                                                            nodes)
+            query = add_identity_filter(query, node_id)
             # be optimistic and assume we usually release a reservation
-            count = query.filter_by(reservation=tag).\
-                       update({'reservation': None}, synchronize_session=False)
-            if count != len(nodes):
-                # we updated not all nodes
-                if len(nodes) != query.count():
-                    # one or more node id not found
-                    _handle_node_lock_not_found(nodes, query, query_by)
-                else:
-                    # one or more node had reservation != tag
-                    _check_node_already_locked(query, query_by)
+            count = query.filter_by(reservation=tag).update(
+                        {'reservation': None}, synchronize_session=False)
+            try:
+                if count != 1:
+                    node = query.one()
+                    if node['reservation'] is None:
+                        raise exception.NodeNotLocked(node=node_id)
+                    else:
+                        raise exception.NodeLocked(node=node_id,
+                                                   host=node['reservation'])
+            except NoResultFound:
+                raise exception.NodeNotFound(node_id)
 
     def create_node(self, values):
         # ensure defaults are present for new nodes

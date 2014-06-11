@@ -280,20 +280,19 @@ class SeaMicroPowerDriverTestCase(db_base.DbTestCase):
 
     @mock.patch.object(seamicro, '_parse_driver_info')
     def test_power_interface_validate_good(self, parse_drv_info_mock):
-        with task_manager.acquire(self.context, [self.node['uuid']],
+        with task_manager.acquire(self.context, self.node['uuid'],
                                   shared=True) as task:
-            task.resources[0].driver.power.validate(
-                        task, self.node)
+            task.driver.power.validate(task, self.node)
         self.assertEqual(1, parse_drv_info_mock.call_count)
 
     @mock.patch.object(seamicro, '_parse_driver_info')
     def test_power_interface_validate_fails(self, parse_drv_info_mock):
         side_effect = exception.InvalidParameterValue("Bad input")
         parse_drv_info_mock.side_effect = side_effect
-        with task_manager.acquire(self.context, [self.node['uuid']],
+        with task_manager.acquire(self.context, self.node['uuid'],
                                   shared=True) as task:
             self.assertRaises(exception.InvalidParameterValue,
-                              task.resources[0].driver.power.validate,
+                              task.driver.power.validate,
                               task, self.node)
         self.assertEqual(1, parse_drv_info_mock.call_count)
 
@@ -303,9 +302,9 @@ class SeaMicroPowerDriverTestCase(db_base.DbTestCase):
 
         mock_reboot.return_value = states.POWER_ON
 
-        with task_manager.acquire(self.context, [info['uuid']],
+        with task_manager.acquire(self.context, info['uuid'],
                                   shared=False) as task:
-            task.resources[0].driver.power.reboot(task)
+            task.driver.power.reboot(task)
 
             mock_reboot.assert_called_once_with(task.node)
 
@@ -314,10 +313,10 @@ class SeaMicroPowerDriverTestCase(db_base.DbTestCase):
         self.get_server_mock = self.get_server_patcher.start()
         self.get_server_mock.return_value = self.Server()
 
-        with task_manager.acquire(self.context, [info['uuid']],
+        with task_manager.acquire(self.context, info['uuid'],
                                   shared=False) as task:
             self.assertRaises(exception.IronicException,
-                              task.resources[0].driver.power.set_power_state,
+                              task.driver.power.set_power_state,
                               task, "BAD_PSTATE")
         self.get_server_patcher.stop()
 
@@ -327,10 +326,9 @@ class SeaMicroPowerDriverTestCase(db_base.DbTestCase):
 
         mock_power_on.return_value = states.POWER_ON
 
-        with task_manager.acquire(self.context, [info['uuid']],
+        with task_manager.acquire(self.context, info['uuid'],
                                   shared=False) as task:
-            task.resources[0].driver.power.set_power_state(task,
-                                                           states.POWER_ON)
+            task.driver.power.set_power_state(task, states.POWER_ON)
 
             mock_power_on.assert_called_once_with(task.node)
 
@@ -340,11 +338,10 @@ class SeaMicroPowerDriverTestCase(db_base.DbTestCase):
 
         mock_power_on.return_value = states.POWER_OFF
 
-        with task_manager.acquire(self.context, [info['uuid']],
+        with task_manager.acquire(self.context, info['uuid'],
                                   shared=False) as task:
             self.assertRaises(exception.PowerStateFailure,
-                              task.resources[0]
-                              .driver.power.set_power_state,
+                              task.driver.power.set_power_state,
                               task, states.POWER_ON)
 
             mock_power_on.assert_called_once_with(task.node)
@@ -355,10 +352,9 @@ class SeaMicroPowerDriverTestCase(db_base.DbTestCase):
 
         mock_power_off.return_value = states.POWER_OFF
 
-        with task_manager.acquire(self.context, [info['uuid']],
+        with task_manager.acquire(self.context, info['uuid'],
                                   shared=False) as task:
-            task.resources[0].driver.power.\
-                set_power_state(task, states.POWER_OFF)
+            task.driver.power.set_power_state(task, states.POWER_OFF)
 
             mock_power_off.assert_called_once_with(task.node)
 
@@ -368,27 +364,25 @@ class SeaMicroPowerDriverTestCase(db_base.DbTestCase):
 
         mock_power_off.return_value = states.POWER_ON
 
-        with task_manager.acquire(self.context, [info['uuid']],
+        with task_manager.acquire(self.context, info['uuid'],
                                   shared=False) as task:
             self.assertRaises(exception.PowerStateFailure,
-                              task.resources[0]
-                              .driver.power.set_power_state,
+                              task.driver.power.set_power_state,
                               task, states.POWER_OFF)
 
             mock_power_off.assert_called_once_with(task.node)
 
     def test_vendor_passthru_validate_good(self):
-        with task_manager.acquire(self.context, [self.node['uuid']],
+        with task_manager.acquire(self.context, self.node['uuid'],
                                   shared=True) as task:
             for method in seamicro.VENDOR_PASSTHRU_METHODS:
-                task.resources[0].driver.vendor.validate(
-                        task, **{'method': method})
+                task.driver.vendor.validate(task, **{'method': method})
 
     def test_vendor_passthru_validate_fail(self):
-        with task_manager.acquire(self.context, [self.node['uuid']],
+        with task_manager.acquire(self.context, self.node['uuid'],
                                   shared=True) as task:
             self.assertRaises(exception.InvalidParameterValue,
-                              task.resources[0].driver.vendor.validate,
+                              task.driver.vendor.validate,
                               task, **{'method': 'invalid_method'})
 
     @mock.patch.object(seamicro, '_get_server')
@@ -396,20 +390,19 @@ class SeaMicroPowerDriverTestCase(db_base.DbTestCase):
         info = seamicro._parse_driver_info(self.node)
         vlan_id = "12"
         mock_get_server.return_value = self.Server(active="true")
-        with task_manager.acquire(self.context, [info['uuid']],
+        with task_manager.acquire(self.context, info['uuid'],
                                   shared=False) as task:
             kwargs = {'vlan_id': vlan_id, 'method': 'set_node_vlan_id'}
-            task.resources[0].driver.vendor.\
-                vendor_passthru(task, **kwargs)
+            task.driver.vendor.vendor_passthru(task, **kwargs)
         mock_get_server.assert_called_once_with(info)
 
     def test_set_node_vlan_id_no_input(self):
         info = seamicro._parse_driver_info(self.node)
-        with task_manager.acquire(self.context, [info['uuid']],
+        with task_manager.acquire(self.context, info['uuid'],
                                   shared=False) as task:
             self.assertRaises(exception.InvalidParameterValue,
-                              task.resources[0].driver.vendor.
-                              vendor_passthru, task,
+                              task.driver.vendor.vendor_passthru,
+                              task,
                               **{'method': 'set_node_vlan_id'})
 
     @mock.patch.object(seamicro, '_get_server')
@@ -422,12 +415,13 @@ class SeaMicroPowerDriverTestCase(db_base.DbTestCase):
         server = self.Server(active="true")
         server.set_untagged_vlan = fake_set_untagged_vlan
         mock_get_server.return_value = server
-        with task_manager.acquire(self.context, [info['uuid']],
+        with task_manager.acquire(self.context, info['uuid'],
                                   shared=False) as task:
             kwargs = {'vlan_id': vlan_id, 'method': 'set_node_vlan_id'}
             self.assertRaises(exception.IronicException,
-                              task.resources[0].driver.vendor.
-                              vendor_passthru, task, **kwargs)
+                              task.driver.vendor.vendor_passthru,
+                              task,
+                              **kwargs)
 
         mock_get_server.assert_called_once_with(info)
 
@@ -439,11 +433,10 @@ class SeaMicroPowerDriverTestCase(db_base.DbTestCase):
         volume_id = '0/ironic-p6-1/vol1'
         mock_validate_volume.return_value = True
         mock_get_server.return_value = self.Server(active="true")
-        with task_manager.acquire(self.context, [info['uuid']],
+        with task_manager.acquire(self.context, info['uuid'],
                                   shared=False) as task:
             kwargs = {'volume_id': volume_id, 'method': 'attach_volume'}
-            task.resources[0].driver.vendor.\
-                vendor_passthru(task, **kwargs)
+            task.driver.vendor.vendor_passthru(task, **kwargs)
         mock_get_server.assert_called_once_with(info)
 
     @mock.patch.object(seamicro, '_get_server')
@@ -455,12 +448,13 @@ class SeaMicroPowerDriverTestCase(db_base.DbTestCase):
         volume_id = '0/p6-1/vol1'
         mock_get_volume.return_value = self.Volume(volume_id)
         mock_get_server.return_value = self.Server(active="true")
-        with task_manager.acquire(self.context, [info['uuid']],
+        with task_manager.acquire(self.context, info['uuid'],
                                   shared=False) as task:
             kwargs = {'volume_id': volume_id, 'method': 'attach_volume'}
             self.assertRaises(exception.InvalidParameterValue,
-                              task.resources[0].driver.vendor.
-                              vendor_passthru, task, **kwargs)
+                              task.driver.vendor.vendor_passthru,
+                              task,
+                              **kwargs)
 
     @mock.patch.object(seamicro, '_get_server')
     @mock.patch.object(seamicro, '_validate_volume')
@@ -475,12 +469,13 @@ class SeaMicroPowerDriverTestCase(db_base.DbTestCase):
         server = self.Server(active="true")
         server.attach_volume = fake_attach_volume
         mock_get_server.return_value = server
-        with task_manager.acquire(self.context, [info['uuid']],
+        with task_manager.acquire(self.context, info['uuid'],
                                   shared=False) as task:
             kwargs = {'volume_id': volume_id, 'method': 'attach_volume'}
             self.assertRaises(exception.IronicException,
-                              task.resources[0].driver.vendor.
-                              vendor_passthru, task, **kwargs)
+                              task.driver.vendor.vendor_passthru,
+                              task,
+                              **kwargs)
 
         mock_get_server.assert_called_once_with(info)
 
@@ -496,21 +491,19 @@ class SeaMicroPowerDriverTestCase(db_base.DbTestCase):
         mock_create_volume.return_value = volume_id
         mock_validate_volume.return_value = True
         mock_get_server.return_value = self.Server(active="true")
-        with task_manager.acquire(self.context, [info['uuid']],
+        with task_manager.acquire(self.context, info['uuid'],
                                   shared=False) as task:
             kwargs = {'volume_size': volume_size, 'method': "attach_volume"}
-            task.resources[0].driver.vendor.\
-                vendor_passthru(task, **kwargs)
+            task.driver.vendor.vendor_passthru(task, **kwargs)
         mock_get_server.assert_called_once_with(info)
         mock_create_volume.assert_called_once_with(info, volume_size)
 
     def test_attach_volume_with_no_input_fail(self):
         info = seamicro._parse_driver_info(self.node)
-        with task_manager.acquire(self.context, [info['uuid']],
+        with task_manager.acquire(self.context, info['uuid'],
                                   shared=False) as task:
             self.assertRaises(exception.InvalidParameterValue,
-                              task.resources[0].driver.vendor.
-                              vendor_passthru, task,
+                              task.driver.vendor.vendor_passthru, task,
                               **{'method': 'attach_volume'})
 
     @mock.patch.object(seamicro, '_get_server')
@@ -518,20 +511,18 @@ class SeaMicroPowerDriverTestCase(db_base.DbTestCase):
         info = seamicro._parse_driver_info(self.node)
         boot_device = "disk"
         mock_get_server.return_value = self.Server(active="true")
-        with task_manager.acquire(self.context, [info['uuid']],
+        with task_manager.acquire(self.context, info['uuid'],
                                   shared=False) as task:
             kwargs = {'device': boot_device, 'method': 'set_boot_device'}
-            task.resources[0].driver.vendor.\
-                vendor_passthru(task, **kwargs)
+            task.driver.vendor.vendor_passthru(task, **kwargs)
         mock_get_server.assert_called_once_with(info)
 
     def test_set_boot_device_no_input(self):
         info = seamicro._parse_driver_info(self.node)
-        with task_manager.acquire(self.context, [info['uuid']],
+        with task_manager.acquire(self.context, info['uuid'],
                                   shared=False) as task:
             self.assertRaises(exception.InvalidParameterValue,
-                              task.resources[0].driver.vendor.
-                              vendor_passthru, task,
+                              task.driver.vendor.vendor_passthru, task,
                               **{'method': 'set_boot_device'})
 
     @mock.patch.object(seamicro, '_get_server')
@@ -539,12 +530,13 @@ class SeaMicroPowerDriverTestCase(db_base.DbTestCase):
         info = seamicro._parse_driver_info(self.node)
         boot_device = "invalid_device"
         mock_get_server.return_value = self.Server(active="true")
-        with task_manager.acquire(self.context, [info['uuid']],
+        with task_manager.acquire(self.context, info['uuid'],
                                   shared=False) as task:
             kwargs = {'device': boot_device, 'method': 'set_boot_device'}
             self.assertRaises(exception.InvalidParameterValue,
-                              task.resources[0].driver.vendor.
-                              vendor_passthru, task, **kwargs)
+                              task.driver.vendor.vendor_passthru,
+                              task,
+                              **kwargs)
 
     @mock.patch.object(seamicro, '_get_server')
     def test_set_boot_device_fail(self, mock_get_server):
@@ -556,11 +548,12 @@ class SeaMicroPowerDriverTestCase(db_base.DbTestCase):
         server = self.Server(active="true")
         server.set_boot_order = fake_set_boot_order
         mock_get_server.return_value = server
-        with task_manager.acquire(self.context, [info['uuid']],
+        with task_manager.acquire(self.context, info['uuid'],
                                   shared=False) as task:
             kwargs = {'device': boot_device, 'method': 'set_boot_device'}
             self.assertRaises(exception.IronicException,
-                              task.resources[0].driver.vendor.
-                              vendor_passthru, task, **kwargs)
+                              task.driver.vendor.vendor_passthru,
+                              task,
+                              **kwargs)
 
         mock_get_server.assert_called_once_with(info)

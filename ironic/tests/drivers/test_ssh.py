@@ -573,10 +573,10 @@ class SSHDriverTestCase(db_base.DbTestCase):
         info = ssh._parse_driver_info(self.node)
 
         ssh_connect_mock.side_effect = exception.SSHConnectFailed(host='fake')
-        with task_manager.acquire(self.context, [info['uuid']],
+        with task_manager.acquire(self.context, info['uuid'],
                                   shared=False) as task:
             self.assertRaises(exception.InvalidParameterValue,
-                              task.resources[0].driver.power.validate,
+                              task.driver.power.validate,
                               task, self.node)
             driver_info = ssh._parse_driver_info(self.node)
             ssh_connect_mock.assert_called_once_with(driver_info)
@@ -588,10 +588,10 @@ class SSHDriverTestCase(db_base.DbTestCase):
                 uuid='aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee',
                 driver='fake_ssh',
                 driver_info=db_utils.get_test_ssh_info())
-        with task_manager.acquire(self.context, [new_node.uuid],
+        with task_manager.acquire(self.context, new_node.uuid,
                                   shared=True) as task:
             self.assertRaises(exception.InvalidParameterValue,
-                              task.resources[0].driver.power.validate,
+                              task.driver.power.validate,
                               task, new_node)
 
     @mock.patch.object(driver_utils, 'get_node_mac_addresses')
@@ -612,9 +612,9 @@ class SSHDriverTestCase(db_base.DbTestCase):
         with mock.patch.object(ssh,
                                '_parse_driver_info') as parse_drv_info_mock:
             parse_drv_info_mock.return_value = info
-            with task_manager.acquire(self.context, [info['uuid']],
+            with task_manager.acquire(self.context, info['uuid'],
                                       shared=False) as task:
-                task.resources[0].driver.power.reboot(task)
+                task.driver.power.reboot(task)
 
                 parse_drv_info_mock.assert_called_once_with(task.node)
                 get_mac_addr_mock.assert_called_once_with(mock.ANY)
@@ -642,11 +642,10 @@ class SSHDriverTestCase(db_base.DbTestCase):
         with mock.patch.object(ssh,
                                '_parse_driver_info') as parse_drv_info_mock:
             parse_drv_info_mock.return_value = info
-            with task_manager.acquire(self.context, [info['uuid']],
+            with task_manager.acquire(self.context, info['uuid'],
                                       shared=False) as task:
                 self.assertRaises(exception.PowerStateFailure,
-                                  task.resources[0].driver.power.reboot,
-                                  task)
+                                  task.driver.power.reboot, task)
                 parse_drv_info_mock.assert_called_once_with(task.node)
                 get_mac_addr_mock.assert_called_once_with(mock.ANY)
                 get_conn_mock.assert_called_once_with(task.node)
@@ -666,11 +665,11 @@ class SSHDriverTestCase(db_base.DbTestCase):
         with mock.patch.object(ssh,
                                '_parse_driver_info') as parse_drv_info_mock:
             parse_drv_info_mock.return_value = info
-            with task_manager.acquire(self.context, [info['uuid']],
+            with task_manager.acquire(self.context, info['uuid'],
                                       shared=False) as task:
                 self.assertRaises(
                     exception.InvalidParameterValue,
-                    task.resources[0].driver.power.set_power_state,
+                    task.driver.power.set_power_state,
                     task,
                     "BAD_PSTATE")
 
@@ -691,10 +690,9 @@ class SSHDriverTestCase(db_base.DbTestCase):
         with mock.patch.object(ssh,
                                '_parse_driver_info') as parse_drv_info_mock:
             parse_drv_info_mock.return_value = info
-            with task_manager.acquire(self.context, [info['uuid']],
+            with task_manager.acquire(self.context, info['uuid'],
                                       shared=False) as task:
-                task.resources[0].driver.power.set_power_state(task,
-                                                               states.POWER_ON)
+                task.driver.power.set_power_state(task, states.POWER_ON)
 
                 parse_drv_info_mock.assert_called_once_with(task.node)
                 get_mac_addr_mock.assert_called_once_with(mock.ANY)
@@ -714,11 +712,11 @@ class SSHDriverTestCase(db_base.DbTestCase):
         with mock.patch.object(ssh,
                                '_parse_driver_info') as parse_drv_info_mock:
             parse_drv_info_mock.return_value = info
-            with task_manager.acquire(self.context, [info['uuid']],
+            with task_manager.acquire(self.context, info['uuid'],
                                       shared=False) as task:
                 self.assertRaises(
                     exception.PowerStateFailure,
-                    task.resources[0].driver.power.set_power_state,
+                    task.driver.power.set_power_state,
                     task,
                     states.POWER_ON)
 
@@ -740,10 +738,9 @@ class SSHDriverTestCase(db_base.DbTestCase):
         with mock.patch.object(ssh,
                                '_parse_driver_info') as parse_drv_info_mock:
             parse_drv_info_mock.return_value = info
-            with task_manager.acquire(self.context, [info['uuid']],
+            with task_manager.acquire(self.context, info['uuid'],
                                       shared=False) as task:
-                task.resources[0].driver.power.set_power_state(
-                                                        task, states.POWER_OFF)
+                task.driver.power.set_power_state(task, states.POWER_OFF)
 
                 parse_drv_info_mock.assert_called_once_with(task.node)
                 get_mac_addr_mock.assert_called_once_with(mock.ANY)
@@ -763,11 +760,11 @@ class SSHDriverTestCase(db_base.DbTestCase):
         with mock.patch.object(ssh,
                                '_parse_driver_info') as parse_drv_info_mock:
             parse_drv_info_mock.return_value = info
-            with task_manager.acquire(self.context, [info['uuid']],
+            with task_manager.acquire(self.context, info['uuid'],
                                       shared=False) as task:
                 self.assertRaises(
                     exception.PowerStateFailure,
-                    task.resources[0].driver.power.set_power_state,
+                    task.driver.power.set_power_state,
                     task,
                     states.POWER_OFF)
 
