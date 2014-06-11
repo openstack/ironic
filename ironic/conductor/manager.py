@@ -60,6 +60,7 @@ from ironic.conductor import utils
 from ironic.db import api as dbapi
 from ironic import objects
 from ironic.openstack.common import excutils
+from ironic.openstack.common.gettextutils import _LI
 from ironic.openstack.common import lockutils
 from ironic.openstack.common import log
 from ironic.openstack.common import periodic_task
@@ -163,6 +164,9 @@ class ConductorManager(periodic_task.PeriodicTasks):
         try:
             self._keepalive_evt = threading.Event()
             self._spawn_worker(self._conductor_service_record_keepalive)
+            LOG.info(_LI('Successfuly started conductor with hostname '
+                         '%(hostname)s.'),
+                     {'hostname': self.host})
         except exception.NoFreeConductorWorker:
             with excutils.save_and_reraise_exception():
                 LOG.critical(_('Failed to start keepalive'))
@@ -172,6 +176,9 @@ class ConductorManager(periodic_task.PeriodicTasks):
         self._keepalive_evt.set()
         try:
             self.dbapi.unregister_conductor(self.host)
+            LOG.info(_LI('Successfully stopped conductor with hostname '
+                         '%(hostname)s.'),
+                     {'hostname': self.host})
         except exception.ConductorNotFound:
             pass
 
@@ -409,6 +416,9 @@ class ConductorManager(periodic_task.PeriodicTasks):
             if new_state == states.DEPLOYDONE:
                 node.target_provision_state = states.NOSTATE
                 node.provision_state = states.ACTIVE
+                LOG.info(_LI('Successfully deployed node %(node)s with '
+                             'instance %(instance)s.'),
+                         {'node': node.uuid, 'instance': node.instance_uuid})
             else:
                 node.provision_state = new_state
         finally:
@@ -476,6 +486,9 @@ class ConductorManager(periodic_task.PeriodicTasks):
             if new_state == states.DELETED:
                 node.target_provision_state = states.NOSTATE
                 node.provision_state = states.NOSTATE
+                LOG.info(_LI('Successfully unprovisioned node %(node)s with '
+                             'instance %(instance)s.'),
+                         {'node': node.uuid, 'instance': node.instance_uuid})
             else:
                 node.provision_state = new_state
         finally:
@@ -820,6 +833,8 @@ class ConductorManager(periodic_task.PeriodicTasks):
             # FIXME(comstud): Remove context argument after we ensure
             # every instantiation of Node includes the context
             node.destroy(context)
+            LOG.info(_LI('Successfully deleted node %(node)s.'),
+                     {'node': node.uuid})
 
     @messaging.expected_exceptions(exception.NodeLocked,
                                    exception.UnsupportedDriverExtension,

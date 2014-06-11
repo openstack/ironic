@@ -16,6 +16,7 @@ from ironic.common import exception
 from ironic.common import states
 from ironic.conductor import task_manager
 from ironic.openstack.common import excutils
+from ironic.openstack.common.gettextutils import _LI
 from ironic.openstack.common import log
 
 LOG = log.getLogger(__name__)
@@ -112,6 +113,9 @@ def node_power_action(task, state):
     else:
         # success!
         node['power_state'] = new_state
+        LOG.info(_LI('Succesfully set node %(node)s power state to '
+                     '%(state)s.'),
+                 {'node': node.uuid, 'state': new_state})
     finally:
         node['target_power_state'] = states.NOSTATE
         node.save(context)
