@@ -1018,7 +1018,7 @@ class ManagerTestCase(tests_db_base.DbTestCase):
             mock_sc.side_effect = exception.IronicException('test-error')
             self.service.set_console_mode(self.context, node.uuid, True)
             self.service._worker_pool.waitall()
-            mock_sc.assert_called_once_with(mock.ANY, mock.ANY)
+            mock_sc.assert_called_once_with(mock.ANY)
             node.refresh()
             self.assertIsNotNone(node.last_error)
 
@@ -1032,7 +1032,7 @@ class ManagerTestCase(tests_db_base.DbTestCase):
             mock_sc.side_effect = exception.IronicException('test-error')
             self.service.set_console_mode(self.context, node.uuid, False)
             self.service._worker_pool.waitall()
-            mock_sc.assert_called_once_with(mock.ANY, mock.ANY)
+            mock_sc.assert_called_once_with(mock.ANY)
             node.refresh()
             self.assertIsNotNone(node.last_error)
 

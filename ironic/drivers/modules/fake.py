@@ -136,13 +136,13 @@ class FakeConsole(base.ConsoleInterface):
     def validate(self, task, node):
         return True
 
-    def start_console(self, task, node):
+    def start_console(self, task):
         pass
 
-    def stop_console(self, task, node):
+    def stop_console(self, task):
         pass
 
-    def get_console(self, task, node):
+    def get_console(self, task):
         return {}
 
 

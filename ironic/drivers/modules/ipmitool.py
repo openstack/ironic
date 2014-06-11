@@ -416,9 +416,9 @@ class IPMIShellinaboxConsole(base.ConsoleInterface):
             raise exception.InvalidParameterValue(_(
                 "IPMI terminal port not supplied to IPMI driver."))
 
-    def start_console(self, task, node):
+    def start_console(self, task):
         """Start a remote console for the node."""
-        driver_info = _parse_driver_info(node)
+        driver_info = _parse_driver_info(task.node)
 
         path = _console_pwfile_path(driver_info['uuid'])
         pw_file = console_utils.make_persistent_password_file(
@@ -438,14 +438,14 @@ class IPMIShellinaboxConsole(base.ConsoleInterface):
                                                 driver_info['port'],
                                                 ipmi_cmd)
 
-    def stop_console(self, task, node):
+    def stop_console(self, task):
         """Stop the remote console session for the node."""
-        driver_info = _parse_driver_info(node)
+        driver_info = _parse_driver_info(task.node)
         console_utils.stop_shellinabox_console(driver_info['uuid'])
         utils.unlink_without_raise(_console_pwfile_path(driver_info['uuid']))
 
-    def get_console(self, task, node):
+    def get_console(self, task):
         """Get the type and connection information about the console."""
-        driver_info = _parse_driver_info(node)
+        driver_info = _parse_driver_info(task.node)
         url = console_utils.get_shellinabox_console_url(driver_info['port'])
         return {'type': 'shellinabox', 'url': url}
