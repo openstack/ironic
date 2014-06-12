@@ -44,7 +44,7 @@ Conceptual Architecture
      The following diagram shows the relationships and how all services come into play during the provisioning of a
      physical server.
 |
-.. figure:: ../images/conceptual_architecture.gif
+.. figure:: ../images/conceptual_architecture.png
    :alt: ConceptualArchitecture
 |
 |
@@ -57,7 +57,7 @@ Logical Architecture
 |
 |
 
-.. figure:: ../images/logical_architecture.gif
+.. figure:: ../images/logical_architecture.png
    :alt: Logical Architecture
 |
      The Ironic service is composed of the following components,
