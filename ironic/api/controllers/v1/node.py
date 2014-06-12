@@ -486,21 +486,26 @@ class NodesController(rest.RestController):
     vendor_passthru = NodeVendorPassthruController()
     "A resource used for vendors to expose a custom functionality in the API"
 
-    ports = port.PortsController(from_nodes=True)
+    ports = port.PortsController()
     "Expose ports as a sub-element of nodes"
+
+    # Set the flag to indicate that the requests to this resource are
+    # coming from a top-level resource
+    ports.from_nodes = True
+
+    from_chassis = False
+    """A flag to indicate if the requests to this controller are coming
+    from the top-level resource Chassis"""
 
     _custom_actions = {
         'detail': ['GET'],
         'validate': ['GET'],
     }
 
-    def __init__(self, from_chassis=False):
-        self._from_chassis = from_chassis
-
     def _get_nodes_collection(self, chassis_uuid, instance_uuid, associated,
                               maintenance, marker, limit, sort_key, sort_dir,
                               expand=False, resource_url=None):
-        if self._from_chassis and not chassis_uuid:
+        if self.from_chassis and not chassis_uuid:
             raise exception.InvalidParameterValue(_(
                   "Chassis id not specified."))
 
@@ -625,7 +630,7 @@ class NodesController(rest.RestController):
 
         :param node_uuid: UUID of a node.
         """
-        if self._from_chassis:
+        if self.from_chassis:
             raise exception.OperationNotPermitted
 
         rpc_node = objects.Node.get_by_uuid(pecan.request.context, node_uuid)
@@ -637,7 +642,7 @@ class NodesController(rest.RestController):
 
         :param node: a node within the request body.
         """
-        if self._from_chassis:
+        if self.from_chassis:
             raise exception.OperationNotPermitted
 
         # NOTE(deva): get_topic_for checks if node.driver is in the hash ring
@@ -671,7 +676,7 @@ class NodesController(rest.RestController):
         :param node_uuid: UUID of a node.
         :param patch: a json PATCH document to apply to this node.
         """
-        if self._from_chassis:
+        if self.from_chassis:
             raise exception.OperationNotPermitted
 
         rpc_node = objects.Node.get_by_uuid(pecan.request.context, node_uuid)
@@ -722,7 +727,7 @@ class NodesController(rest.RestController):
 
         :param node_uuid: UUID of a node.
         """
-        if self._from_chassis:
+        if self.from_chassis:
             raise exception.OperationNotPermitted
 
         rpc_node = objects.Node.get_by_uuid(pecan.request.context, node_uuid)

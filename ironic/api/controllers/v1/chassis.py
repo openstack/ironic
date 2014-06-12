@@ -133,8 +133,12 @@ class ChassisCollection(collection.Collection):
 class ChassisController(rest.RestController):
     """REST controller for Chassis."""
 
-    nodes = node.NodesController(from_chassis=True)
+    nodes = node.NodesController()
     "Expose nodes as a sub-element of chassis"
+
+    # Set the flag to indicate that the requests to this resource are
+    # coming from a top-level resource
+    nodes.from_chassis = True
 
     _custom_actions = {
         'detail': ['GET'],

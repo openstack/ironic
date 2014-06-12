@@ -155,17 +155,18 @@ class PortCollection(collection.Collection):
 class PortsController(rest.RestController):
     """REST controller for Ports."""
 
+    from_nodes = False
+    """A flag to indicate if the requests to this controller are coming
+    from the top-level resource Nodes."""
+
     _custom_actions = {
         'detail': ['GET'],
     }
 
-    def __init__(self, from_nodes=False):
-        self._from_nodes = from_nodes
-
     def _get_ports_collection(self, node_uuid, address, marker, limit,
                               sort_key, sort_dir, expand=False,
                               resource_url=None):
-        if self._from_nodes and not node_uuid:
+        if self.from_nodes and not node_uuid:
             raise exception.InvalidParameterValue(_(
                   "Node id not specified."))
 
@@ -262,7 +263,7 @@ class PortsController(rest.RestController):
 
         :param port_uuid: UUID of a port.
         """
-        if self._from_nodes:
+        if self.from_nodes:
             raise exception.OperationNotPermitted
 
         rpc_port = objects.Port.get_by_uuid(pecan.request.context, port_uuid)
@@ -274,7 +275,7 @@ class PortsController(rest.RestController):
 
         :param port: a port within the request body.
         """
-        if self._from_nodes:
+        if self.from_nodes:
             raise exception.OperationNotPermitted
 
         new_port = pecan.request.dbapi.create_port(port.as_dict())
@@ -290,7 +291,7 @@ class PortsController(rest.RestController):
         :param port_uuid: UUID of a port.
         :param patch: a json PATCH document to apply to this port.
         """
-        if self._from_nodes:
+        if self.from_nodes:
             raise exception.OperationNotPermitted
 
         rpc_port = objects.Port.get_by_uuid(pecan.request.context, port_uuid)
@@ -319,7 +320,7 @@ class PortsController(rest.RestController):
 
         :param port_uuid: UUID of a port.
         """
-        if self._from_nodes:
+        if self.from_nodes:
             raise exception.OperationNotPermitted
 
         pecan.request.dbapi.destroy_port(port_uuid)
