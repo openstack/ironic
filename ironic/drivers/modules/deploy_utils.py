@@ -200,8 +200,65 @@ def get_image_mb(image_path):
     return image_mb
 
 
+def get_dev_block_size(dev):
+    """Get the device size in 512 byte sectors."""
+    block_sz, cmderr = utils.execute('blockdev', '--getsz', dev,
+                                     run_as_root=True, check_exit_code=[0])
+    return int(block_sz)
+
+
+def destroy_disk_metadata(dev, node_uuid):
+    """Destroy metadata structures on node's disk.
+
+       Ensure that node's disk appears to be blank without zeroing the entire
+       drive. To do this we will zero:
+       - the first 18KiB to clear MBR / GPT data
+       - the last 18KiB to clear GPT and other metadata like: LVM, veritas,
+         MDADM, DMRAID, ...
+    """
+    # NOTE(NobodyCam): This is needed to work around bug:
+    # https://bugs.launchpad.net/ironic/+bug/1317647
+    try:
+        utils.execute('dd', 'if=/dev/zero', 'of=%s' % dev,
+                      'bs=512', 'count=36', run_as_root=True,
+                      check_exit_code=[0])
+    except processutils.ProcessExecutionError as err:
+        with excutils.save_and_reraise_exception():
+            LOG.error(_("Failed to erase beginning of disk for node "
+                        "%(node)s. Command: %(command)s. Error: %(error)s."),
+                      {'node': node_uuid,
+                       'command': err.cmd,
+                       'error': err.stderr})
+
+    # now wipe the end of the disk.
+    # get end of disk seek value
+    try:
+        block_sz = get_dev_block_size(dev)
+    except processutils.ProcessExecutionError as err:
+        with excutils.save_and_reraise_exception():
+            LOG.error(_("Failed to get disk block count for node %(node)s. "
+                        "Command: %(command)s. Error: %(error)s."),
+                      {'node': node_uuid,
+                       'command': err.cmd,
+                       'error': err.stderr})
+    else:
+        seek_value = block_sz - 36
+        try:
+            utils.execute('dd', 'if=/dev/zero', 'of=%s' % dev,
+                          'bs=512', 'count=36', 'seek=%d' % seek_value,
+                          run_as_root=True, check_exit_code=[0])
+        except processutils.ProcessExecutionError as err:
+            with excutils.save_and_reraise_exception():
+                LOG.error(_("Failed to erase the end of the disk on node "
+                            "%(node)s. Command: %(command)s. "
+                            "Error: %(error)s."),
+                          {'node': node_uuid,
+                           'command': err.cmd,
+                           'error': err.stderr})
+
+
 def work_on_disk(dev, root_mb, swap_mb, ephemeral_mb, ephemeral_format,
-                 image_path, preserve_ephemeral=False):
+                 image_path, node_uuid, preserve_ephemeral=False):
     """Create partitions and copy an image to the root partition.
 
     :param dev: Path for the device to work on.
@@ -212,6 +269,7 @@ def work_on_disk(dev, root_mb, swap_mb, ephemeral_mb, ephemeral_format,
     :param ephemeral_format: The type of file system to format the ephemeral
         partition.
     :param image_path: Path for the instance's disk image.
+    :param node_uuid: node's uuid. Used for logging.
     :param preserve_ephemeral: If True, no filesystem is written to the
         ephemeral block device, preserving whatever content it had (if the
         partition table has not changed).
@@ -224,6 +282,9 @@ def work_on_disk(dev, root_mb, swap_mb, ephemeral_mb, ephemeral_format,
     # the only way for preserve_ephemeral to be set to true is if we are
     # rebuilding an instance with --preserve_ephemeral.
     commit = not preserve_ephemeral
+    # now if we are committing the changes to disk clean first.
+    if commit:
+        destroy_disk_metadata(dev, node_uuid)
     part_dict = make_partitions(dev, root_mb, swap_mb, ephemeral_mb,
                                 commit=commit)
 
@@ -258,7 +319,7 @@ def work_on_disk(dev, root_mb, swap_mb, ephemeral_mb, ephemeral_format,
 
 
 def deploy(address, port, iqn, lun, image_path, pxe_config_path,
-           root_mb, swap_mb, ephemeral_mb, ephemeral_format,
+           root_mb, swap_mb, ephemeral_mb, ephemeral_format, node_uuid,
            preserve_ephemeral=False):
     """All-in-one function to deploy a node.
 
@@ -274,6 +335,7 @@ def deploy(address, port, iqn, lun, image_path, pxe_config_path,
         no ephemeral partition will be created.
     :param ephemeral_format: The type of file system to format the ephemeral
         partition.
+    :param node_uuid: node's uuid. Used for logging.
     :param preserve_ephemeral: If True, no filesystem is written to the
         ephemeral block device, preserving whatever content it had (if the
         partition table has not changed).
@@ -287,7 +349,7 @@ def deploy(address, port, iqn, lun, image_path, pxe_config_path,
     login_iscsi(address, port, iqn)
     try:
         root_uuid = work_on_disk(dev, root_mb, swap_mb, ephemeral_mb,
-                                 ephemeral_format, image_path,
+                                 ephemeral_format, image_path, node_uuid,
                                  preserve_ephemeral)
     except processutils.ProcessExecutionError as err:
         with excutils.save_and_reraise_exception():
