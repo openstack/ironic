@@ -71,7 +71,6 @@ LOG = log.getLogger(__name__)
 
 conductor_opts = [
         cfg.StrOpt('api_url',
-                   default=None,
                    help=('URL of Ironic API service. If not set ironic can '
                          'get the current value from the keystone service '
                          'catalog.')),
