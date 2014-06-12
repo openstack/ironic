@@ -440,6 +440,39 @@ class IronicDriverTestCase(test.NoDBTestCase):
             interval=CONF.ironic.api_retry_interval)
         fake_looping_call.wait.assert_called_once()
 
+    @mock.patch.object(loopingcall, 'FixedIntervalLoopingCall')
+    @mock.patch.object(FAKE_CLIENT, 'node')
+    @mock.patch.object(flavor_obj, 'get_by_id')
+    @mock.patch.object(ironic_driver.IronicDriver, 'destroy')
+    @mock.patch.object(ironic_driver.IronicDriver, '_wait_for_active')
+    @mock.patch.object(ironic_driver.IronicDriver, '_add_driver_fields')
+    @mock.patch.object(ironic_driver.IronicDriver, '_plug_vifs')
+    @mock.patch.object(ironic_driver.IronicDriver, '_start_firewall')
+    def test_spawn_destroyed_after_failure(self, mock_sf, mock_pvifs, mock_adf,
+                                           mock_wait_active, mock_destroy,
+                                           mock_fg_bid, mock_node,
+                                           mock_looping):
+        node_uuid = 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee'
+        node = ironic_utils.get_test_node(driver='fake', uuid=node_uuid)
+        instance = fake_instance.fake_instance_obj(self.ctx, node=node_uuid)
+        fake_flavor = { 'ephemeral_gb': 0 }
+
+        mock_node.get.return_value = node
+        mock_node.validate.return_value = ironic_utils.get_test_validation()
+        mock_node.get_by_instance_uuid.return_value = node
+        mock_node.set_provision_state.return_value = mock.MagicMock()
+        mock_fg_bid.return_value = fake_flavor
+
+        fake_looping_call = FakeLoopingCall()
+        mock_looping.return_value = fake_looping_call
+
+        deploy_exc = exception.InstanceDeployFailure('foo')
+        fake_looping_call.wait.side_effect = deploy_exc
+        self.assertRaises(
+            exception.InstanceDeployFailure,
+            self.driver.spawn, self.ctx, instance, None, [], None)
+        mock_destroy.assert_called_once_with(self.ctx, instance, None)
+
     @mock.patch.object(FAKE_CLIENT.node, 'update')
     def test__add_driver_fields_good(self, mock_update):
         node = ironic_utils.get_test_node(driver='fake')

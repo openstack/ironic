@@ -450,7 +450,15 @@ class IronicDriver(virt_driver.ComputeDriver):
 
         timer = loopingcall.FixedIntervalLoopingCall(self._wait_for_active,
                                                      icli, instance)
-        timer.start(interval=CONF.ironic.api_retry_interval).wait()
+        try:
+            timer.start(interval=CONF.ironic.api_retry_interval).wait()
+        except exception.InstanceDeployFailure:
+            with excutils.save_and_reraise_exception():
+                LOG.error(_("Error deploying instance %(instance)s on "
+                            "baremetal node %(node)s.") %
+                          {'instance': instance['uuid'],
+                           'node': node_uuid})
+                self.destroy(context, instance, network_info)
 
     def _unprovision(self, icli, instance, node):
         """This method is called from destroy() to unprovision
