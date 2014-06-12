@@ -407,6 +407,13 @@ class IronicDriver(virt_driver.ComputeDriver):
                                              instance['instance_type_id'])
         self._add_driver_fields(node, instance, image_meta, flavor)
 
+        # NOTE(Shrews): The default ephemeral device needs to be set for
+        # services (like cloud-init) that depend on it being returned by the
+        # metadata server. Addresses bug https://launchpad.net/bugs/1324286.
+        if flavor['ephemeral_gb']:
+            instance.default_ephemeral_device = '/dev/sda1'
+            instance.save()
+
         #validate we ready to do the deploy
         validate_chk = icli.call("node.validate", node_uuid)
         if not validate_chk.deploy or not validate_chk.power:
