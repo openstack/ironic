@@ -14,23 +14,27 @@
 #    under the License.
 
 import mock
+from oslo.config import cfg
 
 from ironic.nova.tests.virt.ironic import utils as ironic_utils
 from ironic.nova.virt.ironic import client_wrapper
+from ironicclient import client as ironic_client
 
 from nova import test
+
+CONF = cfg.CONF
 
 FAKE_CLIENT = ironic_utils.FakeClient()
 
 
-@mock.patch.object(client_wrapper.IronicClientWrapper, '_multi_getattr')
-@mock.patch.object(client_wrapper.IronicClientWrapper, '_get_client')
 class IronicClientWrapperTestCase(test.NoDBTestCase):
 
     def setUp(self):
         super(IronicClientWrapperTestCase, self).setUp()
         self.icli = client_wrapper.IronicClientWrapper()
 
+    @mock.patch.object(client_wrapper.IronicClientWrapper, '_multi_getattr')
+    @mock.patch.object(client_wrapper.IronicClientWrapper, '_get_client')
     def test_call_good_no_args(self, mock_get_client, mock_multi_getattr):
         mock_get_client.return_value = FAKE_CLIENT
         self.icli.call("node.list")
@@ -38,6 +42,8 @@ class IronicClientWrapperTestCase(test.NoDBTestCase):
         mock_multi_getattr.assert_called_once_with(FAKE_CLIENT, "node.list")
         mock_multi_getattr.return_value.assert_called_once_with()
 
+    @mock.patch.object(client_wrapper.IronicClientWrapper, '_multi_getattr')
+    @mock.patch.object(client_wrapper.IronicClientWrapper, '_get_client')
     def test_call_good_with_args(self, mock_get_client, mock_multi_getattr):
         mock_get_client.return_value = FAKE_CLIENT
         self.icli.call("node.list", 'test', associated=True)
@@ -45,3 +51,29 @@ class IronicClientWrapperTestCase(test.NoDBTestCase):
         mock_multi_getattr.assert_called_once_with(FAKE_CLIENT, "node.list")
         mock_multi_getattr.return_value.assert_called_once_with('test',
                                                                associated=True)
+
+    @mock.patch.object(ironic_client, 'get_client')
+    def test__get_client_no_auth_token(self, mock_ir_cli):
+        self.flags(admin_auth_token=None, group='ironic')
+        icli = client_wrapper.IronicClientWrapper()
+        # dummy call to have _get_client() called
+        icli.call("node.list")
+        expected = {'os_username': CONF.ironic.admin_username,
+                    'os_password': CONF.ironic.admin_password,
+                    'os_auth_url': CONF.ironic.admin_url,
+                    'os_tenant_name': CONF.ironic.admin_tenant_name,
+                    'os_service_type': 'baremetal',
+                    'os_endpoint_type': 'public'}
+        mock_ir_cli.assert_called_once_with(CONF.ironic.api_version,
+                                            **expected)
+
+    @mock.patch.object(ironic_client, 'get_client')
+    def test__get_client_with_auth_token(self, mock_ir_cli):
+        self.flags(admin_auth_token='fake-token', group='ironic')
+        icli = client_wrapper.IronicClientWrapper()
+        # dummy call to have _get_client() called
+        icli.call("node.list")
+        expected = {'os_auth_token': 'fake-token',
+                    'ironic_url': CONF.ironic.api_endpoint}
+        mock_ir_cli.assert_called_once_with(CONF.ironic.api_version,
+                                            **expected)
