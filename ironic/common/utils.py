@@ -62,7 +62,8 @@ def execute(*cmd, **kwargs):
     if kwargs.get('run_as_root') and not 'root_helper' in kwargs:
         kwargs['root_helper'] = _get_root_helper()
     result = processutils.execute(*cmd, **kwargs)
-    LOG.debug('Execution completed, command line is "%s"', ' '.join(cmd))
+    LOG.debug('Execution completed, command line is "%s"',
+              ' '.join(map(str, cmd)))
     LOG.debug('Command stdout is: "%s"' % result[0])
     LOG.debug('Command stderr is: "%s"' % result[1])
     return result
