@@ -340,3 +340,14 @@ PXE needs to be set up.
      ubuntu: /usr/lib/syslinux/pxelinux.0
      fedora/RHEL: /usr/share/syslinux/pxelinux.0
 
+IPMI support
+------------
+
+If using the IPMITool driver, the ``ipmitool`` command must be present on the
+service node(s) where ``ironic-conductor`` is running. On most distros, this
+is provided as part of the ``ipmitool`` package. Source code is available at
+http://ipmitool.sourceforge.net/
+
+Note that certain distros, notably Mac OS X and SLES, install ``openipmi``
+instead of ``ipmitool`` by default. THIS DRIVER IS NOT COMPATIBLE WITH
+``openipmi`` AS IT RELIES ON ERROR HANDLING OPTIONS NOT PROVIDED BY THIS TOOL.

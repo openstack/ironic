@@ -706,6 +706,12 @@
 # value)
 #retry_timeout=60
 
+# Minimum time, in seconds, between IPMI operations sent to a
+# server. There is a risk with some hardware that setting this
+# too low may cause the BMC to crash. Recommended setting is 5
+# seconds. (integer value)
+#min_command_interval=5
+
 
 [keystone_authtoken]
 

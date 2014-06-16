@@ -28,6 +28,7 @@ import sys
 
 import mock
 
+from ironic.drivers.modules import ipmitool
 from ironic.openstack.common import importutils
 
 
@@ -47,3 +48,9 @@ if not seamicroclient:
 # the external library has been mocked
 if 'ironic.drivers.modules.seamicro' in sys.modules:
     reload(sys.modules['ironic.drivers.modules.seamicro'])
+
+
+# IPMITool driver checks the system for presense of 'ipmitool' binary during
+# __init__. We bypass that check in order to run the unit tests, which do not
+# depend on 'ipmitool' being on the system.
+ipmitool.TIMING_SUPPORT = False

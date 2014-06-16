@@ -47,6 +47,42 @@ CONF = cfg.CONF
 INFO_DICT = db_utils.get_test_ipmi_info()
 
 
+class IPMIToolCheckTimingTestCase(base.TestCase):
+
+    @mock.patch.object(ipmi, '_is_timing_supported')
+    @mock.patch.object(utils, 'execute')
+    def test_check_timing_pass(self, mock_exc, mock_timing):
+        mock_exc.return_value = (None, None)
+        mock_timing.return_value = None
+        expected = [mock.call(), mock.call(True)]
+
+        ipmi.check_timing_support()
+        self.assertTrue(mock_exc.called)
+        self.assertEqual(expected, mock_timing.call_args_list)
+
+    @mock.patch.object(ipmi, '_is_timing_supported')
+    @mock.patch.object(utils, 'execute')
+    def test_check_timing_fail(self, mock_exc, mock_timing):
+        mock_exc.side_effect = processutils.ProcessExecutionError()
+        mock_timing.return_value = None
+        expected = [mock.call(), mock.call(False)]
+
+        ipmi.check_timing_support()
+        self.assertTrue(mock_exc.called)
+        self.assertEqual(expected, mock_timing.call_args_list)
+
+    @mock.patch.object(ipmi, '_is_timing_supported')
+    @mock.patch.object(utils, 'execute')
+    def test_check_timing_no_ipmitool(self, mock_exc, mock_timing):
+        mock_exc.side_effect = OSError()
+        mock_timing.return_value = None
+        expected = [mock.call()]
+
+        self.assertRaises(OSError, ipmi.check_timing_support)
+        self.assertTrue(mock_exc.called)
+        self.assertEqual(expected, mock_timing.call_args_list)
+
+
 class IPMIToolPrivateMethodTestCase(base.TestCase):
 
     def setUp(self):
@@ -104,9 +140,11 @@ class IPMIToolPrivateMethodTestCase(base.TestCase):
                           ipmi._parse_driver_info,
                           node)
 
+    @mock.patch.object(ipmi, '_is_timing_supported')
     @mock.patch.object(ipmi, '_make_password_file', autospec=True)
     @mock.patch.object(utils, 'execute', autospec=True)
-    def test__exec_ipmitool(self, mock_exec, mock_pwf):
+    def test__exec_ipmitool_without_timing(self, mock_exec, mock_pwf,
+            mock_timing_support):
         pw_file_handle = tempfile.NamedTemporaryFile()
         pw_file = pw_file_handle.name
         file_handle = open(pw_file, "w")
@@ -120,18 +158,20 @@ class IPMIToolPrivateMethodTestCase(base.TestCase):
             'A', 'B', 'C',
             ]
 
+        mock_timing_support.return_value = False
         mock_pwf.return_value = file_handle
         mock_exec.return_value = (None, None)
 
         ipmi._exec_ipmitool(self.info, 'A B C')
 
         mock_pwf.assert_called_once_with(self.info['password'])
-        mock_exec.assert_called_once_with(*args, attempts=3)
+        mock_exec.assert_called_once_with(*args)
 
+    @mock.patch.object(ipmi, '_is_timing_supported')
     @mock.patch.object(ipmi, '_make_password_file', autospec=True)
     @mock.patch.object(utils, 'execute', autospec=True)
-    def test__exec_ipmitool_without_password(self, mock_exec, mock_pwf):
-        self.info['password'] = None
+    def test__exec_ipmitool_with_timing(self, mock_exec, mock_pwf,
+            mock_timing_support):
         pw_file_handle = tempfile.NamedTemporaryFile()
         pw_file = pw_file_handle.name
         file_handle = open(pw_file, "w")
@@ -141,19 +181,26 @@ class IPMIToolPrivateMethodTestCase(base.TestCase):
             '-H', self.info['address'],
             '-L', self.info['priv_level'],
             '-U', self.info['username'],
+            '-R', '12',
+            '-N', '5',
             '-f', file_handle,
             'A', 'B', 'C',
             ]
 
+        mock_timing_support.return_value = True
         mock_pwf.return_value = file_handle
         mock_exec.return_value = (None, None)
-        ipmi._exec_ipmitool(self.info, 'A B C')
-        self.assertTrue(mock_pwf.called)
-        mock_exec.assert_called_once_with(*args, attempts=3)
 
+        ipmi._exec_ipmitool(self.info, 'A B C')
+
+        mock_pwf.assert_called_once_with(self.info['password'])
+        mock_exec.assert_called_once_with(*args)
+
+    @mock.patch.object(ipmi, '_is_timing_supported')
     @mock.patch.object(ipmi, '_make_password_file', autospec=True)
     @mock.patch.object(utils, 'execute', autospec=True)
-    def test__exec_ipmitool_without_username(self, mock_exec, mock_pwf):
+    def test__exec_ipmitool_without_username(self, mock_exec, mock_pwf,
+            mock_timing_support):
         self.info['username'] = None
         pw_file_handle = tempfile.NamedTemporaryFile()
         pw_file = pw_file_handle.name
@@ -167,15 +214,18 @@ class IPMIToolPrivateMethodTestCase(base.TestCase):
             'A', 'B', 'C',
             ]
 
+        mock_timing_support.return_value = False
         mock_pwf.return_value = file_handle
         mock_exec.return_value = (None, None)
         ipmi._exec_ipmitool(self.info, 'A B C')
         self.assertTrue(mock_pwf.called)
-        mock_exec.assert_called_once_with(*args, attempts=3)
+        mock_exec.assert_called_once_with(*args)
 
+    @mock.patch.object(ipmi, '_is_timing_supported')
     @mock.patch.object(ipmi, '_make_password_file', autospec=True)
     @mock.patch.object(utils, 'execute', autospec=True)
-    def test__exec_ipmitool_exception(self, mock_exec, mock_pwf):
+    def test__exec_ipmitool_exception(self, mock_exec, mock_pwf,
+            mock_timing_support):
         pw_file_handle = tempfile.NamedTemporaryFile()
         pw_file = pw_file_handle.name
         file_handle = open(pw_file, "w")
@@ -189,13 +239,14 @@ class IPMIToolPrivateMethodTestCase(base.TestCase):
             'A', 'B', 'C',
             ]
 
+        mock_timing_support.return_value = False
         mock_pwf.return_value = file_handle
         mock_exec.side_effect = processutils.ProcessExecutionError("x")
         self.assertRaises(processutils.ProcessExecutionError,
                           ipmi._exec_ipmitool,
                           self.info, 'A B C')
         mock_pwf.assert_called_once_with(self.info['password'])
-        mock_exec.assert_called_once_with(*args, attempts=3)
+        mock_exec.assert_called_once_with(*args)
 
     @mock.patch.object(ipmi, '_exec_ipmitool', autospec=True)
     def test__power_status_on(self, mock_exec):
