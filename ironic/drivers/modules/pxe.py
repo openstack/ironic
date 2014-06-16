@@ -700,8 +700,6 @@ class VendorPassthru(base.VendorInterface):
                 "Unsupported method (%s) passed to PXE driver.")
                 % method)
 
-        return True
-
     @task_manager.require_exclusive_lock
     def _continue_deploy(self, task, **kwargs):
         """Resume a deployment upon getting POST data from deploy ramdisk.

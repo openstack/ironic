@@ -390,8 +390,6 @@ class VendorPassthru(base.VendorInterface):
                 "Unsupported method (%s) passed to IPMItool driver.")
                 % method)
 
-        return True
-
     def vendor_passthru(self, task, **kwargs):
         method = kwargs['method']
         if method == 'set_boot_device':

@@ -387,7 +387,7 @@ class VendorPassthru(base.VendorInterface):
     def validate(self, task, **kwargs):
         method = kwargs['method']
         if method in VENDOR_PASSTHRU_METHODS:
-            return True
+            return
         else:
             raise exception.InvalidParameterValue(_(
                 "Unsupported method (%s) passed to SeaMicro driver.")

@@ -134,7 +134,7 @@ class FakeConsole(base.ConsoleInterface):
     """Example implementation of a simple console interface."""
 
     def validate(self, task, node):
-        return True
+        pass
 
     def start_console(self, task):
         pass
@@ -150,7 +150,7 @@ class FakeManagement(base.ManagementInterface):
     """Example implementation of a simple management interface."""
 
     def validate(self, task, node):
-        return True
+        pass
 
     def get_supported_boot_devices(self):
         return [boot_devices.PXE]
