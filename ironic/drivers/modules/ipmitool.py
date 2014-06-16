@@ -463,6 +463,7 @@ class VendorPassthru(base.VendorInterface):
             raise exception.InvalidParameterValue(_(
                 "Unsupported method (%s) passed to IPMItool driver.")
                 % method)
+        _parse_driver_info(task.node)
 
     def vendor_passthru(self, task, **kwargs):
         method = kwargs['method']
