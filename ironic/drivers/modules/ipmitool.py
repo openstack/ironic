@@ -460,6 +460,62 @@ class VendorPassthru(base.VendorInterface):
         except Exception:
             raise exception.IPMIFailure(cmd=cmd)
 
+    @task_manager.require_exclusive_lock
+    def _send_raw_bytes(self, task, raw_bytes):
+        """Send raw bytes to the BMC. Bytes should be a string of bytes.
+
+        :param task: a TaskManager instance.
+        :param raw_bytes: a string of raw bytes to send, e.g. '0x00 0x01'
+        :raises: IPMIFailure on an error from ipmitool.
+
+        """
+        node_uuid = task.node.uuid
+        LOG.debug('Sending node %(node)s raw bytes %(bytes)s',
+                  {'bytes': raw_bytes, 'node': node_uuid})
+        driver_info = _parse_driver_info(task.node)
+        cmd = 'raw %s' % raw_bytes
+
+        try:
+            out, err = _exec_ipmitool(driver_info, cmd)
+            LOG.debug('send raw bytes returned stdout: %(stdout)s, stderr:'
+                      ' %(stderr)s', {'stdout': out, 'stderr': err})
+        except Exception as e:
+            LOG.exception(_('IPMI "raw bytes" failed for node %(node_id)s '
+                          'with error: %(error)s.'),
+                          {'node_id': node_uuid, 'error': e})
+            raise exception.IPMIFailure(cmd=cmd)
+
+    @task_manager.require_exclusive_lock
+    def _bmc_reset(self, task, warm=True):
+        """Reset BMC with IPMI command 'bmc reset (warm|cold)'.
+
+        :param task: a TaskManager instance.
+        :param warm: boolean parameter to decide on warm or cold reset.
+        :raises: IPMIFailure on an error from ipmitool.
+
+        """
+        node_uuid = task.node.uuid
+
+        if warm:
+            warm_param = 'warm'
+        else:
+            warm_param = 'cold'
+
+        LOG.debug('Doing %(warm)s BMC reset on node %(node)s',
+                  {'warm': warm_param, 'node': node_uuid})
+        driver_info = _parse_driver_info(task.node)
+        cmd = 'bmc reset %s' % warm_param
+
+        try:
+            out, err = _exec_ipmitool(driver_info, cmd)
+            LOG.debug('bmc reset returned stdout: %(stdout)s, stderr:'
+                      ' %(stderr)s', {'stdout': out, 'stderr': err})
+        except Exception as e:
+            LOG.exception(_('IPMI "bmc reset" failed for node %(node_id)s '
+                          'with error: %(error)s.'),
+                          {'node_id': node_uuid, 'error': e})
+            raise exception.IPMIFailure(cmd=cmd)
+
     def validate(self, task, **kwargs):
         method = kwargs['method']
         if method == 'set_boot_device':
@@ -467,6 +523,14 @@ class VendorPassthru(base.VendorInterface):
             if device not in VALID_BOOT_DEVICES:
                 raise exception.InvalidParameterValue(_(
                     "Invalid boot device %s specified.") % device)
+        elif method == 'send_raw':
+            if not kwargs.get('raw_bytes'):
+                raise exception.InvalidParameterValue(_(
+                    'Parameter raw_bytes (string of bytes) was not '
+                    'specified.'))
+        elif method == 'bmc_reset':
+            # no additional parameters needed
+            pass
         else:
             raise exception.InvalidParameterValue(_(
                 "Unsupported method (%s) passed to IPMItool driver.")
@@ -480,6 +544,12 @@ class VendorPassthru(base.VendorInterface):
                         task,
                         kwargs.get('device'),
                         kwargs.get('persistent', False))
+        elif method == 'send_raw':
+            return self._send_raw_bytes(task,
+                                        kwargs.get('raw_bytes'))
+        elif method == 'bmc_reset':
+            return self._bmc_reset(task,
+                                   warm=kwargs.get('warm', True))
 
 
 class IPMIShellinaboxConsole(base.ConsoleInterface):

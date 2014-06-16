@@ -583,6 +583,57 @@ class IPMIToolDriverTestCase(db_base.DbTestCase):
                     task,
                     'fake-device')
 
+    @mock.patch.object(ipmi, '_exec_ipmitool', autospec=True)
+    def test__send_raw_bytes_ok(self, mock_exec):
+        mock_exec.return_value = [None, None]
+
+        with task_manager.acquire(self.context,
+                                  self.node['uuid']) as task:
+            self.driver.vendor._send_raw_bytes(task, '0x00 0x01')
+
+        mock_exec.assert_called_once_with(self.info, 'raw 0x00 0x01')
+
+    @mock.patch.object(ipmi, '_exec_ipmitool', autospec=True)
+    def test__send_raw_bytes_fail(self, mock_exec):
+        mock_exec.side_effect = Exception
+
+        with task_manager.acquire(self.context,
+                                  self.node['uuid']) as task:
+            self.assertRaises(exception.IPMIFailure,
+                              self.driver.vendor._send_raw_bytes,
+                              task,
+                              '0x00 0x01')
+
+    @mock.patch.object(ipmi, '_exec_ipmitool', autospec=True)
+    def test__bmc_reset_ok(self, mock_exec):
+        mock_exec.return_value = [None, None]
+
+        with task_manager.acquire(self.context,
+                                  self.node['uuid']) as task:
+            self.driver.vendor._bmc_reset(task)
+
+        mock_exec.assert_called_once_with(self.info, 'bmc reset warm')
+
+    @mock.patch.object(ipmi, '_exec_ipmitool', autospec=True)
+    def test__bmc_reset_cold(self, mock_exec):
+        mock_exec.return_value = [None, None]
+
+        with task_manager.acquire(self.context,
+                                  self.node['uuid']) as task:
+            self.driver.vendor._bmc_reset(task, warm=False)
+
+        mock_exec.assert_called_once_with(self.info, 'bmc reset cold')
+
+    @mock.patch.object(ipmi, '_exec_ipmitool', autospec=True)
+    def test__bmc_reset_fail(self, mock_exec):
+        mock_exec.side_effect = Exception
+
+        with task_manager.acquire(self.context,
+                                  self.node['uuid']) as task:
+            self.assertRaises(exception.IPMIFailure,
+                              self.driver.vendor._bmc_reset,
+                              task)
+
     @mock.patch.object(ipmi, '_power_off', autospec=False)
     @mock.patch.object(ipmi, '_power_on', autospec=False)
     def test_reboot_ok(self, mock_on, mock_off):
@@ -670,6 +721,70 @@ class IPMIToolDriverTestCase(db_base.DbTestCase):
                                                method='set_boot_device',
                                                device='pxe')
             boot_mock.assert_called_once_with(task, 'pxe', False)
+
+    def test_vendor_passthru_validate__send_raw_bytes_good(self):
+        with task_manager.acquire(self.context, self.node['uuid']) as task:
+            self.driver.vendor.validate(task,
+                                        method='send_raw',
+                                        raw_bytes='0x00 0x01')
+
+    def test_vendor_passthru_validate__send_raw_bytes_fail(self):
+        with task_manager.acquire(self.context, self.node['uuid']) as task:
+            self.assertRaises(exception.InvalidParameterValue,
+                              self.driver.vendor.validate,
+                              task, method='send_raw')
+
+    @mock.patch.object(ipmi.VendorPassthru, '_send_raw_bytes')
+    def test_vendor_passthru_call_send_raw_bytes(self, raw_bytes_mock):
+        with task_manager.acquire(self.context, self.node['uuid'],
+                                  shared=False) as task:
+            self.driver.vendor.vendor_passthru(task,
+                                               method='send_raw',
+                                               raw_bytes='0x00 0x01')
+            raw_bytes_mock.assert_called_once_with(task, '0x00 0x01')
+
+    def test_vendor_passthru_validate__bmc_reset_good(self):
+        with task_manager.acquire(self.context, self.node['uuid']) as task:
+            self.driver.vendor.validate(task,
+                                        method='bmc_reset')
+
+    def test_vendor_passthru_validate__bmc_reset_warm_good(self):
+        with task_manager.acquire(self.context, self.node['uuid']) as task:
+            self.driver.vendor.validate(task,
+                                        method='bmc_reset',
+                                        warm=True)
+
+    def test_vendor_passthru_validate__bmc_reset_cold_good(self):
+        with task_manager.acquire(self.context, self.node['uuid']) as task:
+            self.driver.vendor.validate(task,
+                                        method='bmc_reset',
+                                        warm=False)
+
+    @mock.patch.object(ipmi.VendorPassthru, '_bmc_reset')
+    def test_vendor_passthru_call_bmc_reset(self, bmc_mock):
+        with task_manager.acquire(self.context, self.node['uuid'],
+                                  shared=False) as task:
+            self.driver.vendor.vendor_passthru(task,
+                                               method='bmc_reset')
+            bmc_mock.assert_called_once_with(task, warm=True)
+
+    @mock.patch.object(ipmi.VendorPassthru, '_bmc_reset')
+    def test_vendor_passthru_call_bmc_reset_warm(self, bmc_mock):
+        with task_manager.acquire(self.context, self.node['uuid'],
+                                  shared=False) as task:
+            self.driver.vendor.vendor_passthru(task,
+                                               method='bmc_reset',
+                                               warm=True)
+            bmc_mock.assert_called_once_with(task, warm=True)
+
+    @mock.patch.object(ipmi.VendorPassthru, '_bmc_reset')
+    def test_vendor_passthru_call_bmc_reset_cold(self, bmc_mock):
+        with task_manager.acquire(self.context, self.node['uuid'],
+                                  shared=False) as task:
+            self.driver.vendor.vendor_passthru(task,
+                                               method='bmc_reset',
+                                               warm=False)
+            bmc_mock.assert_called_once_with(task, warm=False)
 
     @mock.patch.object(console_utils, 'start_shellinabox_console',
                        autospec=True)
