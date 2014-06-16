@@ -577,7 +577,7 @@ class PXEDriverTestCase(db_base.DbTestCase):
                                                    'ramdisk_id': 'fake-initr'}}
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
-            task.driver.deploy.validate(task, self.node)
+            task.driver.deploy.validate(task)
 
     def test_validate_fail(self):
         info = dict(INFO_DICT)
@@ -587,8 +587,7 @@ class PXEDriverTestCase(db_base.DbTestCase):
                                   shared=True) as task:
             task.node['driver_info'] = json.dumps(info)
             self.assertRaises(exception.InvalidParameterValue,
-                              task.driver.deploy.validate,
-                              task, task.node)
+                              task.driver.deploy.validate, task)
 
     def test_validate_fail_no_port(self):
         new_node = obj_utils.create_test_node(
@@ -598,8 +597,7 @@ class PXEDriverTestCase(db_base.DbTestCase):
         with task_manager.acquire(self.context, new_node.uuid,
                                   shared=True) as task:
             self.assertRaises(exception.InvalidParameterValue,
-                              task.driver.deploy.validate,
-                              task, new_node)
+                              task.driver.deploy.validate, task)
 
     @mock.patch.object(base_image_service.BaseImageService, '_show')
     @mock.patch.object(keystone, 'get_service_url')
@@ -612,7 +610,7 @@ class PXEDriverTestCase(db_base.DbTestCase):
 
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
-            task.driver.deploy.validate(task, self.node)
+            task.driver.deploy.validate(task)
             self.assertFalse(mock_ks.called)
 
     @mock.patch.object(base_image_service.BaseImageService, '_show')
@@ -627,7 +625,7 @@ class PXEDriverTestCase(db_base.DbTestCase):
 
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
-            task.driver.deploy.validate(task, self.node)
+            task.driver.deploy.validate(task)
             mock_ks.assert_called_once_with()
 
     @mock.patch.object(keystone, 'get_service_url')
@@ -640,8 +638,7 @@ class PXEDriverTestCase(db_base.DbTestCase):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
             self.assertRaises(exception.InvalidParameterValue,
-                              task.driver.deploy.validate,
-                              task, self.node)
+                              task.driver.deploy.validate, task)
             mock_ks.assert_called_once_with()
 
     @mock.patch.object(base_image_service.BaseImageService, '_show')
@@ -651,7 +648,7 @@ class PXEDriverTestCase(db_base.DbTestCase):
                                   shared=True) as task:
             self.assertRaises(exception.InvalidParameterValue,
                               task.driver.deploy.validate,
-                              task, self.node)
+                              task)
 
     @mock.patch.object(base_image_service.BaseImageService, '_show')
     def test_validate_fail_glance_image_doesnt_exists(self, mock_glance):
@@ -659,8 +656,7 @@ class PXEDriverTestCase(db_base.DbTestCase):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
             self.assertRaises(exception.InvalidParameterValue,
-                              task.driver.deploy.validate,
-                              task, self.node)
+                              task.driver.deploy.validate, task)
 
     @mock.patch.object(base_image_service.BaseImageService, '_show')
     def test_validate_fail_glance_conn_problem(self, mock_glance):
@@ -672,8 +668,7 @@ class PXEDriverTestCase(db_base.DbTestCase):
             with task_manager.acquire(self.context, self.node.uuid,
                                       shared=True) as task:
                 self.assertRaises(exception.InvalidParameterValue,
-                                  task.driver.deploy.validate,
-                                  task, self.node)
+                                  task.driver.deploy.validate, task)
 
     def test_vendor_passthru_validate_good(self):
         with task_manager.acquire(self.context, self.node.uuid,
@@ -758,7 +753,6 @@ class PXEDriverTestCase(db_base.DbTestCase):
 
         with task_manager.acquire(self.context,
                                   self.node.uuid, shared=False) as task:
-            # state = task.driver.deploy.deploy(task, self.node)
             self.assertRaises(exception.InstanceDeployFailure,
                 task.driver.deploy.deploy, task)
             mock_cache_instance_image.assert_called_once_with(

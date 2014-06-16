@@ -288,7 +288,7 @@ class ManagerTestCase(tests_db_base.DbTestCase):
             self.assertEqual(exception.InvalidParameterValue, exc.exc_info[0])
 
             node.refresh()
-            validate_mock.assert_called_once_with(mock.ANY, mock.ANY)
+            validate_mock.assert_called_once_with(mock.ANY)
             self.assertEqual(states.POWER_ON, node.power_state)
             self.assertIsNone(node.target_power_state)
             self.assertIsNone(node.last_error)
@@ -1255,7 +1255,7 @@ class ManagerDoSyncPowerStateTestCase(tests_base.TestCase):
     def test_state_not_set(self, node_power_action):
         self._do_sync_power_state(None, states.POWER_ON)
 
-        self.power.validate.assert_called_once_with(self.task, self.node)
+        self.power.validate.assert_called_once_with(self.task)
         self.power.get_power_state.assert_called_once_with(self.task)
         self.node.save.assert_called_once_with(self.context)
         self.assertFalse(node_power_action.called)
@@ -1265,7 +1265,7 @@ class ManagerDoSyncPowerStateTestCase(tests_base.TestCase):
         self._do_sync_power_state(None, states.POWER_ON,
                                   fail_validate=True)
 
-        self.power.validate.assert_called_once_with(self.task, self.task.node)
+        self.power.validate.assert_called_once_with(self.task)
         self.assertFalse(self.power.get_power_state.called)
         self.assertFalse(self.node.save.called)
         self.assertFalse(node_power_action.called)

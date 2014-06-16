@@ -354,20 +354,19 @@ class SSHPower(base.PowerInterface):
     NOTE: This driver does not currently support multi-node operations.
     """
 
-    def validate(self, task, node):
+    def validate(self, task):
         """Check that the node's 'driver_info' is valid.
 
         Check that the node's 'driver_info' contains the requisite fields
         and that an SSH connection to the node can be established.
 
-        :param task: a task from TaskManager.
-        :param node: Single node object.
+        :param task: a TaskManager instance containing the node to act on.
         :raises: InvalidParameterValue if any connection parameters are
             incorrect or if ssh failed to connect to the node.
         """
         if not driver_utils.get_node_mac_addresses(task):
             raise exception.InvalidParameterValue(_("Node %s does not have "
-                                "any port associated with it.") % node.uuid)
+                              "any port associated with it.") % task.node.uuid)
         try:
             _get_connection(task.node)
         except exception.SSHConnectFailed as e:

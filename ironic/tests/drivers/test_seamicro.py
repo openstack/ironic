@@ -276,7 +276,7 @@ class SeaMicroPowerDriverTestCase(db_base.DbTestCase):
     def test_power_interface_validate_good(self, parse_drv_info_mock):
         with task_manager.acquire(self.context, self.node['uuid'],
                                   shared=True) as task:
-            task.driver.power.validate(task, self.node)
+            task.driver.power.validate(task)
         self.assertEqual(1, parse_drv_info_mock.call_count)
 
     @mock.patch.object(seamicro, '_parse_driver_info')
@@ -286,8 +286,7 @@ class SeaMicroPowerDriverTestCase(db_base.DbTestCase):
         with task_manager.acquire(self.context, self.node['uuid'],
                                   shared=True) as task:
             self.assertRaises(exception.InvalidParameterValue,
-                              task.driver.power.validate,
-                              task, self.node)
+                              task.driver.power.validate, task)
         self.assertEqual(1, parse_drv_info_mock.call_count)
 
     @mock.patch.object(seamicro, '_reboot')

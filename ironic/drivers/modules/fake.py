@@ -42,7 +42,7 @@ def _raise_unsupported_error(method=None):
 class FakePower(base.PowerInterface):
     """Example implementation of a simple power interface."""
 
-    def validate(self, task, node):
+    def validate(self, task):
         pass
 
     def get_power_state(self, task):
@@ -63,7 +63,7 @@ class FakeDeploy(base.DeployInterface):
        separate power interface.
     """
 
-    def validate(self, task, node):
+    def validate(self, task):
         pass
 
     def deploy(self, task):
@@ -133,7 +133,7 @@ class FakeVendorB(base.VendorInterface):
 class FakeConsole(base.ConsoleInterface):
     """Example implementation of a simple console interface."""
 
-    def validate(self, task, node):
+    def validate(self, task):
         pass
 
     def start_console(self, task):
@@ -149,7 +149,7 @@ class FakeConsole(base.ConsoleInterface):
 class FakeManagement(base.ManagementInterface):
     """Example implementation of a simple management interface."""
 
-    def validate(self, task, node):
+    def validate(self, task):
         pass
 
     def get_supported_boot_devices(self):
