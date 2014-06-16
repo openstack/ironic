@@ -910,13 +910,6 @@
 # is created. (string value)
 #default_ephemeral_format=ext4
 
-# IP address of Ironic compute node's tftp server. (string
-# value)
-#tftp_server=$my_ip
-
-# Ironic compute node's tftp root path. (string value)
-#tftp_root=/tftpboot
-
 # Directory where images are stored on disk. (string value)
 #images_path=/var/lib/ironic/images/
 
@@ -962,5 +955,19 @@
 
 # libvirt uri (string value)
 #libvirt_uri=qemu:///system
+
+
+[tftp]
+
+#
+# Options defined in ironic.common.tftp
+#
+
+# IP address of Ironic compute node's tftp server. (string
+# value)
+#tftp_server=$my_ip
+
+# Ironic compute node's tftp root path. (string value)
+#tftp_root=/tftpboot
 
 
