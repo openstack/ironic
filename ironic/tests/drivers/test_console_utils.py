@@ -121,9 +121,9 @@ class ConsoleUtilsTestCase(base.TestCase):
         # delete the file
         os.unlink(filepath)
 
-    @mock.patch.object(os, 'mknod', autospec=True)
-    def test_make_persistent_password_file_fail(self, mock_mknod):
-        mock_mknod.side_effect = IOError()
+    @mock.patch.object(os, 'chmod', autospec=True)
+    def test_make_persistent_password_file_fail(self, mock_chmod):
+        mock_chmod.side_effect = IOError()
         filepath = '%(tempdir)s/%(node_uuid)s' % {
                 'tempdir': tempfile.gettempdir(),
                 'node_uuid': self.info['uuid']}

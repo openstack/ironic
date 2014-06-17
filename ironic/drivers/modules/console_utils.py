@@ -90,8 +90,8 @@ def make_persistent_password_file(path, password):
 
     try:
         utils.delete_if_exists(path)
-        os.mknod(path, 0o600)
         with open(path, 'wb') as file:
+            os.chmod(path, 0o600)
             file.write(password)
         return path
     except Exception as e:
