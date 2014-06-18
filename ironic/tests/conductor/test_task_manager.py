@@ -333,6 +333,51 @@ class TaskManagerTestCase(tests_base.TestCase):
         thread_mock.cancel.assert_called_once_with()
         task_release_mock.assert_called_once_with()
 
+    def test_spawn_after_on_error_hook(self, get_ports_mock, get_driver_mock,
+                                       reserve_mock, release_mock,
+                                       node_get_mock):
+        expected_exception = exception.IronicException('foo')
+        spawn_mock = mock.Mock(side_effect=expected_exception)
+        task_release_mock = mock.Mock()
+        on_error_handler = mock.Mock()
+
+        def _test_it():
+            with task_manager.TaskManager(self.context, 'node-id') as task:
+                task.set_spawn_error_hook(on_error_handler, 'fake-argument')
+                task.spawn_after(spawn_mock, 1, 2, foo='bar', cat='meow')
+                task.release_resources = task_release_mock
+
+        self.assertRaises(exception.IronicException, _test_it)
+
+        spawn_mock.assert_called_once_with(1, 2, foo='bar', cat='meow')
+        task_release_mock.assert_called_once_with()
+        on_error_handler.assert_called_once_with(expected_exception,
+                                                 'fake-argument')
+
+    def test_spawn_after_on_error_hook_exception(self, get_ports_mock,
+                                                 get_driver_mock, reserve_mock,
+                                                 release_mock, node_get_mock):
+        expected_exception = exception.IronicException('foo')
+        spawn_mock = mock.Mock(side_effect=expected_exception)
+        task_release_mock = mock.Mock()
+        # Raise an exception within the on_error handler
+        on_error_handler = mock.Mock(side_effect=Exception('unexpected'))
+        on_error_handler.__name__ = 'foo_method'
+
+        def _test_it():
+            with task_manager.TaskManager(self.context, 'node-id') as task:
+                task.set_spawn_error_hook(on_error_handler, 'fake-argument')
+                task.spawn_after(spawn_mock, 1, 2, foo='bar', cat='meow')
+                task.release_resources = task_release_mock
+
+        # Make sure the original exception is the one raised
+        self.assertRaises(exception.IronicException, _test_it)
+
+        spawn_mock.assert_called_once_with(1, 2, foo='bar', cat='meow')
+        task_release_mock.assert_called_once_with()
+        on_error_handler.assert_called_once_with(expected_exception,
+                                                 'fake-argument')
+
 
 @task_manager.require_exclusive_lock
 def _req_excl_lock_method(*args, **kwargs):

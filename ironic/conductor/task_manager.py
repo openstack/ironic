@@ -65,8 +65,24 @@ Common use of this is within the Manager like so:
                          utils.node_power_action, task, task.node,
                          new_state)
 
-All exceptions that occur in the current greenthread as part of the spawn
-handling are re-raised.
+All exceptions that occur in the current greenthread as part of the
+spawn handling are re-raised. In cases where it's impossible to handle
+the re-raised exception by wrapping the "with task_manager.acquire()"
+with a try..exception block (like the API cases where we return after
+the spawn_after()) the task allows you to set a hook to execute custom
+code when the spawned task generates an exception:
+
+    def on_error(e):
+        if isinstance(e, Exception):
+            ...
+
+    with task_manager.acquire(context, node_id) as task:
+        <do some work>
+        task.set_spawn_error_hook(on_error)
+        task.spawn_after(self._spawn_worker,
+                         utils.node_power_action, task, task.node,
+                         new_state)
+
 """
 
 from oslo.config import cfg
@@ -77,6 +93,10 @@ from ironic.common import driver_factory
 from ironic.common import exception
 from ironic.db import api as dbapi
 from ironic import objects
+from ironic.openstack.common.gettextutils import _LW
+from ironic.openstack.common import log as logging
+
+LOG = logging.getLogger(__name__)
 
 CONF = cfg.CONF
 
@@ -142,6 +162,7 @@ class TaskManager(object):
 
         self._dbapi = dbapi.get_instance()
         self._spawn_method = None
+        self._on_error_method = None
 
         self.context = context
         self.node = None
@@ -164,6 +185,22 @@ class TaskManager(object):
         self._spawn_method = _spawn_method
         self._spawn_args = args
         self._spawn_kwargs = kwargs
+
+    def set_spawn_error_hook(self, _on_error_method, *args, **kwargs):
+        """Create a hook that gets called when the task generates an exception.
+
+        Create a hook that gets called upon an exception being raised
+        from the spawned task.
+
+        :param _on_error_method: a callable object, it's first parameter
+            should accept the Exception object that was raised.
+        :param *args: additional args passed to the callable object.
+        :param **kwargs: additional kwargs passed to the callable object.
+
+        """
+        self._on_error_method = _on_error_method
+        self._on_error_args = args
+        self._on_error_kwargs = kwargs
 
     def release_resources(self):
         """Unlock a node and release resources.
@@ -216,8 +253,19 @@ class TaskManager(object):
                 # Don't unlock! The unlock will occur when the
                 # thread finshes.
                 return
-            except Exception:
+            except Exception as e:
                 with excutils.save_and_reraise_exception():
+                    try:
+                        # Execute the on_error hook if set
+                        if self._on_error_method:
+                            self._on_error_method(e, *self._on_error_args,
+                                                  **self._on_error_kwargs)
+                    except Exception:
+                        LOG.warning(_LW("Task's on_error hook failed to "
+                                        "call %(method)s on node %(node)s"),
+                                    {'method': self._on_error_method.__name__,
+                                    'node': self.node.uuid})
+
                     if thread is not None:
                         # This means the link() failed for some
                         # reason. Nuke the thread.
