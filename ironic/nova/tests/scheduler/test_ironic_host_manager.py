@@ -128,6 +128,8 @@ class IronicHostManagerChangedNodesTestCase(test.NoDBTestCase):
         self.assertEqual(10240, host.free_disk_mb)
         self.assertEqual(1, host.vcpus_total)
         self.assertEqual(0, host.vcpus_used)
+        self.assertEqual(jsonutils.loads(self.compute_node['stats']),
+                         host.stats)
 
     def test_consume_identical_instance_from_compute(self):
         host = ironic_host_manager.IronicNodeState("fakehost", "fakenode")
