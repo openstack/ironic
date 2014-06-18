@@ -16,6 +16,8 @@
 Fake nodes for Ironic host manager tests.
 """
 
+from nova.openstack.common import jsonutils
+
 
 COMPUTE_NODES = [
         dict(id=1, local_gb=10, memory_mb=1024, vcpus=1,
@@ -24,9 +26,9 @@ COMPUTE_NODES = [
              service=dict(host='host1', disabled=False),
              hypervisor_hostname='node1uuid', host_ip='127.0.0.1',
              hypervisor_version=1, hypervisor_type='ironic',
-             stats=dict(ironic_driver=
-                            "nova.virt.ironic.driver.IronicDriver",
-                            cpu_arch='i386'),
+             stats=jsonutils.dumps(dict(ironic_driver=
+                                        "nova.virt.ironic.driver.IronicDriver",
+                                        cpu_arch='i386')),
              supported_instances='[["i386", "baremetal", "baremetal"]]',
              free_disk_gb=10, free_ram_mb=1024),
         dict(id=2, local_gb=20, memory_mb=2048, vcpus=1,
@@ -35,9 +37,9 @@ COMPUTE_NODES = [
              service=dict(host='host2', disabled=True),
              hypervisor_hostname='node2uuid', host_ip='127.0.0.1',
              hypervisor_version=1, hypervisor_type='ironic',
-             stats=dict(ironic_driver=
-                            "nova.virt.ironic.driver.IronicDriver",
-                            cpu_arch='i386'),
+             stats=jsonutils.dumps(dict(ironic_driver=
+                                        "nova.virt.ironic.driver.IronicDriver",
+                                        cpu_arch='i386')),
              supported_instances='[["i386", "baremetal", "baremetal"]]',
              free_disk_gb=20, free_ram_mb=2048),
         dict(id=3, local_gb=30, memory_mb=3072, vcpus=1,
@@ -46,9 +48,9 @@ COMPUTE_NODES = [
              service=dict(host='host3', disabled=False),
              hypervisor_hostname='node3uuid', host_ip='127.0.0.1',
              hypervisor_version=1, hypervisor_type='ironic',
-             stats=dict(ironic_driver=
-                            "nova.virt.ironic.driver.IronicDriver",
-                            cpu_arch='i386'),
+             stats=jsonutils.dumps(dict(ironic_driver=
+                                        "nova.virt.ironic.driver.IronicDriver",
+                                        cpu_arch='i386')),
              supported_instances='[["i386", "baremetal", "baremetal"]]',
              free_disk_gb=30, free_ram_mb=3072),
         dict(id=4, local_gb=40, memory_mb=4096, vcpus=1,
@@ -57,31 +59,17 @@ COMPUTE_NODES = [
              service=dict(host='host4', disabled=False),
              hypervisor_hostname='node4uuid', host_ip='127.0.0.1',
              hypervisor_version=1, hypervisor_type='ironic',
-             stats=dict(ironic_driver=
-                            "nova.virt.ironic.driver.IronicDriver",
-                            cpu_arch='i386'),
+             stats=jsonutils.dumps(dict(ironic_driver=
+                                        "nova.virt.ironic.driver.IronicDriver",
+                                        cpu_arch='i386')),
              supported_instances='[["i386", "baremetal", "baremetal"]]',
              free_disk_gb=40, free_ram_mb=4096),
         # Broken entry
         dict(id=5, local_gb=50, memory_mb=5120, vcpus=1, service=None,
              cpu_info='baremetal cpu',
-             stats=dict(ironic_driver=
-                            "nova.virt.ironic.driver.IronicDriver",
-                            cpu_arch='i386'),
+             stats=jsonutils.dumps(dict(ironic_driver=
+                                        "nova.virt.ironic.driver.IronicDriver",
+                                        cpu_arch='i386')),
              supported_instances='[["i386", "baremetal", "baremetal"]]',
              free_disk_gb=50, free_ram_mb=5120),
 ]
-
-
-IRONIC_SERVICE_STATE = {
-    ('host1', 'node1uuid'): {'compute': {'ironic_driver':
-                            "nova.virt.ironic.driver.IronicDriver"}},
-    ('host2', 'node2uuid'): {'compute': {'ironic_driver':
-                            "nova.virt.ironic.driver.IronicDriver"}},
-    ('host3', 'node3uuid'): {'compute': {'ironic_driver':
-                            "nova.virt.ironic.driver.IronicDriver"}},
-    ('host4', 'node4uuid'): {'compute': {'ironic_driver':
-                            "nova.virt.ironic.driver.IronicDriver"}},
-    ('host5', 'node5uuid'): {'compute': {'ironic_driver':
-                            "nova.virt.ironic.driver.IronicDriver"}},
-}
