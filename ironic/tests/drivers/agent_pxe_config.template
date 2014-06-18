@@ -1,0 +1,5 @@
+default deploy
+
+label deploy
+kernel {{ pxe_options.deployment_aki_path }}
+append initrd={{ pxe_options.deployment_ari_path }} root=squashfs: {% if pxe_options.pxe_append_params %}{{ pxe_options.pxe_append_params }}{% endif %} state=tmpfs: ipa-api-url={{ pxe_options.ipa_api_url }} {% if pxe_options.ipa_advertise_host %}ipa-advertise-host={{ pxe_options.ipa_advertise_host }}{% endif %}

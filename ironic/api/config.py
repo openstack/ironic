@@ -29,7 +29,12 @@ app = {
     'static_root': '%(confdir)s/public',
     'debug': False,
     'enable_acl': True,
-    'acl_public_routes': ['/', '/v1'],
+    'acl_public_routes': [
+        '/',
+        '/v1',
+        '/v1/drivers/agent_[a-z]*/vendor_passthru/lookup',
+        '/v1/nodes/[a-z0-9\-]+/vendor_passthru/heartbeat'
+    ],
 }
 
 # WSME Configurations

@@ -19,6 +19,7 @@ Fake drivers used in testing.
 
 from ironic.common import exception
 from ironic.drivers import base
+from ironic.drivers.modules import agent
 from ironic.drivers.modules import fake
 from ironic.drivers.modules import ipminative
 from ironic.drivers.modules import ipmitool
@@ -95,3 +96,12 @@ class FakeSeaMicroDriver(base.BaseDriver):
         self.deploy = fake.FakeDeploy()
         self.management = seamicro.Management()
         self.vendor = seamicro.VendorPassthru()
+
+
+class FakeAgentDriver(base.BaseDriver):
+    """Example implementation of an AgentDriver."""
+
+    def __init__(self):
+        self.power = fake.FakePower()
+        self.deploy = agent.AgentDeploy()
+        self.vendor = agent.AgentVendorInterface()

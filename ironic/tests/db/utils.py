@@ -78,6 +78,22 @@ def get_test_ilo_info():
     }
 
 
+def get_test_agent_instance_info():
+    return {
+        'image_source': 'fake-image',
+        'image_url': 'http://image',
+        'image_checksum': 'checksum'
+    }
+
+
+def get_test_agent_driver_info():
+    return {
+        'agent_url': 'http://127.0.0.1/foo',
+        'deploy_kernel': 'glance://deploy_kernel_uuid',
+        'deploy_ramdisk': 'glance://deploy_ramdisk_uuid',
+    }
+
+
 def get_test_node(**kw):
     properties = {
         "cpu_arch": "x86_64",

@@ -451,6 +451,36 @@
 #run_external_periodic_tasks=true
 
 
+[agent]
+
+#
+# Options defined in ironic.drivers.modules.agent
+#
+
+# Additional append parameters for baremetal PXE boot. (string
+# value)
+#agent_pxe_append_params=nofb nomodeset vga=normal
+
+# Template file for PXE configuration. (string value)
+#agent_pxe_config_template=$pybasedir/drivers/modules/agent_config.template
+
+# Neutron bootfile DHCP parameter. (string value)
+#agent_pxe_bootfile_name=pxelinux.0
+
+# Maximum interval (in seconds) for agent heartbeats. (integer
+# value)
+#heartbeat_timeout=300
+
+
+#
+# Options defined in ironic.drivers.modules.agent_client
+#
+
+# API version to use for communicating with the ramdisk agent.
+# (string value)
+#agent_api_version=v1
+
+
 [api]
 
 #
