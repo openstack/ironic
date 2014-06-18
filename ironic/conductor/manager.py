@@ -53,6 +53,7 @@ from oslo import messaging
 from ironic.common import driver_factory
 from ironic.common import exception
 from ironic.common import hash_ring as hash
+from ironic.common import i18n
 from ironic.common import neutron
 from ironic.common import states
 from ironic.conductor import task_manager
@@ -60,13 +61,15 @@ from ironic.conductor import utils
 from ironic.db import api as dbapi
 from ironic import objects
 from ironic.openstack.common import excutils
-from ironic.openstack.common.gettextutils import _LI
 from ironic.openstack.common import lockutils
 from ironic.openstack.common import log
 from ironic.openstack.common import periodic_task
 
 MANAGER_TOPIC = 'ironic.conductor_manager'
 WORKER_SPAWN_lOCK = "conductor_worker_spawn"
+
+_LW = i18n._LW
+_LI = i18n._LI
 
 LOG = log.getLogger(__name__)
 
@@ -340,6 +343,34 @@ class ConductorManager(periodic_task.PeriodicTasks):
                                                     method=driver_method,
                                                     **info)
 
+    def _provisioning_error_handler(self, e, node, context, provision_state,
+                                    target_provision_state):
+        """Set the node's provisioning states if error occurs.
+
+        This hook gets called upon an exception being raised when spawning
+        the worker to do the deployment or tear down of a node.
+
+        :param e: the exception object that was raised.
+        :param node: an Ironic node object.
+        :param context: security context.
+        :param provision_state: the provision state to be set on
+            the node.
+        :param target_provision_state: the target provision state to be
+            set on the node.
+
+        """
+        if isinstance(e, exception.NoFreeConductorWorker):
+            node.provision_state = provision_state
+            node.target_provision_state = target_provision_state
+            node.last_error = (_("No free conductor workers available"))
+            node.save(context)
+            LOG.warning(_LW("No free conductor workers available to perform "
+                            "an action on node %(node)s, setting node's "
+                            "provision_state back to %(prov_state)s and "
+                            "target_provision_state to %(tgt_prov_state)s."),
+                        {'node': node.uuid, 'prov_state': provision_state,
+                         'tgt_prov_state': target_provision_state})
+
     @messaging.expected_exceptions(exception.NoFreeConductorWorker,
                                    exception.NodeLocked,
                                    exception.NodeInMaintenance,
@@ -395,11 +426,21 @@ class ConductorManager(periodic_task.PeriodicTasks):
                     "RPC do_node_deploy failed to validate deploy info. "
                     "Error: %(msg)s") % {'msg': e})
 
+            # Save the previous states so we can rollback the node to a
+            # consistent state in case there's no free workers to do the
+            # deploy work
+            previous_prov_state = node.provision_state
+            previous_tgt_provision_state = node.target_provision_state
+
             # Set target state to expose that work is in progress
             node.provision_state = states.DEPLOYING
             node.target_provision_state = states.DEPLOYDONE
             node.last_error = None
             node.save(context)
+
+            task.set_spawn_error_hook(self._provisioning_error_handler, node,
+                                      context, previous_prov_state,
+                                      previous_tgt_provision_state)
             task.spawn_after(self._spawn_worker, self._do_node_deploy,
                              context, task)
 
@@ -466,10 +507,21 @@ class ConductorManager(periodic_task.PeriodicTasks):
                     "RPC do_node_tear_down failed to validate deploy info. "
                     "Error: %(msg)s") % {'msg': e})
 
+            # save the previous states so we can rollback the node to a
+            # consistent state in case there's no free workers to do the
+            # tear down work
+            previous_prov_state = node.provision_state
+            previous_tgt_provision_state = node.target_provision_state
+
+            # set target state to expose that work is in progress
             node.provision_state = states.DELETING
             node.target_provision_state = states.DELETED
             node.last_error = None
             node.save(context)
+
+            task.set_spawn_error_hook(self._provisioning_error_handler, node,
+                                      context, previous_prov_state,
+                                      previous_tgt_provision_state)
             task.spawn_after(self._spawn_worker, self._do_node_tear_down,
                              context, task)
 
