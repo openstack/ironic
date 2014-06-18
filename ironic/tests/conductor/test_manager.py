@@ -1335,6 +1335,7 @@ class ManagerDoSyncPowerStateTestCase(tests_base.TestCase):
         self.assertEqual(states.POWER_OFF, self.node.power_state)
         self.assertEqual(1,
                          self.service.power_state_sync_count[self.node.uuid])
+        self.assertTrue(self.node.maintenance)
 
     def test_max_retries_exceeded2(self, node_power_action):
         self.config(force_power_state_during_sync=True, group='conductor')
@@ -1354,6 +1355,7 @@ class ManagerDoSyncPowerStateTestCase(tests_base.TestCase):
         self.assertEqual(states.POWER_OFF, self.node.power_state)
         self.assertEqual(2,
                          self.service.power_state_sync_count[self.node.uuid])
+        self.assertTrue(self.node.maintenance)
 
     def test_retry_then_success(self, node_power_action):
         self.config(force_power_state_during_sync=True, group='conductor')
@@ -1372,6 +1374,24 @@ class ManagerDoSyncPowerStateTestCase(tests_base.TestCase):
         self.assertEqual(npa_exp_calls, node_power_action.call_args_list)
         self.assertEqual(states.POWER_ON, self.node.power_state)
         self.assertNotIn(self.node.uuid, self.service.power_state_sync_count)
+
+    def test_power_state_sync_max_retries_gps_exception(self,
+                                                        node_power_action):
+        self.config(power_state_sync_max_retries=2, group='conductor')
+        self.service.power_state_sync_count[self.node.uuid] = 2
+
+        self._do_sync_power_state('fake',
+                                  exception.IronicException('foo'),
+                                  fail_change=True)
+
+        self.assertFalse(self.power.validate.called)
+        self.power.get_power_state.assert_called_once_with(self.task)
+
+        self.assertEqual(None, self.node.power_state)
+        self.assertTrue(self.node.maintenance)
+        self.assertTrue(self.node.save.called)
+
+        self.assertFalse(node_power_action.called)
 
 
 @mock.patch.object(manager.ConductorManager, '_do_sync_power_state')
