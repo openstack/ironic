@@ -557,7 +557,7 @@ class IronicDriver(virt_driver.ComputeDriver):
     def manage_image_cache(self, context, all_instances):
         pass
 
-    def get_console_output(self, instance):
+    def get_console_output(self, context, instance):
         raise NotImplementedError()
 
     def refresh_security_group_rules(self, security_group_id):
