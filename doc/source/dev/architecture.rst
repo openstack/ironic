@@ -9,8 +9,9 @@ High Level description
 
 An Ironic deployment will be composed of the following components:
 
-- A RESTful `API service`_, by which operators and other services may interact
-  with the managed bare metal servers.
+- An admin-only RESTful `API service`_, by which privileged users, such as
+  cloud operators and other services within the cloud control plane, may
+  interact with the managed bare metal servers.
 - A `Conductor service`_, which does the bulk of the work. Functionality is
   exposed via the `API service`_.  The Conductor and API services communicate via
   RPC.
