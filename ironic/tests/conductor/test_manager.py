@@ -676,7 +676,8 @@ class ManagerTestCase(tests_db_base.DbTestCase):
     def test_do_node_tear_down_driver_raises_error(self, mock_tear_down):
         # test when driver.deploy.tear_down raises exception
         node = obj_utils.create_test_node(self.context, driver='fake',
-                                          provision_state=states.ACTIVE)
+                                          provision_state=states.ACTIVE,
+                                          instance_info={'foo': 'bar'})
 
         task = task_manager.TaskManager(self.context, node.uuid)
         self._start_service()
@@ -688,13 +689,16 @@ class ManagerTestCase(tests_db_base.DbTestCase):
         self.assertEqual(states.ERROR, node.provision_state)
         self.assertEqual(states.NOSTATE, node.target_provision_state)
         self.assertIsNotNone(node.last_error)
+        # Assert instance_info was erased
+        self.assertEqual({}, node.instance_info)
         mock_tear_down.assert_called_once_with(mock.ANY)
 
     @mock.patch('ironic.drivers.modules.fake.FakeDeploy.tear_down')
     def test_do_node_tear_down_ok(self, mock_tear_down):
         # test when driver.deploy.tear_down returns DELETED
         node = obj_utils.create_test_node(self.context, driver='fake',
-                                          provision_state=states.ACTIVE)
+                                          provision_state=states.ACTIVE,
+                                          instance_info={'foo': 'bar'})
 
         task = task_manager.TaskManager(self.context, node.uuid)
         self._start_service()
@@ -704,13 +708,15 @@ class ManagerTestCase(tests_db_base.DbTestCase):
         self.assertEqual(states.NOSTATE, node.provision_state)
         self.assertEqual(states.NOSTATE, node.target_provision_state)
         self.assertIsNone(node.last_error)
+        self.assertEqual({}, node.instance_info)
         mock_tear_down.assert_called_once_with(mock.ANY)
 
     @mock.patch('ironic.drivers.modules.fake.FakeDeploy.tear_down')
     def test_do_node_tear_down_partial_ok(self, mock_tear_down):
         # test when driver.deploy.tear_down doesn't return DELETED
         node = obj_utils.create_test_node(self.context, driver='fake',
-                                          provision_state=states.ACTIVE)
+                                          provision_state=states.ACTIVE,
+                                          instance_info={'foo': 'bar'})
 
         self._start_service()
         task = task_manager.TaskManager(self.context, node.uuid)
@@ -719,12 +725,15 @@ class ManagerTestCase(tests_db_base.DbTestCase):
         node.refresh()
         self.assertEqual(states.DELETING, node.provision_state)
         self.assertIsNone(node.last_error)
+        self.assertEqual({}, node.instance_info)
         mock_tear_down.assert_called_once_with(mock.ANY)
 
     @mock.patch('ironic.conductor.manager.ConductorManager._spawn_worker')
     def test_do_node_tear_down_worker_pool_full(self, mock_spawn):
+        fake_instance_info = {'foo': 'bar'}
         node = obj_utils.create_test_node(self.context, driver='fake',
-                                          provision_state=states.ACTIVE)
+                                          provision_state=states.ACTIVE,
+                                          instance_info=fake_instance_info)
         self._start_service()
 
         mock_spawn.side_effect = exception.NoFreeConductorWorker()
@@ -738,6 +747,8 @@ class ManagerTestCase(tests_db_base.DbTestCase):
         node.refresh()
         # This is a sync operation last_error should be None.
         self.assertIsNone(node.last_error)
+        # Assert instance_info was not touched
+        self.assertEqual(fake_instance_info, node.instance_info)
         # Verify reservation has been cleared.
         self.assertIsNone(node.reservation)
 

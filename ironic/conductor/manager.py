@@ -479,6 +479,8 @@ class ConductorManager(periodic_task.PeriodicTasks):
             else:
                 node.provision_state = new_state
         finally:
+            # Clean the instance_info
+            node.instance_info = {}
             node.save(context)
 
     def _conductor_service_record_keepalive(self):

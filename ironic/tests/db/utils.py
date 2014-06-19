@@ -47,12 +47,17 @@ def get_test_ssh_info(auth_type='password'):
     return result
 
 
-def get_test_pxe_info():
+def get_test_pxe_driver_info():
     return {
-        "pxe_image_source": "glance://image_uuid",
         "pxe_deploy_kernel": "glance://deploy_kernel_uuid",
         "pxe_deploy_ramdisk": "glance://deploy_ramdisk_uuid",
-        "pxe_root_gb": 100,
+    }
+
+
+def get_test_pxe_instance_info():
+    return {
+        "image_source": "glance://image_uuid",
+        "root_gb": 100,
     }
 
 
