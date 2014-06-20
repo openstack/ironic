@@ -133,15 +133,17 @@ class ImageCache(object):
         """
         #TODO(ghe): timeout and retry for downloads
         #TODO(ghe): logging when image cannot be created
-        fd, tmp_path = tempfile.mkstemp(dir=self.master_dir)
-        os.close(fd)
-        images.fetch_to_raw(ctx, uuid, tmp_path,
-                            self._image_service)
-        # NOTE(dtantsur): no need for global lock here - master_path
-        # will have link count >1 at any moment, so won't be cleaned up
-        os.link(tmp_path, master_path)
-        os.link(master_path, dest_path)
-        os.unlink(tmp_path)
+        tmp_dir = tempfile.mkdtemp(dir=self.master_dir)
+        tmp_path = os.path.join(tmp_dir, uuid)
+        try:
+            images.fetch_to_raw(ctx, uuid, tmp_path,
+                                self._image_service)
+            # NOTE(dtantsur): no need for global lock here - master_path
+            # will have link count >1 at any moment, so won't be cleaned up
+            os.link(tmp_path, master_path)
+            os.link(master_path, dest_path)
+        finally:
+            utils.rmtree_without_raise(tmp_dir)
 
     @lockutils.synchronized('master_image', 'ironic-')
     def clean_up(self):
