@@ -493,19 +493,25 @@ class IronicDriverTestCase(test.NoDBTestCase):
                           self.driver._add_driver_fields,
                           node, instance, None, None)
 
+    @mock.patch.object(flavor_obj, 'get_by_id')
     @mock.patch.object(FAKE_CLIENT.node, 'update')
-    def test__cleanup_deploy_good(self, mock_update):
-        node = ironic_utils.get_test_node(driver='fake', instance_uuid='fake-id')
+    def test__cleanup_deploy_good(self, mock_update, mock_flavor):
+        mock_flavor.return_value = ironic_utils.get_test_flavor(extra_specs={})
+        node = ironic_utils.get_test_node(driver='fake',
+                                          instance_uuid='fake-id')
         instance = fake_instance.fake_instance_obj(self.ctx,
                                                    node=node.uuid)
         self.driver._cleanup_deploy(node, instance, None)
         expected_patch = [{'path': '/instance_uuid', 'op': 'remove'}]
         mock_update.assert_called_once_with(node.uuid, expected_patch)
 
+    @mock.patch.object(flavor_obj, 'get_by_id')
     @mock.patch.object(FAKE_CLIENT.node, 'update')
-    def test__cleanup_deploy_fail(self, mock_update):
+    def test__cleanup_deploy_fail(self, mock_update, mock_flavor):
+        mock_flavor.return_value = ironic_utils.get_test_flavor(extra_specs={})
         mock_update.side_effect = ironic_exception.BadRequest()
-        node = ironic_utils.get_test_node(driver='fake', instance_uuid='fake-id')
+        node = ironic_utils.get_test_node(driver='fake',
+                                          instance_uuid='fake-id')
         instance = fake_instance.fake_instance_obj(self.ctx,
                                                    node=node.uuid)
         self.assertRaises(exception.InstanceTerminationFailure,
@@ -528,8 +534,7 @@ class IronicDriverTestCase(test.NoDBTestCase):
                           self.ctx, instance, None, [], None)
         mock_node.get.assert_called_once_with(node_uuid)
         mock_node.validate.assert_called_once_with(node_uuid)
-        mock_flavor.assert_called_once_with(self.ctx,
-                                            instance['instance_type_id'])
+        mock_flavor.assert_called_with(mock.ANY, instance['instance_type_id'])
 
     @mock.patch.object(FAKE_CLIENT, 'node')
     @mock.patch.object(flavor_obj, 'get_by_id')

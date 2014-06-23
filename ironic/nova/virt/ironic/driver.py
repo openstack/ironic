@@ -260,8 +260,11 @@ class IronicDriver(virt_driver.ComputeDriver):
 
     def _cleanup_deploy(self, node, instance, network_info):
         icli = client_wrapper.IronicClientWrapper()
+        context = nova_context.get_admin_context()
+        flavor = flavor_obj.Flavor.get_by_id(context,
+                                             instance['instance_type_id'])
         patch = patcher.create(node).get_cleanup_patch(
-                instance, network_info)
+                instance, network_info, flavor)
 
         # Unassociate the node
         patch.append({'op': 'remove', 'path': '/instance_uuid'})

@@ -72,13 +72,22 @@ class IronicDriverFieldsTestCase(test.NoDBTestCase):
         self.assertIn(expected1, patch)
         self.assertIn(expected2, patch)
 
-    def test_pxe_get_deploy_patch_fail_no_kr_id(self):
+    def test_pxe_get_deploy_patch_no_flavor_kernel_ramdisk_ids(self):
         self.flavor = ironic_utils.get_test_flavor(extra_specs={})
         node = ironic_utils.get_test_node(driver='pxe_fake')
         instance = fake_instance.fake_instance_obj(self.ctx, node=node.uuid)
-        self.assertRaises(exception.InvalidParameterValue,
-                          patcher.create(node).get_deploy_patch,
-                          instance, self.image_meta, self.flavor)
+        expected = [{'path': '/instance_info/image_source',
+                     'value': self.image_meta['id'],
+                     'op': 'add'},
+                    {'path': '/instance_info/root_gb',
+                     'value': str(instance['root_gb']),
+                     'op': 'add'},
+                    {'path': '/instance_info/swap_mb',
+                     'value': str(self.flavor['swap']),
+                     'op': 'add'}]
+        patch = patcher.create(node).get_deploy_patch(
+                instance, self.image_meta, self.flavor)
+        self.assertEqual(sorted(expected), sorted(patch))
 
     def test_pxe_get_cleanup_patch(self):
         driver_info = {'pxe_deploy_kernel': 'fake-kernel-id',
@@ -86,9 +95,21 @@ class IronicDriverFieldsTestCase(test.NoDBTestCase):
         node = ironic_utils.get_test_node(driver='pxe_fake',
                                           driver_info=driver_info)
         instance = fake_instance.fake_instance_obj(self.ctx, node=node.uuid)
-        patch = patcher.create(node).get_cleanup_patch(instance, None)
+        patch = patcher.create(node).get_cleanup_patch(instance, None,
+                                                       self.flavor)
         expected = [{'path': '/driver_info/pxe_deploy_kernel',
                      'op': 'remove'},
                     {'path': '/driver_info/pxe_deploy_ramdisk',
                      'op': 'remove'}]
         self.assertEqual(sorted(expected), sorted(patch))
+
+    def test_pxe_get_cleanup_patch_no_flavor_kernel_ramdisk_ids(self):
+        self.flavor = ironic_utils.get_test_flavor(extra_specs={})
+        driver_info = {'pxe_deploy_kernel': 'fake-kernel-id',
+                       'pxe_deploy_ramdisk': 'fake-ramdisk-id'}
+        node = ironic_utils.get_test_node(driver='pxe_fake',
+                                          driver_info=driver_info)
+        instance = fake_instance.fake_instance_obj(self.ctx, node=node.uuid)
+        patch = patcher.create(node).get_cleanup_patch(instance, None,
+                                                       self.flavor)
+        self.assertEqual([], patch)
