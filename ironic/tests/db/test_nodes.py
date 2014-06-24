@@ -291,6 +291,12 @@ class DbNodeTestCase(base.DbTestCase):
         self.assertRaises(exception.NodeNotFound, self.dbapi.update_node,
                           node_uuid, {'extra': new_extra})
 
+    def test_update_node_uuid(self):
+        n = self._create_test_node()
+        self.assertRaises(exception.InvalidParameterValue,
+                          self.dbapi.update_node, n['id'],
+                          {'uuid': ''})
+
     def test_update_node_associate_and_disassociate(self):
         n = self._create_test_node()
         new_i_uuid = ironic_utils.generate_uuid()

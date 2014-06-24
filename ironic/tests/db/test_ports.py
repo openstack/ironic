@@ -96,6 +96,12 @@ class DbPortTestCase(base.DbTestCase):
         res = self.dbapi.update_port(self.p['id'], {'address': new_address})
         self.assertEqual(new_address, res.address)
 
+    def test_update_port_uuid(self):
+        self.dbapi.create_port(self.p)
+        self.assertRaises(exception.InvalidParameterValue,
+                          self.dbapi.update_port, self.p['id'],
+                          {'uuid': ''})
+
     def test_destroy_port_on_reserved_node(self):
         p = self.dbapi.create_port(db_utils.get_test_port(node_id=self.n.id))
         uuid = self.n.uuid
