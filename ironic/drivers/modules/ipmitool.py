@@ -356,9 +356,10 @@ class IPMIPower(base.PowerInterface):
         try:
             check_timing_support()
         except OSError:
-            # TODO(deva): raise a DriverLoadError if ipmitool
-            #             is not present on the system.
-            pass
+            raise exception.DriverLoadError(
+                    driver=self.__class__.__name__,
+                    reason="Unable to locate usable ipmitool command in "
+                           "the system path when checking ipmitool version")
 
     def validate(self, task):
         """Validate driver_info for ipmitool driver.
@@ -488,9 +489,10 @@ class IPMIShellinaboxConsole(base.ConsoleInterface):
         try:
             check_timing_support()
         except OSError:
-            # TODO(deva): raise DriverLoadError if ipmitool
-            # is not present on the system.
-            pass
+            raise exception.DriverLoadError(
+                    driver=self.__class__.__name__,
+                    reason="Unable to locate usable ipmitool command in "
+                           "the system path when checking ipmitool version")
 
     def validate(self, task):
         """Validate the Node console info.
