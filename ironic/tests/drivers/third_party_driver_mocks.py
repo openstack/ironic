@@ -22,6 +22,7 @@ respective external libraries' actually being present.
 Any external library required by a third-party driver should be mocked here.
 Current list of mocked libraries:
     seamicroclient
+    ipminative
 """
 
 import sys
@@ -49,8 +50,27 @@ if not seamicroclient:
 if 'ironic.drivers.modules.seamicro' in sys.modules:
     reload(sys.modules['ironic.drivers.modules.seamicro'])
 
-
 # IPMITool driver checks the system for presense of 'ipmitool' binary during
 # __init__. We bypass that check in order to run the unit tests, which do not
 # depend on 'ipmitool' being on the system.
 ipmitool.TIMING_SUPPORT = False
+
+pyghmi = importutils.try_import("pyghmi")
+if not pyghmi:
+    p = mock.Mock()
+    p.exceptions = mock.Mock()
+    p.exceptions.IpmiException = Exception
+    p.ipmi = mock.Mock()
+    p.ipmi.command = mock.Mock()
+    p.ipmi.command.Command = mock.Mock()
+    sys.modules['pyghmi'] = p
+    sys.modules['pyghmi.exceptions'] = p.exceptions
+    sys.modules['pyghmi.ipmi'] = p.ipmi
+    sys.modules['pyghmi.ipmi.command'] = p.ipmi.command
+    # FIXME(deva): the next line is a hack, because several unit tests
+    #              actually depend on this particular string being present
+    #              in pyghmi.ipmi.command.boot_devices
+    p.ipmi.command.boot_devices = {'pxe': 4}
+
+if 'ironic.drivers.modules.ipminative' in sys.modules:
+    reload(sys.modules['ironic.drivers.modules.ipminative'])

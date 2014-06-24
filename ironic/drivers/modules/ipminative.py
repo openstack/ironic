@@ -25,9 +25,13 @@ from ironic.common import exception
 from ironic.common import states
 from ironic.conductor import task_manager
 from ironic.drivers import base
+from ironic.openstack.common import importutils
 from ironic.openstack.common import log as logging
-from pyghmi import exceptions as pyghmi_exception
-from pyghmi.ipmi import command as ipmi_command
+
+pyghmi = importutils.try_import('pyghmi')
+if pyghmi:
+    from pyghmi import exceptions as pyghmi_exception
+    from pyghmi.ipmi import command as ipmi_command
 
 opts = [
     cfg.IntOpt('retry_timeout',
