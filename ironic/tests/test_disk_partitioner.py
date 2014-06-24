@@ -66,3 +66,37 @@ class DiskPartitionerTestCase(base.TestCase):
                                'mkpart', 'fake-type', 'fake-fs-type', '1', '2',
                                'mkpart', 'fake-type', 'fake-fs-type', '2', '3',
                                'set', '2', 'boot', 'on')
+
+
+@mock.patch.object(utils, 'execute')
+class ListPartitionsTestCase(base.TestCase):
+
+    def test_correct(self, execute_mock):
+        output = """
+BYT;
+/dev/sda:500107862016B:scsi:512:4096:msdos:ATA HGST HTS725050A7:;
+1:1.00MiB:501MiB:500MiB:ext4::boot;
+2:501MiB:476940MiB:476439MiB:::;
+"""
+        expected = [
+            {'start': 1, 'end': 501, 'size': 500,
+             'filesystem': 'ext4', 'flags': 'boot'},
+            {'start': 501, 'end': 476940, 'size': 476439,
+             'filesystem': '', 'flags': ''},
+        ]
+        execute_mock.return_value = (output, '')
+        result = disk_partitioner.list_partitions('/dev/fake')
+        self.assertEqual(expected, result)
+        execute_mock.assert_called_once_with(
+            'parted', '-s', '-m', '/dev/fake', 'unit', 'MiB', 'print')
+
+    @mock.patch.object(disk_partitioner.LOG, 'warn')
+    def test_incorrect(self, log_mock, execute_mock):
+        output = """
+BYT;
+/dev/sda:500107862016B:scsi:512:4096:msdos:ATA HGST HTS725050A7:;
+1:XX1076MiB:---:524MiB:ext4::boot;
+"""
+        execute_mock.return_value = (output, '')
+        self.assertEqual([], disk_partitioner.list_partitions('/dev/fake'))
+        self.assertEqual(1, log_mock.call_count)
