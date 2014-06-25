@@ -48,6 +48,23 @@ class DbNodeTestCase(base.DbTestCase):
         del n['chassis_id']
         self.dbapi.create_node(n)
 
+    def test_create_node_already_exists(self):
+        n = utils.get_test_node()
+        del n['id']
+        self.dbapi.create_node(n)
+        self.assertRaises(exception.NodeAlreadyExists,
+                          self.dbapi.create_node, n)
+
+    def test_create_node_instance_already_associated(self):
+        instance = ironic_utils.generate_uuid()
+        n1 = utils.get_test_node(id=1, uuid=ironic_utils.generate_uuid(),
+                                 instance_uuid=instance)
+        self.dbapi.create_node(n1)
+        n2 = utils.get_test_node(id=2, uuid=ironic_utils.generate_uuid(),
+                                 instance_uuid=instance)
+        self.assertRaises(exception.InstanceAssociated,
+                          self.dbapi.create_node, n2)
+
     def test_get_node_by_id(self):
         n = self._create_test_node()
         res = self.dbapi.get_node_by_id(n['id'])
@@ -305,7 +322,7 @@ class DbNodeTestCase(base.DbTestCase):
         res = self.dbapi.update_node(n['id'], {'instance_uuid': None})
         self.assertIsNone(res.instance_uuid)
 
-    def test_update_node_already_assosicated(self):
+    def test_update_node_already_associated(self):
         n = self._create_test_node()
         new_i_uuid_one = ironic_utils.generate_uuid()
         self.dbapi.update_node(n['id'], {'instance_uuid': new_i_uuid_one})
@@ -314,6 +331,16 @@ class DbNodeTestCase(base.DbTestCase):
                           self.dbapi.update_node,
                           n['id'],
                           {'instance_uuid': new_i_uuid_two})
+
+    def test_update_node_instance_already_associated(self):
+        n = self._create_test_node(id=1, uuid=ironic_utils.generate_uuid())
+        new_i_uuid = ironic_utils.generate_uuid()
+        self.dbapi.update_node(n['id'], {'instance_uuid': new_i_uuid})
+        n = self._create_test_node(id=2, uuid=ironic_utils.generate_uuid())
+        self.assertRaises(exception.InstanceAssociated,
+                          self.dbapi.update_node,
+                          n['id'],
+                          {'instance_uuid': new_i_uuid})
 
     @mock.patch.object(timeutils, 'utcnow')
     def test_update_node_provision(self, mock_utcnow):
