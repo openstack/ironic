@@ -593,22 +593,59 @@ class IronicDriver(virt_driver.ComputeDriver):
         raise NotImplementedError()
 
     def refresh_security_group_rules(self, security_group_id):
-        pass
+        """Refresh security group rules from data store.
+
+        Invoked when security group rules are updated.
+
+        :param security_group_id: The security group id.
+
+        """
+        self.firewall_driver.refresh_security_group_rules(security_group_id)
 
     def refresh_security_group_members(self, security_group_id):
-        pass
+        """Refresh security group members from data store.
+
+        Invoked when instances are added/removed to a security group.
+
+        :param security_group_id: The security group id.
+
+        """
+        self.firewall_driver.refresh_security_group_members(security_group_id)
 
     def refresh_provider_fw_rules(self):
-        pass
+        """Triggers a firewall update based on database changes."""
+        self.firewall_driver.refresh_provider_fw_rules()
 
     def refresh_instance_security_rules(self, instance):
-        pass
+        """Refresh security group rules from data store.
 
-    def ensure_filtering_rules_for_instance(self, instance_ref, network_info):
-        pass
+        Gets called when an instance gets added to or removed from
+        the security group the instance is a member of or if the
+        group gains or loses a rule.
 
-    def unfilter_instance(self, instance_ref, network_info):
-        pass
+        :param instance: The instance object.
+
+        """
+        self.firewall_driver.refresh_instance_security_rules(instance)
+
+    def ensure_filtering_rules_for_instance(self, instance, network_info):
+        """Set up filtering rules.
+
+        :param instance: The instance object.
+        :param network_info: Instance network information.
+
+        """
+        self.firewall_driver.setup_basic_filtering(instance, network_info)
+        self.firewall_driver.prepare_instance_filter(instance, network_info)
+
+    def unfilter_instance(self, instance, network_info):
+        """Stop filtering instance.
+
+        :param instance: The instance object.
+        :param network_info: Instance network information.
+
+        """
+        self.firewall_driver.unfilter_instance(instance, network_info)
 
     def _plug_vifs(self, node, instance, network_info):
         LOG.debug("plug: instance_uuid=%(uuid)s vif=%(network_info)s"
