@@ -67,10 +67,10 @@ class FakeDeploy(base.DeployInterface):
         pass
 
     def deploy(self, task):
-        pass
+        return states.DEPLOYDONE
 
     def tear_down(self, task):
-        pass
+        return states.DELETED
 
     def prepare(self, task):
         pass
