@@ -63,7 +63,8 @@ def get_test_flavor(**kw):
                                        'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
                            'baremetal:deploy_ramdisk_id':
                                        'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb'}
-    return {'extra_specs': kw.get('extra_specs', default_extra_specs),
+    return {'name': kw.get('name', 'fake.flavor'),
+            'extra_specs': kw.get('extra_specs', default_extra_specs),
             'swap': kw.get('swap', 0),
             'ephemeral_gb': kw.get('ephemeral_gb', 0)}
 
