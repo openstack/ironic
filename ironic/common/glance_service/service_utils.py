@@ -113,7 +113,7 @@ def _get_api_server():
     api_server = CONF.glance.glance_api_servers or \
         CONF.glance.glance_host + ':' + str(CONF.glance.glance_port)
     if '//' not in api_server:
-        api_server = 'http://' + api_server
+        api_server = CONF.glance.glance_protocol + '://' + api_server
     url = urlparse.urlparse(api_server)
     port = url.port or 80
     host = url.netloc.split(':', 1)[0]
