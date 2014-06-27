@@ -165,7 +165,7 @@ class IronicDriver(virt_driver.ComputeDriver):
         # TODO(deva): sort out extra_specs and nova-scheduler interaction
         extra_specs = {}
         extra_specs["ironic_driver"] = \
-                "ironic.nova.virt.ironic.driver.IronicDriver"
+            "ironic.nova.virt.ironic.driver.IronicDriver"
         # cpu_arch set per node.
         extra_specs['cpu_arch'] = ''
         for pair in CONF.ironic.instance_type_extra_specs:
@@ -209,27 +209,28 @@ class IronicDriver(virt_driver.ComputeDriver):
             memory_mb = 0
             local_gb = 0
 
-        dic = {'node': str(node.uuid),
-               'hypervisor_hostname': str(node.uuid),
-               'hypervisor_type': self.get_hypervisor_type(),
-               'hypervisor_version': self.get_hypervisor_version(),
-               'cpu_info': 'baremetal cpu',
-               'vcpus': vcpus,
-               'vcpus_used': vcpus_used,
-               'local_gb': local_gb,
-               'local_gb_used': local_gb_used,
-               'disk_total': local_gb,
-               'disk_used': local_gb_used,
-               'disk_available': local_gb - local_gb_used,
-               'memory_mb': memory_mb,
-               'memory_mb_used': memory_mb_used,
-               'host_memory_total': memory_mb,
-               'host_memory_free': memory_mb - memory_mb_used,
-               'supported_instances': jsonutils.dumps(
-                                     _get_nodes_supported_instances(cpu_arch)),
-               'stats': jsonutils.dumps(nodes_extra_specs),
-               'host': CONF.host,
-               }
+        dic = {
+            'node': str(node.uuid),
+            'hypervisor_hostname': str(node.uuid),
+            'hypervisor_type': self.get_hypervisor_type(),
+            'hypervisor_version': self.get_hypervisor_version(),
+            'cpu_info': 'baremetal cpu',
+            'vcpus': vcpus,
+            'vcpus_used': vcpus_used,
+            'local_gb': local_gb,
+            'local_gb_used': local_gb_used,
+            'disk_total': local_gb,
+            'disk_used': local_gb_used,
+            'disk_available': local_gb - local_gb_used,
+            'memory_mb': memory_mb,
+            'memory_mb_used': memory_mb_used,
+            'host_memory_total': memory_mb,
+            'host_memory_free': memory_mb - memory_mb_used,
+            'supported_instances': jsonutils.dumps(
+                _get_nodes_supported_instances(cpu_arch)),
+            'stats': jsonutils.dumps(nodes_extra_specs),
+            'host': CONF.host,
+        }
         dic.update(nodes_extra_specs)
         return dic
 
@@ -243,8 +244,9 @@ class IronicDriver(virt_driver.ComputeDriver):
 
     def _add_driver_fields(self, node, instance, image_meta, flavor):
         icli = client_wrapper.IronicClientWrapper()
-        patch = patcher.create(node).get_deploy_patch(
-                instance, image_meta, flavor)
+        patch = patcher.create(node).get_deploy_patch(instance,
+                                                      image_meta,
+                                                      flavor)
 
         # Associate the node with an instance
         patch.append({'path': '/instance_uuid', 'op': 'add',
@@ -263,8 +265,8 @@ class IronicDriver(virt_driver.ComputeDriver):
         context = nova_context.get_admin_context()
         flavor = flavor_obj.Flavor.get_by_id(context,
                                              instance['instance_type_id'])
-        patch = patcher.create(node).get_cleanup_patch(
-                instance, network_info, flavor)
+        patch = patcher.create(node).get_cleanup_patch(instance, network_info,
+                                                       flavor)
 
         # Unassociate the node
         patch.append({'op': 'remove', 'path': '/instance_uuid'})
@@ -417,8 +419,10 @@ class IronicDriver(virt_driver.ComputeDriver):
         # is a significant issue. It may mean we've been passed the wrong data.
         node_uuid = instance.get('node')
         if not node_uuid:
-            raise exception.NovaException(_("Ironic node uuid not supplied to "
-                    "driver for instance %s.") % instance['uuid'])
+            raise exception.NovaException(
+                _("Ironic node uuid not supplied to "
+                  "driver for instance %s.") % instance['uuid'])
+
         icli = client_wrapper.IronicClientWrapper()
         node = icli.call("node.get", node_uuid)
 

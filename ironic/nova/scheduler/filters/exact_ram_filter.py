@@ -27,10 +27,10 @@ class ExactRamFilter(filters.BaseHostFilter):
         requested_ram = instance_type['memory_mb']
         if requested_ram != host_state.free_ram_mb:
             LOG.debug("%(host_state)s does not have %(requested_ram)s MB "
-                    "usable ram, it only has %(usable_ram)s MB usable ram.",
-                    {'host_state': host_state,
-                     'requested_ram': requested_ram,
-                     'usable_ram': host_state.free_ram_mb})
+                      "usable ram, it only has %(usable_ram)s MB usable ram.",
+                      {'host_state': host_state,
+                       'requested_ram': requested_ram,
+                       'usable_ram': host_state.free_ram_mb})
             return False
 
         return True

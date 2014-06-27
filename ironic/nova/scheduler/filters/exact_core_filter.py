@@ -43,8 +43,8 @@ class ExactCoreFilter(filters.BaseHostFilter):
                       "cores of usable vcpu, it only has %(usable_vcpus)s "
                       "cores of usable vcpu.",
                       {'host_state': host_state,
-                      'requested_vcpus': required_vcpus,
-                      'usable_vcpus': usable_vcpus})
+                       'requested_vcpus': required_vcpus,
+                       'usable_vcpus': usable_vcpus})
             return False
 
         return True
