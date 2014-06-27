@@ -34,7 +34,7 @@ from nova import exception
 from nova.objects import flavor as flavor_obj
 from nova.objects import instance as instance_obj
 from nova.openstack.common import excutils
-from nova.openstack.common.gettextutils import _
+from nova.openstack.common.gettextutils import _, _LW
 from nova.openstack.common import jsonutils
 from nova.openstack.common import log as logging
 from nova.openstack.common import loopingcall
@@ -543,13 +543,24 @@ class IronicDriver(virt_driver.ComputeDriver):
         timer.start(interval=CONF.ironic.api_retry_interval).wait()
 
     def destroy(self, context, instance, network_info,
-                block_device_info=None):
+                block_device_info=None, destroy_disks=True):
+        """Destroy the specified instance, if it can be found.
+
+        :param context: The security context.
+        :param instance: The instance object.
+        :param network_info: Instance network information.
+        :param block_device_info: Instance block device
+            information. Ignored by this driver.
+        :param destroy_disks: Indicates if disks should be
+            destroyed. Ignored by this driver.
+
+        """
         icli = client_wrapper.IronicClientWrapper()
         try:
             node = validate_instance_and_node(icli, instance)
         except exception.InstanceNotFound:
-            LOG.debug("Destroy called on non-existing instance %s."
-                      % instance['uuid'])
+            LOG.warning(_LW("Destroy called on non-existing instance %s."),
+                        instance['uuid'])
             # NOTE(deva): if nova.compute.ComputeManager._delete_instance()
             #             is called on a non-existing instance, the only way
             #             to delete it is to return from this method
