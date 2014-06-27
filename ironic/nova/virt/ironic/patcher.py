@@ -47,7 +47,8 @@ class GenericDriverFields(object):
     def __init__(self, node):
         self.node = node
 
-    def get_deploy_patch(self, instance, image_meta, flavor):
+    def get_deploy_patch(self, instance, image_meta, flavor,
+                         preserve_ephemeral=None):
         return []
 
     def get_cleanup_patch(self, instance, network_info, flavor):
@@ -74,7 +75,8 @@ class PXEDriverFields(GenericDriverFields):
             deploy_ids['pxe_deploy_ramdisk'] = deploy_ramdisk
         return deploy_ids
 
-    def get_deploy_patch(self, instance, image_meta, flavor):
+    def get_deploy_patch(self, instance, image_meta, flavor,
+                         preserve_ephemeral=None):
         """Build a patch to add the required fields to deploy a node.
 
         Build a json-patch to add the required fields to deploy a node
@@ -82,8 +84,10 @@ class PXEDriverFields(GenericDriverFields):
 
         :param instance: the instance object.
         :param image_meta: the metadata associated with the instance
-                            image.
+                           image.
         :param flavor: the flavor object.
+        :param preserve_ephemeral: preserve_ephemeral status (bool) to be
+                                   specified during rebuild.
         :returns: a json-patch with the fields that needs to be updated.
 
         """
@@ -108,6 +112,11 @@ class PXEDriverFields(GenericDriverFields):
                 patch.append({'path': '/instance_info/ephemeral_format',
                               'op': 'add',
                               'value': CONF.default_ephemeral_format})
+
+        if preserve_ephemeral is not None:
+            patch.append({'path': '/instance_info/preserve_ephemeral',
+                          'op': 'add', 'value': str(preserve_ephemeral)})
+
         return patch
 
     def get_cleanup_patch(self, instance, network_info, flavor):

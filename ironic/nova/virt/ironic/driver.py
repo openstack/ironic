@@ -242,11 +242,13 @@ class IronicDriver(virt_driver.ComputeDriver):
     def _stop_firewall(self, instance, network_info):
         self.firewall_driver.unfilter_instance(instance, network_info)
 
-    def _add_driver_fields(self, node, instance, image_meta, flavor):
+    def _add_driver_fields(self, node, instance, image_meta, flavor,
+                           preserve_ephemeral=None):
         icli = client_wrapper.IronicClientWrapper()
         patch = patcher.create(node).get_deploy_patch(instance,
                                                       image_meta,
-                                                      flavor)
+                                                      flavor,
+                                                      preserve_ephemeral)
 
         # Associate the node with an instance
         patch.append({'path': '/instance_uuid', 'op': 'add',
@@ -726,21 +728,14 @@ class IronicDriver(virt_driver.ComputeDriver):
         instance.task_state = task_states.REBUILD_SPAWNING
         instance.save(expected_task_state=[task_states.REBUILDING])
 
-        node_uuid = instance.get('node')
-
+        node_uuid = instance['node']
         icli = client_wrapper.IronicClientWrapper()
+        node = icli.call("node.get", node_uuid)
+        flavor = flavor_obj.Flavor.get_by_id(context,
+                                             instance['instance_type_id'])
 
-        # Update instance_info for the ephemeral preservation value.
-        patch = []
-        patch.append({'path': '/instance_info/preserve_ephemeral',
-                      'op': 'add', 'value': str(preserve_ephemeral)})
-        try:
-            icli.call('node.update', node_uuid, patch)
-        except ironic_exception.BadRequest:
-            msg = (_("Failed to add deploy parameters on node %(node)s "
-                     "when rebuilding the instance %(instance)s")
-                   % {'node': node_uuid, 'instance': instance['uuid']})
-            raise exception.InstanceDeployFailure(msg)
+        self._add_driver_fields(node, instance, image_meta, flavor,
+                                preserve_ephemeral)
 
         # Trigger the node rebuild/redeploy.
         try:
