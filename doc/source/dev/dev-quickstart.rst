@@ -129,8 +129,14 @@ created in the previous section to run everything else within::
     # disable auth since we are not running keystone here
     sed -i "s/#auth_strategy=keystone/auth_strategy=noauth/" etc/ironic/ironic.conf.local
 
+    # Use the 'fake_ipmitool' test driver
+    sed -i "s/#enabled_drivers=pxe_ipmitool/enabled_drivers=fake_ipmitool/" etc/ironic/ironic.conf.local
+
     # set a fake host name [useful if you want to test multiple services on the same host]
     sed -i "s/#host=.*/host=test-host/" etc/ironic/ironic.conf.local
+
+    # turn off the periodic sync_power_state task, to avoid getting NodeLocked exceptions
+    sed -i "s/#sync_power_state_interval=60/sync_power_state_interval=-1/" etc/ironic/ironic.conf.local
 
     # initialize the ironic database
     # this defaults to storing data in ./ironic/ironic.sqlite
