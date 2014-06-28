@@ -14,6 +14,8 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import time
+
 from neutronclient.common import exceptions as neutron_client_exc
 from neutronclient.v2_0 import client as clientv20
 from oslo.config import cfg
@@ -22,6 +24,7 @@ from ironic.api import acl
 from ironic.common import exception
 from ironic.common import keystone
 from ironic.common import tftp
+from ironic.drivers.modules import ssh
 from ironic.openstack.common import log as logging
 
 
@@ -159,3 +162,16 @@ def update_neutron(task, pxe_bootfile_name):
                           "DHCP BOOT options for node %(node)s on the "
                           "following ports: %(ports)s."),
                           {'node': task.node.uuid, 'ports': failures})
+
+    _wait_for_neutron_update(task)
+
+
+def _wait_for_neutron_update(task):
+    """Wait for Neutron agents to process all requested changes if required."""
+    # TODO(adam_g): Hack to workaround bug 1334447 until we have a mechanism
+    # for synchronizing events with Neutron.  We need to sleep only if we are
+    # booting VMs, which is implied by SSHPower, to ensure they do not boot
+    # before Neutron agents have setup sufficent DHCP config for netboot.
+    if isinstance(task.driver.power, ssh.SSHPower):
+        LOG.debug(_("Waiting 15 seconds for Neutron."))
+        time.sleep(15)
