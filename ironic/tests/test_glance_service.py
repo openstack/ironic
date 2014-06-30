@@ -117,6 +117,18 @@ class TestGlanceImageService(base.TestCase):
         fixture.update(kwargs)
         return fixture
 
+    @property
+    def endpoint(self):
+        # For glanceclient versions >= 0.13, the endpoint is located
+        # under http_client (blueprint common-client-library-2)
+        # I5addc38eb2e2dd0be91b566fda7c0d81787ffa75
+        # Test both options to keep backward compatibility
+        if getattr(self.service.client, 'endpoint', None):
+            endpoint = self.service.client.endpoint
+        else:
+            endpoint = self.service.client.http_client.endpoint
+        return endpoint
+
     def _make_datetime_fixture(self):
         return self._make_fixture(created_at=self.NOW_GLANCE_FORMAT,
                                   updated_at=self.NOW_GLANCE_FORMAT,
@@ -579,7 +591,7 @@ class TestGlanceImageService(base.TestCase):
 
     def test_check_image_service__no_client_set_http(self):
         def func(service, *args, **kwargs):
-            return (service.client.endpoint, args, kwargs)
+            return (self.endpoint, args, kwargs)
 
         self.service.client = None
         params = {'image_href': 'http://123.123.123.123:9292/image_uuid'}
@@ -590,7 +602,7 @@ class TestGlanceImageService(base.TestCase):
 
     def test_get_image_service__no_client_set_https(self):
         def func(service, *args, **kwargs):
-            return (service.client.endpoint, args, kwargs)
+            return (self.endpoint, args, kwargs)
 
         self.service.client = None
         params = {'image_href': 'https://123.123.123.123:9292/image_uuid'}
