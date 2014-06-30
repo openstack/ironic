@@ -27,8 +27,8 @@ from ironic.common import images
 from ironic.common import keystone
 from ironic.common import neutron
 from ironic.common import paths
+from ironic.common import pxe_utils
 from ironic.common import states
-from ironic.common import tftp
 from ironic.common import utils
 from ironic.conductor import task_manager
 from ironic.conductor import utils as manager_utils
@@ -56,6 +56,12 @@ pxe_opts = [
     cfg.StrOpt('images_path',
                default='/var/lib/ironic/images/',
                help='Directory where images are stored on disk.'),
+    cfg.StrOpt('tftp_server',
+               default='$my_ip',
+               help='IP address of Ironic compute node\'s tftp server.'),
+    cfg.StrOpt('tftp_root',
+               default='/tftpboot',
+               help='Ironic compute node\'s tftp root path.'),
     cfg.StrOpt('tftp_master_path',
                default='/tftpboot/master_images',
                help='Directory where master tftp images are stored on disk.'),
@@ -187,8 +193,8 @@ def _build_pxe_config_options(node, pxe_info, ctx):
     This method builds the PXE boot options for a node,
     given all the required parameters.
 
-    The options should then be passed to tftp.create_pxe_config to create
-    the actual config files.
+    The options should then be passed to pxe_utils.create_pxe_config to
+    create the actual config files.
 
     :param node: a single Node.
     :param pxe_info: a dict of values to set on the configuration file
@@ -233,7 +239,7 @@ def _get_image_file_path(node_uuid):
 
 def _get_token_file_path(node_uuid):
     """Generate the path for PKI token file."""
-    return os.path.join(CONF.tftp.tftp_root, 'token-' + node_uuid)
+    return os.path.join(CONF.pxe.tftp_root, 'token-' + node_uuid)
 
 
 class PXEImageCache(image_cache.ImageCache):
@@ -315,7 +321,7 @@ def _fetch_images(ctx, cache, images_info):
 def _cache_tftp_images(ctx, node, pxe_info):
     """Fetch the necessary kernels and ramdisks for the instance."""
     fileutils.ensure_tree(
-        os.path.join(CONF.tftp.tftp_root, node.uuid))
+        os.path.join(CONF.pxe.tftp_root, node.uuid))
     LOG.debug("Fetching kernel and ramdisk for node %s",
               node.uuid)
     _fetch_images(ctx, TFTPImageCache(), pxe_info.values())
@@ -329,7 +335,7 @@ def _cache_instance_image(ctx, node):
     to the appropriate places on local disk.
 
     Both sets of kernel and ramdisk are needed for PXE booting, so these
-    are stored under CONF.tftp.tftp_root.
+    are stored under CONF.pxe.tftp_root.
 
     At present, the AMI is cached and certain files are injected.
     Debian/ubuntu-specific assumptions are made regarding the injected
@@ -363,7 +369,7 @@ def _get_tftp_image_info(node, ctx):
     d_info = _parse_deploy_info(node)
     image_info = {}
 
-    image_info.update(tftp.get_deploy_kr_info(node.uuid, d_info))
+    image_info.update(pxe_utils.get_deploy_kr_info(node.uuid, d_info))
 
     i_info = node.instance_info
     labels = ('kernel', 'ramdisk')
@@ -378,7 +384,7 @@ def _get_tftp_image_info(node, ctx):
     for label in labels:
         image_info[label] = (
             i_info[label],
-            os.path.join(CONF.tftp.tftp_root, node.uuid, label)
+            os.path.join(CONF.pxe.tftp_root, node.uuid, label)
         )
 
     return image_info
@@ -503,7 +509,8 @@ class PXEDeploy(base.DeployInterface):
         # TODO(yuriyz): more secure way needed for pass auth token
         #               to deploy ramdisk
         _create_token_file(task)
-        neutron.update_neutron(task, CONF.pxe.pxe_bootfile_name)
+        dhcp_opts = pxe_utils.dhcp_options_for_instance()
+        neutron.update_neutron(task, dhcp_opts)
         manager_utils.node_set_boot_device(task, 'pxe', persistent=True)
         manager_utils.node_power_action(task, states.REBOOT)
 
@@ -535,7 +542,8 @@ class PXEDeploy(base.DeployInterface):
         pxe_info = _get_tftp_image_info(task.node, task.context)
         pxe_options = _build_pxe_config_options(task.node, pxe_info,
                                                 task.context)
-        tftp.create_pxe_config(task, pxe_options, CONF.pxe.pxe_config_template)
+        pxe_utils.create_pxe_config(task, pxe_options,
+                                    CONF.pxe.pxe_config_template)
         _cache_tftp_images(task.context, task.node, pxe_info)
 
     def clean_up(self, task):
@@ -555,13 +563,14 @@ class PXEDeploy(base.DeployInterface):
             utils.unlink_without_raise(path)
         TFTPImageCache().clean_up()
 
-        tftp.clean_up_pxe_config(task)
+        pxe_utils.clean_up_pxe_config(task)
 
         _destroy_images(d_info, node.uuid)
         _destroy_token_file(node)
 
     def take_over(self, task):
-        neutron.update_neutron(task, CONF.pxe.pxe_bootfile_name)
+        dhcp_opts = pxe_utils.dhcp_options_for_instance()
+        neutron.update_neutron(task, dhcp_opts)
 
 
 class VendorPassthru(base.VendorInterface):
@@ -581,7 +590,7 @@ class VendorPassthru(base.VendorInterface):
                   'lun': kwargs.get('lun', '1'),
                   'image_path': _get_image_file_path(node.uuid),
                   'pxe_config_path':
-                      tftp.get_pxe_config_file_path(node.uuid),
+                      pxe_utils.get_pxe_config_file_path(node.uuid),
                   'root_mb': 1024 * int(d_info['root_gb']),
                   'swap_mb': int(d_info['swap_mb']),
                   'ephemeral_mb': 1024 * int(d_info['ephemeral_gb']),
