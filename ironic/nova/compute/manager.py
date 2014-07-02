@@ -23,8 +23,12 @@ work. The goal here is to generalise the areas where n-c talking to a clustered
 hypervisor has issues, and long term fold them into the main ComputeManager.
 """
 
+from nova.openstack.common import lockutils
 from nova.compute import manager
 import nova.context
+
+
+CCM_SEMAPHORE='clustered_compute_manager'
 
 
 class ClusteredComputeManager(manager.ComputeManager):
@@ -73,3 +77,23 @@ class ClusteredComputeManager(manager.ComputeManager):
             self.update_available_resource(nova.context.get_admin_context())
         except Exception:
             pass
+
+    @lockutils.synchronized(CCM_SEMAPHORE, 'ironic-')
+    def _update_resources(self):
+        """Updates resources while protecting against a race on
+        self._resource_tracker_dict.
+        """
+        self.update_available_resource(nova.context.get_admin_context())
+
+    def terminate_instance(self, context, instance, bdms, reservations):
+        """Terminate an instance on a node.
+
+        We override this method and force a post-termination update to Nova's
+        resources. This avoids having to wait for a Nova periodic task tick
+        before nodes can be reused.
+        """
+        super(ClusteredComputeManager, self).terminate_instance(context,
+                                                                instance,
+                                                                bdms,
+                                                                reservations)
+        self._update_resources()
