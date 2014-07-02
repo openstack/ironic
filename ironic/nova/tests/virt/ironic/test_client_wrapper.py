@@ -14,13 +14,15 @@
 #    under the License.
 
 import mock
+
+from ironicclient import client as ironic_client
+from ironicclient import exc as ironic_exception
 from oslo.config import cfg
 
+from nova import exception
+from nova import test
 from ironic.nova.tests.virt.ironic import utils as ironic_utils
 from ironic.nova.virt.ironic import client_wrapper
-from ironicclient import client as ironic_client
-
-from nova import test
 
 CONF = cfg.CONF
 
@@ -32,6 +34,8 @@ class IronicClientWrapperTestCase(test.NoDBTestCase):
     def setUp(self):
         super(IronicClientWrapperTestCase, self).setUp()
         self.icli = client_wrapper.IronicClientWrapper()
+        # Do not waste time sleeping
+        cfg.CONF.set_override('api_retry_interval', 0, 'ironic')
 
     @mock.patch.object(client_wrapper.IronicClientWrapper, '_multi_getattr')
     @mock.patch.object(client_wrapper.IronicClientWrapper, '_get_client')
@@ -77,3 +81,44 @@ class IronicClientWrapperTestCase(test.NoDBTestCase):
                     'ironic_url': CONF.ironic.api_endpoint}
         mock_ir_cli.assert_called_once_with(CONF.ironic.api_version,
                                             **expected)
+
+    @mock.patch.object(client_wrapper.IronicClientWrapper, '_multi_getattr')
+    @mock.patch.object(client_wrapper.IronicClientWrapper, '_get_client')
+    def test_call_fail(self, mock_get_client, mock_multi_getattr):
+        cfg.CONF.set_override('api_max_retries', 2, 'ironic')
+        test_obj = mock.Mock()
+        test_obj.side_effect = ironic_exception.HTTPServiceUnavailable
+        mock_multi_getattr.return_value = test_obj
+        mock_get_client.return_value = FAKE_CLIENT
+        self.assertRaises(exception.NovaException, self.icli.call, "node.list")
+        self.assertEqual(2, test_obj.call_count)
+
+    @mock.patch.object(client_wrapper.IronicClientWrapper, '_multi_getattr')
+    @mock.patch.object(client_wrapper.IronicClientWrapper, '_get_client')
+    def test_call_fail_unexpected_exception(self, mock_get_client,
+                                            mock_multi_getattr):
+        test_obj = mock.Mock()
+        test_obj.side_effect = ironic_exception.HTTPNotFound
+        mock_multi_getattr.return_value = test_obj
+        mock_get_client.return_value = FAKE_CLIENT
+        self.assertRaises(ironic_exception.HTTPNotFound, self.icli.call,
+                          "node.list")
+
+    @mock.patch.object(ironic_client, 'get_client')
+    def test__get_client_unauthorized(self, mock_get_client):
+        mock_get_client.side_effect = ironic_exception.Unauthorized
+        self.assertRaises(exception.NovaException, self.icli._get_client)
+
+    @mock.patch.object(ironic_client, 'get_client')
+    def test__get_client_unexpected_exception(self, mock_get_client):
+        mock_get_client.side_effect = ironic_exception.ConnectionRefused
+        self.assertRaises(ironic_exception.ConnectionRefused,
+                          self.icli._get_client)
+
+    def test__multi_getattr_good(self):
+        response = self.icli._multi_getattr(FAKE_CLIENT, "node.list")
+        self.assertEqual(FAKE_CLIENT.node.list, response)
+
+    def test__multi_getattr_fail(self):
+        self.assertRaises(AttributeError, self.icli._multi_getattr,
+                          FAKE_CLIENT, "nonexistent")
