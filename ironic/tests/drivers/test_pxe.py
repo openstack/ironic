@@ -217,7 +217,7 @@ class PXEPrivateMethodsTestCase(db_base.DbTestCase):
         return self.dbapi.create_port(p)
 
     @mock.patch.object(base_image_service.BaseImageService, '_show')
-    def test__get_tftp_image_info(self, show_mock):
+    def test__get_image_info(self, show_mock):
         properties = {'properties': {u'kernel_id': u'instance_kernel_uuid',
                      u'ramdisk_id': u'instance_ramdisk_uuid'}}
 
@@ -242,14 +242,14 @@ class PXEPrivateMethodsTestCase(db_base.DbTestCase):
                                        self.node.uuid,
                                        'deploy_kernel'))}
         show_mock.return_value = properties
-        image_info = pxe._get_tftp_image_info(self.node, self.context)
+        image_info = pxe._get_image_info(self.node, self.context)
         show_mock.assert_called_once_with('glance://image_uuid',
                                            method='get')
         self.assertEqual(expected_info, image_info)
 
         # test with saved info
         show_mock.reset_mock()
-        image_info = pxe._get_tftp_image_info(self.node, self.context)
+        image_info = pxe._get_image_info(self.node, self.context)
         self.assertEqual(expected_info, image_info)
         self.assertFalse(show_mock.called)
         self.assertEqual('instance_kernel_uuid',
@@ -259,7 +259,8 @@ class PXEPrivateMethodsTestCase(db_base.DbTestCase):
 
     @mock.patch.object(utils, 'random_alnum')
     @mock.patch.object(pxe_utils, '_build_pxe_config')
-    def test_build_pxe_config_options(self, build_pxe_mock, random_alnum_mock):
+    def _test_build_pxe_config_options(self, build_pxe_mock, random_alnum_mock,
+                                        ipxe_enabled=False):
         self.config(pxe_append_params='test_param', group='pxe')
         # NOTE: right '/' should be removed from url string
         self.config(api_url='http://192.168.122.184:6385/', group='conductor')
@@ -269,36 +270,56 @@ class PXEPrivateMethodsTestCase(db_base.DbTestCase):
         fake_key = '0123456789ABCDEFGHIJKLMNOPQRSTUV'
         random_alnum_mock.return_value = fake_key
 
+        if ipxe_enabled:
+            http_url = 'http://192.1.2.3:1234'
+            self.config(ipxe_enabled=True, group='pxe')
+            self.config(http_url=http_url, group='pxe')
+
+            deploy_kernel = os.path.join(http_url, self.node.uuid,
+                                         'deploy_kernel')
+            deploy_ramdisk = os.path.join(http_url, self.node.uuid,
+                                          'deploy_ramdisk')
+            kernel = os.path.join(http_url, self.node.uuid, 'kernel')
+            ramdisk = os.path.join(http_url, self.node.uuid, 'ramdisk')
+            root_dir = CONF.pxe.http_root
+        else:
+            deploy_kernel = os.path.join(CONF.pxe.tftp_root, self.node.uuid,
+                                         'deploy_kernel')
+            deploy_ramdisk = os.path.join(CONF.pxe.tftp_root, self.node.uuid,
+                                         'deploy_ramdisk')
+            kernel = os.path.join(CONF.pxe.tftp_root, self.node.uuid,
+                                  'kernel')
+            ramdisk = os.path.join(CONF.pxe.tftp_root, self.node.uuid,
+                                   'ramdisk')
+            root_dir = CONF.pxe.tftp_root
+
         expected_options = {
             'deployment_key': '0123456789ABCDEFGHIJKLMNOPQRSTUV',
-            'ari_path': u'/tftpboot/1be26c0b-03f2-4d2e-ae87-c02d7f33c123/'
-                        u'ramdisk',
+            'ari_path': ramdisk,
             'deployment_iscsi_iqn': u'iqn-1be26c0b-03f2-4d2e-ae87-c02d7f33'
                                     u'c123',
-            'deployment_ari_path': u'/tftpboot/1be26c0b-03f2-4d2e-ae87-c02d7'
-                                   u'f33c123/deploy_ramdisk',
+            'deployment_ari_path': deploy_ramdisk,
             'pxe_append_params': 'test_param',
-            'aki_path': u'/tftpboot/1be26c0b-03f2-4d2e-ae87-c02d7f33c123/'
-                        u'kernel',
+            'aki_path': kernel,
             'deployment_id': u'1be26c0b-03f2-4d2e-ae87-c02d7f33c123',
             'ironic_api_url': 'http://192.168.122.184:6385',
-            'deployment_aki_path': u'/tftpboot/1be26c0b-03f2-4d2e-ae87-'
-                                   u'c02d7f33c123/deploy_kernel'
+            'deployment_aki_path': deploy_kernel,
         }
+
         image_info = {'deploy_kernel': ('deploy_kernel',
-                                        os.path.join(CONF.pxe.tftp_root,
+                                        os.path.join(root_dir,
                                                      self.node.uuid,
                                                      'deploy_kernel')),
                       'deploy_ramdisk': ('deploy_ramdisk',
-                                         os.path.join(CONF.pxe.tftp_root,
+                                         os.path.join(root_dir,
                                                       self.node.uuid,
                                                       'deploy_ramdisk')),
                       'kernel': ('kernel_id',
-                                 os.path.join(CONF.pxe.tftp_root,
+                                 os.path.join(root_dir,
                                               self.node.uuid,
                                               'kernel')),
                       'ramdisk': ('ramdisk_id',
-                                  os.path.join(CONF.pxe.tftp_root,
+                                  os.path.join(root_dir,
                                                self.node.uuid,
                                                'ramdisk'))
                       }
@@ -313,6 +334,12 @@ class PXEPrivateMethodsTestCase(db_base.DbTestCase):
         db_node = self.dbapi.get_node_by_uuid(self.node.uuid)
         db_key = db_node.instance_info.get('deploy_key')
         self.assertEqual(fake_key, db_key)
+
+    def test__build_pxe_config_options(self):
+        self._test_build_pxe_config_options(ipxe_enabled=False)
+
+    def test__build_pxe_config_options_ipxe(self):
+        self._test_build_pxe_config_options(ipxe_enabled=True)
 
     def test__get_image_dir_path(self):
         self.assertEqual(os.path.join(CONF.pxe.images_path, self.node.uuid),
@@ -341,7 +368,7 @@ class PXEPrivateMethodsTestCase(db_base.DbTestCase):
         image_info = {'deploy_kernel': ('deploy_kernel', image_path)}
         fileutils.ensure_tree(CONF.pxe.tftp_master_path)
 
-        pxe._cache_tftp_images(None, self.node, image_info)
+        pxe._cache_ramdisk_kernel(None, self.node, image_info)
 
         mock_fetch_image.assert_called_once_with(None,
                                                  mock.ANY,
@@ -367,6 +394,33 @@ class PXEPrivateMethodsTestCase(db_base.DbTestCase):
                                       self.node.uuid,
                                       'disk'),
                          image_path)
+
+    @mock.patch.object(pxe, 'TFTPImageCache', lambda: None)
+    @mock.patch.object(fileutils, 'ensure_tree')
+    @mock.patch.object(pxe, '_fetch_images')
+    def test__cache_ramdisk_kernel(self, mock_fetch_image, mock_ensure_tree):
+        self.config(ipxe_enabled=False, group='pxe')
+        fake_pxe_info = {'foo': 'bar'}
+        expected_path = os.path.join(CONF.pxe.tftp_root, self.node.uuid)
+
+        pxe._cache_ramdisk_kernel(self.context, self.node, fake_pxe_info)
+        mock_ensure_tree.assert_called_with(expected_path)
+        mock_fetch_image.assert_called_once_with(self.context, mock.ANY,
+                                                 fake_pxe_info.values())
+
+    @mock.patch.object(pxe, 'TFTPImageCache', lambda: None)
+    @mock.patch.object(fileutils, 'ensure_tree')
+    @mock.patch.object(pxe, '_fetch_images')
+    def test__cache_ramdisk_kernel_ipxe(self, mock_fetch_image,
+                                        mock_ensure_tree):
+        self.config(ipxe_enabled=True, group='pxe')
+        fake_pxe_info = {'foo': 'bar'}
+        expected_path = os.path.join(CONF.pxe.http_root, self.node.uuid)
+
+        pxe._cache_ramdisk_kernel(self.context, self.node, fake_pxe_info)
+        mock_ensure_tree.assert_called_with(expected_path)
+        mock_fetch_image.assert_called_once_with(self.context, mock.ANY,
+                                                 fake_pxe_info.values())
 
 
 @mock.patch.object(pxe, 'TFTPImageCache')
@@ -649,25 +703,25 @@ class PXEDriverTestCase(db_base.DbTestCase):
                               address='123456', iqn='aaa-bbb',
                               key='fake-12345')
 
-    @mock.patch.object(pxe, '_get_tftp_image_info')
-    @mock.patch.object(pxe, '_cache_tftp_images')
+    @mock.patch.object(pxe, '_get_image_info')
+    @mock.patch.object(pxe, '_cache_ramdisk_kernel')
     @mock.patch.object(pxe, '_build_pxe_config_options')
     @mock.patch.object(pxe_utils, 'create_pxe_config')
     def test_prepare(self, mock_pxe_config,
-                     mock_build_pxe, mock_cache_tftp_images,
-                     mock_tftp_img_info):
+                     mock_build_pxe, mock_cache_r_k,
+                     mock_img_info):
         mock_build_pxe.return_value = None
-        mock_tftp_img_info.return_value = None
+        mock_img_info.return_value = None
         mock_pxe_config.return_value = None
-        mock_cache_tftp_images.return_value = None
+        mock_cache_r_k.return_value = None
         with task_manager.acquire(self.context, self.node.uuid) as task:
             task.driver.deploy.prepare(task)
-            mock_tftp_img_info.assert_called_once_with(task.node,
-                                                       self.context)
+            mock_img_info.assert_called_once_with(task.node,
+                                                  self.context)
             mock_pxe_config.assert_called_once_with(
                 task, None, CONF.pxe.pxe_config_template)
-            mock_cache_tftp_images.assert_called_once_with(self.context,
-                                                           task.node, None)
+            mock_cache_r_k.assert_called_once_with(self.context,
+                                                   task.node, None)
 
     @mock.patch.object(deploy_utils, 'get_image_mb')
     @mock.patch.object(pxe, '_get_image_file_path')
@@ -842,8 +896,8 @@ class PXEDriverTestCase(db_base.DbTestCase):
                 self.assertEqual(1, _continue_deploy_mock.call_count,
                             "_continue_deploy was not called once.")
 
-    @mock.patch.object(pxe, '_get_tftp_image_info')
-    def clean_up_config(self, get_tftp_image_info_mock, master=None):
+    @mock.patch.object(pxe, '_get_image_info')
+    def clean_up_config(self, get_image_info_mock, master=None):
         temp_dir = tempfile.mkdtemp()
         self.config(tftp_root=temp_dir, group='pxe')
         tftp_master_dir = os.path.join(CONF.pxe.tftp_root,
@@ -870,7 +924,7 @@ class PXEDriverTestCase(db_base.DbTestCase):
                                      self.node.uuid, 'deploy_kernel')
         image_info = {'deploy_kernel': ('deploy_kernel_uuid', d_kernel_path)}
 
-        get_tftp_image_info_mock.return_value = image_info
+        get_image_info_mock.return_value = image_info
 
         pxecfg_dir = os.path.join(CONF.pxe.tftp_root, 'pxelinux.cfg')
         os.makedirs(pxecfg_dir)
@@ -913,7 +967,7 @@ class PXEDriverTestCase(db_base.DbTestCase):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
             task.driver.deploy.clean_up(task)
-            get_tftp_image_info_mock.called_once_with(task.node)
+            get_image_info_mock.called_once_with(task.node)
         assert_false_path = [config_path, deploy_kernel_path, image_path,
                              pxe_mac_path, image_dir, instance_dir,
                              token_path]

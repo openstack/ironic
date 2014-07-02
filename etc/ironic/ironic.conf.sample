@@ -1100,6 +1100,19 @@
 # (integer value)
 #image_cache_ttl=10080
 
+# Ironic compute node's HTTP server URL. Example:
+# http://192.1.2.3:8080 (string value)
+#http_url=<None>
+
+# Ironic compute node's HTTP root path. (string value)
+#http_root=/httpboot
+
+# Enable iPXE boot. (boolean value)
+#ipxe_enabled=false
+
+# The path to the main iPXE script file. (string value)
+#ipxe_boot_script=$pybasedir/drivers/modules/boot.ipxe
+
 
 [seamicro]
 

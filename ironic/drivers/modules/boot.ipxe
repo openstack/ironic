@@ -1,0 +1,10 @@
+#!ipxe
+
+# load the MAC-specific file or fail if it's not found
+chain --autofree pxelinux.cfg/${mac:hexraw} || goto error_no_config
+
+:error_no_config
+echo PXE boot failed. No configuration found for MAC ${mac}
+echo Press any key to reboot...
+prompt --timeout 180
+reboot
