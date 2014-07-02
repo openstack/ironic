@@ -1,5 +1,5 @@
 pbr>=0.6,!=0.7,<1.0
-SQLAlchemy>=0.7.8,<=0.9.99
+SQLAlchemy>=0.7.8,!=0.9.5,<=0.9.99
 alembic>=0.4.1
 anyjson>=0.3.3
 argparse
@@ -14,8 +14,8 @@ sqlalchemy-migrate>=0.9.1
 netaddr>=0.7.6
 paramiko>=1.13.0
 iso8601>=0.1.9
-python-neutronclient>=2.3.4,<3
-python-glanceclient>=0.9.0
+python-neutronclient>=2.3.5,<3
+python-glanceclient>=0.13.1
 python-keystoneclient>=0.9.0
 stevedore>=0.14
 pysendfile==2.0.0
