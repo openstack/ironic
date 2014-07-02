@@ -350,9 +350,10 @@ class IronicDriverTestCase(test.NoDBTestCase):
 
         # ironic_states.POWER_ON should me be mapped to
         # nova_states.RUNNING
+        memory_kib = properties['memory_mb'] * 1024
         expected = {'state': nova_states.RUNNING,
-                    'max_mem': properties['memory_mb'],
-                    'mem': properties['memory_mb'],
+                    'max_mem': memory_kib,
+                    'mem': memory_kib,
                     'num_cpu': properties['cpus'],
                     'cpu_time': 0}
         instance = fake_instance.fake_instance_obj('fake-context',

@@ -386,6 +386,21 @@ class IronicDriver(virt_driver.ComputeDriver):
         return self._node_resource(node)
 
     def get_info(self, instance):
+        """Get the current state and resource usage for this instance.
+
+        If the instance is not found this method returns (a dictionary
+        with) NOSTATE and all resources == 0.
+
+        :param instance: the instance object.
+        :returns: a dictionary containing:
+            :state: the running state. One of :mod:`nova.compute.power_state`.
+            :max_mem:  (int) the maximum memory in KBytes allowed.
+            :mem:      (int) the memory in KBytes used by the domain.
+            :num_cpu:  (int) the number of CPUs.
+            :cpu_time: (int) the CPU time used in nanoseconds. Always 0 for
+                             this driver.
+
+        """
         icli = client_wrapper.IronicClientWrapper()
         try:
             node = validate_instance_and_node(icli, instance)
@@ -397,9 +412,10 @@ class IronicDriver(virt_driver.ComputeDriver):
                     'cpu_time': 0
                     }
 
+        memory_kib = int(node.properties.get('memory_mb')) * 1024
         return {'state': map_power_state(node.power_state),
-                'max_mem': node.properties.get('memory_mb'),
-                'mem': node.properties.get('memory_mb'),
+                'max_mem': memory_kib,
+                'mem': memory_kib,
                 'num_cpu': node.properties.get('cpus'),
                 'cpu_time': 0
                 }
