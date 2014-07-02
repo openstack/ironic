@@ -441,3 +441,7 @@ class InsufficientDiskSpace(IronicException):
 
 class ImageCreationFailed(IronicException):
     message = _('Creating %(image_type)s image failed: %(error)s')
+
+
+class SwiftOperationError(IronicException):
+    message = _("Swift operation '%(operation)s' failed: %(error)s")
