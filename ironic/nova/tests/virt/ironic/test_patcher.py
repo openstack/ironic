@@ -18,10 +18,8 @@ from oslo.config import cfg
 from ironic.nova.virt.ironic import patcher
 from ironic.nova.tests.virt.ironic import utils as ironic_utils
 
-from nova import exception
 from nova import context as nova_context
 from nova import test
-from nova.objects.flavor import Flavor as flavor_obj
 from nova.tests import fake_instance
 
 CONF = cfg.CONF
