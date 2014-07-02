@@ -23,7 +23,6 @@ Helper classes for Ironic HTTP PATCH creation.
 from oslo.config import cfg
 
 from nova.openstack.common import log as logging
-from nova import exception
 
 CONF = cfg.CONF
 CONF.import_opt('default_ephemeral_format', 'nova.virt.driver')

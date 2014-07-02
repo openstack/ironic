@@ -282,7 +282,7 @@ class IronicDriver(virt_driver.ComputeDriver):
         self._stop_firewall(instance, network_info)
 
     def _wait_for_active(self, icli, instance):
-        """ Wait for the node to be marked as ACTIVE in Ironic """
+        """Wait for the node to be marked as ACTIVE in Ironic."""
         node = validate_instance_and_node(icli, instance)
         if node.provision_state == ironic_states.ACTIVE:
             # job is done
@@ -709,7 +709,7 @@ class IronicDriver(virt_driver.ComputeDriver):
                 attach_block_devices, network_info=None,
                 recreate=False, block_device_info=None,
                 preserve_ephemeral=False):
-        """ Rebuild/redeploy an instance.
+        """Rebuild/redeploy an instance.
 
         This version of rebuild() allows for supporting the option to
         preserve the ephemeral partition. We cannot call spawn() from
@@ -740,8 +740,9 @@ class IronicDriver(virt_driver.ComputeDriver):
 
         # Trigger the node rebuild/redeploy.
         try:
-            icli.call("node.set_provision_state", node_uuid, ironic_states.REBUILD)
-        except (exception.NovaException,                   # Retry failed
+            icli.call("node.set_provision_state",
+                      node_uuid, ironic_states.REBUILD)
+        except (exception.NovaException,               # Retry failed
                 ironic_exception.InternalServerError,  # Validations
                 ironic_exception.BadRequest) as e:     # Maintenance
             msg = (_("Failed to request Ironic to rebuild instance "
