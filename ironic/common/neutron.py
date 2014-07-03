@@ -34,9 +34,15 @@ neutron_opts = [
                help='URL for connecting to neutron.'),
     cfg.IntOpt('url_timeout',
                default=30,
-               help='Timeout value for connecting to neutron in seconds.')
-    ]
-
+               help='Timeout value for connecting to neutron in seconds.'),
+    cfg.StrOpt('auth_strategy',
+               default='keystone',
+               help='Default authentication strategy to use when connecting '
+                    'to neutron. Can be either "keystone" or "noauth". '
+                    'Running neutron in noauth mode (related to but not '
+                    'affected by this setting) is insecure and should only be '
+                    'used for testing.')
+   ]
 
 CONF = cfg.CONF
 CONF.import_opt('my_ip', 'ironic.netconf')
@@ -57,7 +63,15 @@ class NeutronAPI(object):
             'ca_cert': CONF.keystone_authtoken.certfile,
             }
 
-        if context.auth_token is None:
+        if CONF.neutron.auth_strategy not in ['noauth', 'keystone']:
+            raise exception.ConfigInvalid(_('Neutron auth_strategy should be '
+                                            'either "noauth" or "keystone".'))
+
+        if CONF.neutron.auth_strategy == 'noauth':
+            params['endpoint_url'] = CONF.neutron.url
+            params['auth_strategy'] = 'noauth'
+        elif (CONF.neutron.auth_strategy == 'keystone' and
+                context.auth_token is None):
             params['endpoint_url'] = (CONF.neutron.url or
                                       keystone.get_service_url('neutron'))
             params['username'] = CONF.keystone_authtoken.admin_user
