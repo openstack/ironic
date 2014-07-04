@@ -308,12 +308,6 @@ class IronicDriver(virt_driver.ComputeDriver):
 
         _log_ironic_polling('become ACTIVE', node, instance)
 
-    @classmethod
-    def instance(cls):
-        if not hasattr(cls, '_instance'):
-            cls._instance = cls()
-        return cls._instance
-
     def init_host(self, host):
         """Initialize anything that is necessary for the driver to function.
 
