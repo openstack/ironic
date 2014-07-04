@@ -652,6 +652,25 @@
 #db_max_retries=20
 
 
+[disk_partitioner]
+
+#
+# Options defined in ironic.common.disk_partitioner
+#
+
+# After Ironic has completed creating the partition table, it
+# continues to check for activity on the attached iSCSI device
+# status at this interval prior to copying the image to the
+# node, in seconds (integer value)
+#check_device_interval=1
+
+# The maximum number of times to check that the device is not
+# accessed by another process. If the device is still busy
+# after that, the disk partitioning will be treated as having
+# failed. (integer value)
+#check_device_max_retries=20
+
+
 [glance]
 
 #
