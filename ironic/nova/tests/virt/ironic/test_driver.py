@@ -28,6 +28,7 @@ from ironic.nova.virt.ironic import driver as ironic_driver
 from ironic.nova.virt.ironic import ironic_states
 
 from nova.compute import power_state as nova_states
+from nova.compute import task_states
 from nova import context as nova_context
 from nova import exception
 from nova.objects import flavor as flavor_obj
@@ -934,3 +935,96 @@ class IronicDriverTestCase(test.NoDBTestCase):
         fake_group = 'fake-security-group-members'
         self.driver.refresh_instance_security_rules(fake_group)
         mock_risr.assert_called_once_with(fake_group)
+
+    @mock.patch.object(ironic_driver.IronicDriver, '_wait_for_active')
+    @mock.patch.object(loopingcall, 'FixedIntervalLoopingCall')
+    @mock.patch.object(FAKE_CLIENT.node, 'set_provision_state')
+    @mock.patch.object(flavor_obj.Flavor, 'get_by_id')
+    @mock.patch.object(ironic_driver.IronicDriver, '_add_driver_fields')
+    @mock.patch.object(FAKE_CLIENT.node, 'get')
+    @mock.patch.object(instance_obj.Instance, 'save')
+    def _test_rebuild(self, mock_save, mock_get, mock_driver_fields,
+                      mock_fg_bid, mock_set_pstate, mock_looping,
+                      mock_wait_active, preserve=False):
+        node_uuid = uuidutils.generate_uuid()
+        instance_uuid = uuidutils.generate_uuid()
+        node = ironic_utils.get_test_node(uuid=node_uuid,
+                                          instance_uuid=instance_uuid,
+                                          instance_type_id=5)
+        mock_get.return_value = node
+
+        image_meta = ironic_utils.get_test_image_meta()
+        flavor_id = 5
+        flavor = {'id': flavor_id, 'name': 'baremetal'}
+        mock_fg_bid.return_value = flavor
+
+        instance = fake_instance.fake_instance_obj(self.ctx,
+                                                   uuid=instance_uuid,
+                                                   node=node_uuid,
+                                                   instance_type_id=flavor_id)
+
+
+        fake_looping_call = FakeLoopingCall()
+        mock_looping.return_value = fake_looping_call
+
+        self.driver.rebuild(
+            context=self.ctx, instance=instance, image_meta=image_meta,
+            injected_files=None, admin_password=None, bdms=None,
+            detach_block_devices=None, attach_block_devices=None,
+            preserve_ephemeral=preserve)
+
+        mock_save.assert_called_once_with(
+            expected_task_state=[task_states.REBUILDING])
+        mock_driver_fields.assert_called_once_with(node, instance, image_meta,
+                                                   flavor, preserve)
+        mock_set_pstate.assert_called_once_with(node_uuid,
+                                                ironic_states.REBUILD)
+        mock_looping.assert_called_once_with(mock_wait_active,
+                                             FAKE_CLIENT_WRAPPER,
+                                             instance)
+        fake_looping_call.start.assert_called_once_with(
+            interval=CONF.ironic.api_retry_interval)
+        fake_looping_call.wait.assert_called_once()
+
+    def test_rebuild_preserve_ephemeral(self):
+        self._test_rebuild(preserve=True)
+
+    def test_rebuild_no_preserve_ephemeral(self):
+        self._test_rebuild(preserve=False)
+
+    @mock.patch.object(FAKE_CLIENT.node, 'set_provision_state')
+    @mock.patch.object(flavor_obj.Flavor, 'get_by_id')
+    @mock.patch.object(ironic_driver.IronicDriver, '_add_driver_fields')
+    @mock.patch.object(FAKE_CLIENT.node, 'get')
+    @mock.patch.object(instance_obj.Instance, 'save')
+    def test_rebuild_failures(self, mock_save, mock_get, mock_driver_fields,
+                              mock_fg_bid, mock_set_pstate):
+        node_uuid = uuidutils.generate_uuid()
+        instance_uuid = uuidutils.generate_uuid()
+        node = ironic_utils.get_test_node(uuid=node_uuid,
+                                          instance_uuid=instance_uuid,
+                                          instance_type_id=5)
+        mock_get.return_value = node
+
+        image_meta = ironic_utils.get_test_image_meta()
+        flavor_id = 5
+        flavor = {'id': flavor_id, 'name': 'baremetal'}
+        mock_fg_bid.return_value = flavor
+
+        instance = fake_instance.fake_instance_obj(self.ctx,
+                                                   uuid=instance_uuid,
+                                                   node=node_uuid,
+                                                   instance_type_id=flavor_id)
+
+        exceptions = [
+            exception.NovaException(),
+            ironic_exception.BadRequest(),
+            ironic_exception.InternalServerError(),
+        ]
+        for e in exceptions:
+            mock_set_pstate.side_effect = e
+            self.assertRaises(exception.InstanceDeployFailure,
+                self.driver.rebuild,
+                context=self.ctx, instance=instance, image_meta=image_meta,
+                injected_files=None, admin_password=None, bdms=None,
+                detach_block_devices=None, attach_block_devices=None)
