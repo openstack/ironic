@@ -6,9 +6,9 @@
 #, fuzzy
 msgid ""
 msgstr ""
-"Project-Id-Version: ironic 2014.2.dev69.gaf4437e\n"
+"Project-Id-Version: ironic 2014.2.dev114.gc87cbe6\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2014-06-25 06:02+0000\n"
+"POT-Creation-Date: 2014-07-07 06:01+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -32,16 +32,16 @@ msgstr ""
 msgid "Node %s is already being provisioned or decommissioned."
 msgstr ""
 
-#: ironic/api/controllers/v1/node.py:504
+#: ironic/api/controllers/v1/node.py:509
 msgid "Chassis id not specified."
 msgstr ""
 
-#: ironic/api/controllers/v1/node.py:682
+#: ironic/api/controllers/v1/node.py:687
 #, python-format
 msgid "Node %s can not be updated while a state transition is in progress."
 msgstr ""
 
-#: ironic/api/controllers/v1/port.py:169
+#: ironic/api/controllers/v1/port.py:170
 msgid "Node id not specified."
 msgstr ""
 
@@ -102,7 +102,26 @@ msgstr ""
 msgid "Configuration:"
 msgstr ""
 
-#: ironic/common/disk_partitioner.py:126
+#: ironic/common/disk_partitioner.py:131
+#, python-format
+msgid "Failed to check the device %(device)s with fuser:  %(err)s"
+msgstr ""
+
+#: ironic/common/disk_partitioner.py:164
+#, python-format
+msgid ""
+"Disk partitioning failed on device %(device)s. Processes with the "
+"following PIDs are holding it: %(pids)s. Time out waiting for completion."
+msgstr ""
+
+#: ironic/common/disk_partitioner.py:170
+#, python-format
+msgid ""
+"Disk partitioning failed on device %(device)s. Fuser exited with "
+"\"%(fuser_err)s\". Time out waiting for completion."
+msgstr ""
+
+#: ironic/common/disk_partitioner.py:196
 #, python-format
 msgid ""
 "Partition information from parted for device %(device)s does not match "
@@ -459,33 +478,41 @@ msgstr ""
 msgid "No keystone service catalog loaded"
 msgstr ""
 
-#: ironic/common/neutron.py:94
+#: ironic/common/neutron.py:67
+msgid "Neutron auth_strategy should be either \"noauth\" or \"keystone\"."
+msgstr ""
+
+#: ironic/common/neutron.py:111
 #, python-format
 msgid "Failed to update Neutron port %s."
 msgstr ""
 
-#: ironic/common/neutron.py:108
+#: ironic/common/neutron.py:125
 #, python-format
 msgid "Failed to update MAC address on Neutron port %s."
 msgstr ""
 
-#: ironic/common/neutron.py:135
+#: ironic/common/neutron.py:152
 #, python-format
 msgid ""
 "No VIFs found for node %(node)s when attempting to update Neutron DHCP "
 "BOOT options."
 msgstr ""
 
-#: ironic/common/neutron.py:154
+#: ironic/common/neutron.py:171
 #, python-format
 msgid "Failed to set DHCP BOOT options for any port on node %s."
 msgstr ""
 
-#: ironic/common/neutron.py:158
+#: ironic/common/neutron.py:175
 #, python-format
 msgid ""
 "Some errors were encountered when updating the DHCP BOOT options for node"
 " %(node)s on the following ports: %(ports)s."
+msgstr ""
+
+#: ironic/common/neutron.py:190
+msgid "Waiting 15 seconds for Neutron."
 msgstr ""
 
 #: ironic/common/policy.py:31
@@ -1269,88 +1296,76 @@ msgstr ""
 msgid "Power state %s not found."
 msgstr ""
 
-#: ironic/nova/virt/ironic/driver.py:255
+#: ironic/nova/virt/ironic/driver.py:259
 #, python-format
 msgid ""
 "Failed to add deploy parameters on node %(node)s when provisioning the "
 "instance %(instance)s"
 msgstr ""
 
-#: ironic/nova/virt/ironic/driver.py:271
+#: ironic/nova/virt/ironic/driver.py:278
 #, python-format
 msgid ""
 "Failed clean up the parameters on node %(node)s when unprovisioning the "
 "instance %(instance)s"
 msgstr ""
 
-#: ironic/nova/virt/ironic/driver.py:275
+#: ironic/nova/virt/ironic/driver.py:282
 #, python-format
 msgid "Fail to clean up node %s parameters"
 msgstr ""
 
-#: ironic/nova/virt/ironic/driver.py:300
+#: ironic/nova/virt/ironic/driver.py:307
 #, python-format
 msgid "Failed to provision instance %(inst)s: %(reason)s"
 msgstr ""
 
-#: ironic/nova/virt/ironic/driver.py:417
+#: ironic/nova/virt/ironic/driver.py:487
 #, python-format
 msgid "Ironic node uuid not supplied to driver for instance %s."
 msgstr ""
 
-#: ironic/nova/virt/ironic/driver.py:438
+#: ironic/nova/virt/ironic/driver.py:509
 #, python-format
 msgid ""
 "Ironic node: %(id)s failed to validate. (deploy: %(deploy)s, power: "
 "%(power)s)"
 msgstr ""
 
-#: ironic/nova/virt/ironic/driver.py:451
+#: ironic/nova/virt/ironic/driver.py:522
 #, python-format
 msgid ""
 "Error preparing deploy for instance %(instance)s on baremetal node "
 "%(node)s."
 msgstr ""
 
-#: ironic/nova/virt/ironic/driver.py:464
+#: ironic/nova/virt/ironic/driver.py:535
 #, python-format
 msgid "Failed to request Ironic to provision instance %(inst)s: %(reason)s"
 msgstr ""
 
-#: ironic/nova/virt/ironic/driver.py:477
+#: ironic/nova/virt/ironic/driver.py:548
 #, python-format
 msgid "Error deploying instance %(instance)s on baremetal node %(node)s."
 msgstr ""
 
-#: ironic/nova/virt/ironic/driver.py:511
+#: ironic/nova/virt/ironic/driver.py:580
 #, python-format
 msgid ""
 "Error destroying the instance on node %(node)s. Provision state still "
 "'%(state)s'."
 msgstr ""
 
-#: ironic/nova/virt/ironic/driver.py:623
+#: ironic/nova/virt/ironic/driver.py:769
 #, python-format
 msgid ""
 "Ironic node: %(id)s virtual to physical interface count  missmatch (Vif "
 "count: %(vif_count)d, Pif count: %(pif_count)d)"
 msgstr ""
 
-#: ironic/nova/virt/ironic/driver.py:696
-#, python-format
-msgid ""
-"Failed to add deploy parameters on node %(node)s when rebuilding the "
-"instance %(instance)s"
-msgstr ""
-
-#: ironic/nova/virt/ironic/driver.py:707
+#: ironic/nova/virt/ironic/driver.py:887
 #, python-format
 msgid "Failed to request Ironic to rebuild instance %(inst)s: %(reason)s"
-msgstr ""
-
-#: ironic/nova/virt/ironic/patcher.py:68
-#, python-format
-msgid "'%s' not found in flavor's extra_specs"
 msgstr ""
 
 #: ironic/objects/base.py:69
