@@ -25,7 +25,7 @@ SHOULD include dedicated exception logging.
 from oslo.config import cfg
 import six
 
-from ironic.openstack.common.gettextutils import _
+from ironic.common.i18n import _
 from ironic.openstack.common import log as logging
 
 

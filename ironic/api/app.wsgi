@@ -18,9 +18,10 @@ Use this file for deploying the API service under Apache2 mod_wsgi.
 
 from ironic.api import app
 from ironic.common import service
-from ironic.openstack.common import gettextutils
 
-gettextutils.install('ironic')
+from oslo import i18n
+
+i18n.install('ironic')
 
 service.prepare_service([])
 
