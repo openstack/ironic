@@ -563,9 +563,7 @@ class IronicDriver(virt_driver.ComputeDriver):
             # TODO(deva): This exception should be added to
             #             python-ironicclient and matched directly,
             #             rather than via __name__.
-            if getattr(e, '__name__', None) == 'InstanceDeployFailure':
-                pass
-            else:
+            if getattr(e, '__name__', None) != 'InstanceDeployFailure':
                 raise
 
         # using a dict because this is modified in the local method
