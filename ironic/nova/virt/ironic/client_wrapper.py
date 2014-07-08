@@ -42,7 +42,8 @@ class IronicClientWrapper(object):
                       'os_auth_url': CONF.ironic.admin_url,
                       'os_tenant_name': CONF.ironic.admin_tenant_name,
                       'os_service_type': 'baremetal',
-                      'os_endpoint_type': 'public'}
+                      'os_endpoint_type': 'public',
+                      'ironic_url': CONF.ironic.api_endpoint}
         else:
             kwargs = {'os_auth_token': auth_token,
                       'ironic_url': CONF.ironic.api_endpoint}
