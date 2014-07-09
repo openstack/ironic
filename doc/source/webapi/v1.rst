@@ -21,6 +21,9 @@ Drivers
 .. rest-controller:: ironic.api.controllers.v1.driver:DriversController
    :webprefix: /v1/drivers
 
+.. rest-controller:: ironic.api.controllers.v1.driver:DriverPassthruController
+   :webprefix: /v1/drivers/(driver_name)/vendor_passthru
+
 .. autotype:: ironic.api.controllers.v1.driver.DriverList
    :members:
 
@@ -40,6 +43,9 @@ Nodes
 
 .. rest-controller:: ironic.api.controllers.v1.node:NodesController
    :webprefix: /v1/nodes
+
+.. rest-controller:: ironic.api.controllers.v1.node:NodeVendorPassthruController
+   :webprefix: /v1/nodes/(node_uuid)/vendor_passthru
 
 .. autotype:: ironic.api.controllers.v1.node.NodeCollection
    :members:
