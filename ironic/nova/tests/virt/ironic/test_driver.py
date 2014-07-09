@@ -150,6 +150,30 @@ class IronicDriverTestCase(test.NoDBTestCase):
         self.assertEqual(node_uuid, result['hypervisor_hostname'])
         self.assertEqual(stats, jsonutils.loads(result['stats']))
 
+    def test__node_resource_exposes_capabilities(self):
+        props = _get_properties()
+        props['capabilities'] = 'test:capability'
+        node = ironic_utils.get_test_node(properties=props)
+        result = self.driver._node_resource(node)
+        stats = jsonutils.loads(result['stats'])
+        self.assertIsNone(stats.get('capabilities'))
+        self.assertEqual('capability', stats.get('test'))
+
+    def test__node_resource_no_capabilities(self):
+        props = _get_properties()
+        props['capabilities'] = None
+        node = ironic_utils.get_test_node(properties=props)
+        result = self.driver._node_resource(node)
+        self.assertIsNone(jsonutils.loads(result['stats']).get('capabilities'))
+
+    def test__node_resource_malformed_capabilities(self):
+        props = _get_properties()
+        props['capabilities'] = 'test:capability,:no_key,no_val:'
+        node = ironic_utils.get_test_node(properties=props)
+        result = self.driver._node_resource(node)
+        stats = jsonutils.loads(result['stats'])
+        self.assertEqual('capability', stats.get('test'))
+
     def test__node_resource_no_instance_uuid(self):
         node_uuid = uuidutils.generate_uuid()
         props = _get_properties()
