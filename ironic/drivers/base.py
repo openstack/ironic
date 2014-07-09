@@ -376,7 +376,7 @@ class ManagementInterface(object):
         """
 
     @abc.abstractmethod
-    def set_boot_device(self, task, device, **kwargs):
+    def set_boot_device(self, task, device, persistent=False):
         """Set the boot device for a node.
 
         Set the boot device to use on next reboot of the node.
@@ -384,7 +384,9 @@ class ManagementInterface(object):
         :param task: a task from TaskManager.
         :param device: the boot device, one of
                        :mod:`ironic.common.boot_devices`.
-        :param kwargs: extra driver-specific parameters.
+        :param persistent: Boolean value. True if the boot device will
+                           persist to all future boots, False if not.
+                           Default: False.
         :raises: InvalidParameterValue if an invalid boot device is
                  specified.
         """
@@ -397,6 +399,10 @@ class ManagementInterface(object):
         all drivers support this.
 
         :param task: a task from TaskManager.
-        :returns: the boot device, one of :mod:`ironic.common.boot_devices`
-                  or None if it is unknown.
+        :returns: a dictionary containing:
+            :boot_device: the boot device, one of
+                :mod:`ironic.common.boot_devices` or None if it is unknown.
+            :persistent: Whether the boot device will persist to all
+                future boots or not, None if it is unknown.
+
         """
