@@ -517,6 +517,22 @@ class VendorPassthru(base.VendorInterface):
             raise exception.IPMIFailure(cmd=cmd)
 
     def validate(self, task, **kwargs):
+        """Validate vendor-specific actions.
+
+        If invalid, raises an exception; otherwise returns None.
+
+        Valid methods:
+          * set_boot_device
+          * send_raw
+          * bmc_reset
+
+        :param task: a task from TaskManager.
+        :param kwargs: info for action.
+        :raises: InvalidParameterValue if **kwargs does not contain 'method',
+                 'method' is not supported, an invalid boot device is specified
+                 for 'set_boot_device', or a byte string is not given for
+                 'raw_bytes', or required IPMI credentials are missing.
+        """
         method = kwargs['method']
         if method == 'set_boot_device':
             device = kwargs.get('device')
@@ -538,6 +554,21 @@ class VendorPassthru(base.VendorInterface):
         _parse_driver_info(task.node)
 
     def vendor_passthru(self, task, **kwargs):
+        """Receive requests for vendor-specific actions.
+
+        Valid methods:
+          * set_boot_device
+          * send_raw
+          * bmc_reset
+
+        :param task: a task from TaskManager.
+        :param kwargs: info for action.
+
+        :raises: InvalidParameterValue if an invalid boot device is specified
+                 for set_boot_device, or required IPMI credentials are missing.
+        :raises: IPMIFailure if ipmitool fails for any method.
+        """
+
         method = kwargs['method']
         if method == 'set_boot_device':
             return self._set_boot_device(
