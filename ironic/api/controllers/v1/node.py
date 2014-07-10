@@ -617,7 +617,10 @@ class NodesController(rest.RestController):
 
     @wsme_pecan.wsexpose(wtypes.text, types.uuid)
     def validate(self, node_uuid):
-        """Validate the driver interfaces."""
+        """Validate the driver interfaces.
+
+        :param node_uuid: UUID of a node.
+        """
         # check if node exists
         rpc_node = objects.Node.get_by_uuid(pecan.request.context, node_uuid)
         topic = pecan.request.rpcapi.get_topic_for(rpc_node)
