@@ -34,7 +34,7 @@ Drivers
 Links
 =====
 
-.. autotype:: ironic.api.controllers.v1.link:Link
+.. autotype:: ironic.api.controllers.link.Link
    :members:
 
 
@@ -58,7 +58,10 @@ NodeStates
 ==========
 
 .. rest-controller:: ironic.api.controllers.v1.node:NodeStatesController
-   :webprefix: /v1/nodes/<uuid>/states
+   :webprefix: /v1/nodes/(node_uuid)/states
+
+.. rest-controller:: ironic.api.controllers.v1.node:NodeConsoleController
+   :webprefix: /v1/nodes/(node_uuid)/states/console
 
 .. autotype:: ironic.api.controllers.v1.node.NodeStates
    :members:
