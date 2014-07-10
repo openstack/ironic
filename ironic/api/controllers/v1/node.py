@@ -353,6 +353,9 @@ class Node(base.APIBase):
     def __init__(self, **kwargs):
         self.fields = []
         fields = objects.Node.fields.keys()
+        # NOTE(lucasagomes): chassis_uuid is not part of objects.Node.fields
+        # because it's an API-only attribute.
+        fields.append('chassis_uuid')
         for k in fields:
             # Skip fields we do not expose.
             if not hasattr(self, k):
@@ -365,10 +368,6 @@ class Node(base.APIBase):
         # that as_dict() will contain chassis_id field when converting it
         # before saving it in the database.
         self.fields.append('chassis_id')
-
-        # NOTE(lucasagomes): chassis_uuid is not part of objects.Node.fields
-        # because it's an API-only attribute.
-        self.fields.append('chassis_uuid')
         setattr(self, 'chassis_uuid', kwargs.get('chassis_id'))
 
     @classmethod
@@ -689,7 +688,13 @@ class NodesController(rest.RestController):
             raise wsme.exc.ClientSideError(msg % node_uuid, status_code=409)
 
         try:
-            node = Node(**api_utils.apply_jsonpatch(rpc_node.as_dict(), patch))
+            node_dict = rpc_node.as_dict()
+            # NOTE(lucasagomes):
+            # 1) Remove chassis_id because it's an internal value and
+            #    not present in the API object
+            # 2) Add chassis_uuid
+            node_dict['chassis_uuid'] = node_dict.pop('chassis_id', None)
+            node = Node(**api_utils.apply_jsonpatch(node_dict, patch))
         except api_utils.JSONPATCH_EXCEPTIONS as e:
             raise exception.PatchError(patch=patch, reason=e)
 

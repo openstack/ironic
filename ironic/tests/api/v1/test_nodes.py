@@ -603,6 +603,53 @@ class TestPatch(base.FunctionalTest):
         self.assertEqual(400, response.status_code)
         self.assertTrue(response.json['error_message'])
 
+    def test_replace_chassis_uuid(self):
+        self.mock_update_node.return_value = self.node
+        response = self.patch_json('/nodes/%s' % self.node.uuid,
+                             [{'path': '/chassis_uuid',
+                               'value': self.chassis.uuid,
+                               'op': 'replace'}])
+        self.assertEqual('application/json', response.content_type)
+        self.assertEqual(200, response.status_code)
+
+    def test_add_chassis_uuid(self):
+        self.mock_update_node.return_value = self.node
+        response = self.patch_json('/nodes/%s' % self.node.uuid,
+                             [{'path': '/chassis_uuid',
+                               'value': self.chassis.uuid,
+                               'op': 'add'}])
+        self.assertEqual('application/json', response.content_type)
+        self.assertEqual(200, response.status_code)
+
+    def test_add_chassis_id(self):
+        response = self.patch_json('/nodes/%s' % self.node.uuid,
+                             [{'path': '/chassis_id',
+                               'value': '1',
+                               'op': 'add'}],
+                               expect_errors=True)
+        self.assertEqual('application/json', response.content_type)
+        self.assertEqual(400, response.status_code)
+        self.assertTrue(response.json['error_message'])
+
+    def test_replace_chassis_id(self):
+        response = self.patch_json('/nodes/%s' % self.node.uuid,
+                             [{'path': '/chassis_id',
+                               'value': '1',
+                               'op': 'replace'}],
+                               expect_errors=True)
+        self.assertEqual('application/json', response.content_type)
+        self.assertEqual(400, response.status_code)
+        self.assertTrue(response.json['error_message'])
+
+    def test_remove_chassis_id(self):
+        response = self.patch_json('/nodes/%s' % self.node.uuid,
+                             [{'path': '/chassis_id',
+                               'op': 'remove'}],
+                               expect_errors=True)
+        self.assertEqual('application/json', response.content_type)
+        self.assertEqual(400, response.status_code)
+        self.assertTrue(response.json['error_message'])
+
     def test_replace_non_existent_chassis_uuid(self):
         response = self.patch_json('/nodes/%s' % self.node['uuid'],
                              [{'path': '/chassis_uuid',

@@ -268,7 +268,54 @@ class TestPatch(base.FunctionalTest):
         kargs = mock_upd.call_args[0][1]
         self.assertEqual(address, kargs.address)
 
-    def test_replace_nodeid_doesnt_exist(self, mock_upd):
+    def test_replace_node_uuid(self, mock_upd):
+        mock_upd.return_value = self.port
+        response = self.patch_json('/ports/%s' % self.port.uuid,
+                             [{'path': '/node_uuid',
+                               'value': self.node.uuid,
+                               'op': 'replace'}])
+        self.assertEqual('application/json', response.content_type)
+        self.assertEqual(200, response.status_code)
+
+    def test_add_node_uuid(self, mock_upd):
+        mock_upd.return_value = self.port
+        response = self.patch_json('/ports/%s' % self.port.uuid,
+                             [{'path': '/node_uuid',
+                               'value': self.node.uuid,
+                               'op': 'add'}])
+        self.assertEqual('application/json', response.content_type)
+        self.assertEqual(200, response.status_code)
+
+    def test_add_node_id(self, mock_upd):
+        response = self.patch_json('/ports/%s' % self.port.uuid,
+                             [{'path': '/node_id',
+                               'value': '1',
+                               'op': 'add'}],
+                               expect_errors=True)
+        self.assertEqual('application/json', response.content_type)
+        self.assertEqual(400, response.status_code)
+        self.assertFalse(mock_upd.called)
+
+    def test_replace_node_id(self, mock_upd):
+        response = self.patch_json('/ports/%s' % self.port.uuid,
+                             [{'path': '/node_id',
+                               'value': '1',
+                               'op': 'replace'}],
+                               expect_errors=True)
+        self.assertEqual('application/json', response.content_type)
+        self.assertEqual(400, response.status_code)
+        self.assertFalse(mock_upd.called)
+
+    def test_remove_node_id(self, mock_upd):
+        response = self.patch_json('/ports/%s' % self.port.uuid,
+                             [{'path': '/node_id',
+                               'op': 'remove'}],
+                               expect_errors=True)
+        self.assertEqual('application/json', response.content_type)
+        self.assertEqual(400, response.status_code)
+        self.assertFalse(mock_upd.called)
+
+    def test_replace_non_existent_node_uuid(self, mock_upd):
         node_uuid = '12506333-a81c-4d59-9987-889ed5f8687b'
         response = self.patch_json('/ports/%s' % self.port.uuid,
                              [{'path': '/node_uuid',
