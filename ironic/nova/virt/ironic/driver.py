@@ -21,6 +21,7 @@ A driver wrapping the Ironic API, such that Nova may provision
 bare metal resources.
 """
 import logging as py_logging
+import time
 
 from oslo.config import cfg
 
@@ -158,6 +159,8 @@ class IronicDriver(virt_driver.ComputeDriver):
         extra_specs["ironic_driver"] = \
             "ironic.nova.virt.ironic.driver.IronicDriver"
         self.extra_specs = extra_specs
+        self.node_cache = {}
+        self.node_cache_time = 0
 
         icli_log_level = CONF.ironic.client_log_level
         if icli_log_level:
@@ -395,20 +398,34 @@ class IronicDriver(virt_driver.ComputeDriver):
         except ironic.exc.NotFound:
             return False
 
+    def _refresh_cache(self):
+        icli = client_wrapper.IronicClientWrapper()
+        node_list = icli.call('node.list', detail=True)
+        node_cache = {}
+        for node in node_list:
+            node_cache[node.uuid] = node
+        self.node_cache = node_cache
+        self.node_cache_time = time.time()
+
     def get_available_nodes(self, refresh=False):
         """Returns the UUIDs of all nodes in the Ironic inventory.
 
         :param refresh: Boolean value; If True run update first. Ignored by
-            this driver.
+                        this driver.
         :returns: a list of UUIDs
 
         """
-        icli = client_wrapper.IronicClientWrapper()
-        node_list = icli.call("node.list")
-        nodes = [n.uuid for n in node_list]
-        LOG.debug("Returning %(num_nodes)s available node(s): %(nodes)s",
-                  dict(num_nodes=len(nodes), nodes=nodes))
-        return nodes
+        # NOTE(jroll) we refresh the cache every time this is called
+        #             because it needs to happen in the resource tracker
+        #             periodic task. This task doesn't pass refresh=True,
+        #             unfortunately.
+        self._refresh_cache()
+
+        node_uuids = list(self.node_cache.keys())
+        LOG.debug("Returning %(num_nodes)s available node(s)",
+                  dict(num_nodes=len(node_uuids)))
+
+        return node_uuids
 
     def get_available_resource(self, nodename):
         """Retrieve resource information.
@@ -420,8 +437,24 @@ class IronicDriver(virt_driver.ComputeDriver):
         :returns: a dictionary describing resources.
 
         """
-        icli = client_wrapper.IronicClientWrapper()
-        node = icli.call("node.get", nodename)
+        # NOTE(comstud): We can cheat and use caching here. This method is
+        # only called from a periodic task and right after the above
+        # get_available_nodes() call is called.
+        if not self.node_cache:
+            # Well, it's also called from init_host(), so if we have empty
+            # cache, let's try to populate it.
+            self._refresh_cache()
+
+        cache_age = time.time() - self.node_cache_time
+        if nodename in self.node_cache:
+            LOG.debug("Using cache for node %(node)s, age: %(age)s",
+                      {'node': nodename, 'age': cache_age})
+            node = self.node_cache[nodename]
+        else:
+            LOG.debug("Node %(node)s not found in cache, age: %(age)s",
+                      {'node': nodename, 'age': cache_age})
+            icli = client_wrapper.IronicClientWrapper()
+            node = icli.call("node.get", nodename)
         return self._node_resource(node)
 
     def get_info(self, instance):

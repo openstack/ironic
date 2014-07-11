@@ -71,7 +71,6 @@ def _get_properties():
             'local_gb': 10,
             'cpu_arch': 'x86_64'}
 
-
 def _get_stats():
     return {'cpu_arch': 'x86_64',
             'ironic_driver':
@@ -345,14 +344,39 @@ class IronicDriverTestCase(test.NoDBTestCase):
         self.assertEqual(sorted(expected_uuids), sorted(available_nodes))
 
     @mock.patch.object(FAKE_CLIENT.node, 'get')
+    @mock.patch.object(FAKE_CLIENT.node, 'list')
     @mock.patch.object(ironic_driver.IronicDriver, '_node_resource')
-    def test_get_available_resource(self, mock_nr, mock_get):
+    def test_get_available_resource(self, mock_nr, mock_list, mock_get):
         node = ironic_utils.get_test_node()
+        node_2 = ironic_utils.get_test_node(uuid=uuidutils.generate_uuid())
         fake_resource = 'fake-resource'
         mock_get.return_value = node
+        # ensure cache gets populated without the node we want
+        mock_list.return_value = [node_2]
         mock_nr.return_value = fake_resource
+
         result = self.driver.get_available_resource(node.uuid)
         self.assertEqual(fake_resource, result)
+        mock_nr.assert_called_once_with(node)
+        mock_get.assert_called_once_with(node.uuid)
+
+    @mock.patch.object(FAKE_CLIENT.node, 'get')
+    @mock.patch.object(FAKE_CLIENT.node, 'list')
+    @mock.patch.object(ironic_driver.IronicDriver, '_node_resource')
+    def test_get_available_resource_with_cache(self, mock_nr, mock_list,
+                                               mock_get):
+        node = ironic_utils.get_test_node()
+        fake_resource = 'fake-resource'
+        mock_list.return_value = [node]
+        mock_nr.return_value = fake_resource
+        # populate the cache
+        self.driver.get_available_nodes(refresh=True)
+        mock_list.reset_mock()
+
+        result = self.driver.get_available_resource(node.uuid)
+        self.assertEqual(fake_resource, result)
+        self.assertEqual(0, mock_list.call_count)
+        self.assertEqual(0, mock_get.call_count)
         mock_nr.assert_called_once_with(node)
 
     @mock.patch.object(FAKE_CLIENT.node, 'get_by_instance_uuid')
