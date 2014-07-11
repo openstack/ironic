@@ -7,8 +7,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Ironic\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2014-07-07 06:01+0000\n"
-"PO-Revision-Date: 2014-07-02 19:26+0000\n"
+"POT-Creation-Date: 2014-07-11 06:01+0000\n"
+"PO-Revision-Date: 2014-07-08 00:02+0000\n"
 "Last-Translator: openstackjenkins <jenkins@openstack.org>\n"
 "Language-Team: German (http://www.transifex.com/projects/p/ironic/language/"
 "de/)\n"
@@ -19,7 +19,12 @@ msgstr ""
 "Generated-By: Babel 1.3\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
-#: ironic/nova/virt/ironic/driver.py:612
+#: ironic/conductor/task_manager.py:264
+#, python-format
+msgid "Task's on_error hook failed to call %(method)s on node %(node)s"
+msgstr ""
+
+#: ironic/nova/virt/ironic/driver.py:623
 #, python-format
 msgid "Destroy called on non-existing instance %s."
 msgstr ""
