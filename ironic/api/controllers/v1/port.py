@@ -88,12 +88,11 @@ class Port(base.APIBase):
 
     def __init__(self, **kwargs):
         self.fields = objects.Port.fields.keys()
-        for k in self.fields:
-            setattr(self, k, kwargs.get(k))
-
         # NOTE(lucasagomes): node_uuid is not part of objects.Port.fields
         #                    because it's an API-only attribute
         self.fields.append('node_uuid')
+        for k in self.fields:
+            setattr(self, k, kwargs.get(k))
         setattr(self, 'node_uuid', kwargs.get('node_id'))
 
     @classmethod
@@ -296,7 +295,13 @@ class PortsController(rest.RestController):
 
         rpc_port = objects.Port.get_by_uuid(pecan.request.context, port_uuid)
         try:
-            port = Port(**api_utils.apply_jsonpatch(rpc_port.as_dict(), patch))
+            port_dict = rpc_port.as_dict()
+            # NOTE(lucasagomes):
+            # 1) Remove node_id because it's an internal value and
+            #    not present in the API object
+            # 2) Add node_uuid
+            port_dict['node_uuid'] = port_dict.pop('node_id', None)
+            port = Port(**api_utils.apply_jsonpatch(port_dict, patch))
         except api_utils.JSONPATCH_EXCEPTIONS as e:
             raise exception.PatchError(patch=patch, reason=e)
 
