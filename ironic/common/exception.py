@@ -398,3 +398,13 @@ class PasswordFileFailedToCreate(IronicException):
 
 class IloOperationError(IronicException):
     message = _("%(operation)s failed, error: %(error)s")
+
+
+class FailedToGetSensorData(IronicException):
+    message = _("Failed to get sensor data for node %(node)s. "
+                "Error: %(error)s")
+
+
+class FailedToParseSensorData(IronicException):
+    message = _("Failed to parse sensor data for node %(node)s. "
+                "Error: %(error)s")

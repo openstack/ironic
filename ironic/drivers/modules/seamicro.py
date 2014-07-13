@@ -559,3 +559,12 @@ class Management(base.ManagementInterface):
         # doesn't expose a method to get the boot device, update it once
         # it's implemented.
         return {'boot_device': None, 'persistent': None}
+
+    def get_sensors_data(self, task):
+        """Get sensors data method.
+
+        Not implemented by this driver.
+        :param task: a TaskManager instance.
+
+        """
+        raise NotImplementedError()

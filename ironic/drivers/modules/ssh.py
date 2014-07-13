@@ -633,3 +633,13 @@ class SSHManagement(base.ManagementInterface):
                             "operation"),
                         {'node': node.uuid, 'vtype': driver_info['virt_type']})
         return response
+
+    def get_sensors_data(self, task):
+        """Get sensors data.
+
+        Not implemented by this driver.
+
+        :param task: a TaskManager instance.
+
+        """
+        raise NotImplementedError()

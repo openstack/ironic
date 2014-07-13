@@ -1218,6 +1218,76 @@ class UpdatePortTestCase(_ServiceSetUpMixin, tests_db_base.DbTestCase):
         self.assertEqual(new_address, res.address)
         self.assertFalse(mac_update_mock.called)
 
+    def test__filter_out_unsupported_types_all(self):
+        self._start_service()
+        CONF.set_override('send_sensor_data_types', ['All'], group='conductor')
+        fake_sensors_data = {"t1": {'f1': 'v1'}, "t2": {'f1': 'v1'}}
+        actual_result = self.service._filter_out_unsupported_types(
+                                                       fake_sensors_data)
+        expected_result = {"t1": {'f1': 'v1'}, "t2": {'f1': 'v1'}}
+        self.assertEqual(expected_result, actual_result)
+
+    def test__filter_out_unsupported_types_part(self):
+        self._start_service()
+        CONF.set_override('send_sensor_data_types', ['t1'], group='conductor')
+        fake_sensors_data = {"t1": {'f1': 'v1'}, "t2": {'f1': 'v1'}}
+        actual_result = self.service._filter_out_unsupported_types(
+                                                       fake_sensors_data)
+        expected_result = {"t1": {'f1': 'v1'}}
+        self.assertEqual(expected_result, actual_result)
+
+    def test__filter_out_unsupported_types_non(self):
+        self._start_service()
+        CONF.set_override('send_sensor_data_types', ['t3'], group='conductor')
+        fake_sensors_data = {"t1": {'f1': 'v1'}, "t2": {'f1': 'v1'}}
+        actual_result = self.service._filter_out_unsupported_types(
+                                                       fake_sensors_data)
+        expected_result = {}
+        self.assertEqual(expected_result, actual_result)
+
+    @mock.patch.object(manager.ConductorManager, '_mapped_to_this_conductor')
+    @mock.patch.object(dbapi.IMPL, 'get_nodeinfo_list')
+    @mock.patch.object(task_manager, 'acquire')
+    def test___send_sensor_data(self, acquire_mock, get_nodeinfo_list_mock,
+         _mapped_to_this_conductor_mock):
+        node = obj_utils.create_test_node(self.context,
+                                          driver='fake')
+        self._start_service()
+        CONF.set_override('send_sensor_data', True, group='conductor')
+        acquire_mock.return_value.__enter__.return_value.driver = self.driver
+        with mock.patch.object(self.driver.management,
+                               'get_sensors_data') as get_sensors_data_mock:
+            get_sensors_data_mock.return_value = 'fake-sensor-data'
+            _mapped_to_this_conductor_mock.return_value = True
+            get_nodeinfo_list_mock.return_value = [(node.uuid, node.driver,
+                                                 node.instance_uuid)]
+            self.service._send_sensor_data(self.context)
+            self.assertTrue(get_nodeinfo_list_mock.called)
+            self.assertTrue(_mapped_to_this_conductor_mock.called)
+            self.assertTrue(acquire_mock.called)
+            self.assertTrue(get_sensors_data_mock.called)
+
+    @mock.patch.object(manager.ConductorManager, '_mapped_to_this_conductor')
+    @mock.patch.object(dbapi.IMPL, 'get_nodeinfo_list')
+    @mock.patch.object(task_manager, 'acquire')
+    def test___send_sensor_data_disabled(self, acquire_mock,
+        get_nodeinfo_list_mock, _mapped_to_this_conductor_mock):
+        node = obj_utils.create_test_node(self.context,
+                                          driver='fake')
+        self._start_service()
+        acquire_mock.return_value.__enter__.return_value.driver = self.driver
+        with mock.patch.object(self.driver.management,
+                               'get_sensors_data') as get_sensors_data_mock:
+            get_sensors_data_mock.return_value = 'fake-sensor-data'
+            _mapped_to_this_conductor_mock.return_value = True
+            get_nodeinfo_list_mock.return_value = [(node.uuid, node.driver,
+                                                 node.instance_uuid)]
+            self.service._send_sensor_data(self.context)
+            self.assertFalse(get_nodeinfo_list_mock.called)
+            self.assertFalse(_mapped_to_this_conductor_mock.called)
+            self.assertFalse(acquire_mock.called)
+            self.assertFalse(get_sensors_data_mock.called)
+
 
 class ManagerSpawnWorkerTestCase(tests_base.TestCase):
     def setUp(self):

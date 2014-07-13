@@ -42,6 +42,7 @@ a change, etc.
 """
 
 import collections
+import datetime
 import threading
 
 import eventlet
@@ -55,7 +56,9 @@ from ironic.common import exception
 from ironic.common import hash_ring as hash
 from ironic.common import i18n
 from ironic.common import neutron
+from ironic.common import rpc
 from ironic.common import states
+from ironic.common import utils as ironic_utils
 from ironic.conductor import task_manager
 from ironic.conductor import utils
 from ironic.db import api as dbapi
@@ -123,6 +126,20 @@ conductor_opts = [
         cfg.IntOpt('node_locked_retry_interval',
                    default=1,
                    help='Seconds to sleep between node lock attempts.'),
+        cfg.BoolOpt('send_sensor_data',
+                   default=False,
+                   help='Enable sending sensor data message via the '
+                        'notification bus'),
+        cfg.IntOpt('send_sensor_data_interval',
+                   default=600,
+                   help='Seconds between conductor sending sensor data message'
+                        ' to ceilometer via the notification bus.'),
+        cfg.ListOpt('send_sensor_data_types',
+                   default=['ALL'],
+                   help='List of comma separated metric types which need to be'
+                        ' sent to Ceilometer. The default value, "ALL", is a '
+                        'special value meaning send all the sensor data.'
+                        ),
 ]
 
 CONF = cfg.CONF
@@ -143,6 +160,7 @@ class ConductorManager(periodic_task.PeriodicTasks):
         self.host = host
         self.topic = topic
         self.power_state_sync_count = collections.defaultdict(int)
+        self.notifier = rpc.get_notifier()
 
     def _get_driver(self, driver_name):
         """Get the driver.
@@ -1048,3 +1066,68 @@ class ConductorManager(periodic_task.PeriodicTasks):
                   driver_name)
         driver = self._get_driver(driver_name)
         return driver.get_properties()
+
+    @periodic_task.periodic_task(
+            spacing=CONF.conductor.send_sensor_data_interval)
+    def _send_sensor_data(self, context):
+        # do nothing if send_sensor_data option is False
+        if not CONF.conductor.send_sensor_data:
+            return
+
+        filters = {'associated': True}
+        columns = ['uuid', 'driver', 'instance_uuid']
+        node_list = self.dbapi.get_nodeinfo_list(columns=columns,
+                                                 filters=filters)
+
+        for (node_uuid, driver, instance_uuid) in node_list:
+            # only handle the nodes mapped to this conductor
+            if not self._mapped_to_this_conductor(node_uuid, driver):
+                continue
+
+            # populate the message which will be sent to ceilometer
+            message = {'message_id': ironic_utils.generate_uuid(),
+                       'instance_uuid': instance_uuid,
+                       'node_uuid': node_uuid,
+                       'timestamp': datetime.datetime.utcnow(),
+                       'event_type': 'hardware.ipmi.metrics.update'}
+
+            try:
+                with task_manager.acquire(context, node_uuid, shared=True) \
+                         as task:
+                    sensors_data = task.driver.management.get_sensors_data(
+                        task)
+            except NotImplementedError:
+                LOG.warn(_LW('get_sensors_data is not implemented for driver'
+                    ' %(driver)s, node_uuid is %(node)s'),
+                    {'node': node_uuid, 'driver': driver})
+            except exception.FailedToParseSensorData as fps:
+                LOG.warn(_LW("During get_sensors_data, could not parse "
+                    "sensor data for node %(node)s. Error: %(err)s."),
+                    {'node': node_uuid, 'err': str(fps)})
+            except exception.FailedToGetSensorData as fgs:
+                LOG.warn(_LW("During get_sensors_data, could not get "
+                    "sensor data for node %(node)s. Error: %(err)s."),
+                    {'node': node_uuid, 'err': str(fgs)})
+            except exception.NodeNotFound:
+                LOG.warn(_LW("During send_sensor_data, node %(node)s was not "
+                           "found and presumed deleted by another process."),
+                           {'node': node_uuid})
+            except Exception as e:
+                LOG.warn(_LW("Failed to get sensor data for node %(node)s. "
+                    "Error: %(error)s"), {'node': node_uuid, 'error': str(e)})
+            else:
+                message['payload'] = self._filter_out_unsupported_types(
+                                                              sensors_data)
+                if message['payload']:
+                    self.notifier.info(context, "hardware.ipmi.metrics",
+                                       message)
+
+    def _filter_out_unsupported_types(self, sensors_data):
+        # support the CONF.send_sensor_data_types sensor types only
+        allowed = set(x.lower() for x in CONF.conductor.send_sensor_data_types)
+
+        if 'all' in allowed:
+            return sensors_data
+
+        return dict((sensor_type, sensor_value) for (sensor_type, sensor_value)
+            in sensors_data.items() if sensor_type.lower() in allowed)

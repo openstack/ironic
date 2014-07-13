@@ -182,3 +182,6 @@ class FakeManagement(base.ManagementInterface):
 
     def get_boot_device(self, task):
         return {'boot_device': boot_devices.PXE, 'persistent': False}
+
+    def get_sensors_data(self, task):
+        return {}

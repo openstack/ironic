@@ -374,6 +374,76 @@ def _power_status(driver_info):
         return states.ERROR
 
 
+def _process_sensor(sensor_data):
+    sensor_data_fields = sensor_data.split('\n')
+    sensor_data_dict = {}
+    for field in sensor_data_fields:
+        if not field:
+            continue
+        kv_value = field.split(':')
+        if len(kv_value) != 2:
+            continue
+        sensor_data_dict[kv_value[0].strip()] = kv_value[1].strip()
+
+    return sensor_data_dict
+
+
+def _get_sensor_type(node, sensor_data_dict):
+    # Have only three sensor type name IDs: 'Sensor Type (Analog)'
+    # 'Sensor Type (Discrete)' and 'Sensor Type (Threshold)'
+
+    for key in ('Sensor Type (Analog)', 'Sensor Type (Discrete)',
+                'Sensor Type (Threshold)'):
+        try:
+            return sensor_data_dict[key].split(' ', 1)[0]
+        except KeyError:
+            continue
+
+    raise exception.FailedToParseSensorData(
+        node=node.uuid,
+        error=(_("parse ipmi sensor data failed, unknown sensor type"
+            " data: %(sensors_data)s"), {'sensors_data': sensor_data_dict}))
+
+
+def _parse_ipmi_sensors_data(node, sensors_data):
+    """Parse the IPMI sensors data and format to the dict grouping by type.
+
+    We run 'ipmitool' command with 'sdr -v' options, which can return sensor
+    details in human-readable format, we need to format them to JSON string
+    dict-based data for Ceilometer Collector which can be sent it as payload
+    out via notification bus and consumed by Ceilometer Collector.
+
+    :param sensors_data: the sensor data returned by ipmitool command.
+    :returns: the sensor data with JSON format, grouped by sensor type.
+    :raises: FailedToParseSensorData when error encountered during parsing.
+
+    """
+    sensors_data_dict = {}
+    if not sensors_data:
+        return sensors_data_dict
+
+    sensors_data_array = sensors_data.split('\n\n')
+    for sensor_data in sensors_data_array:
+        sensor_data_dict = _process_sensor(sensor_data)
+        if not sensor_data_dict:
+            continue
+
+        sensor_type = _get_sensor_type(node, sensor_data_dict)
+
+        # ignore the sensors which has no current 'Sensor Reading' data
+        if 'Sensor Reading' in sensor_data_dict:
+            sensors_data_dict.setdefault(sensor_type,
+                {})[sensor_data_dict['Sensor ID']] = sensor_data_dict
+
+    # get nothing, no valid sensor data
+    if not sensors_data_dict:
+        raise exception.FailedToParseSensorData(
+            node=node.uuid,
+            error=(_("parse ipmi sensor data failed, get nothing with input"
+                " data: %(sensors_data)s") % {'sensors_data': sensors_data}))
+    return sensors_data_dict
+
+
 class IPMIPower(base.PowerInterface):
 
     def __init__(self):
@@ -463,6 +533,15 @@ class IPMIManagement(base.ManagementInterface):
 
     def get_properties(self):
         return COMMON_PROPERTIES
+
+    def __init__(self):
+        try:
+            check_timing_support()
+        except OSError:
+            raise exception.DriverLoadError(
+                    driver=self.__class__.__name__,
+                    reason="Unable to locate usable ipmitool command in "
+                           "the system path when checking ipmitool version")
 
     def validate(self, task):
         """Check that 'driver_info' contains IPMI credentials.
@@ -568,6 +647,28 @@ class IPMIManagement(base.ManagementInterface):
 
         response['persistent'] = 'Options apply to all future boots' in out
         return response
+
+    def get_sensors_data(self, task):
+        """Get sensors data.
+
+        :param task: a TaskManager instance.
+        :raises: FailedToGetSensorData when getting the sensor data fails.
+        :raises: FailedToParseSensorData when parsing sensor data fails.
+        :raises: InvalidParameterValue if required ipmi parameters are missing
+        :returns: returns a dict of sensor data group by sensor type.
+
+        """
+        driver_info = _parse_driver_info(task.node)
+        # with '-v' option, we can get the entire sensor data including the
+        # extended sensor informations
+        cmd = "sdr -v"
+        try:
+            out, err = _exec_ipmitool(driver_info, cmd)
+        except processutils.ProcessExecutionError as pee:
+            raise exception.FailedToGetSensorData(node=task.node.uuid,
+                                                  error=str(pee))
+
+        return _parse_ipmi_sensors_data(task.node, out)
 
 
 class VendorPassthru(base.VendorInterface):

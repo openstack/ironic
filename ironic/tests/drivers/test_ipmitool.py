@@ -917,3 +917,208 @@ class IPMIToolDriverTestCase(db_base.DbTestCase):
         with task_manager.acquire(self.context, node.uuid) as task:
             self.assertRaises(exception.InvalidParameterValue,
                               task.driver.management.validate, task)
+
+    def test__parse_ipmi_sensor_data_ok(self):
+        fake_sensors_data = """
+                            Sensor ID              : Temp (0x1)
+                             Entity ID             : 3.1 (Processor)
+                             Sensor Type (Analog)  : Temperature
+                             Sensor Reading        : -58 (+/- 1) degrees C
+                             Status                : ok
+                             Nominal Reading       : 50.000
+                             Normal Minimum        : 11.000
+                             Normal Maximum        : 69.000
+                             Upper critical        : 90.000
+                             Upper non-critical    : 85.000
+                             Positive Hysteresis   : 1.000
+                             Negative Hysteresis   : 1.000
+
+                            Sensor ID              : Temp (0x2)
+                             Entity ID             : 3.2 (Processor)
+                             Sensor Type (Analog)  : Temperature
+                             Sensor Reading        : 50 (+/- 1) degrees C
+                             Status                : ok
+                             Nominal Reading       : 50.000
+                             Normal Minimum        : 11.000
+                             Normal Maximum        : 69.000
+                             Upper critical        : 90.000
+                             Upper non-critical    : 85.000
+                             Positive Hysteresis   : 1.000
+                             Negative Hysteresis   : 1.000
+
+                            Sensor ID              : FAN MOD 1A RPM (0x30)
+                             Entity ID             : 7.1 (System Board)
+                             Sensor Type (Analog)  : Fan
+                             Sensor Reading        : 8400 (+/- 75) RPM
+                             Status                : ok
+                             Nominal Reading       : 5325.000
+                             Normal Minimum        : 10425.000
+                             Normal Maximum        : 14775.000
+                             Lower critical        : 4275.000
+                             Positive Hysteresis   : 375.000
+                             Negative Hysteresis   : 375.000
+
+                            Sensor ID              : FAN MOD 1B RPM (0x31)
+                             Entity ID             : 7.1 (System Board)
+                             Sensor Type (Analog)  : Fan
+                             Sensor Reading        : 8550 (+/- 75) RPM
+                             Status                : ok
+                             Nominal Reading       : 7800.000
+                             Normal Minimum        : 10425.000
+                             Normal Maximum        : 14775.000
+                             Lower critical        : 4275.000
+                             Positive Hysteresis   : 375.000
+                             Negative Hysteresis   : 375.000
+                             """
+        expected_return = {
+                             'Fan': {
+                                 'FAN MOD 1A RPM (0x30)': {
+                                     'Status': 'ok',
+                                     'Sensor Reading': '8400 (+/- 75) RPM',
+                                     'Entity ID': '7.1 (System Board)',
+                                     'Normal Minimum': '10425.000',
+                                     'Positive Hysteresis': '375.000',
+                                     'Normal Maximum': '14775.000',
+                                     'Sensor Type (Analog)': 'Fan',
+                                     'Lower critical': '4275.000',
+                                     'Negative Hysteresis': '375.000',
+                                     'Sensor ID': 'FAN MOD 1A RPM (0x30)',
+                                     'Nominal Reading': '5325.000'
+                                  },
+                                  'FAN MOD 1B RPM (0x31)': {
+                                     'Status': 'ok',
+                                     'Sensor Reading': '8550 (+/- 75) RPM',
+                                     'Entity ID': '7.1 (System Board)',
+                                     'Normal Minimum': '10425.000',
+                                     'Positive Hysteresis': '375.000',
+                                     'Normal Maximum': '14775.000',
+                                     'Sensor Type (Analog)': 'Fan',
+                                     'Lower critical': '4275.000',
+                                     'Negative Hysteresis': '375.000',
+                                     'Sensor ID': 'FAN MOD 1B RPM (0x31)',
+                                     'Nominal Reading': '7800.000'
+                                  }
+                               },
+                               'Temperature': {
+                                  'Temp (0x1)': {
+                                     'Status': 'ok',
+                                     'Sensor Reading': '-58 (+/- 1) degrees C',
+                                     'Entity ID': '3.1 (Processor)',
+                                     'Normal Minimum': '11.000',
+                                     'Positive Hysteresis': '1.000',
+                                     'Upper non-critical': '85.000',
+                                     'Normal Maximum': '69.000',
+                                     'Sensor Type (Analog)': 'Temperature',
+                                     'Negative Hysteresis': '1.000',
+                                     'Upper critical': '90.000',
+                                     'Sensor ID': 'Temp (0x1)',
+                                     'Nominal Reading': '50.000'
+                                  },
+                                  'Temp (0x2)': {
+                                     'Status': 'ok',
+                                     'Sensor Reading': '50 (+/- 1) degrees C',
+                                     'Entity ID': '3.2 (Processor)',
+                                     'Normal Minimum': '11.000',
+                                     'Positive Hysteresis': '1.000',
+                                     'Upper non-critical': '85.000',
+                                     'Normal Maximum': '69.000',
+                                     'Sensor Type (Analog)': 'Temperature',
+                                     'Negative Hysteresis': '1.000',
+                                     'Upper critical': '90.000',
+                                     'Sensor ID': 'Temp (0x2)',
+                                     'Nominal Reading': '50.000'
+                                  }
+                               }
+                            }
+        ret = ipmi._parse_ipmi_sensors_data(self.node, fake_sensors_data)
+
+        self.assertEqual(expected_return, ret)
+
+    def test__parse_ipmi_sensor_data_missing_sensor_reading(self):
+        fake_sensors_data = """
+                            Sensor ID              : Temp (0x1)
+                             Entity ID             : 3.1 (Processor)
+                             Sensor Type (Analog)  : Temperature
+                             Status                : ok
+                             Nominal Reading       : 50.000
+                             Normal Minimum        : 11.000
+                             Normal Maximum        : 69.000
+                             Upper critical        : 90.000
+                             Upper non-critical    : 85.000
+                             Positive Hysteresis   : 1.000
+                             Negative Hysteresis   : 1.000
+
+                            Sensor ID              : Temp (0x2)
+                             Entity ID             : 3.2 (Processor)
+                             Sensor Type (Analog)  : Temperature
+                             Sensor Reading        : 50 (+/- 1) degrees C
+                             Status                : ok
+                             Nominal Reading       : 50.000
+                             Normal Minimum        : 11.000
+                             Normal Maximum        : 69.000
+                             Upper critical        : 90.000
+                             Upper non-critical    : 85.000
+                             Positive Hysteresis   : 1.000
+                             Negative Hysteresis   : 1.000
+
+                            Sensor ID              : FAN MOD 1A RPM (0x30)
+                             Entity ID             : 7.1 (System Board)
+                             Sensor Type (Analog)  : Fan
+                             Sensor Reading        : 8400 (+/- 75) RPM
+                             Status                : ok
+                             Nominal Reading       : 5325.000
+                             Normal Minimum        : 10425.000
+                             Normal Maximum        : 14775.000
+                             Lower critical        : 4275.000
+                             Positive Hysteresis   : 375.000
+                             Negative Hysteresis   : 375.000
+                             """
+        expected_return = {
+                             'Fan': {
+                                 'FAN MOD 1A RPM (0x30)': {
+                                     'Status': 'ok',
+                                     'Sensor Reading': '8400 (+/- 75) RPM',
+                                     'Entity ID': '7.1 (System Board)',
+                                     'Normal Minimum': '10425.000',
+                                     'Positive Hysteresis': '375.000',
+                                     'Normal Maximum': '14775.000',
+                                     'Sensor Type (Analog)': 'Fan',
+                                     'Lower critical': '4275.000',
+                                     'Negative Hysteresis': '375.000',
+                                     'Sensor ID': 'FAN MOD 1A RPM (0x30)',
+                                     'Nominal Reading': '5325.000'
+                                  }
+                               },
+                               'Temperature': {
+                                  'Temp (0x2)': {
+                                     'Status': 'ok',
+                                     'Sensor Reading': '50 (+/- 1) degrees C',
+                                     'Entity ID': '3.2 (Processor)',
+                                     'Normal Minimum': '11.000',
+                                     'Positive Hysteresis': '1.000',
+                                     'Upper non-critical': '85.000',
+                                     'Normal Maximum': '69.000',
+                                     'Sensor Type (Analog)': 'Temperature',
+                                     'Negative Hysteresis': '1.000',
+                                     'Upper critical': '90.000',
+                                     'Sensor ID': 'Temp (0x2)',
+                                     'Nominal Reading': '50.000'
+                                  }
+                               }
+                            }
+        ret = ipmi._parse_ipmi_sensors_data(self.node, fake_sensors_data)
+
+        self.assertEqual(expected_return, ret)
+
+    def test__parse_ipmi_sensor_data_failed(self):
+        fake_sensors_data = "abcdef"
+        self.assertRaises(exception.FailedToParseSensorData,
+                          ipmi._parse_ipmi_sensors_data,
+                          self.node,
+                          fake_sensors_data)
+
+        fake_sensors_data = "abc:def:ghi"
+        self.assertRaises(exception.FailedToParseSensorData,
+                          ipmi._parse_ipmi_sensors_data,
+                          self.node,
+                          fake_sensors_data)
