@@ -6,9 +6,9 @@
 #, fuzzy
 msgid ""
 msgstr ""
-"Project-Id-Version: ironic 2014.2.dev69.gaf4437e\n"
+"Project-Id-Version: ironic 2014.2.dev127.gd04f6ad\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2014-06-25 06:02+0000\n"
+"POT-Creation-Date: 2014-07-11 06:01+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -16,6 +16,36 @@ msgstr ""
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Generated-By: Babel 1.3\n"
+
+#: ironic/conductor/manager.py:167
+#, python-format
+msgid "Successfuly started conductor with hostname %(hostname)s."
+msgstr ""
+
+#: ironic/conductor/manager.py:179
+#, python-format
+msgid "Successfully stopped conductor with hostname %(hostname)s."
+msgstr ""
+
+#: ironic/conductor/manager.py:419
+#, python-format
+msgid "Successfully deployed node %(node)s with instance %(instance)s."
+msgstr ""
+
+#: ironic/conductor/manager.py:489
+#, python-format
+msgid "Successfully unprovisioned node %(node)s with instance %(instance)s."
+msgstr ""
+
+#: ironic/conductor/manager.py:836
+#, python-format
+msgid "Successfully deleted node %(node)s."
+msgstr ""
+
+#: ironic/conductor/utils.py:116
+#, python-format
+msgid "Succesfully set node %(node)s power state to %(state)s."
+msgstr ""
 
 #: ironic/openstack/common/db/sqlalchemy/session.py:550
 #, python-format
