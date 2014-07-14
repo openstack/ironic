@@ -36,6 +36,9 @@ class TestApiUtils(base.FunctionalTest):
         # negative
         self.assertRaises(wsme.exc.ClientSideError, utils.validate_limit, -1)
 
+        # zero
+        self.assertRaises(wsme.exc.ClientSideError, utils.validate_limit, 0)
+
     def test_validate_sort_dir(self):
         sort_dir = utils.validate_sort_dir('asc')
         self.assertEqual('asc', sort_dir)
