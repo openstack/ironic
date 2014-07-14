@@ -25,6 +25,7 @@ from ironic.common import config
 from ironic.common import rpc
 from ironic.objects import base as objects_base
 from ironic.openstack.common import context
+from ironic.openstack.common.gettextutils import _LI
 from ironic.openstack.common import importutils
 from ironic.openstack.common import log
 from ironic.openstack.common import service
@@ -68,12 +69,14 @@ class RPCService(service.Service):
                 context=admin_context)
 
         self.manager.init_host()
-        LOG.debug("Creating RPC server for service %s", self.topic)
         target = messaging.Target(topic=self.topic, server=self.host)
         endpoints = [self.manager]
         serializer = objects_base.IronicObjectSerializer()
         self.rpcserver = rpc.get_server(target, endpoints, serializer)
         self.rpcserver.start()
+        LOG.info(_LI('Created RPC server for service %(service)s on host '
+                     '%(host)s.'),
+                 {'service': self.topic, 'host': self.host})
 
     def stop(self):
         super(RPCService, self).stop()
@@ -88,6 +91,9 @@ class RPCService(service.Service):
         except Exception as e:
             LOG.exception(_('Service error occurred when cleaning up '
                             'the RPC manager. Error: %s'), e)
+        LOG.info(_LI('Stopped RPC server for service %(service)s on host '
+                     '%(host)s.'),
+                 {'service': self.topic, 'host': self.host})
 
 
 def prepare_service(argv=[]):
