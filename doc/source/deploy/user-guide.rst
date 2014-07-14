@@ -125,3 +125,93 @@ IPMI
         Intelligent Platform Management Interface (IPMI) is a standardized computer system interface used by system administrators for out-of-band management of computer systems and monitoring of their operation.
 It is a method to manage systems that may be unresponsive or powered off by using only a network connection to the hardware rather than to an operating system.
 
+|
+|
+Ironic Deployment Architecture
+===================================
+|
+     We already know that OpenStack services are highly configurable to meet various end-user requirements. The diagrams below are sample deployment scenarios of the Ironic service for bare metal provisioning.
+|
+.. figure:: ../images/deployment_architecture_1.png
+   :alt: Deployment Architecture 1
+|
+     In the above deployment architecture figure 1.3.1.:
+|
+|
+     1.  The controller runs the identity service, management service, dashboard and the management portion of compute. It also contains associated API services, MySQL databases and messaging system.
+|
+|
+     2.  The Ironic RESTful API service is used to enroll hardware with attributes like MAC addresses, IPMI credentials etc. A cloud administrator usually enrolls this information for Ironic to manage the specific hardware.
+|
+|
+     3.  The compute node runs the Nova compute service, networking plug-in agent and Ironic conductor service. The Ironic conductor service does the bulk of the work. There can be multiple instances of the conductor service to support various class of drivers and also to manage fail over. Ideally, instances of conductor service should be on separate nodes. Each conductor can itself run many drivers to operate heterogeneous hardware. This is depicted in figure 1.3.2. The API exposes a list of supported drivers and the names of conductor hosts servicing them.
+|
+.. figure:: ../images/deployment_architecture_2.png
+   :alt: Deployment Architecture 2
+|
+Understanding Bare Metal Deployment
+=========================================
+|
+     What happens when a boot instance request comes in? The below diagram walks through the steps involved during the provisioning of a bare metal instance.
+|
+     These pre-requisites must be met before the deployment process:
+|
+|
+     a. Dependent packages to be configured on the compute node like tftp-server, ipmi, syslinux etc for bare metal provisioning.
+|
+|
+     b. Flavors to be created for the available hardware. Nova must know the flavor to boot from.
+|
+|
+     c. Images to be made available in Glance. Listed below are some image types required for successful bare metal deployment.
+        bm-deploy-kernel
+        bm-deploy-ramdisk
+        user-image
+        user-image-vmlinuz
+        user-image-initrd
+|
+|
+     d. Hardware to be enrolled via Ironic RESTful API service.
+|
+.. figure:: ../images/deployment_steps.png
+   :alt: Deployment Steps
+|
+Deploy Process
+-----------------
+|
+     1. A boot instance request comes in via the Nova API, through the message queue to the Nova scheduler.
+|
+|
+     2. Nova scheduler applies filter and finds the eligible compute node. Nova scheduler uses flavor extra_specs detail such as 'cpu_arch', 'baremetal:deploy_kernel_id', 'baremetal:deploy_ramdisk_id' etc to match the target physical node.
+|
+|
+     3. A spawn task is placed by the driver which contains all information such as which image to boot from etc. It invokes the driver.spawn from the virt layer of Nova compute.
+|
+|
+     4. Information about the bare metal node is retrieved from the bare metal database and the node is reserved.
+|
+|
+     5. Images from Glance are pulled down to the local disk of the Ironic conductor servicing the bare metal node.
+|
+|
+     6. Virtual interfaces are plugged in and Neutron API updates DHCP port to support PXE/TFTP options.
+|
+|
+     7. Nova's ironic driver issues a deploy request via the Ironic API to the Ironic conductor servicing the bare metal node.
+|
+|
+     8. PXE driver prepares tftp bootloader.
+|
+|
+     9. The IPMI driver issues command to enable network boot of a node and power it on.
+|
+|
+     10. The DHCP boots the deploy ramdisk. The PXE driver actually copies the image over iSCSI to the physical node. It connects to the iSCSI end point, partitions volume, "dd" the image and closes the iSCSI connection. The deployment is done. The Ironic conductor will switch pxe config to service mode and notify ramdisk agent on the successful deployment.
+|
+|
+     11. The IPMI driver reboots the bare metal node. Note that there are 2 power cycles during bare metal deployment; the first time when powered-on, the images get deployed as mentioned in step 9. The second time as in this case, after the images are deployed, the node is powered up.
+|
+|
+     12. The bare metal node status is updated and the node instance is made available.
+|
+|
