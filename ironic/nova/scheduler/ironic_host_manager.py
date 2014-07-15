@@ -1,4 +1,5 @@
-# Copyright (c) 2014 OpenStack Foundation
+# Copyright (c) 2012 NTT DOCOMO, INC.
+# Copyright (c) 2011-2014 OpenStack Foundation
 # All Rights Reserved.
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -21,6 +22,8 @@ ram from a host / node as it is supporting Baremetal hosts, which can not be
 subdivided into multiple instances.
 """
 from oslo.config import cfg
+
+import ironic.nova.scheduler.base_baremetal_host_manager as bbhm
 
 from nova.openstack.common import jsonutils
 from nova.openstack.common import log as logging
@@ -54,7 +57,7 @@ CONF.register_opts(host_manager_opts)
 LOG = logging.getLogger(__name__)
 
 
-class IronicNodeState(host_manager.HostState):
+class IronicNodeState(bbhm.BaseBaremetalNodeState):
     """Mutable and immutable information tracked for a host.
     This is an attempt to remove the ad-hoc data structures
     previously used and lock down access.
@@ -62,50 +65,31 @@ class IronicNodeState(host_manager.HostState):
 
     def update_from_compute_node(self, compute):
         """Update information about a host from its compute_node info."""
-        self.free_ram_mb = compute['free_ram_mb']
-        self.total_usable_ram_mb = compute['memory_mb']
+        super(IronicNodeState, self).update_from_compute_node(compute)
 
-        self.free_disk_mb = compute['free_disk_gb'] * 1024
         self.total_usable_disk_gb = compute['local_gb']
-
-        self.vcpus_total = compute['vcpus']
-        self.vcpus_used = compute['vcpus_used']
-
-        stats = compute.get('stats', '{}')
-        self.stats = jsonutils.loads(stats)
-
         self.updated = compute['updated_at']
 
     def consume_from_instance(self, instance):
         """Consume nodes entire resources regardless of instance request."""
-        self.free_ram_mb = 0
-        self.free_disk_mb = 0
-        self.vcpus_used = self.vcpus_total
+        super(IronicNodeState, self).consume_from_instance(instance)
+
         self.updated = timeutils.utcnow()
 
 
-def new_host_state(self, host, node, **kwargs):
-    """Returns an instance of IronicNodeState or HostState according to
-    compute['cpu_info']. If 'cpu_info' equals 'baremetal cpu', it returns an
-    instance of IronicNodeState. If not, returns an instance of HostState.
-    """
-    compute = kwargs.get('compute')
-
-    if compute and compute.get('cpu_info') == 'baremetal cpu':
-        return IronicNodeState(host, node, **kwargs)
-    else:
-        return host_manager.HostState(host, node, **kwargs)
-
-
-class IronicHostManager(host_manager.HostManager):
+class IronicHostManager(bbhm.BaseBaremetalHostManager):
     """Ironic HostManager class."""
-
-    # Override.
-    # Yes, this is not a class, and it is OK
-    host_state_cls = new_host_state
 
     def __init__(self):
         super(IronicHostManager, self).__init__()
         if CONF.scheduler_use_baremetal_filters:
             baremetal_default = CONF.baremetal_scheduler_default_filters
             CONF.scheduler_default_filters = baremetal_default
+
+    def host_state_cls(self, host, node, **kwargs):
+        """Factory function/property to create a new HostState"""
+        compute = kwargs.get('compute')
+        if compute and compute.get('cpu_info') == 'baremetal cpu':
+            return IronicNodeState(host, node, **kwargs)
+        else:
+            return host_manager.HostState(host, node, **kwargs)
