@@ -167,12 +167,9 @@ class IronicDriver(virt_driver.ComputeDriver):
         super(IronicDriver, self).__init__(virtapi)
 
         self.firewall_driver = firewall.load_driver(default=_FIREWALL_DRIVER)
-        # TODO(deva): sort out extra_specs and nova-scheduler interaction
         extra_specs = {}
         extra_specs["ironic_driver"] = \
             "ironic.nova.virt.ironic.driver.IronicDriver"
-        # cpu_arch set per node.
-        extra_specs['cpu_arch'] = ''
         for pair in CONF.ironic.instance_type_extra_specs:
             keyval = pair.split(':', 1)
             keyval[0] = keyval[0].strip()
@@ -201,8 +198,33 @@ class IronicDriver(virt_driver.ComputeDriver):
         memory_mb = int(node.properties.get('memory_mb', 0))
         local_gb = int(node.properties.get('local_gb', 0))
         cpu_arch = str(node.properties.get('cpu_arch', 'NotFound'))
-        nodes_extra_specs = self.extra_specs
+
+        nodes_extra_specs = self.extra_specs.copy()
+
+        # NOTE(deva): In Havana and Icehouse, the flavor was required to link
+        # to an arch-specific deploy kernel and ramdisk pair, and so the flavor
+        # also had to have extra_specs['cpu_arch'], which was matched against
+        # the ironic node.properties['cpu_arch'].
+        # With Juno, the deploy image(s) may be referenced directly by the
+        # node.driver_info, and a flavor no longer needs to contain any of
+        # these three extra specs, though the cpu_arch may still be used
+        # in a heterogeneous environment, if so desired.
         nodes_extra_specs['cpu_arch'] = cpu_arch
+
+        # NOTE(gilliard): To assist with more precise scheduling, if the
+        # node.properties contains a key 'capabilities', we expect the value
+        # to be of the form "k1:v1,k2:v2,etc.." which we add directly as
+        # key/value pairs into the node_extra_specs to be used by the
+        # ComputeCapabilitiesFilter
+        capabilities = node.properties.get('capabilities')
+        if capabilities:
+            for capability in str(capabilities).split(','):
+                parts = capability.split(':')
+                if len(parts) == 2 and parts[0] and parts[1]:
+                    nodes_extra_specs[parts[0]] = parts[1]
+                else:
+                    LOG.warn(_LW("Ignoring malformed capability '%s'. "
+                                 "Format should be 'key:val'."), capability)
 
         vcpus_used = 0
         memory_mb_used = 0
