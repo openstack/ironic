@@ -1002,7 +1002,7 @@
 
 # Maximum TTL (in minutes) for old master images in cache.
 # (integer value)
-#image_cache_ttl=60
+#image_cache_ttl=10080
 
 
 [seamicro]

@@ -78,8 +78,10 @@ pxe_opts = [
                default=20480,
                help='Maximum size (in MiB) of cache for master images, '
                'including those in use.'),
+    # 10080 here is 1 week - 60*24*7. It is entirely arbitrary in the absence
+    # of a facility to disable the ttl entirely.
     cfg.IntOpt('image_cache_ttl',
-               default=60,
+               default=10080,
                help='Maximum TTL (in minutes) for old master images in '
                'cache.'),
     ]
