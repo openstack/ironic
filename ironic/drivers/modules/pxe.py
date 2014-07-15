@@ -69,12 +69,13 @@ pxe_opts = [
                default='pxelinux.0',
                help='Neutron bootfile DHCP parameter.'),
     cfg.IntOpt('image_cache_size',
-               default=1024,
+               default=20480,
                help='Maximum size (in MiB) of cache for master images, '
-               'including those in use'),
+               'including those in use.'),
     cfg.IntOpt('image_cache_ttl',
                default=60,
-               help='Maximum TTL (in minutes) for old master images in cache'),
+               help='Maximum TTL (in minutes) for old master images in '
+               'cache.'),
     ]
 
 LOG = logging.getLogger(__name__)
