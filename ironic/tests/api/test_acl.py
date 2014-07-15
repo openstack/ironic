@@ -18,9 +18,11 @@ are blocked or allowed to be processed.
 
 import mock
 
+# NOTE(deva): import auth_token so we can override a config option
+from keystonemiddleware import auth_token  # noqa
+
 from oslo.config import cfg
 
-from ironic.api import acl
 from ironic.db import api as db_api
 from ironic.tests.api import base
 from ironic.tests.api import utils
@@ -46,7 +48,8 @@ class TestACL(base.FunctionalTest):
                                                 **param)
 
     def _make_app(self):
-        cfg.CONF.set_override('cache', 'fake.cache', group=acl.OPT_GROUP_NAME)
+        cfg.CONF.set_override('cache', 'fake.cache',
+                              group='keystone_authtoken')
         return super(TestACL, self)._make_app(enable_acl=True)
 
     def test_non_authenticated(self):
