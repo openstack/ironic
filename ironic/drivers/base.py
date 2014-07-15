@@ -88,10 +88,32 @@ class BaseDriver(object):
     def __init__(self):
         pass
 
+    def get_properties(self):
+        """Get the properties of the driver.
+
+        :returns: dictionary of <property name>:<property description> entries.
+        """
+
+        properties = {}
+        for iface_name in (self.core_interfaces +
+                           self.standard_interfaces +
+                           ['vendor']):
+            iface = getattr(self, iface_name, None)
+            if iface:
+                properties.update(iface.get_properties())
+        return properties
+
 
 @six.add_metaclass(abc.ABCMeta)
 class DeployInterface(object):
     """Interface for deploy-related actions."""
+
+    @abc.abstractmethod
+    def get_properties(self):
+        """Return the properties of the interface.
+
+        :returns: dictionary of <property name>:<property description> entries.
+        """
 
     @abc.abstractmethod
     def validate(self, task):
@@ -190,6 +212,13 @@ class PowerInterface(object):
     """Interface for power-related actions."""
 
     @abc.abstractmethod
+    def get_properties(self):
+        """Return the properties of the interface.
+
+        :returns: dictionary of <property name>:<property description> entries.
+        """
+
+    @abc.abstractmethod
     def validate(self, task):
         """Validate the driver-specific Node power info.
 
@@ -229,6 +258,13 @@ class PowerInterface(object):
 @six.add_metaclass(abc.ABCMeta)
 class ConsoleInterface(object):
     """Interface for console-related actions."""
+
+    @abc.abstractmethod
+    def get_properties(self):
+        """Return the properties of the interface.
+
+        :returns: dictionary of <property name>:<property description> entries.
+        """
 
     @abc.abstractmethod
     def validate(self, task):
@@ -274,6 +310,13 @@ class RescueInterface(object):
     """Interface for rescue-related actions."""
 
     @abc.abstractmethod
+    def get_properties(self):
+        """Return the properties of the interface.
+
+        :returns: dictionary of <property name>:<property description> entries.
+        """
+
+    @abc.abstractmethod
     def validate(self, task):
         """Validate the rescue info stored in the node' properties.
 
@@ -309,6 +352,13 @@ class VendorInterface(object):
     driver_vendor_passthru() is a blocking call - methods implemented here
     should be short-lived.
     """
+
+    @abc.abstractmethod
+    def get_properties(self):
+        """Return the properties of the interface.
+
+        :returns: dictionary of <property name>:<property description> entries.
+        """
 
     @abc.abstractmethod
     def validate(self, task, **kwargs):
@@ -356,6 +406,13 @@ class VendorInterface(object):
 @six.add_metaclass(abc.ABCMeta)
 class ManagementInterface(object):
     """Interface for management related actions."""
+
+    @abc.abstractmethod
+    def get_properties(self):
+        """Return the properties of the interface.
+
+        :returns: dictionary of <property name>:<property description> entries.
+        """
 
     @abc.abstractmethod
     def validate(self, task):

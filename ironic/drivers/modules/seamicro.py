@@ -62,6 +62,19 @@ _BOOT_DEVICES_MAP = {
     boot_devices.PXE: 'pxe',
 }
 
+REQUIRED_PROPERTIES = {
+    'seamicro_api_endpoint': _("API endpoint. Required."),
+    'seamicro_password': _("password. Required."),
+    'seamicro_server_id': _("server ID. Required."),
+    'seamicro_username': _("username. Required."),
+}
+OPTIONAL_PROPERTIES = {
+    'seamicro_api_version': _("version of SeaMicro API client; default is 2. "
+                              "Optional.")
+}
+COMMON_PROPERTIES = REQUIRED_PROPERTIES.copy()
+COMMON_PROPERTIES.update(OPTIONAL_PROPERTIES)
+
 
 def _get_client(*args, **kwargs):
     """Creates the python-seamicro_client
@@ -87,23 +100,17 @@ def _parse_driver_info(node):
     """
 
     info = node.driver_info or {}
+    missing_info = [key for key in REQUIRED_PROPERTIES if not info.get(key)]
+    if missing_info:
+        raise exception.InvalidParameterValue(_(
+            "SeaMicro driver requires the following to be set: %s.")
+            % missing_info)
+
     api_endpoint = info.get('seamicro_api_endpoint')
     username = info.get('seamicro_username')
     password = info.get('seamicro_password')
     server_id = info.get('seamicro_server_id')
     api_version = info.get('seamicro_api_version', "2")
-
-    if not api_endpoint:
-        raise exception.InvalidParameterValue(_(
-            "SeaMicro driver requires api_endpoint be set"))
-
-    if not username or not password:
-        raise exception.InvalidParameterValue(_(
-            "SeaMicro driver requires both username and password be set"))
-
-    if not server_id:
-        raise exception.InvalidParameterValue(_(
-            "SeaMicro driver requires server_id be set"))
 
     res = {'username': username,
            'password': password,
@@ -322,6 +329,9 @@ class Power(base.PowerInterface):
     state of servers in a seamicro chassis.
     """
 
+    def get_properties(self):
+        return COMMON_PROPERTIES
+
     def validate(self, task):
         """Check that node 'driver_info' is valid.
 
@@ -388,6 +398,9 @@ class Power(base.PowerInterface):
 
 class VendorPassthru(base.VendorInterface):
     """SeaMicro vendor-specific methods."""
+
+    def get_properties(self):
+        return COMMON_PROPERTIES
 
     def validate(self, task, **kwargs):
         method = kwargs['method']
@@ -469,6 +482,9 @@ class VendorPassthru(base.VendorInterface):
 
 
 class Management(base.ManagementInterface):
+
+    def get_properties(self):
+        return COMMON_PROPERTIES
 
     def validate(self, task):
         """Check that 'driver_info' contains SeaMicro credentials.

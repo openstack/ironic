@@ -484,6 +484,17 @@ class IPMIToolDriverTestCase(db_base.DbTestCase):
                                                driver_info=INFO_DICT)
         self.info = ipmi._parse_driver_info(self.node)
 
+    def test_get_properties(self):
+        expected = ipmi.COMMON_PROPERTIES
+        self.assertEqual(expected, self.driver.power.get_properties())
+
+        expected = ipmi.COMMON_PROPERTIES.keys()
+        expected += ipmi.CONSOLE_PROPERTIES.keys()
+        self.assertEqual(sorted(expected),
+                         sorted(self.driver.console.get_properties().keys()))
+        self.assertEqual(sorted(expected),
+                         sorted(self.driver.get_properties().keys()))
+
     @mock.patch.object(ipmi, '_exec_ipmitool', autospec=True)
     def test_get_power_state(self, mock_exec):
         returns = iter([["Chassis Power is off\n", None],

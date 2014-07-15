@@ -42,6 +42,9 @@ def _raise_unsupported_error(method=None):
 class FakePower(base.PowerInterface):
     """Example implementation of a simple power interface."""
 
+    def get_properties(self):
+        return {}
+
     def validate(self, task):
         pass
 
@@ -62,6 +65,9 @@ class FakeDeploy(base.DeployInterface):
     """Example imlementation of a deploy interface that uses a
        separate power interface.
     """
+
+    def get_properties(self):
+        return {}
 
     def validate(self, task):
         pass
@@ -84,6 +90,10 @@ class FakeDeploy(base.DeployInterface):
 
 class FakeVendorA(base.VendorInterface):
     """Example implementation of a vendor passthru interface."""
+
+    def get_properties(self):
+        return {'A1': 'A1 description. Required.',
+                'A2': 'A2 description. Optional.'}
 
     def validate(self, task, **kwargs):
         method = kwargs.get('method')
@@ -109,6 +119,10 @@ class FakeVendorA(base.VendorInterface):
 class FakeVendorB(base.VendorInterface):
     """Example implementation of a secondary vendor passthru."""
 
+    def get_properties(self):
+        return {'B1': 'B1 description. Required.',
+                'B2': 'B2 description. Required.'}
+
     def validate(self, task, **kwargs):
         method = kwargs.get('method')
         if method == 'second_method':
@@ -133,6 +147,9 @@ class FakeVendorB(base.VendorInterface):
 class FakeConsole(base.ConsoleInterface):
     """Example implementation of a simple console interface."""
 
+    def get_properties(self):
+        return {}
+
     def validate(self, task):
         pass
 
@@ -148,6 +165,9 @@ class FakeConsole(base.ConsoleInterface):
 
 class FakeManagement(base.ManagementInterface):
     """Example implementation of a simple management interface."""
+
+    def get_properties(self):
+        return {}
 
     def validate(self, task):
         pass

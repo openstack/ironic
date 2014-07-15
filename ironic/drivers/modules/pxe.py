@@ -90,6 +90,14 @@ CONF = cfg.CONF
 CONF.register_opts(pxe_opts, group='pxe')
 CONF.import_opt('use_ipv6', 'ironic.netconf')
 
+REQUIRED_PROPERTIES = {
+    'pxe_deploy_kernel': _("UUID (from Glance) of the deployment kernel. "
+                           "Required."),
+    'pxe_deploy_ramdisk': _("UUID (from Glance) of the ramdisk that is "
+                            "mounted at boot time. Required."),
+}
+COMMON_PROPERTIES = REQUIRED_PROPERTIES
+
 
 def _check_for_missing_params(info_dict, param_prefix=''):
     missing_info = []
@@ -463,6 +471,9 @@ def _validate_glance_image(ctx, deploy_info):
 class PXEDeploy(base.DeployInterface):
     """PXE Deploy Interface: just a stub until the real driver is ported."""
 
+    def get_properties(self):
+        return COMMON_PROPERTIES
+
     def validate(self, task):
         """Validate the deployment information for the task's node.
 
@@ -608,6 +619,9 @@ class VendorPassthru(base.VendorInterface):
         params['ephemeral_format'] = d_info.get('ephemeral_format')
 
         return params
+
+    def get_properties(self):
+        return COMMON_PROPERTIES
 
     def validate(self, task, **kwargs):
         method = kwargs['method']

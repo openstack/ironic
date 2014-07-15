@@ -274,6 +274,12 @@ class SeaMicroPowerDriverTestCase(db_base.DbTestCase):
         self.Server = Fake_Server
         self.Volume = Fake_Volume
 
+    def test_get_properties(self):
+        expected = seamicro.COMMON_PROPERTIES
+        with task_manager.acquire(self.context, self.node['uuid'],
+                                  shared=True) as task:
+            self.assertEqual(expected, task.driver.get_properties())
+
     @mock.patch.object(seamicro, '_parse_driver_info')
     def test_power_interface_validate_good(self, parse_drv_info_mock):
         with task_manager.acquire(self.context, self.node['uuid'],

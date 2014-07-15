@@ -44,6 +44,19 @@ CONF.register_opts(opts, group='ilo')
 
 LOG = logging.getLogger(__name__)
 
+REQUIRED_PROPERTIES = {
+    'ilo_address': _("IP address or hostname of the iLO. Required."),
+    'ilo_username': _("username for the iLO with administrator privileges. "
+                      "Required."),
+    'ilo_password': _("password for ilo_username. Required.")
+}
+OPTIONAL_PROPERTIES = {
+    'client_port': _("port to be used for iLO operations. Optional."),
+    'client_timeout': _("timeout (in seconds) for iLO operations. Optional.")
+}
+COMMON_PROPERTIES = REQUIRED_PROPERTIES.copy()
+COMMON_PROPERTIES.update(OPTIONAL_PROPERTIES)
+
 
 def parse_driver_info(node):
     """Gets the driver specific Node deployment info.
@@ -61,13 +74,13 @@ def parse_driver_info(node):
     d_info = {}
 
     error_msgs = []
-    for param in ('ilo_address', 'ilo_username', 'ilo_password'):
+    for param in REQUIRED_PROPERTIES:
         try:
             d_info[param] = info[param]
         except KeyError:
             error_msgs.append(_("'%s' not supplied to IloDriver.") % param)
 
-    for param in ('client_port', 'client_timeout'):
+    for param in OPTIONAL_PROPERTIES:
         value = info.get(param, CONF.ilo.get(param))
         try:
             value = int(value)

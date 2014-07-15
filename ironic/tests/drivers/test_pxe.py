@@ -519,6 +519,12 @@ class PXEDriverTestCase(db_base.DbTestCase):
         open(token_path, 'w').close()
         return token_path
 
+    def test_get_properties(self):
+        expected = pxe.COMMON_PROPERTIES
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            self.assertEqual(expected, task.driver.get_properties())
+
     @mock.patch.object(base_image_service.BaseImageService, '_show')
     def test_validate_good(self, mock_glance):
         mock_glance.return_value = {'properties': {'kernel_id': 'fake-kernel',

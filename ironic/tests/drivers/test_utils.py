@@ -38,6 +38,14 @@ class UtilsTestCase(base.TestCase):
         self.driver = driver_factory.get_driver("fake")
         self.node = obj_utils.create_test_node(self.context)
 
+    def test_vendor_interface_get_properties(self):
+        expected = {'A1': 'A1 description. Required.',
+                    'A2': 'A2 description. Optional.',
+                    'B1': 'B1 description. Required.',
+                    'B2': 'B2 description. Required.'}
+        props = self.driver.vendor.get_properties()
+        self.assertEqual(expected, props)
+
     @mock.patch.object(fake.FakeVendorA, 'validate')
     def test_vendor_interface_validate_valid_methods(self,
                                                      mock_fakea_validate):
