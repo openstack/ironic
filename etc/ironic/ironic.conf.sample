@@ -951,10 +951,10 @@
 #pxe_bootfile_name=pxelinux.0
 
 # Maximum size (in MiB) of cache for master images, including
-# those in use (integer value)
-#image_cache_size=1024
+# those in use. (integer value)
+#image_cache_size=20480
 
-# Maximum TTL (in minutes) for old master images in cache
+# Maximum TTL (in minutes) for old master images in cache.
 # (integer value)
 #image_cache_ttl=60
 
