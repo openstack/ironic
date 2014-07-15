@@ -329,6 +329,11 @@ class Connection(api.Connection):
 
     @objects.objectify(objects.Node)
     def update_node(self, node_id, values):
+        # NOTE(dtantsur): this can lead to very strange errors
+        if 'uuid' in values:
+            msg = _("Cannot overwrite UUID for an existing Node.")
+            raise exception.InvalidParameterValue(err=msg)
+
         session = get_session()
         with session.begin():
             query = model_query(models.Node, session=session)
@@ -393,6 +398,11 @@ class Connection(api.Connection):
 
     @objects.objectify(objects.Port)
     def update_port(self, port_id, values):
+        # NOTE(dtantsur): this can lead to very strange errors
+        if 'uuid' in values:
+            msg = _("Cannot overwrite UUID for an existing Port.")
+            raise exception.InvalidParameterValue(err=msg)
+
         session = get_session()
         try:
             with session.begin():
@@ -447,6 +457,11 @@ class Connection(api.Connection):
 
     @objects.objectify(objects.Chassis)
     def update_chassis(self, chassis_id, values):
+        # NOTE(dtantsur): this can lead to very strange errors
+        if 'uuid' in values:
+            msg = _("Cannot overwrite UUID for an existing Chassis.")
+            raise exception.InvalidParameterValue(err=msg)
+
         session = get_session()
         with session.begin():
             query = model_query(models.Chassis, session=session)

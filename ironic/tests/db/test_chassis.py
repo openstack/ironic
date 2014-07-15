@@ -68,18 +68,19 @@ class DbChassisTestCase(base.DbTestCase):
 
     def test_update_chassis(self):
         ch = self._create_test_chassis()
-        new_uuid = ironic_utils.generate_uuid()
+        res = self.dbapi.update_chassis(ch['id'], {'description': 'hello'})
 
-        ch['uuid'] = new_uuid
-        res = self.dbapi.update_chassis(ch['id'], {'uuid': new_uuid})
-
-        self.assertEqual(new_uuid, res.uuid)
+        self.assertEqual('hello', res.description)
 
     def test_update_chassis_that_does_not_exist(self):
-        new_uuid = ironic_utils.generate_uuid()
-
         self.assertRaises(exception.ChassisNotFound,
-                          self.dbapi.update_chassis, 666, {'uuid': new_uuid})
+                          self.dbapi.update_chassis, 666, {'description': ''})
+
+    def test_update_chassis_uuid(self):
+        ch = self._create_test_chassis()
+        self.assertRaises(exception.InvalidParameterValue,
+                          self.dbapi.update_chassis, ch['id'],
+                          {'uuid': 'hello'})
 
     def test_destroy_chassis(self):
         ch = self._create_test_chassis()
