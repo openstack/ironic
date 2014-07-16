@@ -125,19 +125,6 @@ def validate_instance_and_node(icli, instance):
         raise exception.InstanceNotFound(instance_id=instance['uuid'])
 
 
-def _get_required_value(key, value):
-    """Return the requested value."""
-    if '/' in value:
-        # we need to split the value
-        split_value = value.split('/')
-        eval_string = 'key'
-        for value in split_value:
-            eval_string = "%s['%s']" % (eval_string, value)
-        return eval(eval_string)
-    else:
-        return key[value]
-
-
 def _get_nodes_supported_instances(cpu_arch=''):
     """Return supported instances for a node."""
     return [(cpu_arch, 'baremetal', 'baremetal')]
@@ -534,10 +521,10 @@ class IronicDriver(virt_driver.ComputeDriver):
             instance.default_ephemeral_device = '/dev/sda1'
             instance.save()
 
-        #validate we ready to do the deploy
+        # validate we are ready to do the deploy
         validate_chk = icli.call("node.validate", node_uuid)
         if not validate_chk.deploy or not validate_chk.power:
-            # something is wrong. undo we we have done
+            # something is wrong. undo what we have done
             self._cleanup_deploy(node, instance, network_info)
             raise exception.ValidationError(_(
                 "Ironic node: %(id)s failed to validate."
@@ -722,17 +709,6 @@ class IronicDriver(virt_driver.ComputeDriver):
             data = self._node_resource(node)
             caps.append(data)
         return caps
-
-    def get_console_output(self, context, instance):
-        """Get console log for an instance.
-
-        Not Implemented Yet.
-
-        :param context: The security context.
-        :param instance: The instance object.
-
-        """
-        raise NotImplementedError()
 
     def refresh_security_group_rules(self, security_group_id):
         """Refresh security group rules from data store.
