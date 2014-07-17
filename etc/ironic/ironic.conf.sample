@@ -517,6 +517,12 @@
 # The size of the workers greenthread pool. (integer value)
 #workers_pool_size=100
 
+# Number of attempts to grab a node lock. (integer value)
+#node_locked_retry_attempts=3
+
+# Seconds to sleep between node lock attempts. (integer value)
+#node_locked_retry_interval=1
+
 
 [console]
 
