@@ -155,10 +155,10 @@ class FakeManagement(base.ManagementInterface):
     def get_supported_boot_devices(self):
         return [boot_devices.PXE]
 
-    def set_boot_device(self, task, device, **kwargs):
+    def set_boot_device(self, task, device, persistent=False):
         if device not in self.get_supported_boot_devices():
             raise exception.InvalidParameterValue(_(
                 "Invalid boot device %s specified.") % device)
 
     def get_boot_device(self, task):
-        return boot_devices.PXE
+        return {'boot_device': boot_devices.PXE, 'persistent': False}
