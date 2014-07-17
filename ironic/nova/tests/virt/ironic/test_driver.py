@@ -46,7 +46,6 @@ from nova.virt import firewall
 CONF = cfg.CONF
 
 IRONIC_FLAGS = dict(
-    instance_type_extra_specs=['test_spec:test_value'],
     api_version=1,
     group='ironic',
 )
@@ -76,8 +75,7 @@ def _get_properties():
 def _get_stats():
     return {'cpu_arch': 'x86_64',
             'ironic_driver':
-                    'ironic.nova.virt.ironic.driver.IronicDriver',
-            'test_spec': 'test_value'}
+                    'ironic.nova.virt.ironic.driver.IronicDriver'}
 
 
 FAKE_CLIENT_WRAPPER = FakeClientWrapper()
@@ -107,7 +105,7 @@ class IronicDriverTestCase(test.NoDBTestCase):
         self.assertEqual(self.driver.get_hypervisor_version(), 1)
 
     @mock.patch.object(FAKE_CLIENT.node, 'get_by_instance_uuid')
-    def test_validate_instance_and_node(self, mock_gbiui):
+    def test__validate_instance_and_node(self, mock_gbiui):
         node_uuid = 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee'
         instance_uuid = uuidutils.generate_uuid()
         node = ironic_utils.get_test_node(uuid=node_uuid,
@@ -117,18 +115,18 @@ class IronicDriverTestCase(test.NoDBTestCase):
         icli = cw.IronicClientWrapper()
 
         mock_gbiui.return_value = node
-        result = ironic_driver.validate_instance_and_node(icli, instance)
+        result = ironic_driver._validate_instance_and_node(icli, instance)
         self.assertEqual(result.uuid, node_uuid)
 
     @mock.patch.object(FAKE_CLIENT.node, 'get_by_instance_uuid')
-    def test_validate_instance_and_node_failed(self, mock_gbiui):
+    def test__validate_instance_and_node_failed(self, mock_gbiui):
         icli = cw.IronicClientWrapper()
         mock_gbiui.side_effect = ironic_exception.NotFound()
         instance_uuid = uuidutils.generate_uuid(),
         instance = fake_instance.fake_instance_obj(self.ctx,
                                                    uuid=instance_uuid)
         self.assertRaises(exception.InstanceNotFound,
-                          ironic_driver.validate_instance_and_node,
+                          ironic_driver._validate_instance_and_node,
                           icli, instance)
 
     def test__node_resource(self):
@@ -736,7 +734,7 @@ class IronicDriverTestCase(test.NoDBTestCase):
         mock_cleanup_deploy.assert_called_with(node, instance, network_info)
 
     @mock.patch.object(FAKE_CLIENT.node, 'set_provision_state')
-    @mock.patch.object(ironic_driver, 'validate_instance_and_node')
+    @mock.patch.object(ironic_driver, '_validate_instance_and_node')
     def test_destroy_trigger_undeploy_fail(self, fake_validate, mock_sps):
         node_uuid = 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee'
         node = ironic_utils.get_test_node(driver='fake', uuid=node_uuid,
@@ -780,7 +778,7 @@ class IronicDriverTestCase(test.NoDBTestCase):
         mock_node.get_by_instance_uuid.assert_called_with(instance.uuid)
 
     @mock.patch.object(FAKE_CLIENT.node, 'set_power_state')
-    @mock.patch.object(ironic_driver, 'validate_instance_and_node')
+    @mock.patch.object(ironic_driver, '_validate_instance_and_node')
     def test_reboot(self, mock_val_inst, mock_set_power):
         node = ironic_utils.get_test_node()
         mock_val_inst.return_value = node
@@ -789,7 +787,7 @@ class IronicDriverTestCase(test.NoDBTestCase):
         self.driver.reboot(self.ctx, instance, None, None)
         mock_set_power.assert_called_once_with(node.uuid, 'reboot')
 
-    @mock.patch.object(ironic_driver, 'validate_instance_and_node')
+    @mock.patch.object(ironic_driver, '_validate_instance_and_node')
     @mock.patch.object(FAKE_CLIENT.node, 'set_power_state')
     def test_power_off(self, mock_sp, fake_validate):
         node_uuid = 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee'
@@ -803,7 +801,7 @@ class IronicDriverTestCase(test.NoDBTestCase):
         self.driver.power_off(instance)
         mock_sp.assert_called_once_with(node_uuid, 'off')
 
-    @mock.patch.object(ironic_driver, 'validate_instance_and_node')
+    @mock.patch.object(ironic_driver, '_validate_instance_and_node')
     @mock.patch.object(FAKE_CLIENT.node, 'set_power_state')
     def test_power_on(self, mock_sp, fake_validate):
         node_uuid = 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee'
@@ -1012,7 +1010,6 @@ class IronicDriverTestCase(test.NoDBTestCase):
                                                    uuid=instance_uuid,
                                                    node=node_uuid,
                                                    instance_type_id=flavor_id)
-
 
         fake_looping_call = FakeLoopingCall()
         mock_looping.return_value = fake_looping_call
