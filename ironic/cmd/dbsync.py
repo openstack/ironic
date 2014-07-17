@@ -47,6 +47,9 @@ class DBCommand(object):
     def version(self):
         print(migration.version())
 
+    def create_schema(self):
+        migration.create_schema()
+
 
 def add_command_parsers(subparsers):
     command_object = DBCommand()
@@ -71,6 +74,9 @@ def add_command_parsers(subparsers):
     parser = subparsers.add_parser('version')
     parser.set_defaults(func=command_object.version)
 
+    parser = subparsers.add_parser('create_schema')
+    parser.set_defaults(func=command_object.create_schema)
+
 
 command_opt = cfg.SubCommandOpt('command',
                                 title='Command',
@@ -85,7 +91,7 @@ def main():
     # pls change it to ironic-dbsync upgrade
     valid_commands = set([
         'upgrade', 'downgrade', 'revision',
-        'version', 'stamp'
+        'version', 'stamp', 'create_schema',
     ])
     if not set(sys.argv) & valid_commands:
         sys.argv.append('upgrade')
