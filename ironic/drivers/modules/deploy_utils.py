@@ -26,6 +26,7 @@ from oslo.utils import excutils
 from ironic.common import disk_partitioner
 from ironic.common import exception
 from ironic.common import utils
+from ironic.drivers.modules import image_cache
 from ironic.openstack.common import log as logging
 from ironic.openstack.common import processutils
 
@@ -279,7 +280,7 @@ def work_on_disk(dev, root_mb, swap_mb, ephemeral_mb, ephemeral_format,
     :param preserve_ephemeral: If True, no filesystem is written to the
         ephemeral block device, preserving whatever content it had (if the
         partition table has not changed).
-
+    :returns: the UUID of the root partition.
     """
     if not is_block_device(dev):
         raise exception.InstanceDeployFailure(_("Parent device '%s' not found")
@@ -324,7 +325,7 @@ def work_on_disk(dev, root_mb, swap_mb, ephemeral_mb, ephemeral_format,
     return root_uuid
 
 
-def deploy(address, port, iqn, lun, image_path, pxe_config_path,
+def deploy(address, port, iqn, lun, image_path,
            root_mb, swap_mb, ephemeral_mb, ephemeral_format, node_uuid,
            preserve_ephemeral=False):
     """All-in-one function to deploy a node.
@@ -334,7 +335,6 @@ def deploy(address, port, iqn, lun, image_path, pxe_config_path,
     :param iqn: The iSCSI qualified name.
     :param lun: The iSCSI logical unit number.
     :param image_path: Path for the instance's disk image.
-    :param pxe_config_path: Path for the instance PXE config file.
     :param root_mb: Size of the root partition in megabytes.
     :param swap_mb: Size of the swap partition in megabytes.
     :param ephemeral_mb: Size of the ephemeral partition in megabytes. If 0,
@@ -345,7 +345,7 @@ def deploy(address, port, iqn, lun, image_path, pxe_config_path,
     :param preserve_ephemeral: If True, no filesystem is written to the
         ephemeral block device, preserving whatever content it had (if the
         partition table has not changed).
-
+    :returns: the UUID of the root partition.
     """
     dev = get_dev(address, port, iqn, lun)
     image_mb = get_image_mb(image_path)
@@ -370,7 +370,59 @@ def deploy(address, port, iqn, lun, image_path, pxe_config_path,
     finally:
         logout_iscsi(address, port, iqn)
         delete_iscsi(address, port, iqn)
-    switch_pxe_config(pxe_config_path, root_uuid)
+
+    return root_uuid
+
+
+def notify_deploy_complete(address):
+    """Notifies the completion of deployment to the baremetal node.
+
+    :param address: The IP address of the node.
+    """
     # Ensure the node started netcat on the port after POST the request.
     time.sleep(3)
     notify(address, 10000)
+
+
+def check_for_missing_params(info_dict, error_msg, param_prefix=''):
+    """Check for empty params in the provided dictionary.
+
+    :param info_dict: The dictionary to inspect.
+    :param error_msg: The error message to prefix before printing the
+        information about missing parameters.
+    :param param_prefix: Add this prefix to each parameter for error messages
+    :raises: MissingParameterValue, if one or more parameters are
+        empty in the provided dictionary.
+    """
+    missing_info = []
+    for label, value in info_dict.items():
+        if not value:
+            missing_info.append(param_prefix + label)
+
+    if missing_info:
+        exc_msg = _("%(error_msg)s. The following parameters were "
+                    "not passed to ironic: %(missing_info)s")
+        raise exception.MissingParameterValue(exc_msg %
+                    {'error_msg': error_msg, 'missing_info': missing_info})
+
+
+def fetch_images(ctx, cache, images_info):
+    """Check for available disk space and fetch images using ImageCache.
+
+    :param ctx: context
+    :param cache: ImageCache instance to use for fetching
+    :param images_info: list of tuples (image uuid, destination path)
+    :raises: InstanceDeployFailure if unable to find enough disk space
+    """
+
+    try:
+        image_cache.clean_up_caches(ctx, cache.master_dir, images_info)
+    except exception.InsufficientDiskSpace as e:
+        raise exception.InstanceDeployFailure(reason=e)
+
+    # NOTE(dtantsur): This code can suffer from race condition,
+    # if disk space is used between the check and actual download.
+    # This is probably unavoidable, as we can't control other
+    # (probably unrelated) processes
+    for uuid, path in images_info:
+        cache.fetch_image(uuid, path, ctx=ctx)

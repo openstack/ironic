@@ -35,7 +35,7 @@ from ironic.conductor import task_manager
 from ironic.conductor import utils as manager_utils
 from ironic.db import api as dbapi
 from ironic.drivers.modules import deploy_utils
-from ironic.drivers.modules import image_cache
+from ironic.drivers.modules import iscsi_deploy
 from ironic.drivers.modules import pxe
 from ironic.openstack.common import context
 from ironic.openstack.common import fileutils
@@ -45,7 +45,6 @@ from ironic.tests.conductor import utils as mgr_utils
 from ironic.tests.db import base as db_base
 from ironic.tests.db import utils as db_utils
 from ironic.tests.objects import utils as obj_utils
-
 
 CONF = cfg.CONF
 
@@ -99,103 +98,6 @@ class PXEValidateParametersTestCase(base.TestCase):
         info = pxe._parse_driver_info(node)
         self.assertIsNotNone(info.get('deploy_ramdisk'))
         self.assertIsNotNone(info.get('deploy_kernel'))
-
-    def test__parse_instance_info_good(self):
-        # make sure we get back the expected things
-        node = obj_utils.create_test_node(self.context,
-                                          driver='fake_pxe',
-                                          instance_info=INST_INFO_DICT)
-        info = pxe._parse_instance_info(node)
-        self.assertIsNotNone(info.get('image_source'))
-        self.assertIsNotNone(info.get('root_gb'))
-        self.assertEqual(0, info.get('ephemeral_gb'))
-
-    def test__parse_instance_info_missing_instance_source(self):
-        # make sure error is raised when info is missing
-        info = dict(INST_INFO_DICT)
-        del info['image_source']
-        node = obj_utils.create_test_node(self.context, instance_info=info)
-        self.assertRaises(exception.MissingParameterValue,
-                pxe._parse_instance_info,
-                node)
-
-    def test__parse_instance_info_missing_root_gb(self):
-        # make sure error is raised when info is missing
-        info = dict(INST_INFO_DICT)
-        del info['root_gb']
-        node = obj_utils.create_test_node(self.context, instance_info=info)
-        self.assertRaises(exception.MissingParameterValue,
-                pxe._parse_instance_info,
-                node)
-
-    def test__parse_instance_info_invalid_root_gb(self):
-        info = dict(INST_INFO_DICT)
-        info['root_gb'] = 'foobar'
-        node = obj_utils.create_test_node(self.context, instance_info=info)
-        self.assertRaises(exception.InvalidParameterValue,
-                pxe._parse_instance_info,
-                node)
-
-    def test__parse_instance_info_valid_ephemeral_gb(self):
-        ephemeral_gb = 10
-        ephemeral_fmt = 'test-fmt'
-        info = dict(INST_INFO_DICT)
-        info['ephemeral_gb'] = ephemeral_gb
-        info['ephemeral_format'] = ephemeral_fmt
-        node = obj_utils.create_test_node(self.context, instance_info=info)
-        data = pxe._parse_instance_info(node)
-        self.assertEqual(ephemeral_gb, data.get('ephemeral_gb'))
-        self.assertEqual(ephemeral_fmt, data.get('ephemeral_format'))
-
-    def test__parse_instance_info_invalid_ephemeral_gb(self):
-        info = dict(INST_INFO_DICT)
-        info['ephemeral_gb'] = 'foobar'
-        info['ephemeral_format'] = 'exttest'
-        node = obj_utils.create_test_node(self.context, instance_info=info)
-        self.assertRaises(exception.InvalidParameterValue,
-                pxe._parse_instance_info,
-                node)
-
-    def test__parse_instance_info_valid_ephemeral_missing_format(self):
-        ephemeral_gb = 10
-        ephemeral_fmt = 'test-fmt'
-        info = dict(INST_INFO_DICT)
-        info['ephemeral_gb'] = ephemeral_gb
-        info['ephemeral_format'] = None
-        self.config(default_ephemeral_format=ephemeral_fmt, group='pxe')
-        node = obj_utils.create_test_node(self.context, instance_info=info)
-        instance_info = pxe._parse_instance_info(node)
-        self.assertEqual(ephemeral_fmt, instance_info['ephemeral_format'])
-
-    def test__parse_instance_info_valid_preserve_ephemeral_true(self):
-        info = dict(INST_INFO_DICT)
-        for _id, opt in enumerate(['true', 'TRUE', 'True', 't',
-                                   'on', 'yes', 'y', '1']):
-            info['preserve_ephemeral'] = opt
-            node = obj_utils.create_test_node(self.context, id=_id,
-                                              uuid=utils.generate_uuid(),
-                                              instance_info=info)
-            data = pxe._parse_instance_info(node)
-            self.assertTrue(data.get('preserve_ephemeral'))
-
-    def test__parse_instance_info_valid_preserve_ephemeral_false(self):
-        info = dict(INST_INFO_DICT)
-        for _id, opt in enumerate(['false', 'FALSE', 'False', 'f',
-                                   'off', 'no', 'n', '0']):
-            info['preserve_ephemeral'] = opt
-            node = obj_utils.create_test_node(self.context, id=_id,
-                                              uuid=utils.generate_uuid(),
-                                              instance_info=info)
-            data = pxe._parse_instance_info(node)
-            self.assertFalse(data.get('preserve_ephemeral'))
-
-    def test__parse_instance_info_invalid_preserve_ephemeral(self):
-        info = dict(INST_INFO_DICT)
-        info['preserve_ephemeral'] = 'foobar'
-        node = obj_utils.create_test_node(self.context, instance_info=info)
-        self.assertRaises(exception.InvalidParameterValue,
-                pxe._parse_instance_info,
-                node)
 
 
 class PXEPrivateMethodsTestCase(db_base.DbTestCase):
@@ -260,6 +162,7 @@ class PXEPrivateMethodsTestCase(db_base.DbTestCase):
         self.config(pxe_append_params='test_param', group='pxe')
         # NOTE: right '/' should be removed from url string
         self.config(api_url='http://192.168.122.184:6385/', group='conductor')
+        self.config(disk_devices='sda', group='pxe')
 
         fake_key = '0123456789ABCDEFGHIJKLMNOPQRSTUV'
         random_alnum_mock.return_value = fake_key
@@ -290,7 +193,7 @@ class PXEPrivateMethodsTestCase(db_base.DbTestCase):
         expected_options = {
             'deployment_key': '0123456789ABCDEFGHIJKLMNOPQRSTUV',
             'ari_path': ramdisk,
-            'deployment_iscsi_iqn': u'iqn-1be26c0b-03f2-4d2e-ae87-c02d7f33'
+            'iscsi_target_iqn': u'iqn-1be26c0b-03f2-4d2e-ae87-c02d7f33'
                                     u'c123',
             'deployment_ari_path': deploy_ramdisk,
             'pxe_append_params': 'test_param',
@@ -298,6 +201,7 @@ class PXEPrivateMethodsTestCase(db_base.DbTestCase):
             'deployment_id': u'1be26c0b-03f2-4d2e-ae87-c02d7f33c123',
             'ironic_api_url': 'http://192.168.122.184:6385',
             'deployment_aki_path': deploy_kernel,
+            'disk': 'sda'
         }
 
         image_info = {'deploy_kernel': ('deploy_kernel',
@@ -335,22 +239,12 @@ class PXEPrivateMethodsTestCase(db_base.DbTestCase):
     def test__build_pxe_config_options_ipxe(self):
         self._test_build_pxe_config_options(ipxe_enabled=True)
 
-    def test__get_image_dir_path(self):
-        self.assertEqual(os.path.join(CONF.pxe.images_path, self.node.uuid),
-                         pxe._get_image_dir_path(self.node.uuid))
-
-    def test__get_image_file_path(self):
-        self.assertEqual(os.path.join(CONF.pxe.images_path,
-                                      self.node.uuid,
-                                      'disk'),
-                         pxe._get_image_file_path(self.node.uuid))
-
     def test_get_token_file_path(self):
         node_uuid = self.node.uuid
         self.assertEqual('/tftpboot/token-' + node_uuid,
                          pxe._get_token_file_path(node_uuid))
 
-    @mock.patch.object(pxe, '_fetch_images')
+    @mock.patch.object(deploy_utils, 'fetch_images')
     def test__cache_tftp_images_master_path(self, mock_fetch_image):
         temp_dir = tempfile.mkdtemp()
         self.config(tftp_root=temp_dir, group='pxe')
@@ -369,29 +263,9 @@ class PXEPrivateMethodsTestCase(db_base.DbTestCase):
                                                  [('deploy_kernel',
                                                    image_path)])
 
-    @mock.patch.object(pxe, '_fetch_images')
-    def test__cache_instance_images_master_path(self, mock_fetch_image):
-        temp_dir = tempfile.mkdtemp()
-        self.config(images_path=temp_dir, group='pxe')
-        self.config(instance_master_path=os.path.join(temp_dir,
-                                                      'instance_master_path'),
-                    group='pxe')
-        fileutils.ensure_tree(CONF.pxe.instance_master_path)
-
-        (uuid, image_path) = pxe._cache_instance_image(None,
-                                                       self.node)
-        mock_fetch_image.assert_called_once_with(None,
-                                                 mock.ANY,
-                                                 [(uuid, image_path)])
-        self.assertEqual('glance://image_uuid', uuid)
-        self.assertEqual(os.path.join(temp_dir,
-                                      self.node.uuid,
-                                      'disk'),
-                         image_path)
-
     @mock.patch.object(pxe, 'TFTPImageCache', lambda: None)
     @mock.patch.object(fileutils, 'ensure_tree')
-    @mock.patch.object(pxe, '_fetch_images')
+    @mock.patch.object(deploy_utils, 'fetch_images')
     def test__cache_ramdisk_kernel(self, mock_fetch_image, mock_ensure_tree):
         self.config(ipxe_enabled=False, group='pxe')
         fake_pxe_info = {'foo': 'bar'}
@@ -404,7 +278,7 @@ class PXEPrivateMethodsTestCase(db_base.DbTestCase):
 
     @mock.patch.object(pxe, 'TFTPImageCache', lambda: None)
     @mock.patch.object(fileutils, 'ensure_tree')
-    @mock.patch.object(pxe, '_fetch_images')
+    @mock.patch.object(deploy_utils, 'fetch_images')
     def test__cache_ramdisk_kernel_ipxe(self, mock_fetch_image,
                                         mock_ensure_tree):
         self.config(ipxe_enabled=True, group='pxe')
@@ -415,33 +289,6 @@ class PXEPrivateMethodsTestCase(db_base.DbTestCase):
         mock_ensure_tree.assert_called_with(expected_path)
         mock_fetch_image.assert_called_once_with(self.context, mock.ANY,
                                                  fake_pxe_info.values())
-
-    @mock.patch.object(image_cache, 'clean_up_caches')
-    def test__fetch_images(self, mock_clean_up_caches):
-
-        mock_cache = mock.MagicMock(master_dir='master_dir')
-        pxe._fetch_images(None, mock_cache, [('uuid', 'path')])
-        mock_clean_up_caches.assert_called_once_with(None, 'master_dir',
-                                                     [('uuid', 'path')])
-        mock_cache.fetch_image.assert_called_once_with('uuid', 'path',
-                                                       ctx=None)
-
-    @mock.patch.object(image_cache, 'clean_up_caches')
-    def test__fetch_images_fail(self, mock_clean_up_caches):
-
-        exc = exception.InsufficientDiskSpace(path='a',
-                                              required=2,
-                                              actual=1)
-
-        mock_cache = mock.MagicMock(master_dir='master_dir')
-        mock_clean_up_caches.side_effect = [exc]
-        self.assertRaises(exception.InstanceDeployFailure,
-                          pxe._fetch_images,
-                          None,
-                          mock_cache,
-                          [('uuid', 'path')])
-        mock_clean_up_caches.assert_called_once_with(None, 'master_dir',
-                                                     [('uuid', 'path')])
 
 
 class PXEDriverTestCase(db_base.DbTestCase):
@@ -622,8 +469,8 @@ class PXEDriverTestCase(db_base.DbTestCase):
                                                    task.node, None)
 
     @mock.patch.object(deploy_utils, 'get_image_mb')
-    @mock.patch.object(pxe, '_get_image_file_path')
-    @mock.patch.object(pxe, '_cache_instance_image')
+    @mock.patch.object(iscsi_deploy, '_get_image_file_path')
+    @mock.patch.object(iscsi_deploy, 'cache_instance_image')
     @mock.patch.object(neutron, 'update_neutron')
     @mock.patch.object(manager_utils, 'node_power_action')
     @mock.patch.object(manager_utils, 'node_set_boot_device')
@@ -655,8 +502,8 @@ class PXEDriverTestCase(db_base.DbTestCase):
             self.assertEqual(self.context.auth_token, token)
 
     @mock.patch.object(deploy_utils, 'get_image_mb')
-    @mock.patch.object(pxe, '_get_image_file_path')
-    @mock.patch.object(pxe, '_cache_instance_image')
+    @mock.patch.object(iscsi_deploy, '_get_image_file_path')
+    @mock.patch.object(iscsi_deploy, 'cache_instance_image')
     def test_deploy_image_too_large(self, mock_cache_instance_image,
                                     mock_get_image_file_path,
                                     mock_get_image_mb):
@@ -690,15 +537,20 @@ class PXEDriverTestCase(db_base.DbTestCase):
             update_neutron_mock.assert_called_once_with(
                 task, dhcp_opts)
 
-    @mock.patch.object(pxe, 'InstanceImageCache')
-    def test_continue_deploy_good(self, mock_image_cache):
+    @mock.patch.object(deploy_utils, 'notify_deploy_complete')
+    @mock.patch.object(deploy_utils, 'switch_pxe_config')
+    @mock.patch.object(iscsi_deploy, 'InstanceImageCache')
+    def test_continue_deploy_good(self, mock_image_cache, mock_switch_config,
+            notify_mock):
         token_path = self._create_token_file()
         self.node.power_state = states.POWER_ON
         self.node.provision_state = states.DEPLOYWAIT
         self.node.save()
 
+        root_uuid = "12345678-1234-1234-1234-1234567890abcxyz"
+
         def fake_deploy(**kwargs):
-            pass
+            return root_uuid
 
         self.useFixture(fixtures.MonkeyPatch(
                 'ironic.drivers.modules.deploy_utils.deploy',
@@ -715,8 +567,11 @@ class PXEDriverTestCase(db_base.DbTestCase):
         self.assertFalse(os.path.exists(token_path))
         mock_image_cache.assert_called_once_with()
         mock_image_cache.return_value.clean_up.assert_called_once_with()
+        pxe_config_path = pxe_utils.get_pxe_config_file_path(self.node.uuid)
+        mock_switch_config.assert_called_once_with(pxe_config_path, root_uuid)
+        notify_mock.assert_called_once_with('123456')
 
-    @mock.patch.object(pxe, 'InstanceImageCache')
+    @mock.patch.object(iscsi_deploy, 'InstanceImageCache')
     def test_continue_deploy_fail(self, mock_image_cache):
         token_path = self._create_token_file()
         self.node.power_state = states.POWER_ON
@@ -742,7 +597,7 @@ class PXEDriverTestCase(db_base.DbTestCase):
         mock_image_cache.assert_called_once_with()
         mock_image_cache.return_value.clean_up.assert_called_once_with()
 
-    @mock.patch.object(pxe, 'InstanceImageCache')
+    @mock.patch.object(iscsi_deploy, 'InstanceImageCache')
     def test_continue_deploy_ramdisk_fails(self, mock_image_cache):
         token_path = self._create_token_file()
         self.node.power_state = states.POWER_ON
@@ -867,6 +722,7 @@ class PXEDriverTestCase(db_base.DbTestCase):
         assert_false_path = [config_path, deploy_kernel_path, image_path,
                              pxe_mac_path, image_dir, instance_dir,
                              token_path]
+
         for path in assert_false_path:
             self.assertFalse(os.path.exists(path))
 
@@ -882,8 +738,8 @@ class PXEDriverTestCase(db_base.DbTestCase):
 
         master_d_kernel_path = os.path.join(CONF.pxe.tftp_master_path,
                                             'deploy_kernel_uuid')
-        master_instance_path = os.path.join(CONF.pxe.instance_master_path,
-                                             'image_uuid')
+        instance_master_path = CONF.pxe.instance_master_path
+        master_instance_path = os.path.join(instance_master_path, 'image_uuid')
 
         self.assertTrue(os.path.exists(master_d_kernel_path))
         self.assertTrue(os.path.exists(master_instance_path))

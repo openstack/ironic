@@ -1057,15 +1057,12 @@
 [pxe]
 
 #
-# Options defined in ironic.drivers.modules.pxe
+# Options defined in ironic.drivers.modules.iscsi_deploy
 #
 
 # Additional append parameters for baremetal PXE boot. (string
 # value)
 #pxe_append_params=nofb nomodeset vga=normal
-
-# Template file for PXE configuration. (string value)
-#pxe_config_template=$pybasedir/drivers/modules/pxe_config.template
 
 # Default file system format for ephemeral partition, if one
 # is created. (string value)
@@ -1073,6 +1070,30 @@
 
 # Directory where images are stored on disk. (string value)
 #images_path=/var/lib/ironic/images/
+
+# Directory where master instance images are stored on disk.
+# (string value)
+#instance_master_path=/var/lib/ironic/master_images
+
+# Maximum size (in MiB) of cache for master images, including
+# those in use. (integer value)
+#image_cache_size=20480
+
+# Maximum TTL (in minutes) for old master images in cache.
+# (integer value)
+#image_cache_ttl=10080
+
+# The disk devices to scan while doing the deploy. (string
+# value)
+#disk_devices=cciss/c0d0,sda,hda,vda
+
+
+#
+# Options defined in ironic.drivers.modules.pxe
+#
+
+# Template file for PXE configuration. (string value)
+#pxe_config_template=$pybasedir/drivers/modules/pxe_config.template
 
 # IP address of Ironic compute node's tftp server. (string
 # value)
@@ -1085,20 +1106,8 @@
 # (string value)
 #tftp_master_path=/tftpboot/master_images
 
-# Directory where master instance images are stored on disk.
-# (string value)
-#instance_master_path=/var/lib/ironic/master_images
-
 # Neutron bootfile DHCP parameter. (string value)
 #pxe_bootfile_name=pxelinux.0
-
-# Maximum size (in MiB) of cache for master images, including
-# those in use. (integer value)
-#image_cache_size=20480
-
-# Maximum TTL (in minutes) for old master images in cache.
-# (integer value)
-#image_cache_ttl=10080
 
 # Ironic compute node's HTTP server URL. Example:
 # http://192.1.2.3:8080 (string value)
