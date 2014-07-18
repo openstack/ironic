@@ -99,3 +99,10 @@ class DbChassisTestCase(base.DbTestCase):
 
         self.assertRaises(exception.ChassisNotEmpty,
                           self.dbapi.destroy_chassis, ch['id'])
+
+    def test_create_chassis_already_exists(self):
+        uuid = ironic_utils.generate_uuid()
+        self._create_test_chassis(id=1, uuid=uuid)
+        self.assertRaises(exception.ChassisAlreadyExists,
+                          self._create_test_chassis,
+                          id=2, uuid=uuid)

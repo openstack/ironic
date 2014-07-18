@@ -127,3 +127,11 @@ class DbPortTestCase(base.DbTestCase):
                                  node_id=self.n.id, address=dup_address)
         self.assertRaises(exception.MACAlreadyExists,
                           self.dbapi.create_port, p2)
+
+    def test_create_port_duplicated_uuid(self):
+        self.dbapi.create_port(self.p)
+        p2 = db_utils.get_test_port(id=123, uuid=self.p['uuid'],
+                                    node_id=self.n.id,
+                                    address='aa-bb-cc-33-11-22')
+        self.assertRaises(exception.PortAlreadyExists,
+                          self.dbapi.create_port, p2)

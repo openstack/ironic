@@ -122,8 +122,25 @@ class InvalidState(Conflict):
     message = _("Invalid resource state.")
 
 
+class NodeAlreadyExists(Conflict):
+    message = _("A node with UUID %(uuid)s already exists.")
+
+
 class MACAlreadyExists(Conflict):
-    message = _("A Port with MAC address %(mac)s already exists.")
+    message = _("A port with MAC address %(mac)s already exists.")
+
+
+class ChassisAlreadyExists(Conflict):
+    message = _("A chassis with UUID %(uuid)s already exists.")
+
+
+class PortAlreadyExists(Conflict):
+    message = _("A port with UUID %(uuid)s already exists.")
+
+
+class InstanceAssociated(Conflict):
+    message = _("Instance %(instance_uuid)s is already associated with a node,"
+                " it cannot be associated with this other node %(node)s")
 
 
 class InvalidUUID(Invalid):
