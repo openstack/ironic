@@ -23,6 +23,7 @@ Any external library required by a third-party driver should be mocked here.
 Current list of mocked libraries:
     seamicroclient
     ipminative
+    proliantutils
 """
 
 import sys
@@ -74,3 +75,11 @@ if not pyghmi:
 
 if 'ironic.drivers.modules.ipminative' in sys.modules:
     reload(sys.modules['ironic.drivers.modules.ipminative'])
+
+proliantutils = importutils.try_import('proliantutils')
+if not proliantutils:
+    mock_proliant_utils = mock.MagicMock()
+    sys.modules['proliantutils'] = mock_proliant_utils
+
+if 'ironic.drivers.ilo' in sys.modules:
+    reload(sys.modules['ironic.drivers.ilo'])
