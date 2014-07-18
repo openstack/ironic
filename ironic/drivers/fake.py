@@ -53,6 +53,7 @@ class FakeIPMIToolDriver(base.BaseDriver):
         self.console = ipmitool.IPMIShellinaboxConsole()
         self.deploy = fake.FakeDeploy()
         self.vendor = ipmitool.VendorPassthru()
+        self.management = ipmitool.IPMIManagement()
 
 
 class FakePXEDriver(base.BaseDriver):

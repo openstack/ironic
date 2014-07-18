@@ -30,13 +30,23 @@ def node_set_boot_device(task, device, persistent=False):
     :param device: Boot device. Values are vendor-specific.
     :param persistent: Whether to set next-boot, or make the change
         permanent. Default: False.
+    :raises: InvalidParameterValue if the validation of the
+        ManagementInterface fails.
 
     """
     try:
-        task.driver.vendor.vendor_passthru(task,
-                                           device=device,
-                                           persistent=persistent,
-                                           method='set_boot_device')
+        # TODO(lucasagomes): Remove this conditional once all drivers
+        # are ported to use the management interface
+        if getattr(task.driver, 'management', None):
+            task.driver.management.validate(task)
+            task.driver.management.set_boot_device(task,
+                                                   device=device,
+                                                   persistent=persistent)
+        else:
+            task.driver.vendor.vendor_passthru(task,
+                                               device=device,
+                                               persistent=persistent,
+                                               method='set_boot_device')
     except exception.UnsupportedDriverExtension:
         # NOTE(deva): Some drivers, like SSH, do not support set_boot_device.
         #             This is not a fatal exception.

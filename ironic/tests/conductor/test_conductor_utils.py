@@ -56,14 +56,13 @@ class NodeSetBootDeviceTestCase(base.DbTestCase):
                                           driver_info=ipmi_info)
         task = task_manager.TaskManager(self.context, node.uuid)
 
-        with mock.patch.object(self.driver.vendor,
-                               'vendor_passthru') as driver_vpassthru:
+        with mock.patch.object(self.driver.management,
+                               'set_boot_device') as mock_sbd:
             conductor_utils.node_set_boot_device(task,
                                                  device='pxe')
-            driver_vpassthru.assert_called_once_with(task,
-                                                device='pxe',
-                                                persistent=False,
-                                                method='set_boot_device')
+            mock_sbd.assert_called_once_with(task,
+                                             device='pxe',
+                                             persistent=False)
 
 
 class NodePowerActionTestCase(base.DbTestCase):

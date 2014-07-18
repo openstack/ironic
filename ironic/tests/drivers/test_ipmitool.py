@@ -27,6 +27,7 @@ import time
 
 from oslo.config import cfg
 
+from ironic.common import boot_devices
 from ironic.common import driver_factory
 from ironic.common import exception
 from ironic.common import states
@@ -567,23 +568,6 @@ class IPMIToolDriverTestCase(db_base.DbTestCase):
                     "fake state")
 
     @mock.patch.object(ipmi, '_exec_ipmitool', autospec=True)
-    def test_set_boot_device_ok(self, mock_exec):
-        mock_exec.return_value = [None, None]
-
-        with task_manager.acquire(self.context,
-                                  self.node['uuid']) as task:
-            self.driver.vendor._set_boot_device(task, 'pxe')
-
-        mock_exec.assert_called_once_with(self.info, "chassis bootdev pxe")
-
-    def test_set_boot_device_bad_device(self):
-        with task_manager.acquire(self.context, self.node['uuid']) as task:
-            self.assertRaises(exception.InvalidParameterValue,
-                    self.driver.vendor._set_boot_device,
-                    task,
-                    'fake-device')
-
-    @mock.patch.object(ipmi, '_exec_ipmitool', autospec=True)
     def test__send_raw_bytes_ok(self, mock_exec):
         mock_exec.return_value = [None, None]
 
@@ -671,32 +655,6 @@ class IPMIToolDriverTestCase(db_base.DbTestCase):
         self.assertEqual(manager.mock_calls, expected)
 
     @mock.patch.object(ipmi, '_parse_driver_info')
-    def test_vendor_passthru_validate__set_boot_device_good(self, info_mock):
-        with task_manager.acquire(self.context, self.node['uuid']) as task:
-            self.driver.vendor.validate(task,
-                                        method='set_boot_device',
-                                        device='pxe')
-            info_mock.assert_called_once_with(task.node)
-
-    @mock.patch.object(ipmi, '_parse_driver_info')
-    def test_vendor_passthru_validate__set_boot_device_fail(self, info_mock):
-        with task_manager.acquire(self.context, self.node['uuid']) as task:
-            self.assertRaises(exception.InvalidParameterValue,
-                              self.driver.vendor.validate,
-                              task, method='set_boot_device',
-                              device='fake')
-            self.assertFalse(info_mock.called)
-
-    @mock.patch.object(ipmi, '_parse_driver_info')
-    def test_vendor_passthru_validate__set_boot_device_fail_no_device(
-                self, info_mock):
-        with task_manager.acquire(self.context, self.node['uuid']) as task:
-            self.assertRaises(exception.InvalidParameterValue,
-                              self.driver.vendor.validate,
-                              task, method='set_boot_device')
-            self.assertFalse(info_mock.called)
-
-    @mock.patch.object(ipmi, '_parse_driver_info')
     def test_vendor_passthru_validate_method_notmatch(self, info_mock):
         with task_manager.acquire(self.context, self.node['uuid']) as task:
             self.assertRaises(exception.InvalidParameterValue,
@@ -710,17 +668,8 @@ class IPMIToolDriverTestCase(db_base.DbTestCase):
         with task_manager.acquire(self.context, self.node['uuid']) as task:
             self.assertRaises(exception.InvalidParameterValue,
                               self.driver.vendor.validate,
-                              task, method='set_boot_device', device='pxe')
+                              task, method='send_raw', raw_bytes='0x00 0x01')
             info_mock.assert_called_once_with(task.node)
-
-    @mock.patch.object(ipmi.VendorPassthru, '_set_boot_device')
-    def test_vendor_passthru_call_set_boot_device(self, boot_mock):
-        with task_manager.acquire(self.context, self.node['uuid'],
-                                  shared=False) as task:
-            self.driver.vendor.vendor_passthru(task,
-                                               method='set_boot_device',
-                                               device='pxe')
-            boot_mock.assert_called_once_with(task, 'pxe', False)
 
     def test_vendor_passthru_validate__send_raw_bytes_good(self):
         with task_manager.acquire(self.context, self.node['uuid']) as task:
@@ -838,3 +787,122 @@ class IPMIToolDriverTestCase(db_base.DbTestCase):
         self.assertEqual(expected, console_info)
         mock_exec.assert_called_once_with(self.info['port'])
         self.assertTrue(mock_exec.called)
+
+    @mock.patch.object(ipmi, '_exec_ipmitool', autospec=True)
+    def test_management_interface_set_boot_device_ok(self, mock_exec):
+        mock_exec.return_value = [None, None]
+
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            self.driver.management.set_boot_device(task, boot_devices.PXE)
+
+        mock_exec.assert_called_once_with(self.info, "chassis bootdev pxe")
+
+    def test_management_interface_set_boot_device_bad_device(self):
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            self.assertRaises(exception.InvalidParameterValue,
+                    self.driver.management.set_boot_device,
+                    task, 'fake-device')
+
+    @mock.patch.object(ipmi, '_exec_ipmitool', autospec=True)
+    def test_management_interface_set_boot_device_exec_failed(self, mock_exec):
+        mock_exec.side_effect = processutils.ProcessExecutionError()
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            self.assertRaises(exception.IPMIFailure,
+                    self.driver.management.set_boot_device,
+                    task, boot_devices.PXE)
+
+    @mock.patch.object(ipmi, '_exec_ipmitool', autospec=True)
+    def test_management_interface_set_boot_device_unknown_exception(self,
+            mock_exec):
+
+        class FakeException(Exception):
+            pass
+
+        mock_exec.side_effect = FakeException('boom')
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            self.assertRaises(FakeException,
+                    self.driver.management.set_boot_device,
+                    task, boot_devices.PXE)
+
+    def test_management_interface_get_supported_boot_devices(self):
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            expected = [boot_devices.PXE, boot_devices.DISK,
+                        boot_devices.CDROM, boot_devices.BIOS,
+                        boot_devices.SAFE]
+            self.assertEqual(sorted(expected), sorted(task.driver.management.
+                             get_supported_boot_devices()))
+
+    @mock.patch.object(ipmi, '_exec_ipmitool', autospec=True)
+    def test_management_interface_get_boot_device(self, mock_exec):
+        # output, expected boot device
+        bootdevs = [('Boot Device Selector : '
+                     'Force Boot from default Hard-Drive\n',
+                     boot_devices.DISK),
+                    ('Boot Device Selector : '
+                     'Force Boot from default Hard-Drive, request Safe-Mode\n',
+                     boot_devices.SAFE),
+                    ('Boot Device Selector : '
+                     'Force Boot into BIOS Setup\n',
+                     boot_devices.BIOS),
+                    ('Boot Device Selector : '
+                     'Force PXE\n',
+                     boot_devices.PXE),
+                    ('Boot Device Selector : '
+                     'Force Boot from CD/DVD\n',
+                     boot_devices.CDROM)]
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            for out, expected_device in bootdevs:
+                mock_exec.return_value = (out, '')
+                expected_response = {'boot_device': expected_device,
+                                     'persistent': False}
+                self.assertEqual(expected_response,
+                                 task.driver.management.get_boot_device(task))
+                mock_exec.assert_called_with(mock.ANY,
+                                             "chassis bootparam get 5")
+
+    @mock.patch.object(ipmi, '_exec_ipmitool', autospec=True)
+    def test_management_interface_get_boot_device_unknown_dev(self, mock_exec):
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            mock_exec.return_value = ('Boot Device Selector : Fake\n', '')
+            response = task.driver.management.get_boot_device(task)
+            self.assertIsNone(response['boot_device'])
+            mock_exec.assert_called_with(mock.ANY, "chassis bootparam get 5")
+
+    @mock.patch.object(ipmi, '_exec_ipmitool', autospec=True)
+    def test_management_interface_get_boot_device_fail(self, mock_exec):
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            mock_exec.side_effect = processutils.ProcessExecutionError()
+            self.assertRaises(exception.IPMIFailure,
+                              task.driver.management.get_boot_device, task)
+            mock_exec.assert_called_with(mock.ANY, "chassis bootparam get 5")
+
+    @mock.patch.object(ipmi, '_exec_ipmitool', autospec=True)
+    def test_management_interface_get_boot_device_persistent(self, mock_exec):
+        outputs = [('Options apply to only next boot\n'
+                    'Boot Device Selector : Force PXE\n',
+                    False),
+                    ('Options apply to all future boots\n'
+                    'Boot Device Selector : Force PXE\n',
+                    True)]
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            for out, expected_persistent in outputs:
+                mock_exec.return_value = (out, '')
+                expected_response = {'boot_device': boot_devices.PXE,
+                                     'persistent': expected_persistent}
+                self.assertEqual(expected_response,
+                                 task.driver.management.get_boot_device(task))
+                mock_exec.assert_called_with(mock.ANY,
+                                             "chassis bootparam get 5")
+
+    def test_management_interface_validate_good(self):
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            task.driver.management.validate(task)
+
+    def test_management_interface_validate_fail(self):
+        # Missing IPMI driver_info information
+        node = obj_utils.create_test_node(self.context, id=2,
+                                          uuid=utils.generate_uuid(),
+                                          driver='fake_ipmitool')
+        with task_manager.acquire(self.context, node.uuid) as task:
+            self.assertRaises(exception.InvalidParameterValue,
+                              task.driver.management.validate, task)
