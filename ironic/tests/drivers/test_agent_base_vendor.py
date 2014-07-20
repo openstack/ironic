@@ -263,17 +263,23 @@ class TestBaseAgentVendor(db_base.DbTestCase):
 
     @mock.patch.object(deploy_utils, 'set_failed_state')
     @mock.patch.object(agent_base_vendor.BaseAgentVendor, 'deploy_is_done')
-    def test_heartbeat_deploy_done_fails(self, done_mock, failed_mock):
+    @mock.patch.object(agent_base_vendor.LOG, 'exception')
+    def test_heartbeat_deploy_done_fails(self, log_mock, done_mock,
+                                         failed_mock):
         kwargs = {
             'agent_url': 'http://127.0.0.1:9999/bar'
         }
-        done_mock.side_effect = Exception
+        done_mock.side_effect = Exception('LlamaException')
         with task_manager.acquire(
                 self.context, self.node['uuid'], shared=True) as task:
             task.node.provision_state = states.DEPLOYING
             task.node.target_provision_state = states.ACTIVE
             self.passthru.heartbeat(task, **kwargs)
             failed_mock.assert_called_once_with(task, mock.ANY)
+        log_mock.assert_called_once_with(
+            'Asynchronous exception for node '
+            '1be26c0b-03f2-4d2e-ae87-c02d7f33c123: Failed checking if deploy '
+            'is done. exception: LlamaException')
 
     def test_vendor_passthru_vendor_routes(self):
         expected = ['heartbeat']
