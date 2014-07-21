@@ -363,11 +363,7 @@ def _get_tftp_image_info(node, ctx):
     d_info = _parse_deploy_info(node)
     image_info = {}
 
-    for label in ('deploy_kernel', 'deploy_ramdisk'):
-        image_info[label] = (
-            str(d_info[label]).split('/')[-1],
-            os.path.join(CONF.tftp.tftp_root, node.uuid, label)
-        )
+    image_info.update(tftp.get_deploy_kr_info(node.uuid, d_info))
 
     i_info = node.instance_info
     labels = ('kernel', 'ramdisk')

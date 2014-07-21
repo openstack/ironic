@@ -42,6 +42,21 @@ CONF.register_opts(tftp_opts, group='tftp')
 LOG = logging.getLogger(__name__)
 
 
+def get_deploy_kr_info(node_uuid, driver_info):
+    """Get uuid and tftp path for deploy kernel and ramdisk.
+
+    Note: driver_info should be validated outside of this method.
+    """
+    image_info = {}
+    for label in ('deploy_kernel', 'deploy_ramdisk'):
+        # the values for these keys will look like "glance://image-uuid"
+        image_info[label] = (
+            str(driver_info[label]).split('/')[-1],
+            os.path.join(CONF.tftp.tftp_root, node_uuid, label)
+        )
+    return image_info
+
+
 def create_pxe_config(task, pxe_options, pxe_config_template):
     """Generate PXE configuration file and MAC symlinks for it."""
     node = task.node

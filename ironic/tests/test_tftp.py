@@ -143,3 +143,30 @@ class TestNetworkUtils(db_base.DbTestCase):
                          ]
         self.assertEqual(expected_info, tftp.dhcp_options_for_instance(
             CONF.pxe.pxe_bootfile_name))
+
+    def test_get_deploy_kr_info(self):
+        self.config(tftp_root='/tftp', group='tftp')
+        node_uuid = 'fake-node'
+        driver_info = {
+            'deploy_kernel': 'glance://deploy-kernel',
+            'deploy_ramdisk': 'glance://deploy-ramdisk',
+        }
+
+        expected = {
+            'deploy_kernel': ('deploy-kernel',
+                              '/tftp/fake-node/deploy_kernel'),
+            'deploy_ramdisk': ('deploy-ramdisk',
+                               '/tftp/fake-node/deploy_ramdisk'),
+        }
+
+        kr_info = tftp.get_deploy_kr_info(node_uuid, driver_info)
+        self.assertEqual(expected, kr_info)
+
+    def test_get_deploy_kr_info_bad_driver_info(self):
+        self.config(tftp_root='/tftp', group='tftp')
+        node_uuid = 'fake-node'
+        driver_info = {}
+        self.assertRaises(KeyError,
+                          tftp.get_deploy_kr_info,
+                          node_uuid,
+                          driver_info)
