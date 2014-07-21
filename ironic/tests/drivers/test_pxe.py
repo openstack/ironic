@@ -651,7 +651,7 @@ class PXEDriverTestCase(db_base.DbTestCase):
         mock_glance.return_value = {'properties': {}}
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
-            self.assertRaises(exception.InvalidParameterValue,
+            self.assertRaises(exception.MissingParameterValue,
                               task.driver.deploy.validate,
                               task)
 
