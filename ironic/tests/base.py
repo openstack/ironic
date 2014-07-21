@@ -53,11 +53,6 @@ test_opts = [
 
 CONF = cfg.CONF
 CONF.register_opts(test_opts)
-CONF.import_opt('connection',
-                'ironic.openstack.common.db.options',
-                group='database')
-CONF.import_opt('sqlite_db', 'ironic.openstack.common.db.options',
-                group='database')
 CONF.set_override('use_stderr', False)
 
 logging.setup('ironic')

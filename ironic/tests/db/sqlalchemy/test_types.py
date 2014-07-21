@@ -12,7 +12,7 @@
 
 """Tests for custom SQLAlchemy types via Ironic DB."""
 
-from ironic.openstack.common.db import exception as db_exc
+from oslo.db import exception as db_exc
 
 from ironic.common import utils as ironic_utils
 from ironic.db import api as dbapi

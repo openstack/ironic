@@ -46,13 +46,13 @@ import subprocess
 
 from alembic import script
 import mock
+from oslo.db.sqlalchemy import utils as db_utils
 import six.moves.urllib.parse as urlparse
 import sqlalchemy
 import sqlalchemy.exc
 
 from ironic.common import utils
 from ironic.db.sqlalchemy import migration
-from ironic.openstack.common.db.sqlalchemy import utils as db_utils
 from ironic.openstack.common import lockutils
 from ironic.openstack.common import log as logging
 from ironic.tests import base

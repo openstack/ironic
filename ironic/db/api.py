@@ -20,17 +20,13 @@ Base classes for storage engines
 import abc
 
 from oslo.config import cfg
+from oslo.db import api as db_api
 import six
 
-from ironic.openstack.common.db import api as db_api
-
-CONF = cfg.CONF
-CONF.import_opt('backend', 'ironic.openstack.common.db.options',
-                group='database')
 
 _BACKEND_MAPPING = {'sqlalchemy': 'ironic.db.sqlalchemy.api'}
-IMPL = db_api.DBAPI(CONF.database.backend, backend_mapping=_BACKEND_MAPPING,
-                    lazy=True)
+IMPL = db_api.DBAPI.from_config(cfg.CONF, backend_mapping=_BACKEND_MAPPING,
+                                lazy=True)
 
 
 def get_instance():

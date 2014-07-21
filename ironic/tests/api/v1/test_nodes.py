@@ -19,6 +19,7 @@ import datetime
 
 import mock
 from oslo.config import cfg
+from oslo.db.openstack.common import timeutils as db_timeutils
 from six.moves.urllib import parse as urlparse
 from testtools.matchers import HasLength
 
@@ -223,7 +224,7 @@ class TestListNodes(base.FunctionalTest):
                                  expect_errors=True)
         self.assertEqual(404, response.status_int)
 
-    @mock.patch.object(timeutils, 'utcnow')
+    @mock.patch.object(db_timeutils, 'utcnow')
     def test_node_states(self, mock_utcnow):
         fake_state = 'fake-state'
         fake_error = 'fake-error'
@@ -719,7 +720,7 @@ class TestPost(base.FunctionalTest):
         self.mock_gtf.return_value = 'test-topic'
         self.addCleanup(p.stop)
 
-    @mock.patch.object(timeutils, 'utcnow')
+    @mock.patch.object(db_timeutils, 'utcnow')
     def test_create_node(self, mock_utcnow):
         ndict = post_get_test_node()
         test_time = datetime.datetime(2000, 1, 1, 0, 0)
