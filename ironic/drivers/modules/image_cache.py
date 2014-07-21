@@ -24,6 +24,7 @@ import time
 
 from oslo.config import cfg
 
+from ironic.common import exception
 from ironic.common.glance_service import service_utils
 from ironic.common import images
 from ironic.common import utils
@@ -43,6 +44,11 @@ img_cache_opts = [
 
 CONF = cfg.CONF
 CONF.register_opts(img_cache_opts)
+
+# This would contain a sorted list of instances of ImageCache to be
+# considered for cleanup. This list will be kept sorted in non-increasing
+# order of priority.
+_cache_cleanup_list = []
 
 
 class ImageCache(object):
@@ -268,3 +274,59 @@ def _find_candidates_for_deletion(master_dir):
         # Also include ctime as it changes when image is linked to
         last_used_time = max(stat.st_mtime, stat.st_atime, stat.st_ctime)
         yield filename, last_used_time, stat
+
+
+def _free_disk_space_for(path):
+    """Get free disk space on a drive where path is located."""
+    stat = os.statvfs(path)
+    return stat.f_frsize * stat.f_bavail
+
+
+def clean_up_caches(ctx, directory, images_info):
+    """Explicitly cleanup caches based on their priority (if required).
+
+    This cleans up the caches to free up the amount of space required for the
+    images in images_info. The caches are cleaned up one after the other in
+    the order of their priority.  If we still cannot free up enough space
+    after trying all the caches, this method throws exception.
+
+    :param ctx: context
+    :param directory: the directory (of the cache) to be freed up.
+    :param images_info: a list of tuples of the form (image_uuid,path)
+        for which space is to be created in cache.
+    :raises: InsufficientDiskSpace exception, if we cannot free up enough space
+    after trying all the caches.
+    """
+    total_size = sum(images.download_size(ctx, uuid)
+            for (uuid, path) in images_info)
+    free = _free_disk_space_for(directory)
+
+    if total_size >= free:
+        # NOTE(dtantsur): filter caches, whose directory is on the same device
+        st_dev = os.stat(directory).st_dev
+
+        caches_to_clean = [x[1]() for x in _cache_cleanup_list]
+        caches = (c for c in caches_to_clean
+                  if os.stat(c.master_dir).st_dev == st_dev)
+        for cache_to_clean in caches:
+            # NOTE(dtantsur): multiplying by 2 is an attempt to account for
+            # images converting to raw format
+            cache_to_clean.clean_up(amount=(2 * total_size - free))
+            free = _free_disk_space_for(directory)
+            if total_size < free:
+                break
+        else:
+            raise exception.InsufficientDiskSpace(path=directory,
+                required=total_size / 1024 / 1024,
+                actual=free / 1024 / 1024,
+            )
+
+
+def cleanup(priority):
+    """Decorator method for adding cleanup priority to a class."""
+    def _add_property_to_class_func(cls):
+        _cache_cleanup_list.append((priority, cls))
+        _cache_cleanup_list.sort(reverse=True)
+        return cls
+
+    return _add_property_to_class_func

@@ -22,6 +22,7 @@ import tempfile
 import time
 
 from ironic.common import exception
+from ironic.common import image_service
 from ironic.common import images
 from ironic.common import utils
 from ironic.drivers.modules import image_cache
@@ -274,3 +275,193 @@ class TestImageCacheCleanUp(base.TestCase):
         mock_clean_size.side_effect = lambda listing, amount: amount
         self.cache.clean_up(amount=15)
         self.assertTrue(mock_log.called)
+
+    def test_cleanup_ordering(self):
+
+        class ParentCache(image_cache.ImageCache):
+            def __init__(self):
+                super(ParentCache, self).__init__('a', 1, 1, None)
+
+        @image_cache.cleanup(priority=10000)
+        class Cache1(ParentCache):
+            pass
+
+        @image_cache.cleanup(priority=20000)
+        class Cache2(ParentCache):
+            pass
+
+        @image_cache.cleanup(priority=10000)
+        class Cache3(ParentCache):
+            pass
+
+        self.assertEqual(image_cache._cache_cleanup_list[0][1], Cache2)
+
+        # The order of caches with same prioirty is not deterministic.
+        item_possibilities = [Cache1, Cache3]
+        second_item_actual = image_cache._cache_cleanup_list[1][1]
+        self.assertIn(second_item_actual, item_possibilities)
+        item_possibilities.remove(second_item_actual)
+        third_item_actual = image_cache._cache_cleanup_list[2][1]
+        self.assertEqual(item_possibilities[0], third_item_actual)
+
+
+@mock.patch.object(image_cache, '_cache_cleanup_list')
+@mock.patch.object(os, 'statvfs')
+@mock.patch.object(image_service, 'Service')
+class CleanupImageCacheTestCase(base.TestCase):
+
+    def setUp(self):
+        super(CleanupImageCacheTestCase, self).setUp()
+        self.mock_first_cache = mock.MagicMock()
+        self.mock_second_cache = mock.MagicMock()
+        self.cache_cleanup_list = [(50, self.mock_first_cache),
+                                   (20, self.mock_second_cache)]
+        self.mock_first_cache.return_value.master_dir = 'first_cache_dir'
+        self.mock_second_cache.return_value.master_dir = 'second_cache_dir'
+
+    def test_no_clean_up(self, mock_image_service, mock_statvfs,
+                         cache_cleanup_list_mock):
+        # Enough space found - no clean up
+        mock_show = mock_image_service.return_value.show
+        mock_show.return_value = dict(size=42)
+        mock_statvfs.return_value = mock.Mock(f_frsize=1, f_bavail=1024)
+
+        cache_cleanup_list_mock.__iter__.return_value = self.cache_cleanup_list
+
+        image_cache.clean_up_caches(None, 'master_dir', [('uuid', 'path')])
+
+        mock_show.assert_called_once_with('uuid')
+        mock_statvfs.assert_called_once_with('master_dir')
+        self.assertFalse(self.mock_first_cache.return_value.clean_up.called)
+        self.assertFalse(self.mock_second_cache.return_value.clean_up.called)
+
+        mock_statvfs.assert_called_once_with('master_dir')
+
+    @mock.patch.object(os, 'stat')
+    def test_one_clean_up(self, mock_stat, mock_image_service, mock_statvfs,
+                          cache_cleanup_list_mock):
+        # Not enough space, first cache clean up is enough
+        mock_stat.return_value.st_dev = 1
+        mock_show = mock_image_service.return_value.show
+        mock_show.return_value = dict(size=42)
+        mock_statvfs.side_effect = [
+            mock.Mock(f_frsize=1, f_bavail=1),
+            mock.Mock(f_frsize=1, f_bavail=1024)
+        ]
+        cache_cleanup_list_mock.__iter__.return_value = self.cache_cleanup_list
+        image_cache.clean_up_caches(None, 'master_dir', [('uuid', 'path')])
+
+        mock_show.assert_called_once_with('uuid')
+        mock_statvfs.assert_called_with('master_dir')
+        self.assertEqual(2, mock_statvfs.call_count)
+        self.mock_first_cache.return_value.clean_up.assert_called_once_with(
+            amount=(42 * 2 - 1))
+        self.assertFalse(self.mock_second_cache.return_value.clean_up.called)
+
+        # Since we are using generator expression in clean_up_caches, stat on
+        # second cache wouldn't be called if we got enough free space on
+        # cleaning up the first cache.
+        mock_stat_calls_expected = [mock.call('master_dir'),
+                                    mock.call('first_cache_dir')]
+        mock_statvfs_calls_expected = [mock.call('master_dir'),
+                                       mock.call('master_dir')]
+        self.assertEqual(mock_stat_calls_expected, mock_stat.mock_calls)
+        self.assertEqual(mock_statvfs_calls_expected, mock_statvfs.mock_calls)
+
+    @mock.patch.object(os, 'stat')
+    def test_clean_up_another_fs(self, mock_stat, mock_image_service,
+                                 mock_statvfs, cache_cleanup_list_mock):
+        # Not enough space, need to cleanup second cache
+        mock_stat.side_effect = [mock.Mock(st_dev=1),
+                                 mock.Mock(st_dev=2),
+                                 mock.Mock(st_dev=1)]
+        mock_show = mock_image_service.return_value.show
+        mock_show.return_value = dict(size=42)
+        mock_statvfs.side_effect = [
+            mock.Mock(f_frsize=1, f_bavail=1),
+            mock.Mock(f_frsize=1, f_bavail=1024)
+        ]
+
+        cache_cleanup_list_mock.__iter__.return_value = self.cache_cleanup_list
+        image_cache.clean_up_caches(None, 'master_dir', [('uuid', 'path')])
+
+        mock_show.assert_called_once_with('uuid')
+        mock_statvfs.assert_called_with('master_dir')
+        self.assertEqual(2, mock_statvfs.call_count)
+        self.mock_second_cache.return_value.clean_up.assert_called_once_with(
+            amount=(42 * 2 - 1))
+        self.assertFalse(self.mock_first_cache.return_value.clean_up.called)
+
+        # Since first cache exists on a different partition, it wouldn't be
+        # considered for cleanup.
+        mock_stat_calls_expected = [mock.call('master_dir'),
+                                    mock.call('first_cache_dir'),
+                                    mock.call('second_cache_dir')]
+        mock_statvfs_calls_expected = [mock.call('master_dir'),
+                                       mock.call('master_dir')]
+        self.assertEqual(mock_stat_calls_expected, mock_stat.mock_calls)
+        self.assertEqual(mock_statvfs_calls_expected, mock_statvfs.mock_calls)
+
+    @mock.patch.object(os, 'stat')
+    def test_both_clean_up(self, mock_stat, mock_image_service, mock_statvfs,
+                           cache_cleanup_list_mock):
+        # Not enough space, clean up of both caches required
+        mock_stat.return_value.st_dev = 1
+        mock_show = mock_image_service.return_value.show
+        mock_show.return_value = dict(size=42)
+        mock_statvfs.side_effect = [
+            mock.Mock(f_frsize=1, f_bavail=1),
+            mock.Mock(f_frsize=1, f_bavail=2),
+            mock.Mock(f_frsize=1, f_bavail=1024)
+        ]
+
+        cache_cleanup_list_mock.__iter__.return_value = self.cache_cleanup_list
+        image_cache.clean_up_caches(None, 'master_dir', [('uuid', 'path')])
+
+        mock_show.assert_called_once_with('uuid')
+        mock_statvfs.assert_called_with('master_dir')
+        self.assertEqual(3, mock_statvfs.call_count)
+        self.mock_first_cache.return_value.clean_up.assert_called_once_with(
+            amount=(42 * 2 - 1))
+        self.mock_second_cache.return_value.clean_up.assert_called_once_with(
+            amount=(42 * 2 - 2))
+
+        mock_stat_calls_expected = [mock.call('master_dir'),
+                                    mock.call('first_cache_dir'),
+                                    mock.call('second_cache_dir')]
+        mock_statvfs_calls_expected = [mock.call('master_dir'),
+                                       mock.call('master_dir'),
+                                       mock.call('master_dir')]
+        self.assertEqual(mock_stat_calls_expected, mock_stat.mock_calls)
+        self.assertEqual(mock_statvfs_calls_expected, mock_statvfs.mock_calls)
+
+    @mock.patch.object(os, 'stat')
+    def test_clean_up_fail(self, mock_stat, mock_image_service, mock_statvfs,
+                           cache_cleanup_list_mock):
+        # Not enough space even after cleaning both caches - failure
+        mock_stat.return_value.st_dev = 1
+        mock_show = mock_image_service.return_value.show
+        mock_show.return_value = dict(size=42)
+        mock_statvfs.return_value = mock.Mock(f_frsize=1, f_bavail=1)
+
+        cache_cleanup_list_mock.__iter__.return_value = self.cache_cleanup_list
+        self.assertRaises(exception.InsufficientDiskSpace,
+                          image_cache.clean_up_caches,
+                          None, 'master_dir', [('uuid', 'path')])
+
+        mock_show.assert_called_once_with('uuid')
+        mock_statvfs.assert_called_with('master_dir')
+        self.assertEqual(3, mock_statvfs.call_count)
+        self.mock_first_cache.return_value.clean_up.assert_called_once_with(
+            amount=(42 * 2 - 1))
+        self.mock_second_cache.return_value.clean_up.assert_called_once_with(
+            amount=(42 * 2 - 1))
+
+        mock_stat_calls_expected = [mock.call('master_dir'),
+                                    mock.call('first_cache_dir'),
+                                    mock.call('second_cache_dir')]
+        mock_statvfs_calls_expected = [mock.call('master_dir'),
+                                       mock.call('master_dir'),
+                                       mock.call('master_dir')]
+        self.assertEqual(mock_stat_calls_expected, mock_stat.mock_calls)
+        self.assertEqual(mock_statvfs_calls_expected, mock_statvfs.mock_calls)
