@@ -154,7 +154,7 @@ class IloPowerTestCase(base.TestCase):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
             task.driver.power.validate(task)
-            mock_drvinfo.assert_once_called_with(task.node)
+            mock_drvinfo.assert_called_once_with(task.node)
 
     @mock.patch.object(ilo_common, 'parse_driver_info')
     def test_validate_fail(self, mock_drvinfo):
