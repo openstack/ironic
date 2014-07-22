@@ -23,7 +23,6 @@ from oslo.config import cfg
 from ironic.api import acl
 from ironic.common import exception
 from ironic.common import keystone
-from ironic.common import tftp
 from ironic.drivers.modules import ssh
 from ironic.openstack.common import log as logging
 
@@ -144,9 +143,8 @@ def get_node_vif_ids(task):
     return port_vifs
 
 
-def update_neutron(task, pxe_bootfile_name):
+def update_neutron(task, options):
     """Send or update the DHCP BOOT options to Neutron for this node."""
-    options = tftp.dhcp_options_for_instance(pxe_bootfile_name)
     vifs = get_node_vif_ids(task)
     if not vifs:
         LOG.warning(_("No VIFs found for node %(node)s when attempting to "

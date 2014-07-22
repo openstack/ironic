@@ -29,8 +29,8 @@ from ironic.common.glance_service import base_image_service
 from ironic.common import image_service
 from ironic.common import keystone
 from ironic.common import neutron
+from ironic.common import pxe_utils
 from ironic.common import states
-from ironic.common import tftp
 from ironic.common import utils
 from ironic.conductor import task_manager
 from ironic.conductor import utils as manager_utils
@@ -223,22 +223,22 @@ class PXEPrivateMethodsTestCase(db_base.DbTestCase):
 
         expected_info = {'ramdisk':
                          ('instance_ramdisk_uuid',
-                          os.path.join(CONF.tftp.tftp_root,
+                          os.path.join(CONF.pxe.tftp_root,
                                        self.node.uuid,
                                        'ramdisk')),
                          'kernel':
                          ('instance_kernel_uuid',
-                          os.path.join(CONF.tftp.tftp_root,
+                          os.path.join(CONF.pxe.tftp_root,
                                        self.node.uuid,
                                        'kernel')),
                          'deploy_ramdisk':
                          ('deploy_ramdisk_uuid',
-                           os.path.join(CONF.tftp.tftp_root,
+                           os.path.join(CONF.pxe.tftp_root,
                                         self.node.uuid,
                                         'deploy_ramdisk')),
                          'deploy_kernel':
                          ('deploy_kernel_uuid',
-                          os.path.join(CONF.tftp.tftp_root,
+                          os.path.join(CONF.pxe.tftp_root,
                                        self.node.uuid,
                                        'deploy_kernel'))}
         show_mock.return_value = properties
@@ -258,7 +258,7 @@ class PXEPrivateMethodsTestCase(db_base.DbTestCase):
                          self.node.instance_info.get('ramdisk'))
 
     @mock.patch.object(utils, 'random_alnum')
-    @mock.patch.object(tftp, 'build_pxe_config')
+    @mock.patch.object(pxe_utils, '_build_pxe_config')
     def test_build_pxe_config_options(self, build_pxe_mock, random_alnum_mock):
         self.config(pxe_append_params='test_param', group='pxe')
         # NOTE: right '/' should be removed from url string
@@ -286,19 +286,19 @@ class PXEPrivateMethodsTestCase(db_base.DbTestCase):
                                    u'c02d7f33c123/deploy_kernel'
         }
         image_info = {'deploy_kernel': ('deploy_kernel',
-                                        os.path.join(CONF.tftp.tftp_root,
+                                        os.path.join(CONF.pxe.tftp_root,
                                                      self.node.uuid,
                                                      'deploy_kernel')),
                       'deploy_ramdisk': ('deploy_ramdisk',
-                                         os.path.join(CONF.tftp.tftp_root,
+                                         os.path.join(CONF.pxe.tftp_root,
                                                       self.node.uuid,
                                                       'deploy_ramdisk')),
                       'kernel': ('kernel_id',
-                                 os.path.join(CONF.tftp.tftp_root,
+                                 os.path.join(CONF.pxe.tftp_root,
                                               self.node.uuid,
                                               'kernel')),
                       'ramdisk': ('ramdisk_id',
-                                  os.path.join(CONF.tftp.tftp_root,
+                                  os.path.join(CONF.pxe.tftp_root,
                                                self.node.uuid,
                                                'ramdisk'))
                       }
@@ -332,7 +332,7 @@ class PXEPrivateMethodsTestCase(db_base.DbTestCase):
     @mock.patch.object(pxe, '_fetch_images')
     def test__cache_tftp_images_master_path(self, mock_fetch_image):
         temp_dir = tempfile.mkdtemp()
-        self.config(tftp_root=temp_dir, group='tftp')
+        self.config(tftp_root=temp_dir, group='pxe')
         self.config(tftp_master_path=os.path.join(temp_dir,
                                                   'tftp_master_path'),
                     group='pxe')
@@ -499,7 +499,7 @@ class PXEDriverTestCase(db_base.DbTestCase):
         self.context = context.get_admin_context()
         self.context.auth_token = '4562138218392831'
         self.temp_dir = tempfile.mkdtemp()
-        self.config(tftp_root=self.temp_dir, group='tftp')
+        self.config(tftp_root=self.temp_dir, group='pxe')
         self.temp_dir = tempfile.mkdtemp()
         self.config(images_path=self.temp_dir, group='pxe')
         mgr_utils.mock_the_extension_manager(driver="fake_pxe")
@@ -646,7 +646,7 @@ class PXEDriverTestCase(db_base.DbTestCase):
     @mock.patch.object(pxe, '_get_tftp_image_info')
     @mock.patch.object(pxe, '_cache_tftp_images')
     @mock.patch.object(pxe, '_build_pxe_config_options')
-    @mock.patch.object(tftp, 'create_pxe_config')
+    @mock.patch.object(pxe_utils, 'create_pxe_config')
     def test_prepare(self, mock_pxe_config,
                      mock_build_pxe, mock_cache_tftp_images,
                      mock_tftp_img_info):
@@ -675,6 +675,7 @@ class PXEDriverTestCase(db_base.DbTestCase):
         fake_img_path = '/test/path/test.img'
         mock_get_image_file_path.return_value = fake_img_path
         mock_get_image_mb.return_value = 1
+        dhcp_opts = pxe_utils.dhcp_options_for_instance()
 
         with task_manager.acquire(self.context,
             self.node.uuid, shared=False) as task:
@@ -685,7 +686,7 @@ class PXEDriverTestCase(db_base.DbTestCase):
             mock_get_image_file_path.assert_called_once_with(task.node.uuid)
             mock_get_image_mb.assert_called_once_with(fake_img_path)
             mock_update_neutron.assert_called_once_with(
-                task, CONF.pxe.pxe_bootfile_name)
+                task, dhcp_opts)
             mock_node_set_boot.assert_called_once_with(task, 'pxe',
                                                        persistent=True)
             mock_node_power_action.assert_called_once_with(task, states.REBOOT)
@@ -724,11 +725,12 @@ class PXEDriverTestCase(db_base.DbTestCase):
 
     @mock.patch.object(neutron, 'update_neutron')
     def test_take_over(self, update_neutron_mock):
+        dhcp_opts = pxe_utils.dhcp_options_for_instance()
         with task_manager.acquire(
                 self.context, self.node.uuid, shared=True) as task:
             task.driver.deploy.take_over(task)
             update_neutron_mock.assert_called_once_with(
-                task, CONF.pxe.pxe_bootfile_name)
+                task, dhcp_opts)
 
     @mock.patch.object(pxe, 'InstanceImageCache')
     def test_continue_deploy_good(self, mock_image_cache):
@@ -837,8 +839,8 @@ class PXEDriverTestCase(db_base.DbTestCase):
     @mock.patch.object(pxe, '_get_tftp_image_info')
     def clean_up_config(self, get_tftp_image_info_mock, master=None):
         temp_dir = tempfile.mkdtemp()
-        self.config(tftp_root=temp_dir, group='tftp')
-        tftp_master_dir = os.path.join(CONF.tftp.tftp_root,
+        self.config(tftp_root=temp_dir, group='pxe')
+        tftp_master_dir = os.path.join(CONF.pxe.tftp_root,
                                        'tftp_master')
         self.config(tftp_master_path=tftp_master_dir, group='pxe')
         os.makedirs(tftp_master_dir)
@@ -858,16 +860,16 @@ class PXEDriverTestCase(db_base.DbTestCase):
                     uuid='bb43dc0b-03f2-4d2e-ae87-c02d7f33cc53',
                     node_id='123')))
 
-        d_kernel_path = os.path.join(CONF.tftp.tftp_root,
+        d_kernel_path = os.path.join(CONF.pxe.tftp_root,
                                      self.node.uuid, 'deploy_kernel')
         image_info = {'deploy_kernel': ('deploy_kernel_uuid', d_kernel_path)}
 
         get_tftp_image_info_mock.return_value = image_info
 
-        pxecfg_dir = os.path.join(CONF.tftp.tftp_root, 'pxelinux.cfg')
+        pxecfg_dir = os.path.join(CONF.pxe.tftp_root, 'pxelinux.cfg')
         os.makedirs(pxecfg_dir)
 
-        instance_dir = os.path.join(CONF.tftp.tftp_root,
+        instance_dir = os.path.join(CONF.pxe.tftp_root,
                                     self.node.uuid)
         image_dir = os.path.join(CONF.pxe.images_path, self.node.uuid)
         os.makedirs(instance_dir)
@@ -889,7 +891,7 @@ class PXEDriverTestCase(db_base.DbTestCase):
             os.link(master_deploy_kernel_path, deploy_kernel_path)
             os.link(master_instance_path, image_path)
             if master == 'in_use':
-                deploy_kernel_link = os.path.join(CONF.tftp.tftp_root,
+                deploy_kernel_link = os.path.join(CONF.pxe.tftp_root,
                                                   'deploy_kernel_link')
                 image_link = os.path.join(CONF.pxe.images_path,
                                           'image_link')

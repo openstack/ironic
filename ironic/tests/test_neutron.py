@@ -21,7 +21,7 @@ from oslo.config import cfg
 
 from ironic.common import exception
 from ironic.common import neutron
-from ironic.common import tftp
+from ironic.common import pxe_utils
 from ironic.common import utils
 from ironic.conductor import task_manager
 from ironic.db import api as dbapi
@@ -224,7 +224,7 @@ class TestNeutron(base.TestCase):
     @mock.patch('ironic.common.neutron.NeutronAPI.update_port_dhcp_opts')
     @mock.patch('ironic.common.neutron.get_node_vif_ids')
     def test_update_neutron(self, mock_gnvi, mock_updo, mock_wait_neutron):
-        opts = tftp.dhcp_options_for_instance(CONF.pxe.pxe_bootfile_name)
+        opts = pxe_utils.dhcp_options_for_instance()
         mock_gnvi.return_value = {'port-uuid': 'vif-uuid'}
         with task_manager.acquire(self.context,
                                   self.node.uuid) as task:
