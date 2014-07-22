@@ -230,6 +230,7 @@ class ConductorManager(periodic_task.PeriodicTasks):
         return self.run_periodic_tasks(context, raise_on_error=raise_on_error)
 
     @messaging.expected_exceptions(exception.InvalidParameterValue,
+                                   exception.MissingParameterValue,
                                    exception.NodeLocked,
                                    exception.NodeInWrongPowerState)
     def update_node(self, context, node_obj):
@@ -273,6 +274,7 @@ class ConductorManager(periodic_task.PeriodicTasks):
             return node_obj
 
     @messaging.expected_exceptions(exception.InvalidParameterValue,
+                                   exception.MissingParameterValue,
                                    exception.NoFreeConductorWorker,
                                    exception.NodeLocked)
     def change_node_power_state(self, context, node_id, new_state):
@@ -303,7 +305,8 @@ class ConductorManager(periodic_task.PeriodicTasks):
     @messaging.expected_exceptions(exception.NoFreeConductorWorker,
                                    exception.NodeLocked,
                                    exception.InvalidParameterValue,
-                                   exception.UnsupportedDriverExtension)
+                                   exception.UnsupportedDriverExtension,
+                                   exception.MissingParameterValue)
     def vendor_passthru(self, context, node_id, driver_method, info):
         """RPC method to encapsulate vendor action.
 
@@ -316,6 +319,7 @@ class ConductorManager(periodic_task.PeriodicTasks):
         :param driver_method: the name of the vendor method.
         :param info: vendor method args.
         :raises: InvalidParameterValue if supplied info is not valid.
+        :raises: MissingParameterValue if missing supplied info
         :raises: UnsupportedDriverExtension if current driver does not have
                  vendor interface or method is unsupported.
         :raises: NoFreeConductorWorker when there is no free worker to start
@@ -340,6 +344,7 @@ class ConductorManager(periodic_task.PeriodicTasks):
                              method=driver_method, **info)
 
     @messaging.expected_exceptions(exception.InvalidParameterValue,
+                                   exception.MissingParameterValue,
                                    exception.UnsupportedDriverExtension,
                                    exception.DriverNotFound)
     def driver_vendor_passthru(self, context, driver_name, driver_method,
@@ -352,6 +357,7 @@ class ConductorManager(periodic_task.PeriodicTasks):
         :param driver_name: name of the driver on which to call the method.
         :param driver_method: name of the vendor method, for use by the driver.
         :param info: user-supplied data to pass through to the driver.
+        :raises: MissingParameterValue if missing supplied info
         :raises: InvalidParameterValue if supplied info is not valid.
         :raises: UnsupportedDriverExtension if current driver does not have
                  vendor interface, if the vendor interface does not implement
@@ -404,7 +410,9 @@ class ConductorManager(periodic_task.PeriodicTasks):
     @messaging.expected_exceptions(exception.NoFreeConductorWorker,
                                    exception.NodeLocked,
                                    exception.NodeInMaintenance,
-                                   exception.InstanceDeployFailure)
+                                   exception.InstanceDeployFailure,
+                                   exception.InvalidParameterValue,
+                                   exception.MissingParameterValue)
     def do_node_deploy(self, context, node_id, rebuild=False):
         """RPC method to initiate deployment to a node.
 
@@ -451,7 +459,8 @@ class ConductorManager(periodic_task.PeriodicTasks):
 
             try:
                 task.driver.deploy.validate(task)
-            except exception.InvalidParameterValue as e:
+            except (exception.InvalidParameterValue,
+                    exception.MissingParameterValue) as e:
                 raise exception.InstanceDeployFailure(_(
                     "RPC do_node_deploy failed to validate deploy info. "
                     "Error: %(msg)s") % {'msg': e})
@@ -503,7 +512,9 @@ class ConductorManager(periodic_task.PeriodicTasks):
 
     @messaging.expected_exceptions(exception.NoFreeConductorWorker,
                                    exception.NodeLocked,
-                                   exception.InstanceDeployFailure)
+                                   exception.InstanceDeployFailure,
+                                   exception.InvalidParameterValue,
+                                   exception.MissingParameterValue)
     def do_node_tear_down(self, context, node_id):
         """RPC method to tear down an existing node deployment.
 
@@ -532,7 +543,8 @@ class ConductorManager(periodic_task.PeriodicTasks):
 
             try:
                 task.driver.deploy.validate(task)
-            except exception.InvalidParameterValue as e:
+            except (exception.InvalidParameterValue,
+                    exception.MissingParameterValue) as e:
                 raise exception.InstanceDeployFailure(_(
                     "RPC do_node_tear_down failed to validate deploy info. "
                     "Error: %(msg)s") % {'msg': e})
@@ -614,7 +626,8 @@ class ConductorManager(periodic_task.PeriodicTasks):
         if node.power_state is None:
             try:
                 task.driver.power.validate(task)
-            except exception.InvalidParameterValue:
+            except (exception.InvalidParameterValue,
+                    exception.MissingParameterValue) as e:
                 return
 
         try:
@@ -838,7 +851,8 @@ class ConductorManager(periodic_task.PeriodicTasks):
                         iface.validate(task)
                         result = True
                     except (exception.InvalidParameterValue,
-                            exception.UnsupportedDriverExtension) as e:
+                            exception.UnsupportedDriverExtension,
+                            exception.MissingParameterValue) as e:
                         result = False
                         reason = str(e)
                 else:
@@ -927,7 +941,8 @@ class ConductorManager(periodic_task.PeriodicTasks):
     @messaging.expected_exceptions(exception.NodeLocked,
                                    exception.UnsupportedDriverExtension,
                                    exception.NodeConsoleNotEnabled,
-                                   exception.InvalidParameterValue)
+                                   exception.InvalidParameterValue,
+                                   exception.MissingParameterValue)
     def get_console_information(self, context, node_id):
         """Get connection information about the console.
 
@@ -937,6 +952,7 @@ class ConductorManager(periodic_task.PeriodicTasks):
                  support console.
         :raises: NodeConsoleNotEnabled if the console is not enabled.
         :raises: InvalidParameterValue when the wrong driver info is specified.
+        :raises: MissingParameterValue if missing supplied info.
         """
         LOG.debug('RPC get_console_information called for node %s' % node_id)
 
@@ -955,7 +971,8 @@ class ConductorManager(periodic_task.PeriodicTasks):
     @messaging.expected_exceptions(exception.NoFreeConductorWorker,
                                    exception.NodeLocked,
                                    exception.UnsupportedDriverExtension,
-                                   exception.InvalidParameterValue)
+                                   exception.InvalidParameterValue,
+                                   exception.MissingParameterValue)
     def set_console_mode(self, context, node_id, enabled):
         """Enable/Disable the console.
 
@@ -969,6 +986,7 @@ class ConductorManager(periodic_task.PeriodicTasks):
         :raises: UnsupportedDriverExtension if the node's driver doesn't
                  support console.
         :raises: InvalidParameterValue when the wrong driver info is specified.
+        :raises: MissingParameterValue if missing supplied info.
         :raises: NoFreeConductorWorker when there is no free worker to start
                  async task
         """
@@ -1135,7 +1153,8 @@ class ConductorManager(periodic_task.PeriodicTasks):
 
     @messaging.expected_exceptions(exception.NodeLocked,
                                    exception.UnsupportedDriverExtension,
-                                   exception.InvalidParameterValue)
+                                   exception.InvalidParameterValue,
+                                   exception.MissingParameterValue)
     def set_boot_device(self, context, node_id, device, persistent=False):
         """Set the boot device for a node.
 
@@ -1152,7 +1171,7 @@ class ConductorManager(periodic_task.PeriodicTasks):
                  support management.
         :raises: InvalidParameterValue when the wrong driver info is
                  specified or an invalid boot device is specified.
-
+        :raises: MissingParameterValue if missing supplied info.
         """
         LOG.debug('RPC set_boot_device called for node %(node)s with '
                   'device %(device)s', {'node': node_id, 'device': device})
@@ -1167,7 +1186,8 @@ class ConductorManager(periodic_task.PeriodicTasks):
 
     @messaging.expected_exceptions(exception.NodeLocked,
                                    exception.UnsupportedDriverExtension,
-                                   exception.InvalidParameterValue)
+                                   exception.InvalidParameterValue,
+                                   exception.MissingParameterValue)
     def get_boot_device(self, context, node_id):
         """Get the current boot device.
 
@@ -1180,6 +1200,7 @@ class ConductorManager(periodic_task.PeriodicTasks):
                  support management.
         :raises: InvalidParameterValue when the wrong driver info is
                  specified.
+        :raises: MissingParameterValue if missing supplied info.
         :returns: a dictionary containing:
 
             :boot_device: the boot device, one of
@@ -1198,7 +1219,8 @@ class ConductorManager(periodic_task.PeriodicTasks):
 
     @messaging.expected_exceptions(exception.NodeLocked,
                                    exception.UnsupportedDriverExtension,
-                                   exception.InvalidParameterValue)
+                                   exception.InvalidParameterValue,
+                                   exception.MissingParameterValue)
     def get_supported_boot_devices(self, context, node_id):
         """Get the list of supported devices.
 
@@ -1211,6 +1233,7 @@ class ConductorManager(periodic_task.PeriodicTasks):
                  support management.
         :raises: InvalidParameterValue when the wrong driver info is
                  specified.
+        :raises: MissingParameterValue if missing supplied info.
         :returns: A list with the supported boot devices defined
                   in :mod:`ironic.common.boot_devices`.
 

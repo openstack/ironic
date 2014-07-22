@@ -156,6 +156,7 @@ class ConductorAPI(object):
         :param info: info for node driver.
         :param topic: RPC topic. Defaults to self.topic.
         :raises: InvalidParameterValue if supplied info is not valid.
+        :raises: MissingParameterValue if a required parameter is missing
         :raises: UnsupportedDriverExtension if current driver does not have
                  vendor interface.
         :raises: NoFreeConductorWorker when there is no free worker to start
@@ -176,6 +177,7 @@ class ConductorAPI(object):
         :param info: data to pass through to the driver.
         :param topic: RPC topic. Defaults to self.topic.
         :raises: InvalidParameterValue for parameter errors.
+        :raises: MissingParameterValue if a required parameter is missing
         :raises: UnsupportedDriverExtension if the driver doesn't have a vendor
                  interface, or if the vendor interface does not support the
                  specified driver_method.
@@ -196,6 +198,7 @@ class ConductorAPI(object):
         :param topic: RPC topic. Defaults to self.topic.
         :raises: InstanceDeployFailure
         :raises: InvalidParameterValue if validation fails
+        :raises: MissingParameterValue if a required parameter is missing
         :raises: NoFreeConductorWorker when there is no free worker to start
                  async task.
 
@@ -215,6 +218,7 @@ class ConductorAPI(object):
         :param topic: RPC topic. Defaults to self.topic.
         :raises: InstanceDeployFailure
         :raises: InvalidParameterValue if validation fails
+        :raises: MissingParameterValue if a required parameter is missing
         :raises: NoFreeConductorWorker when there is no free worker to start
                  async task.
 
@@ -277,6 +281,7 @@ class ConductorAPI(object):
         :raises: UnsupportedDriverExtension if the node's driver doesn't
                  support console.
         :raises: InvalidParameterValue when the wrong driver info is specified.
+        :raises: MissingParameterValue if a required parameter is missing
         """
         cctxt = self.client.prepare(topic=topic or self.topic, version='1.11')
         return cctxt.call(context, 'get_console_information', node_id=node_id)
@@ -292,6 +297,7 @@ class ConductorAPI(object):
         :raises: UnsupportedDriverExtension if the node's driver doesn't
                  support console.
         :raises: InvalidParameterValue when the wrong driver info is specified.
+        :raises: MissingParameterValue if a required parameter is missing
         :raises: NoFreeConductorWorker when there is no free worker to start
                  async task.
         """
@@ -348,6 +354,7 @@ class ConductorAPI(object):
                  support management.
         :raises: InvalidParameterValue when the wrong driver info is
                  specified or an invalid boot device is specified.
+        :raises: MissingParameterValue if missing supplied info.
         """
         cctxt = self.client.prepare(topic=topic or self.topic, version='1.17')
         return cctxt.call(context, 'set_boot_device', node_id=node_id,
@@ -365,6 +372,7 @@ class ConductorAPI(object):
                  support management.
         :raises: InvalidParameterValue when the wrong driver info is
                  specified.
+        :raises: MissingParameterValue if missing supplied info.
         :returns: a dictionary containing:
 
             :boot_device: the boot device, one of
@@ -388,6 +396,7 @@ class ConductorAPI(object):
                  support management.
         :raises: InvalidParameterValue when the wrong driver info is
                  specified.
+        :raises: MissingParameterValue if missing supplied info.
         :returns: A list with the supported boot devices defined
                   in :mod:`ironic.common.boot_devices`.
 

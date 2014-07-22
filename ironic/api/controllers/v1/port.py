@@ -177,7 +177,7 @@ class PortsController(rest.RestController):
                               sort_key, sort_dir, expand=False,
                               resource_url=None):
         if self.from_nodes and not node_uuid:
-            raise exception.InvalidParameterValue(_(
+            raise exception.MissingParameterValue(_(
                   "Node id not specified."))
 
         limit = api_utils.validate_limit(limit)

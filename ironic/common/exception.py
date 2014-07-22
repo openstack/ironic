@@ -181,6 +181,10 @@ class InvalidParameterValue(Invalid):
     message = _("%(err)s")
 
 
+class MissingParameterValue(InvalidParameterValue):
+    message = _("%(err)s")
+
+
 class NotFound(IronicException):
     message = _("Resource could not be found.")
     code = 404

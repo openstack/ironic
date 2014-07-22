@@ -78,7 +78,7 @@ class PXEValidateParametersTestCase(base.TestCase):
         info = dict(DRV_INFO_DICT)
         del info['pxe_deploy_kernel']
         node = obj_utils.create_test_node(self.context, driver_info=info)
-        self.assertRaises(exception.InvalidParameterValue,
+        self.assertRaises(exception.MissingParameterValue,
                 pxe._parse_driver_info,
                 node)
 
@@ -87,7 +87,7 @@ class PXEValidateParametersTestCase(base.TestCase):
         info = dict(DRV_INFO_DICT)
         del info['pxe_deploy_ramdisk']
         node = obj_utils.create_test_node(self.context, driver_info=info)
-        self.assertRaises(exception.InvalidParameterValue,
+        self.assertRaises(exception.MissingParameterValue,
                 pxe._parse_driver_info,
                 node)
 
@@ -115,7 +115,7 @@ class PXEValidateParametersTestCase(base.TestCase):
         info = dict(INST_INFO_DICT)
         del info['image_source']
         node = obj_utils.create_test_node(self.context, instance_info=info)
-        self.assertRaises(exception.InvalidParameterValue,
+        self.assertRaises(exception.MissingParameterValue,
                 pxe._parse_instance_info,
                 node)
 
@@ -124,7 +124,7 @@ class PXEValidateParametersTestCase(base.TestCase):
         info = dict(INST_INFO_DICT)
         del info['root_gb']
         node = obj_utils.create_test_node(self.context, instance_info=info)
-        self.assertRaises(exception.InvalidParameterValue,
+        self.assertRaises(exception.MissingParameterValue,
                 pxe._parse_instance_info,
                 node)
 
@@ -590,7 +590,7 @@ class PXEDriverTestCase(db_base.DbTestCase):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
             task.node['instance_info'] = json.dumps(info)
-            self.assertRaises(exception.InvalidParameterValue,
+            self.assertRaises(exception.MissingParameterValue,
                               task.driver.deploy.validate, task)
 
     def test_validate_fail_no_port(self):

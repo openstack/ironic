@@ -69,14 +69,14 @@ _BOOT_DEVICES_MAP = {
 
 def _parse_driver_info(node):
     """Gets the bmc access info for the given node.
-    :raises: InvalidParameterValue when required ipmi credentials
+    :raises: MissingParameterValue when required ipmi credentials
               are missing.
     """
 
     info = node.driver_info or {}
     missing_info = [key for key in REQUIRED_PROPERTIES if not info.get(key)]
     if missing_info:
-        raise exception.InvalidParameterValue(_(
+        raise exception.MissingParameterValue(_(
             "The following IPMI credentials are not supplied"
             " to IPMI driver: %s."
              ) % missing_info)
@@ -229,7 +229,7 @@ class NativeIPMIPower(base.PowerInterface):
         """Check that node['driver_info'] contains IPMI credentials.
 
         :param task: a TaskManager instance containing the node to act on.
-        :raises: InvalidParameterValue when required ipmi credentials
+        :raises: MissingParameterValue when required ipmi credentials
                  are missing.
         """
         _parse_driver_info(task.node)
@@ -240,7 +240,7 @@ class NativeIPMIPower(base.PowerInterface):
         :param task: a TaskManager instance containing the node to act on.
         :returns:  power state POWER_ON, POWER_OFF or ERROR defined in
                  :class:`ironic.common.states`.
-        :raises: InvalidParameterValue when required ipmi credentials
+        :raises: MissingParameterValue when required ipmi credentials
                  are missing.
         :raises: IPMIFailure when the native ipmi call fails.
         """
@@ -254,8 +254,10 @@ class NativeIPMIPower(base.PowerInterface):
         :param task: a TaskManager instance containing the node to act on.
         :param pstate: a power state that will be set on the task's node.
         :raises: IPMIFailure when the native ipmi call fails.
+        :raises: MissingParameterValue when required ipmi credentials
+                 are missing.
         :raises: InvalidParameterValue when an invalid power state
-                 is specified or required ipmi credentials are missing.
+                 is specified
         :raises: PowerStateFailure when invalid power state is returned
                  from ipmi.
         """
@@ -277,7 +279,7 @@ class NativeIPMIPower(base.PowerInterface):
 
         :param task: a TaskManager instance containing the node to act on.
         :raises: IPMIFailure when the native ipmi call fails.
-        :raises: InvalidParameterValue when required ipmi credentials
+        :raises: MissingParameterValue when required ipmi credentials
                  are missing.
         :raises: PowerStateFailure when invalid power state is returned
                  from ipmi.
@@ -299,7 +301,7 @@ class NativeIPMIManagement(base.ManagementInterface):
         task's node contains the required credentials information.
 
         :param task: a task from TaskManager.
-        :raises: InvalidParameterValue when required ipmi credentials
+        :raises: MissingParameterValue when required ipmi credentials
                  are missing.
 
         """
@@ -326,10 +328,11 @@ class NativeIPMIManagement(base.ManagementInterface):
         :param persistent: Boolean value. True if the boot device will
                            persist to all future boots, False if not.
                            Default: False.
-        :raises: InvalidParameterValue if an invalid boot device is
-                 specified or if required ipmi parameters are missing.
+        :raises: InvalidParameterValue if an invalid boot device is specified
+                 or required ipmi credentials are missing.
+        :raises: MissingParameterValue when required ipmi credentials
+                 are missing.
         :raises: IPMIFailure on an error from pyghmi.
-
         """
         if device not in self.get_supported_boot_devices():
             raise exception.InvalidParameterValue(_(
@@ -353,7 +356,7 @@ class NativeIPMIManagement(base.ManagementInterface):
         Returns the current boot device of the node.
 
         :param task: a task from TaskManager.
-        :raises: InvalidParameterValue if required IPMI parameters
+        :raises: MissingParameterValue if required IPMI parameters
             are missing.
         :raises: IPMIFailure on an error from pyghmi.
         :returns: a dictionary containing:

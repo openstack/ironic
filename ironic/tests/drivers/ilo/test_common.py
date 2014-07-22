@@ -59,7 +59,7 @@ class IloCommonMethodsTestCase(base.TestCase):
                                           driver='ilo',
                                           driver_info=INFO_DICT)
         del node.driver_info['ilo_address']
-        self.assertRaises(exception.InvalidParameterValue,
+        self.assertRaises(exception.MissingParameterValue,
                           ilo_common.parse_driver_info, node)
 
     def test_parse_driver_info_missing_username(self):
@@ -67,7 +67,7 @@ class IloCommonMethodsTestCase(base.TestCase):
                                           driver='ilo',
                                           driver_info=INFO_DICT)
         del node.driver_info['ilo_username']
-        self.assertRaises(exception.InvalidParameterValue,
+        self.assertRaises(exception.MissingParameterValue,
                           ilo_common.parse_driver_info, node)
 
     def test_parse_driver_info_missing_password(self):
@@ -75,7 +75,7 @@ class IloCommonMethodsTestCase(base.TestCase):
                                           driver='ilo',
                                           driver_info=INFO_DICT)
         del node.driver_info['ilo_password']
-        self.assertRaises(exception.InvalidParameterValue,
+        self.assertRaises(exception.MissingParameterValue,
                           ilo_common.parse_driver_info, node)
 
     def test_parse_driver_info_invalid_timeout(self):
@@ -99,13 +99,13 @@ class IloCommonMethodsTestCase(base.TestCase):
                                           driver='ilo',
                                           driver_info=INFO_DICT)
         del node.driver_info['ilo_password']
-        node.driver_info['client_port'] = 'qwe'
+        del node.driver_info['ilo_address']
         try:
             ilo_common.parse_driver_info(node)
             self.fail("parse_driver_info did not throw exception.")
-        except exception.InvalidParameterValue as e:
+        except exception.MissingParameterValue as e:
             self.assertIn('ilo_password', str(e))
-            self.assertIn('client_port', str(e))
+            self.assertIn('ilo_address', str(e))
 
     @mock.patch.object(ilo_common, 'ilo_client')
     def test_get_ilo_object(self, ilo_client_mock):
