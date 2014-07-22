@@ -6,9 +6,9 @@
 #, fuzzy
 msgid ""
 msgstr ""
-"Project-Id-Version: ironic 2014.2.dev69.gaf4437e\n"
+"Project-Id-Version: ironic 2014.2.dev171.g60767a9\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2014-06-25 06:02+0000\n"
+"POT-Creation-Date: 2014-07-22 06:12+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -33,28 +33,5 @@ msgstr ""
 
 #: ironic/openstack/common/loopingcall.py:136
 msgid "in dynamic looping call"
-msgstr ""
-
-#: ironic/openstack/common/db/api.py:72
-msgid "DB exceeded retry limit."
-msgstr ""
-
-#: ironic/openstack/common/db/api.py:76
-msgid "DB connection error."
-msgstr ""
-
-#: ironic/openstack/common/db/sqlalchemy/session.py:459
-msgid "DB exception wrapped."
-msgstr ""
-
-#: ironic/openstack/common/db/sqlalchemy/test_migrations.py:267
-#, python-format
-msgid "Failed to migrate to version %s on engine %s"
-msgstr ""
-
-#: ironic/openstack/common/db/sqlalchemy/migration_cli/ext_migrate.py:61
-msgid ""
-"Migration number for migrate plugin must be valid integer or empty, if "
-"you want to downgrade to initial state"
 msgstr ""
 

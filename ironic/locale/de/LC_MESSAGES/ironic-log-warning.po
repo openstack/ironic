@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Ironic\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2014-07-11 06:01+0000\n"
+"POT-Creation-Date: 2014-07-22 06:12+0000\n"
 "PO-Revision-Date: 2014-07-08 00:02+0000\n"
 "Last-Translator: openstackjenkins <jenkins@openstack.org>\n"
 "Language-Team: German (http://www.transifex.com/projects/p/ironic/language/"
@@ -24,7 +24,12 @@ msgstr ""
 msgid "Task's on_error hook failed to call %(method)s on node %(node)s"
 msgstr ""
 
-#: ironic/nova/virt/ironic/driver.py:623
+#: ironic/nova/virt/ironic/driver.py:213
+#, python-format
+msgid "Ignoring malformed capability '%s'. Format should be 'key:val'."
+msgstr ""
+
+#: ironic/nova/virt/ironic/driver.py:632
 #, python-format
 msgid "Destroy called on non-existing instance %s."
 msgstr ""
@@ -34,28 +39,20 @@ msgstr ""
 msgid "task run outlasted interval by %s sec"
 msgstr "Task lief %s Sekunden länger als das Interval"
 
-#: ironic/openstack/common/db/sqlalchemy/session.py:505
-#, python-format
-msgid "Database server has gone away: %s"
-msgstr "Datenbankserver ist nicht mehr vorhanden: %s"
+#~ msgid "Database server has gone away: %s"
+#~ msgstr "Datenbankserver ist nicht mehr vorhanden: %s"
 
-#: ironic/openstack/common/db/sqlalchemy/session.py:547
-msgid "Unable to detect effective SQL mode"
-msgstr "Unfähig geltenden SQL Modus zu erkennen."
+#~ msgid "Unable to detect effective SQL mode"
+#~ msgstr "Unfähig geltenden SQL Modus zu erkennen."
 
-#: ironic/openstack/common/db/sqlalchemy/session.py:555
-#, python-format
-msgid ""
-"MySQL SQL mode is '%s', consider enabling TRADITIONAL or STRICT_ALL_TABLES"
-msgstr ""
-"MySQL SQL Modus ist '%s', erwägen Sie TRADITIONAL oder STRICT_ALL_TABLES zu "
-"aktivieren"
+#~ msgid ""
+#~ "MySQL SQL mode is '%s', consider enabling TRADITIONAL or STRICT_ALL_TABLES"
+#~ msgstr ""
+#~ "MySQL SQL Modus ist '%s', erwägen Sie TRADITIONAL oder STRICT_ALL_TABLES "
+#~ "zu aktivieren"
 
-#: ironic/openstack/common/db/sqlalchemy/session.py:657
-#, python-format
-msgid "SQL connection failed. %s attempts left."
-msgstr "SQL-Verbindung fehlgeschlagen. Noch %s weitere Versuche übrig."
+#~ msgid "SQL connection failed. %s attempts left."
+#~ msgstr "SQL-Verbindung fehlgeschlagen. Noch %s weitere Versuche übrig."
 
-#: ironic/openstack/common/db/sqlalchemy/utils.py:99
-msgid "Id not in sort_keys; is sort_keys unique?"
-msgstr "ID ist nicht in 'sort_keys' enthalten; ist 'sort_keys' eindeutig?"
+#~ msgid "Id not in sort_keys; is sort_keys unique?"
+#~ msgstr "ID ist nicht in 'sort_keys' enthalten; ist 'sort_keys' eindeutig?"

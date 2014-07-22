@@ -6,9 +6,9 @@
 #, fuzzy
 msgid ""
 msgstr ""
-"Project-Id-Version: ironic 2014.2.dev127.gd04f6ad\n"
+"Project-Id-Version: ironic 2014.2.dev171.g60767a9\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2014-07-11 06:01+0000\n"
+"POT-Creation-Date: 2014-07-22 06:12+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -22,7 +22,12 @@ msgstr ""
 msgid "Task's on_error hook failed to call %(method)s on node %(node)s"
 msgstr ""
 
-#: ironic/nova/virt/ironic/driver.py:623
+#: ironic/nova/virt/ironic/driver.py:213
+#, python-format
+msgid "Ignoring malformed capability '%s'. Format should be 'key:val'."
+msgstr ""
+
+#: ironic/nova/virt/ironic/driver.py:632
 #, python-format
 msgid "Destroy called on non-existing instance %s."
 msgstr ""
@@ -30,28 +35,5 @@ msgstr ""
 #: ironic/openstack/common/loopingcall.py:82
 #, python-format
 msgid "task run outlasted interval by %s sec"
-msgstr ""
-
-#: ironic/openstack/common/db/sqlalchemy/session.py:505
-#, python-format
-msgid "Database server has gone away: %s"
-msgstr ""
-
-#: ironic/openstack/common/db/sqlalchemy/session.py:547
-msgid "Unable to detect effective SQL mode"
-msgstr ""
-
-#: ironic/openstack/common/db/sqlalchemy/session.py:555
-#, python-format
-msgid "MySQL SQL mode is '%s', consider enabling TRADITIONAL or STRICT_ALL_TABLES"
-msgstr ""
-
-#: ironic/openstack/common/db/sqlalchemy/session.py:657
-#, python-format
-msgid "SQL connection failed. %s attempts left."
-msgstr ""
-
-#: ironic/openstack/common/db/sqlalchemy/utils.py:99
-msgid "Id not in sort_keys; is sort_keys unique?"
 msgstr ""
 
