@@ -17,9 +17,11 @@ import uuid
 import mock
 from seamicroclient import exceptions as seamicro_client_exception
 
+from ironic.common import boot_devices
 from ironic.common import driver_factory
 from ironic.common import exception
 from ironic.common import states
+from ironic.common import utils
 from ironic.conductor import task_manager
 from ironic.db import api as dbapi
 from ironic.drivers.modules import seamicro
@@ -522,17 +524,8 @@ class SeaMicroPowerDriverTestCase(db_base.DbTestCase):
         mock_get_server.return_value = self.Server(active="true")
         with task_manager.acquire(self.context, info['uuid'],
                                   shared=False) as task:
-            kwargs = {'device': boot_device, 'method': 'set_boot_device'}
-            task.driver.vendor.vendor_passthru(task, **kwargs)
+            task.driver.management.set_boot_device(task, boot_device)
         mock_get_server.assert_called_once_with(info)
-
-    def test_set_boot_device_no_input(self):
-        info = seamicro._parse_driver_info(self.node)
-        with task_manager.acquire(self.context, info['uuid'],
-                                  shared=False) as task:
-            self.assertRaises(exception.InvalidParameterValue,
-                              task.driver.vendor.vendor_passthru, task,
-                              **{'method': 'set_boot_device'})
 
     @mock.patch.object(seamicro, '_get_server')
     def test_set_boot_device_invalid_device_fail(self, mock_get_server):
@@ -541,11 +534,9 @@ class SeaMicroPowerDriverTestCase(db_base.DbTestCase):
         mock_get_server.return_value = self.Server(active="true")
         with task_manager.acquire(self.context, info['uuid'],
                                   shared=False) as task:
-            kwargs = {'device': boot_device, 'method': 'set_boot_device'}
             self.assertRaises(exception.InvalidParameterValue,
-                              task.driver.vendor.vendor_passthru,
-                              task,
-                              **kwargs)
+                              task.driver.management.set_boot_device,
+                              task, boot_device)
 
     @mock.patch.object(seamicro, '_get_server')
     def test_set_boot_device_fail(self, mock_get_server):
@@ -559,10 +550,33 @@ class SeaMicroPowerDriverTestCase(db_base.DbTestCase):
         mock_get_server.return_value = server
         with task_manager.acquire(self.context, info['uuid'],
                                   shared=False) as task:
-            kwargs = {'device': boot_device, 'method': 'set_boot_device'}
             self.assertRaises(exception.IronicException,
-                              task.driver.vendor.vendor_passthru,
-                              task,
-                              **kwargs)
+                              task.driver.management.set_boot_device,
+                              task, boot_device)
 
         mock_get_server.assert_called_once_with(info)
+
+    def test_management_interface_get_supported_boot_devices(self):
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            expected = [boot_devices.PXE, boot_devices.DISK]
+            self.assertEqual(sorted(expected), sorted(task.driver.management.
+                             get_supported_boot_devices()))
+
+    def test_management_interface_get_boot_device(self):
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            expected = {'boot_device': None, 'persistent': None}
+            self.assertEqual(expected,
+                             task.driver.management.get_boot_device(task))
+
+    def test_management_interface_validate_good(self):
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            task.driver.management.validate(task)
+
+    def test_management_interface_validate_fail(self):
+        # Missing SEAMICRO driver_info information
+        node = obj_utils.create_test_node(self.context, id=2,
+                                          uuid=utils.generate_uuid(),
+                                          driver='fake_seamicro')
+        with task_manager.acquire(self.context, node.uuid) as task:
+            self.assertRaises(exception.InvalidParameterValue,
+                              task.driver.management.validate, task)
