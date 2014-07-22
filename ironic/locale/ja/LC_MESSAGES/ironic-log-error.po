@@ -7,9 +7,9 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Ironic\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2014-06-25 06:02+0000\n"
-"PO-Revision-Date: 2014-05-29 07:46+0000\n"
-"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"POT-Creation-Date: 2014-07-22 06:12+0000\n"
+"PO-Revision-Date: 2014-07-21 23:13+0000\n"
+"Last-Translator: openstackjenkins <jenkins@openstack.org>\n"
 "Language-Team: Japanese (http://www.transifex.com/projects/p/ironic/language/"
 "ja/)\n"
 "Language: ja\n"
@@ -36,26 +36,3 @@ msgstr "一定期間の呼び出しループ"
 #: ironic/openstack/common/loopingcall.py:136
 msgid "in dynamic looping call"
 msgstr "動的呼び出しループ"
-
-#: ironic/openstack/common/db/api.py:72
-msgid "DB exceeded retry limit."
-msgstr "DBへのリトライが上限に達しました。"
-
-#: ironic/openstack/common/db/api.py:76
-msgid "DB connection error."
-msgstr "DB接続エラーが発生しました。"
-
-#: ironic/openstack/common/db/sqlalchemy/session.py:459
-msgid "DB exception wrapped."
-msgstr "DB 例外がラップされました。"
-
-#: ironic/openstack/common/db/sqlalchemy/test_migrations.py:267
-#, python-format
-msgid "Failed to migrate to version %s on engine %s"
-msgstr "バージョン%sをエンジン%sへの移行が失敗しました。"
-
-#: ironic/openstack/common/db/sqlalchemy/migration_cli/ext_migrate.py:61
-msgid ""
-"Migration number for migrate plugin must be valid integer or empty, if you "
-"want to downgrade to initial state"
-msgstr ""
