@@ -23,18 +23,19 @@ class ExactDiskFilter(filters.BaseHostFilter):
     """Exact Disk Filter."""
 
     def host_passes(self, host_state, filter_properties):
-        """Filter based on disk usage."""
+        """Return True if host has the exact amount of disk available."""
         instance_type = filter_properties.get('instance_type')
         requested_disk = (1024 * (instance_type['root_gb'] +
                                   instance_type['ephemeral_gb']) +
                           instance_type['swap'])
 
         if requested_disk != host_state.free_disk_mb:
-            LOG.debug("%(host_state)s does not have %(requested_disk)s MB "
-                      "usable disk, it only has %(usable_disk_mb)s MB usable "
-                      "disk.", {'host_state': host_state,
-                                'requested_disk': requested_disk,
-                                'usable_disk_mb': host_state.free_disk_mb})
+            LOG.debug("%(host_state)s does not have exactly "
+                      "%(requested_disk)s MB usable disk, it "
+                      "has %(usable_disk_mb)s.",
+                      {'host_state': host_state,
+                       'requested_disk': requested_disk,
+                       'usable_disk_mb': host_state.free_disk_mb})
             return False
 
         return True

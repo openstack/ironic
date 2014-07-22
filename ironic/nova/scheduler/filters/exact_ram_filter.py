@@ -20,14 +20,16 @@ LOG = logging.getLogger(__name__)
 
 
 class ExactRamFilter(filters.BaseHostFilter):
+    """Exact RAM Filter."""
 
     def host_passes(self, host_state, filter_properties):
-        """Only return hosts with sufficient available RAM."""
+        """Return True if host has the exact amount of RAM available."""
         instance_type = filter_properties.get('instance_type')
         requested_ram = instance_type['memory_mb']
         if requested_ram != host_state.free_ram_mb:
-            LOG.debug("%(host_state)s does not have %(requested_ram)s MB "
-                      "usable ram, it only has %(usable_ram)s MB usable ram.",
+            LOG.debug("%(host_state)s does not have exactly "
+                      "%(requested_ram)s MB usable RAM, it has "
+                      "%(usable_ram)s.",
                       {'host_state': host_state,
                        'requested_ram': requested_ram,
                        'usable_ram': host_state.free_ram_mb})
