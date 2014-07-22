@@ -19,8 +19,6 @@ Manage hosts in the current zone.
 """
 
 import ironic.nova.scheduler.base_baremetal_host_manager as bbhm
-
-from nova.openstack.common import jsonutils
 from nova.scheduler import host_manager
 
 
@@ -36,7 +34,7 @@ class BaremetalHostManager(bbhm.BaseBaremetalHostManager):
     """Bare-Metal HostManager class."""
 
     def host_state_cls(self, host, node, **kwargs):
-        """Factory function/property to create a new HostState"""
+        """Factory function/property to create a new HostState."""
         compute = kwargs.get('compute')
         if compute and compute.get('cpu_info') == 'baremetal cpu':
             return BaremetalNodeState(host, node, **kwargs)

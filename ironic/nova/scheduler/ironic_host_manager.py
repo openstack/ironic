@@ -23,11 +23,9 @@ subdivided into multiple instances.
 """
 from oslo.config import cfg
 
-import ironic.nova.scheduler.base_baremetal_host_manager as bbhm
-
-from nova.openstack.common import jsonutils
 from nova.openstack.common import log as logging
 from nova.openstack.common import timeutils
+from ironic.nova.scheduler import base_baremetal_host_manager as bbhm
 from nova.scheduler import host_manager
 
 host_manager_opts = [
@@ -87,7 +85,7 @@ class IronicHostManager(bbhm.BaseBaremetalHostManager):
             CONF.scheduler_default_filters = baremetal_default
 
     def host_state_cls(self, host, node, **kwargs):
-        """Factory function/property to create a new HostState"""
+        """Factory function/property to create a new HostState."""
         compute = kwargs.get('compute')
         if compute and compute.get('cpu_info') == 'baremetal cpu':
             return IronicNodeState(host, node, **kwargs)
