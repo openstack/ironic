@@ -31,13 +31,16 @@ DRIVER.
 
 import contextlib
 import os
+import re
 import stat
 import tempfile
 import time
 
 from oslo.config import cfg
 
+from ironic.common import boot_devices
 from ironic.common import exception
+from ironic.common import i18n
 from ironic.common import states
 from ironic.common import utils
 from ironic.conductor import task_manager
@@ -49,6 +52,8 @@ from ironic.openstack.common import loopingcall
 from ironic.openstack.common import processutils
 
 
+_LW = i18n._LW
+
 CONF = cfg.CONF
 CONF.import_opt('retry_timeout',
                 'ironic.drivers.modules.ipminative',
@@ -59,7 +64,6 @@ CONF.import_opt('min_command_interval',
 
 LOG = logging.getLogger(__name__)
 
-VALID_BOOT_DEVICES = ['pxe', 'disk', 'safe', 'cdrom', 'bios']
 VALID_PRIV_LEVELS = ['ADMINISTRATOR', 'CALLBACK', 'OPERATOR', 'USER']
 LAST_CMD_TIME = {}
 TIMING_SUPPORT = None
@@ -432,22 +436,49 @@ class IPMIPower(base.PowerInterface):
             raise exception.PowerStateFailure(pstate=states.POWER_ON)
 
 
-class VendorPassthru(base.VendorInterface):
+class IPMIManagement(base.ManagementInterface):
+
+    def validate(self, task):
+        """Check that 'driver_info' contains IPMI credentials.
+
+        Validates whether the 'driver_info' property of the supplied
+        task's node contains the required credentials information.
+
+        :param task: a task from TaskManager.
+        :raises: InvalidParameterValue if required IPMI parameters
+            are missing.
+
+        """
+        _parse_driver_info(task.node)
+
+    def get_supported_boot_devices(self):
+        """Get a list of the supported boot devices.
+
+        :returns: A list with the supported boot devices defined
+                  in :mod:`ironic.common.boot_devices`.
+
+        """
+        return [boot_devices.PXE, boot_devices.DISK, boot_devices.CDROM,
+                boot_devices.BIOS, boot_devices.SAFE]
 
     @task_manager.require_exclusive_lock
-    def _set_boot_device(self, task, device, persistent=False):
-        """Set the boot device for a node.
+    def set_boot_device(self, task, device, persistent=False):
+        """Set the boot device for the task's node.
 
-        :param task: a TaskManager instance.
-        :param device: Boot device. One of [pxe, disk, cdrom, safe, bios].
-        :param persistent: Whether to set next-boot, or make the change
-            permanent. Default: False.
-        :raises: InvalidParameterValue if an invalid boot device is specified
-            or if required ipmi parameters are missing.
+        Set the boot device to use on next reboot of the node.
+
+        :param task: a task from TaskManager.
+        :param device: the boot device, one of
+                       :mod:`ironic.common.boot_devices`.
+        :param persistent: Boolean value. True if the boot device will
+                           persist to all future boots, False if not.
+                           Default: False.
+        :raises: InvalidParameterValue if an invalid boot device is
+                 specified or if required ipmi parameters are missing.
         :raises: IPMIFailure on an error from ipmitool.
 
         """
-        if device not in VALID_BOOT_DEVICES:
+        if device not in self.get_supported_boot_devices():
             raise exception.InvalidParameterValue(_(
                 "Invalid boot device %s specified.") % device)
         cmd = "chassis bootdev %s" % device
@@ -456,9 +487,64 @@ class VendorPassthru(base.VendorInterface):
         driver_info = _parse_driver_info(task.node)
         try:
             out, err = _exec_ipmitool(driver_info, cmd)
-            # TODO(deva): validate (out, err) and add unit test for failure
-        except Exception:
+        except processutils.ProcessExecutionError as e:
+            LOG.warning(_LW('IPMI set boot device failed for node %(node)s '
+                            'when executing "ipmitool %(cmd)s". '
+                            'Error: %(error)s'),
+                        {'node': driver_info['uuid'], 'cmd': cmd,
+                         'error': str(e)})
             raise exception.IPMIFailure(cmd=cmd)
+
+    def get_boot_device(self, task):
+        """Get the current boot device for the task's node.
+
+        Returns the current boot device of the node.
+
+        :param task: a task from TaskManager.
+        :raises: InvalidParameterValue if required IPMI parameters
+            are missing.
+        :raises: IPMIFailure on an error from ipmitool.
+        :returns: a dictionary containing:
+
+            :boot_device: the boot device, one of
+                :mod:`ironic.common.boot_devices` or None if it is unknown.
+            :persistent: Whether the boot device will persist to all
+                future boots or not, None if it is unknown.
+
+        """
+        cmd = "chassis bootparam get 5"
+        driver_info = _parse_driver_info(task.node)
+        response = {'boot_device': None, 'persistent': None}
+        try:
+            out, err = _exec_ipmitool(driver_info, cmd)
+        except processutils.ProcessExecutionError as e:
+            LOG.warning(_LW('IPMI get boot device failed for node %(node)s '
+                            'when executing "ipmitool %(cmd)s". '
+                            'Error: %(error)s'),
+                        {'node': driver_info['uuid'], 'cmd': cmd,
+                         'error': str(e)})
+            raise exception.IPMIFailure(cmd=cmd)
+
+        re_obj = re.search('Boot Device Selector : (.+)?\n', out)
+        if re_obj:
+            boot_selector = re_obj.groups('')[0]
+            if 'PXE' in boot_selector:
+                response['boot_device'] = boot_devices.PXE
+            elif 'Hard-Drive' in boot_selector:
+                if 'Safe-Mode' in boot_selector:
+                    response['boot_device'] = boot_devices.SAFE
+                else:
+                    response['boot_device'] = boot_devices.DISK
+            elif 'BIOS' in boot_selector:
+                response['boot_device'] = boot_devices.BIOS
+            elif 'CD/DVD' in boot_selector:
+                response['boot_device'] = boot_devices.CDROM
+
+        response['persistent'] = 'Options apply to all future boots' in out
+        return response
+
+
+class VendorPassthru(base.VendorInterface):
 
     @task_manager.require_exclusive_lock
     def _send_raw_bytes(self, task, raw_bytes):
@@ -522,24 +608,17 @@ class VendorPassthru(base.VendorInterface):
         If invalid, raises an exception; otherwise returns None.
 
         Valid methods:
-          * set_boot_device
           * send_raw
           * bmc_reset
 
         :param task: a task from TaskManager.
         :param kwargs: info for action.
         :raises: InvalidParameterValue if **kwargs does not contain 'method',
-                 'method' is not supported, an invalid boot device is specified
-                 for 'set_boot_device', or a byte string is not given for
+                 'method' is not supported or a byte string is not given for
                  'raw_bytes', or required IPMI credentials are missing.
         """
         method = kwargs['method']
-        if method == 'set_boot_device':
-            device = kwargs.get('device')
-            if device not in VALID_BOOT_DEVICES:
-                raise exception.InvalidParameterValue(_(
-                    "Invalid boot device %s specified.") % device)
-        elif method == 'send_raw':
+        if method == 'send_raw':
             if not kwargs.get('raw_bytes'):
                 raise exception.InvalidParameterValue(_(
                     'Parameter raw_bytes (string of bytes) was not '
@@ -557,25 +636,19 @@ class VendorPassthru(base.VendorInterface):
         """Receive requests for vendor-specific actions.
 
         Valid methods:
-          * set_boot_device
           * send_raw
           * bmc_reset
 
         :param task: a task from TaskManager.
         :param kwargs: info for action.
 
-        :raises: InvalidParameterValue if an invalid boot device is specified
-                 for set_boot_device, or required IPMI credentials are missing.
+        :raises: InvalidParameterValue if required IPMI credentials
+            are missing.
         :raises: IPMIFailure if ipmitool fails for any method.
         """
 
         method = kwargs['method']
-        if method == 'set_boot_device':
-            return self._set_boot_device(
-                        task,
-                        kwargs.get('device'),
-                        kwargs.get('persistent', False))
-        elif method == 'send_raw':
+        if method == 'send_raw':
             return self._send_raw_bytes(task,
                                         kwargs.get('raw_bytes'))
         elif method == 'bmc_reset':
