@@ -264,10 +264,18 @@ class Connection(object):
         """
 
     @abc.abstractmethod
-    def get_chassis(self, chassis_id):
+    def get_chassis_by_id(self, chassis_id):
         """Return a chassis representation.
 
-        :param chassis_id: The id or the UUID of a chassis.
+        :param chassis_id: The id of a chassis.
+        :returns: A chassis.
+        """
+
+    @abc.abstractmethod
+    def get_chassis_by_uuid(self, chassis_uuid):
+        """Return a chassis representation.
+
+        :param chassis_uuid: The uuid of a chassis.
         :returns: A chassis.
         """
 

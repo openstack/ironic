@@ -52,19 +52,19 @@ class DbChassisTestCase(base.DbTestCase):
 
     def test_get_chassis_by_id(self):
         ch = self._create_test_chassis()
-        chassis = self.dbapi.get_chassis(ch['id'])
+        chassis = self.dbapi.get_chassis_by_id(ch['id'])
 
         self.assertEqual(ch['uuid'], chassis.uuid)
 
     def test_get_chassis_by_uuid(self):
         ch = self._create_test_chassis()
-        chassis = self.dbapi.get_chassis(ch['uuid'])
+        chassis = self.dbapi.get_chassis_by_uuid(ch['uuid'])
 
         self.assertEqual(ch['id'], chassis.id)
 
     def test_get_chassis_that_does_not_exist(self):
         self.assertRaises(exception.ChassisNotFound,
-                          self.dbapi.get_chassis, 666)
+                          self.dbapi.get_chassis_by_id, 666)
 
     def test_update_chassis(self):
         ch = self._create_test_chassis()
@@ -87,7 +87,7 @@ class DbChassisTestCase(base.DbTestCase):
         self.dbapi.destroy_chassis(ch['id'])
 
         self.assertRaises(exception.ChassisNotFound,
-                          self.dbapi.get_chassis, ch['id'])
+                          self.dbapi.get_chassis_by_id, ch['id'])
 
     def test_destroy_chassis_that_does_not_exist(self):
         self.assertRaises(exception.ChassisNotFound,
