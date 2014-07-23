@@ -1884,6 +1884,23 @@ class ManagerCheckDeployTimeoutsTestCase(_CommonMixIn, tests_base.TestCase):
         self.assertEqual([spawn_after_call] * 2,
                          self.task.spawn_after.call_args_list)
 
+    @mock.patch.object(dbapi.IMPL, 'update_port')
+    @mock.patch('ironic.common.neutron.NeutronAPI.update_port_address')
+    def test_update_port_duplicate_mac(self, get_nodeinfo_mock, mapped_mock,
+            acquire_mock, mac_update_mock, mock_up):
+        ndict = utils.get_test_node(driver='fake')
+        self.dbapi.create_node(ndict)
+        pdict = utils.get_test_port()
+        port = self.dbapi.create_port(pdict)
+        mock_up.side_effect = exception.MACAlreadyExists(mac=port.address)
+        exc = self.assertRaises(messaging.rpc.ExpectedException,
+                                self.service.update_port,
+                                self.context, port)
+        # Compare true exception hidden by @messaging.expected_exceptions
+        self.assertEqual(exception.MACAlreadyExists, exc.exc_info[0])
+        # ensure Neutron wasn't updated
+        self.assertFalse(mac_update_mock.called)
+
 
 class ManagerTestProperties(tests_db_base.DbTestCase):
 
