@@ -114,6 +114,12 @@ conductor_opts = [
         cfg.IntOpt('workers_pool_size',
                    default=100,
                    help='The size of the workers greenthread pool.'),
+        cfg.IntOpt('node_locked_retry_attempts',
+                   default=3,
+                   help='Number of attempts to grab a node lock.'),
+        cfg.IntOpt('node_locked_retry_interval',
+                   default=1,
+                   help='Seconds to sleep between node lock attempts.'),
 ]
 
 CONF = cfg.CONF

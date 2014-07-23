@@ -115,9 +115,30 @@ class TaskManagerTestCase(tests_base.TestCase):
                          release_mock.call_args_list)
         self.assertFalse(node_get_mock.called)
 
+    def test_excl_lock_exception_then_lock(self, get_ports_mock,
+                                           get_driver_mock, reserve_mock,
+                                           release_mock, node_get_mock):
+        retry_attempts = 3
+        self.config(node_locked_retry_attempts=retry_attempts,
+                    group='conductor')
+
+        # Fail on the first lock attempt, succeed on the second.
+        reserve_mock.side_effect = [exception.NodeLocked(node='foo',
+                                                         host='foo'),
+                                    self.node]
+
+        with task_manager.TaskManager(self.context, 'fake-node-id') as task:
+            self.assertFalse(task.shared)
+
+        reserve_mock.assert_called(self.host, 'fake-node-id')
+        self.assertEqual(2, reserve_mock.call_count)
+
     def test_excl_lock_reserve_exception(self, get_ports_mock,
                                          get_driver_mock, reserve_mock,
                                          release_mock, node_get_mock):
+        retry_attempts = 3
+        self.config(node_locked_retry_attempts=retry_attempts,
+                    group='conductor')
         reserve_mock.side_effect = exception.NodeLocked(node='foo',
                                                         host='foo')
 
@@ -126,7 +147,8 @@ class TaskManagerTestCase(tests_base.TestCase):
                           self.context,
                           'fake-node-id')
 
-        reserve_mock.assert_called_once_with(self.host, 'fake-node-id')
+        reserve_mock.assert_called_with(self.host, 'fake-node-id')
+        self.assertEqual(retry_attempts, reserve_mock.call_count)
         self.assertFalse(get_ports_mock.called)
         self.assertFalse(get_driver_mock.called)
         self.assertFalse(release_mock.called)

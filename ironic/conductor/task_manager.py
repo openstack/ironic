@@ -85,6 +85,8 @@ code when the spawned task generates an exception:
 
 """
 
+import retrying
+
 from oslo.config import cfg
 
 from ironic.openstack.common import excutils
@@ -168,9 +170,21 @@ class TaskManager(object):
         self.node = None
         self.shared = shared
 
+        # NodeLocked exceptions can be annoying. Let's try to alleviate
+        # some of that pain by retrying our lock attempts. The retrying
+        # module expects a wait_fixed value in milliseconds.
+        @retrying.retry(
+            retry_on_exception=lambda e: isinstance(e, exception.NodeLocked),
+            stop_max_attempt_number=CONF.conductor.node_locked_retry_attempts,
+            wait_fixed=CONF.conductor.node_locked_retry_interval * 1000)
+        def reserve_node():
+            LOG.debug("Attempting to reserve node %(node)s",
+                      {'node': node_id})
+            self.node = self._dbapi.reserve_node(CONF.host, node_id)
+
         try:
             if not self.shared:
-                self.node = self._dbapi.reserve_node(CONF.host, node_id)
+                reserve_node()
             else:
                 self.node = objects.Node.get(context, node_id)
             self.ports = self._dbapi.get_ports_by_node_id(self.node.id)
