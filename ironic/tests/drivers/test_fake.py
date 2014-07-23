@@ -53,7 +53,13 @@ class FakeDriverTestCase(base.TestCase):
                                                   driver_base.ConsoleInterface)
         self.assertIsNone(self.driver.rescue)
 
+    def test_get_properties(self):
+        expected = ['A1', 'A2', 'B1', 'B2']
+        properties = self.driver.get_properties()
+        self.assertEqual(sorted(expected), sorted(properties.keys()))
+
     def test_power_interface(self):
+        self.assertEqual({}, self.driver.power.get_properties())
         self.driver.power.validate(self.task)
         self.driver.power.get_power_state(self.task)
         self.assertRaises(exception.InvalidParameterValue,
@@ -63,6 +69,7 @@ class FakeDriverTestCase(base.TestCase):
         self.driver.power.reboot(self.task)
 
     def test_deploy_interface(self):
+        self.assertEqual({}, self.driver.deploy.get_properties())
         self.driver.deploy.validate(None)
 
         self.driver.deploy.prepare(None)
@@ -74,10 +81,14 @@ class FakeDriverTestCase(base.TestCase):
         self.driver.deploy.tear_down(None)
 
     def test_console_interface(self):
+        self.assertEqual({}, self.driver.console.get_properties())
         self.driver.console.validate(self.task)
         self.driver.console.start_console(self.task)
         self.driver.console.stop_console(self.task)
         self.driver.console.get_console(self.task)
+
+    def test_management_interface_get_properties(self):
+        self.assertEqual({}, self.driver.management.get_properties())
 
     def test_management_interface_validate(self):
         self.driver.management.validate(self.task)

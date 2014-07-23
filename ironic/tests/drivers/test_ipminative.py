@@ -143,6 +143,10 @@ class IPMINativeDriverTestCase(db_base.DbTestCase):
         self.dbapi = db_api.get_instance()
         self.info = ipminative._parse_driver_info(self.node)
 
+    def test_get_properties(self):
+        expected = ipminative.COMMON_PROPERTIES
+        self.assertEqual(expected, self.driver.get_properties())
+
     @mock.patch('pyghmi.ipmi.command.Command')
     def test_get_power_state(self, ipmi_mock):
         # Getting the mocked command.

@@ -50,6 +50,11 @@ CONF.register_opts(opts, group='ipmi')
 
 LOG = logging.getLogger(__name__)
 
+REQUIRED_PROPERTIES = {'ipmi_address': _("IP of the node's BMC. Required."),
+                       'ipmi_password': _("IPMI password. Required."),
+                       'ipmi_username': _("IPMI username. Required.")}
+COMMON_PROPERTIES = REQUIRED_PROPERTIES
+
 
 def _parse_driver_info(node):
     """Gets the bmc access info for the given node.
@@ -58,18 +63,17 @@ def _parse_driver_info(node):
     """
 
     info = node.driver_info or {}
-    bmc_info = {}
-    bmc_info['address'] = info.get('ipmi_address')
-    bmc_info['username'] = info.get('ipmi_username')
-    bmc_info['password'] = info.get('ipmi_password')
-
-    # address, username and password must be present
-    missing_info = [key for key in bmc_info if not bmc_info[key]]
+    missing_info = [key for key in REQUIRED_PROPERTIES if not info.get(key)]
     if missing_info:
         raise exception.InvalidParameterValue(_(
             "The following IPMI credentials are not supplied"
             " to IPMI driver: %s."
              ) % missing_info)
+
+    bmc_info = {}
+    bmc_info['address'] = info.get('ipmi_address')
+    bmc_info['username'] = info.get('ipmi_username')
+    bmc_info['password'] = info.get('ipmi_password')
 
     # get additional info
     bmc_info['uuid'] = node.uuid
@@ -207,6 +211,9 @@ def _power_status(driver_info):
 class NativeIPMIPower(base.PowerInterface):
     """The power driver using native python-ipmi library."""
 
+    def get_properties(self):
+        return COMMON_PROPERTIES
+
     def validate(self, task):
         """Check that node['driver_info'] contains IPMI credentials.
 
@@ -298,6 +305,9 @@ class VendorPassthru(base.VendorInterface):
                           "with the following error: %(error)s")
                           % {'node_id': driver_info['uuid'], 'error': str(e)})
             raise exception.IPMIFailure(cmd=str(e))
+
+    def get_properties(self):
+        return COMMON_PROPERTIES
 
     def validate(self, task, **kwargs):
         """Validate vendor-specific actions.

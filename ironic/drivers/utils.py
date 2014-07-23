@@ -46,6 +46,18 @@ class MixinVendorInterface(base.VendorInterface):
         method = kwargs.get('method')
         return self.mapping.get(method) or _raise_unsupported_error(method)
 
+    def get_properties(self):
+        """Return the properties from all the VendorInterfaces.
+
+        :returns: a dictionary of <property_name>:<property_description>
+                  entries.
+        """
+        properties = {}
+        interfaces = set(self.mapping.values())
+        for interface in interfaces:
+            properties.update(interface.get_properties())
+        return properties
+
     def validate(self, *args, **kwargs):
         """Call validate on the appropriate interface only.
 

@@ -35,6 +35,7 @@ from ironic.common import utils
 from ironic.conductor import task_manager
 from ironic.drivers import base
 from ironic.drivers import utils as driver_utils
+from ironic.openstack.common.gettextutils import _
 from ironic.openstack.common import log as logging
 from ironic.openstack.common import processutils
 
@@ -48,6 +49,27 @@ CONF = cfg.CONF
 CONF.register_opts(libvirt_opts, group='ssh')
 
 LOG = logging.getLogger(__name__)
+
+REQUIRED_PROPERTIES = {
+    'ssh_address': _("IP address or hostname of the node to ssh into. "
+                     "Required."),
+    'ssh_username': _("username to authenticate as. Required."),
+    'ssh_virt_type': _("virtualization software to use; one of vbox, virsh, "
+                       "vmware. Required.")
+}
+OTHER_PROPERTIES = {
+    'ssh_key_contents': _("private key(s). One of this, ssh_key_filename, "
+                          "or ssh_password must be specified."),
+    'ssh_key_filename': _("(list of) filename(s) of optional private key(s) "
+                          "for authentication. One of this, ssh_key_contents, "
+                          "or ssh_password must be specified."),
+    'ssh_password': _("password to use for authentication or for unlocking a "
+                      "private key. One of this, ssh_key_contents, or "
+                      "ssh_key_filename must be specified."),
+    'ssh_port': _("port on the node to connect to; default is 22. Optional.")
+}
+COMMON_PROPERTIES = REQUIRED_PROPERTIES.copy()
+COMMON_PROPERTIES.update(OTHER_PROPERTIES)
 
 
 def _get_command_sets(virt_type):
@@ -155,6 +177,12 @@ def _parse_driver_info(node):
 
     """
     info = node.driver_info or {}
+    missing_info = [key for key in REQUIRED_PROPERTIES if not info.get(key)]
+    if missing_info:
+        raise exception.InvalidParameterValue(_(
+            "SSHPowerDriver requires the following to be set: %s.")
+            % missing_info)
+
     address = info.get('ssh_address')
     username = info.get('ssh_username')
     password = info.get('ssh_password')
@@ -176,16 +204,9 @@ def _parse_driver_info(node):
            'uuid': node.uuid
           }
 
-    if not virt_type:
-        raise exception.InvalidParameterValue(_(
-            "SSHPowerDriver requires virt_type be set."))
-
     cmd_set = _get_command_sets(virt_type)
     res['cmd_set'] = cmd_set
 
-    if not address or not username:
-        raise exception.InvalidParameterValue(_(
-            "SSHPowerDriver requires both address and username be set."))
     # Only one credential may be set (avoids complexity around having
     # precedence etc).
     if len(filter(None, (password, key_filename, key_contents))) != 1:
@@ -353,6 +374,9 @@ class SSHPower(base.PowerInterface):
     NOTE: This driver supports VirtualBox and Virsh commands.
     NOTE: This driver does not currently support multi-node operations.
     """
+
+    def get_properties(self):
+        return COMMON_PROPERTIES
 
     def validate(self, task):
         """Check that the node's 'driver_info' is valid.

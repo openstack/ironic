@@ -580,6 +580,13 @@ class SSHDriverTestCase(db_base.DbTestCase):
             driver_info = ssh._parse_driver_info(task.node)
             ssh_connect_mock.assert_called_once_with(driver_info)
 
+    def test_get_properties(self):
+        expected = ssh.COMMON_PROPERTIES
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            self.assertEqual(expected, task.driver.power.get_properties())
+            self.assertEqual(expected, task.driver.get_properties())
+
     def test_validate_fail_no_port(self):
         new_node = obj_utils.create_test_node(
                 self.context,

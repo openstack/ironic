@@ -152,6 +152,9 @@ def _set_power_state(node, target_state):
 
 class IloPower(base.PowerInterface):
 
+    def get_properties(self):
+        return ilo_common.COMMON_PROPERTIES
+
     def validate(self, task):
         """Check if node.driver_info contains the required iLO credentials.
 

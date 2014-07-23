@@ -65,6 +65,23 @@ CONF.import_opt('min_command_interval',
 LOG = logging.getLogger(__name__)
 
 VALID_PRIV_LEVELS = ['ADMINISTRATOR', 'CALLBACK', 'OPERATOR', 'USER']
+
+REQUIRED_PROPERTIES = {
+    'ipmi_address': _("IP address or hostname of the node. Required.")
+}
+OPTIONAL_PROPERTIES = {
+    'ipmi_password': _("password. Optional."),
+    'ipmi_priv_level': _("privilege level; default is ADMINISTRATOR. One of "
+                         "%s. Optional.") % ', '.join(VALID_PRIV_LEVELS),
+    'ipmi_username': _("username; default is NULL user. Optional.")
+}
+COMMON_PROPERTIES = REQUIRED_PROPERTIES.copy()
+COMMON_PROPERTIES.update(OPTIONAL_PROPERTIES)
+CONSOLE_PROPERTIES = {
+    'ipmi_terminal_port': _("node's UDP port to connect to. Only required for "
+                            "console access.")
+}
+
 LAST_CMD_TIME = {}
 TIMING_SUPPORT = None
 
@@ -145,6 +162,13 @@ def _parse_driver_info(node):
 
     """
     info = node.driver_info or {}
+    missing_info = [key for key in REQUIRED_PROPERTIES if not info.get(key)]
+    if missing_info:
+        raise exception.InvalidParameterValue(_(
+            "The following IPMI credentials are not supplied"
+            " to IPMI driver: %s."
+             ) % missing_info)
+
     address = info.get('ipmi_address')
     username = info.get('ipmi_username')
     password = info.get('ipmi_password')
@@ -157,10 +181,6 @@ def _parse_driver_info(node):
         except ValueError:
             raise exception.InvalidParameterValue(_(
                 "IPMI terminal port is not an integer."))
-
-    if not address:
-        raise exception.InvalidParameterValue(_(
-            "IPMI address not supplied to IPMI driver."))
 
     if priv_level not in VALID_PRIV_LEVELS:
         valid_priv_lvls = ', '.join(VALID_PRIV_LEVELS)
@@ -365,6 +385,9 @@ class IPMIPower(base.PowerInterface):
                     reason="Unable to locate usable ipmitool command in "
                            "the system path when checking ipmitool version")
 
+    def get_properties(self):
+        return COMMON_PROPERTIES
+
     def validate(self, task):
         """Validate driver_info for ipmitool driver.
 
@@ -437,6 +460,9 @@ class IPMIPower(base.PowerInterface):
 
 
 class IPMIManagement(base.ManagementInterface):
+
+    def get_properties(self):
+        return COMMON_PROPERTIES
 
     def validate(self, task):
         """Check that 'driver_info' contains IPMI credentials.
@@ -602,6 +628,9 @@ class VendorPassthru(base.VendorInterface):
                           {'node_id': node_uuid, 'error': e})
             raise exception.IPMIFailure(cmd=cmd)
 
+    def get_properties(self):
+        return COMMON_PROPERTIES
+
     def validate(self, task, **kwargs):
         """Validate vendor-specific actions.
 
@@ -667,6 +696,11 @@ class IPMIShellinaboxConsole(base.ConsoleInterface):
                     driver=self.__class__.__name__,
                     reason="Unable to locate usable ipmitool command in "
                            "the system path when checking ipmitool version")
+
+    def get_properties(self):
+        d = COMMON_PROPERTIES.copy()
+        d.update(CONSOLE_PROPERTIES)
+        return d
 
     def validate(self, task):
         """Validate the Node console info.
