@@ -631,7 +631,7 @@ class IronicDriverTestCase(test.NoDBTestCase):
         mock_node.get.return_value = node
         mock_node.validate.return_value = ironic_utils.get_test_validation()
         mock_node.set_provision_state.side_effect = ironic_exception.BadRequest
-        self.assertRaises(exception.InstanceDeployFailure,
+        self.assertRaises(ironic_exception.BadRequest,
                           self.driver.spawn,
                           self.ctx, instance, None, [], None)
 
@@ -640,6 +640,37 @@ class IronicDriverTestCase(test.NoDBTestCase):
         mock_flavor.assert_called_once_with(self.ctx,
                                             instance['instance_type_id'])
         mock_cleanup_deploy.assert_called_once_with(node, instance, None)
+
+    @mock.patch.object(loopingcall, 'FixedIntervalLoopingCall')
+    @mock.patch.object(FAKE_CLIENT, 'node')
+    @mock.patch.object(flavor_obj.Flavor, 'get_by_id')
+    @mock.patch.object(ironic_driver.IronicDriver, '_start_firewall')
+    @mock.patch.object(ironic_driver.IronicDriver, '_plug_vifs')
+    @mock.patch.object(ironic_driver.IronicDriver, 'destroy')
+    def test_spawn_node_trigger_deploy_fail3(self, mock_destroy,
+                                            mock_pvifs, mock_sf,
+                                            mock_flavor, mock_node,
+                                            mock_looping):
+        node_uuid = 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee'
+        fake_net_info = utils.get_test_network_info()
+        node = ironic_utils.get_test_node(driver='fake', uuid=node_uuid)
+        instance = fake_instance.fake_instance_obj(self.ctx, node=node_uuid)
+        fake_flavor = {'ephemeral_gb': 0}
+        mock_flavor.return_value = fake_flavor
+
+        mock_node.get.return_value = node
+        mock_node.validate.return_value = ironic_utils.get_test_validation()
+
+        fake_looping_call = FakeLoopingCall()
+        mock_looping.return_value = fake_looping_call
+
+        fake_looping_call.wait.side_effect = ironic_exception.BadRequest
+        fake_net_info = utils.get_test_network_info()
+        self.assertRaises(ironic_exception.BadRequest,
+                          self.driver.spawn,
+                          self.ctx, instance, None, [], None, fake_net_info)
+        mock_destroy.assert_called_once_with(self.ctx, instance,
+                                             fake_net_info)
 
     @mock.patch.object(loopingcall, 'FixedIntervalLoopingCall')
     @mock.patch.object(instance_obj.Instance, 'save')
