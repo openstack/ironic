@@ -19,15 +19,14 @@ Tests For IronicHostManager
 
 import mock
 
-from ironic.nova.scheduler import ironic_host_manager
-from ironic.nova.tests.scheduler import ironic_fakes
-
 from nova import db
 from nova import exception
 from nova.openstack.common import jsonutils
 from nova.scheduler import filters
 from nova.scheduler import host_manager
+from ironic.nova.scheduler import ironic_host_manager
 from nova import test
+from ironic.nova.tests.scheduler import ironic_fakes
 
 
 class FakeFilterClass1(filters.BaseHostFilter):
@@ -80,14 +79,15 @@ class IronicHostManagerChangedNodesTestCase(test.NoDBTestCase):
     def setUp(self):
         super(IronicHostManagerChangedNodesTestCase, self).setUp()
         self.host_manager = ironic_host_manager.IronicHostManager()
+        ironic_driver = "nova.virt.ironic.driver.IronicDriver"
+        supported_instances = '[["i386", "baremetal", "baremetal"]]'
         self.compute_node = dict(id=1, local_gb=10, memory_mb=1024, vcpus=1,
                             vcpus_used=0, local_gb_used=0, memory_mb_used=0,
                             updated_at=None, cpu_info='baremetal cpu',
-                            stats=jsonutils.dumps(dict(ironic_driver=
-                                       "nova.virt.ironic.driver.IronicDriver",
-                                       cpu_arch='i386')),
-                            supported_instances=
-                                        '[["i386", "baremetal", "baremetal"]]',
+                                stats=jsonutils.dumps(dict(
+                                    ironic_driver=ironic_driver,
+                                    cpu_arch='i386')),
+                            supported_instances=supported_instances,
                             free_disk_gb=10, free_ram_mb=1024)
 
     @mock.patch.object(ironic_host_manager.IronicNodeState, '__init__')
