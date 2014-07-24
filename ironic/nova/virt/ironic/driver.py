@@ -549,21 +549,20 @@ class IronicDriver(virt_driver.ComputeDriver):
         try:
             icli.call("node.set_provision_state", node_uuid,
                       ironic_states.ACTIVE)
-        except (exception.NovaException,               # Retry failed
-                ironic_exception.InternalServerError,  # Validations
-                ironic_exception.BadRequest) as e:     # Maintenance
-            msg = (_("Failed to request Ironic to provision instance "
-                     "%(inst)s: %(reason)s") % {'inst': instance['uuid'],
-                                                'reason': str(e)})
-            LOG.error(msg)
-            self._cleanup_deploy(node, instance, network_info)
-            raise exception.InstanceDeployFailure(msg)
+        except Exception as e:
+            with excutils.save_and_reraise_exception():
+                msg = (_("Failed to request Ironic to provision instance "
+                         "%(inst)s: %(reason)s") % {'inst': instance['uuid'],
+                                                    'reason': str(e)})
+                LOG.error(msg)
+                self._cleanup_deploy(node, instance, network_info)
 
         timer = loopingcall.FixedIntervalLoopingCall(self._wait_for_active,
                                                      icli, instance)
+
         try:
             timer.start(interval=CONF.ironic.api_retry_interval).wait()
-        except exception.InstanceDeployFailure:
+        except Exception:
             with excutils.save_and_reraise_exception():
                 LOG.error(_("Error deploying instance %(instance)s on "
                             "baremetal node %(node)s.") %
