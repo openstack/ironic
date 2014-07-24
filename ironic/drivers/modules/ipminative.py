@@ -21,7 +21,9 @@ Ironic Native IPMI power manager.
 
 from oslo.config import cfg
 
+from ironic.common import boot_devices
 from ironic.common import exception
+from ironic.common import i18n
 from ironic.common import states
 from ironic.conductor import task_manager
 from ironic.drivers import base
@@ -45,6 +47,8 @@ opts = [
                     'Recommended setting is 5 seconds.'),
     ]
 
+_LE = i18n._LE
+
 CONF = cfg.CONF
 CONF.register_opts(opts, group='ipmi')
 
@@ -54,6 +58,13 @@ REQUIRED_PROPERTIES = {'ipmi_address': _("IP of the node's BMC. Required."),
                        'ipmi_password': _("IPMI password. Required."),
                        'ipmi_username': _("IPMI username. Required.")}
 COMMON_PROPERTIES = REQUIRED_PROPERTIES
+
+_BOOT_DEVICES_MAP = {
+    boot_devices.DISK: 'hd',
+    boot_devices.PXE: 'net',
+    boot_devices.CDROM: 'cdrom',
+    boot_devices.BIOS: 'setup',
+}
 
 
 def _parse_driver_info(node):
@@ -276,22 +287,51 @@ class NativeIPMIPower(base.PowerInterface):
         _reboot(driver_info)
 
 
-class VendorPassthru(base.VendorInterface):
+class NativeIPMIManagement(base.ManagementInterface):
+
+    def get_properties(self):
+        return COMMON_PROPERTIES
+
+    def validate(self, task):
+        """Check that 'driver_info' contains IPMI credentials.
+
+        Validates whether the 'driver_info' property of the supplied
+        task's node contains the required credentials information.
+
+        :param task: a task from TaskManager.
+        :raises: InvalidParameterValue when required ipmi credentials
+                 are missing.
+
+        """
+        _parse_driver_info(task.node)
+
+    def get_supported_boot_devices(self):
+        """Get a list of the supported boot devices.
+
+        :returns: A list with the supported boot devices defined
+                  in :mod:`ironic.common.boot_devices`.
+
+        """
+        return list(_BOOT_DEVICES_MAP.keys())
 
     @task_manager.require_exclusive_lock
-    def _set_boot_device(self, task, device, persistent=False):
-        """Set the boot device for a node.
+    def set_boot_device(self, task, device, persistent=False):
+        """Set the boot device for the task's node.
 
-        :param task: a TaskManager instance.
-        :param device: Boot device. One of [net, network, pxe, hd, cd,
-            cdrom, dvd, floppy, default, setup, f1]
-        :param persistent: Whether to set next-boot, or make the change
-            permanent. Default: False.
-        :raises: InvalidParameterValue if an invalid boot device is specified
-                 or required ipmi credentials are missing.
-        :raises: IPMIFailure when the native ipmi call fails.
+        Set the boot device to use on next reboot of the node.
+
+        :param task: a task from TaskManager.
+        :param device: the boot device, one of
+                       :mod:`ironic.common.boot_devices`.
+        :param persistent: Boolean value. True if the boot device will
+                           persist to all future boots, False if not.
+                           Default: False.
+        :raises: InvalidParameterValue if an invalid boot device is
+                 specified or if required ipmi parameters are missing.
+        :raises: IPMIFailure on an error from pyghmi.
+
         """
-        if device not in ipmi_command.boot_devices:
+        if device not in self.get_supported_boot_devices():
             raise exception.InvalidParameterValue(_(
                 "Invalid boot device %s specified.") % device)
         driver_info = _parse_driver_info(task.node)
@@ -299,45 +339,52 @@ class VendorPassthru(base.VendorInterface):
             ipmicmd = ipmi_command.Command(bmc=driver_info['address'],
                                userid=driver_info['username'],
                                password=driver_info['password'])
-            ipmicmd.set_bootdev(device)
+            bootdev = _BOOT_DEVICES_MAP[device]
+            ipmicmd.set_bootdev(bootdev, persist=persistent)
         except pyghmi_exception.IpmiException as e:
-            LOG.warning(_("IPMI set boot device failed for node %(node_id)s "
-                          "with the following error: %(error)s")
-                          % {'node_id': driver_info['uuid'], 'error': str(e)})
-            raise exception.IPMIFailure(cmd=str(e))
+            LOG.error(_LE("IPMI set boot device failed for node %(node_id)s "
+                          "with the following error: %(error)s"),
+                      {'node_id': driver_info['uuid'], 'error': e})
+            raise exception.IPMIFailure(cmd=e)
 
-    def get_properties(self):
-        return COMMON_PROPERTIES
+    def get_boot_device(self, task):
+        """Get the current boot device for the task's node.
 
-    def validate(self, task, **kwargs):
-        """Validate vendor-specific actions.
-        :param task: a TaskManager instance.
-        :param kwargs: the keyword arguments supplied
+        Returns the current boot device of the node.
 
-        :raises: InvalidParameterValue if an invalid boot device is specified,
-                 required ipmi credentials are missing or an invalid method
-                 is requested to the driver.
+        :param task: a task from TaskManager.
+        :raises: InvalidParameterValue if required IPMI parameters
+            are missing.
+        :raises: IPMIFailure on an error from pyghmi.
+        :returns: a dictionary containing:
+
+            :boot_device: the boot device, one of
+                :mod:`ironic.common.boot_devices` or None if it is unknown.
+            :persistent: Whether the boot device will persist to all
+                future boots or not, None if it is unknown.
+
         """
-        method = kwargs['method']
-        if method == 'set_boot_device':
-            device = kwargs.get('device')
-            if device not in ipmi_command.boot_devices:
-                raise exception.InvalidParameterValue(_(
-                    "Invalid boot device %s specified.") % device)
-        else:
-            raise exception.InvalidParameterValue(_(
-                "Unsupported method (%s) passed to IPMINative driver.")
-                % method)
-        _parse_driver_info(task.node)
+        driver_info = _parse_driver_info(task.node)
+        response = {'boot_device': None, 'persistent': None}
+        try:
+            ipmicmd = ipmi_command.Command(bmc=driver_info['address'],
+                               userid=driver_info['username'],
+                               password=driver_info['password'])
+            ret = ipmicmd.get_bootdev()
+            # FIXME(lucasagomes): pyghmi doesn't seem to handle errors
+            # consistently, for some errors it raises an exception
+            # others it just returns a dictionary with the error.
+            if 'error' in ret:
+                raise pyghmi_exception.IpmiException(ret['error'])
+        except pyghmi_exception.IpmiException as e:
+            LOG.error(_LE("IPMI get boot device failed for node %(node_id)s "
+                          "with the following error: %(error)s"),
+                      {'node_id': driver_info['uuid'], 'error': e})
+            raise exception.IPMIFailure(cmd=e)
 
-    def vendor_passthru(self, task, **kwargs):
-        """Receive requests for vendor-specific actions.
-        :param task: a TaskManager instance.
-        :param kwargs: the keyword arguments supplied
-        """
-        method = kwargs['method']
-        if method == 'set_boot_device':
-            return self._set_boot_device(
-                        task,
-                        kwargs.get('device'),
-                        kwargs.get('persistent', False))
+        bootdev = ret.get('bootdev')
+        if bootdev:
+            response['boot_device'] = next((dev for dev, hdev in
+                                            _BOOT_DEVICES_MAP.items()
+                                            if hdev == bootdev), None)
+        return response
