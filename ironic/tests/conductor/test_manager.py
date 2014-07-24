@@ -235,6 +235,16 @@ class ManagerTestCase(tests_db_base.DbTestCase):
                 self.service._conductor_service_record_keepalive()
             mock_touch.assert_called_once_with(self.hostname)
 
+    def test_get_driver_known(self):
+        self._start_service()
+        driver = self.service._get_driver('fake')
+        self.assertTrue(isinstance(driver, drivers_base.BaseDriver))
+
+    def test_get_driver_unknown(self):
+        self._start_service()
+        self.assertRaises(exception.DriverNotFound,
+                          self.service._get_driver, 'unknown_driver')
+
     def test_change_node_power_state_power_on(self):
         # Test change_node_power_state including integration with
         # conductor.utils.node_power_action and lower.
@@ -1858,3 +1868,89 @@ class ManagerCheckDeployTimeoutsTestCase(_CommonMixIn, tests_base.TestCase):
                                      self.task)
         self.assertEqual([spawn_after_call] * 2,
                          self.task.spawn_after.call_args_list)
+
+
+class ManagerTestProperties(tests_db_base.DbTestCase):
+
+    def setUp(self):
+        super(ManagerTestProperties, self).setUp()
+        self.service = manager.ConductorManager('test-host', 'test-topic')
+        self.context = context.get_admin_context()
+
+    def _check_driver_properties(self, driver, expected):
+        mgr_utils.mock_the_extension_manager(driver=driver)
+        self.driver = driver_factory.get_driver(driver)
+        self.service.init_host()
+        properties = self.service.get_driver_properties(self.context, driver)
+        self.assertEqual(sorted(expected), sorted(properties.keys()))
+
+    def test_driver_properties_fake(self):
+        expected = ['A1', 'A2', 'B1', 'B2']
+        self._check_driver_properties("fake", expected)
+
+    def test_driver_properties_fake_ipmitool(self):
+        expected = ['ipmi_address', 'ipmi_terminal_port',
+                    'ipmi_password', 'ipmi_priv_level',
+                    'ipmi_username']
+        self._check_driver_properties("fake_ipmitool", expected)
+
+    def test_driver_properties_fake_ipminative(self):
+        expected = ['ipmi_address', 'ipmi_password', 'ipmi_username']
+        self._check_driver_properties("fake_ipminative", expected)
+
+    def test_driver_properties_fake_ssh(self):
+        expected = ['ssh_address', 'ssh_username', 'ssh_virt_type',
+                    'ssh_key_contents', 'ssh_key_filename',
+                    'ssh_password', 'ssh_port']
+        self._check_driver_properties("fake_ssh", expected)
+
+    def test_driver_properties_fake_pxe(self):
+        expected = ['pxe_deploy_kernel', 'pxe_deploy_ramdisk']
+        self._check_driver_properties("fake_pxe", expected)
+
+    def test_driver_properties_fake_seamicro(self):
+        expected = ['seamicro_api_endpoint', 'seamicro_password',
+                    'seamicro_server_id', 'seamicro_username',
+                    'seamicro_api_version']
+        self._check_driver_properties("fake_seamicro", expected)
+
+    def test_driver_properties_pxe_ipmitool(self):
+        expected = ['ipmi_address', 'ipmi_terminal_port',
+                    'pxe_deploy_kernel', 'pxe_deploy_ramdisk',
+                    'ipmi_password', 'ipmi_priv_level',
+                    'ipmi_username']
+        self._check_driver_properties("pxe_ipmitool", expected)
+
+    def test_driver_properties_pxe_ipminative(self):
+        expected = ['ipmi_address', 'ipmi_password', 'ipmi_username',
+                    'pxe_deploy_kernel', 'pxe_deploy_ramdisk']
+        self._check_driver_properties("pxe_ipminative", expected)
+
+    def test_driver_properties_pxe_ssh(self):
+        expected = ['pxe_deploy_kernel', 'pxe_deploy_ramdisk',
+                    'ssh_address', 'ssh_username', 'ssh_virt_type',
+                    'ssh_key_contents', 'ssh_key_filename',
+                    'ssh_password', 'ssh_port']
+        self._check_driver_properties("pxe_ssh", expected)
+
+    def test_driver_properties_pxe_seamicro(self):
+        expected = ['pxe_deploy_kernel', 'pxe_deploy_ramdisk',
+                   'seamicro_api_endpoint', 'seamicro_password',
+                   'seamicro_server_id', 'seamicro_username',
+                   'seamicro_api_version']
+        self._check_driver_properties("pxe_seamicro", expected)
+
+    def test_driver_properties_ilo(self):
+        expected = ['ilo_address', 'ilo_username', 'ilo_password',
+                   'client_port', 'client_timeout']
+        self._check_driver_properties("ilo", expected)
+
+    def test_driver_properties_fail(self):
+        mgr_utils.mock_the_extension_manager()
+        self.driver = driver_factory.get_driver("fake")
+        self.service.init_host()
+        exc = self.assertRaises(messaging.rpc.ExpectedException,
+                          self.service.get_driver_properties,
+                          self.context, "bad-driver")
+        # Compare true exception hidden by @messaging.expected_exceptions
+        self.assertEqual(exception.DriverNotFound, exc.exc_info[0])

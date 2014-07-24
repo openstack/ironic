@@ -17,6 +17,8 @@ import json
 import mock
 from testtools.matchers import HasLength
 
+from ironic.api.controllers.v1 import driver
+from ironic.common import exception
 from ironic.conductor import rpcapi
 from ironic.tests.api import base
 
@@ -47,11 +49,11 @@ class TestListDrivers(base.FunctionalTest):
         self.assertThat(data['drivers'], HasLength(2))
         drivers = sorted(data['drivers'])
         for i in range(len(expected)):
-            driver = drivers[i]
-            self.assertEqual(expected[i]['name'], driver['name'])
-            self.assertEqual(expected[i]['hosts'], driver['hosts'])
-            self.validate_link(driver['links'][0]['href'])
-            self.validate_link(driver['links'][1]['href'])
+            d = drivers[i]
+            self.assertEqual(expected[i]['name'], d['name'])
+            self.assertEqual(expected[i]['hosts'], d['hosts'])
+            self.validate_link(d['links'][0]['href'])
+            self.validate_link(d['links'][1]['href'])
 
     def test_drivers_no_active_conductor(self):
         data = self.get_json('/drivers')
@@ -103,3 +105,69 @@ class TestListDrivers(base.FunctionalTest):
         error = json.loads(response.json['error_message'])
         self.assertEqual('Missing argument: "method"',
                          error['faultstring'])
+
+
+@mock.patch.object(rpcapi.ConductorAPI, 'get_driver_properties')
+@mock.patch.object(rpcapi.ConductorAPI, 'get_topic_for_driver')
+class TestDriverProperties(base.FunctionalTest):
+
+    def test_driver_properties_fake(self, mock_topic, mock_properties):
+        # Can get driver properties for fake driver.
+        driver._DRIVER_PROPERTIES = {}
+        driver_name = 'fake'
+        mock_topic.return_value = 'fake_topic'
+        mock_properties.return_value = {'prop1': 'Property 1. Required.'}
+        data = self.get_json('/drivers/%s/properties' % driver_name)
+        self.assertEqual(mock_properties.return_value, data)
+        mock_topic.assert_called_once_with(driver_name)
+        mock_properties.assert_called_once_with(mock.ANY, driver_name,
+                                                topic=mock_topic.return_value)
+        self.assertEqual(mock_properties.return_value,
+                         driver._DRIVER_PROPERTIES[driver_name])
+
+    def test_driver_properties_cached(self, mock_topic, mock_properties):
+        # only one RPC-conductor call will be made and the info cached
+        # for subsequent requests
+        driver._DRIVER_PROPERTIES = {}
+        driver_name = 'fake'
+        mock_topic.return_value = 'fake_topic'
+        mock_properties.return_value = {'prop1': 'Property 1. Required.'}
+        data = self.get_json('/drivers/%s/properties' % driver_name)
+        data = self.get_json('/drivers/%s/properties' % driver_name)
+        data = self.get_json('/drivers/%s/properties' % driver_name)
+        self.assertEqual(mock_properties.return_value, data)
+        mock_topic.assert_called_once_with(driver_name)
+        mock_properties.assert_called_once_with(mock.ANY, driver_name,
+                                                topic=mock_topic.return_value)
+        self.assertEqual(mock_properties.return_value,
+                         driver._DRIVER_PROPERTIES[driver_name])
+
+    def test_driver_properties_invalid_driver_name(self, mock_topic,
+                                                   mock_properties):
+        # Cannot get driver properties for an invalid driver; no RPC topic
+        # exists for it.
+        driver._DRIVER_PROPERTIES = {}
+        driver_name = 'bad_driver'
+        mock_topic.side_effect = exception.DriverNotFound(
+                driver_name=driver_name)
+        mock_properties.return_value = {'prop1': 'Property 1. Required.'}
+        ret = self.get_json('/drivers/%s/properties' % driver_name,
+                            expect_errors=True)
+        self.assertEqual(404, ret.status_int)
+        mock_topic.assert_called_once_with(driver_name)
+        self.assertFalse(mock_properties.called)
+
+    def test_driver_properties_cannot_load(self, mock_topic, mock_properties):
+        # Cannot get driver properties for the driver. Although an RPC topic
+        # exists for it, the conductor wasn't able to load it.
+        driver._DRIVER_PROPERTIES = {}
+        driver_name = 'driver'
+        mock_topic.return_value = 'driver_topic'
+        mock_properties.side_effect = exception.DriverNotFound(
+                driver_name=driver_name)
+        ret = self.get_json('/drivers/%s/properties' % driver_name,
+                            expect_errors=True)
+        self.assertEqual(404, ret.status_int)
+        mock_topic.assert_called_once_with(driver_name)
+        mock_properties.assert_called_once_with(mock.ANY, driver_name,
+                                                topic=mock_topic.return_value)

@@ -130,7 +130,7 @@ class ConductorManager(periodic_task.PeriodicTasks):
     """Ironic Conductor manager main class."""
 
     # NOTE(rloo): This must be in sync with rpcapi.ConductorAPI's.
-    RPC_API_VERSION = '1.15'
+    RPC_API_VERSION = '1.16'
 
     target = messaging.Target(version=RPC_API_VERSION)
 
@@ -141,11 +141,26 @@ class ConductorManager(periodic_task.PeriodicTasks):
         self.topic = topic
         self.power_state_sync_count = collections.defaultdict(int)
 
+    def _get_driver(self, driver_name):
+        """Get the driver.
+
+        :param driver_name: name of the driver.
+        :returns: the driver; an instance of a class which implements
+                  :class:`ironic.drivers.base.BaseDriver`.
+        :raises: DriverNotFound if the driver is not loaded.
+
+        """
+        try:
+            return self._driver_factory[driver_name].obj
+        except KeyError:
+            raise exception.DriverNotFound(driver_name=driver_name)
+
     def init_host(self):
         self.dbapi = dbapi.get_instance()
 
-        self.driver_factory = driver_factory.DriverFactory()
-        self.drivers = self.driver_factory.names
+        self._driver_factory = driver_factory.DriverFactory()
+
+        self.drivers = self._driver_factory.names
         """List of driver names which this conductor supports."""
 
         try:
@@ -326,11 +341,7 @@ class ConductorManager(periodic_task.PeriodicTasks):
         # Any locking in a top-level vendor action will need to be done by the
         # implementation, as there is little we could reasonably lock on here.
         LOG.debug("RPC driver_vendor_passthru for driver %s." % driver_name)
-        try:
-            driver = self.driver_factory[driver_name].obj
-        except KeyError:
-            raise exception.DriverNotFound(driver_name=driver_name)
-
+        driver = self._get_driver(driver_name)
         if not getattr(driver, 'vendor', None):
             raise exception.UnsupportedDriverExtension(
                 driver=driver_name,
@@ -966,3 +977,19 @@ class ConductorManager(periodic_task.PeriodicTasks):
             port_obj.save(context)
 
             return port_obj
+
+    @messaging.expected_exceptions(exception.DriverNotFound)
+    def get_driver_properties(self, context, driver_name):
+        """Get the properties of the driver.
+
+        :param context: request context.
+        :param driver_name: name of the driver.
+        :returns: a dictionary with <property name>:<property description>
+                  entries.
+        :raises: DriverNotFound if the driver is not loaded.
+
+        """
+        LOG.debug("RPC get_driver_properties called for driver %s.",
+                  driver_name)
+        driver = self._get_driver(driver_name)
+        return driver.get_properties()

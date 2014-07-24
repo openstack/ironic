@@ -142,4 +142,5 @@ class HashRingManager(object):
         try:
             return self.hash_rings[driver_name]
         except KeyError:
-            raise exception.DriverNotFound(driver_name=driver_name)
+            raise exception.DriverNotFound(_("The driver '%s' is unknown.") %
+                                           driver_name)

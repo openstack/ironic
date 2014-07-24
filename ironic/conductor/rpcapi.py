@@ -53,11 +53,12 @@ class ConductorAPI(object):
         1.13 - Added update_port.
         1.14 - Added driver_vendor_passthru.
         1.15 - Added rebuild parameter to do_node_deploy.
+        1.16 - Added get_driver_properties.
 
     """
 
     # NOTE(rloo): This must be in sync with manager.ConductorManager's.
-    RPC_API_VERSION = '1.15'
+    RPC_API_VERSION = '1.16'
 
     def __init__(self, topic=None):
         super(ConductorAPI, self).__init__()
@@ -311,3 +312,18 @@ class ConductorAPI(object):
         """
         cctxt = self.client.prepare(topic=topic or self.topic, version='1.13')
         return cctxt.call(context, 'update_port', port_obj=port_obj)
+
+    def get_driver_properties(self, context, driver_name, topic=None):
+        """Get the properties of the driver.
+
+        :param context: request context.
+        :param driver_name: name of the driver.
+        :param topic: RPC topic. Defaults to self.topic.
+        :returns: a dictionary with <property name>:<property description>
+                  entries.
+        :raises: DriverNotFound.
+
+        """
+        cctxt = self.client.prepare(topic=topic or self.topic, version='1.16')
+        return cctxt.call(context, 'get_driver_properties',
+                          driver_name=driver_name)

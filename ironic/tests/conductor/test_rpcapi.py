@@ -221,3 +221,8 @@ class RPCAPITestCase(base.DbTestCase):
                           'call',
                           version='1.13',
                           port_obj=fake_port)
+
+    def test_get_driver_properties(self):
+        self._test_rpcapi('get_driver_properties',
+                          'call',
+                          driver_name='fake-driver')

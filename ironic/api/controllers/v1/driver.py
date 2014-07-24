@@ -25,6 +25,17 @@ from ironic.api.controllers import link
 from ironic.common import exception
 
 
+# Property information for drivers:
+#   key = driver name;
+#   value = dictionary of properties of that driver:
+#             key = property name.
+#             value = description of the property.
+# NOTE(rloo). This is cached for the lifetime of the API service. If one or
+# more conductor services are restarted with new driver versions, the API
+# service should be restarted.
+_DRIVER_PROPERTIES = {}
+
+
 class Driver(base.APIBase):
     """API representation of a driver."""
 
@@ -113,6 +124,10 @@ class DriversController(rest.RestController):
 
     vendor_passthru = DriverPassthruController()
 
+    _custom_actions = {
+        'properties': ['GET'],
+    }
+
     @wsme_pecan.wsexpose(DriverList)
     def get_all(self):
         """Retrieve a list of drivers.
@@ -139,3 +154,21 @@ class DriversController(rest.RestController):
                 return Driver.convert_with_links(name, list(hosts))
 
         raise exception.DriverNotFound(driver_name=driver_name)
+
+    @wsme_pecan.wsexpose(wtypes.text, wtypes.text)
+    def properties(self, driver_name):
+        """Retrieve property information of the given driver.
+
+        :param driver_name: name of the driver.
+        :returns: dictionary with <property name>:<property description>
+                  entries.
+        :raises: DriverNotFound (HTTP 404) if the driver name is invalid or
+                 the driver cannot be loaded.
+        """
+        if driver_name not in _DRIVER_PROPERTIES:
+            topic = pecan.request.rpcapi.get_topic_for_driver(driver_name)
+            properties = pecan.request.rpcapi.get_driver_properties(
+                             pecan.request.context, driver_name, topic=topic)
+            _DRIVER_PROPERTIES[driver_name] = properties
+
+        return _DRIVER_PROPERTIES[driver_name]
