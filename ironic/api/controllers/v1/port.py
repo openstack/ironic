@@ -209,7 +209,7 @@ class PortsController(rest.RestController):
 
         """
         try:
-            port = pecan.request.dbapi.get_port(address)
+            port = objects.Port.get_by_address(pecan.request.context, address)
             return [port]
         except exception.PortNotFound:
             return []

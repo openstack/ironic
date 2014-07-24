@@ -580,7 +580,7 @@ class TestPost(base.FunctionalTest):
         pdict = post_get_test_port(node_uuid=self.node['uuid'])
         self.post_json('/ports', pdict)
         # GET doesn't return the node_id it's an internal value
-        port = self.dbapi.get_port(pdict['uuid'])
+        port = self.dbapi.get_port_by_uuid(pdict['uuid'])
         self.assertEqual(self.node['id'], port.node_id)
 
     def test_create_port_node_uuid_not_found(self):

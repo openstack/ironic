@@ -364,17 +364,26 @@ class Connection(api.Connection):
             ref.update(values)
         return ref
 
-    @objects.objectify(objects.Port)
-    def get_port(self, port_id):
-        query = model_query(models.Port)
-        query = add_port_filter(query, port_id)
-
+    def get_port_by_id(self, port_id):
+        query = model_query(models.Port).filter_by(id=port_id)
         try:
-            result = query.one()
+            return query.one()
         except NoResultFound:
             raise exception.PortNotFound(port=port_id)
 
-        return result
+    def get_port_by_uuid(self, port_uuid):
+        query = model_query(models.Port).filter_by(uuid=port_uuid)
+        try:
+            return query.one()
+        except NoResultFound:
+            raise exception.PortNotFound(port=port_uuid)
+
+    def get_port_by_address(self, address):
+        query = model_query(models.Port).filter_by(address=address)
+        try:
+            return query.one()
+        except NoResultFound:
+            raise exception.PortNotFound(port=address)
 
     @objects.objectify(objects.Port)
     def get_port_by_vif(self, vif):

@@ -15,6 +15,7 @@
 
 import mock
 
+from ironic.common import exception
 from ironic.db import api as db_api
 from ironic.db.sqlalchemy import models
 from ironic import objects
@@ -29,19 +30,43 @@ class TestPortObject(base.DbTestCase):
         self.fake_port = utils.get_test_port()
         self.dbapi = db_api.get_instance()
 
-    def test_load(self):
-        uuid = self.fake_port['uuid']
-        with mock.patch.object(self.dbapi, 'get_port',
+    def test_get_by_id(self):
+        port_id = self.fake_port['id']
+        with mock.patch.object(self.dbapi, 'get_port_by_id',
                                autospec=True) as mock_get_port:
             mock_get_port.return_value = self.fake_port
 
-            objects.Port.get_by_uuid(self.context, uuid)
+            objects.Port.get(self.context, port_id)
+
+            mock_get_port.assert_called_once_with(port_id)
+
+    def test_get_by_uuid(self):
+        uuid = self.fake_port['uuid']
+        with mock.patch.object(self.dbapi, 'get_port_by_uuid',
+                               autospec=True) as mock_get_port:
+            mock_get_port.return_value = self.fake_port
+
+            objects.Port.get(self.context, uuid)
 
             mock_get_port.assert_called_once_with(uuid)
 
+    def test_get_by_address(self):
+        address = self.fake_port['address']
+        with mock.patch.object(self.dbapi, 'get_port_by_address',
+                               autospec=True) as mock_get_port:
+            mock_get_port.return_value = self.fake_port
+
+            objects.Port.get(self.context, address)
+
+            mock_get_port.assert_called_once_with(address)
+
+    def test_get_bad_id_and_uuid_and_address(self):
+        self.assertRaises(exception.InvalidIdentity,
+                          objects.Port.get, self.context, 'not-a-uuid')
+
     def test_save(self):
         uuid = self.fake_port['uuid']
-        with mock.patch.object(self.dbapi, 'get_port',
+        with mock.patch.object(self.dbapi, 'get_port_by_uuid',
                                autospec=True) as mock_get_port:
             mock_get_port.return_value = self.fake_port
             with mock.patch.object(self.dbapi, 'update_port',
@@ -59,8 +84,9 @@ class TestPortObject(base.DbTestCase):
         returns = [self.fake_port,
                    utils.get_test_port(address="c3:54:00:cf:2d:40")]
         expected = [mock.call(uuid), mock.call(uuid)]
-        with mock.patch.object(self.dbapi, 'get_port', side_effect=returns,
-                               autospec=True) as mock_get_port:
+        with mock.patch.object(self.dbapi, 'get_port_by_uuid',
+                               side_effect=returns, autospec=True) \
+                as mock_get_port:
             p = objects.Port.get_by_uuid(self.context, uuid)
             self.assertEqual("52:54:00:cf:2d:31", p.address)
             p.refresh()

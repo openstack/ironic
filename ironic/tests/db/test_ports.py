@@ -38,12 +38,17 @@ class DbPortTestCase(base.DbTestCase):
 
     def test_get_port_by_id(self):
         self.dbapi.create_port(self.p)
-        res = self.dbapi.get_port(self.p['id'])
+        res = self.dbapi.get_port_by_id(self.p['id'])
         self.assertEqual(self.p['address'], res.address)
 
     def test_get_port_by_uuid(self):
         self.dbapi.create_port(self.p)
-        res = self.dbapi.get_port(self.p['uuid'])
+        res = self.dbapi.get_port_by_uuid(self.p['uuid'])
+        self.assertEqual(self.p['id'], res.id)
+
+    def test_get_port_by_address(self):
+        self.dbapi.create_port(self.p)
+        res = self.dbapi.get_port_by_address(self.p['address'])
         self.assertEqual(self.p['id'], res.id)
 
     def test_get_port_list(self):
@@ -56,19 +61,6 @@ class DbPortTestCase(base.DbTestCase):
         res = self.dbapi.get_port_list()
         res_uuids = [r.uuid for r in res]
         self.assertEqual(uuids.sort(), res_uuids.sort())
-
-    def test_get_port_by_address(self):
-        self.dbapi.create_port(self.p)
-
-        res = self.dbapi.get_port(self.p['address'])
-        self.assertEqual(self.p['id'], res.id)
-
-        self.assertRaises(exception.PortNotFound,
-                          self.dbapi.get_port, 99)
-        self.assertRaises(exception.PortNotFound,
-                          self.dbapi.get_port, 'aa:bb:cc:dd:ee:ff')
-        self.assertRaises(exception.InvalidIdentity,
-                          self.dbapi.get_port, 'not-a-mac')
 
     def test_get_ports_by_node_id(self):
         p = db_utils.get_test_port(node_id=self.n.id)
