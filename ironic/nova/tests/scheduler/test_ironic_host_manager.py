@@ -84,9 +84,9 @@ class IronicHostManagerChangedNodesTestCase(test.NoDBTestCase):
         self.compute_node = dict(id=1, local_gb=10, memory_mb=1024, vcpus=1,
                             vcpus_used=0, local_gb_used=0, memory_mb_used=0,
                             updated_at=None, cpu_info='baremetal cpu',
-                                stats=jsonutils.dumps(dict(
-                                    ironic_driver=ironic_driver,
-                                    cpu_arch='i386')),
+                            stats=jsonutils.dumps(dict(
+                                        ironic_driver=ironic_driver,
+                                        cpu_arch='i386')),
                             supported_instances=supported_instances,
                             free_disk_gb=10, free_ram_mb=1024)
 
