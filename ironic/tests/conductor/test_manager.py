@@ -730,7 +730,12 @@ class ManagerTestCase(tests_db_base.DbTestCase):
             mock_spawn.assert_called_once_with(mock.ANY, mock.ANY, mock.ANY)
 
     def test_do_node_deploy_worker_pool_full(self):
-        node = obj_utils.create_test_node(self.context, driver='fake')
+        prv_state = states.NOSTATE
+        tgt_prv_state = states.NOSTATE
+        node = obj_utils.create_test_node(self.context,
+                                          provision_state=prv_state,
+                                          target_provision_state=tgt_prv_state,
+                                          last_error=None, driver='fake')
         self._start_service()
 
         with mock.patch.object(self.service, '_spawn_worker') as mock_spawn:
@@ -743,8 +748,10 @@ class ManagerTestCase(tests_db_base.DbTestCase):
             self.assertEqual(exception.NoFreeConductorWorker, exc.exc_info[0])
             self.service._worker_pool.waitall()
             node.refresh()
-            # This is a sync operation last_error should be None.
-            self.assertIsNone(node.last_error)
+            # Make sure things were rolled back
+            self.assertEqual(prv_state, node.provision_state)
+            self.assertEqual(tgt_prv_state, node.target_provision_state)
+            self.assertIsNotNone(node.last_error)
             # Verify reservation has been cleared.
             self.assertIsNone(node.reservation)
 
@@ -828,10 +835,14 @@ class ManagerTestCase(tests_db_base.DbTestCase):
 
     @mock.patch('ironic.conductor.manager.ConductorManager._spawn_worker')
     def test_do_node_tear_down_worker_pool_full(self, mock_spawn):
+        prv_state = states.ACTIVE
+        tgt_prv_state = states.NOSTATE
         fake_instance_info = {'foo': 'bar'}
         node = obj_utils.create_test_node(self.context, driver='fake',
-                                          provision_state=states.ACTIVE,
-                                          instance_info=fake_instance_info)
+                                          provision_state=prv_state,
+                                          target_provision_state=tgt_prv_state,
+                                          instance_info=fake_instance_info,
+                                          last_error=None)
         self._start_service()
 
         mock_spawn.side_effect = exception.NoFreeConductorWorker()
@@ -843,10 +854,12 @@ class ManagerTestCase(tests_db_base.DbTestCase):
         self.assertEqual(exception.NoFreeConductorWorker, exc.exc_info[0])
         self.service._worker_pool.waitall()
         node.refresh()
-        # This is a sync operation last_error should be None.
-        self.assertIsNone(node.last_error)
         # Assert instance_info was not touched
         self.assertEqual(fake_instance_info, node.instance_info)
+        # Make sure things were rolled back
+        self.assertEqual(prv_state, node.provision_state)
+        self.assertEqual(tgt_prv_state, node.target_provision_state)
+        self.assertIsNotNone(node.last_error)
         # Verify reservation has been cleared.
         self.assertIsNone(node.reservation)
 
