@@ -225,4 +225,5 @@ class RPCAPITestCase(base.DbTestCase):
     def test_get_driver_properties(self):
         self._test_rpcapi('get_driver_properties',
                           'call',
+                          version='1.16',
                           driver_name='fake-driver')
