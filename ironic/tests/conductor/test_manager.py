@@ -135,10 +135,9 @@ class _CommonMixIn(object):
         return FakeAcquire
 
 
-class ManagerTestCase(tests_db_base.DbTestCase):
-
+class _ServiceSetUpMixin(object):
     def setUp(self):
-        super(ManagerTestCase, self).setUp()
+        super(_ServiceSetUpMixin, self).setUp()
         self.hostname = 'test-host'
         self.config(enabled_drivers=['fake'])
         self.config(node_locked_retry_attempts=1, group='conductor')
@@ -147,15 +146,6 @@ class ManagerTestCase(tests_db_base.DbTestCase):
         self.dbapi = dbapi.get_instance()
         mgr_utils.mock_the_extension_manager()
         self.driver = driver_factory.get_driver("fake")
-        self.mock_keepalive_patcher = mock.patch.object(self.service,
-            '_conductor_service_record_keepalive')
-        self.mock_keepalive = self.mock_keepalive_patcher.start()
-
-        def stop_patchers():
-            if self.mock_keepalive:
-                self.mock_keepalive_patcher.stop()
-
-        self.addCleanup(stop_patchers)
 
     def _stop_service(self):
         try:
@@ -168,6 +158,16 @@ class ManagerTestCase(tests_db_base.DbTestCase):
         self.service.init_host()
         self.addCleanup(self._stop_service)
 
+
+def _mock_record_keepalive(func_or_class):
+    return mock.patch.object(
+        manager.ConductorManager,
+        '_conductor_service_record_keepalive',
+        lambda: None)(func_or_class)
+
+
+@_mock_record_keepalive
+class StartStopTestCase(_ServiceSetUpMixin, tests_db_base.DbTestCase):
     def test_start_registers_conductor(self):
         self.assertRaises(exception.ConductorNotFound,
                           self.dbapi.get_conductor,
@@ -214,19 +214,9 @@ class ManagerTestCase(tests_db_base.DbTestCase):
             self.assertTrue(mock_df.called)
             self.assertFalse(mock_reg.called)
 
-    def test__mapped_to_this_conductor(self):
-        self._start_service()
-        n = utils.get_test_node()
-        self.assertTrue(self.service._mapped_to_this_conductor(n['uuid'],
-                                                               'fake'))
-        self.assertFalse(self.service._mapped_to_this_conductor(n['uuid'],
-                                                                'otherdriver'))
 
+class KeepAliveTestCase(_ServiceSetUpMixin, tests_db_base.DbTestCase):
     def test__conductor_service_record_keepalive(self):
-        # stop mock_keepalive mock
-        self.mock_keepalive_patcher.stop()
-        self.mock_keepalive = None
-
         self._start_service()
         # avoid wasting time at the event.wait()
         CONF.set_override('heartbeat_interval', 0, 'conductor')
@@ -237,15 +227,10 @@ class ManagerTestCase(tests_db_base.DbTestCase):
                 self.service._conductor_service_record_keepalive()
             mock_touch.assert_called_once_with(self.hostname)
 
-    def test_get_driver_known(self):
-        self._start_service()
-        driver = self.service._get_driver('fake')
-        self.assertTrue(isinstance(driver, drivers_base.BaseDriver))
 
-    def test_get_driver_unknown(self):
-        self._start_service()
-        self.assertRaises(exception.DriverNotFound,
-                          self.service._get_driver, 'unknown_driver')
+@_mock_record_keepalive
+class ChangeNodePowerStateTestCase(_ServiceSetUpMixin,
+                                   tests_db_base.DbTestCase):
 
     def test_change_node_power_state_power_on(self):
         # Test change_node_power_state including integration with
@@ -393,6 +378,9 @@ class ManagerTestCase(tests_db_base.DbTestCase):
             self.assertIsNone(node.target_power_state)
             self.assertIsNone(node.last_error)
 
+
+@_mock_record_keepalive
+class UpdateNodeTestCase(_ServiceSetUpMixin, tests_db_base.DbTestCase):
     def test_update_node(self):
         node = obj_utils.create_test_node(self.context, driver='fake',
                                           extra={'test': 'one'})
@@ -476,6 +464,9 @@ class ManagerTestCase(tests_db_base.DbTestCase):
         node.refresh()
         self.assertEqual(existing_driver, node.driver)
 
+
+@_mock_record_keepalive
+class VendorPassthruTestCase(_ServiceSetUpMixin, tests_db_base.DbTestCase):
     def test_vendor_passthru_success(self):
         node = obj_utils.create_test_node(self.context, driver='fake')
         info = {'bar': 'baz'}
@@ -637,6 +628,10 @@ class ManagerTestCase(tests_db_base.DbTestCase):
                           'test_method',
                           {})
 
+
+@_mock_record_keepalive
+class DoNodeDeployTearDownTestCase(_ServiceSetUpMixin,
+                                   tests_db_base.DbTestCase):
     def test_do_node_deploy_invalid_state(self):
         # test node['provision_state'] is not NOSTATE
         node = obj_utils.create_test_node(self.context, driver='fake',
@@ -865,6 +860,27 @@ class ManagerTestCase(tests_db_base.DbTestCase):
         # Verify reservation has been cleared.
         self.assertIsNone(node.reservation)
 
+
+@_mock_record_keepalive
+class MiscTestCase(_ServiceSetUpMixin, tests_db_base.DbTestCase):
+    def test_get_driver_known(self):
+        self._start_service()
+        driver = self.service._get_driver('fake')
+        self.assertTrue(isinstance(driver, drivers_base.BaseDriver))
+
+    def test_get_driver_unknown(self):
+        self._start_service()
+        self.assertRaises(exception.DriverNotFound,
+                          self.service._get_driver, 'unknown_driver')
+
+    def test__mapped_to_this_conductor(self):
+        self._start_service()
+        n = utils.get_test_node()
+        self.assertTrue(self.service._mapped_to_this_conductor(n['uuid'],
+                                                               'fake'))
+        self.assertFalse(self.service._mapped_to_this_conductor(n['uuid'],
+                                                                'otherdriver'))
+
     def test_validate_driver_interfaces(self):
         node = obj_utils.create_test_node(self.context, driver='fake')
         ret = self.service.validate_driver_interfaces(self.context,
@@ -922,44 +938,9 @@ class ManagerTestCase(tests_db_base.DbTestCase):
         node.refresh(self.context)
         self.assertFalse(node.maintenance)
 
-    def test_destroy_node(self):
-        self._start_service()
-        node = obj_utils.create_test_node(self.context, driver='fake')
-        self.service.destroy_node(self.context, node.uuid)
-        self.assertRaises(exception.NodeNotFound,
-                          self.dbapi.get_node_by_uuid,
-                          node.uuid)
 
-    def test_destroy_node_reserved(self):
-        self._start_service()
-        fake_reservation = 'fake-reserv'
-        node = obj_utils.create_test_node(self.context,
-                                          reservation=fake_reservation)
-
-        exc = self.assertRaises(messaging.rpc.ExpectedException,
-                                self.service.destroy_node,
-                                self.context, node.uuid)
-        # Compare true exception hidden by @messaging.expected_exceptions
-        self.assertEqual(exception.NodeLocked, exc.exc_info[0])
-        # Verify existing reservation wasn't broken.
-        node.refresh()
-        self.assertEqual(fake_reservation, node.reservation)
-
-    def test_destroy_node_associated(self):
-        self._start_service()
-        node = obj_utils.create_test_node(self.context,
-                                          instance_uuid='fake-uuid')
-
-        exc = self.assertRaises(messaging.rpc.ExpectedException,
-                                self.service.destroy_node,
-                                self.context, node.uuid)
-        # Compare true exception hidden by @messaging.expected_exceptions
-        self.assertEqual(exception.NodeAssociated, exc.exc_info[0])
-
-        # Verify reservation was released.
-        node.refresh()
-        self.assertIsNone(node.reservation)
-
+@_mock_record_keepalive
+class ConsoleTestCase(_ServiceSetUpMixin, tests_db_base.DbTestCase):
     def test_set_console_mode_worker_pool_full(self):
         node = obj_utils.create_test_node(self.context, driver='fake')
         self._start_service()
@@ -1108,6 +1089,47 @@ class ManagerTestCase(tests_db_base.DbTestCase):
             # Compare true exception hidden by @messaging.expected_exceptions
             self.assertEqual(exception.InvalidParameterValue, exc.exc_info[0])
 
+
+@_mock_record_keepalive
+class DestroyNodeTestCase(_ServiceSetUpMixin, tests_db_base.DbTestCase):
+    def test_destroy_node(self):
+        self._start_service()
+        node = obj_utils.create_test_node(self.context, driver='fake')
+        self.service.destroy_node(self.context, node.uuid)
+        self.assertRaises(exception.NodeNotFound,
+                          self.dbapi.get_node_by_uuid,
+                          node.uuid)
+
+    def test_destroy_node_reserved(self):
+        self._start_service()
+        fake_reservation = 'fake-reserv'
+        node = obj_utils.create_test_node(self.context,
+                                          reservation=fake_reservation)
+
+        exc = self.assertRaises(messaging.rpc.ExpectedException,
+                                self.service.destroy_node,
+                                self.context, node.uuid)
+        # Compare true exception hidden by @messaging.expected_exceptions
+        self.assertEqual(exception.NodeLocked, exc.exc_info[0])
+        # Verify existing reservation wasn't broken.
+        node.refresh()
+        self.assertEqual(fake_reservation, node.reservation)
+
+    def test_destroy_node_associated(self):
+        self._start_service()
+        node = obj_utils.create_test_node(self.context,
+                                          instance_uuid='fake-uuid')
+
+        exc = self.assertRaises(messaging.rpc.ExpectedException,
+                                self.service.destroy_node,
+                                self.context, node.uuid)
+        # Compare true exception hidden by @messaging.expected_exceptions
+        self.assertEqual(exception.NodeAssociated, exc.exc_info[0])
+
+        # Verify reservation was released.
+        node.refresh()
+        self.assertIsNone(node.reservation)
+
     def test_destroy_node_power_on(self):
         self._start_service()
         node = obj_utils.create_test_node(self.context,
@@ -1128,6 +1150,9 @@ class ManagerTestCase(tests_db_base.DbTestCase):
                                           power_state=states.POWER_OFF)
         self.service.destroy_node(self.context, node.uuid)
 
+
+@_mock_record_keepalive
+class UpdatePortTestCase(_ServiceSetUpMixin, tests_db_base.DbTestCase):
     def test_update_port(self):
         obj_utils.create_test_node(self.context, driver='fake')
 
