@@ -141,6 +141,8 @@ class ManagerTestCase(tests_db_base.DbTestCase):
         super(ManagerTestCase, self).setUp()
         self.hostname = 'test-host'
         self.config(enabled_drivers=['fake'])
+        self.config(node_locked_retry_attempts=1, group='conductor')
+        self.config(node_locked_retry_interval=0, group='conductor')
         self.service = manager.ConductorManager(self.hostname, 'test-topic')
         self.dbapi = dbapi.get_instance()
         mgr_utils.mock_the_extension_manager()

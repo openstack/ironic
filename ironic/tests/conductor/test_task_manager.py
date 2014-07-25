@@ -39,6 +39,8 @@ class TaskManagerTestCase(tests_base.TestCase):
         super(TaskManagerTestCase, self).setUp()
         self.host = 'test-host'
         self.config(host=self.host)
+        self.config(node_locked_retry_attempts=1, group='conductor')
+        self.config(node_locked_retry_interval=0, group='conductor')
         self.context = mock.sentinel.context
         self.node = mock.Mock(spec_set=objects.Node)
 
