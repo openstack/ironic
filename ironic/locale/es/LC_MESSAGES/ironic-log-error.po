@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Ironic\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2014-07-22 06:12+0000\n"
+"POT-Creation-Date: 2014-07-28 06:10+0000\n"
 "PO-Revision-Date: 2014-07-21 23:13+0000\n"
 "Last-Translator: openstackjenkins <jenkins@openstack.org>\n"
 "Language-Team: Spanish (http://www.transifex.com/projects/p/ironic/language/"
@@ -18,6 +18,45 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Generated-By: Babel 1.3\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+#: ironic/drivers/modules/ipminative.py:345
+#, python-format
+msgid ""
+"IPMI set boot device failed for node %(node_id)s with the following error: "
+"%(error)s"
+msgstr ""
+
+#: ironic/drivers/modules/ipminative.py:380
+#, python-format
+msgid ""
+"IPMI get boot device failed for node %(node_id)s with the following error: "
+"%(error)s"
+msgstr ""
+
+#: ironic/drivers/modules/seamicro.py:538
+#, python-format
+msgid ""
+"Seamicro set boot device failed for node %(node)s with the following error: "
+"%(error)s"
+msgstr ""
+
+#: ironic/nova/virt/ironic/driver.py:296
+#, python-format
+msgid ""
+"Failed to clean up the parameters on node %(node)s when unprovisioning the "
+"instance %(instance)s"
+msgstr ""
+
+#: ironic/nova/virt/ironic/driver.py:539
+#, python-format
+msgid ""
+"Error preparing deploy for instance %(instance)s on baremetal node %(node)s."
+msgstr ""
+
+#: ironic/nova/virt/ironic/driver.py:564
+#, python-format
+msgid "Error deploying instance %(instance)s on baremetal node %(node)s."
+msgstr ""
 
 #: ironic/openstack/common/excutils.py:76
 #, python-format
