@@ -44,12 +44,14 @@ from alembic import script
 import mock
 from oslo.db import exception
 from oslo.db.sqlalchemy import test_base
+from oslo.db.sqlalchemy import test_migrations
 from oslo.db.sqlalchemy import utils as db_utils
 import sqlalchemy
 import sqlalchemy.exc
 
 from ironic.common import utils
 from ironic.db.sqlalchemy import migration
+from ironic.db.sqlalchemy import models
 from ironic.openstack.common import log as logging
 from ironic.tests import base
 
@@ -325,4 +327,29 @@ class TestMigrationsMySQL(MigrationCheckersMixin,
 class TestMigrationsPostgreSQL(MigrationCheckersMixin,
                                WalkVersionsMixin,
                                test_base.PostgreSQLOpportunisticTestCase):
+    pass
+
+
+class ModelsMigrationSyncMixin(object):
+
+    def get_metadata(self):
+        return models.Base.metadata
+
+    def get_engine(self):
+        return self.engine
+
+    def db_sync(self, engine):
+        with patch_with_engine(engine):
+            migration.upgrade('head')
+
+
+class ModelsMigrationsSyncMysql(ModelsMigrationSyncMixin,
+                                test_migrations.ModelsMigrationsSync,
+                                test_base.MySQLOpportunisticTestCase):
+    pass
+
+
+class ModelsMigrationsSyncPostgres(ModelsMigrationSyncMixin,
+                                   test_migrations.ModelsMigrationsSync,
+                                   test_base.PostgreSQLOpportunisticTestCase):
     pass
