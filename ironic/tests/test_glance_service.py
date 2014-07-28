@@ -25,6 +25,7 @@ from ironic.common.glance_service import base_image_service
 from ironic.common.glance_service import service_utils
 from ironic.common import image_service as service
 from ironic.openstack.common import context
+from ironic.openstack.common import jsonutils
 from ironic.tests import base
 from ironic.tests import matchers
 from ironic.tests import stubs
@@ -63,19 +64,26 @@ class TestGlanceSerializer(testtools.TestCase):
             'name': 'image1',
             'is_public': True,
             'foo': 'bar',
-            'properties': {
-                'prop1': 'propvalue1',
-                'mappings':
-                '[{"device": "bbb", "virtual": "aaa"}, '
-                '{"device": "yyy", "virtual": "xxx"}]',
-                'block_device_mapping':
-                '[{"virtual_device": "fake", "device_name": "/dev/fake"}, '
-                '{"virtual_device": "ephemeral0", '
-                '"device_name": "/dev/fake0"}]'}}
+            'properties': {'prop1': 'propvalue1'}
+        }
         converted = service_utils._convert(metadata, 'to')
-        self.assertEqual(converted_expected, converted)
         self.assertEqual(metadata,
                          service_utils._convert(converted, 'from'))
+        # Fields that rely on dict ordering can't be compared as text
+        mappings = jsonutils.loads(converted['properties']
+                                   .pop('mappings'))
+        self.assertEqual([{"device": "bbb", "virtual": "aaa"},
+                          {"device": "yyy", "virtual": "xxx"}],
+                         mappings)
+        bd_mapping = jsonutils.loads(converted['properties']
+                                     .pop('block_device_mapping'))
+        self.assertEqual([{"virtual_device": "fake",
+                           "device_name": "/dev/fake"},
+                          {"virtual_device": "ephemeral0",
+                           "device_name": "/dev/fake0"}],
+                         bd_mapping)
+        # Compare the remaining
+        self.assertEqual(converted_expected, converted)
 
 
 class TestGlanceImageService(base.TestCase):

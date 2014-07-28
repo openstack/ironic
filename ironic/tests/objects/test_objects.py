@@ -431,7 +431,12 @@ class _TestObject(object):
                          'updated_at': timeutils.isotime(dt),
                         }
                     }
-        self.assertEqual(expected, obj.obj_to_primitive())
+        actual = obj.obj_to_primitive()
+        # ironic_object.changes is built from a set and order is undefined
+        self.assertEqual(sorted(expected['ironic_object.changes']),
+                         sorted(actual['ironic_object.changes']))
+        del expected['ironic_object.changes'], actual['ironic_object.changes']
+        self.assertEqual(expected, actual)
 
     def test_contains(self):
         obj = MyObj()

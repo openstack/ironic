@@ -44,11 +44,11 @@ class TestListDrivers(base.FunctionalTest):
         self.assertThat(data['drivers'], HasLength(2))
         drivers = sorted(data['drivers'])
         for i in range(len(expected)):
-            driver = drivers[i]
-            self.assertEqual(expected[i]['name'], driver['name'])
-            self.assertEqual(expected[i]['hosts'], driver['hosts'])
-            self.validate_link(driver['links'][0]['href'])
-            self.validate_link(driver['links'][1]['href'])
+            d = drivers[i]
+            self.assertEqual(expected[i]['name'], d['name'])
+            self.assertEqual(sorted(expected[i]['hosts']), sorted(d['hosts']))
+            self.validate_link(d['links'][0]['href'])
+            self.validate_link(d['links'][1]['href'])
 
     def test_drivers_no_active_conductor(self):
         data = self.get_json('/drivers')
