@@ -999,7 +999,8 @@ class ConductorManager(periodic_task.PeriodicTasks):
             node.save(task.context)
 
     @messaging.expected_exceptions(exception.NodeLocked,
-                                   exception.FailedToUpdateMacOnPort)
+                                   exception.FailedToUpdateMacOnPort,
+                                   exception.MACAlreadyExists)
     def update_port(self, context, port_obj):
         """Update a port.
 
@@ -1007,6 +1008,8 @@ class ConductorManager(periodic_task.PeriodicTasks):
         :param port_obj: a changed (but not saved) port object.
         :raises: FailedToUpdateMacOnPort if MAC address changed and update
                  Neutron failed.
+        :raises: MACAlreadyExists if the update is setting a MAC which is
+                 registered on another port already.
         """
         port_uuid = port_obj.uuid
         LOG.debug("RPC update_port called for port %s.", port_uuid)
