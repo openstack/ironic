@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version:  Ironic\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2014-07-28 06:10+0000\n"
+"POT-Creation-Date: 2014-07-29 06:10+0000\n"
 "PO-Revision-Date: 2014-07-21 23:13+0000\n"
 "Last-Translator: openstackjenkins <jenkins@openstack.org>\n"
 "Language-Team: English (Australia) "
@@ -630,6 +630,33 @@ msgstr ""
 "Error contacting glance server '%(host)s:%(port)s' for '%(method)s', "
 "%(extra)s."
 
+#: ironic/common/glance_service/v2/image_service.py:127
+#, python-format
+msgid "The given image info does not have a valid image id: %s"
+msgstr ""
+
+#: ironic/common/glance_service/v2/image_service.py:153
+msgid ""
+"Swift temporary URLs require a shared secret to be created. You must "
+"provide \"swift_temp_url_key\" as a config option."
+msgstr ""
+
+#: ironic/common/glance_service/v2/image_service.py:157
+msgid ""
+"Swift temporary URLs require a Swift endpoint URL. You must provide "
+"\"swift_endpoint_url\" as a config option."
+msgstr ""
+
+#: ironic/common/glance_service/v2/image_service.py:161
+msgid ""
+"Swift temporary URLs require a Swift account string. You must provide "
+"\"swift_account\" as a config option."
+msgstr ""
+
+#: ironic/common/glance_service/v2/image_service.py:165
+msgid "\"swift_temp_url_duration\" must be a positive integer."
+msgstr ""
+
 #: ironic/conductor/manager.py:173
 #, python-format
 msgid ""
@@ -1190,15 +1217,15 @@ msgstr "Unsupported method (%s) passed to IPMItool driver."
 msgid "IPMI terminal port not supplied to IPMI driver."
 msgstr ""
 
-#: ironic/drivers/modules/pxe.py:94
+#: ironic/drivers/modules/pxe.py:96
 msgid "UUID (from Glance) of the deployment kernel. Required."
 msgstr ""
 
-#: ironic/drivers/modules/pxe.py:96
+#: ironic/drivers/modules/pxe.py:98
 msgid "UUID (from Glance) of the ramdisk that is mounted at boot time. Required."
 msgstr ""
 
-#: ironic/drivers/modules/pxe.py:109
+#: ironic/drivers/modules/pxe.py:111
 #, python-format
 msgid ""
 "Can not validate PXE bootloader. The following parameters were not passed"
@@ -1207,53 +1234,53 @@ msgstr ""
 "Can not validate PXE bootloader. The following parameters were not passed"
 " to ironic: %s"
 
-#: ironic/drivers/modules/pxe.py:159
+#: ironic/drivers/modules/pxe.py:161
 #, python-format
 msgid ""
 "Can not validate PXE bootloader. Invalid parameter %(param)s. Reason: "
 "%(reason)s"
 msgstr ""
 
-#: ironic/drivers/modules/pxe.py:165
+#: ironic/drivers/modules/pxe.py:167
 #, python-format
 msgid "'%s' is not an integer value."
 msgstr "'%s' is not an integer value."
 
-#: ironic/drivers/modules/pxe.py:302
+#: ironic/drivers/modules/pxe.py:304
 #, python-format
 msgid ""
 "Disk volume where '%(path)s' is located doesn't have enough disk space. "
 "Required %(required)d MiB, only %(actual)d MiB available space present."
 msgstr ""
 
-#: ironic/drivers/modules/pxe.py:431
+#: ironic/drivers/modules/pxe.py:433
 #, python-format
 msgid ""
 "Root partition is too small for requested image. Image size: %(image_mb)d"
 " MB, Root size: %(root_mb)d MB"
 msgstr ""
 
-#: ironic/drivers/modules/pxe.py:452
+#: ironic/drivers/modules/pxe.py:454
 #, python-format
 msgid "Failed to connect to Glance to get the properties of the image %s"
 msgstr ""
 
-#: ironic/drivers/modules/pxe.py:456
+#: ironic/drivers/modules/pxe.py:458
 #, python-format
 msgid "Image %s not found in Glance"
 msgstr ""
 
-#: ironic/drivers/modules/pxe.py:466
+#: ironic/drivers/modules/pxe.py:468
 #, python-format
 msgid "Image %(image)s is missing the following properties: %(properties)s"
 msgstr ""
 
-#: ironic/drivers/modules/pxe.py:485 ironic/drivers/modules/ssh.py:392
+#: ironic/drivers/modules/pxe.py:487 ironic/drivers/modules/ssh.py:392
 #, python-format
 msgid "Node %s does not have any port associated with it."
 msgstr "Node %s does not have any port associated with it."
 
-#: ironic/drivers/modules/pxe.py:497
+#: ironic/drivers/modules/pxe.py:499
 msgid ""
 "Couldn't get the URL of the Ironic API service from the configuration "
 "file or keystone catalog."
@@ -1261,21 +1288,21 @@ msgstr ""
 "Couldn't get the URL of the Ironic API service from the configuration "
 "file or keystone catalog."
 
-#: ironic/drivers/modules/pxe.py:595
+#: ironic/drivers/modules/pxe.py:597
 msgid "Deploy key does not match"
 msgstr ""
 
-#: ironic/drivers/modules/pxe.py:614
+#: ironic/drivers/modules/pxe.py:616
 #, python-format
 msgid "Parameters %s were not passed to ironic for deploy."
 msgstr "Parameters %s were not passed to ironic for deploy."
 
-#: ironic/drivers/modules/pxe.py:631
+#: ironic/drivers/modules/pxe.py:633
 #, python-format
 msgid "Unsupported method (%s) passed to PXE driver."
 msgstr "Unsupported method (%s) passed to PXE driver."
 
-#: ironic/drivers/modules/pxe.py:652
+#: ironic/drivers/modules/pxe.py:654
 #, python-format
 msgid ""
 "Node %s failed to power off while handling deploy failure. This may be a "
@@ -1286,35 +1313,35 @@ msgstr ""
 "serious condition. Node should be removed from Ironic or put in "
 "maintenance mode until the problem is resolved."
 
-#: ironic/drivers/modules/pxe.py:664
+#: ironic/drivers/modules/pxe.py:666
 #, python-format
 msgid "Node %s is not waiting to be deployed."
 msgstr "Node %s is not waiting to be deployed."
 
-#: ironic/drivers/modules/pxe.py:676
+#: ironic/drivers/modules/pxe.py:678
 #, python-format
 msgid "Error returned from PXE deploy ramdisk: %s"
 msgstr "Error returned from PXE deploy ramdisk: %s"
 
-#: ironic/drivers/modules/pxe.py:678
+#: ironic/drivers/modules/pxe.py:680
 msgid "Failure in PXE deploy ramdisk."
 msgstr "Failure in PXE deploy ramdisk."
 
-#: ironic/drivers/modules/pxe.py:682
+#: ironic/drivers/modules/pxe.py:684
 #, python-format
 msgid "Continuing deployment for node %(node)s, params %(params)s"
 msgstr "Continuing deployment for node %(node)s, params %(params)s"
 
-#: ironic/drivers/modules/pxe.py:688
+#: ironic/drivers/modules/pxe.py:690
 #, python-format
 msgid "PXE deploy failed for instance %(instance)s. Error: %(error)s"
 msgstr "PXE deploy failed for instance %(instance)s. Error: %(error)s"
 
-#: ironic/drivers/modules/pxe.py:691
+#: ironic/drivers/modules/pxe.py:693
 msgid "PXE driver failed to continue deployment."
 msgstr "PXE driver failed to continue deployment."
 
-#: ironic/drivers/modules/pxe.py:693
+#: ironic/drivers/modules/pxe.py:695
 #, python-format
 msgid "Deployment to node %s done"
 msgstr "Deployment to node %s done"
