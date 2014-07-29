@@ -71,6 +71,7 @@ class FakeSSHDriver(base.BaseDriver):
     def __init__(self):
         self.power = ssh.SSHPower()
         self.deploy = fake.FakeDeploy()
+        self.management = ssh.SSHManagement()
 
 
 class FakeIPMINativeDriver(base.BaseDriver):
