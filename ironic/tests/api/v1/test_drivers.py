@@ -51,7 +51,7 @@ class TestListDrivers(base.FunctionalTest):
         for i in range(len(expected)):
             d = drivers[i]
             self.assertEqual(expected[i]['name'], d['name'])
-            self.assertEqual(expected[i]['hosts'], d['hosts'])
+            self.assertEqual(sorted(expected[i]['hosts']), sorted(d['hosts']))
             self.validate_link(d['links'][0]['href'])
             self.validate_link(d['links'][1]['href'])
 
