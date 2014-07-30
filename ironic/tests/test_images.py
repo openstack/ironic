@@ -18,12 +18,20 @@
 
 import contextlib
 import fixtures
+import mock
+import os
+import shutil
 
+from oslo.config import cfg
 from oslo.utils import excutils
 
 from ironic.common import exception
 from ironic.common import images
+from ironic.common import utils
+from ironic.openstack.common import processutils
 from ironic.tests import base
+
+CONF = cfg.CONF
 
 
 class IronicImagesTestCase(base.TestCase):
@@ -111,3 +119,212 @@ class IronicImagesTestCase(base.TestCase):
         self.assertEqual(expected_commands, self.executes)
 
         del self.executes
+
+
+class FsImageTestCase(base.TestCase):
+
+    @mock.patch.object(shutil, 'copyfile')
+    @mock.patch.object(os, 'makedirs')
+    @mock.patch.object(os.path, 'dirname')
+    @mock.patch.object(os.path, 'exists')
+    def test__create_root_fs(self, path_exists_mock,
+                            dirname_mock, mkdir_mock, cp_mock):
+
+        path_exists_mock_func = lambda path: path == 'root_dir'
+
+        files_info = {
+                'a1': 'b1',
+                'a2': 'b2',
+                'a3': 'sub_dir/b3'}
+
+        path_exists_mock.side_effect = path_exists_mock_func
+        dirname_mock.side_effect = ['root_dir', 'root_dir',
+                                    'root_dir/sub_dir', 'root_dir/sub_dir']
+        images._create_root_fs('root_dir', files_info)
+        cp_mock.assert_any_call('a1', 'root_dir/b1')
+        cp_mock.assert_any_call('a2', 'root_dir/b2')
+        cp_mock.assert_any_call('a3', 'root_dir/sub_dir/b3')
+
+        path_exists_mock.assert_any_call('root_dir/sub_dir')
+        dirname_mock.assert_any_call('root_dir/b1')
+        dirname_mock.assert_any_call('root_dir/b2')
+        dirname_mock.assert_any_call('root_dir/sub_dir/b3')
+        mkdir_mock.assert_called_once_with('root_dir/sub_dir')
+
+    @mock.patch.object(images, '_create_root_fs')
+    @mock.patch.object(utils, 'tempdir')
+    @mock.patch.object(utils, 'write_to_file')
+    @mock.patch.object(utils, 'dd')
+    @mock.patch.object(utils, 'umount')
+    @mock.patch.object(utils, 'mount')
+    @mock.patch.object(utils, 'mkfs')
+    def test_create_vfat_image(self, mkfs_mock, mount_mock, umount_mock,
+            dd_mock, write_mock, tempdir_mock, create_root_fs_mock):
+
+        mock_file_handle = mock.MagicMock(spec=file)
+        mock_file_handle.__enter__.return_value = 'tempdir'
+        tempdir_mock.return_value = mock_file_handle
+
+        parameters = {'p1': 'v1'}
+        files_info = {'a': 'b'}
+        images.create_vfat_image('tgt_file', parameters=parameters,
+                files_info=files_info, parameters_file='qwe',
+                fs_size_kib=1000)
+
+        dd_mock.assert_called_once_with('/dev/zero',
+                                         'tgt_file',
+                                         'count=1',
+                                         'bs=1000KiB')
+
+        mkfs_mock.assert_called_once_with('vfat', 'tgt_file')
+        mount_mock.assert_called_once_with('tgt_file', 'tempdir',
+                                           '-o', 'umask=0')
+
+        parameters_file_path = os.path.join('tempdir', 'qwe')
+        write_mock.assert_called_once_with(parameters_file_path, 'p1=v1')
+        create_root_fs_mock.assert_called_once_with('tempdir', files_info)
+        umount_mock.assert_called_once_with('tempdir')
+
+    @mock.patch.object(images, '_create_root_fs')
+    @mock.patch.object(utils, 'tempdir')
+    @mock.patch.object(utils, 'dd')
+    @mock.patch.object(utils, 'umount')
+    @mock.patch.object(utils, 'mount')
+    @mock.patch.object(utils, 'mkfs')
+    def test_create_vfat_image_always_umount(self, mkfs_mock, mount_mock,
+            umount_mock, dd_mock, tempdir_mock, create_root_fs_mock):
+
+        mock_file_handle = mock.MagicMock(spec=file)
+        mock_file_handle.__enter__.return_value = 'tempdir'
+        tempdir_mock.return_value = mock_file_handle
+        files_info = {'a': 'b'}
+        create_root_fs_mock.side_effect = OSError()
+        self.assertRaises(exception.ImageCreationFailed,
+                          images.create_vfat_image, 'tgt_file',
+                          files_info=files_info)
+
+        umount_mock.assert_called_once_with('tempdir')
+
+    @mock.patch.object(utils, 'dd')
+    def test_create_vfat_image_dd_fails(self, dd_mock):
+
+        dd_mock.side_effect = processutils.ProcessExecutionError
+        self.assertRaises(exception.ImageCreationFailed,
+                          images.create_vfat_image, 'tgt_file')
+
+    @mock.patch.object(utils, 'tempdir')
+    @mock.patch.object(utils, 'dd')
+    @mock.patch.object(utils, 'mkfs')
+    def test_create_vfat_image_mkfs_fails(self, mkfs_mock, dd_mock,
+                                          tempdir_mock):
+
+        mock_file_handle = mock.MagicMock(spec=file)
+        mock_file_handle.__enter__.return_value = 'tempdir'
+        tempdir_mock.return_value = mock_file_handle
+
+        mkfs_mock.side_effect = processutils.ProcessExecutionError
+        self.assertRaises(exception.ImageCreationFailed,
+                          images.create_vfat_image, 'tgt_file')
+
+    @mock.patch.object(images, '_create_root_fs')
+    @mock.patch.object(utils, 'tempdir')
+    @mock.patch.object(utils, 'dd')
+    @mock.patch.object(utils, 'umount')
+    @mock.patch.object(utils, 'mount')
+    @mock.patch.object(utils, 'mkfs')
+    def test_create_vfat_image_umount_fails(self, mkfs_mock, mount_mock,
+            umount_mock, dd_mock, tempdir_mock, create_root_fs_mock):
+
+        mock_file_handle = mock.MagicMock(spec=file)
+        mock_file_handle.__enter__.return_value = 'tempdir'
+        tempdir_mock.return_value = mock_file_handle
+        umount_mock.side_effect = processutils.ProcessExecutionError
+
+        self.assertRaises(exception.ImageCreationFailed,
+                          images.create_vfat_image, 'tgt_file')
+
+    def test__generate_isolinux_cfg(self):
+
+        kernel_params = ['key1=value1', 'key2']
+        expected_cfg = ("default boot\n"
+                        "\n"
+                        "label boot\n"
+                        "kernel /vmlinuz\n"
+                        "append initrd=/initrd text key1=value1 key2 --")
+        cfg = images._generate_isolinux_cfg(kernel_params)
+        self.assertEqual(expected_cfg, cfg)
+
+    @mock.patch.object(images, '_create_root_fs')
+    @mock.patch.object(utils, 'write_to_file')
+    @mock.patch.object(utils, 'tempdir')
+    @mock.patch.object(utils, 'execute')
+    @mock.patch.object(images, '_generate_isolinux_cfg')
+    def test_create_isolinux_image(self, gen_cfg_mock, utils_mock,
+                                   tempdir_mock, write_to_file_mock,
+                                   create_root_fs_mock):
+
+        mock_file_handle = mock.MagicMock(spec=file)
+        mock_file_handle.__enter__.return_value = 'tmpdir'
+        tempdir_mock.return_value = mock_file_handle
+
+        cfg = "cfg"
+        cfg_file = 'tmpdir/isolinux/isolinux.cfg'
+        gen_cfg_mock.return_value = cfg
+
+        params = ['a=b', 'c']
+
+        images.create_isolinux_image('tgt_file', 'path/to/kernel',
+                'path/to/ramdisk', kernel_params=params)
+
+        files_info = {
+                'path/to/kernel': 'vmlinuz',
+                'path/to/ramdisk': 'initrd',
+                CONF.isolinux_bin: 'isolinux/isolinux.bin'
+                }
+        create_root_fs_mock.assert_called_once_with('tmpdir', files_info)
+        gen_cfg_mock.assert_called_once_with(params)
+        write_to_file_mock.assert_called_once_with(cfg_file, cfg)
+
+        utils_mock.assert_called_once_with('mkisofs', '-r', '-V',
+                 "BOOT IMAGE", '-cache-inodes', '-J', '-l',
+                 '-no-emul-boot', '-boot-load-size',
+                 '4', '-boot-info-table', '-b', 'isolinux/isolinux.bin',
+                 '-o', 'tgt_file', 'tmpdir')
+
+    @mock.patch.object(images, '_create_root_fs')
+    @mock.patch.object(utils, 'tempdir')
+    @mock.patch.object(utils, 'execute')
+    def test_create_isolinux_image_rootfs_fails(self, utils_mock,
+                                                tempdir_mock,
+                                                create_root_fs_mock):
+
+        mock_file_handle = mock.MagicMock(spec=file)
+        mock_file_handle.__enter__.return_value = 'tmpdir'
+        tempdir_mock.return_value = mock_file_handle
+        create_root_fs_mock.side_effect = IOError
+
+        self.assertRaises(exception.ImageCreationFailed,
+                          images.create_isolinux_image,
+                          'tgt_file', 'path/to/kernel',
+                          'path/to/ramdisk')
+
+    @mock.patch.object(images, '_create_root_fs')
+    @mock.patch.object(utils, 'write_to_file')
+    @mock.patch.object(utils, 'tempdir')
+    @mock.patch.object(utils, 'execute')
+    @mock.patch.object(images, '_generate_isolinux_cfg')
+    def test_create_isolinux_image_mkisofs_fails(self, gen_cfg_mock,
+                                                 utils_mock,
+                                                 tempdir_mock,
+                                                 write_to_file_mock,
+                                                 create_root_fs_mock):
+
+        mock_file_handle = mock.MagicMock(spec=file)
+        mock_file_handle.__enter__.return_value = 'tmpdir'
+        tempdir_mock.return_value = mock_file_handle
+        utils_mock.side_effect = processutils.ProcessExecutionError
+
+        self.assertRaises(exception.ImageCreationFailed,
+                          images.create_isolinux_image,
+                          'tgt_file', 'path/to/kernel',
+                          'path/to/ramdisk')

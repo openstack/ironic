@@ -20,26 +20,200 @@ Handling of VM disk images.
 """
 
 import os
+import shutil
 
+import jinja2
 from oslo.config import cfg
 
 from ironic.common import exception
+from ironic.common import i18n
 from ironic.common import image_service as service
+from ironic.common import paths
 from ironic.common import utils
 from ironic.openstack.common import fileutils
 from ironic.openstack.common import imageutils
 from ironic.openstack.common import log as logging
+from ironic.openstack.common import processutils
 
 LOG = logging.getLogger(__name__)
+
+_LE = i18n._LE
 
 image_opts = [
     cfg.BoolOpt('force_raw_images',
                 default=True,
                 help='Force backing images to raw format.'),
+    cfg.StrOpt('isolinux_bin',
+                default='/usr/lib/syslinux/isolinux.bin',
+                help='Path to isolinux binary file.'),
+    cfg.StrOpt('isolinux_config_template',
+                default=paths.basedir_def('common/isolinux_config.template'),
+                help='Template file for isolinux configuration file.'),
 ]
 
 CONF = cfg.CONF
 CONF.register_opts(image_opts)
+
+
+def _create_root_fs(root_directory, files_info):
+    """Creates a filesystem root in given directory.
+
+    Given a mapping of absolute path of files to their relative paths
+    within the filesystem, this method copies the files to their
+    destination.
+
+    :param root_directory: the filesystem root directory.
+    :param files_info: A dict containing absolute path of file to be copied
+        -> relative path within the vfat image. For example,
+        {
+         '/absolute/path/to/file' -> 'relative/path/within/root'
+         ...
+        }
+    :raises: OSError, if creation of any directory failed.
+    :raises: IOError, if copying any of the files failed.
+    """
+    for src_file, path in files_info.items():
+        target_file = os.path.join(root_directory, path)
+        dirname = os.path.dirname(target_file)
+        if not os.path.exists(dirname):
+            os.makedirs(dirname)
+
+        shutil.copyfile(src_file, target_file)
+
+
+def create_vfat_image(output_file, files_info=None, parameters=None,
+                      parameters_file='parameters.txt', fs_size_kib=100):
+    """Creates the fat fs image on the desired file.
+
+    This method copies the given files to a root directory (optional),
+    writes the parameters specified to the parameters file within the
+    root directory (optional), and then creates a vfat image of the root
+    directory.
+
+    :param output_file: The path to the file where the fat fs image needs
+        to be created.
+    :param files_info: A dict containing absolute path of file to be copied
+        -> relative path within the vfat image. For example,
+        {
+         '/absolute/path/to/file' -> 'relative/path/within/root'
+         ...
+        }
+    :param parameters: A dict containing key-value pairs of parameters.
+    :param parameters_file: The filename for the parameters file.
+    :param fs_size_kib: size of the vfat filesystem in KiB.
+    :raises: ImageCreationFailed, if image creation failed while doing any
+        of filesystem manipulation activities like creating dirs, mounting,
+        creating filesystem, copying files, etc.
+    """
+    try:
+        utils.dd('/dev/zero', output_file, 'count=1', "bs=%dKiB" % fs_size_kib)
+    except processutils.ProcessExecutionError as e:
+        raise exception.ImageCreationFailed(image_type='vfat', error=e)
+
+    with utils.tempdir() as tmpdir:
+
+        try:
+            utils.mkfs('vfat', output_file)
+            utils.mount(output_file, tmpdir, '-o', 'umask=0')
+        except processutils.ProcessExecutionError as e:
+            raise exception.ImageCreationFailed(image_type='vfat', error=e)
+
+        try:
+            if files_info:
+                _create_root_fs(tmpdir, files_info)
+
+            if parameters:
+                parameters_file = os.path.join(tmpdir, parameters_file)
+                params_list = ['%(key)s=%(val)s' % {'key': k, 'val': v}
+                           for k, v in parameters.items()]
+                file_contents = '\n'.join(params_list)
+                utils.write_to_file(parameters_file, file_contents)
+
+        except Exception as e:
+            LOG.exception(_LE("vfat image creation failed. Error: %s"), e)
+            raise exception.ImageCreationFailed(image_type='vfat', error=e)
+
+        finally:
+            try:
+                utils.umount(tmpdir)
+            except processutils.ProcessExecutionError as e:
+                raise exception.ImageCreationFailed(image_type='vfat', error=e)
+
+
+def _generate_isolinux_cfg(kernel_params):
+    """Generates a isolinux configuration file.
+
+    Given a given a list of strings containing kernel parameters, this method
+    returns the kernel cmdline string.
+    :param kernel_params: a list of strings(each element being a string like
+        'K=V' or 'K' or combination of them like 'K1=V1 K2 K3=V3') to be added
+        as the kernel cmdline.
+    :returns: a string containing the contents of the isolinux configuration
+        file.
+    """
+    if not kernel_params:
+        kernel_params = []
+    kernel_params_str = ' '.join(kernel_params)
+
+    template = CONF.isolinux_config_template
+    tmpl_path, tmpl_file = os.path.split(template)
+    env = jinja2.Environment(loader=jinja2.FileSystemLoader(tmpl_path))
+    template = env.get_template(tmpl_file)
+
+    options = {'kernel': '/vmlinuz', 'ramdisk': '/initrd',
+               'kernel_params': kernel_params_str}
+
+    cfg = template.render(options)
+    return cfg
+
+
+def create_isolinux_image(output_file, kernel, ramdisk, kernel_params=None):
+    """Creates an isolinux image on the specified file.
+
+    Copies the provided kernel, ramdisk to a directory, generates the isolinux
+    configuration file using the kernel parameters provided, and then generates
+    a bootable ISO image.
+
+    :param output_file: the path to the file where the iso image needs to be
+        created.
+    :param kernel: the kernel to use.
+    :param ramdisk: the ramdisk to use.
+    :param kernel_params: a list of strings(each element being a string like
+        'K=V' or 'K' or combination of them like 'K1=V1,K2,...') to be added
+        as the kernel cmdline.
+    :raises: ImageCreationFailed, if image creation failed while copying files
+        or while running command to generate iso.
+    """
+    ISOLINUX_BIN = 'isolinux/isolinux.bin'
+    ISOLINUX_CFG = 'isolinux/isolinux.cfg'
+
+    with utils.tempdir() as tmpdir:
+
+        files_info = {
+                      kernel: 'vmlinuz',
+                      ramdisk: 'initrd',
+                      CONF.isolinux_bin: ISOLINUX_BIN,
+                     }
+
+        try:
+            _create_root_fs(tmpdir, files_info)
+        except (OSError, IOError) as e:
+            LOG.exception(_LE("Creating the filesystem root failed."))
+            raise exception.ImageCreationFailed(image_type='iso', error=e)
+
+        cfg = _generate_isolinux_cfg(kernel_params)
+
+        isolinux_cfg = os.path.join(tmpdir, ISOLINUX_CFG)
+        utils.write_to_file(isolinux_cfg, cfg)
+
+        try:
+            utils.execute('mkisofs', '-r', '-V', "BOOT IMAGE",
+                          '-cache-inodes', '-J', '-l', '-no-emul-boot',
+                          '-boot-load-size', '4', '-boot-info-table',
+                          '-b', ISOLINUX_BIN, '-o', output_file, tmpdir)
+        except processutils.ProcessExecutionError as e:
+            LOG.exception(_LE("Creating ISO image failed."))
+            raise exception.ImageCreationFailed(image_type='iso', error=e)
 
 
 def qemu_img_info(path):

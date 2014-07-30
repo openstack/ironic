@@ -504,3 +504,44 @@ def is_uuid_like(val):
         return str(uuid.UUID(val)) == val
     except (TypeError, ValueError, AttributeError):
         return False
+
+
+def mount(src, dest, *args):
+    """Mounts a device/image file on specified location.
+
+    :param src: the path to the source file for mounting
+    :param dest: the path where it needs to be mounted.
+    :param args: a tuple containing the arguments to be
+        passed to mount command.
+    :raises: processutils.ProcessExecutionError if it failed
+        to run the process.
+    """
+    args = ('mount', ) + args + (src, dest)
+    execute(*args, run_as_root=True, check_exit_code=[0])
+
+
+def umount(loc, *args):
+    """Umounts a mounted location.
+
+    :param loc: the path to be unmounted.
+    :param args: a tuple containing the argumnets to be
+        passed to the umount command.
+    :raises: processutils.ProcessExecutionError if it failed
+        to run the process.
+    """
+    args = ('umount', ) + args + (loc, )
+    execute(*args, run_as_root=True, check_exit_code=[0])
+
+
+def dd(src, dst, *args):
+    """Execute dd from src to dst.
+
+    :param src: the input file for dd command.
+    :param dst: the output file for dd command.
+    :param args: a tuple containing the arguments to be
+        passed to dd command.
+    :raises: processutils.ProcessExecutionError if it failed
+        to run the process.
+    """
+    execute('dd', 'if=%s' % src, 'of=%s' % dst, *args,
+            run_as_root=True, check_exit_code=[0])

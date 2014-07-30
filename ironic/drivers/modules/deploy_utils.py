@@ -139,13 +139,7 @@ def is_block_device(dev):
 
 def dd(src, dst):
     """Execute dd from src to dst."""
-    utils.execute('dd',
-                  'if=%s' % src,
-                  'of=%s' % dst,
-                  'bs=1M',
-                  'oflag=direct',
-                  run_as_root=True,
-                  check_exit_code=[0])
+    utils.dd(src, dst, 'bs=1M', 'oflag=direct')
 
 
 def mkswap(dev, label='swap1'):

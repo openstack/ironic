@@ -354,7 +354,8 @@ def validate_glance_image_properties(ctx, deploy_info, properties):
     :param ctx: security context
     :param deploy_info: the deploy_info to be validated
     :param properties: the list of image meta-properties to be validated.
-    :raises: InvalidParameterValue if the glance image doesn't exist.
+    :raises: InvalidParameterValue if connection to glance failed or
+        authorization for accessing image failed or if image doesn't exist.
     :raises: MissingParameterValue if the glance image doesn't contain
         the mentioned properties.
     """

@@ -1,0 +1,5 @@
+default boot
+
+label boot
+kernel {{ kernel }}
+append initrd={{ ramdisk }} text {{ kernel_params }} --
