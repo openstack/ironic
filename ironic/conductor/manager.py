@@ -50,6 +50,7 @@ from eventlet import greenpool
 
 from oslo.config import cfg
 from oslo import messaging
+from oslo.utils import excutils
 
 from ironic.common import driver_factory
 from ironic.common import exception
@@ -63,7 +64,6 @@ from ironic.conductor import task_manager
 from ironic.conductor import utils
 from ironic.db import api as dbapi
 from ironic import objects
-from ironic.openstack.common import excutils
 from ironic.openstack.common import lockutils
 from ironic.openstack.common import log
 from ironic.openstack.common import periodic_task

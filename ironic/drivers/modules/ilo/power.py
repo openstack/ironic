@@ -17,13 +17,13 @@ iLO Power Driver
 """
 
 from oslo.config import cfg
+from oslo.utils import importutils
 
 from ironic.common import exception
 from ironic.common import states
 from ironic.conductor import task_manager
 from ironic.drivers import base
 from ironic.drivers.modules.ilo import common as ilo_common
-from ironic.openstack.common import importutils
 from ironic.openstack.common import log as logging
 from ironic.openstack.common import loopingcall
 

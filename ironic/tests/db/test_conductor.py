@@ -18,10 +18,10 @@
 import datetime
 
 import mock
+from oslo.utils import timeutils
 
 from ironic.common import exception
 from ironic.db import api as dbapi
-from ironic.openstack.common import timeutils
 from ironic.tests.db import base
 from ironic.tests.db import utils
 

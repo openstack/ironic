@@ -17,6 +17,7 @@
 
 import mock
 from oslo.config import cfg
+from oslo.utils import importutils
 
 from ironic.common import exception
 from ironic.common import states
@@ -25,7 +26,6 @@ from ironic.db import api as dbapi
 from ironic.drivers.modules.ilo import common as ilo_common
 from ironic.drivers.modules.ilo import power as ilo_power
 from ironic.openstack.common import context
-from ironic.openstack.common import importutils
 from ironic.tests import base
 from ironic.tests.conductor import utils as mgr_utils
 from ironic.tests.db import utils as db_utils

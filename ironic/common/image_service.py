@@ -15,9 +15,8 @@
 #    under the License.
 
 
-from ironic.openstack.common import importutils
-
 from oslo.config import cfg
+from oslo.utils import importutils
 
 
 glance_opts = [
@@ -58,7 +57,7 @@ def import_versioned_module(version, submodule=None):
     module = 'ironic.common.glance_service.v%s' % version
     if submodule:
         module = '.'.join((module, submodule))
-    return importutils.import_module(module)
+    return importutils.try_import(module)
 
 
 def Service(client=None, version=1, context=None):

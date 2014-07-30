@@ -20,6 +20,7 @@ Ironic Native IPMI power manager.
 """
 
 from oslo.config import cfg
+from oslo.utils import importutils
 
 from ironic.common import boot_devices
 from ironic.common import exception
@@ -27,7 +28,6 @@ from ironic.common import i18n
 from ironic.common import states
 from ironic.conductor import task_manager
 from ironic.drivers import base
-from ironic.openstack.common import importutils
 from ironic.openstack.common import log as logging
 
 pyghmi = importutils.try_import('pyghmi')

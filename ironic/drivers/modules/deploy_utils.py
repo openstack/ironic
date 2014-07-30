@@ -20,10 +20,11 @@ import socket
 import stat
 import time
 
+from oslo.utils import excutils
+
 from ironic.common import disk_partitioner
 from ironic.common import exception
 from ironic.common import utils
-from ironic.openstack.common import excutils
 from ironic.openstack.common import log as logging
 from ironic.openstack.common import processutils
 
