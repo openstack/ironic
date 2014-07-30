@@ -8,9 +8,9 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Ironic\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2014-07-28 06:10+0000\n"
-"PO-Revision-Date: 2014-07-25 23:10+0000\n"
-"Last-Translator: Andi Chandler <andi@gowling.com>\n"
+"POT-Creation-Date: 2014-07-30 06:10+0000\n"
+"PO-Revision-Date: 2014-07-29 11:01+0000\n"
+"Last-Translator: openstackjenkins <jenkins@openstack.org>\n"
 "Language-Team: English (United Kingdom) (http://www.transifex.com/projects/p/"
 "ironic/language/en_GB/)\n"
 "Language: en_GB\n"
@@ -53,6 +53,13 @@ msgid ""
 msgstr ""
 "IPMI get boot device failed for node %(node)s when executing \"ipmitool "
 "%(cmd)s\". Error: %(error)s"
+
+#: ironic/drivers/modules/ssh.py:631
+#, python-format
+msgid ""
+"Failed to get boot device for node %(node)s, virt_type %(vtype)s does not "
+"support this operation"
+msgstr ""
 
 #: ironic/nova/virt/ironic/driver.py:100
 #, python-format

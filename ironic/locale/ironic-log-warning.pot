@@ -6,9 +6,9 @@
 #, fuzzy
 msgid ""
 msgstr ""
-"Project-Id-Version: ironic 2014.2.dev5.gb6c7b0b\n"
+"Project-Id-Version: ironic 2014.2.dev19.g0b3fbb6\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2014-07-28 06:10+0000\n"
+"POT-Creation-Date: 2014-07-30 06:10+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -42,6 +42,13 @@ msgstr ""
 msgid ""
 "IPMI get boot device failed for node %(node)s when executing \"ipmitool "
 "%(cmd)s\". Error: %(error)s"
+msgstr ""
+
+#: ironic/drivers/modules/ssh.py:631
+#, python-format
+msgid ""
+"Failed to get boot device for node %(node)s, virt_type %(vtype)s does not"
+" support this operation"
 msgstr ""
 
 #: ironic/nova/virt/ironic/driver.py:100

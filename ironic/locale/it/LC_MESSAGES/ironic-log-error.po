@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Ironic\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2014-07-28 06:10+0000\n"
+"POT-Creation-Date: 2014-07-30 06:10+0000\n"
 "PO-Revision-Date: 2014-07-21 23:13+0000\n"
 "Last-Translator: openstackjenkins <jenkins@openstack.org>\n"
 "Language-Team: Italian (http://www.transifex.com/projects/p/ironic/language/"
@@ -39,6 +39,13 @@ msgstr ""
 msgid ""
 "Seamicro set boot device failed for node %(node)s with the following error: "
 "%(error)s"
+msgstr ""
+
+#: ironic/drivers/modules/ssh.py:598
+#, python-format
+msgid ""
+"Failed to set boot device for node %(node)s, virt_type %(vtype)s does not "
+"support this operation"
 msgstr ""
 
 #: ironic/nova/virt/ironic/driver.py:296
