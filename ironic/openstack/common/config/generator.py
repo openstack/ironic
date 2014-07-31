@@ -150,7 +150,7 @@ def _import_module(mod_str):
 
 
 def _is_in_group(opt, group):
-    "Check if opt is in group."
+    """Check if opt is in group."""
     for value in group._opts.values():
         # NOTE(llu): Temporary workaround for bug #1262148, wait until
         # newly released oslo.config support '==' operator.
@@ -159,7 +159,7 @@ def _is_in_group(opt, group):
     return False
 
 
-def _guess_groups(opt, mod_obj):
+def _guess_groups(opt):
     # is it in the DEFAULT group?
     if _is_in_group(opt, cfg.CONF):
         return 'DEFAULT'
@@ -193,7 +193,7 @@ def _list_opts(obj):
 
     ret = {}
     for opt in opts:
-        ret.setdefault(_guess_groups(opt, obj), []).append(opt)
+        ret.setdefault(_guess_groups(opt), []).append(opt)
     return ret.items()
 
 
@@ -223,6 +223,8 @@ def _get_my_ip():
 
 def _sanitize_default(name, value):
     """Set up a reasonably sensible default for pybasedir, my_ip and host."""
+    hostname = socket.gethostname()
+    fqdn = socket.getfqdn()
     if value.startswith(sys.prefix):
         # NOTE(jd) Don't use os.path.join, because it is likely to think the
         # second part is an absolute pathname and therefore drop the first
@@ -234,8 +236,13 @@ def _sanitize_default(name, value):
         return value.replace(BASEDIR, '')
     elif value == _get_my_ip():
         return '10.0.0.1'
-    elif value in (socket.gethostname(), socket.getfqdn()) and 'host' in name:
-        return 'ironic'
+    elif value in (hostname, fqdn):
+        if 'host' in name:
+            return 'ironic'
+    elif value.endswith(hostname):
+        return value.replace(hostname, 'ironic')
+    elif value.endswith(fqdn):
+        return value.replace(fqdn, 'ironic')
     elif value.strip() != value:
         return '"%s"' % value
     return value
@@ -246,7 +253,6 @@ def _print_opt(opt):
     if not opt_help:
         sys.stderr.write('WARNING: "%s" is missing help string.\n' % opt_name)
         opt_help = ""
-    opt_type = None
     try:
         opt_type = OPTION_REGEX.search(str(type(opt))).group(0)
     except (ValueError, AttributeError) as err:

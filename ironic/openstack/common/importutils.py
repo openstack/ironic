@@ -1,5 +1,3 @@
-# vim: tabstop=4 shiftwidth=4 softtabstop=4
-
 # Copyright 2011 OpenStack Foundation.
 # All Rights Reserved.
 #
@@ -26,10 +24,10 @@ import traceback
 def import_class(import_str):
     """Returns a class from a string including module and class."""
     mod_str, _sep, class_str = import_str.rpartition('.')
+    __import__(mod_str)
     try:
-        __import__(mod_str)
         return getattr(sys.modules[mod_str], class_str)
-    except (ValueError, AttributeError):
+    except AttributeError:
         raise ImportError('Class %s cannot be found (%s)' %
                           (class_str,
                            traceback.format_exception(*sys.exc_info())))
@@ -58,6 +56,13 @@ def import_module(import_str):
     """Import a module."""
     __import__(import_str)
     return sys.modules[import_str]
+
+
+def import_versioned_module(version, submodule=None):
+    module = 'ironic.v%s' % version
+    if submodule:
+        module = '.'.join((module, submodule))
+    return import_module(module)
 
 
 def try_import(import_str, default=None):
