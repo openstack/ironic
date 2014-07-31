@@ -279,7 +279,8 @@ class DbNodeTestCase(base.DbTestCase):
 
         self.dbapi.destroy_node(node_id)
 
-        self.assertRaises(exception.PortNotFound, self.dbapi.get_port, p.id)
+        self.assertRaises(exception.PortNotFound,
+                          self.dbapi.get_port_by_id, p.id)
 
     def test_ports_get_destroyed_after_destroying_a_node_by_uuid(self):
         n = self._create_test_node()
@@ -290,7 +291,8 @@ class DbNodeTestCase(base.DbTestCase):
 
         self.dbapi.destroy_node(n['uuid'])
 
-        self.assertRaises(exception.PortNotFound, self.dbapi.get_port, p.id)
+        self.assertRaises(exception.PortNotFound,
+                          self.dbapi.get_port_by_id, p.id)
 
     def test_update_node(self):
         n = self._create_test_node()

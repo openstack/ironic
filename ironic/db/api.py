@@ -190,10 +190,26 @@ class Connection(object):
         """
 
     @abc.abstractmethod
-    def get_port(self, port_id):
+    def get_port_by_id(self, port_id):
         """Return a network port representation.
 
-        :param port_id: The id or MAC of a port.
+        :param port_id: The id of a port.
+        :returns: A port.
+        """
+
+    @abc.abstractmethod
+    def get_port_by_uuid(self, port_uuid):
+        """Return a network port representation.
+
+        :param port_uuid: The uuid of a port.
+        :returns: A port.
+        """
+
+    @abc.abstractmethod
+    def get_port_by_address(self, address):
+        """Return a network port representation.
+
+        :param address: The MAC address of a port.
         :returns: A port.
         """
 
