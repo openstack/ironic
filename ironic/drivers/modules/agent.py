@@ -39,6 +39,7 @@ from ironic.openstack.common import fileutils
 from ironic.openstack.common import log
 
 
+_LE = i18n._LE
 _LW = i18n._LW
 
 agent_opts = [
@@ -419,7 +420,7 @@ class AgentVendorInterface(base.VendorInterface):
                 msg = _('Node failed to move to active state.')
                 self._reboot_to_instance(task, **kwargs)
         except Exception:
-            LOG.exception('Async exception for %(node)s: %(msg)s',
+            LOG.exception(_LE('Async exception for %(node)s: %(msg)s'),
                           {'node': node,
                            'msg': msg})
             _set_failed_state(task, msg)
