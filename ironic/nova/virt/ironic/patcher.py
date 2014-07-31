@@ -36,7 +36,7 @@ def create(node):
     :returns: GenericDriverFields or a subclass thereof, as appropriate
               for the supplied node.
     """
-    if 'pxe' in node.driver:
+    if 'pxe' in node.driver or 'agent' in node.driver:
         return PXEDriverFields(node)
     else:
         return GenericDriverFields(node)
