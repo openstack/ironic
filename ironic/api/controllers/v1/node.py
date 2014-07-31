@@ -271,8 +271,7 @@ class Node(base.APIBase):
     def _set_chassis_uuid(self, value):
         if value and self._chassis_uuid != value:
             try:
-                chassis = objects.Chassis.get_by_uuid(pecan.request.context,
-                                                      value)
+                chassis = objects.Chassis.get(pecan.request.context, value)
                 self._chassis_uuid = chassis.uuid
                 # NOTE(lucasagomes): Create the chassis_id attribute on-the-fly
                 #                    to satisfy the api -> rpc object

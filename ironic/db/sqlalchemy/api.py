@@ -169,8 +169,9 @@ class Connection(api.Connection):
             filters = []
 
         if 'chassis_uuid' in filters:
-            # get_chassis() to raise an exception if the chassis is not found
-            chassis_obj = self.get_chassis(filters['chassis_uuid'])
+            # get_chassis_by_uuid() to raise an exception if the chassis
+            # is not found
+            chassis_obj = self.get_chassis_by_uuid(filters['chassis_uuid'])
             query = query.filter_by(chassis_id=chassis_obj.id)
         if 'associated' in filters:
             if filters['associated']:
@@ -441,15 +442,19 @@ class Connection(api.Connection):
 
             query.delete()
 
-    @objects.objectify(objects.Chassis)
-    def get_chassis(self, chassis_id):
-        query = model_query(models.Chassis)
-        query = add_identity_filter(query, chassis_id)
-
+    def get_chassis_by_id(self, chassis_id):
+        query = model_query(models.Chassis).filter_by(id=chassis_id)
         try:
             return query.one()
         except NoResultFound:
             raise exception.ChassisNotFound(chassis=chassis_id)
+
+    def get_chassis_by_uuid(self, chassis_uuid):
+        query = model_query(models.Chassis).filter_by(uuid=chassis_uuid)
+        try:
+            return query.one()
+        except NoResultFound:
+            raise exception.ChassisNotFound(chassis=chassis_uuid)
 
     @objects.objectify(objects.Chassis)
     def get_chassis_list(self, limit=None, marker=None,
