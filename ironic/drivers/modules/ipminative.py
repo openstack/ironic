@@ -388,3 +388,13 @@ class NativeIPMIManagement(base.ManagementInterface):
                                             _BOOT_DEVICES_MAP.items()
                                             if hdev == bootdev), None)
         return response
+
+    def get_sensors_data(self, task):
+        """Get sensors data.
+
+        Not implemented by this driver.
+
+        :param task: a TaskManager instance.
+
+        """
+        raise NotImplementedError()

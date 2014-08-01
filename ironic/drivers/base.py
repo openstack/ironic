@@ -463,3 +463,40 @@ class ManagementInterface(object):
                 future boots or not, None if it is unknown.
 
         """
+
+    @abc.abstractmethod
+    def get_sensors_data(self, task):
+        """Get sensors data method.
+
+        :param task: a TaskManager instance.
+        :raises: FailedToGetSensorData when getting the sensor data fails.
+        :raises: FailedToParseSensorData when parsing sensor data fails.
+        :returns: returns a consistent format dict of sensor data grouped by
+                  sensor type, which can be processed by Ceilometer.
+                  eg, {
+                        'Sensor Type 1': {
+                          'Sensor ID 1': {
+                            'Sensor Reading': 'current value',
+                            'key1': 'value1',
+                            'key2': 'value2'
+                          },
+                          'Sensor ID 2': {
+                            'Sensor Reading': 'current value',
+                            'key1': 'value1',
+                            'key2': 'value2'
+                          }
+                        },
+                        'Sensor Type 2': {
+                          'Sensor ID 3': {
+                            'Sensor Reading': 'current value',
+                            'key1': 'value1',
+                            'key2': 'value2'
+                          },
+                          'Sensor ID 4': {
+                            'Sensor Reading': 'current value',
+                            'key1': 'value1',
+                            'key2': 'value2'
+                          }
+                        }
+                      }
+        """
