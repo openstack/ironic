@@ -38,3 +38,25 @@ def create_test_node(ctxt, **kw):
     node = get_test_node(ctxt, **kw)
     node.create()
     return node
+
+
+def get_test_port(ctxt, **kw):
+    """Return a Port object with appropriate attributes.
+
+    NOTE: The object leaves the attributes marked as changed, such
+    that a create() could be used to commit it to the DB.
+    """
+    db_port = db_utils.get_test_port(**kw)
+    port = objects.Port(context=ctxt)
+    for key in db_port:
+        setattr(port, key, db_port[key])
+    return port
+
+
+def create_test_port(ctxt, **kw):
+    """Create a port in the DB and return a Port object with appropriate
+    attributes.
+    """
+    port = get_test_port(ctxt, **kw)
+    port.create()
+    return port
