@@ -29,11 +29,10 @@ from ironic.common import states
 from ironic.common import utils
 from ironic.conductor import task_manager
 from ironic.conductor import utils as manager_utils
-from ironic.db import api as dbapi
 from ironic.drivers import base
 from ironic.drivers.modules import agent_client
 from ironic.drivers.modules import image_cache
-from ironic.objects import node as node_module
+from ironic import objects
 from ironic.openstack.common import excutils
 from ironic.openstack.common import fileutils
 from ironic.openstack.common import log
@@ -336,7 +335,6 @@ class AgentVendorInterface(base.VendorInterface):
             'lookup': self._lookup,
         }
         self.supported_payload_versions = ['2']
-        self.dbapi = dbapi.get_instance()
         self._client = _get_client()
 
     def get_properties(self):
@@ -584,7 +582,7 @@ class AgentVendorInterface(base.VendorInterface):
                 'database.') % mac_addresses)
         node_id = self._get_node_id(ports)
         try:
-            node = node_module.Node.get_by_id(context, node_id)
+            node = objects.Node.get_by_id(context, node_id)
         except exception.NodeNotFound:
             with excutils.save_and_reraise_exception():
                 LOG.exception(_('Could not find matching node for the '
@@ -601,9 +599,7 @@ class AgentVendorInterface(base.VendorInterface):
         for mac in mac_addresses:
             # Will do a search by mac if the mac isn't malformed
             try:
-                # TODO(JoshNang) add port.get_by_mac() to Ironic
-                # port.get_by_uuid() would technically work but shouldn't.
-                port_ob = self.dbapi.get_port(port_id=mac)
+                port_ob = objects.Port.get_by_address(context, mac)
                 ports.append(port_ob)
 
             except exception.PortNotFound:
