@@ -155,6 +155,7 @@ class ConductorManager(periodic_task.PeriodicTasks):
     target = messaging.Target(version=RPC_API_VERSION)
 
     def __init__(self, host, topic):
+        super(ConductorManager, self).__init__()
         if not host:
             host = CONF.host
         self.host = host
