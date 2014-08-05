@@ -246,7 +246,9 @@ Switch to the stack user and clone DevStack::
     cd ~
     git clone https://github.com/openstack-dev/devstack.git devstack
 
-Create devstack/localrc with minimal settings required to enable Ironic::
+Create devstack/localrc with minimal settings required to enable Ironic.
+Note that Ironic under devstack can only support running *either* the PXE
+or the agent driver, not both.::
 
     cd devstack
     cat >localrc <<END
@@ -298,6 +300,12 @@ Create devstack/localrc with minimal settings required to enable Ironic::
     SCREEN_LOGDIR=$HOME/logs
     IRONIC_VM_LOG_DIR=$HOME/ironic-bm-logs
 
+    # If running with the agent driver:
+    enable_service s-proxy s-object s-container s-account
+    SWIFT_ENABLE_TEMPURLS=True
+    IRONIC_ENABLED_DRIVERS=fake,agent_ssh,agent_ipmitool
+    IRONIC_BUILD_DEPLOY_RAMDISK=False
+    IRONIC_DEPLOY_DRIVER=agent_ssh
 
     END
 
@@ -309,8 +317,8 @@ Source credentials, create a key, and spawn an instance::
 
     source ~/devstack/openrc
 
-    # query the image id of the default cirros-0.3.1-x86_64-uec image
-    image=$(nova image-list | egrep "cirros-.*.-x86_64-uec[^-]" | awk '{ print $2 }')
+    # query the image id of the default cirros image
+    image=$(nova image-list | egrep "$DEFAULT_IMAGE_NAME" | awk '{ print $2 }')
 
     # create keypair
     ssh-keygen
