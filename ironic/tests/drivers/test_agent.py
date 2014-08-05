@@ -15,8 +15,8 @@
 import mock
 from oslo.config import cfg
 
+from ironic.common import dhcp_factory
 from ironic.common import exception
-from ironic.common import neutron
 from ironic.common import pxe_utils
 from ironic.common import states
 from ironic.conductor import task_manager
@@ -53,16 +53,16 @@ class TestAgentDeploy(db_base.DbTestCase):
                 self.context, self.node['uuid'], shared=False) as task:
             self.driver.validate(task)
 
-    @mock.patch.object(neutron, 'update_neutron')
+    @mock.patch.object(dhcp_factory.DHCPFactory, 'update_dhcp')
     @mock.patch('ironic.conductor.utils.node_set_boot_device')
     @mock.patch('ironic.conductor.utils.node_power_action')
-    def test_deploy(self, power_mock, bootdev_mock, neutron_mock):
+    def test_deploy(self, power_mock, bootdev_mock, dhcp_mock):
         dhcp_opts = pxe_utils.dhcp_options_for_instance()
         with task_manager.acquire(
                 self.context, self.node['uuid'], shared=False) as task:
             driver_return = self.driver.deploy(task)
             self.assertEqual(driver_return, states.DEPLOYWAIT)
-            neutron_mock.assert_called_once_with(task, dhcp_opts)
+            dhcp_mock.assert_called_once_with(task, dhcp_opts)
             bootdev_mock.assert_called_once_with(task, 'pxe', persistent=True)
             power_mock.assert_called_once_with(task,
                                                states.REBOOT)
@@ -81,12 +81,12 @@ class TestAgentDeploy(db_base.DbTestCase):
     def test_clean_up(self):
         pass
 
-    @mock.patch.object(neutron, 'update_neutron')
-    def test_take_over(self, update_neutron_mock):
+    @mock.patch.object(dhcp_factory.DHCPFactory, 'update_dhcp')
+    def test_take_over(self, update_dhcp_mock):
         with task_manager.acquire(
                 self.context, self.node['uuid'], shared=True) as task:
             task.driver.deploy.take_over(task)
-            update_neutron_mock.assert_called_once_with(
+            update_dhcp_mock.assert_called_once_with(
                 task, CONF.agent.agent_pxe_bootfile_name)
 
 

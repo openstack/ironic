@@ -21,10 +21,15 @@ from neutronclient.v2_0 import client as clientv20
 from oslo.config import cfg
 
 from ironic.common import exception
+from ironic.common import i18n
 from ironic.common import keystone
+from ironic.common import network
+from ironic.dhcp import base
 from ironic.drivers.modules import ssh
 from ironic.openstack.common import log as logging
 
+
+_LW = i18n._LW
 
 neutron_opts = [
     cfg.StrOpt('url',
@@ -40,7 +45,7 @@ neutron_opts = [
                     'Running neutron in noauth mode (related to but not '
                     'affected by this setting) is insecure and should only be '
                     'used for testing.')
-   ]
+    ]
 
 CONF = cfg.CONF
 CONF.import_opt('my_ip', 'ironic.netconf')
@@ -48,11 +53,11 @@ CONF.register_opts(neutron_opts, group='neutron')
 LOG = logging.getLogger(__name__)
 
 
-class NeutronAPI(object):
+class NeutronDHCPApi(base.BaseDHCP):
     """API for communicating to neutron 2.x API."""
 
-    def __init__(self, context):
-        self.context = context
+    def __init__(self, **kwargs):
+        token = kwargs.get('token', None)
         self.client = None
         params = {
             'timeout': CONF.neutron.url_timeout,
@@ -68,7 +73,7 @@ class NeutronAPI(object):
             params['endpoint_url'] = CONF.neutron.url
             params['auth_strategy'] = 'noauth'
         elif (CONF.neutron.auth_strategy == 'keystone' and
-                context.auth_token is None):
+                token is None):
             params['endpoint_url'] = (CONF.neutron.url or
                                       keystone.get_service_url('neutron'))
             params['username'] = CONF.keystone_authtoken.admin_user
@@ -76,7 +81,7 @@ class NeutronAPI(object):
             params['password'] = CONF.keystone_authtoken.admin_password
             params['auth_url'] = (CONF.keystone_authtoken.auth_uri or '')
         else:
-            params['token'] = context.auth_token
+            params['token'] = token
             params['endpoint_url'] = CONF.neutron.url
             params['auth_strategy'] = None
 
@@ -120,68 +125,51 @@ class NeutronAPI(object):
             self.client.update_port(port_id, port_req_body)
         except neutron_client_exc.NeutronClientException:
             LOG.exception(_("Failed to update MAC address on Neutron port %s."
-                           ), port_id)
+                            ), port_id)
             raise exception.FailedToUpdateMacOnPort(port_id=port_id)
 
+    def update_dhcp_opts(self, task, options):
+        """Send or update the DHCP BOOT options for this node.
 
-def get_node_vif_ids(task):
-    """Get all Neutron VIF ids for a node.
+        :param task: A TaskManager instance.
+        :param dhcp_opts: this will be a list of dicts, e.g.
+                        [{'opt_name': 'bootfile-name',
+                          'opt_value': 'pxelinux.0'},
+                         {'opt_name': 'server-ip-address',
+                          'opt_value': '123.123.123.456'},
+                         {'opt_name': 'tftp-server',
+                          'opt_value': '123.123.123.123'}]
+        """
+        vifs = network.get_node_vif_ids(task)
+        if not vifs:
+            LOG.warning(_LW("No VIFs found for node %(node)s when attempting "
+                            "to update DHCP BOOT options."),
+                        {'node': task.node.uuid})
+            return
 
-    This function does not handle multi node operations.
+        failures = []
+        for port_id, port_vif in vifs.items():
+            try:
+                self.update_port_dhcp_opts(port_vif, options)
+            except exception.FailedToUpdateDHCPOptOnPort:
+                failures.append(port_id)
 
-    :param task: a TaskManager instance.
-    :returns: A dict of the Node's port UUIDs and their associated VIFs
+        if failures:
+            if len(failures) == len(vifs):
+                raise exception.FailedToUpdateDHCPOptOnPort(_(
+                    "Failed to set DHCP BOOT options for any port on node %s.")
+                    % task.node.uuid)
+            else:
+                LOG.warning(_LW("Some errors were encountered when updating "
+                                "the DHCP BOOT options for node %(node)s on "
+                                "the following ports: %(ports)s."),
+                            {'node': task.node.uuid, 'ports': failures})
 
-    """
-    port_vifs = {}
-    for port in task.ports:
-        vif = port.extra.get('vif_port_id')
-        if vif:
-            port_vifs[port.uuid] = vif
-    return port_vifs
-
-
-def update_neutron(task, options):
-    """Send or update the DHCP BOOT options to Neutron for this node."""
-    vifs = get_node_vif_ids(task)
-    if not vifs:
-        LOG.warning(_("No VIFs found for node %(node)s when attempting to "
-                      "update Neutron DHCP BOOT options."),
-                      {'node': task.node.uuid})
-        return
-
-    # TODO(deva): decouple instantiation of NeutronAPI from task.context.
-    #             Try to use the user's task.context.auth_token, but if it
-    #             is not present, fall back to a server-generated context.
-    #             We don't need to recreate this in every method call.
-    api = NeutronAPI(task.context)
-    failures = []
-    for port_id, port_vif in vifs.iteritems():
-        try:
-            api.update_port_dhcp_opts(port_vif, options)
-        except exception.FailedToUpdateDHCPOptOnPort:
-            failures.append(port_id)
-
-    if failures:
-        if len(failures) == len(vifs):
-            raise exception.FailedToUpdateDHCPOptOnPort(_(
-                "Failed to set DHCP BOOT options for any port on node %s.") %
-                task.node.uuid)
-        else:
-            LOG.warning(_("Some errors were encountered when updating the "
-                          "DHCP BOOT options for node %(node)s on the "
-                          "following ports: %(ports)s."),
-                          {'node': task.node.uuid, 'ports': failures})
-
-    _wait_for_neutron_update(task)
-
-
-def _wait_for_neutron_update(task):
-    """Wait for Neutron agents to process all requested changes if required."""
-    # TODO(adam_g): Hack to workaround bug 1334447 until we have a mechanism
-    # for synchronizing events with Neutron.  We need to sleep only if we are
-    # booting VMs, which is implied by SSHPower, to ensure they do not boot
-    # before Neutron agents have setup sufficent DHCP config for netboot.
-    if isinstance(task.driver.power, ssh.SSHPower):
-        LOG.debug(_("Waiting 15 seconds for Neutron."))
-        time.sleep(15)
+        # TODO(adam_g): Hack to workaround bug 1334447 until we have a
+        # mechanism for synchronizing events with Neutron.  We need to sleep
+        # only if we are booting VMs, which is implied by SSHPower, to ensure
+        # they do not boot before Neutron agents have setup sufficent DHCP
+        # config for netboot.
+        if isinstance(task.driver.power, ssh.SSHPower):
+            LOG.debug("Waiting 15 seconds for Neutron.")
+            time.sleep(15)

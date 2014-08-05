@@ -711,6 +711,17 @@
 #mysql_engine=InnoDB
 
 
+[dhcp]
+
+#
+# Options defined in ironic.common.dhcp_factory
+#
+
+# DHCP provider to use. "neutron" uses Neutron, and "none"
+# uses a no-op provider. (string value)
+#dhcp_provider=neutron
+
+
 [disk_partitioner]
 
 #
@@ -1043,7 +1054,7 @@
 [neutron]
 
 #
-# Options defined in ironic.common.neutron
+# Options defined in ironic.dhcp.neutron
 #
 
 # URL for connecting to neutron. (string value)
@@ -1113,7 +1124,7 @@
 # (string value)
 #tftp_master_path=/tftpboot/master_images
 
-# Neutron bootfile DHCP parameter. (string value)
+# Bootfile DHCP parameter. (string value)
 #pxe_bootfile_name=pxelinux.0
 
 # Ironic compute node's HTTP server URL. Example:
