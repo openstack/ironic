@@ -14,10 +14,10 @@ sqlalchemy-migrate>=0.9.1
 netaddr>=0.7.6
 paramiko>=1.13.0
 iso8601>=0.1.9
-python-neutronclient>=2.3.5,<3
+python-neutronclient>=2.3.6,<3
 python-glanceclient>=0.13.1
-python-keystoneclient>=0.9.0
-python-swiftclient>=2.0.2
+python-keystoneclient>=0.10.0
+python-swiftclient>=2.2.0
 stevedore>=0.14
 pysendfile==2.0.0
 websockify>=0.5.1,<0.6
