@@ -265,6 +265,17 @@ class IPMINativeDriverTestCase(db_base.DbTestCase):
         with task_manager.acquire(self.context, self.node.uuid) as task:
             bootdev = self.driver.management.get_boot_device(task)
             self.assertEqual(boot_devices.DISK, bootdev['boot_device'])
+            self.assertIsNone(bootdev['persistent'])
+
+    @mock.patch('pyghmi.ipmi.command.Command')
+    def test_management_interface_get_boot_device_persistent(self, ipmi_mock):
+        ipmicmd = ipmi_mock.return_value
+        ipmicmd.get_bootdev.return_value = {'bootdev': 'hd',
+                                            'persistent': True}
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            bootdev = self.driver.management.get_boot_device(task)
+            self.assertEqual(boot_devices.DISK, bootdev['boot_device'])
+            self.assertTrue(bootdev['persistent'])
 
     @mock.patch('pyghmi.ipmi.command.Command')
     def test_management_interface_get_boot_device_fail(self, ipmi_mock):
