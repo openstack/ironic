@@ -365,7 +365,7 @@ class NativeIPMIManagement(base.ManagementInterface):
 
         """
         driver_info = _parse_driver_info(task.node)
-        response = {'boot_device': None, 'persistent': None}
+        response = {'boot_device': None}
         try:
             ipmicmd = ipmi_command.Command(bmc=driver_info['address'],
                                userid=driver_info['username'],
@@ -382,6 +382,7 @@ class NativeIPMIManagement(base.ManagementInterface):
                       {'node_id': driver_info['uuid'], 'error': e})
             raise exception.IPMIFailure(cmd=e)
 
+        response['persistent'] = ret.get('persistent')
         bootdev = ret.get('bootdev')
         if bootdev:
             response['boot_device'] = next((dev for dev, hdev in
