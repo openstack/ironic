@@ -23,6 +23,7 @@ import json
 from oslo.config import cfg
 from oslo.db import options as db_options
 from oslo.db.sqlalchemy import models
+from oslo.utils import timeutils
 import six.moves.urllib.parse as urlparse
 from sqlalchemy import Boolean, Column, DateTime
 from sqlalchemy import ForeignKey, Integer
@@ -88,8 +89,14 @@ class JSONEncodedList(JsonEncodedType):
     type = list
 
 
-class IronicBase(models.TimestampMixin,
-                 models.ModelBase):
+class IronicBase(models.ModelBase):
+    # FIXME(akruilin): remove `created_at` and `updated_at` attributes and use
+    # TimestampMixin from oslo.db.sqlalchemy.models instead, when
+    # ironic and oslo.db will use timeutils from one place (oslo.utils).
+    # Related patch in oslo.db : https://review.openstack.org/#/c/111701/
+    # Related bug: https://bugs.launchpad.net/ironic/+bug/1354443
+    created_at = Column(DateTime, default=lambda: timeutils.utcnow())
+    updated_at = Column(DateTime, onupdate=lambda: timeutils.utcnow())
 
     metadata = None
 
