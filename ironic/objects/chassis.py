@@ -24,7 +24,8 @@ class Chassis(base.IronicObject):
     # Version 1.0: Initial version
     # Version 1.1: Add get() and get_by_id() and make get_by_uuid()
     #              only work with a uuid
-    VERSION = '1.1'
+    # Version 1.2: Add create() and destroy()
+    VERSION = '1.2'
 
     dbapi = dbapi.get_instance()
 
@@ -91,6 +92,41 @@ class Chassis(base.IronicObject):
         # _from_db_object().
         chassis._context = context
         return chassis
+
+    @base.remotable
+    def create(self, context=None):
+        """Create a Chassis record in the DB.
+
+        Column-wise updates will be made based on the result of
+        self.what_changed(). If target_power_state is provided,
+        it will be checked against the in-database copy of the
+        chassis before updates are made.
+
+        :param context: Security context. NOTE: This should only
+                        be used internally by the indirection_api.
+                        Unfortunately, RPC requires context as the first
+                        argument, even though we don't use it.
+                        A context should be set when instantiating the
+                        object, e.g.: Chassis(context=context)
+
+        """
+        values = self.obj_get_changes()
+        db_chassis = self.dbapi.create_chassis(values)
+        self._from_db_object(self, db_chassis)
+
+    @base.remotable
+    def destroy(self, context=None):
+        """Delete the Chassis from the DB.
+
+        :param context: Security context. NOTE: This should only
+                        be used internally by the indirection_api.
+                        Unfortunately, RPC requires context as the first
+                        argument, even though we don't use it.
+                        A context should be set when instantiating the
+                        object, e.g.: Chassis(context=context)
+        """
+        self.dbapi.destroy_chassis(self.id)
+        self.obj_reset_changes()
 
     @base.remotable
     def save(self, context=None):

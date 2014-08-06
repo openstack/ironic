@@ -51,8 +51,7 @@ class TestListNodes(base.FunctionalTest):
 
     def setUp(self):
         super(TestListNodes, self).setUp()
-        cdict = dbutils.get_test_chassis()
-        self.chassis = self.dbapi.create_chassis(cdict)
+        self.chassis = obj_utils.create_test_chassis(self.context)
         p = mock.patch.object(rpcapi.ConductorAPI, 'get_topic_for')
         self.mock_gtf = p.start()
         self.mock_gtf.return_value = 'test-topic'
@@ -477,8 +476,7 @@ class TestPatch(base.FunctionalTest):
 
     def setUp(self):
         super(TestPatch, self).setUp()
-        cdict = dbutils.get_test_chassis()
-        self.chassis = self.dbapi.create_chassis(cdict)
+        self.chassis = obj_utils.create_test_chassis(self.context)
         self.node = obj_utils.create_test_node(self.context)
         p = mock.patch.object(rpcapi.ConductorAPI, 'get_topic_for')
         self.mock_gtf = p.start()
@@ -755,8 +753,7 @@ class TestPost(base.FunctionalTest):
 
     def setUp(self):
         super(TestPost, self).setUp()
-        cdict = dbutils.get_test_chassis()
-        self.chassis = self.dbapi.create_chassis(cdict)
+        self.chassis = obj_utils.create_test_chassis(self.context)
         p = mock.patch.object(rpcapi.ConductorAPI, 'get_topic_for')
         self.mock_gtf = p.start()
         self.mock_gtf.return_value = 'test-topic'
@@ -920,8 +917,7 @@ class TestDelete(base.FunctionalTest):
 
     def setUp(self):
         super(TestDelete, self).setUp()
-        cdict = dbutils.get_test_chassis()
-        self.chassis = self.dbapi.create_chassis(cdict)
+        self.chassis = obj_utils.create_test_chassis(self.context)
         p = mock.patch.object(rpcapi.ConductorAPI, 'get_topic_for')
         self.mock_gtf = p.start()
         self.mock_gtf.return_value = 'test-topic'
@@ -967,8 +963,7 @@ class TestPut(base.FunctionalTest):
 
     def setUp(self):
         super(TestPut, self).setUp()
-        cdict = dbutils.get_test_chassis()
-        self.chassis = self.dbapi.create_chassis(cdict)
+        self.chassis = obj_utils.create_test_chassis(self.context)
         self.node = obj_utils.create_test_node(self.context)
         p = mock.patch.object(rpcapi.ConductorAPI, 'get_topic_for')
         self.mock_gtf = p.start()

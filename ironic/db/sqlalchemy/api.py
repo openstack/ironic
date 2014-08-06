@@ -466,7 +466,6 @@ class Connection(api.Connection):
         return _paginate_query(models.Chassis, limit, marker,
                                sort_key, sort_dir)
 
-    @objects.objectify(objects.Chassis)
     def create_chassis(self, values):
         if not values.get('uuid'):
             values['uuid'] = utils.generate_uuid()

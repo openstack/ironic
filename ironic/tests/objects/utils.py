@@ -60,3 +60,25 @@ def create_test_port(ctxt, **kw):
     port = get_test_port(ctxt, **kw)
     port.create()
     return port
+
+
+def get_test_chassis(ctxt, **kw):
+    """Return a Chassis object with appropriate attributes.
+
+    NOTE: The object leaves the attributes marked as changed, such
+    that a create() could be used to commit it to the DB.
+    """
+    db_chassis = db_utils.get_test_chassis(**kw)
+    chassis = objects.Chassis(context=ctxt)
+    for key in db_chassis:
+        setattr(chassis, key, db_chassis[key])
+    return chassis
+
+
+def create_test_chassis(ctxt, **kw):
+    """Create a chassis in the DB and return a Chassis object with appropriate
+    attributes.
+    """
+    chassis = get_test_chassis(ctxt, **kw)
+    chassis.create()
+    return chassis

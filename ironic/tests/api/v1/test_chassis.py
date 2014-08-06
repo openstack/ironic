@@ -26,7 +26,6 @@ from six.moves.urllib import parse as urlparse
 from ironic.common import utils
 from ironic.tests.api import base
 from ironic.tests.api import utils as apiutils
-from ironic.tests.db import utils as dbutils
 from ironic.tests.objects import utils as obj_utils
 
 
@@ -37,43 +36,38 @@ class TestListChassis(base.FunctionalTest):
         self.assertEqual([], data['chassis'])
 
     def test_one(self):
-        ndict = dbutils.get_test_chassis()
-        chassis = self.dbapi.create_chassis(ndict)
+        chassis = obj_utils.create_test_chassis(self.context)
         data = self.get_json('/chassis')
-        self.assertEqual(chassis['uuid'], data['chassis'][0]["uuid"])
+        self.assertEqual(chassis.uuid, data['chassis'][0]["uuid"])
         self.assertNotIn('extra', data['chassis'][0])
         self.assertNotIn('nodes', data['chassis'][0])
 
     def test_get_one(self):
-        cdict = dbutils.get_test_chassis()
-        chassis = self.dbapi.create_chassis(cdict)
+        chassis = obj_utils.create_test_chassis(self.context)
         data = self.get_json('/chassis/%s' % chassis['uuid'])
-        self.assertEqual(chassis['uuid'], data['uuid'])
+        self.assertEqual(chassis.uuid, data['uuid'])
         self.assertIn('extra', data)
         self.assertIn('nodes', data)
 
     def test_detail(self):
-        cdict = dbutils.get_test_chassis()
-        chassis = self.dbapi.create_chassis(cdict)
+        chassis = obj_utils.create_test_chassis(self.context)
         data = self.get_json('/chassis/detail')
-        self.assertEqual(chassis['uuid'], data['chassis'][0]["uuid"])
+        self.assertEqual(chassis.uuid, data['chassis'][0]["uuid"])
         self.assertIn('extra', data['chassis'][0])
         self.assertIn('nodes', data['chassis'][0])
 
     def test_detail_against_single(self):
-        cdict = dbutils.get_test_chassis()
-        chassis = self.dbapi.create_chassis(cdict)
+        chassis = obj_utils.create_test_chassis(self.context)
         response = self.get_json('/chassis/%s/detail' % chassis['uuid'],
                                  expect_errors=True)
         self.assertEqual(404, response.status_int)
 
     def test_many(self):
         ch_list = []
-        for id in range(5):
-            ndict = dbutils.get_test_chassis(id=id,
-                                             uuid=utils.generate_uuid())
-            chassis = self.dbapi.create_chassis(ndict)
-            ch_list.append(chassis['uuid'])
+        for id_ in range(5):
+            chassis = obj_utils.create_test_chassis(self.context, id=id_,
+                                                    uuid=utils.generate_uuid())
+            ch_list.append(chassis.uuid)
         data = self.get_json('/chassis')
         self.assertEqual(len(ch_list), len(data['chassis']))
         uuids = [n['uuid'] for n in data['chassis']]
@@ -81,8 +75,7 @@ class TestListChassis(base.FunctionalTest):
 
     def test_links(self):
         uuid = utils.generate_uuid()
-        ndict = dbutils.get_test_chassis(id=1, uuid=uuid)
-        self.dbapi.create_chassis(ndict)
+        obj_utils.create_test_chassis(self.context, id=1, uuid=uuid)
         data = self.get_json('/chassis/%s' % uuid)
         self.assertIn('links', data.keys())
         self.assertEqual(2, len(data['links']))
@@ -92,12 +85,9 @@ class TestListChassis(base.FunctionalTest):
             self.assertTrue(self.validate_link(l['href'], bookmark=bookmark))
 
     def test_collection_links(self):
-        chassis = []
         for id in range(5):
-            ndict = dbutils.get_test_chassis(id=id,
-                                             uuid=utils.generate_uuid())
-            ch = self.dbapi.create_chassis(ndict)
-            chassis.append(ch['uuid'])
+            obj_utils.create_test_chassis(self.context, id=id,
+                                          uuid=utils.generate_uuid())
         data = self.get_json('/chassis/?limit=3')
         self.assertEqual(3, len(data['chassis']))
 
@@ -106,12 +96,9 @@ class TestListChassis(base.FunctionalTest):
 
     def test_collection_links_default_limit(self):
         cfg.CONF.set_override('max_limit', 3, 'api')
-        chassis = []
-        for id in range(5):
-            ndict = dbutils.get_test_chassis(id=id,
-                                             uuid=utils.generate_uuid())
-            ch = self.dbapi.create_chassis(ndict)
-            chassis.append(ch['uuid'])
+        for id_ in range(5):
+            obj_utils.create_test_chassis(self.context, id=id_,
+                                          uuid=utils.generate_uuid())
         data = self.get_json('/chassis')
         self.assertEqual(3, len(data['chassis']))
 
@@ -119,27 +106,24 @@ class TestListChassis(base.FunctionalTest):
         self.assertIn(next_marker, data['next'])
 
     def test_nodes_subresource_link(self):
-        ndict = dbutils.get_test_chassis()
-        self.dbapi.create_chassis(ndict)
-
-        data = self.get_json('/chassis/%s' % ndict['uuid'])
+        chassis = obj_utils.create_test_chassis(self.context)
+        data = self.get_json('/chassis/%s' % chassis.uuid)
         self.assertIn('nodes', data.keys())
 
     def test_nodes_subresource(self):
-        cdict = dbutils.get_test_chassis()
-        self.dbapi.create_chassis(cdict)
+        chassis = obj_utils.create_test_chassis(self.context)
 
-        for id in range(2):
-            obj_utils.create_test_node(self.context, id=id,
-                                       chassis_id=cdict['id'],
+        for id_ in range(2):
+            obj_utils.create_test_node(self.context, id=id_,
+                                       chassis_id=chassis.id,
                                        uuid=utils.generate_uuid())
 
-        data = self.get_json('/chassis/%s/nodes' % cdict['uuid'])
+        data = self.get_json('/chassis/%s/nodes' % chassis.uuid)
         self.assertEqual(2, len(data['nodes']))
         self.assertNotIn('next', data.keys())
 
         # Test collection pagination
-        data = self.get_json('/chassis/%s/nodes?limit=1' % cdict['uuid'])
+        data = self.get_json('/chassis/%s/nodes?limit=1' % chassis.uuid)
         self.assertEqual(1, len(data['nodes']))
         self.assertIn('next', data.keys())
 
@@ -158,8 +142,7 @@ class TestPatch(base.FunctionalTest):
 
     def setUp(self):
         super(TestPatch, self).setUp()
-        cdict = dbutils.get_test_chassis()
-        self.dbapi.create_chassis(cdict)
+        obj_utils.create_test_chassis(self.context)
 
     def test_update_not_found(self):
         uuid = utils.generate_uuid()
@@ -173,17 +156,17 @@ class TestPatch(base.FunctionalTest):
 
     @mock.patch.object(db_timeutils, 'utcnow')
     def test_replace_singular(self, mock_utcnow):
-        cdict = dbutils.get_test_chassis()
+        chassis = obj_utils.get_test_chassis(self.context)
         description = 'chassis-new-description'
         test_time = datetime.datetime(2000, 1, 1, 0, 0)
 
         mock_utcnow.return_value = test_time
-        response = self.patch_json('/chassis/%s' % cdict['uuid'],
+        response = self.patch_json('/chassis/%s' % chassis.uuid,
                                    [{'path': '/description',
                                      'value': description, 'op': 'replace'}])
         self.assertEqual('application/json', response.content_type)
         self.assertEqual(200, response.status_code)
-        result = self.get_json('/chassis/%s' % cdict['uuid'])
+        result = self.get_json('/chassis/%s' % chassis.uuid)
         self.assertEqual(description, result['description'])
         return_updated_at = timeutils.parse_isotime(
                             result['updated_at']).replace(tzinfo=None)
@@ -191,68 +174,66 @@ class TestPatch(base.FunctionalTest):
 
     def test_replace_multi(self):
         extra = {"foo1": "bar1", "foo2": "bar2", "foo3": "bar3"}
-        cdict = dbutils.get_test_chassis(extra=extra,
-                                         uuid=utils.generate_uuid(),
-                                         id=None)
-        self.dbapi.create_chassis(cdict)
+        chassis = obj_utils.create_test_chassis(self.context, extra=extra,
+                                                uuid=utils.generate_uuid(),
+                                                id=1)
         new_value = 'new value'
-        response = self.patch_json('/chassis/%s' % cdict['uuid'],
+        response = self.patch_json('/chassis/%s' % chassis.uuid,
                                    [{'path': '/extra/foo2',
                                      'value': new_value, 'op': 'replace'}])
         self.assertEqual('application/json', response.content_type)
         self.assertEqual(200, response.status_code)
-        result = self.get_json('/chassis/%s' % cdict['uuid'])
+        result = self.get_json('/chassis/%s' % chassis.uuid)
 
         extra["foo2"] = new_value
         self.assertEqual(extra, result['extra'])
 
     def test_remove_singular(self):
-        cdict = dbutils.get_test_chassis(extra={'a': 'b'},
-                                         uuid=utils.generate_uuid(),
-                                         id=None)
-        self.dbapi.create_chassis(cdict)
-        response = self.patch_json('/chassis/%s' % cdict['uuid'],
+        chassis = obj_utils.create_test_chassis(self.context, extra={'a': 'b'},
+                                                uuid=utils.generate_uuid(),
+                                                id=1)
+        response = self.patch_json('/chassis/%s' % chassis.uuid,
                                    [{'path': '/description', 'op': 'remove'}])
         self.assertEqual('application/json', response.content_type)
         self.assertEqual(200, response.status_code)
-        result = self.get_json('/chassis/%s' % cdict['uuid'])
+        result = self.get_json('/chassis/%s' % chassis.uuid)
         self.assertIsNone(result['description'])
 
         # Assert nothing else was changed
-        self.assertEqual(cdict['uuid'], result['uuid'])
-        self.assertEqual(cdict['extra'], result['extra'])
+        self.assertEqual(chassis.uuid, result['uuid'])
+        self.assertEqual(chassis.extra, result['extra'])
 
     def test_remove_multi(self):
         extra = {"foo1": "bar1", "foo2": "bar2", "foo3": "bar3"}
-        cdict = dbutils.get_test_chassis(extra=extra, description="foobar",
-                                         uuid=utils.generate_uuid(),
-                                         id=None)
-        self.dbapi.create_chassis(cdict)
+        chassis = obj_utils.create_test_chassis(self.context, extra=extra,
+                                                description="foobar",
+                                                uuid=utils.generate_uuid(),
+                                                id=1)
 
         # Removing one item from the collection
-        response = self.patch_json('/chassis/%s' % cdict['uuid'],
+        response = self.patch_json('/chassis/%s' % chassis.uuid,
                                    [{'path': '/extra/foo2', 'op': 'remove'}])
         self.assertEqual('application/json', response.content_type)
         self.assertEqual(200, response.status_code)
-        result = self.get_json('/chassis/%s' % cdict['uuid'])
+        result = self.get_json('/chassis/%s' % chassis.uuid)
         extra.pop("foo2")
         self.assertEqual(extra, result['extra'])
 
         # Removing the collection
-        response = self.patch_json('/chassis/%s' % cdict['uuid'],
+        response = self.patch_json('/chassis/%s' % chassis.uuid,
                                    [{'path': '/extra', 'op': 'remove'}])
         self.assertEqual('application/json', response.content_type)
         self.assertEqual(200, response.status_code)
-        result = self.get_json('/chassis/%s' % cdict['uuid'])
+        result = self.get_json('/chassis/%s' % chassis.uuid)
         self.assertEqual({}, result['extra'])
 
         # Assert nothing else was changed
-        self.assertEqual(cdict['uuid'], result['uuid'])
-        self.assertEqual(cdict['description'], result['description'])
+        self.assertEqual(chassis.uuid, result['uuid'])
+        self.assertEqual(chassis.description, result['description'])
 
     def test_remove_non_existent_property_fail(self):
-        cdict = dbutils.get_test_chassis()
-        response = self.patch_json('/chassis/%s' % cdict['uuid'],
+        chassis = obj_utils.get_test_chassis(self.context)
+        response = self.patch_json('/chassis/%s' % chassis.uuid,
                              [{'path': '/extra/non-existent', 'op': 'remove'}],
                              expect_errors=True)
         self.assertEqual('application/json', response.content_type)
@@ -260,16 +241,16 @@ class TestPatch(base.FunctionalTest):
         self.assertTrue(response.json['error_message'])
 
     def test_add_root(self):
-        cdict = dbutils.get_test_chassis()
-        response = self.patch_json('/chassis/%s' % cdict['uuid'],
+        chassis = obj_utils.get_test_chassis(self.context)
+        response = self.patch_json('/chassis/%s' % chassis.uuid,
                                    [{'path': '/description', 'value': 'test',
                                      'op': 'add'}])
         self.assertEqual('application/json', response.content_type)
         self.assertEqual(200, response.status_int)
 
     def test_add_root_non_existent(self):
-        cdict = dbutils.get_test_chassis()
-        response = self.patch_json('/chassis/%s' % cdict['uuid'],
+        chassis = obj_utils.get_test_chassis(self.context)
+        response = self.patch_json('/chassis/%s' % chassis.uuid,
                                    [{'path': '/foo', 'value': 'bar',
                                      'op': 'add'}],
                                    expect_errors=True)
@@ -278,28 +259,28 @@ class TestPatch(base.FunctionalTest):
         self.assertTrue(response.json['error_message'])
 
     def test_add_multi(self):
-        cdict = dbutils.get_test_chassis()
-        response = self.patch_json('/chassis/%s' % cdict['uuid'],
+        chassis = obj_utils.get_test_chassis(self.context)
+        response = self.patch_json('/chassis/%s' % chassis.uuid,
                                    [{'path': '/extra/foo1', 'value': 'bar1',
                                      'op': 'add'},
                                     {'path': '/extra/foo2', 'value': 'bar2',
                                      'op': 'add'}])
         self.assertEqual('application/json', response.content_type)
         self.assertEqual(200, response.status_code)
-        result = self.get_json('/chassis/%s' % cdict['uuid'])
+        result = self.get_json('/chassis/%s' % chassis.uuid)
         expected = {"foo1": "bar1", "foo2": "bar2"}
         self.assertEqual(expected, result['extra'])
 
     def test_patch_nodes_subresource(self):
-        cdict = dbutils.get_test_chassis()
-        response = self.patch_json('/chassis/%s/nodes' % cdict['uuid'],
+        chassis = obj_utils.get_test_chassis(self.context)
+        response = self.patch_json('/chassis/%s/nodes' % chassis.uuid,
                                    [{'path': '/extra/foo', 'value': 'bar',
                                      'op': 'add'}], expect_errors=True)
         self.assertEqual(403, response.status_int)
 
     def test_remove_uuid(self):
-        cdict = dbutils.get_test_chassis()
-        response = self.patch_json('/chassis/%s' % cdict['uuid'],
+        chassis = obj_utils.get_test_chassis(self.context)
+        response = self.patch_json('/chassis/%s' % chassis.uuid,
                                    [{'path': '/uuid', 'op': 'remove'}],
                                    expect_errors=True)
         self.assertEqual(400, response.status_int)
@@ -350,10 +331,9 @@ class TestPost(base.FunctionalTest):
         self.assertTrue(utils.is_uuid_like(result['chassis'][0]['uuid']))
 
     def test_post_nodes_subresource(self):
-        cdict = dbutils.get_test_chassis()
-        self.dbapi.create_chassis(cdict)
+        chassis = obj_utils.create_test_chassis(self.context)
         ndict = apiutils.node_post_data(chassis_id=None)
-        ndict['chassis_uuid'] = cdict['uuid']
+        ndict['chassis_uuid'] = chassis.uuid
         response = self.post_json('/chassis/nodes', ndict,
                                    expect_errors=True)
         self.assertEqual(403, response.status_int)
@@ -382,20 +362,18 @@ class TestPost(base.FunctionalTest):
 class TestDelete(base.FunctionalTest):
 
     def test_delete_chassis(self):
-        cdict = dbutils.get_test_chassis()
-        self.dbapi.create_chassis(cdict)
-        self.delete('/chassis/%s' % cdict['uuid'])
-        response = self.get_json('/chassis/%s' % cdict['uuid'],
+        chassis = obj_utils.create_test_chassis(self.context)
+        self.delete('/chassis/%s' % chassis.uuid)
+        response = self.get_json('/chassis/%s' % chassis.uuid,
                                  expect_errors=True)
         self.assertEqual(404, response.status_int)
         self.assertEqual('application/json', response.content_type)
         self.assertTrue(response.json['error_message'])
 
     def test_delete_chassis_with_node(self):
-        cdict = dbutils.get_test_chassis()
-        self.dbapi.create_chassis(cdict)
-        obj_utils.create_test_node(self.context, chassis_id=cdict['id'])
-        response = self.delete('/chassis/%s' % cdict['uuid'],
+        chassis = obj_utils.create_test_chassis(self.context)
+        obj_utils.create_test_node(self.context, chassis_id=chassis.id)
+        response = self.delete('/chassis/%s' % chassis.uuid,
                                expect_errors=True)
         self.assertEqual(400, response.status_int)
         self.assertEqual('application/json', response.content_type)
@@ -409,8 +387,7 @@ class TestDelete(base.FunctionalTest):
         self.assertTrue(response.json['error_message'])
 
     def test_delete_nodes_subresource(self):
-        cdict = dbutils.get_test_chassis()
-        self.dbapi.create_chassis(cdict)
-        response = self.delete('/chassis/%s/nodes' % cdict['uuid'],
+        chassis = obj_utils.create_test_chassis(self.context)
+        response = self.delete('/chassis/%s/nodes' % chassis.uuid,
                                expect_errors=True)
         self.assertEqual(403, response.status_int)
