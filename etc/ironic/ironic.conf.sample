@@ -1031,7 +1031,7 @@
 #
 
 # URL for connecting to neutron. (string value)
-#url=http://127.0.0.1:9696
+#url=http://$my_ip:9696
 
 # Timeout value for connecting to neutron in seconds. (integer
 # value)
