@@ -55,6 +55,88 @@ class NodePatchType(types.JsonPatchType):
         return ['/chassis_uuid', '/driver']
 
 
+class BootDeviceController(rest.RestController):
+
+    _custom_actions = {
+        'supported': ['GET'],
+    }
+
+    def _get_boot_device(self, node_uuid, supported=False):
+        """Get the current boot device or a list of supported devices.
+
+        :param node_uuid: UUID of a node.
+        :param supported: Boolean value. If true return a list of
+                          supported boot devices, if false return the
+                          current boot device. Default: False.
+        :returns: The current boot device or a list of the supported
+                  boot devices.
+
+        """
+        rpc_node = objects.Node.get_by_uuid(pecan.request.context, node_uuid)
+        topic = pecan.request.rpcapi.get_topic_for(rpc_node)
+        if supported:
+            return pecan.request.rpcapi.get_supported_boot_devices(
+                                       pecan.request.context, node_uuid, topic)
+        else:
+            return pecan.request.rpcapi.get_boot_device(pecan.request.context,
+                                                        node_uuid, topic)
+
+    @wsme_pecan.wsexpose(None, types.uuid, wtypes.text, types.boolean,
+                         status_code=204)
+    def put(self, node_uuid, boot_device, persistent=False):
+        """Set the boot device for a node.
+
+        Set the boot device to use on next reboot of the node.
+
+        :param node_uuid: UUID of a node.
+        :param boot_device: the boot device, one of
+                            :mod:`ironic.common.boot_devices`.
+        :param persistent: Boolean value. True if the boot device will
+                           persist to all future boots, False if not.
+                           Default: False.
+
+        """
+        rpc_node = objects.Node.get_by_uuid(pecan.request.context, node_uuid)
+        topic = pecan.request.rpcapi.get_topic_for(rpc_node)
+        pecan.request.rpcapi.set_boot_device(pecan.request.context, node_uuid,
+                                             boot_device,
+                                             persistent=persistent,
+                                             topic=topic)
+
+    @wsme_pecan.wsexpose(wtypes.text, types.uuid)
+    def get(self, node_uuid):
+        """Get the current boot device for a node.
+
+        :param node_uuid: UUID of a node.
+        :returns: a json object containing:
+
+            :boot_device: the boot device, one of
+                :mod:`ironic.common.boot_devices` or None if it is unknown.
+            :persistent: Whether the boot device will persist to all
+                future boots or not, None if it is unknown.
+
+        """
+        return self._get_boot_device(node_uuid)
+
+    @wsme_pecan.wsexpose(wtypes.text, types.uuid)
+    def supported(self, node_uuid):
+        """Get a list of the supported boot devices.
+
+        :param node_uuid: UUID of a node.
+        :returns: A json object with the list of supported boot
+                  devices.
+
+        """
+        boot_devices = self._get_boot_device(node_uuid, supported=True)
+        return {'supported_boot_devices': boot_devices}
+
+
+class NodeManagementController(rest.RestController):
+
+    boot_device = BootDeviceController()
+    "Expose boot_device as a sub-element of management"
+
+
 class ConsoleInfo(base.APIBase):
     """API representation of the console information for a node."""
 
@@ -486,6 +568,9 @@ class NodesController(rest.RestController):
 
     ports = port.PortsController()
     "Expose ports as a sub-element of nodes"
+
+    management = NodeManagementController()
+    "Expose management as a sub-element of nodes"
 
     # Set the flag to indicate that the requests to this resource are
     # coming from a top-level resource

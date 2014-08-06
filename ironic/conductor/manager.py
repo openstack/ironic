@@ -150,7 +150,7 @@ class ConductorManager(periodic_task.PeriodicTasks):
     """Ironic Conductor manager main class."""
 
     # NOTE(rloo): This must be in sync with rpcapi.ConductorAPI's.
-    RPC_API_VERSION = '1.16'
+    RPC_API_VERSION = '1.17'
 
     target = messaging.Target(version=RPC_API_VERSION)
 
@@ -1132,3 +1132,92 @@ class ConductorManager(periodic_task.PeriodicTasks):
 
         return dict((sensor_type, sensor_value) for (sensor_type, sensor_value)
             in sensors_data.items() if sensor_type.lower() in allowed)
+
+    @messaging.expected_exceptions(exception.NodeLocked,
+                                   exception.UnsupportedDriverExtension,
+                                   exception.InvalidParameterValue)
+    def set_boot_device(self, context, node_id, device, persistent=False):
+        """Set the boot device for a node.
+
+        Set the boot device to use on next reboot of the node.
+
+        :param context: request context.
+        :param node_id: node id or uuid.
+        :param device: the boot device, one of
+                       :mod:`ironic.common.boot_devices`.
+        :param persistent: Whether to set next-boot, or make the change
+                           permanent. Default: False.
+        :raises: NodeLocked if node is locked by another conductor.
+        :raises: UnsupportedDriverExtension if the node's driver doesn't
+                 support management.
+        :raises: InvalidParameterValue when the wrong driver info is
+                 specified or an invalid boot device is specified.
+
+        """
+        LOG.debug('RPC set_boot_device called for node %(node)s with '
+                  'device %(device)s', {'node': node_id, 'device': device})
+        with task_manager.acquire(context, node_id) as task:
+            node = task.node
+            if not getattr(task.driver, 'management', None):
+                raise exception.UnsupportedDriverExtension(
+                            driver=node.driver, extension='management')
+            task.driver.management.validate(task)
+            task.driver.management.set_boot_device(task, device,
+                                                   persistent=persistent)
+
+    @messaging.expected_exceptions(exception.NodeLocked,
+                                   exception.UnsupportedDriverExtension,
+                                   exception.InvalidParameterValue)
+    def get_boot_device(self, context, node_id):
+        """Get the current boot device.
+
+        Returns the current boot device of a node.
+
+        :param context: request context.
+        :param node_id: node id or uuid.
+        :raises: NodeLocked if node is locked by another conductor.
+        :raises: UnsupportedDriverExtension if the node's driver doesn't
+                 support management.
+        :raises: InvalidParameterValue when the wrong driver info is
+                 specified.
+        :returns: a dictionary containing:
+
+            :boot_device: the boot device, one of
+                :mod:`ironic.common.boot_devices` or None if it is unknown.
+            :persistent: Whether the boot device will persist to all
+                future boots or not, None if it is unknown.
+
+        """
+        LOG.debug('RPC get_boot_device called for node %s', node_id)
+        with task_manager.acquire(context, node_id) as task:
+            if not getattr(task.driver, 'management', None):
+                raise exception.UnsupportedDriverExtension(
+                            driver=task.node.driver, extension='management')
+            task.driver.management.validate(task)
+            return task.driver.management.get_boot_device(task)
+
+    @messaging.expected_exceptions(exception.NodeLocked,
+                                   exception.UnsupportedDriverExtension,
+                                   exception.InvalidParameterValue)
+    def get_supported_boot_devices(self, context, node_id):
+        """Get the list of supported devices.
+
+        Returns the list of supported boot devices of a node.
+
+        :param context: request context.
+        :param node_id: node id or uuid.
+        :raises: NodeLocked if node is locked by another conductor.
+        :raises: UnsupportedDriverExtension if the node's driver doesn't
+                 support management.
+        :raises: InvalidParameterValue when the wrong driver info is
+                 specified.
+        :returns: A list with the supported boot devices defined
+                  in :mod:`ironic.common.boot_devices`.
+
+        """
+        LOG.debug('RPC get_supported_boot_devices called for node %s', node_id)
+        with task_manager.acquire(context, node_id, shared=True) as task:
+            if not getattr(task.driver, 'management', None):
+                raise exception.UnsupportedDriverExtension(
+                            driver=task.node.driver, extension='management')
+            return task.driver.management.get_supported_boot_devices()

@@ -23,6 +23,7 @@ import copy
 import mock
 from oslo.config import cfg
 
+from ironic.common import boot_devices
 from ironic.common import exception
 from ironic.common import states
 from ironic.conductor import manager as conductor_manager
@@ -227,3 +228,23 @@ class RPCAPITestCase(base.DbTestCase):
                           'call',
                           version='1.16',
                           driver_name='fake-driver')
+
+    def test_set_boot_device(self):
+        self._test_rpcapi('set_boot_device',
+                          'call',
+                          version='1.17',
+                          node_id=self.fake_node['uuid'],
+                          device=boot_devices.DISK,
+                          persistent=False)
+
+    def test_get_boot_device(self):
+        self._test_rpcapi('get_boot_device',
+                          'call',
+                          version='1.17',
+                          node_id=self.fake_node['uuid'])
+
+    def test_get_supported_boot_devices(self):
+        self._test_rpcapi('get_supported_boot_devices',
+                          'call',
+                          version='1.17',
+                          node_id=self.fake_node['uuid'])

@@ -23,6 +23,7 @@ from oslo.db.openstack.common import timeutils as db_timeutils
 from six.moves.urllib import parse as urlparse
 from testtools.matchers import HasLength
 
+from ironic.common import boot_devices
 from ironic.common import exception
 from ironic.common import states
 from ironic.common import utils
@@ -429,6 +430,47 @@ class TestListNodes(base.FunctionalTest):
                                 expect_errors=True)
             self.assertEqual(400, ret.status_code)
             mock_gci.assert_called_once_with(mock.ANY, node.uuid, 'test-topic')
+
+    @mock.patch.object(rpcapi.ConductorAPI, 'get_boot_device')
+    def test_get_boot_device(self, mock_gbd):
+        node = obj_utils.create_test_node(self.context)
+        expected_data = {'boot_device': boot_devices.PXE, 'persistent': True}
+        mock_gbd.return_value = expected_data
+        data = self.get_json('/nodes/%s/management/boot_device' % node.uuid)
+        self.assertEqual(expected_data, data)
+        mock_gbd.assert_called_once_with(mock.ANY, node.uuid, 'test-topic')
+
+    @mock.patch.object(rpcapi.ConductorAPI, 'get_boot_device')
+    def test_get_boot_device_iface_not_supported(self, mock_gbd):
+        node = obj_utils.create_test_node(self.context)
+        mock_gbd.side_effect = exception.UnsupportedDriverExtension(
+                                  extension='management', driver='test-driver')
+        ret = self.get_json('/nodes/%s/management/boot_device' % node.uuid,
+                            expect_errors=True)
+        self.assertEqual(400, ret.status_code)
+        self.assertTrue(ret.json['error_message'])
+        mock_gbd.assert_called_once_with(mock.ANY, node.uuid, 'test-topic')
+
+    @mock.patch.object(rpcapi.ConductorAPI, 'get_supported_boot_devices')
+    def test_get_supported_boot_devices(self, mock_gsbd):
+        mock_gsbd.return_value = [boot_devices.PXE]
+        node = obj_utils.create_test_node(self.context)
+        data = self.get_json('/nodes/%s/management/boot_device/supported'
+                             % node.uuid)
+        expected_data = {'supported_boot_devices': [boot_devices.PXE]}
+        self.assertEqual(expected_data, data)
+        mock_gsbd.assert_called_once_with(mock.ANY, node.uuid, 'test-topic')
+
+    @mock.patch.object(rpcapi.ConductorAPI, 'get_supported_boot_devices')
+    def test_get_supported_boot_devices_iface_not_supported(self, mock_gsbd):
+        node = obj_utils.create_test_node(self.context)
+        mock_gsbd.side_effect = exception.UnsupportedDriverExtension(
+                                  extension='management', driver='test-driver')
+        ret = self.get_json('/nodes/%s/management/boot_device/supported' %
+                            node.uuid, expect_errors=True)
+        self.assertEqual(400, ret.status_code)
+        self.assertTrue(ret.json['error_message'])
+        mock_gsbd.assert_called_once_with(mock.ANY, node.uuid, 'test-topic')
 
 
 class TestPatch(base.FunctionalTest):
@@ -1102,3 +1144,48 @@ class TestPut(base.FunctionalTest):
                                 expect_errors=True)
             self.assertEqual(400, ret.status_code)
             self.assertTrue(ret.json['error_message'])
+
+    @mock.patch.object(rpcapi.ConductorAPI, 'set_boot_device')
+    def test_set_boot_device(self, mock_sbd):
+        device = boot_devices.PXE
+        ret = self.put_json('/nodes/%s/management/boot_device'
+                            % self.node.uuid, {'boot_device': device})
+        self.assertEqual(204, ret.status_code)
+        self.assertEqual('', ret.body)
+        mock_sbd.assert_called_once_with(mock.ANY, self.node.uuid,
+                                         device, persistent=False,
+                                         topic='test-topic')
+
+    @mock.patch.object(rpcapi.ConductorAPI, 'set_boot_device')
+    def test_set_boot_device_not_supported(self, mock_sbd):
+        mock_sbd.side_effect = exception.UnsupportedDriverExtension(
+                                  extension='management', driver='test-driver')
+        device = boot_devices.PXE
+        ret = self.put_json('/nodes/%s/management/boot_device'
+                            % self.node.uuid, {'boot_device': device},
+                            expect_errors=True)
+        self.assertEqual(400, ret.status_code)
+        self.assertTrue(ret.json['error_message'])
+        mock_sbd.assert_called_once_with(mock.ANY, self.node.uuid,
+                                         device, persistent=False,
+                                         topic='test-topic')
+
+    @mock.patch.object(rpcapi.ConductorAPI, 'set_boot_device')
+    def test_set_boot_device_persistent(self, mock_sbd):
+        device = boot_devices.PXE
+        ret = self.put_json('/nodes/%s/management/boot_device?persistent=True'
+                            % self.node.uuid, {'boot_device': device})
+        self.assertEqual(204, ret.status_code)
+        self.assertEqual('', ret.body)
+        mock_sbd.assert_called_once_with(mock.ANY, self.node.uuid,
+                                         device, persistent=True,
+                                         topic='test-topic')
+
+    @mock.patch.object(rpcapi.ConductorAPI, 'set_boot_device')
+    def test_set_boot_device_persistent_invalid_value(self, mock_sbd):
+        device = boot_devices.PXE
+        ret = self.put_json('/nodes/%s/management/boot_device?persistent=blah'
+                            % self.node.uuid, {'boot_device': device},
+                            expect_errors=True)
+        self.assertEqual('application/json', ret.content_type)
+        self.assertEqual(400, ret.status_code)
