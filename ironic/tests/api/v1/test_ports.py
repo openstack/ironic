@@ -54,50 +54,46 @@ class TestListPorts(base.FunctionalTest):
         self.assertEqual([], data['ports'])
 
     def test_one(self):
-        ndict = dbutils.get_test_port()
-        port = self.dbapi.create_port(ndict)
+        port = obj_utils.create_test_port(self.context)
         data = self.get_json('/ports')
-        self.assertEqual(port['uuid'], data['ports'][0]["uuid"])
+        self.assertEqual(port.uuid, data['ports'][0]["uuid"])
         self.assertNotIn('extra', data['ports'][0])
         self.assertNotIn('node_uuid', data['ports'][0])
         # never expose the node_id
         self.assertNotIn('node_id', data['ports'][0])
 
     def test_get_one(self):
-        pdict = dbutils.get_test_port()
-        port = self.dbapi.create_port(pdict)
-        data = self.get_json('/ports/%s' % port['uuid'])
-        self.assertEqual(port['uuid'], data['uuid'])
+        port = obj_utils.create_test_port(self.context)
+        data = self.get_json('/ports/%s' % port.uuid)
+        self.assertEqual(port.uuid, data['uuid'])
         self.assertIn('extra', data)
         self.assertIn('node_uuid', data)
         # never expose the node_id
         self.assertNotIn('node_id', data)
 
     def test_detail(self):
-        pdict = dbutils.get_test_port()
-        port = self.dbapi.create_port(pdict)
+        port = obj_utils.create_test_port(self.context)
         data = self.get_json('/ports/detail')
-        self.assertEqual(port['uuid'], data['ports'][0]["uuid"])
+        self.assertEqual(port.uuid, data['ports'][0]["uuid"])
         self.assertIn('extra', data['ports'][0])
         self.assertIn('node_uuid', data['ports'][0])
         # never expose the node_id
         self.assertNotIn('node_id', data['ports'][0])
 
     def test_detail_against_single(self):
-        pdict = dbutils.get_test_port()
-        port = self.dbapi.create_port(pdict)
-        response = self.get_json('/ports/%s/detail' % port['uuid'],
+        port = obj_utils.create_test_port(self.context)
+        response = self.get_json('/ports/%s/detail' % port.uuid,
                                  expect_errors=True)
         self.assertEqual(404, response.status_int)
 
     def test_many(self):
         ports = []
-        for id in range(5):
-            ndict = dbutils.get_test_port(id=id,
-                                          uuid=utils.generate_uuid(),
-                                          address='52:54:00:cf:2d:3%s' % id)
-            port = self.dbapi.create_port(ndict)
-            ports.append(port['uuid'])
+        for id_ in range(5):
+            port = obj_utils.create_test_port(self.context,
+                                            id=id_,
+                                            uuid=utils.generate_uuid(),
+                                            address='52:54:00:cf:2d:3%s' % id_)
+            ports.append(port.uuid)
         data = self.get_json('/ports')
         self.assertEqual(len(ports), len(data['ports']))
 
@@ -106,8 +102,7 @@ class TestListPorts(base.FunctionalTest):
 
     def test_links(self):
         uuid = utils.generate_uuid()
-        ndict = dbutils.get_test_port(id=1, uuid=uuid)
-        self.dbapi.create_port(ndict)
+        obj_utils.create_test_port(self.context, id=1, uuid=uuid)
         data = self.get_json('/ports/%s' % uuid)
         self.assertIn('links', data.keys())
         self.assertEqual(2, len(data['links']))
@@ -118,12 +113,12 @@ class TestListPorts(base.FunctionalTest):
 
     def test_collection_links(self):
         ports = []
-        for id in range(5):
-            ndict = dbutils.get_test_port(id=id,
-                                          uuid=utils.generate_uuid(),
-                                          address='52:54:00:cf:2d:3%s' % id)
-            port = self.dbapi.create_port(ndict)
-            ports.append(port['uuid'])
+        for id_ in range(5):
+            port = obj_utils.create_test_port(self.context,
+                                            id=id_,
+                                            uuid=utils.generate_uuid(),
+                                            address='52:54:00:cf:2d:3%s' % id_)
+            ports.append(port.uuid)
         data = self.get_json('/ports/?limit=3')
         self.assertEqual(3, len(data['ports']))
 
@@ -133,12 +128,12 @@ class TestListPorts(base.FunctionalTest):
     def test_collection_links_default_limit(self):
         cfg.CONF.set_override('max_limit', 3, 'api')
         ports = []
-        for id in range(5):
-            ndict = dbutils.get_test_port(id=id,
-                                          uuid=utils.generate_uuid(),
-                                          address='52:54:00:cf:2d:3%s' % id)
-            port = self.dbapi.create_port(ndict)
-            ports.append(port['uuid'])
+        for id_ in range(5):
+            port = obj_utils.create_test_port(self.context,
+                                            id=id_,
+                                            uuid=utils.generate_uuid(),
+                                            address='52:54:00:cf:2d:3%s' % id_)
+            ports.append(port.uuid)
         data = self.get_json('/ports')
         self.assertEqual(3, len(data['ports']))
 
@@ -148,10 +143,10 @@ class TestListPorts(base.FunctionalTest):
     def test_port_by_address(self):
         address_template = "aa:bb:cc:dd:ee:f%d"
         for id_ in range(3):
-            pdict = dbutils.get_test_port(id=id_,
-                                          uuid=utils.generate_uuid(),
-                                          address=address_template % id_)
-            self.dbapi.create_port(pdict)
+            obj_utils.create_test_port(self.context,
+                                       id=id_,
+                                       uuid=utils.generate_uuid(),
+                                       address=address_template % id_)
 
         target_address = address_template % 1
         data = self.get_json('/ports?address=%s' % target_address)
@@ -159,15 +154,12 @@ class TestListPorts(base.FunctionalTest):
         self.assertEqual(target_address, data['ports'][0]['address'])
 
     def test_port_by_address_non_existent_address(self):
-        pdict = dbutils.get_test_port()
-        self.dbapi.create_port(pdict)
         # non-existent address
         data = self.get_json('/ports?address=%s' % 'aa:bb:cc:dd:ee:ff')
         self.assertThat(data['ports'], HasLength(0))
 
     def test_port_by_address_invalid_address_format(self):
-        pdict = dbutils.get_test_port()
-        self.dbapi.create_port(pdict)
+        obj_utils.create_test_port(self.context)
         invalid_address = 'invalid-mac-format'
         response = self.get_json('/ports?address=%s' % invalid_address,
                                  expect_errors=True)
@@ -182,8 +174,7 @@ class TestPatch(base.FunctionalTest):
     def setUp(self):
         super(TestPatch, self).setUp()
         self.node = obj_utils.create_test_node(context.get_admin_context())
-        self.pdict = dbutils.get_test_port(id=None)
-        self.port = self.dbapi.create_port(self.pdict)
+        self.port = obj_utils.create_test_port(self.context)
 
         p = mock.patch.object(rpcapi.ConductorAPI, 'get_topic_for')
         self.mock_gtf = p.start()
@@ -249,12 +240,7 @@ class TestPatch(base.FunctionalTest):
 
     def test_replace_address_already_exist(self, mock_upd):
         address = 'aa:aa:aa:aa:aa:aa'
-        dup = dbutils.get_test_port(address=address,
-                                    uuid=utils.generate_uuid(),
-                                    id=None)
-        self.dbapi.create_port(dup)
-        mock_upd.side_effect = exception.MACAlreadyExists(
-                                                mac=address)
+        mock_upd.side_effect = exception.MACAlreadyExists(mac=address)
         response = self.patch_json('/ports/%s' % self.port.uuid,
                                    [{'path': '/address',
                                      'value': address,
@@ -619,8 +605,7 @@ class TestDelete(base.FunctionalTest):
     def setUp(self):
         super(TestDelete, self).setUp()
         self.node = obj_utils.create_test_node(context.get_admin_context())
-        pdict = dbutils.get_test_port()
-        self.dbapi.create_port(pdict)
+        obj_utils.create_test_port(self.context)
 
     def test_delete_port_byid(self):
         pdict = dbutils.get_test_port()

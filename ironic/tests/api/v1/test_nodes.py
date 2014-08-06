@@ -194,11 +194,10 @@ class TestListNodes(base.FunctionalTest):
     def test_ports_subresource(self):
         node = obj_utils.create_test_node(self.context)
 
-        for id in range(2):
-            pdict = dbutils.get_test_port(id=id, node_id=node.id,
-                                          uuid=utils.generate_uuid(),
-                                          address='52:54:00:cf:2d:3%s' % id)
-            self.dbapi.create_port(pdict)
+        for id_ in range(2):
+            obj_utils.create_test_port(self.context, id=id_, node_id=node.id,
+                                       uuid=utils.generate_uuid(),
+                                       address='52:54:00:cf:2d:3%s' % id_)
 
         data = self.get_json('/nodes/%s/ports' % node.uuid)
         self.assertEqual(2, len(data['ports']))
@@ -211,8 +210,7 @@ class TestListNodes(base.FunctionalTest):
 
     def test_ports_subresource_noid(self):
         node = obj_utils.create_test_node(self.context)
-        pdict = dbutils.get_test_port(node_id=node.id)
-        self.dbapi.create_port(pdict)
+        obj_utils.create_test_port(self.context, node_id=node.id)
         # No node id specified
         response = self.get_json('/nodes/ports', expect_errors=True)
         self.assertEqual(400, response.status_int)

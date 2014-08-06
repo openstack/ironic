@@ -212,10 +212,6 @@ class PXEPrivateMethodsTestCase(db_base.DbTestCase):
         self.context = context.get_admin_context()
         self.node = obj_utils.create_test_node(self.context, **n)
 
-    def _create_test_port(self, **kwargs):
-        p = db_utils.get_test_port(**kwargs)
-        return self.dbapi.create_port(p)
-
     @mock.patch.object(base_image_service.BaseImageService, '_show')
     def test__get_image_info(self, show_mock):
         properties = {'properties': {u'kernel_id': u'instance_kernel_uuid',
@@ -564,8 +560,8 @@ class PXEDriverTestCase(db_base.DbTestCase):
                                                instance_info=instance_info,
                                                driver_info=DRV_INFO_DICT)
         self.dbapi = dbapi.get_instance()
-        self.port = self.dbapi.create_port(db_utils.get_test_port(
-                                                         node_id=self.node.id))
+        self.port = obj_utils.create_test_port(self.context,
+                                               node_id=self.node.id)
         self.config(group='conductor', api_url='http://127.0.0.1:1234/')
 
     def _create_token_file(self):
@@ -913,12 +909,10 @@ class PXEDriverTestCase(db_base.DbTestCase):
 
         ports = []
         ports.append(
-            self.dbapi.create_port(
-                db_utils.get_test_port(
-                    id=6,
-                    address='aa:bb:cc',
-                    uuid='bb43dc0b-03f2-4d2e-ae87-c02d7f33cc53',
-                    node_id='123')))
+            obj_utils.create_test_port(self.context,
+                    id=6, address='aa:bb:cc', node_id='123',
+                    uuid='bb43dc0b-03f2-4d2e-ae87-c02d7f33cc53')
+         )
 
         d_kernel_path = os.path.join(CONF.pxe.tftp_root,
                                      self.node.uuid, 'deploy_kernel')

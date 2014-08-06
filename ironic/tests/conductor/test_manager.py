@@ -1157,8 +1157,7 @@ class UpdatePortTestCase(_ServiceSetUpMixin, tests_db_base.DbTestCase):
     def test_update_port(self):
         obj_utils.create_test_node(self.context, driver='fake')
 
-        pdict = utils.get_test_port(extra={'foo': 'bar'})
-        port = self.dbapi.create_port(pdict)
+        port = obj_utils.create_test_port(self.context, extra={'foo': 'bar'})
         new_extra = {'foo': 'baz'}
         port.extra = new_extra
         res = self.service.update_port(self.context, port)
@@ -1168,8 +1167,7 @@ class UpdatePortTestCase(_ServiceSetUpMixin, tests_db_base.DbTestCase):
         obj_utils.create_test_node(self.context, driver='fake',
                                    reservation='fake-reserv')
 
-        pdict = utils.get_test_port()
-        port = self.dbapi.create_port(pdict)
+        port = obj_utils.create_test_port(self.context)
         port.extra = {'foo': 'baz'}
         exc = self.assertRaises(messaging.rpc.ExpectedException,
                                 self.service.update_port,
@@ -1180,9 +1178,8 @@ class UpdatePortTestCase(_ServiceSetUpMixin, tests_db_base.DbTestCase):
     @mock.patch('ironic.common.neutron.NeutronAPI.update_port_address')
     def test_update_port_address(self, mac_update_mock):
         obj_utils.create_test_node(self.context, driver='fake')
-
-        pdict = utils.get_test_port(extra={'vif_port_id': 'fake-id'})
-        port = self.dbapi.create_port(pdict)
+        port = obj_utils.create_test_port(self.context,
+                                          extra={'vif_port_id': 'fake-id'})
         new_address = '11:22:33:44:55:bb'
         port.address = new_address
         res = self.service.update_port(self.context, port)
@@ -1192,9 +1189,8 @@ class UpdatePortTestCase(_ServiceSetUpMixin, tests_db_base.DbTestCase):
     @mock.patch('ironic.common.neutron.NeutronAPI.update_port_address')
     def test_update_port_address_fail(self, mac_update_mock):
         obj_utils.create_test_node(self.context, driver='fake')
-
-        pdict = utils.get_test_port(extra={'vif_port_id': 'fake-id'})
-        port = self.dbapi.create_port(pdict)
+        port = obj_utils.create_test_port(self.context,
+                                          extra={'vif_port_id': 'fake-id'})
         old_address = port.address
         port.address = '11:22:33:44:55:bb'
         mac_update_mock.side_effect = exception.FailedToUpdateMacOnPort(
@@ -1210,9 +1206,8 @@ class UpdatePortTestCase(_ServiceSetUpMixin, tests_db_base.DbTestCase):
     @mock.patch('ironic.common.neutron.NeutronAPI.update_port_address')
     def test_update_port_address_no_vif_id(self, mac_update_mock):
         obj_utils.create_test_node(self.context, driver='fake')
+        port = obj_utils.create_test_port(self.context)
 
-        pdict = utils.get_test_port()
-        port = self.dbapi.create_port(pdict)
         new_address = '11:22:33:44:55:bb'
         port.address = new_address
         res = self.service.update_port(self.context, port)
@@ -2080,8 +2075,7 @@ class ManagerCheckDeployTimeoutsTestCase(_CommonMixIn, tests_base.TestCase):
             acquire_mock, mac_update_mock, mock_up):
         ndict = utils.get_test_node(driver='fake')
         self.dbapi.create_node(ndict)
-        pdict = utils.get_test_port()
-        port = self.dbapi.create_port(pdict)
+        port = obj_utils.create_test_port(self.context)
         mock_up.side_effect = exception.MACAlreadyExists(mac=port.address)
         exc = self.assertRaises(messaging.rpc.ExpectedException,
                                 self.service.update_port,

@@ -24,7 +24,6 @@ from ironic.drivers import utils as driver_utils
 from ironic.openstack.common import context
 from ironic.tests import base
 from ironic.tests.conductor import utils as mgr_utils
-from ironic.tests.db import utils as db_utils
 from ironic.tests.objects import utils as obj_utils
 
 
@@ -116,19 +115,17 @@ class UtilsTestCase(base.TestCase):
     def test_get_node_mac_addresses(self):
         ports = []
         ports.append(
-            self.dbapi.create_port(
-                db_utils.get_test_port(
-                    id=6,
-                    address='aa:bb:cc',
+            obj_utils.create_test_port(self.context,
+                    id=6, address='aa:bb:cc',
                     uuid='bb43dc0b-03f2-4d2e-ae87-c02d7f33cc53',
-                    node_id=self.node.id)))
+                    node_id=self.node.id)
+        )
         ports.append(
-            self.dbapi.create_port(
-                db_utils.get_test_port(
-                    id=7,
-                    address='dd:ee:ff',
+            obj_utils.create_test_port(self.context,
+                    id=7, address='dd:ee:ff',
                     uuid='4fc26c0b-03f2-4d2e-ae87-c02d7f33c234',
-                    node_id=self.node.id)))
+                    node_id=self.node.id)
+        )
         with task_manager.acquire(self.context, self.node.uuid) as task:
             node_macs = driver_utils.get_node_mac_addresses(task)
         self.assertEqual(sorted([p.address for p in ports]), sorted(node_macs))

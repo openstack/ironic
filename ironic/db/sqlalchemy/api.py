@@ -398,7 +398,6 @@ class Connection(api.Connection):
         return _paginate_query(models.Port, limit, marker,
                                sort_key, sort_dir, query)
 
-    @objects.objectify(objects.Port)
     def create_port(self, values):
         if not values.get('uuid'):
             values['uuid'] = utils.generate_uuid()

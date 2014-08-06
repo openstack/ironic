@@ -25,7 +25,6 @@ from ironic.db import api as dbapi
 from ironic.openstack.common import context
 from ironic.tests.conductor import utils as mgr_utils
 from ironic.tests.db import base as db_base
-from ironic.tests.db import utils as dbutils
 from ironic.tests.objects import utils as object_utils
 
 CONF = cfg.CONF
@@ -116,9 +115,8 @@ class TestPXEUtils(db_base.DbTestCase):
     @mock.patch('ironic.common.utils.unlink_without_raise', autospec=True)
     def test_clean_up_pxe_config(self, unlink_mock, rmtree_mock):
         address = "aa:aa:aa:aa:aa:aa"
-        pdict = dbutils.get_test_port(node_uuid=self.node.uuid,
+        object_utils.create_test_port(self.context, node_uuid=self.node.uuid,
                                       address=address)
-        self.dbapi.create_port(pdict)
 
         with task_manager.acquire(self.context, self.node.uuid) as task:
             pxe_utils.clean_up_pxe_config(task)

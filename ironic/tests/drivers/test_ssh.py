@@ -565,8 +565,8 @@ class SSHDriverTestCase(db_base.DbTestCase):
                 self.context, driver='fake_ssh',
                 driver_info=db_utils.get_test_ssh_info())
         self.dbapi = dbapi.get_instance()
-        self.port = self.dbapi.create_port(db_utils.get_test_port(
-                                                         node_id=self.node.id))
+        self.port = obj_utils.create_test_port(self.context,
+                                               node_id=self.node.id)
         self.sshclient = paramiko.SSHClient()
 
     @mock.patch.object(utils, 'ssh_connect')

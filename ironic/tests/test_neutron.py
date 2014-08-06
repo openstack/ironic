@@ -28,7 +28,6 @@ from ironic.db import api as dbapi
 from ironic.openstack.common import context
 from ironic.tests import base
 from ironic.tests.conductor import utils as mgr_utils
-from ironic.tests.db import utils as db_utils
 from ironic.tests.objects import utils as object_utils
 
 
@@ -54,10 +53,6 @@ class TestNeutron(base.TestCase):
         self.dbapi = dbapi.get_instance()
         self.context = context.get_admin_context()
         self.node = object_utils.create_test_node(self.context)
-
-    def _create_test_port(self, **kwargs):
-        p = db_utils.get_test_port(**kwargs)
-        return self.dbapi.create_port(p)
 
     def test_invalid_auth_strategy(self):
         self.config(auth_strategy='wrong_config', group='neutron')
@@ -191,30 +186,32 @@ class TestNeutron(base.TestCase):
         self.assertEqual(expected, result)
 
     def test__get_node_vif_ids_one_port(self):
-        port1 = self._create_test_port(node_id=self.node.id,
-                                       id=6,
-                                       address='aa:bb:cc',
-                                       uuid=utils.generate_uuid(),
-                                       extra={'vif_port_id': 'test-vif-A'},
-                                       driver='fake')
+        port1 = object_utils.create_test_port(self.context,
+                                           node_id=self.node.id,
+                                           id=6, address='aa:bb:cc',
+                                           uuid=utils.generate_uuid(),
+                                           extra={'vif_port_id': 'test-vif-A'},
+                                           driver='fake')
         expected = {port1.uuid: 'test-vif-A'}
         with task_manager.acquire(self.context, self.node.uuid) as task:
             result = neutron.get_node_vif_ids(task)
         self.assertEqual(expected, result)
 
     def test__get_node_vif_ids_two_ports(self):
-        port1 = self._create_test_port(node_id=self.node.id,
-                                       id=6,
-                                       address='aa:bb:cc',
-                                       uuid=utils.generate_uuid(),
-                                       extra={'vif_port_id': 'test-vif-A'},
-                                       driver='fake')
-        port2 = self._create_test_port(node_id=self.node.id,
-                                       id=7,
-                                       address='dd:ee:ff',
-                                       uuid=utils.generate_uuid(),
-                                       extra={'vif_port_id': 'test-vif-B'},
-                                       driver='fake')
+        port1 = object_utils.create_test_port(self.context,
+                                           node_id=self.node.id,
+                                           id=6,
+                                           address='aa:bb:cc',
+                                           uuid=utils.generate_uuid(),
+                                           extra={'vif_port_id': 'test-vif-A'},
+                                           driver='fake')
+        port2 = object_utils.create_test_port(self.context,
+                                           node_id=self.node.id,
+                                           id=7,
+                                           address='dd:ee:ff',
+                                           uuid=utils.generate_uuid(),
+                                           extra={'vif_port_id': 'test-vif-B'},
+                                           driver='fake')
         expected = {port1.uuid: 'test-vif-A', port2.uuid: 'test-vif-B'}
         with task_manager.acquire(self.context, self.node.uuid) as task:
             result = neutron.get_node_vif_ids(task)

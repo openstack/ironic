@@ -288,7 +288,9 @@ class PortsController(rest.RestController):
         if self.from_nodes:
             raise exception.OperationNotPermitted
 
-        new_port = pecan.request.dbapi.create_port(port.as_dict())
+        new_port = objects.Port(context=pecan.request.context,
+                                **port.as_dict())
+        new_port.create()
         # Set the HTTP Location Header
         pecan.response.location = link.build_url('ports', new_port.uuid)
         return Port.convert_with_links(new_port)
@@ -344,4 +346,6 @@ class PortsController(rest.RestController):
         if self.from_nodes:
             raise exception.OperationNotPermitted
 
-        pecan.request.dbapi.destroy_port(port_uuid)
+        rpc_port = objects.Port.get_by_uuid(pecan.request.context,
+                                            port_uuid)
+        rpc_port.destroy()
