@@ -631,7 +631,8 @@ class NodesController(rest.RestController):
         It returns a list with the node, or an empty list if no node is found.
         """
         try:
-            node = pecan.request.dbapi.get_node_by_instance(instance_uuid)
+            node = objects.Node.get_by_instance_uuid(pecan.request.context,
+                                                     instance_uuid)
             return [node]
         except exception.InstanceNotFound:
             return []

@@ -26,7 +26,8 @@ class Node(base.IronicObject):
     # Version 1.2: Add get() and get_by_id() and make get_by_uuid()
     #              only work with a uuid
     # Version 1.3: Add create() and destroy()
-    VERSION = '1.3'
+    # Version 1.4: Add get_by_instance_uuid()
+    VERSION = '1.4'
 
     dbapi = db_api.get_instance()
 
@@ -110,6 +111,20 @@ class Node(base.IronicObject):
         :returns: a :class:`Node` object.
         """
         db_node = cls.dbapi.get_node_by_uuid(uuid)
+        node = Node._from_db_object(cls(), db_node)
+        # FIXME(comstud): Setting of the context should be moved to
+        # _from_db_object().
+        node._context = context
+        return node
+
+    @base.remotable_classmethod
+    def get_by_instance_uuid(cls, context, instance_uuid):
+        """Find a node based on the instance uuid and return a Node object.
+
+        :param uuid: the uuid of the instance.
+        :returns: a :class:`Node` object.
+        """
+        db_node = cls.dbapi.get_node_by_instance(instance_uuid)
         node = Node._from_db_object(cls(), db_node)
         # FIXME(comstud): Setting of the context should be moved to
         # _from_db_object().

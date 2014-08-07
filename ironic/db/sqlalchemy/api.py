@@ -287,7 +287,6 @@ class Connection(api.Connection):
         except NoResultFound:
             raise exception.NodeNotFound(node=node_uuid)
 
-    @objects.objectify(objects.Node)
     def get_node_by_instance(self, instance):
         if not utils.is_uuid_like(instance):
             raise exception.InvalidUUID(uuid=instance)
