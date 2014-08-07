@@ -32,7 +32,7 @@ LOG = logging.getLogger(__name__)
 def create(node):
     """Create an instance of the appropriate DriverFields class.
 
-    :param node: a dict containing an Ironic node
+    :param node: a node object returned from ironicclient
     :returns: GenericDriverFields or a subclass thereof, as appropriate
               for the supplied node.
     """
@@ -64,14 +64,14 @@ class GenericDriverFields(object):
         patch.append({'path': '/instance_info/image_source', 'op': 'add',
                       'value': image_meta['id']})
         patch.append({'path': '/instance_info/root_gb', 'op': 'add',
-                      'value': str(instance['root_gb'])})
+                      'value': str(instance.root_gb)})
         patch.append({'path': '/instance_info/swap_mb', 'op': 'add',
                       'value': str(flavor['swap'])})
 
-        if instance.get('ephemeral_gb'):
+        if instance.ephemeral_gb:
             patch.append({'path': '/instance_info/ephemeral_gb',
                           'op': 'add',
-                          'value': str(instance['ephemeral_gb'])})
+                          'value': str(instance.ephemeral_gb)})
             if CONF.default_ephemeral_format:
                 patch.append({'path': '/instance_info/ephemeral_format',
                               'op': 'add',
