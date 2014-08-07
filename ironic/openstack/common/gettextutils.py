@@ -23,32 +23,121 @@ Usual usage in an openstack.common module:
 """
 
 import copy
-import functools
 import gettext
 import locale
 from logging import handlers
 import os
-import re
 
 from babel import localedata
 import six
 
-_localedir = os.environ.get('ironic'.upper() + '_LOCALEDIR')
-_t = gettext.translation('ironic', localedir=_localedir, fallback=True)
-
-# We use separate translation catalogs for each log level, so set up a
-# mapping between the log level name and the translator. The domain
-# for the log level is project_name + "-log-" + log_level so messages
-# for each level end up in their own catalog.
-_t_log_levels = dict(
-    (level, gettext.translation('ironic' + '-log-' + level,
-                                localedir=_localedir,
-                                fallback=True))
-    for level in ['info', 'warning', 'error', 'critical']
-)
-
 _AVAILABLE_LANGUAGES = {}
+
+# FIXME(dhellmann): Remove this when moving to oslo.i18n.
 USE_LAZY = False
+
+
+class TranslatorFactory(object):
+    """Create translator functions
+    """
+
+    def __init__(self, domain, localedir=None):
+        """Establish a set of translation functions for the domain.
+
+        :param domain: Name of translation domain,
+                       specifying a message catalog.
+        :type domain: str
+        :param lazy: Delays translation until a message is emitted.
+                     Defaults to False.
+        :type lazy: Boolean
+        :param localedir: Directory with translation catalogs.
+        :type localedir: str
+        """
+        self.domain = domain
+        if localedir is None:
+            localedir = os.environ.get(domain.upper() + '_LOCALEDIR')
+        self.localedir = localedir
+
+    def _make_translation_func(self, domain=None):
+        """Return a new translation function ready for use.
+
+        Takes into account whether or not lazy translation is being
+        done.
+
+        The domain can be specified to override the default from the
+        factory, but the localedir from the factory is always used
+        because we assume the log-level translation catalogs are
+        installed in the same directory as the main application
+        catalog.
+
+        """
+        if domain is None:
+            domain = self.domain
+        t = gettext.translation(domain,
+                                localedir=self.localedir,
+                                fallback=True)
+        # Use the appropriate method of the translation object based
+        # on the python version.
+        m = t.gettext if six.PY3 else t.ugettext
+
+        def f(msg):
+            """oslo.i18n.gettextutils translation function."""
+            if USE_LAZY:
+                return Message(msg, domain=domain)
+            return m(msg)
+        return f
+
+    @property
+    def primary(self):
+        "The default translation function."
+        return self._make_translation_func()
+
+    def _make_log_translation_func(self, level):
+        return self._make_translation_func(self.domain + '-log-' + level)
+
+    @property
+    def log_info(self):
+        "Translate info-level log messages."
+        return self._make_log_translation_func('info')
+
+    @property
+    def log_warning(self):
+        "Translate warning-level log messages."
+        return self._make_log_translation_func('warning')
+
+    @property
+    def log_error(self):
+        "Translate error-level log messages."
+        return self._make_log_translation_func('error')
+
+    @property
+    def log_critical(self):
+        "Translate critical-level log messages."
+        return self._make_log_translation_func('critical')
+
+
+# NOTE(dhellmann): When this module moves out of the incubator into
+# oslo.i18n, these global variables can be moved to an integration
+# module within each application.
+
+# Create the global translation functions.
+_translators = TranslatorFactory('ironic')
+
+# The primary translation function using the well-known name "_"
+_ = _translators.primary
+
+# Translators for log levels.
+#
+# The abbreviated names are meant to reflect the usual use of a short
+# name like '_'. The "L" is for "log" and the other letter comes from
+# the level.
+_LI = _translators.log_info
+_LW = _translators.log_warning
+_LE = _translators.log_error
+_LC = _translators.log_critical
+
+# NOTE(dhellmann): End of globals that will move to the application's
+# integration module.
 
 
 def enable_lazy():
@@ -63,38 +152,7 @@ def enable_lazy():
     USE_LAZY = True
 
 
-def _(msg):
-    if USE_LAZY:
-        return Message(msg, domain='ironic')
-    else:
-        if six.PY3:
-            return _t.gettext(msg)
-        return _t.ugettext(msg)
-
-
-def _log_translation(msg, level):
-    """Build a single translation of a log message
-    """
-    if USE_LAZY:
-        return Message(msg, domain='ironic' + '-log-' + level)
-    else:
-        translator = _t_log_levels[level]
-        if six.PY3:
-            return translator.gettext(msg)
-        return translator.ugettext(msg)
-
-# Translators for log levels.
-#
-# The abbreviated names are meant to reflect the usual use of a short
-# name like '_'. The "L" is for "log" and the other letter comes from
-# the level.
-_LI = functools.partial(_log_translation, level='info')
-_LW = functools.partial(_log_translation, level='warning')
-_LE = functools.partial(_log_translation, level='error')
-_LC = functools.partial(_log_translation, level='critical')
-
-
-def install(domain, lazy=False):
+def install(domain):
     """Install a _() function using the given translation domain.
 
     Given a translation domain, install a _() function using gettext's
@@ -105,43 +163,14 @@ def install(domain, lazy=False):
     a translation-domain-specific environment variable (e.g.
     NOVA_LOCALEDIR).
 
+    Note that to enable lazy translation, enable_lazy must be
+    called.
+
     :param domain: the translation domain
-    :param lazy: indicates whether or not to install the lazy _() function.
-                 The lazy _() introduces a way to do deferred translation
-                 of messages by installing a _ that builds Message objects,
-                 instead of strings, which can then be lazily translated into
-                 any available locale.
     """
-    if lazy:
-        # NOTE(mrodden): Lazy gettext functionality.
-        #
-        # The following introduces a deferred way to do translations on
-        # messages in OpenStack. We override the standard _() function
-        # and % (format string) operation to build Message objects that can
-        # later be translated when we have more information.
-        def _lazy_gettext(msg):
-            """Create and return a Message object.
-
-            Lazy gettext function for a given domain, it is a factory method
-            for a project/module to get a lazy gettext function for its own
-            translation domain (i.e. nova, glance, cinder, etc.)
-
-            Message encapsulates a string so that we can translate
-            it later when needed.
-            """
-            return Message(msg, domain=domain)
-
-        from six import moves
-        moves.builtins.__dict__['_'] = _lazy_gettext
-    else:
-        localedir = '%s_LOCALEDIR' % domain.upper()
-        if six.PY3:
-            gettext.install(domain,
-                            localedir=os.environ.get(localedir))
-        else:
-            gettext.install(domain,
-                            localedir=os.environ.get(localedir),
-                            unicode=True)
+    from six import moves
+    tf = TranslatorFactory(domain)
+    moves.builtins.__dict__['_'] = tf.primary
 
 
 class Message(six.text_type):
@@ -248,47 +277,22 @@ class Message(six.text_type):
         if other is None:
             params = (other,)
         elif isinstance(other, dict):
-            params = self._trim_dictionary_parameters(other)
+            # Merge the dictionaries
+            # Copy each item in case one does not support deep copy.
+            params = {}
+            if isinstance(self.params, dict):
+                for key, val in self.params.items():
+                    params[key] = self._copy_param(val)
+            for key, val in other.items():
+                params[key] = self._copy_param(val)
         else:
             params = self._copy_param(other)
-        return params
-
-    def _trim_dictionary_parameters(self, dict_param):
-        """Return a dict that only has matching entries in the msgid."""
-        # NOTE(luisg): Here we trim down the dictionary passed as parameters
-        # to avoid carrying a lot of unnecessary weight around in the message
-        # object, for example if someone passes in Message() % locals() but
-        # only some params are used, and additionally we prevent errors for
-        # non-deepcopyable objects by unicoding() them.
-
-        # Look for %(param) keys in msgid;
-        # Skip %% and deal with the case where % is first character on the line
-        keys = re.findall('(?:[^%]|^)?%\((\w*)\)[a-z]', self.msgid)
-
-        # If we don't find any %(param) keys but have a %s
-        if not keys and re.findall('(?:[^%]|^)%[a-z]', self.msgid):
-            # Apparently the full dictionary is the parameter
-            params = self._copy_param(dict_param)
-        else:
-            params = {}
-            # Save our existing parameters as defaults to protect
-            # ourselves from losing values if we are called through an
-            # (erroneous) chain that builds a valid Message with
-            # arguments, and then does something like "msg % kwds"
-            # where kwds is an empty dictionary.
-            src = {}
-            if isinstance(self.params, dict):
-                src.update(self.params)
-            src.update(dict_param)
-            for key in keys:
-                params[key] = self._copy_param(src[key])
-
         return params
 
     def _copy_param(self, param):
         try:
             return copy.deepcopy(param)
-        except TypeError:
+        except Exception:
             # Fallback to casting to unicode this will handle the
             # python code-like objects that can't be deep-copied
             return six.text_type(param)
@@ -300,13 +304,14 @@ class Message(six.text_type):
     def __radd__(self, other):
         return self.__add__(other)
 
-    def __str__(self):
-        # NOTE(luisg): Logging in python 2.6 tries to str() log records,
-        # and it expects specifically a UnicodeError in order to proceed.
-        msg = _('Message objects do not support str() because they may '
-                'contain non-ascii characters. '
-                'Please use unicode() or translate() instead.')
-        raise UnicodeError(msg)
+    if six.PY2:
+        def __str__(self):
+            # NOTE(luisg): Logging in python 2.6 tries to str() log records,
+            # and it expects specifically a UnicodeError in order to proceed.
+            msg = _('Message objects do not support str() because they may '
+                    'contain non-ascii characters. '
+                    'Please use unicode() or translate() instead.')
+            raise UnicodeError(msg)
 
 
 def get_available_languages(domain):
@@ -349,8 +354,8 @@ def get_available_languages(domain):
                'zh_Hant_HK': 'zh_HK',
                'zh_Hant': 'zh_TW',
                'fil': 'tl_PH'}
-    for (locale, alias) in six.iteritems(aliases):
-        if locale in language_list and alias not in language_list:
+    for (locale_, alias) in six.iteritems(aliases):
+        if locale_ in language_list and alias not in language_list:
             language_list.append(alias)
 
     _AVAILABLE_LANGUAGES[domain] = language_list
