@@ -20,10 +20,10 @@ import datetime
 import mock
 from oslo.config import cfg
 from oslo.db.openstack.common import timeutils as db_timeutils
+from oslo.utils import timeutils
 from six.moves.urllib import parse as urlparse
 
 from ironic.common import utils
-from ironic.openstack.common import timeutils
 from ironic.tests.api import base
 from ironic.tests.api import utils as apiutils
 from ironic.tests.db import utils as dbutils

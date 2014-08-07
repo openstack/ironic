@@ -18,13 +18,13 @@
 import datetime
 
 import mock
+from oslo.utils import timeutils
 import six
 
 from ironic.common import exception
 from ironic.common import states
 from ironic.common import utils as ironic_utils
 from ironic.db import api as dbapi
-from ironic.openstack.common import timeutils
 from ironic.tests.db import base
 from ironic.tests.db import utils
 

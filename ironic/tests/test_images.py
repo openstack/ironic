@@ -19,9 +19,10 @@
 import contextlib
 import fixtures
 
+from oslo.utils import excutils
+
 from ironic.common import exception
 from ironic.common import images
-from ironic.openstack.common import excutils
 from ironic.tests import base
 
 

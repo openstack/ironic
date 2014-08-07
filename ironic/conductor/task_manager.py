@@ -88,8 +88,7 @@ code when the spawned task generates an exception:
 import retrying
 
 from oslo.config import cfg
-
-from ironic.openstack.common import excutils
+from oslo.utils import excutils
 
 from ironic.common import driver_factory
 from ironic.common import exception

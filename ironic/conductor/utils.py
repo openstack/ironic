@@ -12,10 +12,11 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+from oslo.utils import excutils
+
 from ironic.common import exception
 from ironic.common import states
 from ironic.conductor import task_manager
-from ironic.openstack.common import excutils
 from ironic.openstack.common.gettextutils import _LI
 from ironic.openstack.common import log
 

@@ -18,13 +18,13 @@ import gettext
 
 import iso8601
 import netaddr
+from oslo.utils import timeutils
 import six
 
 from ironic.common import exception
 from ironic.objects import base
 from ironic.objects import utils
 from ironic.openstack.common import context
-from ironic.openstack.common import timeutils
 from ironic.tests import base as test_base
 
 gettext.install('ironic')

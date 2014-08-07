@@ -18,12 +18,12 @@
 import mock
 
 from oslo.config import cfg
+from oslo.utils import importutils
 
 from ironic.common import exception
 from ironic.db import api as dbapi
 from ironic.drivers.modules.ilo import common as ilo_common
 from ironic.openstack.common import context
-from ironic.openstack.common import importutils
 from ironic.tests import base
 from ironic.tests.db import utils as db_utils
 from ironic.tests.objects import utils as obj_utils

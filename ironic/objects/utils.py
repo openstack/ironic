@@ -19,9 +19,8 @@ import datetime
 
 import iso8601
 import netaddr
+from oslo.utils import timeutils
 import six
-
-from ironic.openstack.common import timeutils
 
 
 def datetime_or_none(dt):

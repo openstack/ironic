@@ -17,6 +17,8 @@
 Fake drivers used in testing.
 """
 
+from oslo.utils import importutils
+
 from ironic.common import exception
 from ironic.drivers import base
 from ironic.drivers.modules import agent
@@ -28,7 +30,6 @@ from ironic.drivers.modules import pxe
 from ironic.drivers.modules import seamicro
 from ironic.drivers.modules import ssh
 from ironic.drivers import utils
-from ironic.openstack.common import importutils
 
 
 class FakeDriver(base.BaseDriver):

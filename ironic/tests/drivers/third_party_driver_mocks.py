@@ -29,9 +29,9 @@ Current list of mocked libraries:
 import sys
 
 import mock
+from oslo.utils import importutils
 
 from ironic.drivers.modules import ipmitool
-from ironic.openstack.common import importutils
 
 
 # attempt to load the external 'seamicroclient' library, which is

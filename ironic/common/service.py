@@ -20,13 +20,13 @@ import socket
 
 from oslo.config import cfg
 from oslo import messaging
+from oslo.utils import importutils
 
 from ironic.common import config
 from ironic.common import rpc
 from ironic.objects import base as objects_base
 from ironic.openstack.common import context
 from ironic.openstack.common.gettextutils import _LI
-from ironic.openstack.common import importutils
 from ironic.openstack.common import log
 from ironic.openstack.common import service
 
@@ -54,7 +54,7 @@ class RPCService(service.Service):
     def __init__(self, host, manager_module, manager_class):
         super(RPCService, self).__init__()
         self.host = host
-        manager_module = importutils.import_module(manager_module)
+        manager_module = importutils.try_import(manager_module)
         manager_class = getattr(manager_module, manager_class)
         self.manager = manager_class(host, manager_module.MANAGER_TOPIC)
         self.topic = self.manager.topic

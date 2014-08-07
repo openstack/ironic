@@ -16,6 +16,7 @@ import os
 import time
 
 from oslo.config import cfg
+from oslo.utils import excutils
 
 from ironic.common import exception
 from ironic.common import i18n
@@ -33,7 +34,6 @@ from ironic.drivers import base
 from ironic.drivers.modules import agent_client
 from ironic.drivers.modules import image_cache
 from ironic import objects
-from ironic.openstack.common import excutils
 from ironic.openstack.common import fileutils
 from ironic.openstack.common import log
 

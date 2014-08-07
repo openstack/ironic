@@ -17,9 +17,9 @@ Common functionalities shared between different iLO modules.
 """
 
 from oslo.config import cfg
+from oslo.utils import importutils
 
 from ironic.common import exception
-from ironic.openstack.common import importutils
 from ironic.openstack.common import log as logging
 
 ilo_client = importutils.try_import('proliantutils.ilo.ribcl')

@@ -20,6 +20,7 @@ PXE Driver and supporting meta-classes.
 import os
 
 from oslo.config import cfg
+from oslo.utils import strutils
 
 from ironic.common import exception
 from ironic.common import image_service as service
@@ -38,7 +39,6 @@ from ironic.drivers.modules import image_cache
 from ironic.drivers import utils as driver_utils
 from ironic.openstack.common import fileutils
 from ironic.openstack.common import log as logging
-from ironic.openstack.common import strutils
 
 
 pxe_opts = [
