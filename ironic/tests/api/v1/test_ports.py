@@ -508,6 +508,17 @@ class TestPost(base.FunctionalTest):
         self.assertEqual(urlparse.urlparse(response.location).path,
                          expected_location)
 
+    def test_create_port_doesnt_contain_id(self):
+        with mock.patch.object(self.dbapi, 'create_port',
+                               wraps=self.dbapi.create_port) as cp_mock:
+            pdict = post_get_test_port(extra={'foo': 123})
+            self.post_json('/ports', pdict)
+            result = self.get_json('/ports/%s' % pdict['uuid'])
+            self.assertEqual(pdict['extra'], result['extra'])
+            cp_mock.assert_called_once_with(mock.ANY)
+            # Check that 'id' is not in first arg of positional args
+            self.assertNotIn('id', cp_mock.call_args[0][0])
+
     def test_create_port_generate_uuid(self):
         pdict = post_get_test_port()
         del pdict['uuid']

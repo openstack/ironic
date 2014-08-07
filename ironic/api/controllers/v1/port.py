@@ -87,12 +87,23 @@ class Port(base.APIBase):
     "A list containing a self link and associated port links"
 
     def __init__(self, **kwargs):
-        self.fields = objects.Port.fields.keys()
+        self.fields = []
+        fields = list(objects.Port.fields.keys())
         # NOTE(lucasagomes): node_uuid is not part of objects.Port.fields
         #                    because it's an API-only attribute
-        self.fields.append('node_uuid')
-        for k in self.fields:
-            setattr(self, k, kwargs.get(k))
+        fields.append('node_uuid')
+        for field in fields:
+            # Skip fields we do not expose.
+            if not hasattr(self, field):
+                continue
+            self.fields.append(field)
+            setattr(self, field, kwargs.get(field))
+
+        # NOTE(lucasagomes): node_id is an attribute created on-the-fly
+        # by _set_node_uuid(), it needs to be present in the fields so
+        # that as_dict() will contain node_id field when converting it
+        # before saving it in the database.
+        self.fields.append('node_id')
         setattr(self, 'node_uuid', kwargs.get('node_id'))
 
     @classmethod
@@ -307,8 +318,13 @@ class PortsController(rest.RestController):
 
         # Update only the fields that have changed
         for field in objects.Port.fields:
-            if rpc_port[field] != getattr(port, field):
-                rpc_port[field] = getattr(port, field)
+            try:
+                patch_val = getattr(port, field)
+            except AttributeError:
+                # Ignore fields that aren't exposed in the API
+                continue
+            if rpc_port[field] != patch_val:
+                rpc_port[field] = patch_val
 
         rpc_node = objects.Node.get_by_id(pecan.request.context,
                                           rpc_port.node_id)
