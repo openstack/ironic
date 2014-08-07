@@ -498,8 +498,16 @@ class IronicDriverTestCase(test.NoDBTestCase):
         node = ironic_utils.get_test_node(driver='fake')
         instance = fake_instance.fake_instance_obj(self.ctx,
                                                    node=node.uuid)
-        self.driver._add_driver_fields(node, instance, None, None)
-        expected_patch = [{'path': '/instance_uuid', 'op': 'add',
+        image_meta = ironic_utils.get_test_image_meta()
+        flavor = ironic_utils.get_test_flavor()
+        self.driver._add_driver_fields(node, instance, image_meta, flavor)
+        expected_patch = [{'path': '/instance_info/image_source', 'op': 'add',
+                           'value': image_meta['id']},
+                          {'path': '/instance_info/root_gb', 'op': 'add',
+                           'value': str(instance['root_gb'])},
+                          {'path': '/instance_info/swap_mb', 'op': 'add',
+                           'value': str(flavor['swap'])},
+                          {'path': '/instance_uuid', 'op': 'add',
                            'value': instance['uuid']}]
         mock_update.assert_called_once_with(node.uuid, expected_patch)
 
@@ -509,9 +517,11 @@ class IronicDriverTestCase(test.NoDBTestCase):
         node = ironic_utils.get_test_node(driver='fake')
         instance = fake_instance.fake_instance_obj(self.ctx,
                                                    node=node.uuid)
+        image_meta = ironic_utils.get_test_image_meta()
+        flavor = ironic_utils.get_test_flavor()
         self.assertRaises(exception.InstanceDeployFailure,
                           self.driver._add_driver_fields,
-                          node, instance, None, None)
+                          node, instance, image_meta, flavor)
 
     @mock.patch.object(flavor_obj.Flavor, 'get_by_id')
     @mock.patch.object(FAKE_CLIENT.node, 'update')
@@ -541,17 +551,18 @@ class IronicDriverTestCase(test.NoDBTestCase):
     @mock.patch.object(FAKE_CLIENT, 'node')
     @mock.patch.object(flavor_obj.Flavor, 'get_by_id')
     def test_spawn_node_driver_validation_fail(self, mock_flavor, mock_node):
+        mock_flavor.return_value = ironic_utils.get_test_flavor()
         node_uuid = 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee'
         node = ironic_utils.get_test_node(driver='fake', uuid=node_uuid)
         instance = fake_instance.fake_instance_obj(self.ctx, node=node_uuid)
-        fake_flavor = {'ephemeral_gb': 0}
 
         mock_node.validate.return_value = ironic_utils.get_test_validation(
             power=False, deploy=False)
         mock_node.get.return_value = node
-        mock_flavor.return_value = fake_flavor
+        image_meta = ironic_utils.get_test_image_meta()
+
         self.assertRaises(exception.ValidationError, self.driver.spawn,
-                          self.ctx, instance, None, [], None)
+                          self.ctx, instance, image_meta, [], None)
         mock_node.get.assert_called_once_with(node_uuid)
         mock_node.validate.assert_called_once_with(node_uuid)
         mock_flavor.assert_called_with(mock.ANY, instance['instance_type_id'])
@@ -569,15 +580,15 @@ class IronicDriverTestCase(test.NoDBTestCase):
         instance = fake_instance.fake_instance_obj(self.ctx, node=node_uuid)
         mock_node.get.return_value = node
         mock_node.validate.return_value = ironic_utils.get_test_validation()
-        fake_flavor = {'ephemeral_gb': 0}
-        mock_flavor.return_value = fake_flavor
+        mock_flavor.return_value = ironic_utils.get_test_flavor()
+        image_meta = ironic_utils.get_test_image_meta()
 
         class TestException(Exception):
             pass
 
         mock_sf.side_effect = TestException()
         self.assertRaises(TestException, self.driver.spawn,
-                          self.ctx, instance, None, [], None)
+                          self.ctx, instance, image_meta, [], None)
 
         mock_node.get.assert_called_once_with(node_uuid)
         mock_node.validate.assert_called_once_with(node_uuid)
@@ -596,15 +607,15 @@ class IronicDriverTestCase(test.NoDBTestCase):
         node_uuid = 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee'
         node = ironic_utils.get_test_node(driver='fake', uuid=node_uuid)
         instance = fake_instance.fake_instance_obj(self.ctx, node=node_uuid)
-        fake_flavor = {'ephemeral_gb': 0}
-        mock_flavor.return_value = fake_flavor
+        mock_flavor.return_value = ironic_utils.get_test_flavor()
+        image_meta = ironic_utils.get_test_image_meta()
 
         mock_node.get.return_value = node
         mock_node.validate.return_value = ironic_utils.get_test_validation()
 
         mock_node.set_provision_state.side_effect = exception.NovaException()
         self.assertRaises(exception.NovaException, self.driver.spawn,
-                          self.ctx, instance, None, [], None)
+                          self.ctx, instance, image_meta, [], None)
 
         mock_node.get.assert_called_once_with(node_uuid)
         mock_node.validate.assert_called_once_with(node_uuid)
@@ -623,15 +634,15 @@ class IronicDriverTestCase(test.NoDBTestCase):
         node_uuid = 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee'
         node = ironic_utils.get_test_node(driver='fake', uuid=node_uuid)
         instance = fake_instance.fake_instance_obj(self.ctx, node=node_uuid)
-        fake_flavor = {'ephemeral_gb': 0}
-        mock_flavor.return_value = fake_flavor
+        mock_flavor.return_value = ironic_utils.get_test_flavor()
+        image_meta = ironic_utils.get_test_image_meta()
 
         mock_node.get.return_value = node
         mock_node.validate.return_value = ironic_utils.get_test_validation()
         mock_node.set_provision_state.side_effect = ironic_exception.BadRequest
         self.assertRaises(ironic_exception.BadRequest,
                           self.driver.spawn,
-                          self.ctx, instance, None, [], None)
+                          self.ctx, instance, image_meta, [], None)
 
         mock_node.get.assert_called_once_with(node_uuid)
         mock_node.validate.assert_called_once_with(node_uuid)
@@ -653,8 +664,8 @@ class IronicDriverTestCase(test.NoDBTestCase):
         fake_net_info = utils.get_test_network_info()
         node = ironic_utils.get_test_node(driver='fake', uuid=node_uuid)
         instance = fake_instance.fake_instance_obj(self.ctx, node=node_uuid)
-        fake_flavor = {'ephemeral_gb': 0}
-        mock_flavor.return_value = fake_flavor
+        mock_flavor.return_value = ironic_utils.get_test_flavor()
+        image_meta = ironic_utils.get_test_image_meta()
 
         mock_node.get.return_value = node
         mock_node.validate.return_value = ironic_utils.get_test_validation()
@@ -665,8 +676,8 @@ class IronicDriverTestCase(test.NoDBTestCase):
         fake_looping_call.wait.side_effect = ironic_exception.BadRequest
         fake_net_info = utils.get_test_network_info()
         self.assertRaises(ironic_exception.BadRequest,
-                          self.driver.spawn,
-                          self.ctx, instance, None, [], None, fake_net_info)
+                          self.driver.spawn, self.ctx, instance,
+                          image_meta, [], None, fake_net_info)
         mock_destroy.assert_called_once_with(self.ctx, instance,
                                              fake_net_info)
 
@@ -681,15 +692,15 @@ class IronicDriverTestCase(test.NoDBTestCase):
                                                  mock_wait, mock_flavor,
                                                  mock_node, mock_save,
                                                  mock_looping):
+        mock_flavor.return_value = ironic_utils.get_test_flavor(ephemeral_gb=1)
         node_uuid = 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee'
         node = ironic_utils.get_test_node(driver='fake', uuid=node_uuid)
         instance = fake_instance.fake_instance_obj(self.ctx, node=node_uuid)
-        fake_flavor = {'ephemeral_gb': 1}
-        mock_flavor.return_value = fake_flavor
         mock_node.get_by_instance_uuid.return_value = node
         mock_node.set_provision_state.return_value = mock.MagicMock()
+        image_meta = ironic_utils.get_test_image_meta()
 
-        self.driver.spawn(self.ctx, instance, None, [], None)
+        self.driver.spawn(self.ctx, instance, image_meta, [], None)
         mock_flavor.assert_called_once_with(self.ctx,
                                             instance['instance_type_id'])
         self.assertTrue(mock_save.called)

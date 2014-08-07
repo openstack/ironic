@@ -36,7 +36,7 @@ def create(node):
     :returns: GenericDriverFields or a subclass thereof, as appropriate
               for the supplied node.
     """
-    if 'pxe' in node.driver or 'agent' in node.driver:
+    if 'pxe' in node.driver:
         return PXEDriverFields(node)
     else:
         return GenericDriverFields(node)
@@ -49,9 +49,49 @@ class GenericDriverFields(object):
 
     def get_deploy_patch(self, instance, image_meta, flavor,
                          preserve_ephemeral=None):
-        return []
+        """Build a patch to add the required fields to deploy a node.
+
+        :param instance: the instance object.
+        :param image_meta: the metadata associated with the instance
+                           image.
+        :param flavor: the flavor object.
+        :param preserve_ephemeral: preserve_ephemeral status (bool) to be
+                                   specified during rebuild.
+        :returns: a json-patch with the fields that needs to be updated.
+
+        """
+        patch = []
+        patch.append({'path': '/instance_info/image_source', 'op': 'add',
+                      'value': image_meta['id']})
+        patch.append({'path': '/instance_info/root_gb', 'op': 'add',
+                      'value': str(instance['root_gb'])})
+        patch.append({'path': '/instance_info/swap_mb', 'op': 'add',
+                      'value': str(flavor['swap'])})
+
+        if instance.get('ephemeral_gb'):
+            patch.append({'path': '/instance_info/ephemeral_gb',
+                          'op': 'add',
+                          'value': str(instance['ephemeral_gb'])})
+            if CONF.default_ephemeral_format:
+                patch.append({'path': '/instance_info/ephemeral_format',
+                              'op': 'add',
+                              'value': CONF.default_ephemeral_format})
+
+        if preserve_ephemeral is not None:
+            patch.append({'path': '/instance_info/preserve_ephemeral',
+                          'op': 'add', 'value': str(preserve_ephemeral)})
+
+        return patch
 
     def get_cleanup_patch(self, instance, network_info, flavor):
+        """Build a patch to clean up the fields.
+
+        :param instance: the instance object.
+        :param network_info: the instance network information.
+        :param flavor: the flavor object.
+        :returns: a json-patch with the fields that needs to be updated.
+
+        """
         return []
 
 
@@ -91,31 +131,15 @@ class PXEDriverFields(GenericDriverFields):
         :returns: a json-patch with the fields that needs to be updated.
 
         """
-        patch = []
-        patch.append({'path': '/instance_info/image_source', 'op': 'add',
-                      'value': image_meta['id']})
-        patch.append({'path': '/instance_info/root_gb', 'op': 'add',
-                      'value': str(instance['root_gb'])})
-        patch.append({'path': '/instance_info/swap_mb', 'op': 'add',
-                      'value': str(flavor['swap'])})
+        patch = super(PXEDriverFields, self).get_deploy_patch(
+                    instance, image_meta, flavor, preserve_ephemeral)
 
-        # If flavor contains both ramdisk and kernel ids, use them
+        # TODO(lucasagomes): Remove it in Kilo. This is for backwards
+        # compatibility with Icehouse. If flavor contains both ramdisk
+        # and kernel ids, use them.
         for key, value in self._get_kernel_ramdisk_dict(flavor).items():
             patch.append({'path': '/driver_info/%s' % key,
                           'op': 'add', 'value': value})
-
-        if instance.get('ephemeral_gb'):
-            patch.append({'path': '/instance_info/ephemeral_gb',
-                          'op': 'add',
-                          'value': str(instance['ephemeral_gb'])})
-            if CONF.default_ephemeral_format:
-                patch.append({'path': '/instance_info/ephemeral_format',
-                              'op': 'add',
-                              'value': CONF.default_ephemeral_format})
-
-        if preserve_ephemeral is not None:
-            patch.append({'path': '/instance_info/preserve_ephemeral',
-                          'op': 'add', 'value': str(preserve_ephemeral)})
 
         return patch
 
@@ -133,9 +157,12 @@ class PXEDriverFields(GenericDriverFields):
         :returns: a json-patch with the fields that needs to be updated.
 
         """
-        patch = []
-        # If flavor contains a ramdisk and kernel id remove it from nodes
-        # as part of the tear down process
+        patch = super(PXEDriverFields, self).get_cleanup_patch(
+                    instance, network_info, flavor)
+
+        # TODO(lucasagomes): Remove it in Kilo. This is for backwards
+        # compatibility with Icehouse. If flavor contains a ramdisk and
+        # kernel id remove it from nodes as part of the tear down process
         for key in self._get_kernel_ramdisk_dict(flavor):
             if key in self.node.driver_info:
                 patch.append({'op': 'remove',
