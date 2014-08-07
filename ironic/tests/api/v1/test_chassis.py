@@ -329,6 +329,17 @@ class TestPost(base.FunctionalTest):
         self.assertEqual(urlparse.urlparse(response.location).path,
                          expected_location)
 
+    def test_create_chassis_doesnt_contain_id(self):
+        with mock.patch.object(self.dbapi, 'create_chassis',
+                               wraps=self.dbapi.create_chassis) as cc_mock:
+            cdict = apiutils.chassis_post_data(extra={'foo': 123})
+            self.post_json('/chassis', cdict)
+            result = self.get_json('/chassis/%s' % cdict['uuid'])
+            self.assertEqual(cdict['extra'], result['extra'])
+            cc_mock.assert_called_once_with(mock.ANY)
+            # Check that 'id' is not in first arg of positional args
+            self.assertNotIn('id', cc_mock.call_args[0][0])
+
     def test_create_chassis_generate_uuid(self):
         cdict = apiutils.chassis_post_data()
         del cdict['uuid']

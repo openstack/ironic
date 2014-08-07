@@ -60,9 +60,13 @@ class Chassis(base.APIBase):
     "Links to the collection of nodes contained in this chassis"
 
     def __init__(self, **kwargs):
-        self.fields = objects.Chassis.fields.keys()
-        for k in self.fields:
-            setattr(self, k, kwargs.get(k))
+        self.fields = []
+        for field in objects.Chassis.fields:
+            # Skip fields we do not expose.
+            if not hasattr(self, field):
+                continue
+            self.fields.append(field)
+            setattr(self, field, kwargs.get(field))
 
     @classmethod
     def _convert_with_links(cls, chassis, url, expand=True):
@@ -232,8 +236,13 @@ class ChassisController(rest.RestController):
 
         # Update only the fields that have changed
         for field in objects.Chassis.fields:
-            if rpc_chassis[field] != getattr(chassis, field):
-                rpc_chassis[field] = getattr(chassis, field)
+            try:
+                patch_val = getattr(chassis, field)
+            except AttributeError:
+                # Ignore fields that aren't exposed in the API
+                continue
+            if rpc_chassis[field] != patch_val:
+                rpc_chassis[field] = patch_val
 
         rpc_chassis.save()
         return Chassis.convert_with_links(rpc_chassis)
