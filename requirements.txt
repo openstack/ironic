@@ -33,3 +33,4 @@ WSME>=0.6
 Jinja2
 oslo.messaging>=1.4.0.0a3
 retrying>=1.2.2 # Apache-2.0
+posix_ipc
