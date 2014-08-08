@@ -461,6 +461,14 @@ class IronicDriver(virt_driver.ComputeDriver):
                 'cpu_time': 0
                 }
 
+    def deallocate_networks_on_reschedule(self, instance):
+        """Does the driver want networks deallocated on reschedule?
+
+        :param instance: the instance object.
+        :returns: Boolean value. If True deallocate networks on reschedule.
+        """
+        return True
+
     def macs_for_instance(self, instance):
         """List the MAC addresses of an instance.
 
