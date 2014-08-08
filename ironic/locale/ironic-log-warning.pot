@@ -6,9 +6,9 @@
 #, fuzzy
 msgid ""
 msgstr ""
-"Project-Id-Version: ironic 2014.2.dev37.g0603f74\n"
+"Project-Id-Version: ironic 2014.2.dev58.g55e2ea9\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2014-08-04 06:10+0000\n"
+"POT-Creation-Date: 2014-08-08 06:10+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -58,7 +58,7 @@ msgstr ""
 msgid "Failed to get sensor data for node %(node)s. Error: %(error)s"
 msgstr ""
 
-#: ironic/conductor/task_manager.py:278
+#: ironic/conductor/task_manager.py:277
 #, python-format
 msgid "Task's on_error hook failed to call %(method)s on node %(node)s"
 msgstr ""
@@ -109,8 +109,25 @@ msgstr ""
 msgid "Destroy called on non-existing instance %s."
 msgstr ""
 
-#: ironic/openstack/common/loopingcall.py:82
+#: ironic/openstack/common/loopingcall.py:87
 #, python-format
-msgid "task run outlasted interval by %s sec"
+msgid "task %(func_name)s run outlasted interval by %(delay).2f sec"
+msgstr ""
+
+#: ironic/openstack/common/network_utils.py:149
+msgid "tcp_keepidle not available on your system"
+msgstr ""
+
+#: ironic/openstack/common/network_utils.py:156
+msgid "tcp_keepintvl not available on your system"
+msgstr ""
+
+#: ironic/openstack/common/network_utils.py:163
+msgid "tcp_keepknt not available on your system"
+msgstr ""
+
+#: ironic/openstack/common/service.py:364
+#, python-format
+msgid "pid %d not in child list"
 msgstr ""
 
