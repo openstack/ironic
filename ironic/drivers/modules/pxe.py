@@ -18,6 +18,7 @@ PXE Driver and supporting meta-classes.
 """
 
 import os
+import shutil
 
 from oslo.config import cfg
 from oslo.utils import strutils
@@ -84,6 +85,19 @@ pxe_opts = [
                default=10080,
                help='Maximum TTL (in minutes) for old master images in '
                'cache.'),
+    cfg.StrOpt('http_url',
+                help='Ironic compute node\'s HTTP server URL. '
+                     'Example: http://192.1.2.3:8080'),
+    cfg.StrOpt('http_root',
+                default='/httpboot',
+                help='Ironic compute node\'s HTTP root path.'),
+    cfg.BoolOpt('ipxe_enabled',
+                default=False,
+                help='Enable iPXE boot.'),
+    cfg.StrOpt('ipxe_boot_script',
+               default=paths.basedir_def(
+                    'drivers/modules/boot.ipxe'),
+               help='The path to the main iPXE script file.'),
     ]
 
 LOG = logging.getLogger(__name__)
@@ -223,14 +237,27 @@ def _build_pxe_config_options(node, pxe_info, ctx):
     node.instance_info = i_info
     node.save(ctx)
 
+    if CONF.pxe.ipxe_enabled:
+        deploy_kernel = '/'.join([CONF.pxe.http_url, node.uuid,
+                                  'deploy_kernel'])
+        deploy_ramdisk = '/'.join([CONF.pxe.http_url, node.uuid,
+                                   'deploy_ramdisk'])
+        kernel = '/'.join([CONF.pxe.http_url, node.uuid, 'kernel'])
+        ramdisk = '/'.join([CONF.pxe.http_url, node.uuid, 'ramdisk'])
+    else:
+        deploy_kernel = pxe_info['deploy_kernel'][1]
+        deploy_ramdisk = pxe_info['deploy_ramdisk'][1]
+        kernel = pxe_info['kernel'][1]
+        ramdisk = pxe_info['ramdisk'][1]
+
     pxe_options = {
         'deployment_id': node['uuid'],
         'deployment_key': deploy_key,
         'deployment_iscsi_iqn': "iqn-%s" % node.uuid,
-        'deployment_aki_path': pxe_info['deploy_kernel'][1],
-        'deployment_ari_path': pxe_info['deploy_ramdisk'][1],
-        'aki_path': pxe_info['kernel'][1],
-        'ari_path': pxe_info['ramdisk'][1],
+        'deployment_aki_path': deploy_kernel,
+        'deployment_ari_path': deploy_ramdisk,
+        'aki_path': kernel,
+        'ari_path': ramdisk,
         'ironic_api_url': ironic_api,
         'pxe_append_params': CONF.pxe.pxe_append_params,
     }
@@ -328,10 +355,10 @@ def _fetch_images(ctx, cache, images_info):
         cache.fetch_image(uuid, path, ctx=ctx)
 
 
-def _cache_tftp_images(ctx, node, pxe_info):
+def _cache_ramdisk_kernel(ctx, node, pxe_info):
     """Fetch the necessary kernels and ramdisks for the instance."""
     fileutils.ensure_tree(
-        os.path.join(CONF.pxe.tftp_root, node.uuid))
+        os.path.join(pxe_utils.get_root_dir(), node.uuid))
     LOG.debug("Fetching kernel and ramdisk for node %s",
               node.uuid)
     _fetch_images(ctx, TFTPImageCache(), pxe_info.values())
@@ -367,7 +394,7 @@ def _cache_instance_image(ctx, node):
     return (uuid, image_path)
 
 
-def _get_tftp_image_info(node, ctx):
+def _get_image_info(node, ctx):
     """Generate the paths for tftp files for this instance
 
     Raises IronicException if
@@ -378,6 +405,7 @@ def _get_tftp_image_info(node, ctx):
     """
     d_info = _parse_deploy_info(node)
     image_info = {}
+    root_dir = pxe_utils.get_root_dir()
 
     image_info.update(pxe_utils.get_deploy_kr_info(node.uuid, d_info))
 
@@ -394,7 +422,7 @@ def _get_tftp_image_info(node, ctx):
     for label in labels:
         image_info[label] = (
             i_info[label],
-            os.path.join(CONF.pxe.tftp_root, node.uuid, label)
+            os.path.join(root_dir, node.uuid, label)
         )
 
     return image_info
@@ -489,6 +517,12 @@ class PXEDeploy(base.DeployInterface):
 
         d_info = _parse_deploy_info(node)
 
+        if CONF.pxe.ipxe_enabled:
+            if not CONF.pxe.http_url or not CONF.pxe.http_root:
+                raise exception.InvalidParameterValue(_(
+                    "iPXE boot is enabled but no HTTP URL or HTTP "
+                    "root was specified."))
+
         # Try to get the URL of the Ironic API
         try:
             # TODO(lucasagomes): Validate the format of the URL
@@ -552,12 +586,17 @@ class PXEDeploy(base.DeployInterface):
         :param task: a TaskManager instance containing the node to act on.
         """
         # TODO(deva): optimize this if rerun on existing files
-        pxe_info = _get_tftp_image_info(task.node, task.context)
+        if CONF.pxe.ipxe_enabled:
+            # Copy the iPXE boot script to HTTP root directory
+            bootfile_path = os.path.join(CONF.pxe.http_root,
+                                   os.path.basename(CONF.pxe.ipxe_boot_script))
+            shutil.copyfile(CONF.pxe.ipxe_boot_script, bootfile_path)
+        pxe_info = _get_image_info(task.node, task.context)
         pxe_options = _build_pxe_config_options(task.node, pxe_info,
                                                 task.context)
         pxe_utils.create_pxe_config(task, pxe_options,
                                     CONF.pxe.pxe_config_template)
-        _cache_tftp_images(task.context, task.node, pxe_info)
+        _cache_ramdisk_kernel(task.context, task.node, pxe_info)
 
     def clean_up(self, task):
         """Clean up the deployment environment for the task's node.
@@ -569,7 +608,7 @@ class PXEDeploy(base.DeployInterface):
         :param task: a TaskManager instance containing the node to act on.
         """
         node = task.node
-        pxe_info = _get_tftp_image_info(node, task.context)
+        pxe_info = _get_image_info(node, task.context)
         d_info = _parse_deploy_info(node)
         for label in pxe_info:
             path = pxe_info[label][1]

@@ -133,6 +133,25 @@ class TestPXEUtils(db_base.DbTestCase):
         self.assertEqual('/tftpboot/pxelinux.cfg/01-00-11-22-33-44-55-66',
                          pxe_utils._get_pxe_mac_path(mac))
 
+    def test__get_pxe_mac_path_ipxe(self):
+        self.config(ipxe_enabled=True, group='pxe')
+        self.config(http_root='/httpboot', group='pxe')
+        mac = '00:11:22:33:AA:BB:CC'
+        self.assertEqual('/httpboot/pxelinux.cfg/00112233aabbcc',
+                         pxe_utils._get_pxe_mac_path(mac))
+
+    def test_get_root_dir(self):
+        expected_dir = '/tftproot'
+        self.config(ipxe_enabled=False, group='pxe')
+        self.config(tftp_root=expected_dir, group='pxe')
+        self.assertEqual(expected_dir, pxe_utils.get_root_dir())
+
+    def test_get_root_dir_ipxe(self):
+        expected_dir = '/httpboot'
+        self.config(ipxe_enabled=True, group='pxe')
+        self.config(http_root=expected_dir, group='pxe')
+        self.assertEqual(expected_dir, pxe_utils.get_root_dir())
+
     def test_get_pxe_config_file_path(self):
         self.assertEqual(os.path.join(CONF.pxe.tftp_root,
                                       self.node.uuid,
@@ -151,8 +170,7 @@ class TestPXEUtils(db_base.DbTestCase):
                          ]
         self.assertEqual(expected_info, pxe_utils.dhcp_options_for_instance())
 
-    def test_get_deploy_kr_info(self):
-        self.config(tftp_root='/tftp', group='pxe')
+    def _test_get_deploy_kr_info(self, expected_dir):
         node_uuid = 'fake-node'
         driver_info = {
             'deploy_kernel': 'glance://deploy-kernel',
@@ -161,13 +179,24 @@ class TestPXEUtils(db_base.DbTestCase):
 
         expected = {
             'deploy_kernel': ('deploy-kernel',
-                              '/tftp/fake-node/deploy_kernel'),
+                              expected_dir + '/fake-node/deploy_kernel'),
             'deploy_ramdisk': ('deploy-ramdisk',
-                               '/tftp/fake-node/deploy_ramdisk'),
+                               expected_dir + '/fake-node/deploy_ramdisk'),
         }
 
         kr_info = pxe_utils.get_deploy_kr_info(node_uuid, driver_info)
         self.assertEqual(expected, kr_info)
+
+    def test_get_deploy_kr_info(self):
+        expected_dir = '/tftp'
+        self.config(tftp_root=expected_dir, group='pxe')
+        self._test_get_deploy_kr_info(expected_dir)
+
+    def test_get_deploy_kr_info_ipxe(self):
+        expected_dir = '/http'
+        self.config(ipxe_enabled=True, group='pxe')
+        self.config(http_root=expected_dir, group='pxe')
+        self._test_get_deploy_kr_info(expected_dir)
 
     def test_get_deploy_kr_info_bad_driver_info(self):
         self.config(tftp_root='/tftp', group='pxe')
@@ -177,3 +206,22 @@ class TestPXEUtils(db_base.DbTestCase):
                           pxe_utils.get_deploy_kr_info,
                           node_uuid,
                           driver_info)
+
+    def test_dhcp_options_for_instance_ipxe(self):
+        self.config(tftp_server='192.0.2.1', group='pxe')
+        self.config(pxe_bootfile_name='fake-bootfile', group='pxe')
+        self.config(ipxe_enabled=True, group='pxe')
+        self.config(http_url='http://192.0.3.2:1234', group='pxe')
+        self.config(ipxe_boot_script='/test/boot.ipxe', group='pxe')
+
+        expected_boot_script_url = 'http://192.0.3.2:1234/boot.ipxe'
+        expected_info = [{'opt_name': '!175,bootfile-name',
+                          'opt_value': 'fake-bootfile'},
+                         {'opt_name': 'server-ip-address',
+                          'opt_value': '192.0.2.1'},
+                         {'opt_name': 'tftp-server',
+                          'opt_value': '192.0.2.1'},
+                         {'opt_name': 'bootfile-name',
+                          'opt_value': expected_boot_script_url}]
+        self.assertEqual(sorted(expected_info),
+                         sorted(pxe_utils.dhcp_options_for_instance()))

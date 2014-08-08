@@ -20,6 +20,8 @@ import mock
 import os
 import tempfile
 
+from oslo.config import cfg
+
 from ironic.common import disk_partitioner
 from ironic.common import exception
 from ironic.common import utils as common_utils
@@ -51,6 +53,42 @@ ipappend 3
 label boot
 kernel kernel
 append initrd=ramdisk root=UUID=12345678-1234-1234-1234-1234567890abcdef
+"""
+
+_IPXECONF_DEPLOY = """
+#!ipxe
+
+dhcp
+
+goto deploy
+
+:deploy
+kernel deploy_kernel
+initrd deploy_ramdisk
+boot
+
+:boot
+kernel kernel
+append initrd=ramdisk root={{ ROOT }}
+boot
+"""
+
+_IPXECONF_BOOT = """
+#!ipxe
+
+dhcp
+
+goto boot
+
+:deploy
+kernel deploy_kernel
+initrd deploy_ramdisk
+boot
+
+:boot
+kernel kernel
+append initrd=ramdisk root=UUID=12345678-1234-1234-1234-1234567890abcdef
+boot
 """
 
 
@@ -363,19 +401,31 @@ class PhysicalWorkTestCase(tests_base.TestCase):
 
 
 class SwitchPxeConfigTestCase(tests_base.TestCase):
-    def setUp(self):
-        super(SwitchPxeConfigTestCase, self).setUp()
-        (fd, self.fname) = tempfile.mkstemp()
-        os.write(fd, _PXECONF_DEPLOY)
+
+    def _create_config(self, ipxe=False):
+        (fd, fname) = tempfile.mkstemp()
+        pxe_cfg = _IPXECONF_DEPLOY if ipxe else _PXECONF_DEPLOY
+        os.write(fd, pxe_cfg)
         os.close(fd)
-        self.addCleanup(os.unlink, self.fname)
+        self.addCleanup(os.unlink, fname)
+        return fname
 
     def test_switch_pxe_config(self):
-        utils.switch_pxe_config(self.fname,
+        fname = self._create_config()
+        utils.switch_pxe_config(fname,
                                '12345678-1234-1234-1234-1234567890abcdef')
-        with open(self.fname, 'r') as f:
+        with open(fname, 'r') as f:
             pxeconf = f.read()
         self.assertEqual(_PXECONF_BOOT, pxeconf)
+
+    def test_switch_ipxe_config(self):
+        cfg.CONF.set_override('ipxe_enabled', True, 'pxe')
+        fname = self._create_config(ipxe=True)
+        utils.switch_pxe_config(fname,
+                               '12345678-1234-1234-1234-1234567890abcdef')
+        with open(fname, 'r') as f:
+            pxeconf = f.read()
+        self.assertEqual(_IPXECONF_BOOT, pxeconf)
 
 
 class OtherFunctionTestCase(tests_base.TestCase):

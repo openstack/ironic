@@ -20,6 +20,7 @@ import socket
 import stat
 import time
 
+from oslo.config import cfg
 from oslo.utils import excutils
 
 from ironic.common import disk_partitioner
@@ -30,6 +31,8 @@ from ironic.openstack.common import processutils
 
 
 LOG = logging.getLogger(__name__)
+
+CONF = cfg.CONF
 
 
 # All functions are called from deploy() directly or indirectly.
@@ -166,12 +169,14 @@ def switch_pxe_config(path, root_uuid):
     with open(path) as f:
         lines = f.readlines()
     root = 'UUID=%s' % root_uuid
+    pxe_cmd = 'goto' if CONF.pxe.ipxe_enabled else 'default'
     rre = re.compile(r'\{\{ ROOT \}\}')
-    dre = re.compile('^default .*$')
+    dre = re.compile('^%s .*$' % pxe_cmd)
+    boot_line = '%s boot' % pxe_cmd
     with open(path, 'w') as f:
         for line in lines:
             line = rre.sub(root, line)
-            line = dre.sub('default boot', line)
+            line = dre.sub(boot_line, line)
             f.write(line)
 
 

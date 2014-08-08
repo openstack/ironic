@@ -31,15 +31,23 @@ LOG = logging.getLogger(__name__)
 PXE_CFG_DIR_NAME = 'pxelinux.cfg'
 
 
+def get_root_dir():
+    """Returns the directory where the config files and images will live."""
+    if CONF.pxe.ipxe_enabled:
+        return CONF.pxe.http_root
+    else:
+        return CONF.pxe.tftp_root
+
+
 def _ensure_config_dirs_exist(node_uuid):
     """Ensure that the node's and PXE configuration directories exist.
 
     :param node_uuid: the UUID of the node.
 
     """
-    tftp_root = CONF.pxe.tftp_root
-    fileutils.ensure_tree(os.path.join(tftp_root, node_uuid))
-    fileutils.ensure_tree(os.path.join(tftp_root, PXE_CFG_DIR_NAME))
+    root_dir = get_root_dir()
+    fileutils.ensure_tree(os.path.join(root_dir, node_uuid))
+    fileutils.ensure_tree(os.path.join(root_dir, PXE_CFG_DIR_NAME))
 
 
 def _build_pxe_config(pxe_options, template):
@@ -80,11 +88,12 @@ def _get_pxe_mac_path(mac):
     :returns: the path to the config file.
 
     """
-    return os.path.join(
-        CONF.pxe.tftp_root,
-        PXE_CFG_DIR_NAME,
-        "01-" + mac.replace(":", "-").lower()
-    )
+    if CONF.pxe.ipxe_enabled:
+        mac_file_name = mac.replace(':', '').lower()
+    else:
+        mac_file_name = "01-" + mac.replace(":", "-").lower()
+
+    return os.path.join(get_root_dir(), PXE_CFG_DIR_NAME, mac_file_name)
 
 
 def get_deploy_kr_info(node_uuid, driver_info):
@@ -92,12 +101,13 @@ def get_deploy_kr_info(node_uuid, driver_info):
 
     Note: driver_info should be validated outside of this method.
     """
+    root_dir = get_root_dir()
     image_info = {}
     for label in ('deploy_kernel', 'deploy_ramdisk'):
         # the values for these keys will look like "glance://image-uuid"
         image_info[label] = (
             str(driver_info[label]).split('/')[-1],
-            os.path.join(CONF.pxe.tftp_root, node_uuid, label)
+            os.path.join(root_dir, node_uuid, label)
         )
     return image_info
 
@@ -109,7 +119,7 @@ def get_pxe_config_file_path(node_uuid):
     :returns: The path to the node's PXE configuration file.
 
     """
-    return os.path.join(CONF.pxe.tftp_root, node_uuid, 'config')
+    return os.path.join(get_root_dir(), node_uuid, 'config')
 
 
 def create_pxe_config(task, pxe_options, template=None):
@@ -152,16 +162,31 @@ def clean_up_pxe_config(task):
     for mac in driver_utils.get_node_mac_addresses(task):
         utils.unlink_without_raise(_get_pxe_mac_path(mac))
 
-    utils.rmtree_without_raise(os.path.join(CONF.pxe.tftp_root,
+    utils.rmtree_without_raise(os.path.join(get_root_dir(),
                                             task.node.uuid))
 
 
 def dhcp_options_for_instance():
     """Retrieves the DHCP PXE boot options."""
-    return [{'opt_name': 'bootfile-name',
-             'opt_value': CONF.pxe.pxe_bootfile_name},
-            {'opt_name': 'server-ip-address',
-             'opt_value': CONF.pxe.tftp_server},
-            {'opt_name': 'tftp-server',
-             'opt_value': CONF.pxe.tftp_server}
-            ]
+    dhcp_opts = []
+    if CONF.pxe.ipxe_enabled:
+        script_name = os.path.basename(CONF.pxe.ipxe_boot_script)
+        ipxe_script_url = '/'.join([CONF.pxe.http_url, script_name])
+        # if the request comes from dumb firmware send them the iPXE
+        # boot image. !175 == non-iPXE.
+        # http://ipxe.org/howto/dhcpd#ipxe-specific_options
+        dhcp_opts.append({'opt_name': '!175,bootfile-name',
+                          'opt_value': CONF.pxe.pxe_bootfile_name})
+        # If the request comes from iPXE, direct it to boot from the
+        # iPXE script
+        dhcp_opts.append({'opt_name': 'bootfile-name',
+                          'opt_value': ipxe_script_url})
+    else:
+        dhcp_opts.append({'opt_name': 'bootfile-name',
+                          'opt_value': CONF.pxe.pxe_bootfile_name})
+
+    dhcp_opts.append({'opt_name': 'server-ip-address',
+                      'opt_value': CONF.pxe.tftp_server})
+    dhcp_opts.append({'opt_name': 'tftp-server',
+                      'opt_value': CONF.pxe.tftp_server})
+    return dhcp_opts
