@@ -19,7 +19,6 @@ import datetime
 
 import mock
 from oslo.config import cfg
-from oslo.db.openstack.common import timeutils as db_timeutils
 from oslo.utils import timeutils
 from six.moves.urllib import parse as urlparse
 from testtools.matchers import HasLength
@@ -489,7 +488,7 @@ class TestPost(base.FunctionalTest):
         super(TestPost, self).setUp()
         self.node = obj_utils.create_test_node(context.get_admin_context())
 
-    @mock.patch.object(db_timeutils, 'utcnow')
+    @mock.patch.object(timeutils, 'utcnow')
     def test_create_port(self, mock_utcnow):
         pdict = post_get_test_port()
         test_time = datetime.datetime(2000, 1, 1, 0, 0)
