@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Ironic\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2014-08-04 06:10+0000\n"
+"POT-Creation-Date: 2014-08-08 06:10+0000\n"
 "PO-Revision-Date: 2014-07-21 23:13+0000\n"
 "Last-Translator: openstackjenkins <jenkins@openstack.org>\n"
 "Language-Team: Spanish (http://www.transifex.com/projects/p/ironic/language/"
@@ -80,10 +80,28 @@ msgstr "Se está descartando excepción original: %s"
 msgid "Unexpected exception occurred %d time(s)... retrying."
 msgstr "La excepción inesperada ha ocurrido %d vez(veces)... reintentando."
 
-#: ironic/openstack/common/loopingcall.py:89
+#: ironic/openstack/common/lockutils.py:119
+#, python-format
+msgid "Could not release the acquired lock `%s`"
+msgstr ""
+
+#: ironic/openstack/common/loopingcall.py:95
 msgid "in fixed duration looping call"
 msgstr "en llamada en bucle de duración fija"
 
-#: ironic/openstack/common/loopingcall.py:136
+#: ironic/openstack/common/loopingcall.py:138
 msgid "in dynamic looping call"
 msgstr "en llamada en bucle dinámica"
+
+#: ironic/openstack/common/periodic_task.py:202
+#, python-format
+msgid "Error during %(full_task_name)s: %(e)s"
+msgstr ""
+
+#: ironic/openstack/common/service.py:188
+msgid "Exception during rpc cleanup."
+msgstr ""
+
+#: ironic/openstack/common/service.py:277
+msgid "Unhandled exception"
+msgstr ""

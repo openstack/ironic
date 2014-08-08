@@ -6,9 +6,9 @@
 #, fuzzy
 msgid ""
 msgstr ""
-"Project-Id-Version: ironic 2014.2.dev37.g0603f74\n"
+"Project-Id-Version: ironic 2014.2.dev58.g55e2ea9\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2014-08-04 06:10+0000\n"
+"POT-Creation-Date: 2014-08-08 06:10+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -18,30 +18,30 @@ msgstr ""
 "Generated-By: Babel 1.3\n"
 
 #: ironic/api/controllers/v1/driver.py:115
-#: ironic/api/controllers/v1/node.py:472
+#: ironic/api/controllers/v1/node.py:554
 msgid "Method not specified"
 msgstr ""
 
-#: ironic/api/controllers/v1/node.py:226
+#: ironic/api/controllers/v1/node.py:308
 #, python-format
 msgid "Node %(node)s is already in the '%(state)s' state."
 msgstr ""
 
-#: ironic/api/controllers/v1/node.py:239
+#: ironic/api/controllers/v1/node.py:321
 #, python-format
 msgid "Node %s is already being provisioned or decommissioned."
 msgstr ""
 
-#: ironic/api/controllers/v1/node.py:507
+#: ironic/api/controllers/v1/node.py:592
 msgid "Chassis id not specified."
 msgstr ""
 
-#: ironic/api/controllers/v1/node.py:688
+#: ironic/api/controllers/v1/node.py:773
 #, python-format
 msgid "Node %s can not be updated while a state transition is in progress."
 msgstr ""
 
-#: ironic/api/controllers/v1/port.py:169
+#: ironic/api/controllers/v1/port.py:180
 msgid "Node id not specified."
 msgstr ""
 
@@ -489,20 +489,16 @@ msgstr ""
 msgid "The driver '%s' is unknown."
 msgstr ""
 
-#: ironic/common/images.py:110
-msgid "Snapshot list encountered but no header found!"
-msgstr ""
-
-#: ironic/common/images.py:203
+#: ironic/common/images.py:87
 msgid "'qemu-img info' parsing failed."
 msgstr ""
 
-#: ironic/common/images.py:209
+#: ironic/common/images.py:93
 #, python-format
 msgid "fmt=%(fmt)s backed by: %(backing_file)s"
 msgstr ""
 
-#: ironic/common/images.py:224
+#: ironic/common/images.py:108
 #, python-format
 msgid "Converted to raw, but format is now %s"
 msgstr ""
@@ -827,48 +823,48 @@ msgid ""
 "update Neutron port MAC address."
 msgstr ""
 
-#: ironic/conductor/rpcapi.py:91
+#: ironic/conductor/rpcapi.py:93
 #, python-format
 msgid "No conductor service registered which supports driver %s."
 msgstr ""
 
-#: ironic/conductor/utils.py:70 ironic/conductor/utils.py:108
+#: ironic/conductor/utils.py:71 ironic/conductor/utils.py:109
 #, python-format
 msgid "Failed to change power state to '%(target)s'. Error: %(error)s"
 msgstr ""
 
-#: ironic/conductor/utils.py:87
+#: ironic/conductor/utils.py:88
 #, python-format
 msgid ""
 "Not going to change_node_power_state because current state = requested "
 "state = '%(state)s'."
 msgstr ""
 
-#: ironic/conductor/utils.py:132
+#: ironic/conductor/utils.py:133
 #, python-format
 msgid "Timeout reached while waiting for callback for node %s"
 msgstr ""
 
-#: ironic/conductor/utils.py:138
+#: ironic/conductor/utils.py:139
 #, python-format
 msgid "Cleanup failed for node %(node)s after deploy timeout:  %(error)s"
 msgstr ""
 
-#: ironic/conductor/utils.py:150
+#: ironic/conductor/utils.py:151
 msgid ""
 "Deploy timed out, but an unhandled exception was encountered while "
 "aborting. More info may be found in the log file."
 msgstr ""
 
-#: ironic/db/sqlalchemy/api.py:336
+#: ironic/db/sqlalchemy/api.py:331
 msgid "Cannot overwrite UUID for an existing Node."
 msgstr ""
 
-#: ironic/db/sqlalchemy/api.py:424
+#: ironic/db/sqlalchemy/api.py:419
 msgid "Cannot overwrite UUID for an existing Port."
 msgstr ""
 
-#: ironic/db/sqlalchemy/api.py:490
+#: ironic/db/sqlalchemy/api.py:485
 msgid "Cannot overwrite UUID for an existing Chassis."
 msgstr ""
 
@@ -877,11 +873,11 @@ msgstr ""
 msgid "Vendor interface does not support driver vendor_passthru method: %s"
 msgstr ""
 
-#: ironic/drivers/ilo.py:36
+#: ironic/drivers/ilo.py:37
 msgid "Unable to import proliantutils library"
 msgstr ""
 
-#: ironic/drivers/pxe.py:83
+#: ironic/drivers/pxe.py:84
 msgid "Unable to import pyghmi library"
 msgstr ""
 
@@ -1001,68 +997,68 @@ msgstr ""
 msgid "No console pid found for node %s while trying to stop shellinabox console."
 msgstr ""
 
-#: ironic/drivers/modules/deploy_utils.py:227
+#: ironic/drivers/modules/deploy_utils.py:228
 #, python-format
 msgid ""
 "Failed to erase beginning of disk for node %(node)s. Command: "
 "%(command)s. Error: %(error)s."
 msgstr ""
 
-#: ironic/drivers/modules/deploy_utils.py:239
+#: ironic/drivers/modules/deploy_utils.py:240
 #, python-format
 msgid ""
 "Failed to get disk block count for node %(node)s. Command: %(command)s. "
 "Error: %(error)s."
 msgstr ""
 
-#: ironic/drivers/modules/deploy_utils.py:252
+#: ironic/drivers/modules/deploy_utils.py:253
 #, python-format
 msgid ""
 "Failed to erase the end of the disk on node %(node)s. Command: "
 "%(command)s. Error: %(error)s."
 msgstr ""
 
-#: ironic/drivers/modules/deploy_utils.py:279
+#: ironic/drivers/modules/deploy_utils.py:280
 #, python-format
 msgid "Parent device '%s' not found"
 msgstr ""
 
-#: ironic/drivers/modules/deploy_utils.py:296
+#: ironic/drivers/modules/deploy_utils.py:297
 #, python-format
 msgid "Root device '%s' not found"
 msgstr ""
 
-#: ironic/drivers/modules/deploy_utils.py:299
+#: ironic/drivers/modules/deploy_utils.py:300
 #, python-format
 msgid "Swap device '%s' not found"
 msgstr ""
 
-#: ironic/drivers/modules/deploy_utils.py:303
+#: ironic/drivers/modules/deploy_utils.py:304
 #, python-format
 msgid "Ephemeral device '%s' not found"
 msgstr ""
 
-#: ironic/drivers/modules/deploy_utils.py:317
+#: ironic/drivers/modules/deploy_utils.py:318
 msgid "Failed to detect root device UUID."
 msgstr ""
 
-#: ironic/drivers/modules/deploy_utils.py:356
-#: ironic/drivers/modules/deploy_utils.py:362
+#: ironic/drivers/modules/deploy_utils.py:357
+#: ironic/drivers/modules/deploy_utils.py:363
 #, python-format
 msgid "Deploy to address %s failed."
 msgstr ""
 
-#: ironic/drivers/modules/deploy_utils.py:357
+#: ironic/drivers/modules/deploy_utils.py:358
 #, python-format
 msgid "Command: %s"
 msgstr ""
 
-#: ironic/drivers/modules/deploy_utils.py:358
+#: ironic/drivers/modules/deploy_utils.py:359
 #, python-format
 msgid "StdOut: %r"
 msgstr ""
 
-#: ironic/drivers/modules/deploy_utils.py:359
+#: ironic/drivers/modules/deploy_utils.py:360
 #, python-format
 msgid "StdErr: %r"
 msgstr ""
@@ -1087,39 +1083,39 @@ msgstr ""
 msgid "Invalid boot device %s specified."
 msgstr ""
 
-#: ironic/drivers/modules/iboot.py:34
+#: ironic/drivers/modules/iboot.py:35
 msgid "IP address of the node. Required."
 msgstr ""
 
-#: ironic/drivers/modules/iboot.py:35 ironic/drivers/modules/seamicro.py:69
+#: ironic/drivers/modules/iboot.py:36 ironic/drivers/modules/seamicro.py:69
 msgid "username. Required."
 msgstr ""
 
-#: ironic/drivers/modules/iboot.py:36 ironic/drivers/modules/seamicro.py:67
+#: ironic/drivers/modules/iboot.py:37 ironic/drivers/modules/seamicro.py:67
 msgid "password. Required."
 msgstr ""
 
-#: ironic/drivers/modules/iboot.py:39
+#: ironic/drivers/modules/iboot.py:40
 msgid "iBoot PDU relay id; default is 1. Optional."
 msgstr ""
 
-#: ironic/drivers/modules/iboot.py:40
+#: ironic/drivers/modules/iboot.py:41
 msgid "iBoot PDU port; default is 9100. Optional."
 msgstr ""
 
-#: ironic/drivers/modules/iboot.py:53
+#: ironic/drivers/modules/iboot.py:54
 msgid "iBoot credentials not supplied to iBoot PDU driver."
 msgstr ""
 
-#: ironic/drivers/modules/iboot.py:60
+#: ironic/drivers/modules/iboot.py:61
 msgid "iBoot PDU relay id must be an integer."
 msgstr ""
 
-#: ironic/drivers/modules/iboot.py:67
+#: ironic/drivers/modules/iboot.py:68
 msgid "iBoot PDU port must be an integer."
 msgstr ""
 
-#: ironic/drivers/modules/iboot.py:160 ironic/drivers/modules/ipmitool.py:508
+#: ironic/drivers/modules/iboot.py:161 ironic/drivers/modules/ipmitool.py:508
 #: ironic/drivers/modules/ssh.py:508
 #, python-format
 msgid "set_power_state called with invalid power state %s."
@@ -1702,108 +1698,74 @@ msgstr ""
 msgid "Cannot update a conductor record directly."
 msgstr ""
 
-#: ironic/objects/utils.py:39
+#: ironic/objects/utils.py:38
 msgid "A datetime.datetime is required here"
 msgstr ""
 
-#: ironic/objects/utils.py:104
+#: ironic/objects/utils.py:103
 #, python-format
 msgid "An object of class %s is required here"
 msgstr ""
 
-#: ironic/openstack/common/gettextutils.py:297
+#: ironic/openstack/common/cliutils.py:271
+#, python-format
+msgid "No %(name)s with a name or ID of '%(name_or_id)s' exists."
+msgstr ""
+
+#: ironic/openstack/common/cliutils.py:279
+#, python-format
+msgid ""
+"Multiple %(name)s matches found for '%(name_or_id)s', use an ID to be "
+"more specific."
+msgstr ""
+
+#: ironic/openstack/common/gettextutils.py:301
 msgid "Message objects do not support addition."
 msgstr ""
 
-#: ironic/openstack/common/gettextutils.py:306
+#: ironic/openstack/common/gettextutils.py:311
 msgid ""
 "Message objects do not support str() because they may contain non-ascii "
 "characters. Please use unicode() or translate() instead."
 msgstr ""
 
-#: ironic/openstack/common/lockutils.py:105
+#: ironic/openstack/common/imageutils.py:75
 #, python-format
-msgid "Could not release the acquired lock `%s`"
+msgid "Invalid input value \"%s\"."
 msgstr ""
 
-#: ironic/openstack/common/lockutils.py:170
-#, python-format
-msgid "Got semaphore \"%(lock)s\""
+#: ironic/openstack/common/imageutils.py:104
+msgid "Snapshot list encountered but no header found!"
 msgstr ""
 
-#: ironic/openstack/common/lockutils.py:179
+#: ironic/openstack/common/lockutils.py:101
 #, python-format
-msgid "Attempting to grab file lock \"%(lock)s\""
+msgid "Unable to acquire lock on `%(filename)s` due to %(exception)s"
 msgstr ""
 
-#: ironic/openstack/common/lockutils.py:189
-#, python-format
-msgid "Created lock path: %s"
-msgstr ""
-
-#: ironic/openstack/common/lockutils.py:207
-#, python-format
-msgid "Got file lock \"%(lock)s\" at %(path)s"
-msgstr ""
-
-#: ironic/openstack/common/lockutils.py:211
-#, python-format
-msgid "Released file lock \"%(lock)s\" at %(path)s"
-msgstr ""
-
-#: ironic/openstack/common/lockutils.py:249
-#, python-format
-msgid "Got semaphore / lock \"%(function)s\""
-msgstr ""
-
-#: ironic/openstack/common/lockutils.py:253
-#, python-format
-msgid "Semaphore / lock released \"%(function)s\""
-msgstr ""
-
-#: ironic/openstack/common/log.py:327
+#: ironic/openstack/common/log.py:287
 #, python-format
 msgid "Deprecated: %s"
 msgstr ""
 
-#: ironic/openstack/common/log.py:438
+#: ironic/openstack/common/log.py:396
 #, python-format
 msgid "Error loading logging config %(log_config)s: %(err_msg)s"
 msgstr ""
 
-#: ironic/openstack/common/log.py:489
+#: ironic/openstack/common/log.py:457
 #, python-format
 msgid "syslog facility must be one of: %s"
 msgstr ""
 
-#: ironic/openstack/common/log.py:710
+#: ironic/openstack/common/log.py:700
 #, python-format
 msgid "Fatal call to deprecated config: %(msg)s"
 msgstr ""
 
-#: ironic/openstack/common/periodic_task.py:43
+#: ironic/openstack/common/periodic_task.py:40
 #, python-format
 msgid "Unexpected argument for periodic task creation: %(arg)s."
-msgstr ""
-
-#: ironic/openstack/common/periodic_task.py:134
-#, python-format
-msgid "Skipping periodic task %(task)s because its interval is negative"
-msgstr ""
-
-#: ironic/openstack/common/periodic_task.py:139
-#, python-format
-msgid "Skipping periodic task %(task)s because it is disabled"
-msgstr ""
-
-#: ironic/openstack/common/periodic_task.py:177
-#, python-format
-msgid "Running periodic task %(full_task_name)s"
-msgstr ""
-
-#: ironic/openstack/common/periodic_task.py:186
-#, python-format
-msgid "Error during %(full_task_name)s: %(e)s"
 msgstr ""
 
 #: ironic/openstack/common/policy.py:395
@@ -1821,11 +1783,11 @@ msgstr ""
 msgid "Failed to understand rule %(rule)r"
 msgstr ""
 
-#: ironic/openstack/common/processutils.py:58
+#: ironic/openstack/common/processutils.py:59
 msgid "Unexpected error while running command."
 msgstr ""
 
-#: ironic/openstack/common/processutils.py:61
+#: ironic/openstack/common/processutils.py:62
 #, python-format
 msgid ""
 "%(description)s\n"
@@ -1837,96 +1799,215 @@ msgstr ""
 
 #: ironic/openstack/common/processutils.py:143
 #, python-format
-msgid "Got unknown keyword args to utils.execute: %r"
+msgid "Got unknown keyword args: %r"
 msgstr ""
 
-#: ironic/openstack/common/processutils.py:149
+#: ironic/openstack/common/processutils.py:148
 msgid "Command requested root, but did not specify a root helper."
 msgstr ""
 
-#: ironic/openstack/common/processutils.py:246
+#: ironic/openstack/common/processutils.py:245
 msgid "Environment not supported over SSH"
 msgstr ""
 
-#: ironic/openstack/common/processutils.py:250
+#: ironic/openstack/common/processutils.py:249
 msgid "process_input not supported over SSH"
 msgstr ""
 
-#: ironic/openstack/common/service.py:166
-#: ironic/openstack/common/service.py:384
-msgid "Full set of CONF:"
-msgstr ""
-
-#: ironic/openstack/common/service.py:175
-#: ironic/openstack/common/service.py:269
-#, python-format
-msgid "Caught %s, exiting"
-msgstr ""
-
-#: ironic/openstack/common/service.py:187
-msgid "Exception during rpc cleanup."
-msgstr ""
-
-#: ironic/openstack/common/service.py:238
-msgid "Parent process has died unexpectedly, exiting"
-msgstr ""
-
-#: ironic/openstack/common/service.py:275
-msgid "Unhandled exception"
-msgstr ""
-
-#: ironic/openstack/common/service.py:308
-msgid "Forking too fast, sleeping"
-msgstr ""
-
-#: ironic/openstack/common/service.py:327
-#, python-format
-msgid "Started child %d"
-msgstr ""
-
-#: ironic/openstack/common/service.py:337
-#, python-format
-msgid "Starting %d workers"
-msgstr ""
-
-#: ironic/openstack/common/service.py:354
-#, python-format
-msgid "Child %(pid)d killed by signal %(sig)d"
-msgstr ""
-
-#: ironic/openstack/common/service.py:358
-#, python-format
-msgid "Child %(pid)s exited with status %(code)d"
-msgstr ""
-
-#: ironic/openstack/common/service.py:362
-#, python-format
-msgid "pid %d not in child list"
-msgstr ""
-
-#: ironic/openstack/common/service.py:392
-#, python-format
-msgid "Caught %s, stopping children"
-msgstr ""
-
-#: ironic/openstack/common/service.py:410
-#, python-format
-msgid "Waiting on %d children to exit"
-msgstr ""
-
-#: ironic/openstack/common/strutils.py:88
+#: ironic/openstack/common/strutils.py:114
 #, python-format
 msgid "Unrecognized value '%(val)s', acceptable values are: %(acceptable)s"
 msgstr ""
 
-#: ironic/openstack/common/strutils.py:184
+#: ironic/openstack/common/strutils.py:219
+#, python-format
+msgid "Invalid unit system: \"%s\""
+msgstr ""
+
+#: ironic/openstack/common/strutils.py:228
 #, python-format
 msgid "Invalid string format: %s"
 msgstr ""
 
-#: ironic/openstack/common/strutils.py:191
+#: ironic/openstack/common/versionutils.py:88
 #, python-format
-msgid "Unknown byte multiplier: %s"
+msgid ""
+"%(what)s is deprecated as of %(as_of)s in favor of %(in_favor_of)s and "
+"may be removed in %(remove_in)s."
+msgstr ""
+
+#: ironic/openstack/common/versionutils.py:92
+#, python-format
+msgid ""
+"%(what)s is deprecated as of %(as_of)s and may be removed in "
+"%(remove_in)s. It will not be superseded."
+msgstr ""
+
+#: ironic/openstack/common/versionutils.py:96
+#, python-format
+msgid "%(what)s is deprecated as of %(as_of)s in favor of %(in_favor_of)s."
+msgstr ""
+
+#: ironic/openstack/common/versionutils.py:99
+#, python-format
+msgid "%(what)s is deprecated as of %(as_of)s. It will not be superseded."
+msgstr ""
+
+#: ironic/openstack/common/apiclient/base.py:224
+#: ironic/openstack/common/apiclient/base.py:381
+#, python-format
+msgid "No %(name)s matching %(args)s."
+msgstr ""
+
+#: ironic/openstack/common/apiclient/client.py:233
+msgid "Cannot find endpoint or token for request"
+msgstr ""
+
+#: ironic/openstack/common/apiclient/client.py:356
+#, python-format
+msgid ""
+"Invalid %(api_name)s client version '%(version)s'. Must be one of: "
+"%(version_map)s"
+msgstr ""
+
+#: ironic/openstack/common/apiclient/exceptions.py:41
+#, python-format
+msgid "Missing arguments: %s"
+msgstr ""
+
+#: ironic/openstack/common/apiclient/exceptions.py:74
+#, python-format
+msgid "Authentication failed. Missing options: %s"
+msgstr ""
+
+#: ironic/openstack/common/apiclient/exceptions.py:83
+#, python-format
+msgid "AuthSystemNotFound: %s"
+msgstr ""
+
+#: ironic/openstack/common/apiclient/exceptions.py:106
+#, python-format
+msgid "AmbiguousEndpoints: %s"
+msgstr ""
+
+#: ironic/openstack/common/apiclient/exceptions.py:114
+msgid "HTTP Error"
+msgstr ""
+
+#: ironic/openstack/common/apiclient/exceptions.py:134
+msgid "HTTP Redirection"
+msgstr ""
+
+#: ironic/openstack/common/apiclient/exceptions.py:142
+msgid "HTTP Client Error"
+msgstr ""
+
+#: ironic/openstack/common/apiclient/exceptions.py:151
+msgid "HTTP Server Error"
+msgstr ""
+
+#: ironic/openstack/common/apiclient/exceptions.py:161
+msgid "Multiple Choices"
+msgstr ""
+
+#: ironic/openstack/common/apiclient/exceptions.py:170
+msgid "Bad Request"
+msgstr ""
+
+#: ironic/openstack/common/apiclient/exceptions.py:180
+msgid "Unauthorized"
+msgstr ""
+
+#: ironic/openstack/common/apiclient/exceptions.py:189
+msgid "Payment Required"
+msgstr ""
+
+#: ironic/openstack/common/apiclient/exceptions.py:199
+msgid "Forbidden"
+msgstr ""
+
+#: ironic/openstack/common/apiclient/exceptions.py:209
+msgid "Not Found"
+msgstr ""
+
+#: ironic/openstack/common/apiclient/exceptions.py:219
+msgid "Method Not Allowed"
+msgstr ""
+
+#: ironic/openstack/common/apiclient/exceptions.py:229
+msgid "Not Acceptable"
+msgstr ""
+
+#: ironic/openstack/common/apiclient/exceptions.py:238
+msgid "Proxy Authentication Required"
+msgstr ""
+
+#: ironic/openstack/common/apiclient/exceptions.py:247
+msgid "Request Timeout"
+msgstr ""
+
+#: ironic/openstack/common/apiclient/exceptions.py:257
+msgid "Conflict"
+msgstr ""
+
+#: ironic/openstack/common/apiclient/exceptions.py:267
+msgid "Gone"
+msgstr ""
+
+#: ironic/openstack/common/apiclient/exceptions.py:277
+msgid "Length Required"
+msgstr ""
+
+#: ironic/openstack/common/apiclient/exceptions.py:287
+msgid "Precondition Failed"
+msgstr ""
+
+#: ironic/openstack/common/apiclient/exceptions.py:296
+msgid "Request Entity Too Large"
+msgstr ""
+
+#: ironic/openstack/common/apiclient/exceptions.py:313
+msgid "Request-URI Too Long"
+msgstr ""
+
+#: ironic/openstack/common/apiclient/exceptions.py:323
+msgid "Unsupported Media Type"
+msgstr ""
+
+#: ironic/openstack/common/apiclient/exceptions.py:333
+msgid "Requested Range Not Satisfiable"
+msgstr ""
+
+#: ironic/openstack/common/apiclient/exceptions.py:342
+msgid "Expectation Failed"
+msgstr ""
+
+#: ironic/openstack/common/apiclient/exceptions.py:352
+msgid "Unprocessable Entity"
+msgstr ""
+
+#: ironic/openstack/common/apiclient/exceptions.py:361
+msgid "Internal Server Error"
+msgstr ""
+
+#: ironic/openstack/common/apiclient/exceptions.py:372
+msgid "Not Implemented"
+msgstr ""
+
+#: ironic/openstack/common/apiclient/exceptions.py:382
+msgid "Bad Gateway"
+msgstr ""
+
+#: ironic/openstack/common/apiclient/exceptions.py:391
+msgid "Service Unavailable"
+msgstr ""
+
+#: ironic/openstack/common/apiclient/exceptions.py:401
+msgid "Gateway Timeout"
+msgstr ""
+
+#: ironic/openstack/common/apiclient/exceptions.py:410
+msgid "HTTP Version Not Supported"
 msgstr ""
 
 #: ironic/tests/db/sqlalchemy/test_migrations.py:171
