@@ -35,5 +35,5 @@ def upgrade():
 
 
 def downgrade():
-    op.drop_constraint("uniq_nodes0instance_uuid", "nodes")
+    op.drop_constraint("uniq_nodes0instance_uuid", "nodes", type_='unique')
     op.create_index('node_instance_uuid', 'nodes', ['instance_uuid'])
