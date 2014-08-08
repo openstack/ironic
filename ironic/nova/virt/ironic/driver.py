@@ -391,6 +391,20 @@ class IronicDriver(virt_driver.ComputeDriver):
         :returns: True if the node exists, False if not.
 
         """
+        # NOTE(comstud): We can cheat and use caching here. This method
+        # just needs to return True for nodes that exist. It doesn't
+        # matter if the data is stale. Sure, it's possible that removing
+        # node from Ironic will cause this method to return True until
+        # the next call to 'get_available_nodes', but there shouldn't
+        # be much harm. There's already somewhat of a race.
+        if not self.node_cache:
+            # Empty cache, try to populate it.
+            self._refresh_cache()
+        if nodename in self.node_cache:
+            return True
+
+        # NOTE(comstud): Fallback and check Ironic. This case should be
+        # rare.
         icli = client_wrapper.IronicClientWrapper()
         try:
             icli.call("node.get", nodename)

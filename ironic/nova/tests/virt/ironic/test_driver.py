@@ -290,15 +290,43 @@ class IronicDriverTestCase(test.NoDBTestCase):
         expected = [n.instance_uuid for n in nodes]
         self.assertEqual(sorted(expected), sorted(uuids))
 
+    @mock.patch.object(FAKE_CLIENT.node, 'list')
     @mock.patch.object(FAKE_CLIENT.node, 'get')
-    def test_node_is_available(self, mock_get):
+    def test_node_is_available_empty_cache_empty_list(self, mock_get,
+                                                      mock_list):
         node = ironic_utils.get_test_node()
         mock_get.return_value = node
+        mock_list.return_value = []
         self.assertTrue(self.driver.node_is_available(node.uuid))
         mock_get.assert_called_with(node.uuid)
+        mock_list.assert_called_with(detail=True)
 
         mock_get.side_effect = ironic_exception.NotFound
         self.assertFalse(self.driver.node_is_available(node.uuid))
+
+    @mock.patch.object(FAKE_CLIENT.node, 'list')
+    @mock.patch.object(FAKE_CLIENT.node, 'get')
+    def test_node_is_available_empty_cache(self, mock_get, mock_list):
+        node = ironic_utils.get_test_node()
+        mock_get.return_value = node
+        mock_list.return_value = [node]
+        self.assertTrue(self.driver.node_is_available(node.uuid))
+        mock_list.assert_called_with(detail=True)
+        self.assertEqual(0, mock_get.call_count)
+
+    @mock.patch.object(FAKE_CLIENT.node, 'list')
+    @mock.patch.object(FAKE_CLIENT.node, 'get')
+    def test_node_is_available_with_cache(self, mock_get, mock_list):
+        node = ironic_utils.get_test_node()
+        mock_get.return_value = node
+        mock_list.return_value = [node]
+        # populate the cache
+        self.driver.get_available_nodes(refresh=True)
+        # prove that zero calls are made after populating cache
+        mock_list.reset_mock()
+        self.assertTrue(self.driver.node_is_available(node.uuid))
+        self.assertEqual(0, mock_list.call_count)
+        self.assertEqual(0, mock_get.call_count)
 
     def test__node_resources_unavailable(self):
         node_dicts = [
