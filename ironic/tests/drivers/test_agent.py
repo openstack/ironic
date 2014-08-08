@@ -17,6 +17,7 @@ from oslo.config import cfg
 
 from ironic.common import dhcp_factory
 from ironic.common import exception
+from ironic.common import keystone
 from ironic.common import pxe_utils
 from ironic.common import states
 from ironic.conductor import task_manager
@@ -33,6 +34,24 @@ INSTANCE_INFO = db_utils.get_test_agent_instance_info()
 DRIVER_INFO = db_utils.get_test_agent_driver_info()
 
 CONF = cfg.CONF
+
+
+class TestAgentMethods(db_base.DbTestCase):
+    def setUp(self):
+        super(TestAgentMethods, self).setUp()
+
+    def test_build_agent_options_conf(self):
+        self.config(api_url='api-url', group='conductor')
+        options = agent.build_agent_options()
+        self.assertEqual('api-url', options['ipa-api-url'])
+
+    @mock.patch.object(keystone, 'get_service_url')
+    def test_build_agent_options_keystone(self, get_url_mock):
+
+        self.config(api_url=None, group='conductor')
+        get_url_mock.return_value = 'api-url'
+        options = agent.build_agent_options()
+        self.assertEqual('api-url', options['ipa-api-url'])
 
 
 class TestAgentDeploy(db_base.DbTestCase):

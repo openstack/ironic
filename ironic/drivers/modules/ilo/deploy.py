@@ -28,6 +28,7 @@ from ironic.common import swift
 from ironic.conductor import task_manager
 from ironic.conductor import utils as manager_utils
 from ironic.drivers import base
+from ironic.drivers.modules import agent
 from ironic.drivers.modules import deploy_utils
 from ironic.drivers.modules.ilo import common as ilo_common
 from ironic.drivers.modules import iscsi_deploy
@@ -303,6 +304,81 @@ class IloVirtualMediaIscsiDeploy(base.DeployInterface):
         iscsi_deploy.destroy_images(task.node.uuid)
 
     def take_over(self, task):
+        pass
+
+
+class IloVirtualMediaAgentDeploy(base.DeployInterface):
+    """Interface for deploy-related actions."""
+
+    def get_properties(self):
+        """Return the properties of the interface.
+
+        :returns: dictionary of <property name>:<property description> entries.
+        """
+        return COMMON_PROPERTIES
+
+    def validate(self, task):
+        """Validate the driver-specific Node deployment info.
+
+        :param task: a TaskManager instance
+        :raises: MissingParameterValue if some parameters are missing.
+        """
+        _parse_driver_info(task.node)
+
+    @task_manager.require_exclusive_lock
+    def deploy(self, task):
+        """Perform a deployment to a node.
+
+        Prepares the options for the agent ramdisk and sets the node to boot
+        from virtual media cdrom.
+
+        :param task: a TaskManager instance.
+        :returns: states.DEPLOYWAIT
+        :raises: ImageCreationFailed, if it failed while creating the floppy
+            image.
+        :raises: IloOperationError, if some operation on iLO fails.
+        """
+        deploy_ramdisk_opts = agent.build_agent_options()
+        deploy_iso_uuid = task.node.driver_info['ilo_deploy_iso']
+        deploy_iso = 'glance:' + deploy_iso_uuid
+        _reboot_into(task, deploy_iso, deploy_ramdisk_opts)
+
+        return states.DEPLOYWAIT
+
+    @task_manager.require_exclusive_lock
+    def tear_down(self, task):
+        """Tear down a previous deployment on the task's node.
+
+        :param task: a TaskManager instance.
+        :returns: states.DELETED
+        """
+        manager_utils.node_power_action(task, states.POWER_OFF)
+        return states.DELETED
+
+    def prepare(self, task):
+        """Prepare the deployment environment for this node.
+
+        :param task: a TaskManager instance.
+        """
+        node = task.node
+        node.instance_info = agent.build_instance_info_for_deploy(task)
+        node.save(task.context)
+
+    def clean_up(self, task):
+        """Clean up the deployment environment for this node.
+
+        Ejects the attached virtual media from the iLO and also removes
+        the floppy image from Swift, if it exists.
+
+        :param task: a TaskManager instance.
+        """
+        ilo_common.cleanup_vmedia_boot(task)
+
+    def take_over(self, task):
+        """Take over management of this node from a dead conductor.
+
+        :param task: a TaskManager instance.
+        """
         pass
 
 
