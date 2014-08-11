@@ -33,7 +33,8 @@ glance_opts = [
     # swift post -m Temp-Url-Key:correcthorsebatterystaple
     cfg.StrOpt('swift_temp_url_key',
                help='The secret token given to Swift to allow temporary URL '
-                    'downloads. Required for temporary URLs.'),
+                    'downloads. Required for temporary URLs.',
+               secret=True),
     cfg.IntOpt('swift_temp_url_duration',
                default=1200,
                help='The length of time in seconds that the temporary URL '
