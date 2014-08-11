@@ -15,7 +15,6 @@
 #    under the License.
 
 import fixtures
-import itertools
 import mock
 import os
 import tempfile
@@ -687,10 +686,8 @@ class RealFilePartitioningTestCase(tests_base.TestCase):
     def test_different_sizes(self):
         # NOTE(dtantsur): Keep this list in order with expected partitioning
         fields = ['ephemeral_mb', 'swap_mb', 'root_mb']
-        variants = itertools.product([0, 1, 5], repeat=3)
+        variants = ((0, 0, 12), (4, 2, 8), (0, 4, 10), (5, 0, 10))
         for variant in variants:
-            if variant == (0, 0, 0):
-                continue
             kwargs = dict(zip(fields, variant))
             self._run_without_root(utils.work_on_disk, self.file.name,
                                    ephemeral_format='ext4', node_uuid='',
