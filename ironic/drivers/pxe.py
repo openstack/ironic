@@ -22,6 +22,7 @@ from oslo.utils import importutils
 from ironic.common import exception
 from ironic.drivers import base
 from ironic.drivers.modules import iboot
+from ironic.drivers.modules.ilo import power as ilo_power
 from ironic.drivers.modules import ipminative
 from ironic.drivers.modules import ipmitool
 from ironic.drivers.modules import pxe
@@ -132,5 +133,23 @@ class PXEAndIBootDriver(base.BaseDriver):
                     driver=self.__class__.__name__,
                     reason="Unable to import iboot library")
         self.power = iboot.IBootPower()
+        self.deploy = pxe.PXEDeploy()
+        self.vendor = pxe.VendorPassthru()
+
+
+class PXEAndIloDriver(base.BaseDriver):
+    """PXE + Ilo Driver using IloClient interface.
+
+    This driver implements the `core` functionality using
+    :class:ironic.drivers.modules.ilo.power.IloPower for power management
+    and :class:ironic.drivers.modules.pxe.PXE for image deployment.
+    """
+
+    def __init__(self):
+        if not importutils.try_import('proliantutils'):
+            raise exception.DriverLoadError(
+                    driver=self.__class__.__name__,
+                    reason=_("Unable to import proliantutils library"))
+        self.power = ilo_power.IloPower()
         self.deploy = pxe.PXEDeploy()
         self.vendor = pxe.VendorPassthru()

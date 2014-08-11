@@ -2156,10 +2156,10 @@ class ManagerTestProperties(tests_db_base.DbTestCase):
                    'seamicro_api_version']
         self._check_driver_properties("pxe_seamicro", expected)
 
-    def test_driver_properties_ilo(self):
+    def test_driver_properties_fake_ilo(self):
         expected = ['ilo_address', 'ilo_username', 'ilo_password',
                    'client_port', 'client_timeout']
-        self._check_driver_properties("ilo", expected)
+        self._check_driver_properties("fake_ilo", expected)
 
     def test_driver_properties_fail(self):
         mgr_utils.mock_the_extension_manager()
