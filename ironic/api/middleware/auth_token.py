@@ -14,7 +14,7 @@
 
 import re
 
-from keystoneclient.middleware import auth_token
+from keystonemiddleware import auth_token
 
 from ironic.common import exception
 from ironic.common import utils
@@ -54,6 +54,6 @@ class AuthTokenMiddleware(auth_token.AuthProtocol):
                                        self.public_api_routes))
 
         if env['is_public_api']:
-            return self.app(env, start_response)
+            return self._app(env, start_response)
 
         return super(AuthTokenMiddleware, self).__call__(env, start_response)

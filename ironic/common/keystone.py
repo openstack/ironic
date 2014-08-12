@@ -13,14 +13,14 @@
 # under the License.
 
 from keystoneclient import exceptions as ksexception
+# NOTE(deva): import auth_token so oslo.config pulls in keystone_authtoken
+from keystonemiddleware import auth_token  # noqa
 from oslo.config import cfg
 from six.moves.urllib import parse
 
-from ironic.api import acl
 from ironic.common import exception
 
 CONF = cfg.CONF
-acl.register_opts(CONF)
 
 
 def get_service_url(service_type='baremetal', endpoint_type='internal'):

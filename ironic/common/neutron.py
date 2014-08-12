@@ -20,7 +20,6 @@ from neutronclient.common import exceptions as neutron_client_exc
 from neutronclient.v2_0 import client as clientv20
 from oslo.config import cfg
 
-from ironic.api import acl
 from ironic.common import exception
 from ironic.common import keystone
 from ironic.drivers.modules import ssh
@@ -46,7 +45,6 @@ neutron_opts = [
 CONF = cfg.CONF
 CONF.import_opt('my_ip', 'ironic.netconf')
 CONF.register_opts(neutron_opts, group='neutron')
-acl.register_opts(CONF)
 LOG = logging.getLogger(__name__)
 
 
