@@ -1,0 +1,138 @@
+# Translations template for ironic.
+# Copyright (C) 2014 ORGANIZATION
+# This file is distributed under the same license as the ironic project.
+#
+# Translators:
+# Andi Chandler <andi@gowling.com>, 2014
+msgid ""
+msgstr ""
+"Project-Id-Version: Ironic\n"
+"Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
+"POT-Creation-Date: 2014-08-12 06:10+0000\n"
+"PO-Revision-Date: 2014-08-11 14:21+0000\n"
+"Last-Translator: Andi Chandler <andi@gowling.com>\n"
+"Language-Team: English (United Kingdom) (http://www.transifex.com/projects/p/"
+"ironic/language/en_GB/)\n"
+"Language: en_GB\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 1.3\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+#: ironic/common/service.py:77
+#, python-format
+msgid "Created RPC server for service %(service)s on host %(host)s."
+msgstr "Created RPC server for service %(service)s on host %(host)s."
+
+#: ironic/common/service.py:94
+#, python-format
+msgid "Stopped RPC server for service %(service)s on host %(host)s."
+msgstr "Stopped RPC server for service %(service)s on host %(host)s."
+
+#: ironic/conductor/manager.py:210
+#, python-format
+msgid "Successfuly started conductor with hostname %(hostname)s."
+msgstr "Successfuly started conductor with hostname %(hostname)s."
+
+#: ironic/conductor/manager.py:222
+#, python-format
+msgid "Successfully stopped conductor with hostname %(hostname)s."
+msgstr "Successfully stopped conductor with hostname %(hostname)s."
+
+#: ironic/conductor/manager.py:496
+#, python-format
+msgid "Successfully deployed node %(node)s with instance %(instance)s."
+msgstr "Successfully deployed node %(node)s with instance %(instance)s."
+
+#: ironic/conductor/manager.py:577
+#, python-format
+msgid "Successfully unprovisioned node %(node)s with instance %(instance)s."
+msgstr "Successfully unprovisioned node %(node)s with instance %(instance)s."
+
+#: ironic/conductor/manager.py:924
+#, python-format
+msgid "Successfully deleted node %(node)s."
+msgstr "Successfully deleted node %(node)s."
+
+#: ironic/conductor/utils.py:115
+#, python-format
+msgid "Succesfully set node %(node)s power state to %(state)s."
+msgstr "Succesfully set node %(node)s power state to %(state)s."
+
+#: ironic/openstack/common/eventlet_backdoor.py:140
+#, python-format
+msgid "Eventlet backdoor listening on %(port)s for process %(pid)d"
+msgstr "Eventlet backdoor listening on %(port)s for process %(pid)d"
+
+#: ironic/openstack/common/lockutils.py:82
+#, python-format
+msgid "Created lock path: %s"
+msgstr "Created lock path: %s"
+
+#: ironic/openstack/common/lockutils.py:251
+#, python-format
+msgid "Failed to remove file %(file)s"
+msgstr "Failed to remove file %(file)s"
+
+#: ironic/openstack/common/periodic_task.py:126
+#, python-format
+msgid "Skipping periodic task %(task)s because its interval is negative"
+msgstr "Skipping periodic task %(task)s because its interval is negative"
+
+#: ironic/openstack/common/periodic_task.py:131
+#, python-format
+msgid "Skipping periodic task %(task)s because it is disabled"
+msgstr "Skipping periodic task %(task)s because it is disabled"
+
+#: ironic/openstack/common/service.py:176
+#, python-format
+msgid "Caught %s, exiting"
+msgstr "Caught %s, exiting"
+
+#: ironic/openstack/common/service.py:240
+msgid "Parent process has died unexpectedly, exiting"
+msgstr "Parent process has died unexpectedly, exiting"
+
+#: ironic/openstack/common/service.py:271
+#, python-format
+msgid "Child caught %s, exiting"
+msgstr "Child caught %s, exiting"
+
+#: ironic/openstack/common/service.py:310
+msgid "Forking too fast, sleeping"
+msgstr "Forking too fast, sleeping"
+
+#: ironic/openstack/common/service.py:329
+#, python-format
+msgid "Started child %d"
+msgstr "Started child %d"
+
+#: ironic/openstack/common/service.py:339
+#, python-format
+msgid "Starting %d workers"
+msgstr "Starting %d workers"
+
+#: ironic/openstack/common/service.py:356
+#, python-format
+msgid "Child %(pid)d killed by signal %(sig)d"
+msgstr "Child %(pid)d killed by signal %(sig)d"
+
+#: ironic/openstack/common/service.py:360
+#, python-format
+msgid "Child %(pid)s exited with status %(code)d"
+msgstr "Child %(pid)s exited with status %(code)d"
+
+#: ironic/openstack/common/service.py:399
+#, python-format
+msgid "Caught %s, stopping children"
+msgstr "Caught %s, stopping children"
+
+#: ironic/openstack/common/service.py:408
+msgid "Wait called after thread killed.  Cleaning up."
+msgstr "Wait called after thread killed.  Cleaning up."
+
+#: ironic/openstack/common/service.py:424
+#, python-format
+msgid "Waiting on %d children to exit"
+msgstr "Waiting on %d children to exit"

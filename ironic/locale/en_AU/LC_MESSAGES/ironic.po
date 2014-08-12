@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version:  Ironic\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2014-08-08 06:10+0000\n"
+"POT-Creation-Date: 2014-08-12 06:10+0000\n"
 "PO-Revision-Date: 2014-07-21 23:13+0000\n"
 "Last-Translator: openstackjenkins <jenkins@openstack.org>\n"
 "Language-Team: English (Australia) "
@@ -38,7 +38,7 @@ msgstr "Node %s is already being provisioned or decommissioned."
 msgid "Chassis id not specified."
 msgstr "Chassis id not specified."
 
-#: ironic/api/controllers/v1/node.py:773
+#: ironic/api/controllers/v1/node.py:774
 #, python-format
 msgid "Node %s can not be updated while a state transition is in progress."
 msgstr "Node %s can not be updated while a state transition is in progress."
@@ -903,15 +903,15 @@ msgstr ""
 "Deploy timed out, but an unhandled exception was encountered while "
 "aborting. More info may be found in the log file."
 
-#: ironic/db/sqlalchemy/api.py:331
+#: ironic/db/sqlalchemy/api.py:330
 msgid "Cannot overwrite UUID for an existing Node."
 msgstr ""
 
-#: ironic/db/sqlalchemy/api.py:419
+#: ironic/db/sqlalchemy/api.py:417
 msgid "Cannot overwrite UUID for an existing Port."
 msgstr ""
 
-#: ironic/db/sqlalchemy/api.py:485
+#: ironic/db/sqlalchemy/api.py:482
 msgid "Cannot overwrite UUID for an existing Chassis."
 msgstr ""
 
@@ -937,7 +937,7 @@ msgstr "Unsupported method (%s) passed through to vendor extension."
 msgid "Method not specified when calling vendor extension."
 msgstr "Method not specified when calling vendor extension."
 
-#: ironic/drivers/modules/agent.py:108 ironic/drivers/modules/pxe.py:654
+#: ironic/drivers/modules/agent.py:108 ironic/drivers/modules/pxe.py:693
 #, python-format
 msgid ""
 "Node %s failed to power off while handling deploy failure. This may be a "
@@ -948,7 +948,7 @@ msgstr ""
 "serious condition. Node should be removed from Ironic or put in "
 "maintenance mode until the problem is resolved."
 
-#: ironic/drivers/modules/agent.py:159 ironic/drivers/modules/pxe.py:304
+#: ironic/drivers/modules/agent.py:159 ironic/drivers/modules/pxe.py:331
 #, python-format
 msgid ""
 "Disk volume where '%(path)s' is located doesn't have enough disk space. "
@@ -1047,68 +1047,68 @@ msgstr ""
 msgid "No console pid found for node %s while trying to stop shellinabox console."
 msgstr ""
 
-#: ironic/drivers/modules/deploy_utils.py:228
+#: ironic/drivers/modules/deploy_utils.py:233
 #, python-format
 msgid ""
 "Failed to erase beginning of disk for node %(node)s. Command: "
 "%(command)s. Error: %(error)s."
 msgstr ""
 
-#: ironic/drivers/modules/deploy_utils.py:240
+#: ironic/drivers/modules/deploy_utils.py:245
 #, python-format
 msgid ""
 "Failed to get disk block count for node %(node)s. Command: %(command)s. "
 "Error: %(error)s."
 msgstr ""
 
-#: ironic/drivers/modules/deploy_utils.py:253
+#: ironic/drivers/modules/deploy_utils.py:258
 #, python-format
 msgid ""
 "Failed to erase the end of the disk on node %(node)s. Command: "
 "%(command)s. Error: %(error)s."
 msgstr ""
 
-#: ironic/drivers/modules/deploy_utils.py:280
+#: ironic/drivers/modules/deploy_utils.py:285
 #, python-format
 msgid "Parent device '%s' not found"
 msgstr "Parent device '%s' not found"
 
-#: ironic/drivers/modules/deploy_utils.py:297
+#: ironic/drivers/modules/deploy_utils.py:302
 #, python-format
 msgid "Root device '%s' not found"
 msgstr "Root device '%s' not found"
 
-#: ironic/drivers/modules/deploy_utils.py:300
+#: ironic/drivers/modules/deploy_utils.py:305
 #, python-format
 msgid "Swap device '%s' not found"
 msgstr "Swap device '%s' not found"
 
-#: ironic/drivers/modules/deploy_utils.py:304
+#: ironic/drivers/modules/deploy_utils.py:309
 #, python-format
 msgid "Ephemeral device '%s' not found"
 msgstr "Ephemeral device '%s' not found"
 
-#: ironic/drivers/modules/deploy_utils.py:318
+#: ironic/drivers/modules/deploy_utils.py:323
 msgid "Failed to detect root device UUID."
 msgstr "Failed to detect root device UUID."
 
-#: ironic/drivers/modules/deploy_utils.py:357
-#: ironic/drivers/modules/deploy_utils.py:363
+#: ironic/drivers/modules/deploy_utils.py:362
+#: ironic/drivers/modules/deploy_utils.py:368
 #, python-format
 msgid "Deploy to address %s failed."
 msgstr "Deploy to address %s failed."
 
-#: ironic/drivers/modules/deploy_utils.py:358
+#: ironic/drivers/modules/deploy_utils.py:363
 #, python-format
 msgid "Command: %s"
 msgstr "Command: %s"
 
-#: ironic/drivers/modules/deploy_utils.py:359
+#: ironic/drivers/modules/deploy_utils.py:364
 #, python-format
 msgid "StdOut: %r"
 msgstr "StdOut: %r"
 
-#: ironic/drivers/modules/deploy_utils.py:360
+#: ironic/drivers/modules/deploy_utils.py:365
 #, python-format
 msgid "StdErr: %r"
 msgstr "StdErr: %r"
@@ -1345,15 +1345,15 @@ msgstr "Unsupported method (%s) passed to IPMItool driver."
 msgid "IPMI terminal port not supplied to IPMI driver."
 msgstr ""
 
-#: ironic/drivers/modules/pxe.py:96
+#: ironic/drivers/modules/pxe.py:110
 msgid "UUID (from Glance) of the deployment kernel. Required."
 msgstr ""
 
-#: ironic/drivers/modules/pxe.py:98
+#: ironic/drivers/modules/pxe.py:112
 msgid "UUID (from Glance) of the ramdisk that is mounted at boot time. Required."
 msgstr ""
 
-#: ironic/drivers/modules/pxe.py:111
+#: ironic/drivers/modules/pxe.py:125
 #, python-format
 msgid ""
 "Can not validate PXE bootloader. The following parameters were not passed"
@@ -1362,46 +1362,50 @@ msgstr ""
 "Can not validate PXE bootloader. The following parameters were not passed"
 " to ironic: %s"
 
-#: ironic/drivers/modules/pxe.py:161
+#: ironic/drivers/modules/pxe.py:175
 #, python-format
 msgid ""
 "Can not validate PXE bootloader. Invalid parameter %(param)s. Reason: "
 "%(reason)s"
 msgstr ""
 
-#: ironic/drivers/modules/pxe.py:167
+#: ironic/drivers/modules/pxe.py:181
 #, python-format
 msgid "'%s' is not an integer value."
 msgstr "'%s' is not an integer value."
 
-#: ironic/drivers/modules/pxe.py:433
+#: ironic/drivers/modules/pxe.py:461
 #, python-format
 msgid ""
 "Root partition is too small for requested image. Image size: %(image_mb)d"
 " MB, Root size: %(root_mb)d MB"
 msgstr ""
 
-#: ironic/drivers/modules/pxe.py:454
+#: ironic/drivers/modules/pxe.py:482
 #, python-format
 msgid "Failed to connect to Glance to get the properties of the image %s"
 msgstr ""
 
-#: ironic/drivers/modules/pxe.py:458
+#: ironic/drivers/modules/pxe.py:486
 #, python-format
 msgid "Image %s not found in Glance"
 msgstr ""
 
-#: ironic/drivers/modules/pxe.py:468
+#: ironic/drivers/modules/pxe.py:496
 #, python-format
 msgid "Image %(image)s is missing the following properties: %(properties)s"
 msgstr ""
 
-#: ironic/drivers/modules/pxe.py:487 ironic/drivers/modules/ssh.py:457
+#: ironic/drivers/modules/pxe.py:515 ironic/drivers/modules/ssh.py:457
 #, python-format
 msgid "Node %s does not have any port associated with it."
 msgstr "Node %s does not have any port associated with it."
 
-#: ironic/drivers/modules/pxe.py:499
+#: ironic/drivers/modules/pxe.py:522
+msgid "iPXE boot is enabled but no HTTP URL or HTTP root was specified."
+msgstr ""
+
+#: ironic/drivers/modules/pxe.py:533
 msgid ""
 "Couldn't get the URL of the Ironic API service from the configuration "
 "file or keystone catalog."
@@ -1409,49 +1413,49 @@ msgstr ""
 "Couldn't get the URL of the Ironic API service from the configuration "
 "file or keystone catalog."
 
-#: ironic/drivers/modules/pxe.py:597
+#: ironic/drivers/modules/pxe.py:636
 msgid "Deploy key does not match"
 msgstr ""
 
-#: ironic/drivers/modules/pxe.py:616
+#: ironic/drivers/modules/pxe.py:655
 #, python-format
 msgid "Parameters %s were not passed to ironic for deploy."
 msgstr "Parameters %s were not passed to ironic for deploy."
 
-#: ironic/drivers/modules/pxe.py:633
+#: ironic/drivers/modules/pxe.py:672
 #, python-format
 msgid "Unsupported method (%s) passed to PXE driver."
 msgstr "Unsupported method (%s) passed to PXE driver."
 
-#: ironic/drivers/modules/pxe.py:666
+#: ironic/drivers/modules/pxe.py:705
 #, python-format
 msgid "Node %s is not waiting to be deployed."
 msgstr "Node %s is not waiting to be deployed."
 
-#: ironic/drivers/modules/pxe.py:678
+#: ironic/drivers/modules/pxe.py:717
 #, python-format
 msgid "Error returned from PXE deploy ramdisk: %s"
 msgstr "Error returned from PXE deploy ramdisk: %s"
 
-#: ironic/drivers/modules/pxe.py:680
+#: ironic/drivers/modules/pxe.py:719
 msgid "Failure in PXE deploy ramdisk."
 msgstr "Failure in PXE deploy ramdisk."
 
-#: ironic/drivers/modules/pxe.py:684
+#: ironic/drivers/modules/pxe.py:723
 #, python-format
 msgid "Continuing deployment for node %(node)s, params %(params)s"
 msgstr "Continuing deployment for node %(node)s, params %(params)s"
 
-#: ironic/drivers/modules/pxe.py:690
+#: ironic/drivers/modules/pxe.py:729
 #, python-format
 msgid "PXE deploy failed for instance %(instance)s. Error: %(error)s"
 msgstr "PXE deploy failed for instance %(instance)s. Error: %(error)s"
 
-#: ironic/drivers/modules/pxe.py:693
+#: ironic/drivers/modules/pxe.py:732
 msgid "PXE driver failed to continue deployment."
 msgstr "PXE driver failed to continue deployment."
 
-#: ironic/drivers/modules/pxe.py:695
+#: ironic/drivers/modules/pxe.py:734
 #, python-format
 msgid "Deployment to node %s done"
 msgstr "Deployment to node %s done"

@@ -8,9 +8,9 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Ironic\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2014-08-08 06:10+0000\n"
-"PO-Revision-Date: 2014-07-29 11:01+0000\n"
-"Last-Translator: openstackjenkins <jenkins@openstack.org>\n"
+"POT-Creation-Date: 2014-08-12 06:10+0000\n"
+"PO-Revision-Date: 2014-08-11 14:31+0000\n"
+"Last-Translator: Andi Chandler <andi@gowling.com>\n"
 "Language-Team: English (United Kingdom) (http://www.transifex.com/projects/p/"
 "ironic/language/en_GB/)\n"
 "Language: en_GB\n"
@@ -37,6 +37,8 @@ msgid ""
 "get_sensors_data is not implemented for driver %(driver)s, node_uuid is "
 "%(node)s"
 msgstr ""
+"get_sensors_data is not implemented for driver %(driver)s, node_uuid is "
+"%(node)s"
 
 #: ironic/conductor/manager.py:1105
 #, python-format
@@ -44,6 +46,8 @@ msgid ""
 "During get_sensors_data, could not parse sensor data for node %(node)s. "
 "Error: %(err)s."
 msgstr ""
+"During get_sensors_data, could not parse sensor data for node %(node)s. "
+"Error: %(err)s."
 
 #: ironic/conductor/manager.py:1109
 #, python-format
@@ -51,6 +55,8 @@ msgid ""
 "During get_sensors_data, could not get sensor data for node %(node)s. Error: "
 "%(err)s."
 msgstr ""
+"During get_sensors_data, could not get sensor data for node %(node)s. Error: "
+"%(err)s."
 
 #: ironic/conductor/manager.py:1113
 #, python-format
@@ -58,11 +64,13 @@ msgid ""
 "During send_sensor_data, node %(node)s was not found and presumed deleted by "
 "another process."
 msgstr ""
+"During send_sensor_data, node %(node)s was not found and presumed deleted by "
+"another process."
 
 #: ironic/conductor/manager.py:1117
 #, python-format
 msgid "Failed to get sensor data for node %(node)s. Error: %(error)s"
-msgstr ""
+msgstr "Failed to get sensor data for node %(node)s. Error: %(error)s"
 
 #: ironic/conductor/task_manager.py:277
 #, python-format
@@ -72,12 +80,12 @@ msgstr "Task's on_error hook failed to call %(method)s on node %(node)s"
 #: ironic/drivers/modules/agent.py:567
 #, python-format
 msgid "Malformed MAC: %s"
-msgstr ""
+msgstr "Malformed MAC: %s"
 
 #: ironic/drivers/modules/agent.py:606
 #, python-format
 msgid "MAC address %s not found in database"
-msgstr ""
+msgstr "MAC address %s not found in database"
 
 #: ironic/drivers/modules/ipmitool.py:596
 #, python-format
@@ -103,6 +111,8 @@ msgid ""
 "Failed to get boot device for node %(node)s, virt_type %(vtype)s does not "
 "support this operation"
 msgstr ""
+"Failed to get boot device for node %(node)s, virt_type %(vtype)s does not "
+"support this operation"
 
 #: ironic/nova/virt/ironic/driver.py:100
 #, python-format
@@ -122,21 +132,21 @@ msgstr "Destroy called on non-existing instance %s."
 #: ironic/openstack/common/loopingcall.py:87
 #, python-format
 msgid "task %(func_name)s run outlasted interval by %(delay).2f sec"
-msgstr ""
+msgstr "task %(func_name)s run outlasted interval by %(delay).2f sec"
 
 #: ironic/openstack/common/network_utils.py:149
 msgid "tcp_keepidle not available on your system"
-msgstr ""
+msgstr "tcp_keepidle not available on your system"
 
 #: ironic/openstack/common/network_utils.py:156
 msgid "tcp_keepintvl not available on your system"
-msgstr ""
+msgstr "tcp_keepintvl not available on your system"
 
 #: ironic/openstack/common/network_utils.py:163
 msgid "tcp_keepknt not available on your system"
-msgstr ""
+msgstr "tcp_keepknt not available on your system"
 
 #: ironic/openstack/common/service.py:364
 #, python-format
 msgid "pid %d not in child list"
-msgstr ""
+msgstr "pid %d not in child list"
