@@ -32,91 +32,97 @@ class IronicDriverFieldsTestCase(test.NoDBTestCase):
         self.image_meta = ironic_utils.get_test_image_meta()
         self.flavor = ironic_utils.get_test_flavor()
         self.ctx = nova_context.get_admin_context()
+        self.instance = fake_instance.fake_instance_obj(self.ctx)
+        # Generic expected patches
+        self._expected_deploy_patch = [{'path': '/instance_info/image_source',
+                                        'value': self.image_meta['id'],
+                                        'op': 'add'},
+                                       {'path': '/instance_info/root_gb',
+                                        'value': str(self.instance['root_gb']),
+                                        'op': 'add'},
+                                       {'path': '/instance_info/swap_mb',
+                                        'value': str(self.flavor['swap']),
+                                        'op': 'add'}]
+        self._expected_cleanup_patch = []
+
+    def test_create_generic(self):
+        node = ironic_utils.get_test_node(driver='fake')
+        patcher_obj = patcher.create(node)
+        self.assertIsInstance(patcher_obj, patcher.GenericDriverFields)
+
+    def test_create_pxe(self):
+        node = ironic_utils.get_test_node(driver='pxe_fake')
+        patcher_obj = patcher.create(node)
+        self.assertIsInstance(patcher_obj, patcher.PXEDriverFields)
+
+    def test_generic_get_deploy_patch(self):
+        node = ironic_utils.get_test_node(driver='fake')
+        patch = patcher.create(node).get_deploy_patch(
+                self.instance, self.image_meta, self.flavor)
+        self.assertEqual(sorted(self._expected_deploy_patch), sorted(patch))
+
+    def test_generic_get_deploy_patch_ephemeral(self):
+        CONF.set_override('default_ephemeral_format', 'testfmt')
+        node = ironic_utils.get_test_node(driver='fake')
+        instance = fake_instance.fake_instance_obj(self.ctx,
+                                                   ephemeral_gb=10)
+        patch = patcher.create(node).get_deploy_patch(
+                instance, self.image_meta, self.flavor)
+        expected = [{'path': '/instance_info/ephemeral_gb',
+                     'value': str(instance.ephemeral_gb),
+                     'op': 'add'},
+                    {'path': '/instance_info/ephemeral_format',
+                     'value': 'testfmt',
+                     'op': 'add'}]
+        expected += self._expected_deploy_patch
+        self.assertEqual(sorted(expected), sorted(patch))
+
+    def test_generic_get_deploy_patch_preserve_ephemeral(self):
+        node = ironic_utils.get_test_node(driver='fake')
+        for preserve in [True, False]:
+            patch = patcher.create(node).get_deploy_patch(
+                    self.instance, self.image_meta, self.flavor,
+                    preserve_ephemeral=preserve)
+            expected = [{'path': '/instance_info/preserve_ephemeral',
+                         'value': str(preserve), 'op': 'add', }]
+            expected += self._expected_deploy_patch
+            self.assertEqual(sorted(expected), sorted(patch))
+
+    def test_generic_get_cleanup_patch(self):
+        node = ironic_utils.get_test_node(driver='fake')
+        patch = patcher.create(node).get_cleanup_patch(self.instance, None,
+                                                       self.flavor)
+        self.assertEqual(self._expected_cleanup_patch, patch)
 
     def test_pxe_get_deploy_patch(self):
         node = ironic_utils.get_test_node(driver='pxe_fake')
-        instance = fake_instance.fake_instance_obj(self.ctx, node=node.uuid)
         extra_specs = self.flavor['extra_specs']
         expected = [{'path': '/driver_info/pxe_deploy_kernel',
                      'value': extra_specs['baremetal:deploy_kernel_id'],
                      'op': 'add'},
                     {'path': '/driver_info/pxe_deploy_ramdisk',
                      'value': extra_specs['baremetal:deploy_ramdisk_id'],
-                     'op': 'add'},
-                    {'path': '/instance_info/image_source',
-                     'value': self.image_meta['id'],
-                     'op': 'add'},
-                    {'path': '/instance_info/root_gb',
-                     'value': str(instance['root_gb']),
-                     'op': 'add'},
-                    {'path': '/instance_info/swap_mb',
-                     'value': str(self.flavor['swap']),
                      'op': 'add'}]
+        expected += self._expected_deploy_patch
         patch = patcher.create(node).get_deploy_patch(
-                instance, self.image_meta, self.flavor)
+                self.instance, self.image_meta, self.flavor)
         self.assertEqual(sorted(expected), sorted(patch))
-
-    def test_pxe_get_deploy_patch_with_ephemeral(self):
-        node = ironic_utils.get_test_node(driver='pxe_fake')
-        instance = fake_instance.fake_instance_obj(
-                        self.ctx, node=node.uuid, ephemeral_gb=10)
-        CONF.set_override('default_ephemeral_format', 'testfmt')
-        patch = patcher.create(node).get_deploy_patch(
-                instance, self.image_meta, self.flavor)
-        expected1 = {'path': '/instance_info/ephemeral_gb',
-                     'value': '10', 'op': 'add'}
-        expected2 = {'path': '/instance_info/ephemeral_format',
-                     'value': 'testfmt', 'op': 'add'}
-        self.assertIn(expected1, patch)
-        self.assertIn(expected2, patch)
-
-    def test_pxe_get_deploy_patch_preserve_ephemeral(self):
-        node = ironic_utils.get_test_node(driver='pxe_fake')
-        instance = fake_instance.fake_instance_obj(
-                        self.ctx, node=node.uuid, ephemeral_gb=10)
-        for preserve in [True, False]:
-            patch = patcher.create(node).get_deploy_patch(
-                    instance, self.image_meta, self.flavor,
-                    preserve_ephemeral=preserve)
-            expected =  {'path': '/instance_info/preserve_ephemeral',
-                         'value': str(preserve), 'op': 'add', }
-            self.assertIn(expected, patch)
-
-    def test_pxe_get_deploy_patch_no_preserve_ephemeral(self):
-        node = ironic_utils.get_test_node(driver='pxe_fake')
-        instance = fake_instance.fake_instance_obj(
-                        self.ctx, node=node.uuid, ephemeral_gb=10)
-        patch = patcher.create(node).get_deploy_patch(
-                    instance, self.image_meta, self.flavor)
-        for preserve in [True, False]:
-            unexpected =  {'path': '/instance_info/preserve_ephemeral',
-                           'value': str(preserve), 'op': 'add', }
-            self.assertNotIn(unexpected, patch)
 
     def test_pxe_get_deploy_patch_no_flavor_kernel_ramdisk_ids(self):
-        self.flavor = ironic_utils.get_test_flavor(extra_specs={})
+        flavor = ironic_utils.get_test_flavor(extra_specs={})
         node = ironic_utils.get_test_node(driver='pxe_fake')
-        instance = fake_instance.fake_instance_obj(self.ctx, node=node.uuid)
-        expected = [{'path': '/instance_info/image_source',
-                     'value': self.image_meta['id'],
-                     'op': 'add'},
-                    {'path': '/instance_info/root_gb',
-                     'value': str(instance['root_gb']),
-                     'op': 'add'},
-                    {'path': '/instance_info/swap_mb',
-                     'value': str(self.flavor['swap']),
-                     'op': 'add'}]
         patch = patcher.create(node).get_deploy_patch(
-                instance, self.image_meta, self.flavor)
-        self.assertEqual(sorted(expected), sorted(patch))
+                self.instance, self.image_meta, flavor)
+        # If there's no extra_specs patch should be exactly like a
+        # generic patch
+        self.assertEqual(sorted(self._expected_deploy_patch), sorted(patch))
 
     def test_pxe_get_cleanup_patch(self):
         driver_info = {'pxe_deploy_kernel': 'fake-kernel-id',
                        'pxe_deploy_ramdisk': 'fake-ramdisk-id'}
         node = ironic_utils.get_test_node(driver='pxe_fake',
                                           driver_info=driver_info)
-        instance = fake_instance.fake_instance_obj(self.ctx, node=node.uuid)
-        patch = patcher.create(node).get_cleanup_patch(instance, None,
+        patch = patcher.create(node).get_cleanup_patch(self.instance, None,
                                                        self.flavor)
         expected = [{'path': '/driver_info/pxe_deploy_kernel',
                      'op': 'remove'},
@@ -126,11 +132,9 @@ class IronicDriverFieldsTestCase(test.NoDBTestCase):
 
     def test_pxe_get_cleanup_patch_no_flavor_kernel_ramdisk_ids(self):
         self.flavor = ironic_utils.get_test_flavor(extra_specs={})
-        driver_info = {'pxe_deploy_kernel': 'fake-kernel-id',
-                       'pxe_deploy_ramdisk': 'fake-ramdisk-id'}
-        node = ironic_utils.get_test_node(driver='pxe_fake',
-                                          driver_info=driver_info)
-        instance = fake_instance.fake_instance_obj(self.ctx, node=node.uuid)
-        patch = patcher.create(node).get_cleanup_patch(instance, None,
+        node = ironic_utils.get_test_node(driver='pxe_fake')
+        patch = patcher.create(node).get_cleanup_patch(self.instance, None,
                                                        self.flavor)
-        self.assertEqual([], patch)
+        # If there's no extra_specs patch should be exactly like a
+        # generic patch
+        self.assertEqual(self._expected_cleanup_patch, patch)
