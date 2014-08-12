@@ -17,6 +17,7 @@ import datetime
 
 import mock
 from oslo.utils import timeutils
+from testtools.matchers import HasLength
 
 from ironic.common import exception
 from ironic.db import api as db_api
@@ -133,3 +134,11 @@ class TestNodeObject(base.DbTestCase):
             self.assertIsInstance(n, models.Node)
         for n in _convert_db_nodes():
             self.assertIsInstance(n, objects.Node)
+
+    def test_list(self):
+        with mock.patch.object(self.dbapi, 'get_node_list',
+                               autospec=True) as mock_get_list:
+            mock_get_list.return_value = [self.fake_node]
+            nodes = objects.Node.list(self.context)
+            self.assertThat(nodes, HasLength(1))
+            self.assertIsInstance(nodes[0], objects.Node)
