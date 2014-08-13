@@ -83,9 +83,6 @@ CONF = cfg.CONF
 CONF.register_group(ironic_group)
 CONF.register_opts(opts, ironic_group)
 
-_FIREWALL_DRIVER = "%s.%s" % (firewall.__name__,
-                              firewall.NoopFirewallDriver.__name__)
-
 _POWER_STATE_MAP = {
     ironic_states.POWER_ON: power_state.RUNNING,
     ironic_states.NOSTATE: power_state.NOSTATE,
@@ -155,7 +152,8 @@ class IronicDriver(virt_driver.ComputeDriver):
                 ironic.client = importutils.import_module(
                                                     'ironicclient.client')
 
-        self.firewall_driver = firewall.load_driver(default=_FIREWALL_DRIVER)
+        self.firewall_driver = firewall.load_driver(
+            default='nova.virt.firewall.NoopFirewallDriver')
         extra_specs = {}
         extra_specs["ironic_driver"] = \
             "ironic.nova.virt.ironic.driver.IronicDriver"
@@ -453,11 +451,24 @@ class IronicDriver(virt_driver.ComputeDriver):
                     'cpu_time': 0
                     }
 
-        memory_kib = int(node.properties.get('memory_mb')) * 1024
+        memory_kib = int(node.properties.get('memory_mb', 0)) * 1024
+        if memory_kib == 0:
+            LOG.warn(_LW("Warning, memory usage is 0 for "
+                         "%(instance)s on baremetal node %(node)s."),
+                     {'instance': instance['uuid'],
+                      'node': instance['node']})
+
+        num_cpu = node.properties.get('cpus', 0)
+        if num_cpu == 0:
+            LOG.warn(_LW("Warning, number of cpus is 0 for "
+                         "%(instance)s on baremetal node %(node)s."),
+                     {'instance': instance['uuid'],
+                      'node': instance['node']})
+
         return {'state': map_power_state(node.power_state),
                 'max_mem': memory_kib,
                 'mem': memory_kib,
-                'num_cpu': node.properties.get('cpus'),
+                'num_cpu': num_cpu,
                 'cpu_time': 0
                 }
 
@@ -675,7 +686,6 @@ class IronicDriver(virt_driver.ComputeDriver):
         :param instance: The instance object.
 
         """
-        # TODO(nobodycam): check the current power state first.
         icli = client_wrapper.IronicClientWrapper()
         node = _validate_instance_and_node(icli, instance)
         icli.call("node.set_power_state", node.uuid, 'off')
@@ -692,7 +702,6 @@ class IronicDriver(virt_driver.ComputeDriver):
             information. Ignored by this driver.
 
         """
-        # TODO(nobodycam): check the current power state first.
         icli = client_wrapper.IronicClientWrapper()
         node = _validate_instance_and_node(icli, instance)
         icli.call("node.set_power_state", node.uuid, 'on')
