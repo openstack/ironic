@@ -14,6 +14,7 @@
 #    under the License.
 
 import mock
+from testtools.matchers import HasLength
 
 from ironic.common import exception
 from ironic.db import api as db_api
@@ -124,3 +125,11 @@ class TestPortObject(base.DbTestCase):
             self.assertIsInstance(p, models.Port)
         for p in _convert_db_nodes():
             self.assertIsInstance(p, objects.Port)
+
+    def test_list(self):
+        with mock.patch.object(self.dbapi, 'get_port_list',
+                               autospec=True) as mock_get_list:
+            mock_get_list.return_value = [self.fake_port]
+            ports = objects.Port.list(self.context)
+            self.assertThat(ports, HasLength(1))
+            self.assertIsInstance(ports[0], objects.Port)

@@ -201,9 +201,9 @@ class PortsController(rest.RestController):
         elif address:
             ports = self._get_ports_by_address(address)
         else:
-            ports = pecan.request.dbapi.get_port_list(limit, marker_obj,
-                                                      sort_key=sort_key,
-                                                      sort_dir=sort_dir)
+            ports = objects.Port.list(pecan.request.context, limit,
+                                      marker_obj, sort_key=sort_key,
+                                      sort_dir=sort_dir)
 
         return PortCollection.convert_with_links(ports, limit,
                                                  url=resource_url,

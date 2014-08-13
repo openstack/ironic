@@ -14,6 +14,7 @@
 #    under the License.
 
 import mock
+from testtools.matchers import HasLength
 
 from ironic.common import exception
 from ironic.common import utils as ironic_utils
@@ -117,3 +118,11 @@ class TestChassisObject(base.DbTestCase):
             self.assertIsInstance(c, models.Chassis)
         for c in _convert_many_db_chassis():
             self.assertIsInstance(c, objects.Chassis)
+
+    def test_list(self):
+        with mock.patch.object(self.dbapi, 'get_chassis_list',
+                               autospec=True) as mock_get_list:
+            mock_get_list.return_value = [self.fake_chassis]
+            chassis = objects.Chassis.list(self.context)
+            self.assertThat(chassis, HasLength(1))
+            self.assertIsInstance(chassis[0], objects.Chassis)

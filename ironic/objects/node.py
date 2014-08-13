@@ -27,7 +27,8 @@ class Node(base.IronicObject):
     #              only work with a uuid
     # Version 1.3: Add create() and destroy()
     # Version 1.4: Add get_by_instance_uuid()
-    VERSION = '1.4'
+    # Version 1.5: Add list()
+    VERSION = '1.5'
 
     dbapi = db_api.get_instance()
 
@@ -130,6 +131,32 @@ class Node(base.IronicObject):
         # _from_db_object().
         node._context = context
         return node
+
+    @base.remotable_classmethod
+    def list(cls, context, limit=None, marker=None, sort_key=None,
+             sort_dir=None, filters=None):
+        """Return a list of Node objects.
+
+        :param context: Security context.
+        :param limit: maximum number of resources to return in a single result.
+        :param marker: pagination marker for large data sets.
+        :param sort_key: column to sort results by.
+        :param sort_dir: direction to sort. "asc" or "desc".
+        :param filters: Filters to apply.
+        :returns: a list of :class:`Node` object.
+
+        """
+        node_list = []
+        db_nodes = cls.dbapi.get_node_list(filters=filters, limit=limit,
+                                           marker=marker, sort_key=sort_key,
+                                           sort_dir=sort_dir)
+        for obj in db_nodes:
+            node = Node._from_db_object(cls(), obj)
+            # FIXME(comstud): Setting of the context should be moved to
+            # _from_db_object().
+            node._context = context
+            node_list.append(node)
+        return node_list
 
     @base.remotable
     def create(self, context=None):

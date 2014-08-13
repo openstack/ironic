@@ -25,7 +25,8 @@ class Port(base.IronicObject):
     # Version 1.1: Add get() and get_by_id() and get_by_address() and
     #              make get_by_uuid() only work with a uuid
     # Version 1.2: Add create() and destroy()
-    VERSION = '1.2'
+    # Version 1.3: Add list()
+    VERSION = '1.3'
 
     dbapi = dbapi.get_instance()
 
@@ -105,6 +106,32 @@ class Port(base.IronicObject):
         # _from_db_object().
         port._context = context
         return port
+
+    @base.remotable_classmethod
+    def list(cls, context, limit=None, marker=None,
+             sort_key=None, sort_dir=None):
+        """Return a list of Port objects.
+
+        :param context: Security context.
+        :param limit: maximum number of resources to return in a single result.
+        :param marker: pagination marker for large data sets.
+        :param sort_key: column to sort results by.
+        :param sort_dir: direction to sort. "asc" or "desc".
+        :returns: a list of :class:`Port` object.
+
+        """
+        port_list = []
+        db_ports = cls.dbapi.get_port_list(limit=limit,
+                                           marker=marker,
+                                           sort_key=sort_key,
+                                           sort_dir=sort_dir)
+        for obj in db_ports:
+            port = Port._from_db_object(cls(), obj)
+            # FIXME(comstud): Setting of the context should be moved to
+            # _from_db_object().
+            port._context = context
+            port_list.append(port)
+        return port_list
 
     @base.remotable
     def create(self, context=None):

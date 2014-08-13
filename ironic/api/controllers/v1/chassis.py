@@ -156,9 +156,9 @@ class ChassisController(rest.RestController):
         if marker:
             marker_obj = objects.Chassis.get_by_uuid(pecan.request.context,
                                                      marker)
-        chassis = pecan.request.dbapi.get_chassis_list(limit, marker_obj,
-                                                       sort_key=sort_key,
-                                                       sort_dir=sort_dir)
+        chassis = objects.Chassis.list(pecan.request.context, limit,
+                                       marker_obj, sort_key=sort_key,
+                                       sort_dir=sort_dir)
         return ChassisCollection.convert_with_links(chassis, limit,
                                                     url=resource_url,
                                                     expand=expand,

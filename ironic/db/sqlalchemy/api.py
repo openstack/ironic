@@ -205,7 +205,6 @@ class Connection(api.Connection):
         return _paginate_query(models.Node, limit, marker,
                                sort_key, sort_dir, query)
 
-    @objects.objectify(objects.Node)
     def get_node_list(self, filters=None, limit=None, marker=None,
                       sort_key=None, sort_dir=None):
         query = model_query(models.Node)
@@ -383,7 +382,6 @@ class Connection(api.Connection):
     def get_port_by_vif(self, vif):
         pass
 
-    @objects.objectify(objects.Port)
     def get_port_list(self, limit=None, marker=None,
                       sort_key=None, sort_dir=None):
         return _paginate_query(models.Port, limit, marker,
@@ -458,7 +456,6 @@ class Connection(api.Connection):
         except NoResultFound:
             raise exception.ChassisNotFound(chassis=chassis_uuid)
 
-    @objects.objectify(objects.Chassis)
     def get_chassis_list(self, limit=None, marker=None,
                          sort_key=None, sort_dir=None):
         return _paginate_query(models.Chassis, limit, marker,

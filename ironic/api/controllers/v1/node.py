@@ -610,10 +610,9 @@ class NodesController(rest.RestController):
             if maintenance is not None:
                 filters['maintenance'] = maintenance
 
-            nodes = pecan.request.dbapi.get_node_list(filters, limit,
-                                                      marker_obj,
-                                                      sort_key=sort_key,
-                                                      sort_dir=sort_dir)
+            nodes = objects.Node.list(pecan.request.context, limit, marker_obj,
+                                      sort_key=sort_key, sort_dir=sort_dir,
+                                      filters=filters)
 
         parameters = {'sort_key': sort_key, 'sort_dir': sort_dir}
         if associated:
