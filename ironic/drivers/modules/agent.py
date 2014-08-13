@@ -21,7 +21,6 @@ from oslo.utils import excutils
 from ironic.common import exception
 from ironic.common import i18n
 from ironic.common import image_service
-from ironic.common import images
 from ironic.common import keystone
 from ironic.common import neutron
 from ironic.common import paths
@@ -117,6 +116,7 @@ def _set_failed_state(task, msg):
         node.save(task.context)
 
 
+@image_cache.cleanup(priority=25)
 class AgentTFTPImageCache(image_cache.ImageCache):
     def __init__(self, image_service=None):
         super(AgentTFTPImageCache, self).__init__(
@@ -129,44 +129,6 @@ class AgentTFTPImageCache(image_cache.ImageCache):
 
 
 # copied from pxe driver - should be refactored per LP1350594
-def _free_disk_space_for(path):
-    """Get free disk space on a drive where path is located."""
-    stat = os.statvfs(path)
-    return stat.f_frsize * stat.f_bavail
-
-
-# copied from pxe driver - should be refactored per LP1350594
-def _cleanup_caches_if_required(ctx, cache, images_info):
-    # NOTE(dtantsur): I'd prefer to have this code inside ImageCache. But:
-    # To reclaim disk space efficiently, this code needs to be aware of
-    # all existing caches (e.g. cleaning instance image cache can be
-    # much more efficient, than cleaning TFTP cache).
-    total_size = sum(images.download_size(ctx, uuid)
-                     for (uuid, path) in images_info)
-    free = _free_disk_space_for(cache.master_dir)
-    if total_size >= free:
-        # NOTE(dtantsur): instance cache is larger - always clean it first
-        # NOTE(dtantsur): filter caches, whose directory is on the same device
-        st_dev = os.stat(cache.master_dir).st_dev
-        caches = [c for c in (AgentTFTPImageCache(),)
-                  if os.stat(c.master_dir).st_dev == st_dev]
-        for cache_to_clean in caches:
-            cache_to_clean.clean_up()
-            free = _free_disk_space_for(cache.master_dir)
-            if total_size < free:
-                break
-        else:
-            msg = _("Disk volume where '%(path)s' is located doesn't have "
-                    "enough disk space. Required %(required)d MiB, "
-                    "only %(actual)d MiB available space present.")
-            raise exception.InstanceDeployFailure(reason=msg % {
-                'path': cache.master_dir,
-                'required': total_size / 1024 / 1024,
-                'actual': free / 1024 / 1024
-            })
-
-
-# copied from pxe driver - should be refactored per LP1350594
 def _fetch_images(ctx, cache, images_info):
     """Check for available disk space and fetch images using ImageCache.
 
@@ -175,7 +137,12 @@ def _fetch_images(ctx, cache, images_info):
     :param images_info: list of tuples (image uuid, destination path)
     :raises: InstanceDeployFailure if unable to find enough disk space
     """
-    _cleanup_caches_if_required(ctx, cache, images_info)
+
+    try:
+        image_cache.clean_up_caches(ctx, cache.master_dir, images_info)
+    except exception.InsufficientDiskSpace as e:
+        raise exception.InstanceDeployFailure(reason=e)
+
     # NOTE(dtantsur): This code can suffer from race condition,
     # if disk space is used between the check and actual download.
     # This is probably unavoidable, as we can't control other

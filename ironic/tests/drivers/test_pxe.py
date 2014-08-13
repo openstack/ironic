@@ -26,7 +26,6 @@ from oslo.config import cfg
 
 from ironic.common import exception
 from ironic.common.glance_service import base_image_service
-from ironic.common import image_service
 from ironic.common import keystone
 from ironic.common import neutron
 from ironic.common import pxe_utils
@@ -36,6 +35,7 @@ from ironic.conductor import task_manager
 from ironic.conductor import utils as manager_utils
 from ironic.db import api as dbapi
 from ironic.drivers.modules import deploy_utils
+from ironic.drivers.modules import image_cache
 from ironic.drivers.modules import pxe
 from ironic.openstack.common import context
 from ironic.openstack.common import fileutils
@@ -418,128 +418,32 @@ class PXEPrivateMethodsTestCase(db_base.DbTestCase):
         mock_fetch_image.assert_called_once_with(self.context, mock.ANY,
                                                  fake_pxe_info.values())
 
+    @mock.patch.object(image_cache, 'clean_up_caches')
+    def test__fetch_images(self, mock_clean_up_caches):
 
-@mock.patch.object(pxe, 'TFTPImageCache')
-@mock.patch.object(pxe, 'InstanceImageCache')
-@mock.patch.object(os, 'statvfs')
-@mock.patch.object(image_service, 'Service')
-class PXEPrivateFetchImagesTestCase(db_base.DbTestCase):
+        mock_cache = mock.MagicMock(master_dir='master_dir')
+        pxe._fetch_images(None, mock_cache, [('uuid', 'path')])
+        mock_clean_up_caches.assert_called_once_with(None, 'master_dir',
+                                                     [('uuid', 'path')])
+        mock_cache.fetch_image.assert_called_once_with('uuid', 'path',
+                                                       ctx=None)
 
-    def test_no_clean_up(self, mock_image_service, mock_statvfs,
-                         mock_instance_cache, mock_tftp_cache):
-        # Enough space found - no clean up
-        mock_show = mock_image_service.return_value.show
-        mock_show.return_value = dict(size=42)
-        mock_statvfs.return_value = mock.Mock(f_frsize=1, f_bavail=1024)
+    @mock.patch.object(image_cache, 'clean_up_caches')
+    def test__fetch_images_fail(self, mock_clean_up_caches):
 
-        cache = mock.Mock(master_dir='master_dir')
-        pxe._fetch_images(None, cache, [('uuid', 'path')])
+        exc = exception.InsufficientDiskSpace(path='a',
+                                              required=2,
+                                              actual=1)
 
-        mock_show.assert_called_once_with('uuid')
-        mock_statvfs.assert_called_once_with('master_dir')
-        cache.fetch_image.assert_called_once_with('uuid', 'path', ctx=None)
-        self.assertFalse(mock_instance_cache.return_value.clean_up.called)
-        self.assertFalse(mock_tftp_cache.return_value.clean_up.called)
-
-    @mock.patch.object(os, 'stat')
-    def test_one_clean_up(self, mock_stat, mock_image_service, mock_statvfs,
-                          mock_instance_cache, mock_tftp_cache):
-        # Not enough space, instance cache clean up is enough
-        mock_stat.return_value.st_dev = 1
-        mock_show = mock_image_service.return_value.show
-        mock_show.return_value = dict(size=42)
-        mock_statvfs.side_effect = [
-            mock.Mock(f_frsize=1, f_bavail=1),
-            mock.Mock(f_frsize=1, f_bavail=1024)
-        ]
-
-        cache = mock.Mock(master_dir='master_dir')
-        pxe._fetch_images(None, cache, [('uuid', 'path')])
-
-        mock_show.assert_called_once_with('uuid')
-        mock_statvfs.assert_called_with('master_dir')
-        self.assertEqual(2, mock_statvfs.call_count)
-        cache.fetch_image.assert_called_once_with('uuid', 'path', ctx=None)
-        mock_instance_cache.return_value.clean_up.assert_called_once_with(
-            amount=(42 * 2 - 1))
-        self.assertFalse(mock_tftp_cache.return_value.clean_up.called)
-        self.assertEqual(3, mock_stat.call_count)
-
-    @mock.patch.object(os, 'stat')
-    def test_clean_up_another_fs(self, mock_stat, mock_image_service,
-                                 mock_statvfs, mock_instance_cache,
-                                 mock_tftp_cache):
-        # Not enough space, instance cache on another partition
-        mock_stat.side_effect = [mock.Mock(st_dev=1),
-                                 mock.Mock(st_dev=2),
-                                 mock.Mock(st_dev=1)]
-        mock_show = mock_image_service.return_value.show
-        mock_show.return_value = dict(size=42)
-        mock_statvfs.side_effect = [
-            mock.Mock(f_frsize=1, f_bavail=1),
-            mock.Mock(f_frsize=1, f_bavail=1024)
-        ]
-
-        cache = mock.Mock(master_dir='master_dir')
-        pxe._fetch_images(None, cache, [('uuid', 'path')])
-
-        mock_show.assert_called_once_with('uuid')
-        mock_statvfs.assert_called_with('master_dir')
-        self.assertEqual(2, mock_statvfs.call_count)
-        cache.fetch_image.assert_called_once_with('uuid', 'path', ctx=None)
-        mock_tftp_cache.return_value.clean_up.assert_called_once_with(
-            amount=(42 * 2 - 1))
-        self.assertFalse(mock_instance_cache.return_value.clean_up.called)
-        self.assertEqual(3, mock_stat.call_count)
-
-    @mock.patch.object(os, 'stat')
-    def test_both_clean_up(self, mock_stat, mock_image_service, mock_statvfs,
-                           mock_instance_cache, mock_tftp_cache):
-        # Not enough space, clean up of both caches required
-        mock_stat.return_value.st_dev = 1
-        mock_show = mock_image_service.return_value.show
-        mock_show.return_value = dict(size=42)
-        mock_statvfs.side_effect = [
-            mock.Mock(f_frsize=1, f_bavail=1),
-            mock.Mock(f_frsize=1, f_bavail=2),
-            mock.Mock(f_frsize=1, f_bavail=1024)
-        ]
-
-        cache = mock.Mock(master_dir='master_dir')
-        pxe._fetch_images(None, cache, [('uuid', 'path')])
-
-        mock_show.assert_called_once_with('uuid')
-        mock_statvfs.assert_called_with('master_dir')
-        self.assertEqual(3, mock_statvfs.call_count)
-        cache.fetch_image.assert_called_once_with('uuid', 'path', ctx=None)
-        mock_instance_cache.return_value.clean_up.assert_called_once_with(
-            amount=(42 * 2 - 1))
-        mock_tftp_cache.return_value.clean_up.assert_called_once_with(
-            amount=(42 * 2 - 2))
-        self.assertEqual(3, mock_stat.call_count)
-
-    @mock.patch.object(os, 'stat')
-    def test_clean_up_fail(self, mock_stat, mock_image_service, mock_statvfs,
-                           mock_instance_cache, mock_tftp_cache):
-        # Not enough space even after cleaning both caches - failure
-        mock_stat.return_value.st_dev = 1
-        mock_show = mock_image_service.return_value.show
-        mock_show.return_value = dict(size=42)
-        mock_statvfs.return_value = mock.Mock(f_frsize=1, f_bavail=1)
-
-        cache = mock.Mock(master_dir='master_dir')
-        self.assertRaises(exception.InstanceDeployFailure, pxe._fetch_images,
-                          None, cache, [('uuid', 'path')])
-
-        mock_show.assert_called_once_with('uuid')
-        mock_statvfs.assert_called_with('master_dir')
-        self.assertEqual(3, mock_statvfs.call_count)
-        self.assertFalse(cache.return_value.fetch_image.called)
-        mock_instance_cache.return_value.clean_up.assert_called_once_with(
-            amount=(42 * 2 - 1))
-        mock_tftp_cache.return_value.clean_up.assert_called_once_with(
-            amount=(42 * 2 - 1))
-        self.assertEqual(3, mock_stat.call_count)
+        mock_cache = mock.MagicMock(master_dir='master_dir')
+        mock_clean_up_caches.side_effect = [exc]
+        self.assertRaises(exception.InstanceDeployFailure,
+                          pxe._fetch_images,
+                          None,
+                          mock_cache,
+                          [('uuid', 'path')])
+        mock_clean_up_caches.assert_called_once_with(None, 'master_dir',
+                                                     [('uuid', 'path')])
 
 
 class PXEDriverTestCase(db_base.DbTestCase):

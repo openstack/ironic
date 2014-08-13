@@ -412,3 +412,9 @@ class FailedToGetSensorData(IronicException):
 class FailedToParseSensorData(IronicException):
     message = _("Failed to parse sensor data for node %(node)s. "
                 "Error: %(error)s")
+
+
+class InsufficientDiskSpace(IronicException):
+    message = _("Disk volume where '%(path)s' is located doesn't have "
+                "enough disk space. Required %(required)d MiB, "
+                "only %(actual)d MiB available space present.")
