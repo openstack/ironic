@@ -322,7 +322,6 @@ class Connection(api.Connection):
 
             query.delete()
 
-    @objects.objectify(objects.Node)
     def update_node(self, node_id, values):
         # NOTE(dtantsur): this can lead to very strange errors
         if 'uuid' in values:
@@ -408,7 +407,6 @@ class Connection(api.Connection):
             raise exception.PortAlreadyExists(uuid=values['uuid'])
         return port
 
-    @objects.objectify(objects.Port)
     def update_port(self, port_id, values):
         # NOTE(dtantsur): this can lead to very strange errors
         if 'uuid' in values:
@@ -472,7 +470,6 @@ class Connection(api.Connection):
             raise exception.ChassisAlreadyExists(uuid=values['uuid'])
         return chassis
 
-    @objects.objectify(objects.Chassis)
     def update_chassis(self, chassis_id, values):
         # NOTE(dtantsur): this can lead to very strange errors
         if 'uuid' in values:
