@@ -31,6 +31,7 @@ from ironic.common import utils
 from ironic.drivers.modules import console_utils
 from ironic.drivers.modules import ipmitool as ipmi
 from ironic.openstack.common import context
+from ironic.openstack.common import processutils
 from ironic.tests import base
 from ironic.tests.db import utils as db_utils
 from ironic.tests.objects import utils as obj_utils
@@ -161,6 +162,35 @@ class ConsoleUtilsTestCase(base.TestCase):
                           self.info['port'],
                           'ls&')
 
+        mock_popen.assert_called_once_with(mock.ANY,
+                                           stdout=subprocess.PIPE,
+                                           stderr=subprocess.PIPE)
+        mock_popen.return_value.poll.assert_called_once_with()
+
+    @mock.patch.object(subprocess, 'Popen', autospec=True)
+    @mock.patch.object(utils, 'execute')
+    def test_start_shellinabox_console_fail_oldpid(self, mock_execute,
+                                                   mock_popen):
+        mock_execute.side_effect = processutils.ProcessExecutionError()
+        mock_popen.return_value.poll.return_value = 1
+        mock_popen.return_value.communicate.return_value = ('output', 'error')
+
+        pid_file = console_utils._get_console_pid_file(self.info['uuid'])
+        f = open(pid_file, 'w')
+        f.write('2345')
+        f.close()
+
+        self.assertTrue(os.path.exists(pid_file))
+
+        self.assertRaises(exception.ConsoleSubprocessFailed,
+                          console_utils.start_shellinabox_console,
+                          self.info['uuid'],
+                          self.info['port'],
+                          'ls&')
+
+        self.assertFalse(os.path.exists(pid_file))
+        mock_execute.assert_called_once_with('kill', '2345',
+                                             check_exit_code=[0, 99])
         mock_popen.assert_called_once_with(mock.ANY,
                                            stdout=subprocess.PIPE,
                                            stderr=subprocess.PIPE)
