@@ -388,11 +388,15 @@ class DriverLoadError(IronicException):
     message = _("Driver %(driver)s could not be loaded. Reason: %(reason)s.")
 
 
-class NoConsolePid(NotFound):
+class ConsoleError(IronicException):
+    pass
+
+
+class NoConsolePid(ConsoleError):
     message = _("Could not find pid in pid file %(pid_path)s")
 
 
-class ConsoleSubprocessFailed(IronicException):
+class ConsoleSubprocessFailed(ConsoleError):
     message = _("Console subprocess failed to start. %(error)s")
 
 

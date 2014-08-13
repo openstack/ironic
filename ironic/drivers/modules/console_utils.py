@@ -27,10 +27,14 @@ import time
 from oslo.config import cfg
 
 from ironic.common import exception
+from ironic.common import i18n
 from ironic.common import utils
 from ironic.openstack.common import log as logging
 from ironic.openstack.common import loopingcall
 from ironic.openstack.common import processutils
+
+
+_LW = i18n._LW
 
 opts = [
     cfg.StrOpt('terminal',
@@ -58,17 +62,40 @@ CONF.register_opts(opts, group='console')
 LOG = logging.getLogger(__name__)
 
 
-def _get_console_pid_file(node_uuid):
-    """Generate the pid file name to hold the terminal process id."""
+def _get_console_pid_dir():
+    """Return the directory for the pid file."""
 
-    # make sure the directory exists
     if CONF.console.terminal_pid_dir:
         pid_dir = CONF.console.terminal_pid_dir
     else:
         pid_dir = tempfile.gettempdir()
-    if not os.path.exists(pid_dir):
-        os.makedirs(pid_dir)
+    return pid_dir
 
+
+def _ensure_console_pid_dir_exists():
+    """Ensure that the console PID directory exists
+
+    Checks that the directory for the console PID file exists
+    and if not, creates it.
+
+    :raises: ConsoleError if the directory doesn't exist and cannot be created
+    """
+
+    dir = _get_console_pid_dir()
+    if not os.path.exists(dir):
+        try:
+            os.makedirs(dir)
+        except OSError as exc:
+            msg = (_("Cannot create directory '%(path)s' for console PID file."
+                     " Reason: %(reason)s.") % {'path': dir, 'reason': exc})
+            LOG.error(msg)
+            raise exception.ConsoleError(message=msg)
+
+
+def _get_console_pid_file(node_uuid):
+    """Generate the pid file name to hold the terminal process id."""
+
+    pid_dir = _get_console_pid_dir()
     name = "%s.pid" % node_uuid
     path = os.path.join(pid_dir, name)
     return path
@@ -84,6 +111,25 @@ def _get_console_pid(node_uuid):
             return int(pid_str)
     except (IOError, ValueError):
         raise exception.NoConsolePid(pid_path=pid_path)
+
+
+def _stop_console(node_uuid):
+    """Close the serial console for a node
+
+    Kills the console process and deletes the PID file.
+
+    :param node_uuid: the UUID of the node
+    :raises: NoConsolePid if no console PID was found
+    :raises: processutils.ProcessExecutionError if unable to stop the process
+    """
+
+    try:
+        console_pid = _get_console_pid(node_uuid)
+
+        # Allow exitcode 99 (RC_UNAUTHORIZED)
+        utils.execute('kill', str(console_pid), check_exit_code=[0, 99])
+    finally:
+        utils.unlink_without_raise(_get_console_pid_file(node_uuid))
 
 
 def make_persistent_password_file(path, password):
@@ -118,25 +164,25 @@ def start_shellinabox_console(node_uuid, port, console_cmd):
 
     :param node_uuid: the uuid for the node.
     :param port: the terminal port for the node.
-    :param console_cmd: the shell command that gets the cosnole.
+    :param console_cmd: the shell command that gets the console.
+    :raises: ConsoleError if the directory for the PID file cannot be created.
     :raises: ConsoleSubprocessFailed when invoking the subprocess failed.
     """
 
     # make sure that the old console for this node is stopped
     # and the files are cleared
-    pid_file = _get_console_pid_file(node_uuid)
     try:
-        console_pid = _get_console_pid(node_uuid)
-        utils.unlink_without_raise(pid_file)
-        utils.execute('kill', str(console_pid),
-                      check_exit_code=[0, 99])
+        _stop_console(node_uuid)
     except exception.NoConsolePid:
         pass
-    except processutils.ProcessExecutionError:
-        LOG.warning(_("Failed to kill the old console process %(pid)s "
+    except processutils.ProcessExecutionError as exc:
+        LOG.warning(_LW("Failed to kill the old console process "
                 "before starting a new shellinabox console "
-                "for node %(node)s.")
-                % {'pid': console_pid, 'node': node_uuid})
+                "for node %(node)s. Reason: %(err)s"),
+                {'node': node_uuid, 'err': exc})
+
+    _ensure_console_pid_dir_exists()
+    pid_file = _get_console_pid_file(node_uuid)
 
     # put together the command and arguments for invoking the console
     args = []
@@ -204,17 +250,19 @@ def start_shellinabox_console(node_uuid, port, console_cmd):
 
 
 def stop_shellinabox_console(node_uuid):
-    """Close the serial console for a node."""
+    """Close the serial console for a node.
+
+    :param node_uuid: the UUID of the node
+    :raises: ConsoleError if unable to stop the console process
+    """
 
     try:
-        console_pid = _get_console_pid(node_uuid)
+        _stop_console(node_uuid)
     except exception.NoConsolePid:
         LOG.warning(_("No console pid found for node %s"
                 " while trying to stop shellinabox console.")
                 % node_uuid)
-    else:
-        # Allow exitcode 99 (RC_UNAUTHORIZED)
-        utils.execute('kill', str(console_pid),
-                      check_exit_code=[0, 99])
-    finally:
-        utils.unlink_without_raise(_get_console_pid_file(node_uuid))
+    except processutils.ProcessExecutionError as exc:
+            msg = (_("Could not stop the console for node '%(node)s'. "
+                     "Reason: %(err)s.") % {'node': node_uuid, 'err': exc})
+            raise exception.ConsoleError(message=msg)

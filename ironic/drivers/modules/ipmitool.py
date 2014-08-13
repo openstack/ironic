@@ -832,7 +832,16 @@ class IPMIShellinaboxConsole(base.ConsoleInterface):
                 "IPMI terminal port not supplied to IPMI driver."))
 
     def start_console(self, task):
-        """Start a remote console for the node."""
+        """Start a remote console for the node.
+
+        :param task: a task from TaskManager
+        :raises: InvalidParameterValue if required ipmi parameters are missing
+        :raises: PasswordFileFailedToCreate if unable to create a file
+                 containing the password
+        :raises: ConsoleError if the directory for the PID file cannot be
+                 created
+        :raises: ConsoleSubprocessFailed when invoking the subprocess failed
+        """
         driver_info = _parse_driver_info(task.node)
 
         path = _console_pwfile_path(driver_info['uuid'])
@@ -849,15 +858,27 @@ class IPMIShellinaboxConsole(base.ConsoleInterface):
         if CONF.debug:
             ipmi_cmd += " -v"
         ipmi_cmd += " sol activate"
-        console_utils.start_shellinabox_console(driver_info['uuid'],
-                                                driver_info['port'],
-                                                ipmi_cmd)
+        try:
+            console_utils.start_shellinabox_console(driver_info['uuid'],
+                                                    driver_info['port'],
+                                                    ipmi_cmd)
+        except (exception.ConsoleError, exception.ConsoleSubprocessFailed):
+            with excutils.save_and_reraise_exception():
+                utils.unlink_without_raise(path)
 
     def stop_console(self, task):
-        """Stop the remote console session for the node."""
+        """Stop the remote console session for the node.
+
+        :param task: a task from TaskManager
+        :raises: InvalidParameterValue if required ipmi parameters are missing
+        :raises: ConsoleError if unable to stop the console
+        """
         driver_info = _parse_driver_info(task.node)
-        console_utils.stop_shellinabox_console(driver_info['uuid'])
-        utils.unlink_without_raise(_console_pwfile_path(driver_info['uuid']))
+        try:
+            console_utils.stop_shellinabox_console(driver_info['uuid'])
+        finally:
+            utils.unlink_without_raise(
+                    _console_pwfile_path(driver_info['uuid']))
 
     def get_console(self, task):
         """Get the type and connection information about the console."""

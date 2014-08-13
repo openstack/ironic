@@ -774,6 +774,18 @@ class IPMIToolDriverTestCase(db_base.DbTestCase):
                               self.driver.console.start_console,
                               task)
 
+    @mock.patch.object(console_utils, 'start_shellinabox_console',
+                       autospec=True)
+    def test_start_console_fail_nodir(self, mock_exec):
+        mock_exec.side_effect = exception.ConsoleError()
+
+        with task_manager.acquire(self.context,
+                                  self.node.uuid) as task:
+            self.assertRaises(exception.ConsoleError,
+                              self.driver.console.start_console,
+                              task)
+        mock_exec.assert_called_once_with(self.node.uuid, mock.ANY, mock.ANY)
+
     @mock.patch.object(console_utils, 'stop_shellinabox_console',
                        autospec=True)
     def test_stop_console(self, mock_exec):
@@ -785,6 +797,19 @@ class IPMIToolDriverTestCase(db_base.DbTestCase):
 
         mock_exec.assert_called_once_with(self.info['uuid'])
         self.assertTrue(mock_exec.called)
+
+    @mock.patch.object(console_utils, 'stop_shellinabox_console',
+                       autospec=True)
+    def test_stop_console_fail(self, mock_stop):
+        mock_stop.side_effect = exception.ConsoleError()
+
+        with task_manager.acquire(self.context,
+                                  self.node.uuid) as task:
+            self.assertRaises(exception.ConsoleError,
+                              self.driver.console.stop_console,
+                              task)
+
+        mock_stop.assert_called_once_with(self.node.uuid)
 
     @mock.patch.object(console_utils, 'get_shellinabox_console_url',
                        utospec=True)
