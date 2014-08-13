@@ -134,14 +134,16 @@ class IPMIToolPrivateMethodTestCase(base.TestCase):
         ipmi._parse_driver_info(node)
 
         # make sure error is raised when ipmi_address is missing
+        info = dict(INFO_DICT)
         del info['ipmi_address']
         node = obj_utils.get_test_node(self.context, driver_info=info)
-        self.assertRaises(exception.InvalidParameterValue,
+        self.assertRaises(exception.MissingParameterValue,
                           ipmi._parse_driver_info,
                           node)
 
         # test the invalid priv_level value
-        self.info['priv_level'] = 'ABCD'
+        info = dict(INFO_DICT)
+        info['ipmi_priv_level'] = 'ABCD'
         node = obj_utils.get_test_node(self.context, driver_info=info)
         self.assertRaises(exception.InvalidParameterValue,
                           ipmi._parse_driver_info,
@@ -915,7 +917,7 @@ class IPMIToolDriverTestCase(db_base.DbTestCase):
                                           uuid=utils.generate_uuid(),
                                           driver='fake_ipmitool')
         with task_manager.acquire(self.context, node.uuid) as task:
-            self.assertRaises(exception.InvalidParameterValue,
+            self.assertRaises(exception.MissingParameterValue,
                               task.driver.management.validate, task)
 
     def test__parse_ipmi_sensor_data_ok(self):

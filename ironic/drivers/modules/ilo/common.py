@@ -67,8 +67,9 @@ def parse_driver_info(node):
     :param node: an ironic node object.
     :returns: a dict containing information from driver_info
         and default values.
-    :raises: InvalidParameterValue if some mandatory information
-        is missing on the node or on invalid inputs.
+    :raises: InvalidParameterValue on invalid inputs.
+    :raises: MissingParameterValue if some mandatory information
+        is missing on the node
     """
     info = node.driver_info
     d_info = {}
@@ -79,6 +80,10 @@ def parse_driver_info(node):
             d_info[param] = info[param]
         except KeyError:
             error_msgs.append(_("'%s' not supplied to IloDriver.") % param)
+    if error_msgs:
+        msg = (_("The following parameters were mising while parsing "
+                 "driver_info:\n%s") % "\n".join(error_msgs))
+        raise exception.MissingParameterValue(msg)
 
     for param in OPTIONAL_PROPERTIES:
         value = info.get(param, CONF.ilo.get(param))
@@ -105,8 +110,9 @@ def get_ilo_object(node):
 
     :param node: an ironic node object.
     :returns: an IloClient object.
-    :raises: InvalidParameterValue if some mandatory information
-        is missing on the node or on invalid inputs.
+    :raises: InvalidParameterValue on invalid inputs.
+    :raises: MissingParameterValue if some mandatory information
+        is missing on the node
     """
     driver_info = parse_driver_info(node)
     ilo_object = ilo_client.IloClient(driver_info['ilo_address'],
@@ -126,8 +132,9 @@ def get_ilo_license(node):
     :param node: an ironic node object.
     :returns: a constant defined in this module which
         refers to the current license installed on the node.
-    :raises: InvalidParameterValue if some mandatory information
-        is missing on the node or on invalid inputs.
+    :raises: InvalidParameterValue on invalid inputs.
+    :raises: MissingParameterValue if some mandatory information
+        is missing on the node
     :raises: IloOperationError if it failed to retrieve the
         installed licenses from the iLO.
     """

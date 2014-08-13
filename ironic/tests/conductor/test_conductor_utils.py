@@ -37,9 +37,11 @@ class NodeSetBootDeviceTestCase(base.DbTestCase):
     def test_node_set_boot_device_non_existent_device(self):
         mgr_utils.mock_the_extension_manager(driver="fake_ipmitool")
         self.driver = driver_factory.get_driver("fake_ipmitool")
+        ipmi_info = utils.get_test_ipmi_info()
         node = obj_utils.create_test_node(self.context,
                                           uuid=cmn_utils.generate_uuid(),
-                                          driver='fake_ipmitool')
+                                          driver='fake_ipmitool',
+                                          driver_info=ipmi_info)
         task = task_manager.TaskManager(self.context, node.uuid)
         self.assertRaises(exception.InvalidParameterValue,
                           conductor_utils.node_set_boot_device,

@@ -237,14 +237,14 @@ def _parse_driver_info(node):
 
     :param node: the Node of interest.
     :returns: dictionary of information.
-    :raises: InvalidParameterValue if any required parameters are missing
-        or incorrect.
+    :raises: InvalidParameterValue if any required parameters are incorrect.
+    :raises: MissingParameterValue if any required parameters are missing.
 
     """
     info = node.driver_info or {}
     missing_info = [key for key in REQUIRED_PROPERTIES if not info.get(key)]
     if missing_info:
-        raise exception.InvalidParameterValue(_(
+        raise exception.MissingParameterValue(_(
             "SSHPowerDriver requires the following to be set: %s.")
             % missing_info)
 
@@ -471,6 +471,7 @@ class SSHPower(base.PowerInterface):
         :returns: power state. One of :class:`ironic.common.states`.
         :raises: InvalidParameterValue if any connection parameters are
             incorrect.
+        :raises: MissingParameterValue when a required parameter is missing
         :raises: NodeNotFound.
         :raises: SSHCommandFailed on an error from ssh.
         :raises: SSHConnectFailed if ssh failed to connect to the node.
@@ -491,6 +492,7 @@ class SSHPower(base.PowerInterface):
             `ironic.common.states`.
         :raises: InvalidParameterValue if any connection parameters are
             incorrect, or if the desired power state is invalid.
+        :raises: MissingParameterValue when a required parameter is missing
         :raises: NodeNotFound.
         :raises: PowerStateFailure if it failed to set power state to pstate.
         :raises: SSHCommandFailed on an error from ssh.
@@ -520,6 +522,7 @@ class SSHPower(base.PowerInterface):
         :param task: a TaskManager instance containing the node to act on.
         :raises: InvalidParameterValue if any connection parameters are
             incorrect.
+        :raises: MissingParameterValue when a required parameter is missing
         :raises: NodeNotFound.
         :raises: PowerStateFailure if it failed to set power state to POWER_ON.
         :raises: SSHCommandFailed on an error from ssh.
@@ -552,7 +555,7 @@ class SSHManagement(base.ManagementInterface):
         :param task: a task from TaskManager.
         :raises: InvalidParameterValue if any connection parameters are
             incorrect.
-
+        :raises: MissingParameterValue if a required parameter is missing
         """
         _parse_driver_info(task.node)
 
@@ -579,6 +582,7 @@ class SSHManagement(base.ManagementInterface):
                            Default: False. Ignored by this driver.
         :raises: InvalidParameterValue if an invalid boot device is
                  specified or if any connection parameters are incorrect.
+        :raises: MissingParameterValue if a required parameter is missing
         :raises: SSHConnectFailed if ssh failed to connect to the node.
         :raises: SSHCommandFailed on an error from ssh.
         :raises: NotImplementedError if the virt_type does not support
@@ -610,6 +614,7 @@ class SSHManagement(base.ManagementInterface):
         :param task: a task from TaskManager.
         :raises: InvalidParameterValue if any connection parameters are
             incorrect.
+        :raises: MissingParameterValue if a required parameter is missing
         :raises: SSHConnectFailed if ssh failed to connect to the node.
         :raises: SSHCommandFailed on an error from ssh.
         :returns: a dictionary containing:

@@ -122,7 +122,7 @@ def _check_for_missing_params(info_dict, param_prefix=''):
             missing_info.append(param_prefix + label)
 
     if missing_info:
-        raise exception.InvalidParameterValue(_(
+        raise exception.MissingParameterValue(_(
                 "Can not validate PXE bootloader. The following parameters "
                 "were not passed to ironic: %s") % missing_info)
 
@@ -136,6 +136,7 @@ def _parse_driver_info(node):
 
     :param node: a single Node.
     :returns: A dict with the driver_info values.
+    :raises: MissingParameterValue
     """
     info = node.driver_info
     d_info = {}
@@ -156,6 +157,8 @@ def _parse_instance_info(node):
 
     :param node: a single Node.
     :returns: A dict with the instance_info values.
+    :raises: MissingParameterValue
+    :raises: InvalidParameterValue
     """
 
     info = node.instance_info
@@ -204,6 +207,8 @@ def _parse_deploy_info(node):
 
     :param node: a single Node.
     :returns: A dict with the instance_info and driver_info values.
+    :raises: MissingParameterValue
+    :raises: InvalidParameterValue
     """
     info = {}
     info.update(_parse_instance_info(node))
@@ -471,6 +476,7 @@ def _validate_glance_image(ctx, deploy_info):
     'kernel_id' and 'ramdisk_id' properties.
 
     :raises: InvalidParameterValue.
+    :raises: MissingParameterValue
     """
     image_id = deploy_info['image_source']
     try:
@@ -493,7 +499,7 @@ def _validate_glance_image(ctx, deploy_info):
 
     if missing_props:
         props = ', '.join(missing_props)
-        raise exception.InvalidParameterValue(_(
+        raise exception.MissingParameterValue(_(
             "Image %(image)s is missing the following properties: "
             "%(properties)s") % {'image': image_id, 'properties': props})
 
@@ -509,17 +515,18 @@ class PXEDeploy(base.DeployInterface):
 
         :param task: a TaskManager instance containing the node to act on.
         :raises: InvalidParameterValue.
+        :raises: MissingParameterValue
         """
         node = task.node
         if not driver_utils.get_node_mac_addresses(task):
-            raise exception.InvalidParameterValue(_("Node %s does not have "
+            raise exception.MissingParameterValue(_("Node %s does not have "
                                 "any port associated with it.") % node.uuid)
 
         d_info = _parse_deploy_info(node)
 
         if CONF.pxe.ipxe_enabled:
             if not CONF.pxe.http_url or not CONF.pxe.http_root:
-                raise exception.InvalidParameterValue(_(
+                raise exception.MissingParameterValue(_(
                     "iPXE boot is enabled but no HTTP URL or HTTP "
                     "root was specified."))
 
@@ -652,7 +659,7 @@ class VendorPassthru(base.VendorInterface):
 
         missing = [key for key in params.keys() if params[key] is None]
         if missing:
-            raise exception.InvalidParameterValue(_(
+            raise exception.MissingParameterValue(_(
                     "Parameters %s were not passed to ironic"
                     " for deploy.") % missing)
 

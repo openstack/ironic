@@ -120,7 +120,7 @@ class SSHValidateParametersTestCase(base.TestCase):
         info = db_utils.get_test_ssh_info()
         del info['ssh_address']
         node = obj_utils.get_test_node(self.context, driver_info=info)
-        self.assertRaises(exception.InvalidParameterValue,
+        self.assertRaises(exception.MissingParameterValue,
                 ssh._parse_driver_info,
                 node)
 
@@ -129,11 +129,11 @@ class SSHValidateParametersTestCase(base.TestCase):
         info = db_utils.get_test_ssh_info()
         del info['ssh_username']
         node = obj_utils.get_test_node(self.context, driver_info=info)
-        self.assertRaises(exception.InvalidParameterValue,
+        self.assertRaises(exception.MissingParameterValue,
                 ssh._parse_driver_info,
                 node)
 
-    def test__parse_driver_info_missing_creds(self):
+    def test__parse_driver_info_invalid_creds(self):
         # make sure error is raised when info is missing
         info = db_utils.get_test_ssh_info('no-creds')
         node = obj_utils.get_test_node(self.context, driver_info=info)
@@ -146,7 +146,7 @@ class SSHValidateParametersTestCase(base.TestCase):
         info = db_utils.get_test_ssh_info()
         del info['ssh_virt_type']
         node = obj_utils.get_test_node(self.context, driver_info=info)
-        self.assertRaises(exception.InvalidParameterValue,
+        self.assertRaises(exception.MissingParameterValue,
                 ssh._parse_driver_info,
                 node)
 
@@ -864,5 +864,5 @@ class SSHDriverTestCase(db_base.DbTestCase):
                                           uuid=utils.generate_uuid(),
                                           driver='fake_ssh')
         with task_manager.acquire(self.context, node.uuid) as task:
-            self.assertRaises(exception.InvalidParameterValue,
+            self.assertRaises(exception.MissingParameterValue,
                               task.driver.management.validate, task)

@@ -68,7 +68,7 @@ class IPMINativePrivateMethodTestCase(base.TestCase):
         del info['ipmi_username']
 
         node = obj_utils.get_test_node(self.context, driver_info=info)
-        self.assertRaises(exception.InvalidParameterValue,
+        self.assertRaises(exception.MissingParameterValue,
                           ipminative._parse_driver_info,
                           node)
 
@@ -312,5 +312,5 @@ class IPMINativeDriverTestCase(db_base.DbTestCase):
                                           uuid=utils.generate_uuid(),
                                           driver='fake_ipminative')
         with task_manager.acquire(self.context, node.uuid) as task:
-            self.assertRaises(exception.InvalidParameterValue,
+            self.assertRaises(exception.MissingParameterValue,
                               task.driver.management.validate, task)

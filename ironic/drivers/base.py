@@ -126,6 +126,7 @@ class DeployInterface(object):
 
         :param task: a TaskManager instance containing the node to act on.
         :raises: InvalidParameterValue
+        :raises: MissingParameterValue
         """
 
     @abc.abstractmethod
@@ -229,6 +230,7 @@ class PowerInterface(object):
 
         :param task: a TaskManager instance containing the node to act on.
         :raises: InvalidParameterValue
+        :raises: MissingParameterValue
         """
 
     @abc.abstractmethod
@@ -236,6 +238,7 @@ class PowerInterface(object):
         """Return the power state of the task's node.
 
         :param task: a TaskManager instance containing the node to act on.
+        :raises: MissingParameterValue if a required parameter is missing.
         :returns: a power state. One of :mod:`ironic.common.states`.
         """
 
@@ -245,6 +248,7 @@ class PowerInterface(object):
 
         :param task: a TaskManager instance containing the node to act on.
         :param power_state: Any power state from :mod:`ironic.common.states`.
+        :raises: MissingParameterValue if a required parameter is missing.
         """
 
     @abc.abstractmethod
@@ -252,6 +256,7 @@ class PowerInterface(object):
         """Perform a hard reboot of the task's node.
 
         :param task: a TaskManager instance containing the node to act on.
+        :raises: MissingParameterValue if a required parameter is missing.
         """
 
 
@@ -277,6 +282,7 @@ class ConsoleInterface(object):
 
         :param task: a TaskManager instance containing the node to act on.
         :raises: InvalidParameterValue
+        :raises: MissingParameterValue
         """
 
     @abc.abstractmethod
@@ -324,6 +330,7 @@ class RescueInterface(object):
 
         :param task: a TaskManager instance containing the node to act on.
         :raises: InvalidParameterValue
+        :raises: MissingParameterValue
         """
 
     @abc.abstractmethod
@@ -371,6 +378,7 @@ class VendorInterface(object):
         :raises: UnsupportedDriverExtension if 'method' can not be mapped to
                  the supported interfaces.
         :raises: InvalidParameterValue if **kwargs does not contain 'method'.
+        :raises: MissingParameterValue
         """
 
     @abc.abstractmethod
@@ -383,6 +391,7 @@ class VendorInterface(object):
         :raises: UnsupportedDriverExtension if 'method' can not be mapped to
                  the supported interfaces.
         :raises: InvalidParameterValue if **kwargs does not contain 'method'.
+        :raises: MissingParameterValue when a required parameter is missing
         """
 
     def driver_vendor_passthru(self, context, method, **kwargs):
@@ -422,6 +431,7 @@ class ManagementInterface(object):
 
         :param task: a task from TaskManager.
         :raises: InvalidParameterValue
+        :raises: MissingParameterValue
         """
 
     @abc.abstractmethod
@@ -446,6 +456,7 @@ class ManagementInterface(object):
                            Default: False.
         :raises: InvalidParameterValue if an invalid boot device is
                  specified.
+        :raises: MissingParameterValue if a required parameter is missing
         """
 
     @abc.abstractmethod
@@ -456,6 +467,7 @@ class ManagementInterface(object):
         all drivers support this.
 
         :param task: a task from TaskManager.
+        :raises: MissingParameterValue if a required parameter is missing
         :returns: a dictionary containing:
             :boot_device: the boot device, one of
                 :mod:`ironic.common.boot_devices` or None if it is unknown.

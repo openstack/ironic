@@ -158,13 +158,14 @@ def _parse_driver_info(node):
 
     :param node: the Node of interest.
     :returns: dictionary of parameters.
-    :raises: InvalidParameterValue if any required parameters are missing.
+    :raises: InvalidParameterValue when an invalid value is specified
+    :raises: MissingParameterValue when a required ipmi parameter is missing.
 
     """
     info = node.driver_info or {}
     missing_info = [key for key in REQUIRED_PROPERTIES if not info.get(key)]
     if missing_info:
-        raise exception.InvalidParameterValue(_(
+        raise exception.MissingParameterValue(_(
             "The following IPMI credentials are not supplied"
             " to IPMI driver: %s."
              ) % missing_info)
@@ -465,6 +466,7 @@ class IPMIPower(base.PowerInterface):
 
         :param task: a TaskManager instance containing the node to act on.
         :raises: InvalidParameterValue if required ipmi parameters are missing.
+        :raises: MissingParameterValue if a required parameter is missing.
 
         """
         _parse_driver_info(task.node)
@@ -479,6 +481,7 @@ class IPMIPower(base.PowerInterface):
         :param task: a TaskManager instance containing the node to act on.
         :returns: one of ironic.common.states POWER_OFF, POWER_ON or ERROR.
         :raises: InvalidParameterValue if required ipmi parameters are missing.
+        :raises: MissingParameterValue if a required parameter is missing.
         :raises: IPMIFailure on an error from ipmitool (from _power_status
             call).
 
@@ -493,8 +496,8 @@ class IPMIPower(base.PowerInterface):
         :param task: a TaskManager instance containing the node to act on.
         :param pstate: The desired power state, one of ironic.common.states
             POWER_ON, POWER_OFF.
-        :raises: InvalidParameterValue if required ipmi parameters are missing
-            or if an invalid power state was specified.
+        :raises: InvalidParameterValue if an invalid power state was specified.
+        :raises: MissingParameterValue if required ipmi parameters are missing
         :raises: PowerStateFailure if the power couldn't be set to pstate.
 
         """
@@ -516,7 +519,8 @@ class IPMIPower(base.PowerInterface):
         """Cycles the power to the task's node.
 
         :param task: a TaskManager instance containing the node to act on.
-        :raises: InvalidParameterValue if required ipmi parameters are missing.
+        :raises: MissingParameterValue if required ipmi parameters are missing.
+        :raises: InvalidParameterValue if an invalid power state was specified.
         :raises: PowerStateFailure if the final state of the node is not
             POWER_ON.
 
@@ -552,6 +556,7 @@ class IPMIManagement(base.ManagementInterface):
         :param task: a task from TaskManager.
         :raises: InvalidParameterValue if required IPMI parameters
             are missing.
+        :raises: MissingParameterValue if a required parameter is missing.
 
         """
         _parse_driver_info(task.node)
@@ -578,8 +583,8 @@ class IPMIManagement(base.ManagementInterface):
         :param persistent: Boolean value. True if the boot device will
                            persist to all future boots, False if not.
                            Default: False.
-        :raises: InvalidParameterValue if an invalid boot device is
-                 specified or if required ipmi parameters are missing.
+        :raises: InvalidParameterValue if an invalid boot device is specified
+        :raises: MissingParameterValue if required ipmi parameters are missing.
         :raises: IPMIFailure on an error from ipmitool.
 
         """
@@ -609,6 +614,7 @@ class IPMIManagement(base.ManagementInterface):
         :raises: InvalidParameterValue if required IPMI parameters
             are missing.
         :raises: IPMIFailure on an error from ipmitool.
+        :raises: MissingParameterValue if a required parameter is missing.
         :returns: a dictionary containing:
 
             :boot_device: the boot device, one of
@@ -655,6 +661,7 @@ class IPMIManagement(base.ManagementInterface):
         :raises: FailedToGetSensorData when getting the sensor data fails.
         :raises: FailedToParseSensorData when parsing sensor data fails.
         :raises: InvalidParameterValue if required ipmi parameters are missing
+        :raises: MissingParameterValue if a required parameter is missing.
         :returns: returns a dict of sensor data group by sensor type.
 
         """
@@ -680,6 +687,8 @@ class VendorPassthru(base.VendorInterface):
         :param task: a TaskManager instance.
         :param raw_bytes: a string of raw bytes to send, e.g. '0x00 0x01'
         :raises: IPMIFailure on an error from ipmitool.
+        :raises: MissingParameterValue if a required parameter is missing.
+        :raises:  InvalidParameterValue when an invalid value is specified.
 
         """
         node_uuid = task.node.uuid
@@ -705,6 +714,8 @@ class VendorPassthru(base.VendorInterface):
         :param task: a TaskManager instance.
         :param warm: boolean parameter to decide on warm or cold reset.
         :raises: IPMIFailure on an error from ipmitool.
+        :raises: MissingParameterValue if a required parameter is missing.
+        :raises: InvalidParameterValue when an invalid value is specified
 
         """
         node_uuid = task.node.uuid
@@ -745,7 +756,9 @@ class VendorPassthru(base.VendorInterface):
         :param kwargs: info for action.
         :raises: InvalidParameterValue if **kwargs does not contain 'method',
                  'method' is not supported or a byte string is not given for
-                 'raw_bytes', or required IPMI credentials are missing.
+                 'raw_bytes'.
+        :raises: MissingParameterValue if a required parameter is missing.
+
         """
         method = kwargs['method']
         if method == 'send_raw':
@@ -775,6 +788,8 @@ class VendorPassthru(base.VendorInterface):
         :raises: InvalidParameterValue if required IPMI credentials
             are missing.
         :raises: IPMIFailure if ipmitool fails for any method.
+        :raises: MissingParameterValue when a required parameter is missing
+
         """
 
         method = kwargs['method']
@@ -808,10 +823,12 @@ class IPMIShellinaboxConsole(base.ConsoleInterface):
 
         :param task: a task from TaskManager.
         :raises: InvalidParameterValue
+        :raises: MissingParameterValue when a required parameter is missing
+
         """
         driver_info = _parse_driver_info(task.node)
         if not driver_info['port']:
-            raise exception.InvalidParameterValue(_(
+            raise exception.MissingParameterValue(_(
                 "IPMI terminal port not supplied to IPMI driver."))
 
     def start_console(self, task):

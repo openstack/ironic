@@ -35,7 +35,7 @@ def _raise_unsupported_error(method=None):
         raise exception.InvalidParameterValue(_(
             "Unsupported method (%s) passed through to vendor extension.")
             % method)
-    raise exception.InvalidParameterValue(_(
+    raise exception.MissingParameterValue(_(
         "Method not specified when calling vendor extension."))
 
 
@@ -100,7 +100,7 @@ class FakeVendorA(base.VendorInterface):
         if method == 'first_method':
             bar = kwargs.get('bar')
             if not bar:
-                raise exception.InvalidParameterValue(_(
+                raise exception.MissingParameterValue(_(
                     "Parameter 'bar' not passed to method 'first_method'."))
             return
         _raise_unsupported_error(method)
@@ -128,7 +128,7 @@ class FakeVendorB(base.VendorInterface):
         if method == 'second_method':
             bar = kwargs.get('bar')
             if not bar:
-                raise exception.InvalidParameterValue(_(
+                raise exception.MissingParameterValue(_(
                     "Parameter 'bar' not passed to method 'second_method'."))
             return
         _raise_unsupported_error(method)

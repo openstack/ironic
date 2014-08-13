@@ -519,7 +519,7 @@ class VendorPassthruTestCase(_ServiceSetUpMixin, tests_db_base.DbTestCase):
         # Verify reservation has been cleared.
         self.assertIsNone(node.reservation)
 
-    def test_vendor_passthru_invalid_method_parameters(self):
+    def test_vendor_passthru_missing_method_parameters(self):
         node = obj_utils.create_test_node(self.context, driver='fake')
         info = {'invalid_param': 'whatever'}
         self._start_service()
@@ -528,7 +528,7 @@ class VendorPassthruTestCase(_ServiceSetUpMixin, tests_db_base.DbTestCase):
                                 self.service.vendor_passthru,
                                 self.context, node.uuid, 'first_method', info)
         # Compare true exception hidden by @messaging.expected_exceptions
-        self.assertEqual(exception.InvalidParameterValue, exc.exc_info[0])
+        self.assertEqual(exception.MissingParameterValue, exc.exc_info[0])
 
         node.refresh()
         self.assertIsNone(node.last_error)

@@ -101,7 +101,7 @@ class SeaMicroValidateParametersTestCase(base.TestCase):
         info = dict(INFO_DICT)
         del info['seamicro_api_endpoint']
         node = obj_utils.get_test_node(self.context, driver_info=info)
-        self.assertRaises(exception.InvalidParameterValue,
+        self.assertRaises(exception.MissingParameterValue,
                           seamicro._parse_driver_info,
                           node)
 
@@ -110,7 +110,7 @@ class SeaMicroValidateParametersTestCase(base.TestCase):
         info = dict(INFO_DICT)
         del info['seamicro_username']
         node = obj_utils.get_test_node(self.context, driver_info=info)
-        self.assertRaises(exception.InvalidParameterValue,
+        self.assertRaises(exception.MissingParameterValue,
                           seamicro._parse_driver_info,
                           node)
 
@@ -119,7 +119,7 @@ class SeaMicroValidateParametersTestCase(base.TestCase):
         info = dict(INFO_DICT)
         del info['seamicro_password']
         node = obj_utils.get_test_node(self.context, driver_info=info)
-        self.assertRaises(exception.InvalidParameterValue,
+        self.assertRaises(exception.MissingParameterValue,
                           seamicro._parse_driver_info,
                           node)
 
@@ -128,7 +128,7 @@ class SeaMicroValidateParametersTestCase(base.TestCase):
         info = dict(INFO_DICT)
         del info['seamicro_server_id']
         node = obj_utils.get_test_node(self.context, driver_info=info)
-        self.assertRaises(exception.InvalidParameterValue,
+        self.assertRaises(exception.MissingParameterValue,
                           seamicro._parse_driver_info,
                           node)
 
@@ -584,5 +584,5 @@ class SeaMicroPowerDriverTestCase(db_base.DbTestCase):
                                           uuid=utils.generate_uuid(),
                                           driver='fake_seamicro')
         with task_manager.acquire(self.context, node.uuid) as task:
-            self.assertRaises(exception.InvalidParameterValue,
+            self.assertRaises(exception.MissingParameterValue,
                               task.driver.management.validate, task)

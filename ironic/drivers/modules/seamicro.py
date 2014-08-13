@@ -96,13 +96,13 @@ def _parse_driver_info(node):
 
     :param node: An Ironic node object.
     :returns: SeaMicro driver info.
-    :raises: InvalidParameterValue if any required parameters are missing.
+    :raises: MissingParameterValue if any required parameters are missing.
     """
 
     info = node.driver_info or {}
     missing_info = [key for key in REQUIRED_PROPERTIES if not info.get(key)]
     if missing_info:
-        raise exception.InvalidParameterValue(_(
+        raise exception.MissingParameterValue(_(
             "SeaMicro driver requires the following to be set: %s.")
             % missing_info)
 
@@ -140,7 +140,7 @@ def _get_power_status(node):
     """Get current power state of this node
 
     :param node: Ironic node one of :class:`ironic.db.models.Node`
-    :raises: InvalidParameterValue if required seamicro parameters are
+    :raises: MissingParameterValue if required seamicro parameters are
         missing.
     :raises: ServiceUnavailable on an error from SeaMicro Client.
     :returns: Power state of the given node
@@ -169,7 +169,7 @@ def _power_on(node, timeout=None):
 
     :param node: An Ironic node object.
     :param timeout: Time in seconds to wait till power on is complete.
-    :raises: InvalidParameterValue if required seamicro parameters are
+    :raises: MissingParameterValue if required seamicro parameters are
         missing.
     :returns: Power state of the given node.
     """
@@ -208,7 +208,7 @@ def _power_off(node, timeout=None):
 
     :param node: Ironic node one of :class:`ironic.db.models.Node`
     :param timeout: Time in seconds to wait till power off is compelete
-    :raises: InvalidParameterValue if required seamicro parameters are
+    :raises: MissingParameterValue if required seamicro parameters are
         missing.
     :returns: Power state of the given node
     """
@@ -246,7 +246,7 @@ def _reboot(node, timeout=None):
     """Reboot this node
     :param node: Ironic node one of :class:`ironic.db.models.Node`
     :param timeout: Time in seconds to wait till reboot is compelete
-    :raises: InvalidParameterValue if required seamicro parameters are
+    :raises: MissingParameterValue if required seamicro parameters are
         missing.
     :returns: Power state of the given node
     """
@@ -338,7 +338,7 @@ class Power(base.PowerInterface):
         Check that node 'driver_info' contains the required fields.
 
         :param task: a TaskManager instance containing the node to act on.
-        :raises: InvalidParameterValue if required seamicro parameters are
+        :raises: MissingParameterValue if required seamicro parameters are
             missing.
         """
         _parse_driver_info(task.node)
@@ -349,10 +349,10 @@ class Power(base.PowerInterface):
         Poll the host for the current power state of the node.
 
         :param task: a TaskManager instance containing the node to act on.
-        :raises: InvalidParameterValue if required seamicro parameters are
-            missing.
         :raises: ServiceUnavailable on an error from SeaMicro Client.
+        :raises: MissingParameterValue when a required parameter is missing
         :returns: power state. One of :class:`ironic.common.states`.
+
         """
         return _get_power_status(task.node)
 
@@ -366,6 +366,7 @@ class Power(base.PowerInterface):
         :param pstate: Either POWER_ON or POWER_OFF from :class:
             `ironic.common.states`.
         :raises: InvalidParameterValue if an invalid power state was specified.
+        :raises: MissingParameterValue when a required parameter is missing
         :raises: PowerStateFailure if the desired power state couldn't be set.
         """
 
@@ -385,7 +386,7 @@ class Power(base.PowerInterface):
         """Cycles the power to the task's node.
 
         :param task: a TaskManager instance containing the node to act on.
-        :raises: InvalidParameterValue if required seamicro parameters are
+        :raises: MissingParameterValue if required seamicro parameters are
             missing.
         :raises: PowerStateFailure if the final state of the node is not
             POWER_ON.
@@ -424,7 +425,7 @@ class VendorPassthru(base.VendorInterface):
         node = task.node
         vlan_id = kwargs.get('vlan_id')
         if not vlan_id:
-            raise exception.InvalidParameterValue(_("No vlan id provided"))
+            raise exception.MissingParameterValue(_("No vlan id provided"))
 
         seamicro_info = _parse_driver_info(node)
         try:
@@ -461,7 +462,7 @@ class VendorPassthru(base.VendorInterface):
         if volume_id is None:
             volume_size = kwargs.get('volume_size')
             if volume_size is None:
-                raise exception.InvalidParameterValue(
+                raise exception.MissingParameterValue(
                     _("No volume size provided for creating volume"))
             volume_id = _create_volume(seamicro_info, volume_size)
 
@@ -493,8 +494,7 @@ class Management(base.ManagementInterface):
         task's node contains the required credentials information.
 
         :param task: a task from TaskManager.
-        :raises: InvalidParameterValue if required seamicro parameters
-            are missing.
+        :raises: MissingParameterValue when a required parameter is missing
 
         """
         _parse_driver_info(task.node)
@@ -523,6 +523,7 @@ class Management(base.ManagementInterface):
         :raises: InvalidParameterValue if an invalid boot device is
                  specified or if required seamicro parameters are missing.
         :raises: IronicException on an error from seamicro-client.
+        :raises: MissingParameterValue when a required parameter is missing
 
         """
         if device not in self.get_supported_boot_devices():

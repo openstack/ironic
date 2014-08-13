@@ -589,7 +589,7 @@ class NodesController(rest.RestController):
                               maintenance, marker, limit, sort_key, sort_dir,
                               expand=False, resource_url=None):
         if self.from_chassis and not chassis_uuid:
-            raise exception.InvalidParameterValue(_(
+            raise exception.MissingParameterValue(_(
                   "Chassis id not specified."))
 
         limit = api_utils.validate_limit(limit)
