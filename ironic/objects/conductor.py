@@ -46,7 +46,11 @@ class Conductor(base.IronicObject):
         :returns: a :class:`Conductor` object.
         """
         db_obj = cls.dbapi.get_conductor(hostname)
-        return Conductor._from_db_object(cls(), db_obj)
+        conductor = Conductor._from_db_object(cls(), db_obj)
+        # FIXME(comstud): Setting of the context should be moved to
+        # _from_db_object().
+        conductor._context = context
+        return conductor
 
     def save(self, context):
         """Save is not supported by Conductor objects."""

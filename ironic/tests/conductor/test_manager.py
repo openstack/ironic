@@ -150,7 +150,7 @@ class _ServiceSetUpMixin(object):
 
     def _stop_service(self):
         try:
-            self.dbapi.get_conductor(self.hostname)
+            objects.Conductor.get_by_hostname(self.context, self.hostname)
         except exception.ConductorNotFound:
             return
         self.service.del_host()
@@ -171,20 +171,20 @@ def _mock_record_keepalive(func_or_class):
 class StartStopTestCase(_ServiceSetUpMixin, tests_db_base.DbTestCase):
     def test_start_registers_conductor(self):
         self.assertRaises(exception.ConductorNotFound,
-                          self.dbapi.get_conductor,
-                          self.hostname)
+                          objects.Conductor.get_by_hostname,
+                          self.context, self.hostname)
         self._start_service()
-        res = self.dbapi.get_conductor(self.hostname)
+        res = objects.Conductor.get_by_hostname(self.context, self.hostname)
         self.assertEqual(self.hostname, res['hostname'])
 
     def test_stop_unregisters_conductor(self):
         self._start_service()
-        res = self.dbapi.get_conductor(self.hostname)
+        res = objects.Conductor.get_by_hostname(self.context, self.hostname)
         self.assertEqual(self.hostname, res['hostname'])
         self.service.del_host()
         self.assertRaises(exception.ConductorNotFound,
-                          self.dbapi.get_conductor,
-                          self.hostname)
+                          objects.Conductor.get_by_hostname,
+                          self.context, self.hostname)
 
     def test_start_registers_driver_names(self):
         init_names = ['fake1', 'fake2']
@@ -196,14 +196,16 @@ class StartStopTestCase(_ServiceSetUpMixin, tests_db_base.DbTestCase):
             self.config(enabled_drivers=init_names)
             mock_names.return_value = init_names
             self._start_service()
-            res = self.dbapi.get_conductor(self.hostname)
+            res = objects.Conductor.get_by_hostname(self.context,
+                                                    self.hostname)
             self.assertEqual(init_names, res['drivers'])
 
             # verify that restart registers new driver names
             self.config(enabled_drivers=restart_names)
             mock_names.return_value = restart_names
             self._start_service()
-            res = self.dbapi.get_conductor(self.hostname)
+            res = objects.Conductor.get_by_hostname(self.context,
+                                                    self.hostname)
             self.assertEqual(restart_names, res['drivers'])
 
     @mock.patch.object(driver_factory.DriverFactory, '__init__')

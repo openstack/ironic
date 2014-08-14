@@ -508,7 +508,6 @@ class Connection(api.Connection):
             if count != 1:
                 raise exception.ChassisNotFound(chassis=chassis_id)
 
-    @objects.objectify(objects.Conductor)
     def register_conductor(self, values):
         try:
             conductor = models.Conductor()
@@ -522,7 +521,6 @@ class Connection(api.Connection):
             raise exception.ConductorAlreadyRegistered(
                     conductor=values['hostname'])
 
-    @objects.objectify(objects.Conductor)
     def get_conductor(self, hostname):
         try:
             return model_query(models.Conductor).\
