@@ -1,0 +1,11 @@
+default=deploy
+
+image={{pxe_options.deployment_aki_path}}
+        label=deploy
+        initrd={{pxe_options.deployment_ari_path}}
+        append="rootfstype=ramfs selinux=0 disk={{ pxe_options.disk }} iscsi_target_iqn={{ pxe_options.iscsi_target_iqn }} deployment_id={{ pxe_options.deployment_id }} deployment_key={{ pxe_options.deployment_key }} ironic_api_url={{ pxe_options.ironic_api_url }} troubleshoot=0 text {{ pxe_options.pxe_append_params|default("", true) }} ip=%I:{{pxe_options.tftp_server}}:%G:%M:%H::on"
+
+image={{pxe_options.aki_path}}
+        label=boot
+        initrd={{pxe_options.ari_path}}
+        append="root={{ ROOT }} ro text {{ pxe_options.pxe_append_params|default("", true) }} ip=%I:{{pxe_options.tftp_server}}:%G:%M:%H::on"

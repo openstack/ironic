@@ -160,15 +160,21 @@ def block_uuid(dev):
     return out.strip()
 
 
-def switch_pxe_config(path, root_uuid):
+def switch_pxe_config(path, root_uuid, boot_mode):
     """Switch a pxe config from deployment mode to service mode."""
     with open(path) as f:
         lines = f.readlines()
     root = 'UUID=%s' % root_uuid
-    pxe_cmd = 'goto' if CONF.pxe.ipxe_enabled else 'default'
     rre = re.compile(r'\{\{ ROOT \}\}')
-    dre = re.compile('^%s .*$' % pxe_cmd)
-    boot_line = '%s boot' % pxe_cmd
+
+    if boot_mode == 'uefi':
+        dre = re.compile('^default=.*$')
+        boot_line = 'default=boot'
+    else:
+        pxe_cmd = 'goto' if CONF.pxe.ipxe_enabled else 'default'
+        dre = re.compile('^%s .*$' % pxe_cmd)
+        boot_line = '%s boot' % pxe_cmd
+
     with open(path, 'w') as f:
         for line in lines:
             line = rre.sub(root, line)

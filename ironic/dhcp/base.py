@@ -67,3 +67,11 @@ class BaseDHCP(object):
 
         :raises: FailedToUpdateDHCPOptOnPort
         """
+
+    @abc.abstractmethod
+    def get_ip_addresses(self, task):
+        """Get IP addresses for all ports in `task`.
+
+        :param task: a TaskManager instance.
+        :returns: List of IP addresses associated with task.ports
+        """

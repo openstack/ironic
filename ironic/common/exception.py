@@ -226,6 +226,14 @@ class FailedToUpdateDHCPOptOnPort(IronicException):
     message = _("Update DHCP options on port: %(port_id)s failed.")
 
 
+class FailedToGetIPAddressOnPort(IronicException):
+    message = _("Retrieve IP address on port: %(port_id)s failed.")
+
+
+class InvalidIPv4Address(IronicException):
+    message = _("Invalid IPv4 address %(ip_address)s.")
+
+
 class FailedToUpdateMacOnPort(IronicException):
     message = _("Update MAC address on port: %(port_id)s failed.")
 

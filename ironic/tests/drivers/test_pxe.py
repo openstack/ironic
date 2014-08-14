@@ -166,6 +166,7 @@ class PXEPrivateMethodsTestCase(db_base.DbTestCase):
 
         fake_key = '0123456789ABCDEFGHIJKLMNOPQRSTUV'
         random_alnum_mock.return_value = fake_key
+        tftp_server = CONF.pxe.tftp_server
 
         if ipxe_enabled:
             http_url = 'http://192.1.2.3:1234'
@@ -201,7 +202,8 @@ class PXEPrivateMethodsTestCase(db_base.DbTestCase):
             'deployment_id': u'1be26c0b-03f2-4d2e-ae87-c02d7f33c123',
             'ironic_api_url': 'http://192.168.122.184:6385',
             'deployment_aki_path': deploy_kernel,
-            'disk': 'sda'
+            'disk': 'sda',
+            'tftp_server': tftp_server
         }
 
         image_info = {'deploy_kernel': ('deploy_kernel',
@@ -342,6 +344,30 @@ class PXEDriverTestCase(db_base.DbTestCase):
             self.assertRaises(exception.MissingParameterValue,
                               task.driver.deploy.validate, task)
 
+    @mock.patch.object(base_image_service.BaseImageService, '_show')
+    def test_validate_fail_invalid_boot_mode(self, mock_glance):
+        properties = {'capabilities': 'boot_mode:foo,cap2:value2'}
+        mock_glance.return_value = {'properties': {'kernel_id': 'fake-kernel',
+                                                   'ramdisk_id': 'fake-initr'}}
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            task.node.properties = properties
+            self.assertRaises(exception.InvalidParameterValue,
+                              task.driver.deploy.validate, task)
+
+    @mock.patch.object(base_image_service.BaseImageService, '_show')
+    def test_validate_fail_invalid_config_uefi_ipxe(self, mock_glance):
+        properties = {'capabilities': 'boot_mode:uefi,cap2:value2'}
+        mock_glance.return_value = {'properties': {'kernel_id': 'fake-kernel',
+                                                   'ramdisk_id': 'fake-initr'}}
+        self.config(ipxe_enabled=True, group='pxe')
+        self.config(http_url='dummy_url', group='pxe')
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            task.node.properties = properties
+            self.assertRaises(exception.InvalidParameterValue,
+                              task.driver.deploy.validate, task)
+
     def test_validate_fail_no_port(self):
         new_node = obj_utils.create_test_node(
                 self.context,
@@ -480,10 +506,10 @@ class PXEDriverTestCase(db_base.DbTestCase):
         fake_img_path = '/test/path/test.img'
         mock_get_image_file_path.return_value = fake_img_path
         mock_get_image_mb.return_value = 1
-        dhcp_opts = pxe_utils.dhcp_options_for_instance()
 
         with task_manager.acquire(self.context,
                                   self.node.uuid, shared=False) as task:
+            dhcp_opts = pxe_utils.dhcp_options_for_instance(task)
             state = task.driver.deploy.deploy(task)
             self.assertEqual(state, states.DEPLOYWAIT)
             mock_cache_instance_image.assert_called_once_with(
@@ -530,9 +556,9 @@ class PXEDriverTestCase(db_base.DbTestCase):
 
     @mock.patch.object(dhcp_factory.DHCPFactory, 'update_dhcp')
     def test_take_over(self, update_dhcp_mock):
-        dhcp_opts = pxe_utils.dhcp_options_for_instance()
         with task_manager.acquire(
                 self.context, self.node.uuid, shared=True) as task:
+            dhcp_opts = pxe_utils.dhcp_options_for_instance(task)
             task.driver.deploy.take_over(task)
             update_dhcp_mock.assert_called_once_with(
                 task, dhcp_opts)
@@ -548,6 +574,7 @@ class PXEDriverTestCase(db_base.DbTestCase):
         self.node.save()
 
         root_uuid = "12345678-1234-1234-1234-1234567890abcxyz"
+        boot_mode = None
 
         def fake_deploy(**kwargs):
             return root_uuid
@@ -568,7 +595,8 @@ class PXEDriverTestCase(db_base.DbTestCase):
         mock_image_cache.assert_called_once_with()
         mock_image_cache.return_value.clean_up.assert_called_once_with()
         pxe_config_path = pxe_utils.get_pxe_config_file_path(self.node.uuid)
-        mock_switch_config.assert_called_once_with(pxe_config_path, root_uuid)
+        mock_switch_config.assert_called_once_with(pxe_config_path, root_uuid,
+                                boot_mode)
         notify_mock.assert_called_once_with('123456')
 
     @mock.patch.object(iscsi_deploy, 'InstanceImageCache')

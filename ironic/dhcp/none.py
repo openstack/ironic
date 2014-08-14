@@ -26,3 +26,6 @@ class NoneDHCPApi(base.BaseDHCP):
 
     def update_port_address(self, port_id, address):
         pass
+
+    def get_ip_addresses(self, task):
+        return []
