@@ -138,7 +138,8 @@ def _make_password_file(password):
 
     :param password: the password
     :returns: the absolute pathname of the temporary file
-    :raises: Exception from creating or writing to the temporary file
+    :raises: PasswordFileFailedToCreate from creating or writing to the
+             temporary file
     """
     try:
         fd, path = tempfile.mkstemp()
@@ -148,9 +149,9 @@ def _make_password_file(password):
 
         yield path
         utils.delete_if_exists(path)
-    except Exception:
-        with excutils.save_and_reraise_exception():
-            utils.delete_if_exists(path)
+    except Exception as exc:
+        utils.delete_if_exists(path)
+        raise exception.PasswordFileFailedToCreate(error=exc)
 
 
 def _parse_driver_info(node):
@@ -208,8 +209,9 @@ def _exec_ipmitool(driver_info, command):
     :param driver_info: the ipmitool parameters for accessing a node.
     :param command: the ipmitool command to be executed.
     :returns: (stdout, stderr) from executing the command.
-    :raises: some Exception from making the password file or from executing
-        the command.
+    :raises: PasswordFileFailedToCreate from creating or writing to the
+             temporary file.
+    :raises: processutils.ProcessExecutionError from executing the command.
 
     """
     args = ['ipmitool',
@@ -217,7 +219,7 @@ def _exec_ipmitool(driver_info, command):
             'lanplus',
             '-H',
             driver_info['address'],
-            '-L', driver_info.get('priv_level')
+            '-L', driver_info['priv_level']
             ]
 
     if driver_info['username']:
@@ -281,7 +283,6 @@ def _set_and_wait(target_state, driver_info):
     :param target_state: desired power state
     :param driver_info: the ipmitool parameters for accessing a node.
     :returns: one of ironic.common.states
-    :raises: IPMIFailure on an error from ipmitool (from _power_status call).
 
     """
     if target_state == states.POWER_ON:
@@ -296,7 +297,9 @@ def _set_and_wait(target_state, driver_info):
                 _exec_ipmitool(driver_info, "power %s" % state_name)
             else:
                 mutable['power'] = _power_status(driver_info)
-        except Exception:
+        except (exception.PasswordFileFailedToCreate,
+                processutils.ProcessExecutionError,
+                exception.IPMIFailure):
             # Log failures but keep trying
             LOG.warning(_("IPMI power %(state)s failed for node %(node)s."),
                          {'state': state_name, 'node': driver_info['uuid']})
@@ -361,7 +364,8 @@ def _power_status(driver_info):
     cmd = "power status"
     try:
         out_err = _exec_ipmitool(driver_info, cmd)
-    except Exception as e:
+    except (exception.PasswordFileFailedToCreate,
+            processutils.ProcessExecutionError) as e:
         LOG.warning(_("IPMI power status failed for node %(node_id)s with "
                       "error: %(error)s.")
                     % {'node_id': driver_info['uuid'], 'error': e})
@@ -597,12 +601,12 @@ class IPMIManagement(base.ManagementInterface):
         driver_info = _parse_driver_info(task.node)
         try:
             out, err = _exec_ipmitool(driver_info, cmd)
-        except processutils.ProcessExecutionError as e:
+        except (exception.PasswordFileFailedToCreate,
+                processutils.ProcessExecutionError) as e:
             LOG.warning(_LW('IPMI set boot device failed for node %(node)s '
                             'when executing "ipmitool %(cmd)s". '
                             'Error: %(error)s'),
-                        {'node': driver_info['uuid'], 'cmd': cmd,
-                         'error': str(e)})
+                        {'node': driver_info['uuid'], 'cmd': cmd, 'error': e})
             raise exception.IPMIFailure(cmd=cmd)
 
     def get_boot_device(self, task):
@@ -628,12 +632,12 @@ class IPMIManagement(base.ManagementInterface):
         response = {'boot_device': None, 'persistent': None}
         try:
             out, err = _exec_ipmitool(driver_info, cmd)
-        except processutils.ProcessExecutionError as e:
+        except (exception.PasswordFileFailedToCreate,
+                processutils.ProcessExecutionError) as e:
             LOG.warning(_LW('IPMI get boot device failed for node %(node)s '
                             'when executing "ipmitool %(cmd)s". '
                             'Error: %(error)s'),
-                        {'node': driver_info['uuid'], 'cmd': cmd,
-                         'error': str(e)})
+                        {'node': driver_info['uuid'], 'cmd': cmd, 'error': e})
             raise exception.IPMIFailure(cmd=cmd)
 
         re_obj = re.search('Boot Device Selector : (.+)?\n', out)
@@ -671,9 +675,10 @@ class IPMIManagement(base.ManagementInterface):
         cmd = "sdr -v"
         try:
             out, err = _exec_ipmitool(driver_info, cmd)
-        except processutils.ProcessExecutionError as pee:
+        except (exception.PasswordFileFailedToCreate,
+                processutils.ProcessExecutionError) as e:
             raise exception.FailedToGetSensorData(node=task.node.uuid,
-                                                  error=str(pee))
+                                                  error=e)
 
         return _parse_ipmi_sensors_data(task.node, out)
 
@@ -701,7 +706,8 @@ class VendorPassthru(base.VendorInterface):
             out, err = _exec_ipmitool(driver_info, cmd)
             LOG.debug('send raw bytes returned stdout: %(stdout)s, stderr:'
                       ' %(stderr)s', {'stdout': out, 'stderr': err})
-        except Exception as e:
+        except (exception.PasswordFileFailedToCreate,
+                processutils.ProcessExecutionError) as e:
             LOG.exception(_('IPMI "raw bytes" failed for node %(node_id)s '
                           'with error: %(error)s.'),
                           {'node_id': node_uuid, 'error': e})
@@ -734,7 +740,8 @@ class VendorPassthru(base.VendorInterface):
             out, err = _exec_ipmitool(driver_info, cmd)
             LOG.debug('bmc reset returned stdout: %(stdout)s, stderr:'
                       ' %(stderr)s', {'stdout': out, 'stderr': err})
-        except Exception as e:
+        except (exception.PasswordFileFailedToCreate,
+                processutils.ProcessExecutionError) as e:
             LOG.exception(_('IPMI "bmc reset" failed for node %(node_id)s '
                           'with error: %(error)s.'),
                           {'node_id': node_uuid, 'error': e})

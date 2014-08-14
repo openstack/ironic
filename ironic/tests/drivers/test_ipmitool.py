@@ -592,7 +592,7 @@ class IPMIToolDriverTestCase(db_base.DbTestCase):
 
     @mock.patch.object(ipmi, '_exec_ipmitool', autospec=True)
     def test__send_raw_bytes_fail(self, mock_exec):
-        mock_exec.side_effect = Exception
+        mock_exec.side_effect = exception.PasswordFileFailedToCreate('error')
 
         with task_manager.acquire(self.context,
                                   self.node['uuid']) as task:
@@ -623,7 +623,7 @@ class IPMIToolDriverTestCase(db_base.DbTestCase):
 
     @mock.patch.object(ipmi, '_exec_ipmitool', autospec=True)
     def test__bmc_reset_fail(self, mock_exec):
-        mock_exec.side_effect = Exception
+        mock_exec.side_effect = processutils.ProcessExecutionError()
 
         with task_manager.acquire(self.context,
                                   self.node['uuid']) as task:
