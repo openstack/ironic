@@ -440,13 +440,18 @@ class ConductorManager(periodic_task.PeriodicTasks):
         # want to add retries or extra synchronization here.
         with task_manager.acquire(context, node_id, shared=False) as task:
             node = task.node
-            # May only rebuild a node in ACTIVE state
-            if rebuild and (node.provision_state != states.ACTIVE):
+            # Only rebuild a node in ACTIVE, ERROR, or DEPLOYFAIL state
+            rebuild_states = [states.ACTIVE,
+                              states.ERROR,
+                              states.DEPLOYFAIL]
+            if rebuild and (node.provision_state not in rebuild_states):
+                valid_states_string = ', '.join(rebuild_states)
                 raise exception.InstanceDeployFailure(_(
                     "RPC do_node_deploy called to rebuild %(node)s, but "
-                    "provision state is %(curstate)s. Must be %(state)s.") %
-                    {'node': node.uuid, 'curstate': node.provision_state,
-                     'state': states.ACTIVE})
+                    "provision state is %(curstate)s. State must be one "
+                    "of : %(states)s.") % {'node': node.uuid,
+                     'curstate': node.provision_state,
+                     'states': valid_states_string})
             elif node.provision_state != states.NOSTATE and not rebuild:
                 raise exception.InstanceDeployFailure(_(
                     "RPC do_node_deploy called for %(node)s, but provision "
