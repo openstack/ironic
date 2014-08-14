@@ -30,6 +30,7 @@ from ironic.common import exception
 from ironic.common import utils
 from ironic.openstack.common import log as logging
 from ironic.openstack.common import loopingcall
+from ironic.openstack.common import processutils
 
 opts = [
     cfg.StrOpt('terminal',
@@ -131,7 +132,7 @@ def start_shellinabox_console(node_uuid, port, console_cmd):
                       check_exit_code=[0, 99])
     except exception.NoConsolePid:
         pass
-    except (exception.ProcessExecutionError, exception.UnknownArgumentError):
+    except processutils.ProcessExecutionError:
         LOG.warning(_("Failed to kill the old console process %(pid)s "
                 "before starting a new shellinabox console "
                 "for node %(node)s.")
