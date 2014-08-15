@@ -377,10 +377,6 @@ class Connection(api.Connection):
         except NoResultFound:
             raise exception.PortNotFound(port=address)
 
-    @objects.objectify(objects.Port)
-    def get_port_by_vif(self, vif):
-        pass
-
     def get_port_list(self, limit=None, marker=None,
                       sort_key=None, sort_dir=None):
         return _paginate_query(models.Port, limit, marker,
