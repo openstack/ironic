@@ -181,6 +181,15 @@ class SSHValidateParametersTestCase(base.TestCase):
         info = ssh._parse_driver_info(node)
         self.assertEqual(expected_base_cmd, info['cmd_set']['base_cmd'])
 
+    def test__get_boot_device_map_ad_hoc(self):
+        boot_map = ssh._get_boot_device_map('parallels')
+        self.assertEqual('net0', boot_map[boot_devices.PXE])
+
+    def test__get_boot_device_map_exception(self):
+        self.assertRaises(exception.InvalidParameterValue,
+                          ssh._get_boot_device_map,
+                          'this_doesn_t_exist')
+
 
 class SSHPrivateMethodsTestCase(base.TestCase):
 
@@ -784,8 +793,25 @@ class SSHDriverTestCase(db_base.DbTestCase):
     @mock.patch.object(ssh, '_get_connection')
     @mock.patch.object(ssh, '_get_hosts_name_for_node')
     @mock.patch.object(ssh, '_ssh_execute')
-    def test_management_interface_set_boot_device_ok(self, mock_exc, mock_h,
-                                                     mock_get_conn):
+    def test_management_interface_set_boot_device_parallels_ok(self, mock_exc,
+                                                               mock_h,
+                                                               mock_get_conn):
+        fake_name = 'fake-name'
+        mock_h.return_value = fake_name
+        mock_get_conn.return_value = self.sshclient
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            task.node['driver_info']['ssh_virt_type'] = 'parallels'
+            self.driver.management.set_boot_device(task, boot_devices.PXE)
+        expected_cmd = ('/usr/bin/prlctl set %s '
+                        '--device-bootorder "net0"') % fake_name
+        mock_exc.assert_called_once_with(mock.ANY, expected_cmd)
+
+    @mock.patch.object(ssh, '_get_connection')
+    @mock.patch.object(ssh, '_get_hosts_name_for_node')
+    @mock.patch.object(ssh, '_ssh_execute')
+    def test_management_interface_set_boot_device_virsh_ok(self, mock_exc,
+                                                           mock_h,
+                                                           mock_get_conn):
         fake_name = 'fake-name'
         mock_h.return_value = fake_name
         mock_get_conn.return_value = self.sshclient
@@ -826,8 +852,27 @@ class SSHDriverTestCase(db_base.DbTestCase):
     @mock.patch.object(ssh, '_get_connection')
     @mock.patch.object(ssh, '_get_hosts_name_for_node')
     @mock.patch.object(ssh, '_ssh_execute')
-    def test_management_interface_get_boot_device(self, mock_exc, mock_h,
-                                                  mock_get_conn):
+    def test_management_interface_get_boot_device_parallels(self, mock_exc,
+                                                            mock_h,
+                                                            mock_get_conn):
+        fake_name = 'fake-name'
+        mock_h.return_value = fake_name
+        mock_exc.return_value = ('net0', '')
+        mock_get_conn.return_value = self.sshclient
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            task.node['driver_info']['ssh_virt_type'] = 'parallels'
+            result = self.driver.management.get_boot_device(task)
+            self.assertEqual(boot_devices.PXE, result['boot_device'])
+        expected_cmd = ('/usr/bin/prlctl list -i %s '
+                        '| awk \'/^Boot order:/ {print $3}\'') % fake_name
+        mock_exc.assert_called_once_with(mock.ANY, expected_cmd)
+
+    @mock.patch.object(ssh, '_get_connection')
+    @mock.patch.object(ssh, '_get_hosts_name_for_node')
+    @mock.patch.object(ssh, '_ssh_execute')
+    def test_management_interface_get_boot_device_virsh(self, mock_exc,
+                                                        mock_h,
+                                                        mock_get_conn):
         fake_name = 'fake-name'
         mock_h.return_value = fake_name
         mock_exc.return_value = ('network', '')
