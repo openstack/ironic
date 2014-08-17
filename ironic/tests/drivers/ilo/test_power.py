@@ -44,9 +44,9 @@ class IloPowerInternalMethodsTestCase(base.TestCase):
     def setUp(self):
         super(IloPowerInternalMethodsTestCase, self).setUp()
         driver_info = INFO_DICT
-        mgr_utils.mock_the_extension_manager(driver="ilo")
+        mgr_utils.mock_the_extension_manager(driver="fake_ilo")
         n = db_utils.get_test_node(
-            driver='ilo',
+            driver='fake_ilo',
             driver_info=driver_info,
             instance_uuid='instance_uuid_123')
         self.dbapi = dbapi.get_instance()
@@ -143,10 +143,10 @@ class IloPowerTestCase(base.TestCase):
         self.context = context.get_admin_context()
         super(IloPowerTestCase, self).setUp()
         driver_info = INFO_DICT
-        mgr_utils.mock_the_extension_manager(driver="ilo")
+        mgr_utils.mock_the_extension_manager(driver="fake_ilo")
         self.dbapi = dbapi.get_instance()
         self.node = obj_utils.create_test_node(self.context,
-                                               driver='ilo',
+                                               driver='fake_ilo',
                                                driver_info=driver_info)
 
     def test_get_properties(self):

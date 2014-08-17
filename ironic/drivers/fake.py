@@ -24,6 +24,7 @@ from ironic.drivers import base
 from ironic.drivers.modules import agent
 from ironic.drivers.modules import fake
 from ironic.drivers.modules import iboot
+from ironic.drivers.modules.ilo import power as ilo_power
 from ironic.drivers.modules import ipminative
 from ironic.drivers.modules import ipmitool
 from ironic.drivers.modules import pxe
@@ -114,4 +115,16 @@ class FakeIBootDriver(base.BaseDriver):
 
     def __init__(self):
         self.power = iboot.IBootPower()
+        self.deploy = fake.FakeDeploy()
+
+
+class FakeIloDriver(base.BaseDriver):
+    """Fake iLO driver, used in testing."""
+
+    def __init__(self):
+        if not importutils.try_import('proliantutils'):
+            raise exception.DriverLoadError(
+                    driver=self.__class__.__name__,
+                    reason=_("Unable to import proliantutils library"))
+        self.power = ilo_power.IloPower()
         self.deploy = fake.FakeDeploy()
