@@ -765,7 +765,7 @@ class DoNodeDeployTearDownTestCase(_ServiceSetUpMixin,
         # Compare true exception hidden by @messaging.expected_exceptions
         self.assertEqual(exception.InstanceDeployFailure, exc.exc_info[0])
 
-    @mock.patch('ironic.drivers.modules.fake.FakeDeploy.validate')
+    @mock.patch('ironic.drivers.modules.fake.FakePower.validate')
     def test_do_node_tear_down_validate_fail(self, mock_validate):
         # InvalidParameterValue should be re-raised as InstanceDeployFailure
         mock_validate.side_effect = exception.InvalidParameterValue('error')

@@ -542,11 +542,15 @@ class ConductorManager(periodic_task.PeriodicTasks):
                     % {'node': node_id, 'state': node.provision_state})
 
             try:
-                task.driver.deploy.validate(task)
+                # NOTE(ghe): Valid power driver values are needed to perform
+                # a tear-down. Deploy info is useful to purge the cache but not
+                # required for this method.
+
+                task.driver.power.validate(task)
             except (exception.InvalidParameterValue,
                     exception.MissingParameterValue) as e:
                 raise exception.InstanceDeployFailure(_(
-                    "RPC do_node_tear_down failed to validate deploy info. "
+                    "RPC do_node_tear_down failed to validate power info. "
                     "Error: %(msg)s") % {'msg': e})
 
             # save the previous states so we can rollback the node to a
