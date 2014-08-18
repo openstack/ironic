@@ -214,14 +214,6 @@ class Connection(object):
         """
 
     @abc.abstractmethod
-    def get_port_by_vif(self, vif):
-        """Return the port corresponding to this VIF.
-
-        :param vif: The uuid of the VIF.
-        :returns: A port.
-        """
-
-    @abc.abstractmethod
     def get_port_list(self, limit=None, marker=None,
                       sort_key=None, sort_dir=None):
         """Return a list of ports.
