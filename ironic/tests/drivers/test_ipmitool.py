@@ -490,8 +490,7 @@ class IPMIToolDriverTestCase(db_base.DbTestCase):
         expected = ipmi.COMMON_PROPERTIES
         self.assertEqual(expected, self.driver.power.get_properties())
 
-        expected = ipmi.COMMON_PROPERTIES.keys()
-        expected += ipmi.CONSOLE_PROPERTIES.keys()
+        expected = list(ipmi.COMMON_PROPERTIES) + list(ipmi.CONSOLE_PROPERTIES)
         self.assertEqual(sorted(expected),
                          sorted(self.driver.console.get_properties().keys()))
         self.assertEqual(sorted(expected),
