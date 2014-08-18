@@ -401,7 +401,7 @@ def _get_image_info(node, ctx):
     return image_info
 
 
-def _destroy_images(d_info, node_uuid):
+def _destroy_images(node_uuid):
     """Delete instance's image file."""
     utils.unlink_without_raise(_get_image_file_path(node_uuid))
     utils.rmtree_without_raise(_get_image_dir_path(node_uuid))
@@ -584,7 +584,6 @@ class PXEDeploy(base.DeployInterface):
         """
         node = task.node
         pxe_info = _get_image_info(node, task.context)
-        d_info = _parse_deploy_info(node)
         for label in pxe_info:
             path = pxe_info[label][1]
             utils.unlink_without_raise(path)
@@ -592,7 +591,7 @@ class PXEDeploy(base.DeployInterface):
 
         pxe_utils.clean_up_pxe_config(task)
 
-        _destroy_images(d_info, node.uuid)
+        _destroy_images(node.uuid)
         _destroy_token_file(node)
 
     def take_over(self, task):
@@ -656,7 +655,6 @@ class VendorPassthru(base.VendorInterface):
         invoked asynchronously as a callback from the deploy ramdisk.
         """
         node = task.node
-        driver_info = _parse_driver_info(node)
 
         def _set_failed_state(msg):
             node.provision_state = states.DEPLOYFAIL
@@ -692,7 +690,7 @@ class VendorPassthru(base.VendorInterface):
             LOG.error(_('Error returned from PXE deploy ramdisk: %s')
                     % ramdisk_error)
             _set_failed_state(_('Failure in PXE deploy ramdisk.'))
-            _destroy_images(driver_info, node.uuid)
+            _destroy_images(node.uuid)
             return
 
         LOG.info(_('Continuing deployment for node %(node)s, params '
@@ -711,7 +709,7 @@ class VendorPassthru(base.VendorInterface):
             node.target_provision_state = states.NOSTATE
             node.save(task.context)
 
-        _destroy_images(driver_info, node.uuid)
+        _destroy_images(node.uuid)
 
     def vendor_passthru(self, task, **kwargs):
         method = kwargs['method']
