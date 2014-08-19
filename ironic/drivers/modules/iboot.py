@@ -46,13 +46,15 @@ COMMON_PROPERTIES.update(OPTIONAL_PROPERTIES)
 
 def _parse_driver_info(node):
     info = node.driver_info or {}
+    missing_info = [key for key in REQUIRED_PROPERTIES if not info.get(key)]
+    if missing_info:
+        raise exception.MissingParameterValue(_(
+              "The following iBoot credentials were not supplied to iBoot PDU "
+              "driver: %s.") % missing_info)
+
     address = info.get('iboot_address', None)
     username = info.get('iboot_username', None)
     password = info.get('iboot_password', None)
-
-    if not address or not username or not password:
-        raise exception.InvalidParameterValue(_(
-              "iBoot credentials not supplied to iBoot PDU driver."))
 
     relay_id = info.get('iboot_relay_id', 1)
     try:
@@ -122,8 +124,9 @@ class IBootPower(base.PowerInterface):
         """Validate driver_info for iboot driver.
 
         :param task: a TaskManager instance containing the node to act on.
-        :raises: InvalidParameterValue if required iboot parameters
-            are missing.
+        :raises: InvalidParameterValue if iboot parameters are invalid.
+        :raises: MissingParameterValue if required iboot parameters are
+            missing.
 
         """
         _parse_driver_info(task.node)
@@ -133,8 +136,9 @@ class IBootPower(base.PowerInterface):
 
         :param task: a TaskManager instance containing the node to act on.
         :returns: one of ironic.common.states POWER_OFF, POWER_ON or ERROR.
-        :raises: InvalidParameterValue if required iboot parameters
-            are missing.
+        :raises: InvalidParameterValue if iboot parameters are invalid.
+        :raises: MissingParameterValue if required iboot parameters are
+            missing.
 
         """
         driver_info = _parse_driver_info(task.node)
@@ -147,8 +151,10 @@ class IBootPower(base.PowerInterface):
         :param task: a TaskManager instance containing the node to act on.
         :param pstate: The desired power state, one of ironic.common.states
             POWER_ON, POWER_OFF.
-        :raises: InvalidParameterValue if required iboot parameters are
-            missing or if an invalid power state was specified.
+        :raises: InvalidParameterValue if iboot parameters are invalid or if
+            an invalid power state was specified.
+        :raises: MissingParameterValue if required iboot parameters are
+            missing.
         :raises: PowerStateFailure if the power couldn't be set to pstate.
 
         """
@@ -171,8 +177,9 @@ class IBootPower(base.PowerInterface):
         """Cycles the power to the task's node.
 
         :param task: a TaskManager instance containing the node to act on.
-        :raises: InvalidParameterValue if required iboot parameters
-            are missing.
+        :raises: InvalidParameterValue if iboot parameters are invalid.
+        :raises: MissingParameterValue if required iboot parameters are
+            missing.
         :raises: PowerStateFailure if the final state of the node is not
             POWER_ON.
 

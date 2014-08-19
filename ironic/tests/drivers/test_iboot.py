@@ -82,7 +82,7 @@ class IBootPrivateMethodTestCase(base.TestCase):
                 self.context,
                 driver='fake_iboot',
                 driver_info=info)
-        self.assertRaises(exception.InvalidParameterValue,
+        self.assertRaises(exception.MissingParameterValue,
                           iboot._parse_driver_info,
                           node)
 
@@ -93,7 +93,7 @@ class IBootPrivateMethodTestCase(base.TestCase):
                 self.context,
                 driver='fake_iboot',
                 driver_info=info)
-        self.assertRaises(exception.InvalidParameterValue,
+        self.assertRaises(exception.MissingParameterValue,
                           iboot._parse_driver_info,
                           node)
 
@@ -104,7 +104,7 @@ class IBootPrivateMethodTestCase(base.TestCase):
                 self.context,
                 driver='fake_iboot',
                 driver_info=info)
-        self.assertRaises(exception.InvalidParameterValue,
+        self.assertRaises(exception.MissingParameterValue,
                           iboot._parse_driver_info,
                           node)
 
