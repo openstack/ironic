@@ -22,12 +22,16 @@ Ironic iBoot PDU power manager.
 from oslo.utils import importutils
 
 from ironic.common import exception
+from ironic.common import i18n
 from ironic.common import states
 from ironic.conductor import task_manager
 from ironic.drivers import base
 from ironic.openstack.common import log as logging
 
 iboot = importutils.try_import('iboot')
+
+
+_LW = i18n._LW
 
 LOG = logging.getLogger(__name__)
 
@@ -98,7 +102,23 @@ def _switch(driver_info, enabled):
 def _power_status(driver_info):
     conn = _get_connection(driver_info)
     relay_id = driver_info['relay_id']
-    status = conn.get_relays()[relay_id - 1]
+    try:
+        response = conn.get_relays()
+        status = response[relay_id - 1]
+    except TypeError:
+        msg = (_("Cannot get power status for node '%(node)s'. iBoot "
+                 "get_relays() returned '%(resp)s'.")
+                 % {'node': driver_info['uuid'], 'resp': response})
+        LOG.error(msg)
+        raise exception.IBootOperationError(message=msg)
+    except IndexError:
+        LOG.warning(_LW("Cannot get power status for node '%(node)s' at relay "
+                        "'%(relay)s'. iBoot get_relays() returned "
+                        "'%(resp)s'."),
+                        {'node': driver_info['uuid'], 'relay': relay_id,
+                         'resp': response})
+        return states.ERROR
+
     if status:
         return states.POWER_ON
     else:
@@ -136,6 +156,7 @@ class IBootPower(base.PowerInterface):
 
         :param task: a TaskManager instance containing the node to act on.
         :returns: one of ironic.common.states POWER_OFF, POWER_ON or ERROR.
+        :raises: IBootOperationError on an error from iBoot.
         :raises: InvalidParameterValue if iboot parameters are invalid.
         :raises: MissingParameterValue if required iboot parameters are
             missing.
@@ -151,6 +172,7 @@ class IBootPower(base.PowerInterface):
         :param task: a TaskManager instance containing the node to act on.
         :param pstate: The desired power state, one of ironic.common.states
             POWER_ON, POWER_OFF.
+        :raises: IBootOperationError on an error from iBoot.
         :raises: InvalidParameterValue if iboot parameters are invalid or if
             an invalid power state was specified.
         :raises: MissingParameterValue if required iboot parameters are
@@ -177,6 +199,7 @@ class IBootPower(base.PowerInterface):
         """Cycles the power to the task's node.
 
         :param task: a TaskManager instance containing the node to act on.
+        :raises: IBootOperationError on an error from iBoot.
         :raises: InvalidParameterValue if iboot parameters are invalid.
         :raises: MissingParameterValue if required iboot parameters are
             missing.
