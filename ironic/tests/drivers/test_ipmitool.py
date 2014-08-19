@@ -52,41 +52,164 @@ CONF.import_opt('min_command_interval',
 
 INFO_DICT = db_utils.get_test_ipmi_info()
 
+# BRIDGE_INFO_DICT will have all the bridging parameters appended
+BRIDGE_INFO_DICT = INFO_DICT.copy()
+BRIDGE_INFO_DICT.update(db_utils.get_test_ipmi_bridging_parameters())
 
-class IPMIToolCheckTimingTestCase(base.TestCase):
 
-    @mock.patch.object(ipmi, '_is_timing_supported')
+class IPMIToolCheckOptionSupportedTestCase(base.TestCase):
+
+    @mock.patch.object(ipmi, '_is_option_supported')
     @mock.patch.object(utils, 'execute')
-    def test_check_timing_pass(self, mock_exc, mock_timing):
+    def test_check_timing_pass(self, mock_exc, mock_support):
         mock_exc.return_value = (None, None)
-        mock_timing.return_value = None
-        expected = [mock.call(), mock.call(True)]
+        mock_support.return_value = None
+        expected = [mock.call('timing'),
+                    mock.call('timing', True)]
 
-        ipmi.check_timing_support()
+        ipmi._check_option_support(['timing'])
         self.assertTrue(mock_exc.called)
-        self.assertEqual(expected, mock_timing.call_args_list)
+        self.assertEqual(expected, mock_support.call_args_list)
 
-    @mock.patch.object(ipmi, '_is_timing_supported')
+    @mock.patch.object(ipmi, '_is_option_supported')
     @mock.patch.object(utils, 'execute')
-    def test_check_timing_fail(self, mock_exc, mock_timing):
+    def test_check_timing_fail(self, mock_exc, mock_support):
         mock_exc.side_effect = processutils.ProcessExecutionError()
-        mock_timing.return_value = None
-        expected = [mock.call(), mock.call(False)]
+        mock_support.return_value = None
+        expected = [mock.call('timing'),
+                    mock.call('timing', False)]
 
-        ipmi.check_timing_support()
+        ipmi._check_option_support(['timing'])
         self.assertTrue(mock_exc.called)
-        self.assertEqual(expected, mock_timing.call_args_list)
+        self.assertEqual(expected, mock_support.call_args_list)
 
-    @mock.patch.object(ipmi, '_is_timing_supported')
+    @mock.patch.object(ipmi, '_is_option_supported')
     @mock.patch.object(utils, 'execute')
-    def test_check_timing_no_ipmitool(self, mock_exc, mock_timing):
+    def test_check_timing_no_ipmitool(self, mock_exc, mock_support):
         mock_exc.side_effect = OSError()
-        mock_timing.return_value = None
-        expected = [mock.call()]
+        mock_support.return_value = None
+        expected = [mock.call('timing')]
 
-        self.assertRaises(OSError, ipmi.check_timing_support)
+        self.assertRaises(OSError, ipmi._check_option_support, ['timing'])
         self.assertTrue(mock_exc.called)
-        self.assertEqual(expected, mock_timing.call_args_list)
+        self.assertEqual(expected, mock_support.call_args_list)
+
+    @mock.patch.object(ipmi, '_is_option_supported')
+    @mock.patch.object(utils, 'execute')
+    def test_check_single_bridge_pass(self, mock_exc, mock_support):
+        mock_exc.return_value = (None, None)
+        mock_support.return_value = None
+        expected = [mock.call('single_bridge'),
+                    mock.call('single_bridge', True)]
+
+        ipmi._check_option_support(['single_bridge'])
+        self.assertTrue(mock_exc.called)
+        self.assertEqual(expected, mock_support.call_args_list)
+
+    @mock.patch.object(ipmi, '_is_option_supported')
+    @mock.patch.object(utils, 'execute')
+    def test_check_single_bridge_fail(self, mock_exc, mock_support):
+        mock_exc.side_effect = processutils.ProcessExecutionError()
+        mock_support.return_value = None
+        expected = [mock.call('single_bridge'),
+                    mock.call('single_bridge', False)]
+
+        ipmi._check_option_support(['single_bridge'])
+        self.assertTrue(mock_exc.called)
+        self.assertEqual(expected, mock_support.call_args_list)
+
+    @mock.patch.object(ipmi, '_is_option_supported')
+    @mock.patch.object(utils, 'execute')
+    def test_check_single_bridge_no_ipmitool(self, mock_exc,
+                                             mock_support):
+        mock_exc.side_effect = OSError()
+        mock_support.return_value = None
+        expected = [mock.call('single_bridge')]
+
+        self.assertRaises(OSError, ipmi._check_option_support,
+                          ['single_bridge'])
+        self.assertTrue(mock_exc.called)
+        self.assertEqual(expected, mock_support.call_args_list)
+
+    @mock.patch.object(ipmi, '_is_option_supported')
+    @mock.patch.object(utils, 'execute')
+    def test_check_dual_bridge_pass(self, mock_exc, mock_support):
+        mock_exc.return_value = (None, None)
+        mock_support.return_value = None
+        expected = [mock.call('dual_bridge'),
+                    mock.call('dual_bridge', True)]
+
+        ipmi._check_option_support(['dual_bridge'])
+        self.assertTrue(mock_exc.called)
+        self.assertEqual(expected, mock_support.call_args_list)
+
+    @mock.patch.object(ipmi, '_is_option_supported')
+    @mock.patch.object(utils, 'execute')
+    def test_check_dual_bridge_fail(self, mock_exc, mock_support):
+        mock_exc.side_effect = processutils.ProcessExecutionError()
+        mock_support.return_value = None
+        expected = [mock.call('dual_bridge'),
+                    mock.call('dual_bridge', False)]
+
+        ipmi._check_option_support(['dual_bridge'])
+        self.assertTrue(mock_exc.called)
+        self.assertEqual(expected, mock_support.call_args_list)
+
+    @mock.patch.object(ipmi, '_is_option_supported')
+    @mock.patch.object(utils, 'execute')
+    def test_check_dual_bridge_no_ipmitool(self, mock_exc, mock_support):
+        mock_exc.side_effect = OSError()
+        mock_support.return_value = None
+        expected = [mock.call('dual_bridge')]
+
+        self.assertRaises(OSError, ipmi._check_option_support,
+                          ['dual_bridge'])
+        self.assertTrue(mock_exc.called)
+        self.assertEqual(expected, mock_support.call_args_list)
+
+    @mock.patch.object(ipmi, '_is_option_supported')
+    @mock.patch.object(utils, 'execute')
+    def test_check_all_options_pass(self, mock_exc, mock_support):
+        mock_exc.return_value = (None, None)
+        mock_support.return_value = None
+        expected = [
+            mock.call('timing'), mock.call('timing', True),
+            mock.call('single_bridge'),
+            mock.call('single_bridge', True),
+            mock.call('dual_bridge'), mock.call('dual_bridge', True)]
+
+        ipmi._check_option_support(['timing', 'single_bridge', 'dual_bridge'])
+        self.assertTrue(mock_exc.called)
+        self.assertEqual(expected, mock_support.call_args_list)
+
+    @mock.patch.object(ipmi, '_is_option_supported')
+    @mock.patch.object(utils, 'execute')
+    def test_check_all_options_fail(self, mock_exc, mock_support):
+        mock_exc.side_effect = processutils.ProcessExecutionError()
+        mock_support.return_value = None
+        expected = [
+            mock.call('timing'), mock.call('timing', False),
+            mock.call('single_bridge'),
+            mock.call('single_bridge', False),
+            mock.call('dual_bridge'),
+            mock.call('dual_bridge', False)]
+
+        ipmi._check_option_support(['timing', 'single_bridge', 'dual_bridge'])
+        self.assertTrue(mock_exc.called)
+        self.assertEqual(expected, mock_support.call_args_list)
+
+    @mock.patch.object(ipmi, '_is_option_supported')
+    @mock.patch.object(utils, 'execute')
+    def test_check_all_options_no_ipmitool(self, mock_exc, mock_support):
+        mock_exc.side_effect = OSError()
+        mock_support.return_value = None
+        # exception is raised once ipmitool was not found for an command
+        expected = [mock.call('timing')]
+
+        self.assertRaises(OSError, ipmi._check_option_support,
+                          ['timing', 'single_bridge', 'dual_bridge'])
+        self.assertTrue(mock_exc.called)
+        self.assertEqual(expected, mock_support.call_args_list)
 
 
 @mock.patch.object(time, 'sleep')
@@ -113,10 +236,9 @@ class IPMIToolPrivateMethodTestCase(base.TestCase):
 
     def test__parse_driver_info(self, mock_sleep):
         # make sure we get back the expected things
-        self.assertIsNotNone(self.info.get('address'))
-        self.assertIsNotNone(self.info.get('username'))
-        self.assertIsNotNone(self.info.get('password'))
-        self.assertIsNotNone(self.info.get('uuid'))
+        _OPTIONS = ['address', 'username', 'password', 'uuid']
+        for option in _OPTIONS:
+            self.assertIsNotNone(self.info.get(option))
 
         info = dict(INFO_DICT)
 
@@ -149,11 +271,170 @@ class IPMIToolPrivateMethodTestCase(base.TestCase):
                           ipmi._parse_driver_info,
                           node)
 
-    @mock.patch.object(ipmi, '_is_timing_supported')
+    @mock.patch.object(ipmi, '_is_option_supported')
+    def test__parse_driver_info_with_invalid_bridging_type(self,
+            mock_support, mock_sleep):
+        info = BRIDGE_INFO_DICT.copy()
+        # make sure error is raised when ipmi_bridging has unexpected value
+        info['ipmi_bridging'] = 'junk'
+        node = obj_utils.get_test_node(self.context, driver_info=info)
+        self.assertRaises(exception.InvalidParameterValue,
+                          ipmi._parse_driver_info,
+                          node)
+        self.assertFalse(mock_support.called)
+
+    @mock.patch.object(ipmi, '_is_option_supported')
+    def test__parse_driver_info_with_no_bridging(self,
+            mock_support, mock_sleep):
+        _OPTIONS = ['address', 'username', 'password', 'uuid']
+        _BRIDGING_OPTIONS = ['local_address', 'transit_channel',
+                             'transit_address',
+                             'target_channel', 'target_address']
+        info = BRIDGE_INFO_DICT.copy()
+        info['ipmi_bridging'] = 'no'
+        node = obj_utils.get_test_node(self.context, driver='fake_ipmitool',
+                                       driver_info=info)
+        ret = ipmi._parse_driver_info(node)
+
+        # ensure that _is_option_supported was not called
+        self.assertFalse(mock_support.called)
+        # check if we got all the required options
+        for option in _OPTIONS:
+            self.assertIsNotNone(ret[option])
+        # test the default value for 'priv_level'
+        self.assertEqual('ADMINISTRATOR', ret['priv_level'])
+
+        # check if bridging parameters were set to None
+        for option in _BRIDGING_OPTIONS:
+            self.assertIsNone(ret[option])
+
+    @mock.patch.object(ipmi, '_is_option_supported')
+    def test__parse_driver_info_with_dual_bridging_pass(self,
+            mock_support, mock_sleep):
+        _OPTIONS = ['address', 'username', 'password', 'uuid',
+                    'local_address', 'transit_channel', 'transit_address',
+                    'target_channel', 'target_address']
+        node = obj_utils.get_test_node(self.context, driver='fake_ipmitool',
+                                       driver_info=BRIDGE_INFO_DICT)
+
+        expected = [mock.call('dual_bridge')]
+
+        # test double bridging and make sure we get back expected result
+        mock_support.return_value = True
+        ret = ipmi._parse_driver_info(node)
+        self.assertEqual(expected, mock_support.call_args_list)
+        for option in _OPTIONS:
+            self.assertIsNotNone(ret[option])
+        # test the default value for 'priv_level'
+        self.assertEqual('ADMINISTRATOR', ret['priv_level'])
+
+        info = BRIDGE_INFO_DICT.copy()
+        # ipmi_local_address / ipmi_username / ipmi_password are not mandatory
+        for optional_arg in ['ipmi_local_address', 'ipmi_username',
+                             'ipmi_password']:
+            del info[optional_arg]
+            node = obj_utils.get_test_node(self.context, driver_info=info)
+            ipmi._parse_driver_info(node)
+            self.assertEqual(mock.call('dual_bridge'), mock_support.call_args)
+
+    @mock.patch.object(ipmi, '_is_option_supported')
+    def test__parse_driver_info_with_dual_bridging_not_supported(self,
+            mock_support, mock_sleep):
+        node = obj_utils.get_test_node(self.context, driver='fake_ipmitool',
+                                       driver_info=BRIDGE_INFO_DICT)
+        # if dual bridge is not supported then check if error is raised
+        mock_support.return_value = False
+        self.assertRaises(exception.InvalidParameterValue,
+                          ipmi._parse_driver_info, node)
+        mock_support.assert_called_once_with('dual_bridge')
+
+    @mock.patch.object(ipmi, '_is_option_supported')
+    def test__parse_driver_info_with_dual_bridging_missing_parameters(self,
+            mock_support, mock_sleep):
+        info = BRIDGE_INFO_DICT.copy()
+        mock_support.return_value = True
+        # make sure error is raised when dual bridging is selected and the
+        # required parameters for dual bridging are not provided
+        for param in ['ipmi_transit_channel', 'ipmi_target_address',
+                      'ipmi_transit_address', 'ipmi_target_channel']:
+            del info[param]
+            node = obj_utils.get_test_node(self.context, driver_info=info)
+            self.assertRaises(exception.MissingParameterValue,
+                              ipmi._parse_driver_info, node)
+            self.assertEqual(mock.call('dual_bridge'),
+                             mock_support.call_args)
+
+    @mock.patch.object(ipmi, '_is_option_supported')
+    def test__parse_driver_info_with_single_bridging_pass(self,
+            mock_support, mock_sleep):
+        _OPTIONS = ['address', 'username', 'password', 'uuid',
+                    'local_address', 'target_channel', 'target_address']
+
+        info = BRIDGE_INFO_DICT.copy()
+        info['ipmi_bridging'] = 'single'
+        node = obj_utils.get_test_node(self.context, driver='fake_ipmitool',
+                                       driver_info=info)
+
+        expected = [mock.call('single_bridge')]
+
+        # test single bridging and make sure we get back expected things
+        mock_support.return_value = True
+        ret = ipmi._parse_driver_info(node)
+        self.assertEqual(expected, mock_support.call_args_list)
+        for option in _OPTIONS:
+            self.assertIsNotNone(ret[option])
+        # test the default value for 'priv_level'
+        self.assertEqual('ADMINISTRATOR', ret['priv_level'])
+
+        # check if dual bridge params are set to None
+        self.assertIsNone(ret['transit_channel'])
+        self.assertIsNone(ret['transit_address'])
+
+        # ipmi_local_address / ipmi_username / ipmi_password are not mandatory
+        for optional_arg in ['ipmi_local_address', 'ipmi_username',
+                             'ipmi_password']:
+            del info[optional_arg]
+            node = obj_utils.get_test_node(self.context, driver_info=info)
+            ipmi._parse_driver_info(node)
+            self.assertEqual(mock.call('single_bridge'),
+                             mock_support.call_args)
+
+    @mock.patch.object(ipmi, '_is_option_supported')
+    def test__parse_driver_info_with_single_bridging_not_supported(self,
+            mock_support, mock_sleep):
+        info = BRIDGE_INFO_DICT.copy()
+        info['ipmi_bridging'] = 'single'
+        node = obj_utils.get_test_node(self.context, driver='fake_ipmitool',
+                                       driver_info=info)
+
+        # if single bridge is not supported then check if error is raised
+        mock_support.return_value = False
+        self.assertRaises(exception.InvalidParameterValue,
+                          ipmi._parse_driver_info, node)
+        mock_support.assert_called_once_with('single_bridge')
+
+    @mock.patch.object(ipmi, '_is_option_supported')
+    def test__parse_driver_info_with_single_bridging_missing_parameters(
+            self, mock_support, mock_sleep):
+        info = dict(BRIDGE_INFO_DICT)
+        info['ipmi_bridging'] = 'single'
+        mock_support.return_value = True
+        # make sure error is raised when single bridging is selected and the
+        # required parameters for single bridging are not provided
+        for param in ['ipmi_target_channel', 'ipmi_target_address']:
+            del info[param]
+            node = obj_utils.get_test_node(self.context, driver_info=info)
+            self.assertRaises(exception.MissingParameterValue,
+                              ipmi._parse_driver_info,
+                              node)
+            self.assertEqual(mock.call('single_bridge'),
+                             mock_support.call_args)
+
+    @mock.patch.object(ipmi, '_is_option_supported')
     @mock.patch.object(ipmi, '_make_password_file', autospec=True)
     @mock.patch.object(utils, 'execute', autospec=True)
     def test__exec_ipmitool_first_call_to_address(self, mock_exec, mock_pwf,
-            mock_timing_support, mock_sleep):
+            mock_support, mock_sleep):
         ipmi.LAST_CMD_TIME = {}
         pw_file_handle = tempfile.NamedTemporaryFile()
         pw_file = pw_file_handle.name
@@ -168,21 +449,22 @@ class IPMIToolPrivateMethodTestCase(base.TestCase):
             'A', 'B', 'C',
             ]
 
-        mock_timing_support.return_value = False
+        mock_support.return_value = False
         mock_pwf.return_value = file_handle
         mock_exec.return_value = (None, None)
 
         ipmi._exec_ipmitool(self.info, 'A B C')
 
+        mock_support.assert_called_once_with('timing')
         mock_pwf.assert_called_once_with(self.info['password'])
         mock_exec.assert_called_once_with(*args)
         self.assertFalse(mock_sleep.called)
 
-    @mock.patch.object(ipmi, '_is_timing_supported')
+    @mock.patch.object(ipmi, '_is_option_supported')
     @mock.patch.object(ipmi, '_make_password_file', autospec=True)
     @mock.patch.object(utils, 'execute', autospec=True)
     def test__exec_ipmitool_second_call_to_address_sleep(self, mock_exec,
-            mock_pwf, mock_timing_support, mock_sleep):
+            mock_pwf, mock_support, mock_sleep):
         ipmi.LAST_CMD_TIME = {}
         pw_file_handle1 = tempfile.NamedTemporaryFile()
         pw_file1 = pw_file_handle1.name
@@ -209,7 +491,9 @@ class IPMIToolPrivateMethodTestCase(base.TestCase):
             'D', 'E', 'F',
         ]]
 
-        mock_timing_support.return_value = False
+        expected = [mock.call('timing'),
+                    mock.call('timing')]
+        mock_support.return_value = False
         mock_pwf.side_effect = iter([file_handle1, file_handle2])
         mock_exec.side_effect = iter([(None, None), (None, None)])
 
@@ -218,13 +502,14 @@ class IPMIToolPrivateMethodTestCase(base.TestCase):
 
         ipmi._exec_ipmitool(self.info, 'D E F')
         self.assertTrue(mock_sleep.called)
+        self.assertEqual(expected, mock_support.call_args_list)
         mock_exec.assert_called_with(*args[1])
 
-    @mock.patch.object(ipmi, '_is_timing_supported')
+    @mock.patch.object(ipmi, '_is_option_supported')
     @mock.patch.object(ipmi, '_make_password_file', autospec=True)
     @mock.patch.object(utils, 'execute', autospec=True)
     def test__exec_ipmitool_second_call_to_address_no_sleep(self, mock_exec,
-            mock_pwf, mock_timing_support, mock_sleep):
+            mock_pwf, mock_support, mock_sleep):
         ipmi.LAST_CMD_TIME = {}
         pw_file_handle1 = tempfile.NamedTemporaryFile()
         pw_file1 = pw_file_handle1.name
@@ -251,7 +536,9 @@ class IPMIToolPrivateMethodTestCase(base.TestCase):
             'D', 'E', 'F',
         ]]
 
-        mock_timing_support.return_value = False
+        expected = [mock.call('timing'),
+                    mock.call('timing')]
+        mock_support.return_value = False
         mock_pwf.side_effect = iter([file_handle1, file_handle2])
         mock_exec.side_effect = iter([(None, None), (None, None)])
 
@@ -262,13 +549,14 @@ class IPMIToolPrivateMethodTestCase(base.TestCase):
                 CONF.ipmi.min_command_interval)
         ipmi._exec_ipmitool(self.info, 'D E F')
         self.assertFalse(mock_sleep.called)
+        self.assertEqual(expected, mock_support.call_args_list)
         mock_exec.assert_called_with(*args[1])
 
-    @mock.patch.object(ipmi, '_is_timing_supported')
+    @mock.patch.object(ipmi, '_is_option_supported')
     @mock.patch.object(ipmi, '_make_password_file', autospec=True)
     @mock.patch.object(utils, 'execute', autospec=True)
     def test__exec_ipmitool_two_calls_to_diff_address(self, mock_exec,
-            mock_pwf, mock_timing_support, mock_sleep):
+            mock_pwf, mock_support, mock_sleep):
         ipmi.LAST_CMD_TIME = {}
         pw_file_handle1 = tempfile.NamedTemporaryFile()
         pw_file1 = pw_file_handle1.name
@@ -295,7 +583,9 @@ class IPMIToolPrivateMethodTestCase(base.TestCase):
             'D', 'E', 'F',
         ]]
 
-        mock_timing_support.return_value = False
+        expected = [mock.call('timing'),
+                    mock.call('timing')]
+        mock_support.return_value = False
         mock_pwf.side_effect = iter([file_handle1, file_handle2])
         mock_exec.side_effect = iter([(None, None), (None, None)])
 
@@ -304,13 +594,14 @@ class IPMIToolPrivateMethodTestCase(base.TestCase):
         self.info['address'] = '127.127.127.127'
         ipmi._exec_ipmitool(self.info, 'D E F')
         self.assertFalse(mock_sleep.called)
+        self.assertEqual(expected, mock_support.call_args_list)
         mock_exec.assert_called_with(*args[1])
 
-    @mock.patch.object(ipmi, '_is_timing_supported')
+    @mock.patch.object(ipmi, '_is_option_supported')
     @mock.patch.object(ipmi, '_make_password_file', autospec=True)
     @mock.patch.object(utils, 'execute', autospec=True)
     def test__exec_ipmitool_without_timing(self, mock_exec, mock_pwf,
-            mock_timing_support, mock_sleep):
+            mock_support, mock_sleep):
         pw_file_handle = tempfile.NamedTemporaryFile()
         pw_file = pw_file_handle.name
         file_handle = open(pw_file, "w")
@@ -325,20 +616,21 @@ class IPMIToolPrivateMethodTestCase(base.TestCase):
             'A', 'B', 'C',
             ]
 
-        mock_timing_support.return_value = False
+        mock_support.return_value = False
         mock_pwf.return_value = file_handle
         mock_exec.return_value = (None, None)
 
         ipmi._exec_ipmitool(self.info, 'A B C')
 
+        mock_support.assert_called_once_with('timing')
         mock_pwf.assert_called_once_with(self.info['password'])
         mock_exec.assert_called_once_with(*args)
 
-    @mock.patch.object(ipmi, '_is_timing_supported')
+    @mock.patch.object(ipmi, '_is_option_supported')
     @mock.patch.object(ipmi, '_make_password_file', autospec=True)
     @mock.patch.object(utils, 'execute', autospec=True)
     def test__exec_ipmitool_with_timing(self, mock_exec, mock_pwf,
-            mock_timing_support, mock_sleep):
+            mock_support, mock_sleep):
         pw_file_handle = tempfile.NamedTemporaryFile()
         pw_file = pw_file_handle.name
         file_handle = open(pw_file, "w")
@@ -354,20 +646,21 @@ class IPMIToolPrivateMethodTestCase(base.TestCase):
             'A', 'B', 'C',
             ]
 
-        mock_timing_support.return_value = True
+        mock_support.return_value = True
         mock_pwf.return_value = file_handle
         mock_exec.return_value = (None, None)
 
         ipmi._exec_ipmitool(self.info, 'A B C')
 
+        mock_support.assert_called_once_with('timing')
         mock_pwf.assert_called_once_with(self.info['password'])
         mock_exec.assert_called_once_with(*args)
 
-    @mock.patch.object(ipmi, '_is_timing_supported')
+    @mock.patch.object(ipmi, '_is_option_supported')
     @mock.patch.object(ipmi, '_make_password_file', autospec=True)
     @mock.patch.object(utils, 'execute', autospec=True)
     def test__exec_ipmitool_without_username(self, mock_exec, mock_pwf,
-            mock_timing_support, mock_sleep):
+            mock_support, mock_sleep):
         self.info['username'] = None
         pw_file_handle = tempfile.NamedTemporaryFile()
         pw_file = pw_file_handle.name
@@ -381,18 +674,104 @@ class IPMIToolPrivateMethodTestCase(base.TestCase):
             'A', 'B', 'C',
             ]
 
-        mock_timing_support.return_value = False
+        mock_support.return_value = False
         mock_pwf.return_value = file_handle
         mock_exec.return_value = (None, None)
         ipmi._exec_ipmitool(self.info, 'A B C')
+        mock_support.assert_called_once_with('timing')
         self.assertTrue(mock_pwf.called)
         mock_exec.assert_called_once_with(*args)
 
-    @mock.patch.object(ipmi, '_is_timing_supported')
+    @mock.patch.object(ipmi, '_is_option_supported')
+    @mock.patch.object(ipmi, '_make_password_file', autospec=True)
+    @mock.patch.object(utils, 'execute', autospec=True)
+    def test__exec_ipmitool_with_dual_bridging(self,
+                                               mock_exec, mock_pwf,
+                                               mock_support,
+                                               mock_sleep):
+
+        node = obj_utils.get_test_node(self.context, driver='fake_ipmitool',
+                                       driver_info=BRIDGE_INFO_DICT)
+        # when support for dual bridge command is called returns True
+        mock_support.return_value = True
+        info = ipmi._parse_driver_info(node)
+        pw_file_handle = tempfile.NamedTemporaryFile()
+        pw_file = pw_file_handle.name
+        file_handle = open(pw_file, "w")
+        args = [
+            'ipmitool',
+            '-I', 'lanplus',
+            '-H', info['address'],
+            '-L', info['priv_level'],
+            '-U', info['username'],
+            '-m', info['local_address'],
+            '-B', info['transit_channel'],
+            '-T', info['transit_address'],
+            '-b', info['target_channel'],
+            '-t', info['target_address'],
+            '-f', file_handle,
+            'A', 'B', 'C',
+            ]
+
+        expected = [mock.call('dual_bridge'),
+                    mock.call('timing')]
+        # When support for timing command is called returns False
+        mock_support.return_value = False
+        mock_pwf.return_value = file_handle
+        mock_exec.return_value = (None, None)
+        ipmi._exec_ipmitool(info, 'A B C')
+        self.assertEqual(expected, mock_support.call_args_list)
+        self.assertTrue(mock_pwf.called)
+        mock_exec.assert_called_once_with(*args)
+
+    @mock.patch.object(ipmi, '_is_option_supported')
+    @mock.patch.object(ipmi, '_make_password_file', autospec=True)
+    @mock.patch.object(utils, 'execute', autospec=True)
+    def test__exec_ipmitool_with_single_bridging(self,
+                                                 mock_exec, mock_pwf,
+                                                 mock_support,
+                                                 mock_sleep):
+        single_bridge_info = dict(BRIDGE_INFO_DICT)
+        single_bridge_info['ipmi_bridging'] = 'single'
+        node = obj_utils.get_test_node(self.context, driver='fake_ipmitool',
+                                       driver_info=single_bridge_info)
+        # when support for single bridge command is called returns True
+        mock_support.return_value = True
+        info = ipmi._parse_driver_info(node)
+        info['transit_channel'] = info['transit_address'] = None
+
+        pw_file_handle = tempfile.NamedTemporaryFile()
+        pw_file = pw_file_handle.name
+        file_handle = open(pw_file, "w")
+        args = [
+            'ipmitool',
+            '-I', 'lanplus',
+            '-H', info['address'],
+            '-L', info['priv_level'],
+            '-U', info['username'],
+            '-m', info['local_address'],
+            '-b', info['target_channel'],
+            '-t', info['target_address'],
+            '-f', file_handle,
+            'A', 'B', 'C',
+            ]
+
+        expected = [mock.call('single_bridge'),
+                    mock.call('timing')]
+        # When support for timing command is called returns False
+        mock_support.return_value = False
+        mock_pwf.return_value = file_handle
+        mock_exec.return_value = (None, None)
+        ipmi._exec_ipmitool(info, 'A B C')
+        self.assertEqual(expected, mock_support.call_args_list)
+        self.assertTrue(mock_pwf.called)
+        mock_exec.assert_called_once_with(*args)
+
+    @mock.patch.object(ipmi, '_is_option_supported')
     @mock.patch.object(ipmi, '_make_password_file', autospec=True)
     @mock.patch.object(utils, 'execute', autospec=True)
     def test__exec_ipmitool_exception(self, mock_exec, mock_pwf,
-            mock_timing_support, mock_sleep):
+            mock_support, mock_sleep):
         pw_file_handle = tempfile.NamedTemporaryFile()
         pw_file = pw_file_handle.name
         file_handle = open(pw_file, "w")
@@ -406,12 +785,13 @@ class IPMIToolPrivateMethodTestCase(base.TestCase):
             'A', 'B', 'C',
             ]
 
-        mock_timing_support.return_value = False
+        mock_support.return_value = False
         mock_pwf.return_value = file_handle
         mock_exec.side_effect = processutils.ProcessExecutionError("x")
         self.assertRaises(processutils.ProcessExecutionError,
                           ipmi._exec_ipmitool,
                           self.info, 'A B C')
+        mock_support.assert_called_once_with('timing')
         mock_pwf.assert_called_once_with(self.info['password'])
         mock_exec.assert_called_once_with(*args)
 

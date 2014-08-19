@@ -21,7 +21,18 @@ def get_test_ipmi_info():
     return {
         "ipmi_address": "1.2.3.4",
         "ipmi_username": "admin",
-        "ipmi_password": "fake",
+        "ipmi_password": "fake"
+    }
+
+
+def get_test_ipmi_bridging_parameters():
+    return {
+        "ipmi_bridging": "dual",
+        "ipmi_local_address": "0x20",
+        "ipmi_transit_channel": "0",
+        "ipmi_transit_address": "0x82",
+        "ipmi_target_channel": "7",
+        "ipmi_target_address": "0x72"
     }
 
 

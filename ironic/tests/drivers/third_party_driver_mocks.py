@@ -55,6 +55,8 @@ if 'ironic.drivers.modules.seamicro' in sys.modules:
 # __init__. We bypass that check in order to run the unit tests, which do not
 # depend on 'ipmitool' being on the system.
 ipmitool.TIMING_SUPPORT = False
+ipmitool.DUAL_BRIDGE_SUPPORT = False
+ipmitool.SINGLE_BRIDGE_SUPPORT = False
 
 pyghmi = importutils.try_import("pyghmi")
 if not pyghmi:

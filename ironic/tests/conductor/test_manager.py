@@ -2109,7 +2109,11 @@ class ManagerTestProperties(tests_db_base.DbTestCase):
     def test_driver_properties_fake_ipmitool(self):
         expected = ['ipmi_address', 'ipmi_terminal_port',
                     'ipmi_password', 'ipmi_priv_level',
-                    'ipmi_username']
+                    'ipmi_username', 'ipmi_bridging',
+                    'ipmi_transit_channel', 'ipmi_transit_address',
+                    'ipmi_target_channel', 'ipmi_target_address',
+                    'ipmi_local_address'
+                    ]
         self._check_driver_properties("fake_ipmitool", expected)
 
     def test_driver_properties_fake_ipminative(self):
@@ -2134,9 +2138,12 @@ class ManagerTestProperties(tests_db_base.DbTestCase):
 
     def test_driver_properties_pxe_ipmitool(self):
         expected = ['ipmi_address', 'ipmi_terminal_port',
-                    'pxe_deploy_kernel', 'pxe_deploy_ramdisk',
                     'ipmi_password', 'ipmi_priv_level',
-                    'ipmi_username']
+                    'ipmi_username', 'ipmi_bridging', 'ipmi_transit_channel',
+                    'ipmi_transit_address', 'ipmi_target_channel',
+                    'ipmi_target_address', 'ipmi_local_address',
+                    'pxe_deploy_kernel', 'pxe_deploy_ramdisk'
+                    ]
         self._check_driver_properties("pxe_ipmitool", expected)
 
     def test_driver_properties_pxe_ipminative(self):

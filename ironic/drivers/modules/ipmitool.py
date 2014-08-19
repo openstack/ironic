@@ -73,7 +73,22 @@ OPTIONAL_PROPERTIES = {
     'ipmi_password': _("password. Optional."),
     'ipmi_priv_level': _("privilege level; default is ADMINISTRATOR. One of "
                          "%s. Optional.") % ', '.join(VALID_PRIV_LEVELS),
-    'ipmi_username': _("username; default is NULL user. Optional.")
+    'ipmi_username': _("username; default is NULL user. Optional."),
+    'ipmi_bridging': _("bridging_type; default is \"no\". One of \"single\", "
+                       "\"dual\", \"no\". Optional."),
+    'ipmi_transit_channel': _("transit channel for bridged request. Required "
+                              "only if ipmi_bridging is set to \"dual\"."),
+    'ipmi_transit_address': _("transit address for bridged request. Required "
+                              "only if ipmi_bridging is set to \"dual\"."),
+    'ipmi_target_channel': _("destination channel for bridged request. "
+                             "Required only if ipmi_bridging is set to "
+                             "\"single\" or \"dual\"."),
+    'ipmi_target_address': _("destination address for bridged request. "
+                             "Required only if ipmi_bridging is set "
+                             "to \"single\" or \"dual\"."),
+    'ipmi_local_address': _("local IPMB address for bridged requests. "
+                            "Used only if ipmi_bridging is set "
+                            "to \"single\" or \"dual\". Optional.")
 }
 COMMON_PROPERTIES = REQUIRED_PROPERTIES.copy()
 COMMON_PROPERTIES.update(OPTIONAL_PROPERTIES)
@@ -81,49 +96,76 @@ CONSOLE_PROPERTIES = {
     'ipmi_terminal_port': _("node's UDP port to connect to. Only required for "
                             "console access.")
 }
+BRIDGING_OPTIONS = [('local_address', '-m'),
+                    ('transit_channel', '-B'), ('transit_address', '-T'),
+                    ('target_channel', '-b'), ('target_address', '-t')]
 
 LAST_CMD_TIME = {}
 TIMING_SUPPORT = None
+SINGLE_BRIDGE_SUPPORT = None
+DUAL_BRIDGE_SUPPORT = None
 
 
-def _is_timing_supported(is_supported=None):
-    # shim to allow module variable to be mocked in unit tests
-    global TIMING_SUPPORT
-
-    if (TIMING_SUPPORT is None) and (is_supported is not None):
-        TIMING_SUPPORT = is_supported
-    return TIMING_SUPPORT
+ipmitool_command_options = {
+    'timing': ['ipmitool', '-N', '0', '-R', '0', '-h'],
+    'single_bridge': ['ipmitool', '-m', '0', '-b', '0', '-t', '0', '-h'],
+    'dual_bridge': ['ipmitool', '-m', '0', '-b', '0', '-t', '0',
+                    '-B', '0', '-T', '0', '-h']}
 
 
-def check_timing_support():
-    """Check the installed version of ipmitool for -N -R option support.
+def _check_option_support(options):
+    """Checks if the specific ipmitool options are supported on host.
 
-    Support was added in 1.8.12 for the -N -R options, which enable
-    more precise control over timing of ipmi packets. Prior to this,
-    the default behavior was to retry each command up to 18 times at
-    1 to 5 second intervals.
-    http://ipmitool.cvs.sourceforge.net/viewvc/ipmitool/ipmitool/ChangeLog?revision=1.37  # noqa
+    This method updates the module-level variables indicating whether
+    an option is supported so that it is accessible by any driver
+    interface class in this module. It is intended to be called from
+    the __init__ method of such classes only.
 
-    This method updates the module-level TIMING_SUPPORT variable so that
-    it is accessible by any driver interface class in this module. It is
-    intended to be called from the __init__ method of such classes only.
-
-    :returns: boolean indicating whether support for -N -R is present
+    :param options: list of ipmitool options to be checked
     :raises: OSError
     """
-    if _is_timing_supported() is None:
-        # Directly check ipmitool for support of -N and -R options. Because
-        # of the way ipmitool processes' command line options, if the local
-        # ipmitool does not support setting the timing options, the command
-        # below will fail.
-        try:
-            out, err = utils.execute(*['ipmitool', '-N', '0', '-R', '0', '-h'])
-        except processutils.ProcessExecutionError:
-            # the local ipmitool does not support the -N and -R options.
-            _is_timing_supported(False)
-        else:
-            # looks like ipmitool supports timing options.
-            _is_timing_supported(True)
+    for opt in options:
+        if _is_option_supported(opt) is None:
+            try:
+                cmd = ipmitool_command_options[opt]
+                out, err = utils.execute(*cmd)
+            except processutils.ProcessExecutionError:
+                # the local ipmitool does not support the command.
+                _is_option_supported(opt, False)
+            else:
+                # looks like ipmitool supports the command.
+                _is_option_supported(opt, True)
+
+
+def _is_option_supported(option, is_supported=None):
+    """Indicates whether the particular ipmitool option is supported.
+
+    :param option: specific ipmitool option
+    :param is_supported: Optional Boolean. when specified, this value
+                         is assigned to the module-level variable indicating
+                         whether the option is supported. Used only if a value
+                         is not already assigned.
+    :returns: True, indicates the option is supported
+    :returns: False, indicates the option is not supported
+    :returns: None, indicates that it is not aware whether the option
+              is supported
+    """
+    global SINGLE_BRIDGE_SUPPORT
+    global DUAL_BRIDGE_SUPPORT
+    global TIMING_SUPPORT
+
+    if option == 'single_bridge':
+        if (SINGLE_BRIDGE_SUPPORT is None) and (is_supported is not None):
+            SINGLE_BRIDGE_SUPPORT = is_supported
+        return SINGLE_BRIDGE_SUPPORT
+    elif option == 'dual_bridge':
+        if (DUAL_BRIDGE_SUPPORT is None) and (is_supported is not None):
+            DUAL_BRIDGE_SUPPORT = is_supported
+        return DUAL_BRIDGE_SUPPORT
+    elif option == 'timing':
+        if (TIMING_SUPPORT is None) and (is_supported is not None):
+            TIMING_SUPPORT = is_supported
+        return TIMING_SUPPORT
 
 
 def _console_pwfile_path(uuid):
@@ -164,6 +206,7 @@ def _parse_driver_info(node):
 
     """
     info = node.driver_info or {}
+    bridging_types = ['single', 'dual']
     missing_info = [key for key in REQUIRED_PROPERTIES if not info.get(key)]
     if missing_info:
         raise exception.MissingParameterValue(_(
@@ -176,6 +219,12 @@ def _parse_driver_info(node):
     password = info.get('ipmi_password')
     port = info.get('ipmi_terminal_port')
     priv_level = info.get('ipmi_priv_level', 'ADMINISTRATOR')
+    bridging_type = info.get('ipmi_bridging', 'no')
+    local_address = info.get('ipmi_local_address')
+    transit_channel = info.get('ipmi_transit_channel')
+    transit_address = info.get('ipmi_transit_address')
+    target_channel = info.get('ipmi_target_channel')
+    target_address = info.get('ipmi_target_address')
 
     if port:
         try:
@@ -183,6 +232,46 @@ def _parse_driver_info(node):
         except ValueError:
             raise exception.InvalidParameterValue(_(
                 "IPMI terminal port is not an integer."))
+
+    # check if ipmi_bridging has proper value
+    if bridging_type == 'no':
+        # if bridging is not selected, then set all bridging params to None
+        local_address = transit_channel = transit_address = \
+            target_channel = target_address = None
+    elif bridging_type in bridging_types:
+        # check if the particular bridging option is supported on host
+        if not _is_option_supported('%s_bridge' % bridging_type):
+            raise exception.InvalidParameterValue(_(
+                "Value for ipmi_bridging is provided as %s, but IPMI "
+                "bridging is not supported by the IPMI utility installed "
+                "on host. Ensure ipmitool version is > 1.8.11"
+            ) % bridging_type)
+
+        # ensure that all the required parameters are provided
+        params_undefined = [param for param, value in [
+            ("ipmi_target_channel", target_channel),
+            ('ipmi_target_address', target_address)] if value is None]
+        if bridging_type == 'dual':
+            params_undefined2 = [param for param, value in [
+                ("ipmi_transit_channel", transit_channel),
+                ('ipmi_transit_address', transit_address)
+            ] if value is None]
+            params_undefined.extend(params_undefined2)
+        else:
+            # if single bridging was selected, set dual bridge params to None
+            transit_channel = transit_address = None
+
+        # If the required parameters were not provided,
+        # raise an exception
+        if params_undefined:
+            raise exception.MissingParameterValue(_(
+                "%(param)s not provided") % {'param': params_undefined})
+    else:
+        raise exception.InvalidParameterValue(_(
+            "Invalid value for ipmi_bridging: %(bridging_type)s,"
+            " the valid value can be one of: %(bridging_types)s"
+        ) % {'bridging_type': bridging_type,
+             'bridging_types': bridging_types + ['no']})
 
     if priv_level not in VALID_PRIV_LEVELS:
         valid_priv_lvls = ', '.join(VALID_PRIV_LEVELS)
@@ -197,8 +286,13 @@ def _parse_driver_info(node):
             'password': password,
             'port': port,
             'uuid': node.uuid,
-            'priv_level': priv_level
-           }
+            'priv_level': priv_level,
+            'local_address': local_address,
+            'transit_channel': transit_channel,
+            'transit_address': transit_address,
+            'target_channel': target_channel,
+            'target_address': target_address
+            }
 
 
 def _exec_ipmitool(driver_info, command):
@@ -221,13 +315,17 @@ def _exec_ipmitool(driver_info, command):
             driver_info['address'],
             '-L', driver_info['priv_level']
             ]
-
     if driver_info['username']:
         args.append('-U')
         args.append(driver_info['username'])
 
+    for name, option in BRIDGING_OPTIONS:
+        if driver_info[name] is not None:
+            args.append(option)
+            args.append(driver_info[name])
+
     # specify retry timing more precisely, if supported
-    if _is_timing_supported():
+    if _is_option_supported('timing'):
         num_tries = max(
             (CONF.ipmi.retry_timeout // CONF.ipmi.min_command_interval), 1)
         args.append('-R')
@@ -453,12 +551,12 @@ class IPMIPower(base.PowerInterface):
 
     def __init__(self):
         try:
-            check_timing_support()
+            _check_option_support(['timing', 'single_bridge', 'dual_bridge'])
         except OSError:
             raise exception.DriverLoadError(
                     driver=self.__class__.__name__,
-                    reason="Unable to locate usable ipmitool command in "
-                           "the system path when checking ipmitool version")
+                    reason=_("Unable to locate usable ipmitool command in "
+                             "the system path when checking ipmitool version"))
 
     def get_properties(self):
         return COMMON_PROPERTIES
@@ -544,12 +642,12 @@ class IPMIManagement(base.ManagementInterface):
 
     def __init__(self):
         try:
-            check_timing_support()
+            _check_option_support(['timing', 'single_bridge', 'dual_bridge'])
         except OSError:
             raise exception.DriverLoadError(
                     driver=self.__class__.__name__,
-                    reason="Unable to locate usable ipmitool command in "
-                           "the system path when checking ipmitool version")
+                    reason=_("Unable to locate usable ipmitool command in "
+                             "the system path when checking ipmitool version"))
 
     def validate(self, task):
         """Check that 'driver_info' contains IPMI credentials.
@@ -685,6 +783,15 @@ class IPMIManagement(base.ManagementInterface):
 
 class VendorPassthru(base.VendorInterface):
 
+    def __init__(self):
+        try:
+            _check_option_support(['single_bridge', 'dual_bridge'])
+        except OSError:
+            raise exception.DriverLoadError(
+                driver=self.__class__.__name__,
+                reason=_("Unable to locate usable ipmitool command in "
+                         "the system path when checking ipmitool version"))
+
     @task_manager.require_exclusive_lock
     def _send_raw_bytes(self, task, raw_bytes):
         """Send raw bytes to the BMC. Bytes should be a string of bytes.
@@ -813,12 +920,12 @@ class IPMIShellinaboxConsole(base.ConsoleInterface):
 
     def __init__(self):
         try:
-            check_timing_support()
+            _check_option_support(['timing', 'single_bridge', 'dual_bridge'])
         except OSError:
             raise exception.DriverLoadError(
                     driver=self.__class__.__name__,
-                    reason="Unable to locate usable ipmitool command in "
-                           "the system path when checking ipmitool version")
+                    reason=_("Unable to locate usable ipmitool command in "
+                             "the system path when checking ipmitool version"))
 
     def get_properties(self):
         d = COMMON_PROPERTIES.copy()
@@ -862,6 +969,12 @@ class IPMIShellinaboxConsole(base.ConsoleInterface):
                       'address': driver_info['address'],
                       'user': driver_info['username'],
                       'pwfile': pw_file}
+
+        for name, option in BRIDGING_OPTIONS:
+            if driver_info[name] is not None:
+                ipmi_cmd = " ".join([ipmi_cmd,
+                                     option, driver_info[name]])
+
         if CONF.debug:
             ipmi_cmd += " -v"
         ipmi_cmd += " sol activate"
