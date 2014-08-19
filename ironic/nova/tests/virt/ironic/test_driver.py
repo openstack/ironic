@@ -402,7 +402,7 @@ class IronicDriverTestCase(test.NoDBTestCase):
         instance = fake_instance.fake_instance_obj(self.ctx,
                                                    node=node.uuid)
         result = self.driver.macs_for_instance(instance)
-        self.assertEqual([port.address], result)
+        self.assertEqual(set([port.address]), result)
         mock_node.list_ports.assert_called_once_with(node.uuid)
 
     @mock.patch.object(FAKE_CLIENT.node, 'get')
@@ -412,7 +412,7 @@ class IronicDriverTestCase(test.NoDBTestCase):
         instance = fake_instance.fake_instance_obj(
                                   self.ctx, node=uuidutils.generate_uuid())
         result = self.driver.macs_for_instance(instance)
-        self.assertEqual([], result)
+        self.assertEqual(None, result)
 
     @mock.patch.object(instance_obj.Instance, 'save')
     @mock.patch.object(loopingcall, 'FixedIntervalLoopingCall')

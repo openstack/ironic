@@ -487,16 +487,17 @@ class IronicDriver(virt_driver.ComputeDriver):
         associated with.
 
         :param instance: the instance object.
-        :returns: a list of MAC addresses.
-
+        :return: None, or a set of MAC ids (e.g. set(['12:34:56:78:90:ab'])).
+            None means 'no constraints', a set means 'these and only these
+            MAC addresses'.
         """
         icli = client_wrapper.IronicClientWrapper()
         try:
             node = icli.call("node.get", instance['node'])
         except ironic.exc.NotFound:
-            return []
+            return None
         ports = icli.call("node.list_ports", node.uuid)
-        return [p.address for p in ports]
+        return set([p.address for p in ports])
 
     def spawn(self, context, instance, image_meta, injected_files,
               admin_password, network_info=None, block_device_info=None):
