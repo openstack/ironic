@@ -729,6 +729,74 @@ class DoNodeDeployTearDownTestCase(_ServiceSetUpMixin,
             self.assertIsNone(node.reservation)
             mock_spawn.assert_called_once_with(mock.ANY, mock.ANY, mock.ANY)
 
+    @mock.patch('ironic.drivers.modules.fake.FakeDeploy.deploy')
+    def test_do_node_deploy_rebuild_active_state(self, mock_deploy):
+        self._start_service()
+        mock_deploy.return_value = states.DEPLOYING
+        node = obj_utils.create_test_node(self.context, driver='fake',
+                                          provision_state=states.ACTIVE)
+
+        self.service.do_node_deploy(self.context, node.uuid, rebuild=True)
+        self.service._worker_pool.waitall()
+        node.refresh()
+        self.assertEqual(states.DEPLOYING, node.provision_state)
+        self.assertEqual(states.DEPLOYDONE, node.target_provision_state)
+        # last_error should be None.
+        self.assertIsNone(node.last_error)
+        # Verify reservation has been cleared.
+        self.assertIsNone(node.reservation)
+        mock_deploy.assert_called_once()
+
+    @mock.patch('ironic.drivers.modules.fake.FakeDeploy.deploy')
+    def test_do_node_deploy_rebuild_deployfail_state(self, mock_deploy):
+        self._start_service()
+        mock_deploy.return_value = states.DEPLOYING
+        node = obj_utils.create_test_node(self.context, driver='fake',
+                                        provision_state=states.DEPLOYFAIL)
+
+        self.service.do_node_deploy(self.context, node.uuid, rebuild=True)
+        self.service._worker_pool.waitall()
+        node.refresh()
+        self.assertEqual(states.DEPLOYING, node.provision_state)
+        self.assertEqual(states.DEPLOYDONE, node.target_provision_state)
+        # last_error should be None.
+        self.assertIsNone(node.last_error)
+        # Verify reservation has been cleared.
+        self.assertIsNone(node.reservation)
+        mock_deploy.assert_called_once()
+
+    @mock.patch('ironic.drivers.modules.fake.FakeDeploy.deploy')
+    def test_do_node_deploy_rebuild_error_state(self, mock_deploy):
+        self._start_service()
+        mock_deploy.return_value = states.DEPLOYING
+        node = obj_utils.create_test_node(self.context, driver='fake',
+                                          provision_state=states.ERROR)
+
+        self.service.do_node_deploy(self.context, node.uuid, rebuild=True)
+        self.service._worker_pool.waitall()
+        node.refresh()
+        self.assertEqual(states.DEPLOYING, node.provision_state)
+        self.assertEqual(states.DEPLOYDONE, node.target_provision_state)
+        # last_error should be None.
+        self.assertIsNone(node.last_error)
+        # Verify reservation has been cleared.
+        self.assertIsNone(node.reservation)
+        mock_deploy.assert_called_once()
+
+    def test_do_node_deploy_rebuild_nostate_state(self):
+        # test node will not rebuild if state is NOSTATE
+        node = obj_utils.create_test_node(self.context, driver='fake',
+                                          provision_state=states.NOSTATE)
+        exc = self.assertRaises(messaging.rpc.ExpectedException,
+                                self.service.do_node_deploy,
+                                self.context, node['uuid'], rebuild=True)
+        # Compare true exception hidden by @messaging.expected_exceptions
+        self.assertEqual(exception.InstanceDeployFailure, exc.exc_info[0])
+        # Last_error should be None.
+        self.assertIsNone(node.last_error)
+        # Verify reservation has been cleared.
+        self.assertIsNone(node.reservation)
+
     def test_do_node_deploy_worker_pool_full(self):
         prv_state = states.NOSTATE
         tgt_prv_state = states.NOSTATE
