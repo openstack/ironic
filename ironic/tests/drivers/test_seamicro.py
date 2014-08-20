@@ -15,6 +15,7 @@
 import uuid
 
 import mock
+from seamicroclient import client as seamicro_client
 from seamicroclient import exceptions as seamicro_client_exception
 
 from ironic.common import boot_devices
@@ -152,6 +153,27 @@ class SeaMicroPrivateMethodsTestCase(base.TestCase):
 
         self.patcher = mock.patch('eventlet.greenthread.sleep')
         self.mock_sleep = self.patcher.start()
+
+    @mock.patch.object(seamicro_client, "Client")
+    def test__get_client(self, mock_client):
+        driver_info = seamicro._parse_driver_info(self.node)
+        args = {'username': driver_info['username'],
+                'password': driver_info['password'],
+                'auth_url': driver_info['api_endpoint']}
+        seamicro._get_client(**driver_info)
+        mock_client.assert_called_once_with(driver_info['api_version'], **args)
+
+    @mock.patch.object(seamicro_client, "Client")
+    def test__get_client_fail(self, mock_client):
+        driver_info = seamicro._parse_driver_info(self.node)
+        args = {'username': driver_info['username'],
+                'password': driver_info['password'],
+                'auth_url': driver_info['api_endpoint']}
+        mock_client.side_effect = seamicro_client_exception.UnsupportedVersion
+        self.assertRaises(exception.InvalidParameterValue,
+                          seamicro._get_client,
+                          **driver_info)
+        mock_client.assert_called_once_with(driver_info['api_version'], **args)
 
     @mock.patch.object(seamicro, "_get_server")
     def test__get_power_status_on(self, mock_get_server):

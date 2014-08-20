@@ -88,7 +88,11 @@ def _get_client(*args, **kwargs):
     cl_kwargs = {'username': kwargs['username'],
                  'password': kwargs['password'],
                  'auth_url': kwargs['api_endpoint']}
-    return seamicro_client.Client(kwargs['api_version'], **cl_kwargs)
+    try:
+        return seamicro_client.Client(kwargs['api_version'], **cl_kwargs)
+    except seamicro_client_exception.UnsupportedVersion as e:
+        raise exception.InvalidParameterValue(_(
+            "Invalid 'seamicro_api_version' parameter. Reason: %s.") % e)
 
 
 def _parse_driver_info(node):
@@ -140,6 +144,7 @@ def _get_power_status(node):
     """Get current power state of this node
 
     :param node: Ironic node one of :class:`ironic.db.models.Node`
+    :raises: InvalidParameterValue if a seamicro parameter is invalid.
     :raises: MissingParameterValue if required seamicro parameters are
         missing.
     :raises: ServiceUnavailable on an error from SeaMicro Client.
@@ -169,6 +174,7 @@ def _power_on(node, timeout=None):
 
     :param node: An Ironic node object.
     :param timeout: Time in seconds to wait till power on is complete.
+    :raises: InvalidParameterValue if a seamicro parameter is invalid.
     :raises: MissingParameterValue if required seamicro parameters are
         missing.
     :returns: Power state of the given node.
@@ -208,6 +214,7 @@ def _power_off(node, timeout=None):
 
     :param node: Ironic node one of :class:`ironic.db.models.Node`
     :param timeout: Time in seconds to wait till power off is compelete
+    :raises: InvalidParameterValue if a seamicro parameter is invalid.
     :raises: MissingParameterValue if required seamicro parameters are
         missing.
     :returns: Power state of the given node
@@ -246,6 +253,7 @@ def _reboot(node, timeout=None):
     """Reboot this node
     :param node: Ironic node one of :class:`ironic.db.models.Node`
     :param timeout: Time in seconds to wait till reboot is compelete
+    :raises: InvalidParameterValue if a seamicro parameter is invalid.
     :raises: MissingParameterValue if required seamicro parameters are
         missing.
     :returns: Power state of the given node
@@ -350,6 +358,7 @@ class Power(base.PowerInterface):
 
         :param task: a TaskManager instance containing the node to act on.
         :raises: ServiceUnavailable on an error from SeaMicro Client.
+        :raises: InvalidParameterValue if a seamicro parameter is invalid.
         :raises: MissingParameterValue when a required parameter is missing
         :returns: power state. One of :class:`ironic.common.states`.
 
@@ -365,7 +374,8 @@ class Power(base.PowerInterface):
         :param task: a TaskManager instance containing the node to act on.
         :param pstate: Either POWER_ON or POWER_OFF from :class:
             `ironic.common.states`.
-        :raises: InvalidParameterValue if an invalid power state was specified.
+        :raises: InvalidParameterValue if an invalid power state was specified
+            or a seamicro parameter is invalid.
         :raises: MissingParameterValue when a required parameter is missing
         :raises: PowerStateFailure if the desired power state couldn't be set.
         """
@@ -386,6 +396,7 @@ class Power(base.PowerInterface):
         """Cycles the power to the task's node.
 
         :param task: a TaskManager instance containing the node to act on.
+        :raises: InvalidParameterValue if a seamicro parameter is invalid.
         :raises: MissingParameterValue if required seamicro parameters are
             missing.
         :raises: PowerStateFailure if the final state of the node is not
@@ -521,7 +532,7 @@ class Management(base.ManagementInterface):
                            persist to all future boots, False if not.
                            Default: False. Ignored by this driver.
         :raises: InvalidParameterValue if an invalid boot device is
-                 specified or if required seamicro parameters are missing.
+                 specified or if a seamicro parameter is invalid.
         :raises: IronicException on an error from seamicro-client.
         :raises: MissingParameterValue when a required parameter is missing
 

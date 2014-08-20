@@ -42,6 +42,7 @@ if not seamicroclient:
     smc.client = mock.Mock()
     smc.exceptions = mock.Mock()
     smc.exceptions.ClientException = Exception
+    smc.exceptions.UnsupportedVersion = Exception
     sys.modules['seamicroclient'] = smc
     sys.modules['seamicroclient.client'] = smc.client
     sys.modules['seamicroclient.exceptions'] = smc.exceptions
