@@ -23,6 +23,7 @@ For use in dev and test environments.
 Currently supported environments are:
     Virtual Box (vbox)
     Virsh       (virsh)
+    Parallels   (parallels)
 """
 
 import os
@@ -60,7 +61,7 @@ REQUIRED_PROPERTIES = {
                      "Required."),
     'ssh_username': _("username to authenticate as. Required."),
     'ssh_virt_type': _("virtualization software to use; one of vbox, virsh, "
-                       "vmware. Required.")
+                       "vmware, parallels. Required.")
 }
 OTHER_PROPERTIES = {
     'ssh_key_contents': _("private key(s). One of this, ssh_key_filename, "
@@ -76,11 +77,30 @@ OTHER_PROPERTIES = {
 COMMON_PROPERTIES = REQUIRED_PROPERTIES.copy()
 COMMON_PROPERTIES.update(OTHER_PROPERTIES)
 
+# NOTE(dguerri) Generic boot device map. Virtualisation types that don't define
+# a more specific one, will use this.
+# This is left for compatibility with other modules and is still valid for
+# vbox, virsh and vmware.
 _BOOT_DEVICES_MAP = {
     boot_devices.DISK: 'hd',
     boot_devices.PXE: 'network',
     boot_devices.CDROM: 'cdrom',
 }
+
+
+def _get_boot_device_map(virt_type):
+    if virt_type in ('vbox', 'virsh', 'vmware'):
+        return _BOOT_DEVICES_MAP
+    elif virt_type == 'parallels':
+        return {
+            boot_devices.DISK: 'hdd0',
+            boot_devices.PXE: 'net0',
+            boot_devices.CDROM: 'cdrom0',
+        }
+    else:
+        raise exception.InvalidParameterValue(_(
+            "SSHPowerDriver '%(virt_type)s' is not a valid virt_type.") %
+            {'virt_type': virt_type})
 
 
 def _get_command_sets(virt_type):
@@ -153,6 +173,24 @@ def _get_command_sets(virt_type):
             virsh_cmds['base_cmd'] += ' --connect %s' % CONF.ssh.libvirt_uri
 
         return virsh_cmds
+    elif virt_type == 'parallels':
+        return {
+            'base_cmd': '/usr/bin/prlctl',
+            'start_cmd': 'start {_NodeName_}',
+            'stop_cmd': 'stop {_NodeName_} --kill',
+            'reboot_cmd': 'reset {_NodeName_}',
+            'list_all': "list -a -o name |tail -n +2",
+            'list_running': 'list -o name |tail -n +2',
+            'get_node_macs': ("list -j -i \"{_NodeName_}\" | "
+                "awk -F'\"' '/\"mac\":/ {print $4}' | "
+                "sed 's/\\(..\\)\\(..\\)\\(..\\)\\(..\\)\\(..\\)\\(..\\)/"
+                "\\1:\\2:\\3:\\4:\\5\\6/' | "
+                "tr '[:upper:]' '[:lower:]'"),
+            'set_boot_device': ("{_BaseCmd_} set {_NodeName_} "
+                "--device-bootorder \"{_BootDevice_}\""),
+            'get_boot_device': ("{_BaseCmd_} list -i {_NodeName_} | "
+                "awk '/^Boot order:/ {print $3}'"),
+        }
     else:
         raise exception.InvalidParameterValue(_(
             "SSHPowerDriver '%(virt_type)s' is not a valid virt_type, ") %
@@ -175,12 +213,13 @@ def _get_boot_device(ssh_obj, driver_info):
     """
     cmd_to_exec = driver_info['cmd_set'].get('get_boot_device')
     if cmd_to_exec:
+        boot_device_map = _get_boot_device_map(driver_info['virt_type'])
         node_name = _get_hosts_name_for_node(ssh_obj, driver_info)
         base_cmd = driver_info['cmd_set']['base_cmd']
         cmd_to_exec = cmd_to_exec.replace('{_NodeName_}', node_name)
         cmd_to_exec = cmd_to_exec.replace('{_BaseCmd_}', base_cmd)
         stdout, stderr = _ssh_execute(ssh_obj, cmd_to_exec)
-        return next((dev for dev, hdev in _BOOT_DEVICES_MAP.items()
+        return next((dev for dev, hdev in boot_device_map.items()
                      if hdev == stdout), None)
     else:
         raise NotImplementedError()
@@ -596,8 +635,10 @@ class SSHManagement(base.ManagementInterface):
                 "Invalid boot device %s specified.") % device)
         driver_info['macs'] = driver_utils.get_node_mac_addresses(task)
         ssh_obj = _get_connection(node)
+
+        boot_device_map = _get_boot_device_map(driver_info['virt_type'])
         try:
-            _set_boot_device(ssh_obj, driver_info, _BOOT_DEVICES_MAP[device])
+            _set_boot_device(ssh_obj, driver_info, boot_device_map[device])
         except NotImplementedError:
             LOG.error(_LE("Failed to set boot device for node %(node)s, "
                           "virt_type %(vtype)s does not support this "
