@@ -231,8 +231,8 @@ class IronicDriver(virt_driver.ComputeDriver):
         dic = {
             'node': str(node.uuid),
             'hypervisor_hostname': str(node.uuid),
-            'hypervisor_type': self.get_hypervisor_type(),
-            'hypervisor_version': self.get_hypervisor_version(),
+            'hypervisor_type': self._get_hypervisor_type(),
+            'hypervisor_version': self._get_hypervisor_version(),
             'cpu_info': 'baremetal cpu',
             'vcpus': vcpus,
             'vcpus_used': vcpus_used,
@@ -336,11 +336,11 @@ class IronicDriver(virt_driver.ComputeDriver):
         """
         return
 
-    def get_hypervisor_type(self):
+    def _get_hypervisor_type(self):
         """Get hypervisor type."""
         return 'ironic'
 
-    def get_hypervisor_version(self):
+    def _get_hypervisor_version(self):
         """Returns the version of the Ironic API service endpoint."""
         return CONF.ironic.api_version
 

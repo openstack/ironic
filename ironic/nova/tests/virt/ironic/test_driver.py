@@ -97,11 +97,11 @@ class IronicDriverTestCase(test.NoDBTestCase):
     def test_validate_driver_loading(self):
         self.assertIsInstance(self.driver, ironic_driver.IronicDriver)
 
-    def test_get_hypervisor_type(self):
-        self.assertEqual(self.driver.get_hypervisor_type(), 'ironic')
+    def test__get_hypervisor_type(self):
+        self.assertEqual(self.driver._get_hypervisor_type(), 'ironic')
 
-    def test_get_hypervisor_version(self):
-        self.assertEqual(self.driver.get_hypervisor_version(), 1)
+    def test__get_hypervisor_version(self):
+        self.assertEqual(self.driver._get_hypervisor_version(), 1)
 
     @mock.patch.object(FAKE_CLIENT.node, 'get_by_instance_uuid')
     def test__validate_instance_and_node(self, mock_gbiui):
