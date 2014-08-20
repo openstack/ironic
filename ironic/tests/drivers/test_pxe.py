@@ -260,8 +260,6 @@ class PXEPrivateMethodsTestCase(db_base.DbTestCase):
         self.config(pxe_append_params='test_param', group='pxe')
         # NOTE: right '/' should be removed from url string
         self.config(api_url='http://192.168.122.184:6385/', group='conductor')
-        pxe_template = 'pxe_config_template'
-        self.config(pxe_config_template=pxe_template, group='pxe')
 
         fake_key = '0123456789ABCDEFGHIJKLMNOPQRSTUV'
         random_alnum_mock.return_value = fake_key
