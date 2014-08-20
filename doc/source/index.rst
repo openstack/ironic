@@ -62,6 +62,7 @@ Overview
 
   deploy/user-guide
   deploy/install-guide
+  deploy/drivers
 
 Indices and tables
 ==================

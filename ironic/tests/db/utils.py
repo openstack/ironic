@@ -89,6 +89,17 @@ def get_test_ilo_info():
     }
 
 
+def get_test_drac_info():
+    return {
+        "drac_host": "1.2.3.4",
+        "drac_port": "443",
+        "drac_path": "/wsman",
+        "drac_protocol": "https",
+        "drac_username": "admin",
+        "drac_password": "fake",
+    }
+
+
 def get_test_agent_instance_info():
     return {
         'image_source': 'fake-image',
