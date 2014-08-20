@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Ironic\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2014-08-08 06:10+0000\n"
+"POT-Creation-Date: 2014-08-20 06:11+0000\n"
 "PO-Revision-Date: 2014-07-08 00:02+0000\n"
 "Last-Translator: openstackjenkins <jenkins@openstack.org>\n"
 "Language-Team: French (http://www.transifex.com/projects/p/ironic/language/"
@@ -19,7 +19,7 @@ msgstr ""
 "Generated-By: Babel 1.3\n"
 "Plural-Forms: nplurals=2; plural=(n > 1);\n"
 
-#: ironic/conductor/manager.py:397
+#: ironic/conductor/manager.py:403
 #, python-format
 msgid ""
 "No free conductor workers available to perform an action on node %(node)s, "
@@ -27,35 +27,35 @@ msgid ""
 "target_provision_state to %(tgt_prov_state)s."
 msgstr ""
 
-#: ironic/conductor/manager.py:1101
+#: ironic/conductor/manager.py:1128
 #, python-format
 msgid ""
 "get_sensors_data is not implemented for driver %(driver)s, node_uuid is "
 "%(node)s"
 msgstr ""
 
-#: ironic/conductor/manager.py:1105
+#: ironic/conductor/manager.py:1132
 #, python-format
 msgid ""
 "During get_sensors_data, could not parse sensor data for node %(node)s. "
 "Error: %(err)s."
 msgstr ""
 
-#: ironic/conductor/manager.py:1109
+#: ironic/conductor/manager.py:1136
 #, python-format
 msgid ""
 "During get_sensors_data, could not get sensor data for node %(node)s. Error: "
 "%(err)s."
 msgstr ""
 
-#: ironic/conductor/manager.py:1113
+#: ironic/conductor/manager.py:1140
 #, python-format
 msgid ""
 "During send_sensor_data, node %(node)s was not found and presumed deleted by "
 "another process."
 msgstr ""
 
-#: ironic/conductor/manager.py:1117
+#: ironic/conductor/manager.py:1144
 #, python-format
 msgid "Failed to get sensor data for node %(node)s. Error: %(error)s"
 msgstr ""
@@ -65,48 +65,66 @@ msgstr ""
 msgid "Task's on_error hook failed to call %(method)s on node %(node)s"
 msgstr ""
 
-#: ironic/drivers/modules/agent.py:567
+#: ironic/drivers/modules/agent.py:534
 #, python-format
 msgid "Malformed MAC: %s"
 msgstr ""
 
-#: ironic/drivers/modules/agent.py:606
+#: ironic/drivers/modules/agent.py:573
 #, python-format
 msgid "MAC address %s not found in database"
 msgstr ""
 
-#: ironic/drivers/modules/ipmitool.py:596
+#: ironic/drivers/modules/console_utils.py:179
+#, python-format
+msgid ""
+"Failed to kill the old console process before starting a new shellinabox "
+"console for node %(node)s. Reason: %(err)s"
+msgstr ""
+
+#: ironic/drivers/modules/ipmitool.py:704
 #, python-format
 msgid ""
 "IPMI set boot device failed for node %(node)s when executing \"ipmitool "
 "%(cmd)s\". Error: %(error)s"
 msgstr ""
 
-#: ironic/drivers/modules/ipmitool.py:626
+#: ironic/drivers/modules/ipmitool.py:735
 #, python-format
 msgid ""
 "IPMI get boot device failed for node %(node)s when executing \"ipmitool "
 "%(cmd)s\". Error: %(error)s"
 msgstr ""
 
-#: ironic/drivers/modules/ssh.py:631
+#: ironic/drivers/modules/ssh.py:636
 #, python-format
 msgid ""
 "Failed to get boot device for node %(node)s, virt_type %(vtype)s does not "
 "support this operation"
 msgstr ""
 
-#: ironic/nova/virt/ironic/driver.py:100
+#: ironic/nova/virt/ironic/driver.py:98
 #, python-format
 msgid "Power state %s not found."
 msgstr ""
 
-#: ironic/nova/virt/ironic/driver.py:211
+#: ironic/nova/virt/ironic/driver.py:212
 #, python-format
 msgid "Ignoring malformed capability '%s'. Format should be 'key:val'."
 msgstr ""
 
-#: ironic/nova/virt/ironic/driver.py:628
+#: ironic/nova/virt/ironic/driver.py:503
+#, python-format
+msgid "Warning, memory usage is 0 for %(instance)s on baremetal node %(node)s."
+msgstr ""
+
+#: ironic/nova/virt/ironic/driver.py:510
+#, python-format
+msgid ""
+"Warning, number of cpus is 0 for %(instance)s on baremetal node %(node)s."
+msgstr ""
+
+#: ironic/nova/virt/ironic/driver.py:695
 #, python-format
 msgid "Destroy called on non-existing instance %s."
 msgstr "Destruction appelée sur une instance inexistante %s."

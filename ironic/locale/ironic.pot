@@ -6,9 +6,9 @@
 #, fuzzy
 msgid ""
 msgstr ""
-"Project-Id-Version: ironic 2014.2.dev74.gdc8418d\n"
+"Project-Id-Version: ironic 2014.2.dev130.g65d53d3\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2014-08-12 06:10+0000\n"
+"POT-Creation-Date: 2014-08-20 06:11+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -36,7 +36,7 @@ msgstr ""
 msgid "Chassis id not specified."
 msgstr ""
 
-#: ironic/api/controllers/v1/node.py:774
+#: ironic/api/controllers/v1/node.py:773
 #, python-format
 msgid "Node %s can not be updated while a state transition is in progress."
 msgstr ""
@@ -227,253 +227,260 @@ msgstr ""
 msgid "Image %(image_id)s is unacceptable: %(reason)s"
 msgstr ""
 
-#: ironic/common/exception.py:181
+#: ironic/common/exception.py:181 ironic/common/exception.py:185
 #, python-format
 msgid "%(err)s"
 msgstr ""
 
-#: ironic/common/exception.py:185
+#: ironic/common/exception.py:189
 msgid "Resource could not be found."
-msgstr ""
-
-#: ironic/common/exception.py:190
-#, python-format
-msgid "Failed to load driver %(driver_name)s."
 msgstr ""
 
 #: ironic/common/exception.py:194
 #, python-format
-msgid "Image %(image_id)s could not be found."
+msgid "Failed to load driver %(driver_name)s."
 msgstr ""
 
 #: ironic/common/exception.py:198
 #, python-format
-msgid "No valid host was found. Reason: %(reason)s"
+msgid "Image %(image_id)s could not be found."
 msgstr ""
 
 #: ironic/common/exception.py:202
 #, python-format
-msgid "Instance %(instance)s could not be found."
+msgid "No valid host was found. Reason: %(reason)s"
 msgstr ""
 
 #: ironic/common/exception.py:206
 #, python-format
-msgid "Node %(node)s could not be found."
+msgid "Instance %(instance)s could not be found."
 msgstr ""
 
 #: ironic/common/exception.py:210
 #, python-format
-msgid "Node %(node)s is associated with instance %(instance)s."
+msgid "Node %(node)s could not be found."
 msgstr ""
 
 #: ironic/common/exception.py:214
 #, python-format
-msgid "Port %(port)s could not be found."
+msgid "Node %(node)s is associated with instance %(instance)s."
 msgstr ""
 
 #: ironic/common/exception.py:218
 #, python-format
-msgid "Update DHCP options on port: %(port_id)s failed."
+msgid "Port %(port)s could not be found."
 msgstr ""
 
 #: ironic/common/exception.py:222
 #, python-format
-msgid "Update MAC address on port: %(port_id)s failed."
+msgid "Update DHCP options on port: %(port_id)s failed."
 msgstr ""
 
 #: ironic/common/exception.py:226
 #, python-format
-msgid "Chassis %(chassis)s could not be found."
+msgid "Update MAC address on port: %(port_id)s failed."
 msgstr ""
 
 #: ironic/common/exception.py:230
 #, python-format
-msgid "Conductor %(conductor)s could not be found."
+msgid "Chassis %(chassis)s could not be found."
 msgstr ""
 
 #: ironic/common/exception.py:234
 #, python-format
-msgid "Conductor %(conductor)s already registered."
+msgid "Conductor %(conductor)s could not be found."
 msgstr ""
 
 #: ironic/common/exception.py:238
 #, python-format
-msgid "Failed to set node power state to %(pstate)s."
+msgid "Conductor %(conductor)s already registered."
 msgstr ""
 
 #: ironic/common/exception.py:242
+#, python-format
+msgid "Failed to set node power state to %(pstate)s."
+msgstr ""
+
+#: ironic/common/exception.py:246
 msgid "An exclusive lock is required, but the current context has a shared lock."
 msgstr ""
 
-#: ironic/common/exception.py:247
+#: ironic/common/exception.py:251
 #, python-format
 msgid "Failed to toggle maintenance-mode flag for node %(node)s: %(reason)s"
 msgstr ""
 
-#: ironic/common/exception.py:252
+#: ironic/common/exception.py:256
 #, python-format
 msgid "Console access is not enabled on node %(node)s"
 msgstr ""
 
-#: ironic/common/exception.py:256
+#: ironic/common/exception.py:260
 #, python-format
 msgid ""
 "The %(op)s operation can't be performed on node %(node)s because it's in "
 "maintenance mode."
 msgstr ""
 
-#: ironic/common/exception.py:261
+#: ironic/common/exception.py:265
 #, python-format
 msgid ""
 "Can not change instance association while node %(node)s is in power state"
 " %(pstate)s."
 msgstr ""
 
-#: ironic/common/exception.py:266
+#: ironic/common/exception.py:270
 #, python-format
 msgid ""
 "Cannot complete the requested action because chassis %(chassis)s contains"
 " nodes."
 msgstr ""
 
-#: ironic/common/exception.py:271
+#: ironic/common/exception.py:275
 #, python-format
 msgid "IPMI call failed: %(cmd)s."
 msgstr ""
 
-#: ironic/common/exception.py:275
+#: ironic/common/exception.py:279
 #, python-format
 msgid "Failed to establish SSH connection to host %(host)s."
 msgstr ""
 
-#: ironic/common/exception.py:279
+#: ironic/common/exception.py:283
 #, python-format
 msgid "Failed to execute command via SSH: %(cmd)s."
 msgstr ""
 
-#: ironic/common/exception.py:283
+#: ironic/common/exception.py:287
 #, python-format
 msgid "Unsupported object type %(objtype)s"
 msgstr ""
 
-#: ironic/common/exception.py:287
+#: ironic/common/exception.py:291
 #, python-format
 msgid "Cannot call %(method)s on orphaned %(objtype)s object"
 msgstr ""
 
-#: ironic/common/exception.py:291
+#: ironic/common/exception.py:295
 #, python-format
 msgid "Driver %(driver)s does not support %(extension)s."
 msgstr ""
 
-#: ironic/common/exception.py:295
+#: ironic/common/exception.py:299
 #, python-format
 msgid "Version %(objver)s of %(objname)s is not supported"
 msgstr ""
 
-#: ironic/common/exception.py:299
+#: ironic/common/exception.py:303
 #, python-format
 msgid "Connection to glance host %(host)s:%(port)s failed: %(reason)s"
 msgstr ""
 
-#: ironic/common/exception.py:304
+#: ironic/common/exception.py:308
 #, python-format
 msgid "Not authorized for image %(image_id)s."
 msgstr ""
 
-#: ironic/common/exception.py:308
+#: ironic/common/exception.py:312
 #, python-format
 msgid "Invalid image href %(image_href)s."
 msgstr ""
 
-#: ironic/common/exception.py:312
+#: ironic/common/exception.py:316
 msgid "Unauthorised for keystone service catalog."
 msgstr ""
 
-#: ironic/common/exception.py:320
+#: ironic/common/exception.py:324
 #, python-format
 msgid ""
 "Service type %(service_type)s with endpoint type %(endpoint_type)s not "
 "found in keystone service catalog."
 msgstr ""
 
-#: ironic/common/exception.py:325
+#: ironic/common/exception.py:329
 msgid "Connection failed"
 msgstr ""
 
-#: ironic/common/exception.py:329
+#: ironic/common/exception.py:333
 msgid "Requested OpenStack Images API is forbidden"
 msgstr ""
 
-#: ironic/common/exception.py:337
+#: ironic/common/exception.py:341
 msgid "The provided endpoint is invalid"
 msgstr ""
 
-#: ironic/common/exception.py:341
+#: ironic/common/exception.py:345
 msgid "Unable to communicate with the server."
 msgstr ""
 
-#: ironic/common/exception.py:357
+#: ironic/common/exception.py:361
 #, python-format
 msgid "Could not find config at %(path)s"
 msgstr ""
 
-#: ironic/common/exception.py:361
+#: ironic/common/exception.py:365
 #, python-format
 msgid ""
 "Node %(node)s is locked by host %(host)s, please retry after the current "
 "operation is completed."
 msgstr ""
 
-#: ironic/common/exception.py:366
+#: ironic/common/exception.py:370
 #, python-format
 msgid "Node %(node)s found not to be locked on release"
 msgstr ""
 
-#: ironic/common/exception.py:370
+#: ironic/common/exception.py:374
 msgid ""
 "Requested action cannot be performed due to lack of free conductor "
 "workers."
 msgstr ""
 
-#: ironic/common/exception.py:380
+#: ironic/common/exception.py:384
 #, python-format
 msgid "Invalid configuration file. %(error_msg)s"
 msgstr ""
 
-#: ironic/common/exception.py:384
+#: ironic/common/exception.py:388
 #, python-format
 msgid "Driver %(driver)s could not be loaded. Reason: %(reason)s."
 msgstr ""
 
-#: ironic/common/exception.py:388
+#: ironic/common/exception.py:396
 #, python-format
 msgid "Could not find pid in pid file %(pid_path)s"
 msgstr ""
 
-#: ironic/common/exception.py:392
+#: ironic/common/exception.py:400
 #, python-format
 msgid "Console subprocess failed to start. %(error)s"
 msgstr ""
 
-#: ironic/common/exception.py:396
+#: ironic/common/exception.py:404
 #, python-format
 msgid "Failed to create the password file. %(error)s"
 msgstr ""
 
-#: ironic/common/exception.py:400
+#: ironic/common/exception.py:408
 #, python-format
 msgid "%(operation)s failed, error: %(error)s"
 msgstr ""
 
-#: ironic/common/exception.py:404
+#: ironic/common/exception.py:412
 #, python-format
 msgid "Failed to get sensor data for node %(node)s. Error: %(error)s"
 msgstr ""
 
-#: ironic/common/exception.py:409
+#: ironic/common/exception.py:417
 #, python-format
 msgid "Failed to parse sensor data for node %(node)s. Error: %(error)s"
+msgstr ""
+
+#: ironic/common/exception.py:422
+#, python-format
+msgid ""
+"Disk volume where '%(path)s' is located doesn't have enough disk space. "
+"Required %(required)d MiB, only %(actual)d MiB available space present."
 msgstr ""
 
 #: ironic/common/hash_ring.py:67
@@ -516,40 +523,40 @@ msgstr ""
 msgid "No keystone service catalog loaded"
 msgstr ""
 
-#: ironic/common/neutron.py:66
+#: ironic/common/neutron.py:64
 msgid "Neutron auth_strategy should be either \"noauth\" or \"keystone\"."
 msgstr ""
 
-#: ironic/common/neutron.py:110
+#: ironic/common/neutron.py:108
 #, python-format
 msgid "Failed to update Neutron port %s."
 msgstr ""
 
-#: ironic/common/neutron.py:124
+#: ironic/common/neutron.py:122
 #, python-format
 msgid "Failed to update MAC address on Neutron port %s."
 msgstr ""
 
-#: ironic/common/neutron.py:150
+#: ironic/common/neutron.py:148
 #, python-format
 msgid ""
 "No VIFs found for node %(node)s when attempting to update Neutron DHCP "
 "BOOT options."
 msgstr ""
 
-#: ironic/common/neutron.py:169
+#: ironic/common/neutron.py:167
 #, python-format
 msgid "Failed to set DHCP BOOT options for any port on node %s."
 msgstr ""
 
-#: ironic/common/neutron.py:173
+#: ironic/common/neutron.py:171
 #, python-format
 msgid ""
 "Some errors were encountered when updating the DHCP BOOT options for node"
 " %(node)s on the following ports: %(ports)s."
 msgstr ""
 
-#: ironic/common/neutron.py:188
+#: ironic/common/neutron.py:186
 msgid "Waiting 15 seconds for Neutron."
 msgstr ""
 
@@ -614,30 +621,30 @@ msgid ""
 "%(extra)s."
 msgstr ""
 
-#: ironic/common/glance_service/v2/image_service.py:127
+#: ironic/common/glance_service/v2/image_service.py:128
 #, python-format
 msgid "The given image info does not have a valid image id: %s"
 msgstr ""
 
-#: ironic/common/glance_service/v2/image_service.py:153
+#: ironic/common/glance_service/v2/image_service.py:154
 msgid ""
 "Swift temporary URLs require a shared secret to be created. You must "
 "provide \"swift_temp_url_key\" as a config option."
 msgstr ""
 
-#: ironic/common/glance_service/v2/image_service.py:157
+#: ironic/common/glance_service/v2/image_service.py:158
 msgid ""
 "Swift temporary URLs require a Swift endpoint URL. You must provide "
 "\"swift_endpoint_url\" as a config option."
 msgstr ""
 
-#: ironic/common/glance_service/v2/image_service.py:161
+#: ironic/common/glance_service/v2/image_service.py:162
 msgid ""
 "Swift temporary URLs require a Swift account string. You must provide "
 "\"swift_account\" as a config option."
 msgstr ""
 
-#: ironic/common/glance_service/v2/image_service.py:165
+#: ironic/common/glance_service/v2/image_service.py:166
 msgid "\"swift_temp_url_duration\" must be a positive integer."
 msgstr ""
 
@@ -652,68 +659,68 @@ msgstr ""
 msgid "Failed to start keepalive"
 msgstr ""
 
-#: ironic/conductor/manager.py:251
+#: ironic/conductor/manager.py:252
 msgid "Invalid method call: update_node can not change node state."
 msgstr ""
 
-#: ironic/conductor/manager.py:395
+#: ironic/conductor/manager.py:401
 msgid "No free conductor workers available"
 msgstr ""
 
-#: ironic/conductor/manager.py:437
+#: ironic/conductor/manager.py:449
 #, python-format
 msgid ""
 "RPC do_node_deploy called to rebuild %(node)s, but provision state is "
-"%(curstate)s. Must be %(state)s."
+"%(curstate)s. State must be one of : %(states)s."
 msgstr ""
 
-#: ironic/conductor/manager.py:443
+#: ironic/conductor/manager.py:456
 #, python-format
 msgid ""
 "RPC do_node_deploy called for %(node)s, but provision state is already "
 "%(state)s."
 msgstr ""
 
-#: ironic/conductor/manager.py:449
+#: ironic/conductor/manager.py:462
 msgid "provisioning"
 msgstr ""
 
-#: ironic/conductor/manager.py:455
+#: ironic/conductor/manager.py:469
 #, python-format
 msgid "RPC do_node_deploy failed to validate deploy info. Error: %(msg)s"
 msgstr ""
 
-#: ironic/conductor/manager.py:485
+#: ironic/conductor/manager.py:499
 #, python-format
 msgid "Error in deploy of node %(node)s: %(err)s"
 msgstr ""
 
-#: ironic/conductor/manager.py:487
+#: ironic/conductor/manager.py:501
 #, python-format
 msgid "Failed to deploy. Error: %s"
 msgstr ""
 
-#: ironic/conductor/manager.py:528
+#: ironic/conductor/manager.py:544
 #, python-format
 msgid "RPC do_node_tear_down not allowed for node %(node)s in state %(state)s"
 msgstr ""
 
-#: ironic/conductor/manager.py:536
+#: ironic/conductor/manager.py:557
 #, python-format
-msgid "RPC do_node_tear_down failed to validate deploy info. Error: %(msg)s"
+msgid "RPC do_node_tear_down failed to validate power info. Error: %(msg)s"
 msgstr ""
 
-#: ironic/conductor/manager.py:566
+#: ironic/conductor/manager.py:587
 #, python-format
 msgid "Error in tear_down of node %(node)s: %(err)s"
 msgstr ""
 
-#: ironic/conductor/manager.py:568
+#: ironic/conductor/manager.py:589
 #, python-format
 msgid "Failed to tear down. Error: %s"
 msgstr ""
 
-#: ironic/conductor/manager.py:595
+#: ironic/conductor/manager.py:616
 #, python-format
 msgid ""
 "During sync_power_state, max retries exceeded for node %(node)s, node "
@@ -721,102 +728,102 @@ msgid ""
 "state to '%(actual)s' Switching node to maintenance mode."
 msgstr ""
 
-#: ironic/conductor/manager.py:625
+#: ironic/conductor/manager.py:647
 #, python-format
 msgid ""
 "During sync_power_state, could not get power state for node %(node)s. "
 "Error: %(err)s."
 msgstr ""
 
-#: ironic/conductor/manager.py:637
+#: ironic/conductor/manager.py:659
 #, python-format
 msgid ""
 "During sync_power_state, node %(node)s has no previous known state. "
 "Recording current state '%(state)s'."
 msgstr ""
 
-#: ironic/conductor/manager.py:650
+#: ironic/conductor/manager.py:672
 #, python-format
 msgid ""
 "During sync_power_state, node %(node)s state does not match expected "
 "state '%(state)s'. Updating recorded state to '%(actual)s'."
 msgstr ""
 
-#: ironic/conductor/manager.py:666
+#: ironic/conductor/manager.py:688
 #, python-format
 msgid ""
 "During sync_power_state, node %(node)s state '%(actual)s' does not match "
 "expected state. Changing hardware state to '%(state)s'."
 msgstr ""
 
-#: ironic/conductor/manager.py:678
+#: ironic/conductor/manager.py:700
 #, python-format
 msgid "Failed to change power state of node %(node)s to '%(state)s'."
 msgstr ""
 
-#: ironic/conductor/manager.py:683
+#: ironic/conductor/manager.py:705
 #, python-format
 msgid "%(left)s attempts remaining to sync_power_state for node %(node)s"
 msgstr ""
 
-#: ironic/conductor/manager.py:740
+#: ironic/conductor/manager.py:762
 #, python-format
 msgid ""
 "During sync_power_state, node %(node)s was not found and presumed deleted"
 " by another process."
 msgstr ""
 
-#: ironic/conductor/manager.py:744
+#: ironic/conductor/manager.py:766
 #, python-format
 msgid ""
 "During sync_power_state, node %(node)s was already locked by another "
 "process. Skip."
 msgstr ""
 
-#: ironic/conductor/manager.py:845
+#: ironic/conductor/manager.py:868
 msgid "not supported"
 msgstr ""
 
-#: ironic/conductor/manager.py:874
+#: ironic/conductor/manager.py:897
 msgid "The node is already in maintenance mode"
 msgstr ""
 
-#: ironic/conductor/manager.py:875
+#: ironic/conductor/manager.py:898
 msgid "The node is not in maintenance mode"
 msgstr ""
 
-#: ironic/conductor/manager.py:918
+#: ironic/conductor/manager.py:941
 #, python-format
 msgid "Node %s can't be deleted because it's not powered off"
 msgstr ""
 
-#: ironic/conductor/manager.py:988
+#: ironic/conductor/manager.py:1015
 msgid "enabled"
 msgstr ""
 
-#: ironic/conductor/manager.py:988
+#: ironic/conductor/manager.py:1015
 msgid "disabled"
 msgstr ""
 
-#: ironic/conductor/manager.py:989
+#: ironic/conductor/manager.py:1016
 #, python-format
 msgid "No console action was triggered because the console is already %s"
 msgstr ""
 
-#: ironic/conductor/manager.py:1008
+#: ironic/conductor/manager.py:1035
 msgid "enabling"
 msgstr ""
 
-#: ironic/conductor/manager.py:1008
+#: ironic/conductor/manager.py:1035
 msgid "disabling"
 msgstr ""
 
-#: ironic/conductor/manager.py:1009
+#: ironic/conductor/manager.py:1036
 #, python-format
 msgid "Error %(op)s the console on node %(node)s. Reason: %(error)s"
 msgstr ""
 
-#: ironic/conductor/manager.py:1046
+#: ironic/conductor/manager.py:1073
 #, python-format
 msgid ""
 "No VIF found for instance %(instance)s port %(port)s when attempting to "
@@ -856,28 +863,28 @@ msgid ""
 "aborting. More info may be found in the log file."
 msgstr ""
 
-#: ironic/db/sqlalchemy/api.py:330
+#: ironic/db/sqlalchemy/api.py:328
 msgid "Cannot overwrite UUID for an existing Node."
 msgstr ""
 
-#: ironic/db/sqlalchemy/api.py:417
+#: ironic/db/sqlalchemy/api.py:409
 msgid "Cannot overwrite UUID for an existing Port."
 msgstr ""
 
-#: ironic/db/sqlalchemy/api.py:482
+#: ironic/db/sqlalchemy/api.py:472
 msgid "Cannot overwrite UUID for an existing Chassis."
 msgstr ""
 
-#: ironic/drivers/base.py:402
+#: ironic/drivers/base.py:411
 #, python-format
 msgid "Vendor interface does not support driver vendor_passthru method: %s"
 msgstr ""
 
-#: ironic/drivers/ilo.py:37
+#: ironic/drivers/fake.py:128 ironic/drivers/pxe.py:152
 msgid "Unable to import proliantutils library"
 msgstr ""
 
-#: ironic/drivers/pxe.py:84
+#: ironic/drivers/pxe.py:85
 msgid "Unable to import pyghmi library"
 msgstr ""
 
@@ -890,7 +897,7 @@ msgstr ""
 msgid "Method not specified when calling vendor extension."
 msgstr ""
 
-#: ironic/drivers/modules/agent.py:108 ironic/drivers/modules/pxe.py:693
+#: ironic/drivers/modules/agent.py:107 ironic/drivers/modules/pxe.py:666
 #, python-format
 msgid ""
 "Node %s failed to power off while handling deploy failure. This may be a "
@@ -898,62 +905,55 @@ msgid ""
 "maintenance mode until the problem is resolved."
 msgstr ""
 
-#: ironic/drivers/modules/agent.py:159 ironic/drivers/modules/pxe.py:331
-#, python-format
-msgid ""
-"Disk volume where '%(path)s' is located doesn't have enough disk space. "
-"Required %(required)d MiB, only %(actual)d MiB available space present."
-msgstr ""
-
-#: ironic/drivers/modules/agent.py:236
+#: ironic/drivers/modules/agent.py:203
 #, python-format
 msgid "Node %s failed to validate deploy image info"
 msgstr ""
 
-#: ironic/drivers/modules/agent.py:363 ironic/drivers/modules/agent.py:376
+#: ironic/drivers/modules/agent.py:330 ironic/drivers/modules/agent.py:343
 #, python-format
 msgid "No handler for method %s"
 msgstr ""
 
-#: ironic/drivers/modules/agent.py:384
+#: ironic/drivers/modules/agent.py:351
 #, python-format
 msgid "vendor_passthru failed with method %s"
 msgstr ""
 
-#: ironic/drivers/modules/agent.py:414
+#: ironic/drivers/modules/agent.py:381
 msgid "Node failed to get image for deploy."
 msgstr ""
 
-#: ironic/drivers/modules/agent.py:418
+#: ironic/drivers/modules/agent.py:385
 msgid "Node failed to move to active state."
 msgstr ""
 
-#: ironic/drivers/modules/agent.py:464
+#: ironic/drivers/modules/agent.py:431
 #, python-format
 msgid "node %(node)s command status errored: %(error)s"
 msgstr ""
 
-#: ironic/drivers/modules/agent.py:520
+#: ironic/drivers/modules/agent.py:487
 #, python-format
 msgid "Unknown lookup payloadversion: %s"
 msgstr ""
 
-#: ironic/drivers/modules/agent.py:552
+#: ironic/drivers/modules/agent.py:519
 #, python-format
 msgid "Malformed network interfaces lookup: %s"
 msgstr ""
 
-#: ironic/drivers/modules/agent.py:580
+#: ironic/drivers/modules/agent.py:547
 #, python-format
 msgid "No ports matching the given MAC addresses %sexist in the database."
 msgstr ""
 
-#: ironic/drivers/modules/agent.py:588
+#: ironic/drivers/modules/agent.py:555
 #, python-format
 msgid "Could not find matching node for the provided MACs %s."
 msgstr ""
 
-#: ironic/drivers/modules/agent.py:624
+#: ironic/drivers/modules/agent.py:591
 #, python-format
 msgid ""
 "Ports matching mac addresses match multiple nodes. MACs: %(macs)s. Port "
@@ -964,21 +964,21 @@ msgstr ""
 msgid "Agent driver requires agent_url in driver_info"
 msgstr ""
 
-#: ironic/drivers/modules/console_utils.py:135
+#: ironic/drivers/modules/console_utils.py:89
 #, python-format
 msgid ""
-"Failed to kill the old console process %(pid)s before starting a new "
-"shellinabox console for node %(node)s."
+"Cannot create directory '%(path)s' for console PID file. Reason: "
+"%(reason)s."
 msgstr ""
 
-#: ironic/drivers/modules/console_utils.py:163
+#: ironic/drivers/modules/console_utils.py:210
 #, python-format
 msgid ""
 "%(exec_error)s\n"
 "Command: %(command)s"
 msgstr ""
 
-#: ironic/drivers/modules/console_utils.py:180
+#: ironic/drivers/modules/console_utils.py:227
 #, python-format
 msgid ""
 "Command: %(command)s.\n"
@@ -987,14 +987,19 @@ msgid ""
 "Stderr: %(stderr)r"
 msgstr ""
 
-#: ironic/drivers/modules/console_utils.py:191
+#: ironic/drivers/modules/console_utils.py:238
 #, python-format
 msgid "Timeout while waiting for console subprocess to start for node %s."
 msgstr ""
 
-#: ironic/drivers/modules/console_utils.py:211
+#: ironic/drivers/modules/console_utils.py:262
 #, python-format
 msgid "No console pid found for node %s while trying to stop shellinabox console."
+msgstr ""
+
+#: ironic/drivers/modules/console_utils.py:266
+#, python-format
+msgid "Could not stop the console for node '%(node)s'. Reason: %(err)s."
 msgstr ""
 
 #: ironic/drivers/modules/deploy_utils.py:233
@@ -1063,7 +1068,7 @@ msgstr ""
 msgid "StdErr: %r"
 msgstr ""
 
-#: ironic/drivers/modules/fake.py:56 ironic/drivers/modules/ipminative.py:270
+#: ironic/drivers/modules/fake.py:56 ironic/drivers/modules/ipminative.py:272
 #, python-format
 msgid "set_power_state called with an invalid power state: %s."
 msgstr ""
@@ -1076,9 +1081,9 @@ msgstr ""
 msgid "Parameter 'bar' not passed to method 'second_method'."
 msgstr ""
 
-#: ironic/drivers/modules/fake.py:180 ironic/drivers/modules/ipminative.py:335
-#: ironic/drivers/modules/ipmitool.py:587
-#: ironic/drivers/modules/seamicro.py:529 ironic/drivers/modules/ssh.py:591
+#: ironic/drivers/modules/fake.py:180 ironic/drivers/modules/ipminative.py:338
+#: ironic/drivers/modules/ipmitool.py:694
+#: ironic/drivers/modules/seamicro.py:530 ironic/drivers/modules/ssh.py:595
 #, python-format
 msgid "Invalid boot device %s specified."
 msgstr ""
@@ -1103,43 +1108,44 @@ msgstr ""
 msgid "iBoot PDU port; default is 9100. Optional."
 msgstr ""
 
-#: ironic/drivers/modules/iboot.py:54
-msgid "iBoot credentials not supplied to iBoot PDU driver."
+#: ironic/drivers/modules/iboot.py:51
+#, python-format
+msgid "The following iBoot credentials were not supplied to iBoot PDU driver: %s."
 msgstr ""
 
-#: ironic/drivers/modules/iboot.py:61
+#: ironic/drivers/modules/iboot.py:63
 msgid "iBoot PDU relay id must be an integer."
 msgstr ""
 
-#: ironic/drivers/modules/iboot.py:68
+#: ironic/drivers/modules/iboot.py:70
 msgid "iBoot PDU port must be an integer."
 msgstr ""
 
-#: ironic/drivers/modules/iboot.py:161 ironic/drivers/modules/ipmitool.py:508
-#: ironic/drivers/modules/ssh.py:508
+#: ironic/drivers/modules/iboot.py:167 ironic/drivers/modules/ipmitool.py:613
+#: ironic/drivers/modules/ssh.py:510
 #, python-format
 msgid "set_power_state called with invalid power state %s."
 msgstr ""
 
-#: ironic/drivers/modules/image_cache.py:112
+#: ironic/drivers/modules/image_cache.py:118
 #, python-format
 msgid "Master cache miss for image %(uuid)s, starting download"
 msgstr ""
 
-#: ironic/drivers/modules/image_cache.py:173
+#: ironic/drivers/modules/image_cache.py:179
 #, python-format
 msgid ""
 "Cache clean up was unable to reclaim %(required)d MiB of disk space, "
 "still %(left)d MiB required"
 msgstr ""
 
-#: ironic/drivers/modules/image_cache.py:200
-#: ironic/drivers/modules/image_cache.py:238
+#: ironic/drivers/modules/image_cache.py:206
+#: ironic/drivers/modules/image_cache.py:244
 #, python-format
 msgid "Unable to delete file %(name)s from master image cache: %(exc)s"
 msgstr ""
 
-#: ironic/drivers/modules/image_cache.py:247
+#: ironic/drivers/modules/image_cache.py:253
 #, python-format
 msgid ""
 "After cleaning up cache dir %(dir)s cache size %(actual)d is still larger"
@@ -1159,7 +1165,7 @@ msgid "IPMI username. Required."
 msgstr ""
 
 #: ironic/drivers/modules/ipminative.py:79
-#: ironic/drivers/modules/ipmitool.py:167
+#: ironic/drivers/modules/ipmitool.py:212
 #, python-format
 msgid "The following IPMI credentials are not supplied to IPMI driver: %s."
 msgstr ""
@@ -1216,180 +1222,245 @@ msgstr ""
 msgid "username; default is NULL user. Optional."
 msgstr ""
 
+#: ironic/drivers/modules/ipmitool.py:77
+msgid ""
+"bridging_type; default is \"no\". One of \"single\", \"dual\", \"no\". "
+"Optional."
+msgstr ""
+
+#: ironic/drivers/modules/ipmitool.py:79
+msgid ""
+"transit channel for bridged request. Required only if ipmi_bridging is "
+"set to \"dual\"."
+msgstr ""
+
 #: ironic/drivers/modules/ipmitool.py:81
+msgid ""
+"transit address for bridged request. Required only if ipmi_bridging is "
+"set to \"dual\"."
+msgstr ""
+
+#: ironic/drivers/modules/ipmitool.py:83
+msgid ""
+"destination channel for bridged request. Required only if ipmi_bridging "
+"is set to \"single\" or \"dual\"."
+msgstr ""
+
+#: ironic/drivers/modules/ipmitool.py:86
+msgid ""
+"destination address for bridged request. Required only if ipmi_bridging "
+"is set to \"single\" or \"dual\"."
+msgstr ""
+
+#: ironic/drivers/modules/ipmitool.py:89
+msgid ""
+"local IPMB address for bridged requests. Used only if ipmi_bridging is "
+"set to \"single\" or \"dual\". Optional."
+msgstr ""
+
+#: ironic/drivers/modules/ipmitool.py:96
 msgid "node's UDP port to connect to. Only required for console access."
 msgstr ""
 
-#: ironic/drivers/modules/ipmitool.py:182
+#: ironic/drivers/modules/ipmitool.py:233
 msgid "IPMI terminal port is not an integer."
 msgstr ""
 
-#: ironic/drivers/modules/ipmitool.py:187
+#: ironic/drivers/modules/ipmitool.py:244
+#, python-format
+msgid ""
+"Value for ipmi_bridging is provided as %s, but IPMI bridging is not "
+"supported by the IPMI utility installed on host. Ensure ipmitool version "
+"is > 1.8.11"
+msgstr ""
+
+#: ironic/drivers/modules/ipmitool.py:267
+#, python-format
+msgid "%(param)s not provided"
+msgstr ""
+
+#: ironic/drivers/modules/ipmitool.py:270
+#, python-format
+msgid ""
+"Invalid value for ipmi_bridging: %(bridging_type)s, the valid value can "
+"be one of: %(bridging_types)s"
+msgstr ""
+
+#: ironic/drivers/modules/ipmitool.py:278
 #, python-format
 msgid ""
 "Invalid privilege level value:%(priv_level)s, the valid value can be one "
 "of %(valid_levels)s"
 msgstr ""
 
-#: ironic/drivers/modules/ipmitool.py:300
+#: ironic/drivers/modules/ipmitool.py:402
 #, python-format
 msgid "IPMI power %(state)s failed for node %(node)s."
 msgstr ""
 
-#: ironic/drivers/modules/ipmitool.py:311
+#: ironic/drivers/modules/ipmitool.py:413
 #, python-format
 msgid ""
 "IPMI power %(state)s timed out after %(tries)s retries on node "
 "%(node_id)s."
 msgstr ""
 
-#: ironic/drivers/modules/ipmitool.py:364
+#: ironic/drivers/modules/ipmitool.py:467
 #, python-format
 msgid "IPMI power status failed for node %(node_id)s with error: %(error)s."
 msgstr ""
 
-#: ironic/drivers/modules/ipmitool.py:404
+#: ironic/drivers/modules/ipmitool.py:507
 #, python-format
 msgid "parse ipmi sensor data failed, unknown sensor type data: %(sensors_data)s"
 msgstr ""
 
-#: ironic/drivers/modules/ipmitool.py:442
+#: ironic/drivers/modules/ipmitool.py:545
 #, python-format
 msgid ""
 "parse ipmi sensor data failed, get nothing with input data: "
 "%(sensors_data)s"
 msgstr ""
 
-#: ironic/drivers/modules/ipmitool.py:696
+#: ironic/drivers/modules/ipmitool.py:558
+#: ironic/drivers/modules/ipmitool.py:649
+#: ironic/drivers/modules/ipmitool.py:792
+#: ironic/drivers/modules/ipmitool.py:927
+msgid ""
+"Unable to locate usable ipmitool command in the system path when checking"
+" ipmitool version"
+msgstr ""
+
+#: ironic/drivers/modules/ipmitool.py:818
 #, python-format
 msgid "IPMI \"raw bytes\" failed for node %(node_id)s with error: %(error)s."
 msgstr ""
 
-#: ironic/drivers/modules/ipmitool.py:727
+#: ironic/drivers/modules/ipmitool.py:852
 #, python-format
 msgid "IPMI \"bmc reset\" failed for node %(node_id)s with error: %(error)s."
 msgstr ""
 
-#: ironic/drivers/modules/ipmitool.py:753
+#: ironic/drivers/modules/ipmitool.py:880
 msgid "Parameter raw_bytes (string of bytes) was not specified."
 msgstr ""
 
-#: ironic/drivers/modules/ipmitool.py:760
+#: ironic/drivers/modules/ipmitool.py:887
 #, python-format
 msgid "Unsupported method (%s) passed to IPMItool driver."
 msgstr ""
 
-#: ironic/drivers/modules/ipmitool.py:814
+#: ironic/drivers/modules/ipmitool.py:945
 msgid "IPMI terminal port not supplied to IPMI driver."
 msgstr ""
 
-#: ironic/drivers/modules/pxe.py:110
+#: ironic/drivers/modules/pxe.py:109
 msgid "UUID (from Glance) of the deployment kernel. Required."
 msgstr ""
 
-#: ironic/drivers/modules/pxe.py:112
+#: ironic/drivers/modules/pxe.py:111
 msgid "UUID (from Glance) of the ramdisk that is mounted at boot time. Required."
 msgstr ""
 
-#: ironic/drivers/modules/pxe.py:125
+#: ironic/drivers/modules/pxe.py:124
 #, python-format
 msgid ""
 "Can not validate PXE bootloader. The following parameters were not passed"
 " to ironic: %s"
 msgstr ""
 
-#: ironic/drivers/modules/pxe.py:175
+#: ironic/drivers/modules/pxe.py:177
 #, python-format
 msgid ""
 "Can not validate PXE bootloader. Invalid parameter %(param)s. Reason: "
 "%(reason)s"
 msgstr ""
 
-#: ironic/drivers/modules/pxe.py:181
+#: ironic/drivers/modules/pxe.py:183
 #, python-format
 msgid "'%s' is not an integer value."
 msgstr ""
 
-#: ironic/drivers/modules/pxe.py:461
+#: ironic/drivers/modules/pxe.py:434
 #, python-format
 msgid ""
 "Root partition is too small for requested image. Image size: %(image_mb)d"
 " MB, Root size: %(root_mb)d MB"
 msgstr ""
 
-#: ironic/drivers/modules/pxe.py:482
+#: ironic/drivers/modules/pxe.py:456
 #, python-format
 msgid "Failed to connect to Glance to get the properties of the image %s"
 msgstr ""
 
-#: ironic/drivers/modules/pxe.py:486
+#: ironic/drivers/modules/pxe.py:460
 #, python-format
 msgid "Image %s not found in Glance"
 msgstr ""
 
-#: ironic/drivers/modules/pxe.py:496
+#: ironic/drivers/modules/pxe.py:470
 #, python-format
 msgid "Image %(image)s is missing the following properties: %(properties)s"
 msgstr ""
 
-#: ironic/drivers/modules/pxe.py:515 ironic/drivers/modules/ssh.py:457
+#: ironic/drivers/modules/pxe.py:490 ironic/drivers/modules/ssh.py:457
 #, python-format
 msgid "Node %s does not have any port associated with it."
 msgstr ""
 
-#: ironic/drivers/modules/pxe.py:522
+#: ironic/drivers/modules/pxe.py:497
 msgid "iPXE boot is enabled but no HTTP URL or HTTP root was specified."
 msgstr ""
 
-#: ironic/drivers/modules/pxe.py:533
+#: ironic/drivers/modules/pxe.py:508
 msgid ""
 "Couldn't get the URL of the Ironic API service from the configuration "
 "file or keystone catalog."
 msgstr ""
 
-#: ironic/drivers/modules/pxe.py:636
+#: ironic/drivers/modules/pxe.py:610
 msgid "Deploy key does not match"
 msgstr ""
 
-#: ironic/drivers/modules/pxe.py:655
+#: ironic/drivers/modules/pxe.py:629
 #, python-format
 msgid "Parameters %s were not passed to ironic for deploy."
 msgstr ""
 
-#: ironic/drivers/modules/pxe.py:672
+#: ironic/drivers/modules/pxe.py:646
 #, python-format
 msgid "Unsupported method (%s) passed to PXE driver."
 msgstr ""
 
-#: ironic/drivers/modules/pxe.py:705
+#: ironic/drivers/modules/pxe.py:678
 #, python-format
 msgid "Node %s is not waiting to be deployed."
 msgstr ""
 
-#: ironic/drivers/modules/pxe.py:717
+#: ironic/drivers/modules/pxe.py:690
 #, python-format
 msgid "Error returned from PXE deploy ramdisk: %s"
 msgstr ""
 
-#: ironic/drivers/modules/pxe.py:719
+#: ironic/drivers/modules/pxe.py:692
 msgid "Failure in PXE deploy ramdisk."
 msgstr ""
 
-#: ironic/drivers/modules/pxe.py:723
+#: ironic/drivers/modules/pxe.py:696
 #, python-format
 msgid "Continuing deployment for node %(node)s, params %(params)s"
 msgstr ""
 
-#: ironic/drivers/modules/pxe.py:729
+#: ironic/drivers/modules/pxe.py:702
 #, python-format
 msgid "PXE deploy failed for instance %(instance)s. Error: %(error)s"
 msgstr ""
 
-#: ironic/drivers/modules/pxe.py:732
+#: ironic/drivers/modules/pxe.py:705
 msgid "PXE driver failed to continue deployment."
 msgstr ""
 
-#: ironic/drivers/modules/pxe.py:734
+#: ironic/drivers/modules/pxe.py:707
 #, python-format
 msgid "Deployment to node %s done"
 msgstr ""
@@ -1439,26 +1510,26 @@ msgstr ""
 msgid "No storage pools found for ironic"
 msgstr ""
 
-#: ironic/drivers/modules/seamicro.py:377
+#: ironic/drivers/modules/seamicro.py:378
 msgid "set_power_state called with invalid power state."
 msgstr ""
 
-#: ironic/drivers/modules/seamicro.py:408
+#: ironic/drivers/modules/seamicro.py:409
 #, python-format
 msgid "Unsupported method (%s) passed to SeaMicro driver."
 msgstr ""
 
-#: ironic/drivers/modules/seamicro.py:427
+#: ironic/drivers/modules/seamicro.py:428
 msgid "No vlan id provided"
 msgstr ""
 
-#: ironic/drivers/modules/seamicro.py:439
-#: ironic/drivers/modules/seamicro.py:475
+#: ironic/drivers/modules/seamicro.py:440
+#: ironic/drivers/modules/seamicro.py:476
 #, python-format
 msgid "SeaMicro client exception: %s"
 msgstr ""
 
-#: ironic/drivers/modules/seamicro.py:465
+#: ironic/drivers/modules/seamicro.py:466
 msgid "No volume size provided for creating volume"
 msgstr ""
 
@@ -1551,24 +1622,31 @@ msgstr ""
 msgid "timeout (in seconds) for iLO operations. Optional."
 msgstr ""
 
-#: ironic/drivers/modules/ilo/common.py:81
+#: ironic/drivers/modules/ilo/common.py:82
 #, python-format
 msgid "'%s' not supplied to IloDriver."
 msgstr ""
 
-#: ironic/drivers/modules/ilo/common.py:88
+#: ironic/drivers/modules/ilo/common.py:84
+#, python-format
+msgid ""
+"The following parameters were mising while parsing driver_info:\n"
+"%s"
+msgstr ""
+
+#: ironic/drivers/modules/ilo/common.py:93
 #, python-format
 msgid "'%s' is not an integer."
 msgstr ""
 
-#: ironic/drivers/modules/ilo/common.py:93
+#: ironic/drivers/modules/ilo/common.py:98
 #, python-format
 msgid ""
 "The following errors were encountered while parsing driver_info:\n"
 "%s"
 msgstr ""
 
-#: ironic/drivers/modules/ilo/common.py:139
+#: ironic/drivers/modules/ilo/common.py:146
 msgid "iLO license check"
 msgstr ""
 
@@ -1606,66 +1684,66 @@ msgstr ""
 msgid "VCPUs not set; assuming CPU collection broken"
 msgstr ""
 
-#: ironic/nova/virt/ironic/client_wrapper.py:71
+#: ironic/nova/virt/ironic/client_wrapper.py:72
 msgid "Unable to authenticate Ironic client."
 msgstr ""
 
-#: ironic/nova/virt/ironic/client_wrapper.py:109
+#: ironic/nova/virt/ironic/client_wrapper.py:110
 #, python-format
 msgid ""
 "Error contacting Ironic server for '%(method)s'. Attempt %(attempt)d of "
 "%(total)d"
 msgstr ""
 
-#: ironic/nova/virt/ironic/driver.py:277
+#: ironic/nova/virt/ironic/driver.py:278
 #, python-format
 msgid ""
 "Failed to add deploy parameters on node %(node)s when provisioning the "
 "instance %(instance)s"
 msgstr ""
 
-#: ironic/nova/virt/ironic/driver.py:299
+#: ironic/nova/virt/ironic/driver.py:300
 #, python-format
 msgid "Fail to clean up node %s parameters"
 msgstr ""
 
-#: ironic/nova/virt/ironic/driver.py:324
+#: ironic/nova/virt/ironic/driver.py:325
 #, python-format
 msgid "Failed to provision instance %(inst)s: %(reason)s"
 msgstr ""
 
-#: ironic/nova/virt/ironic/driver.py:504
+#: ironic/nova/virt/ironic/driver.py:571
 #, python-format
 msgid "Ironic node uuid not supplied to driver for instance %s."
 msgstr ""
 
-#: ironic/nova/virt/ironic/driver.py:526
+#: ironic/nova/virt/ironic/driver.py:593
 #, python-format
 msgid ""
 "Ironic node: %(id)s failed to validate. (deploy: %(deploy)s, power: "
 "%(power)s)"
 msgstr ""
 
-#: ironic/nova/virt/ironic/driver.py:551
+#: ironic/nova/virt/ironic/driver.py:618
 #, python-format
 msgid "Failed to request Ironic to provision instance %(inst)s: %(reason)s"
 msgstr ""
 
-#: ironic/nova/virt/ironic/driver.py:596
+#: ironic/nova/virt/ironic/driver.py:663
 #, python-format
 msgid ""
 "Error destroying the instance on node %(node)s. Provision state still "
 "'%(state)s'."
 msgstr ""
 
-#: ironic/nova/virt/ironic/driver.py:775
+#: ironic/nova/virt/ironic/driver.py:840
 #, python-format
 msgid ""
 "Ironic node: %(id)s virtual to physical interface count  missmatch (Vif "
 "count: %(vif_count)d, Pif count: %(pif_count)d)"
 msgstr ""
 
-#: ironic/nova/virt/ironic/driver.py:894
+#: ironic/nova/virt/ironic/driver.py:959
 #, python-format
 msgid "Failed to request Ironic to rebuild instance %(inst)s: %(reason)s"
 msgstr ""
@@ -1698,7 +1776,7 @@ msgstr ""
 msgid "%(objname)s object has no attribute '%(attrname)s'"
 msgstr ""
 
-#: ironic/objects/conductor.py:54
+#: ironic/objects/conductor.py:58
 msgid "Cannot update a conductor record directly."
 msgstr ""
 
