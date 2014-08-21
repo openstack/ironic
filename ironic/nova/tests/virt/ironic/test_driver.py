@@ -144,8 +144,29 @@ class IronicDriverTestCase(test.NoDBTestCase):
         self.assertEqual(props['memory_mb'], result['memory_mb_used'])
         self.assertEqual(props['local_gb'], result['local_gb'])
         self.assertEqual(props['local_gb'], result['local_gb_used'])
+        self.assertEqual(props['cpu_arch'],
+                         jsonutils.loads(result['supported_instances'])[0][0])
         self.assertEqual(node_uuid, result['hypervisor_hostname'])
         self.assertEqual(stats, jsonutils.loads(result['stats']))
+
+    def test__node_resource_canonicalizes_arch(self):
+        node_uuid = uuidutils.generate_uuid()
+        props = _get_properties()
+        props['cpu_arch'] = 'i386'
+        node = ironic_utils.get_test_node(uuid=node_uuid, properties=props)
+
+        result = self.driver._node_resource(node)
+        self.assertEqual('i686',
+                         jsonutils.loads(result['supported_instances'])[0][0])
+
+    def test__node_resource_unknown_arch(self):
+        node_uuid = uuidutils.generate_uuid()
+        props = _get_properties()
+        del props['cpu_arch']
+        node = ironic_utils.get_test_node(uuid=node_uuid, properties=props)
+
+        result = self.driver._node_resource(node)
+        self.assertEqual([], jsonutils.loads(result['supported_instances']))
 
     def test__node_resource_exposes_capabilities(self):
         props = _get_properties()
