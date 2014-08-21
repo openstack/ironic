@@ -292,3 +292,19 @@ def download_size(context, image_href, image_service=None):
     if not image_service:
         image_service = service.Service(version=1, context=context)
     return image_service.show(image_href)['size']
+
+
+def converted_size(path):
+    """Get size of converted raw image.
+
+    The size of image converted to raw format can be growing up to the virtual
+    size of the image.
+
+    :param path: path to the image file.
+    :returns: virtual size of the image or 0 if conversion not needed.
+
+    """
+    data = qemu_img_info(path)
+    if data.file_format == "raw" or not CONF.force_raw_images:
+        return 0
+    return data.virtual_size

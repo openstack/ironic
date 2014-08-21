@@ -87,11 +87,9 @@ class ImageCache(object):
             #NOTE(ghe): We don't share images between instances/hosts
             if not CONF.parallel_image_downloads:
                 with lockutils.lock(img_download_lock_name, 'ironic-'):
-                    images.fetch_to_raw(ctx, uuid, dest_path,
-                                        self._image_service)
+                    _fetch_to_raw(ctx, uuid, dest_path, self._image_service)
             else:
-                images.fetch_to_raw(ctx, uuid, dest_path,
-                                    self._image_service)
+                _fetch_to_raw(ctx, uuid, dest_path, self._image_service)
             return
 
         #TODO(ghe): have hard links and counts the same behaviour in all fs
@@ -143,8 +141,7 @@ class ImageCache(object):
         tmp_dir = tempfile.mkdtemp(dir=self.master_dir)
         tmp_path = os.path.join(tmp_dir, uuid)
         try:
-            images.fetch_to_raw(ctx, uuid, tmp_path,
-                                self._image_service)
+            _fetch_to_raw(ctx, uuid, tmp_path, self._image_service)
             # NOTE(dtantsur): no need for global lock here - master_path
             # will have link count >1 at any moment, so won't be cleaned up
             os.link(tmp_path, master_path)
@@ -283,6 +280,47 @@ def _free_disk_space_for(path):
     return stat.f_frsize * stat.f_bavail
 
 
+def _fetch_to_raw(context, image_href, path, image_service=None):
+    """Fetch image and convert to raw format if needed."""
+    path_tmp = "%s.part" % path
+    images.fetch(context, image_href, path_tmp, image_service)
+    required_space = images.converted_size(path_tmp)
+    directory = os.path.dirname(path_tmp)
+    _clean_up_caches(directory, required_space)
+    images.image_to_raw(image_href, path, path_tmp)
+
+
+def _clean_up_caches(directory, amount):
+    """Explicitly cleanup caches based on their priority (if required).
+
+    :param directory: the directory (of the cache) to be freed up.
+    :param amount: amount of space to reclaim.
+    :raises: InsufficientDiskSpace exception, if we cannot free up enough space
+    after trying all the caches.
+    """
+    free = _free_disk_space_for(directory)
+
+    if amount < free:
+        return
+
+    # NOTE(dtantsur): filter caches, whose directory is on the same device
+    st_dev = os.stat(directory).st_dev
+
+    caches_to_clean = [x[1]() for x in _cache_cleanup_list]
+    caches = (c for c in caches_to_clean
+              if os.stat(c.master_dir).st_dev == st_dev)
+    for cache_to_clean in caches:
+        cache_to_clean.clean_up(amount=(amount - free))
+        free = _free_disk_space_for(directory)
+        if amount < free:
+            break
+    else:
+        raise exception.InsufficientDiskSpace(path=directory,
+                                              required=amount / 1024 / 1024,
+                                              actual=free / 1024 / 1024,
+                                              )
+
+
 def clean_up_caches(ctx, directory, images_info):
     """Explicitly cleanup caches based on their priority (if required).
 
@@ -300,27 +338,7 @@ def clean_up_caches(ctx, directory, images_info):
     """
     total_size = sum(images.download_size(ctx, uuid)
             for (uuid, path) in images_info)
-    free = _free_disk_space_for(directory)
-
-    if total_size >= free:
-        # NOTE(dtantsur): filter caches, whose directory is on the same device
-        st_dev = os.stat(directory).st_dev
-
-        caches_to_clean = [x[1]() for x in _cache_cleanup_list]
-        caches = (c for c in caches_to_clean
-                  if os.stat(c.master_dir).st_dev == st_dev)
-        for cache_to_clean in caches:
-            # NOTE(dtantsur): multiplying by 2 is an attempt to account for
-            # images converting to raw format
-            cache_to_clean.clean_up(amount=(2 * total_size - free))
-            free = _free_disk_space_for(directory)
-            if total_size < free:
-                break
-        else:
-            raise exception.InsufficientDiskSpace(path=directory,
-                required=total_size / 1024 / 1024,
-                actual=free / 1024 / 1024,
-            )
+    _clean_up_caches(directory, total_size)
 
 
 def cleanup(priority):
