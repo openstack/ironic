@@ -35,6 +35,7 @@ class AgentAndIPMIToolDriver(base.BaseDriver):
         self.power = ipmitool.IPMIPower()
         self.deploy = agent.AgentDeploy()
         self.management = ipmitool.IPMIManagement()
+        self.console = ipmitool.IPMIShellinaboxConsole()
         self.agent_vendor = agent.AgentVendorInterface()
         self.mapping = {'heartbeat': self.agent_vendor}
         self.dl_mapping = {'lookup': self.agent_vendor}
