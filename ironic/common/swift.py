@@ -21,6 +21,7 @@ from swiftclient import exceptions as swift_exceptions
 from swiftclient import utils as swift_utils
 
 from ironic.common import exception
+from ironic.common.i18n import _
 from ironic.common import keystone
 from ironic.openstack.common import log as logging
 

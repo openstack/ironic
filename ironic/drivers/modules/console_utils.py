@@ -28,6 +28,7 @@ from oslo.config import cfg
 
 from ironic.common import exception
 from ironic.common import i18n
+from ironic.common.i18n import _
 from ironic.common import utils
 from ironic.openstack.common import log as logging
 from ironic.openstack.common import loopingcall

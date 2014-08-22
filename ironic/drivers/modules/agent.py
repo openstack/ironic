@@ -21,6 +21,7 @@ from oslo.utils import excutils
 from ironic.common import dhcp_factory
 from ironic.common import exception
 from ironic.common import i18n
+from ironic.common.i18n import _
 from ironic.common import image_service
 from ironic.common import keystone
 from ironic.common import paths

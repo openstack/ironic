@@ -24,6 +24,7 @@ from oslo import messaging
 
 from ironic.common import exception
 from ironic.common import hash_ring as hash
+from ironic.common.i18n import _
 from ironic.common import rpc
 from ironic.conductor import manager
 from ironic.objects import base as objects_base

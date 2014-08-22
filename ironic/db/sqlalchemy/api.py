@@ -27,6 +27,7 @@ from oslo.utils import timeutils
 from sqlalchemy.orm.exc import NoResultFound
 
 from ironic.common import exception
+from ironic.common.i18n import _
 from ironic.common import states
 from ironic.common import utils
 from ironic.db import api

@@ -15,6 +15,7 @@ DRAC Driver for remote system management using Dell Remote Access Card.
 """
 
 from ironic.common import exception
+from ironic.common.i18n import _
 from ironic.drivers import base
 from ironic.drivers.modules.drac import power
 from ironic.drivers.modules import ipmitool

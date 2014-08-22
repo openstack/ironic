@@ -13,6 +13,7 @@
 # under the License.
 
 from ironic.common import exception
+from ironic.common.i18n import _
 from ironic.drivers import base
 
 

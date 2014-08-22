@@ -18,6 +18,8 @@ import wsme
 
 from oslo.config import cfg
 
+from ironic.common.i18n import _
+
 CONF = cfg.CONF
 
 

@@ -25,6 +25,7 @@ from oslo.utils import excutils
 
 from ironic.common import disk_partitioner
 from ironic.common import exception
+from ironic.common.i18n import _
 from ironic.common import utils
 from ironic.drivers.modules import image_cache
 from ironic.openstack.common import log as logging
@@ -153,9 +154,9 @@ def mkfs_ephemeral(dev, ephemeral_format, label="ephemeral0"):
 
 def block_uuid(dev):
     """Get UUID of a block device."""
-    out, _ = utils.execute('blkid', '-s', 'UUID', '-o', 'value', dev,
-                           run_as_root=True,
-                           check_exit_code=[0])
+    out, _err = utils.execute('blkid', '-s', 'UUID', '-o', 'value', dev,
+                              run_as_root=True,
+                              check_exit_code=[0])
     return out.strip()
 
 

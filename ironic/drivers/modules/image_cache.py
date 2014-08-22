@@ -26,6 +26,7 @@ from oslo.config import cfg
 
 from ironic.common import exception
 from ironic.common.glance_service import service_utils
+from ironic.common.i18n import _
 from ironic.common import images
 from ironic.common import utils
 from ironic.openstack.common import fileutils

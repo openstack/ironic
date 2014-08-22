@@ -25,6 +25,7 @@ from oslo.utils import importutils
 from ironic.common import boot_devices
 from ironic.common import exception
 from ironic.common import i18n
+from ironic.common.i18n import _
 from ironic.common import states
 from ironic.conductor import task_manager
 from ironic.drivers import base

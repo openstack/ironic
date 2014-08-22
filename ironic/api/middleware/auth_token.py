@@ -17,6 +17,7 @@ import re
 from keystonemiddleware import auth_token
 
 from ironic.common import exception
+from ironic.common.i18n import _
 from ironic.common import utils
 from ironic.openstack.common import log
 

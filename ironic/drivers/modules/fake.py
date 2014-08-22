@@ -26,6 +26,7 @@ on seprate vendor_passthru methods.
 
 from ironic.common import boot_devices
 from ironic.common import exception
+from ironic.common.i18n import _
 from ironic.common import states
 from ironic.drivers import base
 

@@ -15,6 +15,7 @@
 from oslo.utils import excutils
 
 from ironic.common import exception
+from ironic.common.i18n import _
 from ironic.common import states
 from ironic.conductor import task_manager
 from ironic.openstack.common.gettextutils import _LI

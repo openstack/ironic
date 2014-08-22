@@ -49,6 +49,7 @@ from oslo.db.sqlalchemy import utils as db_utils
 import sqlalchemy
 import sqlalchemy.exc
 
+from ironic.common.i18n import _
 from ironic.common import utils
 from ironic.db.sqlalchemy import migration
 from ironic.db.sqlalchemy import models

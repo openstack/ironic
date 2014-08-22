@@ -22,6 +22,7 @@ import abc
 import six
 
 from ironic.common import exception
+from ironic.common.i18n import _
 
 
 @six.add_metaclass(abc.ABCMeta)

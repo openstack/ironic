@@ -20,6 +20,7 @@ PXE Driver and supporting meta-classes.
 from oslo.utils import importutils
 
 from ironic.common import exception
+from ironic.common.i18n import _
 from ironic.drivers import base
 from ironic.drivers.modules import iboot
 from ironic.drivers.modules.ilo import power as ilo_power

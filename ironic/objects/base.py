@@ -21,6 +21,7 @@ from oslo import messaging
 import six
 
 from ironic.common import exception
+from ironic.common.i18n import _
 from ironic.objects import utils as obj_utils
 from ironic.openstack.common import context
 from ironic.openstack.common import log as logging

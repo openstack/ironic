@@ -20,6 +20,7 @@ Fake drivers used in testing.
 from oslo.utils import importutils
 
 from ironic.common import exception
+from ironic.common.i18n import _
 from ironic.drivers import base
 from ironic.drivers.modules import agent
 from ironic.drivers.modules.drac import power as drac_power

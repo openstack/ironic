@@ -20,6 +20,7 @@ import wsme
 from wsme import types as wtypes
 
 from ironic.common import exception
+from ironic.common.i18n import _
 from ironic.common import utils
 
 
