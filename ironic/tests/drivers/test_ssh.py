@@ -181,9 +181,13 @@ class SSHValidateParametersTestCase(base.TestCase):
         info = ssh._parse_driver_info(node)
         self.assertEqual(expected_base_cmd, info['cmd_set']['base_cmd'])
 
-    def test__get_boot_device_map_ad_hoc(self):
+    def test__get_boot_device_map_parallels(self):
         boot_map = ssh._get_boot_device_map('parallels')
         self.assertEqual('net0', boot_map[boot_devices.PXE])
+
+    def test__get_boot_device_map_vbox(self):
+        boot_map = ssh._get_boot_device_map('vbox')
+        self.assertEqual('net', boot_map[boot_devices.PXE])
 
     def test__get_boot_device_map_exception(self):
         self.assertRaises(exception.InvalidParameterValue,
@@ -793,6 +797,22 @@ class SSHDriverTestCase(db_base.DbTestCase):
     @mock.patch.object(ssh, '_get_connection')
     @mock.patch.object(ssh, '_get_hosts_name_for_node')
     @mock.patch.object(ssh, '_ssh_execute')
+    def test_management_interface_set_boot_device_vbox_ok(self, mock_exc,
+                                                          mock_h,
+                                                          mock_get_conn):
+        fake_name = 'fake-name'
+        mock_h.return_value = fake_name
+        mock_get_conn.return_value = self.sshclient
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            task.node['driver_info']['ssh_virt_type'] = 'vbox'
+            self.driver.management.set_boot_device(task, boot_devices.PXE)
+        expected_cmd = ('/usr/bin/VBoxManage modifyvm %s '
+                        '--boot1 net') % fake_name
+        mock_exc.assert_called_once_with(mock.ANY, expected_cmd)
+
+    @mock.patch.object(ssh, '_get_connection')
+    @mock.patch.object(ssh, '_get_hosts_name_for_node')
+    @mock.patch.object(ssh, '_ssh_execute')
     def test_management_interface_set_boot_device_parallels_ok(self, mock_exc,
                                                                mock_h,
                                                                mock_get_conn):
@@ -848,6 +868,24 @@ class SSHDriverTestCase(db_base.DbTestCase):
                         boot_devices.CDROM]
             self.assertEqual(sorted(expected), sorted(task.driver.management.
                              get_supported_boot_devices()))
+
+    @mock.patch.object(ssh, '_get_connection')
+    @mock.patch.object(ssh, '_get_hosts_name_for_node')
+    @mock.patch.object(ssh, '_ssh_execute')
+    def test_management_interface_get_boot_device_vbox(self, mock_exc,
+                                                       mock_h,
+                                                       mock_get_conn):
+        fake_name = 'fake-name'
+        mock_h.return_value = fake_name
+        mock_exc.return_value = ('net', '')
+        mock_get_conn.return_value = self.sshclient
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            task.node['driver_info']['ssh_virt_type'] = 'vbox'
+            result = self.driver.management.get_boot_device(task)
+            self.assertEqual(boot_devices.PXE, result['boot_device'])
+        expected_cmd = ('/usr/bin/VBoxManage showvminfo --machinereadable %s '
+                        '| awk -F \'"\' \'/boot1/{print $2}\'') % fake_name
+        mock_exc.assert_called_once_with(mock.ANY, expected_cmd)
 
     @mock.patch.object(ssh, '_get_connection')
     @mock.patch.object(ssh, '_get_hosts_name_for_node')

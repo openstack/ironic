@@ -80,7 +80,7 @@ COMMON_PROPERTIES.update(OTHER_PROPERTIES)
 # NOTE(dguerri) Generic boot device map. Virtualisation types that don't define
 # a more specific one, will use this.
 # This is left for compatibility with other modules and is still valid for
-# vbox, virsh and vmware.
+# virsh and vmware.
 _BOOT_DEVICES_MAP = {
     boot_devices.DISK: 'hd',
     boot_devices.PXE: 'network',
@@ -89,8 +89,14 @@ _BOOT_DEVICES_MAP = {
 
 
 def _get_boot_device_map(virt_type):
-    if virt_type in ('vbox', 'virsh', 'vmware'):
+    if virt_type in ('virsh', 'vmware'):
         return _BOOT_DEVICES_MAP
+    elif virt_type == 'vbox':
+        return {
+            boot_devices.DISK: 'disk',
+            boot_devices.PXE: 'net',
+            boot_devices.CDROM: 'dvd',
+        }
     elif virt_type == 'parallels':
         return {
             boot_devices.DISK: 'hdd0',
@@ -117,7 +123,12 @@ def _get_command_sets(virt_type):
                 '"macaddress" | awk -F '
                 "'"
                 '"'
-                "' '{print $2}'")
+                "' '{print $2}'"),
+            'set_boot_device': ('{_BaseCmd_} modifyvm {_NodeName_} '
+                '--boot1 {_BootDevice_}'),
+            'get_boot_device': ("{_BaseCmd_} showvminfo "
+                "--machinereadable {_NodeName_} | "
+                "awk -F '\"' '/boot1/{print $2}'"),
             }
     elif virt_type == 'vmware':
         return {
