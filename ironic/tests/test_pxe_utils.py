@@ -19,7 +19,6 @@ import os
 import mock
 from oslo.config import cfg
 
-from ironic.common import exception
 from ironic.common import pxe_utils
 from ironic.conductor import task_manager
 from ironic.db import api as dbapi
@@ -274,35 +273,6 @@ class TestPXEUtils(db_base.DbTestCase):
         with task_manager.acquire(self.context, self.node.uuid) as task:
             self.assertEqual(sorted(expected_info),
                              sorted(pxe_utils.dhcp_options_for_instance(task)))
-
-    def test_get_node_capability(self):
-        properties = {'capabilities': 'cap1:value1,cap2:value2'}
-        self.node.properties = properties
-        expected = 'value1'
-
-        result = pxe_utils.get_node_capability(self.node, 'cap1')
-        self.assertEqual(expected, result)
-
-    def test_get_node_capability_returns_none(self):
-        properties = {'capabilities': 'cap1:value1,cap2:value2'}
-        self.node.properties = properties
-
-        result = pxe_utils.get_node_capability(self.node, 'capX')
-        self.assertIsNone(result)
-
-    def test_validate_boot_mode_capability(self):
-        properties = {'capabilities': 'boot_mode:uefi,cap2:value2'}
-        self.node.properties = properties
-
-        result = pxe_utils.validate_boot_mode_capability(self.node)
-        self.assertIsNone(result)
-
-    def test_validate_boot_mode_capability_with_exception(self):
-        properties = {'capabilities': 'boot_mode:foo,cap2:value2'}
-        self.node.properties = properties
-
-        self.assertRaises(exception.InvalidParameterValue,
-                          pxe_utils.validate_boot_mode_capability, self.node)
 
     @mock.patch('ironic.common.utils.rmtree_without_raise', autospec=True)
     @mock.patch('ironic.common.utils.unlink_without_raise', autospec=True)

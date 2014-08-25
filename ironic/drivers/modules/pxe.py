@@ -39,6 +39,7 @@ from ironic.drivers import base
 from ironic.drivers.modules import deploy_utils
 from ironic.drivers.modules import image_cache
 from ironic.drivers.modules import iscsi_deploy
+from ironic.drivers import utils as driver_utils
 from ironic.openstack.common import fileutils
 from ironic.openstack.common import log as logging
 
@@ -273,8 +274,9 @@ class PXEDeploy(base.DeployInterface):
         :raises: InvalidParameterValue.
         :raises: MissingParameterValue
         """
+
         # Check the boot_mode capability parameter value.
-        pxe_utils.validate_boot_mode_capability(task.node)
+        driver_utils.validate_boot_mode_capability(task.node)
 
         if CONF.pxe.ipxe_enabled:
             if not CONF.pxe.http_url or not CONF.pxe.http_root:
@@ -282,7 +284,8 @@ class PXEDeploy(base.DeployInterface):
                     "iPXE boot is enabled but no HTTP URL or HTTP "
                     "root was specified."))
             # iPXE and UEFI should not be configured together.
-            if pxe_utils.get_node_capability(task.node, 'boot_mode') == 'uefi':
+            if driver_utils.get_node_capability(task.node,
+                                                'boot_mode') == 'uefi':
                 LOG.error(_LE("UEFI boot mode is not supported with "
                               "iPXE boot enabled."))
                 raise exception.InvalidParameterValue(_(
@@ -330,7 +333,8 @@ class PXEDeploy(base.DeployInterface):
         try:
             manager_utils.node_set_boot_device(task, 'pxe', persistent=True)
         except exception.IPMIFailure:
-            if pxe_utils.get_node_capability(task.node, 'boot_mode') == 'uefi':
+            if driver_utils.get_node_capability(task.node,
+                                                'boot_mode') == 'uefi':
                 LOG.warning(_LW("ipmitool is unable to set boot device while "
                                 "the node is in UEFI boot mode."
                                 "Please set the boot device manually."))
@@ -373,7 +377,7 @@ class PXEDeploy(base.DeployInterface):
         pxe_options = _build_pxe_config_options(task.node, pxe_info,
                                                 task.context)
 
-        if pxe_utils.get_node_capability(task.node, 'boot_mode') == 'uefi':
+        if driver_utils.get_node_capability(task.node, 'boot_mode') == 'uefi':
             pxe_config_template = CONF.pxe.uefi_pxe_config_template
         else:
             pxe_config_template = CONF.pxe.pxe_config_template
@@ -461,7 +465,7 @@ class VendorPassthru(base.VendorInterface):
         try:
             pxe_config_path = pxe_utils.get_pxe_config_file_path(node.uuid)
             deploy_utils.switch_pxe_config(pxe_config_path, root_uuid,
-                            pxe_utils.get_node_capability(node, 'boot_mode'))
+                          driver_utils.get_node_capability(node, 'boot_mode'))
 
             deploy_utils.notify_deploy_complete(kwargs['address'])
 

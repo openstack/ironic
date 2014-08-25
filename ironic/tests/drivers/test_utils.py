@@ -129,3 +129,77 @@ class UtilsTestCase(base.TestCase):
         with task_manager.acquire(self.context, self.node.uuid) as task:
             node_macs = driver_utils.get_node_mac_addresses(task)
         self.assertEqual(sorted([p.address for p in ports]), sorted(node_macs))
+
+    def test_get_node_capability(self):
+        properties = {'capabilities': 'cap1:value1,cap2:value2'}
+        self.node.properties = properties
+        expected = 'value1'
+
+        result = driver_utils.get_node_capability(self.node, 'cap1')
+        self.assertEqual(expected, result)
+
+    def test_get_node_capability_returns_none(self):
+        properties = {'capabilities': 'cap1:value1,cap2:value2'}
+        self.node.properties = properties
+
+        result = driver_utils.get_node_capability(self.node, 'capX')
+        self.assertIsNone(result)
+
+    def test_add_node_capability(self):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            task.node.properties['capabilities'] = ''
+            driver_utils.add_node_capability(task, 'boot_mode', 'bios')
+            self.assertEqual('boot_mode:bios',
+                             task.node.properties['capabilities'])
+
+    def test_add_node_capability_append(self):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            task.node.properties['capabilities'] = 'a:b,c:d'
+            driver_utils.add_node_capability(task, 'boot_mode', 'bios')
+            self.assertEqual('a:b,c:d,boot_mode:bios',
+                             task.node.properties['capabilities'])
+
+    def test_add_node_capability_append_duplicate(self):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            task.node.properties['capabilities'] = 'a:b,c:d'
+            driver_utils.add_node_capability(task, 'a', 'b')
+            self.assertEqual('a:b,c:d,a:b',
+                             task.node.properties['capabilities'])
+
+    def test_rm_node_capability(self):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            task.node.properties['capabilities'] = 'a:b'
+            driver_utils.rm_node_capability(task, 'a')
+            self.assertIsNone(task.node.properties['capabilities'])
+
+    def test_rm_node_capability_exists(self):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            task.node.properties['capabilities'] = 'a:b,c:d,x:y'
+            self.assertIsNone(driver_utils.rm_node_capability(task, 'c'))
+            self.assertEqual('a:b,x:y', task.node.properties['capabilities'])
+
+    def test_rm_node_capability_non_existent(self):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            task.node.properties['capabilities'] = 'a:b'
+            self.assertIsNone(driver_utils.rm_node_capability(task, 'x'))
+            self.assertEqual('a:b', task.node.properties['capabilities'])
+
+    def test_validate_boot_mode_capability(self):
+        properties = {'capabilities': 'boot_mode:uefi,cap2:value2'}
+        self.node.properties = properties
+
+        result = driver_utils.validate_boot_mode_capability(self.node)
+        self.assertIsNone(result)
+
+    def test_validate_boot_mode_capability_with_exception(self):
+        properties = {'capabilities': 'boot_mode:foo,cap2:value2'}
+        self.node.properties = properties
+
+        self.assertRaises(exception.InvalidParameterValue,
+                   driver_utils.validate_boot_mode_capability, self.node)
