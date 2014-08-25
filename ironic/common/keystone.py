@@ -30,9 +30,9 @@ def _is_apiv3(auth_url, auth_version):
     This method inspects auth_url and auth_version, and checks whether V3
     version of the API is being used or not.
 
-    :param auth_url: a http or https url to be inspected(like
+    :param auth_url: a http or https url to be inspected (like
         'http://127.0.0.1:9898/').
-    :param auth_version: a string containing the version(like 'v2', 'v3.0')
+    :param auth_version: a string containing the version (like 'v2', 'v3.0')
     :returns: True if V3 of the API is being used.
     """
     return auth_version == 'v3.0' or '/v3' in parse.urlparse(auth_url).path
@@ -44,9 +44,9 @@ def get_keystone_url(auth_url, auth_version):
     Given an auth_url and auth_version, this method generates the url in
     which keystone can be reached.
 
-    :param auth_url: a http or https url to be inspected(like
+    :param auth_url: a http or https url to be inspected (like
         'http://127.0.0.1:9898/').
-    :param auth_version: a string containing the version(like v2, v3.0, etc)
+    :param auth_version: a string containing the version (like v2, v3.0, etc)
     :returns: a string containing the keystone url
     """
     api_v3 = _is_apiv3(auth_url, auth_version)

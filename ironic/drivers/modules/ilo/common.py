@@ -16,20 +16,24 @@
 Common functionalities shared between different iLO modules.
 """
 
+import tempfile
+
 from oslo.config import cfg
 from oslo.utils import importutils
 
 from ironic.common import exception
+from ironic.common import i18n
 from ironic.common.i18n import _
+from ironic.common import images
+from ironic.common import swift
+from ironic.common import utils
 from ironic.openstack.common import log as logging
 
 ilo_client = importutils.try_import('proliantutils.ilo.ribcl')
 
-
 STANDARD_LICENSE = 1
 ESSENTIALS_LICENSE = 2
 ADVANCED_LICENSE = 3
-
 
 opts = [
     cfg.IntOpt('client_timeout',
@@ -38,12 +42,22 @@ opts = [
     cfg.IntOpt('client_port',
                default=443,
                help='Port to be used for iLO operations'),
+    cfg.StrOpt('swift_ilo_container',
+               default='ironic_ilo_container',
+               help='The Swift iLO container to store data.'),
+    cfg.IntOpt('swift_object_expiry_timeout',
+               default=900,
+               help='Amount of time in seconds for Swift objects to '
+                    'auto-expire.'),
 ]
 
 CONF = cfg.CONF
 CONF.register_opts(opts, group='ilo')
 
 LOG = logging.getLogger(__name__)
+
+_LE = i18n._LE
+_LI = i18n._LI
 
 REQUIRED_PROPERTIES = {
     'ilo_address': _("IP address or hostname of the iLO. Required."),
@@ -156,3 +170,180 @@ def get_ilo_license(node):
         return ESSENTIALS_LICENSE
     else:
         return STANDARD_LICENSE
+
+
+def _get_floppy_image_name(node):
+    """Returns the floppy image name for a given node.
+
+    :param node: the node for which image name is to be provided.
+    """
+    return "image-%s" % node.uuid
+
+
+def _prepare_floppy_image(task, params):
+    """Prepares the floppy image for passing the parameters.
+
+    This method prepares a temporary vfat filesystem image. Then it adds
+    two files into the image - one containing the authentication token and
+    the other containing the parameters to be passed to the ramdisk. Then it
+    uploads the file to Swift in 'swift_ilo_container', setting it to
+    auto-expire after 'swift_object_expiry_timeout' seconds. Then it returns
+    the temp url for the Swift object.
+
+    :param task: a TaskManager instance containing the node to act on.
+    :param params: a dictionary containing 'parameter name'->'value' mapping
+        to be passed to the deploy ramdisk via the floppy image.
+    :returns: the Swift temp url for the floppy image.
+    """
+    with tempfile.NamedTemporaryFile() as vfat_image_tmpfile_obj:
+
+        files_info = {}
+        token_tmpfile_obj = None
+        vfat_image_tmpfile = vfat_image_tmpfile_obj.name
+
+        # If auth_strategy is noauth, then no need to write token into
+        # the image file.
+        if task.context.auth_token:
+            token_tmpfile_obj = tempfile.NamedTemporaryFile()
+            token_tmpfile = token_tmpfile_obj.name
+            utils.write_to_file(token_tmpfile, task.context.auth_token)
+            files_info[token_tmpfile] = 'token'
+
+        try:
+            images.create_vfat_image(vfat_image_tmpfile, files_info=files_info,
+                                     parameters=params)
+        finally:
+            if token_tmpfile_obj:
+                token_tmpfile_obj.close()
+
+        container = CONF.ilo.swift_ilo_container
+        object_name = _get_floppy_image_name(task.node)
+        timeout = CONF.ilo.swift_object_expiry_timeout
+
+        object_headers = {'X-Delete-After': timeout}
+        swift_api = swift.SwiftAPI()
+        swift_api.create_object(container, object_name,
+                                vfat_image_tmpfile,
+                                object_headers=object_headers)
+        temp_url = swift_api.get_temp_url(container, object_name, timeout)
+
+        LOG.debug("Uploaded floppy image %(object_name)s to %(container)s "
+                  "for deployment.",
+                  {'object_name': object_name, 'container': container})
+        return temp_url
+
+
+def attach_vmedia(node, device, url):
+    """Attaches the given url as virtual media on the node.
+
+    :param node: an ironic node object.
+    :param device: the virtual media device to attach
+    :param url: the http/https url to attach as the virtual media device
+    :raises: IloOperationError if insert virtual media failed.
+    """
+    ilo_object = get_ilo_object(node)
+
+    try:
+        ilo_object.insert_virtual_media(url, device=device)
+        ilo_object.set_vm_status(device=device, boot_option='CONNECT',
+                write_protect='YES')
+    except ilo_client.IloError as ilo_exception:
+        operation = _("Inserting virtual media %s") % device
+        raise exception.IloOperationError(operation=operation,
+                error=ilo_exception)
+
+    LOG.info(_LI("Attached virtual media %s successfully."), device)
+
+
+# TODO(rameshg87): This needs to be moved to iLO's management interface.
+def set_boot_device(node, device):
+    """Sets the node to boot from a device for the next boot.
+
+    :param node: an ironic node object.
+    :param device: the device to boot from
+    :raises: IloOperationError if setting boot device failed.
+    """
+    ilo_object = get_ilo_object(node)
+
+    try:
+        ilo_object.set_one_time_boot(device)
+    except ilo_client.IloError as ilo_exception:
+        operation = _("Setting %s as boot device") % device
+        raise exception.IloOperationError(operation=operation,
+                                          error=ilo_exception)
+
+    LOG.debug(_LI("Node %(uuid)s set to boot from %(device)s."),
+             {'uuid': node.uuid, 'device': device})
+
+
+def setup_vmedia_for_boot(task, boot_iso, parameters=None):
+    """Sets up the node to boot from the given ISO image.
+
+    This method attaches the given boot_iso on the node and passes
+    the required parameters to it via virtual floppy image.
+
+    :param task: a TaskManager instance containing the node to act on.
+    :param boot_iso: a bootable ISO image to attach to.  The boot iso
+        should be present in either Glance or in Swift. If present in
+        Glance, it should be of format 'glance:<glance-image-uuid>'.
+        If present in Swift, it should be of format 'swift:<object-name>'.
+        It is assumed that object is present in CONF.ilo.swift_ilo_container.
+    :param parameters: the parameters to pass in the virtual floppy image
+        in a dictionary.  This is optional.
+    :raises: ImageCreationFailed, if it failed while creating the floppy image.
+    :raises: IloOperationError, if attaching virtual media failed.
+    """
+    LOG.info("Setting up node %s to boot from virtual media", task.node.uuid)
+
+    if parameters:
+        floppy_image_temp_url = _prepare_floppy_image(task, parameters)
+        attach_vmedia(task.node, 'FLOPPY', floppy_image_temp_url)
+
+    boot_iso_temp_url = None
+    scheme, boot_iso_ref = boot_iso.split(':')
+    if scheme == 'swift':
+        swift_api = swift.SwiftAPI()
+        container = CONF.ilo.swift_ilo_container
+        object_name = boot_iso_ref
+        timeout = CONF.ilo.swift_object_expiry_timeout
+        boot_iso_temp_url = swift_api.get_temp_url(container, object_name,
+                timeout)
+    elif scheme == 'glance':
+        glance_uuid = boot_iso_ref
+        boot_iso_temp_url = images.get_temp_url_for_glance_image(task.context,
+                glance_uuid)
+
+    attach_vmedia(task.node, 'CDROM', boot_iso_temp_url)
+
+
+def cleanup_vmedia_boot(task):
+    """Cleans a node after a virtual media boot.
+
+    This method cleans up a node after a virtual media boot. It deletes the
+    floppy image if it exists in CONF.ilo.swift_ilo_container. It also
+    ejects both virtual media cdrom and virtual media floppy.
+
+    :param task: a TaskManager instance containing the node to act on.
+    """
+    LOG.debug("Cleaning up node %s after virtual media boot", task.node.uuid)
+
+    container = CONF.ilo.swift_ilo_container
+    object_name = _get_floppy_image_name(task.node)
+    try:
+        swift_api = swift.SwiftAPI()
+        swift_api.delete_object(container, object_name)
+    except exception.SwiftOperationError as e:
+        LOG.exception(_LE("Error while deleting %(object_name)s from "
+                          "%(container)s. Error: %(error)s"),
+                      {'object_name': object_name, 'container': container,
+                       'error': e})
+
+    ilo_object = get_ilo_object(task.node)
+    for device in ('FLOPPY', 'CDROM'):
+        try:
+            ilo_object.eject_virtual_media(device)
+        except ilo_client.IloError as ilo_exception:
+            LOG.exception(_LE("Error while ejecting virtual media %(device)s "
+                              "from node %(uuid)s. Error: %(error)s"),
+                          {'device': device, 'uuid': task.node.uuid,
+                           'error': ilo_exception})

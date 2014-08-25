@@ -365,10 +365,6 @@ class FsImageTestCase(base.TestCase):
     def test_create_isolinux_image_rootfs_fails(self, utils_mock,
                                                 tempdir_mock,
                                                 create_root_fs_mock):
-
-        mock_file_handle = mock.MagicMock(spec=file)
-        mock_file_handle.__enter__.return_value = 'tmpdir'
-        tempdir_mock.return_value = mock_file_handle
         create_root_fs_mock.side_effect = IOError
 
         self.assertRaises(exception.ImageCreationFailed,
@@ -396,3 +392,54 @@ class FsImageTestCase(base.TestCase):
                           images.create_isolinux_image,
                           'tgt_file', 'path/to/kernel',
                           'path/to/ramdisk')
+
+    @mock.patch.object(images, 'create_isolinux_image')
+    @mock.patch.object(images, 'fetch_to_raw')
+    @mock.patch.object(utils, 'tempdir')
+    def test_create_boot_iso(self, tempdir_mock, fetch_images_mock,
+                             create_isolinux_mock):
+        mock_file_handle = mock.MagicMock(spec=file)
+        mock_file_handle.__enter__.return_value = 'tmpdir'
+        tempdir_mock.return_value = mock_file_handle
+
+        images.create_boot_iso('ctx', 'output_file', 'kernel-uuid',
+                               'ramdisk-uuid', 'root-uuid', 'kernel-params')
+
+        fetch_images_mock.assert_any_call('ctx', 'kernel-uuid',
+                'tmpdir/kernel-uuid')
+        fetch_images_mock.assert_any_call('ctx', 'ramdisk-uuid',
+                'tmpdir/ramdisk-uuid')
+        params = ['root=UUID=root-uuid', 'kernel-params']
+        create_isolinux_mock.assert_called_once_with('output_file',
+                'tmpdir/kernel-uuid', 'tmpdir/ramdisk-uuid', params)
+
+    @mock.patch.object(image_service, 'Service')
+    def test_get_glance_image_property(self, image_service_mock):
+
+        prop_dict = {'properties': {'prop1': 'val1'}}
+
+        image_service_obj_mock = image_service_mock.return_value
+        image_service_obj_mock.show.return_value = prop_dict
+
+        ret_val = images.get_glance_image_property('con', 'uuid', 'prop1')
+        image_service_mock.assert_called_once_with(version=1, context='con')
+        image_service_obj_mock.show.assert_called_once_with('uuid')
+        self.assertEqual('val1', ret_val)
+
+        ret_val = images.get_glance_image_property('con', 'uuid', 'prop2')
+        self.assertIsNone(ret_val)
+
+    @mock.patch.object(image_service, 'Service')
+    def test_get_temp_url_for_glance_image(self, image_service_mock):
+
+        direct_url = 'swift+http://host/v1/AUTH_xx/con/obj'
+        image_info = {'id': 'qwe', 'properties': {'direct_url': direct_url}}
+        glance_service_mock = image_service_mock.return_value
+        glance_service_mock.swift_temp_url.return_value = 'temp-url'
+        glance_service_mock.show.return_value = image_info
+
+        temp_url = images.get_temp_url_for_glance_image('context',
+                                                        'glance_uuid')
+
+        glance_service_mock.show.assert_called_once_with('glance_uuid')
+        self.assertEqual('temp-url', temp_url)

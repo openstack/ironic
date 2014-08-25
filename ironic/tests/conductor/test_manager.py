@@ -2259,6 +2259,16 @@ class ManagerTestProperties(tests_db_base.DbTestCase):
                    'client_port', 'client_timeout']
         self._check_driver_properties("fake_ilo", expected)
 
+    def test_driver_properties_ilo_iscsi(self):
+        expected = ['ilo_address', 'ilo_username', 'ilo_password',
+                   'client_port', 'client_timeout', 'ilo_deploy_iso',
+                   'ipmi_address', 'ipmi_terminal_port',
+                   'ipmi_password', 'ipmi_priv_level',
+                   'ipmi_username', 'ipmi_bridging', 'ipmi_transit_channel',
+                   'ipmi_transit_address', 'ipmi_target_channel',
+                   'ipmi_target_address', 'ipmi_local_address']
+        self._check_driver_properties("iscsi_ilo", expected)
+
     def test_driver_properties_fail(self):
         mgr_utils.mock_the_extension_manager()
         self.driver = driver_factory.get_driver("fake")
