@@ -323,11 +323,14 @@ Compute Service's controller nodes and compute nodes.*
     service nova-compute restart
 
 
+Setup the drivers for Bare Metal Service
+========================================
+
 PXE Setup
 ---------
 
-On the Bare Metal Service node(s) where ``ironic-conductor`` is running,
-PXE needs to be set up.
+If you will be using PXE, it needs to be set up on the Bare Metal Service
+node(s) where ``ironic-conductor`` is running.
 
 #. Make sure these directories exist::
 
@@ -339,6 +342,94 @@ PXE needs to be set up.
 
      ubuntu: /usr/lib/syslinux/pxelinux.0
      fedora/RHEL: /usr/share/syslinux/pxelinux.0
+
+iPXE Setup
+----------
+
+An alternative to PXE boot, iPXE was introduced in the Juno release
+(2014.2.0) of Ironic.
+
+If you will be using iPXE to boot instead of PXE, iPXE needs to be set up
+on the Bare Metal Service node(s) where ``ironic-conductor`` is running.
+
+1. Make sure these directories exist and can be written to by the user
+   the ``ironic-conductor`` is running as. For example::
+
+    sudo mkdir -p /tftpboot
+    sudo mkdir -p /httpboot
+    sudo chown -R ironic -p /tftpboot
+    sudo chown -R ironic -p /httpboot
+
+
+2. Set up TFTP and HTTP servers.
+
+  These servers should be running and configured to use the local
+  /tftpboot and /httpboot directories respectively, as their root
+  directories. (Setting up these servers is outside the scope of this
+  install guide.)
+
+  These root directories need to be mounted locally to the
+  ``ironic-conductor`` services, so that the services can access them.
+
+  The Bare Metal Service's configuration file (/etc/ironic/ironic.conf)
+  should be edited accordingly to specify the TFTP and HTTP root
+  directories and server addresses. For example::
+
+    [pxe]
+
+    # Ironic compute node's http root path. (string value)
+    http_root=/httpboot
+
+    # Ironic compute node's tftp root path. (string value)
+    tftp_root=/tftpboot
+
+    # IP address of Ironic compute node's tftp server. (string
+    # value)
+    tftp_server=192.168.0.2
+
+    # Ironic compute node's HTTP server URL. Example:
+    # http://192.1.2.3:8080 (string value)
+    http_url=http://192.168.0.2:8080
+
+
+3. Install the iPXE package with the boot images::
+
+    Ubuntu:
+        apt-get install ipxe
+
+    Fedora/RHEL:
+        yum install ipxe-bootimgs
+
+4. Copy the iPXE boot image (undionly.kpxe) to ``/tftpboot``. The binary
+   might be found at::
+
+    Ubuntu:
+        cp /usr/lib/ipxe/undionly.kpxe /tftpboot
+
+    Fedora/RHEL:
+        cp /usr/share/ipxe/undionly.kpxe /tftpboot
+
+*Note: If the packaged version of the iPXE boot image doesn't
+work for you or you want to build one from source take a look at
+http://ipxe.org/download for more information on preparing iPXE image.*
+
+5. Enable/Configure iPXE in the Bare Metal Service's configuration file
+   (/etc/ironic/ironic.conf)::
+
+    [pxe]
+
+    # Enable iPXE boot. (boolean value)
+    ipxe_enabled=True
+
+    # Neutron bootfile DHCP parameter. (string value)
+    pxe_bootfile_name=undionly.kpxe
+
+    # Template file for PXE configuration. (string value)
+    pxe_config_template=$pybasedir/drivers/modules/ipxe_config.template
+
+6. Restart the ``ironic-conductor`` process::
+
+    service ironic-conductor restart
 
 IPMI support
 ------------
