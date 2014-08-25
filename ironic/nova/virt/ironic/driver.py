@@ -728,11 +728,14 @@ class IronicDriver(virt_driver.ComputeDriver):
         node = _validate_instance_and_node(icli, instance)
         icli.call("node.set_power_state", node.uuid, 'reboot')
 
-    def power_off(self, instance):
+    def power_off(self, instance, timeout=0, retry_interval=0):
         """Power off the specified instance.
 
         :param instance: The instance object.
-
+        :param timeout: time to wait for node to shutdown. Ignored by
+            this driver.
+        :param retry_interval: How often to signal node while waiting
+            for it to shutdown. Ignored by this driver.
         """
         icli = client_wrapper.IronicClientWrapper()
         node = _validate_instance_and_node(icli, instance)
