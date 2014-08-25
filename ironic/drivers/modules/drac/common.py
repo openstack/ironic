@@ -100,15 +100,20 @@ def get_wsman_client(node):
     return client
 
 
-def find_xml(doc, item, namespace):
+def find_xml(doc, item, namespace, find_all=False):
     """Find the first or all elements in a ElementTree object.
 
     :param doc: the element tree object.
     :param item: the element name.
     :param namespace: the namespace of the element.
-    :returns: The element object or None if the element is not found.
+    :param find_all: Boolean value, if True find all elements, if False
+                     find only the first one. Defaults to False.
+    :returns: The element object if find_all is False or a list of
+              element objects if find_all is True.
 
     """
     query = ('.//{%(namespace)s}%(item)s' % {'namespace': namespace,
                                              'item': item})
+    if find_all:
+        return doc.findall(query)
     return doc.find(query)

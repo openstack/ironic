@@ -54,9 +54,9 @@ class DracClientTestCase(base.TestCase):
     def test_wsman_enumerate_with_additional_pull(self, mock_client_pywsman):
         mock_root = mock.Mock()
         mock_root.string.side_effect = [test_utils.build_soap_xml(
-                                           {'item1': 'test1'}),
+                                           [{'item1': 'test1'}]),
                                         test_utils.build_soap_xml(
-                                           {'item2': 'test2'})]
+                                           [{'item2': 'test2'}])]
         mock_xml = mock.Mock()
         mock_xml.root.return_value = mock_root
         mock_xml.context.side_effect = [42, 42, None]

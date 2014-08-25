@@ -46,7 +46,7 @@ class DracPowerInternalMethodsTestCase(base.TestCase):
         self.node = self.dbapi.create_node(db_node)
 
     def test__get_power_state(self, mock_power_pywsman, mock_client_pywsman):
-        result_xml = test_utils.build_soap_xml({'EnabledState': '2'},
+        result_xml = test_utils.build_soap_xml([{'EnabledState': '2'}],
                                              resource_uris.DCIM_ComputerSystem)
         mock_xml_root = mock.Mock()
         mock_xml_root.string.return_value = result_xml
@@ -65,7 +65,7 @@ class DracPowerInternalMethodsTestCase(base.TestCase):
             mock.ANY, resource_uris.DCIM_ComputerSystem)
 
     def test__set_power_state(self, mock_power_pywsman, mock_client_pywsman):
-        result_xml = test_utils.build_soap_xml({'ReturnValue': '0'},
+        result_xml = test_utils.build_soap_xml([{'ReturnValue': '0'}],
                                              resource_uris.DCIM_ComputerSystem)
         mock_xml_root = mock.Mock()
         mock_xml_root.string.return_value = result_xml
@@ -92,8 +92,8 @@ class DracPowerInternalMethodsTestCase(base.TestCase):
 
     def test__set_power_state_fail(self, mock_power_pywsman,
                                    mock_client_pywsman):
-        result_xml = test_utils.build_soap_xml({'ReturnValue': '1',
-                                                'Message': 'error message'},
+        result_xml = test_utils.build_soap_xml([{'ReturnValue': '1',
+                                                'Message': 'error message'}],
                                              resource_uris.DCIM_ComputerSystem)
         mock_xml_root = mock.Mock()
         mock_xml_root.string.return_value = result_xml

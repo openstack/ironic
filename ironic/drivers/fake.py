@@ -22,6 +22,7 @@ from oslo.utils import importutils
 from ironic.common import exception
 from ironic.drivers import base
 from ironic.drivers.modules import agent
+from ironic.drivers.modules.drac import management as drac_mgmt
 from ironic.drivers.modules.drac import power as drac_power
 from ironic.drivers.modules import fake
 from ironic.drivers.modules import iboot
@@ -142,3 +143,4 @@ class FakeDracDriver(base.BaseDriver):
 
         self.power = drac_power.DracPower()
         self.deploy = fake.FakeDeploy()
+        self.management = drac_mgmt.DracManagement()

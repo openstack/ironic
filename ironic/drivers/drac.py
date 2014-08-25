@@ -16,15 +16,14 @@ DRAC Driver for remote system management using Dell Remote Access Card.
 
 from ironic.common import exception
 from ironic.drivers import base
+from ironic.drivers.modules.drac import management
 from ironic.drivers.modules.drac import power
-from ironic.drivers.modules import ipmitool
 from ironic.drivers.modules import pxe
 from ironic.openstack.common import importutils
 
 
 class PXEDracDriver(base.BaseDriver):
-
-    """Drac driver using PXE for deploy and ipmitool for management."""
+    """Drac driver using PXE for deploy."""
 
     def __init__(self):
         if not importutils.try_import('pywsman'):
@@ -34,6 +33,4 @@ class PXEDracDriver(base.BaseDriver):
 
         self.power = power.DracPower()
         self.deploy = pxe.PXEDeploy()
-        # NOTE(ifarkas): using ipmitool is a temporary solution. It will be
-        #                replaced by the DracManagement interface.
-        self.management = ipmitool.IPMIManagement()
+        self.management = management.DracManagement()
