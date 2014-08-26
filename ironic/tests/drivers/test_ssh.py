@@ -835,9 +835,9 @@ class SSHDriverTestCase(db_base.DbTestCase):
     def test_set_boot_device_not_supported(self, mock_h, mock_get_conn):
         mock_h.return_value = 'NodeName'
         mock_get_conn.return_value = self.sshclient
-        # vmware does not support set_boot_device()
-        self.node['driver_info']['ssh_virt_type'] = 'vmware'
         with task_manager.acquire(self.context, self.node.uuid) as task:
+            # vmware does not support set_boot_device()
+            task.node['driver_info']['ssh_virt_type'] = 'vmware'
             self.assertRaises(NotImplementedError,
                               self.driver.management.set_boot_device,
                               task, boot_devices.PXE)
@@ -892,9 +892,9 @@ class SSHDriverTestCase(db_base.DbTestCase):
     def test_get_boot_device_not_supported(self, mock_h, mock_get_conn):
         mock_h.return_value = 'NodeName'
         mock_get_conn.return_value = self.sshclient
-        # vmware does not support get_boot_device()
-        self.node['driver_info']['ssh_virt_type'] = 'vmware'
         with task_manager.acquire(self.context, self.node.uuid) as task:
+            # vmware does not support get_boot_device()
+            task.node['driver_info']['ssh_virt_type'] = 'vmware'
             expected = {'boot_device': None, 'persistent': None}
             self.assertEqual(expected,
                              self.driver.management.get_boot_device(task))
