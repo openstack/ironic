@@ -437,3 +437,7 @@ class InsufficientDiskSpace(IronicException):
     message = _("Disk volume where '%(path)s' is located doesn't have "
                 "enough disk space. Required %(required)d MiB, "
                 "only %(actual)d MiB available space present.")
+
+
+class ImageCreationFailed(IronicException):
+    message = _('Creating %(image_type)s image failed: %(error)s')

@@ -251,6 +251,13 @@
 # Force backing images to raw format. (boolean value)
 #force_raw_images=true
 
+# Path to isolinux binary file. (string value)
+#isolinux_bin=/usr/lib/syslinux/isolinux.bin
+
+# Template file for isolinux configuration file. (string
+# value)
+#isolinux_config_template=$pybasedir/common/isolinux_config.template
+
 
 #
 # Options defined in ironic.common.paths
