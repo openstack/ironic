@@ -92,18 +92,21 @@ class DriverFactory(object):
         if cls._extension_manager:
             return
 
-        # NOTE(deva): Drivers raise "DriverNotFound" if they are unable to be
+        # NOTE(deva): Drivers raise "DriverLoadError" if they are unable to be
         #             loaded, eg. due to missing external dependencies.
         #             We capture that exception, and, only if it is for an
-        #             enabled driver, raise it from here. If the exception
-        #             is for a non-enabled driver, we suppress it.
+        #             enabled driver, raise it from here. If enabled driver
+        #             raises other exception type, it is wrapped in
+        #             "DriverLoadError", providing the name of the driver that
+        #             caused it, and raised. If the exception is for a
+        #             non-enabled driver, we suppress it.
         def _catch_driver_not_found(mgr, ep, exc):
             # NOTE(deva): stevedore loads plugins *before* evaluating
             #             _check_func, so we need to check here, too.
-            if (isinstance(exc, exception.DriverLoadError) and
-                    ep.name not in CONF.enabled_drivers):
-                return
-            raise exc
+            if ep.name in CONF.enabled_drivers:
+                if not isinstance(exc, exception.DriverLoadError):
+                    raise exception.DriverLoadError(driver=ep.name, reason=exc)
+                raise exc
 
         def _check_func(ext):
             return ext.name in CONF.enabled_drivers
