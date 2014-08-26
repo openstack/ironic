@@ -41,8 +41,8 @@ class TestPXEUtils(db_base.DbTestCase):
             'deployment_key': '0123456789ABCDEFGHIJKLMNOPQRSTUV',
             'ari_path': u'/tftpboot/1be26c0b-03f2-4d2e-ae87-c02d7f33c123/'
                         u'ramdisk',
-            'deployment_iscsi_iqn': u'iqn-1be26c0b-03f2-4d2e-ae87-c02d7f33'
-                                    u'c123',
+            'iscsi_target_iqn': u'iqn-1be26c0b-03f2-4d2e-ae87-c02d7f33'
+                                u'c123',
             'deployment_ari_path': u'/tftpboot/1be26c0b-03f2-4d2e-ae87-c02d7'
                                    u'f33c123/deploy_ramdisk',
             'pxe_append_params': 'test_param',
@@ -51,7 +51,8 @@ class TestPXEUtils(db_base.DbTestCase):
             'deployment_id': u'1be26c0b-03f2-4d2e-ae87-c02d7f33c123',
             'ironic_api_url': 'http://192.168.122.184:6385',
             'deployment_aki_path': u'/tftpboot/1be26c0b-03f2-4d2e-ae87-'
-                                   u'c02d7f33c123/deploy_kernel'
+                                   u'c02d7f33c123/deploy_kernel',
+            'disk': 'cciss/c0d0,sda,hda,vda'
         }
         self.node = object_utils.create_test_node(self.context)
 

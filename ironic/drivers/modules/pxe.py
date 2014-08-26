@@ -21,11 +21,10 @@ import os
 import shutil
 
 from oslo.config import cfg
-from oslo.utils import strutils
 
 from ironic.common import exception
+from ironic.common import i18n
 from ironic.common import image_service as service
-from ironic.common import keystone
 from ironic.common import neutron
 from ironic.common import paths
 from ironic.common import pxe_utils
@@ -36,26 +35,16 @@ from ironic.conductor import utils as manager_utils
 from ironic.drivers import base
 from ironic.drivers.modules import deploy_utils
 from ironic.drivers.modules import image_cache
-from ironic.drivers import utils as driver_utils
+from ironic.drivers.modules import iscsi_deploy
 from ironic.openstack.common import fileutils
 from ironic.openstack.common import log as logging
 
 
 pxe_opts = [
-    cfg.StrOpt('pxe_append_params',
-               default='nofb nomodeset vga=normal',
-               help='Additional append parameters for baremetal PXE boot.'),
     cfg.StrOpt('pxe_config_template',
                default=paths.basedir_def(
                     'drivers/modules/pxe_config.template'),
                help='Template file for PXE configuration.'),
-    cfg.StrOpt('default_ephemeral_format',
-               default='ext4',
-               help='Default file system format for ephemeral partition, '
-                    'if one is created.'),
-    cfg.StrOpt('images_path',
-               default='/var/lib/ironic/images/',
-               help='Directory where images are stored on disk.'),
     cfg.StrOpt('tftp_server',
                default='$my_ip',
                help='IP address of Ironic compute node\'s tftp server.'),
@@ -65,25 +54,11 @@ pxe_opts = [
     cfg.StrOpt('tftp_master_path',
                default='/tftpboot/master_images',
                help='Directory where master tftp images are stored on disk.'),
-    cfg.StrOpt('instance_master_path',
-               default='/var/lib/ironic/master_images',
-               help='Directory where master instance images are stored on '
-                    'disk.'),
     # NOTE(dekehn): Additional boot files options may be created in the event
     #  other architectures require different boot files.
     cfg.StrOpt('pxe_bootfile_name',
                default='pxelinux.0',
                help='Neutron bootfile DHCP parameter.'),
-    cfg.IntOpt('image_cache_size',
-               default=20480,
-               help='Maximum size (in MiB) of cache for master images, '
-               'including those in use.'),
-    # 10080 here is 1 week - 60*24*7. It is entirely arbitrary in the absence
-    # of a facility to disable the ttl entirely.
-    cfg.IntOpt('image_cache_ttl',
-               default=10080,
-               help='Maximum TTL (in minutes) for old master images in '
-               'cache.'),
     cfg.StrOpt('http_url',
                 help='Ironic compute node\'s HTTP server URL. '
                      'Example: http://192.1.2.3:8080'),
@@ -101,9 +76,13 @@ pxe_opts = [
 
 LOG = logging.getLogger(__name__)
 
+_LE = i18n._LE
+_LI = i18n._LI
+
 CONF = cfg.CONF
 CONF.register_opts(pxe_opts, group='pxe')
 CONF.import_opt('use_ipv6', 'ironic.netconf')
+
 
 REQUIRED_PROPERTIES = {
     'pxe_deploy_kernel': _("UUID (from Glance) of the deployment kernel. "
@@ -112,18 +91,6 @@ REQUIRED_PROPERTIES = {
                             "mounted at boot time. Required."),
 }
 COMMON_PROPERTIES = REQUIRED_PROPERTIES
-
-
-def _check_for_missing_params(info_dict, param_prefix=''):
-    missing_info = []
-    for label, value in info_dict.items():
-        if not value:
-            missing_info.append(param_prefix + label)
-
-    if missing_info:
-        raise exception.MissingParameterValue(_(
-                "Can not validate PXE bootloader. The following parameters "
-                "were not passed to ironic: %s") % missing_info)
 
 
 def _parse_driver_info(node):
@@ -142,59 +109,10 @@ def _parse_driver_info(node):
     d_info['deploy_kernel'] = info.get('pxe_deploy_kernel')
     d_info['deploy_ramdisk'] = info.get('pxe_deploy_ramdisk')
 
-    _check_for_missing_params(d_info, 'pxe_')
+    error_msg = _("Cannot validate PXE bootloader")
+    deploy_utils.check_for_missing_params(d_info, error_msg, 'pxe_')
 
     return d_info
-
-
-def _parse_instance_info(node):
-    """Gets the instance specific Node deployment info.
-
-    This method validates whether the 'instance_info' property of the
-    supplied node contains the required information for this driver to
-    deploy images to the node.
-
-    :param node: a single Node.
-    :returns: A dict with the instance_info values.
-    :raises: MissingParameterValue
-    :raises: InvalidParameterValue
-    """
-
-    info = node.instance_info
-    i_info = {}
-    i_info['image_source'] = info.get('image_source')
-    i_info['root_gb'] = info.get('root_gb')
-
-    _check_for_missing_params(i_info)
-
-    # Internal use only
-    i_info['deploy_key'] = info.get('deploy_key')
-
-    i_info['swap_mb'] = info.get('swap_mb', 0)
-    i_info['ephemeral_gb'] = info.get('ephemeral_gb', 0)
-    i_info['ephemeral_format'] = info.get('ephemeral_format')
-
-    err_msg_invalid = _("Can not validate PXE bootloader. Invalid parameter "
-                        "%(param)s. Reason: %(reason)s")
-    for param in ('root_gb', 'swap_mb', 'ephemeral_gb'):
-        try:
-            int(i_info[param])
-        except ValueError:
-            reason = _("'%s' is not an integer value.") % i_info[param]
-            raise exception.InvalidParameterValue(err_msg_invalid %
-                                            {'param': param, 'reason': reason})
-
-    if i_info['ephemeral_gb'] and not i_info['ephemeral_format']:
-        i_info['ephemeral_format'] = CONF.pxe.default_ephemeral_format
-
-    preserve_ephemeral = info.get('preserve_ephemeral', False)
-    try:
-        i_info['preserve_ephemeral'] = strutils.bool_from_string(
-                                            preserve_ephemeral, strict=True)
-    except ValueError as e:
-        raise exception.InvalidParameterValue(err_msg_invalid %
-                                  {'param': 'preserve_ephemeral', 'reason': e})
-    return i_info
 
 
 def _parse_deploy_info(node):
@@ -210,7 +128,7 @@ def _parse_deploy_info(node):
     :raises: InvalidParameterValue
     """
     info = {}
-    info.update(_parse_instance_info(node))
+    info.update(iscsi_deploy.parse_instance_info(node))
     info.update(_parse_driver_info(node))
     return info
 
@@ -230,17 +148,6 @@ def _build_pxe_config_options(node, pxe_info, ctx):
     :returns: A dictionary of pxe options to be used in the pxe bootfile
         template.
     """
-    # NOTE: we should strip '/' from the end because this is intended for
-    # hardcoded ramdisk script
-    ironic_api = (CONF.conductor.api_url or
-                  keystone.get_service_url()).rstrip('/')
-
-    deploy_key = utils.random_alnum(32)
-    i_info = node.instance_info
-    i_info['deploy_key'] = deploy_key
-    node.instance_info = i_info
-    node.save(ctx)
-
     if CONF.pxe.ipxe_enabled:
         deploy_kernel = '/'.join([CONF.pxe.http_url, node.uuid,
                                   'deploy_kernel'])
@@ -255,27 +162,17 @@ def _build_pxe_config_options(node, pxe_info, ctx):
         ramdisk = pxe_info['ramdisk'][1]
 
     pxe_options = {
-        'deployment_id': node['uuid'],
-        'deployment_key': deploy_key,
-        'deployment_iscsi_iqn': "iqn-%s" % node.uuid,
         'deployment_aki_path': deploy_kernel,
         'deployment_ari_path': deploy_ramdisk,
         'aki_path': kernel,
         'ari_path': ramdisk,
-        'ironic_api_url': ironic_api,
         'pxe_append_params': CONF.pxe.pxe_append_params,
     }
+
+    deploy_ramdisk_options = iscsi_deploy.build_deploy_ramdisk_options(node,
+            ctx)
+    pxe_options.update(deploy_ramdisk_options)
     return pxe_options
-
-
-def _get_image_dir_path(node_uuid):
-    """Generate the dir for an instances disk."""
-    return os.path.join(CONF.pxe.images_path, node_uuid)
-
-
-def _get_image_file_path(node_uuid):
-    """Generate the full path for an instances disk."""
-    return os.path.join(_get_image_dir_path(node_uuid), 'disk')
 
 
 def _get_token_file_path(node_uuid):
@@ -283,49 +180,16 @@ def _get_token_file_path(node_uuid):
     return os.path.join(CONF.pxe.tftp_root, 'token-' + node_uuid)
 
 
-class PXEImageCache(image_cache.ImageCache):
-    def __init__(self, master_dir, image_service=None):
-        super(PXEImageCache, self).__init__(
-            master_dir,
+@image_cache.cleanup(priority=25)
+class TFTPImageCache(image_cache.ImageCache):
+    def __init__(self, image_service=None):
+        super(TFTPImageCache, self).__init__(
+            CONF.pxe.tftp_master_path,
             # MiB -> B
             cache_size=CONF.pxe.image_cache_size * 1024 * 1024,
             # min -> sec
             cache_ttl=CONF.pxe.image_cache_ttl * 60,
             image_service=image_service)
-
-
-@image_cache.cleanup(priority=25)
-class TFTPImageCache(PXEImageCache):
-    def __init__(self, image_service=None):
-        super(TFTPImageCache, self).__init__(CONF.pxe.tftp_master_path)
-
-
-@image_cache.cleanup(priority=50)
-class InstanceImageCache(PXEImageCache):
-    def __init__(self, image_service=None):
-        super(InstanceImageCache, self).__init__(CONF.pxe.instance_master_path)
-
-
-def _fetch_images(ctx, cache, images_info):
-    """Check for available disk space and fetch images using ImageCache.
-
-    :param ctx: context
-    :param cache: ImageCache instance to use for fetching
-    :param images_info: list of tuples (image uuid, destination path)
-    :raises: InstanceDeployFailure if unable to find enough disk space
-    """
-
-    try:
-        image_cache.clean_up_caches(ctx, cache.master_dir, images_info)
-    except exception.InsufficientDiskSpace as e:
-        raise exception.InstanceDeployFailure(reason=e)
-
-    # NOTE(dtantsur): This code can suffer from race condition,
-    # if disk space is used between the check and actual download.
-    # This is probably unavoidable, as we can't control other
-    # (probably unrelated) processes
-    for uuid, path in images_info:
-        cache.fetch_image(uuid, path, ctx=ctx)
 
 
 def _cache_ramdisk_kernel(ctx, node, pxe_info):
@@ -334,37 +198,7 @@ def _cache_ramdisk_kernel(ctx, node, pxe_info):
         os.path.join(pxe_utils.get_root_dir(), node.uuid))
     LOG.debug("Fetching kernel and ramdisk for node %s",
               node.uuid)
-    _fetch_images(ctx, TFTPImageCache(), pxe_info.values())
-
-
-def _cache_instance_image(ctx, node):
-    """Fetch the instance's image from Glance
-
-    This method pulls the relevant AMI and associated kernel and ramdisk,
-    and the deploy kernel and ramdisk from Glance, and writes them
-    to the appropriate places on local disk.
-
-    Both sets of kernel and ramdisk are needed for PXE booting, so these
-    are stored under CONF.pxe.tftp_root.
-
-    At present, the AMI is cached and certain files are injected.
-    Debian/ubuntu-specific assumptions are made regarding the injected
-    files. In a future revision, this functionality will be replaced by a
-    more scalable and os-agnostic approach: the deployment ramdisk will
-    fetch from Glance directly, and write its own last-mile configuration.
-
-    """
-    i_info = _parse_instance_info(node)
-    fileutils.ensure_tree(_get_image_dir_path(node.uuid))
-    image_path = _get_image_file_path(node.uuid)
-    uuid = i_info['image_source']
-
-    LOG.debug("Fetching image %(ami)s for node %(uuid)s" %
-              {'ami': uuid, 'uuid': node.uuid})
-
-    _fetch_images(ctx, InstanceImageCache(), [(uuid, image_path)])
-
-    return (uuid, image_path)
+    deploy_utils.fetch_images(ctx, TFTPImageCache(), pxe_info.values())
 
 
 def _get_image_info(node, ctx):
@@ -401,13 +235,6 @@ def _get_image_info(node, ctx):
     return image_info
 
 
-def _destroy_images(node_uuid):
-    """Delete instance's image file."""
-    utils.unlink_without_raise(_get_image_file_path(node_uuid))
-    utils.rmtree_without_raise(_get_image_dir_path(node_uuid))
-    InstanceImageCache().clean_up()
-
-
 def _create_token_file(task):
     """Save PKI token to file."""
     token_file_path = _get_token_file_path(task.node.uuid)
@@ -424,54 +251,6 @@ def _destroy_token_file(node):
     utils.unlink_without_raise(token_file_path)
 
 
-def _check_image_size(task):
-    """Check if the requested image is larger than the root partition size."""
-    i_info = _parse_instance_info(task.node)
-    image_path = _get_image_file_path(task.node.uuid)
-    image_mb = deploy_utils.get_image_mb(image_path)
-    root_mb = 1024 * int(i_info['root_gb'])
-    if image_mb > root_mb:
-        msg = (_('Root partition is too small for requested image. '
-                 'Image size: %(image_mb)d MB, Root size: %(root_mb)d MB')
-               % {'image_mb': image_mb, 'root_mb': root_mb})
-        raise exception.InstanceDeployFailure(msg)
-
-
-def _validate_glance_image(ctx, deploy_info):
-    """Validate the image in Glance.
-
-    Check if the image exist in Glance and if it contains the
-    'kernel_id' and 'ramdisk_id' properties.
-
-    :raises: InvalidParameterValue.
-    :raises: MissingParameterValue
-    """
-    image_id = deploy_info['image_source']
-    try:
-        glance_service = service.Service(version=1, context=ctx)
-        image_props = glance_service.show(image_id)['properties']
-    except (exception.GlanceConnectionFailed,
-            exception.ImageNotAuthorized,
-            exception.Invalid):
-        raise exception.InvalidParameterValue(_(
-            "Failed to connect to Glance to get the properties "
-            "of the image %s") % image_id)
-    except exception.ImageNotFound:
-        raise exception.InvalidParameterValue(_(
-            "Image %s not found in Glance") % image_id)
-
-    missing_props = []
-    for prop in ('kernel_id', 'ramdisk_id'):
-        if not image_props.get(prop):
-            missing_props.append(prop)
-
-    if missing_props:
-        props = ', '.join(missing_props)
-        raise exception.MissingParameterValue(_(
-            "Image %(image)s is missing the following properties: "
-            "%(properties)s") % {'image': image_id, 'properties': props})
-
-
 class PXEDeploy(base.DeployInterface):
     """PXE Deploy Interface: just a stub until the real driver is ported."""
 
@@ -485,31 +264,19 @@ class PXEDeploy(base.DeployInterface):
         :raises: InvalidParameterValue.
         :raises: MissingParameterValue
         """
-        node = task.node
-        if not driver_utils.get_node_mac_addresses(task):
-            raise exception.MissingParameterValue(_("Node %s does not have "
-                                "any port associated with it.") % node.uuid)
-
-        d_info = _parse_deploy_info(node)
-
         if CONF.pxe.ipxe_enabled:
             if not CONF.pxe.http_url or not CONF.pxe.http_root:
                 raise exception.MissingParameterValue(_(
                     "iPXE boot is enabled but no HTTP URL or HTTP "
                     "root was specified."))
 
-        # Try to get the URL of the Ironic API
-        try:
-            # TODO(lucasagomes): Validate the format of the URL
-            CONF.conductor.api_url or keystone.get_service_url()
-        except (exception.CatalogFailure,
-                exception.CatalogNotFound,
-                exception.CatalogUnauthorized):
-            raise exception.InvalidParameterValue(_(
-                "Couldn't get the URL of the Ironic API service from the "
-                "configuration file or keystone catalog."))
+        d_info = _parse_deploy_info(task.node)
 
-        _validate_glance_image(task.context, d_info)
+        iscsi_deploy.validate(task)
+
+        props = ['kernel_id', 'ramdisk_id']
+        iscsi_deploy.validate_glance_image_properties(task.context, d_info,
+                                                      props)
 
     @task_manager.require_exclusive_lock
     def deploy(self, task):
@@ -525,8 +292,8 @@ class PXEDeploy(base.DeployInterface):
         :param task: a TaskManager instance containing the node to act on.
         :returns: deploy state DEPLOYING.
         """
-        _cache_instance_image(task.context, task.node)
-        _check_image_size(task)
+        iscsi_deploy.cache_instance_image(task.context, task.node)
+        iscsi_deploy.check_image_size(task)
 
         # TODO(yuriyz): more secure way needed for pass auth token
         #               to deploy ramdisk
@@ -591,7 +358,7 @@ class PXEDeploy(base.DeployInterface):
 
         pxe_utils.clean_up_pxe_config(task)
 
-        _destroy_images(node.uuid)
+        iscsi_deploy.destroy_images(node.uuid)
         _destroy_token_file(node)
 
     def take_over(self, task):
@@ -602,46 +369,24 @@ class PXEDeploy(base.DeployInterface):
 class VendorPassthru(base.VendorInterface):
     """Interface to mix IPMI and PXE vendor-specific interfaces."""
 
-    def _get_deploy_info(self, node, **kwargs):
-        d_info = _parse_deploy_info(node)
-
-        deploy_key = kwargs.get('key')
-        if d_info['deploy_key'] != deploy_key:
-            raise exception.InvalidParameterValue(_("Deploy key does not"
-                                                    " match"))
-
-        params = {'address': kwargs.get('address'),
-                  'port': kwargs.get('port', '3260'),
-                  'iqn': kwargs.get('iqn'),
-                  'lun': kwargs.get('lun', '1'),
-                  'image_path': _get_image_file_path(node.uuid),
-                  'pxe_config_path':
-                      pxe_utils.get_pxe_config_file_path(node.uuid),
-                  'root_mb': 1024 * int(d_info['root_gb']),
-                  'swap_mb': int(d_info['swap_mb']),
-                  'ephemeral_mb': 1024 * int(d_info['ephemeral_gb']),
-                  'preserve_ephemeral': d_info['preserve_ephemeral'],
-                  'node_uuid': node.uuid,
-            }
-
-        missing = [key for key in params.keys() if params[key] is None]
-        if missing:
-            raise exception.MissingParameterValue(_(
-                    "Parameters %s were not passed to ironic"
-                    " for deploy.") % missing)
-
-        # ephemeral_format is nullable
-        params['ephemeral_format'] = d_info.get('ephemeral_format')
-
-        return params
-
     def get_properties(self):
         return COMMON_PROPERTIES
 
     def validate(self, task, **kwargs):
+        """Validates the inputs for a vendor passthru.
+
+        This method checks whether the vendor passthru method is a valid one,
+        and then validates whether the required information for executing the
+        vendor passthru has been provided or not.
+
+        :param task: a TaskManager instance containing the node to act on.
+        :param kwargs: kwargs containins the method name and its parameters.
+        :raises: InvalidParameterValue if method is invalid or any parameters
+            to the method is invalid.
+        """
         method = kwargs['method']
         if method == 'pass_deploy_info':
-            self._get_deploy_info(task.node, **kwargs)
+            iscsi_deploy.get_deploy_info(task.node, **kwargs)
         else:
             raise exception.InvalidParameterValue(_(
                 "Unsupported method (%s) passed to PXE driver.")
@@ -649,69 +394,51 @@ class VendorPassthru(base.VendorInterface):
 
     @task_manager.require_exclusive_lock
     def _continue_deploy(self, task, **kwargs):
-        """Resume a deployment upon getting POST data from deploy ramdisk.
+        """Continues the deployment of baremetal node over iSCSI.
 
-        This method raises no exceptions because it is intended to be
-        invoked asynchronously as a callback from the deploy ramdisk.
+        This method continues the deployment of the baremetal node over iSCSI
+        from where the deployment ramdisk has left off.
+
+        :param task: a TaskManager instance containing the node to act on.
+        :param kwargs: kwargs for performing iscsi deployment.
         """
         node = task.node
 
-        def _set_failed_state(msg):
-            node.provision_state = states.DEPLOYFAIL
-            node.target_provision_state = states.NOSTATE
-            node.save(task.context)
-            try:
-                manager_utils.node_power_action(task, states.POWER_OFF)
-            except Exception:
-                msg = (_('Node %s failed to power off while handling deploy '
-                         'failure. This may be a serious condition. Node '
-                         'should be removed from Ironic or put in maintenance '
-                         'mode until the problem is resolved.') % node.uuid)
-                LOG.error(msg)
-            finally:
-                # NOTE(deva): node_power_action() erases node.last_error
-                #             so we need to set it again here.
-                node.last_error = msg
-                node.save(task.context)
-
         if node.provision_state != states.DEPLOYWAIT:
-            LOG.error(_('Node %s is not waiting to be deployed.') %
-                      node.uuid)
+            LOG.error(_LE('Node %s is not waiting to be deployed.'), node.uuid)
             return
-        node.provision_state = states.DEPLOYING
-        node.save(task.context)
-        # remove cached keystone token immediately
+
         _destroy_token_file(node)
 
-        params = self._get_deploy_info(node, **kwargs)
-        ramdisk_error = kwargs.get('error')
+        root_uuid = iscsi_deploy.continue_deploy(task, **kwargs)
 
-        if ramdisk_error:
-            LOG.error(_('Error returned from PXE deploy ramdisk: %s')
-                    % ramdisk_error)
-            _set_failed_state(_('Failure in PXE deploy ramdisk.'))
-            _destroy_images(node.uuid)
+        if not root_uuid:
             return
 
-        LOG.info(_('Continuing deployment for node %(node)s, params '
-                   '%(params)s') % {'node': node.uuid, 'params': params})
-
         try:
-            deploy_utils.deploy(**params)
-        except Exception as e:
-            LOG.error(_('PXE deploy failed for instance %(instance)s. '
-                        'Error: %(error)s') % {'instance': node.instance_uuid,
-                                               'error': e})
-            _set_failed_state(_('PXE driver failed to continue deployment.'))
-        else:
-            LOG.info(_('Deployment to node %s done') % node.uuid)
+            pxe_config_path = pxe_utils.get_pxe_config_file_path(node.uuid)
+            deploy_utils.switch_pxe_config(pxe_config_path, root_uuid)
+
+            deploy_utils.notify_deploy_complete(kwargs['address'])
+
+            LOG.info(_LI('Deployment to node %s done'), node.uuid)
             node.provision_state = states.ACTIVE
             node.target_provision_state = states.NOSTATE
             node.save(task.context)
+        except Exception as e:
 
-        _destroy_images(node.uuid)
+            LOG.error(_LE('Deploy failed for instance %(instance)s. '
+                          'Error: %(error)s'),
+                      {'instance': node.instance_uuid, 'error': e})
+            msg = _('Failed to continue iSCSI deployment.')
+            iscsi_deploy.set_failed_state(task, msg)
 
     def vendor_passthru(self, task, **kwargs):
+        """Invokes a vendor passthru method.
+
+        :param task: a TaskManager instance containing the node to act on.
+        :param kwargs: kwargs containins the method name and its parameters.
+        """
         method = kwargs['method']
         if method == 'pass_deploy_info':
             self._continue_deploy(task, **kwargs)
