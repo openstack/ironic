@@ -1548,6 +1548,16 @@ class ManagerDoSyncPowerStateTestCase(tests_base.TestCase):
         self.assertEqual(1,
                          self.service.power_state_sync_count[self.node.uuid])
 
+    def test_get_power_state_error(self, node_power_action):
+        self._do_sync_power_state('fake', states.ERROR)
+        self.assertFalse(self.power.validate.called)
+        self.power.get_power_state.assert_called_once_with(self.task)
+        self.assertFalse(self.node.save.called)
+        self.assertFalse(node_power_action.called)
+        self.assertEqual('fake', self.node.power_state)
+        self.assertEqual(1,
+                         self.service.power_state_sync_count[self.node.uuid])
+
     def test_state_changed_no_sync(self, node_power_action):
         self._do_sync_power_state(states.POWER_ON, states.POWER_OFF)
 
