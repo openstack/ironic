@@ -34,6 +34,7 @@ class AgentAndIPMIToolDriver(base.BaseDriver):
     def __init__(self):
         self.power = ipmitool.IPMIPower()
         self.deploy = agent.AgentDeploy()
+        self.management = ipmitool.IPMIManagement()
         self.agent_vendor = agent.AgentVendorInterface()
         self.mapping = {'heartbeat': self.agent_vendor}
         self.dl_mapping = {'lookup': self.agent_vendor}
@@ -56,6 +57,7 @@ class AgentAndIPMINativeDriver(base.BaseDriver):
     def __init__(self):
         self.power = ipminative.NativeIPMIPower()
         self.deploy = agent.AgentDeploy()
+        self.management = ipminative.NativeIPMIManagement()
         self.agent_vendor = agent.AgentVendorInterface()
         self.mapping = {'heartbeat': self.agent_vendor}
         self.dl_mapping = {'lookup': self.agent_vendor}
