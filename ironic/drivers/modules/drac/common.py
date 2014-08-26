@@ -98,3 +98,17 @@ def get_wsman_client(node):
     driver_info = parse_driver_info(node)
     client = drac_client.Client(**driver_info)
     return client
+
+
+def find_xml(doc, item, namespace):
+    """Find the first or all elements in a ElementTree object.
+
+    :param doc: the element tree object.
+    :param item: the element name.
+    :param namespace: the namespace of the element.
+    :returns: The element object or None if the element is not found.
+
+    """
+    query = ('.//{%(namespace)s}%(item)s' % {'namespace': namespace,
+                                             'item': item})
+    return doc.find(query)

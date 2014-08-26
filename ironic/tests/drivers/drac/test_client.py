@@ -16,10 +16,12 @@ Test class for DRAC client wrapper.
 """
 
 import mock
+from xml.etree import ElementTree
 
 from ironic.drivers.modules.drac import client as drac_client
 from ironic.tests import base
 from ironic.tests.db import utils as db_utils
+from ironic.tests.drivers.drac import utils as test_utils
 
 INFO_DICT = db_utils.get_test_drac_info()
 
@@ -28,7 +30,10 @@ INFO_DICT = db_utils.get_test_drac_info()
 class DracClientTestCase(base.TestCase):
 
     def test_wsman_enumerate(self, mock_client_pywsman):
+        mock_root = mock.Mock()
+        mock_root.string.return_value = '<test></test>'
         mock_xml = mock.Mock()
+        mock_xml.root.return_value = mock_root
         mock_xml.context.return_value = None
 
         mock_pywsman_client = mock_client_pywsman.Client.return_value
@@ -47,7 +52,13 @@ class DracClientTestCase(base.TestCase):
         mock_xml.context.assert_called_once_with()
 
     def test_wsman_enumerate_with_additional_pull(self, mock_client_pywsman):
+        mock_root = mock.Mock()
+        mock_root.string.side_effect = [test_utils.build_soap_xml(
+                                           {'item1': 'test1'}),
+                                        test_utils.build_soap_xml(
+                                           {'item2': 'test2'})]
         mock_xml = mock.Mock()
+        mock_xml.root.return_value = mock_root
         mock_xml.context.side_effect = [42, 42, None]
 
         mock_pywsman_client = mock_client_pywsman.Client.return_value
@@ -57,7 +68,12 @@ class DracClientTestCase(base.TestCase):
         resource_uri = 'https://foo/wsman'
         mock_options = mock_client_pywsman.ClientOptions.return_value
         client = drac_client.Client(**INFO_DICT)
-        client.wsman_enumerate(resource_uri, mock_options)
+        result = client.wsman_enumerate(resource_uri, mock_options)
+
+        # assert the XML was merged
+        result_string = ElementTree.tostring(result)
+        self.assertIn('<item1>test1</item1>', result_string)
+        self.assertIn('<item2>test2</item2>', result_string)
 
         mock_options.set_flags.assert_called_once_with(
             mock_client_pywsman.FLAG_ENUMERATION_OPTIMIZATION)
@@ -66,7 +82,13 @@ class DracClientTestCase(base.TestCase):
             None, resource_uri)
 
     def test_wsman_invoke(self, mock_client_pywsman):
+        mock_root = mock.Mock()
+        mock_root.string.return_value = '<test></test>'
+        mock_xml = mock.Mock()
+        mock_xml.root.return_value = mock_root
+
         mock_pywsman_client = mock_client_pywsman.Client.return_value
+        mock_pywsman_client.invoke.return_value = mock_xml
 
         resource_uri = 'https://foo/wsman'
         mock_options = mock_client_pywsman.ClientOptions.return_value

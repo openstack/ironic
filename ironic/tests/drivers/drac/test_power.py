@@ -27,6 +27,7 @@ from ironic.drivers.modules.drac import resource_uris
 from ironic.openstack.common import context
 from ironic.tests import base
 from ironic.tests.db import utils as db_utils
+from ironic.tests.drivers.drac import utils as test_utils
 
 INFO_DICT = db_utils.get_test_drac_info()
 
@@ -45,8 +46,10 @@ class DracPowerInternalMethodsTestCase(base.TestCase):
         self.node = self.dbapi.create_node(db_node)
 
     def test__get_power_state(self, mock_power_pywsman, mock_client_pywsman):
+        result_xml = test_utils.build_soap_xml({'EnabledState': '2'},
+                                             resource_uris.DCIM_ComputerSystem)
         mock_xml_root = mock.Mock()
-        mock_xml_root.find.return_value = '2'
+        mock_xml_root.string.return_value = result_xml
 
         mock_xml = mock.Mock()
         mock_xml.context.return_value = None
@@ -60,12 +63,12 @@ class DracPowerInternalMethodsTestCase(base.TestCase):
 
         mock_pywsman_client.enumerate.assert_called_once_with(mock.ANY,
             mock.ANY, resource_uris.DCIM_ComputerSystem)
-        mock_xml_root.find.assert_called_once_with(
-            resource_uris.DCIM_ComputerSystem, 'EnabledState')
 
     def test__set_power_state(self, mock_power_pywsman, mock_client_pywsman):
+        result_xml = test_utils.build_soap_xml({'ReturnValue': '0'},
+                                             resource_uris.DCIM_ComputerSystem)
         mock_xml_root = mock.Mock()
-        mock_xml_root.find.return_value = '0'
+        mock_xml_root.string.return_value = result_xml
 
         mock_xml = mock.Mock()
         mock_xml.root.return_value = mock_xml_root
@@ -86,13 +89,14 @@ class DracPowerInternalMethodsTestCase(base.TestCase):
 
         mock_pywsman_client.invoke.assert_called_once_with(mock.ANY,
             resource_uris.DCIM_ComputerSystem, 'RequestStateChange')
-        mock_xml_root.find.assert_called_once_with(
-            resource_uris.DCIM_ComputerSystem, 'ReturnValue')
 
     def test__set_power_state_fail(self, mock_power_pywsman,
                                    mock_client_pywsman):
+        result_xml = test_utils.build_soap_xml({'ReturnValue': '1',
+                                                'Message': 'error message'},
+                                             resource_uris.DCIM_ComputerSystem)
         mock_xml_root = mock.Mock()
-        mock_xml_root.find.side_effect = ['1', 'error message']
+        mock_xml_root.string.return_value = result_xml
 
         mock_xml = mock.Mock()
         mock_xml.root.return_value = mock_xml_root
@@ -115,11 +119,6 @@ class DracPowerInternalMethodsTestCase(base.TestCase):
 
         mock_pywsman_client.invoke.assert_called_once_with(mock.ANY,
             resource_uris.DCIM_ComputerSystem, 'RequestStateChange')
-
-        mock_xml_root.find.assert_has_calls([
-            mock.call(resource_uris.DCIM_ComputerSystem, 'ReturnValue'),
-            mock.call(resource_uris.DCIM_ComputerSystem, 'Message')
-        ])
 
 
 class DracPowerTestCase(base.TestCase):

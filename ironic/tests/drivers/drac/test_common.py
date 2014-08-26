@@ -15,6 +15,8 @@
 Test class for common methods used by DRAC modules.
 """
 
+from xml.etree import ElementTree
+
 from ironic.common import exception
 from ironic.drivers.modules.drac import common as drac_common
 from ironic.openstack.common import context
@@ -102,3 +104,15 @@ class DracCommonMethodsTestCase(base.TestCase):
         del node.driver_info['drac_password']
         self.assertRaises(exception.InvalidParameterValue,
                           drac_common.parse_driver_info, node)
+
+    def test_find_xml(self):
+        namespace = 'http://fake'
+        value = 'fake_value'
+        test_doc = ElementTree.fromstring("""<Envelope xmlns:ns1="%(ns)s">
+                         <Body>
+                           <ns1:test_element>%(value)s</ns1:test_element>
+                         </Body>
+                       </Envelope>""" % {'ns': namespace, 'value': value})
+
+        result = drac_common.find_xml(test_doc, 'test_element', namespace)
+        self.assertEqual(value, result.text)

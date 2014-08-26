@@ -58,19 +58,17 @@ def _get_power_state(node):
     filter.simple(filter_dialect, filter_query)
 
     try:
-        docs = client.wsman_enumerate(resource_uris.DCIM_ComputerSystem,
-                                      options, filter)
+        doc = client.wsman_enumerate(resource_uris.DCIM_ComputerSystem,
+                                     options, filter)
     except exception.DracClientError as exc:
         with excutils.save_and_reraise_exception():
             LOG.error(_LE('DRAC driver failed to get power state for node '
                           '%(node_uuid)s. Reason: %(error)s.'),
                       {'node_uuid': node.uuid, 'error': exc})
 
-    doc = docs[0]
-    enabled_state = str(doc.find(resource_uris.DCIM_ComputerSystem,
-                                 'EnabledState'))
-
-    return POWER_STATES[enabled_state]
+    enabled_state = drac_common.find_xml(doc, 'EnabledState',
+                                         resource_uris.DCIM_ComputerSystem)
+    return POWER_STATES[enabled_state.text]
 
 
 def _set_power_state(node, target_state):
@@ -100,11 +98,11 @@ def _set_power_state(node, target_state):
                        'target_power_state': target_state,
                        'error': exc})
 
-    return_value = str(root.find(resource_uris.DCIM_ComputerSystem,
-                                 'ReturnValue'))
-
+    return_value = drac_common.find_xml(root, 'ReturnValue',
+                                        resource_uris.DCIM_ComputerSystem).text
     if return_value != '0':
-        message = str(root.find(resource_uris.DCIM_ComputerSystem, 'Message'))
+        message = drac_common.find_xml(root, 'Message',
+                                       resource_uris.DCIM_ComputerSystem).text
         LOG.error(_LE('DRAC driver failed to set power state for node '
                       '%(node_uuid)s to %(target_power_state)s. '
                       'Reason: %(error)s.'),

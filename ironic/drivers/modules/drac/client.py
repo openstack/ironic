@@ -15,10 +15,14 @@
 Wrapper for pywsman.Client
 """
 
+from xml.etree import ElementTree
+
 from ironic.common import exception
 from ironic.openstack.common import importutils
 
 pywsman = importutils.try_import('pywsman')
+
+_SOAP_ENVELOPE_URI = 'http://www.w3.org/2003/05/soap-envelope'
 
 
 class Client(object):
@@ -39,23 +43,27 @@ class Client(object):
         :param resource_uri: URI of the resource.
         :param options: client options.
         :param filter: filter for enumeration.
-        :returns: array of xml responses received.
+        :raises: DracClientError on an error from pywsman library.
+        :returns: an ElementTree object of the response received.
         """
         options.set_flags(pywsman.FLAG_ENUMERATION_OPTIMIZATION)
         options.set_max_elements(100)
 
-        partial_responses = []
         doc = self.client.enumerate(options, filter, resource_uri)
         root = self._get_root(doc)
-        partial_responses.append(root)
 
+        final_xml = root
+        find_query = './/{%s}Body' % _SOAP_ENVELOPE_URI
+        insertion_point = final_xml.find(find_query)
         while doc.context() is not None:
             doc = self.client.pull(options, None, resource_uri,
                                    str(doc.context()))
             root = self._get_root(doc)
-            partial_responses.append(root)
+            for result in root.findall(find_query):
+                for child in list(result):
+                    insertion_point.append(child)
 
-        return partial_responses
+        return final_xml
 
     def wsman_invoke(self, resource_uri, options, method):
         """Invokes a remote WS-Man method.
@@ -63,12 +71,11 @@ class Client(object):
         :param resource_uri: URI of the resource.
         :param options: client options.
         :param method: name of the method to invoke.
-        :returns: xml response received.
+        :raises: DracClientError on an error from pywsman library.
+        :returns: an ElementTree object of the response received.
         """
         doc = self.client.invoke(options, resource_uri, method)
-        root = self._get_root(doc)
-
-        return root
+        return self._get_root(doc)
 
     def _get_root(self, doc):
         if doc is None or doc.root() is None:
@@ -76,5 +83,5 @@ class Client(object):
                     last_error=self.client.last_error(),
                     fault_string=self.client.fault_string(),
                     response_code=self.client.response_code())
-
-        return doc.root()
+        root = doc.root()
+        return ElementTree.fromstring(root.string())
