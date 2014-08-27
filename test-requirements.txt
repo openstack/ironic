@@ -5,7 +5,7 @@ fixtures>=0.3.14
 mock>=1.0
 Babel>=1.3
 MySQL-python
-oslotest
+oslotest>=1.1.0.0a1
 psycopg2
 python-ironicclient>=0.2.1
 python-subunit>=0.0.18
@@ -15,7 +15,7 @@ testtools>=0.9.34
 # Doc requirements
 sphinx>=1.1.2,!=1.2.0,<1.3
 sphinxcontrib-pecanwsme>=0.8
-oslosphinx
+oslosphinx>=2.2.0.0a2
 
 # Required for Nova unit tests in ironic/nova/tests/ and can be removed
 # once the driver code lands in Nova.
