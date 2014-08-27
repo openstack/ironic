@@ -14,7 +14,7 @@ Introduction to Ironic
      together multiple drivers, each of which implement some portion of that functionality with respect to physical hardware.
 |
 |
-     Openstack's Ironic project makes physical servers as easy to provision as virtual machines in cloud, which in turn will
+     OpenStack's Ironic project makes physical servers as easy to provision as virtual machines in cloud, which in turn will
      open up new avenues for enterprises and service providers.
 |
      Ironic's driver will replace the Nova "bare metal" driver of Grizzly, Havana and Icehouse releases. It is targeting inclusion
@@ -53,7 +53,7 @@ Logical Architecture
 |
      To successfully deploy the Ironic service in cloud, the administrator users need to understand the logical architecture.
      The below diagram shows the basic components that form the Ironic service, the relation of Ironic service with other
-     Openstack services and the logical flow of a boot instance request resulting in the provisioning of a physical server.
+     OpenStack services and the logical flow of a boot instance request resulting in the provisioning of a physical server.
 |
 |
 
@@ -82,8 +82,8 @@ Logical Architecture
      passes from the Ironic API, to the Conductor and the Drivers to successfully provision a physical server to the user.
 
 |
-     Just as Nova Compute service talks to various Openstack services like Glance, Neutron, Swift etc to provision a
-     virtual machine instance, here the Ironic service talks to the same Openstack services for image, network and other
+     Just as Nova Compute service talks to various OpenStack services like Glance, Neutron, Swift etc to provision a
+     virtual machine instance, here the Ironic service talks to the same OpenStack services for image, network and other
      resource needs to provision a bare metal instance.
 
 |
