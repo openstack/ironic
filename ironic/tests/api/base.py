@@ -45,6 +45,8 @@ class FunctionalTest(base.DbTestCase):
         super(FunctionalTest, self).setUp()
         cfg.CONF.set_override("auth_version", "v2.0",
                               group='keystone_authtoken')
+        cfg.CONF.set_override("admin_user", "admin",
+                              group='keystone_authtoken')
         self.app = self._make_app()
         self.dbapi = dbapi.get_instance()
 
