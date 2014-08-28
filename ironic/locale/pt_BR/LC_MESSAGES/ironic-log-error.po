@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Ironic\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2014-08-08 06:10+0000\n"
+"POT-Creation-Date: 2014-08-28 06:10+0000\n"
 "PO-Revision-Date: 2014-07-21 23:13+0000\n"
 "Last-Translator: openstackjenkins <jenkins@openstack.org>\n"
 "Language-Team: Portuguese (Brazil) (http://www.transifex.com/projects/p/"
@@ -19,53 +19,97 @@ msgstr ""
 "Generated-By: Babel 1.3\n"
 "Plural-Forms: nplurals=2; plural=(n > 1);\n"
 
-#: ironic/drivers/modules/agent.py:421
+#: ironic/common/images.py:133
+#, python-format
+msgid "vfat image creation failed. Error: %s"
+msgstr ""
+
+#: ironic/common/images.py:201
+msgid "Creating the filesystem root failed."
+msgstr ""
+
+#: ironic/common/images.py:215
+msgid "Creating ISO image failed."
+msgstr ""
+
+#: ironic/drivers/modules/agent.py:388
 #, python-format
 msgid "Async exception for %(node)s: %(msg)s"
 msgstr ""
 
-#: ironic/drivers/modules/ipminative.py:345
+#: ironic/drivers/modules/ipminative.py:348
 #, python-format
 msgid ""
 "IPMI set boot device failed for node %(node_id)s with the following error: "
 "%(error)s"
 msgstr ""
 
-#: ironic/drivers/modules/ipminative.py:380
+#: ironic/drivers/modules/ipminative.py:383
 #, python-format
 msgid ""
 "IPMI get boot device failed for node %(node_id)s with the following error: "
 "%(error)s"
 msgstr ""
 
-#: ironic/drivers/modules/seamicro.py:538
+#: ironic/drivers/modules/iscsi_deploy.py:294
+#, python-format
+msgid "Error returned from deploy ramdisk: %s"
+msgstr ""
+
+#: ironic/drivers/modules/iscsi_deploy.py:307
+#: ironic/drivers/modules/pxe.py:430
+#, python-format
+msgid "Deploy failed for instance %(instance)s. Error: %(error)s"
+msgstr ""
+
+#: ironic/drivers/modules/pxe.py:408
+#, python-format
+msgid "Node %s is not waiting to be deployed."
+msgstr ""
+
+#: ironic/drivers/modules/seamicro.py:550
 #, python-format
 msgid ""
 "Seamicro set boot device failed for node %(node)s with the following error: "
 "%(error)s"
 msgstr ""
 
-#: ironic/drivers/modules/ssh.py:598
+#: ironic/drivers/modules/ssh.py:643
 #, python-format
 msgid ""
 "Failed to set boot device for node %(node)s, virt_type %(vtype)s does not "
 "support this operation"
 msgstr ""
 
-#: ironic/nova/virt/ironic/driver.py:296
+#: ironic/drivers/modules/drac/power.py:65
+#, python-format
+msgid ""
+"DRAC driver failed to get power state for node %(node_uuid)s. Reason: "
+"%(error)s."
+msgstr ""
+
+#: ironic/drivers/modules/drac/power.py:96
+#: ironic/drivers/modules/drac/power.py:108
+#, python-format
+msgid ""
+"DRAC driver failed to set power state for node %(node_uuid)s to "
+"%(target_power_state)s. Reason: %(error)s."
+msgstr ""
+
+#: ironic/nova/virt/ironic/driver.py:297
 #, python-format
 msgid ""
 "Failed to clean up the parameters on node %(node)s when unprovisioning the "
 "instance %(instance)s"
 msgstr ""
 
-#: ironic/nova/virt/ironic/driver.py:539
+#: ironic/nova/virt/ironic/driver.py:606
 #, python-format
 msgid ""
 "Error preparing deploy for instance %(instance)s on baremetal node %(node)s."
 msgstr ""
 
-#: ironic/nova/virt/ironic/driver.py:564
+#: ironic/nova/virt/ironic/driver.py:631
 #, python-format
 msgid "Error deploying instance %(instance)s on baremetal node %(node)s."
 msgstr ""

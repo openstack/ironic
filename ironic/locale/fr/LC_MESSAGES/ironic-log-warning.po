@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Ironic\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2014-08-20 06:11+0000\n"
+"POT-Creation-Date: 2014-08-28 06:10+0000\n"
 "PO-Revision-Date: 2014-07-08 00:02+0000\n"
 "Last-Translator: openstackjenkins <jenkins@openstack.org>\n"
 "Language-Team: French (http://www.transifex.com/projects/p/ironic/language/"
@@ -82,6 +82,13 @@ msgid ""
 "console for node %(node)s. Reason: %(err)s"
 msgstr ""
 
+#: ironic/drivers/modules/iboot.py:115
+#, python-format
+msgid ""
+"Cannot get power status for node '%(node)s' at relay '%(relay)s'. iBoot "
+"get_relays() returned '%(resp)s'."
+msgstr ""
+
 #: ironic/drivers/modules/ipmitool.py:704
 #, python-format
 msgid ""
@@ -96,7 +103,7 @@ msgid ""
 "%(cmd)s\". Error: %(error)s"
 msgstr ""
 
-#: ironic/drivers/modules/ssh.py:636
+#: ironic/drivers/modules/ssh.py:677
 #, python-format
 msgid ""
 "Failed to get boot device for node %(node)s, virt_type %(vtype)s does not "
