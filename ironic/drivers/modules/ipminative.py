@@ -219,6 +219,44 @@ def _power_status(driver_info):
         return states.ERROR
 
 
+def _get_sensors_data(driver_info):
+    """Get sensors data.
+
+    :param driver_info: node's driver info
+    :raises: FailedToGetSensorData when getting the sensor data fails.
+    :returns: returns a dict of sensor data group by sensor type.
+    """
+    try:
+        ipmicmd = ipmi_command.Command(bmc=driver_info['address'],
+            userid=driver_info['username'],
+            password=driver_info['password'])
+        ret = ipmicmd.get_sensor_data()
+    except Exception as e:
+        LOG.error(_LE("IPMI get sensor data failed for node %(node_id)s "
+                  "with the following error: %(error)s"),
+              {'node_id': driver_info['uuid'], 'error': e})
+        raise exception.FailedToGetSensorData(
+                    node=driver_info['uuid'], error=e)
+
+    if not ret:
+        return {}
+
+    sensors_data = {}
+    for reading in ret:
+        # ignore the sensor data which has no sensor reading value
+        if not reading.value:
+            continue
+        sensors_data.setdefault(reading.type,
+            {})[reading.name] = {
+              'Sensor Reading': reading.value,
+              'Sensor ID': reading.name,
+              'States': reading.states,
+              'Units': reading.units,
+              'Health': reading.health}
+
+    return sensors_data
+
+
 class NativeIPMIPower(base.PowerInterface):
     """The power driver using native python-ipmi library."""
 
@@ -396,9 +434,11 @@ class NativeIPMIManagement(base.ManagementInterface):
     def get_sensors_data(self, task):
         """Get sensors data.
 
-        Not implemented by this driver.
-
         :param task: a TaskManager instance.
+        :raises: FailedToGetSensorData when getting the sensor data fails.
+        :raises: MissingParameterValue if required ipmi parameters are missing
+        :returns: returns a dict of sensor data group by sensor type.
 
         """
-        raise NotImplementedError()
+        driver_info = _parse_driver_info(task.node)
+        return _get_sensors_data(driver_info)
