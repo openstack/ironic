@@ -8,9 +8,9 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Ironic\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2014-08-12 06:10+0000\n"
-"PO-Revision-Date: 2014-08-11 14:21+0000\n"
-"Last-Translator: Andi Chandler <andi@gowling.com>\n"
+"POT-Creation-Date: 2014-08-28 06:10+0000\n"
+"PO-Revision-Date: 2014-08-26 03:46+0000\n"
+"Last-Translator: openstackjenkins <jenkins@openstack.org>\n"
 "Language-Team: English (United Kingdom) (http://www.transifex.com/projects/p/"
 "ironic/language/en_GB/)\n"
 "Language: en_GB\n"
@@ -40,17 +40,17 @@ msgstr "Successfuly started conductor with hostname %(hostname)s."
 msgid "Successfully stopped conductor with hostname %(hostname)s."
 msgstr "Successfully stopped conductor with hostname %(hostname)s."
 
-#: ironic/conductor/manager.py:496
+#: ironic/conductor/manager.py:510
 #, python-format
 msgid "Successfully deployed node %(node)s with instance %(instance)s."
 msgstr "Successfully deployed node %(node)s with instance %(instance)s."
 
-#: ironic/conductor/manager.py:577
+#: ironic/conductor/manager.py:598
 #, python-format
 msgid "Successfully unprovisioned node %(node)s with instance %(instance)s."
 msgstr "Successfully unprovisioned node %(node)s with instance %(instance)s."
 
-#: ironic/conductor/manager.py:924
+#: ironic/conductor/manager.py:947
 #, python-format
 msgid "Successfully deleted node %(node)s."
 msgstr "Successfully deleted node %(node)s."
@@ -59,6 +59,16 @@ msgstr "Successfully deleted node %(node)s."
 #, python-format
 msgid "Succesfully set node %(node)s power state to %(state)s."
 msgstr "Succesfully set node %(node)s power state to %(state)s."
+
+#: ironic/drivers/modules/iscsi_deploy.py:300
+#, python-format
+msgid "Continuing deployment for node %(node)s, params %(params)s"
+msgstr ""
+
+#: ironic/drivers/modules/pxe.py:424
+#, python-format
+msgid "Deployment to node %s done"
+msgstr ""
 
 #: ironic/openstack/common/eventlet_backdoor.py:140
 #, python-format
