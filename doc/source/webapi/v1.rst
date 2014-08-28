@@ -80,3 +80,10 @@ Ports
    :members:
 
 
+BootDevice
+==========
+
+.. rest-controller:: ironic.api.controllers.v1.node:BootDeviceController
+   :webprefix: /v1/nodes/(node_uuid)/management/boot_device
+
+
