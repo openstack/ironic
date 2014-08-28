@@ -1154,3 +1154,14 @@
 #libvirt_uri=qemu:///system
 
 
+[swift]
+
+#
+# Options defined in ironic.common.swift
+#
+
+# Maximum number of times to retry a Swift request, before
+# failing. (integer value)
+#swift_max_retries=2
+
+

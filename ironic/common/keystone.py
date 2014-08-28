@@ -23,24 +23,61 @@ from ironic.common import exception
 CONF = cfg.CONF
 
 
+def _is_apiv3(auth_url, auth_version):
+    """Checks if V3 version of API is being used or not.
+
+    This method inspects auth_url and auth_version, and checks whether V3
+    version of the API is being used or not.
+
+    :param auth_url: a http or https url to be inspected(like
+        'http://127.0.0.1:9898/').
+    :param auth_version: a string containing the version(like 'v2', 'v3.0')
+    :returns: True if V3 of the API is being used.
+    """
+    return auth_version == 'v3.0' or '/v3' in parse.urlparse(auth_url).path
+
+
+def get_keystone_url(auth_url, auth_version):
+    """Gives an http/https url to contact keystone.
+
+    Given an auth_url and auth_version, this method generates the url in
+    which keystone can be reached.
+
+    :param auth_url: a http or https url to be inspected(like
+        'http://127.0.0.1:9898/').
+    :param auth_version: a string containing the version(like v2, v3.0, etc)
+    :returns: a string containing the keystone url
+    """
+    api_v3 = _is_apiv3(auth_url, auth_version)
+    api_version = 'v3' if api_v3 else 'v2.0'
+    # NOTE(lucasagomes): Get rid of the trailing '/' otherwise urljoin()
+    #   fails to override the version in the URL
+    return parse.urljoin(auth_url.rstrip('/'), api_version)
+
+
 def get_service_url(service_type='baremetal', endpoint_type='internal'):
-    """Wrapper for get service url from keystone service catalog."""
+    """Wrapper for get service url from keystone service catalog.
+
+    Given a service_type and an endpoint_type, this method queries keystone
+    service catalog and provides the url for the desired endpoint.
+
+    :param service_type: the keystone service for which url is required.
+    :param endpoint_type: the type of endpoint for the service.
+    :returns: an http/https url for the desired endpoint.
+    """
     auth_url = CONF.keystone_authtoken.auth_uri
     if not auth_url:
         raise exception.CatalogFailure(_('Keystone API endpoint is missing'))
 
-    api_v3 = CONF.keystone_authtoken.auth_version == 'v3.0' or \
-            'v3' in parse.urlparse(auth_url).path
+    auth_version = CONF.keystone_authtoken.auth_version
+    api_v3 = _is_apiv3(auth_url, auth_version)
 
     if api_v3:
         from keystoneclient.v3 import client
     else:
         from keystoneclient.v2_0 import client
 
-    api_version = 'v3' if api_v3 else 'v2.0'
-    # NOTE(lucasagomes): Get rid of the trailing '/' otherwise urljoin()
-    #   fails to override the version in the URL
-    auth_url = parse.urljoin(auth_url.rstrip('/'), api_version)
+    auth_url = get_keystone_url(auth_url, auth_version)
     try:
         ksclient = client.Client(username=CONF.keystone_authtoken.admin_user,
                         password=CONF.keystone_authtoken.admin_password,
