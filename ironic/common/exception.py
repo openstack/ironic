@@ -190,6 +190,10 @@ class NotFound(IronicException):
     code = 404
 
 
+class DHCPNotFound(NotFound):
+    message = _("Failed to load DHCP provider %(dhcp_provider_name)s.")
+
+
 class DriverNotFound(NotFound):
     message = _("Failed to load driver %(driver_name)s.")
 

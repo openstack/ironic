@@ -52,11 +52,11 @@ from oslo.config import cfg
 from oslo import messaging
 from oslo.utils import excutils
 
+from ironic.common import dhcp_factory
 from ironic.common import driver_factory
 from ironic.common import exception
 from ironic.common import hash_ring as hash
 from ironic.common import i18n
-from ironic.common import neutron
 from ironic.common import rpc
 from ironic.common import states
 from ironic.common import utils as ironic_utils
@@ -1052,8 +1052,9 @@ class ConductorManager(periodic_task.PeriodicTasks):
 
         :param context: request context.
         :param port_obj: a changed (but not saved) port object.
+        :raises: DHCPNotFound if the dhcp_provider provider endpoint is invalid
         :raises: FailedToUpdateMacOnPort if MAC address changed and update
-                 Neutron failed.
+                 failed.
         :raises: MACAlreadyExists if the update is setting a MAC which is
                  registered on another port already.
         """
@@ -1065,14 +1066,14 @@ class ConductorManager(periodic_task.PeriodicTasks):
             if 'address' in port_obj.obj_what_changed():
                 vif = port_obj.extra.get('vif_port_id')
                 if vif:
-                    api = neutron.NeutronAPI(context)
-                    api.update_port_address(vif, port_obj.address)
+                    api = dhcp_factory.DHCPFactory(token=context.auth_token)
+                    api.provider.update_port_address(vif, port_obj.address)
                 # Log warning if there is no vif_port_id and an instance
                 # is associated with the node.
                 elif node.instance_uuid:
                     LOG.warning(_("No VIF found for instance %(instance)s "
-                        "port %(port)s when attempting to update Neutron "
-                        "port MAC address."),
+                        "port %(port)s when attempting to update port MAC "
+                        "address."),
                         {'port': port_uuid, 'instance': node.instance_uuid})
 
             port_obj.save(context)

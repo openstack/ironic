@@ -22,10 +22,10 @@ import shutil
 
 from oslo.config import cfg
 
+from ironic.common import dhcp_factory
 from ironic.common import exception
 from ironic.common import i18n
 from ironic.common import image_service as service
-from ironic.common import neutron
 from ironic.common import paths
 from ironic.common import pxe_utils
 from ironic.common import states
@@ -58,7 +58,7 @@ pxe_opts = [
     #  other architectures require different boot files.
     cfg.StrOpt('pxe_bootfile_name',
                default='pxelinux.0',
-               help='Neutron bootfile DHCP parameter.'),
+               help='Bootfile DHCP parameter.'),
     cfg.StrOpt('http_url',
                 help='Ironic compute node\'s HTTP server URL. '
                      'Example: http://192.1.2.3:8080'),
@@ -283,8 +283,8 @@ class PXEDeploy(base.DeployInterface):
         """Start deployment of the task's node'.
 
         Fetches instance image, creates a temporary keystone token file,
-        updates the Neutron DHCP port options for next boot, and issues a
-        reboot request to the power driver.
+        updates the DHCP port options for next boot, and issues a reboot
+        request to the power driver.
         This causes the node to boot into the deployment ramdisk and triggers
         the next phase of PXE-based deployment via
         VendorPassthru._continue_deploy().
@@ -299,7 +299,8 @@ class PXEDeploy(base.DeployInterface):
         #               to deploy ramdisk
         _create_token_file(task)
         dhcp_opts = pxe_utils.dhcp_options_for_instance()
-        neutron.update_neutron(task, dhcp_opts)
+        provider = dhcp_factory.DHCPFactory(token=task.context.auth_token)
+        provider.update_dhcp(task, dhcp_opts)
         manager_utils.node_set_boot_device(task, 'pxe', persistent=True)
         manager_utils.node_power_action(task, states.REBOOT)
 
@@ -363,7 +364,8 @@ class PXEDeploy(base.DeployInterface):
 
     def take_over(self, task):
         dhcp_opts = pxe_utils.dhcp_options_for_instance()
-        neutron.update_neutron(task, dhcp_opts)
+        provider = dhcp_factory.DHCPFactory(token=task.context.auth_token)
+        provider.update_dhcp(task, dhcp_opts)
 
 
 class VendorPassthru(base.VendorInterface):

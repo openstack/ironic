@@ -24,10 +24,10 @@ import tempfile
 
 from oslo.config import cfg
 
+from ironic.common import dhcp_factory
 from ironic.common import exception
 from ironic.common.glance_service import base_image_service
 from ironic.common import keystone
-from ironic.common import neutron
 from ironic.common import pxe_utils
 from ironic.common import states
 from ironic.common import utils
@@ -471,11 +471,11 @@ class PXEDriverTestCase(db_base.DbTestCase):
     @mock.patch.object(deploy_utils, 'get_image_mb')
     @mock.patch.object(iscsi_deploy, '_get_image_file_path')
     @mock.patch.object(iscsi_deploy, 'cache_instance_image')
-    @mock.patch.object(neutron, 'update_neutron')
+    @mock.patch.object(dhcp_factory.DHCPFactory, 'update_dhcp')
     @mock.patch.object(manager_utils, 'node_power_action')
     @mock.patch.object(manager_utils, 'node_set_boot_device')
     def test_deploy(self, mock_node_set_boot, mock_node_power_action,
-                    mock_update_neutron, mock_cache_instance_image,
+                    mock_update_dhcp, mock_cache_instance_image,
                     mock_get_image_file_path, mock_get_image_mb):
         fake_img_path = '/test/path/test.img'
         mock_get_image_file_path.return_value = fake_img_path
@@ -483,14 +483,14 @@ class PXEDriverTestCase(db_base.DbTestCase):
         dhcp_opts = pxe_utils.dhcp_options_for_instance()
 
         with task_manager.acquire(self.context,
-            self.node.uuid, shared=False) as task:
+                                  self.node.uuid, shared=False) as task:
             state = task.driver.deploy.deploy(task)
             self.assertEqual(state, states.DEPLOYWAIT)
             mock_cache_instance_image.assert_called_once_with(
                 self.context, task.node)
             mock_get_image_file_path.assert_called_once_with(task.node.uuid)
             mock_get_image_mb.assert_called_once_with(fake_img_path)
-            mock_update_neutron.assert_called_once_with(
+            mock_update_dhcp.assert_called_once_with(
                 task, dhcp_opts)
             mock_node_set_boot.assert_called_once_with(task, 'pxe',
                                                        persistent=True)
@@ -528,13 +528,13 @@ class PXEDriverTestCase(db_base.DbTestCase):
             self.assertEqual(states.DELETED, state)
             node_power_mock.assert_called_once_with(task, states.POWER_OFF)
 
-    @mock.patch.object(neutron, 'update_neutron')
-    def test_take_over(self, update_neutron_mock):
+    @mock.patch.object(dhcp_factory.DHCPFactory, 'update_dhcp')
+    def test_take_over(self, update_dhcp_mock):
         dhcp_opts = pxe_utils.dhcp_options_for_instance()
         with task_manager.acquire(
                 self.context, self.node.uuid, shared=True) as task:
             task.driver.deploy.take_over(task)
-            update_neutron_mock.assert_called_once_with(
+            update_dhcp_mock.assert_called_once_with(
                 task, dhcp_opts)
 
     @mock.patch.object(deploy_utils, 'notify_deploy_complete')

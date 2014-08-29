@@ -1245,7 +1245,7 @@ class UpdatePortTestCase(_ServiceSetUpMixin, tests_db_base.DbTestCase):
         # Compare true exception hidden by @messaging.expected_exceptions
         self.assertEqual(exception.NodeLocked, exc.exc_info[0])
 
-    @mock.patch('ironic.common.neutron.NeutronAPI.update_port_address')
+    @mock.patch('ironic.dhcp.neutron.NeutronDHCPApi.update_port_address')
     def test_update_port_address(self, mac_update_mock):
         obj_utils.create_test_node(self.context, driver='fake')
         port = obj_utils.create_test_port(self.context,
@@ -1256,7 +1256,7 @@ class UpdatePortTestCase(_ServiceSetUpMixin, tests_db_base.DbTestCase):
         self.assertEqual(new_address, res.address)
         mac_update_mock.assert_called_once_with('fake-id', new_address)
 
-    @mock.patch('ironic.common.neutron.NeutronAPI.update_port_address')
+    @mock.patch('ironic.dhcp.neutron.NeutronDHCPApi.update_port_address')
     def test_update_port_address_fail(self, mac_update_mock):
         obj_utils.create_test_node(self.context, driver='fake')
         port = obj_utils.create_test_port(self.context,
@@ -1273,7 +1273,7 @@ class UpdatePortTestCase(_ServiceSetUpMixin, tests_db_base.DbTestCase):
         port.refresh(self.context)
         self.assertEqual(old_address, port.address)
 
-    @mock.patch('ironic.common.neutron.NeutronAPI.update_port_address')
+    @mock.patch('ironic.dhcp.neutron.NeutronDHCPApi.update_port_address')
     def test_update_port_address_no_vif_id(self, mac_update_mock):
         obj_utils.create_test_node(self.context, driver='fake')
         port = obj_utils.create_test_port(self.context)
@@ -2140,7 +2140,7 @@ class ManagerCheckDeployTimeoutsTestCase(_CommonMixIn, tests_base.TestCase):
                          self.task.spawn_after.call_args_list)
 
     @mock.patch.object(dbapi.IMPL, 'update_port')
-    @mock.patch('ironic.common.neutron.NeutronAPI.update_port_address')
+    @mock.patch('ironic.dhcp.neutron.NeutronDHCPApi.update_port_address')
     def test_update_port_duplicate_mac(self, get_nodeinfo_mock, mapped_mock,
             acquire_mock, mac_update_mock, mock_up):
         ndict = utils.get_test_node(driver='fake')

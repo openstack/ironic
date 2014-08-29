@@ -18,11 +18,11 @@ import time
 from oslo.config import cfg
 from oslo.utils import excutils
 
+from ironic.common import dhcp_factory
 from ironic.common import exception
 from ironic.common import i18n
 from ironic.common import image_service
 from ironic.common import keystone
-from ironic.common import neutron
 from ironic.common import paths
 from ironic.common import pxe_utils
 from ironic.common import states
@@ -217,7 +217,8 @@ class AgentDeploy(base.DeployInterface):
         :returns: status of the deploy. One of ironic.common.states.
         """
         dhcp_opts = pxe_utils.dhcp_options_for_instance()
-        neutron.update_neutron(task, dhcp_opts)
+        provider = dhcp_factory.DHCPFactory(token=task.context.auth_token)
+        provider.update_dhcp(task, dhcp_opts)
         manager_utils.node_set_boot_device(task, 'pxe', persistent=True)
         manager_utils.node_power_action(task, states.REBOOT)
 
@@ -290,7 +291,8 @@ class AgentDeploy(base.DeployInterface):
 
         :param task: a TaskManager instance.
         """
-        neutron.update_neutron(task, CONF.agent.agent_pxe_bootfile_name)
+        provider = dhcp_factory.DHCPFactory(token=task.context.auth_token)
+        provider.update_dhcp(task, CONF.agent.agent_pxe_bootfile_name)
 
 
 class AgentVendorInterface(base.VendorInterface):
