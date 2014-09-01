@@ -332,16 +332,38 @@ PXE Setup
 If you will be using PXE, it needs to be set up on the Bare Metal Service
 node(s) where ``ironic-conductor`` is running.
 
-#. Make sure these directories exist::
+#. Make sure the tftp root directory exist and can be written to by the
+   user the ``ironic-conductor`` is running as. For example::
 
-    sudo mkdir -p /tftproot
-    sudo chown -R ironic:LIBVIRT_GROUP -p /tftproot
-    mkdir -p /tftproot/pxelinux.cfg
+    sudo mkdir -p /tftpboot
+    sudo chown -R ironic -p /tftpboot
 
-#. Copy the PXE binary to ``/tftproot``. The PXE binary might be found at::
+#. Install the syslinux package with the PXE boot images::
 
-     ubuntu: /usr/lib/syslinux/pxelinux.0
-     fedora/RHEL: /usr/share/syslinux/pxelinux.0
+    Ubuntu:
+        sudo apt-get install syslinux syslinux-common
+
+    Fedora/RHEL:
+        sudo yum install syslinux-tftpboot
+
+#. Copy the PXE image to ``/tftpboot``. The PXE image might be found at [1]_::
+
+    Ubuntu:
+        sudo cp /usr/lib/syslinux/pxelinux.0 /tftpboot
+
+#. If the version of syslinux is **greater than** 4 we also need to make sure
+   that we copy the library modules into the ``/tftpboot`` directory [2]_
+   [1]_::
+
+    Ubuntu:
+        sudo cp /usr/lib/syslinux/modules/*/ldlinux.* /tftpboot
+
+
+.. [1] On **Fedora/RHEL** the ``syslinux-tftpboot`` package already install
+       the library modules and PXE image at ``/tftpboot``. If the TFTP server
+       is configured to listen to a different directory you should copy the
+       contents of ``/tftpboot`` to the configured directory
+.. [2] http://www.syslinux.org/wiki/index.php/Library_modules
 
 iPXE Setup
 ----------
