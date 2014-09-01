@@ -16,18 +16,18 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import contextlib
-import fixtures
 import mock
 import os
 import shutil
 
 from oslo.config import cfg
-from oslo.utils import excutils
+import six.moves.builtins as __builtin__
 
 from ironic.common import exception
+from ironic.common import image_service
 from ironic.common import images
 from ironic.common import utils
+from ironic.openstack.common import imageutils
 from ironic.openstack.common import processutils
 from ironic.tests import base
 
@@ -35,90 +35,158 @@ CONF = cfg.CONF
 
 
 class IronicImagesTestCase(base.TestCase):
-    def test_fetch_raw_image(self):
 
-        def fake_execute(*cmd, **kwargs):
-            self.executes.append(cmd)
-            return None, None
+    class FakeImgInfo(object):
+        pass
 
-        def fake_rename(old, new):
-            self.executes.append(('mv', old, new))
+    @mock.patch.object(imageutils, 'QemuImgInfo')
+    @mock.patch.object(os.path, 'exists', return_value=False)
+    def test_qemu_img_info_path_doesnt_exist(self, path_exists_mock,
+                                             qemu_img_info_mock):
+        images.qemu_img_info('noimg')
+        path_exists_mock.assert_called_once_with('noimg')
+        qemu_img_info_mock.assert_called_once_with()
 
-        def fake_unlink(path):
-            self.executes.append(('rm', path))
+    @mock.patch.object(utils, 'execute', return_value=('out', 'err'))
+    @mock.patch.object(imageutils, 'QemuImgInfo')
+    @mock.patch.object(os.path, 'exists', return_value=True)
+    def test_qemu_img_info_path_exists(self, path_exists_mock,
+                                       qemu_img_info_mock, execute_mock):
+        images.qemu_img_info('img')
+        path_exists_mock.assert_called_once_with('img')
+        execute_mock.assert_called_once_with('env', 'LC_ALL=C', 'LANG=C',
+                                             'qemu-img', 'info', 'img')
+        qemu_img_info_mock.assert_called_once_with('out')
 
-        @contextlib.contextmanager
-        def fake_rm_on_error(path):
-            try:
-                yield
-            except Exception:
-                with excutils.save_and_reraise_exception():
-                    fake_del_if_exists(path)
+    @mock.patch.object(utils, 'execute')
+    def test_convert_image(self, execute_mock):
+        images.convert_image('source', 'dest', 'out_format')
+        execute_mock.assert_called_once_with('qemu-img', 'convert', '-O',
+                                             'out_format', 'source', 'dest',
+                                             run_as_root=False)
 
-        def fake_del_if_exists(path):
-            self.executes.append(('rm', '-f', path))
+    @mock.patch.object(image_service, 'Service')
+    @mock.patch.object(__builtin__, 'open')
+    def test_fetch_no_image_service(self, open_mock, image_service_mock):
+        mock_file_handle = mock.MagicMock(spec=file)
+        mock_file_handle.__enter__.return_value = 'file'
+        open_mock.return_value = mock_file_handle
 
-        def fake_qemu_img_info(path):
-            class FakeImgInfo(object):
-                pass
+        images.fetch('context', 'image_href', 'path')
 
-            file_format = path.split('.')[-1]
-            if file_format == 'part':
-                file_format = path.split('.')[-2]
-            elif file_format == 'converted':
-                file_format = 'raw'
-            if 'backing' in path:
-                backing_file = 'backing'
-            else:
-                backing_file = None
+        open_mock.assert_called_once_with('path', 'wb')
+        image_service_mock.assert_called_once_with(version=1,
+                                                   context='context')
+        image_service_mock.return_value.download.assert_called_once_with(
+            'image_href', 'file')
 
-            FakeImgInfo.file_format = file_format
-            FakeImgInfo.backing_file = backing_file
+    @mock.patch.object(__builtin__, 'open')
+    def test_fetch_image_service(self, open_mock):
+        mock_file_handle = mock.MagicMock(spec=file)
+        mock_file_handle.__enter__.return_value = 'file'
+        open_mock.return_value = mock_file_handle
+        image_service_mock = mock.Mock()
 
-            return FakeImgInfo()
+        images.fetch('context', 'image_href', 'path', image_service_mock)
 
-        self.useFixture(fixtures.MonkeyPatch(
-                'ironic.common.utils.execute', fake_execute))
-        self.useFixture(fixtures.MonkeyPatch('os.rename', fake_rename))
-        self.useFixture(fixtures.MonkeyPatch('os.unlink', fake_unlink))
-        self.useFixture(fixtures.MonkeyPatch(
-                'ironic.common.images.fetch', lambda *_: None))
-        self.useFixture(fixtures.MonkeyPatch(
-                'ironic.common.images.qemu_img_info', fake_qemu_img_info))
-        self.useFixture(fixtures.MonkeyPatch(
-                'ironic.openstack.common.fileutils.remove_path_on_error',
-                fake_rm_on_error))
-        self.useFixture(fixtures.MonkeyPatch(
-                'ironic.openstack.common.fileutils.delete_if_exists',
-                fake_del_if_exists))
+        open_mock.assert_called_once_with('path', 'wb')
+        image_service_mock.download.assert_called_once_with(
+            'image_href', 'file')
 
-        context = 'opaque context'
-        image_id = '4'
+    @mock.patch.object(images, 'qemu_img_info')
+    def test_image_to_raw_no_file_format(self, qemu_img_info_mock):
+        info = self.FakeImgInfo()
+        info.file_format = None
+        qemu_img_info_mock.return_value = info
 
-        target = 't.qcow2'
-        self.executes = []
-        expected_commands = [('qemu-img', 'convert', '-O', 'raw',
-                              't.qcow2.part', 't.qcow2.converted'),
-                             ('rm', 't.qcow2.part'),
-                             ('mv', 't.qcow2.converted', 't.qcow2')]
-        images.fetch_to_raw(context, image_id, target)
-        self.assertEqual(expected_commands, self.executes)
+        e = self.assertRaises(exception.ImageUnacceptable, images.image_to_raw,
+                              'image_href', 'path', 'path_tmp')
+        qemu_img_info_mock.assert_called_once_with('path_tmp')
+        self.assertIn("'qemu-img info' parsing failed.", str(e))
 
-        target = 't.raw'
-        self.executes = []
-        expected_commands = [('mv', 't.raw.part', 't.raw')]
-        images.fetch_to_raw(context, image_id, target)
-        self.assertEqual(expected_commands, self.executes)
+    @mock.patch.object(images, 'qemu_img_info')
+    def test_image_to_raw_backing_file_present(self, qemu_img_info_mock):
+        info = self.FakeImgInfo()
+        info.file_format = 'raw'
+        info.backing_file = 'backing_file'
+        qemu_img_info_mock.return_value = info
 
-        target = 'backing.qcow2'
-        self.executes = []
-        expected_commands = [('rm', '-f', 'backing.qcow2.part')]
-        self.assertRaises(exception.ImageUnacceptable,
-                          images.fetch_to_raw,
-                          context, image_id, target)
-        self.assertEqual(expected_commands, self.executes)
+        e = self.assertRaises(exception.ImageUnacceptable, images.image_to_raw,
+                              'image_href', 'path', 'path_tmp')
+        qemu_img_info_mock.assert_called_once_with('path_tmp')
+        self.assertIn("fmt=raw backed by: backing_file", str(e))
 
-        del self.executes
+    @mock.patch.object(os, 'rename')
+    @mock.patch.object(os, 'unlink')
+    @mock.patch.object(images, 'convert_image')
+    @mock.patch.object(images, 'qemu_img_info')
+    def test_image_to_raw(self, qemu_img_info_mock, convert_image_mock,
+                          unlink_mock, rename_mock):
+        CONF.set_override('force_raw_images', True)
+        info = self.FakeImgInfo()
+        info.file_format = 'fmt'
+        info.backing_file = None
+        qemu_img_info_mock.return_value = info
+
+        def convert_side_effect(source, dest, out_format):
+            info.file_format = 'raw'
+        convert_image_mock.side_effect = convert_side_effect
+
+        images.image_to_raw('image_href', 'path', 'path_tmp')
+
+        qemu_img_info_mock.assert_has_calls([mock.call('path_tmp'),
+                                             mock.call('path.converted')])
+        convert_image_mock.assert_called_once_with('path_tmp',
+                                                   'path.converted', 'raw')
+        unlink_mock.assert_called_once_with('path_tmp')
+        rename_mock.assert_called_once_with('path.converted', 'path')
+
+    @mock.patch.object(os, 'unlink')
+    @mock.patch.object(images, 'convert_image')
+    @mock.patch.object(images, 'qemu_img_info')
+    def test_image_to_raw_not_raw_after_conversion(self, qemu_img_info_mock,
+                                                   convert_image_mock,
+                                                   unlink_mock):
+        CONF.set_override('force_raw_images', True)
+        info = self.FakeImgInfo()
+        info.file_format = 'fmt'
+        info.backing_file = None
+        qemu_img_info_mock.return_value = info
+
+        self.assertRaises(exception.ImageConvertFailed, images.image_to_raw,
+                          'image_href', 'path', 'path_tmp')
+        qemu_img_info_mock.assert_has_calls([mock.call('path_tmp'),
+                                             mock.call('path.converted')])
+        convert_image_mock.assert_called_once_with('path_tmp',
+                                                   'path.converted', 'raw')
+        unlink_mock.assert_called_once_with('path_tmp')
+
+    @mock.patch.object(os, 'rename')
+    @mock.patch.object(images, 'qemu_img_info')
+    def test_image_to_raw_already_raw_format(self, qemu_img_info_mock,
+                                             rename_mock):
+        info = self.FakeImgInfo()
+        info.file_format = 'raw'
+        info.backing_file = None
+        qemu_img_info_mock.return_value = info
+
+        images.image_to_raw('image_href', 'path', 'path_tmp')
+
+        qemu_img_info_mock.assert_called_once_with('path_tmp')
+        rename_mock.assert_called_once_with('path_tmp', 'path')
+
+    @mock.patch.object(image_service, 'Service')
+    def test_download_size_no_image_service(self, image_service_mock):
+        images.download_size('context', 'image_href')
+        image_service_mock.assert_called_once_with(version=1,
+                                                   context='context')
+        image_service_mock.return_value.show.assert_called_once_with(
+            'image_href')
+
+    def test_download_size_image_service(self):
+        image_service_mock = mock.MagicMock()
+        images.download_size('context', 'image_href', image_service_mock)
+        image_service_mock.show.assert_called_once_with('image_href')
 
 
 class FsImageTestCase(base.TestCase):
