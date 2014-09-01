@@ -830,9 +830,13 @@ class IronicDriver(virt_driver.ComputeDriver):
         self.firewall_driver.unfilter_instance(instance, network_info)
 
     def _plug_vifs(self, node, instance, network_info):
+        # NOTE(PhilDay): Accessing network_info will block if the thread
+        # it wraps hasn't finished, so do this this ahead of time so that
+        # don't block while holding the logging lock.
+        network_info_str = str(network_info)
         LOG.debug("plug: instance_uuid=%(uuid)s vif=%(network_info)s",
                   {'uuid': instance['uuid'],
-                   'network_info': network_info})
+                   'network_info': network_info_str})
         # start by ensuring the ports are clear
         self._unplug_vifs(node, instance, network_info)
 
@@ -859,9 +863,13 @@ class IronicDriver(virt_driver.ComputeDriver):
                 icli.call("port.update", pif.uuid, patch)
 
     def _unplug_vifs(self, node, instance, network_info):
+        # NOTE(PhilDay): Accessing network_info will block if the thread
+        # it wraps hasn't finished, so do this this ahead of time so that
+        # don't block while holding the logging lock.
+        network_info_str = str(network_info)
         LOG.debug("unplug: instance_uuid=%(uuid)s vif=%(network_info)s",
                   {'uuid': instance['uuid'],
-                   'network_info': network_info})
+                   'network_info': network_info_str})
         if network_info and len(network_info) > 0:
             icli = client_wrapper.IronicClientWrapper()
             ports = icli.call("node.list_ports", node.uuid)
