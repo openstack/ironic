@@ -3,7 +3,7 @@ SQLAlchemy>=0.8.4,<=0.8.99,>=0.9.7,<=0.9.99
 alembic>=0.6.4
 anyjson>=0.3.3
 argparse
-eventlet>=0.13.0
+eventlet>=0.15.1
 kombu>=2.4.8
 lockfile>=0.8
 lxml>=2.3
