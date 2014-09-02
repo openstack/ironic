@@ -21,26 +21,38 @@ from xml.etree import ElementTree
 def build_soap_xml(items, namespace=None):
     """Build a SOAP XML.
 
-    :param items: a dictionary where key is the element name and the
-                  value is the element text.
+    :param items: a list of dictionaries where key is the element name
+                  and the value is the element text.
     :param namespace: the namespace for the elements, None for no
                       namespace. Defaults to None
     :returns: a XML string.
 
     """
-    soap_namespace = "http://www.w3.org/2003/05/soap-envelope"
-    envelope_element = ElementTree.Element("{%s}Envelope" % soap_namespace)
-    body_element = ElementTree.Element("{%s}Body" % soap_namespace)
 
-    for i in items:
-        xml_string = i
+    def _create_element(name, value=None):
+        xml_string = name
         if namespace:
             xml_string = "{%(namespace)s}%(item)s" % {'namespace': namespace,
                                                       'item': xml_string}
 
         element = ElementTree.Element(xml_string)
-        element.text = items[i]
-        body_element.append(element)
+        element.text = value
+        return element
+
+    soap_namespace = "http://www.w3.org/2003/05/soap-envelope"
+    envelope_element = ElementTree.Element("{%s}Envelope" % soap_namespace)
+    body_element = ElementTree.Element("{%s}Body" % soap_namespace)
+
+    for item in items:
+        for i in item:
+            insertion_point = _create_element(i)
+            if isinstance(item[i], dict):
+                for j, value in item[i].items():
+                    insertion_point.append(_create_element(j, value))
+            else:
+                insertion_point.text = item[i]
+
+            body_element.append(insertion_point)
 
     envelope_element.append(body_element)
     return ElementTree.tostring(envelope_element)

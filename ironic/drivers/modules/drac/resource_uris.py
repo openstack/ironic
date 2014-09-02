@@ -18,3 +18,15 @@ WS-Man API.
 
 DCIM_ComputerSystem = ('http://schemas.dell.com/wbem/wscim/1/cim-schema/2'
                        '/DCIM_ComputerSystem')
+
+DCIM_BootSourceSetting = ('http://schemas.dell.com/wbem/wscim/1/cim-schema/2/'
+                          'DCIM_BootSourceSetting')
+
+DCIM_BootConfigSetting = ('http://schemas.dell.com/wbem/wscim/1/cim-schema/2/'
+                          'DCIM_BootConfigSetting')
+
+DCIM_BIOSService = ('http://schemas.dell.com/wbem/wscim/1/cim-schema/2/'
+                    'DCIM_BIOSService')
+
+DCIM_LifecycleJob = ('http://schemas.dell.com/wbem/wscim/1/cim-schema/2/'
+                     'DCIM_LifecycleJob')

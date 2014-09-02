@@ -427,6 +427,11 @@ class DracOperationError(IronicException):
     message = _('DRAC %(operation)s failed. Reason: %(error)s')
 
 
+class DracConfigJobCreationError(DracOperationError):
+    message = _('DRAC failed to create a configuration job. '
+                'Reason: %(error)s')
+
+
 class FailedToGetSensorData(IronicException):
     message = _("Failed to get sensor data for node %(node)s. "
                 "Error: %(error)s")
