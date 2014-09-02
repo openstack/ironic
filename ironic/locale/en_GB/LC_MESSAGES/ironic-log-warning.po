@@ -8,8 +8,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Ironic\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2014-08-28 06:10+0000\n"
-"PO-Revision-Date: 2014-08-20 20:18+0000\n"
+"POT-Creation-Date: 2014-09-02 06:14+0000\n"
+"PO-Revision-Date: 2014-08-29 19:48+0000\n"
 "Last-Translator: openstackjenkins <jenkins@openstack.org>\n"
 "Language-Team: English (United Kingdom) (http://www.transifex.com/projects/p/"
 "ironic/language/en_GB/)\n"
@@ -31,7 +31,7 @@ msgstr ""
 "setting node's provision_state back to %(prov_state)s and "
 "target_provision_state to %(tgt_prov_state)s."
 
-#: ironic/conductor/manager.py:1128
+#: ironic/conductor/manager.py:1129
 #, python-format
 msgid ""
 "get_sensors_data is not implemented for driver %(driver)s, node_uuid is "
@@ -40,7 +40,7 @@ msgstr ""
 "get_sensors_data is not implemented for driver %(driver)s, node_uuid is "
 "%(node)s"
 
-#: ironic/conductor/manager.py:1132
+#: ironic/conductor/manager.py:1133
 #, python-format
 msgid ""
 "During get_sensors_data, could not parse sensor data for node %(node)s. "
@@ -49,7 +49,7 @@ msgstr ""
 "During get_sensors_data, could not parse sensor data for node %(node)s. "
 "Error: %(err)s."
 
-#: ironic/conductor/manager.py:1136
+#: ironic/conductor/manager.py:1137
 #, python-format
 msgid ""
 "During get_sensors_data, could not get sensor data for node %(node)s. Error: "
@@ -58,7 +58,7 @@ msgstr ""
 "During get_sensors_data, could not get sensor data for node %(node)s. Error: "
 "%(err)s."
 
-#: ironic/conductor/manager.py:1140
+#: ironic/conductor/manager.py:1141
 #, python-format
 msgid ""
 "During send_sensor_data, node %(node)s was not found and presumed deleted by "
@@ -67,7 +67,7 @@ msgstr ""
 "During send_sensor_data, node %(node)s was not found and presumed deleted by "
 "another process."
 
-#: ironic/conductor/manager.py:1144
+#: ironic/conductor/manager.py:1145
 #, python-format
 msgid "Failed to get sensor data for node %(node)s. Error: %(error)s"
 msgstr "Failed to get sensor data for node %(node)s. Error: %(error)s"
@@ -77,12 +77,25 @@ msgstr "Failed to get sensor data for node %(node)s. Error: %(error)s"
 msgid "Task's on_error hook failed to call %(method)s on node %(node)s"
 msgstr "Task's on_error hook failed to call %(method)s on node %(node)s"
 
-#: ironic/drivers/modules/agent.py:534
+#: ironic/dhcp/neutron.py:145
+#, python-format
+msgid ""
+"No VIFs found for node %(node)s when attempting to update DHCP BOOT options."
+msgstr ""
+
+#: ironic/dhcp/neutron.py:163
+#, python-format
+msgid ""
+"Some errors were encountered when updating the DHCP BOOT options for node "
+"%(node)s on the following ports: %(ports)s."
+msgstr ""
+
+#: ironic/drivers/modules/agent.py:536
 #, python-format
 msgid "Malformed MAC: %s"
 msgstr "Malformed MAC: %s"
 
-#: ironic/drivers/modules/agent.py:573
+#: ironic/drivers/modules/agent.py:575
 #, python-format
 msgid "MAC address %s not found in database"
 msgstr "MAC address %s not found in database"
