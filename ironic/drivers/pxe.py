@@ -35,7 +35,7 @@ from ironic.drivers import utils
 class PXEAndIPMIToolDriver(base.BaseDriver):
     """PXE + IPMITool driver.
 
-    This driver implements the `core` functionality, combinding
+    This driver implements the `core` functionality, combining
     :class:`ironic.drivers.ipmi.IPMI` for power on/off and reboot with
     :class:`ironic.driver.pxe.PXE` for image deployment. Implementations are in
     those respective classes; this class is merely the glue between them.
@@ -54,7 +54,7 @@ class PXEAndSSHDriver(base.BaseDriver):
 
     NOTE: This driver is meant only for testing environments.
 
-    This driver implements the `core` functionality, combinding
+    This driver implements the `core` functionality, combining
     :class:`ironic.drivers.ssh.SSH` for power on/off and reboot of virtual
     machines tunneled over SSH, with :class:`ironic.driver.pxe.PXE` for image
     deployment. Implementations are in those respective classes; this class is
