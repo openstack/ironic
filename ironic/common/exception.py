@@ -432,6 +432,11 @@ class DracConfigJobCreationError(DracOperationError):
                 'Reason: %(error)s')
 
 
+class DracInvalidFilterDialect(DracOperationError):
+    message = _('Invalid filter dialect \'%(invalid_filter)s\'. '
+                'Supported options are %(supported)s')
+
+
 class FailedToGetSensorData(IronicException):
     message = _("Failed to get sensor data for node %(node)s. "
                 "Error: %(error)s")

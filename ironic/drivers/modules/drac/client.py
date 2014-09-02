@@ -24,6 +24,11 @@ pywsman = importutils.try_import('pywsman')
 
 _SOAP_ENVELOPE_URI = 'http://www.w3.org/2003/05/soap-envelope'
 
+# Filter Dialects, see (Section 2.3.1):
+# http://en.community.dell.com/techcenter/extras/m/white_papers/20439105.aspx
+_FILTER_DIALECT_MAP = {'cql': 'http://schemas.dmtf.org/wbem/cql/1/dsp0202.pdf',
+                       'wql': 'http://schemas.microsoft.com/wbem/wsman/1/WQL'}
+
 
 class Client(object):
 
@@ -37,19 +42,36 @@ class Client(object):
 
         self.client = pywsman_client
 
-    def wsman_enumerate(self, resource_uri, options, filter=None):
+    def wsman_enumerate(self, resource_uri, options, filter_query=None,
+                        filter_dialect='cql'):
         """Enumerates a remote WS-Man class.
 
         :param resource_uri: URI of the resource.
         :param options: client options.
-        :param filter: filter for enumeration.
+        :param filter_query: the query string.
+        :param filter_dialect: the filter dialect. Valid options are:
+                               'cql' and 'wql'. Defaults to 'cql'.
         :raises: DracClientError on an error from pywsman library.
+        :raises: DracInvalidFilterDialect if an invalid filter dialect
+                 was specified.
         :returns: an ElementTree object of the response received.
         """
+        filter_ = None
+        if filter_query is not None:
+            try:
+                filter_dialect = _FILTER_DIALECT_MAP[filter_dialect]
+            except KeyError:
+                valid_opts = ', '.join(_FILTER_DIALECT_MAP)
+                raise exception.DracInvalidFilterDialect(
+                    invalid_filter=filter_dialect, supported=valid_opts)
+
+            filter_ = pywsman.Filter()
+            filter_.simple(filter_dialect, filter_query)
+
         options.set_flags(pywsman.FLAG_ENUMERATION_OPTIMIZATION)
         options.set_max_elements(100)
 
-        doc = self.client.enumerate(options, filter, resource_uri)
+        doc = self.client.enumerate(options, filter_, resource_uri)
         root = self._get_root(doc)
 
         final_xml = root

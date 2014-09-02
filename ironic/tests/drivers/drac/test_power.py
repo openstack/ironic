@@ -48,13 +48,7 @@ class DracPowerInternalMethodsTestCase(base.TestCase):
     def test__get_power_state(self, mock_power_pywsman, mock_client_pywsman):
         result_xml = test_utils.build_soap_xml([{'EnabledState': '2'}],
                                              resource_uris.DCIM_ComputerSystem)
-        mock_xml_root = mock.Mock()
-        mock_xml_root.string.return_value = result_xml
-
-        mock_xml = mock.Mock()
-        mock_xml.context.return_value = None
-        mock_xml.root.return_value = mock_xml_root
-
+        mock_xml = test_utils.mock_wsman_root(result_xml)
         mock_pywsman_client = mock_client_pywsman.Client.return_value
         mock_pywsman_client.enumerate.return_value = mock_xml
 
@@ -65,14 +59,10 @@ class DracPowerInternalMethodsTestCase(base.TestCase):
             mock.ANY, resource_uris.DCIM_ComputerSystem)
 
     def test__set_power_state(self, mock_power_pywsman, mock_client_pywsman):
-        result_xml = test_utils.build_soap_xml([{'ReturnValue': '0'}],
+        result_xml = test_utils.build_soap_xml([{'ReturnValue':
+                                                     drac_common.RET_SUCCESS}],
                                              resource_uris.DCIM_ComputerSystem)
-        mock_xml_root = mock.Mock()
-        mock_xml_root.string.return_value = result_xml
-
-        mock_xml = mock.Mock()
-        mock_xml.root.return_value = mock_xml_root
-
+        mock_xml = test_utils.mock_wsman_root(result_xml)
         mock_pywsman_client = mock_client_pywsman.Client.return_value
         mock_pywsman_client.invoke.return_value = mock_xml
 
@@ -92,15 +82,12 @@ class DracPowerInternalMethodsTestCase(base.TestCase):
 
     def test__set_power_state_fail(self, mock_power_pywsman,
                                    mock_client_pywsman):
-        result_xml = test_utils.build_soap_xml([{'ReturnValue': '1',
+        result_xml = test_utils.build_soap_xml([{'ReturnValue':
+                                                         drac_common.RET_ERROR,
                                                 'Message': 'error message'}],
                                              resource_uris.DCIM_ComputerSystem)
-        mock_xml_root = mock.Mock()
-        mock_xml_root.string.return_value = result_xml
 
-        mock_xml = mock.Mock()
-        mock_xml.root.return_value = mock_xml_root
-
+        mock_xml = test_utils.mock_wsman_root(result_xml)
         mock_pywsman_client = mock_client_pywsman.Client.return_value
         mock_pywsman_client.invoke.return_value = mock_xml
 

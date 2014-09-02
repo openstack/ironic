@@ -18,6 +18,7 @@ Test class for DRAC client wrapper.
 import mock
 from xml.etree import ElementTree
 
+from ironic.common import exception
 from ironic.drivers.modules.drac import client as drac_client
 from ironic.tests import base
 from ironic.tests.db import utils as db_utils
@@ -30,12 +31,7 @@ INFO_DICT = db_utils.get_test_drac_info()
 class DracClientTestCase(base.TestCase):
 
     def test_wsman_enumerate(self, mock_client_pywsman):
-        mock_root = mock.Mock()
-        mock_root.string.return_value = '<test></test>'
-        mock_xml = mock.Mock()
-        mock_xml.root.return_value = mock_root
-        mock_xml.context.return_value = None
-
+        mock_xml = test_utils.mock_wsman_root('<test></test>')
         mock_pywsman_client = mock_client_pywsman.Client.return_value
         mock_pywsman_client.enumerate.return_value = mock_xml
 
@@ -81,12 +77,33 @@ class DracClientTestCase(base.TestCase):
         mock_pywsman_client.enumerate.assert_called_once_with(mock_options,
             None, resource_uri)
 
-    def test_wsman_invoke(self, mock_client_pywsman):
-        mock_root = mock.Mock()
-        mock_root.string.return_value = '<test></test>'
-        mock_xml = mock.Mock()
-        mock_xml.root.return_value = mock_root
+    def test_wsman_enumerate_filter_query(self, mock_client_pywsman):
+        mock_xml = test_utils.mock_wsman_root('<test></test>')
+        mock_pywsman_client = mock_client_pywsman.Client.return_value
+        mock_pywsman_client.enumerate.return_value = mock_xml
 
+        resource_uri = 'https://foo/wsman'
+        mock_options = mock_client_pywsman.ClientOptions.return_value
+        mock_filter = mock_client_pywsman.Filter.return_value
+        client = drac_client.Client(**INFO_DICT)
+        filter_query = 'SELECT * FROM foo'
+        client.wsman_enumerate(resource_uri, mock_options,
+                               filter_query=filter_query)
+
+        mock_filter.simple.assert_called_once_with(mock.ANY, filter_query)
+        mock_pywsman_client.enumerate.assert_called_once_with(mock_options,
+            mock_filter, resource_uri)
+        mock_xml.context.assert_called_once_with()
+
+    def test_wsman_enumerate_invalid_filter_dialect(self, mock_client_pywsman):
+        client = drac_client.Client(**INFO_DICT)
+        self.assertRaises(exception.DracInvalidFilterDialect,
+                          client.wsman_enumerate, 'https://foo/wsman',
+                          mock.Mock(), filter_query='foo',
+                          filter_dialect='invalid')
+
+    def test_wsman_invoke(self, mock_client_pywsman):
+        mock_xml = test_utils.mock_wsman_root('<test></test>')
         mock_pywsman_client = mock_client_pywsman.Client.return_value
         mock_pywsman_client.invoke.return_value = mock_xml
 
