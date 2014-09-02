@@ -23,6 +23,7 @@ import wsmeext.pecan as wsme_pecan
 from ironic.api.controllers import base
 from ironic.api.controllers import link
 from ironic.common import exception
+from ironic.common.i18n import _
 
 
 # Property information for drivers:

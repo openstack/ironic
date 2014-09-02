@@ -19,6 +19,7 @@ from oslo.config import cfg
 from six.moves.urllib import parse
 
 from ironic.common import exception
+from ironic.common.i18n import _
 
 CONF = cfg.CONF
 

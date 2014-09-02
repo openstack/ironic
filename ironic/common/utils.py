@@ -34,6 +34,7 @@ import paramiko
 import six
 
 from ironic.common import exception
+from ironic.common.i18n import _
 from ironic.openstack.common import log as logging
 from ironic.openstack.common import processutils
 

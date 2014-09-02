@@ -16,6 +16,7 @@ Common functionalities shared between different DRAC modules.
 """
 
 from ironic.common import exception
+from ironic.common.i18n import _
 from ironic.drivers.modules.drac import client as drac_client
 from ironic.openstack.common import importutils
 

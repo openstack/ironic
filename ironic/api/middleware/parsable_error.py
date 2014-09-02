@@ -26,6 +26,7 @@ import json
 import webob
 from xml import etree as et
 
+from ironic.common.i18n import _
 from ironic.openstack.common import log
 
 LOG = log.getLogger(__name__)

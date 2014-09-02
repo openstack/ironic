@@ -30,6 +30,7 @@ from ironic.api.controllers.v1 import port
 from ironic.api.controllers.v1 import types
 from ironic.api.controllers.v1 import utils as api_utils
 from ironic.common import exception
+from ironic.common.i18n import _
 from ironic.common import states as ir_states
 from ironic.common import utils
 from ironic import objects

@@ -23,6 +23,7 @@ from oslo import messaging
 from oslo.utils import importutils
 
 from ironic.common import config
+from ironic.common.i18n import _
 from ironic.common import rpc
 from ironic.objects import base as objects_base
 from ironic.openstack.common import context

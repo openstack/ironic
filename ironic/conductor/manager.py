@@ -57,6 +57,7 @@ from ironic.common import driver_factory
 from ironic.common import exception
 from ironic.common import hash_ring as hash
 from ironic.common import i18n
+from ironic.common.i18n import _
 from ironic.common import rpc
 from ironic.common import states
 from ironic.common import utils as ironic_utils

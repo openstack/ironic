@@ -16,6 +16,7 @@
 from oslo.config import cfg
 
 from ironic.common import exception
+from ironic.common.i18n import _
 from ironic.openstack.common import lockutils
 from ironic.openstack.common import log
 from stevedore import dispatch

@@ -25,6 +25,7 @@ from six.moves import socketserver
 from wsgiref import simple_server
 
 from ironic.api import app
+from ironic.common.i18n import _
 from ironic.common import service as ironic_service
 from ironic.openstack.common import log
 

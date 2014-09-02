@@ -22,6 +22,8 @@ import netaddr
 from oslo.utils import timeutils
 import six
 
+from ironic.common.i18n import _
+
 
 def datetime_or_none(dt):
     """Validate a datetime or None value."""

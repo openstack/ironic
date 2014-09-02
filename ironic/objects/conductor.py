@@ -14,6 +14,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+from ironic.common.i18n import _
 from ironic.db import api as db_api
 from ironic.objects import base
 from ironic.objects import utils
