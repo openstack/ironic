@@ -637,11 +637,14 @@ class ConductorManager(periodic_task.PeriodicTasks):
             try:
                 task.driver.power.validate(task)
             except (exception.InvalidParameterValue,
-                    exception.MissingParameterValue) as e:
+                    exception.MissingParameterValue):
                 return
 
         try:
             power_state = task.driver.power.get_power_state(task)
+            if power_state == states.ERROR:
+                raise exception.PowerStateFailure(_("Driver returns ERROR"
+                                                    " state."))
         except Exception as e:
             # TODO(rloo): change to IronicException, after
             #             https://bugs.launchpad.net/ironic/+bug/1267693
