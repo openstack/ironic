@@ -25,7 +25,7 @@ from six.moves import socketserver
 from wsgiref import simple_server
 
 from ironic.api import app
-from ironic.common.i18n import _
+from ironic.common.i18n import _LI
 from ironic.common import service as ironic_service
 from ironic.openstack.common import log
 
@@ -51,9 +51,9 @@ def main():
             server_class=ThreadedSimpleServer)
 
     LOG = log.getLogger(__name__)
-    LOG.info(_("Serving on http://%(host)s:%(port)s") %
+    LOG.info(_LI("Serving on http://%(host)s:%(port)s"),
              {'host': host, 'port': port})
-    LOG.info(_("Configuration:"))
+    LOG.info(_LI("Configuration:"))
     CONF.log_opt_values(LOG, logging.INFO)
 
     try:
