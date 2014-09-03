@@ -33,6 +33,7 @@ from ironic.drivers.modules import agent
 from ironic.drivers.modules import deploy_utils
 from ironic.drivers.modules.ilo import common as ilo_common
 from ironic.drivers.modules import iscsi_deploy
+from ironic.drivers.modules import pxe
 from ironic.drivers import utils as driver_utils
 from ironic.openstack.common import log as logging
 
@@ -393,6 +394,70 @@ class IloVirtualMediaAgentDeploy(base.DeployInterface):
         :param task: a TaskManager instance.
         """
         pass
+
+
+class IloPXEDeploy(pxe.PXEDeploy):
+
+    def validate(self, task):
+        """Validate the deployment information for the task's node.
+
+        This method validates the boot mode capability of the node and then
+        call the PXEDeploy's validate method.
+
+        :param task: a TaskManager instance containing the node to act on.
+        :raises: InvalidParameterValue or MissingParameterValue,
+            if some information is missing or invalid.
+        """
+        driver_utils.validate_boot_mode_capability(task.node)
+        super(IloPXEDeploy, self).validate(task)
+
+    def prepare(self, task):
+        """Prepare the deployment environment for this task's node.
+
+        If the node's 'capabilities' property includes a boot_mode, that
+        boot mode will be applied for the node. Otherwise, the existing
+        boot mode of the node is used in the node's 'capabilities' property.
+
+        PXEDeploys' prepare method is then called, to prepare the deploy
+        environment for the node
+
+        :param task: a TaskManager instance containing the node to act on.
+        """
+        boot_mode = driver_utils.get_node_capability(task.node, 'boot_mode')
+        if boot_mode is None:
+            ilo_common.update_boot_mode_capability(task)
+        else:
+            ilo_common.set_boot_mode(task.node, boot_mode)
+        super(IloPXEDeploy, self).prepare(task)
+
+    def deploy(self, task):
+        """Start deployment of the task's node.
+
+        This method sets the boot device to 'NETWORK' and then calls
+        PXEDeploy's deploy method to deploy on the given node.
+
+        :param task: a TaskManager instance containing the node to act on.
+        :returns: deploy state DEPLOYWAIT.
+        """
+        ilo_common.set_boot_device(task.node, 'NETWORK', False)
+
+        return super(IloPXEDeploy, self).deploy(task)
+
+
+class IloPXEVendorPassthru(pxe.VendorPassthru):
+
+    def vendor_passthru(self, task, **kwargs):
+        """Calls a valid vendor passthru method.
+
+        :param task: a TaskManager instance containing the node to act on.
+        :param kwargs: kwargs containing the vendor passthru method and its
+            parameters.
+        """
+        method = kwargs['method']
+        if method == 'pass_deploy_info':
+            ilo_common.set_boot_device(task.node, 'NETWORK', True)
+
+        return super(IloPXEVendorPassthru, self).vendor_passthru(task, kwargs)
 
 
 class VendorPassthru(base.VendorInterface):

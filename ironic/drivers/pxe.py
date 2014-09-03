@@ -23,6 +23,7 @@ from ironic.common import exception
 from ironic.common.i18n import _
 from ironic.drivers import base
 from ironic.drivers.modules import iboot
+from ironic.drivers.modules.ilo import deploy as ilo_deploy
 from ironic.drivers.modules.ilo import power as ilo_power
 from ironic.drivers.modules import ipminative
 from ironic.drivers.modules import ipmitool
@@ -145,7 +146,9 @@ class PXEAndIloDriver(base.BaseDriver):
 
     This driver implements the `core` functionality using
     :class:ironic.drivers.modules.ilo.power.IloPower for power management
-    and :class:ironic.drivers.modules.pxe.PXE for image deployment.
+    :class:ironic.drivers.modules.ilo.deploy.IloPXEDeploy(pxe.PXEDeploy)
+    for image deployment.
+
     """
 
     def __init__(self):
@@ -154,8 +157,10 @@ class PXEAndIloDriver(base.BaseDriver):
                     driver=self.__class__.__name__,
                     reason=_("Unable to import proliantutils library"))
         self.power = ilo_power.IloPower()
-        self.deploy = pxe.PXEDeploy()
-        self.vendor = pxe.VendorPassthru()
+        self.deploy = ilo_deploy.IloPXEDeploy()
+        self.vendor = ilo_deploy.IloPXEVendorPassthru()
+        self.console = ipmitool.IPMIShellinaboxConsole()
+        self.management = ipmitool.IPMIManagement()
 
 
 class PXEAndSNMPDriver(base.BaseDriver):
