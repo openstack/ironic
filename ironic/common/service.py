@@ -23,11 +23,11 @@ from oslo import messaging
 from oslo.utils import importutils
 
 from ironic.common import config
-from ironic.common.i18n import _
+from ironic.common.i18n import _LE
+from ironic.common.i18n import _LI
 from ironic.common import rpc
 from ironic.objects import base as objects_base
 from ironic.openstack.common import context
-from ironic.openstack.common.gettextutils import _LI
 from ironic.openstack.common import log
 from ironic.openstack.common import service
 
@@ -85,13 +85,13 @@ class RPCService(service.Service):
             self.rpcserver.stop()
             self.rpcserver.wait()
         except Exception as e:
-            LOG.exception(_('Service error occurred when stopping the '
-                            'RPC server. Error: %s'), e)
+            LOG.exception(_LE('Service error occurred when stopping the '
+                              'RPC server. Error: %s'), e)
         try:
             self.manager.del_host()
         except Exception as e:
-            LOG.exception(_('Service error occurred when cleaning up '
-                            'the RPC manager. Error: %s'), e)
+            LOG.exception(_LE('Service error occurred when cleaning up '
+                              'the RPC manager. Error: %s'), e)
         LOG.info(_LI('Stopped RPC server for service %(service)s on host '
                      '%(host)s.'),
                  {'service': self.topic, 'host': self.host})

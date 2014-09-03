@@ -26,6 +26,7 @@ from oslo.config import cfg
 import six
 
 from ironic.common.i18n import _
+from ironic.common.i18n import _LE
 from ironic.openstack.common import log as logging
 
 
@@ -75,7 +76,7 @@ class IronicException(Exception):
             except Exception as e:
                 # kwargs doesn't match a variable in the message
                 # log the issue and the kwargs
-                LOG.exception(_('Exception in string format operation'))
+                LOG.exception(_LE('Exception in string format operation'))
                 for name, value in kwargs.iteritems():
                     LOG.error("%s: %s" % (name, value))
 
