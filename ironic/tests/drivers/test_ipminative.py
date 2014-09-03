@@ -129,6 +129,86 @@ class IPMINativePrivateMethodTestCase(base.TestCase):
         ipmicmd.set_power.assert_called_once_with('boot', 600)
         self.assertEqual(states.POWER_ON, state)
 
+    def _create_sensor_object(self, value, type_, name, states=None,
+                   units='fake_units', health=0):
+        if states is None:
+            states = []
+        return type('Reading', (object, ), {'value': value, 'type': type_,
+                                     'name': name, 'states': states,
+                                     'units': units, 'health': health})()
+
+    @mock.patch('pyghmi.ipmi.command.Command')
+    def test__get_sensors_data(self, ipmi_mock):
+        reading_1 = self._create_sensor_object('fake_value1',
+                                               'fake_type_A',
+                                               'fake_name1')
+        reading_2 = self._create_sensor_object('fake_value2',
+                                               'fake_type_A',
+                                               'fake_name2')
+        reading_3 = self._create_sensor_object('fake_value3',
+                                               'fake_type_B',
+                                               'fake_name3')
+        readings = [reading_1, reading_2, reading_3]
+        ipmicmd = ipmi_mock.return_value
+        ipmicmd.get_sensor_data.return_value = readings
+        expected = {
+              'fake_type_A': {
+                'fake_name1': {
+                  'Health': 0,
+                  'Sensor ID': 'fake_name1',
+                  'Sensor Reading': 'fake_value1',
+                  'States': [],
+                  'Units': 'fake_units'
+                },
+                'fake_name2': {
+                  'Health': 0,
+                  'Sensor ID': 'fake_name2',
+                  'Sensor Reading': 'fake_value2',
+                  'States': [],
+                  'Units': 'fake_units'
+                }
+              },
+              'fake_type_B': {
+                'fake_name3': {
+                  'Health': 0,
+                  'Sensor ID': 'fake_name3',
+                  'Sensor Reading': 'fake_value3',
+                  'States': [], 'Units': 'fake_units'
+                }
+              }
+            }
+        ret = ipminative._get_sensors_data(self.info)
+        self.assertEqual(expected, ret)
+
+    @mock.patch('pyghmi.ipmi.command.Command')
+    def test__get_sensors_data_missing_values(self, ipmi_mock):
+        reading_1 = self._create_sensor_object('fake_value1',
+                                               'fake_type_A',
+                                               'fake_name1')
+        reading_2 = self._create_sensor_object(None,
+                                               'fake_type_A',
+                                               'fake_name2')
+        reading_3 = self._create_sensor_object(None,
+                                               'fake_type_B',
+                                               'fake_name3')
+        readings = [reading_1, reading_2, reading_3]
+        ipmicmd = ipmi_mock.return_value
+        ipmicmd.get_sensor_data.return_value = readings
+
+        expected = {
+              'fake_type_A': {
+                'fake_name1': {
+                  'Health': 0,
+                  'Sensor ID': 'fake_name1',
+                  'Sensor Reading': 'fake_value1',
+                  'States': [],
+                  'Units': 'fake_units'
+                }
+              }
+            }
+        ret = ipminative._get_sensors_data(self.info)
+        self.assertEqual(expected, ret)
+
 
 class IPMINativeDriverTestCase(db_base.DbTestCase):
     """Test cases for ipminative.NativeIPMIPower class functions.
@@ -314,3 +394,13 @@ class IPMINativeDriverTestCase(db_base.DbTestCase):
         with task_manager.acquire(self.context, node.uuid) as task:
             self.assertRaises(exception.MissingParameterValue,
                               task.driver.management.validate, task)
+
+    @mock.patch('pyghmi.ipmi.command.Command')
+    def test_get_sensors_data(self, ipmi_mock):
+        ipmicmd = ipmi_mock.return_value
+        ipmicmd.get_sensor_data.return_value = None
+
+        with task_manager.acquire(self.context,
+                                  self.node.uuid) as task:
+            self.driver.management.get_sensors_data(task)
+        ipmicmd.get_sensor_data.assert_called_once_with()
