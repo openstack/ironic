@@ -22,8 +22,9 @@ from oslo.config import cfg
 from oslo.utils import importutils
 
 from ironic.common import exception
-from ironic.common import i18n
 from ironic.common.i18n import _
+from ironic.common.i18n import _LE
+from ironic.common.i18n import _LI
 from ironic.common import images
 from ironic.common import swift
 from ironic.common import utils
@@ -55,9 +56,6 @@ CONF = cfg.CONF
 CONF.register_opts(opts, group='ilo')
 
 LOG = logging.getLogger(__name__)
-
-_LE = i18n._LE
-_LI = i18n._LI
 
 REQUIRED_PROPERTIES = {
     'ilo_address': _("IP address or hostname of the iLO. Required."),
@@ -272,7 +270,7 @@ def set_boot_device(node, device):
         raise exception.IloOperationError(operation=operation,
                                           error=ilo_exception)
 
-    LOG.debug(_LI("Node %(uuid)s set to boot from %(device)s."),
+    LOG.debug("Node %(uuid)s set to boot from %(device)s.",
              {'uuid': node.uuid, 'device': device})
 
 
@@ -293,7 +291,8 @@ def setup_vmedia_for_boot(task, boot_iso, parameters=None):
     :raises: ImageCreationFailed, if it failed while creating the floppy image.
     :raises: IloOperationError, if attaching virtual media failed.
     """
-    LOG.info("Setting up node %s to boot from virtual media", task.node.uuid)
+    LOG.info(_LI("Setting up node %s to boot from virtual media"),
+             task.node.uuid)
 
     if parameters:
         floppy_image_temp_url = _prepare_floppy_image(task, parameters)

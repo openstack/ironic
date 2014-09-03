@@ -22,8 +22,8 @@ Ironic iBoot PDU power manager.
 from oslo.utils import importutils
 
 from ironic.common import exception
-from ironic.common import i18n
 from ironic.common.i18n import _
+from ironic.common.i18n import _LW
 from ironic.common import states
 from ironic.conductor import task_manager
 from ironic.drivers import base
@@ -31,8 +31,6 @@ from ironic.openstack.common import log as logging
 
 iboot = importutils.try_import('iboot')
 
-
-_LW = i18n._LW
 
 LOG = logging.getLogger(__name__)
 

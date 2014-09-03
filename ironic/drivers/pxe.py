@@ -107,7 +107,7 @@ class PXEAndSeaMicroDriver(base.BaseDriver):
         if not importutils.try_import('seamicroclient'):
             raise exception.DriverLoadError(
                     driver=self.__class__.__name__,
-                    reason="Unable to import seamicroclient library")
+                    reason=_("Unable to import seamicroclient library"))
         self.power = seamicro.Power()
         self.deploy = pxe.PXEDeploy()
         self.management = seamicro.Management()
@@ -134,7 +134,7 @@ class PXEAndIBootDriver(base.BaseDriver):
         if not importutils.try_import('iboot'):
             raise exception.DriverLoadError(
                     driver=self.__class__.__name__,
-                    reason="Unable to import iboot library")
+                    reason=_("Unable to import iboot library"))
         self.power = iboot.IBootPower()
         self.deploy = pxe.PXEDeploy()
         self.vendor = pxe.VendorPassthru()

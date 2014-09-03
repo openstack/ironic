@@ -41,8 +41,9 @@ from oslo.utils import excutils
 
 from ironic.common import boot_devices
 from ironic.common import exception
-from ironic.common import i18n
 from ironic.common.i18n import _
+from ironic.common.i18n import _LE
+from ironic.common.i18n import _LW
 from ironic.common import states
 from ironic.common import utils
 from ironic.conductor import task_manager
@@ -52,8 +53,6 @@ from ironic.openstack.common import log as logging
 from ironic.openstack.common import loopingcall
 from ironic.openstack.common import processutils
 
-
-_LW = i18n._LW
 
 CONF = cfg.CONF
 CONF.import_opt('retry_timeout',
@@ -400,8 +399,8 @@ def _set_and_wait(target_state, driver_info):
                 processutils.ProcessExecutionError,
                 exception.IPMIFailure):
             # Log failures but keep trying
-            LOG.warning(_("IPMI power %(state)s failed for node %(node)s."),
-                         {'state': state_name, 'node': driver_info['uuid']})
+            LOG.warning(_LW("IPMI power %(state)s failed for node %(node)s."),
+                           {'state': state_name, 'node': driver_info['uuid']})
         finally:
             mutable['iter'] += 1
 
@@ -411,10 +410,10 @@ def _set_and_wait(target_state, driver_info):
         sleep_time = _sleep_time(mutable['iter'])
         if (sleep_time + mutable['total_time']) > CONF.ipmi.retry_timeout:
             # Stop if the next loop would exceed maximum retry_timeout
-            LOG.error(_('IPMI power %(state)s timed out after '
-                        '%(tries)s retries on node %(node_id)s.'),
-                        {'state': state_name, 'tries': mutable['iter'],
-                        'node_id': driver_info['uuid']})
+            LOG.error(_LE('IPMI power %(state)s timed out after '
+                          '%(tries)s retries on node %(node_id)s.'),
+                          {'state': state_name, 'tries': mutable['iter'],
+                          'node_id': driver_info['uuid']})
             mutable['power'] = states.ERROR
             raise loopingcall.LoopingCallDone()
         else:
@@ -465,9 +464,9 @@ def _power_status(driver_info):
         out_err = _exec_ipmitool(driver_info, cmd)
     except (exception.PasswordFileFailedToCreate,
             processutils.ProcessExecutionError) as e:
-        LOG.warning(_("IPMI power status failed for node %(node_id)s with "
-                      "error: %(error)s.")
-                    % {'node_id': driver_info['uuid'], 'error': e})
+        LOG.warning(_LW("IPMI power status failed for node %(node_id)s with "
+                        "error: %(error)s."),
+                    {'node_id': driver_info['uuid'], 'error': e})
         raise exception.IPMIFailure(cmd=cmd)
 
     if out_err[0] == "Chassis Power is on\n":
@@ -816,7 +815,7 @@ class VendorPassthru(base.VendorInterface):
                       ' %(stderr)s', {'stdout': out, 'stderr': err})
         except (exception.PasswordFileFailedToCreate,
                 processutils.ProcessExecutionError) as e:
-            LOG.exception(_('IPMI "raw bytes" failed for node %(node_id)s '
+            LOG.exception(_LE('IPMI "raw bytes" failed for node %(node_id)s '
                           'with error: %(error)s.'),
                           {'node_id': node_uuid, 'error': e})
             raise exception.IPMIFailure(cmd=cmd)
@@ -850,7 +849,7 @@ class VendorPassthru(base.VendorInterface):
                       ' %(stderr)s', {'stdout': out, 'stderr': err})
         except (exception.PasswordFileFailedToCreate,
                 processutils.ProcessExecutionError) as e:
-            LOG.exception(_('IPMI "bmc reset" failed for node %(node_id)s '
+            LOG.exception(_LE('IPMI "bmc reset" failed for node %(node_id)s '
                           'with error: %(error)s.'),
                           {'node_id': node_uuid, 'error': e})
             raise exception.IPMIFailure(cmd=cmd)

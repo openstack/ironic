@@ -28,8 +28,9 @@ from oslo.utils import importutils
 
 from ironic.common import boot_devices
 from ironic.common import exception
-from ironic.common import i18n
 from ironic.common.i18n import _
+from ironic.common.i18n import _LE
+from ironic.common.i18n import _LW
 from ironic.common import states
 from ironic.common import utils
 from ironic.conductor import task_manager
@@ -53,8 +54,6 @@ opts = [
                     'that setting this too low may cause the BMC to crash. '
                     'Recommended setting is 5 seconds.'),
     ]
-
-_LE = i18n._LE
 
 CONF = cfg.CONF
 CONF.register_opts(opts, group='ipmi')
@@ -132,8 +131,8 @@ def _power_on(driver_info):
              from ipmi.
     """
 
-    msg = _("IPMI power on failed for node %(node_id)s with the "
-            "following error: %(error)s")
+    msg = _LW("IPMI power on failed for node %(node_id)s with the "
+              "following error: %(error)s")
     try:
         ipmicmd = ipmi_command.Command(bmc=driver_info['address'],
                            userid=driver_info['username'],
@@ -141,14 +140,14 @@ def _power_on(driver_info):
         wait = CONF.ipmi.retry_timeout
         ret = ipmicmd.set_power('on', wait)
     except pyghmi_exception.IpmiException as e:
-        LOG.warning(msg % {'node_id': driver_info['uuid'], 'error': str(e)})
+        LOG.warning(msg, {'node_id': driver_info['uuid'], 'error': str(e)})
         raise exception.IPMIFailure(cmd=str(e))
 
     state = ret.get('powerstate')
     if state == 'on':
         return states.POWER_ON
     else:
-        LOG.warning(msg % {'node_id': driver_info['uuid'], 'error': ret})
+        LOG.warning(msg, {'node_id': driver_info['uuid'], 'error': ret})
         raise exception.PowerStateFailure(pstate=state)
 
 
@@ -162,8 +161,8 @@ def _power_off(driver_info):
              from ipmi.
     """
 
-    msg = _("IPMI power off failed for node %(node_id)s with the "
-            "following error: %(error)s")
+    msg = _LW("IPMI power off failed for node %(node_id)s with the "
+              "following error: %(error)s")
     try:
         ipmicmd = ipmi_command.Command(bmc=driver_info['address'],
                            userid=driver_info['username'],
@@ -171,7 +170,7 @@ def _power_off(driver_info):
         wait = CONF.ipmi.retry_timeout
         ret = ipmicmd.set_power('off', wait)
     except pyghmi_exception.IpmiException as e:
-        LOG.warning(msg % {'node_id': driver_info['uuid'], 'error': str(e)})
+        LOG.warning(msg, {'node_id': driver_info['uuid'], 'error': str(e)})
         raise exception.IPMIFailure(cmd=str(e))
 
     state = ret.get('powerstate')
@@ -194,8 +193,8 @@ def _reboot(driver_info):
              from ipmi.
     """
 
-    msg = _("IPMI power reboot failed for node %(node_id)s with the "
-            "following error: %(error)s")
+    msg = _LW("IPMI power reboot failed for node %(node_id)s with the "
+              "following error: %(error)s")
     try:
         ipmicmd = ipmi_command.Command(bmc=driver_info['address'],
                            userid=driver_info['username'],
@@ -229,9 +228,9 @@ def _power_status(driver_info):
                            password=driver_info['password'])
         ret = ipmicmd.get_power()
     except pyghmi_exception.IpmiException as e:
-        LOG.warning(_("IPMI get power state failed for node %(node_id)s "
-                      "with the following error: %(error)s")
-                    % {'node_id': driver_info['uuid'], 'error': str(e)})
+        LOG.warning(_LW("IPMI get power state failed for node %(node_id)s "
+                        "with the following error: %(error)s"),
+                    {'node_id': driver_info['uuid'], 'error': str(e)})
         raise exception.IPMIFailure(cmd=str(e))
 
     state = ret.get('powerstate')
@@ -243,9 +242,9 @@ def _power_status(driver_info):
         # NOTE(linggao): Do not throw an exception here because it might
         # return other valid values. It is up to the caller to decide
         # what to do.
-        LOG.warning(_("IPMI get power state for node %(node_id)s returns the  "
-                      "following details: %(detail)s")
-                    % {'node_id': driver_info['uuid'], 'detail': ret})
+        LOG.warning(_LW("IPMI get power state for node %(node_id)s returns the"
+                        " following details: %(detail)s"),
+                    {'node_id': driver_info['uuid'], 'detail': ret})
         return states.ERROR
 
 
