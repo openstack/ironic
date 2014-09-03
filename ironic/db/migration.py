@@ -45,3 +45,7 @@ def stamp(version):
 
 def revision(message, autogenerate):
     return IMPL.revision(message, autogenerate)
+
+
+def create_schema():
+    return IMPL.create_schema()

@@ -19,8 +19,10 @@ import os
 import alembic
 from alembic import config as alembic_config
 import alembic.migration as alembic_migration
+from oslo.db import exception as db_exc
 
 from ironic.db.sqlalchemy import api as sqla_api
+from ironic.db.sqlalchemy import models
 
 
 def _alembic_config():
@@ -29,13 +31,14 @@ def _alembic_config():
     return config
 
 
-def version(config=None):
+def version(config=None, engine=None):
     """Current database version.
 
     :returns: Database version
     :rtype: string
     """
-    engine = sqla_api.get_engine()
+    if engine is None:
+        engine = sqla_api.get_engine()
     with engine.connect() as conn:
         context = alembic_migration.MigrationContext.configure(conn)
         return context.get_current_revision()
@@ -51,6 +54,25 @@ def upgrade(revision, config=None):
     config = config or _alembic_config()
 
     alembic.command.upgrade(config, revision or 'head')
+
+
+def create_schema(config=None, engine=None):
+    """Create database schema from models description.
+
+    Can be used for initial installation instead of upgrade('head').
+    """
+    if engine is None:
+        engine = sqla_api.get_engine()
+
+    # NOTE(viktors): If we will use metadata.create_all() for non empty db
+    #                schema, it will only add the new tables, but leave
+    #                existing as is. So we should avoid of this situation.
+    if version(engine=engine) is not None:
+        raise db_exc.DbMigrationError("DB schema is already under version"
+                                      " control. Use upgrade() instead")
+
+    models.Base.metadata.create_all(engine)
+    stamp('head', config=config)
 
 
 def downgrade(revision, config=None):

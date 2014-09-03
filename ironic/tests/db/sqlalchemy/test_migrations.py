@@ -42,7 +42,7 @@ import contextlib
 
 from alembic import script
 import mock
-from oslo.db import exception
+from oslo.db import exception as db_exc
 from oslo.db.sqlalchemy import test_base
 from oslo.db.sqlalchemy import test_migrations
 from oslo.db.sqlalchemy import utils as db_utils
@@ -315,8 +315,32 @@ class MigrationCheckersMixin(object):
         #                Ironic will use oslo.db 0.4.0 or higher.
         #                See bug #1214341 for details.
         self.assertRaises(
-            (sqlalchemy.exc.IntegrityError, exception.DBDuplicateEntry),
+            (sqlalchemy.exc.IntegrityError, db_exc.DBDuplicateEntry),
             nodes.insert().execute, data)
+
+    def test_upgrade_and_version(self):
+        with patch_with_engine(self.engine):
+            self.migration_api.upgrade('head')
+            self.assertIsNotNone(self.migration_api.version())
+
+    def test_create_schema_and_version(self):
+        with patch_with_engine(self.engine):
+            self.migration_api.create_schema()
+            self.assertIsNotNone(self.migration_api.version())
+
+    def test_upgrade_and_create_schema(self):
+        with patch_with_engine(self.engine):
+            self.migration_api.upgrade('31baaf680d2b')
+            self.assertRaises(db_exc.DbMigrationError,
+                              self.migration_api.create_schema)
+
+    def test_upgrade_twice(self):
+        with patch_with_engine(self.engine):
+            self.migration_api.upgrade('31baaf680d2b')
+            v1 = self.migration_api.version()
+            self.migration_api.upgrade('head')
+            v2 = self.migration_api.version()
+            self.assertNotEqual(v1, v2)
 
 
 class TestMigrationsMySQL(MigrationCheckersMixin,
