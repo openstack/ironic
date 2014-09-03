@@ -20,8 +20,8 @@
 A single instance of :py:class:`ironic.conductor.manager.ConductorManager` is
 created within the *ironic-conductor* process, and is responsible for
 performing all actions on bare metal resources (Chassis, Nodes, and Ports).
-Commands are received via RPC calls. The conductor service also performs
-periodic tasks, eg.  to monitor the status of active deployments.
+Commands are received via RPCs. The conductor service also performs periodic
+tasks, eg.  to monitor the status of active deployments.
 
 Drivers are loaded via entrypoints by the
 :py:class:`ironic.common.driver_factory` class. Each driver is instantiated
