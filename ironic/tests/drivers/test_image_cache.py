@@ -33,7 +33,7 @@ def touch(filename):
     open(filename, 'w').close()
 
 
-@mock.patch.object(images, 'fetch_to_raw')
+@mock.patch.object(image_cache, '_fetch_to_raw')
 class TestImageCacheFetch(base.TestCase):
 
     def setUp(self):
@@ -241,7 +241,7 @@ class TestImageCacheCleanUp(base.TestCase):
         mock_clean_ttl.assert_called_once_with(mock.ANY, None)
 
     @mock.patch.object(utils, 'rmtree_without_raise')
-    @mock.patch.object(images, 'fetch_to_raw')
+    @mock.patch.object(image_cache, '_fetch_to_raw')
     def test_temp_images_not_cleaned(self, mock_fetch_to_raw, mock_rmtree):
         def _fake_fetch_to_raw(ctx, uuid, tmp_path, *args):
             with open(tmp_path, 'w') as fp:
@@ -258,7 +258,7 @@ class TestImageCacheCleanUp(base.TestCase):
         self.assertTrue(mock_rmtree.called)
 
     @mock.patch.object(utils, 'rmtree_without_raise')
-    @mock.patch.object(images, 'fetch_to_raw')
+    @mock.patch.object(image_cache, '_fetch_to_raw')
     def test_temp_dir_exception(self, mock_fetch_to_raw, mock_rmtree):
         mock_fetch_to_raw.side_effect = exception.IronicException
         self.assertRaises(exception.IronicException,
@@ -355,7 +355,7 @@ class CleanupImageCacheTestCase(base.TestCase):
         mock_statvfs.assert_called_with('master_dir')
         self.assertEqual(2, mock_statvfs.call_count)
         self.mock_first_cache.return_value.clean_up.assert_called_once_with(
-            amount=(42 * 2 - 1))
+            amount=(42 - 1))
         self.assertFalse(self.mock_second_cache.return_value.clean_up.called)
 
         # Since we are using generator expression in clean_up_caches, stat on
@@ -389,7 +389,7 @@ class CleanupImageCacheTestCase(base.TestCase):
         mock_statvfs.assert_called_with('master_dir')
         self.assertEqual(2, mock_statvfs.call_count)
         self.mock_second_cache.return_value.clean_up.assert_called_once_with(
-            amount=(42 * 2 - 1))
+            amount=(42 - 1))
         self.assertFalse(self.mock_first_cache.return_value.clean_up.called)
 
         # Since first cache exists on a different partition, it wouldn't be
@@ -422,9 +422,9 @@ class CleanupImageCacheTestCase(base.TestCase):
         mock_statvfs.assert_called_with('master_dir')
         self.assertEqual(3, mock_statvfs.call_count)
         self.mock_first_cache.return_value.clean_up.assert_called_once_with(
-            amount=(42 * 2 - 1))
+            amount=(42 - 1))
         self.mock_second_cache.return_value.clean_up.assert_called_once_with(
-            amount=(42 * 2 - 2))
+            amount=(42 - 2))
 
         mock_stat_calls_expected = [mock.call('master_dir'),
                                     mock.call('first_cache_dir'),
@@ -453,9 +453,9 @@ class CleanupImageCacheTestCase(base.TestCase):
         mock_statvfs.assert_called_with('master_dir')
         self.assertEqual(3, mock_statvfs.call_count)
         self.mock_first_cache.return_value.clean_up.assert_called_once_with(
-            amount=(42 * 2 - 1))
+            amount=(42 - 1))
         self.mock_second_cache.return_value.clean_up.assert_called_once_with(
-            amount=(42 * 2 - 1))
+            amount=(42 - 1))
 
         mock_stat_calls_expected = [mock.call('master_dir'),
                                     mock.call('first_cache_dir'),
@@ -465,3 +465,22 @@ class CleanupImageCacheTestCase(base.TestCase):
                                        mock.call('master_dir')]
         self.assertEqual(mock_stat_calls_expected, mock_stat.mock_calls)
         self.assertEqual(mock_statvfs_calls_expected, mock_statvfs.mock_calls)
+
+
+class TestFetchCleanup(base.TestCase):
+
+    def setUp(self):
+        super(TestFetchCleanup, self).setUp()
+
+    @mock.patch.object(images, 'converted_size')
+    @mock.patch.object(images, 'fetch')
+    @mock.patch.object(images, 'image_to_raw')
+    @mock.patch.object(image_cache, '_clean_up_caches')
+    def test__fetch_to_raw(self, mock_clean, mock_raw, mock_fetch, mock_size):
+        mock_size.return_value = 100
+        image_cache._fetch_to_raw('fake', 'fake-uuid', '/foo/bar')
+        mock_fetch.assert_called_once_with('fake', 'fake-uuid',
+                                           '/foo/bar.part', None)
+        mock_clean.assert_called_once_with('/foo', 100)
+        mock_raw.assert_called_once_with('fake-uuid', '/foo/bar',
+                                         '/foo/bar.part')
