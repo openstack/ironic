@@ -467,3 +467,7 @@ class ImageCreationFailed(IronicException):
 
 class SwiftOperationError(IronicException):
     message = _("Swift operation '%(operation)s' failed: %(error)s")
+
+
+class SNMPFailure(IronicException):
+    message = _("SNMP operation '%(operation)s' failed: %(error)s")

@@ -28,6 +28,7 @@ from ironic.drivers.modules import ipminative
 from ironic.drivers.modules import ipmitool
 from ironic.drivers.modules import pxe
 from ironic.drivers.modules import seamicro
+from ironic.drivers.modules import snmp
 from ironic.drivers.modules import ssh
 from ironic.drivers import utils
 
@@ -154,3 +155,27 @@ class PXEAndIloDriver(base.BaseDriver):
         self.power = ilo_power.IloPower()
         self.deploy = pxe.PXEDeploy()
         self.vendor = pxe.VendorPassthru()
+
+
+class PXEAndSNMPDriver(base.BaseDriver):
+    """PXE + SNMP driver.
+
+    This driver implements the 'core' functionality, combining
+    :class:ironic.drivers.snmp.SNMP for power on/off and reboot with
+    :class:ironic.drivers.pxe.PXE for image deployment. Implentations are in
+    those respective classes; this class is merely the glue between them.
+    """
+
+    def __init__(self):
+        # Driver has a runtime dependency on PySNMP, abort load if it is absent
+        if not importutils.try_import('pysnmp'):
+            raise exception.DriverLoadError(
+                driver=self.__class__.__name__,
+                reason=_("Unable to import pysnmp library"))
+        self.power = snmp.SNMPPower()
+        self.deploy = pxe.PXEDeploy()
+        self.vendor = pxe.VendorPassthru()
+
+        # PDUs have no boot device management capability.
+        # Only PXE as a boot device is supported.
+        self.management = None

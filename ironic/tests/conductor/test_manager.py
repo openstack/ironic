@@ -2214,6 +2214,11 @@ class ManagerTestProperties(tests_db_base.DbTestCase):
                     'seamicro_api_version']
         self._check_driver_properties("fake_seamicro", expected)
 
+    def test_driver_properties_fake_snmp(self):
+        expected = ['snmp_driver', 'snmp_address', 'snmp_port', 'snmp_version',
+                    'snmp_community', 'snmp_security', 'snmp_outlet']
+        self._check_driver_properties("fake_snmp", expected)
+
     def test_driver_properties_pxe_ipmitool(self):
         expected = ['ipmi_address', 'ipmi_terminal_port',
                     'ipmi_password', 'ipmi_priv_level',
@@ -2242,6 +2247,12 @@ class ManagerTestProperties(tests_db_base.DbTestCase):
                    'seamicro_server_id', 'seamicro_username',
                    'seamicro_api_version']
         self._check_driver_properties("pxe_seamicro", expected)
+
+    def test_driver_properties_pxe_snmp(self):
+        expected = ['pxe_deploy_kernel', 'pxe_deploy_ramdisk',
+                    'snmp_driver', 'snmp_address', 'snmp_port', 'snmp_version',
+                    'snmp_community', 'snmp_security', 'snmp_outlet']
+        self._check_driver_properties("pxe_snmp", expected)
 
     def test_driver_properties_fake_ilo(self):
         expected = ['ilo_address', 'ilo_username', 'ilo_password',

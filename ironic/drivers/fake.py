@@ -32,6 +32,7 @@ from ironic.drivers.modules import ipminative
 from ironic.drivers.modules import ipmitool
 from ironic.drivers.modules import pxe
 from ironic.drivers.modules import seamicro
+from ironic.drivers.modules import snmp
 from ironic.drivers.modules import ssh
 from ironic.drivers import utils
 
@@ -145,3 +146,15 @@ class FakeDracDriver(base.BaseDriver):
         self.power = drac_power.DracPower()
         self.deploy = fake.FakeDeploy()
         self.management = drac_mgmt.DracManagement()
+
+
+class FakeSNMPDriver(base.BaseDriver):
+    """Fake SNMP driver."""
+
+    def __init__(self):
+        if not importutils.try_import('pysnmp'):
+            raise exception.DriverLoadError(
+                    driver=self.__class__.__name__,
+                    reason="Unable to import pysnmp library")
+        self.power = snmp.SNMPPower()
+        self.deploy = fake.FakeDeploy()

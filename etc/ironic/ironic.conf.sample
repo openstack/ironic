@@ -1162,6 +1162,17 @@
 #action_timeout=10
 
 
+[snmp]
+
+#
+# Options defined in ironic.drivers.modules.snmp
+#
+
+# Seconds to wait for power action to be completed (integer
+# value)
+#power_timeout=10
+
+
 [ssh]
 
 #
