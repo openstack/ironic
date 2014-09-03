@@ -22,6 +22,7 @@ import six
 
 from ironic.common import exception
 from ironic.common.i18n import _
+from ironic.common.i18n import _LE
 from ironic.objects import utils as obj_utils
 from ironic.openstack.common import context
 from ironic.openstack.common import log as logging
@@ -67,7 +68,7 @@ def make_class_properties(cls):
                 return setattr(self, get_attrname(name), typefn(value))
             except Exception:
                 attr = "%s.%s" % (self.obj_name(), name)
-                LOG.exception(_('Error setting %(attr)s') %
+                LOG.exception(_LE('Error setting %(attr)s'),
                               {'attr': attr})
                 raise
 
@@ -218,8 +219,8 @@ class IronicObject(object):
     def obj_class_from_name(cls, objname, objver):
         """Returns a class from the registry based on a name and version."""
         if objname not in cls._obj_classes:
-            LOG.error(_('Unable to instantiate unregistered object type '
-                        '%(objtype)s') % dict(objtype=objname))
+            LOG.error(_LE('Unable to instantiate unregistered object type '
+                          '%(objtype)s'), dict(objtype=objname))
             raise exception.UnsupportedObjectError(objtype=objname)
 
         latest = None
@@ -436,8 +437,9 @@ class IronicObject(object):
         NOTE(danms): May be removed in the future.
         """
         if key not in self.obj_fields:
-            raise AttributeError("'%s' object has no attribute '%s'" % (
-                    self.__class__, key))
+            raise AttributeError(
+                _("'%(objclass)s' object has no attribute '%(attrname)s'") %
+                {'objclass': self.__class__, 'attrname': key})
         if value != NotSpecifiedSentinel and not self.obj_attr_is_set(key):
             return value
         else:

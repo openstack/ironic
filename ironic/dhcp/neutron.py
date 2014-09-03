@@ -21,8 +21,9 @@ from neutronclient.v2_0 import client as clientv20
 from oslo.config import cfg
 
 from ironic.common import exception
-from ironic.common import i18n
 from ironic.common.i18n import _
+from ironic.common.i18n import _LE
+from ironic.common.i18n import _LW
 from ironic.common import keystone
 from ironic.common import network
 from ironic.common import utils
@@ -30,9 +31,6 @@ from ironic.dhcp import base
 from ironic.drivers.modules import ssh
 from ironic.openstack.common import log as logging
 
-
-_LE = i18n._LE
-_LW = i18n._LW
 
 neutron_opts = [
     cfg.StrOpt('url',
@@ -113,7 +111,7 @@ class NeutronDHCPApi(base.BaseDHCP):
         try:
             self.client.update_port(port_id, port_req_body)
         except neutron_client_exc.NeutronClientException:
-            LOG.exception(_("Failed to update Neutron port %s."), port_id)
+            LOG.exception(_LE("Failed to update Neutron port %s."), port_id)
             raise exception.FailedToUpdateDHCPOptOnPort(port_id=port_id)
 
     def update_port_address(self, port_id, address):
@@ -127,8 +125,8 @@ class NeutronDHCPApi(base.BaseDHCP):
         try:
             self.client.update_port(port_id, port_req_body)
         except neutron_client_exc.NeutronClientException:
-            LOG.exception(_("Failed to update MAC address on Neutron port %s."
-                            ), port_id)
+            LOG.exception(_LE("Failed to update MAC address on Neutron "
+                              "port %s."), port_id)
             raise exception.FailedToUpdateMacOnPort(port_id=port_id)
 
     def update_dhcp_opts(self, task, options):

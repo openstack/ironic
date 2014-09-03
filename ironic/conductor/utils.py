@@ -16,9 +16,10 @@ from oslo.utils import excutils
 
 from ironic.common import exception
 from ironic.common.i18n import _
+from ironic.common.i18n import _LI
+from ironic.common.i18n import _LW
 from ironic.common import states
 from ironic.conductor import task_manager
-from ironic.openstack.common.gettextutils import _LI
 from ironic.openstack.common import log
 
 LOG = log.getLogger(__name__)
@@ -86,9 +87,9 @@ def node_power_action(task, state):
             # (from previous operation), log a warning, and return.
             node['last_error'] = None
             node.save(context)
-            LOG.warn(_("Not going to change_node_power_state because "
-                       "current state = requested state = '%(state)s'.")
-                        % {'state': curr_state})
+            LOG.warn(_LW("Not going to change_node_power_state because "
+                         "current state = requested state = '%(state)s'."),
+                     {'state': curr_state})
             return
 
     # Set the target_power_state and clear any last_error, since we're
