@@ -322,6 +322,239 @@ Compute Service's controller nodes and compute nodes.*
 
     service nova-compute restart
 
+Configure Neutron to communicate with the Bare Metal Server
+===========================================================
+
+Neutron needs to be configured so that the bare metal server can
+communicate with the OpenStack services for DHCP, PXE Boot and other
+requirements. This section describes how to configure Neutron for a
+single flat network use case for bare metal provisioning.
+
+#. Edit ``/etc/neutron/plugins/ml2/ml2_conf.ini`` and modify these::
+
+    [ml2]
+    type_drivers = flat
+    tenant_network_types = flat
+    mechanism_drivers = openvswitch
+
+    [ml2_type_flat]
+    flat_networks = physnet1
+
+    [securitygroup]
+    firewall_driver = neutron.agent.linux.iptables_firewall.OVSHybridIptablesFirewallDriver
+    enable_security_group = True
+
+    [ovs]
+    network_vlan_ranges = physnet1
+    bridge_mappings = physnet1:br-eth2
+    # Replace eth2 with the interface on the neutron node which you
+    # are using to connect to the bare metal server
+
+#. Add the integration bridge to Open vSwitch::
+
+    ovs-vsctl add-br br-int
+
+#. Create the br-eth2 network bridge to handle communication between the
+   OpenStack (and Bare Metal services) and the bare metal nodes using eth2.
+   Replace eth2 with the interface on the neutron node which you are
+   using to connect to the Bare Metal Service::
+
+    ovs-vsctl add-br br-eth2
+    ovs-vsctl add-port br-eth2 eth2
+
+#. Restart the Open vSwitch agent::
+
+    service neutron-plugin-openvswitch-agent restart
+
+#. On restarting the Neutron Open vSwitch agent, the veth pair between
+   the bridges br-int and br-eth2 is automatically created.
+
+   Your Open vSwitch bridges should look something like this after
+   following the above steps::
+
+    ovs-vsctl show
+
+        Bridge br-ex
+            Port "eth1"
+                Interface "eth1"
+            Port br-ex
+                Interface br-ex
+                    type: internal
+        Bridge br-int
+            Port "int-br-eth2"
+                Interface "int-br-eth2"
+            Port br-int
+                Interface br-int
+                    type: internal
+        Bridge "br-eth2"
+            Port "br-eth2"
+                Interface "br-eth2"
+                    type: internal
+            Port "phy-br-eth2"
+                Interface "phy-br-eth2"
+            Port "eth2"
+                Interface "eth2"
+        ovs_version: "2.0.1"
+
+#. Create the flat network on which you are going to launch the
+   instances::
+
+    neutron net-create --tenant-id $TENANT_ID sharednet1 --shared \
+    --provider:network_type flat --provider:physical_network physnet1
+
+Image Requirements
+==================
+
+Bare Metal provisioning requires two sets of images: the deploy images
+and the user images. The deploy images are used by the Bare Metal Service
+to prepare the bare metal server for actual OS deployment. Whereas the 
+user images are installed on the bare metal server to be used by the 
+end user. Below are the steps to create the required images and add 
+them to Glance service:
+
+1. The `disk-image-builder`_ can be used to create images required for
+   deployment and the actual OS which the user is going to run.
+
+.. _disk-image-builder: https://github.com/openstack/diskimage-builder
+
+   *Note:* `tripleo-incubator`_ provides a `script`_ to install all the
+   dependencies for the disk-image-builder.
+
+.. _tripleo-incubator: https://github.com/openstack/tripleo-incubator
+
+.. _script: https://github.com/openstack/tripleo-incubator/blob/master/scripts/install-dependencies
+
+   - Clone the project and run the subsequent commands from the project
+     directory::
+
+       git clone https://github.com/openstack/diskimage-builder.git
+       cd diskimage-builder
+
+   - Build the image your users will run (Ubuntu image has been taken as
+     an example)::
+
+       bin/disk-image-create -u ubuntu -o my-image
+
+     The above command creates *my-image.qcow2* file. If you want to use
+     Fedora image, replace *ubuntu* with *fedora* in the above command.
+
+   - Extract the kernel & ramdisk::
+
+       bin/disk-image-get-kernel -d ./ -o my \
+       -i $(pwd)/my-image.qcow2
+
+     The above command creates *my-vmlinuz* and *my-initrd* files. These
+     images are used while deploying the actual OS the users will run,
+     my-image in our case.
+
+   - Build the deploy image::
+
+       bin/ramdisk-image-create ubuntu deploy-ironic \
+       -o my-deploy-ramdisk
+
+     The above command creates *my-deploy-ramdisk.kernel* and
+     *my-deploy-ramdisk.initramfs* files which are used initially for
+     preparing the server (creating disk partitions) before the actual
+     OS deploy. If you want to use a Fedora image, replace *ubuntu* with
+     *fedora* in the above command.
+
+2. Add the user images to glance
+
+   Load all the images created in the below steps into Glance, and
+   note the glance image UUIDs for each one as it is generated.
+
+   - Add the kernel and ramdisk images to glance::
+
+        glance image-create --name my-kernel --public \
+        --disk-format aki  < my-vmlinuz
+
+     Store the image uuid obtained from the above step as
+     *$MY_VMLINUZ_UUID*.
+
+     ::
+
+        glance image-create --name my-ramdisk --public \
+        --disk-format ari  < my-initrd
+
+     Store the image UUID obtained from the above step as
+     *$MY_INITRD_UUID*.
+
+   - Add the *my-image* to glance which is going to be the OS
+     that the user is going to run. Also associate the above created
+     images with this OS image. These two operations can be done by
+     executing the following command::
+
+        glance image-create --name my-image --public \
+        --disk-format qcow2 --container-format bare --property \
+        kernel_id=$MY_VMLINUZ_UUID --property \
+        ramdisk_id=$MY_INITRD_UUID < my-image
+
+3. Add the deploy images to glance
+
+   Add the *my-deploy-ramdisk.kernel* and
+   *my-deploy-ramdisk.initramfs* images to glance::
+
+        glance image-create --name deploy-vmlinuz --public \
+        --disk-format aki < my-deploy-ramdisk.kernel
+
+   Store the image UUID obtained from the above step as
+   *$DEPLOY_VMLINUZ_UUID*.
+
+   ::
+
+        glance image-create --name deploy-initrd --public \
+        --disk-format ari < my-deploy-ramdisk.initramfs
+
+   Store the image UUID obtained from the above step as
+   *$DEPLOY_INITRD_UUID*.
+
+Flavor Creation
+===============
+
+You'll need to create a special Bare Metal flavor in Nova. The flavor is
+mapped to the bare metal server through the hardware specifications.
+
+#. Change these to match your hardware::
+
+    RAM_MB=1024
+    CPU=2
+    DISK_GB=100
+    ARCH={i686|x86_64}
+
+#. Create the baremetal flavor by executing the following command::
+
+    nova flavor-create my-baremetal-flavor auto $RAM_MB $DISK_GB $CPU
+
+   *Note: You can replace auto with your own flavor id.*
+
+#. A flavor can include a set of key/value pairs called extra_specs.
+   In case of Icehouse version of Ironic, you need to associate the
+   deploy ramdisk and deploy kernel images to the flavor as flavor-keys.
+   But in case of Juno and higher versions, this is deprecated. Instead
+   these images will be associated with the node's driver_info.
+
+   - **Icehouse** version of Ironic::
+
+      nova flavor-key my-baremetal-flavor set \
+      cpu_arch=$ARCH \
+      "baremetal:deploy_kernel_id"=$DEPLOY_VMLINUZ_UUID \
+      "baremetal:deploy_ramdisk_id"=$DEPLOY_INITRD_UUID
+
+   - **Juno** and higher versions of Ironic::
+
+      nova flavor-key my-baremetal-flavor set cpu_arch=$ARCH
+
+     Associate the deploy ramdisk and deploy kernel images to the node's
+     driver_info (pxe_ipmitool driver used in the example below)::
+
+      ironic node-create -d pxe_ipmitool \
+      -i pxe_deploy_kernel=$DEPLOY_VMLINUZ_UUID \
+      -i pxe_deploy_ramdisk=$DEPLOY_INITRD_UUID \
+      -i ipmi_address=<IPaddress> \
+      -i ipmi_username=<username> \
+      -i ipmi_password=<password> \
+      -i pxe_root_gb=<root partition size> \
+      -p cpus=$CPU -p memory_mb=$RAM_MB -p local_gb=$DISK_GB -p cpu_arch=$ARCH
 
 Setup the drivers for Bare Metal Service
 ========================================
@@ -493,6 +726,28 @@ http://ipmitool.sourceforge.net/
 Note that certain distros, notably Mac OS X and SLES, install ``openipmi``
 instead of ``ipmitool`` by default. THIS DRIVER IS NOT COMPATIBLE WITH
 ``openipmi`` AS IT RELIES ON ERROR HANDLING OPTIONS NOT PROVIDED BY THIS TOOL.
+
+Check that you can connect to and authenticate with the IPMI
+controller in your bare metal server by using ``ipmitool``::
+
+    ipmitool -I lanplus -H <ip-address> -U <username> -P <password> chassis power status
+
+<ip-address> = The IP of the IPMI controller you want to access
+
+*Note:*
+
+#. This is not the bare metal server’s main IP. The IPMI controller
+   should have it’s own unique IP.
+
+#. In case the above command doesn't return the power status of the
+   bare metal server, check for these:
+
+   - ``ipmitool`` is installed.
+   - The IPMI controller on your bare metal server is turned on.
+   - The IPMI controller credentials passed in the command are right.
+   - The conductor node has a route to the IPMI controller. This can be
+     checked by just pinging the IPMI controller IP from the conductor
+     node.
 
 Ironic supports sending IPMI sensor data to Ceilometer with pxe_ipmitool,
 pxe_ipminative, agent_ipmitool, agent_pyghmi, agent_ilo, iscsi_ilo and pxe_ilo
