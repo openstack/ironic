@@ -19,10 +19,17 @@ import os
 import jinja2
 from oslo.config import cfg
 
+from ironic.common import dhcp_factory
+from ironic.common import exception
+from ironic.common import i18n
+from ironic.common.i18n import _
 from ironic.common import utils
 from ironic.drivers import utils as driver_utils
 from ironic.openstack.common import fileutils
 from ironic.openstack.common import log as logging
+
+_LW = i18n._LW
+_LE = i18n._LE
 
 CONF = cfg.CONF
 
@@ -81,6 +88,29 @@ def _link_mac_pxe_configs(task):
         utils.create_link_without_raise(pxe_config_file_path, mac_path)
 
 
+def _link_ip_address_pxe_configs(task):
+    """Link each IP address with the PXE configuration file.
+
+    :param task: A TaskManager instance.
+    :raises: FailedToGetIPAddressOnPort
+    :raises: InvalidIPv4Address
+
+    """
+    pxe_config_file_path = get_pxe_config_file_path(task.node.uuid)
+
+    api = dhcp_factory.DHCPFactory().provider
+    ip_addrs = api.get_ip_addresses(task)
+    if not ip_addrs:
+        raise exception.FailedToGetIPAddressOnPort(_(
+            "Failed to get IP address for any port on node %s.") %
+            task.node.uuid)
+    for port_ip_address in ip_addrs:
+        ip_address_path = _get_pxe_ip_address_path(port_ip_address)
+        utils.unlink_without_raise(ip_address_path)
+        utils.create_link_without_raise(pxe_config_file_path,
+                                         ip_address_path)
+
+
 def _get_pxe_mac_path(mac):
     """Convert a MAC address into a PXE config file name.
 
@@ -94,6 +124,21 @@ def _get_pxe_mac_path(mac):
         mac_file_name = "01-" + mac.replace(":", "-").lower()
 
     return os.path.join(get_root_dir(), PXE_CFG_DIR_NAME, mac_file_name)
+
+
+def _get_pxe_ip_address_path(ip_address):
+    """Convert an ipv4 address into a PXE config file name.
+
+    :param ip_address: A valid IPv4 address string in the format 'n.n.n.n'.
+    :returns: the path to the config file.
+
+    """
+    ip = ip_address.split('.')
+    hex_ip = '{0:02X}{1:02X}{2:02X}{3:02X}'.format(*map(int, ip))
+
+    return os.path.join(
+        CONF.pxe.tftp_root, hex_ip + ".conf"
+    )
 
 
 def get_deploy_kr_info(node_uuid, driver_info):
@@ -148,7 +193,11 @@ def create_pxe_config(task, pxe_options, template=None):
     pxe_config_file_path = get_pxe_config_file_path(task.node.uuid)
     pxe_config = _build_pxe_config(pxe_options, template)
     utils.write_to_file(pxe_config_file_path, pxe_config)
-    _link_mac_pxe_configs(task)
+
+    if get_node_capability(task.node, 'boot_mode') == 'uefi':
+        _link_ip_address_pxe_configs(task)
+    else:
+        _link_mac_pxe_configs(task)
 
 
 def clean_up_pxe_config(task):
@@ -159,15 +208,31 @@ def clean_up_pxe_config(task):
     """
     LOG.debug("Cleaning up PXE config for node %s", task.node.uuid)
 
-    for mac in driver_utils.get_node_mac_addresses(task):
-        utils.unlink_without_raise(_get_pxe_mac_path(mac))
+    if get_node_capability(task.node, 'boot_mode') == 'uefi':
+        api = dhcp_factory.DHCPFactory().provider
+        ip_addresses = api.get_ip_addresses(task)
+        if not ip_addresses:
+            return
+
+        for port_ip_address in ip_addresses:
+            try:
+                ip_address_path = _get_pxe_ip_address_path(port_ip_address)
+            except exception.InvalidIPv4Address:
+                continue
+            utils.unlink_without_raise(ip_address_path)
+    else:
+        for mac in driver_utils.get_node_mac_addresses(task):
+            utils.unlink_without_raise(_get_pxe_mac_path(mac))
 
     utils.rmtree_without_raise(os.path.join(get_root_dir(),
                                             task.node.uuid))
 
 
-def dhcp_options_for_instance():
-    """Retrieves the DHCP PXE boot options."""
+def dhcp_options_for_instance(task):
+    """Retrieves the DHCP PXE boot options.
+
+    :param task: A TaskManager instance.
+    """
     dhcp_opts = []
     if CONF.pxe.ipxe_enabled:
         script_name = os.path.basename(CONF.pxe.ipxe_boot_script)
@@ -182,11 +247,55 @@ def dhcp_options_for_instance():
         dhcp_opts.append({'opt_name': 'bootfile-name',
                           'opt_value': ipxe_script_url})
     else:
+        if get_node_capability(task.node, 'boot_mode') == 'uefi':
+            boot_file = CONF.pxe.uefi_pxe_bootfile_name
+        else:
+            boot_file = CONF.pxe.pxe_bootfile_name
+
         dhcp_opts.append({'opt_name': 'bootfile-name',
-                          'opt_value': CONF.pxe.pxe_bootfile_name})
+                          'opt_value': boot_file})
 
     dhcp_opts.append({'opt_name': 'server-ip-address',
                       'opt_value': CONF.pxe.tftp_server})
     dhcp_opts.append({'opt_name': 'tftp-server',
                       'opt_value': CONF.pxe.tftp_server})
     return dhcp_opts
+
+
+def get_node_capability(node, capability):
+    """Returns 'capability' value from node's 'capabilities' property.
+
+    :param node: Node object.
+    :param capability: Capability key.
+    :return: Capability value.
+             If capability is not present, then return "None"
+
+    """
+    capabilities = node.properties.get('capabilities')
+
+    if not capabilities:
+        return
+
+    for node_capability in str(capabilities).split(','):
+        parts = node_capability.split(':')
+        if len(parts) == 2 and parts[0] and parts[1]:
+            if parts[0] == capability:
+                return parts[1]
+        else:
+            LOG.warn(_LW("Ignoring malformed capability '%s'. "
+                "Format should be 'key:val'."), node_capability)
+
+
+def validate_boot_mode_capability(node):
+    """Validate the boot_mode capability set in node property.
+
+    :param node: an ironic node object.
+    :raises: InvalidParameterValue, if 'boot_mode' capability is set
+             other than 'bios' or 'uefi' or None.
+
+    """
+    boot_mode = get_node_capability(node, 'boot_mode')
+
+    if boot_mode and boot_mode not in ['bios', 'uefi']:
+        raise exception.InvalidParameterValue(_("Invalid boot_mode "
+                          "parameter '%s'.") % boot_mode)

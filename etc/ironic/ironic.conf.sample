@@ -1113,6 +1113,10 @@
 # Template file for PXE configuration. (string value)
 #pxe_config_template=$pybasedir/drivers/modules/pxe_config.template
 
+# Template file for PXE configuration for UEFI boot loader.
+# (string value)
+#uefi_pxe_config_template=$pybasedir/drivers/modules/elilo_efi_pxe_config.template
+
 # IP address of Ironic compute node's tftp server. (string
 # value)
 #tftp_server=$my_ip
@@ -1126,6 +1130,9 @@
 
 # Bootfile DHCP parameter. (string value)
 #pxe_bootfile_name=pxelinux.0
+
+# Bootfile DHCP parameter for UEFI boot mode. (string value)
+#uefi_pxe_bootfile_name=elilo.efi
 
 # Ironic compute node's HTTP server URL. Example:
 # http://192.1.2.3:8080 (string value)

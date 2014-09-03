@@ -217,7 +217,7 @@ class AgentDeploy(base.DeployInterface):
         :param task: a TaskManager instance.
         :returns: status of the deploy. One of ironic.common.states.
         """
-        dhcp_opts = pxe_utils.dhcp_options_for_instance()
+        dhcp_opts = pxe_utils.dhcp_options_for_instance(task)
         provider = dhcp_factory.DHCPFactory(token=task.context.auth_token)
         provider.update_dhcp(task, dhcp_opts)
         manager_utils.node_set_boot_device(task, 'pxe', persistent=True)

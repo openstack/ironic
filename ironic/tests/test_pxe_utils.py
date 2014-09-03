@@ -19,6 +19,7 @@ import os
 import mock
 from oslo.config import cfg
 
+from ironic.common import exception
 from ironic.common import pxe_utils
 from ironic.conductor import task_manager
 from ironic.db import api as dbapi
@@ -92,6 +93,27 @@ class TestPXEUtils(db_base.DbTestCase):
         unlink_mock.assert_has_calls(unlink_calls)
         create_link_mock.assert_has_calls(create_link_calls)
 
+    @mock.patch('ironic.common.utils.create_link_without_raise')
+    @mock.patch('ironic.common.utils.unlink_without_raise')
+    @mock.patch('ironic.dhcp.neutron.NeutronDHCPApi.get_ip_addresses')
+    def test__link_ip_address_pxe_configs(self, get_ip_mock, unlink_mock,
+                                    create_link_mock):
+        ip_address = '10.10.0.1'
+        address = "aa:aa:aa:aa:aa:aa"
+        object_utils.create_test_port(self.context, node_uuid=self.node.uuid,
+                                      address=address)
+
+        get_ip_mock.return_value = [ip_address]
+        create_link_calls = [
+            mock.call(u'/tftpboot/1be26c0b-03f2-4d2e-ae87-c02d7f33c123/config',
+                      '/tftpboot/0A0A0001.conf'),
+        ]
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            pxe_utils._link_ip_address_pxe_configs(task)
+
+        unlink_mock.assert_called_once_with('/tftpboot/0A0A0001.conf')
+        create_link_mock.assert_has_calls(create_link_calls)
+
     @mock.patch('ironic.common.utils.write_to_file')
     @mock.patch.object(pxe_utils, '_build_pxe_config')
     @mock.patch('ironic.openstack.common.fileutils.ensure_tree')
@@ -139,6 +161,11 @@ class TestPXEUtils(db_base.DbTestCase):
         self.assertEqual('/httpboot/pxelinux.cfg/00112233aabbcc',
                          pxe_utils._get_pxe_mac_path(mac))
 
+    def test__get_pxe_ip_address_path(self):
+        ipaddress = '10.10.0.1'
+        self.assertEqual('/tftpboot/0A0A0001.conf',
+                         pxe_utils._get_pxe_ip_address_path(ipaddress))
+
     def test_get_root_dir(self):
         expected_dir = '/tftproot'
         self.config(ipxe_enabled=False, group='pxe')
@@ -167,7 +194,9 @@ class TestPXEUtils(db_base.DbTestCase):
                          {'opt_name': 'tftp-server',
                           'opt_value': '192.0.2.1'}
                          ]
-        self.assertEqual(expected_info, pxe_utils.dhcp_options_for_instance())
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            self.assertEqual(expected_info,
+                             pxe_utils.dhcp_options_for_instance(task))
 
     def _test_get_deploy_kr_info(self, expected_dir):
         node_uuid = 'fake-node'
@@ -222,5 +251,56 @@ class TestPXEUtils(db_base.DbTestCase):
                           'opt_value': '192.0.2.1'},
                          {'opt_name': 'bootfile-name',
                           'opt_value': expected_boot_script_url}]
-        self.assertEqual(sorted(expected_info),
-                         sorted(pxe_utils.dhcp_options_for_instance()))
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            self.assertEqual(sorted(expected_info),
+                             sorted(pxe_utils.dhcp_options_for_instance(task)))
+
+    def test_get_node_capability(self):
+        properties = {'capabilities': 'cap1:value1,cap2:value2'}
+        self.node.properties = properties
+        expected = 'value1'
+
+        result = pxe_utils.get_node_capability(self.node, 'cap1')
+        self.assertEqual(expected, result)
+
+    def test_get_node_capability_returns_none(self):
+        properties = {'capabilities': 'cap1:value1,cap2:value2'}
+        self.node.properties = properties
+
+        result = pxe_utils.get_node_capability(self.node, 'capX')
+        self.assertIsNone(result)
+
+    def test_validate_boot_mode_capability(self):
+        properties = {'capabilities': 'boot_mode:uefi,cap2:value2'}
+        self.node.properties = properties
+
+        result = pxe_utils.validate_boot_mode_capability(self.node)
+        self.assertIsNone(result)
+
+    def test_validate_boot_mode_capability_with_exception(self):
+        properties = {'capabilities': 'boot_mode:foo,cap2:value2'}
+        self.node.properties = properties
+
+        self.assertRaises(exception.InvalidParameterValue,
+                          pxe_utils.validate_boot_mode_capability, self.node)
+
+    @mock.patch('ironic.common.utils.rmtree_without_raise', autospec=True)
+    @mock.patch('ironic.common.utils.unlink_without_raise', autospec=True)
+    @mock.patch('ironic.dhcp.neutron.NeutronDHCPApi._get_port_ip_address')
+    def test_clean_up_pxe_config_uefi(self, get_ip_mock, unlink_mock,
+                                                          rmtree_mock):
+        ip_address = '10.10.0.1'
+        address = "aa:aa:aa:aa:aa:aa"
+        properties = {'capabilities': 'boot_mode:uefi'}
+        object_utils.create_test_port(self.context, node_uuid=self.node.uuid,
+                                      address=address)
+
+        get_ip_mock.return_value = ip_address
+
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            task.node.properties = properties
+            pxe_utils.clean_up_pxe_config(task)
+
+        unlink_mock.assert_called_once_with('/tftpboot/0A0A0001.conf')
+        rmtree_mock.assert_called_once_with(
+                os.path.join(CONF.pxe.tftp_root, self.node.uuid))

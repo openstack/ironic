@@ -25,11 +25,13 @@ from ironic.common import i18n
 from ironic.common.i18n import _
 from ironic.common import keystone
 from ironic.common import network
+from ironic.common import utils
 from ironic.dhcp import base
 from ironic.drivers.modules import ssh
 from ironic.openstack.common import log as logging
 
 
+_LE = i18n._LE
 _LW = i18n._LW
 
 neutron_opts = [
@@ -174,3 +176,85 @@ class NeutronDHCPApi(base.BaseDHCP):
         if isinstance(task.driver.power, ssh.SSHPower):
             LOG.debug("Waiting 15 seconds for Neutron.")
             time.sleep(15)
+
+    def _get_fixed_ip_address(self, port_id):
+        """Get a port's fixed ip address.
+
+        :param port_id: Neutron port id.
+        :returns: Neutron port ip address.
+        :raises: FailedToGetIPAddressOnPort
+        :raises: InvalidIPv4Address
+        """
+        ip_address = None
+        try:
+            neutron_port = self.client.show_port(port_id).get('port')
+        except neutron_client_exc.NeutronClientException:
+            LOG.exception(_LE("Failed to Get IP address on Neutron port %s."),
+                          port_id)
+            raise exception.FailedToGetIPAddressOnPort(port_id=port_id)
+
+        fixed_ips = neutron_port.get('fixed_ips')
+
+        # NOTE(faizan) At present only the first fixed_ip assigned to this
+        # neutron port will be used, since nova allocates only one fixed_ip
+        # for the instance.
+        if fixed_ips:
+            ip_address = fixed_ips[0].get('ip_address', None)
+
+        if ip_address:
+            if utils.is_valid_ipv4(ip_address):
+                return ip_address
+            else:
+                LOG.error(_LE("Neutron returned invalid IPv4 address %s."),
+                          ip_address)
+                raise exception.InvalidIPv4Address(ip_address=ip_address)
+        else:
+            LOG.error(_LE("No IP address assigned to Neutron port %s."),
+                      port_id)
+            raise exception.FailedToGetIPAddressOnPort(port_id=port_id)
+
+    def _get_port_ip_address(self, task, port_id):
+        """Get ip address of ironic port assigned by neutron.
+
+        :param task: a TaskManager instance.
+        :param port_id: ironic Node's port UUID.
+        :returns:  Neutron port ip address associated with Node's port.
+        :raises: FailedToGetIPAddressOnPort
+        :raises: InvalidIPv4Address
+        """
+
+        vifs = network.get_node_vif_ids(task)
+        if not vifs:
+            LOG.warning(_LW("No VIFs found for node %(node)s when attempting "
+                            " to get port IP address."),
+                        {'node': task.node.uuid})
+            raise exception.FailedToGetIPAddressOnPort(port_id=port_id)
+
+        port_vif = vifs[port_id]
+
+        port_ip_address = self._get_fixed_ip_address(port_vif)
+        return port_ip_address
+
+    def get_ip_addresses(self, task):
+        """Get IP addresses for all ports in `task`.
+
+        :param task: a TaskManager instance.
+        :returns: List of IP addresses associated with task.ports.
+        """
+        failures = []
+        ip_addresses = []
+        for port in task.ports:
+            try:
+                port_ip_address = self._get_port_ip_address(task, port.uuid)
+                ip_addresses.append(port_ip_address)
+            except (exception.FailedToGetIPAddressOnPort,
+                    exception.InvalidIPv4Address):
+                failures.append(port.uuid)
+
+        if failures:
+            LOG.warn(_LW("Some errors were encountered on node %(node)s"
+                         " while retrieving IP address on the following"
+                         " ports: %(ports)s."),
+                         {'node': task.node.uuid, 'ports': failures})
+
+        return ip_addresses

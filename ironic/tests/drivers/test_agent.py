@@ -57,9 +57,9 @@ class TestAgentDeploy(db_base.DbTestCase):
     @mock.patch('ironic.conductor.utils.node_set_boot_device')
     @mock.patch('ironic.conductor.utils.node_power_action')
     def test_deploy(self, power_mock, bootdev_mock, dhcp_mock):
-        dhcp_opts = pxe_utils.dhcp_options_for_instance()
         with task_manager.acquire(
                 self.context, self.node['uuid'], shared=False) as task:
+            dhcp_opts = pxe_utils.dhcp_options_for_instance(task)
             driver_return = self.driver.deploy(task)
             self.assertEqual(driver_return, states.DEPLOYWAIT)
             dhcp_mock.assert_called_once_with(task, dhcp_opts)

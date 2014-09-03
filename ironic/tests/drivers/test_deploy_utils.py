@@ -91,6 +91,34 @@ append initrd=ramdisk root=UUID=12345678-1234-1234-1234-1234567890abcdef
 boot
 """
 
+_UEFI_PXECONF_DEPLOY = """
+default=deploy
+
+image=deploy_kernel
+        label=deploy
+        initrd=deploy_ramdisk
+        append="ro text"
+
+image=kernel
+        label=boot
+        initrd=ramdisk
+        append="root={{ ROOT }}"
+"""
+
+_UEFI_PXECONF_BOOT = """
+default=boot
+
+image=deploy_kernel
+        label=deploy
+        initrd=deploy_ramdisk
+        append="ro text"
+
+image=kernel
+        label=boot
+        initrd=ramdisk
+        append="root=UUID=12345678-1234-1234-1234-1234567890abcdef"
+"""
+
 
 class PhysicalWorkTestCase(tests_base.TestCase):
     def setUp(self):
@@ -392,30 +420,47 @@ class PhysicalWorkTestCase(tests_base.TestCase):
 
 class SwitchPxeConfigTestCase(tests_base.TestCase):
 
-    def _create_config(self, ipxe=False):
+    def _create_config(self, ipxe=False, boot_mode=None):
         (fd, fname) = tempfile.mkstemp()
-        pxe_cfg = _IPXECONF_DEPLOY if ipxe else _PXECONF_DEPLOY
+        if boot_mode == 'uefi':
+            pxe_cfg = _UEFI_PXECONF_DEPLOY
+        else:
+            pxe_cfg = _IPXECONF_DEPLOY if ipxe else _PXECONF_DEPLOY
         os.write(fd, pxe_cfg)
         os.close(fd)
         self.addCleanup(os.unlink, fname)
         return fname
 
     def test_switch_pxe_config(self):
+        boot_mode = 'bios'
         fname = self._create_config()
         utils.switch_pxe_config(fname,
-                               '12345678-1234-1234-1234-1234567890abcdef')
+                               '12345678-1234-1234-1234-1234567890abcdef',
+                                boot_mode)
         with open(fname, 'r') as f:
             pxeconf = f.read()
         self.assertEqual(_PXECONF_BOOT, pxeconf)
 
     def test_switch_ipxe_config(self):
+        boot_mode = 'bios'
         cfg.CONF.set_override('ipxe_enabled', True, 'pxe')
         fname = self._create_config(ipxe=True)
         utils.switch_pxe_config(fname,
-                               '12345678-1234-1234-1234-1234567890abcdef')
+                               '12345678-1234-1234-1234-1234567890abcdef',
+                               boot_mode)
         with open(fname, 'r') as f:
             pxeconf = f.read()
         self.assertEqual(_IPXECONF_BOOT, pxeconf)
+
+    def test_switch_uefi_pxe_config(self):
+        boot_mode = 'uefi'
+        fname = self._create_config(boot_mode=boot_mode)
+        utils.switch_pxe_config(fname,
+                               '12345678-1234-1234-1234-1234567890abcdef',
+                               boot_mode)
+        with open(fname, 'r') as f:
+            pxeconf = f.read()
+        self.assertEqual(_UEFI_PXECONF_BOOT, pxeconf)
 
 
 class OtherFunctionTestCase(tests_base.TestCase):

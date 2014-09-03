@@ -41,11 +41,19 @@ from ironic.openstack.common import fileutils
 from ironic.openstack.common import log as logging
 
 
+_LE = i18n._LE
+_LW = i18n._LW
+
 pxe_opts = [
     cfg.StrOpt('pxe_config_template',
                default=paths.basedir_def(
                     'drivers/modules/pxe_config.template'),
                help='Template file for PXE configuration.'),
+    cfg.StrOpt('uefi_pxe_config_template',
+               default=paths.basedir_def(
+                    'drivers/modules/elilo_efi_pxe_config.template'),
+               help='Template file for PXE configuration for UEFI boot'
+                    ' loader.'),
     cfg.StrOpt('tftp_server',
                default='$my_ip',
                help='IP address of Ironic compute node\'s tftp server.'),
@@ -60,6 +68,9 @@ pxe_opts = [
     cfg.StrOpt('pxe_bootfile_name',
                default='pxelinux.0',
                help='Bootfile DHCP parameter.'),
+    cfg.StrOpt('uefi_pxe_bootfile_name',
+               default='elilo.efi',
+               help='Bootfile DHCP parameter for UEFI boot mode.'),
     cfg.StrOpt('http_url',
                 help='Ironic compute node\'s HTTP server URL. '
                      'Example: http://192.1.2.3:8080'),
@@ -168,6 +179,7 @@ def _build_pxe_config_options(node, pxe_info, ctx):
         'aki_path': kernel,
         'ari_path': ramdisk,
         'pxe_append_params': CONF.pxe.pxe_append_params,
+        'tftp_server': CONF.pxe.tftp_server
     }
 
     deploy_ramdisk_options = iscsi_deploy.build_deploy_ramdisk_options(node,
@@ -265,11 +277,22 @@ class PXEDeploy(base.DeployInterface):
         :raises: InvalidParameterValue.
         :raises: MissingParameterValue
         """
+        # Check the boot_mode capability parameter value.
+        pxe_utils.validate_boot_mode_capability(task.node)
+
         if CONF.pxe.ipxe_enabled:
             if not CONF.pxe.http_url or not CONF.pxe.http_root:
                 raise exception.MissingParameterValue(_(
                     "iPXE boot is enabled but no HTTP URL or HTTP "
                     "root was specified."))
+            # iPXE and UEFI should not be configured together.
+            if pxe_utils.get_node_capability(task.node, 'boot_mode') == 'uefi':
+                LOG.error(_LE("UEFI boot mode is not supported with "
+                              "iPXE boot enabled."))
+                raise exception.InvalidParameterValue(_(
+                    "Conflict: iPXE is enabled, but cannot be used with node"
+                    "%(node_uuid)s configured to use UEFI boot") %
+                    {'node_uuid': task.node.uuid})
 
         d_info = _parse_deploy_info(task.node)
 
@@ -299,10 +322,25 @@ class PXEDeploy(base.DeployInterface):
         # TODO(yuriyz): more secure way needed for pass auth token
         #               to deploy ramdisk
         _create_token_file(task)
-        dhcp_opts = pxe_utils.dhcp_options_for_instance()
+        dhcp_opts = pxe_utils.dhcp_options_for_instance(task)
         provider = dhcp_factory.DHCPFactory(token=task.context.auth_token)
         provider.update_dhcp(task, dhcp_opts)
-        manager_utils.node_set_boot_device(task, 'pxe', persistent=True)
+
+        # NOTE(faizan): Under UEFI boot mode, setting of boot device may differ
+        # between different machines. IPMI does not work for setting boot
+        # devices in UEFI mode for certain machines.
+        # Expected IPMI failure for uefi boot mode. Logging a message to
+        # set the boot device manually and continue with deploy.
+        try:
+            manager_utils.node_set_boot_device(task, 'pxe', persistent=True)
+        except exception.IPMIFailure:
+            if pxe_utils.get_node_capability(task.node, 'boot_mode') == 'uefi':
+                LOG.warning(_LW("ipmitool is unable to set boot device while "
+                                "the node is in UEFI boot mode."
+                                "Please set the boot device manually."))
+            else:
+                raise
+
         manager_utils.node_power_action(task, states.REBOOT)
 
         return states.DEPLOYWAIT
@@ -338,8 +376,14 @@ class PXEDeploy(base.DeployInterface):
         pxe_info = _get_image_info(task.node, task.context)
         pxe_options = _build_pxe_config_options(task.node, pxe_info,
                                                 task.context)
+
+        if pxe_utils.get_node_capability(task.node, 'boot_mode') == 'uefi':
+            pxe_config_template = CONF.pxe.uefi_pxe_config_template
+        else:
+            pxe_config_template = CONF.pxe.pxe_config_template
+
         pxe_utils.create_pxe_config(task, pxe_options,
-                                    CONF.pxe.pxe_config_template)
+                                    pxe_config_template)
         _cache_ramdisk_kernel(task.context, task.node, pxe_info)
 
     def clean_up(self, task):
@@ -364,7 +408,7 @@ class PXEDeploy(base.DeployInterface):
         _destroy_token_file(node)
 
     def take_over(self, task):
-        dhcp_opts = pxe_utils.dhcp_options_for_instance()
+        dhcp_opts = pxe_utils.dhcp_options_for_instance(task)
         provider = dhcp_factory.DHCPFactory(token=task.context.auth_token)
         provider.update_dhcp(task, dhcp_opts)
 
@@ -420,7 +464,8 @@ class VendorPassthru(base.VendorInterface):
 
         try:
             pxe_config_path = pxe_utils.get_pxe_config_file_path(node.uuid)
-            deploy_utils.switch_pxe_config(pxe_config_path, root_uuid)
+            deploy_utils.switch_pxe_config(pxe_config_path, root_uuid,
+                            pxe_utils.get_node_capability(node, 'boot_mode'))
 
             deploy_utils.notify_deploy_complete(kwargs['address'])
 
