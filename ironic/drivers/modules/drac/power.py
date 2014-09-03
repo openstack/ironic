@@ -51,15 +51,11 @@ def _get_power_state(node):
 
     client = drac_common.get_wsman_client(node)
     options = pywsman.ClientOptions()
-    filter = pywsman.Filter()
-    filter_dialect = 'http://schemas.dmtf.org/wbem/cql/1/dsp0202.pdf'
     filter_query = ('select EnabledState,ElementName from CIM_ComputerSystem '
                     'where Name="srv:system"')
-    filter.simple(filter_dialect, filter_query)
-
     try:
         doc = client.wsman_enumerate(resource_uris.DCIM_ComputerSystem,
-                                     options, filter)
+                                     options, filter_query=filter_query)
     except exception.DracClientError as exc:
         with excutils.save_and_reraise_exception():
             LOG.error(_LE('DRAC driver failed to get power state for node '
@@ -100,7 +96,7 @@ def _set_power_state(node, target_state):
 
     return_value = drac_common.find_xml(root, 'ReturnValue',
                                         resource_uris.DCIM_ComputerSystem).text
-    if return_value != '0':
+    if return_value != drac_common.RET_SUCCESS:
         message = drac_common.find_xml(root, 'Message',
                                        resource_uris.DCIM_ComputerSystem).text
         LOG.error(_LE('DRAC driver failed to set power state for node '

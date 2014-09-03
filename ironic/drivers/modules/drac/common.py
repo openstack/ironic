@@ -37,6 +37,11 @@ OPTIONAL_PROPERTIES = {
 COMMON_PROPERTIES = REQUIRED_PROPERTIES.copy()
 COMMON_PROPERTIES.update(OPTIONAL_PROPERTIES)
 
+# ReturnValue constants
+RET_SUCCESS = '0'
+RET_ERROR = '2'
+RET_CREATED = '4096'
+
 
 def parse_driver_info(node):
     """Parses the driver_info of the node, reads default values
@@ -109,8 +114,10 @@ def find_xml(doc, item, namespace, find_all=False):
     :param namespace: the namespace of the element.
     :param find_all: Boolean value, if True find all elements, if False
                      find only the first one. Defaults to False.
-    :returns: The element object if find_all is False or a list of
-              element objects if find_all is True.
+    :returns: if find_all is False the element object will be returned
+              if found, None if not found. If find_all is True a list of
+              element objects will be returned or an empty list if no
+              elements were found.
 
     """
     query = ('.//{%(namespace)s}%(item)s' % {'namespace': namespace,

@@ -37,18 +37,6 @@ from ironic.tests.objects import utils as obj_utils
 INFO_DICT = db_utils.get_test_drac_info()
 
 
-def _mock_wsman_root(return_value):
-    """Helper function to mock the root() from wsman client."""
-    mock_xml_root = mock.Mock()
-    mock_xml_root.string.return_value = return_value
-
-    mock_xml = mock.Mock()
-    mock_xml.context.return_value = None
-    mock_xml.root.return_value = mock_xml_root
-
-    return mock_xml
-
-
 @mock.patch.object(drac_client, 'pywsman')
 class DracManagementInternalMethodsTestCase(base.TestCase):
 
@@ -67,7 +55,7 @@ class DracManagementInternalMethodsTestCase(base.TestCase):
                                                        drac_mgmt.PERSISTENT}}],
                                           resource_uris.DCIM_BootConfigSetting)
 
-        mock_xml = _mock_wsman_root(result_xml)
+        mock_xml = test_utils.mock_wsman_root(result_xml)
         mock_pywsman = mock_client_pywsman.Client.return_value
         mock_pywsman.enumerate.return_value = mock_xml
 
@@ -89,7 +77,7 @@ class DracManagementInternalMethodsTestCase(base.TestCase):
                                                     drac_mgmt.ONE_TIME_BOOT}}],
                                           resource_uris.DCIM_BootConfigSetting)
 
-        mock_xml = _mock_wsman_root(result_xml)
+        mock_xml = test_utils.mock_wsman_root(result_xml)
         mock_pywsman = mock_client_pywsman.Client.return_value
         mock_pywsman.enumerate.return_value = mock_xml
 
@@ -106,7 +94,7 @@ class DracManagementInternalMethodsTestCase(base.TestCase):
                                                     {'Name': 'fake'}}],
                                           resource_uris.DCIM_LifecycleJob)
 
-        mock_xml = _mock_wsman_root(result_xml)
+        mock_xml = test_utils.mock_wsman_root(result_xml)
         mock_pywsman = mock_client_pywsman.Client.return_value
         mock_pywsman.enumerate.return_value = mock_xml
 
@@ -123,7 +111,7 @@ class DracManagementInternalMethodsTestCase(base.TestCase):
                                                      'InstanceID': 'fake'}}],
                                           resource_uris.DCIM_LifecycleJob)
 
-        mock_xml = _mock_wsman_root(result_xml)
+        mock_xml = test_utils.mock_wsman_root(result_xml)
         mock_pywsman = mock_client_pywsman.Client.return_value
         mock_pywsman.enumerate.return_value = mock_xml
 
@@ -134,10 +122,10 @@ class DracManagementInternalMethodsTestCase(base.TestCase):
 
     def test__create_config_job(self, mock_client_pywsman):
         result_xml = test_utils.build_soap_xml([{'ReturnValue':
-                                                    drac_mgmt.RET_SUCCESS}],
+                                                    drac_common.RET_SUCCESS}],
                                                resource_uris.DCIM_BIOSService)
 
-        mock_xml = _mock_wsman_root(result_xml)
+        mock_xml = test_utils.mock_wsman_root(result_xml)
         mock_pywsman = mock_client_pywsman.Client.return_value
         mock_pywsman.invoke.return_value = mock_xml
 
@@ -149,11 +137,11 @@ class DracManagementInternalMethodsTestCase(base.TestCase):
 
     def test__create_config_job_error(self, mock_client_pywsman):
         result_xml = test_utils.build_soap_xml([{'ReturnValue':
-                                                    drac_mgmt.RET_ERROR,
+                                                    drac_common.RET_ERROR,
                                                  'Message': 'E_FAKE'}],
                                                resource_uris.DCIM_BIOSService)
 
-        mock_xml = _mock_wsman_root(result_xml)
+        mock_xml = test_utils.mock_wsman_root(result_xml)
         mock_pywsman = mock_client_pywsman.Client.return_value
         mock_pywsman.invoke.return_value = mock_xml
 
@@ -194,7 +182,7 @@ class DracManagementTestCase(base.TestCase):
         result_xml = test_utils.build_soap_xml([{'InstanceID': 'HardDisk'}],
                                       resource_uris.DCIM_BootSourceSetting)
 
-        mock_xml = _mock_wsman_root(result_xml)
+        mock_xml = test_utils.mock_wsman_root(result_xml)
         mock_pywsman = mock_client_pywsman.Client.return_value
         mock_pywsman.enumerate.return_value = mock_xml
 
@@ -213,7 +201,7 @@ class DracManagementTestCase(base.TestCase):
         result_xml = test_utils.build_soap_xml([{'InstanceID': 'NIC'}],
                                       resource_uris.DCIM_BootSourceSetting)
 
-        mock_xml = _mock_wsman_root(result_xml)
+        mock_xml = test_utils.mock_wsman_root(result_xml)
         mock_pywsman = mock_client_pywsman.Client.return_value
         mock_pywsman.enumerate.return_value = mock_xml
 
@@ -235,7 +223,7 @@ class DracManagementTestCase(base.TestCase):
         self.assertRaises(exception.DracClientError,
                           self.driver.get_boot_device, self.task)
         mock_we.assert_called_once_with(resource_uris.DCIM_BootSourceSetting,
-                                        mock.ANY, mock.ANY)
+                                        mock.ANY, filter_query=mock.ANY)
 
     @mock.patch.object(drac_mgmt, '_check_for_config_job')
     @mock.patch.object(drac_mgmt, '_create_config_job')
@@ -243,11 +231,11 @@ class DracManagementTestCase(base.TestCase):
         result_xml_enum = test_utils.build_soap_xml([{'InstanceID': 'NIC'}],
                                       resource_uris.DCIM_BootSourceSetting)
         result_xml_invk = test_utils.build_soap_xml([{'ReturnValue':
-                                                      drac_mgmt.RET_SUCCESS}],
+                                                     drac_common.RET_SUCCESS}],
                                       resource_uris.DCIM_BootConfigSetting)
 
-        mock_xml_enum = _mock_wsman_root(result_xml_enum)
-        mock_xml_invk = _mock_wsman_root(result_xml_invk)
+        mock_xml_enum = test_utils.mock_wsman_root(result_xml_enum)
+        mock_xml_invk = test_utils.mock_wsman_root(result_xml_invk)
         mock_pywsman = mock_client_pywsman.Client.return_value
         mock_pywsman.enumerate.return_value = mock_xml_enum
         mock_pywsman.invoke.return_value = mock_xml_invk
@@ -270,12 +258,12 @@ class DracManagementTestCase(base.TestCase):
         result_xml_enum = test_utils.build_soap_xml([{'InstanceID': 'NIC'}],
                                       resource_uris.DCIM_BootSourceSetting)
         result_xml_invk = test_utils.build_soap_xml([{'ReturnValue':
-                                                          drac_mgmt.RET_ERROR,
+                                                         drac_common.RET_ERROR,
                                                       'Message': 'E_FAKE'}],
                                       resource_uris.DCIM_BootConfigSetting)
 
-        mock_xml_enum = _mock_wsman_root(result_xml_enum)
-        mock_xml_invk = _mock_wsman_root(result_xml_invk)
+        mock_xml_enum = test_utils.mock_wsman_root(result_xml_enum)
+        mock_xml_invk = test_utils.mock_wsman_root(result_xml_invk)
         mock_pywsman = mock_client_pywsman.Client.return_value
         mock_pywsman.enumerate.return_value = mock_xml_enum
         mock_pywsman.invoke.return_value = mock_xml_invk
@@ -302,7 +290,7 @@ class DracManagementTestCase(base.TestCase):
                           self.driver.set_boot_device, self.task,
                           boot_devices.PXE)
         mock_we.assert_called_once_with(resource_uris.DCIM_BootSourceSetting,
-                                        mock.ANY, mock.ANY)
+                                        mock.ANY, filter_query=mock.ANY)
 
     def test_get_sensors_data(self, mock_client_pywsman):
         self.assertRaises(NotImplementedError,

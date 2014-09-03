@@ -17,6 +17,8 @@
 
 from xml.etree import ElementTree
 
+import mock
+
 
 def build_soap_xml(items, namespace=None):
     """Build a SOAP XML.
@@ -56,3 +58,15 @@ def build_soap_xml(items, namespace=None):
 
     envelope_element.append(body_element)
     return ElementTree.tostring(envelope_element)
+
+
+def mock_wsman_root(return_value):
+    """Helper function to mock the root() from wsman client."""
+    mock_xml_root = mock.Mock()
+    mock_xml_root.string.return_value = return_value
+
+    mock_xml = mock.Mock()
+    mock_xml.context.return_value = None
+    mock_xml.root.return_value = mock_xml_root
+
+    return mock_xml
