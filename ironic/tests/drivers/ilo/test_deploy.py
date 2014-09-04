@@ -27,6 +27,7 @@ from ironic.common import utils
 from ironic.conductor import task_manager
 from ironic.conductor import utils as manager_utils
 from ironic.db import api as dbapi
+from ironic.drivers.modules import agent
 from ironic.drivers.modules import deploy_utils
 from ironic.drivers.modules.ilo import common as ilo_common
 from ironic.drivers.modules.ilo import deploy as ilo_deploy
@@ -247,6 +248,59 @@ class IloVirtualMediaIscsiDeployTestCase(base.TestCase):
             task.driver.deploy.clean_up(task)
             destroy_images_mock.assert_called_once_with(task.node.uuid)
             clean_up_boot_mock.assert_called_once_with(task.node)
+
+
+class IloVirtualMediaAgentDeployTestCase(base.TestCase):
+
+    def setUp(self):
+        super(IloVirtualMediaAgentDeployTestCase, self).setUp()
+        self.dbapi = dbapi.get_instance()
+        self.context = context.get_admin_context()
+        mgr_utils.mock_the_extension_manager(driver="agent_ilo")
+        self.node = obj_utils.create_test_node(self.context,
+                driver='agent_ilo', driver_info=INFO_DICT)
+
+    @mock.patch.object(ilo_deploy, '_parse_driver_info')
+    def test_validate(self, parse_driver_info_mock):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            task.driver.deploy.validate(task)
+            parse_driver_info_mock.assert_called_once_with(task.node)
+
+    @mock.patch.object(ilo_deploy, '_reboot_into')
+    @mock.patch.object(agent, 'build_agent_options')
+    def test_deploy(self, build_options_mock, reboot_into_mock):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            deploy_opts = {'a': 'b'}
+            build_options_mock.return_value = deploy_opts
+            task.node.driver_info['ilo_deploy_iso'] = 'deploy-iso-uuid'
+
+            returned_state = task.driver.deploy.deploy(task)
+
+            build_options_mock.assert_called_once_with()
+            reboot_into_mock.assert_called_once_with(task,
+                                                     'glance:deploy-iso-uuid',
+                                                     deploy_opts)
+            self.assertEqual(states.DEPLOYWAIT, returned_state)
+
+    @mock.patch.object(manager_utils, 'node_power_action')
+    def test_tear_down(self, node_power_action_mock):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            returned_state = task.driver.deploy.tear_down(task)
+            node_power_action_mock.assert_called_once_with(task,
+                    states.POWER_OFF)
+            self.assertEqual(states.DELETED, returned_state)
+
+    @mock.patch.object(agent, 'build_instance_info_for_deploy')
+    def test_prepare(self, build_instance_info_mock):
+        deploy_opts = {'a': 'b'}
+        build_instance_info_mock.return_value = deploy_opts
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            task.driver.deploy.prepare(task)
+            self.assertEqual(deploy_opts, task.node.instance_info)
 
 
 class VendorPassthruTestCase(base.TestCase):

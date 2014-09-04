@@ -74,15 +74,38 @@ def _get_client():
     return client
 
 
-def _build_pxe_config_options(pxe_info):
+def build_agent_options():
+    """Build the options to be passed to the agent ramdisk.
+
+    :returns: a dictionary containing the parameters to be passed to
+        agent ramdisk.
+    """
     ironic_api = (CONF.conductor.api_url or
                   keystone.get_service_url()).rstrip('/')
     return {
+        'ipa-api-url': ironic_api,
+    }
+
+
+def _build_pxe_config_options(pxe_info):
+    """Builds the pxe config options for booting agent.
+
+    This method builds the config options to be replaced on
+    the agent pxe config template.
+
+    :param pxe_info: A dict containing the 'deploy_kernel' and
+        'deploy_ramdisk' for the agent pxe config template.
+    :returns: a dict containing the options to be applied on
+    the agent pxe config template.
+    """
+    agent_config_opts = {
         'deployment_aki_path': pxe_info['deploy_kernel'][1],
         'deployment_ari_path': pxe_info['deploy_ramdisk'][1],
         'pxe_append_params': CONF.agent.agent_pxe_append_params,
-        'ipa_api_url': ironic_api,
     }
+    agent_opts = build_agent_options()
+    agent_config_opts.update(agent_opts)
+    return agent_config_opts
 
 
 def _get_tftp_image_info(node):
@@ -162,8 +185,13 @@ def _cache_tftp_images(ctx, node, pxe_info):
     _fetch_images(ctx, AgentTFTPImageCache(), pxe_info.values())
 
 
-def _build_instance_info_for_deploy(task):
-    """Build instance_info necessary for deploying to a node."""
+def build_instance_info_for_deploy(task):
+    """Build instance_info necessary for deploying to a node.
+
+    :param task: a TaskManager object containing the node
+    :returns: a dictionary containing the properties to be updated
+        in instance_info
+    """
     node = task.node
     instance_info = node.instance_info
 
@@ -248,7 +276,7 @@ class AgentDeploy(base.DeployInterface):
                                     CONF.agent.agent_pxe_config_template)
         _cache_tftp_images(task.context, node, pxe_info)
 
-        node.instance_info = _build_instance_info_for_deploy(task)
+        node.instance_info = build_instance_info_for_deploy(task)
         node.save(task.context)
 
     def clean_up(self, task):
