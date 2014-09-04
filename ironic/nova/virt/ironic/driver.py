@@ -28,9 +28,10 @@ from oslo.config import cfg
 from ironic.nova.virt.ironic import client_wrapper
 from ironic.nova.virt.ironic import ironic_states
 from ironic.nova.virt.ironic import patcher
-from nova import context as nova_context
+from nova.compute import arch
 from nova.compute import power_state
 from nova.compute import task_states
+from nova import context as nova_context
 from nova import exception
 from nova.objects import flavor as flavor_obj
 from nova.objects import instance as instance_obj
@@ -116,8 +117,10 @@ def _validate_instance_and_node(icli, instance):
         raise exception.InstanceNotFound(instance_id=instance['uuid'])
 
 
-def _get_nodes_supported_instances(cpu_arch=''):
+def _get_nodes_supported_instances(cpu_arch=None):
     """Return supported instances for a node."""
+    if not cpu_arch:
+        return []
     return [(cpu_arch, 'baremetal', 'baremetal')]
 
 
@@ -183,7 +186,12 @@ class IronicDriver(virt_driver.ComputeDriver):
         vcpus = int(node.properties.get('cpus', 0))
         memory_mb = int(node.properties.get('memory_mb', 0))
         local_gb = int(node.properties.get('local_gb', 0))
-        cpu_arch = str(node.properties.get('cpu_arch', 'NotFound'))
+        try:
+            cpu_arch = arch.canonicalize(node.properties.get('cpu_arch', None))
+        except exception.InvalidArchitectureName:
+            cpu_arch = None
+        if not cpu_arch:
+            LOG.warn(_LW("cpu_arch not defined for node '%s'"), node.uuid)
 
         nodes_extra_specs = self.extra_specs.copy()
 
