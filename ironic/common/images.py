@@ -308,3 +308,65 @@ def converted_size(path):
     if data.file_format == "raw" or not CONF.force_raw_images:
         return 0
     return data.virtual_size
+
+
+def get_glance_image_property(context, image_uuid, property):
+    """Returns the value of a glance image property.
+
+    :param context: context
+    :param image_uuid: the UUID of the image in glance
+    :param property: the property whose value is required.
+    :returns: the value of the property if it exists, otherwise None.
+    """
+    glance_service = service.Service(version=1, context=context)
+    iproperties = glance_service.show(image_uuid)['properties']
+    return iproperties.get(property)
+
+
+def get_temp_url_for_glance_image(context, image_uuid):
+    """Returns the tmp url for a glance image.
+
+    :param context: context
+    :param image_uuid: the UUID of the image in glance
+    :returns: the tmp url for the glance image.
+    """
+    # Glance API version 2 is required for getting direct_url of the image.
+    glance_service = service.Service(version=2, context=context)
+    image_properties = glance_service.show(image_uuid)
+    LOG.debug('Got image info: %(info)s for image %(image_uuid)s.',
+              {'info': image_properties, 'image_uuid': image_uuid})
+    return glance_service.swift_temp_url(image_properties)
+
+
+def create_boot_iso(context, output_filename, kernel_uuid,
+        ramdisk_uuid, root_uuid=None, kernel_params=None):
+    """Creates a bootable ISO image for a node.
+
+    Given the glance UUID of kernel, ramdisk, root partition's UUID and
+    kernel cmdline arguments, this method fetches the kernel, ramdisk from
+    glance, and builds a bootable ISO image that can be used to boot up the
+    baremetal node.
+
+    :param context: context
+    :param output_filename: the absolute path of the output ISO file
+    :param kernel_uuid: glance uuid of the kernel to use
+    :param ramdisk_uuid: glance uuid of the ramdisk to use
+    :param root_uuid: uuid of the root filesystem (optional)
+    :param kernel_params: a string containing whitespace separated values
+        kernel cmdline arguments of the form K=V or K (optional).
+    :raises: ImageCreationFailed, if creating boot ISO failed.
+    """
+    with utils.tempdir() as tmpdir:
+        kernel_path = os.path.join(tmpdir, kernel_uuid)
+        ramdisk_path = os.path.join(tmpdir, ramdisk_uuid)
+        fetch_to_raw(context, kernel_uuid, kernel_path)
+        fetch_to_raw(context, ramdisk_uuid, ramdisk_path)
+
+        params = []
+        if root_uuid:
+            params.append('root=UUID=%s' % root_uuid)
+        if kernel_params:
+            params.append(kernel_params)
+
+        create_isolinux_image(output_filename, kernel_path,
+                              ramdisk_path, params)

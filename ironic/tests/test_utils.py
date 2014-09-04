@@ -17,6 +17,7 @@ import errno
 import hashlib
 import os
 import os.path
+import shutil
 import tempfile
 import uuid
 
@@ -415,3 +416,46 @@ class UUIDTestCase(base.TestCase):
 
     def test_name_is_uuid_like(self):
         self.assertFalse(utils.is_uuid_like('zhongyueluo'))
+
+
+class TempFilesTestCase(base.TestCase):
+
+    def test_tempdir(self):
+
+        dirname = None
+        with utils.tempdir() as tempdir:
+            self.assertTrue(os.path.isdir(tempdir))
+            dirname = tempdir
+        self.assertFalse(os.path.exists(dirname))
+
+    @mock.patch.object(shutil, 'rmtree')
+    @mock.patch.object(tempfile, 'mkdtemp')
+    def test_tempdir_mocked(self, mkdtemp_mock, rmtree_mock):
+
+        self.config(tempdir='abc')
+        mkdtemp_mock.return_value = 'temp-dir'
+        kwargs = {'a': 'b'}
+
+        with utils.tempdir(**kwargs) as tempdir:
+            self.assertEqual('temp-dir', tempdir)
+            tempdir_created = tempdir
+
+        mkdtemp_mock.assert_called_once_with(**kwargs)
+        rmtree_mock.assert_called_once_with(tempdir_created)
+
+    @mock.patch.object(utils, 'LOG')
+    @mock.patch.object(shutil, 'rmtree')
+    @mock.patch.object(tempfile, 'mkdtemp')
+    def test_tempdir_mocked_error_on_rmtree(self, mkdtemp_mock, rmtree_mock,
+                                            log_mock):
+
+        self.config(tempdir='abc')
+        mkdtemp_mock.return_value = 'temp-dir'
+        rmtree_mock.side_effect = OSError
+
+        with utils.tempdir() as tempdir:
+            self.assertEqual('temp-dir', tempdir)
+            tempdir_created = tempdir
+
+        rmtree_mock.assert_called_once_with(tempdir_created)
+        self.assertTrue(log_mock.error.called)

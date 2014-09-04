@@ -47,6 +47,22 @@ CONF.register_opts(opts, group='ilo')
 LOG = logging.getLogger(__name__)
 
 
+def _attach_boot_iso(task):
+    """Attaches boot ISO for a deployed node.
+
+    This method checks the instance info of the baremetal node for a
+    boot iso.  It attaches the boot ISO on the baremetal node, and then
+    sets the node to boot from virtual media cdrom.
+
+    :param task: a TaskManager instance containing the node to act on.
+    """
+    i_info = task.node.instance_info
+
+    if 'ilo_boot_iso' in i_info:
+        ilo_common.setup_vmedia_for_boot(task, i_info['ilo_boot_iso'])
+        ilo_common.set_boot_device(task.node, 'CDROM')
+
+
 def _get_power_state(node):
     """Returns the current power state of the node.
 
@@ -105,16 +121,17 @@ def _wait_for_state_change(node, target_state):
     return state[0]
 
 
-def _set_power_state(node, target_state):
+def _set_power_state(task, target_state):
     """Turns the server power on/off or do a reboot.
 
-    :param node: an ironic node object.
+    :param task: a TaskManager instance containing the node to act on.
     :param target_state: target state of the node.
     :raises: InvalidParameterValue if an invalid power state was specified.
     :raises: IloOperationError on an error from IloClient library.
     :raises: PowerStateFailure if the power couldn't be set to target_state.
     """
 
+    node = task.node
     ilo_object = ilo_common.get_ilo_object(node)
 
     # Trigger the operation based on the target state.
@@ -122,8 +139,10 @@ def _set_power_state(node, target_state):
         if target_state == states.POWER_OFF:
             ilo_object.hold_pwr_btn()
         elif target_state == states.POWER_ON:
+            _attach_boot_iso(task)
             ilo_object.set_host_power('ON')
         elif target_state == states.REBOOT:
+            _attach_boot_iso(task)
             ilo_object.reset_server()
             target_state = states.POWER_ON
         else:
@@ -189,7 +208,7 @@ class IloPower(base.PowerInterface):
         :raises: IloOperationError on an error from IloClient library.
         :raises: PowerStateFailure if the power couldn't be set to power_state.
         """
-        _set_power_state(task.node, power_state)
+        _set_power_state(task, power_state)
 
     @task_manager.require_exclusive_lock
     def reboot(self, task):
@@ -204,6 +223,6 @@ class IloPower(base.PowerInterface):
         node = task.node
         current_pstate = _get_power_state(node)
         if current_pstate == states.POWER_ON:
-            _set_power_state(node, states.REBOOT)
+            _set_power_state(task, states.REBOOT)
         elif current_pstate == states.POWER_OFF:
-            _set_power_state(node, states.POWER_ON)
+            _set_power_state(task, states.POWER_ON)

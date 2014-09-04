@@ -24,6 +24,7 @@ from ironic.common import states
 from ironic.conductor import task_manager
 from ironic.db import api as dbapi
 from ironic.drivers.modules.ilo import common as ilo_common
+from ironic.drivers.modules.ilo import deploy as ilo_deploy
 from ironic.drivers.modules.ilo import power as ilo_power
 from ironic.openstack.common import context
 from ironic.tests import base
@@ -83,11 +84,13 @@ class IloPowerInternalMethodsTestCase(base.TestCase):
 
     def test__set_power_state_invalid_state(self, power_ilo_client_mock,
                                             common_ilo_client_mock):
-        power_ilo_client_mock.IloError = Exception
-        self.assertRaises(exception.IloOperationError,
-                          ilo_power._set_power_state,
-                          self.node,
-                          states.ERROR)
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            power_ilo_client_mock.IloError = Exception
+            self.assertRaises(exception.IloOperationError,
+                              ilo_power._set_power_state,
+                              task,
+                              states.ERROR)
 
     def test__set_power_state_reboot_fail(self, power_ilo_client_mock,
                                           common_ilo_client_mock):
@@ -95,10 +98,12 @@ class IloPowerInternalMethodsTestCase(base.TestCase):
         ilo_mock_object = common_ilo_client_mock.IloClient.return_value
         ilo_mock_object.reset_server.side_effect = Exception()
 
-        self.assertRaises(exception.IloOperationError,
-                          ilo_power._set_power_state,
-                          self.node,
-                          states.REBOOT)
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            self.assertRaises(exception.IloOperationError,
+                              ilo_power._set_power_state,
+                              task,
+                              states.REBOOT)
         ilo_mock_object.reset_server.assert_called_once_with()
 
     def test__set_power_state_reboot_ok(self, power_ilo_client_mock,
@@ -107,7 +112,9 @@ class IloPowerInternalMethodsTestCase(base.TestCase):
         ilo_mock_object = common_ilo_client_mock.IloClient.return_value
         ilo_mock_object.get_host_power_status.side_effect = ['ON', 'OFF', 'ON']
 
-        ilo_power._set_power_state(self.node, states.REBOOT)
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            ilo_power._set_power_state(task, states.REBOOT)
 
         ilo_mock_object.reset_server.assert_called_once_with()
 
@@ -117,10 +124,12 @@ class IloPowerInternalMethodsTestCase(base.TestCase):
         ilo_mock_object = common_ilo_client_mock.IloClient.return_value
         ilo_mock_object.get_host_power_status.return_value = 'ON'
 
-        self.assertRaises(exception.PowerStateFailure,
-                          ilo_power._set_power_state,
-                          self.node,
-                          states.POWER_OFF)
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            self.assertRaises(exception.PowerStateFailure,
+                              ilo_power._set_power_state,
+                              task,
+                              states.POWER_OFF)
 
         ilo_mock_object.get_host_power_status.assert_called_with()
         ilo_mock_object.hold_pwr_btn.assert_called_once_with()
@@ -132,9 +141,22 @@ class IloPowerInternalMethodsTestCase(base.TestCase):
         ilo_mock_object.get_host_power_status.side_effect = ['OFF', 'ON']
 
         target_state = states.POWER_ON
-        ilo_power._set_power_state(self.node, target_state)
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            ilo_power._set_power_state(task, target_state)
         ilo_mock_object.get_host_power_status.assert_called_with()
         ilo_mock_object.set_host_power.assert_called_once_with('ON')
+
+    @mock.patch.object(ilo_common, 'set_boot_device')
+    @mock.patch.object(ilo_common, 'setup_vmedia_for_boot')
+    def test__attach_boot_iso(self, setup_vmedia_mock, set_boot_device_mock,
+                              power_ilo_client_mock, common_ilo_client_mock):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            task.node.instance_info['ilo_boot_iso'] = 'boot-iso'
+            ilo_power._attach_boot_iso(task)
+            setup_vmedia_mock.assert_called_once_with(task, 'boot-iso')
+            set_boot_device_mock.assert_called_once_with(task.node, 'CDROM')
 
 
 class IloPowerTestCase(base.TestCase):
@@ -151,6 +173,7 @@ class IloPowerTestCase(base.TestCase):
 
     def test_get_properties(self):
         expected = ilo_common.COMMON_PROPERTIES
+        expected.update(ilo_deploy.COMMON_PROPERTIES)
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
             self.assertEqual(expected, task.driver.get_properties())
@@ -183,11 +206,11 @@ class IloPowerTestCase(base.TestCase):
 
     @mock.patch.object(ilo_power, '_set_power_state')
     def test_set_power_state(self, mock_set_power):
+        mock_set_power.return_value = states.POWER_ON
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
-            mock_set_power.return_value = states.POWER_ON
             task.driver.power.set_power_state(task, states.POWER_ON)
-            mock_set_power.assert_called_once_with(task.node, states.POWER_ON)
+        mock_set_power.assert_called_once_with(task, states.POWER_ON)
 
     @mock.patch.object(ilo_power, '_set_power_state')
     @mock.patch.object(ilo_power, '_get_power_state')
@@ -198,4 +221,4 @@ class IloPowerTestCase(base.TestCase):
             mock_set_power.return_value = states.POWER_ON
             task.driver.power.reboot(task)
             mock_get_power.assert_called_once_with(task.node)
-            mock_set_power.assert_called_once_with(task.node, states.REBOOT)
+            mock_set_power.assert_called_once_with(task, states.REBOOT)
