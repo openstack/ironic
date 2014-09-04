@@ -59,6 +59,7 @@ class AgentAndIPMINativeDriver(base.BaseDriver):
         self.power = ipminative.NativeIPMIPower()
         self.deploy = agent.AgentDeploy()
         self.management = ipminative.NativeIPMIManagement()
+        self.console = ipminative.NativeIPMIShellinaboxConsole()
         self.agent_vendor = agent.AgentVendorInterface()
         self.mapping = {'heartbeat': self.agent_vendor}
         self.dl_mapping = {'lookup': self.agent_vendor}

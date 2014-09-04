@@ -86,6 +86,7 @@ class PXEAndIPMINativeDriver(base.BaseDriver):
                     driver=self.__class__.__name__,
                     reason=_("Unable to import pyghmi library"))
         self.power = ipminative.NativeIPMIPower()
+        self.console = ipminative.NativeIPMIShellinaboxConsole()
         self.deploy = pxe.PXEDeploy()
         self.management = ipminative.NativeIPMIManagement()
         self.vendor = pxe.VendorPassthru()
