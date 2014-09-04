@@ -236,8 +236,14 @@
 # distributing load across conductors. Larger values will
 # result in more even distribution of load and less load when
 # rebalancing the ring, but more memory usage. Number of
-# partitions is (2^hash_partition_exponent). (integer value)
-#hash_partition_exponent=16
+# partitions per conductor is (2^hash_partition_exponent).
+# This determines the granularity of rebalancing: given 10
+# hosts, and an exponent of the 2, there are 40 partitions in
+# the ring.A few thousand partitions should make rebalancing
+# smooth in most cases. The default is suitable for up to a
+# few hundred conductors. Too many partitions has a CPU
+# impact. (integer value)
+#hash_partition_exponent=5
 
 # [Experimental Feature] Number of hosts to map onto each hash
 # partition. Setting this to more than one will cause

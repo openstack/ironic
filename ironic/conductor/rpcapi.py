@@ -107,7 +107,7 @@ class ConductorAPI(object):
 
         """
         hash_ring = self.ring_manager[driver_name]
-        host = random.choice(hash_ring.hosts)
+        host = random.choice(list(hash_ring.hosts))
         return self.topic + "." + host
 
     def update_node(self, context, node_obj, topic=None):

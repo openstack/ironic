@@ -13,7 +13,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import array
+import bisect
 import hashlib
 import struct
 import threading
@@ -26,12 +26,19 @@ from ironic.db import api as dbapi
 
 hash_opts = [
     cfg.IntOpt('hash_partition_exponent',
-               default=16,
+               default=5,
                help='Exponent to determine number of hash partitions to use '
                     'when distributing load across conductors. Larger values '
                     'will result in more even distribution of load and less '
                     'load when rebalancing the ring, but more memory usage. '
-                    'Number of partitions is (2^hash_partition_exponent).'),
+                    'Number of partitions per conductor is '
+                    '(2^hash_partition_exponent). This determines the '
+                    'granularity of rebalancing: given 10 hosts, and an '
+                    'exponent of the 2, there are 40 partitions in the ring.'
+                    'A few thousand partitions should make rebalancing '
+                    'smooth in most cases. The default is suitable for up to '
+                    'a few hundred conductors. Too many partitions has a CPU '
+                    'impact.'),
     cfg.IntOpt('hash_distribution_replicas',
                default=1,
                help='[Experimental Feature] '
@@ -47,6 +54,16 @@ CONF.register_opts(hash_opts)
 
 
 class HashRing(object):
+    """A stable hash ring.
+
+    We map item N to a host Y based on the closest lower hash
+    - hash(item) -> partition
+    - hash(host) -> divider
+    - closest lower divider is the host to use
+    - we hash each host many times to spread load more finely
+      as otherwise adding a host gets (on average) 50% of the load of
+      just one other host assigned to it.
+    """
 
     def __init__(self, hosts, replicas=None):
         """Create a new hash ring across the specified hosts.
@@ -61,21 +78,30 @@ class HashRing(object):
             replicas = CONF.hash_distribution_replicas
 
         try:
-            self.hosts = list(hosts)
+            self.hosts = set(hosts)
             self.replicas = replicas if replicas <= len(hosts) else len(hosts)
         except TypeError:
             raise exception.Invalid(
                     _("Invalid hosts supplied when building HashRing."))
 
-        self.partition_shift = 32 - CONF.hash_partition_exponent
-        self.part2host = array.array('H')
-        for p in range(2 ** CONF.hash_partition_exponent):
-            self.part2host.append(p % len(hosts))
+        self._host_hashes = {}
+        for host in hosts:
+            key = str(host).encode('utf8')
+            key_hash = hashlib.md5(key)
+            for p in range(2 ** CONF.hash_partition_exponent):
+                key_hash.update(key)
+                hashed_key = struct.unpack_from('>I', key_hash.digest())[0]
+                self._host_hashes[hashed_key] = host
+        # Gather the (possibly colliding) resulting hashes into a bisectable
+        # list.
+        self._partitions = sorted(self._host_hashes.keys())
 
     def _get_partition(self, data):
         try:
-            return (struct.unpack_from('>I', hashlib.md5(data).digest())[0]
-                    >> self.partition_shift)
+            hashed_key = struct.unpack_from(
+                '>I', hashlib.md5(data).digest())[0]
+            position = bisect.bisect(self._partitions, hashed_key)
+            return position if position < len(self._partitions) else 0
         except TypeError:
             raise exception.Invalid(
                     _("Invalid data supplied to HashRing.get_hosts."))
@@ -93,24 +119,35 @@ class HashRing(object):
                   this `HashRing` was created with. It may be less than this
                   if ignore_hosts is not None.
         """
-        host_ids = []
+        hosts = []
         if ignore_hosts is None:
-            ignore_host_ids = []
+            ignore_hosts = set()
         else:
-            ignore_host_ids = [self.hosts.index(h)
-                               for h in ignore_hosts if h in self.hosts]
-
+            ignore_hosts = set(ignore_hosts)
+            ignore_hosts.intersection_update(self.hosts)
         partition = self._get_partition(data)
         for replica in range(0, self.replicas):
-            if len(host_ids + ignore_host_ids) == len(self.hosts):
-                # prevent infinite loop
+            if len(hosts) + len(ignore_hosts) == len(self.hosts):
+                # prevent infinite loop - cannot allocate more fallbacks.
                 break
-            while self.part2host[partition] in host_ids + ignore_host_ids:
+            # Linear probing: partition N, then N+1 etc.
+            host = self._get_host(partition)
+            while host in hosts or host in ignore_hosts:
                 partition += 1
-                if partition >= len(self.part2host):
+                if partition >= len(self._partitions):
                     partition = 0
-            host_ids.append(self.part2host[partition])
-        return [self.hosts[h] for h in host_ids]
+                host = self._get_host(partition)
+            hosts.append(host)
+        return hosts
+
+    def _get_host(self, partition):
+        """Find what host is serving a partition.
+
+        :param partition: The index of the partition in the partition map.
+            e.g. 0 is the first partition, 1 is the second.
+        :return: The host object the ring was constructed with.
+        """
+        return self._host_hashes[self._partitions[partition]]
 
 
 class HashRingManager(object):
