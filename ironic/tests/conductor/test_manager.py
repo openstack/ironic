@@ -745,7 +745,7 @@ class DoNodeDeployTearDownTestCase(_ServiceSetUpMixin,
         self.assertIsNone(node.last_error)
         # Verify reservation has been cleared.
         self.assertIsNone(node.reservation)
-        mock_deploy.assert_called_once()
+        mock_deploy.assert_called_once_with(mock.ANY)
 
     @mock.patch('ironic.drivers.modules.fake.FakeDeploy.deploy')
     def test_do_node_deploy_rebuild_deployfail_state(self, mock_deploy):
@@ -763,7 +763,7 @@ class DoNodeDeployTearDownTestCase(_ServiceSetUpMixin,
         self.assertIsNone(node.last_error)
         # Verify reservation has been cleared.
         self.assertIsNone(node.reservation)
-        mock_deploy.assert_called_once()
+        mock_deploy.assert_called_once_with(mock.ANY)
 
     @mock.patch('ironic.drivers.modules.fake.FakeDeploy.deploy')
     def test_do_node_deploy_rebuild_error_state(self, mock_deploy):
@@ -781,7 +781,7 @@ class DoNodeDeployTearDownTestCase(_ServiceSetUpMixin,
         self.assertIsNone(node.last_error)
         # Verify reservation has been cleared.
         self.assertIsNone(node.reservation)
-        mock_deploy.assert_called_once()
+        mock_deploy.assert_called_once_with(mock.ANY)
 
     def test_do_node_deploy_rebuild_nostate_state(self):
         # test node will not rebuild if state is NOSTATE
