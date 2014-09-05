@@ -419,7 +419,7 @@ class IPMINativeDriverTestCase(db_base.DbTestCase):
         mock_exec.return_value = None
 
         with task_manager.acquire(self.context,
-                                  self.node['uuid']) as task:
+                                  self.node.uuid) as task:
             self.driver.console.start_console(task)
 
         mock_exec.assert_called_once_with(self.info['uuid'],
@@ -434,7 +434,7 @@ class IPMINativeDriverTestCase(db_base.DbTestCase):
                 error='error')
 
         with task_manager.acquire(self.context,
-                                  self.node['uuid']) as task:
+                                  self.node.uuid) as task:
             self.assertRaises(exception.ConsoleSubprocessFailed,
                               self.driver.console.start_console,
                               task)
@@ -465,14 +465,14 @@ class IPMINativeDriverTestCase(db_base.DbTestCase):
         mock_stop.assert_called_once_with(self.node.uuid)
 
     @mock.patch.object(console_utils, 'get_shellinabox_console_url',
-                       utospec=True)
+                       autospec=True)
     def test_get_console(self, mock_exec):
         url = 'http://localhost:4201'
         mock_exec.return_value = url
         expected = {'type': 'shellinabox', 'url': url}
 
         with task_manager.acquire(self.context,
-                                  self.node['uuid']) as task:
+                                  self.node.uuid) as task:
             console_info = self.driver.console.get_console(task)
 
         self.assertEqual(expected, console_info)
