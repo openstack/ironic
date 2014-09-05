@@ -101,15 +101,10 @@ def map_power_state(state):
 
 
 def _validate_instance_and_node(icli, instance):
-    """Get and validate a node's uuid out of a manager instance dict.
+    """Get the node associated with the instance.
 
-    The compute manager is meant to know the node uuid, so missing uuid is
-    a significant issue - it may mean we've been passed someone else's data.
-
-    Check with the Ironic service that this node is still associated with
-    this instance. This catches situations where Nova's instance dict
-    contains stale data (eg, a delete on an instance that's already gone).
-
+    Check with the Ironic service that this instance is associated with a
+    node, and return the node.
     """
     try:
         return icli.call("node.get_by_instance_uuid", instance['uuid'])
@@ -142,7 +137,8 @@ def _log_ironic_polling(what, node, instance):
 class IronicDriver(virt_driver.ComputeDriver):
     """Hypervisor driver for Ironic - bare metal provisioning."""
 
-    capabilities = {"has_imagecache": False}
+    capabilities = {"has_imagecache": False,
+                    "supports_recreate": False}
 
     def __init__(self, virtapi, read_only=False):
         super(IronicDriver, self).__init__(virtapi)
@@ -158,10 +154,6 @@ class IronicDriver(virt_driver.ComputeDriver):
 
         self.firewall_driver = firewall.load_driver(
             default='nova.virt.firewall.NoopFirewallDriver')
-        extra_specs = {}
-        extra_specs["ironic_driver"] = \
-            "ironic.nova.virt.ironic.driver.IronicDriver"
-        self.extra_specs = extra_specs
         self.node_cache = {}
         self.node_cache_time = 0
 
@@ -172,10 +164,11 @@ class IronicDriver(virt_driver.ComputeDriver):
             logger.setLevel(level)
 
     def _node_resources_unavailable(self, node_obj):
-        """Determine whether the node's resources are in an acceptable state.
+        """Determine whether the node's resources are in an unacceptable state.
 
         Determines whether the node's resources should be presented
         to Nova for use based on the current power and maintenance state.
+        Returns True if unacceptable.
         """
         bad_states = [ironic_states.ERROR, ironic_states.NOSTATE]
         return (node_obj.maintenance or
@@ -193,7 +186,7 @@ class IronicDriver(virt_driver.ComputeDriver):
         if not cpu_arch:
             LOG.warn(_LW("cpu_arch not defined for node '%s'"), node.uuid)
 
-        nodes_extra_specs = self.extra_specs.copy()
+        nodes_extra_specs = {}
 
         # NOTE(deva): In Havana and Icehouse, the flavor was required to link
         # to an arch-specific deploy kernel and ramdisk pair, and so the flavor
@@ -390,7 +383,7 @@ class IronicDriver(virt_driver.ComputeDriver):
         """
         icli = client_wrapper.IronicClientWrapper()
         node_list = icli.call("node.list", associated=True)
-        return list(set(n.instance_uuid for n in node_list))
+        return list(n.instance_uuid for n in node_list)
 
     def node_is_available(self, nodename):
         """Confirms a Nova hypervisor node exists in the Ironic inventory.

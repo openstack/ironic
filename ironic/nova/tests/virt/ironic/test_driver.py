@@ -1,5 +1,3 @@
-# coding=utf-8
-#
 # Copyright 2014 Red Hat, Inc.
 # Copyright 2013 Hewlett-Packard Development Company, L.P.
 #
@@ -72,9 +70,7 @@ def _get_properties():
             'cpu_arch': 'x86_64'}
 
 def _get_stats():
-    return {'cpu_arch': 'x86_64',
-            'ironic_driver':
-                    'ironic.nova.virt.ironic.driver.IronicDriver'}
+    return {'cpu_arch': 'x86_64'}
 
 
 FAKE_CLIENT_WRAPPER = FakeClientWrapper()
@@ -98,10 +94,10 @@ class IronicDriverTestCase(test.NoDBTestCase):
         self.assertIsInstance(self.driver, ironic_driver.IronicDriver)
 
     def test__get_hypervisor_type(self):
-        self.assertEqual(self.driver._get_hypervisor_type(), 'ironic')
+        self.assertEqual('ironic', self.driver._get_hypervisor_type())
 
     def test__get_hypervisor_version(self):
-        self.assertEqual(self.driver._get_hypervisor_version(), 1)
+        self.assertEqual(1, self.driver._get_hypervisor_version())
 
     @mock.patch.object(FAKE_CLIENT.node, 'get_by_instance_uuid')
     def test__validate_instance_and_node(self, mock_gbiui):
@@ -439,7 +435,7 @@ class IronicDriverTestCase(test.NoDBTestCase):
 
         mock_gbiu.return_value = node
 
-        # ironic_states.POWER_ON should me be mapped to
+        # ironic_states.POWER_ON should be mapped to
         # nova_states.RUNNING
         memory_kib = properties['memory_mb'] * 1024
         expected = {'state': nova_states.RUNNING,
