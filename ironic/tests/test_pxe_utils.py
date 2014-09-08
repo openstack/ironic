@@ -95,18 +95,18 @@ class TestPXEUtils(db_base.DbTestCase):
 
     @mock.patch('ironic.common.utils.create_link_without_raise')
     @mock.patch('ironic.common.utils.unlink_without_raise')
-    @mock.patch('ironic.dhcp.neutron.NeutronDHCPApi.get_ip_addresses')
-    def test__link_ip_address_pxe_configs(self, get_ip_mock, unlink_mock,
-                                    create_link_mock):
+    @mock.patch('ironic.common.dhcp_factory.DHCPFactory.provider')
+    def test__link_ip_address_pxe_configs(self, provider_mock, unlink_mock,
+                                          create_link_mock):
         ip_address = '10.10.0.1'
         address = "aa:aa:aa:aa:aa:aa"
         object_utils.create_test_port(self.context, node_uuid=self.node.uuid,
                                       address=address)
 
-        get_ip_mock.return_value = [ip_address]
+        provider_mock.get_ip_addresses.return_value = [ip_address]
         create_link_calls = [
             mock.call(u'/tftpboot/1be26c0b-03f2-4d2e-ae87-c02d7f33c123/config',
-                      '/tftpboot/0A0A0001.conf'),
+                      u'/tftpboot/0A0A0001.conf'),
         ]
         with task_manager.acquire(self.context, self.node.uuid) as task:
             pxe_utils._link_ip_address_pxe_configs(task)
@@ -286,16 +286,16 @@ class TestPXEUtils(db_base.DbTestCase):
 
     @mock.patch('ironic.common.utils.rmtree_without_raise', autospec=True)
     @mock.patch('ironic.common.utils.unlink_without_raise', autospec=True)
-    @mock.patch('ironic.dhcp.neutron.NeutronDHCPApi._get_port_ip_address')
-    def test_clean_up_pxe_config_uefi(self, get_ip_mock, unlink_mock,
-                                                          rmtree_mock):
+    @mock.patch('ironic.common.dhcp_factory.DHCPFactory.provider')
+    def test_clean_up_pxe_config_uefi(self, provider_mock, unlink_mock,
+                                      rmtree_mock):
         ip_address = '10.10.0.1'
         address = "aa:aa:aa:aa:aa:aa"
         properties = {'capabilities': 'boot_mode:uefi'}
         object_utils.create_test_port(self.context, node_uuid=self.node.uuid,
                                       address=address)
 
-        get_ip_mock.return_value = ip_address
+        provider_mock.get_ip_addresses.return_value = [ip_address]
 
         with task_manager.acquire(self.context, self.node.uuid) as task:
             task.node.properties = properties
