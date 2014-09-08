@@ -1,5 +1,5 @@
 default deploy
 
 label deploy
-kernel {{ pxe_options.deployment_aki_path }}
-append initrd={{ pxe_options.deployment_ari_path }} text root=squashfs: {% if pxe_options.pxe_append_params %}{{ pxe_options.pxe_append_params }}{% endif %} state=tmpfs: ipa-api-url={{ pxe_options.ipa-api-url }} {% if pxe_options.ipa-advertise-host %}ipa-advertise-host={{ pxe_options.ipa-advertise-host }}{% endif %}
+kernel /tftpboot/1be26c0b-03f2-4d2e-ae87-c02d7f33c123/deploy_kernel
+append initrd=/tftpboot/1be26c0b-03f2-4d2e-ae87-c02d7f33c123/deploy_ramdisk text test_param ipa-api-url=http://192.168.122.184:6385

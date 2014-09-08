@@ -55,6 +55,16 @@ class TestPXEUtils(db_base.DbTestCase):
                                    u'c02d7f33c123/deploy_kernel',
             'disk': 'cciss/c0d0,sda,hda,vda'
         }
+        self.agent_pxe_options = {
+            'deployment_ari_path': u'/tftpboot/1be26c0b-03f2-4d2e-ae87-c02d7'
+                                   u'f33c123/deploy_ramdisk',
+            'pxe_append_params': 'test_param',
+            'aki_path': u'/tftpboot/1be26c0b-03f2-4d2e-ae87-c02d7f33c123/'
+                        u'kernel',
+            'ipa-api-url': 'http://192.168.122.184:6385',
+            'deployment_aki_path': u'/tftpboot/1be26c0b-03f2-4d2e-ae87-'
+                                   u'c02d7f33c123/deploy_kernel',
+        }
         self.node = object_utils.create_test_node(self.context)
 
     def test__build_pxe_config(self):
@@ -66,6 +76,16 @@ class TestPXEUtils(db_base.DbTestCase):
             'ironic/tests/drivers/pxe_config.template').read().rstrip()
 
         self.assertEqual(rendered_template, unicode(expected_template))
+
+    def test__build_pxe_config_with_agent(self):
+
+        rendered_template = pxe_utils._build_pxe_config(
+                self.agent_pxe_options, CONF.agent.agent_pxe_config_template)
+
+        expected_template = open(
+            'ironic/tests/drivers/agent_pxe_config.template').read().rstrip()
+
+        self.assertEqual(unicode(expected_template), rendered_template)
 
     @mock.patch('ironic.common.utils.create_link_without_raise')
     @mock.patch('ironic.common.utils.unlink_without_raise')
