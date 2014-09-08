@@ -35,6 +35,8 @@ import six
 
 from ironic.common import exception
 from ironic.common.i18n import _
+from ironic.common.i18n import _LE
+from ironic.common.i18n import _LW
 from ironic.openstack.common import log as logging
 from ironic.openstack.common import processutils
 
@@ -409,7 +411,7 @@ def tempdir(**kwargs):
         try:
             shutil.rmtree(tmpdir)
         except OSError as e:
-            LOG.error(_('Could not remove tmpdir: %s'), str(e))
+            LOG.error(_LE('Could not remove tmpdir: %s'), e)
 
 
 def mkfs(fs, path, label=None):
@@ -444,8 +446,8 @@ def unlink_without_raise(path):
         if e.errno == errno.ENOENT:
             return
         else:
-            LOG.warn(_("Failed to unlink %(path)s, error: %(e)s") %
-                      {'path': path, 'e': e})
+            LOG.warn(_LW("Failed to unlink %(path)s, error: %(e)s"),
+                        {'path': path, 'e': e})
 
 
 def rmtree_without_raise(path):
@@ -453,7 +455,7 @@ def rmtree_without_raise(path):
         if os.path.isdir(path):
             shutil.rmtree(path)
     except OSError as e:
-        LOG.warn(_("Failed to remove dir %(path)s, error: %(e)s") %
+        LOG.warn(_LW("Failed to remove dir %(path)s, error: %(e)s"),
                 {'path': path, 'e': e})
 
 
@@ -469,9 +471,9 @@ def create_link_without_raise(source, link):
         if e.errno == errno.EEXIST:
             return
         else:
-            LOG.warn(_("Failed to create symlink from %(source)s to %(link)s"
-                       ", error: %(e)s") %
-                       {'source': source, 'link': link, 'e': e})
+            LOG.warn(_LW("Failed to create symlink from %(source)s to %(link)s"
+                         ", error: %(e)s"),
+                         {'source': source, 'link': link, 'e': e})
 
 
 def safe_rstrip(value, chars=None):
@@ -483,8 +485,8 @@ def safe_rstrip(value, chars=None):
 
     """
     if not isinstance(value, six.string_types):
-        LOG.warn(_("Failed to remove trailing character. Returning original "
-                   "object. Supplied object is not a string: %s,") % value)
+        LOG.warn(_LW("Failed to remove trailing character. Returning original "
+                     "object. Supplied object is not a string: %s,"), value)
         return value
 
     return value.rstrip(chars) or value

@@ -16,7 +16,7 @@
 from oslo.config import cfg
 
 from ironic.common import exception
-from ironic.common.i18n import _
+from ironic.common.i18n import _LI
 from ironic.openstack.common import lockutils
 from ironic.openstack.common import log
 from stevedore import dispatch
@@ -118,7 +118,7 @@ class DriverFactory(object):
                         _check_func,
                         invoke_on_load=True,
                         on_load_failure_callback=_catch_driver_not_found)
-        LOG.info(_("Loaded the following drivers: %s"),
+        LOG.info(_LI("Loaded the following drivers: %s"),
                 cls._extension_manager.names())
 
     @property

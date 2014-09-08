@@ -21,15 +21,12 @@ from oslo.config import cfg
 
 from ironic.common import dhcp_factory
 from ironic.common import exception
-from ironic.common import i18n
 from ironic.common.i18n import _
+from ironic.common.i18n import _LW
 from ironic.common import utils
 from ironic.drivers import utils as driver_utils
 from ironic.openstack.common import fileutils
 from ironic.openstack.common import log as logging
-
-_LW = i18n._LW
-_LE = i18n._LE
 
 CONF = cfg.CONF
 
