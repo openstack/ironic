@@ -260,7 +260,7 @@ Compute Service's controller nodes and compute nodes.*
     # vmwareapi.VMwareESXDriver, vmwareapi.VMwareVCDriver (string
     # value)
     #compute_driver=<None>
-    compute_driver=ironic.nova.virt.ironic.IronicDriver
+    compute_driver=nova.virt.ironic.IronicDriver
 
     # Firewall driver (defaults to hypervisor specific iptables
     # driver) (string value)
@@ -269,7 +269,7 @@ Compute Service's controller nodes and compute nodes.*
 
     # The scheduler host manager class to use (string value)
     #scheduler_host_manager=nova.scheduler.host_manager.HostManager
-    scheduler_host_manager=ironic.nova.scheduler.ironic_host_manager.IronicHostManager
+    scheduler_host_manager=nova.scheduler.ironic_host_manager.IronicHostManager
 
     # Virtual ram to physical ram allocation ratio which affects
     # all ram filters. This configuration specifies a global ratio
