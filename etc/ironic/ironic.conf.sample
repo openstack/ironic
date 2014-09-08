@@ -43,6 +43,10 @@
 # Whether to disable the Nagle algorithm. (boolean value)
 #qpid_tcp_nodelay=true
 
+# The number of prefetched messages held by receiver. (integer
+# value)
+#qpid_receiver_capacity=1
+
 # The qpid topology version to use.  Version 1 is what was
 # originally used by impl_qpid.  Version 2 includes some
 # backwards-incompatible changes that allow broker federation
