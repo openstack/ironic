@@ -17,8 +17,9 @@ Wrapper for pywsman.Client
 
 from xml.etree import ElementTree
 
+from oslo.utils import importutils
+
 from ironic.common import exception
-from ironic.openstack.common import importutils
 
 pywsman = importutils.try_import('pywsman')
 

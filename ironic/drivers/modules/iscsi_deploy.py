@@ -16,6 +16,7 @@
 import os
 
 from oslo.config import cfg
+from oslo.utils import strutils
 
 from ironic.common import exception
 from ironic.common import i18n
@@ -30,7 +31,6 @@ from ironic.drivers.modules import image_cache
 from ironic.drivers import utils as driver_utils
 from ironic.openstack.common import fileutils
 from ironic.openstack.common import log as logging
-from ironic.openstack.common import strutils
 
 LOG = logging.getLogger(__name__)
 
