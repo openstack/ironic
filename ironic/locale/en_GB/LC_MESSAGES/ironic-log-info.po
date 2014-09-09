@@ -8,8 +8,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Ironic\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2014-08-28 06:10+0000\n"
-"PO-Revision-Date: 2014-08-26 03:46+0000\n"
+"POT-Creation-Date: 2014-09-09 06:10+0000\n"
+"PO-Revision-Date: 2014-09-08 10:18+0000\n"
 "Last-Translator: openstackjenkins <jenkins@openstack.org>\n"
 "Language-Team: English (United Kingdom) (http://www.transifex.com/projects/p/"
 "ironic/language/en_GB/)\n"
@@ -20,54 +20,69 @@ msgstr ""
 "Generated-By: Babel 1.3\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
-#: ironic/common/service.py:77
+#: ironic/common/driver_factory.py:121
+#, python-format
+msgid "Loaded the following drivers: %s"
+msgstr ""
+
+#: ironic/common/service.py:78
 #, python-format
 msgid "Created RPC server for service %(service)s on host %(host)s."
 msgstr "Created RPC server for service %(service)s on host %(host)s."
 
-#: ironic/common/service.py:94
+#: ironic/common/service.py:95
 #, python-format
 msgid "Stopped RPC server for service %(service)s on host %(host)s."
 msgstr "Stopped RPC server for service %(service)s on host %(host)s."
 
-#: ironic/conductor/manager.py:210
+#: ironic/conductor/manager.py:211
 #, python-format
 msgid "Successfuly started conductor with hostname %(hostname)s."
 msgstr "Successfuly started conductor with hostname %(hostname)s."
 
-#: ironic/conductor/manager.py:222
+#: ironic/conductor/manager.py:223
 #, python-format
 msgid "Successfully stopped conductor with hostname %(hostname)s."
 msgstr "Successfully stopped conductor with hostname %(hostname)s."
 
-#: ironic/conductor/manager.py:510
+#: ironic/conductor/manager.py:511
 #, python-format
 msgid "Successfully deployed node %(node)s with instance %(instance)s."
 msgstr "Successfully deployed node %(node)s with instance %(instance)s."
 
-#: ironic/conductor/manager.py:598
+#: ironic/conductor/manager.py:599
 #, python-format
 msgid "Successfully unprovisioned node %(node)s with instance %(instance)s."
 msgstr "Successfully unprovisioned node %(node)s with instance %(instance)s."
 
-#: ironic/conductor/manager.py:947
+#: ironic/conductor/manager.py:951
 #, python-format
 msgid "Successfully deleted node %(node)s."
 msgstr "Successfully deleted node %(node)s."
 
-#: ironic/conductor/utils.py:115
+#: ironic/conductor/utils.py:116
 #, python-format
 msgid "Succesfully set node %(node)s power state to %(state)s."
 msgstr "Succesfully set node %(node)s power state to %(state)s."
 
-#: ironic/drivers/modules/iscsi_deploy.py:300
+#: ironic/drivers/modules/iscsi_deploy.py:301
 #, python-format
 msgid "Continuing deployment for node %(node)s, params %(params)s"
 msgstr ""
 
-#: ironic/drivers/modules/pxe.py:424
+#: ironic/drivers/modules/pxe.py:472 ironic/drivers/modules/ilo/deploy.py:452
 #, python-format
 msgid "Deployment to node %s done"
+msgstr ""
+
+#: ironic/drivers/modules/ilo/common.py:255
+#, python-format
+msgid "Attached virtual media %s successfully."
+msgstr ""
+
+#: ironic/drivers/modules/ilo/common.py:275
+#, python-format
+msgid "Node %(uuid)s set to boot from %(device)s."
 msgstr ""
 
 #: ironic/openstack/common/eventlet_backdoor.py:140
