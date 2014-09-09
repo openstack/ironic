@@ -24,8 +24,9 @@ from oslo.utils import importutils
 
 from ironic.common import boot_devices
 from ironic.common import exception
-from ironic.common import i18n
 from ironic.common.i18n import _
+from ironic.common.i18n import _LE
+from ironic.common.i18n import _LW
 from ironic.common import states
 from ironic.conductor import task_manager
 from ironic.drivers import base
@@ -45,8 +46,6 @@ opts = [
                default=10,
                help='Seconds to wait for power action to be completed')
 ]
-
-_LE = i18n._LE
 
 CONF = cfg.CONF
 opt_group = cfg.OptGroup(name='seamicro',
@@ -165,7 +164,7 @@ def _get_power_status(node):
     except seamicro_client_exception.NotFound:
         raise exception.NodeNotFound(node=node.uuid)
     except seamicro_client_exception.ClientException as ex:
-        LOG.error(_("SeaMicro client exception %(msg)s for node %(uuid)s"),
+        LOG.error(_LE("SeaMicro client exception %(msg)s for node %(uuid)s"),
                   {'msg': ex.message, 'uuid': node.uuid})
         raise exception.ServiceUnavailable(message=ex.message)
 
@@ -201,7 +200,7 @@ def _power_on(node, timeout=None):
             retries[0] += 1
             server.power_on()
         except seamicro_client_exception.ClientException:
-            LOG.warning(_("Power-on failed for node %s."),
+            LOG.warning(_LW("Power-on failed for node %s."),
                         node.uuid)
 
     timer = loopingcall.FixedIntervalLoopingCall(_wait_for_power_on,
@@ -241,7 +240,7 @@ def _power_off(node, timeout=None):
             retries[0] += 1
             server.power_off()
         except seamicro_client_exception.ClientException:
-            LOG.warning(_("Power-off failed for node %s."),
+            LOG.warning(_LW("Power-off failed for node %s."),
                         node.uuid)
 
     timer = loopingcall.FixedIntervalLoopingCall(_wait_for_power_off,
@@ -281,7 +280,7 @@ def _reboot(node, timeout=None):
             retries[0] += 1
             server.reset()
         except seamicro_client_exception.ClientException:
-            LOG.warning(_("Reboot failed for node %s."),
+            LOG.warning(_LW("Reboot failed for node %s."),
                         node.uuid)
 
     timer = loopingcall.FixedIntervalLoopingCall(_wait_for_reboot,
@@ -449,7 +448,7 @@ class VendorPassthru(base.VendorInterface):
             server = server.refresh(5)
             server.set_untagged_vlan(vlan_id)
         except seamicro_client_exception.ClientException as ex:
-            LOG.error(_("SeaMicro client exception: %s"), ex.message)
+            LOG.error(_LE("SeaMicro client exception: %s"), ex.message)
             raise exception.VendorPassthruException(message=ex.message)
 
         properties = node.properties
@@ -485,7 +484,7 @@ class VendorPassthru(base.VendorInterface):
                 server = server.refresh(5)
                 server.attach_volume(volume_id)
             except seamicro_client_exception.ClientException as ex:
-                LOG.error(_("SeaMicro client exception: %s"), ex.message)
+                LOG.error(_LE("SeaMicro client exception: %s"), ex.message)
                 raise exception.VendorPassthruException(message=ex.message)
 
             properties = node.properties

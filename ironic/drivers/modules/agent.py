@@ -20,8 +20,9 @@ from oslo.utils import excutils
 
 from ironic.common import dhcp_factory
 from ironic.common import exception
-from ironic.common import i18n
 from ironic.common.i18n import _
+from ironic.common.i18n import _LE
+from ironic.common.i18n import _LW
 from ironic.common import image_service
 from ironic.common import keystone
 from ironic.common import paths
@@ -37,9 +38,6 @@ from ironic import objects
 from ironic.openstack.common import fileutils
 from ironic.openstack.common import log
 
-
-_LE = i18n._LE
-_LW = i18n._LW
 
 agent_opts = [
     cfg.StrOpt('agent_pxe_append_params',
@@ -379,7 +377,7 @@ class AgentVendorInterface(base.VendorInterface):
         except Exception:
             # catch-all in case something bubbles up here
             with excutils.save_and_reraise_exception():
-                LOG.exception(_('vendor_passthru failed with method %s'),
+                LOG.exception(_LE('vendor_passthru failed with method %s'),
                               method)
 
     def _heartbeat(self, task, **kwargs):
@@ -583,8 +581,8 @@ class AgentVendorInterface(base.VendorInterface):
             node = objects.Node.get_by_id(context, node_id)
         except exception.NodeNotFound:
             with excutils.save_and_reraise_exception():
-                LOG.exception(_('Could not find matching node for the '
-                                'provided MACs %s.'), mac_addresses)
+                LOG.exception(_LE('Could not find matching node for the '
+                                  'provided MACs %s.'), mac_addresses)
 
         return node
 

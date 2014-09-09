@@ -99,7 +99,7 @@ class FakeSeaMicroDriver(base.BaseDriver):
         if not importutils.try_import('seamicroclient'):
             raise exception.DriverLoadError(
                     driver=self.__class__.__name__,
-                    reason="Unable to import seamicroclient library")
+                    reason=_("Unable to import seamicroclient library"))
         self.power = seamicro.Power()
         self.deploy = fake.FakeDeploy()
         self.management = seamicro.Management()
@@ -156,6 +156,6 @@ class FakeSNMPDriver(base.BaseDriver):
         if not importutils.try_import('pysnmp'):
             raise exception.DriverLoadError(
                     driver=self.__class__.__name__,
-                    reason="Unable to import pysnmp library")
+                    reason=_("Unable to import pysnmp library"))
         self.power = snmp.SNMPPower()
         self.deploy = fake.FakeDeploy()

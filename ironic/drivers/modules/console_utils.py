@@ -27,15 +27,13 @@ import time
 from oslo.config import cfg
 
 from ironic.common import exception
-from ironic.common import i18n
 from ironic.common.i18n import _
+from ironic.common.i18n import _LW
 from ironic.common import utils
 from ironic.openstack.common import log as logging
 from ironic.openstack.common import loopingcall
 from ironic.openstack.common import processutils
 
-
-_LW = i18n._LW
 
 opts = [
     cfg.StrOpt('terminal',
@@ -260,9 +258,8 @@ def stop_shellinabox_console(node_uuid):
     try:
         _stop_console(node_uuid)
     except exception.NoConsolePid:
-        LOG.warning(_("No console pid found for node %s"
-                " while trying to stop shellinabox console.")
-                % node_uuid)
+        LOG.warning(_LW("No console pid found for node %s while trying to "
+                        "stop shellinabox console."), node_uuid)
     except processutils.ProcessExecutionError as exc:
             msg = (_("Could not stop the console for node '%(node)s'. "
                      "Reason: %(err)s.") % {'node': node_uuid, 'err': exc})

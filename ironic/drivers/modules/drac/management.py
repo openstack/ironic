@@ -24,7 +24,8 @@ from oslo.utils import importutils
 
 from ironic.common import boot_devices
 from ironic.common import exception
-from ironic.common import i18n
+from ironic.common.i18n import _
+from ironic.common.i18n import _LE
 from ironic.drivers import base
 from ironic.drivers.modules.drac import common as drac_common
 from ironic.drivers.modules.drac import resource_uris
@@ -33,9 +34,6 @@ from ironic.openstack.common import log as logging
 pywsman = importutils.try_import('pywsman')
 
 LOG = logging.getLogger(__name__)
-
-_ = i18n._
-_LE = i18n._LE
 
 _BOOT_DEVICES_MAP = {
     boot_devices.DISK: 'HardDisk',

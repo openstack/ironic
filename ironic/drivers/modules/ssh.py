@@ -32,8 +32,9 @@ from oslo.config import cfg
 
 from ironic.common import boot_devices
 from ironic.common import exception
-from ironic.common import i18n
 from ironic.common.i18n import _
+from ironic.common.i18n import _LE
+from ironic.common.i18n import _LW
 from ironic.common import states
 from ironic.common import utils
 from ironic.conductor import task_manager
@@ -47,9 +48,6 @@ libvirt_opts = [
                default='qemu:///system',
                help='libvirt uri')
 ]
-
-_LW = i18n._LW
-_LE = i18n._LE
 
 CONF = cfg.CONF
 CONF.register_opts(libvirt_opts, group='ssh')
@@ -367,7 +365,7 @@ def _get_power_status(ssh_obj, driver_info):
         if not power_state:
             power_state = states.POWER_OFF
     else:
-        err_msg = _('Node "%(host)s" with MAC address %(mac)s not found.')
+        err_msg = _LE('Node "%(host)s" with MAC address %(mac)s not found.')
         LOG.error(err_msg, {'host': driver_info['host'],
                             'mac': driver_info['macs']})
 

@@ -26,6 +26,7 @@ from oslo.utils import excutils
 from ironic.common import disk_partitioner
 from ironic.common import exception
 from ironic.common.i18n import _
+from ironic.common.i18n import _LE
 from ironic.common import utils
 from ironic.drivers.modules import image_cache
 from ironic.openstack.common import log as logging
@@ -232,8 +233,8 @@ def destroy_disk_metadata(dev, node_uuid):
                       check_exit_code=[0])
     except processutils.ProcessExecutionError as err:
         with excutils.save_and_reraise_exception():
-            LOG.error(_("Failed to erase beginning of disk for node "
-                        "%(node)s. Command: %(command)s. Error: %(error)s."),
+            LOG.error(_LE("Failed to erase beginning of disk for node "
+                          "%(node)s. Command: %(command)s. Error: %(error)s."),
                       {'node': node_uuid,
                        'command': err.cmd,
                        'error': err.stderr})
@@ -244,8 +245,8 @@ def destroy_disk_metadata(dev, node_uuid):
         block_sz = get_dev_block_size(dev)
     except processutils.ProcessExecutionError as err:
         with excutils.save_and_reraise_exception():
-            LOG.error(_("Failed to get disk block count for node %(node)s. "
-                        "Command: %(command)s. Error: %(error)s."),
+            LOG.error(_LE("Failed to get disk block count for node %(node)s. "
+                          "Command: %(command)s. Error: %(error)s."),
                       {'node': node_uuid,
                        'command': err.cmd,
                        'error': err.stderr})
@@ -257,9 +258,9 @@ def destroy_disk_metadata(dev, node_uuid):
                           run_as_root=True, check_exit_code=[0])
         except processutils.ProcessExecutionError as err:
             with excutils.save_and_reraise_exception():
-                LOG.error(_("Failed to erase the end of the disk on node "
-                            "%(node)s. Command: %(command)s. "
-                            "Error: %(error)s."),
+                LOG.error(_LE("Failed to erase the end of the disk on node "
+                              "%(node)s. Command: %(command)s. "
+                              "Error: %(error)s."),
                           {'node': node_uuid,
                            'command': err.cmd,
                            'error': err.stderr})
@@ -322,7 +323,7 @@ def work_on_disk(dev, root_mb, swap_mb, ephemeral_mb, ephemeral_format,
         root_uuid = block_uuid(root_part)
     except processutils.ProcessExecutionError:
         with excutils.save_and_reraise_exception():
-            LOG.error(_("Failed to detect root device UUID."))
+            LOG.error(_LE("Failed to detect root device UUID."))
     return root_uuid
 
 
@@ -360,13 +361,13 @@ def deploy(address, port, iqn, lun, image_path,
                                  preserve_ephemeral)
     except processutils.ProcessExecutionError as err:
         with excutils.save_and_reraise_exception():
-            LOG.error(_("Deploy to address %s failed.") % address)
-            LOG.error(_("Command: %s") % err.cmd)
-            LOG.error(_("StdOut: %r") % err.stdout)
-            LOG.error(_("StdErr: %r") % err.stderr)
+            LOG.error(_LE("Deploy to address %s failed."), address)
+            LOG.error(_LE("Command: %s"), err.cmd)
+            LOG.error(_LE("StdOut: %r"), err.stdout)
+            LOG.error(_LE("StdErr: %r"), err.stderr)
     except exception.InstanceDeployFailure as e:
         with excutils.save_and_reraise_exception():
-            LOG.error(_("Deploy to address %s failed.") % address)
+            LOG.error(_LE("Deploy to address %s failed."), address)
             LOG.error(e)
     finally:
         logout_iscsi(address, port, iqn)

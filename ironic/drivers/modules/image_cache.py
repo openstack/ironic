@@ -26,7 +26,8 @@ from oslo.config import cfg
 
 from ironic.common import exception
 from ironic.common.glance_service import service_utils
-from ironic.common.i18n import _
+from ironic.common.i18n import _LI
+from ironic.common.i18n import _LW
 from ironic.common import images
 from ironic.common import utils
 from ironic.openstack.common import fileutils
@@ -114,8 +115,8 @@ class ImageCache(object):
                 with lockutils.lock('master_image', 'ironic-'):
                     os.link(master_path, dest_path)
             except OSError:
-                LOG.info(_("Master cache miss for image %(uuid)s, "
-                           "starting download") %
+                LOG.info(_LI("Master cache miss for image %(uuid)s, "
+                             "starting download"),
                          {'uuid': uuid})
             else:
                 LOG.debug("Master cache hit for image %(uuid)s",
@@ -174,8 +175,8 @@ class ImageCache(object):
             return
         amount = self._clean_up_ensure_cache_size(survived, amount)
         if amount is not None and amount > 0:
-            LOG.warn(_("Cache clean up was unable to reclaim %(required)d MiB "
-                       "of disk space, still %(left)d MiB required"),
+            LOG.warn(_LW("Cache clean up was unable to reclaim %(required)d "
+                       "MiB of disk space, still %(left)d MiB required"),
                      {'required': amount_copy / 1024 / 1024,
                       'left': amount / 1024 / 1024})
 
@@ -201,8 +202,8 @@ class ImageCache(object):
                 try:
                     os.unlink(file_name)
                 except EnvironmentError as exc:
-                    LOG.warn(_("Unable to delete file %(name)s from "
-                               "master image cache: %(exc)s") %
+                    LOG.warn(_LW("Unable to delete file %(name)s from "
+                                 "master image cache: %(exc)s"),
                              {'name': file_name, 'exc': exc})
                 else:
                     if amount is not None:
@@ -239,8 +240,8 @@ class ImageCache(object):
             try:
                 os.unlink(file_name)
             except EnvironmentError as exc:
-                LOG.warn(_("Unable to delete file %(name)s from "
-                           "master image cache: %(exc)s") %
+                LOG.warn(_LW("Unable to delete file %(name)s from "
+                             "master image cache: %(exc)s"),
                          {'name': file_name, 'exc': exc})
             else:
                 total_size -= stat.st_size
@@ -248,9 +249,9 @@ class ImageCache(object):
                     amount -= stat.st_size
 
         if total_size > self._cache_size:
-            LOG.info(_("After cleaning up cache dir %(dir)s "
-                       "cache size %(actual)d is still larger than "
-                       "threshold %(expected)d") %
+            LOG.info(_LI("After cleaning up cache dir %(dir)s "
+                         "cache size %(actual)d is still larger than "
+                         "threshold %(expected)d"),
                      {'dir': self.master_dir, 'actual': total_size,
                       'expected': self._cache_size})
         return max(amount, 0)

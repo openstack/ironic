@@ -34,8 +34,8 @@ from oslo.config import cfg
 from oslo.utils import importutils
 
 from ironic.common import exception
-from ironic.common import i18n
 from ironic.common.i18n import _
+from ironic.common.i18n import _LW
 from ironic.common import states
 from ironic.conductor import task_manager
 from ironic.drivers import base
@@ -55,8 +55,6 @@ opts = [
                default=10,
                help='Seconds to wait for power action to be completed')
     ]
-
-_LW = i18n._LW
 
 LOG = logging.getLogger(__name__)
 
