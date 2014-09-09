@@ -101,17 +101,16 @@ def _parse_driver_info(node):
 
     # get additional info
     bmc_info['uuid'] = node.uuid
-    bmc_info['port'] = info.get('ipmi_terminal_port')
 
     # terminal port must be an integer
-    port = bmc_info.get('port')
+    port = info.get('ipmi_terminal_port')
     if port is not None:
         try:
             port = int(port)
         except ValueError:
             raise exception.InvalidParameterValue(_(
                 "IPMI terminal port is not an integer."))
-        bmc_info['port'] = port
+    bmc_info['port'] = port
 
     return bmc_info
 
@@ -500,6 +499,10 @@ class NativeIPMIShellinaboxConsole(base.ConsoleInterface):
         """Start a remote console for the node.
 
         :param task: a TaskManager instance containing the node to act on.
+        :raises: MissingParameterValue when required ipmi credentials
+                are missing.
+        :raises: InvalidParameterValue when the IPMI terminal port is not an
+                integer.
         :raises: ConsoleError if unable to start the console process.
         """
         driver_info = _parse_driver_info(task.node)
@@ -528,6 +531,10 @@ class NativeIPMIShellinaboxConsole(base.ConsoleInterface):
         """Stop the remote console session for the node.
 
         :param task: a TaskManager instance containing the node to act on.
+        :raises: MissingParameterValue when required IPMI credentials or
+            the IPMI terminal port are missing
+        :raises: InvalidParameterValue when the IPMI terminal port is not
+                an integer.
         :raises: ConsoleError if unable to stop the console process.
         """
         driver_info = _parse_driver_info(task.node)
@@ -541,6 +548,10 @@ class NativeIPMIShellinaboxConsole(base.ConsoleInterface):
         """Get the type and connection information about the console.
 
         :param task: a TaskManager instance containing the node to act on.
+        :raises: MissingParameterValue when required IPMI credentials or
+            the IPMI terminal port are missing
+        :raises: InvalidParameterValue when the IPMI terminal port is not
+                an integer.
         """
         driver_info = _parse_driver_info(task.node)
         url = console_utils.get_shellinabox_console_url(driver_info['port'])
