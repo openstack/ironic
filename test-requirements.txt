@@ -5,7 +5,7 @@ fixtures>=0.3.14
 mock>=1.0
 Babel>=1.3
 MySQL-python
-oslotest>=1.1.0.0a1
+oslotest>=1.1.0.0a2
 psycopg2
 python-ironicclient>=0.2.1
 python-subunit>=0.0.18
