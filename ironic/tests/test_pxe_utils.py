@@ -75,7 +75,7 @@ class TestPXEUtils(db_base.DbTestCase):
         expected_template = open(
             'ironic/tests/drivers/pxe_config.template').read().rstrip()
 
-        self.assertEqual(rendered_template, unicode(expected_template))
+        self.assertEqual(unicode(expected_template), rendered_template)
 
     def test__build_pxe_config_with_agent(self):
 
