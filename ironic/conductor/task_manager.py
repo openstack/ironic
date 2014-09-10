@@ -186,7 +186,7 @@ class TaskManager(object):
                 reserve_node()
             else:
                 self.node = objects.Node.get(context, node_id)
-            self.ports = self._dbapi.get_ports_by_node_id(self.node.id)
+            self.ports = objects.Port.list_by_node_id(context, self.node.id)
             self.driver = driver_factory.get_driver(driver_name or
                                                     self.node.driver)
         except Exception:

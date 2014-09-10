@@ -195,10 +195,10 @@ class PortsController(rest.RestController):
             #                 for that column. This will get cleaned up
             #                 as we move to the object interface.
             node = objects.Node.get_by_uuid(pecan.request.context, node_uuid)
-            ports = pecan.request.dbapi.get_ports_by_node_id(node.id, limit,
-                                                             marker_obj,
-                                                             sort_key=sort_key,
-                                                             sort_dir=sort_dir)
+            ports = objects.Port.list_by_node_id(pecan.request.context,
+                                                 node.id, limit, marker_obj,
+                                                 sort_key=sort_key,
+                                                 sort_dir=sort_dir)
         elif address:
             ports = self._get_ports_by_address(address)
         else:
