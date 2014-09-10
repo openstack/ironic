@@ -20,7 +20,6 @@ import mock
 from oslo.utils import timeutils
 
 from ironic.db import api as db_api
-from ironic.db.sqlalchemy import models
 from ironic import objects
 from ironic.objects import utils as obj_utils
 from ironic.tests.db import base
@@ -82,34 +81,3 @@ class TestConductorObject(base.DbTestCase):
             c.refresh()
             self.assertEqual(obj_utils.datetime_or_none(t1), c.updated_at)
             self.assertEqual(expected, mock_get_cdr.call_args_list)
-
-    def test_objectify(self):
-        def _get_db_conductor():
-            c = models.Conductor()
-            c.update(self.fake_conductor)
-            return c
-
-        @objects.objectify(objects.Conductor)
-        def _convert_db_conductor():
-            return _get_db_conductor()
-
-        self.assertIsInstance(_get_db_conductor(), models.Conductor)
-        self.assertIsInstance(_convert_db_conductor(), objects.Conductor)
-
-    def test_objectify_many(self):
-        def _get_db_conductors():
-            conductors = []
-            for i in range(5):
-                c = models.Conductor()
-                c.update(self.fake_conductor)
-                conductors.append(c)
-            return conductors
-
-        @objects.objectify(objects.Conductor)
-        def _convert_db_conductors():
-            return _get_db_conductors()
-
-        for c in _get_db_conductors():
-            self.assertIsInstance(c, models.Conductor)
-        for c in _convert_db_conductors():
-            self.assertIsInstance(c, objects.Conductor)

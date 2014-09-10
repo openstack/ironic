@@ -13,15 +13,11 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import datetime
-
 import mock
-from oslo.utils import timeutils
 from testtools.matchers import HasLength
 
 from ironic.common import exception
 from ironic.db import api as db_api
-from ironic.db.sqlalchemy import models
 from ironic import objects
 from ironic.tests.db import base
 from ironic.tests.db import utils
@@ -87,53 +83,6 @@ class TestNodeObject(base.DbTestCase):
             n.refresh()
             self.assertEqual({"fake": "second"}, n.properties)
             self.assertEqual(expected, mock_get_node.call_args_list)
-
-    def test_objectify(self):
-        def _get_db_node():
-            n = models.Node()
-            n.update(self.fake_node)
-            return n
-
-        @objects.objectify(objects.Node)
-        def _convert_db_node():
-            return _get_db_node()
-
-        self.assertIsInstance(_get_db_node(), models.Node)
-        self.assertIsInstance(_convert_db_node(), objects.Node)
-
-    def test_objectify_deserialize_provision_updated_at(self):
-        dt = timeutils.isotime(datetime.datetime(2000, 1, 1, 0, 0))
-        self.fake_node['provision_updated_at'] = dt
-
-        def _get_db_node():
-            n = models.Node()
-            n.update(self.fake_node)
-            return n
-
-        @objects.objectify(objects.Node)
-        def _convert_db_node():
-            return _get_db_node()
-
-        self.assertIsInstance(_get_db_node(), models.Node)
-        self.assertIsInstance(_convert_db_node(), objects.Node)
-
-    def test_objectify_many(self):
-        def _get_db_nodes():
-            nodes = []
-            for i in range(5):
-                n = models.Node()
-                n.update(self.fake_node)
-                nodes.append(n)
-            return nodes
-
-        @objects.objectify(objects.Node)
-        def _convert_db_nodes():
-            return _get_db_nodes()
-
-        for n in _get_db_nodes():
-            self.assertIsInstance(n, models.Node)
-        for n in _convert_db_nodes():
-            self.assertIsInstance(n, objects.Node)
 
     def test_list(self):
         with mock.patch.object(self.dbapi, 'get_node_list',
