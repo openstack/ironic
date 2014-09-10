@@ -1,5 +1,6 @@
 # Copyright (c) 2012 NTT DOCOMO, INC.
 # Copyright (c) 2011-2014 OpenStack Foundation
+# Copyright 2014 Red Hat, Inc.
 # All Rights Reserved.
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -15,79 +16,28 @@
 #    under the License.
 
 """
-Ironic host manager.
-
-This host manager will consume all cpu's, disk space, and
-ram from a host / node as it is supporting Baremetal hosts, which can not be
-subdivided into multiple instances.
+A scheduler host manager which subclasses the new location in the Nova tree.
+This is a placeholder so that end users can gradually upgrade to use the
+new settings. TODO: remove in the K release
 """
-from oslo.config import cfg
 
+from ironic.common import i18n
 from nova.openstack.common import log as logging
-from nova.openstack.common import timeutils
-from ironic.nova.scheduler import base_baremetal_host_manager as bbhm
-from nova.scheduler import host_manager
-
-host_manager_opts = [
-    cfg.ListOpt('baremetal_scheduler_default_filters',
-                default=[
-                    'RetryFilter',
-                    'AvailabilityZoneFilter',
-                    'ComputeFilter',
-                    'ComputeCapabilitiesFilter',
-                    'ImagePropertiesFilter',
-                    'ExactRamFilter',
-                    'ExactDiskFilter',
-                    'ExactCoreFilter',
-                ],
-                help='Which filter class names to use for filtering '
-                     'baremetal hosts when not specified in the request.'),
-    cfg.BoolOpt('scheduler_use_baremetal_filters',
-                default=False,
-                help='Flag to decide whether to use '
-                     'baremetal_scheduler_default_filters or not.'),
-
-    ]
-
-CONF = cfg.CONF
-CONF.register_opts(host_manager_opts)
+from nova.scheduler import ironic_host_manager
 
 LOG = logging.getLogger(__name__)
 
 
-class IronicNodeState(bbhm.BaseBaremetalNodeState):
-    """Mutable and immutable information tracked for a host.
-    This is an attempt to remove the ad-hoc data structures
-    previously used and lock down access.
-    """
+class IronicHostManager(ironic_host_manager.IronicHostManager):
+    """Ironic HostManager class that subclasses the Nova in-tree version."""
 
-    def update_from_compute_node(self, compute):
-        """Update information about a host from its compute_node info."""
-        super(IronicNodeState, self).update_from_compute_node(compute)
-
-        self.total_usable_disk_gb = compute['local_gb']
-        self.updated = compute['updated_at']
-
-    def consume_from_instance(self, instance):
-        """Consume nodes entire resources regardless of instance request."""
-        super(IronicNodeState, self).consume_from_instance(instance)
-
-        self.updated = timeutils.utcnow()
-
-
-class IronicHostManager(bbhm.BaseBaremetalHostManager):
-    """Ironic HostManager class."""
+    def _do_deprecation_warning(self):
+        LOG.warning(i18n._LW(
+            'This class (ironic.nova.scheduler.ironic_host_manager.'
+            'IronicHostManager) is deprecated and has moved into the Nova '
+            'tree. Please set scheduler_host_manager = '
+            'nova.scheduler.ironic_host_manager.IronicHostManager.'))
 
     def __init__(self):
         super(IronicHostManager, self).__init__()
-        if CONF.scheduler_use_baremetal_filters:
-            baremetal_default = CONF.baremetal_scheduler_default_filters
-            CONF.scheduler_default_filters = baremetal_default
-
-    def host_state_cls(self, host, node, **kwargs):
-        """Factory function/property to create a new HostState."""
-        compute = kwargs.get('compute')
-        if compute and compute.get('cpu_info') == 'baremetal cpu':
-            return IronicNodeState(host, node, **kwargs)
-        else:
-            return host_manager.HostState(host, node, **kwargs)
+        self._do_deprecation_warning()
