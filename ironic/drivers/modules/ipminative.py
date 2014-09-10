@@ -276,11 +276,11 @@ def _get_sensors_data(driver_info):
             continue
         sensors_data.setdefault(reading.type,
             {})[reading.name] = {
-              'Sensor Reading': reading.value,
+              'Sensor Reading': '%s %s' % (reading.value, reading.units),
               'Sensor ID': reading.name,
-              'States': reading.states,
+              'States': str(reading.states),
               'Units': reading.units,
-              'Health': reading.health}
+              'Health': str(reading.health)}
 
     return sensors_data
 
