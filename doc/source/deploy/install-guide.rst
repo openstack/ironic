@@ -465,10 +465,10 @@ Note that certain distros, notably Mac OS X and SLES, install ``openipmi``
 instead of ``ipmitool`` by default. THIS DRIVER IS NOT COMPATIBLE WITH
 ``openipmi`` AS IT RELIES ON ERROR HANDLING OPTIONS NOT PROVIDED BY THIS TOOL.
 
-Ironic supports sending IPMI sensor data to Ceilometer with pxe_ipmitool
-driver. By default, support for sending IPMI sensor data to Ceilometer is
-disabled. If you want to enable it set the following options in the
-``conductor`` section of ``ironic.conf``:
+Ironic supports sending IPMI sensor data to Ceilometer with pxe_ipmitool and
+pxe_ipminative drivers. By default, support for sending IPMI sensor data to 
+Ceilometer is disabled. If you want to enable it set the following options in
+the ``conductor`` section of ``ironic.conf``:
 
 * notification_driver=messaging
 * send_sensor_data=true
