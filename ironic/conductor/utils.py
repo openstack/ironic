@@ -92,6 +92,11 @@ def node_power_action(task, state):
                      {'state': curr_state})
             return
 
+        if curr_state == states.ERROR:
+            # be optimistic and continue action
+            LOG.warn(_LW("Driver returns ERROR power state for node %s."),
+                          node.uuid)
+
     # Set the target_power_state and clear any last_error, since we're
     # starting a new operation. This will expose to other processes
     # and clients that work is in progress.
