@@ -28,7 +28,8 @@ class Node(base.IronicObject):
     # Version 1.3: Add create() and destroy()
     # Version 1.4: Add get_by_instance_uuid()
     # Version 1.5: Add list()
-    VERSION = '1.5'
+    # Version 1.6: Add reserve() and release()
+    VERSION = '1.6'
 
     dbapi = db_api.get_instance()
 
@@ -157,6 +158,39 @@ class Node(base.IronicObject):
             node._context = context
             node_list.append(node)
         return node_list
+
+    @base.remotable_classmethod
+    def reserve(cls, context, tag, node_id):
+        """Get and reserve a node.
+
+        To prevent other ManagerServices from manipulating the given
+        Node while a Task is performed, mark it reserved by this host.
+
+        :param context: Security context.
+        :param tag: A string uniquely identifying the reservation holder.
+        :param node_id: A node id or uuid.
+        :raises: NodeNotFound if the node is not found.
+        :returns: a :class:`Node` object.
+
+        """
+        db_node = cls.dbapi.reserve_node(tag, node_id)
+        node = Node._from_db_object(cls(), db_node)
+        # FIXME(comstud): Setting of the context should be moved to
+        # _from_db_object().
+        node._context = context
+        return node
+
+    @base.remotable_classmethod
+    def release(cls, context, tag, node_id):
+        """Release the reservation on a node.
+
+        :param context: Security context.
+        :param tag: A string uniquely identifying the reservation holder.
+        :param node_id: A node id or uuid.
+        :raises: NodeNotFound if the node is not found.
+
+        """
+        cls.dbapi.release_node(tag, node_id)
 
     @base.remotable
     def create(self, context=None):

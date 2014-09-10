@@ -23,15 +23,16 @@ import mock
 
 from ironic.common import driver_factory
 from ironic.common import exception
+from ironic.common import utils
 from ironic.conductor import task_manager
-from ironic.db import api as dbapi
 from ironic import objects
 from ironic.tests import base as tests_base
+from ironic.tests.objects import utils as obj_utils
 
 
 @mock.patch.object(objects.Node, 'get')
-@mock.patch.object(dbapi.IMPL, 'release_node')
-@mock.patch.object(dbapi.IMPL, 'reserve_node')
+@mock.patch.object(objects.Node, 'release')
+@mock.patch.object(objects.Node, 'reserve')
 @mock.patch.object(driver_factory, 'get_driver')
 @mock.patch.object(objects.Port, 'list_by_node_id')
 class TaskManagerTestCase(tests_base.TestCase):
@@ -42,7 +43,7 @@ class TaskManagerTestCase(tests_base.TestCase):
         self.config(node_locked_retry_attempts=1, group='conductor')
         self.config(node_locked_retry_interval=0, group='conductor')
         self.context = mock.sentinel.context
-        self.node = mock.Mock(spec_set=objects.Node)
+        self.node = obj_utils.create_test_node(self.context)
 
     def test_excl_lock(self, get_ports_mock, get_driver_mock,
                        reserve_mock, release_mock, node_get_mock):
@@ -54,10 +55,12 @@ class TaskManagerTestCase(tests_base.TestCase):
             self.assertEqual(get_driver_mock.return_value, task.driver)
             self.assertFalse(task.shared)
 
-        reserve_mock.assert_called_once_with(self.host, 'fake-node-id')
+        reserve_mock.assert_called_once_with(self.context, self.host,
+                                             'fake-node-id')
         get_ports_mock.assert_called_once_with(self.context, self.node.id)
         get_driver_mock.assert_called_once_with(self.node.driver)
-        release_mock.assert_called_once_with(self.host, self.node.id)
+        release_mock.assert_called_once_with(self.context, self.host,
+                                             self.node.id)
         self.assertFalse(node_get_mock.called)
 
     def test_excl_lock_with_driver(self, get_ports_mock, get_driver_mock,
@@ -72,16 +75,21 @@ class TaskManagerTestCase(tests_base.TestCase):
             self.assertEqual(get_driver_mock.return_value, task.driver)
             self.assertFalse(task.shared)
 
-        reserve_mock.assert_called_once_with(self.host, 'fake-node-id')
+        reserve_mock.assert_called_once_with(self.context, self.host,
+                                             'fake-node-id')
         get_ports_mock.assert_called_once_with(self.context, self.node.id)
         get_driver_mock.assert_called_once_with('fake-driver')
-        release_mock.assert_called_once_with(self.host, self.node.id)
+        release_mock.assert_called_once_with(self.context, self.host,
+                                             self.node.id)
         self.assertFalse(node_get_mock.called)
 
     def test_excl_nested_acquire(self, get_ports_mock, get_driver_mock,
                                  reserve_mock, release_mock,
                                  node_get_mock):
-        node2 = mock.Mock(spec_set=objects.Node)
+        node2 = obj_utils.create_test_node(self.context,
+                                           id=2,
+                                           uuid=utils.generate_uuid(),
+                                           driver='fake')
 
         reserve_mock.return_value = self.node
         get_ports_mock.return_value = mock.sentinel.ports1
@@ -103,8 +111,8 @@ class TaskManagerTestCase(tests_base.TestCase):
                 self.assertEqual(mock.sentinel.driver2, task2.driver)
                 self.assertFalse(task2.shared)
 
-        self.assertEqual([mock.call(self.host, 'node-id1'),
-                          mock.call(self.host, 'node-id2')],
+        self.assertEqual([mock.call(self.context, self.host, 'node-id1'),
+                          mock.call(self.context, self.host, 'node-id2')],
                          reserve_mock.call_args_list)
         self.assertEqual([mock.call(self.context, self.node.id),
                           mock.call(self.context, node2.id)],
@@ -113,8 +121,8 @@ class TaskManagerTestCase(tests_base.TestCase):
                           mock.call(node2.driver)],
                          get_driver_mock.call_args_list)
         # release should be in reverse order
-        self.assertEqual([mock.call(self.host, node2.id),
-                          mock.call(self.host, self.node.id)],
+        self.assertEqual([mock.call(self.context, self.host, node2.id),
+                          mock.call(self.context, self.host, self.node.id)],
                          release_mock.call_args_list)
         self.assertFalse(node_get_mock.called)
 
@@ -133,7 +141,7 @@ class TaskManagerTestCase(tests_base.TestCase):
         with task_manager.TaskManager(self.context, 'fake-node-id') as task:
             self.assertFalse(task.shared)
 
-        reserve_mock.assert_called(self.host, 'fake-node-id')
+        reserve_mock.assert_called(self.context, self.host, 'fake-node-id')
         self.assertEqual(2, reserve_mock.call_count)
 
     def test_excl_lock_reserve_exception(self, get_ports_mock,
@@ -150,7 +158,8 @@ class TaskManagerTestCase(tests_base.TestCase):
                           self.context,
                           'fake-node-id')
 
-        reserve_mock.assert_called_with(self.host, 'fake-node-id')
+        reserve_mock.assert_called_with(self.context, self.host,
+                                        'fake-node-id')
         self.assertEqual(retry_attempts, reserve_mock.call_count)
         self.assertFalse(get_ports_mock.called)
         self.assertFalse(get_driver_mock.called)
@@ -168,10 +177,12 @@ class TaskManagerTestCase(tests_base.TestCase):
                           self.context,
                           'fake-node-id')
 
-        reserve_mock.assert_called_once_with(self.host, 'fake-node-id')
+        reserve_mock.assert_called_once_with(self.context, self.host,
+                                             'fake-node-id')
         get_ports_mock.assert_called_once_with(self.context, self.node.id)
         self.assertFalse(get_driver_mock.called)
-        release_mock.assert_called_once_with(self.host, self.node.id)
+        release_mock.assert_called_once_with(self.context, self.host,
+                                             self.node.id)
         self.assertFalse(node_get_mock.called)
 
     def test_excl_lock_get_driver_exception(self, get_ports_mock,
@@ -186,10 +197,12 @@ class TaskManagerTestCase(tests_base.TestCase):
                           self.context,
                           'fake-node-id')
 
-        reserve_mock.assert_called_once_with(self.host, 'fake-node-id')
+        reserve_mock.assert_called_once_with(self.context, self.host,
+                                             'fake-node-id')
         get_ports_mock.assert_called_once_with(self.context, self.node.id)
         get_driver_mock.assert_called_once_with(self.node.driver)
-        release_mock.assert_called_once_with(self.host, self.node.id)
+        release_mock.assert_called_once_with(self.context, self.host,
+                                             self.node.id)
         self.assertFalse(node_get_mock.called)
 
     def test_shared_lock(self, get_ports_mock, get_driver_mock,

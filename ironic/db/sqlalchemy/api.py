@@ -32,7 +32,6 @@ from ironic.common import states
 from ironic.common import utils
 from ironic.db import api
 from ironic.db.sqlalchemy import models
-from ironic import objects
 from ironic.openstack.common import log
 
 CONF = cfg.CONF
@@ -213,7 +212,6 @@ class Connection(api.Connection):
         return _paginate_query(models.Node, limit, marker,
                                sort_key, sort_dir, query)
 
-    @objects.objectify(objects.Node)
     def reserve_node(self, tag, node_id):
         session = get_session()
         with session.begin():
