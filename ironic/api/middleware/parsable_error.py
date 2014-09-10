@@ -27,6 +27,7 @@ import webob
 from xml import etree as et
 
 from ironic.common.i18n import _
+from ironic.common.i18n import _LE
 from ironic.openstack.common import log
 
 LOG = log.getLogger(__name__)
@@ -78,7 +79,7 @@ class ParsableErrorMiddleware(object):
                                                       + '\n'.join(app_iter)
                                                       + '</error_message>'))]
                 except et.ElementTree.ParseError as err:
-                    LOG.error(_('Error parsing HTTP response: %s') % err)
+                    LOG.error(_LE('Error parsing HTTP response: %s'), err)
                     body = ['<error_message>%s' % state['status_code']
                             + '</error_message>']
                 state['headers'].append(('Content-Type', 'application/xml'))
