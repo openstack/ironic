@@ -56,8 +56,11 @@ from ironic.common import dhcp_factory
 from ironic.common import driver_factory
 from ironic.common import exception
 from ironic.common import hash_ring as hash
-from ironic.common import i18n
 from ironic.common.i18n import _
+from ironic.common.i18n import _LC
+from ironic.common.i18n import _LE
+from ironic.common.i18n import _LI
+from ironic.common.i18n import _LW
 from ironic.common import rpc
 from ironic.common import states
 from ironic.common import utils as ironic_utils
@@ -71,9 +74,6 @@ from ironic.openstack.common import periodic_task
 
 MANAGER_TOPIC = 'ironic.conductor_manager'
 WORKER_SPAWN_lOCK = "conductor_worker_spawn"
-
-_LW = i18n._LW
-_LI = i18n._LI
 
 LOG = log.getLogger(__name__)
 
@@ -190,9 +190,9 @@ class ConductorManager(periodic_task.PeriodicTasks):
             self.dbapi.register_conductor({'hostname': self.host,
                                            'drivers': self.drivers})
         except exception.ConductorAlreadyRegistered:
-            LOG.warn(_("A conductor with hostname %(hostname)s "
-                       "was previously registered. Updating registration")
-                       % {'hostname': self.host})
+            LOG.warn(_LW("A conductor with hostname %(hostname)s "
+                         "was previously registered. Updating registration"),
+                     {'hostname': self.host})
             self.dbapi.unregister_conductor(self.host)
             self.dbapi.register_conductor({'hostname': self.host,
                                            'drivers': self.drivers})
@@ -213,7 +213,7 @@ class ConductorManager(periodic_task.PeriodicTasks):
                      {'hostname': self.host})
         except exception.NoFreeConductorWorker:
             with excutils.save_and_reraise_exception():
-                LOG.critical(_('Failed to start keepalive'))
+                LOG.critical(_LC('Failed to start keepalive'))
                 self.del_host()
 
     def del_host(self):
@@ -497,7 +497,7 @@ class ConductorManager(periodic_task.PeriodicTasks):
             new_state = task.driver.deploy.deploy(task)
         except Exception as e:
             with excutils.save_and_reraise_exception():
-                LOG.warning(_('Error in deploy of node %(node)s: %(err)s'),
+                LOG.warning(_LW('Error in deploy of node %(node)s: %(err)s'),
                             {'node': task.node.uuid, 'err': e})
                 node.last_error = _("Failed to deploy. Error: %s") % e
                 node.provision_state = states.DEPLOYFAIL
@@ -585,7 +585,8 @@ class ConductorManager(periodic_task.PeriodicTasks):
             new_state = task.driver.deploy.tear_down(task)
         except Exception as e:
             with excutils.save_and_reraise_exception():
-                LOG.warning(_('Error in tear_down of node %(node)s: %(err)s'),
+                LOG.warning(_LW('Error in tear_down of node %(node)s: '
+                                '%(err)s'),
                             {'node': task.node.uuid, 'err': e})
                 node.last_error = _("Failed to tear down. Error: %s") % e
                 node.provision_state = states.ERROR
@@ -648,9 +649,9 @@ class ConductorManager(periodic_task.PeriodicTasks):
         except Exception as e:
             # TODO(rloo): change to IronicException, after
             #             https://bugs.launchpad.net/ironic/+bug/1267693
-            LOG.warning(_("During sync_power_state, could not get power "
-                          "state for node %(node)s. Error: %(err)s."),
-                          {'node': node.uuid, 'err': e})
+            LOG.warning(_LW("During sync_power_state, could not get power "
+                            "state for node %(node)s. Error: %(err)s."),
+                            {'node': node.uuid, 'err': e})
             self.power_state_sync_count[node.uuid] += 1
 
             if (self.power_state_sync_count[node.uuid] >=
@@ -660,10 +661,10 @@ class ConductorManager(periodic_task.PeriodicTasks):
             return
 
         if node.power_state is None:
-            LOG.info(_("During sync_power_state, node %(node)s has no "
-                       "previous known state. Recording current state "
-                       "'%(state)s'."),
-                       {'node': node.uuid, 'state': power_state})
+            LOG.info(_LI("During sync_power_state, node %(node)s has no "
+                         "previous known state. Recording current state "
+                         "'%(state)s'."),
+                         {'node': node.uuid, 'state': power_state})
             node.power_state = power_state
             node.save(task.context)
 
@@ -673,11 +674,11 @@ class ConductorManager(periodic_task.PeriodicTasks):
             return
 
         if not CONF.conductor.force_power_state_during_sync:
-            LOG.warning(_("During sync_power_state, node %(node)s state "
-                          "does not match expected state '%(state)s'. "
-                          "Updating recorded state to '%(actual)s'."),
-                          {'node': node.uuid, 'actual': power_state,
-                           'state': node.power_state})
+            LOG.warning(_LW("During sync_power_state, node %(node)s state "
+                            "does not match expected state '%(state)s'. "
+                            "Updating recorded state to '%(actual)s'."),
+                            {'node': node.uuid, 'actual': power_state,
+                             'state': node.power_state})
             node.power_state = power_state
             node.save(task.context)
             return
@@ -689,11 +690,11 @@ class ConductorManager(periodic_task.PeriodicTasks):
             return
 
         # Force actual power_state of node equal to DB power_state of node
-        LOG.warning(_("During sync_power_state, node %(node)s state "
-                      "'%(actual)s' does not match expected state. "
-                      "Changing hardware state to '%(state)s'."),
-                      {'node': node.uuid, 'actual': power_state,
-                       'state': node.power_state})
+        LOG.warning(_LW("During sync_power_state, node %(node)s state "
+                        "'%(actual)s' does not match expected state. "
+                        "Changing hardware state to '%(state)s'."),
+                        {'node': node.uuid, 'actual': power_state,
+                         'state': node.power_state})
         try:
             # node_power_action will update the node record
             # so don't do that again here.
@@ -701,15 +702,15 @@ class ConductorManager(periodic_task.PeriodicTasks):
         except Exception as e:
             # TODO(rloo): change to IronicException after
             # https://bugs.launchpad.net/ironic/+bug/1267693
-            LOG.error(_("Failed to change power state of node %(node)s "
-                        "to '%(state)s'."), {'node': node.uuid,
-                                             'state': node.power_state})
+            LOG.error(_LE("Failed to change power state of node %(node)s "
+                          "to '%(state)s'."), {'node': node.uuid,
+                                               'state': node.power_state})
             attempts_left = (CONF.conductor.power_state_sync_max_retries -
                              self.power_state_sync_count[node.uuid]) - 1
-            LOG.warning(_("%(left)s attempts remaining to "
-                          "sync_power_state for node %(node)s"),
-                          {'left': attempts_left,
-                           'node': node.uuid})
+            LOG.warning(_LW("%(left)s attempts remaining to "
+                            "sync_power_state for node %(node)s"),
+                            {'left': attempts_left,
+                             'node': node.uuid})
         finally:
             # Update power state sync count for current node
             self.power_state_sync_count[node.uuid] += 1
@@ -763,13 +764,13 @@ class ConductorManager(periodic_task.PeriodicTasks):
                             not task.node.maintenance):
                         self._do_sync_power_state(task)
             except exception.NodeNotFound:
-                LOG.info(_("During sync_power_state, node %(node)s was not "
-                           "found and presumed deleted by another process.") %
-                           {'node': node_uuid})
+                LOG.info(_LI("During sync_power_state, node %(node)s was not "
+                             "found and presumed deleted by another process."),
+                         {'node': node_uuid})
             except exception.NodeLocked:
-                LOG.info(_("During sync_power_state, node %(node)s was "
-                           "already locked by another process. Skip.") %
-                           {'node': node_uuid})
+                LOG.info(_LI("During sync_power_state, node %(node)s was "
+                             "already locked by another process. Skip."),
+                         {'node': node_uuid})
             finally:
                 # Yield on every iteration
                 eventlet.sleep(0)
@@ -1017,8 +1018,8 @@ class ConductorManager(periodic_task.PeriodicTasks):
 
             if enabled == node.console_enabled:
                 op = _('enabled') if enabled else _('disabled')
-                LOG.info(_("No console action was triggered because the "
-                           "console is already %s") % op)
+                LOG.info(_LI("No console action was triggered because the "
+                             "console is already %s"), op)
                 task.release_resources()
             else:
                 node.last_error = None
@@ -1075,7 +1076,7 @@ class ConductorManager(periodic_task.PeriodicTasks):
                 # Log warning if there is no vif_port_id and an instance
                 # is associated with the node.
                 elif node.instance_uuid:
-                    LOG.warning(_("No VIF found for instance %(instance)s "
+                    LOG.warning(_LW("No VIF found for instance %(instance)s "
                         "port %(port)s when attempting to update port MAC "
                         "address."),
                         {'port': port_uuid, 'instance': node.instance_uuid})

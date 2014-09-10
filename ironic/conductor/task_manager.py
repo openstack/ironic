@@ -92,9 +92,9 @@ from oslo.utils import excutils
 
 from ironic.common import driver_factory
 from ironic.common import exception
+from ironic.common.i18n import _LW
 from ironic.db import api as dbapi
 from ironic import objects
-from ironic.openstack.common.gettextutils import _LW
 from ironic.openstack.common import log as logging
 
 LOG = logging.getLogger(__name__)
