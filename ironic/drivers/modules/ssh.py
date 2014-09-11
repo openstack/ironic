@@ -117,7 +117,11 @@ def _get_command_sets(virt_type):
             'list_all': "list vms|awk -F'\"' '{print $2}'",
             'list_running': 'list runningvms',
             'get_node_macs': ("showvminfo --machinereadable {_NodeName_} | "
-                "awk -F '\"' '/macaddress/{print $2}'"),
+                "grep "
+                '"macaddress" | awk -F '
+                "'"
+                '"'
+                "' '{print $2}'"),
             'set_boot_device': ('{_BaseCmd_} modifyvm {_NodeName_} '
                 '--boot1 {_BootDevice_}'),
             'get_boot_device': ("{_BaseCmd_} showvminfo "
@@ -158,8 +162,12 @@ def _get_command_sets(virt_type):
             'list_all': "list --all | tail -n +2 | awk -F\" \" '{print $2}'",
             'list_running': ("list --all|grep running | "
                 "awk -v qc='\"' -F\" \" '{print qc$2qc}'"),
-            'get_node_macs': ("dumpxml {_NodeName_} | "
-                "awk -F \"'\" '/mac address/{print $2}'| tr -d ':'"),
+            'get_node_macs': ("dumpxml {_NodeName_} | grep "
+                '"mac address" | awk -F'
+                '"'
+                "'"
+                '" '
+                "'{print $2}' | tr -d ':'"),
             'set_boot_device': ("EDITOR=\"sed -i '/<boot \(dev\|order\)=*\>/d;"
                 "/<\/os>/i\<boot dev=\\\"{_BootDevice_}\\\"/>'\" "
                 "{_BaseCmd_} edit {_NodeName_}"),
