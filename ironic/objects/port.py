@@ -26,7 +26,8 @@ class Port(base.IronicObject):
     #              make get_by_uuid() only work with a uuid
     # Version 1.2: Add create() and destroy()
     # Version 1.3: Add list()
-    VERSION = '1.3'
+    # Version 1.4: Add list_by_node_id()
+    VERSION = '1.4'
 
     dbapi = dbapi.get_instance()
 
@@ -46,6 +47,18 @@ class Port(base.IronicObject):
 
         port.obj_reset_changes()
         return port
+
+    @staticmethod
+    def _from_db_object_list(db_objects, cls, context):
+        """Converts a list of database entities to a list of formal objects."""
+        port_list = []
+        for obj in db_objects:
+            port = Port._from_db_object(cls(), obj)
+            # FIXME(comstud): Setting of the context should be moved to
+            # _from_db_object().
+            port._context = context
+            port_list.append(port)
+        return port_list
 
     @base.remotable_classmethod
     def get(cls, context, port_id):
@@ -120,18 +133,31 @@ class Port(base.IronicObject):
         :returns: a list of :class:`Port` object.
 
         """
-        port_list = []
         db_ports = cls.dbapi.get_port_list(limit=limit,
                                            marker=marker,
                                            sort_key=sort_key,
                                            sort_dir=sort_dir)
-        for obj in db_ports:
-            port = Port._from_db_object(cls(), obj)
-            # FIXME(comstud): Setting of the context should be moved to
-            # _from_db_object().
-            port._context = context
-            port_list.append(port)
-        return port_list
+        return Port._from_db_object_list(db_ports, cls, context)
+
+    @base.remotable_classmethod
+    def list_by_node_id(cls, context, node_id, limit=None, marker=None,
+                        sort_key=None, sort_dir=None):
+        """Return a list of Port objects associated with a given node ID.
+
+        :param context: Security context.
+        :param node_id: the ID of the node.
+        :param limit: maximum number of resources to return in a single result.
+        :param marker: pagination marker for large data sets.
+        :param sort_key: column to sort results by.
+        :param sort_dir: direction to sort. "asc" or "desc".
+        :returns: a list of :class:`Port` object.
+
+        """
+        db_ports = cls.dbapi.get_ports_by_node_id(node_id, limit=limit,
+                                                  marker=marker,
+                                                  sort_key=sort_key,
+                                                  sort_dir=sort_dir)
+        return Port._from_db_object_list(db_ports, cls, context)
 
     @base.remotable
     def create(self, context=None):

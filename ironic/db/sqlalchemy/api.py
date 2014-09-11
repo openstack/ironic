@@ -383,7 +383,6 @@ class Connection(api.Connection):
         return _paginate_query(models.Port, limit, marker,
                                sort_key, sort_dir)
 
-    @objects.objectify(objects.Port)
     def get_ports_by_node_id(self, node_id, limit=None, marker=None,
                              sort_key=None, sort_dir=None):
         query = model_query(models.Port)
