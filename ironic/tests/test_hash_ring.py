@@ -16,7 +16,7 @@
 from oslo.config import cfg
 
 from ironic.common import exception
-from ironic.common import hash_ring as hash
+from ironic.common import hash_ring
 from ironic.db import api as dbapi
 from ironic.tests import base
 from ironic.tests.db import base as db_base
@@ -36,45 +36,45 @@ class HashRingTestCase(base.TestCase):
     def test_create_ring(self):
         hosts = ['foo', 'bar']
         replicas = 2
-        ring = hash.HashRing(hosts, replicas=replicas)
+        ring = hash_ring.HashRing(hosts, replicas=replicas)
         self.assertEqual(hosts, ring.hosts)
         self.assertEqual(replicas, ring.replicas)
 
     def test_create_with_different_partition_counts(self):
         hosts = ['foo', 'bar']
         CONF.set_override('hash_partition_exponent', 2)
-        ring = hash.HashRing(hosts)
+        ring = hash_ring.HashRing(hosts)
         self.assertEqual(2 ** 2, len(ring.part2host))
 
         CONF.set_override('hash_partition_exponent', 8)
-        ring = hash.HashRing(hosts)
+        ring = hash_ring.HashRing(hosts)
         self.assertEqual(2 ** 8, len(ring.part2host))
 
         CONF.set_override('hash_partition_exponent', 16)
-        ring = hash.HashRing(hosts)
+        ring = hash_ring.HashRing(hosts)
         self.assertEqual(2 ** 16, len(ring.part2host))
 
     def test_distribution_one_replica(self):
         hosts = ['foo', 'bar', 'baz']
-        ring = hash.HashRing(hosts, replicas=1)
+        ring = hash_ring.HashRing(hosts, replicas=1)
         self.assertEqual(['foo'], ring.get_hosts('fake'))
         self.assertEqual(['bar'], ring.get_hosts('fake-again'))
 
     def test_distribution_two_replicas(self):
         hosts = ['foo', 'bar', 'baz']
-        ring = hash.HashRing(hosts, replicas=2)
+        ring = hash_ring.HashRing(hosts, replicas=2)
         self.assertEqual(['foo', 'bar'], ring.get_hosts('fake'))
         self.assertEqual(['bar', 'baz'], ring.get_hosts('fake-again'))
 
     def test_distribution_three_replicas(self):
         hosts = ['foo', 'bar', 'baz']
-        ring = hash.HashRing(hosts, replicas=3)
+        ring = hash_ring.HashRing(hosts, replicas=3)
         self.assertEqual(['foo', 'bar', 'baz'], ring.get_hosts('fake'))
         self.assertEqual(['bar', 'baz', 'foo'], ring.get_hosts('fake-again'))
 
     def test_ignore_hosts(self):
         hosts = ['foo', 'bar', 'baz']
-        ring = hash.HashRing(hosts, replicas=1)
+        ring = hash_ring.HashRing(hosts, replicas=1)
         self.assertEqual(['bar'], ring.get_hosts('fake',
                                                  ignore_hosts=['foo']))
         self.assertEqual(['baz'], ring.get_hosts('fake',
@@ -84,7 +84,7 @@ class HashRingTestCase(base.TestCase):
 
     def test_ignore_hosts_with_replicas(self):
         hosts = ['foo', 'bar', 'baz']
-        ring = hash.HashRing(hosts, replicas=2)
+        ring = hash_ring.HashRing(hosts, replicas=2)
         self.assertEqual(['bar', 'baz'], ring.get_hosts('fake',
                                                         ignore_hosts=['foo']))
         self.assertEqual(['baz'], ring.get_hosts('fake',
@@ -98,24 +98,24 @@ class HashRingTestCase(base.TestCase):
 
     def test_more_replicas_than_hosts(self):
         hosts = ['foo', 'bar']
-        ring = hash.HashRing(hosts, replicas=10)
+        ring = hash_ring.HashRing(hosts, replicas=10)
         self.assertEqual(hosts, ring.get_hosts('fake'))
 
     def test_ignore_non_existent_host(self):
         hosts = ['foo', 'bar']
-        ring = hash.HashRing(hosts, replicas=1)
+        ring = hash_ring.HashRing(hosts, replicas=1)
         self.assertEqual(['foo'], ring.get_hosts('fake',
                                                  ignore_hosts=['baz']))
 
     def test_create_ring_invalid_data(self):
         hosts = None
         self.assertRaises(exception.Invalid,
-                          hash.HashRing,
+                          hash_ring.HashRing,
                           hosts)
 
     def test_get_hosts_invalid_data(self):
         hosts = ['foo', 'bar']
-        ring = hash.HashRing(hosts)
+        ring = hash_ring.HashRing(hosts)
         self.assertRaises(exception.Invalid,
                           ring.get_hosts,
                           None)
@@ -125,7 +125,7 @@ class HashRingManagerTestCase(db_base.DbTestCase):
 
     def setUp(self):
         super(HashRingManagerTestCase, self).setUp()
-        self.ring_manager = hash.HashRingManager()
+        self.ring_manager = hash_ring.HashRingManager()
         self.dbapi = dbapi.get_instance()
 
     def register_conductors(self):
@@ -140,13 +140,13 @@ class HashRingManagerTestCase(db_base.DbTestCase):
 
     def test_hash_ring_manager_get_ring_success(self):
         self.register_conductors()
-        ring = self.ring_manager.get_hash_ring('driver1')
+        ring = self.ring_manager['driver1']
         self.assertEqual(sorted(['host1', 'host2']), sorted(ring.hosts))
 
     def test_hash_ring_manager_driver_not_found(self):
         self.register_conductors()
         self.assertRaises(exception.DriverNotFound,
-                          self.ring_manager.get_hash_ring,
+                          self.ring_manager.__getitem__,
                           'driver3')
 
     def test_hash_ring_manager_no_refresh(self):
@@ -154,9 +154,9 @@ class HashRingManagerTestCase(db_base.DbTestCase):
         # initialized, it won't be seen. Long term this is probably
         # undesirable, but today is the intended behavior.
         self.assertRaises(exception.DriverNotFound,
-                          self.ring_manager.get_hash_ring,
+                          self.ring_manager.__getitem__,
                           'driver1')
         self.register_conductors()
         self.assertRaises(exception.DriverNotFound,
-                          self.ring_manager.get_hash_ring,
+                          self.ring_manager.__getitem__,
                           'driver1')

@@ -23,7 +23,7 @@ import random
 from oslo import messaging
 
 from ironic.common import exception
-from ironic.common import hash_ring as hash
+from ironic.common import hash_ring
 from ironic.common.i18n import _
 from ironic.common import rpc
 from ironic.conductor import manager
@@ -75,7 +75,8 @@ class ConductorAPI(object):
         self.client = rpc.get_client(target,
                                      version_cap=self.RPC_API_VERSION,
                                      serializer=serializer)
-        self.ring_manager = hash.HashRingManager()
+        # NOTE(deva): this is going to be buggy
+        self.ring_manager = hash_ring.HashRingManager()
 
     def get_topic_for(self, node):
         """Get the RPC topic for the conductor service which the node
@@ -87,7 +88,7 @@ class ConductorAPI(object):
 
         """
         try:
-            ring = self.ring_manager.get_hash_ring(node.driver)
+            ring = self.ring_manager[node.driver]
             dest = ring.get_hosts(node.uuid)
             return self.topic + "." + dest[0]
         except exception.DriverNotFound:
@@ -105,7 +106,7 @@ class ConductorAPI(object):
         :raises: DriverNotFound
 
         """
-        hash_ring = self.ring_manager.get_hash_ring(driver_name)
+        hash_ring = self.ring_manager[driver_name]
         host = random.choice(hash_ring.hosts)
         return self.topic + "." + host
 

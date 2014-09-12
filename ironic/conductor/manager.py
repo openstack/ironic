@@ -865,7 +865,7 @@ class ConductorManager(periodic_task.PeriodicTasks):
         take out a lock.
         """
         try:
-            ring = self.ring_manager.get_hash_ring(driver)
+            ring = self.ring_manager[driver]
         except exception.DriverNotFound:
             return False
 

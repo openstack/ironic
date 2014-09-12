@@ -114,10 +114,23 @@ class HashRing(object):
 
 
 class HashRingManager(object):
+    _hash_rings = None
+    _lock = threading.Lock()
+
     def __init__(self):
-        self._lock = threading.Lock()
         self.dbapi = dbapi.get_instance()
-        self.hash_rings = None
+
+    @property
+    def ring(self):
+        # Hot path, no lock
+        if self._hash_rings is not None:
+            return self._hash_rings
+
+        with self._lock:
+            if self._hash_rings is None:
+                rings = self._load_hash_rings()
+                self.__class__._hash_rings = rings
+            return self._hash_rings
 
     def _load_hash_rings(self):
         rings = {}
@@ -127,21 +140,14 @@ class HashRingManager(object):
             rings[driver_name] = HashRing(hosts)
         return rings
 
-    def _ensure_rings_fresh(self):
-        # Hot path, no lock
-        # TODO(russell_h): Consider adding time-based invalidation of rings
-        if self.hash_rings is not None:
-            return
-
+    @classmethod
+    def reset(self):
         with self._lock:
-            if self.hash_rings is None:
-                self.hash_rings = self._load_hash_rings()
+            self._hash_rings = None
 
-    def get_hash_ring(self, driver_name):
-        self._ensure_rings_fresh()
-
+    def __getitem__(self, driver_name):
         try:
-            return self.hash_rings[driver_name]
+            return self.ring[driver_name]
         except KeyError:
-            raise exception.DriverNotFound(_("The driver '%s' is unknown.") %
-                                           driver_name)
+            raise exception.DriverNotFound(
+                    _("The driver '%s' is unknown.") % driver_name)

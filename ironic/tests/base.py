@@ -37,6 +37,7 @@ from oslo.config import cfg
 from ironic.db.sqlalchemy import migration
 from ironic.db.sqlalchemy import models
 
+from ironic.common import hash_ring
 from ironic.common import paths
 from ironic.db.sqlalchemy import api as sqla_api
 from ironic.objects import base as objects_base
@@ -178,6 +179,7 @@ class TestCase(testtools.TestCase):
         self.addCleanup(self._restore_obj_registry)
 
         self.addCleanup(self._clear_attrs)
+        self.addCleanup(hash_ring.HashRingManager().reset)
         self.useFixture(fixtures.EnvironmentVariable('http_proxy'))
         self.policy = self.useFixture(policy_fixture.PolicyFixture())
         CONF.set_override('fatal_exception_format_errors', True)
