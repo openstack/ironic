@@ -32,6 +32,7 @@ from ironic.drivers.modules import deploy_utils
 from ironic.drivers.modules.ilo import common as ilo_common
 from ironic.drivers.modules.ilo import deploy as ilo_deploy
 from ironic.drivers.modules import iscsi_deploy
+from ironic.drivers import utils as driver_utils
 from ironic.openstack.common import context
 from ironic.openstack.common import importutils
 from ironic.tests import base
@@ -76,6 +77,24 @@ class IloDeployPrivateMethodsTestCase(base.TestCase):
                 'boot_iso')
             boot_iso_expected = 'glance:boot-iso-uuid'
             self.assertEqual(boot_iso_expected, boot_iso_actual)
+
+    @mock.patch.object(driver_utils, 'get_node_capability')
+    @mock.patch.object(images, 'get_glance_image_property')
+    @mock.patch.object(ilo_deploy, '_parse_deploy_info')
+    def test__get_boot_iso_uefi_no_glance_image(self, deploy_info_mock,
+            image_prop_mock, get_node_cap_mock):
+        deploy_info_mock.return_value = {'image_source': 'image-uuid'}
+        image_prop_mock.return_value = None
+        get_node_cap_mock.return_value = 'uefi'
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            boot_iso_result = ilo_deploy._get_boot_iso(task, 'root-uuid')
+            deploy_info_mock.assert_called_once_with(task.node)
+            image_prop_mock.assert_called_once_with(task.context, 'image-uuid',
+                'boot_iso')
+            get_node_cap_mock.assert_called_once_with(task.node, 'boot_mode')
+            self.assertIsNone(boot_iso_result)
 
     @mock.patch.object(tempfile, 'NamedTemporaryFile')
     @mock.patch.object(images, 'create_boot_iso')
@@ -185,11 +204,12 @@ class IloVirtualMediaIscsiDeployTestCase(base.TestCase):
         self.node = obj_utils.create_test_node(self.context,
                 driver='iscsi_ilo', driver_info=INFO_DICT)
 
+    @mock.patch.object(driver_utils, 'validate_boot_mode_capability')
     @mock.patch.object(iscsi_deploy, 'validate_glance_image_properties')
     @mock.patch.object(ilo_deploy, '_parse_deploy_info')
     @mock.patch.object(iscsi_deploy, 'validate')
     def test_validate(self, validate_mock, deploy_info_mock,
-                      validate_prop_mock):
+                      validate_prop_mock, validate_boot_mode_mock):
         d_info = {'a': 'b'}
         deploy_info_mock.return_value = d_info
         with task_manager.acquire(self.context, self.node.uuid,
@@ -199,6 +219,7 @@ class IloVirtualMediaIscsiDeployTestCase(base.TestCase):
             deploy_info_mock.assert_called_once_with(task.node)
             validate_prop_mock.assert_called_once_with(task.context,
                     d_info, ['kernel_id', 'ramdisk_id'])
+            validate_boot_mode_mock.assert_called_once_with(task.node)
 
     @mock.patch.object(ilo_deploy, '_reboot_into')
     @mock.patch.object(ilo_deploy, '_get_single_nic_with_vif_port_id')

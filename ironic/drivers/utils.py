@@ -14,7 +14,12 @@
 
 from ironic.common import exception
 from ironic.common.i18n import _
+from ironic.common.i18n import _LW
 from ironic.drivers import base
+from ironic.openstack.common import log as logging
+
+
+LOG = logging.getLogger(__name__)
 
 
 def _raise_unsupported_error(method=None):
@@ -107,3 +112,92 @@ def get_node_mac_addresses(task):
     :returns: A list of MAC addresses in the format xx:xx:xx:xx:xx:xx.
     """
     return [p.address for p in task.ports]
+
+
+def get_node_capability(node, capability):
+    """Returns 'capability' value from node's 'capabilities' property.
+
+    :param node: Node object.
+    :param capability: Capability key.
+    :return: Capability value.
+             If capability is not present, then return "None"
+
+    """
+    capabilities = node.properties.get('capabilities')
+
+    if not capabilities:
+        return
+
+    for node_capability in capabilities.split(','):
+        parts = node_capability.split(':')
+        if len(parts) == 2 and parts[0] and parts[1]:
+            if parts[0] == capability:
+                return parts[1]
+        else:
+            LOG.warn(_LW("Ignoring malformed capability '%s'. "
+                "Format should be 'key:val'."), node_capability)
+
+
+def rm_node_capability(task, capability):
+    """Remove 'capability' from node's 'capabilities' property.
+
+    :param task: Task object.
+    :param capability: Capability key.
+
+    """
+    node = task.node
+    capabilities = node.properties.get('capabilities')
+
+    if not capabilities:
+        return
+
+    caps = []
+    for cap in capabilities.split(','):
+        parts = cap.split(':')
+        if len(parts) == 2 and parts[0] and parts[1]:
+            if parts[0] == capability:
+                continue
+        caps.append(cap)
+    new_cap_str = ",".join(caps)
+    node.properties['capabilities'] = new_cap_str if new_cap_str else None
+    node.save(task.context)
+
+
+def add_node_capability(task, capability, value):
+    """Add 'capability' to node's 'capabilities' property.
+
+    If 'capability' is already present, then a duplicate entry
+    will be added.
+
+    :param task: Task object.
+    :param capability: Capability key.
+    :param value: Capability value.
+
+    """
+    node = task.node
+    capabilities = node.properties.get('capabilities')
+
+    new_cap = ':'.join([capability, value])
+
+    if capabilities:
+        capabilities = ','.join([capabilities, new_cap])
+    else:
+        capabilities = new_cap
+
+    node.properties['capabilities'] = capabilities
+    node.save(task.context)
+
+
+def validate_boot_mode_capability(node):
+    """Validate the boot_mode capability set in node property.
+
+    :param node: an ironic node object.
+    :raises: InvalidParameterValue, if 'boot_mode' capability is set
+             other than 'bios' or 'uefi' or None.
+
+    """
+    boot_mode = get_node_capability(node, 'boot_mode')
+
+    if boot_mode and boot_mode not in ['bios', 'uefi']:
+        raise exception.InvalidParameterValue(_("Invalid boot_mode "
+                          "parameter '%s'.") % boot_mode)

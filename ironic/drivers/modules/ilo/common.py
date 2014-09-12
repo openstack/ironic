@@ -28,6 +28,7 @@ from ironic.common.i18n import _LI
 from ironic.common import images
 from ironic.common import swift
 from ironic.common import utils
+from ironic.drivers import utils as driver_utils
 from ironic.openstack.common import log as logging
 
 ilo_client = importutils.try_import('proliantutils.ilo.ribcl')
@@ -69,6 +70,11 @@ OPTIONAL_PROPERTIES = {
 }
 COMMON_PROPERTIES = REQUIRED_PROPERTIES.copy()
 COMMON_PROPERTIES.update(OPTIONAL_PROPERTIES)
+DEFAULT_BOOT_MODE = 'LEGACY'
+
+BOOT_MODE_GENERIC_TO_ILO = {'bios': 'legacy', 'uefi': 'uefi'}
+BOOT_MODE_ILO_TO_GENERIC = dict((v, k)
+                           for (k, v) in BOOT_MODE_GENERIC_TO_ILO.items())
 
 
 def parse_driver_info(node):
@@ -272,6 +278,63 @@ def set_boot_device(node, device):
 
     LOG.debug("Node %(uuid)s set to boot from %(device)s.",
              {'uuid': node.uuid, 'device': device})
+
+
+def set_boot_mode(node, boot_mode):
+    """Sets the node to boot using boot_mode for the next boot.
+
+    :param node: an ironic node object.
+    :param boot_mode: Next boot mode.
+    :raises: IloOperationError if setting boot mode failed.
+    """
+    ilo_object = get_ilo_object(node)
+
+    try:
+        p_boot_mode = ilo_object.get_pending_boot_mode()
+    except ilo_client.IloCommandNotSupportedError:
+        p_boot_mode = DEFAULT_BOOT_MODE
+
+    if BOOT_MODE_ILO_TO_GENERIC[p_boot_mode.lower()] == boot_mode:
+        LOG.info(_LI("Node %(uuid)s pending boot mode is %(boot_mode)s."),
+                 {'uuid': node.uuid, 'boot_mode': boot_mode})
+        return
+
+    try:
+        ilo_object.set_pending_boot_mode(
+                        BOOT_MODE_GENERIC_TO_ILO[boot_mode].upper())
+    except ilo_client.IloError as ilo_exception:
+        operation = _("Setting %s as boot mode") % boot_mode
+        raise exception.IloOperationError(operation=operation,
+                error=ilo_exception)
+
+    LOG.info(_LI("Node %(uuid)s boot mode is set to %(boot_mode)s."),
+             {'uuid': node.uuid, 'boot_mode': boot_mode})
+
+
+def update_boot_mode_capability(task):
+    """Update 'boot_mode' capability value of node's 'capabilities' property.
+
+    :param task: Task object.
+
+    """
+    ilo_object = get_ilo_object(task.node)
+
+    try:
+        p_boot_mode = ilo_object.get_pending_boot_mode()
+        if p_boot_mode == 'UNKNOWN':
+            # NOTE(faizan) ILO will return this in remote cases and mostly on
+            # the nodes which supports UEFI. Such nodes mostly comes with UEFI
+            # as default boot mode. So we will try setting bootmode to UEFI
+            # and if it fails then we fall back to BIOS boot mode.
+            ilo_object.set_pending_boot_mode('UEFI')
+            p_boot_mode = 'UEFI'
+    except ilo_client.IloCommandNotSupportedError:
+        p_boot_mode = DEFAULT_BOOT_MODE
+
+    driver_utils.rm_node_capability(task, 'boot_mode')
+
+    driver_utils.add_node_capability(task, 'boot_mode',
+        BOOT_MODE_ILO_TO_GENERIC[p_boot_mode.lower()])
 
 
 def setup_vmedia_for_boot(task, boot_iso, parameters=None):

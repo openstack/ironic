@@ -22,7 +22,6 @@ from oslo.config import cfg
 from ironic.common import dhcp_factory
 from ironic.common import exception
 from ironic.common.i18n import _
-from ironic.common.i18n import _LW
 from ironic.common import utils
 from ironic.drivers import utils as driver_utils
 from ironic.openstack.common import fileutils
@@ -191,7 +190,7 @@ def create_pxe_config(task, pxe_options, template=None):
     pxe_config = _build_pxe_config(pxe_options, template)
     utils.write_to_file(pxe_config_file_path, pxe_config)
 
-    if get_node_capability(task.node, 'boot_mode') == 'uefi':
+    if driver_utils.get_node_capability(task.node, 'boot_mode') == 'uefi':
         _link_ip_address_pxe_configs(task)
     else:
         _link_mac_pxe_configs(task)
@@ -205,7 +204,7 @@ def clean_up_pxe_config(task):
     """
     LOG.debug("Cleaning up PXE config for node %s", task.node.uuid)
 
-    if get_node_capability(task.node, 'boot_mode') == 'uefi':
+    if driver_utils.get_node_capability(task.node, 'boot_mode') == 'uefi':
         api = dhcp_factory.DHCPFactory().provider
         ip_addresses = api.get_ip_addresses(task)
         if not ip_addresses:
@@ -244,7 +243,7 @@ def dhcp_options_for_instance(task):
         dhcp_opts.append({'opt_name': 'bootfile-name',
                           'opt_value': ipxe_script_url})
     else:
-        if get_node_capability(task.node, 'boot_mode') == 'uefi':
+        if driver_utils.get_node_capability(task.node, 'boot_mode') == 'uefi':
             boot_file = CONF.pxe.uefi_pxe_bootfile_name
         else:
             boot_file = CONF.pxe.pxe_bootfile_name
@@ -257,42 +256,3 @@ def dhcp_options_for_instance(task):
     dhcp_opts.append({'opt_name': 'tftp-server',
                       'opt_value': CONF.pxe.tftp_server})
     return dhcp_opts
-
-
-def get_node_capability(node, capability):
-    """Returns 'capability' value from node's 'capabilities' property.
-
-    :param node: Node object.
-    :param capability: Capability key.
-    :return: Capability value.
-             If capability is not present, then return "None"
-
-    """
-    capabilities = node.properties.get('capabilities')
-
-    if not capabilities:
-        return
-
-    for node_capability in str(capabilities).split(','):
-        parts = node_capability.split(':')
-        if len(parts) == 2 and parts[0] and parts[1]:
-            if parts[0] == capability:
-                return parts[1]
-        else:
-            LOG.warn(_LW("Ignoring malformed capability '%s'. "
-                "Format should be 'key:val'."), node_capability)
-
-
-def validate_boot_mode_capability(node):
-    """Validate the boot_mode capability set in node property.
-
-    :param node: an ironic node object.
-    :raises: InvalidParameterValue, if 'boot_mode' capability is set
-             other than 'bios' or 'uefi' or None.
-
-    """
-    boot_mode = get_node_capability(node, 'boot_mode')
-
-    if boot_mode and boot_mode not in ['bios', 'uefi']:
-        raise exception.InvalidParameterValue(_("Invalid boot_mode "
-                          "parameter '%s'.") % boot_mode)
