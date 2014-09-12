@@ -19,7 +19,6 @@ from testtools.matchers import HasLength
 from ironic.common import exception
 from ironic.common import utils as ironic_utils
 from ironic.db import api as db_api
-from ironic.db.sqlalchemy import models
 from ironic import objects
 
 from ironic.tests.db import base
@@ -87,37 +86,6 @@ class TestChassisObject(base.DbTestCase):
             c.refresh()
             self.assertEqual(new_uuid, c.uuid)
             self.assertEqual(expected, mock_get_chassis.call_args_list)
-
-    def test_objectify(self):
-        def _get_db_chassis():
-            c = models.Chassis()
-            c.update(self.fake_chassis)
-            return c
-
-        @objects.objectify(objects.Chassis)
-        def _convert_db_chassis():
-            return _get_db_chassis()
-
-        self.assertIsInstance(_get_db_chassis(), models.Chassis)
-        self.assertIsInstance(_convert_db_chassis(), objects.Chassis)
-
-    def test_objectify_many(self):
-        def _get_many_db_chassis():
-            chassis = []
-            for i in range(5):
-                c = models.Chassis()
-                c.update(self.fake_chassis)
-                chassis.append(c)
-            return chassis
-
-        @objects.objectify(objects.Chassis)
-        def _convert_many_db_chassis():
-            return _get_many_db_chassis()
-
-        for c in _get_many_db_chassis():
-            self.assertIsInstance(c, models.Chassis)
-        for c in _convert_many_db_chassis():
-            self.assertIsInstance(c, objects.Chassis)
 
     def test_list(self):
         with mock.patch.object(self.dbapi, 'get_chassis_list',
