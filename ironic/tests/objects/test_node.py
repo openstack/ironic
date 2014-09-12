@@ -142,3 +142,39 @@ class TestNodeObject(base.DbTestCase):
             nodes = objects.Node.list(self.context)
             self.assertThat(nodes, HasLength(1))
             self.assertIsInstance(nodes[0], objects.Node)
+
+    def test_reserve(self):
+        with mock.patch.object(self.dbapi, 'reserve_node',
+                               autospec=True) as mock_reserve:
+            mock_reserve.return_value = self.fake_node
+            node_id = self.fake_node['id']
+            fake_tag = 'fake-tag'
+            node = objects.Node.reserve(self.context, fake_tag, node_id)
+            self.assertIsInstance(node, objects.Node)
+            mock_reserve.assert_called_once_with(fake_tag, node_id)
+
+    def test_reserve_node_not_found(self):
+        with mock.patch.object(self.dbapi, 'reserve_node',
+                               autospec=True) as mock_reserve:
+            node_id = 'non-existent'
+            mock_reserve.side_effect = exception.NodeNotFound(node=node_id)
+            self.assertRaises(exception.NodeNotFound,
+                              objects.Node.reserve, self.context, 'fake-tag',
+                              node_id)
+
+    def test_release(self):
+        with mock.patch.object(self.dbapi, 'release_node',
+                               autospec=True) as mock_release:
+            node_id = self.fake_node['id']
+            fake_tag = 'fake-tag'
+            objects.Node.release(self.context, fake_tag, node_id)
+            mock_release.assert_called_once_with(fake_tag, node_id)
+
+    def test_release_node_not_found(self):
+        with mock.patch.object(self.dbapi, 'release_node',
+                               autospec=True) as mock_release:
+            node_id = 'non-existent'
+            mock_release.side_effect = exception.NodeNotFound(node=node_id)
+            self.assertRaises(exception.NodeNotFound,
+                              objects.Node.release, self.context,
+                              'fake-tag', node_id)
