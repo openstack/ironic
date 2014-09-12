@@ -260,7 +260,7 @@ def attach_vmedia(node, device, url):
 
 
 # TODO(rameshg87): This needs to be moved to iLO's management interface.
-def set_boot_device(node, device):
+def set_boot_device(node, device, persistent=False):
     """Sets the node to boot from a device for the next boot.
 
     :param node: an ironic node object.
@@ -270,7 +270,10 @@ def set_boot_device(node, device):
     ilo_object = get_ilo_object(node)
 
     try:
-        ilo_object.set_one_time_boot(device)
+        if not persistent:
+            ilo_object.set_one_time_boot(device)
+        else:
+            ilo_object.update_persistent_boot([device])
     except ilo_client.IloError as ilo_exception:
         operation = _("Setting %s as boot device") % device
         raise exception.IloOperationError(operation=operation,

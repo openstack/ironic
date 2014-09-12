@@ -32,6 +32,7 @@ from ironic.drivers.modules import deploy_utils
 from ironic.drivers.modules.ilo import common as ilo_common
 from ironic.drivers.modules.ilo import deploy as ilo_deploy
 from ironic.drivers.modules import iscsi_deploy
+from ironic.drivers.modules import pxe
 from ironic.drivers import utils as driver_utils
 from ironic.openstack.common import context
 from ironic.openstack.common import importutils
@@ -390,3 +391,83 @@ class VendorPassthruTestCase(base.TestCase):
 
             cleanup_vmedia_boot_mock.assert_called_once_with(task)
             continue_deploy_mock.assert_called_once_with(task, **kwargs)
+
+
+class IloPXEDeployTestCase(base.TestCase):
+
+    def setUp(self):
+        super(IloPXEDeployTestCase, self).setUp()
+        self.dbapi = dbapi.get_instance()
+        self.context = context.get_admin_context()
+        mgr_utils.mock_the_extension_manager(driver="pxe_ilo")
+        self.node = obj_utils.create_test_node(self.context,
+                driver='pxe_ilo', driver_info=INFO_DICT)
+
+    @mock.patch.object(pxe.PXEDeploy, 'validate')
+    @mock.patch.object(driver_utils, 'validate_boot_mode_capability')
+    def test_validate(self, boot_mode_mock, pxe_validate_mock):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            task.driver.deploy.validate(task)
+            boot_mode_mock.assert_called_once_with(task.node)
+            pxe_validate_mock.assert_called_once_with(task)
+
+    @mock.patch.object(pxe.PXEDeploy, 'prepare')
+    @mock.patch.object(ilo_common, 'set_boot_mode')
+    @mock.patch.object(driver_utils, 'get_node_capability')
+    def test_prepare(self, node_capability_mock,
+                     set_boot_mode_mock, pxe_prepare_mock):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            node_capability_mock.return_value = 'uefi'
+            task.driver.deploy.prepare(task)
+            node_capability_mock.assert_called_once_with(task.node,
+                                                         'boot_mode')
+            set_boot_mode_mock.assert_called_once_with(task.node, 'uefi')
+            pxe_prepare_mock.assert_called_once_with(task)
+
+    @mock.patch.object(pxe.PXEDeploy, 'prepare')
+    @mock.patch.object(ilo_common, 'update_boot_mode_capability')
+    @mock.patch.object(driver_utils, 'get_node_capability')
+    def test_prepare_boot_mode_doesnt_exist(self, node_capability_mock,
+                                            update_capability_mock,
+                                            pxe_prepare_mock):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            node_capability_mock.return_value = None
+            task.driver.deploy.prepare(task)
+            update_capability_mock.assert_called_once_with(task)
+            pxe_prepare_mock.assert_called_once_with(task)
+
+    @mock.patch.object(pxe.PXEDeploy, 'deploy')
+    @mock.patch.object(ilo_common, 'set_boot_device')
+    def test_deploy_boot_mode_exists(self, set_persistent_mock,
+                                     pxe_deploy_mock):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            task.driver.deploy.deploy(task)
+            set_persistent_mock.assert_called_with(task.node, 'NETWORK', False)
+            pxe_deploy_mock.assert_called_once_with(task)
+
+
+class IloPXEVendorPassthruTestCase(base.TestCase):
+
+    def setUp(self):
+        super(IloPXEVendorPassthruTestCase, self).setUp()
+        self.dbapi = dbapi.get_instance()
+        self.context = context.get_admin_context()
+        mgr_utils.mock_the_extension_manager(driver="pxe_ilo")
+        self.node = obj_utils.create_test_node(self.context,
+                driver='pxe_ilo', driver_info=INFO_DICT)
+
+    @mock.patch.object(pxe.VendorPassthru, 'vendor_passthru')
+    @mock.patch.object(ilo_common, 'set_boot_device')
+    def test_vendorpassthru(self, set_persistent_mock,
+                            pxe_vendorpassthru_mock):
+        kwargs = {'method': 'pass_deploy_info', 'address': '123456'}
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            task.node.provision_state = states.DEPLOYWAIT
+            task.driver.vendor.vendor_passthru(task, **kwargs)
+            set_persistent_mock.assert_called_with(task.node, 'NETWORK', True)
+            pxe_vendorpassthru_mock.assert_called_once_with(task, kwargs)
