@@ -457,7 +457,8 @@ class IloPXEVendorPassthru(pxe.VendorPassthru):
         if method == 'pass_deploy_info':
             ilo_common.set_boot_device(task.node, 'NETWORK', True)
 
-        return super(IloPXEVendorPassthru, self).vendor_passthru(task, kwargs)
+        return super(IloPXEVendorPassthru, self).vendor_passthru(task,
+                                                                 **kwargs)
 
 
 class VendorPassthru(base.VendorInterface):

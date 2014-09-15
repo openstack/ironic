@@ -470,4 +470,4 @@ class IloPXEVendorPassthruTestCase(base.TestCase):
             task.node.provision_state = states.DEPLOYWAIT
             task.driver.vendor.vendor_passthru(task, **kwargs)
             set_persistent_mock.assert_called_with(task.node, 'NETWORK', True)
-            pxe_vendorpassthru_mock.assert_called_once_with(task, kwargs)
+            pxe_vendorpassthru_mock.assert_called_once_with(task, **kwargs)
