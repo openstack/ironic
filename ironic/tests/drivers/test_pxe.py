@@ -678,7 +678,8 @@ class PXEDriverTestCase(db_base.DbTestCase):
                             "_continue_deploy was not called once.")
 
     @mock.patch.object(pxe, '_get_image_info')
-    def clean_up_config(self, get_image_info_mock, master=None):
+    def clean_up_config(self, get_image_info_mock, master=None,
+                        fail_get_image_info=False):
         temp_dir = tempfile.mkdtemp()
         self.config(tftp_root=temp_dir, group='pxe')
         tftp_master_dir = os.path.join(CONF.pxe.tftp_root,
@@ -699,11 +700,14 @@ class PXEDriverTestCase(db_base.DbTestCase):
                     uuid='bb43dc0b-03f2-4d2e-ae87-c02d7f33cc53')
          )
 
-        d_kernel_path = os.path.join(CONF.pxe.tftp_root,
-                                     self.node.uuid, 'deploy_kernel')
+        d_kernel_path = os.path.join(tftp_master_dir, 'deploy_kernel')
         image_info = {'deploy_kernel': ('deploy_kernel_uuid', d_kernel_path)}
 
-        get_image_info_mock.return_value = image_info
+        if fail_get_image_info:
+            get_image_info_mock.side_effect = exception.MissingParameterValue(
+                'image_source')
+        else:
+            get_image_info_mock.return_value = image_info
 
         pxecfg_dir = os.path.join(CONF.pxe.tftp_root, 'pxelinux.cfg')
         os.makedirs(pxecfg_dir)
@@ -740,6 +744,8 @@ class PXEDriverTestCase(db_base.DbTestCase):
         else:
             open(deploy_kernel_path, 'w').close()
             open(image_path, 'w').close()
+        open(d_kernel_path, 'w').close()
+
         token_path = self._create_token_file()
         self.config(image_cache_size=0, group='pxe')
 
@@ -751,9 +757,14 @@ class PXEDriverTestCase(db_base.DbTestCase):
         assert_false_path = [config_path, deploy_kernel_path, image_path,
                              pxe_mac_path, image_dir, instance_dir,
                              token_path]
+        if not fail_get_image_info:
+            assert_false_path.append(d_kernel_path)
 
         for path in assert_false_path:
             self.assertFalse(os.path.exists(path))
+
+    def test_clean_up_fail_get_image_info(self):
+        self.clean_up_config(fail_get_image_info=True)
 
     def test_clean_up_no_master_images(self):
         self.clean_up_config(master=None)
