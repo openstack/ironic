@@ -101,8 +101,8 @@ def convert_nova_nodes(nodes, cpu_arch, nova_conf):
         i_node.instance_uuid = n_node.instance_uuid
         i_node.reservation = None
         i_node.maintenance = False
-        i_node.updated_at = n_node.created_at
-        i_node.created_at = n_node.updated_at
+        i_node.updated_at = n_node.updated_at
+        i_node.created_at = n_node.created_at
 
         # Populate states
         if n_node.task_state == nova_states.ACTIVE:
