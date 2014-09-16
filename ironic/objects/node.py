@@ -99,7 +99,7 @@ class Node(base.IronicObject):
         :returns: a :class:`Node` object.
         """
         db_node = cls.dbapi.get_node_by_id(node_id)
-        node = Node._from_db_object(cls(), db_node)
+        node = Node._from_db_object(cls(context), db_node)
         # FIXME(comstud): Setting of the context should be moved to
         # _from_db_object().
         node._context = context
@@ -113,7 +113,7 @@ class Node(base.IronicObject):
         :returns: a :class:`Node` object.
         """
         db_node = cls.dbapi.get_node_by_uuid(uuid)
-        node = Node._from_db_object(cls(), db_node)
+        node = Node._from_db_object(cls(context), db_node)
         # FIXME(comstud): Setting of the context should be moved to
         # _from_db_object().
         node._context = context
@@ -127,7 +127,7 @@ class Node(base.IronicObject):
         :returns: a :class:`Node` object.
         """
         db_node = cls.dbapi.get_node_by_instance(instance_uuid)
-        node = Node._from_db_object(cls(), db_node)
+        node = Node._from_db_object(cls(context), db_node)
         # FIXME(comstud): Setting of the context should be moved to
         # _from_db_object().
         node._context = context
@@ -152,7 +152,7 @@ class Node(base.IronicObject):
                                            marker=marker, sort_key=sort_key,
                                            sort_dir=sort_dir)
         for obj in db_nodes:
-            node = Node._from_db_object(cls(), obj)
+            node = Node._from_db_object(cls(context), obj)
             # FIXME(comstud): Setting of the context should be moved to
             # _from_db_object().
             node._context = context
@@ -174,7 +174,7 @@ class Node(base.IronicObject):
 
         """
         db_node = cls.dbapi.reserve_node(tag, node_id)
-        node = Node._from_db_object(cls(), db_node)
+        node = Node._from_db_object(cls(context), db_node)
         # FIXME(comstud): Setting of the context should be moved to
         # _from_db_object().
         node._context = context

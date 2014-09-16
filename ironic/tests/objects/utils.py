@@ -25,7 +25,7 @@ def get_test_node(ctxt, **kw):
     that a create() could be used to commit it to the DB.
     """
     db_node = db_utils.get_test_node(**kw)
-    node = objects.Node(context=ctxt)
+    node = objects.Node(ctxt)
     for key in db_node:
         setattr(node, key, db_node[key])
     return node
@@ -47,7 +47,7 @@ def get_test_port(ctxt, **kw):
     that a create() could be used to commit it to the DB.
     """
     db_port = db_utils.get_test_port(**kw)
-    port = objects.Port(context=ctxt)
+    port = objects.Port(ctxt)
     for key in db_port:
         setattr(port, key, db_port[key])
     return port
@@ -69,7 +69,7 @@ def get_test_chassis(ctxt, **kw):
     that a create() could be used to commit it to the DB.
     """
     db_chassis = db_utils.get_test_chassis(**kw)
-    chassis = objects.Chassis(context=ctxt)
+    chassis = objects.Chassis(ctxt)
     for key in db_chassis:
         setattr(chassis, key, db_chassis[key])
     return chassis

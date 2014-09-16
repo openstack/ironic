@@ -203,7 +203,7 @@ class IronicObject(object):
     _attr_created_at_to_primitive = obj_utils.dt_serializer('created_at')
     _attr_updated_at_to_primitive = obj_utils.dt_serializer('updated_at')
 
-    def __init__(self, context=None, **kwargs):
+    def __init__(self, context, **kwargs):
         self._changed_fields = set()
         self._context = context
         self.update(kwargs)
@@ -260,8 +260,7 @@ class IronicObject(object):
 
     @classmethod
     def _obj_from_primitive(cls, context, objver, primitive):
-        self = cls()
-        self._context = context
+        self = cls(context)
         self.VERSION = objver
         objdata = primitive['ironic_object.data']
         changes = primitive.get('ironic_object.changes', [])
@@ -298,8 +297,7 @@ class IronicObject(object):
         # some objects may be uncopyable, so we can avoid those sorts
         # of issues by copying only our field data.
 
-        nobj = self.__class__()
-        nobj._context = self._context
+        nobj = self.__class__(self._context)
         for name in self.fields:
             if self.obj_attr_is_set(name):
                 nval = copy.deepcopy(getattr(self, name), memo)
@@ -487,11 +485,10 @@ class ObjectListBase(object):
     def __getitem__(self, index):
         """List index access."""
         if isinstance(index, slice):
-            new_obj = self.__class__()
+            new_obj = self.__class__(self._context)
             new_obj.objects = self.objects[index]
             # NOTE(danms): We must be mixed in with an IronicObject!
             new_obj.obj_reset_changes()
-            new_obj._context = self._context
             return new_obj
         return self.objects[index]
 

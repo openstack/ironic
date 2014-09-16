@@ -53,7 +53,7 @@ class Port(base.IronicObject):
         """Converts a list of database entities to a list of formal objects."""
         port_list = []
         for obj in db_objects:
-            port = Port._from_db_object(cls(), obj)
+            port = Port._from_db_object(cls(context), obj)
             # FIXME(comstud): Setting of the context should be moved to
             # _from_db_object().
             port._context = context
@@ -84,7 +84,7 @@ class Port(base.IronicObject):
         :returns: a :class:`Port` object.
         """
         db_port = cls.dbapi.get_port_by_id(port_id)
-        port = Port._from_db_object(cls(), db_port)
+        port = Port._from_db_object(cls(context), db_port)
         # FIXME(comstud): Setting of the context should be moved to
         # _from_db_object().
         port._context = context
@@ -99,7 +99,7 @@ class Port(base.IronicObject):
         :returns: a :class:`Port` object.
         """
         db_port = cls.dbapi.get_port_by_uuid(uuid)
-        port = Port._from_db_object(cls(), db_port)
+        port = Port._from_db_object(cls(context), db_port)
         # FIXME(comstud): Setting of the context should be moved to
         # _from_db_object().
         port._context = context
@@ -114,7 +114,7 @@ class Port(base.IronicObject):
         :returns: a :class:`Port` object.
         """
         db_port = cls.dbapi.get_port_by_address(address)
-        port = Port._from_db_object(cls(), db_port)
+        port = Port._from_db_object(cls(context), db_port)
         # FIXME(comstud): Setting of the context should be moved to
         # _from_db_object().
         port._context = context

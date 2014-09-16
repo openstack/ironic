@@ -289,7 +289,7 @@ class PortsController(rest.RestController):
         if self.from_nodes:
             raise exception.OperationNotPermitted
 
-        new_port = objects.Port(context=pecan.request.context,
+        new_port = objects.Port(pecan.request.context,
                                 **port.as_dict())
         new_port.create()
         # Set the HTTP Location Header

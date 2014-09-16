@@ -213,7 +213,7 @@ class ChassisController(rest.RestController):
 
         :param chassis: a chassis within the request body.
         """
-        new_chassis = objects.Chassis(context=pecan.request.context,
+        new_chassis = objects.Chassis(pecan.request.context,
                                       **chassis.as_dict())
         new_chassis.create()
         # Set the HTTP Location Header

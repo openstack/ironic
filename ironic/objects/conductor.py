@@ -47,7 +47,7 @@ class Conductor(base.IronicObject):
         :returns: a :class:`Conductor` object.
         """
         db_obj = cls.dbapi.get_conductor(hostname)
-        conductor = Conductor._from_db_object(cls(), db_obj)
+        conductor = Conductor._from_db_object(cls(context), db_obj)
         # FIXME(comstud): Setting of the context should be moved to
         # _from_db_object().
         conductor._context = context
