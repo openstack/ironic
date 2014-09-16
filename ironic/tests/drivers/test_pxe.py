@@ -746,7 +746,8 @@ class PXEDriverTestCase(db_base.DbTestCase):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
             task.driver.deploy.clean_up(task)
-            get_image_info_mock.called_once_with(task.node)
+            get_image_info_mock.assert_called_once_with(task.node,
+                                                        task.context)
         assert_false_path = [config_path, deploy_kernel_path, image_path,
                              pxe_mac_path, image_dir, instance_dir,
                              token_path]

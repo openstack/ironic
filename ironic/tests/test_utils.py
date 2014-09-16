@@ -224,7 +224,7 @@ class GenericUtilsTestCase(base.TestCase):
                 self.assertTrue(self.reload_called)
                 getmtime_mock.assert_called_once_with(mock.ANY)
                 open_mock.assert_called_once_with(mock.ANY)
-                fake_file.read.called_once_with()
+                fake_file.read.assert_called_once_with()
                 fake_context_manager.__exit__.assert_called_once_with(mock.ANY,
                                                                       mock.ANY,
                                                                       mock.ANY)
