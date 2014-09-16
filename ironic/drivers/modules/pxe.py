@@ -396,10 +396,17 @@ class PXEDeploy(base.DeployInterface):
         :param task: a TaskManager instance containing the node to act on.
         """
         node = task.node
-        pxe_info = _get_image_info(node, task.context)
-        for label in pxe_info:
-            path = pxe_info[label][1]
-            utils.unlink_without_raise(path)
+        try:
+            pxe_info = _get_image_info(node, task.context)
+        except exception.MissingParameterValue as e:
+            LOG.warning(_LW('Could not get image info to clean up images '
+                            'for node %(node)s: %(err)s'),
+                        {'node': node.uuid, 'err': e})
+        else:
+            for label in pxe_info:
+                path = pxe_info[label][1]
+                utils.unlink_without_raise(path)
+
         TFTPImageCache().clean_up()
 
         pxe_utils.clean_up_pxe_config(task)
