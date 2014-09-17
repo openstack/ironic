@@ -203,3 +203,15 @@ class IscsiDeployMethodsTestCase(db_base.DbTestCase):
                                       self.node.uuid,
                                       'disk'),
                          image_path)
+
+    @mock.patch.object(utils, 'unlink_without_raise')
+    @mock.patch.object(utils, 'rmtree_without_raise')
+    @mock.patch.object(iscsi_deploy, 'InstanceImageCache')
+    def test_destroy_images(self, mock_cache, mock_rmtree, mock_unlink):
+        self.config(images_path='/path', group='pxe')
+
+        iscsi_deploy.destroy_images('uuid')
+
+        mock_cache.return_value.clean_up.assert_called_once_with()
+        mock_unlink.assert_called_once_with('/path/uuid/disk')
+        mock_rmtree.assert_called_once_with('/path/uuid')

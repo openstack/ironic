@@ -676,109 +676,131 @@ class PXEDriverTestCase(db_base.DbTestCase):
                 self.assertEqual(1, _continue_deploy_mock.call_count,
                             "_continue_deploy was not called once.")
 
-    @mock.patch.object(pxe, '_get_image_info')
-    def clean_up_config(self, get_image_info_mock, master=None,
-                        fail_get_image_info=False):
-        temp_dir = tempfile.mkdtemp()
-        self.config(tftp_root=temp_dir, group='pxe')
+
+@mock.patch.object(utils, 'unlink_without_raise')
+@mock.patch.object(iscsi_deploy, 'destroy_images')
+@mock.patch.object(pxe_utils, 'clean_up_pxe_config')
+@mock.patch.object(pxe, 'TFTPImageCache')
+@mock.patch.object(pxe, '_get_image_info')
+class CleanUpTestCase(db_base.DbTestCase):
+    def setUp(self):
+        super(CleanUpTestCase, self).setUp()
+        mgr_utils.mock_the_extension_manager(driver="fake_pxe")
+        instance_info = INST_INFO_DICT
+        instance_info['deploy_key'] = 'fake-56789'
+        self.node = obj_utils.create_test_node(self.context,
+                                               driver='fake_pxe',
+                                               instance_info=instance_info,
+                                               driver_info=DRV_INFO_DICT)
+
+    def test_clean_up(self, mock_image_info, mock_cache, mock_pxe_clean,
+                      mock_iscsi_clean, mock_unlink):
+        mock_image_info.return_value = {'label': ['', 'deploy_kernel']}
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            task.driver.deploy.clean_up(task)
+            mock_image_info.assert_called_once_with(task.node,
+                                                    task.context)
+            mock_pxe_clean.assert_called_once_with(task)
+            mock_unlink.assert_any_call('deploy_kernel')
+            mock_unlink.assert_any_call(pxe._get_token_file_path(
+                task.node.uuid))
+            mock_iscsi_clean.assert_called_once_with(task.node.uuid)
+        mock_cache.return_value.clean_up.assert_called_once_with()
+
+    def test_clean_up_fail_get_image_info(self, mock_image_info, mock_cache,
+                                          mock_pxe_clean, mock_iscsi_clean,
+                                          mock_unlink):
+        mock_image_info.side_effect = exception.MissingParameterValue('foo')
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            task.driver.deploy.clean_up(task)
+            mock_image_info.assert_called_once_with(task.node,
+                                                    task.context)
+            mock_pxe_clean.assert_called_once_with(task)
+            mock_unlink.assert_called_once_with(pxe._get_token_file_path(
+                task.node.uuid))
+            mock_iscsi_clean.assert_called_once_with(task.node.uuid)
+        mock_cache.return_value.clean_up.assert_called_once_with()
+
+
+class CleanUpFullFlowTestCase(db_base.DbTestCase):
+    def setUp(self):
+        super(CleanUpFullFlowTestCase, self).setUp()
+        self.config(image_cache_size=0, group='pxe')
+
+        # Configure node
+        mgr_utils.mock_the_extension_manager(driver="fake_pxe")
+        instance_info = INST_INFO_DICT
+        instance_info['deploy_key'] = 'fake-56789'
+        self.node = obj_utils.create_test_node(self.context,
+                                               driver='fake_pxe',
+                                               instance_info=instance_info,
+                                               driver_info=DRV_INFO_DICT)
+        self.dbapi = dbapi.get_instance()
+        self.port = obj_utils.create_test_port(self.context,
+                                               node_id=self.node.id)
+
+        # Configure temporary directories
+        pxe_temp_dir = tempfile.mkdtemp()
+        self.config(tftp_root=pxe_temp_dir, group='pxe')
         tftp_master_dir = os.path.join(CONF.pxe.tftp_root,
                                        'tftp_master')
         self.config(tftp_master_path=tftp_master_dir, group='pxe')
         os.makedirs(tftp_master_dir)
 
+        instance_temp_dir = tempfile.mkdtemp()
+        self.config(images_path=instance_temp_dir,
+                    group='pxe')
         instance_master_dir = os.path.join(CONF.pxe.images_path,
                                            'instance_master')
         self.config(instance_master_path=instance_master_dir,
                     group='pxe')
         os.makedirs(instance_master_dir)
+        self.pxe_config_dir = os.path.join(CONF.pxe.tftp_root, 'pxelinux.cfg')
+        os.makedirs(self.pxe_config_dir)
 
-        ports = []
-        ports.append(
-            obj_utils.create_test_port(self.context,
-                    id=6, address='aa:bb:cc', node_id='123',
-                    uuid='bb43dc0b-03f2-4d2e-ae87-c02d7f33cc53')
-         )
-
-        d_kernel_path = os.path.join(tftp_master_dir, 'deploy_kernel')
-        image_info = {'deploy_kernel': ('deploy_kernel_uuid', d_kernel_path)}
-
-        if fail_get_image_info:
-            get_image_info_mock.side_effect = exception.MissingParameterValue(
-                'image_source')
-        else:
-            get_image_info_mock.return_value = image_info
-
-        pxecfg_dir = os.path.join(CONF.pxe.tftp_root, 'pxelinux.cfg')
-        os.makedirs(pxecfg_dir)
-
-        instance_dir = os.path.join(CONF.pxe.tftp_root,
-                                    self.node.uuid)
-        image_dir = os.path.join(CONF.pxe.images_path, self.node.uuid)
-        os.makedirs(instance_dir)
-        os.makedirs(image_dir)
-        config_path = os.path.join(instance_dir, 'config')
-        deploy_kernel_path = os.path.join(instance_dir, 'deploy_kernel')
-        pxe_mac_path = os.path.join(pxecfg_dir, '01-aa-bb-cc')
-        image_path = os.path.join(image_dir, 'disk')
-        open(config_path, 'w').close()
-        os.link(config_path, pxe_mac_path)
-        if master:
-            master_deploy_kernel_path = os.path.join(tftp_master_dir,
-                                                     'deploy_kernel_uuid')
-            master_instance_path = os.path.join(instance_master_dir,
+        # Populate some file names
+        self.master_kernel_path = os.path.join(CONF.pxe.tftp_master_path,
+                                               'kernel')
+        self.master_instance_path = os.path.join(CONF.pxe.instance_master_path,
                                                 'image_uuid')
-            open(master_deploy_kernel_path, 'w').close()
-            open(master_instance_path, 'w').close()
+        self.node_tftp_dir = os.path.join(CONF.pxe.tftp_root,
+                                          self.node.uuid)
+        os.makedirs(self.node_tftp_dir)
+        self.kernel_path = os.path.join(self.node_tftp_dir,
+                                        'kernel')
+        self.node_image_dir = iscsi_deploy._get_image_dir_path(self.node.uuid)
+        os.makedirs(self.node_image_dir)
+        self.image_path = iscsi_deploy._get_image_file_path(self.node.uuid)
+        self.config_path = pxe_utils.get_pxe_config_file_path(self.node.uuid)
+        self.mac_path = pxe_utils._get_pxe_mac_path(self.port.address)
+        self.token_path = pxe._get_token_file_path(self.node.uuid)
 
-            os.link(master_deploy_kernel_path, deploy_kernel_path)
-            os.link(master_instance_path, image_path)
-            if master == 'in_use':
-                deploy_kernel_link = os.path.join(CONF.pxe.tftp_root,
-                                                  'deploy_kernel_link')
-                image_link = os.path.join(CONF.pxe.images_path,
-                                          'image_link')
-                os.link(master_deploy_kernel_path, deploy_kernel_link)
-                os.link(master_instance_path, image_link)
+        # Create files
+        self.files = [self.config_path, self.master_kernel_path,
+                      self.master_instance_path, self.token_path]
+        for fname in self.files:
+            # NOTE(dtantsur): files with 0 size won't be cleaned up
+            with open(fname, 'w') as fp:
+                fp.write('test')
 
-        else:
-            open(deploy_kernel_path, 'w').close()
-            open(image_path, 'w').close()
-        open(d_kernel_path, 'w').close()
+        os.link(self.config_path, self.mac_path)
+        os.link(self.master_kernel_path, self.kernel_path)
+        os.link(self.master_instance_path, self.image_path)
 
-        token_path = self._create_token_file()
-        self.config(image_cache_size=0, group='pxe')
+    @mock.patch.object(pxe, '_get_image_info')
+    def test_clean_up_with_master(self, mock_get_image_info):
+        image_info = {'kernel': ('kernel_uuid',
+                                 self.kernel_path)}
+        mock_get_image_info.return_value = image_info
 
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
             task.driver.deploy.clean_up(task)
-            get_image_info_mock.assert_called_once_with(task.node,
+            mock_get_image_info.assert_called_once_with(task.node,
                                                         task.context)
-        assert_false_path = [config_path, deploy_kernel_path, image_path,
-                             pxe_mac_path, image_dir, instance_dir,
-                             token_path]
-        if not fail_get_image_info:
-            assert_false_path.append(d_kernel_path)
-
-        for path in assert_false_path:
-            self.assertFalse(os.path.exists(path))
-
-    def test_clean_up_fail_get_image_info(self):
-        self.clean_up_config(fail_get_image_info=True)
-
-    def test_clean_up_no_master_images(self):
-        self.clean_up_config(master=None)
-
-    def test_clean_up_master_images_in_use(self):
-        # NOTE(dtantsur): ensure agressive caching
-        self.config(image_cache_size=1, group='pxe')
-        self.config(image_cache_ttl=0, group='pxe')
-
-        self.clean_up_config(master='in_use')
-
-        master_d_kernel_path = os.path.join(CONF.pxe.tftp_master_path,
-                                            'deploy_kernel_uuid')
-        instance_master_path = CONF.pxe.instance_master_path
-        master_instance_path = os.path.join(instance_master_path, 'image_uuid')
-
-        self.assertTrue(os.path.exists(master_d_kernel_path))
-        self.assertTrue(os.path.exists(master_instance_path))
+        for path in ([self.kernel_path, self.image_path, self.config_path]
+                     + self.files):
+            self.assertFalse(os.path.exists(path),
+                             '%s is not expected to exist' % path)
