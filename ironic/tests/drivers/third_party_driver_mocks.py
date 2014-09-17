@@ -53,7 +53,7 @@ if not seamicroclient:
 if 'ironic.drivers.modules.seamicro' in sys.modules:
     reload(sys.modules['ironic.drivers.modules.seamicro'])
 
-# IPMITool driver checks the system for presense of 'ipmitool' binary during
+# IPMITool driver checks the system for presence of 'ipmitool' binary during
 # __init__. We bypass that check in order to run the unit tests, which do not
 # depend on 'ipmitool' being on the system.
 ipmitool.TIMING_SUPPORT = False
@@ -128,6 +128,8 @@ if not pysnmp:
             pysnmp.entity.rfc3413.oneliner)
     sys.modules["pysnmp.entity.rfc3413.oneliner.cmdgen"] = (
             pysnmp.entity.rfc3413.oneliner.cmdgen)
+    sys.modules["pysnmp.error"] = pysnmp.error
+    pysnmp.error.PySnmpError = Exception
     sys.modules["pysnmp.proto"] = pysnmp.proto
     sys.modules["pysnmp.proto.rfc1902"] = pysnmp.proto.rfc1902
     # Patch the RFC1902 integer class with a python int
