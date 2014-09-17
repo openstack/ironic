@@ -33,5 +33,45 @@ upstream commit) please consult the wiki page::
   https://wiki.openstack.org/wiki/Ironic/Drivers
 
 .. toctree::
+    ../api/ironic.drivers.agent
     ../api/ironic.drivers.base
+    ../api/ironic.drivers.drac
+    ../api/ironic.drivers.ilo
     ../api/ironic.drivers.pxe
+
+
+Node Vendor Passthru
+--------------------
+
+Drivers may implement a passthrough API, which becomes accessible via
+HTTP POST at the `/v1/{NODE}/vendor_passthru?method={METHOD}` endpoint. Beyond
+basic checking, Ironic does not introspect the message body and simply "passes
+it through" to the relevant driver.
+
+It should be noted that, while this API end point is asynchronous, it is
+serialized.  Requests will return an HTTP status code 202 to indicate the
+request was received and is being acted upon, but the request can not return a
+BODY. While performing the request, a lock is held on the node, and other
+requests will be delayed, and may fail with an HTTP 409 CONFLICT error.
+
+This endpoint is exposing a node's driver directly, and as such, it is
+expressly not part of Ironic's standard REST API. There is only a single HTTP
+endpoint exposed, and the semantics of the message BODY are determined solely
+by the driver. Ironic makes no guarantees about backwards compatibility; this is
+solely up to the discretion of each driver's author.
+
+Driver Vendor Passthru
+----------------------
+
+Drivers may also implement a similar API for requests not related to any node
+at `/v1/drivers/{DRIVER}/vendor_passthru?method={METHOD}`. However, this API
+endpoint is *synchronous*. Calls are passed to the driver, and return a BODY
+with the response from the driver once the request is completed.
+
+NOTE: Each open request to this endpoint consumes a worker thread within the
+ironic-conductor process. This can lead to starvation of the threadpool, and a
+denial of service. Driver authors are encouraged to avoid using this endpoint,
+and, when necessary, make all requests to it return as quickly as possible.
+
+Similarly, Ironic makes no guarantees about the semantics of the message BODY
+sent to this endpoint.  That is left up to each driver's author.
