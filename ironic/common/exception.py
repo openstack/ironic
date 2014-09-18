@@ -472,3 +472,8 @@ class SwiftOperationError(IronicException):
 
 class SNMPFailure(IronicException):
     message = _("SNMP operation '%(operation)s' failed: %(error)s")
+
+
+class FileSystemNotSupported(IronicException):
+    message = _("Failed to create a file system. "
+                "File system %(fs)s is not supported.")
