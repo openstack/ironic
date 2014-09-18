@@ -218,21 +218,12 @@ DevStack may be configured to deploy Ironic, setup Nova to use the Ironic
 driver and provide hardware resources (network, baremetal compute nodes)
 using a combination of OpenVSwitch and libvirt.  It is highly recommended
 to deploy on an expendable virtual machine and not on your personal work
-station.
+station.  Deploying Ironic with DevStack requires a machine running Ubuntu
+14.04 (or later) or Fedora 20 (or later).
 
 .. seealso::
 
     https://devstack.org
-
-Install the basic dependencies::
-
-    sudo apt-get update
-    sudo apt-get install python-software-properties git
-
-If you are using Ubuntu 12.04, use the latest Cloud Archive repository::
-
-    sudo add-apt-repository cloud-archive:icehouse
-    sudo apt-get update
 
 Devstack will no longer create the user 'stack' with the desired
 permissions, but does provide a script to perform the task::
