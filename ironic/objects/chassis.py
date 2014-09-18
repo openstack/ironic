@@ -74,9 +74,6 @@ class Chassis(base.IronicObject):
         """
         db_chassis = cls.dbapi.get_chassis_by_id(chassis_id)
         chassis = Chassis._from_db_object(cls(context), db_chassis)
-        # FIXME(comstud): Setting of the context should be moved to
-        # _from_db_object().
-        chassis._context = context
         return chassis
 
     @base.remotable_classmethod
@@ -89,9 +86,6 @@ class Chassis(base.IronicObject):
         """
         db_chassis = cls.dbapi.get_chassis_by_uuid(uuid)
         chassis = Chassis._from_db_object(cls(context), db_chassis)
-        # FIXME(comstud): Setting of the context should be moved to
-        # _from_db_object().
-        chassis._context = context
         return chassis
 
     @base.remotable_classmethod
@@ -107,18 +101,12 @@ class Chassis(base.IronicObject):
         :returns: a list of :class:`Chassis` object.
 
         """
-        chassis_list = []
         db_chassis = cls.dbapi.get_chassis_list(limit=limit,
                                                 marker=marker,
                                                 sort_key=sort_key,
                                                 sort_dir=sort_dir)
-        for obj in db_chassis:
-            chassis = Chassis._from_db_object(cls(context), obj)
-            # FIXME(comstud): Setting of the context should be moved to
-            # _from_db_object().
-            chassis._context = context
-            chassis_list.append(chassis)
-        return chassis_list
+        return [Chassis._from_db_object(cls(context), obj)
+                for obj in db_chassis]
 
     @base.remotable
     def create(self, context=None):

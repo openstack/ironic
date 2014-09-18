@@ -100,9 +100,6 @@ class Node(base.IronicObject):
         """
         db_node = cls.dbapi.get_node_by_id(node_id)
         node = Node._from_db_object(cls(context), db_node)
-        # FIXME(comstud): Setting of the context should be moved to
-        # _from_db_object().
-        node._context = context
         return node
 
     @base.remotable_classmethod
@@ -114,9 +111,6 @@ class Node(base.IronicObject):
         """
         db_node = cls.dbapi.get_node_by_uuid(uuid)
         node = Node._from_db_object(cls(context), db_node)
-        # FIXME(comstud): Setting of the context should be moved to
-        # _from_db_object().
-        node._context = context
         return node
 
     @base.remotable_classmethod
@@ -128,9 +122,6 @@ class Node(base.IronicObject):
         """
         db_node = cls.dbapi.get_node_by_instance(instance_uuid)
         node = Node._from_db_object(cls(context), db_node)
-        # FIXME(comstud): Setting of the context should be moved to
-        # _from_db_object().
-        node._context = context
         return node
 
     @base.remotable_classmethod
@@ -147,17 +138,10 @@ class Node(base.IronicObject):
         :returns: a list of :class:`Node` object.
 
         """
-        node_list = []
         db_nodes = cls.dbapi.get_node_list(filters=filters, limit=limit,
                                            marker=marker, sort_key=sort_key,
                                            sort_dir=sort_dir)
-        for obj in db_nodes:
-            node = Node._from_db_object(cls(context), obj)
-            # FIXME(comstud): Setting of the context should be moved to
-            # _from_db_object().
-            node._context = context
-            node_list.append(node)
-        return node_list
+        return [Node._from_db_object(cls(context), obj) for obj in db_nodes]
 
     @base.remotable_classmethod
     def reserve(cls, context, tag, node_id):
@@ -175,9 +159,6 @@ class Node(base.IronicObject):
         """
         db_node = cls.dbapi.reserve_node(tag, node_id)
         node = Node._from_db_object(cls(context), db_node)
-        # FIXME(comstud): Setting of the context should be moved to
-        # _from_db_object().
-        node._context = context
         return node
 
     @base.remotable_classmethod

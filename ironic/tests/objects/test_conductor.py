@@ -81,3 +81,4 @@ class TestConductorObject(base.DbTestCase):
             c.refresh()
             self.assertEqual(obj_utils.datetime_or_none(t1), c.updated_at)
             self.assertEqual(expected, mock_get_cdr.call_args_list)
+            self.assertEqual(self.context, c._context)

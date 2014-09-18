@@ -36,9 +36,10 @@ class TestNodeObject(base.DbTestCase):
                                autospec=True) as mock_get_node:
             mock_get_node.return_value = self.fake_node
 
-            objects.Node.get(self.context, node_id)
+            node = objects.Node.get(self.context, node_id)
 
             mock_get_node.assert_called_once_with(node_id)
+            self.assertEqual(self.context, node._context)
 
     def test_get_by_uuid(self):
         uuid = self.fake_node['uuid']
@@ -46,9 +47,10 @@ class TestNodeObject(base.DbTestCase):
                                autospec=True) as mock_get_node:
             mock_get_node.return_value = self.fake_node
 
-            objects.Node.get(self.context, uuid)
+            node = objects.Node.get(self.context, uuid)
 
             mock_get_node.assert_called_once_with(uuid)
+            self.assertEqual(self.context, node._context)
 
     def test_get_bad_id_and_uuid(self):
         self.assertRaises(exception.InvalidIdentity,
@@ -69,6 +71,7 @@ class TestNodeObject(base.DbTestCase):
                 mock_get_node.assert_called_once_with(uuid)
                 mock_update_node.assert_called_once_with(
                         uuid, {'properties': {"fake": "property"}})
+                self.assertEqual(self.context, n._context)
 
     def test_refresh(self):
         uuid = self.fake_node['uuid']
@@ -83,6 +86,7 @@ class TestNodeObject(base.DbTestCase):
             n.refresh()
             self.assertEqual({"fake": "second"}, n.properties)
             self.assertEqual(expected, mock_get_node.call_args_list)
+            self.assertEqual(self.context, n._context)
 
     def test_list(self):
         with mock.patch.object(self.dbapi, 'get_node_list',
@@ -91,6 +95,7 @@ class TestNodeObject(base.DbTestCase):
             nodes = objects.Node.list(self.context)
             self.assertThat(nodes, HasLength(1))
             self.assertIsInstance(nodes[0], objects.Node)
+            self.assertEqual(self.context, nodes[0]._context)
 
     def test_reserve(self):
         with mock.patch.object(self.dbapi, 'reserve_node',
@@ -101,6 +106,7 @@ class TestNodeObject(base.DbTestCase):
             node = objects.Node.reserve(self.context, fake_tag, node_id)
             self.assertIsInstance(node, objects.Node)
             mock_reserve.assert_called_once_with(fake_tag, node_id)
+            self.assertEqual(self.context, node._context)
 
     def test_reserve_node_not_found(self):
         with mock.patch.object(self.dbapi, 'reserve_node',
