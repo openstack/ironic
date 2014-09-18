@@ -255,7 +255,7 @@ def set_failed_state(task, msg):
     node = task.node
     node.provision_state = states.DEPLOYFAIL
     node.target_provision_state = states.NOSTATE
-    node.save(task.context)
+    node.save()
     try:
         manager_utils.node_power_action(task, states.POWER_OFF)
     except Exception:
@@ -268,7 +268,7 @@ def set_failed_state(task, msg):
         # NOTE(deva): node_power_action() erases node.last_error
         #             so we need to set it again here.
         node.last_error = msg
-        node.save(task.context)
+        node.save()
 
 
 def continue_deploy(task, **kwargs):
@@ -284,7 +284,7 @@ def continue_deploy(task, **kwargs):
     node = task.node
 
     node.provision_state = states.DEPLOYING
-    node.save(task.context)
+    node.save()
 
     params = get_deploy_info(node, **kwargs)
     ramdisk_error = kwargs.get('error')
@@ -312,14 +312,13 @@ def continue_deploy(task, **kwargs):
     return root_uuid
 
 
-def build_deploy_ramdisk_options(node, ctx):
+def build_deploy_ramdisk_options(node):
     """Build the ramdisk config options for a node
 
     This method builds the ramdisk options for a node,
     given all the required parameters for doing iscsi deploy.
 
     :param node: a single Node.
-    :param ctx: security context
     :returns: A dictionary of options to be passed to ramdisk for performing
         the deploy.
     """
@@ -332,7 +331,7 @@ def build_deploy_ramdisk_options(node, ctx):
     i_info = node.instance_info
     i_info['deploy_key'] = deploy_key
     node.instance_info = i_info
-    node.save(ctx)
+    node.save()
 
     deploy_options = {
         'deployment_id': node['uuid'],

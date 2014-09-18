@@ -270,7 +270,7 @@ class ConductorManager(periodic_task.PeriodicTasks):
                             pstate=node_obj['power_state'])
 
             # update any remaining parameters, then save
-            node_obj.save(context)
+            node_obj.save()
 
             return node_obj
 
@@ -380,7 +380,7 @@ class ConductorManager(periodic_task.PeriodicTasks):
                                                     method=driver_method,
                                                     **info)
 
-    def _provisioning_error_handler(self, e, node, context, provision_state,
+    def _provisioning_error_handler(self, e, node, provision_state,
                                     target_provision_state):
         """Set the node's provisioning states if error occurs.
 
@@ -389,7 +389,6 @@ class ConductorManager(periodic_task.PeriodicTasks):
 
         :param e: the exception object that was raised.
         :param node: an Ironic node object.
-        :param context: security context.
         :param provision_state: the provision state to be set on
             the node.
         :param target_provision_state: the target provision state to be
@@ -400,7 +399,7 @@ class ConductorManager(periodic_task.PeriodicTasks):
             node.provision_state = provision_state
             node.target_provision_state = target_provision_state
             node.last_error = (_("No free conductor workers available"))
-            node.save(context)
+            node.save()
             LOG.warning(_LW("No free conductor workers available to perform "
                             "an action on node %(node)s, setting node's "
                             "provision_state back to %(prov_state)s and "
@@ -481,10 +480,10 @@ class ConductorManager(periodic_task.PeriodicTasks):
             node.provision_state = states.DEPLOYING
             node.target_provision_state = states.DEPLOYDONE
             node.last_error = None
-            node.save(context)
+            node.save()
 
-            task.set_spawn_error_hook(self._provisioning_error_handler, node,
-                                      context, previous_prov_state,
+            task.set_spawn_error_hook(self._provisioning_error_handler,
+                                      node, previous_prov_state,
                                       previous_tgt_provision_state)
             task.spawn_after(self._spawn_worker, self._do_node_deploy,
                              context, task)
@@ -514,7 +513,7 @@ class ConductorManager(periodic_task.PeriodicTasks):
             else:
                 node.provision_state = new_state
         finally:
-            node.save(context)
+            node.save()
 
     @messaging.expected_exceptions(exception.NoFreeConductorWorker,
                                    exception.NodeLocked,
@@ -569,10 +568,10 @@ class ConductorManager(periodic_task.PeriodicTasks):
             node.provision_state = states.DELETING
             node.target_provision_state = states.DELETED
             node.last_error = None
-            node.save(context)
+            node.save()
 
-            task.set_spawn_error_hook(self._provisioning_error_handler, node,
-                                      context, previous_prov_state,
+            task.set_spawn_error_hook(self._provisioning_error_handler,
+                                      node, previous_prov_state,
                                       previous_tgt_provision_state)
             task.spawn_after(self._spawn_worker, self._do_node_tear_down,
                              context, task)
@@ -605,7 +604,7 @@ class ConductorManager(periodic_task.PeriodicTasks):
         finally:
             # Clean the instance_info
             node.instance_info = {}
-            node.save(context)
+            node.save()
 
     def _conductor_service_record_keepalive(self):
         while not self._keepalive_evt.is_set():
@@ -625,7 +624,7 @@ class ConductorManager(periodic_task.PeriodicTasks):
         node.power_state = actual_power_state
         node.last_error = msg
         node.maintenance = True
-        node.save(task.context)
+        node.save()
         LOG.error(msg)
 
     def _do_sync_power_state(self, task):
@@ -666,7 +665,7 @@ class ConductorManager(periodic_task.PeriodicTasks):
                          "'%(state)s'."),
                          {'node': node.uuid, 'state': power_state})
             node.power_state = power_state
-            node.save(task.context)
+            node.save()
 
         if power_state == node.power_state:
             if node.uuid in self.power_state_sync_count:
@@ -680,7 +679,7 @@ class ConductorManager(periodic_task.PeriodicTasks):
                             {'node': node.uuid, 'actual': power_state,
                              'state': node.power_state})
             node.power_state = power_state
-            node.save(task.context)
+            node.save()
             return
 
         if (self.power_state_sync_count[node.uuid] >=
@@ -897,7 +896,7 @@ class ConductorManager(periodic_task.PeriodicTasks):
             node = task.node
             if mode is not node.maintenance:
                 node.maintenance = mode
-                node.save(context)
+                node.save()
             else:
                 msg = _("The node is already in maintenance mode") if mode \
                         else _("The node is not in maintenance mode")
@@ -946,9 +945,7 @@ class ConductorManager(periodic_task.PeriodicTasks):
                 msg = (_("Node %s can't be deleted because it's not "
                          "powered off") % node.uuid)
                 raise exception.NodeInWrongPowerState(msg)
-            # FIXME(comstud): Remove context argument after we ensure
-            # every instantiation of Node includes the context
-            node.destroy(context)
+            node.destroy()
             LOG.info(_LI('Successfully deleted node %(node)s.'),
                      {'node': node.uuid})
 
@@ -1023,7 +1020,7 @@ class ConductorManager(periodic_task.PeriodicTasks):
                 task.release_resources()
             else:
                 node.last_error = None
-                node.save(context)
+                node.save()
                 task.spawn_after(self._spawn_worker,
                                  self._set_console_mode, task, enabled)
 
@@ -1047,7 +1044,7 @@ class ConductorManager(periodic_task.PeriodicTasks):
             node.console_enabled = enabled
             node.last_error = None
         finally:
-            node.save(task.context)
+            node.save()
 
     @messaging.expected_exceptions(exception.NodeLocked,
                                    exception.FailedToUpdateMacOnPort,
@@ -1082,7 +1079,7 @@ class ConductorManager(periodic_task.PeriodicTasks):
                         "address."),
                         {'port': port_uuid, 'instance': node.instance_uuid})
 
-            port_obj.save(context)
+            port_obj.save()
 
             return port_obj
 

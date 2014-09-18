@@ -122,7 +122,7 @@ def _set_failed_state(task, msg):
     node = task.node
     node.provision_state = states.DEPLOYFAIL
     node.target_provision_state = states.NOSTATE
-    node.save(task.context)
+    node.save()
     try:
         manager_utils.node_power_action(task, states.POWER_OFF)
     except Exception:
@@ -135,7 +135,7 @@ def _set_failed_state(task, msg):
         # NOTE(deva): node_power_action() erases node.last_error
         #             so we need to set it again here.
         node.last_error = msg
-        node.save(task.context)
+        node.save()
 
 
 @image_cache.cleanup(priority=25)
@@ -275,7 +275,7 @@ class AgentDeploy(base.DeployInterface):
         _cache_tftp_images(task.context, node, pxe_info)
 
         node.instance_info = build_instance_info_for_deploy(task)
-        node.save(task.context)
+        node.save()
 
     def clean_up(self, task):
         """Clean up the deployment environment for this node.
@@ -401,7 +401,7 @@ class AgentVendorInterface(base.VendorInterface):
         driver_info['agent_last_heartbeat'] = int(_time())
         driver_info['agent_url'] = kwargs['agent_url']
         node.driver_info = driver_info
-        node.save(task.context)
+        node.save()
 
         # Async call backs don't set error state on their own
         # TODO(jimrollenhagen) improve error messages here
@@ -440,7 +440,7 @@ class AgentVendorInterface(base.VendorInterface):
                   {'res': res, 'node': node.uuid})
 
         node.provision_state = states.DEPLOYING
-        node.save(task.context)
+        node.save()
 
     def _check_deploy_success(self, node):
         # should only ever be called after we've validated that
@@ -470,7 +470,7 @@ class AgentVendorInterface(base.VendorInterface):
 
         node.provision_state = states.ACTIVE
         node.target_provision_state = states.NOSTATE
-        node.save(task.context)
+        node.save()
 
     def _lookup(self, context, **kwargs):
         """Method to be called the first time a ramdisk agent checks in. This

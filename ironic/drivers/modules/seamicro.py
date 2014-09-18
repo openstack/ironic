@@ -454,7 +454,7 @@ class VendorPassthru(base.VendorInterface):
         properties = node.properties
         properties['seamicro_vlan_id'] = vlan_id
         node.properties = properties
-        node.save(task.context)
+        node.save()
 
     def _attach_volume(self, task, **kwargs):
         """Attach volume from SeaMicro storage pools for ironic to node.
@@ -490,7 +490,7 @@ class VendorPassthru(base.VendorInterface):
             properties = node.properties
             properties['seamicro_volume_id'] = volume_id
             node.properties = properties
-            node.save(task.context)
+            node.save()
 
 
 class Management(base.ManagementInterface):

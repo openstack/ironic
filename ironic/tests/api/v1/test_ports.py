@@ -316,7 +316,7 @@ class TestPatch(base.FunctionalTest):
     def test_replace_multi(self, mock_upd):
         extra = {"foo1": "bar1", "foo2": "bar2", "foo3": "bar3"}
         self.port.extra = extra
-        self.port.save(context.get_admin_context())
+        self.port.save()
 
         # mutate extra so we replace all of them
         extra = dict((k, extra[k] + 'x') for k in extra.keys())
@@ -339,7 +339,7 @@ class TestPatch(base.FunctionalTest):
     def test_remove_multi(self, mock_upd):
         extra = {"foo1": "bar1", "foo2": "bar2", "foo3": "bar3"}
         self.port.extra = extra
-        self.port.save(context.get_admin_context())
+        self.port.save()
 
         # Removing one item from the collection
         extra.pop('foo1')

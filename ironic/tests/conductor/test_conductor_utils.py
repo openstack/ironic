@@ -284,7 +284,7 @@ class CleanupAfterTimeoutTestCase(tests_base.TestCase):
     def test_cleanup_after_timeout(self):
         conductor_utils.cleanup_after_timeout(self.task)
 
-        self.node.save.assert_called_once_with(self.task.context)
+        self.node.save.assert_called_once_with()
         self.task.driver.deploy.clean_up.assert_called_once_with(self.task)
         self.assertEqual(states.DEPLOYFAIL, self.node.provision_state)
         self.assertEqual(states.NOSTATE, self.node.target_provision_state)
@@ -304,8 +304,7 @@ class CleanupAfterTimeoutTestCase(tests_base.TestCase):
         conductor_utils.cleanup_after_timeout(self.task)
 
         self.task.driver.deploy.clean_up.assert_called_once_with(self.task)
-        self.assertEqual([mock.call(self.task.context)] * 2,
-                         self.node.save.call_args_list)
+        self.assertEqual([mock.call()] * 2, self.node.save.call_args_list)
         self.assertEqual(states.DEPLOYFAIL, self.node.provision_state)
         self.assertEqual(states.NOSTATE, self.node.target_provision_state)
         self.assertIn('moocow', self.node.last_error)
@@ -317,8 +316,7 @@ class CleanupAfterTimeoutTestCase(tests_base.TestCase):
         conductor_utils.cleanup_after_timeout(self.task)
 
         self.task.driver.deploy.clean_up.assert_called_once_with(self.task)
-        self.assertEqual([mock.call(self.task.context)] * 2,
-                         self.node.save.call_args_list)
+        self.assertEqual([mock.call()] * 2, self.node.save.call_args_list)
         self.assertEqual(states.DEPLOYFAIL, self.node.provision_state)
         self.assertEqual(states.NOSTATE, self.node.target_provision_state)
         self.assertIn('Deploy timed out', self.node.last_error)

@@ -162,7 +162,7 @@ def rm_node_capability(task, capability):
     new_cap_str = ",".join(caps)
     properties['capabilities'] = new_cap_str if new_cap_str else None
     node.properties = properties
-    node.save(task.context)
+    node.save()
 
 
 def add_node_capability(task, capability, value):
@@ -189,7 +189,7 @@ def add_node_capability(task, capability, value):
 
     properties['capabilities'] = capabilities
     node.properties = properties
-    node.save(task.context)
+    node.save()
 
 
 def validate_boot_mode_capability(node):

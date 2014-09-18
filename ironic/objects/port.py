@@ -152,7 +152,7 @@ class Port(base.IronicObject):
                         Unfortunately, RPC requires context as the first
                         argument, even though we don't use it.
                         A context should be set when instantiating the
-                        object, e.g.: Port(context=context)
+                        object, e.g.: Port(context)
 
         """
         values = self.obj_get_changes()
@@ -168,7 +168,7 @@ class Port(base.IronicObject):
                         Unfortunately, RPC requires context as the first
                         argument, even though we don't use it.
                         A context should be set when instantiating the
-                        object, e.g.: Port(context=context)
+                        object, e.g.: Port(context)
         """
         self.dbapi.destroy_port(self.id)
         self.obj_reset_changes()
@@ -180,8 +180,12 @@ class Port(base.IronicObject):
         Updates will be made column by column based on the result
         of self.what_changed().
 
-        :param context: Security context. NOTE: This is only used
-                        internally by the indirection_api.
+        :param context: Security context. NOTE: This should only
+                        be used internally by the indirection_api.
+                        Unfortunately, RPC requires context as the first
+                        argument, even though we don't use it.
+                        A context should be set when instantiating the
+                        object, e.g.: Port(context)
         """
         updates = self.obj_get_changes()
         self.dbapi.update_port(self.uuid, updates)
@@ -196,10 +200,14 @@ class Port(base.IronicObject):
         checks for updated attributes. Updates are applied from
         the loaded port column by column, if there are any updates.
 
-        :param context: Security context. NOTE: This is only used
-                        internally by the indirection_api.
+        :param context: Security context. NOTE: This should only
+                        be used internally by the indirection_api.
+                        Unfortunately, RPC requires context as the first
+                        argument, even though we don't use it.
+                        A context should be set when instantiating the
+                        object, e.g.: Port(context)
         """
-        current = self.__class__.get_by_uuid(context, uuid=self.uuid)
+        current = self.__class__.get_by_uuid(self._context, uuid=self.uuid)
         for field in self.fields:
             if (hasattr(self, base.get_attrname(field)) and
                     self[field] != current[field]):

@@ -996,7 +996,7 @@ class MiscTestCase(_ServiceSetUpMixin, tests_db_base.DbTestCase):
                                 self.context, node.uuid, True)
         # Compare true exception hidden by @messaging.expected_exceptions
         self.assertEqual(exception.NodeMaintenanceFailure, exc.exc_info[0])
-        node.refresh(self.context)
+        node.refresh()
         self.assertTrue(node.maintenance)
 
     def test_maintenance_mode_off_failed(self):
@@ -1006,7 +1006,7 @@ class MiscTestCase(_ServiceSetUpMixin, tests_db_base.DbTestCase):
                                 self.context, node.uuid, False)
         # Compare true exception hidden by @messaging.expected_exceptions
         self.assertEqual(exception.NodeMaintenanceFailure, exc.exc_info[0])
-        node.refresh(self.context)
+        node.refresh()
         self.assertFalse(node.maintenance)
 
 
@@ -1271,7 +1271,7 @@ class UpdatePortTestCase(_ServiceSetUpMixin, tests_db_base.DbTestCase):
                                 self.context, port)
         # Compare true exception hidden by @messaging.expected_exceptions
         self.assertEqual(exception.FailedToUpdateMacOnPort, exc.exc_info[0])
-        port.refresh(self.context)
+        port.refresh()
         self.assertEqual(old_address, port.address)
 
     @mock.patch('ironic.dhcp.neutron.NeutronDHCPApi.update_port_address')
@@ -1523,7 +1523,7 @@ class ManagerDoSyncPowerStateTestCase(tests_base.TestCase):
 
         self.power.validate.assert_called_once_with(self.task)
         self.power.get_power_state.assert_called_once_with(self.task)
-        self.node.save.assert_called_once_with(self.context)
+        self.node.save.assert_called_once_with()
         self.assertFalse(node_power_action.called)
         self.assertEqual(states.POWER_ON, self.node.power_state)
 
@@ -1564,7 +1564,7 @@ class ManagerDoSyncPowerStateTestCase(tests_base.TestCase):
 
         self.assertFalse(self.power.validate.called)
         self.power.get_power_state.assert_called_once_with(self.task)
-        self.node.save.assert_called_once_with(self.context)
+        self.node.save.assert_called_once_with()
         self.assertFalse(node_power_action.called)
         self.assertEqual(states.POWER_OFF, self.node.power_state)
 
@@ -1606,7 +1606,7 @@ class ManagerDoSyncPowerStateTestCase(tests_base.TestCase):
         power_exp_calls = [mock.call(self.task)] * 2
         self.assertEqual(power_exp_calls,
                          self.power.get_power_state.call_args_list)
-        self.node.save.assert_called_once_with(self.context)
+        self.node.save.assert_called_once_with()
         node_power_action.assert_called_once_with(self.task, states.POWER_ON)
         self.assertEqual(states.POWER_OFF, self.node.power_state)
         self.assertEqual(1,
@@ -1625,7 +1625,7 @@ class ManagerDoSyncPowerStateTestCase(tests_base.TestCase):
         power_exp_calls = [mock.call(self.task)] * 3
         self.assertEqual(power_exp_calls,
                          self.power.get_power_state.call_args_list)
-        self.node.save.assert_called_once_with(self.context)
+        self.node.save.assert_called_once_with()
         npa_exp_calls = [mock.call(self.task, states.POWER_ON)] * 2
         self.assertEqual(npa_exp_calls, node_power_action.call_args_list)
         self.assertEqual(states.POWER_OFF, self.node.power_state)

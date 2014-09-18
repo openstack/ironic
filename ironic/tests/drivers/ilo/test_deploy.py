@@ -246,7 +246,7 @@ class IloVirtualMediaIscsiDeployTestCase(base.TestCase):
                     task.node)
             check_image_size_mock.assert_called_once_with(task)
             expected_ramdisk_opts = {'a': 'b', 'BOOTIF': '12:34:56:78:90:ab'}
-            build_opts_mock.assert_called_once_with(task.node, task.context)
+            build_opts_mock.assert_called_once_with(task.node)
             get_nic_mock.assert_called_once_with(task)
             reboot_into_mock.assert_called_once_with(task, 'glance:deploy-iso',
                                                      expected_ramdisk_opts)

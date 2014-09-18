@@ -122,7 +122,7 @@ class Chassis(base.IronicObject):
                         Unfortunately, RPC requires context as the first
                         argument, even though we don't use it.
                         A context should be set when instantiating the
-                        object, e.g.: Chassis(context=context)
+                        object, e.g.: Chassis(context)
 
         """
         values = self.obj_get_changes()
@@ -138,7 +138,7 @@ class Chassis(base.IronicObject):
                         Unfortunately, RPC requires context as the first
                         argument, even though we don't use it.
                         A context should be set when instantiating the
-                        object, e.g.: Chassis(context=context)
+                        object, e.g.: Chassis(context)
         """
         self.dbapi.destroy_chassis(self.id)
         self.obj_reset_changes()
@@ -150,8 +150,12 @@ class Chassis(base.IronicObject):
         Updates will be made column by column based on the result
         of self.what_changed().
 
-        :param context: Security context. NOTE: This is only used
-                        internally by the indirection_api.
+        :param context: Security context. NOTE: This should only
+                        be used internally by the indirection_api.
+                        Unfortunately, RPC requires context as the first
+                        argument, even though we don't use it.
+                        A context should be set when instantiating the
+                        object, e.g.: Chassis(context)
         """
         updates = self.obj_get_changes()
         self.dbapi.update_chassis(self.uuid, updates)
@@ -166,8 +170,12 @@ class Chassis(base.IronicObject):
         checks for updated attributes. Updates are applied from
         the loaded chassis column by column, if there are any updates.
 
-        :param context: Security context. NOTE: This is only used
-                        internally by the indirection_api.
+        :param context: Security context. NOTE: This should only
+                        be used internally by the indirection_api.
+                        Unfortunately, RPC requires context as the first
+                        argument, even though we don't use it.
+                        A context should be set when instantiating the
+                        object, e.g.: Chassis(context)
         """
         current = self.__class__.get_by_uuid(self._context, uuid=self.uuid)
         for field in self.fields:

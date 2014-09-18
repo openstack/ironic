@@ -266,16 +266,16 @@ class IloVirtualMediaIscsiDeploy(base.DeployInterface):
             image.
         :raises: IloOperationError, if some operation on iLO fails.
         """
+        node = task.node
         manager_utils.node_power_action(task, states.POWER_OFF)
 
-        iscsi_deploy.cache_instance_image(task.context, task.node)
+        iscsi_deploy.cache_instance_image(task.context, node)
         iscsi_deploy.check_image_size(task)
 
-        deploy_ramdisk_opts = iscsi_deploy.build_deploy_ramdisk_options(
-                task.node, task.context)
+        deploy_ramdisk_opts = iscsi_deploy.build_deploy_ramdisk_options(node)
         deploy_nic_mac = _get_single_nic_with_vif_port_id(task)
         deploy_ramdisk_opts['BOOTIF'] = deploy_nic_mac
-        deploy_iso_uuid = task.node.driver_info['ilo_deploy_iso']
+        deploy_iso_uuid = node.driver_info['ilo_deploy_iso']
         deploy_iso = 'glance:' + deploy_iso_uuid
 
         _reboot_into(task, deploy_iso, deploy_ramdisk_opts)
@@ -376,7 +376,7 @@ class IloVirtualMediaAgentDeploy(base.DeployInterface):
         """
         node = task.node
         node.instance_info = agent.build_instance_info_for_deploy(task)
-        node.save(task.context)
+        node.save()
 
     def clean_up(self, task):
         """Clean up the deployment environment for this node.
@@ -527,7 +527,7 @@ class VendorPassthru(base.VendorInterface):
             i_info = node.instance_info
             i_info['ilo_boot_iso'] = boot_iso
             node.instance_info = i_info
-            node.save(task.context)
+            node.save()
             LOG.info(_LI('Deployment to node %s done'), node.uuid)
         except Exception as e:
             LOG.error(_LE('Deploy failed for instance %(instance)s. '

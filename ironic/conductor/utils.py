@@ -61,7 +61,6 @@ def node_power_action(task, state):
 
     """
     node = task.node
-    context = task.context
     new_state = states.POWER_ON if state == states.REBOOT else state
 
     if state != states.REBOOT:
@@ -73,7 +72,7 @@ def node_power_action(task, state):
                     _("Failed to change power state to '%(target)s'. "
                       "Error: %(error)s") % {
                       'target': new_state, 'error': e}
-                node.save(context)
+                node.save()
 
         if curr_state == new_state:
             # Neither the ironic service nor the hardware has erred. The
@@ -86,7 +85,7 @@ def node_power_action(task, state):
             # This isn't an error, so we'll clear last_error field
             # (from previous operation), log a warning, and return.
             node['last_error'] = None
-            node.save(context)
+            node.save()
             LOG.warn(_LW("Not going to change_node_power_state because "
                          "current state = requested state = '%(state)s'."),
                      {'state': curr_state})
@@ -102,7 +101,7 @@ def node_power_action(task, state):
     # and clients that work is in progress.
     node['target_power_state'] = new_state
     node['last_error'] = None
-    node.save(context)
+    node.save()
 
     # take power action
     try:
@@ -124,7 +123,7 @@ def node_power_action(task, state):
                  {'node': node.uuid, 'state': new_state})
     finally:
         node['target_power_state'] = states.NOSTATE
-        node.save(context)
+        node.save()
 
 
 @task_manager.require_exclusive_lock
@@ -134,14 +133,13 @@ def cleanup_after_timeout(task):
     :param task: a TaskManager instance.
     """
     node = task.node
-    context = task.context
     node.provision_state = states.DEPLOYFAIL
     node.target_provision_state = states.NOSTATE
     msg = (_('Timeout reached while waiting for callback for node %s')
              % node.uuid)
     node.last_error = msg
     LOG.error(msg)
-    node.save(context)
+    node.save()
 
     error_msg = _('Cleanup failed for node %(node)s after deploy timeout: '
                   ' %(error)s')
@@ -151,11 +149,11 @@ def cleanup_after_timeout(task):
         msg = error_msg % {'node': node.uuid, 'error': e}
         LOG.error(msg)
         node.last_error = msg
-        node.save(context)
+        node.save()
     except Exception as e:
         msg = error_msg % {'node': node.uuid, 'error': e}
         LOG.error(msg)
         node.last_error = _('Deploy timed out, but an unhandled exception was '
                             'encountered while aborting. More info may be '
                             'found in the log file.')
-        node.save(context)
+        node.save()

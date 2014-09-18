@@ -187,7 +187,7 @@ class Node(base.IronicObject):
                         Unfortunately, RPC requires context as the first
                         argument, even though we don't use it.
                         A context should be set when instantiating the
-                        object, e.g.: Node(context=context)
+                        object, e.g.: Node(context)
 
         """
         values = self.obj_get_changes()
@@ -203,7 +203,7 @@ class Node(base.IronicObject):
                         Unfortunately, RPC requires context as the first
                         argument, even though we don't use it.
                         A context should be set when instantiating the
-                        object, e.g.: Node(context=context)
+                        object, e.g.: Node(context)
         """
         self.dbapi.destroy_node(self.id)
         self.obj_reset_changes()
@@ -217,8 +217,12 @@ class Node(base.IronicObject):
         it will be checked against the in-database copy of the
         node before updates are made.
 
-        :param context: Security context. NOTE: This is only used
-                        internally by the indirection_api.
+        :param context: Security context. NOTE: This should only
+                        be used internally by the indirection_api.
+                        Unfortunately, RPC requires context as the first
+                        argument, even though we don't use it.
+                        A context should be set when instantiating the
+                        object, e.g.: Node(context)
         """
         updates = self.obj_get_changes()
         self.dbapi.update_node(self.uuid, updates)
@@ -228,8 +232,12 @@ class Node(base.IronicObject):
     def refresh(self, context=None):
         """Refresh the object by re-fetching from the DB.
 
-        :param context: Security context. NOTE: This is only used
-                        internally by the indirection_api.
+        :param context: Security context. NOTE: This should only
+                        be used internally by the indirection_api.
+                        Unfortunately, RPC requires context as the first
+                        argument, even though we don't use it.
+                        A context should be set when instantiating the
+                        object, e.g.: Node(context)
         """
         current = self.__class__.get_by_uuid(self._context, self.uuid)
         for field in self.fields:

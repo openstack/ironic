@@ -56,9 +56,22 @@ class Conductor(base.IronicObject):
                 _('Cannot update a conductor record directly.'))
 
     @base.remotable
-    def refresh(self, context):
-        current = self.__class__.get_by_hostname(context,
-                                               hostname=self.hostname)
+    def refresh(self, context=None):
+        """Loads and applies updates for this Conductor.
+
+        Loads a :class:`Conductor` with the same uuid from the database and
+        checks for updated attributes. Updates are applied from
+        the loaded chassis column by column, if there are any updates.
+
+        :param context: Security context. NOTE: This should only
+                        be used internally by the indirection_api.
+                        Unfortunately, RPC requires context as the first
+                        argument, even though we don't use it.
+                        A context should be set when instantiating the
+                        object, e.g.: Conductor(context)
+        """
+        current = self.__class__.get_by_hostname(self._context,
+                                                 hostname=self.hostname)
         for field in self.fields:
             if (hasattr(self, base.get_attrname(field)) and
                     self[field] != current[field]):

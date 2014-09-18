@@ -380,7 +380,7 @@ class _TestObject(object):
         obj = MyObj.query(self.context)
         obj.foo = 123
         self.assertEqual(set(['foo']), obj.obj_what_changed())
-        obj.save(self.context)
+        obj.save()
         self.assertEqual(set([]), obj.obj_what_changed())
         self.assertEqual(123, obj.foo)
         self.assertRemotes()
@@ -389,7 +389,7 @@ class _TestObject(object):
         obj = MyObj.query(self.context)
         obj.foo = 123
         self.assertEqual(set(['foo']), obj.obj_what_changed())
-        obj.refresh(self.context)
+        obj.refresh()
         self.assertEqual(set([]), obj.obj_what_changed())
         self.assertEqual(321, obj.foo)
         self.assertEqual('refreshed', obj.bar)

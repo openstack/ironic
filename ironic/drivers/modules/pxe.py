@@ -179,8 +179,7 @@ def _build_pxe_config_options(node, pxe_info, ctx):
         'tftp_server': CONF.pxe.tftp_server
     }
 
-    deploy_ramdisk_options = iscsi_deploy.build_deploy_ramdisk_options(node,
-            ctx)
+    deploy_ramdisk_options = iscsi_deploy.build_deploy_ramdisk_options(node)
     pxe_options.update(deploy_ramdisk_options)
     return pxe_options
 
@@ -234,7 +233,7 @@ def _get_image_info(node, ctx):
         for label in labels:
             i_info[label] = str(iproperties[label + '_id']).split('/')[-1]
         node.instance_info = i_info
-        node.save(ctx)
+        node.save()
 
     for label in labels:
         image_info[label] = (
@@ -479,7 +478,7 @@ class VendorPassthru(base.VendorInterface):
             LOG.info(_LI('Deployment to node %s done'), node.uuid)
             node.provision_state = states.ACTIVE
             node.target_provision_state = states.NOSTATE
-            node.save(task.context)
+            node.save()
         except Exception as e:
 
             LOG.error(_LE('Deploy failed for instance %(instance)s. '

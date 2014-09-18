@@ -586,7 +586,7 @@ class PXEDriverTestCase(db_base.DbTestCase):
             task.driver.vendor.vendor_passthru(
                     task, method='pass_deploy_info', address='123456',
                     iqn='aaa-bbb', key='fake-56789')
-        self.node.refresh(self.context)
+        self.node.refresh()
         self.assertEqual(states.ACTIVE, self.node.provision_state)
         self.assertEqual(states.POWER_ON, self.node.power_state)
         self.assertIsNone(self.node.last_error)
@@ -616,7 +616,7 @@ class PXEDriverTestCase(db_base.DbTestCase):
             task.driver.vendor.vendor_passthru(
                     task, method='pass_deploy_info', address='123456',
                     iqn='aaa-bbb', key='fake-56789')
-        self.node.refresh(self.context)
+        self.node.refresh()
         self.assertEqual(states.DEPLOYFAIL, self.node.provision_state)
         self.assertEqual(states.POWER_OFF, self.node.power_state)
         self.assertIsNotNone(self.node.last_error)
@@ -643,7 +643,7 @@ class PXEDriverTestCase(db_base.DbTestCase):
                     task, method='pass_deploy_info', address='123456',
                     iqn='aaa-bbb', key='fake-56789',
                     error='test ramdisk error')
-        self.node.refresh(self.context)
+        self.node.refresh()
         self.assertEqual(states.DEPLOYFAIL, self.node.provision_state)
         self.assertEqual(states.POWER_OFF, self.node.power_state)
         self.assertIsNotNone(self.node.last_error)
@@ -661,7 +661,7 @@ class PXEDriverTestCase(db_base.DbTestCase):
                     task, method='pass_deploy_info', address='123456',
                     iqn='aaa-bbb', key='fake-56789',
                     error='test ramdisk error')
-        self.node.refresh(self.context)
+        self.node.refresh()
         self.assertEqual('FAKE', self.node.provision_state)
         self.assertEqual(states.POWER_ON, self.node.power_state)
 
