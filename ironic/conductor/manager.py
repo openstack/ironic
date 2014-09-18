@@ -802,8 +802,6 @@ class ConductorManager(periodic_task.PeriodicTasks):
                 raise exception.PowerStateFailure(_("Driver returns ERROR"
                                                     " state."))
         except Exception as e:
-            # TODO(rloo): change to IronicException, after
-            #             https://bugs.launchpad.net/ironic/+bug/1267693
             LOG.warning(_LW("During sync_power_state, could not get power "
                             "state for node %(node)s. Error: %(err)s."),
                             {'node': node.uuid, 'err': e})
@@ -855,8 +853,6 @@ class ConductorManager(periodic_task.PeriodicTasks):
             # so don't do that again here.
             utils.node_power_action(task, node.power_state)
         except Exception as e:
-            # TODO(rloo): change to IronicException after
-            # https://bugs.launchpad.net/ironic/+bug/1267693
             LOG.error(_LE("Failed to change power state of node %(node)s "
                           "to '%(state)s'."), {'node': node.uuid,
                                                'state': node.power_state})
