@@ -119,7 +119,7 @@ class TestPXEUtils(db_base.DbTestCase):
                                           create_link_mock):
         ip_address = '10.10.0.1'
         address = "aa:aa:aa:aa:aa:aa"
-        object_utils.create_test_port(self.context, node_uuid=self.node.uuid,
+        object_utils.create_test_port(self.context, node_id=self.node.id,
                                       address=address)
 
         provider_mock.get_ip_addresses.return_value = [ip_address]
@@ -157,7 +157,7 @@ class TestPXEUtils(db_base.DbTestCase):
     @mock.patch('ironic.common.utils.unlink_without_raise', autospec=True)
     def test_clean_up_pxe_config(self, unlink_mock, rmtree_mock):
         address = "aa:aa:aa:aa:aa:aa"
-        object_utils.create_test_port(self.context, node_uuid=self.node.uuid,
+        object_utils.create_test_port(self.context, node_id=self.node.id,
                                       address=address)
 
         with task_manager.acquire(self.context, self.node.uuid) as task:
@@ -282,7 +282,7 @@ class TestPXEUtils(db_base.DbTestCase):
         ip_address = '10.10.0.1'
         address = "aa:aa:aa:aa:aa:aa"
         properties = {'capabilities': 'boot_mode:uefi'}
-        object_utils.create_test_port(self.context, node_uuid=self.node.uuid,
+        object_utils.create_test_port(self.context, node_id=self.node.id,
                                       address=address)
 
         provider_mock.get_ip_addresses.return_value = [ip_address]
