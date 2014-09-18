@@ -337,7 +337,7 @@ class TestNeutron(base.TestCase):
         ip_address = '10.10.0.1'
         address = "aa:aa:aa:aa:aa:aa"
         expected = [ip_address]
-        object_utils.create_test_port(self.context, node_uuid=self.node.uuid,
+        object_utils.create_test_port(self.context, node_id=self.node.id,
                                       address=address)
 
         get_ip_mock.return_value = ip_address
