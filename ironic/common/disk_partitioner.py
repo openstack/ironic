@@ -13,6 +13,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import os
 import re
 
 from oslo.config import cfg
@@ -186,8 +187,10 @@ def list_partitions(device):
     :returns: list of dictionaries (one per partition) with keys:
               start, end, size (in MiB), filesystem, flags
     """
-    output = utils.execute(
-        'parted', '-s', '-m', device, 'unit', 'MiB', 'print')[0]
+    env = os.environ.copy()
+    env['LC_ALL'] = 'C'
+    output = utils.execute('parted', '-s', '-m', device, 'unit', 'MiB',
+                           'print', env_variables=env)[0]
     lines = [line for line in output.split('\n') if line.strip()][2:]
     # Example of line: 1:1.00MiB:501MiB:500MiB:ext4::boot
     fields = ('start', 'end', 'size', 'filesystem', 'flags')

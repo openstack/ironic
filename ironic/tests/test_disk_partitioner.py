@@ -15,6 +15,7 @@
 
 import fixtures
 import mock
+import os
 from testtools.matchers import HasLength
 
 from ironic.common import disk_partitioner
@@ -166,7 +167,8 @@ class DiskPartitionerTestCase(base.TestCase):
 @mock.patch.object(utils, 'execute')
 class ListPartitionsTestCase(base.TestCase):
 
-    def test_correct(self, execute_mock):
+    @mock.patch.object(os.environ, 'copy', return_value={})
+    def test_correct(self, env_mock, execute_mock):
         output = """
 BYT;
 /dev/sda:500107862016B:scsi:512:4096:msdos:ATA HGST HTS725050A7:;
@@ -180,10 +182,12 @@ BYT;
              'filesystem': '', 'flags': ''},
         ]
         execute_mock.return_value = (output, '')
+        env = {'LC_ALL': 'C'}
         result = disk_partitioner.list_partitions('/dev/fake')
         self.assertEqual(expected, result)
         execute_mock.assert_called_once_with(
-            'parted', '-s', '-m', '/dev/fake', 'unit', 'MiB', 'print')
+            'parted', '-s', '-m', '/dev/fake', 'unit', 'MiB', 'print',
+            env_variables=env)
 
     @mock.patch.object(disk_partitioner.LOG, 'warn')
     def test_incorrect(self, log_mock, execute_mock):
