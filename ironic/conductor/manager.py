@@ -1071,8 +1071,9 @@ class ConductorManager(periodic_task.PeriodicTasks):
             if 'address' in port_obj.obj_what_changed():
                 vif = port_obj.extra.get('vif_port_id')
                 if vif:
-                    api = dhcp_factory.DHCPFactory(token=context.auth_token)
-                    api.provider.update_port_address(vif, port_obj.address)
+                    api = dhcp_factory.DHCPFactory()
+                    api.provider.update_port_address(vif, port_obj.address,
+                                                     token=context.auth_token)
                 # Log warning if there is no vif_port_id and an instance
                 # is associated with the node.
                 elif node.instance_uuid:

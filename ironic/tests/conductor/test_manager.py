@@ -1254,7 +1254,8 @@ class UpdatePortTestCase(_ServiceSetUpMixin, tests_db_base.DbTestCase):
         port.address = new_address
         res = self.service.update_port(self.context, port)
         self.assertEqual(new_address, res.address)
-        mac_update_mock.assert_called_once_with('fake-id', new_address)
+        mac_update_mock.assert_called_once_with('fake-id', new_address,
+                                                token=self.context.auth_token)
 
     @mock.patch('ironic.dhcp.neutron.NeutronDHCPApi.update_port_address')
     def test_update_port_address_fail(self, mac_update_mock):

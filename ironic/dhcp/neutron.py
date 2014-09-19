@@ -54,41 +54,41 @@ CONF.register_opts(neutron_opts, group='neutron')
 LOG = logging.getLogger(__name__)
 
 
+def _build_client(token=None):
+    """Utility function to create Neutron client."""
+    params = {
+        'timeout': CONF.neutron.url_timeout,
+        'insecure': CONF.keystone_authtoken.insecure,
+        'ca_cert': CONF.keystone_authtoken.certfile,
+    }
+
+    if CONF.neutron.auth_strategy not in ['noauth', 'keystone']:
+        raise exception.ConfigInvalid(_('Neutron auth_strategy should be '
+                                        'either "noauth" or "keystone".'))
+
+    if CONF.neutron.auth_strategy == 'noauth':
+        params['endpoint_url'] = CONF.neutron.url
+        params['auth_strategy'] = 'noauth'
+    elif (CONF.neutron.auth_strategy == 'keystone' and
+          token is None):
+        params['endpoint_url'] = (CONF.neutron.url or
+                                  keystone.get_service_url('neutron'))
+        params['username'] = CONF.keystone_authtoken.admin_user
+        params['tenant_name'] = CONF.keystone_authtoken.admin_tenant_name
+        params['password'] = CONF.keystone_authtoken.admin_password
+        params['auth_url'] = (CONF.keystone_authtoken.auth_uri or '')
+    else:
+        params['token'] = token
+        params['endpoint_url'] = CONF.neutron.url
+        params['auth_strategy'] = None
+
+    return clientv20.Client(**params)
+
+
 class NeutronDHCPApi(base.BaseDHCP):
     """API for communicating to neutron 2.x API."""
 
-    def __init__(self, **kwargs):
-        token = kwargs.get('token', None)
-        self.client = None
-        params = {
-            'timeout': CONF.neutron.url_timeout,
-            'insecure': CONF.keystone_authtoken.insecure,
-            'ca_cert': CONF.keystone_authtoken.certfile,
-            }
-
-        if CONF.neutron.auth_strategy not in ['noauth', 'keystone']:
-            raise exception.ConfigInvalid(_('Neutron auth_strategy should be '
-                                            'either "noauth" or "keystone".'))
-
-        if CONF.neutron.auth_strategy == 'noauth':
-            params['endpoint_url'] = CONF.neutron.url
-            params['auth_strategy'] = 'noauth'
-        elif (CONF.neutron.auth_strategy == 'keystone' and
-                token is None):
-            params['endpoint_url'] = (CONF.neutron.url or
-                                      keystone.get_service_url('neutron'))
-            params['username'] = CONF.keystone_authtoken.admin_user
-            params['tenant_name'] = CONF.keystone_authtoken.admin_tenant_name
-            params['password'] = CONF.keystone_authtoken.admin_password
-            params['auth_url'] = (CONF.keystone_authtoken.auth_uri or '')
-        else:
-            params['token'] = token
-            params['endpoint_url'] = CONF.neutron.url
-            params['auth_strategy'] = None
-
-        self.client = clientv20.Client(**params)
-
-    def update_port_dhcp_opts(self, port_id, dhcp_options):
+    def update_port_dhcp_opts(self, port_id, dhcp_options, token=None):
         """Update a port's attributes.
 
         Update one or more DHCP options on the specified port.
@@ -104,26 +104,28 @@ class NeutronDHCPApi(base.BaseDHCP):
                           'opt_value': '123.123.123.456'},
                          {'opt_name': 'tftp-server',
                           'opt_value': '123.123.123.123'}]
+        :param token: optional auth token.
 
         :raises: FailedToUpdateDHCPOptOnPort
         """
         port_req_body = {'port': {'extra_dhcp_opts': dhcp_options}}
         try:
-            self.client.update_port(port_id, port_req_body)
+            _build_client(token).update_port(port_id, port_req_body)
         except neutron_client_exc.NeutronClientException:
             LOG.exception(_LE("Failed to update Neutron port %s."), port_id)
             raise exception.FailedToUpdateDHCPOptOnPort(port_id=port_id)
 
-    def update_port_address(self, port_id, address):
+    def update_port_address(self, port_id, address, token=None):
         """Update a port's mac address.
 
         :param port_id: Neutron port id.
         :param address: new MAC address.
+        :param token: optional auth token.
         :raises: FailedToUpdateMacOnPort
         """
         port_req_body = {'port': {'mac_address': address}}
         try:
-            self.client.update_port(port_id, port_req_body)
+            _build_client(token).update_port(port_id, port_req_body)
         except neutron_client_exc.NeutronClientException:
             LOG.exception(_LE("Failed to update MAC address on Neutron "
                               "port %s."), port_id)
@@ -151,7 +153,8 @@ class NeutronDHCPApi(base.BaseDHCP):
         failures = []
         for port_id, port_vif in vifs.items():
             try:
-                self.update_port_dhcp_opts(port_vif, options)
+                self.update_port_dhcp_opts(port_vif, options,
+                                           token=task.context.auth_token)
             except exception.FailedToUpdateDHCPOptOnPort:
                 failures.append(port_id)
 
@@ -175,21 +178,22 @@ class NeutronDHCPApi(base.BaseDHCP):
             LOG.debug("Waiting 15 seconds for Neutron.")
             time.sleep(15)
 
-    def _get_fixed_ip_address(self, port_id):
+    def _get_fixed_ip_address(self, port_uuid, client):
         """Get a port's fixed ip address.
 
-        :param port_id: Neutron port id.
+        :param port_uuid: Neutron port id.
+        :param client: Neutron client instance.
         :returns: Neutron port ip address.
         :raises: FailedToGetIPAddressOnPort
         :raises: InvalidIPv4Address
         """
         ip_address = None
         try:
-            neutron_port = self.client.show_port(port_id).get('port')
+            neutron_port = client.show_port(port_uuid).get('port')
         except neutron_client_exc.NeutronClientException:
             LOG.exception(_LE("Failed to Get IP address on Neutron port %s."),
-                          port_id)
-            raise exception.FailedToGetIPAddressOnPort(port_id=port_id)
+                          port_uuid)
+            raise exception.FailedToGetIPAddressOnPort(port_id=port_uuid)
 
         fixed_ips = neutron_port.get('fixed_ips')
 
@@ -208,14 +212,15 @@ class NeutronDHCPApi(base.BaseDHCP):
                 raise exception.InvalidIPv4Address(ip_address=ip_address)
         else:
             LOG.error(_LE("No IP address assigned to Neutron port %s."),
-                      port_id)
-            raise exception.FailedToGetIPAddressOnPort(port_id=port_id)
+                      port_uuid)
+            raise exception.FailedToGetIPAddressOnPort(port_id=port_uuid)
 
-    def _get_port_ip_address(self, task, port_id):
+    def _get_port_ip_address(self, task, port_uuid, client):
         """Get ip address of ironic port assigned by neutron.
 
         :param task: a TaskManager instance.
-        :param port_id: ironic Node's port UUID.
+        :param port_uuid: ironic Node's port UUID.
+        :param client: Neutron client instance.
         :returns:  Neutron port ip address associated with Node's port.
         :raises: FailedToGetIPAddressOnPort
         :raises: InvalidIPv4Address
@@ -226,11 +231,11 @@ class NeutronDHCPApi(base.BaseDHCP):
             LOG.warning(_LW("No VIFs found for node %(node)s when attempting "
                             " to get port IP address."),
                         {'node': task.node.uuid})
-            raise exception.FailedToGetIPAddressOnPort(port_id=port_id)
+            raise exception.FailedToGetIPAddressOnPort(port_id=port_uuid)
 
-        port_vif = vifs[port_id]
+        port_vif = vifs[port_uuid]
 
-        port_ip_address = self._get_fixed_ip_address(port_vif)
+        port_ip_address = self._get_fixed_ip_address(port_vif, client)
         return port_ip_address
 
     def get_ip_addresses(self, task):
@@ -239,11 +244,13 @@ class NeutronDHCPApi(base.BaseDHCP):
         :param task: a TaskManager instance.
         :returns: List of IP addresses associated with task.ports.
         """
+        client = _build_client(task.context.auth_token)
         failures = []
         ip_addresses = []
         for port in task.ports:
             try:
-                port_ip_address = self._get_port_ip_address(task, port.uuid)
+                port_ip_address = self._get_port_ip_address(task, port.uuid,
+                                                            client)
                 ip_addresses.append(port_ip_address)
             except (exception.FailedToGetIPAddressOnPort,
                     exception.InvalidIPv4Address):

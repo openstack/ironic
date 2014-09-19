@@ -322,7 +322,7 @@ class PXEDeploy(base.DeployInterface):
         #               to deploy ramdisk
         _create_token_file(task)
         dhcp_opts = pxe_utils.dhcp_options_for_instance(task)
-        provider = dhcp_factory.DHCPFactory(token=task.context.auth_token)
+        provider = dhcp_factory.DHCPFactory()
         provider.update_dhcp(task, dhcp_opts)
 
         # NOTE(faizan): Under UEFI boot mode, setting of boot device may differ
@@ -416,7 +416,7 @@ class PXEDeploy(base.DeployInterface):
 
     def take_over(self, task):
         dhcp_opts = pxe_utils.dhcp_options_for_instance(task)
-        provider = dhcp_factory.DHCPFactory(token=task.context.auth_token)
+        provider = dhcp_factory.DHCPFactory()
         provider.update_dhcp(task, dhcp_opts)
 
 
