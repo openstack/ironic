@@ -146,7 +146,8 @@ created in the previous section to run everything else within::
     # and switch the DB connection from sqlite to something else, eg. mysql
     # sed -i "s/#connection=.*/connection=mysql:\/\/root@localhost\/ironic/" etc/ironic/ironic.conf.local
 
-    ironic-dbsync --config-file etc/ironic/ironic.conf.local
+    # This creates the database tables.
+    ironic-dbsync --config-file etc/ironic/ironic.conf.local create_schema
 
 Start the API service in debug mode and watch its output::
 

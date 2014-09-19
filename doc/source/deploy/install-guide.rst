@@ -234,7 +234,7 @@ configured for your needs.
 
 #. Create the Bare Metal Service database tables::
 
-    ironic-dbsync --config-file /etc/ironic/ironic.conf
+    ironic-dbsync --config-file /etc/ironic/ironic.conf create_schema
 
 #. Restart the Bare Metal Service::
 
