@@ -146,7 +146,8 @@ def rm_node_capability(task, capability):
 
     """
     node = task.node
-    capabilities = node.properties.get('capabilities')
+    properties = node.properties
+    capabilities = properties.get('capabilities')
 
     if not capabilities:
         return
@@ -159,7 +160,8 @@ def rm_node_capability(task, capability):
                 continue
         caps.append(cap)
     new_cap_str = ",".join(caps)
-    node.properties['capabilities'] = new_cap_str if new_cap_str else None
+    properties['capabilities'] = new_cap_str if new_cap_str else None
+    node.properties = properties
     node.save(task.context)
 
 
@@ -175,7 +177,8 @@ def add_node_capability(task, capability, value):
 
     """
     node = task.node
-    capabilities = node.properties.get('capabilities')
+    properties = node.properties
+    capabilities = properties.get('capabilities')
 
     new_cap = ':'.join([capability, value])
 
@@ -184,7 +187,8 @@ def add_node_capability(task, capability, value):
     else:
         capabilities = new_cap
 
-    node.properties['capabilities'] = capabilities
+    properties['capabilities'] = capabilities
+    node.properties = properties
     node.save(task.context)
 
 
