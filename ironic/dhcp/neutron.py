@@ -145,10 +145,10 @@ class NeutronDHCPApi(base.BaseDHCP):
         """
         vifs = network.get_node_vif_ids(task)
         if not vifs:
-            LOG.warning(_LW("No VIFs found for node %(node)s when attempting "
-                            "to update DHCP BOOT options."),
-                        {'node': task.node.uuid})
-            return
+            raise exception.FailedToUpdateDHCPOptOnPort(
+                _("No VIFs found for node %(node)s when attempting "
+                  "to update DHCP BOOT options.") %
+                {'node': task.node.uuid})
 
         failures = []
         for port_id, port_vif in vifs.items():
