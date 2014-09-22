@@ -6,9 +6,9 @@
 #, fuzzy
 msgid ""
 msgstr ""
-"Project-Id-Version: ironic 2014.2.dev21.g5bdcb19\n"
+"Project-Id-Version: ironic 2014.2.dev98.g8576905\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2014-09-09 06:10+0000\n"
+"POT-Creation-Date: 2014-09-22 06:09+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -16,6 +16,15 @@ msgstr ""
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Generated-By: Babel 1.3\n"
+
+#: ironic/cmd/api.py:54
+#, python-format
+msgid "Serving on http://%(host)s:%(port)s"
+msgstr ""
+
+#: ironic/cmd/api.py:56
+msgid "Configuration:"
+msgstr ""
 
 #: ironic/common/driver_factory.py:121
 #, python-format
@@ -47,39 +56,87 @@ msgstr ""
 msgid "Successfully deployed node %(node)s with instance %(instance)s."
 msgstr ""
 
-#: ironic/conductor/manager.py:599
+#: ironic/conductor/manager.py:600
 #, python-format
 msgid "Successfully unprovisioned node %(node)s with instance %(instance)s."
 msgstr ""
 
-#: ironic/conductor/manager.py:951
+#: ironic/conductor/manager.py:664
+#, python-format
+msgid ""
+"During sync_power_state, node %(node)s has no previous known state. "
+"Recording current state '%(state)s'."
+msgstr ""
+
+#: ironic/conductor/manager.py:767
+#, python-format
+msgid ""
+"During sync_power_state, node %(node)s was not found and presumed deleted"
+" by another process."
+msgstr ""
+
+#: ironic/conductor/manager.py:771
+#, python-format
+msgid ""
+"During sync_power_state, node %(node)s was already locked by another "
+"process. Skip."
+msgstr ""
+
+#: ironic/conductor/manager.py:952
 #, python-format
 msgid "Successfully deleted node %(node)s."
 msgstr ""
 
-#: ironic/conductor/utils.py:116
+#: ironic/conductor/manager.py:1021
+#, python-format
+msgid "No console action was triggered because the console is already %s"
+msgstr ""
+
+#: ironic/conductor/utils.py:122
 #, python-format
 msgid "Succesfully set node %(node)s power state to %(state)s."
 msgstr ""
 
-#: ironic/drivers/modules/iscsi_deploy.py:301
+#: ironic/drivers/modules/image_cache.py:118
+#, python-format
+msgid "Master cache miss for image %(uuid)s, starting download"
+msgstr ""
+
+#: ironic/drivers/modules/image_cache.py:252
+#, python-format
+msgid ""
+"After cleaning up cache dir %(dir)s cache size %(actual)d is still larger"
+" than threshold %(expected)d"
+msgstr ""
+
+#: ironic/drivers/modules/iscsi_deploy.py:299
 #, python-format
 msgid "Continuing deployment for node %(node)s, params %(params)s"
 msgstr ""
 
-#: ironic/drivers/modules/pxe.py:472 ironic/drivers/modules/ilo/deploy.py:452
+#: ironic/drivers/modules/pxe.py:479 ironic/drivers/modules/ilo/deploy.py:531
 #, python-format
 msgid "Deployment to node %s done"
 msgstr ""
 
-#: ironic/drivers/modules/ilo/common.py:255
+#: ironic/drivers/modules/ilo/common.py:259
 #, python-format
 msgid "Attached virtual media %s successfully."
 msgstr ""
 
-#: ironic/drivers/modules/ilo/common.py:275
+#: ironic/drivers/modules/ilo/common.py:301
 #, python-format
-msgid "Node %(uuid)s set to boot from %(device)s."
+msgid "Node %(uuid)s pending boot mode is %(boot_mode)s."
+msgstr ""
+
+#: ironic/drivers/modules/ilo/common.py:313
+#, python-format
+msgid "Node %(uuid)s boot mode is set to %(boot_mode)s."
+msgstr ""
+
+#: ironic/drivers/modules/ilo/common.py:360
+#, python-format
+msgid "Setting up node %s to boot from virtual media"
 msgstr ""
 
 #: ironic/openstack/common/eventlet_backdoor.py:140
