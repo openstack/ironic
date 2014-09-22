@@ -300,7 +300,7 @@ class IloVirtualMediaAgentDeployTestCase(base.TestCase):
 
             returned_state = task.driver.deploy.deploy(task)
 
-            build_options_mock.assert_called_once_with()
+            build_options_mock.assert_called_once_with(task.node)
             reboot_into_mock.assert_called_once_with(task,
                                                      'glance:deploy-iso-uuid',
                                                      deploy_opts)
