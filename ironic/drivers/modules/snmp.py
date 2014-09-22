@@ -45,9 +45,11 @@ from ironic.openstack.common import loopingcall
 pysnmp = importutils.try_import('pysnmp')
 if pysnmp:
     from pysnmp.entity.rfc3413.oneliner import cmdgen
+    from pysnmp import error as snmp_error
     from pysnmp.proto import rfc1902
 else:
     cmdgen = None
+    snmp_error = None
     rfc1902 = None
 
 opts = [
@@ -124,6 +126,7 @@ class SNMPClient(object):
 
         :returns: A :class:
             `pysnmp.entity.rfc3413.oneliner.cmdgen.UdpTransportTarget` object.
+        :raises: snmp_error.PySnmpError if the transport address is bad.
         """
         # The transport target accepts timeout and retries parameters, which
         # default to 1 (second) and 5 respectively. These are deemed sensible
@@ -137,8 +140,13 @@ class SNMPClient(object):
         :raises: SNMPFailure if an SNMP request fails.
         :returns: The value of the requested object.
         """
-        results = self.cmd_gen.getCmd(self._get_auth(), self._get_transport(),
-                                      oid)
+        try:
+            results = self.cmd_gen.getCmd(self._get_auth(),
+                                          self._get_transport(),
+                                          oid)
+        except snmp_error.PySnmpError as e:
+            raise exception.SNMPFailure(operation="GET", error=e)
+
         error_indication, error_status, error_index, var_binds = results
 
         if error_indication:
@@ -162,8 +170,13 @@ class SNMPClient(object):
         :param value: The value of the object to set.
         :raises: SNMPFailure if an SNMP request fails.
         """
-        results = self.cmd_gen.setCmd(self._get_auth(), self._get_transport(),
-                                      (oid, value))
+        try:
+            results = self.cmd_gen.setCmd(self._get_auth(),
+                                          self._get_transport(),
+                                          (oid, value))
+        except snmp_error.PySnmpError as e:
+            raise exception.SNMPFailure(operation="SET", error=e)
+
         error_indication, error_status, error_index, var_binds = results
 
         if error_indication:
