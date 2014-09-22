@@ -180,7 +180,8 @@ class TestNeutron(base.TestCase):
         with task_manager.acquire(self.context,
                                   self.node.uuid) as task:
             api = dhcp_factory.DHCPFactory()
-            api.update_dhcp(task, self.node)
+            self.assertRaises(exception.FailedToUpdateDHCPOptOnPort,
+                              api.update_dhcp, task, self.node)
         self.assertFalse(mock_updo.called)
 
     @mock.patch('ironic.dhcp.neutron.NeutronDHCPApi.update_port_dhcp_opts')
