@@ -43,7 +43,7 @@ class MyObj(base.IronicObject):
 
     @base.remotable_classmethod
     def query(cls, context):
-        obj = cls()
+        obj = cls(context)
         obj.foo = 1
         obj.bar = 'bar'
         obj.obj_reset_changes()
@@ -124,6 +124,11 @@ class TestMetaclass(test_base.TestCase):
 
 
 class TestUtils(test_base.TestCase):
+
+    def setUp(self):
+        super(TestUtils, self).setUp()
+        self.context = context.get_admin_context()
+
     def test_datetime_or_none(self):
         naive_dt = datetime.datetime.now()
         dt = timeutils.parse_isotime(timeutils.isotime(naive_dt))
@@ -187,12 +192,12 @@ class TestUtils(test_base.TestCase):
     def test_obj_to_primitive_list(self):
         class MyList(base.ObjectListBase, base.IronicObject):
             pass
-        mylist = MyList()
+        mylist = MyList(self.context)
         mylist.objects = [1, 2, 3]
         self.assertEqual([1, 2, 3], base.obj_to_primitive(mylist))
 
     def test_obj_to_primitive_dict(self):
-        myobj = MyObj()
+        myobj = MyObj(self.context)
         myobj.foo = 1
         myobj.bar = 'foo'
         self.assertEqual({'foo': 1, 'bar': 'foo'},
@@ -202,8 +207,8 @@ class TestUtils(test_base.TestCase):
         class MyList(base.ObjectListBase, base.IronicObject):
             pass
 
-        mylist = MyList()
-        mylist.objects = [MyObj(), MyObj()]
+        mylist = MyList(self.context)
+        mylist.objects = [MyObj(self.context), MyObj(self.context)]
         for i, value in enumerate(mylist):
             value.foo = i
         self.assertEqual([{'foo': 0}, {'foo': 1}],
@@ -266,13 +271,13 @@ class _TestObject(object):
                     'ironic_object.namespace': 'ironic',
                     'ironic_object.version': '1.5',
                     'ironic_object.data': {'foo': 1}}
-        obj = MyObj()
+        obj = MyObj(self.context)
         obj.foo = 1
         obj.obj_reset_changes()
         self.assertEqual(expected, obj.obj_to_primitive())
 
     def test_get_updates(self):
-        obj = MyObj()
+        obj = MyObj(self.context)
         self.assertEqual({}, obj.obj_get_changes())
         obj.foo = 123
         self.assertEqual({'foo': 123}, obj.obj_get_changes())
@@ -282,18 +287,18 @@ class _TestObject(object):
         self.assertEqual({}, obj.obj_get_changes())
 
     def test_object_property(self):
-        obj = MyObj(foo=1)
+        obj = MyObj(self.context, foo=1)
         self.assertEqual(1, obj.foo)
 
     def test_object_property_type_error(self):
-        obj = MyObj()
+        obj = MyObj(self.context)
 
         def fail():
             obj.foo = 'a'
         self.assertRaises(ValueError, fail)
 
     def test_object_dict_syntax(self):
-        obj = MyObj()
+        obj = MyObj(self.context)
         obj.foo = 123
         obj.bar = 'bar'
         self.assertEqual(123, obj['foo'])
@@ -303,13 +308,13 @@ class _TestObject(object):
                          sorted(list(obj.iteritems()), key=lambda x: x[0]))
 
     def test_load(self):
-        obj = MyObj()
+        obj = MyObj(self.context)
         self.assertEqual('loaded!', obj.bar)
 
     def test_load_in_base(self):
         class Foo(base.IronicObject):
             fields = {'foobar': int}
-        obj = Foo()
+        obj = Foo(self.context)
         # NOTE(danms): Can't use assertRaisesRegexp() because of py26
         raised = False
         try:
@@ -320,7 +325,7 @@ class _TestObject(object):
         self.assertTrue('foobar' in str(ex))
 
     def test_loaded_in_primitive(self):
-        obj = MyObj()
+        obj = MyObj(self.context)
         obj.foo = 1
         obj.obj_reset_changes()
         self.assertEqual('loaded!', obj.bar)
@@ -333,7 +338,7 @@ class _TestObject(object):
         self.assertEqual(expected, obj.obj_to_primitive())
 
     def test_changes_in_primitive(self):
-        obj = MyObj()
+        obj = MyObj(self.context)
         obj.foo = 123
         self.assertEqual(set(['foo']), obj.obj_what_changed())
         primitive = obj.obj_to_primitive()
@@ -416,7 +421,7 @@ class _TestObject(object):
 
     def test_base_attributes(self):
         dt = datetime.datetime(1955, 11, 5)
-        obj = MyObj()
+        obj = MyObj(self.context)
         obj.created_at = dt
         obj.updated_at = dt
         expected = {'ironic_object.name': 'MyObj',
@@ -437,20 +442,20 @@ class _TestObject(object):
         self.assertEqual(expected, actual)
 
     def test_contains(self):
-        obj = MyObj()
+        obj = MyObj(self.context)
         self.assertFalse('foo' in obj)
         obj.foo = 1
         self.assertTrue('foo' in obj)
         self.assertFalse('does_not_exist' in obj)
 
     def test_obj_attr_is_set(self):
-        obj = MyObj(foo=1)
+        obj = MyObj(self.context, foo=1)
         self.assertTrue(obj.obj_attr_is_set('foo'))
         self.assertFalse(obj.obj_attr_is_set('bar'))
         self.assertRaises(AttributeError, obj.obj_attr_is_set, 'bang')
 
     def test_get(self):
-        obj = MyObj(foo=1)
+        obj = MyObj(self.context, foo=1)
         # Foo has value, should not get the default
         self.assertEqual(obj.get('foo', 2), 1)
         # Foo has value, should return the value without error
@@ -479,7 +484,7 @@ class _TestObject(object):
                          set(TestSubclassedObject.fields.keys()))
 
     def test_get_changes(self):
-        obj = MyObj()
+        obj = MyObj(self.context)
         self.assertEqual({}, obj.obj_get_changes())
         obj.foo = 123
         self.assertEqual({'foo': 123}, obj.obj_get_changes())
@@ -497,12 +502,12 @@ class _TestObject(object):
             def bar(self):
                 return 'this is bar'
 
-        obj = TestObj()
+        obj = TestObj(self.context)
         self.assertEqual(set(['created_at', 'updated_at', 'foo', 'bar']),
                          set(obj.obj_fields))
 
     def test_obj_constructor(self):
-        obj = MyObj(context=self.context, foo=123, bar='abc')
+        obj = MyObj(self.context, foo=123, bar='abc')
         self.assertEqual(123, obj.foo)
         self.assertEqual('abc', obj.bar)
         self.assertEqual(set(['foo', 'bar']), obj.obj_what_changed())
@@ -513,11 +518,16 @@ class TestObject(_LocalTest, _TestObject):
 
 
 class TestObjectListBase(test_base.TestCase):
+
+    def setUp(self):
+        super(TestObjectListBase, self).setUp()
+        self.context = context.get_admin_context()
+
     def test_list_like_operations(self):
         class Foo(base.ObjectListBase, base.IronicObject):
             pass
 
-        objlist = Foo()
+        objlist = Foo(self.context)
         objlist._context = 'foo'
         objlist.objects = [1, 2, 3]
         self.assertEqual(list(objlist), objlist.objects)
@@ -536,10 +546,10 @@ class TestObjectListBase(test_base.TestCase):
         class Bar(base.IronicObject):
             fields = {'foo': str}
 
-        obj = Foo()
+        obj = Foo(self.context)
         obj.objects = []
         for i in 'abc':
-            bar = Bar()
+            bar = Bar(self.context)
             bar.foo = i
             obj.objects.append(bar)
 
@@ -576,9 +586,9 @@ class TestObjectListBase(test_base.TestCase):
         class Bar(base.IronicObject):
             fields = {'foo': str}
 
-        obj = Foo(objects=[])
+        obj = Foo(self.context, objects=[])
         self.assertEqual(set(['objects']), obj.obj_what_changed())
-        obj.objects.append(Bar(foo='test'))
+        obj.objects.append(Bar(self.context, foo='test'))
         self.assertEqual(set(['objects']), obj.obj_what_changed())
         obj.obj_reset_changes()
         # This should still look dirty because the child is dirty
@@ -589,6 +599,11 @@ class TestObjectListBase(test_base.TestCase):
 
 
 class TestObjectSerializer(test_base.TestCase):
+
+    def setUp(self):
+        super(TestObjectSerializer, self).setUp()
+        self.context = context.get_admin_context()
+
     def test_serialize_entity_primitive(self):
         ser = base.IronicObjectSerializer()
         for thing in (1, 'foo', [1, 2], {'foo': 'bar'}):
@@ -601,25 +616,23 @@ class TestObjectSerializer(test_base.TestCase):
 
     def test_object_serialization(self):
         ser = base.IronicObjectSerializer()
-        ctxt = context.get_admin_context()
-        obj = MyObj()
-        primitive = ser.serialize_entity(ctxt, obj)
+        obj = MyObj(self.context)
+        primitive = ser.serialize_entity(self.context, obj)
         self.assertTrue('ironic_object.name' in primitive)
-        obj2 = ser.deserialize_entity(ctxt, primitive)
+        obj2 = ser.deserialize_entity(self.context, primitive)
         self.assertIsInstance(obj2, MyObj)
-        self.assertEqual(ctxt, obj2._context)
+        self.assertEqual(self.context, obj2._context)
 
     def test_object_serialization_iterables(self):
         ser = base.IronicObjectSerializer()
-        ctxt = context.get_admin_context()
-        obj = MyObj()
+        obj = MyObj(self.context)
         for iterable in (list, tuple, set):
             thing = iterable([obj])
-            primitive = ser.serialize_entity(ctxt, thing)
+            primitive = ser.serialize_entity(self.context, thing)
             self.assertEqual(1, len(primitive))
             for item in primitive:
                 self.assertFalse(isinstance(item, base.IronicObject))
-            thing2 = ser.deserialize_entity(ctxt, primitive)
+            thing2 = ser.deserialize_entity(self.context, primitive)
             self.assertEqual(1, len(thing2))
             for item in thing2:
                 self.assertIsInstance(item, MyObj)

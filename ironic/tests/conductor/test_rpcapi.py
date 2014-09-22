@@ -54,7 +54,7 @@ class RPCAPITestCase(base.DbTestCase):
         self.dbapi = dbapi.get_instance()
         self.fake_node = dbutils.get_test_node(driver='fake-driver')
         self.fake_node_obj = objects.Node._from_db_object(
-                                                    objects.Node(),
+                                                    objects.Node(self.context),
                                                     self.fake_node)
 
     def test_serialized_instance_has_uuid(self):

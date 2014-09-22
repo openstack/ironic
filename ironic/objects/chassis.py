@@ -73,7 +73,7 @@ class Chassis(base.IronicObject):
         :returns: a :class:`Chassis` object.
         """
         db_chassis = cls.dbapi.get_chassis_by_id(chassis_id)
-        chassis = Chassis._from_db_object(cls(), db_chassis)
+        chassis = Chassis._from_db_object(cls(context), db_chassis)
         # FIXME(comstud): Setting of the context should be moved to
         # _from_db_object().
         chassis._context = context
@@ -88,7 +88,7 @@ class Chassis(base.IronicObject):
         :returns: a :class:`Chassis` object.
         """
         db_chassis = cls.dbapi.get_chassis_by_uuid(uuid)
-        chassis = Chassis._from_db_object(cls(), db_chassis)
+        chassis = Chassis._from_db_object(cls(context), db_chassis)
         # FIXME(comstud): Setting of the context should be moved to
         # _from_db_object().
         chassis._context = context
@@ -113,7 +113,7 @@ class Chassis(base.IronicObject):
                                                 sort_key=sort_key,
                                                 sort_dir=sort_dir)
         for obj in db_chassis:
-            chassis = Chassis._from_db_object(cls(), obj)
+            chassis = Chassis._from_db_object(cls(context), obj)
             # FIXME(comstud): Setting of the context should be moved to
             # _from_db_object().
             chassis._context = context

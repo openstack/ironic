@@ -748,7 +748,7 @@ class NodesController(rest.RestController):
             e.code = 400
             raise e
 
-        new_node = objects.Node(context=pecan.request.context,
+        new_node = objects.Node(pecan.request.context,
                                 **node.as_dict())
         new_node.create()
         # Set the HTTP Location Header
