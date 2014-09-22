@@ -137,7 +137,7 @@ def _check_port_change_forbidden(port, session):
         query = query.filter_by(id=node_id)
         node_ref = query.one()
         if node_ref['reservation'] is not None:
-            raise exception.NodeLocked(node=node_id,
+            raise exception.NodeLocked(node=node_ref['uuid'],
                                        host=node_ref['reservation'])
 
 
