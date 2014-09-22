@@ -51,14 +51,7 @@ class Port(base.IronicObject):
     @staticmethod
     def _from_db_object_list(db_objects, cls, context):
         """Converts a list of database entities to a list of formal objects."""
-        port_list = []
-        for obj in db_objects:
-            port = Port._from_db_object(cls(context), obj)
-            # FIXME(comstud): Setting of the context should be moved to
-            # _from_db_object().
-            port._context = context
-            port_list.append(port)
-        return port_list
+        return [Port._from_db_object(cls(context), obj) for obj in db_objects]
 
     @base.remotable_classmethod
     def get(cls, context, port_id):
@@ -85,9 +78,6 @@ class Port(base.IronicObject):
         """
         db_port = cls.dbapi.get_port_by_id(port_id)
         port = Port._from_db_object(cls(context), db_port)
-        # FIXME(comstud): Setting of the context should be moved to
-        # _from_db_object().
-        port._context = context
         return port
 
     @base.remotable_classmethod
@@ -100,9 +90,6 @@ class Port(base.IronicObject):
         """
         db_port = cls.dbapi.get_port_by_uuid(uuid)
         port = Port._from_db_object(cls(context), db_port)
-        # FIXME(comstud): Setting of the context should be moved to
-        # _from_db_object().
-        port._context = context
         return port
 
     @base.remotable_classmethod
@@ -115,9 +102,6 @@ class Port(base.IronicObject):
         """
         db_port = cls.dbapi.get_port_by_address(address)
         port = Port._from_db_object(cls(context), db_port)
-        # FIXME(comstud): Setting of the context should be moved to
-        # _from_db_object().
-        port._context = context
         return port
 
     @base.remotable_classmethod

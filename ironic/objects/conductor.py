@@ -48,9 +48,6 @@ class Conductor(base.IronicObject):
         """
         db_obj = cls.dbapi.get_conductor(hostname)
         conductor = Conductor._from_db_object(cls(context), db_obj)
-        # FIXME(comstud): Setting of the context should be moved to
-        # _from_db_object().
-        conductor._context = context
         return conductor
 
     def save(self, context):

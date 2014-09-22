@@ -38,9 +38,10 @@ class TestChassisObject(base.DbTestCase):
                                autospec=True) as mock_get_chassis:
             mock_get_chassis.return_value = self.fake_chassis
 
-            objects.Chassis.get(self.context, chassis_id)
+            chassis = objects.Chassis.get(self.context, chassis_id)
 
             mock_get_chassis.assert_called_once_with(chassis_id)
+            self.assertEqual(self.context, chassis._context)
 
     def test_get_by_uuid(self):
         uuid = self.fake_chassis['uuid']
@@ -48,9 +49,10 @@ class TestChassisObject(base.DbTestCase):
                                autospec=True) as mock_get_chassis:
             mock_get_chassis.return_value = self.fake_chassis
 
-            objects.Chassis.get(self.context, uuid)
+            chassis = objects.Chassis.get(self.context, uuid)
 
             mock_get_chassis.assert_called_once_with(uuid)
+            self.assertEqual(self.context, chassis._context)
 
     def test_get_bad_id_and_uuid(self):
         self.assertRaises(exception.InvalidIdentity,
@@ -71,6 +73,7 @@ class TestChassisObject(base.DbTestCase):
                 mock_get_chassis.assert_called_once_with(uuid)
                 mock_update_chassis.assert_called_once_with(
                         uuid, {'extra': {"test": 123}})
+                self.assertEqual(self.context, c._context)
 
     def test_refresh(self):
         uuid = self.fake_chassis['uuid']
@@ -86,6 +89,7 @@ class TestChassisObject(base.DbTestCase):
             c.refresh()
             self.assertEqual(new_uuid, c.uuid)
             self.assertEqual(expected, mock_get_chassis.call_args_list)
+            self.assertEqual(self.context, c._context)
 
     def test_list(self):
         with mock.patch.object(self.dbapi, 'get_chassis_list',
@@ -94,3 +98,4 @@ class TestChassisObject(base.DbTestCase):
             chassis = objects.Chassis.list(self.context)
             self.assertThat(chassis, HasLength(1))
             self.assertIsInstance(chassis[0], objects.Chassis)
+            self.assertEqual(self.context, chassis[0]._context)
