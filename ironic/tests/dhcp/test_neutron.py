@@ -52,18 +52,16 @@ class TestNeutron(base.TestCase):
         self.node = object_utils.create_test_node(self.context)
         dhcp_factory.DHCPFactory._dhcp_provider = None
 
-    def test_invalid_auth_strategy(self):
+    def test__build_client_invalid_auth_strategy(self):
         self.config(auth_strategy='wrong_config', group='neutron')
         token = 'test-token-123'
         self.assertRaises(exception.ConfigInvalid,
-                          neutron.NeutronDHCPApi,
+                          neutron._build_client,
                           token=token)
 
-    def test_create_with_token(self):
+    @mock.patch.object(client.Client, "__init__")
+    def test__build_client_with_token(self, mock_client_init):
         token = 'test-token-123'
-        my_context = context.RequestContext(user='test-user',
-                                            tenant='test-tenant',
-                                            auth_token=token)
         expected = {'timeout': 30,
                     'insecure': False,
                     'ca_cert': 'test-file',
@@ -71,14 +69,12 @@ class TestNeutron(base.TestCase):
                     'endpoint_url': 'test-url',
                     'auth_strategy': None}
 
-        with mock.patch.object(client.Client, "__init__") as mock_client_init:
-            mock_client_init.return_value = None
-            neutron.NeutronDHCPApi(token=my_context.auth_token)
-            mock_client_init.assert_called_once_with(**expected)
+        mock_client_init.return_value = None
+        neutron._build_client(token=token)
+        mock_client_init.assert_called_once_with(**expected)
 
-    def test_create_without_token(self):
-        my_context = context.RequestContext(user='test-user',
-                                            tenant='test-tenant')
+    @mock.patch.object(client.Client, "__init__")
+    def test__build_client_without_token(self, mock_client_init):
         expected = {'timeout': 30,
                     'insecure': False,
                     'ca_cert': 'test-file',
@@ -88,26 +84,26 @@ class TestNeutron(base.TestCase):
                     'password': 'test-admin-password',
                     'auth_url': 'test-auth-uri'}
 
-        with mock.patch.object(client.Client, "__init__") as mock_client_init:
-            mock_client_init.return_value = None
-            neutron.NeutronDHCPApi(token=my_context.auth_token)
-            mock_client_init.assert_called_once_with(**expected)
+        mock_client_init.return_value = None
+        neutron._build_client(token=None)
+        mock_client_init.assert_called_once_with(**expected)
 
-    def test_create_noauth(self):
+    @mock.patch.object(client.Client, "__init__")
+    def test__build_client_noauth(self, mock_client_init):
         self.config(auth_strategy='noauth', group='neutron')
-        my_context = context.RequestContext()
         expected = {'ca_cert': 'test-file',
                     'insecure': False,
                     'endpoint_url': 'test-url',
                     'timeout': 30,
                     'auth_strategy': 'noauth'}
 
-        with mock.patch.object(client.Client, "__init__") as mock_client_init:
-            mock_client_init.return_value = None
-            neutron.NeutronDHCPApi(token=my_context.auth_token)
-            mock_client_init.assert_called_once_with(**expected)
+        mock_client_init.return_value = None
+        neutron._build_client(token=None)
+        mock_client_init.assert_called_once_with(**expected)
 
-    def test_neutron_port_update(self):
+    @mock.patch.object(client.Client, 'update_port')
+    @mock.patch.object(client.Client, "__init__")
+    def test_update_port_dhcp_opts(self, mock_client_init, mock_update_port):
         opts = [{'opt_name': 'bootfile-name',
                  'opt_value': 'pxelinux.0'},
                 {'opt_name': 'tftp-server',
@@ -116,61 +112,49 @@ class TestNeutron(base.TestCase):
                  'opt_value': '1.1.1.1'}]
         port_id = 'fake-port-id'
         expected = {'port': {'extra_dhcp_opts': opts}}
-        my_context = context.RequestContext(user='test-user',
-                                            tenant='test-tenant')
 
-        with mock.patch.object(client.Client, "__init__") as mock_client_init:
-            mock_client_init.return_value = None
-            api = dhcp_factory.DHCPFactory(token=my_context.auth_token)
-            with mock.patch.object(client.Client,
-                                   "update_port") as mock_update_port:
-                mock_update_port.return_value = None
-                api = dhcp_factory.DHCPFactory(token=my_context.auth_token)
-                api.provider.update_port_dhcp_opts(port_id, opts)
-                mock_update_port.assert_called_once_with(port_id, expected)
+        mock_client_init.return_value = None
+        api = dhcp_factory.DHCPFactory()
+        api.provider.update_port_dhcp_opts(port_id, opts)
+        mock_update_port.assert_called_once_with(port_id, expected)
 
-    def test_neutron_port_update_with_execption(self):
+    @mock.patch.object(client.Client, 'update_port')
+    @mock.patch.object(client.Client, "__init__")
+    def test_update_port_dhcp_opts_with_exception(self, mock_client_init,
+                                                  mock_update_port):
         opts = [{}]
         port_id = 'fake-port-id'
-        my_context = context.RequestContext(user='test-user',
-                                            tenant='test-tenant')
-        with mock.patch.object(client.Client, "__init__") as mock_client_init:
-            mock_client_init.return_value = None
-            api = dhcp_factory.DHCPFactory(token=my_context.auth_token)
-            with mock.patch.object(client.Client,
-                                   "update_port") as mock_update_port:
-                mock_update_port.side_effect = (
-                    neutron_client_exc.NeutronClientException())
-                api = dhcp_factory.DHCPFactory(token=my_context.auth_token)
-                self.assertRaises(
-                        exception.FailedToUpdateDHCPOptOnPort,
-                        api.provider.update_port_dhcp_opts,
-                        port_id, opts)
+        mock_client_init.return_value = None
+        mock_update_port.side_effect = (
+            neutron_client_exc.NeutronClientException())
+
+        api = dhcp_factory.DHCPFactory()
+        self.assertRaises(
+                exception.FailedToUpdateDHCPOptOnPort,
+                api.provider.update_port_dhcp_opts,
+                port_id, opts)
 
     @mock.patch.object(client.Client, 'update_port')
     @mock.patch.object(client.Client, '__init__')
-    def test_neutron_address_update(self, mock_client_init, mock_update_port):
+    def test_update_port_address(self, mock_client_init, mock_update_port):
         address = 'fe:54:00:77:07:d9'
         port_id = 'fake-port-id'
         expected = {'port': {'mac_address': address}}
-        my_context = context.RequestContext(user='test-user',
-                                            tenant='test-tenant')
         mock_client_init.return_value = None
-        api = dhcp_factory.DHCPFactory(token=my_context.auth_token)
-        mock_update_port.return_value = None
+
+        api = dhcp_factory.DHCPFactory()
         api.provider.update_port_address(port_id, address)
         mock_update_port.assert_called_once_with(port_id, expected)
 
     @mock.patch.object(client.Client, 'update_port')
     @mock.patch.object(client.Client, '__init__')
-    def test_neutron_address_update_with_exception(self, mock_client_init,
-                                                   mock_update_port):
+    def test_update_port_address_with_exception(self, mock_client_init,
+                                                mock_update_port):
         address = 'fe:54:00:77:07:d9'
         port_id = 'fake-port-id'
-        my_context = context.RequestContext(user='test-user',
-                                            tenant='test-tenant')
         mock_client_init.return_value = None
-        api = dhcp_factory.DHCPFactory(token=my_context.auth_token)
+
+        api = dhcp_factory.DHCPFactory()
         mock_update_port.side_effect = (
             neutron_client_exc.NeutronClientException())
         self.assertRaises(exception.FailedToUpdateMacOnPort,
@@ -184,17 +168,20 @@ class TestNeutron(base.TestCase):
         with task_manager.acquire(self.context,
                                   self.node.uuid) as task:
             opts = pxe_utils.dhcp_options_for_instance(task)
-            api = dhcp_factory.DHCPFactory(token=self.context.auth_token)
-            api.update_dhcp(task, self.node)
-        mock_updo.assertCalleOnceWith('vif-uuid', opts)
+            api = dhcp_factory.DHCPFactory()
+            api.update_dhcp(task, opts)
+        mock_updo.assert_called_once_with('vif-uuid', opts,
+                                          token=self.context.auth_token)
 
+    @mock.patch('ironic.dhcp.neutron.NeutronDHCPApi.update_port_dhcp_opts')
     @mock.patch('ironic.common.network.get_node_vif_ids')
-    def test_update_dhcp_no_vif_data(self, mock_gnvi):
+    def test_update_dhcp_no_vif_data(self, mock_gnvi, mock_updo):
         mock_gnvi.return_value = {}
         with task_manager.acquire(self.context,
                                   self.node.uuid) as task:
-            api = dhcp_factory.DHCPFactory(token=self.context.auth_token)
+            api = dhcp_factory.DHCPFactory()
             api.update_dhcp(task, self.node)
+        self.assertFalse(mock_updo.called)
 
     @mock.patch('ironic.dhcp.neutron.NeutronDHCPApi.update_port_dhcp_opts')
     @mock.patch('ironic.common.network.get_node_vif_ids')
@@ -205,9 +192,9 @@ class TestNeutron(base.TestCase):
         mock_updo.side_effect = [None, exc]
         with task_manager.acquire(self.context,
                                   self.node.uuid) as task:
-            api = dhcp_factory.DHCPFactory(token=self.context.auth_token)
+            api = dhcp_factory.DHCPFactory()
             api.update_dhcp(task, self.node)
-            mock_gnvi.assertCalleOnceWith(task)
+            mock_gnvi.assert_called_once_with(task)
         self.assertEqual(2, mock_updo.call_count)
 
     @mock.patch('ironic.dhcp.neutron.NeutronDHCPApi.update_port_dhcp_opts')
@@ -219,20 +206,16 @@ class TestNeutron(base.TestCase):
         mock_updo.side_effect = [exc, exc]
         with task_manager.acquire(self.context,
                                   self.node.uuid) as task:
-            api = dhcp_factory.DHCPFactory(token=self.context.auth_token)
+            api = dhcp_factory.DHCPFactory()
             self.assertRaises(exception.FailedToUpdateDHCPOptOnPort,
                               api.update_dhcp,
                               task, self.node)
-            mock_gnvi.assertCalleOnceWith(task)
+            mock_gnvi.assert_called_once_with(task)
         self.assertEqual(2, mock_updo.call_count)
 
-    @mock.patch.object(client.Client, 'show_port')
-    @mock.patch.object(client.Client, '__init__')
-    def test_neutron__get_fixed_ip_address(self, mock_client_init,
-                                          mock_show_port):
+    def test__get_fixed_ip_address(self):
         port_id = 'fake-port-id'
         expected = "192.168.1.3"
-        mock_client_init.return_value = None
         api = dhcp_factory.DHCPFactory().provider
         port_data = {
             "id": port_id,
@@ -248,17 +231,14 @@ class TestNeutron(base.TestCase):
             ],
             "device_id": 'bece68a3-2f8b-4e66-9092-244493d6aba7',
             }
-        port = {'port': port_data}
-        mock_show_port.return_value = port
-        result = api._get_fixed_ip_address(port_id)
+        fake_client = mock.Mock()
+        fake_client.show_port.return_value = {'port': port_data}
+        result = api._get_fixed_ip_address(port_id, fake_client)
         self.assertEqual(expected, result)
+        fake_client.show_port.assert_called_once_with(port_id)
 
-    @mock.patch.object(client.Client, 'show_port')
-    @mock.patch.object(client.Client, '__init__')
-    def test_neutron__get_fixed_ip_address_invalid_ip(self, mock_client_init,
-                                                      mock_show_port):
+    def test__get_fixed_ip_address_invalid_ip(self):
         port_id = 'fake-port-id'
-        mock_client_init.return_value = None
         api = dhcp_factory.DHCPFactory().provider
         port_data = {
             "id": port_id,
@@ -274,75 +254,80 @@ class TestNeutron(base.TestCase):
             ],
             "device_id": 'bece68a3-2f8b-4e66-9092-244493d6aba7',
             }
-        port = {'port': port_data}
-        mock_show_port.return_value = port
+        fake_client = mock.Mock()
+        fake_client.show_port.return_value = {'port': port_data}
         self.assertRaises(exception.InvalidIPv4Address,
                           api._get_fixed_ip_address,
-                          port_id)
-        mock_show_port.assert_called_once_with(port_id)
+                          port_id, fake_client)
+        fake_client.show_port.assert_called_once_with(port_id)
 
-    @mock.patch.object(client.Client, 'show_port')
-    @mock.patch.object(client.Client, '__init__')
-    def test_neutron__get_fixed_ip_address_with_exception(self,
-                                    mock_client_init, mock_show_port):
+    def test__get_fixed_ip_address_with_exception(self):
         port_id = 'fake-port-id'
-        mock_client_init.return_value = None
         api = dhcp_factory.DHCPFactory().provider
 
-        mock_show_port.side_effect = (
+        fake_client = mock.Mock()
+        fake_client.show_port.side_effect = (
                                 neutron_client_exc.NeutronClientException())
         self.assertRaises(exception.FailedToGetIPAddressOnPort,
-                          api._get_fixed_ip_address, port_id)
-        mock_show_port.assert_called_once_with(port_id)
+                          api._get_fixed_ip_address, port_id, fake_client)
+        fake_client.show_port.assert_called_once_with(port_id)
 
     @mock.patch('ironic.dhcp.neutron.NeutronDHCPApi._get_fixed_ip_address')
     @mock.patch('ironic.common.network.get_node_vif_ids')
     def test__get_port_ip_address(self, mock_gnvi, mock_gfia):
         expected = "192.168.1.3"
         port = object_utils.create_test_port(self.context,
-                                           node_id=self.node.id,
-                                           id=6, address='aa:bb:cc',
-                                           uuid=utils.generate_uuid(),
-                                           extra={'vif_port_id': 'test-vif-A'},
-                                           driver='fake')
+                                             node_id=self.node.id,
+                                             id=6, address='aa:bb:cc',
+                                             uuid=utils.generate_uuid(),
+                                             extra={'vif_port_id':
+                                                    'test-vif-A'},
+                                             driver='fake')
         mock_gnvi.return_value = {port.uuid: 'vif-uuid'}
         mock_gfia.return_value = expected
         with task_manager.acquire(self.context,
                                   self.node.uuid) as task:
-            api = dhcp_factory.DHCPFactory(token=task.context.auth_token)
-            api = api.provider
-            result = api._get_port_ip_address(task, port.uuid)
+            api = dhcp_factory.DHCPFactory().provider
+            result = api._get_port_ip_address(task, port.uuid,
+                                              mock.sentinel.client)
+            mock_gnvi.assert_called_once_with(task)
         self.assertEqual(expected, result)
+        mock_gfia.assert_called_once_with('vif-uuid', mock.sentinel.client)
 
     @mock.patch('ironic.dhcp.neutron.NeutronDHCPApi._get_fixed_ip_address')
     @mock.patch('ironic.common.network.get_node_vif_ids')
     def test__get_port_ip_address_with_exception(self, mock_gnvi, mock_gfia):
         expected = "192.168.1.3"
         port = object_utils.create_test_port(self.context,
-                                           node_id=self.node.id,
-                                           id=6, address='aa:bb:cc',
-                                           uuid=utils.generate_uuid(),
-                                           extra={'vif_port_id': 'test-vif-A'},
-                                           driver='fake')
+                                             node_id=self.node.id,
+                                             id=6, address='aa:bb:cc',
+                                             uuid=utils.generate_uuid(),
+                                             extra={'vif_port_id':
+                                                    'test-vif-A'},
+                                             driver='fake')
         mock_gnvi.return_value = None
         mock_gfia.return_value = expected
         with task_manager.acquire(self.context,
                                   self.node.uuid) as task:
             api = dhcp_factory.DHCPFactory().provider
             self.assertRaises(exception.FailedToGetIPAddressOnPort,
-                              api._get_port_ip_address, task, port)
+                              api._get_port_ip_address, task, port,
+                              mock.sentinel.client)
+            mock_gnvi.assert_called_once_with(task)
 
     @mock.patch('ironic.dhcp.neutron.NeutronDHCPApi._get_port_ip_address')
     def test_get_ip_addresses(self, get_ip_mock):
         ip_address = '10.10.0.1'
         address = "aa:aa:aa:aa:aa:aa"
         expected = [ip_address]
-        object_utils.create_test_port(self.context, node_id=self.node.id,
-                                      address=address)
+        port = object_utils.create_test_port(self.context,
+                                             node_id=self.node.id,
+                                             address=address)
 
         get_ip_mock.return_value = ip_address
 
         with task_manager.acquire(self.context, self.node.uuid) as task:
             api = dhcp_factory.DHCPFactory().provider
             result = api.get_ip_addresses(task)
+            get_ip_mock.assert_called_once_with(task, port.uuid, mock.ANY)
         self.assertEqual(expected, result)

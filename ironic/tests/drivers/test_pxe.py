@@ -516,8 +516,7 @@ class PXEDriverTestCase(db_base.DbTestCase):
                 self.context, task.node)
             mock_get_image_file_path.assert_called_once_with(task.node.uuid)
             mock_get_image_mb.assert_called_once_with(fake_img_path)
-            mock_update_dhcp.assert_called_once_with(
-                task, dhcp_opts)
+            mock_update_dhcp.assert_called_once_with(task, dhcp_opts)
             mock_node_set_boot.assert_called_once_with(task, 'pxe',
                                                        persistent=True)
             mock_node_power_action.assert_called_once_with(task, states.REBOOT)
