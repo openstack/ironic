@@ -485,10 +485,9 @@ class ConductorManager(periodic_task.PeriodicTasks):
             task.set_spawn_error_hook(self._provisioning_error_handler,
                                       node, previous_prov_state,
                                       previous_tgt_provision_state)
-            task.spawn_after(self._spawn_worker, self._do_node_deploy,
-                             context, task)
+            task.spawn_after(self._spawn_worker, self._do_node_deploy, task)
 
-    def _do_node_deploy(self, context, task):
+    def _do_node_deploy(self, task):
         """Prepare the environment and deploy a node."""
         node = task.node
         try:
@@ -573,10 +572,9 @@ class ConductorManager(periodic_task.PeriodicTasks):
             task.set_spawn_error_hook(self._provisioning_error_handler,
                                       node, previous_prov_state,
                                       previous_tgt_provision_state)
-            task.spawn_after(self._spawn_worker, self._do_node_tear_down,
-                             context, task)
+            task.spawn_after(self._spawn_worker, self._do_node_tear_down, task)
 
-    def _do_node_tear_down(self, context, task):
+    def _do_node_tear_down(self, task):
         """Internal RPC method to tear down an existing node deployment."""
         node = task.node
         try:
