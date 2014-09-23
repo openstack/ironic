@@ -61,6 +61,7 @@ class TestPXEUtils(db_base.DbTestCase):
             'aki_path': u'/tftpboot/1be26c0b-03f2-4d2e-ae87-c02d7f33c123/'
                         u'kernel',
             'ipa-api-url': 'http://192.168.122.184:6385',
+            'ipa-driver-name': 'agent_ipmitool',
             'deployment_aki_path': u'/tftpboot/1be26c0b-03f2-4d2e-ae87-'
                                    u'c02d7f33c123/deploy_kernel',
         }

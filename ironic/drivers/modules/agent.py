@@ -72,9 +72,10 @@ def _get_client():
     return client
 
 
-def build_agent_options():
+def build_agent_options(node):
     """Build the options to be passed to the agent ramdisk.
 
+    :param node: an ironic node object
     :returns: a dictionary containing the parameters to be passed to
         agent ramdisk.
     """
@@ -82,15 +83,17 @@ def build_agent_options():
                   keystone.get_service_url()).rstrip('/')
     return {
         'ipa-api-url': ironic_api,
+        'ipa-driver-name': node.driver
     }
 
 
-def _build_pxe_config_options(pxe_info):
+def _build_pxe_config_options(node, pxe_info):
     """Builds the pxe config options for booting agent.
 
     This method builds the config options to be replaced on
     the agent pxe config template.
 
+    :param node: an ironic node object
     :param pxe_info: A dict containing the 'deploy_kernel' and
         'deploy_ramdisk' for the agent pxe config template.
     :returns: a dict containing the options to be applied on
@@ -101,7 +104,7 @@ def _build_pxe_config_options(pxe_info):
         'deployment_ari_path': pxe_info['deploy_ramdisk'][1],
         'pxe_append_params': CONF.agent.agent_pxe_append_params,
     }
-    agent_opts = build_agent_options()
+    agent_opts = build_agent_options(node)
     agent_config_opts.update(agent_opts)
     return agent_config_opts
 
@@ -268,7 +271,7 @@ class AgentDeploy(base.DeployInterface):
         """
         node = task.node
         pxe_info = _get_tftp_image_info(task.node)
-        pxe_options = _build_pxe_config_options(pxe_info)
+        pxe_options = _build_pxe_config_options(task.node, pxe_info)
         pxe_utils.create_pxe_config(task,
                                     pxe_options,
                                     CONF.agent.agent_pxe_config_template)

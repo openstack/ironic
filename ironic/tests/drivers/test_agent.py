@@ -39,19 +39,23 @@ CONF = cfg.CONF
 class TestAgentMethods(db_base.DbTestCase):
     def setUp(self):
         super(TestAgentMethods, self).setUp()
+        self.node = object_utils.create_test_node(self.context,
+                                                  driver='fake_agent')
 
     def test_build_agent_options_conf(self):
         self.config(api_url='api-url', group='conductor')
-        options = agent.build_agent_options()
+        options = agent.build_agent_options(self.node)
         self.assertEqual('api-url', options['ipa-api-url'])
+        self.assertEqual('fake_agent', options['ipa-driver-name'])
 
     @mock.patch.object(keystone, 'get_service_url')
     def test_build_agent_options_keystone(self, get_url_mock):
 
         self.config(api_url=None, group='conductor')
         get_url_mock.return_value = 'api-url'
-        options = agent.build_agent_options()
+        options = agent.build_agent_options(self.node)
         self.assertEqual('api-url', options['ipa-api-url'])
+        self.assertEqual('fake_agent', options['ipa-driver-name'])
 
 
 class TestAgentDeploy(db_base.DbTestCase):

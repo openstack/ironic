@@ -352,7 +352,7 @@ class IloVirtualMediaAgentDeploy(base.DeployInterface):
             image.
         :raises: IloOperationError, if some operation on iLO fails.
         """
-        deploy_ramdisk_opts = agent.build_agent_options()
+        deploy_ramdisk_opts = agent.build_agent_options(task.node)
         deploy_iso_uuid = task.node.driver_info['ilo_deploy_iso']
         deploy_iso = 'glance:' + deploy_iso_uuid
         _reboot_into(task, deploy_iso, deploy_ramdisk_opts)
