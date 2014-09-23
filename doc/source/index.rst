@@ -55,7 +55,7 @@ Admin Guide
 ===========
 
 Overview
-----------
+--------
 
 .. toctree::
   :maxdepth: 1
@@ -63,6 +63,14 @@ Overview
   deploy/user-guide
   deploy/install-guide
   deploy/drivers
+
+Commands
+--------
+
+.. toctree::
+  :maxdepth: 1
+
+  cmds/ironic-dbsync
 
 Indices and tables
 ==================
