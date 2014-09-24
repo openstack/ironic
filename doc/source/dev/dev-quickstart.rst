@@ -292,7 +292,11 @@ or the agent driver, not both.::
     SCREEN_LOGDIR=$HOME/logs
     IRONIC_VM_LOG_DIR=$HOME/ironic-bm-logs
 
-    # If running with the agent driver:
+    END
+
+If running with the agent driver::
+
+    cat >>localrc <<END
     enable_service s-proxy s-object s-container s-account
     SWIFT_ENABLE_TEMPURLS=True
     IRONIC_ENABLED_DRIVERS=fake,agent_ssh,agent_ipmitool
