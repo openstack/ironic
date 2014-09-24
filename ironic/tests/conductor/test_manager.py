@@ -686,8 +686,7 @@ class DoNodeDeployTearDownTestCase(_ServiceSetUpMixin,
         task = task_manager.TaskManager(self.context, node.uuid)
 
         self.assertRaises(exception.InstanceDeployFailure,
-                          self.service._do_node_deploy,
-                          self.context, task)
+                          self.service._do_node_deploy, task)
         node.refresh()
         self.assertEqual(states.DEPLOYFAIL, node.provision_state)
         self.assertEqual(states.NOSTATE, node.target_provision_state)
@@ -702,7 +701,7 @@ class DoNodeDeployTearDownTestCase(_ServiceSetUpMixin,
                                           provision_state=states.NOSTATE)
         task = task_manager.TaskManager(self.context, node.uuid)
 
-        self.service._do_node_deploy(self.context, task)
+        self.service._do_node_deploy(task)
         node.refresh()
         self.assertEqual(states.ACTIVE, node.provision_state)
         self.assertEqual(states.NOSTATE, node.target_provision_state)
@@ -727,7 +726,7 @@ class DoNodeDeployTearDownTestCase(_ServiceSetUpMixin,
             self.assertIsNone(node.last_error)
             # Verify reservation has been cleared.
             self.assertIsNone(node.reservation)
-            mock_spawn.assert_called_once_with(mock.ANY, mock.ANY, mock.ANY)
+            mock_spawn.assert_called_once_with(mock.ANY, mock.ANY)
 
     @mock.patch('ironic.drivers.modules.fake.FakeDeploy.deploy')
     def test_do_node_deploy_rebuild_active_state(self, mock_deploy):
@@ -856,8 +855,7 @@ class DoNodeDeployTearDownTestCase(_ServiceSetUpMixin,
         self._start_service()
         mock_tear_down.side_effect = exception.InstanceDeployFailure('test')
         self.assertRaises(exception.InstanceDeployFailure,
-                          self.service._do_node_tear_down,
-                          self.context, task)
+                          self.service._do_node_tear_down, task)
         node.refresh()
         self.assertEqual(states.ERROR, node.provision_state)
         self.assertEqual(states.NOSTATE, node.target_provision_state)
@@ -876,7 +874,7 @@ class DoNodeDeployTearDownTestCase(_ServiceSetUpMixin,
         task = task_manager.TaskManager(self.context, node.uuid)
         self._start_service()
         mock_tear_down.return_value = states.DELETED
-        self.service._do_node_tear_down(self.context, task)
+        self.service._do_node_tear_down(task)
         node.refresh()
         self.assertEqual(states.NOSTATE, node.provision_state)
         self.assertEqual(states.NOSTATE, node.target_provision_state)
@@ -894,7 +892,7 @@ class DoNodeDeployTearDownTestCase(_ServiceSetUpMixin,
         self._start_service()
         task = task_manager.TaskManager(self.context, node.uuid)
         mock_tear_down.return_value = states.DELETING
-        self.service._do_node_tear_down(self.context, task)
+        self.service._do_node_tear_down(task)
         node.refresh()
         self.assertEqual(states.DELETING, node.provision_state)
         self.assertIsNone(node.last_error)
