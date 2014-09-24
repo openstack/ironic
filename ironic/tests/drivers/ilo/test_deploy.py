@@ -20,6 +20,7 @@ import tempfile
 
 from oslo.config import cfg
 
+from ironic.common import exception
 from ironic.common import images
 from ironic.common import states
 from ironic.common import swift
@@ -448,6 +449,33 @@ class IloPXEDeployTestCase(base.TestCase):
             task.driver.deploy.deploy(task)
             set_persistent_mock.assert_called_with(task.node, 'NETWORK', False)
             pxe_deploy_mock.assert_called_once_with(task)
+
+
+class IloManagementTestCase(base.TestCase):
+
+    def setUp(self):
+        super(IloManagementTestCase, self).setUp()
+        self.dbapi = dbapi.get_instance()
+        self.context = context.get_admin_context()
+        mgr_utils.mock_the_extension_manager(driver="pxe_ilo")
+        self.node = obj_utils.create_test_node(self.context,
+                driver='pxe_ilo', driver_info=INFO_DICT)
+
+    @mock.patch.object(ilo_common, 'set_boot_device')
+    def test_set_boot_device_ok(self, set_persistent_mock):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            task.driver.management.set_boot_device(task, 'pxe', True)
+            set_persistent_mock.assert_called_once_with(task.node,
+                                                           'NETWORK', True)
+
+    @mock.patch.object(ilo_common, 'set_boot_device')
+    def test_set_boot_device_invalid_device(self, set_persistent_mock):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            self.assertRaises(exception.InvalidParameterValue,
+                    task.driver.management.set_boot_device,
+                    task, 'fake-device')
 
 
 class IloPXEVendorPassthruTestCase(base.TestCase):
