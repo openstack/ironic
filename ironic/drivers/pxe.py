@@ -147,6 +147,8 @@ class PXEAndIloDriver(base.BaseDriver):
     This driver implements the `core` functionality using
     :class:ironic.drivers.modules.ilo.power.IloPower for power management
     :class:ironic.drivers.modules.ilo.deploy.IloPXEDeploy(pxe.PXEDeploy)
+    :class:ironic.drivers.modules.ilo.deply.IloManagement(
+                                                 ipmitool.IPMIManagement)
     for image deployment.
 
     """
@@ -160,7 +162,7 @@ class PXEAndIloDriver(base.BaseDriver):
         self.deploy = ilo_deploy.IloPXEDeploy()
         self.vendor = ilo_deploy.IloPXEVendorPassthru()
         self.console = ipmitool.IPMIShellinaboxConsole()
-        self.management = ipmitool.IPMIManagement()
+        self.management = ilo_deploy.IloManagement()
 
 
 class PXEAndSNMPDriver(base.BaseDriver):

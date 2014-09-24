@@ -32,6 +32,7 @@ from ironic.drivers import base
 from ironic.drivers.modules import agent
 from ironic.drivers.modules import deploy_utils
 from ironic.drivers.modules.ilo import common as ilo_common
+from ironic.drivers.modules import ipmitool
 from ironic.drivers.modules import iscsi_deploy
 from ironic.drivers.modules import pxe
 from ironic.drivers import utils as driver_utils
@@ -51,6 +52,9 @@ CONF.import_opt('pxe_append_params', 'ironic.drivers.modules.iscsi_deploy',
                 group='pxe')
 CONF.import_opt('swift_ilo_container', 'ironic.drivers.modules.ilo.common',
                 group='ilo')
+
+BOOT_DEVICE_MAPPING_TO_ILO = {'pxe': 'NETWORK', 'disk': 'HDD',
+                              'cdrom': 'CDROM', 'bios': 'BIOS', 'safe': 'SAFE'}
 
 
 def _get_boot_iso_object_name(node):
@@ -440,8 +444,36 @@ class IloPXEDeploy(pxe.PXEDeploy):
         :returns: deploy state DEPLOYWAIT.
         """
         ilo_common.set_boot_device(task.node, 'NETWORK', False)
-
         return super(IloPXEDeploy, self).deploy(task)
+
+
+class IloManagement(ipmitool.IPMIManagement):
+
+    @task_manager.require_exclusive_lock
+    def set_boot_device(self, task, device, persistent=False):
+        """Set the boot device for the task's node.
+
+        Set the boot device to use on next reboot of the node.
+
+        :param task: a task from TaskManager.
+        :param device: the boot device, one of
+                       :mod:`ironic.common.boot_devices`.
+        :param persistent: Boolean value. True if the boot device will
+                           persist to all future boots, False if not.
+                           Default: False.
+        :raises: InvalidParameterValue if an invalid boot device is specified
+        :raises: MissingParameterValue if required ilo credentials are missing.
+        :raises: IloOperationError, if unable to set the boot device.
+
+        """
+        try:
+            boot_device = BOOT_DEVICE_MAPPING_TO_ILO[device]
+        except KeyError:
+            raise exception.InvalidParameterValue(_(
+                "Invalid boot device %s specified.") % device)
+
+        ilo_common.parse_driver_info(task.node)
+        ilo_common.set_boot_device(task.node, boot_device, persistent)
 
 
 class IloPXEVendorPassthru(pxe.VendorPassthru):
