@@ -170,7 +170,7 @@ class Port(base.IronicObject):
                         A context should be set when instantiating the
                         object, e.g.: Port(context)
         """
-        self.dbapi.destroy_port(self.id)
+        self.dbapi.destroy_port(self.uuid)
         self.obj_reset_changes()
 
     @base.remotable

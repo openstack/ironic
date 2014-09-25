@@ -604,22 +604,28 @@ class TestDelete(base.FunctionalTest):
 
     def setUp(self):
         super(TestDelete, self).setUp()
-        self.node = obj_utils.create_test_node(context.get_admin_context())
-        obj_utils.create_test_port(self.context)
+        self.node = obj_utils.create_test_node(self.context)
+        self.port = obj_utils.create_test_port(self.context)
 
     def test_delete_port_byid(self):
-        pdict = dbutils.get_test_port()
-        self.delete('/ports/%s' % pdict['uuid'])
-        response = self.get_json('/ports/%s' % pdict['uuid'],
+        self.delete('/ports/%s' % self.port.uuid)
+        response = self.get_json('/ports/%s' % self.port.uuid,
                                  expect_errors=True)
         self.assertEqual(404, response.status_int)
         self.assertEqual('application/json', response.content_type)
-        self.assertTrue(response.json['error_message'])
+        self.assertIn(self.port.uuid, response.json['error_message'])
 
     def test_delete_port_byaddress(self):
-        pdict = dbutils.get_test_port()
-        response = self.delete('/ports/%s' % pdict['address'],
+        response = self.delete('/ports/%s' % self.port.address,
                                expect_errors=True)
         self.assertEqual(400, response.status_int)
         self.assertEqual('application/json', response.content_type)
-        self.assertIn(pdict['address'], response.json['error_message'])
+        self.assertIn(self.port.address, response.json['error_message'])
+
+    def test_delete_port_node_locked(self):
+        self.node.reserve(self.context, 'fake', self.node.uuid)
+        response = self.delete('/ports/%s' % self.port.uuid,
+                               expect_errors=True)
+        self.assertEqual(409, response.status_int)
+        self.assertEqual('application/json', response.content_type)
+        self.assertIn(self.node.uuid, response.json['error_message'])

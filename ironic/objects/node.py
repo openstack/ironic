@@ -205,7 +205,7 @@ class Node(base.IronicObject):
                         A context should be set when instantiating the
                         object, e.g.: Node(context)
         """
-        self.dbapi.destroy_node(self.id)
+        self.dbapi.destroy_node(self.uuid)
         self.obj_reset_changes()
 
     @base.remotable

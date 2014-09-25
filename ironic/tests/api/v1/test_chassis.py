@@ -377,6 +377,7 @@ class TestDelete(base.FunctionalTest):
         self.assertEqual(400, response.status_int)
         self.assertEqual('application/json', response.content_type)
         self.assertTrue(response.json['error_message'])
+        self.assertIn(chassis.uuid, response.json['error_message'])
 
     def test_delete_chassis_not_found(self):
         uuid = utils.generate_uuid()

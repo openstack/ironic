@@ -140,7 +140,7 @@ class Chassis(base.IronicObject):
                         A context should be set when instantiating the
                         object, e.g.: Chassis(context)
         """
-        self.dbapi.destroy_chassis(self.id)
+        self.dbapi.destroy_chassis(self.uuid)
         self.obj_reset_changes()
 
     @base.remotable
