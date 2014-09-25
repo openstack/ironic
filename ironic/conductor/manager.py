@@ -261,18 +261,39 @@ class ConductorManager(periodic_task.PeriodicTasks):
             #             instance_uuid needs to be unset, and handle it.
             if 'instance_uuid' in delta:
                 task.driver.power.validate(task)
-                node_obj['power_state'] = \
+                node_obj.power_state = \
                         task.driver.power.get_power_state(task)
 
-                if node_obj['power_state'] != states.POWER_OFF:
+                if node_obj.power_state != states.POWER_OFF:
                     raise exception.NodeInWrongPowerState(
                             node=node_id,
-                            pstate=node_obj['power_state'])
+                            pstate=node_obj.power_state)
 
             # update any remaining parameters, then save
             node_obj.save()
 
             return node_obj
+
+    def _power_state_error_handler(self, e, node, power_state):
+        """Set the node's power states if error occurs.
+
+        This hook gets called upon an execption being raised when spawning
+        the worker thread to change the power state of a node.
+
+        :param e: the exception object that was raised.
+        :param node: an Ironic node object.
+        :param power_state: the power state to set on the node.
+
+        """
+        if isinstance(e, exception.NoFreeConductorWorker):
+            node.power_state = power_state
+            node.target_power_state = states.NOSTATE
+            node.last_error = (_("No free conductor workers available"))
+            node.save()
+            LOG.warning(_LW("No free conductor workers available to perform "
+                            "an action on node %(node)s, setting node's "
+                            "power state back to %(power_state)s.",
+                            {'node': node.uuid, 'power_state': power_state}))
 
     @messaging.expected_exceptions(exception.InvalidParameterValue,
                                    exception.MissingParameterValue,
@@ -300,6 +321,17 @@ class ConductorManager(periodic_task.PeriodicTasks):
 
         with task_manager.acquire(context, node_id, shared=False) as task:
             task.driver.power.validate(task)
+            # Set the target_power_state and clear any last_error, since we're
+            # starting a new operation. This will expose to other processes
+            # and clients that work is in progress.
+            if new_state == states.REBOOT:
+                task.node.target_power_state = states.POWER_ON
+            else:
+                task.node.target_power_state = new_state
+            task.node.last_error = None
+            task.node.save()
+            task.set_spawn_error_hook(self._power_state_error_handler,
+                                      task.node, task.node.power_state)
             task.spawn_after(self._spawn_worker, utils.node_power_action,
                              task, new_state)
 

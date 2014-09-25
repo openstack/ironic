@@ -315,7 +315,7 @@ class ChangeNodePowerStateTestCase(_ServiceSetUpMixin,
             node.refresh()
             self.assertEqual(initial_state, node.power_state)
             self.assertIsNone(node.target_power_state)
-            self.assertIsNone(node.last_error)
+            self.assertIsNotNone(node.last_error)
             # Verify the picked reservation has been cleared due to full pool.
             self.assertIsNone(node.reservation)
 

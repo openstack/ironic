@@ -45,13 +45,13 @@ def node_set_boot_device(task, device, persistent=False):
 
 
 @task_manager.require_exclusive_lock
-def node_power_action(task, state):
+def node_power_action(task, new_state):
     """Change power state or reset for a node.
 
     Perform the requested power action if the transition is required.
 
     :param task: a TaskManager instance containing the node to act on.
-    :param state: Any power state from ironic.common.states. If the
+    :param new_state: Any power state from ironic.common.states. If the
         state is 'REBOOT' then a reboot will be attempted, otherwise
         the node power state is directly set to 'state'.
     :raises: InvalidParameterValue when the wrong state is specified
@@ -61,9 +61,9 @@ def node_power_action(task, state):
 
     """
     node = task.node
-    new_state = states.POWER_ON if state == states.REBOOT else state
+    target_state = states.POWER_ON if new_state == states.REBOOT else new_state
 
-    if state != states.REBOOT:
+    if new_state != states.REBOOT:
         try:
             curr_state = task.driver.power.get_power_state(task)
         except Exception as e:
@@ -96,16 +96,17 @@ def node_power_action(task, state):
             LOG.warn(_LW("Driver returns ERROR power state for node %s."),
                           node.uuid)
 
-    # Set the target_power_state and clear any last_error, since we're
+    # Set the target_power_state and clear any last_error, if we're
     # starting a new operation. This will expose to other processes
     # and clients that work is in progress.
-    node['target_power_state'] = new_state
-    node['last_error'] = None
-    node.save()
+    if node['target_power_state'] != target_state:
+        node['target_power_state'] = target_state
+        node['last_error'] = None
+        node.save()
 
     # take power action
     try:
-        if state != states.REBOOT:
+        if new_state != states.REBOOT:
             task.driver.power.set_power_state(task, new_state)
         else:
             task.driver.power.reboot(task)
@@ -114,13 +115,13 @@ def node_power_action(task, state):
             node['last_error'] = \
                 _("Failed to change power state to '%(target)s'. "
                   "Error: %(error)s") % {
-                    'target': new_state, 'error': e}
+                    'target': target_state, 'error': e}
     else:
         # success!
-        node['power_state'] = new_state
+        node['power_state'] = target_state
         LOG.info(_LI('Succesfully set node %(node)s power state to '
                      '%(state)s.'),
-                 {'node': node.uuid, 'state': new_state})
+                 {'node': node.uuid, 'state': target_state})
     finally:
         node['target_power_state'] = states.NOSTATE
         node.save()
