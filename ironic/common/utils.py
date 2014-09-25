@@ -61,7 +61,22 @@ def _get_root_helper():
 
 
 def execute(*cmd, **kwargs):
-    """Convenience wrapper around oslo's execute() method."""
+    """Convenience wrapper around oslo's execute() method.
+
+    :param cmd: Passed to processutils.execute.
+    :param use_standard_locale: True | False. Defaults to False. If set to
+                                True, execute command with standard locale
+                                added to environment variables.
+    :returns: (stdout, stderr) from process execution
+    :raises: UnknownArgumentError
+    :raises: ProcessExecutionError
+    """
+
+    use_standard_locale = kwargs.pop('use_standard_locale', False)
+    if use_standard_locale:
+        env = kwargs.pop('env_variables', os.environ.copy())
+        env['LC_ALL'] = 'C'
+        kwargs['env_variables'] = env
     if kwargs.get('run_as_root') and 'root_helper' not in kwargs:
         kwargs['root_helper'] = _get_root_helper()
     result = processutils.execute(*cmd, **kwargs)
@@ -438,9 +453,7 @@ def mkfs(fs, path, label=None):
         args.extend([label_opt, label])
     args.append(path)
     try:
-        env = os.environ.copy()
-        env['LC_ALL'] = 'C'
-        execute(*args, run_as_root=True, env_variables=env)
+        execute(*args, run_as_root=True, use_standard_locale=True)
     except processutils.ProcessExecutionError as e:
         with excutils.save_and_reraise_exception() as ctx:
             if os.strerror(errno.ENOENT) in e.stderr:
