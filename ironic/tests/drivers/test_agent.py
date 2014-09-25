@@ -319,3 +319,50 @@ class TestAgentVendor(db_base.DbTestCase):
         with task_manager.acquire(
                 self.context, self.node['uuid'], shared=True) as task:
             self.passthru._heartbeat(task, **kwargs)
+
+    def test_heartbeat_bad(self):
+        kwargs = {}
+        with task_manager.acquire(
+                self.context, self.node['uuid'], shared=True) as task:
+            self.assertRaises(KeyError,
+                              self.passthru._heartbeat, task, **kwargs)
+
+    @mock.patch('ironic.drivers.modules.agent.AgentVendorInterface'
+                '._heartbeat')
+    def test_vendor_passthru_heartbeat(self, mock_heartbeat):
+        kwargs = {
+            'method': 'heartbeat',
+        }
+        self.passthru.vendor_routes['heartbeat'] = mock_heartbeat
+        with task_manager.acquire(
+                self.context, self.node['uuid'], shared=True) as task:
+            self.passthru.vendor_passthru(task, **kwargs)
+            mock_heartbeat.assert_called_once_with(task, **kwargs)
+
+    @mock.patch('ironic.drivers.modules.agent.AgentVendorInterface'
+                '._heartbeat')
+    def test_vendor_passthru_heartbeat_ironic_exc(self, mock_heartbeat):
+        mock_heartbeat.side_effect = exception.IronicException()
+        kwargs = {
+            'method': 'heartbeat',
+        }
+        self.passthru.vendor_routes['heartbeat'] = mock_heartbeat
+        with task_manager.acquire(
+                self.context, self.node['uuid'], shared=True) as task:
+            self.assertRaises(exception.IronicException,
+                              self.passthru.vendor_passthru, task, **kwargs)
+            mock_heartbeat.assert_called_once_with(task, **kwargs)
+
+    @mock.patch('ironic.drivers.modules.agent.AgentVendorInterface'
+                '._heartbeat')
+    def test_vendor_passthru_heartbeat_exception(self, mock_heartbeat):
+        mock_heartbeat.side_effect = KeyError()
+        kwargs = {
+            'method': 'heartbeat',
+        }
+        self.passthru.vendor_routes['heartbeat'] = mock_heartbeat
+        with task_manager.acquire(
+                self.context, self.node['uuid'], shared=True) as task:
+            self.assertRaises(exception.VendorPassthruException,
+                              self.passthru.vendor_passthru, task, **kwargs)
+            mock_heartbeat.assert_called_once_with(task, **kwargs)

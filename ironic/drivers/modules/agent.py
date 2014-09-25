@@ -377,11 +377,18 @@ class AgentVendorInterface(base.VendorInterface):
         func = self.vendor_routes[method]
         try:
             return func(task, **kwargs)
-        except Exception:
-            # catch-all in case something bubbles up here
+        except exception.IronicException as e:
             with excutils.save_and_reraise_exception():
+                # log this because even though the exception is being
+                # reraised, it won't be handled if it is an async. call.
                 LOG.exception(_LE('vendor_passthru failed with method %s'),
                               method)
+        except Exception as e:
+            # catch-all in case something bubbles up here
+            # log this because even though the exception is being
+            # reraised, it won't be handled if it is an async. call.
+            LOG.exception(_LE('vendor_passthru failed with method %s'), method)
+            raise exception.VendorPassthruException(message=e)
 
     def _heartbeat(self, task, **kwargs):
         """Method for agent to periodically check in.
@@ -402,7 +409,10 @@ class AgentVendorInterface(base.VendorInterface):
             {'node': node.uuid,
              'heartbeat': driver_info.get('agent_last_heartbeat')})
         driver_info['agent_last_heartbeat'] = int(_time())
+        # FIXME(rloo): This could raise KeyError exception if 'agent_url'
+        #              wasn't specified. Instead, raise MissingParameterValue.
         driver_info['agent_url'] = kwargs['agent_url']
+
         node.driver_info = driver_info
         node.save()
 
