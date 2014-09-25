@@ -30,7 +30,6 @@ from ironic.conductor import manager as conductor_manager
 from ironic.conductor import rpcapi as conductor_rpcapi
 from ironic.db import api as dbapi
 from ironic import objects
-from ironic.openstack.common import context
 from ironic.tests import base as tests_base
 from ironic.tests.db import base
 from ironic.tests.db import utils as dbutils
@@ -50,7 +49,6 @@ class RPCAPITestCase(base.DbTestCase):
 
     def setUp(self):
         super(RPCAPITestCase, self).setUp()
-        self.context = context.get_admin_context()
         self.dbapi = dbapi.get_instance()
         self.fake_node = dbutils.get_test_node(driver='fake-driver')
         self.fake_node_obj = objects.Node._from_db_object(
@@ -102,7 +100,6 @@ class RPCAPITestCase(base.DbTestCase):
                           'fake-driver')
 
     def _test_rpcapi(self, method, rpc_method, **kwargs):
-        ctxt = context.get_admin_context()
         rpcapi = conductor_rpcapi.ConductorAPI(topic='fake-topic')
 
         expected_retval = 'hello world' if rpc_method == 'call' else None
@@ -136,9 +133,9 @@ class RPCAPITestCase(base.DbTestCase):
 
             with mock.patch.object(rpcapi.client, rpc_method) as mock_method:
                 mock_method.side_effect = _fake_rpc_method
-                retval = getattr(rpcapi, method)(ctxt, **kwargs)
+                retval = getattr(rpcapi, method)(self.context, **kwargs)
                 self.assertEqual(retval, expected_retval)
-                expected_args = [ctxt, method, expected_msg]
+                expected_args = [self.context, method, expected_msg]
                 for arg, expected_arg in zip(self.fake_args, expected_args):
                     self.assertEqual(arg, expected_arg)
 

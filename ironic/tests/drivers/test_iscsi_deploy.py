@@ -156,7 +156,6 @@ class IscsiDeployPrivateMethodsTestCase(db_base.DbTestCase):
         }
         mgr_utils.mock_the_extension_manager(driver="fake_pxe")
         self.dbapi = dbapi.get_instance()
-        self.context = context.get_admin_context()
         self.node = obj_utils.create_test_node(self.context, **n)
 
     def test__get_image_dir_path(self):
@@ -182,7 +181,6 @@ class IscsiDeployMethodsTestCase(db_base.DbTestCase):
         }
         mgr_utils.mock_the_extension_manager(driver="fake_pxe")
         self.dbapi = dbapi.get_instance()
-        self.context = context.get_admin_context()
         self.node = obj_utils.create_test_node(self.context, **n)
 
     @mock.patch.object(deploy_utils, 'fetch_images')

@@ -29,7 +29,6 @@ from ironic.common import states
 from ironic.common import utils
 from ironic.conductor import rpcapi
 from ironic import objects
-from ironic.openstack.common import context
 from ironic.tests.api import base
 from ironic.tests.api import utils as apiutils
 from ironic.tests.db import utils as dbutils
@@ -928,7 +927,7 @@ class TestDelete(base.FunctionalTest):
 
     @mock.patch.object(objects.Node, 'get_by_uuid')
     def test_delete_node_not_found(self, mock_gbu):
-        node = obj_utils.get_test_node(context.get_admin_context())
+        node = obj_utils.get_test_node(self.context)
         mock_gbu.side_effect = exception.NodeNotFound(node=node.uuid)
 
         response = self.delete('/nodes/%s' % node.uuid, expect_errors=True)

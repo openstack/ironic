@@ -111,7 +111,6 @@ class PXEPrivateMethodsTestCase(db_base.DbTestCase):
         }
         mgr_utils.mock_the_extension_manager(driver="fake_pxe")
         self.dbapi = dbapi.get_instance()
-        self.context = context.get_admin_context()
         self.node = obj_utils.create_test_node(self.context, **n)
 
     @mock.patch.object(base_image_service.BaseImageService, '_show')
@@ -297,7 +296,6 @@ class PXEDriverTestCase(db_base.DbTestCase):
 
     def setUp(self):
         super(PXEDriverTestCase, self).setUp()
-        self.context = context.get_admin_context()
         self.context.auth_token = '4562138218392831'
         self.temp_dir = tempfile.mkdtemp()
         self.config(tftp_root=self.temp_dir, group='pxe')
