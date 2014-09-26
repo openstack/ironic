@@ -7,7 +7,7 @@ alembic>=0.6.4
 anyjson>=0.3.3
 argparse
 eventlet>=0.15.1
-kombu>=2.4.8
+kombu>=2.5.0
 lockfile>=0.8
 lxml>=2.3
 WebOb>=1.2.3
