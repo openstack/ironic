@@ -217,7 +217,6 @@ class IPMINativeDriverTestCase(db_base.DbTestCase):
 
     def setUp(self):
         super(IPMINativeDriverTestCase, self).setUp()
-        self.context = context.get_admin_context()
         mgr_utils.mock_the_extension_manager(driver="fake_ipminative")
         self.driver = driver_factory.get_driver("fake_ipminative")
 

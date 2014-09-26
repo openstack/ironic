@@ -207,7 +207,6 @@ class IBootDriverTestCase(db_base.DbTestCase):
         self.dbapi = dbapi.get_instance()
         mgr_utils.mock_the_extension_manager(driver='fake_iboot')
         self.driver = driver_factory.get_driver('fake_iboot')
-        self.context = context.get_admin_context()
         self.node = obj_utils.create_test_node(
                 self.context,
                 driver='fake_iboot',

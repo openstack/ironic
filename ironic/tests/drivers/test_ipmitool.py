@@ -856,7 +856,6 @@ class IPMIToolDriverTestCase(db_base.DbTestCase):
 
     def setUp(self):
         super(IPMIToolDriverTestCase, self).setUp()
-        self.context = context.get_admin_context()
         self.dbapi = db_api.get_instance()
         mgr_utils.mock_the_extension_manager(driver="fake_ipmitool")
         self.driver = driver_factory.get_driver("fake_ipmitool")

@@ -26,7 +26,6 @@ from testtools.matchers import HasLength
 from ironic.common import exception
 from ironic.common import utils
 from ironic.conductor import rpcapi
-from ironic.openstack.common import context
 from ironic.tests.api import base
 from ironic.tests.api import utils as apiutils
 from ironic.tests.db import utils as dbutils
@@ -47,7 +46,7 @@ class TestListPorts(base.FunctionalTest):
 
     def setUp(self):
         super(TestListPorts, self).setUp()
-        self.node = obj_utils.create_test_node(context.get_admin_context())
+        self.node = obj_utils.create_test_node(self.context)
 
     def test_empty(self):
         data = self.get_json('/ports')
@@ -173,7 +172,7 @@ class TestPatch(base.FunctionalTest):
 
     def setUp(self):
         super(TestPatch, self).setUp()
-        self.node = obj_utils.create_test_node(context.get_admin_context())
+        self.node = obj_utils.create_test_node(self.context)
         self.port = obj_utils.create_test_port(self.context)
 
         p = mock.patch.object(rpcapi.ConductorAPI, 'get_topic_for')
@@ -472,7 +471,7 @@ class TestPost(base.FunctionalTest):
 
     def setUp(self):
         super(TestPost, self).setUp()
-        self.node = obj_utils.create_test_node(context.get_admin_context())
+        self.node = obj_utils.create_test_node(self.context)
 
     @mock.patch.object(timeutils, 'utcnow')
     def test_create_port(self, mock_utcnow):

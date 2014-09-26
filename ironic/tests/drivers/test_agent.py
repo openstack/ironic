@@ -23,7 +23,6 @@ from ironic.common import states
 from ironic.conductor import task_manager
 from ironic.drivers.modules import agent
 from ironic import objects
-from ironic.openstack.common import context
 from ironic.tests.conductor import utils as mgr_utils
 from ironic.tests.db import base as db_base
 from ironic.tests.db import utils as db_utils
@@ -63,7 +62,6 @@ class TestAgentDeploy(db_base.DbTestCase):
         super(TestAgentDeploy, self).setUp()
         mgr_utils.mock_the_extension_manager(driver='fake_agent')
         self.driver = agent.AgentDeploy()
-        self.context = context.get_admin_context()
         n = {
             'driver': 'fake_agent',
             'instance_info': INSTANCE_INFO,
@@ -118,7 +116,6 @@ class TestAgentVendor(db_base.DbTestCase):
         super(TestAgentVendor, self).setUp()
         mgr_utils.mock_the_extension_manager(driver="fake_pxe")
         self.passthru = agent.AgentVendorInterface()
-        self.context = context.get_admin_context()
         n = {
               'driver': 'fake_pxe',
               'instance_info': INSTANCE_INFO,

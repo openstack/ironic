@@ -2170,7 +2170,6 @@ class ManagerTestProperties(tests_db_base.DbTestCase):
     def setUp(self):
         super(ManagerTestProperties, self).setUp()
         self.service = manager.ConductorManager('test-host', 'test-topic')
-        self.context = context.get_admin_context()
 
     def _check_driver_properties(self, driver, expected):
         mgr_utils.mock_the_extension_manager(driver=driver)

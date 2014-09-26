@@ -1002,7 +1002,6 @@ class SNMPDriverTestCase(db_base.DbTestCase):
 
     def setUp(self):
         super(SNMPDriverTestCase, self).setUp()
-        self.context = context.get_admin_context()
         self.dbapi = db_api.get_instance()
         mgr_utils.mock_the_extension_manager(driver='fake_snmp')
 

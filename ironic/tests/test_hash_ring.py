@@ -18,7 +18,6 @@ from oslo.config import cfg
 from ironic.common import exception
 from ironic.common import hash_ring as hash
 from ironic.db import api as dbapi
-from ironic.openstack.common import context
 from ironic.tests import base
 from ironic.tests.db import base as db_base
 
@@ -127,7 +126,6 @@ class HashRingManagerTestCase(db_base.DbTestCase):
     def setUp(self):
         super(HashRingManagerTestCase, self).setUp()
         self.ring_manager = hash.HashRingManager()
-        self.context = context.get_admin_context()
         self.dbapi = dbapi.get_instance()
 
     def register_conductors(self):
