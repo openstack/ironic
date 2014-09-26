@@ -35,10 +35,9 @@ from ironic.drivers.modules.ilo import deploy as ilo_deploy
 from ironic.drivers.modules import iscsi_deploy
 from ironic.drivers.modules import pxe
 from ironic.drivers import utils as driver_utils
-from ironic.openstack.common import context
 from ironic.openstack.common import importutils
-from ironic.tests import base
 from ironic.tests.conductor import utils as mgr_utils
+from ironic.tests.db import base as db_base
 from ironic.tests.db import utils as db_utils
 from ironic.tests.objects import utils as obj_utils
 
@@ -49,12 +48,11 @@ INFO_DICT = db_utils.get_test_ilo_info()
 CONF = cfg.CONF
 
 
-class IloDeployPrivateMethodsTestCase(base.TestCase):
+class IloDeployPrivateMethodsTestCase(db_base.DbTestCase):
 
     def setUp(self):
         super(IloDeployPrivateMethodsTestCase, self).setUp()
         self.dbapi = dbapi.get_instance()
-        self.context = context.get_admin_context()
         mgr_utils.mock_the_extension_manager(driver="iscsi_ilo")
         self.node = obj_utils.create_test_node(self.context,
                 driver='iscsi_ilo', driver_info=INFO_DICT)
@@ -196,12 +194,11 @@ class IloDeployPrivateMethodsTestCase(base.TestCase):
             node_power_action_mock.assert_called_once_with(task, states.REBOOT)
 
 
-class IloVirtualMediaIscsiDeployTestCase(base.TestCase):
+class IloVirtualMediaIscsiDeployTestCase(db_base.DbTestCase):
 
     def setUp(self):
         super(IloVirtualMediaIscsiDeployTestCase, self).setUp()
         self.dbapi = dbapi.get_instance()
-        self.context = context.get_admin_context()
         mgr_utils.mock_the_extension_manager(driver="iscsi_ilo")
         self.node = obj_utils.create_test_node(self.context,
                 driver='iscsi_ilo', driver_info=INFO_DICT)
@@ -273,12 +270,11 @@ class IloVirtualMediaIscsiDeployTestCase(base.TestCase):
             clean_up_boot_mock.assert_called_once_with(task.node)
 
 
-class IloVirtualMediaAgentDeployTestCase(base.TestCase):
+class IloVirtualMediaAgentDeployTestCase(db_base.DbTestCase):
 
     def setUp(self):
         super(IloVirtualMediaAgentDeployTestCase, self).setUp()
         self.dbapi = dbapi.get_instance()
-        self.context = context.get_admin_context()
         mgr_utils.mock_the_extension_manager(driver="agent_ilo")
         self.node = obj_utils.create_test_node(self.context,
                 driver='agent_ilo', driver_info=INFO_DICT)
@@ -326,12 +322,11 @@ class IloVirtualMediaAgentDeployTestCase(base.TestCase):
             self.assertEqual(deploy_opts, task.node.instance_info)
 
 
-class VendorPassthruTestCase(base.TestCase):
+class VendorPassthruTestCase(db_base.DbTestCase):
 
     def setUp(self):
         super(VendorPassthruTestCase, self).setUp()
         self.dbapi = dbapi.get_instance()
-        self.context = context.get_admin_context()
         mgr_utils.mock_the_extension_manager(driver="iscsi_ilo")
         self.node = obj_utils.create_test_node(self.context,
                 driver='iscsi_ilo', driver_info=INFO_DICT)
@@ -394,12 +389,11 @@ class VendorPassthruTestCase(base.TestCase):
             continue_deploy_mock.assert_called_once_with(task, **kwargs)
 
 
-class IloPXEDeployTestCase(base.TestCase):
+class IloPXEDeployTestCase(db_base.DbTestCase):
 
     def setUp(self):
         super(IloPXEDeployTestCase, self).setUp()
         self.dbapi = dbapi.get_instance()
-        self.context = context.get_admin_context()
         mgr_utils.mock_the_extension_manager(driver="pxe_ilo")
         self.node = obj_utils.create_test_node(self.context,
                 driver='pxe_ilo', driver_info=INFO_DICT)
@@ -451,12 +445,11 @@ class IloPXEDeployTestCase(base.TestCase):
             pxe_deploy_mock.assert_called_once_with(task)
 
 
-class IloManagementTestCase(base.TestCase):
+class IloManagementTestCase(db_base.DbTestCase):
 
     def setUp(self):
         super(IloManagementTestCase, self).setUp()
         self.dbapi = dbapi.get_instance()
-        self.context = context.get_admin_context()
         mgr_utils.mock_the_extension_manager(driver="pxe_ilo")
         self.node = obj_utils.create_test_node(self.context,
                 driver='pxe_ilo', driver_info=INFO_DICT)
@@ -478,12 +471,11 @@ class IloManagementTestCase(base.TestCase):
                     task, 'fake-device')
 
 
-class IloPXEVendorPassthruTestCase(base.TestCase):
+class IloPXEVendorPassthruTestCase(db_base.DbTestCase):
 
     def setUp(self):
         super(IloPXEVendorPassthruTestCase, self).setUp()
         self.dbapi = dbapi.get_instance()
-        self.context = context.get_admin_context()
         mgr_utils.mock_the_extension_manager(driver="pxe_ilo")
         self.node = obj_utils.create_test_node(self.context,
                 driver='pxe_ilo', driver_info=INFO_DICT)

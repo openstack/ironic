@@ -24,13 +24,12 @@ from ironic.common import pxe_utils
 from ironic.common import utils
 from ironic.conductor import task_manager
 from ironic.dhcp import neutron
-from ironic.openstack.common import context
-from ironic.tests import base
 from ironic.tests.conductor import utils as mgr_utils
+from ironic.tests.db import base as db_base
 from ironic.tests.objects import utils as object_utils
 
 
-class TestNeutron(base.TestCase):
+class TestNeutron(db_base.DbTestCase):
 
     def setUp(self):
         super(TestNeutron, self).setUp()
@@ -48,7 +47,6 @@ class TestNeutron(base.TestCase):
                     admin_password='test-admin-password',
                     auth_uri='test-auth-uri',
                     group='keystone_authtoken')
-        self.context = context.get_admin_context()
         self.node = object_utils.create_test_node(self.context)
         dhcp_factory.DHCPFactory._dhcp_provider = None
 

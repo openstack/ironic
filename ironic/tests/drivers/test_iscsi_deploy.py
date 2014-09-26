@@ -26,9 +26,7 @@ from ironic.common import utils
 from ironic.db import api as dbapi
 from ironic.drivers.modules import deploy_utils
 from ironic.drivers.modules import iscsi_deploy
-from ironic.openstack.common import context
 from ironic.openstack.common import fileutils
-from ironic.tests import base
 from ironic.tests.conductor import utils as mgr_utils
 from ironic.tests.db import base as db_base
 from ironic.tests.db import utils as db_utils
@@ -40,11 +38,10 @@ INST_INFO_DICT = db_utils.get_test_pxe_instance_info()
 DRV_INFO_DICT = db_utils.get_test_pxe_driver_info()
 
 
-class IscsiDeployValidateParametersTestCase(base.TestCase):
+class IscsiDeployValidateParametersTestCase(db_base.DbTestCase):
 
     def setUp(self):
         super(IscsiDeployValidateParametersTestCase, self).setUp()
-        self.context = context.get_admin_context()
         self.dbapi = dbapi.get_instance()
 
     def test_parse_instance_info_good(self):

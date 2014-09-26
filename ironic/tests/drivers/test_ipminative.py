@@ -33,8 +33,6 @@ from ironic.conductor import task_manager
 from ironic.db import api as db_api
 from ironic.drivers.modules import console_utils
 from ironic.drivers.modules import ipminative
-from ironic.openstack.common import context
-from ironic.tests import base
 from ironic.tests.conductor import utils as mgr_utils
 from ironic.tests.db import base as db_base
 from ironic.tests.db import utils as db_utils
@@ -45,12 +43,11 @@ CONF = cfg.CONF
 INFO_DICT = db_utils.get_test_ipmi_info()
 
 
-class IPMINativePrivateMethodTestCase(base.TestCase):
+class IPMINativePrivateMethodTestCase(db_base.DbTestCase):
     """Test cases for ipminative private methods."""
 
     def setUp(self):
         super(IPMINativePrivateMethodTestCase, self).setUp()
-        self.context = context.get_admin_context()
         self.node = obj_utils.create_test_node(self.context,
                                                driver='fake_ipminative',
                                                driver_info=INFO_DICT)

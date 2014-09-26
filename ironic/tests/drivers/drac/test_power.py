@@ -24,7 +24,6 @@ from ironic.drivers.modules.drac import client as drac_client
 from ironic.drivers.modules.drac import common as drac_common
 from ironic.drivers.modules.drac import power as drac_power
 from ironic.drivers.modules.drac import resource_uris
-from ironic.openstack.common import context
 from ironic.tests import base
 from ironic.tests.db import utils as db_utils
 from ironic.tests.drivers.drac import utils as test_utils
@@ -118,7 +117,6 @@ class DracPowerTestCase(base.TestCase):
                                          instance_uuid='instance_uuid_123')
         self.dbapi = dbapi.get_instance()
         self.node = self.dbapi.create_node(db_node)
-        self.context = context.get_admin_context()
 
     def test_get_properties(self):
         expected = drac_common.COMMON_PROPERTIES

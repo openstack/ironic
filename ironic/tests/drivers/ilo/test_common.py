@@ -29,9 +29,8 @@ from ironic.conductor import task_manager
 from ironic.db import api as dbapi
 from ironic.drivers.modules.ilo import common as ilo_common
 from ironic.drivers import utils as driver_utils
-from ironic.openstack.common import context
-from ironic.tests import base
 from ironic.tests.conductor import utils as mgr_utils
+from ironic.tests.db import base as db_base
 from ironic.tests.db import utils as db_utils
 from ironic.tests.objects import utils as obj_utils
 
@@ -42,12 +41,11 @@ INFO_DICT = db_utils.get_test_ilo_info()
 CONF = cfg.CONF
 
 
-class IloValidateParametersTestCase(base.TestCase):
+class IloValidateParametersTestCase(db_base.DbTestCase):
 
     def setUp(self):
         super(IloValidateParametersTestCase, self).setUp()
         self.dbapi = dbapi.get_instance()
-        self.context = context.get_admin_context()
 
     def test_parse_driver_info(self):
         node = obj_utils.create_test_node(self.context,
@@ -115,12 +113,11 @@ class IloValidateParametersTestCase(base.TestCase):
             self.assertIn('ilo_address', str(e))
 
 
-class IloCommonMethodsTestCase(base.TestCase):
+class IloCommonMethodsTestCase(db_base.DbTestCase):
 
     def setUp(self):
         super(IloCommonMethodsTestCase, self).setUp()
         self.dbapi = dbapi.get_instance()
-        self.context = context.get_admin_context()
         mgr_utils.mock_the_extension_manager(driver="fake_ilo")
         self.node = obj_utils.create_test_node(self.context,
                 driver='fake_ilo', driver_info=INFO_DICT)

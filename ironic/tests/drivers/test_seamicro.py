@@ -26,8 +26,6 @@ from ironic.common import utils
 from ironic.conductor import task_manager
 from ironic.db import api as dbapi
 from ironic.drivers.modules import seamicro
-from ironic.openstack.common import context
-from ironic.tests import base
 from ironic.tests.conductor import utils as mgr_utils
 from ironic.tests.db import base as db_base
 from ironic.tests.db import utils as db_utils
@@ -79,10 +77,7 @@ class Fake_Pool():
         self.freeSize = freeSize
 
 
-class SeaMicroValidateParametersTestCase(base.TestCase):
-    def setUp(self):
-        super(SeaMicroValidateParametersTestCase, self).setUp()
-        self.context = context.get_admin_context()
+class SeaMicroValidateParametersTestCase(db_base.DbTestCase):
 
     def test__parse_driver_info_good(self):
         # make sure we get back the expected things
@@ -134,7 +129,7 @@ class SeaMicroValidateParametersTestCase(base.TestCase):
                           node)
 
 
-class SeaMicroPrivateMethodsTestCase(base.TestCase):
+class SeaMicroPrivateMethodsTestCase(db_base.DbTestCase):
 
     def setUp(self):
         super(SeaMicroPrivateMethodsTestCase, self).setUp()
@@ -142,7 +137,6 @@ class SeaMicroPrivateMethodsTestCase(base.TestCase):
             'driver': 'fake_seamicro',
             'driver_info': INFO_DICT
         }
-        self.context = context.get_admin_context()
         self.dbapi = dbapi.get_instance()
         self.node = obj_utils.create_test_node(self.context, **n)
         self.Server = Fake_Server

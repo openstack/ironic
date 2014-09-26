@@ -30,9 +30,8 @@ from ironic.common import exception
 from ironic.common import utils
 from ironic.drivers.modules import console_utils
 from ironic.drivers.modules import ipmitool as ipmi
-from ironic.openstack.common import context
 from ironic.openstack.common import processutils
-from ironic.tests import base
+from ironic.tests.db import base as db_base
 from ironic.tests.db import utils as db_utils
 from ironic.tests.objects import utils as obj_utils
 
@@ -42,11 +41,10 @@ CONF = cfg.CONF
 INFO_DICT = db_utils.get_test_ipmi_info()
 
 
-class ConsoleUtilsTestCase(base.TestCase):
+class ConsoleUtilsTestCase(db_base.DbTestCase):
 
     def setUp(self):
         super(ConsoleUtilsTestCase, self).setUp()
-        self.context = context.get_admin_context()
         self.node = obj_utils.get_test_node(
                 self.context,
                 driver='fake_ipmitool',

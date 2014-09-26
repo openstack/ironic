@@ -26,9 +26,8 @@ from ironic.db import api as dbapi
 from ironic.drivers.modules.ilo import common as ilo_common
 from ironic.drivers.modules.ilo import deploy as ilo_deploy
 from ironic.drivers.modules.ilo import power as ilo_power
-from ironic.openstack.common import context
-from ironic.tests import base
 from ironic.tests.conductor import utils as mgr_utils
+from ironic.tests.db import base as db_base
 from ironic.tests.db import utils as db_utils
 from ironic.tests.objects import utils as obj_utils
 
@@ -40,7 +39,7 @@ CONF = cfg.CONF
 
 @mock.patch.object(ilo_common, 'ilo_client')
 @mock.patch.object(ilo_power, 'ilo_client')
-class IloPowerInternalMethodsTestCase(base.TestCase):
+class IloPowerInternalMethodsTestCase(db_base.DbTestCase):
 
     def setUp(self):
         super(IloPowerInternalMethodsTestCase, self).setUp()
@@ -52,7 +51,6 @@ class IloPowerInternalMethodsTestCase(base.TestCase):
             instance_uuid='instance_uuid_123')
         self.dbapi = dbapi.get_instance()
         self.node = self.dbapi.create_node(n)
-        self.context = context.get_admin_context()
         CONF.set_override('power_retry', 2, 'ilo')
         CONF.set_override('power_wait', 0, 'ilo')
 
@@ -159,10 +157,9 @@ class IloPowerInternalMethodsTestCase(base.TestCase):
             set_boot_device_mock.assert_called_once_with(task.node, 'CDROM')
 
 
-class IloPowerTestCase(base.TestCase):
+class IloPowerTestCase(db_base.DbTestCase):
 
     def setUp(self):
-        self.context = context.get_admin_context()
         super(IloPowerTestCase, self).setUp()
         driver_info = INFO_DICT
         mgr_utils.mock_the_extension_manager(driver="fake_ilo")

@@ -31,7 +31,6 @@ from ironic.common import states
 from ironic.conductor import task_manager
 from ironic.db import api as db_api
 from ironic.drivers.modules import snmp as snmp
-from ironic.openstack.common import context
 from ironic.tests import base
 from ironic.tests.conductor import utils as mgr_utils
 from ironic.tests.db import base as db_base
@@ -164,11 +163,7 @@ class SNMPClientTestCase(base.TestCase):
                                                          var_bind)
 
 
-class SNMPValidateParametersTestCase(base.TestCase):
-
-    def setUp(self):
-        super(SNMPValidateParametersTestCase, self).setUp()
-        self.context = context.get_admin_context()
+class SNMPValidateParametersTestCase(db_base.DbTestCase):
 
     def _get_test_node(self, driver_info):
         return obj_utils.get_test_node(
@@ -352,7 +347,7 @@ class SNMPValidateParametersTestCase(base.TestCase):
 
 
 @mock.patch.object(snmp, '_get_client')
-class SNMPDeviceDriverTestCase(base.TestCase):
+class SNMPDeviceDriverTestCase(db_base.DbTestCase):
     """Tests for the SNMP device-specific driver classes.
 
     The SNMP client object is mocked to allow various error cases to be tested.
@@ -360,7 +355,6 @@ class SNMPDeviceDriverTestCase(base.TestCase):
 
     def setUp(self):
         super(SNMPDeviceDriverTestCase, self).setUp()
-        self.context = context.get_admin_context()
         self.node = obj_utils.get_test_node(
             self.context,
             driver='fake_snmp',
