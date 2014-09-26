@@ -32,16 +32,22 @@ class DbConductorTestCase(base.DbTestCase):
         super(DbConductorTestCase, self).setUp()
         self.dbapi = dbapi.get_instance()
 
+    def test_register_conductor_existing_fails(self):
+        c = utils.get_test_conductor()
+        self.dbapi.register_conductor(c)
+        self.assertRaises(
+                exception.ConductorAlreadyRegistered,
+                self.dbapi.register_conductor,
+                c)
+
+    def test_register_conductor_override(self):
+        c = utils.get_test_conductor()
+        self.dbapi.register_conductor(c)
+        self.dbapi.register_conductor(c, update_existing=True)
+
     def _create_test_cdr(self, **kwargs):
         c = utils.get_test_conductor(**kwargs)
         return self.dbapi.register_conductor(c)
-
-    def test_register_conductor(self):
-        self._create_test_cdr(id=1)
-        self.assertRaises(
-                exception.ConductorAlreadyRegistered,
-                self._create_test_cdr,
-                id=2)
 
     def test_get_conductor(self):
         c1 = self._create_test_cdr()
@@ -67,7 +73,7 @@ class DbConductorTestCase(base.DbTestCase):
     def test_touch_conductor(self, mock_utcnow):
         test_time = datetime.datetime(2000, 1, 1, 0, 0)
         mock_utcnow.return_value = test_time
-        c = self._create_test_cdr(updated_at=test_time)
+        c = self._create_test_cdr()
         self.assertEqual(test_time, timeutils.normalize_time(c.updated_at))
 
         test_time = datetime.datetime(2000, 1, 1, 0, 1)
@@ -77,11 +83,25 @@ class DbConductorTestCase(base.DbTestCase):
         self.assertEqual(test_time, timeutils.normalize_time(c.updated_at))
 
     def test_touch_conductor_not_found(self):
+        # A conductor's heartbeat will not create a new record,
+        # it will only update existing ones
         self._create_test_cdr()
         self.assertRaises(
                 exception.ConductorNotFound,
                 self.dbapi.touch_conductor,
                 'bad-hostname')
+
+    def test_touch_offline_conductor(self):
+        # Ensure that a conductor's periodic heartbeat task can make the
+        # conductor visible again, even if it was spuriously marked offline
+        c = self._create_test_cdr()
+        self.dbapi.unregister_conductor(c.hostname)
+        self.assertRaises(
+                exception.ConductorNotFound,
+                self.dbapi.get_conductor,
+                c.hostname)
+        self.dbapi.touch_conductor(c.hostname)
+        self.dbapi.get_conductor(c.hostname)
 
     @mock.patch.object(timeutils, 'utcnow')
     def test_get_active_driver_dict_one_host_no_driver(self, mock_utcnow):

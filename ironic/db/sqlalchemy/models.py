@@ -135,6 +135,7 @@ class Conductor(Base):
     id = Column(Integer, primary_key=True)
     hostname = Column(String(255), nullable=False)
     drivers = Column(JSONEncodedList)
+    online = Column(Boolean, default=True)
 
 
 class Node(Base):
@@ -163,7 +164,21 @@ class Node(Base):
     properties = Column(JSONEncodedDict)
     driver = Column(String(15))
     driver_info = Column(JSONEncodedDict)
+
+    # NOTE(deva): this is the host name of the conductor which has
+    #             acquired a TaskManager lock on the node.
+    #             We should use an INT FK (conductors.id) in the future.
     reservation = Column(String(255), nullable=True)
+
+    # NOTE(deva): this is the id of the last conductor which prepared local
+    #             state for the node (eg, a PXE config file).
+    #             When affinity and the hash ring's mapping do not match,
+    #             this indicates that a conductor should rebuild local state.
+    conductor_affinity = Column(Integer,
+                         ForeignKey('conductors.id',
+                             name='nodes_conductor_affinity_fk'),
+                         nullable=True)
+
     maintenance = Column(Boolean, default=False)
     console_enabled = Column(Boolean, default=False)
     extra = Column(JSONEncodedDict)

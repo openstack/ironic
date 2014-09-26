@@ -78,5 +78,5 @@ class SqlAlchemyCustomTypesTestCase(base.DbTestCase):
     def test_JSONEncodedList_type_check(self):
         self.assertRaises(db_exc.DBError,
                           self.dbapi.register_conductor,
-                          {'drivers':
-                               {'this is not a list': 'test'}})
+                          {'hostname': 'test_host3',
+                           'drivers': {'this is not a list': 'test'}})

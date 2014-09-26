@@ -29,7 +29,8 @@ class Node(base.IronicObject):
     # Version 1.4: Add get_by_instance_uuid()
     # Version 1.5: Add list()
     # Version 1.6: Add reserve() and release()
-    VERSION = '1.6'
+    # Version 1.7: Add conductor_affinity
+    VERSION = '1.7'
 
     dbapi = db_api.get_instance()
 
@@ -46,6 +47,10 @@ class Node(base.IronicObject):
             'instance_info': obj_utils.dict_or_none,
             'properties': obj_utils.dict_or_none,
             'reservation': obj_utils.str_or_none,
+            # a reference to the id of the conductor service, not its hostname,
+            # that has most recently performed some action which could require
+            # local state to be maintained (eg, built a PXE config)
+            'conductor_affinity': obj_utils.int_or_none,
 
             # One of states.POWER_ON|POWER_OFF|NOSTATE|ERROR
             'power_state': obj_utils.str_or_none,
