@@ -23,6 +23,9 @@ Install prerequisites::
     sudo easy_install nose
     sudo pip install virtualenv setuptools-git flake8 tox testrepository
 
+    # openSUSE/SLE 12:
+    sudo zypper install git git-review libffi-devel libmysqlclient-devel libopenssl-devel libxml2-devel libxslt-devel postgresql-devel python-devel python-flake8 python-nose python-pip python-setuptools-git python-testrepository python-tox python-virtualenv
+
 You may need to explicitly upgrade virtualenv if you've installed the one
 from your OS distribution and it is too old (tox will complain). You can
 upgrade it individually, if you need to::
@@ -88,6 +91,10 @@ First, install a few system prerequisites::
     sudo yum install rabbitmq-server
     sudo service rabbitmq-server start
 
+    # openSUSE/SLE 12:
+    sudo zypper install rabbitmq-server
+    sudo systemctl start rabbitmq-server.service
+
     # optionally, install mysql-server
 
     # Ubuntu/Debian:
@@ -96,6 +103,10 @@ First, install a few system prerequisites::
     # Fedora/RHEL:
     # sudo yum install mysql-server
     # sudo service mysqld start
+
+    # openSUSE/SLE 12:
+    # sudo zypper install mariadb
+    # sudo systemctl start mysql.service
 
 Next, clone the client and install it within a virtualenv as well::
 
