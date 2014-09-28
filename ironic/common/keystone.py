@@ -38,6 +38,33 @@ def _is_apiv3(auth_url, auth_version):
     return auth_version == 'v3.0' or '/v3' in parse.urlparse(auth_url).path
 
 
+def _get_ksclient():
+    auth_url = CONF.keystone_authtoken.auth_uri
+    if not auth_url:
+        raise exception.CatalogFailure(_('Keystone API endpoint is missing'))
+
+    auth_version = CONF.keystone_authtoken.auth_version
+    api_v3 = _is_apiv3(auth_url, auth_version)
+
+    if api_v3:
+        from keystoneclient.v3 import client
+    else:
+        from keystoneclient.v2_0 import client
+
+    auth_url = get_keystone_url(auth_url, auth_version)
+    try:
+        return client.Client(username=CONF.keystone_authtoken.admin_user,
+                         password=CONF.keystone_authtoken.admin_password,
+                         tenant_name=CONF.keystone_authtoken.admin_tenant_name,
+                         auth_url=auth_url)
+    except ksexception.Unauthorized:
+        raise exception.CatalogUnauthorized
+    except ksexception.AuthorizationFailure as err:
+        raise exception.CatalogFailure(_('Could not perform authorization '
+                                         'process for service catalog: %s')
+                                          % err)
+
+
 def get_keystone_url(auth_url, auth_version):
     """Gives an http/https url to contact keystone.
 
@@ -66,31 +93,7 @@ def get_service_url(service_type='baremetal', endpoint_type='internal'):
     :param endpoint_type: the type of endpoint for the service.
     :returns: an http/https url for the desired endpoint.
     """
-    auth_url = CONF.keystone_authtoken.auth_uri
-    if not auth_url:
-        raise exception.CatalogFailure(_('Keystone API endpoint is missing'))
-
-    auth_version = CONF.keystone_authtoken.auth_version
-    api_v3 = _is_apiv3(auth_url, auth_version)
-
-    if api_v3:
-        from keystoneclient.v3 import client
-    else:
-        from keystoneclient.v2_0 import client
-
-    auth_url = get_keystone_url(auth_url, auth_version)
-    try:
-        ksclient = client.Client(username=CONF.keystone_authtoken.admin_user,
-                        password=CONF.keystone_authtoken.admin_password,
-                        tenant_name=CONF.keystone_authtoken.admin_tenant_name,
-                        auth_url=auth_url)
-    except ksexception.Unauthorized:
-        raise exception.CatalogUnauthorized
-
-    except ksexception.AuthorizationFailure as err:
-        raise exception.CatalogFailure(_('Could not perform authorization '
-                                         'process for service catalog: %s')
-                                          % err)
+    ksclient = _get_ksclient()
 
     if not ksclient.has_service_catalog():
         raise exception.CatalogFailure(_('No keystone service catalog loaded'))
@@ -103,3 +106,9 @@ def get_service_url(service_type='baremetal', endpoint_type='internal'):
                                         endpoint_type=endpoint_type)
 
     return endpoint
+
+
+def get_admin_auth_token():
+    """Get an admin auth_token from the Keystone."""
+    ksclient = _get_ksclient()
+    return ksclient.auth_token

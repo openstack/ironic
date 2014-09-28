@@ -61,6 +61,7 @@ from ironic.common.i18n import _LC
 from ironic.common.i18n import _LE
 from ironic.common.i18n import _LI
 from ironic.common.i18n import _LW
+from ironic.common import keystone
 from ironic.common import rpc
 from ironic.common import states
 from ironic.common import utils as ironic_utils
@@ -68,6 +69,7 @@ from ironic.conductor import task_manager
 from ironic.conductor import utils
 from ironic.db import api as dbapi
 from ironic import objects
+from ironic.openstack.common import context as ironic_context
 from ironic.openstack.common import lockutils
 from ironic.openstack.common import log
 from ironic.openstack.common import periodic_task
@@ -141,6 +143,15 @@ conductor_opts = [
                         ' sent to Ceilometer. The default value, "ALL", is a '
                         'special value meaning send all the sensor data.'
                         ),
+        cfg.IntOpt('sync_local_state_interval',
+                   default=180,
+                   help='When conductors join or leave the cluster, existing '
+                        'conductors may need to update any persistent '
+                        'local state as nodes are moved around the cluster. '
+                        'This option controls how often, in seconds, each '
+                        'conductor will check for nodes that it should '
+                        '"take over". Set it to a negative value to disable '
+                        'the check entirely.'),
 ]
 
 CONF = cfg.CONF
@@ -862,15 +873,72 @@ class ConductorManager(periodic_task.PeriodicTasks):
             if workers_count == CONF.conductor.periodic_max_workers:
                 break
 
-    def rebalance_node_ring(self):
-        """Perform any actions necessary when rebalancing the consistent hash.
+    def _do_takeover(self, task):
+        LOG.debug(('Conductor %(cdr)s taking over node %(node)s'),
+                  {'cdr': self.host, 'node': task.node.uuid})
+        task.driver.deploy.prepare(task)
+        task.driver.deploy.take_over(task)
+        # NOTE(lucasagomes): Set the ID of the new conductor managing
+        #                    this node
+        task.node.conductor_affinity = self.conductor.id
+        task.node.save()
 
-        This may trigger several actions, such as calling driver.deploy.prepare
-        for nodes which are now mapped to this conductor.
+    @periodic_task.periodic_task(
+            spacing=CONF.conductor.sync_local_state_interval)
+    def _sync_local_state(self, context):
+        """Perform any actions necessary to sync local state.
 
+        This is called periodically to refresh the conductor's copy of the
+        consistent hash ring. If any mappings have changed, this method then
+        determines which, if any, nodes need to be "taken over".
+        The ensuing actions could include preparing a PXE environment,
+        updating the DHCP server, and so on.
         """
-        # TODO(deva): implement this
-        pass
+        self.ring_manager.reset()
+        filters = {'reserved': False,
+                   'maintenance': False,
+                   'provision_state': states.ACTIVE}
+        columns = ['id', 'uuid', 'driver', 'conductor_affinity']
+        node_list = self.dbapi.get_nodeinfo_list(
+                                    columns=columns,
+                                    filters=filters)
+
+        admin_context = None
+        workers_count = 0
+        for node_id, node_uuid, driver, conductor_affinity in node_list:
+            if not self._mapped_to_this_conductor(node_uuid, driver):
+                continue
+            if conductor_affinity == self.conductor.id:
+                continue
+
+            # NOTE(lucasagomes): The context provided by the periodic task
+            # will make the glance client to fail with an 401 (Unauthorized)
+            # so we have to use the admin_context with an admin auth_token
+            if not admin_context:
+                admin_context = ironic_context.get_admin_context()
+                admin_context.auth_token = keystone.get_admin_auth_token()
+
+            # Node is mapped here, but not updated by this conductor last
+            try:
+                with task_manager.acquire(admin_context, node_id) as task:
+                    # NOTE(deva): now that we have the lock, check again to
+                    # avoid racing with deletes and other state changes
+                    node = task.node
+                    if (node.maintenance or
+                            node.conductor_affinity == self.conductor.id or
+                            node.provision_state != states.ACTIVE):
+                        continue
+
+                    task.spawn_after(self._spawn_worker,
+                                     self._do_takeover, task)
+
+            except exception.NoFreeConductorWorker:
+                break
+            except (exception.NodeLocked, exception.NodeNotFound):
+                continue
+            workers_count += 1
+            if workers_count == CONF.conductor.periodic_max_workers:
+                break
 
     def _mapped_to_this_conductor(self, node_uuid, driver):
         """Check that node is mapped to this conductor.

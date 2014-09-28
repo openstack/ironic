@@ -110,3 +110,10 @@ class KeystoneTestCase(base.TestCase):
         mock_ks.assert_called_once_with(username='fake', password='fake',
                                         tenant_name='fake',
                                         auth_url=expected_url)
+
+    @mock.patch('keystoneclient.v2_0.client.Client')
+    def test_get_admin_auth_token(self, mock_ks):
+        fake_client = FakeClient()
+        fake_client.auth_token = '123456'
+        mock_ks.return_value = fake_client
+        self.assertEqual('123456', keystone.get_admin_auth_token())

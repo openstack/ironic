@@ -573,6 +573,14 @@
 # meaning send all the sensor data. (list value)
 #send_sensor_data_types=ALL
 
+# When conductors join or leave the cluster, existing
+# conductors may need to update any persistent local state as
+# nodes are moved around the cluster. This option controls how
+# often, in seconds, each conductor will check for nodes that
+# it should "take over". Set it to a negative value to disable
+# the check entirely. (integer value)
+#sync_local_state_interval=180
+
 
 [console]
 
