@@ -231,7 +231,7 @@ class AgentDeploy(base.DeployInterface):
             _get_tftp_image_info(task.node)
         except KeyError:
             raise exception.InvalidParameterValue(_(
-                    'Node %s failed to validate deploy image info'),
+                    'Node %s failed to validate deploy image info') %
                     task.node.uuid)
 
     @task_manager.require_exclusive_lock

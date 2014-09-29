@@ -74,6 +74,14 @@ class TestAgentDeploy(db_base.DbTestCase):
                 self.context, self.node['uuid'], shared=False) as task:
             self.driver.validate(task)
 
+    def test_validate_exception(self):
+        self.node.driver_info = {}
+        self.node.save()
+        with task_manager.acquire(
+                self.context, self.node['uuid'], shared=False) as task:
+            self.assertRaises(exception.InvalidParameterValue,
+                             self.driver.validate, task)
+
     @mock.patch.object(dhcp_factory.DHCPFactory, 'update_dhcp')
     @mock.patch('ironic.conductor.utils.node_set_boot_device')
     @mock.patch('ironic.conductor.utils.node_power_action')
