@@ -68,6 +68,11 @@ OPTIONAL_PROPERTIES = {
     'client_port': _("port to be used for iLO operations. Optional."),
     'client_timeout': _("timeout (in seconds) for iLO operations. Optional.")
 }
+CONSOLE_PROPERTIES = {
+    'console_port': _("node's UDP port to connect to. Only required for "
+                      "console access.")
+}
+
 COMMON_PROPERTIES = REQUIRED_PROPERTIES.copy()
 COMMON_PROPERTIES.update(OPTIONAL_PROPERTIES)
 DEFAULT_BOOT_MODE = 'LEGACY'
@@ -112,6 +117,15 @@ def parse_driver_info(node):
             error_msgs.append(_("'%s' is not an integer.") % param)
             continue
         d_info[param] = value
+
+    for param in CONSOLE_PROPERTIES:
+        value = info.get(param)
+        if value:
+            try:
+                value = int(value)
+                d_info[param] = value
+            except ValueError:
+                error_msgs.append(_("'%s' is not an integer.") % param)
 
     if error_msgs:
         msg = (_("The following errors were encountered while parsing "

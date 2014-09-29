@@ -23,7 +23,6 @@ from ironic.drivers import base
 from ironic.drivers.modules import agent
 from ironic.drivers.modules.ilo import deploy
 from ironic.drivers.modules.ilo import power
-from ironic.drivers.modules import ipmitool
 
 
 class IloVirtualMediaIscsiDriver(base.BaseDriver):
@@ -44,8 +43,8 @@ class IloVirtualMediaIscsiDriver(base.BaseDriver):
 
         self.power = power.IloPower()
         self.deploy = deploy.IloVirtualMediaIscsiDeploy()
-        self.console = ipmitool.IPMIShellinaboxConsole()
-        self.management = ipmitool.IPMIManagement()
+        self.console = deploy.IloConsoleInterface()
+        self.management = deploy.IloManagement()
         self.vendor = deploy.VendorPassthru()
 
 
@@ -67,6 +66,6 @@ class IloVirtualMediaAgentDriver(base.BaseDriver):
 
         self.power = power.IloPower()
         self.deploy = deploy.IloVirtualMediaAgentDeploy()
-        self.console = ipmitool.IPMIShellinaboxConsole()
-        self.management = ipmitool.IPMIManagement()
+        self.console = deploy.IloConsoleInterface()
+        self.management = deploy.IloManagement()
         self.vendor = agent.AgentVendorInterface()
