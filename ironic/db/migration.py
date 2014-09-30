@@ -16,34 +16,41 @@
 
 """Database setup and migration commands."""
 
-from ironic.common import utils
+from oslo.config import cfg
+from stevedore import driver
 
-IMPL = utils.LazyPluggable(
-    pivot='backend',
-    config_group='database',
-    sqlalchemy='ironic.db.sqlalchemy.migration')
+_IMPL = None
+
+
+def get_backend():
+    global _IMPL
+    if not _IMPL:
+        cfg.CONF.import_opt('backend', 'oslo.db.options', group='database')
+        _IMPL = driver.DriverManager("ironic.database.migration_backend",
+                                     cfg.CONF.database.backend).driver
+    return _IMPL
 
 
 def upgrade(version=None):
     """Migrate the database to `version` or the most recent version."""
-    return IMPL.upgrade(version)
+    return get_backend().upgrade(version)
 
 
 def downgrade(version=None):
-    return IMPL.downgrade(version)
+    return get_backend().downgrade(version)
 
 
 def version():
-    return IMPL.version()
+    return get_backend().version()
 
 
 def stamp(version):
-    return IMPL.stamp(version)
+    return get_backend().stamp(version)
 
 
 def revision(message, autogenerate):
-    return IMPL.revision(message, autogenerate)
+    return get_backend().revision(message, autogenerate)
 
 
 def create_schema():
-    return IMPL.create_schema()
+    return get_backend().create_schema()
