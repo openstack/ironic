@@ -110,7 +110,7 @@ def _get_boot_device_map(virt_type):
 def _get_command_sets(virt_type):
     if virt_type == 'vbox':
         return {
-            'base_cmd': '/usr/bin/VBoxManage',
+            'base_cmd': 'LC_ALL=C /usr/bin/VBoxManage',
             'start_cmd': 'startvm {_NodeName_}',
             'stop_cmd': 'controlvm {_NodeName_} poweroff',
             'reboot_cmd': 'controlvm {_NodeName_} reset',
@@ -126,7 +126,7 @@ def _get_command_sets(virt_type):
             }
     elif virt_type == 'vmware':
         return {
-            'base_cmd': '/bin/vim-cmd',
+            'base_cmd': 'LC_ALL=C /bin/vim-cmd',
             'start_cmd': 'vmsvc/power.on {_NodeName_}',
             'stop_cmd': 'vmsvc/power.off {_NodeName_}',
             'reboot_cmd': 'vmsvc/power.reboot {_NodeName_}',
@@ -151,7 +151,7 @@ def _get_command_sets(virt_type):
         #                  Change-Id: I160e4202952b7551b855dc7d91784d6a184cb0ed
         #                  for more detail.
         virsh_cmds = {
-            'base_cmd': '/usr/bin/virsh',
+            'base_cmd': 'LC_ALL=C /usr/bin/virsh',
             'start_cmd': 'start {_NodeName_}',
             'stop_cmd': 'destroy {_NodeName_}',
             'reboot_cmd': 'reset {_NodeName_}',
@@ -176,7 +176,7 @@ def _get_command_sets(virt_type):
         return virsh_cmds
     elif virt_type == 'parallels':
         return {
-            'base_cmd': '/usr/bin/prlctl',
+            'base_cmd': 'LC_ALL=C /usr/bin/prlctl',
             'start_cmd': 'start {_NodeName_}',
             'stop_cmd': 'stop {_NodeName_} --kill',
             'reboot_cmd': 'reset {_NodeName_}',
