@@ -72,6 +72,7 @@ def node_power_action(task, new_state):
                     _("Failed to change power state to '%(target)s'. "
                       "Error: %(error)s") % {
                       'target': new_state, 'error': e}
+                node['target_power_state'] = states.NOSTATE
                 node.save()
 
         if curr_state == new_state:
@@ -85,6 +86,7 @@ def node_power_action(task, new_state):
             # This isn't an error, so we'll clear last_error field
             # (from previous operation), log a warning, and return.
             node['last_error'] = None
+            node['target_power_state'] = states.NOSTATE
             node.save()
             LOG.warn(_LW("Not going to change_node_power_state because "
                          "current state = requested state = '%(state)s'."),
