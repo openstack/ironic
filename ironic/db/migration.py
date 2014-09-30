@@ -23,8 +23,6 @@ IMPL = utils.LazyPluggable(
     config_group='database',
     sqlalchemy='ironic.db.sqlalchemy.migration')
 
-INIT_VERSION = 0
-
 
 def upgrade(version=None):
     """Migrate the database to `version` or the most recent version."""
