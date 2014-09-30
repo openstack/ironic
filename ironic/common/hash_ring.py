@@ -141,9 +141,9 @@ class HashRingManager(object):
         return rings
 
     @classmethod
-    def reset(self):
-        with self._lock:
-            self._hash_rings = None
+    def reset(cls):
+        with cls._lock:
+            cls._hash_rings = None
 
     def __getitem__(self, driver_name):
         try:
