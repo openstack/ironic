@@ -868,7 +868,7 @@ class VendorPassthru(base.VendorInterface):
 
         :param task: a task from TaskManager.
         :param kwargs: info for action.
-        :raises: InvalidParameterValue if **kwargs does not contain 'method',
+        :raises: InvalidParameterValue if kwargs does not contain 'method',
                  'method' is not supported or a byte string is not given for
                  'raw_bytes'.
         :raises: MissingParameterValue if a required parameter is missing.

@@ -69,7 +69,7 @@ class MixinVendorInterface(base.VendorInterface):
 
         :raises: UnsupportedDriverExtension if 'method' can not be mapped to
                  the supported interfaces.
-        :raises: InvalidParameterValue if **kwargs does not contain 'method'.
+        :raises: InvalidParameterValue if kwargs does not contain 'method'.
         :raisee: MissingParameterValue if missing parameters in kwargs.
 
         """
@@ -83,7 +83,7 @@ class MixinVendorInterface(base.VendorInterface):
 
         :raises: UnsupportedDriverExtension if 'method' can not be mapped to
                  the supported interfaces.
-        :raises: MissingParameterValue if **kwargs does not contain 'method'.
+        :raises: MissingParameterValue if kwargs does not contain 'method'.
 
         """
         route = self._map(**kwargs)

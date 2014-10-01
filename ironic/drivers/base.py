@@ -378,7 +378,7 @@ class VendorInterface(object):
         :param kwargs: info for action.
         :raises: UnsupportedDriverExtension if 'method' can not be mapped to
                  the supported interfaces.
-        :raises: InvalidParameterValue if **kwargs does not contain 'method'.
+        :raises: InvalidParameterValue if kwargs does not contain 'method'.
         :raises: MissingParameterValue
         """
 
@@ -391,7 +391,7 @@ class VendorInterface(object):
 
         :raises: UnsupportedDriverExtension if 'method' can not be mapped to
                  the supported interfaces.
-        :raises: InvalidParameterValue if **kwargs does not contain 'method'.
+        :raises: InvalidParameterValue if kwargs does not contain 'method'.
         :raises: MissingParameterValue when a required parameter is missing
         """
 

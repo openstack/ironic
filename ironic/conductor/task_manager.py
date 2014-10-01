@@ -205,8 +205,8 @@ class TaskManager(object):
 
         :param _on_error_method: a callable object, it's first parameter
             should accept the Exception object that was raised.
-        :param *args: additional args passed to the callable object.
-        :param **kwargs: additional kwargs passed to the callable object.
+        :param args: additional args passed to the callable object.
+        :param kwargs: additional kwargs passed to the callable object.
 
         """
         self._on_error_method = _on_error_method
