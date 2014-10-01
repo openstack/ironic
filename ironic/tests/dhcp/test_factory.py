@@ -19,7 +19,6 @@ from ironic.common import dhcp_factory
 from ironic.common import exception
 from ironic.dhcp import neutron
 from ironic.dhcp import none
-from ironic.openstack.common import context
 from ironic.tests import base
 
 
@@ -31,7 +30,6 @@ class TestDHCPFactory(base.TestCase):
         self.config(url='test-url',
                     url_timeout=30,
                     group='neutron')
-        self.context = context.get_admin_context()
         dhcp_factory.DHCPFactory._dhcp_provider = None
 
     def test_default_dhcp(self):

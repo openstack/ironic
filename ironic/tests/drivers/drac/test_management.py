@@ -27,9 +27,8 @@ from ironic.drivers.modules.drac import client as drac_client
 from ironic.drivers.modules.drac import common as drac_common
 from ironic.drivers.modules.drac import management as drac_mgmt
 from ironic.drivers.modules.drac import resource_uris
-from ironic.openstack.common import context
-from ironic.tests import base
 from ironic.tests.conductor import utils as mgr_utils
+from ironic.tests.db import base as db_base
 from ironic.tests.db import utils as db_utils
 from ironic.tests.drivers.drac import utils as test_utils
 from ironic.tests.objects import utils as obj_utils
@@ -38,12 +37,11 @@ INFO_DICT = db_utils.get_test_drac_info()
 
 
 @mock.patch.object(drac_client, 'pywsman')
-class DracManagementInternalMethodsTestCase(base.TestCase):
+class DracManagementInternalMethodsTestCase(db_base.DbTestCase):
 
     def setUp(self):
         super(DracManagementInternalMethodsTestCase, self).setUp()
         mgr_utils.mock_the_extension_manager(driver='fake_drac')
-        self.context = context.get_admin_context()
         self.node = obj_utils.create_test_node(self.context,
                                                driver='fake_drac',
                                                driver_info=INFO_DICT)
@@ -152,12 +150,11 @@ class DracManagementInternalMethodsTestCase(base.TestCase):
 
 
 @mock.patch.object(drac_client, 'pywsman')
-class DracManagementTestCase(base.TestCase):
+class DracManagementTestCase(db_base.DbTestCase):
 
     def setUp(self):
         super(DracManagementTestCase, self).setUp()
         mgr_utils.mock_the_extension_manager(driver='fake_drac')
-        self.context = context.get_admin_context()
         self.node = obj_utils.create_test_node(self.context,
                                                driver='fake_drac',
                                                driver_info=INFO_DICT)

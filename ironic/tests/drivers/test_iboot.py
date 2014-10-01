@@ -25,8 +25,6 @@ from ironic.common import states
 from ironic.conductor import task_manager
 from ironic.db import api as dbapi
 from ironic.drivers.modules import iboot
-from ironic.openstack.common import context
-from ironic.tests import base
 from ironic.tests.conductor import utils as mgr_utils
 from ironic.tests.db import base as db_base
 from ironic.tests.db import utils as db_utils
@@ -36,12 +34,11 @@ from ironic.tests.objects import utils as obj_utils
 INFO_DICT = db_utils.get_test_iboot_info()
 
 
-class IBootPrivateMethodTestCase(base.TestCase):
+class IBootPrivateMethodTestCase(db_base.DbTestCase):
 
     def setUp(self):
         super(IBootPrivateMethodTestCase, self).setUp()
         self.dbapi = dbapi.get_instance()
-        self.context = context.get_admin_context()
 
     def test__parse_driver_info_good(self):
         node = obj_utils.create_test_node(

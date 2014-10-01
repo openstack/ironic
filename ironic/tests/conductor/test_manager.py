@@ -34,7 +34,6 @@ from ironic.conductor import utils as conductor_utils
 from ironic.db import api as dbapi
 from ironic.drivers import base as drivers_base
 from ironic import objects
-from ironic.openstack.common import context
 from ironic.tests import base as tests_base
 from ironic.tests.conductor import utils as mgr_utils
 from ironic.tests.db import base as tests_db_base
@@ -1475,11 +1474,10 @@ class ManagerSpawnWorkerTestCase(tests_base.TestCase):
 
 
 @mock.patch.object(conductor_utils, 'node_power_action')
-class ManagerDoSyncPowerStateTestCase(tests_base.TestCase):
+class ManagerDoSyncPowerStateTestCase(tests_db_base.DbTestCase):
     def setUp(self):
         super(ManagerDoSyncPowerStateTestCase, self).setUp()
         self.service = manager.ConductorManager('hostname', 'test-topic')
-        self.context = context.get_admin_context()
         self.driver = mock.Mock(spec_set=drivers_base.BaseDriver)
         self.power = self.driver.power
         self.node = mock.Mock(spec_set=objects.Node)
@@ -1673,13 +1671,12 @@ class ManagerDoSyncPowerStateTestCase(tests_base.TestCase):
 @mock.patch.object(manager.ConductorManager, '_mapped_to_this_conductor')
 @mock.patch.object(objects.Node, 'get_by_id')
 @mock.patch.object(dbapi.IMPL, 'get_nodeinfo_list')
-class ManagerSyncPowerStatesTestCase(_CommonMixIn, tests_base.TestCase):
+class ManagerSyncPowerStatesTestCase(_CommonMixIn, tests_db_base.DbTestCase):
     def setUp(self):
         super(ManagerSyncPowerStatesTestCase, self).setUp()
         self.service = manager.ConductorManager('hostname', 'test-topic')
         self.dbapi = dbapi.get_instance()
         self.service.dbapi = self.dbapi
-        self.context = context.get_admin_context()
         self.node = self._create_node()
         self.filters = {'reserved': False, 'maintenance': False}
         self.columns = ['id', 'uuid', 'driver']
@@ -1939,11 +1936,11 @@ class ManagerSyncPowerStatesTestCase(_CommonMixIn, tests_base.TestCase):
 @mock.patch.object(task_manager, 'acquire')
 @mock.patch.object(manager.ConductorManager, '_mapped_to_this_conductor')
 @mock.patch.object(dbapi.IMPL, 'get_nodeinfo_list')
-class ManagerCheckDeployTimeoutsTestCase(_CommonMixIn, tests_base.TestCase):
+class ManagerCheckDeployTimeoutsTestCase(_CommonMixIn,
+                                         tests_db_base.DbTestCase):
     def setUp(self):
         super(ManagerCheckDeployTimeoutsTestCase, self).setUp()
         self.config(deploy_callback_timeout=300, group='conductor')
-        self.context = context.get_admin_context()
         self.service = manager.ConductorManager('hostname', 'test-topic')
         self.dbapi = dbapi.get_instance()
         self.service.dbapi = self.dbapi

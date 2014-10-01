@@ -21,19 +21,14 @@ from testtools.matchers import HasLength
 
 from ironic.common import exception
 from ironic.drivers.modules.drac import common as drac_common
-from ironic.openstack.common import context
-from ironic.tests import base
+from ironic.tests.db import base as db_base
 from ironic.tests.db import utils as db_utils
 from ironic.tests.objects import utils as obj_utils
 
 INFO_DICT = db_utils.get_test_drac_info()
 
 
-class DracCommonMethodsTestCase(base.TestCase):
-
-    def setUp(self):
-        super(DracCommonMethodsTestCase, self).setUp()
-        self.context = context.get_admin_context()
+class DracCommonMethodsTestCase(db_base.DbTestCase):
 
     def test_parse_driver_info(self):
         node = obj_utils.create_test_node(self.context,

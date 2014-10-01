@@ -28,9 +28,7 @@ from ironic.conductor import task_manager
 from ironic.db import api as dbapi
 from ironic.drivers.modules import ssh
 from ironic.drivers import utils as driver_utils
-from ironic.openstack.common import context
 from ironic.openstack.common import processutils
-from ironic.tests import base
 from ironic.tests.conductor import utils as mgr_utils
 from ironic.tests.db import base as db_base
 from ironic.tests.db import utils as db_utils
@@ -41,10 +39,7 @@ from oslo.config import cfg
 CONF = cfg.CONF
 
 
-class SSHValidateParametersTestCase(base.TestCase):
-    def setUp(self):
-        super(SSHValidateParametersTestCase, self).setUp()
-        self.context = context.get_admin_context()
+class SSHValidateParametersTestCase(db_base.DbTestCase):
 
     def test__parse_driver_info_good_password(self):
         # make sure we get back the expected things
@@ -195,11 +190,10 @@ class SSHValidateParametersTestCase(base.TestCase):
                           'this_doesn_t_exist')
 
 
-class SSHPrivateMethodsTestCase(base.TestCase):
+class SSHPrivateMethodsTestCase(db_base.DbTestCase):
 
     def setUp(self):
         super(SSHPrivateMethodsTestCase, self).setUp()
-        self.context = context.get_admin_context()
         self.node = obj_utils.get_test_node(
                         self.context,
                         driver='fake_ssh',

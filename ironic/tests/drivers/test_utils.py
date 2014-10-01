@@ -21,17 +21,15 @@ from ironic.conductor import task_manager
 from ironic.db import api as db_api
 from ironic.drivers.modules import fake
 from ironic.drivers import utils as driver_utils
-from ironic.openstack.common import context
-from ironic.tests import base
 from ironic.tests.conductor import utils as mgr_utils
+from ironic.tests.db import base as db_base
 from ironic.tests.objects import utils as obj_utils
 
 
-class UtilsTestCase(base.TestCase):
+class UtilsTestCase(db_base.DbTestCase):
 
     def setUp(self):
         super(UtilsTestCase, self).setUp()
-        self.context = context.get_admin_context()
         self.dbapi = db_api.get_instance()
         mgr_utils.mock_the_extension_manager()
         self.driver = driver_factory.get_driver("fake")
