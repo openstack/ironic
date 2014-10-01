@@ -1323,15 +1323,18 @@ class UpdatePortTestCase(_ServiceSetUpMixin, tests_db_base.DbTestCase):
         acquire_mock.return_value.__enter__.return_value.driver = self.driver
         with mock.patch.object(self.driver.management,
                                'get_sensors_data') as get_sensors_data_mock:
-            get_sensors_data_mock.return_value = 'fake-sensor-data'
-            _mapped_to_this_conductor_mock.return_value = True
-            get_nodeinfo_list_mock.return_value = [(node.uuid, node.driver,
-                                                 node.instance_uuid)]
-            self.service._send_sensor_data(self.context)
-            self.assertTrue(get_nodeinfo_list_mock.called)
-            self.assertTrue(_mapped_to_this_conductor_mock.called)
-            self.assertTrue(acquire_mock.called)
-            self.assertTrue(get_sensors_data_mock.called)
+            with mock.patch.object(self.driver.management,
+                                   'validate') as validate_mock:
+                get_sensors_data_mock.return_value = 'fake-sensor-data'
+                _mapped_to_this_conductor_mock.return_value = True
+                get_nodeinfo_list_mock.return_value = [(node.uuid, node.driver,
+                                                     node.instance_uuid)]
+                self.service._send_sensor_data(self.context)
+                self.assertTrue(get_nodeinfo_list_mock.called)
+                self.assertTrue(_mapped_to_this_conductor_mock.called)
+                self.assertTrue(acquire_mock.called)
+                self.assertTrue(get_sensors_data_mock.called)
+                self.assertTrue(validate_mock.called)
 
     @mock.patch.object(manager.ConductorManager, '_mapped_to_this_conductor')
     @mock.patch.object(dbapi.IMPL, 'get_nodeinfo_list')
@@ -1344,15 +1347,18 @@ class UpdatePortTestCase(_ServiceSetUpMixin, tests_db_base.DbTestCase):
         acquire_mock.return_value.__enter__.return_value.driver = self.driver
         with mock.patch.object(self.driver.management,
                                'get_sensors_data') as get_sensors_data_mock:
-            get_sensors_data_mock.return_value = 'fake-sensor-data'
-            _mapped_to_this_conductor_mock.return_value = True
-            get_nodeinfo_list_mock.return_value = [(node.uuid, node.driver,
-                                                 node.instance_uuid)]
-            self.service._send_sensor_data(self.context)
-            self.assertFalse(get_nodeinfo_list_mock.called)
-            self.assertFalse(_mapped_to_this_conductor_mock.called)
-            self.assertFalse(acquire_mock.called)
-            self.assertFalse(get_sensors_data_mock.called)
+            with mock.patch.object(self.driver.management,
+                                   'validate') as validate_mock:
+                get_sensors_data_mock.return_value = 'fake-sensor-data'
+                _mapped_to_this_conductor_mock.return_value = True
+                get_nodeinfo_list_mock.return_value = [(node.uuid, node.driver,
+                                                     node.instance_uuid)]
+                self.service._send_sensor_data(self.context)
+                self.assertFalse(get_nodeinfo_list_mock.called)
+                self.assertFalse(_mapped_to_this_conductor_mock.called)
+                self.assertFalse(acquire_mock.called)
+                self.assertFalse(get_sensors_data_mock.called)
+                self.assertFalse(validate_mock.called)
 
     def test_set_boot_device(self):
         node = obj_utils.create_test_node(self.context, driver='fake')
