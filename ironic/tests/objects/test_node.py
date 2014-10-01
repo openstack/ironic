@@ -17,7 +17,6 @@ import mock
 from testtools.matchers import HasLength
 
 from ironic.common import exception
-from ironic.db import api as db_api
 from ironic import objects
 from ironic.tests.db import base
 from ironic.tests.db import utils
@@ -28,7 +27,6 @@ class TestNodeObject(base.DbTestCase):
     def setUp(self):
         super(TestNodeObject, self).setUp()
         self.fake_node = utils.get_test_node()
-        self.dbapi = db_api.get_instance()
 
     def test_get_by_id(self):
         node_id = self.fake_node['id']

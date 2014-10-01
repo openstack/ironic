@@ -26,7 +26,6 @@ eventlet.monkey_patch(os=False)
 
 import copy
 import os
-import shutil
 import sys
 
 import fixtures
@@ -34,82 +33,18 @@ import testtools
 
 from oslo.config import cfg
 
-from ironic.db.sqlalchemy import migration
-from ironic.db.sqlalchemy import models
-
 from ironic.common import hash_ring
-from ironic.common import paths
-from ironic.db.sqlalchemy import api as sqla_api
 from ironic.objects import base as objects_base
+from ironic.openstack.common import context as ironic_context
 from ironic.openstack.common import log as logging
 from ironic.tests import conf_fixture
 from ironic.tests import policy_fixture
 
 
-test_opts = [
-    cfg.StrOpt('sqlite_clean_db',
-               default='clean.sqlite',
-               help='File name of clean sqlite db.'),
-    ]
-
 CONF = cfg.CONF
-CONF.register_opts(test_opts)
 CONF.set_override('use_stderr', False)
 
 logging.setup('ironic')
-
-_DB_CACHE = None
-
-
-class Database(fixtures.Fixture):
-
-    def __init__(self, db_api, db_migrate, sql_connection,
-                    sqlite_db, sqlite_clean_db):
-        self.sql_connection = sql_connection
-        self.sqlite_db = sqlite_db
-        self.sqlite_clean_db = sqlite_clean_db
-
-        self.engine = db_api.get_engine()
-        self.engine.dispose()
-        conn = self.engine.connect()
-        if sql_connection == "sqlite://":
-            self.setup_sqlite(db_migrate)
-        elif sql_connection.startswith('sqlite:///'):
-            testdb = paths.state_path_rel(sqlite_db)
-            if os.path.exists(testdb):
-                return
-            self.setup_sqlite(db_migrate)
-        else:
-            db_migrate.upgrade('head')
-        self.post_migrations()
-        if sql_connection == "sqlite://":
-            conn = self.engine.connect()
-            self._DB = "".join(line for line in conn.connection.iterdump())
-            self.engine.dispose()
-        else:
-            cleandb = paths.state_path_rel(sqlite_clean_db)
-            shutil.copyfile(testdb, cleandb)
-
-    def setup_sqlite(self, db_migrate):
-        if db_migrate.version():
-            return
-        models.Base.metadata.create_all(self.engine)
-        db_migrate.stamp('head')
-
-    def setUp(self):
-        super(Database, self).setUp()
-
-        if self.sql_connection == "sqlite://":
-            conn = self.engine.connect()
-            conn.connection.executescript(self._DB)
-            self.addCleanup(self.engine.dispose)
-        else:
-            shutil.copyfile(paths.state_path_rel(self.sqlite_clean_db),
-                            paths.state_path_rel(self.sqlite_db))
-            self.addCleanup(os.unlink, self.sqlite_db)
-
-    def post_migrations(self):
-        """Any addition steps that are needed outside of the migrations."""
 
 
 class ReplaceModule(fixtures.Fixture):
@@ -139,6 +74,7 @@ class TestCase(testtools.TestCase):
     def setUp(self):
         """Run before each test method to initialize test environment."""
         super(TestCase, self).setUp()
+        self.context = ironic_context.get_admin_context()
         test_timeout = os.environ.get('OS_TEST_TIMEOUT', 0)
         try:
             test_timeout = int(test_timeout)
@@ -161,14 +97,6 @@ class TestCase(testtools.TestCase):
 
         self.log_fixture = self.useFixture(fixtures.FakeLogger())
         self.useFixture(conf_fixture.ConfFixture(CONF))
-
-        global _DB_CACHE
-        if not _DB_CACHE:
-            _DB_CACHE = Database(sqla_api, migration,
-                                    sql_connection=CONF.database.connection,
-                                    sqlite_db=CONF.database.sqlite_db,
-                                    sqlite_clean_db=CONF.sqlite_clean_db)
-        self.useFixture(_DB_CACHE)
 
         # NOTE(danms): Make sure to reset us back to non-remote objects
         # for each test to avoid interactions. Also, backup the object

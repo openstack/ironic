@@ -21,7 +21,6 @@ from oslo.config import cfg
 
 from ironic.common import pxe_utils
 from ironic.conductor import task_manager
-from ironic.db import api as dbapi
 from ironic.tests.conductor import utils as mgr_utils
 from ironic.tests.db import base as db_base
 from ironic.tests.objects import utils as object_utils
@@ -34,7 +33,6 @@ class TestPXEUtils(db_base.DbTestCase):
     def setUp(self):
         super(TestPXEUtils, self).setUp()
         mgr_utils.mock_the_extension_manager(driver="fake")
-        self.dbapi = dbapi.get_instance()
         self.pxe_options = {
             'deployment_key': '0123456789ABCDEFGHIJKLMNOPQRSTUV',
             'ari_path': u'/tftpboot/1be26c0b-03f2-4d2e-ae87-c02d7f33c123/'

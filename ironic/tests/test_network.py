@@ -16,7 +16,6 @@
 from ironic.common import network
 from ironic.common import utils
 from ironic.conductor import task_manager
-from ironic.db import api as dbapi
 from ironic.tests.conductor import utils as mgr_utils
 from ironic.tests.db import base as db_base
 from ironic.tests.db import utils as db_utils
@@ -28,7 +27,6 @@ class TestNetwork(db_base.DbTestCase):
     def setUp(self):
         super(TestNetwork, self).setUp()
         mgr_utils.mock_the_extension_manager(driver='fake')
-        self.dbapi = dbapi.get_instance()
         self.node = object_utils.create_test_node(self.context)
 
     def _create_test_port(self, **kwargs):

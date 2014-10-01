@@ -26,7 +26,6 @@ from ironic.objects import base
 from ironic.objects import utils
 from ironic.openstack.common import context
 from ironic.tests import base as test_base
-from ironic.tests.db import base as db_base
 
 gettext.install('ironic')
 
@@ -124,7 +123,7 @@ class TestMetaclass(test_base.TestCase):
         self.assertEqual(expected, Test2._obj_classes)
 
 
-class TestUtils(db_base.DbTestCase):
+class TestUtils(test_base.TestCase):
 
     def test_datetime_or_none(self):
         naive_dt = datetime.datetime.now()
@@ -212,7 +211,7 @@ class TestUtils(db_base.DbTestCase):
                          base.obj_to_primitive(mylist))
 
 
-class _BaseTestCase(db_base.DbTestCase):
+class _BaseTestCase(test_base.TestCase):
     def setUp(self):
         super(_BaseTestCase, self).setUp()
         self.remote_object_calls = list()
@@ -513,7 +512,7 @@ class TestObject(_LocalTest, _TestObject):
     pass
 
 
-class TestObjectListBase(db_base.DbTestCase):
+class TestObjectListBase(test_base.TestCase):
 
     def test_list_like_operations(self):
         class Foo(base.ObjectListBase, base.IronicObject):
@@ -590,7 +589,7 @@ class TestObjectListBase(db_base.DbTestCase):
         self.assertEqual(set(), obj.obj_what_changed())
 
 
-class TestObjectSerializer(db_base.DbTestCase):
+class TestObjectSerializer(test_base.TestCase):
 
     def test_serialize_entity_primitive(self):
         ser = base.IronicObjectSerializer()

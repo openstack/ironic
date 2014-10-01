@@ -24,7 +24,6 @@ from ironic.common import exception
 from ironic.common import states
 from ironic.common import utils
 from ironic.conductor import task_manager
-from ironic.db import api as dbapi
 from ironic.drivers.modules import seamicro
 from ironic.tests.conductor import utils as mgr_utils
 from ironic.tests.db import base as db_base
@@ -137,7 +136,6 @@ class SeaMicroPrivateMethodsTestCase(db_base.DbTestCase):
             'driver': 'fake_seamicro',
             'driver_info': INFO_DICT
         }
-        self.dbapi = dbapi.get_instance()
         self.node = obj_utils.create_test_node(self.context, **n)
         self.Server = Fake_Server
         self.Volume = Fake_Volume
@@ -283,7 +281,6 @@ class SeaMicroPowerDriverTestCase(db_base.DbTestCase):
         self.node = obj_utils.create_test_node(self.context,
                                                driver='fake_seamicro',
                                                driver_info=INFO_DICT)
-        self.dbapi = dbapi.get_instance()
         self.get_server_patcher = mock.patch.object(seamicro, '_get_server')
 
         self.get_server_mock = None

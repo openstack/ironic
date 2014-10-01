@@ -27,6 +27,7 @@ from ironic.common import utils
 from ironic.conductor import task_manager
 from ironic import objects
 from ironic.tests import base as tests_base
+from ironic.tests.db import base as tests_db_base
 from ironic.tests.objects import utils as obj_utils
 
 
@@ -35,14 +36,13 @@ from ironic.tests.objects import utils as obj_utils
 @mock.patch.object(objects.Node, 'reserve')
 @mock.patch.object(driver_factory, 'get_driver')
 @mock.patch.object(objects.Port, 'list_by_node_id')
-class TaskManagerTestCase(tests_base.TestCase):
+class TaskManagerTestCase(tests_db_base.DbTestCase):
     def setUp(self):
         super(TaskManagerTestCase, self).setUp()
         self.host = 'test-host'
         self.config(host=self.host)
         self.config(node_locked_retry_attempts=1, group='conductor')
         self.config(node_locked_retry_interval=0, group='conductor')
-        self.context = mock.sentinel.context
         self.node = obj_utils.create_test_node(self.context)
 
     def test_excl_lock(self, get_ports_mock, get_driver_mock,

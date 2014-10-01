@@ -23,7 +23,6 @@ from ironic.common import driver_factory
 from ironic.common import exception
 from ironic.common import states
 from ironic.conductor import task_manager
-from ironic.db import api as dbapi
 from ironic.drivers.modules import iboot
 from ironic.tests.conductor import utils as mgr_utils
 from ironic.tests.db import base as db_base
@@ -35,10 +34,6 @@ INFO_DICT = db_utils.get_test_iboot_info()
 
 
 class IBootPrivateMethodTestCase(db_base.DbTestCase):
-
-    def setUp(self):
-        super(IBootPrivateMethodTestCase, self).setUp()
-        self.dbapi = dbapi.get_instance()
 
     def test__parse_driver_info_good(self):
         node = obj_utils.create_test_node(
@@ -201,7 +196,6 @@ class IBootDriverTestCase(db_base.DbTestCase):
 
     def setUp(self):
         super(IBootDriverTestCase, self).setUp()
-        self.dbapi = dbapi.get_instance()
         mgr_utils.mock_the_extension_manager(driver='fake_iboot')
         self.driver = driver_factory.get_driver('fake_iboot')
         self.node = obj_utils.create_test_node(

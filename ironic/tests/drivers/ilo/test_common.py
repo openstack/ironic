@@ -26,7 +26,6 @@ from ironic.common import images
 from ironic.common import swift
 from ironic.common import utils
 from ironic.conductor import task_manager
-from ironic.db import api as dbapi
 from ironic.drivers.modules.ilo import common as ilo_common
 from ironic.drivers import utils as driver_utils
 from ironic.tests.conductor import utils as mgr_utils
@@ -42,10 +41,6 @@ CONF = cfg.CONF
 
 
 class IloValidateParametersTestCase(db_base.DbTestCase):
-
-    def setUp(self):
-        super(IloValidateParametersTestCase, self).setUp()
-        self.dbapi = dbapi.get_instance()
 
     def test_parse_driver_info(self):
         node = obj_utils.create_test_node(self.context,
@@ -117,7 +112,6 @@ class IloCommonMethodsTestCase(db_base.DbTestCase):
 
     def setUp(self):
         super(IloCommonMethodsTestCase, self).setUp()
-        self.dbapi = dbapi.get_instance()
         mgr_utils.mock_the_extension_manager(driver="fake_ilo")
         self.node = obj_utils.create_test_node(self.context,
                 driver='fake_ilo', driver_info=INFO_DICT)

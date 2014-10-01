@@ -25,7 +25,6 @@ from ironic.common import exception
 from ironic.common import states
 from ironic.common import utils
 from ironic.conductor import task_manager
-from ironic.db import api as dbapi
 from ironic.drivers.modules import ssh
 from ironic.drivers import utils as driver_utils
 from ironic.openstack.common import processutils
@@ -571,7 +570,6 @@ class SSHDriverTestCase(db_base.DbTestCase):
         self.node = obj_utils.create_test_node(
                 self.context, driver='fake_ssh',
                 driver_info=db_utils.get_test_ssh_info())
-        self.dbapi = dbapi.get_instance()
         self.port = obj_utils.create_test_port(self.context,
                                                node_id=self.node.id)
         self.sshclient = paramiko.SSHClient()

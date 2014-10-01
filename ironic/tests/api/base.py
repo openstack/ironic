@@ -27,7 +27,6 @@ import pecan
 import pecan.testing
 from six.moves.urllib import parse as urlparse
 
-from ironic.db import api as dbapi
 from ironic.tests.db import base
 
 PATH_PREFIX = '/v1'
@@ -48,7 +47,6 @@ class FunctionalTest(base.DbTestCase):
         cfg.CONF.set_override("admin_user", "admin",
                               group='keystone_authtoken')
         self.app = self._make_app()
-        self.dbapi = dbapi.get_instance()
 
         def reset_pecan():
             pecan.set_config({}, overwrite=True)
