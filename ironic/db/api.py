@@ -317,8 +317,8 @@ class Connection(object):
         """
 
     @abc.abstractmethod
-    def register_conductor(self, values):
-        """Register a new conductor service at the specified hostname.
+    def register_conductor(self, values, update_existing=False):
+        """Register an active conductor with the cluster.
 
         :param values: A dict of values which must contain the following:
                        {
@@ -326,13 +326,17 @@ class Connection(object):
                                     this Conductor service.
                         'drivers': a list of supported drivers.
                        }
+        :param update_existing: When false, registration will raise an
+                                exception when a conflicting online record
+                                is found. When true, will overwrite the
+                                existing record. Default: False.
         :returns: A conductor.
         :raises: ConductorAlreadyRegistered
         """
 
     @abc.abstractmethod
     def get_conductor(self, hostname):
-        """Retrieve a conductor service record from the database.
+        """Retrieve a conductor's service record from the database.
 
         :param hostname: The hostname of the conductor service.
         :returns: A conductor.
@@ -341,7 +345,7 @@ class Connection(object):
 
     @abc.abstractmethod
     def unregister_conductor(self, hostname):
-        """Unregister this conductor with the service registry.
+        """Remove this conductor from the service registry immediately.
 
         :param hostname: The hostname of this conductor service.
         :raises: ConductorNotFound

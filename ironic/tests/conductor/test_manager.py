@@ -694,6 +694,7 @@ class DoNodeDeployTearDownTestCase(_ServiceSetUpMixin,
 
     @mock.patch('ironic.drivers.modules.fake.FakeDeploy.deploy')
     def test__do_node_deploy_ok(self, mock_deploy):
+        self._start_service()
         # test when driver.deploy.deploy returns DEPLOYDONE
         mock_deploy.return_value = states.DEPLOYDONE
         node = obj_utils.create_test_node(self.context, driver='fake',

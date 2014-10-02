@@ -187,15 +187,19 @@ class ConductorManager(periodic_task.PeriodicTasks):
         """List of driver names which this conductor supports."""
 
         try:
-            self.dbapi.register_conductor({'hostname': self.host,
-                                           'drivers': self.drivers})
+            # Register this conductor with the cluster
+            cdr = self.dbapi.register_conductor({'hostname': self.host,
+                                                 'drivers': self.drivers})
         except exception.ConductorAlreadyRegistered:
+            # This conductor was already registered and did not shut down
+            # properly, so log a warning and update the record.
             LOG.warn(_LW("A conductor with hostname %(hostname)s "
                          "was previously registered. Updating registration"),
                      {'hostname': self.host})
-            self.dbapi.unregister_conductor(self.host)
-            self.dbapi.register_conductor({'hostname': self.host,
-                                           'drivers': self.drivers})
+            cdr = self.dbapi.register_conductor({'hostname': self.host,
+                                                 'drivers': self.drivers},
+                                                 update_existing=True)
+        self.conductor = cdr
 
         self.ring_manager = hash.HashRingManager()
         """Consistent hash ring which maps drivers to conductors."""
@@ -219,6 +223,8 @@ class ConductorManager(periodic_task.PeriodicTasks):
     def del_host(self):
         self._keepalive_evt.set()
         try:
+            # Inform the cluster that this conductor is shutting down.
+            # Note that rebalancing won't begin until after heartbeat timeout.
             self.dbapi.unregister_conductor(self.host)
             LOG.info(_LI('Successfully stopped conductor with hostname '
                          '%(hostname)s.'),
@@ -428,6 +434,8 @@ class ConductorManager(periodic_task.PeriodicTasks):
 
         """
         if isinstance(e, exception.NoFreeConductorWorker):
+            # NOTE(deva): there is no need to clear conductor_affinity
+            #             because it isn't updated on a failed deploy
             node.provision_state = provision_state
             node.target_provision_state = target_provision_state
             node.last_error = (_("No free conductor workers available"))
@@ -525,6 +533,10 @@ class ConductorManager(periodic_task.PeriodicTasks):
         try:
             task.driver.deploy.prepare(task)
             new_state = task.driver.deploy.deploy(task)
+
+            # Update conductor_affinity to reference this conductor's ID
+            # since there may be local persistent state
+            node.conductor_affinity = self.conductor.id
         except Exception as e:
             with excutils.save_and_reraise_exception():
                 LOG.warning(_LW('Error in deploy of node %(node)s: %(err)s'),
@@ -532,6 +544,7 @@ class ConductorManager(periodic_task.PeriodicTasks):
                 node.last_error = _("Failed to deploy. Error: %s") % e
                 node.provision_state = states.DEPLOYFAIL
                 node.target_provision_state = states.NOSTATE
+                # NOTE(deva): there is no need to clear conductor_affinity
         else:
             # NOTE(deva): Some drivers may return states.DEPLOYWAIT
             #             eg. if they are waiting for a callback
@@ -632,7 +645,10 @@ class ConductorManager(periodic_task.PeriodicTasks):
             else:
                 node.provision_state = new_state
         finally:
-            # Clean the instance_info
+            # NOTE(deva): there is no need to unset conductor_affinity
+            # because it is a reference to the most recent conductor which
+            # deployed a node, and does not limit any future actions.
+            # But we do need to clear the instance_info
             node.instance_info = {}
             node.save()
 
@@ -869,7 +885,7 @@ class ConductorManager(periodic_task.PeriodicTasks):
         except exception.DriverNotFound:
             return False
 
-        return self.host == ring.get_hosts(node_uuid)[0]
+        return self.host in ring.get_hosts(node_uuid)
 
     @messaging.expected_exceptions(exception.NodeLocked)
     def validate_driver_interfaces(self, context, node_id):
@@ -1060,6 +1076,9 @@ class ConductorManager(periodic_task.PeriodicTasks):
         try:
             if enabled:
                 task.driver.console.start_console(task)
+                # TODO(deva): We should be updating conductor_affinity here
+                # but there is no support for console sessions in
+                # take_over() right now.
             else:
                 task.driver.console.stop_console(task)
         except Exception as e:

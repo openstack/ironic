@@ -14,6 +14,9 @@
 #    under the License.
 """Ironic test utilities."""
 
+
+from oslo.utils import timeutils
+
 from ironic.common import states
 
 
@@ -151,6 +154,7 @@ def get_test_node(**kw):
         'id': kw.get('id', 123),
         'uuid': kw.get('uuid', '1be26c0b-03f2-4d2e-ae87-c02d7f33c123'),
         'chassis_id': kw.get('chassis_id', 42),
+        'conductor_affinity': kw.get('conductor_affinity', None),
         'power_state': kw.get('power_state', states.NOSTATE),
         'target_power_state': kw.get('target_power_state', states.NOSTATE),
         'provision_state': kw.get('provision_state', states.NOSTATE),
@@ -200,6 +204,6 @@ def get_test_conductor(**kw):
         'id': kw.get('id', 6),
         'hostname': kw.get('hostname', 'test-conductor-node'),
         'drivers': kw.get('drivers', ['fake-driver', 'null-driver']),
-        'created_at': kw.get('created_at'),
-        'updated_at': kw.get('updated_at'),
+        'created_at': kw.get('created_at', timeutils.utcnow()),
+        'updated_at': kw.get('updated_at', timeutils.utcnow()),
     }
