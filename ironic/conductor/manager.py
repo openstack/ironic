@@ -1175,6 +1175,7 @@ class ConductorManager(periodic_task.PeriodicTasks):
             try:
                 with task_manager.acquire(context, node_uuid, shared=True) \
                          as task:
+                    task.driver.management.validate(task)
                     sensors_data = task.driver.management.get_sensors_data(
                         task)
             except NotImplementedError:
