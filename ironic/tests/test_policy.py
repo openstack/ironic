@@ -15,19 +15,52 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-from oslo.config import cfg
-
-from ironic.common import exception
-from ironic.common import policy as ironic_policy
+from ironic.common import policy
 from ironic.tests import base
 
 
-CONF = cfg.CONF
-
-
 class PolicyTestCase(base.TestCase):
+    """Tests whether the configuration of the policy engine is corect."""
 
-    def test_policy_file_not_found(self):
-        ironic_policy.reset()
-        CONF.set_override('policy_file', '/non/existent/policy/file')
-        self.assertRaises(exception.ConfigNotFound, ironic_policy.init)
+    def test_admin_api(self):
+        creds = ({'roles': [u'admin']},
+                 {'roles': ['administrator']},
+                 {'roles': ['admin', 'administrator']})
+
+        for c in creds:
+            self.assertTrue(policy.enforce('admin_api', c, c))
+
+    def test_public_api(self):
+        creds = {'is_public_api': 'True'}
+        self.assertTrue(policy.enforce('public_api', creds, creds))
+
+    def test_trusted_call(self):
+        creds = ({'roles': ['admin']},
+                 {'is_public_api': 'True'},
+                 {'roles': ['admin'], 'is_public_api': 'True'},
+                 {'roles': ['Member'], 'is_public_api': 'True'})
+
+        for c in creds:
+            self.assertTrue(policy.enforce('trusted_call', c, c))
+
+
+class PolicyTestCaseNegative(base.TestCase):
+    """Tests whether the configuration of the policy engine is corect."""
+
+    def test_admin_api(self):
+        creds = {'roles': ['Member']}
+        self.assertFalse(policy.enforce('admin_api', creds, creds))
+
+    def test_public_api(self):
+        creds = ({'is_public_api': 'False'}, {})
+
+        for c in creds:
+            self.assertFalse(policy.enforce('public_api', c, c))
+
+    def test_trusted_call(self):
+        creds = ({'roles': ['Member']},
+                {'is_public_api': 'False'},
+                {'roles': ['Member'], 'is_public_api': 'False'})
+
+        for c in creds:
+            self.assertFalse(policy.enforce('trusted_call', c, c))

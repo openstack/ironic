@@ -21,9 +21,9 @@ from pecan import hooks
 from webob import exc
 
 from ironic.common import context
+from ironic.common import policy
 from ironic.conductor import rpcapi
 from ironic.db import api as dbapi
-from ironic.openstack.common import policy
 
 
 class ConfigHook(hooks.PecanHook):
@@ -65,17 +65,20 @@ class ContextHook(hooks.PecanHook):
         super(ContextHook, self).__init__()
 
     def before(self, state):
-        user_id = state.request.headers.get('X-User-Id')
-        user_id = state.request.headers.get('X-User', user_id)
-        tenant = state.request.headers.get('X-Tenant-Id')
-        tenant = state.request.headers.get('X-Tenant', tenant)
-        domain_id = state.request.headers.get('X-User-Domain-Id')
-        domain_name = state.request.headers.get('X-User-Domain-Name')
-        auth_token = state.request.headers.get('X-Auth-Token')
-        creds = {'roles': state.request.headers.get('X-Roles', '').split(',')}
+        headers = state.request.headers
+
+        user_id = headers.get('X-User-Id')
+        user_id = headers.get('X-User', user_id)
+        tenant = headers.get('X-Tenant-Id')
+        tenant = headers.get('X-Tenant', tenant)
+        domain_id = headers.get('X-User-Domain-Id')
+        domain_name = headers.get('X-User-Domain-Name')
+        auth_token = headers.get('X-Auth-Token')
+        roles = headers.get('X-Roles', '').split(',')
 
         is_public_api = state.request.environ.get('is_public_api', False)
-        is_admin = policy.check('admin', state.request.headers, creds)
+        creds = dict(headers)
+        is_admin = policy.enforce('admin_api', creds, creds)
 
         state.request.context = context.RequestContext(
             auth_token=auth_token,
@@ -83,8 +86,9 @@ class ContextHook(hooks.PecanHook):
             tenant=tenant,
             domain_id=domain_id,
             domain_name=domain_name,
+            is_public_api=is_public_api,
             is_admin=is_admin,
-            is_public_api=is_public_api)
+            roles=roles)
 
 
 class RPCHook(hooks.PecanHook):
@@ -94,19 +98,18 @@ class RPCHook(hooks.PecanHook):
         state.request.rpcapi = rpcapi.ConductorAPI()
 
 
-class AdminAuthHook(hooks.PecanHook):
+class TrustedCallHook(hooks.PecanHook):
     """Verify that the user has admin rights.
 
-    Checks whether the request context is an admin context and
-    rejects the request otherwise.
+    Checks whether the API call is performed against a public
+    resource or the user has admin privileges in the appropriate
+    tenant, domain or other administrative unit.
 
     """
     def before(self, state):
         ctx = state.request.context
-        is_admin_api = policy.check('admin_api', {}, ctx.to_dict())
-
-        if not is_admin_api and not ctx.is_public_api:
-            raise exc.HTTPForbidden()
+        policy.enforce('trusted_call', ctx.to_dict(), ctx.to_dict(),
+                       do_raise=True, exc=exc.HTTPForbidden)
 
 
 class NoExceptionTracebackHook(hooks.PecanHook):

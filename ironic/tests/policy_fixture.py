@@ -18,7 +18,6 @@ import fixtures
 from oslo.config import cfg
 
 from ironic.common import policy as ironic_policy
-from ironic.openstack.common import policy as common_policy
 from ironic.tests import fake_policy
 
 CONF = cfg.CONF
@@ -34,11 +33,5 @@ class PolicyFixture(fixtures.Fixture):
         with open(self.policy_file_name, 'w') as policy_file:
             policy_file.write(fake_policy.policy_data)
         CONF.set_override('policy_file', self.policy_file_name)
-        ironic_policy.reset()
-        ironic_policy.init()
-        self.addCleanup(ironic_policy.reset)
-
-    def set_rules(self, rules):
-        common_policy.set_rules(common_policy.Rules(
-                dict((k, common_policy.parse_rule(v))
-                     for k, v in rules.items())))
+        ironic_policy._ENFORCER = None
+        self.addCleanup(ironic_policy.get_enforcer().clear)
