@@ -161,7 +161,7 @@ class PXEAndIloDriver(base.BaseDriver):
         self.power = ilo_power.IloPower()
         self.deploy = ilo_deploy.IloPXEDeploy()
         self.vendor = ilo_deploy.IloPXEVendorPassthru()
-        self.console = ipmitool.IPMIShellinaboxConsole()
+        self.console = ilo_deploy.IloConsoleInterface()
         self.management = ilo_deploy.IloManagement()
 
 

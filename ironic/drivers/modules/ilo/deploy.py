@@ -57,6 +57,26 @@ BOOT_DEVICE_MAPPING_TO_ILO = {'pxe': 'NETWORK', 'disk': 'HDD',
                               'cdrom': 'CDROM', 'bios': 'BIOS', 'safe': 'SAFE'}
 
 
+def _update_ipmi_properties(task):
+        """Update ipmi properties to node driver_info
+
+        :param task: a task from TaskManager.
+        """
+        node = task.node
+        info = node.driver_info
+
+        #updating ipmi credentials
+        info['ipmi_address'] = info['ilo_address']
+        info['ipmi_username'] = info['ilo_username']
+        info['ipmi_password'] = info['ilo_password']
+
+        if 'console_port' in info:
+            info['ipmi_terminal_port'] = info['console_port']
+
+        #saving ipmi credentials to task object
+        task.node.driver_info = info
+
+
 def _get_boot_iso_object_name(node):
     """Returns the floppy image name for a given node.
 
@@ -449,6 +469,30 @@ class IloPXEDeploy(pxe.PXEDeploy):
 
 class IloManagement(ipmitool.IPMIManagement):
 
+    # Currently adding support to set_boot_device through iLO. All other
+    # functionalities (get_sensors_data etc) will be used from IPMI.
+
+    # TODO(ramineni):To support other functionalities also using iLO.
+
+    def get_properties(self):
+        return ilo_common.REQUIRED_PROPERTIES
+
+    def validate(self, task):
+        """Check that 'driver_info' contains ILO and IPMI credentials.
+
+        Validates whether the 'driver_info' property of the supplied
+        task's node contains the required credentials information.
+
+        :param task: a task from TaskManager.
+        :raises: InvalidParameterValue if required IPMI/iLO parameters
+            are missing.
+        :raises: MissingParameterValue if a required parameter is missing.
+
+        """
+        ilo_common.parse_driver_info(task.node)
+        _update_ipmi_properties(task)
+        super(IloManagement, self).validate(task)
+
     @task_manager.require_exclusive_lock
     def set_boot_device(self, task, device, persistent=False):
         """Set the boot device for the task's node.
@@ -474,6 +518,48 @@ class IloManagement(ipmitool.IPMIManagement):
 
         ilo_common.parse_driver_info(task.node)
         ilo_common.set_boot_device(task.node, boot_device, persistent)
+
+    def get_sensors_data(self, task):
+        """Get sensors data.
+
+        :param task: a TaskManager instance.
+        :raises: FailedToGetSensorData when getting the sensor data fails.
+        :raises: FailedToParseSensorData when parsing sensor data fails.
+        :raises: InvalidParameterValue if required ipmi/iLO parameters
+                 are missing.
+        :raises: MissingParameterValue if a required parameter is missing.
+        :returns: returns a dict of sensor data group by sensor type.
+
+        """
+        ilo_common.parse_driver_info(task.node)
+        _update_ipmi_properties(task)
+        super(IloManagement, self).get_sensors_data(task)
+
+
+class IloConsoleInterface(ipmitool.IPMIShellinaboxConsole):
+    """A ConsoleInterface that uses ipmitool and shellinabox."""
+
+    def get_properties(self):
+        d = ilo_common.REQUIRED_PROPERTIES.copy()
+        d.update(ilo_common.CONSOLE_PROPERTIES)
+        return d
+
+    def validate(self, task):
+        """Validate the Node console info.
+
+        :param task: a task from TaskManager.
+        :raises: InvalidParameterValue
+        :raises: MissingParameterValue when a required parameter is missing
+
+        """
+        node = task.node
+        driver_info = ilo_common.parse_driver_info(node)
+        if 'console_port' not in driver_info:
+            raise exception.MissingParameterValue(_(
+                "Console port not supplied to iLO driver."))
+
+        _update_ipmi_properties(task)
+        super(IloConsoleInterface, self).validate(task)
 
 
 class IloPXEVendorPassthru(pxe.VendorPassthru):
