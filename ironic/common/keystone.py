@@ -38,7 +38,7 @@ def _is_apiv3(auth_url, auth_version):
     return auth_version == 'v3.0' or '/v3' in parse.urlparse(auth_url).path
 
 
-def _get_ksclient():
+def _get_ksclient(token=None):
     auth_url = CONF.keystone_authtoken.auth_uri
     if not auth_url:
         raise exception.KeystoneFailure(_('Keystone API endpoint is missing'))
@@ -53,7 +53,10 @@ def _get_ksclient():
 
     auth_url = get_keystone_url(auth_url, auth_version)
     try:
-        return client.Client(username=CONF.keystone_authtoken.admin_user,
+        if token:
+            return client.Client(token=token, auth_url=auth_url)
+        else:
+            return client.Client(username=CONF.keystone_authtoken.admin_user,
                          password=CONF.keystone_authtoken.admin_password,
                          tenant_name=CONF.keystone_authtoken.admin_tenant_name,
                          auth_url=auth_url)
@@ -112,3 +115,13 @@ def get_admin_auth_token():
     """Get an admin auth_token from the Keystone."""
     ksclient = _get_ksclient()
     return ksclient.auth_token
+
+
+def token_expires_soon(token, duration=None):
+    """Determines if token expiration is about to occur.
+
+    :param duration: time interval in seconds
+    :returns: boolean : true if expiration is within the given duration
+    """
+    ksclient = _get_ksclient(token=token)
+    return ksclient.auth_ref.will_expire_soon(stale_duration=duration)
