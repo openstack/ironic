@@ -57,11 +57,12 @@ class ConductorAPI(object):
         1.16 - Added get_driver_properties.
         1.17 - Added set_boot_device, get_boot_device and
                get_supported_boot_devices.
+        1.18 - Remove change_node_maintenance_mode.
 
     """
 
     # NOTE(rloo): This must be in sync with manager.ConductorManager's.
-    RPC_API_VERSION = '1.17'
+    RPC_API_VERSION = '1.18'
 
     def __init__(self, topic=None):
         super(ConductorAPI, self).__init__()
@@ -244,21 +245,6 @@ class ConductorAPI(object):
         cctxt = self.client.prepare(topic=topic or self.topic, version='1.5')
         return cctxt.call(context, 'validate_driver_interfaces',
                           node_id=node_id)
-
-    def change_node_maintenance_mode(self, context, node_id, mode, topic=None):
-        """Set node maintenance mode on or off.
-
-        :param context: request context.
-        :param node_id: node id or uuid.
-        :param mode: True or False.
-        :param topic: RPC topic. Defaults to self.topic.
-        :returns: a node object.
-        :raises: NodeMaintenanceFailure.
-
-        """
-        cctxt = self.client.prepare(topic=topic or self.topic, version='1.8')
-        return cctxt.call(context, 'change_node_maintenance_mode',
-                          node_id=node_id, mode=mode)
 
     def destroy_node(self, context, node_id, topic=None):
         """Delete a node.

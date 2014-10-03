@@ -162,7 +162,7 @@ class ConductorManager(periodic_task.PeriodicTasks):
     """Ironic Conductor manager main class."""
 
     # NOTE(rloo): This must be in sync with rpcapi.ConductorAPI's.
-    RPC_API_VERSION = '1.17'
+    RPC_API_VERSION = '1.18'
 
     target = messaging.Target(version=RPC_API_VERSION)
 
@@ -990,34 +990,6 @@ class ConductorManager(periodic_task.PeriodicTasks):
                 if reason is not None:
                     ret_dict[iface_name]['reason'] = reason
         return ret_dict
-
-    @messaging.expected_exceptions(exception.NodeLocked,
-                                   exception.NodeMaintenanceFailure)
-    def change_node_maintenance_mode(self, context, node_id, mode):
-        """Set node maintenance mode on or off.
-
-        :param context: request context.
-        :param node_id: node id or uuid.
-        :param mode: True or False.
-        :raises: NodeMaintenanceFailure
-
-        """
-        LOG.debug("RPC change_node_maintenance_mode called for node %(node)s"
-                  " with maintenance mode: %(mode)s" % {'node': node_id,
-                                                        'mode': mode})
-
-        with task_manager.acquire(context, node_id, shared=True) as task:
-            node = task.node
-            if mode is not node.maintenance:
-                node.maintenance = mode
-                node.save()
-            else:
-                msg = _("The node is already in maintenance mode") if mode \
-                        else _("The node is not in maintenance mode")
-                raise exception.NodeMaintenanceFailure(node=node_id,
-                                                       reason=msg)
-
-            return node
 
     @lockutils.synchronized(WORKER_SPAWN_lOCK, 'ironic-')
     def _spawn_worker(self, func, *args, **kwargs):
