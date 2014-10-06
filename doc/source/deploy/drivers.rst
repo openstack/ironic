@@ -68,3 +68,11 @@ PDU authentication credentials. When using SNMPv3, the PDU must be
 configured for ``NoAuthentication`` and ``NoEncryption``. The
 security name is used analagously to the SNMP community in early
 SNMP versions.
+
+iLO driver
+----------
+
+.. toctree::
+  :maxdepth: 1
+
+  ../drivers/ilo
