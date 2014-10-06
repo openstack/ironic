@@ -365,6 +365,35 @@ node(s) where ``ironic-conductor`` is running.
        contents of ``/tftpboot`` to the configured directory
 .. [2] http://www.syslinux.org/wiki/index.php/Library_modules
 
+
+PXE UEFI Setup
+--------------
+
+If you want to deploy on a UEFI supported bare metal, perform these additional
+steps on the Ironic conductor node to configure PXE UEFI environment.
+
+#. Download and untar the elilo bootloader version >= 3.16 from
+   http://sourceforge.net/projects/elilo/::
+
+    sudo tar zxvf elilo-3.16-all.tar.gz
+
+#. Copy the elilo boot loader image to ``/tftpboot`` directory::
+
+   sudo cp ./elilo-3.16-x86_64.efi /tftpboot/elilo.efi
+
+#. Update the Ironic node with ``boot_mode`` capability in node's properties
+   field::
+
+    ironic node-update <node-uuid> add properties/capabilities='boot_mode:uefi'
+
+#. Make sure that bare metal node is configured to boot in UEFI boot mode and
+   boot device is set to network/pxe.
+
+   NOTE: ``pxe_ilo`` driver supports automatic setting of UEFI boot mode and
+   boot device on the baremetal node. So this step is not required for
+   ``pxe_ilo`` driver.
+
+
 iPXE Setup
 ----------
 
@@ -465,9 +494,9 @@ Note that certain distros, notably Mac OS X and SLES, install ``openipmi``
 instead of ``ipmitool`` by default. THIS DRIVER IS NOT COMPATIBLE WITH
 ``openipmi`` AS IT RELIES ON ERROR HANDLING OPTIONS NOT PROVIDED BY THIS TOOL.
 
-Ironic supports sending IPMI sensor data to Ceilometer with pxe_ipmitool, 
+Ironic supports sending IPMI sensor data to Ceilometer with pxe_ipmitool,
 pxe_ipminative, agent_ipmitool, agent_pyghmi, agent_ilo, iscsi_ilo and pxe_ilo
-drivers. By default, support for sending IPMI sensor data to Ceilometer is 
+drivers. By default, support for sending IPMI sensor data to Ceilometer is
 disabled. If you want to enable it set the following options in the
 ``conductor`` section of ``ironic.conf``:
 
