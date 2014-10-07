@@ -401,9 +401,9 @@ def validate(task):
     try:
         # TODO(lucasagomes): Validate the format of the URL
         CONF.conductor.api_url or keystone.get_service_url()
-    except (exception.CatalogFailure,
+    except (exception.KeystoneFailure,
             exception.CatalogNotFound,
-            exception.CatalogUnauthorized):
+            exception.KeystoneUnauthorized):
         raise exception.InvalidParameterValue(_(
             "Couldn't get the URL of the Ironic API service from the "
             "configuration file or keystone catalog."))

@@ -43,7 +43,7 @@ class KeystoneTestCase(base.TestCase):
                     admin_tenant_name='fake')
 
     def test_failure_authorization(self):
-        self.assertRaises(exception.CatalogFailure, keystone.get_service_url)
+        self.assertRaises(exception.KeystoneFailure, keystone.get_service_url)
 
     @mock.patch.object(FakeCatalog, 'url_for')
     @mock.patch('keystoneclient.v2_0.client.Client')
@@ -66,17 +66,17 @@ class KeystoneTestCase(base.TestCase):
     def test_no_catalog(self, mock_ks, mock_hsc):
         mock_hsc.return_value = False
         mock_ks.return_value = FakeClient()
-        self.assertRaises(exception.CatalogFailure, keystone.get_service_url)
+        self.assertRaises(exception.KeystoneFailure, keystone.get_service_url)
 
     @mock.patch('keystoneclient.v2_0.client.Client')
     def test_unauthorized(self, mock_ks):
         mock_ks.side_effect = ksexception.Unauthorized
-        self.assertRaises(exception.CatalogUnauthorized,
+        self.assertRaises(exception.KeystoneUnauthorized,
                           keystone.get_service_url)
 
     def test_get_service_url_fail_missing_auth_uri(self):
         self.config(group='keystone_authtoken', auth_uri=None)
-        self.assertRaises(exception.CatalogFailure,
+        self.assertRaises(exception.KeystoneFailure,
                           keystone.get_service_url)
 
     @mock.patch('keystoneclient.v2_0.client.Client')
