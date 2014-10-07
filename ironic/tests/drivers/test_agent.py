@@ -329,7 +329,7 @@ class TestAgentVendor(db_base.DbTestCase):
         kwargs = {}
         with task_manager.acquire(
                 self.context, self.node['uuid'], shared=True) as task:
-            self.assertRaises(KeyError,
+            self.assertRaises(exception.MissingParameterValue,
                               self.passthru._heartbeat, task, **kwargs)
 
     @mock.patch('ironic.drivers.modules.agent.AgentVendorInterface'
