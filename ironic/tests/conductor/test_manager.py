@@ -663,8 +663,7 @@ class DoNodeDeployTearDownTestCase(_ServiceSetUpMixin,
         # Verify reservation has been cleared.
         self.assertIsNone(node.reservation)
 
-    @mock.patch('ironic.drivers.modules.fake.FakeDeploy.validate')
-    def test_do_node_deploy_validate_fail(self, mock_validate):
+    def _test_do_node_deploy_validate_fail(self, mock_validate):
         # InvalidParameterValue should be re-raised as InstanceDeployFailure
         mock_validate.side_effect = exception.InvalidParameterValue('error')
         node = obj_utils.create_test_node(self.context, driver='fake')
@@ -677,6 +676,14 @@ class DoNodeDeployTearDownTestCase(_ServiceSetUpMixin,
         self.assertIsNone(node.last_error)
         # Verify reservation has been cleared.
         self.assertIsNone(node.reservation)
+
+    @mock.patch('ironic.drivers.modules.fake.FakeDeploy.validate')
+    def test_do_node_deploy_validate_fail(self, mock_validate):
+        self._test_do_node_deploy_validate_fail(mock_validate)
+
+    @mock.patch('ironic.drivers.modules.fake.FakePower.validate')
+    def test_do_node_deploy_power_validate_fail(self, mock_validate):
+        self._test_do_node_deploy_validate_fail(mock_validate)
 
     @mock.patch('ironic.drivers.modules.fake.FakeDeploy.deploy')
     def test__do_node_deploy_driver_raises_error(self, mock_deploy):
