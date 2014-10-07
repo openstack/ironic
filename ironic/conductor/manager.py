@@ -514,12 +514,13 @@ class ConductorManager(periodic_task.PeriodicTasks):
                                                   node=node.uuid)
 
             try:
+                task.driver.power.validate(task)
                 task.driver.deploy.validate(task)
             except (exception.InvalidParameterValue,
                     exception.MissingParameterValue) as e:
                 raise exception.InstanceDeployFailure(_(
-                    "RPC do_node_deploy failed to validate deploy info. "
-                    "Error: %(msg)s") % {'msg': e})
+                    "RPC do_node_deploy failed to validate deploy or "
+                    "power info. Error: %(msg)s") % {'msg': e})
 
             # Save the previous states so we can rollback the node to a
             # consistent state in case there's no free workers to do the
