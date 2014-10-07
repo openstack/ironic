@@ -78,6 +78,22 @@ class RPCAPITestCase(base.DbTestCase):
                          rpcapi.get_topic_for,
                          self.fake_node_obj)
 
+    def test_get_topic_doesnt_cache(self):
+        CONF.set_override('host', 'fake-host')
+
+        rpcapi = conductor_rpcapi.ConductorAPI(topic='fake-topic')
+        self.assertRaises(exception.NoValidHost,
+                         rpcapi.get_topic_for,
+                         self.fake_node_obj)
+
+        self.dbapi.register_conductor({'hostname': 'fake-host',
+                                       'drivers': ['fake-driver']})
+
+        rpcapi = conductor_rpcapi.ConductorAPI(topic='fake-topic')
+        expected_topic = 'fake-topic.fake-host'
+        self.assertEqual(expected_topic,
+                         rpcapi.get_topic_for(self.fake_node_obj))
+
     def test_get_topic_for_driver_known_driver(self):
         CONF.set_override('host', 'fake-host')
         self.dbapi.register_conductor({
@@ -98,6 +114,21 @@ class RPCAPITestCase(base.DbTestCase):
         self.assertRaises(exception.DriverNotFound,
                           rpcapi.get_topic_for_driver,
                           'fake-driver')
+
+    def test_get_topic_for_driver_doesnt_cache(self):
+        CONF.set_override('host', 'fake-host')
+        rpcapi = conductor_rpcapi.ConductorAPI(topic='fake-topic')
+        self.assertRaises(exception.DriverNotFound,
+                          rpcapi.get_topic_for_driver,
+                          'fake-driver')
+
+        self.dbapi.register_conductor({
+            'hostname': 'fake-host',
+            'drivers': ['fake-driver'],
+        })
+        rpcapi = conductor_rpcapi.ConductorAPI(topic='fake-topic')
+        self.assertEqual('fake-topic.fake-host',
+                         rpcapi.get_topic_for_driver('fake-driver'))
 
     def _test_rpcapi(self, method, rpc_method, **kwargs):
         rpcapi = conductor_rpcapi.ConductorAPI(topic='fake-topic')

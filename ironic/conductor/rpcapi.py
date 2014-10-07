@@ -87,6 +87,8 @@ class ConductorAPI(object):
         :raises: NoValidHost
 
         """
+        self.ring_manager.reset()
+
         try:
             ring = self.ring_manager[node.driver]
             dest = ring.get_hosts(node.uuid)
@@ -106,6 +108,8 @@ class ConductorAPI(object):
         :raises: DriverNotFound
 
         """
+        self.ring_manager.reset()
+
         hash_ring = self.ring_manager[driver_name]
         host = random.choice(list(hash_ring.hosts))
         return self.topic + "." + host
