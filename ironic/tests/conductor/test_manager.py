@@ -145,7 +145,6 @@ class _ServiceSetUpMixin(object):
         self.config(node_locked_retry_attempts=1, group='conductor')
         self.config(node_locked_retry_interval=0, group='conductor')
         self.service = manager.ConductorManager(self.hostname, 'test-topic')
-        self.dbapi = dbapi.get_instance()
         mgr_utils.mock_the_extension_manager()
         self.driver = driver_factory.get_driver("fake")
 
@@ -1691,7 +1690,6 @@ class ManagerSyncPowerStatesTestCase(_CommonMixIn, tests_db_base.DbTestCase):
     def setUp(self):
         super(ManagerSyncPowerStatesTestCase, self).setUp()
         self.service = manager.ConductorManager('hostname', 'test-topic')
-        self.dbapi = dbapi.get_instance()
         self.service.dbapi = self.dbapi
         self.node = self._create_node()
         self.filters = {'reserved': False, 'maintenance': False}
@@ -1958,7 +1956,6 @@ class ManagerCheckDeployTimeoutsTestCase(_CommonMixIn,
         super(ManagerCheckDeployTimeoutsTestCase, self).setUp()
         self.config(deploy_callback_timeout=300, group='conductor')
         self.service = manager.ConductorManager('hostname', 'test-topic')
-        self.dbapi = dbapi.get_instance()
         self.service.dbapi = self.dbapi
 
         self.node = self._create_node(provision_state=states.DEPLOYWAIT)
@@ -2304,7 +2301,6 @@ class ManagerSyncLocalStateTestCase(_CommonMixIn, tests_db_base.DbTestCase):
     def setUp(self):
         super(ManagerSyncLocalStateTestCase, self).setUp()
 
-        self.dbapi = dbapi.get_instance()
         self.service = manager.ConductorManager('hostname', 'test-topic')
 
         self.service.conductor = mock.Mock()

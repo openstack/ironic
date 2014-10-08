@@ -15,7 +15,6 @@
 from oslo.db import exception as db_exc
 
 from ironic.common import utils as ironic_utils
-from ironic.db import api as dbapi
 import ironic.db.sqlalchemy.api as sa_api
 from ironic.db.sqlalchemy import models
 
@@ -23,10 +22,6 @@ from ironic.tests.db import base
 
 
 class SqlAlchemyCustomTypesTestCase(base.DbTestCase):
-
-    def setUp(self):
-        super(SqlAlchemyCustomTypesTestCase, self).setUp()
-        self.dbapi = dbapi.get_instance()
 
     # NOTE(max_lobur): Since it's not straightforward to check this in
     #                  isolation these tests use existing db models.

@@ -29,7 +29,6 @@ from pysnmp import error as snmp_error
 from ironic.common import exception
 from ironic.common import states
 from ironic.conductor import task_manager
-from ironic.db import api as db_api
 from ironic.drivers.modules import snmp as snmp
 from ironic.tests import base
 from ironic.tests.conductor import utils as mgr_utils
@@ -996,7 +995,6 @@ class SNMPDriverTestCase(db_base.DbTestCase):
 
     def setUp(self):
         super(SNMPDriverTestCase, self).setUp()
-        self.dbapi = db_api.get_instance()
         mgr_utils.mock_the_extension_manager(driver='fake_snmp')
 
         self.node = obj_utils.create_test_node(self.context,

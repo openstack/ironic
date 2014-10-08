@@ -18,7 +18,6 @@ from testtools.matchers import HasLength
 
 from ironic.common import exception
 from ironic.common import utils as ironic_utils
-from ironic.db import api as db_api
 from ironic import objects
 
 from ironic.tests.db import base
@@ -30,7 +29,6 @@ class TestChassisObject(base.DbTestCase):
     def setUp(self):
         super(TestChassisObject, self).setUp()
         self.fake_chassis = utils.get_test_chassis()
-        self.dbapi = db_api.get_instance()
 
     def test_get_by_id(self):
         chassis_id = self.fake_chassis['id']

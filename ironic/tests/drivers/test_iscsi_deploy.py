@@ -23,7 +23,6 @@ from oslo.config import cfg
 
 from ironic.common import exception
 from ironic.common import utils
-from ironic.db import api as dbapi
 from ironic.drivers.modules import deploy_utils
 from ironic.drivers.modules import iscsi_deploy
 from ironic.openstack.common import fileutils
@@ -39,10 +38,6 @@ DRV_INFO_DICT = db_utils.get_test_pxe_driver_info()
 
 
 class IscsiDeployValidateParametersTestCase(db_base.DbTestCase):
-
-    def setUp(self):
-        super(IscsiDeployValidateParametersTestCase, self).setUp()
-        self.dbapi = dbapi.get_instance()
 
     def test_parse_instance_info_good(self):
         # make sure we get back the expected things
@@ -152,7 +147,6 @@ class IscsiDeployPrivateMethodsTestCase(db_base.DbTestCase):
               'driver_info': DRV_INFO_DICT,
         }
         mgr_utils.mock_the_extension_manager(driver="fake_pxe")
-        self.dbapi = dbapi.get_instance()
         self.node = obj_utils.create_test_node(self.context, **n)
 
     def test__get_image_dir_path(self):
@@ -177,7 +171,6 @@ class IscsiDeployMethodsTestCase(db_base.DbTestCase):
               'driver_info': DRV_INFO_DICT,
         }
         mgr_utils.mock_the_extension_manager(driver="fake_pxe")
-        self.dbapi = dbapi.get_instance()
         self.node = obj_utils.create_test_node(self.context, **n)
 
     @mock.patch.object(deploy_utils, 'fetch_images')

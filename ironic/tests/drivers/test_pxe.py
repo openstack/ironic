@@ -33,7 +33,6 @@ from ironic.common import states
 from ironic.common import utils
 from ironic.conductor import task_manager
 from ironic.conductor import utils as manager_utils
-from ironic.db import api as dbapi
 from ironic.drivers.modules import deploy_utils
 from ironic.drivers.modules import iscsi_deploy
 from ironic.drivers.modules import pxe
@@ -51,10 +50,6 @@ DRV_INFO_DICT = db_utils.get_test_pxe_driver_info()
 
 
 class PXEValidateParametersTestCase(db_base.DbTestCase):
-
-    def setUp(self):
-        super(PXEValidateParametersTestCase, self).setUp()
-        self.dbapi = dbapi.get_instance()
 
     def test__parse_deploy_info(self):
         # make sure we get back the expected things
@@ -107,7 +102,6 @@ class PXEPrivateMethodsTestCase(db_base.DbTestCase):
               'driver_info': DRV_INFO_DICT,
         }
         mgr_utils.mock_the_extension_manager(driver="fake_pxe")
-        self.dbapi = dbapi.get_instance()
         self.node = obj_utils.create_test_node(self.context, **n)
 
     @mock.patch.object(base_image_service.BaseImageService, '_show')
@@ -305,7 +299,6 @@ class PXEDriverTestCase(db_base.DbTestCase):
                                                driver='fake_pxe',
                                                instance_info=instance_info,
                                                driver_info=DRV_INFO_DICT)
-        self.dbapi = dbapi.get_instance()
         self.port = obj_utils.create_test_port(self.context,
                                                node_id=self.node.id)
         self.config(group='conductor', api_url='http://127.0.0.1:1234/')
@@ -732,7 +725,6 @@ class CleanUpFullFlowTestCase(db_base.DbTestCase):
                                                driver='fake_pxe',
                                                instance_info=instance_info,
                                                driver_info=DRV_INFO_DICT)
-        self.dbapi = dbapi.get_instance()
         self.port = obj_utils.create_test_port(self.context,
                                                node_id=self.node.id)
 

@@ -19,7 +19,6 @@ import six
 
 from ironic.common import exception
 from ironic.common import utils as ironic_utils
-from ironic.db import api as dbapi
 
 from ironic.tests.db import base
 from ironic.tests.db import utils as db_utils
@@ -31,7 +30,6 @@ class DbPortTestCase(base.DbTestCase):
         # This method creates a port for every test and
         # replaces a test for creating a port.
         super(DbPortTestCase, self).setUp()
-        self.dbapi = dbapi.get_instance()
         ndict = db_utils.get_test_node()
         self.n = self.dbapi.create_node(ndict)
         self.p = db_utils.get_test_port()

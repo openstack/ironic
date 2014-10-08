@@ -19,7 +19,6 @@ import datetime
 import mock
 from oslo.utils import timeutils
 
-from ironic.db import api as db_api
 from ironic import objects
 from ironic.objects import utils as obj_utils
 from ironic.tests.db import base
@@ -32,7 +31,6 @@ class TestConductorObject(base.DbTestCase):
         super(TestConductorObject, self).setUp()
         self.fake_conductor = utils.get_test_conductor(
                                         updated_at=timeutils.utcnow())
-        self.dbapi = db_api.get_instance()
 
     def test_load(self):
         host = self.fake_conductor['hostname']

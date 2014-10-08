@@ -18,7 +18,6 @@ from testtools import matchers
 
 from ironic.common import exception
 from ironic.common import hash_ring
-from ironic.db import api as dbapi
 from ironic.tests import base
 from ironic.tests.db import base as db_base
 
@@ -199,7 +198,6 @@ class HashRingManagerTestCase(db_base.DbTestCase):
     def setUp(self):
         super(HashRingManagerTestCase, self).setUp()
         self.ring_manager = hash_ring.HashRingManager()
-        self.dbapi = dbapi.get_instance()
 
     def register_conductors(self):
         self.dbapi.register_conductor({

@@ -19,17 +19,12 @@ import six
 
 from ironic.common import exception
 from ironic.common import utils as ironic_utils
-from ironic.db import api as dbapi
 
 from ironic.tests.db import base
 from ironic.tests.db import utils
 
 
 class DbChassisTestCase(base.DbTestCase):
-
-    def setUp(self):
-        super(DbChassisTestCase, self).setUp()
-        self.dbapi = dbapi.get_instance()
 
     def _create_test_chassis(self, **kwargs):
         ch = utils.get_test_chassis(**kwargs)

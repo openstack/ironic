@@ -22,7 +22,6 @@ from oslo.utils import importutils
 from ironic.common import exception
 from ironic.common import states
 from ironic.conductor import task_manager
-from ironic.db import api as dbapi
 from ironic.drivers.modules.ilo import common as ilo_common
 from ironic.drivers.modules.ilo import deploy as ilo_deploy
 from ironic.drivers.modules.ilo import power as ilo_power
@@ -49,7 +48,6 @@ class IloPowerInternalMethodsTestCase(db_base.DbTestCase):
             driver='fake_ilo',
             driver_info=driver_info,
             instance_uuid='instance_uuid_123')
-        self.dbapi = dbapi.get_instance()
         self.node = self.dbapi.create_node(n)
         CONF.set_override('power_retry', 2, 'ilo')
         CONF.set_override('power_wait', 0, 'ilo')
@@ -163,7 +161,6 @@ class IloPowerTestCase(db_base.DbTestCase):
         super(IloPowerTestCase, self).setUp()
         driver_info = INFO_DICT
         mgr_utils.mock_the_extension_manager(driver="fake_ilo")
-        self.dbapi = dbapi.get_instance()
         self.node = obj_utils.create_test_node(self.context,
                                                driver='fake_ilo',
                                                driver_info=driver_info)

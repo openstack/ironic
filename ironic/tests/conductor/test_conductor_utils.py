@@ -18,7 +18,6 @@ from ironic.common import states
 from ironic.common import utils as cmn_utils
 from ironic.conductor import task_manager
 from ironic.conductor import utils as conductor_utils
-from ironic.db import api as dbapi
 from ironic import objects
 from ironic.tests import base as tests_base
 from ironic.tests.conductor import utils as mgr_utils
@@ -28,9 +27,6 @@ from ironic.tests.objects import utils as obj_utils
 
 
 class NodeSetBootDeviceTestCase(base.DbTestCase):
-    def setUp(self):
-        super(NodeSetBootDeviceTestCase, self).setUp()
-        self.dbapi = dbapi.get_instance()
 
     def test_node_set_boot_device_non_existent_device(self):
         mgr_utils.mock_the_extension_manager(driver="fake_ipmitool")
@@ -69,7 +65,6 @@ class NodePowerActionTestCase(base.DbTestCase):
 
     def setUp(self):
         super(NodePowerActionTestCase, self).setUp()
-        self.dbapi = dbapi.get_instance()
         mgr_utils.mock_the_extension_manager()
         self.driver = driver_factory.get_driver("fake")
 

@@ -21,16 +21,11 @@ import mock
 from oslo.utils import timeutils
 
 from ironic.common import exception
-from ironic.db import api as dbapi
 from ironic.tests.db import base
 from ironic.tests.db import utils
 
 
 class DbConductorTestCase(base.DbTestCase):
-
-    def setUp(self):
-        super(DbConductorTestCase, self).setUp()
-        self.dbapi = dbapi.get_instance()
 
     def test_register_conductor_existing_fails(self):
         c = utils.get_test_conductor()

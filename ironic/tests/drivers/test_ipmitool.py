@@ -33,7 +33,6 @@ from ironic.common import exception
 from ironic.common import states
 from ironic.common import utils
 from ironic.conductor import task_manager
-from ironic.db import api as db_api
 from ironic.drivers.modules import console_utils
 from ironic.drivers.modules import ipmitool as ipmi
 from ironic.openstack.common import processutils
@@ -854,7 +853,6 @@ class IPMIToolDriverTestCase(db_base.DbTestCase):
 
     def setUp(self):
         super(IPMIToolDriverTestCase, self).setUp()
-        self.dbapi = db_api.get_instance()
         mgr_utils.mock_the_extension_manager(driver="fake_ipmitool")
         self.driver = driver_factory.get_driver("fake_ipmitool")
 

@@ -28,7 +28,6 @@ from ironic.common import exception
 from ironic.common import states
 from ironic.conductor import manager as conductor_manager
 from ironic.conductor import rpcapi as conductor_rpcapi
-from ironic.db import api as dbapi
 from ironic import objects
 from ironic.tests import base as tests_base
 from ironic.tests.db import base
@@ -49,7 +48,6 @@ class RPCAPITestCase(base.DbTestCase):
 
     def setUp(self):
         super(RPCAPITestCase, self).setUp()
-        self.dbapi = dbapi.get_instance()
         self.fake_node = dbutils.get_test_node(driver='fake-driver')
         self.fake_node_obj = objects.Node._from_db_object(
                                                     objects.Node(self.context),

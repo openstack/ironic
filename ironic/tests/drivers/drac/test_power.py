@@ -19,12 +19,11 @@ import mock
 
 from ironic.common import exception
 from ironic.common import states
-from ironic.db import api as dbapi
 from ironic.drivers.modules.drac import client as drac_client
 from ironic.drivers.modules.drac import common as drac_common
 from ironic.drivers.modules.drac import power as drac_power
 from ironic.drivers.modules.drac import resource_uris
-from ironic.tests import base
+from ironic.tests.db import base
 from ironic.tests.db import utils as db_utils
 from ironic.tests.drivers.drac import utils as test_utils
 
@@ -33,7 +32,7 @@ INFO_DICT = db_utils.get_test_drac_info()
 
 @mock.patch.object(drac_client, 'pywsman')
 @mock.patch.object(drac_power, 'pywsman')
-class DracPowerInternalMethodsTestCase(base.TestCase):
+class DracPowerInternalMethodsTestCase(base.DbTestCase):
 
     def setUp(self):
         super(DracPowerInternalMethodsTestCase, self).setUp()
@@ -41,7 +40,6 @@ class DracPowerInternalMethodsTestCase(base.TestCase):
         db_node = db_utils.get_test_node(driver='fake_drac',
                                          driver_info=driver_info,
                                          instance_uuid='instance_uuid_123')
-        self.dbapi = dbapi.get_instance()
         self.node = self.dbapi.create_node(db_node)
 
     def test__get_power_state(self, mock_power_pywsman, mock_client_pywsman):
@@ -107,7 +105,7 @@ class DracPowerInternalMethodsTestCase(base.TestCase):
             resource_uris.DCIM_ComputerSystem, 'RequestStateChange')
 
 
-class DracPowerTestCase(base.TestCase):
+class DracPowerTestCase(base.DbTestCase):
 
     def setUp(self):
         super(DracPowerTestCase, self).setUp()
@@ -115,7 +113,6 @@ class DracPowerTestCase(base.TestCase):
         db_node = db_utils.get_test_node(driver='fake_drac',
                                          driver_info=driver_info,
                                          instance_uuid='instance_uuid_123')
-        self.dbapi = dbapi.get_instance()
         self.node = self.dbapi.create_node(db_node)
 
     def test_get_properties(self):

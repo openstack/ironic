@@ -30,7 +30,6 @@ from ironic.common import exception
 from ironic.common import states
 from ironic.common import utils
 from ironic.conductor import task_manager
-from ironic.db import api as db_api
 from ironic.drivers.modules import console_utils
 from ironic.drivers.modules import ipminative
 from ironic.tests.conductor import utils as mgr_utils
@@ -51,7 +50,6 @@ class IPMINativePrivateMethodTestCase(db_base.DbTestCase):
         self.node = obj_utils.create_test_node(self.context,
                                                driver='fake_ipminative',
                                                driver_info=INFO_DICT)
-        self.dbapi = db_api.get_instance()
         self.info = ipminative._parse_driver_info(self.node)
 
     def test__parse_driver_info(self):
@@ -220,7 +218,6 @@ class IPMINativeDriverTestCase(db_base.DbTestCase):
         self.node = obj_utils.create_test_node(self.context,
                                                driver='fake_ipminative',
                                                driver_info=INFO_DICT)
-        self.dbapi = db_api.get_instance()
         self.info = ipminative._parse_driver_info(self.node)
 
     def test_get_properties(self):

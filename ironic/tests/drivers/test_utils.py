@@ -18,7 +18,6 @@ import mock
 from ironic.common import driver_factory
 from ironic.common import exception
 from ironic.conductor import task_manager
-from ironic.db import api as db_api
 from ironic.drivers.modules import fake
 from ironic.drivers import utils as driver_utils
 from ironic.tests.conductor import utils as mgr_utils
@@ -30,7 +29,6 @@ class UtilsTestCase(db_base.DbTestCase):
 
     def setUp(self):
         super(UtilsTestCase, self).setUp()
-        self.dbapi = db_api.get_instance()
         mgr_utils.mock_the_extension_manager()
         self.driver = driver_factory.get_driver("fake")
         self.node = obj_utils.create_test_node(self.context)
