@@ -409,9 +409,12 @@ class AgentVendorInterface(base.VendorInterface):
             {'node': node.uuid,
              'heartbeat': driver_info.get('agent_last_heartbeat')})
         driver_info['agent_last_heartbeat'] = int(_time())
-        # FIXME(rloo): This could raise KeyError exception if 'agent_url'
-        #              wasn't specified. Instead, raise MissingParameterValue.
-        driver_info['agent_url'] = kwargs['agent_url']
+        try:
+            driver_info['agent_url'] = kwargs['agent_url']
+        except KeyError:
+            raise exception.MissingParameterValue(_('For heartbeat operation, '
+                                                    '"agent_url" must be '
+                                                    'specified.'))
 
         node.driver_info = driver_info
         node.save()
