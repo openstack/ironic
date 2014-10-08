@@ -110,17 +110,17 @@ class GlanceImageService(base_image_service.BaseImageService,
         an auth_token.
 
         :param image_info: The return from a GET request to Glance for a
-        certain image_id. Should be a dictionary, with keys like 'name' and
-        'checksum'. See
-        http://docs.openstack.org/developer/glance/glanceapi.html for
-        examples.
+            certain image_id. Should be a dictionary, with keys like 'name' and
+            'checksum'. See
+            http://docs.openstack.org/developer/glance/glanceapi.html for
+            examples.
         :returns: A signed Swift URL from which an image can be downloaded,
-        without authentication.
+            without authentication.
 
         :raises: InvalidParameterValue if Swift config options are not set
-        correctly.
+            correctly.
         :raises: ImageUnacceptable if the image info from Glance does not
-        have a image ID.
+            have a image ID.
         """
         self._validate_temp_url_config()
 

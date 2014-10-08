@@ -35,29 +35,29 @@ class ConductorAPI(object):
 
     API version history:
 
-        1.0 - Initial version.
-              Included get_node_power_status
-        1.1 - Added update_node and start_power_state_change.
-        1.2 - Added vendor_passhthru.
-        1.3 - Rename start_power_state_change to change_node_power_state.
-        1.4 - Added do_node_deploy and do_node_tear_down.
-        1.5 - Added validate_driver_interfaces.
-        1.6 - change_node_power_state, do_node_deploy and do_node_tear_down
-              accept node id instead of node object.
-        1.7 - Added topic parameter to RPC methods.
-        1.8 - Added change_node_maintenance_mode.
-        1.9 - Added destroy_node.
-        1.10 - Remove get_node_power_state
-        1.11 - Added get_console_information, set_console_mode.
-        1.12 - validate_vendor_action, do_vendor_action replaced by single
-              vendor_passthru method.
-        1.13 - Added update_port.
-        1.14 - Added driver_vendor_passthru.
-        1.15 - Added rebuild parameter to do_node_deploy.
-        1.16 - Added get_driver_properties.
-        1.17 - Added set_boot_device, get_boot_device and
-               get_supported_boot_devices.
-        1.18 - Remove change_node_maintenance_mode.
+    |    1.0 - Initial version.
+    |          Included get_node_power_status
+    |    1.1 - Added update_node and start_power_state_change.
+    |    1.2 - Added vendor_passhthru.
+    |    1.3 - Rename start_power_state_change to change_node_power_state.
+    |    1.4 - Added do_node_deploy and do_node_tear_down.
+    |    1.5 - Added validate_driver_interfaces.
+    |    1.6 - change_node_power_state, do_node_deploy and do_node_tear_down
+    |          accept node id instead of node object.
+    |    1.7 - Added topic parameter to RPC methods.
+    |    1.8 - Added change_node_maintenance_mode.
+    |    1.9 - Added destroy_node.
+    |    1.10 - Remove get_node_power_state
+    |    1.11 - Added get_console_information, set_console_mode.
+    |    1.12 - validate_vendor_action, do_vendor_action replaced by single
+    |          vendor_passthru method.
+    |    1.13 - Added update_port.
+    |    1.14 - Added driver_vendor_passthru.
+    |    1.15 - Added rebuild parameter to do_node_deploy.
+    |    1.16 - Added get_driver_properties.
+    |    1.17 - Added set_boot_device, get_boot_device and
+    |          get_supported_boot_devices.
+    |    1.18 - Remove change_node_maintenance_mode.
 
     """
 

@@ -97,9 +97,9 @@ class PXEAndSeaMicroDriver(base.BaseDriver):
     """PXE + SeaMicro driver.
 
     This driver implements the `core` functionality, combining
-    :class:ironic.drivers.modules.seamicro.Power for power
+    :class:`ironic.drivers.modules.seamicro.Power` for power
     on/off and reboot with
-    :class:ironic.driver.modules.pxe.PXE for image deployment.
+    :class:`ironic.driver.modules.pxe.PXE` for image deployment.
     Implementations are in those respective classes;
     this class is merely the glue between them.
     """
@@ -124,9 +124,9 @@ class PXEAndIBootDriver(base.BaseDriver):
     """PXE + IBoot PDU driver.
 
     This driver implements the `core` functionality, combining
-    :class:ironic.drivers.modules.iboot.IBootPower for power
+    :class:`ironic.drivers.modules.iboot.IBootPower` for power
     on/off and reboot with
-    :class:ironic.driver.modules.pxe.PXE for image deployment.
+    :class:`ironic.driver.modules.pxe.PXE` for image deployment.
     Implementations are in those respective classes;
     this class is merely the glue between them.
     """
@@ -145,11 +145,10 @@ class PXEAndIloDriver(base.BaseDriver):
     """PXE + Ilo Driver using IloClient interface.
 
     This driver implements the `core` functionality using
-    :class:ironic.drivers.modules.ilo.power.IloPower for power management
-    :class:ironic.drivers.modules.ilo.deploy.IloPXEDeploy(pxe.PXEDeploy)
-    :class:ironic.drivers.modules.ilo.deply.IloManagement(
-                                                 ipmitool.IPMIManagement)
-    for image deployment.
+    :class:`ironic.drivers.modules.ilo.power.IloPower` for power management
+    :class:`ironic.drivers.modules.ilo.deploy.IloPXEDeploy`
+    :class:`ironic.drivers.modules.ilo.deploy.IloManagement` for image
+    deployment.
 
     """
 
@@ -169,8 +168,8 @@ class PXEAndSNMPDriver(base.BaseDriver):
     """PXE + SNMP driver.
 
     This driver implements the 'core' functionality, combining
-    :class:ironic.drivers.snmp.SNMP for power on/off and reboot with
-    :class:ironic.drivers.pxe.PXE for image deployment. Implentations are in
+    :class:`ironic.drivers.snmp.SNMP` for power on/off and reboot with
+    :class:`ironic.drivers.pxe.PXE` for image deployment. Implentations are in
     those respective classes; this class is merely the glue between them.
     """
 

@@ -470,10 +470,13 @@ class ManagementInterface(object):
         :param task: a task from TaskManager.
         :raises: MissingParameterValue if a required parameter is missing
         :returns: a dictionary containing:
-            :boot_device: the boot device, one of
-                :mod:`ironic.common.boot_devices` or None if it is unknown.
-            :persistent: Whether the boot device will persist to all
-                future boots or not, None if it is unknown.
+
+            :boot_device:
+                the boot device, one of :mod:`ironic.common.boot_devices` or
+                None if it is unknown.
+            :persistent:
+                Whether the boot device will persist to all future boots or
+                not, None if it is unknown.
 
         """
 
@@ -486,7 +489,11 @@ class ManagementInterface(object):
         :raises: FailedToParseSensorData when parsing sensor data fails.
         :returns: returns a consistent format dict of sensor data grouped by
                   sensor type, which can be processed by Ceilometer.
-                  eg, {
+                  eg,
+
+                  ::
+
+                      {
                         'Sensor Type 1': {
                           'Sensor ID 1': {
                             'Sensor Reading': 'current value',

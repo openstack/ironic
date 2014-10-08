@@ -41,15 +41,22 @@ determine whether their invocation requires an exclusive lock.
 The TaskManager instance exposes certain node resources and properties as
 attributes that you may access:
 
-    task.context -- The context passed to TaskManager()
-    task.shared -- False if Node is locked, True if it is not locked. (The
-                   'shared' kwarg arg of TaskManager())
-    task.node -- The Node object
-    task.ports -- Ports belonging to the Node
-    task.driver -- The Driver for the Node, or the Driver based on the
-                   'driver_name' kwarg of TaskManager().
+    task.context
+        The context passed to TaskManager()
+    task.shared
+        False if Node is locked, True if it is not locked. (The
+        'shared' kwarg arg of TaskManager())
+    task.node
+        The Node object
+    task.ports
+        Ports belonging to the Node
+    task.driver
+        The Driver for the Node, or the Driver based on the
+        'driver_name' kwarg of TaskManager().
 
 Example usage:
+
+::
 
     with task_manager.acquire(context, node_id) as task:
         task.driver.power.power_on(task.node)
@@ -58,6 +65,8 @@ If you need to execute task-requiring code in the background thread, the
 TaskManager instance provides an interface to handle this for you, making
 sure to release resources when exceptions occur or when the thread finishes.
 Common use of this is within the Manager like so:
+
+::
 
     with task_manager.acquire(context, node_id) as task:
         <do some work>
@@ -71,6 +80,8 @@ the re-raised exception by wrapping the "with task_manager.acquire()"
 with a try..exception block (like the API cases where we return after
 the spawn_after()) the task allows you to set a hook to execute custom
 code when the spawned task generates an exception:
+
+::
 
     def on_error(e):
         if isinstance(e, Exception):

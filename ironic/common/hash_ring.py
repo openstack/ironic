@@ -56,7 +56,8 @@ CONF.register_opts(hash_opts)
 class HashRing(object):
     """A stable hash ring.
 
-    We map item N to a host Y based on the closest lower hash
+    We map item N to a host Y based on the closest lower hash:
+
     - hash(item) -> partition
     - hash(host) -> divider
     - closest lower divider is the host to use

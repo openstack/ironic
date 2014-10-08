@@ -35,7 +35,7 @@ Software Requirements
 ^^^^^^^^^^^^^^^^^^^^^
 
 - The PySNMP package must be installed, variously referred to as ``pysnmp``
-or ``python-pysnmp``
+  or ``python-pysnmp``
 
 Enabling the SNMP Power Driver
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -52,12 +52,12 @@ added to ``driver_info``:
 
 - ``snmp_address``: the IPv4 address of the PDU controlling this node.
 - ``snmp_port``: (optional) A non-standard UDP port to use for SNMP operations.
-If not specified, the default port (161) is used.
+  If not specified, the default port (161) is used.
 - ``snmp_outlet``: The power outlet on the PDU (1-based indexing).
 - ``snmp_protocol``: (optional) SNMP protocol version
-(permitted values ``1``, ``2c`` or ``3``). If not specified, SNMPv1 is chosen.
+  (permitted values ``1``, ``2c`` or ``3``). If not specified, SNMPv1 is chosen.
 - ``snmp_community``: (Required for SNMPv1 and SNMPv2c) SNMP community
-parameter for reads and writes to the PDU.
+  parameter for reads and writes to the PDU.
 - ``snmp_security``: (Required for SNMPv3) SNMP security string.
 
 PDU Configuration

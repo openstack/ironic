@@ -31,10 +31,12 @@ The test will then use that db and u/p combo to run the tests.
 
 For postgres on Ubuntu this can be done with the following commands:
 
-sudo -u postgres psql
-postgres=# create user openstack_citest with createdb login password
+::
+
+ sudo -u postgres psql
+ postgres=# create user openstack_citest with createdb login password
       'openstack_citest';
-postgres=# create database openstack_citest with owner openstack_citest;
+ postgres=# create database openstack_citest with owner openstack_citest;
 
 """
 

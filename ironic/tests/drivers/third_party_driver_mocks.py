@@ -21,10 +21,11 @@ respective external libraries' actually being present.
 
 Any external library required by a third-party driver should be mocked here.
 Current list of mocked libraries:
-    seamicroclient
-    ipminative
-    proliantutils
-    pysnmp
+
+- seamicroclient
+- ipminative
+- proliantutils
+- pysnmp
 """
 
 import sys

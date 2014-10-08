@@ -51,14 +51,16 @@ class Connection(object):
         :param columns: List of column names to return.
                         Defaults to 'id' column when columns == None.
         :param filters: Filters to apply. Defaults to None.
-                        'associated': True | False
-                        'reserved': True | False
-                        'maintenance': True | False
-                        'chassis_uuid': uuid of chassis
-                        'driver': driver's name
-                        'provision_state': provision state of node
-                        'provisioned_before': nodes with provision_updated_at
-                         field before this interval in seconds
+
+                        :associated: True | False
+                        :reserved: True | False
+                        :maintenance: True | False
+                        :chassis_uuid: uuid of chassis
+                        :driver: driver's name
+                        :provision_state: provision state of node
+                        :provisioned_before:
+                            nodes with provision_updated_at field before this
+                            interval in seconds
         :param limit: Maximum number of nodes to return.
         :param marker: the last item of the previous page; we return the next
                        result set.
@@ -74,14 +76,16 @@ class Connection(object):
         """Return a list of nodes.
 
         :param filters: Filters to apply. Defaults to None.
-                        'associated': True | False
-                        'reserved': True | False
-                        'maintenance': True | False
-                        'chassis_uuid': uuid of chassis
-                        'driver': driver's name
-                        'provision_state': provision state of node
-                        'provisioned_before': nodes with provision_updated_at
-                         field before this interval in seconds
+
+                        :associated: True | False
+                        :reserved: True | False
+                        :maintenance: True | False
+                        :chassis_uuid: uuid of chassis
+                        :driver: driver's name
+                        :provision_state: provision state of node
+                        :provisioned_before:
+                            nodes with provision_updated_at field before this
+                            interval in seconds
         :param limit: Maximum number of nodes to return.
         :param marker: the last item of the previous page; we return the next
                        result set.
@@ -123,6 +127,8 @@ class Connection(object):
         :param values: A dict containing several items used to identify
                        and track the node, and several dicts which are passed
                        into the Drivers when managing this node. For example:
+
+                       ::
 
                         {
                          'uuid': utils.generate_uuid(),
@@ -177,13 +183,15 @@ class Connection(object):
                        May be a partial list, eg. when setting the
                        properties for a driver. For example:
 
-                       {
-                        'driver_info':
-                            {
-                             'my-field-1': val1,
-                             'my-field-2': val2,
-                            }
-                       }
+                       ::
+
+                        {
+                         'driver_info':
+                             {
+                              'my-field-1': val1,
+                              'my-field-2': val2,
+                             }
+                        }
         :returns: A node.
         :raises: NodeAssociated
         :raises: NodeNotFound
@@ -321,11 +329,14 @@ class Connection(object):
         """Register an active conductor with the cluster.
 
         :param values: A dict of values which must contain the following:
-                       {
-                        'hostname': the unique hostname which identifies
-                                    this Conductor service.
-                        'drivers': a list of supported drivers.
-                       }
+
+                       ::
+
+                        {
+                         'hostname': the unique hostname which identifies
+                                     this Conductor service.
+                         'drivers': a list of supported drivers.
+                        }
         :param update_existing: When false, registration will raise an
                                 exception when a conflicting online record
                                 is found. When true, will overwrite the
@@ -366,6 +377,9 @@ class Connection(object):
         :param interval: Seconds since last check-in of a conductor.
         :returns: A dict which maps driver names to the set of hosts
                   which support them. For example:
+
+                  ::
+
                     {driverA: set([host1, host2]),
                      driverB: set([host2, host3])}
         """

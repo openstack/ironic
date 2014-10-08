@@ -33,12 +33,15 @@ class BaseDHCP(object):
         :param port_id: designate which port these attributes
                         will be applied to.
         :param dhcp_options: this will be a list of dicts, e.g.
-                        [{'opt_name': 'bootfile-name',
-                          'opt_value': 'pxelinux.0'},
-                         {'opt_name': 'server-ip-address',
-                          'opt_value': '123.123.123.456'},
-                         {'opt_name': 'tftp-server',
-                          'opt_value': '123.123.123.123'}]
+
+                             ::
+
+                              [{'opt_name': 'bootfile-name',
+                                'opt_value': 'pxelinux.0'},
+                               {'opt_name': 'server-ip-address',
+                                'opt_value': '123.123.123.456'},
+                               {'opt_name': 'tftp-server',
+                                'opt_value': '123.123.123.123'}]
 
         :raises: FailedToUpdateDHCPOptOnPort
         """
@@ -58,12 +61,15 @@ class BaseDHCP(object):
 
         :param task: A TaskManager instance.
         :param options: this will be a list of dicts, e.g.
-                        [{'opt_name': 'bootfile-name',
-                          'opt_value': 'pxelinux.0'},
-                         {'opt_name': 'server-ip-address',
-                          'opt_value': '123.123.123.456'},
-                         {'opt_name': 'tftp-server',
-                          'opt_value': '123.123.123.123'}]
+
+                        ::
+
+                         [{'opt_name': 'bootfile-name',
+                           'opt_value': 'pxelinux.0'},
+                          {'opt_name': 'server-ip-address',
+                           'opt_value': '123.123.123.456'},
+                          {'opt_name': 'tftp-server',
+                           'opt_value': '123.123.123.123'}]
 
         :raises: FailedToUpdateDHCPOptOnPort
         """
