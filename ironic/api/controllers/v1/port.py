@@ -108,25 +108,28 @@ class Port(base.APIBase):
         setattr(self, 'node_uuid', kwargs.get('node_id'))
 
     @classmethod
-    def convert_with_links(cls, rpc_port, expand=True):
-        port = Port(**rpc_port.as_dict())
+    def _convert_with_links(cls, port, url, expand=True):
         if not expand:
             port.unset_fields_except(['uuid', 'address'])
 
         # never expose the node_id attribute
         port.node_id = wtypes.Unset
 
-        port.links = [link.Link.make_link('self', pecan.request.host_url,
+        port.links = [link.Link.make_link('self', url,
                                           'ports', port.uuid),
-                      link.Link.make_link('bookmark',
-                                          pecan.request.host_url,
+                      link.Link.make_link('bookmark', url,
                                           'ports', port.uuid,
                                           bookmark=True)
                      ]
         return port
 
     @classmethod
-    def sample(cls):
+    def convert_with_links(cls, rpc_port, expand=True):
+        port = Port(**rpc_port.as_dict())
+        return cls._convert_with_links(port, pecan.request.host_url, expand)
+
+    @classmethod
+    def sample(cls, expand=True):
         sample = cls(uuid='27e3153e-d5bf-4b7e-b517-fb518e17f34c',
                      address='fe:54:00:77:07:d9',
                      extra={'foo': 'bar'},
@@ -135,7 +138,7 @@ class Port(base.APIBase):
         # NOTE(lucasagomes): node_uuid getter() method look at the
         # _node_uuid variable
         sample._node_uuid = '7ae81bb3-dec3-4289-8d6c-da80bd8001ae'
-        return sample
+        return cls._convert_with_links(sample, 'http://localhost:6385', expand)
 
 
 class PortCollection(collection.Collection):
@@ -159,7 +162,7 @@ class PortCollection(collection.Collection):
     @classmethod
     def sample(cls):
         sample = cls()
-        sample.ports = [Port.sample()]
+        sample.ports = [Port.sample(expand=False)]
         return sample
 
 
