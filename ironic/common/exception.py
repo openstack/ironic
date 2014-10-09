@@ -325,12 +325,17 @@ class InvalidImageRef(Invalid):
     message = _("Invalid image href %(image_href)s.")
 
 
-class CatalogUnauthorized(IronicException):
-    message = _("Unauthorised for keystone service catalog.")
+class KeystoneUnauthorized(IronicException):
+    message = _("Not authorized in Keystone.")
 
 
-class CatalogFailure(IronicException):
+class KeystoneFailure(IronicException):
     pass
+
+
+# aliases for backward compatibility, should be removed after Kilo cycle
+CatalogUnauthorized = KeystoneUnauthorized
+CatalogFailure = KeystoneFailure
 
 
 class CatalogNotFound(IronicException):

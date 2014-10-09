@@ -374,7 +374,7 @@ class PXEDriverTestCase(db_base.DbTestCase):
         mock_glance.return_value = {'properties': {'kernel_id': 'fake-kernel',
                                                    'ramdisk_id': 'fake-initr'}}
         # not present in the keystone catalog
-        mock_ks.side_effect = exception.CatalogFailure
+        mock_ks.side_effect = exception.KeystoneFailure
 
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
@@ -399,7 +399,7 @@ class PXEDriverTestCase(db_base.DbTestCase):
     @mock.patch.object(keystone, 'get_service_url')
     def test_validate_fail_no_api_url(self, mock_ks):
         # not present in the keystone catalog
-        mock_ks.side_effect = exception.CatalogFailure
+        mock_ks.side_effect = exception.KeystoneFailure
         # not present in the config file
         self.config(group='conductor', api_url=None)
 

@@ -41,7 +41,7 @@ def _is_apiv3(auth_url, auth_version):
 def _get_ksclient():
     auth_url = CONF.keystone_authtoken.auth_uri
     if not auth_url:
-        raise exception.CatalogFailure(_('Keystone API endpoint is missing'))
+        raise exception.KeystoneFailure(_('Keystone API endpoint is missing'))
 
     auth_version = CONF.keystone_authtoken.auth_version
     api_v3 = _is_apiv3(auth_url, auth_version)
@@ -58,11 +58,10 @@ def _get_ksclient():
                          tenant_name=CONF.keystone_authtoken.admin_tenant_name,
                          auth_url=auth_url)
     except ksexception.Unauthorized:
-        raise exception.CatalogUnauthorized
+        raise exception.KeystoneUnauthorized()
     except ksexception.AuthorizationFailure as err:
-        raise exception.CatalogFailure(_('Could not perform authorization '
-                                         'process for service catalog: %s')
-                                          % err)
+        raise exception.KeystoneFailure(_('Could not authorize in Keystone:'
+                                          ' %s') % err)
 
 
 def get_keystone_url(auth_url, auth_version):
@@ -96,7 +95,7 @@ def get_service_url(service_type='baremetal', endpoint_type='internal'):
     ksclient = _get_ksclient()
 
     if not ksclient.has_service_catalog():
-        raise exception.CatalogFailure(_('No keystone service catalog loaded'))
+        raise exception.KeystoneFailure(_('No keystone service catalog loaded'))
 
     try:
         endpoint = ksclient.service_catalog.url_for(service_type=service_type,
