@@ -103,7 +103,8 @@ class Chassis(base.APIBase):
     def sample(cls, expand=True):
         time = datetime.datetime(2000, 1, 1, 12, 0, 0)
         sample = cls(uuid='eaaca217-e7d8-47b4-bb41-3f99f20eed89', extra={},
-                     description='Sample chassis', created_at=time)
+                     description='Sample chassis', created_at=time,
+                     updated_at=time)
         return cls._convert_with_links(sample, 'http://localhost:6385',
                                        expand)
 
