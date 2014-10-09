@@ -195,8 +195,8 @@ def notify(address, port):
 
 def get_dev(address, port, iqn, lun):
     """Returns a device path for given parameters."""
-    dev = "/dev/disk/by-path/ip-%s:%s-iscsi-%s-lun-%s" \
-            % (address, port, iqn, lun)
+    dev = ("/dev/disk/by-path/ip-%s:%s-iscsi-%s-lun-%s"
+           % (address, port, iqn, lun))
     return dev
 
 

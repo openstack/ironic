@@ -205,8 +205,8 @@ class BaseImageService(object):
         (image_id, self.glance_host,
          self.glance_port, use_ssl) = service_utils.parse_image_ref(image_id)
 
-        if self.version == 2 \
-                and 'file' in CONF.glance.allowed_direct_url_schemes:
+        if (self.version == 2 and
+                'file' in CONF.glance.allowed_direct_url_schemes):
 
             location = self._get_location(image_id)
             url = urlparse.urlparse(location)

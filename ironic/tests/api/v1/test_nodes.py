@@ -273,8 +273,9 @@ class TestListNodes(base.FunctionalTest):
         self.assertEqual(400, response.status_code)
 
     def test_associated_nodes_insensitive(self):
-        associated_nodes = self._create_association_test_nodes().\
-                get('associated')
+        associated_nodes = (self
+                            ._create_association_test_nodes()
+                            .get('associated'))
 
         data = self.get_json('/nodes?associated=true')
         data1 = self.get_json('/nodes?associated=True')
@@ -292,8 +293,9 @@ class TestListNodes(base.FunctionalTest):
         self.assertTrue(response.json['error_message'])
 
     def test_unassociated_nodes_insensitive(self):
-        unassociated_nodes = self._create_association_test_nodes().\
-                get('unassociated')
+        unassociated_nodes = (self
+                              ._create_association_test_nodes()
+                              .get('unassociated'))
 
         data = self.get_json('/nodes?associated=false')
         data1 = self.get_json('/nodes?associated=FALSE')
@@ -304,8 +306,9 @@ class TestListNodes(base.FunctionalTest):
         self.assertEqual(sorted(unassociated_nodes), sorted(uuids))
 
     def test_unassociated_nodes_with_limit(self):
-        unassociated_nodes = self._create_association_test_nodes().\
-                get('unassociated')
+        unassociated_nodes = (self
+                              ._create_association_test_nodes()
+                              .get('unassociated'))
 
         data = self.get_json('/nodes?associated=False&limit=2')
 
@@ -319,8 +322,9 @@ class TestListNodes(base.FunctionalTest):
         self.assertIn('associated=True', data['next'])
 
     def test_detail_with_association_filter(self):
-        associated_nodes = self._create_association_test_nodes().\
-                get('associated')
+        associated_nodes = (self
+                            ._create_association_test_nodes()
+                            .get('associated'))
         data = self.get_json('/nodes/detail?associated=true')
         self.assertIn('driver', data['nodes'][0])
         self.assertEqual(len(associated_nodes), len(data['nodes']))
@@ -487,8 +491,10 @@ class TestPatch(base.FunctionalTest):
 
     def test_update_ok(self):
         self.mock_update_node.return_value = self.node
-        self.mock_update_node.return_value.updated_at = \
-                                   "2013-12-03T06:20:41.184720+00:00"
+        (self
+         .mock_update_node
+         .return_value
+         .updated_at) = "2013-12-03T06:20:41.184720+00:00"
         response = self.patch_json('/nodes/%s' % self.node['uuid'],
                              [{'path': '/instance_uuid',
                                'value': 'aaaaaaaa-1111-bbbb-2222-cccccccccccc',
@@ -1063,8 +1069,8 @@ class TestPut(base.FunctionalTest):
         self.assertEqual(400, ret.status_code)
 
     def test_set_console_mode_enabled(self):
-        with mock.patch.object(rpcapi.ConductorAPI, 'set_console_mode') \
-                as mock_scm:
+        with mock.patch.object(rpcapi.ConductorAPI,
+                               'set_console_mode') as mock_scm:
             ret = self.put_json('/nodes/%s/states/console' % self.node.uuid,
                                 {'enabled': "true"})
             self.assertEqual(202, ret.status_code)
@@ -1078,8 +1084,8 @@ class TestPut(base.FunctionalTest):
                              expected_location)
 
     def test_set_console_mode_disabled(self):
-        with mock.patch.object(rpcapi.ConductorAPI, 'set_console_mode') \
-                as mock_scm:
+        with mock.patch.object(rpcapi.ConductorAPI,
+                               'set_console_mode') as mock_scm:
             ret = self.put_json('/nodes/%s/states/console' % self.node.uuid,
                                 {'enabled': "false"})
             self.assertEqual(202, ret.status_code)
@@ -1093,8 +1099,8 @@ class TestPut(base.FunctionalTest):
                              expected_location)
 
     def test_set_console_mode_bad_request(self):
-        with mock.patch.object(rpcapi.ConductorAPI, 'set_console_mode') \
-                as mock_scm:
+        with mock.patch.object(rpcapi.ConductorAPI,
+                               'set_console_mode') as mock_scm:
             ret = self.put_json('/nodes/%s/states/console' % self.node.uuid,
                                 {'enabled': "invalid-value"},
                                 expect_errors=True)
@@ -1103,8 +1109,8 @@ class TestPut(base.FunctionalTest):
             assert not mock_scm.called
 
     def test_set_console_mode_bad_request_missing_parameter(self):
-        with mock.patch.object(rpcapi.ConductorAPI, 'set_console_mode') \
-                as mock_scm:
+        with mock.patch.object(rpcapi.ConductorAPI,
+                               'set_console_mode') as mock_scm:
             ret = self.put_json('/nodes/%s/states/console' % self.node.uuid,
                                 {}, expect_errors=True)
             self.assertEqual(400, ret.status_code)
@@ -1112,8 +1118,8 @@ class TestPut(base.FunctionalTest):
             assert not mock_scm.called
 
     def test_set_console_mode_console_not_supported(self):
-        with mock.patch.object(rpcapi.ConductorAPI, 'set_console_mode') \
-                as mock_scm:
+        with mock.patch.object(rpcapi.ConductorAPI,
+                               'set_console_mode') as mock_scm:
             mock_scm.side_effect = exception.UnsupportedDriverExtension(
                                    extension='console', driver='test-driver')
             ret = self.put_json('/nodes/%s/states/console' % self.node.uuid,

@@ -522,8 +522,8 @@ class SSHPrivateMethodsTestCase(db_base.DbTestCase):
             def close(self):
                 pass
 
-        with mock.patch.object(self.sshclient, 'exec_command') \
-                as exec_command_mock:
+        with mock.patch.object(self.sshclient,
+                               'exec_command') as exec_command_mock:
             exec_command_mock.return_value = (Stream(),
                                               Stream('hello'),
                                               Stream())
@@ -549,8 +549,8 @@ class SSHPrivateMethodsTestCase(db_base.DbTestCase):
             def close(self):
                 pass
 
-        with mock.patch.object(self.sshclient, 'exec_command') \
-                as exec_command_mock:
+        with mock.patch.object(self.sshclient,
+                               'exec_command') as exec_command_mock:
             exec_command_mock.return_value = (Stream(),
                                               Stream('hello'),
                                               Stream())

@@ -229,8 +229,8 @@ class TestWalkVersions(base.TestCase, WalkVersionsMixin):
     @mock.patch.object(WalkVersionsMixin, '_migrate_down')
     def test_walk_versions_all_default(self, _migrate_up, _migrate_down,
                                        script_directory):
-        script_directory.from_config().\
-            walk_revisions.return_value = self.versions
+        fc = script_directory.from_config()
+        fc.walk_revisions.return_value = self.versions
         self.migration_api.version.return_value = None
 
         self._walk_versions(self.engine, self.config)
@@ -250,8 +250,8 @@ class TestWalkVersions(base.TestCase, WalkVersionsMixin):
     @mock.patch.object(WalkVersionsMixin, '_migrate_down')
     def test_walk_versions_all_false(self, _migrate_up, _migrate_down,
                                      script_directory):
-        script_directory.from_config().\
-            walk_revisions.return_value = self.versions
+        fc = script_directory.from_config()
+        fc.walk_revisions.return_value = self.versions
         self.migration_api.version.return_value = None
 
         self._walk_versions(self.engine, self.config, downgrade=False)

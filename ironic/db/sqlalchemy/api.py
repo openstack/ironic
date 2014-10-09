@@ -289,8 +289,8 @@ class Connection(api.Connection):
         if not utils.is_uuid_like(instance):
             raise exception.InvalidUUID(uuid=instance)
 
-        query = model_query(models.Node).\
-                        filter_by(instance_uuid=instance)
+        query = (model_query(models.Node)
+                 .filter_by(instance_uuid=instance))
 
         try:
             result = query.one()
@@ -505,8 +505,8 @@ class Connection(api.Connection):
     def register_conductor(self, values, update_existing=False):
         session = get_session()
         with session.begin():
-            query = model_query(models.Conductor, session=session).\
-                        filter_by(hostname=values['hostname'])
+            query = (model_query(models.Conductor, session=session)
+                     .filter_by(hostname=values['hostname']))
             try:
                 ref = query.one()
                 if ref.online is True and not update_existing:
@@ -524,19 +524,17 @@ class Connection(api.Connection):
 
     def get_conductor(self, hostname):
         try:
-            return model_query(models.Conductor).\
-                            filter_by(hostname=hostname,
-                                      online=True).\
-                            one()
+            return (model_query(models.Conductor)
+                    .filter_by(hostname=hostname, online=True)
+                    .one())
         except NoResultFound:
             raise exception.ConductorNotFound(conductor=hostname)
 
     def unregister_conductor(self, hostname):
         session = get_session()
         with session.begin():
-            query = model_query(models.Conductor, session=session).\
-                        filter_by(hostname=hostname,
-                                  online=True)
+            query = (model_query(models.Conductor, session=session)
+                     .filter_by(hostname=hostname, online=True))
             count = query.update({'online': False})
             if count == 0:
                 raise exception.ConductorNotFound(conductor=hostname)
@@ -544,8 +542,8 @@ class Connection(api.Connection):
     def touch_conductor(self, hostname):
         session = get_session()
         with session.begin():
-            query = model_query(models.Conductor, session=session).\
-                        filter_by(hostname=hostname)
+            query = (model_query(models.Conductor, session=session)
+                     .filter_by(hostname=hostname))
             # since we're not changing any other field, manually set updated_at
             # and since we're heartbeating, make sure that online=True
             count = query.update({'updated_at': timeutils.utcnow(),
@@ -558,10 +556,10 @@ class Connection(api.Connection):
             interval = CONF.conductor.heartbeat_timeout
 
         limit = timeutils.utcnow() - datetime.timedelta(seconds=interval)
-        result = model_query(models.Conductor).\
-                    filter_by(online=True).\
-                    filter(models.Conductor.updated_at >= limit).\
-                    all()
+        result = (model_query(models.Conductor)
+                  .filter_by(online=True)
+                  .filter(models.Conductor.updated_at >= limit)
+                  .all())
 
         # build mapping of drivers to the set of hosts which support them
         d2c = collections.defaultdict(set)

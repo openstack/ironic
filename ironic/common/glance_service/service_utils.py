@@ -110,8 +110,8 @@ def _get_api_server():
     that will cycle through the list, looping around to the beginning
     if necessary.
     """
-    api_server = CONF.glance.glance_api_servers or \
-        CONF.glance.glance_host + ':' + str(CONF.glance.glance_port)
+    api_server = (CONF.glance.glance_api_servers or
+                  CONF.glance.glance_host + ':' + str(CONF.glance.glance_port))
     if '//' not in api_server:
         api_server = CONF.glance.glance_protocol + '://' + api_server
     url = urlparse.urlparse(api_server)

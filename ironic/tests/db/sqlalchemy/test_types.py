@@ -55,8 +55,10 @@ class SqlAlchemyCustomTypesTestCase(base.DbTestCase):
                                        'drivers': None,
                                        'id': cdr1_id})
         # Get conductor manually to test SA types in isolation from UOM.
-        cdr1 = sa_api.model_query(models.Conductor).filter_by(id=cdr1_id)\
-            .one()
+        cdr1 = (sa_api
+                .model_query(models.Conductor)
+                .filter_by(id=cdr1_id)
+                .one())
         self.assertEqual([], cdr1.drivers)
 
         # Create conductor with drivers specified.
@@ -66,8 +68,10 @@ class SqlAlchemyCustomTypesTestCase(base.DbTestCase):
                                        'drivers': drivers,
                                        'id': cdr2_id})
         # Get conductor manually to test SA types in isolation from UOM.
-        cdr2 = sa_api.model_query(models.Conductor).filter_by(id=cdr2_id)\
-            .one()
+        cdr2 = (sa_api
+                .model_query(models.Conductor)
+                .filter_by(id=cdr2_id)
+                .one())
         self.assertEqual(drivers, cdr2.drivers)
 
     def test_JSONEncodedList_type_check(self):

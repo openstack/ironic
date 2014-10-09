@@ -43,9 +43,9 @@ def mock_the_extension_manager(driver="fake", namespace="ironic.drivers"):
     #                    instantiaing a DriverFactory class to avoid
     #                    a real NameDispatchExtensionManager to be created
     #                    with the real namespace.
-    driver_factory.DriverFactory._extension_manager = \
-            dispatch.NameDispatchExtensionManager('ironic.no-such-namespace',
-                                                  lambda x: True)
+    driver_factory.DriverFactory._extension_manager = (
+        dispatch.NameDispatchExtensionManager('ironic.no-such-namespace',
+                                              lambda x: True))
     mock_ext_mgr = driver_factory.DriverFactory()
     mock_ext = mock_ext_mgr._extension_manager._load_one_plugin(
                                               entry_point, True, [], {}, False)

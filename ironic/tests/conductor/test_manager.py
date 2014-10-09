@@ -224,8 +224,8 @@ class KeepAliveTestCase(_ServiceSetUpMixin, tests_db_base.DbTestCase):
         # avoid wasting time at the event.wait()
         CONF.set_override('heartbeat_interval', 0, 'conductor')
         with mock.patch.object(self.dbapi, 'touch_conductor') as mock_touch:
-            with mock.patch.object(self.service._keepalive_evt, 'is_set') as \
-                    mock_is_set:
+            with mock.patch.object(self.service._keepalive_evt,
+                                   'is_set') as mock_is_set:
                 mock_is_set.side_effect = [False, True]
                 self.service._conductor_service_record_keepalive()
             mock_touch.assert_called_once_with(self.hostname)
@@ -243,8 +243,8 @@ class ChangeNodePowerStateTestCase(_ServiceSetUpMixin,
                                           power_state=states.POWER_OFF)
         self._start_service()
 
-        with mock.patch.object(self.driver.power, 'get_power_state') \
-                as get_power_mock:
+        with mock.patch.object(self.driver.power,
+                               'get_power_state') as get_power_mock:
             get_power_mock.return_value = states.POWER_OFF
 
             self.service.change_node_power_state(self.context,
@@ -298,8 +298,8 @@ class ChangeNodePowerStateTestCase(_ServiceSetUpMixin,
                                           power_state=initial_state)
         self._start_service()
 
-        with mock.patch.object(self.service, '_spawn_worker') \
-                as spawn_mock:
+        with mock.patch.object(self.service,
+                               '_spawn_worker') as spawn_mock:
             spawn_mock.side_effect = exception.NoFreeConductorWorker()
 
             exc = self.assertRaises(messaging.rpc.ExpectedException,
@@ -328,12 +328,12 @@ class ChangeNodePowerStateTestCase(_ServiceSetUpMixin,
                                           power_state=initial_state)
         self._start_service()
 
-        with mock.patch.object(self.driver.power, 'get_power_state') \
-                as get_power_mock:
+        with mock.patch.object(self.driver.power,
+                               'get_power_state') as get_power_mock:
             get_power_mock.return_value = states.POWER_OFF
 
-            with mock.patch.object(self.driver.power, 'set_power_state') \
-                    as set_power_mock:
+            with mock.patch.object(self.driver.power,
+                                   'set_power_state') as set_power_mock:
                 new_state = states.POWER_ON
                 set_power_mock.side_effect = exception.PowerStateFailure(
                     pstate=new_state
@@ -362,8 +362,8 @@ class ChangeNodePowerStateTestCase(_ServiceSetUpMixin,
                                           power_state=initial_state)
         self._start_service()
 
-        with mock.patch.object(self.driver.power, 'validate') \
-                as validate_mock:
+        with mock.patch.object(self.driver.power,
+                               'validate') as validate_mock:
             validate_mock.side_effect = exception.InvalidParameterValue(
                 'wrong power driver info')
 
@@ -560,8 +560,8 @@ class VendorPassthruTestCase(_ServiceSetUpMixin, tests_db_base.DbTestCase):
         info = {'bar': 'baz'}
         self._start_service()
 
-        with mock.patch.object(self.service, '_spawn_worker') \
-                as spawn_mock:
+        with mock.patch.object(self.service,
+                               '_spawn_worker') as spawn_mock:
             spawn_mock.side_effect = exception.NoFreeConductorWorker()
 
             exc = self.assertRaises(messaging.rpc.ExpectedException,
@@ -970,8 +970,9 @@ class MiscTestCase(_ServiceSetUpMixin, tests_db_base.DbTestCase):
 
     def test_validate_driver_interfaces_validation_fail(self):
         node = obj_utils.create_test_node(self.context, driver='fake')
-        with mock.patch('ironic.drivers.modules.fake.FakeDeploy.validate') \
-                as deploy:
+        with mock.patch(
+                 'ironic.drivers.modules.fake.FakeDeploy.validate'
+             ) as deploy:
             reason = 'fake reason'
             deploy.side_effect = exception.InvalidParameterValue(reason)
             ret = self.service.validate_driver_interfaces(self.context,
@@ -985,8 +986,8 @@ class ConsoleTestCase(_ServiceSetUpMixin, tests_db_base.DbTestCase):
     def test_set_console_mode_worker_pool_full(self):
         node = obj_utils.create_test_node(self.context, driver='fake')
         self._start_service()
-        with mock.patch.object(self.service, '_spawn_worker') \
-                as spawn_mock:
+        with mock.patch.object(self.service,
+                               '_spawn_worker') as spawn_mock:
             spawn_mock.side_effect = exception.NoFreeConductorWorker()
 
             exc = self.assertRaises(messaging.rpc.ExpectedException,
@@ -1045,8 +1046,8 @@ class ConsoleTestCase(_ServiceSetUpMixin, tests_db_base.DbTestCase):
                                           last_error=None,
                                           console_enabled=False)
         self._start_service()
-        with mock.patch.object(self.driver.console, 'start_console') \
-                as mock_sc:
+        with mock.patch.object(self.driver.console,
+                               'start_console') as mock_sc:
             mock_sc.side_effect = exception.IronicException('test-error')
             self.service.set_console_mode(self.context, node.uuid, True)
             self.service._worker_pool.waitall()
@@ -1059,8 +1060,8 @@ class ConsoleTestCase(_ServiceSetUpMixin, tests_db_base.DbTestCase):
                                           last_error=None,
                                           console_enabled=True)
         self._start_service()
-        with mock.patch.object(self.driver.console, 'stop_console') \
-                as mock_sc:
+        with mock.patch.object(self.driver.console,
+                               'stop_console') as mock_sc:
             mock_sc.side_effect = exception.IronicException('test-error')
             self.service.set_console_mode(self.context, node.uuid, False)
             self.service._worker_pool.waitall()
@@ -1072,8 +1073,8 @@ class ConsoleTestCase(_ServiceSetUpMixin, tests_db_base.DbTestCase):
         node = obj_utils.create_test_node(self.context, driver='fake',
                                           console_enabled=True)
         self._start_service()
-        with mock.patch.object(self.driver.console, 'start_console') \
-                as mock_sc:
+        with mock.patch.object(self.driver.console,
+                               'start_console') as mock_sc:
             self.service.set_console_mode(self.context, node.uuid, True)
             self.service._worker_pool.waitall()
             self.assertFalse(mock_sc.called)
@@ -1082,8 +1083,8 @@ class ConsoleTestCase(_ServiceSetUpMixin, tests_db_base.DbTestCase):
         node = obj_utils.create_test_node(self.context, driver='fake',
                                           console_enabled=False)
         self._start_service()
-        with mock.patch.object(self.driver.console, 'stop_console') \
-                as mock_sc:
+        with mock.patch.object(self.driver.console,
+                               'stop_console') as mock_sc:
             self.service.set_console_mode(self.context, node.uuid, False)
             self.service._worker_pool.waitall()
             self.assertFalse(mock_sc.called)
@@ -1334,8 +1335,8 @@ class UpdatePortTestCase(_ServiceSetUpMixin, tests_db_base.DbTestCase):
     def test_set_boot_device(self):
         node = obj_utils.create_test_node(self.context, driver='fake')
         with mock.patch.object(self.driver.management, 'validate') as mock_val:
-            with mock.patch.object(self.driver.management, 'set_boot_device') \
-                    as mock_sbd:
+            with mock.patch.object(self.driver.management,
+                                   'set_boot_device') as mock_sbd:
                 self.service.set_boot_device(self.context, node.uuid,
                                              boot_devices.PXE)
                 mock_val.assert_called_once_with(mock.ANY)
@@ -2337,14 +2338,16 @@ class ManagerSyncLocalStateTestCase(_CommonMixIn, tests_db_base.DbTestCase):
                             acquire_mock, get_authtoken_mock):
         get_ctx_mock.return_value = self.context
         mapped_mock.return_value = True
-        acquire_mock.side_effect = \
-            self._get_acquire_side_effect([self.task] * 3)
-        self.task.spawn_after.side_effect = \
-            [None, exception.NoFreeConductorWorker('error')]
+        acquire_mock.side_effect = self._get_acquire_side_effect(
+                                       [self.task] * 3)
+        self.task.spawn_after.side_effect = [
+            None,
+            exception.NoFreeConductorWorker('error')
+        ]
 
         # 3 nodes to be checked
-        get_nodeinfo_mock.return_value = \
-            self._get_nodeinfo_list_response([self.node] * 3)
+        get_nodeinfo_mock.return_value = self._get_nodeinfo_list_response(
+                                             [self.node] * 3)
 
         self.service._sync_local_state(self.context)
 
@@ -2379,8 +2382,8 @@ class ManagerSyncLocalStateTestCase(_CommonMixIn, tests_db_base.DbTestCase):
         self.task.spawn_after.side_effect = [None, None]
 
         # 3 nodes to be checked
-        get_nodeinfo_mock.return_value = \
-            self._get_nodeinfo_list_response([self.node] * 3)
+        get_nodeinfo_mock.return_value = self._get_nodeinfo_list_response(
+                                             [self.node] * 3)
 
         self.service._sync_local_state(self.context)
 
@@ -2409,13 +2412,13 @@ class ManagerSyncLocalStateTestCase(_CommonMixIn, tests_db_base.DbTestCase):
         self.config(periodic_max_workers=1, group='conductor')
         get_ctx_mock.return_value = self.context
         mapped_mock.return_value = True
-        acquire_mock.side_effect = \
-            self._get_acquire_side_effect([self.task] * 3)
+        acquire_mock.side_effect = self._get_acquire_side_effect(
+                                       [self.task] * 3)
         self.task.spawn_after.side_effect = [None] * 3
 
         # 3 nodes to be checked
-        get_nodeinfo_mock.return_value = \
-            self._get_nodeinfo_list_response([self.node] * 3)
+        get_nodeinfo_mock.return_value = self._get_nodeinfo_list_response(
+                                             [self.node] * 3)
 
         self.service._sync_local_state(self.context)
 

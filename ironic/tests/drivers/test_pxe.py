@@ -655,13 +655,13 @@ class PXEDriverTestCase(db_base.DbTestCase):
 
     def test_lock_elevated(self):
         with task_manager.acquire(self.context, self.node.uuid) as task:
-            with mock.patch.object(task.driver.vendor, '_continue_deploy') \
-                    as _continue_deploy_mock:
+            with mock.patch.object(task.driver.vendor,
+                                   '_continue_deploy') as _cont_deploy_mock:
                 task.driver.vendor.vendor_passthru(task,
                     method='pass_deploy_info', address='123456', iqn='aaa-bbb',
                     key='fake-56789')
                 # lock elevated w/o exception
-                self.assertEqual(1, _continue_deploy_mock.call_count,
+                self.assertEqual(1, _cont_deploy_mock.call_count,
                             "_continue_deploy was not called once.")
 
 

@@ -80,8 +80,8 @@ class TestChassisObject(base.DbTestCase):
                    dict(self.fake_chassis, uuid=new_uuid)]
         expected = [mock.call(uuid), mock.call(uuid)]
         with mock.patch.object(self.dbapi, 'get_chassis_by_uuid',
-                               side_effect=returns, autospec=True) \
-                as mock_get_chassis:
+                               side_effect=returns,
+                               autospec=True) as mock_get_chassis:
             c = objects.Chassis.get_by_uuid(self.context, uuid)
             self.assertEqual(uuid, c.uuid)
             c.refresh()
