@@ -95,7 +95,8 @@ def get_service_url(service_type='baremetal', endpoint_type='internal'):
     ksclient = _get_ksclient()
 
     if not ksclient.has_service_catalog():
-        raise exception.KeystoneFailure(_('No keystone service catalog loaded'))
+        raise exception.KeystoneFailure(_('No Keystone service catalog '
+                                          'loaded'))
 
     try:
         endpoint = ksclient.service_catalog.url_for(service_type=service_type,
