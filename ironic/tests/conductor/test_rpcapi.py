@@ -216,13 +216,6 @@ class RPCAPITestCase(base.DbTestCase):
                           version='1.5',
                           node_id=self.fake_node['uuid'])
 
-    def test_change_node_maintenance_mode(self):
-        self._test_rpcapi('change_node_maintenance_mode',
-                          'call',
-                          version='1.8',
-                          node_id=self.fake_node['uuid'],
-                          mode=True)
-
     def test_destroy_node(self):
         self._test_rpcapi('destroy_node',
                           'call',

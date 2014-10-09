@@ -979,42 +979,6 @@ class MiscTestCase(_ServiceSetUpMixin, tests_db_base.DbTestCase):
             self.assertFalse(ret['deploy']['result'])
             self.assertEqual(reason, ret['deploy']['reason'])
 
-    def test_maintenance_mode_on(self):
-        node = obj_utils.create_test_node(self.context, driver='fake')
-        self.service.change_node_maintenance_mode(self.context, node.uuid,
-                                                  True)
-        node.refresh()
-        self.assertTrue(node.maintenance)
-
-    def test_maintenance_mode_off(self):
-        node = obj_utils.create_test_node(self.context, driver='fake',
-                                          maintenance=True)
-        self.service.change_node_maintenance_mode(self.context, node.uuid,
-                                                  False)
-        node.refresh()
-        self.assertFalse(node.maintenance)
-
-    def test_maintenance_mode_on_failed(self):
-        node = obj_utils.create_test_node(self.context, driver='fake',
-                                          maintenance=True)
-        exc = self.assertRaises(messaging.rpc.ExpectedException,
-                                self.service.change_node_maintenance_mode,
-                                self.context, node.uuid, True)
-        # Compare true exception hidden by @messaging.expected_exceptions
-        self.assertEqual(exception.NodeMaintenanceFailure, exc.exc_info[0])
-        node.refresh()
-        self.assertTrue(node.maintenance)
-
-    def test_maintenance_mode_off_failed(self):
-        node = obj_utils.create_test_node(self.context, driver='fake')
-        exc = self.assertRaises(messaging.rpc.ExpectedException,
-                                self.service.change_node_maintenance_mode,
-                                self.context, node.uuid, False)
-        # Compare true exception hidden by @messaging.expected_exceptions
-        self.assertEqual(exception.NodeMaintenanceFailure, exc.exc_info[0])
-        node.refresh()
-        self.assertFalse(node.maintenance)
-
 
 @_mock_record_keepalive
 class ConsoleTestCase(_ServiceSetUpMixin, tests_db_base.DbTestCase):
