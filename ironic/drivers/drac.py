@@ -36,3 +36,4 @@ class PXEDracDriver(base.BaseDriver):
         self.power = power.DracPower()
         self.deploy = pxe.PXEDeploy()
         self.management = management.DracManagement()
+        self.vendor = pxe.VendorPassthru()
