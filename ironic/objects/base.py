@@ -210,8 +210,9 @@ class IronicObject(object):
 
     @classmethod
     def obj_name(cls):
-        """Return a canonical name for this object which will be used over
-        the wire for remote hydration.
+        """Get canonical object name.
+
+        This object name will be used over the wire for remote hydration.
         """
         return cls.__name__
 
@@ -545,6 +546,7 @@ class IronicObjectSerializer(messaging.NoOpSerializer):
 
     def _process_iterable(self, context, action_fn, values):
         """Process an iterable, taking an action on each value.
+
         :param:context: Request context
         :param:action_fn: Action to take on each item in values
         :param:values: Iterable container of things to take action on

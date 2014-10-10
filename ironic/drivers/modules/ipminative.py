@@ -79,6 +79,7 @@ _BOOT_DEVICES_MAP = {
 
 def _parse_driver_info(node):
     """Gets the bmc access info for the given node.
+
     :raises: MissingParameterValue when required ipmi credentials
             are missing.
     :raises: InvalidParameterValue when the IPMI terminal port is not an

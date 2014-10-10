@@ -176,7 +176,9 @@ class TestGlanceImageService(base.TestCase):
         self.assertThat(image_metas[0], matchers.DictMatches(expected))
 
     def test_create_without_instance_id(self):
-        """Ensure we can create an image without having to specify an
+        """Test creating an image without an instance ID.
+
+        Ensure we can create an image without having to specify an
         instance_id. Public images are an example of an image not tied to an
         instance.
         """

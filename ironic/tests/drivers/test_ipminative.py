@@ -207,8 +207,7 @@ class IPMINativePrivateMethodTestCase(db_base.DbTestCase):
 
 
 class IPMINativeDriverTestCase(db_base.DbTestCase):
-    """Test cases for ipminative.NativeIPMIPower class functions.
-    """
+    """Test cases for ipminative.NativeIPMIPower class functions."""
 
     def setUp(self):
         super(IPMINativeDriverTestCase, self).setUp()

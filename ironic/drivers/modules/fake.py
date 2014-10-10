@@ -63,8 +63,10 @@ class FakePower(base.PowerInterface):
 
 
 class FakeDeploy(base.DeployInterface):
-    """Example imlementation of a deploy interface that uses a
-       separate power interface.
+    """Class for a fake deployment driver.
+
+    Example imlementation of a deploy interface that uses a
+    separate power interface.
     """
 
     def get_properties(self):

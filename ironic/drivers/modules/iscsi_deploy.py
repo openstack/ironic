@@ -202,8 +202,7 @@ def destroy_images(node_uuid):
 
 
 def get_deploy_info(node, **kwargs):
-    """Returns the information required for doing iSCSI deploy in a
-    dictionary.
+    """Returns the information required for doing iSCSI deploy in a dictionary.
 
     :param node: ironic node object
     :param kwargs: the keyword args passed from the conductor node.

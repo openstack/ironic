@@ -131,8 +131,7 @@ class DriversController(rest.RestController):
 
     @wsme_pecan.wsexpose(DriverList)
     def get_all(self):
-        """Retrieve a list of drivers.
-        """
+        """Retrieve a list of drivers."""
         # FIXME(deva): formatting of the auto-generated REST API docs
         #              will break from a single-line doc string.
         #              This is a result of a bug in sphinxcontrib-pecanwsme
@@ -142,8 +141,7 @@ class DriversController(rest.RestController):
 
     @wsme_pecan.wsexpose(Driver, wtypes.text)
     def get_one(self, driver_name):
-        """Retrieve a single driver.
-        """
+        """Retrieve a single driver."""
         # NOTE(russell_h): There is no way to make this more efficient than
         # retrieving a list of drivers using the current sqlalchemy schema, but
         # this path must be exposed for Pecan to route any paths we might

@@ -586,7 +586,9 @@ class VendorPassthru(base.VendorInterface):
         return COMMON_PROPERTIES
 
     def validate(self, task, **kwargs):
-        """Checks if a valid vendor passthru method was passed and validates
+        """Validate vendor-specific actions.
+
+        Checks if a valid vendor passthru method was passed and validates
         the parameters for the vendor passthru method.
 
         :param task: a TaskManager instance containing the node to act on.

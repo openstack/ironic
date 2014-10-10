@@ -250,7 +250,8 @@ def _power_off(node, timeout=None):
 
 
 def _reboot(node, timeout=None):
-    """Reboot this node
+    """Reboot this node.
+
     :param node: Ironic node one of :class:`ironic.db.models.Node`
     :param timeout: Time in seconds to wait till reboot is compelete
     :raises: InvalidParameterValue if a seamicro parameter is invalid.
@@ -457,9 +458,11 @@ class VendorPassthru(base.VendorInterface):
         node.save()
 
     def _attach_volume(self, task, **kwargs):
-        """Attach volume from SeaMicro storage pools for ironic to node.
-            If kwargs['volume_id'] not given, Create volume in SeaMicro
-            storage pool and attach to node.
+        """Attach a volume to a node.
+
+        Attach volume from SeaMicro storage pools for ironic to node.
+        If kwargs['volume_id'] not given, Create volume in SeaMicro
+        storage pool and attach to node.
 
         @kwargs volume_id: id of pre-provisioned volume that is to be attached
                            as root volume of node

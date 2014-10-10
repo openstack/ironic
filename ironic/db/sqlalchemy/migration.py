@@ -88,7 +88,8 @@ def downgrade(revision, config=None):
 
 def stamp(revision, config=None):
     """Stamps database with provided revision.
-    Dont run any migrations.
+
+    Don't run any migrations.
 
     :param revision: Should match one from repository or head - to stamp
                      database with most recent revision

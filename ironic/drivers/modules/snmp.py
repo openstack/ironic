@@ -220,8 +220,7 @@ class SNMPDriverBase(object):
 
     @abc.abstractmethod
     def _snmp_power_state(self):
-        """Perform the SNMP request required to retrieve the current power
-        state.
+        """Perform the SNMP request required to get the current power state.
 
         :raises: SNMPFailure if an SNMP request fails.
         :returns: power state. One of :class:`ironic.common.states`.
@@ -508,7 +507,9 @@ DRIVER_CLASSES = {
 
 
 def _parse_driver_info(node):
-    """Return a dictionary of validated driver information, usable for
+    """Parse a node's driver_info values.
+
+    Return a dictionary of validated driver information, usable for
     SNMPDriver object creation.
 
     :param node: An Ironic node object.

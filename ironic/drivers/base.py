@@ -396,8 +396,9 @@ class VendorInterface(object):
         """
 
     def driver_vendor_passthru(self, context, method, **kwargs):
-        """Handle top-level (ie, no node is specified) vendor actions. These
-        allow a vendor interface to expose additional cross-node API
+        """Handle top-level (ie, no node is specified) vendor actions.
+
+        These allow a vendor interface to expose additional cross-node API
         functionality.
 
         VendorInterface subclasses are explicitly not required to implement

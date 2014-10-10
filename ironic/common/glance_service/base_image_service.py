@@ -63,7 +63,8 @@ def check_image_service(func):
     """Creates a glance client if doesn't exists and calls the function."""
     @functools.wraps(func)
     def wrapper(self, *args, **kwargs):
-        """wrapper around methods calls
+        """Wrapper around methods calls.
+
         :param image_href: href that describes the location of an image
         """
 
@@ -98,6 +99,7 @@ class BaseImageService(object):
 
     def call(self, method, *args, **kwargs):
         """Call a glance client method.
+
         If we get a connection error,
         retry the request according to CONF.glance_num_retries.
 

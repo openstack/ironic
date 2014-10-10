@@ -90,7 +90,9 @@ class MixinVendorInterface(base.VendorInterface):
         return route.vendor_passthru(task, **kwargs)
 
     def driver_vendor_passthru(self, context, method, **kwargs):
-        """Call driver_vendor_passthru on a mapped interface based on the
+        """Handle top-level vendor actions.
+
+        Call driver_vendor_passthru on a mapped interface based on the
         specified method.
 
         Returns or raises according to the requested driver_vendor_passthru

@@ -398,7 +398,9 @@ class ConductorManager(periodic_task.PeriodicTasks):
                                    exception.DriverNotFound)
     def driver_vendor_passthru(self, context, driver_name, driver_method,
                                   info):
-        """RPC method which synchronously handles driver-level vendor passthru
+        """Handle top-level vendor actions.
+
+        RPC method which synchronously handles driver-level vendor passthru
         calls. These calls don't require a node UUID and are executed on a
         random conductor with the specified driver.
 
