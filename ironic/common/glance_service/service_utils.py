@@ -18,12 +18,12 @@ import copy
 import logging
 
 from oslo.config import cfg
+from oslo.serialization import jsonutils
 from oslo.utils import timeutils
 import six
 import six.moves.urllib.parse as urlparse
 
 from ironic.common import exception
-from ironic.openstack.common import jsonutils
 
 
 CONF = cfg.CONF

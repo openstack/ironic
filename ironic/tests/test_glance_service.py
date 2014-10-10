@@ -28,12 +28,12 @@ from ironic.common.glance_service import base_image_service
 from ironic.common.glance_service import service_utils
 from ironic.common import image_service as service
 from ironic.openstack.common import context
-from ironic.openstack.common import jsonutils
 from ironic.tests import base
 from ironic.tests import matchers
 from ironic.tests import stubs
 
 from oslo.config import cfg
+from oslo.serialization import jsonutils
 
 CONF = cfg.CONF
 
