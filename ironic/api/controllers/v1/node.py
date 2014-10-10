@@ -773,8 +773,8 @@ class NodesController(rest.RestController):
         rpc_node = objects.Node.get_by_uuid(pecan.request.context, node_uuid)
 
         # Check if node is transitioning state
-        if rpc_node['target_power_state'] or \
-             rpc_node['target_provision_state']:
+        if (rpc_node['target_power_state'] or
+                rpc_node['target_provision_state']):
             msg = _("Node %s can not be updated while a state transition "
                     "is in progress.")
             raise wsme.exc.ClientSideError(msg % node_uuid, status_code=409)

@@ -278,8 +278,7 @@ class ConductorManager(periodic_task.PeriodicTasks):
             #             instance_uuid needs to be unset, and handle it.
             if 'instance_uuid' in delta:
                 task.driver.power.validate(task)
-                node_obj.power_state = \
-                        task.driver.power.get_power_state(task)
+                node_obj.power_state = task.driver.power.get_power_state(task)
 
                 if node_obj.power_state != states.POWER_OFF:
                     raise exception.NodeInWrongPowerState(
@@ -1214,8 +1213,9 @@ class ConductorManager(periodic_task.PeriodicTasks):
                        'event_type': 'hardware.ipmi.metrics.update'}
 
             try:
-                with task_manager.acquire(context, node_uuid, shared=True) \
-                         as task:
+                with task_manager.acquire(context,
+                                          node_uuid,
+                                          shared=True) as task:
                     task.driver.management.validate(task)
                     sensors_data = task.driver.management.get_sensors_data(
                         task)

@@ -60,8 +60,8 @@ class TestNoExceptionTracebackHook(base.FunctionalTest):
         # instead of'\n'.join(trace). But since RemoteError is kind of very
         # rare thing (happens due to wrong deserialization settings etc.)
         # we don't care about this garbage.
-        expected_msg = "Remote error: %s %s" \
-                       % (test_exc_type, self.MSG_WITHOUT_TRACE) + "\n[u'"
+        expected_msg = ("Remote error: %s %s"
+                        % (test_exc_type, self.MSG_WITHOUT_TRACE) + "\n[u'")
         actual_msg = json.loads(response.json['error_message'])['faultstring']
         self.assertEqual(expected_msg, actual_msg)
 

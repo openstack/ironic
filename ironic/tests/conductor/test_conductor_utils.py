@@ -76,8 +76,8 @@ class NodePowerActionTestCase(base.DbTestCase):
                                           power_state=states.POWER_OFF)
         task = task_manager.TaskManager(self.context, node.uuid)
 
-        with mock.patch.object(self.driver.power, 'get_power_state') \
-                as get_power_mock:
+        with mock.patch.object(self.driver.power,
+                               'get_power_state') as get_power_mock:
             get_power_mock.return_value = states.POWER_OFF
 
             conductor_utils.node_power_action(task, states.POWER_ON)
@@ -96,8 +96,8 @@ class NodePowerActionTestCase(base.DbTestCase):
                                           power_state=states.POWER_ON)
         task = task_manager.TaskManager(self.context, node.uuid)
 
-        with mock.patch.object(self.driver.power, 'get_power_state') \
-                as get_power_mock:
+        with mock.patch.object(self.driver.power,
+                               'get_power_state') as get_power_mock:
             get_power_mock.return_value = states.POWER_ON
 
             conductor_utils.node_power_action(task, states.POWER_OFF)
@@ -135,8 +135,8 @@ class NodePowerActionTestCase(base.DbTestCase):
                                           power_state=states.POWER_ON)
         task = task_manager.TaskManager(self.context, node.uuid)
 
-        with mock.patch.object(self.driver.power, 'get_power_state') \
-                as get_power_mock:
+        with mock.patch.object(self.driver.power,
+                               'get_power_state') as get_power_mock:
             get_power_mock.return_value = states.POWER_ON
 
             self.assertRaises(exception.InvalidParameterValue,
@@ -189,12 +189,12 @@ class NodePowerActionTestCase(base.DbTestCase):
                                           power_state=states.POWER_ON)
         task = task_manager.TaskManager(self.context, node.uuid)
 
-        with mock.patch.object(self.driver.power, 'get_power_state') \
-                as get_power_mock:
+        with mock.patch.object(self.driver.power,
+                               'get_power_state') as get_power_mock:
             get_power_mock.return_value = states.POWER_ON
 
-            with mock.patch.object(self.driver.power, 'set_power_state') \
-                    as set_power_mock:
+            with mock.patch.object(self.driver.power,
+                                   'set_power_state') as set_power_mock:
                 conductor_utils.node_power_action(task, states.POWER_ON)
 
                 node.refresh()
@@ -215,10 +215,10 @@ class NodePowerActionTestCase(base.DbTestCase):
                                           power_state=states.POWER_ON)
         task = task_manager.TaskManager(self.context, node.uuid)
 
-        with mock.patch.object(self.driver.power, 'get_power_state') \
-                as get_power_state_mock:
-            get_power_state_mock.side_effect = \
-                exception.InvalidParameterValue('failed getting power state')
+        with mock.patch.object(self.driver.power,
+                               'get_power_state') as get_power_state_mock:
+            get_power_state_mock.side_effect = (
+                exception.InvalidParameterValue('failed getting power state'))
 
             self.assertRaises(exception.InvalidParameterValue,
                               conductor_utils.node_power_action,
@@ -241,10 +241,10 @@ class NodePowerActionTestCase(base.DbTestCase):
                                           power_state=states.POWER_OFF)
         task = task_manager.TaskManager(self.context, node.uuid)
 
-        with mock.patch.object(self.driver.power, 'get_power_state') \
-                as get_power_mock:
-            with mock.patch.object(self.driver.power, 'set_power_state') \
-                    as set_power_mock:
+        with mock.patch.object(self.driver.power,
+                               'get_power_state') as get_power_mock:
+            with mock.patch.object(self.driver.power,
+                                   'set_power_state') as set_power_mock:
                 get_power_mock.return_value = states.POWER_OFF
                 set_power_mock.side_effect = exception.IronicException()
 

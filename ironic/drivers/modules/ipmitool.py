@@ -236,8 +236,8 @@ def _parse_driver_info(node):
     # check if ipmi_bridging has proper value
     if bridging_type == 'no':
         # if bridging is not selected, then set all bridging params to None
-        local_address = transit_channel = transit_address = \
-            target_channel = target_address = None
+        (local_address, transit_channel, transit_address, target_channel,
+         target_address) = (None,) * 5
     elif bridging_type in bridging_types:
         # check if the particular bridging option is supported on host
         if not _is_option_supported('%s_bridge' % bridging_type):
@@ -962,13 +962,13 @@ class IPMIShellinaboxConsole(base.ConsoleInterface):
         pw_file = console_utils.make_persistent_password_file(
                 path, driver_info['password'])
 
-        ipmi_cmd = "/:%(uid)s:%(gid)s:HOME:ipmitool -H %(address)s" \
-                   " -I lanplus -U %(user)s -f %(pwfile)s"  \
-                   % {'uid': os.getuid(),
-                      'gid': os.getgid(),
-                      'address': driver_info['address'],
-                      'user': driver_info['username'],
-                      'pwfile': pw_file}
+        ipmi_cmd = ("/:%(uid)s:%(gid)s:HOME:ipmitool -H %(address)s"
+                    " -I lanplus -U %(user)s -f %(pwfile)s"
+                    % {'uid': os.getuid(),
+                       'gid': os.getgid(),
+                       'address': driver_info['address'],
+                       'user': driver_info['username'],
+                       'pwfile': pw_file})
 
         for name, option in BRIDGING_OPTIONS:
             if driver_info[name] is not None:

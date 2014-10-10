@@ -510,14 +510,14 @@ class NativeIPMIShellinaboxConsole(base.ConsoleInterface):
         pw_file = console_utils.make_persistent_password_file(
                 path, driver_info['password'])
 
-        console_cmd = "/:%(uid)s:%(gid)s:HOME:pyghmicons %(bmc)s" \
-                      " %(user)s" \
-                      " %(passwd_file)s" \
-                      % {'uid': os.getuid(),
-                         'gid': os.getgid(),
-                         'bmc': driver_info['address'],
-                         'user': driver_info['username'],
-                         'passwd_file': pw_file}
+        console_cmd = ("/:%(uid)s:%(gid)s:HOME:pyghmicons %(bmc)s"
+                       " %(user)s"
+                       " %(passwd_file)s"
+                       % {'uid': os.getuid(),
+                          'gid': os.getgid(),
+                          'bmc': driver_info['address'],
+                          'user': driver_info['username'],
+                          'passwd_file': pw_file})
         try:
             console_utils.start_shellinabox_console(driver_info['uuid'],
                                                     driver_info['port'],
