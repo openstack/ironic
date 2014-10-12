@@ -308,8 +308,8 @@ class ConductorManager(periodic_task.PeriodicTasks):
             node.save()
             LOG.warning(_LW("No free conductor workers available to perform "
                             "an action on node %(node)s, setting node's "
-                            "power state back to %(power_state)s.",
-                            {'node': node.uuid, 'power_state': power_state}))
+                            "power state back to %(power_state)s."),
+                            {'node': node.uuid, 'power_state': power_state})
 
     @messaging.expected_exceptions(exception.InvalidParameterValue,
                                    exception.MissingParameterValue,
