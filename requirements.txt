@@ -6,7 +6,7 @@ SQLAlchemy>=0.8.4,<=0.8.99,>=0.9.7,<=0.9.99
 alembic>=0.6.4
 anyjson>=0.3.3
 argparse
-eventlet>=0.15.1
+eventlet>=0.15.2
 lockfile>=0.8
 lxml>=2.3
 WebOb>=1.2.3
