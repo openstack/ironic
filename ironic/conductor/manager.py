@@ -47,7 +47,6 @@ import threading
 
 import eventlet
 from eventlet import greenpool
-
 from oslo.config import cfg
 from oslo import messaging
 from oslo.utils import excutils

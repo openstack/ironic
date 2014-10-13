@@ -21,16 +21,14 @@ import os
 import sys
 import time
 
-import sendfile
-
 from glanceclient import client
+from oslo.config import cfg
+import sendfile
 import six.moves.urllib.parse as urlparse
 
 from ironic.common import exception
 from ironic.common.glance_service import service_utils
 from ironic.common.i18n import _LE
-
-from oslo.config import cfg
 
 
 LOG = logging.getLogger(__name__)

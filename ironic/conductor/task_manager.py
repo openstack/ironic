@@ -96,10 +96,9 @@ code when the spawned task generates an exception:
 
 """
 
-import retrying
-
 from oslo.config import cfg
 from oslo.utils import excutils
+import retrying
 
 from ironic.common import driver_factory
 from ironic.common import exception

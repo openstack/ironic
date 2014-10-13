@@ -21,17 +21,15 @@ inline callbacks.
 
 """
 
-import eventlet
-eventlet.monkey_patch(os=False)
-
 import copy
 import os
 import sys
 
+import eventlet
+eventlet.monkey_patch(os=False)
 import fixtures
-import testtools
-
 from oslo.config import cfg
+import testtools
 
 from ironic.common import hash_ring
 from ironic.objects import base as objects_base

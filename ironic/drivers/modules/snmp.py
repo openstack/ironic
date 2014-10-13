@@ -28,10 +28,10 @@ models.
 """
 
 import abc
-import six
 
 from oslo.config import cfg
 from oslo.utils import importutils
+import six
 
 from ironic.common import exception
 from ironic.common.i18n import _

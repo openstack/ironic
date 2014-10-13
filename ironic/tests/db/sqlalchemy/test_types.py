@@ -17,7 +17,6 @@ from oslo.db import exception as db_exc
 from ironic.common import utils as ironic_utils
 import ironic.db.sqlalchemy.api as sa_api
 from ironic.db.sqlalchemy import models
-
 from ironic.tests.db import base
 
 

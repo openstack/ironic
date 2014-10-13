@@ -21,7 +21,6 @@
 """Test class for SNMP power driver module."""
 
 import mock
-
 from oslo.config import cfg
 from pysnmp.entity.rfc3413.oneliner import cmdgen
 from pysnmp import error as snmp_error

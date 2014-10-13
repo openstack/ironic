@@ -13,9 +13,9 @@
 # limitations under the License.
 
 import json
-import requests
 
 import mock
+import requests
 
 from ironic.common import exception
 from ironic.drivers.modules import agent_client

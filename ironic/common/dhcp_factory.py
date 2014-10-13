@@ -12,9 +12,8 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import stevedore
-
 from oslo.config import cfg
+import stevedore
 
 from ironic.common import exception
 from ironic.openstack.common import lockutils

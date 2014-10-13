@@ -19,7 +19,6 @@ from testtools.matchers import HasLength
 from ironic.common import exception
 from ironic.common import utils as ironic_utils
 from ironic import objects
-
 from ironic.tests.db import base
 from ironic.tests.db import utils
 

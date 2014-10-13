@@ -16,11 +16,9 @@ Tests for ACL. Checks whether certain kinds of requests
 are blocked or allowed to be processed.
 """
 
-import mock
-
 # NOTE(deva): import auth_token so we can override a config option
 from keystonemiddleware import auth_token  # noqa
-
+import mock
 from oslo.config import cfg
 
 from ironic.tests.api import base

@@ -23,9 +23,8 @@ import sys
 
 from oslo.config import cfg
 
-from ironic.openstack.common import service
-
 from ironic.common import service as ironic_service
+from ironic.openstack.common import service
 
 CONF = cfg.CONF
 

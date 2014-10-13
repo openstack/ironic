@@ -14,10 +14,10 @@
 #    under the License.
 
 import datetime
-import six
 
 import pecan
 from pecan import rest
+import six
 import wsme
 from wsme import types as wtypes
 import wsmeext.pecan as wsme_pecan

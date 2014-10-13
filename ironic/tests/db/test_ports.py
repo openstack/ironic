@@ -19,7 +19,6 @@ import six
 
 from ironic.common import exception
 from ironic.common import utils as ironic_utils
-
 from ironic.tests.db import base
 from ironic.tests.db import utils as db_utils
 
