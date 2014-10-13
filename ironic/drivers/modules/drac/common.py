@@ -45,7 +45,9 @@ RET_CREATED = '4096'
 
 
 def parse_driver_info(node):
-    """Parses the driver_info of the node, reads default values
+    """Parse a node's driver_info values.
+
+    Parses the driver_info of the node, reads default values
     and returns a dict containing the combination of both.
 
     :param node: an ironic node object.
@@ -94,7 +96,9 @@ def parse_driver_info(node):
 
 
 def get_wsman_client(node):
-    """Given an ironic node object, this method gives back a
+    """Return a DRAC client object.
+
+    Given an ironic node object, this method gives back a
     Client object which is a wrapper for pywsman.Client.
 
     :param node: an ironic node object.

@@ -355,7 +355,9 @@ class AgentVendorInterface(base.VendorInterface):
         pass
 
     def driver_vendor_passthru(self, task, method, **kwargs):
-        """A node that does not know its UUID should POST to this method.
+        """Handle top-level vendor actions.
+
+        A node that does not know its UUID should POST to this method.
         Given method, route the command to the appropriate private function.
         """
         if method not in self.driver_routes:
@@ -489,7 +491,9 @@ class AgentVendorInterface(base.VendorInterface):
         node.save()
 
     def _lookup(self, context, **kwargs):
-        """Method to be called the first time a ramdisk agent checks in. This
+        """Find a matching node for the agent.
+
+        Method to be called the first time a ramdisk agent checks in. This
         can be because this is a node just entering decom or a node that
         rebooted for some reason. We will use the mac addresses listed in the
         kwargs to find the matching node, then return the node object to the
@@ -567,8 +571,7 @@ class AgentVendorInterface(base.VendorInterface):
         return interfaces
 
     def _get_mac_addresses(self, interfaces):
-        """Returns MACs for the network devices
-        """
+        """Returns MACs for the network devices."""
         mac_addresses = []
 
         for interface in interfaces:
@@ -581,7 +584,9 @@ class AgentVendorInterface(base.VendorInterface):
         return mac_addresses
 
     def _find_node_by_macs(self, context, mac_addresses):
-        """Given a list of MAC addresses, find the ports that match the MACs
+        """Get nodes for a given list of MAC addresses.
+
+        Given a list of MAC addresses, find the ports that match the MACs
         and return the node they are all connected to.
 
         :raises: NodeNotFound if the ports point to multiple nodes or no
@@ -603,7 +608,9 @@ class AgentVendorInterface(base.VendorInterface):
         return node
 
     def _find_ports_by_macs(self, context, mac_addresses):
-        """Given a list of MAC addresses, find the ports that match the MACs
+        """Get ports for a given list of MAC addresses.
+
+        Given a list of MAC addresses, find the ports that match the MACs
         and return them as a list of Port objects, or an empty list if there
         are no matches
         """
@@ -620,7 +627,9 @@ class AgentVendorInterface(base.VendorInterface):
         return ports
 
     def _get_node_id(self, ports):
-        """Given a list of ports, either return the node_id they all share or
+        """Get a node ID for a list of ports.
+
+        Given a list of ports, either return the node_id they all share or
         raise a NotFound if there are multiple node_ids, which indicates some
         ports are connected to one node and the remaining port(s) are connected
         to one or more other nodes.

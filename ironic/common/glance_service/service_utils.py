@@ -106,10 +106,7 @@ def _remove_read_only(image_meta):
 
 
 def _get_api_server():
-    """Shuffle a list of CONF.glance_api_servers and return an iterator
-    that will cycle through the list, looping around to the beginning
-    if necessary.
-    """
+    """Get the Glance API server information."""
     api_server = (CONF.glance.glance_api_servers or
                   CONF.glance.glance_host + ':' + str(CONF.glance.glance_port))
     if '//' not in api_server:

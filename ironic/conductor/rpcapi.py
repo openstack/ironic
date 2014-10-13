@@ -80,8 +80,7 @@ class ConductorAPI(object):
         self.ring_manager = hash_ring.HashRingManager()
 
     def get_topic_for(self, node):
-        """Get the RPC topic for the conductor service which the node
-        is mapped to.
+        """Get the RPC topic for the conductor service the node is mapped to.
 
         :param node: a node object.
         :returns: an RPC topic string.
@@ -100,9 +99,11 @@ class ConductorAPI(object):
             raise exception.NoValidHost(reason=reason)
 
     def get_topic_for_driver(self, driver_name):
-        """Get an RPC topic which will route messages to a conductor which
-        supports the specified driver. A conductor is selected at
-        random from the set of qualified conductors.
+        """Get RPC topic name for a conductor supporting the given driver.
+
+        The topic is used to route messages to the conductor supporting
+        the specified driver. A conductor is selected at random from the
+        set of qualified conductors.
 
         :param driver_name: the name of the driver to route to.
         :returns: an RPC topic string.
@@ -137,7 +138,9 @@ class ConductorAPI(object):
         return cctxt.call(context, 'update_node', node_obj=node_obj)
 
     def change_node_power_state(self, context, node_id, new_state, topic=None):
-        """Synchronously, acquire lock and start the conductor background task
+        """Change a node's power state.
+
+        Synchronously, acquire lock and start the conductor background task
         to change power state of a node.
 
         :param context: request context.
@@ -154,7 +157,9 @@ class ConductorAPI(object):
 
     def vendor_passthru(self, context, node_id, driver_method, info,
                         topic=None):
-        """Synchronously, acquire lock, validate given parameters and start
+        """Receive requests for vendor-specific actions.
+
+        Synchronously, acquire lock, validate given parameters and start
         the conductor background task for specified vendor action.
 
         :param context: request context.

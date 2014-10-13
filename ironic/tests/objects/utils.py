@@ -32,7 +32,9 @@ def get_test_node(ctxt, **kw):
 
 
 def create_test_node(ctxt, **kw):
-    """Create a node in the DB and return a Node object with appropriate
+    """Create and return a test node object.
+
+    Create a node in the DB and return a Node object with appropriate
     attributes.
     """
     node = get_test_node(ctxt, **kw)
@@ -54,7 +56,9 @@ def get_test_port(ctxt, **kw):
 
 
 def create_test_port(ctxt, **kw):
-    """Create a port in the DB and return a Port object with appropriate
+    """Create and return a test port object.
+
+    Create a port in the DB and return a Port object with appropriate
     attributes.
     """
     port = get_test_port(ctxt, **kw)
@@ -76,7 +80,9 @@ def get_test_chassis(ctxt, **kw):
 
 
 def create_test_chassis(ctxt, **kw):
-    """Create a chassis in the DB and return a Chassis object with appropriate
+    """Create and return a test chassis object.
+
+    Create a chassis in the DB and return a Chassis object with appropriate
     attributes.
     """
     chassis = get_test_chassis(ctxt, **kw)

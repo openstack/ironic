@@ -168,7 +168,9 @@ class GlanceImageService(base_image_service.BaseImageService,
                 '"swift_temp_url_duration" must be a positive integer.'))
 
     def _get_location(self, image_id):
-        """Returns the direct url representing the backend storage location,
+        """Get storage URL.
+
+        Returns the direct url representing the backend storage location,
         or None if this attribute is not shown by Glance.
         """
         image_meta = self.call('get', image_id)

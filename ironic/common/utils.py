@@ -335,7 +335,9 @@ def hash_file(file_like_object):
 
 @contextlib.contextmanager
 def temporary_mutation(obj, **kwargs):
-    """Temporarily set the attr on a particular object to a given value then
+    """Temporarily change object attribute.
+
+    Temporarily set the attr on a particular object to a given value then
     revert when finished.
 
     One use of this is to temporarily set the read_deleted flag on a context

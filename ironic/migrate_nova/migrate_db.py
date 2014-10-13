@@ -216,6 +216,7 @@ def save_ironic_objects(objects):
 
 def parse_nova_config(config_file):
     """Parse nova.conf and return known defaults if setting is not present.
+
     This avoids having to import nova code from this script and risk conflicts
     with Ironic's tree around oslo.config resources.
     """

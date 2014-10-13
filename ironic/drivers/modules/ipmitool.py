@@ -355,6 +355,7 @@ def _exec_ipmitool(driver_info, command):
 
 def _sleep_time(iter):
     """Return the time-to-sleep for the n'th iteration of a retry loop.
+
     This implementation increases exponentially.
 
     :param iter: iteration number

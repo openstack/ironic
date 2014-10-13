@@ -130,6 +130,7 @@ class ImageCache(object):
 
     def _download_image(self, uuid, master_path, dest_path, ctx=None):
         """Download image from Glance and store at a given path.
+
         This method should be called with uuid-specific lock taken.
 
         :param uuid: image UUID or href to fetch
@@ -217,6 +218,7 @@ class ImageCache(object):
 
     def _clean_up_ensure_cache_size(self, listing, amount):
         """Clean up stage 2: try to ensure cache size < threshold.
+
         Try to delete the oldest files until conditions is satisfied
         or no more files are eligable for delition.
 

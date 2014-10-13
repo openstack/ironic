@@ -126,9 +126,7 @@ class NodePowerActionTestCase(base.DbTestCase):
             self.assertIsNone(node['last_error'])
 
     def test_node_power_action_invalid_state(self):
-        """Test if an exception is thrown when changing to an invalid
-        power state.
-        """
+        """Test for exception when changing to an invalid power state."""
         node = obj_utils.create_test_node(self.context,
                                           uuid=cmn_utils.generate_uuid(),
                                           driver='fake',
@@ -158,7 +156,9 @@ class NodePowerActionTestCase(base.DbTestCase):
             self.assertIsNone(node['last_error'])
 
     def test_node_power_action_already_being_processed(self):
-        """The target_power_state is expected to be None so it isn't
+        """Test node power action after aborted power action.
+
+        The target_power_state is expected to be None so it isn't
         checked in the code. This is what happens if it is not None.
         (Eg, if a conductor had died during a previous power-off
         attempt and left the target_power_state set to states.POWER_OFF,
@@ -179,7 +179,9 @@ class NodePowerActionTestCase(base.DbTestCase):
         self.assertIsNone(node['last_error'])
 
     def test_node_power_action_in_same_state(self):
-        """Test that we don't try to set the power state if the requested
+        """Test setting node state to its present state.
+
+        Test that we don't try to set the power state if the requested
         state is the same as the current state.
         """
         node = obj_utils.create_test_node(self.context,
@@ -206,9 +208,7 @@ class NodePowerActionTestCase(base.DbTestCase):
                 self.assertIsNone(node['last_error'])
 
     def test_node_power_action_failed_getting_state(self):
-        """Test if an exception is thrown when we can't get the
-        current power state.
-        """
+        """Test for exception when we can't get the current power state."""
         node = obj_utils.create_test_node(self.context,
                                           uuid=cmn_utils.generate_uuid(),
                                           driver='fake',
@@ -232,9 +232,7 @@ class NodePowerActionTestCase(base.DbTestCase):
             self.assertIsNotNone(node['last_error'])
 
     def test_node_power_action_set_power_failure(self):
-        """Test if an exception is thrown when the set_power call
-        fails.
-        """
+        """Test if an exception is thrown when the set_power call fails."""
         node = obj_utils.create_test_node(self.context,
                                           uuid=cmn_utils.generate_uuid(),
                                           driver='fake',

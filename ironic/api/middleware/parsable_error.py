@@ -34,8 +34,7 @@ LOG = log.getLogger(__name__)
 
 
 class ParsableErrorMiddleware(object):
-    """Replace error body with something the client can parse.
-    """
+    """Replace error body with something the client can parse."""
     def __init__(self, app):
         self.app = app
 
@@ -45,8 +44,7 @@ class ParsableErrorMiddleware(object):
         state = {}
 
         def replacement_start_response(status, headers, exc_info=None):
-            """Overrides the default response to make errors parsable.
-            """
+            """Overrides the default response to make errors parsable."""
             try:
                 status_code = int(status.split(' ')[0])
                 state['status_code'] = status_code

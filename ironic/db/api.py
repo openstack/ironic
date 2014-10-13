@@ -45,8 +45,10 @@ class Connection(object):
     @abc.abstractmethod
     def get_nodeinfo_list(self, columns=None, filters=None, limit=None,
                           marker=None, sort_key=None, sort_dir=None):
-        """Return a list of the specified columns for all nodes that match
-        the specified filters.
+        """Get specific columns for matching nodes.
+
+        Return a list of the specified columns for all nodes that match the
+        specified filters.
 
         :param columns: List of column names to return.
                         Defaults to 'id' column when columns == None.

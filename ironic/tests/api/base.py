@@ -33,7 +33,9 @@ PATH_PREFIX = '/v1'
 
 
 class FunctionalTest(base.DbTestCase):
-    """Used for functional tests of Pecan controllers where you need to
+    """Pecan controller functional testing class.
+
+    Used for functional tests of Pecan controllers where you need to
     test your literal application and its integration with the
     framework.
     """
