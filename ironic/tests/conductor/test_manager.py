@@ -1899,14 +1899,14 @@ class ManagerSyncPowerStatesTestCase(_CommonMixIn, tests_db_base.DbTestCase):
 
         get_nodeinfo_mock.assert_called_once_with(
                 columns=self.columns, filters=self.filters)
-        mapped_calls = [mock.call(n.uuid, n.driver) for n in nodes]
+        mapped_calls = [mock.call(x.uuid, x.driver) for x in nodes]
         self.assertEqual(mapped_calls, mapped_mock.call_args_list)
-        get_node_calls = [mock.call(self.context, n.id)
-                for n in nodes[:1] + nodes[2:]]
+        get_node_calls = [mock.call(self.context, x.id)
+                for x in nodes[:1] + nodes[2:]]
         self.assertEqual(get_node_calls,
                          get_node_mock.call_args_list)
-        acquire_calls = [mock.call(self.context, n.id)
-                for n in nodes[:1] + nodes[6:]]
+        acquire_calls = [mock.call(self.context, x.id)
+                for x in nodes[:1] + nodes[6:]]
         self.assertEqual(acquire_calls, acquire_mock.call_args_list)
         sync_calls = [mock.call(tasks[0]), mock.call(tasks[5])]
         self.assertEqual(sync_calls, sync_mock.call_args_list)
