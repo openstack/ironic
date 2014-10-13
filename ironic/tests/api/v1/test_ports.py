@@ -53,7 +53,7 @@ class TestListPorts(base.FunctionalTest):
         self.assertEqual([], data['ports'])
 
     def test_one(self):
-        port = obj_utils.create_test_port(self.context)
+        port = obj_utils.create_test_port(self.context, node_id=self.node.id)
         data = self.get_json('/ports')
         self.assertEqual(port.uuid, data['ports'][0]["uuid"])
         self.assertNotIn('extra', data['ports'][0])
@@ -62,7 +62,7 @@ class TestListPorts(base.FunctionalTest):
         self.assertNotIn('node_id', data['ports'][0])
 
     def test_get_one(self):
-        port = obj_utils.create_test_port(self.context)
+        port = obj_utils.create_test_port(self.context, node_id=self.node.id)
         data = self.get_json('/ports/%s' % port.uuid)
         self.assertEqual(port.uuid, data['uuid'])
         self.assertIn('extra', data)
@@ -71,7 +71,7 @@ class TestListPorts(base.FunctionalTest):
         self.assertNotIn('node_id', data)
 
     def test_detail(self):
-        port = obj_utils.create_test_port(self.context)
+        port = obj_utils.create_test_port(self.context, node_id=self.node.id)
         data = self.get_json('/ports/detail')
         self.assertEqual(port.uuid, data['ports'][0]["uuid"])
         self.assertIn('extra', data['ports'][0])
@@ -80,7 +80,7 @@ class TestListPorts(base.FunctionalTest):
         self.assertNotIn('node_id', data['ports'][0])
 
     def test_detail_against_single(self):
-        port = obj_utils.create_test_port(self.context)
+        port = obj_utils.create_test_port(self.context, node_id=self.node.id)
         response = self.get_json('/ports/%s/detail' % port.uuid,
                                  expect_errors=True)
         self.assertEqual(404, response.status_int)
@@ -90,6 +90,7 @@ class TestListPorts(base.FunctionalTest):
         for id_ in range(5):
             port = obj_utils.create_test_port(self.context,
                                             id=id_,
+                                            node_id=self.node.id,
                                             uuid=utils.generate_uuid(),
                                             address='52:54:00:cf:2d:3%s' % id_)
             ports.append(port.uuid)
@@ -101,7 +102,10 @@ class TestListPorts(base.FunctionalTest):
 
     def test_links(self):
         uuid = utils.generate_uuid()
-        obj_utils.create_test_port(self.context, id=1, uuid=uuid)
+        obj_utils.create_test_port(self.context,
+                                   id=1,
+                                   uuid=uuid,
+                                   node_id=self.node.id)
         data = self.get_json('/ports/%s' % uuid)
         self.assertIn('links', data.keys())
         self.assertEqual(2, len(data['links']))
@@ -115,6 +119,7 @@ class TestListPorts(base.FunctionalTest):
         for id_ in range(5):
             port = obj_utils.create_test_port(self.context,
                                             id=id_,
+                                            node_id=self.node.id,
                                             uuid=utils.generate_uuid(),
                                             address='52:54:00:cf:2d:3%s' % id_)
             ports.append(port.uuid)
@@ -130,6 +135,7 @@ class TestListPorts(base.FunctionalTest):
         for id_ in range(5):
             port = obj_utils.create_test_port(self.context,
                                             id=id_,
+                                            node_id=self.node.id,
                                             uuid=utils.generate_uuid(),
                                             address='52:54:00:cf:2d:3%s' % id_)
             ports.append(port.uuid)
@@ -144,6 +150,7 @@ class TestListPorts(base.FunctionalTest):
         for id_ in range(3):
             obj_utils.create_test_port(self.context,
                                        id=id_,
+                                       node_id=self.node.id,
                                        uuid=utils.generate_uuid(),
                                        address=address_template % id_)
 
@@ -158,7 +165,7 @@ class TestListPorts(base.FunctionalTest):
         self.assertThat(data['ports'], HasLength(0))
 
     def test_port_by_address_invalid_address_format(self):
-        obj_utils.create_test_port(self.context)
+        obj_utils.create_test_port(self.context, node_id=self.node.id)
         invalid_address = 'invalid-mac-format'
         response = self.get_json('/ports?address=%s' % invalid_address,
                                  expect_errors=True)
@@ -173,7 +180,8 @@ class TestPatch(base.FunctionalTest):
     def setUp(self):
         super(TestPatch, self).setUp()
         self.node = obj_utils.create_test_node(self.context)
-        self.port = obj_utils.create_test_port(self.context)
+        self.port = obj_utils.create_test_port(self.context,
+                                               node_id=self.node.id)
 
         p = mock.patch.object(rpcapi.ConductorAPI, 'get_topic_for')
         self.mock_gtf = p.start()
@@ -604,7 +612,8 @@ class TestDelete(base.FunctionalTest):
     def setUp(self):
         super(TestDelete, self).setUp()
         self.node = obj_utils.create_test_node(self.context)
-        self.port = obj_utils.create_test_port(self.context)
+        self.port = obj_utils.create_test_port(self.context,
+                                               node_id=self.node.id)
 
     def test_delete_port_byid(self):
         self.delete('/ports/%s' % self.port.uuid)

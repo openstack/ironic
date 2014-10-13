@@ -30,9 +30,8 @@ class DbPortTestCase(base.DbTestCase):
         # This method creates a port for every test and
         # replaces a test for creating a port.
         super(DbPortTestCase, self).setUp()
-        ndict = db_utils.get_test_node()
-        self.n = self.dbapi.create_node(ndict)
-        self.p = db_utils.get_test_port()
+        self.n = db_utils.create_test_node()
+        self.p = db_utils.get_test_port(node_id=self.n.id)
 
     def test_get_port_by_id(self):
         self.dbapi.create_port(self.p)

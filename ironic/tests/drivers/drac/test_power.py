@@ -37,10 +37,10 @@ class DracPowerInternalMethodsTestCase(base.DbTestCase):
     def setUp(self):
         super(DracPowerInternalMethodsTestCase, self).setUp()
         driver_info = INFO_DICT
-        db_node = db_utils.get_test_node(driver='fake_drac',
-                                         driver_info=driver_info,
-                                         instance_uuid='instance_uuid_123')
-        self.node = self.dbapi.create_node(db_node)
+        self.node = db_utils.create_test_node(
+            driver='fake_drac',
+            driver_info=driver_info,
+            instance_uuid='instance_uuid_123')
 
     def test__get_power_state(self, mock_power_pywsman, mock_client_pywsman):
         result_xml = test_utils.build_soap_xml([{'EnabledState': '2'}],
@@ -110,10 +110,10 @@ class DracPowerTestCase(base.DbTestCase):
     def setUp(self):
         super(DracPowerTestCase, self).setUp()
         driver_info = INFO_DICT
-        db_node = db_utils.get_test_node(driver='fake_drac',
-                                         driver_info=driver_info,
-                                         instance_uuid='instance_uuid_123')
-        self.node = self.dbapi.create_node(db_node)
+        self.node = db_utils.create_test_node(
+            driver='fake_drac',
+            driver_info=driver_info,
+            instance_uuid='instance_uuid_123')
 
     def test_get_properties(self):
         expected = drac_common.COMMON_PROPERTIES

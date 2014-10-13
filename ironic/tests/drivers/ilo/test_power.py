@@ -44,11 +44,10 @@ class IloPowerInternalMethodsTestCase(db_base.DbTestCase):
         super(IloPowerInternalMethodsTestCase, self).setUp()
         driver_info = INFO_DICT
         mgr_utils.mock_the_extension_manager(driver="fake_ilo")
-        n = db_utils.get_test_node(
+        self.node = db_utils.create_test_node(
             driver='fake_ilo',
             driver_info=driver_info,
             instance_uuid='instance_uuid_123')
-        self.node = self.dbapi.create_node(n)
         CONF.set_override('power_retry', 2, 'ilo')
         CONF.set_override('power_wait', 0, 'ilo')
 
