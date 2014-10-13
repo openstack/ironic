@@ -15,9 +15,9 @@
 
 """Test class for common methods used by iLO modules."""
 
-import mock
 import tempfile
 
+import mock
 from oslo.config import cfg
 
 from ironic.common import exception

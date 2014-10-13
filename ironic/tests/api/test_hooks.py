@@ -15,6 +15,7 @@
 """Tests for the Pecan API hooks."""
 
 import json
+
 import mock
 from oslo.config import cfg
 from oslo import messaging

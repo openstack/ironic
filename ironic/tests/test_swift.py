@@ -13,9 +13,9 @@
 # under the License.
 
 import __builtin__
-import mock
 import sys
 
+import mock
 from oslo.config import cfg
 from swiftclient import client as swift_client
 from swiftclient import exceptions as swift_exception

@@ -19,10 +19,10 @@
 
 import logging
 import sys
+from wsgiref import simple_server
 
 from oslo.config import cfg
 from six.moves import socketserver
-from wsgiref import simple_server
 
 from ironic.api import app
 from ironic.common.i18n import _LI

@@ -15,8 +15,9 @@
 Test class for DRAC client wrapper.
 """
 
-import mock
 from xml.etree import ElementTree
+
+import mock
 
 from ironic.common import exception
 from ironic.drivers.modules.drac import client as drac_client

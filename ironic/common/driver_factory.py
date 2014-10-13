@@ -14,12 +14,12 @@
 #    under the License.
 
 from oslo.config import cfg
+from stevedore import dispatch
 
 from ironic.common import exception
 from ironic.common.i18n import _LI
 from ironic.openstack.common import lockutils
 from ironic.openstack.common import log
-from stevedore import dispatch
 
 
 LOG = log.getLogger(__name__)

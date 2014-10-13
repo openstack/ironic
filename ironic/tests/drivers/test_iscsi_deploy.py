@@ -15,10 +15,10 @@
 
 """Test class for iSCSI deploy mechanism."""
 
-import mock
 import os
 import tempfile
 
+import mock
 from oslo.config import cfg
 
 from ironic.common import exception

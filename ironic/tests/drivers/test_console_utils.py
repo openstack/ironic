@@ -17,13 +17,13 @@
 
 """Test class for console_utils driver module."""
 
-import mock
 import os
 import random
 import string
 import subprocess
 import tempfile
 
+import mock
 from oslo.config import cfg
 
 from ironic.common import exception

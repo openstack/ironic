@@ -16,10 +16,11 @@
 
 """Tests for ImageCache class and helper functions."""
 
-import mock
 import os
 import tempfile
 import time
+
+import mock
 
 from ironic.common import exception
 from ironic.common import image_service

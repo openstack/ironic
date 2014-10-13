@@ -14,6 +14,7 @@
 #    under the License.
 
 import json
+
 import mock
 from testtools.matchers import HasLength
 

@@ -19,12 +19,12 @@
 
 """Test class for IPMITool driver module."""
 
-import mock
 import os
 import stat
 import tempfile
 import time
 
+import mock
 from oslo.config import cfg
 
 from ironic.common import boot_devices

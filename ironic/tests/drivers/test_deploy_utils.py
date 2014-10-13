@@ -14,11 +14,11 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import fixtures
-import mock
 import os
 import tempfile
 
+import fixtures
+import mock
 from oslo.config import cfg
 
 from ironic.common import disk_partitioner

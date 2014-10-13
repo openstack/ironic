@@ -23,8 +23,9 @@ Based on pecan.middleware.errordocument
 """
 
 import json
-import webob
 from xml import etree as et
+
+import webob
 
 from ironic.common.i18n import _
 from ironic.common.i18n import _LE

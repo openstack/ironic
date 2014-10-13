@@ -17,9 +17,10 @@
 
 """Test utils for Ironic Managers."""
 
-from ironic.common import driver_factory
 import pkg_resources
 from stevedore import dispatch
+
+from ironic.common import driver_factory
 
 
 def mock_the_extension_manager(driver="fake", namespace="ironic.drivers"):

@@ -17,11 +17,11 @@
 
 """Test class for PXE driver."""
 
-import fixtures
-import mock
 import os
 import tempfile
 
+import fixtures
+import mock
 from oslo.config import cfg
 from oslo.serialization import jsonutils as json
 
