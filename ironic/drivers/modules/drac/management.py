@@ -42,12 +42,15 @@ _BOOT_DEVICES_MAP = {
 }
 
 # IsNext constants
-PERSISTENT = '1'  # is the next boot config the system will use
 
-NOT_NEXT = '2'  # is not the next boot config the system will use
+PERSISTENT = '1'
+""" Is the next boot config the system will use. """
 
-ONE_TIME_BOOT = '3'  # is the next boot config the system will use,
-                     # one time boot only
+NOT_NEXT = '2'
+""" Is not the next boot config the system will use. """
+
+ONE_TIME_BOOT = '3'
+""" Is the next boot config the system will use, one time boot only. """
 
 
 def _get_next_boot_mode(node):
