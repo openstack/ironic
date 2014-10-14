@@ -376,6 +376,26 @@ class SNMPDriverSimple(SNMPDriverBase):
         self.client.set(self.oid, value)
 
 
+class SNMPDriverAten(SNMPDriverSimple):
+    """SNMP driver class for Aten PDU devices.
+
+    SNMP objects for Aten PDU:
+    1.3.6.1.4.1.21317.1.3.2.2.2.2 Outlet Power
+    Values: 1=Off, 2=On, 3=Pending, 4=Reset
+    """
+    oid_device = (21317, 1, 3, 2, 2, 2, 2)
+    value_power_on = 2
+    value_power_off = 1
+
+    def _snmp_oid(self):
+        """Return the OID of the power state object.
+
+        :returns: Power state object OID as a tuple of integers.
+        """
+        outlet = int(self.snmp_info['outlet'])
+        return self.oid_enterprise + self.oid_device + (outlet, 0,)
+
+
 class SNMPDriverAPC(SNMPDriverSimple):
     """SNMP driver class for APC PDU devices.
 
@@ -501,6 +521,7 @@ class SNMPDriverEatonPower(SNMPDriverBase):
 # A dictionary of supported drivers keyed by snmp_driver attribute
 DRIVER_CLASSES = {
         'apc': SNMPDriverAPC,
+        'aten': SNMPDriverAten,
         'cyberpower': SNMPDriverCyberPower,
         'eatonpower': SNMPDriverEatonPower,
         'teltronix': SNMPDriverTeltronix

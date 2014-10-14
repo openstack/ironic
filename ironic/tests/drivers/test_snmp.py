@@ -191,6 +191,13 @@ class SNMPValidateParametersTestCase(db_base.DbTestCase):
         info = snmp._parse_driver_info(node)
         self.assertEqual('apc', info.get('driver'))
 
+    def test__parse_driver_info_aten(self):
+        # Make sure the Aten driver type is parsed.
+        info = db_utils.get_test_snmp_info(snmp_driver='aten')
+        node = self._get_test_node(info)
+        info = snmp._parse_driver_info(node)
+        self.assertEqual('aten', info.get('driver'))
+
     def test__parse_driver_info_cyberpower(self):
         # Make sure the CyberPower driver type is parsed.
         info = db_utils.get_test_snmp_info(snmp_driver='cyberpower')
@@ -828,6 +835,32 @@ class SNMPDeviceDriverTestCase(db_base.DbTestCase):
 
     def test_apc_power_reset(self, mock_get_client):
         self._test_simple_device_power_reset('apc', mock_get_client)
+
+    def test_aten_snmp_objects(self, mock_get_client):
+        # Ensure the correct SNMP object OIDs and values are used by the
+        # Aten driver
+        self._update_driver_info(snmp_driver="aten",
+                                 snmp_outlet="3")
+        driver = snmp._get_driver(self.node)
+        oid = (1, 3, 6, 1, 4, 1, 21317, 1, 3, 2, 2, 2, 2, 3, 0)
+        self.assertEqual(oid, driver._snmp_oid())
+        self.assertEqual(2, driver.value_power_on)
+        self.assertEqual(1, driver.value_power_off)
+
+    def test_aten_power_state_on(self, mock_get_client):
+        self._test_simple_device_power_state_on('aten', mock_get_client)
+
+    def test_aten_power_state_off(self, mock_get_client):
+        self._test_simple_device_power_state_off('aten', mock_get_client)
+
+    def test_aten_power_on(self, mock_get_client):
+        self._test_simple_device_power_on('aten', mock_get_client)
+
+    def test_aten_power_off(self, mock_get_client):
+        self._test_simple_device_power_off('aten', mock_get_client)
+
+    def test_aten_power_reset(self, mock_get_client):
+        self._test_simple_device_power_reset('aten', mock_get_client)
 
     def test_cyberpower_snmp_objects(self, mock_get_client):
         # Ensure the correct SNMP object OIDs and values are used by the
