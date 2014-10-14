@@ -390,6 +390,7 @@ class AgentVendorInterface(base.VendorInterface):
 
         # Async call backs don't set error state on their own
         # TODO(jimrollenhagen) improve error messages here
+        msg = _('Failed checking if deploy is done.')
         try:
             if node.provision_state == states.DEPLOYWAIT:
                 msg = _('Node failed to get image for deploy.')

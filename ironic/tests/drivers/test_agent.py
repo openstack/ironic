@@ -335,6 +335,19 @@ class TestAgentVendor(db_base.DbTestCase):
             self.assertRaises(exception.MissingParameterValue,
                               self.passthru.heartbeat, task, **kwargs)
 
+    @mock.patch.object(agent, '_set_failed_state')
+    @mock.patch.object(agent.AgentVendorInterface, '_deploy_is_done')
+    def test_heartbeat_deploy_done_fails(self, done_mock, failed_mock):
+        kwargs = {
+            'agent_url': 'http://127.0.0.1:9999/bar'
+        }
+        done_mock.side_effect = Exception
+        with task_manager.acquire(
+                self.context, self.node['uuid'], shared=True) as task:
+            task.node.provision_state = states.DEPLOYING
+            self.passthru.heartbeat(task, **kwargs)
+            failed_mock.assert_called_once_with(task, mock.ANY)
+
     @mock.patch('ironic.drivers.modules.agent.AgentVendorInterface'
                 '.heartbeat', autospec=True)
     def test_vendor_passthru_heartbeat(self, mock_heartbeat):
