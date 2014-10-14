@@ -204,6 +204,8 @@ def build_instance_info_for_deploy(task):
 
     instance_info['image_url'] = swift_temp_url
     instance_info['image_checksum'] = image_info['checksum']
+    instance_info['image_disk_format'] = image_info['disk_format']
+    instance_info['image_container_format'] = image_info['container_format']
     return instance_info
 
 
@@ -450,6 +452,13 @@ class AgentVendorInterface(base.VendorInterface):
             'id': image_source,
             'urls': [node.instance_info['image_url']],
             'checksum': node.instance_info['image_checksum'],
+            # NOTE(comstud): Older versions of ironic do not set
+            # 'disk_format' nor 'container_format', so we use .get()
+            # to maintain backwards compatibility in case code was
+            # upgraded in the middle of a build request.
+            'disk_format': node.instance_info.get('image_disk_format'),
+            'container_format': node.instance_info.get(
+                'image_container_format')
         }
 
         # Tell the client to download and write the image with the given args
