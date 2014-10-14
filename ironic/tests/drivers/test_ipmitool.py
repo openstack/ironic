@@ -1385,8 +1385,8 @@ class IPMIToolDriverTestCase(db_base.DbTestCase):
                                      'Negative Hysteresis': '375.000',
                                      'Sensor ID': 'FAN MOD 1A RPM (0x30)',
                                      'Nominal Reading': '5325.000'
-                                  },
-                                  'FAN MOD 1B RPM (0x31)': {
+                                 },
+                                 'FAN MOD 1B RPM (0x31)': {
                                      'Status': 'ok',
                                      'Sensor Reading': '8550 (+/- 75) RPM',
                                      'Entity ID': '7.1 (System Board)',
@@ -1398,10 +1398,10 @@ class IPMIToolDriverTestCase(db_base.DbTestCase):
                                      'Negative Hysteresis': '375.000',
                                      'Sensor ID': 'FAN MOD 1B RPM (0x31)',
                                      'Nominal Reading': '7800.000'
-                                  }
-                               },
-                               'Temperature': {
-                                  'Temp (0x1)': {
+                                 }
+                             },
+                             'Temperature': {
+                                 'Temp (0x1)': {
                                      'Status': 'ok',
                                      'Sensor Reading': '-58 (+/- 1) degrees C',
                                      'Entity ID': '3.1 (Processor)',
@@ -1414,8 +1414,8 @@ class IPMIToolDriverTestCase(db_base.DbTestCase):
                                      'Upper critical': '90.000',
                                      'Sensor ID': 'Temp (0x1)',
                                      'Nominal Reading': '50.000'
-                                  },
-                                  'Temp (0x2)': {
+                                 },
+                                 'Temp (0x2)': {
                                      'Status': 'ok',
                                      'Sensor Reading': '50 (+/- 1) degrees C',
                                      'Entity ID': '3.2 (Processor)',
@@ -1428,9 +1428,9 @@ class IPMIToolDriverTestCase(db_base.DbTestCase):
                                      'Upper critical': '90.000',
                                      'Sensor ID': 'Temp (0x2)',
                                      'Nominal Reading': '50.000'
-                                  }
-                               }
-                            }
+                                 }
+                             }
+                          }
         ret = ipmi._parse_ipmi_sensors_data(self.node, fake_sensors_data)
 
         self.assertEqual(expected_return, ret)
@@ -1489,9 +1489,9 @@ class IPMIToolDriverTestCase(db_base.DbTestCase):
                                      'Sensor ID': 'FAN MOD 1A RPM (0x30)',
                                      'Nominal Reading': '5325.000'
                                   }
-                               },
-                               'Temperature': {
-                                  'Temp (0x2)': {
+                             },
+                             'Temperature': {
+                                 'Temp (0x2)': {
                                      'Status': 'ok',
                                      'Sensor Reading': '50 (+/- 1) degrees C',
                                      'Entity ID': '3.2 (Processor)',
@@ -1504,9 +1504,9 @@ class IPMIToolDriverTestCase(db_base.DbTestCase):
                                      'Upper critical': '90.000',
                                      'Sensor ID': 'Temp (0x2)',
                                      'Nominal Reading': '50.000'
-                                  }
-                               }
-                            }
+                                 }
+                             }
+                          }
         ret = ipmi._parse_ipmi_sensors_data(self.node, fake_sensors_data)
 
         self.assertEqual(expected_return, ret)
