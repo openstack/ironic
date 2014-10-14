@@ -33,9 +33,11 @@ class MockResponse(object):
 
 class MockNode(object):
     def __init__(self):
+        self.uuid = 'uuid'
         self.driver_info = {
             'agent_url': "http://127.0.0.1:9999"
         }
+        self.instance_info = {}
 
 
 class TestAgentClient(base.TestCase):
@@ -120,8 +122,25 @@ class TestAgentClient(base.TestCase):
     def test_prepare_image(self):
         self.client._command = mock.Mock()
         image_info = {'image_id': 'image'}
+        params = {'image_info': image_info}
+
+        self.client.prepare_image(self.node,
+                                  image_info,
+                                  wait=False)
+        self.client._command.assert_called_once_with(node=self.node,
+                                         method='standby.prepare_image',
+                                         params=params,
+                                         wait=False)
+
+    @mock.patch('uuid.uuid4', mock.MagicMock(return_value='uuid'))
+    def test_prepare_image_with_configdrive(self):
+        self.client._command = mock.Mock()
+        configdrive_url = 'http://swift/configdrive'
+        self.node.instance_info['configdrive'] = configdrive_url
+        image_info = {'image_id': 'image'}
         params = {
             'image_info': image_info,
+            'configdrive': configdrive_url,
         }
 
         self.client.prepare_image(self.node,
