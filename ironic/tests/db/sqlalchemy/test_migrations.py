@@ -321,6 +321,13 @@ class MigrationCheckersMixin(object):
             (sqlalchemy.exc.IntegrityError, db_exc.DBDuplicateEntry),
             nodes.insert().execute, data)
 
+    def _check_242cc6a923b3(self, engine, data):
+        nodes = db_utils.get_table(engine, 'nodes')
+        col_names = [column.name for column in nodes.c]
+        self.assertIn('maintenance_reason', col_names)
+        self.assertIsInstance(nodes.c.maintenance_reason.type,
+                              sqlalchemy.types.String)
+
     def test_upgrade_and_version(self):
         with patch_with_engine(self.engine):
             self.migration_api.upgrade('head')
