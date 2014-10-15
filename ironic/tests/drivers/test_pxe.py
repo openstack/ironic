@@ -185,7 +185,7 @@ class PXEPrivateMethodsTestCase(db_base.DbTestCase):
             'deployment_key': '0123456789ABCDEFGHIJKLMNOPQRSTUV',
             'ari_path': ramdisk,
             'iscsi_target_iqn': u'iqn-1be26c0b-03f2-4d2e-ae87-c02d7f33'
-                                    u'c123',
+                                u'c123',
             'deployment_ari_path': deploy_ramdisk,
             'pxe_append_params': 'test_param',
             'aki_path': kernel,

@@ -75,15 +75,18 @@ REQUIRED_PROPERTIES = {
     'snmp_outlet': _("PDU power outlet index (1-based).  Required."),
 }
 OPTIONAL_PROPERTIES = {
-    'snmp_version': _("SNMP protocol version: %(v1)s, %(v2c)s, %(v3)s  "
-                      "(optional, default %(v1)s)")
-                    % {"v1": SNMP_V1, "v2c": SNMP_V2C, "v3": SNMP_V3},
-    'snmp_port': _("SNMP port, default %(port)d") % {"port": SNMP_PORT},
-    'snmp_community': _("SNMP community.  Required for versions %(v1)s, "
-                        "%(v2c)s")
-                      % {"v1": SNMP_V1, "v2c": SNMP_V2C},
-    'snmp_security': _("SNMP security name.  Required for version %(v3)s")
-                      % {"v3": SNMP_V3},
+    'snmp_version':
+        _("SNMP protocol version: %(v1)s, %(v2c)s, %(v3)s  "
+          "(optional, default %(v1)s)")
+        % {"v1": SNMP_V1, "v2c": SNMP_V2C, "v3": SNMP_V3},
+    'snmp_port':
+        _("SNMP port, default %(port)d") % {"port": SNMP_PORT},
+    'snmp_community':
+        _("SNMP community.  Required for versions %(v1)s, %(v2c)s")
+        % {"v1": SNMP_V1, "v2c": SNMP_V2C},
+    'snmp_security':
+        _("SNMP security name.  Required for version %(v3)s")
+        % {"v3": SNMP_V3},
 }
 COMMON_PROPERTIES = REQUIRED_PROPERTIES.copy()
 COMMON_PROPERTIES.update(OPTIONAL_PROPERTIES)
