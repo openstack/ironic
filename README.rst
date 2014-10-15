@@ -1,14 +1,13 @@
 Ironic
 ======
 
-Ironic is an Incubated OpenStack project which aims to provision
-bare metal machines instead of virtual machines, forked from the
-Nova Baremetal driver. It is best thought of as a bare metal
-hypervisor **API** and a set of plugins which interact with
-the bare metal hypervisors. By default, it will use PXE and IPMI
-in concert to provision and turn on/off machines, but Ironic
-also supports vendor-specific plugins which may implement additional
-functionality.
+Ironic is an integrated OpenStack project which aims to provision bare
+metal machines instead of virtual machines, forked from the Nova Baremetal
+driver. It is best thought of as a bare metal hypervisor **API** and a set
+of plugins which interact with the bare metal hypervisors. By default, it
+will use PXE and IPMI in concert to provision and turn on/off machines,
+but Ironic also supports vendor-specific plugins which may implement
+additional functionality.
 
 -----------------
 Project Resources

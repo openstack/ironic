@@ -4,6 +4,10 @@
 Bare Metal Service Installation Guide
 =====================================
 
+This document pertains to the Juno (2014.2) release of OpenStack.  Users of
+earlier releases may encounter some differences in configuration of services.
+
+
 Service Overview
 ================
 
