@@ -1588,6 +1588,7 @@ class ManagerDoSyncPowerStateTestCase(tests_db_base.DbTestCase):
         self.assertEqual(1,
                          self.service.power_state_sync_count[self.node.uuid])
         self.assertTrue(self.node.maintenance)
+        self.assertIsNotNone(self.node.maintenance_reason)
 
     def test_max_retries_exceeded2(self, node_power_action):
         self.config(force_power_state_during_sync=True, group='conductor')

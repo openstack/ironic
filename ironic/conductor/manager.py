@@ -682,6 +682,7 @@ class ConductorManager(periodic_task.PeriodicTasks):
         node.power_state = actual_power_state
         node.last_error = msg
         node.maintenance = True
+        node.maintenance_reason = msg
         node.save()
         LOG.error(msg)
 
