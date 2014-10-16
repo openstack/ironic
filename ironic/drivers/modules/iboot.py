@@ -52,8 +52,8 @@ def _parse_driver_info(node):
     missing_info = [key for key in REQUIRED_PROPERTIES if not info.get(key)]
     if missing_info:
         raise exception.MissingParameterValue(_(
-              "The following iBoot credentials were not supplied to iBoot PDU "
-              "driver: %s.") % missing_info)
+              "Missing the following iBoot credentials in node's"
+              " driver_info: %s.") % missing_info)
 
     address = info.get('iboot_address', None)
     username = info.get('iboot_username', None)

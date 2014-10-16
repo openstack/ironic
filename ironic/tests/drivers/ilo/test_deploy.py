@@ -164,7 +164,8 @@ class IloDeployPrivateMethodsTestCase(db_base.DbTestCase):
         self.node.driver_info['ilo_deploy_iso'] = 'deploy-iso-uuid'
         driver_info_expected = {'ilo_deploy_iso': 'deploy-iso-uuid'}
         driver_info_actual = ilo_deploy._parse_driver_info(self.node)
-        error_msg = 'Error validating iLO virtual media deploy'
+        error_msg = ("Error validating iLO virtual media deploy. Some"
+                     " parameters were missing in node's driver_info")
         check_params_mock.assert_called_once_with(driver_info_expected,
                                                   error_msg)
         self.assertEqual(driver_info_expected, driver_info_actual)

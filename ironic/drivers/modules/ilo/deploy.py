@@ -205,7 +205,8 @@ def _parse_driver_info(node):
     d_info = {}
     d_info['ilo_deploy_iso'] = info.get('ilo_deploy_iso')
 
-    error_msg = _("Error validating iLO virtual media deploy")
+    error_msg = _("Error validating iLO virtual media deploy. Some parameters"
+                  " were missing in node's driver_info")
     deploy_utils.check_for_missing_params(d_info, error_msg)
 
     return d_info
@@ -556,7 +557,7 @@ class IloConsoleInterface(ipmitool.IPMIShellinaboxConsole):
         driver_info = ilo_common.parse_driver_info(node)
         if 'console_port' not in driver_info:
             raise exception.MissingParameterValue(_(
-                "Console port not supplied to iLO driver."))
+                "Missing 'console_port' parameter in node's driver_info."))
 
         _update_ipmi_properties(task)
         super(IloConsoleInterface, self).validate(task)
