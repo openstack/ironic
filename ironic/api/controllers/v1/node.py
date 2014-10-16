@@ -46,6 +46,8 @@ class NodePatchType(types.JsonPatchType):
     @staticmethod
     def internal_attrs():
         defaults = types.JsonPatchType.internal_attrs()
+        # TODO(lucasagomes): Include maintenance once the endpoint
+        # v1/nodes/<uuid>/maintenance do more things than updating the DB.
         return defaults + ['/console_enabled', '/last_error',
                            '/power_state', '/provision_state', '/reservation',
                            '/target_power_state', '/target_provision_state',
@@ -566,6 +568,41 @@ class NodeVendorPassthruController(rest.RestController):
                 pecan.request.context, node_uuid, method, data, topic)
 
 
+class NodeMaintenanceController(rest.RestController):
+
+    def _set_maintenance(self, node_uuid, maintenance_mode, reason=None):
+        rpc_node = objects.Node.get_by_uuid(pecan.request.context, node_uuid)
+        rpc_node.maintenance = maintenance_mode
+        rpc_node.maintenance_reason = reason
+
+        try:
+            topic = pecan.request.rpcapi.get_topic_for(rpc_node)
+        except exception.NoValidHost as e:
+            e.code = 400
+            raise e
+        pecan.request.rpcapi.update_node(pecan.request.context,
+                                         rpc_node, topic=topic)
+
+    @wsme_pecan.wsexpose(None, types.uuid, wtypes.text, status_code=202)
+    def put(self, node_uuid, reason=None):
+        """Put the node in maintenance mode.
+
+        :param node_uuid: UUID of a node.
+        :param reason: Optional, the reason why it's in maintenance.
+
+        """
+        self._set_maintenance(node_uuid, True, reason=reason)
+
+    @wsme_pecan.wsexpose(None, types.uuid, status_code=202)
+    def delete(self, node_uuid):
+        """Remove the node from maintenance mode.
+
+        :param node_uuid: UUID of a node.
+
+        """
+        self._set_maintenance(node_uuid, False)
+
+
 class NodesController(rest.RestController):
     """REST controller for Nodes."""
 
@@ -580,6 +617,9 @@ class NodesController(rest.RestController):
 
     management = NodeManagementController()
     "Expose management as a sub-element of nodes"
+
+    maintenance = NodeMaintenanceController()
+    "Expose maintenance as a sub-element of nodes"
 
     # Set the flag to indicate that the requests to this resource are
     # coming from a top-level resource
