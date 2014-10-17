@@ -48,6 +48,7 @@ import threading
 import eventlet
 from eventlet import greenpool
 from oslo.config import cfg
+from oslo.db import exception as db_exception
 from oslo import messaging
 from oslo.utils import excutils
 
@@ -666,7 +667,11 @@ class ConductorManager(periodic_task.PeriodicTasks):
 
     def _conductor_service_record_keepalive(self):
         while not self._keepalive_evt.is_set():
-            self.dbapi.touch_conductor(self.host)
+            try:
+                self.dbapi.touch_conductor(self.host)
+            except db_exception.DBConnectionError:
+                LOG.warning(_LW('Conductor could not connect to database '
+                                'while heartbeating.'))
             self._keepalive_evt.wait(CONF.conductor.heartbeat_interval)
 
     def _handle_sync_power_state_max_retries_exceeded(self, task,
