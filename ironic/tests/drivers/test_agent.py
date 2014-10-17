@@ -122,10 +122,10 @@ class TestAgentDeploy(db_base.DbTestCase):
 class TestAgentVendor(db_base.DbTestCase):
     def setUp(self):
         super(TestAgentVendor, self).setUp()
-        mgr_utils.mock_the_extension_manager(driver="fake_pxe")
+        mgr_utils.mock_the_extension_manager(driver="fake_agent")
         self.passthru = agent.AgentVendorInterface()
         n = {
-              'driver': 'fake_pxe',
+              'driver': 'fake_agent',
               'instance_info': INSTANCE_INFO,
               'driver_info': DRIVER_INFO
         }
