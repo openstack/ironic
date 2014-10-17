@@ -427,9 +427,10 @@ class VendorPassthru(base.VendorInterface):
         """Dispatch vendor specific method calls."""
         method = kwargs['method']
         if method in VENDOR_PASSTHRU_METHODS:
-            return getattr(self, "_" + method)(task, **kwargs)
+            return getattr(self, method)(task, **kwargs)
 
-    def _set_node_vlan_id(self, task, **kwargs):
+    @base.passthru()
+    def set_node_vlan_id(self, task, **kwargs):
         """Sets a untagged vlan id for NIC 0 of node.
 
         @kwargs vlan_id: id of untagged vlan for NIC 0 of node
@@ -457,7 +458,8 @@ class VendorPassthru(base.VendorInterface):
         node.properties = properties
         node.save()
 
-    def _attach_volume(self, task, **kwargs):
+    @base.passthru()
+    def attach_volume(self, task, **kwargs):
         """Attach a volume to a node.
 
         Attach volume from SeaMicro storage pools for ironic to node.

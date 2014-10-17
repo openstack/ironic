@@ -451,6 +451,7 @@ class VendorPassthru(base.VendorInterface):
                 "Unsupported method (%s) passed to PXE driver.")
                 % method)
 
+    @base.passthru('pass_deploy_info')
     @task_manager.require_exclusive_lock
     def _continue_deploy(self, task, **kwargs):
         """Continues the deployment of baremetal node over iSCSI.

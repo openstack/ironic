@@ -108,7 +108,8 @@ class FakeVendorA(base.VendorInterface):
             return
         _raise_unsupported_error(method)
 
-    def _private_method(self, task, bar):
+    @base.passthru()
+    def first_method(self, task, bar):
         return True if bar == 'baz' else False
 
     def vendor_passthru(self, task, **kwargs):
@@ -136,7 +137,8 @@ class FakeVendorB(base.VendorInterface):
             return
         _raise_unsupported_error(method)
 
-    def _private_method(self, task, bar):
+    @base.passthru()
+    def second_method(self, task, bar):
         return True if bar == 'kazoo' else False
 
     def vendor_passthru(self, task, **kwargs):
