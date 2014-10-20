@@ -107,8 +107,8 @@ def _parse_driver_info(node):
     missing_info = [key for key in REQUIRED_PROPERTIES if not info.get(key)]
     if missing_info:
         raise exception.MissingParameterValue(_(
-            "SeaMicro driver requires the following to be set: %s.")
-            % missing_info)
+            "SeaMicro driver requires the following parameters to be set in"
+            " node's driver_info: %s.") % missing_info)
 
     api_endpoint = info.get('seamicro_api_endpoint')
     username = info.get('seamicro_username')

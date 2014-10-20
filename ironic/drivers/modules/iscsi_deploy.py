@@ -116,7 +116,8 @@ def parse_instance_info(node):
     i_info['image_source'] = info.get('image_source')
     i_info['root_gb'] = info.get('root_gb')
 
-    error_msg = _("Cannot validate iSCSI deploy")
+    error_msg = _("Cannot validate iSCSI deploy. Some parameters were missing"
+                  " in node's instance_info")
     deploy_utils.check_for_missing_params(i_info, error_msg)
 
     # Internal use only

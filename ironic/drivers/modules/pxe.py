@@ -118,7 +118,8 @@ def _parse_driver_info(node):
     d_info['deploy_kernel'] = info.get('pxe_deploy_kernel')
     d_info['deploy_ramdisk'] = info.get('pxe_deploy_ramdisk')
 
-    error_msg = _("Cannot validate PXE bootloader")
+    error_msg = _("Cannot validate PXE bootloader. Some parameters were"
+                  " missing in node's driver_info")
     deploy_utils.check_for_missing_params(d_info, error_msg, 'pxe_')
 
     return d_info

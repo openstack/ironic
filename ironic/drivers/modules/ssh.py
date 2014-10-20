@@ -285,8 +285,8 @@ def _parse_driver_info(node):
     missing_info = [key for key in REQUIRED_PROPERTIES if not info.get(key)]
     if missing_info:
         raise exception.MissingParameterValue(_(
-            "SSHPowerDriver requires the following to be set: %s.")
-            % missing_info)
+            "SSHPowerDriver requires the following parameters to be set in "
+            "node's driver_info: %s.") % missing_info)
 
     address = info.get('ssh_address')
     username = info.get('ssh_username')

@@ -402,8 +402,7 @@ def check_for_missing_params(info_dict, error_msg, param_prefix=''):
             missing_info.append(param_prefix + label)
 
     if missing_info:
-        exc_msg = _("%(error_msg)s. The following parameters were "
-                    "not passed to ironic: %(missing_info)s")
+        exc_msg = _("%(error_msg)s. Missing are: %(missing_info)s")
         raise exception.MissingParameterValue(exc_msg %
                     {'error_msg': error_msg, 'missing_info': missing_info})
 

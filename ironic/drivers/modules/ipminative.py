@@ -90,9 +90,8 @@ def _parse_driver_info(node):
     missing_info = [key for key in REQUIRED_PROPERTIES if not info.get(key)]
     if missing_info:
         raise exception.MissingParameterValue(_(
-            "The following IPMI credentials are not supplied"
-            " to IPMI driver: %s."
-             ) % missing_info)
+            "Missing the following IPMI credentials in node's"
+            " driver_info: %s.") % missing_info)
 
     bmc_info = {}
     bmc_info['address'] = info.get('ipmi_address')
@@ -493,7 +492,8 @@ class NativeIPMIShellinaboxConsole(base.ConsoleInterface):
         driver_info = _parse_driver_info(task.node)
         if not driver_info['port']:
             raise exception.MissingParameterValue(_(
-                "IPMI terminal port not supplied to the IPMI driver."))
+                "Missing 'ipmi_terminal_port' parameter in node's"
+                " driver_info."))
 
     def start_console(self, task):
         """Start a remote console for the node.
