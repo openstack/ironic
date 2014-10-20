@@ -21,6 +21,7 @@
 import eventlet
 import mock
 from oslo.config import cfg
+from oslo.db import exception as db_exception
 from oslo import messaging
 
 from ironic.common import boot_devices
@@ -229,6 +230,19 @@ class KeepAliveTestCase(_ServiceSetUpMixin, tests_db_base.DbTestCase):
                 mock_is_set.side_effect = [False, True]
                 self.service._conductor_service_record_keepalive()
             mock_touch.assert_called_once_with(self.hostname)
+
+    def test__conductor_service_record_keepalive_failed_db_conn(self):
+        self._start_service()
+        # avoid wasting time at the event.wait()
+        CONF.set_override('heartbeat_interval', 0, 'conductor')
+        with mock.patch.object(self.dbapi, 'touch_conductor') as mock_touch:
+            mock_touch.side_effect = [None, db_exception.DBConnectionError(),
+                                      None]
+            with mock.patch.object(self.service._keepalive_evt,
+                                   'is_set') as mock_is_set:
+                mock_is_set.side_effect = [False, False, False, True]
+                self.service._conductor_service_record_keepalive()
+            self.assertEqual(3, mock_touch.call_count)
 
 
 @_mock_record_keepalive
