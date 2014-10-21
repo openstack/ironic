@@ -15,7 +15,9 @@
 #    under the License.
 
 import copy
+import itertools
 import logging
+import random
 
 from oslo.config import cfg
 from oslo.serialization import jsonutils
@@ -28,6 +30,9 @@ from ironic.common import exception
 
 CONF = cfg.CONF
 LOG = logging.getLogger(__name__)
+
+_GLANCE_API_SERVER = None
+""" iterator that cycles (indefinitely) over glance API servers. """
 
 
 def generate_glance_url():
@@ -105,24 +110,54 @@ def _remove_read_only(image_meta):
     return output
 
 
+def _get_api_server_iterator():
+    """Return iterator over shuffled API servers.
+
+    Shuffle a list of CONF.glance.glance_api_servers and return an iterator
+    that will cycle through the list, looping around to the beginning if
+    necessary.
+
+    If CONF.glance.glance_api_servers isn't set, we fall back to using this
+    as the server: CONF.glance.glance_host:CONF.glance.glance_port.
+
+    :returns: iterator that cycles (indefinitely) over shuffled glance API
+              servers. The iterator returns tuples of (host, port, use_ssl).
+    """
+    api_servers = []
+
+    configured_servers = (CONF.glance.glance_api_servers or
+                          ['%s:%s' % (CONF.glance.glance_host,
+                                      CONF.glance.glance_port)])
+    for api_server in configured_servers:
+        if '//' not in api_server:
+            api_server = '%s://%s' % (CONF.glance.glance_protocol, api_server)
+        url = urlparse.urlparse(api_server)
+        port = url.port or 80
+        host = url.netloc.split(':', 1)[0]
+        use_ssl = (url.scheme == 'https')
+        api_servers.append((host, port, use_ssl))
+    random.shuffle(api_servers)
+    return itertools.cycle(api_servers)
+
+
 def _get_api_server():
-    """Get the Glance API server information."""
-    api_server = (CONF.glance.glance_api_servers or
-                  CONF.glance.glance_host + ':' + str(CONF.glance.glance_port))
-    if '//' not in api_server:
-        api_server = CONF.glance.glance_protocol + '://' + api_server
-    url = urlparse.urlparse(api_server)
-    port = url.port or 80
-    host = url.netloc.split(':', 1)[0]
-    use_ssl = (url.scheme == 'https')
-    return host, port, use_ssl
+    """Return a Glance API server.
+
+    :returns: for an API server, the tuple (host-or-IP, port, use_ssl), where
+        use_ssl is True to use the 'https' scheme, and False to use 'http'.
+    """
+    global _GLANCE_API_SERVER
+
+    if not _GLANCE_API_SERVER:
+        _GLANCE_API_SERVER = _get_api_server_iterator()
+    return _GLANCE_API_SERVER.next()
 
 
 def parse_image_ref(image_href):
     """Parse an image href into composite parts.
 
     :param image_href: href of an image
-    :returns: a tuple of the form (image_id, host, port)
+    :returns: a tuple of the form (image_id, host, port, use_ssl)
 
     :raises ValueError
     """

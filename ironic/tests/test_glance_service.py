@@ -752,3 +752,39 @@ class TestServiceUtils(base.TestCase):
         generated_url = service_utils.generate_image_url(image_href)
         self.assertEqual('https://123.123.123.123:1234/images/image_uuid',
                          generated_url)
+
+
+class TestGlanceAPIServers(base.TestCase):
+
+    def setUp(self):
+        super(TestGlanceAPIServers, self).setUp()
+        service_utils._GLANCE_API_SERVER = None
+
+    def test__get_api_servers_default(self):
+        host, port, use_ssl = service_utils._get_api_server()
+        self.assertEqual(CONF.glance.glance_host, host)
+        self.assertEqual(CONF.glance.glance_port, port)
+        self.assertEqual(CONF.glance.glance_protocol == 'https', use_ssl)
+
+    def test__get_api_servers_one(self):
+        CONF.set_override('glance_api_servers', ['https://10.0.0.1:9293'],
+                          'glance')
+        s1 = service_utils._get_api_server()
+        s2 = service_utils._get_api_server()
+        self.assertEqual(('10.0.0.1', 9293, True), s1)
+
+        # Only one server, should always get the same one
+        self.assertEqual(s1, s2)
+
+    def test__get_api_servers_two(self):
+        CONF.set_override('glance_api_servers',
+                          ['http://10.0.0.1:9293', 'http://10.0.0.2:9294'],
+                          'glance')
+        s1 = service_utils._get_api_server()
+        s2 = service_utils._get_api_server()
+        s3 = service_utils._get_api_server()
+
+        self.assertNotEqual(s1, s2)
+
+        # 2 servers, so cycles to the first again
+        self.assertEqual(s1, s3)
