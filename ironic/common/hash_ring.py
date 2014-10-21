@@ -15,7 +15,6 @@
 
 import bisect
 import hashlib
-import struct
 import threading
 
 from oslo.config import cfg
@@ -91,16 +90,23 @@ class HashRing(object):
             key_hash = hashlib.md5(key)
             for p in range(2 ** CONF.hash_partition_exponent):
                 key_hash.update(key)
-                hashed_key = struct.unpack_from('>I', key_hash.digest())[0]
+                hashed_key = self._hash2int(key_hash)
                 self._host_hashes[hashed_key] = host
         # Gather the (possibly colliding) resulting hashes into a bisectable
         # list.
         self._partitions = sorted(self._host_hashes.keys())
 
+    def _hash2int(self, key_hash):
+        """Convert the given hash's digest to a numerical value for the ring.
+
+        :returns: An integer equivalent value of the digest.
+        """
+        return int(key_hash.hexdigest(), 16)
+
     def _get_partition(self, data):
         try:
-            hashed_key = struct.unpack_from(
-                '>I', hashlib.md5(data).digest())[0]
+            key_hash = hashlib.md5(data)
+            hashed_key = self._hash2int(key_hash)
             position = bisect.bisect(self._partitions, hashed_key)
             return position if position < len(self._partitions) else 0
         except TypeError:
