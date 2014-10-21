@@ -20,7 +20,7 @@ import tempfile
 import mock
 from oslo.config import cfg
 
-from ironic.common import exception
+from ironic.common import boot_devices
 from ironic.common import images
 from ironic.common import states
 from ironic.common import swift
@@ -180,7 +180,7 @@ class IloDeployPrivateMethodsTestCase(db_base.DbTestCase):
         self.assertEqual(expected_info, actual_info)
 
     @mock.patch.object(manager_utils, 'node_power_action')
-    @mock.patch.object(ilo_common, 'set_boot_device')
+    @mock.patch.object(manager_utils, 'node_set_boot_device')
     @mock.patch.object(ilo_common, 'setup_vmedia_for_boot')
     def test__reboot_into(self, setup_vmedia_mock, set_boot_device_mock,
                           node_power_action_mock):
@@ -189,7 +189,8 @@ class IloDeployPrivateMethodsTestCase(db_base.DbTestCase):
             opts = {'a': 'b'}
             ilo_deploy._reboot_into(task, 'iso', opts)
             setup_vmedia_mock.assert_called_once_with(task, 'iso', opts)
-            set_boot_device_mock.assert_called_once_with(task.node, 'CDROM')
+            set_boot_device_mock.assert_called_once_with(task,
+                                                         boot_devices.CDROM)
             node_power_action_mock.assert_called_once_with(task, states.REBOOT)
 
 
@@ -222,12 +223,11 @@ class IloVirtualMediaIscsiDeployTestCase(db_base.DbTestCase):
     @mock.patch.object(ilo_deploy, '_get_single_nic_with_vif_port_id')
     @mock.patch.object(iscsi_deploy, 'build_deploy_ramdisk_options')
     @mock.patch.object(manager_utils, 'node_power_action')
-    @mock.patch.object(ilo_common, 'set_boot_device')
     @mock.patch.object(iscsi_deploy, 'check_image_size')
     @mock.patch.object(iscsi_deploy, 'cache_instance_image')
     def test_deploy(self, cache_instance_image_mock, check_image_size_mock,
-                    set_boot_device_mock, node_power_action_mock,
-                    build_opts_mock, get_nic_mock, reboot_into_mock):
+                    node_power_action_mock, build_opts_mock, get_nic_mock,
+                    reboot_into_mock):
         deploy_opts = {'a': 'b'}
         build_opts_mock.return_value = deploy_opts
         get_nic_mock.return_value = '12:34:56:78:90:ab'
@@ -328,7 +328,7 @@ class VendorPassthruTestCase(db_base.DbTestCase):
                 driver='iscsi_ilo', driver_info=INFO_DICT)
 
     @mock.patch.object(deploy_utils, 'notify_deploy_complete')
-    @mock.patch.object(ilo_common, 'set_boot_device')
+    @mock.patch.object(manager_utils, 'node_set_boot_device')
     @mock.patch.object(ilo_common, 'setup_vmedia_for_boot')
     @mock.patch.object(ilo_deploy, '_get_boot_iso')
     @mock.patch.object(iscsi_deploy, 'continue_deploy')
@@ -351,7 +351,8 @@ class VendorPassthruTestCase(db_base.DbTestCase):
             continue_deploy_mock.assert_called_once_with(task, **kwargs)
             get_boot_iso_mock.assert_called_once_with(task, 'root-uuid')
             setup_vmedia_mock.assert_called_once_with(task, 'boot-iso')
-            set_boot_device_mock.assert_called_once_with(task.node, 'CDROM')
+            set_boot_device_mock.assert_called_once_with(task,
+                                                         boot_devices.CDROM)
             self.assertEqual('boot-iso',
                              task.node.instance_info['ilo_boot_iso'])
         notify_deploy_complete_mock.assert_called_once_with('123456')
@@ -430,39 +431,14 @@ class IloPXEDeployTestCase(db_base.DbTestCase):
             pxe_prepare_mock.assert_called_once_with(task)
 
     @mock.patch.object(pxe.PXEDeploy, 'deploy')
-    @mock.patch.object(ilo_common, 'set_boot_device')
+    @mock.patch.object(manager_utils, 'node_set_boot_device')
     def test_deploy_boot_mode_exists(self, set_persistent_mock,
                                      pxe_deploy_mock):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
             task.driver.deploy.deploy(task)
-            set_persistent_mock.assert_called_with(task.node, 'NETWORK', False)
+            set_persistent_mock.assert_called_with(task, boot_devices.PXE)
             pxe_deploy_mock.assert_called_once_with(task)
-
-
-class IloManagementTestCase(db_base.DbTestCase):
-
-    def setUp(self):
-        super(IloManagementTestCase, self).setUp()
-        mgr_utils.mock_the_extension_manager(driver="pxe_ilo")
-        self.node = obj_utils.create_test_node(self.context,
-                driver='pxe_ilo', driver_info=INFO_DICT)
-
-    @mock.patch.object(ilo_common, 'set_boot_device')
-    def test_set_boot_device_ok(self, set_persistent_mock):
-        with task_manager.acquire(self.context, self.node.uuid,
-                                  shared=False) as task:
-            task.driver.management.set_boot_device(task, 'pxe', True)
-            set_persistent_mock.assert_called_once_with(task.node,
-                                                           'NETWORK', True)
-
-    @mock.patch.object(ilo_common, 'set_boot_device')
-    def test_set_boot_device_invalid_device(self, set_persistent_mock):
-        with task_manager.acquire(self.context, self.node.uuid,
-                                  shared=False) as task:
-            self.assertRaises(exception.InvalidParameterValue,
-                    task.driver.management.set_boot_device,
-                    task, 'fake-device')
 
 
 class IloPXEVendorPassthruTestCase(db_base.DbTestCase):
@@ -489,13 +465,14 @@ class IloPXEVendorPassthruTestCase(db_base.DbTestCase):
             self.assertEqual({}, driver_routes)
 
     @mock.patch.object(pxe.VendorPassthru, '_continue_deploy')
-    @mock.patch.object(ilo_common, 'set_boot_device')
-    def test_vendorpassthru(self, set_persistent_mock,
+    @mock.patch.object(manager_utils, 'node_set_boot_device')
+    def test_vendorpassthru(self, set_boot_device_mock,
                             pxe_vendorpassthru_mock):
         kwargs = {'address': '123456'}
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
             task.node.provision_state = states.DEPLOYWAIT
             task.driver.vendor._continue_deploy(task, **kwargs)
-            set_persistent_mock.assert_called_with(task.node, 'NETWORK', True)
+            set_boot_device_mock.assert_called_with(task, boot_devices.PXE,
+                                                    True)
             pxe_vendorpassthru_mock.assert_called_once_with(task, **kwargs)

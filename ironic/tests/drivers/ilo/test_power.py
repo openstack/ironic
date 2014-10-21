@@ -19,9 +19,11 @@ import mock
 from oslo.config import cfg
 from oslo.utils import importutils
 
+from ironic.common import boot_devices
 from ironic.common import exception
 from ironic.common import states
 from ironic.conductor import task_manager
+from ironic.conductor import utils as manager_utils
 from ironic.drivers.modules.ilo import common as ilo_common
 from ironic.drivers.modules.ilo import deploy as ilo_deploy
 from ironic.drivers.modules.ilo import power as ilo_power
@@ -142,7 +144,7 @@ class IloPowerInternalMethodsTestCase(db_base.DbTestCase):
         ilo_mock_object.get_host_power_status.assert_called_with()
         ilo_mock_object.set_host_power.assert_called_once_with('ON')
 
-    @mock.patch.object(ilo_common, 'set_boot_device')
+    @mock.patch.object(manager_utils, 'node_set_boot_device')
     @mock.patch.object(ilo_common, 'setup_vmedia_for_boot')
     def test__attach_boot_iso(self, setup_vmedia_mock, set_boot_device_mock,
                               power_ilo_client_mock, common_ilo_client_mock):
@@ -151,7 +153,8 @@ class IloPowerInternalMethodsTestCase(db_base.DbTestCase):
             task.node.instance_info['ilo_boot_iso'] = 'boot-iso'
             ilo_power._attach_boot_iso(task)
             setup_vmedia_mock.assert_called_once_with(task, 'boot-iso')
-            set_boot_device_mock.assert_called_once_with(task.node, 'CDROM')
+            set_boot_device_mock.assert_called_once_with(task,
+                                 boot_devices.CDROM)
 
 
 class IloPowerTestCase(db_base.DbTestCase):

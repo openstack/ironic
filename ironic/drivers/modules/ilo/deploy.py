@@ -19,6 +19,7 @@ import tempfile
 
 from oslo.config import cfg
 
+from ironic.common import boot_devices
 from ironic.common import exception
 from ironic.common.i18n import _
 from ironic.common.i18n import _LE
@@ -52,29 +53,6 @@ CONF.import_opt('pxe_append_params', 'ironic.drivers.modules.iscsi_deploy',
                 group='pxe')
 CONF.import_opt('swift_ilo_container', 'ironic.drivers.modules.ilo.common',
                 group='ilo')
-
-BOOT_DEVICE_MAPPING_TO_ILO = {'pxe': 'NETWORK', 'disk': 'HDD',
-                              'cdrom': 'CDROM', 'bios': 'BIOS', 'safe': 'SAFE'}
-
-
-def _update_ipmi_properties(task):
-        """Update ipmi properties to node driver_info
-
-        :param task: a task from TaskManager.
-        """
-        node = task.node
-        info = node.driver_info
-
-        # updating ipmi credentials
-        info['ipmi_address'] = info['ilo_address']
-        info['ipmi_username'] = info['ilo_username']
-        info['ipmi_password'] = info['ilo_password']
-
-        if 'console_port' in info:
-            info['ipmi_terminal_port'] = info['console_port']
-
-        # saving ipmi credentials to task object
-        task.node.driver_info = info
 
 
 def _get_boot_iso_object_name(node):
@@ -250,7 +228,7 @@ def _reboot_into(task, iso, ramdisk_options):
     :raises: IloOperationError, if some operation on iLO failed.
     """
     ilo_common.setup_vmedia_for_boot(task, iso, ramdisk_options)
-    ilo_common.set_boot_device(task.node, 'CDROM')
+    manager_utils.node_set_boot_device(task, boot_devices.CDROM)
     manager_utils.node_power_action(task, states.REBOOT)
 
 
@@ -464,77 +442,8 @@ class IloPXEDeploy(pxe.PXEDeploy):
         :param task: a TaskManager instance containing the node to act on.
         :returns: deploy state DEPLOYWAIT.
         """
-        ilo_common.set_boot_device(task.node, 'NETWORK', False)
+        manager_utils.node_set_boot_device(task, boot_devices.PXE)
         return super(IloPXEDeploy, self).deploy(task)
-
-
-class IloManagement(ipmitool.IPMIManagement):
-
-    # Currently adding support to set_boot_device through iLO. All other
-    # functionalities (get_sensors_data etc) will be used from IPMI.
-
-    # TODO(ramineni):To support other functionalities also using iLO.
-
-    def get_properties(self):
-        return ilo_common.REQUIRED_PROPERTIES
-
-    def validate(self, task):
-        """Check that 'driver_info' contains ILO and IPMI credentials.
-
-        Validates whether the 'driver_info' property of the supplied
-        task's node contains the required credentials information.
-
-        :param task: a task from TaskManager.
-        :raises: InvalidParameterValue if required IPMI/iLO parameters
-            are missing.
-        :raises: MissingParameterValue if a required parameter is missing.
-
-        """
-        ilo_common.parse_driver_info(task.node)
-        _update_ipmi_properties(task)
-        super(IloManagement, self).validate(task)
-
-    @task_manager.require_exclusive_lock
-    def set_boot_device(self, task, device, persistent=False):
-        """Set the boot device for the task's node.
-
-        Set the boot device to use on next reboot of the node.
-
-        :param task: a task from TaskManager.
-        :param device: the boot device, one of
-                       :mod:`ironic.common.boot_devices`.
-        :param persistent: Boolean value. True if the boot device will
-                           persist to all future boots, False if not.
-                           Default: False.
-        :raises: InvalidParameterValue if an invalid boot device is specified
-        :raises: MissingParameterValue if required ilo credentials are missing.
-        :raises: IloOperationError, if unable to set the boot device.
-
-        """
-        try:
-            boot_device = BOOT_DEVICE_MAPPING_TO_ILO[device]
-        except KeyError:
-            raise exception.InvalidParameterValue(_(
-                "Invalid boot device %s specified.") % device)
-
-        ilo_common.parse_driver_info(task.node)
-        ilo_common.set_boot_device(task.node, boot_device, persistent)
-
-    def get_sensors_data(self, task):
-        """Get sensors data.
-
-        :param task: a TaskManager instance.
-        :raises: FailedToGetSensorData when getting the sensor data fails.
-        :raises: FailedToParseSensorData when parsing sensor data fails.
-        :raises: InvalidParameterValue if required ipmi/iLO parameters
-                 are missing.
-        :raises: MissingParameterValue if a required parameter is missing.
-        :returns: returns a dict of sensor data group by sensor type.
-
-        """
-        ilo_common.parse_driver_info(task.node)
-        _update_ipmi_properties(task)
-        super(IloManagement, self).get_sensors_data(task)
 
 
 class IloConsoleInterface(ipmitool.IPMIShellinaboxConsole):
@@ -559,7 +468,7 @@ class IloConsoleInterface(ipmitool.IPMIShellinaboxConsole):
             raise exception.MissingParameterValue(_(
                 "Missing 'console_port' parameter in node's driver_info."))
 
-        _update_ipmi_properties(task)
+        ilo_common.update_ipmi_properties(task)
         super(IloConsoleInterface, self).validate(task)
 
 
@@ -567,7 +476,7 @@ class IloPXEVendorPassthru(pxe.VendorPassthru):
 
     @base.passthru(['POST'], method='pass_deploy_info')
     def _continue_deploy(self, task, **kwargs):
-        ilo_common.set_boot_device(task.node, 'NETWORK', True)
+        manager_utils.node_set_boot_device(task, boot_devices.PXE, True)
         super(IloPXEVendorPassthru, self)._continue_deploy(task, **kwargs)
 
 
@@ -623,7 +532,7 @@ class VendorPassthru(base.VendorInterface):
                 return
 
             ilo_common.setup_vmedia_for_boot(task, boot_iso)
-            ilo_common.set_boot_device(node, 'CDROM')
+            manager_utils.node_set_boot_device(task, boot_devices.CDROM)
 
             address = kwargs.get('address')
             deploy_utils.notify_deploy_complete(address)

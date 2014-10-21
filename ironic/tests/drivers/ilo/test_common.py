@@ -155,6 +155,23 @@ class IloCommonMethodsTestCase(db_base.DbTestCase):
                           ilo_common.get_ilo_license,
                           self.node)
 
+    def test_update_ipmi_properties(self):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            ipmi_info = {
+                         "ipmi_address": "1.2.3.4",
+                         "ipmi_username": "admin",
+                         "ipmi_password": "fake",
+                         "ipmi_terminal_port": 60
+            }
+            ilo_info = INFO_DICT
+            ilo_info['console_port'] = 60
+            task.node.driver_info = ilo_info
+            ilo_common.update_ipmi_properties(task)
+            actual_info = task.node.driver_info
+            expected_info = dict(INFO_DICT, **ipmi_info)
+            self.assertEqual(expected_info, actual_info)
+
     def test__get_floppy_image_name(self):
         image_name_expected = 'image-' + self.node.uuid
         image_name_actual = ilo_common._get_floppy_image_name(self.node)
@@ -247,20 +264,6 @@ class IloCommonMethodsTestCase(db_base.DbTestCase):
         set_status_mock.side_effect = Exception()
         self.assertRaises(exception.IloOperationError,
                 ilo_common.attach_vmedia, self.node, 'FLOPPY', 'url')
-
-    @mock.patch.object(ilo_common, 'get_ilo_object')
-    def test_set_boot_device(self, get_ilo_object_mock):
-        ilo_object_mock = get_ilo_object_mock.return_value
-        ilo_common.set_boot_device(self.node, 'CDROM')
-        get_ilo_object_mock.assert_called_once_with(self.node)
-        ilo_object_mock.set_one_time_boot.assert_called_once_with('CDROM')
-
-    @mock.patch.object(ilo_common, 'get_ilo_object')
-    def test_set_boot_device_persistent_true(self, get_ilo_object_mock):
-        ilo_mock = get_ilo_object_mock.return_value
-        ilo_common.set_boot_device(self.node, 'NETWORK', True)
-        get_ilo_object_mock.assert_called_once_with(self.node)
-        ilo_mock.update_persistent_boot.assert_called_once_with(['NETWORK'])
 
     @mock.patch.object(ilo_common, 'get_ilo_object')
     def test_set_boot_mode(self, get_ilo_object_mock):

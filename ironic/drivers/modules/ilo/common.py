@@ -190,6 +190,26 @@ def get_ilo_license(node):
         return STANDARD_LICENSE
 
 
+def update_ipmi_properties(task):
+    """Update ipmi properties to node driver_info
+
+    :param task: a task from TaskManager.
+    """
+    node = task.node
+    info = node.driver_info
+
+    # updating ipmi credentials
+    info['ipmi_address'] = info.get('ilo_address')
+    info['ipmi_username'] = info.get('ilo_username')
+    info['ipmi_password'] = info.get('ilo_password')
+
+    if 'console_port' in info:
+        info['ipmi_terminal_port'] = info['console_port']
+
+    # saving ipmi credentials to task object
+    task.node.driver_info = info
+
+
 def _get_floppy_image_name(node):
     """Returns the floppy image name for a given node.
 
@@ -271,30 +291,6 @@ def attach_vmedia(node, device, url):
                 error=ilo_exception)
 
     LOG.info(_LI("Attached virtual media %s successfully."), device)
-
-
-# TODO(rameshg87): This needs to be moved to iLO's management interface.
-def set_boot_device(node, device, persistent=False):
-    """Sets the node to boot from a device for the next boot.
-
-    :param node: an ironic node object.
-    :param device: the device to boot from
-    :raises: IloOperationError if setting boot device failed.
-    """
-    ilo_object = get_ilo_object(node)
-
-    try:
-        if not persistent:
-            ilo_object.set_one_time_boot(device)
-        else:
-            ilo_object.update_persistent_boot([device])
-    except ilo_client.IloError as ilo_exception:
-        operation = _("Setting %s as boot device") % device
-        raise exception.IloOperationError(operation=operation,
-                                          error=ilo_exception)
-
-    LOG.debug("Node %(uuid)s set to boot from %(device)s.",
-             {'uuid': node.uuid, 'device': device})
 
 
 def set_boot_mode(node, boot_mode):
