@@ -30,7 +30,8 @@ class Node(base.IronicObject):
     # Version 1.5: Add list()
     # Version 1.6: Add reserve() and release()
     # Version 1.7: Add conductor_affinity
-    VERSION = '1.7'
+    # Version 1.8: Add maintenance_reason
+    VERSION = '1.8'
 
     dbapi = db_api.get_instance()
 
@@ -65,6 +66,7 @@ class Node(base.IronicObject):
             'target_provision_state': obj_utils.str_or_none,
 
             'maintenance': bool,
+            'maintenance_reason': obj_utils.str_or_none,
             'console_enabled': bool,
 
             # Any error from the most recent (last) asynchronous transaction

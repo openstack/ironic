@@ -180,6 +180,7 @@ class Node(Base):
                          nullable=True)
 
     maintenance = Column(Boolean, default=False)
+    maintenance_reason = Column(Text, nullable=True)
     console_enabled = Column(Boolean, default=False)
     extra = Column(JSONEncodedDict)
 

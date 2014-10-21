@@ -97,6 +97,7 @@ class TestListNodes(base.FunctionalTest):
         self.assertNotIn('target_power_state', data['nodes'][0])
         self.assertNotIn('target_provision_state', data['nodes'][0])
         self.assertNotIn('provision_updated_at', data['nodes'][0])
+        self.assertNotIn('maintenance_reason', data['nodes'][0])
         # never expose the chassis_id
         self.assertNotIn('chassis_id', data['nodes'][0])
 
@@ -110,6 +111,7 @@ class TestListNodes(base.FunctionalTest):
         self.assertIn('properties', data)
         self.assertIn('chassis_uuid', data)
         self.assertIn('reservation', data)
+        self.assertIn('maintenance_reason', data)
         # never expose the chassis_id
         self.assertNotIn('chassis_id', data)
 
