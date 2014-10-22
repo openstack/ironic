@@ -44,6 +44,9 @@ Nodes
 .. rest-controller:: ironic.api.controllers.v1.node:NodesController
    :webprefix: /v1/nodes
 
+.. rest-controller:: ironic.api.controllers.v1.node:NodeMaintenanceController
+   :webprefix: /v1/nodes/(node_uuid)/maintenance
+
 .. rest-controller:: ironic.api.controllers.v1.node:NodeVendorPassthruController
    :webprefix: /v1/nodes/(node_uuid)/vendor_passthru
 
