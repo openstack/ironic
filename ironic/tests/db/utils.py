@@ -18,6 +18,7 @@
 from oslo.utils import timeutils
 
 from ironic.common import states
+from ironic.db import api as db_api
 
 
 def get_test_ipmi_info():
@@ -177,6 +178,22 @@ def get_test_node(**kw):
         'updated_at': kw.get('created_at'),
         'created_at': kw.get('updated_at'),
     }
+
+
+def create_test_node(**kw):
+    """Create test node entry in DB and return Node DB object.
+
+    Function to be used to create test Node objects in the database.
+
+    :param kw: kwargs with overriding values for node's attributes.
+    :returns: Test Node DB object.
+
+    """
+    node = get_test_node(**kw)
+    if 'id' not in kw:
+        del node['id']
+    dbapi = db_api.get_instance()
+    return dbapi.create_node(node)
 
 
 def get_test_port(**kw):

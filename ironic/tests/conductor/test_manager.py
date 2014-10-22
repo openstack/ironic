@@ -1210,19 +1210,21 @@ class DestroyNodeTestCase(_ServiceSetUpMixin, tests_db_base.DbTestCase):
 @_mock_record_keepalive
 class UpdatePortTestCase(_ServiceSetUpMixin, tests_db_base.DbTestCase):
     def test_update_port(self):
-        obj_utils.create_test_node(self.context, driver='fake')
+        node = obj_utils.create_test_node(self.context, driver='fake')
 
-        port = obj_utils.create_test_port(self.context, extra={'foo': 'bar'})
+        port = obj_utils.create_test_port(self.context,
+                                          node_id=node.id,
+                                          extra={'foo': 'bar'})
         new_extra = {'foo': 'baz'}
         port.extra = new_extra
         res = self.service.update_port(self.context, port)
         self.assertEqual(new_extra, res.extra)
 
     def test_update_port_node_locked(self):
-        obj_utils.create_test_node(self.context, driver='fake',
+        node = obj_utils.create_test_node(self.context, driver='fake',
                                    reservation='fake-reserv')
 
-        port = obj_utils.create_test_port(self.context)
+        port = obj_utils.create_test_port(self.context, node_id=node.id)
         port.extra = {'foo': 'baz'}
         exc = self.assertRaises(messaging.rpc.ExpectedException,
                                 self.service.update_port,
@@ -1232,8 +1234,9 @@ class UpdatePortTestCase(_ServiceSetUpMixin, tests_db_base.DbTestCase):
 
     @mock.patch('ironic.dhcp.neutron.NeutronDHCPApi.update_port_address')
     def test_update_port_address(self, mac_update_mock):
-        obj_utils.create_test_node(self.context, driver='fake')
+        node = obj_utils.create_test_node(self.context, driver='fake')
         port = obj_utils.create_test_port(self.context,
+                                          node_id=node.id,
                                           extra={'vif_port_id': 'fake-id'})
         new_address = '11:22:33:44:55:bb'
         port.address = new_address
@@ -1244,8 +1247,9 @@ class UpdatePortTestCase(_ServiceSetUpMixin, tests_db_base.DbTestCase):
 
     @mock.patch('ironic.dhcp.neutron.NeutronDHCPApi.update_port_address')
     def test_update_port_address_fail(self, mac_update_mock):
-        obj_utils.create_test_node(self.context, driver='fake')
+        node = obj_utils.create_test_node(self.context, driver='fake')
         port = obj_utils.create_test_port(self.context,
+                                          node_id=node.id,
                                           extra={'vif_port_id': 'fake-id'})
         old_address = port.address
         port.address = '11:22:33:44:55:bb'
@@ -1261,8 +1265,8 @@ class UpdatePortTestCase(_ServiceSetUpMixin, tests_db_base.DbTestCase):
 
     @mock.patch('ironic.dhcp.neutron.NeutronDHCPApi.update_port_address')
     def test_update_port_address_no_vif_id(self, mac_update_mock):
-        obj_utils.create_test_node(self.context, driver='fake')
-        port = obj_utils.create_test_port(self.context)
+        node = obj_utils.create_test_node(self.context, driver='fake')
+        port = obj_utils.create_test_port(self.context, node_id=node.id)
 
         new_address = '11:22:33:44:55:bb'
         port.address = new_address
@@ -2142,9 +2146,8 @@ class ManagerCheckDeployTimeoutsTestCase(_CommonMixIn,
     @mock.patch('ironic.dhcp.neutron.NeutronDHCPApi.update_port_address')
     def test_update_port_duplicate_mac(self, get_nodeinfo_mock, mapped_mock,
             acquire_mock, mac_update_mock, mock_up):
-        ndict = utils.get_test_node(driver='fake')
-        self.dbapi.create_node(ndict)
-        port = obj_utils.create_test_port(self.context)
+        node = utils.create_test_node(driver='fake')
+        port = obj_utils.create_test_port(self.context, node_id=node.id)
         mock_up.side_effect = exception.MACAlreadyExists(mac=port.address)
         exc = self.assertRaises(messaging.rpc.ExpectedException,
                                 self.service.update_port,

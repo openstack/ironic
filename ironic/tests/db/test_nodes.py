@@ -30,47 +30,37 @@ from ironic.tests.db import utils
 
 class DbNodeTestCase(base.DbTestCase):
 
-    def _create_test_node(self, **kwargs):
-        n = utils.get_test_node(**kwargs)
-        self.dbapi.create_node(n)
-        return n
-
     def test_create_node(self):
-        self._create_test_node()
+        utils.create_test_node()
 
     def test_create_node_nullable_chassis_id(self):
-        n = utils.get_test_node()
-        del n['chassis_id']
-        self.dbapi.create_node(n)
+        utils.create_test_node(chassis_id=None)
 
     def test_create_node_already_exists(self):
-        n = utils.get_test_node()
-        del n['id']
-        self.dbapi.create_node(n)
+        utils.create_test_node()
         self.assertRaises(exception.NodeAlreadyExists,
-                          self.dbapi.create_node, n)
+                          utils.create_test_node)
 
     def test_create_node_instance_already_associated(self):
         instance = ironic_utils.generate_uuid()
-        n1 = utils.get_test_node(id=1, uuid=ironic_utils.generate_uuid(),
-                                 instance_uuid=instance)
-        self.dbapi.create_node(n1)
-        n2 = utils.get_test_node(id=2, uuid=ironic_utils.generate_uuid(),
-                                 instance_uuid=instance)
+        utils.create_test_node(uuid=ironic_utils.generate_uuid(),
+                               instance_uuid=instance)
         self.assertRaises(exception.InstanceAssociated,
-                          self.dbapi.create_node, n2)
+                          utils.create_test_node,
+                          uuid=ironic_utils.generate_uuid(),
+                          instance_uuid=instance)
 
     def test_get_node_by_id(self):
-        n = self._create_test_node()
-        res = self.dbapi.get_node_by_id(n['id'])
-        self.assertEqual(n['id'], res.id)
-        self.assertEqual(n['uuid'], res.uuid)
+        node = utils.create_test_node()
+        res = self.dbapi.get_node_by_id(node.id)
+        self.assertEqual(node.id, res.id)
+        self.assertEqual(node.uuid, res.uuid)
 
     def test_get_node_by_uuid(self):
-        n = self._create_test_node()
-        res = self.dbapi.get_node_by_uuid(n['uuid'])
-        self.assertEqual(n['id'], res.id)
-        self.assertEqual(n['uuid'], res.uuid)
+        node = utils.create_test_node()
+        res = self.dbapi.get_node_by_uuid(node.uuid)
+        self.assertEqual(node.id, res.id)
+        self.assertEqual(node.uuid, res.uuid)
 
     def test_get_node_that_does_not_exist(self):
         self.assertRaises(exception.NodeNotFound,
@@ -80,11 +70,12 @@ class DbNodeTestCase(base.DbTestCase):
                           '12345678-9999-0000-aaaa-123456789012')
 
     def test_get_nodeinfo_list_defaults(self):
+        node_id_list = []
         for i in range(1, 6):
-            n = utils.get_test_node(id=i, uuid=ironic_utils.generate_uuid())
-            self.dbapi.create_node(n)
+            node = utils.create_test_node(uuid=ironic_utils.generate_uuid())
+            node_id_list.append(node.id)
         res = [i[0] for i in self.dbapi.get_nodeinfo_list()]
-        self.assertEqual(sorted(res), sorted(range(1, 6)))
+        self.assertEqual(sorted(res), sorted(node_id_list))
 
     def test_get_nodeinfo_list_with_cols(self):
         uuids = {}
@@ -92,48 +83,45 @@ class DbNodeTestCase(base.DbTestCase):
         for i in range(1, 6):
             uuid = ironic_utils.generate_uuid()
             extra = {'foo': i}
-            uuids[i] = uuid
-            extras[i] = extra
-            n = utils.get_test_node(id=i, extra=extra, uuid=uuid)
-            self.dbapi.create_node(n)
+            node = utils.create_test_node(extra=extra, uuid=uuid)
+            uuids[node.id] = uuid
+            extras[node.id] = extra
         res = self.dbapi.get_nodeinfo_list(columns=['id', 'extra', 'uuid'])
         self.assertEqual(extras, dict((r[0], r[1]) for r in res))
         self.assertEqual(uuids, dict((r[0], r[2]) for r in res))
 
     def test_get_nodeinfo_list_with_filters(self):
-        n1 = utils.get_test_node(id=1, driver='driver-one',
-                                 instance_uuid=ironic_utils.generate_uuid(),
-                                 reservation='fake-host',
-                                 uuid=ironic_utils.generate_uuid())
-        n2 = utils.get_test_node(id=2, driver='driver-two',
-                                 uuid=ironic_utils.generate_uuid(),
-                                 maintenance=True)
-        self.dbapi.create_node(n1)
-        self.dbapi.create_node(n2)
+        node1 = utils.create_test_node(driver='driver-one',
+            instance_uuid=ironic_utils.generate_uuid(),
+            reservation='fake-host',
+            uuid=ironic_utils.generate_uuid())
+        node2 = utils.create_test_node(driver='driver-two',
+            uuid=ironic_utils.generate_uuid(),
+            maintenance=True)
 
         res = self.dbapi.get_nodeinfo_list(filters={'driver': 'driver-one'})
-        self.assertEqual([1], [r[0] for r in res])
+        self.assertEqual([node1.id], [r[0] for r in res])
 
         res = self.dbapi.get_nodeinfo_list(filters={'driver': 'bad-driver'})
         self.assertEqual([], [r[0] for r in res])
 
         res = self.dbapi.get_nodeinfo_list(filters={'associated': True})
-        self.assertEqual([1], [r[0] for r in res])
+        self.assertEqual([node1.id], [r[0] for r in res])
 
         res = self.dbapi.get_nodeinfo_list(filters={'associated': False})
-        self.assertEqual([2], [r[0] for r in res])
+        self.assertEqual([node2.id], [r[0] for r in res])
 
         res = self.dbapi.get_nodeinfo_list(filters={'reserved': True})
-        self.assertEqual([1], [r[0] for r in res])
+        self.assertEqual([node1.id], [r[0] for r in res])
 
         res = self.dbapi.get_nodeinfo_list(filters={'reserved': False})
-        self.assertEqual([2], [r[0] for r in res])
+        self.assertEqual([node2.id], [r[0] for r in res])
 
         res = self.dbapi.get_node_list(filters={'maintenance': True})
-        self.assertEqual([2], [r.id for r in res])
+        self.assertEqual([node2.id], [r.id for r in res])
 
         res = self.dbapi.get_node_list(filters={'maintenance': False})
-        self.assertEqual([1], [r.id for r in res])
+        self.assertEqual([node1.id], [r.id for r in res])
 
     @mock.patch.object(timeutils, 'utcnow')
     def test_get_nodeinfo_list_provision(self, mock_utcnow):
@@ -143,32 +131,28 @@ class DbNodeTestCase(base.DbTestCase):
         mock_utcnow.return_value = past
 
         # node with provision_updated timeout
-        n1 = utils.get_test_node(id=1, uuid=ironic_utils.generate_uuid(),
-                                 provision_updated_at=past)
+        node1 = utils.create_test_node(uuid=ironic_utils.generate_uuid(),
+                                       provision_updated_at=past)
         # node with None in provision_updated_at
-        n2 = utils.get_test_node(id=2, uuid=ironic_utils.generate_uuid(),
-                                 provision_state=states.DEPLOYWAIT)
+        node2 = utils.create_test_node(uuid=ironic_utils.generate_uuid(),
+                                       provision_state=states.DEPLOYWAIT)
         # node without timeout
-        n3 = utils.get_test_node(id=3, uuid=ironic_utils.generate_uuid(),
-                                 provision_updated_at=next)
-        self.dbapi.create_node(n1)
-        self.dbapi.create_node(n2)
-        self.dbapi.create_node(n3)
+        utils.create_test_node(uuid=ironic_utils.generate_uuid(),
+                            provision_updated_at=next)
 
         mock_utcnow.return_value = present
         res = self.dbapi.get_nodeinfo_list(filters={'provisioned_before': 300})
-        self.assertEqual([1], [r[0] for r in res])
+        self.assertEqual([node1.id], [r[0] for r in res])
 
         res = self.dbapi.get_nodeinfo_list(filters={'provision_state':
                                                     states.DEPLOYWAIT})
-        self.assertEqual([2], [r[0] for r in res])
+        self.assertEqual([node2.id], [r[0] for r in res])
 
     def test_get_node_list(self):
         uuids = []
         for i in range(1, 6):
-            n = utils.get_test_node(id=i, uuid=ironic_utils.generate_uuid())
-            self.dbapi.create_node(n)
-            uuids.append(six.text_type(n['uuid']))
+            node = utils.create_test_node(uuid=ironic_utils.generate_uuid())
+            uuids.append(six.text_type(node['uuid']))
         res = self.dbapi.get_node_list()
         res_uuids = [r.uuid for r in res]
         self.assertEqual(uuids.sort(), res_uuids.sort())
@@ -179,47 +163,45 @@ class DbNodeTestCase(base.DbTestCase):
         self.dbapi.create_chassis(ch1)
         self.dbapi.create_chassis(ch2)
 
-        n1 = utils.get_test_node(id=1, driver='driver-one',
-                                 instance_uuid=ironic_utils.generate_uuid(),
-                                 reservation='fake-host',
-                                 uuid=ironic_utils.generate_uuid(),
-                                 chassis_id=ch1['id'])
-        n2 = utils.get_test_node(id=2, driver='driver-two',
-                                 uuid=ironic_utils.generate_uuid(),
-                                 chassis_id=ch2['id'],
-                                 maintenance=True)
-        self.dbapi.create_node(n1)
-        self.dbapi.create_node(n2)
+        node1 = utils.create_test_node(driver='driver-one',
+            instance_uuid=ironic_utils.generate_uuid(),
+            reservation='fake-host',
+            uuid=ironic_utils.generate_uuid(),
+            chassis_id=ch1['id'])
+        node2 = utils.create_test_node(driver='driver-two',
+            uuid=ironic_utils.generate_uuid(),
+            chassis_id=ch2['id'],
+            maintenance=True)
 
         res = self.dbapi.get_node_list(filters={'chassis_uuid': ch1['uuid']})
-        self.assertEqual([1], [r.id for r in res])
+        self.assertEqual([node1.id], [r.id for r in res])
 
         res = self.dbapi.get_node_list(filters={'chassis_uuid': ch2['uuid']})
-        self.assertEqual([2], [r.id for r in res])
+        self.assertEqual([node2.id], [r.id for r in res])
 
         res = self.dbapi.get_node_list(filters={'driver': 'driver-one'})
-        self.assertEqual([1], [r.id for r in res])
+        self.assertEqual([node1.id], [r.id for r in res])
 
         res = self.dbapi.get_node_list(filters={'driver': 'bad-driver'})
         self.assertEqual([], [r.id for r in res])
 
         res = self.dbapi.get_node_list(filters={'associated': True})
-        self.assertEqual([1], [r.id for r in res])
+        self.assertEqual([node1.id], [r.id for r in res])
 
         res = self.dbapi.get_node_list(filters={'associated': False})
-        self.assertEqual([2], [r.id for r in res])
+        self.assertEqual([node2.id], [r.id for r in res])
 
         res = self.dbapi.get_node_list(filters={'reserved': True})
-        self.assertEqual([1], [r.id for r in res])
+        self.assertEqual([node1.id], [r.id for r in res])
 
         res = self.dbapi.get_node_list(filters={'reserved': False})
-        self.assertEqual([2], [r.id for r in res])
+        self.assertEqual([node2.id], [r.id for r in res])
 
         res = self.dbapi.get_node_list(filters={'maintenance': True})
-        self.assertEqual([2], [r.id for r in res])
+        self.assertEqual([node2.id], [r.id for r in res])
 
         res = self.dbapi.get_node_list(filters={'maintenance': False})
-        self.assertEqual([1], [r.id for r in res])
+        self.assertEqual([node1.id], [r.id for r in res])
 
     def test_get_node_list_chassis_not_found(self):
         self.assertRaises(exception.ChassisNotFound,
@@ -227,14 +209,14 @@ class DbNodeTestCase(base.DbTestCase):
                           {'chassis_uuid': ironic_utils.generate_uuid()})
 
     def test_get_node_by_instance(self):
-        n = self._create_test_node(
+        node = utils.create_test_node(
                 instance_uuid='12345678-9999-0000-aaaa-123456789012')
 
-        res = self.dbapi.get_node_by_instance(n['instance_uuid'])
-        self.assertEqual(n['uuid'], res.uuid)
+        res = self.dbapi.get_node_by_instance(node.instance_uuid)
+        self.assertEqual(node.uuid, res.uuid)
 
     def test_get_node_by_instance_wrong_uuid(self):
-        self._create_test_node(
+        utils.create_test_node(
                 instance_uuid='12345678-9999-0000-aaaa-123456789012')
 
         self.assertRaises(exception.InstanceNotFound,
@@ -247,18 +229,18 @@ class DbNodeTestCase(base.DbTestCase):
                           'fake_uuid')
 
     def test_destroy_node(self):
-        n = self._create_test_node()
+        node = utils.create_test_node()
 
-        self.dbapi.destroy_node(n['id'])
+        self.dbapi.destroy_node(node.id)
         self.assertRaises(exception.NodeNotFound,
-                          self.dbapi.get_node_by_id, n['id'])
+                          self.dbapi.get_node_by_id, node.id)
 
     def test_destroy_node_by_uuid(self):
-        n = self._create_test_node()
+        node = utils.create_test_node()
 
-        self.dbapi.destroy_node(n['uuid'])
+        self.dbapi.destroy_node(node.uuid)
         self.assertRaises(exception.NodeNotFound,
-                          self.dbapi.get_node_by_uuid, n['uuid'])
+                          self.dbapi.get_node_by_uuid, node.uuid)
 
     def test_destroy_node_that_does_not_exist(self):
         self.assertRaises(exception.NodeNotFound,
@@ -266,37 +248,35 @@ class DbNodeTestCase(base.DbTestCase):
                           '12345678-9999-0000-aaaa-123456789012')
 
     def test_ports_get_destroyed_after_destroying_a_node(self):
-        n = self._create_test_node()
-        node_id = n['id']
+        node = utils.create_test_node()
 
-        p = utils.get_test_port(node_id=node_id)
-        p = self.dbapi.create_port(p)
+        port = utils.get_test_port(node_id=node.id)
+        port = self.dbapi.create_port(port)
 
-        self.dbapi.destroy_node(node_id)
+        self.dbapi.destroy_node(node.id)
 
         self.assertRaises(exception.PortNotFound,
-                          self.dbapi.get_port_by_id, p.id)
+                          self.dbapi.get_port_by_id, port.id)
 
     def test_ports_get_destroyed_after_destroying_a_node_by_uuid(self):
-        n = self._create_test_node()
-        node_id = n['id']
+        node = utils.create_test_node()
 
-        p = utils.get_test_port(node_id=node_id)
-        p = self.dbapi.create_port(p)
+        port = utils.get_test_port(node_id=node.id)
+        port = self.dbapi.create_port(port)
 
-        self.dbapi.destroy_node(n['uuid'])
+        self.dbapi.destroy_node(node.uuid)
 
         self.assertRaises(exception.PortNotFound,
-                          self.dbapi.get_port_by_id, p.id)
+                          self.dbapi.get_port_by_id, port.id)
 
     def test_update_node(self):
-        n = self._create_test_node()
+        node = utils.create_test_node()
 
-        old_extra = n['extra']
+        old_extra = node.extra
         new_extra = {'foo': 'bar'}
         self.assertNotEqual(old_extra, new_extra)
 
-        res = self.dbapi.update_node(n['id'], {'extra': new_extra})
+        res = self.dbapi.update_node(node.id, {'extra': new_extra})
         self.assertEqual(new_extra, res.extra)
 
     def test_update_node_not_found(self):
@@ -306,56 +286,56 @@ class DbNodeTestCase(base.DbTestCase):
                           node_uuid, {'extra': new_extra})
 
     def test_update_node_uuid(self):
-        n = self._create_test_node()
+        node = utils.create_test_node()
         self.assertRaises(exception.InvalidParameterValue,
-                          self.dbapi.update_node, n['id'],
+                          self.dbapi.update_node, node.id,
                           {'uuid': ''})
 
     def test_update_node_associate_and_disassociate(self):
-        n = self._create_test_node()
+        node = utils.create_test_node()
         new_i_uuid = ironic_utils.generate_uuid()
-        res = self.dbapi.update_node(n['id'], {'instance_uuid': new_i_uuid})
+        res = self.dbapi.update_node(node.id, {'instance_uuid': new_i_uuid})
         self.assertEqual(new_i_uuid, res.instance_uuid)
-        res = self.dbapi.update_node(n['id'], {'instance_uuid': None})
+        res = self.dbapi.update_node(node.id, {'instance_uuid': None})
         self.assertIsNone(res.instance_uuid)
 
     def test_update_node_already_associated(self):
-        n = self._create_test_node()
+        node = utils.create_test_node()
         new_i_uuid_one = ironic_utils.generate_uuid()
-        self.dbapi.update_node(n['id'], {'instance_uuid': new_i_uuid_one})
+        self.dbapi.update_node(node.id, {'instance_uuid': new_i_uuid_one})
         new_i_uuid_two = ironic_utils.generate_uuid()
         self.assertRaises(exception.NodeAssociated,
                           self.dbapi.update_node,
-                          n['id'],
+                          node.id,
                           {'instance_uuid': new_i_uuid_two})
 
     def test_update_node_instance_already_associated(self):
-        n = self._create_test_node(id=1, uuid=ironic_utils.generate_uuid())
+        node1 = utils.create_test_node(uuid=ironic_utils.generate_uuid())
         new_i_uuid = ironic_utils.generate_uuid()
-        self.dbapi.update_node(n['id'], {'instance_uuid': new_i_uuid})
-        n = self._create_test_node(id=2, uuid=ironic_utils.generate_uuid())
+        self.dbapi.update_node(node1.id, {'instance_uuid': new_i_uuid})
+        node2 = utils.create_test_node(uuid=ironic_utils.generate_uuid())
         self.assertRaises(exception.InstanceAssociated,
                           self.dbapi.update_node,
-                          n['id'],
+                          node2.id,
                           {'instance_uuid': new_i_uuid})
 
     @mock.patch.object(timeutils, 'utcnow')
     def test_update_node_provision(self, mock_utcnow):
         mocked_time = datetime.datetime(2000, 1, 1, 0, 0)
         mock_utcnow.return_value = mocked_time
-        n = self._create_test_node()
+        n = utils.create_test_node()
         res = self.dbapi.update_node(n['id'], {'provision_state': 'fake'})
         self.assertEqual(mocked_time,
                          timeutils.normalize_time(res['provision_updated_at']))
 
     def test_update_node_no_provision(self):
-        n = self._create_test_node()
-        res = self.dbapi.update_node(n['id'], {'extra': {'foo': 'bar'}})
+        node = utils.create_test_node()
+        res = self.dbapi.update_node(node.id, {'extra': {'foo': 'bar'}})
         self.assertIsNone(res['provision_updated_at'])
 
     def test_reserve_node(self):
-        n = self._create_test_node()
-        uuid = n['uuid']
+        node = utils.create_test_node()
+        uuid = node.uuid
 
         r1 = 'fake-reservation'
 
@@ -367,8 +347,8 @@ class DbNodeTestCase(base.DbTestCase):
         self.assertEqual(r1, res.reservation)
 
     def test_release_reservation(self):
-        n = self._create_test_node()
-        uuid = n['uuid']
+        node = utils.create_test_node()
+        uuid = node.uuid
 
         r1 = 'fake-reservation'
         self.dbapi.reserve_node(r1, uuid)
@@ -379,8 +359,8 @@ class DbNodeTestCase(base.DbTestCase):
         self.assertIsNone(res.reservation)
 
     def test_reservation_of_reserved_node_fails(self):
-        n = self._create_test_node()
-        uuid = n['uuid']
+        node = utils.create_test_node()
+        uuid = node.uuid
 
         r1 = 'fake-reservation'
         r2 = 'another-reservation'
@@ -397,8 +377,8 @@ class DbNodeTestCase(base.DbTestCase):
                           r2, uuid)
 
     def test_reservation_after_release(self):
-        n = self._create_test_node()
-        uuid = n['uuid']
+        node = utils.create_test_node()
+        uuid = node.uuid
 
         r1 = 'fake-reservation'
         r2 = 'another-reservation'
@@ -412,8 +392,8 @@ class DbNodeTestCase(base.DbTestCase):
         self.assertEqual(r2, res.reservation)
 
     def test_reservation_in_exception_message(self):
-        n = self._create_test_node()
-        uuid = n['uuid']
+        node = utils.create_test_node()
+        uuid = node.uuid
 
         r = 'fake-reservation'
         self.dbapi.reserve_node(r, uuid)
@@ -423,28 +403,28 @@ class DbNodeTestCase(base.DbTestCase):
             self.assertIn(r, str(e))
 
     def test_reservation_non_existent_node(self):
-        n = self._create_test_node()
-        self.dbapi.destroy_node(n['id'])
+        node = utils.create_test_node()
+        self.dbapi.destroy_node(node.id)
 
         self.assertRaises(exception.NodeNotFound,
-                          self.dbapi.reserve_node, 'fake', n['id'])
+                          self.dbapi.reserve_node, 'fake', node.id)
         self.assertRaises(exception.NodeNotFound,
-                          self.dbapi.reserve_node, 'fake', n['uuid'])
+                          self.dbapi.reserve_node, 'fake', node.uuid)
 
     def test_release_non_existent_node(self):
-        n = self._create_test_node()
-        self.dbapi.destroy_node(n['id'])
+        node = utils.create_test_node()
+        self.dbapi.destroy_node(node.id)
 
         self.assertRaises(exception.NodeNotFound,
-                          self.dbapi.release_node, 'fake', n['id'])
+                          self.dbapi.release_node, 'fake', node.id)
         self.assertRaises(exception.NodeNotFound,
-                          self.dbapi.release_node, 'fake', n['uuid'])
+                          self.dbapi.release_node, 'fake', node.uuid)
 
     def test_release_non_locked_node(self):
-        n = self._create_test_node()
+        node = utils.create_test_node()
 
-        self.assertEqual(None, n['reservation'])
+        self.assertEqual(None, node.reservation)
         self.assertRaises(exception.NodeNotLocked,
-                          self.dbapi.release_node, 'fake', n['id'])
+                          self.dbapi.release_node, 'fake', node.id)
         self.assertRaises(exception.NodeNotLocked,
-                          self.dbapi.release_node, 'fake', n['uuid'])
+                          self.dbapi.release_node, 'fake', node.uuid)

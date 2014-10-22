@@ -60,15 +60,14 @@ class TestListNodes(base.FunctionalTest):
         unassociated_nodes = []
         for id in range(3):
             node = obj_utils.create_test_node(self.context,
-                                              id=id,
                                               uuid=utils.generate_uuid())
             unassociated_nodes.append(node.uuid)
 
         #created some associated nodes
         associated_nodes = []
-        for id in range(3, 7):
+        for id in range(4):
             node = obj_utils.create_test_node(
-                    self.context, id=id, uuid=utils.generate_uuid(),
+                    self.context, uuid=utils.generate_uuid(),
                     instance_uuid=utils.generate_uuid())
             associated_nodes.append(node['uuid'])
         return {'associated': associated_nodes,
@@ -142,7 +141,7 @@ class TestListNodes(base.FunctionalTest):
     def test_many(self):
         nodes = []
         for id in range(5):
-            node = obj_utils.create_test_node(self.context, id=id,
+            node = obj_utils.create_test_node(self.context,
                                               uuid=utils.generate_uuid())
             nodes.append(node.uuid)
         data = self.get_json('/nodes')
@@ -153,7 +152,7 @@ class TestListNodes(base.FunctionalTest):
 
     def test_links(self):
         uuid = utils.generate_uuid()
-        obj_utils.create_test_node(self.context, id=1, uuid=uuid)
+        obj_utils.create_test_node(self.context, uuid=uuid)
         data = self.get_json('/nodes/%s' % uuid)
         self.assertIn('links', data.keys())
         self.assertEqual(2, len(data['links']))
@@ -165,7 +164,7 @@ class TestListNodes(base.FunctionalTest):
     def test_collection_links(self):
         nodes = []
         for id in range(5):
-            node = obj_utils.create_test_node(self.context, id=id,
+            node = obj_utils.create_test_node(self.context,
                                               uuid=utils.generate_uuid())
             nodes.append(node.uuid)
         data = self.get_json('/nodes/?limit=3')
@@ -178,7 +177,7 @@ class TestListNodes(base.FunctionalTest):
         cfg.CONF.set_override('max_limit', 3, 'api')
         nodes = []
         for id in range(5):
-            node = obj_utils.create_test_node(self.context, id=id,
+            node = obj_utils.create_test_node(self.context,
                                               uuid=utils.generate_uuid())
             nodes.append(node.uuid)
         data = self.get_json('/nodes')
@@ -359,7 +358,7 @@ class TestListNodes(base.FunctionalTest):
     def test_maintenance_nodes(self):
         nodes = []
         for id in range(5):
-            node = obj_utils.create_test_node(self.context, id=id,
+            node = obj_utils.create_test_node(self.context,
                                               uuid=utils.generate_uuid(),
                                               maintenance=id % 2)
             nodes.append(node)
@@ -1050,7 +1049,7 @@ class TestPut(base.FunctionalTest):
         self.assertEqual(400, ret.status_code)
 
     def test_provision_already_in_progress(self):
-        node = obj_utils.create_test_node(self.context, id=1,
+        node = obj_utils.create_test_node(self.context,
                                           uuid=utils.generate_uuid(),
                                           target_provision_state=states.ACTIVE)
         ret = self.put_json('/nodes/%s/states/provision' % node.uuid,
@@ -1060,7 +1059,7 @@ class TestPut(base.FunctionalTest):
 
     def test_provision_with_tear_down_in_progress_deploywait(self):
         node = obj_utils.create_test_node(
-                self.context, id=1, uuid=utils.generate_uuid(),
+                self.context, uuid=utils.generate_uuid(),
                 provision_state=states.DEPLOYWAIT,
                 target_provision_state=states.DEPLOYDONE)
         ret = self.put_json('/nodes/%s/states/provision' % node.uuid,
@@ -1077,7 +1076,7 @@ class TestPut(base.FunctionalTest):
 
     def test_provision_already_in_state(self):
         node = obj_utils.create_test_node(
-                self.context, id=1, uuid=utils.generate_uuid(),
+                self.context, uuid=utils.generate_uuid(),
                 target_provision_state=states.NOSTATE,
                 provision_state=states.ACTIVE)
         ret = self.put_json('/nodes/%s/states/provision' % node.uuid,
@@ -1147,7 +1146,7 @@ class TestPut(base.FunctionalTest):
 
     def test_provision_node_in_maintenance_fail(self):
         with mock.patch.object(rpcapi.ConductorAPI, 'do_node_deploy') as dnd:
-            node = obj_utils.create_test_node(self.context, id=1,
+            node = obj_utils.create_test_node(self.context,
                                               uuid=utils.generate_uuid(),
                                               maintenance=True)
             dnd.side_effect = exception.NodeInMaintenance(op='provisioning',
