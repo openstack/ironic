@@ -962,6 +962,21 @@ class TestDelete(base.FunctionalTest):
         self.assertEqual(409, response.status_int)
         mock_dn.assert_called_once_with(mock.ANY, node.uuid, 'test-topic')
 
+    @mock.patch.object(objects.Node, 'get_by_uuid')
+    @mock.patch.object(rpcapi.ConductorAPI, 'update_node')
+    def test_delete_node_maintenance_mode(self, mock_update, mock_get):
+        node = obj_utils.create_test_node(self.context, maintenance=True,
+                                          maintenance_reason='blah')
+        mock_get.return_value = node
+        response = self.delete('/nodes/%s/maintenance' % node.uuid)
+        self.assertEqual(202, response.status_int)
+        self.assertEqual('', response.body)
+        self.assertEqual(False, node.maintenance)
+        self.assertEqual(None, node.maintenance_reason)
+        mock_get.assert_called_once_with(mock.ANY, node.uuid)
+        mock_update.assert_called_once_with(mock.ANY, mock.ANY,
+                                            topic='test-topic')
+
 
 class TestPut(base.FunctionalTest):
 
@@ -1188,3 +1203,31 @@ class TestPut(base.FunctionalTest):
                             expect_errors=True)
         self.assertEqual('application/json', ret.content_type)
         self.assertEqual(400, ret.status_code)
+
+    def _test_set_node_maintenance_mode(self, mock_update, mock_get, reason):
+        request_body = {}
+        if reason:
+            request_body['reason'] = reason
+
+        self.node.maintenance = False
+        mock_get.return_value = self.node
+        ret = self.put_json('/nodes/%s/maintenance' % self.node.uuid,
+                            request_body)
+        self.assertEqual(202, ret.status_code)
+        self.assertEqual('', ret.body)
+        self.assertEqual(True, self.node.maintenance)
+        self.assertEqual(reason, self.node.maintenance_reason)
+        mock_get.assert_called_once_with(mock.ANY, self.node.uuid)
+        mock_update.assert_called_once_with(mock.ANY, mock.ANY,
+                                            topic='test-topic')
+
+    @mock.patch.object(objects.Node, 'get_by_uuid')
+    @mock.patch.object(rpcapi.ConductorAPI, 'update_node')
+    def test_set_node_maintenance_mode(self, mock_update, mock_get):
+        self._test_set_node_maintenance_mode(mock_update, mock_get,
+                                             'fake_reason')
+
+    @mock.patch.object(objects.Node, 'get_by_uuid')
+    @mock.patch.object(rpcapi.ConductorAPI, 'update_node')
+    def test_set_node_maintenance_mode_no_reason(self, mock_update, mock_get):
+        self._test_set_node_maintenance_mode(mock_update, mock_get, None)
