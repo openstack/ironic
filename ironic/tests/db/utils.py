@@ -107,7 +107,9 @@ def get_test_agent_instance_info():
     return {
         'image_source': 'fake-image',
         'image_url': 'http://image',
-        'image_checksum': 'checksum'
+        'image_checksum': 'checksum',
+        'image_disk_format': 'qcow2',
+        'image_container_format': 'bare',
     }
 
 
