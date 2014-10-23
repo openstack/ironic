@@ -231,7 +231,7 @@ def convert_image(source, dest, out_format, run_as_root=False):
     utils.execute(*cmd, run_as_root=run_as_root)
 
 
-def fetch(context, image_href, path, image_service=None):
+def fetch(context, image_href, path, image_service=None, force_raw=False):
     # TODO(vish): Improve context handling and add owner and auth data
     #             when it is added to glance.  Right now there is no
     #             auth checking in glance, so we assume that access was
@@ -243,11 +243,8 @@ def fetch(context, image_href, path, image_service=None):
         with open(path, "wb") as image_file:
             image_service.download(image_href, image_file)
 
-
-def fetch_to_raw(context, image_href, path, image_service=None):
-    path_tmp = "%s.part" % path
-    fetch(context, image_href, path_tmp, image_service)
-    image_to_raw(image_href, path, path_tmp)
+    if force_raw:
+        image_to_raw(image_href, path, "%s.part" % path)
 
 
 def image_to_raw(image_href, path, path_tmp):
@@ -267,7 +264,7 @@ def image_to_raw(image_href, path, path_tmp):
                                               {'fmt': fmt,
                                                'backing_file': backing_file})
 
-        if fmt != "raw" and CONF.force_raw_images:
+        if fmt != "raw":
             staged = "%s.converted" % path
             LOG.debug("%(image)s was %(format)s, converting to raw" %
                     {'image': image_href, 'format': fmt})
@@ -303,8 +300,6 @@ def converted_size(path):
 
     """
     data = qemu_img_info(path)
-    if data.file_format == "raw" or not CONF.force_raw_images:
-        return 0
     return data.virtual_size
 
 
@@ -357,8 +352,8 @@ def create_boot_iso(context, output_filename, kernel_uuid,
     with utils.tempdir() as tmpdir:
         kernel_path = os.path.join(tmpdir, kernel_uuid)
         ramdisk_path = os.path.join(tmpdir, ramdisk_uuid)
-        fetch_to_raw(context, kernel_uuid, kernel_path)
-        fetch_to_raw(context, ramdisk_uuid, ramdisk_path)
+        fetch(context, kernel_uuid, kernel_path, CONF.force_raw_images)
+        fetch(context, ramdisk_uuid, ramdisk_path, CONF.force_raw_images)
 
         params = []
         if root_uuid:

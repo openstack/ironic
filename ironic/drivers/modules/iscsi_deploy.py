@@ -187,7 +187,8 @@ def cache_instance_image(ctx, node):
     LOG.debug("Fetching image %(ami)s for node %(uuid)s",
               {'ami': uuid, 'uuid': node.uuid})
 
-    deploy_utils.fetch_images(ctx, InstanceImageCache(), [(uuid, image_path)])
+    deploy_utils.fetch_images(ctx, InstanceImageCache(), [(uuid, image_path)],
+                              CONF.force_raw_images)
 
     return (uuid, image_path)
 

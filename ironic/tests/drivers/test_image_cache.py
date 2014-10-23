@@ -34,7 +34,7 @@ def touch(filename):
     open(filename, 'w').close()
 
 
-@mock.patch.object(image_cache, '_fetch_to_raw')
+@mock.patch.object(image_cache, '_fetch')
 class TestImageCacheFetch(base.TestCase):
 
     def setUp(self):
@@ -49,32 +49,32 @@ class TestImageCacheFetch(base.TestCase):
     @mock.patch.object(image_cache.ImageCache, 'clean_up')
     @mock.patch.object(image_cache.ImageCache, '_download_image')
     def test_fetch_image_no_master_dir(self, mock_download, mock_clean_up,
-                                       mock_fetch_to_raw):
+                                       mock_fetch):
         self.cache.master_dir = None
         self.cache.fetch_image('uuid', self.dest_path)
         self.assertFalse(mock_download.called)
-        mock_fetch_to_raw.assert_called_once_with(
-            None, 'uuid', self.dest_path, None)
+        mock_fetch.assert_called_once_with(
+            None, 'uuid', self.dest_path, None, True)
         self.assertFalse(mock_clean_up.called)
 
     @mock.patch.object(image_cache.ImageCache, 'clean_up')
     @mock.patch.object(image_cache.ImageCache, '_download_image')
     def test_fetch_image_dest_exists(self, mock_download, mock_clean_up,
-                                     mock_fetch_to_raw):
+                                     mock_fetch):
         touch(self.dest_path)
         self.cache.fetch_image(self.uuid, self.dest_path)
         self.assertFalse(mock_download.called)
-        self.assertFalse(mock_fetch_to_raw.called)
+        self.assertFalse(mock_fetch.called)
         self.assertFalse(mock_clean_up.called)
 
     @mock.patch.object(image_cache.ImageCache, 'clean_up')
     @mock.patch.object(image_cache.ImageCache, '_download_image')
     def test_fetch_image_master_exists(self, mock_download, mock_clean_up,
-                                       mock_fetch_to_raw):
+                                       mock_fetch):
         touch(self.master_path)
         self.cache.fetch_image(self.uuid, self.dest_path)
         self.assertFalse(mock_download.called)
-        self.assertFalse(mock_fetch_to_raw.called)
+        self.assertFalse(mock_fetch.called)
         self.assertTrue(os.path.isfile(self.dest_path))
         self.assertEqual(os.stat(self.dest_path).st_ino,
                          os.stat(self.master_path).st_ino)
@@ -83,22 +83,23 @@ class TestImageCacheFetch(base.TestCase):
     @mock.patch.object(image_cache.ImageCache, 'clean_up')
     @mock.patch.object(image_cache.ImageCache, '_download_image')
     def test_fetch_image(self, mock_download, mock_clean_up,
-                         mock_fetch_to_raw):
+                         mock_fetch):
         self.cache.fetch_image(self.uuid, self.dest_path)
-        self.assertFalse(mock_fetch_to_raw.called)
+        self.assertFalse(mock_fetch.called)
         mock_download.assert_called_once_with(
-            self.uuid, self.master_path, self.dest_path, ctx=None)
+            self.uuid, self.master_path, self.dest_path,
+            ctx=None, force_raw=True)
         self.assertTrue(mock_clean_up.called)
 
-    def test__download_image(self, mock_fetch_to_raw):
-        def _fake_fetch_to_raw(ctx, uuid, tmp_path, *args):
+    def test__download_image(self, mock_fetch):
+        def _fake_fetch(ctx, uuid, tmp_path, *args):
             self.assertEqual(self.uuid, uuid)
             self.assertNotEqual(self.dest_path, tmp_path)
             self.assertNotEqual(os.path.dirname(tmp_path), self.master_dir)
             with open(tmp_path, 'w') as fp:
                 fp.write("TEST")
 
-        mock_fetch_to_raw.side_effect = _fake_fetch_to_raw
+        mock_fetch.side_effect = _fake_fetch
         self.cache._download_image(self.uuid, self.master_path, self.dest_path)
         self.assertTrue(os.path.isfile(self.dest_path))
         self.assertTrue(os.path.isfile(self.master_path))
@@ -242,9 +243,9 @@ class TestImageCacheCleanUp(base.TestCase):
         mock_clean_ttl.assert_called_once_with(mock.ANY, None)
 
     @mock.patch.object(utils, 'rmtree_without_raise')
-    @mock.patch.object(image_cache, '_fetch_to_raw')
-    def test_temp_images_not_cleaned(self, mock_fetch_to_raw, mock_rmtree):
-        def _fake_fetch_to_raw(ctx, uuid, tmp_path, *args):
+    @mock.patch.object(image_cache, '_fetch')
+    def test_temp_images_not_cleaned(self, mock_fetch, mock_rmtree):
+        def _fake_fetch(ctx, uuid, tmp_path, *args):
             with open(tmp_path, 'w') as fp:
                 fp.write("TEST" * 10)
 
@@ -252,16 +253,16 @@ class TestImageCacheCleanUp(base.TestCase):
             self.cache.clean_up()
             self.assertTrue(os.path.exists(tmp_path))
 
-        mock_fetch_to_raw.side_effect = _fake_fetch_to_raw
+        mock_fetch.side_effect = _fake_fetch
         master_path = os.path.join(self.master_dir, 'uuid')
         dest_path = os.path.join(tempfile.mkdtemp(), 'dest')
         self.cache._download_image('uuid', master_path, dest_path)
         self.assertTrue(mock_rmtree.called)
 
     @mock.patch.object(utils, 'rmtree_without_raise')
-    @mock.patch.object(image_cache, '_fetch_to_raw')
-    def test_temp_dir_exception(self, mock_fetch_to_raw, mock_rmtree):
-        mock_fetch_to_raw.side_effect = exception.IronicException
+    @mock.patch.object(image_cache, '_fetch')
+    def test_temp_dir_exception(self, mock_fetch, mock_rmtree):
+        mock_fetch.side_effect = exception.IronicException
         self.assertRaises(exception.IronicException,
                           self.cache._download_image,
                           'uuid', 'fake', 'fake')
@@ -477,11 +478,12 @@ class TestFetchCleanup(base.TestCase):
     @mock.patch.object(images, 'fetch')
     @mock.patch.object(images, 'image_to_raw')
     @mock.patch.object(image_cache, '_clean_up_caches')
-    def test__fetch_to_raw(self, mock_clean, mock_raw, mock_fetch, mock_size):
+    def test__fetch(self, mock_clean, mock_raw, mock_fetch, mock_size):
         mock_size.return_value = 100
-        image_cache._fetch_to_raw('fake', 'fake-uuid', '/foo/bar')
+        image_cache._fetch('fake', 'fake-uuid', '/foo/bar', force_raw=True)
         mock_fetch.assert_called_once_with('fake', 'fake-uuid',
-                                           '/foo/bar.part', None)
+                                           '/foo/bar.part', None,
+                                           force_raw=False)
         mock_clean.assert_called_once_with('/foo', 100)
         mock_raw.assert_called_once_with('fake-uuid', '/foo/bar',
                                          '/foo/bar.part')

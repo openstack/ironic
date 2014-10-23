@@ -28,6 +28,7 @@ from ironic.common import disk_partitioner
 from ironic.common import exception
 from ironic.common.i18n import _
 from ironic.common.i18n import _LE
+from ironic.common import images
 from ironic.common import utils
 from ironic.drivers.modules import image_cache
 from ironic.openstack.common import log as logging
@@ -200,10 +201,13 @@ def get_dev(address, port, iqn, lun):
     return dev
 
 
-def get_image_mb(image_path):
+def get_image_mb(image_path, virtual_size=True):
     """Get size of an image in Megabyte."""
     mb = 1024 * 1024
-    image_byte = os.path.getsize(image_path)
+    if not virtual_size:
+        image_byte = os.path.getsize(image_path)
+    else:
+        image_byte = images.converted_size(image_path)
     # round up size to MB
     image_mb = int((image_byte + mb - 1) / mb)
     return image_mb
@@ -407,12 +411,14 @@ def check_for_missing_params(info_dict, error_msg, param_prefix=''):
                     {'error_msg': error_msg, 'missing_info': missing_info})
 
 
-def fetch_images(ctx, cache, images_info):
+def fetch_images(ctx, cache, images_info, force_raw=True):
     """Check for available disk space and fetch images using ImageCache.
 
     :param ctx: context
     :param cache: ImageCache instance to use for fetching
     :param images_info: list of tuples (image uuid, destination path)
+    :param force_raw: boolean value, whether to convert the image to raw
+                      format
     :raises: InstanceDeployFailure if unable to find enough disk space
     """
 
@@ -426,4 +432,4 @@ def fetch_images(ctx, cache, images_info):
     # This is probably unavoidable, as we can't control other
     # (probably unrelated) processes
     for uuid, path in images_info:
-        cache.fetch_image(uuid, path, ctx=ctx)
+        cache.fetch_image(uuid, path, ctx=ctx, force_raw=force_raw)
