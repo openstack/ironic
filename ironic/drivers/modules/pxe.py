@@ -90,7 +90,6 @@ LOG = logging.getLogger(__name__)
 
 CONF = cfg.CONF
 CONF.register_opts(pxe_opts, group='pxe')
-CONF.import_opt('use_ipv6', 'ironic.netconf')
 
 
 REQUIRED_PROPERTIES = {

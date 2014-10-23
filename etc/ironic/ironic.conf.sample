@@ -192,9 +192,6 @@
 # IP address of this host. (string value)
 #my_ip=10.0.0.1
 
-# Use IPv6. (boolean value)
-#use_ipv6=false
-
 
 #
 # Options defined in ironic.api.app
