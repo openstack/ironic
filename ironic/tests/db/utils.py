@@ -175,8 +175,8 @@ def get_test_node(**kw):
         'maintenance_reason': kw.get('maintenance_reason'),
         'console_enabled': kw.get('console_enabled', False),
         'extra': kw.get('extra', {}),
-        'updated_at': kw.get('created_at'),
-        'created_at': kw.get('updated_at'),
+        'updated_at': kw.get('updated_at'),
+        'created_at': kw.get('created_at'),
     }
 
 
