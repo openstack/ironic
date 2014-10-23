@@ -20,7 +20,6 @@ from oslo.config import cfg
 from ironic.common import config
 
 CONF = cfg.CONF
-CONF.import_opt('use_ipv6', 'ironic.netconf')
 CONF.import_opt('host', 'ironic.common.service')
 
 
@@ -36,7 +35,6 @@ class ConfFixture(fixtures.Fixture):
         self.conf.set_default('host', 'fake-mini')
         self.conf.set_default('connection', "sqlite://", group='database')
         self.conf.set_default('sqlite_synchronous', False, group='database')
-        self.conf.set_default('use_ipv6', True)
         self.conf.set_default('verbose', True)
         config.parse_args([], default_config_files=[])
         self.addCleanup(self.conf.reset)
