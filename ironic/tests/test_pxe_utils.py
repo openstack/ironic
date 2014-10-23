@@ -260,8 +260,23 @@ class TestPXEUtils(db_base.DbTestCase):
         self.config(http_url='http://192.0.3.2:1234', group='pxe')
         self.config(ipxe_boot_script='/test/boot.ipxe', group='pxe')
 
+        self.config(dhcp_provider='isc', group='dhcp')
         expected_boot_script_url = 'http://192.0.3.2:1234/boot.ipxe'
         expected_info = [{'opt_name': '!175,bootfile-name',
+                          'opt_value': 'fake-bootfile'},
+                         {'opt_name': 'server-ip-address',
+                          'opt_value': '192.0.2.1'},
+                         {'opt_name': 'tftp-server',
+                          'opt_value': '192.0.2.1'},
+                         {'opt_name': 'bootfile-name',
+                          'opt_value': expected_boot_script_url}]
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            self.assertEqual(sorted(expected_info),
+                             sorted(pxe_utils.dhcp_options_for_instance(task)))
+
+        self.config(dhcp_provider='neutron', group='dhcp')
+        expected_boot_script_url = 'http://192.0.3.2:1234/boot.ipxe'
+        expected_info = [{'opt_name': 'tag:!ipxe,bootfile-name',
                           'opt_value': 'fake-bootfile'},
                          {'opt_name': 'server-ip-address',
                           'opt_value': '192.0.2.1'},
