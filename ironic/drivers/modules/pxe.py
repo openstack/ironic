@@ -29,6 +29,7 @@ from ironic.common.i18n import _LE
 from ironic.common.i18n import _LI
 from ironic.common.i18n import _LW
 from ironic.common import image_service as service
+from ironic.common import keystone
 from ironic.common import paths
 from ironic.common import pxe_utils
 from ironic.common import states
@@ -90,6 +91,8 @@ LOG = logging.getLogger(__name__)
 
 CONF = cfg.CONF
 CONF.register_opts(pxe_opts, group='pxe')
+CONF.import_opt('deploy_callback_timeout', 'ironic.conductor.manager',
+                group='conductor')
 
 
 REQUIRED_PROPERTIES = {
@@ -249,6 +252,9 @@ def _create_token_file(task):
     token_file_path = _get_token_file_path(task.node.uuid)
     token = task.context.auth_token
     if token:
+        timeout = CONF.conductor.deploy_callback_timeout
+        if timeout and keystone.token_expires_soon(token, timeout):
+            token = keystone.get_admin_auth_token()
         utils.write_to_file(token_file_path, token)
     else:
         utils.unlink_without_raise(token_file_path)

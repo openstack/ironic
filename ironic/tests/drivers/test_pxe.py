@@ -482,6 +482,7 @@ class PXEDriverTestCase(db_base.DbTestCase):
             mock_cache_r_k.assert_called_once_with(self.context,
                                                    task.node, None)
 
+    @mock.patch.object(keystone, 'token_expires_soon')
     @mock.patch.object(deploy_utils, 'get_image_mb')
     @mock.patch.object(iscsi_deploy, '_get_image_file_path')
     @mock.patch.object(iscsi_deploy, 'cache_instance_image')
@@ -490,10 +491,12 @@ class PXEDriverTestCase(db_base.DbTestCase):
     @mock.patch.object(manager_utils, 'node_set_boot_device')
     def test_deploy(self, mock_node_set_boot, mock_node_power_action,
                     mock_update_dhcp, mock_cache_instance_image,
-                    mock_get_image_file_path, mock_get_image_mb):
+                    mock_get_image_file_path, mock_get_image_mb, mock_expire):
         fake_img_path = '/test/path/test.img'
         mock_get_image_file_path.return_value = fake_img_path
         mock_get_image_mb.return_value = 1
+        mock_expire.return_value = False
+        self.config(deploy_callback_timeout=600, group='conductor')
 
         with task_manager.acquire(self.context,
                                   self.node.uuid, shared=False) as task:
@@ -505,6 +508,7 @@ class PXEDriverTestCase(db_base.DbTestCase):
             mock_get_image_file_path.assert_called_once_with(task.node.uuid)
             mock_get_image_mb.assert_called_once_with(fake_img_path)
             mock_update_dhcp.assert_called_once_with(task, dhcp_opts)
+            mock_expire.assert_called_once_with(self.context.auth_token, 600)
             mock_node_set_boot.assert_called_once_with(task, 'pxe',
                                                        persistent=True)
             mock_node_power_action.assert_called_once_with(task, states.REBOOT)
@@ -513,6 +517,35 @@ class PXEDriverTestCase(db_base.DbTestCase):
             t_path = pxe._get_token_file_path(self.node.uuid)
             token = open(t_path, 'r').read()
             self.assertEqual(self.context.auth_token, token)
+
+    @mock.patch.object(keystone, 'get_admin_auth_token')
+    @mock.patch.object(keystone, 'token_expires_soon')
+    @mock.patch.object(deploy_utils, 'get_image_mb')
+    @mock.patch.object(iscsi_deploy, '_get_image_file_path')
+    @mock.patch.object(iscsi_deploy, 'cache_instance_image')
+    @mock.patch.object(dhcp_factory.DHCPFactory, 'update_dhcp')
+    @mock.patch.object(manager_utils, 'node_power_action')
+    @mock.patch.object(manager_utils, 'node_set_boot_device')
+    def test_deploy_token_near_expiration(self, mock_node_set_boot,
+                    mock_node_power_action, mock_update_dhcp,
+                    mock_cache_instance_image, mock_get_image_file_path,
+                    mock_get_image_mb, mock_expire, mock_admin_token):
+        mock_get_image_mb.return_value = 1
+        mock_expire.return_value = True
+        new_token = 'new_admin_token'
+        mock_admin_token.return_value = new_token
+        self.config(deploy_callback_timeout=600, group='conductor')
+
+        with task_manager.acquire(self.context,
+                                  self.node.uuid, shared=False) as task:
+            task.driver.deploy.deploy(task)
+
+            mock_expire.assert_called_once_with(self.context.auth_token, 600)
+            mock_admin_token.assert_called_once_with()
+            # ensure token file created with new token
+            t_path = pxe._get_token_file_path(self.node.uuid)
+            token = open(t_path, 'r').read()
+            self.assertEqual(new_token, token)
 
     @mock.patch.object(deploy_utils, 'get_image_mb')
     @mock.patch.object(iscsi_deploy, '_get_image_file_path')
