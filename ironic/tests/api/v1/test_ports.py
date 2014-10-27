@@ -89,7 +89,6 @@ class TestListPorts(base.FunctionalTest):
         ports = []
         for id_ in range(5):
             port = obj_utils.create_test_port(self.context,
-                                            id=id_,
                                             node_id=self.node.id,
                                             uuid=utils.generate_uuid(),
                                             address='52:54:00:cf:2d:3%s' % id_)
@@ -103,7 +102,6 @@ class TestListPorts(base.FunctionalTest):
     def test_links(self):
         uuid = utils.generate_uuid()
         obj_utils.create_test_port(self.context,
-                                   id=1,
                                    uuid=uuid,
                                    node_id=self.node.id)
         data = self.get_json('/ports/%s' % uuid)
@@ -118,7 +116,6 @@ class TestListPorts(base.FunctionalTest):
         ports = []
         for id_ in range(5):
             port = obj_utils.create_test_port(self.context,
-                                            id=id_,
                                             node_id=self.node.id,
                                             uuid=utils.generate_uuid(),
                                             address='52:54:00:cf:2d:3%s' % id_)
@@ -134,7 +131,6 @@ class TestListPorts(base.FunctionalTest):
         ports = []
         for id_ in range(5):
             port = obj_utils.create_test_port(self.context,
-                                            id=id_,
                                             node_id=self.node.id,
                                             uuid=utils.generate_uuid(),
                                             address='52:54:00:cf:2d:3%s' % id_)
@@ -149,7 +145,6 @@ class TestListPorts(base.FunctionalTest):
         address_template = "aa:bb:cc:dd:ee:f%d"
         for id_ in range(3):
             obj_utils.create_test_port(self.context,
-                                       id=id_,
                                        node_id=self.node.id,
                                        uuid=utils.generate_uuid(),
                                        address=address_template % id_)

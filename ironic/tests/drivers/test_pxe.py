@@ -359,7 +359,7 @@ class PXEDriverTestCase(db_base.DbTestCase):
     def test_validate_fail_no_port(self):
         new_node = obj_utils.create_test_node(
                 self.context,
-                id=321, uuid='aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee',
+                uuid='aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee',
                 driver='fake_pxe', instance_info=INST_INFO_DICT,
                 driver_info=DRV_INFO_DICT)
         with task_manager.acquire(self.context, new_node.uuid,

@@ -25,6 +25,7 @@ def get_test_node(ctxt, **kw):
     that a create() could be used to commit it to the DB.
     """
     db_node = db_utils.get_test_node(**kw)
+    # Let DB generate ID if it isn't specified explicitly
     if 'id' not in kw:
         del db_node['id']
     node = objects.Node(ctxt)
@@ -51,6 +52,9 @@ def get_test_port(ctxt, **kw):
     that a create() could be used to commit it to the DB.
     """
     db_port = db_utils.get_test_port(**kw)
+    # Let DB generate ID if it isn't specified explicitly
+    if 'id' not in kw:
+        del db_port['id']
     port = objects.Port(ctxt)
     for key in db_port:
         setattr(port, key, db_port[key])

@@ -195,7 +195,7 @@ class TestListNodes(base.FunctionalTest):
         node = obj_utils.create_test_node(self.context)
 
         for id_ in range(2):
-            obj_utils.create_test_port(self.context, id=id_, node_id=node.id,
+            obj_utils.create_test_port(self.context, node_id=node.id,
                                        uuid=utils.generate_uuid(),
                                        address='52:54:00:cf:2d:3%s' % id_)
 
@@ -615,7 +615,7 @@ class TestPatch(base.FunctionalTest):
         self.assertTrue(response.json['error_message'])
 
     def test_update_state_in_progress(self):
-        node = obj_utils.create_test_node(self.context, id=99,
+        node = obj_utils.create_test_node(self.context,
                                           uuid=utils.generate_uuid(),
                                           target_power_state=states.POWER_OFF)
         response = self.patch_json('/nodes/%s' % node.uuid,

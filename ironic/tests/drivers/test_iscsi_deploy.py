@@ -108,10 +108,10 @@ class IscsiDeployValidateParametersTestCase(db_base.DbTestCase):
 
     def test_parse_instance_info_valid_preserve_ephemeral_true(self):
         info = dict(INST_INFO_DICT)
-        for _id, opt in enumerate(['true', 'TRUE', 'True', 't',
-                                   'on', 'yes', 'y', '1']):
+        for opt in ['true', 'TRUE', 'True', 't',
+                    'on', 'yes', 'y', '1']:
             info['preserve_ephemeral'] = opt
-            node = obj_utils.create_test_node(self.context, id=_id,
+            node = obj_utils.create_test_node(self.context,
                                               uuid=utils.generate_uuid(),
                                               instance_info=info)
             data = iscsi_deploy.parse_instance_info(node)
@@ -119,10 +119,10 @@ class IscsiDeployValidateParametersTestCase(db_base.DbTestCase):
 
     def test_parse_instance_info_valid_preserve_ephemeral_false(self):
         info = dict(INST_INFO_DICT)
-        for _id, opt in enumerate(['false', 'FALSE', 'False', 'f',
-                                   'off', 'no', 'n', '0']):
+        for opt in ['false', 'FALSE', 'False', 'f',
+                    'off', 'no', 'n', '0']:
             info['preserve_ephemeral'] = opt
-            node = obj_utils.create_test_node(self.context, id=_id,
+            node = obj_utils.create_test_node(self.context,
                                               uuid=utils.generate_uuid(),
                                               instance_info=info)
             data = iscsi_deploy.parse_instance_info(node)

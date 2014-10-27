@@ -190,6 +190,7 @@ def create_test_node(**kw):
 
     """
     node = get_test_node(**kw)
+    # Let DB generate ID if it isn't specified explicitly
     if 'id' not in kw:
         del node['id']
     dbapi = db_api.get_instance()
@@ -206,6 +207,23 @@ def get_test_port(**kw):
         'created_at': kw.get('created_at'),
         'updated_at': kw.get('updated_at'),
     }
+
+
+def create_test_port(**kw):
+    """Create test port entry in DB and return Port DB object.
+
+    Function to be used to create test Port objects in the database.
+
+    :param kw: kwargs with overriding values for port's attributes.
+    :returns: Test Port DB object.
+
+    """
+    port = get_test_port(**kw)
+    # Let DB generate ID if it isn't specified explicitly
+    if 'id' not in kw:
+        del port['id']
+    dbapi = db_api.get_instance()
+    return dbapi.create_port(port)
 
 
 def get_test_chassis(**kw):

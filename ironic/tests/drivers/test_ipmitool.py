@@ -1312,7 +1312,7 @@ class IPMIToolDriverTestCase(db_base.DbTestCase):
 
     def test_management_interface_validate_fail(self):
         # Missing IPMI driver_info information
-        node = obj_utils.create_test_node(self.context, id=2,
+        node = obj_utils.create_test_node(self.context,
                                           uuid=utils.generate_uuid(),
                                           driver='fake_ipmitool')
         with task_manager.acquire(self.context, node.uuid) as task:
