@@ -89,7 +89,7 @@ class Port(base.APIBase):
 
     def __init__(self, **kwargs):
         self.fields = []
-        fields = list(objects.Port.fields.keys())
+        fields = list(objects.Port.fields)
         # NOTE(lucasagomes): node_uuid is not part of objects.Port.fields
         #                    because it's an API-only attribute
         fields.append('node_uuid')
@@ -98,14 +98,14 @@ class Port(base.APIBase):
             if not hasattr(self, field):
                 continue
             self.fields.append(field)
-            setattr(self, field, kwargs.get(field))
+            setattr(self, field, kwargs.get(field, wtypes.Unset))
 
         # NOTE(lucasagomes): node_id is an attribute created on-the-fly
         # by _set_node_uuid(), it needs to be present in the fields so
         # that as_dict() will contain node_id field when converting it
         # before saving it in the database.
         self.fields.append('node_id')
-        setattr(self, 'node_uuid', kwargs.get('node_id'))
+        setattr(self, 'node_uuid', kwargs.get('node_id', wtypes.Unset))
 
     @classmethod
     def _convert_with_links(cls, port, url, expand=True):
@@ -329,6 +329,8 @@ class PortsController(rest.RestController):
             except AttributeError:
                 # Ignore fields that aren't exposed in the API
                 continue
+            if patch_val == wtypes.Unset:
+                patch_val = None
             if rpc_port[field] != patch_val:
                 rpc_port[field] = patch_val
 

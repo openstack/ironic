@@ -21,14 +21,26 @@ import mock
 from oslo.config import cfg
 from oslo.utils import timeutils
 from six.moves.urllib import parse as urlparse
+from wsme import types as wtypes
 
+from ironic.api.controllers.v1 import chassis as api_chassis
 from ironic.common import utils
-from ironic.tests.api import base
+from ironic.tests.api import base as api_base
 from ironic.tests.api import utils as apiutils
+from ironic.tests import base
 from ironic.tests.objects import utils as obj_utils
 
 
-class TestListChassis(base.FunctionalTest):
+class TestChassisObject(base.TestCase):
+
+    def test_chassis_init(self):
+        chassis_dict = apiutils.chassis_post_data()
+        del chassis_dict['description']
+        chassis = api_chassis.Chassis(**chassis_dict)
+        self.assertEqual(wtypes.Unset, chassis.description)
+
+
+class TestListChassis(api_base.FunctionalTest):
 
     def test_empty(self):
         data = self.get_json('/chassis')
@@ -137,7 +149,7 @@ class TestListChassis(base.FunctionalTest):
         self.assertEqual(404, response.status_int)
 
 
-class TestPatch(base.FunctionalTest):
+class TestPatch(api_base.FunctionalTest):
 
     def setUp(self):
         super(TestPatch, self).setUp()
@@ -287,7 +299,7 @@ class TestPatch(base.FunctionalTest):
         self.assertTrue(response.json['error_message'])
 
 
-class TestPost(base.FunctionalTest):
+class TestPost(api_base.FunctionalTest):
 
     @mock.patch.object(timeutils, 'utcnow')
     def test_create_chassis(self, mock_utcnow):
@@ -358,7 +370,7 @@ class TestPost(base.FunctionalTest):
         self.assertEqual(descr, result['description'])
 
 
-class TestDelete(base.FunctionalTest):
+class TestDelete(api_base.FunctionalTest):
 
     def test_delete_chassis(self):
         chassis = obj_utils.create_test_chassis(self.context)

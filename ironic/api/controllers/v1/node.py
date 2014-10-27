@@ -442,7 +442,7 @@ class Node(base.APIBase):
 
     def __init__(self, **kwargs):
         self.fields = []
-        fields = objects.Node.fields.keys()
+        fields = list(objects.Node.fields)
         # NOTE(lucasagomes): chassis_uuid is not part of objects.Node.fields
         # because it's an API-only attribute.
         fields.append('chassis_uuid')
@@ -451,14 +451,14 @@ class Node(base.APIBase):
             if not hasattr(self, k):
                 continue
             self.fields.append(k)
-            setattr(self, k, kwargs.get(k))
+            setattr(self, k, kwargs.get(k, wtypes.Unset))
 
         # NOTE(lucasagomes): chassis_id is an attribute created on-the-fly
         # by _set_chassis_uuid(), it needs to be present in the fields so
         # that as_dict() will contain chassis_id field when converting it
         # before saving it in the database.
         self.fields.append('chassis_id')
-        setattr(self, 'chassis_uuid', kwargs.get('chassis_id'))
+        setattr(self, 'chassis_uuid', kwargs.get('chassis_id', wtypes.Unset))
 
     @classmethod
     def _convert_with_links(cls, node, url, expand=True):
@@ -841,6 +841,8 @@ class NodesController(rest.RestController):
             except AttributeError:
                 # Ignore fields that aren't exposed in the API
                 continue
+            if patch_val == wtypes.Unset:
+                patch_val = None
             if rpc_node[field] != patch_val:
                 rpc_node[field] = patch_val
 
