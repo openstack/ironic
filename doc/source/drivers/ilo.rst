@@ -81,10 +81,11 @@ It has been tested with the following servers:
 
 * ProLiant DL380e Gen8
 * ProLiant DL380e Gen8
-* ProLiant DL580 Gen8
-* ProLiant DL180 Gen9
+* ProLiant DL580 Gen8 UEFI
+* ProLiant DL180 Gen9 UEFI
 
-For more up-to-date information, check the iLO driver wiki [6]_.
+For more up-to-date information on server platform support info, refer
+iLO driver wiki [6]_.
 
 Features
 ~~~~~~~~
@@ -239,45 +240,14 @@ Nodes configured for iLO driver should have the ``driver`` property set to
 - ``console_port``: (optional) Node's UDP port for console access. Any unused
   port on the Ironic conductor node may be used.
 
+For example, you could run a similar command like below to enroll the Proliant
+node::
+
+  ironic node-create -d iscsi_ilo -i ilo_address=<ilo-ip-address> -i ilo_username=<ilo-username> -i ilo_password=<ilo-password> -i ilo_deploy_iso=<glance-uuid-of-deploy-iso>
 
 Boot modes
 ~~~~~~~~~~
-``iscsi_ilo`` driver supports automatic detection and setting of boot mode
-(Legacy BIOS or UEFI).
-
-* When no boot mode setting is provided, ``iscsi_ilo`` driver preserves the
-  current boot mode on the deployed instance.
-* A requirement of a specific boot mode may be provided by adding
-  ``boot_mode:bios`` or ``boot_mode:uefi`` to ``capabilities`` property within
-  the ``properties`` field of an Ironic node. Then ``iscsi_ilo`` driver will
-  deploy and configure the instance in the appropriate boot mode.
-
-For example, to make a Proliant baremetal node boot in UEFI mode, run the
-following command::
-
-   ironic node-update <node-id> add properties/capabilities='boot_mode:uefi'
-
-**NOTES**:
-
-* We recommend setting the ``boot_mode`` property on systems that support both
-  UEFI and legacy modes if user wants facility in Nova to choose a baremetal
-  node with appropriate boot mode. This is for ProLiant DL580 Gen8 and Gen9
-  systems.
-* ``iscsi_ilo`` driver automatically set boot mode from BIOS to UEFI, if the
-  requested boot mode in nova boot is UEFI. However, users will need to
-  pre-configure boot mode to Legacy on DL580 Gen8 and Gen9 servers if they
-  want to deploy the node in legacy mode.
-* Currently for UEFI boot mode, automatic creation of boot ISO doesn't
-  work. The boot ISO for the deploy image needs to be built separately and the
-  deploy image's ``boot_iso`` property in Glance should contain the Glance UUID
-  of the boot ISO. For instructions on building boot ISO, refer iLO driver wiki
-  [6]_.
-* From nova, specific boot mode may be requested by using the
-  ``ComputeCapabilitesFilter``. For example, it can be set in a flavor like
-  below::
-
-   nova flavor-key ironic-test-3 set capabilities:boot_mode="uefi"
-   nova boot --flavor ironic-test-3 --image test-image instance-1
+Refer boot_mode_support_ for more information.
 
 agent_ilo driver
 ^^^^^^^^^^^^^^^^
@@ -302,10 +272,9 @@ It has been tested with the following servers:
 
 * ProLiant DL380e Gen8
 * ProLiant DL380e Gen8
-* ProLiant DL580 Gen8 legacy mode
-* ProLiant DL180 Gen9
 
-For more up-to-date information, check the iLO driver wiki [6]_.
+This driver supports only Gen 8 Class 0 systems (BIOS only).  For
+more up-to-date information, check the iLO driver wiki [6]_.
 
 Features
 ~~~~~~~~
@@ -447,6 +416,10 @@ Nodes configured for iLO driver should have the ``driver`` property set to
 - ``console_port``: (optional) Node's UDP port for console access. Any unused
   port on the Ironic conductor node may be used.
 
+For example, you could run a similar command like below to enroll the Proliant
+node::
+
+  ironic node-create -d agent_ilo -i ilo_address=<ilo-ip-address> -i ilo_username=<ilo-username> -i ilo_password=<ilo-password> -i ilo_deploy_iso=<glance-uuid-of-deploy-iso>
 
 pxe_ilo driver
 ^^^^^^^^^^^^^^
@@ -470,8 +443,11 @@ It has been tested with the following servers:
 
 * ProLiant DL380e Gen8
 * ProLiant DL380e Gen8
-* ProLiant DL580 Gen8
-* ProLiant DL180 Gen9
+* ProLiant DL580 Gen8 (BIOS/UEFI)
+
+The driver doesn't work on BIOS mode on DL580 Gen8 and Gen9 systems due to
+an issue in the firmware.  For information on this, refer iLO driver
+wiki [6]_.
 
 For more up-to-date information, check the iLO driver wiki [6]_.
 
@@ -527,36 +503,72 @@ Nodes configured for iLO driver should have the ``driver`` property set to
 - ``console_port``: (optional) Node's UDP port for console access. Any unused
   port on the Ironic conductor node may be used.
 
+For example, you could run a similar command like below to enroll the Proliant
+node::
+
+  ironic node-create -d pxe_ilo ilo_address=<ilo-ip-address> -i ilo_username=<ilo-username> -i ilo_password=<ilo-password> -i pxe_deploy_kernel=<glance-uuid-of-pxe-deploy-kernel> pxe_deploy_ramdisk=<glance-uuid-of-deploy-ramdisk>
+
 Boot modes
 ~~~~~~~~~~
-``pxe_ilo`` driver supports automatic detection and setting of boot mode
-(Legacy BIOS or UEFI).
+Refer boot_mode_support_ for more information.
 
-* When no boot mode setting is provided, ``pxe_ilo`` driver preserves the
-  current boot mode on the deployed instance.
-* A requirement of a specific boot mode may be provided by adding
-  ``boot_mode:bios`` or ``boot_mode:uefi`` to ``capabilities`` property within
-  the ``properties`` field of an Ironic node. Then ``pxe_ilo`` driver will
-  deploy and configure the instance in the appropriate boot mode.::
+Functionalities across drivers
+==============================
 
-   ironic node-update <NODE-ID> add properties/capabilities='boot_mode:uefi'
+.. _boot_mode_support:
 
-**NOTES**:
+Boot mode support
+^^^^^^^^^^^^^^^^^
+The following drivers support automatic detection and setting of boot
+mode (Legacy BIOS or UEFI).
 
-* We recommend setting the ``boot_mode`` property on systems that support both
-  UEFI and legacy modes if user wants facility in Nova to choose a baremetal
-  node with appropriate boot mode. This is for ProLiant DL580 Gen8 and Gen9
-  systems.
-* ``pxe_ilo`` driver automatically set boot mode from BIOS to UEFI, if the
-  requested boot mode in nova boot is UEFI. However, users will need to
-  pre-configure boot mode to Legacy on DL580 Gen8 and Gen9 servers if they
-  want to deploy the node in legacy mode.
-* From nova, specific boot mode may be requested by using the
-  ``ComputeCapabilitesFilter``. For example, it can be set in a flavor like
-  below::
+* ``pxe_ilo``
+* ``iscsi_ilo``
 
-   nova flavor-key ironic-test-3 set capabilities:boot_mode="uefi"
-   nova boot --flavor ironic-test-3 --image test-image instance-1
+The boot modes can be configured in Ironic in the following way:
+
+* When boot mode capability is not configured, these drivers preserve the
+  current boot mode of the baremetal Proliant server. If operator/user
+  doesn't care about boot modes for servers, then the boot mode capability
+  need not be configured.
+
+* Only one boot mode (either ``uefi`` or ``bios``) can be configured for
+  the node.
+
+* If the operator wants a node to boot always in ``uefi`` mode or ``bios``
+  mode, then they may use ``capabilities`` parameter within ``properties``
+  field of an Ironic node.
+
+  To configure a node in ``uefi`` mode, then set ``capabilities`` as below::
+
+    ironic node-update <node-uuid> add properties/capabilities='boot_mode:uefi'
+
+  Nodes having ``boot_mode`` set to ``uefi`` may be requested by adding an
+  ``extra_spec`` to the Nova flavor::
+
+    nova flavor-key ironic-test-3 set capabilities:boot_mode="uefi"
+    nova boot --flavor ironic-test-3 --image test-image instance-1
+
+  If ``capabilities`` is used in ``extra_spec`` as above, Nova scheduler
+  (``ComputeCapabilitesFilter``) will match only Ironic nodes which have
+  the ``boot_mode`` set appropriately in ``properties/capabilities``. It will
+  filter out rest of the nodes.
+
+  The above facility for matching in Nova can be used in heterogenous
+  environments where there is a mix of ``uefi`` and ``bios`` machines, and
+  operator wants to provide a choice to the user regarding boot modes.  If the
+  flavor doesn't contain ``boot_mode`` then Nova scheduler will not consider
+  boot mode as a placement criteria, hence user may get either a BIOS or UEFI
+  machine that matches with user specified flavors.
+
+
+Currently for UEFI boot mode, automatic creation of boot ISO doesn't
+work. The boot ISO for the deploy image needs to be built separately and the
+deploy image's ``boot_iso`` property in Glance should contain the Glance UUID
+of the boot ISO. For building boot ISO, add ``iso`` element to the
+diskimage-builder command to build the image.  For example::
+
+  disk-image-create ubuntu baremetal iso
 
 
 References
