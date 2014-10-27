@@ -50,25 +50,25 @@ class V1(base.APIBase):
     """The representation of the version 1 of the API."""
 
     id = wtypes.text
-    "The ID of the version, also acts as the release number"
+    """The ID of the version, also acts as the release number"""
 
     media_types = [MediaType]
-    "An array of supported media types for this version"
+    """An array of supported media types for this version"""
 
     links = [link.Link]
-    "Links that point to a specific URL for this version and documentation"
+    """Links that point to a specific URL for this version and documentation"""
 
     chassis = [link.Link]
-    "Links to the chassis resource"
+    """Links to the chassis resource"""
 
     nodes = [link.Link]
-    "Links to the nodes resource"
+    """Links to the nodes resource"""
 
     ports = [link.Link]
-    "Links to the ports resource"
+    """Links to the ports resource"""
 
     drivers = [link.Link]
-    "Links to the drivers resource"
+    """Links to the drivers resource"""
 
     @classmethod
     def convert(self):

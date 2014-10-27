@@ -72,20 +72,20 @@ class Port(base.APIBase):
             self._node_uuid = wtypes.Unset
 
     uuid = types.uuid
-    "Unique UUID for this port"
+    """Unique UUID for this port"""
 
     address = wsme.wsattr(types.macaddress, mandatory=True)
-    "MAC Address for this port"
+    """MAC Address for this port"""
 
     extra = {wtypes.text: types.MultiType(wtypes.text, six.integer_types)}
-    "This port's meta data"
+    """This port's meta data"""
 
     node_uuid = wsme.wsproperty(types.uuid, _get_node_uuid, _set_node_uuid,
                                 mandatory=True)
-    "The UUID of the node this port belongs to"
+    """The UUID of the node this port belongs to"""
 
     links = wsme.wsattr([link.Link], readonly=True)
-    "A list containing a self link and associated port links"
+    """A list containing a self link and associated port links"""
 
     def __init__(self, **kwargs):
         self.fields = []
@@ -145,7 +145,7 @@ class PortCollection(collection.Collection):
     """API representation of a collection of ports."""
 
     ports = [Port]
-    "A list containing ports objects"
+    """A list containing ports objects"""
 
     def __init__(self, **kwargs):
         self._type = 'ports'

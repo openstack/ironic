@@ -22,13 +22,13 @@ from ironic.api.controllers import link
 class State(base.APIBase):
 
     current = wtypes.text
-    "The current state"
+    """The current state"""
 
     target = wtypes.text
-    "The user modified desired state"
+    """The user modified desired state"""
 
     available = [wtypes.text]
-    "A list of available states it is able to transition to"
+    """A list of available states it is able to transition to"""
 
     links = [link.Link]
-    "A list containing a self link and associated state links"
+    """A list containing a self link and associated state links"""
