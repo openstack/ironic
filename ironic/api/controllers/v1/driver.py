@@ -40,13 +40,13 @@ class Driver(base.APIBase):
     """API representation of a driver."""
 
     name = wtypes.text
-    "The name of the driver"
+    """The name of the driver"""
 
     hosts = [wtypes.text]
-    "A list of active conductors that support this driver"
+    """A list of active conductors that support this driver"""
 
     links = wsme.wsattr([link.Link], readonly=True)
-    "A list containing self and bookmark links"
+    """A list containing self and bookmark links"""
 
     @classmethod
     def convert_with_links(cls, name, hosts):
@@ -75,7 +75,7 @@ class DriverList(base.APIBase):
     """API representation of a list of drivers."""
 
     drivers = [Driver]
-    "A list containing drivers objects"
+    """A list containing drivers objects"""
 
     @classmethod
     def convert_with_links(cls, drivers):

@@ -45,19 +45,19 @@ class Chassis(base.APIBase):
     """
 
     uuid = types.uuid
-    "The UUID of the chassis"
+    """The UUID of the chassis"""
 
     description = wtypes.text
-    "The description of the chassis"
+    """The description of the chassis"""
 
     extra = {wtypes.text: types.MultiType(wtypes.text, six.integer_types)}
-    "The metadata of the chassis"
+    """The metadata of the chassis"""
 
     links = wsme.wsattr([link.Link], readonly=True)
-    "A list containing a self link and associated chassis links"
+    """A list containing a self link and associated chassis links"""
 
     nodes = wsme.wsattr([link.Link], readonly=True)
-    "Links to the collection of nodes contained in this chassis"
+    """Links to the collection of nodes contained in this chassis"""
 
     def __init__(self, **kwargs):
         self.fields = []
@@ -113,7 +113,7 @@ class ChassisCollection(collection.Collection):
     """API representation of a collection of chassis."""
 
     chassis = [Chassis]
-    "A list containing chassis objects"
+    """A list containing chassis objects"""
 
     def __init__(self, **kwargs):
         self._type = 'chassis'
@@ -139,7 +139,7 @@ class ChassisController(rest.RestController):
     """REST controller for Chassis."""
 
     nodes = node.NodesController()
-    "Expose nodes as a sub-element of chassis"
+    """Expose nodes as a sub-element of chassis"""
 
     # Set the flag to indicate that the requests to this resource are
     # coming from a top-level resource

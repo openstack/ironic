@@ -137,19 +137,19 @@ class BootDeviceController(rest.RestController):
 class NodeManagementController(rest.RestController):
 
     boot_device = BootDeviceController()
-    "Expose boot_device as a sub-element of management"
+    """Expose boot_device as a sub-element of management"""
 
 
 class ConsoleInfo(base.APIBase):
     """API representation of the console information for a node."""
 
     console_enabled = types.boolean
-    "The console state: if the console is enabled or not."
+    """The console state: if the console is enabled or not."""
 
     console_info = {wtypes.text: types.MultiType(wtypes.text,
                                                  six.integer_types)}
-    "The console information. It typically includes the url to access the"
-    "console and the type of the application that hosts the console."
+    """The console information. It typically includes the url to access the
+    console and the type of the application that hosts the console."""
 
     @classmethod
     def sample(cls):
@@ -242,7 +242,7 @@ class NodeStatesController(rest.RestController):
     }
 
     console = NodeConsoleController()
-    "Expose console as a sub-element of states"
+    """Expose console as a sub-element of states"""
 
     @wsme_pecan.wsexpose(NodeStates, types.uuid)
     def get(self, node_uuid):
@@ -371,71 +371,73 @@ class Node(base.APIBase):
             self._chassis_uuid = wtypes.Unset
 
     uuid = types.uuid
-    "Unique UUID for this node"
+    """Unique UUID for this node"""
 
     instance_uuid = types.uuid
-    "The UUID of the instance in nova-compute"
+    """The UUID of the instance in nova-compute"""
 
     power_state = wsme.wsattr(wtypes.text, readonly=True)
-    "Represent the current (not transition) power state of the node"
+    """Represent the current (not transition) power state of the node"""
 
     target_power_state = wsme.wsattr(wtypes.text, readonly=True)
-    "The user modified desired power state of the node."
+    """The user modified desired power state of the node."""
 
     last_error = wsme.wsattr(wtypes.text, readonly=True)
-    "Any error from the most recent (last) asynchronous transaction that"
-    "started but failed to finish."
+    """Any error from the most recent (last) asynchronous transaction that
+    started but failed to finish."""
 
     provision_state = wsme.wsattr(wtypes.text, readonly=True)
-    "Represent the current (not transition) provision state of the node"
+    """Represent the current (not transition) provision state of the node"""
 
     reservation = wsme.wsattr(wtypes.text, readonly=True)
-    "The hostname of the conductor that holds an exclusive lock on the node."
+    """The hostname of the conductor that holds an exclusive lock on
+    the node."""
 
     provision_updated_at = datetime.datetime
-    "The UTC date and time of the last provision state change"
+    """The UTC date and time of the last provision state change"""
 
     maintenance = types.boolean
-    "Indicates whether the node is in maintenance mode."
+    """Indicates whether the node is in maintenance mode."""
 
     maintenance_reason = wsme.wsattr(wtypes.text, readonly=True)
-    "Indicates reason for putting a node in maintenance mode."
+    """Indicates reason for putting a node in maintenance mode."""
 
     target_provision_state = wsme.wsattr(wtypes.text, readonly=True)
-    "The user modified desired provision state of the node."
+    """The user modified desired provision state of the node."""
 
     console_enabled = types.boolean
-    "Indicates whether the console access is enabled or disabled on the node."
+    """Indicates whether the console access is enabled or disabled on
+    the node."""
 
     instance_info = {wtypes.text: types.MultiType(wtypes.text,
                                                   six.integer_types)}
-    "This node's instance info."
+    """This node's instance info."""
 
     driver = wsme.wsattr(wtypes.text, mandatory=True)
-    "The driver responsible for controlling the node"
+    """The driver responsible for controlling the node"""
 
     driver_info = {wtypes.text: types.MultiType(wtypes.text,
                                                 six.integer_types)}
-    "This node's driver configuration"
+    """This node's driver configuration"""
 
     extra = {wtypes.text: types.MultiType(wtypes.text, six.integer_types)}
-    "This node's meta data"
+    """This node's meta data"""
 
     # NOTE: properties should use a class to enforce required properties
     #       current list: arch, cpus, disk, ram, image
     properties = {wtypes.text: types.MultiType(wtypes.text,
                                                six.integer_types)}
-    "The physical characteristics of this node"
+    """The physical characteristics of this node"""
 
     chassis_uuid = wsme.wsproperty(types.uuid, _get_chassis_uuid,
                                    _set_chassis_uuid)
-    "The UUID of the chassis this node belongs"
+    """The UUID of the chassis this node belongs"""
 
     links = wsme.wsattr([link.Link], readonly=True)
-    "A list containing a self link and associated node links"
+    """A list containing a self link and associated node links"""
 
     ports = wsme.wsattr([link.Link], readonly=True)
-    "Links to the collection of ports on this node"
+    """Links to the collection of ports on this node"""
 
     # NOTE(deva): "conductor_affinity" shouldn't be presented on the
     #             API because it's an internal value. Don't add it here.
@@ -517,7 +519,7 @@ class NodeCollection(collection.Collection):
     """API representation of a collection of nodes."""
 
     nodes = [Node]
-    "A list containing nodes objects"
+    """A list containing nodes objects"""
 
     def __init__(self, **kwargs):
         self._type = 'nodes'
@@ -607,19 +609,20 @@ class NodesController(rest.RestController):
     """REST controller for Nodes."""
 
     states = NodeStatesController()
-    "Expose the state controller action as a sub-element of nodes"
+    """Expose the state controller action as a sub-element of nodes"""
 
     vendor_passthru = NodeVendorPassthruController()
-    "A resource used for vendors to expose a custom functionality in the API"
+    """A resource used for vendors to expose a custom functionality in
+    the API"""
 
     ports = port.PortsController()
-    "Expose ports as a sub-element of nodes"
+    """Expose ports as a sub-element of nodes"""
 
     management = NodeManagementController()
-    "Expose management as a sub-element of nodes"
+    """Expose management as a sub-element of nodes"""
 
     maintenance = NodeMaintenanceController()
-    "Expose maintenance as a sub-element of nodes"
+    """Expose maintenance as a sub-element of nodes"""
 
     # Set the flag to indicate that the requests to this resource are
     # coming from a top-level resource

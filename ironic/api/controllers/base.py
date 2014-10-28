@@ -21,10 +21,10 @@ from wsme import types as wtypes
 class APIBase(wtypes.Base):
 
     created_at = wsme.wsattr(datetime.datetime, readonly=True)
-    "The time in UTC at which the object is created"
+    """The time in UTC at which the object is created"""
 
     updated_at = wsme.wsattr(datetime.datetime, readonly=True)
-    "The time in UTC at which the object is updated"
+    """The time in UTC at which the object is updated"""
 
     def as_dict(self):
         """Render this object as a dict of its fields."""
