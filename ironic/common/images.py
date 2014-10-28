@@ -23,6 +23,7 @@ import os
 import shutil
 
 import jinja2
+from oslo.concurrency import processutils
 from oslo.config import cfg
 
 from ironic.common import exception
@@ -34,7 +35,6 @@ from ironic.common import utils
 from ironic.openstack.common import fileutils
 from ironic.openstack.common import imageutils
 from ironic.openstack.common import log as logging
-from ironic.openstack.common import processutils
 
 LOG = logging.getLogger(__name__)
 

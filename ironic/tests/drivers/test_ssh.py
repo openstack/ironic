@@ -27,12 +27,12 @@ from ironic.common import utils
 from ironic.conductor import task_manager
 from ironic.drivers.modules import ssh
 from ironic.drivers import utils as driver_utils
-from ironic.openstack.common import processutils
 from ironic.tests.conductor import utils as mgr_utils
 from ironic.tests.db import base as db_base
 from ironic.tests.db import utils as db_utils
 from ironic.tests.objects import utils as obj_utils
 
+from oslo.concurrency import processutils
 from oslo.config import cfg
 
 CONF = cfg.CONF

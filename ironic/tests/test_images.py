@@ -20,6 +20,7 @@ import os
 import shutil
 
 import mock
+from oslo.concurrency import processutils
 from oslo.config import cfg
 import six.moves.builtins as __builtin__
 
@@ -28,7 +29,6 @@ from ironic.common import image_service
 from ironic.common import images
 from ironic.common import utils
 from ironic.openstack.common import imageutils
-from ironic.openstack.common import processutils
 from ironic.tests import base
 
 CONF = cfg.CONF

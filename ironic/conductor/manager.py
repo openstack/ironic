@@ -47,6 +47,7 @@ import threading
 
 import eventlet
 from eventlet import greenpool
+from oslo.concurrency import lockutils
 from oslo.config import cfg
 from oslo.db import exception as db_exception
 from oslo import messaging
@@ -70,7 +71,6 @@ from ironic.conductor import utils
 from ironic.db import api as dbapi
 from ironic import objects
 from ironic.openstack.common import context as ironic_context
-from ironic.openstack.common import lockutils
 from ironic.openstack.common import log
 from ironic.openstack.common import periodic_task
 

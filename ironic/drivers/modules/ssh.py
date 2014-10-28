@@ -28,6 +28,7 @@ Currently supported environments are:
 
 import os
 
+from oslo.concurrency import processutils
 from oslo.config import cfg
 
 from ironic.common import boot_devices
@@ -41,7 +42,6 @@ from ironic.conductor import task_manager
 from ironic.drivers import base
 from ironic.drivers import utils as driver_utils
 from ironic.openstack.common import log as logging
-from ironic.openstack.common import processutils
 
 libvirt_opts = [
     cfg.StrOpt('libvirt_uri',

@@ -24,6 +24,7 @@ import subprocess
 import tempfile
 import time
 
+from oslo.concurrency import processutils
 from oslo.config import cfg
 
 from ironic.common import exception
@@ -32,7 +33,6 @@ from ironic.common.i18n import _LW
 from ironic.common import utils
 from ironic.openstack.common import log as logging
 from ironic.openstack.common import loopingcall
-from ironic.openstack.common import processutils
 
 
 opts = [

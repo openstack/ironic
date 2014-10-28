@@ -19,6 +19,7 @@ import tempfile
 
 import fixtures
 import mock
+from oslo.concurrency import processutils
 from oslo.config import cfg
 
 from ironic.common import disk_partitioner
@@ -26,7 +27,6 @@ from ironic.common import exception
 from ironic.common import utils as common_utils
 from ironic.drivers.modules import deploy_utils as utils
 from ironic.drivers.modules import image_cache
-from ironic.openstack.common import processutils
 from ironic.tests import base as tests_base
 
 _PXECONF_DEPLOY = """

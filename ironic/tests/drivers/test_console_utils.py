@@ -24,13 +24,13 @@ import subprocess
 import tempfile
 
 import mock
+from oslo.concurrency import processutils
 from oslo.config import cfg
 
 from ironic.common import exception
 from ironic.common import utils
 from ironic.drivers.modules import console_utils
 from ironic.drivers.modules import ipmitool as ipmi
-from ironic.openstack.common import processutils
 from ironic.tests.db import base as db_base
 from ironic.tests.db import utils as db_utils
 from ironic.tests.objects import utils as obj_utils

@@ -29,6 +29,7 @@ import tempfile
 import uuid
 
 import netaddr
+from oslo.concurrency import processutils
 from oslo.config import cfg
 from oslo.utils import excutils
 import paramiko
@@ -39,7 +40,6 @@ from ironic.common.i18n import _
 from ironic.common.i18n import _LE
 from ironic.common.i18n import _LW
 from ironic.openstack.common import log as logging
-from ironic.openstack.common import processutils
 
 utils_opts = [
     cfg.StrOpt('rootwrap_config',

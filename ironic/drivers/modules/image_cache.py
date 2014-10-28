@@ -22,6 +22,7 @@ import os
 import tempfile
 import time
 
+from oslo.concurrency import lockutils
 from oslo.config import cfg
 
 from ironic.common import exception
@@ -31,7 +32,6 @@ from ironic.common.i18n import _LW
 from ironic.common import images
 from ironic.common import utils
 from ironic.openstack.common import fileutils
-from ironic.openstack.common import lockutils
 from ironic.openstack.common import log as logging
 
 

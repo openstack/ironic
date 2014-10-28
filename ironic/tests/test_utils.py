@@ -23,13 +23,13 @@ import uuid
 
 import mock
 import netaddr
+from oslo.concurrency import processutils
 from oslo.config import cfg
 import six
 import six.moves.builtins as __builtin__
 
 from ironic.common import exception
 from ironic.common import utils
-from ironic.openstack.common import processutils
 from ironic.tests import base
 
 CONF = cfg.CONF

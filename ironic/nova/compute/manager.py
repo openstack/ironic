@@ -23,7 +23,7 @@ work. The goal here is to generalise the areas where n-c talking to a clustered
 hypervisor has issues, and long term fold them into the main ComputeManager.
 """
 
-from nova.openstack.common import lockutils
+from oslo.concurrency import lockutils
 from nova.compute import manager
 import nova.context
 

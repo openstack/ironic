@@ -20,6 +20,7 @@ import socket
 import stat
 import time
 
+from oslo.concurrency import processutils
 from oslo.config import cfg
 from oslo.utils import excutils
 
@@ -30,7 +31,6 @@ from ironic.common.i18n import _LE
 from ironic.common import utils
 from ironic.drivers.modules import image_cache
 from ironic.openstack.common import log as logging
-from ironic.openstack.common import processutils
 
 
 LOG = logging.getLogger(__name__)

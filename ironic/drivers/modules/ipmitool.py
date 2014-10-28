@@ -36,6 +36,7 @@ import stat
 import tempfile
 import time
 
+from oslo.concurrency import processutils
 from oslo.config import cfg
 from oslo.utils import excutils
 
@@ -51,7 +52,6 @@ from ironic.drivers import base
 from ironic.drivers.modules import console_utils
 from ironic.openstack.common import log as logging
 from ironic.openstack.common import loopingcall
-from ironic.openstack.common import processutils
 
 
 CONF = cfg.CONF

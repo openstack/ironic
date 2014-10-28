@@ -25,6 +25,7 @@ import tempfile
 import time
 
 import mock
+from oslo.concurrency import processutils
 from oslo.config import cfg
 
 from ironic.common import boot_devices
@@ -35,7 +36,6 @@ from ironic.common import utils
 from ironic.conductor import task_manager
 from ironic.drivers.modules import console_utils
 from ironic.drivers.modules import ipmitool as ipmi
-from ironic.openstack.common import processutils
 from ironic.tests import base
 from ironic.tests.conductor import utils as mgr_utils
 from ironic.tests.db import base as db_base
