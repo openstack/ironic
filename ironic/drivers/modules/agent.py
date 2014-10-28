@@ -33,6 +33,7 @@ from ironic.conductor import task_manager
 from ironic.conductor import utils as manager_utils
 from ironic.drivers import base
 from ironic.drivers.modules import agent_client
+from ironic.drivers.modules import deploy_utils
 from ironic.drivers.modules import image_cache
 from ironic import objects
 from ironic.openstack.common import fileutils
@@ -153,37 +154,13 @@ class AgentTFTPImageCache(image_cache.ImageCache):
             image_service=image_service)
 
 
-# copied from pxe driver - should be refactored per LP1350594
-def _fetch_images(ctx, cache, images_info):
-    """Check for available disk space and fetch images using ImageCache.
-
-    :param ctx: context
-    :param cache: ImageCache instance to use for fetching
-    :param images_info: list of tuples (image uuid, destination path)
-    :raises: InstanceDeployFailure if unable to find enough disk space
-    """
-
-    try:
-        image_cache.clean_up_caches(ctx, cache.master_dir, images_info)
-    except exception.InsufficientDiskSpace as e:
-        raise exception.InstanceDeployFailure(reason=e)
-
-    # NOTE(dtantsur): This code can suffer from race condition,
-    # if disk space is used between the check and actual download.
-    # This is probably unavoidable, as we can't control other
-    # (probably unrelated) processes
-    for uuid, path in images_info:
-        cache.fetch_image(uuid, path, ctx=ctx)
-
-
-# copied from pxe driver - should be refactored per LP1350594
 def _cache_tftp_images(ctx, node, pxe_info):
     """Fetch the necessary kernels and ramdisks for the instance."""
     fileutils.ensure_tree(
         os.path.join(CONF.pxe.tftp_root, node.uuid))
     LOG.debug("Fetching kernel and ramdisk for node %s",
               node.uuid)
-    _fetch_images(ctx, AgentTFTPImageCache(), pxe_info.values())
+    deploy_utils.fetch_images(ctx, AgentTFTPImageCache(), pxe_info.values())
 
 
 def build_instance_info_for_deploy(task):
