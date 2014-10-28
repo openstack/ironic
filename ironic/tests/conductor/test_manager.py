@@ -407,6 +407,17 @@ class UpdateNodeTestCase(_ServiceSetUpMixin, tests_db_base.DbTestCase):
         res = self.service.update_node(self.context, node)
         self.assertEqual({'test': 'two'}, res['extra'])
 
+    def test_update_node_clears_maintenance_reason(self):
+        node = obj_utils.create_test_node(self.context, driver='fake',
+                                          maintenance=True,
+                                          maintenance_reason='reason')
+
+        # check that ManagerService.update_node actually updates the node
+        node.maintenance = False
+        res = self.service.update_node(self.context, node)
+        self.assertFalse(res['maintenance'])
+        self.assertIsNone(res['maintenance_reason'])
+
     def test_update_node_already_locked(self):
         node = obj_utils.create_test_node(self.context, driver='fake',
                                           extra={'test': 'one'})

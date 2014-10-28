@@ -270,6 +270,12 @@ class ConductorManager(periodic_task.PeriodicTasks):
             raise exception.IronicException(_(
                 "Invalid method call: update_node can not change node state."))
 
+        # NOTE(jroll) clear maintenance_reason if node.update sets
+        # maintenance to False for backwards compatibility, for tools
+        # not using the maintenance endpoint.
+        if 'maintenance' in delta and not node_obj.maintenance:
+            node_obj.maintenance_reason = None
+
         driver_name = node_obj.driver if 'driver' in delta else None
         with task_manager.acquire(context, node_id, shared=False,
                                   driver_name=driver_name) as task:
