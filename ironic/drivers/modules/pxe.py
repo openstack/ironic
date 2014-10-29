@@ -452,7 +452,7 @@ class VendorPassthru(base.VendorInterface):
                 "Unsupported method (%s) passed to PXE driver.")
                 % method)
 
-    @base.passthru('pass_deploy_info')
+    @base.passthru(method='pass_deploy_info')
     @task_manager.require_exclusive_lock
     def _continue_deploy(self, task, **kwargs):
         """Continues the deployment of baremetal node over iSCSI.
@@ -494,13 +494,3 @@ class VendorPassthru(base.VendorInterface):
                       {'instance': node.instance_uuid, 'error': e})
             msg = _('Failed to continue iSCSI deployment.')
             iscsi_deploy.set_failed_state(task, msg)
-
-    def vendor_passthru(self, task, **kwargs):
-        """Invokes a vendor passthru method.
-
-        :param task: a TaskManager instance containing the node to act on.
-        :param kwargs: kwargs containins the method name and its parameters.
-        """
-        method = kwargs['method']
-        if method == 'pass_deploy_info':
-            self._continue_deploy(task, **kwargs)

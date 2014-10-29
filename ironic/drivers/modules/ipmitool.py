@@ -891,29 +891,6 @@ class VendorPassthru(base.VendorInterface):
                 % method)
         _parse_driver_info(task.node)
 
-    def vendor_passthru(self, task, **kwargs):
-        """Receive requests for vendor-specific actions.
-
-        Valid methods:
-          * send_raw
-          * bmc_reset
-
-        :param task: a task from TaskManager.
-        :param kwargs: info for action.
-
-        :raises: InvalidParameterValue if required IPMI credentials
-            are missing.
-        :raises: IPMIFailure if ipmitool fails for any method.
-        :raises: MissingParameterValue when a required parameter is missing
-
-        """
-
-        method = kwargs['method']
-        if method == 'send_raw':
-            return self.send_raw(task, kwargs.get('raw_bytes'))
-        elif method == 'bmc_reset':
-            return self.bmc_reset(task, warm=kwargs.get('warm', True))
-
 
 class IPMIShellinaboxConsole(base.ConsoleInterface):
     """A ConsoleInterface that uses ipmitool and shellinabox."""

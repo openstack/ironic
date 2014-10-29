@@ -21,7 +21,6 @@ from ironic.common import keystone
 from ironic.common import pxe_utils
 from ironic.common import states
 from ironic.conductor import task_manager
-from ironic.drivers import base as driver_base
 from ironic.drivers.modules import agent
 from ironic import objects
 from ironic.tests.conductor import utils as mgr_utils
@@ -168,7 +167,7 @@ class TestAgentVendor(db_base.DbTestCase):
         }
         with task_manager.acquire(self.context, self.node.uuid) as task:
             self.assertRaises(exception.InvalidParameterValue,
-                              self.passthru._lookup,
+                              self.passthru.lookup,
                               task.context,
                               **kwargs)
 
@@ -193,26 +192,26 @@ class TestAgentVendor(db_base.DbTestCase):
         }
         find_mock.return_value = self.node
         with task_manager.acquire(self.context, self.node.uuid) as task:
-            node = self.passthru._lookup(task.context, **kwargs)
+            node = self.passthru.lookup(task.context, **kwargs)
         self.assertEqual(self.node, node['node'])
 
     def test_lookup_v2_missing_inventory(self):
         with task_manager.acquire(self.context, self.node.uuid) as task:
             self.assertRaises(exception.InvalidParameterValue,
-                              self.passthru._lookup,
+                              self.passthru.lookup,
                               task.context)
 
     def test_lookup_v2_empty_inventory(self):
         with task_manager.acquire(self.context, self.node.uuid) as task:
             self.assertRaises(exception.InvalidParameterValue,
-                              self.passthru._lookup,
+                              self.passthru.lookup,
                               task.context,
                               inventory={})
 
     def test_lookup_v2_empty_interfaces(self):
         with task_manager.acquire(self.context, self.node.uuid) as task:
             self.assertRaises(exception.NodeNotFound,
-                              self.passthru._lookup,
+                              self.passthru.lookup,
                               task.context,
                               version='2',
                               inventory={'interfaces': []})
@@ -348,45 +347,18 @@ class TestAgentVendor(db_base.DbTestCase):
             self.passthru.heartbeat(task, **kwargs)
             failed_mock.assert_called_once_with(task, mock.ANY)
 
-    @mock.patch('ironic.drivers.modules.agent.AgentVendorInterface'
-                '.heartbeat', autospec=True)
-    def test_vendor_passthru_heartbeat(self, mock_heartbeat):
-        kwargs = {
-            'method': 'heartbeat',
-        }
-        self.passthru.vendor_routes['heartbeat'] = (
-            driver_base.passthru('heartbeat')(mock_heartbeat))
-        with task_manager.acquire(
-                self.context, self.node['uuid'], shared=True) as task:
-            self.passthru.vendor_passthru(task, **kwargs)
-            mock_heartbeat.assert_called_once_with(task, **kwargs)
+    def test_vendor_passthru_vendor_routes(self):
+        expected = ['heartbeat']
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            vendor_routes = task.driver.vendor.vendor_routes
+            self.assertIsInstance(vendor_routes, dict)
+            self.assertEqual(expected, list(vendor_routes))
 
-    @mock.patch('ironic.drivers.modules.agent.AgentVendorInterface'
-                '.heartbeat', autospec=True)
-    def test_vendor_passthru_heartbeat_ironic_exc(self, mock_heartbeat):
-        mock_heartbeat.side_effect = exception.IronicException()
-        kwargs = {
-            'method': 'heartbeat',
-        }
-        self.passthru.vendor_routes['heartbeat'] = (
-            driver_base.passthru('heartbeat')(mock_heartbeat))
-        with task_manager.acquire(
-                self.context, self.node['uuid'], shared=True) as task:
-            self.assertRaises(exception.IronicException,
-                              self.passthru.vendor_passthru, task, **kwargs)
-            mock_heartbeat.assert_called_once_with(task, **kwargs)
-
-    @mock.patch('ironic.drivers.modules.agent.AgentVendorInterface'
-                '.heartbeat', autospec=True)
-    def test_vendor_passthru_heartbeat_exception(self, mock_heartbeat):
-        mock_heartbeat.side_effect = KeyError()
-        kwargs = {
-            'method': 'heartbeat',
-        }
-        self.passthru.vendor_routes['heartbeat'] = (
-            driver_base.passthru('heartbeat')(mock_heartbeat))
-        with task_manager.acquire(
-                self.context, self.node['uuid'], shared=True) as task:
-            self.assertRaises(exception.VendorPassthruException,
-                              self.passthru.vendor_passthru, task, **kwargs)
-            mock_heartbeat.assert_called_once_with(task, **kwargs)
+    def test_vendor_passthru_driver_routes(self):
+        expected = ['lookup']
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            driver_routes = task.driver.vendor.driver_routes
+            self.assertIsInstance(driver_routes, dict)
+            self.assertEqual(expected, list(driver_routes))

@@ -112,13 +112,6 @@ class FakeVendorA(base.VendorInterface):
     def first_method(self, task, bar):
         return True if bar == 'baz' else False
 
-    def vendor_passthru(self, task, **kwargs):
-        method = kwargs.get('method')
-        if method == 'first_method':
-            bar = kwargs.get('bar')
-            return self._private_method(task, bar)
-        _raise_unsupported_error(method)
-
 
 class FakeVendorB(base.VendorInterface):
     """Example implementation of a secondary vendor passthru."""
@@ -140,13 +133,6 @@ class FakeVendorB(base.VendorInterface):
     @base.passthru()
     def second_method(self, task, bar):
         return True if bar == 'kazoo' else False
-
-    def vendor_passthru(self, task, **kwargs):
-        method = kwargs.get('method')
-        if method == 'second_method':
-            bar = kwargs.get('bar')
-            return self._private_method(task, bar)
-        _raise_unsupported_error(method)
 
 
 class FakeConsole(base.ConsoleInterface):

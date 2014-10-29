@@ -392,11 +392,34 @@ class ConductorManager(periodic_task.PeriodicTasks):
                     driver=task.node.driver,
                     extension='vendor passthru')
 
-            task.driver.vendor.validate(task, method=driver_method,
-                                        **info)
-            task.spawn_after(self._spawn_worker,
-                             task.driver.vendor.vendor_passthru, task,
-                             method=driver_method, **info)
+            vendor_iface = task.driver.vendor
+
+            # NOTE(lucasagomes): Before the vendor_passthru() method was
+            # a self-contained method and each driver implemented their own
+            # version of it, now we have a common mechanism that drivers
+            # should use to expose their vendor methods. If a driver still
+            # have their own vendor_passthru() method we call it to be
+            # backward compat. This code should be removed once L opens.
+            if hasattr(vendor_iface, 'vendor_passthru'):
+                LOG.warning(_LW("Drivers implementing their own version "
+                                "of vendor_passthru() has been deprecated. "
+                                "Please update the code to use the "
+                                "@passthru decorator."))
+                vendor_iface.validate(task, method=driver_method,
+                                            **info)
+                task.spawn_after(self._spawn_worker,
+                                 vendor_iface.vendor_passthru, task,
+                                 method=driver_method, **info)
+                return
+
+            try:
+                vendor_func = vendor_iface.vendor_routes[driver_method]['func']
+            except KeyError:
+                raise exception.InvalidParameterValue(
+                    _('No handler for method %s') % driver_method)
+
+            vendor_iface.validate(task, method=driver_method, **info)
+            task.spawn_after(self._spawn_worker, vendor_func, task, **info)
 
     @messaging.expected_exceptions(exception.InvalidParameterValue,
                                    exception.MissingParameterValue,
@@ -432,9 +455,28 @@ class ConductorManager(periodic_task.PeriodicTasks):
                 driver=driver_name,
                 extension='vendor interface')
 
-        return driver.vendor.driver_vendor_passthru(context,
-                                                    method=driver_method,
-                                                    **info)
+        # NOTE(lucasagomes): Before the driver_vendor_passthru()
+        # method was a self-contained method and each driver implemented
+        # their own version of it, now we have a common mechanism that
+        # drivers should use to expose their vendor methods. If a driver
+        # still have their own driver_vendor_passthru() method we call
+        # it to be backward compat. This code should be removed
+        # once L opens.
+        if hasattr(driver.vendor, 'driver_vendor_passthru'):
+            LOG.warning(_LW("Drivers implementing their own version "
+                            "of driver_vendor_passthru() has been "
+                            "deprecated. Please update the code to use "
+                            "the @driver_passthru decorator."))
+            return driver.vendor.driver_vendor_passthru(
+                            context, method=driver_method, **info)
+
+        try:
+            vendor_func = driver.vendor.driver_routes[driver_method]['func']
+        except KeyError:
+            raise exception.InvalidParameterValue(
+                _('No handler for method %s') % driver_method)
+
+        return vendor_func(context, **info)
 
     def _provisioning_error_handler(self, e, node, provision_state,
                                     target_provision_state):

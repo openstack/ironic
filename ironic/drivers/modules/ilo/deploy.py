@@ -565,22 +565,10 @@ class IloConsoleInterface(ipmitool.IPMIShellinaboxConsole):
 
 class IloPXEVendorPassthru(pxe.VendorPassthru):
 
-    @base.passthru()
-    def pass_deploy_info(self, *args, **kwargs):
-        ilo_common.set_boot_device(*args, **kwargs)
-
-    def vendor_passthru(self, task, **kwargs):
-        """Calls a valid vendor passthru method.
-
-        :param task: a TaskManager instance containing the node to act on.
-        :param kwargs: kwargs containing the vendor passthru method and its
-            parameters.
-        """
-        method = kwargs['method']
-        if method == 'pass_deploy_info':
-            self.pass_deploy_info(task.node, 'NETWORK', True)
-        return super(IloPXEVendorPassthru, self).vendor_passthru(task,
-                                                                 **kwargs)
+    @base.passthru(method='pass_deploy_info')
+    def _continue_deploy(self, task, **kwargs):
+        ilo_common.set_boot_device(task.node, 'NETWORK', True)
+        super(IloPXEVendorPassthru, self)._continue_deploy(task, **kwargs)
 
 
 class VendorPassthru(base.VendorInterface):
@@ -611,7 +599,7 @@ class VendorPassthru(base.VendorInterface):
                 "Unsupported method (%s) passed to iLO driver.")
                 % method)
 
-    @base.passthru('pass_deploy_info')
+    @base.passthru(method='pass_deploy_info')
     @task_manager.require_exclusive_lock
     def _continue_deploy(self, task, **kwargs):
         """Continues the iSCSI deployment from where ramdisk left off.
@@ -660,14 +648,3 @@ class VendorPassthru(base.VendorInterface):
                       {'instance': node.instance_uuid, 'error': e})
             msg = _('Failed to continue iSCSI deployment.')
             iscsi_deploy.set_failed_state(task, msg)
-
-    def vendor_passthru(self, task, **kwargs):
-        """Calls a valid vendor passthru method.
-
-        :param task: a TaskManager instance containing the node to act on.
-        :param kwargs: kwargs containing the vendor passthru method and its
-            parameters.
-        """
-        method = kwargs['method']
-        if method == 'pass_deploy_info':
-            self._continue_deploy(task, **kwargs)

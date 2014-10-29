@@ -18,13 +18,14 @@ Abstract base classes for drivers.
 """
 
 import abc
+import collections
 import functools
+import inspect
 
 from oslo.utils import excutils
 import six
 
 from ironic.common import exception
-from ironic.common.i18n import _
 from ironic.common.i18n import _LE
 from ironic.openstack.common import log as logging
 
@@ -355,7 +356,12 @@ class RescueInterface(object):
         """
 
 
-def passthru(method=None):
+# Representation of a single vendor method metadata
+VendorMetadata = collections.namedtuple('VendorMetadata', ['method',
+                                                           'metadata'])
+
+
+def _passthru(method=None, driver_passthru=False):
     """A decorator for registering a function as a passthru function.
 
     Decorator ensures function is ready to catch any ironic exceptions
@@ -367,11 +373,26 @@ def passthru(method=None):
     reraised, it won't be handled if it is an async. call.
 
     :param method: an arbitrary string describing the action to be taken.
+    :param driver_passthru: Boolean value. Whether this is a driver
+                            vendor passthru or a node vendor passthru
+                            method.
+
     """
     def handle_passthru(func):
         api_method = method
         if api_method is None:
             api_method = func.__name__
+
+        # NOTE(lucasagomes): It's adding an empty dictionary for now but
+        # in the following patches this is going to have more metadata
+        # about the vendor method. For e.g the supported HTTP methods and
+        # whether it should run asynchrounously or not.
+        metadata = VendorMetadata(api_method, {})
+        if driver_passthru:
+            func._driver_metadata = metadata
+        else:
+            func._vendor_metadata = metadata
+
         passthru_logmessage = _LE('vendor_passthru failed with method %s')
 
         @functools.wraps(func)
@@ -389,17 +410,45 @@ def passthru(method=None):
     return handle_passthru
 
 
+def passthru(method=None):
+    return _passthru(method, driver_passthru=False)
+
+
+def driver_passthru(method=None):
+    return _passthru(method, driver_passthru=True)
+
+
 @six.add_metaclass(abc.ABCMeta)
 class VendorInterface(object):
     """Interface for all vendor passthru functionality.
 
-    Additional vendor- or driver-specific capabilities should be implemented as
-    private methods and invoked from vendor_passthru() or
-    driver_vendor_passthru().
+    Additional vendor- or driver-specific capabilities should be
+    implemented as a method in the class inheriting from this class and
+    use the @passthru or @driver_passthru decorators.
 
-    driver_vendor_passthru() is a blocking call - methods implemented here
-    should be short-lived.
+    Methods decorated with @driver_passthru should be short-lived because
+    it is a blocking call.
     """
+
+    def __new__(cls, *args, **kwargs):
+        inst = super(VendorInterface, cls).__new__(cls, *args, **kwargs)
+
+        inst.vendor_routes = {}
+        inst.driver_routes = {}
+
+        for name, ref in inspect.getmembers(inst, predicate=inspect.ismethod):
+            vmeta = getattr(ref, '_vendor_metadata', None)
+            dmeta = getattr(ref, '_driver_metadata', None)
+
+            if vmeta is not None:
+                vmeta.metadata['func'] = ref
+                inst.vendor_routes.update({vmeta.method: vmeta.metadata})
+
+            if dmeta is not None:
+                dmeta.metadata['func'] = ref
+                inst.driver_routes.update({dmeta.method: dmeta.metadata})
+
+        return inst
 
     @abc.abstractmethod
     def get_properties(self):
@@ -421,37 +470,6 @@ class VendorInterface(object):
         :raises: InvalidParameterValue if kwargs does not contain 'method'.
         :raises: MissingParameterValue
         """
-
-    @abc.abstractmethod
-    def vendor_passthru(self, task, **kwargs):
-        """Receive requests for vendor-specific actions.
-
-        :param task: a task from TaskManager.
-        :param kwargs: info for action.
-
-        :raises: UnsupportedDriverExtension if 'method' can not be mapped to
-                 the supported interfaces.
-        :raises: InvalidParameterValue if kwargs does not contain 'method'.
-        :raises: MissingParameterValue when a required parameter is missing
-        """
-
-    def driver_vendor_passthru(self, context, method, **kwargs):
-        """Handle top-level (ie, no node is specified) vendor actions.
-
-        These allow a vendor interface to expose additional cross-node API
-        functionality.
-
-        VendorInterface subclasses are explicitly not required to implement
-        this in order to maintain backwards compatibility with existing
-        drivers.
-
-        :param context: a context for this action.
-        :param method: an arbitrary string describing the action to be taken.
-        :param kwargs: arbitrary parameters to the passthru method.
-        """
-        raise exception.UnsupportedDriverExtension(
-            _('Vendor interface does not support driver vendor_passthru '
-              'method: %s') % method)
 
 
 @six.add_metaclass(abc.ABCMeta)

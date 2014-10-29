@@ -22,15 +22,6 @@ from ironic.openstack.common import log as logging
 LOG = logging.getLogger(__name__)
 
 
-def _raise_unsupported_error(method=None):
-    if method:
-        raise exception.UnsupportedDriverExtension(_(
-            "Unsupported method (%s) passed through to vendor extension.")
-            % method)
-    raise exception.MissingParameterValue(_(
-        "Method not specified when calling vendor extension."))
-
-
 class MixinVendorInterface(base.VendorInterface):
     """Wrapper around multiple VendorInterfaces."""
 
@@ -47,10 +38,53 @@ class MixinVendorInterface(base.VendorInterface):
         """
         self.mapping = mapping
         self.driver_level_mapping = driver_passthru_mapping or {}
+        self.vendor_routes = self._build_routes(self.mapping)
+        self.driver_routes = self._build_routes(self.driver_level_mapping,
+                                                driver_passthru=True)
 
-    def _map(self, **kwargs):
+    def _build_routes(self, map_dict, driver_passthru=False):
+        """Build the mapping for the vendor calls.
+
+        Build the mapping between the given methods and the corresponding
+        method metadata.
+
+        :param map_dict: dict of {'method': interface} specifying how
+                         to map multiple vendor calls to interfaces.
+        :param driver_passthru: Boolean value. Whether build the mapping
+                                to the node vendor passthru or driver
+                                vendor passthru.
+        """
+        d = {}
+        for method_name in map_dict:
+            iface = map_dict[method_name]
+            if driver_passthru:
+                driver_methods = iface.driver_routes
+            else:
+                driver_methods = iface.vendor_routes
+
+            try:
+                d.update({method_name: driver_methods[method_name]})
+            except KeyError:
+                pass
+        return d
+
+    def _get_route(self, **kwargs):
+        """Return the driver interface which contains the given method.
+
+        :param method: The name of the vendor method.
+        """
         method = kwargs.get('method')
-        return self.mapping.get(method) or _raise_unsupported_error(method)
+        if not method:
+            raise exception.MissingParameterValue(
+                _("Method not specified when calling vendor extension."))
+
+        try:
+            route = self.mapping[method]
+        except KeyError:
+            raise exception.InvalidParameterValue(
+                _('No handler for method %s') % method)
+
+        return route
 
     def get_properties(self):
         """Return the properties from all the VendorInterfaces.
@@ -73,38 +107,8 @@ class MixinVendorInterface(base.VendorInterface):
         :raisee: MissingParameterValue if missing parameters in kwargs.
 
         """
-        route = self._map(**kwargs)
+        route = self._get_route(**kwargs)
         route.validate(*args, **kwargs)
-
-    def vendor_passthru(self, task, **kwargs):
-        """Call vendor_passthru on the appropriate interface only.
-
-        Returns or raises according to the requested vendor_passthru method.
-
-        :raises: UnsupportedDriverExtension if 'method' can not be mapped to
-                 the supported interfaces.
-        :raises: MissingParameterValue if kwargs does not contain 'method'.
-
-        """
-        route = self._map(**kwargs)
-        return route.vendor_passthru(task, **kwargs)
-
-    def driver_vendor_passthru(self, context, method, **kwargs):
-        """Handle top-level vendor actions.
-
-        Call driver_vendor_passthru on a mapped interface based on the
-        specified method.
-
-        Returns or raises according to the requested driver_vendor_passthru
-
-        :raises: UnsupportedDriverExtension if 'method' cannot be mapped to
-                 a supported interface.
-        """
-        iface = self.driver_level_mapping.get(method)
-        if iface is None:
-            _raise_unsupported_error(method)
-
-        return iface.driver_vendor_passthru(context, method, **kwargs)
 
 
 def get_node_mac_addresses(task):

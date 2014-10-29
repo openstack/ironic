@@ -538,7 +538,7 @@ class VendorPassthruTestCase(_ServiceSetUpMixin, tests_db_base.DbTestCase):
                                 self.context,
                                 node.uuid, 'unsupported_method', info)
         # Compare true exception hidden by @messaging.expected_exceptions
-        self.assertEqual(exception.UnsupportedDriverExtension,
+        self.assertEqual(exception.InvalidParameterValue,
                          exc.exc_info[0])
 
         node.refresh()
@@ -604,20 +604,45 @@ class VendorPassthruTestCase(_ServiceSetUpMixin, tests_db_base.DbTestCase):
             # Verify reservation has been cleared.
             self.assertIsNone(node.reservation)
 
+    @mock.patch.object(task_manager, 'acquire')
+    def test_vendor_passthru_backwards_compat(self, acquire_mock):
+        node = obj_utils.create_test_node(self.context, driver='fake')
+        vendor_passthru_ref = mock.Mock()
+        self._start_service()
+
+        driver = mock.Mock()
+        driver.vendor.vendor_routes = {}
+        driver.vendor.vendor_passthru = vendor_passthru_ref
+
+        task = mock.Mock()
+        task.node = node
+        task.driver = driver
+
+        acquire_mock.return_value.__enter__.return_value = task
+
+        self.service.vendor_passthru(
+            self.context, node.uuid, 'test_method', {'bar': 'baz'})
+
+        task.spawn_after.assert_called_once_with(mock.ANY, vendor_passthru_ref,
+            task, bar='baz', method='test_method')
+
     def test_driver_vendor_passthru_success(self):
         expected = {'foo': 'bar'}
-        self.driver.vendor = vendor = mock.Mock()
-        vendor.driver_vendor_passthru.return_value = expected
+        self.driver.vendor = mock.Mock(spec=drivers_base.VendorInterface)
+        test_method = mock.MagicMock(return_value=expected)
+        self.driver.vendor.driver_routes = {'test_method':
+                                           {'func': test_method}}
         self.service.init_host()
         got = self.service.driver_vendor_passthru(self.context,
                                                   'fake',
                                                   'test_method',
                                                   {'test': 'arg'})
+
+        # Assert that the vendor interface has no custom
+        # driver_vendor_passthru()
+        self.assertFalse(hasattr(self.driver.vendor, 'driver_vendor_passthru'))
         self.assertEqual(expected, got)
-        vendor.driver_vendor_passthru.assert_called_once_with(
-            mock.ANY,
-            method='test_method',
-            test='arg')
+        test_method.assert_called_once_with(mock.ANY, test='arg')
 
     def test_driver_vendor_passthru_vendor_interface_not_supported(self):
         # Test for when no vendor interface is set at all
@@ -633,7 +658,7 @@ class VendorPassthruTestCase(_ServiceSetUpMixin, tests_db_base.DbTestCase):
         self.assertEqual(exception.UnsupportedDriverExtension,
                          exc.exc_info[0])
 
-    def test_driver_vendor_passthru_not_supported(self):
+    def test_driver_vendor_passthru_method_not_supported(self):
         # Test for when the vendor interface is set, but hasn't passed a
         # driver_passthru_mapping to MixinVendorInterface
         self.service.init_host()
@@ -644,7 +669,7 @@ class VendorPassthruTestCase(_ServiceSetUpMixin, tests_db_base.DbTestCase):
                                 'test_method',
                                 {})
         # Compare true exception hidden by @messaging.expected_exceptions
-        self.assertEqual(exception.UnsupportedDriverExtension,
+        self.assertEqual(exception.InvalidParameterValue,
                          exc.exc_info[0])
 
     def test_driver_vendor_passthru_driver_not_found(self):

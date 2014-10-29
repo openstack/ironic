@@ -55,8 +55,6 @@ CONF.register_opts(opts, opt_group)
 
 LOG = logging.getLogger(__name__)
 
-VENDOR_PASSTHRU_METHODS = ['attach_volume', 'set_node_vlan_id']
-
 _BOOT_DEVICES_MAP = {
     boot_devices.DISK: 'hd0',
     boot_devices.PXE: 'pxe',
@@ -416,18 +414,7 @@ class VendorPassthru(base.VendorInterface):
         return COMMON_PROPERTIES
 
     def validate(self, task, **kwargs):
-        method = kwargs['method']
-        if method not in VENDOR_PASSTHRU_METHODS:
-            raise exception.InvalidParameterValue(_(
-                "Unsupported method (%s) passed to SeaMicro driver.")
-                % method)
         _parse_driver_info(task.node)
-
-    def vendor_passthru(self, task, **kwargs):
-        """Dispatch vendor specific method calls."""
-        method = kwargs['method']
-        if method in VENDOR_PASSTHRU_METHODS:
-            return getattr(self, method)(task, **kwargs)
 
     @base.passthru()
     def set_node_vlan_id(self, task, **kwargs):

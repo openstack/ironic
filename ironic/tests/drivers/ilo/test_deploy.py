@@ -473,14 +473,29 @@ class IloPXEVendorPassthruTestCase(db_base.DbTestCase):
         self.node = obj_utils.create_test_node(self.context,
                 driver='pxe_ilo', driver_info=INFO_DICT)
 
-    @mock.patch.object(pxe.VendorPassthru, 'vendor_passthru')
+    def test_vendor_routes(self):
+        expected = ['pass_deploy_info']
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            vendor_routes = task.driver.vendor.vendor_routes
+            self.assertIsInstance(vendor_routes, dict)
+            self.assertEqual(expected, list(vendor_routes))
+
+    def test_driver_routes(self):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            driver_routes = task.driver.vendor.driver_routes
+            self.assertIsInstance(driver_routes, dict)
+            self.assertEqual({}, driver_routes)
+
+    @mock.patch.object(pxe.VendorPassthru, '_continue_deploy')
     @mock.patch.object(ilo_common, 'set_boot_device')
     def test_vendorpassthru(self, set_persistent_mock,
                             pxe_vendorpassthru_mock):
-        kwargs = {'method': 'pass_deploy_info', 'address': '123456'}
+        kwargs = {'address': '123456'}
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
             task.node.provision_state = states.DEPLOYWAIT
-            task.driver.vendor.vendor_passthru(task, **kwargs)
+            task.driver.vendor._continue_deploy(task, **kwargs)
             set_persistent_mock.assert_called_with(task.node, 'NETWORK', True)
             pxe_vendorpassthru_mock.assert_called_once_with(task, **kwargs)

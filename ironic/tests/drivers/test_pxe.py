@@ -606,9 +606,9 @@ class PXEDriverTestCase(db_base.DbTestCase):
                 fake_deploy))
 
         with task_manager.acquire(self.context, self.node.uuid) as task:
-            task.driver.vendor.vendor_passthru(
-                    task, method='pass_deploy_info', address='123456',
-                    iqn='aaa-bbb', key='fake-56789')
+            task.driver.vendor._continue_deploy(
+                    task, address='123456', iqn='aaa-bbb', key='fake-56789')
+
         self.node.refresh()
         self.assertEqual(states.ACTIVE, self.node.provision_state)
         self.assertEqual(states.POWER_ON, self.node.power_state)
@@ -636,9 +636,9 @@ class PXEDriverTestCase(db_base.DbTestCase):
                 fake_deploy))
 
         with task_manager.acquire(self.context, self.node.uuid) as task:
-            task.driver.vendor.vendor_passthru(
-                    task, method='pass_deploy_info', address='123456',
-                    iqn='aaa-bbb', key='fake-56789')
+            task.driver.vendor._continue_deploy(
+                    task, address='123456', iqn='aaa-bbb', key='fake-56789')
+
         self.node.refresh()
         self.assertEqual(states.DEPLOYFAIL, self.node.provision_state)
         self.assertEqual(states.POWER_OFF, self.node.power_state)
@@ -662,10 +662,10 @@ class PXEDriverTestCase(db_base.DbTestCase):
                 fake_deploy))
 
         with task_manager.acquire(self.context, self.node.uuid) as task:
-            task.driver.vendor.vendor_passthru(
-                    task, method='pass_deploy_info', address='123456',
-                    iqn='aaa-bbb', key='fake-56789',
-                    error='test ramdisk error')
+            task.driver.vendor._continue_deploy(
+                    task, address='123456', iqn='aaa-bbb',
+                    key='fake-56789', error='test ramdisk error')
+
         self.node.refresh()
         self.assertEqual(states.DEPLOYFAIL, self.node.provision_state)
         self.assertEqual(states.POWER_OFF, self.node.power_state)
@@ -680,10 +680,10 @@ class PXEDriverTestCase(db_base.DbTestCase):
         self.node.save()
 
         with task_manager.acquire(self.context, self.node.uuid) as task:
-            task.driver.vendor.vendor_passthru(
-                    task, method='pass_deploy_info', address='123456',
-                    iqn='aaa-bbb', key='fake-56789',
-                    error='test ramdisk error')
+            task.driver.vendor._continue_deploy(
+                    task, address='123456', iqn='aaa-bbb',
+                    key='fake-56789', error='test ramdisk error')
+
         self.node.refresh()
         self.assertEqual('FAKE', self.node.provision_state)
         self.assertEqual(states.POWER_ON, self.node.power_state)
@@ -692,12 +692,27 @@ class PXEDriverTestCase(db_base.DbTestCase):
         with task_manager.acquire(self.context, self.node.uuid) as task:
             with mock.patch.object(task.driver.vendor,
                                    '_continue_deploy') as _cont_deploy_mock:
-                task.driver.vendor.vendor_passthru(task,
-                    method='pass_deploy_info', address='123456', iqn='aaa-bbb',
-                    key='fake-56789')
+                task.driver.vendor._continue_deploy(
+                    task, address='123456', iqn='aaa-bbb', key='fake-56789')
+
                 # lock elevated w/o exception
                 self.assertEqual(1, _cont_deploy_mock.call_count,
                             "_continue_deploy was not called once.")
+
+    def test_vendor_routes(self):
+        expected = ['pass_deploy_info']
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            vendor_routes = task.driver.vendor.vendor_routes
+            self.assertIsInstance(vendor_routes, dict)
+            self.assertEqual(expected, list(vendor_routes))
+
+    def test_driver_routes(self):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            driver_routes = task.driver.vendor.driver_routes
+            self.assertIsInstance(driver_routes, dict)
+            self.assertEqual({}, driver_routes)
 
 
 @mock.patch.object(utils, 'unlink_without_raise')

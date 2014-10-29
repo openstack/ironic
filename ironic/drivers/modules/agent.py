@@ -305,13 +305,8 @@ class AgentDeploy(base.DeployInterface):
 
 
 class AgentVendorInterface(base.VendorInterface):
+
     def __init__(self):
-        self.vendor_routes = {
-            'heartbeat': self.heartbeat
-        }
-        self.driver_routes = {
-            'lookup': self._lookup,
-        }
         self.supported_payload_versions = ['2']
         self._client = _get_client()
 
@@ -332,31 +327,6 @@ class AgentVendorInterface(base.VendorInterface):
         :param task: a TaskManager instance
         """
         pass
-
-    def driver_vendor_passthru(self, task, method, **kwargs):
-        """Handle top-level vendor actions.
-
-        A node that does not know its UUID should POST to this method.
-        Given method, route the command to the appropriate private function.
-        """
-        if method not in self.driver_routes:
-            raise exception.InvalidParameterValue(_('No handler for method %s')
-                                                  % method)
-        func = self.driver_routes[method]
-        return func(task, **kwargs)
-
-    def vendor_passthru(self, task, **kwargs):
-        """A node that knows its UUID should heartbeat to this passthru.
-
-        It will get its node object back, with what Ironic thinks its provision
-        state is and the target provision state is.
-        """
-        method = kwargs['method']  # Existence checked in mixin
-        if method not in self.vendor_routes:
-            raise exception.InvalidParameterValue(_('No handler for method '
-                                                    '%s') % method)
-        func = self.vendor_routes[method]
-        return func(task, **kwargs)
 
     @base.passthru()
     def heartbeat(self, task, **kwargs):
@@ -465,7 +435,8 @@ class AgentVendorInterface(base.VendorInterface):
         node.target_provision_state = states.NOSTATE
         node.save()
 
-    def _lookup(self, context, **kwargs):
+    @base.driver_passthru()
+    def lookup(self, context, **kwargs):
         """Find a matching node for the agent.
 
         Method to be called the first time a ramdisk agent checks in. This
