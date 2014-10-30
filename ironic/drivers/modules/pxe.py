@@ -318,7 +318,7 @@ class PXEDeploy(base.DeployInterface):
         VendorPassthru._continue_deploy().
 
         :param task: a TaskManager instance containing the node to act on.
-        :returns: deploy state DEPLOYING.
+        :returns: deploy state DEPLOYWAIT.
         """
         iscsi_deploy.cache_instance_image(task.context, task.node)
         iscsi_deploy.check_image_size(task)
