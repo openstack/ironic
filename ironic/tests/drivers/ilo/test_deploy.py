@@ -151,7 +151,7 @@ class IloDeployPrivateMethodsTestCase(db_base.DbTestCase):
                                                              'boot-object')
 
     def test__get_single_nic_with_vif_port_id(self):
-        obj_utils.create_test_port(self.context, node_id=self.node.id, id=6,
+        obj_utils.create_test_port(self.context, node_id=self.node.id,
                 address='aa:bb:cc', uuid=utils.generate_uuid(),
                 extra={'vif_port_id': 'test-vif-A'}, driver='iscsi_ilo')
         with task_manager.acquire(self.context, self.node.uuid,

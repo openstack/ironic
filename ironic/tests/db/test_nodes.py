@@ -250,8 +250,7 @@ class DbNodeTestCase(base.DbTestCase):
     def test_ports_get_destroyed_after_destroying_a_node(self):
         node = utils.create_test_node()
 
-        port = utils.get_test_port(node_id=node.id)
-        port = self.dbapi.create_port(port)
+        port = utils.create_test_port(node_id=node.id)
 
         self.dbapi.destroy_node(node.id)
 
@@ -261,8 +260,7 @@ class DbNodeTestCase(base.DbTestCase):
     def test_ports_get_destroyed_after_destroying_a_node_by_uuid(self):
         node = utils.create_test_node()
 
-        port = utils.get_test_port(node_id=node.id)
-        port = self.dbapi.create_port(port)
+        port = utils.create_test_port(node_id=node.id)
 
         self.dbapi.destroy_node(node.uuid)
 
@@ -323,8 +321,8 @@ class DbNodeTestCase(base.DbTestCase):
     def test_update_node_provision(self, mock_utcnow):
         mocked_time = datetime.datetime(2000, 1, 1, 0, 0)
         mock_utcnow.return_value = mocked_time
-        n = utils.create_test_node()
-        res = self.dbapi.update_node(n['id'], {'provision_state': 'fake'})
+        node = utils.create_test_node()
+        res = self.dbapi.update_node(node.id, {'provision_state': 'fake'})
         self.assertEqual(mocked_time,
                          timeutils.normalize_time(res['provision_updated_at']))
 

@@ -597,7 +597,6 @@ class SSHDriverTestCase(db_base.DbTestCase):
     def test_validate_fail_no_port(self):
         new_node = obj_utils.create_test_node(
                 self.context,
-                id=321,
                 uuid='aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee',
                 driver='fake_ssh',
                 driver_info=db_utils.get_test_ssh_info())
@@ -936,7 +935,7 @@ class SSHDriverTestCase(db_base.DbTestCase):
 
     def test_management_interface_validate_fail(self):
         # Missing SSH driver_info information
-        node = obj_utils.create_test_node(self.context, id=2,
+        node = obj_utils.create_test_node(self.context,
                                           uuid=utils.generate_uuid(),
                                           driver='fake_ssh')
         with task_manager.acquire(self.context, node.uuid) as task:

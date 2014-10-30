@@ -277,7 +277,7 @@ class TestNeutron(db_base.DbTestCase):
         expected = "192.168.1.3"
         port = object_utils.create_test_port(self.context,
                                              node_id=self.node.id,
-                                             id=6, address='aa:bb:cc',
+                                             address='aa:bb:cc',
                                              uuid=utils.generate_uuid(),
                                              extra={'vif_port_id':
                                                     'test-vif-A'},
@@ -299,7 +299,7 @@ class TestNeutron(db_base.DbTestCase):
         expected = "192.168.1.3"
         port = object_utils.create_test_port(self.context,
                                              node_id=self.node.id,
-                                             id=6, address='aa:bb:cc',
+                                             address='aa:bb:cc',
                                              uuid=utils.generate_uuid(),
                                              extra={'vif_port_id':
                                                     'test-vif-A'},

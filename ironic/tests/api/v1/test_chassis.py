@@ -113,7 +113,7 @@ class TestListChassis(base.FunctionalTest):
         chassis = obj_utils.create_test_chassis(self.context)
 
         for id_ in range(2):
-            obj_utils.create_test_node(self.context, id=id_,
+            obj_utils.create_test_node(self.context,
                                        chassis_id=chassis.id,
                                        uuid=utils.generate_uuid())
 

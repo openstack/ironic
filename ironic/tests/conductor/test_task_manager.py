@@ -87,7 +87,6 @@ class TaskManagerTestCase(tests_db_base.DbTestCase):
                                  reserve_mock, release_mock,
                                  node_get_mock):
         node2 = obj_utils.create_test_node(self.context,
-                                           id=2,
                                            uuid=utils.generate_uuid(),
                                            driver='fake')
 
