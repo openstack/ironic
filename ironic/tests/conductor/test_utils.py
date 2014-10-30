@@ -22,8 +22,6 @@ from ironic.tests.conductor import utils
 
 
 class UtilsTestCase(base.TestCase):
-    def setUp(self):
-        super(UtilsTestCase, self).setUp()
 
     def test_fails_to_load_extension(self):
         self.assertRaises(AttributeError,

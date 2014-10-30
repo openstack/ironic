@@ -20,8 +20,6 @@ from ironic.tests.db import base
 
 
 class DbSyncTestCase(base.DbTestCase):
-    def setUp(self):
-        super(DbSyncTestCase, self).setUp()
 
     def test_upgrade_and_version(self):
         migration.upgrade('head')

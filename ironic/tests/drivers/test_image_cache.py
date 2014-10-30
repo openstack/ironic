@@ -470,9 +470,6 @@ class CleanupImageCacheTestCase(base.TestCase):
 
 class TestFetchCleanup(base.TestCase):
 
-    def setUp(self):
-        super(TestFetchCleanup, self).setUp()
-
     @mock.patch.object(images, 'converted_size')
     @mock.patch.object(images, 'fetch')
     @mock.patch.object(images, 'image_to_raw')
