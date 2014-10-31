@@ -401,23 +401,178 @@ class FsImageTestCase(base.TestCase):
         self.assertRaises(exception.ImageCreationFailed,
                           images.create_vfat_image, 'tgt_file')
 
+    @mock.patch.object(utils, 'umount')
+    def test__umount_without_raise(self, umount_mock):
+
+        umount_mock.side_effect = processutils.ProcessExecutionError
+        images._umount_without_raise('mountdir')
+        umount_mock.assert_called_once_with('mountdir')
+
     def test__generate_isolinux_cfg(self):
 
         kernel_params = ['key1=value1', 'key2']
+        options = {'kernel': '/vmlinuz', 'ramdisk': '/initrd'}
         expected_cfg = ("default boot\n"
                         "\n"
                         "label boot\n"
                         "kernel /vmlinuz\n"
                         "append initrd=/initrd text key1=value1 key2 --")
-        cfg = images._generate_isolinux_cfg(kernel_params)
+        cfg = images._generate_cfg(kernel_params,
+                                   CONF.isolinux_config_template,
+                                   options)
         self.assertEqual(expected_cfg, cfg)
+
+    def test__generate_grub_cfg(self):
+
+        kernel_params = ['key1=value1', 'key2']
+        options = {'linux': '/vmlinuz', 'initrd': '/initrd'}
+        expected_cfg = ("menuentry \"install\" {\n"
+                        "linux /vmlinuz key1=value1 key2 --\n"
+                        "initrd /initrd\n"
+                        "}")
+
+        cfg = images._generate_cfg(kernel_params,
+                                   CONF.grub_config_template,
+                                   options)
+        self.assertEqual(expected_cfg, cfg)
+
+    @mock.patch.object(os.path, 'relpath')
+    @mock.patch.object(os, 'walk')
+    @mock.patch.object(utils, 'mount')
+    def test__mount_deploy_iso(self, mount_mock,
+                               walk_mock, relpath_mock):
+        walk_mock.return_value = [('/tmpdir1/EFI/ubuntu', [], ['grub.cfg']),
+                                  ('/tmpdir1/isolinux', [],
+                                   ['efiboot.img', 'isolinux.bin',
+                                    'isolinux.cfg'])]
+        relpath_mock.side_effect = ['EFI/ubuntu/grub.cfg',
+                                    'isolinux/efiboot.img']
+
+        images._mount_deploy_iso('path/to/deployiso', 'tmpdir1')
+        mount_mock.assert_called_once_with('path/to/deployiso',
+                                           'tmpdir1', '-o', 'loop')
+        walk_mock.assert_called_once_with('tmpdir1')
+
+    @mock.patch.object(images, '_umount_without_raise')
+    @mock.patch.object(os.path, 'relpath')
+    @mock.patch.object(os, 'walk')
+    @mock.patch.object(utils, 'mount')
+    def test__mount_deploy_iso_fail_no_efibootimg(self, mount_mock,
+                                                  walk_mock, relpath_mock,
+                                                  umount_mock):
+        walk_mock.return_value = [('/tmpdir1/EFI/ubuntu', [], ['grub.cfg']),
+                                  ('/tmpdir1/isolinux', [],
+                                   ['isolinux.bin', 'isolinux.cfg'])]
+        relpath_mock.side_effect = ['EFI/ubuntu/grub.cfg']
+
+        self.assertRaises(exception.ImageCreationFailed,
+                          images._mount_deploy_iso,
+                          'path/to/deployiso', 'tmpdir1')
+        mount_mock.assert_called_once_with('path/to/deployiso',
+                                           'tmpdir1', '-o', 'loop')
+        walk_mock.assert_called_once_with('tmpdir1')
+        umount_mock.assert_called_once_with('tmpdir1')
+
+    @mock.patch.object(images, '_umount_without_raise')
+    @mock.patch.object(os.path, 'relpath')
+    @mock.patch.object(os, 'walk')
+    @mock.patch.object(utils, 'mount')
+    def test__mount_deploy_iso_fails_no_grub_cfg(self, mount_mock,
+                                                 walk_mock, relpath_mock,
+                                                 umount_mock):
+        walk_mock.return_value = [('/tmpdir1/EFI/ubuntu', '', []),
+                                  ('/tmpdir1/isolinux', '',
+                                   ['efiboot.img', 'isolinux.bin',
+                                    'isolinux.cfg'])]
+        relpath_mock.side_effect = ['isolinux/efiboot.img']
+
+        self.assertRaises(exception.ImageCreationFailed,
+                          images._mount_deploy_iso,
+                          'path/to/deployiso', 'tmpdir1')
+        mount_mock.assert_called_once_with('path/to/deployiso',
+                                           'tmpdir1', '-o', 'loop')
+        walk_mock.assert_called_once_with('tmpdir1')
+        umount_mock.assert_called_once_with('tmpdir1')
+
+    @mock.patch.object(utils, 'mount')
+    def test__mount_deploy_iso_fail_with_ExecutionError(self, mount_mock):
+        mount_mock.side_effect = processutils.ProcessExecutionError
+        self.assertRaises(exception.ImageCreationFailed,
+                          images._mount_deploy_iso,
+                          'path/to/deployiso', 'tmpdir1')
+
+    @mock.patch.object(images, '_umount_without_raise')
+    @mock.patch.object(images, '_create_root_fs')
+    @mock.patch.object(utils, 'write_to_file')
+    @mock.patch.object(utils, 'execute')
+    @mock.patch.object(images, '_mount_deploy_iso')
+    @mock.patch.object(utils, 'tempdir')
+    @mock.patch.object(images, '_generate_cfg')
+    def test_create_isolinux_image_for_uefi(self, gen_cfg_mock,
+                                   tempdir_mock, mount_mock, execute_mock,
+                                   write_to_file_mock,
+                                   create_root_fs_mock, umount_mock):
+
+        files_info = {
+                'path/to/kernel': 'vmlinuz',
+                'path/to/ramdisk': 'initrd',
+                CONF.isolinux_bin: 'isolinux/isolinux.bin',
+                'path/to/grub': 'relpath/to/grub.cfg',
+                'sourceabspath/to/efiboot.img': 'path/to/efiboot.img'
+                }
+        cfg = "cfg"
+        cfg_file = 'tmpdir/isolinux/isolinux.cfg'
+        grubcfg = "grubcfg"
+        grub_file = 'tmpdir/relpath/to/grub.cfg'
+        gen_cfg_mock.side_effect = [cfg, grubcfg]
+
+        params = ['a=b', 'c']
+        isolinux_options = {'kernel': '/vmlinuz',
+                            'ramdisk': '/initrd'}
+        grub_options = {'linux': '/vmlinuz',
+                        'initrd': '/initrd'}
+
+        uefi_path_info = {
+            'sourceabspath/to/efiboot.img': 'path/to/efiboot.img',
+            'path/to/grub': 'relpath/to/grub.cfg'}
+        grub_rel_path = 'relpath/to/grub.cfg'
+        e_img_rel_path = 'path/to/efiboot.img'
+        mock_file_handle = mock.MagicMock(spec=file)
+        mock_file_handle.__enter__.return_value = 'tmpdir'
+        mock_file_handle1 = mock.MagicMock(spec=file)
+        mock_file_handle1.__enter__.return_value = 'mountdir'
+        tempdir_mock.side_effect = [mock_file_handle,
+                                    mock_file_handle1]
+        mount_mock.return_value = (uefi_path_info,
+                                   e_img_rel_path, grub_rel_path)
+
+        images.create_isolinux_image_for_uefi('tgt_file', 'path/to/deploy_iso',
+                                              'path/to/kernel',
+                                              'path/to/ramdisk',
+                                              kernel_params=params)
+        mount_mock.assert_called_once_with('path/to/deploy_iso', 'mountdir')
+        create_root_fs_mock.assert_called_once_with('tmpdir', files_info)
+        gen_cfg_mock.assert_any_call(params, CONF.isolinux_config_template,
+                                     isolinux_options)
+        write_to_file_mock.assert_any_call(cfg_file, cfg)
+        gen_cfg_mock.assert_any_call(params, CONF.grub_config_template,
+                                     grub_options)
+        write_to_file_mock.assert_any_call(grub_file, grubcfg)
+        execute_mock.assert_called_once_with('mkisofs', '-r', '-V',
+                 "VMEDIA_BOOT_ISO", '-cache-inodes', '-J', '-l',
+                 '-no-emul-boot', '-boot-load-size',
+                 '4', '-boot-info-table', '-b', 'isolinux/isolinux.bin',
+                 '-eltorito-alt-boot', '-e', 'path/to/efiboot.img',
+                 '-no-emul-boot', '-o', 'tgt_file', 'tmpdir')
+        umount_mock.assert_called_once_with('mountdir')
 
     @mock.patch.object(images, '_create_root_fs')
     @mock.patch.object(utils, 'write_to_file')
     @mock.patch.object(utils, 'tempdir')
     @mock.patch.object(utils, 'execute')
-    @mock.patch.object(images, '_generate_isolinux_cfg')
-    def test_create_isolinux_image(self, gen_cfg_mock, utils_mock,
+    @mock.patch.object(images, '_generate_cfg')
+    def test_create_isolinux_image_for_bios(self, gen_cfg_mock,
+                                   execute_mock,
                                    tempdir_mock, write_to_file_mock,
                                    create_root_fs_mock):
 
@@ -430,9 +585,13 @@ class FsImageTestCase(base.TestCase):
         gen_cfg_mock.return_value = cfg
 
         params = ['a=b', 'c']
+        isolinux_options = {'kernel': '/vmlinuz',
+                            'ramdisk': '/initrd'}
 
-        images.create_isolinux_image('tgt_file', 'path/to/kernel',
-                'path/to/ramdisk', kernel_params=params)
+        images.create_isolinux_image_for_bios('tgt_file',
+                                              'path/to/kernel',
+                                              'path/to/ramdisk',
+                                              kernel_params=params)
 
         files_info = {
                 'path/to/kernel': 'vmlinuz',
@@ -440,68 +599,184 @@ class FsImageTestCase(base.TestCase):
                 CONF.isolinux_bin: 'isolinux/isolinux.bin'
                 }
         create_root_fs_mock.assert_called_once_with('tmpdir', files_info)
-        gen_cfg_mock.assert_called_once_with(params)
+        gen_cfg_mock.assert_called_once_with(params,
+                                             CONF.isolinux_config_template,
+                                             isolinux_options)
         write_to_file_mock.assert_called_once_with(cfg_file, cfg)
-
-        utils_mock.assert_called_once_with('mkisofs', '-r', '-V',
-                 "BOOT IMAGE", '-cache-inodes', '-J', '-l',
+        execute_mock.assert_called_once_with('mkisofs', '-r', '-V',
+                 "VMEDIA_BOOT_ISO", '-cache-inodes', '-J', '-l',
                  '-no-emul-boot', '-boot-load-size',
                  '4', '-boot-info-table', '-b', 'isolinux/isolinux.bin',
                  '-o', 'tgt_file', 'tmpdir')
 
+    @mock.patch.object(images, '_umount_without_raise')
     @mock.patch.object(images, '_create_root_fs')
     @mock.patch.object(utils, 'tempdir')
     @mock.patch.object(utils, 'execute')
-    def test_create_isolinux_image_rootfs_fails(self, utils_mock,
-                                                tempdir_mock,
-                                                create_root_fs_mock):
+    @mock.patch.object(os, 'walk')
+    def test_create_isolinux_image_uefi_rootfs_fails(self, walk_mock,
+                                                     utils_mock,
+                                                     tempdir_mock,
+                                                     create_root_fs_mock,
+                                                     umount_mock):
+
+        mock_file_handle = mock.MagicMock(spec=file)
+        mock_file_handle.__enter__.return_value = 'tmpdir'
+        mock_file_handle1 = mock.MagicMock(spec=file)
+        mock_file_handle1.__enter__.return_value = 'mountdir'
+        tempdir_mock.side_effect = [mock_file_handle,
+                                    mock_file_handle1]
         create_root_fs_mock.side_effect = IOError
 
         self.assertRaises(exception.ImageCreationFailed,
-                          images.create_isolinux_image,
+                          images.create_isolinux_image_for_uefi,
+                          'tgt_file', 'path/to/deployiso',
+                          'path/to/kernel',
+                          'path/to/ramdisk')
+        umount_mock.assert_called_once_with('mountdir')
+
+    @mock.patch.object(images, '_create_root_fs')
+    @mock.patch.object(utils, 'tempdir')
+    @mock.patch.object(utils, 'execute')
+    @mock.patch.object(os, 'walk')
+    def test_create_isolinux_image_bios_rootfs_fails(self, walk_mock,
+                                                     utils_mock,
+                                                     tempdir_mock,
+                                                     create_root_fs_mock):
+        create_root_fs_mock.side_effect = IOError
+
+        self.assertRaises(exception.ImageCreationFailed,
+                          images.create_isolinux_image_for_bios,
                           'tgt_file', 'path/to/kernel',
                           'path/to/ramdisk')
+
+    @mock.patch.object(images, '_umount_without_raise')
+    @mock.patch.object(images, '_create_root_fs')
+    @mock.patch.object(utils, 'write_to_file')
+    @mock.patch.object(utils, 'tempdir')
+    @mock.patch.object(utils, 'execute')
+    @mock.patch.object(images, '_mount_deploy_iso')
+    @mock.patch.object(images, '_generate_cfg')
+    def test_create_isolinux_image_mkisofs_fails(self,
+                                                 gen_cfg_mock,
+                                                 mount_mock,
+                                                 utils_mock,
+                                                 tempdir_mock,
+                                                 write_to_file_mock,
+                                                 create_root_fs_mock,
+                                                 umount_mock):
+        mock_file_handle = mock.MagicMock(spec=file)
+        mock_file_handle.__enter__.return_value = 'tmpdir'
+        mock_file_handle1 = mock.MagicMock(spec=file)
+        mock_file_handle1.__enter__.return_value = 'mountdir'
+        tempdir_mock.side_effect = [mock_file_handle,
+                                    mock_file_handle1]
+        mount_mock.return_value = ({'a': 'a'}, 'b', 'c')
+        utils_mock.side_effect = processutils.ProcessExecutionError
+
+        self.assertRaises(exception.ImageCreationFailed,
+                          images.create_isolinux_image_for_uefi,
+                          'tgt_file', 'path/to/deployiso',
+                          'path/to/kernel',
+                          'path/to/ramdisk')
+        umount_mock.assert_called_once_wth('mountdir')
 
     @mock.patch.object(images, '_create_root_fs')
     @mock.patch.object(utils, 'write_to_file')
     @mock.patch.object(utils, 'tempdir')
     @mock.patch.object(utils, 'execute')
-    @mock.patch.object(images, '_generate_isolinux_cfg')
-    def test_create_isolinux_image_mkisofs_fails(self, gen_cfg_mock,
-                                                 utils_mock,
-                                                 tempdir_mock,
-                                                 write_to_file_mock,
-                                                 create_root_fs_mock):
-
+    @mock.patch.object(images, '_generate_cfg')
+    def test_create_isolinux_image_bios_mkisofs_fails(self,
+                                                      gen_cfg_mock,
+                                                      utils_mock,
+                                                      tempdir_mock,
+                                                      write_to_file_mock,
+                                                      create_root_fs_mock):
         mock_file_handle = mock.MagicMock(spec=file)
         mock_file_handle.__enter__.return_value = 'tmpdir'
         tempdir_mock.return_value = mock_file_handle
         utils_mock.side_effect = processutils.ProcessExecutionError
 
         self.assertRaises(exception.ImageCreationFailed,
-                          images.create_isolinux_image,
+                          images.create_isolinux_image_for_bios,
                           'tgt_file', 'path/to/kernel',
                           'path/to/ramdisk')
 
-    @mock.patch.object(images, 'create_isolinux_image')
+    @mock.patch.object(images, 'create_isolinux_image_for_uefi')
     @mock.patch.object(images, 'fetch')
     @mock.patch.object(utils, 'tempdir')
-    def test_create_boot_iso(self, tempdir_mock, fetch_images_mock,
+    def test_create_boot_iso_for_uefi(self, tempdir_mock, fetch_images_mock,
                              create_isolinux_mock):
         mock_file_handle = mock.MagicMock(spec=file)
         mock_file_handle.__enter__.return_value = 'tmpdir'
         tempdir_mock.return_value = mock_file_handle
 
         images.create_boot_iso('ctx', 'output_file', 'kernel-uuid',
-                               'ramdisk-uuid', 'root-uuid', 'kernel-params')
+                               'ramdisk-uuid', 'deploy_iso-uuid',
+                               'root-uuid', 'kernel-params', 'uefi')
 
         fetch_images_mock.assert_any_call('ctx', 'kernel-uuid',
                 'tmpdir/kernel-uuid')
         fetch_images_mock.assert_any_call('ctx', 'ramdisk-uuid',
                 'tmpdir/ramdisk-uuid')
+        fetch_images_mock.assert_any_call('ctx', 'deploy_iso-uuid',
+                'tmpdir/deploy_iso-uuid')
+
         params = ['root=UUID=root-uuid', 'kernel-params']
         create_isolinux_mock.assert_called_once_with('output_file',
-                'tmpdir/kernel-uuid', 'tmpdir/ramdisk-uuid', params)
+                          'tmpdir/deploy_iso-uuid', 'tmpdir/kernel-uuid',
+                          'tmpdir/ramdisk-uuid', params)
+
+    @mock.patch.object(images, 'create_isolinux_image_for_bios')
+    @mock.patch.object(images, 'fetch')
+    @mock.patch.object(utils, 'tempdir')
+    def test_create_boot_iso_for_bios(self, tempdir_mock, fetch_images_mock,
+                             create_isolinux_mock):
+        mock_file_handle = mock.MagicMock(spec=file)
+        mock_file_handle.__enter__.return_value = 'tmpdir'
+        tempdir_mock.return_value = mock_file_handle
+
+        images.create_boot_iso('ctx', 'output_file', 'kernel-uuid',
+                               'ramdisk-uuid', 'deploy_iso-uuid',
+                               'root-uuid', 'kernel-params', 'bios')
+
+        fetch_images_mock.assert_any_call('ctx', 'kernel-uuid',
+                'tmpdir/kernel-uuid')
+        fetch_images_mock.assert_any_call('ctx', 'ramdisk-uuid',
+                'tmpdir/ramdisk-uuid')
+        fetch_images_mock.assert_not_called_with('ctx', 'deploy_iso-uuid',
+                'tmpdir/deploy_iso-uuid')
+
+        params = ['root=UUID=root-uuid', 'kernel-params']
+        create_isolinux_mock.assert_called_once_with('output_file',
+                                                     'tmpdir/kernel-uuid',
+                                                     'tmpdir/ramdisk-uuid',
+                                                     params)
+
+    @mock.patch.object(images, 'create_isolinux_image_for_bios')
+    @mock.patch.object(images, 'fetch')
+    @mock.patch.object(utils, 'tempdir')
+    def test_create_boot_iso_for_bios_with_no_boot_mode(self, tempdir_mock,
+                                                        fetch_images_mock,
+                                                        create_isolinux_mock):
+        mock_file_handle = mock.MagicMock(spec=file)
+        mock_file_handle.__enter__.return_value = 'tmpdir'
+        tempdir_mock.return_value = mock_file_handle
+
+        images.create_boot_iso('ctx', 'output_file', 'kernel-uuid',
+                               'ramdisk-uuid', 'deploy_iso-uuid',
+                               'root-uuid', 'kernel-params', None)
+
+        fetch_images_mock.assert_any_call('ctx', 'kernel-uuid',
+                'tmpdir/kernel-uuid')
+        fetch_images_mock.assert_any_call('ctx', 'ramdisk-uuid',
+                'tmpdir/ramdisk-uuid')
+
+        params = ['root=UUID=root-uuid', 'kernel-params']
+        create_isolinux_mock.assert_called_once_with('output_file',
+                                                     'tmpdir/kernel-uuid',
+                                                     'tmpdir/ramdisk-uuid',
+                                                     params)
 
     @mock.patch.object(image_service, 'get_image_service')
     def test_get_glance_image_properties_no_such_prop(self,

@@ -1,0 +1,4 @@
+menuentry "install" {
+linux {{ linux }} {{ kernel_params }} --
+initrd {{ initrd }}
+}

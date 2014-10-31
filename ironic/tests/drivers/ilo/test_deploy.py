@@ -108,7 +108,8 @@ class IloDeployPrivateMethodsTestCase(db_base.DbTestCase):
     @mock.patch.object(ilo_deploy, '_parse_deploy_info')
     def test__get_boot_iso_glance_image(self, deploy_info_mock,
             image_props_mock):
-        deploy_info_mock.return_value = {'image_source': 'image-uuid'}
+        deploy_info_mock.return_value = {'image_source': 'image-uuid',
+                                         'ilo_deploy_iso': 'deploy_iso_uuid'}
         image_props_mock.return_value = {'boot_iso': 'boot-iso-uuid',
                                          'kernel_id': None,
                                          'ramdisk_id': None}
@@ -128,7 +129,8 @@ class IloDeployPrivateMethodsTestCase(db_base.DbTestCase):
     @mock.patch.object(ilo_deploy, '_parse_deploy_info')
     def test__get_boot_iso_uefi_no_glance_image(self, deploy_info_mock,
             image_props_mock, get_node_cap_mock):
-        deploy_info_mock.return_value = {'image_source': 'image-uuid'}
+        deploy_info_mock.return_value = {'image_source': 'image-uuid',
+                                         'ilo_deploy_iso': 'deploy_iso_uuid'}
         image_props_mock.return_value = {'boot_iso': None,
                                          'kernel_id': None,
                                          'ramdisk_id': None}
@@ -141,17 +143,19 @@ class IloDeployPrivateMethodsTestCase(db_base.DbTestCase):
             image_props_mock.assert_called_once_with(
                 task.context, 'image-uuid',
                 ['boot_iso', 'kernel_id', 'ramdisk_id'])
-            get_node_cap_mock.assert_called_once_with(task.node, 'boot_mode')
+            get_node_cap_mock.assert_not_called(task.node, 'boot_mode')
             self.assertIsNone(boot_iso_result)
 
     @mock.patch.object(tempfile, 'NamedTemporaryFile')
     @mock.patch.object(images, 'create_boot_iso')
     @mock.patch.object(swift, 'SwiftAPI')
     @mock.patch.object(ilo_deploy, '_get_boot_iso_object_name')
+    @mock.patch.object(driver_utils, 'get_node_capability')
     @mock.patch.object(images, 'get_image_properties')
     @mock.patch.object(ilo_deploy, '_parse_deploy_info')
     def test__get_boot_iso_create(self, deploy_info_mock, image_props_mock,
-                                  boot_object_name_mock, swift_api_mock,
+                                  capability_mock, boot_object_name_mock,
+                                  swift_api_mock,
                                   create_boot_iso_mock, tempfile_mock):
         CONF.keystone_authtoken.auth_uri = 'http://authurl'
         CONF.ilo.swift_ilo_container = 'ilo-cont'
@@ -164,12 +168,14 @@ class IloDeployPrivateMethodsTestCase(db_base.DbTestCase):
         mock_file_handle.__enter__.return_value = fileobj_mock
         tempfile_mock.return_value = mock_file_handle
 
-        deploy_info_mock.return_value = {'image_source': 'image-uuid'}
+        deploy_info_mock.return_value = {'image_source': 'image-uuid',
+                                         'ilo_deploy_iso': 'deploy_iso_uuid'}
         image_props_mock.return_value = {'boot_iso': None,
                                          'kernel_id': 'kernel_uuid',
                                          'ramdisk_id': 'ramdisk_uuid'}
         boot_object_name_mock.return_value = 'abcdef'
         create_boot_iso_mock.return_value = '/path/to/boot-iso'
+        capability_mock.return_value = 'uefi'
 
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
@@ -179,8 +185,13 @@ class IloDeployPrivateMethodsTestCase(db_base.DbTestCase):
                 'image-uuid', ['boot_iso', 'kernel_id', 'ramdisk_id'])
             boot_object_name_mock.assert_called_once_with(task.node)
             create_boot_iso_mock.assert_called_once_with(task.context,
-                    'tmpfile', 'kernel_uuid', 'ramdisk_uuid',
-                    'root-uuid', 'kernel-params')
+                                                         'tmpfile',
+                                                         'kernel_uuid',
+                                                         'ramdisk_uuid',
+                                                         'deploy_iso_uuid',
+                                                         'root-uuid',
+                                                         'kernel-params',
+                                                         'uefi')
             swift_obj_mock.create_object.assert_called_once_with('ilo-cont',
                                                                  'abcdef',
                                                                  'tmpfile')
