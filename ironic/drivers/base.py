@@ -18,11 +18,17 @@ Abstract base classes for drivers.
 """
 
 import abc
+import functools
 
+from oslo.utils import excutils
 import six
 
 from ironic.common import exception
 from ironic.common.i18n import _
+from ironic.common.i18n import _LE
+from ironic.openstack.common import log as logging
+
+LOG = logging.getLogger(__name__)
 
 
 @six.add_metaclass(abc.ABCMeta)
@@ -347,6 +353,40 @@ class RescueInterface(object):
 
         :param task: a TaskManager instance containing the node to act on.
         """
+
+
+def passthru(method=None):
+    """A decorator for registering a function as a passthru function.
+
+    Decorator ensures function is ready to catch any ironic exceptions
+    and reraise them after logging the issue. It also catches non-ironic
+    exceptions reraising them as a VendorPassthruException after writing
+    a log.
+
+    Logs need to be added because even though the exception is being
+    reraised, it won't be handled if it is an async. call.
+
+    :param method: an arbitrary string describing the action to be taken.
+    """
+    def handle_passthru(func):
+        api_method = method
+        if api_method is None:
+            api_method = func.__name__
+        passthru_logmessage = _LE('vendor_passthru failed with method %s')
+
+        @functools.wraps(func)
+        def passthru_handler(*args, **kwargs):
+            try:
+                return func(*args, **kwargs)
+            except exception.IronicException as e:
+                with excutils.save_and_reraise_exception():
+                    LOG.exception(passthru_logmessage, api_method)
+            except Exception as e:
+                # catch-all in case something bubbles up here
+                LOG.exception(passthru_logmessage, api_method)
+                raise exception.VendorPassthruException(message=e)
+        return passthru_handler
+    return handle_passthru
 
 
 @six.add_metaclass(abc.ABCMeta)

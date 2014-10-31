@@ -307,7 +307,7 @@ class AgentDeploy(base.DeployInterface):
 class AgentVendorInterface(base.VendorInterface):
     def __init__(self):
         self.vendor_routes = {
-            'heartbeat': self._heartbeat
+            'heartbeat': self.heartbeat
         }
         self.driver_routes = {
             'lookup': self._lookup,
@@ -356,22 +356,10 @@ class AgentVendorInterface(base.VendorInterface):
             raise exception.InvalidParameterValue(_('No handler for method '
                                                     '%s') % method)
         func = self.vendor_routes[method]
-        try:
-            return func(task, **kwargs)
-        except exception.IronicException as e:
-            with excutils.save_and_reraise_exception():
-                # log this because even though the exception is being
-                # reraised, it won't be handled if it is an async. call.
-                LOG.exception(_LE('vendor_passthru failed with method %s'),
-                              method)
-        except Exception as e:
-            # catch-all in case something bubbles up here
-            # log this because even though the exception is being
-            # reraised, it won't be handled if it is an async. call.
-            LOG.exception(_LE('vendor_passthru failed with method %s'), method)
-            raise exception.VendorPassthruException(message=e)
+        return func(task, **kwargs)
 
-    def _heartbeat(self, task, **kwargs):
+    @base.passthru()
+    def heartbeat(self, task, **kwargs):
         """Method for agent to periodically check in.
 
         The agent should be sending its agent_url (so Ironic can talk back)

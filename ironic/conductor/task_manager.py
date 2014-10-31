@@ -96,6 +96,8 @@ code when the spawned task generates an exception:
 
 """
 
+import functools
+
 from oslo.config import cfg
 from oslo.utils import excutils
 import retrying
@@ -119,6 +121,7 @@ def require_exclusive_lock(f):
     as the first parameter after "self".
 
     """
+    @functools.wraps(f)
     def wrapper(*args, **kwargs):
         task = args[0] if isinstance(args[0], TaskManager) else args[1]
         if task.shared:

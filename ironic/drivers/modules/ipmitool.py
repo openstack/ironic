@@ -792,8 +792,9 @@ class VendorPassthru(base.VendorInterface):
                 reason=_("Unable to locate usable ipmitool command in "
                          "the system path when checking ipmitool version"))
 
+    @base.passthru()
     @task_manager.require_exclusive_lock
-    def _send_raw_bytes(self, task, raw_bytes):
+    def send_raw(self, task, raw_bytes):
         """Send raw bytes to the BMC. Bytes should be a string of bytes.
 
         :param task: a TaskManager instance.
@@ -820,8 +821,9 @@ class VendorPassthru(base.VendorInterface):
                           {'node_id': node_uuid, 'error': e})
             raise exception.IPMIFailure(cmd=cmd)
 
+    @base.passthru()
     @task_manager.require_exclusive_lock
-    def _bmc_reset(self, task, warm=True):
+    def bmc_reset(self, task, warm=True):
         """Reset BMC with IPMI command 'bmc reset (warm|cold)'.
 
         :param task: a TaskManager instance.
@@ -908,11 +910,9 @@ class VendorPassthru(base.VendorInterface):
 
         method = kwargs['method']
         if method == 'send_raw':
-            return self._send_raw_bytes(task,
-                                        kwargs.get('raw_bytes'))
+            return self.send_raw(task, kwargs.get('raw_bytes'))
         elif method == 'bmc_reset':
-            return self._bmc_reset(task,
-                                   warm=kwargs.get('warm', True))
+            return self.bmc_reset(task, warm=kwargs.get('warm', True))
 
 
 class IPMIShellinaboxConsole(base.ConsoleInterface):

@@ -21,6 +21,7 @@ from ironic.common import keystone
 from ironic.common import pxe_utils
 from ironic.common import states
 from ironic.conductor import task_manager
+from ironic.drivers import base as driver_base
 from ironic.drivers.modules import agent
 from ironic import objects
 from ironic.tests.conductor import utils as mgr_utils
@@ -325,35 +326,37 @@ class TestAgentVendor(db_base.DbTestCase):
         }
         with task_manager.acquire(
                 self.context, self.node['uuid'], shared=True) as task:
-            self.passthru._heartbeat(task, **kwargs)
+            self.passthru.heartbeat(task, **kwargs)
 
     def test_heartbeat_bad(self):
         kwargs = {}
         with task_manager.acquire(
                 self.context, self.node['uuid'], shared=True) as task:
             self.assertRaises(exception.MissingParameterValue,
-                              self.passthru._heartbeat, task, **kwargs)
+                              self.passthru.heartbeat, task, **kwargs)
 
     @mock.patch('ironic.drivers.modules.agent.AgentVendorInterface'
-                '._heartbeat')
+                '.heartbeat', autospec=True)
     def test_vendor_passthru_heartbeat(self, mock_heartbeat):
         kwargs = {
             'method': 'heartbeat',
         }
-        self.passthru.vendor_routes['heartbeat'] = mock_heartbeat
+        self.passthru.vendor_routes['heartbeat'] = (
+            driver_base.passthru('heartbeat')(mock_heartbeat))
         with task_manager.acquire(
                 self.context, self.node['uuid'], shared=True) as task:
             self.passthru.vendor_passthru(task, **kwargs)
             mock_heartbeat.assert_called_once_with(task, **kwargs)
 
     @mock.patch('ironic.drivers.modules.agent.AgentVendorInterface'
-                '._heartbeat')
+                '.heartbeat', autospec=True)
     def test_vendor_passthru_heartbeat_ironic_exc(self, mock_heartbeat):
         mock_heartbeat.side_effect = exception.IronicException()
         kwargs = {
             'method': 'heartbeat',
         }
-        self.passthru.vendor_routes['heartbeat'] = mock_heartbeat
+        self.passthru.vendor_routes['heartbeat'] = (
+            driver_base.passthru('heartbeat')(mock_heartbeat))
         with task_manager.acquire(
                 self.context, self.node['uuid'], shared=True) as task:
             self.assertRaises(exception.IronicException,
@@ -361,13 +364,14 @@ class TestAgentVendor(db_base.DbTestCase):
             mock_heartbeat.assert_called_once_with(task, **kwargs)
 
     @mock.patch('ironic.drivers.modules.agent.AgentVendorInterface'
-                '._heartbeat')
+                '.heartbeat', autospec=True)
     def test_vendor_passthru_heartbeat_exception(self, mock_heartbeat):
         mock_heartbeat.side_effect = KeyError()
         kwargs = {
             'method': 'heartbeat',
         }
-        self.passthru.vendor_routes['heartbeat'] = mock_heartbeat
+        self.passthru.vendor_routes['heartbeat'] = (
+            driver_base.passthru('heartbeat')(mock_heartbeat))
         with task_manager.acquire(
                 self.context, self.node['uuid'], shared=True) as task:
             self.assertRaises(exception.VendorPassthruException,

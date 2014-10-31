@@ -960,7 +960,7 @@ class IPMIToolDriverTestCase(db_base.DbTestCase):
 
         with task_manager.acquire(self.context,
                                   self.node['uuid']) as task:
-            self.driver.vendor._send_raw_bytes(task, '0x00 0x01')
+            self.driver.vendor.send_raw(task, '0x00 0x01')
 
         mock_exec.assert_called_once_with(self.info, 'raw 0x00 0x01')
 
@@ -971,7 +971,7 @@ class IPMIToolDriverTestCase(db_base.DbTestCase):
         with task_manager.acquire(self.context,
                                   self.node['uuid']) as task:
             self.assertRaises(exception.IPMIFailure,
-                              self.driver.vendor._send_raw_bytes,
+                              self.driver.vendor.send_raw,
                               task,
                               '0x00 0x01')
 
@@ -981,7 +981,7 @@ class IPMIToolDriverTestCase(db_base.DbTestCase):
 
         with task_manager.acquire(self.context,
                                   self.node['uuid']) as task:
-            self.driver.vendor._bmc_reset(task)
+            self.driver.vendor.bmc_reset(task)
 
         mock_exec.assert_called_once_with(self.info, 'bmc reset warm')
 
@@ -991,7 +991,7 @@ class IPMIToolDriverTestCase(db_base.DbTestCase):
 
         with task_manager.acquire(self.context,
                                   self.node['uuid']) as task:
-            self.driver.vendor._bmc_reset(task, warm=False)
+            self.driver.vendor.bmc_reset(task, warm=False)
 
         mock_exec.assert_called_once_with(self.info, 'bmc reset cold')
 
@@ -1002,7 +1002,7 @@ class IPMIToolDriverTestCase(db_base.DbTestCase):
         with task_manager.acquire(self.context,
                                   self.node['uuid']) as task:
             self.assertRaises(exception.IPMIFailure,
-                              self.driver.vendor._bmc_reset,
+                              self.driver.vendor.bmc_reset,
                               task)
 
     @mock.patch.object(ipmi, '_power_off', autospec=False)
@@ -1070,7 +1070,7 @@ class IPMIToolDriverTestCase(db_base.DbTestCase):
                               self.driver.vendor.validate,
                               task, method='send_raw')
 
-    @mock.patch.object(ipmi.VendorPassthru, '_send_raw_bytes')
+    @mock.patch.object(ipmi.VendorPassthru, 'send_raw')
     def test_vendor_passthru_call_send_raw_bytes(self, raw_bytes_mock):
         with task_manager.acquire(self.context, self.node['uuid'],
                                   shared=False) as task:
@@ -1096,7 +1096,7 @@ class IPMIToolDriverTestCase(db_base.DbTestCase):
                                         method='bmc_reset',
                                         warm=False)
 
-    @mock.patch.object(ipmi.VendorPassthru, '_bmc_reset')
+    @mock.patch.object(ipmi.VendorPassthru, 'bmc_reset')
     def test_vendor_passthru_call_bmc_reset(self, bmc_mock):
         with task_manager.acquire(self.context, self.node['uuid'],
                                   shared=False) as task:
@@ -1104,7 +1104,7 @@ class IPMIToolDriverTestCase(db_base.DbTestCase):
                                                method='bmc_reset')
             bmc_mock.assert_called_once_with(task, warm=True)
 
-    @mock.patch.object(ipmi.VendorPassthru, '_bmc_reset')
+    @mock.patch.object(ipmi.VendorPassthru, 'bmc_reset')
     def test_vendor_passthru_call_bmc_reset_warm(self, bmc_mock):
         with task_manager.acquire(self.context, self.node['uuid'],
                                   shared=False) as task:
@@ -1113,7 +1113,7 @@ class IPMIToolDriverTestCase(db_base.DbTestCase):
                                                warm=True)
             bmc_mock.assert_called_once_with(task, warm=True)
 
-    @mock.patch.object(ipmi.VendorPassthru, '_bmc_reset')
+    @mock.patch.object(ipmi.VendorPassthru, 'bmc_reset')
     def test_vendor_passthru_call_bmc_reset_cold(self, bmc_mock):
         with task_manager.acquire(self.context, self.node['uuid'],
                                   shared=False) as task:
