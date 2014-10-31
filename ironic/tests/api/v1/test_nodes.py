@@ -16,6 +16,7 @@ Tests for the API /nodes/ methods.
 """
 
 import datetime
+import json
 
 import mock
 from oslo.config import cfg
@@ -822,20 +823,30 @@ class TestPost(api_base.FunctionalTest):
         self.assertEqual(400, response.status_code)
         self.assertTrue(response.json['error_message'])
 
-    def test_vendor_passthru_ok(self):
-        node = obj_utils.create_test_node(self.context)
-        uuid = node.uuid
-        info = {'foo': 'bar'}
+    def _test_vendor_passthru_ok(self, mock_vendor, return_value=None,
+                                 is_async=True):
+        expected_status = 202 if is_async else 200
+        expected_return_value = json.dumps(return_value)
 
-        with mock.patch.object(
-                rpcapi.ConductorAPI, 'vendor_passthru') as mock_vendor:
-            mock_vendor.return_value = 'OK'
-            response = self.post_json('/nodes/%s/vendor_passthru/test' % uuid,
-                                      info, expect_errors=False)
-            mock_vendor.assert_called_once_with(
-                    mock.ANY, uuid, 'test', info, 'test-topic')
-            self.assertEqual('"OK"', response.body)
-            self.assertEqual(202, response.status_code)
+        node = obj_utils.create_test_node(self.context)
+        info = {'foo': 'bar'}
+        mock_vendor.return_value = (return_value, is_async)
+        response = self.post_json('/nodes/%s/vendor_passthru/test' % node.uuid,
+                                  info)
+        mock_vendor.assert_called_once_with(
+                mock.ANY, node.uuid, 'test', info, 'test-topic')
+        self.assertEqual(expected_return_value, response.body)
+        self.assertEqual(expected_status, response.status_code)
+
+    @mock.patch.object(rpcapi.ConductorAPI, 'vendor_passthru')
+    def test_vendor_passthru_async(self, mock_vendor):
+        self._test_vendor_passthru_ok(mock_vendor)
+
+    @mock.patch.object(rpcapi.ConductorAPI, 'vendor_passthru')
+    def test_vendor_passthru_sync(self, mock_vendor):
+        return_value = {'cat': 'meow'}
+        self._test_vendor_passthru_ok(mock_vendor, return_value=return_value,
+                                      is_async=False)
 
     def test_vendor_passthru_no_such_method(self):
         node = obj_utils.create_test_node(self.context)

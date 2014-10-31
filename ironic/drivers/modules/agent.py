@@ -435,7 +435,7 @@ class AgentVendorInterface(base.VendorInterface):
         node.target_provision_state = states.NOSTATE
         node.save()
 
-    @base.driver_passthru()
+    @base.driver_passthru(async=False)
     def lookup(self, context, **kwargs):
         """Find a matching node for the agent.
 
@@ -443,7 +443,7 @@ class AgentVendorInterface(base.VendorInterface):
         can be because this is a node just entering decom or a node that
         rebooted for some reason. We will use the mac addresses listed in the
         kwargs to find the matching node, then return the node object to the
-        agent. The agent can that use that UUID to use the normal vendor
+        agent. The agent can that use that UUID to use the node vendor
         passthru method.
 
         Currently, we don't handle the instance where the agent doesn't have

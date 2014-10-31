@@ -495,15 +495,43 @@ class UpdateNodeTestCase(_ServiceSetUpMixin, tests_db_base.DbTestCase):
 
 @_mock_record_keepalive
 class VendorPassthruTestCase(_ServiceSetUpMixin, tests_db_base.DbTestCase):
-    def test_vendor_passthru_success(self):
+
+    @mock.patch.object(task_manager.TaskManager, 'spawn_after')
+    def test_vendor_passthru_async(self, mock_spawn):
         node = obj_utils.create_test_node(self.context, driver='fake')
         info = {'bar': 'baz'}
         self._start_service()
 
-        self.service.vendor_passthru(
-            self.context, node.uuid, 'first_method', info)
+        ret, is_async = self.service.vendor_passthru(self.context, node.uuid,
+                                                     'first_method', info)
         # Waiting to make sure the below assertions are valid.
         self.service._worker_pool.waitall()
+
+        # Assert spawn_after was called
+        self.assertTrue(mock_spawn.called)
+        self.assertIsNone(ret)
+        self.assertTrue(is_async)
+
+        node.refresh()
+        self.assertIsNone(node.last_error)
+        # Verify reservation has been cleared.
+        self.assertIsNone(node.reservation)
+
+    @mock.patch.object(task_manager.TaskManager, 'spawn_after')
+    def test_vendor_passthru_sync(self, mock_spawn):
+        node = obj_utils.create_test_node(self.context, driver='fake')
+        info = {'bar': 'meow'}
+        self._start_service()
+
+        ret, is_async = self.service.vendor_passthru(self.context, node.uuid,
+                                                     'third_method_sync', info)
+        # Waiting to make sure the below assertions are valid.
+        self.service._worker_pool.waitall()
+
+        # Assert no workers were used
+        self.assertFalse(mock_spawn.called)
+        self.assertTrue(ret)
+        self.assertFalse(is_async)
 
         node.refresh()
         self.assertIsNone(node.last_error)
@@ -620,29 +648,60 @@ class VendorPassthruTestCase(_ServiceSetUpMixin, tests_db_base.DbTestCase):
 
         acquire_mock.return_value.__enter__.return_value = task
 
-        self.service.vendor_passthru(
-            self.context, node.uuid, 'test_method', {'bar': 'baz'})
+        response = self.service.vendor_passthru(
+                       self.context, node.uuid, 'test_method', {'bar': 'baz'})
 
+        self.assertEqual((None, True), response)
         task.spawn_after.assert_called_once_with(mock.ANY, vendor_passthru_ref,
             task, bar='baz', method='test_method')
 
-    def test_driver_vendor_passthru_success(self):
+    @mock.patch.object(manager.ConductorManager, '_spawn_worker')
+    def test_driver_vendor_passthru_sync(self, mock_spawn):
         expected = {'foo': 'bar'}
         self.driver.vendor = mock.Mock(spec=drivers_base.VendorInterface)
         test_method = mock.MagicMock(return_value=expected)
         self.driver.vendor.driver_routes = {'test_method':
-                                           {'func': test_method}}
+                                           {'func': test_method,
+                                            'async': False}}
         self.service.init_host()
-        got = self.service.driver_vendor_passthru(self.context,
-                                                  'fake',
-                                                  'test_method',
-                                                  {'test': 'arg'})
+        # init_host() called _spawn_worker because of the heartbeat
+        mock_spawn.reset_mock()
+
+        vendor_args = {'test': 'arg'}
+        got, is_async = self.service.driver_vendor_passthru(self.context,
+                            'fake', 'test_method', vendor_args)
 
         # Assert that the vendor interface has no custom
         # driver_vendor_passthru()
         self.assertFalse(hasattr(self.driver.vendor, 'driver_vendor_passthru'))
         self.assertEqual(expected, got)
-        test_method.assert_called_once_with(mock.ANY, test='arg')
+        self.assertFalse(is_async)
+        test_method.assert_called_once_with(self.context, **vendor_args)
+        # No worker was spawned
+        self.assertFalse(mock_spawn.called)
+
+    @mock.patch.object(manager.ConductorManager, '_spawn_worker')
+    def test_driver_vendor_passthru_async(self, mock_spawn):
+        self.driver.vendor = mock.Mock(spec=drivers_base.VendorInterface)
+        test_method = mock.MagicMock()
+        self.driver.vendor.driver_routes = {'test_sync_method':
+                                           {'func': test_method,
+                                            'async': True}}
+        self.service.init_host()
+        # init_host() called _spawn_worker because of the heartbeat
+        mock_spawn.reset_mock()
+
+        vendor_args = {'test': 'arg'}
+        got, is_async = self.service.driver_vendor_passthru(self.context,
+                            'fake', 'test_sync_method', vendor_args)
+
+        # Assert that the vendor interface has no custom
+        # driver_vendor_passthru()
+        self.assertFalse(hasattr(self.driver.vendor, 'driver_vendor_passthru'))
+        self.assertIsNone(got)
+        self.assertTrue(is_async)
+        mock_spawn.assert_called_once_with(test_method, self.context,
+                                           **vendor_args)
 
     def test_driver_vendor_passthru_vendor_interface_not_supported(self):
         # Test for when no vendor interface is set at all
@@ -680,6 +739,24 @@ class VendorPassthruTestCase(_ServiceSetUpMixin, tests_db_base.DbTestCase):
                           'does_not_exist',
                           'test_method',
                           {})
+
+    def test_driver_vendor_passthru_backwards_compat(self):
+        expected = {'foo': 'bar'}
+        driver_vendor_passthru_ref = mock.Mock(return_value=expected)
+
+        self.driver.vendor = mock.Mock(spec=drivers_base.VendorInterface)
+        self.driver.vendor.driver_routes = {}
+        self.driver.vendor.driver_vendor_passthru = driver_vendor_passthru_ref
+
+        self.service.init_host()
+
+        vendor_args = {'test': 'arg'}
+        response = self.service.driver_vendor_passthru(self.context,
+                       'fake', 'test_method', vendor_args)
+
+        self.assertEqual((expected, False), response)
+        driver_vendor_passthru_ref.assert_called_once_with(
+                self.context, test='arg', method='test_method')
 
 
 @_mock_record_keepalive

@@ -162,7 +162,7 @@ class ConductorManager(periodic_task.PeriodicTasks):
     """Ironic Conductor manager main class."""
 
     # NOTE(rloo): This must be in sync with rpcapi.ConductorAPI's.
-    RPC_API_VERSION = '1.18'
+    RPC_API_VERSION = '1.19'
 
     target = messaging.Target(version=RPC_API_VERSION)
 
@@ -366,8 +366,9 @@ class ConductorManager(periodic_task.PeriodicTasks):
         """RPC method to encapsulate vendor action.
 
         Synchronously validate driver specific info or get driver status,
-        and if successful, start background worker to perform vendor action
-        asynchronously.
+        and if successful invokes the vendor method. If the method mode
+        is 'async' the conductor will start background worker to perform
+        vendor action.
 
         :param context: an admin context.
         :param node_id: the id or uuid of a node.
@@ -379,7 +380,12 @@ class ConductorManager(periodic_task.PeriodicTasks):
                  vendor interface or method is unsupported.
         :raises: NoFreeConductorWorker when there is no free worker to start
                  async task.
-
+        :raises: NodeLocked if node is locked by another conductor.
+        :returns: A tuple containing the response of the invoked method
+                  and a boolean value indicating whether the method was
+                  invoked asynchronously (True) or synchronously (False).
+                  If invoked asynchronously the response field will be
+                  always None.
         """
         LOG.debug("RPC vendor_passthru called for node %s." % node_id)
         # NOTE(max_lobur): Even though not all vendor_passthru calls may
@@ -410,28 +416,42 @@ class ConductorManager(periodic_task.PeriodicTasks):
                 task.spawn_after(self._spawn_worker,
                                  vendor_iface.vendor_passthru, task,
                                  method=driver_method, **info)
-                return
+                # NodeVendorPassthru was always async
+                return (None, True)
 
             try:
-                vendor_func = vendor_iface.vendor_routes[driver_method]['func']
+                vendor_opts = vendor_iface.vendor_routes[driver_method]
+                vendor_func = vendor_opts['func']
             except KeyError:
                 raise exception.InvalidParameterValue(
                     _('No handler for method %s') % driver_method)
 
             vendor_iface.validate(task, method=driver_method, **info)
-            task.spawn_after(self._spawn_worker, vendor_func, task, **info)
 
-    @messaging.expected_exceptions(exception.InvalidParameterValue,
+            # Invoke the vendor method accordingly with the mode
+            is_async = vendor_opts['async']
+            ret = None
+            if is_async:
+                task.spawn_after(self._spawn_worker, vendor_func, task, **info)
+            else:
+                ret = vendor_func(task, **info)
+
+            return (ret, is_async)
+
+    @messaging.expected_exceptions(exception.NoFreeConductorWorker,
+                                   exception.InvalidParameterValue,
                                    exception.MissingParameterValue,
                                    exception.UnsupportedDriverExtension,
                                    exception.DriverNotFound)
     def driver_vendor_passthru(self, context, driver_name, driver_method,
-                                  info):
+                               info):
         """Handle top-level vendor actions.
 
-        RPC method which synchronously handles driver-level vendor passthru
-        calls. These calls don't require a node UUID and are executed on a
-        random conductor with the specified driver.
+        RPC method which handles driver-level vendor passthru calls. These
+        calls don't require a node UUID and are executed on a random
+        conductor with the specified driver. If the method mode is
+        async the conductor will start background worker to perform
+        vendor action.
 
         :param context: an admin context.
         :param driver_name: name of the driver on which to call the method.
@@ -444,7 +464,13 @@ class ConductorManager(periodic_task.PeriodicTasks):
                  driver-level vendor passthru or if the passthru method is
                  unsupported.
         :raises: DriverNotFound if the supplied driver is not loaded.
-
+        :raises: NoFreeConductorWorker when there is no free worker to start
+                 async task.
+        :returns: A tuple containing the response of the invoked method
+                  and a boolean value indicating whether the method was
+                  invoked asynchronously (True) or synchronously (False).
+                  If invoked asynchronously the response field will be
+                  always None.
         """
         # Any locking in a top-level vendor action will need to be done by the
         # implementation, as there is little we could reasonably lock on here.
@@ -467,16 +493,34 @@ class ConductorManager(periodic_task.PeriodicTasks):
                             "of driver_vendor_passthru() has been "
                             "deprecated. Please update the code to use "
                             "the @driver_passthru decorator."))
-            return driver.vendor.driver_vendor_passthru(
+            ret = driver.vendor.driver_vendor_passthru(
                             context, method=driver_method, **info)
+            # DriverVendorPassthru was always sync
+            return (ret, False)
 
         try:
-            vendor_func = driver.vendor.driver_routes[driver_method]['func']
+            vendor_opts = driver.vendor.driver_routes[driver_method]
+            vendor_func = vendor_opts['func']
         except KeyError:
             raise exception.InvalidParameterValue(
                 _('No handler for method %s') % driver_method)
 
-        return vendor_func(context, **info)
+        # FIXME(lucasagomes): This code should be able to call
+        # validate(). The problem is that at the moment the validate()
+        # expects a task object as the first parameter and in this
+        # method we don't have it because we don't have a Node to
+        # acquire.
+        # See: https://bugs.launchpad.net/ironic/+bug/1391580
+
+        # Invoke the vendor method accordingly with the mode
+        is_async = vendor_opts['async']
+        ret = None
+        if is_async:
+            self._spawn_worker(vendor_func, context, **info)
+        else:
+            ret = vendor_func(context, **info)
+
+        return (ret, is_async)
 
     def _provisioning_error_handler(self, e, node, provision_state,
                                     target_provision_state):

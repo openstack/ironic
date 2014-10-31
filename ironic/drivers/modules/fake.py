@@ -122,17 +122,21 @@ class FakeVendorB(base.VendorInterface):
 
     def validate(self, task, **kwargs):
         method = kwargs.get('method')
-        if method == 'second_method':
+        if method in ('second_method', 'third_method_sync'):
             bar = kwargs.get('bar')
             if not bar:
                 raise exception.MissingParameterValue(_(
-                    "Parameter 'bar' not passed to method 'second_method'."))
+                    "Parameter 'bar' not passed to method '%s'.") % method)
             return
         _raise_unsupported_error(method)
 
     @base.passthru()
     def second_method(self, task, bar):
         return True if bar == 'kazoo' else False
+
+    @base.passthru(async=False)
+    def third_method_sync(self, task, bar):
+        return True if bar == 'meow' else False
 
 
 class FakeConsole(base.ConsoleInterface):

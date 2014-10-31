@@ -38,7 +38,7 @@ class ConductorAPI(object):
     |    1.0 - Initial version.
     |          Included get_node_power_status
     |    1.1 - Added update_node and start_power_state_change.
-    |    1.2 - Added vendor_passhthru.
+    |    1.2 - Added vendor_passthru.
     |    1.3 - Rename start_power_state_change to change_node_power_state.
     |    1.4 - Added do_node_deploy and do_node_tear_down.
     |    1.5 - Added validate_driver_interfaces.
@@ -58,11 +58,13 @@ class ConductorAPI(object):
     |    1.17 - Added set_boot_device, get_boot_device and
     |          get_supported_boot_devices.
     |    1.18 - Remove change_node_maintenance_mode.
+    |    1.19 - Change return value of vendor_passthru and
+                driver_vendor_passthru
 
     """
 
     # NOTE(rloo): This must be in sync with manager.ConductorManager's.
-    RPC_API_VERSION = '1.18'
+    RPC_API_VERSION = '1.19'
 
     def __init__(self, topic=None):
         super(ConductorAPI, self).__init__()
@@ -159,8 +161,10 @@ class ConductorAPI(object):
                         topic=None):
         """Receive requests for vendor-specific actions.
 
-        Synchronously, acquire lock, validate given parameters and start
-        the conductor background task for specified vendor action.
+        Synchronously validate driver specific info or get driver status,
+        and if successful invokes the vendor method. If the method mode
+        is async the conductor will start background worker to perform
+        vendor action.
 
         :param context: request context.
         :param node_id: node id or uuid.
@@ -173,15 +177,26 @@ class ConductorAPI(object):
                  vendor interface.
         :raises: NoFreeConductorWorker when there is no free worker to start
                  async task.
+        :raises: NodeLocked if node is locked by another conductor.
+        :returns: A tuple containing the response of the invoked method
+                  and a boolean value indicating whether the method was
+                  invoked asynchronously (True) or synchronously (False).
+                  If invoked asynchronously the response field will be
+                  always None.
 
         """
-        cctxt = self.client.prepare(topic=topic or self.topic, version='1.12')
+        cctxt = self.client.prepare(topic=topic or self.topic, version='1.19')
         return cctxt.call(context, 'vendor_passthru', node_id=node_id,
                           driver_method=driver_method, info=info)
 
     def driver_vendor_passthru(self, context, driver_name, driver_method, info,
                         topic=None):
         """Pass vendor-specific calls which don't specify a node to a driver.
+
+        Handles driver-level vendor passthru calls. These calls don't
+        require a node UUID and are executed on a random conductor with
+        the specified driver. If the method mode is async the conductor
+        will start background worker to perform vendor action.
 
         :param context: request context.
         :param driver_name: name of the driver on which to call the method.
@@ -193,9 +208,17 @@ class ConductorAPI(object):
         :raises: UnsupportedDriverExtension if the driver doesn't have a vendor
                  interface, or if the vendor interface does not support the
                  specified driver_method.
+        :raises: DriverNotFound if the supplied driver is not loaded.
+        :raises: NoFreeConductorWorker when there is no free worker to start
+                 async task.
+        :returns: A tuple containing the response of the invoked method
+                  and a boolean value indicating whether the method was
+                  invoked asynchronously (True) or synchronously (False).
+                  If invoked asynchronously the response field will be
+                  always None.
 
         """
-        cctxt = self.client.prepare(topic=topic or self.topic, version='1.14')
+        cctxt = self.client.prepare(topic=topic or self.topic, version='1.19')
         return cctxt.call(context, 'driver_vendor_passthru',
                           driver_name=driver_name,
                           driver_method=driver_method,

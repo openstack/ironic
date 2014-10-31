@@ -184,7 +184,7 @@ class RPCAPITestCase(base.DbTestCase):
     def test_pass_vendor_info(self):
         self._test_rpcapi('vendor_passthru',
                           'call',
-                          version='1.12',
+                          version='1.19',
                           node_id=self.fake_node['uuid'],
                           driver_method='test-driver-method',
                           info={"test_info": "test_value"})
@@ -192,7 +192,7 @@ class RPCAPITestCase(base.DbTestCase):
     def test_driver_vendor_passthru(self):
         self._test_rpcapi('driver_vendor_passthru',
                           'call',
-                          version='1.14',
+                          version='1.19',
                           driver_name='test-driver-name',
                           driver_method='test-driver-method',
                           info={'test_key': 'test_value'})

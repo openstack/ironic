@@ -553,8 +553,7 @@ class NodeVendorPassthruController(rest.RestController):
     """
 
     @wsme_pecan.wsexpose(wtypes.text, types.uuid, wtypes.text,
-                         body=wtypes.text,
-                         status_code=202)
+                         body=wtypes.text)
     def post(self, node_uuid, method, data):
         """Call a vendor extension.
 
@@ -570,8 +569,11 @@ class NodeVendorPassthruController(rest.RestController):
         if not method:
             raise wsme.exc.ClientSideError(_("Method not specified"))
 
-        return pecan.request.rpcapi.vendor_passthru(
-                pecan.request.context, node_uuid, method, data, topic)
+        ret, is_async = pecan.request.rpcapi.vendor_passthru(
+                            pecan.request.context, node_uuid, method,
+                            data, topic)
+        status_code = 202 if is_async else 200
+        return wsme.api.Response(ret, status_code=status_code)
 
 
 class NodeMaintenanceController(rest.RestController):
