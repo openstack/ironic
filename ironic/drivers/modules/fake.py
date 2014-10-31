@@ -108,8 +108,8 @@ class FakeVendorA(base.VendorInterface):
             return
         _raise_unsupported_error(method)
 
-    @base.passthru()
-    def first_method(self, task, bar):
+    @base.passthru(['POST'])
+    def first_method(self, task, http_method, bar):
         return True if bar == 'baz' else False
 
 
@@ -130,12 +130,12 @@ class FakeVendorB(base.VendorInterface):
             return
         _raise_unsupported_error(method)
 
-    @base.passthru()
-    def second_method(self, task, bar):
+    @base.passthru(['POST'])
+    def second_method(self, task, http_method, bar):
         return True if bar == 'kazoo' else False
 
-    @base.passthru(async=False)
-    def third_method_sync(self, task, bar):
+    @base.passthru(['POST'], async=False)
+    def third_method_sync(self, task, http_method, bar):
         return True if bar == 'meow' else False
 
 

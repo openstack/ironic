@@ -96,6 +96,36 @@ class TestListDrivers(base.FunctionalTest):
         self.assertEqual(202, response.status_int)
         self.assertIsNone(mocked_driver_vendor_passthru.return_value[0])
 
+    @mock.patch.object(rpcapi.ConductorAPI, 'driver_vendor_passthru')
+    def test_driver_vendor_passthru_put(self, mocked_driver_vendor_passthru):
+        self.register_fake_conductors()
+        return_value = (None, 'async')
+        mocked_driver_vendor_passthru.return_value = return_value
+        response = self.put_json(
+            '/drivers/%s/vendor_passthru/do_test' % self.d1,
+            {'test_key': 'test_value'})
+        self.assertEqual(202, response.status_int)
+        self.assertEqual(return_value[0], response.json)
+
+    @mock.patch.object(rpcapi.ConductorAPI, 'driver_vendor_passthru')
+    def test_driver_vendor_passthru_get(self, mocked_driver_vendor_passthru):
+        self.register_fake_conductors()
+        return_value = ('foo', 'sync')
+        mocked_driver_vendor_passthru.return_value = return_value
+        response = self.get_json(
+            '/drivers/%s/vendor_passthru/do_test' % self.d1)
+        self.assertEqual(return_value[0], response)
+
+    @mock.patch.object(rpcapi.ConductorAPI, 'driver_vendor_passthru')
+    def test_driver_vendor_passthru_delete(self, mock_driver_vendor_passthru):
+        self.register_fake_conductors()
+        return_value = (None, 'async')
+        mock_driver_vendor_passthru.return_value = return_value
+        response = self.delete(
+            '/drivers/%s/vendor_passthru/do_test' % self.d1)
+        self.assertEqual(202, response.status_int)
+        self.assertEqual(return_value[0], response.json)
+
     def test_driver_vendor_passthru_driver_not_found(self):
         # tests when given driver is not found
         # e.g. get_topic_for_driver fails to find the driver

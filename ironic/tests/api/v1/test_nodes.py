@@ -834,7 +834,7 @@ class TestPost(api_base.FunctionalTest):
         response = self.post_json('/nodes/%s/vendor_passthru/test' % node.uuid,
                                   info)
         mock_vendor.assert_called_once_with(
-                mock.ANY, node.uuid, 'test', info, 'test-topic')
+                mock.ANY, node.uuid, 'test', 'POST', info, 'test-topic')
         self.assertEqual(expected_return_value, response.body)
         self.assertEqual(expected_status, response.status_code)
 
@@ -847,6 +847,36 @@ class TestPost(api_base.FunctionalTest):
         return_value = {'cat': 'meow'}
         self._test_vendor_passthru_ok(mock_vendor, return_value=return_value,
                                       is_async=False)
+
+    @mock.patch.object(rpcapi.ConductorAPI, 'vendor_passthru')
+    def test_vendor_passthru_put(self, mocked_vendor_passthru):
+        node = obj_utils.create_test_node(self.context)
+        return_value = (None, 'async')
+        mocked_vendor_passthru.return_value = return_value
+        response = self.put_json(
+            '/nodes/%s/vendor_passthru/do_test' % node.uuid,
+            {'test_key': 'test_value'})
+        self.assertEqual(202, response.status_int)
+        self.assertEqual(return_value[0], response.json)
+
+    @mock.patch.object(rpcapi.ConductorAPI, 'vendor_passthru')
+    def test_vendor_passthru_get(self, mocked_vendor_passthru):
+        node = obj_utils.create_test_node(self.context)
+        return_value = ('foo', 'sync')
+        mocked_vendor_passthru.return_value = return_value
+        response = self.get_json(
+            '/nodes/%s/vendor_passthru/do_test' % node.uuid)
+        self.assertEqual(return_value[0], response)
+
+    @mock.patch.object(rpcapi.ConductorAPI, 'vendor_passthru')
+    def test_vendor_passthru_delete(self, mock_vendor_passthru):
+        node = obj_utils.create_test_node(self.context)
+        return_value = (None, 'async')
+        mock_vendor_passthru.return_value = return_value
+        response = self.delete(
+            '/nodes/%s/vendor_passthru/do_test' % node.uuid)
+        self.assertEqual(202, response.status_int)
+        self.assertEqual(return_value[0], response.json)
 
     def test_vendor_passthru_no_such_method(self):
         node = obj_utils.create_test_node(self.context)
@@ -862,7 +892,7 @@ class TestPost(api_base.FunctionalTest):
             response = self.post_json('/nodes/%s/vendor_passthru/test' % uuid,
                                       info, expect_errors=True)
             mock_vendor.assert_called_once_with(
-                    mock.ANY, uuid, 'test', info, 'test-topic')
+                    mock.ANY, uuid, 'test', 'POST', info, 'test-topic')
             self.assertEqual(400, response.status_code)
 
     def test_vendor_passthru_without_method(self):

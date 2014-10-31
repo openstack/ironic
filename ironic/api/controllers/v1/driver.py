@@ -102,7 +102,7 @@ class DriverPassthruController(rest.RestController):
 
     @wsme_pecan.wsexpose(wtypes.text, wtypes.text, wtypes.text,
                          body=wtypes.text)
-    def post(self, driver_name, method, data):
+    def _default(self, driver_name, method, data=None):
         """Call a driver API extension.
 
         :param driver_name: name of the driver to call.
@@ -113,10 +113,14 @@ class DriverPassthruController(rest.RestController):
         if not method:
             raise wsme.exc.ClientSideError(_("Method not specified"))
 
+        if data is None:
+            data = {}
+
+        http_method = pecan.request.method.upper()
         topic = pecan.request.rpcapi.get_topic_for_driver(driver_name)
         ret, is_async = pecan.request.rpcapi.driver_vendor_passthru(
                             pecan.request.context, driver_name, method,
-                            data, topic=topic)
+                            http_method, data, topic=topic)
         status_code = 202 if is_async else 200
         return wsme.api.Response(ret, status_code=status_code)
 

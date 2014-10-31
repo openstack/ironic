@@ -503,7 +503,8 @@ class VendorPassthruTestCase(_ServiceSetUpMixin, tests_db_base.DbTestCase):
         self._start_service()
 
         ret, is_async = self.service.vendor_passthru(self.context, node.uuid,
-                                                     'first_method', info)
+                                                     'first_method', 'POST',
+                                                     info)
         # Waiting to make sure the below assertions are valid.
         self.service._worker_pool.waitall()
 
@@ -524,7 +525,8 @@ class VendorPassthruTestCase(_ServiceSetUpMixin, tests_db_base.DbTestCase):
         self._start_service()
 
         ret, is_async = self.service.vendor_passthru(self.context, node.uuid,
-                                                     'third_method_sync', info)
+                                                     'third_method_sync',
+                                                     'POST', info)
         # Waiting to make sure the below assertions are valid.
         self.service._worker_pool.waitall()
 
@@ -532,6 +534,23 @@ class VendorPassthruTestCase(_ServiceSetUpMixin, tests_db_base.DbTestCase):
         self.assertFalse(mock_spawn.called)
         self.assertTrue(ret)
         self.assertFalse(is_async)
+
+        node.refresh()
+        self.assertIsNone(node.last_error)
+        # Verify reservation has been cleared.
+        self.assertIsNone(node.reservation)
+
+    def test_vendor_passthru_http_method_not_supported(self):
+        node = obj_utils.create_test_node(self.context, driver='fake')
+        self._start_service()
+
+        # GET not supported by first_method
+        exc = self.assertRaises(messaging.rpc.ExpectedException,
+                                self.service.vendor_passthru,
+                                self.context, node.uuid,
+                                'first_method', 'GET', {})
+        # Compare true exception hidden by @messaging.expected_exceptions
+        self.assertEqual(exception.InvalidParameterValue, exc.exc_info[0])
 
         node.refresh()
         self.assertIsNone(node.last_error)
@@ -547,7 +566,8 @@ class VendorPassthruTestCase(_ServiceSetUpMixin, tests_db_base.DbTestCase):
 
         exc = self.assertRaises(messaging.rpc.ExpectedException,
                                 self.service.vendor_passthru,
-                                self.context, node.uuid, 'first_method', info)
+                                self.context, node.uuid, 'first_method',
+                                'POST', info)
         # Compare true exception hidden by @messaging.expected_exceptions
         self.assertEqual(exception.NodeLocked, exc.exc_info[0])
 
@@ -563,8 +583,8 @@ class VendorPassthruTestCase(_ServiceSetUpMixin, tests_db_base.DbTestCase):
 
         exc = self.assertRaises(messaging.rpc.ExpectedException,
                                 self.service.vendor_passthru,
-                                self.context,
-                                node.uuid, 'unsupported_method', info)
+                                self.context, node.uuid,
+                                'unsupported_method', 'POST', info)
         # Compare true exception hidden by @messaging.expected_exceptions
         self.assertEqual(exception.InvalidParameterValue,
                          exc.exc_info[0])
@@ -581,7 +601,8 @@ class VendorPassthruTestCase(_ServiceSetUpMixin, tests_db_base.DbTestCase):
 
         exc = self.assertRaises(messaging.rpc.ExpectedException,
                                 self.service.vendor_passthru,
-                                self.context, node.uuid, 'first_method', info)
+                                self.context, node.uuid,
+                                'first_method', 'POST', info)
         # Compare true exception hidden by @messaging.expected_exceptions
         self.assertEqual(exception.MissingParameterValue, exc.exc_info[0])
 
@@ -598,8 +619,8 @@ class VendorPassthruTestCase(_ServiceSetUpMixin, tests_db_base.DbTestCase):
 
         exc = self.assertRaises(messaging.rpc.ExpectedException,
                                 self.service.vendor_passthru,
-                                self.context,
-                                node.uuid, 'whatever_method', info)
+                                self.context, node.uuid,
+                                'whatever_method', 'POST', info)
         # Compare true exception hidden by @messaging.expected_exceptions
         self.assertEqual(exception.UnsupportedDriverExtension,
                          exc.exc_info[0])
@@ -619,8 +640,8 @@ class VendorPassthruTestCase(_ServiceSetUpMixin, tests_db_base.DbTestCase):
 
             exc = self.assertRaises(messaging.rpc.ExpectedException,
                                     self.service.vendor_passthru,
-                                    self.context,
-                                    node.uuid, 'first_method', info)
+                                    self.context, node.uuid,
+                                    'first_method', 'POST', info)
             # Compare true exception hidden by @messaging.expected_exceptions
             self.assertEqual(exception.NoFreeConductorWorker, exc.exc_info[0])
 
@@ -649,7 +670,7 @@ class VendorPassthruTestCase(_ServiceSetUpMixin, tests_db_base.DbTestCase):
         acquire_mock.return_value.__enter__.return_value = task
 
         response = self.service.vendor_passthru(
-                       self.context, node.uuid, 'test_method', {'bar': 'baz'})
+            self.context, node.uuid, 'test_method', 'POST', {'bar': 'baz'})
 
         self.assertEqual((None, True), response)
         task.spawn_after.assert_called_once_with(mock.ANY, vendor_passthru_ref,
@@ -662,14 +683,15 @@ class VendorPassthruTestCase(_ServiceSetUpMixin, tests_db_base.DbTestCase):
         test_method = mock.MagicMock(return_value=expected)
         self.driver.vendor.driver_routes = {'test_method':
                                            {'func': test_method,
-                                            'async': False}}
+                                            'async': False,
+                                            'http_methods': ['POST']}}
         self.service.init_host()
         # init_host() called _spawn_worker because of the heartbeat
         mock_spawn.reset_mock()
 
         vendor_args = {'test': 'arg'}
         got, is_async = self.service.driver_vendor_passthru(self.context,
-                            'fake', 'test_method', vendor_args)
+                            'fake', 'test_method', 'POST', vendor_args)
 
         # Assert that the vendor interface has no custom
         # driver_vendor_passthru()
@@ -686,14 +708,15 @@ class VendorPassthruTestCase(_ServiceSetUpMixin, tests_db_base.DbTestCase):
         test_method = mock.MagicMock()
         self.driver.vendor.driver_routes = {'test_sync_method':
                                            {'func': test_method,
-                                            'async': True}}
+                                            'async': True,
+                                            'http_methods': ['POST']}}
         self.service.init_host()
         # init_host() called _spawn_worker because of the heartbeat
         mock_spawn.reset_mock()
 
         vendor_args = {'test': 'arg'}
         got, is_async = self.service.driver_vendor_passthru(self.context,
-                            'fake', 'test_sync_method', vendor_args)
+                            'fake', 'test_sync_method', 'POST', vendor_args)
 
         # Assert that the vendor interface has no custom
         # driver_vendor_passthru()
@@ -703,16 +726,30 @@ class VendorPassthruTestCase(_ServiceSetUpMixin, tests_db_base.DbTestCase):
         mock_spawn.assert_called_once_with(test_method, self.context,
                                            **vendor_args)
 
+    def test_driver_vendor_passthru_http_method_not_supported(self):
+        self.driver.vendor = mock.Mock(spec=drivers_base.VendorInterface)
+        self.driver.vendor.driver_routes = {'test_method':
+                                           {'func': mock.MagicMock(),
+                                            'async': True,
+                                            'http_methods': ['POST']}}
+        self.service.init_host()
+        # GET not supported by test_method
+        exc = self.assertRaises(messaging.ExpectedException,
+                                self.service.driver_vendor_passthru,
+                                self.context, 'fake', 'test_method',
+                                'GET', {})
+        # Compare true exception hidden by @messaging.expected_exceptions
+        self.assertEqual(exception.InvalidParameterValue,
+                         exc.exc_info[0])
+
     def test_driver_vendor_passthru_vendor_interface_not_supported(self):
         # Test for when no vendor interface is set at all
         self.driver.vendor = None
         self.service.init_host()
         exc = self.assertRaises(messaging.ExpectedException,
                                 self.service.driver_vendor_passthru,
-                                self.context,
-                                'fake',
-                                'test_method',
-                                {})
+                                self.context, 'fake', 'test_method',
+                                'POST', {})
         # Compare true exception hidden by @messaging.expected_exceptions
         self.assertEqual(exception.UnsupportedDriverExtension,
                          exc.exc_info[0])
@@ -723,10 +760,8 @@ class VendorPassthruTestCase(_ServiceSetUpMixin, tests_db_base.DbTestCase):
         self.service.init_host()
         exc = self.assertRaises(messaging.ExpectedException,
                                 self.service.driver_vendor_passthru,
-                                self.context,
-                                'fake',
-                                'test_method',
-                                {})
+                                self.context, 'fake', 'test_method',
+                                'POST', {})
         # Compare true exception hidden by @messaging.expected_exceptions
         self.assertEqual(exception.InvalidParameterValue,
                          exc.exc_info[0])
@@ -735,10 +770,8 @@ class VendorPassthruTestCase(_ServiceSetUpMixin, tests_db_base.DbTestCase):
         self.service.init_host()
         self.assertRaises(messaging.ExpectedException,
                           self.service.driver_vendor_passthru,
-                          self.context,
-                          'does_not_exist',
-                          'test_method',
-                          {})
+                          self.context, 'does_not_exist', 'test_method',
+                          'POST', {})
 
     def test_driver_vendor_passthru_backwards_compat(self):
         expected = {'foo': 'bar'}
@@ -752,7 +785,7 @@ class VendorPassthruTestCase(_ServiceSetUpMixin, tests_db_base.DbTestCase):
 
         vendor_args = {'test': 'arg'}
         response = self.service.driver_vendor_passthru(self.context,
-                       'fake', 'test_method', vendor_args)
+                       'fake', 'test_method', 'POST', vendor_args)
 
         self.assertEqual((expected, False), response)
         driver_vendor_passthru_ref.assert_called_once_with(

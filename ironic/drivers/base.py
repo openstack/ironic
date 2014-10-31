@@ -361,7 +361,7 @@ VendorMetadata = collections.namedtuple('VendorMetadata', ['method',
                                                            'metadata'])
 
 
-def _passthru(method=None, async=True, driver_passthru=False):
+def _passthru(http_methods, method=None, async=True, driver_passthru=False):
     """A decorator for registering a function as a passthru function.
 
     Decorator ensures function is ready to catch any ironic exceptions
@@ -372,6 +372,8 @@ def _passthru(method=None, async=True, driver_passthru=False):
     Logs need to be added because even though the exception is being
     reraised, it won't be handled if it is an async. call.
 
+    :param http_methods: A list of supported HTTP methods by the vendor
+                         function.
     :param method: an arbitrary string describing the action to be taken.
     :param async: Boolean value. If True invoke the passthru function
                   asynchronously; if False, synchronously. If a passthru
@@ -387,7 +389,9 @@ def _passthru(method=None, async=True, driver_passthru=False):
         if api_method is None:
             api_method = func.__name__
 
-        metadata = VendorMetadata(api_method, {'async': async})
+        supported_ = [i.upper() for i in http_methods]
+        metadata = VendorMetadata(api_method, {'http_methods': supported_,
+                                               'async': async})
         if driver_passthru:
             func._driver_metadata = metadata
         else:
@@ -410,12 +414,12 @@ def _passthru(method=None, async=True, driver_passthru=False):
     return handle_passthru
 
 
-def passthru(method=None, async=True):
-    return _passthru(method, async, driver_passthru=False)
+def passthru(http_methods, method=None, async=True):
+    return _passthru(http_methods, method, async, driver_passthru=False)
 
 
-def driver_passthru(method=None, async=True):
-    return _passthru(method, async, driver_passthru=True)
+def driver_passthru(http_methods, method=None, async=True):
+    return _passthru(http_methods, method, async, driver_passthru=True)
 
 
 @six.add_metaclass(abc.ABCMeta)

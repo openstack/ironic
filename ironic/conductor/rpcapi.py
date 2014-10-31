@@ -60,11 +60,13 @@ class ConductorAPI(object):
     |    1.18 - Remove change_node_maintenance_mode.
     |    1.19 - Change return value of vendor_passthru and
                 driver_vendor_passthru
+    |    1.20 - Added http_method parameter to vendor_passthru and
+                driver_vendor_passthru
 
     """
 
     # NOTE(rloo): This must be in sync with manager.ConductorManager's.
-    RPC_API_VERSION = '1.19'
+    RPC_API_VERSION = '1.20'
 
     def __init__(self, topic=None):
         super(ConductorAPI, self).__init__()
@@ -157,8 +159,8 @@ class ConductorAPI(object):
         return cctxt.call(context, 'change_node_power_state', node_id=node_id,
                           new_state=new_state)
 
-    def vendor_passthru(self, context, node_id, driver_method, info,
-                        topic=None):
+    def vendor_passthru(self, context, node_id, driver_method, http_method,
+                        info, topic=None):
         """Receive requests for vendor-specific actions.
 
         Synchronously validate driver specific info or get driver status,
@@ -169,6 +171,7 @@ class ConductorAPI(object):
         :param context: request context.
         :param node_id: node id or uuid.
         :param driver_method: name of method for driver.
+        :param http_method: the HTTP method used for the request.
         :param info: info for node driver.
         :param topic: RPC topic. Defaults to self.topic.
         :raises: InvalidParameterValue if supplied info is not valid.
@@ -185,12 +188,14 @@ class ConductorAPI(object):
                   always None.
 
         """
-        cctxt = self.client.prepare(topic=topic or self.topic, version='1.19')
+        cctxt = self.client.prepare(topic=topic or self.topic, version='1.20')
         return cctxt.call(context, 'vendor_passthru', node_id=node_id,
-                          driver_method=driver_method, info=info)
+                          driver_method=driver_method,
+                          http_method=http_method,
+                          info=info)
 
-    def driver_vendor_passthru(self, context, driver_name, driver_method, info,
-                        topic=None):
+    def driver_vendor_passthru(self, context, driver_name, driver_method,
+                               http_method, info, topic=None):
         """Pass vendor-specific calls which don't specify a node to a driver.
 
         Handles driver-level vendor passthru calls. These calls don't
@@ -201,6 +206,7 @@ class ConductorAPI(object):
         :param context: request context.
         :param driver_name: name of the driver on which to call the method.
         :param driver_method: name of the vendor method, for use by the driver.
+        :param http_method: the HTTP method used for the request.
         :param info: data to pass through to the driver.
         :param topic: RPC topic. Defaults to self.topic.
         :raises: InvalidParameterValue for parameter errors.
@@ -218,10 +224,11 @@ class ConductorAPI(object):
                   always None.
 
         """
-        cctxt = self.client.prepare(topic=topic or self.topic, version='1.19')
+        cctxt = self.client.prepare(topic=topic or self.topic, version='1.20')
         return cctxt.call(context, 'driver_vendor_passthru',
                           driver_name=driver_name,
                           driver_method=driver_method,
+                          http_method=http_method,
                           info=info)
 
     def do_node_deploy(self, context, node_id, rebuild, topic=None):
