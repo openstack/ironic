@@ -825,7 +825,7 @@
 
 # A list of the glance api servers available to ironic. Prefix
 # with https:// for SSL-based glance API servers. Format is
-# [hostname|IP]:port. (string value)
+# [hostname|IP]:port. (list value)
 #glance_api_servers=<None>
 
 # Allow to perform insecure SSL (https) requests to glance.
