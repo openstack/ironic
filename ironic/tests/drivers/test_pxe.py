@@ -253,7 +253,8 @@ class PXEPrivateMethodsTestCase(db_base.DbTestCase):
         mock_fetch_image.assert_called_once_with(None,
                                                  mock.ANY,
                                                  [('deploy_kernel',
-                                                   image_path)])
+                                                   image_path)],
+                                                 True)
 
     @mock.patch.object(pxe, 'TFTPImageCache', lambda: None)
     @mock.patch.object(fileutils, 'ensure_tree')
@@ -266,7 +267,7 @@ class PXEPrivateMethodsTestCase(db_base.DbTestCase):
         pxe._cache_ramdisk_kernel(self.context, self.node, fake_pxe_info)
         mock_ensure_tree.assert_called_with(expected_path)
         mock_fetch_image.assert_called_once_with(self.context, mock.ANY,
-                                                 fake_pxe_info.values())
+                                                 fake_pxe_info.values(), True)
 
     @mock.patch.object(pxe, 'TFTPImageCache', lambda: None)
     @mock.patch.object(fileutils, 'ensure_tree')
@@ -280,7 +281,8 @@ class PXEPrivateMethodsTestCase(db_base.DbTestCase):
         pxe._cache_ramdisk_kernel(self.context, self.node, fake_pxe_info)
         mock_ensure_tree.assert_called_with(expected_path)
         mock_fetch_image.assert_called_once_with(self.context, mock.ANY,
-                                                 fake_pxe_info.values())
+                                                 fake_pxe_info.values(),
+                                                 True)
 
 
 class PXEDriverTestCase(db_base.DbTestCase):

@@ -24,6 +24,7 @@ from oslo.config import cfg
 
 from ironic.common import disk_partitioner
 from ironic.common import exception
+from ironic.common import images
 from ironic.common import utils as common_utils
 from ironic.drivers.modules import deploy_utils as utils
 from ironic.drivers.modules import image_cache
@@ -469,22 +470,27 @@ class OtherFunctionTestCase(tests_base.TestCase):
         actual = utils.get_dev('1.2.3.4', 5678, 'iqn.fake', 9)
         self.assertEqual(expected, actual)
 
-    def test_get_image_mb(self):
+    @mock.patch.object(os.path, 'getsize')
+    @mock.patch.object(images, 'converted_size')
+    def test_get_image_mb(self, mock_csize, mock_getsize):
         mb = 1024 * 1024
-        size = None
 
-        def fake_getsize(path):
-            return size
-
-        self.useFixture(fixtures.MonkeyPatch('os.path.getsize', fake_getsize))
-        size = 0
-        self.assertEqual(0, utils.get_image_mb('x'))
-        size = 1
-        self.assertEqual(1, utils.get_image_mb('x'))
-        size = mb
-        self.assertEqual(1, utils.get_image_mb('x'))
-        size = mb + 1
-        self.assertEqual(2, utils.get_image_mb('x'))
+        mock_getsize.return_value = 0
+        mock_csize.return_value = 0
+        self.assertEqual(0, utils.get_image_mb('x', False))
+        self.assertEqual(0, utils.get_image_mb('x', True))
+        mock_getsize.return_value = 1
+        mock_csize.return_value = 1
+        self.assertEqual(1, utils.get_image_mb('x', False))
+        self.assertEqual(1, utils.get_image_mb('x', True))
+        mock_getsize.return_value = mb
+        mock_csize.return_value = mb
+        self.assertEqual(1, utils.get_image_mb('x', False))
+        self.assertEqual(1, utils.get_image_mb('x', True))
+        mock_getsize.return_value = mb + 1
+        mock_csize.return_value = mb + 1
+        self.assertEqual(2, utils.get_image_mb('x', False))
+        self.assertEqual(2, utils.get_image_mb('x', True))
 
 
 @mock.patch.object(disk_partitioner.DiskPartitioner, 'commit', lambda _: None)
@@ -760,7 +766,8 @@ class RealFilePartitioningTestCase(tests_base.TestCase):
         mock_clean_up_caches.assert_called_once_with(None, 'master_dir',
                                                      [('uuid', 'path')])
         mock_cache.fetch_image.assert_called_once_with('uuid', 'path',
-                                                       ctx=None)
+                                                       ctx=None,
+                                                       force_raw=True)
 
     @mock.patch.object(image_cache, 'clean_up_caches')
     def test_fetch_images_fail(self, mock_clean_up_caches):

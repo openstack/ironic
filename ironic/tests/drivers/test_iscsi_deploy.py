@@ -185,7 +185,7 @@ class IscsiDeployMethodsTestCase(db_base.DbTestCase):
         (uuid, image_path) = iscsi_deploy.cache_instance_image(None, self.node)
         mock_fetch_image.assert_called_once_with(None,
                                                  mock.ANY,
-                                                 [(uuid, image_path)])
+                                                 [(uuid, image_path)], True)
         self.assertEqual('glance://image_uuid', uuid)
         self.assertEqual(os.path.join(temp_dir,
                                       self.node.uuid,

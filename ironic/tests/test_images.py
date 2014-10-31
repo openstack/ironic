@@ -93,6 +93,23 @@ class IronicImagesTestCase(base.TestCase):
         image_service_mock.download.assert_called_once_with(
             'image_href', 'file')
 
+    @mock.patch.object(images, 'image_to_raw')
+    @mock.patch.object(__builtin__, 'open')
+    def test_fetch_image_service_force_raw(self, open_mock, image_to_raw_mock):
+        mock_file_handle = mock.MagicMock(spec=file)
+        mock_file_handle.__enter__.return_value = 'file'
+        open_mock.return_value = mock_file_handle
+        image_service_mock = mock.Mock()
+
+        images.fetch('context', 'image_href', 'path', image_service_mock,
+                     force_raw=True)
+
+        open_mock.assert_called_once_with('path', 'wb')
+        image_service_mock.download.assert_called_once_with(
+            'image_href', 'file')
+        image_to_raw_mock.assert_called_once_with(
+            'image_href', 'path', 'path.part')
+
     @mock.patch.object(images, 'qemu_img_info')
     def test_image_to_raw_no_file_format(self, qemu_img_info_mock):
         info = self.FakeImgInfo()
@@ -187,6 +204,15 @@ class IronicImagesTestCase(base.TestCase):
         image_service_mock = mock.MagicMock()
         images.download_size('context', 'image_href', image_service_mock)
         image_service_mock.show.assert_called_once_with('image_href')
+
+    @mock.patch.object(images, 'qemu_img_info')
+    def test_converted_size(self, qemu_img_info_mock):
+        info = self.FakeImgInfo()
+        info.virtual_size = 1
+        qemu_img_info_mock.return_value = info
+        size = images.converted_size('path')
+        qemu_img_info_mock.assert_called_once_with('path')
+        self.assertEqual(1, size)
 
 
 class FsImageTestCase(base.TestCase):
@@ -394,7 +420,7 @@ class FsImageTestCase(base.TestCase):
                           'path/to/ramdisk')
 
     @mock.patch.object(images, 'create_isolinux_image')
-    @mock.patch.object(images, 'fetch_to_raw')
+    @mock.patch.object(images, 'fetch')
     @mock.patch.object(utils, 'tempdir')
     def test_create_boot_iso(self, tempdir_mock, fetch_images_mock,
                              create_isolinux_mock):
@@ -406,9 +432,9 @@ class FsImageTestCase(base.TestCase):
                                'ramdisk-uuid', 'root-uuid', 'kernel-params')
 
         fetch_images_mock.assert_any_call('ctx', 'kernel-uuid',
-                'tmpdir/kernel-uuid')
+                'tmpdir/kernel-uuid', True)
         fetch_images_mock.assert_any_call('ctx', 'ramdisk-uuid',
-                'tmpdir/ramdisk-uuid')
+                'tmpdir/ramdisk-uuid', True)
         params = ['root=UUID=root-uuid', 'kernel-params']
         create_isolinux_mock.assert_called_once_with('output_file',
                 'tmpdir/kernel-uuid', 'tmpdir/ramdisk-uuid', params)
