@@ -1257,6 +1257,9 @@ class ConductorManager(periodic_task.PeriodicTasks):
                 if message['payload']:
                     self.notifier.info(context, "hardware.ipmi.metrics",
                                        message)
+            finally:
+                # Yield on every iteration
+                eventlet.sleep(0)
 
     def _filter_out_unsupported_types(self, sensors_data):
         # support the CONF.send_sensor_data_types sensor types only
