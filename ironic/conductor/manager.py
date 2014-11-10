@@ -162,7 +162,7 @@ class ConductorManager(periodic_task.PeriodicTasks):
     """Ironic Conductor manager main class."""
 
     # NOTE(rloo): This must be in sync with rpcapi.ConductorAPI's.
-    RPC_API_VERSION = '1.20'
+    RPC_API_VERSION = '1.21'
 
     target = messaging.Target(version=RPC_API_VERSION)
 
@@ -398,7 +398,7 @@ class ConductorManager(periodic_task.PeriodicTasks):
             if not getattr(task.driver, 'vendor', None):
                 raise exception.UnsupportedDriverExtension(
                     driver=task.node.driver,
-                    extension='vendor passthru')
+                    extension='vendor interface')
 
             vendor_iface = task.driver.vendor
 
@@ -543,6 +543,55 @@ class ConductorManager(periodic_task.PeriodicTasks):
             ret = vendor_func(context, **info)
 
         return (ret, is_async)
+
+    def _get_vendor_passthru_metadata(self, route_dict):
+        d = {}
+        for method, metadata in route_dict.iteritems():
+            # 'func' is the vendor method reference, ignore it
+            d[method] = {k: metadata[k] for k in metadata if k != 'func'}
+        return d
+
+    @messaging.expected_exceptions(exception.UnsupportedDriverExtension)
+    def get_node_vendor_passthru_methods(self, context, node_id):
+        """Retrieve information about vendor methods of the given node.
+
+        :param context: an admin context.
+        :param node_id: the id or uuid of a node.
+        :returns: dictionary of <method name>:<method metadata> entries.
+
+        """
+        LOG.debug("RPC get_node_vendor_passthru_methods called for node %s"
+                  % node_id)
+        with task_manager.acquire(context, node_id, shared=True) as task:
+            if not getattr(task.driver, 'vendor', None):
+                raise exception.UnsupportedDriverExtension(
+                    driver=task.node.driver,
+                    extension='vendor interface')
+
+            return self._get_vendor_passthru_metadata(
+                       task.driver.vendor.vendor_routes)
+
+    @messaging.expected_exceptions(exception.UnsupportedDriverExtension,
+                                   exception.DriverNotFound)
+    def get_driver_vendor_passthru_methods(self, context, driver_name):
+        """Retrieve information about vendor methods of the given driver.
+
+        :param context: an admin context.
+        :param driver_name: name of the driver.
+        :returns: dictionary of <method name>:<method metadata> entries.
+
+        """
+        # Any locking in a top-level vendor action will need to be done by the
+        # implementation, as there is little we could reasonably lock on here.
+        LOG.debug("RPC get_driver_vendor_passthru_methods for driver %s"
+                  % driver_name)
+        driver = self._get_driver(driver_name)
+        if not getattr(driver, 'vendor', None):
+            raise exception.UnsupportedDriverExtension(
+                driver=driver_name,
+                extension='vendor interface')
+
+        return self._get_vendor_passthru_metadata(driver.vendor.driver_routes)
 
     def _provisioning_error_handler(self, e, node, provision_state,
                                     target_provision_state):

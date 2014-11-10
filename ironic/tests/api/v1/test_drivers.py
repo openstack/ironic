@@ -147,6 +147,28 @@ class TestListDrivers(base.FunctionalTest):
         self.assertEqual('Missing argument: "method"',
                          error['faultstring'])
 
+    @mock.patch.object(rpcapi.ConductorAPI,
+                       'get_driver_vendor_passthru_methods')
+    def test_driver_vendor_passthru_methods(self, get_methods_mock):
+        self.register_fake_conductors()
+        return_value = {'foo': 'bar'}
+        get_methods_mock.return_value = return_value
+        path = '/drivers/%s/vendor_passthru/methods' % self.d1
+
+        data = self.get_json(path)
+        self.assertEqual(return_value, data)
+        get_methods_mock.assert_called_once_with(mock.ANY, self.d1,
+                                                  topic=mock.ANY)
+
+        # Now let's test the cache: Reset the mock
+        get_methods_mock.reset_mock()
+
+        # Call it again
+        data = self.get_json(path)
+        self.assertEqual(return_value, data)
+        # Assert RPC method wasn't called this time
+        self.assertFalse(get_methods_mock.called)
+
 
 @mock.patch.object(rpcapi.ConductorAPI, 'get_driver_properties')
 @mock.patch.object(rpcapi.ConductorAPI, 'get_topic_for_driver')

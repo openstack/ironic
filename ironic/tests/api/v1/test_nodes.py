@@ -968,6 +968,27 @@ class TestPost(api_base.FunctionalTest):
         self.assertEqual(400, response.status_int)
         self.assertTrue(response.json['error_message'])
 
+    @mock.patch.object(rpcapi.ConductorAPI, 'get_node_vendor_passthru_methods')
+    def test_vendor_passthru_methods(self, get_methods_mock):
+        return_value = {'foo': 'bar'}
+        get_methods_mock.return_value = return_value
+        node = obj_utils.create_test_node(self.context)
+        path = '/nodes/%s/vendor_passthru/methods' % node.uuid
+
+        data = self.get_json(path)
+        self.assertEqual(return_value, data)
+        get_methods_mock.assert_called_once_with(mock.ANY, node.uuid,
+                                                  topic=mock.ANY)
+
+        # Now let's test the cache: Reset the mock
+        get_methods_mock.reset_mock()
+
+        # Call it again
+        data = self.get_json(path)
+        self.assertEqual(return_value, data)
+        # Assert RPC method wasn't called this time
+        self.assertFalse(get_methods_mock.called)
+
 
 class TestDelete(api_base.FunctionalTest):
 

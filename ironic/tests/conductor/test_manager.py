@@ -676,6 +676,31 @@ class VendorPassthruTestCase(_ServiceSetUpMixin, tests_db_base.DbTestCase):
         task.spawn_after.assert_called_once_with(mock.ANY, vendor_passthru_ref,
             task, bar='baz', method='test_method')
 
+    def test_get_node_vendor_passthru_methods(self):
+        node = obj_utils.create_test_node(self.context, driver='fake')
+        fake_routes = {'test_method': {'async': True,
+                                       'description': 'foo',
+                                       'http_methods': ['POST'],
+                                       'func': None}}
+        self.driver.vendor.vendor_routes = fake_routes
+        self._start_service()
+
+        data = self.service.get_node_vendor_passthru_methods(self.context,
+                                                         node.uuid)
+        # The function reference should not be returned
+        del fake_routes['test_method']['func']
+        self.assertEqual(fake_routes, data)
+
+    def test_get_node_vendor_passthru_methods_not_supported(self):
+        node = obj_utils.create_test_node(self.context, driver='fake')
+        self.driver.vendor = None
+        exc = self.assertRaises(messaging.rpc.ExpectedException,
+                                self.service.get_node_vendor_passthru_methods,
+                                self.context, node.uuid)
+        # Compare true exception hidden by @messaging.expected_exceptions
+        self.assertEqual(exception.UnsupportedDriverExtension,
+                         exc.exc_info[0])
+
     @mock.patch.object(manager.ConductorManager, '_spawn_worker')
     def test_driver_vendor_passthru_sync(self, mock_spawn):
         expected = {'foo': 'bar'}
@@ -790,6 +815,31 @@ class VendorPassthruTestCase(_ServiceSetUpMixin, tests_db_base.DbTestCase):
         self.assertEqual((expected, False), response)
         driver_vendor_passthru_ref.assert_called_once_with(
                 self.context, test='arg', method='test_method')
+
+    def test_get_driver_vendor_passthru_methods(self):
+        self.driver.vendor = mock.Mock(spec=drivers_base.VendorInterface)
+        fake_routes = {'test_method': {'async': True,
+                                       'description': 'foo',
+                                       'http_methods': ['POST'],
+                                       'func': None}}
+        self.driver.vendor.driver_routes = fake_routes
+        self.service.init_host()
+
+        data = self.service.get_driver_vendor_passthru_methods(self.context,
+                                                               'fake')
+        # The function reference should not be returned
+        del fake_routes['test_method']['func']
+        self.assertEqual(fake_routes, data)
+
+    def test_get_driver_vendor_passthru_methods_not_supported(self):
+        self.service.init_host()
+        self.driver.vendor = None
+        exc = self.assertRaises(messaging.rpc.ExpectedException,
+                              self.service.get_driver_vendor_passthru_methods,
+                              self.context, 'fake')
+        # Compare true exception hidden by @messaging.expected_exceptions
+        self.assertEqual(exception.UnsupportedDriverExtension,
+                         exc.exc_info[0])
 
 
 @_mock_record_keepalive
