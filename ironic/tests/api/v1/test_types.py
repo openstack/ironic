@@ -23,10 +23,10 @@ import wsme
 from ironic.api.controllers.v1 import types
 from ironic.common import exception
 from ironic.common import utils
-from ironic.tests.api import base
+from ironic.tests import base
 
 
-class TestMacAddressType(base.FunctionalTest):
+class TestMacAddressType(base.TestCase):
 
     def test_valid_mac_addr(self):
         test_mac = 'aa:bb:cc:11:22:33'
@@ -39,7 +39,7 @@ class TestMacAddressType(base.FunctionalTest):
                           types.MacAddressType.validate, 'invalid-mac')
 
 
-class TestUuidType(base.FunctionalTest):
+class TestUuidType(base.TestCase):
 
     def test_valid_uuid(self):
         test_uuid = '1a1a1a1a-2b2b-3c3c-4d4d-5e5e5e5e5e5e'
@@ -73,7 +73,7 @@ class MyRoot(wsme.WSRoot):
         return patch
 
 
-class TestJsonPatchType(base.FunctionalTest):
+class TestJsonPatchType(base.TestCase):
 
     def setUp(self):
         super(TestJsonPatchType, self).setUp()
@@ -147,7 +147,7 @@ class TestJsonPatchType(base.FunctionalTest):
         self.assertTrue(ret.json['faultstring'])
 
 
-class TestMultiType(base.FunctionalTest):
+class TestMultiType(base.TestCase):
 
     def test_valid_values(self):
         vt = types.MultiType(wsme.types.text, six.integer_types)
@@ -168,7 +168,7 @@ class TestMultiType(base.FunctionalTest):
         self.assertIn(str(int), vts)
 
 
-class TestBooleanType(base.FunctionalTest):
+class TestBooleanType(base.TestCase):
 
     def test_valid_true_values(self):
         v = types.BooleanType()

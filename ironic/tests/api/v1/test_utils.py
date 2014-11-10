@@ -16,14 +16,14 @@
 import wsme
 
 from ironic.api.controllers.v1 import utils
-from ironic.tests.api import base
+from ironic.tests import base
 
 from oslo.config import cfg
 
 CONF = cfg.CONF
 
 
-class TestApiUtils(base.FunctionalTest):
+class TestApiUtils(base.TestCase):
 
     def test_validate_limit(self):
         limit = utils.validate_limit(10)
