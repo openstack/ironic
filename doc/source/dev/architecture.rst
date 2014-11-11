@@ -34,6 +34,9 @@ each interface is an instance of the relevant driver module.
 For example, a fake driver class might look like this::
 
     class FakePower(base.PowerInterface):
+        def get_properties(self):
+            return {}
+
         def validate(self, task):
             pass
 
@@ -55,17 +58,17 @@ There are three categories of driver interfaces:
 
 - `Core` interfaces provide the essential functionality for Ironic within
   OpenStack, and may be depended upon by other services. All drivers
-  must implement these interfaces. Presently, the Core interfaces are power and deploy.
+  must implement these interfaces. The Core interfaces are `power` and `deploy`.
 - `Standard` interfaces provide functionality beyond the needs of OpenStack,
-  but which has been standardized across all drivers and becomes part of
+  but which have been standardized across all drivers and becomes part of
   Ironic's API.  If a driver implements this interface, it must adhere to the
   standard. This is presented to encourage vendors to work together with the
   Ironic project and implement common features in a consistent way, thus
   reducing the burden on consumers of the API.
-  Presently, the Standard interfaces are rescue and console.
+  The Standard interfaces are `management` and `console`.
 - The `Vendor` interface allows an exemption to the API contract when a vendor
   wishes to expose unique functionality provided by their hardware and is
-  unable to do so within the core or standard interfaces. In this case, Ironic
+  unable to do so within the `core` or `standard` interfaces. In this case, Ironic
   will merely relay the message from the API service to the appropriate driver.
 
 
