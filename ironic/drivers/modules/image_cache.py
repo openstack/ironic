@@ -87,7 +87,7 @@ class ImageCache(object):
         """
         img_download_lock_name = 'download-image'
         if self.master_dir is None:
-            #NOTE(ghe): We don't share images between instances/hosts
+            # NOTE(ghe): We don't share images between instances/hosts
             if not CONF.parallel_image_downloads:
                 with lockutils.lock(img_download_lock_name, 'ironic-'):
                     _fetch(ctx, uuid, dest_path, self._image_service,
@@ -96,7 +96,7 @@ class ImageCache(object):
                 _fetch(ctx, uuid, dest_path, self._image_service, force_raw)
             return
 
-        #TODO(ghe): have hard links and counts the same behaviour in all fs
+        # TODO(ghe): have hard links and counts the same behaviour in all fs
 
         master_file_name = service_utils.parse_image_ref(uuid)[0]
         master_path = os.path.join(self.master_dir, master_file_name)
@@ -145,8 +145,8 @@ class ImageCache(object):
         :param force_raw: boolean value, whether to convert the image to raw
                           format
         """
-        #TODO(ghe): timeout and retry for downloads
-        #TODO(ghe): logging when image cannot be created
+        # TODO(ghe): timeout and retry for downloads
+        # TODO(ghe): logging when image cannot be created
         tmp_dir = tempfile.mkdtemp(dir=self.master_dir)
         tmp_path = os.path.join(tmp_dir, uuid)
         try:

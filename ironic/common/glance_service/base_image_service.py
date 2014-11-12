@@ -234,7 +234,7 @@ class BaseImageService(object):
         """
         sent_service_image_meta = service_utils.translate_to_glance(image_meta)
 
-        #TODO(ghe): Allow copy-from or location headers Bug #1199532
+        # TODO(ghe): Allow copy-from or location headers Bug #1199532
 
         if data:
             sent_service_image_meta['data'] = data
@@ -265,7 +265,7 @@ class BaseImageService(object):
             if data:
                 image_meta['data'] = data
 
-        #NOTE(bcwaldon): id is not an editable field, but it is likely to be
+        # NOTE(bcwaldon): id is not an editable field, but it is likely to be
         # passed in by calling code. Let's be nice and ignore it.
         image_meta.pop('id', None)
 

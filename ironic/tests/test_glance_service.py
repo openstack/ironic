@@ -489,7 +489,7 @@ class TestGlanceImageService(base.TestCase):
         stub_service.download(image_id, writer)
 
     def test_download_file_url(self):
-        #NOTE: only in v2 API
+        # NOTE: only in v2 API
         class MyGlanceStubClient(stubs.StubGlanceClient):
 
             """A client that returns a file url."""
