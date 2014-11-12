@@ -22,12 +22,15 @@ from oslo.config import cfg
 from oslo.utils import timeutils
 from six.moves.urllib import parse as urlparse
 from testtools.matchers import HasLength
+from wsme import types as wtypes
 
+from ironic.api.controllers.v1 import port as api_port
 from ironic.common import exception
 from ironic.common import utils
 from ironic.conductor import rpcapi
-from ironic.tests.api import base
+from ironic.tests.api import base as api_base
 from ironic.tests.api import utils as apiutils
+from ironic.tests import base
 from ironic.tests.db import utils as dbutils
 from ironic.tests.objects import utils as obj_utils
 
@@ -42,7 +45,16 @@ def post_get_test_port(**kw):
     return port
 
 
-class TestListPorts(base.FunctionalTest):
+class TestPortObject(base.TestCase):
+
+    def test_port_init(self):
+        port_dict = apiutils.port_post_data(node_id=None)
+        del port_dict['extra']
+        port = api_port.Port(**port_dict)
+        self.assertEqual(wtypes.Unset, port.extra)
+
+
+class TestListPorts(api_base.FunctionalTest):
 
     def setUp(self):
         super(TestListPorts, self).setUp()
@@ -170,7 +182,7 @@ class TestListPorts(base.FunctionalTest):
 
 
 @mock.patch.object(rpcapi.ConductorAPI, 'update_port')
-class TestPatch(base.FunctionalTest):
+class TestPatch(api_base.FunctionalTest):
 
     def setUp(self):
         super(TestPatch, self).setUp()
@@ -470,7 +482,7 @@ class TestPatch(base.FunctionalTest):
         self.assertEqual(address.lower(), kargs.address)
 
 
-class TestPost(base.FunctionalTest):
+class TestPost(api_base.FunctionalTest):
 
     def setUp(self):
         super(TestPost, self).setUp()
@@ -602,7 +614,7 @@ class TestPost(base.FunctionalTest):
         self.assertIn(address, error_msg.upper())
 
 
-class TestDelete(base.FunctionalTest):
+class TestDelete(api_base.FunctionalTest):
 
     def setUp(self):
         super(TestDelete, self).setUp()

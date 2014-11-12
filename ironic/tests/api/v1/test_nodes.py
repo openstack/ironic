@@ -22,15 +22,18 @@ from oslo.config import cfg
 from oslo.utils import timeutils
 from six.moves.urllib import parse as urlparse
 from testtools.matchers import HasLength
+from wsme import types as wtypes
 
+from ironic.api.controllers.v1 import node as api_node
 from ironic.common import boot_devices
 from ironic.common import exception
 from ironic.common import states
 from ironic.common import utils
 from ironic.conductor import rpcapi
 from ironic import objects
-from ironic.tests.api import base
+from ironic.tests.api import base as api_base
 from ironic.tests.api import utils as apiutils
+from ironic.tests import base
 from ironic.tests.db import utils as dbutils
 from ironic.tests.objects import utils as obj_utils
 
@@ -45,7 +48,16 @@ def post_get_test_node(**kw):
     return node
 
 
-class TestListNodes(base.FunctionalTest):
+class TestNodeObject(base.TestCase):
+
+    def test_node_init(self):
+        node_dict = apiutils.node_post_data(chassis_id=None)
+        del node_dict['instance_uuid']
+        node = api_node.Node(**node_dict)
+        self.assertEqual(wtypes.Unset, node.instance_uuid)
+
+
+class TestListNodes(api_base.FunctionalTest):
 
     def setUp(self):
         super(TestListNodes, self).setUp()
@@ -473,7 +485,7 @@ class TestListNodes(base.FunctionalTest):
         mock_gsbd.assert_called_once_with(mock.ANY, node.uuid, 'test-topic')
 
 
-class TestPatch(base.FunctionalTest):
+class TestPatch(api_base.FunctionalTest):
 
     def setUp(self):
         super(TestPatch, self).setUp()
@@ -752,7 +764,7 @@ class TestPatch(base.FunctionalTest):
         self.assertTrue(response.json['error_message'])
 
 
-class TestPost(base.FunctionalTest):
+class TestPost(api_base.FunctionalTest):
 
     def setUp(self):
         super(TestPost, self).setUp()
@@ -916,7 +928,7 @@ class TestPost(base.FunctionalTest):
         self.assertTrue(response.json['error_message'])
 
 
-class TestDelete(base.FunctionalTest):
+class TestDelete(api_base.FunctionalTest):
 
     def setUp(self):
         super(TestDelete, self).setUp()
@@ -977,7 +989,7 @@ class TestDelete(base.FunctionalTest):
                                             topic='test-topic')
 
 
-class TestPut(base.FunctionalTest):
+class TestPut(api_base.FunctionalTest):
 
     def setUp(self):
         super(TestPut, self).setUp()

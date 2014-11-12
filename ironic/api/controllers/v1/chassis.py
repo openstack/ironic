@@ -66,7 +66,7 @@ class Chassis(base.APIBase):
             if not hasattr(self, field):
                 continue
             self.fields.append(field)
-            setattr(self, field, kwargs.get(field))
+            setattr(self, field, kwargs.get(field, wtypes.Unset))
 
     @classmethod
     def _convert_with_links(cls, chassis, url, expand=True):
@@ -244,6 +244,8 @@ class ChassisController(rest.RestController):
             except AttributeError:
                 # Ignore fields that aren't exposed in the API
                 continue
+            if patch_val == wtypes.Unset:
+                patch_val = None
             if rpc_chassis[field] != patch_val:
                 rpc_chassis[field] = patch_val
 
