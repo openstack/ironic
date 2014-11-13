@@ -479,9 +479,10 @@ class AgentVendorInterface(base.VendorInterface):
         version = kwargs.get('version')
 
         if version not in self.supported_payload_versions:
-            raise exception.InvalidParameterValue(_('Unknown lookup payload'
+            raise exception.InvalidParameterValue(_('Unknown lookup payload '
                                                     'version: %s') % version)
-        interfaces = self._get_interfaces(version, kwargs)
+        inventory = kwargs.get('inventory')
+        interfaces = self._get_interfaces(inventory)
         mac_addresses = self._get_mac_addresses(interfaces)
 
         node = self._find_node_by_macs(context, mac_addresses)
@@ -506,10 +507,10 @@ class AgentVendorInterface(base.VendorInterface):
             'node': node
         }
 
-    def _get_interfaces(self, version, inventory):
+    def _get_interfaces(self, inventory):
         interfaces = []
         try:
-            interfaces = inventory['inventory']['interfaces']
+            interfaces = inventory['interfaces']
         except (KeyError, TypeError):
             raise exception.InvalidParameterValue(_(
                 'Malformed network interfaces lookup: %s') % inventory)
