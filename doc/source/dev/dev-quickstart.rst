@@ -26,6 +26,10 @@ Install prerequisites::
     sudo easy_install nose
     sudo pip install virtualenv setuptools-git flake8 tox testrepository
 
+If using RHEL and yum reports “No package python-pip available” and “No
+package git-review available”, use the EPEL software repository. Instructions
+can be found at `<http://fedoraproject.org/wiki/EPEL/FAQ#howtouse>`_.
+
 You may need to explicitly upgrade virtualenv if you've installed the one
 from your OS distribution and it is too old (tox will complain). You can
 upgrade it individually, if you need to::
