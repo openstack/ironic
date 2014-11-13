@@ -1009,7 +1009,7 @@ class IPMIToolDriverTestCase(db_base.DbTestCase):
     @mock.patch.object(ipmi, '_power_on', autospec=False)
     def test_reboot_ok(self, mock_on, mock_off):
         manager = mock.MagicMock()
-        #NOTE(rloo): if autospec is True, then manager.mock_calls is empty
+        # NOTE(rloo): if autospec is True, then manager.mock_calls is empty
         mock_on.return_value = states.POWER_ON
         manager.attach_mock(mock_off, 'power_off')
         manager.attach_mock(mock_on, 'power_on')
@@ -1026,7 +1026,7 @@ class IPMIToolDriverTestCase(db_base.DbTestCase):
     @mock.patch.object(ipmi, '_power_on', autospec=False)
     def test_reboot_fail(self, mock_on, mock_off):
         manager = mock.MagicMock()
-        #NOTE(rloo): if autospec is True, then manager.mock_calls is empty
+        # NOTE(rloo): if autospec is True, then manager.mock_calls is empty
         mock_on.return_value = states.ERROR
         manager.attach_mock(mock_off, 'power_off')
         manager.attach_mock(mock_on, 'power_on')

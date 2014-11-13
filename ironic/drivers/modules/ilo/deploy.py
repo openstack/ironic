@@ -65,7 +65,7 @@ def _update_ipmi_properties(task):
         node = task.node
         info = node.driver_info
 
-        #updating ipmi credentials
+        # updating ipmi credentials
         info['ipmi_address'] = info['ilo_address']
         info['ipmi_username'] = info['ilo_username']
         info['ipmi_password'] = info['ilo_password']
@@ -73,7 +73,7 @@ def _update_ipmi_properties(task):
         if 'console_port' in info:
             info['ipmi_terminal_port'] = info['console_port']
 
-        #saving ipmi credentials to task object
+        # saving ipmi credentials to task object
         task.node.driver_info = info
 
 

@@ -69,14 +69,14 @@ class TestListNodes(api_base.FunctionalTest):
         self.addCleanup(p.stop)
 
     def _create_association_test_nodes(self):
-        #create some unassociated nodes
+        # create some unassociated nodes
         unassociated_nodes = []
         for id in range(3):
             node = obj_utils.create_test_node(self.context,
                                               uuid=utils.generate_uuid())
             unassociated_nodes.append(node.uuid)
 
-        #created some associated nodes
+        # created some associated nodes
         associated_nodes = []
         for id in range(4):
             node = obj_utils.create_test_node(
