@@ -481,6 +481,19 @@ class VendorInterface(object):
         :raises: MissingParameterValue
         """
 
+    def driver_validate(self, method, **kwargs):
+        """Validate driver-vendor-passthru actions.
+
+        If invalid, raises an exception; otherwise returns None.
+
+        :param method: method to be validated
+        :param kwargs: info for action.
+        :raises: MissingParameterValue if kwargs does not contain
+                 certain parameter.
+        :raises: InvalidParameterValue if parameter does not match.
+        """
+        pass
+
 
 @six.add_metaclass(abc.ABCMeta)
 class ManagementInterface(object):

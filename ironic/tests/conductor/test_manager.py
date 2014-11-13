@@ -841,6 +841,23 @@ class VendorPassthruTestCase(_ServiceSetUpMixin, tests_db_base.DbTestCase):
         self.assertEqual(exception.UnsupportedDriverExtension,
                          exc.exc_info[0])
 
+    @mock.patch.object(drivers_base.VendorInterface, 'driver_validate')
+    def test_driver_vendor_passthru_validation_failed(self, validate_mock):
+        validate_mock.side_effect = exception.MissingParameterValue('error')
+        test_method = mock.Mock()
+        self.driver.vendor.driver_routes = {'test_method':
+                                           {'func': test_method,
+                                            'async': False,
+                                            'http_methods': ['POST']}}
+        self.service.init_host()
+        exc = self.assertRaises(messaging.ExpectedException,
+                                self.service.driver_vendor_passthru,
+                                self.context, 'fake', 'test_method',
+                                'POST', {})
+        self.assertEqual(exception.MissingParameterValue,
+                         exc.exc_info[0])
+        self.assertFalse(test_method.called)
+
 
 @_mock_record_keepalive
 class DoNodeDeployTearDownTestCase(_ServiceSetUpMixin,
