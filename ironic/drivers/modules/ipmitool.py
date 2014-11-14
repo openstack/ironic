@@ -547,6 +547,35 @@ def _parse_ipmi_sensors_data(node, sensors_data):
     return sensors_data_dict
 
 
+@task_manager.require_exclusive_lock
+def _send_raw(task, raw_bytes):
+    """Send raw bytes to the BMC. Bytes should be a string of bytes.
+
+    :param task: a TaskManager instance.
+    :param raw_bytes: a string of raw bytes to send, e.g. '0x00 0x01'
+    :raises: IPMIFailure on an error from ipmitool.
+    :raises: MissingParameterValue if a required parameter is missing.
+    :raises:  InvalidParameterValue when an invalid value is specified.
+
+    """
+    node_uuid = task.node.uuid
+    LOG.debug('Sending node %(node)s raw bytes %(bytes)s',
+              {'bytes': raw_bytes, 'node': node_uuid})
+    driver_info = _parse_driver_info(task.node)
+    cmd = 'raw %s' % raw_bytes
+
+    try:
+        out, err = _exec_ipmitool(driver_info, cmd)
+        LOG.debug('send raw bytes returned stdout: %(stdout)s, stderr:'
+                  ' %(stderr)s', {'stdout': out, 'stderr': err})
+    except (exception.PasswordFileFailedToCreate,
+            processutils.ProcessExecutionError) as e:
+        LOG.exception(_LE('IPMI "raw bytes" failed for node %(node_id)s '
+                      'with error: %(error)s.'),
+                      {'node_id': node_uuid, 'error': e})
+        raise exception.IPMIFailure(cmd=cmd)
+
+
 class IPMIPower(base.PowerInterface):
 
     def __init__(self):
@@ -693,6 +722,15 @@ class IPMIManagement(base.ManagementInterface):
         if device not in self.get_supported_boot_devices():
             raise exception.InvalidParameterValue(_(
                 "Invalid boot device %s specified.") % device)
+
+        # note(JayF): IPMI spec indicates unless you send these raw bytes the
+        # boot device setting times out after 60s. Since it's possible it
+        # could be >60s before a node is rebooted, we should always send them.
+        # This mimics pyghmi's current behavior, and the "option=timeout"
+        # setting on newer ipmitool binaries.
+        timeout_disable = "0x00 0x08 0x03 0x08"
+        _send_raw(task, timeout_disable)
+
         cmd = "chassis bootdev %s" % device
         if persistent:
             cmd = cmd + " options=persistent"
@@ -804,22 +842,7 @@ class VendorPassthru(base.VendorInterface):
         :raises:  InvalidParameterValue when an invalid value is specified.
 
         """
-        node_uuid = task.node.uuid
-        LOG.debug('Sending node %(node)s raw bytes %(bytes)s',
-                  {'bytes': raw_bytes, 'node': node_uuid})
-        driver_info = _parse_driver_info(task.node)
-        cmd = 'raw %s' % raw_bytes
-
-        try:
-            out, err = _exec_ipmitool(driver_info, cmd)
-            LOG.debug('send raw bytes returned stdout: %(stdout)s, stderr:'
-                      ' %(stderr)s', {'stdout': out, 'stderr': err})
-        except (exception.PasswordFileFailedToCreate,
-                processutils.ProcessExecutionError) as e:
-            LOG.exception(_LE('IPMI "raw bytes" failed for node %(node_id)s '
-                          'with error: %(error)s.'),
-                          {'node_id': node_uuid, 'error': e})
-            raise exception.IPMIFailure(cmd=cmd)
+        _send_raw(task, raw_bytes)
 
     @base.passthru()
     @task_manager.require_exclusive_lock
