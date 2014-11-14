@@ -1208,7 +1208,9 @@ class IPMIToolDriverTestCase(db_base.DbTestCase):
         with task_manager.acquire(self.context, self.node.uuid) as task:
             self.driver.management.set_boot_device(task, boot_devices.PXE)
 
-        mock_exec.assert_called_once_with(self.info, "chassis bootdev pxe")
+        mock_calls = [mock.call(self.info, "raw 0x00 0x08 0x03 0x08"),
+                      mock.call(self.info, "chassis bootdev pxe")]
+        mock_exec.assert_has_calls(mock_calls)
 
     def test_management_interface_set_boot_device_bad_device(self):
         with task_manager.acquire(self.context, self.node.uuid) as task:
