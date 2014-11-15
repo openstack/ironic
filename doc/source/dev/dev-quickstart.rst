@@ -18,7 +18,7 @@ Install prerequisites::
     sudo apt-get install python-dev libssl-dev python-pip libmysqlclient-dev libxml2-dev libxslt-dev libpq-dev git git-review libffi-dev gettext
 
     # Fedora/RHEL:
-    sudo yum install python-devel openssl-devel python-pip mysql-devel libxml2-devel libxslt-devel postgresql-devel git git-review libffi-devel gettext
+    sudo yum install python-devel openssl-devel python-pip mysql-devel libxml2-devel libxslt-devel postgresql-devel git git-review libffi-devel gettext ipmitool
 
     # openSUSE/SLE 12:
     sudo zypper install git git-review libffi-devel libmysqlclient-devel libopenssl-devel libxml2-devel libxslt-devel postgresql-devel python-devel python-flake8 python-nose python-pip python-setuptools-git python-testrepository python-tox python-virtualenv gettext-runtime
