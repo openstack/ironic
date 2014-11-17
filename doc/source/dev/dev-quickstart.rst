@@ -15,7 +15,7 @@ an OpenStack project.
 Install prerequisites::
 
     # Ubuntu/Debian:
-    sudo apt-get install python-dev libssl-dev python-pip libmysqlclient-dev libxml2-dev libxslt-dev libpq-dev git git-review libffi-dev gettext
+    sudo apt-get install python-dev libssl-dev python-pip libmysqlclient-dev libxml2-dev libxslt-dev libpq-dev git git-review libffi-dev gettext python-tox
 
     # Fedora/RHEL:
     sudo yum install python-devel openssl-devel python-pip mysql-devel libxml2-devel libxslt-devel postgresql-devel git git-review libffi-devel gettext ipmitool
@@ -56,8 +56,8 @@ All unit tests should be run using tox. To run Ironic's entire test suite::
 
 To run a specific test, use a positional argument for the unit tests::
 
-    # run a specific test for both Python 2.6 and 2.7
-    tox -epy26,py27 -- test_conductor
+    # run a specific test for Python 2.7
+    tox -epy27 -- test_conductor
 
 You may pass options to the test programs using positional arguments::
 
