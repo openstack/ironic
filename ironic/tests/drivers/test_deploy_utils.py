@@ -161,8 +161,8 @@ class PhysicalWorkTestCase(tests_base.TestCase):
 
         name_list = ['get_dev', 'get_image_mb', 'discovery', 'login_iscsi',
                      'logout_iscsi', 'delete_iscsi', 'make_partitions',
-                     'is_block_device', 'dd', 'mkswap', 'block_uuid',
-                     'notify', 'destroy_disk_metadata']
+                     'is_block_device', 'populate_image', 'mkswap',
+                     'block_uuid', 'notify', 'destroy_disk_metadata']
         parent_mock = self._mock_calls(name_list)
         parent_mock.get_dev.return_value = dev
         parent_mock.get_image_mb.return_value = 1
@@ -181,7 +181,7 @@ class PhysicalWorkTestCase(tests_base.TestCase):
                                                     commit=True),
                           mock.call.is_block_device(root_part),
                           mock.call.is_block_device(swap_part),
-                          mock.call.dd(image_path, root_part),
+                          mock.call.populate_image(image_path, root_part),
                           mock.call.mkswap(swap_part),
                           mock.call.block_uuid(root_part),
                           mock.call.logout_iscsi(address, port, iqn),
@@ -214,7 +214,7 @@ class PhysicalWorkTestCase(tests_base.TestCase):
 
         name_list = ['get_dev', 'get_image_mb', 'discovery', 'login_iscsi',
                      'logout_iscsi', 'delete_iscsi', 'make_partitions',
-                     'is_block_device', 'dd', 'block_uuid',
+                     'is_block_device', 'populate_image', 'block_uuid',
                      'notify', 'destroy_disk_metadata']
         parent_mock = self._mock_calls(name_list)
         parent_mock.get_dev.return_value = dev
@@ -232,7 +232,7 @@ class PhysicalWorkTestCase(tests_base.TestCase):
                                                     ephemeral_mb,
                                                     commit=True),
                           mock.call.is_block_device(root_part),
-                          mock.call.dd(image_path, root_part),
+                          mock.call.populate_image(image_path, root_part),
                           mock.call.block_uuid(root_part),
                           mock.call.logout_iscsi(address, port, iqn),
                           mock.call.delete_iscsi(address, port, iqn)]
@@ -266,8 +266,8 @@ class PhysicalWorkTestCase(tests_base.TestCase):
 
         name_list = ['get_dev', 'get_image_mb', 'discovery', 'login_iscsi',
                      'logout_iscsi', 'delete_iscsi', 'make_partitions',
-                     'is_block_device', 'dd', 'mkswap', 'block_uuid',
-                     'notify', 'mkfs_ephemeral',
+                     'is_block_device', 'populate_image', 'mkswap',
+                     'block_uuid', 'notify', 'mkfs_ephemeral',
                      'destroy_disk_metadata']
         parent_mock = self._mock_calls(name_list)
         parent_mock.get_dev.return_value = dev
@@ -289,7 +289,7 @@ class PhysicalWorkTestCase(tests_base.TestCase):
                           mock.call.is_block_device(root_part),
                           mock.call.is_block_device(swap_part),
                           mock.call.is_block_device(ephemeral_part),
-                          mock.call.dd(image_path, root_part),
+                          mock.call.populate_image(image_path, root_part),
                           mock.call.mkswap(swap_part),
                           mock.call.mkfs_ephemeral(ephemeral_part,
                                                    ephemeral_format),
@@ -326,8 +326,9 @@ class PhysicalWorkTestCase(tests_base.TestCase):
 
         name_list = ['get_dev', 'get_image_mb', 'discovery', 'login_iscsi',
                      'logout_iscsi', 'delete_iscsi', 'make_partitions',
-                     'is_block_device', 'dd', 'mkswap', 'block_uuid',
-                     'notify', 'mkfs_ephemeral', 'get_dev_block_size']
+                     'is_block_device', 'populate_image', 'mkswap',
+                     'block_uuid', 'notify', 'mkfs_ephemeral',
+                     'get_dev_block_size']
         parent_mock = self._mock_calls(name_list)
         parent_mock.get_dev.return_value = dev
         parent_mock.get_image_mb.return_value = 1
@@ -348,7 +349,7 @@ class PhysicalWorkTestCase(tests_base.TestCase):
                           mock.call.is_block_device(root_part),
                           mock.call.is_block_device(swap_part),
                           mock.call.is_block_device(ephemeral_part),
-                          mock.call.dd(image_path, root_part),
+                          mock.call.populate_image(image_path, root_part),
                           mock.call.mkswap(swap_part),
                           mock.call.block_uuid(root_part),
                           mock.call.logout_iscsi(address, port, iqn),
@@ -684,9 +685,33 @@ class GetDeviceBlockSizeTestCase(tests_base.TestCase):
         mock_exec.assert_has_calls(expected_call)
 
 
+@mock.patch.object(utils, 'dd')
+@mock.patch.object(images, 'qemu_img_info')
+@mock.patch.object(images, 'convert_image')
+class PopulateImageTestCase(tests_base.TestCase):
+
+    def setUp(self):
+        super(PopulateImageTestCase, self).setUp()
+
+    def test_populate_raw_image(self, mock_cg, mock_qinfo, mock_dd):
+        type(mock_qinfo.return_value).file_format = mock.PropertyMock(
+            return_value='raw')
+        utils.populate_image('src', 'dst')
+        mock_dd.assert_called_once_with('src', 'dst')
+        self.assertFalse(mock_cg.called)
+
+    def test_populate_qcow2_image(self, mock_cg, mock_qinfo, mock_dd):
+        type(mock_qinfo.return_value).file_format = mock.PropertyMock(
+            return_value='qcow2')
+        utils.populate_image('src', 'dst')
+        mock_cg.assert_called_once_with('src', 'dst', 'raw', True)
+        self.assertFalse(mock_dd.called)
+
+
 @mock.patch.object(utils, 'is_block_device', lambda d: True)
 @mock.patch.object(utils, 'block_uuid', lambda p: 'uuid')
 @mock.patch.object(utils, 'dd', lambda *_: None)
+@mock.patch.object(images, 'convert_image', lambda *_: None)
 @mock.patch.object(common_utils, 'mkfs', lambda *_: None)
 # NOTE(dtantsur): destroy_disk_metadata resets file size, disabling it
 @mock.patch.object(utils, 'destroy_disk_metadata', lambda *_: None)

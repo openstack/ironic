@@ -145,6 +145,14 @@ def dd(src, dst):
     utils.dd(src, dst, 'bs=1M', 'oflag=direct')
 
 
+def populate_image(src, dst):
+    data = images.qemu_img_info(src)
+    if data.file_format == 'raw':
+        dd(src, dst)
+    else:
+        images.convert_image(src, dst, 'raw', True)
+
+
 def mkswap(dev, label='swap1'):
     """Execute mkswap on a device."""
     utils.mkfs('swap', dev, label)
@@ -315,7 +323,7 @@ def work_on_disk(dev, root_mb, swap_mb, ephemeral_mb, ephemeral_format,
         raise exception.InstanceDeployFailure(
                          _("Ephemeral device '%s' not found") % ephemeral_part)
 
-    dd(image_path, root_part)
+    populate_image(image_path, root_part)
 
     if swap_part:
         mkswap(swap_part)
