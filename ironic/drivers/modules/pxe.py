@@ -268,7 +268,7 @@ def _destroy_token_file(node):
 
 
 class PXEDeploy(base.DeployInterface):
-    """PXE Deploy Interface: just a stub until the real driver is ported."""
+    """PXE Deploy Interface for deploy-related actions."""
 
     def get_properties(self):
         return COMMON_PROPERTIES
