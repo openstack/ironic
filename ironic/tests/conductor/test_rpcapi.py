@@ -181,20 +181,22 @@ class RPCAPITestCase(base.DbTestCase):
                           node_id=self.fake_node['uuid'],
                           new_state=states.POWER_ON)
 
-    def test_pass_vendor_info(self):
+    def test_vendor_passthru(self):
         self._test_rpcapi('vendor_passthru',
                           'call',
-                          version='1.19',
+                          version='1.20',
                           node_id=self.fake_node['uuid'],
                           driver_method='test-driver-method',
+                          http_method='test-http-method',
                           info={"test_info": "test_value"})
 
     def test_driver_vendor_passthru(self):
         self._test_rpcapi('driver_vendor_passthru',
                           'call',
-                          version='1.19',
+                          version='1.20',
                           driver_name='test-driver-name',
                           driver_method='test-driver-method',
+                          http_method='test-http-method',
                           info={'test_key': 'test_value'})
 
     def test_do_node_deploy(self):

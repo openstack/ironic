@@ -24,15 +24,15 @@ class FakeVendorInterface(driver_base.VendorInterface):
     def get_properties(self):
         pass
 
-    @driver_base.passthru()
+    @driver_base.passthru(['POST'])
     def noexception(self):
         return "Fake"
 
-    @driver_base.passthru()
+    @driver_base.passthru(['POST'])
     def ironicexception(self):
         raise exception.IronicException("Fake!")
 
-    @driver_base.passthru()
+    @driver_base.passthru(['POST'])
     def normalexception(self):
         raise Exception("Fake!")
 

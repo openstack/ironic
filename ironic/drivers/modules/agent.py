@@ -328,7 +328,7 @@ class AgentVendorInterface(base.VendorInterface):
         """
         pass
 
-    @base.passthru()
+    @base.passthru(['POST'])
     def heartbeat(self, task, **kwargs):
         """Method for agent to periodically check in.
 
@@ -435,7 +435,7 @@ class AgentVendorInterface(base.VendorInterface):
         node.target_provision_state = states.NOSTATE
         node.save()
 
-    @base.driver_passthru(async=False)
+    @base.driver_passthru(['POST'], async=False)
     def lookup(self, context, **kwargs):
         """Find a matching node for the agent.
 

@@ -162,7 +162,7 @@ class ConductorManager(periodic_task.PeriodicTasks):
     """Ironic Conductor manager main class."""
 
     # NOTE(rloo): This must be in sync with rpcapi.ConductorAPI's.
-    RPC_API_VERSION = '1.19'
+    RPC_API_VERSION = '1.20'
 
     target = messaging.Target(version=RPC_API_VERSION)
 
@@ -362,7 +362,8 @@ class ConductorManager(periodic_task.PeriodicTasks):
                                    exception.InvalidParameterValue,
                                    exception.UnsupportedDriverExtension,
                                    exception.MissingParameterValue)
-    def vendor_passthru(self, context, node_id, driver_method, info):
+    def vendor_passthru(self, context, node_id, driver_method,
+                        http_method, info):
         """RPC method to encapsulate vendor action.
 
         Synchronously validate driver specific info or get driver status,
@@ -373,6 +374,7 @@ class ConductorManager(periodic_task.PeriodicTasks):
         :param context: an admin context.
         :param node_id: the id or uuid of a node.
         :param driver_method: the name of the vendor method.
+        :param http_method: the HTTP method used for the request.
         :param info: vendor method args.
         :raises: InvalidParameterValue if supplied info is not valid.
         :raises: MissingParameterValue if missing supplied info
@@ -426,7 +428,17 @@ class ConductorManager(periodic_task.PeriodicTasks):
                 raise exception.InvalidParameterValue(
                     _('No handler for method %s') % driver_method)
 
-            vendor_iface.validate(task, method=driver_method, **info)
+            http_method = http_method.upper()
+            if http_method not in vendor_opts['http_methods']:
+                raise exception.InvalidParameterValue(
+                    _('The method %(method)s does not support HTTP %(http)s') %
+                    {'method': driver_method, 'http': http_method})
+
+            vendor_iface.validate(task, method=driver_method,
+                                  http_method=http_method, **info)
+
+            # Inform the vendor method which HTTP method it was invoked with
+            info['http_method'] = http_method
 
             # Invoke the vendor method accordingly with the mode
             is_async = vendor_opts['async']
@@ -444,7 +456,7 @@ class ConductorManager(periodic_task.PeriodicTasks):
                                    exception.UnsupportedDriverExtension,
                                    exception.DriverNotFound)
     def driver_vendor_passthru(self, context, driver_name, driver_method,
-                               info):
+                               http_method, info):
         """Handle top-level vendor actions.
 
         RPC method which handles driver-level vendor passthru calls. These
@@ -456,6 +468,7 @@ class ConductorManager(periodic_task.PeriodicTasks):
         :param context: an admin context.
         :param driver_name: name of the driver on which to call the method.
         :param driver_method: name of the vendor method, for use by the driver.
+        :param http_method: the HTTP method used for the request.
         :param info: user-supplied data to pass through to the driver.
         :raises: MissingParameterValue if missing supplied info
         :raises: InvalidParameterValue if supplied info is not valid.
@@ -504,6 +517,15 @@ class ConductorManager(periodic_task.PeriodicTasks):
         except KeyError:
             raise exception.InvalidParameterValue(
                 _('No handler for method %s') % driver_method)
+
+        http_method = http_method.upper()
+        if http_method not in vendor_opts['http_methods']:
+            raise exception.InvalidParameterValue(
+                _('The method %(method)s does not support HTTP %(http)s') %
+                {'method': driver_method, 'http': http_method})
+
+        # Inform the vendor method which HTTP method it was invoked with
+        info['http_method'] = http_method
 
         # FIXME(lucasagomes): This code should be able to call
         # validate(). The problem is that at the moment the validate()

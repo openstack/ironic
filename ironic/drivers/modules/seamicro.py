@@ -416,7 +416,7 @@ class VendorPassthru(base.VendorInterface):
     def validate(self, task, **kwargs):
         _parse_driver_info(task.node)
 
-    @base.passthru()
+    @base.passthru(['POST'])
     def set_node_vlan_id(self, task, **kwargs):
         """Sets a untagged vlan id for NIC 0 of node.
 
@@ -445,7 +445,7 @@ class VendorPassthru(base.VendorInterface):
         node.properties = properties
         node.save()
 
-    @base.passthru()
+    @base.passthru(['POST'])
     def attach_volume(self, task, **kwargs):
         """Attach a volume to a node.
 

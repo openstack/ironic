@@ -830,12 +830,13 @@ class VendorPassthru(base.VendorInterface):
                 reason=_("Unable to locate usable ipmitool command in "
                          "the system path when checking ipmitool version"))
 
-    @base.passthru()
+    @base.passthru(['POST'])
     @task_manager.require_exclusive_lock
-    def send_raw(self, task, raw_bytes):
+    def send_raw(self, task, http_method, raw_bytes):
         """Send raw bytes to the BMC. Bytes should be a string of bytes.
 
         :param task: a TaskManager instance.
+        :param http_method: the HTTP method used on the request.
         :param raw_bytes: a string of raw bytes to send, e.g. '0x00 0x01'
         :raises: IPMIFailure on an error from ipmitool.
         :raises: MissingParameterValue if a required parameter is missing.
@@ -844,12 +845,13 @@ class VendorPassthru(base.VendorInterface):
         """
         _send_raw(task, raw_bytes)
 
-    @base.passthru()
+    @base.passthru(['POST'])
     @task_manager.require_exclusive_lock
-    def bmc_reset(self, task, warm=True):
+    def bmc_reset(self, task, http_method, warm=True):
         """Reset BMC with IPMI command 'bmc reset (warm|cold)'.
 
         :param task: a TaskManager instance.
+        :param http_method: the HTTP method used on the request.
         :param warm: boolean parameter to decide on warm or cold reset.
         :raises: IPMIFailure on an error from ipmitool.
         :raises: MissingParameterValue if a required parameter is missing.
