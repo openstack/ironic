@@ -319,6 +319,23 @@ class TestAgentVendor(db_base.DbTestCase):
                           self.passthru._get_node_id,
                           [fake_port1, fake_port2])
 
+    def test_get_interfaces(self):
+        fake_inventory = {
+            'interfaces': [
+                {
+                    'mac_address': 'aa:bb:cc:dd:ee:ff',
+                    'name': 'eth0'
+                }
+            ]
+        }
+        interfaces = self.passthru._get_interfaces(fake_inventory)
+        self.assertEqual(fake_inventory['interfaces'], interfaces)
+
+    def test_get_interfaces_bad(self):
+        self.assertRaises(exception.InvalidParameterValue,
+                          self.passthru._get_interfaces,
+                          inventory={})
+
     def test_heartbeat(self):
         kwargs = {
             'agent_url': 'http://127.0.0.1:9999/bar'
