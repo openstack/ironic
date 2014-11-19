@@ -31,15 +31,6 @@ from ironic.common import states
 from ironic.drivers import base
 
 
-def _raise_unsupported_error(method=None):
-    if method:
-        raise exception.InvalidParameterValue(_(
-            "Unsupported method (%s) passed through to vendor extension.")
-            % method)
-    raise exception.MissingParameterValue(_(
-        "Method not specified when calling vendor extension."))
-
-
 class FakePower(base.PowerInterface):
     """Example implementation of a simple power interface."""
 
@@ -105,8 +96,6 @@ class FakeVendorA(base.VendorInterface):
             if not bar:
                 raise exception.MissingParameterValue(_(
                     "Parameter 'bar' not passed to method 'first_method'."))
-            return
-        _raise_unsupported_error(method)
 
     @base.passthru(['POST'])
     def first_method(self, task, http_method, bar):
@@ -127,8 +116,6 @@ class FakeVendorB(base.VendorInterface):
             if not bar:
                 raise exception.MissingParameterValue(_(
                     "Parameter 'bar' not passed to method '%s'.") % method)
-            return
-        _raise_unsupported_error(method)
 
     @base.passthru(['POST'])
     def second_method(self, task, http_method, bar):

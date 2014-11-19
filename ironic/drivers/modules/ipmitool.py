@@ -907,13 +907,7 @@ class VendorPassthru(base.VendorInterface):
                 raise exception.InvalidParameterValue(_(
                     'Parameter raw_bytes (string of bytes) was not '
                     'specified.'))
-        elif method == 'bmc_reset':
-            # no additional parameters needed
-            pass
-        else:
-            raise exception.InvalidParameterValue(_(
-                "Unsupported method (%s) passed to IPMItool driver.")
-                % method)
+
         _parse_driver_info(task.node)
 
 

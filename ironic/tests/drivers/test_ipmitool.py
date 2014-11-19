@@ -1044,14 +1044,6 @@ class IPMIToolDriverTestCase(db_base.DbTestCase):
         self.assertEqual(manager.mock_calls, expected)
 
     @mock.patch.object(ipmi, '_parse_driver_info')
-    def test_vendor_passthru_validate_method_notmatch(self, info_mock):
-        with task_manager.acquire(self.context, self.node['uuid']) as task:
-            self.assertRaises(exception.InvalidParameterValue,
-                              self.driver.vendor.validate,
-                              task, method='fake_method')
-            self.assertFalse(info_mock.called)
-
-    @mock.patch.object(ipmi, '_parse_driver_info')
     def test_vendor_passthru_validate__parse_driver_info_fail(self, info_mock):
         info_mock.side_effect = exception.InvalidParameterValue("bad")
         with task_manager.acquire(self.context, self.node['uuid']) as task:
