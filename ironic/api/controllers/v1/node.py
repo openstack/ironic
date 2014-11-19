@@ -44,6 +44,16 @@ CONF.import_opt('heartbeat_timeout', 'ironic.conductor.manager',
 
 LOG = log.getLogger(__name__)
 
+# Vendor information for node's driver:
+#   key = driver name;
+#   value = dictionary of node vendor methods of that driver:
+#             key = method name.
+#             value = dictionary with the metadata of that method.
+# NOTE(lucasagomes). This is cached for the lifetime of the API
+# service. If one or more conductor services are restarted with new driver
+# versions, the API service should be restarted.
+_VENDOR_METHODS = {}
+
 
 class NodePatchType(types.JsonPatchType):
 
@@ -551,6 +561,31 @@ class NodeVendorPassthruController(rest.RestController):
     the Ironic API. Ironic will merely relay the message from here to the
     appropriate driver, no introspection will be made in the message body.
     """
+
+    _custom_actions = {
+        'methods': ['GET']
+    }
+
+    @wsme_pecan.wsexpose(wtypes.text, types.uuid)
+    def methods(self, node_uuid):
+        """Retrieve information about vendor methods of the given node.
+
+        :param node_uuid: UUID of a node.
+        :returns: dictionary with <vendor method name>:<method metadata>
+                  entries.
+        :raises: NodeNotFound if the node is not found.
+        """
+        # Raise an exception if node is not found
+        rpc_node = objects.Node.get_by_uuid(pecan.request.context,
+                                            node_uuid)
+
+        if rpc_node.driver not in _VENDOR_METHODS:
+            topic = pecan.request.rpcapi.get_topic_for(rpc_node)
+            ret = pecan.request.rpcapi.get_node_vendor_passthru_methods(
+                        pecan.request.context, node_uuid, topic=topic)
+            _VENDOR_METHODS[rpc_node.driver] = ret
+
+        return _VENDOR_METHODS[rpc_node.driver]
 
     @wsme_pecan.wsexpose(wtypes.text, types.uuid, wtypes.text,
                          body=wtypes.text)

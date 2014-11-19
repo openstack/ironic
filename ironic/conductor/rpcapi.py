@@ -59,14 +59,16 @@ class ConductorAPI(object):
     |          get_supported_boot_devices.
     |    1.18 - Remove change_node_maintenance_mode.
     |    1.19 - Change return value of vendor_passthru and
-                driver_vendor_passthru
+    |           driver_vendor_passthru
     |    1.20 - Added http_method parameter to vendor_passthru and
-                driver_vendor_passthru
+    |           driver_vendor_passthru
+    |    1.21 - Added get_node_vendor_passthru_methods and
+    |           get_driver_vendor_passthru_methods
 
     """
 
     # NOTE(rloo): This must be in sync with manager.ConductorManager's.
-    RPC_API_VERSION = '1.20'
+    RPC_API_VERSION = '1.21'
 
     def __init__(self, topic=None):
         super(ConductorAPI, self).__init__()
@@ -230,6 +232,33 @@ class ConductorAPI(object):
                           driver_method=driver_method,
                           http_method=http_method,
                           info=info)
+
+    def get_node_vendor_passthru_methods(self, context, node_id, topic=None):
+        """Retrieve information about vendor methods of the given node.
+
+        :param context: an admin context.
+        :param node_id: the id or uuid of a node.
+        :param topic: RPC topic. Defaults to self.topic.
+        :returns: dictionary of <method name>:<method metadata> entries.
+
+        """
+        cctxt = self.client.prepare(topic=topic or self.topic, version='1.21')
+        return cctxt.call(context, 'get_node_vendor_passthru_methods',
+                          node_id=node_id)
+
+    def get_driver_vendor_passthru_methods(self, context, driver_name,
+                                            topic=None):
+        """Retrieve information about vendor methods of the given driver.
+
+        :param context: an admin context.
+        :param driver_name: name of the driver.
+        :param topic: RPC topic. Defaults to self.topic.
+        :returns: dictionary of <method name>:<method metadata> entries.
+
+        """
+        cctxt = self.client.prepare(topic=topic or self.topic, version='1.21')
+        return cctxt.call(context, 'get_driver_vendor_passthru_methods',
+                          driver_name=driver_name)
 
     def do_node_deploy(self, context, node_id, rebuild, topic=None):
         """Signal to conductor service to perform a deployment.
