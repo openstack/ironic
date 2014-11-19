@@ -591,13 +591,7 @@ class VendorPassthru(base.VendorInterface):
         :raises: InvalidParameterValue, if any of the parameters have invalid
             value.
         """
-        method = kwargs['method']
-        if method == 'pass_deploy_info':
-            iscsi_deploy.get_deploy_info(task.node, **kwargs)
-        else:
-            raise exception.InvalidParameterValue(_(
-                "Unsupported method (%s) passed to iLO driver.")
-                % method)
+        iscsi_deploy.get_deploy_info(task.node, **kwargs)
 
     @base.passthru(['POST'], method='pass_deploy_info')
     @task_manager.require_exclusive_lock
