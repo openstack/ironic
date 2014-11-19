@@ -34,6 +34,7 @@ Introduction
 
 .. toctree::
   dev/dev-quickstart
+  dev/vendor-passthru
 
 API References
 --------------
