@@ -21,6 +21,11 @@ OpenStack's Ironic project makes physical servers as easy to provision as
 virtual machines in cloud, which in turn will open up new avenues for
 enterprises and service providers.
 
+Ironic's driver replaces the Nova "bare metal" driver (in Grizzly - Juno
+releases). Ironic is available for use and is supported by the Ironic
+developers starting with the Juno release. It is officially integrated with
+OpenStack in the Kilo release.
+
 See https://wiki.openstack.org/wiki/Ironic for links to the project's current
 development status.
 
@@ -42,7 +47,9 @@ Conceptual Architecture
 =======================
 
 The following diagram shows the relationships and how all services come into
-play during the provisioning of a physical server.
+play during the provisioning of a physical server. (Note that Swift can be
+used with Ironic, but is missing from this diagram.)
+
 
 .. figure:: ../images/conceptual_architecture.png
    :alt: ConceptualArchitecture
@@ -50,8 +57,7 @@ play during the provisioning of a physical server.
 Logical Architecture
 ====================
 
-To successfully deploy the Ironic service in cloud, the administrator users
-need to understand the logical architecture.  The below diagram shows the basic
+The diagram below shows the logical architecture. It shows the basic
 components that form the Ironic service, the relation of Ironic service with
 other OpenStack services and the logical flow of a boot instance request
 resulting in the provisioning of a physical server.
@@ -61,27 +67,29 @@ resulting in the provisioning of a physical server.
 
 The Ironic service is composed of the following components:
 
-#. A RESTful API service, by which operators and other services may interact
+#. a RESTful API service, by which operators and other services may interact
    with the managed bare metal servers.
 
-#. A Conductor service, which does the bulk of the work. Functionality is
+#. a Conductor service, which does the bulk of the work. Functionality is
    exposed via the API service. The Conductor and API services communicate
    via RPC.
 
-#. A Message Queue
+#. various Drivers that support heterogenous hardware
 
-#. A Database for storing the state of the Conductor and Drivers.
+#. a Message Queue
+
+#. a Database for storing information about the resources. Among other things,
+   this includes the state of the conductors, nodes (physical servers), and
+   drivers.
 
 As in Figure 1.2. Logical Architecture, a user request to boot an instance is
 passed to the Nova Compute service via Nova API and Nova Scheduler. The Compute
-service hands over this request to the Ironic service, which comprises
-of the Ironic API, the Ironic Conductor, many Drivers to support heterogeneous
-hardware, Database etc. The request passes from the Ironic API, to the
-Conductor and the Drivers to successfully provision a physical server to
-the user.
+service hands over this request to the Ironic service, where the request passes
+from the Ironic API, to the Conductor, to a Driver to successfully provision a
+physical server for the user.
 
-Just as Nova Compute service talks to various OpenStack services like Glance,
-Neutron, Swift etc to provision a virtual machine instance, here the
+Just as the Nova Compute service talks to various OpenStack services like
+Glance, Neutron, Swift etc to provision a virtual machine instance, here the
 Ironic service talks to the same OpenStack services for image, network and
 other resource needs to provision a bare metal instance.
 
@@ -134,31 +142,25 @@ connection to the hardware rather than to an operating system.
 
 Ironic Deployment Architecture
 ==============================
-We already know that OpenStack services are highly configurable to meet various
-end-user requirements. The diagrams below are sample deployment scenarios of
-the Ironic service for bare metal provisioning.
 
-.. figure:: ../images/deployment_architecture_1.png
-   :alt: Deployment Architecture 1
+The Ironic RESTful API service is used to enroll hardware that Ironic will
+manage. A cloud administrator usually registers the hardware, specifying their
+attributes such as MAC addresses and IPMI credentials. There can be multiple
+instances of the API service.
 
-In the above deployment architecture figure 1.3.1.:
+The Ironic conductor service does the bulk of the work.
+For security reasons, it is advisable to place the conductor service on
+an isolated host, since it is the only service that requires access to both
+the data plane and IPMI control plane.
 
-#. The controller runs the identity service, management service, dashboard and
-   the management portion of compute. It also contains associated API services,
-   MySQL databases and messaging system.
+There can be multiple instances of the conductor service to support
+various class of drivers and also to manage fail over. Instances of the
+conductor service should be on separate nodes. Each conductor can itself run
+many drivers to operate heterogeneous hardware. This is depicted in the
+following figure.
 
-#. The Ironic RESTful API service is used to enroll hardware with attributes
-   like MAC addresses, IPMI credentials etc. A cloud administrator usually
-   enrolls this information for Ironic to manage the specific hardware.
-
-#. The compute node runs the Nova compute service, networking plug-in agent and
-   Ironic conductor service. The Ironic conductor service does the bulk of the
-   work. There can be multiple instances of the conductor service to support
-   various class of drivers and also to manage fail over. Ideally, instances of
-   conductor service should be on separate nodes. Each conductor can itself run
-   many drivers to operate heterogeneous hardware. This is depicted in figure
-   1.3.2. The API exposes a list of supported drivers and the names of conductor
-   hosts servicing them.
+The API exposes a list of supported drivers and the names of conductor hosts
+servicing them.
 
 .. figure:: ../images/deployment_architecture_2.png
    :alt: Deployment Architecture 2
