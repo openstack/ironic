@@ -39,6 +39,9 @@ class FakeVendorInterface(driver_base.VendorInterface):
     def validate(self, task, **kwargs):
         pass
 
+    def driver_validate(self, **kwargs):
+        pass
+
 
 class PassthruDecoratorTestCase(base.TestCase):
 

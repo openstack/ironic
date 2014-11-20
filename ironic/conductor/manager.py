@@ -506,6 +506,8 @@ class ConductorManager(periodic_task.PeriodicTasks):
                             "of driver_vendor_passthru() has been "
                             "deprecated. Please update the code to use "
                             "the @driver_passthru decorator."))
+
+            driver.vendor.driver_validate(method=driver_method, **info)
             ret = driver.vendor.driver_vendor_passthru(
                             context, method=driver_method, **info)
             # DriverVendorPassthru was always sync
@@ -527,16 +529,11 @@ class ConductorManager(periodic_task.PeriodicTasks):
         # Inform the vendor method which HTTP method it was invoked with
         info['http_method'] = http_method
 
-        # FIXME(lucasagomes): This code should be able to call
-        # validate(). The problem is that at the moment the validate()
-        # expects a task object as the first parameter and in this
-        # method we don't have it because we don't have a Node to
-        # acquire.
-        # See: https://bugs.launchpad.net/ironic/+bug/1391580
-
         # Invoke the vendor method accordingly with the mode
         is_async = vendor_opts['async']
         ret = None
+        driver.vendor.driver_validate(method=driver_method, **info)
+
         if is_async:
             self._spawn_worker(vendor_func, context, **info)
         else:

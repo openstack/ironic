@@ -135,6 +135,25 @@ class TestAgentVendor(db_base.DbTestCase):
         with task_manager.acquire(self.context, self.node.uuid) as task:
             self.passthru.validate(task)
 
+    def test_driver_validate(self):
+        kwargs = {'version': '2'}
+        method = 'lookup'
+        self.passthru.driver_validate(method, **kwargs)
+
+    def test_driver_validate_invalid_paremeter(self):
+        method = 'lookup'
+        kwargs = {'version': '1'}
+        self.assertRaises(exception.InvalidParameterValue,
+                          self.passthru.driver_validate,
+                          method, **kwargs)
+
+    def test_driver_validate_missing_parameter(self):
+        method = 'lookup'
+        kwargs = {}
+        self.assertRaises(exception.MissingParameterValue,
+                          self.passthru.driver_validate,
+                          method, **kwargs)
+
     @mock.patch('ironic.common.image_service.Service')
     def test_continue_deploy(self, image_service_mock):
         test_temp_url = 'http://image'

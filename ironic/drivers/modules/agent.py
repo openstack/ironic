@@ -328,6 +328,21 @@ class AgentVendorInterface(base.VendorInterface):
         """
         pass
 
+    def driver_validate(self, method, **kwargs):
+        """Validate the driver deployment info.
+
+        :param method: method to be validated.
+        """
+        version = kwargs.get('version')
+
+        if not version:
+            raise exception.MissingParameterValue(_('Missing parameter '
+                                                    'version'))
+        if version not in self.supported_payload_versions:
+            raise exception.InvalidParameterValue(_('Unknown lookup '
+                                                    'payload version: %s')
+                                                    % version)
+
     @base.passthru(['POST'])
     def heartbeat(self, task, **kwargs):
         """Method for agent to periodically check in.
@@ -476,11 +491,6 @@ class AgentVendorInterface(base.VendorInterface):
         :raises: NotFound if no matching node is found.
         :raises: InvalidParameterValue with unknown payload version
         """
-        version = kwargs.get('version')
-
-        if version not in self.supported_payload_versions:
-            raise exception.InvalidParameterValue(_('Unknown lookup payload '
-                                                    'version: %s') % version)
         inventory = kwargs.get('inventory')
         interfaces = self._get_interfaces(inventory)
         mac_addresses = self._get_mac_addresses(interfaces)
