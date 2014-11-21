@@ -118,6 +118,7 @@ class PXEAndSeaMicroDriver(base.BaseDriver):
                         'attach_volume': self.seamicro_vendor,
                         'set_node_vlan_id': self.seamicro_vendor}
         self.vendor = utils.MixinVendorInterface(self.mapping)
+        self.console = seamicro.ShellinaboxConsole()
 
 
 class PXEAndIBootDriver(base.BaseDriver):

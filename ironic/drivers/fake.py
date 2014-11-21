@@ -109,6 +109,7 @@ class FakeSeaMicroDriver(base.BaseDriver):
         self.deploy = fake.FakeDeploy()
         self.management = seamicro.Management()
         self.vendor = seamicro.VendorPassthru()
+        self.console = seamicro.ShellinaboxConsole()
 
 
 class FakeAgentDriver(base.BaseDriver):

@@ -18,9 +18,12 @@ python-seamicroclient.
 
 Provides vendor passthru methods for SeaMicro specific functionality.
 """
+import os
+import re
 
 from oslo.config import cfg
 from oslo.utils import importutils
+from six.moves.urllib import parse as urlparse
 
 from ironic.common import boot_devices
 from ironic.common import exception
@@ -30,6 +33,7 @@ from ironic.common.i18n import _LW
 from ironic.common import states
 from ironic.conductor import task_manager
 from ironic.drivers import base
+from ironic.drivers.modules import console_utils
 from ironic.openstack.common import log as logging
 from ironic.openstack.common import loopingcall
 
@@ -72,6 +76,11 @@ OPTIONAL_PROPERTIES = {
 }
 COMMON_PROPERTIES = REQUIRED_PROPERTIES.copy()
 COMMON_PROPERTIES.update(OPTIONAL_PROPERTIES)
+CONSOLE_PROPERTIES = {
+    'seamicro_terminal_port': _("node's UDP port to connect to. "
+                                "Only required for console access.")
+}
+PORT_BASE = 2000
 
 
 def _get_client(*args, **kwargs):
@@ -99,6 +108,7 @@ def _parse_driver_info(node):
     :param node: An Ironic node object.
     :returns: SeaMicro driver info.
     :raises: MissingParameterValue if any required parameters are missing.
+    :raises: InvalidParameterValue if required parameter are invalid.
     """
 
     info = node.driver_info or {}
@@ -113,13 +123,35 @@ def _parse_driver_info(node):
     password = info.get('seamicro_password')
     server_id = info.get('seamicro_server_id')
     api_version = info.get('seamicro_api_version', "2")
+    port = info.get('seamicro_terminal_port')
+
+    if port:
+        try:
+            port = int(port)
+        except ValueError:
+            raise exception.InvalidParameterValue(_(
+                "SeaMicro terminal port is not an integer."))
+
+    r = re.compile(r"(^[0-9]+)/([0-9]+$)")
+    if not r.match(server_id):
+        raise exception.InvalidParameterValue(_(
+            "Invalid 'seamicro_server_id' parameter in node's "
+            "driver_info. Expected format of 'seamicro_server_id' "
+            "is <int>/<int>"))
+
+    url = urlparse.urlparse(api_endpoint)
+    if (not (url.scheme == "http") or not url.netloc):
+        raise exception.InvalidParameterValue(_(
+            "Invalid 'seamicro_api_endpoint' parameter in node's "
+            "driver_info."))
 
     res = {'username': username,
            'password': password,
            'api_endpoint': api_endpoint,
            'server_id': server_id,
            'api_version': api_version,
-           'uuid': node.uuid}
+           'uuid': node.uuid,
+           'port': port}
 
     return res
 
@@ -327,6 +359,12 @@ def _create_volume(driver_info, volume_size):
                              key=lambda x: x.freeSize)[0]
     return _get_client(**driver_info).volumes.create(volume_size,
                                                      least_used_pool)
+
+
+def get_telnet_port(driver_info):
+    """Get SeaMicro telnet port to listen."""
+    server_id = int(driver_info['server_id'].split("/")[0])
+    return PORT_BASE + (10 * server_id)
 
 
 class Power(base.PowerInterface):
@@ -572,3 +610,77 @@ class Management(base.ManagementInterface):
 
         """
         raise NotImplementedError()
+
+
+class ShellinaboxConsole(base.ConsoleInterface):
+    """A ConsoleInterface that uses telnet and shellinabox."""
+
+    def get_properties(self):
+        d = COMMON_PROPERTIES.copy()
+        d.update(CONSOLE_PROPERTIES)
+        return d
+
+    def validate(self, task):
+        """Validate the Node console info.
+
+        :param task: a task from TaskManager.
+        :raises: MissingParameterValue if required seamicro parameters are
+                 missing
+        :raises: InvalidParameterValue if required parameter are invalid.
+        """
+        driver_info = _parse_driver_info(task.node)
+        if not driver_info['port']:
+            raise exception.MissingParameterValue(_(
+                "Missing 'seamicro_terminal_port' parameter in node's "
+                "driver_info"))
+
+    def start_console(self, task):
+        """Start a remote console for the node.
+
+        :param task: a task from TaskManager
+        :raises: MissingParameterValue if required seamicro parameters are
+                 missing
+        :raises: ConsoleError if the directory for the PID file cannot be
+                 created
+        :raises: ConsoleSubprocessFailed when invoking the subprocess failed
+        :raises: InvalidParameterValue if required parameter are invalid.
+        """
+
+        driver_info = _parse_driver_info(task.node)
+        telnet_port = get_telnet_port(driver_info)
+        chassis_ip = urlparse.urlparse(driver_info['api_endpoint']).netloc
+
+        seamicro_cmd = ("/:%(uid)s:%(gid)s:HOME:telnet %(chassis)s %(port)s"
+                       % {'uid': os.getuid(),
+                          'gid': os.getgid(),
+                          'chassis': chassis_ip,
+                          'port': telnet_port})
+
+        console_utils.start_shellinabox_console(driver_info['uuid'],
+                                                driver_info['port'],
+                                                seamicro_cmd)
+
+    def stop_console(self, task):
+        """Stop the remote console session for the node.
+
+        :param task: a task from TaskManager
+        :raises: MissingParameterValue if required seamicro parameters are
+                 missing
+        :raises: ConsoleError if unable to stop the console
+        :raises: InvalidParameterValue if required parameter are invalid.
+        """
+
+        driver_info = _parse_driver_info(task.node)
+        console_utils.stop_shellinabox_console(driver_info['uuid'])
+
+    def get_console(self, task):
+        """Get the type and connection information about the console.
+
+        :raises: MissingParameterValue if required seamicro parameters are
+                 missing
+        :raises: InvalidParameterValue if required parameter are invalid.
+        """
+
+        driver_info = _parse_driver_info(task.node)
+        url = console_utils.get_shellinabox_console_url(driver_info['port'])
+        return {'type': 'shellinabox', 'url': url}

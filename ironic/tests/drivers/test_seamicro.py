@@ -24,6 +24,7 @@ from ironic.common import exception
 from ironic.common import states
 from ironic.common import utils
 from ironic.conductor import task_manager
+from ironic.drivers.modules import console_utils
 from ironic.drivers.modules import seamicro
 from ironic.tests.conductor import utils as mgr_utils
 from ironic.tests.db import base as db_base
@@ -291,7 +292,14 @@ class SeaMicroPowerDriverTestCase(db_base.DbTestCase):
         expected = seamicro.COMMON_PROPERTIES
         with task_manager.acquire(self.context, self.node['uuid'],
                                   shared=True) as task:
-            self.assertEqual(expected, task.driver.get_properties())
+            self.assertEqual(expected, task.driver.power.get_properties())
+
+            expected = (list(seamicro.COMMON_PROPERTIES) +
+                        list(seamicro.CONSOLE_PROPERTIES))
+            console_properties = task.driver.console.get_properties().keys()
+            self.assertEqual(sorted(expected), sorted(console_properties))
+            self.assertEqual(sorted(expected),
+                             sorted(task.driver.get_properties().keys()))
 
     def test_vendor_routes(self):
         expected = ['set_node_vlan_id', 'attach_volume']
@@ -601,3 +609,87 @@ class SeaMicroPowerDriverTestCase(db_base.DbTestCase):
         with task_manager.acquire(self.context, node.uuid) as task:
             self.assertRaises(exception.MissingParameterValue,
                               task.driver.management.validate, task)
+
+
+class SeaMicroDriverTestCase(db_base.DbTestCase):
+
+    def setUp(self):
+        super(SeaMicroDriverTestCase, self).setUp()
+        mgr_utils.mock_the_extension_manager(driver='fake_seamicro')
+        self.driver = driver_factory.get_driver('fake_seamicro')
+        self.node = obj_utils.create_test_node(self.context,
+                                               driver='fake_seamicro',
+                                               driver_info=INFO_DICT)
+        self.get_server_patcher = mock.patch.object(seamicro, '_get_server')
+
+        self.get_server_mock = None
+        self.Server = Fake_Server
+        self.Volume = Fake_Volume
+        self.info = seamicro._parse_driver_info(self.node)
+
+    @mock.patch.object(console_utils, 'start_shellinabox_console')
+    def test_start_console(self, mock_exec):
+        mock_exec.return_value = None
+        with task_manager.acquire(self.context,
+                                  self.node.uuid) as task:
+            self.driver.console.start_console(task)
+
+        mock_exec.assert_called_once_with(self.info['uuid'],
+                                          self.info['port'],
+                                          mock.ANY)
+
+    @mock.patch.object(console_utils, 'start_shellinabox_console')
+    def test_start_console_fail(self, mock_exec):
+        mock_exec.side_effect = exception.ConsoleSubprocessFailed(
+                error='error')
+
+        with task_manager.acquire(self.context,
+                                  self.node.uuid) as task:
+            self.assertRaises(exception.ConsoleSubprocessFailed,
+                              self.driver.console.start_console,
+                              task)
+
+    @mock.patch.object(console_utils, 'stop_shellinabox_console')
+    def test_stop_console(self, mock_exec):
+        mock_exec.return_value = None
+        with task_manager.acquire(self.context,
+                                  self.node.uuid) as task:
+            self.driver.console.stop_console(task)
+
+        mock_exec.assert_called_once_with(self.info['uuid'])
+
+    @mock.patch.object(console_utils, 'stop_shellinabox_console')
+    def test_stop_console_fail(self, mock_stop):
+        mock_stop.side_effect = exception.ConsoleError()
+
+        with task_manager.acquire(self.context,
+                                  self.node.uuid) as task:
+            self.assertRaises(exception.ConsoleError,
+                              self.driver.console.stop_console,
+                              task)
+
+        mock_stop.assert_called_once_with(self.node.uuid)
+
+    @mock.patch.object(console_utils, 'start_shellinabox_console')
+    def test_start_console_fail_nodir(self, mock_exec):
+        mock_exec.side_effect = exception.ConsoleError()
+
+        with task_manager.acquire(self.context,
+                                  self.node.uuid) as task:
+            self.assertRaises(exception.ConsoleError,
+                              self.driver.console.start_console,
+                              task)
+        mock_exec.assert_called_once_with(self.node.uuid, mock.ANY, mock.ANY)
+
+    @mock.patch.object(console_utils, 'get_shellinabox_console_url')
+    def test_get_console(self, mock_exec):
+        url = 'http://localhost:4201'
+        mock_exec.return_value = url
+        expected = {'type': 'shellinabox', 'url': url}
+
+        with task_manager.acquire(self.context,
+                                  self.node.uuid) as task:
+            console_info = self.driver.console.get_console(task)
+
+        self.assertEqual(expected, console_info)
+        mock_exec.assert_called_once_with(self.info['port'])

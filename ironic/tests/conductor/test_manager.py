@@ -2416,7 +2416,7 @@ class ManagerTestProperties(tests_db_base.DbTestCase):
     def test_driver_properties_fake_seamicro(self):
         expected = ['seamicro_api_endpoint', 'seamicro_password',
                     'seamicro_server_id', 'seamicro_username',
-                    'seamicro_api_version']
+                    'seamicro_api_version', 'seamicro_terminal_port']
         self._check_driver_properties("fake_seamicro", expected)
 
     def test_driver_properties_fake_snmp(self):
@@ -2451,7 +2451,7 @@ class ManagerTestProperties(tests_db_base.DbTestCase):
         expected = ['pxe_deploy_kernel', 'pxe_deploy_ramdisk',
                    'seamicro_api_endpoint', 'seamicro_password',
                    'seamicro_server_id', 'seamicro_username',
-                   'seamicro_api_version']
+                   'seamicro_api_version', 'seamicro_terminal_port']
         self._check_driver_properties("pxe_seamicro", expected)
 
     def test_driver_properties_pxe_snmp(self):
