@@ -76,3 +76,11 @@ iLO driver
   :maxdepth: 1
 
   ../drivers/ilo
+
+SeaMicro driver
+---------------
+
+.. toctree::
+  :maxdepth: 1
+
+  ../drivers/seamicro
