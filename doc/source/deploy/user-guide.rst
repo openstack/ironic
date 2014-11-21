@@ -21,9 +21,8 @@ OpenStack's Ironic project makes physical servers as easy to provision as
 virtual machines in cloud, which in turn will open up new avenues for
 enterprises and service providers.
 
-Ironic's driver will replace the Nova "bare metal" driver of Grizzly, Havana
-and Icehouse releases. It is targeting inclusion in the OpenStack Juno release.
-See https://wiki.openstack.org/wiki/Baremetal for more information.
+See https://wiki.openstack.org/wiki/Ironic for links to the project's current
+development status.
 
 Why Provision Bare Metal
 ========================
