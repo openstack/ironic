@@ -534,8 +534,9 @@ mapped to the bare metal server through the hardware specifications.
 #. A flavor can include a set of key/value pairs called extra_specs.
    In case of Icehouse version of Ironic, you need to associate the
    deploy ramdisk and deploy kernel images to the flavor as flavor-keys.
-   But in case of Juno and higher versions, this is deprecated. Instead
-   these images will be associated with the node's driver_info.
+   But in case of Juno and higher versions, this is deprecated. Because these
+   may vary between nodes in a heterogeneous environment, the deploy kernel
+   and ramdisk images should be associated with each node's driver_info.
 
    - **Icehouse** version of Ironic::
 
@@ -548,17 +549,12 @@ mapped to the bare metal server through the hardware specifications.
 
       nova flavor-key my-baremetal-flavor set cpu_arch=$ARCH
 
-     Associate the deploy ramdisk and deploy kernel images to the node's
-     driver_info (pxe_ipmitool driver used in the example below)::
+     Associate the deploy ramdisk and deploy kernel images each of your
+     node's driver_info::
 
-      ironic node-create -d pxe_ipmitool \
-      -i pxe_deploy_kernel=$DEPLOY_VMLINUZ_UUID \
-      -i pxe_deploy_ramdisk=$DEPLOY_INITRD_UUID \
-      -i ipmi_address=<IPaddress> \
-      -i ipmi_username=<username> \
-      -i ipmi_password=<password> \
-      -i pxe_root_gb=<root partition size> \
-      -p cpus=$CPU -p memory_mb=$RAM_MB -p local_gb=$DISK_GB -p cpu_arch=$ARCH
+      ironic node-update $NODE_UUID add \
+      driver_info/pxe_deploy_kernel=$DEPLOY_VMLINUZ_UUID \
+      driver_info/pxe_deploy_ramdisk=$DEPLOY_INITRD_UUID \
 
 Setup the drivers for Bare Metal Service
 ========================================
