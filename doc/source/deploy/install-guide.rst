@@ -329,10 +329,15 @@ Compute Service's controller nodes and compute nodes.*
 Configure Neutron to communicate with the Bare Metal Server
 ===========================================================
 
-Neutron needs to be configured so that the bare metal server can
-communicate with the OpenStack services for DHCP, PXE Boot and other
-requirements. This section describes how to configure Neutron for a
-single flat network use case for bare metal provisioning.
+Neutron needs to be configured so that the bare metal server can communicate
+with the OpenStack Networking service for DHCP, PXE Boot and other
+requirements. This section describes how to configure Neutron for a single flat
+network use case for bare metal provisioning.
+
+You will also need to provide Ironic with the MAC address(es) of each Node that
+it is provisioning; Ironic in turn will pass this information to Neutron for
+DHCP and PXE Boot configuration. An example of this is shown in the
+`Enrollment`_ section.
 
 #. Edit ``/etc/neutron/plugins/ml2/ml2_conf.ini`` and modify these::
 
@@ -614,7 +619,7 @@ steps on the Ironic conductor node to configure PXE UEFI environment.
 
 #. Copy the elilo boot loader image to ``/tftpboot`` directory::
 
-   sudo cp ./elilo-3.16-x86_64.efi /tftpboot/elilo.efi
+    sudo cp ./elilo-3.16-x86_64.efi /tftpboot/elilo.efi
 
 #. Update the Ironic node with ``boot_mode`` capability in node's properties
    field::
@@ -818,3 +823,215 @@ The boot modes can be configured in Ironic in the following way:
   either ``bios`` or ``uefi`` machine.
 
 
+Enrollment
+==========
+
+After all services have been properly configured, you should enroll your
+hardware with Ironic, and confirm that the Compute service sees the available
+hardware.
+
+.. note::
+   When enrolling Nodes with Ironic, note that the Compute service will not
+   be immediately notified of the new resources. Nova's resource tracker
+   syncs periodically, and so any changes made directly to Ironic's resources
+   will become visible in Nova only after the next run of that periodic task.
+   More information is in the `Troubleshooting`_ section below.
+
+.. note::
+   Any Ironic Node that is visible to Nova may have a workload scheduled to it,
+   if both the ``power`` and ``deploy`` interfaces pass the ``validate`` check.
+   If you wish to exclude a Node from Nova's scheduler, for instance so that
+   you can perform maintenance on it, you can set the Node to "maintenance" mode.
+   For more information see the `Troubleshooting`_ section below.
+
+Some steps are shown separately for illustration purposes, and may be combined
+if desired.
+
+#. Create a Node in Ironic. At minimum, you must specify the driver name (eg,
+   "pxe_ipmitool"). This will return the node UUID::
+
+    ironic node-create -d pxe_ipmitool
+    +--------------+--------------------------------------+
+    | Property     | Value                                |
+    +--------------+--------------------------------------+
+    | uuid         | dfc6189f-ad83-4261-9bda-b27258eb1987 |
+    | driver_info  | {}                                   |
+    | extra        | {}                                   |
+    | driver       | pxe_ipmitool                         |
+    | chassis_uuid |                                      |
+    | properties   | {}                                   |
+    +--------------+--------------------------------------+
+
+#. Update the Node ``driver_info`` so that Ironic can manage the node. Different
+   drivers may require different information about the node. You can determine this
+   with the ``driver-properties`` command, as follows::
+
+    ironic driver-properties pxe_ipmitool
+    +----------------------+-------------------------------------------------------------------------------------------------------------+
+    | Property             | Description                                                                                                 |
+    +----------------------+-------------------------------------------------------------------------------------------------------------+
+    | ipmi_address         | IP address or hostname of the node. Required.                                                               |
+    | ipmi_password        | password. Optional.                                                                                         |
+    | ipmi_username        | username; default is NULL user. Optional.                                                                   |
+    | ...                  | ...                                                                                                         |
+    | pxe_deploy_kernel    | UUID (from Glance) of the deployment kernel. Required.                                                      |
+    | pxe_deploy_ramdisk   | UUID (from Glance) of the ramdisk that is mounted at boot time. Required.                                   |
+    +----------------------+-------------------------------------------------------------------------------------------------------------+
+
+    ironic node-update $NODE_UUID add \
+    driver_info/ipmi_username=$USER \
+    driver_info/ipmi_password=$PASS \
+    driver_info/ipmi_address=$ADDRESS
+
+   Note that you may also specify all ``driver_info`` parameters during
+   ``node-create`` by passing the **-i** option multiple times.
+
+#. Update the Node's properties to match the baremetal flavor you created
+   earlier::
+
+    ironic node-update $NODE_UUID add \
+    properties/cpus=$CPU \
+    properties/memory_mb=$RAM_MB \
+    properties/local_gb=$DISK_GB \
+    properties/cpu_arch=$ARCH
+
+   As above, these can also be specified at node creation by passing the **-p**
+   option to ``node-create`` multiple times.
+
+#. If you wish to perform more advanced scheduling of instances based on
+   hardware capabilities, you may add metadata to each Node that will be
+   exposed to the Nova Scheduler (see: `ComputeCapabilitiesFilter`_).  A full
+   explanation of this is outside of the scope of this document. It can be done
+   through the special ``capabilities`` member of Node properties::
+
+    ironic node-update $NODE_UUID add \
+    properties/capabilities=key1:val1,key2:val2
+
+#. As mentioned in the `Flavor Creation`_ section, if using the Juno or later
+   release of Ironic, you should specify a deploy kernel and ramdisk which
+   correspond to the Node's driver, eg::
+
+    ironic node-update $NODE_UUID add \
+    driver_info/pxe_deploy_kernel=$DEPLOY_VMLINUZ_UUID \
+    driver_info/pxe_deploy_ramdisk=$DEPLOY_INITRD_UUID \
+
+#. You must also inform Ironic of the Network Interface Cards which are part of
+   the Node by creating a Port with each NIC's MAC address.  These MAC
+   addresses are passed to Neutron during instance provisioning and used to
+   configure the network appropriately::
+
+    ironic port-create -n $NODE_UUID -a $MAC_ADDRESS
+
+#. To check if Ironic has the minimum information necessary for a Node's driver
+   to function, you may ``validate`` it::
+
+    ironic node-validate $NODE_UUID
+
+    +------------+--------+--------+
+    | Interface  | Result | Reason |
+    +------------+--------+--------+
+    | console    | True   |        |
+    | deploy     | True   |        |
+    | management | True   |        |
+    | power      | True   |        |
+    +------------+--------+--------+
+
+  If the Node fails validation, each driver will return information as to why it failed::
+
+   ironic node-validate $NODE_UUID
+
+   +------------+--------+-------------------------------------------------------------------------------------------------------------------------------------+
+   | Interface  | Result | Reason                                                                                                                              |
+   +------------+--------+-------------------------------------------------------------------------------------------------------------------------------------+
+   | console    | None   | not supported                                                                                                                       |
+   | deploy     | False  | Cannot validate iSCSI deploy. Some parameters were missing in node's instance_info. Missing are: ['root_gb', 'image_source']        |
+   | management | False  | Missing the following IPMI credentials in node's driver_info: ['ipmi_address'].                                                     |
+   | power      | False  | Missing the following IPMI credentials in node's driver_info: ['ipmi_address'].                                                     |
+   +------------+--------+-------------------------------------------------------------------------------------------------------------------------------------+
+
+.. _ComputeCapabilitiesFilter: http://docs.openstack.org/developer/nova/devref/filter_scheduler.html?highlight=computecapabilitiesfilter
+
+
+Troubleshooting
+===============
+
+Once all the services are running and configured properly, and a Node is
+enrolled with Ironic, the Nova Compute service should detect the Node as an
+available resource and expose it to the scheduler.
+
+.. note::
+   There is a delay, and it may take up to a minute (one periodic task cycle)
+   for Nova to recognize any changes in Ironic's resources (both additions and
+   deletions).
+
+In addition to watching ``nova-compute`` log files, you can see the available
+resources by looking at the list of Nova hypervisors. The resources reported
+therein should match the Ironic Node properties, and the Nova Flavor.
+
+Here is an example set of commands to compare the resources in Nova and Ironic::
+
+    $ ironic node-list
+    +--------------------------------------+---------------+-------------+--------------------+-------------+
+    | UUID                                 | Instance UUID | Power State | Provisioning State | Maintenance |
+    +--------------------------------------+---------------+-------------+--------------------+-------------+
+    | 86a2b1bb-8b29-4964-a817-f90031debddb | None          | power off   | None               | False       |
+    +--------------------------------------+---------------+-------------+--------------------+-------------+
+
+    $ ironic node-show 86a2b1bb-8b29-4964-a817-f90031debddb
+    +------------------------+----------------------------------------------------------------------+
+    | Property               | Value                                                                |
+    +------------------------+----------------------------------------------------------------------+
+    | instance_uuid          | None                                                                 |
+    | properties             | {u'memory_mb': u'1024', u'cpu_arch': u'x86_64', u'local_gb': u'10',  |
+    |                        | u'cpus': u'1'}                                                       |
+    | maintenance            | False                                                                |
+    | driver_info            | { [SNIP] }                                                           |
+    | extra                  | {}                                                                   |
+    | last_error             | None                                                                 |
+    | created_at             | 2014-11-20T23:57:03+00:00                                            |
+    | target_provision_state | None                                                                 |
+    | driver                 | pxe_ipmitool                                                         |
+    | updated_at             | 2014-11-21T00:47:34+00:00                                            |
+    | instance_info          | {}                                                                   |
+    | chassis_uuid           | 7b49bbc5-2eb7-4269-b6ea-3f1a51448a59                                 |
+    | provision_state        | None                                                                 |
+    | reservation            | None                                                                 |
+    | power_state            | power off                                                            |
+    | console_enabled        | False                                                                |
+    | uuid                   | 86a2b1bb-8b29-4964-a817-f90031debddb                                 |
+    +------------------------+----------------------------------------------------------------------+
+
+    $ nova hypervisor-show 1
+    +-------------------------+--------------------------------------+
+    | Property                | Value                                |
+    +-------------------------+--------------------------------------+
+    | cpu_info                | baremetal cpu                        |
+    | current_workload        | 0                                    |
+    | disk_available_least    | -                                    |
+    | free_disk_gb            | 10                                   |
+    | free_ram_mb             | 1024                                 |
+    | host_ip                 | [ SNIP ]                             |
+    | hypervisor_hostname     | 86a2b1bb-8b29-4964-a817-f90031debddb |
+    | hypervisor_type         | ironic                               |
+    | hypervisor_version      | 1                                    |
+    | id                      | 1                                    |
+    | local_gb                | 10                                   |
+    | local_gb_used           | 0                                    |
+    | memory_mb               | 1024                                 |
+    | memory_mb_used          | 0                                    |
+    | running_vms             | 0                                    |
+    | service_disabled_reason | -                                    |
+    | service_host            | my-test-host                         |
+    | service_id              | 6                                    |
+    | state                   | up                                   |
+    | status                  | enabled                              |
+    | vcpus                   | 1                                    |
+    | vcpus_used              | 0                                    |
+    +-------------------------+--------------------------------------+
+
+If you need to take a Node out of the resource pool and prevent Nova from
+placing a tenant instance upon it, you can mark the Node as in “maintenance”
+mode with the following command. This also prevents Ironic from executing
+periodic tasks which might affect the node, until maintenance mode is disabled::
+
+  $ ironic node-set-maintenance $NODE_UUID on
