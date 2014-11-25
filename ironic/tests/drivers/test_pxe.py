@@ -366,7 +366,7 @@ class PXEDriverTestCase(db_base.DbTestCase):
                 driver_info=DRV_INFO_DICT)
         with task_manager.acquire(self.context, new_node.uuid,
                                   shared=True) as task:
-            self.assertRaises(exception.InvalidParameterValue,
+            self.assertRaises(exception.MissingParameterValue,
                               task.driver.deploy.validate, task)
 
     @mock.patch.object(base_image_service.BaseImageService, '_show')
