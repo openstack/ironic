@@ -107,8 +107,8 @@ class Port(base.APIBase):
         self.fields.append('node_id')
         setattr(self, 'node_uuid', kwargs.get('node_id', wtypes.Unset))
 
-    @classmethod
-    def _convert_with_links(cls, port, url, expand=True):
+    @staticmethod
+    def _convert_with_links(port, url, expand=True):
         if not expand:
             port.unset_fields_except(['uuid', 'address'])
 
@@ -150,9 +150,8 @@ class PortCollection(collection.Collection):
     def __init__(self, **kwargs):
         self._type = 'ports'
 
-    @classmethod
-    def convert_with_links(cls, rpc_ports, limit, url=None,
-                           expand=False, **kwargs):
+    @staticmethod
+    def convert_with_links(rpc_ports, limit, url=None, expand=False, **kwargs):
         collection = PortCollection()
         collection.ports = [Port.convert_with_links(p, expand)
                             for p in rpc_ports]

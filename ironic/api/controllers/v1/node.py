@@ -226,8 +226,8 @@ class NodeStates(base.APIBase):
 
     last_error = wtypes.text
 
-    @classmethod
-    def convert(cls, rpc_node):
+    @staticmethod
+    def convert(rpc_node):
         attr_list = ['console_enabled', 'last_error', 'power_state',
                      'provision_state', 'target_power_state',
                      'target_provision_state', 'provision_updated_at']
@@ -476,8 +476,8 @@ class Node(base.APIBase):
         self.fields.append('chassis_id')
         setattr(self, 'chassis_uuid', kwargs.get('chassis_id', wtypes.Unset))
 
-    @classmethod
-    def _convert_with_links(cls, node, url, expand=True):
+    @staticmethod
+    def _convert_with_links(node, url, expand=True):
         if not expand:
             except_list = ['instance_uuid', 'maintenance', 'power_state',
                            'provision_state', 'uuid']
@@ -538,9 +538,8 @@ class NodeCollection(collection.Collection):
     def __init__(self, **kwargs):
         self._type = 'nodes'
 
-    @classmethod
-    def convert_with_links(cls, nodes, limit, url=None,
-                           expand=False, **kwargs):
+    @staticmethod
+    def convert_with_links(nodes, limit, url=None, expand=False, **kwargs):
         collection = NodeCollection()
         collection.nodes = [Node.convert_with_links(n, expand) for n in nodes]
         collection.next = collection.get_next(limit, url=url, **kwargs)

@@ -58,8 +58,8 @@ class Driver(base.APIBase):
     links = wsme.wsattr([link.Link], readonly=True)
     """A list containing self and bookmark links"""
 
-    @classmethod
-    def convert_with_links(cls, name, hosts):
+    @staticmethod
+    def convert_with_links(name, hosts):
         driver = Driver()
         driver.name = name
         driver.hosts = hosts
@@ -87,8 +87,8 @@ class DriverList(base.APIBase):
     drivers = [Driver]
     """A list containing drivers objects"""
 
-    @classmethod
-    def convert_with_links(cls, drivers):
+    @staticmethod
+    def convert_with_links(drivers):
         collection = DriverList()
         collection.drivers = [
             Driver.convert_with_links(dname, list(drivers[dname]))

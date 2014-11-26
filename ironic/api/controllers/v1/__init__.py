@@ -70,8 +70,8 @@ class V1(base.APIBase):
     drivers = [link.Link]
     """Links to the drivers resource"""
 
-    @classmethod
-    def convert(self):
+    @staticmethod
+    def convert():
         v1 = V1()
         v1.id = "v1"
         v1.links = [link.Link.make_link('self', pecan.request.host_url,

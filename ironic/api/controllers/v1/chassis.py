@@ -68,8 +68,8 @@ class Chassis(base.APIBase):
             self.fields.append(field)
             setattr(self, field, kwargs.get(field, wtypes.Unset))
 
-    @classmethod
-    def _convert_with_links(cls, chassis, url, expand=True):
+    @staticmethod
+    def _convert_with_links(chassis, url, expand=True):
         if not expand:
             chassis.unset_fields_except(['uuid', 'description'])
         else:
@@ -118,9 +118,8 @@ class ChassisCollection(collection.Collection):
     def __init__(self, **kwargs):
         self._type = 'chassis'
 
-    @classmethod
-    def convert_with_links(cls, chassis, limit, url=None,
-                           expand=False, **kwargs):
+    @staticmethod
+    def convert_with_links(chassis, limit, url=None, expand=False, **kwargs):
         collection = ChassisCollection()
         collection.chassis = [Chassis.convert_with_links(ch, expand)
                               for ch in chassis]

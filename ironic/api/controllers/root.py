@@ -35,8 +35,8 @@ class Version(base.APIBase):
     links = [link.Link]
     """A Link that point to a specific version of the API"""
 
-    @classmethod
-    def convert(self, id):
+    @staticmethod
+    def convert(id):
         version = Version()
         version.id = id
         version.links = [link.Link.make_link('self', pecan.request.host_url,
@@ -58,8 +58,8 @@ class Root(base.APIBase):
     default_version = Version
     """A link to the default version of the API"""
 
-    @classmethod
-    def convert(self):
+    @staticmethod
+    def convert():
         root = Root()
         root.name = "OpenStack Ironic API"
         root.description = ("Ironic is an OpenStack project which aims to "
