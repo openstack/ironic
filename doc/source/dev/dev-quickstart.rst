@@ -312,11 +312,24 @@ or the agent driver, not both.::
 If running with the agent driver::
 
     cat >>localrc <<END
-    enable_service s-proxy s-object s-container s-account
+    # Agent driver requires swift with tempurls
+    # Enable swift services
+    enable_service s-proxy
+    enable_service s-object
+    enable_service s-container
+    enable_service s-account
+
+    # Enable tempurls and set credentials
+    SWIFT_HASH=password
+    SWIFT_TEMPURL_KEY=password
     SWIFT_ENABLE_TEMPURLS=True
+
+    # Enable agent driver
     IRONIC_ENABLED_DRIVERS=fake,agent_ssh,agent_ipmitool
-    IRONIC_BUILD_DEPLOY_RAMDISK=False
     IRONIC_DEPLOY_DRIVER=agent_ssh
+
+    # To build your own IPA ramdisk from source, set this to True
+    IRONIC_BUILD_DEPLOY_RAMDISK=False
 
     END
 
