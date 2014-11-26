@@ -19,11 +19,13 @@ iLO Power Driver
 from oslo.config import cfg
 from oslo.utils import importutils
 
+from ironic.common import boot_devices
 from ironic.common import exception
 from ironic.common.i18n import _
 from ironic.common.i18n import _LE
 from ironic.common import states
 from ironic.conductor import task_manager
+from ironic.conductor import utils as manager_utils
 from ironic.drivers import base
 from ironic.drivers.modules.ilo import common as ilo_common
 from ironic.openstack.common import log as logging
@@ -61,7 +63,7 @@ def _attach_boot_iso(task):
 
     if 'ilo_boot_iso' in i_info:
         ilo_common.setup_vmedia_for_boot(task, i_info['ilo_boot_iso'])
-        ilo_common.set_boot_device(task.node, 'CDROM')
+        manager_utils.node_set_boot_device(task, boot_devices.CDROM)
 
 
 def _get_power_state(node):
