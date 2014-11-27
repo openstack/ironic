@@ -162,8 +162,12 @@ conductor_opts = [
                    default='ironic_configdrive_container',
                    help='Name of the Swift container to store config drive '
                         'data. Used when configdrive_use_swift is True.'),
-]
+        cfg.IntOpt('inspect_timeout',
+                   default=1800,
+                   help='Timeout (seconds) for waiting for node inspection. '
+                        '0 - unlimited. (integer value)'),
 
+]
 CONF = cfg.CONF
 CONF.register_opts(conductor_opts, 'conductor')
 
@@ -172,7 +176,7 @@ class ConductorManager(periodic_task.PeriodicTasks):
     """Ironic Conductor manager main class."""
 
     # NOTE(rloo): This must be in sync with rpcapi.ConductorAPI's.
-    RPC_API_VERSION = '1.23'
+    RPC_API_VERSION = '1.24'
 
     target = messaging.Target(version=RPC_API_VERSION)
 
@@ -916,40 +920,11 @@ class ConductorManager(periodic_task.PeriodicTasks):
                    'provision_state': states.DEPLOYWAIT,
                    'maintenance': False,
                    'provisioned_before': callback_timeout}
-        columns = ['uuid', 'driver']
-        node_list = self.dbapi.get_nodeinfo_list(
-                                    columns=columns,
-                                    filters=filters,
-                                    sort_key='provision_updated_at',
-                                    sort_dir='asc')
-
-        workers_count = 0
-        for node_uuid, driver in node_list:
-            if not self._mapped_to_this_conductor(node_uuid, driver):
-                continue
-            try:
-                with task_manager.acquire(context, node_uuid) as task:
-                    # NOTE(comstud): Recheck maintenance and provision_state
-                    # now that we have the lock. We don't need to re-check
-                    # updated_at unless we expect the state to have flipped
-                    # to something else and then back to DEPLOYWAIT between
-                    # the call to get_nodeinfo_list and now.
-                    if (task.node.maintenance or
-                            task.node.provision_state != states.DEPLOYWAIT):
-                        continue
-                    # timeout has been reached - fail the deploy
-                    task.process_event('fail',
-                                       callback=self._spawn_worker,
-                                       call_args=(utils.cleanup_after_timeout,
-                                                  task),
-                                       err_handler=provisioning_error_handler)
-            except exception.NoFreeConductorWorker:
-                break
-            except (exception.NodeLocked, exception.NodeNotFound):
-                continue
-            workers_count += 1
-            if workers_count == CONF.conductor.periodic_max_workers:
-                break
+        sort_key = 'provision_updated_at'
+        callback_method = utils.cleanup_after_timeout
+        err_handler = provisioning_error_handler
+        self._fail_if_timeout_reached(context, filters, states.DEPLOYWAIT,
+                              sort_key, callback_method, err_handler)
 
     def _do_takeover(self, task):
         LOG.debug(('Conductor %(cdr)s taking over node %(node)s'),
@@ -1420,6 +1395,135 @@ class ConductorManager(periodic_task.PeriodicTasks):
                             driver=task.node.driver, extension='management')
             return task.driver.management.get_supported_boot_devices()
 
+    @messaging.expected_exceptions(exception.NoFreeConductorWorker,
+                                   exception.NodeLocked,
+                                   exception.HardwareInspectionFailure,
+                                   exception.UnsupportedDriverExtension)
+    def inspect_hardware(self, context, node_id):
+        """Inspect hardware to obtain hardware properties.
+
+        Initiate the inspection of a node. Validations are done
+        synchronously and the actual inspection work is performed in
+        background (asynchronously).
+
+        :param context: request context.
+        :param node_id: node id or uuid.
+        :raises: NodeLocked if node is locked by another conductor.
+        :raises: UnsupportedDriverExtension if the node's driver doesn't
+                 support inspect.
+        :raises: NoFreeConductorWorker when there is no free worker to start
+                 async task
+        :raises: HardwareInspectionFailure when unable to get
+                 essential scheduling properties from hardware.
+
+        """
+        LOG.debug('RPC inspect_hardware called for node %s', node_id)
+        with task_manager.acquire(context, node_id, shared=False) as task:
+            node = task.node
+            if not getattr(task.driver, 'inspect', None):
+                raise exception.UnsupportedDriverExtension(
+                      driver=task.node.driver, extension='inspect')
+
+            try:
+                task.driver.power.validate(task)
+                task.driver.inspect.validate(task)
+            except (exception.InvalidParameterValue,
+                    exception.MissingParameterValue) as e:
+                error = (_("RPC inspect_hardware failed to validate "
+                           "inspection or power info. Error: %(msg)s")
+                           % {'msg': e})
+                raise exception.HardwareInspectionFailure(error=error)
+
+            try:
+                task.process_event('inspect',
+                                   callback=self._spawn_worker,
+                                   call_args=(_do_inspect_hardware, task,
+                                              self.conductor.id),
+                                   err_handler=provisioning_error_handler)
+
+            except exception.InvalidState:
+                error = (_("Inspection is not possible while node "
+                          "%(node)s is in state %(state)s")
+                          % {'node': node.uuid,
+                             'state': node.provision_state})
+                raise exception.HardwareInspectionFailure(error=error)
+
+    @periodic_task.periodic_task(
+        spacing=CONF.conductor.check_provision_state_interval)
+    def _check_inspect_timeouts(self, context):
+        """Periodically checks inspect_timeout and fails upon reaching it.
+
+        :param: context: request context
+
+        """
+        callback_timeout = CONF.conductor.inspect_timeout
+        if not callback_timeout:
+            return
+
+        filters = {'reserved': False,
+                   'provision_state': states.INSPECTING,
+                   'inspection_started_before': callback_timeout}
+        sort_key = 'inspection_started_at'
+        last_error = _("timeout reached while waiting for callback")
+        self._fail_if_timeout_reached(context, filters, states.INSPECTING,
+                                      sort_key, last_error=last_error)
+
+    def _fail_if_timeout_reached(self, context, filters, provision_state,
+                                 sort_key, callback_method=None,
+                                 err_handler=None, last_error=None):
+        """Checks if the async(background) process has reached timeout.
+
+        :param: context: request context
+        :param: filters: criteria (as a dictionary) to get the desired
+                         list of nodes.
+        :param: provision_state: provision_state that the node is in,
+                                 for the provisioning activity to have failed.
+        :param: sort_key: the nodes are sorted based on this key.
+        :param: callback_method: the callback method to be invoked in a
+                                 spawned thread, for a failed node. This
+                                 method must take a :class:`TaskManager` as
+                                 the first (and only required) parameter.
+        :param: err_handler: the error handler to be invoked if an error.
+                             occurs trying to spawn a thread for a failed node.
+        :param: last_error: the error message to be updated in node.last_error
+
+        """
+        columns = ['uuid', 'driver']
+        node_list = self.dbapi.get_nodeinfo_list(columns=columns,
+                                                 filters=filters,
+                                                 sort_key=sort_key,
+                                                 sort_dir='asc')
+
+        workers_count = 0
+        for node_uuid, driver in node_list:
+            if not self._mapped_to_this_conductor(node_uuid, driver):
+                continue
+            try:
+                with task_manager.acquire(context, node_uuid) as task:
+                    if (task.node.maintenance or
+                        task.node.provision_state != provision_state):
+                        continue
+
+                    # timeout has been reached - process the event 'fail'
+                    if callback_method:
+                        task.process_event('fail',
+                                           callback=self._spawn_worker,
+                                           call_args=(callback_method, task),
+                                           err_handler=err_handler)
+                    else:
+                        if not last_error:
+                            last_error = _("timeout reached while waiting "
+                                           "for callback")
+                        task.node.last_error = last_error
+                        task.process_event('fail')
+            except exception.NoFreeConductorWorker:
+                break
+            except (exception.NodeLocked, exception.NodeNotFound):
+                continue
+            workers_count += 1
+            if workers_count >= CONF.conductor.periodic_max_workers:
+                break
+
 
 def get_vendor_passthru_metadata(route_dict):
     d = {}
@@ -1691,3 +1795,37 @@ def do_sync_power_state(task, count):
         node.save()
 
     return count
+
+
+def _do_inspect_hardware(task, conductor_id):
+    """Prepare the environment and inspect a node."""
+    node = task.node
+
+    def handle_failure(e):
+        # NOTE(deva): there is no need to clear conductor_affinity
+        node.last_error = e
+        task.process_event('fail')
+        LOG.error(_LE("Failed to inspect node %(node)s: %(err)s"),
+                  {'node': node.uuid, 'err': e})
+
+    try:
+        new_state = task.driver.inspect.inspect_hardware(task)
+
+    except Exception as e:
+        with excutils.save_and_reraise_exception():
+            error = str(e)
+            handle_failure(error)
+
+    # Update conductor_affinity to reference this conductor's ID
+    # since there may be local persistent state
+    node.conductor_affinity = conductor_id
+
+    if new_state == states.MANAGEABLE:
+        task.process_event('done')
+        LOG.info(_LI('Successfully inspected node %(node)s')
+                 % {'node': node.uuid})
+    elif new_state != states.INSPECTING:
+        error = (_("Driver returned unexpected state in inspection"
+                   "%(state)s") % {'state': new_state})
+        handle_failure(error)
+        raise exception.HardwareInspectionFailure(error=error)

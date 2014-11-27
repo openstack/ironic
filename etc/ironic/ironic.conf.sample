@@ -15,7 +15,7 @@
 #rpc_conn_pool_size=30
 
 # Qpid broker hostname. (string value)
-#qpid_hostname=localhost
+#qpid_hostname=ironic
 
 # Qpid broker port. (integer value)
 #qpid_port=5672
@@ -76,7 +76,7 @@
 
 # The RabbitMQ broker address where a single node is used.
 # (string value)
-#rabbit_host=localhost
+#rabbit_host=ironic
 
 # The RabbitMQ broker port where a single node is used.
 # (integer value)
@@ -604,6 +604,10 @@
 # when configdrive_use_swift is True. (string value)
 #configdrive_swift_container=ironic_configdrive_container
 
+# Timeout (seconds) for waiting for node inspection. 0 -
+# unlimited. (integer value) (integer value)
+#inspect_timeout=1800
+
 
 [console]
 
@@ -957,7 +961,7 @@
 # Timeout (in seconds) for iRMC operations (integer value)
 #client_timeout=60
 
-# Sensor Data retrieval method either "ipmitool" or "scci"
+# Sensor data retrieval method, either "ipmitool" or "scci"
 # (string value)
 #sensor_method=ipmitool
 

@@ -199,6 +199,8 @@ class TestListNodes(test_api_base.FunctionalTest):
         self.assertIn('reservation', data)
         self.assertIn('maintenance_reason', data)
         self.assertIn('name', data)
+        self.assertIn('inspection_finished_at', data)
+        self.assertIn('inspection_started_at', data)
         # never expose the chassis_id
         self.assertNotIn('chassis_id', data)
 
@@ -219,6 +221,8 @@ class TestListNodes(test_api_base.FunctionalTest):
         self.assertIn('target_power_state', data['nodes'][0])
         self.assertIn('target_provision_state', data['nodes'][0])
         self.assertIn('provision_updated_at', data['nodes'][0])
+        self.assertIn('inspection_finished_at', data['nodes'][0])
+        self.assertIn('inspection_started_at', data['nodes'][0])
         # never expose the chassis_id
         self.assertNotIn('chassis_id', data['nodes'][0])
 
@@ -1504,6 +1508,9 @@ class TestPut(test_api_base.FunctionalTest):
         p = mock.patch.object(rpcapi.ConductorAPI, 'do_node_tear_down')
         self.mock_dntd = p.start()
         self.addCleanup(p.stop)
+        p = mock.patch.object(rpcapi.ConductorAPI, 'inspect_hardware')
+        self.mock_dnih = p.start()
+        self.addCleanup(p.stop)
 
     def test_power_state(self):
         response = self.put_json('/nodes/%s/states/power' % self.node.uuid,
@@ -1694,6 +1701,17 @@ class TestPut(test_api_base.FunctionalTest):
         mock_dpa.assert_called_once_with(mock.ANY, self.node.uuid,
                                          states.VERBS['provide'],
                                          'test-topic')
+
+    def test_inspect_already_in_progress(self):
+        node = self.node
+        node.provision_state = states.INSPECTING
+        node.target_provision_state = states.MANAGEABLE
+        node.reservation = 'fake-host'
+        node.save()
+        ret = self.put_json('/nodes/%s/states/provision' % node.uuid,
+                            {'target': states.MANAGEABLE},
+                            expect_errors=True)
+        self.assertEqual(409, ret.status_code)  # Conflict
 
     @mock.patch.object(rpcapi.ConductorAPI, 'do_provisioning_action')
     def test_manage_from_available(self, mock_dpa):

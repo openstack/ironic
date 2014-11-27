@@ -203,6 +203,8 @@ def get_test_node(**kw):
         'extra': kw.get('extra', {}),
         'updated_at': kw.get('updated_at'),
         'created_at': kw.get('created_at'),
+        'inspection_finished_at': kw.get('inspection_finished_at'),
+        'inspection_started_at': kw.get('inspection_started_at'),
     }
 
 

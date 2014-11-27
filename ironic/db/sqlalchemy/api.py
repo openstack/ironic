@@ -191,6 +191,11 @@ class Connection(api.Connection):
             limit = timeutils.utcnow() - datetime.timedelta(
                                          seconds=filters['provisioned_before'])
             query = query.filter(models.Node.provision_updated_at < limit)
+        if 'inspection_started_before' in filters:
+            limit = ((timeutils.utcnow()) -
+                      (datetime.timedelta(
+                       seconds=filters['inspection_started_before'])))
+            query = query.filter(models.Node.inspection_started_at < limit)
 
         return query
 
@@ -371,6 +376,17 @@ class Connection(api.Connection):
 
             if 'provision_state' in values:
                 values['provision_updated_at'] = timeutils.utcnow()
+                if values['provision_state'] == states.INSPECTING:
+                    values['inspection_started_at'] = timeutils.utcnow()
+                    values['inspection_finished_at'] = None
+
+            if (ref.provision_state == states.INSPECTING and
+                values.get('provision_state') == states.MANAGEABLE):
+                    values['inspection_finished_at'] = timeutils.utcnow()
+                    values['inspection_started_at'] = None
+            elif (ref.provision_state == states.INSPECTING and
+                    values.get('provision_state') == states.INSPECTFAIL):
+                    values['inspection_started_at'] = None
 
             ref.update(values)
         return ref

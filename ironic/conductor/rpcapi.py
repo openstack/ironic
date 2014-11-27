@@ -66,11 +66,12 @@ class ConductorAPI(object):
     |           get_driver_vendor_passthru_methods
     |    1.22 - Added configdrive parameter to do_node_deploy.
     |    1.23 - Added do_provisioning_action
+    |    1.24 - Added inspect_hardware method
 
     """
 
     # NOTE(rloo): This must be in sync with manager.ConductorManager's.
-    RPC_API_VERSION = '1.23'
+    RPC_API_VERSION = '1.24'
 
     def __init__(self, topic=None):
         super(ConductorAPI, self).__init__()
@@ -483,3 +484,20 @@ class ConductorAPI(object):
         cctxt = self.client.prepare(topic=topic or self.topic, version='1.17')
         return cctxt.call(context, 'get_supported_boot_devices',
                           node_id=node_id)
+
+    def inspect_hardware(self, context, node_id, topic=None):
+        """Signals the conductor service to perform hardware introspection.
+
+        :param context: request context.
+        :param node_id: node id or uuid.
+        :param topic: RPC topic. Defaults to self.topic.
+        :raises: NodeLocked if node is locked by another conductor.
+        :raises: HardwareInspectionFailure
+        :raises: NoFreeConductorWorker when there is no free worker to start
+                 async task.
+        :raises: UnsupportedDriverExtension if the node's driver doesn't
+                 support inspection.
+
+        """
+        cctxt = self.client.prepare(topic=topic or self.topic, version='1.24')
+        return cctxt.call(context, 'inspect_hardware', node_id=node_id)

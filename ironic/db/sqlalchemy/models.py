@@ -185,6 +185,8 @@ class Node(Base):
     maintenance = Column(Boolean, default=False)
     maintenance_reason = Column(Text, nullable=True)
     console_enabled = Column(Boolean, default=False)
+    inspection_finished_at = Column(DateTime, nullable=True)
+    inspection_started_at = Column(DateTime, nullable=True)
     extra = Column(JSONEncodedDict)
 
 
