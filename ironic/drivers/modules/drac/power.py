@@ -21,6 +21,7 @@ from oslo.utils import importutils
 from ironic.common import exception
 from ironic.common.i18n import _LE
 from ironic.common import states
+from ironic.conductor import task_manager
 from ironic.drivers import base
 from ironic.drivers.modules.drac import common as drac_common
 from ironic.drivers.modules.drac import resource_uris
@@ -136,6 +137,7 @@ class DracPower(base.PowerInterface):
         """
         return _get_power_state(task.node)
 
+    @task_manager.require_exclusive_lock
     def set_power_state(self, task, power_state):
         """Set the power state of the task's node.
 
@@ -146,6 +148,7 @@ class DracPower(base.PowerInterface):
         """
         return _set_power_state(task.node, power_state)
 
+    @task_manager.require_exclusive_lock
     def reboot(self, task):
         """Perform a hard reboot of the task's node.
 
