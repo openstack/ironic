@@ -298,8 +298,8 @@ class IPMINativeDriverTestCase(db_base.DbTestCase):
         with task_manager.acquire(self.context,
                                   self.node.uuid) as task:
             self.driver.management.set_boot_device(task, boot_devices.PXE)
-        # PXE is converted to 'net' internally by ipminative
-        ipmicmd.set_bootdev.assert_called_once_with('net', persist=False)
+        # PXE is converted to 'network' internally by ipminative
+        ipmicmd.set_bootdev.assert_called_once_with('network', persist=False)
 
     def test_set_boot_device_bad_device(self):
         with task_manager.acquire(self.context, self.node.uuid) as task:

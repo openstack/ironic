@@ -71,7 +71,7 @@ CONSOLE_PROPERTIES = {
 
 _BOOT_DEVICES_MAP = {
     boot_devices.DISK: 'hd',
-    boot_devices.PXE: 'net',
+    boot_devices.PXE: 'network',
     boot_devices.CDROM: 'cdrom',
     boot_devices.BIOS: 'setup',
 }
