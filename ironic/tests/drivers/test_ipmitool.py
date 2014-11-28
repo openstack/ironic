@@ -1061,7 +1061,7 @@ class IPMIToolDriverTestCase(db_base.DbTestCase):
 
     def test_vendor_passthru_validate__send_raw_bytes_fail(self):
         with task_manager.acquire(self.context, self.node['uuid']) as task:
-            self.assertRaises(exception.InvalidParameterValue,
+            self.assertRaises(exception.MissingParameterValue,
                               self.driver.vendor.validate,
                               task, method='send_raw')
 

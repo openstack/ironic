@@ -119,6 +119,7 @@ class GlanceImageService(base_image_service.BaseImageService,
 
         :raises: InvalidParameterValue if Swift config options are not set
             correctly.
+        :raises: MissingParameterValue if a required parameter is not set.
         :raises: ImageUnacceptable if the image info from Glance does not
             have a image ID.
         """
@@ -152,15 +153,15 @@ class GlanceImageService(base_image_service.BaseImageService,
     def _validate_temp_url_config(self):
         """Validate the required settings for a temporary URL."""
         if not CONF.glance.swift_temp_url_key:
-            raise exc.InvalidParameterValue(_(
+            raise exc.MissingParameterValue(_(
                 'Swift temporary URLs require a shared secret to be created. '
                 'You must provide "swift_temp_url_key" as a config option.'))
         if not CONF.glance.swift_endpoint_url:
-            raise exc.InvalidParameterValue(_(
+            raise exc.MissingParameterValue(_(
                 'Swift temporary URLs require a Swift endpoint URL. '
                 'You must provide "swift_endpoint_url" as a config option.'))
         if not CONF.glance.swift_account:
-            raise exc.InvalidParameterValue(_(
+            raise exc.MissingParameterValue(_(
                 'Swift temporary URLs require a Swift account string. '
                 'You must provide "swift_account" as a config option.'))
         if CONF.glance.swift_temp_url_duration < 0:

@@ -492,9 +492,11 @@ class SSHPower(base.PowerInterface):
         :param task: a TaskManager instance containing the node to act on.
         :raises: InvalidParameterValue if any connection parameters are
             incorrect or if ssh failed to connect to the node.
+        :raises: MissingParameterValue if no ports are enrolled for the given
+                 node.
         """
         if not driver_utils.get_node_mac_addresses(task):
-            raise exception.InvalidParameterValue(_("Node %s does not have "
+            raise exception.MissingParameterValue(_("Node %s does not have "
                               "any port associated with it.") % task.node.uuid)
         try:
             _get_connection(task.node)

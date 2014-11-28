@@ -694,17 +694,17 @@ class TestGlanceSwiftTempURL(base.TestCase):
 
     def test__validate_temp_url_key_exception(self):
         self.config(swift_temp_url_key=None, group='glance')
-        self.assertRaises(exception.InvalidParameterValue,
+        self.assertRaises(exception.MissingParameterValue,
                           self.service._validate_temp_url_config)
 
     def test__validate_temp_url_endpoint_config_exception(self):
         self.config(swift_endpoint_url=None, group='glance')
-        self.assertRaises(exception.InvalidParameterValue,
+        self.assertRaises(exception.MissingParameterValue,
                           self.service._validate_temp_url_config)
 
     def test__validate_temp_url_account_exception(self):
         self.config(swift_account=None, group='glance')
-        self.assertRaises(exception.InvalidParameterValue,
+        self.assertRaises(exception.MissingParameterValue,
                           self.service._validate_temp_url_config)
 
     def test__validate_temp_url_endpoint_negative_duration(self):

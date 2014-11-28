@@ -392,11 +392,14 @@ def validate(task):
     file or from keystone.
 
     :param task: a TaskManager instance containing the node to act on.
-    :raises: InvalidParameterValue if no ports are enrolled for the given node.
+    :raises: InvalidParameterValue if the URL of the Ironic API service is not
+             configured in config file and is not accessible via Keystone
+             catalog.
+    :raises: MissingParameterValue if no ports are enrolled for the given node.
     """
     node = task.node
     if not driver_utils.get_node_mac_addresses(task):
-        raise exception.InvalidParameterValue(_("Node %s does not have "
+        raise exception.MissingParameterValue(_("Node %s does not have "
                             "any port associated with it.") % node.uuid)
 
     try:
@@ -404,7 +407,7 @@ def validate(task):
         CONF.conductor.api_url or keystone.get_service_url()
     except (exception.KeystoneFailure,
             exception.CatalogNotFound,
-            exception.KeystoneUnauthorized):
+            exception.KeystoneUnauthorized) as e:
         raise exception.InvalidParameterValue(_(
             "Couldn't get the URL of the Ironic API service from the "
-            "configuration file or keystone catalog."))
+            "configuration file or keystone catalog. Keystone error: %s") % e)

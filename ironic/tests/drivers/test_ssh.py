@@ -602,7 +602,7 @@ class SSHDriverTestCase(db_base.DbTestCase):
                 driver_info=db_utils.get_test_ssh_info())
         with task_manager.acquire(self.context, new_node.uuid,
                                   shared=True) as task:
-            self.assertRaises(exception.InvalidParameterValue,
+            self.assertRaises(exception.MissingParameterValue,
                               task.driver.power.validate,
                               task)
 
