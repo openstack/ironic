@@ -527,17 +527,13 @@ class TestPost(api_base.FunctionalTest):
         self.assertTrue(utils.is_uuid_like(result['uuid']))
 
     def test_create_port_valid_extra(self):
-        pdict = post_get_test_port(extra={'foo': 123})
+        pdict = post_get_test_port(extra={'str': 'foo', 'int': 123,
+                                          'float': 0.1, 'bool': True,
+                                          'list': [1, 2], 'none': None,
+                                          'dict': {'cat': 'meow'}})
         self.post_json('/ports', pdict)
         result = self.get_json('/ports/%s' % pdict['uuid'])
         self.assertEqual(pdict['extra'], result['extra'])
-
-    def test_create_port_invalid_extra(self):
-        pdict = post_get_test_port(extra={'foo': 0.123})
-        response = self.post_json('/ports', pdict, expect_errors=True)
-        self.assertEqual(400, response.status_int)
-        self.assertEqual('application/json', response.content_type)
-        self.assertTrue(response.json['error_message'])
 
     def test_create_port_no_mandatory_field_address(self):
         pdict = post_get_test_port()

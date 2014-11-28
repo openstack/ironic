@@ -350,17 +350,13 @@ class TestPost(api_base.FunctionalTest):
         self.assertEqual(403, response.status_int)
 
     def test_create_chassis_valid_extra(self):
-        cdict = apiutils.chassis_post_data(extra={'foo': 123})
+        cdict = apiutils.chassis_post_data(extra={'str': 'foo', 'int': 123,
+                                                  'float': 0.1, 'bool': True,
+                                                  'list': [1, 2], 'none': None,
+                                                  'dict': {'cat': 'meow'}})
         self.post_json('/chassis', cdict)
         result = self.get_json('/chassis/%s' % cdict['uuid'])
         self.assertEqual(cdict['extra'], result['extra'])
-
-    def test_create_chassis_invalid_extra(self):
-        cdict = apiutils.chassis_post_data(extra={'foo': 0.123})
-        response = self.post_json('/chassis', cdict, expect_errors=True)
-        self.assertEqual(400, response.status_int)
-        self.assertEqual('application/json', response.content_type)
-        self.assertTrue(response.json['error_message'])
 
     def test_create_chassis_unicode_description(self):
         descr = u'\u0430\u043c\u043e'

@@ -17,7 +17,6 @@ import datetime
 
 import pecan
 from pecan import rest
-import six
 import wsme
 from wsme import types as wtypes
 import wsmeext.pecan as wsme_pecan
@@ -50,7 +49,7 @@ class Chassis(base.APIBase):
     description = wtypes.text
     """The description of the chassis"""
 
-    extra = {wtypes.text: types.MultiType(wtypes.text, six.integer_types)}
+    extra = {wtypes.text: types.jsontype}
     """The metadata of the chassis"""
 
     links = wsme.wsattr([link.Link], readonly=True)

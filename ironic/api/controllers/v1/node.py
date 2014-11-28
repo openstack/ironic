@@ -18,7 +18,6 @@ import datetime
 from oslo.config import cfg
 import pecan
 from pecan import rest
-import six
 import wsme
 from wsme import types as wtypes
 import wsmeext.pecan as wsme_pecan
@@ -159,8 +158,7 @@ class ConsoleInfo(base.APIBase):
     console_enabled = types.boolean
     """The console state: if the console is enabled or not."""
 
-    console_info = {wtypes.text: types.MultiType(wtypes.text,
-                                                 six.integer_types)}
+    console_info = {wtypes.text: types.jsontype}
     """The console information. It typically includes the url to access the
     console and the type of the application that hosts the console."""
 
@@ -422,24 +420,21 @@ class Node(base.APIBase):
     """Indicates whether the console access is enabled or disabled on
     the node."""
 
-    instance_info = {wtypes.text: types.MultiType(wtypes.text,
-                                                  six.integer_types)}
+    instance_info = {wtypes.text: types.jsontype}
     """This node's instance info."""
 
     driver = wsme.wsattr(wtypes.text, mandatory=True)
     """The driver responsible for controlling the node"""
 
-    driver_info = {wtypes.text: types.MultiType(wtypes.text,
-                                                six.integer_types)}
+    driver_info = {wtypes.text: types.jsontype}
     """This node's driver configuration"""
 
-    extra = {wtypes.text: types.MultiType(wtypes.text, six.integer_types)}
+    extra = {wtypes.text: types.jsontype}
     """This node's meta data"""
 
     # NOTE: properties should use a class to enforce required properties
     #       current list: arch, cpus, disk, ram, image
-    properties = {wtypes.text: types.MultiType(wtypes.text,
-                                               six.integer_types)}
+    properties = {wtypes.text: types.jsontype}
     """The physical characteristics of this node"""
 
     chassis_uuid = wsme.wsproperty(types.uuid, _get_chassis_uuid,

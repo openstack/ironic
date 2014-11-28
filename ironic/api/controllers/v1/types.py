@@ -15,7 +15,10 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import json
+
 from oslo.utils import strutils
+import six
 import wsme
 from wsme import types as wtypes
 
@@ -96,9 +99,41 @@ class BooleanType(wtypes.UserType):
         return BooleanType.validate(value)
 
 
+class JsonType(wtypes.UserType):
+    """A simple JSON type."""
+
+    basetype = wtypes.text
+    name = 'json'
+    # FIXME(lucasagomes): When used with wsexpose decorator WSME will try
+    # to get the name of the type by accessing it's __name__ attribute.
+    # Remove this __name__ attribute once it's fixed in WSME.
+    # https://bugs.launchpad.net/wsme/+bug/1265590
+    __name__ = name
+
+    def __str__(self):
+        # These are the json serializable native types
+        return ' | '.join(map(str, (wtypes.text, six.integer_types, float,
+                                    BooleanType, list, dict, None)))
+
+    @staticmethod
+    def validate(value):
+        try:
+            json.dumps(value)
+        except TypeError:
+            raise exception.Invalid(_('%s is not JSON serializable') % value)
+        else:
+            return value
+
+    @staticmethod
+    def frombasetype(value):
+        return JsonType.validate(value)
+
+
 macaddress = MacAddressType()
 uuid = UuidType()
 boolean = BooleanType()
+# Can't call it 'json' because that's the name of the stdlib module
+jsontype = JsonType()
 
 
 class JsonPatchType(wtypes.Base):
@@ -108,7 +143,7 @@ class JsonPatchType(wtypes.Base):
                          mandatory=True)
     op = wtypes.wsattr(wtypes.Enum(str, 'add', 'replace', 'remove'),
                        mandatory=True)
-    value = wtypes.text
+    value = wsme.wsattr(jsontype, default=wtypes.Unset)
 
     @staticmethod
     def internal_attrs():
@@ -141,37 +176,11 @@ class JsonPatchType(wtypes.Base):
             raise wsme.exc.ClientSideError(msg % patch.path)
 
         if patch.op != 'remove':
-            if not patch.value:
+            if patch.value is wsme.Unset:
                 msg = _("'add' and 'replace' operations needs value")
                 raise wsme.exc.ClientSideError(msg)
 
         ret = {'path': patch.path, 'op': patch.op}
-        if patch.value:
+        if patch.value is not wsme.Unset:
             ret['value'] = patch.value
         return ret
-
-
-class MultiType(wtypes.UserType):
-    """A complex type that represents one or more types.
-
-    Used for validating that a value is an instance of one of the types.
-
-    :param types: Variable-length list of types.
-
-    """
-    def __init__(self, *types):
-        self.types = types
-
-    def __str__(self):
-        return ' | '.join(map(str, self.types))
-
-    def validate(self, value):
-        for t in self.types:
-            if t is wsme.types.text and isinstance(value, wsme.types.bytes):
-                value = value.decode()
-            if isinstance(value, t):
-                return value
-        else:
-            raise ValueError(
-                     _("Wrong type. Expected '%(type)s', got '%(value)s'")
-                     % {'type': self.types, 'value': type(value)})

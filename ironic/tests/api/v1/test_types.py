@@ -16,9 +16,9 @@
 #    under the License.
 
 import mock
-import six
 import webtest
 import wsme
+from wsme import types as wtypes
 
 from ironic.api.controllers.v1 import types
 from ironic.common import exception
@@ -87,7 +87,16 @@ class TestJsonPatchType(base.TestCase):
     def test_valid_patches(self):
         valid_patches = [{'path': '/extra/foo', 'op': 'remove'},
                          {'path': '/extra/foo', 'op': 'add', 'value': 'bar'},
-                         {'path': '/foo', 'op': 'replace', 'value': 'bar'}]
+                         {'path': '/str', 'op': 'replace', 'value': 'bar'},
+                         {'path': '/bool', 'op': 'add', 'value': True},
+                         {'path': '/int', 'op': 'add', 'value': 1},
+                         {'path': '/float', 'op': 'add', 'value': 0.123},
+                         {'path': '/list', 'op': 'add', 'value': [1, 2]},
+                         {'path': '/none', 'op': 'add', 'value': None},
+                         {'path': '/empty_dict', 'op': 'add', 'value': {}},
+                         {'path': '/empty_list', 'op': 'add', 'value': []},
+                         {'path': '/dict', 'op': 'add',
+                          'value': {'cat': 'meow'}}]
         ret = self._patch_json(valid_patches, False)
         self.assertEqual(200, ret.status_int)
         self.assertEqual(sorted(valid_patches), sorted(ret.json))
@@ -147,27 +156,6 @@ class TestJsonPatchType(base.TestCase):
         self.assertTrue(ret.json['faultstring'])
 
 
-class TestMultiType(base.TestCase):
-
-    def test_valid_values(self):
-        vt = types.MultiType(wsme.types.text, six.integer_types)
-        value = vt.validate("hello")
-        self.assertEqual("hello", value)
-        value = vt.validate(10)
-        self.assertEqual(10, value)
-
-    def test_invalid_values(self):
-        vt = types.MultiType(wsme.types.text, six.integer_types)
-        self.assertRaises(ValueError, vt.validate, 0.10)
-        self.assertRaises(ValueError, vt.validate, object())
-
-    def test_multitype_tostring(self):
-        vt = types.MultiType(str, int)
-        vts = str(vt)
-        self.assertIn(str(str), vts)
-        self.assertIn(str(int), vts)
-
-
 class TestBooleanType(base.TestCase):
 
     def test_valid_true_values(self):
@@ -196,3 +184,38 @@ class TestBooleanType(base.TestCase):
         v = types.BooleanType()
         self.assertRaises(exception.Invalid, v.validate, "invalid-value")
         self.assertRaises(exception.Invalid, v.validate, "01")
+
+
+class TestJsonType(base.TestCase):
+
+    def test_valid_values(self):
+        vt = types.jsontype
+        value = vt.validate("hello")
+        self.assertEqual("hello", value)
+        value = vt.validate(10)
+        self.assertEqual(10, value)
+        value = vt.validate(0.123)
+        self.assertEqual(0.123, value)
+        value = vt.validate(True)
+        self.assertEqual(True, value)
+        value = vt.validate([1, 2, 3])
+        self.assertEqual([1, 2, 3], value)
+        value = vt.validate({'foo': 'bar'})
+        self.assertEqual({'foo': 'bar'}, value)
+        value = vt.validate(None)
+        self.assertEqual(None, value)
+
+    def test_invalid_values(self):
+        vt = types.jsontype
+        self.assertRaises(exception.Invalid, vt.validate, object())
+
+    def test_apimultitype_tostring(self):
+        vts = str(types.jsontype)
+        self.assertIn(str(wtypes.text), vts)
+        self.assertIn(str(int), vts)
+        self.assertIn(str(long), vts)
+        self.assertIn(str(float), vts)
+        self.assertIn(str(types.BooleanType), vts)
+        self.assertIn(str(list), vts)
+        self.assertIn(str(dict), vts)
+        self.assertIn(str(None), vts)

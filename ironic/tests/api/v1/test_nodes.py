@@ -810,18 +810,26 @@ class TestPost(api_base.FunctionalTest):
             # Check that 'id' is not in first arg of positional args
             self.assertNotIn('id', cn_mock.call_args[0][0])
 
-    def test_create_node_valid_extra(self):
-        ndict = post_get_test_node(extra={'foo': 123})
+    def _test_jsontype_attributes(self, attr_name):
+        kwargs = {attr_name: {'str': 'foo', 'int': 123, 'float': 0.1,
+                              'bool': True, 'list': [1, 2], 'none': None,
+                              'dict': {'cat': 'meow'}}}
+        ndict = post_get_test_node(**kwargs)
         self.post_json('/nodes', ndict)
         result = self.get_json('/nodes/%s' % ndict['uuid'])
-        self.assertEqual(ndict['extra'], result['extra'])
+        self.assertEqual(ndict[attr_name], result[attr_name])
 
-    def test_create_node_invalid_extra(self):
-        ndict = post_get_test_node(extra={'foo': 0.123})
-        response = self.post_json('/nodes', ndict, expect_errors=True)
-        self.assertEqual('application/json', response.content_type)
-        self.assertEqual(400, response.status_code)
-        self.assertTrue(response.json['error_message'])
+    def test_create_node_valid_extra(self):
+        self._test_jsontype_attributes('extra')
+
+    def test_create_node_valid_properties(self):
+        self._test_jsontype_attributes('properties')
+
+    def test_create_node_valid_driver_info(self):
+        self._test_jsontype_attributes('driver_info')
+
+    def test_create_node_valid_instance_info(self):
+        self._test_jsontype_attributes('instance_info')
 
     def _test_vendor_passthru_ok(self, mock_vendor, return_value=None,
                                  is_async=True):
