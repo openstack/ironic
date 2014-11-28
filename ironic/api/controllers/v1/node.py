@@ -31,7 +31,6 @@ from ironic.api.controllers.v1 import types
 from ironic.api.controllers.v1 import utils as api_utils
 from ironic.common import exception
 from ironic.common.i18n import _
-from ironic.common.i18n import _LW
 from ironic.common import states as ir_states
 from ironic.common import utils
 from ironic import objects
@@ -892,11 +891,6 @@ class NodesController(rest.RestController):
                 patch_val = None
             if rpc_node[field] != patch_val:
                 rpc_node[field] = patch_val
-
-                if field == 'maintenance':
-                    LOG.warning(_LW('Setting maintenance via node update is '
-                            'deprecated. The /v1/nodes/<uuid>/maintenance '
-                            'endpoint should be used instead.'))
 
         # NOTE(deva): we calculate the rpc topic here in case node.driver
         #             has changed, so that update is sent to the
