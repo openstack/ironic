@@ -1302,3 +1302,14 @@
 #swift_max_retries=2
 
 
+[virtualbox]
+
+#
+# Options defined in ironic.drivers.modules.virtualbox
+#
+
+# Port on which VirtualBox web service is listening. (integer
+# value)
+#port=18083
+
+

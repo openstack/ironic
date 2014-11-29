@@ -36,6 +36,7 @@ from ironic.drivers.modules import pxe
 from ironic.drivers.modules import seamicro
 from ironic.drivers.modules import snmp
 from ironic.drivers.modules import ssh
+from ironic.drivers.modules import virtualbox
 from ironic.drivers import utils
 
 
@@ -184,3 +185,16 @@ class FakeIRMCDriver(base.BaseDriver):
                     reason=_("Unable to import python-scciclient library"))
         self.power = irmc_power.IRMCPower()
         self.deploy = fake.FakeDeploy()
+
+
+class FakeVirtualBoxDriver(base.BaseDriver):
+    """Fake VirtualBox driver."""
+
+    def __init__(self):
+        if not importutils.try_import('pyremotevbox'):
+            raise exception.DriverLoadError(
+                    driver=self.__class__.__name__,
+                    reason=_("Unable to import pyremotevbox library"))
+        self.power = virtualbox.VirtualBoxPower()
+        self.deploy = fake.FakeDeploy()
+        self.management = virtualbox.VirtualBoxManagement()

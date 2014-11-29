@@ -505,3 +505,8 @@ class FileSystemNotSupported(IronicException):
 
 class IRMCOperationError(IronicException):
     message = _('iRMC %(operation)s failed. Reason: %(error)s')
+
+
+class VirtualBoxOperationFailed(IronicException):
+    message = _("VirtualBox operation '%(operation)s' failed. "
+                "Error: %(error)s")
