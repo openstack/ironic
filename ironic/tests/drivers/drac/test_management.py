@@ -172,7 +172,7 @@ class DracManagementTestCase(db_base.DbTestCase):
                          sorted(self.driver.get_supported_boot_devices()))
 
     @mock.patch.object(drac_mgmt, '_get_next_boot_mode')
-    def test_get_boot_devices(self, mock_gnbm, mock_client_pywsman):
+    def test_get_boot_device(self, mock_gnbm, mock_client_pywsman):
         mock_gnbm.return_value = {'instance_id': 'OneTime',
                                   'is_next': drac_mgmt.ONE_TIME_BOOT}
 
@@ -191,7 +191,7 @@ class DracManagementTestCase(db_base.DbTestCase):
             resource_uris.DCIM_BootSourceSetting)
 
     @mock.patch.object(drac_mgmt, '_get_next_boot_mode')
-    def test_get_boot_devices_persistent(self, mock_gnbm, mock_client_pywsman):
+    def test_get_boot_device_persistent(self, mock_gnbm, mock_client_pywsman):
         mock_gnbm.return_value = {'instance_id': 'IPL',
                                   'is_next': drac_mgmt.PERSISTENT}
 
@@ -211,8 +211,8 @@ class DracManagementTestCase(db_base.DbTestCase):
 
     @mock.patch.object(drac_client.Client, 'wsman_enumerate')
     @mock.patch.object(drac_mgmt, '_get_next_boot_mode')
-    def test_get_boot_devices_client_error(self, mock_gnbm, mock_we,
-                                           mock_client_pywsman):
+    def test_get_boot_device_client_error(self, mock_gnbm, mock_we,
+                                          mock_client_pywsman):
         mock_gnbm.return_value = {'instance_id': 'OneTime',
                                   'is_next': drac_mgmt.ONE_TIME_BOOT}
         mock_we.side_effect = exception.DracClientError('E_FAKE')
