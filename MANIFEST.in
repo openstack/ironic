@@ -1,6 +1,3 @@
-include AUTHORS
-include ChangeLog
-exclude .gitignore
-exclude .gitreview
-
+include *
+exclude .*
 global-exclude *.pyc
