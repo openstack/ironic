@@ -23,6 +23,7 @@ import mock
 
 from ironic.common import boot_devices
 from ironic.common import exception
+from ironic.conductor import task_manager
 from ironic.drivers.modules.drac import client as drac_client
 from ironic.drivers.modules.drac import common as drac_common
 from ironic.drivers.modules.drac import management as drac_mgmt
@@ -237,7 +238,10 @@ class DracManagementTestCase(db_base.DbTestCase):
         mock_pywsman.enumerate.return_value = mock_xml_enum
         mock_pywsman.invoke.return_value = mock_xml_invk
 
-        result = self.driver.set_boot_device(self.task, boot_devices.PXE)
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            task.node = self.node
+            result = self.driver.set_boot_device(task, boot_devices.PXE)
 
         self.assertIsNone(result)
         mock_pywsman.enumerate.assert_called_once_with(mock.ANY, mock.ANY,
@@ -264,10 +268,12 @@ class DracManagementTestCase(db_base.DbTestCase):
         mock_pywsman = mock_client_pywsman.Client.return_value
         mock_pywsman.enumerate.return_value = mock_xml_enum
         mock_pywsman.invoke.return_value = mock_xml_invk
-
-        self.assertRaises(exception.DracOperationError,
-                          self.driver.set_boot_device, self.task,
-                          boot_devices.PXE)
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            task.node = self.node
+            self.assertRaises(exception.DracOperationError,
+                              self.driver.set_boot_device, task,
+                              boot_devices.PXE)
 
         mock_pywsman.enumerate.assert_called_once_with(mock.ANY, mock.ANY,
             resource_uris.DCIM_BootSourceSetting)
@@ -282,10 +288,12 @@ class DracManagementTestCase(db_base.DbTestCase):
     def test_set_boot_device_client_error(self, mock_cfcj, mock_we,
                                           mock_client_pywsman):
         mock_we.side_effect = exception.DracClientError('E_FAKE')
-
-        self.assertRaises(exception.DracClientError,
-                          self.driver.set_boot_device, self.task,
-                          boot_devices.PXE)
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            task.node = self.node
+            self.assertRaises(exception.DracClientError,
+                              self.driver.set_boot_device, task,
+                              boot_devices.PXE)
         mock_we.assert_called_once_with(resource_uris.DCIM_BootSourceSetting,
                                         mock.ANY, filter_query=mock.ANY)
 

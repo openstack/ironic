@@ -26,6 +26,7 @@ from ironic.common import boot_devices
 from ironic.common import exception
 from ironic.common.i18n import _
 from ironic.common.i18n import _LE
+from ironic.conductor import task_manager
 from ironic.drivers import base
 from ironic.drivers.modules.drac import common as drac_common
 from ironic.drivers.modules.drac import resource_uris
@@ -204,6 +205,7 @@ class DracManagement(base.ManagementInterface):
         """
         return list(_BOOT_DEVICES_MAP.keys())
 
+    @task_manager.require_exclusive_lock
     def set_boot_device(self, task, device, persistent=False):
         """Set the boot device for a node.
 
