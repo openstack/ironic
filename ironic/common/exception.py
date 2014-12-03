@@ -186,6 +186,10 @@ class MissingParameterValue(InvalidParameterValue):
     message = _("%(err)s")
 
 
+class Duplicate(IronicException):
+    message = _("Resource already exists.")
+
+
 class NotFound(IronicException):
     message = _("Resource could not be found.")
     code = 404
