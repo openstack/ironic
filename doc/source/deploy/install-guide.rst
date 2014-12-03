@@ -593,6 +593,10 @@ node(s) where ``ironic-conductor`` is running.
     Ubuntu:
         sudo cp /usr/lib/syslinux/modules/*/ldlinux.* /tftpboot
 
+#. Create a map file in the tftp boot directory (``/tftpboot``)::
+
+    echo 'r ^([^/]) /tftpboot/\1' > /tftpboot/map-file
+    echo 'r ^(/tftpboot/) /tftpboot/\2' >> /tftpboot/map-file
 
 .. [1] On **Fedora/RHEL** the ``syslinux-tftpboot`` package already install
        the library modules and PXE image at ``/tftpboot``. If the TFTP server
@@ -614,7 +618,7 @@ steps on the Ironic conductor node to configure PXE UEFI environment.
 
 #. Copy the elilo boot loader image to ``/tftpboot`` directory::
 
-   sudo cp ./elilo-3.16-x86_64.efi /tftpboot/elilo.efi
+    sudo cp ./elilo-3.16-x86_64.efi /tftpboot/elilo.efi
 
 #. Update the Ironic node with ``boot_mode`` capability in node's properties
    field::
@@ -640,7 +644,7 @@ An alternative to PXE boot, iPXE was introduced in the Juno release
 If you will be using iPXE to boot instead of PXE, iPXE needs to be set up
 on the Bare Metal Service node(s) where ``ironic-conductor`` is running.
 
-1. Make sure these directories exist and can be written to by the user
+#. Make sure these directories exist and can be written to by the user
    the ``ironic-conductor`` is running as. For example::
 
     sudo mkdir -p /tftpboot
@@ -648,20 +652,24 @@ on the Bare Metal Service node(s) where ``ironic-conductor`` is running.
     sudo chown -R ironic -p /tftpboot
     sudo chown -R ironic -p /httpboot
 
+#. Create a map file in the tftp boot directory (``/tftpboot``)::
 
-2. Set up TFTP and HTTP servers.
+    echo 'r ^([^/]) /tftpboot/\1' > /tftpboot/map-file
+    echo 'r ^(/tftpboot/) /tftpboot/\2' >> /tftpboot/map-file
 
-  These servers should be running and configured to use the local
-  /tftpboot and /httpboot directories respectively, as their root
-  directories. (Setting up these servers is outside the scope of this
-  install guide.)
+#. Set up TFTP and HTTP servers.
 
-  These root directories need to be mounted locally to the
-  ``ironic-conductor`` services, so that the services can access them.
+   These servers should be running and configured to use the local
+   /tftpboot and /httpboot directories respectively, as their root
+   directories. (Setting up these servers is outside the scope of this
+   install guide.)
 
-  The Bare Metal Service's configuration file (/etc/ironic/ironic.conf)
-  should be edited accordingly to specify the TFTP and HTTP root
-  directories and server addresses. For example::
+   These root directories need to be mounted locally to the
+   ``ironic-conductor`` services, so that the services can access them.
+
+   The Bare Metal Service's configuration file (/etc/ironic/ironic.conf)
+   should be edited accordingly to specify the TFTP and HTTP root
+   directories and server addresses. For example::
 
     [pxe]
 
@@ -679,8 +687,7 @@ on the Bare Metal Service node(s) where ``ironic-conductor`` is running.
     # http://192.1.2.3:8080 (string value)
     http_url=http://192.168.0.2:8080
 
-
-3. Install the iPXE package with the boot images::
+#. Install the iPXE package with the boot images::
 
     Ubuntu:
         apt-get install ipxe
@@ -688,7 +695,7 @@ on the Bare Metal Service node(s) where ``ironic-conductor`` is running.
     Fedora/RHEL:
         yum install ipxe-bootimgs
 
-4. Copy the iPXE boot image (undionly.kpxe) to ``/tftpboot``. The binary
+#. Copy the iPXE boot image (undionly.kpxe) to ``/tftpboot``. The binary
    might be found at::
 
     Ubuntu:
@@ -697,11 +704,11 @@ on the Bare Metal Service node(s) where ``ironic-conductor`` is running.
     Fedora/RHEL:
         cp /usr/share/ipxe/undionly.kpxe /tftpboot
 
-*Note: If the packaged version of the iPXE boot image doesn't
-work for you or you want to build one from source take a look at
-http://ipxe.org/download for more information on preparing iPXE image.*
+    *Note: If the packaged version of the iPXE boot image doesn't
+    work for you or you want to build one from source take a look at
+    http://ipxe.org/download for more information on preparing iPXE image.*
 
-5. Enable/Configure iPXE in the Bare Metal Service's configuration file
+#. Enable/Configure iPXE in the Bare Metal Service's configuration file
    (/etc/ironic/ironic.conf)::
 
     [pxe]
@@ -715,7 +722,7 @@ http://ipxe.org/download for more information on preparing iPXE image.*
     # Template file for PXE configuration. (string value)
     pxe_config_template=$pybasedir/drivers/modules/ipxe_config.template
 
-6. Restart the ``ironic-conductor`` process::
+#. Restart the ``ironic-conductor`` process::
 
     service ironic-conductor restart
 
