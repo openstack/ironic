@@ -105,6 +105,7 @@ import retrying
 from ironic.common import driver_factory
 from ironic.common import exception
 from ironic.common.i18n import _LW
+from ironic.common import states
 from ironic import objects
 from ironic.openstack.common import log as logging
 
@@ -180,6 +181,8 @@ class TaskManager(object):
         self.node = None
         self.shared = shared
 
+        self.fsm = states.machine.copy()
+
         # NodeLocked exceptions can be annoying. Let's try to alleviate
         # some of that pain by retrying our lock attempts. The retrying
         # module expects a wait_fixed value in milliseconds.
@@ -200,6 +203,8 @@ class TaskManager(object):
             self.ports = objects.Port.list_by_node_id(context, self.node.id)
             self.driver = driver_factory.get_driver(driver_name or
                                                     self.node.driver)
+            self.fsm.initialize(self.node.provision_state)
+
         except Exception:
             with excutils.save_and_reraise_exception():
                 self.release_resources()
@@ -245,10 +250,17 @@ class TaskManager(object):
         self.node = None
         self.driver = None
         self.ports = None
+        self.fsm = None
 
     def _thread_release_resources(self, t):
         """Thread.link() callback to release resources."""
         self.release_resources()
+
+    def process_event(self, event):
+        """Process an event by advancing the state machine."""
+        self.fsm.process_event(event)
+        self.node.provision_state = self.fsm.current_state
+        self.node.target_provision_state = self.fsm.target_state
 
     def __enter__(self):
         return self

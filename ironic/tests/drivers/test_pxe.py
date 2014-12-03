@@ -671,7 +671,7 @@ class PXEDriverTestCase(db_base.DbTestCase):
 
     def test_continue_deploy_invalid(self):
         self.node.power_state = states.POWER_ON
-        self.node.provision_state = 'FAKE'
+        self.node.provision_state = states.NOSTATE
         self.node.save()
 
         with task_manager.acquire(self.context, self.node.uuid) as task:
@@ -680,7 +680,7 @@ class PXEDriverTestCase(db_base.DbTestCase):
                     key='fake-56789', error='test ramdisk error')
 
         self.node.refresh()
-        self.assertEqual('FAKE', self.node.provision_state)
+        self.assertEqual(states.NOSTATE, self.node.provision_state)
         self.assertEqual(states.POWER_ON, self.node.power_state)
 
     def test_lock_elevated(self):

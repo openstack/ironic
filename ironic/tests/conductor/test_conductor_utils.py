@@ -271,6 +271,12 @@ class CleanupAfterTimeoutTestCase(tests_base.TestCase):
         self.task.node = mock.Mock(spec_set=objects.Node)
         self.node = self.task.node
 
+        def set_state(state):
+            self.node.provision_state = states.DEPLOYFAIL
+            self.node.target_provision_state = states.NOSTATE
+        process_event_mock = self.task.process_event
+        process_event_mock.side_effect = set_state
+
     def test_cleanup_after_timeout(self):
         conductor_utils.cleanup_after_timeout(self.task)
 

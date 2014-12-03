@@ -300,6 +300,7 @@ class TaskManagerTestCase(tests_db_base.DbTestCase):
         thread_mock = mock.Mock(spec_set=['link', 'cancel'])
         spawn_mock = mock.Mock(return_value=thread_mock)
         task_release_mock = mock.Mock()
+        reserve_mock.return_value = self.node
 
         with task_manager.TaskManager(self.context, 'node-id') as task:
             task.spawn_after(spawn_mock, 1, 2, foo='bar', cat='meow')
@@ -321,6 +322,7 @@ class TaskManagerTestCase(tests_db_base.DbTestCase):
                                                  node_get_mock):
         spawn_mock = mock.Mock()
         task_release_mock = mock.Mock()
+        reserve_mock.return_value = self.node
 
         def _test_it():
             with task_manager.TaskManager(self.context, 'node-id') as task:
@@ -337,6 +339,7 @@ class TaskManagerTestCase(tests_db_base.DbTestCase):
                                      node_get_mock):
         spawn_mock = mock.Mock(side_effect=exception.IronicException('foo'))
         task_release_mock = mock.Mock()
+        reserve_mock.return_value = self.node
 
         def _test_it():
             with task_manager.TaskManager(self.context, 'node-id') as task:
@@ -356,13 +359,13 @@ class TaskManagerTestCase(tests_db_base.DbTestCase):
         spawn_mock = mock.Mock(return_value=thread_mock)
         task_release_mock = mock.Mock()
         thr_release_mock = mock.Mock(spec_set=[])
+        reserve_mock.return_value = self.node
 
         def _test_it():
             with task_manager.TaskManager(self.context, 'node-id') as task:
                 task.spawn_after(spawn_mock, 1, 2, foo='bar', cat='meow')
                 task._thread_release_resources = thr_release_mock
                 task.release_resources = task_release_mock
-
         self.assertRaises(exception.IronicException, _test_it)
 
         spawn_mock.assert_called_once_with(1, 2, foo='bar', cat='meow')
@@ -377,6 +380,7 @@ class TaskManagerTestCase(tests_db_base.DbTestCase):
         spawn_mock = mock.Mock(side_effect=expected_exception)
         task_release_mock = mock.Mock()
         on_error_handler = mock.Mock()
+        reserve_mock.return_value = self.node
 
         def _test_it():
             with task_manager.TaskManager(self.context, 'node-id') as task:
@@ -400,6 +404,7 @@ class TaskManagerTestCase(tests_db_base.DbTestCase):
         # Raise an exception within the on_error handler
         on_error_handler = mock.Mock(side_effect=Exception('unexpected'))
         on_error_handler.__name__ = 'foo_method'
+        reserve_mock.return_value = self.node
 
         def _test_it():
             with task_manager.TaskManager(self.context, 'node-id') as task:
