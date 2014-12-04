@@ -222,9 +222,9 @@ class TestPXEUtils(db_base.DbTestCase):
         }
 
         expected = {
-            'deploy_kernel': ('deploy-kernel',
+            'deploy_kernel': ('glance://deploy-kernel',
                               expected_dir + '/fake-node/deploy_kernel'),
-            'deploy_ramdisk': ('deploy-ramdisk',
+            'deploy_ramdisk': ('glance://deploy-ramdisk',
                                expected_dir + '/fake-node/deploy_ramdisk'),
         }
 

@@ -235,7 +235,7 @@ def _get_image_info(node, ctx):
         glance_service = service.Service(version=1, context=ctx)
         iproperties = glance_service.show(d_info['image_source'])['properties']
         for label in labels:
-            i_info[label] = str(iproperties[label + '_id']).split('/')[-1]
+            i_info[label] = str(iproperties[label + '_id'])
         node.instance_info = i_info
         node.save()
 

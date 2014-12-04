@@ -138,7 +138,7 @@ def _get_pxe_ip_address_path(ip_address):
 
 
 def get_deploy_kr_info(node_uuid, driver_info):
-    """Get uuid and tftp path for deploy kernel and ramdisk.
+    """Get href and tftp path for deploy kernel and ramdisk.
 
     Note: driver_info should be validated outside of this method.
     """
@@ -147,7 +147,7 @@ def get_deploy_kr_info(node_uuid, driver_info):
     for label in ('deploy_kernel', 'deploy_ramdisk'):
         # the values for these keys will look like "glance://image-uuid"
         image_info[label] = (
-            str(driver_info[label]).split('/')[-1],
+            str(driver_info[label]),
             os.path.join(root_dir, node_uuid, label)
         )
     return image_info

@@ -89,9 +89,9 @@ def _get_boot_iso(task, root_uuid):
     # Option 1 - Check if user has provided a boot_iso in Glance.
     LOG.debug("Trying to get a boot ISO to boot the baremetal node")
     deploy_info = _parse_deploy_info(task.node)
-    image_uuid = deploy_info['image_source']
+    image_href = deploy_info['image_source']
     boot_iso_uuid = images.get_glance_image_property(task.context,
-            image_uuid, 'boot_iso')
+            image_href, 'boot_iso')
     if boot_iso_uuid:
         LOG.debug("Found boot_iso %s in Glance", boot_iso_uuid)
         return 'glance:%s' % boot_iso_uuid
@@ -105,13 +105,13 @@ def _get_boot_iso(task, root_uuid):
         return
 
     kernel_uuid = images.get_glance_image_property(task.context,
-            image_uuid, 'kernel_id')
+            image_href, 'kernel_id')
     ramdisk_uuid = images.get_glance_image_property(task.context,
-            image_uuid, 'ramdisk_id')
+            image_href, 'ramdisk_id')
     if not kernel_uuid or not ramdisk_uuid:
         LOG.error(_LE("Unable to find 'kernel_id' and 'ramdisk_id' in Glance "
                       "image %(image)s for generating boot ISO for %(node)s"),
-                  {'image': image_uuid, 'node': task.node.uuid})
+                  {'image': image_href, 'node': task.node.uuid})
         return
 
     # NOTE(rameshg87): Functionality to share the boot ISOs created for
