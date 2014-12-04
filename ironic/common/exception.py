@@ -361,6 +361,15 @@ class InvalidImageRef(Invalid):
     message = _("Invalid image href %(image_href)s.")
 
 
+class ImageRefValidationFailed(IronicException):
+    message = _("Validation of image href %(image_href)s failed, "
+                "reason: %(reason)s")
+
+
+class ImageDownloadFailed(IronicException):
+    message = _("Failed to download image %(image_href)s, reason: %(reason)s")
+
+
 class KeystoneUnauthorized(IronicException):
     message = _("Not authorized in Keystone.")
 

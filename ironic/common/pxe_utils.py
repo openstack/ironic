@@ -145,7 +145,6 @@ def get_deploy_kr_info(node_uuid, driver_info):
     root_dir = get_root_dir()
     image_info = {}
     for label in ('deploy_kernel', 'deploy_ramdisk'):
-        # the values for these keys will look like "glance://image-uuid"
         image_info[label] = (
             str(driver_info[label]),
             os.path.join(root_dir, node_uuid, label)

@@ -1151,10 +1151,10 @@ class DoNodeDeployTearDownTestCase(_ServiceSetUpMixin,
         self._start_service()
         mock_deploy.return_value = states.DEPLOYING
         node = obj_utils.create_test_node(self.context, driver='fake',
-                                         provision_state=states.ACTIVE,
-                                         target_provision_state=states.NOSTATE,
-                                         instance_info={'kernel': 'aaaa',
-                                         'ramdisk': 'bbbb'})
+            provision_state=states.ACTIVE,
+            target_provision_state=states.NOSTATE,
+            instance_info={'image_source': uuidutils.generate_uuid(),
+                           'kernel': 'aaaa', 'ramdisk': 'bbbb'})
 
         self.service.do_node_deploy(self.context, node.uuid, rebuild=True)
         self.service._worker_pool.waitall()
@@ -1175,8 +1175,9 @@ class DoNodeDeployTearDownTestCase(_ServiceSetUpMixin,
         self._start_service()
         mock_deploy.return_value = states.DEPLOYWAIT
         node = obj_utils.create_test_node(self.context, driver='fake',
-                                         provision_state=states.ACTIVE,
-                                         target_provision_state=states.NOSTATE)
+            provision_state=states.ACTIVE,
+            target_provision_state=states.NOSTATE,
+            instance_info={'image_source': uuidutils.generate_uuid()})
 
         self.service.do_node_deploy(self.context, node.uuid, rebuild=True)
         self.service._worker_pool.waitall()

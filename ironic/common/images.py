@@ -237,7 +237,11 @@ def fetch(context, image_href, path, image_service=None, force_raw=False):
     #             auth checking in glance, so we assume that access was
     #             checked before we got here.
     if not image_service:
-        image_service = service.Service(version=1, context=context)
+        image_service = service.get_image_service(image_href,
+            context=context)
+        LOG.debug("Using %(image_service)s to download image %(image_href)s." %
+                  {'image_service': image_service.__class__,
+                   'image_href': image_href})
 
     with fileutils.remove_path_on_error(path):
         with open(path, "wb") as image_file:
@@ -285,7 +289,7 @@ def image_to_raw(image_href, path, path_tmp):
 
 def download_size(context, image_href, image_service=None):
     if not image_service:
-        image_service = service.Service(version=1, context=context)
+        image_service = service.get_image_service(image_href, context=context)
     return image_service.show(image_href)['size']
 
 
@@ -303,19 +307,19 @@ def converted_size(path):
     return data.virtual_size
 
 
-def get_glance_image_properties(context, image_uuid, properties="all"):
+def get_image_properties(context, image_href, properties="all"):
     """Returns the values of several properties of a glance image
 
     :param context: context
-    :param image_uuid: the UUID of the image in glance
+    :param image_href: href of the image
     :param properties: the properties whose values are required.
         This argument is optional, default value is "all", so if not specified
         all properties will be returned.
     :returns: a dict of the values of the properties. A property not on the
         glance metadata will have a value of None.
     """
-    glance_service = service.Service(version=1, context=context)
-    iproperties = glance_service.show(image_uuid)['properties']
+    img_service = service.get_image_service(image_href, context=context)
+    iproperties = img_service.show(image_href)['properties']
 
     if properties == "all":
         return iproperties
@@ -331,36 +335,36 @@ def get_temp_url_for_glance_image(context, image_uuid):
     :returns: the tmp url for the glance image.
     """
     # Glance API version 2 is required for getting direct_url of the image.
-    glance_service = service.Service(version=2, context=context)
+    glance_service = service.GlanceImageService(version=2, context=context)
     image_properties = glance_service.show(image_uuid)
     LOG.debug('Got image info: %(info)s for image %(image_uuid)s.',
               {'info': image_properties, 'image_uuid': image_uuid})
     return glance_service.swift_temp_url(image_properties)
 
 
-def create_boot_iso(context, output_filename, kernel_uuid,
-        ramdisk_uuid, root_uuid=None, kernel_params=None):
+def create_boot_iso(context, output_filename, kernel_href,
+        ramdisk_href, root_uuid=None, kernel_params=None):
     """Creates a bootable ISO image for a node.
 
-    Given the glance UUID of kernel, ramdisk, root partition's UUID and
-    kernel cmdline arguments, this method fetches the kernel, ramdisk from
-    glance, and builds a bootable ISO image that can be used to boot up the
+    Given the hrefs for kernel, ramdisk, root partition's UUID and
+    kernel cmdline arguments, this method fetches the kernel and ramdisk,
+    and builds a bootable ISO image that can be used to boot up the
     baremetal node.
 
     :param context: context
     :param output_filename: the absolute path of the output ISO file
-    :param kernel_uuid: glance uuid of the kernel to use
-    :param ramdisk_uuid: glance uuid of the ramdisk to use
+    :param kernel_href: URL or glance uuid of the kernel to use
+    :param ramdisk_href: URL or glance uuid of the ramdisk to use
     :param root_uuid: uuid of the root filesystem (optional)
     :param kernel_params: a string containing whitespace separated values
         kernel cmdline arguments of the form K=V or K (optional).
     :raises: ImageCreationFailed, if creating boot ISO failed.
     """
     with utils.tempdir() as tmpdir:
-        kernel_path = os.path.join(tmpdir, kernel_uuid)
-        ramdisk_path = os.path.join(tmpdir, ramdisk_uuid)
-        fetch(context, kernel_uuid, kernel_path)
-        fetch(context, ramdisk_uuid, ramdisk_path)
+        kernel_path = os.path.join(tmpdir, kernel_href.split('/')[-1])
+        ramdisk_path = os.path.join(tmpdir, ramdisk_href.split('/')[-1])
+        fetch(context, kernel_href, kernel_path)
+        fetch(context, ramdisk_href, ramdisk_path)
 
         params = []
         if root_uuid:

@@ -59,6 +59,7 @@ from oslo_utils import uuidutils
 from ironic.common import dhcp_factory
 from ironic.common import driver_factory
 from ironic.common import exception
+from ironic.common.glance_service import service_utils as glance_utils
 from ironic.common import hash_ring as hash
 from ironic.common.i18n import _
 from ironic.common.i18n import _LC
@@ -676,11 +677,15 @@ class ConductorManager(periodic_task.PeriodicTasks):
 
                 # Note(gilliard) Clear these to force the driver to
                 # check whether they have been changed in glance
-                instance_info = node.instance_info
-                instance_info.pop('kernel', None)
-                instance_info.pop('ramdisk', None)
-                node.instance_info = instance_info
-                node.save()
+                # NOTE(vdrok): If image_source is not from Glance we should
+                # not clear kernel and ramdisk as they're input manually
+                if glance_utils.is_glance_image(
+                        node.instance_info.get('image_source')):
+                    instance_info = node.instance_info
+                    instance_info.pop('kernel', None)
+                    instance_info.pop('ramdisk', None)
+                    node.instance_info = instance_info
+                    node.save()
             else:
                 event = 'deploy'
 

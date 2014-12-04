@@ -18,12 +18,15 @@ iLO Deploy Driver(s) and supporting methods.
 import tempfile
 
 from oslo_config import cfg
+from oslo_utils import excutils
 
 from ironic.common import boot_devices
 from ironic.common import exception
+from ironic.common.glance_service import service_utils
 from ironic.common.i18n import _
 from ironic.common.i18n import _LE
 from ironic.common.i18n import _LI
+from ironic.common import image_service
 from ironic.common import images
 from ironic.common import states
 from ironic.common import swift
@@ -66,18 +69,22 @@ def _get_boot_iso_object_name(node):
 def _get_boot_iso(task, root_uuid):
     """This method returns a boot ISO to boot the node.
 
-    It chooses one of the two options in the order as below:
-    1. Image deployed has a meta-property 'boot_iso' in Glance. This should
+    It chooses one of the three options in the order as below:
+    1. Does nothing if 'ilo_boot_iso' is present in node's instance_info.
+    2. Image deployed has a meta-property 'boot_iso' in Glance. This should
        refer to the UUID of the boot_iso which exists in Glance.
-    2. Generates a boot ISO on the fly using kernel and ramdisk mentioned in
+    3. Generates a boot ISO on the fly using kernel and ramdisk mentioned in
        the image deployed. It uploads the generated boot ISO to Swift.
 
     :param task: a TaskManager instance containing the node to act on.
     :param root_uuid: the uuid of the root partition.
-    :returns: the information about the boot ISO. Returns the information in
-        the format 'glance:<glance-boot-iso-uuid>' or
-        'swift:<swift-boot_iso-object-name>'.  In case of Swift, it is assumed
-        that the object exists in CONF.ilo.swift_ilo_container.
+    :returns: boot ISO URL. Should be either of below:
+        * A Swift object - It should be of format 'swift:<object-name>'. It is
+          assumed that the image object is present in
+          CONF.ilo.swift_ilo_container;
+        * A Glance image - It should be format 'glance://<glance-image-uuid>'
+          or just <glance-image-uuid>;
+        * An HTTP URL.
         On error finding the boot iso, it returns None.
     :raises: MissingParameterValue, if any of the required parameters are
         missing in the node's driver_info or instance_info.
@@ -85,23 +92,43 @@ def _get_boot_iso(task, root_uuid):
         value in the node's driver_info or instance_info.
     :raises: SwiftOperationError, if operation with Swift fails.
     :raises: ImageCreationFailed, if creation of boot ISO failed.
+    :raises: exception.ImageRefValidationFailed if ilo_boot_iso is not
+        HTTP(S) URL.
     """
-    # Option 1 - Check if user has provided a boot_iso in Glance.
     LOG.debug("Trying to get a boot ISO to boot the baremetal node")
+
+    # Option 1 - Check if user has provided ilo_boot_iso in node's
+    # instance_info
+    if task.node.instance_info.get('ilo_boot_iso'):
+        LOG.debug("Using ilo_boot_iso provided in node's instance_info")
+        boot_iso = task.node.instance_info['ilo_boot_iso']
+        if not service_utils.is_glance_image(boot_iso):
+            try:
+                image_service.HttpImageService().validate_href(boot_iso)
+            except exception.ImageRefValidationFailed:
+                with excutils.save_and_reraise_exception():
+                    LOG.error(_LE("Ilo can attach only HTTP(S) URL as "
+                                  "virtual media."))
+        return task.node.instance_info['ilo_boot_iso']
+
+    # Option 2 - Check if user has provided a boot_iso in Glance. If boot_iso
+    # is a supported non-glance href execution will proceed to option 3.
     deploy_info = _parse_deploy_info(task.node)
 
     image_href = deploy_info['image_source']
-    glance_properties = (
-        images.get_glance_image_properties(task.context,
+    image_properties = (
+        images.get_image_properties(task.context,
             image_href, ['boot_iso', 'kernel_id', 'ramdisk_id']))
 
-    boot_iso_uuid = glance_properties.get('boot_iso')
-    kernel_uuid = glance_properties.get('kernel_id')
-    ramdisk_uuid = glance_properties.get('ramdisk_id')
+    boot_iso_uuid = image_properties.get('boot_iso')
+    kernel_href = (task.node.instance_info.get('kernel') or
+                   image_properties.get('kernel_id'))
+    ramdisk_href = (task.node.instance_info.get('ramdisk') or
+                    image_properties.get('ramdisk_id'))
 
     if boot_iso_uuid:
         LOG.debug("Found boot_iso %s in Glance", boot_iso_uuid)
-        return 'glance:%s' % boot_iso_uuid
+        return boot_iso_uuid
 
     # NOTE(faizan) For uefi boot_mode, operator should provide efi capable
     # boot-iso in glance
@@ -111,9 +138,9 @@ def _get_boot_iso(task, root_uuid):
                   {'node': task.node.uuid})
         return
 
-    if not kernel_uuid or not ramdisk_uuid:
-        LOG.error(_LE("Unable to find 'kernel_id' and 'ramdisk_id' in Glance "
-                      "image %(image)s for generating boot ISO for %(node)s"),
+    if not kernel_href or not ramdisk_href:
+        LOG.error(_LE("Unable to find kernel or ramdisk for "
+                      "image %(image)s to generate boot ISO for %(node)s"),
                   {'image': image_href, 'node': task.node.uuid})
         return
 
@@ -123,7 +150,7 @@ def _get_boot_iso(task, root_uuid):
     # will require synchronisation across conductor nodes for the shared boot
     # ISO.  Such a synchronisation mechanism doesn't exist in ironic as of now.
 
-    # Option 2 - Create boot_iso from kernel/ramdisk, upload to Swift
+    # Option 3 - Create boot_iso from kernel/ramdisk, upload to Swift
     # and provide its name.
     boot_iso_object_name = _get_boot_iso_object_name(task.node)
     kernel_params = CONF.pxe.pxe_append_params
@@ -132,7 +159,7 @@ def _get_boot_iso(task, root_uuid):
     with tempfile.NamedTemporaryFile() as fileobj:
         boot_iso_tmp_file = fileobj.name
         images.create_boot_iso(task.context, boot_iso_tmp_file,
-                kernel_uuid, ramdisk_uuid, root_uuid, kernel_params)
+                kernel_href, ramdisk_href, root_uuid, kernel_params)
         swift_api = swift.SwiftAPI()
         swift_api.create_object(container, boot_iso_object_name,
                 boot_iso_tmp_file)
@@ -143,10 +170,12 @@ def _get_boot_iso(task, root_uuid):
 
 
 def _clean_up_boot_iso_for_instance(node):
-    """Deletes the boot ISO created in Swift for the instance.
+    """Deletes the boot ISO if it was created in Swift for the instance.
 
     :param node: an ironic node object.
     """
+    if not node.instance_info['ilo_boot_iso'].startswith('swift'):
+        return
     swift_api = swift.SwiftAPI()
     container = CONF.ilo.swift_ilo_container
     boot_iso_object_name = _get_boot_iso_object_name(node)
@@ -208,11 +237,14 @@ def _reboot_into(task, iso, ramdisk_options):
     arguments for ramdisk in virtual media floppy, and then reboots the node.
 
     :param task: a TaskManager instance containing the node to act on.
-    :param iso: a bootable ISO image to attach to.  The boot iso
-        should be present in either Glance or in Swift. If present in
-        Glance, it should be of format 'glance:<glance-image-uuid>'.
-        If present in Swift, it should be of format 'swift:<object-name>'.
-        It is assumed that object is present in CONF.ilo.swift_ilo_container.
+    :param iso: a bootable ISO image href to attach to. Should be either
+        of below:
+        * A Swift object - It should be of format 'swift:<object-name>'.
+          It is assumed that the image object is present in
+          CONF.ilo.swift_ilo_container;
+        * A Glance image - It should be format 'glance://<glance-image-uuid>'
+          or just <glance-image-uuid>;
+        * An HTTP URL.
     :param ramdisk_options: the options to be passed to the ramdisk in virtual
         media floppy.
     :raises: ImageCreationFailed, if it failed while creating the floppy image.
@@ -234,14 +266,17 @@ class IloVirtualMediaIscsiDeploy(base.DeployInterface):
         :param task: a TaskManager instance containing the node to act on.
         :raises: InvalidParameterValue, if some information is invalid.
         :raises: MissingParameterValue if 'kernel_id' and 'ramdisk_id' are
-            missing in the Glance image.
+            missing in the Glance image or 'kernel' and 'ramdisk' not provided
+            in instance_info for non-Glance image.
         """
         iscsi_deploy.validate(task)
 
-        props = ['kernel_id', 'ramdisk_id']
         d_info = _parse_deploy_info(task.node)
-        iscsi_deploy.validate_glance_image_properties(task.context, d_info,
-                                                      props)
+        if service_utils.is_glance_image(d_info['image_source']):
+            props = ['kernel_id', 'ramdisk_id']
+        else:
+            props = ['kernel', 'ramdisk']
+        iscsi_deploy.validate_image_properties(task.context, d_info, props)
         driver_utils.validate_boot_mode_capability(task.node)
 
     @task_manager.require_exclusive_lock
@@ -269,8 +304,7 @@ class IloVirtualMediaIscsiDeploy(base.DeployInterface):
         deploy_ramdisk_opts = iscsi_deploy.build_deploy_ramdisk_options(node)
         deploy_nic_mac = deploy_utils.get_single_nic_with_vif_port_id(task)
         deploy_ramdisk_opts['BOOTIF'] = deploy_nic_mac
-        deploy_iso_uuid = node.driver_info['ilo_deploy_iso']
-        deploy_iso = 'glance:' + deploy_iso_uuid
+        deploy_iso = node.driver_info['ilo_deploy_iso']
 
         _reboot_into(task, deploy_iso, deploy_ramdisk_opts)
 
@@ -347,8 +381,7 @@ class IloVirtualMediaAgentDeploy(base.DeployInterface):
         :raises: IloOperationError, if some operation on iLO fails.
         """
         deploy_ramdisk_opts = agent.build_agent_options(task.node)
-        deploy_iso_uuid = task.node.driver_info['ilo_deploy_iso']
-        deploy_iso = 'glance:' + deploy_iso_uuid
+        deploy_iso = task.node.driver_info['ilo_deploy_iso']
         _reboot_into(task, deploy_iso, deploy_ramdisk_opts)
 
         return states.DEPLOYWAIT
@@ -525,8 +558,9 @@ class VendorPassthru(base.VendorInterface):
                 manager_utils.node_set_boot_device(task, boot_devices.CDROM)
 
                 i_info = node.instance_info
-                i_info['ilo_boot_iso'] = boot_iso
-                node.instance_info = i_info
+                if not i_info.get('ilo_boot_iso'):
+                    i_info['ilo_boot_iso'] = boot_iso
+                    node.instance_info = i_info
 
             deploy_utils.notify_deploy_complete(kwargs.get('address'))
 

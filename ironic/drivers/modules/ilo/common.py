@@ -20,8 +20,10 @@ import tempfile
 
 from oslo_config import cfg
 from oslo_utils import importutils
+import six.moves.urllib.parse as urlparse
 
 from ironic.common import exception
+from ironic.common.glance_service import service_utils
 from ironic.common.i18n import _
 from ironic.common.i18n import _LE
 from ironic.common.i18n import _LI
@@ -358,11 +360,14 @@ def setup_vmedia_for_boot(task, boot_iso, parameters=None):
     the required parameters to it via virtual floppy image.
 
     :param task: a TaskManager instance containing the node to act on.
-    :param boot_iso: a bootable ISO image to attach to.  The boot iso
-        should be present in either Glance or in Swift. If present in
-        Glance, it should be of format 'glance:<glance-image-uuid>'.
-        If present in Swift, it should be of format 'swift:<object-name>'.
-        It is assumed that object is present in CONF.ilo.swift_ilo_container.
+    :param boot_iso: a bootable ISO image to attach to. Should be either
+        of below:
+        * A Swift object - It should be of format 'swift:<object-name>'.
+          It is assumed that the image object is present in
+          CONF.ilo.swift_ilo_container;
+        * A Glance image - It should be format 'glance://<glance-image-uuid>'
+          or just <glance-image-uuid>;
+        * An HTTP(S) URL.
     :param parameters: the parameters to pass in the virtual floppy image
         in a dictionary.  This is optional.
     :raises: ImageCreationFailed, if it failed while creating the floppy image.
@@ -376,21 +381,20 @@ def setup_vmedia_for_boot(task, boot_iso, parameters=None):
         floppy_image_temp_url = _prepare_floppy_image(task, parameters)
         attach_vmedia(task.node, 'FLOPPY', floppy_image_temp_url)
 
-    boot_iso_temp_url = None
-    scheme, boot_iso_ref = boot_iso.split(':')
-    if scheme == 'swift':
+    boot_iso_url = None
+    parsed_ref = urlparse.urlparse(boot_iso)
+    if parsed_ref.scheme == 'swift':
         swift_api = swift.SwiftAPI()
         container = CONF.ilo.swift_ilo_container
-        object_name = boot_iso_ref
+        object_name = parsed_ref.path
         timeout = CONF.ilo.swift_object_expiry_timeout
-        boot_iso_temp_url = swift_api.get_temp_url(container, object_name,
+        boot_iso_url = swift_api.get_temp_url(container, object_name,
                 timeout)
-    elif scheme == 'glance':
-        glance_uuid = boot_iso_ref
-        boot_iso_temp_url = images.get_temp_url_for_glance_image(task.context,
-                glance_uuid)
+    elif service_utils.is_glance_image(boot_iso):
+        boot_iso_url = images.get_temp_url_for_glance_image(task.context,
+                boot_iso)
 
-    attach_vmedia(task.node, 'CDROM', boot_iso_temp_url)
+    attach_vmedia(task.node, 'CDROM', boot_iso_url or boot_iso)
 
 
 def cleanup_vmedia_boot(task):

@@ -16,9 +16,13 @@ import os
 import time
 
 from oslo_config import cfg
+from oslo_utils import excutils
 
 from ironic.common import dhcp_factory
+from ironic.common import exception
+from ironic.common.glance_service import service_utils
 from ironic.common.i18n import _
+from ironic.common.i18n import _LE
 from ironic.common import image_service
 from ironic.common import keystone
 from ironic.common import paths
@@ -143,20 +147,33 @@ def build_instance_info_for_deploy(task):
     :param task: a TaskManager object containing the node
     :returns: a dictionary containing the properties to be updated
         in instance_info
+    :raises: exception.ImageRefValidationFailed if image_source is not
+        Glance href and is not HTTP(S) URL.
     """
     node = task.node
     instance_info = node.instance_info
 
-    glance = image_service.Service(version=2, context=task.context)
-    image_info = glance.show(instance_info['image_source'])
-    swift_temp_url = glance.swift_temp_url(image_info)
-    LOG.debug('Got image info: %(info)s for node %(node)s.',
-              {'info': image_info, 'node': node.uuid})
+    image_source = instance_info['image_source']
+    if service_utils.is_glance_image(image_source):
+        glance = image_service.GlanceImageService(version=2,
+                                                  context=task.context)
+        image_info = glance.show(image_source)
+        swift_temp_url = glance.swift_temp_url(image_info)
+        LOG.debug('Got image info: %(info)s for node %(node)s.',
+                  {'info': image_info, 'node': node.uuid})
+        instance_info['image_url'] = swift_temp_url
+        instance_info['image_checksum'] = image_info['checksum']
+        instance_info['image_disk_format'] = image_info['disk_format']
+        instance_info['image_container_format'] = (
+            image_info['container_format'])
+    else:
+        try:
+            image_service.HttpImageService().validate_href(image_source)
+        except exception.ImageRefValidationFailed:
+            with excutils.save_and_reraise_exception():
+                LOG.error(_LE("Agent deploy supports only HTTP(S) URLs."))
+        instance_info['image_url'] = image_source
 
-    instance_info['image_url'] = swift_temp_url
-    instance_info['image_checksum'] = image_info['checksum']
-    instance_info['image_disk_format'] = image_info['disk_format']
-    instance_info['image_container_format'] = image_info['container_format']
     return instance_info
 
 
@@ -186,11 +203,17 @@ class AgentDeploy(base.DeployInterface):
                                                               'deploy_kernel')
         params['driver_info.deploy_ramdisk'] = node.driver_info.get(
                                                               'deploy_ramdisk')
-        params['instance_info.image_source'] = node.instance_info.get(
-                                                               'image_source')
+        image_source = node.instance_info.get('image_source')
+        params['instance_info.image_source'] = image_source
         error_msg = _('Node %s failed to validate deploy image info. Some '
                       'parameters were missing') % node.uuid
         deploy_utils.check_for_missing_params(params, error_msg)
+
+        if not service_utils.is_glance_image(image_source):
+            if not node.instance_info.get('image_checksum'):
+                raise exception.MissingParameterValue(_(
+                    "image_source's image_checksum must be provided in "
+                    "instance_info for node %s") % node.uuid)
 
     @task_manager.require_exclusive_lock
     def deploy(self, task):

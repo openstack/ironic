@@ -19,8 +19,10 @@
 import os
 import tempfile
 import time
+import uuid
 
 import mock
+from oslo_utils import uuidutils
 
 from ironic.common import exception
 from ironic.common import image_service
@@ -43,7 +45,7 @@ class TestImageCacheFetch(base.TestCase):
         self.cache = image_cache.ImageCache(self.master_dir, None, None)
         self.dest_dir = tempfile.mkdtemp()
         self.dest_path = os.path.join(self.dest_dir, 'dest')
-        self.uuid = 'uuid'
+        self.uuid = uuidutils.generate_uuid()
         self.master_path = os.path.join(self.master_dir, self.uuid)
 
     @mock.patch.object(image_cache.ImageCache, 'clean_up')
@@ -51,10 +53,10 @@ class TestImageCacheFetch(base.TestCase):
     def test_fetch_image_no_master_dir(self, mock_download, mock_clean_up,
                                        mock_fetch):
         self.cache.master_dir = None
-        self.cache.fetch_image('uuid', self.dest_path)
+        self.cache.fetch_image(self.uuid, self.dest_path)
         self.assertFalse(mock_download.called)
         mock_fetch.assert_called_once_with(
-            None, 'uuid', self.dest_path, None, True)
+            None, self.uuid, self.dest_path, None, True)
         self.assertFalse(mock_clean_up.called)
 
     @mock.patch.object(os, 'unlink')
@@ -121,6 +123,21 @@ class TestImageCacheFetch(base.TestCase):
         self.assertFalse(mock_fetch.called)
         mock_download.assert_called_once_with(
             self.uuid, self.master_path, self.dest_path,
+            ctx=None, force_raw=True)
+        self.assertTrue(mock_clean_up.called)
+
+    @mock.patch.object(image_cache.ImageCache, 'clean_up')
+    @mock.patch.object(image_cache.ImageCache, '_download_image')
+    def test_fetch_image_not_uuid(self, mock_download, mock_clean_up,
+                                  mock_fetch):
+        href = u'http://abc.com/ubuntu.qcow2'
+        href_converted = str(uuid.uuid5(uuid.NAMESPACE_URL,
+                                        href.encode('utf-8')))
+        master_path = os.path.join(self.master_dir, href_converted)
+        self.cache.fetch_image(href, self.dest_path)
+        self.assertFalse(mock_fetch.called)
+        mock_download.assert_called_once_with(
+            href, master_path, self.dest_path,
             ctx=None, force_raw=True)
         self.assertTrue(mock_clean_up.called)
 
@@ -342,7 +359,7 @@ class TestImageCacheCleanUp(base.TestCase):
 
 @mock.patch.object(image_cache, '_cache_cleanup_list')
 @mock.patch.object(os, 'statvfs')
-@mock.patch.object(image_service, 'Service')
+@mock.patch.object(image_service, 'get_image_service')
 class CleanupImageCacheTestCase(base.TestCase):
 
     def setUp(self):

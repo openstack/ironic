@@ -21,6 +21,7 @@ Utility for caching master images.
 import os
 import tempfile
 import time
+import uuid
 
 from oslo_concurrency import lockutils
 from oslo_config import cfg
@@ -75,7 +76,8 @@ class ImageCache(object):
     def fetch_image(self, href, dest_path, ctx=None, force_raw=True):
         """Fetch image by given href to the destination path.
 
-        Does nothing if destination path exists.
+        Does nothing if destination path exists and corresponds to a file that
+        exists.
         Only creates a link if master image for this UUID is already in cache.
         Otherwise downloads an image and also stores it in cache.
 
@@ -98,7 +100,15 @@ class ImageCache(object):
 
         # TODO(ghe): have hard links and counts the same behaviour in all fs
 
-        master_file_name = service_utils.parse_image_ref(href)[0]
+        # NOTE(vdrok): File name is converted to UUID if it's not UUID already,
+        # so that two images with same file names do not collide
+        if service_utils.is_glance_image(href):
+            master_file_name = service_utils.parse_image_ref(href)[0]
+        else:
+            # NOTE(vdrok): Doing conversion of href in case it's unicode
+            # string, UUID cannot be generated for unicode strings on python 2.
+            master_file_name = str(uuid.uuid5(uuid.NAMESPACE_URL,
+                                              href.encode('utf-8')))
         master_path = os.path.join(self.master_dir, master_file_name)
 
         if CONF.parallel_image_downloads:

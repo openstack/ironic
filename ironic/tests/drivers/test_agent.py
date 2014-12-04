@@ -17,6 +17,7 @@ from oslo_config import cfg
 
 from ironic.common import dhcp_factory
 from ironic.common import exception
+from ironic.common import image_service
 from ironic.common import keystone
 from ironic.common import pxe_utils
 from ironic.common import states
@@ -56,6 +57,67 @@ class TestAgentMethods(db_base.DbTestCase):
         options = agent.build_agent_options(self.node)
         self.assertEqual('api-url', options['ipa-api-url'])
         self.assertEqual('fake_agent', options['ipa-driver-name'])
+
+    @mock.patch.object(image_service, 'GlanceImageService')
+    def test_build_instance_info_for_deploy_glance_image(self, glance_mock):
+        i_info = self.node.instance_info
+        i_info['image_source'] = 'image-uuid'
+        self.node.instance_info = i_info
+        self.node.save()
+
+        image_info = {'checksum': 'aa', 'disk_format': 'qcow2',
+                      'container_format': 'bare'}
+        glance_mock.return_value.show = mock.Mock(return_value=image_info)
+
+        mgr_utils.mock_the_extension_manager(driver='fake_agent')
+        with task_manager.acquire(
+                self.context, self.node.uuid, shared=False) as task:
+
+            agent.build_instance_info_for_deploy(task)
+
+            glance_mock.assert_called_once_with(version=2,
+                                                context=task.context)
+            glance_mock.return_value.show.assert_called_once_with(
+                self.node.instance_info['image_source'])
+            glance_mock.return_value.swift_temp_url.assert_called_once_with(
+                image_info)
+
+    @mock.patch.object(image_service.HttpImageService, 'validate_href')
+    def test_build_instance_info_for_deploy_nonglance_image(self,
+            validate_href_mock):
+        i_info = self.node.instance_info
+        i_info['image_source'] = 'http://image-ref'
+        i_info['image_checksum'] = 'aa'
+        self.node.instance_info = i_info
+        self.node.save()
+
+        mgr_utils.mock_the_extension_manager(driver='fake_agent')
+        with task_manager.acquire(
+                self.context, self.node.uuid, shared=False) as task:
+
+            info = agent.build_instance_info_for_deploy(task)
+
+            self.assertEqual(self.node.instance_info['image_source'],
+                             info['image_url'])
+            validate_href_mock.assert_called_once_with('http://image-ref')
+
+    @mock.patch.object(image_service.HttpImageService, 'validate_href')
+    def test_build_instance_info_for_deploy_nonsupported_image(self,
+            validate_href_mock):
+        validate_href_mock.side_effect = exception.ImageRefValidationFailed(
+            image_href='file://img.qcow2', reason='fail')
+        i_info = self.node.instance_info
+        i_info['image_source'] = 'file://img.qcow2'
+        i_info['image_checksum'] = 'aa'
+        self.node.instance_info = i_info
+        self.node.save()
+
+        mgr_utils.mock_the_extension_manager(driver='fake_agent')
+        with task_manager.acquire(
+                self.context, self.node.uuid, shared=False) as task:
+
+            self.assertRaises(exception.ImageRefValidationFailed,
+                              agent.build_instance_info_for_deploy, task)
 
 
 class TestAgentDeploy(db_base.DbTestCase):
@@ -98,6 +160,18 @@ class TestAgentDeploy(db_base.DbTestCase):
             e = self.assertRaises(exception.MissingParameterValue,
                                   self.driver.validate, task)
         self.assertIn('instance_info.image_source', str(e))
+
+    def test_validate_nonglance_image_no_checksum(self):
+        i_info = self.node.instance_info
+        i_info['image_source'] = 'http://image-ref'
+        del i_info['image_checksum']
+        self.node.instance_info = i_info
+        self.node.save()
+
+        with task_manager.acquire(
+                self.context, self.node.uuid, shared=False) as task:
+            self.assertRaises(exception.MissingParameterValue,
+                              self.driver.validate, task)
 
     @mock.patch.object(dhcp_factory.DHCPFactory, 'update_dhcp')
     @mock.patch('ironic.conductor.utils.node_set_boot_device')
@@ -177,14 +251,13 @@ class TestAgentVendor(db_base.DbTestCase):
                              task.node.target_provision_state)
 
     def test_continue_deploy_image_source_is_url(self):
-        self.node.instance_info['image_source'] = 'glance://fake-image'
         self.node.provision_state = states.DEPLOYWAIT
         self.node.target_provision_state = states.ACTIVE
         self.node.save()
         test_temp_url = 'http://image'
         expected_image_info = {
             'urls': [test_temp_url],
-            'id': 'fake-image',
+            'id': self.node.instance_info['image_source'],
             'checksum': 'checksum',
             'disk_format': 'qcow2',
             'container_format': 'bare',

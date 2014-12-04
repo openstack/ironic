@@ -106,7 +106,7 @@ class TestGlanceImageService(base.TestCase):
         self.context = context.RequestContext(auth_token=True)
         self.context.user_id = 'fake'
         self.context.project_id = 'fake'
-        self.service = service.Service(client, 1, self.context)
+        self.service = service.GlanceImageService(client, 1, self.context)
 
         self.config(glance_host='localhost', group='glance')
         try:
@@ -474,7 +474,7 @@ class TestGlanceImageService(base.TestCase):
         stub_context = context.RequestContext(auth_token=True)
         stub_context.user_id = 'fake'
         stub_context.project_id = 'fake'
-        stub_service = service.Service(stub_client, 1, stub_context)
+        stub_service = service.GlanceImageService(stub_client, 1, stub_context)
         image_id = 1  # doesn't matter
         writer = NullWriter()
 
@@ -513,9 +513,9 @@ class TestGlanceImageService(base.TestCase):
         (outfd, tmpfname) = tempfile.mkstemp(prefix='directURLdst')
         writer = os.fdopen(outfd, 'w')
 
-        stub_service = service.Service(stub_client,
-                                       context=stub_context,
-                                       version=2)
+        stub_service = service.GlanceImageService(stub_client,
+                                                  context=stub_context,
+                                                  version=2)
         image_id = 1  # doesn't matter
 
         self.config(allowed_direct_url_schemes=['file'], group='glance')
@@ -539,7 +539,7 @@ class TestGlanceImageService(base.TestCase):
         stub_context = context.RequestContext(auth_token=True)
         stub_context.user_id = 'fake'
         stub_context.project_id = 'fake'
-        stub_service = service.Service(stub_client, 1, stub_context)
+        stub_service = service.GlanceImageService(stub_client, 1, stub_context)
         image_id = 1  # doesn't matter
         writer = NullWriter()
         self.assertRaises(exception.ImageNotAuthorized, stub_service.download,
@@ -555,7 +555,7 @@ class TestGlanceImageService(base.TestCase):
         stub_context = context.RequestContext(auth_token=True)
         stub_context.user_id = 'fake'
         stub_context.project_id = 'fake'
-        stub_service = service.Service(stub_client, 1, stub_context)
+        stub_service = service.GlanceImageService(stub_client, 1, stub_context)
         image_id = 1  # doesn't matter
         writer = NullWriter()
         self.assertRaises(exception.ImageNotAuthorized, stub_service.download,
@@ -571,7 +571,7 @@ class TestGlanceImageService(base.TestCase):
         stub_context = context.RequestContext(auth_token=True)
         stub_context.user_id = 'fake'
         stub_context.project_id = 'fake'
-        stub_service = service.Service(stub_client, 1, stub_context)
+        stub_service = service.GlanceImageService(stub_client, 1, stub_context)
         image_id = 1  # doesn't matter
         writer = NullWriter()
         self.assertRaises(exception.ImageNotFound, stub_service.download,
@@ -587,7 +587,7 @@ class TestGlanceImageService(base.TestCase):
         stub_context = context.RequestContext(auth_token=True)
         stub_context.user_id = 'fake'
         stub_context.project_id = 'fake'
-        stub_service = service.Service(stub_client, 1, stub_context)
+        stub_service = service.GlanceImageService(stub_client, 1, stub_context)
         image_id = 1  # doesn't matter
         writer = NullWriter()
         self.assertRaises(exception.ImageNotFound, stub_service.download,
@@ -643,7 +643,7 @@ class TestGlanceSwiftTempURL(base.TestCase):
         super(TestGlanceSwiftTempURL, self).setUp()
         client = stubs.StubGlanceClient()
         self.context = context.RequestContext()
-        self.service = service.Service(client, 2, self.context)
+        self.service = service.GlanceImageService(client, 2, self.context)
         self.config(swift_temp_url_key='correcthorsebatterystaple',
                     group='glance')
         self.config(swift_endpoint_url='https://swift.example.com',
@@ -794,6 +794,16 @@ class TestServiceUtils(base.TestCase):
         generated_url = service_utils.generate_image_url(image_href)
         self.assertEqual('https://123.123.123.123:1234/images/image_uuid',
                          generated_url)
+
+    def test_is_glance_image(self):
+        image_href = 'uuid'
+        self.assertTrue(service_utils.is_glance_image(image_href))
+        image_href = 'glance://uuid'
+        self.assertTrue(service_utils.is_glance_image(image_href))
+        image_href = 'http://aaa/bbb'
+        self.assertFalse(service_utils.is_glance_image(image_href))
+        image_href = None
+        self.assertFalse(service_utils.is_glance_image(image_href))
 
 
 class TestGlanceAPIServers(base.TestCase):
