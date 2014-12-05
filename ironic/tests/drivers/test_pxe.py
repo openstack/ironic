@@ -145,17 +145,23 @@ class PXEPrivateMethodsTestCase(db_base.DbTestCase):
         self.assertEqual('instance_ramdisk_uuid',
                          self.node.instance_info.get('ramdisk'))
 
-    @mock.patch.object(utils, 'random_alnum')
+    @mock.patch.object(iscsi_deploy, 'build_deploy_ramdisk_options')
     @mock.patch.object(pxe_utils, '_build_pxe_config')
-    def _test_build_pxe_config_options(self, build_pxe_mock, random_alnum_mock,
+    def _test_build_pxe_config_options(self, build_pxe_mock, deploy_opts_mock,
                                         ipxe_enabled=False):
         self.config(pxe_append_params='test_param', group='pxe')
         # NOTE: right '/' should be removed from url string
         self.config(api_url='http://192.168.122.184:6385/', group='conductor')
         self.config(disk_devices='sda', group='pxe')
 
-        fake_key = '0123456789ABCDEFGHIJKLMNOPQRSTUV'
-        random_alnum_mock.return_value = fake_key
+        fake_deploy_opts = {'iscsi_target_iqn': 'fake-iqn',
+                            'deployment_id': 'fake-deploy-id',
+                            'deployment_key': 'fake-deploy-key',
+                            'disk': 'fake-disk',
+                            'ironic_api_url': 'fake-api-url'}
+
+        deploy_opts_mock.return_value = fake_deploy_opts
+
         tftp_server = CONF.pxe.tftp_server
 
         if ipxe_enabled:
@@ -182,19 +188,15 @@ class PXEPrivateMethodsTestCase(db_base.DbTestCase):
             root_dir = CONF.pxe.tftp_root
 
         expected_options = {
-            'deployment_key': '0123456789ABCDEFGHIJKLMNOPQRSTUV',
             'ari_path': ramdisk,
-            'iscsi_target_iqn': u'iqn-1be26c0b-03f2-4d2e-ae87-c02d7f33'
-                                u'c123',
             'deployment_ari_path': deploy_ramdisk,
             'pxe_append_params': 'test_param',
             'aki_path': kernel,
-            'deployment_id': u'1be26c0b-03f2-4d2e-ae87-c02d7f33c123',
-            'ironic_api_url': 'http://192.168.122.184:6385',
             'deployment_aki_path': deploy_kernel,
-            'disk': 'sda',
             'tftp_server': tftp_server
         }
+
+        expected_options.update(fake_deploy_opts)
 
         image_info = {'deploy_kernel': ('deploy_kernel',
                                         os.path.join(root_dir,
@@ -217,13 +219,6 @@ class PXEPrivateMethodsTestCase(db_base.DbTestCase):
                                                 image_info,
                                                 self.context)
         self.assertEqual(expected_options, options)
-
-        random_alnum_mock.assert_called_once_with(32)
-
-        # test that deploy_key saved
-        db_node = self.dbapi.get_node_by_uuid(self.node.uuid)
-        db_key = db_node.instance_info.get('deploy_key')
-        self.assertEqual(fake_key, db_key)
 
     def test__build_pxe_config_options(self):
         self._test_build_pxe_config_options(ipxe_enabled=False)
