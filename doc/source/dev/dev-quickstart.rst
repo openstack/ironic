@@ -10,7 +10,7 @@ an OpenStack project.
 
 .. seealso::
 
-    https://wiki.openstack.org/wiki/GerritWorkflow
+    http://docs.openstack.org/infra/manual/developers.html#development-workflow
 
 Install prerequisites::
 
