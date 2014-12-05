@@ -26,11 +26,6 @@ Additional resources are linked from the project wiki page:
   https://wiki.openstack.org/wiki/Ironic
 
 Anyone wishing to contribute to an OpenStack project should
-find plenty of helpful resources here:
+find a good reference here:
 
-  https://wiki.openstack.org/wiki/HowToContribute
-
-All OpenStack projects use Gerrit for code reviews.
-A good reference for that is here:
-
-  https://wiki.openstack.org/wiki/GerritWorkflow
+  http://docs.openstack.org/infra/manual/developers.html
