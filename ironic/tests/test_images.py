@@ -432,9 +432,9 @@ class FsImageTestCase(base.TestCase):
                                'ramdisk-uuid', 'root-uuid', 'kernel-params')
 
         fetch_images_mock.assert_any_call('ctx', 'kernel-uuid',
-                'tmpdir/kernel-uuid', True)
+                'tmpdir/kernel-uuid')
         fetch_images_mock.assert_any_call('ctx', 'ramdisk-uuid',
-                'tmpdir/ramdisk-uuid', True)
+                'tmpdir/ramdisk-uuid')
         params = ['root=UUID=root-uuid', 'kernel-params']
         create_isolinux_mock.assert_called_once_with('output_file',
                 'tmpdir/kernel-uuid', 'tmpdir/ramdisk-uuid', params)
