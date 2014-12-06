@@ -273,8 +273,6 @@ class SSHPrivateMethodsTestCase(db_base.DbTestCase):
 
         info = ssh._parse_driver_info(self.node)
 
-        exec_ssh_mock.return_value = (
-            '"NodeName" {b43c4982-110c-4c29-9325-d5f41b053513}', '')
         info['macs'] = ["11:11:11:11:11:11", "52:54:00:cf:2d:31"]
         get_hosts_name_mock.return_value = None
         self.assertRaises(exception.NodeNotFound,
@@ -282,11 +280,8 @@ class SSHPrivateMethodsTestCase(db_base.DbTestCase):
                           self.sshclient,
                           info)
 
-        ssh_cmd = "%s %s" % (info['cmd_set']['base_cmd'],
-                             info['cmd_set']['list_running'])
-
-        exec_ssh_mock.assert_called_once_with(self.sshclient, ssh_cmd)
         get_hosts_name_mock.assert_called_once_with(self.sshclient, info)
+        exec_ssh_mock.assert_not_called()
 
     @mock.patch.object(processutils, 'ssh_execute')
     def test__get_power_status_exception(self, exec_ssh_mock):
@@ -298,7 +293,7 @@ class SSHPrivateMethodsTestCase(db_base.DbTestCase):
                           self.sshclient,
                           info)
         ssh_cmd = "%s %s" % (info['cmd_set']['base_cmd'],
-                             info['cmd_set']['list_running'])
+                             info['cmd_set']['list_all'])
         exec_ssh_mock.assert_called_once_with(
                 self.sshclient, ssh_cmd)
 
@@ -928,6 +923,24 @@ class SSHDriverTestCase(db_base.DbTestCase):
             expected = {'boot_device': None, 'persistent': None}
             self.assertEqual(expected,
                              self.driver.management.get_boot_device(task))
+
+    @mock.patch.object(ssh, '_get_connection')
+    @mock.patch.object(ssh, '_get_hosts_name_for_node')
+    @mock.patch.object(ssh, '_ssh_execute')
+    def test_get_power_state_vmware(self, mock_exc, mock_h, mock_get_conn):
+        # To see replacing {_NodeName_} in vmware's list_running
+        nodename = 'fakevm'
+        mock_h.return_value = nodename
+        mock_get_conn.return_value = self.sshclient
+        mock_exc.return_value = (nodename, '')
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            task.node['driver_info']['ssh_virt_type'] = 'vmware'
+            power_state = self.driver.power.get_power_state(task)
+            self.assertEqual(states.POWER_ON, power_state)
+        expected_cmd = ("LC_ALL=C /bin/vim-cmd vmsvc/power.getstate "
+                        "%(node)s | grep 'Powered on' >/dev/null && "
+                        "echo '\"%(node)s\"' || true") % {'node': nodename}
+        mock_exc.assert_called_once_with(mock.ANY, expected_cmd)
 
     def test_management_interface_validate_good(self):
         with task_manager.acquire(self.context, self.node.uuid) as task:

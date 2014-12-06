@@ -341,13 +341,14 @@ def _get_power_status(ssh_obj, driver_info):
 
     """
     power_state = None
-    cmd_to_exec = "%s %s" % (driver_info['cmd_set']['base_cmd'],
-                             driver_info['cmd_set']['list_running'])
-    running_list = _ssh_execute(ssh_obj, cmd_to_exec)
-    # Command should return a list of running vms. If the current node is
-    # not listed then we can assume it is not powered on.
     node_name = _get_hosts_name_for_node(ssh_obj, driver_info)
     if node_name:
+        # Get a list of vms running on the host. If the command supports
+        # it, explicitly specify the desired node."
+        cmd_to_exec = "%s %s" % (driver_info['cmd_set']['base_cmd'],
+                                 driver_info['cmd_set']['list_running'])
+        cmd_to_exec = cmd_to_exec.replace('{_NodeName_}', node_name)
+        running_list = _ssh_execute(ssh_obj, cmd_to_exec)
         for node in running_list:
             if not node:
                 continue
