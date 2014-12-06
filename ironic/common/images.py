@@ -23,8 +23,8 @@ import os
 import shutil
 
 import jinja2
-from oslo.concurrency import processutils
 from oslo.config import cfg
+from oslo_concurrency import processutils
 
 from ironic.common import exception
 from ironic.common.i18n import _

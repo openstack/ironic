@@ -23,8 +23,8 @@ import uuid
 
 import mock
 import netaddr
-from oslo.concurrency import processutils
 from oslo.config import cfg
+from oslo_concurrency import processutils
 import six
 import six.moves.builtins as __builtin__
 
