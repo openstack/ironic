@@ -400,7 +400,7 @@ class AgentVendorInterface(base.VendorInterface):
         LOG.debug('Continuing deploy for %s', node.uuid)
 
         image_info = {
-            'id': image_source,
+            'id': image_source.split('/')[-1],
             'urls': [node.instance_info['image_url']],
             'checksum': node.instance_info['image_checksum'],
             # NOTE(comstud): Older versions of ironic do not set
