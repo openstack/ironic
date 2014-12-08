@@ -348,13 +348,13 @@ class AgentVendorInterface(base.VendorInterface):
         """Method for agent to periodically check in.
 
         The agent should be sending its agent_url (so Ironic can talk back)
-        as a kwarg.
+        as a kwarg. kwargs should have the following format::
 
-        kwargs should have the following format:
-        {
-            'agent_url': 'http://AGENT_HOST:AGENT_PORT'
-        }
-                AGENT_PORT defaults to 9999.
+         {
+             'agent_url': 'http://AGENT_HOST:AGENT_PORT'
+         }
+
+        AGENT_PORT defaults to 9999.
         """
         node = task.node
         driver_info = node.driver_info
@@ -464,21 +464,21 @@ class AgentVendorInterface(base.VendorInterface):
         Currently, we don't handle the instance where the agent doesn't have
         a matching node (i.e. a brand new, never been in Ironic node).
 
-        kwargs should have the following format:
-        {
-            "version": "2"
-            "inventory": {
-                "interfaces": [
-                    {
-                        "name": "eth0",
-                        "mac_address": "00:11:22:33:44:55",
-                        "switch_port_descr": "port24"
-                        "switch_chassis_descr": "tor1"
-                    },
-                    ...
-                ], ...
-            }
-        }
+        kwargs should have the following format::
+
+         {
+             "version": "2"
+             "inventory": {
+                 "interfaces": [
+                     {
+                         "name": "eth0",
+                         "mac_address": "00:11:22:33:44:55",
+                         "switch_port_descr": "port24"
+                         "switch_chassis_descr": "tor1"
+                     }, ...
+                 ], ...
+             }
+         }
 
         The interfaces list should include a list of the non-IPMI MAC addresses
         in the form aa:bb:cc:dd:ee:ff.
