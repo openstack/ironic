@@ -352,8 +352,8 @@ def create_boot_iso(context, output_filename, kernel_uuid,
     with utils.tempdir() as tmpdir:
         kernel_path = os.path.join(tmpdir, kernel_uuid)
         ramdisk_path = os.path.join(tmpdir, ramdisk_uuid)
-        fetch(context, kernel_uuid, kernel_path, CONF.force_raw_images)
-        fetch(context, ramdisk_uuid, ramdisk_path, CONF.force_raw_images)
+        fetch(context, kernel_uuid, kernel_path)
+        fetch(context, ramdisk_uuid, ramdisk_path)
 
         params = []
         if root_uuid:
