@@ -240,7 +240,7 @@ station.  Deploying Ironic with DevStack requires a machine running Ubuntu
 
 .. seealso::
 
-    https://devstack.org
+    http://docs.openstack.org/developer/devstack/
 
 Devstack will no longer create the user 'stack' with the desired
 permissions, but does provide a script to perform the task::
@@ -256,7 +256,7 @@ Switch to the stack user and clone DevStack::
 
 Create devstack/localrc with minimal settings required to enable Ironic.
 Note that Ironic under devstack can only support running *either* the PXE
-or the agent driver, not both.::
+or the agent driver, not both. The default is the PXE driver.::
 
     cd devstack
     cat >localrc <<END
@@ -310,7 +310,8 @@ or the agent driver, not both.::
 
     END
 
-If running with the agent driver::
+If running with the agent driver (instead of PXE driver), add these additional
+settings to localrc::
 
     cat >>localrc <<END
     # Agent driver requires swift with tempurls
