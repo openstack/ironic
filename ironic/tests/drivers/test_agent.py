@@ -154,8 +154,7 @@ class TestAgentVendor(db_base.DbTestCase):
                           self.passthru.driver_validate,
                           method, **kwargs)
 
-    @mock.patch('ironic.common.image_service.Service')
-    def test_continue_deploy(self, image_service_mock):
+    def test_continue_deploy(self):
         test_temp_url = 'http://image'
         expected_image_info = {
             'urls': [test_temp_url],
@@ -166,12 +165,31 @@ class TestAgentVendor(db_base.DbTestCase):
         }
 
         client_mock = mock.Mock()
-        glance_mock = mock.Mock()
-        glance_mock.show.return_value = {}
-        glance_mock.swift_temp_url.return_value = test_temp_url
-        image_service_mock.return_value = glance_mock
-
         self.passthru._client = client_mock
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                      shared=False) as task:
+            self.passthru._continue_deploy(task)
+
+            client_mock.prepare_image.assert_called_with(task.node,
+                expected_image_info)
+            self.assertEqual(task.node.provision_state, states.DEPLOYING)
+
+    def test_continue_deploy_image_source_is_url(self):
+        self.node.instance_info['image_source'] = 'glance://fake-image'
+        self.node.save()
+        test_temp_url = 'http://image'
+        expected_image_info = {
+            'urls': [test_temp_url],
+            'id': 'fake-image',
+            'checksum': 'checksum',
+            'disk_format': 'qcow2',
+            'container_format': 'bare',
+        }
+
+        client_mock = mock.Mock()
+        self.passthru._client = client_mock
+
         with task_manager.acquire(self.context, self.node.uuid,
                                       shared=False) as task:
             self.passthru._continue_deploy(task)
