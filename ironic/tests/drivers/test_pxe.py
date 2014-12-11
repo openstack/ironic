@@ -120,12 +120,12 @@ class PXEPrivateMethodsTestCase(db_base.DbTestCase):
                                        self.node.uuid,
                                        'kernel')),
                          'deploy_ramdisk':
-                         ('deploy_ramdisk_uuid',
+                         (DRV_INFO_DICT['pxe_deploy_ramdisk'],
                            os.path.join(CONF.pxe.tftp_root,
                                         self.node.uuid,
                                         'deploy_ramdisk')),
                          'deploy_kernel':
-                         ('deploy_kernel_uuid',
+                         (DRV_INFO_DICT['pxe_deploy_kernel'],
                           os.path.join(CONF.pxe.tftp_root,
                                        self.node.uuid,
                                        'deploy_kernel'))}

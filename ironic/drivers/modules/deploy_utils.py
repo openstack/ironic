@@ -424,7 +424,7 @@ def fetch_images(ctx, cache, images_info, force_raw=True):
 
     :param ctx: context
     :param cache: ImageCache instance to use for fetching
-    :param images_info: list of tuples (image uuid, destination path)
+    :param images_info: list of tuples (image href, destination path)
     :param force_raw: boolean value, whether to convert the image to raw
                       format
     :raises: InstanceDeployFailure if unable to find enough disk space
@@ -439,5 +439,5 @@ def fetch_images(ctx, cache, images_info, force_raw=True):
     # if disk space is used between the check and actual download.
     # This is probably unavoidable, as we can't control other
     # (probably unrelated) processes
-    for uuid, path in images_info:
-        cache.fetch_image(uuid, path, ctx=ctx, force_raw=force_raw)
+    for href, path in images_info:
+        cache.fetch_image(href, path, ctx=ctx, force_raw=force_raw)
