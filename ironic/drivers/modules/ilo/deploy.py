@@ -512,11 +512,10 @@ class VendorPassthru(base.VendorInterface):
 
         :param task: a TaskManager instance containing the node to act on.
         :param kwargs: kwargs containing parameters for iSCSI deployment.
+        :raises: InvalidState
         """
         node = task.node
-        if node.provision_state != states.DEPLOYWAIT:
-            LOG.error(_LE('Node %s is not waiting to be deployed.'), node.uuid)
-            return
+        task.process_event('resume')
 
         ilo_common.cleanup_vmedia_boot(task)
         root_uuid = iscsi_deploy.continue_deploy(task, **kwargs)
@@ -537,14 +536,12 @@ class VendorPassthru(base.VendorInterface):
             address = kwargs.get('address')
             deploy_utils.notify_deploy_complete(address)
 
-            node.provision_state = states.ACTIVE
-            node.target_provision_state = states.NOSTATE
+            LOG.info(_LI('Deployment to node %s done'), node.uuid)
 
             i_info = node.instance_info
             i_info['ilo_boot_iso'] = boot_iso
             node.instance_info = i_info
-            node.save()
-            LOG.info(_LI('Deployment to node %s done'), node.uuid)
+            task.process_event('done')
         except Exception as e:
             LOG.error(_LE('Deploy failed for instance %(instance)s. '
                           'Error: %(error)s'),

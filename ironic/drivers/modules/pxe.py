@@ -456,12 +456,10 @@ class VendorPassthru(base.VendorInterface):
 
         :param task: a TaskManager instance containing the node to act on.
         :param kwargs: kwargs for performing iscsi deployment.
+        :raises: InvalidState
         """
         node = task.node
-
-        if node.provision_state != states.DEPLOYWAIT:
-            LOG.error(_LE('Node %s is not waiting to be deployed.'), node.uuid)
-            return
+        task.process_event('resume')
 
         _destroy_token_file(node)
 
@@ -478,11 +476,8 @@ class VendorPassthru(base.VendorInterface):
             deploy_utils.notify_deploy_complete(kwargs['address'])
 
             LOG.info(_LI('Deployment to node %s done'), node.uuid)
-            node.provision_state = states.ACTIVE
-            node.target_provision_state = states.NOSTATE
-            node.save()
+            task.process_event('done')
         except Exception as e:
-
             LOG.error(_LE('Deploy failed for instance %(instance)s. '
                           'Error: %(error)s'),
                       {'instance': node.instance_uuid, 'error': e})

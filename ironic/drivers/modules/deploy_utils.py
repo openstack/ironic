@@ -454,11 +454,11 @@ def set_failed_state(task, msg):
 
     :param task: a TaskManager instance containing the node to act on.
     :param msg: the message to set in last_error of the node.
+    :raises: InvalidState if the event is not allowed by the associated
+             state machine.
     """
+    task.process_event('fail')
     node = task.node
-    node.provision_state = states.DEPLOYFAIL
-    node.target_provision_state = states.NOSTATE
-    node.save()
     try:
         manager_utils.node_power_action(task, states.POWER_OFF)
     except Exception:

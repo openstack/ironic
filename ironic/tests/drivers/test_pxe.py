@@ -675,7 +675,8 @@ class PXEDriverTestCase(db_base.DbTestCase):
         self.node.save()
 
         with task_manager.acquire(self.context, self.node.uuid) as task:
-            task.driver.vendor._continue_deploy(
+            self.assertRaises(exception.InvalidState,
+                    task.driver.vendor._continue_deploy,
                     task, address='123456', iqn='aaa-bbb',
                     key='fake-56789', error='test ramdisk error')
 
