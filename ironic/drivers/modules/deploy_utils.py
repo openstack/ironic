@@ -29,7 +29,9 @@ from ironic.common import exception
 from ironic.common.i18n import _
 from ironic.common.i18n import _LE
 from ironic.common import images
+from ironic.common import states
 from ironic.common import utils
+from ironic.conductor import utils as manager_utils
 from ironic.drivers.modules import image_cache
 from ironic.openstack.common import log as logging
 
@@ -441,3 +443,32 @@ def fetch_images(ctx, cache, images_info, force_raw=True):
     # (probably unrelated) processes
     for href, path in images_info:
         cache.fetch_image(href, path, ctx=ctx, force_raw=force_raw)
+
+
+def set_failed_state(task, msg):
+    """Sets the deploy status as failed with relevant messages.
+
+    This method sets the deployment as fail with the given message.
+    It sets node's provision_state to DEPLOYFAIL and updates last_error
+    with the given error message. It also powers off the baremetal node.
+
+    :param task: a TaskManager instance containing the node to act on.
+    :param msg: the message to set in last_error of the node.
+    """
+    node = task.node
+    node.provision_state = states.DEPLOYFAIL
+    node.target_provision_state = states.NOSTATE
+    node.save()
+    try:
+        manager_utils.node_power_action(task, states.POWER_OFF)
+    except Exception:
+        msg2 = (_LE('Node %s failed to power off while handling deploy '
+                    'failure. This may be a serious condition. Node '
+                    'should be removed from Ironic or put in maintenance '
+                    'mode until the problem is resolved.') % node.uuid)
+        LOG.exception(msg2)
+    finally:
+        # NOTE(deva): node_power_action() erases node.last_error
+        #             so we need to set it again here.
+        node.last_error = msg
+        node.save()

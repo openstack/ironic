@@ -487,4 +487,4 @@ class VendorPassthru(base.VendorInterface):
                           'Error: %(error)s'),
                       {'instance': node.instance_uuid, 'error': e})
             msg = _('Failed to continue iSCSI deployment.')
-            iscsi_deploy.set_failed_state(task, msg)
+            deploy_utils.set_failed_state(task, msg)

@@ -22,6 +22,7 @@ from ironic.common import pxe_utils
 from ironic.common import states
 from ironic.conductor import task_manager
 from ironic.drivers.modules import agent
+from ironic.drivers.modules import deploy_utils
 from ironic import objects
 from ironic.tests.conductor import utils as mgr_utils
 from ironic.tests.db import base as db_base
@@ -388,7 +389,7 @@ class TestAgentVendor(db_base.DbTestCase):
             self.assertRaises(exception.MissingParameterValue,
                               self.passthru.heartbeat, task, **kwargs)
 
-    @mock.patch.object(agent, '_set_failed_state')
+    @mock.patch.object(deploy_utils, 'set_failed_state')
     @mock.patch.object(agent.AgentVendorInterface, '_deploy_is_done')
     def test_heartbeat_deploy_done_fails(self, done_mock, failed_mock):
         kwargs = {

@@ -26,7 +26,6 @@ from ironic.common import image_service as service
 from ironic.common import keystone
 from ironic.common import states
 from ironic.common import utils
-from ironic.conductor import utils as manager_utils
 from ironic.drivers.modules import deploy_utils
 from ironic.drivers.modules import image_cache
 from ironic.drivers import utils as driver_utils
@@ -243,35 +242,6 @@ def get_deploy_info(node, **kwargs):
     return params
 
 
-def set_failed_state(task, msg):
-    """Sets the deploy status as failed with relevant messages.
-
-    This method sets the deployment as fail with the given message.
-    It sets node's provision_state to DEPLOYFAIL and updates last_error
-    with the given error message. It also powers off the baremetal node.
-
-    :param task: a TaskManager instance containing the node to act on.
-    :param msg: the message to set in last_error of the node.
-    """
-    node = task.node
-    node.provision_state = states.DEPLOYFAIL
-    node.target_provision_state = states.NOSTATE
-    node.save()
-    try:
-        manager_utils.node_power_action(task, states.POWER_OFF)
-    except Exception:
-        msg2 = (_('Node %s failed to power off while handling deploy '
-                 'failure. This may be a serious condition. Node '
-                 'should be removed from Ironic or put in maintenance '
-                 'mode until the problem is resolved.') % node.uuid)
-        LOG.exception(msg2)
-    finally:
-        # NOTE(deva): node_power_action() erases node.last_error
-        #             so we need to set it again here.
-        node.last_error = msg
-        node.save()
-
-
 def continue_deploy(task, **kwargs):
     """Resume a deployment upon getting POST data from deploy ramdisk.
 
@@ -293,7 +263,7 @@ def continue_deploy(task, **kwargs):
     if ramdisk_error:
         LOG.error(_LE('Error returned from deploy ramdisk: %s'),
                   ramdisk_error)
-        set_failed_state(task, _('Failure in deploy ramdisk.'))
+        deploy_utils.set_failed_state(task, _('Failure in deploy ramdisk.'))
         destroy_images(node.uuid)
         return
 
@@ -307,7 +277,8 @@ def continue_deploy(task, **kwargs):
         LOG.error(_LE('Deploy failed for instance %(instance)s. '
                       'Error: %(error)s'),
                   {'instance': node.instance_uuid, 'error': e})
-        set_failed_state(task, _('Failed to continue iSCSI deployment.'))
+        deploy_utils.set_failed_state(task, _('Failed to continue '
+                                              'iSCSI deployment.'))
 
     destroy_images(node.uuid)
     return root_uuid

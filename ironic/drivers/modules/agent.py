@@ -114,34 +114,6 @@ def _get_tftp_image_info(node):
     return pxe_utils.get_deploy_kr_info(node.uuid, node.driver_info)
 
 
-def _set_failed_state(task, msg):
-    """Set a node's error state and provision state to signal Nova.
-
-    When deploy steps aren't called by explicitly the conductor, but are
-    the result of callbacks, we need to set the node's state explicitly.
-    This tells Nova to change the instance's status so the user can see
-    their deploy/tear down had an issue and makes debugging/deleting Nova
-    instances easier.
-    """
-    node = task.node
-    node.provision_state = states.DEPLOYFAIL
-    node.target_provision_state = states.NOSTATE
-    node.save()
-    try:
-        manager_utils.node_power_action(task, states.POWER_OFF)
-    except Exception:
-        msg = (_('Node %s failed to power off while handling deploy '
-                 'failure. This may be a serious condition. Node '
-                 'should be removed from Ironic or put in maintenance '
-                 'mode until the problem is resolved.') % node.uuid)
-        LOG.error(msg)
-    finally:
-        # NOTE(deva): node_power_action() erases node.last_error
-        #             so we need to set it again here.
-        node.last_error = msg
-        node.save()
-
-
 @image_cache.cleanup(priority=25)
 class AgentTFTPImageCache(image_cache.ImageCache):
     def __init__(self, image_service=None):
@@ -388,7 +360,7 @@ class AgentVendorInterface(base.VendorInterface):
             LOG.exception(_LE('Async exception for %(node)s: %(msg)s'),
                           {'node': node,
                            'msg': msg})
-            _set_failed_state(task, msg)
+            deploy_utils.set_failed_state(task, msg)
 
     def _deploy_is_done(self, node):
         return self._client.deploy_is_done(node)
@@ -438,7 +410,7 @@ class AgentVendorInterface(base.VendorInterface):
             msg = _('node %(node)s command status errored: %(error)s') % (
                    {'node': node.uuid, 'error': error})
             LOG.error(msg)
-            _set_failed_state(task, msg)
+            deploy_utils.set_failed_state(task, msg)
             return
 
         LOG.debug('Rebooting node %s to disk', node.uuid)
