@@ -49,6 +49,54 @@ class MacAddressType(wtypes.UserType):
         return MacAddressType.validate(value)
 
 
+class UuidOrNameType(wtypes.UserType):
+    """A simple UUID or logical name type."""
+
+    basetype = wtypes.text
+    name = 'uuid_or_name'
+    # FIXME(lucasagomes): When used with wsexpose decorator WSME will try
+    # to get the name of the type by accessing it's __name__ attribute.
+    # Remove this __name__ attribute once it's fixed in WSME.
+    # https://bugs.launchpad.net/wsme/+bug/1265590
+    __name__ = name
+
+    @staticmethod
+    def validate(value):
+        if not (utils.is_uuid_like(value) or utils.is_hostname_safe(value)):
+            raise exception.InvalidUuidOrName(name=value)
+        return value
+
+    @staticmethod
+    def frombasetype(value):
+        if value is None:
+            return None
+        return UuidOrNameType.validate(value)
+
+
+class NameType(wtypes.UserType):
+    """A simple logical name type."""
+
+    basetype = wtypes.text
+    name = 'name'
+    # FIXME(lucasagomes): When used with wsexpose decorator WSME will try
+    # to get the name of the type by accessing it's __name__ attribute.
+    # Remove this __name__ attribute once it's fixed in WSME.
+    # https://bugs.launchpad.net/wsme/+bug/1265590
+    __name__ = name
+
+    @staticmethod
+    def validate(value):
+        if not utils.is_hostname_safe(value):
+            raise exception.InvalidName(name=value)
+        return value
+
+    @staticmethod
+    def frombasetype(value):
+        if value is None:
+            return None
+        return NameType.validate(value)
+
+
 class UuidType(wtypes.UserType):
     """A simple UUID type."""
 
@@ -130,6 +178,8 @@ class JsonType(wtypes.UserType):
 
 
 macaddress = MacAddressType()
+uuid_or_name = UuidOrNameType()
+name = NameType()
 uuid = UuidType()
 boolean = BooleanType()
 # Can't call it 'json' because that's the name of the stdlib module

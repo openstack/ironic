@@ -336,6 +336,31 @@ class GenericUtilsTestCase(base.TestCase):
         self.assertFalse(utils.is_valid_mac("AA BB CC DD EE FF"))
         self.assertFalse(utils.is_valid_mac("AA-BB-CC-DD-EE-FF"))
 
+    def test_is_hostname_safe(self):
+        self.assertTrue(utils.is_hostname_safe('spam'))
+        self.assertFalse(utils.is_hostname_safe('spAm'))
+        self.assertFalse(utils.is_hostname_safe('SPAM'))
+        self.assertFalse(utils.is_hostname_safe('-spam'))
+        self.assertFalse(utils.is_hostname_safe('spam-'))
+        self.assertTrue(utils.is_hostname_safe('spam-eggs'))
+        self.assertFalse(utils.is_hostname_safe('spam eggs'))
+        self.assertTrue(utils.is_hostname_safe('9spam'))
+        self.assertTrue(utils.is_hostname_safe('spam7'))
+        self.assertTrue(utils.is_hostname_safe('br34kf4st'))
+        self.assertFalse(utils.is_hostname_safe('$pam'))
+        self.assertFalse(utils.is_hostname_safe('egg$'))
+        self.assertFalse(utils.is_hostname_safe('spam#eggs'))
+        self.assertFalse(utils.is_hostname_safe(' eggs'))
+        self.assertFalse(utils.is_hostname_safe('spam '))
+        self.assertTrue(utils.is_hostname_safe('s'))
+        self.assertTrue(utils.is_hostname_safe('s' * 63))
+        self.assertFalse(utils.is_hostname_safe('s' * 64))
+        self.assertFalse(utils.is_hostname_safe(''))
+        self.assertFalse(utils.is_hostname_safe(None))
+        # Need to ensure a binary response for success or fail
+        self.assertIsNotNone(utils.is_hostname_safe('spam'))
+        self.assertIsNotNone(utils.is_hostname_safe('-spam'))
+
     def test_validate_and_normalize_mac(self):
         mac = 'AA:BB:CC:DD:EE:FF'
         with mock.patch.object(utils, 'is_valid_mac') as m_mock:

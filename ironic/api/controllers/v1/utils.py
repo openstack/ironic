@@ -50,3 +50,9 @@ def apply_jsonpatch(doc, patch):
                         ' the resource is not allowed')
                 raise wsme.exc.ClientSideError(msg % p['path'])
     return jsonpatch.apply_patch(doc, jsonpatch.JsonPatch(patch))
+
+
+def get_patch_value(patch, path):
+    for p in patch:
+        if p['path'] == path:
+            return p['value']

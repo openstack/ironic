@@ -150,8 +150,20 @@ class InstanceAssociated(Conflict):
                 " it cannot be associated with this other node %(node)s")
 
 
+class DuplicateName(Conflict):
+    message = _("A node with name %(name)s already exists.")
+
+
 class InvalidUUID(Invalid):
     message = _("Expected a uuid but received %(uuid)s.")
+
+
+class InvalidUuidOrName(Invalid):
+    message = _("Expected a logical name or uuid but received %(name)s.")
+
+
+class InvalidName(Invalid):
+    message = _("Expected a logical name but received %(name)s.")
 
 
 class InvalidIdentity(Invalid):

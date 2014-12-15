@@ -266,7 +266,9 @@ class Connection(api.Connection):
         try:
             node.save()
         except db_exc.DBDuplicateEntry as exc:
-            if 'instance_uuid' in exc.columns:
+            if 'name' in exc.columns:
+                raise exception.DuplicateName(name=values['name'])
+            elif 'instance_uuid' in exc.columns:
                 raise exception.InstanceAssociated(
                     instance_uuid=values['instance_uuid'],
                     node=values['uuid'])
@@ -286,6 +288,13 @@ class Connection(api.Connection):
             return query.one()
         except NoResultFound:
             raise exception.NodeNotFound(node=node_uuid)
+
+    def get_node_by_name(self, node_name):
+        query = model_query(models.Node).filter_by(name=node_name)
+        try:
+            return query.one()
+        except NoResultFound:
+            raise exception.NodeNotFound(node=node_name)
 
     def get_node_by_instance(self, instance):
         if not utils.is_uuid_like(instance):
@@ -331,10 +340,17 @@ class Connection(api.Connection):
 
         try:
             return self._do_update_node(node_id, values)
-        except db_exc.DBDuplicateEntry:
-            raise exception.InstanceAssociated(
-                instance_uuid=values['instance_uuid'],
-                node=node_id)
+        except db_exc.DBDuplicateEntry as e:
+            if 'name' in e.columns:
+                raise exception.DuplicateName(name=values['name'])
+            elif 'uuid' in e.columns:
+                raise exception.NodeAlreadyExists(uuid=values['uuid'])
+            elif 'instance_uuid' in e.columns:
+                raise exception.InstanceAssociated(
+                    instance_uuid=values['instance_uuid'],
+                    node=node_id)
+            else:
+                raise e
 
     def _do_update_node(self, node_id, values):
         session = get_session()

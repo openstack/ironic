@@ -59,7 +59,8 @@ MIN_VER = base.Version({base.Version.string: "1.1"})
 # v1.2: Renamed NOSTATE ("None") to AVAILABLE ("available")
 # v1.3: Add node.driver_internal_info
 # v1.4: Add MANAGEABLE state
-MAX_VER = base.Version({base.Version.string: "1.4"})
+# v1.5: Add logical node names
+MAX_VER = base.Version({base.Version.string: "1.5"})
 
 
 class MediaType(base.APIBase):

@@ -182,9 +182,25 @@ def is_valid_mac(address):
 
     """
     m = "[0-9a-f]{2}(:[0-9a-f]{2}){5}$"
-    if isinstance(address, six.string_types) and re.match(m, address.lower()):
-        return True
-    return False
+    return (isinstance(address, six.string_types) and
+            re.match(m, address.lower()))
+
+
+def is_hostname_safe(hostname):
+    """Determine if the supplied hostname is RFC compliant.
+
+    Check that the supplied hostname conforms to:
+        * http://en.wikipedia.org/wiki/Hostname
+        * http://tools.ietf.org/html/rfc952
+        * http://tools.ietf.org/html/rfc1123
+
+    :param hostname: The hostname to be validated.
+    :returns: True if valid. False if not.
+
+    """
+    m = '^[a-z0-9]([a-z0-9\-]{0,61}[a-z0-9])?$'
+    return (isinstance(hostname, six.string_types) and
+           (re.match(m, hostname) is not None))
 
 
 def validate_and_normalize_mac(address):

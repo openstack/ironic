@@ -162,6 +162,14 @@ class Connection(object):
         """
 
     @abc.abstractmethod
+    def get_node_by_name(self, node_name):
+        """Return a node.
+
+        :param node_name: The logical name of a node.
+        :returns: A node.
+        """
+
+    @abc.abstractmethod
     def get_node_by_instance(self, instance):
         """Return a node.
 

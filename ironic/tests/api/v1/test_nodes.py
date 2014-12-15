@@ -21,6 +21,7 @@ import json
 import mock
 from oslo.utils import timeutils
 from oslo_config import cfg
+import pecan
 from six.moves.urllib import parse as urlparse
 from testtools.matchers import HasLength
 from wsme import types as wtypes
@@ -49,6 +50,71 @@ def post_get_test_node(**kw):
     node['chassis_id'] = None
     node['chassis_uuid'] = kw.get('chassis_uuid', chassis['uuid'])
     return node
+
+
+class TestTopLevelFunctions(base.TestCase):
+
+    def setUp(self):
+        super(TestTopLevelFunctions, self).setUp()
+        self.valid_name = 'my-host'
+        self.valid_uuid = utils.generate_uuid()
+        self.invalid_name = 'Mr Plow'
+        self.invalid_uuid = '636-555-3226-'
+        self.node = post_get_test_node()
+
+    def test_is_valid_name(self):
+        self.assertTrue(api_node.is_valid_name(self.valid_name))
+        self.assertFalse(api_node.is_valid_name(self.invalid_name))
+        self.assertFalse(api_node.is_valid_name(self.valid_uuid))
+        self.assertFalse(api_node.is_valid_name(self.invalid_uuid))
+
+    @mock.patch.object(pecan, 'request')
+    @mock.patch.object(api_node, 'allow_logical_names')
+    @mock.patch.object(objects.Node, 'get_by_uuid')
+    @mock.patch.object(objects.Node, 'get_by_name')
+    def test__get_rpc_node_expect_uuid(self, mock_gbn, mock_gbu, mock_aln,
+                                       mock_pr):
+        mock_aln.return_value = True
+        self.node['uuid'] = self.valid_uuid
+        mock_gbu.return_value = self.node
+        self.assertEqual(self.node, api_node._get_rpc_node(self.valid_uuid))
+        self.assertEqual(1, mock_gbu.call_count)
+        self.assertEqual(0, mock_gbn.call_count)
+
+    @mock.patch.object(pecan, 'request')
+    @mock.patch.object(api_v1.node, 'allow_logical_names')
+    @mock.patch.object(objects.Node, 'get_by_uuid')
+    @mock.patch.object(objects.Node, 'get_by_name')
+    def test__get_rpc_node_expect_name(self, mock_gbn, mock_gbu, mock_aln,
+                                       mock_pr):
+        mock_aln.return_value = True
+        self.node['name'] = self.valid_name
+        mock_gbn.return_value = self.node
+        self.assertEqual(self.node, api_node._get_rpc_node(self.valid_name))
+        self.assertEqual(0, mock_gbu.call_count)
+        self.assertEqual(1, mock_gbn.call_count)
+
+    @mock.patch.object(pecan, 'request')
+    @mock.patch.object(api_v1.node, 'allow_logical_names')
+    @mock.patch.object(objects.Node, 'get_by_uuid')
+    @mock.patch.object(objects.Node, 'get_by_name')
+    def test__get_rpc_node_invalid_name(self, mock_gbn, mock_gbu,
+                                        mock_aln, mock_pr):
+        mock_aln.return_value = True
+        self.assertRaises(exception.InvalidUuidOrName,
+                          api_node._get_rpc_node,
+                          self.invalid_name)
+
+    @mock.patch.object(pecan, 'request')
+    @mock.patch.object(api_v1.node, 'allow_logical_names')
+    @mock.patch.object(objects.Node, 'get_by_uuid')
+    @mock.patch.object(objects.Node, 'get_by_name')
+    def test__get_rpc_node_invalid_uuid(self, mock_gbn, mock_gbu,
+                                        mock_aln, mock_pr):
+        mock_aln.return_value = True
+        self.assertRaises(exception.InvalidUuidOrName,
+                          api_node._get_rpc_node,
+                          self.invalid_uuid)
 
 
 class TestNodeObject(base.TestCase):
@@ -84,7 +150,7 @@ class TestListNodes(test_api_base.FunctionalTest):
             node = obj_utils.create_test_node(
                     self.context, uuid=utils.generate_uuid(),
                     instance_uuid=utils.generate_uuid())
-            associated_nodes.append(node['uuid'])
+            associated_nodes.append(node.uuid)
         return {'associated': associated_nodes,
                 'unassociated': unassociated_nodes}
 
@@ -101,7 +167,7 @@ class TestListNodes(test_api_base.FunctionalTest):
         self.assertIn('power_state', data['nodes'][0])
         self.assertIn('provision_state', data['nodes'][0])
         self.assertIn('uuid', data['nodes'][0])
-        self.assertEqual(node['uuid'], data['nodes'][0]["uuid"])
+        self.assertEqual(node.uuid, data['nodes'][0]["uuid"])
         self.assertNotIn('driver', data['nodes'][0])
         self.assertNotIn('driver_info', data['nodes'][0])
         self.assertNotIn('driver_internal_info', data['nodes'][0])
@@ -119,7 +185,7 @@ class TestListNodes(test_api_base.FunctionalTest):
 
     def test_get_one(self):
         node = obj_utils.create_test_node(self.context)
-        data = self.get_json('/nodes/%s' % node['uuid'],
+        data = self.get_json('/nodes/%s' % node.uuid,
                  headers={api_base.Version.string: str(api_v1.MAX_VER)})
         self.assertEqual(node.uuid, data['uuid'])
         self.assertIn('driver', data)
@@ -132,13 +198,16 @@ class TestListNodes(test_api_base.FunctionalTest):
         self.assertIn('chassis_uuid', data)
         self.assertIn('reservation', data)
         self.assertIn('maintenance_reason', data)
+        self.assertIn('name', data)
         # never expose the chassis_id
         self.assertNotIn('chassis_id', data)
 
     def test_detail(self):
         node = obj_utils.create_test_node(self.context)
-        data = self.get_json('/nodes/detail')
-        self.assertEqual(node['uuid'], data['nodes'][0]["uuid"])
+        data = self.get_json('/nodes/detail',
+                 headers={api_base.Version.string: str(api_v1.MAX_VER)})
+        self.assertEqual(node.uuid, data['nodes'][0]["uuid"])
+        self.assertIn('name', data['nodes'][0])
         self.assertIn('driver', data['nodes'][0])
         self.assertIn('driver_info', data['nodes'][0])
         self.assertIn('extra', data['nodes'][0])
@@ -155,7 +224,7 @@ class TestListNodes(test_api_base.FunctionalTest):
 
     def test_detail_against_single(self):
         node = obj_utils.create_test_node(self.context)
-        response = self.get_json('/nodes/%s/detail' % node['uuid'],
+        response = self.get_json('/nodes/%s/detail' % node.uuid,
                                  expect_errors=True)
         self.assertEqual(404, response.status_int)
 
@@ -163,24 +232,35 @@ class TestListNodes(test_api_base.FunctionalTest):
         node = obj_utils.create_test_node(self.context,
                                           provision_state=states.AVAILABLE)
 
-        data = self.get_json('/nodes/%s' % node['uuid'],
+        data = self.get_json('/nodes/%s' % node.uuid,
                 headers={api_base.Version.string: str(api_v1.MIN_VER)})
         self.assertEqual(states.NOSTATE, data['provision_state'])
 
-        data = self.get_json('/nodes/%s' % node['uuid'],
+        data = self.get_json('/nodes/%s' % node.uuid,
                 headers={api_base.Version.string: "1.2"})
         self.assertEqual(states.AVAILABLE, data['provision_state'])
 
     def test_hide_driver_internal_info(self):
         node = obj_utils.create_test_node(self.context,
                                           driver_internal_info={"foo": "bar"})
-        data = self.get_json('/nodes/%s' % node['uuid'],
+        data = self.get_json('/nodes/%s' % node.uuid,
                 headers={api_base.Version.string: str(api_v1.MIN_VER)})
         self.assertNotIn('driver_internal_info', data)
 
-        data = self.get_json('/nodes/%s' % node['uuid'],
+        data = self.get_json('/nodes/%s' % node.uuid,
                 headers={api_base.Version.string: "1.3"})
         self.assertEqual({"foo": "bar"}, data['driver_internal_info'])
+
+    def test_unset_logical_names(self):
+        node = obj_utils.create_test_node(self.context,
+                                          name="fish")
+        data = self.get_json('/nodes/%s' % node.uuid,
+                headers={api_base.Version.string: "1.4"})
+        self.assertNotIn('name', data)
+
+        data = self.get_json('/nodes/%s' % node.uuid,
+                headers={api_base.Version.string: "1.5"})
+        self.assertEqual('fish', data['name'])
 
     def test_many(self):
         nodes = []
@@ -193,6 +273,22 @@ class TestListNodes(test_api_base.FunctionalTest):
 
         uuids = [n['uuid'] for n in data['nodes']]
         self.assertEqual(sorted(nodes), sorted(uuids))
+
+    def test_many_have_names(self):
+        nodes = []
+        node_names = []
+        for id in range(5):
+            name = 'node-%s' % id
+            node = obj_utils.create_test_node(self.context,
+                                              uuid=utils.generate_uuid(),
+                                              name=name)
+            nodes.append(node.uuid)
+            node_names.append(name)
+        data = self.get_json('/nodes',
+                headers={api_base.Version.string: "1.5"})
+        names = [n['name'] for n in data['nodes']]
+        self.assertEqual(len(nodes), len(data['nodes']))
+        self.assertEqual(sorted(node_names), sorted(names))
 
     def test_links(self):
         uuid = utils.generate_uuid()
@@ -289,13 +385,40 @@ class TestListNodes(test_api_base.FunctionalTest):
         self.assertEqual(fake_error, data['last_error'])
         self.assertFalse(data['console_enabled'])
 
+    @mock.patch.object(timeutils, 'utcnow')
+    def test_node_states_by_name(self, mock_utcnow):
+        fake_state = 'fake-state'
+        fake_error = 'fake-error'
+        test_time = datetime.datetime(1971, 3, 9, 0, 0)
+        mock_utcnow.return_value = test_time
+        node = obj_utils.create_test_node(self.context,
+                                          name='eggs',
+                                          power_state=fake_state,
+                                          target_power_state=fake_state,
+                                          provision_state=fake_state,
+                                          target_provision_state=fake_state,
+                                          provision_updated_at=test_time,
+                                          last_error=fake_error)
+        data = self.get_json('/nodes/%s/states' % node.name,
+                headers={api_base.Version.string: "1.5"})
+        self.assertEqual(fake_state, data['power_state'])
+        self.assertEqual(fake_state, data['target_power_state'])
+        self.assertEqual(fake_state, data['provision_state'])
+        self.assertEqual(fake_state, data['target_provision_state'])
+        prov_up_at = timeutils.parse_isotime(
+                        data['provision_updated_at']).replace(tzinfo=None)
+        self.assertEqual(test_time, prov_up_at)
+        self.assertEqual(fake_error, data['last_error'])
+        self.assertFalse(data['console_enabled'])
+
     def test_node_by_instance_uuid(self):
         node = obj_utils.create_test_node(self.context,
                                           uuid=utils.generate_uuid(),
                                           instance_uuid=utils.generate_uuid())
         instance_uuid = node.instance_uuid
 
-        data = self.get_json('/nodes?instance_uuid=%s' % instance_uuid)
+        data = self.get_json('/nodes?instance_uuid=%s' % instance_uuid,
+                headers={api_base.Version.string: "1.5"})
 
         self.assertThat(data['nodes'], HasLength(1))
         self.assertEqual(node['instance_uuid'],
@@ -452,6 +575,18 @@ class TestListNodes(test_api_base.FunctionalTest):
             self.assertEqual(expected_data, data)
             mock_gci.assert_called_once_with(mock.ANY, node.uuid, 'test-topic')
 
+    @mock.patch.object(rpcapi.ConductorAPI, 'get_console_information')
+    def test_get_console_information_by_name(self, mock_gci):
+        node = obj_utils.create_test_node(self.context, name='spam')
+        expected_console_info = {'test': 'test-data'}
+        expected_data = {'console_enabled': True,
+                         'console_info': expected_console_info}
+        mock_gci.return_value = expected_console_info
+        data = self.get_json('/nodes/%s/states/console' % node.name,
+                headers={api_base.Version.string: "1.5"})
+        self.assertEqual(expected_data, data)
+        mock_gci.assert_called_once_with(mock.ANY, node.uuid, 'test-topic')
+
     def test_get_console_information_console_disabled(self):
         node = obj_utils.create_test_node(self.context)
         expected_data = {'console_enabled': False,
@@ -485,6 +620,16 @@ class TestListNodes(test_api_base.FunctionalTest):
         mock_gbd.assert_called_once_with(mock.ANY, node.uuid, 'test-topic')
 
     @mock.patch.object(rpcapi.ConductorAPI, 'get_boot_device')
+    def test_get_boot_device_by_name(self, mock_gbd):
+        node = obj_utils.create_test_node(self.context, name='spam')
+        expected_data = {'boot_device': boot_devices.PXE, 'persistent': True}
+        mock_gbd.return_value = expected_data
+        data = self.get_json('/nodes/%s/management/boot_device' % node.name,
+                headers={api_base.Version.string: "1.5"})
+        self.assertEqual(expected_data, data)
+        mock_gbd.assert_called_once_with(mock.ANY, node.uuid, 'test-topic')
+
+    @mock.patch.object(rpcapi.ConductorAPI, 'get_boot_device')
     def test_get_boot_device_iface_not_supported(self, mock_gbd):
         node = obj_utils.create_test_node(self.context)
         mock_gbd.side_effect = exception.UnsupportedDriverExtension(
@@ -506,6 +651,17 @@ class TestListNodes(test_api_base.FunctionalTest):
         mock_gsbd.assert_called_once_with(mock.ANY, node.uuid, 'test-topic')
 
     @mock.patch.object(rpcapi.ConductorAPI, 'get_supported_boot_devices')
+    def test_get_supported_boot_devices_by_name(self, mock_gsbd):
+        mock_gsbd.return_value = [boot_devices.PXE]
+        node = obj_utils.create_test_node(self.context, name='spam')
+        data = self.get_json(
+                '/nodes/%s/management/boot_device/supported' % node.name,
+                headers={api_base.Version.string: "1.5"})
+        expected_data = {'supported_boot_devices': [boot_devices.PXE]}
+        self.assertEqual(expected_data, data)
+        mock_gsbd.assert_called_once_with(mock.ANY, node.uuid, 'test-topic')
+
+    @mock.patch.object(rpcapi.ConductorAPI, 'get_supported_boot_devices')
     def test_get_supported_boot_devices_iface_not_supported(self, mock_gsbd):
         node = obj_utils.create_test_node(self.context)
         mock_gsbd.side_effect = exception.UnsupportedDriverExtension(
@@ -516,13 +672,47 @@ class TestListNodes(test_api_base.FunctionalTest):
         self.assertTrue(ret.json['error_message'])
         mock_gsbd.assert_called_once_with(mock.ANY, node.uuid, 'test-topic')
 
+    @mock.patch.object(rpcapi.ConductorAPI, 'validate_driver_interfaces')
+    def test_validate_by_uuid_using_deprecated_interface(self, mock_vdi):
+        # Note(mrda): The 'node_uuid' interface is deprecated in favour
+        # of the 'node' interface
+        node = obj_utils.create_test_node(self.context)
+        self.get_json('/nodes/validate?node_uuid=%s' % node.uuid)
+        mock_vdi.assert_called_once_with(mock.ANY, node.uuid, 'test-topic')
+
+    @mock.patch.object(rpcapi.ConductorAPI, 'validate_driver_interfaces')
+    def test_validate_by_uuid(self, mock_vdi):
+        node = obj_utils.create_test_node(self.context)
+        self.get_json('/nodes/validate?node=%s' % node.uuid,
+                      headers={api_base.Version.string: "1.5"})
+        mock_vdi.assert_called_once_with(mock.ANY, node.uuid, 'test-topic')
+
+    @mock.patch.object(rpcapi.ConductorAPI, 'validate_driver_interfaces')
+    def test_validate_by_name_unsupported(self, mock_vdi):
+        node = obj_utils.create_test_node(self.context, name='spam')
+        ret = self.get_json('/nodes/validate?node=%s' % node.name,
+                            expect_errors=True)
+        self.assertEqual(406, ret.status_code)
+        self.assertFalse(mock_vdi.called)
+
+    @mock.patch.object(rpcapi.ConductorAPI, 'validate_driver_interfaces')
+    def test_validate_by_name(self, mock_vdi):
+        node = obj_utils.create_test_node(self.context, name='spam')
+        self.get_json('/nodes/validate?node=%s' % node.name,
+                headers={api_base.Version.string: "1.5"})
+        # note that this should be node.uuid here as we get that from the
+        # rpc_node lookup and pass that downwards
+        mock_vdi.assert_called_once_with(mock.ANY, node.uuid, 'test-topic')
+
 
 class TestPatch(test_api_base.FunctionalTest):
 
     def setUp(self):
         super(TestPatch, self).setUp()
         self.chassis = obj_utils.create_test_chassis(self.context)
-        self.node = obj_utils.create_test_node(self.context)
+        self.node = obj_utils.create_test_node(self.context, name='node-57')
+        self.node_no_name = obj_utils.create_test_node(self.context,
+            uuid='deadbeef-0000-1111-2222-333333333333')
         p = mock.patch.object(rpcapi.ConductorAPI, 'get_topic_for')
         self.mock_gtf = p.start()
         self.mock_gtf.return_value = 'test-topic'
@@ -540,7 +730,7 @@ class TestPatch(test_api_base.FunctionalTest):
          .mock_update_node
          .return_value
          .updated_at) = "2013-12-03T06:20:41.184720+00:00"
-        response = self.patch_json('/nodes/%s' % self.node['uuid'],
+        response = self.patch_json('/nodes/%s' % self.node.uuid,
                              [{'path': '/instance_uuid',
                                'value': 'aaaaaaaa-1111-bbbb-2222-cccccccccccc',
                                'op': 'replace'}])
@@ -551,8 +741,42 @@ class TestPatch(test_api_base.FunctionalTest):
         self.mock_update_node.assert_called_once_with(
                 mock.ANY, mock.ANY, 'test-topic')
 
+    def test_update_by_name_unsupported(self):
+        self.mock_update_node.return_value = self.node
+        (self
+         .mock_update_node
+         .return_value
+         .updated_at) = "2013-12-03T06:20:41.184720+00:00"
+        response = self.patch_json(
+                '/nodes/%s' % self.node.name,
+                [{'path': '/instance_uuid',
+                  'value': 'aaaaaaaa-1111-bbbb-2222-cccccccccccc',
+                  'op': 'replace'}],
+                expect_errors=True)
+        self.assertEqual(400, response.status_code)
+        self.assertFalse(self.mock_update_node.called)
+
+    def test_update_ok_by_name(self):
+        self.mock_update_node.return_value = self.node
+        (self
+         .mock_update_node
+         .return_value
+         .updated_at) = "2013-12-03T06:20:41.184720+00:00"
+        response = self.patch_json(
+                '/nodes/%s' % self.node.name,
+                [{'path': '/instance_uuid',
+                  'value': 'aaaaaaaa-1111-bbbb-2222-cccccccccccc',
+                  'op': 'replace'}],
+                headers={api_base.Version.string: "1.5"})
+        self.assertEqual('application/json', response.content_type)
+        self.assertEqual(200, response.status_code)
+        self.assertEqual(self.mock_update_node.return_value.updated_at,
+                         timeutils.parse_isotime(response.json['updated_at']))
+        self.mock_update_node.assert_called_once_with(
+                mock.ANY, mock.ANY, 'test-topic')
+
     def test_update_state(self):
-        response = self.patch_json('/nodes/%s' % self.node['uuid'],
+        response = self.patch_json('/nodes/%s' % self.node.uuid,
                                    [{'power_state': 'new state'}],
                                    expect_errors=True)
         self.assertEqual('application/json', response.content_type)
@@ -564,7 +788,7 @@ class TestPatch(test_api_base.FunctionalTest):
         self.mock_update_node.side_effect = exception.InvalidParameterValue(
                                                 fake_err)
 
-        response = self.patch_json('/nodes/%s' % self.node['uuid'],
+        response = self.patch_json('/nodes/%s' % self.node.uuid,
                                    [{'path': '/driver_info/this',
                                      'value': 'foo',
                                      'op': 'add'},
@@ -581,7 +805,7 @@ class TestPatch(test_api_base.FunctionalTest):
     def test_update_fails_bad_driver(self):
         self.mock_gtf.side_effect = exception.NoValidHost('Fake Error')
 
-        response = self.patch_json('/nodes/%s' % self.node['uuid'],
+        response = self.patch_json('/nodes/%s' % self.node.uuid,
                                    [{'path': '/driver',
                                      'value': 'bad-driver',
                                      'op': 'replace'}],
@@ -593,9 +817,9 @@ class TestPatch(test_api_base.FunctionalTest):
     def test_update_fails_bad_state(self):
         fake_err = 'Fake Power State'
         self.mock_update_node.side_effect = exception.NodeInWrongPowerState(
-                    node=self.node['uuid'], pstate=fake_err)
+                    node=self.node.uuid, pstate=fake_err)
 
-        response = self.patch_json('/nodes/%s' % self.node['uuid'],
+        response = self.patch_json('/nodes/%s' % self.node.uuid,
                              [{'path': '/instance_uuid',
                                'value': 'aaaaaaaa-1111-bbbb-2222-cccccccccccc',
                                'op': 'replace'}],
@@ -609,7 +833,7 @@ class TestPatch(test_api_base.FunctionalTest):
     def test_add_ok(self):
         self.mock_update_node.return_value = self.node
 
-        response = self.patch_json('/nodes/%s' % self.node['uuid'],
+        response = self.patch_json('/nodes/%s' % self.node.uuid,
                                    [{'path': '/extra/foo',
                                      'value': 'bar',
                                      'op': 'add'}])
@@ -621,7 +845,7 @@ class TestPatch(test_api_base.FunctionalTest):
 
     def test_add_root(self):
         self.mock_update_node.return_value = self.node
-        response = self.patch_json('/nodes/%s' % self.node['uuid'],
+        response = self.patch_json('/nodes/%s' % self.node.uuid,
                              [{'path': '/instance_uuid',
                                'value': 'aaaaaaaa-1111-bbbb-2222-cccccccccccc',
                                'op': 'add'}])
@@ -631,7 +855,7 @@ class TestPatch(test_api_base.FunctionalTest):
                 mock.ANY, mock.ANY, 'test-topic')
 
     def test_add_root_non_existent(self):
-        response = self.patch_json('/nodes/%s' % self.node['uuid'],
+        response = self.patch_json('/nodes/%s' % self.node.uuid,
                                [{'path': '/foo', 'value': 'bar', 'op': 'add'}],
                                expect_errors=True)
         self.assertEqual('application/json', response.content_type)
@@ -641,7 +865,7 @@ class TestPatch(test_api_base.FunctionalTest):
     def test_remove_ok(self):
         self.mock_update_node.return_value = self.node
 
-        response = self.patch_json('/nodes/%s' % self.node['uuid'],
+        response = self.patch_json('/nodes/%s' % self.node.uuid,
                                    [{'path': '/extra',
                                      'op': 'remove'}])
         self.assertEqual('application/json', response.content_type)
@@ -651,7 +875,7 @@ class TestPatch(test_api_base.FunctionalTest):
                 mock.ANY, mock.ANY, 'test-topic')
 
     def test_remove_non_existent_property_fail(self):
-        response = self.patch_json('/nodes/%s' % self.node['uuid'],
+        response = self.patch_json('/nodes/%s' % self.node.uuid,
                              [{'path': '/extra/non-existent', 'op': 'remove'}],
                              expect_errors=True)
         self.assertEqual('application/json', response.content_type)
@@ -684,7 +908,7 @@ class TestPatch(test_api_base.FunctionalTest):
                 mock.ANY, mock.ANY, 'test-topic')
 
     def test_patch_ports_subresource(self):
-        response = self.patch_json('/nodes/%s/ports' % self.node['uuid'],
+        response = self.patch_json('/nodes/%s/ports' % self.node.uuid,
                                    [{'path': '/extra/foo', 'value': 'bar',
                                      'op': 'add'}], expect_errors=True)
         self.assertEqual(403, response.status_int)
@@ -698,7 +922,7 @@ class TestPatch(test_api_base.FunctionalTest):
         self.assertTrue(response.json['error_message'])
 
     def test_remove_mandatory_field(self):
-        response = self.patch_json('/nodes/%s' % self.node['uuid'],
+        response = self.patch_json('/nodes/%s' % self.node.uuid,
                                    [{'path': '/driver', 'op': 'remove'}],
                                    expect_errors=True)
         self.assertEqual('application/json', response.content_type)
@@ -753,7 +977,7 @@ class TestPatch(test_api_base.FunctionalTest):
         self.assertTrue(response.json['error_message'])
 
     def test_replace_non_existent_chassis_uuid(self):
-        response = self.patch_json('/nodes/%s' % self.node['uuid'],
+        response = self.patch_json('/nodes/%s' % self.node.uuid,
                              [{'path': '/chassis_uuid',
                                'value': 'eeeeeeee-dddd-cccc-bbbb-aaaaaaaaaaaa',
                                'op': 'replace'}], expect_errors=True)
@@ -762,7 +986,7 @@ class TestPatch(test_api_base.FunctionalTest):
         self.assertTrue(response.json['error_message'])
 
     def test_remove_internal_field(self):
-        response = self.patch_json('/nodes/%s' % self.node['uuid'],
+        response = self.patch_json('/nodes/%s' % self.node.uuid,
                                    [{'path': '/last_error', 'op': 'remove'}],
                                    expect_errors=True)
         self.assertEqual('application/json', response.content_type)
@@ -770,7 +994,7 @@ class TestPatch(test_api_base.FunctionalTest):
         self.assertTrue(response.json['error_message'])
 
     def test_replace_internal_field(self):
-        response = self.patch_json('/nodes/%s' % self.node['uuid'],
+        response = self.patch_json('/nodes/%s' % self.node.uuid,
                                    [{'path': '/power_state', 'op': 'replace',
                                      'value': 'fake-state'}],
                                    expect_errors=True)
@@ -790,8 +1014,22 @@ class TestPatch(test_api_base.FunctionalTest):
         self.mock_update_node.assert_called_once_with(
                 mock.ANY, mock.ANY, 'test-topic')
 
+    def test_replace_maintenance_by_name(self):
+        self.mock_update_node.return_value = self.node
+
+        response = self.patch_json(
+                '/nodes/%s' % self.node.name,
+                [{'path': '/maintenance', 'op': 'replace',
+                  'value': 'true'}],
+                headers={api_base.Version.string: "1.5"})
+        self.assertEqual('application/json', response.content_type)
+        self.assertEqual(200, response.status_code)
+
+        self.mock_update_node.assert_called_once_with(
+                mock.ANY, mock.ANY, 'test-topic')
+
     def test_replace_consoled_enabled(self):
-        response = self.patch_json('/nodes/%s' % self.node['uuid'],
+        response = self.patch_json('/nodes/%s' % self.node.uuid,
                                    [{'path': '/console_enabled',
                                      'op': 'replace', 'value': True}],
                                    expect_errors=True)
@@ -801,12 +1039,75 @@ class TestPatch(test_api_base.FunctionalTest):
 
     def test_replace_provision_updated_at(self):
         test_time = '2000-01-01 00:00:00'
-        response = self.patch_json('/nodes/%s' % self.node['uuid'],
+        response = self.patch_json('/nodes/%s' % self.node.uuid,
                                    [{'path': '/provision_updated_at',
                                      'op': 'replace', 'value': test_time}],
                                    expect_errors=True)
         self.assertEqual('application/json', response.content_type)
         self.assertEqual(400, response.status_code)
+        self.assertTrue(response.json['error_message'])
+
+    def test_patch_add_name_ok(self):
+        self.mock_update_node.return_value = self.node_no_name
+        test_name = 'guido-van-rossum'
+        response = self.patch_json('/nodes/%s' % self.node_no_name.uuid,
+                                   [{'path': '/name',
+                                     'op': 'add',
+                                     'value': test_name}],
+                                   headers={api_base.Version.string: "1.5"})
+        self.assertEqual('application/json', response.content_type)
+        self.assertEqual(200, response.status_code)
+
+    def test_patch_add_name_invalid(self):
+        self.mock_update_node.return_value = self.node_no_name
+        test_name = 'I-AM-INVALID'
+        response = self.patch_json('/nodes/%s' % self.node_no_name.uuid,
+                                   [{'path': '/name',
+                                     'op': 'add',
+                                     'value': test_name}],
+                                   headers={api_base.Version.string: "1.5"},
+                                   expect_errors=True)
+        self.assertEqual('application/json', response.content_type)
+        self.assertEqual(400, response.status_code)
+        self.assertTrue(response.json['error_message'])
+
+    def test_patch_name_replace_ok(self):
+        self.mock_update_node.return_value = self.node
+        test_name = 'guido-van-rossum'
+        response = self.patch_json('/nodes/%s' % self.node.uuid,
+                                   [{'path': '/name',
+                                     'op': 'replace',
+                                     'value': test_name}],
+                                   headers={api_base.Version.string: "1.5"})
+        self.assertEqual('application/json', response.content_type)
+        self.assertEqual(200, response.status_code)
+
+    def test_patch_add_replace_invalid(self):
+        self.mock_update_node.return_value = self.node_no_name
+        test_name = 'Guido Van Error'
+        response = self.patch_json('/nodes/%s' % self.node.uuid,
+                                   [{'path': '/name',
+                                     'op': 'replace',
+                                     'value': test_name}],
+                                   headers={api_base.Version.string: "1.5"},
+                                   expect_errors=True)
+        self.assertEqual('application/json', response.content_type)
+        self.assertEqual(400, response.status_code)
+        self.assertTrue(response.json['error_message'])
+
+    def test_patch_duplicate_name(self):
+        node = obj_utils.create_test_node(self.context,
+                                          uuid=utils.generate_uuid())
+        test_name = "this-is-my-node"
+        self.mock_update_node.side_effect = exception.DuplicateName(test_name)
+        response = self.patch_json('/nodes/%s' % node.uuid,
+                                   [{'path': '/name',
+                                     'op': 'replace',
+                                     'value': test_name}],
+                                   headers={api_base.Version.string: "1.5"},
+                                   expect_errors=True)
+        self.assertEqual('application/json', response.content_type)
+        self.assertEqual(409, response.status_code)
         self.assertTrue(response.json['error_message'])
 
 
@@ -891,6 +1192,22 @@ class TestPost(test_api_base.FunctionalTest):
         self.assertEqual(expected_return_value, response.body)
         self.assertEqual(expected_status, response.status_code)
 
+    def _test_vendor_passthru_ok_by_name(self, mock_vendor, return_value=None,
+                                         is_async=True):
+        expected_status = 202 if is_async else 200
+        expected_return_value = json.dumps(return_value)
+
+        node = obj_utils.create_test_node(self.context, name='node-109')
+        info = {'foo': 'bar'}
+        mock_vendor.return_value = (return_value, is_async)
+        response = self.post_json('/nodes/%s/vendor_passthru/test' % node.name,
+                                  info,
+                                  headers={api_base.Version.string: "1.5"})
+        mock_vendor.assert_called_once_with(
+                mock.ANY, node.uuid, 'test', 'POST', info, 'test-topic')
+        self.assertEqual(expected_return_value, response.body)
+        self.assertEqual(expected_status, response.status_code)
+
     @mock.patch.object(rpcapi.ConductorAPI, 'vendor_passthru')
     def test_vendor_passthru_async(self, mock_vendor):
         self._test_vendor_passthru_ok(mock_vendor)
@@ -911,6 +1228,10 @@ class TestPost(test_api_base.FunctionalTest):
             {'test_key': 'test_value'})
         self.assertEqual(202, response.status_int)
         self.assertEqual(return_value[0], response.json)
+
+    @mock.patch.object(rpcapi.ConductorAPI, 'vendor_passthru')
+    def test_vendor_passthru_by_name(self, mock_vendor):
+        self._test_vendor_passthru_ok_by_name(mock_vendor)
 
     @mock.patch.object(rpcapi.ConductorAPI, 'vendor_passthru')
     def test_vendor_passthru_get(self, mocked_vendor_passthru):
@@ -1059,6 +1380,20 @@ class TestDelete(test_api_base.FunctionalTest):
         self.delete('/nodes/%s' % node.uuid)
         mock_dn.assert_called_once_with(mock.ANY, node.uuid, 'test-topic')
 
+    @mock.patch.object(rpcapi.ConductorAPI, 'destroy_node')
+    def test_delete_node_by_name_unsupported(self, mock_dn):
+        node = obj_utils.create_test_node(self.context, name='foo')
+        self.delete('/nodes/%s' % node.name,
+                    expect_errors=True)
+        self.assertFalse(mock_dn.called)
+
+    @mock.patch.object(rpcapi.ConductorAPI, 'destroy_node')
+    def test_delete_node_by_name(self, mock_dn):
+        node = obj_utils.create_test_node(self.context, name='foo')
+        self.delete('/nodes/%s' % node.name,
+                headers={api_base.Version.string: "1.5"})
+        mock_dn.assert_called_once_with(mock.ANY, node.uuid, 'test-topic')
+
     @mock.patch.object(objects.Node, 'get_by_uuid')
     def test_delete_node_not_found(self, mock_gbu):
         node = obj_utils.get_test_node(self.context)
@@ -1069,6 +1404,29 @@ class TestDelete(test_api_base.FunctionalTest):
         self.assertEqual('application/json', response.content_type)
         self.assertTrue(response.json['error_message'])
         mock_gbu.assert_called_once_with(mock.ANY, node.uuid)
+
+    @mock.patch.object(objects.Node, 'get_by_name')
+    def test_delete_node_not_found_by_name_unsupported(self, mock_gbn):
+        node = obj_utils.get_test_node(self.context, name='foo')
+        mock_gbn.side_effect = exception.NodeNotFound(node=node.name)
+
+        response = self.delete('/nodes/%s' % node.name,
+                               expect_errors=True)
+        self.assertEqual(400, response.status_int)
+        self.assertFalse(mock_gbn.called)
+
+    @mock.patch.object(objects.Node, 'get_by_name')
+    def test_delete_node_not_found_by_name(self, mock_gbn):
+        node = obj_utils.get_test_node(self.context, name='foo')
+        mock_gbn.side_effect = exception.NodeNotFound(node=node.name)
+
+        response = self.delete('/nodes/%s' % node.name,
+                headers={api_base.Version.string: "1.5"},
+                expect_errors=True)
+        self.assertEqual(404, response.status_int)
+        self.assertEqual('application/json', response.content_type)
+        self.assertTrue(response.json['error_message'])
+        mock_gbn.assert_called_once_with(mock.ANY, node.name)
 
     def test_delete_ports_subresource(self):
         node = obj_utils.create_test_node(self.context)
@@ -1103,6 +1461,24 @@ class TestDelete(test_api_base.FunctionalTest):
         mock_update.assert_called_once_with(mock.ANY, mock.ANY,
                                             topic='test-topic')
 
+    @mock.patch.object(objects.Node, 'get_by_name')
+    @mock.patch.object(rpcapi.ConductorAPI, 'update_node')
+    def test_delete_node_maintenance_mode_by_name(self, mock_update,
+                                                  mock_get):
+        node = obj_utils.create_test_node(self.context, maintenance=True,
+                                          maintenance_reason='blah',
+                                          name='foo')
+        mock_get.return_value = node
+        response = self.delete('/nodes/%s/maintenance' % node.name,
+                headers={api_base.Version.string: "1.5"})
+        self.assertEqual(202, response.status_int)
+        self.assertEqual('', response.body)
+        self.assertEqual(False, node.maintenance)
+        self.assertEqual(None, node.maintenance_reason)
+        mock_get.assert_called_once_with(mock.ANY, node.name)
+        mock_update.assert_called_once_with(mock.ANY, mock.ANY,
+                                            topic='test-topic')
+
 
 class TestPut(test_api_base.FunctionalTest):
 
@@ -1110,7 +1486,7 @@ class TestPut(test_api_base.FunctionalTest):
         super(TestPut, self).setUp()
         self.chassis = obj_utils.create_test_chassis(self.context)
         self.node = obj_utils.create_test_node(self.context,
-                provision_state=states.AVAILABLE)
+                provision_state=states.AVAILABLE, name='node-39')
         p = mock.patch.object(rpcapi.ConductorAPI, 'get_topic_for')
         self.mock_gtf = p.start()
         self.mock_gtf.return_value = 'test-topic'
@@ -1140,6 +1516,28 @@ class TestPut(test_api_base.FunctionalTest):
         self.assertEqual(urlparse.urlparse(response.location).path,
                          expected_location)
 
+    def test_power_state_by_name_unsupported(self):
+        response = self.put_json('/nodes/%s/states/power' % self.node.name,
+                                 {'target': states.POWER_ON},
+                                 expect_errors=True)
+        self.assertEqual(400, response.status_code)
+
+    def test_power_state_by_name(self):
+        response = self.put_json('/nodes/%s/states/power' % self.node.name,
+                                 {'target': states.POWER_ON},
+                                 headers={api_base.Version.string: "1.5"})
+        self.assertEqual(202, response.status_code)
+        self.assertEqual('', response.body)
+        self.mock_cnps.assert_called_once_with(mock.ANY,
+                                               self.node.uuid,
+                                               states.POWER_ON,
+                                               'test-topic')
+        # Check location header
+        self.assertIsNotNone(response.location)
+        expected_location = '/v1/nodes/%s/states' % self.node.name
+        self.assertEqual(urlparse.urlparse(response.location).path,
+                         expected_location)
+
     def test_power_invalid_state_request(self):
         ret = self.put_json('/nodes/%s/states/power' % self.node.uuid,
                             {'target': 'not-supported'}, expect_errors=True)
@@ -1162,6 +1560,21 @@ class TestPut(test_api_base.FunctionalTest):
         expected_location = '/v1/nodes/%s/states' % self.node.uuid
         self.assertEqual(urlparse.urlparse(ret.location).path,
                          expected_location)
+
+    def test_provision_by_name_unsupported(self):
+        ret = self.put_json('/nodes/%s/states/provision' % self.node.name,
+                            {'target': states.ACTIVE},
+                            expect_errors=True)
+        self.assertEqual(400, ret.status_code)
+
+    def test_provision_by_name(self):
+        ret = self.put_json('/nodes/%s/states/provision' % self.node.name,
+                            {'target': states.ACTIVE},
+                            headers={api_base.Version.string: "1.5"})
+        self.assertEqual(202, ret.status_code)
+        self.assertEqual('', ret.body)
+        self.mock_dnd.assert_called_once_with(
+                mock.ANY, self.node.uuid, False, None, 'test-topic')
 
     def test_provision_with_deploy_configdrive(self):
         ret = self.put_json('/nodes/%s/states/provision' % self.node.uuid,
@@ -1319,6 +1732,23 @@ class TestPut(test_api_base.FunctionalTest):
             self.assertEqual(urlparse.urlparse(ret.location).path,
                              expected_location)
 
+    @mock.patch.object(rpcapi.ConductorAPI, 'set_console_mode')
+    def test_set_console_by_name_unsupported(self, mock_scm):
+        ret = self.put_json('/nodes/%s/states/console' % self.node.name,
+                            {'enabled': "true"},
+                            expect_errors=True)
+        self.assertEqual(400, ret.status_code)
+
+    @mock.patch.object(rpcapi.ConductorAPI, 'set_console_mode')
+    def test_set_console_by_name(self, mock_scm):
+        ret = self.put_json('/nodes/%s/states/console' % self.node.name,
+                            {'enabled': "true"},
+                            headers={api_base.Version.string: "1.5"})
+        self.assertEqual(202, ret.status_code)
+        self.assertEqual('', ret.body)
+        mock_scm.assert_called_once_with(mock.ANY, self.node.uuid,
+                                             True, 'test-topic')
+
     def test_set_console_mode_disabled(self):
         with mock.patch.object(rpcapi.ConductorAPI,
                                'set_console_mode') as mock_scm:
@@ -1389,6 +1819,18 @@ class TestPut(test_api_base.FunctionalTest):
                                          topic='test-topic')
 
     @mock.patch.object(rpcapi.ConductorAPI, 'set_boot_device')
+    def test_set_boot_device_by_name(self, mock_sbd):
+        device = boot_devices.PXE
+        ret = self.put_json('/nodes/%s/management/boot_device'
+                            % self.node.name, {'boot_device': device},
+                            headers={api_base.Version.string: "1.5"})
+        self.assertEqual(204, ret.status_code)
+        self.assertEqual('', ret.body)
+        mock_sbd.assert_called_once_with(mock.ANY, self.node.uuid,
+                                         device, persistent=False,
+                                         topic='test-topic')
+
+    @mock.patch.object(rpcapi.ConductorAPI, 'set_boot_device')
     def test_set_boot_device_not_supported(self, mock_sbd):
         mock_sbd.side_effect = exception.UnsupportedDriverExtension(
                                   extension='management', driver='test-driver')
@@ -1422,20 +1864,25 @@ class TestPut(test_api_base.FunctionalTest):
         self.assertEqual('application/json', ret.content_type)
         self.assertEqual(400, ret.status_code)
 
-    def _test_set_node_maintenance_mode(self, mock_update, mock_get, reason):
+    def _test_set_node_maintenance_mode(self, mock_update, mock_get, reason,
+                                        node_ident, is_by_name=False):
         request_body = {}
         if reason:
             request_body['reason'] = reason
 
         self.node.maintenance = False
         mock_get.return_value = self.node
-        ret = self.put_json('/nodes/%s/maintenance' % self.node.uuid,
-                            request_body)
+        if is_by_name:
+            headers = {api_base.Version.string: "1.5"}
+        else:
+            headers = {}
+        ret = self.put_json('/nodes/%s/maintenance' % node_ident,
+                            request_body, headers=headers)
         self.assertEqual(202, ret.status_code)
         self.assertEqual('', ret.body)
         self.assertEqual(True, self.node.maintenance)
         self.assertEqual(reason, self.node.maintenance_reason)
-        mock_get.assert_called_once_with(mock.ANY, self.node.uuid)
+        mock_get.assert_called_once_with(mock.ANY, node_ident)
         mock_update.assert_called_once_with(mock.ANY, mock.ANY,
                                             topic='test-topic')
 
@@ -1443,9 +1890,24 @@ class TestPut(test_api_base.FunctionalTest):
     @mock.patch.object(rpcapi.ConductorAPI, 'update_node')
     def test_set_node_maintenance_mode(self, mock_update, mock_get):
         self._test_set_node_maintenance_mode(mock_update, mock_get,
-                                             'fake_reason')
+                                             'fake_reason', self.node.uuid)
 
     @mock.patch.object(objects.Node, 'get_by_uuid')
     @mock.patch.object(rpcapi.ConductorAPI, 'update_node')
     def test_set_node_maintenance_mode_no_reason(self, mock_update, mock_get):
-        self._test_set_node_maintenance_mode(mock_update, mock_get, None)
+        self._test_set_node_maintenance_mode(mock_update, mock_get, None,
+                                             self.node.uuid)
+
+    @mock.patch.object(objects.Node, 'get_by_name')
+    @mock.patch.object(rpcapi.ConductorAPI, 'update_node')
+    def test_set_node_maintenance_mode_by_name(self, mock_update, mock_get):
+        self._test_set_node_maintenance_mode(mock_update, mock_get,
+                                             'fake_reason', self.node.name,
+                                             is_by_name=True)
+
+    @mock.patch.object(objects.Node, 'get_by_name')
+    @mock.patch.object(rpcapi.ConductorAPI, 'update_node')
+    def test_set_node_maintenance_mode_no_reason_by_name(self, mock_update,
+                                                         mock_get):
+        self._test_set_node_maintenance_mode(mock_update, mock_get, None,
+                                             self.node.name, is_by_name=True)

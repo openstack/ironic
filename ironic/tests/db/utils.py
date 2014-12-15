@@ -170,6 +170,7 @@ def get_test_node(**kw):
     fake_info = {"foo": "bar", "fake_password": "fakepass"}
     return {
         'id': kw.get('id', 123),
+        'name': kw.get('name', None),
         'uuid': kw.get('uuid', '1be26c0b-03f2-4d2e-ae87-c02d7f33c123'),
         'chassis_id': kw.get('chassis_id', 42),
         'conductor_affinity': kw.get('conductor_affinity', None),

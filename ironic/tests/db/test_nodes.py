@@ -50,6 +50,12 @@ class DbNodeTestCase(base.DbTestCase):
                           uuid=ironic_utils.generate_uuid(),
                           instance_uuid=instance)
 
+    def test_create_node_name_duplicate(self):
+        node = utils.create_test_node(name='spam')
+        self.assertRaises(exception.DuplicateName,
+                          utils.create_test_node,
+                          name=node.name)
+
     def test_get_node_by_id(self):
         node = utils.create_test_node()
         res = self.dbapi.get_node_by_id(node.id)
@@ -62,12 +68,22 @@ class DbNodeTestCase(base.DbTestCase):
         self.assertEqual(node.id, res.id)
         self.assertEqual(node.uuid, res.uuid)
 
+    def test_get_node_by_name(self):
+        node = utils.create_test_node()
+        res = self.dbapi.get_node_by_name(node.name)
+        self.assertEqual(node.id, res.id)
+        self.assertEqual(node.uuid, res.uuid)
+        self.assertEqual(node.name, res.name)
+
     def test_get_node_that_does_not_exist(self):
         self.assertRaises(exception.NodeNotFound,
                           self.dbapi.get_node_by_id, 99)
         self.assertRaises(exception.NodeNotFound,
                           self.dbapi.get_node_by_uuid,
                           '12345678-9999-0000-aaaa-123456789012')
+        self.assertRaises(exception.NodeNotFound,
+                          self.dbapi.get_node_by_name,
+                          'spam-eggs-bacon-spam')
 
     def test_get_nodeinfo_list_defaults(self):
         node_id_list = []
@@ -325,6 +341,15 @@ class DbNodeTestCase(base.DbTestCase):
         res = self.dbapi.update_node(node.id, {'provision_state': 'fake'})
         self.assertEqual(mocked_time,
                          timeutils.normalize_time(res['provision_updated_at']))
+
+    def test_update_node_name_duplicate(self):
+        node1 = utils.create_test_node(uuid=ironic_utils.generate_uuid(),
+                                       name='spam')
+        node2 = utils.create_test_node(uuid=ironic_utils.generate_uuid())
+        self.assertRaises(exception.DuplicateName,
+                          self.dbapi.update_node,
+                          node2.id,
+                          {'name': node1.name})
 
     def test_update_node_no_provision(self):
         node = utils.create_test_node()

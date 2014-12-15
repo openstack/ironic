@@ -32,7 +32,8 @@ class Node(base.IronicObject):
     # Version 1.7: Add conductor_affinity
     # Version 1.8: Add maintenance_reason
     # Version 1.9: Add driver_internal_info
-    VERSION = '1.9'
+    # Version 1.10: Add name and get_by_name()
+    VERSION = '1.10'
 
     dbapi = db_api.get_instance()
 
@@ -40,6 +41,7 @@ class Node(base.IronicObject):
             'id': int,
 
             'uuid': obj_utils.str_or_none,
+            'name': obj_utils.str_or_none,
             'chassis_id': obj_utils.int_or_none,
             'instance_uuid': obj_utils.str_or_none,
 
@@ -119,6 +121,17 @@ class Node(base.IronicObject):
         :returns: a :class:`Node` object.
         """
         db_node = cls.dbapi.get_node_by_uuid(uuid)
+        node = Node._from_db_object(cls(context), db_node)
+        return node
+
+    @base.remotable_classmethod
+    def get_by_name(cls, context, name):
+        """Find a node based on name and return a Node object.
+
+        :param name: the logical name of a node.
+        :returns: a :class:`Node` object.
+        """
+        db_node = cls.dbapi.get_node_by_name(name)
         node = Node._from_db_object(cls(context), db_node)
         return node
 
