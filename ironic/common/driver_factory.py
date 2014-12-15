@@ -13,8 +13,8 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-from oslo.concurrency import lockutils
 from oslo.config import cfg
+from oslo_concurrency import lockutils
 from stevedore import dispatch
 
 from ironic.common import exception

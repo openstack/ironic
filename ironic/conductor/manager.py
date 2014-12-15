@@ -47,11 +47,11 @@ import threading
 
 import eventlet
 from eventlet import greenpool
-from oslo.concurrency import lockutils
 from oslo.config import cfg
 from oslo.db import exception as db_exception
 from oslo import messaging
 from oslo.utils import excutils
+from oslo_concurrency import lockutils
 
 from ironic.common import dhcp_factory
 from ironic.common import driver_factory

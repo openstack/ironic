@@ -22,8 +22,8 @@ import os
 import tempfile
 import time
 
-from oslo.concurrency import lockutils
 from oslo.config import cfg
+from oslo_concurrency import lockutils
 
 from ironic.common import exception
 from ironic.common.glance_service import service_utils

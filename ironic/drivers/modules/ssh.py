@@ -28,8 +28,8 @@ Currently supported environments are:
 
 import os
 
-from oslo.concurrency import processutils
 from oslo.config import cfg
+from oslo_concurrency import processutils
 
 from ironic.common import boot_devices
 from ironic.common import exception
