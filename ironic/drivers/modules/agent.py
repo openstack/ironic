@@ -171,19 +171,24 @@ class AgentDeploy(base.DeployInterface):
     def validate(self, task):
         """Validate the driver-specific Node deployment info.
 
-        This method validates whether the 'instance_info' property of the
-        supplied node contains the required information for this driver to
-        deploy images to the node.
+        This method validates whether the properties of the supplied node
+        contain the required information for this driver to deploy images to
+        the node.
 
         :param task: a TaskManager instance
-        :raises: InvalidParameterValue
+        :raises: MissingParameterValue
         """
-        try:
-            _get_tftp_image_info(task.node)
-        except KeyError:
-            raise exception.InvalidParameterValue(_(
-                    'Node %s failed to validate deploy image info') %
-                    task.node.uuid)
+        node = task.node
+        params = {}
+        params['driver_info.deploy_kernel'] = node.driver_info.get(
+                                                              'deploy_kernel')
+        params['driver_info.deploy_ramdisk'] = node.driver_info.get(
+                                                              'deploy_ramdisk')
+        params['instance_info.image_source'] = node.instance_info.get(
+                                                               'image_source')
+        error_msg = _('Node %s failed to validate deploy image info. Some '
+                      'parameters were missing') % node.uuid
+        deploy_utils.check_for_missing_params(params, error_msg)
 
     @task_manager.require_exclusive_lock
     def deploy(self, task):

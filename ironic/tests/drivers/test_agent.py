@@ -75,13 +75,24 @@ class TestAgentDeploy(db_base.DbTestCase):
                 self.context, self.node['uuid'], shared=False) as task:
             self.driver.validate(task)
 
-    def test_validate_exception(self):
+    def test_validate_driver_info_missing_params(self):
         self.node.driver_info = {}
         self.node.save()
         with task_manager.acquire(
                 self.context, self.node['uuid'], shared=False) as task:
-            self.assertRaises(exception.InvalidParameterValue,
-                             self.driver.validate, task)
+            e = self.assertRaises(exception.MissingParameterValue,
+                                  self.driver.validate, task)
+        self.assertIn('driver_info.deploy_ramdisk', str(e))
+        self.assertIn('driver_info.deploy_kernel', str(e))
+
+    def test_validate_instance_info_missing_params(self):
+        self.node.instance_info = {}
+        self.node.save()
+        with task_manager.acquire(
+                self.context, self.node['uuid'], shared=False) as task:
+            e = self.assertRaises(exception.MissingParameterValue,
+                                  self.driver.validate, task)
+        self.assertIn('instance_info.image_source', str(e))
 
     @mock.patch.object(dhcp_factory.DHCPFactory, 'update_dhcp')
     @mock.patch('ironic.conductor.utils.node_set_boot_device')
