@@ -334,6 +334,38 @@ class VendorPassthruTestCase(db_base.DbTestCase):
     @mock.patch.object(ilo_deploy, '_get_boot_iso')
     @mock.patch.object(iscsi_deploy, 'continue_deploy')
     @mock.patch.object(ilo_common, 'cleanup_vmedia_boot')
+    def test__continue_deploy_resume(self, cleanup_vmedia_boot_mock,
+                                     continue_deploy_mock, get_boot_iso_mock,
+                                     setup_vmedia_mock, set_boot_device_mock,
+                                     notify_deploy_complete_mock):
+        kwargs = {'method': 'pass_deploy_info', 'address': '123456'}
+        continue_deploy_mock.return_value = None
+        get_boot_iso_mock.return_value = 'boot-iso'
+
+        self.node.provision_state = states.DEPLOYWAIT
+        self.node.target_provision_state = states.ACTIVE
+        self.node.save()
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            vendor = ilo_deploy.VendorPassthru()
+            vendor._continue_deploy(task, **kwargs)
+
+            cleanup_vmedia_boot_mock.assert_called_once_with(task)
+            continue_deploy_mock.assert_called_once_with(task, **kwargs)
+            self.assertFalse(get_boot_iso_mock.called)
+            self.assertFalse(setup_vmedia_mock.called)
+            self.assertFalse(set_boot_device_mock.called)
+            self.assertEqual(states.DEPLOYING, task.node.provision_state)
+            self.assertEqual(states.ACTIVE,
+                             task.node.target_provision_state)
+        self.assertFalse(notify_deploy_complete_mock.called)
+
+    @mock.patch.object(deploy_utils, 'notify_deploy_complete')
+    @mock.patch.object(manager_utils, 'node_set_boot_device')
+    @mock.patch.object(ilo_common, 'setup_vmedia_for_boot')
+    @mock.patch.object(ilo_deploy, '_get_boot_iso')
+    @mock.patch.object(iscsi_deploy, 'continue_deploy')
+    @mock.patch.object(ilo_common, 'cleanup_vmedia_boot')
     def test__continue_deploy_good(self, cleanup_vmedia_boot_mock,
                                    continue_deploy_mock, get_boot_iso_mock,
                                    setup_vmedia_mock, set_boot_device_mock,
@@ -367,6 +399,7 @@ class VendorPassthruTestCase(db_base.DbTestCase):
         kwargs = {'method': 'pass_deploy_info', 'address': '123456'}
 
         self.node.provision_state = states.NOSTATE
+        self.node.target_provision_state = states.NOSTATE
         self.node.save()
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
@@ -374,6 +407,8 @@ class VendorPassthruTestCase(db_base.DbTestCase):
             self.assertRaises(exception.InvalidState,
                               vendor._continue_deploy,
                               task, **kwargs)
+            self.assertEqual(states.NOSTATE, task.node.provision_state)
+            self.assertEqual(states.NOSTATE, task.node.target_provision_state)
         self.assertFalse(cleanup_vmedia_boot_mock.called)
 
     @mock.patch.object(iscsi_deploy, 'continue_deploy')
@@ -480,6 +515,8 @@ class IloPXEVendorPassthruTestCase(db_base.DbTestCase):
         kwargs = {'address': '123456'}
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
+            task.node.provision_state = states.DEPLOYWAIT
+            task.node.target_provision_state = states.ACTIVE
             task.driver.vendor._continue_deploy(task, **kwargs)
             set_boot_device_mock.assert_called_with(task, boot_devices.PXE,
                                                     True)
