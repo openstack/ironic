@@ -17,6 +17,8 @@ import os
 
 from oslo.config import cfg
 from oslo.utils import strutils
+import six
+from six.moves.urllib import parse
 
 from ironic.common import exception
 from ironic.common.i18n import _
@@ -284,6 +286,36 @@ def continue_deploy(task, **kwargs):
     return root_uuid
 
 
+def parse_root_device_hints(node):
+    """Parse the root_device property of a node.
+
+    Parse the root_device property of a node and make it a flat string
+    to be passed via the PXE config.
+
+    :param node: a single Node.
+    :returns: A flat string with the following format
+              opt1=value1,opt2=value2. Or None if the
+              Node contains no hints.
+
+    """
+    root_device = node.properties.get('root_device')
+    if not root_device:
+        return
+
+    hints = []
+    for key, value in root_device.items():
+        # NOTE(lucasagomes): We can't have spaces in the PXE config
+        # file, so we are going to url/percent encode the value here
+        # and decode on the other end.
+        if isinstance(value, six.string_types):
+            value = value.strip()
+            value = parse.quote(value)
+
+        hints.append("%s=%s" % (key, value))
+
+    return ','.join(hints)
+
+
 def build_deploy_ramdisk_options(node):
     """Build the ramdisk config options for a node
 
@@ -312,6 +344,11 @@ def build_deploy_ramdisk_options(node):
         'ironic_api_url': ironic_api,
         'disk': CONF.pxe.disk_devices,
     }
+
+    root_device = parse_root_device_hints(node)
+    if root_device:
+        deploy_options['root_device'] = root_device
+
     return deploy_options
 
 

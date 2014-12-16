@@ -205,7 +205,8 @@ class IscsiDeployMethodsTestCase(db_base.DbTestCase):
         mock_unlink.assert_called_once_with('/path/uuid/disk')
         mock_rmtree.assert_called_once_with('/path/uuid')
 
-    def _test_build_deploy_ramdisk_options(self, mock_alnum, api_url):
+    def _test_build_deploy_ramdisk_options(self, mock_alnum, api_url,
+                                           expected_root_device=None):
         fake_key = '0123456789ABCDEFGHIJKLMNOPQRSTUV'
         fake_disk = 'fake-disk'
 
@@ -218,6 +219,9 @@ class IscsiDeployMethodsTestCase(db_base.DbTestCase):
                          'deployment_key': fake_key,
                          'disk': fake_disk,
                          'ironic_api_url': api_url}
+
+        if expected_root_device:
+            expected_opts['root_device'] = expected_root_device
 
         opts = iscsi_deploy.build_deploy_ramdisk_options(self.node)
 
@@ -248,3 +252,31 @@ class IscsiDeployMethodsTestCase(db_base.DbTestCase):
         # As the Ironic api url is not specified in the config file
         # assert we are getting it from keystone
         mock_get_url.assert_called_once_with()
+
+    @mock.patch.object(keystone, 'get_service_url')
+    @mock.patch.object(utils, 'random_alnum')
+    def test_build_deploy_ramdisk_options_root_device(self, mock_alnum,
+                                                      mock_get_url):
+        self.node.properties['root_device'] = {'wwn': 123456}
+        expected = 'wwn=123456'
+        fake_api_url = 'http://127.0.0.1:6385'
+        self.config(api_url=fake_api_url, group='conductor')
+        self._test_build_deploy_ramdisk_options(mock_alnum, fake_api_url,
+                                                expected_root_device=expected)
+
+    def test_parse_root_device_hints(self):
+        self.node.properties['root_device'] = {'wwn': 123456}
+        expected = 'wwn=123456'
+        result = iscsi_deploy.parse_root_device_hints(self.node)
+        self.assertEqual(expected, result)
+
+    def test_parse_root_device_hints_string_space(self):
+        self.node.properties['root_device'] = {'model': 'fake model'}
+        expected = 'model=fake%20model'
+        result = iscsi_deploy.parse_root_device_hints(self.node)
+        self.assertEqual(expected, result)
+
+    def test_parse_root_device_hints_no_hints(self):
+        self.node.properties = {}
+        result = iscsi_deploy.parse_root_device_hints(self.node)
+        self.assertIsNone(result)
