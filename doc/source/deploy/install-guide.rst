@@ -442,19 +442,14 @@ them to Glance service:
    - Build the image your users will run (Ubuntu image has been taken as
      an example)::
 
-       bin/disk-image-create -u ubuntu -o my-image
+       bin/disk-image-create ubuntu baremetal -o my-image
 
-     The above command creates *my-image.qcow2* file. If you want to use
-     Fedora image, replace *ubuntu* with *fedora* in the above command.
-
-   - Extract the kernel & ramdisk::
-
-       bin/disk-image-get-kernel -d ./ -o my \
-       -i $(pwd)/my-image.qcow2
-
-     The above command creates *my-vmlinuz* and *my-initrd* files. These
-     images are used while deploying the actual OS the users will run,
-     my-image in our case.
+     The above command creates *my-image.qcow2*, *my-image.vmlinuz* and
+     *my-image.initrd* files. If you want to use Fedora image, replace
+     *ubuntu* with *fedora* in the above command. *my-image.qcow2* is
+     used while deploying the actual OS the users will run. The images
+     *my-image.vmlinuz* and *my-image.initrd* are used for booting after
+     deploying the bare metal with my-image.qcow2.
 
    - Build the deploy image::
 
@@ -474,16 +469,16 @@ them to Glance service:
 
    - Add the kernel and ramdisk images to glance::
 
-        glance image-create --name my-kernel --public \
-        --disk-format aki  < my-vmlinuz
+        glance image-create --name my-kernel --is-public True \
+        --disk-format aki  < my-image.vmlinuz
 
      Store the image uuid obtained from the above step as
      *$MY_VMLINUZ_UUID*.
 
      ::
 
-        glance image-create --name my-ramdisk --public \
-        --disk-format ari  < my-initrd
+        glance image-create --name my-image.initrd --is-public True \
+        --disk-format ari  < my-image.initrd
 
      Store the image UUID obtained from the above step as
      *$MY_INITRD_UUID*.
@@ -493,17 +488,17 @@ them to Glance service:
      images with this OS image. These two operations can be done by
      executing the following command::
 
-        glance image-create --name my-image --public \
+        glance image-create --name my-image --is-public True \
         --disk-format qcow2 --container-format bare --property \
         kernel_id=$MY_VMLINUZ_UUID --property \
-        ramdisk_id=$MY_INITRD_UUID < my-image
+        ramdisk_id=$MY_INITRD_UUID < my-image.qcow2
 
 3. Add the deploy images to glance
 
    Add the *my-deploy-ramdisk.kernel* and
    *my-deploy-ramdisk.initramfs* images to glance::
 
-        glance image-create --name deploy-vmlinuz --public \
+        glance image-create --name deploy-vmlinuz --is-public True \
         --disk-format aki < my-deploy-ramdisk.kernel
 
    Store the image UUID obtained from the above step as
@@ -511,7 +506,7 @@ them to Glance service:
 
    ::
 
-        glance image-create --name deploy-initrd --public \
+        glance image-create --name deploy-initrd --is-public True \
         --disk-format ari < my-deploy-ramdisk.initramfs
 
    Store the image UUID obtained from the above step as
