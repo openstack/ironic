@@ -247,6 +247,11 @@ class ChassisNotFound(NotFound):
     message = _("Chassis %(chassis)s could not be found.")
 
 
+class NoDriversLoaded(IronicException):
+    message = _("Conductor %(conductor)s cannot be started "
+                "because no drivers were loaded.")
+
+
 class ConductorNotFound(NotFound):
     message = _("Conductor %(conductor)s could not be found.")
 
