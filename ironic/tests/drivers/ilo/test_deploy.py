@@ -317,7 +317,8 @@ class VendorPassthruTestCase(db_base.DbTestCase):
         super(VendorPassthruTestCase, self).setUp()
         mgr_utils.mock_the_extension_manager(driver="iscsi_ilo")
         self.node = obj_utils.create_test_node(self.context,
-                driver='iscsi_ilo', driver_info=INFO_DICT)
+                                               driver='iscsi_ilo',
+                                               driver_info=INFO_DICT)
 
     @mock.patch.object(deploy_utils, 'notify_deploy_complete')
     @mock.patch.object(manager_utils, 'node_set_boot_device')
@@ -370,13 +371,14 @@ class VendorPassthruTestCase(db_base.DbTestCase):
         self.node.save()
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
-            vendor = task.driver.vendor
-            vendor._continue_deploy(task, **kwargs)
+            task.driver.vendor._continue_deploy(task, **kwargs)
 
             cleanup_vmedia_boot_mock.assert_called_once_with(task)
             continue_deploy_mock.assert_called_once_with(task, **kwargs)
             get_boot_iso_mock.assert_called_once_with(task, 'root-uuid')
             setup_vmedia_mock.assert_called_once_with(task, 'boot-iso')
+            self.assertEqual(states.ACTIVE, task.node.provision_state)
+            self.assertEqual(states.NOSTATE, task.node.target_provision_state)
             set_boot_device_mock.assert_called_once_with(task,
                                                          boot_devices.CDROM)
             self.assertEqual('boot-iso',
@@ -404,9 +406,9 @@ class VendorPassthruTestCase(db_base.DbTestCase):
 
     @mock.patch.object(iscsi_deploy, 'continue_deploy')
     @mock.patch.object(ilo_common, 'cleanup_vmedia_boot')
-    def test__continue_deploy_deploy_no_boot_media(self,
+    def test__continue_deploy_no_root_uuid(self,
             cleanup_vmedia_boot_mock, continue_deploy_mock):
-        kwargs = {'method': 'pass_deploy_info', 'address': '123456'}
+        kwargs = {'address': '123456'}
         continue_deploy_mock.return_value = None
 
         self.node.provision_state = states.DEPLOYWAIT
@@ -414,11 +416,36 @@ class VendorPassthruTestCase(db_base.DbTestCase):
         self.node.save()
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
-            vendor = task.driver.vendor
-            vendor._continue_deploy(task, **kwargs)
+            task.driver.vendor._continue_deploy(task, **kwargs)
+
+            cleanup_vmedia_boot_mock.assert_called_once_with(task)
+            self.assertEqual(states.DEPLOYING, task.node.provision_state)
+            self.assertEqual(states.ACTIVE, task.node.target_provision_state)
+            continue_deploy_mock.assert_called_once_with(task, **kwargs)
+
+    @mock.patch.object(iscsi_deploy, 'continue_deploy')
+    @mock.patch.object(ilo_common, 'cleanup_vmedia_boot')
+    @mock.patch.object(ilo_deploy, '_get_boot_iso')
+    def test__continue_deploy_create_boot_iso_fail(self, get_iso_mock,
+            cleanup_vmedia_boot_mock, continue_deploy_mock):
+        kwargs = {'address': '123456'}
+        continue_deploy_mock.return_value = 'root-uuid'
+        get_iso_mock.side_effect = exception.ImageCreationFailed(
+                                             image_type='iso', error="error")
+        self.node.provision_state = states.DEPLOYWAIT
+        self.node.target_provision_state = states.ACTIVE
+        self.node.save()
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            task.driver.vendor._continue_deploy(task, **kwargs)
 
             cleanup_vmedia_boot_mock.assert_called_once_with(task)
             continue_deploy_mock.assert_called_once_with(task, **kwargs)
+            get_iso_mock.assert_called_once_with(task, 'root-uuid')
+            self.assertEqual(states.DEPLOYFAIL, task.node.provision_state)
+            self.assertEqual(states.ACTIVE, task.node.target_provision_state)
+            self.assertIsNotNone(task.node.last_error)
 
 
 class IloPXEDeployTestCase(db_base.DbTestCase):
