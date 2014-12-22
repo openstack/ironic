@@ -127,6 +127,7 @@ def parse_instance_info(node):
     i_info['swap_mb'] = info.get('swap_mb', 0)
     i_info['ephemeral_gb'] = info.get('ephemeral_gb', 0)
     i_info['ephemeral_format'] = info.get('ephemeral_format')
+    i_info['configdrive'] = info.get('configdrive')
 
     err_msg_invalid = _("Cannot validate parameter for iSCSI deploy. "
                         "Invalid parameter %(param)s. Reason: %(reason)s")
@@ -238,8 +239,9 @@ def get_deploy_info(node, **kwargs):
                 "Parameters %s were not passed to ironic"
                 " for deploy.") % missing)
 
-    # ephemeral_format is nullable
+    # configdrive and ephemeral_format are nullable
     params['ephemeral_format'] = i_info.get('ephemeral_format')
+    params['configdrive'] = i_info.get('configdrive')
 
     return params
 

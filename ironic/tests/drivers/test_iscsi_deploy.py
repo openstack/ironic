@@ -49,6 +49,7 @@ class IscsiDeployValidateParametersTestCase(db_base.DbTestCase):
         self.assertIsNotNone(info.get('image_source'))
         self.assertIsNotNone(info.get('root_gb'))
         self.assertEqual(0, info.get('ephemeral_gb'))
+        self.assertIsNone(info.get('configdrive'))
 
     def test_parse_instance_info_missing_instance_source(self):
         # make sure error is raised when info is missing
@@ -136,6 +137,13 @@ class IscsiDeployValidateParametersTestCase(db_base.DbTestCase):
         self.assertRaises(exception.InvalidParameterValue,
                 iscsi_deploy.parse_instance_info,
                 node)
+
+    def test_parse_instance_info_configdrive(self):
+        info = dict(INST_INFO_DICT)
+        info['configdrive'] = 'http://1.2.3.4/cd'
+        node = obj_utils.create_test_node(self.context, instance_info=info)
+        instance_info = iscsi_deploy.parse_instance_info(node)
+        self.assertEqual('http://1.2.3.4/cd', instance_info['configdrive'])
 
 
 class IscsiDeployPrivateMethodsTestCase(db_base.DbTestCase):

@@ -528,3 +528,8 @@ def dd(src, dst, *args):
     """
     execute('dd', 'if=%s' % src, 'of=%s' % dst, *args,
             run_as_root=True, check_exit_code=[0])
+
+
+def is_http_url(url):
+    url = url.lower()
+    return url.startswith('http://') or url.startswith('https://')
