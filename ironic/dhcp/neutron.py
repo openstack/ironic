@@ -19,6 +19,7 @@ import time
 from neutronclient.common import exceptions as neutron_client_exc
 from neutronclient.v2_0 import client as clientv20
 from oslo.config import cfg
+from oslo.utils import netutils
 
 from ironic.common import exception
 from ironic.common.i18n import _
@@ -26,7 +27,6 @@ from ironic.common.i18n import _LE
 from ironic.common.i18n import _LW
 from ironic.common import keystone
 from ironic.common import network
-from ironic.common import utils
 from ironic.dhcp import base
 from ironic.drivers.modules import ssh
 from ironic.openstack.common import log as logging
@@ -210,7 +210,7 @@ class NeutronDHCPApi(base.BaseDHCP):
             ip_address = fixed_ips[0].get('ip_address', None)
 
         if ip_address:
-            if utils.is_valid_ipv4(ip_address):
+            if netutils.is_valid_ipv4(ip_address):
                 return ip_address
             else:
                 LOG.error(_LE("Neutron returned invalid IPv4 address %s."),

@@ -25,6 +25,7 @@ import tempfile
 
 import mock
 from oslo.config import cfg
+from oslo.utils import netutils
 from oslo_concurrency import processutils
 
 from ironic.common import exception
@@ -184,7 +185,7 @@ class ConsoleUtilsTestCase(db_base.DbTestCase):
         generated_url = console_utils.get_shellinabox_console_url(
                 self.info['port'])
         console_host = CONF.my_ip
-        if utils.is_valid_ipv6(console_host):
+        if netutils.is_valid_ipv6(console_host):
             console_host = '[%s]' % console_host
         http_url = "http://%s:%s" % (console_host, self.info['port'])
         self.assertEqual(generated_url, http_url)

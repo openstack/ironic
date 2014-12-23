@@ -203,21 +203,6 @@ def validate_and_normalize_mac(address):
     return address.lower()
 
 
-def is_valid_ipv4(address):
-    """Verify that address represents a valid IPv4 address."""
-    try:
-        return netaddr.valid_ipv4(address)
-    except Exception:
-        return False
-
-
-def is_valid_ipv6(address):
-    try:
-        return netaddr.valid_ipv6(address)
-    except Exception:
-        return False
-
-
 def is_valid_ipv6_cidr(address):
     try:
         str(netaddr.IPNetwork(address, version=6).cidr)
