@@ -31,6 +31,7 @@ from ironic.drivers.modules.ilo import management as ilo_management
 from ironic.drivers.modules.ilo import power as ilo_power
 from ironic.drivers.modules import ipminative
 from ironic.drivers.modules import ipmitool
+from ironic.drivers.modules.irmc import power as irmc_power
 from ironic.drivers.modules import pxe
 from ironic.drivers.modules import seamicro
 from ironic.drivers.modules import snmp
@@ -170,4 +171,16 @@ class FakeSNMPDriver(base.BaseDriver):
                     driver=self.__class__.__name__,
                     reason=_("Unable to import pysnmp library"))
         self.power = snmp.SNMPPower()
+        self.deploy = fake.FakeDeploy()
+
+
+class FakeIRMCDriver(base.BaseDriver):
+    """Fake iRMC driver."""
+
+    def __init__(self):
+        if not importutils.try_import('scciclient'):
+            raise exception.DriverLoadError(
+                    driver=self.__class__.__name__,
+                    reason=_("Unable to import python-scciclient library"))
+        self.power = irmc_power.IRMCPower()
         self.deploy = fake.FakeDeploy()

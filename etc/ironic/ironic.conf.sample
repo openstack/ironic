@@ -900,6 +900,24 @@
 #min_command_interval=5
 
 
+[irmc]
+
+#
+# Options defined in ironic.drivers.modules.irmc.common
+#
+
+# Port to be used for iRMC operations, either 80 or 443
+# (integer value)
+#port=443
+
+# Authentication method to be used for iRMC operations, either
+# "basic" or "digest" (string value)
+#auth_method=basic
+
+# Timeout (in seconds) for iRMC operations (integer value)
+#client_timeout=60
+
+
 [keystone_authtoken]
 
 #

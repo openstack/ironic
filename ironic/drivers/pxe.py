@@ -28,6 +28,7 @@ from ironic.drivers.modules.ilo import management as ilo_management
 from ironic.drivers.modules.ilo import power as ilo_power
 from ironic.drivers.modules import ipminative
 from ironic.drivers.modules import ipmitool
+from ironic.drivers.modules.irmc import power as irmc_power
 from ironic.drivers.modules import pxe
 from ironic.drivers.modules import seamicro
 from ironic.drivers.modules import snmp
@@ -187,3 +188,24 @@ class PXEAndSNMPDriver(base.BaseDriver):
         # PDUs have no boot device management capability.
         # Only PXE as a boot device is supported.
         self.management = None
+
+
+class PXEAndIRMCDriver(base.BaseDriver):
+    """PXE + iRMC driver using SCCI.
+
+    This driver implements the `core` functionality using
+    :class:`ironic.drivers.modules.irmc.power.IRMCPower` for power management
+    :class:`ironic.drivers.modules.pxe.PXEDeploy` for image deployment.
+
+    """
+
+    def __init__(self):
+        if not importutils.try_import('scciclient'):
+            raise exception.DriverLoadError(
+                    driver=self.__class__.__name__,
+                    reason=_("Unable to import python-scciclient library"))
+        self.power = irmc_power.IRMCPower()
+        self.console = ipmitool.IPMIShellinaboxConsole()
+        self.deploy = pxe.PXEDeploy()
+        self.management = ipmitool.IPMIManagement()
+        self.vendor = pxe.VendorPassthru()

@@ -26,6 +26,7 @@ Current list of mocked libraries:
 - ipminative
 - proliantutils
 - pysnmp
+- scciclient
 """
 
 import sys
@@ -141,3 +142,22 @@ if not pysnmp:
 # external library has been mocked
 if 'ironic.drivers.modules.snmp' in sys.modules:
     reload(sys.modules['ironic.drivers.modules.snmp'])
+
+
+# attempt to load the external 'scciclient' library, which is required by
+# the optional drivers.modules.irmc module
+scciclient = importutils.try_import('scciclient')
+if not scciclient:
+    mock_scciclient = mock.MagicMock()
+    sys.modules['scciclient'] = mock_scciclient
+    sys.modules['scciclient.irmc'] = mock_scciclient.irmc
+    sys.modules['scciclient.irmc.scci'] = mock.MagicMock(
+        POWER_OFF=mock.sentinel.POWER_OFF,
+        POWER_ON=mock.sentinel.POWER_ON,
+        POWER_RESET=mock.sentinel.POWER_RESET)
+
+
+# if anything has loaded the iRMC driver yet, reload it now that the
+# external library has been mocked
+if 'ironic.drivers.modules.irmc' in sys.modules:
+    reload(sys.modules['ironic.drivers.modules.irmc'])
