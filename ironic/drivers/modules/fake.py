@@ -89,8 +89,7 @@ class FakeVendorA(base.VendorInterface):
         return {'A1': 'A1 description. Required.',
                 'A2': 'A2 description. Optional.'}
 
-    def validate(self, task, **kwargs):
-        method = kwargs.get('method')
+    def validate(self, task, method, **kwargs):
         if method == 'first_method':
             bar = kwargs.get('bar')
             if not bar:
@@ -110,8 +109,7 @@ class FakeVendorB(base.VendorInterface):
         return {'B1': 'B1 description. Required.',
                 'B2': 'B2 description. Required.'}
 
-    def validate(self, task, **kwargs):
-        method = kwargs.get('method')
+    def validate(self, task, method, **kwargs):
         if method in ('second_method', 'third_method_sync'):
             bar = kwargs.get('bar')
             if not bar:

@@ -432,7 +432,7 @@ class VendorPassthru(base.VendorInterface):
     def get_properties(self):
         return COMMON_PROPERTIES
 
-    def validate(self, task, **kwargs):
+    def validate(self, task, method, **kwargs):
         """Validates the inputs for a vendor passthru.
 
         This method checks whether the vendor passthru method is a valid one,
@@ -440,9 +440,9 @@ class VendorPassthru(base.VendorInterface):
         vendor passthru has been provided or not.
 
         :param task: a TaskManager instance containing the node to act on.
-        :param kwargs: kwargs containins the method name and its parameters.
-        :raises: InvalidParameterValue if method is invalid or any parameters
-            to the method is invalid.
+        :param method: method to be validated.
+        :param kwargs: kwargs containins the method's parameters.
+        :raises: InvalidParameterValue if any parameters is invalid.
         """
         iscsi_deploy.get_deploy_info(task.node, **kwargs)
 

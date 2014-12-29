@@ -145,7 +145,8 @@ class TestAgentVendor(db_base.DbTestCase):
 
     def test_validate(self):
         with task_manager.acquire(self.context, self.node.uuid) as task:
-            self.passthru.validate(task)
+            method = 'heartbeat'
+            self.passthru.validate(task, method)
 
     def test_driver_validate(self):
         kwargs = {'version': '2'}

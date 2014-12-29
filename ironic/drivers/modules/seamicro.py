@@ -451,7 +451,7 @@ class VendorPassthru(base.VendorInterface):
     def get_properties(self):
         return COMMON_PROPERTIES
 
-    def validate(self, task, **kwargs):
+    def validate(self, task, method, **kwargs):
         _parse_driver_info(task.node)
 
     @base.passthru(['POST'])

@@ -68,12 +68,11 @@ class MixinVendorInterface(base.VendorInterface):
                 pass
         return d
 
-    def _get_route(self, **kwargs):
+    def _get_route(self, method):
         """Return the driver interface which contains the given method.
 
         :param method: The name of the vendor method.
         """
-        method = kwargs.get('method')
         if not method:
             raise exception.MissingParameterValue(
                 _("Method not specified when calling vendor extension."))
@@ -98,17 +97,18 @@ class MixinVendorInterface(base.VendorInterface):
             properties.update(interface.get_properties())
         return properties
 
-    def validate(self, *args, **kwargs):
+    def validate(self, task, method, **kwargs):
         """Call validate on the appropriate interface only.
 
         :raises: UnsupportedDriverExtension if 'method' can not be mapped to
                  the supported interfaces.
-        :raises: InvalidParameterValue if kwargs does not contain 'method'.
-        :raisee: MissingParameterValue if missing parameters in kwargs.
+        :raises: InvalidParameterValue if 'method' is invalid.
+        :raisee: MissingParameterValue if missing 'method' or parameters
+                 in kwargs.
 
         """
-        route = self._get_route(**kwargs)
-        route.validate(*args, **kwargs)
+        route = self._get_route(method)
+        route.validate(task, method=method, **kwargs)
 
 
 def get_node_mac_addresses(task):

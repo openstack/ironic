@@ -468,12 +468,13 @@ class VendorInterface(object):
         """
 
     @abc.abstractmethod
-    def validate(self, task, **kwargs):
+    def validate(self, task, method=None, **kwargs):
         """Validate vendor-specific actions.
 
         If invalid, raises an exception; otherwise returns None.
 
         :param task: a task from TaskManager.
+        :param method: method to be validated
         :param kwargs: info for action.
         :raises: UnsupportedDriverExtension if 'method' can not be mapped to
                  the supported interfaces.
