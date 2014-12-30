@@ -54,7 +54,7 @@ def make_class_properties(cls):
         for name, field in supercls.fields.items():
             if name not in cls.fields:
                 cls.fields[name] = field
-    for name, typefn in cls.fields.iteritems():
+    for name, typefn in cls.fields.items():
 
         def getter(self, name=name):
             attrname = get_attrname(name)
@@ -394,7 +394,7 @@ class IronicObject(object):
 
     @property
     def obj_fields(self):
-        return self.fields.keys() + self.obj_extra_fields
+        return list(self.fields) + self.obj_extra_fields
 
     # dictish syntactic sugar
     def iteritems(self):
@@ -402,7 +402,7 @@ class IronicObject(object):
 
         NOTE(danms): May be removed in the future.
         """
-        for name in self.fields.keys() + self.obj_extra_fields:
+        for name in list(self.fields) + self.obj_extra_fields:
             if (hasattr(self, get_attrname(name)) or
                     name in self.obj_extra_fields):
                 yield name, getattr(self, name)

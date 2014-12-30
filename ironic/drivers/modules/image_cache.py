@@ -26,6 +26,7 @@ import uuid
 from oslo_concurrency import lockutils
 from oslo_config import cfg
 from oslo_log import log as logging
+import six
 
 from ironic.common import exception
 from ironic.common.glance_service import service_utils
@@ -107,8 +108,9 @@ class ImageCache(object):
         else:
             # NOTE(vdrok): Doing conversion of href in case it's unicode
             # string, UUID cannot be generated for unicode strings on python 2.
+            href_encoded = href.encode('utf-8') if six.PY2 else href
             master_file_name = str(uuid.uuid5(uuid.NAMESPACE_URL,
-                                              href.encode('utf-8')))
+                                              href_encoded))
         master_path = os.path.join(self.master_dir, master_file_name)
 
         if CONF.parallel_image_downloads:
@@ -281,7 +283,7 @@ class ImageCache(object):
                          "threshold %(expected)d"),
                      {'dir': self.master_dir, 'actual': total_size,
                       'expected': self._cache_size})
-        return max(amount, 0)
+        return max(amount, 0) if amount is not None else 0
 
 
 def _find_candidates_for_deletion(master_dir):
@@ -379,7 +381,7 @@ def cleanup(priority):
     """Decorator method for adding cleanup priority to a class."""
     def _add_property_to_class_func(cls):
         _cache_cleanup_list.append((priority, cls))
-        _cache_cleanup_list.sort(reverse=True)
+        _cache_cleanup_list.sort(reverse=True, key=lambda tuple_: tuple_[0])
         return cls
 
     return _add_property_to_class_func

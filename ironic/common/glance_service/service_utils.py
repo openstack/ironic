@@ -151,7 +151,7 @@ def _get_api_server():
 
     if not _GLANCE_API_SERVER:
         _GLANCE_API_SERVER = _get_api_server_iterator()
-    return _GLANCE_API_SERVER.next()
+    return six.next(_GLANCE_API_SERVER)
 
 
 def parse_image_ref(image_href):

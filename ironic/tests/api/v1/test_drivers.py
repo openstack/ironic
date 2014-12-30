@@ -45,10 +45,10 @@ class TestListDrivers(base.FunctionalTest):
         expected = sorted([
             {'name': self.d1, 'hosts': [self.h1]},
             {'name': self.d2, 'hosts': [self.h1, self.h2]},
-        ])
+        ], key=lambda d: d['name'])
         data = self.get_json('/drivers')
         self.assertThat(data['drivers'], HasLength(2))
-        drivers = sorted(data['drivers'])
+        drivers = sorted(data['drivers'], key=lambda d: d['name'])
         for i in range(len(expected)):
             d = drivers[i]
             self.assertEqual(expected[i]['name'], d['name'])

@@ -20,6 +20,7 @@ import tempfile
 import mock
 from oslo_config import cfg
 from oslo_utils import importutils
+import six
 
 from ironic.common import exception
 from ironic.common import images
@@ -34,6 +35,10 @@ from ironic.tests.objects import utils as obj_utils
 
 ilo_client = importutils.try_import('proliantutils.ilo.client')
 ilo_error = importutils.try_import('proliantutils.exception')
+
+if six.PY3:
+    import io
+    file = io.BytesIO
 
 
 CONF = cfg.CONF

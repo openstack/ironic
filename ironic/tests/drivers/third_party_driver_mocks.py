@@ -33,6 +33,7 @@ import sys
 
 import mock
 from oslo_utils import importutils
+import six
 
 from ironic.drivers.modules import ipmitool
 from ironic.tests.drivers import third_party_driver_mock_specs as mock_specs
@@ -54,7 +55,7 @@ if not seamicroclient:
 # if anything has loaded the seamicro driver yet, reload it now that
 # the external library has been mocked
 if 'ironic.drivers.modules.seamicro' in sys.modules:
-    reload(sys.modules['ironic.drivers.modules.seamicro'])
+    six.moves.reload_module(sys.modules['ironic.drivers.modules.seamicro'])
 
 # IPMITool driver checks the system for presence of 'ipmitool' binary during
 # __init__. We bypass that check in order to run the unit tests, which do not
@@ -81,7 +82,7 @@ if not pyghmi:
     p.ipmi.command.boot_devices = {'pxe': 4}
 
 if 'ironic.drivers.modules.ipminative' in sys.modules:
-    reload(sys.modules['ironic.drivers.modules.ipminative'])
+    six.moves.reload_module(sys.modules['ironic.drivers.modules.ipminative'])
 
 proliantutils = importutils.try_import('proliantutils')
 if not proliantutils:
@@ -94,7 +95,7 @@ if not proliantutils:
     command_exception = type('IloCommandNotSupportedError', (Exception,), {})
     proliantutils.exception.IloCommandNotSupportedError = command_exception
     if 'ironic.drivers.ilo' in sys.modules:
-        reload(sys.modules['ironic.drivers.ilo'])
+        six.moves.reload_module(sys.modules['ironic.drivers.ilo'])
 
 
 # attempt to load the external 'pywsman' library, which is required by
@@ -106,9 +107,9 @@ if not pywsman:
     # Now that the external library has been mocked, if anything had already
     # loaded any of the drivers, reload them.
     if 'ironic.drivers.modules.drac' in sys.modules:
-        reload(sys.modules['ironic.drivers.modules.drac'])
+        six.moves.reload_module(sys.modules['ironic.drivers.modules.drac'])
     if 'ironic.drivers.modules.amt' in sys.modules:
-        reload(sys.modules['ironic.drivers.modules.amt'])
+        six.moves.reload_module(sys.modules['ironic.drivers.modules.amt'])
 
 
 # attempt to load the external 'iboot' library, which is required by
@@ -122,7 +123,7 @@ if not iboot:
 # if anything has loaded the iboot driver yet, reload it now that the
 # external library has been mocked
 if 'ironic.drivers.modules.iboot' in sys.modules:
-    reload(sys.modules['ironic.drivers.modules.iboot'])
+    six.moves.reload_module(sys.modules['ironic.drivers.modules.iboot'])
 
 
 # attempt to load the external 'pysnmp' library, which is required by
@@ -148,7 +149,7 @@ if not pysnmp:
 # if anything has loaded the snmp driver yet, reload it now that the
 # external library has been mocked
 if 'ironic.drivers.modules.snmp' in sys.modules:
-    reload(sys.modules['ironic.drivers.modules.snmp'])
+    six.moves.reload_module(sys.modules['ironic.drivers.modules.snmp'])
 
 
 # attempt to load the external 'scciclient' library, which is required by
@@ -168,7 +169,7 @@ if not scciclient:
 # if anything has loaded the iRMC driver yet, reload it now that the
 # external library has been mocked
 if 'ironic.drivers.modules.irmc' in sys.modules:
-    reload(sys.modules['ironic.drivers.modules.irmc'])
+    six.moves.reload_module(sys.modules['ironic.drivers.modules.irmc'])
 
 pyremotevbox = importutils.try_import('pyremotevbox')
 if not pyremotevbox:
@@ -178,7 +179,8 @@ if not pyremotevbox:
     pyremotevbox.exception.VmInWrongPowerState = Exception
     sys.modules['pyremotevbox'] = pyremotevbox
     if 'ironic.drivers.modules.virtualbox' in sys.modules:
-        reload(sys.modules['ironic.drivers.modules.virtualbox'])
+        six.moves.reload_module(
+            sys.modules['ironic.drivers.modules.virtualbox'])
 
 
 ironic_discoverd = importutils.try_import('ironic_discoverd')
@@ -189,4 +191,5 @@ if not ironic_discoverd:
     sys.modules['ironic_discoverd'] = ironic_discoverd
     sys.modules['ironic_discoverd.client'] = ironic_discoverd.client
     if 'ironic.drivers.modules.discoverd' in sys.modules:
-        reload(sys.modules['ironic.drivers.modules.discoverd'])
+        six.moves.reload_module(
+            sys.modules['ironic.drivers.modules.discoverd'])

@@ -251,7 +251,7 @@ class IPMIToolPrivateMethodTestCase(db_base.DbTestCase):
             ValueError,
             self._test__make_password_file,
             mock_sleep, 12345, ValueError('we should fail'))
-        self.assertEqual(result.message, 'we should fail')
+        self.assertEqual('we should fail', result.args[0])
 
     @mock.patch.object(tempfile, 'NamedTemporaryFile',
                        new=mock.MagicMock(side_effect=OSError('Test Error')))
@@ -270,7 +270,7 @@ class IPMIToolPrivateMethodTestCase(db_base.DbTestCase):
         result = self.assertRaises(
             OverflowError,
             self._test__make_password_file, mock_sleep, 12345)
-        self.assertEqual(result.message, 'Test Error')
+        self.assertEqual('Test Error', result.args[0])
 
     def test__make_password_file_write_exception(self, mock_sleep):
         # Test exception in _make_password_file for write()

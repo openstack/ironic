@@ -34,10 +34,13 @@ JSONPATCH_EXCEPTIONS = (jsonpatch.JsonPatchException,
 
 
 def validate_limit(limit):
-    if limit is not None and limit <= 0:
+    if limit is None:
+        return CONF.api.max_limit
+
+    if limit <= 0:
         raise wsme.exc.ClientSideError(_("Limit must be positive"))
 
-    return min(CONF.api.max_limit, limit) or CONF.api.max_limit
+    return min(CONF.api.max_limit, limit)
 
 
 def validate_sort_dir(sort_dir):

@@ -27,7 +27,6 @@ from oslo_context import context
 from oslo_serialization import jsonutils
 import testtools
 
-
 from ironic.common import exception
 from ironic.common.glance_service import base_image_service
 from ironic.common.glance_service import service_utils
@@ -381,8 +380,8 @@ class TestGlanceImageService(base.TestCase):
         self.assertEqual(2, num_images)
 
         # Check the image is marked as deleted.
-        num_images = reduce(lambda x, y: x + (0 if y['deleted'] else 1),
-                            self.service.detail(), 0)
+        num_images = len([x for x in self.service.detail()
+                          if not x['deleted']])
         self.assertEqual(1, num_images)
 
     def test_show_passes_through_to_client(self):
@@ -499,8 +498,8 @@ class TestGlanceImageService(base.TestCase):
             """A client that returns a file url."""
 
             (outfd, s_tmpfname) = tempfile.mkstemp(prefix='directURLsrc')
-            outf = os.fdopen(outfd, 'w')
-            inf = open('/dev/urandom', 'r')
+            outf = os.fdopen(outfd, 'wb')
+            inf = open('/dev/urandom', 'rb')
             for i in range(10):
                 _data = inf.read(1024)
                 outf.write(_data)

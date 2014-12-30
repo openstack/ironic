@@ -223,8 +223,8 @@ class IPMINativeDriverTestCase(db_base.DbTestCase):
         self.assertEqual(expected, self.driver.power.get_properties())
         self.assertEqual(expected, self.driver.management.get_properties())
 
-        expected = ipminative.COMMON_PROPERTIES.keys()
-        expected += ipminative.CONSOLE_PROPERTIES.keys()
+        expected = list(ipminative.COMMON_PROPERTIES)
+        expected += list(ipminative.CONSOLE_PROPERTIES)
         self.assertEqual(sorted(expected),
                          sorted(self.driver.console.get_properties().keys()))
         self.assertEqual(sorted(expected),

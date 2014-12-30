@@ -19,6 +19,7 @@ import json
 import mock
 from oslo import messaging
 from oslo_config import cfg
+import six
 from webob import exc as webob_exc
 
 from ironic.api.controllers import root
@@ -137,7 +138,8 @@ class TestNoExceptionTracebackHook(base.FunctionalTest):
         # rare thing (happens due to wrong deserialization settings etc.)
         # we don't care about this garbage.
         expected_msg = ("Remote error: %s %s"
-                        % (test_exc_type, self.MSG_WITHOUT_TRACE) + "\n[u'")
+                        % (test_exc_type, self.MSG_WITHOUT_TRACE)
+                        + ("\n[u'" if six.PY2 else "\n['"))
         actual_msg = json.loads(response.json['error_message'])['faultstring']
         self.assertEqual(expected_msg, actual_msg)
 

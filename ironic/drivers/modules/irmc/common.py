@@ -90,7 +90,7 @@ def parse_driver_info(node):
             "Missing the following iRMC parameters in node's"
             " driver_info: %s.") % missing_info)
 
-    req = {key: value for key, value in info.iteritems()
+    req = {key: value for key, value in info.items()
            if key in REQUIRED_PROPERTIES}
     # corresponding config names don't have 'irmc_' prefix
     opt = {param: info.get(param, CONF.irmc.get(param[len('irmc_'):]))

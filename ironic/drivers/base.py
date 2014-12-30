@@ -132,7 +132,12 @@ class BaseInterface(object):
         # the conductor. We use __new__ instead of __init___
         # to avoid breaking backwards compatibility with all the drivers.
         # We want to return all steps, regardless of priority.
-        instance = super(BaseInterface, cls).__new__(cls, *args, **kwargs)
+
+        super_new = super(BaseInterface, cls).__new__
+        if super_new is object.__new__:
+            instance = super_new(cls)
+        else:
+            instance = super_new(cls, *args, **kwargs)
         instance.clean_steps = []
         for n, method in inspect.getmembers(instance, inspect.ismethod):
             if getattr(method, '_is_clean_step', False):
@@ -548,7 +553,11 @@ class VendorInterface(object):
     """
 
     def __new__(cls, *args, **kwargs):
-        inst = super(VendorInterface, cls).__new__(cls, *args, **kwargs)
+        super_new = super(VendorInterface, cls).__new__
+        if super_new is object.__new__:
+            inst = super_new(cls)
+        else:
+            inst = super_new(cls, *args, **kwargs)
 
         inst.vendor_routes = {}
         inst.driver_routes = {}

@@ -1751,7 +1751,7 @@ class ConductorManager(periodic_task.PeriodicTasks):
 
 def get_vendor_passthru_metadata(route_dict):
     d = {}
-    for method, metadata in route_dict.iteritems():
+    for method, metadata in route_dict.items():
         # 'func' is the vendor method reference, ignore it
         d[method] = {k: metadata[k] for k in metadata if k != 'func'}
     return d

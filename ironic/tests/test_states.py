@@ -14,6 +14,8 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import six
+
 from ironic.common import states
 from ironic.tests import base
 
@@ -28,10 +30,10 @@ class StatesTest(base.TestCase):
         This is specified in db/sqlalchemy/models.py
 
     """
-        for key, value in states.__dict__.iteritems():
+        for key, value in states.__dict__.items():
             # Assumption: A state variable name is all UPPERCASE and contents
             # are a string.
-            if key.upper() == key and isinstance(value, basestring):
+            if key.upper() == key and isinstance(value, six.string_types):
                 self.assertTrue(
                     (len(value) <= 15),
                     "Value for state: {} is greater than 15 characters".format(

@@ -22,6 +22,7 @@ import shutil
 import mock
 from oslo_concurrency import processutils
 from oslo_config import cfg
+import six
 import six.moves.builtins as __builtin__
 
 from ironic.common import exception
@@ -31,6 +32,10 @@ from ironic.common import images
 from ironic.common import utils
 from ironic.openstack.common import imageutils
 from ironic.tests import base
+
+if six.PY3:
+    import io
+    file = io.BytesIO
 
 CONF = cfg.CONF
 

@@ -12,11 +12,12 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-import __builtin__
 import sys
 
 import mock
 from oslo_config import cfg
+import six
+from six.moves import builtins as __builtin__
 from swiftclient import client as swift_client
 from swiftclient import exceptions as swift_exception
 from swiftclient import utils as swift_utils
@@ -26,6 +27,10 @@ from ironic.common import swift
 from ironic.tests import base
 
 CONF = cfg.CONF
+
+if six.PY3:
+    import io
+    file = io.BytesIO
 
 
 @mock.patch.object(swift_client, 'Connection', autospec=True)
@@ -46,7 +51,7 @@ class SwiftTestCase(base.TestCase):
         # The constructor of SwiftAPI accepts arguments whose
         # default values are values of some config options above. So reload
         # the module to make sure the required values are set.
-        reload(sys.modules['ironic.common.swift'])
+        six.moves.reload_module(sys.modules['ironic.common.swift'])
 
     def test___init__(self, connection_mock):
         swift.SwiftAPI()

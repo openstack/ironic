@@ -23,6 +23,7 @@ import uuid
 
 import mock
 from oslo_utils import uuidutils
+import six
 
 from ironic.common import exception
 from ironic.common import image_service
@@ -131,8 +132,8 @@ class TestImageCacheFetch(base.TestCase):
     def test_fetch_image_not_uuid(self, mock_download, mock_clean_up,
                                   mock_fetch):
         href = u'http://abc.com/ubuntu.qcow2'
-        href_converted = str(uuid.uuid5(uuid.NAMESPACE_URL,
-                                        href.encode('utf-8')))
+        href_encoded = href.encode('utf-8') if six.PY2 else href
+        href_converted = str(uuid.uuid5(uuid.NAMESPACE_URL, href_encoded))
         master_path = os.path.join(self.master_dir, href_converted)
         self.cache.fetch_image(href, self.dest_path)
         self.assertFalse(mock_fetch.called)
@@ -195,7 +196,7 @@ class TestImageCacheCleanUp(base.TestCase):
         files = [os.path.join(self.master_dir, str(i))
                  for i in range(2)]
         for filename in files:
-            open(filename, 'wb').write('X')
+            open(filename, 'wb').write(b'X')
         new_current_time = time.time() + 900
         with mock.patch.object(time, 'time', lambda: new_current_time):
             self.cache.clean_up(amount=1)
