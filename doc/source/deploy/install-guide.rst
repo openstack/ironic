@@ -33,7 +33,7 @@ The Bare Metal Service includes the following components:
 - Ironic client. A command-line interface (CLI) for interacting with
   the Bare Metal Service.
 
-Additionally, the Bare Metal Servive has certain external dependencies, which are
+Additionally, the Bare Metal Service has certain external dependencies, which are
 very similar to other OpenStack Services:
 
 - A database to store hardware information and state. You can set the database
