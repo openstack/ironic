@@ -218,6 +218,15 @@ class StartStopTestCase(_ServiceSetUpMixin, tests_db_base.DbTestCase):
             self.assertTrue(mock_df.called)
             self.assertFalse(mock_reg.called)
 
+    @mock.patch.object(manager, 'LOG')
+    @mock.patch.object(driver_factory, 'DriverFactory')
+    def test_start_fails_on_no_driver(self, df_mock, log_mock):
+        driver_factory_mock = mock.MagicMock(names=[])
+        df_mock.return_value = driver_factory_mock
+        self.assertRaises(exception.NoDriversLoaded,
+                          self.service.init_host)
+        self.assertTrue(log_mock.error.called)
+
 
 class KeepAliveTestCase(_ServiceSetUpMixin, tests_db_base.DbTestCase):
     def test__conductor_service_record_keepalive(self):

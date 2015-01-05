@@ -197,6 +197,13 @@ class ConductorManager(periodic_task.PeriodicTasks):
         self.drivers = self._driver_factory.names
         """List of driver names which this conductor supports."""
 
+        if not self.drivers:
+            msg = _LE("Conductor %s cannot be started because no drivers "
+                      "were loaded.  This could be because no drivers were "
+                      "specified in 'enabled_drivers' config option.")
+            LOG.error(msg, self.host)
+            raise exception.NoDriversLoaded(conductor=self.host)
+
         try:
             # Register this conductor with the cluster
             cdr = self.dbapi.register_conductor({'hostname': self.host,
