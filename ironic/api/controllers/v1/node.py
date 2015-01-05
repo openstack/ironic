@@ -210,18 +210,27 @@ class NodeStates(base.APIBase):
     """API representation of the states of a node."""
 
     console_enabled = types.boolean
+    """Indicates whether the console access is enabled or disabled on
+    the node."""
 
     power_state = wtypes.text
+    """Represent the current (not transition) power state of the node"""
 
     provision_state = wtypes.text
+    """Represent the current (not transition) provision state of the node"""
 
     provision_updated_at = datetime.datetime
+    """The UTC date and time of the last provision state change"""
 
     target_power_state = wtypes.text
+    """The user modified desired power state of the node."""
 
     target_provision_state = wtypes.text
+    """The user modified desired provision state of the node."""
 
     last_error = wtypes.text
+    """Any error from the most recent (last) asynchronous transaction that
+    started but failed to finish."""
 
     @staticmethod
     def convert(rpc_node):
