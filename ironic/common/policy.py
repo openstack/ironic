@@ -15,53 +15,55 @@
 
 """Policy Engine For Ironic."""
 
-import os.path
-
 from oslo.config import cfg
+from oslo_concurrency import lockutils
 
-from ironic.common import exception
-from ironic.common.i18n import _
-from ironic.common import utils
 from ironic.openstack.common import policy
 
-
-policy_opts = [
-    cfg.StrOpt('policy_file',
-               default='policy.json',
-               help=_('JSON file representing policy.')),
-    cfg.StrOpt('policy_default_rule',
-               default='default',
-               help=_('Rule checked when requested rule is not found.')),
-    ]
-
+_ENFORCER = None
 CONF = cfg.CONF
-CONF.register_opts(policy_opts)
-
-_POLICY_PATH = None
-_POLICY_CACHE = {}
 
 
-def reset():
-    global _POLICY_PATH
-    global _POLICY_CACHE
-    _POLICY_PATH = None
-    _POLICY_CACHE = {}
-    policy.reset()
+@lockutils.synchronized('policy_enforcer', 'ironic-')
+def init_enforcer(policy_file=None, rules=None,
+                  default_rule=None, use_conf=True):
+    """Synchronously initializes the policy enforcer
+
+       :param policy_file: Custom policy file to use, if none is specified,
+                           `CONF.policy_file` will be used.
+       :param rules: Default dictionary / Rules to use. It will be
+                     considered just in the first instantiation.
+       :param default_rule: Default rule to use, CONF.default_rule will
+                            be used if none is specified.
+       :param use_conf: Whether to load rules from config file.
+
+    """
+    global _ENFORCER
+
+    if _ENFORCER:
+        return
+
+    _ENFORCER = policy.Enforcer(policy_file=policy_file,
+                                rules=rules,
+                                default_rule=default_rule,
+                                use_conf=use_conf)
 
 
-def init():
-    global _POLICY_PATH
-    global _POLICY_CACHE
-    if not _POLICY_PATH:
-        _POLICY_PATH = CONF.policy_file
-        if not os.path.exists(_POLICY_PATH):
-            _POLICY_PATH = CONF.find_file(_POLICY_PATH)
-        if not _POLICY_PATH:
-            raise exception.ConfigNotFound(path=CONF.policy_file)
-    utils.read_cached_file(_POLICY_PATH, _POLICY_CACHE,
-                           reload_func=_set_rules)
+def get_enforcer():
+    """Provides access to the single instance of Policy enforcer."""
+
+    if not _ENFORCER:
+        init_enforcer()
+
+    return _ENFORCER
 
 
-def _set_rules(data):
-    default_rule = CONF.policy_default_rule
-    policy.set_rules(policy.Rules.load_json(data, default_rule))
+def enforce(rule, target, creds, do_raise=False, exc=None, *args, **kwargs):
+    """A shortcut for policy.Enforcer.enforce()
+
+    Checks authorization of a rule against the target and credentials.
+
+    """
+    enforcer = get_enforcer()
+    return enforcer.enforce(rule, target, creds, do_raise=do_raise,
+                            exc=exc, *args, **kwargs)

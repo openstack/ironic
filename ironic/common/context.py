@@ -20,18 +20,21 @@ class RequestContext(context.RequestContext):
 
     def __init__(self, auth_token=None, domain_id=None, domain_name=None,
                  user=None, tenant=None, is_admin=False, is_public_api=False,
-                 read_only=False, show_deleted=False, request_id=None):
+                 read_only=False, show_deleted=False, request_id=None,
+                 roles=None):
         """Stores several additional request parameters:
 
         :param domain_id: The ID of the domain.
         :param domain_name: The name of the domain.
         :param is_public_api: Specifies whether the request should be processed
                               without authentication.
+        :param roles: List of user's roles if any.
 
         """
         self.is_public_api = is_public_api
         self.domain_id = domain_id
         self.domain_name = domain_name
+        self.roles = roles or []
 
         super(RequestContext, self).__init__(auth_token=auth_token,
                                              user=user, tenant=tenant,
@@ -49,6 +52,7 @@ class RequestContext(context.RequestContext):
                 'show_deleted': self.show_deleted,
                 'request_id': self.request_id,
                 'domain_id': self.domain_id,
+                'roles': self.roles,
                 'domain_name': self.domain_name,
                 'is_public_api': self.is_public_api}
 
