@@ -57,15 +57,48 @@ class TestImageCacheFetch(base.TestCase):
             None, 'uuid', self.dest_path, None, True)
         self.assertFalse(mock_clean_up.called)
 
+    @mock.patch.object(os, 'unlink')
     @mock.patch.object(image_cache.ImageCache, 'clean_up')
     @mock.patch.object(image_cache.ImageCache, '_download_image')
-    def test_fetch_image_dest_exists(self, mock_download, mock_clean_up,
-                                     mock_fetch):
-        touch(self.dest_path)
+    def test_fetch_image_dest_and_master_exist_uptodate(self, mock_download,
+            mock_clean_up, mock_unlink, mock_fetch):
+        touch(self.master_path)
+        os.link(self.master_path, self.dest_path)
         self.cache.fetch_image(self.uuid, self.dest_path)
+        self.assertFalse(mock_unlink.called)
         self.assertFalse(mock_download.called)
         self.assertFalse(mock_fetch.called)
         self.assertFalse(mock_clean_up.called)
+
+    @mock.patch.object(image_cache.ImageCache, 'clean_up')
+    @mock.patch.object(image_cache.ImageCache, '_download_image')
+    def test_fetch_image_dest_and_master_exist_outdated(self, mock_download,
+            mock_clean_up, mock_fetch):
+        touch(self.master_path)
+        touch(self.dest_path)
+        self.assertNotEqual(os.stat(self.dest_path).st_ino,
+                            os.stat(self.master_path).st_ino)
+        self.cache.fetch_image(self.uuid, self.dest_path)
+        self.assertFalse(mock_download.called)
+        self.assertFalse(mock_fetch.called)
+        self.assertTrue(os.path.isfile(self.dest_path))
+        self.assertEqual(os.stat(self.dest_path).st_ino,
+                         os.stat(self.master_path).st_ino)
+        self.assertFalse(mock_clean_up.called)
+
+    @mock.patch.object(os, 'unlink')
+    @mock.patch.object(image_cache.ImageCache, 'clean_up')
+    @mock.patch.object(image_cache.ImageCache, '_download_image')
+    def test_fetch_image_only_dest_exists(self, mock_download,
+            mock_clean_up, mock_unlink, mock_fetch):
+        touch(self.dest_path)
+        self.cache.fetch_image(self.uuid, self.dest_path)
+        mock_unlink.assert_called_once_with(self.dest_path)
+        self.assertFalse(mock_fetch.called)
+        mock_download.assert_called_once_with(
+            self.uuid, self.master_path, self.dest_path,
+            ctx=None, force_raw=True)
+        self.assertTrue(mock_clean_up.called)
 
     @mock.patch.object(image_cache.ImageCache, 'clean_up')
     @mock.patch.object(image_cache.ImageCache, '_download_image')
