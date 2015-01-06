@@ -957,6 +957,10 @@
 # Timeout (in seconds) for iRMC operations (integer value)
 #client_timeout=60
 
+# Sensor Data retrieval method either "ipmitool" or "scci"
+# (string value)
+#sensor_method=ipmitool
+
 
 [keystone]
 

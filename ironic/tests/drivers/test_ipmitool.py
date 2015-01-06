@@ -960,7 +960,7 @@ class IPMIToolDriverTestCase(db_base.DbTestCase):
                     "fake state")
 
     @mock.patch.object(ipmi, '_exec_ipmitool', autospec=True)
-    def test__send_raw_bytes_ok(self, mock_exec):
+    def test_send_raw_bytes_ok(self, mock_exec):
         mock_exec.return_value = [None, None]
 
         with task_manager.acquire(self.context,
@@ -971,7 +971,7 @@ class IPMIToolDriverTestCase(db_base.DbTestCase):
         mock_exec.assert_called_once_with(self.info, 'raw 0x00 0x01')
 
     @mock.patch.object(ipmi, '_exec_ipmitool', autospec=True)
-    def test__send_raw_bytes_fail(self, mock_exec):
+    def test_send_raw_bytes_fail(self, mock_exec):
         mock_exec.side_effect = exception.PasswordFileFailedToCreate('error')
 
         with task_manager.acquire(self.context,

@@ -35,6 +35,10 @@ opts = [
     cfg.IntOpt('client_timeout',
                default=60,
                help='Timeout (in seconds) for iRMC operations'),
+    cfg.StrOpt('sensor_method',
+               default='ipmitool',
+               help='Sensor data retrieval method, either ' +
+               '"ipmitool" or "scci"'),
 ]
 
 CONF = cfg.CONF
@@ -46,16 +50,19 @@ REQUIRED_PROPERTIES = {
     'irmc_address': _("IP address or hostname of the iRMC. Required."),
     'irmc_username': _("Username for the iRMC with administrator privileges. "
                        "Required."),
-    'irmc_password': _("Password for irmc_username. Required.")
+    'irmc_password': _("Password for irmc_username. Required."),
 }
 OPTIONAL_PROPERTIES = {
     'irmc_port': _("Port to be used for iRMC operations; either 80 or 443. "
                    "The default value is 443. Optional."),
     'irmc_auth_method': _("Authentication method for iRMC operations; "
                           "either 'basic' or 'digest'. The default value is "
-                          "'digest'. Optional."),
+                          "'basic'. Optional."),
     'irmc_client_timeout': _("Timeout (in seconds) for iRMC operations. "
-                             "The default value is 60. Optional.")
+                             "The default value is 60. Optional."),
+    'irmc_sensor_method': _("Sensor data retrieval method; either "
+                            "'ipmitool' or 'scci'. The default value is "
+                            "'ipmitool'. Optional."),
 }
 
 COMMON_PROPERTIES = REQUIRED_PROPERTIES.copy()
@@ -68,8 +75,8 @@ def parse_driver_info(node):
     This method validates whether the 'driver_info' property of the
     supplied node contains the required information for this driver.
 
-    :param node: an ironic node object.
-    :returns: a dict containing information from driver_info
+    :param node: An ironic node object.
+    :returns: A dict containing information from driver_info
         and default values.
     :raises: InvalidParameterValue if invalid value is contained
         in the 'driver_info' property.
@@ -93,13 +100,16 @@ def parse_driver_info(node):
     error_msgs = []
     if (d_info['irmc_auth_method'].lower() not in ('basic', 'digest')):
         error_msgs.append(
-            _("'%s' has unsupported value.") % 'irmc_auth_method')
+            _("'irmc_auth_method' has unsupported value."))
     if d_info['irmc_port'] not in (80, 443):
         error_msgs.append(
-            _("'%s' has unsupported value.") % 'irmc_port')
+            _("'irmc_port' has unsupported value."))
     if not isinstance(d_info['irmc_client_timeout'], int):
         error_msgs.append(
-            _("'%s' is not integer type.") % 'irmc_client_timeout')
+            _("'irmc_client_timeout' is not integer type."))
+    if d_info['irmc_sensor_method'].lower() not in ('ipmitool', 'scci'):
+        error_msgs.append(
+            _("'irmc_sensor_method' has unsupported value."))
     if error_msgs:
         msg = (_("The following type errors were encountered while parsing "
                  "driver_info:\n%s") % "\n".join(error_msgs))
@@ -114,7 +124,7 @@ def get_irmc_client(node):
     Given an ironic node object, this method gives back a iRMC SCCI client
     to do operations on the iRMC.
 
-    :param node: an ironic node object.
+    :param node: An ironic node object.
     :returns: scci_cmd partial function which takes a SCCI command param.
     :raises: InvalidParameterValue on invalid inputs.
     :raises: MissingParameterValue if some mandatory information
@@ -135,7 +145,7 @@ def get_irmc_client(node):
 def update_ipmi_properties(task):
     """Update ipmi properties to node driver_info
 
-    :param task: a task from TaskManager.
+    :param task: A task from TaskManager.
     """
     node = task.node
     info = node.driver_info
@@ -147,3 +157,27 @@ def update_ipmi_properties(task):
 
     # saving ipmi credentials to task object
     task.node.driver_info = info
+
+
+def get_irmc_report(node):
+    """Gets iRMC SCCI report.
+
+    Given an ironic node object, this method gives back a iRMC SCCI report.
+
+    :param node: An ironic node object.
+    :returns: A xml.etree.ElementTree object.
+    :raises: InvalidParameterValue on invalid inputs.
+    :raises: MissingParameterValue if some mandatory information
+        is missing on the node.
+    :raises: scci.SCCIInvalidInputError if required parameters are invalid.
+    :raises: scci.SCCIClientError if SCCI failed.
+    """
+    driver_info = parse_driver_info(node)
+
+    return scci.get_report(
+        driver_info['irmc_address'],
+        driver_info['irmc_username'],
+        driver_info['irmc_password'],
+        port=driver_info['irmc_port'],
+        auth_method=driver_info['irmc_auth_method'],
+        client_timeout=driver_info['irmc_client_timeout'])

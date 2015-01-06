@@ -1,0 +1,156 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-stylesheet type="text/xsl" href="Report.xslt"?>
+<Root Schema="2" Version="7.65F" OS="iRMC S4" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+ <System>
+  <SensorDataRecords Schema="1">
+   <SDR Nr="1" RecordID="1" RecordType="1" RecordTypeName="Full SDR" Version="1.5" Length="64">
+    <Data Size="64">
+     <Decoded>
+      <Key>
+       <SensorOwner Type="IPMB">
+        <ID>20</ID>
+        <LUN>0</LUN>
+        <Channel>0</Channel>
+       </SensorOwner>
+       <SensorNumber>1</SensorNumber>
+      </Key>
+      <Entity>
+       <ID>55</ID>
+       <Instance>0</Instance>
+       <Name>Ambient</Name>
+      </Entity>
+      <Sensor>
+       <Type>1</Type>
+       <TypeName>Temperature</TypeName>
+       <BaseUnit>1</BaseUnit>
+       <ModifierUnit>0</ModifierUnit>
+       <BaseUnitName>degree C</BaseUnitName>
+       <ModifierUnitName>unspecified</ModifierUnitName>
+       <Thresholds>
+        <UpperCritical>
+         <Raw>168</Raw>
+         <Normalized>42</Normalized>
+        </UpperCritical>
+        <LowerCritical>
+         <Raw>4</Raw>
+         <Normalized>1</Normalized>
+        </LowerCritical>
+        <UpperNonCritical>
+         <Raw>148</Raw>
+         <Normalized>37</Normalized>
+        </UpperNonCritical>
+        <LowerNonCritical>
+         <Raw>24</Raw>
+         <Normalized>6</Normalized>
+        </LowerNonCritical>
+       </Thresholds>
+      </Sensor>
+     </Decoded>
+    </Data>
+   </SDR>
+   <SDR Nr="2" RecordID="2" RecordType="1" RecordTypeName="Full SDR" Version="1.5" Length="64">
+    <Data Size="64">
+     <Decoded>
+      <Key>
+       <SensorOwner Type="IPMB">
+        <ID>20</ID>
+        <LUN>0</LUN>
+        <Channel>0</Channel>
+       </SensorOwner>
+       <SensorNumber>2</SensorNumber>
+      </Key>
+      <Entity>
+       <ID>7</ID>
+       <Instance>0</Instance>
+       <Name>Systemboard 1</Name>
+      </Entity>
+      <Sensor>
+       <Type>1</Type>
+       <TypeName>Temperature</TypeName>
+       <BaseUnit>1</BaseUnit>
+       <ModifierUnit>0</ModifierUnit>
+       <BaseUnitName>degree C</BaseUnitName>
+       <ModifierUnitName>unspecified</ModifierUnitName>
+       <Thresholds>
+        <UpperCritical>
+         <Raw>80</Raw>
+         <Normalized>80</Normalized>
+        </UpperCritical>
+        <UpperNonCritical>
+         <Raw>75</Raw>
+         <Normalized>75</Normalized>
+        </UpperNonCritical>
+       </Thresholds>
+      </Sensor>
+     </Decoded>
+    </Data>
+   </SDR>
+   <SDR Nr="34" RecordID="34" RecordType="1" RecordTypeName="Full SDR" Version="1.5" Length="64">
+    <Data Size="64">
+     <Decoded>
+      <Key>
+       <SensorOwner Type="IPMB">
+        <ID>20</ID>
+        <LUN>0</LUN>
+        <Channel>0</Channel>
+       </SensorOwner>
+       <SensorNumber>35</SensorNumber>
+      </Key>
+      <Entity>
+       <ID>29</ID>
+       <Instance>0</Instance>
+       <Name>FAN1 SYS</Name>
+      </Entity>
+      <Sensor>
+       <Type>4</Type>
+       <TypeName>Fan</TypeName>
+       <BaseUnit>18</BaseUnit>
+       <ModifierUnit>0</ModifierUnit>
+       <BaseUnitName>RPM</BaseUnitName>
+       <ModifierUnitName>unspecified</ModifierUnitName>
+       <Thresholds>
+        <LowerCritical>
+         <Raw>10</Raw>
+         <Normalized>600</Normalized>
+        </LowerCritical>
+       </Thresholds>
+      </Sensor>
+     </Decoded>
+    </Data>
+   </SDR>
+   <SDR Nr="35" RecordID="35" RecordType="1" RecordTypeName="Full SDR" Version="1.5" Length="64">
+    <Data Size="64">
+     <Decoded>
+      <Key>
+       <SensorOwner Type="IPMB">
+        <ID>20</ID>
+        <LUN>0</LUN>
+        <Channel>0</Channel>
+       </SensorOwner>
+       <SensorNumber>36</SensorNumber>
+      </Key>
+      <Entity>
+       <ID>29</ID>
+       <Instance>1</Instance>
+       <Name>FAN2 SYS</Name>
+      </Entity>
+      <Sensor>
+       <Type>4</Type>
+       <TypeName>Fan</TypeName>
+       <BaseUnit>18</BaseUnit>
+       <ModifierUnit>0</ModifierUnit>
+       <!-- <BaseUnitName>RPM</BaseUnitName> -->
+       <ModifierUnitName>unspecified</ModifierUnitName>
+       <Thresholds>
+        <LowerCritical>
+         <Raw>10</Raw>
+         <Normalized></Normalized>
+        </LowerCritical>
+       </Thresholds>
+      </Sensor>
+     </Decoded>
+    </Data>
+   </SDR>
+  </SensorDataRecords>
+ </System>
+</Root>
