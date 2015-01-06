@@ -103,6 +103,7 @@ def prepare_service(argv=[]):
                      default_log_levels=['amqp=WARN',
                                          'amqplib=WARN',
                                          'qpid.messaging=INFO',
+                                         'oslo.messaging=INFO',
                                          'sqlalchemy=WARN',
                                          'keystoneclient=INFO',
                                          'stevedore=INFO',
