@@ -210,6 +210,12 @@ class FSM(object):
         """Returns a list of the state names."""
         return list(six.iterkeys(self._states))
 
+    def __iter__(self):
+        """Iterates over (start, event, end) transition tuples."""
+        for state in six.iterkeys(self._states):
+            for event, target in six.iteritems(self._transitions[state]):
+                yield (state, event, target.name)
+
     @property
     def events(self):
         """Returns how many events exist."""
