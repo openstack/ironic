@@ -926,7 +926,8 @@ class DoNodeDeployTearDownTestCase(_ServiceSetUpMixin,
         # test when driver.deploy.deploy raises an exception
         mock_deploy.side_effect = exception.InstanceDeployFailure('test')
         node = obj_utils.create_test_node(self.context, driver='fake',
-                                          provision_state=states.DEPLOYING)
+                                          provision_state=states.DEPLOYING,
+                                          target_provision_state=states.ACTIVE)
         task = task_manager.TaskManager(self.context, node.uuid)
 
         self.assertRaises(exception.InstanceDeployFailure,
@@ -934,7 +935,10 @@ class DoNodeDeployTearDownTestCase(_ServiceSetUpMixin,
                           self.service.conductor.id)
         node.refresh()
         self.assertEqual(states.DEPLOYFAIL, node.provision_state)
-        self.assertEqual(states.NOSTATE, node.target_provision_state)
+        # NOTE(deva): failing a deploy does not clear the target state
+        #             any longer. Instead, it is cleared when the instance
+        #             is deleted.
+        self.assertEqual(states.ACTIVE, node.target_provision_state)
         self.assertIsNotNone(node.last_error)
         mock_deploy.assert_called_once_with(mock.ANY)
 
@@ -944,7 +948,8 @@ class DoNodeDeployTearDownTestCase(_ServiceSetUpMixin,
         # test when driver.deploy.deploy returns DEPLOYDONE
         mock_deploy.return_value = states.DEPLOYDONE
         node = obj_utils.create_test_node(self.context, driver='fake',
-                                          provision_state=states.DEPLOYING)
+                                          provision_state=states.DEPLOYING,
+                                          target_provision_state=states.ACTIVE)
         task = task_manager.TaskManager(self.context, node.uuid)
 
         manager.do_node_deploy(task,
@@ -968,7 +973,7 @@ class DoNodeDeployTearDownTestCase(_ServiceSetUpMixin,
             self.service._worker_pool.waitall()
             node.refresh()
             self.assertEqual(states.DEPLOYING, node.provision_state)
-            self.assertEqual(states.DEPLOYDONE, node.target_provision_state)
+            self.assertEqual(states.ACTIVE, node.target_provision_state)
             # This is a sync operation last_error should be None.
             self.assertIsNone(node.last_error)
             # Verify reservation has been cleared.
@@ -986,7 +991,7 @@ class DoNodeDeployTearDownTestCase(_ServiceSetUpMixin,
         self.service._worker_pool.waitall()
         node.refresh()
         self.assertEqual(states.DEPLOYING, node.provision_state)
-        self.assertEqual(states.DEPLOYDONE, node.target_provision_state)
+        self.assertEqual(states.ACTIVE, node.target_provision_state)
         # last_error should be None.
         self.assertIsNone(node.last_error)
         # Verify reservation has been cleared.
@@ -1004,7 +1009,7 @@ class DoNodeDeployTearDownTestCase(_ServiceSetUpMixin,
         self.service._worker_pool.waitall()
         node.refresh()
         self.assertEqual(states.DEPLOYING, node.provision_state)
-        self.assertEqual(states.DEPLOYDONE, node.target_provision_state)
+        self.assertEqual(states.ACTIVE, node.target_provision_state)
         # last_error should be None.
         self.assertIsNone(node.last_error)
         # Verify reservation has been cleared.
@@ -1022,7 +1027,7 @@ class DoNodeDeployTearDownTestCase(_ServiceSetUpMixin,
         self.service._worker_pool.waitall()
         node.refresh()
         self.assertEqual(states.DEPLOYING, node.provision_state)
-        self.assertEqual(states.DEPLOYDONE, node.target_provision_state)
+        self.assertEqual(states.ACTIVE, node.target_provision_state)
         # last_error should be None.
         self.assertIsNone(node.last_error)
         # Verify reservation has been cleared.

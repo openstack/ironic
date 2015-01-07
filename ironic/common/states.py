@@ -136,15 +136,17 @@ machine.add_state(ACTIVE, **watchers)
 machine.add_state(ERROR, **watchers)
 
 # Add deploy* states
-machine.add_state(DEPLOYDONE, target=ACTIVE, **watchers)
-machine.add_state(DEPLOYING, target=DEPLOYDONE, **watchers)
-machine.add_state(DEPLOYWAIT, **watchers)
-machine.add_state(DEPLOYFAIL, **watchers)
+# NOTE(deva): Juno shows a target_provision_state of DEPLOYDONE
+#             this is changed in Kilo to ACTIVE
+machine.add_state(DEPLOYING, target=ACTIVE, **watchers)
+machine.add_state(DEPLOYWAIT, target=ACTIVE, **watchers)
+machine.add_state(DEPLOYFAIL, target=ACTIVE, **watchers)
 
 # Add delete* states
-machine.add_state(DELETED, target=NOSTATE, **watchers)
-machine.add_state(DELETING, target=DELETED, **watchers)
-
+# NOTE(deva): Juno shows a target_provision_state of DELETED
+#             this is changed in Kilo to AVAILABLE
+# TODO(deva): change NOSTATE to AVAILABLE here
+machine.add_state(DELETING, target=NOSTATE, **watchers)
 
 # From NOSTATE, a deployment may be started
 machine.add_transition(NOSTATE, DEPLOYING, 'deploy')
