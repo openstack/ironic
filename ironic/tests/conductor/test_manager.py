@@ -922,6 +922,7 @@ class DoNodeDeployTearDownTestCase(_ServiceSetUpMixin,
 
     @mock.patch('ironic.drivers.modules.fake.FakeDeploy.deploy')
     def test__do_node_deploy_driver_raises_error(self, mock_deploy):
+        self._start_service()
         # test when driver.deploy.deploy raises an exception
         mock_deploy.side_effect = exception.InstanceDeployFailure('test')
         node = obj_utils.create_test_node(self.context, driver='fake',
@@ -929,7 +930,8 @@ class DoNodeDeployTearDownTestCase(_ServiceSetUpMixin,
         task = task_manager.TaskManager(self.context, node.uuid)
 
         self.assertRaises(exception.InstanceDeployFailure,
-                          self.service._do_node_deploy, task)
+                          manager.do_node_deploy, task,
+                          self.service.conductor.id)
         node.refresh()
         self.assertEqual(states.DEPLOYFAIL, node.provision_state)
         self.assertEqual(states.NOSTATE, node.target_provision_state)
@@ -945,7 +947,8 @@ class DoNodeDeployTearDownTestCase(_ServiceSetUpMixin,
                                           provision_state=states.DEPLOYING)
         task = task_manager.TaskManager(self.context, node.uuid)
 
-        self.service._do_node_deploy(task)
+        manager.do_node_deploy(task,
+                                self.service.conductor.id)
         node.refresh()
         self.assertEqual(states.ACTIVE, node.provision_state)
         self.assertEqual(states.NOSTATE, node.target_provision_state)
@@ -970,7 +973,7 @@ class DoNodeDeployTearDownTestCase(_ServiceSetUpMixin,
             self.assertIsNone(node.last_error)
             # Verify reservation has been cleared.
             self.assertIsNone(node.reservation)
-            mock_spawn.assert_called_once_with(mock.ANY, mock.ANY)
+            mock_spawn.assert_called_once_with(mock.ANY, mock.ANY, mock.ANY)
 
     @mock.patch('ironic.drivers.modules.fake.FakeDeploy.deploy')
     def test_do_node_deploy_rebuild_active_state(self, mock_deploy):
@@ -1099,7 +1102,7 @@ class DoNodeDeployTearDownTestCase(_ServiceSetUpMixin,
         self._start_service()
         mock_tear_down.side_effect = exception.InstanceDeployFailure('test')
         self.assertRaises(exception.InstanceDeployFailure,
-                          self.service._do_node_tear_down, task)
+                          manager.do_node_tear_down, task)
         node.refresh()
         self.assertEqual(states.ERROR, node.provision_state)
         self.assertEqual(states.NOSTATE, node.target_provision_state)
@@ -1118,7 +1121,7 @@ class DoNodeDeployTearDownTestCase(_ServiceSetUpMixin,
         task = task_manager.TaskManager(self.context, node.uuid)
         self._start_service()
         mock_tear_down.return_value = states.DELETED
-        self.service._do_node_tear_down(task)
+        manager.do_node_tear_down(task)
         node.refresh()
         self.assertEqual(states.NOSTATE, node.provision_state)
         self.assertEqual(states.NOSTATE, node.target_provision_state)
@@ -1698,22 +1701,22 @@ class ManagerDoSyncPowerStateTestCase(tests_db_base.DbTestCase):
         self.config(force_power_state_during_sync=False, group='conductor')
 
     def _do_sync_power_state(self, old_power_state, new_power_states,
-                             fail_validate=False, fail_change=False):
+                             fail_validate=False):
+        self.node.power_state = old_power_state
         if not isinstance(new_power_states, (list, tuple)):
             new_power_states = [new_power_states]
         if fail_validate:
             exc = exception.InvalidParameterValue('error')
             self.power.validate.side_effect = exc
-        if fail_change:
-            exc = exception.IronicException('test')
-            self.power.node_power_action.side_effect = exc
         for new_power_state in new_power_states:
             self.node.power_state = old_power_state
             if isinstance(new_power_state, Exception):
                 self.power.get_power_state.side_effect = new_power_state
             else:
                 self.power.get_power_state.return_value = new_power_state
-            self.service._do_sync_power_state(self.task)
+            count = manager.do_sync_power_state(self.task,
+                        self.service.power_state_sync_count[self.node.uuid])
+            self.service.power_state_sync_count[self.node.uuid] = count
 
     def test_state_unchanged(self, node_power_action):
         self._do_sync_power_state('fake-power', 'fake-power')
@@ -1789,8 +1792,8 @@ class ManagerDoSyncPowerStateTestCase(tests_db_base.DbTestCase):
     def test_state_changed_sync_failed(self, node_power_action):
         self.config(force_power_state_during_sync=True, group='conductor')
 
-        self._do_sync_power_state(states.POWER_ON, states.POWER_OFF,
-                                  fail_change=True)
+        node_power_action.side_effect = exception.IronicException('test')
+        self._do_sync_power_state(states.POWER_ON, states.POWER_OFF)
 
         # Just testing that this test doesn't raise.
         self.assertFalse(self.power.validate.called)
@@ -1815,7 +1818,7 @@ class ManagerDoSyncPowerStateTestCase(tests_db_base.DbTestCase):
         self.node.save.assert_called_once_with()
         node_power_action.assert_called_once_with(self.task, states.POWER_ON)
         self.assertEqual(states.POWER_OFF, self.node.power_state)
-        self.assertEqual(1,
+        self.assertEqual(2,
                          self.service.power_state_sync_count[self.node.uuid])
         self.assertTrue(self.node.maintenance)
         self.assertIsNotNone(self.node.maintenance_reason)
@@ -1836,7 +1839,7 @@ class ManagerDoSyncPowerStateTestCase(tests_db_base.DbTestCase):
         npa_exp_calls = [mock.call(self.task, states.POWER_ON)] * 2
         self.assertEqual(npa_exp_calls, node_power_action.call_args_list)
         self.assertEqual(states.POWER_OFF, self.node.power_state)
-        self.assertEqual(2,
+        self.assertEqual(3,
                          self.service.power_state_sync_count[self.node.uuid])
         self.assertTrue(self.node.maintenance)
 
@@ -1856,16 +1859,17 @@ class ManagerDoSyncPowerStateTestCase(tests_db_base.DbTestCase):
         npa_exp_calls = [mock.call(self.task, states.POWER_ON)] * 2
         self.assertEqual(npa_exp_calls, node_power_action.call_args_list)
         self.assertEqual(states.POWER_ON, self.node.power_state)
-        self.assertNotIn(self.node.uuid, self.service.power_state_sync_count)
+        self.assertEqual(0,
+                         self.service.power_state_sync_count[self.node.uuid])
 
     def test_power_state_sync_max_retries_gps_exception(self,
                                                         node_power_action):
         self.config(power_state_sync_max_retries=2, group='conductor')
         self.service.power_state_sync_count[self.node.uuid] = 2
 
+        node_power_action.side_effect = exception.IronicException('test')
         self._do_sync_power_state('fake',
-                                  exception.IronicException('foo'),
-                                  fail_change=True)
+                                  exception.IronicException('foo'))
 
         self.assertFalse(self.power.validate.called)
         self.power.get_power_state.assert_called_once_with(self.task)
@@ -1877,7 +1881,7 @@ class ManagerDoSyncPowerStateTestCase(tests_db_base.DbTestCase):
         self.assertFalse(node_power_action.called)
 
 
-@mock.patch.object(manager.ConductorManager, '_do_sync_power_state')
+@mock.patch.object(manager, 'do_sync_power_state')
 @mock.patch.object(task_manager, 'acquire')
 @mock.patch.object(manager.ConductorManager, '_mapped_to_this_conductor')
 @mock.patch.object(objects.Node, 'get_by_id')
@@ -2066,7 +2070,7 @@ class ManagerSyncPowerStatesTestCase(_CommonMixIn, tests_db_base.DbTestCase):
                                             self.node.driver)
         get_node_mock.assert_called_once_with(self.context, self.node.id)
         acquire_mock.assert_called_once_with(self.context, self.node.id)
-        sync_mock.assert_called_once_with(task)
+        sync_mock.assert_called_once_with(task, mock.ANY)
 
     def test__sync_power_state_multiple_nodes(self, get_nodeinfo_mock,
                                               get_node_mock, mapped_mock,
@@ -2139,7 +2143,8 @@ class ManagerSyncPowerStatesTestCase(_CommonMixIn, tests_db_base.DbTestCase):
         acquire_calls = [mock.call(self.context, x.id)
                 for x in nodes[:1] + nodes[6:]]
         self.assertEqual(acquire_calls, acquire_mock.call_args_list)
-        sync_calls = [mock.call(tasks[0]), mock.call(tasks[5])]
+        sync_calls = [mock.call(tasks[0], mock.ANY),
+                      mock.call(tasks[5], mock.ANY)]
         self.assertEqual(sync_calls, sync_mock.call_args_list)
 
 
