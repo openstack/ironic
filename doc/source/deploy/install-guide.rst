@@ -83,6 +83,13 @@ Configure Identity Service for Bare Metal
     --internalurl=http://IRONIC_NODE:6385 \
     --adminurl=http://IRONIC_NODE:6385
 
+.. error::
+    If the keystone endpoint-create operation returns an error about not being
+    able to find the region "regionOne", the error is due to this keystone bug:
+    https://bugs.launchpad.net/keystone/+bug/1400589. As a workaround until
+    that bug is fixed you can force the creation of "RegionOne" by passing
+    --region=RegionOne as an argument to the keystone endpoint-create command.
+
 Set up the Database for Bare Metal
 ----------------------------------
 
