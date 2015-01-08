@@ -175,6 +175,44 @@ class IBootPrivateMethodTestCase(db_base.DbTestCase):
         mock_connection.get_relays.assert_called_once_with()
 
     @mock.patch.object(iboot, '_get_connection')
+    def test__power_status_exception_type_error(self, mock_get_conn):
+        mock_connection = mock.Mock()
+        side_effect = TypeError("Surprise!")
+        mock_connection.get_relays.side_effect = side_effect
+
+        mock_get_conn.return_value = mock_connection
+        node = obj_utils.create_test_node(
+                self.context,
+                driver='fake_iboot',
+                driver_info=INFO_DICT)
+        info = iboot._parse_driver_info(node)
+
+        self.assertRaises(exception.IBootOperationError,
+                          iboot._power_status,
+                          info)
+
+        mock_get_conn.assert_called_once_with(info)
+        mock_connection.get_relays.assert_called_once_with()
+
+    @mock.patch.object(iboot, '_get_connection')
+    def test__power_status_exception_index_error(self, mock_get_conn):
+        mock_connection = mock.Mock()
+        side_effect = IndexError("Gotcha!")
+        mock_connection.get_relays.side_effect = side_effect
+
+        mock_get_conn.return_value = mock_connection
+        node = obj_utils.create_test_node(
+                self.context,
+                driver='fake_iboot',
+                driver_info=INFO_DICT)
+        info = iboot._parse_driver_info(node)
+        status = iboot._power_status(info)
+        self.assertEqual(states.ERROR, status)
+
+        mock_get_conn.assert_called_once_with(info)
+        mock_connection.get_relays.assert_called_once_with()
+
+    @mock.patch.object(iboot, '_get_connection')
     def test__power_status_error(self, mock_get_conn):
         mock_connection = mock.Mock()
         mock_connection.get_relays.return_value = list()
