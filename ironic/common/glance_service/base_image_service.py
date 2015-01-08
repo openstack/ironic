@@ -124,26 +124,18 @@ class BaseImageService(object):
             except retry_excs as e:
                 host = self.glance_host
                 port = self.glance_port
-                extra = "retrying"
                 error_msg = _LE("Error contacting glance server "
-                                "'%(host)s:%(port)s' for '%(method)s', "
-                                "%(extra)s.")
+                            "'%(host)s:%(port)s' for '%(method)s', attempt"
+                            " %(attempt)s of %(num_attempts)s failed.")
+                LOG.exception(error_msg, {'host': host,
+                                    'port': port,
+                                    'num_attempts': num_attempts,
+                                    'attempt': attempt,
+                                    'method': method})
                 if attempt == num_attempts:
-                    extra = 'done trying'
-                    LOG.exception(error_msg, {'host': host,
-                                              'port': port,
-                                              'num_attempts': num_attempts,
-                                              'method': method,
-                                              'extra': extra})
                     raise exception.GlanceConnectionFailed(host=host,
                                                            port=port,
                                                            reason=str(e))
-                LOG.exception(error_msg, {'host': host,
-                                          'port': port,
-                                          'num_attempts': num_attempts,
-                                          'attempt': attempt,
-                                          'method': method,
-                                          'extra': extra})
                 time.sleep(1)
             except image_excs as e:
                 exc_type, exc_value, exc_trace = sys.exc_info()
