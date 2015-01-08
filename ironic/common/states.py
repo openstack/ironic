@@ -43,6 +43,7 @@ VERBS = {
         'deleted': 'delete',
         'manage': 'manage',
         'provide': 'provide',
+        'inspect': 'inspect',
     }
 """ Mapping of state-changing events that are PUT to the REST API
 
@@ -133,6 +134,16 @@ This is not used as a state, but rather as a "verb" when changing the node's
 provision_state via the REST API.
 """
 
+INSPECTING = 'inspecting'
+""" Node is under inspection.
+
+This is the provision state used when inspection is started. A successfully
+inspected node shall transition to MANAGEABLE status.
+"""
+
+
+INSPECTFAIL = 'inspectfail'
+""" Node inspection failed. """
 
 ##############
 # Power states
@@ -196,6 +207,10 @@ machine.add_state(DELETING, target=AVAILABLE, **watchers)
 # From AVAILABLE, a deployment may be started
 machine.add_transition(AVAILABLE, DEPLOYING, 'deploy')
 
+# Add inspect* states.
+machine.add_state(INSPECTING, target=MANAGEABLE, **watchers)
+machine.add_state(INSPECTFAIL, target=MANAGEABLE, **watchers)
+
 # A deployment may fail
 machine.add_transition(DEPLOYING, DEPLOYFAIL, 'fail')
 
@@ -243,3 +258,20 @@ machine.add_transition(ERROR, DEPLOYING, 'rebuild')
 # or deleted
 # ironic/conductor/manager.py:do_node_tear_down()
 machine.add_transition(ERROR, DELETING, 'delete')
+
+# Added transitions for inspection.
+# Initiate inspection.
+machine.add_transition(MANAGEABLE, INSPECTING, 'inspect')
+
+# ironic/conductor/manager.py:inspect_hardware().
+machine.add_transition(INSPECTING, MANAGEABLE, 'done')
+
+# Inspection may fail.
+machine.add_transition(INSPECTING, INSPECTFAIL, 'fail')
+
+# Move the node to manageable state for any other
+# action.
+machine.add_transition(INSPECTFAIL, MANAGEABLE, 'manage')
+
+# Reinitiate the inspect after inspectfail.
+machine.add_transition(INSPECTFAIL, INSPECTING, 'inspect')
