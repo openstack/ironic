@@ -440,20 +440,56 @@ class FsImageTestCase(base.TestCase):
                 'tmpdir/kernel-uuid', 'tmpdir/ramdisk-uuid', params)
 
     @mock.patch.object(image_service, 'Service')
-    def test_get_glance_image_property(self, image_service_mock):
+    def test_get_glance_image_properties_no_such_prop(
+            self, image_service_mock):
 
-        prop_dict = {'properties': {'prop1': 'val1'}}
+        prop_dict = {'properties': {'p1': 'v1',
+                                    'p2': 'v2'}}
 
         image_service_obj_mock = image_service_mock.return_value
         image_service_obj_mock.show.return_value = prop_dict
 
-        ret_val = images.get_glance_image_property('con', 'uuid', 'prop1')
+        ret_val = images.get_glance_image_properties('con', 'uuid',
+                                                     ['p1', 'p2', 'p3'])
         image_service_mock.assert_called_once_with(version=1, context='con')
         image_service_obj_mock.show.assert_called_once_with('uuid')
-        self.assertEqual('val1', ret_val)
+        self.assertEqual({'p1': 'v1',
+                          'p2': 'v2',
+                          'p3': None}, ret_val)
 
-        ret_val = images.get_glance_image_property('con', 'uuid', 'prop2')
-        self.assertIsNone(ret_val)
+    @mock.patch.object(image_service, 'Service')
+    def test_get_glance_image_properties_default_all(
+            self, image_service_mock):
+
+        prop_dict = {'properties': {'p1': 'v1',
+                                    'p2': 'v2'}}
+
+        image_service_obj_mock = image_service_mock.return_value
+        image_service_obj_mock.show.return_value = prop_dict
+
+        ret_val = images.get_glance_image_properties('con', 'uuid')
+        image_service_mock.assert_called_once_with(version=1, context='con')
+        image_service_obj_mock.show.assert_called_once_with('uuid')
+        self.assertEqual({'p1': 'v1',
+                          'p2': 'v2'}, ret_val)
+
+    @mock.patch.object(image_service, 'Service')
+    def test_get_glance_image_properties_with_prop_subset(
+            self, image_service_mock):
+
+        prop_dict = {'properties': {'p1': 'v1',
+                                    'p2': 'v2',
+                                    'p3': 'v3'}}
+
+        image_service_obj_mock = image_service_mock.return_value
+        image_service_obj_mock.show.return_value = prop_dict
+
+        ret_val = images.get_glance_image_properties('con', 'uuid',
+                                                     ['p1', 'p3'])
+        image_service_mock.assert_called_once_with(version=1, context='con')
+        image_service_obj_mock.show.assert_called_once_with('uuid')
+        self.assertEqual({'p1': 'v1',
+                          'p3': 'v3'}, ret_val)
 
     @mock.patch.object(image_service, 'Service')
     def test_get_temp_url_for_glance_image(self, image_service_mock):
