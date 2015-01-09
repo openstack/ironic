@@ -4,11 +4,11 @@
 # Options defined in oslo.messaging
 #
 
-# Use durable queues in amqp. (boolean value)
+# Use durable queues in AMQP. (boolean value)
 # Deprecated group/name - [DEFAULT]/rabbit_durable_queues
 #amqp_durable_queues=false
 
-# Auto-delete queues in amqp. (boolean value)
+# Auto-delete queues in AMQP. (boolean value)
 #amqp_auto_delete=false
 
 # Size of RPC connection pool. (integer value)
@@ -56,8 +56,8 @@
 #qpid_topology_version=1
 
 # SSL version to use (valid only if SSL enabled). valid values
-# are TLSv1, SSLv23 and SSLv3. SSLv2 may be available on some
-# distributions. (string value)
+# are TLSv1 and SSLv23. SSLv2 and SSLv3 may be available on
+# some distributions. (string value)
 #kombu_ssl_version=
 
 # SSL key file (valid only if SSL enabled). (string value)
@@ -94,7 +94,7 @@
 # The RabbitMQ password. (string value)
 #rabbit_password=guest
 
-# the RabbitMQ login method (string value)
+# The RabbitMQ login method. (string value)
 #rabbit_login_method=AMQPLAIN
 
 # The RabbitMQ virtual host. (string value)
@@ -117,7 +117,8 @@
 # value)
 #rabbit_ha_queues=false
 
-# If passed, use a fake RabbitMQ provider. (boolean value)
+# Deprecated, use rpc_backend=kombu+memory or rpc_backend=fake
+# (boolean value)
 #fake_rabbit=false
 
 # ZeroMQ bind address. Should be a wildcard (*), an ethernet
@@ -336,17 +337,6 @@
 
 
 #
-# Options defined in ironic.openstack.common.lockutils
-#
-
-# Enables or disables inter-process locks. (boolean value)
-#disable_process_locking=false
-
-# Directory to use for lock files. (string value)
-#lock_path=<None>
-
-
-#
 # Options defined in ironic.openstack.common.log
 #
 
@@ -378,7 +368,7 @@
 #logging_exception_prefix=%(asctime)s.%(msecs)03d %(process)d TRACE %(name)s %(instance)s
 
 # List of logger=LEVEL pairs. (list value)
-#default_log_levels=amqp=WARN,amqplib=WARN,boto=WARN,qpid=WARN,sqlalchemy=WARN,suds=INFO,oslo.messaging=INFO,iso8601=WARN,requests.packages.urllib3.connectionpool=WARN,urllib3.connectionpool=WARN,websocket=WARN
+#default_log_levels=amqp=WARN,amqplib=WARN,boto=WARN,qpid=WARN,sqlalchemy=WARN,suds=INFO,oslo.messaging=INFO,iso8601=WARN,requests.packages.urllib3.connectionpool=WARN,urllib3.connectionpool=WARN,websocket=WARN,keystonemiddleware=WARN,routes.middleware=WARN,stevedore=WARN
 
 # Enables or disables publication of error events. (boolean
 # value)
@@ -459,6 +449,13 @@
 # Default rule. Enforced when a requested rule is not found.
 # (string value)
 #policy_default_rule=default
+
+# Directories where policy configuration files are stored.
+# They can be relative to any directory in the search path
+# defined by the config_dir option, or absolute paths. The
+# file defined by policy_file must exist for these directories
+# to be searched. (multi valued)
+#policy_dirs=policy.d
 
 
 [agent]
@@ -664,8 +661,9 @@
 # Deprecated group/name - [DATABASE]/sql_max_pool_size
 #max_pool_size=<None>
 
-# Maximum db connection retries during startup. Set to -1 to
-# specify an infinite retry count. (integer value)
+# Maximum number of database connection retries during
+# startup. Set to -1 to specify an infinite retry count.
+# (integer value)
 # Deprecated group/name - [DEFAULT]/sql_max_retries
 # Deprecated group/name - [DATABASE]/sql_max_retries
 #max_retries=10
@@ -897,73 +895,34 @@
 # Options defined in keystonemiddleware.auth_token
 #
 
-# Prefix to prepend at the beginning of the path. Deprecated,
-# use identity_uri. (string value)
-#auth_admin_prefix=
-
-# Host providing the admin Identity API endpoint. Deprecated,
-# use identity_uri. (string value)
-#auth_host=127.0.0.1
-
-# Port of the admin Identity API endpoint. Deprecated, use
-# identity_uri. (integer value)
-#auth_port=35357
-
-# Protocol of the admin Identity API endpoint (http or https).
-# Deprecated, use identity_uri. (string value)
-#auth_protocol=https
-
-# Complete public Identity API endpoint (string value)
+# Complete public Identity API endpoint. (string value)
 #auth_uri=<None>
 
-# Complete admin Identity API endpoint. This should specify
-# the unversioned root endpoint e.g. https://localhost:35357/
-# (string value)
-#identity_uri=<None>
-
-# API version of the admin Identity API endpoint (string
+# API version of the admin Identity API endpoint. (string
 # value)
 #auth_version=<None>
 
 # Do not handle authorization requests within the middleware,
 # but delegate the authorization decision to downstream WSGI
-# components (boolean value)
+# components. (boolean value)
 #delay_auth_decision=false
 
 # Request timeout value for communicating with Identity API
-# server. (boolean value)
+# server. (integer value)
 #http_connect_timeout=<None>
 
 # How many times are we trying to reconnect when communicating
 # with Identity API Server. (integer value)
 #http_request_max_retries=3
 
-# This option is deprecated and may be removed in a future
-# release. Single shared secret with the Keystone
-# configuration used for bootstrapping a Keystone
-# installation, or otherwise bypassing the normal
-# authentication process. This option should not be used, use
-# `admin_user` and `admin_password` instead. (string value)
-#admin_token=<None>
-
-# Keystone account username (string value)
-#admin_user=<None>
-
-# Keystone account password (string value)
-#admin_password=<None>
-
-# Keystone service account tenant name to validate user tokens
-# (string value)
-#admin_tenant_name=admin
-
-# Env key for the swift cache (string value)
+# Env key for the swift cache. (string value)
 #cache=<None>
 
-# Required if Keystone server requires client certificate
+# Required if identity server requires client certificate
 # (string value)
 #certfile=<None>
 
-# Required if Keystone server requires client certificate
+# Required if identity server requires client certificate
 # (string value)
 #keyfile=<None>
 
@@ -974,7 +933,7 @@
 # Verify HTTPS connections. (boolean value)
 #insecure=false
 
-# Directory used to cache files related to PKI tokens (string
+# Directory used to cache files related to PKI tokens. (string
 # value)
 #signing_dir=<None>
 
@@ -997,7 +956,7 @@
 # value)
 #revocation_cache_time=10
 
-# (optional) if defined, indicate whether token data should be
+# (Optional) If defined, indicate whether token data should be
 # authenticated or authenticated and encrypted. Acceptable
 # values are MAC or ENCRYPT.  If MAC, token data is
 # authenticated (with HMAC) in the cache. If ENCRYPT, token
@@ -1006,38 +965,38 @@
 # raise an exception on initialization. (string value)
 #memcache_security_strategy=<None>
 
-# (optional, mandatory if memcache_security_strategy is
-# defined) this string is used for key derivation. (string
+# (Optional, mandatory if memcache_security_strategy is
+# defined) This string is used for key derivation. (string
 # value)
 #memcache_secret_key=<None>
 
-# (optional) number of seconds memcached server is considered
+# (Optional) Number of seconds memcached server is considered
 # dead before it is tried again. (integer value)
 #memcache_pool_dead_retry=300
 
-# (optional) max total number of open connections to every
+# (Optional) Maximum total number of open connections to every
 # memcached server. (integer value)
 #memcache_pool_maxsize=10
 
-# (optional) socket timeout in seconds for communicating with
+# (Optional) Socket timeout in seconds for communicating with
 # a memcache server. (integer value)
 #memcache_pool_socket_timeout=3
 
-# (optional) number of seconds a connection to memcached is
+# (Optional) Number of seconds a connection to memcached is
 # held unused in the pool before it is closed. (integer value)
 #memcache_pool_unused_timeout=60
 
-# (optional) number of seconds that an operation will wait to
+# (Optional) Number of seconds that an operation will wait to
 # get a memcache client connection from the pool. (integer
 # value)
 #memcache_pool_conn_get_timeout=10
 
-# (optional) use the advanced (eventlet safe) memcache client
+# (Optional) Use the advanced (eventlet safe) memcache client
 # pool. The advanced pool will only work under python 2.x.
 # (boolean value)
 #memcache_use_advanced_pool=false
 
-# (optional) indicate whether to set the X-Service-Catalog
+# (Optional) Indicate whether to set the X-Service-Catalog
 # header. If False, middleware will not ask for service
 # catalog on token validation and will not set the X-Service-
 # Catalog header. (boolean value)
@@ -1056,7 +1015,7 @@
 
 # If true, the revocation list will be checked for cached
 # tokens. This requires that PKI tokens are configured on the
-# Keystone server. (boolean value)
+# identity server. (boolean value)
 #check_revocations_for_cached=false
 
 # Hash algorithms to use for hashing PKI tokens. This may be a
@@ -1118,6 +1077,54 @@
 # setting) is insecure and should only be used for testing.
 # (string value)
 #auth_strategy=keystone
+
+
+[oslo_messaging_amqp]
+
+#
+# Options defined in oslo.messaging
+#
+
+# address prefix used when sending to a specific server
+# (string value)
+#server_request_prefix=exclusive
+
+# address prefix used when broadcasting to all servers (string
+# value)
+#broadcast_prefix=broadcast
+
+# address prefix when sending to any server in group (string
+# value)
+#group_request_prefix=unicast
+
+# Name for the AMQP container (string value)
+#container_name=<None>
+
+# Timeout for inactive connections (in seconds) (integer
+# value)
+#idle_timeout=0
+
+# Debug: dump AMQP frames to stdout (boolean value)
+#trace=false
+
+# CA certificate PEM file for verifing server certificate
+# (string value)
+#ssl_ca_file=
+
+# Identifying certificate PEM file to present to clients
+# (string value)
+#ssl_cert_file=
+
+# Private key PEM file used to sign cert_file certificate
+# (string value)
+#ssl_key_file=
+
+# Password for decrypting ssl_key_file (if encrypted) (string
+# value)
+#ssl_key_password=<None>
+
+# Accept clients using either SSL or plain TCP (boolean value)
+#allow_insecure_clients=false
 
 
 [pxe]
