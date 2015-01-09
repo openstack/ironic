@@ -214,7 +214,8 @@ class IscsiDeployMethodsTestCase(db_base.DbTestCase):
         mock_rmtree.assert_called_once_with('/path/uuid')
 
     def _test_build_deploy_ramdisk_options(self, mock_alnum, api_url,
-                                           expected_root_device=None):
+                                           expected_root_device=None,
+                                           expected_boot_option='netboot'):
         fake_key = '0123456789ABCDEFGHIJKLMNOPQRSTUV'
         fake_disk = 'fake-disk'
 
@@ -226,7 +227,8 @@ class IscsiDeployMethodsTestCase(db_base.DbTestCase):
                          'deployment_id': self.node.uuid,
                          'deployment_key': fake_key,
                          'disk': fake_disk,
-                         'ironic_api_url': api_url}
+                         'ironic_api_url': api_url,
+                         'boot_option': expected_boot_option}
 
         if expected_root_device:
             expected_opts['root_device'] = expected_root_device
@@ -272,6 +274,17 @@ class IscsiDeployMethodsTestCase(db_base.DbTestCase):
         self._test_build_deploy_ramdisk_options(mock_alnum, fake_api_url,
                                                 expected_root_device=expected)
 
+    @mock.patch.object(keystone, 'get_service_url')
+    @mock.patch.object(utils, 'random_alnum')
+    def test_build_deploy_ramdisk_options_boot_option(self, mock_alnum,
+                                                      mock_get_url):
+        self.node.instance_info = {'capabilities': '{"boot_option": "local"}'}
+        expected = 'local'
+        fake_api_url = 'http://127.0.0.1:6385'
+        self.config(api_url=fake_api_url, group='conductor')
+        self._test_build_deploy_ramdisk_options(mock_alnum, fake_api_url,
+                                                expected_boot_option=expected)
+
     def test_parse_root_device_hints(self):
         self.node.properties['root_device'] = {'wwn': 123456}
         expected = 'wwn=123456'
@@ -288,3 +301,13 @@ class IscsiDeployMethodsTestCase(db_base.DbTestCase):
         self.node.properties = {}
         result = iscsi_deploy.parse_root_device_hints(self.node)
         self.assertIsNone(result)
+
+    def test_get_boot_option(self):
+        self.node.instance_info = {'capabilities': '{"boot_option": "local"}'}
+        result = iscsi_deploy.get_boot_option(self.node)
+        self.assertEqual("local", result)
+
+    def test_get_boot_option_default_value(self):
+        self.node.instance_info = {}
+        result = iscsi_deploy.get_boot_option(self.node)
+        self.assertEqual("netboot", result)

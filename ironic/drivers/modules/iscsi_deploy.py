@@ -316,6 +316,18 @@ def parse_root_device_hints(node):
     return ','.join(hints)
 
 
+def get_boot_option(node):
+    """Get the boot mode.
+
+    :param node: A single Node.
+    :raises: InvalidParameterValue if the capabilities string is not a
+             dict or is malformed.
+    :returns: A string representing the boot mode type. Defaults to 'netboot'.
+    """
+    capabilities = deploy_utils.parse_instance_info_capabilities(node)
+    return capabilities.get('boot_option', 'netboot').lower()
+
+
 def build_deploy_ramdisk_options(node):
     """Build the ramdisk config options for a node
 
@@ -343,6 +355,7 @@ def build_deploy_ramdisk_options(node):
         'iscsi_target_iqn': "iqn-%s" % node.uuid,
         'ironic_api_url': ironic_api,
         'disk': CONF.pxe.disk_devices,
+        'boot_option': get_boot_option(node),
     }
 
     root_device = parse_root_device_hints(node)

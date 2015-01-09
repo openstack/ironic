@@ -198,16 +198,44 @@ def add_node_capability(task, capability, value):
     node.save()
 
 
+def validate_capability(node, capability_name, valid_values):
+    """Validate a capabability set in node property
+
+    :param node: an ironic node object.
+    :param capability_name: the name of the capability.
+    :parameter valid_values: an iterable with valid values expected for
+        that capability.
+    :raises: InvalidParameterValue, if the capability is not set to the
+        expected values.
+    """
+    value = get_node_capability(node, capability_name)
+
+    if value and value not in valid_values:
+        valid_value_str = ', '.join(valid_values)
+        raise exception.InvalidParameterValue(
+            _("Invalid %(capability)s parameter '%(value)s'. "
+              "Acceptable values are: %(valid_values)s.") %
+            {'capability': capability_name, 'value': value,
+             'valid_values': valid_value_str})
+
+
 def validate_boot_mode_capability(node):
-    """Validate the boot_mode capability set in node property.
+    """Validate the boot_mode capability set in node properties.
 
     :param node: an ironic node object.
     :raises: InvalidParameterValue, if 'boot_mode' capability is set
              other than 'bios' or 'uefi' or None.
 
     """
-    boot_mode = get_node_capability(node, 'boot_mode')
+    validate_capability(node, 'boot_mode', ('bios', 'uefi'))
 
-    if boot_mode and boot_mode not in ['bios', 'uefi']:
-        raise exception.InvalidParameterValue(_("Invalid boot_mode "
-                          "parameter '%s'.") % boot_mode)
+
+def validate_boot_option_capability(node):
+    """Validate the boot_option capability set in node properties.
+
+    :param node: an ironic node object.
+    :raises: InvalidParameterValue, if 'boot_option' capability is set
+             other than 'local' or 'netboot' or None.
+
+    """
+    validate_capability(node, 'boot_option', ('local', 'netboot'))

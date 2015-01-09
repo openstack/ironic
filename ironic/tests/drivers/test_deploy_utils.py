@@ -1081,3 +1081,27 @@ class VirtualMediaDeployUtilsTestCase(db_base.DbTestCase):
                                   shared=False) as task:
             address = utils.get_single_nic_with_vif_port_id(task)
             self.assertEqual('aa:bb:cc', address)
+
+
+class ParseInstanceInfoCapabilitiesTestCase(tests_base.TestCase):
+
+    def setUp(self):
+        super(ParseInstanceInfoCapabilitiesTestCase, self).setUp()
+        self.node = obj_utils.get_test_node(self.context, driver='fake')
+
+    def test_parse_instance_info_capabilities_string(self):
+        self.node.instance_info = {'capabilities': '{"cat": "meow"}'}
+        expected_result = {"cat": "meow"}
+        result = utils.parse_instance_info_capabilities(self.node)
+        self.assertEqual(expected_result, result)
+
+    def test_parse_instance_info_capabilities(self):
+        self.node.instance_info = {'capabilities': {"dog": "wuff"}}
+        expected_result = {"dog": "wuff"}
+        result = utils.parse_instance_info_capabilities(self.node)
+        self.assertEqual(expected_result, result)
+
+    def test_parse_instance_info_invalid_type(self):
+        self.node.instance_info = {'capabilities': 'not-a-dict'}
+        self.assertRaises(exception.InvalidParameterValue,
+                          utils.parse_instance_info_capabilities, self.node)
