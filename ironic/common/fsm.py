@@ -175,6 +175,7 @@ class FSM(object):
             raise excp.InvalidState(_("Can not start from a terminal"
                                       " state '%s'") % (state))
         self._current = _Jump(state, None, None)
+        self._target_state = self._states[state]['target']
 
     def copy(self, shallow=False):
         """Copies the current state machine (shallow or deep).

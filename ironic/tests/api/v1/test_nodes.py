@@ -1132,8 +1132,9 @@ class TestPut(api_base.FunctionalTest):
 
     def test_provision_already_in_progress(self):
         node = obj_utils.create_test_node(self.context,
-                                          uuid=utils.generate_uuid(),
-                                          target_provision_state=states.ACTIVE)
+                                      uuid=utils.generate_uuid(),
+                                      provision_state=states.DEPLOYING,
+                                      target_provision_state=states.ACTIVE)
         ret = self.put_json('/nodes/%s/states/provision' % node.uuid,
                             {'target': states.ACTIVE},
                             expect_errors=True)
@@ -1143,7 +1144,7 @@ class TestPut(api_base.FunctionalTest):
         node = obj_utils.create_test_node(
                 self.context, uuid=utils.generate_uuid(),
                 provision_state=states.DEPLOYWAIT,
-                target_provision_state=states.DEPLOYDONE)
+                target_provision_state=states.ACTIVE)
         ret = self.put_json('/nodes/%s/states/provision' % node.uuid,
                             {'target': states.DELETED})
         self.assertEqual(202, ret.status_code)
