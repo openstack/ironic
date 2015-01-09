@@ -574,10 +574,8 @@ class SSHPower(base.PowerInterface):
         driver_info = _parse_driver_info(task.node)
         driver_info['macs'] = driver_utils.get_node_mac_addresses(task)
         ssh_obj = _get_connection(task.node)
-        current_pstate = _get_power_status(ssh_obj, driver_info)
-        if current_pstate == states.POWER_ON:
-            _power_off(ssh_obj, driver_info)
 
+        # _power_on will turn the power off if it's already on.
         state = _power_on(ssh_obj, driver_info)
 
         if state != states.POWER_ON:

@@ -603,18 +603,13 @@ class SSHDriverTestCase(db_base.DbTestCase):
 
     @mock.patch.object(driver_utils, 'get_node_mac_addresses')
     @mock.patch.object(ssh, '_get_connection')
-    @mock.patch.object(ssh, '_get_power_status')
-    @mock.patch.object(ssh, '_power_off')
     @mock.patch.object(ssh, '_power_on')
-    def test_reboot_good(self, power_on_mock, power_off_mock,
-                         get_power_stat_mock, get_conn_mock,
+    def test_reboot_good(self, power_on_mock, get_conn_mock,
                          get_mac_addr_mock):
         info = ssh._parse_driver_info(self.node)
         info['macs'] = ["11:11:11:11:11:11", "52:54:00:cf:2d:31"]
         get_mac_addr_mock.return_value = info['macs']
         get_conn_mock.return_value = self.sshclient
-        get_power_stat_mock.return_value = states.POWER_ON
-        power_off_mock.return_value = None
         power_on_mock.return_value = states.POWER_ON
         with mock.patch.object(ssh,
                                '_parse_driver_info') as parse_drv_info_mock:
@@ -626,25 +621,17 @@ class SSHDriverTestCase(db_base.DbTestCase):
                 parse_drv_info_mock.assert_called_once_with(task.node)
                 get_mac_addr_mock.assert_called_once_with(mock.ANY)
                 get_conn_mock.assert_called_once_with(task.node)
-                get_power_stat_mock.assert_called_once_with(self.sshclient,
-                                                            info)
-                power_off_mock.assert_called_once_with(self.sshclient, info)
                 power_on_mock.assert_called_once_with(self.sshclient, info)
 
     @mock.patch.object(driver_utils, 'get_node_mac_addresses')
     @mock.patch.object(ssh, '_get_connection')
-    @mock.patch.object(ssh, '_get_power_status')
-    @mock.patch.object(ssh, '_power_off')
     @mock.patch.object(ssh, '_power_on')
-    def test_reboot_fail(self, power_on_mock, power_off_mock,
-                         get_power_stat_mock, get_conn_mock,
+    def test_reboot_fail(self, power_on_mock, get_conn_mock,
                          get_mac_addr_mock):
         info = ssh._parse_driver_info(self.node)
         info['macs'] = ["11:11:11:11:11:11", "52:54:00:cf:2d:31"]
         get_mac_addr_mock.return_value = info['macs']
         get_conn_mock.return_value = self.sshclient
-        get_power_stat_mock.return_value = states.POWER_ON
-        power_off_mock.return_value = None
         power_on_mock.return_value = states.POWER_OFF
         with mock.patch.object(ssh,
                                '_parse_driver_info') as parse_drv_info_mock:
@@ -656,9 +643,6 @@ class SSHDriverTestCase(db_base.DbTestCase):
                 parse_drv_info_mock.assert_called_once_with(task.node)
                 get_mac_addr_mock.assert_called_once_with(mock.ANY)
                 get_conn_mock.assert_called_once_with(task.node)
-                get_power_stat_mock.assert_called_once_with(self.sshclient,
-                                                            info)
-                power_off_mock.assert_called_once_with(self.sshclient, info)
                 power_on_mock.assert_called_once_with(self.sshclient, info)
 
     @mock.patch.object(driver_utils, 'get_node_mac_addresses')
