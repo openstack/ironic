@@ -21,3 +21,21 @@ policy_data = """
     "default": "rule:trusted_call"
 }
 """
+
+
+policy_data_compat_juno = """
+{
+    "admin": "role:admin or role:administrator",
+    "admin_api": "is_admin:True",
+    "default": "rule:admin_api"
+}
+"""
+
+
+def get_policy_data(compat):
+    if not compat:
+        return policy_data
+    elif compat == 'juno':
+        return policy_data_compat_juno
+    else:
+        raise Exception('Policy data for %s not available' % compat)

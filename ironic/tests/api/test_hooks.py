@@ -25,6 +25,7 @@ from ironic.api.controllers import root
 from ironic.api import hooks
 from ironic.common import context
 from ironic.tests.api import base
+from ironic.tests import policy_fixture
 
 
 class FakeRequest(object):
@@ -216,6 +217,13 @@ class TestContextHook(base.FunctionalTest):
             roles=headers['X-Roles'].split(','))
 
 
+class TestContextHookCompatJuno(TestContextHook):
+    def setUp(self):
+        super(TestContextHookCompatJuno, self).setUp()
+        self.policy = self.useFixture(
+            policy_fixture.PolicyFixture(compat='juno'))
+
+
 class TestTrustedCallHook(base.FunctionalTest):
     def test_trusted_call_hook_not_admin(self):
         headers = fake_headers(admin=False)
@@ -239,3 +247,13 @@ class TestTrustedCallHook(base.FunctionalTest):
         reqstate.set_context()
         trusted_call_hook = hooks.TrustedCallHook()
         trusted_call_hook.before(reqstate)
+
+
+class TestTrustedCallHookCompatJuno(TestTrustedCallHook):
+    def setUp(self):
+        super(TestTrustedCallHookCompatJuno, self).setUp()
+        self.policy = self.useFixture(
+            policy_fixture.PolicyFixture(compat='juno'))
+
+    def test_trusted_call_hook_public_api(self):
+        self.skipTest('no public_api trusted call policy in juno')
