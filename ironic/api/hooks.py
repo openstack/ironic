@@ -67,28 +67,22 @@ class ContextHook(hooks.PecanHook):
     def before(self, state):
         headers = state.request.headers
 
-        user_id = headers.get('X-User-Id')
-        user_id = headers.get('X-User', user_id)
-        tenant = headers.get('X-Tenant-Id')
-        tenant = headers.get('X-Tenant', tenant)
-        domain_id = headers.get('X-User-Domain-Id')
-        domain_name = headers.get('X-User-Domain-Name')
-        auth_token = headers.get('X-Auth-Token')
-        roles = headers.get('X-Roles', '').split(',')
+        creds = {
+            'user': headers.get('X-User') or headers.get('X-User-Id'),
+            'tenant': headers.get('X-Tenant') or headers.get('X-Tenant-Id'),
+            'domain_id': headers.get('X-User-Domain-Id'),
+            'domain_name': headers.get('X-User-Domain-Name'),
+            'auth_token': headers.get('X-Auth-Token'),
+            'roles': headers.get('X-Roles', '').split(','),
+        }
 
-        is_public_api = state.request.environ.get('is_public_api', False)
-        creds = dict(headers)
         is_admin = policy.enforce('admin_api', creds, creds)
+        is_public_api = state.request.environ.get('is_public_api', False)
 
         state.request.context = context.RequestContext(
-            auth_token=auth_token,
-            user=user_id,
-            tenant=tenant,
-            domain_id=domain_id,
-            domain_name=domain_name,
-            is_public_api=is_public_api,
             is_admin=is_admin,
-            roles=roles)
+            is_public_api=is_public_api,
+            **creds)
 
 
 class RPCHook(hooks.PecanHook):
