@@ -30,6 +30,7 @@ Introduction
   :maxdepth: 1
 
   dev/architecture
+  dev/states
   dev/contributing
 
 .. toctree::
