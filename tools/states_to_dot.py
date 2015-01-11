@@ -54,9 +54,9 @@ def format_state(state):
 def main():
     parser = optparse.OptionParser()
     parser.add_option("-f", "--file", dest="filename",
-                      help="write svg to FILE", metavar="FILE")
+                      help="write output to FILE", metavar="FILE")
     parser.add_option("-T", "--format", dest="format",
-                      help="output in given format",
+                      help="output in given format (default: png)",
                       default='png')
     parser.add_option("--no-labels", dest="labels",
                       help="do not include labels",
