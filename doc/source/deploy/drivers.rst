@@ -128,3 +128,12 @@ This driver supports FUJITSU PRIMERGY BX S4 or RX S8 servers and above.
 - PRIMERGY BX920 S4
 - PRIMERGY BX924 S4
 - PRIMERGY RX300 S8
+
+
+VirtualBox drivers
+------------------
+
+.. toctree::
+  :maxdepth: 1
+
+  ../drivers/vbox

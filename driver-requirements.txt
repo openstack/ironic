@@ -19,3 +19,9 @@ python-seamicroclient
 # The iboot driver does not seem to have any available packages or pip modules,
 # but the source is available here:
 # https://github.com/darkip/python-iboot
+
+# 'pxe_vbox' and 'agent_vbox' drivers require pyremotevbox library.
+# The python module ZSI which is required for pyremotevbox is not available
+# in pypi right now. Refer documentation on how to install and configure this:
+# http://docs.openstack.org/developer/ironic/drivers/vbox.html
+pyremotevbox
