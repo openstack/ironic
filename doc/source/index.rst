@@ -43,8 +43,6 @@ API References
   :maxdepth: 1
 
   webapi/v1
-  dev/common
-  dev/db
   dev/drivers
 
 Admin Guide
