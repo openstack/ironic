@@ -50,12 +50,11 @@ def _get_power_state(node):
     """
 
     client = drac_common.get_wsman_client(node)
-    options = pywsman.ClientOptions()
     filter_query = ('select EnabledState,ElementName from CIM_ComputerSystem '
                     'where Name="srv:system"')
     try:
         doc = client.wsman_enumerate(resource_uris.DCIM_ComputerSystem,
-                                     options, filter_query=filter_query)
+                                     filter_query=filter_query)
     except exception.DracClientError as exc:
         with excutils.save_and_reraise_exception():
             LOG.error(_LE('DRAC driver failed to get power state for node '
@@ -77,14 +76,13 @@ def _set_power_state(node, target_state):
     """
 
     client = drac_common.get_wsman_client(node)
-    options = pywsman.ClientOptions()
-    options.add_selector('CreationClassName', 'DCIM_ComputerSystem')
-    options.add_selector('Name', 'srv:system')
-    options.add_property('RequestedState', REVERSE_POWER_STATES[target_state])
+    selectors = {'CreationClassName': 'DCIM_ComputerSystem',
+                 'Name': 'srv:system'}
+    properties = {'RequestedState': REVERSE_POWER_STATES[target_state]}
 
     try:
-        root = client.wsman_invoke(resource_uris.DCIM_ComputerSystem, options,
-                                   'RequestStateChange')
+        root = client.wsman_invoke(resource_uris.DCIM_ComputerSystem,
+                                   'RequestStateChange', selectors, properties)
     except exception.DracClientError as exc:
         with excutils.save_and_reraise_exception():
             LOG.error(_LE('DRAC driver failed to set power state for node '

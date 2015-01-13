@@ -132,7 +132,7 @@ class DracManagementInternalMethodsTestCase(db_base.DbTestCase):
 
         self.assertIsNone(result)
         mock_pywsman.invoke.assert_called_once_with(mock.ANY,
-            resource_uris.DCIM_BIOSService, 'CreateTargetedConfigJob')
+            resource_uris.DCIM_BIOSService, 'CreateTargetedConfigJob', None)
 
     def test__create_config_job_error(self, mock_client_pywsman):
         result_xml = test_utils.build_soap_xml([{'ReturnValue':
@@ -147,7 +147,7 @@ class DracManagementInternalMethodsTestCase(db_base.DbTestCase):
         self.assertRaises(exception.DracConfigJobCreationError,
                           drac_mgmt._create_config_job, self.node)
         mock_pywsman.invoke.assert_called_once_with(mock.ANY,
-            resource_uris.DCIM_BIOSService, 'CreateTargetedConfigJob')
+            resource_uris.DCIM_BIOSService, 'CreateTargetedConfigJob', None)
 
 
 @mock.patch.object(drac_client, 'pywsman')
@@ -221,7 +221,7 @@ class DracManagementTestCase(db_base.DbTestCase):
         self.assertRaises(exception.DracClientError,
                           self.driver.get_boot_device, self.task)
         mock_we.assert_called_once_with(resource_uris.DCIM_BootSourceSetting,
-                                        mock.ANY, filter_query=mock.ANY)
+                                        filter_query=mock.ANY)
 
     @mock.patch.object(drac_mgmt, '_check_for_config_job')
     @mock.patch.object(drac_mgmt, '_create_config_job')
@@ -248,7 +248,8 @@ class DracManagementTestCase(db_base.DbTestCase):
             resource_uris.DCIM_BootSourceSetting)
         mock_pywsman.invoke.assert_called_once_with(mock.ANY,
             resource_uris.DCIM_BootConfigSetting,
-            'ChangeBootOrderByInstanceID')
+            'ChangeBootOrderByInstanceID',
+            None)
         mock_cfcj.assert_called_once_with(self.node)
         mock_ccj.assert_called_once_with(self.node)
 
@@ -279,7 +280,8 @@ class DracManagementTestCase(db_base.DbTestCase):
             resource_uris.DCIM_BootSourceSetting)
         mock_pywsman.invoke.assert_called_once_with(mock.ANY,
             resource_uris.DCIM_BootConfigSetting,
-            'ChangeBootOrderByInstanceID')
+            'ChangeBootOrderByInstanceID',
+            None)
         mock_cfcj.assert_called_once_with(self.node)
         self.assertFalse(mock_ccj.called)
 
@@ -295,7 +297,7 @@ class DracManagementTestCase(db_base.DbTestCase):
                               self.driver.set_boot_device, task,
                               boot_devices.PXE)
         mock_we.assert_called_once_with(resource_uris.DCIM_BootSourceSetting,
-                                        mock.ANY, filter_query=mock.ANY)
+                                        filter_query=mock.ANY)
 
     def test_get_sensors_data(self, mock_client_pywsman):
         self.assertRaises(NotImplementedError,
