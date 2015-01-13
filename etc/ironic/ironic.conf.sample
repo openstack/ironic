@@ -1071,6 +1071,10 @@
 # value)
 #url_timeout=30
 
+# Client retries in the case of a failed request. (integer
+# value)
+#retries=3
+
 # Default authentication strategy to use when connecting to
 # neutron. Can be either "keystone" or "noauth". Running
 # neutron in noauth mode (related to but not affected by this
