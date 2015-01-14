@@ -36,9 +36,16 @@ from ironic.drivers.modules import image_cache
 from ironic.openstack.common import log as logging
 
 
-LOG = logging.getLogger(__name__)
+deploy_opts = [
+    cfg.StrOpt('dd_block_size',
+               default='1M',
+               help='Block size to use when writing to the nodes disk.'),
+    ]
 
 CONF = cfg.CONF
+CONF.register_opts(deploy_opts, group='deploy')
+
+LOG = logging.getLogger(__name__)
 
 
 # All functions are called from deploy() directly or indirectly.
@@ -144,7 +151,7 @@ def is_block_device(dev):
 
 def dd(src, dst):
     """Execute dd from src to dst."""
-    utils.dd(src, dst, 'bs=1M', 'oflag=direct')
+    utils.dd(src, dst, 'bs=%s' % CONF.deploy.dd_block_size, 'oflag=direct')
 
 
 def populate_image(src, dst):
