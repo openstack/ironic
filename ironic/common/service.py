@@ -80,7 +80,6 @@ class RPCService(service.Service):
                  {'service': self.topic, 'host': self.host})
 
     def stop(self):
-        super(RPCService, self).stop()
         try:
             self.rpcserver.stop()
             self.rpcserver.wait()
@@ -92,6 +91,8 @@ class RPCService(service.Service):
         except Exception as e:
             LOG.exception(_LE('Service error occurred when cleaning up '
                               'the RPC manager. Error: %s'), e)
+
+        super(RPCService, self).stop(graceful=True)
         LOG.info(_LI('Stopped RPC server for service %(service)s on host '
                      '%(host)s.'),
                  {'service': self.topic, 'host': self.host})
