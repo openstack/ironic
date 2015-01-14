@@ -58,9 +58,9 @@ class DracPowerInternalMethodsTestCase(base.DbTestCase):
             mock.ANY, resource_uris.DCIM_ComputerSystem)
 
     def test__set_power_state(self, mock_power_pywsman, mock_client_pywsman):
-        result_xml = test_utils.build_soap_xml([{'ReturnValue':
-                                                     drac_common.RET_SUCCESS}],
-                                             resource_uris.DCIM_ComputerSystem)
+        result_xml = test_utils.build_soap_xml(
+            [{'ReturnValue': drac_client.RET_SUCCESS}],
+            resource_uris.DCIM_ComputerSystem)
         mock_xml = test_utils.mock_wsman_root(result_xml)
         mock_pywsman_client = mock_client_pywsman.Client.return_value
         mock_pywsman_client.invoke.return_value = mock_xml
@@ -82,10 +82,10 @@ class DracPowerInternalMethodsTestCase(base.DbTestCase):
 
     def test__set_power_state_fail(self, mock_power_pywsman,
                                    mock_client_pywsman):
-        result_xml = test_utils.build_soap_xml([{'ReturnValue':
-                                                         drac_common.RET_ERROR,
-                                                'Message': 'error message'}],
-                                             resource_uris.DCIM_ComputerSystem)
+        result_xml = test_utils.build_soap_xml(
+            [{'ReturnValue': drac_client.RET_ERROR,
+              'Message': 'error message'}],
+            resource_uris.DCIM_ComputerSystem)
 
         mock_xml = test_utils.mock_wsman_root(result_xml)
         mock_pywsman_client = mock_client_pywsman.Client.return_value
@@ -94,7 +94,7 @@ class DracPowerInternalMethodsTestCase(base.DbTestCase):
         mock_pywsman_clientopts = (
             mock_client_pywsman.ClientOptions.return_value)
 
-        self.assertRaises(exception.DracOperationError,
+        self.assertRaises(exception.DracOperationFailed,
                           drac_power._set_power_state, self.node,
                           states.POWER_ON)
 
