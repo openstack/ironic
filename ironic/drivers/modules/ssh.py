@@ -265,8 +265,8 @@ def _ssh_execute(ssh_obj, cmd_to_exec):
         output_list = processutils.ssh_execute(ssh_obj,
                                                cmd_to_exec)[0].split('\n')
     except Exception as e:
-        LOG.debug("Cannot execute SSH cmd %(cmd)s. Reason: %(err)s."
-                % {'cmd': cmd_to_exec, 'err': e})
+        LOG.error(_LE("Cannot execute SSH cmd %(cmd)s. Reason: %(err)s."),
+                  {'cmd': cmd_to_exec, 'err': e})
         raise exception.SSHCommandFailed(cmd=cmd_to_exec)
 
     return output_list
