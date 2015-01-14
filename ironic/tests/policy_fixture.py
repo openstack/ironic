@@ -24,6 +24,8 @@ CONF = cfg.CONF
 
 
 class PolicyFixture(fixtures.Fixture):
+    def __init__(self, compat=None):
+        self.compat = compat
 
     def setUp(self):
         super(PolicyFixture, self).setUp()
@@ -31,7 +33,7 @@ class PolicyFixture(fixtures.Fixture):
         self.policy_file_name = os.path.join(self.policy_dir.path,
                                              'policy.json')
         with open(self.policy_file_name, 'w') as policy_file:
-            policy_file.write(fake_policy.policy_data)
+            policy_file.write(fake_policy.get_policy_data(self.compat))
         CONF.set_override('policy_file', self.policy_file_name)
         ironic_policy._ENFORCER = None
         self.addCleanup(ironic_policy.get_enforcer().clear)
