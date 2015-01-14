@@ -808,8 +808,12 @@ class ConductorManager(periodic_task.PeriodicTasks):
                     if (task.node.maintenance or
                             task.node.provision_state != states.DEPLOYWAIT):
                         continue
-                    task.spawn_after(self._spawn_worker,
-                                     utils.cleanup_after_timeout, task)
+                    # timeout has been reached - fail the deploy
+                    task.process_event('fail',
+                                       callback=self._spawn_worker,
+                                       call_args=(utils.cleanup_after_timeout,
+                                                  task),
+                                       err_handler=provisioning_error_handler)
             except exception.NoFreeConductorWorker:
                 break
             except (exception.NodeLocked, exception.NodeNotFound):

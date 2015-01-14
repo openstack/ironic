@@ -271,19 +271,11 @@ class CleanupAfterTimeoutTestCase(tests_base.TestCase):
         self.task.node = mock.Mock(spec_set=objects.Node)
         self.node = self.task.node
 
-        def set_state(state):
-            self.node.provision_state = states.DEPLOYFAIL
-            self.node.target_provision_state = states.NOSTATE
-        process_event_mock = self.task.process_event
-        process_event_mock.side_effect = set_state
-
     def test_cleanup_after_timeout(self):
         conductor_utils.cleanup_after_timeout(self.task)
 
         self.node.save.assert_called_once_with()
         self.task.driver.deploy.clean_up.assert_called_once_with(self.task)
-        self.assertEqual(states.DEPLOYFAIL, self.node.provision_state)
-        self.assertEqual(states.NOSTATE, self.node.target_provision_state)
         self.assertIn('Timeout reached', self.node.last_error)
 
     def test_cleanup_after_timeout_shared_lock(self):
@@ -301,8 +293,6 @@ class CleanupAfterTimeoutTestCase(tests_base.TestCase):
 
         self.task.driver.deploy.clean_up.assert_called_once_with(self.task)
         self.assertEqual([mock.call()] * 2, self.node.save.call_args_list)
-        self.assertEqual(states.DEPLOYFAIL, self.node.provision_state)
-        self.assertEqual(states.NOSTATE, self.node.target_provision_state)
         self.assertIn('moocow', self.node.last_error)
 
     def test_cleanup_after_timeout_cleanup_random_exception(self):
@@ -313,6 +303,4 @@ class CleanupAfterTimeoutTestCase(tests_base.TestCase):
 
         self.task.driver.deploy.clean_up.assert_called_once_with(self.task)
         self.assertEqual([mock.call()] * 2, self.node.save.call_args_list)
-        self.assertEqual(states.DEPLOYFAIL, self.node.provision_state)
-        self.assertEqual(states.NOSTATE, self.node.target_provision_state)
         self.assertIn('Deploy timed out', self.node.last_error)

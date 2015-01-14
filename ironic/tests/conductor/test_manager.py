@@ -66,7 +66,7 @@ class _CommonMixIn(object):
         if node is None:
             node = self._create_node(**node_attrs)
         task = mock.Mock(spec_set=['node', 'release_resources',
-                                   'spawn_after'])
+                                   'spawn_after', 'process_event'])
         task.node = node
         return task
 
@@ -2213,9 +2213,11 @@ class ManagerCheckDeployTimeoutsTestCase(_CommonMixIn,
         self._assert_get_nodeinfo_args(get_nodeinfo_mock)
         mapped_mock.assert_called_once_with(self.node.uuid, self.node.driver)
         acquire_mock.assert_called_once_with(self.context, self.node.uuid)
-        self.task.spawn_after.assert_called_with(
-                self.service._spawn_worker,
-                conductor_utils.cleanup_after_timeout, self.task)
+        self.task.process_event.assert_called_with(
+                'fail',
+                callback=self.service._spawn_worker,
+                call_args=(conductor_utils.cleanup_after_timeout, self.task),
+                err_handler=manager.provisioning_error_handler)
 
     def test_acquire_node_disappears(self, get_nodeinfo_mock, mapped_mock,
                                      acquire_mock):
@@ -2292,9 +2294,11 @@ class ManagerCheckDeployTimeoutsTestCase(_CommonMixIn,
         # First node skipped
         self.assertFalse(task.spawn_after.called)
         # Second node spawned
-        self.task2.spawn_after.assert_called_with(
-                self.service._spawn_worker,
-                conductor_utils.cleanup_after_timeout, self.task2)
+        self.task2.process_event.assert_called_with(
+                'fail',
+                callback=self.service._spawn_worker,
+                call_args=(conductor_utils.cleanup_after_timeout, self.task2),
+                err_handler=manager.provisioning_error_handler)
 
     def test_exiting_no_worker_avail(self, get_nodeinfo_mock, mapped_mock,
                                      acquire_mock):
@@ -2314,9 +2318,11 @@ class ManagerCheckDeployTimeoutsTestCase(_CommonMixIn,
                 self.node.uuid, self.node.driver)
         acquire_mock.assert_called_once_with(self.context,
                                              self.node.uuid)
-        self.task.spawn_after.assert_called_with(
-                self.service._spawn_worker,
-                conductor_utils.cleanup_after_timeout, self.task)
+        self.task.process_event.assert_called_with(
+                'fail',
+                callback=self.service._spawn_worker,
+                call_args=(conductor_utils.cleanup_after_timeout, self.task),
+                err_handler=manager.provisioning_error_handler)
 
     def test_exiting_with_other_exception(self, get_nodeinfo_mock,
                                           mapped_mock, acquire_mock):
@@ -2338,9 +2344,11 @@ class ManagerCheckDeployTimeoutsTestCase(_CommonMixIn,
                 self.node.uuid, self.node.driver)
         acquire_mock.assert_called_once_with(self.context,
                                              self.node.uuid)
-        self.task.spawn_after.assert_called_with(
-                self.service._spawn_worker,
-                conductor_utils.cleanup_after_timeout, self.task)
+        self.task.process_event.assert_called_with(
+                'fail',
+                callback=self.service._spawn_worker,
+                call_args=(conductor_utils.cleanup_after_timeout, self.task),
+                err_handler=manager.provisioning_error_handler)
 
     def test_worker_limit(self, get_nodeinfo_mock, mapped_mock, acquire_mock):
         self.config(periodic_max_workers=2, group='conductor')
@@ -2361,11 +2369,13 @@ class ManagerCheckDeployTimeoutsTestCase(_CommonMixIn,
                          mapped_mock.call_args_list)
         self.assertEqual([mock.call(self.context, self.node.uuid)] * 2,
                          acquire_mock.call_args_list)
-        spawn_after_call = mock.call(self.service._spawn_worker,
-                                     conductor_utils.cleanup_after_timeout,
-                                     self.task)
-        self.assertEqual([spawn_after_call] * 2,
-                         self.task.spawn_after.call_args_list)
+        process_event_call = mock.call(
+                'fail',
+                callback=self.service._spawn_worker,
+                call_args=(conductor_utils.cleanup_after_timeout, self.task),
+                err_handler=manager.provisioning_error_handler)
+        self.assertEqual([process_event_call] * 2,
+                         self.task.process_event.call_args_list)
 
     @mock.patch.object(dbapi.IMPL, 'update_port')
     @mock.patch('ironic.dhcp.neutron.NeutronDHCPApi.update_port_address')

@@ -134,7 +134,6 @@ def cleanup_after_timeout(task):
     :param task: a TaskManager instance.
     """
     node = task.node
-    task.process_event('fail')
     msg = (_('Timeout reached while waiting for callback for node %s')
              % node.uuid)
     node.last_error = msg
