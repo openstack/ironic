@@ -30,6 +30,7 @@ oslo.i18n>=1.0.0  # Apache-2.0
 oslo.serialization>=1.2.0               # Apache-2.0
 oslo.utils>=1.2.0                       # Apache-2.0
 pecan>=0.8.0
+requests>=2.2.0,!=2.4.0
 six>=1.7.0
 jsonpatch>=1.1
 WSME>=0.6
