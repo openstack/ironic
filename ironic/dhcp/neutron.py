@@ -39,6 +39,9 @@ neutron_opts = [
     cfg.IntOpt('url_timeout',
                default=30,
                help='Timeout value for connecting to neutron in seconds.'),
+    cfg.IntOpt('retries',
+               default=3,
+               help='Client retries in the case of a failed request.'),
     cfg.StrOpt('auth_strategy',
                default='keystone',
                help='Default authentication strategy to use when connecting '
@@ -58,6 +61,7 @@ def _build_client(token=None):
     """Utility function to create Neutron client."""
     params = {
         'timeout': CONF.neutron.url_timeout,
+        'retries': CONF.neutron.retries,
         'insecure': CONF.keystone_authtoken.insecure,
         'ca_cert': CONF.keystone_authtoken.certfile,
     }
