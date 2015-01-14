@@ -645,16 +645,12 @@ class ConductorManager(periodic_task.PeriodicTasks):
             else:
                 event = 'deploy'
 
-            # Save the previous states so we can rollback the node to a
-            # consistent state in case there's no free workers to do the
-            # deploy work
-            previous_prov_state = node.provision_state
-            previous_tgt_provision_state = node.target_provision_state
-
             try:
-                task.process_event(event)
-                node.last_error = None
-                node.save()
+                task.process_event(event,
+                                   callback=self._spawn_worker,
+                                   call_args=(do_node_deploy, task,
+                                              self.conductor.id),
+                                   err_handler=provisioning_error_handler)
             except exception.InvalidState:
                 raise exception.InstanceDeployFailure(_(
                     "Request received to %(what)s %(node)s, but "
@@ -662,12 +658,6 @@ class ConductorManager(periodic_task.PeriodicTasks):
                     "'%(state)s'. ") % {'what': event,
                                         'node': node.uuid,
                                         'state': node.provision_state})
-            else:
-                task.set_spawn_error_hook(provisioning_error_handler,
-                                          node, previous_prov_state,
-                                          previous_tgt_provision_state)
-                task.spawn_after(self._spawn_worker,
-                                 do_node_deploy, task, self.conductor.id)
 
     @messaging.expected_exceptions(exception.NoFreeConductorWorker,
                                    exception.NodeLocked,
@@ -702,27 +692,16 @@ class ConductorManager(periodic_task.PeriodicTasks):
                     "RPC do_node_tear_down failed to validate power info. "
                     "Error: %(msg)s") % {'msg': e})
 
-            # save the previous states so we can rollback the node to a
-            # consistent state in case there's no free workers to do the
-            # tear down work
-            previous_prov_state = node.provision_state
-            previous_tgt_provision_state = node.target_provision_state
-
             try:
-                task.process_event('delete')
-                node.last_error = None
-                node.save()
+                task.process_event('delete',
+                                   callback=self._spawn_worker,
+                                   call_args=(do_node_tear_down, task),
+                                   err_handler=provisioning_error_handler)
             except exception.InvalidState:
                 raise exception.InstanceDeployFailure(_(
                     "RPC do_node_tear_down "
                     "not allowed for node %(node)s in state %(state)s")
                     % {'node': node_id, 'state': node.provision_state})
-            else:
-                task.set_spawn_error_hook(provisioning_error_handler,
-                                          node, previous_prov_state,
-                                          previous_tgt_provision_state)
-                task.spawn_after(self._spawn_worker,
-                                do_node_tear_down, task)
 
     @periodic_task.periodic_task(
             spacing=CONF.conductor.sync_power_state_interval)

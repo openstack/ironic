@@ -23,6 +23,8 @@ import mock
 
 from ironic.common import driver_factory
 from ironic.common import exception
+from ironic.common import fsm
+from ironic.common import states
 from ironic.common import utils
 from ironic.conductor import task_manager
 from ironic import objects
@@ -419,6 +421,89 @@ class TaskManagerTestCase(tests_db_base.DbTestCase):
         task_release_mock.assert_called_once_with()
         on_error_handler.assert_called_once_with(expected_exception,
                                                  'fake-argument')
+
+    @mock.patch.object(states.machine, 'copy')
+    def test_init_prepares_fsm(self, copy_mock, get_ports_mock,
+                  get_driver_mock, reserve_mock, release_mock,
+                  node_get_mock):
+        m = mock.Mock(spec=fsm.FSM)
+        reserve_mock.return_value = self.node
+        copy_mock.return_value = m
+        t = task_manager.TaskManager('fake', 'fake')
+        copy_mock.assert_called_once_with()
+        self.assertIs(m, t.fsm)
+        m.initialize.assert_called_once_with(self.node.provision_state)
+
+
+class TaskManagerStateModelTestCases(tests_base.TestCase):
+    def setUp(self):
+        super(TaskManagerStateModelTestCases, self).setUp()
+        self.fsm = mock.Mock(spec=fsm.FSM)
+        self.node = mock.Mock(spec=objects.Node)
+        self.task = mock.Mock(spec=task_manager.TaskManager)
+        self.task.fsm = self.fsm
+        self.task.node = self.node
+
+    def test_release_clears_resources(self):
+        t = self.task
+        t.release_resources = task_manager.TaskManager.release_resources
+        t.driver = mock.Mock()
+        t.ports = mock.Mock()
+        t.shared = True
+
+        t.release_resources(t)
+        self.assertIsNone(t.node)
+        self.assertIsNone(t.driver)
+        self.assertIsNone(t.ports)
+        self.assertIsNone(t.fsm)
+
+    def test_process_event_fsm_raises(self):
+        self.task.process_event = task_manager.TaskManager.process_event
+        self.fsm.process_event.side_effect = exception.InvalidState('test')
+
+        self.assertRaises(
+                exception.InvalidState,
+                self.task.process_event,
+                self.task, 'fake')
+        self.assertEqual(0, self.task.spawn_after.call_count)
+        self.assertFalse(self.task.node.save.called)
+
+    def test_process_event_sets_callback(self):
+        cb = mock.Mock()
+        arg = mock.Mock()
+        kwarg = mock.Mock()
+        self.task.process_event = task_manager.TaskManager.process_event
+        self.task.process_event(self.task, 'fake',
+                callback=cb, call_args=[arg], call_kwargs={'mock': kwarg})
+        self.fsm.process_event.assert_called_once_with('fake')
+        self.task.spawn_after.assert_called_with(cb, arg, mock=kwarg)
+        self.assertEqual(1, self.task.node.save.call_count)
+        self.assertIsNone(self.node.last_error)
+
+    def test_process_event_sets_callback_and_error_handler(self):
+        arg = mock.Mock()
+        cb = mock.Mock()
+        er = mock.Mock()
+        kwarg = mock.Mock()
+        provision_state = 'provision_state'
+        target_provision_state = 'target'
+        self.node.provision_state = provision_state
+        self.node.target_provision_state = target_provision_state
+        self.task.process_event = task_manager.TaskManager.process_event
+
+        self.task.process_event(self.task, 'fake',
+                callback=cb, call_args=[arg], call_kwargs={'mock': kwarg},
+                err_handler=er)
+
+        self.task.set_spawn_error_hook.assert_called_once_with(er,
+                self.node, provision_state, target_provision_state)
+        self.fsm.process_event.assert_called_once_with('fake')
+        self.task.spawn_after.assert_called_with(cb, arg, mock=kwarg)
+        self.assertEqual(1, self.task.node.save.call_count)
+        self.assertIsNone(self.node.last_error)
+        self.assertNotEqual(provision_state, self.node.provision_state)
+        self.assertNotEqual(target_provision_state,
+                self.node.target_provision_state)
 
 
 @task_manager.require_exclusive_lock

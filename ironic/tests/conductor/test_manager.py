@@ -872,6 +872,7 @@ class VendorPassthruTestCase(_ServiceSetUpMixin, tests_db_base.DbTestCase):
 class DoNodeDeployTearDownTestCase(_ServiceSetUpMixin,
                                    tests_db_base.DbTestCase):
     def test_do_node_deploy_invalid_state(self):
+        self._start_service()
         # test node['provision_state'] is not NOSTATE
         node = obj_utils.create_test_node(self.context, driver='fake',
                                           provision_state=states.ACTIVE)
@@ -1035,6 +1036,7 @@ class DoNodeDeployTearDownTestCase(_ServiceSetUpMixin,
         mock_deploy.assert_called_once_with(mock.ANY)
 
     def test_do_node_deploy_rebuild_nostate_state(self):
+        self._start_service()
         # test node will not rebuild if state is NOSTATE
         node = obj_utils.create_test_node(self.context, driver='fake',
                                           provision_state=states.NOSTATE)
@@ -1075,6 +1077,7 @@ class DoNodeDeployTearDownTestCase(_ServiceSetUpMixin,
             self.assertIsNone(node.reservation)
 
     def test_do_node_tear_down_invalid_state(self):
+        self._start_service()
         # test node.provision_state is incorrect for tear_down
         node = obj_utils.create_test_node(self.context, driver='fake',
                                           provision_state=states.NOSTATE)
