@@ -588,6 +588,7 @@ class PXEDriverTestCase(db_base.DbTestCase):
         token_path = self._create_token_file()
         self.node.power_state = states.POWER_ON
         self.node.provision_state = states.DEPLOYWAIT
+        self.node.target_provision_state = states.ACTIVE
         self.node.save()
 
         root_uuid = "12345678-1234-1234-1234-1234567890abcxyz"
@@ -606,6 +607,7 @@ class PXEDriverTestCase(db_base.DbTestCase):
 
         self.node.refresh()
         self.assertEqual(states.ACTIVE, self.node.provision_state)
+        self.assertEqual(states.NOSTATE, self.node.target_provision_state)
         self.assertEqual(states.POWER_ON, self.node.power_state)
         self.assertIsNone(self.node.last_error)
         self.assertFalse(os.path.exists(token_path))
@@ -621,6 +623,7 @@ class PXEDriverTestCase(db_base.DbTestCase):
         token_path = self._create_token_file()
         self.node.power_state = states.POWER_ON
         self.node.provision_state = states.DEPLOYWAIT
+        self.node.target_provision_state = states.ACTIVE
         self.node.save()
 
         def fake_deploy(**kwargs):
@@ -636,6 +639,7 @@ class PXEDriverTestCase(db_base.DbTestCase):
 
         self.node.refresh()
         self.assertEqual(states.DEPLOYFAIL, self.node.provision_state)
+        self.assertEqual(states.ACTIVE, self.node.target_provision_state)
         self.assertEqual(states.POWER_OFF, self.node.power_state)
         self.assertIsNotNone(self.node.last_error)
         self.assertFalse(os.path.exists(token_path))
@@ -647,6 +651,7 @@ class PXEDriverTestCase(db_base.DbTestCase):
         token_path = self._create_token_file()
         self.node.power_state = states.POWER_ON
         self.node.provision_state = states.DEPLOYWAIT
+        self.node.target_provision_state = states.ACTIVE
         self.node.save()
 
         def fake_deploy(**kwargs):
@@ -663,6 +668,7 @@ class PXEDriverTestCase(db_base.DbTestCase):
 
         self.node.refresh()
         self.assertEqual(states.DEPLOYFAIL, self.node.provision_state)
+        self.assertEqual(states.ACTIVE, self.node.target_provision_state)
         self.assertEqual(states.POWER_OFF, self.node.power_state)
         self.assertIsNotNone(self.node.last_error)
         self.assertFalse(os.path.exists(token_path))
@@ -672,6 +678,7 @@ class PXEDriverTestCase(db_base.DbTestCase):
     def test_continue_deploy_invalid(self):
         self.node.power_state = states.POWER_ON
         self.node.provision_state = states.NOSTATE
+        self.node.target_provision_state = states.NOSTATE
         self.node.save()
 
         with task_manager.acquire(self.context, self.node.uuid) as task:
@@ -682,6 +689,7 @@ class PXEDriverTestCase(db_base.DbTestCase):
 
         self.node.refresh()
         self.assertEqual(states.NOSTATE, self.node.provision_state)
+        self.assertEqual(states.NOSTATE, self.node.target_provision_state)
         self.assertEqual(states.POWER_ON, self.node.power_state)
 
     def test_lock_elevated(self):
