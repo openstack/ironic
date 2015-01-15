@@ -187,10 +187,7 @@ machine.add_transition(DEPLOYFAIL, DELETING, 'delete')
 # A delete may complete
 machine.add_transition(DELETING, NOSTATE, 'done')
 
-# These states can also transition to error
-machine.add_transition(NOSTATE, ERROR, 'error')
-machine.add_transition(DEPLOYING, ERROR, 'error')
-machine.add_transition(ACTIVE, ERROR, 'error')
+# This state can also transition to error
 machine.add_transition(DELETING, ERROR, 'error')
 
 # An errored instance can be rebuilt
