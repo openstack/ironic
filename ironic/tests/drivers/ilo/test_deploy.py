@@ -21,6 +21,7 @@ import mock
 from oslo.config import cfg
 
 from ironic.common import boot_devices
+from ironic.common import exception
 from ironic.common import images
 from ironic.common import states
 from ironic.common import swift
@@ -341,10 +342,12 @@ class VendorPassthruTestCase(db_base.DbTestCase):
         continue_deploy_mock.return_value = 'root-uuid'
         get_boot_iso_mock.return_value = 'boot-iso'
 
+        self.node.provision_state = states.DEPLOYWAIT
+        self.node.target_provision_state = states.ACTIVE
+        self.node.save()
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
-            task.node.provision_state = states.DEPLOYWAIT
-            vendor = ilo_deploy.VendorPassthru()
+            vendor = task.driver.vendor
             vendor._continue_deploy(task, **kwargs)
 
             cleanup_vmedia_boot_mock.assert_called_once_with(task)
@@ -355,19 +358,23 @@ class VendorPassthruTestCase(db_base.DbTestCase):
                                                          boot_devices.CDROM)
             self.assertEqual('boot-iso',
                              task.node.instance_info['ilo_boot_iso'])
+            self.assertEqual(states.ACTIVE, task.node.provision_state)
+            self.assertEqual(states.NOSTATE, task.node.target_provision_state)
         notify_deploy_complete_mock.assert_called_once_with('123456')
 
-    @mock.patch.object(ilo_deploy, 'LOG')
-    def test__continue_deploy_bad(self, log_mock):
+    @mock.patch.object(ilo_common, 'cleanup_vmedia_boot')
+    def test__continue_deploy_bad(self, cleanup_vmedia_boot_mock):
         kwargs = {'method': 'pass_deploy_info', 'address': '123456'}
 
+        self.node.provision_state = states.NOSTATE
+        self.node.save()
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
-            task.node.provision_state = states.NOSTATE
-            vendor = ilo_deploy.VendorPassthru()
-            vendor._continue_deploy(task, **kwargs)
-
-            self.assertTrue(log_mock.error.called)
+            vendor = task.driver.vendor
+            self.assertRaises(exception.InvalidState,
+                              vendor._continue_deploy,
+                              task, **kwargs)
+        self.assertFalse(cleanup_vmedia_boot_mock.called)
 
     @mock.patch.object(iscsi_deploy, 'continue_deploy')
     @mock.patch.object(ilo_common, 'cleanup_vmedia_boot')
@@ -376,10 +383,12 @@ class VendorPassthruTestCase(db_base.DbTestCase):
         kwargs = {'method': 'pass_deploy_info', 'address': '123456'}
         continue_deploy_mock.return_value = None
 
+        self.node.provision_state = states.DEPLOYWAIT
+        self.node.target_provision_state = states.ACTIVE
+        self.node.save()
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
-            task.node.provision_state = states.DEPLOYWAIT
-            vendor = ilo_deploy.VendorPassthru()
+            vendor = task.driver.vendor
             vendor._continue_deploy(task, **kwargs)
 
             cleanup_vmedia_boot_mock.assert_called_once_with(task)
@@ -466,12 +475,11 @@ class IloPXEVendorPassthruTestCase(db_base.DbTestCase):
 
     @mock.patch.object(pxe.VendorPassthru, '_continue_deploy')
     @mock.patch.object(manager_utils, 'node_set_boot_device')
-    def test_vendorpassthru(self, set_boot_device_mock,
-                            pxe_vendorpassthru_mock):
+    def test_vendorpassthru_continue_deploy(self, set_boot_device_mock,
+                                            pxe_vendorpassthru_mock):
         kwargs = {'address': '123456'}
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
-            task.node.provision_state = states.DEPLOYWAIT
             task.driver.vendor._continue_deploy(task, **kwargs)
             set_boot_device_mock.assert_called_with(task, boot_devices.PXE,
                                                     True)

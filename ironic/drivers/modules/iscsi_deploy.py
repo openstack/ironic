@@ -26,7 +26,6 @@ from ironic.common.i18n import _LE
 from ironic.common.i18n import _LI
 from ironic.common import image_service as service
 from ironic.common import keystone
-from ironic.common import states
 from ironic.common import utils
 from ironic.drivers.modules import deploy_utils
 from ironic.drivers.modules import image_cache
@@ -252,12 +251,11 @@ def continue_deploy(task, **kwargs):
 
     :param task: a TaskManager instance containing the node to act on.
     :param kwargs: the kwargs to be passed to deploy.
+    :raises: InvalidState if the event is not allowed by the associated
+             state machine.
     :returns: UUID of the root partition or None on error.
     """
     node = task.node
-
-    node.provision_state = states.DEPLOYING
-    node.save()
 
     params = get_deploy_info(node, **kwargs)
     ramdisk_error = kwargs.get('error')

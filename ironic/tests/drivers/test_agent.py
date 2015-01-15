@@ -167,6 +167,8 @@ class TestAgentVendor(db_base.DbTestCase):
                           method, **kwargs)
 
     def test_continue_deploy(self):
+        self.node.provision_state = states.DEPLOYWAIT
+        self.node.save()
         test_temp_url = 'http://image'
         expected_image_info = {
             'urls': [test_temp_url],
@@ -189,6 +191,7 @@ class TestAgentVendor(db_base.DbTestCase):
 
     def test_continue_deploy_image_source_is_url(self):
         self.node.instance_info['image_source'] = 'glance://fake-image'
+        self.node.provision_state = states.DEPLOYWAIT
         self.node.save()
         test_temp_url = 'http://image'
         expected_image_info = {

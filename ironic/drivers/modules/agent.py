@@ -372,6 +372,7 @@ class AgentVendorInterface(base.VendorInterface):
 
     @task_manager.require_exclusive_lock
     def _continue_deploy(self, task, **kwargs):
+        task.process_event('resume')
         node = task.node
         image_source = node.instance_info.get('image_source')
         LOG.debug('Continuing deploy for %s', node.uuid)
@@ -393,9 +394,6 @@ class AgentVendorInterface(base.VendorInterface):
         res = self._client.prepare_image(node, image_info)
         LOG.debug('prepare_image got response %(res)s for node %(node)s',
                   {'res': res, 'node': node.uuid})
-
-        node.provision_state = states.DEPLOYING
-        node.save()
 
     def _check_deploy_success(self, node):
         # should only ever be called after we've validated that
@@ -423,9 +421,7 @@ class AgentVendorInterface(base.VendorInterface):
         manager_utils.node_set_boot_device(task, 'disk', persistent=True)
         manager_utils.node_power_action(task, states.REBOOT)
 
-        node.provision_state = states.ACTIVE
-        node.target_provision_state = states.NOSTATE
-        node.save()
+        task.process_event('done')
 
     @base.driver_passthru(['POST'], async=False)
     def lookup(self, context, **kwargs):
