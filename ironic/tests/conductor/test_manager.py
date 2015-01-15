@@ -198,6 +198,8 @@ class StartStopTestCase(_ServiceSetUpMixin, tests_db_base.DbTestCase):
                           objects.Conductor.get_by_hostname,
                           self.context, self.hostname)
 
+    @mock.patch.object(driver_factory.DriverFactory, '__getitem__',
+                       lambda *args: mock.MagicMock())
     def test_start_registers_driver_names(self):
         init_names = ['fake1', 'fake2']
         restart_names = ['fake3', 'fake4']
@@ -219,6 +221,47 @@ class StartStopTestCase(_ServiceSetUpMixin, tests_db_base.DbTestCase):
             res = objects.Conductor.get_by_hostname(self.context,
                                                     self.hostname)
             self.assertEqual(restart_names, res['drivers'])
+
+    @mock.patch.object(driver_factory.DriverFactory, '__getitem__')
+    def test_start_registers_driver_specific_tasks(self, get_mock):
+        init_names = ['fake1']
+        expected_task_name = 'ironic.tests.conductor.test_manager.task'
+        expected_task_name2 = 'ironic.tests.conductor.test_manager.iface'
+        self.config(enabled_drivers=init_names)
+
+        class TestInterface(object):
+            @drivers_base.driver_periodic_task(spacing=100500)
+            def iface(self):
+                pass
+
+        class Driver(object):
+            core_interfaces = []
+            standard_interfaces = ['iface']
+
+            iface = TestInterface()
+
+            @drivers_base.driver_periodic_task(spacing=42)
+            def task(self, context):
+                pass
+
+        obj = Driver()
+        self.assertTrue(obj.task._periodic_enabled)
+        get_mock.return_value = mock.Mock(obj=obj)
+
+        with mock.patch.object(
+                driver_factory.DriverFactory()._extension_manager,
+                'names') as mock_names:
+            mock_names.return_value = init_names
+            self._start_service()
+        tasks = dict(self.service._periodic_tasks)
+        self.assertEqual(obj.task, tasks[expected_task_name])
+        self.assertEqual(obj.iface.iface, tasks[expected_task_name2])
+        self.assertEqual(42,
+                         self.service._periodic_spacing[expected_task_name])
+        self.assertEqual(100500,
+                         self.service._periodic_spacing[expected_task_name2])
+        self.assertIn(expected_task_name, self.service._periodic_last_run)
+        self.assertIn(expected_task_name2, self.service._periodic_last_run)
 
     @mock.patch.object(driver_factory.DriverFactory, '__init__')
     def test_start_fails_on_missing_driver(self, mock_df):

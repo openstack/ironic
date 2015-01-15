@@ -65,6 +65,12 @@ def get_driver(driver_name):
         raise exception.DriverNotFound(driver_name=driver_name)
 
 
+def drivers():
+    """Get all drivers as a dict name -> driver object."""
+    factory = DriverFactory()
+    return {name: factory[name].obj for name in factory.names}
+
+
 class DriverFactory(object):
     """Discover, load and manage the drivers available."""
 

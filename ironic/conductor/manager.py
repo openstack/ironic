@@ -43,6 +43,7 @@ a change, etc.
 
 import collections
 import datetime
+import inspect
 import tempfile
 import threading
 
@@ -212,6 +213,16 @@ class ConductorManager(periodic_task.PeriodicTasks):
             LOG.error(msg, self.host)
             raise exception.NoDriversLoaded(conductor=self.host)
 
+        # Collect driver-specific periodic tasks
+        for driver_obj in driver_factory.drivers().values():
+            self._collect_periodic_tasks(driver_obj)
+            for iface_name in (driver_obj.core_interfaces +
+                               driver_obj.standard_interfaces +
+                               ['vendor']):
+                iface = getattr(driver_obj, iface_name, None)
+                if iface:
+                    self._collect_periodic_tasks(iface)
+
         # clear all locks held by this conductor before registering
         self.dbapi.clear_node_reservations_for_conductor(self.host)
         try:
@@ -247,6 +258,11 @@ class ConductorManager(periodic_task.PeriodicTasks):
             with excutils.save_and_reraise_exception():
                 LOG.critical(_LC('Failed to start keepalive'))
                 self.del_host()
+
+    def _collect_periodic_tasks(self, obj):
+        for n, method in inspect.getmembers(obj, inspect.ismethod):
+            if getattr(method, '_periodic_enabled', False):
+                self.add_periodic_task(method)
 
     def del_host(self):
         self._keepalive_evt.set()
