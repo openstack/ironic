@@ -85,6 +85,8 @@ def node_power_action(task, new_state):
             # This isn't an error, so we'll clear last_error field
             # (from previous operation), log a warning, and return.
             node['last_error'] = None
+            # NOTE(dtantsur): under rare conditions we can get out of sync here
+            node['power_state'] = new_state
             node['target_power_state'] = states.NOSTATE
             node.save()
             LOG.warn(_LW("Not going to change_node_power_state because "

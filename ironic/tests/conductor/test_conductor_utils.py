@@ -207,6 +207,35 @@ class NodePowerActionTestCase(base.DbTestCase):
                 self.assertIsNone(node['target_power_state'])
                 self.assertIsNone(node['last_error'])
 
+    def test_node_power_action_in_same_state_db_not_in_sync(self):
+        """Test setting node state to its present state if DB is out of sync.
+
+        Under rare conditions (see bug #1403106) database might contain stale
+        information, make sure we fix it.
+        """
+        node = obj_utils.create_test_node(self.context,
+                                          uuid=cmn_utils.generate_uuid(),
+                                          driver='fake',
+                                          last_error='anything but None',
+                                          power_state=states.POWER_ON)
+        task = task_manager.TaskManager(self.context, node.uuid)
+
+        with mock.patch.object(self.driver.power,
+                               'get_power_state') as get_power_mock:
+            get_power_mock.return_value = states.POWER_OFF
+
+            with mock.patch.object(self.driver.power,
+                                   'set_power_state') as set_power_mock:
+                conductor_utils.node_power_action(task, states.POWER_OFF)
+
+                node.refresh()
+                get_power_mock.assert_called_once_with(mock.ANY)
+                self.assertFalse(set_power_mock.called,
+                                 "set_power_state unexpectedly called")
+                self.assertEqual(states.POWER_OFF, node['power_state'])
+                self.assertIsNone(node['target_power_state'])
+                self.assertIsNone(node['last_error'])
+
     def test_node_power_action_failed_getting_state(self):
         """Test for exception when we can't get the current power state."""
         node = obj_utils.create_test_node(self.context,
