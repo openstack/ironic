@@ -32,14 +32,6 @@ upstream commit) please consult the wiki page::
 
   https://wiki.openstack.org/wiki/Ironic/Drivers
 
-.. toctree::
-    ../api/ironic.drivers.agent
-    ../api/ironic.drivers.base
-    ../api/ironic.drivers.drac
-    ../api/ironic.drivers.ilo
-    ../api/ironic.drivers.pxe
-
-
 Node Vendor Passthru
 --------------------
 
