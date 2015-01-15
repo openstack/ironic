@@ -44,16 +44,16 @@ class UtilsTestCase(db_base.DbTestCase):
     @mock.patch.object(fake.FakeVendorA, 'validate')
     def test_vendor_interface_validate_valid_methods(self,
                                                      mock_fakea_validate):
-        self.driver.vendor.validate(method='first_method')
-        mock_fakea_validate.assert_called_once_with(method='first_method')
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            self.driver.vendor.validate(task, method='first_method')
+            mock_fakea_validate.assert_called_once_with(task,
+                                                        method='first_method')
 
     def test_vendor_interface_validate_bad_method(self):
-        self.assertRaises(exception.InvalidParameterValue,
-                          self.driver.vendor.validate, method='fake_method')
-
-    def test_vendor_interface_validate_none_method(self):
-        self.assertRaises(exception.MissingParameterValue,
-                          self.driver.vendor.validate)
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            self.assertRaises(exception.InvalidParameterValue,
+                              self.driver.vendor.validate,
+                              task, method='fake_method')
 
     def test_get_node_mac_addresses(self):
         ports = []

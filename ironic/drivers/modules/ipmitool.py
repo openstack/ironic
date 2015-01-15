@@ -884,7 +884,7 @@ class VendorPassthru(base.VendorInterface):
     def get_properties(self):
         return COMMON_PROPERTIES
 
-    def validate(self, task, **kwargs):
+    def validate(self, task, method, **kwargs):
         """Validate vendor-specific actions.
 
         If invalid, raises an exception; otherwise returns None.
@@ -894,13 +894,13 @@ class VendorPassthru(base.VendorInterface):
           * bmc_reset
 
         :param task: a task from TaskManager.
+        :param method: method to be validated
         :param kwargs: info for action.
         :raises: InvalidParameterValue when an invalid parameter value is
                  specified.
         :raises: MissingParameterValue if a required parameter is missing.
 
         """
-        method = kwargs['method']
         if method == 'send_raw':
             if not kwargs.get('raw_bytes'):
                 raise exception.MissingParameterValue(_(

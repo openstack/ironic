@@ -296,12 +296,13 @@ class AgentVendorInterface(base.VendorInterface):
         #             not by the operator.
         return {}
 
-    def validate(self, task, **kwargs):
+    def validate(self, task, method, **kwargs):
         """Validate the driver-specific Node deployment info.
 
         No validation necessary.
 
         :param task: a TaskManager instance
+        :param method: method to be validated
         """
         pass
 
