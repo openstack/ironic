@@ -724,6 +724,17 @@
 #mysql_engine=InnoDB
 
 
+[deploy]
+
+#
+# Options defined in ironic.drivers.modules.deploy_utils
+#
+
+# Block size to use when writing to the nodes disk. (string
+# value)
+#dd_block_size=1M
+
+
 [dhcp]
 
 #
