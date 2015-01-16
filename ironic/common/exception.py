@@ -553,6 +553,10 @@ class IRMCOperationError(IronicException):
     message = _('iRMC %(operation)s failed. Reason: %(error)s')
 
 
+class IRMCSharedFileSystemNotMounted(IronicException):
+    message = _("iRMC shared file system '%(share)s' is not mounted.")
+
+
 class VirtualBoxOperationFailed(IronicException):
     message = _("VirtualBox operation '%(operation)s' failed. "
                 "Error: %(error)s")

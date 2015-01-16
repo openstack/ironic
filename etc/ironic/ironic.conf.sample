@@ -1009,6 +1009,34 @@
 #sensor_method=ipmitool
 
 
+#
+# Options defined in ironic.drivers.modules.irmc.deploy
+#
+
+# Ironic conductor node's "NFS" or "CIFS" root path (string
+# value)
+#remote_image_share_root=/remote_image_share_root
+
+# IP of remote image server (string value)
+#remote_image_server=<None>
+
+# Share type of virtual media, either "NFS" or "CIFS" (string
+# value)
+#remote_image_share_type=CIFS
+
+# share name of remote_image_server (string value)
+#remote_image_share_name=share
+
+# User name of remote_image_server (string value)
+#remote_image_user_name=<None>
+
+# Password of remote_image_user_name (string value)
+#remote_image_user_password=<None>
+
+# Domain name of remote_image_user_name (string value)
+#remote_image_user_domain=
+
+
 [keystone]
 
 #
@@ -1340,7 +1368,7 @@
 #rpc_conn_pool_size=30
 
 # Qpid broker hostname. (string value)
-#qpid_hostname=localhost
+#qpid_hostname=ironic
 
 # Qpid broker port. (integer value)
 #qpid_port=5672
@@ -1419,7 +1447,7 @@
 
 # The RabbitMQ broker address where a single node is used.
 # (string value)
-#rabbit_host=localhost
+#rabbit_host=ironic
 
 # The RabbitMQ broker port where a single node is used.
 # (integer value)

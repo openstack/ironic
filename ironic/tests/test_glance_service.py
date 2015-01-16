@@ -809,6 +809,20 @@ class TestServiceUtils(base.TestCase):
         image_href = None
         self.assertFalse(service_utils.is_glance_image(image_href))
 
+    def test_is_image_href_ordinary_file_name_true(self):
+        image = "deploy.iso"
+        result = service_utils.is_image_href_ordinary_file_name(image)
+        self.assertTrue(result)
+
+    def test_is_image_href_ordinary_file_name_false(self):
+        for image in ('733d1c44-a2ea-414b-aca7-69decf20d810',
+                      'glance://deploy_iso',
+                      'http://deploy_iso',
+                      'https://deploy_iso',
+                      'file://deploy_iso',):
+            result = service_utils.is_image_href_ordinary_file_name(image)
+            self.assertFalse(result)
+
 
 class TestGlanceAPIServers(base.TestCase):
 

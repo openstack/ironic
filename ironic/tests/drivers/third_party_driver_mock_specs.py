@@ -89,10 +89,17 @@ SCCICLIENT_IRMC_SCCI_SPEC = (
     'POWER_OFF',
     'POWER_ON',
     'POWER_RESET',
+    'MOUNT_CD',
+    'UNMOUNT_CD',
+    'MOUNT_FD',
+    'UNMOUNT_FD',
     'SCCIClientError',
+    'get_share_type',
     'get_client',
     'get_report',
     'get_sensor_data',
+    'get_virtual_cd_set_params_cmd',
+    'get_virtual_fd_set_params_cmd',
 )
 
 # seamicro
