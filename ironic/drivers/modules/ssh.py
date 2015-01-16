@@ -349,10 +349,18 @@ def _get_power_status(ssh_obj, driver_info):
                                  driver_info['cmd_set']['list_running'])
         cmd_to_exec = cmd_to_exec.replace('{_NodeName_}', node_name)
         running_list = _ssh_execute(ssh_obj, cmd_to_exec)
+
+        # Command should return a list of running vms. If the current node is
+        # not listed then we can assume it is not powered on.
+        quoted_node_name = '"%s"' % node_name
         for node in running_list:
             if not node:
                 continue
-            if node_name in node:
+            # 'node' here is an formatted output from the virt cli's. The
+            # node name is always quoted but can contain other information.
+            # vbox returns '"NodeName" {b43c4982-110c-4c29-9325-d5f41b053513}'
+            # so we must use the 'in' comparison here and not '=='
+            if quoted_node_name in node:
                 power_state = states.POWER_ON
                 break
         if not power_state:

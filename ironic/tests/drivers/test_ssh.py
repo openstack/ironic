@@ -298,6 +298,19 @@ class SSHPrivateMethodsTestCase(db_base.DbTestCase):
                 self.sshclient, ssh_cmd)
 
     @mock.patch.object(processutils, 'ssh_execute')
+    @mock.patch.object(ssh, '_get_hosts_name_for_node')
+    def test__get_power_status_correct_node(self, get_hosts_name_mock,
+                                            exec_ssh_mock):
+        # Bug: #1397834 test that get_power_status return status of
+        # baremeta_1 (off) and not baremetal_11 (on)
+        info = ssh._parse_driver_info(self.node)
+        exec_ssh_mock.return_value = ('"baremetal_11"\n"seed"\n', '')
+        get_hosts_name_mock.return_value = "baremetal_1"
+
+        pstate = ssh._get_power_status(self.sshclient, info)
+        self.assertEqual(states.POWER_OFF, pstate)
+
+    @mock.patch.object(processutils, 'ssh_execute')
     def test__get_hosts_name_for_node_match(self, exec_ssh_mock):
         info = ssh._parse_driver_info(self.node)
         info['macs'] = ["11:11:11:11:11:11", "52:54:00:cf:2d:31"]
@@ -916,7 +929,8 @@ class SSHDriverTestCase(db_base.DbTestCase):
         nodename = 'fakevm'
         mock_h.return_value = nodename
         mock_get_conn.return_value = self.sshclient
-        mock_exc.return_value = (nodename, '')
+        # list_running quotes names
+        mock_exc.return_value = ('"%s"' % nodename, '')
         with task_manager.acquire(self.context, self.node.uuid) as task:
             task.node['driver_info']['ssh_virt_type'] = 'vmware'
             power_state = self.driver.power.get_power_state(task)
