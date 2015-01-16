@@ -642,6 +642,12 @@ class ConductorManager(periodic_task.PeriodicTasks):
 
             if rebuild:
                 event = 'rebuild'
+
+                # Note(gilliard) Clear these to force the driver to
+                # check whether they have been changed in glance
+                node.instance_info.pop('kernel', None)
+                node.instance_info.pop('ramdisk', None)
+                node.save()
             else:
                 event = 'deploy'
 
