@@ -95,6 +95,14 @@ class BaseDriver(object):
     May be None, if the driver does not implement any vendor extensions.
     """
 
+    inspect = None
+    """`Standard` attribute for inspection related features.
+
+    A reference to an instance of :class:InspectInterface.
+    May be None, if unsupported by a driver.
+    """
+    standard_interfaces.append('inspect')
+
     @abc.abstractmethod
     def __init__(self):
         pass
@@ -651,3 +659,37 @@ def driver_periodic_task(parallel=True, **other):
         return decorator(wrapper)
 
     return decorator2
+
+
+@six.add_metaclass(abc.ABCMeta)
+class InspectInterface(object):
+    """Interface for management related actions."""
+
+    @abc.abstractmethod
+    def get_properties(self):
+        """Return the properties of the interface.
+
+        :returns: dictionary of <property name>:<property description> entries.
+        """
+
+    @abc.abstractmethod
+    def validate(self, task):
+        """Validate the driver-specific management information.
+
+        If invalid, raises an exception; otherwise returns None.
+
+        :param task: a task from TaskManager.
+        :raises: InvalidParameterValue
+        :raises: MissingParameterValue
+        """
+
+    @abc.abstractmethod
+    def inspect_hardware(self, task):
+        """Inspect hardware to obtain the essential & additional hardware properties.
+
+        :param task: a task from TaskManager.
+        :raises: HardwareInspectionFailure, if unable to get essential
+                 hardware properties.
+        :returns: resulting state of the inspection i.e. states.MANAGEABLE
+                  or None.
+        """

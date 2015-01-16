@@ -1455,6 +1455,7 @@ class MiscTestCase(_ServiceSetUpMixin, tests_db_base.DbTestCase):
                                                       node.uuid)
         expected = {'console': {'result': True},
                     'power': {'result': True},
+                    'inspect': {'result': True},
                     'management': {'result': True},
                     'deploy': {'result': True}}
         self.assertEqual(expected, ret)
