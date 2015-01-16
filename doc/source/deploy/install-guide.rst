@@ -366,6 +366,11 @@ DHCP and PXE Boot configuration. An example of this is shown in the
     # Replace eth2 with the interface on the neutron node which you
     # are using to connect to the bare metal server
 
+#. If neutron-openvswitch-agent runs with ``ovs_neutron_plugin.ini`` as the input
+   config-file, edit ``ovs_neutron_plugin.ini`` to configure the bridge mappings
+   by adding the [ovs] section described in the previous step, and restart the
+   neutron-openvswitch-agent.
+
 #. Add the integration bridge to Open vSwitch::
 
     ovs-vsctl add-br br-int
@@ -390,27 +395,26 @@ DHCP and PXE Boot configuration. An example of this is shown in the
 
     ovs-vsctl show
 
-        Bridge br-ex
-            Port "eth1"
-                Interface "eth1"
-            Port br-ex
-                Interface br-ex
-                    type: internal
         Bridge br-int
+            fail_mode: secure
             Port "int-br-eth2"
                 Interface "int-br-eth2"
+                    type: patch
+                    options: {peer="phy-br-eth2"}
             Port br-int
                 Interface br-int
                     type: internal
         Bridge "br-eth2"
+            Port "phy-br-eth2"
+                Interface "phy-br-eth2"
+                    type: patch
+                    options: {peer="int-br-eth2"}
+            Port "eth2"
+                Interface "eth2"
             Port "br-eth2"
                 Interface "br-eth2"
                     type: internal
-            Port "phy-br-eth2"
-                Interface "phy-br-eth2"
-            Port "eth2"
-                Interface "eth2"
-        ovs_version: "2.0.1"
+        ovs_version: "2.3.0"
 
 #. Create the flat network on which you are going to launch the
    instances::
