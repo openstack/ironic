@@ -499,3 +499,14 @@ class TempFilesTestCase(base.TestCase):
 
         rmtree_mock.assert_called_once_with(tempdir_created)
         self.assertTrue(log_mock.error.called)
+
+
+class IsHttpUrlTestCase(base.TestCase):
+
+    def test_is_http_url(self):
+        self.assertTrue(utils.is_http_url('http://127.0.0.1'))
+        self.assertTrue(utils.is_http_url('https://127.0.0.1'))
+        self.assertTrue(utils.is_http_url('HTTP://127.1.2.3'))
+        self.assertTrue(utils.is_http_url('HTTPS://127.3.2.1'))
+        self.assertFalse(utils.is_http_url('Zm9vYmFy'))
+        self.assertFalse(utils.is_http_url('11111111'))

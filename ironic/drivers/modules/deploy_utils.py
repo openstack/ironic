@@ -14,15 +14,23 @@
 #    under the License.
 
 
+import base64
+import gzip
+import math
 import os
 import re
+import shutil
 import socket
 import stat
+import tempfile
 import time
 
 from oslo.config import cfg
 from oslo.utils import excutils
+from oslo.utils import units
 from oslo_concurrency import processutils
+import requests
+import six
 
 from ironic.common import disk_partitioner
 from ironic.common import exception
@@ -106,14 +114,20 @@ def delete_iscsi(portal_address, portal_port, target_iqn):
                   delay_on_retry=True)
 
 
-def make_partitions(dev, root_mb, swap_mb, ephemeral_mb, commit=True):
-    """Create partitions for root, swap and ephemeral on a disk device.
+def make_partitions(dev, root_mb, swap_mb, ephemeral_mb,
+                    configdrive_mb, commit=True):
+    """Partition the disk device.
+
+    Create partitions for root, swap, ephemeral and configdrive on a
+    disk device.
 
     :param root_mb: Size of the root partition in mebibytes (MiB).
     :param swap_mb: Size of the swap partition in mebibytes (MiB). If 0,
-        no swap partition will be created.
+        no partition will be created.
     :param ephemeral_mb: Size of the ephemeral partition in mebibytes (MiB).
-        If 0, no ephemeral partition will be created.
+        If 0, no partition will be created.
+    :param configdrive_mb: Size of the configdrive partition in
+        mebibytes (MiB). If 0, no partition will be created.
     :param commit: True/False. Default for this setting is True. If False
         partitions will not be written to disk.
     :returns: A dictionary containing the partition type as Key and partition
@@ -130,6 +144,10 @@ def make_partitions(dev, root_mb, swap_mb, ephemeral_mb, commit=True):
     if swap_mb:
         part_num = dp.add_partition(swap_mb, fs_type='linux-swap')
         part_dict['swap'] = part_template % part_num
+
+    if configdrive_mb:
+        part_num = dp.add_partition(configdrive_mb)
+        part_dict['configdrive'] = part_template % part_num
 
     # NOTE(lucasagomes): Make the root partition the last partition. This
     # enables tools like cloud-init's growroot utility to expand the root
@@ -287,8 +305,67 @@ def destroy_disk_metadata(dev, node_uuid):
                            'error': err.stderr})
 
 
+def _get_configdrive(configdrive, node_uuid):
+    """Get the information about size and location of the configdrive.
+
+    :param configdrive: Base64 encoded Gzipped configdrive content or
+        configdrive HTTP URL.
+    :param node_uuid: Node's uuid. Used for logging.
+    :raises: InstanceDeployFailure if it can't download or decode the
+       config drive.
+    :returns: A tuple with the size in MiB and path to the uncompressed
+        configdrive file.
+
+    """
+    # Check if the configdrive option is a HTTP URL or the content directly
+    is_url = utils.is_http_url(configdrive)
+    if is_url:
+        try:
+            data = requests.get(configdrive).content
+        except requests.exceptions.RequestException as e:
+            raise exception.InstanceDeployFailure(
+                _("Can't download the configdrive content for node %(node)s "
+                  "from '%(url)s'. Reason: %(reason)s") %
+                {'node': node_uuid, 'url': configdrive, 'reason': e})
+    else:
+        data = configdrive
+
+    try:
+        data = six.StringIO(base64.b64decode(data))
+    except TypeError:
+        error_msg = (_('Config drive for node %s is not base64 encoded '
+                       'or the content is malformed.') % node_uuid)
+        if is_url:
+            error_msg += _(' Downloaded from "%s".') % configdrive
+        raise exception.InstanceDeployFailure(error_msg)
+
+    configdrive_file = tempfile.NamedTemporaryFile(delete=False,
+                                                   prefix='configdrive')
+    configdrive_mb = 0
+    with gzip.GzipFile('configdrive', 'rb', fileobj=data) as gunzipped:
+        try:
+            shutil.copyfileobj(gunzipped, configdrive_file)
+        except EnvironmentError as e:
+            # Delete the created file
+            utils.unlink_without_raise(configdrive_file.name)
+            raise exception.InstanceDeployFailure(
+                _('Encountered error while decompressing and writing '
+                  'config drive for node %(node)s. Error: %(exc)s') %
+                {'node': node_uuid, 'exc': e})
+        else:
+            # Get the file size and convert to MiB
+            configdrive_file.seek(0, os.SEEK_END)
+            bytes_ = configdrive_file.tell()
+            configdrive_mb = int(math.ceil(float(bytes_) / units.Mi))
+        finally:
+            configdrive_file.close()
+
+        return (configdrive_mb, configdrive_file.name)
+
+
 def work_on_disk(dev, root_mb, swap_mb, ephemeral_mb, ephemeral_format,
-                 image_path, node_uuid, preserve_ephemeral=False):
+                 image_path, node_uuid, preserve_ephemeral=False,
+                 configdrive=None):
     """Create partitions and copy an image to the root partition.
 
     :param dev: Path for the device to work on.
@@ -303,11 +380,13 @@ def work_on_disk(dev, root_mb, swap_mb, ephemeral_mb, ephemeral_format,
     :param preserve_ephemeral: If True, no filesystem is written to the
         ephemeral block device, preserving whatever content it had (if the
         partition table has not changed).
+    :param configdrive: Optional. Base64 encoded Gzipped configdrive content
+                        or configdrive HTTP URL.
     :returns: the UUID of the root partition.
     """
     if not is_block_device(dev):
-        raise exception.InstanceDeployFailure(_("Parent device '%s' not found")
-                                              % dev)
+        raise exception.InstanceDeployFailure(
+            _("Parent device '%s' not found") % dev)
 
     # the only way for preserve_ephemeral to be set to true is if we are
     # rebuilding an instance with --preserve_ephemeral.
@@ -315,22 +394,44 @@ def work_on_disk(dev, root_mb, swap_mb, ephemeral_mb, ephemeral_format,
     # now if we are committing the changes to disk clean first.
     if commit:
         destroy_disk_metadata(dev, node_uuid)
-    part_dict = make_partitions(dev, root_mb, swap_mb, ephemeral_mb,
-                                commit=commit)
 
-    ephemeral_part = part_dict.get('ephemeral')
-    swap_part = part_dict.get('swap')
-    root_part = part_dict.get('root')
+    try:
+        # If requested, get the configdrive file and determine the size
+        # of the configdrive partition
+        configdrive_mb = 0
+        configdrive_file = None
+        if configdrive:
+            configdrive_mb, configdrive_file = _get_configdrive(configdrive,
+                                                                node_uuid)
 
-    if not is_block_device(root_part):
-        raise exception.InstanceDeployFailure(_("Root device '%s' not found")
-                                              % root_part)
-    if swap_part and not is_block_device(swap_part):
-        raise exception.InstanceDeployFailure(_("Swap device '%s' not found")
-                                              % swap_part)
-    if ephemeral_part and not is_block_device(ephemeral_part):
-        raise exception.InstanceDeployFailure(
-                         _("Ephemeral device '%s' not found") % ephemeral_part)
+        part_dict = make_partitions(dev, root_mb, swap_mb, ephemeral_mb,
+                                    configdrive_mb, commit=commit)
+
+        ephemeral_part = part_dict.get('ephemeral')
+        swap_part = part_dict.get('swap')
+        configdrive_part = part_dict.get('configdrive')
+        root_part = part_dict.get('root')
+
+        if not is_block_device(root_part):
+            raise exception.InstanceDeployFailure(
+                _("Root device '%s' not found") % root_part)
+
+        for part in ('swap', 'ephemeral', 'configdrive'):
+            part_device = part_dict.get(part)
+            if part_device and not is_block_device(part_device):
+                raise exception.InstanceDeployFailure(
+                    _("'%(partition)s' device '%(part_device)s' not found") %
+                    {'partition': part, 'part_device': part_device})
+
+        if configdrive_part:
+            # Copy the configdrive content to the configdrive partition
+            dd(configdrive_file, configdrive_part)
+
+    finally:
+        # If the configdrive was requested make sure we delete the file
+        # after copying the content to the partition
+        if configdrive_file:
+            utils.unlink_without_raise(configdrive_file)
 
     populate_image(image_path, root_part)
 
@@ -345,12 +446,13 @@ def work_on_disk(dev, root_mb, swap_mb, ephemeral_mb, ephemeral_format,
     except processutils.ProcessExecutionError:
         with excutils.save_and_reraise_exception():
             LOG.error(_LE("Failed to detect root device UUID."))
+
     return root_uuid
 
 
 def deploy(address, port, iqn, lun, image_path,
            root_mb, swap_mb, ephemeral_mb, ephemeral_format, node_uuid,
-           preserve_ephemeral=False):
+           preserve_ephemeral=False, configdrive=None):
     """All-in-one function to deploy a node.
 
     :param address: The iSCSI IP address.
@@ -368,6 +470,8 @@ def deploy(address, port, iqn, lun, image_path,
     :param preserve_ephemeral: If True, no filesystem is written to the
         ephemeral block device, preserving whatever content it had (if the
         partition table has not changed).
+    :param configdrive: Optional. Base64 encoded Gzipped configdrive content
+                        or configdrive HTTP URL.
     :returns: the UUID of the root partition.
     """
     dev = get_dev(address, port, iqn, lun)
@@ -379,7 +483,8 @@ def deploy(address, port, iqn, lun, image_path,
     try:
         root_uuid = work_on_disk(dev, root_mb, swap_mb, ephemeral_mb,
                                  ephemeral_format, image_path, node_uuid,
-                                 preserve_ephemeral)
+                                 preserve_ephemeral=preserve_ephemeral,
+                                 configdrive=configdrive)
     except processutils.ProcessExecutionError as err:
         with excutils.save_and_reraise_exception():
             LOG.error(_LE("Deploy to address %s failed."), address)
