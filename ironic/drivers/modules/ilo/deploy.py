@@ -401,19 +401,6 @@ class IloVirtualMediaAgentDeploy(base.DeployInterface):
 
 class IloPXEDeploy(pxe.PXEDeploy):
 
-    def validate(self, task):
-        """Validate the deployment information for the task's node.
-
-        This method validates the boot mode capability of the node and then
-        call the PXEDeploy's validate method.
-
-        :param task: a TaskManager instance containing the node to act on.
-        :raises: InvalidParameterValue or MissingParameterValue,
-            if some information is missing or invalid.
-        """
-        driver_utils.validate_boot_mode_capability(task.node)
-        super(IloPXEDeploy, self).validate(task)
-
     def prepare(self, task):
         """Prepare the deployment environment for this task's node.
 
