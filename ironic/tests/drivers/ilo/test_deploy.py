@@ -439,12 +439,10 @@ class IloPXEDeployTestCase(db_base.DbTestCase):
                 driver='pxe_ilo', driver_info=INFO_DICT)
 
     @mock.patch.object(pxe.PXEDeploy, 'validate')
-    @mock.patch.object(driver_utils, 'validate_boot_mode_capability')
-    def test_validate(self, boot_mode_mock, pxe_validate_mock):
+    def test_validate(self, pxe_validate_mock):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
             task.driver.deploy.validate(task)
-            boot_mode_mock.assert_called_once_with(task.node)
             pxe_validate_mock.assert_called_once_with(task)
 
     @mock.patch.object(pxe.PXEDeploy, 'prepare')
