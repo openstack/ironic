@@ -70,12 +70,11 @@ def _get_next_boot_mode(node):
 
     """
     client = drac_common.get_wsman_client(node)
-    options = pywsman.ClientOptions()
     filter_query = ('select * from DCIM_BootConfigSetting where IsNext=%s '
                     'or IsNext=%s' % (PERSISTENT, ONE_TIME_BOOT))
     try:
         doc = client.wsman_enumerate(resource_uris.DCIM_BootConfigSetting,
-                                      options, filter_query=filter_query)
+                                     filter_query=filter_query)
     except exception.DracClientError as exc:
         with excutils.save_and_reraise_exception():
             LOG.error(_LE('DRAC driver failed to get next boot mode for '
@@ -116,15 +115,14 @@ def _create_config_job(node):
 
     """
     client = drac_common.get_wsman_client(node)
-    options = pywsman.ClientOptions()
-    options.add_selector('CreationClassName', 'DCIM_BIOSService')
-    options.add_selector('Name', 'DCIM:BIOSService')
-    options.add_selector('SystemCreationClassName', 'DCIM_ComputerSystem')
-    options.add_selector('SystemName', 'DCIM:ComputerSystem')
-    options.add_property('Target', 'BIOS.Setup.1-1')
-    options.add_property('ScheduledStartTime', 'TIME_NOW')
+    selectors = {'CreationClassName': 'DCIM_BIOSService',
+                 'Name': 'DCIM:BIOSService',
+                 'SystemCreationClassName': 'DCIM_ComputerSystem',
+                 'SystemName': 'DCIM:ComputerSystem'}
+    properties = {'Target': 'BIOS.Setup.1-1',
+                  'ScheduledStartTime': 'TIME_NOW'}
     doc = client.wsman_invoke(resource_uris.DCIM_BIOSService,
-                              options, 'CreateTargetedConfigJob')
+                              'CreateTargetedConfigJob', selectors, properties)
     return_value = drac_common.find_xml(doc, 'ReturnValue',
                                         resource_uris.DCIM_BIOSService).text
     # NOTE(lucasagomes): Possible return values are: RET_ERROR for error
@@ -146,9 +144,8 @@ def _check_for_config_job(node):
 
     """
     client = drac_common.get_wsman_client(node)
-    options = pywsman.ClientOptions()
     try:
-        doc = client.wsman_enumerate(resource_uris.DCIM_LifecycleJob, options)
+        doc = client.wsman_enumerate(resource_uris.DCIM_LifecycleJob)
     except exception.DracClientError as exc:
         with excutils.save_and_reraise_exception():
             LOG.error(_LE('DRAC driver failed to list the configuration jobs '
@@ -227,13 +224,12 @@ class DracManagement(base.ManagementInterface):
         _check_for_config_job(task.node)
 
         client = drac_common.get_wsman_client(task.node)
-        options = pywsman.ClientOptions()
         filter_query = ("select * from DCIM_BootSourceSetting where "
                         "InstanceID like '%%#%s%%'" %
                         _BOOT_DEVICES_MAP[device])
         try:
             doc = client.wsman_enumerate(resource_uris.DCIM_BootSourceSetting,
-                                          options, filter_query=filter_query)
+                                         filter_query=filter_query)
         except exception.DracClientError as exc:
             with excutils.save_and_reraise_exception():
                 LOG.error(_LE('DRAC driver failed to set the boot device '
@@ -253,11 +249,11 @@ class DracManagement(base.ManagementInterface):
         # NOTE(lucasagomes): Don't ask me why 'BootSourceType' is set
         # for 'InstanceID' and 'InstanceID' is set for 'source'! You
         # know enterprisey...
-        options = pywsman.ClientOptions()
-        options.add_selector('InstanceID', source)
-        options.add_property('source', instance_id)
+        selectors = {'InstanceID': source}
+        properties = {'source': instance_id}
         doc = client.wsman_invoke(resource_uris.DCIM_BootConfigSetting,
-                                     options, 'ChangeBootOrderByInstanceID')
+                                  'ChangeBootOrderByInstanceID', selectors,
+                                  properties)
         return_value = drac_common.find_xml(doc, 'ReturnValue',
                                      resource_uris.DCIM_BootConfigSetting).text
         # NOTE(lucasagomes): Possible return values are: RET_ERROR for error,
@@ -294,13 +290,12 @@ class DracManagement(base.ManagementInterface):
         persistent = boot_mode['is_next'] == PERSISTENT
         instance_id = boot_mode['instance_id']
 
-        options = pywsman.ClientOptions()
         filter_query = ('select * from DCIM_BootSourceSetting where '
                         'PendingAssignedSequence=0 and '
                         'BootSourceType="%s"' % instance_id)
         try:
             doc = client.wsman_enumerate(resource_uris.DCIM_BootSourceSetting,
-                                         options, filter_query=filter_query)
+                                         filter_query=filter_query)
         except exception.DracClientError as exc:
             with excutils.save_and_reraise_exception():
                 LOG.error(_LE('DRAC driver failed to get the current boot '

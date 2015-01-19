@@ -43,12 +43,11 @@ class Client(object):
 
         self.client = pywsman_client
 
-    def wsman_enumerate(self, resource_uri, options, filter_query=None,
+    def wsman_enumerate(self, resource_uri, filter_query=None,
                         filter_dialect='cql'):
         """Enumerates a remote WS-Man class.
 
         :param resource_uri: URI of the resource.
-        :param options: client options.
         :param filter_query: the query string.
         :param filter_dialect: the filter dialect. Valid options are:
                                'cql' and 'wql'. Defaults to 'cql'.
@@ -57,6 +56,8 @@ class Client(object):
                  was specified.
         :returns: an ElementTree object of the response received.
         """
+        options = pywsman.ClientOptions()
+
         filter_ = None
         if filter_query is not None:
             try:
@@ -88,16 +89,52 @@ class Client(object):
 
         return final_xml
 
-    def wsman_invoke(self, resource_uri, options, method):
+    def wsman_invoke(self, resource_uri, method, selectors=None,
+                                                 properties=None):
         """Invokes a remote WS-Man method.
 
         :param resource_uri: URI of the resource.
-        :param options: client options.
         :param method: name of the method to invoke.
+        :param selectors: dictionary of selectors.
+        :param properties: dictionary of properties.
         :raises: DracClientError on an error from pywsman library.
         :returns: an ElementTree object of the response received.
         """
-        doc = self.client.invoke(options, resource_uri, method)
+        if selectors is None:
+            selectors = {}
+
+        if properties is None:
+            properties = {}
+
+        options = pywsman.ClientOptions()
+
+        for name, value in selectors.items():
+            options.add_selector(name, value)
+
+        # NOTE(ifarkas): manually constructing the XML doc should be deleted
+        #                once pywsman supports passing a list as a property.
+        #                For now this is only a fallback method: in case no
+        #                list provided, the supported pywsman API will be used.
+        list_included = any([isinstance(prop_item, list) for prop_item
+                             in properties.values()])
+        if list_included:
+            xml_doc = pywsman.XmlDoc('%s_INPUT' % method, resource_uri)
+            xml_root = xml_doc.root()
+
+            for name, value in properties.items():
+                if isinstance(value, list):
+                    for item in value:
+                        xml_root.add(resource_uri, name, item)
+                else:
+                    xml_root.add(resource_uri, name, value)
+
+        else:
+            xml_doc = None
+
+            for name, value in properties.items():
+                options.add_property(name, value)
+
+        doc = self.client.invoke(options, resource_uri, method, xml_doc)
         return self._get_root(doc)
 
     def _get_root(self, doc):
