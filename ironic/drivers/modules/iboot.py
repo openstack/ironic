@@ -106,16 +106,13 @@ def _power_status(driver_info):
         status = response[relay_id - 1]
     except TypeError:
         msg = (_("Cannot get power status for node '%(node)s'. iBoot "
-                 "get_relays() returned '%(resp)s'.")
-                 % {'node': driver_info['uuid'], 'resp': response})
+                 "get_relays() failed.") % {'node': driver_info['uuid']})
         LOG.error(msg)
         raise exception.IBootOperationError(message=msg)
     except IndexError:
         LOG.warning(_LW("Cannot get power status for node '%(node)s' at relay "
-                        "'%(relay)s'. iBoot get_relays() returned "
-                        "'%(resp)s'."),
-                        {'node': driver_info['uuid'], 'relay': relay_id,
-                         'resp': response})
+                        "'%(relay)s'. iBoot get_relays() failed."),
+                        {'node': driver_info['uuid'], 'relay': relay_id})
         return states.ERROR
 
     if status:
