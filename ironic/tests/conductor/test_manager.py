@@ -229,6 +229,12 @@ class StartStopTestCase(_ServiceSetUpMixin, tests_db_base.DbTestCase):
                           self.service.init_host)
         self.assertTrue(log_mock.error.called)
 
+    @mock.patch.object(eventlet.greenpool.GreenPool, 'waitall')
+    def test_del_host_waits_on_workerpool(self, wait_mock):
+        self._start_service()
+        self.service.del_host()
+        self.assertTrue(wait_mock.called)
+
 
 class KeepAliveTestCase(_ServiceSetUpMixin, tests_db_base.DbTestCase):
     def test__conductor_service_record_keepalive(self):
