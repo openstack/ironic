@@ -7,7 +7,6 @@ alembic>=0.7.1
 anyjson>=0.3.3
 argparse
 eventlet>=0.15.2
-lockfile>=0.8
 lxml>=2.3
 WebOb>=1.2.3
 greenlet>=0.3.2
