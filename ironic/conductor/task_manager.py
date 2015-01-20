@@ -29,7 +29,7 @@ an instance of TaskManager will not be possible. Requiring this exclusive
 lock guards against parallel operations interfering with each other.
 
 A shared lock is useful when performing non-interfering operations,
-such as validating the driver interfaces or the vendor_passthru method.
+such as validating the driver interfaces.
 
 An exclusive lock is stored in the database to coordinate between
 :class:`ironic.conductor.manager` instances, that are typically deployed on
@@ -61,25 +61,24 @@ Example usage:
     with task_manager.acquire(context, node_id) as task:
         task.driver.power.power_on(task.node)
 
-If you need to execute task-requiring code in the background thread, the
+If you need to execute task-requiring code in a background thread, the
 TaskManager instance provides an interface to handle this for you, making
-sure to release resources when exceptions occur or when the thread finishes.
-Common use of this is within the Manager like so:
+sure to release resources when the thread finishes (successfully or if
+an exception occurs). Common use of this is within the Manager like so:
 
 ::
 
     with task_manager.acquire(context, node_id) as task:
         <do some work>
         task.spawn_after(self._spawn_worker,
-                         utils.node_power_action, task, task.node,
-                         new_state)
+                         utils.node_power_action, task, new_state)
 
-All exceptions that occur in the current greenthread as part of the
-spawn handling are re-raised. In cases where it's impossible to handle
-the re-raised exception by wrapping the "with task_manager.acquire()"
-with a try..exception block (like the API cases where we return after
-the spawn_after()) the task allows you to set a hook to execute custom
-code when the spawned task generates an exception:
+All exceptions that occur in the current GreenThread as part of the
+spawn handling are re-raised. You can specify a hook to execute custom
+code when such exceptions occur. For example, the hook is a more elegant
+solution than wrapping the "with task_manager.acquire()" with a
+try..exception block. (Note that this hook does not handle exceptions
+raised in the background thread.):
 
 ::
 
@@ -91,8 +90,7 @@ code when the spawned task generates an exception:
         <do some work>
         task.set_spawn_error_hook(on_error)
         task.spawn_after(self._spawn_worker,
-                         utils.node_power_action, task, task.node,
-                         new_state)
+                         utils.node_power_action, task, new_state)
 
 """
 
@@ -210,16 +208,25 @@ class TaskManager(object):
                 self.release_resources()
 
     def spawn_after(self, _spawn_method, *args, **kwargs):
-        """Call this to spawn a thread to complete the task."""
+        """Call this to spawn a thread to complete the task.
+
+        The specified method will be called when the TaskManager instance
+        exits.
+
+        :param _spawn_method: a method that returns a GreenThread object
+        :param args: args passed to the method.
+        :param kwargs: additional kwargs passed to the method.
+
+        """
         self._spawn_method = _spawn_method
         self._spawn_args = args
         self._spawn_kwargs = kwargs
 
     def set_spawn_error_hook(self, _on_error_method, *args, **kwargs):
-        """Create a hook that gets called when the task generates an exception.
+        """Create a hook to handle exceptions when spawning a task.
 
         Create a hook that gets called upon an exception being raised
-        from the spawned task.
+        from spawning a background thread to do a task.
 
         :param _on_error_method: a callable object, it's first parameter
             should accept the Exception object that was raised.
