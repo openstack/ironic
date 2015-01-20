@@ -40,6 +40,7 @@ class Client(object):
                                         drac_password)
         # TODO(ifarkas): Add support for CACerts
         pywsman.wsman_transport_set_verify_peer(pywsman_client, False)
+        pywsman.wsman_transport_set_verify_host(pywsman_client, False)
 
         self.client = pywsman_client
 
