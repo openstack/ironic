@@ -180,6 +180,14 @@ class StartStopTestCase(_ServiceSetUpMixin, tests_db_base.DbTestCase):
         res = objects.Conductor.get_by_hostname(self.context, self.hostname)
         self.assertEqual(self.hostname, res['hostname'])
 
+    def test_start_clears_conductor_locks(self):
+        node = obj_utils.create_test_node(self.context,
+                                          reservation=self.hostname)
+        node.save()
+        self._start_service()
+        node.refresh()
+        self.assertIsNone(node.reservation)
+
     def test_stop_unregisters_conductor(self):
         self._start_service()
         res = objects.Conductor.get_by_hostname(self.context, self.hostname)
