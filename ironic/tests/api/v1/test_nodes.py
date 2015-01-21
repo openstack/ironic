@@ -638,6 +638,20 @@ class TestPatch(api_base.FunctionalTest):
         self.assertEqual(409, response.status_code)
         self.assertTrue(response.json['error_message'])
 
+    def test_add_state_in_deployfail(self):
+        node = obj_utils.create_test_node(self.context,
+                                          uuid=utils.generate_uuid(),
+                                          provision_state=states.DEPLOYFAIL,
+                                          target_provision_state=states.ACTIVE)
+        self.mock_update_node.return_value = node
+        response = self.patch_json('/nodes/%s' % node.uuid,
+                                   [{'path': '/extra/foo', 'value': 'bar',
+                                     'op': 'add'}])
+        self.assertEqual('application/json', response.content_type)
+        self.assertEqual(200, response.status_code)
+        self.mock_update_node.assert_called_once_with(
+                mock.ANY, mock.ANY, 'test-topic')
+
     def test_patch_ports_subresource(self):
         response = self.patch_json('/nodes/%s/ports' % self.node['uuid'],
                                    [{'path': '/extra/foo', 'value': 'bar',
@@ -1156,6 +1170,23 @@ class TestPut(api_base.FunctionalTest):
         expected_location = '/v1/nodes/%s/states' % node.uuid
         self.assertEqual(urlparse.urlparse(ret.location).path,
                          expected_location)
+
+    def test_provision_with_deploy_after_deployfail(self):
+        node = obj_utils.create_test_node(
+                self.context, uuid=utils.generate_uuid(),
+                provision_state=states.DEPLOYFAIL,
+                target_provision_state=states.ACTIVE)
+        ret = self.put_json('/nodes/%s/states/provision' % node.uuid,
+                            {'target': states.ACTIVE})
+        self.assertEqual(202, ret.status_code)
+        self.assertEqual('', ret.body)
+        self.mock_dnd.assert_called_once_with(
+                mock.ANY, node.uuid, False, 'test-topic')
+        # Check location header
+        self.assertIsNotNone(ret.location)
+        expected_location = '/v1/nodes/%s/states' % node.uuid
+        self.assertEqual(expected_location,
+                         urlparse.urlparse(ret.location).path)
 
     def test_provision_already_in_state(self):
         node = obj_utils.create_test_node(
