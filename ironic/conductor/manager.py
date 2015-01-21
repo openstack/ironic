@@ -204,6 +204,8 @@ class ConductorManager(periodic_task.PeriodicTasks):
             LOG.error(msg, self.host)
             raise exception.NoDriversLoaded(conductor=self.host)
 
+        # clear all locks held by this conductor before registering
+        self.dbapi.clear_node_reservations_for_conductor(self.host)
         try:
             # Register this conductor with the cluster
             cdr = self.dbapi.register_conductor({'hostname': self.host,

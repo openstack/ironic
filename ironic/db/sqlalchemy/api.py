@@ -28,6 +28,7 @@ from sqlalchemy.orm.exc import NoResultFound
 
 from ironic.common import exception
 from ironic.common.i18n import _
+from ironic.common.i18n import _LW
 from ironic.common import states
 from ironic.common import utils
 from ironic.db import api
@@ -552,6 +553,20 @@ class Connection(api.Connection):
                                   'online': True})
             if count == 0:
                 raise exception.ConductorNotFound(conductor=hostname)
+
+    def clear_node_reservations_for_conductor(self, hostname):
+        session = get_session()
+        nodes = []
+        with session.begin():
+            query = model_query(models.Node, session=session).filter_by(
+                    reservation=hostname)
+            nodes = [node['uuid'] for node in query]
+            query.update({'reservation': None})
+
+        if nodes:
+            nodes = ', '.join(nodes)
+            LOG.warn(_LW('Cleared reservations held by %(hostname)s: '
+                         '%(nodes)s'), {'hostname': hostname, 'nodes': nodes})
 
     def get_active_driver_dict(self, interval=None):
         if interval is None:
