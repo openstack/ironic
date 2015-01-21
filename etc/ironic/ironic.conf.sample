@@ -457,6 +457,10 @@
 # to be searched. (multi valued)
 #policy_dirs=policy.d
 
+[keystone]
+
+#The region used for getting endpoints of OpenStack services.
+#region_name =
 
 [agent]
 

@@ -23,6 +23,14 @@ from ironic.common.i18n import _
 
 CONF = cfg.CONF
 
+keystone_opts = [
+    cfg.StrOpt('region_name',
+               help='The region used for getting endpoints of OpenStack'
+                    'services.'),
+]
+
+CONF.register_opts(keystone_opts, group='keystone')
+
 
 def _is_apiv3(auth_url, auth_version):
     """Checks if V3 version of API is being used or not.
@@ -59,6 +67,7 @@ def _get_ksclient(token=None):
             return client.Client(username=CONF.keystone_authtoken.admin_user,
                          password=CONF.keystone_authtoken.admin_password,
                          tenant_name=CONF.keystone_authtoken.admin_tenant_name,
+                         region_name=CONF.keystone.region_name,
                          auth_url=auth_url)
     except ksexception.Unauthorized:
         raise exception.KeystoneUnauthorized()
@@ -103,7 +112,9 @@ def get_service_url(service_type='baremetal', endpoint_type='internal'):
 
     try:
         endpoint = ksclient.service_catalog.url_for(service_type=service_type,
-                                                endpoint_type=endpoint_type)
+                                        endpoint_type=endpoint_type,
+                                        region_name=CONF.keystone.region_name)
+
     except ksexception.EndpointNotFound:
         raise exception.CatalogNotFound(service_type=service_type,
                                         endpoint_type=endpoint_type)
