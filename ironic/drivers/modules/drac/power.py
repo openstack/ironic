@@ -51,7 +51,7 @@ def _get_power_state(node):
     """
 
     client = drac_client.get_wsman_client(node)
-    filter_query = ('select EnabledState,ElementName from CIM_ComputerSystem '
+    filter_query = ('select EnabledState,ElementName from DCIM_ComputerSystem '
                     'where Name="srv:system"')
     try:
         doc = client.wsman_enumerate(resource_uris.DCIM_ComputerSystem,
