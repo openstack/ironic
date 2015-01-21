@@ -249,8 +249,7 @@ class ConductorManager(periodic_task.PeriodicTasks):
 
     @messaging.expected_exceptions(exception.InvalidParameterValue,
                                    exception.MissingParameterValue,
-                                   exception.NodeLocked,
-                                   exception.NodeInWrongPowerState)
+                                   exception.NodeLocked)
     def update_node(self, context, node_obj):
         """Update a node with the supplied data.
 
@@ -272,24 +271,10 @@ class ConductorManager(periodic_task.PeriodicTasks):
 
         driver_name = node_obj.driver if 'driver' in delta else None
         with task_manager.acquire(context, node_id, shared=False,
-                                  driver_name=driver_name) as task:
-
-            # TODO(deva): Determine what value will be passed by API when
-            #             instance_uuid needs to be unset, and handle it.
-            if 'instance_uuid' in delta:
-                task.driver.power.validate(task)
-                node_obj.power_state = \
-                        task.driver.power.get_power_state(task)
-
-                if node_obj.power_state != states.POWER_OFF:
-                    raise exception.NodeInWrongPowerState(
-                            node=node_id,
-                            pstate=node_obj.power_state)
-
-            # update any remaining parameters, then save
+                                  driver_name=driver_name):
             node_obj.save()
 
-            return node_obj
+        return node_obj
 
     def _power_state_error_handler(self, e, node, power_state):
         """Set the node's power states if error occurs.
