@@ -453,41 +453,25 @@ class UpdateNodeTestCase(_ServiceSetUpMixin, tests_db_base.DbTestCase):
         res = objects.Node.get_by_uuid(self.context, node['uuid'])
         self.assertEqual({'test': 'one'}, res['extra'])
 
-    def test_associate_node_invalid_state(self):
-        node = obj_utils.create_test_node(self.context, driver='fake',
-                                          extra={'test': 'one'},
-                                 instance_uuid=None,
-                                 power_state=states.POWER_ON)
-
-        # check that it fails because state is POWER_ON
-        node.instance_uuid = 'fake-uuid'
-        exc = self.assertRaises(messaging.rpc.ExpectedException,
-                                self.service.update_node,
-                                self.context,
-                                node)
-        # Compare true exception hidden by @messaging.expected_exceptions
-        self.assertEqual(exception.NodeInWrongPowerState, exc.exc_info[0])
-
-        # verify change did not happen
-        node.refresh()
-        self.assertIsNone(node.instance_uuid)
-
-    def test_associate_node_valid_state(self):
+    @mock.patch('ironic.drivers.modules.fake.FakePower.get_power_state')
+    def _test_associate_node(self, power_state, mock_get_power_state):
+        mock_get_power_state.return_value = power_state
         node = obj_utils.create_test_node(self.context, driver='fake',
                                           instance_uuid=None,
                                           power_state=states.NOSTATE)
+        node.instance_uuid = 'fake-uuid'
+        self.service.update_node(self.context, node)
 
-        with mock.patch('ironic.drivers.modules.fake.FakePower.'
-                        'get_power_state') as mock_get_power_state:
+        # Check if the change was applied
+        node.instance_uuid = 'meow'
+        node.refresh()
+        self.assertEqual('fake-uuid', node.instance_uuid)
 
-            mock_get_power_state.return_value = states.POWER_OFF
-            node.instance_uuid = 'fake-uuid'
-            self.service.update_node(self.context, node)
+    def test_associate_node_powered_off(self):
+        self._test_associate_node(states.POWER_OFF)
 
-            # Check if the change was applied
-            node.instance_uuid = 'meow'
-            node.refresh()
-            self.assertEqual('fake-uuid', node.instance_uuid)
+    def test_associate_node_powered_on(self):
+        self._test_associate_node(states.POWER_ON)
 
     def test_update_node_invalid_driver(self):
         existing_driver = 'fake'
