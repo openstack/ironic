@@ -649,8 +649,10 @@ class ConductorManager(periodic_task.PeriodicTasks):
 
                 # Note(gilliard) Clear these to force the driver to
                 # check whether they have been changed in glance
-                node.instance_info.pop('kernel', None)
-                node.instance_info.pop('ramdisk', None)
+                instance_info = node.instance_info
+                instance_info.pop('kernel', None)
+                instance_info.pop('ramdisk', None)
+                node.instance_info = instance_info
                 node.save()
             else:
                 event = 'deploy'

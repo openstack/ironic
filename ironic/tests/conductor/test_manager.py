@@ -1016,7 +1016,9 @@ class DoNodeDeployTearDownTestCase(_ServiceSetUpMixin,
         mock_deploy.return_value = states.DEPLOYING
         node = obj_utils.create_test_node(self.context, driver='fake',
                                          provision_state=states.ACTIVE,
-                                         target_provision_state=states.NOSTATE)
+                                         target_provision_state=states.NOSTATE,
+                                         instance_info={'kernel': 'aaaa',
+                                         'ramdisk': 'bbbb'})
 
         self.service.do_node_deploy(self.context, node.uuid, rebuild=True)
         self.service._worker_pool.waitall()
@@ -1028,6 +1030,9 @@ class DoNodeDeployTearDownTestCase(_ServiceSetUpMixin,
         # Verify reservation has been cleared.
         self.assertIsNone(node.reservation)
         mock_deploy.assert_called_once_with(mock.ANY)
+        # Verify instance_info values has been cleared.
+        self.assertNotIn('kernel', node.instance_info)
+        self.assertNotIn('ramdisk', node.instance_info)
 
     @mock.patch('ironic.drivers.modules.fake.FakeDeploy.deploy')
     def test_do_node_deploy_rebuild_active_state_waiting(self, mock_deploy):
