@@ -1361,16 +1361,30 @@ def do_node_deploy(task, conductor_id):
     """Prepare the environment and deploy a node."""
     node = task.node
     try:
-        task.driver.deploy.prepare(task)
-        new_state = task.driver.deploy.deploy(task)
-    except Exception as e:
-        # NOTE(deva): there is no need to clear conductor_affinity
-        with excutils.save_and_reraise_exception():
+        def handle_failure(e, task, logmsg, errmsg):
+            # NOTE(deva): there is no need to clear conductor_affinity
             task.process_event('fail')
-            LOG.warning(_LW('Error in deploy of node %(node)s: %(err)s'),
-                        {'node': task.node.uuid, 'err': e})
-            node.last_error = _("Failed to deploy. Error: %s") % e
-    else:
+            args = {'node': task.node.uuid, 'err': e}
+            LOG.warning(logmsg, args)
+            node.last_error = errmsg % e
+
+        try:
+            task.driver.deploy.prepare(task)
+        except Exception as e:
+            with excutils.save_and_reraise_exception():
+                handle_failure(e, task,
+                    _LW('Error while preparing to deploy to node %(node)s: '
+                        '%(err)s'),
+                    _("Failed to prepare to deploy. Error: %s"))
+
+        try:
+            new_state = task.driver.deploy.deploy(task)
+        except Exception as e:
+            with excutils.save_and_reraise_exception():
+                handle_failure(e, task,
+                    _LW('Error in deploy of node %(node)s: %(err)s'),
+                    _("Failed to deploy. Error: %s"))
+
         # Update conductor_affinity to reference this conductor's ID
         # since there may be local persistent state
         node.conductor_affinity = conductor_id
