@@ -20,8 +20,8 @@ import logging
 import random
 
 from oslo.config import cfg
-from oslo.serialization import jsonutils
 from oslo.utils import timeutils
+from oslo_serialization import jsonutils
 import six
 import six.moves.urllib.parse as urlparse
 
