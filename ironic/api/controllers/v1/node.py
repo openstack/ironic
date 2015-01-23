@@ -332,15 +332,16 @@ class NodeStatesController(rest.RestController):
                    {'node': rpc_node['uuid'], 'state': target})
             raise wsme.exc.ClientSideError(msg, status_code=400)
 
-        if target in (ir_states.ACTIVE, ir_states.REBUILD):
-            processing = rpc_node.target_provision_state is not None
-        elif target == ir_states.DELETED:
-            processing = (rpc_node.target_provision_state is not None and
-                        rpc_node.provision_state != ir_states.DEPLOYWAIT)
-        else:
+        if target not in (ir_states.ACTIVE, ir_states.DELETED,
+                          ir_states.REBUILD):
             raise exception.InvalidStateRequested(state=target, node=node_uuid)
 
-        if processing:
+        valid_states_if_processing = [ir_states.DEPLOYFAIL]
+        if target == ir_states.DELETED:
+            valid_states_if_processing.append(ir_states.DEPLOYWAIT)
+
+        if (rpc_node.target_provision_state is not None and
+                rpc_node.provision_state not in valid_states_if_processing):
             msg = (_('Node %s is already being provisioned or decommissioned.')
                    % rpc_node.uuid)
             raise wsme.exc.ClientSideError(msg, status_code=409)  # Conflict
@@ -866,9 +867,10 @@ class NodesController(rest.RestController):
 
         rpc_node = objects.Node.get_by_uuid(pecan.request.context, node_uuid)
 
-        # Check if node is transitioning state
-        if (rpc_node['target_power_state'] or
-                rpc_node['target_provision_state']):
+        # Check if node is transitioning state, although nodes in DEPLOYFAIL
+        # can be updated.
+        if ((rpc_node.target_power_state or rpc_node.target_provision_state)
+                and rpc_node.provision_state != ir_states.DEPLOYFAIL):
             msg = _("Node %s can not be updated while a state transition "
                     "is in progress.")
             raise wsme.exc.ClientSideError(msg % node_uuid, status_code=409)
