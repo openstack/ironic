@@ -4,7 +4,6 @@
 pbr>=0.6,!=0.7,<1.0
 SQLAlchemy>=0.9.7,<=0.9.99
 alembic>=0.7.1
-argparse
 eventlet>=0.15.2
 lxml>=2.3
 WebOb>=1.2.3
