@@ -328,6 +328,38 @@ class MigrationCheckersMixin(object):
         self.assertIsInstance(nodes.c.maintenance_reason.type,
                               sqlalchemy.types.String)
 
+    def _pre_upgrade_5674c57409b9(self, engine):
+        # add some nodes in various states so we can assert that "None"
+        # was replaced by "available", and nothing else changed.
+        nodes = db_utils.get_table(engine, 'nodes')
+        data = [{'uuid': utils.generate_uuid(),
+                 'provision_state': 'fake state'},
+                {'uuid': utils.generate_uuid(),
+                 'provision_state': 'active'},
+                {'uuid': utils.generate_uuid(),
+                 'provision_state': 'deleting'},
+                {'uuid': utils.generate_uuid(),
+                 'provision_state': None}]
+        nodes.insert().values(data).execute()
+        return data
+
+    def _check_5674c57409b9(self, engine, data):
+        nodes = db_utils.get_table(engine, 'nodes')
+        result = engine.execute(nodes.select())
+
+        def _get_state(uuid):
+            for row in data:
+                if row['uuid'] == uuid:
+                    return row['provision_state']
+
+        for row in result:
+            old = _get_state(row['uuid'])
+            new = row['provision_state']
+            if old is None:
+                self.assertEqual('available', new)
+            else:
+                self.assertEqual(old, new)
+
     def test_upgrade_and_version(self):
         with patch_with_engine(self.engine):
             self.migration_api.upgrade('head')

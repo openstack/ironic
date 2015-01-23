@@ -38,7 +38,7 @@ from ironic.common.i18n import _
 
 
 MIN_VER = 0
-MAX_VER = 0
+MAX_VER = 1
 
 
 class MediaType(base.APIBase):

@@ -1480,12 +1480,6 @@ def do_node_tear_down(task):
         LOG.info(_LI('Successfully unprovisioned node %(node)s with '
                      'instance %(instance)s.'),
                  {'node': node.uuid, 'instance': node.instance_uuid})
-        # NOTE(deva): Currently, NOSTATE is represented as None
-        #             However, FSM class treats a target_state of None as
-        #             the lack of a target state -- not a target of NOSTATE
-        #             Thus, until we migrate to an explicit AVAILABLE state
-        #             we need to clear the target_state here manually.
-        node.target_provision_state = None
     finally:
         # NOTE(deva): there is no need to unset conductor_affinity
         # because it is a reference to the most recent conductor which

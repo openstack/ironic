@@ -135,8 +135,8 @@ class Connection(object):
                         {
                          'uuid': utils.generate_uuid(),
                          'instance_uuid': None,
-                         'power_state': states.NOSTATE,
-                         'provision_state': states.NOSTATE,
+                         'power_state': states.POWER_OFF,
+                         'provision_state': states.AVAILABLE,
                          'driver': 'pxe_ipmitool',
                          'driver_info': { ... },
                          'properties': { ... },

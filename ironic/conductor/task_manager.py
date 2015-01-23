@@ -201,6 +201,13 @@ class TaskManager(object):
             self.ports = objects.Port.list_by_node_id(context, self.node.id)
             self.driver = driver_factory.get_driver(driver_name or
                                                     self.node.driver)
+
+            # NOTE(deva): this handles the Juno-era NOSTATE state
+            #             and should be deleted after Kilo is released
+            if self.node.provision_state is states.NOSTATE:
+                self.node.provision_state = states.AVAILABLE
+                self.node.save()
+
             self.fsm.initialize(self.node.provision_state)
 
         except Exception:

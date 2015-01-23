@@ -40,7 +40,14 @@ LOG = logging.getLogger(__name__)
 NOSTATE = None
 """ No state information.
 
-Default for the power and provision state of newly created nodes.
+This state is used with power_state to represent a lack of knowledge of
+power state, and in target_*_state fields when there is no target.
+"""
+
+AVAILABLE = 'available'
+""" Node is available for use and scheduling.
+
+This state is replacing the NOSTATE state used prior to Kilo.
 """
 
 ACTIVE = 'active'
@@ -78,8 +85,10 @@ DELETING = 'deleting'
 DELETED = 'deleted'
 """ Node tear down was successful.
 
-This is mainly a target provision state used during node tear down. A
-successful tear down leaves the node with a `provision_state` of NOSTATE.
+In Juno, target_provision_state was set to this value during node tear down.
+
+In Kilo, this will be a transitory value of provision_state, and never
+represented in target_provision_state.
 """
 
 ERROR = 'error'
@@ -131,7 +140,7 @@ watchers['on_enter'] = on_enter
 machine = fsm.FSM()
 
 # Add stable states
-machine.add_state(NOSTATE, **watchers)
+machine.add_state(AVAILABLE, **watchers)
 machine.add_state(ACTIVE, **watchers)
 machine.add_state(ERROR, **watchers)
 
@@ -145,11 +154,10 @@ machine.add_state(DEPLOYFAIL, target=ACTIVE, **watchers)
 # Add delete* states
 # NOTE(deva): Juno shows a target_provision_state of DELETED
 #             this is changed in Kilo to AVAILABLE
-# TODO(deva): change NOSTATE to AVAILABLE here
-machine.add_state(DELETING, target=NOSTATE, **watchers)
+machine.add_state(DELETING, target=AVAILABLE, **watchers)
 
-# From NOSTATE, a deployment may be started
-machine.add_transition(NOSTATE, DEPLOYING, 'deploy')
+# From AVAILABLE, a deployment may be started
+machine.add_transition(AVAILABLE, DEPLOYING, 'deploy')
 
 # A deployment may fail
 machine.add_transition(DEPLOYING, DEPLOYFAIL, 'fail')
@@ -185,7 +193,7 @@ machine.add_transition(DEPLOYWAIT, DELETING, 'delete')
 machine.add_transition(DEPLOYFAIL, DELETING, 'delete')
 
 # A delete may complete
-machine.add_transition(DELETING, NOSTATE, 'done')
+machine.add_transition(DELETING, AVAILABLE, 'done')
 
 # This state can also transition to error
 machine.add_transition(DELETING, ERROR, 'error')

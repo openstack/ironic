@@ -53,6 +53,13 @@ LOG = log.getLogger(__name__)
 _VENDOR_METHODS = {}
 
 
+def assert_juno_provision_state_name(obj):
+    # if requested version is < 1.1, convert AVAILABLE to the old NOSTATE
+    if (pecan.request.version.minor < 1 and
+            obj.provision_state == ir_states.AVAILABLE):
+        obj.provision_state = ir_states.NOSTATE
+
+
 class NodePatchType(types.JsonPatchType):
 
     @staticmethod
@@ -240,6 +247,7 @@ class NodeStates(base.APIBase):
         states = NodeStates()
         for attr in attr_list:
             setattr(states, attr, getattr(rpc_node, attr))
+        assert_juno_provision_state_name(states)
         return states
 
     @classmethod
@@ -520,6 +528,7 @@ class Node(base.APIBase):
     @classmethod
     def convert_with_links(cls, rpc_node, expand=True):
         node = Node(**rpc_node.as_dict())
+        assert_juno_provision_state_name(node)
         return cls._convert_with_links(node, pecan.request.host_url,
                                        expand)
 
