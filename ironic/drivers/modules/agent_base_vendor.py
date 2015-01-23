@@ -223,7 +223,12 @@ class BaseAgentVendor(base.VendorInterface):
         # TODO(jimrollenhagen) improve error messages here
         msg = _('Failed checking if deploy is done.')
         try:
-            if node.provision_state == states.DEPLOYWAIT:
+            if node.maintenance:
+                # this shouldn't happen often, but skip the rest if it does.
+                LOG.debug('Heartbeat from node %(node)s in maintenance mode; '
+                          'not taking any action.', {'node': node.uuid})
+                return
+            elif node.provision_state == states.DEPLOYWAIT:
                 msg = _('Node failed to get image for deploy.')
                 self.continue_deploy(task, **kwargs)
             elif (node.provision_state == states.DEPLOYING and
