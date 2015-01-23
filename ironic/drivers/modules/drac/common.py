@@ -19,7 +19,6 @@ from oslo.utils import importutils
 
 from ironic.common import exception
 from ironic.common.i18n import _
-from ironic.drivers.modules.drac import client as drac_client
 
 pywsman = importutils.try_import('pywsman')
 
@@ -37,11 +36,6 @@ OPTIONAL_PROPERTIES = {
 }
 COMMON_PROPERTIES = REQUIRED_PROPERTIES.copy()
 COMMON_PROPERTIES.update(OPTIONAL_PROPERTIES)
-
-# ReturnValue constants
-RET_SUCCESS = '0'
-RET_ERROR = '2'
-RET_CREATED = '4096'
 
 
 def parse_driver_info(node):
@@ -93,22 +87,6 @@ def parse_driver_info(node):
         raise exception.InvalidParameterValue(msg)
 
     return parsed_driver_info
-
-
-def get_wsman_client(node):
-    """Return a DRAC client object.
-
-    Given an ironic node object, this method gives back a
-    Client object which is a wrapper for pywsman.Client.
-
-    :param node: an ironic node object.
-    :returns: a Client object.
-    :raises: InvalidParameterValue if some mandatory information
-             is missing on the node or on invalid inputs.
-    """
-    driver_info = parse_driver_info(node)
-    client = drac_client.Client(**driver_info)
-    return client
 
 
 def find_xml(doc, item, namespace, find_all=False):

@@ -23,6 +23,7 @@ from ironic.common.i18n import _LE
 from ironic.common import states
 from ironic.conductor import task_manager
 from ironic.drivers import base
+from ironic.drivers.modules.drac import client as drac_client
 from ironic.drivers.modules.drac import common as drac_common
 from ironic.drivers.modules.drac import resource_uris
 from ironic.openstack.common import log as logging
@@ -49,7 +50,7 @@ def _get_power_state(node):
     :raises: InvalidParameterValue if required DRAC credentials are missing.
     """
 
-    client = drac_common.get_wsman_client(node)
+    client = drac_client.get_wsman_client(node)
     filter_query = ('select EnabledState,ElementName from CIM_ComputerSystem '
                     'where Name="srv:system"')
     try:
@@ -75,15 +76,15 @@ def _set_power_state(node, target_state):
     :raises: InvalidParameterValue if an invalid power state was specified.
     """
 
-    client = drac_common.get_wsman_client(node)
+    client = drac_client.get_wsman_client(node)
     selectors = {'CreationClassName': 'DCIM_ComputerSystem',
                  'Name': 'srv:system'}
     properties = {'RequestedState': REVERSE_POWER_STATES[target_state]}
 
     try:
-        root = client.wsman_invoke(resource_uris.DCIM_ComputerSystem,
-                                   'RequestStateChange', selectors, properties)
-    except exception.DracClientError as exc:
+        client.wsman_invoke(resource_uris.DCIM_ComputerSystem,
+                            'RequestStateChange', selectors, properties)
+    except exception.DracRequestFailed as exc:
         with excutils.save_and_reraise_exception():
             LOG.error(_LE('DRAC driver failed to set power state for node '
                           '%(node_uuid)s to %(target_power_state)s. '
@@ -91,20 +92,6 @@ def _set_power_state(node, target_state):
                       {'node_uuid': node.uuid,
                        'target_power_state': target_state,
                        'error': exc})
-
-    return_value = drac_common.find_xml(root, 'ReturnValue',
-                                        resource_uris.DCIM_ComputerSystem).text
-    if return_value != drac_common.RET_SUCCESS:
-        message = drac_common.find_xml(root, 'Message',
-                                       resource_uris.DCIM_ComputerSystem).text
-        LOG.error(_LE('DRAC driver failed to set power state for node '
-                      '%(node_uuid)s to %(target_power_state)s. '
-                      'Reason: %(error)s.'),
-                  {'node_uuid': node.uuid,
-                   'target_power_state': target_state,
-                   'error': message})
-        raise exception.DracOperationError(operation='set_power_state',
-                                           error=message)
 
 
 class DracPower(base.PowerInterface):
@@ -142,7 +129,11 @@ class DracPower(base.PowerInterface):
         :param task: a TaskManager instance containing the node to act on.
         :param power_state: Any power state from :mod:`ironic.common.states`.
         :raises: DracClientError if the client received unexpected response.
-        :raises: DracOperationError if failed to set the power state.
+        :raises: DracOperationFailed if the client received response with an
+                 error message.
+        :raises: DracUnexpectedReturnValue if the client received a response
+                 with unexpected return value.
+
         """
         return _set_power_state(task.node, power_state)
 
@@ -152,6 +143,9 @@ class DracPower(base.PowerInterface):
 
         :param task: a TaskManager instance containing the node to act on.
         :raises: DracClientError if the client received unexpected response.
-        :raises: DracOperationError if failed to set the power state.
+        :raises: DracOperationFailed if the client received response with an
+                 error message.
+        :raises: DracUnexpectedReturnValue if the client received a response
+                 with unexpected return value.
         """
         return _set_power_state(task.node, states.REBOOT)

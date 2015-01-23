@@ -439,23 +439,33 @@ class IloOperationError(IronicException):
     message = _("%(operation)s failed, error: %(error)s")
 
 
-class DracClientError(IronicException):
+class DracRequestFailed(IronicException):
+    pass
+
+
+class DracClientError(DracRequestFailed):
     message = _('DRAC client failed. '
                 'Last error (cURL error code): %(last_error)s, '
                 'fault string: "%(fault_string)s" '
                 'response_code: %(response_code)s')
 
 
-class DracOperationError(IronicException):
-    message = _('DRAC %(operation)s failed. Reason: %(error)s')
+class DracOperationFailed(DracRequestFailed):
+    message = _('DRAC operation failed. Message: %(message)s')
 
 
-class DracConfigJobCreationError(DracOperationError):
-    message = _('DRAC failed to create a configuration job. '
-                'Reason: %(error)s')
+class DracUnexpectedReturnValue(DracRequestFailed):
+    message = _('DRAC operation yielded return value %(actual_return_value)s '
+                'that is neither error nor expected %(expected_return_value)s')
 
 
-class DracInvalidFilterDialect(DracOperationError):
+class DracPendingConfigJobExists(IronicException):
+    message = _('Another job with ID %(job_id)s is already created  '
+                'to configure %(target)s. Wait until existing job '
+                'is completed or is canceled')
+
+
+class DracInvalidFilterDialect(IronicException):
     message = _('Invalid filter dialect \'%(invalid_filter)s\'. '
                 'Supported options are %(supported)s')
 

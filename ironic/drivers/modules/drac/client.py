@@ -20,6 +20,7 @@ from xml.etree import ElementTree
 from oslo.utils import importutils
 
 from ironic.common import exception
+from ironic.drivers.modules.drac import common as drac_common
 
 pywsman = importutils.try_import('pywsman')
 
@@ -29,6 +30,27 @@ _SOAP_ENVELOPE_URI = 'http://www.w3.org/2003/05/soap-envelope'
 # http://en.community.dell.com/techcenter/extras/m/white_papers/20439105.aspx
 _FILTER_DIALECT_MAP = {'cql': 'http://schemas.dmtf.org/wbem/cql/1/dsp0202.pdf',
                        'wql': 'http://schemas.microsoft.com/wbem/wsman/1/WQL'}
+
+# ReturnValue constants
+RET_SUCCESS = '0'
+RET_ERROR = '2'
+RET_CREATED = '4096'
+
+
+def get_wsman_client(node):
+    """Return a DRAC client object.
+
+    Given an ironic node object, this method gives back a
+    Client object which is a wrapper for pywsman.Client.
+
+    :param node: an ironic node object.
+    :returns: a Client object.
+    :raises: InvalidParameterValue if some mandatory information
+             is missing on the node or on invalid inputs.
+    """
+    driver_info = drac_common.parse_driver_info(node)
+    client = Client(**driver_info)
+    return client
 
 
 class Client(object):
@@ -91,14 +113,17 @@ class Client(object):
         return final_xml
 
     def wsman_invoke(self, resource_uri, method, selectors=None,
-                                                 properties=None):
+                     properties=None, expected_return_value=RET_SUCCESS):
         """Invokes a remote WS-Man method.
 
         :param resource_uri: URI of the resource.
         :param method: name of the method to invoke.
         :param selectors: dictionary of selectors.
         :param properties: dictionary of properties.
+        :param expected_return_value: expected return value.
         :raises: DracClientError on an error from pywsman library.
+        :raises: DracOperationFailed on error reported back by DRAC.
+        :raises: DracUnexpectedReturnValue on return value mismatch.
         :returns: an ElementTree object of the response received.
         """
         if selectors is None:
@@ -136,7 +161,21 @@ class Client(object):
                 options.add_property(name, value)
 
         doc = self.client.invoke(options, resource_uri, method, xml_doc)
-        return self._get_root(doc)
+        root = self._get_root(doc)
+
+        return_value = drac_common.find_xml(root, 'ReturnValue',
+                                            resource_uri).text
+        if return_value != expected_return_value:
+            if return_value == RET_ERROR:
+                message = drac_common.find_xml(root, 'Message',
+                                               resource_uri).text
+                raise exception.DracOperationFailed(message=message)
+            else:
+                raise exception.DracUnexpectedReturnValue(
+                        expected_return_value=expected_return_value,
+                        actual_return_value=return_value)
+
+        return root
 
     def _get_root(self, doc):
         if doc is None or doc.root() is None:
