@@ -656,6 +656,8 @@ class TestGlanceSwiftTempURL(base.TestCase):
                     group='glance')
         self.config(swift_temp_url_duration=1200,
                     group='glance')
+        self.config(swift_store_multiple_containers_seed=0,
+                    group='glance')
         self.config()
         self.fake_image = {
             'id': '757274c4-2856-4bd2-bb20-9a4a231e187b'
@@ -666,6 +668,32 @@ class TestGlanceSwiftTempURL(base.TestCase):
 
         path = ('/v1/AUTH_a422b2-91f3-2f46-74b7-d7c9e8958f5d30'
                 '/glance'
+                '/757274c4-2856-4bd2-bb20-9a4a231e187b')
+        tempurl_mock.return_value = (path +
+            '?temp_url_sig=hmacsig'
+            '&temp_url_expires=1400001200')
+
+        self.service._validate_temp_url_config = mock.Mock()
+
+        temp_url = self.service.swift_temp_url(image_info=self.fake_image)
+
+        self.assertEqual(CONF.glance.swift_endpoint_url
+                         + tempurl_mock.return_value,
+                         temp_url)
+        tempurl_mock.assert_called_with(
+            path=path,
+            seconds=CONF.glance.swift_temp_url_duration,
+            key=CONF.glance.swift_temp_url_key,
+            method='GET')
+
+    @mock.patch('swiftclient.utils.generate_temp_url')
+    def test_swift_temp_url_multiple_containers(self, tempurl_mock):
+
+        self.config(swift_store_multiple_containers_seed=8,
+                    group='glance')
+
+        path = ('/v1/AUTH_a422b2-91f3-2f46-74b7-d7c9e8958f5d30'
+                '/glance_757274c4'
                 '/757274c4-2856-4bd2-bb20-9a4a231e187b')
         tempurl_mock.return_value = (path +
             '?temp_url_sig=hmacsig'
@@ -709,6 +737,20 @@ class TestGlanceSwiftTempURL(base.TestCase):
 
     def test__validate_temp_url_endpoint_negative_duration(self):
         self.config(swift_temp_url_duration=-1,
+                    group='glance')
+        self.assertRaises(exception.InvalidParameterValue,
+                          self.service._validate_temp_url_config)
+
+    def test__validate_temp_url_multiple_containers(self):
+        self.config(swift_store_multiple_containers_seed=-1,
+                    group='glance')
+        self.assertRaises(exception.InvalidParameterValue,
+                          self.service._validate_temp_url_config)
+        self.config(swift_store_multiple_containers_seed=None,
+                    group='glance')
+        self.assertRaises(exception.InvalidParameterValue,
+                          self.service._validate_temp_url_config)
+        self.config(swift_store_multiple_containers_seed=33,
                     group='glance')
         self.assertRaises(exception.InvalidParameterValue,
                           self.service._validate_temp_url_config)
