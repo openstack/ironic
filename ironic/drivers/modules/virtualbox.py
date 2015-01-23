@@ -14,8 +14,8 @@
 VirtualBox Driver Modules
 """
 
-from oslo.utils import importutils
 from oslo_config import cfg
+from oslo_utils import importutils
 
 from ironic.common import boot_devices
 from ironic.common import exception

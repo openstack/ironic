@@ -15,8 +15,8 @@
 DRAC Power Driver using the Base Server Profile
 """
 
-from oslo.utils import excutils
-from oslo.utils import importutils
+from oslo_utils import excutils
+from oslo_utils import importutils
 
 from ironic.common import exception
 from ironic.common.i18n import _LE

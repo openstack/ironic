@@ -18,8 +18,8 @@ Common functionalities shared between different iLO modules.
 
 import tempfile
 
-from oslo.utils import importutils
 from oslo_config import cfg
+from oslo_utils import importutils
 
 from ironic.common import exception
 from ironic.common.i18n import _

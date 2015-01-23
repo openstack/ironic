@@ -25,11 +25,11 @@ import stat
 import tempfile
 import time
 
-from oslo.utils import excutils
-from oslo.utils import units
 from oslo_concurrency import processutils
 from oslo_config import cfg
 from oslo_serialization import jsonutils
+from oslo_utils import excutils
+from oslo_utils import units
 import requests
 import six
 

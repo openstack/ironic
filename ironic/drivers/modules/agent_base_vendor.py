@@ -19,8 +19,8 @@
 
 import time
 
-from oslo.utils import excutils
 from oslo_config import cfg
+from oslo_utils import excutils
 
 from ironic.common import exception
 from ironic.common.i18n import _

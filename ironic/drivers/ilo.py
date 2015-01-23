@@ -15,7 +15,7 @@
 iLO Driver for managing HP Proliant Gen8 and above servers.
 """
 
-from oslo.utils import importutils
+from oslo_utils import importutils
 
 from ironic.common import exception
 from ironic.common.i18n import _

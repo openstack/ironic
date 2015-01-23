@@ -36,9 +36,9 @@ import stat
 import tempfile
 import time
 
-from oslo.utils import excutils
 from oslo_concurrency import processutils
 from oslo_config import cfg
+from oslo_utils import excutils
 
 from ironic.common import boot_devices
 from ironic.common import exception

@@ -19,11 +19,11 @@
 import collections
 import datetime
 
-from oslo.utils import timeutils
 from oslo_config import cfg
 from oslo_db import exception as db_exc
 from oslo_db.sqlalchemy import session as db_session
 from oslo_db.sqlalchemy import utils as db_utils
+from oslo_utils import timeutils
 from sqlalchemy.orm.exc import NoResultFound
 
 from ironic.common import exception

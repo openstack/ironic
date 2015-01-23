@@ -17,7 +17,7 @@ Wrapper for pywsman.Client
 
 from xml.etree import ElementTree
 
-from oslo.utils import importutils
+from oslo_utils import importutils
 
 from ironic.common import exception
 from ironic.drivers.modules.drac import common as drac_common

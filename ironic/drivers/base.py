@@ -24,7 +24,7 @@ import functools
 import inspect
 
 import eventlet
-from oslo.utils import excutils
+from oslo_utils import excutils
 import six
 
 from ironic.common import exception
