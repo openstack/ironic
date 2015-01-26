@@ -147,6 +147,8 @@ class Client(object):
         doc = retry_on_empty_response(self.client, 'enumerate',
                                       options, filter_, resource_uri)
         root = self._get_root(doc)
+        LOG.debug("WSMAN enumerate returned raw XML: %s",
+                  ElementTree.tostring(root))
 
         final_xml = root
         find_query = './/{%s}Body' % _SOAP_ENVELOPE_URI
@@ -155,6 +157,9 @@ class Client(object):
             doc = retry_on_empty_response(self.client, 'pull', options, None,
                                           resource_uri, str(doc.context()))
             root = self._get_root(doc)
+            LOG.debug("WSMAN pull returned raw XML: %s",
+                      ElementTree.tostring(root))
+
             for result in root.findall(find_query):
                 for child in list(result):
                     insertion_point.append(child)
@@ -162,14 +167,14 @@ class Client(object):
         return final_xml
 
     def wsman_invoke(self, resource_uri, method, selectors=None,
-                     properties=None, expected_return_value=RET_SUCCESS):
+                     properties=None, expected_return=None):
         """Invokes a remote WS-Man method.
 
         :param resource_uri: URI of the resource.
         :param method: name of the method to invoke.
         :param selectors: dictionary of selectors.
         :param properties: dictionary of properties.
-        :param expected_return_value: expected return value.
+        :param expected_return: expected return value.
         :raises: DracClientError on an error from pywsman library.
         :raises: DracOperationFailed on error reported back by DRAC.
         :raises: DracUnexpectedReturnValue on return value mismatch.
@@ -199,9 +204,16 @@ class Client(object):
             for name, value in properties.items():
                 if isinstance(value, list):
                     for item in value:
-                        xml_root.add(resource_uri, name, item)
+                        xml_root.add(resource_uri, str(name), str(item))
                 else:
                     xml_root.add(resource_uri, name, value)
+            LOG.debug(('WSMAN invoking: %(resource_uri)s:%(method)s'
+                       '\nselectors: %(selectors)r\nxml: %(xml)s'),
+                      {
+                          'resource_uri': resource_uri,
+                          'method': method,
+                          'selectors': selectors,
+                          'xml': xml_root.string()})
 
         else:
             xml_doc = None
@@ -209,22 +221,39 @@ class Client(object):
             for name, value in properties.items():
                 options.add_property(name, value)
 
+            LOG.debug(('WSMAN invoking: %(resource_uri)s:%(method)s'
+                       '\nselectors: %(selectors)r\properties: %(props)r') % {
+                           'resource_uri': resource_uri,
+                           'method': method,
+                           'selectors': selectors,
+                           'props': properties})
+
         doc = retry_on_empty_response(self.client, 'invoke', options,
                                       resource_uri, method, xml_doc)
-
         root = self._get_root(doc)
+        LOG.debug("WSMAN invoke returned raw XML: %s",
+                  ElementTree.tostring(root))
 
         return_value = drac_common.find_xml(root, 'ReturnValue',
                                             resource_uri).text
-        if return_value != expected_return_value:
-            if return_value == RET_ERROR:
-                message = drac_common.find_xml(root, 'Message',
-                                               resource_uri).text
-                raise exception.DracOperationFailed(message=message)
+        if return_value == RET_ERROR:
+            messages = drac_common.find_xml(root, 'Message',
+                                            resource_uri, True)
+            message_args = drac_common.find_xml(root, 'MessageArguments',
+                                                resource_uri, True)
+
+            if message_args:
+                messages = [m.text % p.text for (m, p) in
+                            zip(messages, message_args)]
             else:
-                raise exception.DracUnexpectedReturnValue(
-                    expected_return_value=expected_return_value,
-                    actual_return_value=return_value)
+                messages = [m.text for m in messages]
+
+            raise exception.DracOperationFailed(message='%r' % messages)
+
+        if expected_return and return_value != expected_return:
+            raise exception.DracUnexpectedReturnValue(
+                expected_return_value=expected_return,
+                actual_return_value=return_value)
 
         return root
 

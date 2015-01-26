@@ -94,7 +94,7 @@ class DracManagementInternalMethodsTestCase(db_base.DbTestCase):
         mock_pywsman = mock_client_pywsman.Client.return_value
         mock_pywsman.enumerate.return_value = mock_xml
 
-        result = drac_mgmt._check_for_config_job(self.node)
+        result = drac_mgmt.check_for_config_job(self.node)
 
         self.assertIsNone(result)
         mock_pywsman.enumerate.assert_called_once_with(
@@ -112,7 +112,7 @@ class DracManagementInternalMethodsTestCase(db_base.DbTestCase):
         mock_pywsman.enumerate.return_value = mock_xml
 
         self.assertRaises(exception.DracPendingConfigJobExists,
-                          drac_mgmt._check_for_config_job, self.node)
+                          drac_mgmt.check_for_config_job, self.node)
         mock_pywsman.enumerate.assert_called_once_with(
             mock.ANY, mock.ANY, resource_uris.DCIM_LifecycleJob)
 
@@ -130,13 +130,13 @@ class DracManagementInternalMethodsTestCase(db_base.DbTestCase):
             mock_pywsman.enumerate.return_value = mock_xml
 
             try:
-                drac_mgmt._check_for_config_job(self.node)
+                drac_mgmt.check_for_config_job(self.node)
             except (exception.DracClientError,
                     exception.DracPendingConfigJobExists):
                 self.fail("Failed to detect completed job due to "
                           "\"{}\" job status".format(job_status))
 
-    def test__create_config_job(self, mock_client_pywsman):
+    def test_create_config_job(self, mock_client_pywsman):
         result_xml = test_utils.build_soap_xml(
             [{'ReturnValue': drac_client.RET_CREATED}],
             resource_uris.DCIM_BIOSService)
@@ -145,14 +145,14 @@ class DracManagementInternalMethodsTestCase(db_base.DbTestCase):
         mock_pywsman = mock_client_pywsman.Client.return_value
         mock_pywsman.invoke.return_value = mock_xml
 
-        result = drac_mgmt._create_config_job(self.node)
+        result = drac_mgmt.create_config_job(self.node)
 
         self.assertIsNone(result)
         mock_pywsman.invoke.assert_called_once_with(
             mock.ANY, resource_uris.DCIM_BIOSService,
             'CreateTargetedConfigJob', None)
 
-    def test__create_config_job_error(self, mock_client_pywsman):
+    def test_create_config_job_error(self, mock_client_pywsman):
         result_xml = test_utils.build_soap_xml(
             [{'ReturnValue': drac_client.RET_ERROR,
               'Message': 'E_FAKE'}],
@@ -163,7 +163,7 @@ class DracManagementInternalMethodsTestCase(db_base.DbTestCase):
         mock_pywsman.invoke.return_value = mock_xml
 
         self.assertRaises(exception.DracOperationFailed,
-                          drac_mgmt._create_config_job, self.node)
+                          drac_mgmt.create_config_job, self.node)
         mock_pywsman.invoke.assert_called_once_with(
             mock.ANY, resource_uris.DCIM_BIOSService,
             'CreateTargetedConfigJob', None)
@@ -280,9 +280,9 @@ class DracManagementTestCase(db_base.DbTestCase):
                        autospec=True)
     @mock.patch.object(drac_mgmt, '_get_lifecycle_controller_version',
                        spec_set=True, autospec=True)
-    @mock.patch.object(drac_mgmt, '_check_for_config_job', spec_set=True,
+    @mock.patch.object(drac_mgmt, 'check_for_config_job', spec_set=True,
                        autospec=True)
-    @mock.patch.object(drac_mgmt, '_create_config_job', spec_set=True,
+    @mock.patch.object(drac_mgmt, 'create_config_job', spec_set=True,
                        autospec=True)
     def test_set_boot_device(self, mock_ccj, mock_cfcj, mock_glcv, mock_gbd,
                              mock_client_pywsman):
@@ -323,9 +323,9 @@ class DracManagementTestCase(db_base.DbTestCase):
                        autospec=True)
     @mock.patch.object(drac_mgmt, '_get_lifecycle_controller_version',
                        spec_set=True, autospec=True)
-    @mock.patch.object(drac_mgmt, '_check_for_config_job', spec_set=True,
+    @mock.patch.object(drac_mgmt, 'check_for_config_job', spec_set=True,
                        autospec=True)
-    @mock.patch.object(drac_mgmt, '_create_config_job', spec_set=True,
+    @mock.patch.object(drac_mgmt, 'create_config_job', spec_set=True,
                        autospec=True)
     def test_set_boot_device_fail(self, mock_ccj, mock_cfcj, mock_glcv,
                                   mock_gbd, mock_client_pywsman):
@@ -368,7 +368,7 @@ class DracManagementTestCase(db_base.DbTestCase):
                        spec_set=True, autospec=True)
     @mock.patch.object(drac_client.Client, 'wsman_enumerate', spec_set=True,
                        autospec=True)
-    @mock.patch.object(drac_mgmt, '_check_for_config_job', spec_set=True,
+    @mock.patch.object(drac_mgmt, 'check_for_config_job', spec_set=True,
                        autospec=True)
     def test_set_boot_device_client_error(self, mock_cfcj, mock_we, mock_glcv,
                                           mock_gbd,
@@ -394,7 +394,7 @@ class DracManagementTestCase(db_base.DbTestCase):
                        autospec=True)
     @mock.patch.object(drac_mgmt, '_get_lifecycle_controller_version',
                        spec_set=True, autospec=True)
-    @mock.patch.object(drac_mgmt, '_check_for_config_job', spec_set=True,
+    @mock.patch.object(drac_mgmt, 'check_for_config_job', spec_set=True,
                        autospec=True)
     def test_set_boot_device_noop(self, mock_cfcj, mock_glcv, mock_gbd,
                                   mock_client_pywsman):
@@ -419,9 +419,9 @@ class DracManagementTestCase(db_base.DbTestCase):
                        autospec=True)
     @mock.patch.object(drac_mgmt, '_get_lifecycle_controller_version',
                        spec_set=True, autospec=True)
-    @mock.patch.object(drac_mgmt, '_check_for_config_job', spec_set=True,
+    @mock.patch.object(drac_mgmt, 'check_for_config_job', spec_set=True,
                        autospec=True)
-    @mock.patch.object(drac_mgmt, '_create_config_job', spec_set=True,
+    @mock.patch.object(drac_mgmt, 'create_config_job', spec_set=True,
                        autospec=True)
     def test_set_boot_device_11g(self, mock_ccj, mock_cfcj, mock_glcv,
                                  mock_gbd, mock_client_pywsman):

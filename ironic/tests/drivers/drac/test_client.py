@@ -247,7 +247,8 @@ class DracClientTestCase(base.TestCase):
         method_name = 'method'
         client = drac_client.Client(**INFO_DICT)
         self.assertRaises(exception.DracUnexpectedReturnValue,
-                          client.wsman_invoke, self.resource_uri, method_name)
+                          client.wsman_invoke, self.resource_uri, method_name,
+                          {}, {}, drac_client.RET_SUCCESS)
 
         mock_options = mock_client_pywsman.ClientOptions.return_value
         mock_pywsman_client.invoke.assert_called_once_with(
