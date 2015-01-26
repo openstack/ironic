@@ -98,6 +98,18 @@ class DbConductorTestCase(base.DbTestCase):
         self.dbapi.touch_conductor(c.hostname)
         self.dbapi.get_conductor(c.hostname)
 
+    def test_clear_node_reservations_for_conductor(self):
+        node1 = self.dbapi.create_node({'reservation': 'hostname1'})
+        node2 = self.dbapi.create_node({'reservation': 'hostname2'})
+        node3 = self.dbapi.create_node({'reservation': None})
+        self.dbapi.clear_node_reservations_for_conductor('hostname1')
+        node1 = self.dbapi.get_node_by_id(node1.id)
+        node2 = self.dbapi.get_node_by_id(node2.id)
+        node3 = self.dbapi.get_node_by_id(node3.id)
+        self.assertIsNone(node1.reservation)
+        self.assertEqual('hostname2', node2.reservation)
+        self.assertIsNone(node3.reservation)
+
     @mock.patch.object(timeutils, 'utcnow')
     def test_get_active_driver_dict_one_host_no_driver(self, mock_utcnow):
         h = 'fake-host'
