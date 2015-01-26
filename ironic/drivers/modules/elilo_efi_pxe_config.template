@@ -7,6 +7,10 @@ image={{pxe_options.deployment_aki_path}}
 
 
 image={{pxe_options.aki_path}}
-        label=boot
+        label=boot_partition
         initrd={{pxe_options.ari_path}}
         append="root={{ ROOT }} ro text {{ pxe_options.pxe_append_params|default("", true) }} ip=%I:{{pxe_options.tftp_server}}:%G:%M:%H::on"
+
+image=chain.c32
+        label=boot_whole_disk
+        append mbr:{{ DISK_IDENTIFIER }}

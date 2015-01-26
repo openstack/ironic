@@ -68,7 +68,9 @@ def _build_pxe_config(pxe_options, template):
     env = jinja2.Environment(loader=jinja2.FileSystemLoader(tmpl_path))
     template = env.get_template(tmpl_file)
     return template.render({'pxe_options': pxe_options,
-                            'ROOT': '{{ ROOT }}'})
+                            'ROOT': '{{ ROOT }}',
+                            'DISK_IDENTIFIER': '{{ DISK_IDENTIFIER }}',
+                            })
 
 
 def _link_mac_pxe_configs(task):

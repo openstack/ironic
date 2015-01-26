@@ -15,6 +15,7 @@
 
 
 import base64
+import contextlib
 import gzip
 import math
 import os
@@ -185,6 +186,28 @@ def delete_iscsi(portal_address, portal_port, target_iqn):
                   delay_on_retry=True)
 
 
+def get_disk_identifier(dev):
+    """Get the disk identifier from the disk being exposed by the ramdisk.
+
+    This disk identifier is appended to the pxe config which will then be
+    used by chain.c32 to detect the correct disk to chainload. This is helpful
+    in deployments to nodes with multiple disks.
+
+    http://www.syslinux.org/wiki/index.php/Comboot/chain.c32#mbr:
+
+    :param dev: Path for the already populated disk device.
+    :returns The Disk Identifier.
+    """
+    disk_identifier = utils.execute('hexdump', '-s', '440', '-n', '4',
+                                     '-e', '''\"0x%08x\"''',
+                                     dev,
+                                     run_as_root=True,
+                                     check_exit_code=[0],
+                                     attempts=5,
+                                     delay_on_retry=True)
+    return disk_identifier[0]
+
+
 def make_partitions(dev, root_mb, swap_mb, ephemeral_mb,
                     configdrive_mb, commit=True, boot_option="netboot"):
     """Partition the disk device.
@@ -290,26 +313,61 @@ def block_uuid(dev):
     return out.strip()
 
 
-def switch_pxe_config(path, root_uuid, boot_mode):
-    """Switch a pxe config from deployment mode to service mode."""
+def _replace_lines_in_file(path, regex_pattern, replacement):
     with open(path) as f:
         lines = f.readlines()
-    root = 'UUID=%s' % root_uuid
-    rre = re.compile(r'\{\{ ROOT \}\}')
 
-    if boot_mode == 'uefi':
-        dre = re.compile('^default=.*$')
-        boot_line = 'default=boot'
-    else:
-        pxe_cmd = 'goto' if CONF.pxe.ipxe_enabled else 'default'
-        dre = re.compile('^%s .*$' % pxe_cmd)
-        boot_line = '%s boot' % pxe_cmd
-
+    compiled_pattern = re.compile(regex_pattern)
     with open(path, 'w') as f:
         for line in lines:
-            line = rre.sub(root, line)
-            line = dre.sub(boot_line, line)
+            line = compiled_pattern.sub(replacement, line)
             f.write(line)
+
+
+def _replace_root_uuid(path, root_uuid):
+    root = 'UUID=%s' % root_uuid
+    pattern = r'\{\{ ROOT \}\}'
+    _replace_lines_in_file(path, pattern, root)
+
+
+def _replace_boot_line(path, boot_mode, is_whole_disk_image):
+    if is_whole_disk_image:
+        boot_disk_type = 'boot_whole_disk'
+    else:
+        boot_disk_type = 'boot_partition'
+
+    if boot_mode == 'uefi':
+        pattern = '^default=.*$'
+        boot_line = 'default=%s' % boot_disk_type
+    else:
+        pxe_cmd = 'goto' if CONF.pxe.ipxe_enabled else 'default'
+        pattern = '^%s .*$' % pxe_cmd
+        boot_line = '%s %s' % (pxe_cmd, boot_disk_type)
+
+    _replace_lines_in_file(path, pattern, boot_line)
+
+
+def _replace_disk_identifier(path, disk_identifier):
+    pattern = r'\{\{ DISK_IDENTIFIER \}\}'
+    _replace_lines_in_file(path, pattern, disk_identifier)
+
+
+def switch_pxe_config(path, root_uuid_or_disk_id, boot_mode,
+                      is_whole_disk_image):
+    """Switch a pxe config from deployment mode to service mode.
+
+    :param path: path to the pxe config file in tftpboot.
+    :param root_uuid_or_disk_id: root uuid in case of partition image or
+                                 disk_id in case of whole disk image.
+    :param boot_mode: if boot mode is uefi or bios.
+    :param is_whole_disk_image: if the image is a whole disk image or not.
+    """
+    if not is_whole_disk_image:
+        _replace_root_uuid(path, root_uuid_or_disk_id)
+    else:
+        _replace_disk_identifier(path, root_uuid_or_disk_id)
+
+    _replace_boot_line(path, boot_mode, is_whole_disk_image)
 
 
 def notify(address, port):
@@ -480,10 +538,6 @@ def work_on_disk(dev, root_mb, swap_mb, ephemeral_mb, ephemeral_format,
     :param boot_option: Can be "local" or "netboot". "netboot" by default.
     :returns: the UUID of the root partition.
     """
-    if not is_block_device(dev):
-        raise exception.InstanceDeployFailure(
-            _("Parent device '%s' not found") % dev)
-
     # the only way for preserve_ephemeral to be set to true is if we are
     # rebuilding an instance with --preserve_ephemeral.
     commit = not preserve_ephemeral
@@ -550,11 +604,11 @@ def work_on_disk(dev, root_mb, swap_mb, ephemeral_mb, ephemeral_format,
     return root_uuid
 
 
-def deploy(address, port, iqn, lun, image_path,
+def deploy_partition_image(address, port, iqn, lun, image_path,
            root_mb, swap_mb, ephemeral_mb, ephemeral_format, node_uuid,
            preserve_ephemeral=False, configdrive=None,
            boot_option="netboot"):
-    """All-in-one function to deploy a node.
+    """All-in-one function to deploy a partition image to a node.
 
     :param address: The iSCSI IP address.
     :param port: The iSCSI port number.
@@ -576,18 +630,60 @@ def deploy(address, port, iqn, lun, image_path,
     :param boot_option: Can be "local" or "netboot". "netboot" by default.
     :returns: the UUID of the root partition.
     """
-    dev = get_dev(address, port, iqn, lun)
-    image_mb = get_image_mb(image_path)
-    if image_mb > root_mb:
-        root_mb = image_mb
-    discovery(address, port)
-    login_iscsi(address, port, iqn)
-    try:
+    with _iscsi_setup_and_handle_errors(address, port, iqn,
+                                        lun, image_path) as dev:
+        image_mb = get_image_mb(image_path)
+        if image_mb > root_mb:
+            root_mb = image_mb
+
         root_uuid = work_on_disk(dev, root_mb, swap_mb, ephemeral_mb,
                                  ephemeral_format, image_path, node_uuid,
                                  preserve_ephemeral=preserve_ephemeral,
                                  configdrive=configdrive,
                                  boot_option=boot_option)
+
+    return root_uuid
+
+
+def deploy_disk_image(address, port, iqn, lun,
+                      image_path, node_uuid):
+    """All-in-one function to deploy a whole disk image to a node.
+
+    :param address: The iSCSI IP address.
+    :param port: The iSCSI port number.
+    :param iqn: The iSCSI qualified name.
+    :param lun: The iSCSI logical unit number.
+    :param image_path: Path for the instance's disk image.
+    :param node_uuid: node's uuid. Used for logging. Currently not in use
+        by this function but could be used in the future.
+    """
+    with _iscsi_setup_and_handle_errors(address, port, iqn,
+                                        lun, image_path) as dev:
+        populate_image(image_path, dev)
+        disk_identifier = get_disk_identifier(dev)
+
+    return disk_identifier
+
+
+@contextlib.contextmanager
+def _iscsi_setup_and_handle_errors(address, port, iqn, lun,
+                                   image_path):
+    """Function that yields an iSCSI target device to work on.
+
+    :param address: The iSCSI IP address.
+    :param port: The iSCSI port number.
+    :param iqn: The iSCSI qualified name.
+    :param lun: The iSCSI logical unit number.
+    :param image_path: Path for the instance's disk image.
+    """
+    dev = get_dev(address, port, iqn, lun)
+    discovery(address, port)
+    login_iscsi(address, port, iqn)
+    if not is_block_device(dev):
+        raise exception.InstanceDeployFailure(_("Parent device '%s' not found")
+                                                % dev)
+    try:
+        yield dev
     except processutils.ProcessExecutionError as err:
         with excutils.save_and_reraise_exception():
             LOG.error(_LE("Deploy to address %s failed."), address)
@@ -601,8 +697,6 @@ def deploy(address, port, iqn, lun, image_path,
     finally:
         logout_iscsi(address, port, iqn)
         delete_iscsi(address, port, iqn)
-
-    return root_uuid
 
 
 def notify_deploy_complete(address):

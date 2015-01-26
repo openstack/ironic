@@ -114,10 +114,12 @@ def parse_instance_info(node):
     info = node.instance_info
     i_info = {}
     i_info['image_source'] = info.get('image_source')
-    if (i_info['image_source'] and
+    is_whole_disk_image = node.driver_internal_info.get('is_whole_disk_image')
+    if not is_whole_disk_image:
+        if (i_info['image_source'] and
             not glance_service_utils.is_glance_image(i_info['image_source'])):
-        i_info['kernel'] = info.get('kernel')
-        i_info['ramdisk'] = info.get('ramdisk')
+            i_info['kernel'] = info.get('kernel')
+            i_info['ramdisk'] = info.get('ramdisk')
     i_info['root_gb'] = info.get('root_gb')
 
     error_msg = _("Cannot validate iSCSI deploy. Some parameters were missing"
@@ -129,18 +131,26 @@ def parse_instance_info(node):
 
     i_info['swap_mb'] = info.get('swap_mb', 0)
     i_info['ephemeral_gb'] = info.get('ephemeral_gb', 0)
-    i_info['ephemeral_format'] = info.get('ephemeral_format')
-    i_info['configdrive'] = info.get('configdrive')
-
     err_msg_invalid = _("Cannot validate parameter for iSCSI deploy. "
                         "Invalid parameter %(param)s. Reason: %(reason)s")
     for param in ('root_gb', 'swap_mb', 'ephemeral_gb'):
         try:
             int(i_info[param])
         except ValueError:
-            reason = _("'%s' is not an integer value.") % i_info[param]
+            reason = _("%s is not an integer value.") % i_info[param]
             raise exception.InvalidParameterValue(err_msg_invalid %
-                                            {'param': param, 'reason': reason})
+                                                  {'param': param,
+                                                   'reason': reason})
+
+    if is_whole_disk_image:
+        if int(i_info['swap_mb']) > 0 or int(i_info['ephemeral_gb']) > 0:
+            err_msg_invalid = _("Cannot deploy whole disk image with "
+                                "swap or ephemeral size set")
+            raise exception.InvalidParameterValue(err_msg_invalid)
+        return i_info
+
+    i_info['ephemeral_format'] = info.get('ephemeral_format')
+    i_info['configdrive'] = info.get('configdrive')
 
     if i_info['ephemeral_gb'] and not i_info['ephemeral_format']:
         i_info['ephemeral_format'] = CONF.pxe.default_ephemeral_format
@@ -228,18 +238,24 @@ def get_deploy_info(node, **kwargs):
               'iqn': kwargs.get('iqn'),
               'lun': kwargs.get('lun', '1'),
               'image_path': _get_image_file_path(node.uuid),
-              'root_mb': 1024 * int(i_info['root_gb']),
-              'swap_mb': int(i_info['swap_mb']),
-              'ephemeral_mb': 1024 * int(i_info['ephemeral_gb']),
-              'preserve_ephemeral': i_info['preserve_ephemeral'],
-              'node_uuid': node.uuid,
-              'boot_option': get_boot_option(node)}
+              'node_uuid': node.uuid}
+
+    is_whole_disk_image = node.driver_internal_info['is_whole_disk_image']
+    if not is_whole_disk_image:
+        params.update({'root_mb': 1024 * int(i_info['root_gb']),
+                       'swap_mb': int(i_info['swap_mb']),
+                       'ephemeral_mb': 1024 * int(i_info['ephemeral_gb']),
+                       'preserve_ephemeral': i_info['preserve_ephemeral'],
+                       'boot_option': get_boot_option(node)})
 
     missing = [key for key in params if params[key] is None]
     if missing:
         raise exception.MissingParameterValue(_(
                 "Parameters %s were not passed to ironic"
                 " for deploy.") % missing)
+
+    if is_whole_disk_image:
+        return params
 
     # configdrive and ephemeral_format are nullable
     params['ephemeral_format'] = i_info.get('ephemeral_format')
@@ -258,7 +274,8 @@ def continue_deploy(task, **kwargs):
     :param kwargs: the kwargs to be passed to deploy.
     :raises: InvalidState if the event is not allowed by the associated
              state machine.
-    :returns: UUID of the root partition or None on error.
+    :returns: UUID of the root partition for partition images or disk
+              identifier for whole disk images or None on error.
     """
     node = task.node
 
@@ -283,9 +300,13 @@ def continue_deploy(task, **kwargs):
         LOG.debug('Continuing deployment for node %(node)s, params %(params)s',
                   {'node': node.uuid, 'params': log_params})
 
-    root_uuid = None
+    root_uuid_or_disk_id = None
     try:
-        root_uuid = deploy_utils.deploy(**params)
+        if node.driver_internal_info['is_whole_disk_image']:
+            root_uuid_or_disk_id = deploy_utils.deploy_disk_image(**params)
+        else:
+            root_uuid_or_disk_id = deploy_utils.deploy_partition_image(
+                                                                  **params)
     except Exception as e:
         LOG.error(_LE('Deploy failed for instance %(instance)s. '
                       'Error: %(error)s'),
@@ -294,7 +315,7 @@ def continue_deploy(task, **kwargs):
                                               'iSCSI deployment.'))
 
     destroy_images(node.uuid)
-    return root_uuid
+    return root_uuid_or_disk_id
 
 
 def do_agent_iscsi_deploy(task, agent_client):
@@ -337,21 +358,22 @@ def do_agent_iscsi_deploy(task, agent_client):
                     'key': iscsi_options['deployment_key'],
                     'address': address}
 
-    root_uuid = continue_deploy(task, **iscsi_params)
-    if not root_uuid:
-        msg = (_("Couldn't determine the UUID of the root partition "
-                 "when deploying node %s") % node.uuid)
+    root_uuid_or_disk_id = continue_deploy(task, **iscsi_params)
+    if not root_uuid_or_disk_id:
+        msg = (_("Couldn't determine the UUID of the root "
+                 "partition or the disk identifier when deploying "
+                 "node %s") % node.uuid)
         deploy_utils.set_failed_state(task, msg)
         raise exception.InstanceDeployFailure(reason=msg)
 
     # TODO(lucasagomes): Move this bit saving the root_uuid to
     # iscsi_deploy.continue_deploy()
     driver_internal_info = node.driver_internal_info
-    driver_internal_info['root_uuid'] = root_uuid
+    driver_internal_info['root_uuid_or_disk_id'] = root_uuid_or_disk_id
     node.driver_internal_info = driver_internal_info
     node.save()
 
-    return root_uuid
+    return root_uuid_or_disk_id
 
 
 def parse_root_device_hints(node):

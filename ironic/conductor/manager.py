@@ -66,6 +66,7 @@ from ironic.common.i18n import _LC
 from ironic.common.i18n import _LE
 from ironic.common.i18n import _LI
 from ironic.common.i18n import _LW
+from ironic.common import images
 from ironic.common import keystone
 from ironic.common import rpc
 from ironic.common import states
@@ -667,14 +668,6 @@ class ConductorManager(periodic_task.PeriodicTasks):
             if node.maintenance:
                 raise exception.NodeInMaintenance(op=_('provisioning'),
                                                   node=node.uuid)
-            try:
-                task.driver.power.validate(task)
-                task.driver.deploy.validate(task)
-            except (exception.InvalidParameterValue,
-                    exception.MissingParameterValue) as e:
-                raise exception.InstanceDeployFailure(_(
-                    "RPC do_node_deploy failed to validate deploy or "
-                    "power info. Error: %(msg)s") % {'msg': e})
 
             if rebuild:
                 event = 'rebuild'
@@ -689,9 +682,28 @@ class ConductorManager(periodic_task.PeriodicTasks):
                     instance_info.pop('kernel', None)
                     instance_info.pop('ramdisk', None)
                     node.instance_info = instance_info
-                    node.save()
             else:
                 event = 'deploy'
+
+            driver_internal_info = node.driver_internal_info
+            # Infer the image type to make sure the deploy driver
+            # validates only the necessary variables for different
+            # image types.
+            # NOTE(sirushtim): The iwdi variable can be None. It's upto
+            # the deploy driver to validate this.
+            iwdi = images.is_whole_disk_image(context, node.instance_info)
+            driver_internal_info['is_whole_disk_image'] = iwdi
+            node.driver_internal_info = driver_internal_info
+            node.save()
+
+            try:
+                task.driver.power.validate(task)
+                task.driver.deploy.validate(task)
+            except (exception.InvalidParameterValue,
+                    exception.MissingParameterValue) as e:
+                raise exception.InstanceDeployFailure(_(
+                    "RPC do_node_deploy failed to validate deploy or "
+                    "power info. Error: %(msg)s") % {'msg': e})
 
             LOG.debug("do_node_deploy Calling event: %(event)s for node: "
                       "%(node)s", {'event': event, 'node': node.uuid})
@@ -1040,6 +1052,15 @@ class ConductorManager(periodic_task.PeriodicTasks):
                   node_id)
         ret_dict = {}
         with task_manager.acquire(context, node_id, shared=True) as task:
+            # NOTE(sirushtim): the is_whole_disk_image variable is needed by
+            # deploy drivers for doing their validate(). Since the deploy
+            # isn't being done yet and the driver information could change in
+            # the meantime, we don't know if the is_whole_disk_image value will
+            # change or not. It isn't saved to the DB, but only used with this
+            # node instance for the current validations.
+            iwdi = images.is_whole_disk_image(context,
+                                              task.node.instance_info)
+            task.node.driver_internal_info['is_whole_disk_image'] = iwdi
             for iface_name in (task.driver.core_interfaces +
                                task.driver.standard_interfaces):
                 iface = getattr(task.driver, iface_name, None)

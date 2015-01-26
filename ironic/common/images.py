@@ -27,6 +27,7 @@ from oslo_concurrency import processutils
 from oslo_config import cfg
 
 from ironic.common import exception
+from ironic.common.glance_service import service_utils as glance_utils
 from ironic.common.i18n import _
 from ironic.common.i18n import _LE
 from ironic.common import image_service as service
@@ -377,3 +378,33 @@ def create_boot_iso(context, output_filename, kernel_href,
 
         create_isolinux_image(output_filename, kernel_path,
                               ramdisk_path, params)
+
+
+def is_whole_disk_image(ctx, instance_info):
+    """Find out if the image is a partition image or a whole disk image.
+
+    :param ctx: an admin context
+    :param instance_info: a node's instance info dict
+
+    :returns True for whole disk images and False for partition images
+        and None on no image_source or Error.
+    """
+    image_source = instance_info.get('image_source')
+    if not image_source:
+        return
+
+    is_whole_disk_image = False
+    if glance_utils.is_glance_image(image_source):
+        try:
+            iproperties = get_image_properties(ctx, image_source)
+        except Exception:
+            return
+        is_whole_disk_image = (not iproperties.get('kernel_id') and
+                               not iproperties.get('ramdisk_id'))
+    else:
+        # Non glance image ref
+        if (not instance_info.get('kernel') and
+            not instance_info.get('ramdisk')):
+            is_whole_disk_image = True
+
+    return is_whole_disk_image

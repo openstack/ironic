@@ -360,13 +360,14 @@ class BaseAgentVendor(base.VendorInterface):
             on encountering error while setting the boot device on the node.
         """
         node = task.node
-        result = self._client.install_bootloader(node, root_uuid)
-        if result['command_status'] == 'FAILED':
-            msg = (_("Failed to install a bootloader when "
-                     "deploying node %(node)s. Error: %(error)s") %
-                   {'node': node.uuid,
-                        'error': result['command_error']})
-            self._log_and_raise_deployment_error(task, msg)
+        if not node.driver_internal_info.get('is_whole_disk_image'):
+            result = self._client.install_bootloader(node, root_uuid)
+            if result['command_status'] == 'FAILED':
+                msg = (_("Failed to install a bootloader when "
+                         "deploying node %(node)s. Error: %(error)s") %
+                       {'node': node.uuid,
+                            'error': result['command_error']})
+                self._log_and_raise_deployment_error(task, msg)
 
         try:
             deploy_utils.try_set_boot_device(task, boot_devices.DISK)

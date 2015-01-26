@@ -25,6 +25,7 @@ from oslo_config import cfg
 import six.moves.builtins as __builtin__
 
 from ironic.common import exception
+from ironic.common.glance_service import service_utils as glance_utils
 from ironic.common import image_service
 from ironic.common import images
 from ironic.common import utils
@@ -213,6 +214,68 @@ class IronicImagesTestCase(base.TestCase):
         size = images.converted_size('path')
         qemu_img_info_mock.assert_called_once_with('path')
         self.assertEqual(1, size)
+
+    @mock.patch.object(images, 'get_image_properties')
+    @mock.patch.object(glance_utils, 'is_glance_image')
+    def test_is_whole_disk_image_no_img_src(self, mock_igi, mock_gip):
+        instance_info = {'image_source': ''}
+        iwdi = images.is_whole_disk_image('context', instance_info)
+        self.assertIsNone(iwdi)
+        self.assertFalse(mock_igi.called)
+        self.assertFalse(mock_gip.called)
+
+    @mock.patch.object(images, 'get_image_properties')
+    @mock.patch.object(glance_utils, 'is_glance_image')
+    def test_is_whole_disk_image_partition_image(self, mock_igi, mock_gip):
+        mock_igi.return_value = True
+        mock_gip.return_value = {'kernel_id': 'kernel',
+                                 'ramdisk_id': 'ramdisk'}
+        instance_info = {'image_source': 'glance://partition_image'}
+        image_source = instance_info['image_source']
+        is_whole_disk_image = images.is_whole_disk_image('context',
+                                                         instance_info)
+        self.assertFalse(is_whole_disk_image)
+        mock_igi.assert_called_once_with(image_source)
+        mock_gip.assert_called_once_with('context', image_source)
+
+    @mock.patch.object(images, 'get_image_properties')
+    @mock.patch.object(glance_utils, 'is_glance_image')
+    def test_is_whole_disk_image_whole_disk_image(self, mock_igi, mock_gip):
+        mock_igi.return_value = True
+        mock_gip.return_value = {}
+        instance_info = {'image_source': 'glance://whole_disk_image'}
+        image_source = instance_info['image_source']
+        is_whole_disk_image = images.is_whole_disk_image('context',
+                                                         instance_info)
+        self.assertTrue(is_whole_disk_image)
+        mock_igi.assert_called_once_with(image_source)
+        mock_gip.assert_called_once_with('context', image_source)
+
+    @mock.patch.object(images, 'get_image_properties')
+    @mock.patch.object(glance_utils, 'is_glance_image')
+    def test_is_whole_disk_image_partition_non_glance(self, mock_igi,
+                                                      mock_gip):
+        mock_igi.return_value = False
+        instance_info = {'image_source': 'partition_image',
+                         'kernel': 'kernel',
+                         'ramdisk': 'ramdisk'}
+        is_whole_disk_image = images.is_whole_disk_image('context',
+                                                         instance_info)
+        self.assertFalse(is_whole_disk_image)
+        self.assertFalse(mock_gip.called)
+        mock_igi.assert_called_once_with(instance_info['image_source'])
+
+    @mock.patch.object(images, 'get_image_properties')
+    @mock.patch.object(glance_utils, 'is_glance_image')
+    def test_is_whole_disk_image_whole_disk_non_glance(self, mock_igi,
+                                                       mock_gip):
+        mock_igi.return_value = False
+        instance_info = {'image_source': 'whole_disk_image'}
+        is_whole_disk_image = images.is_whole_disk_image('context',
+                                                         instance_info)
+        self.assertTrue(is_whole_disk_image)
+        self.assertFalse(mock_gip.called)
+        mock_igi.assert_called_once_with(instance_info['image_source'])
 
 
 class FsImageTestCase(base.TestCase):

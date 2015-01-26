@@ -50,16 +50,21 @@ CONF = cfg.CONF
 
 INST_INFO_DICT = db_utils.get_test_pxe_instance_info()
 DRV_INFO_DICT = db_utils.get_test_pxe_driver_info()
+DRV_INTERNAL_INFO_DICT = db_utils.get_test_pxe_driver_internal_info()
 
 
 class PXEValidateParametersTestCase(db_base.DbTestCase):
 
     def test__parse_deploy_info(self):
         # make sure we get back the expected things
-        node = obj_utils.create_test_node(self.context,
-                                          driver='fake_pxe',
-                                          instance_info=INST_INFO_DICT,
-                                          driver_info=DRV_INFO_DICT)
+        node = obj_utils.create_test_node(
+                    self.context,
+                    driver='fake_pxe',
+                    instance_info=INST_INFO_DICT,
+                    driver_info=DRV_INFO_DICT,
+                    driver_internal_info=DRV_INTERNAL_INFO_DICT,
+               )
+
         info = pxe._parse_deploy_info(node)
         self.assertIsNotNone(info.get('deploy_ramdisk'))
         self.assertIsNotNone(info.get('deploy_kernel'))
@@ -114,6 +119,7 @@ class PXEPrivateMethodsTestCase(db_base.DbTestCase):
               'driver': 'fake_pxe',
               'instance_info': INST_INFO_DICT,
               'driver_info': DRV_INFO_DICT,
+              'driver_internal_info': DRV_INTERNAL_INFO_DICT,
         }
         mgr_utils.mock_the_extension_manager(driver="fake_pxe")
         self.node = obj_utils.create_test_node(self.context, **n)
@@ -158,6 +164,25 @@ class PXEPrivateMethodsTestCase(db_base.DbTestCase):
                          self.node.instance_info.get('kernel'))
         self.assertEqual('instance_ramdisk_uuid',
                          self.node.instance_info.get('ramdisk'))
+
+    @mock.patch.object(base_image_service.BaseImageService, '_show')
+    def test__get_image_info_whole_disk_image(self, show_mock):
+        properties = {'properties': None}
+
+        expected_info = {'deploy_ramdisk':
+                         (DRV_INFO_DICT['deploy_ramdisk'],
+                           os.path.join(CONF.pxe.tftp_root,
+                                        self.node.uuid,
+                                        'deploy_ramdisk')),
+                         'deploy_kernel':
+                         (DRV_INFO_DICT['deploy_kernel'],
+                          os.path.join(CONF.pxe.tftp_root,
+                                       self.node.uuid,
+                                       'deploy_kernel'))}
+        show_mock.return_value = properties
+        self.node.driver_internal_info['is_whole_disk_image'] = True
+        image_info = pxe._get_image_info(self.node, self.context)
+        self.assertEqual(expected_info, image_info)
 
     @mock.patch.object(iscsi_deploy, 'build_deploy_ramdisk_options')
     @mock.patch.object(pxe_utils, '_build_pxe_config')
@@ -231,9 +256,7 @@ class PXEPrivateMethodsTestCase(db_base.DbTestCase):
                       'ramdisk': ('ramdisk_id',
                                   os.path.join(root_dir,
                                                self.node.uuid,
-                                               'ramdisk'))
-                      }
-
+                                               'ramdisk'))}
         options = pxe._build_pxe_config_options(self.node,
                                                 image_info,
                                                 self.context)
@@ -244,6 +267,66 @@ class PXEPrivateMethodsTestCase(db_base.DbTestCase):
 
     def test__build_pxe_config_options_ipxe(self):
         self._test_build_pxe_config_options(ipxe_enabled=True)
+
+    @mock.patch.object(iscsi_deploy, 'build_deploy_ramdisk_options')
+    @mock.patch.object(pxe_utils, '_build_pxe_config')
+    def _test_build_pxe_config_options_whole_disk_image(self, build_pxe_mock,
+                                       deploy_opts_mock, ipxe_enabled=False):
+        self.config(pxe_append_params='test_param', group='pxe')
+        # NOTE: right '/' should be removed from url string
+        self.config(api_url='http://192.168.122.184:6385/', group='conductor')
+        self.config(disk_devices='sda', group='pxe')
+
+        fake_deploy_opts = {'iscsi_target_iqn': 'fake-iqn',
+                            'deployment_id': 'fake-deploy-id',
+                            'deployment_key': 'fake-deploy-key',
+                            'disk': 'fake-disk',
+                            'ironic_api_url': 'fake-api-url'}
+
+        deploy_opts_mock.return_value = fake_deploy_opts
+
+        tftp_server = CONF.pxe.tftp_server
+
+        if ipxe_enabled:
+            http_url = 'http://192.1.2.3:1234'
+            self.config(ipxe_enabled=True, group='pxe')
+            self.config(http_url=http_url, group='pxe')
+
+            deploy_kernel = os.path.join(http_url, self.node.uuid,
+                                         'deploy_kernel')
+            deploy_ramdisk = os.path.join(http_url, self.node.uuid,
+                                          'deploy_ramdisk')
+            root_dir = CONF.pxe.http_root
+        else:
+            deploy_kernel = os.path.join(CONF.pxe.tftp_root, self.node.uuid,
+                                         'deploy_kernel')
+            deploy_ramdisk = os.path.join(CONF.pxe.tftp_root, self.node.uuid,
+                                         'deploy_ramdisk')
+            root_dir = CONF.pxe.tftp_root
+
+        expected_options = {
+            'deployment_ari_path': deploy_ramdisk,
+            'pxe_append_params': 'test_param',
+            'deployment_aki_path': deploy_kernel,
+            'tftp_server': tftp_server,
+        }
+
+        expected_options.update(fake_deploy_opts)
+
+        image_info = {'deploy_kernel': ('deploy_kernel',
+                                        os.path.join(root_dir,
+                                                     self.node.uuid,
+                                                     'deploy_kernel')),
+                      'deploy_ramdisk': ('deploy_ramdisk',
+                                         os.path.join(root_dir,
+                                                      self.node.uuid,
+                                                      'deploy_ramdisk')),
+                      }
+        self.node.driver_internal_info['is_whole_disk_image'] = True
+        options = pxe._build_pxe_config_options(self.node,
+                                                image_info,
+                                                self.context)
+        self.assertEqual(expected_options, options)
 
     def test_get_token_file_path(self):
         node_uuid = self.node.uuid
@@ -311,10 +394,12 @@ class PXEDriverTestCase(db_base.DbTestCase):
         mgr_utils.mock_the_extension_manager(driver="fake_pxe")
         instance_info = INST_INFO_DICT
         instance_info['deploy_key'] = 'fake-56789'
-        self.node = obj_utils.create_test_node(self.context,
-                                               driver='fake_pxe',
-                                               instance_info=instance_info,
-                                               driver_info=DRV_INFO_DICT)
+        self.node = obj_utils.create_test_node(
+                        self.context,
+                        driver='fake_pxe',
+                        instance_info=instance_info,
+                        driver_info=DRV_INFO_DICT,
+                        driver_internal_info=DRV_INTERNAL_INFO_DICT)
         self.port = obj_utils.create_test_port(self.context,
                                                node_id=self.node.id)
         self.config(group='conductor', api_url='http://127.0.0.1:1234/')
@@ -336,6 +421,13 @@ class PXEDriverTestCase(db_base.DbTestCase):
                                                    'ramdisk_id': 'fake-initr'}}
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
+            task.driver.deploy.validate(task)
+
+    @mock.patch.object(base_image_service.BaseImageService, '_show')
+    def test_validate_good_whole_disk_image(self, mock_glance):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            task.node.driver_internal_info['is_whole_disk_image'] = True
             task.driver.deploy.validate(task)
 
     def test_validate_fail(self):
@@ -570,7 +662,8 @@ class PXEDriverTestCase(db_base.DbTestCase):
         mock_get_cap.return_value = None
 
         self.node.provision_state = states.ACTIVE
-        self.node.driver_internal_info = {'root_uuid': 'abcd'}
+        self.node.driver_internal_info = {'root_uuid_or_disk_id': 'abcd',
+                                          'is_whole_disk_image': False}
         self.node.save()
 
         with task_manager.acquire(self.context, self.node.uuid) as task:
@@ -583,7 +676,7 @@ class PXEDriverTestCase(db_base.DbTestCase):
                                                    task.node, None)
 
             mock_pxe_get_cfg.assert_called_once_with(task.node.uuid)
-            mock_switch.assert_called_once_with('/path', 'abcd', None)
+            mock_switch.assert_called_once_with('/path', 'abcd', None, False)
 
     @mock.patch.object(keystone, 'token_expires_soon')
     @mock.patch.object(deploy_utils, 'get_image_mb')
@@ -712,7 +805,7 @@ class PXEDriverTestCase(db_base.DbTestCase):
     @mock.patch.object(deploy_utils, 'notify_deploy_complete')
     @mock.patch.object(deploy_utils, 'switch_pxe_config')
     @mock.patch.object(iscsi_deploy, 'InstanceImageCache')
-    @mock.patch.object(deploy_utils, 'deploy')
+    @mock.patch.object(deploy_utils, 'deploy_partition_image')
     def _test_continue_deploy(self, is_localboot, mock_deploy,
                               mock_image_cache, mock_switch_config,
                               notify_mock, mock_node_boot_dev, mock_clean_pxe):
@@ -732,6 +825,7 @@ class PXEDriverTestCase(db_base.DbTestCase):
         root_uuid = "12345678-1234-1234-1234-1234567890abcxyz"
         mock_deploy.return_value = root_uuid
         boot_mode = None
+        is_whole_disk_image = False
 
         with task_manager.acquire(self.context, self.node.uuid) as task:
             task.driver.vendor._continue_deploy(
@@ -741,7 +835,7 @@ class PXEDriverTestCase(db_base.DbTestCase):
         self.assertEqual(states.ACTIVE, self.node.provision_state)
         self.assertEqual(states.NOSTATE, self.node.target_provision_state)
         self.assertEqual(states.POWER_ON, self.node.power_state)
-        self.assertIn('root_uuid', self.node.driver_internal_info)
+        self.assertIn('root_uuid_or_disk_id', self.node.driver_internal_info)
         self.assertIsNone(self.node.last_error)
         self.assertFalse(os.path.exists(token_path))
         mock_image_cache.assert_called_once_with()
@@ -754,8 +848,70 @@ class PXEDriverTestCase(db_base.DbTestCase):
             mock_clean_pxe.assert_called_once_with(mock.ANY)
             self.assertFalse(mock_switch_config.called)
         else:
-            mock_switch_config.assert_called_once_with(
-                pxe_config_path, root_uuid, boot_mode)
+            mock_switch_config.assert_called_once_with(pxe_config_path,
+                                                       root_uuid,
+                                                       boot_mode,
+                                                       is_whole_disk_image)
+            self.assertFalse(mock_node_boot_dev.called)
+            self.assertFalse(mock_clean_pxe.called)
+
+    @mock.patch.object(pxe_utils, 'clean_up_pxe_config')
+    @mock.patch.object(manager_utils, 'node_set_boot_device')
+    @mock.patch.object(deploy_utils, 'notify_deploy_complete')
+    @mock.patch.object(deploy_utils, 'switch_pxe_config')
+    @mock.patch.object(iscsi_deploy, 'InstanceImageCache')
+    @mock.patch.object(deploy_utils, 'deploy_disk_image')
+    def _test_continue_deploy_whole_disk_image(self, is_localboot,
+                                               mock_deploy,
+                                               mock_image_cache,
+                                               mock_switch_config,
+                                               notify_mock,
+                                               mock_node_boot_dev,
+                                               mock_clean_pxe):
+        token_path = self._create_token_file()
+
+        # set local boot
+        if is_localboot:
+            i_info = self.node.instance_info
+            i_info['capabilities'] = '{"boot_option": "local"}'
+            self.node.instance_info = i_info
+
+        self.node.power_state = states.POWER_ON
+        self.node.provision_state = states.DEPLOYWAIT
+        self.node.target_provision_state = states.ACTIVE
+        self.node.save()
+
+        boot_mode = None
+        is_whole_disk_image = True
+        disk_id = '0x12345678'
+        mock_deploy.return_value = disk_id
+
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            task.node.driver_internal_info['is_whole_disk_image'] = True
+            task.driver.vendor._continue_deploy(task, address='123456',
+                                                iqn='aaa-bbb',
+                                                key='fake-56789')
+
+        self.node.refresh()
+        self.assertEqual(states.ACTIVE, self.node.provision_state)
+        self.assertEqual(states.NOSTATE, self.node.target_provision_state)
+        self.assertEqual(states.POWER_ON, self.node.power_state)
+        self.assertIsNone(self.node.last_error)
+        self.assertFalse(os.path.exists(token_path))
+        mock_image_cache.assert_called_once_with()
+        mock_image_cache.return_value.clean_up.assert_called_once_with()
+        pxe_config_path = pxe_utils.get_pxe_config_file_path(self.node.uuid)
+        notify_mock.assert_called_once_with('123456')
+        if is_localboot:
+            mock_node_boot_dev.assert_called_once_with(
+                mock.ANY, boot_devices.DISK, persistent=True)
+            mock_clean_pxe.assert_called_once_with(mock.ANY)
+            self.assertFalse(mock_switch_config.called)
+        else:
+            mock_switch_config.assert_called_once_with(pxe_config_path,
+                                                       disk_id,
+                                                       boot_mode,
+                                                       is_whole_disk_image)
             self.assertFalse(mock_node_boot_dev.called)
             self.assertFalse(mock_clean_pxe.called)
 
@@ -764,6 +920,12 @@ class PXEDriverTestCase(db_base.DbTestCase):
 
     def test_continue_deploy_localboot(self):
         self._test_continue_deploy(True)
+
+    def test_continue_deploy_whole_disk_image(self):
+        self._test_continue_deploy_whole_disk_image(False)
+
+    def test_continue_deploy_whole_disk_image_localboot(self):
+        self._test_continue_deploy_whole_disk_image(True)
 
     def test_continue_deploy_invalid(self):
         self.node.power_state = states.POWER_ON
@@ -821,10 +983,12 @@ class CleanUpTestCase(db_base.DbTestCase):
         mgr_utils.mock_the_extension_manager(driver="fake_pxe")
         instance_info = INST_INFO_DICT
         instance_info['deploy_key'] = 'fake-56789'
-        self.node = obj_utils.create_test_node(self.context,
-                                               driver='fake_pxe',
-                                               instance_info=instance_info,
-                                               driver_info=DRV_INFO_DICT)
+        self.node = obj_utils.create_test_node(
+                        self.context, driver='fake_pxe',
+                        instance_info=instance_info,
+                        driver_info=DRV_INFO_DICT,
+                        driver_internal_info=DRV_INTERNAL_INFO_DICT,
+                    )
 
     def test_clean_up(self, mock_image_info, mock_cache, mock_pxe_clean,
                       mock_iscsi_clean, mock_unlink):
@@ -866,10 +1030,12 @@ class CleanUpFullFlowTestCase(db_base.DbTestCase):
         mgr_utils.mock_the_extension_manager(driver="fake_pxe")
         instance_info = INST_INFO_DICT
         instance_info['deploy_key'] = 'fake-56789'
-        self.node = obj_utils.create_test_node(self.context,
-                                               driver='fake_pxe',
-                                               instance_info=instance_info,
-                                               driver_info=DRV_INFO_DICT)
+        self.node = obj_utils.create_test_node(
+                        self.context, driver='fake_pxe',
+                        instance_info=instance_info,
+                        driver_info=DRV_INFO_DICT,
+                        driver_internal_info=DRV_INTERNAL_INFO_DICT,
+                    )
         self.port = obj_utils.create_test_port(self.context,
                                                node_id=self.node.id)
 
@@ -945,9 +1111,12 @@ class TestAgentVendorPassthru(db_base.DbTestCase):
         mgr_utils.mock_the_extension_manager()
         self.driver = driver_factory.get_driver("fake")
         self.driver.vendor = pxe.VendorPassthru()
-        self.node = obj_utils.create_test_node(self.context, driver='fake',
-                                               instance_info=INST_INFO_DICT,
-                                               driver_info=DRV_INFO_DICT)
+        self.node = obj_utils.create_test_node(
+                        self.context, driver='fake',
+                        instance_info=INST_INFO_DICT,
+                        driver_info=DRV_INFO_DICT,
+                        driver_internal_info=DRV_INTERNAL_INFO_DICT,
+                    )
         self.node.driver_internal_info['agent_url'] = 'http://1.2.3.4:1234'
         self.task = mock.Mock(spec=task_manager.TaskManager)
         self.task.shared = False
@@ -966,7 +1135,6 @@ class TestAgentVendorPassthru(db_base.DbTestCase):
                                      reboot_and_finish_deploy_mock):
 
         do_agent_iscsi_deploy_mock.return_value = 'some-root-uuid'
-
         self.driver.vendor.continue_deploy(self.task)
         destroy_token_file_mock.assert_called_once_with(self.node)
         do_agent_iscsi_deploy_mock.assert_called_once_with(
@@ -974,7 +1142,7 @@ class TestAgentVendorPassthru(db_base.DbTestCase):
         tftp_config = '/tftpboot/%s/config' % self.node.uuid
         switch_pxe_config_mock.assert_called_once_with(tftp_config,
                                                        'some-root-uuid',
-                                                       None)
+                                                       None, False)
         reboot_and_finish_deploy_mock.assert_called_once_with(self.task)
 
     @mock.patch.object(agent_base_vendor.BaseAgentVendor,
