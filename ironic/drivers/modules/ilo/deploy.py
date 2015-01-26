@@ -56,9 +56,9 @@ CONF.import_opt('swift_ilo_container', 'ironic.drivers.modules.ilo.common',
 
 
 def _get_boot_iso_object_name(node):
-    """Returns the floppy image name for a given node.
+    """Returns the boot iso object name for a given node.
 
-    :param node: the node for which image name is to be provided.
+    :param node: the node for which object name is to be provided.
     """
     return "boot-%s" % node.uuid
 
