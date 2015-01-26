@@ -37,11 +37,38 @@ LOG = logging.getLogger(__name__)
 # Provisioning states
 #####################
 
+# TODO(deva): add add'l state mappings here
+VERBS = {
+        'active': 'deploy',
+        'deleted': 'delete',
+        'manage': 'manage',
+        'provide': 'provide',
+    }
+""" Mapping of state-changing events that are PUT to the REST API
+
+This is a mapping of target states which are PUT to the API, eg,
+    PUT /v1/node/states/provision {'target': 'active'}
+
+The dict format is:
+    {target string used by the API: internal verb}
+
+This provides a reference set of supported actions, and in the future
+may be used to support renaming these actions.
+"""
+
 NOSTATE = None
 """ No state information.
 
 This state is used with power_state to represent a lack of knowledge of
 power state, and in target_*_state fields when there is no target.
+"""
+
+MANAGEABLE = 'manageable'
+""" Node is in a manageable state.
+
+This state indicates that Ironic has verified, at least once, that it had
+sufficient information to manage the hardware. While in this state, the node
+is not available for provisioning (it must be in the AVAILABLE state for that).
 """
 
 AVAILABLE = 'available'
@@ -90,6 +117,8 @@ In Juno, target_provision_state was set to this value during node tear down.
 In Kilo, this will be a transitory value of provision_state, and never
 represented in target_provision_state.
 """
+
+# TODO(deva): add CLEAN* states
 
 ERROR = 'error'
 """ An error occurred during node processing.
@@ -140,9 +169,17 @@ watchers['on_enter'] = on_enter
 machine = fsm.FSM()
 
 # Add stable states
+machine.add_state(MANAGEABLE, **watchers)
 machine.add_state(AVAILABLE, **watchers)
 machine.add_state(ACTIVE, **watchers)
 machine.add_state(ERROR, **watchers)
+
+# From MANAGEABLE, a node may be made available
+# TODO(deva): add CLEAN* states to this path
+machine.add_transition(MANAGEABLE, AVAILABLE, 'provide')
+
+# From AVAILABLE, a node may be made unavailable by managing it
+machine.add_transition(AVAILABLE, MANAGEABLE, 'manage')
 
 # Add deploy* states
 # NOTE(deva): Juno shows a target_provision_state of DEPLOYDONE
@@ -165,6 +202,8 @@ machine.add_transition(DEPLOYING, DEPLOYFAIL, 'fail')
 # A failed deployment may be retried
 # ironic/conductor/manager.py:do_node_deploy()
 machine.add_transition(DEPLOYFAIL, DEPLOYING, 'rebuild')
+# NOTE(deva): Juno allows a client to send "active" to initiate a rebuild
+machine.add_transition(DEPLOYFAIL, DEPLOYING, 'deploy')
 
 # A deployment may also wait on external callbacks
 machine.add_transition(DEPLOYING, DEPLOYWAIT, 'wait')

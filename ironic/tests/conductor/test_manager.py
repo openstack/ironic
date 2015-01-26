@@ -882,7 +882,7 @@ class DoNodeDeployTearDownTestCase(_ServiceSetUpMixin,
                                 self.service.do_node_deploy,
                                 self.context, node['uuid'])
         # Compare true exception hidden by @messaging.expected_exceptions
-        self.assertEqual(exception.InstanceDeployFailure, exc.exc_info[0])
+        self.assertEqual(exception.InvalidStateRequested, exc.exc_info[0])
         # This is a sync operation last_error should be None.
         self.assertIsNone(node.last_error)
         # Verify reservation has been cleared.
@@ -1203,7 +1203,7 @@ class DoNodeDeployTearDownTestCase(_ServiceSetUpMixin,
                                 self.service.do_node_deploy,
                                 self.context, node['uuid'], rebuild=True)
         # Compare true exception hidden by @messaging.expected_exceptions
-        self.assertEqual(exception.InstanceDeployFailure, exc.exc_info[0])
+        self.assertEqual(exception.InvalidStateRequested, exc.exc_info[0])
         # Last_error should be None.
         self.assertIsNone(node.last_error)
         # Verify reservation has been cleared.
@@ -1261,7 +1261,7 @@ class DoNodeDeployTearDownTestCase(_ServiceSetUpMixin,
                                 self.service.do_node_tear_down,
                                 self.context, node['uuid'])
         # Compare true exception hidden by @messaging.expected_exceptions
-        self.assertEqual(exception.InstanceDeployFailure, exc.exc_info[0])
+        self.assertEqual(exception.InvalidStateRequested, exc.exc_info[0])
 
     @mock.patch('ironic.drivers.modules.fake.FakePower.validate')
     def test_do_node_tear_down_validate_fail(self, mock_validate):

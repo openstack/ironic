@@ -163,7 +163,8 @@ class InvalidMAC(Invalid):
 
 
 class InvalidStateRequested(Invalid):
-    message = _("Invalid state '%(state)s' requested for node %(node)s.")
+    message = _('The requested action "%(action)s" can not be performed '
+                'on node "%(node)s" while it is in state "%(state)s".')
 
 
 class PatchError(Invalid):

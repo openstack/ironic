@@ -66,6 +66,14 @@ def hide_driver_internal_info(obj):
         obj.driver_internal_info = wsme.Unset
 
 
+def check_allow_management_verbs(verb):
+    # v1.4 added the MANAGEABLE state and two verbs to move nodes into
+    # and out of that state. Reject requests to do this in older versions
+    if (pecan.request.version.minor < 4 and
+            verb in [ir_states.VERBS['manage'], ir_states.VERBS['provide']]):
+        raise exception.NotAcceptable()
+
+
 class NodePatchType(types.JsonPatchType):
 
     @staticmethod
@@ -311,7 +319,8 @@ class NodeStatesController(rest.RestController):
         if target not in [ir_states.POWER_ON,
                           ir_states.POWER_OFF,
                           ir_states.REBOOT]:
-            raise exception.InvalidStateRequested(state=target, node=node_uuid)
+            raise exception.InvalidStateRequested(
+                    action=target, node=node_uuid, state=rpc_node.power_state)
 
         pecan.request.rpcapi.change_node_power_state(pecan.request.context,
                                                      node_uuid, target, topic)
@@ -322,7 +331,7 @@ class NodeStatesController(rest.RestController):
     @wsme_pecan.wsexpose(None, types.uuid, wtypes.text, wtypes.text,
                          status_code=202)
     def provision(self, node_uuid, target, configdrive=None):
-        """Asynchronous trigger the provisioning of the node.
+        """Asynchronously trigger the provisioning of the node.
 
         This will set the target provision state of the node, and a
         background task will begin which actually applies the state
@@ -336,34 +345,34 @@ class NodeStatesController(rest.RestController):
         :param configdrive: Optional. A gzipped and base64 encoded
             configdrive. Only valid when setting provision state
             to "active".
+        :raises: NodeLocked (HTTP 409) if the node is currently locked.
         :raises: ClientSideError (HTTP 409) if the node is already being
                  provisioned.
-        :raises: ClientSideError (HTTP 400) if the node is already in
-                 the requested state.
-        :raises: InvalidStateRequested (HTTP 400) if the requested target
-                 state is not valid.
+        :raises: InvalidStateRequested (HTTP 400) if the requested transition
+                 is not possible from the current state.
+        :raises: NotAcceptable (HTTP 406) if the API version specified does
+                 not allow the requested state transition.
         """
+        check_allow_management_verbs(target)
         rpc_node = objects.Node.get_by_uuid(pecan.request.context, node_uuid)
         topic = pecan.request.rpcapi.get_topic_for(rpc_node)
 
-        if target == rpc_node.provision_state:
-            msg = (_("Node %(node)s is already in the '%(state)s' state.") %
-                   {'node': rpc_node['uuid'], 'state': target})
-            raise wsme.exc.ClientSideError(msg, status_code=400)
+        # Normally, we let the task manager recognize and deal with
+        # NodeLocked exceptions. However, that isn't done until the RPC calls
+        # below. In order to main backward compatibility with our API HTTP
+        # response codes, we have this check here to deal with cases where
+        # a node is already being operated on (DEPLOYING or such) and we
+        # want to continue returning 409. Without it, we'd return 400.
+        if rpc_node.reservation:
+            raise exception.NodeLocked(node=rpc_node.uuid,
+                                       host=rpc_node.reservation)
 
-        if target not in (ir_states.ACTIVE, ir_states.DELETED,
-                          ir_states.REBUILD):
-            raise exception.InvalidStateRequested(state=target, node=node_uuid)
-
-        valid_states_if_processing = [ir_states.DEPLOYFAIL]
-        if target == ir_states.DELETED:
-            valid_states_if_processing.append(ir_states.DEPLOYWAIT)
-
-        if (rpc_node.target_provision_state is not None and
-                rpc_node.provision_state not in valid_states_if_processing):
-            msg = (_('Node %s is already being provisioned or decommissioned.')
-                   % rpc_node.uuid)
-            raise wsme.exc.ClientSideError(msg, status_code=409)  # Conflict
+        m = ir_states.machine.copy()
+        m.initialize(rpc_node.provision_state)
+        if not m.is_valid_event(ir_states.VERBS.get(target, target)):
+            raise exception.InvalidStateRequested(
+                    action=target, node=node_uuid,
+                    state=rpc_node.provision_state)
 
         if configdrive and target != ir_states.ACTIVE:
             msg = (_('Adding a config drive is only supported when setting '
@@ -384,6 +393,15 @@ class NodeStatesController(rest.RestController):
         elif target == ir_states.DELETED:
             pecan.request.rpcapi.do_node_tear_down(
                     pecan.request.context, node_uuid, topic)
+        elif target in (
+                ir_states.VERBS['manage'], ir_states.VERBS['provide']):
+            pecan.request.rpcapi.do_provisioning_action(
+                    pecan.request.context, node_uuid, target, topic)
+        else:
+            msg = (_('The requested action "%(action)s" could not be '
+                     'understood.') % {'action': target})
+            raise exception.InvalidStateRequested(message=msg)
+
         # Set the HTTP Location Header
         url_args = '/'.join([node_uuid, 'states'])
         pecan.response.location = link.build_url('nodes', url_args)
