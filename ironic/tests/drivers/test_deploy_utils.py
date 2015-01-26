@@ -442,6 +442,62 @@ class PhysicalWorkTestCase(tests_base.TestCase):
         self.assertEqual(root_uuid, returned_root_uuid)
         mock_unlink.assert_called_once_with('configdrive-path')
 
+    @mock.patch.object(common_utils, 'execute')
+    def test_verify_iscsi_connection_raises(self, mock_exec):
+        iqn = 'iqn.xyz'
+        mock_exec.return_value = ['iqn.abc', '']
+        self.assertRaises(exception.InstanceDeployFailure,
+                utils.verify_iscsi_connection, iqn)
+        self.assertTrue(mock_exec.called)
+
+    @mock.patch.object(common_utils, 'execute')
+    def test_verify_iscsi_connection(self, mock_exec):
+        iqn = 'iqn.xyz'
+        mock_exec.return_value = ['iqn.xyz', '']
+        utils.verify_iscsi_connection(iqn)
+        mock_exec.assert_called_once_with('iscsiadm',
+                  '-m', 'node',
+                  '-S',
+                  run_as_root=True,
+                  check_exit_code=[0])
+
+    @mock.patch.object(common_utils, 'execute')
+    def test_force_iscsi_lun_update(self, mock_exec):
+        iqn = 'iqn.xyz'
+        utils.force_iscsi_lun_update(iqn)
+        mock_exec.assert_called_once_with('iscsiadm',
+                  '-m', 'node',
+                  '-T', iqn,
+                  '-R',
+                  run_as_root=True,
+                  check_exit_code=[0])
+
+    @mock.patch.object(common_utils, 'execute')
+    @mock.patch.object(utils, 'verify_iscsi_connection')
+    @mock.patch.object(utils, 'force_iscsi_lun_update')
+    def test_login_iscsi_calls_verify_and_update(self,
+                                                 mock_update,
+                                                 mock_verify,
+                                                 mock_exec):
+        address = '127.0.0.1'
+        port = 3306
+        iqn = 'iqn.xyz'
+        mock_exec.return_value = ['iqn.xyz', '']
+        utils.login_iscsi(address, port, iqn)
+        mock_exec.assert_called_once_with('iscsiadm',
+            '-m', 'node',
+            '-p', '%s:%s' % (address, port),
+            '-T', iqn,
+            '--login',
+            run_as_root=True,
+            check_exit_code=[0],
+            attempts=5,
+            delay_on_retry=True)
+
+        mock_verify.assert_called_once_with(iqn)
+
+        mock_update.assert_called_once_with(iqn)
+
     def test_always_logout_and_delete_iscsi(self):
         """Check if logout_iscsi() and delete_iscsi() are called.
 

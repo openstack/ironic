@@ -48,6 +48,9 @@ deploy_opts = [
     cfg.StrOpt('dd_block_size',
                default='1M',
                help='Block size to use when writing to the nodes disk.'),
+    cfg.IntOpt('iscsi_verify_attempts',
+               default=3,
+               help='Max attempts to verify a iSCSI connection is active.'),
     ]
 
 CONF = cfg.CONF
@@ -83,7 +86,44 @@ def login_iscsi(portal_address, portal_port, target_iqn):
                   attempts=5,
                   delay_on_retry=True)
     # Ensure the login complete
-    time.sleep(3)
+    verify_iscsi_connection(target_iqn)
+    # force iSCSI initiator to re-read luns
+    force_iscsi_lun_update(target_iqn)
+
+
+def verify_iscsi_connection(target_iqn):
+    """Verify iscsi connection."""
+    LOG.debug("Checking for iSCSI target to become active.")
+
+    for attempt in range(CONF.deploy.iscsi_verify_attempts):
+        out, _err = utils.execute('iscsiadm',
+                  '-m', 'node',
+                  '-S',
+                  run_as_root=True,
+                  check_exit_code=[0])
+        if target_iqn in out:
+            break
+        time.sleep(1)
+        LOG.debug("iSCSI connection not active. Rechecking. Attempt "
+                  "%(attempt)d out of %(total)d", {"attempt": attempt,
+                  "total": CONF.deploy.iscsi_verify_attempts})
+    else:
+        msg = _("Max attempts to verify a iSCSI connection is active reached "
+                "and the connection didn't become active.")
+        LOG.error(msg)
+        raise exception.InstanceDeployFailure(msg)
+
+
+def force_iscsi_lun_update(target_iqn):
+    """force iSCSI initiator to re-read luns."""
+    LOG.debug("Re-reading iSCSI luns.")
+
+    utils.execute('iscsiadm',
+                  '-m', 'node',
+                  '-T', target_iqn,
+                  '-R',
+                  run_as_root=True,
+                  check_exit_code=[0])
 
 
 def logout_iscsi(portal_address, portal_port, target_iqn):
@@ -134,24 +174,31 @@ def make_partitions(dev, root_mb, swap_mb, ephemeral_mb,
         path as Value for the partitions created by this method.
 
     """
+    LOG.debug("Starting to partition the disk device: %(dev)s",
+              {'dev': dev})
     part_template = dev + '-part%d'
     part_dict = {}
     dp = disk_partitioner.DiskPartitioner(dev)
     if ephemeral_mb:
+        LOG.debug("Add epheneral partition to device: %(dev)s",
+                 {'dev': dev})
         part_num = dp.add_partition(ephemeral_mb)
         part_dict['ephemeral'] = part_template % part_num
-
     if swap_mb:
+        LOG.debug("Add Swap partition to device: %(dev)s",
+                 {'dev': dev})
         part_num = dp.add_partition(swap_mb, fs_type='linux-swap')
         part_dict['swap'] = part_template % part_num
-
     if configdrive_mb:
+        LOG.debug("Add config drive partition to device: %(dev)s",
+                 {'dev': dev})
         part_num = dp.add_partition(configdrive_mb)
         part_dict['configdrive'] = part_template % part_num
 
     # NOTE(lucasagomes): Make the root partition the last partition. This
     # enables tools like cloud-init's growroot utility to expand the root
     # partition until the end of the disk.
+    LOG.debug("Add root partition to device: %(dev)s", {'dev': dev})
     part_num = dp.add_partition(root_mb)
     part_dict['root'] = part_template % part_num
 
@@ -266,6 +313,8 @@ def destroy_disk_metadata(dev, node_uuid):
     """
     # NOTE(NobodyCam): This is needed to work around bug:
     # https://bugs.launchpad.net/ironic/+bug/1317647
+    LOG.debug("Start destroy disk metadata for node %(node)s.",
+              {'node': node_uuid})
     try:
         utils.execute('dd', 'if=/dev/zero', 'of=%s' % dev,
                       'bs=512', 'count=36', run_as_root=True,
@@ -418,6 +467,9 @@ def work_on_disk(dev, root_mb, swap_mb, ephemeral_mb, ephemeral_format,
 
         for part in ('swap', 'ephemeral', 'configdrive'):
             part_device = part_dict.get(part)
+            LOG.debug("checking for %(part)s device (%(dev)s) on node "
+                      "%(node)s.", {'part': part, 'dev': part_device,
+                      'node': node_uuid})
             if part_device and not is_block_device(part_device):
                 raise exception.InstanceDeployFailure(
                     _("'%(partition)s' device '%(part_device)s' not found") %

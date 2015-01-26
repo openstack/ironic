@@ -526,6 +526,7 @@ def dd(src, dst, *args):
     :raises: processutils.ProcessExecutionError if it failed
         to run the process.
     """
+    LOG.debug("Starting dd process.")
     execute('dd', 'if=%s' % src, 'of=%s' % dst, *args,
             run_as_root=True, check_exit_code=[0])
 

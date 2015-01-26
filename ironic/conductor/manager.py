@@ -645,6 +645,8 @@ class ConductorManager(periodic_task.PeriodicTasks):
             else:
                 event = 'deploy'
 
+            LOG.debug("do_node_deploy Calling event: %(event)s for node: "
+                      "%(node)s", {'event': event, 'node': node.uuid})
             try:
                 task.process_event(event,
                                    callback=self._spawn_worker,
