@@ -527,6 +527,14 @@ class ConductorManager(periodic_task.PeriodicTasks):
             previous_prov_state = node.provision_state
             previous_tgt_provision_state = node.target_provision_state
 
+            if rebuild:
+                # Note(gilliard) Clear these to force the driver to
+                # check whether they have been changed in glance
+                instance_info = node.instance_info
+                instance_info.pop('kernel', None)
+                instance_info.pop('ramdisk', None)
+                node.instance_info = instance_info
+
             # Set target state to expose that work is in progress
             node.provision_state = states.DEPLOYING
             node.target_provision_state = states.DEPLOYDONE
