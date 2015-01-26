@@ -444,16 +444,15 @@ them to Glance service:
 
 .. _script: https://github.com/openstack/tripleo-incubator/blob/master/scripts/install-dependencies
 
-   - Clone the project and run the subsequent commands from the project
-     directory::
+   - Install diskimage-builder package (use virtualenv, if you don't
+     want to install anything globally)::
 
-       git clone https://github.com/openstack/diskimage-builder.git
-       cd diskimage-builder
+       sudo pip install diskimage-builder
 
    - Build the image your users will run (Ubuntu image has been taken as
      an example)::
 
-       bin/disk-image-create ubuntu baremetal -o my-image
+       disk-image-create ubuntu baremetal -o my-image
 
      The above command creates *my-image.qcow2*, *my-image.vmlinuz* and
      *my-image.initrd* files. If you want to use Fedora image, replace
@@ -464,7 +463,7 @@ them to Glance service:
 
    - Build the deploy image::
 
-       bin/ramdisk-image-create ubuntu deploy-ironic \
+       ramdisk-image-create ubuntu deploy-ironic \
        -o my-deploy-ramdisk
 
      The above command creates *my-deploy-ramdisk.kernel* and
