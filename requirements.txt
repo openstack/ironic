@@ -4,7 +4,7 @@
 pbr>=0.6,!=0.7,<1.0
 SQLAlchemy>=0.9.7,<=0.9.99
 alembic>=0.7.1
-eventlet>=0.15.2
+eventlet>=0.16.1
 lxml>=2.3
 WebOb>=1.2.3
 greenlet>=0.3.2
