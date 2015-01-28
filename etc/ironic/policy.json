@@ -1,4 +1,5 @@
 {
     "admin_api": "role:admin or role:administrator",
+    "show_password": "!",
     "default": "rule:admin_api"
 }

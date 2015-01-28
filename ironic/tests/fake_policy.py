@@ -18,7 +18,8 @@ policy_data = """
     "admin_api": "role:admin or role:administrator",
     "public_api": "is_public_api:True",
     "trusted_call": "rule:admin_api or rule:public_api",
-    "default": "rule:trusted_call"
+    "default": "rule:trusted_call",
+    "show_password": "tenant:admin"
 }
 """
 

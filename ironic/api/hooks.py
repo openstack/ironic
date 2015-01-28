@@ -82,10 +82,12 @@ class ContextHook(hooks.PecanHook):
         is_admin = (policy.enforce('admin_api', creds, creds) or
                     policy.enforce('admin', creds, creds))
         is_public_api = state.request.environ.get('is_public_api', False)
+        show_password = policy.enforce('show_password', creds, creds)
 
         state.request.context = context.RequestContext(
             is_admin=is_admin,
             is_public_api=is_public_api,
+            show_password=show_password,
             **creds)
 
 

@@ -123,6 +123,8 @@ class TestListNodes(test_api_base.FunctionalTest):
         self.assertEqual(node.uuid, data['uuid'])
         self.assertIn('driver', data)
         self.assertIn('driver_info', data)
+        self.assertEqual('******', data['driver_info']['fake_password'])
+        self.assertEqual('bar', data['driver_info']['foo'])
         self.assertIn('driver_internal_info', data)
         self.assertIn('extra', data)
         self.assertIn('properties', data)

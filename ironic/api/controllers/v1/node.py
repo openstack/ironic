@@ -13,6 +13,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import ast
 import datetime
 
 from oslo.config import cfg
@@ -34,6 +35,7 @@ from ironic.common import states as ir_states
 from ironic.common import utils
 from ironic import objects
 from ironic.openstack.common import log
+from ironic.openstack.common import strutils
 
 
 CONF = cfg.CONF
@@ -512,12 +514,16 @@ class Node(base.APIBase):
         setattr(self, 'chassis_uuid', kwargs.get('chassis_id', wtypes.Unset))
 
     @staticmethod
-    def _convert_with_links(node, url, expand=True):
+    def _convert_with_links(node, url, expand=True, show_password=True):
         if not expand:
             except_list = ['instance_uuid', 'maintenance', 'power_state',
                            'provision_state', 'uuid']
             node.unset_fields_except(except_list)
         else:
+            if not show_password:
+                node.driver_info = ast.literal_eval(strutils.mask_password(
+                                                    node.driver_info,
+                                                    "******"))
             node.ports = [link.Link.make_link('self', url, 'nodes',
                                               node.uuid + "/ports"),
                           link.Link.make_link('bookmark', url, 'nodes',
@@ -542,7 +548,8 @@ class Node(base.APIBase):
         assert_juno_provision_state_name(node)
         hide_driver_internal_info(node)
         return cls._convert_with_links(node, pecan.request.host_url,
-                                       expand)
+                                       expand,
+                                       pecan.request.context.show_password)
 
     @classmethod
     def sample(cls, expand=True):

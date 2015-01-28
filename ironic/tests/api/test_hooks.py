@@ -54,9 +54,11 @@ class FakeRequestState(object):
         is_admin = ('admin' in creds['roles'] or
                     'administrator' in creds['roles'])
         is_public_api = self.request.environ.get('is_public_api', False)
+        show_password = ('admin' in creds['tenant'])
 
         self.request.context = context.RequestContext(
-            is_admin=is_admin, is_public_api=is_public_api, **creds)
+            is_admin=is_admin, is_public_api=is_public_api,
+            show_password=show_password, **creds)
 
 
 def fake_headers(admin=False):
@@ -85,6 +87,8 @@ def fake_headers(admin=False):
             'X-Project-Name': 'admin',
             'X-Role': '_member_,admin',
             'X-Roles': '_member_,admin',
+            'X-Tenant': 'admin',
+            'X-Tenant-Name': 'admin',
         })
     else:
         headers.update({
@@ -183,6 +187,7 @@ class TestContextHook(base.FunctionalTest):
             domain_id=headers['X-User-Domain-Id'],
             domain_name=headers['X-User-Domain-Name'],
             is_public_api=False,
+            show_password=False,
             is_admin=False,
             roles=headers['X-Roles'].split(','))
 
@@ -199,6 +204,7 @@ class TestContextHook(base.FunctionalTest):
             domain_id=headers['X-User-Domain-Id'],
             domain_name=headers['X-User-Domain-Name'],
             is_public_api=False,
+            show_password=True,
             is_admin=True,
             roles=headers['X-Roles'].split(','))
 
@@ -216,6 +222,7 @@ class TestContextHook(base.FunctionalTest):
             domain_id=headers['X-User-Domain-Id'],
             domain_name=headers['X-User-Domain-Name'],
             is_public_api=True,
+            show_password=True,
             is_admin=True,
             roles=headers['X-Roles'].split(','))
 
@@ -225,6 +232,42 @@ class TestContextHookCompatJuno(TestContextHook):
         super(TestContextHookCompatJuno, self).setUp()
         self.policy = self.useFixture(
             policy_fixture.PolicyFixture(compat='juno'))
+
+    # override two cases because Juno has no "show_password" policy
+    @mock.patch.object(context, 'RequestContext')
+    def test_context_hook_admin(self, mock_ctx):
+        headers = fake_headers(admin=True)
+        reqstate = FakeRequestState(headers=headers)
+        context_hook = hooks.ContextHook(None)
+        context_hook.before(reqstate)
+        mock_ctx.assert_called_with(
+            auth_token=headers['X-Auth-Token'],
+            user=headers['X-User'],
+            tenant=headers['X-Tenant'],
+            domain_id=headers['X-User-Domain-Id'],
+            domain_name=headers['X-User-Domain-Name'],
+            is_public_api=False,
+            show_password=False,
+            is_admin=True,
+            roles=headers['X-Roles'].split(','))
+
+    @mock.patch.object(context, 'RequestContext')
+    def test_context_hook_public_api(self, mock_ctx):
+        headers = fake_headers(admin=True)
+        env = {'is_public_api': True}
+        reqstate = FakeRequestState(headers=headers, environ=env)
+        context_hook = hooks.ContextHook(None)
+        context_hook.before(reqstate)
+        mock_ctx.assert_called_with(
+            auth_token=headers['X-Auth-Token'],
+            user=headers['X-User'],
+            tenant=headers['X-Tenant'],
+            domain_id=headers['X-User-Domain-Id'],
+            domain_name=headers['X-User-Domain-Name'],
+            is_public_api=True,
+            show_password=False,
+            is_admin=True,
+            roles=headers['X-Roles'].split(','))
 
 
 class TestTrustedCallHook(base.FunctionalTest):
