@@ -303,17 +303,24 @@ def converted_size(path):
     return data.virtual_size
 
 
-def get_glance_image_property(context, image_uuid, property):
-    """Returns the value of a glance image property.
+def get_glance_image_properties(context, image_uuid, properties="all"):
+    """Returns the values of several properties of a glance image
 
     :param context: context
     :param image_uuid: the UUID of the image in glance
-    :param property: the property whose value is required.
-    :returns: the value of the property if it exists, otherwise None.
+    :param properties: the properties whose values are required.
+        This argument is optional, default value is "all", so if not specified
+        all properties will be returned.
+    :returns: a dict of the values of the properties. A property not on the
+        glance metadata will have a value of None.
     """
     glance_service = service.Service(version=1, context=context)
     iproperties = glance_service.show(image_uuid)['properties']
-    return iproperties.get(property)
+
+    if properties == "all":
+        return iproperties
+
+    return {p: iproperties.get(p) for p in properties}
 
 
 def get_temp_url_for_glance_image(context, image_uuid):
