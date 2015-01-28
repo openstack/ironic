@@ -87,3 +87,44 @@ SeaMicro driver
   :maxdepth: 1
 
   ../drivers/seamicro
+
+iRMC
+----
+
+The iRMC driver enables PXE Deploy to control power via ServerView Common
+Command Interface (SCCI).
+
+
+Software Requirements
+^^^^^^^^^^^^^^^^^^^^^
+
+- Install `python-scciclient package <https://pypi.python.org/pypi/python-scciclient>`_
+
+Enabling the iRMC Driver
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+- Add ``pxe_irmc`` to the list of ``enabled_drivers in``
+  ``/etc/ironic/ironic.conf``
+- Ironic Conductor must be restarted for the new driver to be loaded.
+
+Ironic Node Configuration
+^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Nodes are configured for iRMC with PXE Deploy by setting the Ironic node
+object's ``driver`` property to be ``pxe_irmc``.  Further configuration values
+are added to ``driver_info``:
+
+- ``irmc_address``: hostname or IP of iRMC
+- ``irmc_username``: username for iRMC with administrator privileges
+- ``irmc_password``: password for irmc_username
+- ``irmc_port``: port number of iRMC (optional, either 80 or 443. defalut 443)
+- ``irmc_auth_method``: authentication method for iRMC (optional, either
+  'basic' or 'digest'. default is 'basic')
+
+Supported Platforms
+^^^^^^^^^^^^^^^^^^^
+This driver supports FUJITSU PRIMERGY BX S4 or RX S8 servers and above.
+
+- PRIMERGY BX920 S4
+- PRIMERGY BX924 S4
+- PRIMERGY RX300 S8

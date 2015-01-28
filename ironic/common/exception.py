@@ -501,3 +501,7 @@ class SNMPFailure(IronicException):
 class FileSystemNotSupported(IronicException):
     message = _("Failed to create a file system. "
                 "File system %(fs)s is not supported.")
+
+
+class IRMCOperationError(IronicException):
+    message = _('iRMC %(operation)s failed. Reason: %(error)s')

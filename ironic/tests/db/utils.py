@@ -104,6 +104,16 @@ def get_test_drac_info():
     }
 
 
+def get_test_irmc_info():
+    return {
+        "irmc_address": "1.2.3.4",
+        "irmc_username": "admin0",
+        "irmc_password": "fake0",
+        "irmc_port": 80,
+        "irmc_auth_method": "digest",
+    }
+
+
 def get_test_agent_instance_info():
     return {
         'image_source': 'fake-image',
