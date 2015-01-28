@@ -33,11 +33,13 @@ class FakeRequest(object):
         self.headers = headers
         self.context = context
         self.environ = environ or {}
+        self.version = (1, 0)
 
 
 class FakeRequestState(object):
     def __init__(self, headers=None, context=None, environ=None):
         self.request = FakeRequest(headers, context, environ)
+        self.response = FakeRequest(headers, context, environ)
 
     def set_context(self):
         headers = self.request.headers
@@ -75,7 +77,8 @@ def fake_headers(admin=False):
         'X-User-Domain-Id': 'default',
         'X-User-Domain-Name': 'Default',
         'X-User-Id': '604ab2a197c442c2a84aba66708a9e1e',
-        'X-User-Name': 'foo'
+        'X-User-Name': 'foo',
+        'X-OpenStack-Ironic-API-Version': '1.0'
     }
     if admin:
         headers.update({
