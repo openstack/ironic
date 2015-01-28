@@ -132,8 +132,8 @@ class IloDeployPrivateMethodsTestCase(db_base.DbTestCase):
                                   shared=False) as task:
             boot_iso_actual = ilo_deploy._get_boot_iso(task, 'root-uuid')
             deploy_info_mock.assert_called_once_with(task.node)
-            image_props_mock.assert_any_call(task.context, 'image-uuid',
-                ['boot_iso', 'kernel_id', 'ramdisk_id'])
+            image_props_mock.assert_called_once_with(task.context,
+                'image-uuid', ['boot_iso', 'kernel_id', 'ramdisk_id'])
             boot_object_name_mock.assert_called_once_with(task.node)
             create_boot_iso_mock.assert_called_once_with(task.context,
                     'tmpfile', 'kernel_uuid', 'ramdisk_uuid',
