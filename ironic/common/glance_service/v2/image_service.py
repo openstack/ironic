@@ -69,6 +69,15 @@ glance_opts = [
                     'in glance-api.conf. '
                     'Swift temporary URL format: '
                     '"endpoint_url/api_version/account/container/object_id"'),
+    cfg.IntOpt('swift_store_multiple_containers_seed',
+               default=0,
+               help='This should match a config by the same name in the '
+                    'Glance configuration file. When set to 0, a '
+                    'single-tenant store will only use one '
+                    'container to store all images. When set to an integer '
+                    'value between 1 and 32, a single-tenant store will use '
+                    'multiple containers to store images, and this value '
+                    'will determine how many containers are created.'),
 ]
 
 CONF = cfg.CONF
@@ -135,7 +144,7 @@ class GlanceImageService(base_image_service.BaseImageService,
             'endpoint_url': CONF.glance.swift_endpoint_url,
             'api_version': CONF.glance.swift_api_version,
             'account': CONF.glance.swift_account,
-            'container': CONF.glance.swift_container,
+            'container': self._get_swift_container(image_info['id']),
             'object_id': image_info['id']
         }
 
@@ -167,6 +176,46 @@ class GlanceImageService(base_image_service.BaseImageService,
         if CONF.glance.swift_temp_url_duration < 0:
             raise exc.InvalidParameterValue(_(
                 '"swift_temp_url_duration" must be a positive integer.'))
+        seed_num_chars = CONF.glance.swift_store_multiple_containers_seed
+        if (seed_num_chars is None or seed_num_chars < 0
+                or seed_num_chars > 32):
+            raise exc.InvalidParameterValue(_(
+                "An integer value between 0 and 32 is required for"
+                " swift_store_multiple_containers_seed."))
+
+    def _get_swift_container(self, image_id):
+        """Get the Swift container the image is stored in.
+
+        Code based on: https://github.com/openstack/glance_store/blob/3cd690b3
+        7dc9d935445aca0998e8aec34a3e3530/glance_store/
+        _drivers/swift/store.py#L725
+
+        Returns appropriate container name depending upon value of
+        ``swift_store_multiple_containers_seed``. In single-container mode,
+        which is a seed value of 0, simply returns ``swift_container``.
+        In multiple-container mode, returns ``swift_container`` as the
+        prefix plus a suffix determined by the multiple container seed
+
+        examples:
+            single-container mode:  'glance'
+            multiple-container mode: 'glance_3a1' for image uuid 3A1xxxxxxx...
+
+        :param image_id: UUID of image
+        :returns: The name of the swift container the image is stored in
+        """
+        seed_num_chars = CONF.glance.swift_store_multiple_containers_seed
+
+        if seed_num_chars > 0:
+            image_id = str(image_id).lower()
+
+            num_dashes = image_id[:seed_num_chars].count('-')
+            num_chars = seed_num_chars + num_dashes
+            name_suffix = image_id[:num_chars]
+            new_container_name = (CONF.glance.swift_container +
+                                  '_' + name_suffix)
+            return new_container_name
+        else:
+            return CONF.glance.swift_container
 
     def _get_location(self, image_id):
         """Get storage URL.
