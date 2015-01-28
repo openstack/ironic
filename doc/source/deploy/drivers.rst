@@ -10,7 +10,8 @@ DRAC
 DRAC with PXE deploy
 ^^^^^^^^^^^^^^^^^^^^
 
-- Add ``pxe_drac`` to the list of ``enabled_drivers in`` ``/etc/ironic/ironic.conf``
+- Add ``pxe_drac`` to the list of ``enabled_drivers in``
+  ``/etc/ironic/ironic.conf``
 - Install openwsman-python package
 
 SNMP
@@ -40,7 +41,8 @@ Software Requirements
 Enabling the SNMP Power Driver
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-- Add ``pxe_snmp`` to the list of ``enabled_drivers`` in ``/etc/ironic/ironic.conf``
+- Add ``pxe_snmp`` to the list of ``enabled_drivers`` in
+  ``/etc/ironic/ironic.conf``
 - Ironic Conductor must be restarted for the new driver to be loaded.
 
 Ironic Node Configuration
@@ -55,7 +57,8 @@ added to ``driver_info``:
   If not specified, the default port (161) is used.
 - ``snmp_outlet``: The power outlet on the PDU (1-based indexing).
 - ``snmp_protocol``: (optional) SNMP protocol version
-  (permitted values ``1``, ``2c`` or ``3``). If not specified, SNMPv1 is chosen.
+  (permitted values ``1``, ``2c`` or ``3``). If not specified, SNMPv1
+  is chosen.
 - ``snmp_community``: (Required for SNMPv1 and SNMPv2c) SNMP community
   parameter for reads and writes to the PDU.
 - ``snmp_security``: (Required for SNMPv3) SNMP security string.
