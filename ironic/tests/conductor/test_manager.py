@@ -31,6 +31,7 @@ from ironic.common import driver_factory
 from ironic.common import exception
 from ironic.common import keystone
 from ironic.common import states
+from ironic.common import swift
 from ironic.common import utils as ironic_utils
 from ironic.conductor import manager
 from ironic.conductor import task_manager
@@ -969,8 +970,9 @@ class DoNodeDeployTearDownTestCase(_ServiceSetUpMixin,
         self.assertIsNotNone(node.last_error)
         mock_deploy.assert_called_once_with(mock.ANY)
 
+    @mock.patch.object(manager, '_store_configdrive')
     @mock.patch('ironic.drivers.modules.fake.FakeDeploy.deploy')
-    def test__do_node_deploy_ok(self, mock_deploy):
+    def test__do_node_deploy_ok(self, mock_deploy, mock_store):
         self._start_service()
         # test when driver.deploy.deploy returns DEPLOYDONE
         mock_deploy.return_value = states.DEPLOYDONE
@@ -985,6 +987,53 @@ class DoNodeDeployTearDownTestCase(_ServiceSetUpMixin,
         self.assertEqual(states.NOSTATE, node.target_provision_state)
         self.assertIsNone(node.last_error)
         mock_deploy.assert_called_once_with(mock.ANY)
+        # assert _store_configdrive wasn't invoked
+        self.assertFalse(mock_store.called)
+
+    @mock.patch.object(manager, '_store_configdrive')
+    @mock.patch('ironic.drivers.modules.fake.FakeDeploy.deploy')
+    def test__do_node_deploy_ok_configdrive(self, mock_deploy, mock_store):
+        self._start_service()
+        # test when driver.deploy.deploy returns DEPLOYDONE
+        mock_deploy.return_value = states.DEPLOYDONE
+        node = obj_utils.create_test_node(self.context, driver='fake',
+                                          provision_state=states.DEPLOYING,
+                                          target_provision_state=states.ACTIVE)
+        task = task_manager.TaskManager(self.context, node.uuid)
+        configdrive = 'foo'
+
+        manager.do_node_deploy(task, self.service.conductor.id,
+                               configdrive=configdrive)
+        node.refresh()
+        self.assertEqual(states.ACTIVE, node.provision_state)
+        self.assertEqual(states.NOSTATE, node.target_provision_state)
+        self.assertIsNone(node.last_error)
+        mock_deploy.assert_called_once_with(mock.ANY)
+        mock_store.assert_called_once_with(task.node, configdrive)
+
+    @mock.patch.object(swift, 'SwiftAPI')
+    @mock.patch('ironic.drivers.modules.fake.FakeDeploy.deploy')
+    def test__do_node_deploy_configdrive_swift_error(self, mock_deploy,
+                                                     mock_swift):
+        CONF.set_override('configdrive_use_swift', True, group='conductor')
+        self._start_service()
+        # test when driver.deploy.deploy returns DEPLOYDONE
+        mock_deploy.return_value = states.DEPLOYDONE
+        node = obj_utils.create_test_node(self.context, driver='fake',
+                                          provision_state=states.DEPLOYING,
+                                          target_provision_state=states.ACTIVE)
+        task = task_manager.TaskManager(self.context, node.uuid)
+
+        mock_swift.side_effect = exception.SwiftOperationError('error')
+        self.assertRaises(exception.SwiftOperationError,
+                           manager.do_node_deploy, task,
+                           self.service.conductor.id,
+                           configdrive='fake config drive')
+        node.refresh()
+        self.assertEqual(states.DEPLOYFAIL, node.provision_state)
+        self.assertEqual(states.ACTIVE, node.target_provision_state)
+        self.assertIsNotNone(node.last_error)
+        self.assertFalse(mock_deploy.called)
 
     @mock.patch('ironic.drivers.modules.fake.FakeDeploy.deploy')
     def test__do_node_deploy_ok_2(self, mock_deploy):
@@ -1022,7 +1071,8 @@ class DoNodeDeployTearDownTestCase(_ServiceSetUpMixin,
             self.assertIsNone(node.last_error)
             # Verify reservation has been cleared.
             self.assertIsNone(node.reservation)
-            mock_spawn.assert_called_once_with(mock.ANY, mock.ANY, mock.ANY)
+            mock_spawn.assert_called_once_with(mock.ANY, mock.ANY,
+                                               mock.ANY, None)
 
     @mock.patch('ironic.drivers.modules.fake.FakeDeploy.deploy')
     def test_do_node_deploy_rebuild_active_state(self, mock_deploy):
@@ -2839,3 +2889,43 @@ class ManagerSyncLocalStateTestCase(_CommonMixIn, tests_db_base.DbTestCase):
         self.task.spawn_after.assert_called_once_with(
                 self.service._spawn_worker,
                 self.service._do_takeover, self.task)
+
+
+@mock.patch.object(swift, 'SwiftAPI')
+class StoreConfigDriveTestCase(tests_base.TestCase):
+
+    def setUp(self):
+        super(StoreConfigDriveTestCase, self).setUp()
+        self.node = obj_utils.get_test_node(self.context, driver='fake',
+                                            instance_info=None)
+
+    def test_store_configdrive(self, mock_swift):
+        manager._store_configdrive(self.node, 'foo')
+        expected_instance_info = {'configdrive': 'foo'}
+        self.assertEqual(expected_instance_info, self.node.instance_info)
+        self.assertFalse(mock_swift.called)
+
+    def test_store_configdrive_swift(self, mock_swift):
+        container_name = 'foo_container'
+        timeout = 123
+        expected_obj_name = 'configdrive-%s' % self.node.uuid
+        expected_obj_header = {'X-Delete-After': timeout}
+        expected_instance_info = {'configdrive': 'http://1.2.3.4'}
+
+        # set configs and mocks
+        CONF.set_override('configdrive_use_swift', True, group='conductor')
+        CONF.set_override('configdrive_swift_container', container_name,
+                          group='conductor')
+        CONF.set_override('deploy_callback_timeout', timeout,
+                          group='conductor')
+        mock_swift.return_value.get_temp_url.return_value = 'http://1.2.3.4'
+
+        manager._store_configdrive(self.node, 'foo')
+
+        mock_swift.assert_called_once_with()
+        mock_swift.return_value.create_object.assert_called_once_with(
+            container_name, expected_obj_name, mock.ANY,
+            object_headers=expected_obj_header)
+        mock_swift.return_value.get_temp_url(container_name,
+            expected_obj_name, timeout)
+        self.assertEqual(expected_instance_info, self.node.instance_info)

@@ -43,6 +43,7 @@ a change, etc.
 
 import collections
 import datetime
+import tempfile
 import threading
 
 import eventlet
@@ -65,6 +66,7 @@ from ironic.common.i18n import _LW
 from ironic.common import keystone
 from ironic.common import rpc
 from ironic.common import states
+from ironic.common import swift
 from ironic.common import utils as ironic_utils
 from ironic.conductor import task_manager
 from ironic.conductor import utils
@@ -152,6 +154,12 @@ conductor_opts = [
                         'conductor will check for nodes that it should '
                         '"take over". Set it to a negative value to disable '
                         'the check entirely.'),
+        cfg.BoolOpt('configdrive_use_swift',
+                    default=False,
+                    help='Whether upload the config drive to Swift.'),
+        cfg.StrOpt('configdrive_swift_container',
+                   default='ironic_configdrive_container',
+                   help='The Swift config drive container to store data.'),
 ]
 
 CONF = cfg.CONF
@@ -162,7 +170,7 @@ class ConductorManager(periodic_task.PeriodicTasks):
     """Ironic Conductor manager main class."""
 
     # NOTE(rloo): This must be in sync with rpcapi.ConductorAPI's.
-    RPC_API_VERSION = '1.21'
+    RPC_API_VERSION = '1.22'
 
     target = messaging.Target(version=RPC_API_VERSION)
 
@@ -593,7 +601,8 @@ class ConductorManager(periodic_task.PeriodicTasks):
                                    exception.InstanceDeployFailure,
                                    exception.InvalidParameterValue,
                                    exception.MissingParameterValue)
-    def do_node_deploy(self, context, node_id, rebuild=False):
+    def do_node_deploy(self, context, node_id, rebuild=False,
+                       configdrive=None):
         """RPC method to initiate deployment to a node.
 
         Initiate the deployment of a node. Validations are done
@@ -606,6 +615,7 @@ class ConductorManager(periodic_task.PeriodicTasks):
                         recreate the instance on the same node, overwriting
                         all disk. The ephemeral partition, if it exists, can
                         optionally be preserved.
+        :param configdrive: Optional. A gzipped and base64 encoded configdrive.
         :raises: InstanceDeployFailure
         :raises: NodeInMaintenance if the node is in maintenance mode.
         :raises: NoFreeConductorWorker when there is no free worker to start
@@ -649,7 +659,8 @@ class ConductorManager(periodic_task.PeriodicTasks):
                 task.process_event(event,
                                    callback=self._spawn_worker,
                                    call_args=(do_node_deploy, task,
-                                              self.conductor.id),
+                                              self.conductor.id,
+                                              configdrive),
                                    err_handler=provisioning_error_handler)
             except exception.InvalidState:
                 raise exception.InstanceDeployFailure(_(
@@ -1345,16 +1356,70 @@ def provisioning_error_handler(e, node, provision_state,
                      'tgt_prov_state': target_provision_state})
 
 
-def do_node_deploy(task, conductor_id):
+def _get_configdrive_obj_name(node):
+    """Generate the object name for the config drive."""
+    return 'configdrive-%s' % node.uuid
+
+
+def _store_configdrive(node, configdrive):
+    """Handle the storage of the config drive.
+
+    Whether update the Node's instance_info with the config driver
+    directly or upload it to Swift first and update the Node with an
+    temp URL pointing to the Swift object.
+
+    :param node: an Ironic node object.
+    :param configdrive: A gzipped and base64 encoded configdrive.
+    :raises: SwiftOperationError if an error occur when uploading the
+             config drive to Swift.
+
+    """
+    if CONF.conductor.configdrive_use_swift:
+        # NOTE(lucasagomes): No reason to use a different timeout than
+        # the one used for deploying the node
+        timeout = CONF.conductor.deploy_callback_timeout
+        container = CONF.conductor.configdrive_swift_container
+        object_name = _get_configdrive_obj_name(node)
+
+        object_headers = {'X-Delete-After': timeout}
+
+        with tempfile.NamedTemporaryFile() as fileobj:
+            fileobj.write(configdrive)
+            fileobj.flush()
+
+            swift_api = swift.SwiftAPI()
+            swift_api.create_object(container, object_name, fileobj.name,
+                                    object_headers=object_headers)
+            configdrive = swift_api.get_temp_url(container, object_name,
+                                                 timeout)
+
+    i_info = node.instance_info
+    i_info['configdrive'] = configdrive
+    node.instance_info = i_info
+
+
+def do_node_deploy(task, conductor_id, configdrive=None):
     """Prepare the environment and deploy a node."""
     node = task.node
+
+    def handle_failure(e, task, logmsg, errmsg):
+        # NOTE(deva): there is no need to clear conductor_affinity
+        task.process_event('fail')
+        args = {'node': task.node.uuid, 'err': e}
+        LOG.warning(logmsg, args)
+        node.last_error = errmsg % e
+
     try:
-        def handle_failure(e, task, logmsg, errmsg):
-            # NOTE(deva): there is no need to clear conductor_affinity
-            task.process_event('fail')
-            args = {'node': task.node.uuid, 'err': e}
-            LOG.warning(logmsg, args)
-            node.last_error = errmsg % e
+        try:
+            if configdrive:
+                _store_configdrive(node, configdrive)
+        except exception.SwiftOperationError as e:
+            with excutils.save_and_reraise_exception():
+                handle_failure(e, task,
+                    _LW('Error while uploading the configdrive for '
+                        '%(node)s to Swift'),
+                    _('Failed to upload the configdrive to Swift. '
+                      'Error %s'))
 
         try:
             task.driver.deploy.prepare(task)

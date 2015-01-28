@@ -304,8 +304,9 @@ class NodeStatesController(rest.RestController):
         url_args = '/'.join([node_uuid, 'states'])
         pecan.response.location = link.build_url('nodes', url_args)
 
-    @wsme_pecan.wsexpose(None, types.uuid, wtypes.text, status_code=202)
-    def provision(self, node_uuid, target):
+    @wsme_pecan.wsexpose(None, types.uuid, wtypes.text, wtypes.text,
+                         status_code=202)
+    def provision(self, node_uuid, target, configdrive=None):
         """Asynchronous trigger the provisioning of the node.
 
         This will set the target provision state of the node, and a
@@ -317,6 +318,9 @@ class NodeStatesController(rest.RestController):
 
         :param node_uuid: UUID of a node.
         :param target: The desired provision state of the node.
+        :param configdrive: Optional. A gzipped and base64 encoded
+            configdrive. Only valid when setting provision state
+            to "active".
         :raises: ClientSideError (HTTP 409) if the node is already being
                  provisioned.
         :raises: ClientSideError (HTTP 400) if the node is already in
@@ -346,14 +350,22 @@ class NodeStatesController(rest.RestController):
                    % rpc_node.uuid)
             raise wsme.exc.ClientSideError(msg, status_code=409)  # Conflict
 
+        if configdrive and target != ir_states.ACTIVE:
+            msg = (_('Adding a config drive is only supported when setting '
+                     'provision state to %s') % ir_states.ACTIVE)
+            raise wsme.exc.ClientSideError(msg, status_code=400)
+
         # Note that there is a race condition. The node state(s) could change
         # by the time the RPC call is made and the TaskManager manager gets a
         # lock.
-
-        if target in (ir_states.ACTIVE, ir_states.REBUILD):
-            rebuild = (target == ir_states.REBUILD)
-            pecan.request.rpcapi.do_node_deploy(
-                    pecan.request.context, node_uuid, rebuild, topic)
+        if target == ir_states.ACTIVE:
+            pecan.request.rpcapi.do_node_deploy(pecan.request.context,
+                                                node_uuid, False,
+                                                configdrive, topic)
+        elif target == ir_states.REBUILD:
+            pecan.request.rpcapi.do_node_deploy(pecan.request.context,
+                                                node_uuid, True,
+                                                None, topic)
         elif target == ir_states.DELETED:
             pecan.request.rpcapi.do_node_tear_down(
                     pecan.request.context, node_uuid, topic)
