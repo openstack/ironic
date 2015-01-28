@@ -49,13 +49,13 @@ REQUIRED_PROPERTIES = {
     'irmc_password': _("Password for irmc_username. Required.")
 }
 OPTIONAL_PROPERTIES = {
-    'port': _("Port to be used for irmc operations either 80 or 443. "
-              "Optional. The default value is 443"),
-    'auth_method': _("Authentication method for iRMC operations "
-                     "either 'basic' or 'digest'. "
-                     "Optional. The default value is 'digest'"),
-    'client_timeout': _("Timeout (in seconds) for iRMC operations. "
-                        "Optional. The default value is 60.")
+    'irmc_port': _("Port to be used for iRMC operations; either 80 or 443. "
+                   "The default value is 443. Optional."),
+    'irmc_auth_method': _("Authentication method for iRMC operations; "
+                          "either 'basic' or 'digest'. The default value is "
+                          "'digest'. Optional."),
+    'irmc_client_timeout': _("Timeout (in seconds) for iRMC operations. "
+                             "The default value is 60. Optional.")
 }
 
 COMMON_PROPERTIES = REQUIRED_PROPERTIES.copy()
@@ -85,7 +85,8 @@ def parse_driver_info(node):
 
     req = {key: value for key, value in info.iteritems()
            if key in REQUIRED_PROPERTIES}
-    opt = {'irmc_' + param: info.get('irmc_' + param, CONF.irmc.get(param))
+    # corresponding config names don't have 'irmc_' prefix
+    opt = {param: info.get(param, CONF.irmc.get(param[len('irmc_'):]))
            for param in OPTIONAL_PROPERTIES}
     d_info = dict(list(req.items()) + list(opt.items()))
 
