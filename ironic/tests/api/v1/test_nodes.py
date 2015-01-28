@@ -93,7 +93,8 @@ class TestListNodes(test_api_base.FunctionalTest):
 
     def test_one(self):
         node = obj_utils.create_test_node(self.context)
-        data = self.get_json('/nodes')
+        data = self.get_json('/nodes',
+                 headers={api_base.Version.string: "1.2"})
         self.assertIn('instance_uuid', data['nodes'][0])
         self.assertIn('maintenance', data['nodes'][0])
         self.assertIn('power_state', data['nodes'][0])
@@ -102,6 +103,7 @@ class TestListNodes(test_api_base.FunctionalTest):
         self.assertEqual(node['uuid'], data['nodes'][0]["uuid"])
         self.assertNotIn('driver', data['nodes'][0])
         self.assertNotIn('driver_info', data['nodes'][0])
+        self.assertNotIn('driver_internal_info', data['nodes'][0])
         self.assertNotIn('extra', data['nodes'][0])
         self.assertNotIn('properties', data['nodes'][0])
         self.assertNotIn('chassis_uuid', data['nodes'][0])
@@ -116,10 +118,12 @@ class TestListNodes(test_api_base.FunctionalTest):
 
     def test_get_one(self):
         node = obj_utils.create_test_node(self.context)
-        data = self.get_json('/nodes/%s' % node['uuid'])
+        data = self.get_json('/nodes/%s' % node['uuid'],
+                 headers={api_base.Version.string: "1.2"})
         self.assertEqual(node.uuid, data['uuid'])
         self.assertIn('driver', data)
         self.assertIn('driver_info', data)
+        self.assertIn('driver_internal_info', data)
         self.assertIn('extra', data)
         self.assertIn('properties', data)
         self.assertIn('chassis_uuid', data)
@@ -163,6 +167,17 @@ class TestListNodes(test_api_base.FunctionalTest):
         data = self.get_json('/nodes/%s' % node['uuid'],
                 headers={api_base.Version.string: "1.1"})
         self.assertEqual(states.AVAILABLE, data['provision_state'])
+
+    def test_hide_driver_internal_info(self):
+        node = obj_utils.create_test_node(self.context,
+                                          driver_internal_info={"foo": "bar"})
+        data = self.get_json('/nodes/%s' % node['uuid'],
+                headers={api_base.Version.string: "1.0"})
+        self.assertNotIn('driver_internal_info', data)
+
+        data = self.get_json('/nodes/%s' % node['uuid'],
+                headers={api_base.Version.string: "1.2"})
+        self.assertEqual({"foo": "bar"}, data['driver_internal_info'])
 
     def test_many(self):
         nodes = []

@@ -167,7 +167,8 @@ class JsonPatchType(wtypes.Base):
 
     @staticmethod
     def validate(patch):
-        if patch.path in patch.internal_attrs():
+        _path = '/' + patch.path.split('/')[1]
+        if _path in patch.internal_attrs():
             msg = _("'%s' is an internal attribute and can not be updated")
             raise wsme.exc.ClientSideError(msg % patch.path)
 

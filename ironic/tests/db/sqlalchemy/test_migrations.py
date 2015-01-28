@@ -360,6 +360,13 @@ class MigrationCheckersMixin(object):
             else:
                 self.assertEqual(old, new)
 
+    def _check_bb59b63f55a(self, engine, data):
+        nodes = db_utils.get_table(engine, 'nodes')
+        col_names = [column.name for column in nodes.c]
+        self.assertIn('driver_internal_info', col_names)
+        self.assertIsInstance(nodes.c.driver_internal_info.type,
+                              sqlalchemy.types.TEXT)
+
     def test_upgrade_and_version(self):
         with patch_with_engine(self.engine):
             self.migration_api.upgrade('head')
