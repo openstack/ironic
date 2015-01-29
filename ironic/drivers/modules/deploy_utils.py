@@ -50,7 +50,8 @@ deploy_opts = [
                help='Block size to use when writing to the nodes disk.'),
     cfg.IntOpt('iscsi_verify_attempts',
                default=3,
-               help='Max attempts to verify a iSCSI connection is active.'),
+               help='Maximum attempts to verify an iSCSI connection is '
+                    'active, sleeping 1 second between attempts.'),
     ]
 
 CONF = cfg.CONF
@@ -97,19 +98,19 @@ def verify_iscsi_connection(target_iqn):
 
     for attempt in range(CONF.deploy.iscsi_verify_attempts):
         out, _err = utils.execute('iscsiadm',
-                  '-m', 'node',
-                  '-S',
-                  run_as_root=True,
-                  check_exit_code=[0])
+                                  '-m', 'node',
+                                  '-S',
+                                  run_as_root=True,
+                                  check_exit_code=[0])
         if target_iqn in out:
             break
         time.sleep(1)
         LOG.debug("iSCSI connection not active. Rechecking. Attempt "
-                  "%(attempt)d out of %(total)d", {"attempt": attempt,
+                  "%(attempt)d out of %(total)d", {"attempt": attempt + 1,
                   "total": CONF.deploy.iscsi_verify_attempts})
     else:
-        msg = _("Max attempts to verify a iSCSI connection is active reached "
-                "and the connection didn't become active.")
+        msg = _("iSCSI connection did not become active after attempting to "
+                "verify %d times.") % CONF.deploy.iscsi_verify_attempts
         LOG.error(msg)
         raise exception.InstanceDeployFailure(msg)
 
@@ -180,25 +181,26 @@ def make_partitions(dev, root_mb, swap_mb, ephemeral_mb,
     part_dict = {}
     dp = disk_partitioner.DiskPartitioner(dev)
     if ephemeral_mb:
-        LOG.debug("Add epheneral partition to device: %(dev)s",
-                 {'dev': dev})
+        LOG.debug("Add ephemeral partition (%(size)d MB) to device: %(dev)s",
+                 {'dev': dev, 'size': ephemeral_mb})
         part_num = dp.add_partition(ephemeral_mb)
         part_dict['ephemeral'] = part_template % part_num
     if swap_mb:
-        LOG.debug("Add Swap partition to device: %(dev)s",
-                 {'dev': dev})
+        LOG.debug("Add Swap partition (%(size)d MB) to device: %(dev)s",
+                 {'dev': dev, 'size': swap_mb})
         part_num = dp.add_partition(swap_mb, fs_type='linux-swap')
         part_dict['swap'] = part_template % part_num
     if configdrive_mb:
-        LOG.debug("Add config drive partition to device: %(dev)s",
-                 {'dev': dev})
+        LOG.debug("Add config drive partition (%(size)d MB) to device: "
+                  "%(dev)s", {'dev': dev, 'size': configdrive_mb})
         part_num = dp.add_partition(configdrive_mb)
         part_dict['configdrive'] = part_template % part_num
 
     # NOTE(lucasagomes): Make the root partition the last partition. This
     # enables tools like cloud-init's growroot utility to expand the root
     # partition until the end of the disk.
-    LOG.debug("Add root partition to device: %(dev)s", {'dev': dev})
+    LOG.debug("Add root partition (%(size)d MB) to device: %(dev)s",
+             {'dev': dev, 'size': root_mb})
     part_num = dp.add_partition(root_mb)
     part_dict['root'] = part_template % part_num
 
@@ -467,7 +469,7 @@ def work_on_disk(dev, root_mb, swap_mb, ephemeral_mb, ephemeral_format,
 
         for part in ('swap', 'ephemeral', 'configdrive'):
             part_device = part_dict.get(part)
-            LOG.debug("checking for %(part)s device (%(dev)s) on node "
+            LOG.debug("Checking for %(part)s device (%(dev)s) on node "
                       "%(node)s.", {'part': part, 'dev': part_device,
                       'node': node_uuid})
             if part_device and not is_block_device(part_device):
