@@ -734,6 +734,10 @@
 # value)
 #dd_block_size=1M
 
+# Max attempts to verify a iSCSI connection is active.
+# (integer value)
+#iscsi_verify_attempts=3
+
 
 [dhcp]
 
