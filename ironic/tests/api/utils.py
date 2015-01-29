@@ -79,6 +79,7 @@ def remove_internal(values, internal):
 
 def node_post_data(**kw):
     node = utils.get_test_node(**kw)
+    node.pop('conductor_affinity')
     internal = node_controller.NodePatchType.internal_attrs()
     return remove_internal(node, internal)
 
