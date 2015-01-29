@@ -581,6 +581,13 @@
 # the check entirely. (integer value)
 #sync_local_state_interval=180
 
+# Whether upload the config drive to Swift. (boolean value)
+#configdrive_use_swift=false
+
+# The Swift config drive container to store data. (string
+# value)
+#configdrive_swift_container=ironic_configdrive_container
+
 
 [console]
 
@@ -820,6 +827,15 @@
 # "endpoint_url/api_version/account/container/object_id"
 # (string value)
 #swift_container=glance
+
+# This should match a config by the same name in the Glance
+# configuration file. When set to 0, a single-tenant store
+# will only use one container to store all images. When set to
+# an integer value between 1 and 32, a single-tenant store
+# will use multiple containers to store images, and this value
+# will determine how many containers are created. (integer
+# value)
+#swift_store_multiple_containers_seed=0
 
 
 #

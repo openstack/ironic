@@ -64,11 +64,12 @@ class ConductorAPI(object):
     |           driver_vendor_passthru
     |    1.21 - Added get_node_vendor_passthru_methods and
     |           get_driver_vendor_passthru_methods
+    |    1.22 - Added configdrive parameter to do_node_deploy.
 
     """
 
     # NOTE(rloo): This must be in sync with manager.ConductorManager's.
-    RPC_API_VERSION = '1.21'
+    RPC_API_VERSION = '1.22'
 
     def __init__(self, topic=None):
         super(ConductorAPI, self).__init__()
@@ -260,12 +261,14 @@ class ConductorAPI(object):
         return cctxt.call(context, 'get_driver_vendor_passthru_methods',
                           driver_name=driver_name)
 
-    def do_node_deploy(self, context, node_id, rebuild, topic=None):
+    def do_node_deploy(self, context, node_id, rebuild, configdrive,
+                       topic=None):
         """Signal to conductor service to perform a deployment.
 
         :param context: request context.
         :param node_id: node id or uuid.
         :param rebuild: True if this is a rebuild request.
+        :param configdrive: Optional. A gzipped and base64 encoded configdrive.
         :param topic: RPC topic. Defaults to self.topic.
         :raises: InstanceDeployFailure
         :raises: InvalidParameterValue if validation fails
@@ -277,9 +280,9 @@ class ConductorAPI(object):
         undeployed state before this method is called.
 
         """
-        cctxt = self.client.prepare(topic=topic or self.topic, version='1.15')
+        cctxt = self.client.prepare(topic=topic or self.topic, version='1.22')
         return cctxt.call(context, 'do_node_deploy', node_id=node_id,
-                          rebuild=rebuild)
+                          rebuild=rebuild, configdrive=configdrive)
 
     def do_node_tear_down(self, context, node_id, topic=None):
         """Signal to conductor service to tear down a deployment.
