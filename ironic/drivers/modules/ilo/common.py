@@ -229,6 +229,8 @@ def _prepare_floppy_image(task, params):
     :param task: a TaskManager instance containing the node to act on.
     :param params: a dictionary containing 'parameter name'->'value' mapping
         to be passed to the deploy ramdisk via the floppy image.
+    :raises: ImageCreationFailed, if it failed while creating the floppy image.
+    :raises: SwiftOperationError, if any operation with Swift fails.
     :returns: the Swift temp url for the floppy image.
     """
     with tempfile.NamedTemporaryFile() as vfat_image_tmpfile_obj:
@@ -363,6 +365,7 @@ def setup_vmedia_for_boot(task, boot_iso, parameters=None):
     :param parameters: the parameters to pass in the virtual floppy image
         in a dictionary.  This is optional.
     :raises: ImageCreationFailed, if it failed while creating the floppy image.
+    :raises: SwiftOperationError, if any operation with Swift fails.
     :raises: IloOperationError, if attaching virtual media failed.
     """
     LOG.info(_LI("Setting up node %s to boot from virtual media"),
