@@ -66,6 +66,7 @@ class Version(object):
         """Create an API Version object from the supplied headers.
 
         :param headers: webob headers
+        :raises: webob.HTTPNotAcceptable
         """
         (self.major, self.minor) = Version.parse_headers(headers)
         self.min = min
