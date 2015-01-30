@@ -581,11 +581,11 @@
 # the check entirely. (integer value)
 #sync_local_state_interval=180
 
-# Whether upload the config drive to Swift. (boolean value)
+# Whether to upload the config drive to Swift. (boolean value)
 #configdrive_use_swift=false
 
-# The Swift config drive container to store data. (string
-# value)
+# Name of the Swift container to store config drive data. Used
+# when configdrive_use_swift is True. (string value)
 #configdrive_swift_container=ironic_configdrive_container
 
 

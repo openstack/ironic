@@ -2926,6 +2926,6 @@ class StoreConfigDriveTestCase(tests_base.TestCase):
         mock_swift.return_value.create_object.assert_called_once_with(
             container_name, expected_obj_name, mock.ANY,
             object_headers=expected_obj_header)
-        mock_swift.return_value.get_temp_url(container_name,
-            expected_obj_name, timeout)
+        mock_swift.return_value.get_temp_url.assert_called_once_with(
+            container_name, expected_obj_name, timeout)
         self.assertEqual(expected_instance_info, self.node.instance_info)

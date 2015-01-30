@@ -156,10 +156,11 @@ conductor_opts = [
                         'the check entirely.'),
         cfg.BoolOpt('configdrive_use_swift',
                     default=False,
-                    help='Whether upload the config drive to Swift.'),
+                    help='Whether to upload the config drive to Swift.'),
         cfg.StrOpt('configdrive_swift_container',
                    default='ironic_configdrive_container',
-                   help='The Swift config drive container to store data.'),
+                   help='Name of the Swift container to store config drive '
+                        'data. Used when configdrive_use_swift is True.'),
 ]
 
 CONF = cfg.CONF
@@ -1366,9 +1367,9 @@ def _get_configdrive_obj_name(node):
 def _store_configdrive(node, configdrive):
     """Handle the storage of the config drive.
 
-    Whether update the Node's instance_info with the config driver
-    directly or upload it to Swift first and update the Node with an
-    temp URL pointing to the Swift object.
+    If configured, the config drive data are uploaded to Swift. The Node's
+    instance_info is updated to include either the temporary Swift URL
+    from the upload, or if no upload, the actual config drive data.
 
     :param node: an Ironic node object.
     :param configdrive: A gzipped and base64 encoded configdrive.
@@ -1421,7 +1422,7 @@ def do_node_deploy(task, conductor_id, configdrive=None):
                     _LW('Error while uploading the configdrive for '
                         '%(node)s to Swift'),
                     _('Failed to upload the configdrive to Swift. '
-                      'Error %s'))
+                      'Error: %s'))
 
         try:
             task.driver.deploy.prepare(task)

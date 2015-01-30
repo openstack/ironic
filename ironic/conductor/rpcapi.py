@@ -268,7 +268,7 @@ class ConductorAPI(object):
         :param context: request context.
         :param node_id: node id or uuid.
         :param rebuild: True if this is a rebuild request.
-        :param configdrive: Optional. A gzipped and base64 encoded configdrive.
+        :param configdrive: A gzipped and base64 encoded configdrive.
         :param topic: RPC topic. Defaults to self.topic.
         :raises: InstanceDeployFailure
         :raises: InvalidParameterValue if validation fails
