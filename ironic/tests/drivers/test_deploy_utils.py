@@ -448,7 +448,7 @@ class PhysicalWorkTestCase(tests_base.TestCase):
         mock_exec.return_value = ['iqn.abc', '']
         self.assertRaises(exception.InstanceDeployFailure,
                 utils.verify_iscsi_connection, iqn)
-        self.assertTrue(mock_exec.called)
+        self.assertEqual(3, mock_exec.call_count)
 
     @mock.patch.object(common_utils, 'execute')
     def test_verify_iscsi_connection(self, mock_exec):

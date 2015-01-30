@@ -135,7 +135,7 @@ class DiskPartitioner(object):
 
     def commit(self):
         """Write to the disk."""
-        LOG.debug("Commiting partitions to disk.")
+        LOG.debug("Committing partitions to disk.")
         cmd_args = ['mklabel', self._disk_label]
         # NOTE(lucasagomes): Lead in with 1MiB to allow room for the
         #                    partition table itself.
