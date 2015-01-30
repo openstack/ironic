@@ -24,6 +24,7 @@ Specification can be found at ironic/doc/api/v1.rst
 
 import pecan
 from pecan import rest
+from webob import exc
 from wsme import types as wtypes
 import wsmeext.pecan as wsme_pecan
 
@@ -33,6 +34,11 @@ from ironic.api.controllers.v1 import chassis
 from ironic.api.controllers.v1 import driver
 from ironic.api.controllers.v1 import node
 from ironic.api.controllers.v1 import port
+from ironic.common.i18n import _
+
+
+MIN_VER = 0
+MAX_VER = 0
 
 
 class MediaType(base.APIBase):
@@ -129,5 +135,38 @@ class Controller(rest.RestController):
         #       request is because we need to get the host url from
         #       the request object to make the links.
         return V1.convert()
+
+    def _check_version(self, version):
+        # ensure that major version in the URL matches the header
+        if version.major != 1:
+            raise exc.HTTPNotAcceptable(_(
+                "Mutually exclusive versions requested. Version %(ver)s "
+                "requested but not supported by this service.")
+                % {'ver': version})
+        # ensure the minor version is within the supported range
+        if version.minor < MIN_VER or version.minor > MAX_VER:
+            raise exc.HTTPNotAcceptable(_(
+                "Unsupported minor version requested. This API service "
+                "supports the following version range: "
+                "[%(min)s, %(max)s].") % {'min': MIN_VER,
+                                          'max': MAX_VER})
+
+        version.set_min_max(MIN_VER, MAX_VER)
+
+    @pecan.expose()
+    def _route(self, args):
+        v = base.Version(pecan.request.headers)
+        # Always set the min and max headers
+        # FIXME: these are not being sent if _check_version raises an exception
+        pecan.response.headers[base.Version.min_string] = str(MIN_VER)
+        pecan.response.headers[base.Version.max_string] = str(MAX_VER)
+
+        # assert that requested version is supported
+        self._check_version(v)
+        pecan.response.headers[base.Version.string] = str(v)
+        pecan.request.version = v
+
+        return super(Controller, self)._route(args)
+
 
 __all__ = (Controller)

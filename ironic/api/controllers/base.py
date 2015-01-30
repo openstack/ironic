@@ -14,8 +14,11 @@
 
 import datetime
 
+from webob import exc
 import wsme
 from wsme import types as wtypes
+
+from ironic.common.i18n import _
 
 
 class APIBase(wtypes.Base):
@@ -45,3 +48,57 @@ class APIBase(wtypes.Base):
         for k in self.as_dict():
             if k not in except_list:
                 setattr(self, k, wsme.Unset)
+
+
+class Version(object):
+    """API Version object."""
+
+    string = 'X-OpenStack-Ironic-API-Version'
+    """HTTP Header string carrying the requested version"""
+
+    min_string = 'X-OpenStack-Ironic-API-Minimum-Version'
+    """HTTP reponse header"""
+
+    max_string = 'X-OpenStack-Ironic-API-Maximum-Version'
+    """HTTP response header"""
+
+    def __init__(self, headers, min=None, max=None):
+        """Create an API Version object from the supplied headers.
+
+        :param headers: webob headers
+        """
+        (self.major, self.minor) = Version.parse_headers(headers)
+        self.min = min
+        self.max = max
+
+    def __repr__(self):
+        return '%s.%s' % (self.major, self.minor)
+
+    @staticmethod
+    def parse_headers(headers):
+        """Determine the API version requested based on the headers supplied.
+
+        :param headers: webob headers
+        :returns: a tupe of (major, minor) version numbers
+        :raises: webob.HTTPNotAcceptable
+        """
+        try:
+            version = tuple(int(i) for i in headers.get(
+                    Version.string, '1.0').split('.'))
+        except ValueError:
+            version = ()
+        if len(version) != 2:
+            raise exc.HTTPNotAcceptable(_(
+                "Invalid value for X-OpenStack-Ironic-API-Version "
+                "header."))
+        return version
+
+    def set_min_max(self, min, max):
+        """Set or update the min and max versions.
+
+        This is useful if the specific min and max are not known when
+        the Version object is instantiated, eg. because it was created
+        in the root controller.
+        """
+        self.min = min
+        self.max = max

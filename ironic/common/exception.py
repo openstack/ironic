@@ -119,6 +119,12 @@ class TemporaryFailure(IronicException):
     code = 503
 
 
+class NotAcceptable(IronicException):
+    # TODO(deva): We need to set response headers in the API for this exception
+    message = _("Request not acceptable.")
+    code = 406
+
+
 class InvalidState(Conflict):
     message = _("Invalid resource state.")
 
