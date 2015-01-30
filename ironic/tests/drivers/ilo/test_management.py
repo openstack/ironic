@@ -23,7 +23,6 @@ from ironic.common import boot_devices
 from ironic.common import exception
 from ironic.conductor import task_manager
 from ironic.drivers.modules.ilo import common as ilo_common
-from ironic.drivers.modules.ilo import management as ilo_management
 from ironic.drivers.modules import ipmitool
 from ironic.tests.conductor import utils as mgr_utils
 from ironic.tests.db import base as db_base
@@ -96,12 +95,11 @@ class IloManagementTestCase(db_base.DbTestCase):
             ilo_mock.get_one_time_boot.assert_called_once_with()
             ilo_mock.get_persistent_boot_device.assert_called_once_with()
 
-    @mock.patch.object(ilo_management, 'ilo_client')
     @mock.patch.object(ilo_common, 'get_ilo_object')
-    def test_get_boot_device_fail(self, get_ilo_object_mock, ilo_mgmt_mock):
-        ilo_mgmt_mock.IloError = Exception
+    def test_get_boot_device_fail(self, get_ilo_object_mock):
         ilo_mock_object = get_ilo_object_mock.return_value
-        ilo_mock_object.get_one_time_boot.side_effect = Exception()
+        exc = ilo_client.IloError('error')
+        ilo_mock_object.get_one_time_boot.side_effect = exc
 
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
@@ -110,14 +108,12 @@ class IloManagementTestCase(db_base.DbTestCase):
                               task)
         ilo_mock_object.get_one_time_boot.assert_called_once_with()
 
-    @mock.patch.object(ilo_management, 'ilo_client')
     @mock.patch.object(ilo_common, 'get_ilo_object')
-    def test_get_boot_device_persistent_fail(self, get_ilo_object_mock,
-                                             ilo_mgmt_mock):
-        ilo_mgmt_mock.IloError = Exception
+    def test_get_boot_device_persistent_fail(self, get_ilo_object_mock):
         ilo_mock_object = get_ilo_object_mock.return_value
         ilo_mock_object.get_one_time_boot.return_value = 'Normal'
-        ilo_mock_object.get_persistent_boot_device.side_effect = Exception()
+        exc = ilo_client.IloError('error')
+        ilo_mock_object.get_persistent_boot_device.side_effect = exc
 
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
@@ -148,12 +144,11 @@ class IloManagementTestCase(db_base.DbTestCase):
             ilo_mock.update_persistent_boot.assert_called_once_with(
                                                 ['NETWORK'])
 
-    @mock.patch.object(ilo_management, 'ilo_client')
     @mock.patch.object(ilo_common, 'get_ilo_object')
-    def test_set_boot_device_fail(self, get_ilo_object_mock, ilo_mgmt_mock):
-        ilo_mgmt_mock.IloError = Exception
+    def test_set_boot_device_fail(self, get_ilo_object_mock):
         ilo_mock_object = get_ilo_object_mock.return_value
-        ilo_mock_object.set_one_time_boot.side_effect = Exception()
+        exc = ilo_client.IloError('error')
+        ilo_mock_object.set_one_time_boot.side_effect = exc
 
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
@@ -162,13 +157,11 @@ class IloManagementTestCase(db_base.DbTestCase):
                               task, boot_devices.PXE)
         ilo_mock_object.set_one_time_boot.assert_called_once_with('NETWORK')
 
-    @mock.patch.object(ilo_management, 'ilo_client')
     @mock.patch.object(ilo_common, 'get_ilo_object')
-    def test_set_boot_device_persistent_fail(self, get_ilo_object_mock,
-                                             ilo_mgmt_mock):
-        ilo_mgmt_mock.IloError = Exception
+    def test_set_boot_device_persistent_fail(self, get_ilo_object_mock):
         ilo_mock_object = get_ilo_object_mock.return_value
-        ilo_mock_object.update_persistent_boot.side_effect = Exception()
+        exc = ilo_client.IloError('error')
+        ilo_mock_object.update_persistent_boot.side_effect = exc
 
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
