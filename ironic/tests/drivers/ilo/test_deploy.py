@@ -402,7 +402,7 @@ class VendorPassthruTestCase(db_base.DbTestCase):
     def test__continue_deploy_bad(self, cleanup_vmedia_boot_mock):
         kwargs = {'method': 'pass_deploy_info', 'address': '123456'}
 
-        self.node.provision_state = states.NOSTATE
+        self.node.provision_state = states.AVAILABLE
         self.node.target_provision_state = states.NOSTATE
         self.node.save()
         with task_manager.acquire(self.context, self.node.uuid,
@@ -411,7 +411,7 @@ class VendorPassthruTestCase(db_base.DbTestCase):
             self.assertRaises(exception.InvalidState,
                               vendor._continue_deploy,
                               task, **kwargs)
-            self.assertEqual(states.NOSTATE, task.node.provision_state)
+            self.assertEqual(states.AVAILABLE, task.node.provision_state)
             self.assertEqual(states.NOSTATE, task.node.target_provision_state)
         self.assertFalse(cleanup_vmedia_boot_mock.called)
 

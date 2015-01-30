@@ -874,7 +874,7 @@ class DoNodeDeployTearDownTestCase(_ServiceSetUpMixin,
                                    tests_db_base.DbTestCase):
     def test_do_node_deploy_invalid_state(self):
         self._start_service()
-        # test node['provision_state'] is not NOSTATE
+        # test that node deploy fails if the node is already provisioned
         node = obj_utils.create_test_node(self.context, driver='fake',
                                          provision_state=states.ACTIVE,
                                          target_provision_state=states.NOSTATE)
@@ -1053,6 +1053,23 @@ class DoNodeDeployTearDownTestCase(_ServiceSetUpMixin,
         self.assertIsNone(node.last_error)
         mock_deploy.assert_called_once_with(mock.ANY)
 
+    @mock.patch('ironic.conductor.task_manager.TaskManager.process_event')
+    def test_deploy_with_nostate_converts_to_available(self, mock_pe):
+        # expressly create a node using the Juno-era NOSTATE state
+        # and assert that it does not result in an error, and that the state
+        # is converted to the new AVAILABLE state.
+        # Mock the process_event call, because the transitions from
+        # AVAILABLE are tested thoroughly elsewhere
+        # NOTE(deva): This test can be deleted after Kilo is released
+        self._start_service()
+        node = obj_utils.create_test_node(self.context, driver='fake',
+                                          provision_state=states.NOSTATE)
+        self.assertEqual(states.NOSTATE, node.provision_state)
+        self.service.do_node_deploy(self.context, node.uuid)
+        self.assertTrue(mock_pe.called)
+        node.refresh()
+        self.assertEqual(states.AVAILABLE, node.provision_state)
+
     def test_do_node_deploy_partial_ok(self):
         self._start_service()
         thread = self.service._spawn_worker(lambda: None)
@@ -1060,7 +1077,7 @@ class DoNodeDeployTearDownTestCase(_ServiceSetUpMixin,
             mock_spawn.return_value = thread
 
             node = obj_utils.create_test_node(self.context, driver='fake',
-                                              provision_state=states.NOSTATE)
+                                              provision_state=states.AVAILABLE)
 
             self.service.do_node_deploy(self.context, node.uuid)
             self.service._worker_pool.waitall()
@@ -1177,11 +1194,11 @@ class DoNodeDeployTearDownTestCase(_ServiceSetUpMixin,
         self.assertIsNone(node.reservation)
         mock_deploy.assert_called_once_with(mock.ANY)
 
-    def test_do_node_deploy_rebuild_nostate_state(self):
+    def test_do_node_deploy_rebuild_from_available_state(self):
         self._start_service()
-        # test node will not rebuild if state is NOSTATE
+        # test node will not rebuild if state is AVAILABLE
         node = obj_utils.create_test_node(self.context, driver='fake',
-                                          provision_state=states.NOSTATE)
+                                          provision_state=states.AVAILABLE)
         exc = self.assertRaises(messaging.rpc.ExpectedException,
                                 self.service.do_node_deploy,
                                 self.context, node['uuid'], rebuild=True)
@@ -1210,7 +1227,7 @@ class DoNodeDeployTearDownTestCase(_ServiceSetUpMixin,
         mock_cleanup.assert_called_once_with(mock.ANY)
 
     def test_do_node_deploy_worker_pool_full(self):
-        prv_state = states.NOSTATE
+        prv_state = states.AVAILABLE
         tgt_prv_state = states.NOSTATE
         node = obj_utils.create_test_node(self.context,
                                           provision_state=prv_state,
@@ -1239,7 +1256,7 @@ class DoNodeDeployTearDownTestCase(_ServiceSetUpMixin,
         self._start_service()
         # test node.provision_state is incorrect for tear_down
         node = obj_utils.create_test_node(self.context, driver='fake',
-                                          provision_state=states.NOSTATE)
+                                          provision_state=states.AVAILABLE)
         exc = self.assertRaises(messaging.rpc.ExpectedException,
                                 self.service.do_node_tear_down,
                                 self.context, node['uuid'])
@@ -1274,7 +1291,7 @@ class DoNodeDeployTearDownTestCase(_ServiceSetUpMixin,
                           manager.do_node_tear_down, task)
         node.refresh()
         self.assertEqual(states.ERROR, node.provision_state)
-        self.assertEqual(states.NOSTATE, node.target_provision_state)
+        self.assertEqual(states.AVAILABLE, node.target_provision_state)
         self.assertIsNotNone(node.last_error)
         # Assert instance_info was erased
         self.assertEqual({}, node.instance_info)
@@ -1293,10 +1310,7 @@ class DoNodeDeployTearDownTestCase(_ServiceSetUpMixin,
         mock_tear_down.return_value = states.DELETED
         manager.do_node_tear_down(task)
         node.refresh()
-        self.assertEqual(states.NOSTATE, node.provision_state)
-        # NOTE(deva): this only works because manager.do_node_tear_down()
-        # explicitly sets target_provision_state to NOSTATE. Until we introduce
-        # the AVAILABLE state, this override should remain.
+        self.assertEqual(states.AVAILABLE, node.provision_state)
         self.assertEqual(states.NOSTATE, node.target_provision_state)
         self.assertIsNone(node.last_error)
         self.assertEqual({}, node.instance_info)
@@ -1313,7 +1327,7 @@ class DoNodeDeployTearDownTestCase(_ServiceSetUpMixin,
         self.service.do_node_tear_down(self.context, node.uuid)
         self.service._worker_pool.waitall()
         node.refresh()
-        self.assertEqual(states.NOSTATE, node.provision_state)
+        self.assertEqual(states.AVAILABLE, node.provision_state)
         self.assertEqual(states.NOSTATE, node.target_provision_state)
         self.assertIsNone(node.last_error)
         self.assertEqual({}, node.instance_info)
@@ -2451,7 +2465,7 @@ class ManagerCheckDeployTimeoutsTestCase(_CommonMixIn,
     def test_no_deploywait_after_lock(self, get_nodeinfo_mock, mapped_mock,
                                       acquire_mock):
         task = self._create_task(
-                node_attrs=dict(provision_state=states.NOSTATE,
+                node_attrs=dict(provision_state=states.AVAILABLE,
                                 uuid=self.node.uuid))
         get_nodeinfo_mock.return_value = self._get_nodeinfo_list_response()
         mapped_mock.return_value = True

@@ -253,12 +253,13 @@ class Connection(api.Connection):
 
     def create_node(self, values):
         # ensure defaults are present for new nodes
-        if not values.get('uuid'):
+        if 'uuid' not in values:
             values['uuid'] = utils.generate_uuid()
-        if not values.get('power_state'):
+        if 'power_state' not in values:
             values['power_state'] = states.NOSTATE
-        if not values.get('provision_state'):
-            values['provision_state'] = states.NOSTATE
+        if 'provision_state' not in values:
+            # TODO(deva): change this to ENROLL
+            values['provision_state'] = states.AVAILABLE
 
         node = models.Node()
         node.update(values)

@@ -677,7 +677,7 @@ class PXEDriverTestCase(db_base.DbTestCase):
 
     def test_continue_deploy_invalid(self):
         self.node.power_state = states.POWER_ON
-        self.node.provision_state = states.NOSTATE
+        self.node.provision_state = states.AVAILABLE
         self.node.target_provision_state = states.NOSTATE
         self.node.save()
 
@@ -688,7 +688,7 @@ class PXEDriverTestCase(db_base.DbTestCase):
                     key='fake-56789', error='test ramdisk error')
 
         self.node.refresh()
-        self.assertEqual(states.NOSTATE, self.node.provision_state)
+        self.assertEqual(states.AVAILABLE, self.node.provision_state)
         self.assertEqual(states.NOSTATE, self.node.target_provision_state)
         self.assertEqual(states.POWER_ON, self.node.power_state)
 

@@ -144,9 +144,8 @@ class FSM(object):
         if (self._target_state is not None and
                 self._target_state == replacement.name):
             self._target_state = None
-        # set target if there is a new one
-        if (self._target_state is None and
-                self._states[replacement.name]['target'] is not None):
+        # if new state has a different target, update the target
+        if self._states[replacement.name]['target'] is not None:
             self._target_state = self._states[replacement.name]['target']
 
     def is_valid_event(self, event):

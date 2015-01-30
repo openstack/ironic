@@ -25,6 +25,7 @@ from six.moves.urllib import parse as urlparse
 from testtools.matchers import HasLength
 from wsme import types as wtypes
 
+from ironic.api.controllers import base as api_base
 from ironic.api.controllers.v1 import node as api_node
 from ironic.common import boot_devices
 from ironic.common import exception
@@ -32,8 +33,8 @@ from ironic.common import states
 from ironic.common import utils
 from ironic.conductor import rpcapi
 from ironic import objects
-from ironic.tests.api import base as api_base
-from ironic.tests.api import utils as apiutils
+from ironic.tests.api import base as test_api_base
+from ironic.tests.api import utils as test_api_utils
 from ironic.tests import base
 from ironic.tests.db import utils as dbutils
 from ironic.tests.objects import utils as obj_utils
@@ -42,7 +43,7 @@ from ironic.tests.objects import utils as obj_utils
 # NOTE(lucasagomes): When creating a node via API (POST)
 #                    we have to use chassis_uuid
 def post_get_test_node(**kw):
-    node = apiutils.node_post_data(**kw)
+    node = test_api_utils.node_post_data(**kw)
     chassis = dbutils.get_test_chassis()
     node['chassis_id'] = None
     node['chassis_uuid'] = kw.get('chassis_uuid', chassis['uuid'])
@@ -52,13 +53,13 @@ def post_get_test_node(**kw):
 class TestNodeObject(base.TestCase):
 
     def test_node_init(self):
-        node_dict = apiutils.node_post_data(chassis_id=None)
+        node_dict = test_api_utils.node_post_data(chassis_id=None)
         del node_dict['instance_uuid']
         node = api_node.Node(**node_dict)
         self.assertEqual(wtypes.Unset, node.instance_uuid)
 
 
-class TestListNodes(api_base.FunctionalTest):
+class TestListNodes(test_api_base.FunctionalTest):
 
     def setUp(self):
         super(TestListNodes, self).setUp()
@@ -150,6 +151,18 @@ class TestListNodes(api_base.FunctionalTest):
         response = self.get_json('/nodes/%s/detail' % node['uuid'],
                                  expect_errors=True)
         self.assertEqual(404, response.status_int)
+
+    def test_mask_available_state(self):
+        node = obj_utils.create_test_node(self.context,
+                                          provision_state=states.AVAILABLE)
+
+        data = self.get_json('/nodes/%s' % node['uuid'],
+                headers={api_base.Version.string: "1.0"})
+        self.assertEqual(states.NOSTATE, data['provision_state'])
+
+        data = self.get_json('/nodes/%s' % node['uuid'],
+                headers={api_base.Version.string: "1.1"})
+        self.assertEqual(states.AVAILABLE, data['provision_state'])
 
     def test_many(self):
         nodes = []
@@ -486,7 +499,7 @@ class TestListNodes(api_base.FunctionalTest):
         mock_gsbd.assert_called_once_with(mock.ANY, node.uuid, 'test-topic')
 
 
-class TestPatch(api_base.FunctionalTest):
+class TestPatch(test_api_base.FunctionalTest):
 
     def setUp(self):
         super(TestPatch, self).setUp()
@@ -779,7 +792,7 @@ class TestPatch(api_base.FunctionalTest):
         self.assertTrue(response.json['error_message'])
 
 
-class TestPost(api_base.FunctionalTest):
+class TestPost(test_api_base.FunctionalTest):
 
     def setUp(self):
         super(TestPost, self).setUp()
@@ -927,7 +940,7 @@ class TestPost(api_base.FunctionalTest):
 
     def test_post_ports_subresource(self):
         node = obj_utils.create_test_node(self.context)
-        pdict = apiutils.port_post_data(node_id=None)
+        pdict = test_api_utils.port_post_data(node_id=None)
         pdict['node_uuid'] = node.uuid
         response = self.post_json('/nodes/ports', pdict,
                                   expect_errors=True)
@@ -1012,7 +1025,7 @@ class TestPost(api_base.FunctionalTest):
         self.assertFalse(get_methods_mock.called)
 
 
-class TestDelete(api_base.FunctionalTest):
+class TestDelete(test_api_base.FunctionalTest):
 
     def setUp(self):
         super(TestDelete, self).setUp()
@@ -1073,7 +1086,7 @@ class TestDelete(api_base.FunctionalTest):
                                             topic='test-topic')
 
 
-class TestPut(api_base.FunctionalTest):
+class TestPut(test_api_base.FunctionalTest):
 
     def setUp(self):
         super(TestPut, self).setUp()
