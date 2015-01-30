@@ -49,7 +49,8 @@ class TestPXEUtils(db_base.DbTestCase):
             'deployment_aki_path': u'/tftpboot/1be26c0b-03f2-4d2e-ae87-'
                                    u'c02d7f33c123/deploy_kernel',
             'disk': 'cciss/c0d0,sda,hda,vda',
-            'root_device': 'vendor=fake,size=123'
+            'root_device': 'vendor=fake,size=123',
+            'tftp_server': '192.168.122.184'
         }
         self.agent_pxe_options = {
             'deployment_ari_path': u'/tftpboot/1be26c0b-03f2-4d2e-ae87-c02d7'
