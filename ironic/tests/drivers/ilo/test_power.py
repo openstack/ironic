@@ -25,7 +25,6 @@ from ironic.common import states
 from ironic.conductor import task_manager
 from ironic.conductor import utils as manager_utils
 from ironic.drivers.modules.ilo import common as ilo_common
-from ironic.drivers.modules.ilo import deploy as ilo_deploy
 from ironic.drivers.modules.ilo import power as ilo_power
 from ironic.tests.conductor import utils as mgr_utils
 from ironic.tests.db import base as db_base
@@ -156,8 +155,8 @@ class IloPowerTestCase(db_base.DbTestCase):
                                                driver_info=driver_info)
 
     def test_get_properties(self):
-        expected = ilo_common.COMMON_PROPERTIES
-        expected.update(ilo_deploy.COMMON_PROPERTIES)
+        expected = ilo_common.COMMON_PROPERTIES.copy()
+        expected.update(ilo_common.INSPECT_PROPERTIES)
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
             self.assertEqual(expected, task.driver.get_properties())

@@ -75,6 +75,15 @@ CONSOLE_PROPERTIES = {
     'console_port': _("node's UDP port to connect to. Only required for "
                       "console access.")
 }
+INSPECT_PROPERTIES = {
+    'inspect_ports': _("Comma-separated values of ethernet ports "
+                       "to be identified for creating node "
+                       "ports. Valid values may be "
+                       "inspect_ports = '1,2,...n' or "
+                       "inspect_ports = 'all' or "
+                       "inspect_ports = 'none'. "
+                       "Required only for inspection.")
+}
 
 COMMON_PROPERTIES = REQUIRED_PROPERTIES.copy()
 COMMON_PROPERTIES.update(OPTIONAL_PROPERTIES)
@@ -127,6 +136,11 @@ def parse_driver_info(node):
                 d_info[param] = int(value)
             except ValueError:
                 not_integers.append(param)
+
+    for param in INSPECT_PROPERTIES:
+        value = info.get(param)
+        if value:
+            d_info[param] = value
 
     if not_integers:
         raise exception.InvalidParameterValue(_(
