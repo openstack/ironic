@@ -1091,7 +1091,8 @@ class TestPut(test_api_base.FunctionalTest):
     def setUp(self):
         super(TestPut, self).setUp()
         self.chassis = obj_utils.create_test_chassis(self.context)
-        self.node = obj_utils.create_test_node(self.context)
+        self.node = obj_utils.create_test_node(self.context,
+                provision_state=states.AVAILABLE)
         p = mock.patch.object(rpcapi.ConductorAPI, 'get_topic_for')
         self.mock_gtf = p.start()
         self.mock_gtf.return_value = 'test-topic'
@@ -1107,12 +1108,12 @@ class TestPut(test_api_base.FunctionalTest):
         self.addCleanup(p.stop)
 
     def test_power_state(self):
-        response = self.put_json('/nodes/%s/states/power' % self.node['uuid'],
+        response = self.put_json('/nodes/%s/states/power' % self.node.uuid,
                                  {'target': states.POWER_ON})
         self.assertEqual(202, response.status_code)
         self.assertEqual('', response.body)
         self.mock_cnps.assert_called_once_with(mock.ANY,
-                                               self.node['uuid'],
+                                               self.node.uuid,
                                                states.POWER_ON,
                                                'test-topic')
         # Check location header
@@ -1123,6 +1124,11 @@ class TestPut(test_api_base.FunctionalTest):
 
     def test_power_invalid_state_request(self):
         ret = self.put_json('/nodes/%s/states/power' % self.node.uuid,
+                            {'target': 'not-supported'}, expect_errors=True)
+        self.assertEqual(400, ret.status_code)
+
+    def test_provision_invalid_state_request(self):
+        ret = self.put_json('/nodes/%s/states/provision' % self.node.uuid,
                             {'target': 'not-supported'}, expect_errors=True)
         self.assertEqual(400, ret.status_code)
 
@@ -1159,38 +1165,10 @@ class TestPut(test_api_base.FunctionalTest):
         self.assertEqual(400, ret.status_code)
 
     def test_provision_with_tear_down(self):
-        ret = self.put_json('/nodes/%s/states/provision' % self.node.uuid,
-                            {'target': states.DELETED})
-        self.assertEqual(202, ret.status_code)
-        self.assertEqual('', ret.body)
-        self.mock_dntd.assert_called_once_with(
-                mock.ANY, self.node.uuid, 'test-topic')
-        # Check location header
-        self.assertIsNotNone(ret.location)
-        expected_location = '/v1/nodes/%s/states' % self.node.uuid
-        self.assertEqual(urlparse.urlparse(ret.location).path,
-                         expected_location)
-
-    def test_provision_invalid_state_request(self):
-        ret = self.put_json('/nodes/%s/states/provision' % self.node.uuid,
-                            {'target': 'not-supported'}, expect_errors=True)
-        self.assertEqual(400, ret.status_code)
-
-    def test_provision_already_in_progress(self):
-        node = obj_utils.create_test_node(self.context,
-                                      uuid=utils.generate_uuid(),
-                                      provision_state=states.DEPLOYING,
-                                      target_provision_state=states.ACTIVE)
-        ret = self.put_json('/nodes/%s/states/provision' % node.uuid,
-                            {'target': states.ACTIVE},
-                            expect_errors=True)
-        self.assertEqual(409, ret.status_code)  # Conflict
-
-    def test_provision_with_tear_down_in_progress_deploywait(self):
-        node = obj_utils.create_test_node(
-                self.context, uuid=utils.generate_uuid(),
-                provision_state=states.DEPLOYWAIT,
-                target_provision_state=states.ACTIVE)
+        node = self.node
+        node.provision_state = states.ACTIVE
+        node.target_provision_state = states.NOSTATE
+        node.save()
         ret = self.put_json('/nodes/%s/states/provision' % node.uuid,
                             {'target': states.DELETED})
         self.assertEqual(202, ret.status_code)
@@ -1203,11 +1181,44 @@ class TestPut(test_api_base.FunctionalTest):
         self.assertEqual(urlparse.urlparse(ret.location).path,
                          expected_location)
 
+    def test_provision_already_in_progress(self):
+        node = self.node
+        node.provision_state = states.DEPLOYING
+        node.target_provision_state = states.ACTIVE
+        node.reservation = 'fake-host'
+        node.save()
+        ret = self.put_json('/nodes/%s/states/provision' % node.uuid,
+                            {'target': states.ACTIVE},
+                            expect_errors=True)
+        self.assertEqual(409, ret.status_code)  # Conflict
+
+    def test_provision_with_tear_down_in_progress_deploywait(self):
+        node = self.node
+        node.provision_state = states.DEPLOYWAIT
+        node.target_provision_state = states.ACTIVE
+        node.save()
+        ret = self.put_json('/nodes/%s/states/provision' % node.uuid,
+                            {'target': states.DELETED})
+        self.assertEqual(202, ret.status_code)
+        self.assertEqual('', ret.body)
+        self.mock_dntd.assert_called_once_with(
+                mock.ANY, node.uuid, 'test-topic')
+        # Check location header
+        self.assertIsNotNone(ret.location)
+        expected_location = '/v1/nodes/%s/states' % node.uuid
+        self.assertEqual(urlparse.urlparse(ret.location).path,
+                         expected_location)
+
+    # NOTE(deva): this test asserts API funcionality which is not part of
+    # the new-ironic-state-machine in Kilo. It is retained for backwards
+    # compatibility with Juno.
+    # TODO(deva): add a deprecation-warning to the REST result
+    # and check for it here.
     def test_provision_with_deploy_after_deployfail(self):
-        node = obj_utils.create_test_node(
-                self.context, uuid=utils.generate_uuid(),
-                provision_state=states.DEPLOYFAIL,
-                target_provision_state=states.ACTIVE)
+        node = self.node
+        node.provision_state = states.DEPLOYFAIL
+        node.target_provision_state = states.ACTIVE
+        node.save()
         ret = self.put_json('/nodes/%s/states/provision' % node.uuid,
                             {'target': states.ACTIVE})
         self.assertEqual(202, ret.status_code)
@@ -1221,11 +1232,9 @@ class TestPut(test_api_base.FunctionalTest):
                          urlparse.urlparse(ret.location).path)
 
     def test_provision_already_in_state(self):
-        node = obj_utils.create_test_node(
-                self.context, uuid=utils.generate_uuid(),
-                target_provision_state=states.NOSTATE,
-                provision_state=states.ACTIVE)
-        ret = self.put_json('/nodes/%s/states/provision' % node.uuid,
+        self.node.provision_state = states.ACTIVE
+        self.node.save()
+        ret = self.put_json('/nodes/%s/states/provision' % self.node.uuid,
                             {'target': states.ACTIVE},
                             expect_errors=True)
         self.assertEqual(400, ret.status_code)
@@ -1292,13 +1301,12 @@ class TestPut(test_api_base.FunctionalTest):
 
     def test_provision_node_in_maintenance_fail(self):
         with mock.patch.object(rpcapi.ConductorAPI, 'do_node_deploy') as dnd:
-            node = obj_utils.create_test_node(self.context,
-                                              uuid=utils.generate_uuid(),
-                                              maintenance=True)
+            self.node.maintenance = True
+            self.node.save()
             dnd.side_effect = exception.NodeInMaintenance(op='provisioning',
-                                                          node=node.uuid)
+                                                          node=self.node.uuid)
 
-            ret = self.put_json('/nodes/%s/states/provision' % node.uuid,
+            ret = self.put_json('/nodes/%s/states/provision' % self.node.uuid,
                                 {'target': states.ACTIVE},
                                 expect_errors=True)
             self.assertEqual(400, ret.status_code)
