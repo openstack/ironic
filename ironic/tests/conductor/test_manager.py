@@ -23,8 +23,8 @@ import datetime
 import eventlet
 import mock
 from oslo.config import cfg
-from oslo.db import exception as db_exception
 from oslo import messaging
+from oslo_db import exception as db_exception
 
 from ironic.common import boot_devices
 from ironic.common import driver_factory

@@ -20,10 +20,10 @@ import collections
 import datetime
 
 from oslo.config import cfg
-from oslo.db import exception as db_exc
-from oslo.db.sqlalchemy import session as db_session
-from oslo.db.sqlalchemy import utils as db_utils
 from oslo.utils import timeutils
+from oslo_db import exception as db_exc
+from oslo_db.sqlalchemy import session as db_session
+from oslo_db.sqlalchemy import utils as db_utils
 from sqlalchemy.orm.exc import NoResultFound
 
 from ironic.common import exception

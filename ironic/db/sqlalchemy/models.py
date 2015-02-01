@@ -21,8 +21,8 @@ SQLAlchemy models for baremetal data.
 import json
 
 from oslo.config import cfg
-from oslo.db import options as db_options
-from oslo.db.sqlalchemy import models
+from oslo_db import options as db_options
+from oslo_db.sqlalchemy import models
 import six.moves.urllib.parse as urlparse
 from sqlalchemy import Boolean, Column, DateTime
 from sqlalchemy import ForeignKey, Integer
