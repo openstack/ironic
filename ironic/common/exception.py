@@ -206,7 +206,7 @@ class DHCPNotFound(NotFound):
 
 
 class DriverNotFound(NotFound):
-    message = _("Failed to load driver %(driver_name)s.")
+    message = _("Could not find the following driver(s): %(driver_name)s.")
 
 
 class ImageNotFound(NotFound):

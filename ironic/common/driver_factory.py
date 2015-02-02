@@ -124,6 +124,17 @@ class DriverFactory(object):
                         _check_func,
                         invoke_on_load=True,
                         on_load_failure_callback=_catch_driver_not_found))
+
+        # NOTE(deva): if we were unable to load any configured driver, perhaps
+        #             because it is not present on the system, raise an error.
+        if (sorted(CONF.enabled_drivers) !=
+                sorted(cls._extension_manager.names())):
+            found = cls._extension_manager.names()
+            names = [n for n in CONF.enabled_drivers if n not in found]
+            # just in case more than one could not be found ...
+            names = ', '.join(names)
+            raise exception.DriverNotFound(driver_name=names)
+
         LOG.info(_LI("Loaded the following drivers: %s"),
                 cls._extension_manager.names())
 
