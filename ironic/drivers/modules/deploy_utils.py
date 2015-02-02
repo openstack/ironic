@@ -86,6 +86,8 @@ def login_iscsi(portal_address, portal_port, target_iqn):
                   check_exit_code=[0],
                   attempts=5,
                   delay_on_retry=True)
+    # NOTE(dprince): partial revert of 4606716 until we debug further
+    time.sleep(3)
     # Ensure the login complete
     verify_iscsi_connection(target_iqn)
     # force iSCSI initiator to re-read luns
