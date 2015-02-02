@@ -251,6 +251,10 @@ class ConductorManager(periodic_task.PeriodicTasks):
                      {'hostname': self.host})
         except exception.ConductorNotFound:
             pass
+        # Waiting here to give workers the chance to finish. This has the
+        # benefit of releasing locks workers placed on nodes, as well as
+        # having work complete normally.
+        self._worker_pool.waitall()
 
     def periodic_tasks(self, context, raise_on_error=False):
         """Periodic tasks are run at pre-specified interval."""
