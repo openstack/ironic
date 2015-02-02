@@ -19,7 +19,7 @@ import os
 import shutil
 
 import fixtures
-from oslo.config import cfg
+from oslo_config import cfg
 
 from ironic.common import paths
 from ironic.db import api as dbapi

@@ -20,7 +20,7 @@ Test class for Native IPMI power driver module.
 """
 
 import mock
-from oslo.config import cfg
+from oslo_config import cfg
 from pyghmi import exceptions as pyghmi_exception
 
 from ironic.common import boot_devices

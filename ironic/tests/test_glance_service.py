@@ -32,7 +32,7 @@ from ironic.tests import base
 from ironic.tests import matchers
 from ironic.tests import stubs
 
-from oslo.config import cfg
+from oslo_config import cfg
 from oslo_serialization import jsonutils
 
 CONF = cfg.CONF

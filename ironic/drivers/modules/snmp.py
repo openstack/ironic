@@ -29,8 +29,8 @@ models.
 
 import abc
 
-from oslo.config import cfg
 from oslo.utils import importutils
+from oslo_config import cfg
 import six
 
 from ironic.common import exception

@@ -19,7 +19,7 @@ are blocked or allowed to be processed.
 # NOTE(deva): import auth_token so we can override a config option
 from keystonemiddleware import auth_token  # noqa
 import mock
-from oslo.config import cfg
+from oslo_config import cfg
 
 from ironic.tests.api import base
 from ironic.tests.api import utils

@@ -19,7 +19,7 @@ import os
 import tempfile
 
 import mock
-from oslo.config import cfg
+from oslo_config import cfg
 
 from ironic.common import exception
 from ironic.common import keystone

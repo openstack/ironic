@@ -22,8 +22,8 @@ import tempfile
 
 import fixtures
 import mock
-from oslo.config import cfg
 from oslo_concurrency import processutils
+from oslo_config import cfg
 import requests
 
 from ironic.common import disk_partitioner

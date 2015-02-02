@@ -20,7 +20,7 @@ PXE Driver and supporting meta-classes.
 import os
 import shutil
 
-from oslo.config import cfg
+from oslo_config import cfg
 
 from ironic.common import dhcp_factory
 from ironic.common import exception

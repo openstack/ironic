@@ -15,7 +15,7 @@
 import os
 
 import fixtures
-from oslo.config import cfg
+from oslo_config import cfg
 
 from ironic.common import policy as ironic_policy
 from ironic.tests import fake_policy

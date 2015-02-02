@@ -17,8 +17,8 @@
 import json
 
 import mock
-from oslo.config import cfg
 from oslo import messaging
+from oslo_config import cfg
 from webob import exc as webob_exc
 
 from ironic.api.controllers import root

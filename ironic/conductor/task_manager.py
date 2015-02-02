@@ -96,8 +96,8 @@ raised in the background thread.):
 
 import functools
 
-from oslo.config import cfg
 from oslo.utils import excutils
+from oslo_config import cfg
 import retrying
 
 from ironic.common import driver_factory

@@ -22,7 +22,7 @@ SHOULD include dedicated exception logging.
 
 """
 
-from oslo.config import cfg
+from oslo_config import cfg
 import six
 
 from ironic.common.i18n import _

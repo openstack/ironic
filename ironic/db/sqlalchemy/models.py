@@ -20,7 +20,7 @@ SQLAlchemy models for baremetal data.
 
 import json
 
-from oslo.config import cfg
+from oslo_config import cfg
 from oslo_db import options as db_options
 from oslo_db.sqlalchemy import models
 import six.moves.urllib.parse as urlparse

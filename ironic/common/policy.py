@@ -15,8 +15,8 @@
 
 """Policy Engine For Ironic."""
 
-from oslo.config import cfg
 from oslo_concurrency import lockutils
+from oslo_config import cfg
 
 from ironic.openstack.common import policy
 

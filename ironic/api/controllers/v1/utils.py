@@ -14,7 +14,7 @@
 #    under the License.
 
 import jsonpatch
-from oslo.config import cfg
+from oslo_config import cfg
 import wsme
 
 from ironic.common.i18n import _

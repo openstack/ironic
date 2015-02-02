@@ -23,7 +23,7 @@
 # NOTE(deva): import auth_token so we can override a config option
 from keystonemiddleware import auth_token  # noqa
 import mock
-from oslo.config import cfg
+from oslo_config import cfg
 import pecan
 import pecan.testing
 from six.moves.urllib import parse as urlparse

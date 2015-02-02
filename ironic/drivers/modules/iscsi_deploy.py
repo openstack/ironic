@@ -15,8 +15,8 @@
 
 import os
 
-from oslo.config import cfg
 from oslo.utils import strutils
+from oslo_config import cfg
 import six
 from six.moves.urllib import parse
 

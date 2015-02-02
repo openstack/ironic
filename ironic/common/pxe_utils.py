@@ -17,7 +17,7 @@
 import os
 
 import jinja2
-from oslo.config import cfg
+from oslo_config import cfg
 
 from ironic.common import dhcp_factory
 from ironic.common import exception

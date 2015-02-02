@@ -16,7 +16,7 @@ import __builtin__
 import sys
 
 import mock
-from oslo.config import cfg
+from oslo_config import cfg
 from swiftclient import client as swift_client
 from swiftclient import exceptions as swift_exception
 from swiftclient import utils as swift_utils

@@ -21,7 +21,7 @@ The Ironic Management Service
 
 import sys
 
-from oslo.config import cfg
+from oslo_config import cfg
 
 from ironic.common import service as ironic_service
 from ironic.openstack.common import service

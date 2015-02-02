@@ -17,8 +17,8 @@
 
 import fixtures
 import mock
-from oslo.config import cfg
 from oslo_concurrency import processutils
+from oslo_config import cfg
 import paramiko
 
 from ironic.common import boot_devices
