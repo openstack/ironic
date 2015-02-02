@@ -34,7 +34,8 @@ class MockResponse(object):
 class MockNode(object):
     def __init__(self):
         self.uuid = 'uuid'
-        self.driver_info = {
+        self.driver_info = {}
+        self.driver_internal_info = {
             'agent_url': "http://127.0.0.1:9999"
         }
         self.instance_info = {}
@@ -49,11 +50,11 @@ class TestAgentClient(base.TestCase):
 
     def test__get_command_url(self):
         command_url = self.client._get_command_url(self.node)
-        expected = self.node.driver_info['agent_url'] + '/v1/commands'
+        expected = self.node.driver_internal_info['agent_url'] + '/v1/commands'
         self.assertEqual(expected, command_url)
 
     def test__get_command_url_fail(self):
-        del self.node.driver_info['agent_url']
+        del self.node.driver_internal_info['agent_url']
         self.assertRaises(exception.IronicException,
                           self.client._get_command_url,
                           self.node)

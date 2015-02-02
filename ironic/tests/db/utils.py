@@ -126,9 +126,14 @@ def get_test_agent_instance_info():
 
 def get_test_agent_driver_info():
     return {
-        'agent_url': 'http://127.0.0.1/foo',
         'deploy_kernel': 'glance://deploy_kernel_uuid',
         'deploy_ramdisk': 'glance://deploy_ramdisk_uuid',
+    }
+
+
+def get_test_agent_driver_internal_info():
+    return {
+        'agent_url': 'http://127.0.0.1/foo',
     }
 
 
