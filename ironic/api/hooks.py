@@ -106,7 +106,9 @@ class TrustedCallHook(hooks.PecanHook):
     """
     def before(self, state):
         ctx = state.request.context
-        policy.enforce('trusted_call', ctx.to_dict(), ctx.to_dict(),
+        if ctx.is_public_api:
+            return
+        policy.enforce('admin_api', ctx.to_dict(), ctx.to_dict(),
                        do_raise=True, exc=exc.HTTPForbidden)
 
 
