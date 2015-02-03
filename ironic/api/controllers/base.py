@@ -84,8 +84,10 @@ class Version(object):
         :raises: webob.HTTPNotAcceptable
         """
         try:
+            # default to the minimum supported version,  but don't actually
+            # import v1.__init__ here because that would be circular...
             version = tuple(int(i) for i in headers.get(
-                    Version.string, '1.0').split('.'))
+                    Version.string, '1.1').split('.'))
         except ValueError:
             version = ()
         if len(version) != 2:
@@ -103,3 +105,13 @@ class Version(object):
         """
         self.min = min
         self.max = max
+
+    def __lt__(a, b):
+        if (a.major == b.major and a.minor < b.minor):
+            return True
+        return False
+
+    def __gt__(a, b):
+        if (a.major == b.major and a.minor > b.minor):
+            return True
+        return False
