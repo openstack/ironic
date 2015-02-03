@@ -20,7 +20,7 @@ Base classes for storage engines
 import abc
 
 from oslo.config import cfg
-from oslo.db import api as db_api
+from oslo_db import api as db_api
 import six
 
 

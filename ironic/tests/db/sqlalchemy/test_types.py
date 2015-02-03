@@ -12,7 +12,7 @@
 
 """Tests for custom SQLAlchemy types via Ironic DB."""
 
-from oslo.db import exception as db_exc
+from oslo_db import exception as db_exc
 
 from ironic.common import utils as ironic_utils
 import ironic.db.sqlalchemy.api as sa_api

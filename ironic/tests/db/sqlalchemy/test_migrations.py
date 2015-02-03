@@ -44,10 +44,10 @@ import contextlib
 
 from alembic import script
 import mock
-from oslo.db import exception as db_exc
-from oslo.db.sqlalchemy import test_base
-from oslo.db.sqlalchemy import test_migrations
-from oslo.db.sqlalchemy import utils as db_utils
+from oslo_db import exception as db_exc
+from oslo_db.sqlalchemy import test_base
+from oslo_db.sqlalchemy import test_migrations
+from oslo_db.sqlalchemy import utils as db_utils
 import sqlalchemy
 import sqlalchemy.exc
 
@@ -315,7 +315,7 @@ class MigrationCheckersMixin(object):
         nodes.insert().values(data).execute()
         data['uuid'] = utils.generate_uuid()
         # TODO(viktors): Remove check on sqlalchemy.exc.IntegrityError, when
-        #                Ironic will use oslo.db 0.4.0 or higher.
+        #                Ironic will use oslo_db 0.4.0 or higher.
         #                See bug #1214341 for details.
         self.assertRaises(
             (sqlalchemy.exc.IntegrityError, db_exc.DBDuplicateEntry),
