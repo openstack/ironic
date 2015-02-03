@@ -638,3 +638,15 @@ def set_failed_state(task, msg):
         #             so we need to set it again here.
         node.last_error = msg
         node.save()
+
+
+def get_single_nic_with_vif_port_id(task):
+    """Returns the MAC address of a port which has a VIF port id.
+
+    :param task: a TaskManager instance containing the ports to act on.
+    :returns: MAC address of the port connected to deployment network.
+              None if it cannot find any port with vif id.
+    """
+    for port in task.ports:
+        if port.extra.get('vif_port_id'):
+            return port.address

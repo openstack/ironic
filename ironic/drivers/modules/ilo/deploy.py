@@ -158,18 +158,6 @@ def _clean_up_boot_iso_for_instance(node):
                       {'node': node.uuid, 'error': e})
 
 
-def _get_single_nic_with_vif_port_id(task):
-    """Returns the MAC address of a port which has a VIF port id.
-
-    :param task: a TaskManager instance containing the ports to act on.
-    :returns: MAC address of the port connected to deployment network.
-              None if it cannot find any port with vif id.
-    """
-    for port in task.ports:
-        if port.extra.get('vif_port_id'):
-            return port.address
-
-
 def _parse_driver_info(node):
     """Gets the driver specific Node deployment info.
 
@@ -279,7 +267,7 @@ class IloVirtualMediaIscsiDeploy(base.DeployInterface):
         iscsi_deploy.check_image_size(task)
 
         deploy_ramdisk_opts = iscsi_deploy.build_deploy_ramdisk_options(node)
-        deploy_nic_mac = _get_single_nic_with_vif_port_id(task)
+        deploy_nic_mac = deploy_utils.get_single_nic_with_vif_port_id(task)
         deploy_ramdisk_opts['BOOTIF'] = deploy_nic_mac
         deploy_iso_uuid = node.driver_info['ilo_deploy_iso']
         deploy_iso = 'glance:' + deploy_iso_uuid

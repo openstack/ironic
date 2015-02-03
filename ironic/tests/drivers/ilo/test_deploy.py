@@ -25,7 +25,6 @@ from ironic.common import exception
 from ironic.common import images
 from ironic.common import states
 from ironic.common import swift
-from ironic.common import utils
 from ironic.conductor import task_manager
 from ironic.conductor import utils as manager_utils
 from ironic.drivers.modules import agent
@@ -155,15 +154,6 @@ class IloDeployPrivateMethodsTestCase(db_base.DbTestCase):
         swift_obj_mock.delete_object.assert_called_once_with('ilo-cont',
                                                              'boot-object')
 
-    def test__get_single_nic_with_vif_port_id(self):
-        obj_utils.create_test_port(self.context, node_id=self.node.id,
-                address='aa:bb:cc', uuid=utils.generate_uuid(),
-                extra={'vif_port_id': 'test-vif-A'}, driver='iscsi_ilo')
-        with task_manager.acquire(self.context, self.node.uuid,
-                                  shared=False) as task:
-            address = ilo_deploy._get_single_nic_with_vif_port_id(task)
-            self.assertEqual('aa:bb:cc', address)
-
     @mock.patch.object(deploy_utils, 'check_for_missing_params')
     def test__parse_driver_info(self, check_params_mock):
         self.node.driver_info['ilo_deploy_iso'] = 'deploy-iso-uuid'
@@ -225,7 +215,7 @@ class IloVirtualMediaIscsiDeployTestCase(db_base.DbTestCase):
             validate_boot_mode_mock.assert_called_once_with(task.node)
 
     @mock.patch.object(ilo_deploy, '_reboot_into')
-    @mock.patch.object(ilo_deploy, '_get_single_nic_with_vif_port_id')
+    @mock.patch.object(deploy_utils, 'get_single_nic_with_vif_port_id')
     @mock.patch.object(iscsi_deploy, 'build_deploy_ramdisk_options')
     @mock.patch.object(manager_utils, 'node_power_action')
     @mock.patch.object(iscsi_deploy, 'check_image_size')

@@ -30,9 +30,14 @@ from ironic.common import disk_partitioner
 from ironic.common import exception
 from ironic.common import images
 from ironic.common import utils as common_utils
+from ironic.conductor import task_manager
 from ironic.drivers.modules import deploy_utils as utils
 from ironic.drivers.modules import image_cache
 from ironic.tests import base as tests_base
+from ironic.tests.conductor import utils as mgr_utils
+from ironic.tests.db import base as db_base
+from ironic.tests.db import utils as db_utils
+from ironic.tests.objects import utils as obj_utils
 
 _PXECONF_DEPLOY = """
 default deploy
@@ -1030,3 +1035,22 @@ class GetConfigdriveTestCase(tests_base.TestCase):
         mock_gzip.assert_called_once_with('configdrive', 'rb',
                                           fileobj=mock.ANY)
         mock_copy.assert_called_once_with(mock.ANY, mock.ANY)
+
+
+class VirtualMediaDeployUtilsTestCase(db_base.DbTestCase):
+
+    def setUp(self):
+        super(VirtualMediaDeployUtilsTestCase, self).setUp()
+        mgr_utils.mock_the_extension_manager(driver="iscsi_ilo")
+        info_dict = db_utils.get_test_ilo_info()
+        self.node = obj_utils.create_test_node(self.context,
+        driver='iscsi_ilo', driver_info=info_dict)
+
+    def test_get_single_nic_with_vif_port_id(self):
+        obj_utils.create_test_port(self.context, node_id=self.node.id,
+                address='aa:bb:cc', uuid=common_utils.generate_uuid(),
+                extra={'vif_port_id': 'test-vif-A'}, driver='iscsi_ilo')
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            address = utils.get_single_nic_with_vif_port_id(task)
+            self.assertEqual('aa:bb:cc', address)
