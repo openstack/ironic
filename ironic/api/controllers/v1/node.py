@@ -60,6 +60,12 @@ def assert_juno_provision_state_name(obj):
         obj.provision_state = ir_states.NOSTATE
 
 
+def hide_driver_internal_info(obj):
+    # if requested version is < 1.2, hide driver_internal_info
+    if pecan.request.version.minor < 2:
+        obj.driver_internal_info = wsme.Unset
+
+
 class NodePatchType(types.JsonPatchType):
 
     @staticmethod
@@ -70,7 +76,8 @@ class NodePatchType(types.JsonPatchType):
         return defaults + ['/console_enabled', '/last_error',
                            '/power_state', '/provision_state', '/reservation',
                            '/target_power_state', '/target_provision_state',
-                           '/provision_updated_at', '/maintenance_reason']
+                           '/provision_updated_at', '/maintenance_reason',
+                           '/driver_internal_info']
 
     @staticmethod
     def mandatory_attrs():
@@ -459,6 +466,10 @@ class Node(base.APIBase):
     driver_info = {wtypes.text: types.jsontype}
     """This node's driver configuration"""
 
+    driver_internal_info = wsme.wsattr({wtypes.text: types.jsontype},
+                                       readonly=True)
+    """This driver's internal configuration"""
+
     extra = {wtypes.text: types.jsontype}
     """This node's meta data"""
 
@@ -529,6 +540,7 @@ class Node(base.APIBase):
     def convert_with_links(cls, rpc_node, expand=True):
         node = Node(**rpc_node.as_dict())
         assert_juno_provision_state_name(node)
+        hide_driver_internal_info(node)
         return cls._convert_with_links(node, pecan.request.host_url,
                                        expand)
 
@@ -542,7 +554,8 @@ class Node(base.APIBase):
                      target_power_state=ir_states.NOSTATE,
                      last_error=None, provision_state=ir_states.ACTIVE,
                      target_provision_state=ir_states.NOSTATE,
-                     reservation=None, driver='fake', driver_info={}, extra={},
+                     reservation=None, driver='fake', driver_info={},
+                     driver_internal_info={}, extra={},
                      properties={'memory_mb': '1024', 'local_gb': '10',
                      'cpus': '1'}, updated_at=time, created_at=time,
                      provision_updated_at=time, instance_info={},

@@ -31,7 +31,8 @@ class Node(base.IronicObject):
     # Version 1.6: Add reserve() and release()
     # Version 1.7: Add conductor_affinity
     # Version 1.8: Add maintenance_reason
-    VERSION = '1.8'
+    # Version 1.9: Add driver_internal_info
+    VERSION = '1.9'
 
     dbapi = db_api.get_instance()
 
@@ -44,6 +45,7 @@ class Node(base.IronicObject):
 
             'driver': obj_utils.str_or_none,
             'driver_info': obj_utils.dict_or_none,
+            'driver_internal_info': obj_utils.dict_or_none,
 
             'instance_info': obj_utils.dict_or_none,
             'properties': obj_utils.dict_or_none,

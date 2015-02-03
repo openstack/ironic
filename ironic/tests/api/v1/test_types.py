@@ -107,6 +107,13 @@ class TestJsonPatchType(base.TestCase):
         self.assertEqual(400, ret.status_int)
         self.assertTrue(ret.json['faultstring'])
 
+    def test_cannot_update_internal_dict_attr(self):
+        patch = [{'path': '/internal/test', 'op': 'replace',
+                 'value': 'foo'}]
+        ret = self._patch_json(patch, True)
+        self.assertEqual(400, ret.status_int)
+        self.assertTrue(ret.json['faultstring'])
+
     def test_mandatory_attr(self):
         patch = [{'op': 'replace', 'path': '/mandatory', 'value': 'foo'}]
         ret = self._patch_json(patch, False)
