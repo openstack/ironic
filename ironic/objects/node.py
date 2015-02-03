@@ -234,6 +234,10 @@ class Node(base.IronicObject):
                         object, e.g.: Node(context)
         """
         updates = self.obj_get_changes()
+        if 'driver' in updates and 'driver_internal_info' not in updates:
+            # Clean driver_internal_info when changes driver
+            self.driver_internal_info = {}
+            updates = self.obj_get_changes()
         self.dbapi.update_node(self.uuid, updates)
         self.obj_reset_changes()
 
