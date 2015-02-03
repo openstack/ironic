@@ -16,6 +16,7 @@
 #    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 #    License for the specific language governing permissions and limitations
 #    under the License.
+#
 
 """Test class for IPMITool driver module."""
 
@@ -221,15 +222,21 @@ class IPMIToolPrivateMethodTestCase(db_base.DbTestCase):
                 driver_info=INFO_DICT)
         self.info = ipmi._parse_driver_info(self.node)
 
-    def test__make_password_file(self, mock_sleep):
-        with ipmi._make_password_file(self.info.get('password')) as pw_file:
+    def _test__make_password_file(self, mock_sleep, input_password):
+        with ipmi._make_password_file(input_password) as pw_file:
             del_chk_pw_file = pw_file
             self.assertTrue(os.path.isfile(pw_file))
             self.assertEqual(0o600, os.stat(pw_file)[stat.ST_MODE] & 0o777)
             with open(pw_file, "r") as f:
                 password = f.read()
-            self.assertEqual(self.info.get('password'), password)
+            self.assertEqual(str(input_password), password)
         self.assertFalse(os.path.isfile(del_chk_pw_file))
+
+    def test__make_password_file_str_password(self, mock_sleep):
+        self._test__make_password_file(mock_sleep, self.info.get('password'))
+
+    def test__make_password_file_with_numeric_password(self, mock_sleep):
+        self._test__make_password_file(mock_sleep, 12345)
 
     def test__parse_driver_info(self, mock_sleep):
         # make sure we get back the expected things

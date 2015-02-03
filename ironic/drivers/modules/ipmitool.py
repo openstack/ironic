@@ -187,7 +187,7 @@ def _make_password_file(password):
         fd, path = tempfile.mkstemp()
         os.fchmod(fd, stat.S_IRUSR | stat.S_IWUSR)
         with os.fdopen(fd, "w") as f:
-            f.write(password)
+            f.write(str(password))
 
         yield path
         utils.delete_if_exists(path)
