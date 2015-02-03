@@ -81,6 +81,8 @@ def _build_client(token=None):
         params['tenant_name'] = CONF.keystone_authtoken.admin_tenant_name
         params['password'] = CONF.keystone_authtoken.admin_password
         params['auth_url'] = (CONF.keystone_authtoken.auth_uri or '')
+        if CONF.keystone.region_name:
+            params['region_name'] = CONF.keystone.region_name
     else:
         params['token'] = token
         params['endpoint_url'] = CONF.neutron.url

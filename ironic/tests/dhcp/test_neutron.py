@@ -90,6 +90,25 @@ class TestNeutron(db_base.DbTestCase):
         mock_client_init.assert_called_once_with(**expected)
 
     @mock.patch.object(client.Client, "__init__")
+    def test__build_client_with_region(self, mock_client_init):
+        expected = {'timeout': 30,
+                    'retries': 2,
+                    'insecure': False,
+                    'ca_cert': 'test-file',
+                    'endpoint_url': 'test-url',
+                    'username': 'test-admin-user',
+                    'tenant_name': 'test-admin-tenant',
+                    'password': 'test-admin-password',
+                    'auth_url': 'test-auth-uri',
+                    'region_name': 'test-region'}
+
+        self.config(region_name='test-region',
+                    group='keystone')
+        mock_client_init.return_value = None
+        neutron._build_client(token=None)
+        mock_client_init.assert_called_once_with(**expected)
+
+    @mock.patch.object(client.Client, "__init__")
     def test__build_client_noauth(self, mock_client_init):
         self.config(auth_strategy='noauth', group='neutron')
         expected = {'ca_cert': 'test-file',

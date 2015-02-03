@@ -41,6 +41,7 @@ class KeystoneTestCase(base.TestCase):
                     auth_uri='http://127.0.0.1:9898/',
                     admin_user='fake', admin_password='fake',
                     admin_tenant_name='fake')
+        self.config(group='keystone', region_name='fake')
 
     def test_failure_authorization(self):
         self.assertRaises(exception.KeystoneFailure, keystone.get_service_url)
@@ -87,6 +88,7 @@ class KeystoneTestCase(base.TestCase):
         keystone.get_service_url()
         mock_ks.assert_called_once_with(username='fake', password='fake',
                                         tenant_name='fake',
+                                        region_name='fake',
                                         auth_url=expected_url)
 
     @mock.patch('keystoneclient.v3.client.Client')
@@ -98,6 +100,7 @@ class KeystoneTestCase(base.TestCase):
         keystone.get_service_url()
         mock_ks.assert_called_once_with(username='fake', password='fake',
                                         tenant_name='fake',
+                                        region_name='fake',
                                         auth_url=expected_url)
 
     @mock.patch('keystoneclient.v2_0.client.Client')
@@ -109,6 +112,7 @@ class KeystoneTestCase(base.TestCase):
         keystone.get_service_url()
         mock_ks.assert_called_once_with(username='fake', password='fake',
                                         tenant_name='fake',
+                                        region_name='fake',
                                         auth_url=expected_url)
 
     @mock.patch('keystoneclient.v2_0.client.Client')
@@ -117,3 +121,28 @@ class KeystoneTestCase(base.TestCase):
         fake_client.auth_token = '123456'
         mock_ks.return_value = fake_client
         self.assertEqual('123456', keystone.get_admin_auth_token())
+
+    @mock.patch('keystoneclient.v2_0.client.Client')
+    def test_get_region_name_v2(self, mock_ks):
+        mock_ks.return_value = FakeClient()
+        self.config(group='keystone', region_name='fake_region')
+        expected_url = 'http://127.0.0.1:9898/v2.0'
+        expected_region = 'fake_region'
+        keystone.get_service_url()
+        mock_ks.assert_called_once_with(username='fake', password='fake',
+                                        tenant_name='fake',
+                                        region_name=expected_region,
+                                        auth_url=expected_url)
+
+    @mock.patch('keystoneclient.v3.client.Client')
+    def test_get_region_name_v3(self, mock_ks):
+        mock_ks.return_value = FakeClient()
+        self.config(group='keystone', region_name='fake_region')
+        self.config(group='keystone_authtoken', auth_version='v3.0')
+        expected_url = 'http://127.0.0.1:9898/v3'
+        expected_region = 'fake_region'
+        keystone.get_service_url()
+        mock_ks.assert_called_once_with(username='fake', password='fake',
+                                        tenant_name='fake',
+                                        region_name=expected_region,
+                                        auth_url=expected_url)
