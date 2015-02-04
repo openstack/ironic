@@ -13,6 +13,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import eventlet
 import mock
 
 from ironic.common import exception
@@ -65,3 +66,35 @@ class PassthruDecoratorTestCase(base.TestCase):
             self.fvi.normalexception, mock.ANY)
         driver_base.LOG.exception.assert_called_with(
             mock.ANY, 'normalexception')
+
+
+@mock.patch.object(eventlet.greenthread, 'spawn_n',
+                   side_effect=lambda func, *args, **kw: func(*args, **kw))
+class DriverPeriodicTaskTestCase(base.TestCase):
+    def test(self, spawn_mock):
+        method_mock = mock.Mock()
+        function_mock = mock.Mock()
+
+        class TestClass(object):
+            @driver_base.driver_periodic_task(spacing=42)
+            def method(self, foo, bar=None):
+                method_mock(foo, bar=bar)
+
+        @driver_base.driver_periodic_task(spacing=100, parallel=False)
+        def function():
+            function_mock()
+
+        obj = TestClass()
+        self.assertEqual(42, obj.method._periodic_spacing)
+        self.assertTrue(obj.method._periodic_task)
+        self.assertEqual('ironic.tests.drivers.test_base.method',
+                         obj.method._periodic_name)
+        self.assertEqual('ironic.tests.drivers.test_base.function',
+                         function._periodic_name)
+
+        obj.method(1, bar=2)
+        method_mock.assert_called_once_with(1, bar=2)
+        self.assertEqual(1, spawn_mock.call_count)
+        function()
+        function_mock.assert_called_once_with()
+        self.assertEqual(1, spawn_mock.call_count)
