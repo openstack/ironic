@@ -492,6 +492,17 @@
 #agent_api_version=v1
 
 
+[amt]
+
+#
+# Options defined in ironic.drivers.modules.amt.common
+#
+
+# protocol used for AMT endpoint, support http/https (string
+# value)
+#protocol=http
+
+
 [api]
 
 #

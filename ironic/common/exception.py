@@ -316,6 +316,14 @@ class IPMIFailure(IronicException):
     message = _("IPMI call failed: %(cmd)s.")
 
 
+class AMTConnectFailure(IronicException):
+    message = _("Failed to connect to AMT service.")
+
+
+class AMTFailure(IronicException):
+    message = _("AMT call failed: %(cmd)s.")
+
+
 class SSHConnectFailed(IronicException):
     message = _("Failed to establish SSH connection to host %(host)s.")
 

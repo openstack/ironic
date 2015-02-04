@@ -114,6 +114,15 @@ def get_test_irmc_info():
     }
 
 
+def get_test_amt_info():
+    return {
+        "amt_address": "1.2.3.4",
+        "amt_protocol": "http",
+        "amt_username": "admin",
+        "amt_password": "fake",
+    }
+
+
 def get_test_agent_instance_info():
     return {
         'image_source': 'fake-image',
