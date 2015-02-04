@@ -54,7 +54,7 @@ class _CommonMixIn(object):
     def _create_node(**kwargs):
         attrs = {'id': 1,
                  'uuid': ironic_utils.generate_uuid(),
-                 'provision_state': states.POWER_OFF,
+                 'power_state': states.POWER_OFF,
                  'maintenance': False,
                  'reservation': None}
         attrs.update(kwargs)
