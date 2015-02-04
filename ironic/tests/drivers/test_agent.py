@@ -32,6 +32,7 @@ from ironic.tests.objects import utils as object_utils
 
 INSTANCE_INFO = db_utils.get_test_agent_instance_info()
 DRIVER_INFO = db_utils.get_test_agent_driver_info()
+DRIVER_INTERNAL_INFO = db_utils.get_test_agent_driver_internal_info()
 
 CONF = cfg.CONF
 
@@ -66,7 +67,8 @@ class TestAgentDeploy(db_base.DbTestCase):
         n = {
             'driver': 'fake_agent',
             'instance_info': INSTANCE_INFO,
-            'driver_info': DRIVER_INFO
+            'driver_info': DRIVER_INFO,
+            'driver_internal_info': DRIVER_INTERNAL_INFO,
         }
         self.node = object_utils.create_test_node(self.context, **n)
 
@@ -139,7 +141,8 @@ class TestAgentVendor(db_base.DbTestCase):
         n = {
               'driver': 'fake_agent',
               'instance_info': INSTANCE_INFO,
-              'driver_info': DRIVER_INFO
+              'driver_info': DRIVER_INFO,
+              'driver_internal_info': DRIVER_INTERNAL_INFO,
         }
         self.node = object_utils.create_test_node(self.context, **n)
 

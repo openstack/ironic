@@ -335,20 +335,20 @@ class AgentVendorInterface(base.VendorInterface):
         AGENT_PORT defaults to 9999.
         """
         node = task.node
-        driver_info = node.driver_info
+        driver_internal_info = node.driver_internal_info
         LOG.debug(
             'Heartbeat from %(node)s, last heartbeat at %(heartbeat)s.',
             {'node': node.uuid,
-             'heartbeat': driver_info.get('agent_last_heartbeat')})
-        driver_info['agent_last_heartbeat'] = int(_time())
+             'heartbeat': driver_internal_info.get('agent_last_heartbeat')})
+        driver_internal_info['agent_last_heartbeat'] = int(_time())
         try:
-            driver_info['agent_url'] = kwargs['agent_url']
+            driver_internal_info['agent_url'] = kwargs['agent_url']
         except KeyError:
             raise exception.MissingParameterValue(_('For heartbeat operation, '
                                                     '"agent_url" must be '
                                                     'specified.'))
 
-        node.driver_info = driver_info
+        node.driver_internal_info = driver_internal_info
         node.save()
 
         # Async call backs don't set error state on their own
