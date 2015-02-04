@@ -450,6 +450,29 @@ class PhysicalWorkTestCase(tests_base.TestCase):
                 utils.verify_iscsi_connection, iqn)
         self.assertEqual(3, mock_exec.call_count)
 
+    @mock.patch.object(os.path, 'exists')
+    def test_check_file_system_for_iscsi_device_raises(self, mock_os):
+        iqn = 'iqn.xyz'
+        ip = "127.0.0.1"
+        port = "22"
+        mock_os.return_value = False
+        self.assertRaises(exception.InstanceDeployFailure,
+                utils.check_file_system_for_iscsi_device, ip, port, iqn)
+        self.assertEqual(3, mock_os.call_count)
+
+    @mock.patch.object(os.path, 'exists')
+    def test_check_file_system_for_iscsi_device(self, mock_os):
+        iqn = 'iqn.xyz'
+        ip = "127.0.0.1"
+        port = "22"
+        check_dir = "/dev/disk/by-path/ip-%s:%s-iscsi-%s-lun-1" % (ip,
+                                                                   port,
+                                                                   iqn)
+
+        mock_os.return_value = True
+        utils.check_file_system_for_iscsi_device(ip, port, iqn)
+        mock_os.assert_called_once_with(check_dir)
+
     @mock.patch.object(common_utils, 'execute')
     def test_verify_iscsi_connection(self, mock_exec):
         iqn = 'iqn.xyz'
@@ -475,7 +498,9 @@ class PhysicalWorkTestCase(tests_base.TestCase):
     @mock.patch.object(common_utils, 'execute')
     @mock.patch.object(utils, 'verify_iscsi_connection')
     @mock.patch.object(utils, 'force_iscsi_lun_update')
+    @mock.patch.object(utils, 'check_file_system_for_iscsi_device')
     def test_login_iscsi_calls_verify_and_update(self,
+                                                 mock_check_dev,
                                                  mock_update,
                                                  mock_verify,
                                                  mock_exec):
@@ -497,6 +522,8 @@ class PhysicalWorkTestCase(tests_base.TestCase):
         mock_verify.assert_called_once_with(iqn)
 
         mock_update.assert_called_once_with(iqn)
+
+        mock_check_dev.assert_called_once_with(address, port, iqn)
 
     def test_always_logout_and_delete_iscsi(self):
         """Check if logout_iscsi() and delete_iscsi() are called.
