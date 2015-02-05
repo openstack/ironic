@@ -43,6 +43,10 @@ class PolicyTestCase(base.TestCase):
         for c in creds:
             self.assertTrue(policy.enforce('trusted_call', c, c))
 
+    def test_show_password(self):
+        creds = {'roles': [u'admin'], 'tenant': 'admin'}
+        self.assertTrue(policy.enforce('show_password', creds, creds))
+
 
 class PolicyTestCaseNegative(base.TestCase):
     """Tests whether the configuration of the policy engine is corect."""
@@ -64,3 +68,7 @@ class PolicyTestCaseNegative(base.TestCase):
 
         for c in creds:
             self.assertFalse(policy.enforce('trusted_call', c, c))
+
+    def test_show_password(self):
+        creds = {'roles': [u'admin'], 'tenant': 'demo'}
+        self.assertFalse(policy.enforce('show_password', creds, creds))

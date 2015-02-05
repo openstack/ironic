@@ -167,7 +167,7 @@ def get_test_node(**kw):
         "local_gb": "10",
         "memory_mb": "4096",
     }
-    fake_info = {"foo": "bar"}
+    fake_info = {"foo": "bar", "fake_password": "fakepass"}
     return {
         'id': kw.get('id', 123),
         'uuid': kw.get('uuid', '1be26c0b-03f2-4d2e-ae87-c02d7f33c123'),
