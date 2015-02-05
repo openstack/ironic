@@ -62,15 +62,13 @@ class Version(object):
     max_string = 'X-OpenStack-Ironic-API-Maximum-Version'
     """HTTP response header"""
 
-    def __init__(self, headers, min=None, max=None):
+    def __init__(self, headers):
         """Create an API Version object from the supplied headers.
 
         :param headers: webob headers
         :raises: webob.HTTPNotAcceptable
         """
         (self.major, self.minor) = Version.parse_headers(headers)
-        self.min = min
-        self.max = max
 
     def __repr__(self):
         return '%s.%s' % (self.major, self.minor)
@@ -95,16 +93,6 @@ class Version(object):
                 "Invalid value for X-OpenStack-Ironic-API-Version "
                 "header."))
         return version
-
-    def set_min_max(self, min, max):
-        """Set or update the min and max versions.
-
-        This is useful if the specific min and max are not known when
-        the Version object is instantiated, eg. because it was created
-        in the root controller.
-        """
-        self.min = min
-        self.max = max
 
     def __lt__(a, b):
         if (a.major == b.major and a.minor < b.minor):

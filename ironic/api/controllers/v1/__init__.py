@@ -171,8 +171,6 @@ class Controller(rest.RestController):
                 "[%(min)s, %(max)s].") % {'min': MIN_VER,
                                           'max': MAX_VER})
 
-        version.set_min_max(MIN_VER, MAX_VER)
-
     @pecan.expose()
     def _route(self, args):
         v = base.Version(pecan.request.headers)
