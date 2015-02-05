@@ -198,6 +198,14 @@ class StartStopTestCase(_ServiceSetUpMixin, tests_db_base.DbTestCase):
                           objects.Conductor.get_by_hostname,
                           self.context, self.hostname)
 
+    def test_stop_doesnt_unregister_conductor(self):
+        self._start_service()
+        res = objects.Conductor.get_by_hostname(self.context, self.hostname)
+        self.assertEqual(self.hostname, res['hostname'])
+        self.service.del_host(deregister=False)
+        res = objects.Conductor.get_by_hostname(self.context, self.hostname)
+        self.assertEqual(self.hostname, res['hostname'])
+
     @mock.patch.object(driver_factory.DriverFactory, '__getitem__',
                        lambda *args: mock.MagicMock())
     def test_start_registers_driver_names(self):
