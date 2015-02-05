@@ -1,0 +1,21 @@
+# This file lists all python libraries which are utilized by drivers,
+# but not listed in global-requirements.
+# It is intended to help package maintainers to discover additional
+# python projects they should package as optional dependencies for Ironic.
+
+# These are available on pypi
+proliantutils
+pyghmi
+pysnmp
+python-scciclient
+python-seamicroclient
+
+# The drac driver imports a python module called "pywsman", however,
+# this does not exist on pypi.
+# It is installed by the openwsman-python (on RH) or python-openwsman (on deb)
+# package, from https://github.com/Openwsman/openwsman/blob/master/bindings/python/Makefile.am#L29
+# There is *also* a "wsman" module on pypi ... but I think that's the wrong one.
+
+# The iboot driver does not seem to have any available packages or pip modules,
+# but the source is available here:
+# https://github.com/darkip/python-iboot
