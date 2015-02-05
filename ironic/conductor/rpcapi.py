@@ -65,11 +65,12 @@ class ConductorAPI(object):
     |    1.21 - Added get_node_vendor_passthru_methods and
     |           get_driver_vendor_passthru_methods
     |    1.22 - Added configdrive parameter to do_node_deploy.
+    |    1.23 - Added do_provisioning_action
 
     """
 
     # NOTE(rloo): This must be in sync with manager.ConductorManager's.
-    RPC_API_VERSION = '1.22'
+    RPC_API_VERSION = '1.23'
 
     def __init__(self, topic=None):
         super(ConductorAPI, self).__init__()
@@ -302,6 +303,25 @@ class ConductorAPI(object):
         """
         cctxt = self.client.prepare(topic=topic or self.topic, version='1.6')
         return cctxt.call(context, 'do_node_tear_down', node_id=node_id)
+
+    def do_provisioning_action(self, context, node_id, action, topic=None):
+        """Signal to conductor service to perform the given action on a node.
+
+        :param context: request context.
+        :param node_id: node id or uuid.
+        :param action: an action. One of ironic.common.states.VERBS
+        :param topic: RPC topic. Defaults to self.topic.
+        :raises: InvalidParameterValue
+        :raises: NoFreeConductorWorker when there is no free worker to start
+                async task.
+        :raises: InvalidStateRequested if the requested action can not
+                 be performed.
+
+        This encapsulates some provisioning actions in a single call.
+        """
+        cctxt = self.client.prepare(topic=topic or self.topic, version='1.23')
+        return cctxt.call(context, 'do_provisioning_action',
+                          node_id=node_id, action=action)
 
     def validate_driver_interfaces(self, context, node_id, topic=None):
         """Validate the `core` and `standardized` interfaces for drivers.

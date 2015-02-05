@@ -1257,6 +1257,53 @@ class TestPut(test_api_base.FunctionalTest):
                             expect_errors=True)
         self.assertEqual(400, ret.status_code)
 
+    def test_manage_raises_error_before_1_2(self):
+        ret = self.put_json('/nodes/%s/states/provision' % self.node.uuid,
+                            {'target': states.VERBS['manage']},
+                            headers={},
+                            expect_errors=True)
+        self.assertEqual(406, ret.status_code)
+
+    @mock.patch.object(rpcapi.ConductorAPI, 'do_provisioning_action')
+    def test_provide_from_manage(self, mock_dpa):
+        self.node.provision_state = states.MANAGEABLE
+        self.node.save()
+
+        ret = self.put_json('/nodes/%s/states/provision' % self.node.uuid,
+                            {'target': states.VERBS['provide']},
+                            headers={api_base.Version.string: "1.4"})
+        self.assertEqual(202, ret.status_code)
+        self.assertEqual('', ret.body)
+        mock_dpa.assert_called_once_with(mock.ANY, self.node.uuid,
+                                         states.VERBS['provide'],
+                                         'test-topic')
+
+    @mock.patch.object(rpcapi.ConductorAPI, 'do_provisioning_action')
+    def test_manage_from_available(self, mock_dpa):
+        self.node.provision_state = states.AVAILABLE
+        self.node.save()
+
+        ret = self.put_json('/nodes/%s/states/provision' % self.node.uuid,
+                            {'target': states.VERBS['manage']},
+                            headers={api_base.Version.string: "1.4"})
+        self.assertEqual(202, ret.status_code)
+        self.assertEqual('', ret.body)
+        mock_dpa.assert_called_once_with(mock.ANY, self.node.uuid,
+                                         states.VERBS['manage'],
+                                         'test-topic')
+
+    @mock.patch.object(rpcapi.ConductorAPI, 'do_provisioning_action')
+    def test_bad_requests_in_managed_state(self, mock_dpa):
+        self.node.provision_state = states.MANAGEABLE
+        self.node.save()
+
+        for state in [states.ACTIVE, states.REBUILD, states.DELETED]:
+            ret = self.put_json('/nodes/%s/states/provision' % self.node.uuid,
+                                {'target': states.ACTIVE},
+                                expect_errors=True)
+            self.assertEqual(400, ret.status_code)
+        self.assertEqual(0, mock_dpa.call_count)
+
     def test_set_console_mode_enabled(self):
         with mock.patch.object(rpcapi.ConductorAPI,
                                'set_console_mode') as mock_scm:

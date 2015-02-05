@@ -172,7 +172,7 @@ class ConductorManager(periodic_task.PeriodicTasks):
     """Ironic Conductor manager main class."""
 
     # NOTE(rloo): This must be in sync with rpcapi.ConductorAPI's.
-    RPC_API_VERSION = '1.22'
+    RPC_API_VERSION = '1.23'
 
     target = messaging.Target(version=RPC_API_VERSION)
 
@@ -616,8 +616,7 @@ class ConductorManager(periodic_task.PeriodicTasks):
                                    exception.NodeLocked,
                                    exception.NodeInMaintenance,
                                    exception.InstanceDeployFailure,
-                                   exception.InvalidParameterValue,
-                                   exception.MissingParameterValue)
+                                   exception.InvalidStateRequested)
     def do_node_deploy(self, context, node_id, rebuild=False,
                        configdrive=None):
         """RPC method to initiate deployment to a node.
@@ -637,6 +636,8 @@ class ConductorManager(periodic_task.PeriodicTasks):
         :raises: NodeInMaintenance if the node is in maintenance mode.
         :raises: NoFreeConductorWorker when there is no free worker to start
                  async task.
+        :raises: InvalidStateRequested when the requested state is not a valid
+                 target from the current state.
 
         """
         LOG.debug("RPC do_node_deploy called for node %s." % node_id)
@@ -682,18 +683,14 @@ class ConductorManager(periodic_task.PeriodicTasks):
                                               configdrive),
                                    err_handler=provisioning_error_handler)
             except exception.InvalidState:
-                raise exception.InstanceDeployFailure(_(
-                    "Request received to %(what)s %(node)s, but "
-                    "this is not possible in the current state of "
-                    "'%(state)s'. ") % {'what': event,
-                                        'node': node.uuid,
-                                        'state': node.provision_state})
+                raise exception.InvalidStateRequested(
+                        action=event, node=task.node.uuid,
+                        state=task.node.provision_state)
 
     @messaging.expected_exceptions(exception.NoFreeConductorWorker,
                                    exception.NodeLocked,
                                    exception.InstanceDeployFailure,
-                                   exception.InvalidParameterValue,
-                                   exception.MissingParameterValue)
+                                   exception.InvalidStateRequested)
     def do_node_tear_down(self, context, node_id):
         """RPC method to tear down an existing node deployment.
 
@@ -705,12 +702,13 @@ class ConductorManager(periodic_task.PeriodicTasks):
         :raises: InstanceDeployFailure
         :raises: NoFreeConductorWorker when there is no free worker to start
                  async task
+        :raises: InvalidStateRequested when the requested state is not a valid
+                 target from the current state.
 
         """
         LOG.debug("RPC do_node_tear_down called for node %s." % node_id)
 
         with task_manager.acquire(context, node_id, shared=False) as task:
-            node = task.node
             try:
                 # NOTE(ghe): Valid power driver values are needed to perform
                 # a tear-down. Deploy info is useful to purge the cache but not
@@ -719,8 +717,8 @@ class ConductorManager(periodic_task.PeriodicTasks):
             except (exception.InvalidParameterValue,
                     exception.MissingParameterValue) as e:
                 raise exception.InstanceDeployFailure(_(
-                    "RPC do_node_tear_down failed to validate power info. "
-                    "Error: %(msg)s") % {'msg': e})
+                    "Failed to validate power driver interface. "
+                    "Can not delete instance. Error: %(msg)s") % {'msg': e})
 
             try:
                 task.process_event('delete',
@@ -728,10 +726,36 @@ class ConductorManager(periodic_task.PeriodicTasks):
                                    call_args=(do_node_tear_down, task),
                                    err_handler=provisioning_error_handler)
             except exception.InvalidState:
-                raise exception.InstanceDeployFailure(_(
-                    "RPC do_node_tear_down "
-                    "not allowed for node %(node)s in state %(state)s")
-                    % {'node': node_id, 'state': node.provision_state})
+                raise exception.InvalidStateRequested(
+                        action='delete', node=task.node.uuid,
+                        state=task.node.provision_state)
+
+    @messaging.expected_exceptions(exception.NoFreeConductorWorker,
+                                   exception.NodeLocked,
+                                   exception.InvalidParameterValue,
+                                   exception.MissingParameterValue,
+                                   exception.InvalidStateRequested)
+    def do_provisioning_action(self, context, node_id, action):
+        """RPC method to initiate certain provisioning state transitions.
+
+        Initiate a provisioning state change through the state machine,
+        rather than through an RPC call to do_node_deploy / do_node_tear_down
+
+        :param context: an admin context.
+        :param node_id: the id or uuid of a node.
+        :param action: an action. One of ironic.common.states.VERBS
+        :raises: InvalidParameterValue
+        :raises: InvalidStateRequested
+        :raises: NoFreeConductorWorker
+
+        """
+        with task_manager.acquire(context, node_id, shared=False) as task:
+            try:
+                task.process_event(action)
+            except exception.InvalidState:
+                raise exception.InvalidStateRequested(
+                        action=action, node=task.node.uuid,
+                        state=task.node.provision_state)
 
     @periodic_task.periodic_task(
             spacing=CONF.conductor.sync_power_state_interval)
