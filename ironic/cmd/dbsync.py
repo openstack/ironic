@@ -21,7 +21,7 @@ Run storage database migration.
 
 import sys
 
-from oslo.config import cfg
+from oslo_config import cfg
 
 from ironic.common import service
 from ironic.db import migration

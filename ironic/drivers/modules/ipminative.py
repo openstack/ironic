@@ -22,9 +22,9 @@ Ironic Native IPMI power manager.
 import os
 import tempfile
 
-from oslo.config import cfg
 from oslo.utils import excutils
 from oslo.utils import importutils
+from oslo_config import cfg
 
 from ironic.common import boot_devices
 from ironic.common import exception

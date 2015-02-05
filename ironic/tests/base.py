@@ -28,7 +28,7 @@ import sys
 import eventlet
 eventlet.monkey_patch(os=False)
 import fixtures
-from oslo.config import cfg
+from oslo_config import cfg
 import testtools
 
 from ironic.common import hash_ring

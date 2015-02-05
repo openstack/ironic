@@ -18,9 +18,9 @@
 
 import socket
 
-from oslo.config import cfg
 from oslo import messaging
 from oslo.utils import importutils
+from oslo_config import cfg
 
 from ironic.common import config
 from ironic.common.i18n import _LE

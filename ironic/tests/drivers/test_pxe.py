@@ -22,7 +22,7 @@ import tempfile
 
 import fixtures
 import mock
-from oslo.config import cfg
+from oslo_config import cfg
 from oslo_serialization import jsonutils as json
 
 from ironic.common import dhcp_factory

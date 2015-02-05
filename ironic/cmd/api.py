@@ -21,7 +21,7 @@ import logging
 import sys
 from wsgiref import simple_server
 
-from oslo.config import cfg
+from oslo_config import cfg
 from six.moves import socketserver
 
 from ironic.api import app

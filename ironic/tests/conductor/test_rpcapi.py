@@ -21,7 +21,7 @@ Unit Tests for :py:class:`ironic.conductor.rpcapi.ConductorAPI`.
 import copy
 
 import mock
-from oslo.config import cfg
+from oslo_config import cfg
 
 from ironic.common import boot_devices
 from ironic.common import exception

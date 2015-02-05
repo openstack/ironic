@@ -25,8 +25,8 @@ import tempfile
 import time
 
 import mock
-from oslo.config import cfg
 from oslo_concurrency import processutils
+from oslo_config import cfg
 
 from ironic.common import boot_devices
 from ironic.common import driver_factory

@@ -18,7 +18,7 @@ import wsme
 from ironic.api.controllers.v1 import utils
 from ironic.tests import base
 
-from oslo.config import cfg
+from oslo_config import cfg
 
 CONF = cfg.CONF
 

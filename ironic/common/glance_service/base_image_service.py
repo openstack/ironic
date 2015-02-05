@@ -22,7 +22,7 @@ import sys
 import time
 
 from glanceclient import client
-from oslo.config import cfg
+from oslo_config import cfg
 import sendfile
 import six.moves.urllib.parse as urlparse
 

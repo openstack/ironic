@@ -18,8 +18,8 @@ Tests for the API /chassis/ methods.
 import datetime
 
 import mock
-from oslo.config import cfg
 from oslo.utils import timeutils
+from oslo_config import cfg
 from six.moves.urllib import parse as urlparse
 from wsme import types as wtypes
 

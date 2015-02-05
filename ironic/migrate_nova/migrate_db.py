@@ -218,7 +218,7 @@ def parse_nova_config(config_file):
     """Parse nova.conf and return known defaults if setting is not present.
 
     This avoids having to import nova code from this script and risk conflicts
-    with Ironic's tree around oslo.config resources.
+    with Ironic's tree around oslo_config resources.
     """
     if not os.path.isfile(config_file):
         print("nova.conf not found at %s. Please specify the location via "

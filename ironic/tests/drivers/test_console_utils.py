@@ -24,9 +24,9 @@ import subprocess
 import tempfile
 
 import mock
-from oslo.config import cfg
 from oslo.utils import netutils
 from oslo_concurrency import processutils
+from oslo_config import cfg
 
 from ironic.common import exception
 from ironic.common import utils

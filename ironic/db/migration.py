@@ -16,7 +16,7 @@
 
 """Database setup and migration commands."""
 
-from oslo.config import cfg
+from oslo_config import cfg
 from stevedore import driver
 
 _IMPL = None

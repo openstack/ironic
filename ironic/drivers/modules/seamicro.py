@@ -21,8 +21,8 @@ Provides vendor passthru methods for SeaMicro specific functionality.
 import os
 import re
 
-from oslo.config import cfg
 from oslo.utils import importutils
+from oslo_config import cfg
 from six.moves.urllib import parse as urlparse
 
 from ironic.common import boot_devices

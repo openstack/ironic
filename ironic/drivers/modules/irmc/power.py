@@ -14,8 +14,8 @@
 """
 iRMC Power Driver using the Base Server Profile
 """
-from oslo.config import cfg
 from oslo.utils import importutils
+from oslo_config import cfg
 
 from ironic.common import exception
 from ironic.common.i18n import _

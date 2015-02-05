@@ -13,9 +13,9 @@
 # under the License.
 
 from keystoneclient import exceptions as ksexception
-# NOTE(deva): import auth_token so oslo.config pulls in keystone_authtoken
+# NOTE(deva): import auth_token so oslo_config pulls in keystone_authtoken
 from keystonemiddleware import auth_token  # noqa
-from oslo.config import cfg
+from oslo_config import cfg
 from six.moves.urllib import parse
 
 from ironic.common import exception

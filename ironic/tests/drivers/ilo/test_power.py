@@ -16,8 +16,8 @@
 """Test class for IloPower module."""
 
 import mock
-from oslo.config import cfg
 from oslo.utils import importutils
+from oslo_config import cfg
 
 from ironic.common import boot_devices
 from ironic.common import exception

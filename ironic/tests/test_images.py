@@ -20,8 +20,8 @@ import os
 import shutil
 
 import mock
-from oslo.config import cfg
 from oslo_concurrency import processutils
+from oslo_config import cfg
 import six.moves.builtins as __builtin__
 
 from ironic.common import exception
