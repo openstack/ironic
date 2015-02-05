@@ -12,7 +12,6 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import mock
 from webob import exc as webob_exc
 
 from ironic.api.controllers import v1 as v1_api
@@ -37,9 +36,6 @@ class TestCheckVersions(test_base.TestCase):
         class ver(object):
             major = None
             minor = None
-            min = None
-            max = None
-            set_min_max = mock.Mock()
 
         self.version = ver()
 
@@ -71,4 +67,3 @@ class TestCheckVersions(test_base.TestCase):
         self.version.major = v1_api.BASE_VERSION
         self.version.minor = v1_api.MIN_VER.minor
         v1_api.Controller()._check_version(self.version)
-        self.assertEqual(1, self.version.set_min_max.call_count)
