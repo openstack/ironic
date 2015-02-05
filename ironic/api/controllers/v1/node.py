@@ -56,15 +56,15 @@ _VENDOR_METHODS = {}
 
 
 def assert_juno_provision_state_name(obj):
-    # if requested version is < 1.1, convert AVAILABLE to the old NOSTATE
-    if (pecan.request.version.minor < 1 and
+    # if requested version is < 1.2, convert AVAILABLE to the old NOSTATE
+    if (pecan.request.version.minor < 2 and
             obj.provision_state == ir_states.AVAILABLE):
         obj.provision_state = ir_states.NOSTATE
 
 
 def hide_driver_internal_info(obj):
-    # if requested version is < 1.2, hide driver_internal_info
-    if pecan.request.version.minor < 2:
+    # if requested version is < 1.3, hide driver_internal_info
+    if pecan.request.version.minor < 3:
         obj.driver_internal_info = wsme.Unset
 
 

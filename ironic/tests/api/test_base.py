@@ -75,6 +75,6 @@ class TestVersion(base.FunctionalTest):
                 {cbase.Version.string: '1.2.3'})
 
     def test_parse_no_header(self):
-        # this asserts that the minimum version string of "1.0" is applied
+        # this asserts that the minimum version string of "1.1" is applied
         version = cbase.Version.parse_headers({})
-        self.assertEqual((1, 0), version)
+        self.assertEqual((1, 1), version)

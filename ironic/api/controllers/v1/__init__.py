@@ -36,9 +36,29 @@ from ironic.api.controllers.v1 import node
 from ironic.api.controllers.v1 import port
 from ironic.common.i18n import _
 
+BASE_VERSION = 1
 
-MIN_VER = 0
-MAX_VER = 2
+# NOTE(deva): v1.0 is reserved to indicate Juno's API, but is not presently
+#             supported by the API service. All changes between Juno and the
+#             point where we added microversioning are considered backwards-
+#             compatible, but are not specifically discoverable at this time.
+#
+#             The v1.1 version indicates this "initial" version as being
+#             different from Juno (v1.0), and includes the following changes:
+#
+# 827db7fe: Add Node.maintenance_reason
+# 68eed82b: Add API endpoint to set/unset the node maintenance mode
+# bc973889: Add sync and async support for passthru methods
+# e03f443b: Vendor endpoints to support different HTTP methods
+# e69e5309: Make vendor methods discoverable via the Ironic API
+# edf532db: Add logic to store the config drive passed by Nova
+
+# v1.1: API at the point in time when microversioning support was added
+MIN_VER = base.Version({base.Version.string: "1.1"})
+
+# v1.2: Renamed NOSTATE ("None") to AVAILABLE ("available")
+# v1.3: Add node.driver_internal_info
+MAX_VER = base.Version({base.Version.string: "1.3"})
 
 
 class MediaType(base.APIBase):
@@ -138,13 +158,13 @@ class Controller(rest.RestController):
 
     def _check_version(self, version):
         # ensure that major version in the URL matches the header
-        if version.major != 1:
+        if version.major != BASE_VERSION:
             raise exc.HTTPNotAcceptable(_(
                 "Mutually exclusive versions requested. Version %(ver)s "
                 "requested but not supported by this service.")
                 % {'ver': version})
         # ensure the minor version is within the supported range
-        if version.minor < MIN_VER or version.minor > MAX_VER:
+        if version < MIN_VER or version > MAX_VER:
             raise exc.HTTPNotAcceptable(_(
                 "Unsupported minor version requested. This API service "
                 "supports the following version range: "
