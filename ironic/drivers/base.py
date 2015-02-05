@@ -617,7 +617,13 @@ def driver_periodic_task(parallel=True, **other):
             def task(self, manager, context):
                 # do some job
 
-    :param parallel: whether to run this task in a separate thread
+    :param parallel: If True (default), this task is run in a separate thread.
+            If False, this task will be run in the conductor's periodic task
+            loop, rather than a separate greenthread. False should be used with
+            caution, as it will cause all other periodic tasks to be blocked
+            from starting while the non-parallel task is running. Long running
+            tasks, especially any tasks that make a remote call (to a BMC,
+            HTTP, etc.) must be parallelized.
     :param other: arguments to pass to @periodic_task.periodic_task
     """
     # TODO(dtantsur): drop all this magic once
