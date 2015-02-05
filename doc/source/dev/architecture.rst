@@ -98,7 +98,8 @@ driver itself or on any interface with driver_periodic_task_ decorator, e.g.
             pass  # do something fast, this blocks other tasks from starting!
 
 
-Here ``spacing`` argument is a period for a given periodic task.
+Here the ``spacing`` argument is a period in seconds for a given periodic task.
+For example 'spacing=5' means every 5 seconds.
 
 The ``parallel`` argument may be passed to driver_periodic_task_ and defaults
 to True. If False, this task will be run in the periodic task loop, rather
