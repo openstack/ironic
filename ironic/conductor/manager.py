@@ -734,12 +734,69 @@ class ConductorManager(periodic_task.PeriodicTasks):
             try:
                 task.process_event('delete',
                                    callback=self._spawn_worker,
-                                   call_args=(do_node_tear_down, task),
+                                   call_args=(self._do_node_tear_down, task),
                                    err_handler=provisioning_error_handler)
             except exception.InvalidState:
                 raise exception.InvalidStateRequested(
                         action='delete', node=task.node.uuid,
                         state=task.node.provision_state)
+
+    def _do_node_tear_down(self, task):
+        """Internal RPC method to tear down an existing node deployment."""
+        node = task.node
+        try:
+            task.driver.deploy.clean_up(task)
+            task.driver.deploy.tear_down(task)
+        except Exception as e:
+            with excutils.save_and_reraise_exception():
+                LOG.exception(_LE('Error in tear_down of node %(node)s: '
+                                  '%(err)s'),
+                              {'node': node.uuid, 'err': e})
+                node.last_error = _("Failed to tear down. Error: %s") % e
+                task.process_event('error')
+        else:
+            # NOTE(deva): When tear_down finishes, the deletion is done,
+            # cleaning will start next
+            LOG.info(_LI('Successfully unprovisioned node %(node)s with '
+                         'instance %(instance)s.'),
+                     {'node': node.uuid, 'instance': node.instance_uuid})
+        finally:
+            # NOTE(deva): there is no need to unset conductor_affinity
+            # because it is a reference to the most recent conductor which
+            # deployed a node, and does not limit any future actions.
+            # But we do need to clear the instance_info
+            node.instance_info = {}
+            node.save()
+
+        # Begin cleaning
+        try:
+            task.process_event('clean')
+        except exception.InvalidState:
+            raise exception.InvalidStateRequested(
+                action='clean', node=node.uuid,
+                state=node.provision_state)
+        self._do_node_clean(task)
+
+    def _do_node_clean(self, task):
+        """Internal RPC method to perform automated cleaning of a node."""
+        node = task.node
+        LOG.debug('Starting cleaning for node %s' % node.uuid)
+        try:
+            # NOTE(ghe): Valid power driver values are needed to perform
+            # a cleaning.
+            task.driver.power.validate(task)
+        except (exception.InvalidParameterValue,
+                exception.MissingParameterValue) as e:
+            node.last_error = (_('Failed to validate power driver interface. '
+                               'Can not clean instance. Error: %(msg)s') %
+                               {'msg': e})
+            task.process_event('fail')
+            return
+
+        # TODO(JoshNang) Implement
+        # Move to AVAILABLE
+        LOG.debug('Cleaning complete for node %s' % node.uuid)
+        task.process_event('done')
 
     @messaging.expected_exceptions(exception.NoFreeConductorWorker,
                                    exception.NodeLocked,
@@ -761,10 +818,17 @@ class ConductorManager(periodic_task.PeriodicTasks):
 
         """
         with task_manager.acquire(context, node_id, shared=False) as task:
-            try:
-                task.process_event(action)
-            except exception.InvalidState:
-                raise exception.InvalidStateRequested(
+            if (action == states.VERBS['provide'] and
+                    task.node.provision_state == states.MANAGEABLE):
+                task.process_event('provide',
+                                   callback=self._spawn_worker,
+                                   call_args=(self._do_node_clean, task),
+                                   err_handler=provisioning_error_handler)
+            else:
+                try:
+                    task.process_event(action)
+                except exception.InvalidState:
+                    raise exception.InvalidStateRequested(
                         action=action, node=task.node.uuid,
                         state=task.node.provision_state)
 
@@ -1517,34 +1581,6 @@ def do_node_deploy(task, conductor_id, configdrive=None):
                           'deploying node %(node)s.'),
                           {'state': new_state, 'node': node.uuid})
     finally:
-        node.save()
-
-
-def do_node_tear_down(task):
-    """Internal RPC method to tear down an existing node deployment."""
-    node = task.node
-    try:
-        task.driver.deploy.clean_up(task)
-        task.driver.deploy.tear_down(task)
-    except Exception as e:
-        with excutils.save_and_reraise_exception():
-            LOG.exception(_LE('Error in tear_down of node %(node)s: '
-                              '%(err)s'),
-                          {'node': node.uuid, 'err': e})
-            node.last_error = _("Failed to tear down. Error: %s") % e
-            task.process_event('error')
-    else:
-        # NOTE(deva): When tear_down finishes, the deletion is done
-        task.process_event('done')
-        LOG.info(_LI('Successfully unprovisioned node %(node)s with '
-                     'instance %(instance)s.'),
-                 {'node': node.uuid, 'instance': node.instance_uuid})
-    finally:
-        # NOTE(deva): there is no need to unset conductor_affinity
-        # because it is a reference to the most recent conductor which
-        # deployed a node, and does not limit any future actions.
-        # But we do need to clear the instance_info
-        node.instance_info = {}
         node.save()
 
 

@@ -1333,14 +1333,14 @@ class DoNodeDeployTearDownTestCase(_ServiceSetUpMixin,
         # test when driver.deploy.tear_down raises exception
         node = obj_utils.create_test_node(self.context, driver='fake',
                                       provision_state=states.DELETING,
-                                      target_provision_state=states.DELETED,
+                                      target_provision_state=states.AVAILABLE,
                                       instance_info={'foo': 'bar'})
 
         task = task_manager.TaskManager(self.context, node.uuid)
         self._start_service()
         mock_tear_down.side_effect = exception.InstanceDeployFailure('test')
         self.assertRaises(exception.InstanceDeployFailure,
-                          manager.do_node_tear_down, task)
+                          self.service._do_node_tear_down, task)
         node.refresh()
         self.assertEqual(states.ERROR, node.provision_state)
         self.assertEqual(states.AVAILABLE, node.target_provision_state)
@@ -1349,43 +1349,46 @@ class DoNodeDeployTearDownTestCase(_ServiceSetUpMixin,
         self.assertEqual({}, node.instance_info)
         mock_tear_down.assert_called_once_with(mock.ANY)
 
+    @mock.patch('ironic.conductor.manager.ConductorManager._do_node_clean')
     @mock.patch('ironic.drivers.modules.fake.FakeDeploy.tear_down')
-    def test_do_node_tear_down_ok(self, mock_tear_down):
-        # test when driver.deploy.tear_down returns DELETED
+    def test__do_node_tear_down_ok(self, mock_tear_down, mock_clean):
+        # test when driver.deploy.tear_down succeeds
         node = obj_utils.create_test_node(self.context, driver='fake',
                                       provision_state=states.DELETING,
-                                      target_provision_state=states.DELETED,
+                                      target_provision_state=states.AVAILABLE,
                                       instance_info={'foo': 'bar'})
 
         task = task_manager.TaskManager(self.context, node.uuid)
         self._start_service()
-        mock_tear_down.return_value = states.DELETED
-        manager.do_node_tear_down(task)
+        self.service._do_node_tear_down(task)
         node.refresh()
-        self.assertEqual(states.AVAILABLE, node.provision_state)
-        self.assertEqual(states.NOSTATE, node.target_provision_state)
+        self.assertEqual(states.CLEANING, node.provision_state)
+        self.assertEqual(states.AVAILABLE, node.target_provision_state)
         self.assertIsNone(node.last_error)
         self.assertEqual({}, node.instance_info)
         mock_tear_down.assert_called_once_with(mock.ANY)
+        mock_clean.assert_called_once_with(mock.ANY)
 
+    @mock.patch('ironic.conductor.manager.ConductorManager._do_node_clean')
     @mock.patch('ironic.drivers.modules.fake.FakeDeploy.tear_down')
-    def _test_do_node_tear_down_from_state(self, init_state, mock_tear_down):
-        mock_tear_down.return_value = states.DELETED
+    def _test_do_node_tear_down_from_state(self, init_state, mock_tear_down,
+                                           mock_clean):
         node = obj_utils.create_test_node(self.context, driver='fake',
                                       uuid=uuidutils.generate_uuid(),
                                       provision_state=init_state,
-                                      target_provision_state=states.NOSTATE)
+                                      target_provision_state=states.AVAILABLE)
 
         self.service.do_node_tear_down(self.context, node.uuid)
         self.service._worker_pool.waitall()
         node.refresh()
-        self.assertEqual(states.AVAILABLE, node.provision_state)
-        self.assertEqual(states.NOSTATE, node.target_provision_state)
+        self.assertEqual(states.CLEANING, node.provision_state)
+        self.assertEqual(states.AVAILABLE, node.target_provision_state)
         self.assertIsNone(node.last_error)
         self.assertEqual({}, node.instance_info)
         mock_tear_down.assert_called_once_with(mock.ANY)
+        mock_clean.assert_called_once_with(mock.ANY)
 
-    def test_do_node_tear_down_from_valid_states(self):
+    def test__do_node_tear_down_from_valid_states(self):
         valid_states = [states.ACTIVE, states.DEPLOYWAIT, states.DEPLOYFAIL,
                         states.ERROR]
         self._start_service()
@@ -1428,6 +1431,63 @@ class DoNodeDeployTearDownTestCase(_ServiceSetUpMixin,
         self.assertIsNotNone(node.last_error)
         # Verify reservation has been cleared.
         self.assertIsNone(node.reservation)
+
+    @mock.patch('ironic.conductor.manager.ConductorManager._spawn_worker')
+    def test_do_provisioning_action_worker_pool_full(self, mock_spawn):
+        prv_state = states.MANAGEABLE
+        tgt_prv_state = states.CLEANING
+        node = obj_utils.create_test_node(self.context, driver='fake',
+                                          provision_state=prv_state,
+                                          target_provision_state=tgt_prv_state,
+                                          last_error=None)
+        self._start_service()
+
+        mock_spawn.side_effect = exception.NoFreeConductorWorker()
+
+        exc = self.assertRaises(messaging.rpc.ExpectedException,
+                                self.service.do_provisioning_action,
+                                self.context, node.uuid, 'provide')
+        # Compare true exception hidden by @messaging.expected_exceptions
+        self.assertEqual(exception.NoFreeConductorWorker, exc.exc_info[0])
+        self.service._worker_pool.waitall()
+        node.refresh()
+        # Make sure things were rolled back
+        self.assertEqual(prv_state, node.provision_state)
+        self.assertEqual(tgt_prv_state, node.target_provision_state)
+        self.assertIsNotNone(node.last_error)
+        # Verify reservation has been cleared.
+        self.assertIsNone(node.reservation)
+
+    @mock.patch('ironic.conductor.manager.ConductorManager._spawn_worker')
+    def test_do_provision_action_provide(self, mock_spawn):
+
+        # test when a node is cleaned going from manageable to available
+        node = obj_utils.create_test_node(
+            self.context, driver='fake',
+            provision_state=states.MANAGEABLE,
+            target_provision_state=states.AVAILABLE)
+
+        self._start_service()
+        self.service.do_provisioning_action(self.context, node.uuid, 'provide')
+        node.refresh()
+        self.assertEqual(states.CLEANING, node.provision_state)
+        self.assertEqual(states.AVAILABLE, node.target_provision_state)
+        self.assertIsNone(node.last_error)
+        mock_spawn.assert_called_with(self.service._do_node_clean, mock.ANY)
+
+    @mock.patch('ironic.drivers.modules.fake.FakePower.validate')
+    def test__do_node_clean_validate_fail(self, mock_validate):
+        # InvalidParameterValue should be cause node to go to CLEANFAIL
+        mock_validate.side_effect = exception.InvalidParameterValue('error')
+        node = obj_utils.create_test_node(
+            self.context, driver='fake',
+            provision_state=states.CLEANING,
+            target_provision_state=states.AVAILABLE)
+        with task_manager.acquire(
+                self.context, node['id'], shared=False) as task:
+            self.service._do_node_clean(task)
+        node.refresh()
+        self.assertEqual(states.CLEANFAIL, node.provision_state)
 
 
 @_mock_record_keepalive
