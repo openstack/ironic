@@ -508,6 +508,19 @@
 #protocol=http
 
 
+#
+# Options defined in ironic.drivers.modules.amt.power
+#
+
+# Maximum number of times to attempt an AMT operation, before
+# failing (integer value)
+#max_attempts=3
+
+# Amount of time (in seconds) to wait, before retrying an AMT
+# operation (integer value)
+#action_wait=10
+
+
 [api]
 
 #

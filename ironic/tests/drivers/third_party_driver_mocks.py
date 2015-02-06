@@ -97,16 +97,17 @@ if not proliantutils:
 
 
 # attempt to load the external 'pywsman' library, which is required by
-# the optional drivers.modules.drac module
+# the optional drivers.modules.drac and drivers.modules.amt module
 pywsman = importutils.try_import('pywsman')
 if not pywsman:
     pywsman = mock.Mock()
     sys.modules['pywsman'] = pywsman
-
-# if anything has loaded the drac driver yet, reload it now that the
-# external library has been mocked
-if 'ironic.drivers.modules.drac' in sys.modules:
-    reload(sys.modules['ironic.drivers.modules.drac'])
+    # Now that the external library has been mocked, if anything had already
+    # loaded any of the drivers, reload them.
+    if 'ironic.drivers.modules.drac' in sys.modules:
+        reload(sys.modules['ironic.drivers.modules.drac'])
+    if 'ironic.drivers.modules.amt' in sys.modules:
+        reload(sys.modules['ironic.drivers.modules.amt'])
 
 
 # attempt to load the external 'iboot' library, which is required by
