@@ -422,6 +422,12 @@ DHCP and PXE Boot configuration. An example of this is shown in the
     neutron net-create --tenant-id $TENANT_ID sharednet1 --shared \
     --provider:network_type flat --provider:physical_network physnet1
 
+#. Create the subnet on the newly created network::
+
+    neutron subnet-create sharednet1 $NETWORK_CIDR --name $SUBNET_NAME \
+    --ip-version=4 --gateway=$GATEWAY_IP --allocation-pool \
+    start=$START_IP,end=$END_IP --enable-dhcp
+
 Image Requirements
 ==================
 
