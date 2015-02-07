@@ -58,4 +58,4 @@ class DriverLoadTestCase(base.TestCase):
         with mock.patch.object(dispatch.NameDispatchExtensionManager,
                                '__init__', self._fake_init_driver_err):
             driver_factory.DriverFactory._init_extension_manager()
-            mock_em.assert_called_once_with()
+            self.assertEqual(2, mock_em.call_count)

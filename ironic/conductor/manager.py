@@ -202,7 +202,20 @@ class ConductorManager(periodic_task.PeriodicTasks):
     def init_host(self):
         self.dbapi = dbapi.get_instance()
 
+        self._keepalive_evt = threading.Event()
+        """Event for the keepalive thread."""
+
+        self._worker_pool = greenpool.GreenPool(
+                                size=CONF.conductor.workers_pool_size)
+        """GreenPool of background workers for performing tasks async."""
+
+        self.ring_manager = hash.HashRingManager()
+        """Consistent hash ring which maps drivers to conductors."""
+
+        # NOTE(deva): instantiating DriverFactory may raise DriverLoadError
+        #             or DriverNotFound
         self._driver_factory = driver_factory.DriverFactory()
+        """Driver factory loads all enabled drivers."""
 
         self.drivers = self._driver_factory.names
         """List of driver names which this conductor supports."""
@@ -241,16 +254,8 @@ class ConductorManager(periodic_task.PeriodicTasks):
                                                  update_existing=True)
         self.conductor = cdr
 
-        self.ring_manager = hash.HashRingManager()
-        """Consistent hash ring which maps drivers to conductors."""
-
-        self._worker_pool = greenpool.GreenPool(
-                                size=CONF.conductor.workers_pool_size)
-        """GreenPool of background workers for performing tasks async."""
-
         # Spawn a dedicated greenthread for the keepalive
         try:
-            self._keepalive_evt = threading.Event()
             self._spawn_worker(self._conductor_service_record_keepalive)
             LOG.info(_LI('Successfuly started conductor with hostname '
                          '%(hostname)s.'),

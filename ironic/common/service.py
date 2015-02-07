@@ -64,17 +64,19 @@ class RPCService(service.Service):
     def start(self):
         super(RPCService, self).start()
         admin_context = context.RequestContext('admin', 'admin', is_admin=True)
-        self.manager.init_host()
-        self.tg.add_dynamic_timer(
-                self.manager.periodic_tasks,
-                periodic_interval_max=cfg.CONF.periodic_interval,
-                context=admin_context)
 
         target = messaging.Target(topic=self.topic, server=self.host)
         endpoints = [self.manager]
         serializer = objects_base.IronicObjectSerializer()
         self.rpcserver = rpc.get_server(target, endpoints, serializer)
         self.rpcserver.start()
+
+        self.manager.init_host()
+        self.tg.add_dynamic_timer(
+                self.manager.periodic_tasks,
+                periodic_interval_max=cfg.CONF.periodic_interval,
+                context=admin_context)
+
         LOG.info(_LI('Created RPC server for service %(service)s on host '
                      '%(host)s.'),
                  {'service': self.topic, 'host': self.host})
