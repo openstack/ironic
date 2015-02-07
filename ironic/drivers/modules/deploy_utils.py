@@ -86,12 +86,37 @@ def login_iscsi(portal_address, portal_port, target_iqn):
                   check_exit_code=[0],
                   attempts=5,
                   delay_on_retry=True)
-    # NOTE(dprince): partial revert of 4606716 until we debug further
-    time.sleep(3)
     # Ensure the login complete
     verify_iscsi_connection(target_iqn)
     # force iSCSI initiator to re-read luns
     force_iscsi_lun_update(target_iqn)
+    # ensure file system sees the block device
+    check_file_system_for_iscsi_device(portal_address,
+                                       portal_port,
+                                       target_iqn)
+
+
+def check_file_system_for_iscsi_device(portal_address,
+                                       portal_port,
+                                       target_iqn):
+    """Ensure the file system sees the iSCSI block device."""
+    check_dir = "/dev/disk/by-path/ip-%s:%s-iscsi-%s-lun-1" % (portal_address,
+                                                               portal_port,
+                                                               target_iqn)
+    total_checks = CONF.deploy.iscsi_verify_attempts
+    for attempt in range(total_checks):
+        if os.path.exists(check_dir):
+            break
+        time.sleep(1)
+        LOG.debug("iSCSI connection not seen by file system. Rechecking. "
+                  "Attempt %(attempt)d out of %(total)d",
+                  {"attempt": attempt + 1,
+                   "total": total_checks})
+    else:
+        msg = _("iSCSI connection was not seen by the file system after "
+                "attempting to verify %d times.") % total_checks
+        LOG.error(msg)
+        raise exception.InstanceDeployFailure(msg)
 
 
 def verify_iscsi_connection(target_iqn):
