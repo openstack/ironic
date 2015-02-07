@@ -33,6 +33,7 @@ from ironic.drivers.modules import pxe
 from ironic.drivers.modules import seamicro
 from ironic.drivers.modules import snmp
 from ironic.drivers.modules import ssh
+from ironic.drivers.modules import virtualbox
 from ironic.drivers import utils
 
 
@@ -208,4 +209,27 @@ class PXEAndIRMCDriver(base.BaseDriver):
         self.console = ipmitool.IPMIShellinaboxConsole()
         self.deploy = pxe.PXEDeploy()
         self.management = ipmitool.IPMIManagement()
+        self.vendor = pxe.VendorPassthru()
+
+
+class PXEAndVirtualBoxDriver(base.BaseDriver):
+    """PXE + VirtualBox driver.
+
+    NOTE: This driver is meant only for testing environments.
+
+    This driver implements the `core` functionality, combining
+    :class:`ironic.drivers.virtualbox.VirtualBoxPower` for power on/off and
+    reboot of VirtualBox virtual machines, with :class:`ironic.driver.pxe.PXE`
+    for image deployment. Implementations are in those respective classes;
+    this class is merely the glue between them.
+    """
+
+    def __init__(self):
+        if not importutils.try_import('pyremotevbox'):
+            raise exception.DriverLoadError(
+                    driver=self.__class__.__name__,
+                    reason=_("Unable to import pyremotevbox library"))
+        self.power = virtualbox.VirtualBoxPower()
+        self.deploy = pxe.PXEDeploy()
+        self.management = virtualbox.VirtualBoxManagement()
         self.vendor = pxe.VendorPassthru()

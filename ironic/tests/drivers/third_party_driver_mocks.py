@@ -161,3 +161,13 @@ if not scciclient:
 # external library has been mocked
 if 'ironic.drivers.modules.irmc' in sys.modules:
     reload(sys.modules['ironic.drivers.modules.irmc'])
+
+pyremotevbox = importutils.try_import('pyremotevbox')
+if not pyremotevbox:
+    pyremotevbox = mock.MagicMock()
+    pyremotevbox.exception = mock.MagicMock()
+    pyremotevbox.exception.PyRemoteVBoxException = Exception
+    pyremotevbox.exception.VmInWrongPowerState = Exception
+    sys.modules['pyremotevbox'] = pyremotevbox
+    if 'ironic.drivers.modules.virtualbox' in sys.modules:
+        reload(sys.modules['ironic.drivers.modules.virtualbox'])
