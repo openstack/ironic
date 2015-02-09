@@ -691,7 +691,7 @@ class WorkOnDiskTestCase(tests_base.TestCase):
         self.assertRaises(exception.InstanceDeployFailure,
                           utils.work_on_disk, self.dev, self.root_mb,
                           self.swap_mb, self.ephemeral_mb,
-                          self.ephemeral_format, self.image_path, False)
+                          self.ephemeral_format, self.image_path, 'fake-uuid')
         self.mock_ibd.assert_called_once_with(self.dev)
         self.assertFalse(self.mock_mp.called,
                          "make_partitions mock was unexpectedly called.")
@@ -703,7 +703,7 @@ class WorkOnDiskTestCase(tests_base.TestCase):
         self.assertRaises(exception.InstanceDeployFailure,
                           utils.work_on_disk, self.dev, self.root_mb,
                           self.swap_mb, self.ephemeral_mb,
-                          self.ephemeral_format, self.image_path, False)
+                          self.ephemeral_format, self.image_path, 'fake-uuid')
         self.assertEqual(self.mock_ibd.call_args_list, calls)
         self.mock_mp.assert_called_once_with(self.dev, self.root_mb,
                                              self.swap_mb, self.ephemeral_mb,
@@ -717,7 +717,7 @@ class WorkOnDiskTestCase(tests_base.TestCase):
         self.assertRaises(exception.InstanceDeployFailure,
                           utils.work_on_disk, self.dev, self.root_mb,
                           self.swap_mb, self.ephemeral_mb,
-                          self.ephemeral_format, self.image_path, False)
+                          self.ephemeral_format, self.image_path, 'fake-uuid')
         self.assertEqual(self.mock_ibd.call_args_list, calls)
         self.mock_mp.assert_called_once_with(self.dev, self.root_mb,
                                              self.swap_mb, self.ephemeral_mb,
@@ -741,7 +741,7 @@ class WorkOnDiskTestCase(tests_base.TestCase):
         self.assertRaises(exception.InstanceDeployFailure,
                           utils.work_on_disk, self.dev, self.root_mb,
                           self.swap_mb, ephemeral_mb, ephemeral_format,
-                          self.image_path, False)
+                          self.image_path, 'fake-uuid')
         self.assertEqual(self.mock_ibd.call_args_list, calls)
         self.mock_mp.assert_called_once_with(self.dev, self.root_mb,
                                              self.swap_mb, ephemeral_mb,
