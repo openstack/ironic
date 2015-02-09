@@ -585,7 +585,7 @@ node(s) where ``ironic-conductor`` is running.
    user the ``ironic-conductor`` is running as. For example::
 
     sudo mkdir -p /tftpboot
-    sudo chown -R ironic -p /tftpboot
+    sudo chown -R ironic /tftpboot
 
 #. Install tftp server and the syslinux package with the PXE boot images::
 
