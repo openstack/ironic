@@ -110,13 +110,13 @@ class IloCommonMethodsTestCase(db_base.DbTestCase):
         self.node = obj_utils.create_test_node(self.context,
                 driver='fake_ilo', driver_info=self.info)
 
-    @mock.patch.object(ilo_common, 'ilo_client')
+    @mock.patch.object(ilo_client, 'IloClient')
     def test_get_ilo_object(self, ilo_client_mock):
         self.info['client_timeout'] = 60
         self.info['client_port'] = 443
-        ilo_client_mock.IloClient.return_value = 'ilo_object'
+        ilo_client_mock.return_value = 'ilo_object'
         returned_ilo_object = ilo_common.get_ilo_object(self.node)
-        ilo_client_mock.IloClient.assert_called_with(
+        ilo_client_mock.assert_called_with(
             self.info['ilo_address'],
             self.info['ilo_username'],
             self.info['ilo_password'],
@@ -124,12 +124,12 @@ class IloCommonMethodsTestCase(db_base.DbTestCase):
             self.info['client_port'])
         self.assertEqual('ilo_object', returned_ilo_object)
 
-    @mock.patch.object(ilo_common, 'ilo_client')
-    def test_get_ilo_license(self, ilo_client_mock):
+    @mock.patch.object(ilo_common, 'get_ilo_object')
+    def test_get_ilo_license(self, get_ilo_object_mock):
         ilo_advanced_license = {'LICENSE_TYPE': 'iLO 3 Advanced'}
         ilo_standard_license = {'LICENSE_TYPE': 'iLO 3'}
 
-        ilo_mock_object = ilo_client_mock.IloClient.return_value
+        ilo_mock_object = get_ilo_object_mock.return_value
         ilo_mock_object.get_all_licenses.return_value = ilo_advanced_license
 
         license = ilo_common.get_ilo_license(self.node)
@@ -139,11 +139,11 @@ class IloCommonMethodsTestCase(db_base.DbTestCase):
         license = ilo_common.get_ilo_license(self.node)
         self.assertEqual(ilo_common.STANDARD_LICENSE, license)
 
-    @mock.patch.object(ilo_common, 'ilo_client')
-    def test_get_ilo_license_fail(self, ilo_client_mock):
-        ilo_client_mock.IloError = Exception
-        ilo_mock_object = ilo_client_mock.IloClient.return_value
-        ilo_mock_object.get_all_licenses.side_effect = [Exception()]
+    @mock.patch.object(ilo_common, 'get_ilo_object')
+    def test_get_ilo_license_fail(self, get_ilo_object_mock):
+        ilo_mock_object = get_ilo_object_mock.return_value
+        exc = ilo_client.IloError('error')
+        ilo_mock_object.get_all_licenses.side_effect = exc
         self.assertRaises(exception.IloOperationError,
                           ilo_common.get_ilo_license,
                           self.node)
@@ -241,10 +241,9 @@ class IloCommonMethodsTestCase(db_base.DbTestCase):
                                               files_info=files_info,
                                               parameters=deploy_args)
 
-    @mock.patch.object(ilo_common, 'ilo_client')
-    def test_attach_vmedia(self, ilo_client_mock):
-        ilo_client_mock.IloError = Exception
-        ilo_mock_object = ilo_client_mock.IloClient.return_value
+    @mock.patch.object(ilo_common, 'get_ilo_object')
+    def test_attach_vmedia(self, get_ilo_object_mock):
+        ilo_mock_object = get_ilo_object_mock.return_value
         insert_media_mock = ilo_mock_object.insert_virtual_media
         set_status_mock = ilo_mock_object.set_vm_status
 
@@ -253,9 +252,15 @@ class IloCommonMethodsTestCase(db_base.DbTestCase):
         set_status_mock.assert_called_once_with(device='FLOPPY',
                 boot_option='CONNECT', write_protect='YES')
 
-        set_status_mock.side_effect = Exception()
+    @mock.patch.object(ilo_common, 'get_ilo_object')
+    def test_attach_vmedia_fails(self, get_ilo_object_mock):
+        ilo_mock_object = get_ilo_object_mock.return_value
+        set_status_mock = ilo_mock_object.set_vm_status
+        exc = ilo_client.IloError('error')
+        set_status_mock.side_effect = exc
         self.assertRaises(exception.IloOperationError,
-                ilo_common.attach_vmedia, self.node, 'FLOPPY', 'url')
+                          ilo_common.attach_vmedia, self.node,
+                          'FLOPPY', 'url')
 
     @mock.patch.object(ilo_common, 'get_ilo_object')
     def test_set_boot_mode(self, get_ilo_object_mock):
@@ -279,17 +284,15 @@ class IloCommonMethodsTestCase(db_base.DbTestCase):
         get_pending_boot_mode_mock.assert_called_once_with()
         self.assertFalse(ilo_object_mock.set_pending_boot_mode.called)
 
-    @mock.patch.object(ilo_common, 'ilo_client')
     @mock.patch.object(ilo_common, 'get_ilo_object')
     def test_set_boot_mode_with_IloOperationError(self,
-                                                  get_ilo_object_mock,
-                                                  ilo_client_mock):
+                                                  get_ilo_object_mock):
         ilo_object_mock = get_ilo_object_mock.return_value
         get_pending_boot_mode_mock = ilo_object_mock.get_pending_boot_mode
         get_pending_boot_mode_mock.return_value = 'UEFI'
         set_pending_boot_mode_mock = ilo_object_mock.set_pending_boot_mode
-        ilo_client_mock.IloError = Exception
-        set_pending_boot_mode_mock.side_effect = Exception
+        exc = ilo_client.IloError('error')
+        set_pending_boot_mode_mock.side_effect = exc
         self.assertRaises(exception.IloOperationError,
                           ilo_common.set_boot_mode, self.node, 'bios')
         get_ilo_object_mock.assert_called_once_with(self.node)
@@ -298,12 +301,9 @@ class IloCommonMethodsTestCase(db_base.DbTestCase):
     @mock.patch.object(driver_utils, 'rm_node_capability')
     @mock.patch.object(driver_utils, 'add_node_capability')
     @mock.patch.object(ilo_common, 'get_ilo_object')
-    @mock.patch.object(ilo_common, 'ilo_client')
-    def test_update_boot_mode_capability(self, ilo_client_mock,
-                                         get_ilo_object_mock,
+    def test_update_boot_mode_capability(self, get_ilo_object_mock,
                                          add_node_capability_mock,
                                          rm_node_capability_mock):
-        ilo_client_mock.IloCommandNotSupportedError = Exception
         ilo_mock_obj = get_ilo_object_mock.return_value
         ilo_mock_obj.get_pending_boot_mode.return_value = 'legacy'
 
@@ -319,11 +319,9 @@ class IloCommonMethodsTestCase(db_base.DbTestCase):
 
     @mock.patch.object(driver_utils, 'add_node_capability')
     @mock.patch.object(ilo_common, 'get_ilo_object')
-    @mock.patch.object(ilo_common, 'ilo_client')
-    def test_update_boot_mode_capability_unknown(self, ilo_client_mock,
-                                         get_ilo_object_mock,
-                                         add_node_capability_mock):
-        ilo_client_mock.IloCommandNotSupportedError = Exception
+    def test_update_boot_mode_capability_unknown(self,
+                                                 get_ilo_object_mock,
+                                                 add_node_capability_mock):
         ilo_mock_obj = get_ilo_object_mock.return_value
         ilo_mock_obj.get_pending_boot_mode.return_value = 'UNKNOWN'
         set_pending_boot_mode_mock = ilo_mock_obj.set_pending_boot_mode
@@ -340,13 +338,12 @@ class IloCommonMethodsTestCase(db_base.DbTestCase):
 
     @mock.patch.object(driver_utils, 'add_node_capability')
     @mock.patch.object(ilo_common, 'get_ilo_object')
-    @mock.patch.object(ilo_common, 'ilo_client')
-    def test_update_boot_mode_capability_legacy(self, ilo_client_mock,
+    def test_update_boot_mode_capability_legacy(self,
                                                 get_ilo_object_mock,
                                                 add_node_capability_mock):
-        ilo_client_mock.IloCommandNotSupportedError = Exception
         ilo_mock_obj = get_ilo_object_mock.return_value
-        ilo_mock_obj.get_pending_boot_mode.side_effect = Exception
+        exc = ilo_client.IloCommandNotSupportedError('error')
+        ilo_mock_obj.get_pending_boot_mode.side_effect = exc
 
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:

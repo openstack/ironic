@@ -84,11 +84,15 @@ if 'ironic.drivers.modules.ipminative' in sys.modules:
 
 proliantutils = importutils.try_import('proliantutils')
 if not proliantutils:
-    mock_proliant_utils = mock.MagicMock()
-    sys.modules['proliantutils'] = mock_proliant_utils
-
-if 'ironic.drivers.ilo' in sys.modules:
-    reload(sys.modules['ironic.drivers.ilo'])
+    proliantutils = mock.MagicMock()
+    sys.modules['proliantutils'] = proliantutils
+    sys.modules['proliantutils.ilo'] = proliantutils.ilo
+    sys.modules['proliantutils.ilo.ribcl'] = proliantutils.ilo.ribcl
+    proliantutils.ilo.ribcl.IloError = type('IloError', (Exception,), {})
+    command_exception = type('IloCommandNotSupportedError', (Exception,), {})
+    proliantutils.ilo.ribcl.IloCommandNotSupportedError = command_exception
+    if 'ironic.drivers.ilo' in sys.modules:
+        reload(sys.modules['ironic.drivers.ilo'])
 
 
 # attempt to load the external 'pywsman' library, which is required by
