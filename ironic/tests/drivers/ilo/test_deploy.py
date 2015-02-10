@@ -34,13 +34,10 @@ from ironic.drivers.modules.ilo import deploy as ilo_deploy
 from ironic.drivers.modules import iscsi_deploy
 from ironic.drivers.modules import pxe
 from ironic.drivers import utils as driver_utils
-from ironic.openstack.common import importutils
 from ironic.tests.conductor import utils as mgr_utils
 from ironic.tests.db import base as db_base
 from ironic.tests.db import utils as db_utils
 from ironic.tests.objects import utils as obj_utils
-
-ilo_client = importutils.try_import('proliantutils.ilo.ribcl')
 
 
 INFO_DICT = db_utils.get_test_ilo_info()

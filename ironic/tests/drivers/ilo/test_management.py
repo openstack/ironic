@@ -29,7 +29,7 @@ from ironic.tests.db import base as db_base
 from ironic.tests.db import utils as db_utils
 from ironic.tests.objects import utils as obj_utils
 
-ilo_client = importutils.try_import('proliantutils.ilo.ribcl')
+ilo_error = importutils.try_import('proliantutils.exception')
 
 
 INFO_DICT = db_utils.get_test_ilo_info()
@@ -98,7 +98,7 @@ class IloManagementTestCase(db_base.DbTestCase):
     @mock.patch.object(ilo_common, 'get_ilo_object')
     def test_get_boot_device_fail(self, get_ilo_object_mock):
         ilo_mock_object = get_ilo_object_mock.return_value
-        exc = ilo_client.IloError('error')
+        exc = ilo_error.IloError('error')
         ilo_mock_object.get_one_time_boot.side_effect = exc
 
         with task_manager.acquire(self.context, self.node.uuid,
@@ -112,7 +112,7 @@ class IloManagementTestCase(db_base.DbTestCase):
     def test_get_boot_device_persistent_fail(self, get_ilo_object_mock):
         ilo_mock_object = get_ilo_object_mock.return_value
         ilo_mock_object.get_one_time_boot.return_value = 'Normal'
-        exc = ilo_client.IloError('error')
+        exc = ilo_error.IloError('error')
         ilo_mock_object.get_persistent_boot_device.side_effect = exc
 
         with task_manager.acquire(self.context, self.node.uuid,
@@ -147,7 +147,7 @@ class IloManagementTestCase(db_base.DbTestCase):
     @mock.patch.object(ilo_common, 'get_ilo_object')
     def test_set_boot_device_fail(self, get_ilo_object_mock):
         ilo_mock_object = get_ilo_object_mock.return_value
-        exc = ilo_client.IloError('error')
+        exc = ilo_error.IloError('error')
         ilo_mock_object.set_one_time_boot.side_effect = exc
 
         with task_manager.acquire(self.context, self.node.uuid,
@@ -160,7 +160,7 @@ class IloManagementTestCase(db_base.DbTestCase):
     @mock.patch.object(ilo_common, 'get_ilo_object')
     def test_set_boot_device_persistent_fail(self, get_ilo_object_mock):
         ilo_mock_object = get_ilo_object_mock.return_value
-        exc = ilo_client.IloError('error')
+        exc = ilo_error.IloError('error')
         ilo_mock_object.update_persistent_boot.side_effect = exc
 
         with task_manager.acquire(self.context, self.node.uuid,

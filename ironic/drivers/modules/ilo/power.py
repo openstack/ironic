@@ -31,7 +31,7 @@ from ironic.drivers.modules.ilo import common as ilo_common
 from ironic.openstack.common import log as logging
 from ironic.openstack.common import loopingcall
 
-ilo_client = importutils.try_import('proliantutils.ilo.ribcl')
+ilo_error = importutils.try_import('proliantutils.exception')
 
 
 opts = [
@@ -81,7 +81,7 @@ def _get_power_state(node):
     try:
         power_status = ilo_object.get_host_power_status()
 
-    except ilo_client.IloError as ilo_exception:
+    except ilo_error.IloError as ilo_exception:
         LOG.error(_LE("iLO get_power_state failed for node %(node_id)s with "
                       "error: %(error)s."),
                   {'node_id': node.uuid, 'error': ilo_exception})
@@ -153,7 +153,7 @@ def _set_power_state(task, target_state):
                 "'%s'") % target_state
             raise exception.InvalidParameterValue(msg)
 
-    except ilo_client.IloError as ilo_exception:
+    except ilo_error.IloError as ilo_exception:
         LOG.error(_LE("iLO set_power_state failed to set state to %(tstate)s "
                       " for node %(node_id)s with error: %(error)s"),
                    {'tstate': target_state, 'node_id': node.uuid,

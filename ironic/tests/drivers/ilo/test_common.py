@@ -33,7 +33,8 @@ from ironic.tests.db import base as db_base
 from ironic.tests.db import utils as db_utils
 from ironic.tests.objects import utils as obj_utils
 
-ilo_client = importutils.try_import('proliantutils.ilo.ribcl')
+ilo_client = importutils.try_import('proliantutils.ilo.client')
+ilo_error = importutils.try_import('proliantutils.exception')
 
 
 CONF = cfg.CONF
@@ -142,7 +143,7 @@ class IloCommonMethodsTestCase(db_base.DbTestCase):
     @mock.patch.object(ilo_common, 'get_ilo_object')
     def test_get_ilo_license_fail(self, get_ilo_object_mock):
         ilo_mock_object = get_ilo_object_mock.return_value
-        exc = ilo_client.IloError('error')
+        exc = ilo_error.IloError('error')
         ilo_mock_object.get_all_licenses.side_effect = exc
         self.assertRaises(exception.IloOperationError,
                           ilo_common.get_ilo_license,
@@ -256,7 +257,7 @@ class IloCommonMethodsTestCase(db_base.DbTestCase):
     def test_attach_vmedia_fails(self, get_ilo_object_mock):
         ilo_mock_object = get_ilo_object_mock.return_value
         set_status_mock = ilo_mock_object.set_vm_status
-        exc = ilo_client.IloError('error')
+        exc = ilo_error.IloError('error')
         set_status_mock.side_effect = exc
         self.assertRaises(exception.IloOperationError,
                           ilo_common.attach_vmedia, self.node,
@@ -291,7 +292,7 @@ class IloCommonMethodsTestCase(db_base.DbTestCase):
         get_pending_boot_mode_mock = ilo_object_mock.get_pending_boot_mode
         get_pending_boot_mode_mock.return_value = 'UEFI'
         set_pending_boot_mode_mock = ilo_object_mock.set_pending_boot_mode
-        exc = ilo_client.IloError('error')
+        exc = ilo_error.IloError('error')
         set_pending_boot_mode_mock.side_effect = exc
         self.assertRaises(exception.IloOperationError,
                           ilo_common.set_boot_mode, self.node, 'bios')
@@ -342,7 +343,7 @@ class IloCommonMethodsTestCase(db_base.DbTestCase):
                                                 get_ilo_object_mock,
                                                 add_node_capability_mock):
         ilo_mock_obj = get_ilo_object_mock.return_value
-        exc = ilo_client.IloCommandNotSupportedError('error')
+        exc = ilo_error.IloCommandNotSupportedError('error')
         ilo_mock_obj.get_pending_boot_mode.side_effect = exc
 
         with task_manager.acquire(self.context, self.node.uuid,
