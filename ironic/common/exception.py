@@ -476,6 +476,10 @@ class IloOperationError(IronicException):
     message = _("%(operation)s failed, error: %(error)s")
 
 
+class IloOperationNotSupported(IronicException):
+    message = _("%(operation)s not supported. error: %(error)s")
+
+
 class DracRequestFailed(IronicException):
     pass
 

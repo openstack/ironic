@@ -336,14 +336,18 @@ def update_boot_mode(task):
 
     :param task: Task object.
     :raises: IloOperationError if setting boot mode failed.
-
     """
-    boot_mode = driver_utils.get_node_capability(task.node, 'boot_mode')
+    node = task.node
+
+    boot_mode = driver_utils.get_node_capability(node, 'boot_mode')
     if boot_mode is not None:
-        set_boot_mode(task.node, boot_mode)
+        LOG.debug("Node %(uuid)s boot mode is being set to %(boot_mode)s",
+                  {'uuid': node.uuid, 'boot_mode': boot_mode})
+        set_boot_mode(node, boot_mode)
         return
 
     ilo_object = get_ilo_object(task.node)
+
     try:
         p_boot_mode = ilo_object.get_pending_boot_mode()
         if p_boot_mode == 'UNKNOWN':
@@ -437,3 +441,66 @@ def cleanup_vmedia_boot(task):
                               "from node %(uuid)s. Error: %(error)s"),
                           {'device': device, 'uuid': task.node.uuid,
                            'error': ilo_exception})
+
+
+def get_secure_boot_mode(task):
+    """Retrieves current enabled state of UEFI secure boot on the node
+
+    Returns the current enabled state of UEFI secure boot on the node.
+
+    :param task: a task from TaskManager.
+    :raises: MissingParameterValue if a required iLO parameter is missing.
+    :raises: IloOperationError on an error from IloClient library.
+    :raises: IloOperationNotSupported if UEFI secure boot is not supported.
+    :returns: Boolean value indicating current state of UEFI secure boot
+              on the node.
+    """
+
+    operation = _("Get secure boot mode for node %s.") % task.node.uuid
+    secure_boot_state = False
+    ilo_object = get_ilo_object(task.node)
+
+    try:
+        current_boot_mode = ilo_object.get_current_boot_mode()
+        if current_boot_mode == 'UEFI':
+            secure_boot_state = ilo_object.get_secure_boot_mode()
+
+    except ilo_error.IloCommandNotSupportedError as ilo_exception:
+        raise exception.IloOperationNotSupported(operation=operation,
+                                                 error=ilo_exception)
+    except ilo_error.IloError as ilo_exception:
+        raise exception.IloOperationError(operation=operation,
+                                          error=ilo_exception)
+
+    LOG.debug("Get secure boot mode for node %(node)s returned %(value)s",
+              {'value': secure_boot_state, 'node': task.node.uuid})
+    return secure_boot_state
+
+
+def set_secure_boot_mode(task, flag):
+    """Enable or disable UEFI Secure Boot for the next boot
+
+    Enable or disable UEFI Secure Boot for the next boot
+
+    :param task: a task from TaskManager.
+    :param flag: Boolean value. True if the secure boot to be
+                       enabled in next boot.
+    :raises: IloOperationError on an error from IloClient library.
+    :raises: IloOperationNotSupported if UEFI secure boot is not supported.
+    """
+
+    operation = (_("Setting secure boot to %(flag)s for node %(node)s.") %
+                   {'flag': flag, 'node': task.node.uuid})
+    ilo_object = get_ilo_object(task.node)
+
+    try:
+        ilo_object.set_secure_boot_mode(flag)
+        LOG.debug(operation)
+
+    except ilo_error.IloCommandNotSupportedError as ilo_exception:
+        raise exception.IloOperationNotSupported(operation=operation,
+                                                 error=ilo_exception)
+
+    except ilo_error.IloError as ilo_exception:
+        raise exception.IloOperationError(operation=operation,
+                                          error=ilo_exception)

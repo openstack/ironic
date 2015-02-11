@@ -176,3 +176,18 @@ class UtilsTestCase(db_base.DbTestCase):
 
         self.assertRaises(exception.InvalidParameterValue,
                    driver_utils.validate_boot_option_capability, self.node)
+
+    def test_validate_secure_boot_capability(self):
+        properties = {'capabilities': 'secure_boot:true,cap2:value2'}
+        self.node.properties = properties
+
+        result = driver_utils.validate_secure_boot_capability(self.node)
+        self.assertIsNone(result)
+
+    def test_validate_secure_boot_capability_with_exception(self):
+        properties = {'capabilities': 'secure_boot:foo,cap2:value2'}
+        self.node.properties = properties
+
+        self.assertRaises(exception.InvalidParameterValue,
+                          driver_utils.validate_secure_boot_capability,
+                          self.node)

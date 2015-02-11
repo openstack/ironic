@@ -299,6 +299,19 @@ class IloCommonMethodsTestCase(db_base.DbTestCase):
         get_ilo_object_mock.assert_called_once_with(self.node)
         get_pending_boot_mode_mock.assert_called_once_with()
 
+    @mock.patch.object(ilo_common, 'set_boot_mode')
+    @mock.patch.object(driver_utils, 'get_node_capability')
+    def test_update_boot_mode_avbl(self,
+                                   node_capability_mock,
+                                   set_boot_mode_mock):
+        node_capability_mock.return_value = 'uefi'
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            ilo_common.update_boot_mode(task)
+            node_capability_mock.assert_called_once_with(task.node,
+                                                         'boot_mode')
+            set_boot_mode_mock.assert_called_once_with(task.node, 'uefi')
+
     @mock.patch.object(driver_utils, 'rm_node_capability')
     @mock.patch.object(driver_utils, 'add_node_capability')
     @mock.patch.object(ilo_common, 'get_ilo_object')
@@ -432,3 +445,95 @@ class IloCommonMethodsTestCase(db_base.DbTestCase):
                     'image-node-uuid')
             ilo_object_mock.eject_virtual_media.assert_any_call('CDROM')
             ilo_object_mock.eject_virtual_media.assert_any_call('FLOPPY')
+
+    @mock.patch.object(ilo_common, 'get_ilo_object')
+    def test_get_secure_boot_mode(self,
+                                  get_ilo_object_mock):
+        ilo_object_mock = get_ilo_object_mock.return_value
+        ilo_object_mock.get_current_boot_mode.return_value = 'UEFI'
+        ilo_object_mock.get_secure_boot_mode.return_value = True
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            ret = ilo_common.get_secure_boot_mode(task)
+            ilo_object_mock.get_current_boot_mode.assert_called_once_with()
+            ilo_object_mock.get_secure_boot_mode.assert_called_once_with()
+            self.assertTrue(ret)
+
+    @mock.patch.object(ilo_common, 'get_ilo_object')
+    def test_get_secure_boot_mode_bios(self,
+                                       get_ilo_object_mock):
+        ilo_object_mock = get_ilo_object_mock.return_value
+        ilo_object_mock.get_current_boot_mode.return_value = 'BIOS'
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            ret = ilo_common.get_secure_boot_mode(task)
+            ilo_object_mock.get_current_boot_mode.assert_called_once_with()
+            self.assertFalse(ilo_object_mock.get_secure_boot_mode.called)
+            self.assertFalse(ret)
+
+    @mock.patch.object(ilo_common, 'get_ilo_object')
+    def test_get_secure_boot_mode_fail(self,
+                                       get_ilo_object_mock):
+        ilo_mock_object = get_ilo_object_mock.return_value
+        exc = ilo_error.IloError('error')
+        ilo_mock_object.get_current_boot_mode.side_effect = exc
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            self.assertRaises(exception.IloOperationError,
+                              ilo_common.get_secure_boot_mode,
+                              task)
+        ilo_mock_object.get_current_boot_mode.assert_called_once_with()
+
+    @mock.patch.object(ilo_common, 'get_ilo_object')
+    def test_get_secure_boot_mode_not_supported(self,
+                                                ilo_object_mock):
+        ilo_mock_object = ilo_object_mock.return_value
+        exc = ilo_error.IloCommandNotSupportedError('error')
+        ilo_mock_object.get_current_boot_mode.return_value = 'UEFI'
+        ilo_mock_object.get_secure_boot_mode.side_effect = exc
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            self.assertRaises(exception.IloOperationNotSupported,
+                              ilo_common.get_secure_boot_mode,
+                              task)
+        ilo_mock_object.get_current_boot_mode.assert_called_once_with()
+        ilo_mock_object.get_secure_boot_mode.assert_called_once_with()
+
+    @mock.patch.object(ilo_common, 'get_ilo_object')
+    def test_set_secure_boot_mode(self,
+                                  get_ilo_object_mock):
+        ilo_object_mock = get_ilo_object_mock.return_value
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            ilo_common.set_secure_boot_mode(task, True)
+            ilo_object_mock.set_secure_boot_mode.assert_called_once_with(True)
+
+    @mock.patch.object(ilo_common, 'get_ilo_object')
+    def test_set_secure_boot_mode_fail(self,
+                                       get_ilo_object_mock):
+        ilo_mock_object = get_ilo_object_mock.return_value
+        exc = ilo_error.IloError('error')
+        ilo_mock_object.set_secure_boot_mode.side_effect = exc
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            self.assertRaises(exception.IloOperationError,
+                              ilo_common.set_secure_boot_mode,
+                              task, False)
+        ilo_mock_object.set_secure_boot_mode.assert_called_once_with(False)
+
+    @mock.patch.object(ilo_common, 'get_ilo_object')
+    def test_set_secure_boot_mode_not_supported(self,
+                                                ilo_object_mock):
+        ilo_mock_object = ilo_object_mock.return_value
+        exc = ilo_error.IloCommandNotSupportedError('error')
+        ilo_mock_object.set_secure_boot_mode.side_effect = exc
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            self.assertRaises(exception.IloOperationNotSupported,
+                              ilo_common.set_secure_boot_mode,
+                              task, False)
+        ilo_mock_object.set_secure_boot_mode.assert_called_once_with(False)
