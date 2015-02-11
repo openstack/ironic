@@ -1022,6 +1022,13 @@ class ConductorManager(periodic_task.PeriodicTasks):
                 msg = (_("Node %s can't be deleted because it's not "
                          "powered off") % node.uuid)
                 raise exception.NodeInWrongPowerState(msg)
+            if node.console_enabled:
+                try:
+                    task.driver.console.stop_console(task)
+                except Exception as err:
+                    LOG.error(_LE('Failed to stop console while deleting '
+                                  'the node %(node)s: %(err)s.'),
+                              {'node': node.uuid, 'err': err})
             node.destroy()
             LOG.info(_LI('Successfully deleted node %(node)s.'),
                      {'node': node.uuid})

@@ -1675,6 +1675,18 @@ class DestroyNodeTestCase(_ServiceSetUpMixin, tests_db_base.DbTestCase):
                                           power_state=states.POWER_OFF)
         self.service.destroy_node(self.context, node.uuid)
 
+    def test_destroy_node_console_enabled(self):
+        self._start_service()
+        node = obj_utils.create_test_node(self.context, driver='fake',
+                                          console_enabled=True)
+        with mock.patch.object(self.driver.console,
+                               'stop_console') as mock_sc:
+            self.service.destroy_node(self.context, node.uuid)
+            mock_sc.assert_called_once_with(mock.ANY)
+            self.assertRaises(exception.NodeNotFound,
+                              self.dbapi.get_node_by_uuid,
+                              node.uuid)
+
 
 @_mock_record_keepalive
 class UpdatePortTestCase(_ServiceSetUpMixin, tests_db_base.DbTestCase):
