@@ -235,7 +235,7 @@ class ImageCache(object):
         """Clean up stage 2: try to ensure cache size < threshold.
 
         Try to delete the oldest files until conditions is satisfied
-        or no more files are eligable for delition.
+        or no more files are eligible for deletion.
 
         :param listing: list of tuples (file name, last used time)
         :param amount: amount of space to reclaim, if possible.
