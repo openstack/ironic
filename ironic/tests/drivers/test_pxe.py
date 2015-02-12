@@ -38,6 +38,7 @@ from ironic.conductor import utils as manager_utils
 from ironic.drivers.modules import deploy_utils
 from ironic.drivers.modules import iscsi_deploy
 from ironic.drivers.modules import pxe
+from ironic.drivers import utils as driver_utils
 from ironic.openstack.common import fileutils
 from ironic.tests.conductor import utils as mgr_utils
 from ironic.tests.db import base as db_base
@@ -504,6 +505,71 @@ class PXEDriverTestCase(db_base.DbTestCase):
             mock_cache_r_k.assert_called_once_with(self.context,
                                                    task.node, None)
 
+    @mock.patch.object(pxe, '_get_image_info')
+    @mock.patch.object(pxe, '_cache_ramdisk_kernel')
+    @mock.patch.object(pxe, '_build_pxe_config_options')
+    @mock.patch.object(pxe_utils, 'create_pxe_config')
+    @mock.patch.object(pxe_utils, 'get_pxe_config_file_path')
+    @mock.patch.object(deploy_utils, 'switch_pxe_config')
+    def test_prepare_node_active_missing_root_uuid(self,
+                                                   mock_switch,
+                                                   mock_pxe_get_cfg,
+                                                   mock_pxe_config,
+                                                   mock_build_pxe,
+                                                   mock_cache_r_k,
+                                                   mock_img_info):
+        mock_build_pxe.return_value = None
+        mock_img_info.return_value = None
+        self.node.provision_state = states.ACTIVE
+        self.node.save()
+
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            task.driver.deploy.prepare(task)
+            mock_img_info.assert_called_once_with(task.node,
+                                                  self.context)
+            mock_pxe_config.assert_called_once_with(
+                task, None, CONF.pxe.pxe_config_template)
+            mock_cache_r_k.assert_called_once_with(self.context,
+                                                   task.node, None)
+            self.assertFalse(mock_pxe_get_cfg.called)
+            self.assertFalse(mock_switch.called)
+
+    @mock.patch.object(pxe, '_get_image_info')
+    @mock.patch.object(pxe, '_cache_ramdisk_kernel')
+    @mock.patch.object(pxe, '_build_pxe_config_options')
+    @mock.patch.object(pxe_utils, 'create_pxe_config')
+    @mock.patch.object(pxe_utils, 'get_pxe_config_file_path')
+    @mock.patch.object(deploy_utils, 'switch_pxe_config')
+    @mock.patch.object(driver_utils, 'get_node_capability')
+    def test_prepare_node_active(self,
+                                 mock_get_cap,
+                                 mock_switch,
+                                 mock_pxe_get_cfg,
+                                 mock_pxe_config,
+                                 mock_build_pxe,
+                                 mock_cache_r_k,
+                                 mock_img_info):
+        mock_build_pxe.return_value = None
+        mock_img_info.return_value = None
+        mock_pxe_get_cfg.return_value = '/path'
+        mock_get_cap.return_value = None
+
+        self.node.provision_state = states.ACTIVE
+        self.node.driver_internal_info = {'root_uuid': 'abcd'}
+        self.node.save()
+
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            task.driver.deploy.prepare(task)
+            mock_img_info.assert_called_once_with(task.node,
+                                                  self.context)
+            mock_pxe_config.assert_called_once_with(
+                task, None, CONF.pxe.pxe_config_template)
+            mock_cache_r_k.assert_called_once_with(self.context,
+                                                   task.node, None)
+
+            mock_pxe_get_cfg.assert_called_once_with(task.node.uuid)
+            mock_switch.assert_called_once_with('/path', 'abcd', None)
+
     @mock.patch.object(keystone, 'token_expires_soon')
     @mock.patch.object(deploy_utils, 'get_image_mb')
     @mock.patch.object(iscsi_deploy, '_get_image_file_path')
@@ -656,6 +722,7 @@ class PXEDriverTestCase(db_base.DbTestCase):
         self.assertEqual(states.ACTIVE, self.node.provision_state)
         self.assertEqual(states.NOSTATE, self.node.target_provision_state)
         self.assertEqual(states.POWER_ON, self.node.power_state)
+        self.assertIn('root_uuid', self.node.driver_internal_info)
         self.assertIsNone(self.node.last_error)
         self.assertFalse(os.path.exists(token_path))
         mock_image_cache.assert_called_once_with()

@@ -413,6 +413,26 @@ class PXEDeploy(base.DeployInterface):
         # the image kernel and ramdisk (Or even require it).
         _cache_ramdisk_kernel(task.context, task.node, pxe_info)
 
+        # NOTE(deva): prepare may be called from conductor._do_takeover
+        # in which case, it may need to regenerate the PXE config file for an
+        # already-active deployment.
+        if task.node.provision_state == states.ACTIVE:
+            try:
+                # this should have been stashed when the deploy was done
+                # but let's guard, just in case it's missing
+                root_uuid = task.node.driver_internal_info['root_uuid']
+            except KeyError:
+                LOG.warn(_LW("The UUID for the root partition can't be found, "
+                         "unable to switch the pxe config from deployment "
+                         "mode to service (boot) mode for node %(node)s"),
+                         {"node": task.node.uuid})
+            else:
+                pxe_config_path = pxe_utils.get_pxe_config_file_path(
+                    task.node.uuid)
+                deploy_utils.switch_pxe_config(
+                    pxe_config_path, root_uuid,
+                    driver_utils.get_node_capability(task.node, 'boot_mode'))
+
     def clean_up(self, task):
         """Clean up the deployment environment for the task's node.
 
@@ -496,6 +516,15 @@ class VendorPassthru(base.VendorInterface):
 
         if not root_uuid:
             return
+
+        # save the node's root disk UUID so that another conductor could
+        # rebuild the PXE config file. Due to a shortcoming in Nova objects,
+        # we have to assign to node.driver_internal_info so the node knows it
+        # has changed.
+        driver_internal_info = node.driver_internal_info
+        driver_internal_info['root_uuid'] = root_uuid
+        node.driver_internal_info = driver_internal_info
+        node.save()
 
         try:
             if iscsi_deploy.get_boot_option(node) == "local":
