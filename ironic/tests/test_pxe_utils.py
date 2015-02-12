@@ -308,6 +308,27 @@ class TestPXEUtils(db_base.DbTestCase):
             task.node.properties = properties
             pxe_utils.clean_up_pxe_config(task)
 
-        unlink_mock.assert_called_once_with('/tftpboot/0A0A0001.conf')
-        rmtree_mock.assert_called_once_with(
+            unlink_mock.assert_called_once_with('/tftpboot/0A0A0001.conf')
+            rmtree_mock.assert_called_once_with(
+                os.path.join(CONF.pxe.tftp_root, self.node.uuid))
+
+    @mock.patch('ironic.common.utils.rmtree_without_raise')
+    @mock.patch('ironic.common.utils.unlink_without_raise')
+    @mock.patch('ironic.common.dhcp_factory.DHCPFactory.provider')
+    def test_clean_up_pxe_config_uefi_instance_info(self,
+                                                    provider_mock, unlink_mock,
+                                                    rmtree_mock):
+        ip_address = '10.10.0.1'
+        address = "aa:aa:aa:aa:aa:aa"
+        object_utils.create_test_port(self.context, node_id=self.node.id,
+                                      address=address)
+
+        provider_mock.get_ip_addresses.return_value = [ip_address]
+
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            task.node.instance_info['deploy_boot_mode'] = 'uefi'
+            pxe_utils.clean_up_pxe_config(task)
+
+            unlink_mock.assert_called_once_with('/tftpboot/0A0A0001.conf')
+            rmtree_mock.assert_called_once_with(
                 os.path.join(CONF.pxe.tftp_root, self.node.uuid))

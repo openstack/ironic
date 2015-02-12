@@ -250,3 +250,28 @@ def validate_secure_boot_capability(node):
 
     """
     validate_capability(node, 'secure_boot', ('true', 'false'))
+
+
+def get_boot_mode_for_deploy(node):
+    """Returns the boot mode that would be used for deploy.
+
+    This method returns deploy_boot_mode available in node field
+    boot_mode from 'capabilities' of node 'properties'.
+    Otherwise returns boot mode specified in node's 'instance_info'.
+
+    :param node: an ironic node object.
+    :returns: Value of boot mode that would be used for deploy.
+              Possible values are 'bios', 'uefi'.
+              It would return None if boot mode is present neither
+              in 'capabilities' of node 'properties' nor in node's
+              'instance_info'.
+
+    """
+    boot_mode = get_node_capability(node, 'boot_mode')
+    if boot_mode is None:
+        instance_info = node.instance_info
+        boot_mode = instance_info.get('deploy_boot_mode', None)
+
+    LOG.debug('Deploy boot mode is %(boot_mode)s for %(node)s.',
+              {'boot_mode': boot_mode, 'node': node.uuid})
+    return boot_mode

@@ -124,26 +124,29 @@ class IloDeployPrivateMethodsTestCase(db_base.DbTestCase):
             boot_iso_expected = 'boot-iso-uuid'
             self.assertEqual(boot_iso_expected, boot_iso_actual)
 
-    @mock.patch.object(driver_utils, 'get_node_capability')
+    @mock.patch.object(driver_utils, 'get_boot_mode_for_deploy')
     @mock.patch.object(images, 'get_image_properties')
     @mock.patch.object(ilo_deploy, '_parse_deploy_info')
-    def test__get_boot_iso_uefi_no_glance_image(self, deploy_info_mock,
-            image_props_mock, get_node_cap_mock):
+    def test__get_boot_iso_uefi_no_glance_image(self,
+                                                deploy_info_mock,
+                                                image_props_mock,
+                                                boot_mode_mock):
         deploy_info_mock.return_value = {'image_source': 'image-uuid',
                                          'ilo_deploy_iso': 'deploy_iso_uuid'}
         image_props_mock.return_value = {'boot_iso': None,
                                          'kernel_id': None,
                                          'ramdisk_id': None}
-        get_node_cap_mock.return_value = 'uefi'
+        properties = {'capabilities': 'boot_mode:uefi'}
 
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
+            task.node.properties = properties
             boot_iso_result = ilo_deploy._get_boot_iso(task, 'root-uuid')
             deploy_info_mock.assert_called_once_with(task.node)
             image_props_mock.assert_called_once_with(
                 task.context, 'image-uuid',
                 ['boot_iso', 'kernel_id', 'ramdisk_id'])
-            self.assertFalse(get_node_cap_mock.called)
+            self.assertFalse(boot_mode_mock.called)
             self.assertIsNone(boot_iso_result)
 
     @mock.patch.object(tempfile, 'NamedTemporaryFile')
@@ -1006,6 +1009,7 @@ class IloPXEDeployTestCase(db_base.DbTestCase):
                      pxe_prepare_mock):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
+            task.node.properties['capabilities'] = 'boot_mode:uefi'
             task.driver.deploy.prepare(task)
             update_boot_mode_mock.assert_called_once_with(task)
             pxe_prepare_mock.assert_called_once_with(task)

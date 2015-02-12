@@ -160,7 +160,7 @@ def _get_boot_iso(task, root_uuid):
     # Option 3 - Create boot_iso from kernel/ramdisk, upload to Swift
     # and provide its name.
     deploy_iso_uuid = deploy_info['ilo_deploy_iso']
-    boot_mode = driver_utils.get_node_capability(task.node, 'boot_mode')
+    boot_mode = driver_utils.get_boot_mode_for_deploy(task.node)
     boot_iso_object_name = _get_boot_iso_object_name(task.node)
     kernel_params = CONF.pxe.pxe_append_params
     container = CONF.ilo.swift_ilo_container

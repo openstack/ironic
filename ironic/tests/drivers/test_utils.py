@@ -191,3 +191,17 @@ class UtilsTestCase(db_base.DbTestCase):
         self.assertRaises(exception.InvalidParameterValue,
                           driver_utils.validate_secure_boot_capability,
                           self.node)
+
+    def test_get_boot_mode_for_deploy_using_capabilities(self):
+        properties = {'capabilities': 'boot_mode:uefi,cap2:value2'}
+        self.node.properties = properties
+
+        result = driver_utils.get_boot_mode_for_deploy(self.node)
+        self.assertEqual('uefi', result)
+
+    def test_get_boot_mode_for_deploy_using_instance_info(self):
+        instance_info = {'deploy_boot_mode': 'uefi'}
+        self.node.instance_info = instance_info
+
+        result = driver_utils.get_boot_mode_for_deploy(self.node)
+        self.assertEqual('uefi', result)

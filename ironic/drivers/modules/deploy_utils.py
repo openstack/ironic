@@ -968,8 +968,7 @@ def try_set_boot_device(task, device, persistent=True):
         manager_utils.node_set_boot_device(task, device,
                                            persistent=persistent)
     except exception.IPMIFailure:
-        if driver_utils.get_node_capability(task.node,
-                                            'boot_mode') == 'uefi':
+        if driver_utils.get_boot_mode_for_deploy(task.node) == 'uefi':
             LOG.warning(_LW("ipmitool is unable to set boot device while "
                             "the node %s is in UEFI boot mode. Please set "
                             "the boot device manually.") % task.node.uuid)

@@ -191,7 +191,7 @@ def create_pxe_config(task, pxe_options, template=None):
     pxe_config = _build_pxe_config(pxe_options, template)
     utils.write_to_file(pxe_config_file_path, pxe_config)
 
-    if driver_utils.get_node_capability(task.node, 'boot_mode') == 'uefi':
+    if driver_utils.get_boot_mode_for_deploy(task.node) == 'uefi':
         _link_ip_address_pxe_configs(task)
     else:
         _link_mac_pxe_configs(task)
@@ -205,7 +205,7 @@ def clean_up_pxe_config(task):
     """
     LOG.debug("Cleaning up PXE config for node %s", task.node.uuid)
 
-    if driver_utils.get_node_capability(task.node, 'boot_mode') == 'uefi':
+    if driver_utils.get_boot_mode_for_deploy(task.node) == 'uefi':
         api = dhcp_factory.DHCPFactory().provider
         ip_addresses = api.get_ip_addresses(task)
         if not ip_addresses:
@@ -252,7 +252,7 @@ def dhcp_options_for_instance(task):
         dhcp_opts.append({'opt_name': 'bootfile-name',
                           'opt_value': ipxe_script_url})
     else:
-        if driver_utils.get_node_capability(task.node, 'boot_mode') == 'uefi':
+        if driver_utils.get_boot_mode_for_deploy(task.node) == 'uefi':
             boot_file = CONF.pxe.uefi_pxe_bootfile_name
         else:
             boot_file = CONF.pxe.pxe_bootfile_name
