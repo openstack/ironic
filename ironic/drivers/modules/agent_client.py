@@ -81,23 +81,6 @@ class AgentClient(object):
         res = self.session.get(url, headers=headers)
         return res.json()['commands']
 
-    def deploy_is_done(self, node):
-        commands = self.get_commands_status(node)
-        if not commands:
-            return False
-
-        last_command = commands[-1]
-
-        if last_command['command_name'] != 'prepare_image':
-            # catches race condition where prepare_image is still processing
-            # so deploy hasn't started yet
-            return False
-
-        if last_command['command_status'] != 'RUNNING':
-            return True
-
-        return False
-
     def prepare_image(self, node, image_info, wait=False):
         """Call the `prepare_image` method on the node."""
         LOG.debug('Preparing image %(image)s on node %(node)s.',
