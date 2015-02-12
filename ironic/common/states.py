@@ -169,10 +169,10 @@ watchers['on_enter'] = on_enter
 machine = fsm.FSM()
 
 # Add stable states
-machine.add_state(MANAGEABLE, **watchers)
-machine.add_state(AVAILABLE, **watchers)
-machine.add_state(ACTIVE, **watchers)
-machine.add_state(ERROR, **watchers)
+machine.add_state(MANAGEABLE, stable=True, **watchers)
+machine.add_state(AVAILABLE, stable=True, **watchers)
+machine.add_state(ACTIVE, stable=True, **watchers)
+machine.add_state(ERROR, stable=True, **watchers)
 
 # From MANAGEABLE, a node may be made available
 # TODO(deva): add CLEAN* states to this path

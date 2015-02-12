@@ -115,3 +115,23 @@ class FSMTest(base.TestCase):
         m.add_state('broken')
         self.assertRaises(ValueError, m.add_state, 'b', on_enter=2)
         self.assertRaises(ValueError, m.add_state, 'b', on_exit=2)
+
+    def test_invalid_target_state(self):
+        # Test to verify that adding a state which has a 'target' state that
+        # does not exist will raise an exception
+        self.assertRaises(excp.InvalidState,
+                          self.jumper.add_state, 'jump', target='unknown')
+
+    def test_target_state_not_stable(self):
+        # Test to verify that adding a state that has a 'target' state which is
+        # not a 'stable' state will raise an exception
+        self.assertRaises(excp.InvalidState,
+                          self.jumper.add_state, 'jump', target='down')
+
+    def test_target_state_stable(self):
+        # Test to verify that adding a new state with a 'target' state pointing
+        # to a 'stable' state does not raise an exception
+        m = fsm.FSM('working')
+        m.add_state('working', stable=True)
+        m.add_state('foo', target='working')
+        m.initialize()
