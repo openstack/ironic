@@ -97,3 +97,11 @@ class AgentClient(object):
                              method='standby.prepare_image',
                              params=params,
                              wait=wait)
+
+    def start_iscsi_target(self, node, iqn):
+        """Expose the node's disk as an ISCSI target."""
+        params = {'iqn': iqn}
+        return self._command(node=node,
+                             method='iscsi.start_iscsi_target',
+                             params=params,
+                             wait=True)

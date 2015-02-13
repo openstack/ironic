@@ -21,6 +21,7 @@ import os
 import shutil
 
 from oslo_config import cfg
+from six.moves.urllib import parse as urlparse
 
 from ironic.common import boot_devices
 from ironic.common import dhcp_factory
@@ -38,6 +39,8 @@ from ironic.common import utils
 from ironic.conductor import task_manager
 from ironic.conductor import utils as manager_utils
 from ironic.drivers import base
+from ironic.drivers.modules import agent
+from ironic.drivers.modules import agent_base_vendor
 from ironic.drivers.modules import deploy_utils
 from ironic.drivers.modules import image_cache
 from ironic.drivers.modules import iscsi_deploy
@@ -185,6 +188,13 @@ def _build_pxe_config_options(node, pxe_info, ctx):
 
     deploy_ramdisk_options = iscsi_deploy.build_deploy_ramdisk_options(node)
     pxe_options.update(deploy_ramdisk_options)
+
+    # NOTE(lucasagomes): We are going to extend the normal PXE config
+    # to also contain the agent options so it could be used for both the
+    # DIB ramdisk and the IPA ramdisk
+    agent_opts = agent.build_agent_options(node)
+    pxe_options.update(agent_opts)
+
     return pxe_options
 
 
@@ -475,7 +485,7 @@ class PXEDeploy(base.DeployInterface):
             pxe_utils.clean_up_pxe_config(task)
 
 
-class VendorPassthru(base.VendorInterface):
+class VendorPassthru(agent_base_vendor.BaseAgentVendor):
     """Interface to mix IPMI and PXE vendor-specific interfaces."""
 
     def get_properties(self):
@@ -484,17 +494,19 @@ class VendorPassthru(base.VendorInterface):
     def validate(self, task, method, **kwargs):
         """Validates the inputs for a vendor passthru.
 
-        This method checks whether the vendor passthru method is a valid one,
-        and then validates whether the required information for executing the
-        vendor passthru has been provided or not.
+        If invalid, raises an exception; otherwise returns None.
+
+        Valid methods:
+        * pass_deploy_info
 
         :param task: a TaskManager instance containing the node to act on.
         :param method: method to be validated.
         :param kwargs: kwargs containins the method's parameters.
         :raises: InvalidParameterValue if any parameters is invalid.
         """
-        driver_utils.validate_boot_option_capability(task.node)
-        iscsi_deploy.get_deploy_info(task.node, **kwargs)
+        if method == 'pass_deploy_info':
+            driver_utils.validate_boot_option_capability(task.node)
+            iscsi_deploy.get_deploy_info(task.node, **kwargs)
 
     @base.passthru(['POST'], method='pass_deploy_info')
     @task_manager.require_exclusive_lock
@@ -547,3 +559,73 @@ class VendorPassthru(base.VendorInterface):
                       {'instance': node.instance_uuid, 'error': e})
             msg = _('Failed to continue iSCSI deployment.')
             deploy_utils.set_failed_state(task, msg)
+
+    def _log_and_raise_deployment_error(self, task, msg):
+        LOG.error(msg)
+        deploy_utils.set_failed_state(task, msg)
+        raise exception.InstanceDeployFailure(msg)
+
+    @task_manager.require_exclusive_lock
+    def continue_deploy(self, task, **kwargs):
+        """Method invoked when deployed with the IPA ramdisk."""
+        node = task.node
+        LOG.debug('Continuing the deployment on node %s', node.uuid)
+
+        task.process_event('resume')
+
+        pxe_info = _get_image_info(node, task.context)
+        pxe_options = _build_pxe_config_options(task.node, pxe_info,
+                                                task.context)
+
+        iqn = pxe_options['iscsi_target_iqn']
+        result = self._client.start_iscsi_target(node, iqn)
+        if result['command_status'] == 'FAILED':
+            msg = (_("Failed to start the iSCSI target to deploy the "
+                     "node %(node)s. Error: %(error)s") %
+                   {'node': node.uuid, 'error': result['command_error']})
+            self._log_and_raise_deployment_error(task, msg)
+
+        address = urlparse.urlparse(node.driver_internal_info['agent_url'])
+        address = address.hostname
+
+        # TODO(lucasagomes): The 'error' and 'key' parameters in the
+        # dictionary below are just being passed because it's needed for
+        # the iscsi_deploy.continue_deploy() method, we are fooling it
+        # for now. The agent driver doesn't use/need those. So we need to
+        # refactor this bits here later.
+        iscsi_params = {'error': result['command_error'],
+                        'iqn': iqn,
+                        'key': pxe_options['deployment_key'],
+                        'address': address}
+
+        # NOTE(lucasagomes): We don't use the token file with the agent,
+        # but as it's created as part of deploy() we are going to remove
+        # it here.
+        _destroy_token_file(node)
+
+        root_uuid = iscsi_deploy.continue_deploy(task, **iscsi_params)
+        if not root_uuid:
+            msg = (_("Couldn't determine the UUID of the root partition "
+                     "when deploying node %s") % node.uuid)
+            self._log_and_raise_deployment_error(task, msg)
+
+        # TODO(lucasagomes): Move this bit saving the root_uuid to
+        # iscsi_deploy.continue_deploy()
+        driver_internal_info = node.driver_internal_info
+        driver_internal_info['root_uuid'] = root_uuid
+        node.driver_internal_info = driver_internal_info
+        node.save()
+
+        pxe_config_path = pxe_utils.get_pxe_config_file_path(node.uuid)
+        deploy_utils.switch_pxe_config(pxe_config_path, root_uuid,
+                      driver_utils.get_node_capability(node, 'boot_mode'))
+
+        try:
+            manager_utils.node_power_action(task, states.REBOOT)
+        except Exception as e:
+            msg = (_('Error rebooting node %(node)s. Error: %(error)s') %
+                   {'node': node.uuid, 'error': e})
+            self._log_and_raise_deployment_error(task, msg)
+
+        task.process_event('done')
+        LOG.info(_LI('Deployment to node %s done'), node.uuid)

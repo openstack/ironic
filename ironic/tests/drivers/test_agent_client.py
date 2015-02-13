@@ -122,3 +122,15 @@ class TestAgentClient(base.TestCase):
                                          method='standby.prepare_image',
                                          params=params,
                                          wait=False)
+
+    @mock.patch('uuid.uuid4', mock.MagicMock(return_value='uuid'))
+    def test_start_iscsi_target(self):
+        self.client._command = mock.Mock()
+        iqn = 'fake-iqn'
+        params = {'iqn': iqn}
+
+        self.client.start_iscsi_target(self.node, iqn)
+        self.client._command.assert_called_once_with(node=self.node,
+                                         method='iscsi.start_iscsi_target',
+                                         params=params,
+                                         wait=True)

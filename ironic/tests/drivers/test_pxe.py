@@ -22,11 +22,13 @@ import tempfile
 
 import fixtures
 import mock
+from oslo_concurrency import processutils
 from oslo_config import cfg
 from oslo_serialization import jsonutils as json
 
 from ironic.common import boot_devices
 from ironic.common import dhcp_factory
+from ironic.common import driver_factory
 from ironic.common import exception
 from ironic.common.glance_service import base_image_service
 from ironic.common import keystone
@@ -35,6 +37,7 @@ from ironic.common import states
 from ironic.common import utils
 from ironic.conductor import task_manager
 from ironic.conductor import utils as manager_utils
+from ironic.drivers.modules import agent_client
 from ironic.drivers.modules import deploy_utils
 from ironic.drivers.modules import iscsi_deploy
 from ironic.drivers.modules import pxe
@@ -153,7 +156,7 @@ class PXEPrivateMethodsTestCase(db_base.DbTestCase):
                                         ipxe_enabled=False):
         self.config(pxe_append_params='test_param', group='pxe')
         # NOTE: right '/' should be removed from url string
-        self.config(api_url='http://192.168.122.184:6385/', group='conductor')
+        self.config(api_url='http://192.168.122.184:6385', group='conductor')
         self.config(disk_devices='sda', group='pxe')
 
         fake_deploy_opts = {'iscsi_target_iqn': 'fake-iqn',
@@ -197,7 +200,9 @@ class PXEPrivateMethodsTestCase(db_base.DbTestCase):
             'aki_path': kernel,
             'deployment_aki_path': deploy_kernel,
             'tftp_server': tftp_server,
-            'boot_option': 'netboot'
+            'boot_option': 'netboot',
+            'ipa-api-url': CONF.conductor.api_url,
+            'ipa-driver-name': self.node.driver,
         }
 
         expected_options.update(fake_deploy_opts)
@@ -219,6 +224,7 @@ class PXEPrivateMethodsTestCase(db_base.DbTestCase):
                                                self.node.uuid,
                                                'ramdisk'))
                       }
+
         options = pxe._build_pxe_config_options(self.node,
                                                 image_info,
                                                 self.context)
@@ -784,19 +790,20 @@ class PXEDriverTestCase(db_base.DbTestCase):
                             "_continue_deploy was not called once.")
 
     def test_vendor_routes(self):
-        expected = ['pass_deploy_info']
+        expected = ['heartbeat', 'pass_deploy_info']
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
             vendor_routes = task.driver.vendor.vendor_routes
             self.assertIsInstance(vendor_routes, dict)
-            self.assertEqual(expected, list(vendor_routes))
+            self.assertEqual(sorted(expected), sorted(list(vendor_routes)))
 
     def test_driver_routes(self):
+        expected = ['lookup']
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
             driver_routes = task.driver.vendor.driver_routes
             self.assertIsInstance(driver_routes, dict)
-            self.assertEqual({}, driver_routes)
+            self.assertEqual(sorted(expected), sorted(list(driver_routes)))
 
 
 @mock.patch.object(utils, 'unlink_without_raise')
@@ -925,3 +932,109 @@ class CleanUpFullFlowTestCase(db_base.DbTestCase):
                      + self.files):
             self.assertFalse(os.path.exists(path),
                              '%s is not expected to exist' % path)
+
+
+@mock.patch.object(iscsi_deploy, 'continue_deploy')
+@mock.patch.object(agent_client.AgentClient, 'start_iscsi_target')
+@mock.patch.object(pxe, '_build_pxe_config_options')
+@mock.patch.object(pxe, '_get_image_info')
+class TestAgentVendorPassthru(db_base.DbTestCase):
+
+    def setUp(self):
+        super(TestAgentVendorPassthru, self).setUp()
+        mgr_utils.mock_the_extension_manager()
+        self.driver = driver_factory.get_driver("fake")
+        self.driver.vendor = pxe.VendorPassthru()
+        self.node = obj_utils.create_test_node(self.context, driver='fake',
+                                               instance_info=INST_INFO_DICT,
+                                               driver_info=DRV_INFO_DICT)
+        self.node.driver_internal_info['agent_url'] = 'http://1.2.3.4:1234'
+        self.task = mock.Mock(spec=task_manager.TaskManager)
+        self.task.shared = False
+        self.task.node = self.node
+        self.task.driver = self.driver
+        self.task.context = self.context
+
+    @mock.patch.object(deploy_utils, 'switch_pxe_config')
+    @mock.patch.object(manager_utils, 'node_power_action')
+    def test_continue_deploy(self, mock_node_power, mock_pxe_config,
+                             mock_image_info, mock_pxe_opts, mock_start_iscsi,
+                             mock_cont_deploy):
+        mock_pxe_opts.return_value = {'iscsi_target_iqn': 'fake-iqn',
+                                      'deployment_key': 'fake-deploy-key'}
+        mock_start_iscsi.return_value = {'command_error': None,
+                                         'command_status': 'SUCCEEDED'}
+        mock_cont_deploy.return_value = 'fake-root-uuid'
+        self.driver.vendor.continue_deploy(self.task)
+        mock_image_info.assert_called_once_with(self.node, self.context)
+        mock_pxe_opts.assert_called_once_with(self.task.node, mock.ANY,
+                                              self.task.context)
+        mock_start_iscsi.assert_called_once_with(self.node, 'fake-iqn')
+        mock_pxe_config.assert_called_once_with(mock.ANY, 'fake-root-uuid',
+                                                None)
+        mock_node_power.assert_called_once_with(self.task, states.REBOOT)
+        self.assertIn('root_uuid', self.node.driver_internal_info)
+        self.assertIsNone(self.node.last_error)
+
+    def test_continue_deploy_command_failed(self, mock_image_info,
+                                            mock_pxe_opts, mock_start_iscsi,
+                                            mock_cont_deploy):
+        mock_pxe_opts.return_value = {'iscsi_target_iqn': 'fake-iqn',
+                                      'deployment_key': 'fake-deploy-key'}
+        mock_start_iscsi.return_value = {'command_error':
+                                            'Gotham city is in danger!',
+                                         'command_status': 'FAILED'}
+        result = self.assertRaises(exception.InstanceDeployFailure,
+                          self.driver.vendor.continue_deploy, self.task)
+        self.assertIn("Gotham city is in danger!", result.format_message())
+        mock_image_info.assert_called_once_with(self.node, self.context)
+        mock_pxe_opts.assert_called_once_with(self.task.node, mock.ANY,
+                                              self.task.context)
+        mock_start_iscsi.assert_called_once_with(self.node, 'fake-iqn')
+        # assert iscsi_deploy.continue_deploy wasn't called because the
+        # iSCSI target couldn't be initiated
+        self.assertFalse(mock_cont_deploy.called)
+        self.assertIsNotNone(self.node.last_error)
+
+    @mock.patch.object(deploy_utils, 'switch_pxe_config')
+    @mock.patch.object(manager_utils, 'node_power_action')
+    def test_continue_deploy_cannot_reboot(self, mock_node_power,
+                                           mock_pxe_config, mock_image_info,
+                                           mock_pxe_opts, mock_start_iscsi,
+                                           mock_cont_deploy):
+        mock_pxe_opts.return_value = {'iscsi_target_iqn': 'fake-iqn',
+                                      'deployment_key': 'fake-deploy-key'}
+        mock_start_iscsi.return_value = {'command_error': None,
+                                         'command_status': 'SUCCEEDED'}
+        mock_cont_deploy.return_value = 'fake-root-uuid'
+        mock_node_power.side_effect = processutils.ProcessExecutionError()
+        result = self.assertRaises(exception.InstanceDeployFailure,
+                          self.driver.vendor.continue_deploy, self.task)
+        self.assertIn("Error rebooting node %s" % self.node.uuid,
+                      result.format_message())
+        mock_image_info.assert_called_once_with(self.node, self.context)
+        mock_pxe_opts.assert_called_once_with(self.task.node, mock.ANY,
+                                              self.task.context)
+        mock_start_iscsi.assert_called_once_with(self.node, 'fake-iqn')
+        mock_pxe_config.assert_called_once_with(mock.ANY, 'fake-root-uuid',
+                                                None)
+        self.assertIsNotNone(self.node.last_error)
+
+    def test_continue_deploy_no_root_uuid(self, mock_image_info, mock_pxe_opts,
+                                         mock_start_iscsi, mock_cont_deploy):
+        mock_pxe_opts.return_value = {'iscsi_target_iqn': 'fake-iqn',
+                                      'deployment_key': 'fake-deploy-key'}
+        mock_start_iscsi.return_value = {'command_error': None,
+                                         'command_status': 'SUCCEEDED'}
+        mock_cont_deploy.return_value = None
+        result = self.assertRaises(exception.InstanceDeployFailure,
+                          self.driver.vendor.continue_deploy, self.task)
+        self.assertIn("Couldn't determine the UUID of the root partition "
+                      "when deploying node %s" % self.node.uuid,
+                      result.format_message())
+        mock_image_info.assert_called_once_with(self.node, self.context)
+        mock_pxe_opts.assert_called_once_with(self.task.node, mock.ANY,
+                                              self.task.context)
+        mock_start_iscsi.assert_called_once_with(self.node, 'fake-iqn')
+        self.assertNotIn('root_uuid', self.node.driver_internal_info)
+        self.assertIsNotNone(self.node.last_error)
