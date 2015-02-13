@@ -277,7 +277,21 @@ class AgentDeploy(base.DeployInterface):
 class AgentVendorInterface(agent_base_vendor.BaseAgentVendor):
 
     def deploy_is_done(self, task):
-        return self._client.deploy_is_done(task.node)
+        commands = self._client.get_commands_status(task.node)
+        if not commands:
+            return False
+
+        last_command = commands[-1]
+
+        if last_command['command_name'] != 'prepare_image':
+            # catches race condition where prepare_image is still processing
+            # so deploy hasn't started yet
+            return False
+
+        if last_command['command_status'] != 'RUNNING':
+            return True
+
+        return False
 
     @task_manager.require_exclusive_lock
     def continue_deploy(self, task, **kwargs):

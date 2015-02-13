@@ -22,6 +22,7 @@ from ironic.common import pxe_utils
 from ironic.common import states
 from ironic.conductor import task_manager
 from ironic.drivers.modules import agent
+from ironic.drivers.modules import agent_client
 from ironic.tests.conductor import utils as mgr_utils
 from ironic.tests.db import base as db_base
 from ironic.tests.db import utils as db_utils
@@ -220,11 +221,29 @@ class TestAgentVendor(db_base.DbTestCase):
             self.assertEqual(states.ACTIVE, task.node.provision_state)
             self.assertEqual(states.NOSTATE, task.node.target_provision_state)
 
-    def test_deploy_is_done(self):
-        client_mock = mock.Mock()
-        self.passthru._client = client_mock
-
+    @mock.patch.object(agent_client.AgentClient, 'get_commands_status')
+    def test_deploy_is_done(self, mock_get_cmd):
         with task_manager.acquire(self.context, self.node.uuid) as task:
-            self.passthru.deploy_is_done(task)
-            self.passthru._client.deploy_is_done.assert_called_once_with(
-                task.node)
+            mock_get_cmd.return_value = [{'command_name': 'prepare_image',
+                                          'command_status': 'SUCCESS'}]
+            self.assertTrue(self.passthru.deploy_is_done(task))
+
+    @mock.patch.object(agent_client.AgentClient, 'get_commands_status')
+    def test_deploy_is_done_empty_response(self, mock_get_cmd):
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            mock_get_cmd.return_value = []
+            self.assertFalse(self.passthru.deploy_is_done(task))
+
+    @mock.patch.object(agent_client.AgentClient, 'get_commands_status')
+    def test_deploy_is_done_race(self, mock_get_cmd):
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            mock_get_cmd.return_value = [{'command_name': 'some_other_command',
+                                          'command_status': 'SUCCESS'}]
+            self.assertFalse(self.passthru.deploy_is_done(task))
+
+    @mock.patch.object(agent_client.AgentClient, 'get_commands_status')
+    def test_deploy_is_done_still_running(self, mock_get_cmd):
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            mock_get_cmd.return_value = [{'command_name': 'prepare_image',
+                                          'command_status': 'RUNNING'}]
+            self.assertFalse(self.passthru.deploy_is_done(task))

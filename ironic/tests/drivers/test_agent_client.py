@@ -90,35 +90,6 @@ class TestAgentClient(base.TestCase):
             mock_get.return_value = res
             self.assertEqual([], self.client.get_commands_status(self.node))
 
-    def test_deploy_is_done(self):
-        with mock.patch.object(self.client, 'get_commands_status') as mock_s:
-            mock_s.return_value = [{
-                'command_name': 'prepare_image',
-                'command_status': 'SUCCESS'
-            }]
-            self.assertTrue(self.client.deploy_is_done(self.node))
-
-    def test_deploy_is_done_empty_response(self):
-        with mock.patch.object(self.client, 'get_commands_status') as mock_s:
-            mock_s.return_value = []
-            self.assertFalse(self.client.deploy_is_done(self.node))
-
-    def test_deploy_is_done_race(self):
-        with mock.patch.object(self.client, 'get_commands_status') as mock_s:
-            mock_s.return_value = [{
-                'command_name': 'some_other_command',
-                'command_status': 'SUCCESS'
-            }]
-            self.assertFalse(self.client.deploy_is_done(self.node))
-
-    def test_deploy_is_done_still_running(self):
-        with mock.patch.object(self.client, 'get_commands_status') as mock_s:
-            mock_s.return_value = [{
-                'command_name': 'prepare_image',
-                'command_status': 'RUNNING'
-            }]
-            self.assertFalse(self.client.deploy_is_done(self.node))
-
     @mock.patch('uuid.uuid4', mock.MagicMock(return_value='uuid'))
     def test_prepare_image(self):
         self.client._command = mock.Mock()
