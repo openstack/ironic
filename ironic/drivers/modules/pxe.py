@@ -22,6 +22,7 @@ import shutil
 
 from oslo_config import cfg
 
+from ironic.common import boot_devices
 from ironic.common import dhcp_factory
 from ironic.common import exception
 from ironic.common.i18n import _
@@ -267,6 +268,24 @@ def _destroy_token_file(node):
     utils.unlink_without_raise(token_file_path)
 
 
+def try_set_boot_device(task, device, persistent=True):
+    # NOTE(faizan): Under UEFI boot mode, setting of boot device may differ
+    # between different machines. IPMI does not work for setting boot
+    # devices in UEFI mode for certain machines.
+    # Expected IPMI failure for uefi boot mode. Logging a message to
+    # set the boot device manually and continue with deploy.
+    try:
+        manager_utils.node_set_boot_device(task, device, persistent=persistent)
+    except exception.IPMIFailure:
+        if driver_utils.get_node_capability(task.node,
+                                            'boot_mode') == 'uefi':
+            LOG.warning(_LW("ipmitool is unable to set boot device while "
+                            "the node %s is in UEFI boot mode. Please set "
+                            "the boot device manually.") % task.node.uuid)
+        else:
+            raise
+
+
 class PXEDeploy(base.DeployInterface):
     """PXE Deploy Interface for deploy-related actions."""
 
@@ -280,9 +299,24 @@ class PXEDeploy(base.DeployInterface):
         :raises: InvalidParameterValue.
         :raises: MissingParameterValue
         """
+        node = task.node
 
-        # Check the boot_mode capability parameter value.
-        driver_utils.validate_boot_mode_capability(task.node)
+        # Check the boot_mode and boot_option capabilities values.
+        driver_utils.validate_boot_mode_capability(node)
+        driver_utils.validate_boot_option_capability(node)
+
+        boot_mode = driver_utils.get_node_capability(node, 'boot_mode')
+        boot_option = driver_utils.get_node_capability(node, 'boot_option')
+
+        # NOTE(lucasagomes): We don't support UEFI + localboot because
+        # we do not support creating an EFI boot partition, including the
+        # EFI modules and managing the bootloader variables via efibootmgr.
+        if boot_mode == 'uefi' and boot_option == 'local':
+            error_msg = (_("Local boot is requested, but can't be "
+                           "used with node %s because it's configured "
+                           "to use UEFI boot") % node.uuid)
+            LOG.error(error_msg)
+            raise exception.InvalidParameterValue(error_msg)
 
         if CONF.pxe.ipxe_enabled:
             if not CONF.pxe.http_url or not CONF.pxe.http_root:
@@ -290,16 +324,15 @@ class PXEDeploy(base.DeployInterface):
                     "iPXE boot is enabled but no HTTP URL or HTTP "
                     "root was specified."))
             # iPXE and UEFI should not be configured together.
-            if driver_utils.get_node_capability(task.node,
-                                                'boot_mode') == 'uefi':
+            if boot_mode == 'uefi':
                 LOG.error(_LE("UEFI boot mode is not supported with "
                               "iPXE boot enabled."))
                 raise exception.InvalidParameterValue(_(
                     "Conflict: iPXE is enabled, but cannot be used with node"
                     "%(node_uuid)s configured to use UEFI boot") %
-                    {'node_uuid': task.node.uuid})
+                    {'node_uuid': node.uuid})
 
-        d_info = _parse_deploy_info(task.node)
+        d_info = _parse_deploy_info(node)
 
         iscsi_deploy.validate(task)
 
@@ -331,22 +364,7 @@ class PXEDeploy(base.DeployInterface):
         provider = dhcp_factory.DHCPFactory()
         provider.update_dhcp(task, dhcp_opts)
 
-        # NOTE(faizan): Under UEFI boot mode, setting of boot device may differ
-        # between different machines. IPMI does not work for setting boot
-        # devices in UEFI mode for certain machines.
-        # Expected IPMI failure for uefi boot mode. Logging a message to
-        # set the boot device manually and continue with deploy.
-        try:
-            manager_utils.node_set_boot_device(task, 'pxe', persistent=True)
-        except exception.IPMIFailure:
-            if driver_utils.get_node_capability(task.node,
-                                                'boot_mode') == 'uefi':
-                LOG.warning(_LW("ipmitool is unable to set boot device while "
-                                "the node is in UEFI boot mode."
-                                "Please set the boot device manually."))
-            else:
-                raise
-
+        try_set_boot_device(task, boot_devices.PXE)
         manager_utils.node_power_action(task, states.REBOOT)
 
         return states.DEPLOYWAIT
@@ -390,6 +408,9 @@ class PXEDeploy(base.DeployInterface):
 
         pxe_utils.create_pxe_config(task, pxe_options,
                                     pxe_config_template)
+
+        # FIXME(lucasagomes): If it's local boot we should not cache
+        # the image kernel and ramdisk (Or even require it).
         _cache_ramdisk_kernel(task.context, task.node, pxe_info)
 
     def clean_up(self, task):
@@ -425,6 +446,13 @@ class PXEDeploy(base.DeployInterface):
         provider = dhcp_factory.DHCPFactory()
         provider.update_dhcp(task, dhcp_opts)
 
+        if iscsi_deploy.get_boot_option(task.node) == "local":
+            # If it's going to boot from the local disk, we don't need
+            # PXE config files. They still need to be generated as part
+            # of the prepare() because the deployment does PXE boot the
+            # deploy ramdisk
+            pxe_utils.clean_up_pxe_config(task)
+
 
 class VendorPassthru(base.VendorInterface):
     """Interface to mix IPMI and PXE vendor-specific interfaces."""
@@ -444,6 +472,7 @@ class VendorPassthru(base.VendorInterface):
         :param kwargs: kwargs containins the method's parameters.
         :raises: InvalidParameterValue if any parameters is invalid.
         """
+        driver_utils.validate_boot_option_capability(task.node)
         iscsi_deploy.get_deploy_info(task.node, **kwargs)
 
     @base.passthru(['POST'], method='pass_deploy_info')
@@ -469,12 +498,17 @@ class VendorPassthru(base.VendorInterface):
             return
 
         try:
-            pxe_config_path = pxe_utils.get_pxe_config_file_path(node.uuid)
-            deploy_utils.switch_pxe_config(pxe_config_path, root_uuid,
-                          driver_utils.get_node_capability(node, 'boot_mode'))
+            if iscsi_deploy.get_boot_option(node) == "local":
+                try_set_boot_device(task, boot_devices.DISK)
+                # If it's going to boot from the local disk, get rid of
+                # the PXE configuration files used for the deployment
+                pxe_utils.clean_up_pxe_config(task)
+            else:
+                pxe_config_path = pxe_utils.get_pxe_config_file_path(node.uuid)
+                deploy_utils.switch_pxe_config(pxe_config_path, root_uuid,
+                    driver_utils.get_node_capability(node, 'boot_mode'))
 
             deploy_utils.notify_deploy_complete(kwargs['address'])
-
             LOG.info(_LI('Deployment to node %s done'), node.uuid)
             task.process_event('done')
         except Exception as e:

@@ -25,6 +25,7 @@ import mock
 from oslo_config import cfg
 from oslo_serialization import jsonutils as json
 
+from ironic.common import boot_devices
 from ironic.common import dhcp_factory
 from ironic.common import exception
 from ironic.common.glance_service import base_image_service
@@ -158,7 +159,8 @@ class PXEPrivateMethodsTestCase(db_base.DbTestCase):
                             'deployment_id': 'fake-deploy-id',
                             'deployment_key': 'fake-deploy-key',
                             'disk': 'fake-disk',
-                            'ironic_api_url': 'fake-api-url'}
+                            'ironic_api_url': 'fake-api-url',
+                            'boot_option': 'netboot'}
 
         deploy_opts_mock.return_value = fake_deploy_opts
 
@@ -193,7 +195,8 @@ class PXEPrivateMethodsTestCase(db_base.DbTestCase):
             'pxe_append_params': 'test_param',
             'aki_path': kernel,
             'deployment_aki_path': deploy_kernel,
-            'tftp_server': tftp_server
+            'tftp_server': tftp_server,
+            'boot_option': 'netboot'
         }
 
         expected_options.update(fake_deploy_opts)
@@ -347,6 +350,28 @@ class PXEDriverTestCase(db_base.DbTestCase):
                                                    'ramdisk_id': 'fake-initr'}}
         self.config(ipxe_enabled=True, group='pxe')
         self.config(http_url='dummy_url', group='pxe')
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            task.node.properties = properties
+            self.assertRaises(exception.InvalidParameterValue,
+                              task.driver.deploy.validate, task)
+
+    @mock.patch.object(base_image_service.BaseImageService, '_show')
+    def test_validate_fail_invalid_boot_option(self, mock_glance):
+        properties = {'capabilities': 'boot_option:foo,dog:wuff'}
+        mock_glance.return_value = {'properties': {'kernel_id': 'fake-kernel',
+                                                   'ramdisk_id': 'fake-initr'}}
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            task.node.properties = properties
+            self.assertRaises(exception.InvalidParameterValue,
+                              task.driver.deploy.validate, task)
+
+    @mock.patch.object(base_image_service.BaseImageService, '_show')
+    def test_validate_fail_invalid_uefi_and_localboot(self, mock_glance):
+        properties = {'capabilities': 'boot_mode:uefi,boot_option:local'}
+        mock_glance.return_value = {'properties': {'kernel_id': 'fake-kernel',
+                                                   'ramdisk_id': 'fake-initr'}}
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
             task.node.properties = properties
@@ -580,12 +605,34 @@ class PXEDriverTestCase(db_base.DbTestCase):
             update_dhcp_mock.assert_called_once_with(
                 task, dhcp_opts)
 
+    @mock.patch.object(pxe_utils, 'clean_up_pxe_config')
+    @mock.patch.object(dhcp_factory.DHCPFactory, 'update_dhcp')
+    def test_take_over_localboot(self, update_dhcp_mock, clean_pxe_mock):
+        with task_manager.acquire(
+                self.context, self.node.uuid, shared=True) as task:
+            task.node.instance_info['capabilities'] = {"boot_option": "local"}
+            dhcp_opts = pxe_utils.dhcp_options_for_instance(task)
+            task.driver.deploy.take_over(task)
+            update_dhcp_mock.assert_called_once_with(
+                task, dhcp_opts)
+            clean_pxe_mock.assert_called_once_with(task)
+
+    @mock.patch.object(pxe_utils, 'clean_up_pxe_config')
+    @mock.patch.object(manager_utils, 'node_set_boot_device')
     @mock.patch.object(deploy_utils, 'notify_deploy_complete')
     @mock.patch.object(deploy_utils, 'switch_pxe_config')
     @mock.patch.object(iscsi_deploy, 'InstanceImageCache')
-    def test_continue_deploy_good(self, mock_image_cache, mock_switch_config,
-            notify_mock):
+    def _test_continue_deploy(self, is_localboot, mock_image_cache,
+                              mock_switch_config, notify_mock,
+                              mock_node_boot_dev, mock_clean_pxe):
         token_path = self._create_token_file()
+
+        # set local boot
+        if is_localboot:
+            i_info = self.node.instance_info
+            i_info['capabilities'] = '{"boot_option": "local"}'
+            self.node.instance_info = i_info
+
         self.node.power_state = states.POWER_ON
         self.node.provision_state = states.DEPLOYWAIT
         self.node.target_provision_state = states.ACTIVE
@@ -614,9 +661,23 @@ class PXEDriverTestCase(db_base.DbTestCase):
         mock_image_cache.assert_called_once_with()
         mock_image_cache.return_value.clean_up.assert_called_once_with()
         pxe_config_path = pxe_utils.get_pxe_config_file_path(self.node.uuid)
-        mock_switch_config.assert_called_once_with(pxe_config_path, root_uuid,
-                                boot_mode)
         notify_mock.assert_called_once_with('123456')
+        if is_localboot:
+            mock_node_boot_dev.assert_called_once_with(
+                mock.ANY, boot_devices.DISK, persistent=True)
+            mock_clean_pxe.assert_called_once_with(mock.ANY)
+            self.assertFalse(mock_switch_config.called)
+        else:
+            mock_switch_config.assert_called_once_with(
+                pxe_config_path, root_uuid, boot_mode)
+            self.assertFalse(mock_node_boot_dev.called)
+            self.assertFalse(mock_clean_pxe.called)
+
+    def test_continue_deploy(self):
+        self._test_continue_deploy(False)
+
+    def test_continue_deploy_localboot(self):
+        self._test_continue_deploy(True)
 
     @mock.patch.object(iscsi_deploy, 'InstanceImageCache')
     def test_continue_deploy_fail(self, mock_image_cache):

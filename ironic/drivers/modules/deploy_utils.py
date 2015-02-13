@@ -29,6 +29,7 @@ from oslo.utils import excutils
 from oslo.utils import units
 from oslo_concurrency import processutils
 from oslo_config import cfg
+from oslo_serialization import jsonutils
 import requests
 import six
 
@@ -677,3 +678,39 @@ def get_single_nic_with_vif_port_id(task):
     for port in task.ports:
         if port.extra.get('vif_port_id'):
             return port.address
+
+
+def parse_instance_info_capabilities(node):
+    """Parse the instance_info capabilities.
+
+    These capabilities are defined in the Flavor extra_spec and passed
+    to Ironic by the Nova Ironic driver.
+
+    NOTE: Although our API fully supports JSON fields, to maintain the
+    backward compatibility with Juno the Nova Ironic driver is sending
+    it as a string.
+
+    :param node: a single Node.
+    :raises: InvalidParameterValue if the capabilities string is not a
+             dictionary or is malformed.
+    :returns: A dictionary with the capabilities if found, otherwise an
+              empty dictionary.
+    """
+
+    def parse_error():
+        error_msg = (_("Error parsing capabilities from Node %s instance_info "
+                       "field. A dictionary or a dictionary string is "
+                       "expected.") % node.uuid)
+        raise exception.InvalidParameterValue(error_msg)
+
+    capabilities = node.instance_info.get('capabilities', {})
+    if isinstance(capabilities, six.string_types):
+        try:
+            capabilities = jsonutils.loads(capabilities)
+        except (ValueError, TypeError):
+            parse_error()
+
+    if not isinstance(capabilities, dict):
+        parse_error()
+
+    return capabilities
