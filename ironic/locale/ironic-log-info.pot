@@ -1,14 +1,14 @@
 # Translations template for ironic.
-# Copyright (C) 2014 ORGANIZATION
+# Copyright (C) 2015 ORGANIZATION
 # This file is distributed under the same license as the ironic project.
-# FIRST AUTHOR <EMAIL@ADDRESS>, 2014.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2015.
 #
 #, fuzzy
 msgid ""
 msgstr ""
-"Project-Id-Version: ironic 2014.2.dev98.g8576905\n"
+"Project-Id-Version: ironic 2015.1.dev15\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2014-09-22 06:09+0000\n"
+"POT-Creation-Date: 2015-02-13 06:14+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -26,115 +26,115 @@ msgstr ""
 msgid "Configuration:"
 msgstr ""
 
-#: ironic/common/driver_factory.py:121
+#: ironic/common/driver_factory.py:138
 #, python-format
 msgid "Loaded the following drivers: %s"
 msgstr ""
 
-#: ironic/common/service.py:78
+#: ironic/common/service.py:80
 #, python-format
 msgid "Created RPC server for service %(service)s on host %(host)s."
 msgstr ""
 
-#: ironic/common/service.py:95
+#: ironic/common/service.py:98
 #, python-format
 msgid "Stopped RPC server for service %(service)s on host %(host)s."
 msgstr ""
 
-#: ironic/conductor/manager.py:211
+#: ironic/conductor/manager.py:260
 #, python-format
 msgid "Successfuly started conductor with hostname %(hostname)s."
 msgstr ""
 
-#: ironic/conductor/manager.py:223
+#: ironic/conductor/manager.py:279
 #, python-format
 msgid "Successfully stopped conductor with hostname %(hostname)s."
 msgstr ""
 
-#: ironic/conductor/manager.py:511
-#, python-format
-msgid "Successfully deployed node %(node)s with instance %(instance)s."
-msgstr ""
-
-#: ironic/conductor/manager.py:600
-#, python-format
-msgid "Successfully unprovisioned node %(node)s with instance %(instance)s."
-msgstr ""
-
-#: ironic/conductor/manager.py:664
-#, python-format
-msgid ""
-"During sync_power_state, node %(node)s has no previous known state. "
-"Recording current state '%(state)s'."
-msgstr ""
-
-#: ironic/conductor/manager.py:767
+#: ironic/conductor/manager.py:827
 #, python-format
 msgid ""
 "During sync_power_state, node %(node)s was not found and presumed deleted"
 " by another process."
 msgstr ""
 
-#: ironic/conductor/manager.py:771
+#: ironic/conductor/manager.py:831
 #, python-format
 msgid ""
 "During sync_power_state, node %(node)s was already locked by another "
 "process. Skip."
 msgstr ""
 
-#: ironic/conductor/manager.py:952
+#: ironic/conductor/manager.py:1026
 #, python-format
 msgid "Successfully deleted node %(node)s."
 msgstr ""
 
-#: ironic/conductor/manager.py:1021
+#: ironic/conductor/manager.py:1095
 #, python-format
 msgid "No console action was triggered because the console is already %s"
 msgstr ""
 
-#: ironic/conductor/utils.py:122
+#: ironic/conductor/manager.py:1497
+#, python-format
+msgid "Successfully deployed node %(node)s with instance %(instance)s."
+msgstr ""
+
+#: ironic/conductor/manager.py:1526
+#, python-format
+msgid "Successfully unprovisioned node %(node)s with instance %(instance)s."
+msgstr ""
+
+#: ironic/conductor/manager.py:1601
+#, python-format
+msgid ""
+"During sync_power_state, node %(node)s has no previous known state. "
+"Recording current state '%(state)s'."
+msgstr ""
+
+#: ironic/conductor/utils.py:124
 #, python-format
 msgid "Succesfully set node %(node)s power state to %(state)s."
 msgstr ""
 
-#: ironic/drivers/modules/image_cache.py:118
+#: ironic/drivers/modules/image_cache.py:128
 #, python-format
 msgid "Master cache miss for image %(uuid)s, starting download"
 msgstr ""
 
-#: ironic/drivers/modules/image_cache.py:252
+#: ironic/drivers/modules/image_cache.py:269
 #, python-format
 msgid ""
 "After cleaning up cache dir %(dir)s cache size %(actual)d is still larger"
 " than threshold %(expected)d"
 msgstr ""
 
-#: ironic/drivers/modules/iscsi_deploy.py:299
+#: ironic/drivers/modules/iscsi_deploy.py:272
 #, python-format
 msgid "Continuing deployment for node %(node)s, params %(params)s"
 msgstr ""
 
-#: ironic/drivers/modules/pxe.py:479 ironic/drivers/modules/ilo/deploy.py:531
+#: ironic/drivers/modules/pxe.py:478 ironic/drivers/modules/ilo/deploy.py:518
 #, python-format
 msgid "Deployment to node %s done"
 msgstr ""
 
-#: ironic/drivers/modules/ilo/common.py:259
+#: ironic/drivers/modules/ilo/common.py:293
 #, python-format
 msgid "Attached virtual media %s successfully."
 msgstr ""
 
-#: ironic/drivers/modules/ilo/common.py:301
+#: ironic/drivers/modules/ilo/common.py:311
 #, python-format
 msgid "Node %(uuid)s pending boot mode is %(boot_mode)s."
 msgstr ""
 
-#: ironic/drivers/modules/ilo/common.py:313
+#: ironic/drivers/modules/ilo/common.py:323
 #, python-format
 msgid "Node %(uuid)s boot mode is set to %(boot_mode)s."
 msgstr ""
 
-#: ironic/drivers/modules/ilo/common.py:360
+#: ironic/drivers/modules/ilo/common.py:371
 #, python-format
 msgid "Setting up node %s to boot from virtual media"
 msgstr ""
@@ -144,74 +144,69 @@ msgstr ""
 msgid "Eventlet backdoor listening on %(port)s for process %(pid)d"
 msgstr ""
 
-#: ironic/openstack/common/lockutils.py:82
-#, python-format
-msgid "Created lock path: %s"
-msgstr ""
-
-#: ironic/openstack/common/lockutils.py:251
-#, python-format
-msgid "Failed to remove file %(file)s"
-msgstr ""
-
-#: ironic/openstack/common/periodic_task.py:126
+#: ironic/openstack/common/periodic_task.py:120
 #, python-format
 msgid "Skipping periodic task %(task)s because its interval is negative"
 msgstr ""
 
-#: ironic/openstack/common/periodic_task.py:131
+#: ironic/openstack/common/periodic_task.py:125
 #, python-format
 msgid "Skipping periodic task %(task)s because it is disabled"
 msgstr ""
 
-#: ironic/openstack/common/service.py:176
+#: ironic/openstack/common/policy.py:275
+#, python-format
+msgid "Can not find policy directory: %s"
+msgstr ""
+
+#: ironic/openstack/common/service.py:174
 #, python-format
 msgid "Caught %s, exiting"
 msgstr ""
 
-#: ironic/openstack/common/service.py:240
+#: ironic/openstack/common/service.py:232
 msgid "Parent process has died unexpectedly, exiting"
 msgstr ""
 
-#: ironic/openstack/common/service.py:271
+#: ironic/openstack/common/service.py:263
 #, python-format
 msgid "Child caught %s, exiting"
 msgstr ""
 
-#: ironic/openstack/common/service.py:310
+#: ironic/openstack/common/service.py:302
 msgid "Forking too fast, sleeping"
 msgstr ""
 
-#: ironic/openstack/common/service.py:329
+#: ironic/openstack/common/service.py:321
 #, python-format
 msgid "Started child %d"
 msgstr ""
 
-#: ironic/openstack/common/service.py:339
+#: ironic/openstack/common/service.py:331
 #, python-format
 msgid "Starting %d workers"
 msgstr ""
 
-#: ironic/openstack/common/service.py:356
+#: ironic/openstack/common/service.py:348
 #, python-format
 msgid "Child %(pid)d killed by signal %(sig)d"
 msgstr ""
 
-#: ironic/openstack/common/service.py:360
+#: ironic/openstack/common/service.py:352
 #, python-format
 msgid "Child %(pid)s exited with status %(code)d"
 msgstr ""
 
-#: ironic/openstack/common/service.py:399
+#: ironic/openstack/common/service.py:391
 #, python-format
 msgid "Caught %s, stopping children"
 msgstr ""
 
-#: ironic/openstack/common/service.py:408
-msgid "Wait called after thread killed.  Cleaning up."
+#: ironic/openstack/common/service.py:400
+msgid "Wait called after thread killed. Cleaning up."
 msgstr ""
 
-#: ironic/openstack/common/service.py:424
+#: ironic/openstack/common/service.py:416
 #, python-format
 msgid "Waiting on %d children to exit"
 msgstr ""
