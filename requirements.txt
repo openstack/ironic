@@ -14,7 +14,7 @@ paramiko>=1.13.0
 iso8601>=0.1.9
 python-neutronclient>=2.3.6,<3
 python-glanceclient>=0.15.0
-python-keystoneclient>=1.0.0
+python-keystoneclient>=1.1.0
 python-swiftclient>=2.2.0
 stevedore>=1.1.0  # Apache-2.0
 pysendfile==2.0.0
