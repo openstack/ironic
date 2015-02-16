@@ -19,6 +19,7 @@ Abstract base classes for drivers.
 
 import abc
 import collections
+import copy
 import functools
 import inspect
 
@@ -453,12 +454,14 @@ class VendorInterface(object):
             dmeta = getattr(ref, '_driver_metadata', None)
 
             if vmeta is not None:
-                vmeta.metadata['func'] = ref
-                inst.vendor_routes.update({vmeta.method: vmeta.metadata})
+                metadata = copy.deepcopy(vmeta.metadata)
+                metadata['func'] = ref
+                inst.vendor_routes.update({vmeta.method: metadata})
 
             if dmeta is not None:
-                dmeta.metadata['func'] = ref
-                inst.driver_routes.update({dmeta.method: dmeta.metadata})
+                metadata = copy.deepcopy(dmeta.metadata)
+                metadata['func'] = ref
+                inst.driver_routes.update({dmeta.method: metadata})
 
         return inst
 
