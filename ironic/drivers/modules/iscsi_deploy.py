@@ -20,12 +20,10 @@ from ironic_lib import utils as ironic_utils
 from oslo_config import cfg
 from oslo_log import log as logging
 from oslo_utils import fileutils
-from oslo_utils import strutils
 from six.moves.urllib import parse
 
 from ironic.common import dhcp_factory
 from ironic.common import exception
-from ironic.common.glance_service import service_utils as glance_service_utils
 from ironic.common.i18n import _
 from ironic.common.i18n import _LE
 from ironic.common.i18n import _LI
@@ -107,39 +105,6 @@ def _get_image_file_path(node_uuid):
     return os.path.join(_get_image_dir_path(node_uuid), 'disk')
 
 
-def _check_disk_layout_unchanged(node, i_info):
-    """Check whether disk layout is unchanged.
-
-    If the node has already been deployed to, this checks whether the disk
-    layout for the node is the same as when it had been deployed to.
-
-    :param node: the node of interest
-    :param i_info: instance information (a dictionary) for the node, containing
-                   disk layout information
-    :raises: InvalidParameterValue if the disk layout changed
-    """
-    # If a node has been deployed to, this is the instance information
-    # used for that deployment.
-    driver_internal_info = node.driver_internal_info
-    if 'instance' not in driver_internal_info:
-        return
-
-    error_msg = ''
-    for param in DISK_LAYOUT_PARAMS:
-        param_value = int(driver_internal_info['instance'][param])
-        if param_value != int(i_info[param]):
-            error_msg += (_(' Deployed value of %(param)s was %(param_value)s '
-                            'but requested value is %(request_value)s.') %
-                          {'param': param, 'param_value': param_value,
-                           'request_value': i_info[param]})
-
-    if error_msg:
-        err_msg_invalid = _("The following parameters have different values "
-                            "from previous deployment:%(error_msg)s")
-        raise exception.InvalidParameterValue(err_msg_invalid %
-                                              {'error_msg': error_msg})
-
-
 def _save_disk_layout(node, i_info):
     """Saves the disk layout.
 
@@ -159,81 +124,6 @@ def _save_disk_layout(node, i_info):
     node.save()
 
 
-def parse_instance_info(node):
-    """Gets the instance specific Node deployment info.
-
-    This method validates whether the 'instance_info' property of the
-    supplied node contains the required information for this driver to
-    deploy images to the node.
-
-    :param node: a single Node.
-    :returns: A dict with the instance_info values.
-    :raises: MissingParameterValue, if any of the required parameters are
-        missing.
-    :raises: InvalidParameterValue, if any of the parameters have invalid
-        value.
-    """
-    info = node.instance_info
-    i_info = {}
-    i_info['image_source'] = info.get('image_source')
-    is_whole_disk_image = node.driver_internal_info.get('is_whole_disk_image')
-    if not is_whole_disk_image:
-        if (i_info['image_source'] and
-                not glance_service_utils.is_glance_image(
-                    i_info['image_source'])):
-            i_info['kernel'] = info.get('kernel')
-            i_info['ramdisk'] = info.get('ramdisk')
-    i_info['root_gb'] = info.get('root_gb')
-
-    error_msg = _("Cannot validate iSCSI deploy. Some parameters were missing"
-                  " in node's instance_info")
-    deploy_utils.check_for_missing_params(i_info, error_msg)
-
-    # Internal use only
-    i_info['deploy_key'] = info.get('deploy_key')
-
-    i_info['swap_mb'] = info.get('swap_mb', 0)
-    i_info['ephemeral_gb'] = info.get('ephemeral_gb', 0)
-    err_msg_invalid = _("Cannot validate parameter for iSCSI deploy. "
-                        "Invalid parameter %(param)s. Reason: %(reason)s")
-    for param in DISK_LAYOUT_PARAMS:
-        try:
-            int(i_info[param])
-        except ValueError:
-            reason = _("%s is not an integer value.") % i_info[param]
-            raise exception.InvalidParameterValue(err_msg_invalid %
-                                                  {'param': param,
-                                                   'reason': reason})
-
-    if is_whole_disk_image:
-        if int(i_info['swap_mb']) > 0 or int(i_info['ephemeral_gb']) > 0:
-            err_msg_invalid = _("Cannot deploy whole disk image with "
-                                "swap or ephemeral size set")
-            raise exception.InvalidParameterValue(err_msg_invalid)
-        return i_info
-
-    i_info['ephemeral_format'] = info.get('ephemeral_format')
-    i_info['configdrive'] = info.get('configdrive')
-
-    if i_info['ephemeral_gb'] and not i_info['ephemeral_format']:
-        i_info['ephemeral_format'] = CONF.pxe.default_ephemeral_format
-
-    preserve_ephemeral = info.get('preserve_ephemeral', False)
-    try:
-        i_info['preserve_ephemeral'] = (
-            strutils.bool_from_string(preserve_ephemeral, strict=True))
-    except ValueError as e:
-        raise exception.InvalidParameterValue(
-            err_msg_invalid % {'param': 'preserve_ephemeral', 'reason': e})
-
-    # NOTE(Zhenguo): If rebuilding with preserve_ephemeral option, check
-    # that the disk layout is unchanged.
-    if i_info['preserve_ephemeral']:
-        _check_disk_layout_unchanged(node, i_info)
-
-    return i_info
-
-
 def check_image_size(task):
     """Check if the requested image is larger than the root partition size.
 
@@ -241,7 +131,7 @@ def check_image_size(task):
     :raises: InstanceDeployFailure if size of the image is greater than root
         partition.
     """
-    i_info = parse_instance_info(task.node)
+    i_info = deploy_utils.parse_instance_info(task.node)
     image_path = _get_image_file_path(task.node.uuid)
     image_mb = disk_utils.get_image_mb(image_path)
     root_mb = 1024 * int(i_info['root_gb'])
@@ -263,7 +153,7 @@ def cache_instance_image(ctx, node):
     :returns: a tuple containing the uuid of the image and the path in
         the filesystem where image is cached.
     """
-    i_info = parse_instance_info(node)
+    i_info = deploy_utils.parse_instance_info(node)
     fileutils.ensure_tree(_get_image_dir_path(node.uuid))
     image_path = _get_image_file_path(node.uuid)
     uuid = i_info['image_source']
@@ -298,7 +188,7 @@ def get_deploy_info(node, **kwargs):
         value.
     """
     deploy_key = kwargs.get('key')
-    i_info = parse_instance_info(node)
+    i_info = deploy_utils.parse_instance_info(node)
     if i_info['deploy_key'] != deploy_key:
         raise exception.InvalidParameterValue(_("Deploy key does not match"))
 
@@ -410,7 +300,7 @@ def continue_deploy(task, **kwargs):
     if params.get('preserve_ephemeral', False):
         # Save disk layout information, to check that they are unchanged
         # for any future rebuilds
-        _save_disk_layout(node, parse_instance_info(node))
+        _save_disk_layout(node, deploy_utils.parse_instance_info(node))
 
     destroy_images(node.uuid)
     return uuid_dict_returned
@@ -562,7 +452,7 @@ def validate(task):
 
     # Validate the root device hints
     deploy_utils.parse_root_device_hints(task.node)
-    parse_instance_info(task.node)
+    deploy_utils.parse_instance_info(task.node)
 
 
 def validate_pass_bootloader_info_input(task, input_params):
@@ -972,21 +862,7 @@ class VendorPassthru(agent_base_vendor.BaseAgentVendor):
         LOG.debug('Continuing the deployment on node %s', node.uuid)
 
         uuid_dict_returned = do_agent_iscsi_deploy(task, self._client)
-
-        if deploy_utils.get_boot_option(node) == "local":
-            # Install the boot loader
-            root_uuid = uuid_dict_returned.get('root uuid')
-            efi_sys_uuid = uuid_dict_returned.get('efi system partition uuid')
-            self.configure_local_boot(
-                task, root_uuid=root_uuid,
-                efi_system_part_uuid=efi_sys_uuid)
-
-        try:
-            task.driver.boot.prepare_instance(task)
-        except Exception as e:
-            LOG.error(_LE('Deploy failed for instance %(instance)s. '
-                          'Error: %(error)s'),
-                      {'instance': node.instance_uuid, 'error': e})
-            msg = _('Failed to continue agent deployment.')
-            deploy_utils.set_failed_state(task, msg)
+        root_uuid = uuid_dict_returned.get('root uuid')
+        efi_sys_uuid = uuid_dict_returned.get('efi system partition uuid')
+        self.prepare_instance_to_boot(task, root_uuid, efi_sys_uuid)
         self.reboot_and_finish_deploy(task)

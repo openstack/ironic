@@ -111,6 +111,11 @@ OPTIONAL_PROPERTIES = {
 COMMON_PROPERTIES = REQUIRED_PROPERTIES.copy()
 COMMON_PROPERTIES.update(OPTIONAL_PROPERTIES)
 
+PARTITION_IMAGE_LABELS = ('kernel', 'ramdisk', 'root_gb', 'root_mb', 'swap_mb',
+                          'ephemeral_mb', 'ephemeral_format', 'configdrive',
+                          'preserve_ephemeral', 'image_type',
+                          'deploy_boot_mode')
+
 
 def build_instance_info_for_deploy(task):
     """Build instance_info necessary for deploying to a node.
@@ -123,7 +128,7 @@ def build_instance_info_for_deploy(task):
     """
     node = task.node
     instance_info = node.instance_info
-
+    iwdi = node.driver_internal_info.get('is_whole_disk_image')
     image_source = instance_info['image_source']
     if service_utils.is_glance_image(image_source):
         glance = image_service.GlanceImageService(version=2,
@@ -137,6 +142,10 @@ def build_instance_info_for_deploy(task):
         instance_info['image_disk_format'] = image_info['disk_format']
         instance_info['image_container_format'] = (
             image_info['container_format'])
+
+        if not iwdi:
+            instance_info['kernel'] = image_info['properties']['kernel_id']
+            instance_info['ramdisk'] = image_info['properties']['ramdisk_id']
     else:
         try:
             image_service.HttpImageService().validate_href(image_source)
@@ -148,6 +157,12 @@ def build_instance_info_for_deploy(task):
                               "is not reachable."), image_source)
         instance_info['image_url'] = image_source
 
+    if not iwdi:
+        instance_info['image_type'] = 'partition'
+        i_info = deploy_utils.parse_instance_info(node)
+        instance_info.update(i_info)
+    else:
+        instance_info['image_type'] = 'whole-disk-image'
     return instance_info
 
 
@@ -256,6 +271,7 @@ class AgentDeploy(base.DeployInterface):
         params['instance_info.image_source'] = image_source
         error_msg = _('Node %s failed to validate deploy image info. Some '
                       'parameters were missing') % node.uuid
+
         deploy_utils.check_for_missing_params(params, error_msg)
 
         if not service_utils.is_glance_image(image_source):
@@ -265,15 +281,6 @@ class AgentDeploy(base.DeployInterface):
                     "instance_info for node %s") % node.uuid)
 
         check_image_size(task, image_source)
-        is_whole_disk_image = node.driver_internal_info.get(
-            'is_whole_disk_image')
-        # TODO(sirushtim): Remove once IPA has support for partition images.
-        if is_whole_disk_image is False:
-            raise exception.InvalidParameterValue(_(
-                "Node %(node)s is configured to use the %(driver)s driver "
-                "which currently does not support deploying partition "
-                "images.") % {'node': node.uuid, 'driver': node.driver})
-
         # Validate the root device hints
         deploy_utils.parse_root_device_hints(node)
 
@@ -468,10 +475,43 @@ class AgentVendorInterface(agent_base_vendor.BaseAgentVendor):
             if no_proxy is not None:
                 image_info['no_proxy'] = no_proxy
 
+        iwdi = node.driver_internal_info.get('is_whole_disk_image')
+        if not iwdi:
+            for label in PARTITION_IMAGE_LABELS:
+                image_info[label] = node.instance_info.get(label)
+            boot_option = deploy_utils.get_boot_option(node)
+            boot_mode = deploy_utils.get_boot_mode_for_deploy(node)
+            if boot_mode:
+                image_info['deploy_boot_mode'] = boot_mode
+            else:
+                image_info['deploy_boot_mode'] = 'bios'
+            image_info['boot_option'] = boot_option
+
         # Tell the client to download and write the image with the given args
         self._client.prepare_image(node, image_info)
 
         task.process_event('wait')
+
+    def _get_uuid_from_result(self, task, type_uuid):
+        command = self._client.get_commands_status(task.node)[-1]
+
+        if command['command_result'] is not None:
+            words = command['command_result']['result'].split()
+            for word in words:
+                if type_uuid in word:
+                    result = word.split('=')[1]
+                    if not result:
+                        msg = (_('Command result did not return %(type_uuid)s '
+                                 'for node %(node)s. The version of the IPA '
+                                 'ramdisk used in the deployment might not '
+                                 'have support for provisioning of '
+                                 'partition images.') %
+                               {'type_uuid': type_uuid,
+                                'node': task.node.uuid})
+                        LOG.error(msg)
+                        deploy_utils.set_failed_state(task, msg)
+                        return
+                    return result
 
     def check_deploy_success(self, node):
         # should only ever be called after we've validated that
@@ -483,6 +523,7 @@ class AgentVendorInterface(agent_base_vendor.BaseAgentVendor):
     def reboot_to_instance(self, task, **kwargs):
         task.process_event('resume')
         node = task.node
+        iwdi = task.node.driver_internal_info.get('is_whole_disk_image')
         error = self.check_deploy_success(node)
         if error is not None:
             # TODO(jimrollenhagen) power off if using neutron dhcp to
@@ -492,11 +533,22 @@ class AgentVendorInterface(agent_base_vendor.BaseAgentVendor):
             LOG.error(msg)
             deploy_utils.set_failed_state(task, msg)
             return
-
+        if not iwdi:
+            root_uuid = self._get_uuid_from_result(task, 'root_uuid')
+            if deploy_utils.get_boot_mode_for_deploy(node) == 'uefi':
+                efi_sys_uuid = (
+                    self._get_uuid_from_result(task,
+                                               'efi_system_partition_uuid'))
+            else:
+                efi_sys_uuid = None
+            task.node.driver_internal_info['root_uuid_or_disk_id'] = root_uuid
+            task.node.save()
+            self.prepare_instance_to_boot(task, root_uuid, efi_sys_uuid)
         LOG.info(_LI('Image successfully written to node %s'), node.uuid)
         LOG.debug('Rebooting node %s to instance', node.uuid)
+        if iwdi:
+            manager_utils.node_set_boot_device(task, 'disk', persistent=True)
 
-        manager_utils.node_set_boot_device(task, 'disk', persistent=True)
         self.reboot_and_finish_deploy(task)
 
         # NOTE(TheJulia): If we deployed a whole disk image, we
@@ -505,7 +557,7 @@ class AgentVendorInterface(agent_base_vendor.BaseAgentVendor):
         # TODO(rameshg87): Not all in-tree drivers using reboot_to_instance
         # have a boot interface. So include a check for now. Remove this
         # check once all in-tree drivers have a boot interface.
-        if task.driver.boot:
+        if task.driver.boot and iwdi:
             task.driver.boot.clean_up_ramdisk(task)
 
 

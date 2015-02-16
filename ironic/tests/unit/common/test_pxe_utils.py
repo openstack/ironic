@@ -40,6 +40,8 @@ class TestPXEUtils(db_base.DbTestCase):
                                    u'c02d7f33c123/deploy_kernel',
             'aki_path': u'/tftpboot/1be26c0b-03f2-4d2e-ae87-c02d7f33c123/'
                         u'kernel',
+            'ari_path': u'/tftpboot/1be26c0b-03f2-4d2e-ae87-c02d7f33c123/'
+                        u'ramdisk',
             'pxe_append_params': 'test_param',
             'deployment_ari_path': u'/tftpboot/1be26c0b-03f2-4d2e-ae87-c02d7'
                                    u'f33c123/deploy_ramdisk',
@@ -50,8 +52,6 @@ class TestPXEUtils(db_base.DbTestCase):
 
         self.pxe_options = {
             'deployment_key': '0123456789ABCDEFGHIJKLMNOPQRSTUV',
-            'ari_path': u'/tftpboot/1be26c0b-03f2-4d2e-ae87-c02d7f33c123/'
-                        u'ramdisk',
             'iscsi_target_iqn': u'iqn-1be26c0b-03f2-4d2e-ae87-c02d7f33'
                                 u'c123',
             'deployment_id': u'1be26c0b-03f2-4d2e-ae87-c02d7f33c123',
