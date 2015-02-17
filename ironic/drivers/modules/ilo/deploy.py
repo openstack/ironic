@@ -486,8 +486,16 @@ class VendorPassthru(base.VendorInterface):
     def _continue_deploy(self, task, **kwargs):
         """Continues the iSCSI deployment from where ramdisk left off.
 
-        Continues the iSCSI deployment from the conductor node, finds the
-        boot ISO to boot the node, and sets the node to boot from boot ISO.
+        This method continues the iSCSI deployment from the conductor node
+        and writes the deploy image to the bare metal's disk.  After that,
+        it does the following depending on boot_option for deploy:
+        - If the boot_option requested for this deploy is 'local', then it
+          sets the node to boot from disk (ramdisk installs the boot loader
+          present within the image to the bare metal's disk).
+        - If the boot_option requested is 'netboot' or no boot_option is
+          requested, it finds/creates the boot ISO to boot the instance
+          image, attaches the boot ISO to the bare metal and then sets
+          the node to boot from CDROM.
 
         :param task: a TaskManager instance containing the node to act on.
         :param kwargs: kwargs containing parameters for iSCSI deployment.
@@ -503,23 +511,26 @@ class VendorPassthru(base.VendorInterface):
             return
 
         try:
-            boot_iso = _get_boot_iso(task, root_uuid)
+            if iscsi_deploy.get_boot_option(node) == "local":
+                manager_utils.node_set_boot_device(task, boot_devices.DISK,
+                                                   persistent=True)
+            else:
+                boot_iso = _get_boot_iso(task, root_uuid)
+                if not boot_iso:
+                    LOG.error(_LE("Cannot get boot ISO for node %s"),
+                              node.uuid)
+                    return
 
-            if not boot_iso:
-                LOG.error(_LE("Cannot get boot ISO for node %s"), node.uuid)
-                return
+                ilo_common.setup_vmedia_for_boot(task, boot_iso)
+                manager_utils.node_set_boot_device(task, boot_devices.CDROM)
 
-            ilo_common.setup_vmedia_for_boot(task, boot_iso)
-            manager_utils.node_set_boot_device(task, boot_devices.CDROM)
+                i_info = node.instance_info
+                i_info['ilo_boot_iso'] = boot_iso
+                node.instance_info = i_info
 
-            address = kwargs.get('address')
-            deploy_utils.notify_deploy_complete(address)
+            deploy_utils.notify_deploy_complete(kwargs.get('address'))
 
             LOG.info(_LI('Deployment to node %s done'), node.uuid)
-
-            i_info = node.instance_info
-            i_info['ilo_boot_iso'] = boot_iso
-            node.instance_info = i_info
             task.process_event('done')
         except Exception as e:
             LOG.error(_LE('Deploy failed for instance %(instance)s. '

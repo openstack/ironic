@@ -449,6 +449,36 @@ class VendorPassthruTestCase(db_base.DbTestCase):
             self.assertEqual(states.ACTIVE, task.node.target_provision_state)
             self.assertIsNotNone(task.node.last_error)
 
+    @mock.patch.object(deploy_utils, 'notify_deploy_complete')
+    @mock.patch.object(manager_utils, 'node_set_boot_device')
+    @mock.patch.object(iscsi_deploy, 'continue_deploy')
+    @mock.patch.object(ilo_common, 'cleanup_vmedia_boot')
+    def test__continue_deploy_localboot(self, cleanup_vmedia_boot_mock,
+                                        continue_deploy_mock,
+                                        set_boot_device_mock,
+                                        notify_deploy_complete_mock):
+
+        kwargs = {'method': 'pass_deploy_info', 'address': '123456'}
+        continue_deploy_mock.return_value = '<some-uuid>'
+
+        self.node.provision_state = states.DEPLOYWAIT
+        self.node.target_provision_state = states.ACTIVE
+        self.node.instance_info = {'capabilities': '{"boot_option": "local"}'}
+        self.node.save()
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            vendor = task.driver.vendor
+            vendor._continue_deploy(task, **kwargs)
+
+            cleanup_vmedia_boot_mock.assert_called_once_with(task)
+            continue_deploy_mock.assert_called_once_with(task, **kwargs)
+            set_boot_device_mock.assert_called_once_with(task,
+                                                         boot_devices.DISK,
+                                                         persistent=True)
+            notify_deploy_complete_mock.assert_called_once_with('123456')
+            self.assertEqual(states.ACTIVE, task.node.provision_state)
+            self.assertEqual(states.NOSTATE, task.node.target_provision_state)
+
 
 class IloPXEDeployTestCase(db_base.DbTestCase):
 
