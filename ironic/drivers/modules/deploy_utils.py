@@ -683,8 +683,9 @@ def get_single_nic_with_vif_port_id(task):
 def parse_instance_info_capabilities(node):
     """Parse the instance_info capabilities.
 
-    These capabilities are defined in the Flavor extra_spec and passed
-    to Ironic by the Nova Ironic driver.
+    One way of having these capabilities set is via Nova, where the
+    capabilities are defined in the Flavor extra_spec and passed to
+    Ironic by the Nova Ironic driver.
 
     NOTE: Although our API fully supports JSON fields, to maintain the
     backward compatibility with Juno the Nova Ironic driver is sending
@@ -698,9 +699,9 @@ def parse_instance_info_capabilities(node):
     """
 
     def parse_error():
-        error_msg = (_("Error parsing capabilities from Node %s instance_info "
-                       "field. A dictionary or a dictionary string is "
-                       "expected.") % node.uuid)
+        error_msg = (_('Error parsing capabilities from Node %s instance_info '
+                       'field. A dictionary or a "jsonified" dictionary is '
+                       'expected.') % node.uuid)
         raise exception.InvalidParameterValue(error_msg)
 
     capabilities = node.instance_info.get('capabilities', {})

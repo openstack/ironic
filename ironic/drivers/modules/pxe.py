@@ -442,11 +442,12 @@ class PXEDeploy(base.DeployInterface):
         _destroy_token_file(node)
 
     def take_over(self, task):
-        dhcp_opts = pxe_utils.dhcp_options_for_instance(task)
-        provider = dhcp_factory.DHCPFactory()
-        provider.update_dhcp(task, dhcp_opts)
-
-        if iscsi_deploy.get_boot_option(task.node) == "local":
+        if not iscsi_deploy.get_boot_option(task.node) == "local":
+            # If it's going to PXE boot we need to update the DHCP server
+            dhcp_opts = pxe_utils.dhcp_options_for_instance(task)
+            provider = dhcp_factory.DHCPFactory()
+            provider.update_dhcp(task, dhcp_opts)
+        else:
             # If it's going to boot from the local disk, we don't need
             # PXE config files. They still need to be generated as part
             # of the prepare() because the deployment does PXE boot the
