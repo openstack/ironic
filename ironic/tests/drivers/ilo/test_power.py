@@ -155,11 +155,10 @@ class IloPowerTestCase(db_base.DbTestCase):
                                                driver_info=driver_info)
 
     def test_get_properties(self):
-        expected = ilo_common.COMMON_PROPERTIES.copy()
-        expected.update(ilo_common.INSPECT_PROPERTIES)
+        expected = ilo_common.COMMON_PROPERTIES
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
-            self.assertEqual(expected, task.driver.get_properties())
+            self.assertEqual(expected, task.driver.power.get_properties())
 
     @mock.patch.object(ilo_common, 'parse_driver_info')
     def test_validate(self, mock_drvinfo):

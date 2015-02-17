@@ -12,7 +12,6 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-
 """Test class for Management Interface used by iLO modules."""
 
 import mock
@@ -23,6 +22,7 @@ from ironic.common import boot_devices
 from ironic.common import exception
 from ironic.conductor import task_manager
 from ironic.drivers.modules.ilo import common as ilo_common
+from ironic.drivers.modules.ilo import management as ilo_management
 from ironic.drivers.modules import ipmitool
 from ironic.tests.conductor import utils as mgr_utils
 from ironic.tests.db import base as db_base
@@ -30,7 +30,6 @@ from ironic.tests.db import utils as db_utils
 from ironic.tests.objects import utils as obj_utils
 
 ilo_error = importutils.try_import('proliantutils.exception')
-
 
 INFO_DICT = db_utils.get_test_ilo_info()
 CONF = cfg.CONF
@@ -47,7 +46,7 @@ class IloManagementTestCase(db_base.DbTestCase):
     def test_get_properties(self):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
-            expected = ilo_common.REQUIRED_PROPERTIES
+            expected = ilo_management.MANAGEMENT_PROPERTIES
             self.assertEqual(expected, task.driver.management.
                                        get_properties())
 
@@ -186,3 +185,92 @@ class IloManagementTestCase(db_base.DbTestCase):
             task.driver.management.get_sensors_data(task)
             update_ipmi_mock.assert_called_once_with(task)
             get_sensors_data_mock.assert_called_once_with(task)
+
+    @mock.patch.object(ilo_common, 'get_ilo_object')
+    def test__execute_ilo_clean_step_ok(self, get_ilo_object_mock):
+        ilo_mock = get_ilo_object_mock.return_value
+        clean_step_mock = getattr(ilo_mock, 'fake-step')
+        ilo_management._execute_ilo_clean_step(self.node,
+                    'fake-step', 'args', kwarg='kwarg')
+        clean_step_mock.assert_called_once_with('args', kwarg='kwarg')
+
+    @mock.patch.object(ilo_management, 'LOG')
+    @mock.patch.object(ilo_common, 'get_ilo_object')
+    def test__execute_ilo_clean_step_not_supported(self, get_ilo_object_mock,
+                                                   log_mock):
+        ilo_mock = get_ilo_object_mock.return_value
+        exc = ilo_error.IloCommandNotSupportedError("error")
+        clean_step_mock = getattr(ilo_mock, 'fake-step')
+        clean_step_mock.side_effect = exc
+        ilo_management._execute_ilo_clean_step(self.node,
+                    'fake-step', 'args', kwarg='kwarg')
+        clean_step_mock.assert_called_once_with('args', kwarg='kwarg')
+        self.assertTrue(log_mock.warn.called)
+
+    @mock.patch.object(ilo_common, 'get_ilo_object')
+    def test__execute_ilo_clean_step_fail(self, get_ilo_object_mock):
+        ilo_mock = get_ilo_object_mock.return_value
+        exc = ilo_error.IloError("error")
+        clean_step_mock = getattr(ilo_mock, 'fake-step')
+        clean_step_mock.side_effect = exc
+        self.assertRaises(exception.NodeCleaningFailure,
+                          ilo_management._execute_ilo_clean_step,
+                          self.node, 'fake-step', 'args', kwarg='kwarg')
+        clean_step_mock.assert_called_once_with('args', kwarg='kwarg')
+
+    @mock.patch.object(ilo_management, '_execute_ilo_clean_step')
+    def test_reset_ilo(self, clean_step_mock):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            task.driver.management.reset_ilo(task)
+            clean_step_mock.assert_called_once_with(task.node, 'reset_ilo')
+
+    @mock.patch.object(ilo_management, '_execute_ilo_clean_step')
+    def test_reset_ilo_credential_ok(self, clean_step_mock):
+        info = self.node.driver_info
+        info['ilo_change_password'] = "fake-password"
+        self.node.driver_info = info
+        self.node.save()
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            task.driver.management.reset_ilo_credential(task)
+            clean_step_mock.assert_called_once_with(task.node,
+                'reset_ilo_credential', 'fake-password')
+            self.assertIsNone(task.node.driver_info.get(
+                                                    'ilo_change_password'))
+            self.assertEqual(task.node.driver_info['ilo_password'],
+                             'fake-password')
+
+    @mock.patch.object(ilo_management, 'LOG')
+    @mock.patch.object(ilo_management, '_execute_ilo_clean_step')
+    def test_reset_ilo_credential_no_password(self, clean_step_mock,
+                                              log_mock):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            task.driver.management.reset_ilo_credential(task)
+            self.assertFalse(clean_step_mock.called)
+            self.assertTrue(log_mock.info.called)
+
+    @mock.patch.object(ilo_management, '_execute_ilo_clean_step')
+    def test_reset_bios_to_default(self, clean_step_mock):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            task.driver.management.reset_bios_to_default(task)
+            clean_step_mock.assert_called_once_with(task.node,
+                                                    'reset_bios_to_default')
+
+    @mock.patch.object(ilo_management, '_execute_ilo_clean_step')
+    def test_reset_secure_boot_keys_to_default(self, clean_step_mock):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            task.driver.management.reset_secure_boot_keys_to_default(task)
+            clean_step_mock.assert_called_once_with(task.node,
+                                                    'reset_secure_boot_keys')
+
+    @mock.patch.object(ilo_management, '_execute_ilo_clean_step')
+    def test_clear_secure_boot_keys(self, clean_step_mock):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            task.driver.management.clear_secure_boot_keys(task)
+            clean_step_mock.assert_called_once_with(task.node,
+                                                    'clear_secure_boot_keys')
