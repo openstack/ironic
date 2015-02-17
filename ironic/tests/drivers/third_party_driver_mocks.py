@@ -176,3 +176,14 @@ if not pyremotevbox:
     sys.modules['pyremotevbox'] = pyremotevbox
     if 'ironic.drivers.modules.virtualbox' in sys.modules:
         reload(sys.modules['ironic.drivers.modules.virtualbox'])
+
+
+ironic_discoverd = importutils.try_import('ironic_discoverd')
+if not ironic_discoverd:
+    ironic_discoverd = mock.MagicMock()
+    ironic_discoverd.__version_info__ = (1, 0, 0)
+    ironic_discoverd.__version__ = "1.0.0"
+    sys.modules['ironic_discoverd'] = ironic_discoverd
+    sys.modules['ironic_discoverd.client'] = ironic_discoverd.client
+    if 'ironic.drivers.modules.discoverd' in sys.modules:
+        reload(sys.modules['ironic.drivers.modules.discoverd'])
