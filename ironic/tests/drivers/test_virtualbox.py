@@ -13,7 +13,7 @@
 """Test class for VirtualBox Driver Modules."""
 
 import mock
-from oslo.config import cfg
+from oslo_config import cfg
 from pyremotevbox import exception as pyremotevbox_exc
 from pyremotevbox import vbox as pyremotevbox_vbox
 
