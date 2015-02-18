@@ -6,9 +6,9 @@
 #, fuzzy
 msgid ""
 msgstr ""
-"Project-Id-Version: ironic 2015.1.dev15\n"
+"Project-Id-Version: ironic 2015.1.dev31\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2015-02-13 06:14+0000\n"
+"POT-Creation-Date: 2015-02-18 06:14+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -788,52 +788,52 @@ msgstr ""
 msgid "Node %s can't be deleted because it's not powered off"
 msgstr ""
 
-#: ironic/conductor/manager.py:1094
+#: ironic/conductor/manager.py:1101
 msgid "enabled"
 msgstr ""
 
-#: ironic/conductor/manager.py:1094
+#: ironic/conductor/manager.py:1101
 msgid "disabled"
 msgstr ""
 
-#: ironic/conductor/manager.py:1117
+#: ironic/conductor/manager.py:1124
 msgid "enabling"
 msgstr ""
 
-#: ironic/conductor/manager.py:1117
+#: ironic/conductor/manager.py:1124
 msgid "disabling"
 msgstr ""
 
-#: ironic/conductor/manager.py:1118
+#: ironic/conductor/manager.py:1125
 #, python-format
 msgid "Error %(op)s the console on node %(node)s. Reason: %(error)s"
 msgstr ""
 
-#: ironic/conductor/manager.py:1369 ironic/conductor/manager.py:1397
+#: ironic/conductor/manager.py:1376 ironic/conductor/manager.py:1404
 msgid "No free conductor workers available"
 msgstr ""
 
-#: ironic/conductor/manager.py:1469
+#: ironic/conductor/manager.py:1476
 #, python-format
 msgid "Failed to upload the configdrive to Swift. Error: %s"
 msgstr ""
 
-#: ironic/conductor/manager.py:1479
+#: ironic/conductor/manager.py:1486
 #, python-format
 msgid "Failed to prepare to deploy. Error: %s"
 msgstr ""
 
-#: ironic/conductor/manager.py:1487
+#: ironic/conductor/manager.py:1494
 #, python-format
 msgid "Failed to deploy. Error: %s"
 msgstr ""
 
-#: ironic/conductor/manager.py:1521
+#: ironic/conductor/manager.py:1528
 #, python-format
 msgid "Failed to tear down. Error: %s"
 msgstr ""
 
-#: ironic/conductor/manager.py:1541
+#: ironic/conductor/manager.py:1548
 #, python-format
 msgid ""
 "During sync_power_state, max retries exceeded for node %(node)s, node "
@@ -841,7 +841,7 @@ msgid ""
 "state to '%(actual)s' Switching node to maintenance mode."
 msgstr ""
 
-#: ironic/conductor/manager.py:1587
+#: ironic/conductor/manager.py:1594
 msgid "Power driver returned ERROR state while trying to sync power state."
 msgstr ""
 
@@ -941,57 +941,59 @@ msgstr ""
 msgid "Method not specified when calling vendor extension."
 msgstr ""
 
-#: ironic/drivers/utils.py:212
+#: ironic/drivers/utils.py:216
 #, python-format
-msgid "Invalid boot_mode parameter '%s'."
+msgid ""
+"Invalid %(capability)s parameter '%(value)s'. Acceptable values are: "
+"%(valid_values)s."
 msgstr ""
 
-#: ironic/drivers/modules/agent.py:189
+#: ironic/drivers/modules/agent.py:182
 #, python-format
 msgid "Node %s failed to validate deploy image info. Some parameters were missing"
 msgstr ""
 
-#: ironic/drivers/modules/agent.py:317
-msgid "Missing parameter version"
-msgstr ""
-
-#: ironic/drivers/modules/agent.py:320
-#, python-format
-msgid "Unknown lookup payload version: %s"
-msgstr ""
-
-#: ironic/drivers/modules/agent.py:347
-msgid "For heartbeat operation, \"agent_url\" must be specified."
-msgstr ""
-
-#: ironic/drivers/modules/agent.py:356
-msgid "Failed checking if deploy is done."
-msgstr ""
-
-#: ironic/drivers/modules/agent.py:359
-msgid "Node failed to get image for deploy."
-msgstr ""
-
-#: ironic/drivers/modules/agent.py:363
-msgid "Node failed to move to active state."
-msgstr ""
-
-#: ironic/drivers/modules/agent.py:414
+#: ironic/drivers/modules/agent.py:336
 #, python-format
 msgid "node %(node)s command status errored: %(error)s"
 msgstr ""
 
-#: ironic/drivers/modules/agent.py:499
+#: ironic/drivers/modules/agent_base_vendor.py:119
+msgid "Missing parameter version"
+msgstr ""
+
+#: ironic/drivers/modules/agent_base_vendor.py:122
+#, python-format
+msgid "Unknown lookup payload version: %s"
+msgstr ""
+
+#: ironic/drivers/modules/agent_base_vendor.py:149
+msgid "For heartbeat operation, \"agent_url\" must be specified."
+msgstr ""
+
+#: ironic/drivers/modules/agent_base_vendor.py:158
+msgid "Failed checking if deploy is done."
+msgstr ""
+
+#: ironic/drivers/modules/agent_base_vendor.py:161
+msgid "Node failed to get image for deploy."
+msgstr ""
+
+#: ironic/drivers/modules/agent_base_vendor.py:165
+msgid "Node failed to move to active state."
+msgstr ""
+
+#: ironic/drivers/modules/agent_base_vendor.py:245
 #, python-format
 msgid "Malformed network interfaces lookup: %s"
 msgstr ""
 
-#: ironic/drivers/modules/agent.py:528
+#: ironic/drivers/modules/agent_base_vendor.py:274
 #, python-format
 msgid "No ports matching the given MAC addresses %sexist in the database."
 msgstr ""
 
-#: ironic/drivers/modules/agent.py:576
+#: ironic/drivers/modules/agent_base_vendor.py:322
 #, python-format
 msgid ""
 "Ports matching mac addresses match multiple nodes. MACs: %(macs)s. Port "
@@ -1035,64 +1037,71 @@ msgstr ""
 msgid "Could not stop the console for node '%(node)s'. Reason: %(err)s."
 msgstr ""
 
-#: ironic/drivers/modules/deploy_utils.py:116
+#: ironic/drivers/modules/deploy_utils.py:117
 #, python-format
 msgid ""
 "iSCSI connection was not seen by the file system after attempting to "
 "verify %d times."
 msgstr ""
 
-#: ironic/drivers/modules/deploy_utils.py:139
+#: ironic/drivers/modules/deploy_utils.py:140
 #, python-format
 msgid ""
 "iSCSI connection did not become active after attempting to verify %d "
 "times."
 msgstr ""
 
-#: ironic/drivers/modules/deploy_utils.py:405
+#: ironic/drivers/modules/deploy_utils.py:406
 #, python-format
 msgid ""
 "Can't download the configdrive content for node %(node)s from '%(url)s'. "
 "Reason: %(reason)s"
 msgstr ""
 
-#: ironic/drivers/modules/deploy_utils.py:414
+#: ironic/drivers/modules/deploy_utils.py:415
 #, python-format
 msgid ""
 "Config drive for node %s is not base64 encoded or the content is "
 "malformed."
 msgstr ""
 
-#: ironic/drivers/modules/deploy_utils.py:417
+#: ironic/drivers/modules/deploy_utils.py:418
 #, python-format
 msgid " Downloaded from \"%s\"."
 msgstr ""
 
-#: ironic/drivers/modules/deploy_utils.py:430
+#: ironic/drivers/modules/deploy_utils.py:431
 #, python-format
 msgid ""
 "Encountered error while decompressing and writing config drive for node "
 "%(node)s. Error: %(exc)s"
 msgstr ""
 
-#: ironic/drivers/modules/deploy_utils.py:467
+#: ironic/drivers/modules/deploy_utils.py:468
 #, python-format
 msgid "Parent device '%s' not found"
 msgstr ""
 
-#: ironic/drivers/modules/deploy_utils.py:495
+#: ironic/drivers/modules/deploy_utils.py:496
 #, python-format
 msgid "Root device '%s' not found"
 msgstr ""
 
-#: ironic/drivers/modules/deploy_utils.py:504
+#: ironic/drivers/modules/deploy_utils.py:505
 #, python-format
 msgid "'%(partition)s' device '%(part_device)s' not found"
 msgstr ""
 
-#: ironic/drivers/modules/deploy_utils.py:612
+#: ironic/drivers/modules/deploy_utils.py:613
 #, python-format
 msgid "%(error_msg)s. Missing are: %(missing_info)s"
+msgstr ""
+
+#: ironic/drivers/modules/deploy_utils.py:701
+#, python-format
+msgid ""
+"Error parsing capabilities from Node %s instance_info field. A dictionary"
+" or a dictionary string is expected."
 msgstr ""
 
 #: ironic/drivers/modules/fake.py:48 ironic/drivers/modules/ipminative.py:338
@@ -1351,57 +1360,64 @@ msgstr ""
 msgid "Failure in deploy ramdisk."
 msgstr ""
 
-#: ironic/drivers/modules/iscsi_deploy.py:282 ironic/drivers/modules/pxe.py:484
+#: ironic/drivers/modules/iscsi_deploy.py:282 ironic/drivers/modules/pxe.py:518
 #: ironic/drivers/modules/ilo/deploy.py:528
 msgid "Failed to continue iSCSI deployment."
 msgstr ""
 
-#: ironic/drivers/modules/iscsi_deploy.py:376
+#: ironic/drivers/modules/iscsi_deploy.py:389
 #, python-format
 msgid "Failed to connect to Glance to get the properties of the image %s"
 msgstr ""
 
-#: ironic/drivers/modules/iscsi_deploy.py:380
+#: ironic/drivers/modules/iscsi_deploy.py:393
 #, python-format
 msgid "Image %s not found in Glance"
 msgstr ""
 
-#: ironic/drivers/modules/iscsi_deploy.py:390
+#: ironic/drivers/modules/iscsi_deploy.py:403
 #, python-format
 msgid "Image %(image)s is missing the following properties: %(properties)s"
 msgstr ""
 
-#: ironic/drivers/modules/iscsi_deploy.py:410 ironic/drivers/modules/ssh.py:508
+#: ironic/drivers/modules/iscsi_deploy.py:423 ironic/drivers/modules/ssh.py:508
 #, python-format
 msgid "Node %s does not have any port associated with it."
 msgstr ""
 
-#: ironic/drivers/modules/iscsi_deploy.py:419
+#: ironic/drivers/modules/iscsi_deploy.py:432
 #, python-format
 msgid ""
 "Couldn't get the URL of the Ironic API service from the configuration "
 "file or keystone catalog. Keystone error: %s"
 msgstr ""
 
-#: ironic/drivers/modules/pxe.py:99
+#: ironic/drivers/modules/pxe.py:100
 msgid "UUID (from Glance) of the deployment kernel. Required."
 msgstr ""
 
-#: ironic/drivers/modules/pxe.py:101
+#: ironic/drivers/modules/pxe.py:102
 msgid "UUID (from Glance) of the ramdisk that is mounted at boot time. Required."
 msgstr ""
 
-#: ironic/drivers/modules/pxe.py:123
+#: ironic/drivers/modules/pxe.py:124
 msgid ""
 "Cannot validate PXE bootloader. Some parameters were missing in node's "
 "driver_info"
 msgstr ""
 
-#: ironic/drivers/modules/pxe.py:289
+#: ironic/drivers/modules/pxe.py:315
+#, python-format
+msgid ""
+"Local boot is requested, but can't be used with node %s because it's "
+"configured to use UEFI boot"
+msgstr ""
+
+#: ironic/drivers/modules/pxe.py:323
 msgid "iPXE boot is enabled but no HTTP URL or HTTP root was specified."
 msgstr ""
 
-#: ironic/drivers/modules/pxe.py:297
+#: ironic/drivers/modules/pxe.py:330
 #, python-format
 msgid ""
 "Conflict: iPXE is enabled, but cannot be used with node%(node_uuid)s "
