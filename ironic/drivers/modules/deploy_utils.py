@@ -240,8 +240,21 @@ def make_partitions(dev, root_mb, swap_mb, ephemeral_mb,
 
 def is_block_device(dev):
     """Check whether a device is block or not."""
-    s = os.stat(dev)
-    return stat.S_ISBLK(s.st_mode)
+    attempts = CONF.deploy.iscsi_verify_attempts
+    for attempt in range(attempts):
+        try:
+            s = os.stat(dev)
+        except OSError as e:
+            LOG.debug("Unable to stat device %(dev)s. Attempt %(attempt)d "
+                      "out of %(total)d. Error: %(err)s", {"dev": dev,
+                      "attempt": attempt + 1, "total": attempts, "err": e})
+            time.sleep(1)
+        else:
+            return stat.S_ISBLK(s.st_mode)
+    msg = _("Unable to stat device %(dev)s after attempting to verify "
+            "%(attempts)d times.") % {'dev': dev, 'attempts': attempts}
+    LOG.error(msg)
+    raise exception.InstanceDeployFailure(msg)
 
 
 def dd(src, dst):
