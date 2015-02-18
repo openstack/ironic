@@ -6,9 +6,9 @@
 #, fuzzy
 msgid ""
 msgstr ""
-"Project-Id-Version: ironic 2015.1.dev15\n"
+"Project-Id-Version: ironic 2015.1.dev31\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2015-02-13 06:14+0000\n"
+"POT-Creation-Date: 2015-02-18 06:15+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -79,12 +79,17 @@ msgid ""
 "option."
 msgstr ""
 
-#: ironic/conductor/manager.py:1503
+#: ironic/conductor/manager.py:1029
+#, python-format
+msgid "Failed to stop console while deleting the node %(node)s: %(err)s."
+msgstr ""
+
+#: ironic/conductor/manager.py:1510
 #, python-format
 msgid "Unexpected state %(state)s returned while deploying node %(node)s."
 msgstr ""
 
-#: ironic/conductor/manager.py:1630
+#: ironic/conductor/manager.py:1637
 #, python-format
 msgid ""
 "Failed to change power state of node %(node)s to '%(state)s'. Attempts "
@@ -116,68 +121,68 @@ msgstr ""
 msgid "No IP address assigned to Neutron port %s."
 msgstr ""
 
-#: ironic/drivers/base.py:406
+#: ironic/drivers/base.py:407
 #, python-format
 msgid "vendor_passthru failed with method %s"
 msgstr ""
 
-#: ironic/drivers/modules/agent.py:366
+#: ironic/drivers/modules/agent_base_vendor.py:168
 #, python-format
 msgid "Async exception for %(node)s: %(msg)s"
 msgstr ""
 
-#: ironic/drivers/modules/agent.py:536
+#: ironic/drivers/modules/agent_base_vendor.py:282
 #, python-format
 msgid "Could not find matching node for the provided MACs %s."
 msgstr ""
 
-#: ironic/drivers/modules/deploy_utils.py:353
+#: ironic/drivers/modules/deploy_utils.py:354
 #, python-format
 msgid ""
 "Failed to erase beginning of disk for node %(node)s. Command: "
 "%(command)s. Error: %(error)s."
 msgstr ""
 
-#: ironic/drivers/modules/deploy_utils.py:365
+#: ironic/drivers/modules/deploy_utils.py:366
 #, python-format
 msgid ""
 "Failed to get disk block count for node %(node)s. Command: %(command)s. "
 "Error: %(error)s."
 msgstr ""
 
-#: ironic/drivers/modules/deploy_utils.py:378
+#: ironic/drivers/modules/deploy_utils.py:379
 #, python-format
 msgid ""
 "Failed to erase the end of the disk on node %(node)s. Command: "
 "%(command)s. Error: %(error)s."
 msgstr ""
 
-#: ironic/drivers/modules/deploy_utils.py:529
+#: ironic/drivers/modules/deploy_utils.py:530
 msgid "Failed to detect root device UUID."
 msgstr ""
 
-#: ironic/drivers/modules/deploy_utils.py:571
-#: ironic/drivers/modules/deploy_utils.py:577
+#: ironic/drivers/modules/deploy_utils.py:572
+#: ironic/drivers/modules/deploy_utils.py:578
 #, python-format
 msgid "Deploy to address %s failed."
 msgstr ""
 
-#: ironic/drivers/modules/deploy_utils.py:572
+#: ironic/drivers/modules/deploy_utils.py:573
 #, python-format
 msgid "Command: %s"
 msgstr ""
 
-#: ironic/drivers/modules/deploy_utils.py:573
+#: ironic/drivers/modules/deploy_utils.py:574
 #, python-format
 msgid "StdOut: %r"
 msgstr ""
 
-#: ironic/drivers/modules/deploy_utils.py:574
+#: ironic/drivers/modules/deploy_utils.py:575
 #, python-format
 msgid "StdErr: %r"
 msgstr ""
 
-#: ironic/drivers/modules/deploy_utils.py:658
+#: ironic/drivers/modules/deploy_utils.py:659
 #, python-format
 msgid ""
 "Node %s failed to power off while handling deploy failure. This may be a "
@@ -228,13 +233,13 @@ msgstr ""
 msgid "Error returned from deploy ramdisk: %s"
 msgstr ""
 
-#: ironic/drivers/modules/iscsi_deploy.py:279 ironic/drivers/modules/pxe.py:481
+#: ironic/drivers/modules/iscsi_deploy.py:279 ironic/drivers/modules/pxe.py:515
 #: ironic/drivers/modules/ilo/deploy.py:525
 #, python-format
 msgid "Deploy failed for instance %(instance)s. Error: %(error)s"
 msgstr ""
 
-#: ironic/drivers/modules/pxe.py:295
+#: ironic/drivers/modules/pxe.py:328
 msgid "UEFI boot mode is not supported with iPXE boot enabled."
 msgstr ""
 
