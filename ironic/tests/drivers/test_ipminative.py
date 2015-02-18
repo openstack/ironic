@@ -148,30 +148,30 @@ class IPMINativePrivateMethodTestCase(db_base.DbTestCase):
         ipmicmd.get_sensor_data.return_value = readings
         expected = {
               'fake_type_A': {
-                'fake_name1': {
-                  'Health': '0',
-                  'Sensor ID': 'fake_name1',
-                  'Sensor Reading': 'fake_value1 fake_units',
-                  'States': '[]',
-                  'Units': 'fake_units'
-                },
-                'fake_name2': {
-                  'Health': '0',
-                  'Sensor ID': 'fake_name2',
-                  'Sensor Reading': 'fake_value2 fake_units',
-                  'States': '[]',
-                  'Units': 'fake_units'
-                }
+                  'fake_name1': {
+                      'Health': '0',
+                      'Sensor ID': 'fake_name1',
+                      'Sensor Reading': 'fake_value1 fake_units',
+                      'States': '[]',
+                      'Units': 'fake_units'
+                  },
+                  'fake_name2': {
+                      'Health': '0',
+                      'Sensor ID': 'fake_name2',
+                      'Sensor Reading': 'fake_value2 fake_units',
+                      'States': '[]',
+                      'Units': 'fake_units'
+                  }
               },
               'fake_type_B': {
-                'fake_name3': {
-                  'Health': '0',
-                  'Sensor ID': 'fake_name3',
-                  'Sensor Reading': 'fake_value3 fake_units',
-                  'States': '[]', 'Units': 'fake_units'
-                }
+                  'fake_name3': {
+                      'Health': '0',
+                      'Sensor ID': 'fake_name3',
+                      'Sensor Reading': 'fake_value3 fake_units',
+                      'States': '[]', 'Units': 'fake_units'
+                  }
               }
-            }
+        }
         ret = ipminative._get_sensors_data(self.info)
         self.assertEqual(expected, ret)
 
@@ -192,15 +192,15 @@ class IPMINativePrivateMethodTestCase(db_base.DbTestCase):
 
         expected = {
               'fake_type_A': {
-                'fake_name1': {
-                  'Health': '0',
-                  'Sensor ID': 'fake_name1',
-                  'Sensor Reading': 'fake_value1 fake_units',
-                  'States': '[]',
-                  'Units': 'fake_units'
-                }
+                  'fake_name1': {
+                      'Health': '0',
+                      'Sensor ID': 'fake_name1',
+                      'Sensor Reading': 'fake_value1 fake_units',
+                      'States': '[]',
+                      'Units': 'fake_units'
+                  }
               }
-            }
+        }
         ret = ipminative._get_sensors_data(self.info)
         self.assertEqual(expected, ret)
 

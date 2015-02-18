@@ -36,7 +36,7 @@ class DriverLoadTestCase(base.TestCase):
     def _fake_init_driver_err(self, *args, **kwargs):
         kwargs['on_load_failure_callback'](None, FakeEp,
                                            exception.DriverLoadError(
-                                           driver='aaa', reason='bbb'))
+                                               driver='aaa', reason='bbb'))
 
     def test_driver_load_error_if_driver_enabled(self):
         self.config(enabled_drivers=['fake'])
