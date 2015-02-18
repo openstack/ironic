@@ -550,7 +550,7 @@ The boot modes can be configured in Ironic in the following way:
     nova boot --flavor ironic-test-3 --image test-image instance-1
 
   If ``capabilities`` is used in ``extra_spec`` as above, Nova scheduler
-  (``ComputeCapabilitesFilter``) will match only Ironic nodes which have
+  (``ComputeCapabilitiesFilter``) will match only Ironic nodes which have
   the ``boot_mode`` set appropriately in ``properties/capabilities``. It will
   filter out rest of the nodes.
 
