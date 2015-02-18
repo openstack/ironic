@@ -356,12 +356,14 @@ DHCP and PXE Boot configuration. An example of this is shown in the
     [ml2_type_flat]
     flat_networks = physnet1
 
+    [ml2_type_vlan]
+    network_vlan_ranges = physnet1
+
     [securitygroup]
     firewall_driver = neutron.agent.linux.iptables_firewall.OVSHybridIptablesFirewallDriver
     enable_security_group = True
 
     [ovs]
-    network_vlan_ranges = physnet1
     bridge_mappings = physnet1:br-eth2
     # Replace eth2 with the interface on the neutron node which you
     # are using to connect to the bare metal server
