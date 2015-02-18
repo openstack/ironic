@@ -18,6 +18,7 @@ import base64
 import gzip
 import os
 import shutil
+import stat
 import tempfile
 
 import fixtures
@@ -637,6 +638,23 @@ class OtherFunctionTestCase(tests_base.TestCase):
         expected = '/dev/disk/by-path/ip-1.2.3.4:5678-iscsi-iqn.fake-lun-9'
         actual = utils.get_dev('1.2.3.4', 5678, 'iqn.fake', 9)
         self.assertEqual(expected, actual)
+
+    @mock.patch.object(os, 'stat')
+    @mock.patch.object(stat, 'S_ISBLK')
+    def test_is_block_device_works(self, mock_is_blk, mock_os):
+        device = '/dev/disk/by-path/ip-1.2.3.4:5678-iscsi-iqn.fake-lun-9'
+        mock_is_blk.return_value = True
+        mock_os().st_mode = 10000
+        self.assertTrue(utils.is_block_device(device))
+        mock_is_blk.assert_called_once_with(mock_os().st_mode)
+
+    @mock.patch.object(os, 'stat')
+    def test_is_block_device_raises(self, mock_os):
+        device = '/dev/disk/by-path/ip-1.2.3.4:5678-iscsi-iqn.fake-lun-9'
+        mock_os.side_effect = OSError
+        self.assertRaises(exception.InstanceDeployFailure,
+                          utils.is_block_device, device)
+        mock_os.assert_has_calls([mock.call(device)] * 3)
 
     @mock.patch.object(os.path, 'getsize')
     @mock.patch.object(images, 'converted_size')
