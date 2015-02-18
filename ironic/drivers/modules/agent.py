@@ -18,6 +18,7 @@ import time
 from oslo_config import cfg
 from oslo_utils import excutils
 
+from ironic.common import boot_devices
 from ironic.common import dhcp_factory
 from ironic.common import exception
 from ironic.common.glance_service import service_utils
@@ -51,6 +52,12 @@ agent_opts = [
     cfg.StrOpt('agent_pxe_bootfile_name',
                default='pxelinux.0',
                help='Neutron bootfile DHCP parameter.'),
+    cfg.IntOpt('agent_erase_devices_priority',
+               help='Priority to run in-band erase devices via the Ironic '
+                    'Python Agent ramdisk. If unset, will use the priority '
+                    'set in the ramdisk (defaults to 10 for the '
+                    'GenericHardwareManager). If set to 0, will not run '
+                    'during cleaning.')
     ]
 
 CONF = cfg.CONF
@@ -185,6 +192,40 @@ def build_instance_info_for_deploy(task):
     return instance_info
 
 
+def _prepare_pxe_boot(task):
+    """Prepare the files required for PXE booting the agent."""
+    pxe_info = _get_tftp_image_info(task.node)
+    pxe_options = _build_pxe_config_options(task.node, pxe_info)
+    pxe_utils.create_pxe_config(task,
+                                pxe_options,
+                                CONF.agent.agent_pxe_config_template)
+    _cache_tftp_images(task.context, task.node, pxe_info)
+
+
+def _do_pxe_boot(task, ports=None):
+    """Reboot the node into the PXE ramdisk.
+
+    :param ports: a list of Neutron port dicts to update DHCP options on. If
+        None, will get the list of ports from the Ironic port objects.
+    """
+    dhcp_opts = pxe_utils.dhcp_options_for_instance(task)
+    provider = dhcp_factory.DHCPFactory()
+    provider.update_dhcp(task, dhcp_opts, ports)
+    manager_utils.node_set_boot_device(task, boot_devices.PXE, persistent=True)
+    manager_utils.node_power_action(task, states.REBOOT)
+
+
+def _clean_up_pxe(task):
+    """Clean up left over PXE and DHCP files."""
+    pxe_info = _get_tftp_image_info(task.node)
+    for label in pxe_info:
+        path = pxe_info[label][1]
+        utils.unlink_without_raise(path)
+    AgentTFTPImageCache().clean_up()
+
+    pxe_utils.clean_up_pxe_config(task)
+
+
 class AgentDeploy(base.DeployInterface):
     """Interface for deploy-related actions."""
 
@@ -238,12 +279,7 @@ class AgentDeploy(base.DeployInterface):
         :param task: a TaskManager instance.
         :returns: status of the deploy. One of ironic.common.states.
         """
-        dhcp_opts = pxe_utils.dhcp_options_for_instance(task)
-        provider = dhcp_factory.DHCPFactory()
-        provider.update_dhcp(task, dhcp_opts)
-        manager_utils.node_set_boot_device(task, 'pxe', persistent=True)
-        manager_utils.node_power_action(task, states.REBOOT)
-
+        _do_pxe_boot(task)
         return states.DEPLOYWAIT
 
     @task_manager.require_exclusive_lock
@@ -262,12 +298,7 @@ class AgentDeploy(base.DeployInterface):
         :param task: a TaskManager instance.
         """
         node = task.node
-        pxe_info = _get_tftp_image_info(task.node)
-        pxe_options = _build_pxe_config_options(task.node, pxe_info)
-        pxe_utils.create_pxe_config(task,
-                                    pxe_options,
-                                    CONF.agent.agent_pxe_config_template)
-        _cache_tftp_images(task.context, node, pxe_info)
+        _prepare_pxe_boot(task)
 
         node.instance_info = build_instance_info_for_deploy(task)
         node.save()
@@ -288,13 +319,7 @@ class AgentDeploy(base.DeployInterface):
 
         :param task: a TaskManager instance.
         """
-        pxe_info = _get_tftp_image_info(task.node)
-        for label in pxe_info:
-            path = pxe_info[label][1]
-            utils.unlink_without_raise(path)
-        AgentTFTPImageCache().clean_up()
-
-        pxe_utils.clean_up_pxe_config(task)
+        _clean_up_pxe(task)
 
     def take_over(self, task):
         """Take over management of this node from a dead conductor.
@@ -314,6 +339,59 @@ class AgentDeploy(base.DeployInterface):
         :param task: a TaskManager instance.
         """
         pass
+
+    def get_clean_steps(self, task):
+        """Get the list of clean steps from the agent.
+
+        :param task: a TaskManager object containing the node
+
+        :returns: A list of clean step dictionaries
+        """
+        steps = deploy_utils.agent_get_clean_steps(task)
+        if CONF.agent.agent_erase_devices_priority:
+            for step in steps:
+                if (step.get('step') == 'erase_devices' and
+                        step.get('interface') == 'deploy'):
+                    # Override with operator set priority
+                    step['priority'] = CONF.agent.agent_erase_devices_priority
+        return steps
+
+    def execute_clean_step(self, task, step):
+        """Execute a clean step asynchronously on the agent.
+
+        :param task: a TaskManager object containing the node
+        :param step: a clean step dictionary to execute
+        :raises: NodeCleaningFailure if the agent does not return a command
+            status
+        :returns: states.CLEANING to signify the step will be completed async
+        """
+        return deploy_utils.agent_execute_clean_step(task, step)
+
+    def prepare_cleaning(self, task):
+        """Boot into the agent to prepare for cleaning."""
+        provider = dhcp_factory.DHCPFactory()
+        # If we have left over ports from a previous cleaning, remove them
+        if getattr(provider.provider, 'delete_cleaning_ports', None):
+            provider.provider.delete_cleaning_ports(task)
+
+        # Create cleaning ports if necessary
+        ports = None
+        if getattr(provider.provider, 'create_cleaning_ports', None):
+            ports = provider.provider.create_cleaning_ports(task)
+        _prepare_pxe_boot(task)
+        _do_pxe_boot(task, ports)
+        # Tell the conductor we are waiting for the agent to boot.
+        return states.CLEANING
+
+    def tear_down_cleaning(self, task):
+        """Clean up the PXE and DHCP files after cleaning."""
+        manager_utils.node_power_action(task, states.POWER_OFF)
+        _clean_up_pxe(task)
+
+        # If we created cleaning ports, delete them
+        provider = dhcp_factory.DHCPFactory()
+        if getattr(provider.provider, 'delete_cleaning_ports', None):
+            provider.provider.delete_cleaning_ports(task)
 
 
 class AgentVendorInterface(agent_base_vendor.BaseAgentVendor):

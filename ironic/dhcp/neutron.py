@@ -27,6 +27,7 @@ from ironic.common.i18n import _LE
 from ironic.common.i18n import _LW
 from ironic.common import keystone
 from ironic.common import network
+from ironic.conductor import manager
 from ironic.dhcp import base
 from ironic.drivers.modules import ssh
 from ironic.openstack.common import log as logging
@@ -48,7 +49,11 @@ neutron_opts = [
                     'to neutron. Can be either "keystone" or "noauth". '
                     'Running neutron in noauth mode (related to but not '
                     'affected by this setting) is insecure and should only be '
-                    'used for testing.')
+                    'used for testing.'),
+    cfg.StrOpt('cleaning_network_uuid',
+               help='UUID of the network to create Neutron ports on when '
+                    'booting to a ramdisk for cleaning/zapping using Neutron '
+                    'DHCP')
     ]
 
 CONF = cfg.CONF
@@ -140,11 +145,11 @@ class NeutronDHCPApi(base.BaseDHCP):
                               "port %s."), port_id)
             raise exception.FailedToUpdateMacOnPort(port_id=port_id)
 
-    def update_dhcp_opts(self, task, options):
+    def update_dhcp_opts(self, task, options, vifs=None):
         """Send or update the DHCP BOOT options for this node.
 
         :param task: A TaskManager instance.
-        :param dhcp_opts: this will be a list of dicts, e.g.
+        :param options: this will be a list of dicts, e.g.
 
                           ::
 
@@ -154,8 +159,14 @@ class NeutronDHCPApi(base.BaseDHCP):
                              'opt_value': '123.123.123.456'},
                             {'opt_name': 'tftp-server',
                              'opt_value': '123.123.123.123'}]
+        :param vifs: a dict of Neutron port dicts to update DHCP options on.
+            The keys should be Ironic port UUIDs, and the values should be
+            Neutron port UUIDs
+            If the value is None, will get the list of ports from the Ironic
+            port objects.
         """
-        vifs = network.get_node_vif_ids(task)
+        if vifs is None:
+            vifs = network.get_node_vif_ids(task)
         if not vifs:
             raise exception.FailedToUpdateDHCPOptOnPort(
                 _("No VIFs found for node %(node)s when attempting "
@@ -275,3 +286,85 @@ class NeutronDHCPApi(base.BaseDHCP):
                          {'node': task.node.uuid, 'ports': failures})
 
         return ip_addresses
+
+    def create_cleaning_ports(self, task):
+        """Create neutron ports for each port on task.node to boot the ramdisk.
+
+        :param task: a TaskManager instance.
+        :raises: InvalidParameterValue if the cleaning network is None
+        :returns: a dictionary in the form {port.uuid: neutron_port['id']}
+        """
+        if not CONF.neutron.cleaning_network_uuid:
+            raise exception.InvalidParameterValue(_('Valid cleaning network '
+                                                    'UUID not provided'))
+        neutron_client = _build_client(task.context.auth_token)
+        body = {
+            'port': {
+                'network_id': CONF.neutron.cleaning_network_uuid,
+                'admin_state_up': True,
+            }
+        }
+        ports = {}
+        for ironic_port in task.ports:
+            body['port']['mac_address'] = ironic_port.address
+            try:
+                port = neutron_client.create_port(body)
+            except neutron_client_exc.ConnectionFailed as e:
+                msg = (_('Could not create cleaning port on network %(net)s '
+                         'from %(node)s. %(exc)s') %
+                       {'net': CONF.neutron.cleaning_network_uuid,
+                        'node': task.node.uuid,
+                        'exc': e})
+                LOG.exception(msg)
+                return manager.cleaning_error_handler(task, msg)
+            if not port.get('port') or not port['port'].get('id'):
+                # Rollback changes
+                try:
+                    self.delete_cleaning_ports(task)
+                except Exception:
+                    # Log the error, but continue to cleaning error handler
+                    LOG.exception(_LE('Failed to rollback cleaning port '
+                                      'changes for node %s') % task.node.uuid)
+                msg = (_('Failed to create cleaning ports for node '
+                         '%(node)s') % task.node.uuid)
+                LOG.error(msg)
+                return manager.cleaning_error_handler(task, msg)
+            # Match return value of get_node_vif_ids()
+            ports[ironic_port.uuid] = port['port']['id']
+        return ports
+
+    def delete_cleaning_ports(self, task):
+        """Deletes the neutron port created for booting the ramdisk.
+
+        :param task: a TaskManager instance.
+        """
+        neutron_client = _build_client(task.context.auth_token)
+        macs = [p.address for p in task.ports]
+        params = {
+            'network_id': CONF.neutron.cleaning_network_uuid
+        }
+        try:
+            ports = neutron_client.list_ports(**params)
+        except neutron_client_exc.ConnectionFailed as e:
+            msg = (_('Could not get cleaning network vif for %(node)s '
+                     'from Neutron, possible network issue. %(exc)s') %
+                   {'node': task.node.uuid,
+                    'exc': e})
+            LOG.exception(msg)
+            return manager.cleaning_error_handler(task, msg)
+
+        # Iterate the list of Neutron port dicts, remove the ones we added
+        for neutron_port in ports.get('ports', []):
+            # Only delete ports using the node's mac addresses
+            if neutron_port.get('mac_address') in macs:
+                try:
+                    neutron_client.delete_port(neutron_port.get('id'))
+                except neutron_client_exc.ConnectionFailed as e:
+                    msg = (_('Could not remove cleaning ports on network '
+                             '%(net)s from %(node)s, possible network issue. '
+                             '%(exc)s') %
+                           {'net': CONF.neutron.cleaning_network_uuid,
+                            'node': task.node.uuid,
+                            'exc': e})
+                    LOG.exception(msg)
+                    return manager.cleaning_error_handler(task, msg)

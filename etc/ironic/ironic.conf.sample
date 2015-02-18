@@ -351,6 +351,11 @@
 # Neutron bootfile DHCP parameter. (string value)
 #agent_pxe_bootfile_name=pxelinux.0
 
+# Priority to run in-band erase devices via the Ironic Python
+# Agent ramdisk. If unset, will use the priority set in the
+# ramdisk (defaults to 10 for the GenericHardwareManager). If
+# set to 0, will not run during cleaning. (integer value)
+#agent_erase_devices_priority=<None>
 
 #
 # Options defined in ironic.drivers.modules.agent_base_vendor
@@ -1121,6 +1126,11 @@
 # setting) is insecure and should only be used for testing.
 # (string value)
 #auth_strategy=keystone
+
+# UUID of the network to create Neutron ports on when booting
+# to a ramdisk for cleaning/zapping using Neutron DHCP (string
+# value)
+#cleaning_network_uuid=<None>
 
 
 [oslo_messaging_amqp]

@@ -140,6 +140,8 @@ class TestAgentDeploy(db_base.DbTestCase):
             'driver_internal_info': DRIVER_INTERNAL_INFO,
         }
         self.node = object_utils.create_test_node(self.context, **n)
+        self.ports = [object_utils.create_test_port(self.context,
+                                                    node_id=self.node.id)]
 
     def test_get_properties(self):
         expected = agent.COMMON_PROPERTIES
@@ -197,7 +199,7 @@ class TestAgentDeploy(db_base.DbTestCase):
             dhcp_opts = pxe_utils.dhcp_options_for_instance(task)
             driver_return = self.driver.deploy(task)
             self.assertEqual(driver_return, states.DEPLOYWAIT)
-            dhcp_mock.assert_called_once_with(task, dhcp_opts)
+            dhcp_mock.assert_called_once_with(task, dhcp_opts, None)
             bootdev_mock.assert_called_once_with(task, 'pxe', persistent=True)
             power_mock.assert_called_once_with(task,
                                                states.REBOOT)
@@ -209,6 +211,59 @@ class TestAgentDeploy(db_base.DbTestCase):
             driver_return = self.driver.tear_down(task)
             power_mock.assert_called_once_with(task, states.POWER_OFF)
             self.assertEqual(driver_return, states.DELETED)
+
+    @mock.patch('ironic.dhcp.neutron.NeutronDHCPApi.delete_cleaning_ports')
+    @mock.patch('ironic.dhcp.neutron.NeutronDHCPApi.create_cleaning_ports')
+    @mock.patch('ironic.drivers.modules.agent._do_pxe_boot')
+    @mock.patch('ironic.drivers.modules.agent._prepare_pxe_boot')
+    def test_prepare_cleaning(self, prepare_mock, boot_mock, create_mock,
+                              delete_mock):
+        ports = [{'ports': self.ports}]
+        create_mock.return_value = ports
+        with task_manager.acquire(
+                self.context, self.node['uuid'], shared=False) as task:
+            self.assertEqual(states.CLEANING,
+                             self.driver.prepare_cleaning(task))
+            prepare_mock.assert_called_once_with(task)
+            boot_mock.assert_called_once_with(task, ports)
+            create_mock.assert_called_once()
+            delete_mock.assert_called_once()
+
+    @mock.patch('ironic.dhcp.neutron.NeutronDHCPApi.delete_cleaning_ports')
+    @mock.patch('ironic.drivers.modules.agent._clean_up_pxe')
+    @mock.patch('ironic.conductor.utils.node_power_action')
+    def test_tear_down_cleaning(self, power_mock, cleanup_mock, neutron_mock):
+        with task_manager.acquire(
+                self.context, self.node['uuid'], shared=False) as task:
+            self.assertIsNone(self.driver.tear_down_cleaning(task))
+            power_mock.assert_called_once_with(task, states.POWER_OFF)
+            cleanup_mock.assert_called_once_with(task)
+            neutron_mock.assert_called_once()
+
+    @mock.patch('ironic.drivers.modules.deploy_utils.agent_get_clean_steps')
+    def test_get_clean_steps(self, mock_get_clean_steps):
+        # Test getting clean steps
+        mock_steps = [{'priority': 10, 'interface': 'deploy',
+                       'step': 'erase_devices'}]
+        mock_get_clean_steps.return_value = mock_steps
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            steps = self.driver.get_clean_steps(task)
+            mock_get_clean_steps.assert_called_once_with(task)
+        self.assertEqual(mock_steps, steps)
+
+    @mock.patch('ironic.drivers.modules.deploy_utils.agent_get_clean_steps')
+    def test_get_clean_steps_config_priority(self, mock_get_clean_steps):
+        # Test that we can override the priority of get clean steps
+        self.config(agent_erase_devices_priority=20, group='agent')
+        mock_steps = [{'priority': 10, 'interface': 'deploy',
+                       'step': 'erase_devices'}]
+        expected_steps = [{'priority': 20, 'interface': 'deploy',
+                           'step': 'erase_devices'}]
+        mock_get_clean_steps.return_value = mock_steps
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            steps = self.driver.get_clean_steps(task)
+            mock_get_clean_steps.assert_called_once_with(task)
+        self.assertEqual(expected_steps, steps)
 
 
 class TestAgentVendor(db_base.DbTestCase):

@@ -30,6 +30,8 @@ from ironic.common.i18n import _LI
 from ironic.common.i18n import _LW
 from ironic.common import states
 from ironic.common import utils
+from ironic.conductor import manager
+from ironic.conductor import rpcapi
 from ironic.conductor import utils as manager_utils
 from ironic.drivers import base
 from ironic.drivers.modules import agent_client
@@ -126,6 +128,67 @@ class BaseAgentVendor(base.VendorInterface):
                                                     'payload version: %s')
                                                     % version)
 
+    def _notify_conductor_resume_clean(self, task):
+        uuid = task.node.uuid
+        rpc = rpcapi.ConductorAPI()
+        topic = rpc.get_topic_for(task.node)
+        # Need to release the lock to let the conductor take it
+        task.release_resources()
+        rpc.continue_node_clean(task.context, uuid, topic=topic)
+
+    def continue_cleaning(self, task, **kwargs):
+        """Start the next cleaning step if the previous one is complete.
+
+        In order to avoid errors and make agent upgrades painless, cleaning
+        will check the version of all hardware managers during get_clean_steps
+        at the beginning of cleaning and before executing each step in the
+        agent. If the version has changed between steps, the agent is unable
+        to tell if an ordering change will cause a cleaning issue. Therefore,
+        we restart cleaning.
+        """
+        command = self._get_completed_cleaning_command(task)
+        LOG.debug('Cleaning command status for node %(node)s on step %(step)s '
+                  '(command)%', {'node': task.node.uuid,
+                                 'step': task.node.clean_step,
+                                 'command': command})
+
+        if not command:
+            # Command is not done yet
+            return
+
+        if command.get('command_status') == 'FAILED':
+            msg = (_('Agent returned error for clean step %(step)s on node '
+                     '%(node)s : %(err)s.') %
+                   {'node': task.node.uuid,
+                    'err': command.get('command_error'),
+                    'step': task.node.clean_step})
+            LOG.error(msg)
+            manager.cleaning_error_handler(task, msg)
+        elif command.get('command_status') == 'CLEAN_VERSION_MISMATCH':
+            # Restart cleaning, agent must have rebooted to new version
+            try:
+                manager.set_node_cleaning_steps(task)
+            except exception.NodeCleaningFailure:
+                msg = (_('Could not restart cleaning on node %(node)s: '
+                         '%(err)s.') %
+                       {'node': task.node.uuid,
+                        'err': command.get('command_error'),
+                        'step': task.node.clean_step})
+                LOG.exception(msg)
+                manager.cleaning_error_handler(task, msg)
+            self._notify_conductor_resume_clean(task)
+
+        elif command.get('command_status') == 'SUCCEEDED':
+            self._notify_conductor_resume_clean(task)
+        else:
+            msg = (_('Agent returned unknown status for clean step %(step)s '
+                     'on node %(node)s : %(err)s.') %
+                   {'node': task.node.uuid,
+                    'err': command.get('command_status'),
+                    'step': task.node.clean_step})
+            LOG.error(msg)
+            manager.cleaning_error_handler(task, msg)
+
     @base.passthru(['POST'])
     def heartbeat(self, task, **kwargs):
         """Method for agent to periodically check in.
@@ -167,6 +230,15 @@ class BaseAgentVendor(base.VendorInterface):
                   self.deploy_is_done(task)):
                 msg = _('Node failed to move to active state.')
                 self.reboot_to_instance(task, **kwargs)
+            elif (node.provision_state == states.CLEANING and
+                  not node.clean_step):
+                # Agent booted from prepare_cleaning
+                manager.set_node_cleaning_steps(task)
+                self._notify_conductor_resume_clean(task)
+            elif (node.provision_state == states.CLEANING and
+                  node.clean_step):
+                self.continue_cleaning(task, **kwargs)
+
         except Exception as e:
             err_info = {'node': node.uuid, 'msg': msg, 'e': e}
             last_error = _('Asynchronous exception for node %(node)s: '
@@ -227,6 +299,19 @@ class BaseAgentVendor(base.VendorInterface):
             'heartbeat_timeout': CONF.agent.heartbeat_timeout,
             'node': node
         }
+
+    def _get_completed_cleaning_command(self, task):
+        """Returns None or a completed cleaning command from the agent."""
+        commands = self._client.get_commands_status(task.node)
+        if not commands:
+            return
+
+        last_command = commands[-1]
+
+        if last_command['command_status'] == 'RUNNING':
+            return
+        else:
+            return last_command
 
     def _get_interfaces(self, inventory):
         interfaces = []
