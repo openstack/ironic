@@ -167,6 +167,7 @@ class Node(Base):
     driver = Column(String(15))
     driver_info = Column(JSONEncodedDict)
     driver_internal_info = Column(JSONEncodedDict)
+    clean_step = Column(JSONEncodedDict)
 
     # NOTE(deva): this is the host name of the conductor which has
     #             acquired a TaskManager lock on the node.

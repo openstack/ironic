@@ -651,7 +651,7 @@ class Node(base.APIBase):
                      provision_updated_at=time, instance_info={},
                      maintenance=False, maintenance_reason=None,
                      inspection_finished_at=None, inspection_started_at=time,
-                     console_enabled=False)
+                     console_enabled=False, clean_step='')
         # NOTE(matty_dubs): The chassis_uuid getter() is based on the
         # _chassis_uuid variable:
         sample._chassis_uuid = 'edcad704-b2da-41d5-96d9-afd580ecfa12'

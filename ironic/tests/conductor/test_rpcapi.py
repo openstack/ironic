@@ -288,3 +288,9 @@ class RPCAPITestCase(base.DbTestCase):
                           'call',
                           version='1.24',
                           node_id=self.fake_node['uuid'])
+
+    def test_continue_node_clean(self):
+        self._test_rpcapi('continue_node_clean',
+                          'call',
+                          version='1.26',
+                          node_id=self.fake_node['uuid'])

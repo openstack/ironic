@@ -367,6 +367,13 @@ class MigrationCheckersMixin(object):
         self.assertIsInstance(nodes.c.driver_internal_info.type,
                               sqlalchemy.types.TEXT)
 
+    def _check_4f399b21ae71(self, engine, data):
+        nodes = db_utils.get_table(engine, 'nodes')
+        col_names = [column.name for column in nodes.c]
+        self.assertIn('clean_step', col_names)
+        self.assertIsInstance(nodes.c.clean_step.type,
+                              sqlalchemy.types.String)
+
     def test_upgrade_and_version(self):
         with patch_with_engine(self.engine):
             self.migration_api.upgrade('head')
