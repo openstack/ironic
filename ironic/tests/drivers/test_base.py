@@ -29,6 +29,10 @@ class FakeVendorInterface(driver_base.VendorInterface):
     def noexception(self):
         return "Fake"
 
+    @driver_base.driver_passthru(['POST'])
+    def driver_noexception(self):
+        return "Fake"
+
     @driver_base.passthru(['POST'])
     def ironicexception(self):
         raise exception.IronicException("Fake!")
@@ -66,6 +70,15 @@ class PassthruDecoratorTestCase(base.TestCase):
             self.fvi.normalexception, mock.ANY)
         driver_base.LOG.exception.assert_called_with(
             mock.ANY, 'normalexception')
+
+    def test_passthru_check_func_references(self):
+        inst1 = FakeVendorInterface()
+        inst2 = FakeVendorInterface()
+
+        self.assertNotEqual(inst1.vendor_routes['noexception']['func'],
+                            inst2.vendor_routes['noexception']['func'])
+        self.assertNotEqual(inst1.driver_routes['driver_noexception']['func'],
+                            inst2.driver_routes['driver_noexception']['func'])
 
 
 @mock.patch.object(eventlet.greenthread, 'spawn_n',
