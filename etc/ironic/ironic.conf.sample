@@ -191,7 +191,7 @@
 #
 
 # IP address of this host. (string value)
-#my_ip=192.168.122.1
+#my_ip=10.0.0.1
 
 
 #
@@ -457,10 +457,6 @@
 # to be searched. (multi valued)
 #policy_dirs=policy.d
 
-[keystone]
-
-#The region used for getting endpoints of OpenStack services.
-#region_name =
 
 [agent]
 
@@ -477,6 +473,11 @@
 
 # Neutron bootfile DHCP parameter. (string value)
 #agent_pxe_bootfile_name=pxelinux.0
+
+
+#
+# Options defined in ironic.drivers.modules.agent_base_vendor
+#
 
 # Maximum interval (in seconds) for agent heartbeats. (integer
 # value)
@@ -498,7 +499,7 @@
 # Options defined in ironic.drivers.modules.amt.common
 #
 
-# protocol used for AMT endpoint, support http/https (string
+# Protocol used for AMT endpoint, support http/https (string
 # value)
 #protocol=http
 
@@ -924,8 +925,12 @@
 # Options defined in ironic.drivers.modules.ipminative
 #
 
-# Maximum time in seconds to retry IPMI operations. (integer
-# value)
+# Maximum time in seconds to retry IPMI operations. There is a
+# tradeoff when setting this value. Setting this too low may
+# cause older BMCs to crash and require a hard reset. However,
+# setting too high can cause the sync power state periodic
+# task to hang when there are slow or unresponsive BMCs.
+# (integer value)
 #retry_timeout=60
 
 # Minimum time, in seconds, between IPMI operations sent to a
@@ -951,6 +956,17 @@
 
 # Timeout (in seconds) for iRMC operations (integer value)
 #client_timeout=60
+
+
+[keystone]
+
+#
+# Options defined in ironic.common.keystone
+#
+
+# The region used for getting endpoints of OpenStackservices.
+# (string value)
+#region_name=<None>
 
 
 [keystone_authtoken]
