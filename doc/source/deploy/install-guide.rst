@@ -778,6 +778,12 @@ controller in your bare metal server by using ``ipmitool``::
      checked by just pinging the IPMI controller IP from the conductor
      node.
 
+.. note::
+   If there are slow or unresponsive BMCs in the environment, the retry_timeout
+   configuration option in the [ipmi] section may need to be lowered. The
+   default is fairly conservative, as setting this timeout too low can cause
+   older BMCs to crash and require a hard-reset.
+
 Ironic supports sending IPMI sensor data to Ceilometer with pxe_ipmitool,
 pxe_ipminative, agent_ipmitool, agent_pyghmi, agent_ilo, iscsi_ilo and pxe_ilo
 drivers. By default, support for sending IPMI sensor data to Ceilometer is
