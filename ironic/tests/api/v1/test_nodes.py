@@ -19,8 +19,8 @@ import datetime
 import json
 
 import mock
-from oslo.utils import timeutils
 from oslo_config import cfg
+from oslo_utils import timeutils
 import pecan
 from six.moves.urllib import parse as urlparse
 from testtools.matchers import HasLength

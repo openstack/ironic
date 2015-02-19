@@ -15,7 +15,7 @@
 """Ironic test utilities."""
 
 
-from oslo.utils import timeutils
+from oslo_utils import timeutils
 
 from ironic.common import states
 from ironic.db import api as db_api

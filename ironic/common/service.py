@@ -20,8 +20,8 @@ import signal
 import socket
 
 from oslo import messaging
-from oslo.utils import importutils
 from oslo_config import cfg
+from oslo_utils import importutils
 
 from ironic.common import config
 from ironic.common.i18n import _LE

@@ -19,8 +19,8 @@
 DRAC Management Driver
 """
 
-from oslo.utils import excutils
-from oslo.utils import importutils
+from oslo_utils import excutils
+from oslo_utils import importutils
 
 from ironic.common import boot_devices
 from ironic.common import exception

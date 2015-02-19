@@ -16,8 +16,8 @@ Common functionalities for AMT Driver
 """
 from xml.etree import ElementTree
 
-from oslo.utils import importutils
 from oslo_config import cfg
+from oslo_utils import importutils
 import six
 
 from ironic.common import boot_devices

@@ -15,7 +15,7 @@
 Common functionalities shared between different DRAC modules.
 """
 
-from oslo.utils import importutils
+from oslo_utils import importutils
 
 from ironic.common import exception
 from ironic.common.i18n import _

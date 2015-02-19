@@ -15,8 +15,8 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-from oslo.utils import netutils
 from oslo_config import cfg
+from oslo_utils import netutils
 
 CONF = cfg.CONF
 

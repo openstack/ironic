@@ -24,9 +24,9 @@ import subprocess
 import tempfile
 import time
 
-from oslo.utils import netutils
 from oslo_concurrency import processutils
 from oslo_config import cfg
+from oslo_utils import netutils
 
 from ironic.common import exception
 from ironic.common.i18n import _

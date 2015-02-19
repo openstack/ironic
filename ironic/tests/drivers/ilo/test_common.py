@@ -18,8 +18,8 @@
 import tempfile
 
 import mock
-from oslo.utils import importutils
 from oslo_config import cfg
+from oslo_utils import importutils
 
 from ironic.common import exception
 from ironic.common import images

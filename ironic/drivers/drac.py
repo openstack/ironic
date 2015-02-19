@@ -14,7 +14,7 @@
 DRAC Driver for remote system management using Dell Remote Access Card.
 """
 
-from oslo.utils import importutils
+from oslo_utils import importutils
 
 from ironic.common import exception
 from ironic.common.i18n import _

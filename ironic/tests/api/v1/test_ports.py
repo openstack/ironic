@@ -18,8 +18,8 @@ Tests for the API /ports/ methods.
 import datetime
 
 import mock
-from oslo.utils import timeutils
 from oslo_config import cfg
+from oslo_utils import timeutils
 from six.moves.urllib import parse as urlparse
 from testtools.matchers import HasLength
 from wsme import types as wtypes

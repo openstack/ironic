@@ -18,7 +18,7 @@ import gettext
 
 import iso8601
 import netaddr
-from oslo.utils import timeutils
+from oslo_utils import timeutils
 import six
 
 from ironic.common import exception

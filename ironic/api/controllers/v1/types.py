@@ -17,7 +17,7 @@
 
 import json
 
-from oslo.utils import strutils
+from oslo_utils import strutils
 import six
 import wsme
 from wsme import types as wtypes

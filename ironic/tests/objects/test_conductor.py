@@ -17,7 +17,7 @@
 import datetime
 
 import mock
-from oslo.utils import timeutils
+from oslo_utils import timeutils
 
 from ironic import objects
 from ironic.objects import utils as obj_utils

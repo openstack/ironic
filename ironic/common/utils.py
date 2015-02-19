@@ -29,9 +29,9 @@ import tempfile
 import uuid
 
 import netaddr
-from oslo.utils import excutils
 from oslo_concurrency import processutils
 from oslo_config import cfg
+from oslo_utils import excutils
 import paramiko
 import six
 

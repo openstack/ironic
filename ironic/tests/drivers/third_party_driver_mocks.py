@@ -32,7 +32,7 @@ Current list of mocked libraries:
 import sys
 
 import mock
-from oslo.utils import importutils
+from oslo_utils import importutils
 
 from ironic.drivers.modules import ipmitool
 
