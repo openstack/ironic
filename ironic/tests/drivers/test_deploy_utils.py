@@ -633,6 +633,7 @@ class SwitchPxeConfigTestCase(tests_base.TestCase):
         self.assertEqual(_UEFI_PXECONF_BOOT, pxeconf)
 
 
+@mock.patch('time.sleep', lambda sec: None)
 class OtherFunctionTestCase(tests_base.TestCase):
     def test_get_dev(self):
         expected = '/dev/disk/by-path/ip-1.2.3.4:5678-iscsi-iqn.fake-lun-9'
