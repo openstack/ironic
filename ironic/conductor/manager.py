@@ -270,17 +270,23 @@ class ConductorManager(periodic_task.PeriodicTasks):
             if getattr(method, '_periodic_enabled', False):
                 self.add_periodic_task(method)
 
-    def del_host(self):
+    def del_host(self, deregister=True):
         self._keepalive_evt.set()
-        try:
-            # Inform the cluster that this conductor is shutting down.
-            # Note that rebalancing won't begin until after heartbeat timeout.
-            self.dbapi.unregister_conductor(self.host)
-            LOG.info(_LI('Successfully stopped conductor with hostname '
+        if deregister:
+            try:
+                # Inform the cluster that this conductor is shutting down.
+                # Note that rebalancing will not occur immediately, but when
+                # the periodic sync takes place.
+                self.dbapi.unregister_conductor(self.host)
+                LOG.info(_LI('Successfully stopped conductor with hostname '
+                             '%(hostname)s.'),
+                         {'hostname': self.host})
+            except exception.ConductorNotFound:
+                pass
+        else:
+            LOG.info(_LI('Not deregistering conductor with hostname '
                          '%(hostname)s.'),
                      {'hostname': self.host})
-        except exception.ConductorNotFound:
-            pass
         # Waiting here to give workers the chance to finish. This has the
         # benefit of releasing locks workers placed on nodes, as well as
         # having work complete normally.
