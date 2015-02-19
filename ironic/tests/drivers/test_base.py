@@ -111,3 +111,66 @@ class DriverPeriodicTaskTestCase(base.TestCase):
         function()
         function_mock.assert_called_once_with()
         self.assertEqual(1, spawn_mock.call_count)
+
+
+class CleanStepTestCase(base.TestCase):
+    def test_get_and_execute_clean_steps(self):
+        # Create a fake Driver class, create some clean steps, make sure
+        # they are listed correctly, and attempt to execute one of them
+
+        method_mock = mock.Mock()
+        task_mock = mock.Mock()
+
+        class TestClass(driver_base.BaseInterface):
+            interface_type = 'test'
+
+            @driver_base.clean_step(priority=0)
+            def zap_method(self, task):
+                pass
+
+            @driver_base.clean_step(priority=10)
+            def clean_method(self, task):
+                method_mock(task)
+
+            def not_clean_method(self, task):
+                pass
+
+        class TestClass2(driver_base.BaseInterface):
+            interface_type = 'test2'
+
+            @driver_base.clean_step(priority=0)
+            def zap_method2(self, task):
+                pass
+
+            @driver_base.clean_step(priority=20)
+            def clean_method2(self, task):
+                method_mock(task)
+
+            def not_clean_method2(self, task):
+                pass
+
+        obj = TestClass()
+        obj2 = TestClass2()
+
+        self.assertEqual(2, len(obj.get_clean_steps()))
+        # Ensure the steps look correct
+        self.assertEqual(10, obj.get_clean_steps()[0]['priority'])
+        self.assertEqual('test', obj.get_clean_steps()[0]['interface'])
+        self.assertEqual('clean_method', obj.get_clean_steps()[0]['step'])
+        self.assertEqual(0, obj.get_clean_steps()[1]['priority'])
+        self.assertEqual('test', obj.get_clean_steps()[1]['interface'])
+        self.assertEqual('zap_method', obj.get_clean_steps()[1]['step'])
+
+        # Ensure the second obj get different clean steps
+        self.assertEqual(2, len(obj2.get_clean_steps()))
+        # Ensure the steps look correct
+        self.assertEqual(20, obj2.get_clean_steps()[0]['priority'])
+        self.assertEqual('test2', obj2.get_clean_steps()[0]['interface'])
+        self.assertEqual('clean_method2', obj2.get_clean_steps()[0]['step'])
+        self.assertEqual(0, obj2.get_clean_steps()[1]['priority'])
+        self.assertEqual('test2', obj2.get_clean_steps()[1]['interface'])
+        self.assertEqual('zap_method2', obj2.get_clean_steps()[1]['step'])
+
+        # Ensure we can execute the function.
+        obj.execute_clean_step(task_mock, obj.get_clean_steps()[0])
+        method_mock.assert_called_once_with(task_mock)

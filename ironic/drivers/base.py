@@ -123,9 +123,55 @@ class BaseDriver(object):
         return properties
 
 
+class BaseInterface(object):
+    """A base interface implementing common functions for Driver Interfaces."""
+    interface_type = 'base'
+
+    def __new__(cls, *args, **kwargs):
+        # Cache the clean step iteration. We use __new__ instead of __init___
+        # to avoid breaking backwards compatibility with all the drivers.
+        # We want to return all steps, regardless of priority.
+        instance = super(BaseInterface, cls).__new__(cls, *args, **kwargs)
+        instance.clean_steps = []
+        for n, method in inspect.getmembers(instance, inspect.ismethod):
+            if getattr(method, '_is_clean_step', False):
+                # Create a CleanStep to represent this method
+                step = {'step': method.__name__,
+                        'priority': method._clean_step_priority,
+                        'interface': instance.interface_type}
+                instance.clean_steps.append(step)
+        LOG.debug('Found clean steps %(steps)s for interface %(interface)s' %
+                  {'steps': instance.clean_steps,
+                   'interface': instance.interface_type})
+        return instance
+
+    def get_clean_steps(self):
+        """Get a list of enabled and disabled CleanSteps for the interface."""
+        return self.clean_steps
+
+    def execute_clean_step(self, task, step):
+        """Execute a the clean step on task.node.
+
+        Clean steps should take a single argument: a TaskManager object.
+        Steps can be executed synchronously or asynchronously. Steps should
+        return None if the method has completed synchronously or
+        states.CLEANING if the step will continue to execute asynchronously.
+        If the step executes asynchronously, it should issue a call to the
+        'continue_node_clean' RPC, so the conductor can begin the next
+        clean step.
+
+        :param task: A TaskManager object
+        :param step: A CleanStep object to execute
+        :returns: states.CLEANING if the method is complete, or None if
+            the step will continue to execute asynchronously.
+        """
+        return getattr(self, step.get('step'))(task)
+
+
 @six.add_metaclass(abc.ABCMeta)
-class DeployInterface(object):
+class DeployInterface(BaseInterface):
     """Interface for deploy-related actions."""
+    interface_type = 'deploy'
 
     @abc.abstractmethod
     def get_properties(self):
@@ -228,8 +274,9 @@ class DeployInterface(object):
 
 
 @six.add_metaclass(abc.ABCMeta)
-class PowerInterface(object):
+class PowerInterface(BaseInterface):
     """Interface for power-related actions."""
+    interface_type = 'power'
 
     @abc.abstractmethod
     def get_properties(self):
@@ -510,8 +557,9 @@ class VendorInterface(object):
 
 
 @six.add_metaclass(abc.ABCMeta)
-class ManagementInterface(object):
+class ManagementInterface(BaseInterface):
     """Interface for management related actions."""
+    interface_type = 'management'
 
     @abc.abstractmethod
     def get_properties(self):
@@ -653,6 +701,48 @@ class InspectInterface(object):
         :returns: resulting state of the inspection i.e. states.MANAGEABLE
                   or None.
         """
+
+
+def clean_step(priority):
+    """Decorator for cleaning and zapping steps.
+
+    If priority is greater than 0, the function will be executed as part of the
+    CLEANING state for any node using the interface with the decorated clean
+    step. During CLEANING, a list of steps will be ordered by priority for all
+    interfaces associated with the node, and then execute_clean_step() will be
+    called on each step. Steps will be executed based on priority, with the
+    highest priority step being called first, the next highest priority
+    being call next, and so on.
+
+    Decorated clean steps should take a single argument, a TaskManager object.
+
+    Any step with this decorator will be available for ZAPPING, even if
+    priority is set to 0. Zapping steps will be executed in a similar fashion
+    to cleaning and with the same TaskManager object, but the priority ordering
+    is determined by the user when calling the zapping API.
+
+    Clean steps can be either synchronous or asynchronous. If the step is
+    synchronous, it should return `None` when finished, and the conductor will
+    continue on to the next step. If the step is asynchronous, the step should
+    return `states.CLEANING` to signal to the conductor. When the step is
+    complete, the step should make an RPC call to `continue_node_clean` to move
+    to the next step in cleaning.
+
+    Example::
+
+        class MyInterface(base.BaseInterface):
+            # CONF.example_cleaning_priority should be an int CONF option
+            @base.clean_step(priority=CONF.example_cleaning_priority)
+            def example_cleaning(self, task):
+                # do some cleaning
+
+    :param priority: an integer priority, should be a CONF option
+    """
+    def decorator(func):
+        func._is_clean_step = True
+        func._clean_step_priority = priority
+        return func
+    return decorator
 
 
 def driver_periodic_task(parallel=True, **other):
