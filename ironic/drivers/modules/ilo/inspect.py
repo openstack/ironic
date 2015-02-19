@@ -12,6 +12,7 @@
 """
 iLO Inspect Interface
 """
+from oslo_log import log as logging
 from oslo_utils import importutils
 import six
 
@@ -24,7 +25,6 @@ from ironic.conductor import utils as conductor_utils
 from ironic.db import api as dbapi
 from ironic.drivers import base
 from ironic.drivers.modules.ilo import common as ilo_common
-from ironic.openstack.common import log as logging
 
 ilo_error = importutils.try_import('proliantutils.exception')
 

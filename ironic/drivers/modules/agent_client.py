@@ -13,12 +13,12 @@
 # limitations under the License.
 
 from oslo_config import cfg
+from oslo_log import log
 from oslo_serialization import jsonutils
 import requests
 
 from ironic.common import exception
 from ironic.common.i18n import _
-from ironic.openstack.common import log
 
 agent_opts = [
     cfg.StrOpt('agent_api_version',

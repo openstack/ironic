@@ -30,6 +30,7 @@ import os
 
 from oslo_concurrency import processutils
 from oslo_config import cfg
+from oslo_log import log as logging
 
 from ironic.common import boot_devices
 from ironic.common import exception
@@ -41,7 +42,6 @@ from ironic.common import utils
 from ironic.conductor import task_manager
 from ironic.drivers import base
 from ironic.drivers import utils as driver_utils
-from ironic.openstack.common import log as logging
 
 libvirt_opts = [
     cfg.StrOpt('libvirt_uri',

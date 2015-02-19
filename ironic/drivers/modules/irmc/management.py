@@ -14,6 +14,7 @@
 iRMC Management Driver
 """
 
+from oslo_log import log as logging
 from oslo_utils import importutils
 
 from ironic.common import boot_devices
@@ -24,7 +25,6 @@ from ironic.conductor import task_manager
 from ironic.drivers.modules import ipmitool
 from ironic.drivers.modules.irmc import common as irmc_common
 from ironic.drivers import utils as driver_utils
-from ironic.openstack.common import log as logging
 
 scci = importutils.try_import('scciclient.irmc.scci')
 

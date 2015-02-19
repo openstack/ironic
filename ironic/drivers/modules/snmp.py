@@ -30,6 +30,7 @@ models.
 import abc
 
 from oslo_config import cfg
+from oslo_log import log as logging
 from oslo_utils import importutils
 import six
 
@@ -39,7 +40,6 @@ from ironic.common.i18n import _LW
 from ironic.common import states
 from ironic.conductor import task_manager
 from ironic.drivers import base
-from ironic.openstack.common import log as logging
 from ironic.openstack.common import loopingcall
 
 pysnmp = importutils.try_import('pysnmp')

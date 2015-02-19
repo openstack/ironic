@@ -19,6 +19,7 @@
 DRAC Management Driver
 """
 
+from oslo_log import log as logging
 from oslo_utils import excutils
 from oslo_utils import importutils
 
@@ -30,7 +31,6 @@ from ironic.drivers import base
 from ironic.drivers.modules.drac import client as drac_client
 from ironic.drivers.modules.drac import common as drac_common
 from ironic.drivers.modules.drac import resource_uris
-from ironic.openstack.common import log as logging
 
 pywsman = importutils.try_import('pywsman')
 

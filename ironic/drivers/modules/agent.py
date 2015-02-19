@@ -16,6 +16,7 @@ import os
 import time
 
 from oslo_config import cfg
+from oslo_log import log
 from oslo_utils import excutils
 
 from ironic.common import boot_devices
@@ -38,7 +39,6 @@ from ironic.drivers.modules import agent_client
 from ironic.drivers.modules import deploy_utils
 from ironic.drivers.modules import image_cache
 from ironic.openstack.common import fileutils
-from ironic.openstack.common import log
 
 
 agent_opts = [

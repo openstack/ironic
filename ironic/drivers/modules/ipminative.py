@@ -23,6 +23,7 @@ import os
 import tempfile
 
 from oslo_config import cfg
+from oslo_log import log as logging
 from oslo_utils import excutils
 from oslo_utils import importutils
 
@@ -36,7 +37,6 @@ from ironic.common import utils
 from ironic.conductor import task_manager
 from ironic.drivers import base
 from ironic.drivers.modules import console_utils
-from ironic.openstack.common import log as logging
 
 pyghmi = importutils.try_import('pyghmi')
 if pyghmi:

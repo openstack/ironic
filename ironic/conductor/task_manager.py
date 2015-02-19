@@ -97,6 +97,7 @@ raised in the background thread.):
 import functools
 
 from oslo_config import cfg
+from oslo_log import log as logging
 from oslo_utils import excutils
 import retrying
 
@@ -105,7 +106,6 @@ from ironic.common import exception
 from ironic.common.i18n import _LW
 from ironic.common import states
 from ironic import objects
-from ironic.openstack.common import log as logging
 
 LOG = logging.getLogger(__name__)
 

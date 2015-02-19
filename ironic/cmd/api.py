@@ -22,12 +22,12 @@ import sys
 from wsgiref import simple_server
 
 from oslo_config import cfg
+from oslo_log import log
 from six.moves import socketserver
 
 from ironic.api import app
 from ironic.common.i18n import _LI
 from ironic.common import service as ironic_service
-from ironic.openstack.common import log
 
 CONF = cfg.CONF
 

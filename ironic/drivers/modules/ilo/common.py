@@ -19,6 +19,7 @@ Common functionalities shared between different iLO modules.
 import tempfile
 
 from oslo_config import cfg
+from oslo_log import log as logging
 from oslo_utils import importutils
 import six.moves.urllib.parse as urlparse
 
@@ -31,7 +32,6 @@ from ironic.common import images
 from ironic.common import swift
 from ironic.common import utils
 from ironic.drivers.modules import deploy_utils
-from ironic.openstack.common import log as logging
 
 ilo_client = importutils.try_import('proliantutils.ilo.client')
 ilo_error = importutils.try_import('proliantutils.exception')

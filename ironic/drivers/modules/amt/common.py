@@ -17,6 +17,7 @@ Common functionalities for AMT Driver
 from xml.etree import ElementTree
 
 from oslo_config import cfg
+from oslo_log import log as logging
 from oslo_utils import importutils
 import six
 
@@ -24,7 +25,6 @@ from ironic.common import boot_devices
 from ironic.common import exception
 from ironic.common.i18n import _
 from ironic.common.i18n import _LE
-from ironic.openstack.common import log as logging
 
 
 pywsman = importutils.try_import('pywsman')

@@ -19,6 +19,7 @@ import time
 from neutronclient.common import exceptions as neutron_client_exc
 from neutronclient.v2_0 import client as clientv20
 from oslo_config import cfg
+from oslo_log import log as logging
 from oslo_utils import netutils
 
 from ironic.common import exception
@@ -29,7 +30,6 @@ from ironic.common import keystone
 from ironic.common import network
 from ironic.dhcp import base
 from ironic.drivers.modules import ssh
-from ironic.openstack.common import log as logging
 
 
 neutron_opts = [

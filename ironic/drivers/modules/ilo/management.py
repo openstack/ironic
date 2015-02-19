@@ -16,6 +16,7 @@ iLO Management Interface
 """
 
 from oslo_config import cfg
+from oslo_log import log as logging
 from oslo_utils import importutils
 
 from ironic.common import boot_devices
@@ -27,7 +28,6 @@ from ironic.conductor import task_manager
 from ironic.drivers import base
 from ironic.drivers.modules.ilo import common as ilo_common
 from ironic.drivers.modules import ipmitool
-from ironic.openstack.common import log as logging
 
 LOG = logging.getLogger(__name__)
 

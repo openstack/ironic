@@ -25,11 +25,11 @@ Based on pecan.middleware.errordocument
 import json
 from xml import etree as et
 
+from oslo_log import log
 import webob
 
 from ironic.common.i18n import _
 from ironic.common.i18n import _LE
-from ironic.openstack.common import log
 
 LOG = log.getLogger(__name__)
 
