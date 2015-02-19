@@ -119,7 +119,7 @@ class Port(base.APIBase):
                       link.Link.make_link('bookmark', url,
                                           'ports', port.uuid,
                                           bookmark=True)
-                     ]
+                      ]
         return port
 
     @classmethod

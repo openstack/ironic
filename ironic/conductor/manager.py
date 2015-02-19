@@ -145,7 +145,7 @@ conductor_opts = [
                    help='List of comma separated metric types which need to be'
                         ' sent to Ceilometer. The default value, "ALL", is a '
                         'special value meaning send all the sensor data.'
-                        ),
+                    ),
         cfg.IntOpt('sync_local_state_interval',
                    default=180,
                    help='When conductors join or leave the cluster, existing '

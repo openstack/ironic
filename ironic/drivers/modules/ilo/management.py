@@ -33,7 +33,7 @@ ilo_client = importutils.try_import('proliantutils.ilo.ribcl')
 BOOT_DEVICE_MAPPING_TO_ILO = {boot_devices.PXE: 'NETWORK',
                                boot_devices.DISK: 'HDD',
                                boot_devices.CDROM: 'CDROM'
-                             }
+                              }
 BOOT_DEVICE_ILO_TO_GENERIC = {v: k
                               for k, v in BOOT_DEVICE_MAPPING_TO_ILO.items()}
 

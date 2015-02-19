@@ -109,7 +109,7 @@ class V1(base.APIBase):
                                         'developer/ironic/dev',
                                         'api-spec-v1.html',
                                         bookmark=True, type='text/html')
-                   ]
+                    ]
         v1.media_types = [MediaType('application/json',
                           'application/vnd.openstack.ironic.v1+json')]
         v1.chassis = [link.Link.make_link('self', pecan.request.host_url,
@@ -118,28 +118,28 @@ class V1(base.APIBase):
                                            pecan.request.host_url,
                                            'chassis', '',
                                            bookmark=True)
-                     ]
+                      ]
         v1.nodes = [link.Link.make_link('self', pecan.request.host_url,
                                         'nodes', ''),
                     link.Link.make_link('bookmark',
                                         pecan.request.host_url,
                                         'nodes', '',
                                         bookmark=True)
-                   ]
+                    ]
         v1.ports = [link.Link.make_link('self', pecan.request.host_url,
                                         'ports', ''),
                     link.Link.make_link('bookmark',
                                         pecan.request.host_url,
                                         'ports', '',
                                         bookmark=True)
-                   ]
+                    ]
         v1.drivers = [link.Link.make_link('self', pecan.request.host_url,
                                           'drivers', ''),
                       link.Link.make_link('bookmark',
                                           pecan.request.host_url,
                                           'drivers', '',
                                           bookmark=True)
-                     ]
+                      ]
         return v1
 
 

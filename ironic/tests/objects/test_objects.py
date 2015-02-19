@@ -427,7 +427,7 @@ class _TestObject(object):
                     'ironic_object.data':
                         {'created_at': timeutils.isotime(dt),
                          'updated_at': timeutils.isotime(dt),
-                        }
+                         }
                     }
         actual = obj.obj_to_primitive()
         # ironic_object.changes is built from a set and order is undefined

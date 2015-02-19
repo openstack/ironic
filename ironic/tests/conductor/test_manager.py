@@ -1819,7 +1819,8 @@ class UpdatePortTestCase(_ServiceSetUpMixin, tests_db_base.DbTestCase):
     @mock.patch.object(dbapi.IMPL, 'get_nodeinfo_list')
     @mock.patch.object(task_manager, 'acquire')
     def test___send_sensor_data_disabled(self, acquire_mock,
-        get_nodeinfo_list_mock, _mapped_to_this_conductor_mock):
+                                         get_nodeinfo_list_mock,
+                                         _mapped_to_this_conductor_mock):
         node = obj_utils.create_test_node(self.context,
                                           driver='fake')
         self._start_service()

@@ -40,7 +40,7 @@ class FakeMemcache(object):
                          'tenantId': '123i2910',
                          'tenantName': 'mytenant',
                          'roles': [{'name': 'admin'}]
-                 },
+                         },
             }
         },
         'tokens/%s' % MEMBER_TOKEN: {
@@ -52,7 +52,7 @@ class FakeMemcache(object):
                          'tenantId': 'project-good',
                          'tenantName': 'goodies',
                          'roles': [{'name': 'Member'}]
-                }
+                         }
             }
         }
     }
