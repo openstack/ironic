@@ -616,9 +616,32 @@ class VendorPassthru(agent_base_vendor.BaseAgentVendor):
         node.driver_internal_info = driver_internal_info
         node.save()
 
-        pxe_config_path = pxe_utils.get_pxe_config_file_path(node.uuid)
-        deploy_utils.switch_pxe_config(pxe_config_path, root_uuid,
-                      driver_utils.get_node_capability(node, 'boot_mode'))
+        if iscsi_deploy.get_boot_option(node) == "local":
+            # Install the boot loader
+            result = self._client.install_bootloader(node, root_uuid)
+            if result['command_status'] == 'FAILED':
+                msg = (_("Failed to install a bootloader when "
+                         "deploying node %(node)s. Error: %(error)s") %
+                       {'node': node.uuid,
+                        'error': result['command_error']})
+                self._log_and_raise_deployment_error(task, msg)
+
+            try:
+                try_set_boot_device(task, boot_devices.DISK)
+            except Exception as e:
+                msg = (_("Failed to change the boot device to %(boot_dev)s "
+                         "when deploying node %(node)s. Error: %(error)s") %
+                       {'boot_dev': boot_devices.DISK, 'node': node.uuid,
+                        'error': e})
+                self._log_and_raise_deployment_error(task, msg)
+
+            # If it's going to boot from the local disk, get rid of
+            # the PXE configuration files used for the deployment
+            pxe_utils.clean_up_pxe_config(task)
+        else:
+            pxe_config_path = pxe_utils.get_pxe_config_file_path(node.uuid)
+            deploy_utils.switch_pxe_config(pxe_config_path, root_uuid,
+                    driver_utils.get_node_capability(node, 'boot_mode'))
 
         try:
             manager_utils.node_power_action(task, states.REBOOT)

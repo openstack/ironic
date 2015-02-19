@@ -105,3 +105,11 @@ class AgentClient(object):
                              method='iscsi.start_iscsi_target',
                              params=params,
                              wait=True)
+
+    def install_bootloader(self, node, root_uuid):
+        """Install a boot loader on the image."""
+        params = {'root_uuid': root_uuid}
+        return self._command(node=node,
+                             method='image.install_bootloader',
+                             params=params,
+                             wait=True)

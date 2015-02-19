@@ -979,14 +979,14 @@ class TestAgentVendorPassthru(db_base.DbTestCase):
     def test_continue_deploy_command_failed(self, mock_image_info,
                                             mock_pxe_opts, mock_start_iscsi,
                                             mock_cont_deploy):
+        command_error = 'Gotham city is in danger!'
+        mock_start_iscsi.return_value = {'command_error': command_error,
+                                         'command_status': 'FAILED'}
         mock_pxe_opts.return_value = {'iscsi_target_iqn': 'fake-iqn',
                                       'deployment_key': 'fake-deploy-key'}
-        mock_start_iscsi.return_value = {'command_error':
-                                            'Gotham city is in danger!',
-                                         'command_status': 'FAILED'}
         result = self.assertRaises(exception.InstanceDeployFailure,
                           self.driver.vendor.continue_deploy, self.task)
-        self.assertIn("Gotham city is in danger!", result.format_message())
+        self.assertIn(command_error, result.format_message())
         mock_image_info.assert_called_once_with(self.node, self.context)
         mock_pxe_opts.assert_called_once_with(self.task.node, mock.ANY,
                                               self.task.context)
@@ -1037,4 +1037,97 @@ class TestAgentVendorPassthru(db_base.DbTestCase):
                                               self.task.context)
         mock_start_iscsi.assert_called_once_with(self.node, 'fake-iqn')
         self.assertNotIn('root_uuid', self.node.driver_internal_info)
+        self.assertIsNotNone(self.node.last_error)
+
+    @mock.patch.object(pxe_utils, 'clean_up_pxe_config')
+    @mock.patch.object(manager_utils, 'node_set_boot_device')
+    @mock.patch.object(agent_client.AgentClient, 'install_bootloader')
+    @mock.patch.object(deploy_utils, 'switch_pxe_config')
+    @mock.patch.object(manager_utils, 'node_power_action')
+    def test_continue_deploy_localboot(self, mock_node_power, mock_pxe_config,
+                             mock_install_bootloader, mock_boot_dev,
+                             mock_clean_pxe, mock_image_info, mock_pxe_opts,
+                             mock_start_iscsi, mock_cont_deploy):
+        mock_pxe_opts.return_value = {'iscsi_target_iqn': 'fake-iqn',
+                                      'deployment_key': 'fake-deploy-key'}
+        mock_start_iscsi.return_value = {'command_error': None,
+                                         'command_status': 'SUCCEEDED'}
+        mock_cont_deploy.return_value = 'fake-root-uuid'
+        i_info = self.node.instance_info
+        i_info['capabilities'] = {'boot_option': 'local'}
+        mock_install_bootloader.return_value = {'command_status': 'SUCCEEDED'}
+        self.driver.vendor.continue_deploy(self.task)
+
+        mock_image_info.assert_called_once_with(self.node, self.context)
+        mock_pxe_opts.assert_called_once_with(self.task.node, mock.ANY,
+                                              self.task.context)
+        mock_start_iscsi.assert_called_once_with(self.node, 'fake-iqn')
+        self.assertIn('root_uuid', self.node.driver_internal_info)
+        mock_node_power.assert_called_once_with(self.task, states.REBOOT)
+        mock_install_bootloader.assert_called_once_with(self.node,
+                                                        'fake-root-uuid')
+        self.assertIsNone(self.node.last_error)
+        # Assert we clean up the PXE configuration and make set the boot
+        # device to boot from disk
+        mock_clean_pxe.assert_called_once_with(self.task)
+        mock_boot_dev.assert_called_once_with(self.task, boot_devices.DISK,
+                                              persistent=True)
+
+        # Assert we dont try to switch the PXE configuration
+        self.assertFalse(mock_pxe_config.called)
+
+    @mock.patch.object(agent_client.AgentClient, 'install_bootloader')
+    def test_continue_deploy_localboot_command_failed(self,
+                             mock_install_bootloader, mock_image_info,
+                             mock_pxe_opts, mock_start_iscsi,
+                             mock_cont_deploy):
+        command_error = 'Gotham city is in danger!'
+        mock_install_bootloader.return_value = {'command_error': command_error,
+                                                'command_status': 'FAILED'}
+        mock_pxe_opts.return_value = {'iscsi_target_iqn': 'fake-iqn',
+                                      'deployment_key': 'fake-deploy-key'}
+        mock_start_iscsi.return_value = {'command_error': None,
+                                         'command_status': 'SUCCEEDED'}
+        mock_cont_deploy.return_value = 'fake-root-uuid'
+        i_info = self.node.instance_info
+        i_info['capabilities'] = {'boot_option': 'local'}
+
+        result = self.assertRaises(exception.InstanceDeployFailure,
+                          self.driver.vendor.continue_deploy, self.task)
+        self.assertIn(command_error, result.format_message())
+        mock_image_info.assert_called_once_with(self.node, self.context)
+        mock_pxe_opts.assert_called_once_with(self.task.node, mock.ANY,
+                                              self.task.context)
+        mock_start_iscsi.assert_called_once_with(self.node, 'fake-iqn')
+        mock_install_bootloader.assert_called_once_with(self.node,
+                                                        'fake-root-uuid')
+        self.assertIsNotNone(self.node.last_error)
+
+    @mock.patch.object(pxe, 'try_set_boot_device')
+    @mock.patch.object(agent_client.AgentClient, 'install_bootloader')
+    def test_continue_deploy_set_boot_device_failed(self,
+                             mock_install_bootloader, mock_set_boot_dev,
+                             mock_image_info, mock_pxe_opts, mock_start_iscsi,
+                             mock_cont_deploy):
+        error_msg = "User error. Please replace the user."
+        mock_set_boot_dev.side_effect = exception.IPMIFailure(error_msg)
+        mock_install_bootloader.return_value = {'command_error': None,
+                                                'command_status': 'SUCCEEDED'}
+        mock_pxe_opts.return_value = {'iscsi_target_iqn': 'fake-iqn',
+                                      'deployment_key': 'fake-deploy-key'}
+        mock_start_iscsi.return_value = {'command_error': None,
+                                         'command_status': 'SUCCEEDED'}
+        mock_cont_deploy.return_value = 'fake-root-uuid'
+        i_info = self.node.instance_info
+        i_info['capabilities'] = {'boot_option': 'local'}
+
+        result = self.assertRaises(exception.InstanceDeployFailure,
+                          self.driver.vendor.continue_deploy, self.task)
+        self.assertIn(error_msg, result.format_message())
+        mock_image_info.assert_called_once_with(self.node, self.context)
+        mock_pxe_opts.assert_called_once_with(self.task.node, mock.ANY,
+                                              self.task.context)
+        mock_start_iscsi.assert_called_once_with(self.node, 'fake-iqn')
+        mock_install_bootloader.assert_called_once_with(self.node,
+                                                        'fake-root-uuid')
         self.assertIsNotNone(self.node.last_error)
