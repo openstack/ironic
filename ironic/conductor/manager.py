@@ -1528,9 +1528,9 @@ def do_node_tear_down(task):
         task.driver.deploy.tear_down(task)
     except Exception as e:
         with excutils.save_and_reraise_exception():
-            LOG.warning(_LW('Error in tear_down of node %(node)s: '
-                            '%(err)s'),
-                        {'node': task.node.uuid, 'err': e})
+            LOG.exception(_LE('Error in tear_down of node %(node)s: '
+                              '%(err)s'),
+                          {'node': node.uuid, 'err': e})
             node.last_error = _("Failed to tear down. Error: %s") % e
             task.process_event('error')
     else:
