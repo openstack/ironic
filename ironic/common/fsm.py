@@ -17,6 +17,9 @@
 
 This work will be turned into a library.
 See https://github.com/harlowja/automaton
+
+This is being used in the implementation of:
+http://specs.openstack.org/openstack/ironic-specs/specs/kilo/new-ironic-state-machine.html
 """
 
 from collections import OrderedDict  # noqa
@@ -71,7 +74,7 @@ class FSM(object):
         return self._states[self._current.name]['terminal']
 
     def add_state(self, state, on_enter=None, on_exit=None,
-            target=None, terminal=None):
+            target=None, terminal=None, stable=False):
         """Adds a given state to the state machine.
 
         The on_enter and on_exit callbacks, if provided will be expected to
@@ -79,6 +82,13 @@ class FSM(object):
         on_exit) or the state being entered (for on_enter) and a second
         parameter which is the event that is being processed that caused the
         state transition.
+
+        :param stable: Use this to specify that this state is a stable/passive
+                       state. A state must have been previously defined as
+                       'stable' before it can be used as a 'target'
+        :param target: The target state for 'state' to go to.  Before a state
+                       can be used as a target it must have been previously
+                       added and specified as 'stable'
         """
         if state in self._states:
             raise excp.Duplicate(_("State '%s' already defined") % state)
@@ -91,6 +101,9 @@ class FSM(object):
         if target is not None and target not in self._states:
             raise excp.InvalidState(_("Target state '%s' does not exist")
                     % target)
+        if target is not None and not self._states[target]['stable']:
+            raise excp.InvalidState(
+                _("Target state '%s' is not a 'stable' state") % target)
 
         self._states[state] = {
             'terminal': bool(terminal),
@@ -98,6 +111,7 @@ class FSM(object):
             'on_enter': on_enter,
             'on_exit': on_exit,
             'target': target,
+            'stable': stable,
         }
         self._transitions[state] = OrderedDict()
 
