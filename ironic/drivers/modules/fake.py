@@ -168,3 +168,17 @@ class FakeManagement(base.ManagementInterface):
 
     def get_sensors_data(self, task):
         return {}
+
+
+class FakeInspect(base.InspectInterface):
+
+    """Example implementation of a simple inspect interface."""
+
+    def get_properties(self):
+        return {}
+
+    def validate(self, task):
+        pass
+
+    def inspect_hardware(self, task):
+        pass

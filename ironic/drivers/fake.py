@@ -55,6 +55,7 @@ class FakeDriver(base.BaseDriver):
         self.vendor = utils.MixinVendorInterface(self.mapping)
         self.console = fake.FakeConsole()
         self.management = fake.FakeManagement()
+        self.inspect = fake.FakeInspect()
 
 
 class FakeIPMIToolDriver(base.BaseDriver):

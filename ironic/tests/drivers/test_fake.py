@@ -108,3 +108,8 @@ class FakeDriverTestCase(db_base.DbTestCase):
         expected = {'boot_device': boot_devices.PXE, 'persistent': False}
         self.assertEqual(expected,
                          self.driver.management.get_boot_device(self.task))
+
+    def test_inspect_interface(self):
+        self.assertEqual({}, self.driver.inspect.get_properties())
+        self.driver.inspect.validate(self.task)
+        self.driver.inspect.inspect_hardware(self.task)

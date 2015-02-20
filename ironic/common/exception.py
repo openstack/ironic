@@ -537,3 +537,7 @@ class IRMCOperationError(IronicException):
 class VirtualBoxOperationFailed(IronicException):
     message = _("VirtualBox operation '%(operation)s' failed. "
                 "Error: %(error)s")
+
+
+class HardwareInspectionFailure(IronicException):
+    message = _("Failed to inspect hardware. Reason: %(error)s")
