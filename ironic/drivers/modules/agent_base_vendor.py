@@ -166,7 +166,7 @@ class BaseAgentVendor(base.VendorInterface):
                 self.reboot_to_instance(task, **kwargs)
         except Exception:
             LOG.exception(_LE('Async exception for %(node)s: %(msg)s'),
-                          {'node': node,
+                          {'node': node.uuid,
                            'msg': msg})
             deploy_utils.set_failed_state(task, msg)
 
