@@ -484,8 +484,7 @@ class IPMIToolPrivateMethodTestCase(db_base.DbTestCase):
             '-U', self.info['username'],
             '-f', file_handle1,
             'A', 'B', 'C',
-        ],
-        [
+        ], [
             'ipmitool',
             '-I', 'lanplus',
             '-H', self.info['address'],
@@ -529,8 +528,7 @@ class IPMIToolPrivateMethodTestCase(db_base.DbTestCase):
             '-U', self.info['username'],
             '-f', file_handle1,
             'A', 'B', 'C',
-        ],
-        [
+        ], [
             'ipmitool',
             '-I', 'lanplus',
             '-H', self.info['address'],
@@ -576,8 +574,7 @@ class IPMIToolPrivateMethodTestCase(db_base.DbTestCase):
             '-U', self.info['username'],
             '-f', file_handle1,
             'A', 'B', 'C',
-        ],
-        [
+        ], [
             'ipmitool',
             '-I', 'lanplus',
             '-H', '127.127.127.127',
@@ -1495,7 +1492,7 @@ class IPMIToolDriverTestCase(db_base.DbTestCase):
                                      'Negative Hysteresis': '375.000',
                                      'Sensor ID': 'FAN MOD 1A RPM (0x30)',
                                      'Nominal Reading': '5325.000'
-                                  }
+                                 }
                              },
                              'Temperature': {
                                  'Temp (0x2)': {

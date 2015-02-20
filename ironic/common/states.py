@@ -44,7 +44,7 @@ VERBS = {
         'manage': 'manage',
         'provide': 'provide',
         'inspect': 'inspect',
-    }
+}
 """ Mapping of state-changing events that are PUT to the REST API
 
 This is a mapping of target states which are PUT to the API, eg,
