@@ -593,7 +593,7 @@ class Node(base.APIBase):
                           link.Link.make_link('bookmark', url, 'nodes',
                                               node.uuid + "/ports",
                                               bookmark=True)
-                         ]
+                          ]
 
         # NOTE(lucasagomes): The numeric ID should not be exposed to
         #                    the user, it's internal only.
@@ -606,7 +606,7 @@ class Node(base.APIBase):
                                           node.uuid),
                       link.Link.make_link('bookmark', url, 'nodes',
                                           node.uuid, bookmark=True)
-                     ]
+                      ]
         return node
 
     @classmethod

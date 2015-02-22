@@ -81,7 +81,7 @@ class Chassis(base.APIBase):
                                                  'chassis',
                                                  chassis.uuid + "/nodes",
                                                  bookmark=True)
-                            ]
+                             ]
         chassis.links = [link.Link.make_link('self',
                                              url,
                                              'chassis', chassis.uuid),
@@ -89,7 +89,7 @@ class Chassis(base.APIBase):
                                              url,
                                              'chassis', chassis.uuid,
                                              bookmark=True)
-                        ]
+                         ]
         return chassis
 
     @classmethod

@@ -230,7 +230,7 @@ def get_deploy_info(node, **kwargs):
               'ephemeral_mb': 1024 * int(i_info['ephemeral_gb']),
               'preserve_ephemeral': i_info['preserve_ephemeral'],
               'node_uuid': node.uuid,
-             }
+              }
 
     missing = [key for key in params if params[key] is None]
     if missing:

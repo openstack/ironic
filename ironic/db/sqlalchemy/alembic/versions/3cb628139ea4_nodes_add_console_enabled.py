@@ -29,7 +29,7 @@ import sqlalchemy as sa
 def upgrade():
     op.add_column('nodes',
         sa.Column('console_enabled', sa.Boolean)
-    )
+                  )
 
 
 def downgrade():
