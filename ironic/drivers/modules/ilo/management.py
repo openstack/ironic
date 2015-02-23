@@ -28,7 +28,7 @@ from ironic.openstack.common import log as logging
 
 LOG = logging.getLogger(__name__)
 
-ilo_client = importutils.try_import('proliantutils.ilo.ribcl')
+ilo_error = importutils.try_import('proliantutils.exception')
 
 BOOT_DEVICE_MAPPING_TO_ILO = {boot_devices.PXE: 'NETWORK',
                                boot_devices.DISK: 'HDD',
@@ -96,7 +96,7 @@ class IloManagement(base.ManagementInterface):
                 persistent = True
                 next_boot = ilo_object.get_persistent_boot_device()
 
-        except ilo_client.IloError as ilo_exception:
+        except ilo_error.IloError as ilo_exception:
             operation = _("Get boot device")
             raise exception.IloOperationError(operation=operation,
                                               error=ilo_exception)
@@ -139,7 +139,7 @@ class IloManagement(base.ManagementInterface):
             else:
                 ilo_object.update_persistent_boot([boot_device])
 
-        except ilo_client.IloError as ilo_exception:
+        except ilo_error.IloError as ilo_exception:
             operation = _("Setting %s as boot device") % device
             raise exception.IloOperationError(operation=operation,
                                               error=ilo_exception)

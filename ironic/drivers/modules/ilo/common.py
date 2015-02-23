@@ -31,7 +31,8 @@ from ironic.common import utils
 from ironic.drivers import utils as driver_utils
 from ironic.openstack.common import log as logging
 
-ilo_client = importutils.try_import('proliantutils.ilo.ribcl')
+ilo_client = importutils.try_import('proliantutils.ilo.client')
+ilo_error = importutils.try_import('proliantutils.exception')
 
 STANDARD_LICENSE = 1
 ESSENTIALS_LICENSE = 2
@@ -173,7 +174,7 @@ def get_ilo_license(node):
     ilo_object = get_ilo_object(node)
     try:
         license_info = ilo_object.get_all_licenses()
-    except ilo_client.IloError as ilo_exception:
+    except ilo_error.IloError as ilo_exception:
         raise exception.IloOperationError(operation=_('iLO license check'),
                                           error=str(ilo_exception))
 
@@ -285,7 +286,7 @@ def attach_vmedia(node, device, url):
         ilo_object.insert_virtual_media(url, device=device)
         ilo_object.set_vm_status(device=device, boot_option='CONNECT',
                 write_protect='YES')
-    except ilo_client.IloError as ilo_exception:
+    except ilo_error.IloError as ilo_exception:
         operation = _("Inserting virtual media %s") % device
         raise exception.IloOperationError(operation=operation,
                 error=ilo_exception)
@@ -304,7 +305,7 @@ def set_boot_mode(node, boot_mode):
 
     try:
         p_boot_mode = ilo_object.get_pending_boot_mode()
-    except ilo_client.IloCommandNotSupportedError:
+    except ilo_error.IloCommandNotSupportedError:
         p_boot_mode = DEFAULT_BOOT_MODE
 
     if BOOT_MODE_ILO_TO_GENERIC[p_boot_mode.lower()] == boot_mode:
@@ -315,7 +316,7 @@ def set_boot_mode(node, boot_mode):
     try:
         ilo_object.set_pending_boot_mode(
                         BOOT_MODE_GENERIC_TO_ILO[boot_mode].upper())
-    except ilo_client.IloError as ilo_exception:
+    except ilo_error.IloError as ilo_exception:
         operation = _("Setting %s as boot mode") % boot_mode
         raise exception.IloOperationError(operation=operation,
                 error=ilo_exception)
@@ -341,7 +342,7 @@ def update_boot_mode_capability(task):
             # and if it fails then we fall back to BIOS boot mode.
             ilo_object.set_pending_boot_mode('UEFI')
             p_boot_mode = 'UEFI'
-    except ilo_client.IloCommandNotSupportedError:
+    except ilo_error.IloCommandNotSupportedError:
         p_boot_mode = DEFAULT_BOOT_MODE
 
     driver_utils.rm_node_capability(task, 'boot_mode')
@@ -418,7 +419,7 @@ def cleanup_vmedia_boot(task):
     for device in ('FLOPPY', 'CDROM'):
         try:
             ilo_object.eject_virtual_media(device)
-        except ilo_client.IloError as ilo_exception:
+        except ilo_error.IloError as ilo_exception:
             LOG.exception(_LE("Error while ejecting virtual media %(device)s "
                               "from node %(uuid)s. Error: %(error)s"),
                           {'device': device, 'uuid': task.node.uuid,

@@ -87,10 +87,11 @@ if not proliantutils:
     proliantutils = mock.MagicMock()
     sys.modules['proliantutils'] = proliantutils
     sys.modules['proliantutils.ilo'] = proliantutils.ilo
-    sys.modules['proliantutils.ilo.ribcl'] = proliantutils.ilo.ribcl
-    proliantutils.ilo.ribcl.IloError = type('IloError', (Exception,), {})
+    sys.modules['proliantutils.ilo.client'] = proliantutils.ilo.client
+    sys.modules['proliantutils.exception'] = proliantutils.exception
+    proliantutils.exception.IloError = type('IloError', (Exception,), {})
     command_exception = type('IloCommandNotSupportedError', (Exception,), {})
-    proliantutils.ilo.ribcl.IloCommandNotSupportedError = command_exception
+    proliantutils.exception.IloCommandNotSupportedError = command_exception
     if 'ironic.drivers.ilo' in sys.modules:
         reload(sys.modules['ironic.drivers.ilo'])
 

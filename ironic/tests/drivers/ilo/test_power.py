@@ -32,7 +32,7 @@ from ironic.tests.db import base as db_base
 from ironic.tests.db import utils as db_utils
 from ironic.tests.objects import utils as obj_utils
 
-ilo_client = importutils.try_import('proliantutils.ilo.ribcl')
+ilo_error = importutils.try_import('proliantutils.exception')
 
 INFO_DICT = db_utils.get_test_ilo_info()
 CONF = cfg.CONF
@@ -68,7 +68,7 @@ class IloPowerInternalMethodsTestCase(db_base.DbTestCase):
 
     def test__get_power_state_fail(self, get_ilo_object_mock):
         ilo_mock_object = get_ilo_object_mock.return_value
-        exc = ilo_client.IloError('error')
+        exc = ilo_error.IloError('error')
         ilo_mock_object.get_host_power_status.side_effect = exc
 
         self.assertRaises(exception.IloOperationError,
@@ -86,7 +86,7 @@ class IloPowerInternalMethodsTestCase(db_base.DbTestCase):
 
     def test__set_power_state_reboot_fail(self, get_ilo_object_mock):
         ilo_mock_object = get_ilo_object_mock.return_value
-        exc = ilo_client.IloError('error')
+        exc = ilo_error.IloError('error')
         ilo_mock_object.reset_server.side_effect = exc
 
         with task_manager.acquire(self.context, self.node.uuid,

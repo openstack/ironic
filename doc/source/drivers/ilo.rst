@@ -40,9 +40,9 @@ Prerequisites
   managing HP Proliant hardware.
 
   Install ``proliantutils`` [2]_ module on the Ironic conductor node. Minimum
-  version required is 0.1.0.::
+  version required is 2.0.1.::
 
-   $ pip install "proliantutils>=0.1.0"
+   $ pip install "proliantutils>=2.0.1"
 
 * ``ipmitool`` command must be present on the service node(s) where
   ``ironic-conductor`` is running. On most distros, this is provided as part
