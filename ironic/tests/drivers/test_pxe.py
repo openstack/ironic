@@ -662,14 +662,20 @@ class PXEDriverTestCase(db_base.DbTestCase):
             self.assertEqual(states.DELETED, state)
             node_power_mock.assert_called_once_with(task, states.POWER_OFF)
 
+    @mock.patch.object(pxe_utils, 'clean_up_pxe_config')
     @mock.patch.object(dhcp_factory.DHCPFactory, 'update_dhcp')
-    def test_take_over(self, update_dhcp_mock):
+    def test_take_over(self, update_dhcp_mock, clean_pxe_mock):
         with task_manager.acquire(
                 self.context, self.node.uuid, shared=True) as task:
             dhcp_opts = pxe_utils.dhcp_options_for_instance(task)
             task.driver.deploy.take_over(task)
-            update_dhcp_mock.assert_called_once_with(
-                task, dhcp_opts)
+
+            # Assert we update the DHCP server
+            update_dhcp_mock.assert_called_once_with(task, dhcp_opts)
+
+            # Assert we don't clean the PXE config files in
+            # case it's not local boot
+            self.assertFalse(clean_pxe_mock.called)
 
     @mock.patch.object(pxe_utils, 'clean_up_pxe_config')
     @mock.patch.object(dhcp_factory.DHCPFactory, 'update_dhcp')
@@ -677,10 +683,13 @@ class PXEDriverTestCase(db_base.DbTestCase):
         with task_manager.acquire(
                 self.context, self.node.uuid, shared=True) as task:
             task.node.instance_info['capabilities'] = {"boot_option": "local"}
-            dhcp_opts = pxe_utils.dhcp_options_for_instance(task)
             task.driver.deploy.take_over(task)
-            update_dhcp_mock.assert_called_once_with(
-                task, dhcp_opts)
+
+            # Assert we are not attempting to update the DHCP
+            # server in case it's local boot
+            self.assertFalse(update_dhcp_mock.called)
+
+            # Assert we are cleaning the PXE config files
             clean_pxe_mock.assert_called_once_with(task)
 
     @mock.patch.object(pxe_utils, 'clean_up_pxe_config')
