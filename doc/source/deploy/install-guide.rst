@@ -460,7 +460,7 @@ them to Glance service:
    - Build the image your users will run (Ubuntu image has been taken as
      an example)::
 
-       disk-image-create ubuntu baremetal -o my-image
+       disk-image-create ubuntu baremetal dhcp-all-interfaces -o my-image
 
      The above command creates *my-image.qcow2*, *my-image.vmlinuz* and
      *my-image.initrd* files. If you want to use Fedora image, replace
