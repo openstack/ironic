@@ -71,6 +71,10 @@ class TestAgentDeploy(db_base.DbTestCase):
         }
         self.node = object_utils.create_test_node(self.context, **n)
 
+    def test_get_properties(self):
+        expected = agent.COMMON_PROPERTIES
+        self.assertEqual(expected, self.driver.get_properties())
+
     def test_validate(self):
         with task_manager.acquire(
                 self.context, self.node['uuid'], shared=False) as task:
