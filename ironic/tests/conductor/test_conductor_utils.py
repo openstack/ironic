@@ -11,11 +11,11 @@
 #    under the License.
 
 import mock
+from oslo_utils import uuidutils
 
 from ironic.common import driver_factory
 from ironic.common import exception
 from ironic.common import states
-from ironic.common import utils as cmn_utils
 from ironic.conductor import task_manager
 from ironic.conductor import utils as conductor_utils
 from ironic import objects
@@ -33,7 +33,7 @@ class NodeSetBootDeviceTestCase(base.DbTestCase):
         self.driver = driver_factory.get_driver("fake_ipmitool")
         ipmi_info = utils.get_test_ipmi_info()
         node = obj_utils.create_test_node(self.context,
-                                          uuid=cmn_utils.generate_uuid(),
+                                          uuid=uuidutils.generate_uuid(),
                                           driver='fake_ipmitool',
                                           driver_info=ipmi_info)
         task = task_manager.TaskManager(self.context, node.uuid)
@@ -47,7 +47,7 @@ class NodeSetBootDeviceTestCase(base.DbTestCase):
         self.driver = driver_factory.get_driver("fake_ipmitool")
         ipmi_info = utils.get_test_ipmi_info()
         node = obj_utils.create_test_node(self.context,
-                                          uuid=cmn_utils.generate_uuid(),
+                                          uuid=uuidutils.generate_uuid(),
                                           driver='fake_ipmitool',
                                           driver_info=ipmi_info)
         task = task_manager.TaskManager(self.context, node.uuid)
@@ -71,7 +71,7 @@ class NodePowerActionTestCase(base.DbTestCase):
     def test_node_power_action_power_on(self):
         """Test node_power_action to turn node power on."""
         node = obj_utils.create_test_node(self.context,
-                                          uuid=cmn_utils.generate_uuid(),
+                                          uuid=uuidutils.generate_uuid(),
                                           driver='fake',
                                           power_state=states.POWER_OFF)
         task = task_manager.TaskManager(self.context, node.uuid)
@@ -91,7 +91,7 @@ class NodePowerActionTestCase(base.DbTestCase):
     def test_node_power_action_power_off(self):
         """Test node_power_action to turn node power off."""
         node = obj_utils.create_test_node(self.context,
-                                          uuid=cmn_utils.generate_uuid(),
+                                          uuid=uuidutils.generate_uuid(),
                                           driver='fake',
                                           power_state=states.POWER_ON)
         task = task_manager.TaskManager(self.context, node.uuid)
@@ -111,7 +111,7 @@ class NodePowerActionTestCase(base.DbTestCase):
     def test_node_power_action_power_reboot(self):
         """Test for reboot a node."""
         node = obj_utils.create_test_node(self.context,
-                                          uuid=cmn_utils.generate_uuid(),
+                                          uuid=uuidutils.generate_uuid(),
                                           driver='fake',
                                           power_state=states.POWER_ON)
         task = task_manager.TaskManager(self.context, node.uuid)
@@ -128,7 +128,7 @@ class NodePowerActionTestCase(base.DbTestCase):
     def test_node_power_action_invalid_state(self):
         """Test for exception when changing to an invalid power state."""
         node = obj_utils.create_test_node(self.context,
-                                          uuid=cmn_utils.generate_uuid(),
+                                          uuid=uuidutils.generate_uuid(),
                                           driver='fake',
                                           power_state=states.POWER_ON)
         task = task_manager.TaskManager(self.context, node.uuid)
@@ -165,7 +165,7 @@ class NodePowerActionTestCase(base.DbTestCase):
         and the user is attempting to power-off again.)
         """
         node = obj_utils.create_test_node(self.context,
-                                          uuid=cmn_utils.generate_uuid(),
+                                          uuid=uuidutils.generate_uuid(),
                                           driver='fake',
                                           power_state=states.POWER_ON,
                                           target_power_state=states.POWER_OFF)
@@ -185,7 +185,7 @@ class NodePowerActionTestCase(base.DbTestCase):
         state is the same as the current state.
         """
         node = obj_utils.create_test_node(self.context,
-                                          uuid=cmn_utils.generate_uuid(),
+                                          uuid=uuidutils.generate_uuid(),
                                           driver='fake',
                                           last_error='anything but None',
                                           power_state=states.POWER_ON)
@@ -214,7 +214,7 @@ class NodePowerActionTestCase(base.DbTestCase):
         information, make sure we fix it.
         """
         node = obj_utils.create_test_node(self.context,
-                                          uuid=cmn_utils.generate_uuid(),
+                                          uuid=uuidutils.generate_uuid(),
                                           driver='fake',
                                           last_error='anything but None',
                                           power_state=states.POWER_ON)
@@ -239,7 +239,7 @@ class NodePowerActionTestCase(base.DbTestCase):
     def test_node_power_action_failed_getting_state(self):
         """Test for exception when we can't get the current power state."""
         node = obj_utils.create_test_node(self.context,
-                                          uuid=cmn_utils.generate_uuid(),
+                                          uuid=uuidutils.generate_uuid(),
                                           driver='fake',
                                           power_state=states.POWER_ON)
         task = task_manager.TaskManager(self.context, node.uuid)
@@ -263,7 +263,7 @@ class NodePowerActionTestCase(base.DbTestCase):
     def test_node_power_action_set_power_failure(self):
         """Test if an exception is thrown when the set_power call fails."""
         node = obj_utils.create_test_node(self.context,
-                                          uuid=cmn_utils.generate_uuid(),
+                                          uuid=uuidutils.generate_uuid(),
                                           driver='fake',
                                           power_state=states.POWER_OFF)
         task = task_manager.TaskManager(self.context, node.uuid)

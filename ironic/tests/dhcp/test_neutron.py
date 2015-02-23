@@ -17,11 +17,11 @@
 import mock
 from neutronclient.common import exceptions as neutron_client_exc
 from neutronclient.v2_0 import client
+from oslo_utils import uuidutils
 
 from ironic.common import dhcp_factory
 from ironic.common import exception
 from ironic.common import pxe_utils
-from ironic.common import utils
 from ironic.conductor import task_manager
 from ironic.dhcp import neutron
 from ironic.tests.conductor import utils as mgr_utils
@@ -301,7 +301,7 @@ class TestNeutron(db_base.DbTestCase):
         port = object_utils.create_test_port(self.context,
                                              node_id=self.node.id,
                                              address='aa:bb:cc',
-                                             uuid=utils.generate_uuid(),
+                                             uuid=uuidutils.generate_uuid(),
                                              extra={'vif_port_id':
                                                     'test-vif-A'},
                                              driver='fake')
@@ -323,7 +323,7 @@ class TestNeutron(db_base.DbTestCase):
         port = object_utils.create_test_port(self.context,
                                              node_id=self.node.id,
                                              address='aa:bb:cc',
-                                             uuid=utils.generate_uuid(),
+                                             uuid=uuidutils.generate_uuid(),
                                              extra={'vif_port_id':
                                                     'test-vif-A'},
                                              driver='fake')

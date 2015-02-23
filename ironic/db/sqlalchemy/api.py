@@ -23,7 +23,9 @@ from oslo_config import cfg
 from oslo_db import exception as db_exc
 from oslo_db.sqlalchemy import session as db_session
 from oslo_db.sqlalchemy import utils as db_utils
+from oslo_utils import strutils
 from oslo_utils import timeutils
+from oslo_utils import uuidutils
 from sqlalchemy.orm.exc import NoResultFound
 
 from ironic.common import exception
@@ -89,9 +91,9 @@ def add_identity_filter(query, value):
     :param value: Value for filtering results by.
     :return: Modified query.
     """
-    if utils.is_int_like(value):
+    if strutils.is_int_like(value):
         return query.filter_by(id=value)
-    elif utils.is_uuid_like(value):
+    elif uuidutils.is_uuid_like(value):
         return query.filter_by(uuid=value)
     else:
         raise exception.InvalidIdentity(identity=value)
@@ -114,7 +116,7 @@ def add_port_filter(query, value):
 
 
 def add_port_filter_by_node(query, value):
-    if utils.is_int_like(value):
+    if strutils.is_int_like(value):
         return query.filter_by(node_id=value)
     else:
         query = query.join(models.Node,
@@ -123,7 +125,7 @@ def add_port_filter_by_node(query, value):
 
 
 def add_node_filter_by_chassis(query, value):
-    if utils.is_int_like(value):
+    if strutils.is_int_like(value):
         return query.filter_by(chassis_id=value)
     else:
         query = query.join(models.Chassis,
@@ -254,7 +256,7 @@ class Connection(api.Connection):
     def create_node(self, values):
         # ensure defaults are present for new nodes
         if 'uuid' not in values:
-            values['uuid'] = utils.generate_uuid()
+            values['uuid'] = uuidutils.generate_uuid()
         if 'power_state' not in values:
             values['power_state'] = states.NOSTATE
         if 'provision_state' not in values:
@@ -297,7 +299,7 @@ class Connection(api.Connection):
             raise exception.NodeNotFound(node=node_name)
 
     def get_node_by_instance(self, instance):
-        if not utils.is_uuid_like(instance):
+        if not uuidutils.is_uuid_like(instance):
             raise exception.InvalidUUID(uuid=instance)
 
         query = (model_query(models.Node)
@@ -323,7 +325,7 @@ class Connection(api.Connection):
 
             # Get node ID, if an UUID was supplied. The ID is
             # required for deleting all ports, attached to the node.
-            if utils.is_uuid_like(node_id):
+            if uuidutils.is_uuid_like(node_id):
                 node_id = node_ref['id']
 
             port_query = model_query(models.Port, session=session)
@@ -408,7 +410,7 @@ class Connection(api.Connection):
 
     def create_port(self, values):
         if not values.get('uuid'):
-            values['uuid'] = utils.generate_uuid()
+            values['uuid'] = uuidutils.generate_uuid()
         port = models.Port()
         port.update(values)
         try:
@@ -473,7 +475,7 @@ class Connection(api.Connection):
 
     def create_chassis(self, values):
         if not values.get('uuid'):
-            values['uuid'] = utils.generate_uuid()
+            values['uuid'] = uuidutils.generate_uuid()
         chassis = models.Chassis()
         chassis.update(values)
         try:

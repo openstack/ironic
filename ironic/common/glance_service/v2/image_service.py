@@ -14,6 +14,7 @@
 #    under the License.
 
 from oslo_config import cfg
+from oslo_utils import uuidutils
 from swiftclient import utils as swift_utils
 
 from ironic.common import exception as exc
@@ -21,7 +22,6 @@ from ironic.common.glance_service import base_image_service
 from ironic.common.glance_service import service
 from ironic.common.glance_service import service_utils
 from ironic.common.i18n import _
-from ironic.common import utils
 
 
 glance_opts = [
@@ -135,7 +135,7 @@ class GlanceImageService(base_image_service.BaseImageService,
         self._validate_temp_url_config()
 
         if ('id' not in image_info or not
-                utils.is_uuid_like(image_info['id'])):
+                uuidutils.is_uuid_like(image_info['id'])):
             raise exc.ImageUnacceptable(_(
                 'The given image info does not have a valid image id: %s')
                 % image_info)

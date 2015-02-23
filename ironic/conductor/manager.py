@@ -54,6 +54,7 @@ from oslo_concurrency import lockutils
 from oslo_config import cfg
 from oslo_db import exception as db_exception
 from oslo_utils import excutils
+from oslo_utils import uuidutils
 
 from ironic.common import dhcp_factory
 from ironic.common import driver_factory
@@ -68,7 +69,6 @@ from ironic.common import keystone
 from ironic.common import rpc
 from ironic.common import states
 from ironic.common import swift
-from ironic.common import utils as ironic_utils
 from ironic.conductor import task_manager
 from ironic.conductor import utils
 from ironic.db import api as dbapi
@@ -1210,7 +1210,7 @@ class ConductorManager(periodic_task.PeriodicTasks):
                 continue
 
             # populate the message which will be sent to ceilometer
-            message = {'message_id': ironic_utils.generate_uuid(),
+            message = {'message_id': uuidutils.generate_uuid(),
                        'instance_uuid': instance_uuid,
                        'node_uuid': node_uuid,
                        'timestamp': datetime.datetime.utcnow(),

@@ -13,8 +13,10 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+from oslo_utils import strutils
+from oslo_utils import uuidutils
+
 from ironic.common import exception
-from ironic.common import utils
 from ironic.db import api as db_api
 from ironic.objects import base
 from ironic.objects import utils as obj_utils
@@ -95,9 +97,9 @@ class Node(base.IronicObject):
         :param node_id: the id *or* uuid of a node.
         :returns: a :class:`Node` object.
         """
-        if utils.is_int_like(node_id):
+        if strutils.is_int_like(node_id):
             return cls.get_by_id(context, node_id)
-        elif utils.is_uuid_like(node_id):
+        elif uuidutils.is_uuid_like(node_id):
             return cls.get_by_uuid(context, node_id)
         else:
             raise exception.InvalidIdentity(identity=node_id)

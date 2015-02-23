@@ -15,11 +15,11 @@ import ConfigParser
 import os
 import sys
 
+from oslo_utils import uuidutils
 import sqlalchemy as sa
 from sqlalchemy.orm import sessionmaker
 
 from ironic.common import states as ironic_states
-from ironic.common import utils
 from ironic.db.sqlalchemy import models as ironic_models
 from ironic.migrate_nova import nova_baremetal_states as nova_states
 from ironic.migrate_nova import nova_models
@@ -186,7 +186,7 @@ def convert_nova_ports(ports):
         i_port = ironic_models.Port()
 
         i_port.id = n_port.id
-        i_port.uuid = utils.generate_uuid()
+        i_port.uuid = uuidutils.generate_uuid()
         i_port.address = n_port.address
         i_port.node_id = n_port.bm_node_id
 

@@ -15,6 +15,7 @@
 import uuid
 
 import mock
+from oslo_utils import uuidutils
 from seamicroclient import client as seamicro_client
 from seamicroclient import exceptions as seamicro_client_exception
 
@@ -22,7 +23,6 @@ from ironic.common import boot_devices
 from ironic.common import driver_factory
 from ironic.common import exception
 from ironic.common import states
-from ironic.common import utils
 from ironic.conductor import task_manager
 from ironic.drivers.modules import console_utils
 from ironic.drivers.modules import seamicro
@@ -578,7 +578,7 @@ class SeaMicroPowerDriverTestCase(db_base.DbTestCase):
     def test_management_interface_validate_fail(self):
         # Missing SEAMICRO driver_info information
         node = obj_utils.create_test_node(self.context,
-                                          uuid=utils.generate_uuid(),
+                                          uuid=uuidutils.generate_uuid(),
                                           driver='fake_seamicro')
         with task_manager.acquire(self.context, node.uuid) as task:
             self.assertRaises(exception.MissingParameterValue,

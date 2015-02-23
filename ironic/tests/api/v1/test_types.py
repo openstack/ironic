@@ -16,6 +16,7 @@
 #    under the License.
 
 import mock
+from oslo_utils import uuidutils
 import webtest
 import wsme
 from wsme import types as wtypes
@@ -63,7 +64,7 @@ class TestNameType(base.TestCase):
 
 class TestUuidOrNameType(base.TestCase):
 
-    @mock.patch.object(utils, 'is_uuid_like')
+    @mock.patch.object(uuidutils, 'is_uuid_like')
     @mock.patch.object(utils, 'is_hostname_safe')
     def test_valid_uuid(self, host_mock, uuid_mock):
         test_uuid = '1a1a1a1a-2b2b-3c3c-4d4d-5e5e5e5e5e5e'
@@ -72,7 +73,7 @@ class TestUuidOrNameType(base.TestCase):
         self.assertTrue(types.UuidOrNameType.validate(test_uuid))
         uuid_mock.assert_called_once_with(test_uuid)
 
-    @mock.patch.object(utils, 'is_uuid_like')
+    @mock.patch.object(uuidutils, 'is_uuid_like')
     @mock.patch.object(utils, 'is_hostname_safe')
     def test_valid_name(self, host_mock, uuid_mock):
         test_name = 'dc16-database5'

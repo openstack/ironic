@@ -133,7 +133,7 @@ class Connection(object):
                        ::
 
                         {
-                         'uuid': utils.generate_uuid(),
+                         'uuid': uuidutils.generate_uuid(),
                          'instance_uuid': None,
                          'power_state': states.POWER_OFF,
                          'provision_state': states.AVAILABLE,

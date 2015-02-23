@@ -21,6 +21,7 @@ import json
 import mock
 from oslo_config import cfg
 from oslo_utils import timeutils
+from oslo_utils import uuidutils
 import pecan
 from six.moves.urllib import parse as urlparse
 from testtools.matchers import HasLength
@@ -32,7 +33,6 @@ from ironic.api.controllers.v1 import node as api_node
 from ironic.common import boot_devices
 from ironic.common import exception
 from ironic.common import states
-from ironic.common import utils
 from ironic.conductor import rpcapi
 from ironic import objects
 from ironic.tests.api import base as test_api_base
@@ -57,7 +57,7 @@ class TestTopLevelFunctions(base.TestCase):
     def setUp(self):
         super(TestTopLevelFunctions, self).setUp()
         self.valid_name = 'my-host'
-        self.valid_uuid = utils.generate_uuid()
+        self.valid_uuid = uuidutils.generate_uuid()
         self.invalid_name = 'Mr Plow'
         self.invalid_uuid = '636-555-3226-'
         self.node = post_get_test_node()
@@ -141,15 +141,15 @@ class TestListNodes(test_api_base.FunctionalTest):
         unassociated_nodes = []
         for id in range(3):
             node = obj_utils.create_test_node(self.context,
-                                              uuid=utils.generate_uuid())
+                                              uuid=uuidutils.generate_uuid())
             unassociated_nodes.append(node.uuid)
 
         # created some associated nodes
         associated_nodes = []
         for id in range(4):
             node = obj_utils.create_test_node(
-                    self.context, uuid=utils.generate_uuid(),
-                    instance_uuid=utils.generate_uuid())
+                    self.context, uuid=uuidutils.generate_uuid(),
+                    instance_uuid=uuidutils.generate_uuid())
             associated_nodes.append(node.uuid)
         return {'associated': associated_nodes,
                 'unassociated': unassociated_nodes}
@@ -266,7 +266,7 @@ class TestListNodes(test_api_base.FunctionalTest):
         nodes = []
         for id in range(5):
             node = obj_utils.create_test_node(self.context,
-                                              uuid=utils.generate_uuid())
+                                              uuid=uuidutils.generate_uuid())
             nodes.append(node.uuid)
         data = self.get_json('/nodes')
         self.assertEqual(len(nodes), len(data['nodes']))
@@ -280,7 +280,7 @@ class TestListNodes(test_api_base.FunctionalTest):
         for id in range(5):
             name = 'node-%s' % id
             node = obj_utils.create_test_node(self.context,
-                                              uuid=utils.generate_uuid(),
+                                              uuid=uuidutils.generate_uuid(),
                                               name=name)
             nodes.append(node.uuid)
             node_names.append(name)
@@ -291,7 +291,7 @@ class TestListNodes(test_api_base.FunctionalTest):
         self.assertEqual(sorted(node_names), sorted(names))
 
     def test_links(self):
-        uuid = utils.generate_uuid()
+        uuid = uuidutils.generate_uuid()
         obj_utils.create_test_node(self.context, uuid=uuid)
         data = self.get_json('/nodes/%s' % uuid)
         self.assertIn('links', data.keys())
@@ -305,7 +305,7 @@ class TestListNodes(test_api_base.FunctionalTest):
         nodes = []
         for id in range(5):
             node = obj_utils.create_test_node(self.context,
-                                              uuid=utils.generate_uuid())
+                                              uuid=uuidutils.generate_uuid())
             nodes.append(node.uuid)
         data = self.get_json('/nodes/?limit=3')
         self.assertEqual(3, len(data['nodes']))
@@ -318,7 +318,7 @@ class TestListNodes(test_api_base.FunctionalTest):
         nodes = []
         for id in range(5):
             node = obj_utils.create_test_node(self.context,
-                                              uuid=utils.generate_uuid())
+                                              uuid=uuidutils.generate_uuid())
             nodes.append(node.uuid)
         data = self.get_json('/nodes')
         self.assertEqual(3, len(data['nodes']))
@@ -336,7 +336,7 @@ class TestListNodes(test_api_base.FunctionalTest):
 
         for id_ in range(2):
             obj_utils.create_test_port(self.context, node_id=node.id,
-                                       uuid=utils.generate_uuid(),
+                                       uuid=uuidutils.generate_uuid(),
                                        address='52:54:00:cf:2d:3%s' % id_)
 
         data = self.get_json('/nodes/%s/ports' % node.uuid)
@@ -412,9 +412,10 @@ class TestListNodes(test_api_base.FunctionalTest):
         self.assertFalse(data['console_enabled'])
 
     def test_node_by_instance_uuid(self):
-        node = obj_utils.create_test_node(self.context,
-                                          uuid=utils.generate_uuid(),
-                                          instance_uuid=utils.generate_uuid())
+        node = obj_utils.create_test_node(
+            self.context,
+            uuid=uuidutils.generate_uuid(),
+            instance_uuid=uuidutils.generate_uuid())
         instance_uuid = node.instance_uuid
 
         data = self.get_json('/nodes?instance_uuid=%s' % instance_uuid,
@@ -425,9 +426,10 @@ class TestListNodes(test_api_base.FunctionalTest):
                          data['nodes'][0]["instance_uuid"])
 
     def test_node_by_instance_uuid_wrong_uuid(self):
-        obj_utils.create_test_node(self.context, uuid=utils.generate_uuid(),
-                                   instance_uuid=utils.generate_uuid())
-        wrong_uuid = utils.generate_uuid()
+        obj_utils.create_test_node(
+            self.context, uuid=uuidutils.generate_uuid(),
+            instance_uuid=uuidutils.generate_uuid())
+        wrong_uuid = uuidutils.generate_uuid()
 
         data = self.get_json('/nodes?instance_uuid=%s' % wrong_uuid)
 
@@ -505,9 +507,10 @@ class TestListNodes(test_api_base.FunctionalTest):
         self.assertIn('associated=True', data['next'])
 
     def test_detail_with_instance_uuid(self):
-        node = obj_utils.create_test_node(self.context,
-                                          uuid=utils.generate_uuid(),
-                                          instance_uuid=utils.generate_uuid())
+        node = obj_utils.create_test_node(
+            self.context,
+            uuid=uuidutils.generate_uuid(),
+            instance_uuid=uuidutils.generate_uuid())
         instance_uuid = node.instance_uuid
 
         data = self.get_json('/nodes/detail?instance_uuid=%s' % instance_uuid)
@@ -526,7 +529,7 @@ class TestListNodes(test_api_base.FunctionalTest):
         nodes = []
         for id in range(5):
             node = obj_utils.create_test_node(self.context,
-                                              uuid=utils.generate_uuid(),
+                                              uuid=uuidutils.generate_uuid(),
                                               maintenance=id % 2)
             nodes.append(node)
 
@@ -549,9 +552,10 @@ class TestListNodes(test_api_base.FunctionalTest):
 
     def test_maintenance_nodes_associated(self):
         self._create_association_test_nodes()
-        node = obj_utils.create_test_node(self.context,
-                                          instance_uuid=utils.generate_uuid(),
-                                          maintenance=True)
+        node = obj_utils.create_test_node(
+            self.context,
+            instance_uuid=uuidutils.generate_uuid(),
+            maintenance=True)
 
         data = self.get_json('/nodes?associated=true&maintenance=false')
         uuids = [n['uuid'] for n in data['nodes']]
@@ -884,7 +888,7 @@ class TestPatch(test_api_base.FunctionalTest):
 
     def test_update_state_in_progress(self):
         node = obj_utils.create_test_node(self.context,
-                                          uuid=utils.generate_uuid(),
+                                          uuid=uuidutils.generate_uuid(),
                                           target_power_state=states.POWER_OFF)
         response = self.patch_json('/nodes/%s' % node.uuid,
                                    [{'path': '/extra/foo', 'value': 'bar',
@@ -895,7 +899,7 @@ class TestPatch(test_api_base.FunctionalTest):
 
     def test_add_state_in_deployfail(self):
         node = obj_utils.create_test_node(self.context,
-                                          uuid=utils.generate_uuid(),
+                                          uuid=uuidutils.generate_uuid(),
                                           provision_state=states.DEPLOYFAIL,
                                           target_provision_state=states.ACTIVE)
         self.mock_update_node.return_value = node
@@ -1097,7 +1101,7 @@ class TestPatch(test_api_base.FunctionalTest):
 
     def test_patch_duplicate_name(self):
         node = obj_utils.create_test_node(self.context,
-                                          uuid=utils.generate_uuid())
+                                          uuid=uuidutils.generate_uuid())
         test_name = "this-is-my-node"
         self.mock_update_node.side_effect = exception.DuplicateName(test_name)
         response = self.patch_json('/nodes/%s' % node.uuid,

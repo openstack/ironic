@@ -20,12 +20,12 @@
 import eventlet
 from eventlet import greenpool
 import mock
+from oslo_utils import uuidutils
 
 from ironic.common import driver_factory
 from ironic.common import exception
 from ironic.common import fsm
 from ironic.common import states
-from ironic.common import utils
 from ironic.conductor import task_manager
 from ironic import objects
 from ironic.tests import base as tests_base
@@ -89,7 +89,7 @@ class TaskManagerTestCase(tests_db_base.DbTestCase):
                                  reserve_mock, release_mock,
                                  node_get_mock):
         node2 = obj_utils.create_test_node(self.context,
-                                           uuid=utils.generate_uuid(),
+                                           uuid=uuidutils.generate_uuid(),
                                            driver='fake')
 
         reserve_mock.return_value = self.node

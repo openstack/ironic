@@ -28,6 +28,7 @@ import time
 import mock
 from oslo_concurrency import processutils
 from oslo_config import cfg
+from oslo_utils import uuidutils
 
 from ironic.common import boot_devices
 from ironic.common import driver_factory
@@ -1317,7 +1318,7 @@ class IPMIToolDriverTestCase(db_base.DbTestCase):
     def test_management_interface_validate_fail(self):
         # Missing IPMI driver_info information
         node = obj_utils.create_test_node(self.context,
-                                          uuid=utils.generate_uuid(),
+                                          uuid=uuidutils.generate_uuid(),
                                           driver='fake_ipmitool')
         with task_manager.acquire(self.context, node.uuid) as task:
             self.assertRaises(exception.MissingParameterValue,

@@ -20,6 +20,7 @@ import tempfile
 
 import mock
 from oslo_config import cfg
+from oslo_utils import uuidutils
 
 from ironic.common import exception
 from ironic.common import keystone
@@ -114,7 +115,7 @@ class IscsiDeployValidateParametersTestCase(db_base.DbTestCase):
                     'on', 'yes', 'y', '1']:
             info['preserve_ephemeral'] = opt
             node = obj_utils.create_test_node(self.context,
-                                              uuid=utils.generate_uuid(),
+                                              uuid=uuidutils.generate_uuid(),
                                               instance_info=info)
             data = iscsi_deploy.parse_instance_info(node)
             self.assertTrue(data.get('preserve_ephemeral'))
@@ -125,7 +126,7 @@ class IscsiDeployValidateParametersTestCase(db_base.DbTestCase):
                     'off', 'no', 'n', '0']:
             info['preserve_ephemeral'] = opt
             node = obj_utils.create_test_node(self.context,
-                                              uuid=utils.generate_uuid(),
+                                              uuid=uuidutils.generate_uuid(),
                                               instance_info=info)
             data = iscsi_deploy.parse_instance_info(node)
             self.assertFalse(data.get('preserve_ephemeral'))

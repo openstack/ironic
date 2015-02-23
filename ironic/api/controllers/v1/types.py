@@ -18,6 +18,7 @@
 import json
 
 from oslo_utils import strutils
+from oslo_utils import uuidutils
 import six
 import wsme
 from wsme import types as wtypes
@@ -62,7 +63,8 @@ class UuidOrNameType(wtypes.UserType):
 
     @staticmethod
     def validate(value):
-        if not (utils.is_uuid_like(value) or utils.is_hostname_safe(value)):
+        if not (uuidutils.is_uuid_like(value)
+                or utils.is_hostname_safe(value)):
             raise exception.InvalidUuidOrName(name=value)
         return value
 
@@ -110,7 +112,7 @@ class UuidType(wtypes.UserType):
 
     @staticmethod
     def validate(value):
-        if not utils.is_uuid_like(value):
+        if not uuidutils.is_uuid_like(value):
             raise exception.InvalidUUID(uuid=value)
         return value
 
