@@ -25,6 +25,7 @@ import fixtures
 import mock
 from oslo_concurrency import processutils
 from oslo_config import cfg
+from oslo_utils import uuidutils
 import requests
 
 from ironic.common import disk_partitioner
@@ -1094,7 +1095,7 @@ class VirtualMediaDeployUtilsTestCase(db_base.DbTestCase):
 
     def test_get_single_nic_with_vif_port_id(self):
         obj_utils.create_test_port(self.context, node_id=self.node.id,
-                address='aa:bb:cc', uuid=common_utils.generate_uuid(),
+                address='aa:bb:cc', uuid=uuidutils.generate_uuid(),
                 extra={'vif_port_id': 'test-vif-A'}, driver='iscsi_ilo')
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:

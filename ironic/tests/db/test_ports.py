@@ -15,10 +15,10 @@
 
 """Tests for manipulating Ports via the DB API"""
 
+from oslo_utils import uuidutils
 import six
 
 from ironic.common import exception
-from ironic.common import utils as ironic_utils
 from ironic.tests.db import base
 from ironic.tests.db import utils as db_utils
 
@@ -47,7 +47,7 @@ class DbPortTestCase(base.DbTestCase):
     def test_get_port_list(self):
         uuids = []
         for i in range(1, 6):
-            port = db_utils.create_test_port(uuid=ironic_utils.generate_uuid(),
+            port = db_utils.create_test_port(uuid=uuidutils.generate_uuid(),
                                              address='52:54:00:cf:2d:4%s' % i)
             uuids.append(six.text_type(port.uuid))
         res = self.dbapi.get_port_list()
@@ -88,7 +88,7 @@ class DbPortTestCase(base.DbTestCase):
     def test_update_port_duplicated_address(self):
         address1 = self.port.address
         address2 = 'aa-bb-cc-11-22-33'
-        port2 = db_utils.create_test_port(uuid=ironic_utils.generate_uuid(),
+        port2 = db_utils.create_test_port(uuid=uuidutils.generate_uuid(),
                                           node_id=self.node.id,
                                           address=address2)
         self.assertRaises(exception.MACAlreadyExists,
@@ -98,7 +98,7 @@ class DbPortTestCase(base.DbTestCase):
     def test_create_port_duplicated_address(self):
         self.assertRaises(exception.MACAlreadyExists,
                           db_utils.create_test_port,
-                          uuid=ironic_utils.generate_uuid(),
+                          uuid=uuidutils.generate_uuid(),
                           node_id=self.node.id,
                           address=self.port.address)
 

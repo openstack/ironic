@@ -13,6 +13,9 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+from oslo_utils import strutils
+from oslo_utils import uuidutils
+
 from ironic.common import exception
 from ironic.common import utils
 from ironic.db import api as dbapi
@@ -60,9 +63,9 @@ class Port(base.IronicObject):
         :param port_id: the id *or* uuid of a port.
         :returns: a :class:`Port` object.
         """
-        if utils.is_int_like(port_id):
+        if strutils.is_int_like(port_id):
             return cls.get_by_id(context, port_id)
-        elif utils.is_uuid_like(port_id):
+        elif uuidutils.is_uuid_like(port_id):
             return cls.get_by_uuid(context, port_id)
         elif utils.is_valid_mac(port_id):
             return cls.get_by_address(context, port_id)

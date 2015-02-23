@@ -19,7 +19,6 @@ import os
 import os.path
 import shutil
 import tempfile
-import uuid
 
 import mock
 import netaddr
@@ -441,46 +440,6 @@ class MkfsTestCase(base.TestCase):
     def test_mkfs_with_unexpected_error(self, execute_mock):
         self.assertRaises(processutils.ProcessExecutionError, utils.mkfs,
                           'ext4', '/my/block/dev', 'ext4-vol')
-
-
-class IntLikeTestCase(base.TestCase):
-
-    def test_is_int_like(self):
-        self.assertTrue(utils.is_int_like(1))
-        self.assertTrue(utils.is_int_like("1"))
-        self.assertTrue(utils.is_int_like("514"))
-        self.assertTrue(utils.is_int_like("0"))
-
-        self.assertFalse(utils.is_int_like(1.1))
-        self.assertFalse(utils.is_int_like("1.1"))
-        self.assertFalse(utils.is_int_like("1.1.1"))
-        self.assertFalse(utils.is_int_like(None))
-        self.assertFalse(utils.is_int_like("0."))
-        self.assertFalse(utils.is_int_like("aaaaaa"))
-        self.assertFalse(utils.is_int_like("...."))
-        self.assertFalse(utils.is_int_like("1g"))
-        self.assertFalse(
-            utils.is_int_like("0cc3346e-9fef-4445-abe6-5d2b2690ec64"))
-        self.assertFalse(utils.is_int_like("a1"))
-
-
-class UUIDTestCase(base.TestCase):
-
-    def test_generate_uuid(self):
-        uuid_string = utils.generate_uuid()
-        self.assertIsInstance(uuid_string, str)
-        self.assertEqual(36, len(uuid_string))
-        # make sure there are 4 dashes
-        self.assertEqual(32, len(uuid_string.replace('-', '')))
-
-    def test_is_uuid_like(self):
-        self.assertTrue(utils.is_uuid_like(str(uuid.uuid4())))
-
-    def test_id_is_uuid_like(self):
-        self.assertFalse(utils.is_uuid_like(1234567))
-
-    def test_name_is_uuid_like(self):
-        self.assertFalse(utils.is_uuid_like('zhongyueluo'))
 
 
 class TempFilesTestCase(base.TestCase):

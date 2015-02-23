@@ -48,11 +48,11 @@ from oslo_db import exception as db_exc
 from oslo_db.sqlalchemy import test_base
 from oslo_db.sqlalchemy import test_migrations
 from oslo_db.sqlalchemy import utils as db_utils
+from oslo_utils import uuidutils
 import sqlalchemy
 import sqlalchemy.exc
 
 from ironic.common.i18n import _LE
-from ironic.common import utils
 from ironic.db.sqlalchemy import migration
 from ironic.db.sqlalchemy import models
 from ironic.openstack.common import log as logging
@@ -310,10 +310,10 @@ class MigrationCheckersMixin(object):
         nodes = db_utils.get_table(engine, 'nodes')
         instance_uuid = 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee'
         data = {'driver': 'fake',
-                'uuid': utils.generate_uuid(),
+                'uuid': uuidutils.generate_uuid(),
                 'instance_uuid': instance_uuid}
         nodes.insert().values(data).execute()
-        data['uuid'] = utils.generate_uuid()
+        data['uuid'] = uuidutils.generate_uuid()
         # TODO(viktors): Remove check on sqlalchemy.exc.IntegrityError, when
         #                Ironic will use oslo_db 0.4.0 or higher.
         #                See bug #1214341 for details.
@@ -332,13 +332,13 @@ class MigrationCheckersMixin(object):
         # add some nodes in various states so we can assert that "None"
         # was replaced by "available", and nothing else changed.
         nodes = db_utils.get_table(engine, 'nodes')
-        data = [{'uuid': utils.generate_uuid(),
+        data = [{'uuid': uuidutils.generate_uuid(),
                  'provision_state': 'fake state'},
-                {'uuid': utils.generate_uuid(),
+                {'uuid': uuidutils.generate_uuid(),
                  'provision_state': 'active'},
-                {'uuid': utils.generate_uuid(),
+                {'uuid': uuidutils.generate_uuid(),
                  'provision_state': 'deleting'},
-                {'uuid': utils.generate_uuid(),
+                {'uuid': uuidutils.generate_uuid(),
                  'provision_state': None}]
         nodes.insert().values(data).execute()
         return data

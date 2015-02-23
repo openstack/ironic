@@ -14,10 +14,10 @@
 #    under the License.
 
 import mock
+from oslo_utils import uuidutils
 from testtools.matchers import HasLength
 
 from ironic.common import exception
-from ironic.common import utils as ironic_utils
 from ironic import objects
 from ironic.tests.db import base
 from ironic.tests.db import utils
@@ -74,7 +74,7 @@ class TestChassisObject(base.DbTestCase):
 
     def test_refresh(self):
         uuid = self.fake_chassis['uuid']
-        new_uuid = ironic_utils.generate_uuid()
+        new_uuid = uuidutils.generate_uuid()
         returns = [dict(self.fake_chassis, uuid=uuid),
                    dict(self.fake_chassis, uuid=new_uuid)]
         expected = [mock.call(uuid), mock.call(uuid)]

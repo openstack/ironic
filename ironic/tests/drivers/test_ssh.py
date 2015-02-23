@@ -19,6 +19,7 @@ import fixtures
 import mock
 from oslo_concurrency import processutils
 from oslo_config import cfg
+from oslo_utils import uuidutils
 import paramiko
 
 from ironic.common import boot_devices
@@ -947,7 +948,7 @@ class SSHDriverTestCase(db_base.DbTestCase):
     def test_management_interface_validate_fail(self):
         # Missing SSH driver_info information
         node = obj_utils.create_test_node(self.context,
-                                          uuid=utils.generate_uuid(),
+                                          uuid=uuidutils.generate_uuid(),
                                           driver='fake_ssh')
         with task_manager.acquire(self.context, node.uuid) as task:
             self.assertRaises(exception.MissingParameterValue,

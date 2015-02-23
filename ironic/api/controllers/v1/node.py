@@ -17,6 +17,7 @@ import ast
 import datetime
 
 from oslo_config import cfg
+from oslo_utils import uuidutils
 import pecan
 from pecan import rest
 import wsme
@@ -88,7 +89,7 @@ def allow_logical_names():
 
 
 def is_valid_name(name):
-    return utils.is_hostname_safe(name) and (not utils.is_uuid_like(name))
+    return utils.is_hostname_safe(name) and (not uuidutils.is_uuid_like(name))
 
 
 def _get_rpc_node(node_ident):
@@ -103,7 +104,7 @@ def _get_rpc_node(node_ident):
     """
     # Check to see if the node_ident is a valid UUID.  If it is, treat it
     # as a UUID.
-    if utils.is_uuid_like(node_ident):
+    if uuidutils.is_uuid_like(node_ident):
         return objects.Node.get_by_uuid(pecan.request.context, node_ident)
 
     # If it was not UUID-like, but it is name-like, and we allow names,
@@ -920,7 +921,7 @@ class NodesController(rest.RestController):
         if node:
             # We're invoking this interface using positional notation, or
             # explicitly using 'node'.  Try and determine which one.
-            if not allow_logical_names() and not utils.is_uuid_like(node):
+            if not allow_logical_names() and not uuidutils.is_uuid_like(node):
                 raise exception.NotAcceptable()
 
         rpc_node = _get_rpc_node(node_uuid or node)
@@ -955,7 +956,7 @@ class NodesController(rest.RestController):
         #             We need to ensure that node has a UUID before it can
         #             be mapped onto the hash ring.
         if not node.uuid:
-            node.uuid = utils.generate_uuid()
+            node.uuid = uuidutils.generate_uuid()
 
         try:
             pecan.request.rpcapi.get_topic_for(node)

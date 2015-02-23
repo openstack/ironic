@@ -13,8 +13,8 @@
 """Tests for custom SQLAlchemy types via Ironic DB."""
 
 from oslo_db import exception as db_exc
+from oslo_utils import uuidutils
 
-from ironic.common import utils as ironic_utils
 import ironic.db.sqlalchemy.api as sa_api
 from ironic.db.sqlalchemy import models
 from ironic.tests.db import base
@@ -27,14 +27,14 @@ class SqlAlchemyCustomTypesTestCase(base.DbTestCase):
 
     def test_JSONEncodedDict_default_value(self):
         # Create chassis w/o extra specified.
-        ch1_id = ironic_utils.generate_uuid()
+        ch1_id = uuidutils.generate_uuid()
         self.dbapi.create_chassis({'uuid': ch1_id})
         # Get chassis manually to test SA types in isolation from UOM.
         ch1 = sa_api.model_query(models.Chassis).filter_by(uuid=ch1_id).one()
         self.assertEqual({}, ch1.extra)
 
         # Create chassis with extra specified.
-        ch2_id = ironic_utils.generate_uuid()
+        ch2_id = uuidutils.generate_uuid()
         extra = {'foo1': 'test', 'foo2': 'other extra'}
         self.dbapi.create_chassis({'uuid': ch2_id, 'extra': extra})
         # Get chassis manually to test SA types in isolation from UOM.

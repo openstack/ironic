@@ -20,13 +20,13 @@ import datetime
 import mock
 from oslo_config import cfg
 from oslo_utils import timeutils
+from oslo_utils import uuidutils
 from six.moves.urllib import parse as urlparse
 from testtools.matchers import HasLength
 from wsme import types as wtypes
 
 from ironic.api.controllers.v1 import port as api_port
 from ironic.common import exception
-from ironic.common import utils
 from ironic.conductor import rpcapi
 from ironic.tests.api import base as api_base
 from ironic.tests.api import utils as apiutils
@@ -102,7 +102,7 @@ class TestListPorts(api_base.FunctionalTest):
         for id_ in range(5):
             port = obj_utils.create_test_port(self.context,
                                             node_id=self.node.id,
-                                            uuid=utils.generate_uuid(),
+                                            uuid=uuidutils.generate_uuid(),
                                             address='52:54:00:cf:2d:3%s' % id_)
             ports.append(port.uuid)
         data = self.get_json('/ports')
@@ -112,7 +112,7 @@ class TestListPorts(api_base.FunctionalTest):
         self.assertEqual(ports.sort(), uuids.sort())
 
     def test_links(self):
-        uuid = utils.generate_uuid()
+        uuid = uuidutils.generate_uuid()
         obj_utils.create_test_port(self.context,
                                    uuid=uuid,
                                    node_id=self.node.id)
@@ -129,7 +129,7 @@ class TestListPorts(api_base.FunctionalTest):
         for id_ in range(5):
             port = obj_utils.create_test_port(self.context,
                                             node_id=self.node.id,
-                                            uuid=utils.generate_uuid(),
+                                            uuid=uuidutils.generate_uuid(),
                                             address='52:54:00:cf:2d:3%s' % id_)
             ports.append(port.uuid)
         data = self.get_json('/ports/?limit=3')
@@ -144,7 +144,7 @@ class TestListPorts(api_base.FunctionalTest):
         for id_ in range(5):
             port = obj_utils.create_test_port(self.context,
                                             node_id=self.node.id,
-                                            uuid=utils.generate_uuid(),
+                                            uuid=uuidutils.generate_uuid(),
                                             address='52:54:00:cf:2d:3%s' % id_)
             ports.append(port.uuid)
         data = self.get_json('/ports')
@@ -158,7 +158,7 @@ class TestListPorts(api_base.FunctionalTest):
         for id_ in range(3):
             obj_utils.create_test_port(self.context,
                                        node_id=self.node.id,
-                                       uuid=utils.generate_uuid(),
+                                       uuid=uuidutils.generate_uuid(),
                                        address=address_template % id_)
 
         target_address = address_template % 1
@@ -225,7 +225,7 @@ class TestPatch(api_base.FunctionalTest):
         self.assertFalse(mock_upd.called)
 
     def test_update_not_found(self, mock_upd):
-        uuid = utils.generate_uuid()
+        uuid = uuidutils.generate_uuid()
         response = self.patch_json('/ports/%s' % uuid,
                                    [{'path': '/extra/foo',
                                      'value': 'bar',
@@ -524,7 +524,7 @@ class TestPost(api_base.FunctionalTest):
         response = self.post_json('/ports', pdict)
         result = self.get_json('/ports/%s' % response.json['uuid'])
         self.assertEqual(pdict['address'], result['address'])
-        self.assertTrue(utils.is_uuid_like(result['uuid']))
+        self.assertTrue(uuidutils.is_uuid_like(result['uuid']))
 
     def test_create_port_valid_extra(self):
         pdict = post_get_test_port(extra={'str': 'foo', 'int': 123,
@@ -601,7 +601,7 @@ class TestPost(api_base.FunctionalTest):
         address = 'AA:AA:AA:11:22:33'
         pdict = post_get_test_port(address=address)
         self.post_json('/ports', pdict)
-        pdict['uuid'] = utils.generate_uuid()
+        pdict['uuid'] = uuidutils.generate_uuid()
         response = self.post_json('/ports', pdict, expect_errors=True)
         self.assertEqual(409, response.status_int)
         self.assertEqual('application/json', response.content_type)

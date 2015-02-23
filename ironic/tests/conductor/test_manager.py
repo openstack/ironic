@@ -25,6 +25,8 @@ import mock
 from oslo import messaging
 from oslo_config import cfg
 from oslo_db import exception as db_exception
+from oslo_utils import strutils
+from oslo_utils import uuidutils
 
 from ironic.common import boot_devices
 from ironic.common import driver_factory
@@ -32,7 +34,6 @@ from ironic.common import exception
 from ironic.common import keystone
 from ironic.common import states
 from ironic.common import swift
-from ironic.common import utils as ironic_utils
 from ironic.conductor import manager
 from ironic.conductor import task_manager
 from ironic.conductor import utils as conductor_utils
@@ -53,7 +54,7 @@ class _CommonMixIn(object):
     @staticmethod
     def _create_node(**kwargs):
         attrs = {'id': 1,
-                 'uuid': ironic_utils.generate_uuid(),
+                 'uuid': uuidutils.generate_uuid(),
                  'power_state': states.POWER_OFF,
                  'maintenance': False,
                  'reservation': None}
@@ -127,7 +128,7 @@ class _CommonMixIn(object):
                 # NOTE(comstud): Not ideal to throw this into
                 # a helper, however it's the cleanest way
                 # to verify we're dealing with the correct task/node.
-                if ironic_utils.is_int_like(fa_self.node_id):
+                if strutils.is_int_like(fa_self.node_id):
                     self.assertEqual(fa_self.node_id, task.node.id)
                 else:
                     self.assertEqual(fa_self.node_id, task.node.uuid)
@@ -1371,7 +1372,7 @@ class DoNodeDeployTearDownTestCase(_ServiceSetUpMixin,
     def _test_do_node_tear_down_from_state(self, init_state, mock_tear_down):
         mock_tear_down.return_value = states.DELETED
         node = obj_utils.create_test_node(self.context, driver='fake',
-                                      uuid=ironic_utils.generate_uuid(),
+                                      uuid=uuidutils.generate_uuid(),
                                       provision_state=init_state,
                                       target_provision_state=states.NOSTATE)
 
@@ -2371,7 +2372,7 @@ class ManagerSyncPowerStatesTestCase(_CommonMixIn, tests_db_base.DbTestCase):
         mapped_map = {}
         for i in range(1, 12):
             attrs = {'id': i,
-                     'uuid': ironic_utils.generate_uuid()}
+                     'uuid': uuidutils.generate_uuid()}
             if i == 3:
                 attrs['provision_state'] = states.DEPLOYWAIT
                 attrs['target_provision_state'] = states.ACTIVE
