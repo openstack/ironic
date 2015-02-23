@@ -142,7 +142,7 @@ inspected node shall transition to MANAGEABLE status.
 """
 
 
-INSPECTFAIL = 'inspectfail'
+INSPECTFAIL = 'inspect failed'
 """ Node inspection failed. """
 
 ##############
