@@ -275,12 +275,22 @@ or the agent driver, not both. The default is the PXE driver.::
 
     # Enable Neutron which is required by Ironic and disable nova-network.
     disable_service n-net
+    disable_service n-novnc
     enable_service q-svc
     enable_service q-agt
     enable_service q-dhcp
     enable_service q-l3
     enable_service q-meta
     enable_service neutron
+
+    # Disable Horizon
+    disable_service horizon
+
+    # Disable Heat
+    disable_service heat h-api h-api-cfn h-api-cw h-eng
+
+    # Disable Cinder
+    disable_service cinder c-sch c-api c-vol
 
     # Create 3 virtual machines to pose as Ironic's baremetal nodes.
     IRONIC_VM_COUNT=3
