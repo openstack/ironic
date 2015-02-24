@@ -54,13 +54,19 @@ BASE_VERSION = 1
 # edf532db: Add logic to store the config drive passed by Nova
 
 # v1.1: API at the point in time when microversioning support was added
-MIN_VER = base.Version({base.Version.string: "1.1"})
+MIN_VER_STR = '1.1'
 
 # v1.2: Renamed NOSTATE ("None") to AVAILABLE ("available")
 # v1.3: Add node.driver_internal_info
 # v1.4: Add MANAGEABLE state
 # v1.5: Add logical node names
-MAX_VER = base.Version({base.Version.string: "1.5"})
+MAX_VER_STR = '1.5'
+
+
+MIN_VER = base.Version({base.Version.string: MIN_VER_STR},
+                       MIN_VER_STR, MAX_VER_STR)
+MAX_VER = base.Version({base.Version.string: MAX_VER_STR},
+                       MIN_VER_STR, MAX_VER_STR)
 
 
 class MediaType(base.APIBase):
@@ -170,16 +176,17 @@ class Controller(rest.RestController):
             raise exc.HTTPNotAcceptable(_(
                 "Unsupported minor version requested. This API service "
                 "supports the following version range: "
-                "[%(min)s, %(max)s].") % {'min': MIN_VER,
-                                          'max': MAX_VER})
+                "[%(min)s, %(max)s].") % {'min': MIN_VER_STR,
+                                          'max': MAX_VER_STR})
 
     @pecan.expose()
     def _route(self, args):
-        v = base.Version(pecan.request.headers)
+        v = base.Version(pecan.request.headers, MIN_VER_STR, MAX_VER_STR)
+
         # Always set the min and max headers
         # FIXME: these are not being sent if _check_version raises an exception
-        pecan.response.headers[base.Version.min_string] = str(MIN_VER)
-        pecan.response.headers[base.Version.max_string] = str(MAX_VER)
+        pecan.response.headers[base.Version.min_string] = MIN_VER_STR
+        pecan.response.headers[base.Version.max_string] = MAX_VER_STR
 
         # assert that requested version is supported
         self._check_version(v)

@@ -41,40 +41,50 @@ class TestVersion(base.FunctionalTest):
         a = mock.Mock()
         b = mock.Mock()
         mock_parse.return_value = (a, b)
-        v = cbase.Version('test')
+        v = cbase.Version('test', 'foo', 'bar')
 
-        mock_parse.assert_called_with('test')
+        mock_parse.assert_called_with('test', 'foo', 'bar')
         self.assertEqual(a, v.major)
         self.assertEqual(b, v.minor)
 
     @mock.patch('ironic.api.controllers.base.Version.parse_headers')
     def test_repr(self, mock_parse):
         mock_parse.return_value = (123, 456)
-        v = cbase.Version('test')
+        v = cbase.Version('test', mock.ANY, mock.ANY)
         result = "%s" % v
         self.assertEqual('123.456', result)
 
     @mock.patch('ironic.api.controllers.base.Version.parse_headers')
     def test_repr_with_strings(self, mock_parse):
         mock_parse.return_value = ('abc', 'def')
-        v = cbase.Version('test')
+        v = cbase.Version('test', mock.ANY, mock.ANY)
         result = "%s" % v
         self.assertEqual('abc.def', result)
 
     def test_parse_headers_ok(self):
         version = cbase.Version.parse_headers(
-                {cbase.Version.string: '123.456'})
+                {cbase.Version.string: '123.456'}, mock.ANY, mock.ANY)
         self.assertEqual((123, 456), version)
+
+    def test_parse_headers_latest(self):
+        for s in ['latest', 'LATEST']:
+            version = cbase.Version.parse_headers(
+                    {cbase.Version.string: s}, mock.ANY, '1.9')
+            self.assertEqual((1, 9), version)
 
     def test_parse_headers_bad_length(self):
         self.assertRaises(exc.HTTPNotAcceptable,
                 cbase.Version.parse_headers,
-                {cbase.Version.string: '1'})
+                {cbase.Version.string: '1'},
+                mock.ANY,
+                mock.ANY)
         self.assertRaises(exc.HTTPNotAcceptable,
                 cbase.Version.parse_headers,
-                {cbase.Version.string: '1.2.3'})
+                {cbase.Version.string: '1.2.3'},
+                mock.ANY,
+                mock.ANY)
 
     def test_parse_no_header(self):
         # this asserts that the minimum version string of "1.1" is applied
-        version = cbase.Version.parse_headers({})
+        version = cbase.Version.parse_headers({}, '1.1', '1.5')
         self.assertEqual((1, 1), version)
