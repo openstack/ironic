@@ -27,6 +27,7 @@ from ironic.common.glance_service import service_utils
 from ironic.common.i18n import _
 from ironic.common.i18n import _LE
 from ironic.common.i18n import _LI
+from ironic.common.i18n import _LW
 from ironic.common import image_service
 from ironic.common import images
 from ironic.common import keystone
@@ -262,7 +263,12 @@ def _reboot_into(task, iso, ramdisk_options):
     :raises: IloOperationError, if some operation on iLO failed.
     """
     ilo_common.setup_vmedia_for_boot(task, iso, ramdisk_options)
-    manager_utils.node_set_boot_device(task, boot_devices.CDROM)
+
+    # In secure boot mode, node will reboot twice internally to
+    # enable/disable secure boot. Any one-time boot settings would
+    # be lost.  Hence setting persistent=True.
+    manager_utils.node_set_boot_device(task, boot_devices.CDROM,
+                                       persistent=True)
     manager_utils.node_power_action(task, states.REBOOT)
 
 
@@ -379,18 +385,20 @@ class IloVirtualMediaIscsiDeploy(base.DeployInterface):
             in instance_info for non-Glance image.
         """
         iscsi_deploy.validate(task)
+        node = task.node
 
-        d_info = _parse_deploy_info(task.node)
+        d_info = _parse_deploy_info(node)
 
-        if task.node.driver_internal_info.get('is_whole_disk_image'):
+        if node.driver_internal_info.get('is_whole_disk_image'):
             props = []
         elif service_utils.is_glance_image(d_info['image_source']):
             props = ['kernel_id', 'ramdisk_id']
         else:
             props = ['kernel', 'ramdisk']
         iscsi_deploy.validate_image_properties(task.context, d_info, props)
-        driver_utils.validate_boot_mode_capability(task.node)
-        driver_utils.validate_boot_option_capability(task.node)
+        driver_utils.validate_boot_mode_capability(node)
+        driver_utils.validate_boot_option_capability(node)
+        driver_utils.validate_secure_boot_capability(node)
 
     @task_manager.require_exclusive_lock
     def deploy(self, task):
@@ -409,7 +417,6 @@ class IloVirtualMediaIscsiDeploy(base.DeployInterface):
         :raises: IloOperationError, if some operation on iLO fails.
         """
         node = task.node
-        manager_utils.node_power_action(task, states.POWER_OFF)
 
         iscsi_deploy.cache_instance_image(task.context, node)
         iscsi_deploy.check_image_size(task)
@@ -436,6 +443,16 @@ class IloVirtualMediaIscsiDeploy(base.DeployInterface):
         :returns: deploy state DELETED.
         """
         manager_utils.node_power_action(task, states.POWER_OFF)
+        try:
+            _update_secure_boot_mode(task, False)
+        # We need to handle IloOperationNotSupported exception so that if
+        # the user has incorrectly specified the Node capability
+        # 'secure_boot' to a node that does not have that capability and
+        # attempted deploy. Handling this exception here, will help the
+        # user to tear down such a Node.
+        except exception.IloOperationNotSupported:
+            LOG.warn(_LW('Secure boot mode is not supported for node %s'),
+                         task.node.uuid)
         return states.DELETED
 
     def prepare(self, task):
@@ -444,7 +461,7 @@ class IloVirtualMediaIscsiDeploy(base.DeployInterface):
         :param task: a TaskManager instance containing the node to act on.
         :raises: IloOperationError, if some operation on iLO failed.
         """
-        ilo_common.update_boot_mode(task)
+        _prepare_node_for_deploy(task)
 
     def clean_up(self, task):
         """Clean up the deployment environment for the task's node.
@@ -678,8 +695,13 @@ class VendorPassthru(agent_base_vendor.BaseAgentVendor):
             LOG.error(_LE("Cannot get boot ISO for node %s"), node.uuid)
             return
 
+        # In secure boot mode, node will reboot twice internally to
+        # enable/disable secure boot. Any one-time boot settings would
+        # be lost.  Hence setting persistent=True.
         ilo_common.setup_vmedia_for_boot(task, boot_iso)
-        manager_utils.node_set_boot_device(task, boot_devices.CDROM)
+        manager_utils.node_set_boot_device(task,
+                                           boot_devices.CDROM,
+                                           persistent=True)
 
         i_info = node.instance_info
         if not i_info.get('ilo_boot_iso'):
@@ -729,6 +751,12 @@ class VendorPassthru(agent_base_vendor.BaseAgentVendor):
             else:
                 self._configure_vmedia_boot(task, root_uuid_or_disk_id)
 
+            # Set boot mode
+            ilo_common.update_boot_mode(task)
+
+            # Need to enable secure boot, if being requested
+            _update_secure_boot_mode(task, True)
+
             deploy_utils.notify_deploy_complete(kwargs.get('address'))
 
             LOG.info(_LI('Deployment to node %s done'), node.uuid)
@@ -775,5 +803,11 @@ class VendorPassthru(agent_base_vendor.BaseAgentVendor):
             # We require auth_token to talk to glance while building boot iso.
             task.context.auth_token = keystone.get_admin_auth_token()
             self._configure_vmedia_boot(task, root_uuid)
+
+        # Set boot mode
+        ilo_common.update_boot_mode(task)
+
+        # Need to enable secure boot, if being requested
+        _update_secure_boot_mode(task, True)
 
         self.reboot_and_finish_deploy(task)
