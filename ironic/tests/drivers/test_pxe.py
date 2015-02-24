@@ -70,7 +70,7 @@ class PXEValidateParametersTestCase(db_base.DbTestCase):
     def test__parse_driver_info_missing_deploy_kernel(self):
         # make sure error is raised when info is missing
         info = dict(DRV_INFO_DICT)
-        del info['pxe_deploy_kernel']
+        del info['deploy_kernel']
         node = obj_utils.create_test_node(self.context, driver_info=info)
         self.assertRaises(exception.MissingParameterValue,
                 pxe._parse_driver_info,
@@ -79,7 +79,7 @@ class PXEValidateParametersTestCase(db_base.DbTestCase):
     def test__parse_driver_info_missing_deploy_ramdisk(self):
         # make sure error is raised when info is missing
         info = dict(DRV_INFO_DICT)
-        del info['pxe_deploy_ramdisk']
+        del info['deploy_ramdisk']
         node = obj_utils.create_test_node(self.context, driver_info=info)
         self.assertRaises(exception.MissingParameterValue,
                 pxe._parse_driver_info,
@@ -90,6 +90,17 @@ class PXEValidateParametersTestCase(db_base.DbTestCase):
         node = obj_utils.create_test_node(self.context,
                                           driver='fake_pxe',
                                           driver_info=DRV_INFO_DICT)
+        info = pxe._parse_driver_info(node)
+        self.assertIsNotNone(info.get('deploy_ramdisk'))
+        self.assertIsNotNone(info.get('deploy_kernel'))
+
+    def test__parse_driver_info_backwards_compat(self):
+        old_drv_info = {}
+        old_drv_info['pxe_deploy_kernel'] = DRV_INFO_DICT['deploy_kernel']
+        old_drv_info['pxe_deploy_ramdisk'] = DRV_INFO_DICT['deploy_ramdisk']
+        node = obj_utils.create_test_node(self.context,
+                                          driver='fake_pxe',
+                                          driver_info=old_drv_info)
         info = pxe._parse_driver_info(node)
         self.assertIsNotNone(info.get('deploy_ramdisk'))
         self.assertIsNotNone(info.get('deploy_kernel'))
@@ -123,12 +134,12 @@ class PXEPrivateMethodsTestCase(db_base.DbTestCase):
                                        self.node.uuid,
                                        'kernel')),
                          'deploy_ramdisk':
-                         (DRV_INFO_DICT['pxe_deploy_ramdisk'],
+                         (DRV_INFO_DICT['deploy_ramdisk'],
                            os.path.join(CONF.pxe.tftp_root,
                                         self.node.uuid,
                                         'deploy_ramdisk')),
                          'deploy_kernel':
-                         (DRV_INFO_DICT['pxe_deploy_kernel'],
+                         (DRV_INFO_DICT['deploy_kernel'],
                           os.path.join(CONF.pxe.tftp_root,
                                        self.node.uuid,
                                        'deploy_kernel'))}

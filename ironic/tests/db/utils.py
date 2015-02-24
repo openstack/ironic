@@ -64,8 +64,8 @@ def get_test_ssh_info(auth_type='password'):
 
 def get_test_pxe_driver_info():
     return {
-        "pxe_deploy_kernel": "glance://deploy_kernel_uuid",
-        "pxe_deploy_ramdisk": "glance://deploy_ramdisk_uuid",
+        "deploy_kernel": "glance://deploy_kernel_uuid",
+        "deploy_ramdisk": "glance://deploy_ramdisk_uuid",
     }
 
 
