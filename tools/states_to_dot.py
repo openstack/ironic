@@ -36,8 +36,8 @@ def print_header(text):
 
 
 def map_color(text):
-    # If the text contains 'error' then we'll return red...
-    if 'error' in text:
+    # If the text contains 'error'/'fail' then we'll return red...
+    if 'error' in text or 'fail' in text:
         return 'red'
     else:
         return None
@@ -69,8 +69,8 @@ def main():
     graph_name = "Ironic states"
     g = pydot.Dot(graph_name=graph_name, rankdir='LR',
                   nodesep='0.25', overlap='false',
-                  ranksep="0.5", size="11x8.5",
-                  splines='true', ordering='in')
+                  ranksep="0.5", splines='true',
+                  ordering='in')
     node_attrs = {
         'fontsize': '11',
     }
@@ -100,17 +100,6 @@ def main():
                 edge_attrs['fontcolor'] = edge_color
         g.add_edge(pydot.Edge(nodes[start_state], nodes[end_state],
                               **edge_attrs))
-
-    # Make nice start states...
-    starts = [
-        format_state(source.start_state),
-    ]
-    for i, s in enumerate(starts):
-        name = "__start_%s__" % i
-        start = pydot.Node(name, shape="point", width="0.1",
-                           xlabel='start', fontcolor='green', **node_attrs)
-        g.add_node(start)
-        g.add_edge(pydot.Edge(start, nodes[s], style='dotted'))
 
     print_header(graph_name)
     print(g.to_string().strip())
