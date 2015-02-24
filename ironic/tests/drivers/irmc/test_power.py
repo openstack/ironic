@@ -147,8 +147,20 @@ class IRMCPowerTestCase(db_base.DbTestCase):
 
     @mock.patch.object(irmc_power, '_set_power_state')
     @mock.patch.object(irmc_power.IRMCPower, 'get_power_state')
-    def test_reboot(self, mock_get_power, mock_set_power):
+    def test_reboot_reboot(self, mock_get_power, mock_set_power):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
+            mock_get_power.return_value = states.POWER_ON
             task.driver.power.reboot(task)
+        mock_get_power.assert_called_once_with(task)
         mock_set_power.assert_called_once_with(task, states.REBOOT)
+
+    @mock.patch.object(irmc_power, '_set_power_state')
+    @mock.patch.object(irmc_power.IRMCPower, 'get_power_state')
+    def test_reboot_power_on(self, mock_get_power, mock_set_power):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            mock_get_power.return_value = states.POWER_OFF
+            task.driver.power.reboot(task)
+        mock_get_power.assert_called_once_with(task)
+        mock_set_power.assert_called_once_with(task, states.POWER_ON)
