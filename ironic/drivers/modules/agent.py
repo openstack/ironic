@@ -56,6 +56,15 @@ CONF.register_opts(agent_opts, group='agent')
 LOG = log.getLogger(__name__)
 
 
+REQUIRED_PROPERTIES = {
+    'deploy_kernel': _('UUID (from Glance) of the deployment kernel. '
+                       'Required.'),
+    'deploy_ramdisk': _('UUID (from Glance) of the ramdisk with agent that is '
+                        'used at deploy time. Required.'),
+}
+COMMON_PROPERTIES = REQUIRED_PROPERTIES
+
+
 def _time():
     """Broken out for testing."""
     return time.time()
@@ -159,7 +168,7 @@ class AgentDeploy(base.DeployInterface):
 
         :returns: dictionary of <property name>:<property description> entries.
         """
-        return {}
+        return COMMON_PROPERTIES
 
     def validate(self, task):
         """Validate the driver-specific Node deployment info.
