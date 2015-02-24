@@ -438,7 +438,7 @@ class AgentVendorInterface(agent_base_vendor.BaseAgentVendor):
         LOG.debug('prepare_image got response %(res)s for node %(node)s',
                   {'res': res, 'node': node.uuid})
 
-    def _check_deploy_success(self, node):
+    def check_deploy_success(self, node):
         # should only ever be called after we've validated that
         # the prepare_image command is complete
         command = self._client.get_commands_status(node)[-1]
@@ -449,7 +449,7 @@ class AgentVendorInterface(agent_base_vendor.BaseAgentVendor):
         node = task.node
         LOG.debug('Preparing to reboot to instance for node %s',
                   node.uuid)
-        error = self._check_deploy_success(node)
+        error = self.check_deploy_success(node)
         if error is not None:
             # TODO(jimrollenhagen) power off if using neutron dhcp to
             #                      align with pxe driver?

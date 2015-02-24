@@ -493,6 +493,9 @@ class IloVirtualMediaAgentDeploy(base.DeployInterface):
         :param task: a TaskManager instance
         :raises: MissingParameterValue if some parameters are missing.
         """
+
+        driver_utils.validate_boot_mode_capability(task.node)
+        driver_utils.validate_secure_boot_capability(task.node)
         _parse_driver_info(task.node)
 
     @task_manager.require_exclusive_lock
@@ -520,6 +523,16 @@ class IloVirtualMediaAgentDeploy(base.DeployInterface):
         :returns: states.DELETED
         """
         manager_utils.node_power_action(task, states.POWER_OFF)
+        try:
+            _update_secure_boot_mode(task, False)
+        # We need to handle IloOperationNotSupported exception so that if
+        # User had incorrectly specified the Node capability 'secure_boot'
+        # to a node that do not have such capability and attempted deploy.
+        # Handling this exception here, will help user to tear down such a
+        # Node.
+        except exception.IloOperationNotSupported:
+            LOG.warn(_LW('Secure boot mode is not supported for node %s'),
+                         task.node.uuid)
         return states.DELETED
 
     def prepare(self, task):
@@ -530,7 +543,7 @@ class IloVirtualMediaAgentDeploy(base.DeployInterface):
         node = task.node
         node.instance_info = agent.build_instance_info_for_deploy(task)
         node.save()
-        ilo_common.update_boot_mode(task)
+        _prepare_node_for_deploy(task)
 
     def clean_up(self, task):
         """Clean up the deployment environment for this node.
@@ -597,6 +610,22 @@ class IloVirtualMediaAgentDeploy(base.DeployInterface):
         provider = dhcp_factory.DHCPFactory().provider
         if getattr(provider, 'delete_cleaning_ports', None):
             provider.delete_cleaning_ports(task)
+
+
+class IloVirtualMediaAgentVendorInterface(agent.AgentVendorInterface):
+    """Interface for vendor passthru rateled actions."""
+
+    def reboot_to_instance(self, task, **kwargs):
+        node = task.node
+        LOG.debug('Preparing to reboot to instance for node %s',
+                  node.uuid)
+
+        error = self.check_deploy_success(node)
+        if error is None:
+            _update_secure_boot_mode(task, True)
+
+        super(IloVirtualMediaAgentVendorInterface,
+              self).reboot_to_instance(task, **kwargs)
 
 
 class IloPXEDeploy(pxe.PXEDeploy):

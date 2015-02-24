@@ -593,12 +593,19 @@ class IloVirtualMediaAgentDeployTestCase(db_base.DbTestCase):
         self.node = obj_utils.create_test_node(self.context,
                 driver='agent_ilo', driver_info=INFO_DICT)
 
+    @mock.patch.object(driver_utils, 'validate_secure_boot_capability')
+    @mock.patch.object(driver_utils, 'validate_boot_mode_capability')
     @mock.patch.object(ilo_deploy, '_parse_driver_info')
-    def test_validate(self, parse_driver_info_mock):
+    def test_validate(self,
+                      parse_driver_info_mock,
+                      validate_boot_mode_mock,
+                      validate_secure_boot_mock):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
             task.driver.deploy.validate(task)
             parse_driver_info_mock.assert_called_once_with(task.node)
+            validate_boot_mode_mock.assert_called_once_with(task.node)
+            validate_secure_boot_mock.assert_called_once_with(task.node)
 
     @mock.patch.object(ilo_deploy, '_prepare_agent_vmedia_boot')
     def test_deploy(self, vmedia_boot_mock):
@@ -608,27 +615,51 @@ class IloVirtualMediaAgentDeployTestCase(db_base.DbTestCase):
             vmedia_boot_mock.assert_called_once_with(task)
             self.assertEqual(states.DEPLOYWAIT, returned_state)
 
+    @mock.patch.object(ilo_deploy, '_update_secure_boot_mode')
     @mock.patch.object(manager_utils, 'node_power_action')
-    def test_tear_down(self, node_power_action_mock):
+    def test_tear_down(self,
+                       node_power_action_mock,
+                       update_secure_boot_mode_mock):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
             returned_state = task.driver.deploy.tear_down(task)
             node_power_action_mock.assert_called_once_with(task,
                     states.POWER_OFF)
+            update_secure_boot_mode_mock.assert_called_once_with(task, False)
             self.assertEqual(states.DELETED, returned_state)
 
-    @mock.patch.object(ilo_common, 'update_boot_mode')
+    @mock.patch.object(ilo_deploy.LOG, 'warn')
+    @mock.patch.object(ilo_deploy, 'exception')
+    @mock.patch.object(ilo_deploy, '_update_secure_boot_mode')
+    @mock.patch.object(manager_utils, 'node_power_action')
+    def test_tear_down_handle_exception(self,
+                                        node_power_action_mock,
+                                        update_secure_boot_mode_mock,
+                                        exception_mock,
+                                        mock_log):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            exception_mock.IloOperationNotSupported = Exception
+            update_secure_boot_mode_mock.side_effect = Exception
+            returned_state = task.driver.deploy.tear_down(task)
+            node_power_action_mock.assert_called_once_with(task,
+                                                           states.POWER_OFF)
+            update_secure_boot_mode_mock.assert_called_once_with(task, False)
+            self.assertTrue(mock_log.called)
+            self.assertEqual(states.DELETED, returned_state)
+
+    @mock.patch.object(ilo_deploy, '_prepare_node_for_deploy')
     @mock.patch.object(agent, 'build_instance_info_for_deploy')
     def test_prepare(self,
                      build_instance_info_mock,
-                     update_boot_mode_mock):
+                     func_prepare_node_for_deploy):
         deploy_opts = {'a': 'b'}
         build_instance_info_mock.return_value = deploy_opts
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
             task.driver.deploy.prepare(task)
-            update_boot_mode_mock.assert_called_once_with(task)
             self.assertEqual(deploy_opts, task.node.instance_info)
+            func_prepare_node_for_deploy.assert_called_once_with(task)
 
     @mock.patch('ironic.dhcp.neutron.NeutronDHCPApi.delete_cleaning_ports')
     @mock.patch('ironic.dhcp.neutron.NeutronDHCPApi.create_cleaning_ports')
@@ -1081,3 +1112,44 @@ class IloPXEVendorPassthruTestCase(db_base.DbTestCase):
             set_boot_device_mock.assert_called_with(task, boot_devices.PXE,
                                                     True)
             pxe_vendorpassthru_mock.assert_called_once_with(task, **kwargs)
+
+
+class IloVirtualMediaAgentVendorInterfaceTestCase(db_base.DbTestCase):
+
+    def setUp(self):
+        super(IloVirtualMediaAgentVendorInterfaceTestCase, self).setUp()
+        mgr_utils.mock_the_extension_manager(driver="agent_ilo")
+        self.node = obj_utils.create_test_node(self.context,
+                driver='agent_ilo', driver_info=INFO_DICT)
+
+    @mock.patch.object(agent.AgentVendorInterface, 'reboot_to_instance')
+    @mock.patch.object(agent.AgentVendorInterface, 'check_deploy_success')
+    @mock.patch.object(ilo_deploy, '_update_secure_boot_mode')
+    def test_reboot_to_instance(self, func_update_secure_boot_mode,
+                                check_deploy_success_mock,
+                                agent_reboot_to_instance_mock):
+        kwargs = {'address': '123456'}
+        check_deploy_success_mock.return_value = None
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            task.driver.vendor.reboot_to_instance(task, **kwargs)
+            check_deploy_success_mock.called_once_with(task.node)
+            func_update_secure_boot_mode.assert_called_once_with(task, True)
+            agent_reboot_to_instance_mock.assert_called_once_with(task,
+                                                                  **kwargs)
+
+    @mock.patch.object(agent.AgentVendorInterface, 'reboot_to_instance')
+    @mock.patch.object(agent.AgentVendorInterface, 'check_deploy_success')
+    @mock.patch.object(ilo_deploy, '_update_secure_boot_mode')
+    def test_reboot_to_instance_deploy_fail(self, func_update_secure_boot_mode,
+                                            check_deploy_success_mock,
+                                            agent_reboot_to_instance_mock):
+        kwargs = {'address': '123456'}
+        check_deploy_success_mock.return_value = "Error"
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            task.driver.vendor.reboot_to_instance(task, **kwargs)
+            check_deploy_success_mock.called_once_with(task.node)
+            self.assertFalse(func_update_secure_boot_mode.called)
+            agent_reboot_to_instance_mock.assert_called_once_with(task,
+                                                                  **kwargs)

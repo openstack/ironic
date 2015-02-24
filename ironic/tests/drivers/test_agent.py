@@ -335,9 +335,9 @@ class TestAgentVendor(db_base.DbTestCase):
     @mock.patch('ironic.conductor.utils.node_power_action')
     @mock.patch('ironic.conductor.utils.node_set_boot_device')
     @mock.patch('ironic.drivers.modules.agent.AgentVendorInterface'
-                '._check_deploy_success')
+                '.check_deploy_success')
     def test_reboot_to_instance(self, check_deploy_mock, bootdev_mock,
-                                 power_mock):
+                                power_mock):
         check_deploy_mock.return_value = None
 
         self.node.provision_state = states.DEPLOYING
