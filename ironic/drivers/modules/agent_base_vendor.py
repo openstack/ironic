@@ -219,19 +219,6 @@ class BaseAgentVendor(base.VendorInterface):
 
         LOG.debug('Initial lookup for node %s succeeded.', node.uuid)
 
-        # Only support additional hardware in v2 and above. Grab all the
-        # top level keys in inventory that aren't interfaces and add them.
-        # Nest it in 'hardware' to avoid namespace issues
-        hardware = {
-            'hardware': {
-                'network': interfaces
-            }
-        }
-
-        for key, value in kwargs.items():
-            if key != 'interfaces':
-                hardware['hardware'][key] = value
-
         return {
             'heartbeat_timeout': CONF.agent.heartbeat_timeout,
             'node': node
