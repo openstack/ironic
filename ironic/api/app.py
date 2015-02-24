@@ -23,14 +23,18 @@ from ironic.api import config
 from ironic.api import hooks
 from ironic.api import middleware
 
-auth_opts = [
+api_opts = [
     cfg.StrOpt('auth_strategy',
         default='keystone',
         help='Method to use for authentication: noauth or keystone.'),
+    cfg.BoolOpt('pecan_debug',
+                default=False,
+                help=('Enable pecan debug mode. WARNING: this is insecure '
+                      'and should not be used in production.')),
     ]
 
 CONF = cfg.CONF
-CONF.register_opts(auth_opts)
+CONF.register_opts(api_opts)
 
 
 def get_pecan_config():
@@ -59,7 +63,7 @@ def setup_app(pecan_config=None, extra_hooks=None):
     app = pecan.make_app(
         pecan_config.app.root,
         static_root=pecan_config.app.static_root,
-        debug=CONF.debug,
+        debug=CONF.pecan_debug,
         force_canonical=getattr(pecan_config.app, 'force_canonical', True),
         hooks=app_hooks,
         wrap_app=middleware.ParsableErrorMiddleware,
