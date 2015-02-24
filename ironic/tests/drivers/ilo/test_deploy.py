@@ -423,11 +423,12 @@ class VendorPassthruTestCase(db_base.DbTestCase):
             self.assertEqual(states.ACTIVE, task.node.target_provision_state)
             continue_deploy_mock.assert_called_once_with(task, **kwargs)
 
+    @mock.patch.object(manager_utils, 'node_power_action')
     @mock.patch.object(iscsi_deploy, 'continue_deploy')
     @mock.patch.object(ilo_common, 'cleanup_vmedia_boot')
     @mock.patch.object(ilo_deploy, '_get_boot_iso')
     def test__continue_deploy_create_boot_iso_fail(self, get_iso_mock,
-            cleanup_vmedia_boot_mock, continue_deploy_mock):
+            cleanup_vmedia_boot_mock, continue_deploy_mock, node_power_mock):
         kwargs = {'address': '123456'}
         continue_deploy_mock.return_value = 'root-uuid'
         get_iso_mock.side_effect = exception.ImageCreationFailed(
@@ -443,6 +444,7 @@ class VendorPassthruTestCase(db_base.DbTestCase):
             cleanup_vmedia_boot_mock.assert_called_once_with(task)
             continue_deploy_mock.assert_called_once_with(task, **kwargs)
             get_iso_mock.assert_called_once_with(task, 'root-uuid')
+            node_power_mock.assert_called_once_with(task, states.POWER_OFF)
             self.assertEqual(states.DEPLOYFAIL, task.node.provision_state)
             self.assertEqual(states.ACTIVE, task.node.target_provision_state)
             self.assertIsNotNone(task.node.last_error)
