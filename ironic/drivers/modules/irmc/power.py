@@ -130,4 +130,8 @@ class IRMCPower(base.PowerInterface):
         :raises: InvalidParameterValue if an invalid power state was specified.
         :raises: IRMCOperationError if failed to set the power state.
         """
-        _set_power_state(task, states.REBOOT)
+        current_pstate = self.get_power_state(task)
+        if current_pstate == states.POWER_ON:
+            _set_power_state(task, states.REBOOT)
+        elif current_pstate == states.POWER_OFF:
+            _set_power_state(task, states.POWER_ON)
