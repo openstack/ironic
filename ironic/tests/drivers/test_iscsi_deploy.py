@@ -24,7 +24,10 @@ from oslo_utils import uuidutils
 
 from ironic.common import exception
 from ironic.common import keystone
+from ironic.common import states
 from ironic.common import utils
+from ironic.conductor import task_manager
+from ironic.conductor import utils as manager_utils
 from ironic.drivers.modules import deploy_utils
 from ironic.drivers.modules import iscsi_deploy
 from ironic.openstack.common import fileutils
@@ -175,9 +178,11 @@ class IscsiDeployMethodsTestCase(db_base.DbTestCase):
 
     def setUp(self):
         super(IscsiDeployMethodsTestCase, self).setUp()
+        instance_info = dict(INST_INFO_DICT)
+        instance_info['deploy_key'] = 'fake-56789'
         n = {
               'driver': 'fake_pxe',
-              'instance_info': INST_INFO_DICT,
+              'instance_info': instance_info,
               'driver_info': DRV_INFO_DICT,
         }
         mgr_utils.mock_the_extension_manager(driver="fake_pxe")
@@ -312,3 +317,49 @@ class IscsiDeployMethodsTestCase(db_base.DbTestCase):
         self.node.instance_info = {}
         result = iscsi_deploy.get_boot_option(self.node)
         self.assertEqual("netboot", result)
+
+    @mock.patch.object(iscsi_deploy, 'InstanceImageCache')
+    @mock.patch.object(manager_utils, 'node_power_action')
+    @mock.patch.object(deploy_utils, 'deploy')
+    def test_continue_deploy_fail(self, deploy_mock, power_mock,
+                                  mock_image_cache):
+        kwargs = {'address': '123456', 'iqn': 'aaa-bbb', 'key': 'fake-56789'}
+        deploy_mock.side_effect = exception.InstanceDeployFailure(
+                                  "test deploy error")
+        self.node.provision_state = states.DEPLOYWAIT
+        self.node.target_provision_state = states.ACTIVE
+        self.node.save()
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            params = iscsi_deploy.get_deploy_info(task.node, **kwargs)
+            iscsi_deploy.continue_deploy(task, **kwargs)
+            self.assertEqual(states.DEPLOYFAIL, task.node.provision_state)
+            self.assertEqual(states.ACTIVE, task.node.target_provision_state)
+            self.assertIsNotNone(task.node.last_error)
+            deploy_mock.assert_called_once_with(**params)
+            power_mock.assert_called_once_with(task, states.POWER_OFF)
+            mock_image_cache.assert_called_once_with()
+            mock_image_cache.return_value.clean_up.assert_called_once_with()
+
+    @mock.patch.object(iscsi_deploy, 'InstanceImageCache')
+    @mock.patch.object(manager_utils, 'node_power_action')
+    @mock.patch.object(deploy_utils, 'deploy')
+    def test_continue_deploy_ramdisk_fails(self, deploy_mock, power_mock,
+                                           mock_image_cache):
+        kwargs = {'address': '123456', 'iqn': 'aaa-bbb', 'key': 'fake-56789',
+                  'error': 'test ramdisk error'}
+        self.node.provision_state = states.DEPLOYWAIT
+        self.node.target_provision_state = states.ACTIVE
+        self.node.save()
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            iscsi_deploy.continue_deploy(task, **kwargs)
+            self.assertIsNotNone(task.node.last_error)
+            self.assertEqual(states.DEPLOYFAIL, task.node.provision_state)
+            self.assertEqual(states.ACTIVE, task.node.target_provision_state)
+            power_mock.assert_called_once_with(task, states.POWER_OFF)
+            mock_image_cache.assert_called_once_with()
+            mock_image_cache.return_value.clean_up.assert_called_once_with()
+            self.assertFalse(deploy_mock.called)
