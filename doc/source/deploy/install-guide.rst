@@ -333,6 +333,8 @@ Compute Service's controller nodes and compute nodes.*
 
     service nova-compute restart
 
+.. _NeutronFlatNetworking:
+
 Configure Neutron to communicate with the Bare Metal Server
 ===========================================================
 

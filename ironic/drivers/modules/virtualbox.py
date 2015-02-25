@@ -158,7 +158,7 @@ def _run_virtualbox_method(node, ironic_method, vm_object_method,
         vm_object = host.find_vm(driver_info['vmname'])
     except virtualbox_exc.PyRemoteVBoxException as exc:
         LOG.error(_LE("Failed while creating a VirtualMachine object for "
-                      "node %(node)s. Error: %(error)s."),
+                      "node %(node_id)s. Error: %(error)s."),
                   {'node_id': node.uuid, 'error': exc})
         raise exception.VirtualBoxOperationFailed(operation=vm_object_method,
                                                   error=exc)
