@@ -57,41 +57,50 @@ class Version(object):
     """HTTP Header string carrying the requested version"""
 
     min_string = 'X-OpenStack-Ironic-API-Minimum-Version'
-    """HTTP reponse header"""
+    """HTTP response header"""
 
     max_string = 'X-OpenStack-Ironic-API-Maximum-Version'
     """HTTP response header"""
 
-    def __init__(self, headers):
+    def __init__(self, headers, default_version, latest_version):
         """Create an API Version object from the supplied headers.
 
         :param headers: webob headers
+        :param default_version: version to use if not specified in headers
+        :param latest_version: version to use if latest is requested
         :raises: webob.HTTPNotAcceptable
         """
-        (self.major, self.minor) = Version.parse_headers(headers)
+        (self.major, self.minor) = Version.parse_headers(headers,
+                                       default_version, latest_version)
 
     def __repr__(self):
         return '%s.%s' % (self.major, self.minor)
 
     @staticmethod
-    def parse_headers(headers):
+    def parse_headers(headers, default_version, latest_version):
         """Determine the API version requested based on the headers supplied.
 
         :param headers: webob headers
+        :param default_version: version to use if not specified in headers
+        :param latest_version: version to use if latest is requested
         :returns: a tupe of (major, minor) version numbers
         :raises: webob.HTTPNotAcceptable
         """
+        version_str = headers.get(Version.string, default_version)
+
+        if version_str.lower() == 'latest':
+            parse_str = latest_version
+        else:
+            parse_str = version_str
+
         try:
-            # default to the minimum supported version,  but don't actually
-            # import v1.__init__ here because that would be circular...
-            version = tuple(int(i) for i in headers.get(
-                    Version.string, '1.1').split('.'))
+            version = tuple(int(i) for i in parse_str.split('.'))
         except ValueError:
             version = ()
+
         if len(version) != 2:
             raise exc.HTTPNotAcceptable(_(
-                "Invalid value for X-OpenStack-Ironic-API-Version "
-                "header."))
+                "Invalid value for %s header") % Version.string)
         return version
 
     def __lt__(a, b):
