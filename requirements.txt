@@ -15,9 +15,9 @@ sqlalchemy-migrate>=0.8.2,!=0.8.4,<=0.9.1
 netaddr>=0.7.6
 paramiko>=1.9.0
 iso8601>=0.1.9
-python-neutronclient>=2.3.4,<2.4
-python-glanceclient>=0.9.0,!=0.14.0,<0.15
-python-keystoneclient>=0.7.0,<0.12
+python-neutronclient>=2.3.4,<2.3.11
+python-glanceclient>=0.9.0,!=0.14.0,<=0.14.2
+python-keystoneclient>=0.7.0,<=0.11.2
 stevedore>=0.14,<1.2
 websockify>=0.5.1,<0.6
 oslo.config>=1.2.0,<1.5
@@ -27,4 +27,4 @@ six>=1.6.0
 jsonpatch>=1.1
 WSME>=0.6
 Jinja2
-pyghmi>=0.5.8
+pyghmi>=0.5.8,<=0.6.23
