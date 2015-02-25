@@ -787,11 +787,11 @@ controller in your bare metal server by using ``ipmitool``::
 Ironic supports sending IPMI sensor data to Ceilometer with pxe_ipmitool,
 pxe_ipminative, agent_ipmitool, agent_pyghmi, agent_ilo, iscsi_ilo and pxe_ilo
 drivers. By default, support for sending IPMI sensor data to Ceilometer is
-disabled. If you want to enable it set the following options in the
-``conductor`` section of ``ironic.conf``:
+disabled. If you want to enable it, you should make the following two changes
+in ``ironic.conf``:
 
-* notification_driver=messaging
-* send_sensor_data=true
+* ``notification_driver = messaging`` in the ``DEFAULT`` section
+* ``send_sensor_data = true`` in the ``conductor`` section
 
 If you want to customize the sensor types which will be sent to Ceilometer,
 change the ``send_sensor_data_types`` option. For example, the below settings
