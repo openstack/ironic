@@ -184,7 +184,7 @@ def delete_iscsi(portal_address, portal_port, target_iqn):
 
 
 def make_partitions(dev, root_mb, swap_mb, ephemeral_mb,
-                    configdrive_mb, commit=True):
+                    configdrive_mb, commit=True, boot_option="netboot"):
     """Partition the disk device.
 
     Create partitions for root, swap, ephemeral and configdrive on a
@@ -199,6 +199,7 @@ def make_partitions(dev, root_mb, swap_mb, ephemeral_mb,
         mebibytes (MiB). If 0, no partition will be created.
     :param commit: True/False. Default for this setting is True. If False
         partitions will not be written to disk.
+    :param boot_option: Can be "local" or "netboot". "netboot" by default.
     :returns: A dictionary containing the partition type as Key and partition
         path as Value for the partitions created by this method.
 
@@ -229,7 +230,7 @@ def make_partitions(dev, root_mb, swap_mb, ephemeral_mb,
     # partition until the end of the disk.
     LOG.debug("Add root partition (%(size)d MB) to device: %(dev)s",
              {'dev': dev, 'size': root_mb})
-    part_num = dp.add_partition(root_mb)
+    part_num = dp.add_partition(root_mb, bootable=(boot_option == "local"))
     part_dict['root'] = part_template % part_num
 
     if commit:
@@ -457,7 +458,7 @@ def _get_configdrive(configdrive, node_uuid):
 
 def work_on_disk(dev, root_mb, swap_mb, ephemeral_mb, ephemeral_format,
                  image_path, node_uuid, preserve_ephemeral=False,
-                 configdrive=None):
+                 configdrive=None, boot_option="netboot"):
     """Create partitions and copy an image to the root partition.
 
     :param dev: Path for the device to work on.
@@ -474,6 +475,7 @@ def work_on_disk(dev, root_mb, swap_mb, ephemeral_mb, ephemeral_format,
         partition table has not changed).
     :param configdrive: Optional. Base64 encoded Gzipped configdrive content
                         or configdrive HTTP URL.
+    :param boot_option: Can be "local" or "netboot". "netboot" by default.
     :returns: the UUID of the root partition.
     """
     if not is_block_device(dev):
@@ -497,7 +499,8 @@ def work_on_disk(dev, root_mb, swap_mb, ephemeral_mb, ephemeral_format,
                                                                 node_uuid)
 
         part_dict = make_partitions(dev, root_mb, swap_mb, ephemeral_mb,
-                                    configdrive_mb, commit=commit)
+                                    configdrive_mb, commit=commit,
+                                    boot_option=boot_option)
 
         ephemeral_part = part_dict.get('ephemeral')
         swap_part = part_dict.get('swap')
@@ -547,7 +550,8 @@ def work_on_disk(dev, root_mb, swap_mb, ephemeral_mb, ephemeral_format,
 
 def deploy(address, port, iqn, lun, image_path,
            root_mb, swap_mb, ephemeral_mb, ephemeral_format, node_uuid,
-           preserve_ephemeral=False, configdrive=None):
+           preserve_ephemeral=False, configdrive=None,
+           boot_option="netboot"):
     """All-in-one function to deploy a node.
 
     :param address: The iSCSI IP address.
@@ -567,6 +571,7 @@ def deploy(address, port, iqn, lun, image_path,
         partition table has not changed).
     :param configdrive: Optional. Base64 encoded Gzipped configdrive content
                         or configdrive HTTP URL.
+    :param boot_option: Can be "local" or "netboot". "netboot" by default.
     :returns: the UUID of the root partition.
     """
     dev = get_dev(address, port, iqn, lun)
@@ -579,7 +584,8 @@ def deploy(address, port, iqn, lun, image_path,
         root_uuid = work_on_disk(dev, root_mb, swap_mb, ephemeral_mb,
                                  ephemeral_format, image_path, node_uuid,
                                  preserve_ephemeral=preserve_ephemeral,
-                                 configdrive=configdrive)
+                                 configdrive=configdrive,
+                                 boot_option=boot_option)
     except processutils.ProcessExecutionError as err:
         with excutils.save_and_reraise_exception():
             LOG.error(_LE("Deploy to address %s failed."), address)

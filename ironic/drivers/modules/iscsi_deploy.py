@@ -214,7 +214,6 @@ def get_deploy_info(node, **kwargs):
     :raises: InvalidParameterValue, if any of the parameters have invalid
         value.
     """
-
     deploy_key = kwargs.get('key')
     i_info = parse_instance_info(node)
     if i_info['deploy_key'] != deploy_key:
@@ -230,7 +229,7 @@ def get_deploy_info(node, **kwargs):
               'ephemeral_mb': 1024 * int(i_info['ephemeral_gb']),
               'preserve_ephemeral': i_info['preserve_ephemeral'],
               'node_uuid': node.uuid,
-              }
+              'boot_option': get_boot_option(node)}
 
     missing = [key for key in params if params[key] is None]
     if missing:

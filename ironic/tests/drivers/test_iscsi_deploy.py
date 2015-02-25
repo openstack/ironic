@@ -363,3 +363,35 @@ class IscsiDeployMethodsTestCase(db_base.DbTestCase):
             mock_image_cache.assert_called_once_with()
             mock_image_cache.return_value.clean_up.assert_called_once_with()
             self.assertFalse(deploy_mock.called)
+
+    def test_get_deploy_info_boot_option_default(self):
+        instance_info = self.node.instance_info
+        instance_info['deploy_key'] = 'key'
+        self.node.instance_info = instance_info
+        kwargs = {'address': '1.1.1.1', 'iqn': 'target-iqn', 'key': 'key'}
+        ret_val = iscsi_deploy.get_deploy_info(self.node, **kwargs)
+        self.assertEqual('1.1.1.1', ret_val['address'])
+        self.assertEqual('target-iqn', ret_val['iqn'])
+        self.assertEqual('netboot', ret_val['boot_option'])
+
+    def test_get_deploy_info_netboot_specified(self):
+        instance_info = self.node.instance_info
+        instance_info['deploy_key'] = 'key'
+        instance_info['capabilities'] = {'boot_option': 'netboot'}
+        self.node.instance_info = instance_info
+        kwargs = {'address': '1.1.1.1', 'iqn': 'target-iqn', 'key': 'key'}
+        ret_val = iscsi_deploy.get_deploy_info(self.node, **kwargs)
+        self.assertEqual('1.1.1.1', ret_val['address'])
+        self.assertEqual('target-iqn', ret_val['iqn'])
+        self.assertEqual('netboot', ret_val['boot_option'])
+
+    def test_get_deploy_info_localboot(self):
+        instance_info = self.node.instance_info
+        instance_info['deploy_key'] = 'key'
+        instance_info['capabilities'] = {'boot_option': 'local'}
+        self.node.instance_info = instance_info
+        kwargs = {'address': '1.1.1.1', 'iqn': 'target-iqn', 'key': 'key'}
+        ret_val = iscsi_deploy.get_deploy_info(self.node, **kwargs)
+        self.assertEqual('1.1.1.1', ret_val['address'])
+        self.assertEqual('target-iqn', ret_val['iqn'])
+        self.assertEqual('local', ret_val['boot_option'])
