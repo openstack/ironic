@@ -184,7 +184,7 @@ class NeutronDHCPApi(base.BaseDHCP):
         # TODO(adam_g): Hack to workaround bug 1334447 until we have a
         # mechanism for synchronizing events with Neutron.  We need to sleep
         # only if we are booting VMs, which is implied by SSHPower, to ensure
-        # they do not boot before Neutron agents have setup sufficent DHCP
+        # they do not boot before Neutron agents have setup sufficient DHCP
         # config for netboot.
         if isinstance(task.driver.power, ssh.SSHPower):
             LOG.debug("Waiting 15 seconds for Neutron.")
