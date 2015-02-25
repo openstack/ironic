@@ -1492,7 +1492,7 @@ class DoNodeDeployTearDownTestCase(_ServiceSetUpMixin,
 
 
 @_mock_record_keepalive
-class MiscTestCase(_ServiceSetUpMixin, tests_db_base.DbTestCase):
+class MiscTestCase(_ServiceSetUpMixin, _CommonMixIn, tests_db_base.DbTestCase):
     def test_get_driver_known(self):
         self._start_service()
         driver = self.service._get_driver('fake')
@@ -1533,6 +1533,22 @@ class MiscTestCase(_ServiceSetUpMixin, tests_db_base.DbTestCase):
                                                           node.uuid)
             self.assertFalse(ret['deploy']['result'])
             self.assertEqual(reason, ret['deploy']['reason'])
+
+    @mock.patch.object(manager.ConductorManager, '_mapped_to_this_conductor')
+    @mock.patch.object(dbapi.IMPL, 'get_nodeinfo_list')
+    def test_iter_nodes(self, mock_nodeinfo_list, mock_mapped):
+        self._start_service()
+        self.columns = ['uuid', 'driver', 'id']
+        nodes = [self._create_node(id=i, driver='fake') for i in range(2)]
+        mock_nodeinfo_list.return_value = self._get_nodeinfo_list_response(
+            nodes)
+        mock_mapped.side_effect = [True, False]
+
+        result = list(self.service.iter_nodes(fields=['id'],
+                                              filters=mock.sentinel.filters))
+        self.assertEqual([(nodes[0].uuid, 'fake', 0)], result)
+        mock_nodeinfo_list.assert_called_once_with(
+            columns=self.columns, filters=mock.sentinel.filters)
 
 
 @_mock_record_keepalive
@@ -2231,7 +2247,7 @@ class ManagerSyncPowerStatesTestCase(_CommonMixIn, tests_db_base.DbTestCase):
         self.service.dbapi = self.dbapi
         self.node = self._create_node()
         self.filters = {'reserved': False, 'maintenance': False}
-        self.columns = ['id', 'uuid', 'driver']
+        self.columns = ['uuid', 'driver', 'id']
 
     def test_node_not_mapped(self, get_nodeinfo_mock, get_node_mock,
                              mapped_mock, acquire_mock, sync_mock):
@@ -2472,8 +2488,9 @@ class ManagerSyncPowerStatesTestCase(_CommonMixIn, tests_db_base.DbTestCase):
 
         with mock.patch.object(eventlet, 'sleep') as sleep_mock:
             self.service._sync_power_states(self.context)
-            # Ensure we've yielded on every iteration
-            self.assertEqual(len(nodes), sleep_mock.call_count)
+            # Ensure we've yielded on every iteration, except for node
+            # not mapped to this conductor
+            self.assertEqual(len(nodes) - 1, sleep_mock.call_count)
 
         get_nodeinfo_mock.assert_called_once_with(
                 columns=self.columns, filters=self.filters)
@@ -2870,7 +2887,7 @@ class ManagerSyncLocalStateTestCase(_CommonMixIn, tests_db_base.DbTestCase):
         self.filters = {'reserved': False,
                         'maintenance': False,
                         'provision_state': states.ACTIVE}
-        self.columns = ['id', 'uuid', 'driver', 'conductor_affinity']
+        self.columns = ['uuid', 'driver', 'id', 'conductor_affinity']
 
     def _assert_get_nodeinfo_args(self, get_nodeinfo_mock):
         get_nodeinfo_mock.assert_called_once_with(

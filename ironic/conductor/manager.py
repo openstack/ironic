@@ -874,13 +874,9 @@ class ConductorManager(periodic_task.PeriodicTasks):
         # and first set of checks below.
 
         filters = {'reserved': False, 'maintenance': False}
-        columns = ['id', 'uuid', 'driver']
-        node_list = self.dbapi.get_nodeinfo_list(columns=columns,
-                                                 filters=filters)
-        for (node_id, node_uuid, driver) in node_list:
+        node_iter = self.iter_nodes(fields=['id'], filters=filters)
+        for (node_uuid, driver, node_id) in node_iter:
             try:
-                if not self._mapped_to_this_conductor(node_uuid, driver):
-                    continue
                 # NOTE(deva): we should not acquire a lock on a node in
                 #             DEPLOYWAIT, as this could cause an error within
                 #             a deploy ramdisk POSTing back at the same time.
@@ -956,16 +952,12 @@ class ConductorManager(periodic_task.PeriodicTasks):
         filters = {'reserved': False,
                    'maintenance': False,
                    'provision_state': states.ACTIVE}
-        columns = ['id', 'uuid', 'driver', 'conductor_affinity']
-        node_list = self.dbapi.get_nodeinfo_list(
-                                    columns=columns,
+        node_iter = self.iter_nodes(fields=['id', 'conductor_affinity'],
                                     filters=filters)
 
         admin_context = None
         workers_count = 0
-        for node_id, node_uuid, driver, conductor_affinity in node_list:
-            if not self._mapped_to_this_conductor(node_uuid, driver):
-                continue
+        for node_uuid, driver, node_id, conductor_affinity in node_iter:
             if conductor_affinity == self.conductor.id:
                 continue
 
@@ -1012,6 +1004,27 @@ class ConductorManager(periodic_task.PeriodicTasks):
             return False
 
         return self.host in ring.get_hosts(node_uuid)
+
+    def iter_nodes(self, fields=None, **kwargs):
+        """Iterate over nodes mapped to this conductor.
+
+        Requests node set from and filters out nodes that are not
+        mapped to this conductor.
+
+        Yields tuples (node_uuid, driver, ...) where ... is derived from
+        fields argument, e.g.: fields=None means yielding ('uuid', 'driver'),
+        fields=['foo'] means yielding ('uuid', 'driver', 'foo').
+
+        :param fields: list of fields to fetch in addition to uuid and driver
+        :param kwargs: additional arguments to pass to dbapi when looking for
+                       nodes
+        :return: generator yielding tuples of requested fields
+        """
+        columns = ['uuid', 'driver'] + list(fields or ())
+        node_list = self.dbapi.get_nodeinfo_list(columns=columns, **kwargs)
+        for result in node_list:
+            if self._mapped_to_this_conductor(*result[:2]):
+                yield result
 
     @messaging.expected_exceptions(exception.NodeLocked)
     def validate_driver_interfaces(self, context, node_id):
@@ -1244,15 +1257,10 @@ class ConductorManager(periodic_task.PeriodicTasks):
             return
 
         filters = {'associated': True}
-        columns = ['uuid', 'driver', 'instance_uuid']
-        node_list = self.dbapi.get_nodeinfo_list(columns=columns,
-                                                 filters=filters)
+        node_iter = self.iter_nodes(fields=['instance_uuid'],
+                                    filters=filters)
 
-        for (node_uuid, driver, instance_uuid) in node_list:
-            # only handle the nodes mapped to this conductor
-            if not self._mapped_to_this_conductor(node_uuid, driver):
-                continue
-
+        for (node_uuid, driver, instance_uuid) in node_iter:
             # populate the message which will be sent to ceilometer
             message = {'message_id': uuidutils.generate_uuid(),
                        'instance_uuid': instance_uuid,
@@ -1493,16 +1501,12 @@ class ConductorManager(periodic_task.PeriodicTasks):
         :param: last_error: the error message to be updated in node.last_error
 
         """
-        columns = ['uuid', 'driver']
-        node_list = self.dbapi.get_nodeinfo_list(columns=columns,
-                                                 filters=filters,
-                                                 sort_key=sort_key,
-                                                 sort_dir='asc')
+        node_iter = self.iter_nodes(filters=filters,
+                                    sort_key=sort_key,
+                                    sort_dir='asc')
 
         workers_count = 0
-        for node_uuid, driver in node_list:
-            if not self._mapped_to_this_conductor(node_uuid, driver):
-                continue
+        for node_uuid, driver in node_iter:
             try:
                 with task_manager.acquire(context, node_uuid) as task:
                     if (task.node.maintenance or
