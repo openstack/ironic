@@ -28,6 +28,7 @@ from ironic.drivers.modules.ilo import management as ilo_management
 from ironic.drivers.modules.ilo import power as ilo_power
 from ironic.drivers.modules import ipminative
 from ironic.drivers.modules import ipmitool
+from ironic.drivers.modules.irmc import management as irmc_management
 from ironic.drivers.modules.irmc import power as irmc_power
 from ironic.drivers.modules import pxe
 from ironic.drivers.modules import seamicro
@@ -208,7 +209,7 @@ class PXEAndIRMCDriver(base.BaseDriver):
         self.power = irmc_power.IRMCPower()
         self.console = ipmitool.IPMIShellinaboxConsole()
         self.deploy = pxe.PXEDeploy()
-        self.management = ipmitool.IPMIManagement()
+        self.management = irmc_management.IRMCManagement()
         self.vendor = pxe.VendorPassthru()
 
 

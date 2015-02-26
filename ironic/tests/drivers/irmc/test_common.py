@@ -16,7 +16,6 @@ Test class for common methods used by iRMC modules.
 """
 
 import mock
-from oslo_config import cfg
 
 from ironic.common import exception
 from ironic.conductor import task_manager
@@ -25,9 +24,6 @@ from ironic.tests.conductor import utils as mgr_utils
 from ironic.tests.db import base as db_base
 from ironic.tests.db import utils as db_utils
 from ironic.tests.objects import utils as obj_utils
-
-
-CONF = cfg.CONF
 
 
 class IRMCValidateParametersTestCase(db_base.DbTestCase):
@@ -48,6 +44,20 @@ class IRMCValidateParametersTestCase(db_base.DbTestCase):
         self.assertIsNotNone(info.get('irmc_client_timeout'))
         self.assertIsNotNone(info.get('irmc_port'))
         self.assertIsNotNone(info.get('irmc_auth_method'))
+        self.assertIsNotNone(info.get('irmc_sensor_method'))
+
+    def test_parse_driver_option_default(self):
+        self.node.driver_info = {
+            "irmc_address": "1.2.3.4",
+            "irmc_username": "admin0",
+            "irmc_password": "fake0",
+        }
+        info = irmc_common.parse_driver_info(self.node)
+
+        self.assertEqual('basic', info.get('irmc_auth_method'))
+        self.assertEqual(443, info.get('irmc_port'))
+        self.assertEqual(60, info.get('irmc_client_timeout'))
+        self.assertEqual('ipmitool', info.get('irmc_sensor_method'))
 
     def test_parse_driver_info_missing_address(self):
         del self.node.driver_info['irmc_address']
@@ -76,6 +86,11 @@ class IRMCValidateParametersTestCase(db_base.DbTestCase):
 
     def test_parse_driver_info_invalid_auth_method(self):
         self.node.driver_info['irmc_auth_method'] = 'qwe'
+        self.assertRaises(exception.InvalidParameterValue,
+                          irmc_common.parse_driver_info, self.node)
+
+    def test_parse_driver_info_invalid_sensor_method(self):
+        self.node.driver_info['irmc_sensor_method'] = 'qwe'
         self.assertRaises(exception.InvalidParameterValue,
                           irmc_common.parse_driver_info, self.node)
 
@@ -130,3 +145,19 @@ class IRMCCommonMethodsTestCase(db_base.DbTestCase):
             actual_info = task.node.driver_info
             expected_info = dict(self.info, **ipmi_info)
             self.assertEqual(expected_info, actual_info)
+
+    @mock.patch.object(irmc_common, 'scci')
+    def test_get_irmc_report(self, mock_scci):
+        self.info['irmc_port'] = 80
+        self.info['irmc_auth_method'] = 'digest'
+        self.info['irmc_client_timeout'] = 60
+        mock_scci.get_report.return_value = 'get_report'
+        returned_mock_scci_get_report = irmc_common.get_irmc_report(self.node)
+        mock_scci.get_report.assert_called_with(
+            self.info['irmc_address'],
+            self.info['irmc_username'],
+            self.info['irmc_password'],
+            port=self.info['irmc_port'],
+            auth_method=self.info['irmc_auth_method'],
+            client_timeout=self.info['irmc_client_timeout'])
+        self.assertEqual('get_report', returned_mock_scci_get_report)

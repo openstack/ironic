@@ -548,7 +548,7 @@ def _parse_ipmi_sensors_data(node, sensors_data):
 
 
 @task_manager.require_exclusive_lock
-def _send_raw(task, raw_bytes):
+def send_raw(task, raw_bytes):
     """Send raw bytes to the BMC. Bytes should be a string of bytes.
 
     :param task: a TaskManager instance.
@@ -729,7 +729,7 @@ class IPMIManagement(base.ManagementInterface):
         # This mimics pyghmi's current behavior, and the "option=timeout"
         # setting on newer ipmitool binaries.
         timeout_disable = "0x00 0x08 0x03 0x08"
-        _send_raw(task, timeout_disable)
+        send_raw(task, timeout_disable)
 
         cmd = "chassis bootdev %s" % device
         if persistent:
@@ -843,7 +843,7 @@ class VendorPassthru(base.VendorInterface):
         :raises:  InvalidParameterValue when an invalid value is specified.
 
         """
-        _send_raw(task, raw_bytes)
+        send_raw(task, raw_bytes)
 
     @base.passthru(['POST'])
     @task_manager.require_exclusive_lock

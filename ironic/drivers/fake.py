@@ -31,6 +31,7 @@ from ironic.drivers.modules.ilo import management as ilo_management
 from ironic.drivers.modules.ilo import power as ilo_power
 from ironic.drivers.modules import ipminative
 from ironic.drivers.modules import ipmitool
+from ironic.drivers.modules.irmc import management as irmc_management
 from ironic.drivers.modules.irmc import power as irmc_power
 from ironic.drivers.modules import pxe
 from ironic.drivers.modules import seamicro
@@ -186,6 +187,7 @@ class FakeIRMCDriver(base.BaseDriver):
                     reason=_("Unable to import python-scciclient library"))
         self.power = irmc_power.IRMCPower()
         self.deploy = fake.FakeDeploy()
+        self.management = irmc_management.IRMCManagement()
 
 
 class FakeVirtualBoxDriver(base.BaseDriver):
