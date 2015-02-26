@@ -164,11 +164,12 @@ class BaseAgentVendor(base.VendorInterface):
                   self.deploy_is_done(task)):
                 msg = _('Node failed to move to active state.')
                 self.reboot_to_instance(task, **kwargs)
-        except Exception:
-            LOG.exception(_LE('Async exception for %(node)s: %(msg)s'),
-                          {'node': node.uuid,
-                           'msg': msg})
-            deploy_utils.set_failed_state(task, msg)
+        except Exception as e:
+            err_info = {'node': node.uuid, 'msg': msg, 'e': e}
+            last_error = _('Asynchronous exception for node %(node)s: '
+                           '%(msg)s exception: %(e)s') % err_info
+            LOG.exception(last_error)
+            deploy_utils.set_failed_state(task, last_error)
 
     @base.driver_passthru(['POST'], async=False)
     def lookup(self, context, **kwargs):
