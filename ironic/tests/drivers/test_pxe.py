@@ -20,7 +20,6 @@
 import os
 import tempfile
 
-import fixtures
 import mock
 from oslo_config import cfg
 from oslo_serialization import jsonutils as json
@@ -697,9 +696,10 @@ class PXEDriverTestCase(db_base.DbTestCase):
     @mock.patch.object(deploy_utils, 'notify_deploy_complete')
     @mock.patch.object(deploy_utils, 'switch_pxe_config')
     @mock.patch.object(iscsi_deploy, 'InstanceImageCache')
-    def _test_continue_deploy(self, is_localboot, mock_image_cache,
-                              mock_switch_config, notify_mock,
-                              mock_node_boot_dev, mock_clean_pxe):
+    @mock.patch.object(deploy_utils, 'deploy')
+    def _test_continue_deploy(self, is_localboot, mock_deploy,
+                              mock_image_cache, mock_switch_config,
+                              notify_mock, mock_node_boot_dev, mock_clean_pxe):
         token_path = self._create_token_file()
 
         # set local boot
@@ -714,14 +714,8 @@ class PXEDriverTestCase(db_base.DbTestCase):
         self.node.save()
 
         root_uuid = "12345678-1234-1234-1234-1234567890abcxyz"
+        mock_deploy.return_value = root_uuid
         boot_mode = None
-
-        def fake_deploy(**kwargs):
-            return root_uuid
-
-        self.useFixture(fixtures.MonkeyPatch(
-                'ironic.drivers.modules.deploy_utils.deploy',
-                fake_deploy))
 
         with task_manager.acquire(self.context, self.node.uuid) as task:
             task.driver.vendor._continue_deploy(

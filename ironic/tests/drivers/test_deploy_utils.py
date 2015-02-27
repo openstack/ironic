@@ -20,8 +20,8 @@ import os
 import shutil
 import stat
 import tempfile
+import time
 
-import fixtures
 import mock
 from oslo_concurrency import processutils
 from oslo_config import cfg
@@ -132,15 +132,8 @@ image=kernel
 """
 
 
+@mock.patch.object(time, 'sleep', lambda seconds: None)
 class PhysicalWorkTestCase(tests_base.TestCase):
-
-    def setUp(self):
-        super(PhysicalWorkTestCase, self).setUp()
-
-        def noop(*args, **kwargs):
-            pass
-
-        self.useFixture(fixtures.MonkeyPatch('time.sleep', noop))
 
     def _mock_calls(self, name_list):
         patch_list = [mock.patch.object(utils, name) for name in name_list]
