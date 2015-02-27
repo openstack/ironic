@@ -26,6 +26,7 @@ from six.moves.urllib import parse as urlparse
 from ironic.common import boot_devices
 from ironic.common import dhcp_factory
 from ironic.common import exception
+from ironic.common.glance_service import service_utils
 from ironic.common.i18n import _
 from ironic.common.i18n import _LE
 from ironic.common.i18n import _LI
@@ -229,8 +230,8 @@ def _get_image_info(node, ctx):
     """Generate the paths for tftp files for this instance
 
     Raises IronicException if
-    - instance does not contain kernel_id or ramdisk_id
-    - deploy_kernel_id or deploy_ramdisk_id can not be read from
+    - instance does not contain kernel or ramdisk
+    - deploy_kernel or deploy_ramdisk can not be read from
       driver_info and defaults are not set
 
     """
@@ -243,7 +244,7 @@ def _get_image_info(node, ctx):
     i_info = node.instance_info
     labels = ('kernel', 'ramdisk')
     if not (i_info.get('kernel') and i_info.get('ramdisk')):
-        glance_service = service.Service(version=1, context=ctx)
+        glance_service = service.GlanceImageService(version=1, context=ctx)
         iproperties = glance_service.show(d_info['image_source'])['properties']
         for label in labels:
             i_info[label] = str(iproperties[label + '_id'])
@@ -346,9 +347,11 @@ class PXEDeploy(base.DeployInterface):
 
         iscsi_deploy.validate(task)
 
-        props = ['kernel_id', 'ramdisk_id']
-        iscsi_deploy.validate_glance_image_properties(task.context, d_info,
-                                                      props)
+        if service_utils.is_glance_image(d_info['image_source']):
+            props = ['kernel_id', 'ramdisk_id']
+        else:
+            props = ['kernel', 'ramdisk']
+        iscsi_deploy.validate_image_properties(task.context, d_info, props)
 
     @task_manager.require_exclusive_lock
     def deploy(self, task):

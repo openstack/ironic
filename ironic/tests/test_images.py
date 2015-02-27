@@ -65,7 +65,7 @@ class IronicImagesTestCase(base.TestCase):
                                              'out_format', 'source', 'dest',
                                              run_as_root=False)
 
-    @mock.patch.object(image_service, 'Service')
+    @mock.patch.object(image_service, 'get_image_service')
     @mock.patch.object(__builtin__, 'open')
     def test_fetch_no_image_service(self, open_mock, image_service_mock):
         mock_file_handle = mock.MagicMock(spec=file)
@@ -75,7 +75,7 @@ class IronicImagesTestCase(base.TestCase):
         images.fetch('context', 'image_href', 'path')
 
         open_mock.assert_called_once_with('path', 'wb')
-        image_service_mock.assert_called_once_with(version=1,
+        image_service_mock.assert_called_once_with('image_href',
                                                    context='context')
         image_service_mock.return_value.download.assert_called_once_with(
             'image_href', 'file')
@@ -192,10 +192,10 @@ class IronicImagesTestCase(base.TestCase):
         qemu_img_info_mock.assert_called_once_with('path_tmp')
         rename_mock.assert_called_once_with('path_tmp', 'path')
 
-    @mock.patch.object(image_service, 'Service')
+    @mock.patch.object(image_service, 'get_image_service')
     def test_download_size_no_image_service(self, image_service_mock):
         images.download_size('context', 'image_href')
-        image_service_mock.assert_called_once_with(version=1,
+        image_service_mock.assert_called_once_with('image_href',
                                                    context='context')
         image_service_mock.return_value.show.assert_called_once_with(
             'image_href')
@@ -439,9 +439,9 @@ class FsImageTestCase(base.TestCase):
         create_isolinux_mock.assert_called_once_with('output_file',
                 'tmpdir/kernel-uuid', 'tmpdir/ramdisk-uuid', params)
 
-    @mock.patch.object(image_service, 'Service')
-    def test_get_glance_image_properties_no_such_prop(
-            self, image_service_mock):
+    @mock.patch.object(image_service, 'get_image_service')
+    def test_get_glance_image_properties_no_such_prop(self,
+                                                      image_service_mock):
 
         prop_dict = {'properties': {'p1': 'v1',
                                     'p2': 'v2'}}
@@ -449,15 +449,15 @@ class FsImageTestCase(base.TestCase):
         image_service_obj_mock = image_service_mock.return_value
         image_service_obj_mock.show.return_value = prop_dict
 
-        ret_val = images.get_glance_image_properties('con', 'uuid',
-                                                     ['p1', 'p2', 'p3'])
-        image_service_mock.assert_called_once_with(version=1, context='con')
+        ret_val = images.get_image_properties('con', 'uuid',
+                                              ['p1', 'p2', 'p3'])
+        image_service_mock.assert_called_once_with('uuid', context='con')
         image_service_obj_mock.show.assert_called_once_with('uuid')
         self.assertEqual({'p1': 'v1',
                           'p2': 'v2',
                           'p3': None}, ret_val)
 
-    @mock.patch.object(image_service, 'Service')
+    @mock.patch.object(image_service, 'get_image_service')
     def test_get_glance_image_properties_default_all(
             self, image_service_mock):
 
@@ -467,13 +467,13 @@ class FsImageTestCase(base.TestCase):
         image_service_obj_mock = image_service_mock.return_value
         image_service_obj_mock.show.return_value = prop_dict
 
-        ret_val = images.get_glance_image_properties('con', 'uuid')
-        image_service_mock.assert_called_once_with(version=1, context='con')
+        ret_val = images.get_image_properties('con', 'uuid')
+        image_service_mock.assert_called_once_with('uuid', context='con')
         image_service_obj_mock.show.assert_called_once_with('uuid')
         self.assertEqual({'p1': 'v1',
                           'p2': 'v2'}, ret_val)
 
-    @mock.patch.object(image_service, 'Service')
+    @mock.patch.object(image_service, 'get_image_service')
     def test_get_glance_image_properties_with_prop_subset(
             self, image_service_mock):
 
@@ -484,14 +484,14 @@ class FsImageTestCase(base.TestCase):
         image_service_obj_mock = image_service_mock.return_value
         image_service_obj_mock.show.return_value = prop_dict
 
-        ret_val = images.get_glance_image_properties('con', 'uuid',
-                                                     ['p1', 'p3'])
-        image_service_mock.assert_called_once_with(version=1, context='con')
+        ret_val = images.get_image_properties('con', 'uuid',
+                                              ['p1', 'p3'])
+        image_service_mock.assert_called_once_with('uuid', context='con')
         image_service_obj_mock.show.assert_called_once_with('uuid')
         self.assertEqual({'p1': 'v1',
                           'p3': 'v3'}, ret_val)
 
-    @mock.patch.object(image_service, 'Service')
+    @mock.patch.object(image_service, 'GlanceImageService')
     def test_get_temp_url_for_glance_image(self, image_service_mock):
 
         direct_url = 'swift+http://host/v1/AUTH_xx/con/obj'

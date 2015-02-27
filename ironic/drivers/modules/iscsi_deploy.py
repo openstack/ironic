@@ -21,6 +21,7 @@ import six
 from six.moves.urllib import parse
 
 from ironic.common import exception
+from ironic.common.glance_service import service_utils as glance_service_utils
 from ironic.common.i18n import _
 from ironic.common.i18n import _LE
 from ironic.common.i18n import _LI
@@ -114,6 +115,10 @@ def parse_instance_info(node):
     info = node.instance_info
     i_info = {}
     i_info['image_source'] = info.get('image_source')
+    if (i_info['image_source'] and
+            not glance_service_utils.is_glance_image(i_info['image_source'])):
+        i_info['kernel'] = info.get('kernel')
+        i_info['ramdisk'] = info.get('ramdisk')
     i_info['root_gb'] = info.get('root_gb')
 
     error_msg = _("Cannot validate iSCSI deploy. Some parameters were missing"
@@ -364,44 +369,51 @@ def build_deploy_ramdisk_options(node):
     return deploy_options
 
 
-def validate_glance_image_properties(ctx, deploy_info, properties):
-    """Validate the image in Glance.
+def validate_image_properties(ctx, deploy_info, properties):
+    """Validate the image.
 
-    Check if the image exist in Glance and if it contains the
-    properties passed.
+    For Glance images it checks that the image exists in Glance and its
+    properties or deployment info contain the properties passed. If it's not a
+    Glance image, it checks that deployment info contains needed properties.
 
     :param ctx: security context
     :param deploy_info: the deploy_info to be validated
     :param properties: the list of image meta-properties to be validated.
-    :raises: InvalidParameterValue if connection to glance failed or
-        authorization for accessing image failed or if image doesn't exist.
-    :raises: MissingParameterValue if the glance image doesn't contain
+    :raises: InvalidParameterValue if:
+        * connection to glance failed;
+        * authorization for accessing image failed;
+        * HEAD request to image URL failed or returned response code != 200;
+        * HEAD request response does not contain Content-Length header;
+        * the protocol specified in image URL is not supported.
+    :raises: MissingParameterValue if the image doesn't contain
         the mentioned properties.
     """
-    image_id = deploy_info['image_source']
+    image_href = deploy_info['image_source']
     try:
-        glance_service = service.Service(version=1, context=ctx)
-        image_props = glance_service.show(image_id)['properties']
+        img_service = service.get_image_service(image_href, context=ctx)
+        image_props = img_service.show(image_href)['properties']
     except (exception.GlanceConnectionFailed,
             exception.ImageNotAuthorized,
             exception.Invalid):
         raise exception.InvalidParameterValue(_(
             "Failed to connect to Glance to get the properties "
-            "of the image %s") % image_id)
+            "of the image %s") % image_href)
     except exception.ImageNotFound:
         raise exception.InvalidParameterValue(_(
-            "Image %s not found in Glance") % image_id)
+            "Image %s can not be found.") % image_href)
+    except exception.ImageRefValidationFailed as e:
+        raise exception.InvalidParameterValue(e)
 
     missing_props = []
     for prop in properties:
-        if not image_props.get(prop):
+        if not (deploy_info.get(prop) or image_props.get(prop)):
             missing_props.append(prop)
 
     if missing_props:
         props = ', '.join(missing_props)
         raise exception.MissingParameterValue(_(
             "Image %(image)s is missing the following properties: "
-            "%(properties)s") % {'image': image_id, 'properties': props})
+            "%(properties)s") % {'image': image_href, 'properties': props})
 
 
 def validate(task):

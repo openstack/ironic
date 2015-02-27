@@ -137,7 +137,7 @@ class PXEPrivateMethodsTestCase(db_base.DbTestCase):
         show_mock.return_value = properties
         image_info = pxe._get_image_info(self.node, self.context)
         show_mock.assert_called_once_with('glance://image_uuid',
-                                           method='get')
+                                          method='get')
         self.assertEqual(expected_info, image_info)
 
         # test with saved info

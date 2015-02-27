@@ -22,6 +22,7 @@ from oslo_config import cfg
 
 from ironic.common import boot_devices
 from ironic.common import exception
+from ironic.common import image_service
 from ironic.common import images
 from ironic.common import states
 from ironic.common import swift
@@ -57,7 +58,50 @@ class IloDeployPrivateMethodsTestCase(db_base.DbTestCase):
         boot_iso_expected = "boot-%s" % self.node.uuid
         self.assertEqual(boot_iso_expected, boot_iso_actual)
 
-    @mock.patch.object(images, 'get_glance_image_properties')
+    @mock.patch.object(image_service.HttpImageService, 'validate_href')
+    def test__get_boot_iso_http_url(self, service_mock):
+        url = 'http://abc.org/image/qcow2'
+        i_info = self.node.instance_info
+        i_info['ilo_boot_iso'] = url
+        self.node.instance_info = i_info
+        self.node.save()
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            boot_iso_actual = ilo_deploy._get_boot_iso(task, 'root-uuid')
+            service_mock.assert_called_once_with(url)
+            self.assertEqual(url, boot_iso_actual)
+
+    @mock.patch.object(image_service.HttpImageService, 'validate_href')
+    def test__get_boot_iso_url(self, mock_validate):
+        url = 'http://aaa/bbb'
+        i_info = self.node.instance_info
+        i_info['ilo_boot_iso'] = url
+        self.node.instance_info = i_info
+        self.node.save()
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            boot_iso_actual = ilo_deploy._get_boot_iso(task, 'root-uuid')
+            self.assertEqual(url, boot_iso_actual)
+            mock_validate.assert_called_ince_with(url)
+
+    @mock.patch.object(image_service.HttpImageService, 'validate_href')
+    def test__get_boot_iso_unsupported_url(self, validate_href_mock):
+        validate_href_mock.side_effect = exception.ImageRefValidationFailed(
+            image_href='file://img.qcow2', reason='fail')
+        url = 'file://img.qcow2'
+        i_info = self.node.instance_info
+        i_info['ilo_boot_iso'] = url
+        self.node.instance_info = i_info
+        self.node.save()
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            self.assertRaises(exception.ImageRefValidationFailed,
+                              ilo_deploy._get_boot_iso, task, 'root-uuid')
+
+    @mock.patch.object(images, 'get_image_properties')
     @mock.patch.object(ilo_deploy, '_parse_deploy_info')
     def test__get_boot_iso_glance_image(self, deploy_info_mock,
             image_props_mock):
@@ -73,11 +117,11 @@ class IloDeployPrivateMethodsTestCase(db_base.DbTestCase):
             image_props_mock.assert_called_once_with(
                 task.context, 'image-uuid',
                 ['boot_iso', 'kernel_id', 'ramdisk_id'])
-            boot_iso_expected = 'glance:boot-iso-uuid'
+            boot_iso_expected = 'boot-iso-uuid'
             self.assertEqual(boot_iso_expected, boot_iso_actual)
 
     @mock.patch.object(driver_utils, 'get_node_capability')
-    @mock.patch.object(images, 'get_glance_image_properties')
+    @mock.patch.object(images, 'get_image_properties')
     @mock.patch.object(ilo_deploy, '_parse_deploy_info')
     def test__get_boot_iso_uefi_no_glance_image(self, deploy_info_mock,
             image_props_mock, get_node_cap_mock):
@@ -101,7 +145,7 @@ class IloDeployPrivateMethodsTestCase(db_base.DbTestCase):
     @mock.patch.object(images, 'create_boot_iso')
     @mock.patch.object(swift, 'SwiftAPI')
     @mock.patch.object(ilo_deploy, '_get_boot_iso_object_name')
-    @mock.patch.object(images, 'get_glance_image_properties')
+    @mock.patch.object(images, 'get_image_properties')
     @mock.patch.object(ilo_deploy, '_parse_deploy_info')
     def test__get_boot_iso_create(self, deploy_info_mock, image_props_mock,
                                   boot_object_name_mock, swift_api_mock,
@@ -147,6 +191,10 @@ class IloDeployPrivateMethodsTestCase(db_base.DbTestCase):
         swift_obj_mock = swift_mock.return_value
         CONF.ilo.swift_ilo_container = 'ilo-cont'
         boot_object_name_mock.return_value = 'boot-object'
+        i_info = self.node.instance_info
+        i_info['ilo_boot_iso'] = 'swift:bootiso'
+        self.node.instance_info = i_info
+        self.node.save()
         ilo_deploy._clean_up_boot_iso_for_instance(self.node)
         swift_obj_mock.delete_object.assert_called_once_with('ilo-cont',
                                                              'boot-object')
@@ -195,12 +243,12 @@ class IloVirtualMediaIscsiDeployTestCase(db_base.DbTestCase):
                 driver='iscsi_ilo', driver_info=INFO_DICT)
 
     @mock.patch.object(driver_utils, 'validate_boot_mode_capability')
-    @mock.patch.object(iscsi_deploy, 'validate_glance_image_properties')
+    @mock.patch.object(iscsi_deploy, 'validate_image_properties')
     @mock.patch.object(ilo_deploy, '_parse_deploy_info')
     @mock.patch.object(iscsi_deploy, 'validate')
     def test_validate(self, validate_mock, deploy_info_mock,
                       validate_prop_mock, validate_boot_mode_mock):
-        d_info = {'a': 'b'}
+        d_info = {'image_source': 'uuid'}
         deploy_info_mock.return_value = d_info
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
@@ -236,7 +284,7 @@ class IloVirtualMediaIscsiDeployTestCase(db_base.DbTestCase):
             expected_ramdisk_opts = {'a': 'b', 'BOOTIF': '12:34:56:78:90:ab'}
             build_opts_mock.assert_called_once_with(task.node)
             get_nic_mock.assert_called_once_with(task)
-            reboot_into_mock.assert_called_once_with(task, 'glance:deploy-iso',
+            reboot_into_mock.assert_called_once_with(task, 'deploy-iso',
                                                      expected_ramdisk_opts)
 
         self.assertEqual(states.DEPLOYWAIT, returned_state)
@@ -288,7 +336,7 @@ class IloVirtualMediaAgentDeployTestCase(db_base.DbTestCase):
 
             build_options_mock.assert_called_once_with(task.node)
             reboot_into_mock.assert_called_once_with(task,
-                                                     'glance:deploy-iso-uuid',
+                                                     'deploy-iso-uuid',
                                                      deploy_opts)
             self.assertEqual(states.DEPLOYWAIT, returned_state)
 

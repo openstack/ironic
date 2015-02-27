@@ -361,7 +361,7 @@ class IloCommonMethodsTestCase(db_base.DbTestCase):
     def test_setup_vmedia_for_boot_with_parameters(self, prepare_image_mock,
             attach_vmedia_mock, temp_url_mock):
         parameters = {'a': 'b'}
-        boot_iso = 'glance:image-uuid'
+        boot_iso = 'image-uuid'
         prepare_image_mock.return_value = 'floppy_url'
         temp_url_mock.return_value = 'image_url'
 
@@ -392,6 +392,15 @@ class IloCommonMethodsTestCase(db_base.DbTestCase):
                     'object-name', 1)
             attach_vmedia_mock.assert_called_once_with(task.node, 'CDROM',
                     'image_url')
+
+    @mock.patch.object(ilo_common, 'attach_vmedia')
+    def test_setup_vmedia_for_boot_with_url(self, attach_vmedia_mock):
+        boot_iso = 'http://abc.com/img.iso'
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            ilo_common.setup_vmedia_for_boot(task, boot_iso)
+            attach_vmedia_mock.assert_called_once_with(task.node, 'CDROM',
+                                                       boot_iso)
 
     @mock.patch.object(ilo_common, 'get_ilo_object')
     @mock.patch.object(swift, 'SwiftAPI')

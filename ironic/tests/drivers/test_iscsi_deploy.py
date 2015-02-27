@@ -23,6 +23,7 @@ from oslo_config import cfg
 from oslo_utils import uuidutils
 
 from ironic.common import exception
+from ironic.common import image_service
 from ironic.common import keystone
 from ironic.common import states
 from ironic.common import utils
@@ -30,6 +31,7 @@ from ironic.conductor import task_manager
 from ironic.conductor import utils as manager_utils
 from ironic.drivers.modules import deploy_utils
 from ironic.drivers.modules import iscsi_deploy
+from ironic.drivers.modules import pxe
 from ironic.openstack.common import fileutils
 from ironic.tests.conductor import utils as mgr_utils
 from ironic.tests.db import base as db_base
@@ -148,6 +150,124 @@ class IscsiDeployValidateParametersTestCase(db_base.DbTestCase):
         node = obj_utils.create_test_node(self.context, instance_info=info)
         instance_info = iscsi_deploy.parse_instance_info(node)
         self.assertEqual('http://1.2.3.4/cd', instance_info['configdrive'])
+
+    def test_parse_instance_info_nonglance_image(self):
+        info = INST_INFO_DICT.copy()
+        info['image_source'] = 'file:///image.qcow2'
+        info['kernel'] = 'file:///image.vmlinuz'
+        info['ramdisk'] = 'file:///image.initrd'
+        node = obj_utils.create_test_node(self.context, instance_info=info)
+        iscsi_deploy.parse_instance_info(node)
+
+    def test_parse_instance_info_nonglance_image_no_kernel(self):
+        info = INST_INFO_DICT.copy()
+        info['image_source'] = 'file:///image.qcow2'
+        info['ramdisk'] = 'file:///image.initrd'
+        node = obj_utils.create_test_node(self.context, instance_info=info)
+        self.assertRaises(exception.MissingParameterValue,
+                          iscsi_deploy.parse_instance_info, node)
+
+    @mock.patch.object(image_service, 'get_image_service')
+    def test_validate_image_properties_glance_image(self, image_service_mock):
+        node = obj_utils.create_test_node(self.context,
+                                          driver='fake_pxe',
+                                          instance_info=INST_INFO_DICT,
+                                          driver_info=DRV_INFO_DICT)
+        d_info = pxe._parse_deploy_info(node)
+        image_service_mock.return_value.show.return_value = {
+            'properties': {'kernel_id': '1111', 'ramdisk_id': '2222'},
+        }
+
+        iscsi_deploy.validate_image_properties(self.context, d_info,
+                                               ['kernel_id', 'ramdisk_id'])
+        image_service_mock.assert_called_once_with(
+            node.instance_info['image_source'], context=self.context
+        )
+
+    @mock.patch.object(image_service, 'get_image_service')
+    def test_validate_image_properties_glance_image_missing_prop(self,
+            image_service_mock):
+        node = obj_utils.create_test_node(self.context,
+                                          driver='fake_pxe',
+                                          instance_info=INST_INFO_DICT,
+                                          driver_info=DRV_INFO_DICT)
+        d_info = pxe._parse_deploy_info(node)
+        image_service_mock.return_value.show.return_value = {
+            'properties': {'kernel_id': '1111'},
+        }
+
+        self.assertRaises(exception.MissingParameterValue,
+            iscsi_deploy.validate_image_properties, self.context, d_info,
+            ['kernel_id', 'ramdisk_id'])
+        image_service_mock.assert_called_once_with(
+            node.instance_info['image_source'], context=self.context
+        )
+
+    @mock.patch.object(image_service, 'get_image_service')
+    def test_validate_image_properties_glance_image_not_authorized(self,
+            image_service_mock):
+        d_info = {'image_source': 'uuid'}
+        show_mock = image_service_mock.return_value.show
+        show_mock.side_effect = exception.ImageNotAuthorized(image_id='uuid')
+        self.assertRaises(exception.InvalidParameterValue,
+                          iscsi_deploy.validate_image_properties, self.context,
+                          d_info, [])
+
+    @mock.patch.object(image_service, 'get_image_service')
+    def test_validate_image_properties_glance_image_not_found(self,
+            image_service_mock):
+        d_info = {'image_source': 'uuid'}
+        show_mock = image_service_mock.return_value.show
+        show_mock.side_effect = exception.ImageNotFound(image_id='uuid')
+        self.assertRaises(exception.InvalidParameterValue,
+                          iscsi_deploy.validate_image_properties, self.context,
+                          d_info, [])
+
+    def test_validate_image_properties_invalid_image_href(self):
+        d_info = {'image_source': 'emule://uuid'}
+        self.assertRaises(exception.InvalidParameterValue,
+                          iscsi_deploy.validate_image_properties, self.context,
+                          d_info, [])
+
+    @mock.patch.object(image_service.HttpImageService, 'show')
+    def test_validate_image_properties_nonglance_image(self,
+            image_service_show_mock):
+        instance_info = {
+            'image_source': 'http://ubuntu',
+            'kernel': 'kernel_uuid',
+            'ramdisk': 'file://initrd',
+            'root_gb': 100,
+        }
+        image_service_show_mock.return_value = {'size': 1, 'properties': {}}
+        node = obj_utils.create_test_node(self.context,
+                                          driver='fake_pxe',
+                                          instance_info=instance_info,
+                                          driver_info=DRV_INFO_DICT)
+        d_info = pxe._parse_deploy_info(node)
+        iscsi_deploy.validate_image_properties(self.context, d_info,
+                                               ['kernel', 'ramdisk'])
+        image_service_show_mock.assert_called_once_with(
+            instance_info['image_source'])
+
+    @mock.patch.object(image_service.HttpImageService, 'show')
+    def test_validate_image_properties_nonglance_image_validation_fail(self,
+            img_service_show_mock):
+        instance_info = {
+            'image_source': 'http://ubuntu',
+            'kernel': 'kernel_uuid',
+            'ramdisk': 'file://initrd',
+            'root_gb': 100,
+        }
+        img_service_show_mock.side_effect = exception.ImageRefValidationFailed(
+            image_href='http://ubuntu', reason='HTTPError')
+        node = obj_utils.create_test_node(self.context,
+                                          driver='fake_pxe',
+                                          instance_info=instance_info,
+                                          driver_info=DRV_INFO_DICT)
+        d_info = pxe._parse_deploy_info(node)
+        self.assertRaises(exception.InvalidParameterValue,
+                          iscsi_deploy.validate_image_properties, self.context,
+                          d_info, ['kernel', 'ramdisk'])
 
 
 class IscsiDeployPrivateMethodsTestCase(db_base.DbTestCase):
