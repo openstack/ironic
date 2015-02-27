@@ -69,7 +69,7 @@ PDU Configuration
 This version of the SNMP power driver does not support handling
 PDU authentication credentials. When using SNMPv3, the PDU must be
 configured for ``NoAuthentication`` and ``NoEncryption``. The
-security name is used analagously to the SNMP community in early
+security name is used analogously to the SNMP community in early
 SNMP versions.
 
 iLO driver
