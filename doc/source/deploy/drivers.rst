@@ -119,7 +119,6 @@ iRMC
 The iRMC driver enables PXE Deploy to control power via ServerView Common
 Command Interface (SCCI).
 
-
 Software Requirements
 ^^^^^^^^^^^^^^^^^^^^^
 
@@ -162,3 +161,12 @@ VirtualBox drivers
   :maxdepth: 1
 
   ../drivers/vbox
+
+
+Cisco UCS Driver
+----------------
+
+.. toctree::
+  :maxdepth: 1
+
+  ../drivers/ucs

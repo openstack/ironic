@@ -43,6 +43,8 @@ from ironic.drivers.modules import pxe
 from ironic.drivers.modules import seamicro
 from ironic.drivers.modules import snmp
 from ironic.drivers.modules import ssh
+from ironic.drivers.modules.ucs import management as ucs_mgmt
+from ironic.drivers.modules.ucs import power as ucs_power
 from ironic.drivers.modules import virtualbox
 from ironic.drivers import utils
 
@@ -245,3 +247,16 @@ class FakeMSFTOCSDriver(base.BaseDriver):
         self.power = msftocs_power.MSFTOCSPower()
         self.deploy = fake.FakeDeploy()
         self.management = msftocs_management.MSFTOCSManagement()
+
+
+class FakeUcsDriver(base.BaseDriver):
+    """Fake UCS driver."""
+
+    def __init__(self):
+        if not importutils.try_import('UcsSdk'):
+            raise exception.DriverLoadError(
+                driver=self.__class__.__name__,
+                reason=_("Unable to import UcsSdk library"))
+        self.power = ucs_power.Power()
+        self.deploy = fake.FakeDeploy()
+        self.management = ucs_mgmt.UcsManagement()

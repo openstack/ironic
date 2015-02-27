@@ -1600,3 +1600,14 @@
 #port=18083
 
 
+[cisco_ucs]
+
+#
+# Options defined in ironic.drivers.modules.ucs.power
+#
+
+# Number of times a power operation needs to be retried.
+#max_retry=6
+
+# Amount of time in seconds to wait in between power operations.
+#action_interval=5

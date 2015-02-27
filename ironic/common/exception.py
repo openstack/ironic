@@ -572,3 +572,13 @@ class PathNotFound(IronicException):
 
 class DirectoryNotWritable(IronicException):
     message = _("Directory %(dir)s is not writable.")
+
+
+class UcsOperationError(IronicException):
+    message = _("Cisco UCS client: operation %(operation)s failed for node"
+                " %(node)s. Reason: %(error)s")
+
+
+class UcsConnectionError(IronicException):
+    message = _("Cisco UCS client: connection failed for node "
+                "%(node)s. Reason: %(error)s")

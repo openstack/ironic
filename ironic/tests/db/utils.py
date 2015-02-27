@@ -307,3 +307,12 @@ def get_test_conductor(**kw):
         'created_at': kw.get('created_at', timeutils.utcnow()),
         'updated_at': kw.get('updated_at', timeutils.utcnow()),
     }
+
+
+def get_test_ucs_info():
+    return {
+        "ucs_username": "admin",
+        "ucs_password": "password",
+        "ucs_service_profile": "org-root/ls-devstack",
+        "ucs_address": "ucs-b",
+    }

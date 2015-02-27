@@ -21,6 +21,8 @@ from ironic.drivers.modules import agent
 from ironic.drivers.modules import ipminative
 from ironic.drivers.modules import ipmitool
 from ironic.drivers.modules import ssh
+from ironic.drivers.modules.ucs import management as ucs_mgmt
+from ironic.drivers.modules.ucs import power as ucs_power
 from ironic.drivers.modules import virtualbox
 
 
@@ -104,4 +106,26 @@ class AgentAndVirtualBoxDriver(base.BaseDriver):
         self.power = virtualbox.VirtualBoxPower()
         self.deploy = agent.AgentDeploy()
         self.management = virtualbox.VirtualBoxManagement()
+        self.vendor = agent.AgentVendorInterface()
+
+
+class AgentAndUcsDriver(base.BaseDriver):
+    """Agent + Cisco UCSM driver.
+
+    This driver implements the `core` functionality, combining
+    :class:ironic.drivers.modules.ucs.power.Power for power
+        on/off and reboot with
+    :class:'ironic.driver.modules.agent.AgentDeploy' (for image deployment.)
+    Implementations are in those respective classes;
+    this class is merely the glue between them.
+    """
+
+    def __init__(self):
+        if not importutils.try_import('UcsSdk'):
+            raise exception.DriverLoadError(
+                driver=self.__class__.__name__,
+                reason=_("Unable to import UcsSdk library"))
+        self.power = ucs_power.Power()
+        self.deploy = agent.AgentDeploy()
+        self.management = ucs_mgmt.UcsManagement()
         self.vendor = agent.AgentVendorInterface()

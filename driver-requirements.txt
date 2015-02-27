@@ -10,6 +10,7 @@ pyghmi
 pysnmp
 python-scciclient
 python-seamicroclient>=0.4.0
+UcsSdk==0.8.1.6
 
 # The drac and amt driver import a python module called "pywsman", however,
 # this does not exist on pypi.
