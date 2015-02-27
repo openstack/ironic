@@ -359,11 +359,6 @@ class PXEPrivateMethodsTestCase(db_base.DbTestCase):
                                                 self.context)
         self.assertEqual(expected_options, options)
 
-    def test_get_token_file_path(self):
-        node_uuid = self.node.uuid
-        self.assertEqual('/tftpboot/token-' + node_uuid,
-                         pxe._get_token_file_path(node_uuid))
-
     @mock.patch.object(deploy_utils, 'fetch_images', autospec=True)
     def test__cache_tftp_images_master_path(self, mock_fetch_image):
         temp_dir = tempfile.mkdtemp()
@@ -459,7 +454,7 @@ class PXEDriverTestCase(db_base.DbTestCase):
 
     def setUp(self):
         super(PXEDriverTestCase, self).setUp()
-        self.context.auth_token = '4562138218392831'
+        self.context.auth_token = 'fake'
         self.temp_dir = tempfile.mkdtemp()
         self.config(tftp_root=self.temp_dir, group='pxe')
         self.temp_dir = tempfile.mkdtemp()
@@ -476,11 +471,6 @@ class PXEDriverTestCase(db_base.DbTestCase):
         self.port = obj_utils.create_test_port(self.context,
                                                node_id=self.node.id)
         self.config(group='conductor', api_url='http://127.0.0.1:1234/')
-
-    def _create_token_file(self):
-        token_path = pxe._get_token_file_path(self.node.uuid)
-        open(token_path, 'w').close()
-        return token_path
 
     def test_get_properties(self):
         expected = pxe.COMMON_PROPERTIES
@@ -809,7 +799,6 @@ class PXEDriverTestCase(db_base.DbTestCase):
         self.node.save()
         self._test_prepare_node_active()
 
-    @mock.patch.object(keystone, 'token_expires_soon', autospec=True)
     @mock.patch.object(deploy_utils, 'get_image_mb', autospec=True)
     @mock.patch.object(iscsi_deploy, '_get_image_file_path', autospec=True)
     @mock.patch.object(iscsi_deploy, 'cache_instance_image', autospec=True)
@@ -818,11 +807,10 @@ class PXEDriverTestCase(db_base.DbTestCase):
     @mock.patch.object(manager_utils, 'node_set_boot_device', autospec=True)
     def test_deploy(self, mock_node_set_boot, mock_node_power_action,
                     mock_update_dhcp, mock_cache_instance_image,
-                    mock_get_image_file_path, mock_get_image_mb, mock_expire):
+                    mock_get_image_file_path, mock_get_image_mb):
         fake_img_path = '/test/path/test.img'
         mock_get_image_file_path.return_value = fake_img_path
         mock_get_image_mb.return_value = 1
-        mock_expire.return_value = False
         self.config(deploy_callback_timeout=600, group='conductor')
 
         with task_manager.acquire(self.context,
@@ -835,44 +823,9 @@ class PXEDriverTestCase(db_base.DbTestCase):
             mock_get_image_file_path.assert_called_once_with(task.node.uuid)
             mock_get_image_mb.assert_called_once_with(fake_img_path)
             mock_update_dhcp.assert_called_once_with(mock.ANY, task, dhcp_opts)
-            mock_expire.assert_called_once_with(self.context.auth_token, 600)
             mock_node_set_boot.assert_called_once_with(task, 'pxe',
                                                        persistent=True)
             mock_node_power_action.assert_called_once_with(task, states.REBOOT)
-
-            # ensure token file created
-            t_path = pxe._get_token_file_path(self.node.uuid)
-            token = open(t_path, 'r').read()
-            self.assertEqual(self.context.auth_token, token)
-
-    @mock.patch.object(keystone, 'get_admin_auth_token', autospec=True)
-    @mock.patch.object(keystone, 'token_expires_soon', autospec=True)
-    @mock.patch.object(deploy_utils, 'get_image_mb', autospec=True)
-    @mock.patch.object(iscsi_deploy, '_get_image_file_path', autospec=True)
-    @mock.patch.object(iscsi_deploy, 'cache_instance_image', autospec=True)
-    @mock.patch.object(dhcp_factory.DHCPFactory, 'update_dhcp', autospec=True)
-    @mock.patch.object(manager_utils, 'node_power_action', autospec=True)
-    @mock.patch.object(manager_utils, 'node_set_boot_device', autospec=True)
-    def test_deploy_token_near_expiration(self, mock_node_set_boot,
-                    mock_node_power_action, mock_update_dhcp,
-                    mock_cache_instance_image, mock_get_image_file_path,
-                    mock_get_image_mb, mock_expire, mock_admin_token):
-        mock_get_image_mb.return_value = 1
-        mock_expire.return_value = True
-        new_token = 'new_admin_token'
-        mock_admin_token.return_value = new_token
-        self.config(deploy_callback_timeout=600, group='conductor')
-
-        with task_manager.acquire(self.context,
-                                  self.node.uuid, shared=False) as task:
-            task.driver.deploy.deploy(task)
-
-            mock_expire.assert_called_once_with(self.context.auth_token, 600)
-            mock_admin_token.assert_called_once_with()
-            # ensure token file created with new token
-            t_path = pxe._get_token_file_path(self.node.uuid)
-            token = open(t_path, 'r').read()
-            self.assertEqual(new_token, token)
 
     @mock.patch.object(deploy_utils, 'get_image_mb', autospec=True)
     @mock.patch.object(iscsi_deploy, '_get_image_file_path', autospec=True)
@@ -942,8 +895,6 @@ class PXEDriverTestCase(db_base.DbTestCase):
                                       mock_image_cache, mock_switch_config,
                                       notify_mock, mock_node_boot_dev,
                                       mock_clean_pxe):
-        token_path = self._create_token_file()
-
         # set local boot
         if is_localboot:
             i_info = self.node.instance_info
@@ -968,7 +919,6 @@ class PXEDriverTestCase(db_base.DbTestCase):
         self.assertEqual(states.POWER_ON, self.node.power_state)
         self.assertIn('root_uuid_or_disk_id', self.node.driver_internal_info)
         self.assertIsNone(self.node.last_error)
-        self.assertFalse(os.path.exists(token_path))
         mock_image_cache.assert_called_once_with()
         mock_image_cache.return_value.clean_up.assert_called_once_with()
         pxe_config_path = pxe_utils.get_pxe_config_file_path(self.node.uuid)
@@ -1000,8 +950,6 @@ class PXEDriverTestCase(db_base.DbTestCase):
                                                 notify_mock,
                                                 mock_node_boot_dev,
                                                 mock_clean_pxe):
-        token_path = self._create_token_file()
-
         # set local boot
         if is_localboot:
             i_info = self.node.instance_info
@@ -1027,7 +975,6 @@ class PXEDriverTestCase(db_base.DbTestCase):
         self.node.refresh()
         self.assertEqual(states.POWER_ON, self.node.power_state)
         self.assertIsNone(self.node.last_error)
-        self.assertFalse(os.path.exists(token_path))
         mock_image_cache.assert_called_once_with()
         mock_image_cache.return_value.clean_up.assert_called_once_with()
         pxe_config_path = pxe_utils.get_pxe_config_file_path(self.node.uuid)
@@ -1139,8 +1086,6 @@ class CleanUpTestCase(db_base.DbTestCase):
                                                     task.context)
             mock_pxe_clean.assert_called_once_with(task)
             mock_unlink.assert_any_call('deploy_kernel')
-            mock_unlink.assert_any_call(pxe._get_token_file_path(
-                task.node.uuid))
             mock_iscsi_clean.assert_called_once_with(task.node.uuid)
         mock_cache.return_value.clean_up.assert_called_once_with()
 
@@ -1154,8 +1099,6 @@ class CleanUpTestCase(db_base.DbTestCase):
             mock_image_info.assert_called_once_with(task.node,
                                                     task.context)
             mock_pxe_clean.assert_called_once_with(task)
-            mock_unlink.assert_called_once_with(pxe._get_token_file_path(
-                task.node.uuid))
             mock_iscsi_clean.assert_called_once_with(task.node.uuid)
         mock_cache.return_value.clean_up.assert_called_once_with()
 
@@ -1212,11 +1155,10 @@ class CleanUpFullFlowTestCase(db_base.DbTestCase):
         self.image_path = iscsi_deploy._get_image_file_path(self.node.uuid)
         self.config_path = pxe_utils.get_pxe_config_file_path(self.node.uuid)
         self.mac_path = pxe_utils._get_pxe_mac_path(self.port.address)
-        self.token_path = pxe._get_token_file_path(self.node.uuid)
 
         # Create files
         self.files = [self.config_path, self.master_kernel_path,
-                      self.master_instance_path, self.token_path]
+                      self.master_instance_path]
         for fname in self.files:
             # NOTE(dtantsur): files with 0 size won't be cleaned up
             with open(fname, 'w') as fp:
@@ -1267,16 +1209,13 @@ class TestAgentVendorPassthru(db_base.DbTestCase):
                        'reboot_and_finish_deploy', autospec=True)
     @mock.patch.object(deploy_utils, 'switch_pxe_config', autospec=True)
     @mock.patch.object(iscsi_deploy, 'do_agent_iscsi_deploy', autospec=True)
-    @mock.patch.object(pxe, '_destroy_token_file', autospec=True)
-    def test_continue_deploy_netboot(self, destroy_token_file_mock,
-                                     do_agent_iscsi_deploy_mock,
+    def test_continue_deploy_netboot(self, do_agent_iscsi_deploy_mock,
                                      switch_pxe_config_mock,
                                      reboot_and_finish_deploy_mock):
 
         uuid_dict_returned = {'root uuid': 'some-root-uuid'}
         do_agent_iscsi_deploy_mock.return_value = uuid_dict_returned
         self.driver.vendor.continue_deploy(self.task)
-        destroy_token_file_mock.assert_called_once_with(self.node)
         do_agent_iscsi_deploy_mock.assert_called_once_with(
             self.task, self.driver.vendor._client)
         tftp_config = '/tftpboot/%s/config' % self.node.uuid
@@ -1292,9 +1231,7 @@ class TestAgentVendorPassthru(db_base.DbTestCase):
     @mock.patch.object(agent_base_vendor.BaseAgentVendor,
                        'configure_local_boot', autospec=True)
     @mock.patch.object(iscsi_deploy, 'do_agent_iscsi_deploy', autospec=True)
-    @mock.patch.object(pxe, '_destroy_token_file', autospec=True)
-    def test_continue_deploy_localboot(self, destroy_token_file_mock,
-                                       do_agent_iscsi_deploy_mock,
+    def test_continue_deploy_localboot(self, do_agent_iscsi_deploy_mock,
                                        configure_local_boot_mock,
                                        clean_up_pxe_config_mock,
                                        reboot_and_finish_deploy_mock):
@@ -1306,7 +1243,6 @@ class TestAgentVendorPassthru(db_base.DbTestCase):
         do_agent_iscsi_deploy_mock.return_value = uuid_dict_returned
 
         self.driver.vendor.continue_deploy(self.task)
-        destroy_token_file_mock.assert_called_once_with(self.node)
         do_agent_iscsi_deploy_mock.assert_called_once_with(
             self.task, self.driver.vendor._client)
         configure_local_boot_mock.assert_called_once_with(
@@ -1322,9 +1258,7 @@ class TestAgentVendorPassthru(db_base.DbTestCase):
     @mock.patch.object(agent_base_vendor.BaseAgentVendor,
                        'configure_local_boot', autospec=True)
     @mock.patch.object(iscsi_deploy, 'do_agent_iscsi_deploy', autospec=True)
-    @mock.patch.object(pxe, '_destroy_token_file', autospec=True)
-    def test_continue_deploy_localboot_uefi(self, destroy_token_file_mock,
-                                            do_agent_iscsi_deploy_mock,
+    def test_continue_deploy_localboot_uefi(self, do_agent_iscsi_deploy_mock,
                                             configure_local_boot_mock,
                                             clean_up_pxe_config_mock,
                                             reboot_and_finish_deploy_mock):
@@ -1337,7 +1271,6 @@ class TestAgentVendorPassthru(db_base.DbTestCase):
         do_agent_iscsi_deploy_mock.return_value = uuid_dict_returned
 
         self.driver.vendor.continue_deploy(self.task)
-        destroy_token_file_mock.assert_called_once_with(self.node)
         do_agent_iscsi_deploy_mock.assert_called_once_with(
             self.task, self.driver.vendor._client)
         configure_local_boot_mock.assert_called_once_with(
