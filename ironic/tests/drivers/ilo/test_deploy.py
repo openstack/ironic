@@ -199,6 +199,12 @@ class IloDeployPrivateMethodsTestCase(db_base.DbTestCase):
         swift_obj_mock.delete_object.assert_called_once_with('ilo-cont',
                                                              'boot-object')
 
+    @mock.patch.object(ilo_deploy, '_get_boot_iso_object_name')
+    def test__clean_up_boot_iso_for_instance_no_boot_iso(
+            self, boot_object_name_mock):
+        ilo_deploy._clean_up_boot_iso_for_instance(self.node)
+        self.assertFalse(boot_object_name_mock.called)
+
     @mock.patch.object(deploy_utils, 'check_for_missing_params')
     def test__parse_driver_info(self, check_params_mock):
         self.node.driver_info['ilo_deploy_iso'] = 'deploy-iso-uuid'

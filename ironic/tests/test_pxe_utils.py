@@ -53,6 +53,7 @@ class TestPXEUtils(db_base.DbTestCase):
             'boot_option': 'netboot',
             'ipa-api-url': 'http://192.168.122.184:6385',
             'ipa-driver-name': 'pxe_ssh',
+            'boot_mode': 'bios',
         }
         self.agent_pxe_options = {
             'deployment_ari_path': u'/tftpboot/1be26c0b-03f2-4d2e-ae87-c02d7'

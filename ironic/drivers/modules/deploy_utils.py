@@ -49,6 +49,10 @@ from ironic.openstack.common import log as logging
 
 
 deploy_opts = [
+    cfg.IntOpt('efi_system_partition_size',
+               default=200,
+               help='Size of EFI system partition in MiB when configuring '
+                    'UEFI systems for local boot.'),
     cfg.StrOpt('dd_block_size',
                default='1M',
                help='Block size to use when writing to the nodes disk.'),
@@ -209,7 +213,8 @@ def get_disk_identifier(dev):
 
 
 def make_partitions(dev, root_mb, swap_mb, ephemeral_mb,
-                    configdrive_mb, commit=True, boot_option="netboot"):
+                    configdrive_mb, commit=True, boot_option="netboot",
+                    boot_mode="bios"):
     """Partition the disk device.
 
     Create partitions for root, swap, ephemeral and configdrive on a
@@ -225,6 +230,7 @@ def make_partitions(dev, root_mb, swap_mb, ephemeral_mb,
     :param commit: True/False. Default for this setting is True. If False
         partitions will not be written to disk.
     :param boot_option: Can be "local" or "netboot". "netboot" by default.
+    :param boot_mode: Can be "bios" or "uefi". "bios" by default.
     :returns: A dictionary containing the partition type as Key and partition
         path as Value for the partitions created by this method.
 
@@ -233,7 +239,18 @@ def make_partitions(dev, root_mb, swap_mb, ephemeral_mb,
               {'dev': dev})
     part_template = dev + '-part%d'
     part_dict = {}
-    dp = disk_partitioner.DiskPartitioner(dev)
+
+    # For uefi localboot, switch partition table to gpt and create the efi
+    # system partition as the first partition.
+    if boot_mode == "uefi" and boot_option == "local":
+        dp = disk_partitioner.DiskPartitioner(dev, disk_label="gpt")
+        part_num = dp.add_partition(CONF.deploy.efi_system_partition_size,
+                                    fs_type='fat32',
+                                    bootable=True)
+        part_dict['efi system partition'] = part_template % part_num
+    else:
+        dp = disk_partitioner.DiskPartitioner(dev)
+
     if ephemeral_mb:
         LOG.debug("Add ephemeral partition (%(size)d MB) to device: %(dev)s",
                  {'dev': dev, 'size': ephemeral_mb})
@@ -255,7 +272,8 @@ def make_partitions(dev, root_mb, swap_mb, ephemeral_mb,
     # partition until the end of the disk.
     LOG.debug("Add root partition (%(size)d MB) to device: %(dev)s",
              {'dev': dev, 'size': root_mb})
-    part_num = dp.add_partition(root_mb, bootable=(boot_option == "local"))
+    part_num = dp.add_partition(root_mb, bootable=(boot_option == "local" and
+                                                   boot_mode == "bios"))
     part_dict['root'] = part_template % part_num
 
     if commit:
@@ -296,13 +314,11 @@ def populate_image(src, dst):
         images.convert_image(src, dst, 'raw', True)
 
 
-def mkswap(dev, label='swap1'):
-    """Execute mkswap on a device."""
-    utils.mkfs('swap', dev, label)
-
-
-def mkfs_ephemeral(dev, ephemeral_format, label="ephemeral0"):
-    utils.mkfs(ephemeral_format, dev, label)
+# TODO(rameshg87): Remove this one-line method and use utils.mkfs
+# directly.
+def mkfs(fs, dev, label=None):
+    """Execute mkfs on a device."""
+    utils.mkfs(fs, dev, label)
 
 
 def block_uuid(dev):
@@ -518,7 +534,8 @@ def _get_configdrive(configdrive, node_uuid):
 
 def work_on_disk(dev, root_mb, swap_mb, ephemeral_mb, ephemeral_format,
                  image_path, node_uuid, preserve_ephemeral=False,
-                 configdrive=None, boot_option="netboot"):
+                 configdrive=None, boot_option="netboot",
+                 boot_mode="bios"):
     """Create partitions and copy an image to the root partition.
 
     :param dev: Path for the device to work on.
@@ -536,6 +553,7 @@ def work_on_disk(dev, root_mb, swap_mb, ephemeral_mb, ephemeral_format,
     :param configdrive: Optional. Base64 encoded Gzipped configdrive content
                         or configdrive HTTP URL.
     :param boot_option: Can be "local" or "netboot". "netboot" by default.
+    :param boot_mode: Can be "bios" or "uefi". "bios" by default.
     :returns: the UUID of the root partition.
     """
     # the only way for preserve_ephemeral to be set to true is if we are
@@ -556,7 +574,8 @@ def work_on_disk(dev, root_mb, swap_mb, ephemeral_mb, ephemeral_format,
 
         part_dict = make_partitions(dev, root_mb, swap_mb, ephemeral_mb,
                                     configdrive_mb, commit=commit,
-                                    boot_option=boot_option)
+                                    boot_option=boot_option,
+                                    boot_mode=boot_mode)
 
         ephemeral_part = part_dict.get('ephemeral')
         swap_part = part_dict.get('swap')
@@ -567,7 +586,8 @@ def work_on_disk(dev, root_mb, swap_mb, ephemeral_mb, ephemeral_format,
             raise exception.InstanceDeployFailure(
                 _("Root device '%s' not found") % root_part)
 
-        for part in ('swap', 'ephemeral', 'configdrive'):
+        for part in ('swap', 'ephemeral', 'configdrive',
+                     'efi system partition'):
             part_device = part_dict.get(part)
             LOG.debug("Checking for %(part)s device (%(dev)s) on node "
                       "%(node)s.", {'part': part, 'dev': part_device,
@@ -576,6 +596,12 @@ def work_on_disk(dev, root_mb, swap_mb, ephemeral_mb, ephemeral_format,
                 raise exception.InstanceDeployFailure(
                     _("'%(partition)s' device '%(part_device)s' not found") %
                     {'partition': part, 'part_device': part_device})
+
+        # If it's a uefi localboot, then we have created the efi system
+        # partition.  Create a fat filesystem on it.
+        if boot_mode == "uefi" and boot_option == "local":
+            efi_system_part = part_dict.get('efi system partition')
+            mkfs(dev=efi_system_part, fs='vfat', label='efi-part')
 
         if configdrive_part:
             # Copy the configdrive content to the configdrive partition
@@ -590,10 +616,10 @@ def work_on_disk(dev, root_mb, swap_mb, ephemeral_mb, ephemeral_format,
     populate_image(image_path, root_part)
 
     if swap_part:
-        mkswap(swap_part)
+        mkfs(dev=swap_part, fs='swap', label='swap1')
 
     if ephemeral_part and not preserve_ephemeral:
-        mkfs_ephemeral(ephemeral_part, ephemeral_format)
+        mkfs(dev=ephemeral_part, fs=ephemeral_format, label="ephemeral0")
 
     try:
         root_uuid = block_uuid(root_part)
@@ -607,7 +633,7 @@ def work_on_disk(dev, root_mb, swap_mb, ephemeral_mb, ephemeral_format,
 def deploy_partition_image(address, port, iqn, lun, image_path,
            root_mb, swap_mb, ephemeral_mb, ephemeral_format, node_uuid,
            preserve_ephemeral=False, configdrive=None,
-           boot_option="netboot"):
+           boot_option="netboot", boot_mode="bios"):
     """All-in-one function to deploy a partition image to a node.
 
     :param address: The iSCSI IP address.
@@ -628,6 +654,7 @@ def deploy_partition_image(address, port, iqn, lun, image_path,
     :param configdrive: Optional. Base64 encoded Gzipped configdrive content
                         or configdrive HTTP URL.
     :param boot_option: Can be "local" or "netboot". "netboot" by default.
+    :param boot_mode: Can be "bios" or "uefi". "bios" by default.
     :returns: the UUID of the root partition.
     """
     with _iscsi_setup_and_handle_errors(address, port, iqn,
@@ -640,7 +667,8 @@ def deploy_partition_image(address, port, iqn, lun, image_path,
                                  ephemeral_format, image_path, node_uuid,
                                  preserve_ephemeral=preserve_ephemeral,
                                  configdrive=configdrive,
-                                 boot_option=boot_option)
+                                 boot_option=boot_option,
+                                 boot_mode=boot_mode)
 
     return root_uuid
 

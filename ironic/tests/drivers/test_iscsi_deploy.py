@@ -412,7 +412,8 @@ class IscsiDeployMethodsTestCase(db_base.DbTestCase):
 
     def _test_build_deploy_ramdisk_options(self, mock_alnum, api_url,
                                            expected_root_device=None,
-                                           expected_boot_option='netboot'):
+                                           expected_boot_option='netboot',
+                                           expected_boot_mode='bios'):
         fake_key = '0123456789ABCDEFGHIJKLMNOPQRSTUV'
         fake_disk = 'fake-disk'
 
@@ -420,12 +421,15 @@ class IscsiDeployMethodsTestCase(db_base.DbTestCase):
 
         mock_alnum.return_value = fake_key
 
-        expected_opts = {'iscsi_target_iqn': 'iqn-%s' % self.node.uuid,
+        expected_opts = {
+                         'iscsi_target_iqn': 'iqn-%s' % self.node.uuid,
                          'deployment_id': self.node.uuid,
                          'deployment_key': fake_key,
                          'disk': fake_disk,
                          'ironic_api_url': api_url,
-                         'boot_option': expected_boot_option}
+                         'boot_option': expected_boot_option,
+                         'boot_mode': expected_boot_mode,
+                        }
 
         if expected_root_device:
             expected_opts['root_device'] = expected_root_device
@@ -481,6 +485,16 @@ class IscsiDeployMethodsTestCase(db_base.DbTestCase):
         self.config(api_url=fake_api_url, group='conductor')
         self._test_build_deploy_ramdisk_options(mock_alnum, fake_api_url,
                                                 expected_boot_option=expected)
+
+    @mock.patch.object(keystone, 'get_service_url')
+    @mock.patch.object(utils, 'random_alnum')
+    def test_build_deploy_ramdisk_options_boot_mode(self, mock_alnum,
+                                                    mock_get_url):
+        self.node.properties['capabilities'] = 'boot_mode:uefi'
+        fake_api_url = 'http://127.0.0.1:6385'
+        self.config(api_url=fake_api_url, group='conductor')
+        self._test_build_deploy_ramdisk_options(mock_alnum, fake_api_url,
+                                                expected_boot_mode='uefi')
 
     def test_parse_root_device_hints(self):
         self.node.properties['root_device'] = {'wwn': 123456}
