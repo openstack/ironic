@@ -542,19 +542,20 @@ class IloPXEVendorPassthruTestCase(db_base.DbTestCase):
                 driver='pxe_ilo', driver_info=INFO_DICT)
 
     def test_vendor_routes(self):
-        expected = ['pass_deploy_info']
+        expected = ['heartbeat', 'pass_deploy_info']
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
             vendor_routes = task.driver.vendor.vendor_routes
             self.assertIsInstance(vendor_routes, dict)
-            self.assertEqual(expected, list(vendor_routes))
+            self.assertEqual(sorted(expected), sorted(list(vendor_routes)))
 
     def test_driver_routes(self):
+        expected = ['lookup']
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
             driver_routes = task.driver.vendor.driver_routes
             self.assertIsInstance(driver_routes, dict)
-            self.assertEqual({}, driver_routes)
+            self.assertEqual(sorted(expected), sorted(list(driver_routes)))
 
     @mock.patch.object(pxe.VendorPassthru, '_continue_deploy')
     @mock.patch.object(manager_utils, 'node_set_boot_device')
