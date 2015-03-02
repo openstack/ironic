@@ -593,8 +593,11 @@ node(s) where ``ironic-conductor`` is running.
 
 #. Install tftp server and the syslinux package with the PXE boot images::
 
-    Ubuntu:
-        sudo apt-get install tftpd-hpa syslinux syslinux-common
+    Ubuntu: (Up to and including 14.04)
+        sudo apt-get install tftpd-hpa syslinux-common syslinux
+
+    Ubuntu: (14.10 and after)
+        sudo apt-get install tftpd-hpa syslinux-common pxelinux
 
     Fedora/RHEL:
         sudo yum install tftp-server syslinux-tftpboot
@@ -603,8 +606,11 @@ node(s) where ``ironic-conductor`` is running.
 
 #. Copy the PXE image to ``/tftpboot``. The PXE image might be found at [1]_::
 
-    Ubuntu:
+    Ubuntu (Up to and including 14.04):
         sudo cp /usr/lib/syslinux/pxelinux.0 /tftpboot
+
+    Ubuntu (14.10 and after):
+        sudo cp /usr/lib/PXELINUX/pxelinux.0 /tftpboot
 
 #. If the version of syslinux is **greater than** 4 we also need to make sure
    that we copy the library modules into the ``/tftpboot`` directory [2]_
