@@ -181,4 +181,4 @@ class FakeInspect(base.InspectInterface):
         pass
 
     def inspect_hardware(self, task):
-        pass
+        return states.MANAGEABLE

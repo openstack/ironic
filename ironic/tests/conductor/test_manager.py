@@ -3070,3 +3070,356 @@ class StoreConfigDriveTestCase(tests_base.TestCase):
         mock_swift.return_value.get_temp_url.assert_called_once_with(
             container_name, expected_obj_name, timeout)
         self.assertEqual(expected_instance_info, self.node.instance_info)
+
+
+@_mock_record_keepalive
+class NodeInspectHardware(_ServiceSetUpMixin,
+                                   tests_db_base.DbTestCase):
+
+    @mock.patch('ironic.drivers.modules.fake.FakeInspect.inspect_hardware')
+    def test_inspect_hardware_ok(self, mock_inspect):
+        self._start_service()
+        node = obj_utils.create_test_node(self.context, driver='fake',
+                                          provision_state=states.INSPECTING)
+        task = task_manager.TaskManager(self.context, node.uuid)
+        mock_inspect.return_value = states.MANAGEABLE
+        manager._do_inspect_hardware(task, self.service.conductor.id)
+        node.refresh()
+        self.assertEqual(states.MANAGEABLE, node.provision_state)
+        self.assertEqual(states.NOSTATE, node.target_provision_state)
+        self.assertIsNone(node.last_error)
+        mock_inspect.assert_called_once_with(mock.ANY)
+
+    @mock.patch('ironic.drivers.modules.fake.FakeInspect.inspect_hardware')
+    def test_inspect_hardware_return_inspecting(self, mock_inspect):
+        self._start_service()
+        node = obj_utils.create_test_node(self.context, driver='fake',
+                                          provision_state=states.INSPECTING)
+        task = task_manager.TaskManager(self.context, node.uuid)
+        mock_inspect.return_value = states.INSPECTING
+        manager._do_inspect_hardware(task, self.service.conductor.id)
+        node.refresh()
+        self.assertEqual(states.INSPECTING, node.provision_state)
+        self.assertEqual(states.NOSTATE, node.target_provision_state)
+        self.assertIsNone(node.last_error)
+        mock_inspect.assert_called_once_with(mock.ANY)
+
+    @mock.patch.object(manager, 'LOG')
+    @mock.patch('ironic.drivers.modules.fake.FakeInspect.inspect_hardware')
+    def test_inspect_hardware_return_other_state(self, mock_inspect, log_mock):
+        self._start_service()
+        node = obj_utils.create_test_node(self.context, driver='fake',
+                                          provision_state=states.INSPECTING)
+        task = task_manager.TaskManager(self.context, node.uuid)
+        mock_inspect.return_value = None
+        self.assertRaises(exception.HardwareInspectionFailure,
+                          manager._do_inspect_hardware, task,
+                          self.service.conductor.id)
+        node.refresh()
+        self.assertEqual(states.INSPECTFAIL, node.provision_state)
+        self.assertEqual(states.MANAGEABLE, node.target_provision_state)
+        self.assertIsNotNone(node.last_error)
+        mock_inspect.assert_called_once_with(mock.ANY)
+        self.assertTrue(log_mock.error.called)
+
+    def test__check_inspect_timeouts(self):
+        self._start_service()
+        CONF.set_override('inspect_timeout', 1, group='conductor')
+        node = obj_utils.create_test_node(self.context, driver='fake',
+                provision_state=states.INSPECTING,
+                target_provision_state=states.MANAGEABLE,
+                provision_updated_at=datetime.datetime(2000, 1, 1, 0, 0),
+                inspection_started_at=datetime.datetime(2000, 1, 1, 0, 0))
+
+        self.service._check_inspect_timeouts(self.context)
+        self.service._worker_pool.waitall()
+        node.refresh()
+        self.assertEqual(states.INSPECTFAIL, node.provision_state)
+        self.assertEqual(states.MANAGEABLE, node.target_provision_state)
+        self.assertIsNotNone(node.last_error)
+
+    @mock.patch('ironic.conductor.manager.ConductorManager._spawn_worker')
+    def test_inspect_hardware_worker_pool_full(self, mock_spawn):
+        prv_state = states.MANAGEABLE
+        tgt_prv_state = states.NOSTATE
+        node = obj_utils.create_test_node(self.context,
+                                          provision_state=prv_state,
+                                          target_provision_state=tgt_prv_state,
+                                          last_error=None, driver='fake')
+        self._start_service()
+
+        mock_spawn.side_effect = exception.NoFreeConductorWorker()
+
+        exc = self.assertRaises(messaging.rpc.ExpectedException,
+                                self.service.inspect_hardware,
+                                self.context, node.uuid)
+        # Compare true exception hidden by @messaging.expected_exceptions
+        self.assertEqual(exception.NoFreeConductorWorker, exc.exc_info[0])
+        self.service._worker_pool.waitall()
+        node.refresh()
+        # Make sure things were rolled back
+        self.assertEqual(prv_state, node.provision_state)
+        self.assertEqual(tgt_prv_state, node.target_provision_state)
+        self.assertIsNotNone(node.last_error)
+        # Verify reservation has been cleared.
+        self.assertIsNone(node.reservation)
+
+    def _test_inspect_hardware_validate_fail(self, mock_validate):
+        mock_validate.side_effect = exception.InvalidParameterValue('error')
+        node = obj_utils.create_test_node(self.context, driver='fake')
+        exc = self.assertRaises(messaging.rpc.ExpectedException,
+                                self.service.inspect_hardware,
+                                self.context, node.uuid)
+        # Compare true exception hidden by @messaging.expected_exceptions
+        self.assertEqual(exception.HardwareInspectionFailure, exc.exc_info[0])
+        # This is a sync operation last_error should be None.
+        self.assertIsNone(node.last_error)
+        # Verify reservation has been cleared.
+        self.assertIsNone(node.reservation)
+
+    @mock.patch('ironic.drivers.modules.fake.FakeInspect.validate')
+    def test_inspect_hardware_validate_fail(self, mock_validate):
+        self._test_inspect_hardware_validate_fail(mock_validate)
+
+    @mock.patch('ironic.drivers.modules.fake.FakePower.validate')
+    def test_inspect_hardware_power_validate_fail(self, mock_validate):
+        self._test_inspect_hardware_validate_fail(mock_validate)
+
+    @mock.patch('ironic.drivers.modules.fake.FakeInspect.inspect_hardware')
+    def test_inspect_hardware_raises_error(self, mock_inspect):
+        self._start_service()
+        mock_inspect.side_effect = exception.HardwareInspectionFailure('test')
+        state = states.MANAGEABLE
+        node = obj_utils.create_test_node(self.context, driver='fake',
+                                          provision_state=states.INSPECTING,
+                                          target_provision_state=state)
+        task = task_manager.TaskManager(self.context, node.uuid)
+
+        self.assertRaises(exception.HardwareInspectionFailure,
+                          manager._do_inspect_hardware, task,
+                          self.service.conductor.id)
+        node.refresh()
+        self.assertEqual(states.INSPECTFAIL, node.provision_state)
+        self.assertEqual(states.MANAGEABLE, node.target_provision_state)
+        self.assertIsNotNone(node.last_error)
+        self.assertTrue(mock_inspect.called)
+
+
+@mock.patch.object(task_manager, 'acquire')
+@mock.patch.object(manager.ConductorManager, '_mapped_to_this_conductor')
+@mock.patch.object(dbapi.IMPL, 'get_nodeinfo_list')
+class ManagerCheckInspectTimeoutsTestCase(_CommonMixIn,
+                                         tests_db_base.DbTestCase):
+    def setUp(self):
+        super(ManagerCheckInspectTimeoutsTestCase, self).setUp()
+        self.config(inspect_timeout=300, group='conductor')
+        self.service = manager.ConductorManager('hostname', 'test-topic')
+        self.service.dbapi = self.dbapi
+
+        self.node = self._create_node(provision_state=states.INSPECTING,
+                                      target_provision_state=states.MANAGEABLE)
+        self.task = self._create_task(node=self.node)
+
+        self.node2 = self._create_node(provision_state=states.INSPECTING,
+                                      target_provision_state=states.MANAGEABLE)
+        self.task2 = self._create_task(node=self.node2)
+
+        self.filters = {'reserved': False,
+                        'inspection_started_before': 300,
+                        'provision_state': states.INSPECTING}
+        self.columns = ['uuid', 'driver']
+
+    def _assert_get_nodeinfo_args(self, get_nodeinfo_mock):
+        get_nodeinfo_mock.assert_called_once_with(sort_dir='asc',
+                columns=self.columns, filters=self.filters,
+                sort_key='inspection_started_at')
+
+    def test__check_inspect_timeouts_disabled(self, get_nodeinfo_mock,
+                                              mapped_mock, acquire_mock):
+        self.config(inspect_timeout=0, group='conductor')
+
+        self.service._check_inspect_timeouts(self.context)
+
+        self.assertFalse(get_nodeinfo_mock.called)
+        self.assertFalse(mapped_mock.called)
+        self.assertFalse(acquire_mock.called)
+
+    def test__check_inspect_timeouts_not_mapped(self, get_nodeinfo_mock,
+                                                mapped_mock, acquire_mock):
+        get_nodeinfo_mock.return_value = self._get_nodeinfo_list_response()
+        mapped_mock.return_value = False
+
+        self.service._check_inspect_timeouts(self.context)
+
+        self._assert_get_nodeinfo_args(get_nodeinfo_mock)
+        mapped_mock.assert_called_once_with(self.node.uuid, self.node.driver)
+        self.assertFalse(acquire_mock.called)
+
+    def test__check_inspect_timeout(self, get_nodeinfo_mock,
+                                    mapped_mock, acquire_mock):
+        get_nodeinfo_mock.return_value = self._get_nodeinfo_list_response()
+        mapped_mock.return_value = True
+        acquire_mock.side_effect = self._get_acquire_side_effect(self.task)
+
+        self.service._check_inspect_timeouts(self.context)
+
+        self._assert_get_nodeinfo_args(get_nodeinfo_mock)
+        mapped_mock.assert_called_once_with(self.node.uuid, self.node.driver)
+        acquire_mock.assert_called_once_with(self.context, self.node.uuid)
+        self.task.process_event.assert_called_with('fail')
+
+    def test__check_inspect_timeouts_acquire_node_disappears(self,
+                                                             get_nodeinfo_mock,
+                                                             mapped_mock,
+                                                             acquire_mock):
+        get_nodeinfo_mock.return_value = self._get_nodeinfo_list_response()
+        mapped_mock.return_value = True
+        acquire_mock.side_effect = exception.NodeNotFound(node='fake')
+
+        # Exception eaten
+        self.service._check_inspect_timeouts(self.context)
+
+        self._assert_get_nodeinfo_args(get_nodeinfo_mock)
+        mapped_mock.assert_called_once_with(
+                self.node.uuid, self.node.driver)
+        acquire_mock.assert_called_once_with(self.context,
+                                             self.node.uuid)
+        self.assertFalse(self.task.process_event.called)
+
+    def test__check_inspect_timeouts_acquire_node_locked(self,
+                                                         get_nodeinfo_mock,
+                                                         mapped_mock,
+                                                         acquire_mock):
+        get_nodeinfo_mock.return_value = self._get_nodeinfo_list_response()
+        mapped_mock.return_value = True
+        acquire_mock.side_effect = exception.NodeLocked(node='fake',
+                                                        host='fake')
+
+        # Exception eaten
+        self.service._check_inspect_timeouts(self.context)
+
+        self._assert_get_nodeinfo_args(get_nodeinfo_mock)
+        mapped_mock.assert_called_once_with(
+                self.node.uuid, self.node.driver)
+        acquire_mock.assert_called_once_with(self.context,
+                                             self.node.uuid)
+        self.assertFalse(self.task.process_event.called)
+
+    def test__check_inspect_timeouts_no_acquire_after_lock(self,
+                                                           get_nodeinfo_mock,
+                                                           mapped_mock,
+                                                           acquire_mock):
+        task = self._create_task(
+                node_attrs=dict(provision_state=states.AVAILABLE,
+                                uuid=self.node.uuid))
+        get_nodeinfo_mock.return_value = self._get_nodeinfo_list_response()
+        mapped_mock.return_value = True
+        acquire_mock.side_effect = self._get_acquire_side_effect(task)
+
+        self.service._check_inspect_timeouts(self.context)
+
+        self._assert_get_nodeinfo_args(get_nodeinfo_mock)
+        mapped_mock.assert_called_once_with(
+                self.node.uuid, self.node.driver)
+        acquire_mock.assert_called_once_with(self.context,
+                                             self.node.uuid)
+        self.assertFalse(task.process_event.called)
+
+    def test__check_inspect_timeouts_to_maintenance_after_lock(self,
+                                                get_nodeinfo_mock,
+                                                mapped_mock,
+                                                acquire_mock):
+        task = self._create_task(
+                node_attrs=dict(provision_state=states.INSPECTING,
+                                target_provision_state=states.MANAGEABLE,
+                                maintenance=True,
+                                uuid=self.node.uuid))
+        get_nodeinfo_mock.return_value = self._get_nodeinfo_list_response(
+                [task.node, self.node2])
+        mapped_mock.return_value = True
+        acquire_mock.side_effect = self._get_acquire_side_effect(
+                [task, self.task2])
+
+        self.service._check_inspect_timeouts(self.context)
+
+        self._assert_get_nodeinfo_args(get_nodeinfo_mock)
+        self.assertEqual([mock.call(self.node.uuid, task.node.driver),
+                          mock.call(self.node2.uuid, self.node2.driver)],
+                         mapped_mock.call_args_list)
+        self.assertEqual([mock.call(self.context, self.node.uuid),
+                          mock.call(self.context, self.node2.uuid)],
+                         acquire_mock.call_args_list)
+        # First node skipped
+        self.assertFalse(task.process_event.called)
+        # Second node spawned
+        self.task2.process_event.assert_called_with('fail')
+
+    def test__check_inspect_timeouts_exiting_no_worker_avail(self,
+                                                       get_nodeinfo_mock,
+                                                       mapped_mock,
+                                                       acquire_mock):
+        get_nodeinfo_mock.return_value = self._get_nodeinfo_list_response(
+                [self.node, self.node2])
+        mapped_mock.return_value = True
+        acquire_mock.side_effect = self._get_acquire_side_effect(
+                [(self.task, exception.NoFreeConductorWorker()), self.task2])
+
+        # Exception should be nuked
+        self.service._check_inspect_timeouts(self.context)
+
+        self._assert_get_nodeinfo_args(get_nodeinfo_mock)
+        # mapped should be only called for the first node as we should
+        # have exited the loop early due to NoFreeConductorWorker
+        mapped_mock.assert_called_once_with(
+                self.node.uuid, self.node.driver)
+        acquire_mock.assert_called_once_with(self.context,
+                                             self.node.uuid)
+        self.task.process_event.assert_called_with('fail')
+
+    def test__check_inspect_timeouts_exit_with_other_exception(self,
+                                                  get_nodeinfo_mock,
+                                                  mapped_mock,
+                                                  acquire_mock):
+        get_nodeinfo_mock.return_value = self._get_nodeinfo_list_response(
+                [self.node, self.node2])
+        mapped_mock.return_value = True
+        acquire_mock.side_effect = self._get_acquire_side_effect(
+                [(self.task, exception.IronicException('foo')), self.task2])
+
+        # Should re-raise
+        self.assertRaises(exception.IronicException,
+                          self.service._check_inspect_timeouts,
+                          self.context)
+
+        self._assert_get_nodeinfo_args(get_nodeinfo_mock)
+        # mapped should be only called for the first node as we should
+        # have exited the loop early due to unknown exception
+        mapped_mock.assert_called_once_with(
+                self.node.uuid, self.node.driver)
+        acquire_mock.assert_called_once_with(self.context,
+                                             self.node.uuid)
+        self.task.process_event.assert_called_with('fail')
+
+    def test__check_inspect_timeouts_worker_limit(self, get_nodeinfo_mock,
+                                                  mapped_mock, acquire_mock):
+        self.config(periodic_max_workers=2, group='conductor')
+
+        # Use the same nodes/tasks to make life easier in the tests
+        # here
+
+        get_nodeinfo_mock.return_value = self._get_nodeinfo_list_response(
+                [self.node] * 3)
+        mapped_mock.return_value = True
+        acquire_mock.side_effect = self._get_acquire_side_effect(
+                [self.task] * 3)
+
+        self.service._check_inspect_timeouts(self.context)
+
+        # Should only have ran 2.
+        self.assertEqual([mock.call(self.node.uuid, self.node.driver)] * 2,
+                         mapped_mock.call_args_list)
+        self.assertEqual([mock.call(self.context, self.node.uuid)] * 2,
+                         acquire_mock.call_args_list)
+        process_event_call = mock.call('fail')
+        self.assertEqual([process_event_call] * 2,
+                         self.task.process_event.call_args_list)

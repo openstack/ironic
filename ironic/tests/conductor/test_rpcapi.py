@@ -282,3 +282,9 @@ class RPCAPITestCase(base.DbTestCase):
                           'call',
                           version='1.21',
                           driver_name='fake-driver')
+
+    def test_inspect_hardware(self):
+        self._test_rpcapi('inspect_hardware',
+                          'call',
+                          version='1.24',
+                          node_id=self.fake_node['uuid'])

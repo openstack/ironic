@@ -72,9 +72,11 @@ def hide_driver_internal_info(obj):
 def check_allow_management_verbs(verb):
     # v1.4 added the MANAGEABLE state and two verbs to move nodes into
     # and out of that state. Reject requests to do this in older versions
-    if (pecan.request.version.minor < 4 and
-            verb in [ir_states.VERBS['manage'], ir_states.VERBS['provide']]):
-        raise exception.NotAcceptable()
+    if ((pecan.request.version.minor < 4 and
+            verb in [ir_states.VERBS['manage'], ir_states.VERBS['provide']])
+            or (pecan.request.version.minor < 6 and
+            verb == ir_states.VERBS['inspect'])):
+                raise exception.NotAcceptable()
 
 
 def allow_logical_names():
@@ -127,7 +129,8 @@ class NodePatchType(types.JsonPatchType):
                            '/power_state', '/provision_state', '/reservation',
                            '/target_power_state', '/target_provision_state',
                            '/provision_updated_at', '/maintenance_reason',
-                           '/driver_internal_info']
+                           '/driver_internal_info', '/inspection_finished_at',
+                           '/inspection_started_at', ]
 
     @staticmethod
     def mandatory_attrs():
@@ -439,6 +442,9 @@ class NodeStatesController(rest.RestController):
         elif target == ir_states.DELETED:
             pecan.request.rpcapi.do_node_tear_down(
                     pecan.request.context, rpc_node.uuid, topic)
+        elif target == ir_states.VERBS['inspect']:
+            pecan.request.rpcapi.inspect_hardware(
+                pecan.request.context, rpc_node.uuid, topic=topic)
         elif target in (
                 ir_states.VERBS['manage'], ir_states.VERBS['provide']):
             pecan.request.rpcapi.do_provisioning_action(
@@ -510,6 +516,12 @@ class Node(base.APIBase):
 
     provision_updated_at = datetime.datetime
     """The UTC date and time of the last provision state change"""
+
+    inspection_finished_at = datetime.datetime
+    """The UTC date and time when the last inspection finished successfully."""
+
+    inspection_started_at = datetime.datetime
+    """The UTC date and time of the hardware when inspection was started"""
 
     maintenance = types.boolean
     """Indicates whether the node is in maintenance mode."""
@@ -636,6 +648,7 @@ class Node(base.APIBase):
                      'cpus': '1'}, updated_at=time, created_at=time,
                      provision_updated_at=time, instance_info={},
                      maintenance=False, maintenance_reason=None,
+                     inspection_finished_at=None, inspection_started_at=time,
                      console_enabled=False)
         # NOTE(matty_dubs): The chassis_uuid getter() is based on the
         # _chassis_uuid variable:

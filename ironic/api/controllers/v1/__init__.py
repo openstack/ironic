@@ -60,7 +60,8 @@ MIN_VER_STR = '1.1'
 # v1.3: Add node.driver_internal_info
 # v1.4: Add MANAGEABLE state
 # v1.5: Add logical node names
-MAX_VER_STR = '1.5'
+# v1.6: Add INSPECT* states
+MAX_VER_STR = '1.6'
 
 
 MIN_VER = base.Version({base.Version.string: MIN_VER_STR},

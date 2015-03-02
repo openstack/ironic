@@ -79,6 +79,9 @@ class Node(base.IronicObject):
             # that started but failed to finish.
             'last_error': obj_utils.str_or_none,
 
+            'inspection_finished_at': obj_utils.datetime_or_str_or_none,
+            'inspection_started_at': obj_utils.datetime_or_str_or_none,
+
             'extra': obj_utils.dict_or_none,
             }
 
