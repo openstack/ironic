@@ -103,7 +103,7 @@ LAST_CMD_TIME = {}
 TIMING_SUPPORT = None
 SINGLE_BRIDGE_SUPPORT = None
 DUAL_BRIDGE_SUPPORT = None
-
+TMP_DIR_CHECKED = None
 
 ipmitool_command_options = {
     'timing': ['ipmitool', '-N', '0', '-R', '0', '-h'],
@@ -630,6 +630,28 @@ def send_raw(task, raw_bytes):
         raise exception.IPMIFailure(cmd=cmd)
 
 
+def _check_temp_dir():
+    """Check for Valid temp directory."""
+    global TMP_DIR_CHECKED
+    # because a temporary file is used to pass the password to ipmitool,
+    # we should check the directory
+    if TMP_DIR_CHECKED is None:
+        try:
+            utils.check_dir()
+        except (exception.PathNotFound,
+                exception.DirectoryNotWritable,
+                exception.InsufficientDiskSpace) as e:
+            TMP_DIR_CHECKED = False
+            err_msg = (_("Ipmitool drivers need to be able to create "
+                         "temporary files to pass password to ipmitool. "
+                         "Encountered error: %s") % e)
+            e.message = err_msg
+            LOG.error(err_msg)
+            raise
+        else:
+            TMP_DIR_CHECKED = True
+
+
 class IPMIPower(base.PowerInterface):
 
     def __init__(self):
@@ -640,6 +662,7 @@ class IPMIPower(base.PowerInterface):
                     driver=self.__class__.__name__,
                     reason=_("Unable to locate usable ipmitool command in "
                              "the system path when checking ipmitool version"))
+        _check_temp_dir()
 
     def get_properties(self):
         return COMMON_PROPERTIES
@@ -731,6 +754,7 @@ class IPMIManagement(base.ManagementInterface):
                     driver=self.__class__.__name__,
                     reason=_("Unable to locate usable ipmitool command in "
                              "the system path when checking ipmitool version"))
+        _check_temp_dir()
 
     def validate(self, task):
         """Check that 'driver_info' contains IPMI credentials.
@@ -883,6 +907,7 @@ class VendorPassthru(base.VendorInterface):
                 driver=self.__class__.__name__,
                 reason=_("Unable to locate usable ipmitool command in "
                          "the system path when checking ipmitool version"))
+        _check_temp_dir()
 
     @base.passthru(['POST'])
     @task_manager.require_exclusive_lock
@@ -975,6 +1000,7 @@ class IPMIShellinaboxConsole(base.ConsoleInterface):
                     driver=self.__class__.__name__,
                     reason=_("Unable to locate usable ipmitool command in "
                              "the system path when checking ipmitool version"))
+        _check_temp_dir()
 
     def get_properties(self):
         d = COMMON_PROPERTIES.copy()

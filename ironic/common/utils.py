@@ -536,3 +536,64 @@ def dd(src, dst, *args):
 def is_http_url(url):
     url = url.lower()
     return url.startswith('http://') or url.startswith('https://')
+
+
+def check_dir(directory_to_check=None, required_space=1):
+    """Check a directory is usable.
+
+    This function can be used by drivers to check that directories
+    they need to write to are usable. This should be called from the
+    drivers init function. This function checks that the directory
+    exists and then calls check_dir_writable and check_dir_free_space.
+    If directory_to_check is not provided the default is to use the
+    temp directory.
+
+    :param directory_to_check: the directory to check.
+    :param required_space: amount of space to check for in MiB.
+    :raises: PathNotFound if directory can not be found
+    :raises: DirectoryNotWritable if user is unable to write to the
+             directory
+    :raises InsufficientDiskSpace: if free space is < required space
+    """
+    # check if directory_to_check is passed in, if not set to tempdir
+    if directory_to_check is None:
+        directory_to_check = (tempfile.gettempdir() if CONF.tempdir
+                is None else CONF.tempdir)
+
+    LOG.debug("checking directory: %s", directory_to_check)
+
+    if not os.path.exists(directory_to_check):
+        raise exception.PathNotFound(dir=directory_to_check)
+
+    _check_dir_writable(directory_to_check)
+    _check_dir_free_space(directory_to_check, required_space)
+
+
+def _check_dir_writable(chk_dir):
+    """Check that the chk_dir is able to be written to.
+
+    :param chk_dir: Directory to check
+    :raises: DirectoryNotWritable if user is unable to write to the
+             directory
+    """
+    is_writable = os.access(chk_dir, os.W_OK)
+    if not is_writable:
+        raise exception.DirectoryNotWritable(dir=chk_dir)
+
+
+def _check_dir_free_space(chk_dir, required_space=1):
+    """Check that directory has some free space.
+
+    :param chk_dir: Directory to check
+    :param required_space: amount of space to check for in MiB.
+    :raises InsufficientDiskSpace: if free space is < required space
+    """
+    # check that we have some free space
+    stat = os.statvfs(chk_dir)
+    # get dir free space in MiB.
+    free_space = float(stat.f_bsize * stat.f_bavail) / 1024 / 1024
+    # check for at least required_space MiB free
+    if free_space < required_space:
+        raise exception.InsufficientDiskSpace(path=chk_dir,
+                                              required=required_space,
+                                              actual=free_space)

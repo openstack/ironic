@@ -57,6 +57,117 @@ BRIDGE_INFO_DICT = INFO_DICT.copy()
 BRIDGE_INFO_DICT.update(db_utils.get_test_ipmi_bridging_parameters())
 
 
+class IPMIToolCheckInitTestCase(base.TestCase):
+
+    @mock.patch.object(ipmi, '_is_option_supported', autospec=True)
+    @mock.patch.object(utils, 'check_dir', autospec=True)
+    def test_power_init_calls(self, mock_check_dir, mock_support):
+        mock_support.return_value = True
+        ipmi.TMP_DIR_CHECKED = None
+        ipmi.IPMIPower()
+        mock_support.assert_called_with(mock.ANY)
+        mock_check_dir.assert_called_once_with()
+
+    @mock.patch.object(ipmi, '_is_option_supported', autospec=True)
+    @mock.patch.object(utils, 'check_dir', autospec=True)
+    def test_power_init_calls_raises_1(self, mock_check_dir, mock_support):
+        mock_support.return_value = True
+        ipmi.TMP_DIR_CHECKED = None
+        mock_check_dir.side_effect = exception.PathNotFound(dir="foo_dir")
+        self.assertRaises(exception.PathNotFound, ipmi.IPMIPower)
+
+    @mock.patch.object(ipmi, '_is_option_supported', autospec=True)
+    @mock.patch.object(utils, 'check_dir', autospec=True)
+    def test_power_init_calls_raises_2(self, mock_check_dir, mock_support):
+        mock_support.return_value = True
+        ipmi.TMP_DIR_CHECKED = None
+        mock_check_dir.side_effect = exception.DirectoryNotWritable(
+            dir="foo_dir")
+        self.assertRaises(exception.DirectoryNotWritable, ipmi.IPMIPower)
+
+    @mock.patch.object(ipmi, '_is_option_supported', autospec=True)
+    @mock.patch.object(utils, 'check_dir', autospec=True)
+    def test_power_init_calls_raises_3(self, mock_check_dir, mock_support):
+        mock_support.return_value = True
+        ipmi.TMP_DIR_CHECKED = None
+        mock_check_dir.side_effect = exception.InsufficientDiskSpace(
+            path="foo_dir", required=1, actual=0)
+        self.assertRaises(exception.InsufficientDiskSpace, ipmi.IPMIPower)
+
+    @mock.patch.object(ipmi, '_is_option_supported', autospec=True)
+    @mock.patch.object(utils, 'check_dir', autospec=True)
+    def test_power_init_calls_already_checked(self,
+                                              mock_check_dir,
+                                              mock_support):
+        mock_support.return_value = True
+        ipmi.TMP_DIR_CHECKED = True
+        ipmi.IPMIPower()
+        mock_support.assert_called_with(mock.ANY)
+        self.assertEqual(0, mock_check_dir.call_count)
+
+    @mock.patch.object(ipmi, '_is_option_supported', autospec=True)
+    @mock.patch.object(utils, 'check_dir', autospec=True)
+    def test_management_init_calls(self, mock_check_dir, mock_support):
+        mock_support.return_value = True
+        ipmi.TMP_DIR_CHECKED = None
+
+        ipmi.IPMIManagement()
+        mock_support.assert_called_with(mock.ANY)
+        mock_check_dir.assert_called_once_with()
+
+    @mock.patch.object(ipmi, '_is_option_supported', autospec=True)
+    @mock.patch.object(utils, 'check_dir', autospec=True)
+    def test_management_init_calls_already_checked(self,
+                                                   mock_check_dir,
+                                                   mock_support):
+        mock_support.return_value = True
+        ipmi.TMP_DIR_CHECKED = False
+
+        ipmi.IPMIManagement()
+        mock_support.assert_called_with(mock.ANY)
+        self.assertEqual(0, mock_check_dir.call_count)
+
+    @mock.patch.object(ipmi, '_is_option_supported', autospec=True)
+    @mock.patch.object(utils, 'check_dir', autospec=True)
+    def test_vendor_passthru_init_calls(self, mock_check_dir, mock_support):
+        mock_support.return_value = True
+        ipmi.TMP_DIR_CHECKED = None
+        ipmi.VendorPassthru()
+        mock_support.assert_called_with(mock.ANY)
+        mock_check_dir.assert_called_once_with()
+
+    @mock.patch.object(ipmi, '_is_option_supported', autospec=True)
+    @mock.patch.object(utils, 'check_dir', autospec=True)
+    def test_vendor_passthru_init_calls_already_checked(self,
+                                                        mock_check_dir,
+                                                        mock_support):
+        mock_support.return_value = True
+        ipmi.TMP_DIR_CHECKED = True
+        ipmi.VendorPassthru()
+        mock_support.assert_called_with(mock.ANY)
+        self.assertEqual(0, mock_check_dir.call_count)
+
+    @mock.patch.object(ipmi, '_is_option_supported', autospec=True)
+    @mock.patch.object(utils, 'check_dir', autospec=True)
+    def test_console_init_calls(self, mock_check_dir, mock_support):
+        mock_support.return_value = True
+        ipmi.TMP_DIR_CHECKED = None
+        ipmi.IPMIShellinaboxConsole()
+        mock_support.assert_called_with(mock.ANY)
+        mock_check_dir.assert_called_once_with()
+
+    @mock.patch.object(ipmi, '_is_option_supported', autospec=True)
+    @mock.patch.object(utils, 'check_dir', autospec=True)
+    def test_console_init_calls_already_checked(self,
+                                                mock_check_dir,
+                                                mock_support):
+        mock_support.return_value = True
+        ipmi.TMP_DIR_CHECKED = True
+        ipmi.IPMIShellinaboxConsole()
+        mock_support.assert_called_with(mock.ANY)
+        self.assertEqual(0, mock_check_dir.call_count)
+
+
 class IPMIToolCheckOptionSupportedTestCase(base.TestCase):
 
     @mock.patch.object(ipmi, '_is_option_supported')
@@ -989,6 +1100,16 @@ class IPMIToolDriverTestCase(db_base.DbTestCase):
                                                driver='fake_ipmitool',
                                                driver_info=INFO_DICT)
         self.info = ipmi._parse_driver_info(self.node)
+
+    @mock.patch.object(ipmi, "_parse_driver_info", autospec=True)
+    def test_power_validate(self, mock_parse):
+        node = obj_utils.get_test_node(self.context, driver='fake_ipmitool',
+                                       driver_info=INFO_DICT)
+        mock_parse.return_value = {}
+
+        with task_manager.acquire(self.context, node.uuid) as task:
+            task.driver.power.validate(task)
+            mock_parse.assert_called_once_with(mock.ANY)
 
     def test_get_properties(self):
         expected = ipmi.COMMON_PROPERTIES
