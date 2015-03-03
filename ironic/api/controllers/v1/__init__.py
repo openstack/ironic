@@ -164,32 +164,34 @@ class Controller(rest.RestController):
         #       the request object to make the links.
         return V1.convert()
 
-    def _check_version(self, version):
+    def _check_version(self, version, headers=None):
+        if not headers:
+            headers = {}
         # ensure that major version in the URL matches the header
         if version.major != BASE_VERSION:
             raise exc.HTTPNotAcceptable(_(
                 "Mutually exclusive versions requested. Version %(ver)s "
-                "requested but not supported by this service.")
-                % {'ver': version})
+                "requested but not supported by this service. The supported "
+                "version range is: [%(min)s, %(max)s].") % {'ver': version,
+                'min': MIN_VER_STR, 'max': MAX_VER_STR}, headers=headers)
         # ensure the minor version is within the supported range
         if version < MIN_VER or version > MAX_VER:
             raise exc.HTTPNotAcceptable(_(
-                "Unsupported minor version requested. This API service "
-                "supports the following version range: "
-                "[%(min)s, %(max)s].") % {'min': MIN_VER_STR,
-                                          'max': MAX_VER_STR})
+                "Version %(ver)s was requested but the minor version is not "
+                "supported by this service. The supported version range is: "
+                "[%(min)s, %(max)s].") % {'ver': version, 'min': MIN_VER_STR,
+                                          'max': MAX_VER_STR}, headers=headers)
 
     @pecan.expose()
     def _route(self, args):
         v = base.Version(pecan.request.headers, MIN_VER_STR, MAX_VER_STR)
 
         # Always set the min and max headers
-        # FIXME: these are not being sent if _check_version raises an exception
         pecan.response.headers[base.Version.min_string] = MIN_VER_STR
         pecan.response.headers[base.Version.max_string] = MAX_VER_STR
 
         # assert that requested version is supported
-        self._check_version(v)
+        self._check_version(v, pecan.response.headers)
         pecan.response.headers[base.Version.string] = str(v)
         pecan.request.version = v
 
