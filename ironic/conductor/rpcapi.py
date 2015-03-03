@@ -497,6 +497,8 @@ class ConductorAPI(object):
                  async task.
         :raises: UnsupportedDriverExtension if the node's driver doesn't
                  support inspection.
+        :raises: InvalidStateRequested if 'inspect' is not a valid
+                 action to do in the current state.
 
         """
         cctxt = self.client.prepare(topic=topic or self.topic, version='1.24')

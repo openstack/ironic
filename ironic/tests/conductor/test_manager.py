@@ -3083,7 +3083,7 @@ class NodeInspectHardware(_ServiceSetUpMixin,
                                           provision_state=states.INSPECTING)
         task = task_manager.TaskManager(self.context, node.uuid)
         mock_inspect.return_value = states.MANAGEABLE
-        manager._do_inspect_hardware(task, self.service.conductor.id)
+        manager._do_inspect_hardware(task)
         node.refresh()
         self.assertEqual(states.MANAGEABLE, node.provision_state)
         self.assertEqual(states.NOSTATE, node.target_provision_state)
@@ -3097,7 +3097,7 @@ class NodeInspectHardware(_ServiceSetUpMixin,
                                           provision_state=states.INSPECTING)
         task = task_manager.TaskManager(self.context, node.uuid)
         mock_inspect.return_value = states.INSPECTING
-        manager._do_inspect_hardware(task, self.service.conductor.id)
+        manager._do_inspect_hardware(task)
         node.refresh()
         self.assertEqual(states.INSPECTING, node.provision_state)
         self.assertEqual(states.NOSTATE, node.target_provision_state)
@@ -3113,8 +3113,7 @@ class NodeInspectHardware(_ServiceSetUpMixin,
         task = task_manager.TaskManager(self.context, node.uuid)
         mock_inspect.return_value = None
         self.assertRaises(exception.HardwareInspectionFailure,
-                          manager._do_inspect_hardware, task,
-                          self.service.conductor.id)
+                          manager._do_inspect_hardware, task)
         node.refresh()
         self.assertEqual(states.INSPECTFAIL, node.provision_state)
         self.assertEqual(states.MANAGEABLE, node.target_provision_state)
@@ -3196,8 +3195,7 @@ class NodeInspectHardware(_ServiceSetUpMixin,
         task = task_manager.TaskManager(self.context, node.uuid)
 
         self.assertRaises(exception.HardwareInspectionFailure,
-                          manager._do_inspect_hardware, task,
-                          self.service.conductor.id)
+                          manager._do_inspect_hardware, task)
         node.refresh()
         self.assertEqual(states.INSPECTFAIL, node.provision_state)
         self.assertEqual(states.MANAGEABLE, node.target_provision_state)
