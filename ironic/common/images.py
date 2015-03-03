@@ -308,7 +308,7 @@ def converted_size(path):
 
 
 def get_image_properties(context, image_href, properties="all"):
-    """Returns the values of several properties of a glance image
+    """Returns the values of several properties of an image
 
     :param context: context
     :param image_href: href of the image

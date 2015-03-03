@@ -993,19 +993,30 @@ It's possible to use Ironic without other OpenStack services.
 
 You should make the following changes to ``/etc/ironic/ironic.conf``:
 
-#. To disable usage of keystone tokens::
+#. To disable usage of Keystone tokens::
 
     [DEFAULT]
     ...
     auth_strategy=none
 
-#. If you want to disable neutron, you should have your network pre-configured
+#. If you want to disable Neutron, you should have your network pre-configured
    to serve DHCP and TFTP for machines that you're deploying. To disable it,
    change the following lines::
 
     [dhcp]
     ...
     dhcp_provider=none
+
+   .. note::
+      If you disabled Neutron and driver that you use is supported by at most
+      one conductor, PXE boot will still work for your nodes without any
+      manual config editing. This is because you know all the DHCP options
+      that will be used for deployment and can set up your DHCP server
+      appropriately.
+
+      If you have multiple conductors per driver, it would be better to use
+      Neutron since it will do all the dynamically changing configurations for
+      you.
 
 If you don't use Glance, it's possible to provide images to Ironic via hrefs.
 

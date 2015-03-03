@@ -107,8 +107,11 @@ def _get_boot_iso(task, root_uuid):
                 image_service.HttpImageService().validate_href(boot_iso)
             except exception.ImageRefValidationFailed:
                 with excutils.save_and_reraise_exception():
-                    LOG.error(_LE("Ilo can attach only HTTP(S) URL as "
-                                  "virtual media."))
+                    LOG.error(_LE("Virtual media deploy accepts only Glance "
+                                  "images or HTTP(S) URLs as "
+                                  "instance_info['ilo_boot_iso']. Either %s "
+                                  "is not a valid HTTP(S) URL or is "
+                                  "not reachable."), boot_iso)
         return task.node.instance_info['ilo_boot_iso']
 
     # Option 2 - Check if user has provided a boot_iso in Glance. If boot_iso
