@@ -797,14 +797,14 @@ class ConductorManager(periodic_task.PeriodicTasks):
         except (exception.InvalidParameterValue,
                 exception.MissingParameterValue) as e:
             node.last_error = (_('Failed to validate power driver interface. '
-                               'Can not clean instance. Error: %(msg)s') %
+                                 'Can not clean instance. Error: %(msg)s') %
                                {'msg': e})
             task.process_event('fail')
             return
 
         # TODO(JoshNang) Implement
         # Move to AVAILABLE
-        LOG.debug('Cleaning complete for node %s' % node.uuid)
+        LOG.debug('Cleaning complete for node %s', node.uuid)
         task.process_event('done')
 
     @messaging.expected_exceptions(exception.NoFreeConductorWorker,
