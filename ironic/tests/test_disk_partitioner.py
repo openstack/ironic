@@ -13,7 +13,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import fixtures
+import eventlet
 import mock
 from testtools.matchers import HasLength
 
@@ -23,16 +23,8 @@ from ironic.common import utils
 from ironic.tests import base
 
 
+@mock.patch.object(eventlet.greenthread, 'sleep', lambda seconds: None)
 class DiskPartitionerTestCase(base.TestCase):
-
-    def setUp(self):
-        super(DiskPartitionerTestCase, self).setUp()
-
-        def noop(*args, **kwargs):
-            pass
-
-        self.useFixture(fixtures.MonkeyPatch('eventlet.greenthread.sleep',
-                                             noop))
 
     def test_add_partition(self):
         dp = disk_partitioner.DiskPartitioner('/dev/fake')

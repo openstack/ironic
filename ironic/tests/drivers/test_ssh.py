@@ -15,7 +15,8 @@
 
 """Test class for Ironic SSH power driver."""
 
-import fixtures
+import tempfile
+
 import mock
 from oslo_concurrency import processutils
 from oslo_config import cfg
@@ -74,8 +75,8 @@ class SSHValidateParametersTestCase(db_base.DbTestCase):
     def test__parse_driver_info_good_file(self):
         # make sure we get back the expected things
         d_info = db_utils.get_test_ssh_info('file')
-        tempdir = self.useFixture(fixtures.TempDir())
-        key_path = tempdir.path + '/foo'
+        tempdir = tempfile.mkdtemp()
+        key_path = tempdir + '/foo'
         open(key_path, 'wt').close()
         d_info['ssh_key_filename'] = key_path
         node = obj_utils.get_test_node(
