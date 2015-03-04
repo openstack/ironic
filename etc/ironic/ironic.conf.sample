@@ -202,6 +202,10 @@
 # (string value)
 #auth_strategy=keystone
 
+# Enable pecan debug mode. WARNING: this is insecure and
+# should not be used in production. (boolean value)
+#pecan_debug=false
+
 
 #
 # Options defined in ironic.common.driver_factory
@@ -605,7 +609,7 @@
 #configdrive_swift_container=ironic_configdrive_container
 
 # Timeout (seconds) for waiting for node inspection. 0 -
-# unlimited. (integer value) (integer value)
+# unlimited. (integer value)
 #inspect_timeout=1800
 
 

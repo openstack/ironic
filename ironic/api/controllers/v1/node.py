@@ -72,10 +72,11 @@ def hide_driver_internal_info(obj):
 def check_allow_management_verbs(verb):
     # v1.4 added the MANAGEABLE state and two verbs to move nodes into
     # and out of that state. Reject requests to do this in older versions
-    if ((pecan.request.version.minor < 4 and
-            verb in [ir_states.VERBS['manage'], ir_states.VERBS['provide']])
-            or (pecan.request.version.minor < 6 and
-            verb == ir_states.VERBS['inspect'])):
+    if (pecan.request.version.minor < 4 and
+            verb in [ir_states.VERBS['manage'], ir_states.VERBS['provide']]):
+                raise exception.NotAcceptable()
+    if (pecan.request.version.minor < 6 and
+            verb == ir_states.VERBS['inspect']):
                 raise exception.NotAcceptable()
 
 
@@ -518,10 +519,11 @@ class Node(base.APIBase):
     """The UTC date and time of the last provision state change"""
 
     inspection_finished_at = datetime.datetime
-    """The UTC date and time when the last inspection finished successfully."""
+    """The UTC date and time when the last hardware inspection finished
+    successfully."""
 
     inspection_started_at = datetime.datetime
-    """The UTC date and time of the hardware when inspection was started"""
+    """The UTC date and time when the hardware inspection was started"""
 
     maintenance = types.boolean
     """Indicates whether the node is in maintenance mode."""

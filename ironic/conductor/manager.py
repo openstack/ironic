@@ -166,7 +166,7 @@ conductor_opts = [
         cfg.IntOpt('inspect_timeout',
                    default=1800,
                    help='Timeout (seconds) for waiting for node inspection. '
-                        '0 - unlimited. (integer value)'),
+                        '0 - unlimited.'),
 
 ]
 CONF = cfg.CONF
@@ -924,8 +924,8 @@ class ConductorManager(periodic_task.PeriodicTasks):
         sort_key = 'provision_updated_at'
         callback_method = utils.cleanup_after_timeout
         err_handler = provisioning_error_handler
-        self._fail_if_timeout_reached(context, filters, states.DEPLOYWAIT,
-                              sort_key, callback_method, err_handler)
+        self._fail_if_in_state(context, filters, states.DEPLOYWAIT,
+                               sort_key, callback_method, err_handler)
 
     def _do_takeover(self, task):
         LOG.debug(('Conductor %(cdr)s taking over node %(node)s'),
@@ -1411,6 +1411,7 @@ class ConductorManager(periodic_task.PeriodicTasks):
     @messaging.expected_exceptions(exception.NoFreeConductorWorker,
                                    exception.NodeLocked,
                                    exception.HardwareInspectionFailure,
+                                   exception.InvalidStateRequested,
                                    exception.UnsupportedDriverExtension)
     def inspect_hardware(self, context, node_id):
         """Inspect hardware to obtain hardware properties.
@@ -1428,11 +1429,12 @@ class ConductorManager(periodic_task.PeriodicTasks):
                  async task
         :raises: HardwareInspectionFailure when unable to get
                  essential scheduling properties from hardware.
+        :raises: InvalidStateRequested if 'inspect' is not a
+                 valid action to do in the current state.
 
         """
         LOG.debug('RPC inspect_hardware called for node %s', node_id)
         with task_manager.acquire(context, node_id, shared=False) as task:
-            node = task.node
             if not getattr(task.driver, 'inspect', None):
                 raise exception.UnsupportedDriverExtension(
                       driver=task.node.driver, extension='inspect')
@@ -1450,16 +1452,13 @@ class ConductorManager(periodic_task.PeriodicTasks):
             try:
                 task.process_event('inspect',
                                    callback=self._spawn_worker,
-                                   call_args=(_do_inspect_hardware, task,
-                                              self.conductor.id),
+                                   call_args=(_do_inspect_hardware, task),
                                    err_handler=provisioning_error_handler)
 
             except exception.InvalidState:
-                error = (_("Inspection is not possible while node "
-                          "%(node)s is in state %(state)s")
-                          % {'node': node.uuid,
-                             'state': node.provision_state})
-                raise exception.HardwareInspectionFailure(error=error)
+                raise exception.InvalidStateRequested(
+                        action='inspect', node=task.node.uuid,
+                        state=task.node.provision_state)
 
     @periodic_task.periodic_task(
         spacing=CONF.conductor.check_provision_state_interval)
@@ -1477,18 +1476,26 @@ class ConductorManager(periodic_task.PeriodicTasks):
                    'provision_state': states.INSPECTING,
                    'inspection_started_before': callback_timeout}
         sort_key = 'inspection_started_at'
-        last_error = _("timeout reached while waiting for callback")
-        self._fail_if_timeout_reached(context, filters, states.INSPECTING,
-                                      sort_key, last_error=last_error)
+        last_error = _("timeout reached while inspecting the node")
+        self._fail_if_in_state(context, filters, states.INSPECTING,
+                               sort_key, last_error=last_error)
 
-    def _fail_if_timeout_reached(self, context, filters, provision_state,
-                                 sort_key, callback_method=None,
-                                 err_handler=None, last_error=None):
-        """Checks if the async(background) process has reached timeout.
+    def _fail_if_in_state(self, context, filters, provision_state,
+                          sort_key, callback_method=None,
+                          err_handler=None, last_error=None):
+        """Fail nodes that are in specified state.
+
+        Retrieves nodes that satisfy the criteria in 'filters'.
+        If any of these nodes is in 'provision_state', it has failed
+        in whatever provisioning activity it was currently doing.
+        That failure is processed here.
 
         :param: context: request context
         :param: filters: criteria (as a dictionary) to get the desired
-                         list of nodes.
+                         list of nodes that satisfy the filter constraints.
+                         For example, if filters['provisioned_before'] = 60,
+                         this would process nodes whose provision_updated_at
+                         field value was 60 or more seconds before 'now'.
         :param: provision_state: provision_state that the node is in,
                                  for the provisioning activity to have failed.
         :param: sort_key: the nodes are sorted based on this key.
@@ -1496,8 +1503,9 @@ class ConductorManager(periodic_task.PeriodicTasks):
                                  spawned thread, for a failed node. This
                                  method must take a :class:`TaskManager` as
                                  the first (and only required) parameter.
-        :param: err_handler: the error handler to be invoked if an error.
-                             occurs trying to spawn a thread for a failed node.
+        :param: err_handler: for a failed node, the error handler to invoke
+                             if an error occurs trying to spawn an thread
+                             to do the callback_method.
         :param: last_error: the error message to be updated in node.last_error
 
         """
@@ -1520,9 +1528,6 @@ class ConductorManager(periodic_task.PeriodicTasks):
                                            call_args=(callback_method, task),
                                            err_handler=err_handler)
                     else:
-                        if not last_error:
-                            last_error = _("timeout reached while waiting "
-                                           "for callback")
                         task.node.last_error = last_error
                         task.process_event('fail')
             except exception.NoFreeConductorWorker:
@@ -1806,12 +1811,19 @@ def do_sync_power_state(task, count):
     return count
 
 
-def _do_inspect_hardware(task, conductor_id):
-    """Prepare the environment and inspect a node."""
+def _do_inspect_hardware(task):
+    """Initiates inspection.
+
+    :param: task: a TaskManager instance with an exclusive lock
+                  on its node.
+    :raises: HardwareInspectionFailure if driver doesn't
+             return the state as states.MANAGEABLE or
+             states.INSPECTING.
+
+    """
     node = task.node
 
     def handle_failure(e):
-        # NOTE(deva): there is no need to clear conductor_affinity
         node.last_error = e
         task.process_event('fail')
         LOG.error(_LE("Failed to inspect node %(node)s: %(err)s"),
@@ -1825,16 +1837,12 @@ def _do_inspect_hardware(task, conductor_id):
             error = str(e)
             handle_failure(error)
 
-    # Update conductor_affinity to reference this conductor's ID
-    # since there may be local persistent state
-    node.conductor_affinity = conductor_id
-
     if new_state == states.MANAGEABLE:
         task.process_event('done')
         LOG.info(_LI('Successfully inspected node %(node)s')
                  % {'node': node.uuid})
     elif new_state != states.INSPECTING:
-        error = (_("Driver returned unexpected state in inspection"
-                   "%(state)s") % {'state': new_state})
+        error = (_("During inspection, driver returned unexpected "
+                   "state %(state)s") % {'state': new_state})
         handle_failure(error)
         raise exception.HardwareInspectionFailure(error=error)
