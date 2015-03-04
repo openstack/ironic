@@ -630,6 +630,10 @@ node(s) where ``ironic-conductor`` is running.
        contents of ``/tftpboot`` to the configured directory
 .. [2] http://www.syslinux.org/wiki/index.php/Library_modules
 
+#. Enable tftp map file, modify ``/etc/xinetd.d/tftp`` as below and restart xinetd
+   service::
+
+   server_args = -v -v -v -v -v --map-file /tftpboot/map-file /tftpboot
 
 PXE UEFI Setup
 --------------
