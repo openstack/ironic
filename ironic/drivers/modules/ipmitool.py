@@ -32,7 +32,6 @@ DRIVER.
 import contextlib
 import os
 import re
-import stat
 import tempfile
 import time
 
@@ -185,15 +184,15 @@ def _make_password_file(password):
     """
     try:
         fd, path = tempfile.mkstemp()
-        os.fchmod(fd, stat.S_IRUSR | stat.S_IWUSR)
         with os.fdopen(fd, "w") as f:
             f.write(str(password))
-
-        yield path
-        utils.delete_if_exists(path)
     except Exception as exc:
         utils.delete_if_exists(path)
         raise exception.PasswordFileFailedToCreate(error=exc)
+    try:
+        yield path
+    finally:
+        utils.delete_if_exists(path)
 
 
 def _parse_driver_info(node):
