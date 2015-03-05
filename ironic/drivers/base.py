@@ -150,7 +150,7 @@ class BaseInterface(object):
         return self.clean_steps
 
     def execute_clean_step(self, task, step):
-        """Execute a the clean step on task.node.
+        """Execute the clean step on task.node.
 
         Clean steps should take a single argument: a TaskManager object.
         Steps can be executed synchronously or asynchronously. Steps should
@@ -162,8 +162,9 @@ class BaseInterface(object):
 
         :param task: A TaskManager object
         :param step: A CleanStep object to execute
-        :returns: states.CLEANING if the method is complete, or None if
-            the step will continue to execute asynchronously.
+        :returns: None if this method has completed synchronously, or
+            states.CLEANING if the step will continue to execute
+            asynchronously.
         """
         return getattr(self, step.get('step'))(task)
 

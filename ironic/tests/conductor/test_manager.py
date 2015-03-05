@@ -1363,6 +1363,7 @@ class DoNodeDeployTearDownTestCase(_ServiceSetUpMixin,
         self._start_service()
         self.service._do_node_tear_down(task)
         node.refresh()
+        # Node will be moved to AVAILABLE after cleaning, not tested here
         self.assertEqual(states.CLEANING, node.provision_state)
         self.assertEqual(states.AVAILABLE, node.target_provision_state)
         self.assertIsNone(node.last_error)
@@ -1382,6 +1383,7 @@ class DoNodeDeployTearDownTestCase(_ServiceSetUpMixin,
         self.service.do_node_tear_down(self.context, node.uuid)
         self.service._worker_pool.waitall()
         node.refresh()
+        # Node will be moved to AVAILABLE after cleaning, not tested here
         self.assertEqual(states.CLEANING, node.provision_state)
         self.assertEqual(states.AVAILABLE, node.target_provision_state)
         self.assertIsNone(node.last_error)
@@ -1461,7 +1463,6 @@ class DoNodeDeployTearDownTestCase(_ServiceSetUpMixin,
 
     @mock.patch('ironic.conductor.manager.ConductorManager._spawn_worker')
     def test_do_provision_action_provide(self, mock_spawn):
-
         # test when a node is cleaned going from manageable to available
         node = obj_utils.create_test_node(
             self.context, driver='fake',
@@ -1471,6 +1472,7 @@ class DoNodeDeployTearDownTestCase(_ServiceSetUpMixin,
         self._start_service()
         self.service.do_provisioning_action(self.context, node.uuid, 'provide')
         node.refresh()
+        # Node will be moved to AVAILABLE after cleaning, not tested here
         self.assertEqual(states.CLEANING, node.provision_state)
         self.assertEqual(states.AVAILABLE, node.target_provision_state)
         self.assertIsNone(node.last_error)

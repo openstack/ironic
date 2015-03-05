@@ -123,9 +123,7 @@ CLEANING = 'cleaning'
 """ Node is being automatically cleaned to prepare it for provisioning. """
 
 CLEANFAIL = 'clean failed'
-""" Node failed cleaning. This requires operator intervention to
-resolve.
-"""
+""" Node failed cleaning. This requires operator intervention to resolve. """
 
 ERROR = 'error'
 """ An error occurred during node processing.
