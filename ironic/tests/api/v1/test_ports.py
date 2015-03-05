@@ -610,6 +610,7 @@ class TestPost(api_base.FunctionalTest):
         self.assertIn(address, error_msg.upper())
 
 
+@mock.patch.object(rpcapi.ConductorAPI, 'destroy_port')
 class TestDelete(api_base.FunctionalTest):
 
     def setUp(self):
@@ -618,25 +619,28 @@ class TestDelete(api_base.FunctionalTest):
         self.port = obj_utils.create_test_port(self.context,
                                                node_id=self.node.id)
 
-    def test_delete_port_byid(self):
-        self.delete('/ports/%s' % self.port.uuid)
-        response = self.get_json('/ports/%s' % self.port.uuid,
-                                 expect_errors=True)
-        self.assertEqual(404, response.status_int)
-        self.assertEqual('application/json', response.content_type)
-        self.assertIn(self.port.uuid, response.json['error_message'])
+        gtf = mock.patch.object(rpcapi.ConductorAPI, 'get_topic_for')
+        self.mock_gtf = gtf.start()
+        self.mock_gtf.return_value = 'test-topic'
+        self.addCleanup(gtf.stop)
 
-    def test_delete_port_byaddress(self):
+    def test_delete_port_byaddress(self, mock_dpt):
         response = self.delete('/ports/%s' % self.port.address,
                                expect_errors=True)
         self.assertEqual(400, response.status_int)
         self.assertEqual('application/json', response.content_type)
         self.assertIn(self.port.address, response.json['error_message'])
 
-    def test_delete_port_node_locked(self):
-        self.node.reserve(self.context, 'fake', self.node.uuid)
-        response = self.delete('/ports/%s' % self.port.uuid,
+    def test_delete_port_byid(self, mock_dpt):
+        self.delete('/ports/%s' % self.port.uuid,
                                expect_errors=True)
-        self.assertEqual(409, response.status_int)
-        self.assertEqual('application/json', response.content_type)
-        self.assertIn(self.node.uuid, response.json['error_message'])
+        self.assertTrue(mock_dpt.called)
+
+    def test_delete_port_node_locked(self, mock_dpt):
+        self.node.reserve(self.context, 'fake', self.node.uuid)
+        mock_dpt.side_effect = exception.NodeLocked(node='fake-node',
+                                                    host='fake-host')
+        ret = self.delete('/ports/%s' % self.port.uuid, expect_errors=True)
+        self.assertEqual(409, ret.status_code)
+        self.assertTrue(ret.json['error_message'])
+        self.assertTrue(mock_dpt.called)

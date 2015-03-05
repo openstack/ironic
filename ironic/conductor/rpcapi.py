@@ -67,11 +67,12 @@ class ConductorAPI(object):
     |    1.22 - Added configdrive parameter to do_node_deploy.
     |    1.23 - Added do_provisioning_action
     |    1.24 - Added inspect_hardware method
+    |    1.25 - Added destroy_port
 
     """
 
     # NOTE(rloo): This must be in sync with manager.ConductorManager's.
-    RPC_API_VERSION = '1.24'
+    RPC_API_VERSION = '1.25'
 
     def __init__(self, topic=None):
         super(ConductorAPI, self).__init__()
@@ -501,3 +502,14 @@ class ConductorAPI(object):
         """
         cctxt = self.client.prepare(topic=topic or self.topic, version='1.24')
         return cctxt.call(context, 'inspect_hardware', node_id=node_id)
+
+    def destroy_port(self, context, port, topic=None):
+        """Delete a port.
+
+        :param context: request context.
+        :param port: port object
+        :param topic: RPC topic. Defaults to self.topic.
+        :raises: NodeLocked if node is locked by another conductor.
+        """
+        cctxt = self.client.prepare(topic=topic or self.topic, version='1.25')
+        return cctxt.call(context, 'destroy_port', port=port)

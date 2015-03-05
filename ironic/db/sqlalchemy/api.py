@@ -133,17 +133,6 @@ def add_node_filter_by_chassis(query, value):
         return query.filter(models.Chassis.uuid == value)
 
 
-def _check_port_change_forbidden(port, session):
-    node_id = port['node_id']
-    if node_id is not None:
-        query = model_query(models.Node, session=session)
-        query = query.filter_by(id=node_id)
-        node_ref = query.one()
-        if node_ref['reservation'] is not None:
-            raise exception.NodeLocked(node=node_ref['uuid'],
-                                       host=node_ref['reservation'])
-
-
 def _paginate_query(model, limit=None, marker=None, sort_key=None,
                     sort_dir=None, query=None):
     if not query:
@@ -461,14 +450,9 @@ class Connection(api.Connection):
         with session.begin():
             query = model_query(models.Port, session=session)
             query = add_port_filter(query, port_id)
-
-            try:
-                ref = query.one()
-            except NoResultFound:
+            count = query.delete()
+            if count == 0:
                 raise exception.PortNotFound(port=port_id)
-            _check_port_change_forbidden(ref, session)
-
-            query.delete()
 
     def get_chassis_by_id(self, chassis_id):
         query = model_query(models.Chassis).filter_by(id=chassis_id)

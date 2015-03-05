@@ -3423,3 +3423,25 @@ class ManagerCheckInspectTimeoutsTestCase(_CommonMixIn,
         process_event_call = mock.call('fail')
         self.assertEqual([process_event_call] * 2,
                          self.task.process_event.call_args_list)
+
+
+@_mock_record_keepalive
+class DestroyPortTestCase(_ServiceSetUpMixin, tests_db_base.DbTestCase):
+    def test_destroy_port(self):
+        node = obj_utils.create_test_node(self.context, driver='fake')
+
+        port = obj_utils.create_test_port(self.context,
+                                          node_id=node.id)
+        self.service.destroy_port(self.context, port)
+        self.assertRaises(exception.PortNotFound, port.refresh)
+
+    def test_destroy_port_node_locked(self):
+        node = obj_utils.create_test_node(self.context, driver='fake',
+                                   reservation='fake-reserv')
+
+        port = obj_utils.create_test_port(self.context, node_id=node.id)
+        exc = self.assertRaises(messaging.rpc.ExpectedException,
+                                self.service.destroy_port,
+                                self.context, port)
+        # Compare true exception hidden by @messaging.expected_exceptions
+        self.assertEqual(exception.NodeLocked, exc.exc_info[0])
