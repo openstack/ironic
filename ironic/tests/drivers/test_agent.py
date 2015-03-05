@@ -195,20 +195,6 @@ class TestAgentDeploy(db_base.DbTestCase):
             power_mock.assert_called_once_with(task, states.POWER_OFF)
             self.assertEqual(driver_return, states.DELETED)
 
-    def test_prepare(self):
-        pass
-
-    def test_clean_up(self):
-        pass
-
-    @mock.patch.object(dhcp_factory.DHCPFactory, 'update_dhcp')
-    def test_take_over(self, update_dhcp_mock):
-        with task_manager.acquire(
-                self.context, self.node['uuid'], shared=True) as task:
-            task.driver.deploy.take_over(task)
-            update_dhcp_mock.assert_called_once_with(
-                task, CONF.agent.agent_pxe_bootfile_name)
-
 
 class TestAgentVendor(db_base.DbTestCase):
 

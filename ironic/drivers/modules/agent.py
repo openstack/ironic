@@ -305,8 +305,7 @@ class AgentDeploy(base.DeployInterface):
 
         :param task: a TaskManager instance.
         """
-        provider = dhcp_factory.DHCPFactory()
-        provider.update_dhcp(task, CONF.agent.agent_pxe_bootfile_name)
+        pass
 
 
 class AgentVendorInterface(agent_base_vendor.BaseAgentVendor):
