@@ -364,6 +364,14 @@ Source credentials, create a key, and spawn an instance::
     # spawn instance
     nova boot --flavor baremetal --image $image --key-name default testing
 
+.. note::
+    Because devstack create multiple networks, we need to pass an additional parameter
+    `--nic net-id` to the nova boot command when using the admin account, for example:
+
+    net_id=$(neutron net-list | egrep "$PRIVATE_NETWORK_NAME"'[^-]' | awk '{ print $2 }')
+
+    nova boot --flavor baremetal --nic net-id=$net_id --image $image --key-name default testing
+
 As the demo tenant, you should now see a Nova instance building::
 
     nova list
