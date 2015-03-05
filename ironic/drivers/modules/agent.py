@@ -171,7 +171,10 @@ def build_instance_info_for_deploy(task):
             image_service.HttpImageService().validate_href(image_source)
         except exception.ImageRefValidationFailed:
             with excutils.save_and_reraise_exception():
-                LOG.error(_LE("Agent deploy supports only HTTP(S) URLs."))
+                LOG.error(_LE("Agent deploy supports only HTTP(S) URLs as "
+                              "instance_info['image_source']. Either %s "
+                              "is not a valid HTTP(S) URL or "
+                              "is not reachable."), image_source)
         instance_info['image_url'] = image_source
 
     return instance_info
