@@ -26,9 +26,51 @@ from ironic.tests.db import base as db_base
 from ironic.tests.objects import utils as obj_utils
 
 
+class DisabledTestCase(db_base.DbTestCase):
+    def setUp(self):
+        super(DisabledTestCase, self).setUp()
+
+    def _do_mock(self):
+        # NOTE(dtantsur): fake driver always has inspection, using another one
+        mgr_utils.mock_the_extension_manager("pxe_ssh")
+        self.driver = driver_factory.get_driver("pxe_ssh")
+
+    def test_disabled(self):
+        self.config(enabled=False, group='discoverd')
+        self._do_mock()
+        self.assertIsNone(self.driver.inspect)
+        # NOTE(dtantsur): it's expected that fake_discoverd fails to load
+        # in this case
+        self.assertRaises(exception.DriverLoadError,
+                          mgr_utils.mock_the_extension_manager,
+                          "fake_discoverd")
+
+    def test_enabled(self):
+        self.config(enabled=True, group='discoverd')
+        self._do_mock()
+        self.assertIsNotNone(self.driver.inspect)
+
+    @mock.patch.object(discoverd, 'ironic_discoverd', None)
+    def test_init_discoverd_not_imported(self):
+        self.assertRaises(exception.DriverLoadError,
+                          discoverd.DiscoverdInspect)
+
+    @mock.patch.object(ironic_discoverd, '__version_info__', (1, 0, 0))
+    def test_init_ok(self):
+        self.config(enabled=True, group='discoverd')
+        discoverd.DiscoverdInspect()
+
+    @mock.patch.object(ironic_discoverd, '__version_info__', (0, 2, 2))
+    def test_init_old_version(self):
+        self.config(enabled=True, group='discoverd')
+        self.assertRaises(exception.DriverLoadError,
+                          discoverd.DiscoverdInspect)
+
+
 class BaseTestCase(db_base.DbTestCase):
     def setUp(self):
         super(BaseTestCase, self).setUp()
+        self.config(enabled=True, group='discoverd')
         mgr_utils.mock_the_extension_manager("fake_discoverd")
         self.driver = driver_factory.get_driver("fake_discoverd")
         self.node = obj_utils.get_test_node(self.context)
@@ -37,37 +79,26 @@ class BaseTestCase(db_base.DbTestCase):
         self.task.shared = False
         self.task.node = self.node
         self.task.driver = self.driver
-        self.config(enabled=True, group='discoverd')
 
 
-class ValidateTestCase(BaseTestCase):
+class CommonFunctionsTestCase(BaseTestCase):
     def test_validate_ok(self):
         self.driver.inspect.validate(self.task)
 
-    def test_validate_disabled(self):
-        self.config(enabled=False, group='discoverd')
-        self.assertRaises(exception.UnsupportedDriverExtension,
-                          self.driver.inspect.validate, self.task)
+    def test_get_properties(self):
+        res = self.driver.inspect.get_properties()
+        self.assertEqual({}, res)
 
-    @mock.patch.object(ironic_discoverd, '__version_info__', (1, 0, 0))
-    def test_init_ok(self):
-        discoverd.DiscoverdInspect()
-        self.config(enabled=False, group='discoverd')
-        discoverd.DiscoverdInspect()
+    def test_create_if_enabled(self):
+        res = discoverd.DiscoverdInspect.create_if_enabled('driver')
+        self.assertIsInstance(res, discoverd.DiscoverdInspect)
 
-    @mock.patch.object(ironic_discoverd, '__version_info__', (0, 2, 2))
-    def test_old_version(self):
-        self.assertRaises(exception.DriverLoadError,
-                          discoverd.DiscoverdInspect)
+    @mock.patch.object(discoverd.LOG, 'warn')
+    def test_create_if_enabled_disabled(self, warn_mock):
         self.config(enabled=False, group='discoverd')
-        discoverd.DiscoverdInspect()
-
-    @mock.patch.object(discoverd, 'ironic_discoverd', None)
-    def test_not_imported(self):
-        self.assertRaises(exception.DriverLoadError,
-                          discoverd.DiscoverdInspect)
-        self.config(enabled=False, group='discoverd')
-        discoverd.DiscoverdInspect()
+        res = discoverd.DiscoverdInspect.create_if_enabled('driver')
+        self.assertIsNone(res)
+        self.assertTrue(warn_mock.called)
 
 
 @mock.patch.object(eventlet, 'spawn_n', lambda f, *a, **kw: f(*a, **kw))

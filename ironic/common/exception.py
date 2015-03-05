@@ -341,7 +341,8 @@ class OrphanedObjectError(IronicException):
 
 
 class UnsupportedDriverExtension(Invalid):
-    message = _('Driver %(driver)s does not support %(extension)s.')
+    message = _('Driver %(driver)s does not support %(extension)s '
+                '(disabled or not implemented).')
 
 
 class IncompatibleObjectVersion(IronicException):
