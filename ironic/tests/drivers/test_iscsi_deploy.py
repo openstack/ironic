@@ -484,6 +484,53 @@ class IscsiDeployMethodsTestCase(db_base.DbTestCase):
             mock_image_cache.return_value.clean_up.assert_called_once_with()
             self.assertFalse(deploy_mock.called)
 
+    @mock.patch.object(iscsi_deploy, 'LOG')
+    @mock.patch.object(iscsi_deploy, 'get_deploy_info')
+    @mock.patch.object(iscsi_deploy, 'InstanceImageCache')
+    @mock.patch.object(manager_utils, 'node_power_action')
+    @mock.patch.object(deploy_utils, 'deploy')
+    def test_continue_deploy(self, deploy_mock, power_mock, mock_image_cache,
+                             mock_deploy_info, mock_log):
+        kwargs = {'address': '123456', 'iqn': 'aaa-bbb', 'key': 'fake-56789'}
+        self.node.provision_state = states.DEPLOYWAIT
+        self.node.target_provision_state = states.ACTIVE
+        self.node.save()
+
+        mock_deploy_info.return_value = {
+            'address': '123456',
+            'boot_option': 'netboot',
+            'configdrive': "I've got the power",
+            'ephemeral_format': None,
+            'ephemeral_mb': 0,
+            'image_path': (u'/var/lib/ironic/images/1be26c0b-03f2-4d2e-ae87-'
+                           u'c02d7f33c123/disk'),
+            'iqn': 'aaa-bbb',
+            'lun': '1',
+            'node_uuid': u'1be26c0b-03f2-4d2e-ae87-c02d7f33c123',
+            'port': '3260',
+            'preserve_ephemeral': False,
+            'root_mb': 102400,
+            'swap_mb': 0,
+        }
+        log_params = mock_deploy_info.return_value.copy()
+        # Make sure we don't log the full content of the configdrive
+        log_params['configdrive'] = '***'
+        expected_dict = {
+            'node': self.node.uuid,
+            'params': log_params,
+        }
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            mock_log.isEnabledFor.return_value = True
+            iscsi_deploy.continue_deploy(task, **kwargs)
+            mock_log.debug.assert_called_once_with(
+                mock.ANY, expected_dict)
+            self.assertEqual(states.DEPLOYWAIT, task.node.provision_state)
+            self.assertEqual(states.ACTIVE, task.node.target_provision_state)
+            self.assertIsNone(task.node.last_error)
+            mock_image_cache.assert_called_once_with()
+            mock_image_cache.return_value.clean_up.assert_called_once_with()
+
     def test_get_deploy_info_boot_option_default(self):
         instance_info = self.node.instance_info
         instance_info['deploy_key'] = 'key'

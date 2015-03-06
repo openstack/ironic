@@ -24,7 +24,6 @@ from ironic.common import exception
 from ironic.common.glance_service import service_utils as glance_service_utils
 from ironic.common.i18n import _
 from ironic.common.i18n import _LE
-from ironic.common.i18n import _LI
 from ironic.common import image_service as service
 from ironic.common import keystone
 from ironic.common import utils
@@ -273,8 +272,16 @@ def continue_deploy(task, **kwargs):
         destroy_images(node.uuid)
         return
 
-    LOG.info(_LI('Continuing deployment for node %(node)s, params %(params)s'),
-                 {'node': node.uuid, 'params': params})
+    # NOTE(lucasagomes): Let's make sure we don't log the full content
+    # of the config drive here because it can be up to 64MB in size,
+    # so instead let's log "***" in case config drive is enabled.
+    if LOG.isEnabledFor(logging.logging.DEBUG):
+        log_params = {
+            k: params[k] if k != 'configdrive' else '***'
+            for k in params.keys()
+        }
+        LOG.debug('Continuing deployment for node %(node)s, params %(params)s',
+                  {'node': node.uuid, 'params': log_params})
 
     root_uuid = None
     try:
