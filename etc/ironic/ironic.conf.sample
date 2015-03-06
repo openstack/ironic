@@ -15,7 +15,7 @@
 #rpc_conn_pool_size=30
 
 # Qpid broker hostname. (string value)
-#qpid_hostname=ironic
+#qpid_hostname=localhost
 
 # Qpid broker port. (integer value)
 #qpid_port=5672
@@ -76,7 +76,7 @@
 
 # The RabbitMQ broker address where a single node is used.
 # (string value)
-#rabbit_host=ironic
+#rabbit_host=localhost
 
 # The RabbitMQ broker port where a single node is used.
 # (integer value)
@@ -779,6 +779,26 @@
 # DHCP provider to use. "neutron" uses Neutron, and "none"
 # uses a no-op provider. (string value)
 #dhcp_provider=neutron
+
+
+[discoverd]
+
+#
+# Options defined in ironic.drivers.modules.discoverd
+#
+
+# whether to enable inspection using ironic-discoverd (boolean
+# value)
+#enabled=false
+
+# ironic-discoverd HTTP endpoint. If this is not set, the
+# ironic-discoverd client default (http://127.0.0.1:5050) will
+# be used. (string value)
+#service_url=<None>
+
+# period (in seconds) to check status of nodes on inspection
+# (integer value)
+#status_check_period=60
 
 
 [disk_partitioner]

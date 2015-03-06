@@ -1012,10 +1012,11 @@ class NodesController(rest.RestController):
 
         rpc_node = _get_rpc_node(node_ident)
 
-        # Check if node is transitioning state, although nodes in DEPLOYFAIL
+        # Check if node is transitioning state, although nodes in some states
         # can be updated.
         if ((rpc_node.target_power_state or rpc_node.target_provision_state)
-                and rpc_node.provision_state != ir_states.DEPLOYFAIL):
+                and rpc_node.provision_state not in
+                ir_states.UPDATE_ALLOWED_STATES):
             msg = _("Node %s can not be updated while a state transition "
                     "is in progress.")
             raise wsme.exc.ClientSideError(msg % node_ident, status_code=409)

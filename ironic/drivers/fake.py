@@ -23,6 +23,7 @@ from ironic.common import exception
 from ironic.common.i18n import _
 from ironic.drivers import base
 from ironic.drivers.modules import agent
+from ironic.drivers.modules import discoverd
 from ironic.drivers.modules.drac import management as drac_mgmt
 from ironic.drivers.modules.drac import power as drac_power
 from ironic.drivers.modules import fake
@@ -201,3 +202,15 @@ class FakeVirtualBoxDriver(base.BaseDriver):
         self.power = virtualbox.VirtualBoxPower()
         self.deploy = fake.FakeDeploy()
         self.management = virtualbox.VirtualBoxManagement()
+
+
+class FakeIPMIToolDiscoverdDriver(base.BaseDriver):
+    """Fake Discoverd driver."""
+
+    def __init__(self):
+        self.power = ipmitool.IPMIPower()
+        self.console = ipmitool.IPMIShellinaboxConsole()
+        self.deploy = fake.FakeDeploy()
+        self.vendor = ipmitool.VendorPassthru()
+        self.management = ipmitool.IPMIManagement()
+        self.inspect = discoverd.DiscoverdInspect()

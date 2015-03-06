@@ -149,6 +149,11 @@ inspected node shall transition to MANAGEABLE status.
 INSPECTFAIL = 'inspect failed'
 """ Node inspection failed. """
 
+
+UPDATE_ALLOWED_STATES = (DEPLOYFAIL, INSPECTING, INSPECTFAIL)
+"""Transitional states in which we allow updating a node."""
+
+
 ##############
 # Power states
 ##############
