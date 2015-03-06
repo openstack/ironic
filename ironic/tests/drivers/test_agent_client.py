@@ -134,3 +134,15 @@ class TestAgentClient(base.TestCase):
                                          method='iscsi.start_iscsi_target',
                                          params=params,
                                          wait=True)
+
+    @mock.patch('uuid.uuid4', mock.MagicMock(return_value='uuid'))
+    def test_start_install_bootloader(self):
+        self.client._command = mock.Mock()
+        root_uuid = 'fake-root-uuid'
+        params = {'root_uuid': root_uuid}
+
+        self.client.install_bootloader(self.node, root_uuid)
+        self.client._command.assert_called_once_with(node=self.node,
+                                         method='image.install_bootloader',
+                                         params=params,
+                                         wait=True)
