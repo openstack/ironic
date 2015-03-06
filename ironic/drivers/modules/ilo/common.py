@@ -327,14 +327,23 @@ def set_boot_mode(node, boot_mode):
              {'uuid': node.uuid, 'boot_mode': boot_mode})
 
 
-def update_boot_mode_capability(task):
+def update_boot_mode(task):
     """Update 'boot_mode' capability value of node's 'capabilities' property.
 
+    This method updates the 'boot_mode' capability in node's 'capabilities'
+    property if not set.
+    It also sets the boot mode to be used in the next boot.
+
     :param task: Task object.
+    :raises: IloOperationError if setting boot mode failed.
 
     """
-    ilo_object = get_ilo_object(task.node)
+    boot_mode = driver_utils.get_node_capability(task.node, 'boot_mode')
+    if boot_mode is not None:
+        set_boot_mode(task.node, boot_mode)
+        return
 
+    ilo_object = get_ilo_object(task.node)
     try:
         p_boot_mode = ilo_object.get_pending_boot_mode()
         if p_boot_mode == 'UNKNOWN':
