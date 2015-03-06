@@ -270,7 +270,8 @@ class FsImageTestCase(base.TestCase):
                                          'count=1',
                                          'bs=1000KiB')
 
-        mkfs_mock.assert_called_once_with('vfat', 'tgt_file')
+        mkfs_mock.assert_called_once_with('vfat', 'tgt_file',
+                                          label="ir-vfd-dev")
         mount_mock.assert_called_once_with('tgt_file', 'tempdir',
                                            '-o', 'umask=0')
 
