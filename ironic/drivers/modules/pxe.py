@@ -21,7 +21,6 @@ import os
 import shutil
 
 from oslo_config import cfg
-from six.moves.urllib import parse as urlparse
 
 from ironic.common import boot_devices
 from ironic.common import dhcp_factory
@@ -279,24 +278,6 @@ def _destroy_token_file(node):
     utils.unlink_without_raise(token_file_path)
 
 
-def try_set_boot_device(task, device, persistent=True):
-    # NOTE(faizan): Under UEFI boot mode, setting of boot device may differ
-    # between different machines. IPMI does not work for setting boot
-    # devices in UEFI mode for certain machines.
-    # Expected IPMI failure for uefi boot mode. Logging a message to
-    # set the boot device manually and continue with deploy.
-    try:
-        manager_utils.node_set_boot_device(task, device, persistent=persistent)
-    except exception.IPMIFailure:
-        if driver_utils.get_node_capability(task.node,
-                                            'boot_mode') == 'uefi':
-            LOG.warning(_LW("ipmitool is unable to set boot device while "
-                            "the node %s is in UEFI boot mode. Please set "
-                            "the boot device manually.") % task.node.uuid)
-        else:
-            raise
-
-
 class PXEDeploy(base.DeployInterface):
     """PXE Deploy Interface for deploy-related actions."""
 
@@ -377,7 +358,7 @@ class PXEDeploy(base.DeployInterface):
         provider = dhcp_factory.DHCPFactory()
         provider.update_dhcp(task, dhcp_opts)
 
-        try_set_boot_device(task, boot_devices.PXE)
+        deploy_utils.try_set_boot_device(task, boot_devices.PXE)
         manager_utils.node_power_action(task, states.REBOOT)
 
         return states.DEPLOYWAIT
@@ -544,7 +525,7 @@ class VendorPassthru(agent_base_vendor.BaseAgentVendor):
 
         try:
             if iscsi_deploy.get_boot_option(node) == "local":
-                try_set_boot_device(task, boot_devices.DISK)
+                deploy_utils.try_set_boot_device(task, boot_devices.DISK)
                 # If it's going to boot from the local disk, get rid of
                 # the PXE configuration files used for the deployment
                 pxe_utils.clean_up_pxe_config(task)
@@ -563,95 +544,42 @@ class VendorPassthru(agent_base_vendor.BaseAgentVendor):
             msg = _('Failed to continue iSCSI deployment.')
             deploy_utils.set_failed_state(task, msg)
 
-    def _log_and_raise_deployment_error(self, task, msg):
-        LOG.error(msg)
-        deploy_utils.set_failed_state(task, msg)
-        raise exception.InstanceDeployFailure(msg)
-
     @task_manager.require_exclusive_lock
     def continue_deploy(self, task, **kwargs):
-        """Method invoked when deployed with the IPA ramdisk."""
+        """Method invoked when deployed with the IPA ramdisk.
+
+        This method is invoked during a heartbeat from an agent when
+        the node is in wait-call-back state. This deploys the image on
+        the node and then configures the node to boot according to the
+        desired boot option (netboot or localboot).
+
+        :param task: a TaskManager object containing the node.
+        :param kwargs: the kwargs passed from the heartbeat method.
+        :raises: InstanceDeployFailure, if it encounters some error during
+            the deploy.
+        """
+        task.process_event('resume')
         node = task.node
         LOG.debug('Continuing the deployment on node %s', node.uuid)
-
-        task.process_event('resume')
-
-        pxe_info = _get_image_info(node, task.context)
-        pxe_options = _build_pxe_config_options(task.node, pxe_info,
-                                                task.context)
-
-        iqn = pxe_options['iscsi_target_iqn']
-        result = self._client.start_iscsi_target(node, iqn)
-        if result['command_status'] == 'FAILED':
-            msg = (_("Failed to start the iSCSI target to deploy the "
-                     "node %(node)s. Error: %(error)s") %
-                   {'node': node.uuid, 'error': result['command_error']})
-            self._log_and_raise_deployment_error(task, msg)
-
-        address = urlparse.urlparse(node.driver_internal_info['agent_url'])
-        address = address.hostname
-
-        # TODO(lucasagomes): The 'error' and 'key' parameters in the
-        # dictionary below are just being passed because it's needed for
-        # the iscsi_deploy.continue_deploy() method, we are fooling it
-        # for now. The agent driver doesn't use/need those. So we need to
-        # refactor this bits here later.
-        iscsi_params = {'error': result['command_error'],
-                        'iqn': iqn,
-                        'key': pxe_options['deployment_key'],
-                        'address': address}
 
         # NOTE(lucasagomes): We don't use the token file with the agent,
         # but as it's created as part of deploy() we are going to remove
         # it here.
         _destroy_token_file(node)
 
-        root_uuid = iscsi_deploy.continue_deploy(task, **iscsi_params)
-        if not root_uuid:
-            msg = (_("Couldn't determine the UUID of the root partition "
-                     "when deploying node %s") % node.uuid)
-            self._log_and_raise_deployment_error(task, msg)
-
-        # TODO(lucasagomes): Move this bit saving the root_uuid to
-        # iscsi_deploy.continue_deploy()
-        driver_internal_info = node.driver_internal_info
-        driver_internal_info['root_uuid'] = root_uuid
-        node.driver_internal_info = driver_internal_info
-        node.save()
+        root_uuid = iscsi_deploy.do_agent_iscsi_deploy(task, self._client)
 
         if iscsi_deploy.get_boot_option(node) == "local":
             # Install the boot loader
-            result = self._client.install_bootloader(node, root_uuid)
-            if result['command_status'] == 'FAILED':
-                msg = (_("Failed to install a bootloader when "
-                         "deploying node %(node)s. Error: %(error)s") %
-                       {'node': node.uuid,
-                        'error': result['command_error']})
-                self._log_and_raise_deployment_error(task, msg)
-
-            try:
-                try_set_boot_device(task, boot_devices.DISK)
-            except Exception as e:
-                msg = (_("Failed to change the boot device to %(boot_dev)s "
-                         "when deploying node %(node)s. Error: %(error)s") %
-                       {'boot_dev': boot_devices.DISK, 'node': node.uuid,
-                        'error': e})
-                self._log_and_raise_deployment_error(task, msg)
+            self.configure_local_boot(task, root_uuid)
 
             # If it's going to boot from the local disk, get rid of
             # the PXE configuration files used for the deployment
             pxe_utils.clean_up_pxe_config(task)
         else:
             pxe_config_path = pxe_utils.get_pxe_config_file_path(node.uuid)
+            boot_mode = driver_utils.get_node_capability(node, 'boot_mode')
             deploy_utils.switch_pxe_config(pxe_config_path, root_uuid,
-                    driver_utils.get_node_capability(node, 'boot_mode'))
+                                           boot_mode)
 
-        try:
-            manager_utils.node_power_action(task, states.REBOOT)
-        except Exception as e:
-            msg = (_('Error rebooting node %(node)s. Error: %(error)s') %
-                   {'node': node.uuid, 'error': e})
-            self._log_and_raise_deployment_error(task, msg)
-
-        task.process_event('done')
-        LOG.info(_LI('Deployment to node %s done'), node.uuid)
+        self.reboot_and_finish_deploy(task)

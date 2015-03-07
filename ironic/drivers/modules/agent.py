@@ -376,6 +376,4 @@ class AgentVendorInterface(agent_base_vendor.BaseAgentVendor):
         LOG.debug('Rebooting node %s to disk', node.uuid)
 
         manager_utils.node_set_boot_device(task, 'disk', persistent=True)
-        manager_utils.node_power_action(task, states.REBOOT)
-
-        task.process_event('done')
+        self.reboot_and_finish_deploy(task)

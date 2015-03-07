@@ -17,10 +17,13 @@
 
 import mock
 
+from ironic.common import boot_devices
 from ironic.common import exception
 from ironic.common import states
 from ironic.conductor import task_manager
+from ironic.conductor import utils as manager_utils
 from ironic.drivers.modules import agent_base_vendor
+from ironic.drivers.modules import agent_client
 from ironic.drivers.modules import deploy_utils
 from ironic import objects
 from ironic.tests.conductor import utils as mgr_utils
@@ -296,3 +299,85 @@ class TestBaseAgentVendor(db_base.DbTestCase):
             driver_routes = task.driver.vendor.driver_routes
             self.assertIsInstance(driver_routes, dict)
             self.assertEqual(expected, list(driver_routes))
+
+    @mock.patch.object(manager_utils, 'node_power_action')
+    def test_reboot_and_finish_deploy_success(self, node_power_action_mock):
+        self.node.provision_state = states.DEPLOYING
+        self.node.target_provision_state = states.ACTIVE
+        self.node.save()
+        with task_manager.acquire(self.context, self.node['uuid'],
+                                  shared=False) as task:
+            self.passthru.reboot_and_finish_deploy(task)
+            node_power_action_mock.assert_called_once_with(task, states.REBOOT)
+            self.assertEqual(states.ACTIVE, task.node.provision_state)
+            self.assertEqual(states.NOSTATE, task.node.target_provision_state)
+
+    @mock.patch.object(manager_utils, 'node_power_action')
+    def test_reboot_and_finish_deploy_reboot_failure(self,
+                                                     node_power_action_mock):
+        exc = exception.PowerStateFailure(pstate=states.REBOOT)
+        self.node.provision_state = states.DEPLOYING
+        self.node.target_provision_state = states.ACTIVE
+        self.node.save()
+        node_power_action_mock.side_effect = exc
+        with task_manager.acquire(self.context, self.node['uuid'],
+                                  shared=False) as task:
+            self.assertRaises(exception.InstanceDeployFailure,
+                              self.passthru.reboot_and_finish_deploy, task)
+            node_power_action_mock.assert_any_call(task, states.REBOOT)
+            self.assertEqual(states.DEPLOYFAIL, task.node.provision_state)
+            self.assertEqual(states.ACTIVE, task.node.target_provision_state)
+
+    @mock.patch.object(deploy_utils, 'try_set_boot_device')
+    @mock.patch.object(agent_client.AgentClient, 'install_bootloader')
+    def test_configure_local_boot(self, install_bootloader_mock,
+                                  try_set_boot_device_mock):
+        install_bootloader_mock.return_value = {
+            'command_status': 'SUCCESS', 'command_error': None}
+        with task_manager.acquire(self.context, self.node['uuid'],
+                                  shared=False) as task:
+            self.passthru.configure_local_boot(task, 'some-root-uuid')
+            install_bootloader_mock.assert_called_once_with(
+                task.node, 'some-root-uuid')
+            try_set_boot_device_mock.assert_called_once_with(
+                task, boot_devices.DISK)
+
+    @mock.patch.object(agent_client.AgentClient, 'install_bootloader')
+    def test_configure_local_boot_boot_loader_install_fail(
+            self, install_bootloader_mock):
+        install_bootloader_mock.return_value = {
+            'command_status': 'FAILED', 'command_error': 'boom'}
+        self.node.provision_state = states.DEPLOYING
+        self.node.target_provision_state = states.ACTIVE
+        self.node.save()
+        with task_manager.acquire(self.context, self.node['uuid'],
+                                  shared=False) as task:
+            self.assertRaises(exception.InstanceDeployFailure,
+                              self.passthru.configure_local_boot,
+                              task, 'some-root-uuid')
+            install_bootloader_mock.assert_called_once_with(
+                task.node, 'some-root-uuid')
+            self.assertEqual(states.DEPLOYFAIL, task.node.provision_state)
+            self.assertEqual(states.ACTIVE, task.node.target_provision_state)
+
+    @mock.patch.object(deploy_utils, 'try_set_boot_device')
+    @mock.patch.object(agent_client.AgentClient, 'install_bootloader')
+    def test_configure_local_boot_set_boot_device_fail(
+            self, install_bootloader_mock, try_set_boot_device_mock):
+        install_bootloader_mock.return_value = {
+            'command_status': 'SUCCESS', 'command_error': None}
+        try_set_boot_device_mock.side_effect = RuntimeError('error')
+        self.node.provision_state = states.DEPLOYING
+        self.node.target_provision_state = states.ACTIVE
+        self.node.save()
+        with task_manager.acquire(self.context, self.node['uuid'],
+                                  shared=False) as task:
+            self.assertRaises(exception.InstanceDeployFailure,
+                              self.passthru.configure_local_boot,
+                              task, 'some-root-uuid')
+            install_bootloader_mock.assert_called_once_with(
+                task.node, 'some-root-uuid')
+            try_set_boot_device_mock.assert_called_once_with(
+                task, boot_devices.DISK)
+            self.assertEqual(states.DEPLOYFAIL, task.node.provision_state)
+            self.assertEqual(states.ACTIVE, task.node.target_provision_state)
