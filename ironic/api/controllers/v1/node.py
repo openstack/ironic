@@ -17,6 +17,7 @@ import ast
 import datetime
 
 from oslo_config import cfg
+from oslo_utils import strutils
 from oslo_utils import uuidutils
 import pecan
 from pecan import rest
@@ -36,7 +37,6 @@ from ironic.common import states as ir_states
 from ironic.common import utils
 from ironic import objects
 from ironic.openstack.common import log
-from ironic.openstack.common import strutils
 
 
 CONF = cfg.CONF
