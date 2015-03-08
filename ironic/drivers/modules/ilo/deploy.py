@@ -28,12 +28,14 @@ from ironic.common.i18n import _LE
 from ironic.common.i18n import _LI
 from ironic.common import image_service
 from ironic.common import images
+from ironic.common import keystone
 from ironic.common import states
 from ironic.common import swift
 from ironic.conductor import task_manager
 from ironic.conductor import utils as manager_utils
 from ironic.drivers import base
 from ironic.drivers.modules import agent
+from ironic.drivers.modules import agent_base_vendor
 from ironic.drivers.modules import deploy_utils
 from ironic.drivers.modules.ilo import common as ilo_common
 from ironic.drivers.modules import ipmitool
@@ -309,6 +311,8 @@ class IloVirtualMediaIscsiDeploy(base.DeployInterface):
         iscsi_deploy.check_image_size(task)
 
         deploy_ramdisk_opts = iscsi_deploy.build_deploy_ramdisk_options(node)
+        agent_opts = agent.build_agent_options(node)
+        deploy_ramdisk_opts.update(agent_opts)
         deploy_nic_mac = deploy_utils.get_single_nic_with_vif_port_id(task)
         deploy_ramdisk_opts['BOOTIF'] = deploy_nic_mac
         deploy_iso = node.driver_info['ilo_deploy_iso']
@@ -498,7 +502,7 @@ class IloPXEVendorPassthru(pxe.VendorPassthru):
         super(IloPXEVendorPassthru, self)._continue_deploy(task, **kwargs)
 
 
-class VendorPassthru(base.VendorInterface):
+class VendorPassthru(agent_base_vendor.BaseAgentVendor):
     """Vendor-specific interfaces for iLO deploy drivers."""
 
     def get_properties(self):
@@ -519,7 +523,24 @@ class VendorPassthru(base.VendorInterface):
         :raises: InvalidParameterValue, if any of the parameters have invalid
             value.
         """
-        iscsi_deploy.get_deploy_info(task.node, **kwargs)
+        if method == 'pass_deploy_info':
+            iscsi_deploy.get_deploy_info(task.node, **kwargs)
+
+    def _configure_vmedia_boot(self, task, root_uuid):
+        """Configure vmedia boot for the node."""
+        node = task.node
+        boot_iso = _get_boot_iso(task, root_uuid)
+        if not boot_iso:
+            LOG.error(_LE("Cannot get boot ISO for node %s"), node.uuid)
+            return
+
+        ilo_common.setup_vmedia_for_boot(task, boot_iso)
+        manager_utils.node_set_boot_device(task, boot_devices.CDROM)
+
+        i_info = node.instance_info
+        if not i_info.get('ilo_boot_iso'):
+            i_info['ilo_boot_iso'] = boot_iso
+            node.instance_info = i_info
 
     @base.passthru(['POST'], method='pass_deploy_info')
     @task_manager.require_exclusive_lock
@@ -558,19 +579,7 @@ class VendorPassthru(base.VendorInterface):
                 manager_utils.node_set_boot_device(task, boot_devices.DISK,
                                                    persistent=True)
             else:
-                boot_iso = _get_boot_iso(task, root_uuid_or_disk_id)
-                if not boot_iso:
-                    LOG.error(_LE("Cannot get boot ISO for node %s"),
-                              node.uuid)
-                    return
-
-                ilo_common.setup_vmedia_for_boot(task, boot_iso)
-                manager_utils.node_set_boot_device(task, boot_devices.CDROM)
-
-                i_info = node.instance_info
-                if not i_info.get('ilo_boot_iso'):
-                    i_info['ilo_boot_iso'] = boot_iso
-                    node.instance_info = i_info
+                self._configure_vmedia_boot(task, root_uuid_or_disk_id)
 
             deploy_utils.notify_deploy_complete(kwargs.get('address'))
 
@@ -582,3 +591,35 @@ class VendorPassthru(base.VendorInterface):
                       {'instance': node.instance_uuid, 'error': e})
             msg = _('Failed to continue iSCSI deployment.')
             deploy_utils.set_failed_state(task, msg)
+
+    @task_manager.require_exclusive_lock
+    def continue_deploy(self, task, **kwargs):
+        """Method invoked when deployed with the IPA ramdisk.
+
+        This method is invoked during a heartbeat from an agent when
+        the node is in wait-call-back state. This deploys the image on
+        the node and then configures the node to boot according to the
+        desired boot option (netboot or localboot).
+
+        :param task: a TaskManager object containing the node.
+        :param kwargs: the kwargs passed from the heartbeat method.
+        :raises: InstanceDeployFailure, if it encounters some error during
+            the deploy.
+        """
+        task.process_event('resume')
+        node = task.node
+        LOG.debug('Continuing the deployment on node %s', node.uuid)
+
+        ilo_common.cleanup_vmedia_boot(task)
+
+        root_uuid = iscsi_deploy.do_agent_iscsi_deploy(task, self._client)
+
+        if iscsi_deploy.get_boot_option(node) == "local":
+            self.configure_local_boot(task, root_uuid)
+        else:
+            # Agent vendorpassthru are made without auth token.
+            # We require auth_token to talk to glance while building boot iso.
+            task.context.auth_token = keystone.get_admin_auth_token()
+            self._configure_vmedia_boot(task, root_uuid)
+
+        self.reboot_and_finish_deploy(task)
