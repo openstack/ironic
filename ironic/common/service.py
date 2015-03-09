@@ -21,6 +21,7 @@ import socket
 
 from oslo import messaging
 from oslo_config import cfg
+from oslo_context import context
 from oslo_utils import importutils
 
 from ironic.common import config
@@ -28,7 +29,6 @@ from ironic.common.i18n import _LE
 from ironic.common.i18n import _LI
 from ironic.common import rpc
 from ironic.objects import base as objects_base
-from ironic.openstack.common import context
 from ironic.openstack.common import log
 from ironic.openstack.common import service
 
