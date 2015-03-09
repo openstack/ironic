@@ -290,6 +290,63 @@ def continue_deploy(task, **kwargs):
     return root_uuid
 
 
+def do_agent_iscsi_deploy(task, agent_client):
+    """Method invoked when deployed with the agent ramdisk.
+
+    This method is invoked by drivers for doing iSCSI deploy
+    using agent ramdisk.  This method assumes that the agent
+    is booted up on the node and is heartbeating.
+
+    :param task: a TaskManager object containing the node.
+    :param agent_client: an instance of agent_client.AgentClient
+        which will be used during iscsi deploy (for exposing node's
+        target disk via iSCSI, for install boot loader, etc).
+    :returns: UUID of the root partition which was deployed.
+    :raises: InstanceDeployFailure, if it encounters some error
+        during the deploy.
+    """
+    node = task.node
+    iscsi_options = build_deploy_ramdisk_options(node)
+
+    iqn = iscsi_options['iscsi_target_iqn']
+    result = agent_client.start_iscsi_target(node, iqn)
+    if result['command_status'] == 'FAILED':
+        msg = (_("Failed to start the iSCSI target to deploy the "
+                 "node %(node)s. Error: %(error)s") %
+               {'node': node.uuid, 'error': result['command_error']})
+        deploy_utils.set_failed_state(task, msg)
+        raise exception.InstanceDeployFailure(reason=msg)
+
+    address = parse.urlparse(node.driver_internal_info['agent_url'])
+    address = address.hostname
+
+    # TODO(lucasagomes): The 'error' and 'key' parameters in the
+    # dictionary below are just being passed because it's needed for
+    # the iscsi_deploy.continue_deploy() method, we are fooling it
+    # for now. The agent driver doesn't use/need those. So we need to
+    # refactor this bits here later.
+    iscsi_params = {'error': result['command_error'],
+                    'iqn': iqn,
+                    'key': iscsi_options['deployment_key'],
+                    'address': address}
+
+    root_uuid = continue_deploy(task, **iscsi_params)
+    if not root_uuid:
+        msg = (_("Couldn't determine the UUID of the root partition "
+                 "when deploying node %s") % node.uuid)
+        deploy_utils.set_failed_state(task, msg)
+        raise exception.InstanceDeployFailure(reason=msg)
+
+    # TODO(lucasagomes): Move this bit saving the root_uuid to
+    # iscsi_deploy.continue_deploy()
+    driver_internal_info = node.driver_internal_info
+    driver_internal_info['root_uuid'] = root_uuid
+    node.driver_internal_info = driver_internal_info
+    node.save()
+
+    return root_uuid
+
+
 def parse_root_device_hints(node):
     """Parse the root_device property of a node.
 

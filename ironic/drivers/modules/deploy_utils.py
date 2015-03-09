@@ -37,11 +37,13 @@ from ironic.common import disk_partitioner
 from ironic.common import exception
 from ironic.common.i18n import _
 from ironic.common.i18n import _LE
+from ironic.common.i18n import _LW
 from ironic.common import images
 from ironic.common import states
 from ironic.common import utils
 from ironic.conductor import utils as manager_utils
 from ironic.drivers.modules import image_cache
+from ironic.drivers import utils as driver_utils
 from ironic.openstack.common import log as logging
 
 
@@ -734,3 +736,33 @@ def parse_instance_info_capabilities(node):
         parse_error()
 
     return capabilities
+
+
+def try_set_boot_device(task, device, persistent=True):
+    """Tries to set the boot device on the node.
+
+    This method tries to set the boot device on the node to the given
+    boot device.  Under uefi boot mode, setting of boot device may differ
+    between different machines. IPMI does not work for setting boot
+    devices in uefi mode for certain machines.  This method ignores the
+    expected IPMI failure for uefi boot mode and just logs a message.
+    In error cases, it is expected the operator has to manually set the
+    node to boot from the correct device.
+
+    :param task: a TaskManager object containing the node
+    :param device: the boot device
+    :param persistent: Whether to set the boot device persistently
+    :raises: Any exception from set_boot_device except IPMIFailure
+        (setting of boot device using ipmi is expected to fail).
+    """
+    try:
+        manager_utils.node_set_boot_device(task, device,
+                                           persistent=persistent)
+    except exception.IPMIFailure:
+        if driver_utils.get_node_capability(task.node,
+                                            'boot_mode') == 'uefi':
+            LOG.warning(_LW("ipmitool is unable to set boot device while "
+                            "the node %s is in UEFI boot mode. Please set "
+                            "the boot device manually.") % task.node.uuid)
+        else:
+            raise

@@ -22,12 +22,15 @@ import time
 from oslo_config import cfg
 from oslo_utils import excutils
 
+from ironic.common import boot_devices
 from ironic.common import exception
 from ironic.common.i18n import _
 from ironic.common.i18n import _LE
+from ironic.common.i18n import _LI
 from ironic.common.i18n import _LW
 from ironic.common import states
 from ironic.common import utils
+from ironic.conductor import utils as manager_utils
 from ironic.drivers import base
 from ironic.drivers.modules import agent_client
 from ironic.drivers.modules import deploy_utils
@@ -316,3 +319,60 @@ class BaseAgentVendor(base.VendorInterface):
 
         # Only have one node_id left, return it.
         return node_ids.pop()
+
+    def _log_and_raise_deployment_error(self, task, msg):
+        """Helper method to log the error and raise exception."""
+        LOG.error(msg)
+        deploy_utils.set_failed_state(task, msg)
+        raise exception.InstanceDeployFailure(msg)
+
+    def reboot_and_finish_deploy(self, task):
+        """Helper method to trigger reboot on the node and finish deploy.
+
+        This method initiates a reboot on the node. On success, it
+        marks the deploy as complete. On failure, it logs the error
+        and marks deploy as failure.
+
+        :param task: a TaskManager object containing the node
+        :raises: InstanceDeployFailure, if node reboot failed.
+        """
+        try:
+            manager_utils.node_power_action(task, states.REBOOT)
+        except Exception as e:
+            msg = (_('Error rebooting node %(node)s. Error: %(error)s') %
+                   {'node': task.node.uuid, 'error': e})
+            self._log_and_raise_deployment_error(task, msg)
+
+        task.process_event('done')
+        LOG.info(_LI('Deployment to node %s done'), task.node.uuid)
+
+    def configure_local_boot(self, task, root_uuid):
+        """Helper method to configure local boot on the node.
+
+        This method triggers bootloader installation on the node.
+        On successful installation of bootloader, this method sets the
+        node to boot from disk.
+
+        :param task: a TaskManager object containing the node
+        :param root_uuid: The UUID of the root partition. This is used
+            for identifying the partition which contains the image deployed.
+        :raises: InstanceDeployFailure if bootloader installation failed or
+            on encountering error while setting the boot device on the node.
+        """
+        node = task.node
+        result = self._client.install_bootloader(node, root_uuid)
+        if result['command_status'] == 'FAILED':
+            msg = (_("Failed to install a bootloader when "
+                     "deploying node %(node)s. Error: %(error)s") %
+                   {'node': node.uuid,
+                        'error': result['command_error']})
+            self._log_and_raise_deployment_error(task, msg)
+
+        try:
+            deploy_utils.try_set_boot_device(task, boot_devices.DISK)
+        except Exception as e:
+            msg = (_("Failed to change the boot device to %(boot_dev)s "
+                     "when deploying node %(node)s. Error: %(error)s") %
+                   {'boot_dev': boot_devices.DISK, 'node': node.uuid,
+                    'error': e})
+            self._log_and_raise_deployment_error(task, msg)

@@ -28,11 +28,13 @@ from oslo_config import cfg
 from oslo_utils import uuidutils
 import requests
 
+from ironic.common import boot_devices
 from ironic.common import disk_partitioner
 from ironic.common import exception
 from ironic.common import images
 from ironic.common import utils as common_utils
 from ironic.conductor import task_manager
+from ironic.conductor import utils as manager_utils
 from ironic.drivers.modules import deploy_utils as utils
 from ironic.drivers.modules import image_cache
 from ironic.tests import base as tests_base
@@ -1158,3 +1160,60 @@ class ParseInstanceInfoCapabilitiesTestCase(tests_base.TestCase):
         self.node.instance_info = {'capabilities': 'not-a-dict'}
         self.assertRaises(exception.InvalidParameterValue,
                           utils.parse_instance_info_capabilities, self.node)
+
+
+class TrySetBootDeviceTestCase(db_base.DbTestCase):
+
+    def setUp(self):
+        super(TrySetBootDeviceTestCase, self).setUp()
+        mgr_utils.mock_the_extension_manager(driver="fake")
+        self.node = obj_utils.create_test_node(self.context, driver="fake")
+
+    @mock.patch.object(manager_utils, 'node_set_boot_device')
+    def test_try_set_boot_device_okay(self, node_set_boot_device_mock):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            utils.try_set_boot_device(task, boot_devices.DISK,
+                                      persistent=True)
+            node_set_boot_device_mock.assert_called_once_with(
+                task, boot_devices.DISK, persistent=True)
+
+    @mock.patch.object(utils, 'LOG')
+    @mock.patch.object(manager_utils, 'node_set_boot_device')
+    def test_try_set_boot_device_ipmifailure_uefi(self,
+            node_set_boot_device_mock, log_mock):
+        self.node.properties = {'capabilities': 'boot_mode:uefi'}
+        self.node.save()
+        node_set_boot_device_mock.side_effect = exception.IPMIFailure(cmd='a')
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            utils.try_set_boot_device(task, boot_devices.DISK,
+                                             persistent=True)
+            node_set_boot_device_mock.assert_called_once_with(
+                task, boot_devices.DISK, persistent=True)
+            log_mock.warning.assert_called_once_with(mock.ANY)
+
+    @mock.patch.object(manager_utils, 'node_set_boot_device')
+    def test_try_set_boot_device_ipmifailure_bios(
+            self, node_set_boot_device_mock):
+        node_set_boot_device_mock.side_effect = exception.IPMIFailure(cmd='a')
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            self.assertRaises(exception.IPMIFailure,
+                              utils.try_set_boot_device,
+                              task, boot_devices.DISK, persistent=True)
+            node_set_boot_device_mock.assert_called_once_with(
+                task, boot_devices.DISK, persistent=True)
+
+    @mock.patch.object(manager_utils, 'node_set_boot_device')
+    def test_try_set_boot_device_some_other_exception(
+            self, node_set_boot_device_mock):
+        exc = exception.IloOperationError(operation="qwe", error="error")
+        node_set_boot_device_mock.side_effect = exc
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            self.assertRaises(exception.IloOperationError,
+                              utils.try_set_boot_device,
+                              task, boot_devices.DISK, persistent=True)
+            node_set_boot_device_mock.assert_called_once_with(
+                task, boot_devices.DISK, persistent=True)
