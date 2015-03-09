@@ -262,7 +262,7 @@ class ConductorManager(periodic_task.PeriodicTasks):
         # Spawn a dedicated greenthread for the keepalive
         try:
             self._spawn_worker(self._conductor_service_record_keepalive)
-            LOG.info(_LI('Successfuly started conductor with hostname '
+            LOG.info(_LI('Successfully started conductor with hostname '
                          '%(hostname)s.'),
                      {'hostname': self.host})
         except exception.NoFreeConductorWorker:
