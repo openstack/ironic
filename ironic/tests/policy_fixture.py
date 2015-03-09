@@ -16,6 +16,7 @@ import os
 
 import fixtures
 from oslo_config import cfg
+from oslo_policy import opts as policy_opts
 
 from ironic.common import policy as ironic_policy
 from ironic.tests import fake_policy
@@ -34,6 +35,7 @@ class PolicyFixture(fixtures.Fixture):
                                              'policy.json')
         with open(self.policy_file_name, 'w') as policy_file:
             policy_file.write(fake_policy.get_policy_data(self.compat))
-        CONF.set_override('policy_file', self.policy_file_name)
+        policy_opts.set_defaults(CONF)
+        CONF.set_override('policy_file', self.policy_file_name, 'oslo_policy')
         ironic_policy._ENFORCER = None
         self.addCleanup(ironic_policy.get_enforcer().clear)
