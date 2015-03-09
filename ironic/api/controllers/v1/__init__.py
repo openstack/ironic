@@ -166,7 +166,7 @@ class Controller(rest.RestController):
         return V1.convert()
 
     def _check_version(self, version, headers=None):
-        if not headers:
+        if headers is None:
             headers = {}
         # ensure that major version in the URL matches the header
         if version.major != BASE_VERSION:
