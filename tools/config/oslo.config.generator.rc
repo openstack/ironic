@@ -1,2 +1,2 @@
-export IRONIC_CONFIG_GENERATOR_EXTRA_LIBRARIES='oslo.db oslo.messaging'
-export IRONIC_CONFIG_GENERATOR_EXTRA_MODULES=keystonemiddleware.auth_token
+export IRONIC_CONFIG_GENERATOR_EXTRA_LIBRARIES='oslo.db oslo.messaging keystonemiddleware.auth_token'
+export IRONIC_CONFIG_GENERATOR_EXTRA_MODULES=
