@@ -79,14 +79,16 @@ class DracVendorPassthru(base.VendorInterface):
         return {'commit_needed': bios.set_config(task, **kwargs)}
 
     @base.passthru(['POST'], async=False)
-    def commit_bios_config(self, task, **kwargs):
+    def commit_bios_config(self, task, reboot=False, **kwargs):
         """Commit a BIOS configuration job.
 
         This method is used to commit a BIOS configuration job.
         submitted through set_bios_config().
 
         :param task: the ironic task for running the config job.
-        :param kwargs: not used.
+        :param reboot: indicates whether a reboot job should be automatically
+                       created with the config job.
+        :param kwargs: additional arguments sent via vendor passthru.
         :raises: DracClientError on an error from pywsman library.
         :raises: DracPendingConfigJobExists if the job is already created.
         :raises: DracOperationFailed if the client received response with an
@@ -96,8 +98,8 @@ class DracVendorPassthru(base.VendorInterface):
         :returns: A dictionary containing the committing key with no return
                   value, and the reboot_needed key with a value of True.
         """
-        bios.commit_config(task)
-        return {'committing': None, 'reboot_needed': True}
+        bios.commit_config(task, reboot=reboot)
+        return {'committing': None, 'reboot_needed': not reboot}
 
     @base.passthru(['DELETE'], async=False)
     def abandon_bios_config(self, task, **kwargs):

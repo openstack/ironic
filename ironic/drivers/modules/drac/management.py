@@ -44,6 +44,10 @@ _BOOT_DEVICES_MAP = {
 
 TARGET_DEVICE = 'BIOS.Setup.1-1'
 
+# RebootJobType constants
+
+_GRACEFUL_REBOOT_WITH_FORCED_SHUTDOWN = '3'
+
 # IsNext constants
 
 PERSISTENT = '1'
@@ -221,7 +225,7 @@ def _get_boot_list_for_boot_device(node, device, controller_version):
     return {'boot_list': boot_list, 'boot_device_id': boot_device_id}
 
 
-def create_config_job(node):
+def create_config_job(node, reboot=False):
     """Create a configuration job.
 
     This method is used to apply the pending values created by
@@ -241,6 +245,10 @@ def create_config_job(node):
                  'SystemName': 'DCIM:ComputerSystem'}
     properties = {'Target': TARGET_DEVICE,
                   'ScheduledStartTime': 'TIME_NOW'}
+
+    if reboot:
+        properties['RebootJobType'] = _GRACEFUL_REBOOT_WITH_FORCED_SHUTDOWN
+
     try:
         client.wsman_invoke(resource_uris.DCIM_BIOSService,
                             'CreateTargetedConfigJob', selectors, properties,
