@@ -45,19 +45,19 @@ Nodes
    :webprefix: /v1/nodes
 
 .. rest-controller:: ironic.api.controllers.v1.node:NodeMaintenanceController
-   :webprefix: /v1/nodes/(node_uuid)/maintenance
+   :webprefix: /v1/nodes/(node_ident)/maintenance
 
 .. rest-controller:: ironic.api.controllers.v1.node:BootDeviceController
-   :webprefix: /v1/nodes/(node_uuid)/management/boot_device
+   :webprefix: /v1/nodes/(node_ident)/management/boot_device
 
 .. rest-controller:: ironic.api.controllers.v1.node:NodeStatesController
-   :webprefix: /v1/nodes/(node_uuid)/states
+   :webprefix: /v1/nodes/(node_ident)/states
 
 .. rest-controller:: ironic.api.controllers.v1.node:NodeConsoleController
-   :webprefix: /v1/nodes/(node_uuid)/states/console
+   :webprefix: /v1/nodes/(node_ident)/states/console
 
 .. rest-controller:: ironic.api.controllers.v1.node:NodeVendorPassthruController
-   :webprefix: /v1/nodes/(node_uuid)/vendor_passthru
+   :webprefix: /v1/nodes/(node_ident)/vendor_passthru
 
 .. autotype:: ironic.api.controllers.v1.node.ConsoleInfo
    :members:
