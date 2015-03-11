@@ -100,9 +100,15 @@ CONF.import_opt('deploy_callback_timeout', 'ironic.conductor.manager',
 
 
 REQUIRED_PROPERTIES = {
-    'pxe_deploy_kernel': _("UUID (from Glance) of the deployment kernel. "
+    'deploy_kernel': _("UUID (from Glance) of the deployment kernel. "
+                       "Required."),
+    'deploy_ramdisk': _("UUID (from Glance) of the ramdisk that is "
+                        "mounted at boot time. Required."),
+    'pxe_deploy_kernel': _("DEPRECATED: Use deploy_kernel instead. UUID "
+                           "(from Glance) of the deployment kernel. "
                            "Required."),
-    'pxe_deploy_ramdisk': _("UUID (from Glance) of the ramdisk that is "
+    'pxe_deploy_ramdisk': _("DEPRECATED: Use deploy_ramdisk instead. UUID "
+                            "(from Glance) of the ramdisk that is "
                             "mounted at boot time. Required."),
 }
 COMMON_PROPERTIES = REQUIRED_PROPERTIES
@@ -121,12 +127,25 @@ def _parse_driver_info(node):
     """
     info = node.driver_info
     d_info = {}
-    d_info['deploy_kernel'] = info.get('pxe_deploy_kernel')
-    d_info['deploy_ramdisk'] = info.get('pxe_deploy_ramdisk')
+
+    # NOTE(lucasagomes): For backwards compatibility let's keep accepting
+    # pxe_deploy_{kernel, ramdisk}, should be removed in Liberty.
+    deprecated_msg = _LW('The "%(old_param)s" parameter is deprecated. '
+                         'Please use "%(new_param)s" instead.')
+
+    for parameter in ('deploy_kernel', 'deploy_ramdisk'):
+        value = info.get(parameter)
+        if not value:
+            old_parameter = 'pxe_' + parameter
+            value = info.get(old_parameter)
+            if value:
+                LOG.warning(deprecated_msg, {'old_param': old_parameter,
+                                             'new_param': parameter})
+        d_info[parameter] = value
 
     error_msg = _("Cannot validate PXE bootloader. Some parameters were"
                   " missing in node's driver_info")
-    deploy_utils.check_for_missing_params(d_info, error_msg, 'pxe_')
+    deploy_utils.check_for_missing_params(d_info, error_msg)
 
     return d_info
 
