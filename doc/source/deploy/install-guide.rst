@@ -679,8 +679,8 @@ on the Bare Metal Service node(s) where ``ironic-conductor`` is running.
 
     sudo mkdir -p /tftpboot
     sudo mkdir -p /httpboot
-    sudo chown -R ironic -p /tftpboot
-    sudo chown -R ironic -p /httpboot
+    sudo chown -R ironic /tftpboot
+    sudo chown -R ironic /httpboot
 
 #. Create a map file in the tftp boot directory (``/tftpboot``)::
 
