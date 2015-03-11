@@ -13,6 +13,7 @@
 iLO Inspect Interface
 """
 from oslo_utils import importutils
+import six
 
 from ironic.common import exception
 from ironic.common.i18n import _
@@ -30,6 +31,9 @@ ilo_error = importutils.try_import('proliantutils.exception')
 LOG = logging.getLogger(__name__)
 
 ESSENTIAL_PROPERTIES_KEYS = {'memory_mb', 'local_gb', 'cpus', 'cpu_arch'}
+CAPABILITIES_KEYS = {'BootMode', 'secure_boot', 'rom_firmware_version',
+                     'ilo_firmware_version', 'server_model', 'max_raid_level',
+                     'pci_gpu_devices', 'sr_iov_devices', 'nic_capacity'}
 
 
 def _create_ports_if_not_exist(node, macs):
@@ -121,6 +125,64 @@ def _validate(node, data):
         raise exception.HardwareInspectionFailure(error=error)
 
 
+def _create_supported_capabilities_dict(capabilities):
+    """Creates a capabilities dictionary from supported capabilities in ironic.
+
+    :param capabilities: a dictionary of capabilities as returned by the
+                         hardware.
+    :returns: a dictionary of the capabilities supported by ironic
+              and returned by hardware.
+
+    """
+    valid_cap = {}
+    for key in CAPABILITIES_KEYS.intersection(capabilities):
+        valid_cap[key] = capabilities.get(key)
+    return valid_cap
+
+
+def _update_capabilities(node, new_capabilities):
+    """Add or update a capability to the capabilities string.
+
+    This method adds/updates a given property to the node capabilities
+    string.
+    Currently the capabilities are recorded as a string in
+    properties/capabilities of a Node. It's of the below format:
+    properties/capabilities='boot_mode:bios,boot_option:local'
+
+    :param node: Node object.
+    :param new_capabilities: the dictionary of capabilities returned
+                             by baremetal with inspection.
+    :returns: The capability string after adding/updating the
+              node_capabilities with new_capabilities
+    :raises: InvalidParameterValue, if node_capabilities is malformed.
+    """
+    cap_dict = {}
+    node_capabilities = node.properties.get('capabilities')
+    if node_capabilities:
+        try:
+            cap_dict = dict(x.split(':', 1)
+                            for x in node_capabilities.split(','))
+        except ValueError:
+            # Capabilities can be filled by operator.  ValueError can
+            # occur in malformed capabilities like:
+            # properties/capabilities='boot_mode:bios,boot_option'.
+            msg = (_("Node %(node)s has invalid capabilities string "
+                    "%(capabilities), unable to modify the node "
+                    "properties['capabilities'] string")
+                    % {'node': node.uuid, 'capabilities': node_capabilities})
+            raise exception.InvalidParameterValue(msg)
+    if new_capabilities and isinstance(new_capabilities, dict):
+        cap_dict.update(new_capabilities)
+    else:
+        msg = (_("The expected format of capabilities from inspection "
+                 "is dictionary while node %(node)s returned "
+                 "%(capabilities)s."), {'node': node.uuid,
+                 'capabilities': new_capabilities})
+        raise exception.HardwareInspectionFailure(error=msg)
+    return ','.join(['%(key)s:%(value)s' % {'key': key, 'value': value}
+                     for key, value in six.iteritems(cap_dict)])
+
+
 def _get_macs_for_desired_ports(node, macs):
     """Get the dict of MACs which are desired by the operator.
 
@@ -194,6 +256,26 @@ def _get_macs_for_desired_ports(node, macs):
     return to_be_created_macs
 
 
+def _get_capabilities(node, ilo_object):
+    """inspects hardware and gets additional capabilities.
+
+    :param node: Node object.
+    :param ilo_object: an instance of ilo drivers.
+    :returns : a string of capabilities like
+               'key1:value1,key2:value2,key3:value3'
+               or None.
+
+    """
+    capabilities = None
+    try:
+        capabilities = ilo_object.get_server_capabilities()
+    except ilo_error.IloError:
+        LOG.debug(("Node %s did not return any additional capabilities."),
+                   node.uuid)
+
+    return capabilities
+
+
 class IloInspect(base.InspectInterface):
 
     def get_properties(self):
@@ -209,7 +291,7 @@ class IloInspect(base.InspectInterface):
 
         :param task: a task from TaskManager.
         :raises: InvalidParameterValue if required iLO parameters
-            are not valid.
+                 are not valid.
         :raises: MissingParameterValue if a required parameter is missing.
         :raises: InvalidParameterValue if invalid input provided.
 
@@ -272,6 +354,18 @@ class IloInspect(base.InspectInterface):
         node_properties = task.node.properties
         node_properties.update(inspected_properties)
         task.node.properties = node_properties
+
+        # Inspect the hardware for additional hardware capabilities.
+        # Since additional hardware capabilities may not apply to all the
+        # hardwares, the method inspect_hardware() doesn't raise an error
+        # for these capabilities.
+        capabilities = _get_capabilities(task.node, ilo_object)
+        if capabilities:
+            valid_cap = _create_supported_capabilities_dict(capabilities)
+            capabilities = _update_capabilities(task.node, valid_cap)
+            if capabilities:
+                node_properties['capabilities'] = capabilities
+                task.node.properties = node_properties
 
         task.node.save()
 
