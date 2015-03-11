@@ -131,7 +131,8 @@ def _parse_driver_info(node):
     # NOTE(lucasagomes): For backwards compatibility let's keep accepting
     # pxe_deploy_{kernel, ramdisk}, should be removed in Liberty.
     deprecated_msg = _LW('The "%(old_param)s" parameter is deprecated. '
-                         'Please use "%(new_param)s" instead.')
+                         'Please update the node %(node)s to use '
+                         '"%(new_param)s" instead.')
 
     for parameter in ('deploy_kernel', 'deploy_ramdisk'):
         value = info.get(parameter)
@@ -140,7 +141,8 @@ def _parse_driver_info(node):
             value = info.get(old_parameter)
             if value:
                 LOG.warning(deprecated_msg, {'old_param': old_parameter,
-                                             'new_param': parameter})
+                                             'new_param': parameter,
+                                             'node': node.uuid})
         d_info[parameter] = value
 
     error_msg = _("Cannot validate PXE bootloader. Some parameters were"
