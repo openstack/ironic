@@ -121,7 +121,7 @@ def node_power_action(task, new_state):
     else:
         # success!
         node['power_state'] = target_state
-        LOG.info(_LI('Succesfully set node %(node)s power state to '
+        LOG.info(_LI('Successfully set node %(node)s power state to '
                      '%(state)s.'),
                  {'node': node.uuid, 'state': target_state})
     finally:
