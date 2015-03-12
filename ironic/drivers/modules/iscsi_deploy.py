@@ -73,6 +73,8 @@ pxe_opts = [
 CONF = cfg.CONF
 CONF.register_opts(pxe_opts, group='pxe')
 
+VALID_ROOT_DEVICE_HINTS = set(('size', 'model', 'wwn', 'serial', 'vendor'))
+
 
 @image_cache.cleanup(priority=50)
 class InstanceImageCache(image_cache.ImageCache):
@@ -386,11 +388,28 @@ def parse_root_device_hints(node):
     :returns: A flat string with the following format
               opt1=value1,opt2=value2. Or None if the
               Node contains no hints.
+    :raises: InvalidParameterValue, if some information is invalid.
 
     """
     root_device = node.properties.get('root_device')
     if not root_device:
         return
+
+    # Find invalid hints for logging
+    invalid_hints = set(root_device) - VALID_ROOT_DEVICE_HINTS
+    if invalid_hints:
+        raise exception.InvalidParameterValue(
+            _('The hints "%(invalid_hints)s" are invalid. '
+              'Valid hints are: "%(valid_hints)s"') %
+            {'invalid_hints': ', '.join(invalid_hints),
+             'valid_hints': ', '.join(VALID_ROOT_DEVICE_HINTS)})
+
+    if 'size' in root_device:
+        try:
+            int(root_device['size'])
+        except ValueError:
+            raise exception.InvalidParameterValue(
+                _('Root device hint "size" is not an integer value.'))
 
     hints = []
     for key, value in root_device.items():
@@ -529,3 +548,6 @@ def validate(task):
         raise exception.InvalidParameterValue(_(
             "Couldn't get the URL of the Ironic API service from the "
             "configuration file or keystone catalog. Keystone error: %s") % e)
+
+    # Validate the root device hints
+    parse_root_device_hints(node)
