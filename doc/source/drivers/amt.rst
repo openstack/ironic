@@ -6,32 +6,32 @@ AMT drivers
 
 Overview
 ========
-Introduce new drivers AMT to extend Ironic's range to desktop.
-AMT/vPro is widely used in desktop to remotely control the power,
-similar like IPMI in server.
+AMT (Active Management Technology) drivers extend Ironic's range to the
+desktop. AMT/vPro is widely used in desktops to remotely control their power,
+similar to IPMI in servers.
 
-AMT driver use WS-MAN protocol to interactive with AMT client.
-This works on AMT 7.0/8.0/9.0. AMT 7.0 is released on 2010, so most
-PCs with vPro should be involved.
+AMT drivers use WS-MAN protocol to interact with AMT clients.
+They work on AMT 7.0/8.0/9.0. AMT 7.0 was released in 2010, so AMT drivers
+should work on most PCs with vPro.
 
-Currently there is one AMT driver:
+There is one AMT driver:
 
-* ``pxe_amt`` use amt as power management and pxe as deploy management.
+* ``pxe_amt`` uses AMT for power management and PXE for deploy management.
 
-Setting up development environment
-==================================
+Set up your environment
+=======================
 * Set up AMT Client
 
-  * Choose a Desktop with ``vPro`` tag(within Intel's tag, next to CORE i5/7) -
-    Press Ctrl+P during booting to enter MEBx management
+  * Choose a Desktop with ``vPro`` tag (within Intel's tag, next to CORE i5/7).
+    Press Ctrl+P during booting to enter MEBx management.
 
-  * Reset password - Default is ``admin``. New password can be ``Cloud12345^``
+  * Reset password -- default is ``admin``. New password can be ``Cloud12345^``
 
   * Go to Intel AMT Configuration:
 
     * Enable all features under SOL/IDER/KVM section
 
-    * Select User Consent and choose None(No password need)
+    * Select User Consent and choose None (No password is needed)
 
     * Select Network Setup section and set IP
 
@@ -41,21 +41,29 @@ Setting up development environment
 
   * Restart and enable PXE boot in bios
 
-* Install ``openwsman&openwsman-python(>=2.4.10)`` on Ironic Server
+* Install ``openwsman`` on servers where ``ironic-conductor`` is running:
 
-  Get the rpm package for fedora 20 from::
+  * Fedora/RHEL: ``openwsman-python`` (>=2.4.10). You can 
+    get the RPM package for Fedora 20 from::
 
     http://download.opensuse.org/repositories/Openwsman/Fedora_20/
 
-  Or build by yourself from::
+  * Ubuntu: ``python-openwsman``'s most recent version is 2.4.3 which
+    isn't recent enough, so you'll need to build it yourself (see next point)
+
+  * Or build it yourself from::
 
     https://github.com/Openwsman/openwsman
 
-* Enable ``pxe_amt`` in ``enabled_drivers`` in ``/etc/ironic/ironic.conf``
-  and restart Ironic conductor
+* Enable the ``pxe_amt`` driver by adding it to the configuration option
+  ``enabled_drivers`` (typically located at ``/etc/ironic/ironic.conf``)
+  and restart the ``ironic-conductor`` process::
 
-* Enroll a AMT node
+  service ironic-conductor restart
 
-* Add ``amt_password/amt_address/amt_username`` into driver_info
+* Enroll an AMT node
+
+* Specify these driver_info properties for the node: ``amt_password``,
+   ``amt_address``, and ``amt_username``
 
 * Boot an instance
