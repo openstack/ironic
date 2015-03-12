@@ -756,15 +756,49 @@ class VendorPassthru(base.VendorInterface):
         :raises: InvalidParameterValue, if any of the parameters have invalid
             value.
         """
-        iscsi_deploy.get_deploy_info(task.node, **kwargs)
+        if method == 'pass_deploy_info':
+            iscsi_deploy.get_deploy_info(task.node, **kwargs)
+        elif method == 'pass_bootloader_install_info':
+            iscsi_deploy.validate_pass_bootloader_info_input(task, kwargs)
+
+    @base.passthru(['POST'])
+    @task_manager.require_exclusive_lock
+    def pass_bootloader_install_info(self, task, **kwargs):
+        """Accepts the results of bootloader installation.
+
+        This method acts as a vendor passthru and accepts the result of
+        bootloader installation. If the bootloader installation was
+        successful, then it notifies the baremetal to proceed to reboot
+        and makes the instance active. If bootloader installation failed,
+        then it sets provisioning as failed and powers off the node.
+
+        :param task: A TaskManager object.
+        :param kwargs: The arguments sent with vendor passthru.  The expected
+            kwargs are::
+                'key': The deploy key for authorization
+                'status': 'SUCCEEDED' or 'FAILED'
+                'error': The error message if status == 'FAILED'
+                'address': The IP address of the ramdisk
+        """
+        task.process_event('resume')
+        iscsi_deploy.validate_bootloader_install_status(task, kwargs)
+        iscsi_deploy.finish_deploy(task, kwargs['address'])
 
     @base.passthru(['POST'])
     @task_manager.require_exclusive_lock
     def pass_deploy_info(self, task, **kwargs):
         """Continues the iSCSI deployment from where ramdisk left off.
 
-        Continues the iSCSI deployment from the conductor node, finds the
-        boot ISO to boot the node, and sets the node to boot from boot ISO.
+        This method continues the iSCSI deployment from the conductor node
+        and writes the deploy image to the bare metal's disk.  After that,
+        it does the following depending on boot_option for deploy:
+        - If the boot_option requested for this deploy is 'local', then it
+          sets the node to boot from disk (ramdisk installs the boot loader
+          present within the image to the bare metal's disk).
+        - If the boot_option requested is 'netboot' or no boot_option is
+          requested, it finds/creates the boot ISO to boot the instance
+          image, attaches the boot ISO to the bare metal and then sets
+          the node to boot from CDROM.
 
         :param task: a TaskManager instance containing the node to act on.
         :param kwargs: kwargs containing parameters for iSCSI deployment.
@@ -778,20 +812,29 @@ class VendorPassthru(base.VendorInterface):
 
         try:
             _cleanup_vmedia_boot(task)
-            _prepare_boot_iso(task, root_uuid)
-            setup_vmedia_for_boot(task,
-                                  node.driver_internal_info['irmc_boot_iso'])
-            manager_utils.node_set_boot_device(task, boot_devices.CDROM)
+            if iscsi_deploy.get_boot_option(node) == "local":
+                manager_utils.node_set_boot_device(task, boot_devices.DISK,
+                                                   persistent=True)
 
-            address = kwargs.get('address')
-            deploy_utils.notify_ramdisk_to_proceed(address)
+                # Ask the ramdisk to install bootloader and
+                # wait for the call-back through the vendor passthru
+                # 'pass_bootloader_install_info'.
+                deploy_utils.notify_ramdisk_to_proceed(kwargs['address'])
+                task.process_event('wait')
+                return
 
-            LOG.info(_LI('Deployment to node %s done'), node.uuid)
+            else:
+                _prepare_boot_iso(task, root_uuid)
+                setup_vmedia_for_boot(
+                    task, node.driver_internal_info['irmc_boot_iso'])
+                manager_utils.node_set_boot_device(task, boot_devices.CDROM,
+                                                   persistent=True)
 
-            task.process_event('done')
         except Exception as e:
             LOG.exception(_LE('Deploy failed for instance %(instance)s. '
                               'Error: %(error)s'),
                           {'instance': node.instance_uuid, 'error': e})
             msg = _('Failed to continue iSCSI deployment.')
             deploy_utils.set_failed_state(task, msg)
+        else:
+            iscsi_deploy.finish_deploy(task, kwargs.get('address'))
