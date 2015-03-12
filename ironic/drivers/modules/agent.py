@@ -88,10 +88,15 @@ def build_agent_options(node):
     """
     ironic_api = (CONF.conductor.api_url or
                   keystone.get_service_url()).rstrip('/')
-    return {
+    agent_config_opts = {
         'ipa-api-url': ironic_api,
         'ipa-driver-name': node.driver
     }
+    root_device = deploy_utils.parse_root_device_hints(node)
+    if root_device:
+        agent_config_opts['root_device'] = root_device
+
+    return agent_config_opts
 
 
 def _build_pxe_config_options(node, pxe_info):
@@ -217,6 +222,9 @@ class AgentDeploy(base.DeployInterface):
                 raise exception.MissingParameterValue(_(
                     "image_source's image_checksum must be provided in "
                     "instance_info for node %s") % node.uuid)
+
+        # Validate the root device hints
+        deploy_utils.parse_root_device_hints(node)
 
     @task_manager.require_exclusive_lock
     def deploy(self, task):

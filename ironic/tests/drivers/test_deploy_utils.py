@@ -912,7 +912,13 @@ class SwitchPxeConfigTestCase(tests_base.TestCase):
 
 
 @mock.patch('time.sleep', lambda sec: None)
-class OtherFunctionTestCase(tests_base.TestCase):
+class OtherFunctionTestCase(db_base.DbTestCase):
+
+    def setUp(self):
+        super(OtherFunctionTestCase, self).setUp()
+        mgr_utils.mock_the_extension_manager(driver="fake_pxe")
+        self.node = obj_utils.create_test_node(self.context, driver='fake_pxe')
+
     def test_get_dev(self):
         expected = '/dev/disk/by-path/ip-1.2.3.4:5678-iscsi-iqn.fake-lun-9'
         actual = utils.get_dev('1.2.3.4', 5678, 'iqn.fake', 9)
@@ -956,6 +962,33 @@ class OtherFunctionTestCase(tests_base.TestCase):
         mock_csize.return_value = mb + 1
         self.assertEqual(2, utils.get_image_mb('x', False))
         self.assertEqual(2, utils.get_image_mb('x', True))
+
+    def test_parse_root_device_hints(self):
+        self.node.properties['root_device'] = {'wwn': 123456}
+        expected = 'wwn=123456'
+        result = utils.parse_root_device_hints(self.node)
+        self.assertEqual(expected, result)
+
+    def test_parse_root_device_hints_string_space(self):
+        self.node.properties['root_device'] = {'model': 'fake model'}
+        expected = 'model=fake%20model'
+        result = utils.parse_root_device_hints(self.node)
+        self.assertEqual(expected, result)
+
+    def test_parse_root_device_hints_no_hints(self):
+        self.node.properties = {}
+        result = utils.parse_root_device_hints(self.node)
+        self.assertIsNone(result)
+
+    def test_parse_root_device_hints_invalid_hints(self):
+        self.node.properties['root_device'] = {'vehicle': 'Owlship'}
+        self.assertRaises(exception.InvalidParameterValue,
+                          utils.parse_root_device_hints, self.node)
+
+    def test_parse_root_device_hints_invalid_size(self):
+        self.node.properties['root_device'] = {'size': 'not-int'}
+        self.assertRaises(exception.InvalidParameterValue,
+                          utils.parse_root_device_hints, self.node)
 
 
 @mock.patch.object(disk_partitioner.DiskPartitioner, 'commit', lambda _: None)

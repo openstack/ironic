@@ -17,7 +17,6 @@ import os
 
 from oslo_config import cfg
 from oslo_utils import strutils
-import six
 from six.moves.urllib import parse
 
 from ironic.common import exception
@@ -72,8 +71,6 @@ pxe_opts = [
 
 CONF = cfg.CONF
 CONF.register_opts(pxe_opts, group='pxe')
-
-VALID_ROOT_DEVICE_HINTS = set(('size', 'model', 'wwn', 'serial', 'vendor'))
 
 
 @image_cache.cleanup(priority=50)
@@ -380,53 +377,6 @@ def do_agent_iscsi_deploy(task, agent_client):
     return root_uuid_or_disk_id
 
 
-def parse_root_device_hints(node):
-    """Parse the root_device property of a node.
-
-    Parse the root_device property of a node and make it a flat string
-    to be passed via the PXE config.
-
-    :param node: a single Node.
-    :returns: A flat string with the following format
-              opt1=value1,opt2=value2. Or None if the
-              Node contains no hints.
-    :raises: InvalidParameterValue, if some information is invalid.
-
-    """
-    root_device = node.properties.get('root_device')
-    if not root_device:
-        return
-
-    # Find invalid hints for logging
-    invalid_hints = set(root_device) - VALID_ROOT_DEVICE_HINTS
-    if invalid_hints:
-        raise exception.InvalidParameterValue(
-            _('The hints "%(invalid_hints)s" are invalid. '
-              'Valid hints are: "%(valid_hints)s"') %
-            {'invalid_hints': ', '.join(invalid_hints),
-             'valid_hints': ', '.join(VALID_ROOT_DEVICE_HINTS)})
-
-    if 'size' in root_device:
-        try:
-            int(root_device['size'])
-        except ValueError:
-            raise exception.InvalidParameterValue(
-                _('Root device hint "size" is not an integer value.'))
-
-    hints = []
-    for key, value in root_device.items():
-        # NOTE(lucasagomes): We can't have spaces in the PXE config
-        # file, so we are going to url/percent encode the value here
-        # and decode on the other end.
-        if isinstance(value, six.string_types):
-            value = value.strip()
-            value = parse.quote(value)
-
-        hints.append("%s=%s" % (key, value))
-
-    return ','.join(hints)
-
-
 def get_boot_option(node):
     """Gets the boot option.
 
@@ -483,7 +433,7 @@ def build_deploy_ramdisk_options(node):
         'boot_mode': _get_boot_mode(node),
     }
 
-    root_device = parse_root_device_hints(node)
+    root_device = deploy_utils.parse_root_device_hints(node)
     if root_device:
         deploy_options['root_device'] = root_device
 
@@ -566,4 +516,4 @@ def validate(task):
             "configuration file or keystone catalog. Keystone error: %s") % e)
 
     # Validate the root device hints
-    parse_root_device_hints(node)
+    deploy_utils.parse_root_device_hints(node)

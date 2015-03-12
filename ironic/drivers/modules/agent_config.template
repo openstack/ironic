@@ -2,4 +2,4 @@ default deploy
 
 label deploy
 kernel {{ pxe_options.deployment_aki_path }}
-append initrd={{ pxe_options.deployment_ari_path }} text {{ pxe_options.pxe_append_params }} ipa-api-url={{ pxe_options['ipa-api-url'] }} ipa-driver-name={{ pxe_options['ipa-driver-name'] }}
+append initrd={{ pxe_options.deployment_ari_path }} text {{ pxe_options.pxe_append_params }} ipa-api-url={{ pxe_options['ipa-api-url'] }} ipa-driver-name={{ pxe_options['ipa-driver-name'] }}{% if pxe_options.root_device %} root_device={{ pxe_options.root_device }}{% endif %}

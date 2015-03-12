@@ -486,43 +486,6 @@ class IscsiDeployMethodsTestCase(db_base.DbTestCase):
         self._test_build_deploy_ramdisk_options(mock_alnum, fake_api_url,
                                                 expected_boot_option=expected)
 
-    @mock.patch.object(keystone, 'get_service_url')
-    @mock.patch.object(utils, 'random_alnum')
-    def test_build_deploy_ramdisk_options_boot_mode(self, mock_alnum,
-                                                    mock_get_url):
-        self.node.properties['capabilities'] = 'boot_mode:uefi'
-        fake_api_url = 'http://127.0.0.1:6385'
-        self.config(api_url=fake_api_url, group='conductor')
-        self._test_build_deploy_ramdisk_options(mock_alnum, fake_api_url,
-                                                expected_boot_mode='uefi')
-
-    def test_parse_root_device_hints(self):
-        self.node.properties['root_device'] = {'wwn': 123456}
-        expected = 'wwn=123456'
-        result = iscsi_deploy.parse_root_device_hints(self.node)
-        self.assertEqual(expected, result)
-
-    def test_parse_root_device_hints_string_space(self):
-        self.node.properties['root_device'] = {'model': 'fake model'}
-        expected = 'model=fake%20model'
-        result = iscsi_deploy.parse_root_device_hints(self.node)
-        self.assertEqual(expected, result)
-
-    def test_parse_root_device_hints_no_hints(self):
-        self.node.properties = {}
-        result = iscsi_deploy.parse_root_device_hints(self.node)
-        self.assertIsNone(result)
-
-    def test_parse_root_device_hints_invalid_hints(self):
-        self.node.properties['root_device'] = {'vehicle': 'Owlship'}
-        self.assertRaises(exception.InvalidParameterValue,
-                          iscsi_deploy.parse_root_device_hints, self.node)
-
-    def test_parse_root_device_hints_invalid_size(self):
-        self.node.properties['root_device'] = {'size': 'not-int'}
-        self.assertRaises(exception.InvalidParameterValue,
-                          iscsi_deploy.parse_root_device_hints, self.node)
-
     def test_get_boot_option(self):
         self.node.instance_info = {'capabilities': '{"boot_option": "local"}'}
         result = iscsi_deploy.get_boot_option(self.node)

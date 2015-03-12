@@ -33,39 +33,39 @@ class TestPXEUtils(db_base.DbTestCase):
     def setUp(self):
         super(TestPXEUtils, self).setUp()
         mgr_utils.mock_the_extension_manager(driver="fake")
+
+        common_pxe_options = {
+            'deployment_aki_path': u'/tftpboot/1be26c0b-03f2-4d2e-ae87-'
+                                   u'c02d7f33c123/deploy_kernel',
+            'aki_path': u'/tftpboot/1be26c0b-03f2-4d2e-ae87-c02d7f33c123/'
+                        u'kernel',
+            'pxe_append_params': 'test_param',
+            'deployment_ari_path': u'/tftpboot/1be26c0b-03f2-4d2e-ae87-c02d7'
+                                   u'f33c123/deploy_ramdisk',
+            'root_device': 'vendor=fake,size=123',
+            'ipa-api-url': 'http://192.168.122.184:6385',
+        }
+
         self.pxe_options = {
             'deployment_key': '0123456789ABCDEFGHIJKLMNOPQRSTUV',
             'ari_path': u'/tftpboot/1be26c0b-03f2-4d2e-ae87-c02d7f33c123/'
                         u'ramdisk',
             'iscsi_target_iqn': u'iqn-1be26c0b-03f2-4d2e-ae87-c02d7f33'
                                 u'c123',
-            'deployment_ari_path': u'/tftpboot/1be26c0b-03f2-4d2e-ae87-c02d7'
-                                   u'f33c123/deploy_ramdisk',
-            'pxe_append_params': 'test_param',
-            'aki_path': u'/tftpboot/1be26c0b-03f2-4d2e-ae87-c02d7f33c123/'
-                        u'kernel',
             'deployment_id': u'1be26c0b-03f2-4d2e-ae87-c02d7f33c123',
             'ironic_api_url': 'http://192.168.122.184:6385',
-            'deployment_aki_path': u'/tftpboot/1be26c0b-03f2-4d2e-ae87-'
-                                   u'c02d7f33c123/deploy_kernel',
             'disk': 'cciss/c0d0,sda,hda,vda',
-            'root_device': 'vendor=fake,size=123',
             'boot_option': 'netboot',
-            'ipa-api-url': 'http://192.168.122.184:6385',
             'ipa-driver-name': 'pxe_ssh',
             'boot_mode': 'bios',
         }
+        self.pxe_options.update(common_pxe_options)
+
         self.agent_pxe_options = {
-            'deployment_ari_path': u'/tftpboot/1be26c0b-03f2-4d2e-ae87-c02d7'
-                                   u'f33c123/deploy_ramdisk',
-            'pxe_append_params': 'test_param',
-            'aki_path': u'/tftpboot/1be26c0b-03f2-4d2e-ae87-c02d7f33c123/'
-                        u'kernel',
-            'ipa-api-url': 'http://192.168.122.184:6385',
             'ipa-driver-name': 'agent_ipmitool',
-            'deployment_aki_path': u'/tftpboot/1be26c0b-03f2-4d2e-ae87-'
-                                   u'c02d7f33c123/deploy_kernel',
         }
+        self.agent_pxe_options.update(common_pxe_options)
+
         self.node = object_utils.create_test_node(self.context)
 
     def test__build_pxe_config(self):
