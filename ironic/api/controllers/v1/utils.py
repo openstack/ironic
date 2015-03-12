@@ -15,9 +15,15 @@
 
 import jsonpatch
 from oslo_config import cfg
+from oslo_utils import uuidutils
+import pecan
 import wsme
 
+from ironic.common import exception
 from ironic.common.i18n import _
+from ironic.common import utils
+from ironic import objects
+
 
 CONF = cfg.CONF
 
@@ -56,3 +62,43 @@ def get_patch_value(patch, path):
     for p in patch:
         if p['path'] == path:
             return p['value']
+
+
+def allow_node_logical_names():
+    # v1.5 added logical name aliases
+    return pecan.request.version.minor >= 5
+
+
+def get_rpc_node(node_ident):
+    """Get the RPC node from the node uuid or logical name.
+
+    :param node_ident: the UUID or logical name of a node.
+
+    :returns: The RPC Node.
+    :raises: InvalidUuidOrName if the name or uuid provided is not valid.
+    :raises: NodeNotFound if the node is not found.
+    """
+    # Check to see if the node_ident is a valid UUID.  If it is, treat it
+    # as a UUID.
+    if uuidutils.is_uuid_like(node_ident):
+        return objects.Node.get_by_uuid(pecan.request.context, node_ident)
+
+    # We can refer to nodes by their name, if the client supports it
+    if allow_node_logical_names():
+        if utils.is_hostname_safe(node_ident):
+            return objects.Node.get_by_name(pecan.request.context, node_ident)
+        raise exception.InvalidUuidOrName(name=node_ident)
+
+    # Ensure we raise the same exception as we did for the Juno release
+    raise exception.NodeNotFound(node=node_ident)
+
+
+def is_valid_node_name(name):
+    """Determine if the provided name is a valid node name.
+
+    Check to see that the provided node name is valid, and isn't a UUID.
+
+    :param: name: the node name to check.
+    :returns: True if the name is valid, False otherwise.
+    """
+    return utils.is_hostname_safe(name) and (not uuidutils.is_uuid_like(name))
