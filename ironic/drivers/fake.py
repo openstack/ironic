@@ -23,6 +23,8 @@ from ironic.common import exception
 from ironic.common.i18n import _
 from ironic.drivers import base
 from ironic.drivers.modules import agent
+from ironic.drivers.modules.amt import management as amt_mgmt
+from ironic.drivers.modules.amt import power as amt_power
 from ironic.drivers.modules import discoverd
 from ironic.drivers.modules.drac import management as drac_mgmt
 from ironic.drivers.modules.drac import power as drac_power
@@ -214,3 +216,16 @@ class FakeIPMIToolDiscoverdDriver(base.BaseDriver):
         self.vendor = ipmitool.VendorPassthru()
         self.management = ipmitool.IPMIManagement()
         self.inspect = discoverd.DiscoverdInspect()
+
+
+class FakeAMTDriver(base.BaseDriver):
+    """Fake AMT driver."""
+
+    def __init__(self):
+        if not importutils.try_import('pywsman'):
+            raise exception.DriverLoadError(
+                    driver=self.__class__.__name__,
+                    reason=_("Unable to import pywsman library"))
+        self.power = amt_power.AMTPower()
+        self.deploy = fake.FakeDeploy()
+        self.management = amt_mgmt.AMTManagement()

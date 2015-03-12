@@ -22,6 +22,9 @@ from oslo_utils import importutils
 from ironic.common import exception
 from ironic.common.i18n import _
 from ironic.drivers import base
+from ironic.drivers.modules.amt import management as amt_management
+from ironic.drivers.modules.amt import power as amt_power
+from ironic.drivers.modules.amt import vendor as amt_vendor
 from ironic.drivers.modules import iboot
 from ironic.drivers.modules.ilo import deploy as ilo_deploy
 from ironic.drivers.modules.ilo import management as ilo_management
@@ -234,3 +237,23 @@ class PXEAndVirtualBoxDriver(base.BaseDriver):
         self.deploy = pxe.PXEDeploy()
         self.management = virtualbox.VirtualBoxManagement()
         self.vendor = pxe.VendorPassthru()
+
+
+class PXEAndAMTDriver(base.BaseDriver):
+    """PXE + AMT driver.
+
+    This driver implements the `core` functionality, combining
+    :class:`ironic.drivers.amt.AMTPower` for power on/off and reboot with
+    :class:`ironic.driver.pxe.PXE` for image deployment. Implementations are in
+    those respective classes; this class is merely the glue between them.
+    """
+
+    def __init__(self):
+        if not importutils.try_import('pywsman'):
+            raise exception.DriverLoadError(
+                    driver=self.__class__.__name__,
+                    reason=_("Unable to import pywsman library"))
+        self.power = amt_power.AMTPower()
+        self.deploy = pxe.PXEDeploy()
+        self.management = amt_management.AMTManagement()
+        self.vendor = amt_vendor.AMTPXEVendorPassthru()
