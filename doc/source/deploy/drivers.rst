@@ -14,6 +14,14 @@ DRAC with PXE deploy
   ``/etc/ironic/ironic.conf``
 - Install openwsman-python package
 
+AMT
+----
+
+.. toctree::
+  :maxdepth: 1
+
+  ../drivers/amt
+
 SNMP
 ----
 
