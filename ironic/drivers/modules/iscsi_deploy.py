@@ -233,7 +233,8 @@ def get_deploy_info(node, **kwargs):
     if i_info['deploy_key'] != deploy_key:
         raise exception.InvalidParameterValue(_("Deploy key does not match"))
 
-    params = {'address': kwargs.get('address'),
+    params = {
+              'address': kwargs.get('address'),
               'port': kwargs.get('port', '3260'),
               'iqn': kwargs.get('iqn'),
               'lun': kwargs.get('lun', '1'),
@@ -246,7 +247,8 @@ def get_deploy_info(node, **kwargs):
                        'swap_mb': int(i_info['swap_mb']),
                        'ephemeral_mb': 1024 * int(i_info['ephemeral_gb']),
                        'preserve_ephemeral': i_info['preserve_ephemeral'],
-                       'boot_option': get_boot_option(node)})
+                       'boot_option': get_boot_option(node),
+                       'boot_mode': _get_boot_mode(node)})
 
     missing = [key for key in params if params[key] is None]
     if missing:
@@ -407,15 +409,28 @@ def parse_root_device_hints(node):
 
 
 def get_boot_option(node):
-    """Get the boot mode.
+    """Gets the boot option.
 
     :param node: A single Node.
     :raises: InvalidParameterValue if the capabilities string is not a
-             dict or is malformed.
-    :returns: A string representing the boot mode type. Defaults to 'netboot'.
+         dict or is malformed.
+    :returns: A string representing the boot option type. Defaults to
+        'netboot'.
     """
     capabilities = deploy_utils.parse_instance_info_capabilities(node)
     return capabilities.get('boot_option', 'netboot').lower()
+
+
+def _get_boot_mode(node):
+    """Gets the boot mode.
+
+    :param node: A single Node.
+    :returns: A string representing the boot mode type. Defaults to 'bios'.
+    """
+    boot_mode = driver_utils.get_node_capability(node, 'boot_mode')
+    if boot_mode:
+        return boot_mode.lower()
+    return "bios"
 
 
 def build_deploy_ramdisk_options(node):
@@ -446,6 +461,7 @@ def build_deploy_ramdisk_options(node):
         'ironic_api_url': ironic_api,
         'disk': CONF.pxe.disk_devices,
         'boot_option': get_boot_option(node),
+        'boot_mode': _get_boot_mode(node),
     }
 
     root_device = parse_root_device_hints(node)

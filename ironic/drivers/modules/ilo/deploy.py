@@ -177,7 +177,8 @@ def _clean_up_boot_iso_for_instance(node):
 
     :param node: an ironic node object.
     """
-    if not node.instance_info['ilo_boot_iso'].startswith('swift'):
+    ilo_boot_iso = node.instance_info.get('ilo_boot_iso')
+    if not (ilo_boot_iso and ilo_boot_iso.startswith('swift')):
         return
     swift_api = swift.SwiftAPI()
     container = CONF.ilo.swift_ilo_container

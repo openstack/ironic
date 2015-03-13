@@ -328,17 +328,6 @@ class PXEDeploy(base.DeployInterface):
         driver_utils.validate_boot_option_capability(node)
 
         boot_mode = driver_utils.get_node_capability(node, 'boot_mode')
-        boot_option = driver_utils.get_node_capability(node, 'boot_option')
-
-        # NOTE(lucasagomes): We don't support UEFI + localboot because
-        # we do not support creating an EFI boot partition, including the
-        # EFI modules and managing the bootloader variables via efibootmgr.
-        if boot_mode == 'uefi' and boot_option == 'local':
-            error_msg = (_("Local boot is requested, but can't be "
-                           "used with node %s because it's configured "
-                           "to use UEFI boot") % node.uuid)
-            LOG.error(error_msg)
-            raise exception.InvalidParameterValue(error_msg)
 
         if CONF.pxe.ipxe_enabled:
             if not CONF.pxe.http_url or not CONF.pxe.http_root:

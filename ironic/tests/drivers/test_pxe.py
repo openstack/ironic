@@ -193,12 +193,15 @@ class PXEPrivateMethodsTestCase(db_base.DbTestCase):
         self.config(api_url='http://192.168.122.184:6385', group='conductor')
         self.config(disk_devices='sda', group='pxe')
 
-        fake_deploy_opts = {'iscsi_target_iqn': 'fake-iqn',
+        fake_deploy_opts = {
+                            'iscsi_target_iqn': 'fake-iqn',
                             'deployment_id': 'fake-deploy-id',
                             'deployment_key': 'fake-deploy-key',
                             'disk': 'fake-disk',
                             'ironic_api_url': 'fake-api-url',
-                            'boot_option': 'netboot'}
+                            'boot_option': 'netboot',
+                            'boot_mode': 'bios',
+                           }
 
         deploy_opts_mock.return_value = fake_deploy_opts
 
@@ -237,6 +240,7 @@ class PXEPrivateMethodsTestCase(db_base.DbTestCase):
             'boot_option': 'netboot',
             'ipa-api-url': CONF.conductor.api_url,
             'ipa-driver-name': self.node.driver,
+            'boot_mode': 'bios',
         }
 
         expected_options.update(fake_deploy_opts)
@@ -467,17 +471,6 @@ class PXEDriverTestCase(db_base.DbTestCase):
     @mock.patch.object(base_image_service.BaseImageService, '_show')
     def test_validate_fail_invalid_boot_option(self, mock_glance):
         properties = {'capabilities': 'boot_option:foo,dog:wuff'}
-        mock_glance.return_value = {'properties': {'kernel_id': 'fake-kernel',
-                                                   'ramdisk_id': 'fake-initr'}}
-        with task_manager.acquire(self.context, self.node.uuid,
-                                  shared=True) as task:
-            task.node.properties = properties
-            self.assertRaises(exception.InvalidParameterValue,
-                              task.driver.deploy.validate, task)
-
-    @mock.patch.object(base_image_service.BaseImageService, '_show')
-    def test_validate_fail_invalid_uefi_and_localboot(self, mock_glance):
-        properties = {'capabilities': 'boot_mode:uefi,boot_option:local'}
         mock_glance.return_value = {'properties': {'kernel_id': 'fake-kernel',
                                                    'ramdisk_id': 'fake-initr'}}
         with task_manager.acquire(self.context, self.node.uuid,
