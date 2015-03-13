@@ -185,27 +185,33 @@ def _build_pxe_config_options(node, pxe_info, ctx):
     :returns: A dictionary of pxe options to be used in the pxe bootfile
         template.
     """
+    is_whole_disk_image = node.driver_internal_info['is_whole_disk_image']
+
     if CONF.pxe.ipxe_enabled:
         deploy_kernel = '/'.join([CONF.pxe.http_url, node.uuid,
                                   'deploy_kernel'])
         deploy_ramdisk = '/'.join([CONF.pxe.http_url, node.uuid,
                                    'deploy_ramdisk'])
-        kernel = '/'.join([CONF.pxe.http_url, node.uuid, 'kernel'])
-        ramdisk = '/'.join([CONF.pxe.http_url, node.uuid, 'ramdisk'])
+        if not is_whole_disk_image:
+            kernel = '/'.join([CONF.pxe.http_url, node.uuid, 'kernel'])
+            ramdisk = '/'.join([CONF.pxe.http_url, node.uuid, 'ramdisk'])
     else:
         deploy_kernel = pxe_info['deploy_kernel'][1]
         deploy_ramdisk = pxe_info['deploy_ramdisk'][1]
-        kernel = pxe_info['kernel'][1]
-        ramdisk = pxe_info['ramdisk'][1]
+        if not is_whole_disk_image:
+            kernel = pxe_info['kernel'][1]
+            ramdisk = pxe_info['ramdisk'][1]
 
     pxe_options = {
         'deployment_aki_path': deploy_kernel,
         'deployment_ari_path': deploy_ramdisk,
-        'aki_path': kernel,
-        'ari_path': ramdisk,
         'pxe_append_params': CONF.pxe.pxe_append_params,
         'tftp_server': CONF.pxe.tftp_server
     }
+
+    if not is_whole_disk_image:
+        pxe_options.update({'aki_path': kernel,
+                            'ari_path': ramdisk})
 
     deploy_ramdisk_options = iscsi_deploy.build_deploy_ramdisk_options(node)
     pxe_options.update(deploy_ramdisk_options)
@@ -240,7 +246,7 @@ def _cache_ramdisk_kernel(ctx, node, pxe_info):
     """Fetch the necessary kernels and ramdisks for the instance."""
     fileutils.ensure_tree(
         os.path.join(pxe_utils.get_root_dir(), node.uuid))
-    LOG.debug("Fetching kernel and ramdisk for node %s",
+    LOG.debug("Fetching necessary kernel and ramdisk for node %s",
               node.uuid)
     deploy_utils.fetch_images(ctx, TFTPImageCache(), pxe_info.values(),
                               CONF.force_raw_images)
@@ -260,6 +266,9 @@ def _get_image_info(node, ctx):
     root_dir = pxe_utils.get_root_dir()
 
     image_info.update(pxe_utils.get_deploy_kr_info(node.uuid, d_info))
+
+    if node.driver_internal_info['is_whole_disk_image']:
+        return image_info
 
     i_info = node.instance_info
     labels = ('kernel', 'ramdisk')
@@ -349,10 +358,13 @@ class PXEDeploy(base.DeployInterface):
 
         iscsi_deploy.validate(task)
 
-        if service_utils.is_glance_image(d_info['image_source']):
+        if node.driver_internal_info.get('is_whole_disk_image'):
+            props = []
+        elif service_utils.is_glance_image(d_info['image_source']):
             props = ['kernel_id', 'ramdisk_id']
         else:
             props = ['kernel', 'ramdisk']
+
         iscsi_deploy.validate_image_properties(task.context, d_info, props)
 
     @task_manager.require_exclusive_lock
@@ -428,25 +440,34 @@ class PXEDeploy(base.DeployInterface):
         # the image kernel and ramdisk (Or even require it).
         _cache_ramdisk_kernel(task.context, task.node, pxe_info)
 
+        iwdi = task.node.driver_internal_info['is_whole_disk_image']
         # NOTE(deva): prepare may be called from conductor._do_takeover
         # in which case, it may need to regenerate the PXE config file for an
         # already-active deployment.
         if task.node.provision_state == states.ACTIVE:
+            # this should have been stashed when the deploy was done
+            # but let's guard, just in case it's missing
             try:
-                # this should have been stashed when the deploy was done
-                # but let's guard, just in case it's missing
-                root_uuid = task.node.driver_internal_info['root_uuid']
+                root_uuid_or_disk_id = task.node.driver_internal_info[
+                                                'root_uuid_or_disk_id']
             except KeyError:
-                LOG.warn(_LW("The UUID for the root partition can't be found, "
-                         "unable to switch the pxe config from deployment "
-                         "mode to service (boot) mode for node %(node)s"),
-                         {"node": task.node.uuid})
+                if not iwdi:
+                    LOG.warn(_LW("The UUID for the root partition can't be "
+                             "found, unable to switch the pxe config from "
+                             "deployment mode to service (boot) mode for node "
+                             "%(node)s"), {"node": task.node.uuid})
+                else:
+                    LOG.warn(_LW("The disk id for the whole disk image can't "
+                             "be found, unable to switch the pxe config from "
+                             "deployment mode to service (boot) mode for "
+                             "node %(node)s"), {"node": task.node.uuid})
             else:
                 pxe_config_path = pxe_utils.get_pxe_config_file_path(
                     task.node.uuid)
                 deploy_utils.switch_pxe_config(
-                    pxe_config_path, root_uuid,
-                    driver_utils.get_node_capability(task.node, 'boot_mode'))
+                    pxe_config_path, root_uuid_or_disk_id,
+                    driver_utils.get_node_capability(task.node, 'boot_mode'),
+                    iwdi)
 
     def clean_up(self, task):
         """Clean up the deployment environment for the task's node.
@@ -529,10 +550,9 @@ class VendorPassthru(agent_base_vendor.BaseAgentVendor):
         task.process_event('resume')
 
         _destroy_token_file(node)
-
-        root_uuid = iscsi_deploy.continue_deploy(task, **kwargs)
-
-        if not root_uuid:
+        is_whole_disk_image = node.driver_internal_info['is_whole_disk_image']
+        root_uuid_or_disk_id = iscsi_deploy.continue_deploy(task, **kwargs)
+        if not root_uuid_or_disk_id:
             return
 
         # save the node's root disk UUID so that another conductor could
@@ -540,7 +560,7 @@ class VendorPassthru(agent_base_vendor.BaseAgentVendor):
         # we have to assign to node.driver_internal_info so the node knows it
         # has changed.
         driver_internal_info = node.driver_internal_info
-        driver_internal_info['root_uuid'] = root_uuid
+        driver_internal_info['root_uuid_or_disk_id'] = root_uuid_or_disk_id
         node.driver_internal_info = driver_internal_info
         node.save()
 
@@ -552,8 +572,10 @@ class VendorPassthru(agent_base_vendor.BaseAgentVendor):
                 pxe_utils.clean_up_pxe_config(task)
             else:
                 pxe_config_path = pxe_utils.get_pxe_config_file_path(node.uuid)
-                deploy_utils.switch_pxe_config(pxe_config_path, root_uuid,
-                    driver_utils.get_node_capability(node, 'boot_mode'))
+                node_cap = driver_utils.get_node_capability(node, 'boot_mode')
+                deploy_utils.switch_pxe_config(pxe_config_path,
+                                               root_uuid_or_disk_id,
+                                               node_cap, is_whole_disk_image)
 
             deploy_utils.notify_deploy_complete(kwargs['address'])
             LOG.info(_LI('Deployment to node %s done'), node.uuid)
@@ -588,11 +610,13 @@ class VendorPassthru(agent_base_vendor.BaseAgentVendor):
         # it here.
         _destroy_token_file(node)
 
-        root_uuid = iscsi_deploy.do_agent_iscsi_deploy(task, self._client)
-
+        root_uuid_or_disk_id = iscsi_deploy.do_agent_iscsi_deploy(
+                task,
+                self._client)
+        is_whole_disk_image = node.driver_internal_info['is_whole_disk_image']
         if iscsi_deploy.get_boot_option(node) == "local":
             # Install the boot loader
-            self.configure_local_boot(task, root_uuid)
+            self.configure_local_boot(task, root_uuid_or_disk_id)
 
             # If it's going to boot from the local disk, get rid of
             # the PXE configuration files used for the deployment
@@ -600,7 +624,9 @@ class VendorPassthru(agent_base_vendor.BaseAgentVendor):
         else:
             pxe_config_path = pxe_utils.get_pxe_config_file_path(node.uuid)
             boot_mode = driver_utils.get_node_capability(node, 'boot_mode')
-            deploy_utils.switch_pxe_config(pxe_config_path, root_uuid,
-                                           boot_mode)
+            deploy_utils.switch_pxe_config(
+                    pxe_config_path,
+                    root_uuid_or_disk_id,
+                    boot_mode, is_whole_disk_image)
 
         self.reboot_and_finish_deploy(task)

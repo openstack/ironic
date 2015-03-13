@@ -513,6 +513,13 @@ them to Glance service:
         kernel_id=$MY_VMLINUZ_UUID --property \
         ramdisk_id=$MY_INITRD_UUID < my-image.qcow2
 
+   - *Note:* To deploy a whole disk image, a kernel_id and a ramdisk_id
+     shouldn't be associated with the image. An example is as follows::
+
+         glance image-create --name my-whole-disk-image --is-public True \
+         --disk-format qcow2 \
+         --container-format bare < my-whole-disk-image.qcow2
+
 3. Add the deploy images to glance
 
    Add the *my-deploy-ramdisk.kernel* and
@@ -611,6 +618,19 @@ node(s) where ``ironic-conductor`` is running.
 
     Ubuntu (14.10 and after):
         sudo cp /usr/lib/PXELINUX/pxelinux.0 /tftpboot
+
+#. If whole disk images need to be deployed via PXE-netboot, copy the
+   chain.c32 image to ``/tftpboot`` to support it. The chain.c32 image
+   might be found at::
+
+    Ubuntu (Up to and including 14.04):
+        sudo cp /usr/lib/syslinux/chain.c32 /tftpboot
+
+    Ubuntu (14.10 and after):
+        sudo cp /usr/lib/syslinux/modules/bios/chain.c32 /tftpboot
+
+    Fedora:
+        sudo cp /boot/extlinux/chain.c32 /tftpboot
 
 #. If the version of syslinux is **greater than** 4 we also need to make sure
    that we copy the library modules into the ``/tftpboot`` directory [2]_

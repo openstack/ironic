@@ -42,15 +42,18 @@ CONF = cfg.CONF
 
 INST_INFO_DICT = db_utils.get_test_pxe_instance_info()
 DRV_INFO_DICT = db_utils.get_test_pxe_driver_info()
+DRV_INTERNAL_INFO_DICT = db_utils.get_test_pxe_driver_internal_info()
 
 
 class IscsiDeployValidateParametersTestCase(db_base.DbTestCase):
 
     def test_parse_instance_info_good(self):
         # make sure we get back the expected things
-        node = obj_utils.create_test_node(self.context,
-                                          driver='fake_pxe',
-                                          instance_info=INST_INFO_DICT)
+        node = obj_utils.create_test_node(
+                   self.context, driver='fake_pxe',
+                   instance_info=INST_INFO_DICT,
+                   driver_internal_info=DRV_INTERNAL_INFO_DICT
+               )
         info = iscsi_deploy.parse_instance_info(node)
         self.assertIsNotNone(info.get('image_source'))
         self.assertIsNotNone(info.get('root_gb'))
@@ -61,7 +64,10 @@ class IscsiDeployValidateParametersTestCase(db_base.DbTestCase):
         # make sure error is raised when info is missing
         info = dict(INST_INFO_DICT)
         del info['image_source']
-        node = obj_utils.create_test_node(self.context, instance_info=info)
+        node = obj_utils.create_test_node(
+                  self.context, instance_info=info,
+                  driver_internal_info=DRV_INTERNAL_INFO_DICT,
+               )
         self.assertRaises(exception.MissingParameterValue,
                 iscsi_deploy.parse_instance_info,
                 node)
@@ -70,7 +76,11 @@ class IscsiDeployValidateParametersTestCase(db_base.DbTestCase):
         # make sure error is raised when info is missing
         info = dict(INST_INFO_DICT)
         del info['root_gb']
-        node = obj_utils.create_test_node(self.context, instance_info=info)
+
+        node = obj_utils.create_test_node(
+                  self.context, instance_info=info,
+                  driver_internal_info=DRV_INTERNAL_INFO_DICT,
+               )
         self.assertRaises(exception.MissingParameterValue,
                 iscsi_deploy.parse_instance_info,
                 node)
@@ -78,7 +88,10 @@ class IscsiDeployValidateParametersTestCase(db_base.DbTestCase):
     def test_parse_instance_info_invalid_root_gb(self):
         info = dict(INST_INFO_DICT)
         info['root_gb'] = 'foobar'
-        node = obj_utils.create_test_node(self.context, instance_info=info)
+        node = obj_utils.create_test_node(
+                  self.context, instance_info=info,
+                  driver_internal_info=DRV_INTERNAL_INFO_DICT,
+               )
         self.assertRaises(exception.InvalidParameterValue,
                 iscsi_deploy.parse_instance_info,
                 node)
@@ -89,7 +102,10 @@ class IscsiDeployValidateParametersTestCase(db_base.DbTestCase):
         info = dict(INST_INFO_DICT)
         info['ephemeral_gb'] = ephemeral_gb
         info['ephemeral_format'] = ephemeral_fmt
-        node = obj_utils.create_test_node(self.context, instance_info=info)
+        node = obj_utils.create_test_node(
+                  self.context, instance_info=info,
+                  driver_internal_info=DRV_INTERNAL_INFO_DICT,
+               )
         data = iscsi_deploy.parse_instance_info(node)
         self.assertEqual(ephemeral_gb, data.get('ephemeral_gb'))
         self.assertEqual(ephemeral_fmt, data.get('ephemeral_format'))
@@ -98,7 +114,11 @@ class IscsiDeployValidateParametersTestCase(db_base.DbTestCase):
         info = dict(INST_INFO_DICT)
         info['ephemeral_gb'] = 'foobar'
         info['ephemeral_format'] = 'exttest'
-        node = obj_utils.create_test_node(self.context, instance_info=info)
+
+        node = obj_utils.create_test_node(
+                  self.context, instance_info=info,
+                  driver_internal_info=DRV_INTERNAL_INFO_DICT,
+               )
         self.assertRaises(exception.InvalidParameterValue,
                 iscsi_deploy.parse_instance_info,
                 node)
@@ -110,7 +130,10 @@ class IscsiDeployValidateParametersTestCase(db_base.DbTestCase):
         info['ephemeral_gb'] = ephemeral_gb
         info['ephemeral_format'] = None
         self.config(default_ephemeral_format=ephemeral_fmt, group='pxe')
-        node = obj_utils.create_test_node(self.context, instance_info=info)
+        node = obj_utils.create_test_node(
+                  self.context, instance_info=info,
+                  driver_internal_info=DRV_INTERNAL_INFO_DICT,
+               )
         instance_info = iscsi_deploy.parse_instance_info(node)
         self.assertEqual(ephemeral_fmt, instance_info['ephemeral_format'])
 
@@ -119,9 +142,12 @@ class IscsiDeployValidateParametersTestCase(db_base.DbTestCase):
         for opt in ['true', 'TRUE', 'True', 't',
                     'on', 'yes', 'y', '1']:
             info['preserve_ephemeral'] = opt
-            node = obj_utils.create_test_node(self.context,
-                                              uuid=uuidutils.generate_uuid(),
-                                              instance_info=info)
+
+            node = obj_utils.create_test_node(
+                      self.context, uuid=uuidutils.generate_uuid(),
+                      instance_info=info,
+                      driver_internal_info=DRV_INTERNAL_INFO_DICT,
+                   )
             data = iscsi_deploy.parse_instance_info(node)
             self.assertTrue(data.get('preserve_ephemeral'))
 
@@ -130,16 +156,21 @@ class IscsiDeployValidateParametersTestCase(db_base.DbTestCase):
         for opt in ['false', 'FALSE', 'False', 'f',
                     'off', 'no', 'n', '0']:
             info['preserve_ephemeral'] = opt
-            node = obj_utils.create_test_node(self.context,
-                                              uuid=uuidutils.generate_uuid(),
-                                              instance_info=info)
+            node = obj_utils.create_test_node(
+                      self.context, uuid=uuidutils.generate_uuid(),
+                      instance_info=info,
+                      driver_internal_info=DRV_INTERNAL_INFO_DICT,
+                   )
             data = iscsi_deploy.parse_instance_info(node)
             self.assertFalse(data.get('preserve_ephemeral'))
 
     def test_parse_instance_info_invalid_preserve_ephemeral(self):
         info = dict(INST_INFO_DICT)
         info['preserve_ephemeral'] = 'foobar'
-        node = obj_utils.create_test_node(self.context, instance_info=info)
+        node = obj_utils.create_test_node(
+                  self.context, instance_info=info,
+                  driver_internal_info=DRV_INTERNAL_INFO_DICT,
+               )
         self.assertRaises(exception.InvalidParameterValue,
                 iscsi_deploy.parse_instance_info,
                 node)
@@ -147,7 +178,10 @@ class IscsiDeployValidateParametersTestCase(db_base.DbTestCase):
     def test_parse_instance_info_configdrive(self):
         info = dict(INST_INFO_DICT)
         info['configdrive'] = 'http://1.2.3.4/cd'
-        node = obj_utils.create_test_node(self.context, instance_info=info)
+        node = obj_utils.create_test_node(
+                  self.context, instance_info=info,
+                  driver_internal_info=DRV_INTERNAL_INFO_DICT,
+               )
         instance_info = iscsi_deploy.parse_instance_info(node)
         self.assertEqual('http://1.2.3.4/cd', instance_info['configdrive'])
 
@@ -156,23 +190,31 @@ class IscsiDeployValidateParametersTestCase(db_base.DbTestCase):
         info['image_source'] = 'file:///image.qcow2'
         info['kernel'] = 'file:///image.vmlinuz'
         info['ramdisk'] = 'file:///image.initrd'
-        node = obj_utils.create_test_node(self.context, instance_info=info)
+        node = obj_utils.create_test_node(
+                  self.context, instance_info=info,
+                  driver_internal_info=DRV_INTERNAL_INFO_DICT,
+               )
         iscsi_deploy.parse_instance_info(node)
 
     def test_parse_instance_info_nonglance_image_no_kernel(self):
         info = INST_INFO_DICT.copy()
         info['image_source'] = 'file:///image.qcow2'
         info['ramdisk'] = 'file:///image.initrd'
-        node = obj_utils.create_test_node(self.context, instance_info=info)
+        node = obj_utils.create_test_node(
+                  self.context, instance_info=info,
+                  driver_internal_info=DRV_INTERNAL_INFO_DICT,
+               )
         self.assertRaises(exception.MissingParameterValue,
                           iscsi_deploy.parse_instance_info, node)
 
     @mock.patch.object(image_service, 'get_image_service')
     def test_validate_image_properties_glance_image(self, image_service_mock):
-        node = obj_utils.create_test_node(self.context,
-                                          driver='fake_pxe',
-                                          instance_info=INST_INFO_DICT,
-                                          driver_info=DRV_INFO_DICT)
+        node = obj_utils.create_test_node(
+                   self.context, driver='fake_pxe',
+                   instance_info=INST_INFO_DICT,
+                   driver_info=DRV_INFO_DICT,
+                   driver_internal_info=DRV_INTERNAL_INFO_DICT,
+               )
         d_info = pxe._parse_deploy_info(node)
         image_service_mock.return_value.show.return_value = {
             'properties': {'kernel_id': '1111', 'ramdisk_id': '2222'},
@@ -187,10 +229,12 @@ class IscsiDeployValidateParametersTestCase(db_base.DbTestCase):
     @mock.patch.object(image_service, 'get_image_service')
     def test_validate_image_properties_glance_image_missing_prop(self,
             image_service_mock):
-        node = obj_utils.create_test_node(self.context,
-                                          driver='fake_pxe',
-                                          instance_info=INST_INFO_DICT,
-                                          driver_info=DRV_INFO_DICT)
+        node = obj_utils.create_test_node(
+                   self.context, driver='fake_pxe',
+                   instance_info=INST_INFO_DICT,
+                   driver_info=DRV_INFO_DICT,
+                   driver_internal_info=DRV_INTERNAL_INFO_DICT,
+               )
         d_info = pxe._parse_deploy_info(node)
         image_service_mock.return_value.show.return_value = {
             'properties': {'kernel_id': '1111'},
@@ -239,10 +283,12 @@ class IscsiDeployValidateParametersTestCase(db_base.DbTestCase):
             'root_gb': 100,
         }
         image_service_show_mock.return_value = {'size': 1, 'properties': {}}
-        node = obj_utils.create_test_node(self.context,
-                                          driver='fake_pxe',
-                                          instance_info=instance_info,
-                                          driver_info=DRV_INFO_DICT)
+        node = obj_utils.create_test_node(
+                   self.context, driver='fake_pxe',
+                   instance_info=instance_info,
+                   driver_info=DRV_INFO_DICT,
+                   driver_internal_info=DRV_INTERNAL_INFO_DICT,
+               )
         d_info = pxe._parse_deploy_info(node)
         iscsi_deploy.validate_image_properties(self.context, d_info,
                                                ['kernel', 'ramdisk'])
@@ -260,14 +306,37 @@ class IscsiDeployValidateParametersTestCase(db_base.DbTestCase):
         }
         img_service_show_mock.side_effect = exception.ImageRefValidationFailed(
             image_href='http://ubuntu', reason='HTTPError')
-        node = obj_utils.create_test_node(self.context,
-                                          driver='fake_pxe',
-                                          instance_info=instance_info,
-                                          driver_info=DRV_INFO_DICT)
+        node = obj_utils.create_test_node(
+                   self.context, driver='fake_pxe',
+                   instance_info=instance_info,
+                   driver_info=DRV_INFO_DICT,
+                   driver_internal_info=DRV_INTERNAL_INFO_DICT,
+               )
         d_info = pxe._parse_deploy_info(node)
         self.assertRaises(exception.InvalidParameterValue,
                           iscsi_deploy.validate_image_properties, self.context,
                           d_info, ['kernel', 'ramdisk'])
+
+    def test_parse_instance_info_whole_disk_image(self):
+        driver_internal_info = dict(DRV_INTERNAL_INFO_DICT)
+        driver_internal_info['is_whole_disk_image'] = True
+        node = obj_utils.create_test_node(
+                  self.context, instance_info=INST_INFO_DICT,
+                  driver_internal_info=driver_internal_info,
+               )
+        instance_info = iscsi_deploy.parse_instance_info(node)
+        self.assertIsNotNone(instance_info.get('image_source'))
+        self.assertIsNotNone(instance_info.get('root_gb'))
+        self.assertEqual(0, instance_info.get('swap_mb'))
+        self.assertEqual(0, instance_info.get('ephemeral_gb'))
+        self.assertIsNone(instance_info.get('configdrive'))
+
+    def test_parse_instance_info_whole_disk_image_missing_root(self):
+        info = dict(INST_INFO_DICT)
+        del info['root_gb']
+        node = obj_utils.create_test_node(self.context, instance_info=info)
+        self.assertRaises(exception.InvalidParameterValue,
+                          iscsi_deploy.parse_instance_info, node)
 
 
 class IscsiDeployPrivateMethodsTestCase(db_base.DbTestCase):
@@ -278,6 +347,7 @@ class IscsiDeployPrivateMethodsTestCase(db_base.DbTestCase):
               'driver': 'fake_pxe',
               'instance_info': INST_INFO_DICT,
               'driver_info': DRV_INFO_DICT,
+              'driver_internal_info': DRV_INTERNAL_INFO_DICT,
         }
         mgr_utils.mock_the_extension_manager(driver="fake_pxe")
         self.node = obj_utils.create_test_node(self.context, **n)
@@ -304,6 +374,7 @@ class IscsiDeployMethodsTestCase(db_base.DbTestCase):
               'driver': 'fake_pxe',
               'instance_info': instance_info,
               'driver_info': DRV_INFO_DICT,
+              'driver_internal_info': DRV_INTERNAL_INFO_DICT,
         }
         mgr_utils.mock_the_extension_manager(driver="fake_pxe")
         self.node = obj_utils.create_test_node(self.context, **n)
@@ -440,7 +511,7 @@ class IscsiDeployMethodsTestCase(db_base.DbTestCase):
 
     @mock.patch.object(iscsi_deploy, 'InstanceImageCache')
     @mock.patch.object(manager_utils, 'node_power_action')
-    @mock.patch.object(deploy_utils, 'deploy')
+    @mock.patch.object(deploy_utils, 'deploy_partition_image')
     def test_continue_deploy_fail(self, deploy_mock, power_mock,
                                   mock_image_cache):
         kwargs = {'address': '123456', 'iqn': 'aaa-bbb', 'key': 'fake-56789'}
@@ -464,7 +535,7 @@ class IscsiDeployMethodsTestCase(db_base.DbTestCase):
 
     @mock.patch.object(iscsi_deploy, 'InstanceImageCache')
     @mock.patch.object(manager_utils, 'node_power_action')
-    @mock.patch.object(deploy_utils, 'deploy')
+    @mock.patch.object(deploy_utils, 'deploy_partition_image')
     def test_continue_deploy_ramdisk_fails(self, deploy_mock, power_mock,
                                            mock_image_cache):
         kwargs = {'address': '123456', 'iqn': 'aaa-bbb', 'key': 'fake-56789',
@@ -488,7 +559,7 @@ class IscsiDeployMethodsTestCase(db_base.DbTestCase):
     @mock.patch.object(iscsi_deploy, 'get_deploy_info')
     @mock.patch.object(iscsi_deploy, 'InstanceImageCache')
     @mock.patch.object(manager_utils, 'node_power_action')
-    @mock.patch.object(deploy_utils, 'deploy')
+    @mock.patch.object(deploy_utils, 'deploy_partition_image')
     def test_continue_deploy(self, deploy_mock, power_mock, mock_image_cache,
                              mock_deploy_info, mock_log):
         kwargs = {'address': '123456', 'iqn': 'aaa-bbb', 'key': 'fake-56789'}
@@ -521,6 +592,47 @@ class IscsiDeployMethodsTestCase(db_base.DbTestCase):
         }
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
+            mock_log.isEnabledFor.return_value = True
+            iscsi_deploy.continue_deploy(task, **kwargs)
+            mock_log.debug.assert_called_once_with(
+                mock.ANY, expected_dict)
+            self.assertEqual(states.DEPLOYWAIT, task.node.provision_state)
+            self.assertEqual(states.ACTIVE, task.node.target_provision_state)
+            self.assertIsNone(task.node.last_error)
+            mock_image_cache.assert_called_once_with()
+            mock_image_cache.return_value.clean_up.assert_called_once_with()
+
+    @mock.patch.object(iscsi_deploy, 'LOG')
+    @mock.patch.object(iscsi_deploy, 'get_deploy_info')
+    @mock.patch.object(iscsi_deploy, 'InstanceImageCache')
+    @mock.patch.object(manager_utils, 'node_power_action')
+    @mock.patch.object(deploy_utils, 'deploy_disk_image')
+    def test_continue_deploy_whole_disk_image(
+            self, deploy_mock, power_mock, mock_image_cache, mock_deploy_info,
+            mock_log):
+        kwargs = {'address': '123456', 'iqn': 'aaa-bbb', 'key': 'fake-56789'}
+        self.node.provision_state = states.DEPLOYWAIT
+        self.node.target_provision_state = states.ACTIVE
+        self.node.save()
+
+        mock_deploy_info.return_value = {
+            'address': '123456',
+            'image_path': (u'/var/lib/ironic/images/1be26c0b-03f2-4d2e-ae87-'
+                           u'c02d7f33c123/disk'),
+            'iqn': 'aaa-bbb',
+            'lun': '1',
+            'node_uuid': u'1be26c0b-03f2-4d2e-ae87-c02d7f33c123',
+            'port': '3260',
+            'root_mb': 102400,
+        }
+        log_params = mock_deploy_info.return_value.copy()
+        expected_dict = {
+            'node': self.node.uuid,
+            'params': log_params,
+        }
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            task.node.driver_internal_info['is_whole_disk_image'] = True
             mock_log.isEnabledFor.return_value = True
             iscsi_deploy.continue_deploy(task, **kwargs)
             mock_log.debug.assert_called_once_with(
@@ -588,8 +700,9 @@ class IscsiDeployMethodsTestCase(db_base.DbTestCase):
                 task, error=None, iqn='iqn-qweqwe', key='abcdef',
                 address='1.2.3.4')
             self.assertEqual('some-root-uuid', ret_val)
-            self.assertEqual('some-root-uuid',
-                             task.node.driver_internal_info['root_uuid'])
+            self.assertEqual(
+                    'some-root-uuid',
+                    task.node.driver_internal_info['root_uuid_or_disk_id'])
 
     @mock.patch.object(iscsi_deploy, 'build_deploy_ramdisk_options')
     def test_do_agent_iscsi_deploy_start_iscsi_failure(self,

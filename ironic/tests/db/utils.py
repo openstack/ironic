@@ -69,6 +69,12 @@ def get_test_pxe_driver_info():
     }
 
 
+def get_test_pxe_driver_internal_info():
+    return {
+        "is_whole_disk_image": False,
+    }
+
+
 def get_test_pxe_instance_info():
     return {
         "image_source": "glance://image_uuid",

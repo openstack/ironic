@@ -6,6 +6,7 @@
 iscsiadm: CommandFilter, iscsiadm, root
 blkid: CommandFilter, blkid, root
 blockdev: CommandFilter, blockdev, root
+hexdump: CommandFilter, hexdump, root
 
 # ironic/common/utils.py
 mkswap: CommandFilter, mkswap, root

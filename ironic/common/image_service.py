@@ -35,6 +35,11 @@ LOG = logging.getLogger(__name__)
 IMAGE_CHUNK_SIZE = 1024 * 1024  # 1mb
 
 
+CONF = cfg.CONF
+# Import this opt early so that it is available when registering
+# glance_opts below.
+CONF.import_opt('my_ip', 'ironic.netconf')
+
 glance_opts = [
     cfg.StrOpt('glance_host',
                default='$my_ip',
@@ -64,8 +69,6 @@ glance_opts = [
                'Set to https for SSL.'),
 ]
 
-
-CONF = cfg.CONF
 CONF.register_opts(glance_opts, group='glance')
 
 
