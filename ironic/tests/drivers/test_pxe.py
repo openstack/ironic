@@ -826,7 +826,7 @@ class PXEDriverTestCase(db_base.DbTestCase):
         self.node.save()
 
         root_uuid = "12345678-1234-1234-1234-1234567890abcxyz"
-        mock_deploy.return_value = root_uuid
+        mock_deploy.return_value = {'root uuid': root_uuid}
         boot_mode = None
         is_whole_disk_image = False
 
@@ -887,7 +887,7 @@ class PXEDriverTestCase(db_base.DbTestCase):
         boot_mode = None
         is_whole_disk_image = True
         disk_id = '0x12345678'
-        mock_deploy.return_value = disk_id
+        mock_deploy.return_value = {'disk identifier': disk_id}
 
         with task_manager.acquire(self.context, self.node.uuid) as task:
             task.node.driver_internal_info['is_whole_disk_image'] = True
@@ -1137,7 +1137,8 @@ class TestAgentVendorPassthru(db_base.DbTestCase):
                                      switch_pxe_config_mock,
                                      reboot_and_finish_deploy_mock):
 
-        do_agent_iscsi_deploy_mock.return_value = 'some-root-uuid'
+        uuid_dict_returned = {'root uuid': 'some-root-uuid'}
+        do_agent_iscsi_deploy_mock.return_value = uuid_dict_returned
         self.driver.vendor.continue_deploy(self.task)
         destroy_token_file_mock.assert_called_once_with(self.node)
         do_agent_iscsi_deploy_mock.assert_called_once_with(
@@ -1164,13 +1165,44 @@ class TestAgentVendorPassthru(db_base.DbTestCase):
         self.node.instance_info = {
             'capabilities': {'boot_option': 'local'}}
         self.node.save()
-        do_agent_iscsi_deploy_mock.return_value = 'some-root-uuid'
+        uuid_dict_returned = {'root uuid': 'some-root-uuid'}
+        do_agent_iscsi_deploy_mock.return_value = uuid_dict_returned
 
         self.driver.vendor.continue_deploy(self.task)
         destroy_token_file_mock.assert_called_once_with(self.node)
         do_agent_iscsi_deploy_mock.assert_called_once_with(
             self.task, self.driver.vendor._client)
-        configure_local_boot_mock.assert_called_once_with(self.task,
-                                                          'some-root-uuid')
+        configure_local_boot_mock.assert_called_once_with(
+            self.task, root_uuid='some-root-uuid', efi_system_part_uuid=None)
+        clean_up_pxe_config_mock.assert_called_once_with(self.task)
+        reboot_and_finish_deploy_mock.assert_called_once_with(self.task)
+
+    @mock.patch.object(agent_base_vendor.BaseAgentVendor,
+                       'reboot_and_finish_deploy')
+    @mock.patch.object(pxe_utils, 'clean_up_pxe_config')
+    @mock.patch.object(agent_base_vendor.BaseAgentVendor,
+                       'configure_local_boot')
+    @mock.patch.object(iscsi_deploy, 'do_agent_iscsi_deploy')
+    @mock.patch.object(pxe, '_destroy_token_file')
+    def test_continue_deploy_localboot_uefi(self, destroy_token_file_mock,
+                                            do_agent_iscsi_deploy_mock,
+                                            configure_local_boot_mock,
+                                            clean_up_pxe_config_mock,
+                                            reboot_and_finish_deploy_mock):
+
+        self.node.instance_info = {
+            'capabilities': {'boot_option': 'local'}}
+        self.node.save()
+        uuid_dict_returned = {'root uuid': 'some-root-uuid',
+            'efi system partition uuid': 'efi-part-uuid'}
+        do_agent_iscsi_deploy_mock.return_value = uuid_dict_returned
+
+        self.driver.vendor.continue_deploy(self.task)
+        destroy_token_file_mock.assert_called_once_with(self.node)
+        do_agent_iscsi_deploy_mock.assert_called_once_with(
+            self.task, self.driver.vendor._client)
+        configure_local_boot_mock.assert_called_once_with(
+            self.task, root_uuid='some-root-uuid',
+            efi_system_part_uuid='efi-part-uuid')
         clean_up_pxe_config_mock.assert_called_once_with(self.task)
         reboot_and_finish_deploy_mock.assert_called_once_with(self.task)

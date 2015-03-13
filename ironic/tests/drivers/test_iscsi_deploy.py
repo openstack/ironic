@@ -533,7 +533,7 @@ class IscsiDeployMethodsTestCase(db_base.DbTestCase):
 
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
-            iscsi_deploy.continue_deploy(task, **kwargs)
+            retval = iscsi_deploy.continue_deploy(task, **kwargs)
             self.assertIsNotNone(task.node.last_error)
             self.assertEqual(states.DEPLOYFAIL, task.node.provision_state)
             self.assertEqual(states.ACTIVE, task.node.target_provision_state)
@@ -541,6 +541,7 @@ class IscsiDeployMethodsTestCase(db_base.DbTestCase):
             mock_image_cache.assert_called_once_with()
             mock_image_cache.return_value.clean_up.assert_called_once_with()
             self.assertFalse(deploy_mock.called)
+            self.assertEqual({}, retval)
 
     @mock.patch.object(iscsi_deploy, 'LOG')
     @mock.patch.object(iscsi_deploy, 'get_deploy_info')
@@ -577,10 +578,13 @@ class IscsiDeployMethodsTestCase(db_base.DbTestCase):
             'node': self.node.uuid,
             'params': log_params,
         }
+        uuid_dict_returned = {'root uuid': '12345678-87654321'}
+        deploy_mock.return_value = uuid_dict_returned
+
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
             mock_log.isEnabledFor.return_value = True
-            iscsi_deploy.continue_deploy(task, **kwargs)
+            retval = iscsi_deploy.continue_deploy(task, **kwargs)
             mock_log.debug.assert_called_once_with(
                 mock.ANY, expected_dict)
             self.assertEqual(states.DEPLOYWAIT, task.node.provision_state)
@@ -588,6 +592,7 @@ class IscsiDeployMethodsTestCase(db_base.DbTestCase):
             self.assertIsNone(task.node.last_error)
             mock_image_cache.assert_called_once_with()
             mock_image_cache.return_value.clean_up.assert_called_once_with()
+            self.assertEqual(uuid_dict_returned, retval)
 
     @mock.patch.object(iscsi_deploy, 'LOG')
     @mock.patch.object(iscsi_deploy, 'get_deploy_info')
@@ -617,11 +622,13 @@ class IscsiDeployMethodsTestCase(db_base.DbTestCase):
             'node': self.node.uuid,
             'params': log_params,
         }
+        uuid_dict_returned = {'disk identifier': '87654321'}
+        deploy_mock.return_value = uuid_dict_returned
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
             task.node.driver_internal_info['is_whole_disk_image'] = True
             mock_log.isEnabledFor.return_value = True
-            iscsi_deploy.continue_deploy(task, **kwargs)
+            retval = iscsi_deploy.continue_deploy(task, **kwargs)
             mock_log.debug.assert_called_once_with(
                 mock.ANY, expected_dict)
             self.assertEqual(states.DEPLOYWAIT, task.node.provision_state)
@@ -629,6 +636,7 @@ class IscsiDeployMethodsTestCase(db_base.DbTestCase):
             self.assertIsNone(task.node.last_error)
             mock_image_cache.assert_called_once_with()
             mock_image_cache.return_value.clean_up.assert_called_once_with()
+            self.assertEqual(uuid_dict_returned, retval)
 
     def test_get_deploy_info_boot_option_default(self):
         instance_info = self.node.instance_info
@@ -674,7 +682,8 @@ class IscsiDeployMethodsTestCase(db_base.DbTestCase):
         driver_internal_info = {'agent_url': 'http://1.2.3.4:1234'}
         self.node.driver_internal_info = driver_internal_info
         self.node.save()
-        continue_deploy_mock.return_value = 'some-root-uuid'
+        uuid_dict_returned = {'root uuid': 'some-root-uuid'}
+        continue_deploy_mock.return_value = uuid_dict_returned
 
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
@@ -686,10 +695,10 @@ class IscsiDeployMethodsTestCase(db_base.DbTestCase):
             continue_deploy_mock.assert_called_once_with(
                 task, error=None, iqn='iqn-qweqwe', key='abcdef',
                 address='1.2.3.4')
-            self.assertEqual('some-root-uuid', ret_val)
             self.assertEqual(
-                    'some-root-uuid',
-                    task.node.driver_internal_info['root_uuid_or_disk_id'])
+                'some-root-uuid',
+                task.node.driver_internal_info['root_uuid_or_disk_id'])
+            self.assertEqual(ret_val, uuid_dict_returned)
 
     @mock.patch.object(iscsi_deploy, 'build_deploy_ramdisk_options')
     def test_do_agent_iscsi_deploy_start_iscsi_failure(self,
@@ -730,7 +739,7 @@ class IscsiDeployMethodsTestCase(db_base.DbTestCase):
         self.node.provision_state = states.DEPLOYING
         self.node.target_provision_state = states.ACTIVE
         self.node.save()
-        continue_deploy_mock.return_value = None
+        continue_deploy_mock.return_value = {}
 
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:

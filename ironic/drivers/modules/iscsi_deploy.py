@@ -275,8 +275,11 @@ def continue_deploy(task, **kwargs):
     :param kwargs: the kwargs to be passed to deploy.
     :raises: InvalidState if the event is not allowed by the associated
              state machine.
-    :returns: UUID of the root partition for partition images or disk
-              identifier for whole disk images or None on error.
+    :returns: a dictionary containing some identifiers for the deployed
+        image. If it's partition image, then it returns root uuid and efi
+        system partition uuid (if boot mode is uefi).  If it's whole disk
+        image, it returns disk identifier. On error cases, it returns an
+        empty dictionary.
     """
     node = task.node
 
@@ -288,7 +291,7 @@ def continue_deploy(task, **kwargs):
                   ramdisk_error)
         deploy_utils.set_failed_state(task, _('Failure in deploy ramdisk.'))
         destroy_images(node.uuid)
-        return
+        return {}
 
     # NOTE(lucasagomes): Let's make sure we don't log the full content
     # of the config drive here because it can be up to 64MB in size,
@@ -301,13 +304,12 @@ def continue_deploy(task, **kwargs):
         LOG.debug('Continuing deployment for node %(node)s, params %(params)s',
                   {'node': node.uuid, 'params': log_params})
 
-    root_uuid_or_disk_id = None
+    uuid_dict_returned = {}
     try:
         if node.driver_internal_info['is_whole_disk_image']:
-            root_uuid_or_disk_id = deploy_utils.deploy_disk_image(**params)
+            uuid_dict_returned = deploy_utils.deploy_disk_image(**params)
         else:
-            root_uuid_or_disk_id = deploy_utils.deploy_partition_image(
-                                                                  **params)
+            uuid_dict_returned = deploy_utils.deploy_partition_image(**params)
     except Exception as e:
         LOG.error(_LE('Deploy failed for instance %(instance)s. '
                       'Error: %(error)s'),
@@ -316,7 +318,7 @@ def continue_deploy(task, **kwargs):
                                               'iSCSI deployment.'))
 
     destroy_images(node.uuid)
-    return root_uuid_or_disk_id
+    return uuid_dict_returned
 
 
 def do_agent_iscsi_deploy(task, agent_client):
@@ -330,7 +332,10 @@ def do_agent_iscsi_deploy(task, agent_client):
     :param agent_client: an instance of agent_client.AgentClient
         which will be used during iscsi deploy (for exposing node's
         target disk via iSCSI, for install boot loader, etc).
-    :returns: UUID of the root partition which was deployed.
+    :returns: a dictionary containing some identifiers for the deployed
+        image. If it's partition image, then it returns root uuid and efi
+        system partition uuid (if boot mode is uefi).  If it's whole disk
+        image, it returns disk identifier.
     :raises: InstanceDeployFailure, if it encounters some error
         during the deploy.
     """
@@ -359,7 +364,9 @@ def do_agent_iscsi_deploy(task, agent_client):
                     'key': iscsi_options['deployment_key'],
                     'address': address}
 
-    root_uuid_or_disk_id = continue_deploy(task, **iscsi_params)
+    uuid_dict_returned = continue_deploy(task, **iscsi_params)
+    root_uuid_or_disk_id = uuid_dict_returned.get(
+        'root uuid', uuid_dict_returned.get('disk identifier'))
     if not root_uuid_or_disk_id:
         msg = (_("Couldn't determine the UUID of the root "
                  "partition or the disk identifier when deploying "
@@ -374,7 +381,7 @@ def do_agent_iscsi_deploy(task, agent_client):
     node.driver_internal_info = driver_internal_info
     node.save()
 
-    return root_uuid_or_disk_id
+    return uuid_dict_returned
 
 
 def get_boot_option(node):

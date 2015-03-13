@@ -557,7 +557,8 @@ def work_on_disk(dev, root_mb, swap_mb, ephemeral_mb, ephemeral_format,
                         or configdrive HTTP URL.
     :param boot_option: Can be "local" or "netboot". "netboot" by default.
     :param boot_mode: Can be "bios" or "uefi". "bios" by default.
-    :returns: the UUID of the root partition.
+    :returns: a dictionary containing the UUID of root partition and efi system
+        partition (if boot mode is uefi).
     """
     # the only way for preserve_ephemeral to be set to true is if we are
     # rebuilding an instance with --preserve_ephemeral.
@@ -624,13 +625,21 @@ def work_on_disk(dev, root_mb, swap_mb, ephemeral_mb, ephemeral_format,
     if ephemeral_part and not preserve_ephemeral:
         mkfs(dev=ephemeral_part, fs=ephemeral_format, label="ephemeral0")
 
+    uuids_to_return = {
+        'root uuid': root_part,
+        'efi system partition uuid': part_dict.get('efi system partition')
+    }
+
     try:
-        root_uuid = block_uuid(root_part)
+        for part, part_dev in six.iteritems(uuids_to_return):
+            if part_dev:
+                uuids_to_return[part] = block_uuid(part_dev)
+
     except processutils.ProcessExecutionError:
         with excutils.save_and_reraise_exception():
-            LOG.error(_LE("Failed to detect root device UUID."))
+            LOG.error(_LE("Failed to detect %s"), part)
 
-    return root_uuid
+    return uuids_to_return
 
 
 def deploy_partition_image(address, port, iqn, lun, image_path,
@@ -658,7 +667,8 @@ def deploy_partition_image(address, port, iqn, lun, image_path,
                         or configdrive HTTP URL.
     :param boot_option: Can be "local" or "netboot". "netboot" by default.
     :param boot_mode: Can be "bios" or "uefi". "bios" by default.
-    :returns: the UUID of the root partition.
+    :returns: a dictionary containing the UUID of root partition and efi system
+        partition (if boot mode is uefi).
     """
     with _iscsi_setup_and_handle_errors(address, port, iqn,
                                         lun, image_path) as dev:
@@ -666,14 +676,13 @@ def deploy_partition_image(address, port, iqn, lun, image_path,
         if image_mb > root_mb:
             root_mb = image_mb
 
-        root_uuid = work_on_disk(dev, root_mb, swap_mb, ephemeral_mb,
-                                 ephemeral_format, image_path, node_uuid,
-                                 preserve_ephemeral=preserve_ephemeral,
-                                 configdrive=configdrive,
-                                 boot_option=boot_option,
-                                 boot_mode=boot_mode)
+        uuid_dict_returned = work_on_disk(
+            dev, root_mb, swap_mb, ephemeral_mb, ephemeral_format, image_path,
+            node_uuid, preserve_ephemeral=preserve_ephemeral,
+            configdrive=configdrive, boot_option=boot_option,
+            boot_mode=boot_mode)
 
-    return root_uuid
+    return uuid_dict_returned
 
 
 def deploy_disk_image(address, port, iqn, lun,
@@ -687,13 +696,14 @@ def deploy_disk_image(address, port, iqn, lun,
     :param image_path: Path for the instance's disk image.
     :param node_uuid: node's uuid. Used for logging. Currently not in use
         by this function but could be used in the future.
+    :returns: a dictionary containing the disk identifier for the disk.
     """
     with _iscsi_setup_and_handle_errors(address, port, iqn,
                                         lun, image_path) as dev:
         populate_image(image_path, dev)
         disk_identifier = get_disk_identifier(dev)
 
-    return disk_identifier
+    return {'disk identifier': disk_identifier}
 
 
 @contextlib.contextmanager

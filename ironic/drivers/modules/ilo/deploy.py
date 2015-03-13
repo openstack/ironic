@@ -567,8 +567,12 @@ class VendorPassthru(agent_base_vendor.BaseAgentVendor):
 
         iwdi = node.driver_internal_info.get('is_whole_disk_image')
         ilo_common.cleanup_vmedia_boot(task)
-        root_uuid_or_disk_id = iscsi_deploy.continue_deploy(task, **kwargs)
+        uuid_dict_returned = iscsi_deploy.continue_deploy(task, **kwargs)
+        root_uuid_or_disk_id = uuid_dict_returned.get(
+            'root uuid', uuid_dict_returned.get('disk identifier'))
 
+        # TODO(rameshg87): It's not correct to return here as it will leave
+        # the node in DEPLOYING state. This will be fixed in bug 1405519.
         if not root_uuid_or_disk_id:
             return
 
@@ -612,10 +616,16 @@ class VendorPassthru(agent_base_vendor.BaseAgentVendor):
 
         ilo_common.cleanup_vmedia_boot(task)
 
-        root_uuid = iscsi_deploy.do_agent_iscsi_deploy(task, self._client)
+        uuid_dict_returned = iscsi_deploy.do_agent_iscsi_deploy(task,
+                                                                self._client)
+        root_uuid = uuid_dict_returned.get('root uuid')
 
         if iscsi_deploy.get_boot_option(node) == "local":
-            self.configure_local_boot(task, root_uuid)
+            efi_system_part_uuid = uuid_dict_returned.get(
+                'efi system partition uuid')
+            self.configure_local_boot(
+                task, root_uuid=root_uuid,
+                efi_system_part_uuid=efi_system_part_uuid)
         else:
             # Agent vendorpassthru are made without auth token.
             # We require auth_token to talk to glance while building boot iso.

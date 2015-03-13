@@ -540,7 +540,12 @@ class VendorPassthru(agent_base_vendor.BaseAgentVendor):
 
         _destroy_token_file(node)
         is_whole_disk_image = node.driver_internal_info['is_whole_disk_image']
-        root_uuid_or_disk_id = iscsi_deploy.continue_deploy(task, **kwargs)
+        uuid_dict_returned = iscsi_deploy.continue_deploy(task, **kwargs)
+        root_uuid_or_disk_id = uuid_dict_returned.get(
+            'root uuid', uuid_dict_returned.get('disk identifier'))
+
+        # TODO(rameshg87): It's not correct to return here as it will leave
+        # the node in DEPLOYING state. This will be fixed in bug 1405519.
         if not root_uuid_or_disk_id:
             return
 
@@ -599,23 +604,28 @@ class VendorPassthru(agent_base_vendor.BaseAgentVendor):
         # it here.
         _destroy_token_file(node)
 
-        root_uuid_or_disk_id = iscsi_deploy.do_agent_iscsi_deploy(
-                task,
-                self._client)
+        uuid_dict_returned = iscsi_deploy.do_agent_iscsi_deploy(task,
+                                                                self._client)
+
         is_whole_disk_image = node.driver_internal_info['is_whole_disk_image']
         if iscsi_deploy.get_boot_option(node) == "local":
             # Install the boot loader
-            self.configure_local_boot(task, root_uuid_or_disk_id)
+            root_uuid = uuid_dict_returned.get('root uuid')
+            efi_sys_uuid = uuid_dict_returned.get('efi system partition uuid')
+            self.configure_local_boot(
+                task, root_uuid=root_uuid,
+                efi_system_part_uuid=efi_sys_uuid)
 
             # If it's going to boot from the local disk, get rid of
             # the PXE configuration files used for the deployment
             pxe_utils.clean_up_pxe_config(task)
         else:
+            root_uuid_or_disk_id = uuid_dict_returned.get(
+                'root uuid', uuid_dict_returned.get('disk identifier'))
             pxe_config_path = pxe_utils.get_pxe_config_file_path(node.uuid)
             boot_mode = driver_utils.get_node_capability(node, 'boot_mode')
-            deploy_utils.switch_pxe_config(
-                    pxe_config_path,
-                    root_uuid_or_disk_id,
-                    boot_mode, is_whole_disk_image)
+            deploy_utils.switch_pxe_config(pxe_config_path,
+                                           root_uuid_or_disk_id,
+                                           boot_mode, is_whole_disk_image)
 
         self.reboot_and_finish_deploy(task)
