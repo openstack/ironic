@@ -561,6 +561,16 @@ class PXEDriverTestCase(db_base.DbTestCase):
                 self.assertRaises(exception.InvalidParameterValue,
                                   task.driver.deploy.validate, task)
 
+    @mock.patch.object(base_image_service.BaseImageService, '_show')
+    def test_validate_invalid_root_device_hints(self, mock_glance):
+        mock_glance.return_value = {'properties': {'kernel_id': 'fake-kernel',
+                                                   'ramdisk_id': 'fake-initr'}}
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            task.node.properties['root_device'] = {'size': 'not-int'}
+            self.assertRaises(exception.InvalidParameterValue,
+                              task.driver.deploy.validate, task)
+
     def test_vendor_passthru_validate_good(self):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:

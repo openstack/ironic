@@ -513,6 +513,16 @@ class IscsiDeployMethodsTestCase(db_base.DbTestCase):
         result = iscsi_deploy.parse_root_device_hints(self.node)
         self.assertIsNone(result)
 
+    def test_parse_root_device_hints_invalid_hints(self):
+        self.node.properties['root_device'] = {'vehicle': 'Owlship'}
+        self.assertRaises(exception.InvalidParameterValue,
+                          iscsi_deploy.parse_root_device_hints, self.node)
+
+    def test_parse_root_device_hints_invalid_size(self):
+        self.node.properties['root_device'] = {'size': 'not-int'}
+        self.assertRaises(exception.InvalidParameterValue,
+                          iscsi_deploy.parse_root_device_hints, self.node)
+
     def test_get_boot_option(self):
         self.node.instance_info = {'capabilities': '{"boot_option": "local"}'}
         result = iscsi_deploy.get_boot_option(self.node)
