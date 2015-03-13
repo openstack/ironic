@@ -178,7 +178,7 @@ class ConductorManager(periodic_task.PeriodicTasks):
     """Ironic Conductor manager main class."""
 
     # NOTE(rloo): This must be in sync with rpcapi.ConductorAPI's.
-    RPC_API_VERSION = '1.24'
+    RPC_API_VERSION = '1.25'
 
     target = messaging.Target(version=RPC_API_VERSION)
 
@@ -1116,6 +1116,25 @@ class ConductorManager(periodic_task.PeriodicTasks):
             node.destroy()
             LOG.info(_LI('Successfully deleted node %(node)s.'),
                      {'node': node.uuid})
+
+    @messaging.expected_exceptions(exception.NodeLocked,
+                                   exception.NodeNotFound)
+    def destroy_port(self, context, port):
+        """Delete a port.
+
+        :param context: request context.
+        :param port: port object
+        :raises: NodeLocked if node is locked by another conductor.
+
+        """
+        LOG.debug('RPC destroy_port called for port %(port)s',
+                 {'port': port.uuid})
+        with task_manager.acquire(context, port.node_id) as task:
+            port.destroy()
+            LOG.info(_LI('Successfully deleted port %(port)s. '
+                         'The node associated with the port was'
+                         '%(node)s'),
+                         {'port': port.uuid, 'node': task.node.uuid})
 
     @messaging.expected_exceptions(exception.NodeLocked,
                                    exception.UnsupportedDriverExtension,

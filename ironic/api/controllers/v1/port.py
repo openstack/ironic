@@ -349,7 +349,10 @@ class PortsController(rest.RestController):
         """
         if self.from_nodes:
             raise exception.OperationNotPermitted
-
         rpc_port = objects.Port.get_by_uuid(pecan.request.context,
                                             port_uuid)
-        rpc_port.destroy()
+        rpc_node = objects.Node.get_by_id(pecan.request.context,
+                                          rpc_port.node_id)
+        topic = pecan.request.rpcapi.get_topic_for(rpc_node)
+        pecan.request.rpcapi.destroy_port(pecan.request.context,
+                                          rpc_port, topic)
