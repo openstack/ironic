@@ -22,6 +22,7 @@ from oslo_config import cfg
 
 from ironic.common import boot_devices
 from ironic.common import exception
+from ironic.common.glance_service import service_utils
 from ironic.common import image_service
 from ironic.common import images
 from ironic.common import states
@@ -246,8 +247,9 @@ class IloVirtualMediaIscsiDeployTestCase(db_base.DbTestCase):
     @mock.patch.object(iscsi_deploy, 'validate_image_properties')
     @mock.patch.object(ilo_deploy, '_parse_deploy_info')
     @mock.patch.object(iscsi_deploy, 'validate')
-    def test_validate(self, validate_mock, deploy_info_mock,
-                      validate_prop_mock, validate_boot_mode_mock):
+    def _test_validate(self, validate_mock, deploy_info_mock,
+                       validate_prop_mock, validate_boot_mode_mock,
+                       props_expected):
         d_info = {'image_source': 'uuid'}
         deploy_info_mock.return_value = d_info
         with task_manager.acquire(self.context, self.node.uuid,
@@ -256,8 +258,23 @@ class IloVirtualMediaIscsiDeployTestCase(db_base.DbTestCase):
             validate_mock.assert_called_once_with(task)
             deploy_info_mock.assert_called_once_with(task.node)
             validate_prop_mock.assert_called_once_with(task.context,
-                    d_info, ['kernel_id', 'ramdisk_id'])
+                    d_info, props_expected)
             validate_boot_mode_mock.assert_called_once_with(task.node)
+
+    @mock.patch.object(service_utils, 'is_glance_image')
+    def test_validate_glance_partition_image(self, is_glance_image_mock):
+        is_glance_image_mock.return_value = True
+        self._test_validate(props_expected=['kernel_id', 'ramdisk_id'])
+
+    def test_validate_whole_disk_image(self):
+        self.node.driver_internal_info = {'is_whole_disk_image': True}
+        self.node.save()
+        self._test_validate(props_expected=[])
+
+    @mock.patch.object(service_utils, 'is_glance_image')
+    def test_validate_non_glance_partition_image(self, is_glance_image_mock):
+        is_glance_image_mock.return_value = False
+        self._test_validate(props_expected=['kernel', 'ramdisk'])
 
     @mock.patch.object(ilo_deploy, '_reboot_into')
     @mock.patch.object(deploy_utils, 'get_single_nic_with_vif_port_id')
@@ -501,7 +518,7 @@ class VendorPassthruTestCase(db_base.DbTestCase):
     @mock.patch.object(manager_utils, 'node_set_boot_device')
     @mock.patch.object(iscsi_deploy, 'continue_deploy')
     @mock.patch.object(ilo_common, 'cleanup_vmedia_boot')
-    def test__continue_deploy_localboot(self, cleanup_vmedia_boot_mock,
+    def _test__continue_deploy_localboot(self, cleanup_vmedia_boot_mock,
                                         continue_deploy_mock,
                                         set_boot_device_mock,
                                         notify_deploy_complete_mock):
@@ -511,7 +528,6 @@ class VendorPassthruTestCase(db_base.DbTestCase):
 
         self.node.provision_state = states.DEPLOYWAIT
         self.node.target_provision_state = states.ACTIVE
-        self.node.instance_info = {'capabilities': '{"boot_option": "local"}'}
         self.node.save()
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
@@ -526,6 +542,16 @@ class VendorPassthruTestCase(db_base.DbTestCase):
             notify_deploy_complete_mock.assert_called_once_with('123456')
             self.assertEqual(states.ACTIVE, task.node.provision_state)
             self.assertEqual(states.NOSTATE, task.node.target_provision_state)
+
+    def test__continue_deploy_boot_option_local(self):
+        self.node.instance_info = {'capabilities': '{"boot_option": "local"}'}
+        self.node.save()
+        self._test__continue_deploy_localboot()
+
+    def test__continue_deploy_whole_disk_image(self):
+        self.node.driver_internal_info = {'is_whole_disk_image': True}
+        self.node.save()
+        self._test__continue_deploy_localboot()
 
 
 class IloPXEDeployTestCase(db_base.DbTestCase):

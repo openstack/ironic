@@ -275,7 +275,10 @@ class IloVirtualMediaIscsiDeploy(base.DeployInterface):
         iscsi_deploy.validate(task)
 
         d_info = _parse_deploy_info(task.node)
-        if service_utils.is_glance_image(d_info['image_source']):
+
+        if task.node.driver_internal_info.get('is_whole_disk_image'):
+            props = []
+        elif service_utils.is_glance_image(d_info['image_source']):
             props = ['kernel_id', 'ramdisk_id']
         else:
             props = ['kernel', 'ramdisk']
@@ -540,18 +543,21 @@ class VendorPassthru(base.VendorInterface):
         node = task.node
         task.process_event('resume')
 
+        iwdi = node.driver_internal_info.get('is_whole_disk_image')
         ilo_common.cleanup_vmedia_boot(task)
-        root_uuid = iscsi_deploy.continue_deploy(task, **kwargs)
+        root_uuid_or_disk_id = iscsi_deploy.continue_deploy(task, **kwargs)
 
-        if not root_uuid:
+        if not root_uuid_or_disk_id:
             return
 
         try:
-            if iscsi_deploy.get_boot_option(node) == "local":
+            # For iscsi_ilo driver, we boot from disk everytime if the image
+            # deployed is a whole disk image.
+            if iscsi_deploy.get_boot_option(node) == "local" or iwdi:
                 manager_utils.node_set_boot_device(task, boot_devices.DISK,
                                                    persistent=True)
             else:
-                boot_iso = _get_boot_iso(task, root_uuid)
+                boot_iso = _get_boot_iso(task, root_uuid_or_disk_id)
                 if not boot_iso:
                     LOG.error(_LE("Cannot get boot ISO for node %s"),
                               node.uuid)
