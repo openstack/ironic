@@ -512,6 +512,8 @@ class ConductorAPI(object):
         :param port: port object
         :param topic: RPC topic. Defaults to self.topic.
         :raises: NodeLocked if node is locked by another conductor.
+        :raises: NodeNotFound if the node associated with the port does not
+                 exist.
         """
         cctxt = self.client.prepare(topic=topic or self.topic, version='1.25')
         return cctxt.call(context, 'destroy_port', port=port)

@@ -1125,6 +1125,8 @@ class ConductorManager(periodic_task.PeriodicTasks):
         :param context: request context.
         :param port: port object
         :raises: NodeLocked if node is locked by another conductor.
+        :raises: NodeNotFound if the node associated with the port does not
+                 exist.
 
         """
         LOG.debug('RPC destroy_port called for port %(port)s',
