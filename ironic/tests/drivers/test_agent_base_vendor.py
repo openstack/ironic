@@ -336,7 +336,9 @@ class TestBaseAgentVendor(db_base.DbTestCase):
             'command_status': 'SUCCESS', 'command_error': None}
         with task_manager.acquire(self.context, self.node['uuid'],
                                   shared=False) as task:
-            self.passthru.configure_local_boot(task, 'some-root-uuid')
+            task.node.driver_internal_info['is_whole_disk_image'] = False
+            self.passthru.configure_local_boot(task,
+                                               root_uuid='some-root-uuid')
             try_set_boot_device_mock.assert_called_once_with(
                 task, boot_devices.DISK)
             install_bootloader_mock.assert_called_once_with(
@@ -351,6 +353,7 @@ class TestBaseAgentVendor(db_base.DbTestCase):
             'command_status': 'SUCCESS', 'command_error': None}
         with task_manager.acquire(self.context, self.node['uuid'],
                                   shared=False) as task:
+            task.node.driver_internal_info['is_whole_disk_image'] = False
             self.passthru.configure_local_boot(
                 task, root_uuid='some-root-uuid',
                 efi_system_part_uuid='efi-system-part-uuid')
@@ -359,6 +362,29 @@ class TestBaseAgentVendor(db_base.DbTestCase):
             install_bootloader_mock.assert_called_once_with(
                 task.node, root_uuid='some-root-uuid',
                 efi_system_part_uuid='efi-system-part-uuid')
+
+    @mock.patch.object(deploy_utils, 'try_set_boot_device')
+    @mock.patch.object(agent_client.AgentClient, 'install_bootloader')
+    def test_configure_local_boot_whole_disk_image(
+            self, install_bootloader_mock, try_set_boot_device_mock):
+        with task_manager.acquire(self.context, self.node['uuid'],
+                                  shared=False) as task:
+            self.passthru.configure_local_boot(task)
+            self.assertFalse(install_bootloader_mock.called)
+            try_set_boot_device_mock.assert_called_once_with(
+                task, boot_devices.DISK)
+
+    @mock.patch.object(deploy_utils, 'try_set_boot_device')
+    @mock.patch.object(agent_client.AgentClient, 'install_bootloader')
+    def test_configure_local_boot_no_root_uuid(
+            self, install_bootloader_mock, try_set_boot_device_mock):
+        with task_manager.acquire(self.context, self.node['uuid'],
+                                  shared=False) as task:
+            task.node.driver_internal_info['is_whole_disk_image'] = False
+            self.passthru.configure_local_boot(task)
+            self.assertFalse(install_bootloader_mock.called)
+            try_set_boot_device_mock.assert_called_once_with(
+                task, boot_devices.DISK)
 
     @mock.patch.object(agent_client.AgentClient, 'install_bootloader')
     def test_configure_local_boot_boot_loader_install_fail(
@@ -370,9 +396,10 @@ class TestBaseAgentVendor(db_base.DbTestCase):
         self.node.save()
         with task_manager.acquire(self.context, self.node['uuid'],
                                   shared=False) as task:
+            task.node.driver_internal_info['is_whole_disk_image'] = False
             self.assertRaises(exception.InstanceDeployFailure,
                               self.passthru.configure_local_boot,
-                              task, 'some-root-uuid')
+                              task, root_uuid='some-root-uuid')
             install_bootloader_mock.assert_called_once_with(
                 task.node, root_uuid='some-root-uuid',
                 efi_system_part_uuid=None)
@@ -391,9 +418,10 @@ class TestBaseAgentVendor(db_base.DbTestCase):
         self.node.save()
         with task_manager.acquire(self.context, self.node['uuid'],
                                   shared=False) as task:
+            task.node.driver_internal_info['is_whole_disk_image'] = False
             self.assertRaises(exception.InstanceDeployFailure,
                               self.passthru.configure_local_boot,
-                              task, 'some-root-uuid')
+                              task, root_uuid='some-root-uuid')
             install_bootloader_mock.assert_called_once_with(
                 task.node, root_uuid='some-root-uuid',
                 efi_system_part_uuid=None)

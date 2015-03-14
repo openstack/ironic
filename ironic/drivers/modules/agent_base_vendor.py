@@ -346,7 +346,7 @@ class BaseAgentVendor(base.VendorInterface):
         task.process_event('done')
         LOG.info(_LI('Deployment to node %s done'), task.node.uuid)
 
-    def configure_local_boot(self, task, root_uuid,
+    def configure_local_boot(self, task, root_uuid=None,
                              efi_system_part_uuid=None):
         """Helper method to configure local boot on the node.
 
@@ -356,14 +356,17 @@ class BaseAgentVendor(base.VendorInterface):
 
         :param task: a TaskManager object containing the node
         :param root_uuid: The UUID of the root partition. This is used
-            for identifying the partition which contains the image deployed.
+            for identifying the partition which contains the image deployed
+            or None in case of whole disk images which we expect to already
+            have a bootloader installed.
         :param efi_system_part_uuid: The UUID of the efi system partition.
             This is used only in uef boot mode.
         :raises: InstanceDeployFailure if bootloader installation failed or
             on encountering error while setting the boot device on the node.
         """
         node = task.node
-        if not node.driver_internal_info.get('is_whole_disk_image'):
+        if not node.driver_internal_info.get(
+                'is_whole_disk_image') and root_uuid:
             result = self._client.install_bootloader(
                 node, root_uuid=root_uuid,
                 efi_system_part_uuid=efi_system_part_uuid)

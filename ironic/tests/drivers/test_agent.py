@@ -181,6 +181,13 @@ class TestAgentDeploy(db_base.DbTestCase):
             self.assertRaises(exception.MissingParameterValue,
                               self.driver.validate, task)
 
+    def test_validate_agent_fail_partition_image(self):
+        with task_manager.acquire(
+                self.context, self.node['uuid'], shared=False) as task:
+            task.node.driver_internal_info['is_whole_disk_image'] = False
+            self.assertRaises(exception.InvalidParameterValue,
+                              self.driver.validate, task)
+
     def test_validate_invalid_root_device_hints(self):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
