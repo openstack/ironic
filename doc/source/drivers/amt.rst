@@ -20,12 +20,21 @@ There is one AMT driver:
 
 Set up your environment
 =======================
+A detailed reference is available here, and a short guide follows below:
+
+   https://software.intel.com/en-us/articles/intel-active-management-technology-start-here-guide-intel-amt-9#4.2
+
 * Set up AMT Client
 
-  * Choose a Desktop with ``vPro`` tag (within Intel's tag, next to CORE i5/7).
-    Press Ctrl+P during booting to enter MEBx management.
+  * Choose a system which supports Intel AMT / vPro. Desktop and laptop systems
+    that support this can often be identified by looking at the "Intel" tag for
+    the word ``vPro``.
 
-  * Reset password -- default is ``admin``. New password can be ``Cloud12345^``
+  * During boot, press Ctrl+P to enter Intel MEBx management.
+
+  * Reset password -- default is ``admin``. The new password must contain at
+    least one upper case letter, one lower case letter, one digit and one
+    special character, and be at least eight characters.
 
   * Go to Intel AMT Configuration:
 
