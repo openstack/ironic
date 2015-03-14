@@ -269,6 +269,52 @@ class IloVirtualMediaIscsiDeployTestCase(db_base.DbTestCase):
                     d_info, props_expected)
             validate_boot_mode_mock.assert_called_once_with(task.node)
 
+    @mock.patch.object(iscsi_deploy, 'validate_image_properties')
+    @mock.patch.object(ilo_deploy, '_parse_deploy_info')
+    @mock.patch.object(iscsi_deploy, 'validate')
+    def test_validate_invalid_boot_option(self,
+                                          validate_mock,
+                                          deploy_info_mock,
+                                          validate_prop_mock):
+        d_info = {'image_source': 'uuid'}
+        properties = {'capabilities': 'boot_mode:uefi,boot_option:foo'}
+        deploy_info_mock.return_value = d_info
+        props = ['kernel_id', 'ramdisk_id']
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            task.node.properties = properties
+            exc = self.assertRaises(exception.InvalidParameterValue,
+                                    task.driver.deploy.validate,
+                                    task)
+            validate_mock.assert_called_once_with(task)
+            deploy_info_mock.assert_called_once_with(task.node)
+            validate_prop_mock.assert_called_once_with(task.context,
+                                                       d_info, props)
+            self.assertIn('boot_option', str(exc))
+
+    @mock.patch.object(iscsi_deploy, 'validate_image_properties')
+    @mock.patch.object(ilo_deploy, '_parse_deploy_info')
+    @mock.patch.object(iscsi_deploy, 'validate')
+    def test_validate_invalid_boot_mode(self,
+                                        validate_mock,
+                                        deploy_info_mock,
+                                        validate_prop_mock):
+        d_info = {'image_source': 'uuid'}
+        properties = {'capabilities': 'boot_mode:foo,boot_option:local'}
+        deploy_info_mock.return_value = d_info
+        props = ['kernel_id', 'ramdisk_id']
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            task.node.properties = properties
+            exc = self.assertRaises(exception.InvalidParameterValue,
+                                    task.driver.deploy.validate,
+                                    task)
+            validate_mock.assert_called_once_with(task)
+            deploy_info_mock.assert_called_once_with(task.node)
+            validate_prop_mock.assert_called_once_with(task.context,
+                                                       d_info, props)
+            self.assertIn('boot_mode', str(exc))
+
     @mock.patch.object(service_utils, 'is_glance_image')
     def test_validate_glance_partition_image(self, is_glance_image_mock):
         is_glance_image_mock.return_value = True
