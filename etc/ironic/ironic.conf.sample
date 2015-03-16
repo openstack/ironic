@@ -625,6 +625,15 @@
 # unlimited. (integer value)
 #inspect_timeout=1800
 
+# Whether Ironic will attempt to "clean" a node when preparing
+# a node for deployments or after an instance is deleted from
+# a node. Cleaning is a configurable set of steps, such as
+# erasing disk drives, that are performed on the node to
+# ensure it is in a baseline state and ready to be deployed
+# to. See the individual driver's documentation for supported
+# cleaning steps. (boolean value)
+#clean_nodes=true
+
 
 [console]
 

@@ -128,7 +128,8 @@ class BaseInterface(object):
     interface_type = 'base'
 
     def __new__(cls, *args, **kwargs):
-        # Cache the clean step iteration. We use __new__ instead of __init___
+        # Get the list of clean steps when the interface is initialized by
+        # the conductor. We use __new__ instead of __init___
         # to avoid breaking backwards compatibility with all the drivers.
         # We want to return all steps, regardless of priority.
         instance = super(BaseInterface, cls).__new__(cls, *args, **kwargs)
@@ -140,20 +141,28 @@ class BaseInterface(object):
                         'priority': method._clean_step_priority,
                         'interface': instance.interface_type}
                 instance.clean_steps.append(step)
-        LOG.debug('Found clean steps %(steps)s for interface %(interface)s' %
+        LOG.debug('Found clean steps %(steps)s for interface %(interface)s',
                   {'steps': instance.clean_steps,
                    'interface': instance.interface_type})
         return instance
 
-    def get_clean_steps(self):
-        """Get a list of enabled and disabled CleanSteps for the interface."""
+    def get_clean_steps(self, task):
+        """Get a list of (enabled and disabled) clean steps for the interface.
+
+        This function will return all clean steps (both enabled and disabled)
+        for the interface, in an unordered list.
+
+        :param task: A TaskManager object, useful for interfaces overriding
+            this function
+        :returns: A list of clean step dictionaries
+        """
         return self.clean_steps
 
     def execute_clean_step(self, task, step):
         """Execute the clean step on task.node.
 
-        Clean steps should take a single argument: a TaskManager object.
-        Steps can be executed synchronously or asynchronously. Steps should
+        A clean step should take a single argument: a TaskManager object.
+        A step can be executed synchronously or asynchronously. A step should
         return None if the method has completed synchronously or
         states.CLEANING if the step will continue to execute asynchronously.
         If the step executes asynchronously, it should issue a call to the
@@ -161,12 +170,12 @@ class BaseInterface(object):
         clean step.
 
         :param task: A TaskManager object
-        :param step: A CleanStep object to execute
+        :param step: The clean step dictionary representing the step to execute
         :returns: None if this method has completed synchronously, or
             states.CLEANING if the step will continue to execute
             asynchronously.
         """
-        return getattr(self, step.get('step'))(task)
+        return getattr(self, step['step'])(task)
 
 
 @six.add_metaclass(abc.ABCMeta)
@@ -272,6 +281,42 @@ class DeployInterface(BaseInterface):
 
         :param task: a TaskManager instance containing the node to act on.
         """
+
+    def prepare_cleaning(self, task):
+        """Prepare the node for cleaning or zapping tasks.
+
+        For example, nodes that use the Ironic Python Agent will need to
+        boot the ramdisk in order to do in-band cleaning and zapping tasks.
+
+        If the function is asynchronous, the driver will need to handle
+        settings node.driver_internal_info['clean_steps'] and node.clean_step,
+        as they would be set in ironic.conductor.manager._do_node_clean,
+        but cannot be set when this is asynchronous. After, the interface
+        should make an RPC call to continue_node_cleaning to start cleaning.
+
+        NOTE(JoshNang) this should be moved to BootInterface when it gets
+        implemented.
+
+        :param task: a TaskManager instance containing the node to act on.
+        :returns: If this function is going to be asynchronous, should return
+            `states.CLEANING`. Otherwise, should return `None`. The interface
+            will need to call _get_cleaning_steps and then RPC to
+            continue_node_cleaning
+        """
+        pass
+
+    def tear_down_cleaning(self, task):
+        """Tear down after cleaning or zapping is completed.
+
+        Given that cleaning or zapping is complete, do all cleanup and tear
+        down necessary to allow the node to be deployed to again.
+
+        NOTE(JoshNang) this should be moved to BootInterface when it gets
+        implemented.
+
+        :param task: a TaskManager instance containing the node to act on.
+        """
+        pass
 
 
 @six.add_metaclass(abc.ABCMeta)

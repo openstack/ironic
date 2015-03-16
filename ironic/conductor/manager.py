@@ -168,17 +168,36 @@ conductor_opts = [
                    default=1800,
                    help='Timeout (seconds) for waiting for node inspection. '
                         '0 - unlimited.'),
-
+        cfg.BoolOpt('clean_nodes',
+                    default=True,
+                    help='Whether Ironic will attempt to "clean" a node '
+                         'when preparing a node for deployments or after '
+                         'an instance is deleted from a node. Cleaning is '
+                         'a configurable set of steps, such as erasing disk '
+                         'drives, that are performed on the node to ensure it '
+                         'is in a baseline state and ready to be deployed to. '
+                         'See the individual driver\'s documentation for '
+                         'supported cleaning steps.'),
 ]
 CONF = cfg.CONF
 CONF.register_opts(conductor_opts, 'conductor')
+
+CLEANING_INTERFACE_PRIORITY = {
+    # When two clean steps have the same priority, their order is determined
+    # by which interface is implementing the clean step. The clean step of the
+    # interface with the highest value here, will be executed first in that
+    # case.
+    'power': 3,
+    'management': 2,
+    'deploy': 1
+}
 
 
 class ConductorManager(periodic_task.PeriodicTasks):
     """Ironic Conductor manager main class."""
 
     # NOTE(rloo): This must be in sync with rpcapi.ConductorAPI's.
-    RPC_API_VERSION = '1.25'
+    RPC_API_VERSION = '1.26'
 
     target = messaging.Target(version=RPC_API_VERSION)
 
@@ -798,25 +817,168 @@ class ConductorManager(periodic_task.PeriodicTasks):
                 state=node.provision_state)
         self._do_node_clean(task)
 
+    @messaging.expected_exceptions(exception.NoFreeConductorWorker,
+                                   exception.NodeLocked,
+                                   exception.InvalidStateRequested,
+                                   exception.NodeNotFound)
+    def continue_node_clean(self, context, node_id):
+        """RPC method to continue cleaning a node.
+
+        This is useful for cleaning tasks that are async. When they complete,
+        they call back via RPC, a new worker and lock are set up, and cleaning
+        continues. This can also be used to resume cleaning on take_over.
+
+        :param context: an admin context.
+        :param node_id: the id or uuid of a node.
+        :raises: InvalidStateRequested if the node is not in CLEANING state
+        :raises: NoFreeConductorWorker when there is no free worker to start
+                 async task
+        :raises: NodeLocked if node is locked by another conductor.
+        :raises: NodeNotFound if the node no longer appears in the database
+
+        """
+        LOG.debug("RPC continue_node_clean called for node %s.", node_id)
+
+        with task_manager.acquire(context, node_id, shared=False) as task:
+            if task.node.provision_state != states.CLEANING:
+                raise exception.InvalidStateRequested(_(
+                    'Cannot continue cleaning on %(node)s, node is in '
+                    '%(state)s state, should be %(clean_state)s') %
+                    {'node': task.node.uuid,
+                     'state': task.node.provision_state,
+                     'clean_state': states.CLEANING})
+            self._spawn_worker(
+                self._do_next_clean_step,
+                task,
+                task.node.driver_internal_info.get('clean_steps', []),
+                task.node.clean_step)
+
     def _do_node_clean(self, task):
         """Internal RPC method to perform automated cleaning of a node."""
         node = task.node
-        LOG.debug('Starting cleaning for node %s' % node.uuid)
+        LOG.debug('Starting cleaning for node %s', node.uuid)
+
+        if not CONF.conductor.clean_nodes:
+            # Skip cleaning, move to AVAILABLE.
+            node.clean_step = None
+            node.save()
+
+            task.process_event('done')
+            LOG.info(_LI('Cleaning is disabled, node %s has been successfully '
+                         'moved to AVAILABLE state.'), node.uuid)
+            return
+
         try:
             # NOTE(ghe): Valid power driver values are needed to perform
             # a cleaning.
             task.driver.power.validate(task)
         except (exception.InvalidParameterValue,
                 exception.MissingParameterValue) as e:
-            node.last_error = (_('Failed to validate power driver interface. '
-                                 'Can not clean instance. Error: %(msg)s') %
-                               {'msg': e})
-            task.process_event('fail')
+            msg = (_('Failed to validate power driver interface. '
+                     'Can not clean node %(node)s. Error: %(msg)s') %
+                   {'node': node.uuid, 'msg': e})
+            return cleaning_error_handler(task, msg)
+
+        # Allow the deploy driver to set up the ramdisk again (necessary for
+        # IPA cleaning/zapping)
+        try:
+            prepare_result = task.driver.deploy.prepare_cleaning(task)
+        except Exception as e:
+            msg = (_('Failed to prepare node %(node)s for cleaning: %(e)s')
+                   % {'node': node.uuid, 'e': e})
+            LOG.exception(msg)
+            return cleaning_error_handler(task, msg)
+        if prepare_result == states.CLEANING:
+            # Prepare is asynchronous, the deploy driver will need to
+            # set node.driver_internal_info['clean_steps'] and
+            # node.clean_step and then make an RPC call to
+            # continue_node_cleaning to start cleaning.
             return
 
-        # TODO(JoshNang) Implement
-        # Move to AVAILABLE
-        LOG.debug('Cleaning complete for node %s', node.uuid)
+        set_node_cleaning_steps(task)
+
+        self._do_next_clean_step(task,
+                                 node.driver_internal_info['clean_steps'],
+                                 node.clean_step)
+
+    def _do_next_clean_step(self, task, steps, last_step):
+        """Start executing cleaning/zapping steps from the last step (if any).
+
+        :param task: a TaskManager instance with an exclusive lock
+        :param steps: The complete list of steps that need to be executed
+            on the node
+        :param last_step: The last step that was executed. {} will start
+            from the beginning
+        """
+        node = task.node
+
+        # Trim already executed steps
+        if last_step:
+            try:
+                # Trim off last_step (now finished) and all previous steps.
+                steps = steps[steps.index(last_step) + 1:]
+            except ValueError:
+                msg = (_('Node %(node)s got an invalid last step for '
+                         '%(state)s: %(step)s.') %
+                       {'node': node.uuid, 'step': last_step,
+                        'state': node.provision_state})
+                LOG.exception(msg)
+                return cleaning_error_handler(task, msg)
+
+        LOG.debug('Executing %(state)s on node %(node)s, remaining steps: '
+                  '%(steps)s', {'node': node.uuid, 'steps': steps,
+                                'state': node.provision_state})
+        # Execute each step until we hit an async step or run out of steps
+        for step in steps:
+            # Save which step we're about to start so we can restart
+            # if necessary
+            node.clean_step = step
+            node.save()
+            interface = getattr(task.driver, step.get('interface'))
+            LOG.debug('Executing %(step)s on node %(node)s',
+                      {'step': step, 'node': node.uuid})
+            try:
+                result = interface.execute_clean_step(task, step)
+            except Exception as e:
+                msg = (_('Node %(node)s failed step %(step)s: '
+                         '%(exc)s') %
+                       {'node': node.uuid, 'exc': e, 'step': node.clean_step})
+                LOG.exception(msg)
+                cleaning_error_handler(task, msg)
+                return
+
+            # Check if the step is done or not. The step should return
+            # states.CLEANING if the step is still being executed, or
+            # None if the step is done.
+            if result == states.CLEANING:
+                # Kill this worker, the async step will make an RPC call to
+                # continue_node_clean to continue cleaning
+                LOG.debug('Waiting for node %(node)s to call continue after '
+                          'async clean step %(step)s' %
+                          {'node': node.uuid, 'step': step})
+                return
+            elif result is not None:
+                msg = (_('While executing step %(step)s on node '
+                         '%(node)s, step returned invalid value: %(val)s') %
+                       {'step': step, 'node': node.uuid, 'val': result})
+                LOG.error(msg)
+                cleaning_error_handler(task, msg)
+            LOG.info(_LI('Node %(node)s finished clean step %(step)s'),
+                     {'node': node.uuid, 'step': step})
+
+        # Clear clean_step
+        node.clean_step = None
+        driver_info = node.driver_internal_info
+        driver_info['clean_steps'] = None
+        node.driver_internal_info = driver_info
+        try:
+            task.driver.deploy.tear_down_cleaning(task)
+        except Exception as e:
+            msg = (_('Failed to tear down from cleaning for node %s')
+                   % node.uuid)
+            LOG.exception(msg)
+            return cleaning_error_handler(task, msg)
+        LOG.info(_LI('Node %s cleaning complete'), node.uuid)
         task.process_event('done')
 
     @messaging.expected_exceptions(exception.NoFreeConductorWorker,
@@ -1888,3 +2050,57 @@ def _do_inspect_hardware(task):
                    "state %(state)s") % {'state': new_state})
         handle_failure(error)
         raise exception.HardwareInspectionFailure(error=error)
+
+
+def cleaning_error_handler(task, msg):
+    """Put a failed node in CLEANFAIL or ZAPFAIL and maintenance."""
+    # Reset clean step, msg should include current step
+    if task.node.provision_state == states.CLEANING:
+        task.node.clean_step = {}
+    task.node.last_error = msg
+    task.node.maintenance = True
+    task.node.maintenance_reason = msg
+    task.node.save()
+    task.process_event('fail')
+
+
+def _step_key(step):
+    """Sort by priority, then interface priority in event of tie.
+
+    :param step: cleaning step dict to get priority for.
+    """
+    return (step.get('priority'),
+            CLEANING_INTERFACE_PRIORITY[step.get('interface')])
+
+
+def _get_cleaning_steps(task, enabled=False):
+    """Get sorted cleaning steps for task.node
+
+    :param task: A TaskManager object
+    :param enabled: If True, returns only enabled (priority > 0) steps. If
+        False, returns all clean steps.
+    :returns: A list of clean steps dictionaries, sorted with largest priority
+        as the first item
+    """
+
+    steps = list()
+    # Iterate interfaces and get clean steps from each
+    for interface in CLEANING_INTERFACE_PRIORITY.keys():
+        driver_interface = getattr(task.driver, interface)
+        if driver_interface:
+            for step in driver_interface.get_clean_steps(task):
+                if not enabled or step['priority'] > 0:
+                    steps.append(step)
+    # Sort the steps from higher priority to lower priority
+    return sorted(steps, key=_step_key, reverse=True)
+
+
+def set_node_cleaning_steps(task):
+    """Get the list of clean steps, save them to the node."""
+    # Get the prioritized steps, store them.
+    node = task.node
+    driver_info = node.driver_internal_info
+    driver_info['clean_steps'] = _get_cleaning_steps(task, enabled=True)
+    node.driver_internal_info = driver_info
+    node.clean_step = {}
+    node.save()

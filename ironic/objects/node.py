@@ -35,7 +35,8 @@ class Node(base.IronicObject):
     # Version 1.8: Add maintenance_reason
     # Version 1.9: Add driver_internal_info
     # Version 1.10: Add name and get_by_name()
-    VERSION = '1.10'
+    # Version 1.11: Add clean_step
+    VERSION = '1.11'
 
     dbapi = db_api.get_instance()
 
@@ -50,6 +51,11 @@ class Node(base.IronicObject):
             'driver': obj_utils.str_or_none,
             'driver_info': obj_utils.dict_or_none,
             'driver_internal_info': obj_utils.dict_or_none,
+
+            # A clean step dictionary, indicating the current clean step
+            # being executed, or None, indicating cleaning is not in progress
+            # or has not yet started.
+            'clean_step': obj_utils.dict_or_none,
 
             'instance_info': obj_utils.dict_or_none,
             'properties': obj_utils.dict_or_none,

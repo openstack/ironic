@@ -152,25 +152,33 @@ class CleanStepTestCase(base.TestCase):
         obj = TestClass()
         obj2 = TestClass2()
 
-        self.assertEqual(2, len(obj.get_clean_steps()))
+        self.assertEqual(2, len(obj.get_clean_steps(task_mock)))
         # Ensure the steps look correct
-        self.assertEqual(10, obj.get_clean_steps()[0]['priority'])
-        self.assertEqual('test', obj.get_clean_steps()[0]['interface'])
-        self.assertEqual('clean_method', obj.get_clean_steps()[0]['step'])
-        self.assertEqual(0, obj.get_clean_steps()[1]['priority'])
-        self.assertEqual('test', obj.get_clean_steps()[1]['interface'])
-        self.assertEqual('zap_method', obj.get_clean_steps()[1]['step'])
+        self.assertEqual(10, obj.get_clean_steps(task_mock)[0]['priority'])
+        self.assertEqual('test', obj.get_clean_steps(
+            task_mock)[0]['interface'])
+        self.assertEqual('clean_method', obj.get_clean_steps(
+            task_mock)[0]['step'])
+        self.assertEqual(0, obj.get_clean_steps(task_mock)[1]['priority'])
+        self.assertEqual('test', obj.get_clean_steps(
+            task_mock)[1]['interface'])
+        self.assertEqual('zap_method', obj.get_clean_steps(
+            task_mock)[1]['step'])
 
         # Ensure the second obj get different clean steps
-        self.assertEqual(2, len(obj2.get_clean_steps()))
+        self.assertEqual(2, len(obj2.get_clean_steps(task_mock)))
         # Ensure the steps look correct
-        self.assertEqual(20, obj2.get_clean_steps()[0]['priority'])
-        self.assertEqual('test2', obj2.get_clean_steps()[0]['interface'])
-        self.assertEqual('clean_method2', obj2.get_clean_steps()[0]['step'])
-        self.assertEqual(0, obj2.get_clean_steps()[1]['priority'])
-        self.assertEqual('test2', obj2.get_clean_steps()[1]['interface'])
-        self.assertEqual('zap_method2', obj2.get_clean_steps()[1]['step'])
+        self.assertEqual(20, obj2.get_clean_steps(task_mock)[0]['priority'])
+        self.assertEqual('test2', obj2.get_clean_steps(
+            task_mock)[0]['interface'])
+        self.assertEqual('clean_method2', obj2.get_clean_steps(
+            task_mock)[0]['step'])
+        self.assertEqual(0, obj2.get_clean_steps(task_mock)[1]['priority'])
+        self.assertEqual('test2', obj2.get_clean_steps(
+            task_mock)[1]['interface'])
+        self.assertEqual('zap_method2', obj2.get_clean_steps(
+            task_mock)[1]['step'])
 
         # Ensure we can execute the function.
-        obj.execute_clean_step(task_mock, obj.get_clean_steps()[0])
+        obj.execute_clean_step(task_mock, obj.get_clean_steps(task_mock)[0])
         method_mock.assert_called_once_with(task_mock)
