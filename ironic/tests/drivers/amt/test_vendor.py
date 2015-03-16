@@ -18,6 +18,7 @@ import mock
 from ironic.common import boot_devices
 from ironic.common import states
 from ironic.conductor import task_manager
+from ironic.drivers.modules.amt import management as amt_mgmt
 from ironic.drivers.modules import pxe
 from ironic.tests.conductor import utils as mgr_utils
 from ironic.tests.db import base as db_base
@@ -51,15 +52,15 @@ class AMTPXEVendorPassthruTestCase(db_base.DbTestCase):
             self.assertIsInstance(driver_routes, dict)
             self.assertEqual(sorted(expected), sorted(list(driver_routes)))
 
+    @mock.patch.object(amt_mgmt.AMTManagement, 'ensure_next_boot_device')
     @mock.patch.object(pxe.VendorPassthru, '_continue_deploy')
-    def test_vendorpassthru_continue_deploy(self, mock_pxe_vendorpassthru):
-        mock_ensure = mock.Mock()
+    def test_vendorpassthru_continue_deploy(self, mock_pxe_vendorpassthru,
+                                            mock_ensure):
         kwargs = {'address': '123456'}
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
             task.node.provision_state = states.DEPLOYWAIT
             task.node.target_provision_state = states.ACTIVE
-            task.driver.management.ensure_next_boot_device = mock_ensure
             task.driver.vendor._continue_deploy(task, **kwargs)
             mock_ensure.assert_called_with(task.node, boot_devices.PXE)
             mock_pxe_vendorpassthru.assert_called_once_with(task, **kwargs)
