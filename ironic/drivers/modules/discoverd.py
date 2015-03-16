@@ -23,7 +23,6 @@ from ironic.common import exception
 from ironic.common.i18n import _
 from ironic.common.i18n import _LE
 from ironic.common.i18n import _LI
-from ironic.common.i18n import _LW
 from ironic.common import keystone
 from ironic.common import states
 from ironic.conductor import task_manager
@@ -69,9 +68,9 @@ class DiscoverdInspect(base.InspectInterface):
         if CONF.discoverd.enabled:
             return cls()
         else:
-            LOG.warn(_LW("Inspection via ironic-discoverd is disabled in "
-                         "configuration for driver %s, set "
-                         "[discoverd]enabled = true to enable"), driver_name)
+            LOG.info(_LI("Inspection via ironic-discoverd is disabled in "
+                         "configuration for driver %s. To enable, change "
+                         "[discoverd] enabled = True."), driver_name)
 
     def __init__(self):
         if not CONF.discoverd.enabled:
