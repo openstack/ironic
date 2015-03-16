@@ -242,6 +242,21 @@ class IloDeployPrivateMethodsTestCase(db_base.DbTestCase):
                                                          boot_devices.CDROM)
             node_power_action_mock.assert_called_once_with(task, states.REBOOT)
 
+    @mock.patch.object(ilo_deploy, '_reboot_into')
+    @mock.patch.object(agent, 'build_agent_options')
+    def test__prepare_agent_vmedia_boot(self, build_options_mock,
+                                        reboot_into_mock):
+        deploy_opts = {'a': 'b'}
+        build_options_mock.return_value = deploy_opts
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            task.node.driver_info['ilo_deploy_iso'] = 'deploy-iso-uuid'
+            ilo_deploy._prepare_agent_vmedia_boot(task)
+            build_options_mock.assert_called_once_with(task.node)
+            reboot_into_mock.assert_called_once_with(task,
+                                                     'deploy-iso-uuid',
+                                                     deploy_opts)
+
 
 class IloVirtualMediaIscsiDeployTestCase(db_base.DbTestCase):
 
@@ -406,21 +421,12 @@ class IloVirtualMediaAgentDeployTestCase(db_base.DbTestCase):
             task.driver.deploy.validate(task)
             parse_driver_info_mock.assert_called_once_with(task.node)
 
-    @mock.patch.object(ilo_deploy, '_reboot_into')
-    @mock.patch.object(agent, 'build_agent_options')
-    def test_deploy(self, build_options_mock, reboot_into_mock):
+    @mock.patch.object(ilo_deploy, '_prepare_agent_vmedia_boot')
+    def test_deploy(self, vmedia_boot_mock):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
-            deploy_opts = {'a': 'b'}
-            build_options_mock.return_value = deploy_opts
-            task.node.driver_info['ilo_deploy_iso'] = 'deploy-iso-uuid'
-
             returned_state = task.driver.deploy.deploy(task)
-
-            build_options_mock.assert_called_once_with(task.node)
-            reboot_into_mock.assert_called_once_with(task,
-                                                     'deploy-iso-uuid',
-                                                     deploy_opts)
+            vmedia_boot_mock.assert_called_once_with(task)
             self.assertEqual(states.DEPLOYWAIT, returned_state)
 
     @mock.patch.object(manager_utils, 'node_power_action')
@@ -444,6 +450,65 @@ class IloVirtualMediaAgentDeployTestCase(db_base.DbTestCase):
             task.driver.deploy.prepare(task)
             update_boot_mode_mock.assert_called_once_with(task)
             self.assertEqual(deploy_opts, task.node.instance_info)
+
+    @mock.patch('ironic.dhcp.neutron.NeutronDHCPApi.delete_cleaning_ports')
+    @mock.patch('ironic.dhcp.neutron.NeutronDHCPApi.create_cleaning_ports')
+    @mock.patch.object(ilo_deploy, '_prepare_agent_vmedia_boot')
+    def test_prepare_cleaning(self, vmedia_boot_mock, create_port_mock,
+                              delete_mock):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            returned_state = task.driver.deploy.prepare_cleaning(task)
+            vmedia_boot_mock.assert_called_once_with(task)
+            self.assertEqual(states.CLEANING, returned_state)
+            create_port_mock.assert_called_once_with(task)
+            delete_mock.assert_called_once_with(task)
+
+    @mock.patch('ironic.dhcp.neutron.NeutronDHCPApi.delete_cleaning_ports')
+    @mock.patch.object(manager_utils, 'node_power_action')
+    def test_tear_down_cleaning(self, power_mock, delete_mock):
+        with task_manager.acquire(
+                self.context, self.node['uuid'], shared=False) as task:
+            task.driver.deploy.tear_down_cleaning(task)
+            power_mock.assert_called_once_with(task, states.POWER_OFF)
+            delete_mock.assert_called_once_with(task)
+
+    @mock.patch.object(deploy_utils, 'agent_execute_clean_step')
+    def test_execute_clean_step(self, execute_mock):
+        with task_manager.acquire(
+                self.context, self.node['uuid'], shared=False) as task:
+            task.driver.deploy.execute_clean_step(task, 'fake-step')
+            execute_mock.assert_called_once_with(task, 'fake-step')
+
+    @mock.patch.object(deploy_utils, 'agent_get_clean_steps')
+    def test_get_clean_steps_with_conf_option(self, get_clean_step_mock):
+        self.config(clean_priority_erase_devices=20, group='ilo')
+        get_clean_step_mock.return_value = [{
+                'step': 'erase_devices',
+                'priority': 10,
+                'interface': 'deploy',
+                'reboot_requested': False
+                }]
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            step = task.driver.deploy.get_clean_steps(task)
+            get_clean_step_mock.assert_called_once_with(task)
+            self.assertEqual(step[0].get('priority'),
+                             CONF.ilo.clean_priority_erase_devices)
+
+    @mock.patch.object(deploy_utils, 'agent_get_clean_steps')
+    def test_get_clean_steps_without_conf_option(self, get_clean_step_mock):
+        get_clean_step_mock.return_value = [{
+                'step': 'erase_devices',
+                'priority': 10,
+                'interface': 'deploy',
+                'reboot_requested': False
+                }]
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            step = task.driver.deploy.get_clean_steps(task)
+            get_clean_step_mock.assert_called_once_with(task)
+            self.assertEqual(step[0].get('priority'), 10)
 
 
 class VendorPassthruTestCase(db_base.DbTestCase):

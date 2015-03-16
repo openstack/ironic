@@ -21,6 +21,7 @@ from oslo_config import cfg
 from oslo_utils import excutils
 
 from ironic.common import boot_devices
+from ironic.common import dhcp_factory
 from ironic.common import exception
 from ironic.common.glance_service import service_utils
 from ironic.common.i18n import _
@@ -48,6 +49,13 @@ LOG = logging.getLogger(__name__)
 
 CONF = cfg.CONF
 
+clean_opts = [
+    cfg.IntOpt('clean_priority_erase_devices',
+               help='Priority for erase devices clean step. If unset, '
+                    'it defaults to 10. If set to 0, the step will be '
+                    'disabled and will not run during cleaning.')
+              ]
+
 REQUIRED_PROPERTIES = {
     'ilo_deploy_iso': _("UUID (from Glance) of the deployment ISO. "
                     "Required.")
@@ -58,6 +66,7 @@ CONF.import_opt('pxe_append_params', 'ironic.drivers.modules.iscsi_deploy',
                 group='pxe')
 CONF.import_opt('swift_ilo_container', 'ironic.drivers.modules.ilo.common',
                 group='ilo')
+CONF.register_opts(clean_opts, group='ilo')
 
 
 def _get_boot_iso_object_name(node):
@@ -261,6 +270,14 @@ def _reboot_into(task, iso, ramdisk_options):
     manager_utils.node_power_action(task, states.REBOOT)
 
 
+def _prepare_agent_vmedia_boot(task):
+    """prepare for vmedia boot."""
+
+    deploy_ramdisk_opts = agent.build_agent_options(task.node)
+    deploy_iso = task.node.driver_info['ilo_deploy_iso']
+    _reboot_into(task, deploy_iso, deploy_ramdisk_opts)
+
+
 class IloVirtualMediaIscsiDeploy(base.DeployInterface):
 
     def get_properties(self):
@@ -388,9 +405,7 @@ class IloVirtualMediaAgentDeploy(base.DeployInterface):
             image.
         :raises: IloOperationError, if some operation on iLO fails.
         """
-        deploy_ramdisk_opts = agent.build_agent_options(task.node)
-        deploy_iso = task.node.driver_info['ilo_deploy_iso']
-        _reboot_into(task, deploy_iso, deploy_ramdisk_opts)
+        _prepare_agent_vmedia_boot(task)
 
         return states.DEPLOYWAIT
 
@@ -430,6 +445,55 @@ class IloVirtualMediaAgentDeploy(base.DeployInterface):
         :param task: a TaskManager instance.
         """
         pass
+
+    def get_clean_steps(self, task):
+        """Get the list of clean steps from the agent.
+
+        :param task: a TaskManager object containing the node
+        :returns: A list of clean step dictionaries
+        """
+        steps = deploy_utils.agent_get_clean_steps(task)
+        if CONF.ilo.clean_priority_erase_devices:
+            for step in steps:
+                if (step.get('step') == 'erase_devices' and
+                        step.get('interface') == 'deploy'):
+                    # Override with operator set priority
+                    step['priority'] = CONF.ilo.clean_priority_erase_devices
+
+        return steps
+
+    def execute_clean_step(self, task, step):
+        """Execute a clean step asynchronously on the agent.
+
+        :param task: a TaskManager object containing the node
+        :param step: a clean step dictionary to execute
+        :returns: states.CLEANING to signify the step will be completed async
+        """
+        return deploy_utils.agent_execute_clean_step(task, step)
+
+    def prepare_cleaning(self, task):
+        """Boot into the agent to prepare for cleaning."""
+        # Create cleaning ports if necessary
+        provider = dhcp_factory.DHCPFactory().provider
+
+        # If we have left over ports from a previous cleaning, remove them
+        if getattr(provider, 'delete_cleaning_ports', None):
+            provider.delete_cleaning_ports(task)
+
+        if getattr(provider, 'create_cleaning_ports', None):
+            provider.create_cleaning_ports(task)
+
+        _prepare_agent_vmedia_boot(task)
+        # Tell the conductor we are waiting for the agent to boot.
+        return states.CLEANING
+
+    def tear_down_cleaning(self, task):
+        """Clean up the PXE and DHCP files after cleaning."""
+        manager_utils.node_power_action(task, states.POWER_OFF)
+        # If we created cleaning ports, delete them
+        provider = dhcp_factory.DHCPFactory().provider
+        if getattr(provider, 'delete_cleaning_ports', None):
+            provider.delete_cleaning_ports(task)
 
 
 class IloPXEDeploy(pxe.PXEDeploy):
