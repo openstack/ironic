@@ -23,6 +23,7 @@ from ironic.common import exception
 from ironic.common import states
 from ironic.conductor import task_manager
 from ironic.drivers.modules.amt import common as amt_common
+from ironic.drivers.modules.amt import management as amt_mgmt
 from ironic.drivers.modules.amt import power as amt_power
 from ironic.drivers.modules.amt import resource_uris
 from ironic.tests.conductor import utils as mgr_utils
@@ -101,19 +102,18 @@ class AMTPowerInteralMethodsTestCase(db_base.DbTestCase):
                           amt_power._power_status,
                           self.node)
 
+    @mock.patch.object(amt_mgmt.AMTManagement, 'ensure_next_boot_device')
     @mock.patch.object(amt_power, '_power_status')
     @mock.patch.object(amt_power, '_set_power_state')
     def test__set_and_wait_power_on_with_boot_device(self, mock_sps,
-                                                     mock_ps):
-        mock_snbd = mock.Mock()
+                                                     mock_ps, mock_snbd):
         target_state = states.POWER_ON
         boot_device = boot_devices.PXE
         mock_ps.side_effect = [states.POWER_OFF, states.POWER_ON]
+        mock_snbd.return_value = None
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
             task.node.driver_internal_info['amt_boot_device'] = boot_device
-            task.driver.management.ensure_next_boot_device = mock_snbd
-            mock_snbd.return_value = None
             self.assertEqual(states.POWER_ON,
                              amt_power._set_and_wait(task, target_state))
             mock_snbd.assert_called_with(task.node, boot_devices.PXE)
