@@ -22,9 +22,9 @@ from ironic.drivers.modules import pxe
 
 class AMTPXEVendorPassthru(pxe.VendorPassthru):
 
-    @base.passthru(['POST'], method='pass_deploy_info')
+    @base.passthru(['POST'])
     @task_manager.require_exclusive_lock
-    def _continue_deploy(self, task, **kwargs):
+    def pass_deploy_info(self, task, **kwargs):
         task.driver.management.ensure_next_boot_device(task.node,
                                                        boot_devices.PXE)
-        super(AMTPXEVendorPassthru, self)._continue_deploy(task, **kwargs)
+        super(AMTPXEVendorPassthru, self).pass_deploy_info(task, **kwargs)

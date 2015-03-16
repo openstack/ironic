@@ -53,14 +53,14 @@ class AMTPXEVendorPassthruTestCase(db_base.DbTestCase):
             self.assertEqual(sorted(expected), sorted(list(driver_routes)))
 
     @mock.patch.object(amt_mgmt.AMTManagement, 'ensure_next_boot_device')
-    @mock.patch.object(pxe.VendorPassthru, '_continue_deploy')
-    def test_vendorpassthru_continue_deploy(self, mock_pxe_vendorpassthru,
-                                            mock_ensure):
+    @mock.patch.object(pxe.VendorPassthru, 'pass_deploy_info')
+    def test_vendorpassthru_pass_deploy_info(self, mock_pxe_vendorpassthru,
+                                             mock_ensure):
         kwargs = {'address': '123456'}
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
             task.node.provision_state = states.DEPLOYWAIT
             task.node.target_provision_state = states.ACTIVE
-            task.driver.vendor._continue_deploy(task, **kwargs)
+            task.driver.vendor.pass_deploy_info(task, **kwargs)
             mock_ensure.assert_called_with(task.node, boot_devices.PXE)
             mock_pxe_vendorpassthru.assert_called_once_with(task, **kwargs)

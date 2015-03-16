@@ -365,7 +365,7 @@ class PXEDeploy(base.DeployInterface):
         request to the power driver.
         This causes the node to boot into the deployment ramdisk and triggers
         the next phase of PXE-based deployment via
-        VendorPassthru._continue_deploy().
+        VendorPassthru.pass_deploy_info().
 
         :param task: a TaskManager instance containing the node to act on.
         :returns: deploy state DEPLOYWAIT.
@@ -523,9 +523,9 @@ class VendorPassthru(agent_base_vendor.BaseAgentVendor):
             driver_utils.validate_boot_option_capability(task.node)
             iscsi_deploy.get_deploy_info(task.node, **kwargs)
 
-    @base.passthru(['POST'], method='pass_deploy_info')
+    @base.passthru(['POST'])
     @task_manager.require_exclusive_lock
-    def _continue_deploy(self, task, **kwargs):
+    def pass_deploy_info(self, task, **kwargs):
         """Continues the deployment of baremetal node over iSCSI.
 
         This method continues the deployment of the baremetal node over iSCSI
