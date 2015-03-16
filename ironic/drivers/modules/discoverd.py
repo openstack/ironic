@@ -23,6 +23,7 @@ from ironic.common import exception
 from ironic.common.i18n import _
 from ironic.common.i18n import _LE
 from ironic.common.i18n import _LI
+from ironic.common.i18n import _LW
 from ironic.common import keystone
 from ironic.common import states
 from ironic.conductor import task_manager
@@ -57,10 +58,25 @@ if ironic_discoverd:
 class DiscoverdInspect(base.InspectInterface):
     """In-band inspection via ironic-discoverd project."""
 
+    @classmethod
+    def create_if_enabled(cls, driver_name):
+        """Create instance of DiscoverdInspect if it's enabled.
+
+        Reports log warning with given driver_name if it's not.
+
+        :return: DiscoverdInspect instance or None
+        """
+        if CONF.discoverd.enabled:
+            return cls()
+        else:
+            LOG.warn(_LW("Inspection via ironic-discoverd is disabled in "
+                         "configuration for driver %s, set "
+                         "[discoverd]enabled = true to enable"), driver_name)
+
     def __init__(self):
         if not CONF.discoverd.enabled:
-            LOG.info('ironic-discoverd support is disabled')
-            return
+            raise exception.DriverLoadError(
+                _('ironic-discoverd support is disabled'))
 
         if not ironic_discoverd:
             raise exception.DriverLoadError(
@@ -70,7 +86,7 @@ class DiscoverdInspect(base.InspectInterface):
         version = getattr(ironic_discoverd, '__version_info__', (0, 2))
         if version < (1, 0):
             raise exception.DriverLoadError(
-                _('ironic-discoverd version is too old: required >= 1.0.0 '
+                _('ironic-discoverd version is too old: required >= 1.0.0, '
                   'got %s') % '.'.join(str(x) for x in version))
 
     def get_properties(self):
@@ -81,18 +97,15 @@ class DiscoverdInspect(base.InspectInterface):
         return {}  # no properties
 
     def validate(self, task):
-        """Validate the driver-specific management information.
+        """Validate the driver-specific inspection information.
 
         If invalid, raises an exception; otherwise returns None.
 
         :param task: a task from TaskManager.
-        :raises: UnsupportedDriverExtension if discoverd support is disabled
         """
-        if not CONF.discoverd.enabled:
-            raise exception.UnsupportedDriverExtension(
-                _('ironic-discoverd support is disabled in '
-                  'configuration, set [discoverd]enabled to true '
-                  'to enable'))
+        # NOTE(deva): this is not callable if discoverd is disabled
+        #             so don't raise an exception -- just pass.
+        pass
 
     def inspect_hardware(self, task):
         """Inspect hardware to obtain the hardware properties.
@@ -185,7 +198,8 @@ def _check_status(task):
         LOG.error(_LE('Inspection failed for node %(uuid)s '
                       'with error: %(err)s'),
                   {'uuid': node.uuid, 'err': status['error']})
-        node.last_error = _('ironic-discoverd: %s') % status['error']
+        node.last_error = (_('ironic-discoverd inspection failed: %s')
+                           % status['error'])
         task.process_event('fail')
     elif status.get('finished'):
         LOG.info(_LI('Inspection finished successfully for node %s'),

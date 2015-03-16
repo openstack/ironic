@@ -215,6 +215,9 @@ class FakeIPMIToolDiscoverdDriver(base.BaseDriver):
         self.deploy = fake.FakeDeploy()
         self.vendor = ipmitool.VendorPassthru()
         self.management = ipmitool.IPMIManagement()
+        # NOTE(dtantsur): unlike other uses of DiscoverdInspect, this one is
+        # unconditional, as this driver is designed for testing discoverd
+        # integration.
         self.inspect = discoverd.DiscoverdInspect()
 
 
