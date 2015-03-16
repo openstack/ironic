@@ -954,7 +954,7 @@ class ConductorManager(periodic_task.PeriodicTasks):
                 # Kill this worker, the async step will make an RPC call to
                 # continue_node_clean to continue cleaning
                 LOG.debug('Waiting for node %(node)s to call continue after '
-                          'async clean step %(step)s' %
+                          'async clean step %(step)s',
                           {'node': node.uuid, 'step': step})
                 return
             elif result is not None:
@@ -962,7 +962,7 @@ class ConductorManager(periodic_task.PeriodicTasks):
                          '%(node)s, step returned invalid value: %(val)s') %
                        {'step': step, 'node': node.uuid, 'val': result})
                 LOG.error(msg)
-                cleaning_error_handler(task, msg)
+                return cleaning_error_handler(task, msg)
             LOG.info(_LI('Node %(node)s finished clean step %(step)s'),
                      {'node': node.uuid, 'step': step})
 
@@ -2082,15 +2082,14 @@ def _get_cleaning_steps(task, enabled=False):
     :returns: A list of clean steps dictionaries, sorted with largest priority
         as the first item
     """
-
-    steps = list()
     # Iterate interfaces and get clean steps from each
-    for interface in CLEANING_INTERFACE_PRIORITY.keys():
-        driver_interface = getattr(task.driver, interface)
-        if driver_interface:
-            for step in driver_interface.get_clean_steps(task):
-                if not enabled or step['priority'] > 0:
-                    steps.append(step)
+    steps = list()
+    for interface in CLEANING_INTERFACE_PRIORITY:
+        interface = getattr(task.driver, interface)
+        if interface:
+            interface_steps = [x for x in interface.get_clean_steps(task)
+                               if not enabled or x['priority'] > 0]
+            steps.extend(interface_steps)
     # Sort the steps from higher priority to lower priority
     return sorted(steps, key=_step_key, reverse=True)
 

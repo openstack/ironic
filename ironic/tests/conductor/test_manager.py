@@ -1925,6 +1925,39 @@ class DoNodeCleanTestCase(_ServiceSetUpMixin, tests_db_base.DbTestCase):
         self.assertEqual({}, node.clean_step)
         mock_execute.assert_not_called()
 
+    @mock.patch('ironic.drivers.modules.fake.FakePower.execute_clean_step')
+    @mock.patch('ironic.drivers.modules.fake.FakeDeploy.execute_clean_step')
+    def test__do_next_clean_step_bad_step_return_value(
+            self, deploy_exec_mock, power_exec_mock):
+        # When a clean step fails, go to CLEANFAIL
+        node = obj_utils.create_test_node(
+            self.context, driver='fake',
+            provision_state=states.CLEANING,
+            target_provision_state=states.AVAILABLE,
+            last_error=None,
+            clean_step={})
+        deploy_exec_mock.return_value = "foo"
+
+        self._start_service()
+
+        with task_manager.acquire(
+                self.context, node['id'], shared=False) as task:
+            self.service._do_next_clean_step(
+                task, self.clean_steps, node.clean_step)
+
+        self.service._worker_pool.waitall()
+        node.refresh()
+
+        # Make sure we go to CLEANFAIL, clear clean_steps
+        self.assertEqual(states.CLEANFAIL, node.provision_state)
+        self.assertEqual({}, node.clean_step)
+        self.assertIsNotNone(node.last_error)
+        self.assertTrue(node.maintenance)
+        deploy_exec_mock.assert_called_once_with(mock.ANY,
+                                                 self.clean_steps[0])
+        # Make sure we don't execute any other step and return
+        self.assertFalse(power_exec_mock.called)
+
     @mock.patch('ironic.conductor.manager._get_cleaning_steps')
     def test_set_node_cleaning_steps(self, mock_steps):
         mock_steps.return_value = self.clean_steps
