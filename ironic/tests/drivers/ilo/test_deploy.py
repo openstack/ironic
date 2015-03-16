@@ -25,11 +25,13 @@ from ironic.common import exception
 from ironic.common.glance_service import service_utils
 from ironic.common import image_service
 from ironic.common import images
+from ironic.common import keystone
 from ironic.common import states
 from ironic.common import swift
 from ironic.conductor import task_manager
 from ironic.conductor import utils as manager_utils
 from ironic.drivers.modules import agent
+from ironic.drivers.modules import agent_base_vendor
 from ironic.drivers.modules import deploy_utils
 from ironic.drivers.modules.ilo import common as ilo_common
 from ironic.drivers.modules.ilo import deploy as ilo_deploy
@@ -284,14 +286,17 @@ class IloVirtualMediaIscsiDeployTestCase(db_base.DbTestCase):
 
     @mock.patch.object(ilo_deploy, '_reboot_into')
     @mock.patch.object(deploy_utils, 'get_single_nic_with_vif_port_id')
+    @mock.patch.object(agent, 'build_agent_options')
     @mock.patch.object(iscsi_deploy, 'build_deploy_ramdisk_options')
     @mock.patch.object(manager_utils, 'node_power_action')
     @mock.patch.object(iscsi_deploy, 'check_image_size')
     @mock.patch.object(iscsi_deploy, 'cache_instance_image')
     def test_deploy(self, cache_instance_image_mock, check_image_size_mock,
-                    node_power_action_mock, build_opts_mock, get_nic_mock,
-                    reboot_into_mock):
+                    node_power_action_mock, build_opts_mock,
+                    agent_options_mock, get_nic_mock, reboot_into_mock):
         deploy_opts = {'a': 'b'}
+        agent_options_mock.return_value = {
+            'ipa-api-url': 'http://1.2.3.4:6385'}
         build_opts_mock.return_value = deploy_opts
         get_nic_mock.return_value = '12:34:56:78:90:ab'
         with task_manager.acquire(self.context, self.node.uuid,
@@ -304,7 +309,8 @@ class IloVirtualMediaIscsiDeployTestCase(db_base.DbTestCase):
             cache_instance_image_mock.assert_called_once_with(task.context,
                     task.node)
             check_image_size_mock.assert_called_once_with(task)
-            expected_ramdisk_opts = {'a': 'b', 'BOOTIF': '12:34:56:78:90:ab'}
+            expected_ramdisk_opts = {'a': 'b', 'BOOTIF': '12:34:56:78:90:ab',
+                                     'ipa-api-url': 'http://1.2.3.4:6385'}
             build_opts_mock.assert_called_once_with(task.node)
             get_nic_mock.assert_called_once_with(task)
             reboot_into_mock.assert_called_once_with(task, 'deploy-iso',
@@ -390,6 +396,23 @@ class VendorPassthruTestCase(db_base.DbTestCase):
         self.node = obj_utils.create_test_node(self.context,
                                                driver='iscsi_ilo',
                                                driver_info=INFO_DICT)
+
+    @mock.patch.object(iscsi_deploy, 'get_deploy_info')
+    def test_validate_pass_deploy_info(self, get_deploy_info_mock):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            vendor = ilo_deploy.VendorPassthru()
+            vendor.validate(task, method='pass_deploy_info', foo='bar')
+            get_deploy_info_mock.assert_called_once_with(task.node,
+                                                         foo='bar')
+
+    @mock.patch.object(iscsi_deploy, 'get_deploy_info')
+    def test_validate_heartbeat(self, get_deploy_info_mock):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            vendor = ilo_deploy.VendorPassthru()
+            vendor.validate(task, method='heartbeat', foo='bar')
+            self.assertFalse(get_deploy_info_mock.called)
 
     @mock.patch.object(deploy_utils, 'notify_deploy_complete')
     @mock.patch.object(manager_utils, 'node_set_boot_device')
@@ -558,6 +581,60 @@ class VendorPassthruTestCase(db_base.DbTestCase):
         self.node.driver_internal_info = {'is_whole_disk_image': True}
         self.node.save()
         self._test__continue_deploy_localboot()
+
+    @mock.patch.object(keystone, 'get_admin_auth_token')
+    @mock.patch.object(agent_base_vendor.BaseAgentVendor,
+                       'reboot_and_finish_deploy')
+    @mock.patch.object(ilo_deploy.VendorPassthru, '_configure_vmedia_boot')
+    @mock.patch.object(iscsi_deploy, 'do_agent_iscsi_deploy')
+    @mock.patch.object(ilo_common, 'cleanup_vmedia_boot')
+    def test_continue_deploy_netboot(self, cleanup_vmedia_boot_mock,
+                                     do_agent_iscsi_deploy_mock,
+                                     configure_vmedia_boot_mock,
+                                     reboot_and_finish_deploy_mock,
+                                     keystone_mock):
+        self.node.provision_state = states.DEPLOYWAIT
+        self.node.target_provision_state = states.DEPLOYING
+        self.node.save()
+        do_agent_iscsi_deploy_mock.return_value = 'some-root-uuid'
+        keystone_mock.return_value = 'admin-token'
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            task.driver.vendor.continue_deploy(task)
+            cleanup_vmedia_boot_mock.assert_called_once_with(task)
+            do_agent_iscsi_deploy_mock.assert_called_once_with(task,
+                                                               mock.ANY)
+            configure_vmedia_boot_mock.assert_called_once_with(
+                task, 'some-root-uuid')
+            reboot_and_finish_deploy_mock.assert_called_once_with(task)
+            # Ensure that admin token is populated in task
+            self.assertEqual('admin-token', task.context.auth_token)
+
+    @mock.patch.object(agent_base_vendor.BaseAgentVendor,
+                       'reboot_and_finish_deploy')
+    @mock.patch.object(agent_base_vendor.BaseAgentVendor,
+                       'configure_local_boot')
+    @mock.patch.object(iscsi_deploy, 'do_agent_iscsi_deploy')
+    @mock.patch.object(ilo_common, 'cleanup_vmedia_boot')
+    def test_continue_deploy_localboot(self, cleanup_vmedia_boot_mock,
+                                       do_agent_iscsi_deploy_mock,
+                                       configure_local_boot_mock,
+                                       reboot_and_finish_deploy_mock):
+        self.node.provision_state = states.DEPLOYWAIT
+        self.node.target_provision_state = states.DEPLOYING
+        self.node.instance_info = {
+            'capabilities': {'boot_option': 'local'}}
+        self.node.save()
+        do_agent_iscsi_deploy_mock.return_value = 'some-root-uuid'
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            task.driver.vendor.continue_deploy(task)
+            cleanup_vmedia_boot_mock.assert_called_once_with(task)
+            do_agent_iscsi_deploy_mock.assert_called_once_with(task,
+                                                               mock.ANY)
+            configure_local_boot_mock.assert_called_once_with(
+                task, 'some-root-uuid')
+            reboot_and_finish_deploy_mock.assert_called_once_with(task)
 
 
 class IloPXEDeployTestCase(db_base.DbTestCase):
