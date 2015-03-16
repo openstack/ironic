@@ -1296,7 +1296,7 @@ class ConductorManager(periodic_task.PeriodicTasks):
         with task_manager.acquire(context, port.node_id) as task:
             port.destroy()
             LOG.info(_LI('Successfully deleted port %(port)s. '
-                         'The node associated with the port was'
+                         'The node associated with the port was '
                          '%(node)s'),
                          {'port': port.uuid, 'node': task.node.uuid})
 
