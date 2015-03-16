@@ -29,11 +29,11 @@ import eventlet
 eventlet.monkey_patch(os=False)
 import fixtures
 from oslo_config import cfg
+from oslo_context import context as ironic_context
 import testtools
 
 from ironic.common import hash_ring
 from ironic.objects import base as objects_base
-from ironic.openstack.common import context as ironic_context
 from ironic.openstack.common import log as logging
 from ironic.tests import conf_fixture
 from ironic.tests import policy_fixture

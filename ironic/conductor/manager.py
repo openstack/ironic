@@ -52,6 +52,7 @@ from eventlet import greenpool
 from oslo import messaging
 from oslo_concurrency import lockutils
 from oslo_config import cfg
+from oslo_context import context as ironic_context
 from oslo_db import exception as db_exception
 from oslo_utils import excutils
 from oslo_utils import uuidutils
@@ -75,7 +76,6 @@ from ironic.conductor import task_manager
 from ironic.conductor import utils
 from ironic.db import api as dbapi
 from ironic import objects
-from ironic.openstack.common import context as ironic_context
 from ironic.openstack.common import log
 from ironic.openstack.common import periodic_task
 

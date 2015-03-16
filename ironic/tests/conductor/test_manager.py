@@ -24,6 +24,7 @@ import eventlet
 import mock
 from oslo import messaging
 from oslo_config import cfg
+from oslo_context import context
 from oslo_db import exception as db_exception
 from oslo_utils import strutils
 from oslo_utils import uuidutils
@@ -41,7 +42,6 @@ from ironic.conductor import utils as conductor_utils
 from ironic.db import api as dbapi
 from ironic.drivers import base as drivers_base
 from ironic import objects
-from ironic.openstack.common import context
 from ironic.tests import base as tests_base
 from ironic.tests.conductor import utils as mgr_utils
 from ironic.tests.db import base as tests_db_base
