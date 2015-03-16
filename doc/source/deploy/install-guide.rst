@@ -1010,6 +1010,33 @@ if desired.
 .. _ComputeCapabilitiesFilter: http://docs.openstack.org/developer/nova/devref/filter_scheduler.html?highlight=computecapabilitiesfilter
 
 
+Hardware Inspection
+-------------------
+
+Starting with Kilo release Ironic supports hardware inspection that simplifies
+enrolling nodes. Inspection allows Ironic to discover required node properties
+once required ``driver_info`` fields (e.g. IPMI credentials) are set
+by an operator. There are two kinds of inspection supported by Ironic:
+
+#. Out-of-band inspection may be supported by some vendor drivers.
+
+#. In-band inspection is performed by utilizing the ironic-discoverd_ project.
+   This is supported by the following drivers::
+
+   pxe_drac
+   pxe_ipmitool
+   pxe_ipminative
+   pxe_ssh
+
+  As of Kilo release this feature needs to be explicitly enabled in the
+  configuration by setting ``enabled = True`` in ``[discoverd]`` section.
+  You must additionally install ``ironic-discoverd`` to use this functionality.
+  You must set ``service_url`` if the ironic-discoverd service is
+  being run on a separate host from the ironic-conductor service, or is using
+  non-standard port.
+
+.. _ironic-discoverd: https://github.com/stackforge/ironic-discoverd
+
 Using Ironic as a standalone service
 ====================================
 
