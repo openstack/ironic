@@ -17,8 +17,7 @@
 
 from oslo_concurrency import lockutils
 from oslo_config import cfg
-
-from ironic.openstack.common import policy
+from oslo_policy import policy
 
 _ENFORCER = None
 CONF = cfg.CONF
@@ -43,7 +42,7 @@ def init_enforcer(policy_file=None, rules=None,
     if _ENFORCER:
         return
 
-    _ENFORCER = policy.Enforcer(policy_file=policy_file,
+    _ENFORCER = policy.Enforcer(CONF, policy_file=policy_file,
                                 rules=rules,
                                 default_rule=default_rule,
                                 use_conf=use_conf)
