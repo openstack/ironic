@@ -93,7 +93,7 @@ class CommonFunctionsTestCase(BaseTestCase):
         res = discoverd.DiscoverdInspect.create_if_enabled('driver')
         self.assertIsInstance(res, discoverd.DiscoverdInspect)
 
-    @mock.patch.object(discoverd.LOG, 'warn')
+    @mock.patch.object(discoverd.LOG, 'info')
     def test_create_if_enabled_disabled(self, warn_mock):
         self.config(enabled=False, group='discoverd')
         res = discoverd.DiscoverdInspect.create_if_enabled('driver')
