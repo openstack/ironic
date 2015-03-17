@@ -106,9 +106,10 @@ class AgentClient(object):
                              params=params,
                              wait=True)
 
-    def install_bootloader(self, node, root_uuid):
+    def install_bootloader(self, node, root_uuid, efi_system_part_uuid=None):
         """Install a boot loader on the image."""
-        params = {'root_uuid': root_uuid}
+        params = {'root_uuid': root_uuid,
+                  'efi_system_part_uuid': efi_system_part_uuid}
         return self._command(node=node,
                              method='image.install_bootloader',
                              params=params,

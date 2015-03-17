@@ -437,7 +437,7 @@ class VendorPassthruTestCase(db_base.DbTestCase):
                                      setup_vmedia_mock, set_boot_device_mock,
                                      notify_deploy_complete_mock):
         kwargs = {'method': 'pass_deploy_info', 'address': '123456'}
-        continue_deploy_mock.return_value = None
+        continue_deploy_mock.return_value = {}
         get_boot_iso_mock.return_value = 'boot-iso'
 
         self.node.provision_state = states.DEPLOYWAIT
@@ -469,7 +469,7 @@ class VendorPassthruTestCase(db_base.DbTestCase):
                                    setup_vmedia_mock, set_boot_device_mock,
                                    notify_deploy_complete_mock):
         kwargs = {'method': 'pass_deploy_info', 'address': '123456'}
-        continue_deploy_mock.return_value = 'root-uuid'
+        continue_deploy_mock.return_value = {'root uuid': 'root-uuid'}
         get_boot_iso_mock.return_value = 'boot-iso'
 
         self.node.provision_state = states.DEPLOYWAIT
@@ -515,7 +515,7 @@ class VendorPassthruTestCase(db_base.DbTestCase):
     def test_pass_deploy_info_no_root_uuid(self,
             cleanup_vmedia_boot_mock, continue_deploy_mock):
         kwargs = {'address': '123456'}
-        continue_deploy_mock.return_value = None
+        continue_deploy_mock.return_value = {}
 
         self.node.provision_state = states.DEPLOYWAIT
         self.node.target_provision_state = states.ACTIVE
@@ -536,7 +536,7 @@ class VendorPassthruTestCase(db_base.DbTestCase):
     def test_pass_deploy_info_create_boot_iso_fail(self, get_iso_mock,
             cleanup_vmedia_boot_mock, continue_deploy_mock, node_power_mock):
         kwargs = {'address': '123456'}
-        continue_deploy_mock.return_value = 'root-uuid'
+        continue_deploy_mock.return_value = {'root uuid': 'root-uuid'}
         get_iso_mock.side_effect = exception.ImageCreationFailed(
                                              image_type='iso', error="error")
         self.node.provision_state = states.DEPLOYWAIT
@@ -565,7 +565,7 @@ class VendorPassthruTestCase(db_base.DbTestCase):
                                          notify_deploy_complete_mock):
 
         kwargs = {'method': 'pass_deploy_info', 'address': '123456'}
-        continue_deploy_mock.return_value = '<some-uuid>'
+        continue_deploy_mock.return_value = {'root uuid': '<some-uuid>'}
 
         self.node.provision_state = states.DEPLOYWAIT
         self.node.target_provision_state = states.ACTIVE
@@ -608,7 +608,8 @@ class VendorPassthruTestCase(db_base.DbTestCase):
         self.node.provision_state = states.DEPLOYWAIT
         self.node.target_provision_state = states.DEPLOYING
         self.node.save()
-        do_agent_iscsi_deploy_mock.return_value = 'some-root-uuid'
+        do_agent_iscsi_deploy_mock.return_value = {
+            'root uuid': 'some-root-uuid'}
         keystone_mock.return_value = 'admin-token'
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
@@ -637,7 +638,8 @@ class VendorPassthruTestCase(db_base.DbTestCase):
         self.node.instance_info = {
             'capabilities': {'boot_option': 'local'}}
         self.node.save()
-        do_agent_iscsi_deploy_mock.return_value = 'some-root-uuid'
+        do_agent_iscsi_deploy_mock.return_value = {
+            'root uuid': 'some-root-uuid'}
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
             task.driver.vendor.continue_deploy(task)
@@ -645,7 +647,37 @@ class VendorPassthruTestCase(db_base.DbTestCase):
             do_agent_iscsi_deploy_mock.assert_called_once_with(task,
                                                                mock.ANY)
             configure_local_boot_mock.assert_called_once_with(
-                task, 'some-root-uuid')
+                task, root_uuid='some-root-uuid',
+                efi_system_part_uuid=None)
+            reboot_and_finish_deploy_mock.assert_called_once_with(task)
+
+    @mock.patch.object(agent_base_vendor.BaseAgentVendor,
+                       'reboot_and_finish_deploy')
+    @mock.patch.object(agent_base_vendor.BaseAgentVendor,
+                       'configure_local_boot')
+    @mock.patch.object(iscsi_deploy, 'do_agent_iscsi_deploy')
+    @mock.patch.object(ilo_common, 'cleanup_vmedia_boot')
+    def test_continue_deploy_localboot_uefi(self, cleanup_vmedia_boot_mock,
+                                            do_agent_iscsi_deploy_mock,
+                                            configure_local_boot_mock,
+                                            reboot_and_finish_deploy_mock):
+        self.node.provision_state = states.DEPLOYWAIT
+        self.node.target_provision_state = states.DEPLOYING
+        self.node.instance_info = {
+            'capabilities': {'boot_option': 'local'}}
+        self.node.save()
+        do_agent_iscsi_deploy_mock.return_value = {
+            'root uuid': 'some-root-uuid',
+            'efi system partition uuid': 'efi-system-part-uuid'}
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            task.driver.vendor.continue_deploy(task)
+            cleanup_vmedia_boot_mock.assert_called_once_with(task)
+            do_agent_iscsi_deploy_mock.assert_called_once_with(task,
+                                                               mock.ANY)
+            configure_local_boot_mock.assert_called_once_with(
+                task, root_uuid='some-root-uuid',
+                efi_system_part_uuid='efi-system-part-uuid')
             reboot_and_finish_deploy_mock.assert_called_once_with(task)
 
 
