@@ -302,15 +302,15 @@ class IloCommonMethodsTestCase(db_base.DbTestCase):
     @mock.patch.object(driver_utils, 'rm_node_capability')
     @mock.patch.object(driver_utils, 'add_node_capability')
     @mock.patch.object(ilo_common, 'get_ilo_object')
-    def test_update_boot_mode_capability(self, get_ilo_object_mock,
-                                         add_node_capability_mock,
-                                         rm_node_capability_mock):
+    def test_update_boot_mode(self, get_ilo_object_mock,
+                              add_node_capability_mock,
+                              rm_node_capability_mock):
         ilo_mock_obj = get_ilo_object_mock.return_value
         ilo_mock_obj.get_pending_boot_mode.return_value = 'legacy'
 
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
-            ilo_common.update_boot_mode_capability(task)
+            ilo_common.update_boot_mode(task)
             get_ilo_object_mock.assert_called_once_with(task.node)
             ilo_mock_obj.get_pending_boot_mode.assert_called_once_with()
             rm_node_capability_mock.assert_called_once_with(task, 'boot_mode')
@@ -320,16 +320,16 @@ class IloCommonMethodsTestCase(db_base.DbTestCase):
 
     @mock.patch.object(driver_utils, 'add_node_capability')
     @mock.patch.object(ilo_common, 'get_ilo_object')
-    def test_update_boot_mode_capability_unknown(self,
-                                                 get_ilo_object_mock,
-                                                 add_node_capability_mock):
+    def test_update_boot_mode_unknown(self,
+                                      get_ilo_object_mock,
+                                      add_node_capability_mock):
         ilo_mock_obj = get_ilo_object_mock.return_value
         ilo_mock_obj.get_pending_boot_mode.return_value = 'UNKNOWN'
         set_pending_boot_mode_mock = ilo_mock_obj.set_pending_boot_mode
 
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
-            ilo_common.update_boot_mode_capability(task)
+            ilo_common.update_boot_mode(task)
             get_ilo_object_mock.assert_called_once_with(task.node)
             ilo_mock_obj.get_pending_boot_mode.assert_called_once_with()
             set_pending_boot_mode_mock.assert_called_once_with('UEFI')
@@ -339,21 +339,32 @@ class IloCommonMethodsTestCase(db_base.DbTestCase):
 
     @mock.patch.object(driver_utils, 'add_node_capability')
     @mock.patch.object(ilo_common, 'get_ilo_object')
-    def test_update_boot_mode_capability_legacy(self,
-                                                get_ilo_object_mock,
-                                                add_node_capability_mock):
+    def test_update_boot_mode_legacy(self,
+                                     get_ilo_object_mock,
+                                     add_node_capability_mock):
         ilo_mock_obj = get_ilo_object_mock.return_value
         exc = ilo_error.IloCommandNotSupportedError('error')
         ilo_mock_obj.get_pending_boot_mode.side_effect = exc
 
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
-            ilo_common.update_boot_mode_capability(task)
+            ilo_common.update_boot_mode(task)
             get_ilo_object_mock.assert_called_once_with(task.node)
             ilo_mock_obj.get_pending_boot_mode.assert_called_once_with()
             add_node_capability_mock.assert_called_once_with(task,
                                                              'boot_mode',
                                                              'bios')
+
+    @mock.patch.object(ilo_common, 'set_boot_mode')
+    def test_update_boot_mode_prop_boot_mode_exist(self,
+                                                   set_boot_mode_mock):
+
+        properties = {'capabilities': 'boot_mode:uefi'}
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            task.node.properties = properties
+            ilo_common.update_boot_mode(task)
+            set_boot_mode_mock.assert_called_once_with(task.node, 'uefi')
 
     @mock.patch.object(images, 'get_temp_url_for_glance_image')
     @mock.patch.object(ilo_common, 'attach_vmedia')

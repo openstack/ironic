@@ -336,6 +336,14 @@ class IloVirtualMediaIscsiDeployTestCase(db_base.DbTestCase):
             destroy_images_mock.assert_called_once_with(task.node.uuid)
             clean_up_boot_mock.assert_called_once_with(task.node)
 
+    @mock.patch.object(ilo_common, 'update_boot_mode')
+    def test_prepare(self,
+                     update_boot_mode_mock):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            task.driver.deploy.prepare(task)
+            update_boot_mode_mock.assert_called_once_with(task)
+
 
 class IloVirtualMediaAgentDeployTestCase(db_base.DbTestCase):
 
@@ -378,13 +386,17 @@ class IloVirtualMediaAgentDeployTestCase(db_base.DbTestCase):
                     states.POWER_OFF)
             self.assertEqual(states.DELETED, returned_state)
 
+    @mock.patch.object(ilo_common, 'update_boot_mode')
     @mock.patch.object(agent, 'build_instance_info_for_deploy')
-    def test_prepare(self, build_instance_info_mock):
+    def test_prepare(self,
+                     build_instance_info_mock,
+                     update_boot_mode_mock):
         deploy_opts = {'a': 'b'}
         build_instance_info_mock.return_value = deploy_opts
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
             task.driver.deploy.prepare(task)
+            update_boot_mode_mock.assert_called_once_with(task)
             self.assertEqual(deploy_opts, task.node.instance_info)
 
 
@@ -653,30 +665,14 @@ class IloPXEDeployTestCase(db_base.DbTestCase):
             pxe_validate_mock.assert_called_once_with(task)
 
     @mock.patch.object(pxe.PXEDeploy, 'prepare')
-    @mock.patch.object(ilo_common, 'set_boot_mode')
-    @mock.patch.object(driver_utils, 'get_node_capability')
-    def test_prepare(self, node_capability_mock,
-                     set_boot_mode_mock, pxe_prepare_mock):
+    @mock.patch.object(ilo_common, 'update_boot_mode')
+    def test_prepare(self,
+                     update_boot_mode_mock,
+                     pxe_prepare_mock):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
-            node_capability_mock.return_value = 'uefi'
             task.driver.deploy.prepare(task)
-            node_capability_mock.assert_called_once_with(task.node,
-                                                         'boot_mode')
-            set_boot_mode_mock.assert_called_once_with(task.node, 'uefi')
-            pxe_prepare_mock.assert_called_once_with(task)
-
-    @mock.patch.object(pxe.PXEDeploy, 'prepare')
-    @mock.patch.object(ilo_common, 'update_boot_mode_capability')
-    @mock.patch.object(driver_utils, 'get_node_capability')
-    def test_prepare_boot_mode_doesnt_exist(self, node_capability_mock,
-                                            update_capability_mock,
-                                            pxe_prepare_mock):
-        with task_manager.acquire(self.context, self.node.uuid,
-                                  shared=False) as task:
-            node_capability_mock.return_value = None
-            task.driver.deploy.prepare(task)
-            update_capability_mock.assert_called_once_with(task)
+            update_boot_mode_mock.assert_called_once_with(task)
             pxe_prepare_mock.assert_called_once_with(task)
 
     @mock.patch.object(pxe.PXEDeploy, 'deploy')

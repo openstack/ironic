@@ -340,11 +340,7 @@ class IloVirtualMediaIscsiDeploy(base.DeployInterface):
         :param task: a TaskManager instance containing the node to act on.
         :raises: IloOperationError, if some operation on iLO failed.
         """
-        boot_mode = driver_utils.get_node_capability(task.node, 'boot_mode')
-        if boot_mode is not None:
-            ilo_common.set_boot_mode(task.node, boot_mode)
-        else:
-            ilo_common.update_boot_mode_capability(task)
+        ilo_common.update_boot_mode(task)
 
     def clean_up(self, task):
         """Clean up the deployment environment for the task's node.
@@ -415,6 +411,7 @@ class IloVirtualMediaAgentDeploy(base.DeployInterface):
         node = task.node
         node.instance_info = agent.build_instance_info_for_deploy(task)
         node.save()
+        ilo_common.update_boot_mode(task)
 
     def clean_up(self, task):
         """Clean up the deployment environment for this node.
@@ -448,11 +445,7 @@ class IloPXEDeploy(pxe.PXEDeploy):
 
         :param task: a TaskManager instance containing the node to act on.
         """
-        boot_mode = driver_utils.get_node_capability(task.node, 'boot_mode')
-        if boot_mode is None:
-            ilo_common.update_boot_mode_capability(task)
-        else:
-            ilo_common.set_boot_mode(task.node, boot_mode)
+        ilo_common.update_boot_mode(task)
         super(IloPXEDeploy, self).prepare(task)
 
     def deploy(self, task):
