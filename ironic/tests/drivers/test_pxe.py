@@ -809,9 +809,10 @@ class PXEDriverTestCase(db_base.DbTestCase):
     @mock.patch.object(deploy_utils, 'switch_pxe_config')
     @mock.patch.object(iscsi_deploy, 'InstanceImageCache')
     @mock.patch.object(deploy_utils, 'deploy_partition_image')
-    def _test_continue_deploy(self, is_localboot, mock_deploy,
-                              mock_image_cache, mock_switch_config,
-                              notify_mock, mock_node_boot_dev, mock_clean_pxe):
+    def _test_pass_deploy_info_deploy(self, is_localboot, mock_deploy,
+                                      mock_image_cache, mock_switch_config,
+                                      notify_mock, mock_node_boot_dev,
+                                      mock_clean_pxe):
         token_path = self._create_token_file()
 
         # set local boot
@@ -831,7 +832,7 @@ class PXEDriverTestCase(db_base.DbTestCase):
         is_whole_disk_image = False
 
         with task_manager.acquire(self.context, self.node.uuid) as task:
-            task.driver.vendor._continue_deploy(
+            task.driver.vendor.pass_deploy_info(
                     task, address='123456', iqn='aaa-bbb', key='fake-56789')
 
         self.node.refresh()
@@ -864,13 +865,13 @@ class PXEDriverTestCase(db_base.DbTestCase):
     @mock.patch.object(deploy_utils, 'switch_pxe_config')
     @mock.patch.object(iscsi_deploy, 'InstanceImageCache')
     @mock.patch.object(deploy_utils, 'deploy_disk_image')
-    def _test_continue_deploy_whole_disk_image(self, is_localboot,
-                                               mock_deploy,
-                                               mock_image_cache,
-                                               mock_switch_config,
-                                               notify_mock,
-                                               mock_node_boot_dev,
-                                               mock_clean_pxe):
+    def _test_pass_deploy_info_whole_disk_image(self, is_localboot,
+                                                mock_deploy,
+                                                mock_image_cache,
+                                                mock_switch_config,
+                                                notify_mock,
+                                                mock_node_boot_dev,
+                                                mock_clean_pxe):
         token_path = self._create_token_file()
 
         # set local boot
@@ -891,7 +892,7 @@ class PXEDriverTestCase(db_base.DbTestCase):
 
         with task_manager.acquire(self.context, self.node.uuid) as task:
             task.node.driver_internal_info['is_whole_disk_image'] = True
-            task.driver.vendor._continue_deploy(task, address='123456',
+            task.driver.vendor.pass_deploy_info(task, address='123456',
                                                 iqn='aaa-bbb',
                                                 key='fake-56789')
 
@@ -918,19 +919,19 @@ class PXEDriverTestCase(db_base.DbTestCase):
             self.assertFalse(mock_node_boot_dev.called)
             self.assertFalse(mock_clean_pxe.called)
 
-    def test_continue_deploy(self):
-        self._test_continue_deploy(False)
+    def test_pass_deploy_info_deploy(self):
+        self._test_pass_deploy_info_deploy(False)
 
-    def test_continue_deploy_localboot(self):
-        self._test_continue_deploy(True)
+    def test_pass_deploy_info_localboot(self):
+        self._test_pass_deploy_info_deploy(True)
 
-    def test_continue_deploy_whole_disk_image(self):
-        self._test_continue_deploy_whole_disk_image(False)
+    def test_pass_deploy_info_whole_disk_image(self):
+        self._test_pass_deploy_info_whole_disk_image(False)
 
-    def test_continue_deploy_whole_disk_image_localboot(self):
-        self._test_continue_deploy_whole_disk_image(True)
+    def test_pass_deploy_info_whole_disk_image_localboot(self):
+        self._test_pass_deploy_info_whole_disk_image(True)
 
-    def test_continue_deploy_invalid(self):
+    def test_pass_deploy_info_invalid(self):
         self.node.power_state = states.POWER_ON
         self.node.provision_state = states.AVAILABLE
         self.node.target_provision_state = states.NOSTATE
@@ -938,7 +939,7 @@ class PXEDriverTestCase(db_base.DbTestCase):
 
         with task_manager.acquire(self.context, self.node.uuid) as task:
             self.assertRaises(exception.InvalidState,
-                    task.driver.vendor._continue_deploy,
+                    task.driver.vendor.pass_deploy_info,
                     task, address='123456', iqn='aaa-bbb',
                     key='fake-56789', error='test ramdisk error')
 
@@ -950,13 +951,13 @@ class PXEDriverTestCase(db_base.DbTestCase):
     def test_lock_elevated(self):
         with task_manager.acquire(self.context, self.node.uuid) as task:
             with mock.patch.object(task.driver.vendor,
-                                   '_continue_deploy') as _cont_deploy_mock:
-                task.driver.vendor._continue_deploy(
+                                   'pass_deploy_info') as _cont_deploy_mock:
+                task.driver.vendor.pass_deploy_info(
                     task, address='123456', iqn='aaa-bbb', key='fake-56789')
 
                 # lock elevated w/o exception
                 self.assertEqual(1, _cont_deploy_mock.call_count,
-                            "_continue_deploy was not called once.")
+                            "pass_deploy_info was not called once.")
 
     def test_vendor_routes(self):
         expected = ['heartbeat', 'pass_deploy_info']

@@ -420,7 +420,7 @@ class VendorPassthruTestCase(db_base.DbTestCase):
     @mock.patch.object(ilo_deploy, '_get_boot_iso')
     @mock.patch.object(iscsi_deploy, 'continue_deploy')
     @mock.patch.object(ilo_common, 'cleanup_vmedia_boot')
-    def test__continue_deploy_resume(self, cleanup_vmedia_boot_mock,
+    def test_pass_deploy_info_resume(self, cleanup_vmedia_boot_mock,
                                      continue_deploy_mock, get_boot_iso_mock,
                                      setup_vmedia_mock, set_boot_device_mock,
                                      notify_deploy_complete_mock):
@@ -434,7 +434,7 @@ class VendorPassthruTestCase(db_base.DbTestCase):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
             vendor = ilo_deploy.VendorPassthru()
-            vendor._continue_deploy(task, **kwargs)
+            vendor.pass_deploy_info(task, **kwargs)
 
             cleanup_vmedia_boot_mock.assert_called_once_with(task)
             continue_deploy_mock.assert_called_once_with(task, **kwargs)
@@ -452,7 +452,7 @@ class VendorPassthruTestCase(db_base.DbTestCase):
     @mock.patch.object(ilo_deploy, '_get_boot_iso')
     @mock.patch.object(iscsi_deploy, 'continue_deploy')
     @mock.patch.object(ilo_common, 'cleanup_vmedia_boot')
-    def test__continue_deploy_good(self, cleanup_vmedia_boot_mock,
+    def test_pass_deploy_info_good(self, cleanup_vmedia_boot_mock,
                                    continue_deploy_mock, get_boot_iso_mock,
                                    setup_vmedia_mock, set_boot_device_mock,
                                    notify_deploy_complete_mock):
@@ -465,7 +465,7 @@ class VendorPassthruTestCase(db_base.DbTestCase):
         self.node.save()
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
-            task.driver.vendor._continue_deploy(task, **kwargs)
+            task.driver.vendor.pass_deploy_info(task, **kwargs)
 
             cleanup_vmedia_boot_mock.assert_called_once_with(task)
             continue_deploy_mock.assert_called_once_with(task, **kwargs)
@@ -482,7 +482,7 @@ class VendorPassthruTestCase(db_base.DbTestCase):
         notify_deploy_complete_mock.assert_called_once_with('123456')
 
     @mock.patch.object(ilo_common, 'cleanup_vmedia_boot')
-    def test__continue_deploy_bad(self, cleanup_vmedia_boot_mock):
+    def test_pass_deploy_info_bad(self, cleanup_vmedia_boot_mock):
         kwargs = {'method': 'pass_deploy_info', 'address': '123456'}
 
         self.node.provision_state = states.AVAILABLE
@@ -492,7 +492,7 @@ class VendorPassthruTestCase(db_base.DbTestCase):
                                   shared=False) as task:
             vendor = task.driver.vendor
             self.assertRaises(exception.InvalidState,
-                              vendor._continue_deploy,
+                              vendor.pass_deploy_info,
                               task, **kwargs)
             self.assertEqual(states.AVAILABLE, task.node.provision_state)
             self.assertEqual(states.NOSTATE, task.node.target_provision_state)
@@ -500,7 +500,7 @@ class VendorPassthruTestCase(db_base.DbTestCase):
 
     @mock.patch.object(iscsi_deploy, 'continue_deploy')
     @mock.patch.object(ilo_common, 'cleanup_vmedia_boot')
-    def test__continue_deploy_no_root_uuid(self,
+    def test_pass_deploy_info_no_root_uuid(self,
             cleanup_vmedia_boot_mock, continue_deploy_mock):
         kwargs = {'address': '123456'}
         continue_deploy_mock.return_value = None
@@ -510,7 +510,7 @@ class VendorPassthruTestCase(db_base.DbTestCase):
         self.node.save()
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
-            task.driver.vendor._continue_deploy(task, **kwargs)
+            task.driver.vendor.pass_deploy_info(task, **kwargs)
 
             cleanup_vmedia_boot_mock.assert_called_once_with(task)
             self.assertEqual(states.DEPLOYING, task.node.provision_state)
@@ -521,7 +521,7 @@ class VendorPassthruTestCase(db_base.DbTestCase):
     @mock.patch.object(iscsi_deploy, 'continue_deploy')
     @mock.patch.object(ilo_common, 'cleanup_vmedia_boot')
     @mock.patch.object(ilo_deploy, '_get_boot_iso')
-    def test__continue_deploy_create_boot_iso_fail(self, get_iso_mock,
+    def test_pass_deploy_info_create_boot_iso_fail(self, get_iso_mock,
             cleanup_vmedia_boot_mock, continue_deploy_mock, node_power_mock):
         kwargs = {'address': '123456'}
         continue_deploy_mock.return_value = 'root-uuid'
@@ -533,7 +533,7 @@ class VendorPassthruTestCase(db_base.DbTestCase):
 
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
-            task.driver.vendor._continue_deploy(task, **kwargs)
+            task.driver.vendor.pass_deploy_info(task, **kwargs)
 
             cleanup_vmedia_boot_mock.assert_called_once_with(task)
             continue_deploy_mock.assert_called_once_with(task, **kwargs)
@@ -547,10 +547,10 @@ class VendorPassthruTestCase(db_base.DbTestCase):
     @mock.patch.object(manager_utils, 'node_set_boot_device')
     @mock.patch.object(iscsi_deploy, 'continue_deploy')
     @mock.patch.object(ilo_common, 'cleanup_vmedia_boot')
-    def _test__continue_deploy_localboot(self, cleanup_vmedia_boot_mock,
-                                        continue_deploy_mock,
-                                        set_boot_device_mock,
-                                        notify_deploy_complete_mock):
+    def _test_pass_deploy_info_localboot(self, cleanup_vmedia_boot_mock,
+                                         continue_deploy_mock,
+                                         set_boot_device_mock,
+                                         notify_deploy_complete_mock):
 
         kwargs = {'method': 'pass_deploy_info', 'address': '123456'}
         continue_deploy_mock.return_value = '<some-uuid>'
@@ -561,7 +561,7 @@ class VendorPassthruTestCase(db_base.DbTestCase):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
             vendor = task.driver.vendor
-            vendor._continue_deploy(task, **kwargs)
+            vendor.pass_deploy_info(task, **kwargs)
 
             cleanup_vmedia_boot_mock.assert_called_once_with(task)
             continue_deploy_mock.assert_called_once_with(task, **kwargs)
@@ -572,15 +572,15 @@ class VendorPassthruTestCase(db_base.DbTestCase):
             self.assertEqual(states.ACTIVE, task.node.provision_state)
             self.assertEqual(states.NOSTATE, task.node.target_provision_state)
 
-    def test__continue_deploy_boot_option_local(self):
+    def test_pass_deploy_info_boot_option_local(self):
         self.node.instance_info = {'capabilities': '{"boot_option": "local"}'}
         self.node.save()
-        self._test__continue_deploy_localboot()
+        self._test_pass_deploy_info_localboot()
 
-    def test__continue_deploy_whole_disk_image(self):
+    def test_pass_deploy_info_whole_disk_image(self):
         self.node.driver_internal_info = {'is_whole_disk_image': True}
         self.node.save()
-        self._test__continue_deploy_localboot()
+        self._test_pass_deploy_info_localboot()
 
     @mock.patch.object(keystone, 'get_admin_auth_token')
     @mock.patch.object(agent_base_vendor.BaseAgentVendor,
@@ -714,16 +714,16 @@ class IloPXEVendorPassthruTestCase(db_base.DbTestCase):
             self.assertIsInstance(driver_routes, dict)
             self.assertEqual(sorted(expected), sorted(list(driver_routes)))
 
-    @mock.patch.object(pxe.VendorPassthru, '_continue_deploy')
+    @mock.patch.object(pxe.VendorPassthru, 'pass_deploy_info')
     @mock.patch.object(manager_utils, 'node_set_boot_device')
-    def test_vendorpassthru_continue_deploy(self, set_boot_device_mock,
-                                            pxe_vendorpassthru_mock):
+    def test_vendorpassthru_pass_deploy_info(self, set_boot_device_mock,
+                                             pxe_vendorpassthru_mock):
         kwargs = {'address': '123456'}
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
             task.node.provision_state = states.DEPLOYWAIT
             task.node.target_provision_state = states.ACTIVE
-            task.driver.vendor._continue_deploy(task, **kwargs)
+            task.driver.vendor.pass_deploy_info(task, **kwargs)
             set_boot_device_mock.assert_called_with(task, boot_devices.PXE,
                                                     True)
             pxe_vendorpassthru_mock.assert_called_once_with(task, **kwargs)

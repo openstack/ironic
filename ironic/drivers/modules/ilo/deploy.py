@@ -496,10 +496,10 @@ class IloConsoleInterface(ipmitool.IPMIShellinaboxConsole):
 
 class IloPXEVendorPassthru(pxe.VendorPassthru):
 
-    @base.passthru(['POST'], method='pass_deploy_info')
-    def _continue_deploy(self, task, **kwargs):
+    @base.passthru(['POST'])
+    def pass_deploy_info(self, task, **kwargs):
         manager_utils.node_set_boot_device(task, boot_devices.PXE, True)
-        super(IloPXEVendorPassthru, self)._continue_deploy(task, **kwargs)
+        super(IloPXEVendorPassthru, self).pass_deploy_info(task, **kwargs)
 
 
 class VendorPassthru(agent_base_vendor.BaseAgentVendor):
@@ -542,9 +542,9 @@ class VendorPassthru(agent_base_vendor.BaseAgentVendor):
             i_info['ilo_boot_iso'] = boot_iso
             node.instance_info = i_info
 
-    @base.passthru(['POST'], method='pass_deploy_info')
+    @base.passthru(['POST'])
     @task_manager.require_exclusive_lock
-    def _continue_deploy(self, task, **kwargs):
+    def pass_deploy_info(self, task, **kwargs):
         """Continues the iSCSI deployment from where ramdisk left off.
 
         This method continues the iSCSI deployment from the conductor node
