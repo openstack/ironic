@@ -58,6 +58,14 @@ class TestAgentMethods(db_base.DbTestCase):
         self.assertEqual('api-url', options['ipa-api-url'])
         self.assertEqual('fake_agent', options['ipa-driver-name'])
 
+    def test_build_agent_options_root_device_hints(self):
+        self.config(api_url='api-url', group='conductor')
+        self.node.properties['root_device'] = {'model': 'fake_model'}
+        options = agent.build_agent_options(self.node)
+        self.assertEqual('api-url', options['ipa-api-url'])
+        self.assertEqual('fake_agent', options['ipa-driver-name'])
+        self.assertEqual('model=fake_model', options['root_device'])
+
     @mock.patch.object(image_service, 'GlanceImageService')
     def test_build_instance_info_for_deploy_glance_image(self, glance_mock):
         i_info = self.node.instance_info
@@ -172,6 +180,13 @@ class TestAgentDeploy(db_base.DbTestCase):
                 self.context, self.node.uuid, shared=False) as task:
             self.assertRaises(exception.MissingParameterValue,
                               self.driver.validate, task)
+
+    def test_validate_invalid_root_device_hints(self):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            task.node.properties['root_device'] = {'size': 'not-int'}
+            self.assertRaises(exception.InvalidParameterValue,
+                              task.driver.deploy.validate, task)
 
     @mock.patch.object(dhcp_factory.DHCPFactory, 'update_dhcp')
     @mock.patch('ironic.conductor.utils.node_set_boot_device')
@@ -310,3 +325,34 @@ class TestAgentVendor(db_base.DbTestCase):
             mock_get_cmd.return_value = [{'command_name': 'prepare_image',
                                           'command_status': 'RUNNING'}]
             self.assertFalse(self.passthru.deploy_is_done(task))
+
+    def _build_pxe_config_options(self, root_device_hints=False):
+        self.config(api_url='api-url', group='conductor')
+        self.config(agent_pxe_append_params='foo bar', group='agent')
+
+        if root_device_hints:
+            self.node.properties['root_device'] = {'model': 'FakeModel'}
+
+        pxe_info = {
+            'deploy_kernel': ('glance://deploy-kernel',
+                              'fake-node/deploy_kernel'),
+            'deploy_ramdisk': ('glance://deploy-ramdisk',
+                               'fake-node/deploy_ramdisk'),
+        }
+        options = agent._build_pxe_config_options(self.node, pxe_info)
+        expected = {'deployment_aki_path': 'fake-node/deploy_kernel',
+                    'deployment_ari_path': 'fake-node/deploy_ramdisk',
+                    'ipa-api-url': 'api-url',
+                    'ipa-driver-name': u'fake_agent',
+                    'pxe_append_params': 'foo bar'}
+
+        if root_device_hints:
+            expected['root_device'] = 'model=FakeModel'
+
+        self.assertEqual(expected, options)
+
+    def test__build_pxe_config_options(self):
+        self._build_pxe_config_options()
+
+    def test__build_pxe_config_options_root_device_hints(self):
+        self._build_pxe_config_options(root_device_hints=True)
