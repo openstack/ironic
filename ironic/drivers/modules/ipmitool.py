@@ -182,17 +182,29 @@ def _make_password_file(password):
     :raises: PasswordFileFailedToCreate from creating or writing to the
              temporary file
     """
+    f = None
     try:
-        fd, path = tempfile.mkstemp()
-        with os.fdopen(fd, "w") as f:
-            f.write(str(password))
-    except Exception as exc:
-        utils.delete_if_exists(path)
+        f = tempfile.NamedTemporaryFile(mode='w', dir=CONF.tempdir)
+        f.write(str(password))
+        f.flush()
+    except (IOError, OSError) as exc:
+        if f is not None:
+            f.close()
         raise exception.PasswordFileFailedToCreate(error=exc)
+    except Exception:
+        if f is not None:
+            f.close()
+        raise
+
     try:
-        yield path
+        # NOTE(jlvillal): This yield can not be in the try/except block above
+        # because an exception by the caller of this function would then get
+        # changed to a PasswordFileFailedToCreate exception which would mislead
+        # about the problem and its cause.
+        yield f.name
     finally:
-        utils.delete_if_exists(path)
+        if f is not None:
+            f.close()
 
 
 def _parse_driver_info(node):

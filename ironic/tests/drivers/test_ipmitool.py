@@ -223,21 +223,65 @@ class IPMIToolPrivateMethodTestCase(db_base.DbTestCase):
                 driver_info=INFO_DICT)
         self.info = ipmi._parse_driver_info(self.node)
 
-    def _test__make_password_file(self, mock_sleep, input_password):
-        with ipmi._make_password_file(input_password) as pw_file:
-            del_chk_pw_file = pw_file
-            self.assertTrue(os.path.isfile(pw_file))
-            self.assertEqual(0o600, os.stat(pw_file)[stat.ST_MODE] & 0o777)
-            with open(pw_file, "r") as f:
-                password = f.read()
-            self.assertEqual(str(input_password), password)
-        self.assertFalse(os.path.isfile(del_chk_pw_file))
+    def _test__make_password_file(self, mock_sleep, input_password,
+                                  exception_to_raise=None):
+        pw_file = None
+        try:
+            with ipmi._make_password_file(input_password) as pw_file:
+                if exception_to_raise is not None:
+                    raise exception_to_raise
+                self.assertTrue(os.path.isfile(pw_file))
+                self.assertEqual(0o600, os.stat(pw_file)[stat.ST_MODE] & 0o777)
+                with open(pw_file, "r") as f:
+                    password = f.read()
+                self.assertEqual(str(input_password), password)
+        finally:
+            if pw_file is not None:
+                self.assertFalse(os.path.isfile(pw_file))
 
     def test__make_password_file_str_password(self, mock_sleep):
         self._test__make_password_file(mock_sleep, self.info.get('password'))
 
     def test__make_password_file_with_numeric_password(self, mock_sleep):
         self._test__make_password_file(mock_sleep, 12345)
+
+    def test__make_password_file_caller_exception(self, mock_sleep):
+        # Test caller raising exception
+        result = self.assertRaises(
+            ValueError,
+            self._test__make_password_file,
+            mock_sleep, 12345, ValueError('we should fail'))
+        self.assertEqual(result.message, 'we should fail')
+
+    @mock.patch.object(tempfile, 'NamedTemporaryFile',
+                       new=mock.MagicMock(side_effect=OSError('Test Error')))
+    def test__make_password_file_tempfile_known_exception(self, mock_sleep):
+        # Test OSError exception in _make_password_file for
+        # tempfile.NamedTemporaryFile
+        self.assertRaises(
+            exception.PasswordFileFailedToCreate,
+            self._test__make_password_file, mock_sleep, 12345)
+
+    @mock.patch.object(
+        tempfile, 'NamedTemporaryFile',
+        new=mock.MagicMock(side_effect=OverflowError('Test Error')))
+    def test__make_password_file_tempfile_unknown_exception(self, mock_sleep):
+        # Test exception in _make_password_file for tempfile.NamedTemporaryFile
+        result = self.assertRaises(
+            OverflowError,
+            self._test__make_password_file, mock_sleep, 12345)
+        self.assertEqual(result.message, 'Test Error')
+
+    def test__make_password_file_write_exception(self, mock_sleep):
+        # Test exception in _make_password_file for write()
+        mock_namedtemp = mock.mock_open(mock.MagicMock(name='JLV'))
+        with mock.patch('tempfile.NamedTemporaryFile', mock_namedtemp):
+            mock_filehandle = mock_namedtemp.return_value
+            mock_write = mock_filehandle.write
+            mock_write.side_effect = OSError('Test 2 Error')
+            self.assertRaises(
+                exception.PasswordFileFailedToCreate,
+                self._test__make_password_file, mock_sleep, 12345)
 
     def test__parse_driver_info(self, mock_sleep):
         # make sure we get back the expected things
