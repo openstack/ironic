@@ -169,15 +169,24 @@ conductor_opts = [
                    help='Timeout (seconds) for waiting for node inspection. '
                         '0 - unlimited.'),
         cfg.BoolOpt('clean_nodes',
-                    default=True,
-                    help='Whether Ironic will attempt to "clean" a node '
-                         'when preparing a node for deployments or after '
-                         'an instance is deleted from a node. Cleaning is '
-                         'a configurable set of steps, such as erasing disk '
-                         'drives, that are performed on the node to ensure it '
-                         'is in a baseline state and ready to be deployed to. '
-                         'See the individual driver\'s documentation for '
-                         'supported cleaning steps.'),
+                    default=False,
+                    help='Cleaning is a configurable set of steps, such as '
+                         'erasing disk drives, that are performed on the node '
+                         'to ensure it is in a baseline state and ready to be '
+                         'deployed to. '
+                         'This is done after instance deletion, and during '
+                         'the transition from a "managed" to "available" '
+                         'state. When enabled, the particular steps '
+                         'performed to clean a node depend on which driver '
+                         'that node is managed by; see the individual '
+                         'driver\'s documentation for details. '
+                         'NOTE: The introduction of the cleaning operation '
+                         'causes instance deletion to take significantly '
+                         'longer. While this provides a better and more '
+                         'secure user experience, it does impact the service '
+                         'behavior, and as such IS DISABLED BY DEFAULT until '
+                         'consuming services (eg, Nova) have been updated to '
+                         'accomodate the additional time for deletion.'),
 ]
 CONF = cfg.CONF
 CONF.register_opts(conductor_opts, 'conductor')
