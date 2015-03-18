@@ -30,6 +30,7 @@ from ironic.drivers.modules.drac import management as drac_mgmt
 from ironic.drivers.modules.drac import power as drac_power
 from ironic.drivers.modules import fake
 from ironic.drivers.modules import iboot
+from ironic.drivers.modules.ilo import inspect as ilo_inspect
 from ironic.drivers.modules.ilo import management as ilo_management
 from ironic.drivers.modules.ilo import power as ilo_power
 from ironic.drivers.modules import ipminative
@@ -152,6 +153,7 @@ class FakeIloDriver(base.BaseDriver):
         self.power = ilo_power.IloPower()
         self.deploy = fake.FakeDeploy()
         self.management = ilo_management.IloManagement()
+        self.inspect = ilo_inspect.IloInspect()
 
 
 class FakeDracDriver(base.BaseDriver):

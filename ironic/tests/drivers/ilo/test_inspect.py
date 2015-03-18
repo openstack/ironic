@@ -1,0 +1,396 @@
+# Copyright 2014 Hewlett-Packard Development Company, L.P.
+#
+# Licensed under the Apache License, Version 2.0 (the "License"); you may
+# not use this file except in compliance with the License. You may obtain
+# a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+# License for the specific language governing permissions and limitations
+# under the License.
+
+
+"""Test class for Management Interface used by iLO modules."""
+
+import mock
+from oslo_config import cfg
+
+from ironic.common import exception
+from ironic.common import states
+from ironic.conductor import task_manager
+from ironic.conductor import utils as conductor_utils
+from ironic.db import api as dbapi
+from ironic.drivers.modules.ilo import common as ilo_common
+from ironic.drivers.modules.ilo import inspect as ilo_inspect
+from ironic.drivers.modules.ilo import power as ilo_power
+from ironic.tests.conductor import utils as mgr_utils
+from ironic.tests.db import base as db_base
+from ironic.tests.db import utils as db_utils
+from ironic.tests.objects import utils as obj_utils
+
+
+INFO_DICT = db_utils.get_test_ilo_info()
+CONF = cfg.CONF
+
+
+class IloInspectTestCase(db_base.DbTestCase):
+
+    def setUp(self):
+        super(IloInspectTestCase, self).setUp()
+        mgr_utils.mock_the_extension_manager(driver="fake_ilo")
+        self.node = obj_utils.create_test_node(self.context,
+                driver='fake_ilo', driver_info=INFO_DICT)
+
+    def test_get_properties(self):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            properties = ilo_common.REQUIRED_PROPERTIES.copy()
+            properties.update(ilo_common.INSPECT_PROPERTIES)
+            self.assertEqual(properties,
+                             task.driver.inspect.get_properties())
+
+    @mock.patch.object(ilo_common, 'parse_driver_info')
+    def test_validate_inspect_ports_valid_with_comma(self, driver_info_mock):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            driver_info_mock.return_value = {'inspect_ports': '1,2'}
+            task.driver.inspect.validate(task)
+            driver_info_mock.assert_called_once_with(task.node)
+
+    @mock.patch.object(ilo_common, 'parse_driver_info')
+    def test_validate_inspect_ports_valid_None(self, driver_info_mock):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            driver_info_mock.return_value = {'inspect_ports': 'None'}
+            task.driver.inspect.validate(task)
+            driver_info_mock.assert_called_once_with(task.node)
+
+    @mock.patch.object(ilo_common, 'parse_driver_info')
+    def test_validate_inspect_ports_valid_all(self, driver_info_mock):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            driver_info_mock.return_value = {'inspect_ports': 'all'}
+            task.driver.inspect.validate(task)
+            driver_info_mock.assert_called_once_with(task.node)
+
+    @mock.patch.object(ilo_common, 'parse_driver_info')
+    def test_validate_inspect_ports_valid_single(self, driver_info_mock):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            driver_info_mock.return_value = {'inspect_ports': '1'}
+            task.driver.inspect.validate(task)
+            driver_info_mock.assert_called_once_with(task.node)
+
+    @mock.patch.object(ilo_common, 'parse_driver_info')
+    def test_validate_inspect_ports_invalid(self, driver_info_mock):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            driver_info_mock.return_value = {'inspect_ports': 'abc'}
+            self.assertRaises(exception.InvalidParameterValue,
+                              task.driver.inspect.validate, task)
+            driver_info_mock.assert_called_once_with(task.node)
+
+    @mock.patch.object(ilo_common, 'parse_driver_info')
+    def test_validate_inspect_ports_missing(self, driver_info_mock):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            driver_info_mock.return_value = {'xyz': 'abc'}
+            self.assertRaises(exception.MissingParameterValue,
+                              task.driver.inspect.validate, task)
+            driver_info_mock.assert_called_once_with(task.node)
+
+    @mock.patch.object(ilo_inspect, '_create_ports_if_not_exist')
+    @mock.patch.object(ilo_inspect, '_get_macs_for_desired_ports')
+    @mock.patch.object(ilo_inspect, '_get_essential_properties')
+    @mock.patch.object(ilo_power.IloPower, 'get_power_state')
+    @mock.patch.object(ilo_common, 'get_ilo_object')
+    def test_inspect_essential_ok(self, get_ilo_object_mock,
+                                  power_mock,
+                                  get_essential_mock,
+                                  desired_macs_mock,
+                                  create_port_mock):
+        ilo_object_mock = get_ilo_object_mock.return_value
+        properties = {'memory_mb': '512', 'local_gb': '10',
+                      'cpus': '1', 'cpu_arch': 'x86_64'}
+        macs = {'Port 1': 'aa:aa:aa:aa:aa:aa', 'Port 2': 'bb:bb:bb:bb:bb:bb'}
+        desired_macs_mock.return_value = {'Port 1': 'aa:aa:aa:aa:aa:aa',
+                                          'Port 2': 'bb:bb:bb:bb:bb:bb'}
+        result = {'properties': properties, 'macs': macs}
+        get_essential_mock.return_value = result
+        power_mock.return_value = states.POWER_ON
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            task.node.driver_info = {'inspect_ports': 'all'}
+            task.driver.inspect.inspect_hardware(task)
+            self.assertEqual(properties, task.node.properties)
+            power_mock.assert_called_once_with(task)
+            get_essential_mock.assert_called_once_with(task.node,
+                                                       ilo_object_mock)
+            create_port_mock.assert_called_once_with(task.node, macs)
+
+    @mock.patch.object(ilo_inspect, '_create_ports_if_not_exist')
+    @mock.patch.object(ilo_inspect, '_get_macs_for_desired_ports')
+    @mock.patch.object(ilo_inspect, '_get_essential_properties')
+    @mock.patch.object(conductor_utils, 'node_power_action')
+    @mock.patch.object(ilo_power.IloPower, 'get_power_state')
+    @mock.patch.object(ilo_common, 'get_ilo_object')
+    def test_inspect_essential_ok_power_off(self, get_ilo_object_mock,
+                                            power_mock,
+                                            set_power_mock,
+                                            get_essential_mock,
+                                            desired_macs_mock,
+                                            create_port_mock):
+        ilo_object_mock = get_ilo_object_mock.return_value
+        properties = {'memory_mb': '512', 'local_gb': '10',
+                      'cpus': '1', 'cpu_arch': 'x86_64'}
+        macs = {'Port 1': 'aa:aa:aa:aa:aa:aa', 'Port 2': 'bb:bb:bb:bb:bb:bb'}
+        desired_macs_mock.return_value = {'Port 1': 'aa:aa:aa:aa:aa:aa',
+                                           'Port 2': 'bb:bb:bb:bb:bb:bb'}
+        result = {'properties': properties, 'macs': macs}
+        get_essential_mock.return_value = result
+        power_mock.return_value = states.POWER_OFF
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            task.node.driver_info = {'inspect_ports': 'all'}
+            task.driver.inspect.inspect_hardware(task)
+            self.assertEqual(properties, task.node.properties)
+            power_mock.assert_called_once_with(task)
+            set_power_mock.assert_any_call(task, states.POWER_ON)
+            get_essential_mock.assert_called_once_with(task.node,
+                                                       ilo_object_mock)
+            create_port_mock.assert_called_once_with(task.node, macs)
+
+    @mock.patch.object(ilo_inspect, '_create_ports_if_not_exist')
+    @mock.patch.object(ilo_inspect, '_get_macs_for_desired_ports')
+    @mock.patch.object(ilo_inspect, '_get_essential_properties')
+    @mock.patch.object(ilo_power.IloPower, 'get_power_state')
+    @mock.patch.object(ilo_common, 'get_ilo_object')
+    def test_inspect_hardware_port_desired(self, get_ilo_object_mock,
+                                      power_mock,
+                                      get_essential_mock,
+                                      desired_macs_mock,
+                                      create_port_mock):
+        ilo_object_mock = get_ilo_object_mock.return_value
+        properties = {'memory_mb': '512', 'local_gb': '10',
+                      'cpus': '1', 'cpu_arch': 'x86_64'}
+        macs = {'Port 1': 'aa:aa:aa:aa:aa:aa', 'Port 2': 'bb:bb:bb:bb:bb:bb'}
+        result = {'properties': properties, 'macs': macs}
+        macs_input_given = {'Port 1': 'aa:aa:aa:aa:aa:aa'}
+        desired_macs_mock.return_value = macs_input_given
+        get_essential_mock.return_value = result
+        power_mock.return_value = states.POWER_ON
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            task.node.driver_info = {'inspect_ports': '1'}
+            task.driver.inspect.inspect_hardware(task)
+            power_mock.assert_called_once_with(task)
+            get_essential_mock.assert_called_once_with(task.node,
+                                                       ilo_object_mock)
+            self.assertEqual(task.node.properties, result['properties'])
+            create_port_mock.assert_called_once_with(task.node,
+                                                     macs_input_given)
+
+    @mock.patch.object(ilo_inspect, '_create_ports_if_not_exist')
+    @mock.patch.object(ilo_inspect, '_get_macs_for_desired_ports')
+    @mock.patch.object(ilo_inspect, '_get_essential_properties')
+    @mock.patch.object(ilo_power.IloPower, 'get_power_state')
+    @mock.patch.object(ilo_common, 'get_ilo_object')
+    def test_inspect_hardware_port_desired_none(self, get_ilo_object_mock,
+                                      power_mock,
+                                      get_essential_mock,
+                                      desired_macs_mock,
+                                      create_port_mock):
+        ilo_object_mock = get_ilo_object_mock.return_value
+        properties = {'memory_mb': '512', 'local_gb': '10',
+                      'cpus': '1', 'cpu_arch': 'x86_64'}
+        macs = {'Port 1': 'aa:aa:aa:aa:aa:aa', 'Port 2': 'bb:bb:bb:bb:bb:bb'}
+        result = {'properties': properties, 'macs': macs}
+        macs_input_given = {'Port 1': 'aa:aa:aa:aa:aa:aa'}
+        desired_macs_mock.return_value = macs_input_given
+        get_essential_mock.return_value = result
+        power_mock.return_value = states.POWER_ON
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            task.node.driver_info = {'inspect_ports': 'none'}
+            task.driver.inspect.inspect_hardware(task)
+            power_mock.assert_called_once_with(task)
+            get_essential_mock.assert_called_once_with(task.node,
+                                                       ilo_object_mock)
+            self.assertEqual(task.node.properties, result['properties'])
+            create_port_mock.assert_not_called()
+
+
+class TestInspectPrivateMethods(db_base.DbTestCase):
+
+    def setUp(self):
+        super(TestInspectPrivateMethods, self).setUp()
+        mgr_utils.mock_the_extension_manager(driver="fake_ilo")
+        self.node = obj_utils.create_test_node(self.context,
+                driver='fake_ilo', driver_info=INFO_DICT)
+
+    @mock.patch.object(ilo_inspect.LOG, 'info')
+    @mock.patch.object(dbapi, 'get_instance')
+    def test__create_ports_if_not_exist(self, instance_mock, log_mock):
+        db_obj = instance_mock.return_value
+        macs = {'Port 1': 'aa:aa:aa:aa:aa:aa', 'Port 2': 'bb:bb:bb:bb:bb:bb'}
+        node_id = self.node.id
+        port_dict1 = {'address': 'aa:aa:aa:aa:aa:aa', 'node_id': node_id}
+        port_dict2 = {'address': 'bb:bb:bb:bb:bb:bb', 'node_id': node_id}
+        ilo_inspect._create_ports_if_not_exist(self.node, macs)
+        instance_mock.assert_called_once()
+        self.assertTrue(log_mock.called)
+        db_obj.create_port.assert_any_call(port_dict1)
+        db_obj.create_port.assert_any_call(port_dict2)
+
+    @mock.patch.object(ilo_inspect.LOG, 'warn')
+    @mock.patch.object(dbapi, 'get_instance')
+    def test__create_ports_if_not_exist_mac_exception(self,
+                                                      instance_mock,
+                                                      log_mock):
+        dbapi_mock = instance_mock.return_value
+        dbapi_mock.create_port.side_effect = exception.MACAlreadyExists('f')
+        macs = {'Port 1': 'aa:aa:aa:aa:aa:aa', 'Port 2': 'bb:bb:bb:bb:bb:bb'}
+        ilo_inspect._create_ports_if_not_exist(self.node, macs)
+        instance_mock.assert_called_once()
+        self.assertTrue(log_mock.called)
+
+    def test__get_essential_properties_ok(self):
+        ilo_mock = mock.MagicMock()
+        properties = {'memory_mb': '512', 'local_gb': '10',
+                      'cpus': '1', 'cpu_arch': 'x86_64'}
+        macs = {'Port 1': 'aa:aa:aa:aa:aa:aa', 'Port 2': 'bb:bb:bb:bb:bb:bb'}
+        result = {'properties': properties, 'macs': macs}
+        ilo_mock.get_essential_properties.return_value = result
+        actual_result = ilo_inspect._get_essential_properties(self.node,
+                                                              ilo_mock)
+        self.assertEqual(result, actual_result)
+
+    def test__get_essential_properties_fail(self):
+        ilo_mock = mock.MagicMock()
+        # Missing key: cpu_arch
+        properties = {'memory_mb': '512', 'local_gb': '10',
+                      'cpus': '1'}
+        macs = {'Port 1': 'aa:aa:aa:aa:aa:aa', 'Port 2': 'bb:bb:bb:bb:bb:bb'}
+        result = {'properties': properties, 'macs': macs}
+        ilo_mock.get_essential_properties.return_value = result
+        result = self.assertRaises(exception.HardwareInspectionFailure,
+                                   ilo_inspect._get_essential_properties,
+                                   self.node,
+                                   ilo_mock)
+        self.assertEqual(
+            result.format_message(),
+            ("Failed to inspect hardware. Reason: Server didn't return the "
+             "key(s): cpu_arch"))
+
+    def test__get_essential_properties_fail_invalid_format(self):
+        ilo_mock = mock.MagicMock()
+        # Not a dict
+        properties = ['memory_mb', '512', 'local_gb', '10',
+                      'cpus', '1']
+        macs = ['aa:aa:aa:aa:aa:aa', 'bb:bb:bb:bb:bb:bb']
+        capabilities = ''
+        result = {'properties': properties, 'macs': macs}
+        ilo_mock.get_essential_properties.return_value = result
+        ilo_mock.get_additional_capabilities.return_value = capabilities
+        self.assertRaises(exception.HardwareInspectionFailure,
+                          ilo_inspect._get_essential_properties,
+                          self.node, ilo_mock)
+
+    def test__get_essential_properties_fail_mac_invalid_format(self):
+        ilo_mock = mock.MagicMock()
+        properties = {'memory_mb': '512', 'local_gb': '10',
+                      'cpus': '1', 'cpu_arch': 'x86_64'}
+        # Not a dict
+        macs = 'aa:aa:aa:aa:aa:aa'
+        result = {'properties': properties, 'macs': macs}
+        ilo_mock.get_essential_properties.return_value = result
+        self.assertRaises(exception.HardwareInspectionFailure,
+                          ilo_inspect._get_essential_properties,
+                          self.node, ilo_mock)
+
+    def test__get_essential_properties_hardware_port_empty(self):
+        ilo_mock = mock.MagicMock()
+        properties = {'memory_mb': '512', 'local_gb': '10',
+                      'cpus': '1', 'cpu_arch': 'x86_64'}
+        # Not a dictionary
+        macs = None
+        result = {'properties': properties, 'macs': macs}
+        capabilities = ''
+        ilo_mock.get_essential_properties.return_value = result
+        ilo_mock.get_additional_capabilities.return_value = capabilities
+        self.assertRaises(exception.HardwareInspectionFailure,
+                          ilo_inspect._get_essential_properties,
+                          self.node, ilo_mock)
+
+    def test__get_essential_properties_hardware_port_not_dict(self):
+        ilo_mock = mock.MagicMock()
+        properties = {'memory_mb': '512', 'local_gb': '10',
+                      'cpus': '1', 'cpu_arch': 'x86_64'}
+        # Not a dict
+        macs = 'aa:bb:cc:dd:ee:ff'
+        result = {'properties': properties, 'macs': macs}
+        ilo_mock.get_essential_properties.return_value = result
+        result = self.assertRaises(
+            exception.HardwareInspectionFailure,
+            ilo_inspect._get_essential_properties, self.node, ilo_mock)
+
+    def test__validate_ok(self):
+        properties = {'memory_mb': '512', 'local_gb': '10',
+                      'cpus': '2', 'cpu_arch': 'x86_arch'}
+        macs = {'Port 1': 'aa:aa:aa:aa:aa:aa'}
+        data = {'properties': properties, 'macs': macs}
+        valid_keys = set(ilo_inspect.ESSENTIAL_PROPERTIES_KEYS)
+        ilo_inspect._validate(self.node, data)
+        self.assertEqual(sorted(set(properties)), sorted(valid_keys))
+
+    def test__validate_essential_keys_fail_missing_key(self):
+        properties = {'memory_mb': '512', 'local_gb': '10',
+                      'cpus': '1'}
+        macs = {'Port 1': 'aa:aa:aa:aa:aa:aa'}
+        data = {'properties': properties, 'macs': macs}
+        self.assertRaises(exception.HardwareInspectionFailure,
+                          ilo_inspect._validate, self.node, data)
+
+    def test__get_macs_for_desired_ports(self):
+        driver_info_mock = {'inspect_ports': '1,2'}
+        self.node.driver_info = driver_info_mock
+        macs = {'Port 1': 'aa:aa:aa:aa:aa:aa', 'Port 2': 'bb:bb:bb:bb:bb:bb'}
+        expected_macs = {'Port 1': 'aa:aa:aa:aa:aa:aa',
+                         'Port 2': 'bb:bb:bb:bb:bb:bb'}
+        macs_out = (
+             ilo_inspect._get_macs_for_desired_ports(self.node,
+                                                             macs))
+        self.assertEqual(expected_macs, macs_out)
+
+    def test__get_macs_for_desired_ports_few(self):
+        driver_info_mock = {'inspect_ports': '1,2'}
+        self.node.driver_info = driver_info_mock
+        macs = {'Port 1': 'aa:aa:aa:aa:aa:aa', 'Port 2': 'bb:bb:bb:bb:bb:bb',
+                'Port 3': 'cc:cc:cc:cc:cc:cc', 'Port 4': 'dd:dd:dd:dd:dd:dd'}
+        expected_macs = {'Port 1': 'aa:aa:aa:aa:aa:aa',
+                         'Port 2': 'bb:bb:bb:bb:bb:bb'}
+        macs_out = (
+             ilo_inspect._get_macs_for_desired_ports(self.node,
+                                                             macs))
+        self.assertEqual(expected_macs, macs_out)
+
+    def test__get_macs_for_desired_ports_one(self):
+        driver_info_mock = {'inspect_ports': '1'}
+        self.node.driver_info = driver_info_mock
+        macs = {'Port 1': 'aa:aa:aa:aa:aa:aa', 'Port 2': 'bb:bb:bb:bb:bb:bb'}
+        expected_macs = {'Port 1': 'aa:aa:aa:aa:aa:aa'}
+        macs_out = (
+             ilo_inspect._get_macs_for_desired_ports(self.node,
+                                                             macs))
+        self.assertEqual(expected_macs, macs_out)
+
+    def test__get_macs_for_desired_ports_none(self):
+        driver_info_mock = {}
+        self.node.driver_info = driver_info_mock
+        macs = {'Port 1': 'aa:aa:aa:aa:aa:aa', 'Port 2': 'bb:bb:bb:bb:bb:bb'}
+        self.assertRaises(exception.HardwareInspectionFailure,
+                          ilo_inspect._get_macs_for_desired_ports,
+                          self.node, macs)
