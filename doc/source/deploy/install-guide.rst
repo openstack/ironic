@@ -817,10 +817,10 @@ controller in your bare metal server by using ``ipmitool``::
    older BMCs to crash and require a hard-reset.
 
 Ironic supports sending IPMI sensor data to Ceilometer with pxe_ipmitool,
-pxe_ipminative, agent_ipmitool, agent_pyghmi, agent_ilo, iscsi_ilo and pxe_ilo
-drivers. By default, support for sending IPMI sensor data to Ceilometer is
-disabled. If you want to enable it, you should make the following two changes
-in ``ironic.conf``:
+pxe_ipminative, agent_ipmitool, agent_pyghmi, agent_ilo, iscsi_ilo, pxe_ilo,
+and with pxe_irmc driver starting from Kilo release. By default, support for
+sending IPMI sensor data to Ceilometer is disabled. If you want to enable it,
+you should make the following two changes in ``ironic.conf``:
 
 * ``notification_driver = messaging`` in the ``DEFAULT`` section
 * ``send_sensor_data = true`` in the ``conductor`` section
