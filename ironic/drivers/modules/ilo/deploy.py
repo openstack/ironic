@@ -287,6 +287,7 @@ class IloVirtualMediaIscsiDeploy(base.DeployInterface):
             props = ['kernel', 'ramdisk']
         iscsi_deploy.validate_image_properties(task.context, d_info, props)
         driver_utils.validate_boot_mode_capability(task.node)
+        driver_utils.validate_boot_option_capability(task.node)
 
     @task_manager.require_exclusive_lock
     def deploy(self, task):
