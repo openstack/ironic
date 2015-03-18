@@ -483,7 +483,9 @@ class TestInspectPrivateMethods(db_base.DbTestCase):
         cap_string = 'ilo_firmware_version:xyz,foo:bar,somekey:value'
         cap_returned = ilo_inspect._update_capabilities(self.node,
                                                         capabilities)
-        self.assertEqual(sorted(cap_string), sorted(cap_returned))
+        set1 = set(cap_string.split(','))
+        set2 = set(cap_returned.split(','))
+        self.assertEqual(set1, set2)
         self.assertIsInstance(cap_returned, str)
 
     def test__update_capabilities_invalid_capabilities(self):
@@ -497,6 +499,30 @@ class TestInspectPrivateMethods(db_base.DbTestCase):
         self.assertRaises(exception.HardwareInspectionFailure,
                           ilo_inspect._update_capabilities,
                           self.node, capabilities)
+
+    def test__update_capabilities_add_to_existing_capabilities(self):
+        node_capabilities = {'capabilities': 'foo:bar'}
+        self.node.properties.update(node_capabilities)
+        new_capabilities = {'BootMode': 'uefi'}
+        expected_capabilities = 'BootMode:uefi,foo:bar'
+        cap_returned = ilo_inspect._update_capabilities(self.node,
+                                                        new_capabilities)
+        set1 = set(expected_capabilities.split(','))
+        set2 = set(cap_returned.split(','))
+        self.assertEqual(set1, set2)
+        self.assertIsInstance(cap_returned, str)
+
+    def test__update_capabilities_replace_to_existing_capabilities(self):
+        node_capabilities = {'capabilities': 'BootMode:uefi'}
+        self.node.properties.update(node_capabilities)
+        new_capabilities = {'BootMode': 'bios'}
+        expected_capabilities = 'BootMode:bios'
+        cap_returned = ilo_inspect._update_capabilities(self.node,
+                                                        new_capabilities)
+        set1 = set(expected_capabilities.split(','))
+        set2 = set(cap_returned.split(','))
+        self.assertEqual(set1, set2)
+        self.assertIsInstance(cap_returned, str)
 
     def test__get_macs_for_desired_ports(self):
         driver_info_mock = {'inspect_ports': '1,2'}
