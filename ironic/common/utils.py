@@ -185,11 +185,13 @@ def is_hostname_safe(hostname):
         * http://tools.ietf.org/html/rfc952
         * http://tools.ietf.org/html/rfc1123
 
+    Also allow "." because what kind of hostname doesn't allow that.
+
     :param hostname: The hostname to be validated.
     :returns: True if valid. False if not.
 
     """
-    m = '^[a-z0-9]([a-z0-9\-]{0,61}[a-z0-9])?$'
+    m = '^[a-z0-9]([a-z0-9\-\.]{0,61}[a-z0-9])?$'
     return (isinstance(hostname, six.string_types) and
            (re.match(m, hostname) is not None))
 
