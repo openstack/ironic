@@ -343,6 +343,7 @@ class GenericUtilsTestCase(base.TestCase):
         self.assertFalse(utils.is_hostname_safe('spam-'))
         self.assertTrue(utils.is_hostname_safe('spam-eggs'))
         self.assertFalse(utils.is_hostname_safe('spam eggs'))
+        self.assertTrue(utils.is_hostname_safe('spam.eggs'))
         self.assertTrue(utils.is_hostname_safe('9spam'))
         self.assertTrue(utils.is_hostname_safe('spam7'))
         self.assertTrue(utils.is_hostname_safe('br34kf4st'))
