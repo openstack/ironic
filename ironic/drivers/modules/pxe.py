@@ -540,9 +540,9 @@ class VendorPassthru(agent_base_vendor.BaseAgentVendor):
 
         _destroy_token_file(node)
         is_whole_disk_image = node.driver_internal_info['is_whole_disk_image']
-        uuid_dict_returned = iscsi_deploy.continue_deploy(task, **kwargs)
-        root_uuid_or_disk_id = uuid_dict_returned.get(
-            'root uuid', uuid_dict_returned.get('disk identifier'))
+        uuid_dict = iscsi_deploy.continue_deploy(task, **kwargs)
+        root_uuid_or_disk_id = uuid_dict.get(
+            'root uuid', uuid_dict.get('disk identifier'))
 
         # TODO(rameshg87): It's not correct to return here as it will leave
         # the node in DEPLOYING state. This will be fixed in bug 1405519.
@@ -604,14 +604,13 @@ class VendorPassthru(agent_base_vendor.BaseAgentVendor):
         # it here.
         _destroy_token_file(node)
 
-        uuid_dict_returned = iscsi_deploy.do_agent_iscsi_deploy(task,
-                                                                self._client)
+        uuid_dict = iscsi_deploy.do_agent_iscsi_deploy(task, self._client)
 
         is_whole_disk_image = node.driver_internal_info['is_whole_disk_image']
         if iscsi_deploy.get_boot_option(node) == "local":
             # Install the boot loader
-            root_uuid = uuid_dict_returned.get('root uuid')
-            efi_sys_uuid = uuid_dict_returned.get('efi system partition uuid')
+            root_uuid = uuid_dict.get('root uuid')
+            efi_sys_uuid = uuid_dict.get('efi system partition uuid')
             self.configure_local_boot(
                 task, root_uuid=root_uuid,
                 efi_system_part_uuid=efi_sys_uuid)
@@ -620,8 +619,8 @@ class VendorPassthru(agent_base_vendor.BaseAgentVendor):
             # the PXE configuration files used for the deployment
             pxe_utils.clean_up_pxe_config(task)
         else:
-            root_uuid_or_disk_id = uuid_dict_returned.get(
-                'root uuid', uuid_dict_returned.get('disk identifier'))
+            root_uuid_or_disk_id = uuid_dict.get(
+                'root uuid', uuid_dict.get('disk identifier'))
             pxe_config_path = pxe_utils.get_pxe_config_file_path(node.uuid)
             boot_mode = driver_utils.get_node_capability(node, 'boot_mode')
             deploy_utils.switch_pxe_config(pxe_config_path,
