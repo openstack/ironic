@@ -56,6 +56,13 @@ LOG = log.getLogger(__name__)
 _VENDOR_METHODS = {}
 
 
+def hide_fields_in_newer_versions(obj):
+    # if requested version is < 1.6, hide inspection_*_at fields
+    if pecan.request.version.minor < 6:
+        obj.inspection_finished_at = wsme.Unset
+        obj.inspection_started_at = wsme.Unset
+
+
 def assert_juno_provision_state_name(obj):
     # if requested version is < 1.2, convert AVAILABLE to the old NOSTATE
     if (pecan.request.version.minor < 2 and
@@ -629,6 +636,7 @@ class Node(base.APIBase):
         node = Node(**rpc_node.as_dict())
         assert_juno_provision_state_name(node)
         hide_driver_internal_info(node)
+        hide_fields_in_newer_versions(node)
         return cls._convert_with_links(node, pecan.request.host_url,
                                        expand,
                                        pecan.request.context.show_password)

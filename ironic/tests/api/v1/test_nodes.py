@@ -244,6 +244,22 @@ class TestListNodes(test_api_base.FunctionalTest):
                 headers={api_base.Version.string: "1.2"})
         self.assertEqual(states.AVAILABLE, data['provision_state'])
 
+    def test_hide_fields_in_newer_versions(self):
+        some_time = datetime.datetime(2015, 3, 18, 19, 20)
+        node = obj_utils.create_test_node(self.context,
+                                          inspection_started_at=some_time)
+        data = self.get_json('/nodes/%s' % node.uuid,
+                headers={api_base.Version.string: str(api_v1.MIN_VER)})
+        self.assertNotIn('inspection_finished_at', data)
+        self.assertNotIn('inspection_started_at', data)
+
+        data = self.get_json('/nodes/%s' % node.uuid,
+                headers={api_base.Version.string: "1.6"})
+        started = timeutils.parse_isotime(
+                data['inspection_started_at']).replace(tzinfo=None)
+        self.assertEqual(some_time, started)
+        self.assertEqual(None, data['inspection_finished_at'])
+
     def test_hide_driver_internal_info(self):
         node = obj_utils.create_test_node(self.context,
                                           driver_internal_info={"foo": "bar"})
