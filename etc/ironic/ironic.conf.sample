@@ -4,123 +4,6 @@
 # Options defined in oslo.messaging
 #
 
-# Use durable queues in AMQP. (boolean value)
-# Deprecated group/name - [DEFAULT]/rabbit_durable_queues
-#amqp_durable_queues=false
-
-# Auto-delete queues in AMQP. (boolean value)
-#amqp_auto_delete=false
-
-# Size of RPC connection pool. (integer value)
-#rpc_conn_pool_size=30
-
-# Qpid broker hostname. (string value)
-#qpid_hostname=localhost
-
-# Qpid broker port. (integer value)
-#qpid_port=5672
-
-# Qpid HA cluster host:port pairs. (list value)
-#qpid_hosts=$qpid_hostname:$qpid_port
-
-# Username for Qpid connection. (string value)
-#qpid_username=
-
-# Password for Qpid connection. (string value)
-#qpid_password=
-
-# Space separated list of SASL mechanisms to use for auth.
-# (string value)
-#qpid_sasl_mechanisms=
-
-# Seconds between connection keepalive heartbeats. (integer
-# value)
-#qpid_heartbeat=60
-
-# Transport to use, either 'tcp' or 'ssl'. (string value)
-#qpid_protocol=tcp
-
-# Whether to disable the Nagle algorithm. (boolean value)
-#qpid_tcp_nodelay=true
-
-# The number of prefetched messages held by receiver. (integer
-# value)
-#qpid_receiver_capacity=1
-
-# The qpid topology version to use.  Version 1 is what was
-# originally used by impl_qpid.  Version 2 includes some
-# backwards-incompatible changes that allow broker federation
-# to work.  Users should update to version 2 when they are
-# able to take everything down, as it requires a clean break.
-# (integer value)
-#qpid_topology_version=1
-
-# SSL version to use (valid only if SSL enabled). Valid values
-# are TLSv1 and SSLv23. SSLv2, SSLv3, TLSv1_1, and TLSv1_2 may
-# be available on some distributions. (string value)
-#kombu_ssl_version=
-
-# SSL key file (valid only if SSL enabled). (string value)
-#kombu_ssl_keyfile=
-
-# SSL cert file (valid only if SSL enabled). (string value)
-#kombu_ssl_certfile=
-
-# SSL certification authority file (valid only if SSL
-# enabled). (string value)
-#kombu_ssl_ca_certs=
-
-# How long to wait before reconnecting in response to an AMQP
-# consumer cancel notification. (floating point value)
-#kombu_reconnect_delay=1.0
-
-# The RabbitMQ broker address where a single node is used.
-# (string value)
-#rabbit_host=localhost
-
-# The RabbitMQ broker port where a single node is used.
-# (integer value)
-#rabbit_port=5672
-
-# RabbitMQ HA cluster host:port pairs. (list value)
-#rabbit_hosts=$rabbit_host:$rabbit_port
-
-# Connect over SSL for RabbitMQ. (boolean value)
-#rabbit_use_ssl=false
-
-# The RabbitMQ userid. (string value)
-#rabbit_userid=guest
-
-# The RabbitMQ password. (string value)
-#rabbit_password=guest
-
-# The RabbitMQ login method. (string value)
-#rabbit_login_method=AMQPLAIN
-
-# The RabbitMQ virtual host. (string value)
-#rabbit_virtual_host=/
-
-# How frequently to retry connecting with RabbitMQ. (integer
-# value)
-#rabbit_retry_interval=1
-
-# How long to backoff for between retries when connecting to
-# RabbitMQ. (integer value)
-#rabbit_retry_backoff=2
-
-# Maximum number of RabbitMQ connection retries. Default is 0
-# (infinite retry count). (integer value)
-#rabbit_max_retries=0
-
-# Use HA queues in RabbitMQ (x-ha-policy: all). If you change
-# this option, you must wipe the RabbitMQ database. (boolean
-# value)
-#rabbit_ha_queues=false
-
-# Deprecated, use rpc_backend=kombu+memory or rpc_backend=fake
-# (boolean value)
-#fake_rabbit=false
-
 # ZeroMQ bind address. Should be a wildcard (*), an ethernet
 # interface, or IP. The "host" option should point or resolve
 # to this address. (string value)
@@ -444,22 +327,12 @@
 
 
 #
-# Options defined in ironic.openstack.common.policy
+# Options defined in ironic.openstack.common.versionutils
 #
 
-# The JSON file that defines policies. (string value)
-#policy_file=policy.json
-
-# Default rule. Enforced when a requested rule is not found.
-# (string value)
-#policy_default_rule=default
-
-# Directories where policy configuration files are stored.
-# They can be relative to any directory in the search path
-# defined by the config_dir option, or absolute paths. The
-# file defined by policy_file must exist for these directories
-# to be searched. (multi valued)
-#policy_dirs=policy.d
+# Enables or disables fatal status of deprecations. (boolean
+# value)
+#fatal_deprecations=false
 
 
 [agent]
@@ -752,20 +625,22 @@
 # connection lost. (boolean value)
 #use_db_reconnect=false
 
-# Seconds between database connection retries. (integer value)
+# Seconds between retries of a database transaction. (integer
+# value)
 #db_retry_interval=1
 
-# If True, increases the interval between database connection
-# retries up to db_max_retry_interval. (boolean value)
+# If True, increases the interval between retries of a
+# database operation up to db_max_retry_interval. (boolean
+# value)
 #db_inc_retry_interval=true
 
 # If db_inc_retry_interval is set, the maximum seconds between
-# database connection retries. (integer value)
+# retries of a database operation. (integer value)
 #db_max_retry_interval=10
 
-# Maximum database connection retries before error is raised.
-# Set to -1 to specify an infinite retry count. (integer
-# value)
+# Maximum retries in case of connection error or deadlock
+# error before error is raised. Set to -1 to specify an
+# infinite retry count. (integer value)
 #db_max_retries=20
 
 
@@ -1267,6 +1142,147 @@
 
 # Accept clients using either SSL or plain TCP (boolean value)
 #allow_insecure_clients=false
+
+
+[oslo_messaging_qpid]
+
+#
+# Options defined in oslo.messaging
+#
+
+# Use durable queues in AMQP. (boolean value)
+# Deprecated group/name - [DEFAULT]/rabbit_durable_queues
+#amqp_durable_queues=false
+
+# Auto-delete queues in AMQP. (boolean value)
+#amqp_auto_delete=false
+
+# Size of RPC connection pool. (integer value)
+#rpc_conn_pool_size=30
+
+# Qpid broker hostname. (string value)
+#qpid_hostname=ironic
+
+# Qpid broker port. (integer value)
+#qpid_port=5672
+
+# Qpid HA cluster host:port pairs. (list value)
+#qpid_hosts=$qpid_hostname:$qpid_port
+
+# Username for Qpid connection. (string value)
+#qpid_username=
+
+# Password for Qpid connection. (string value)
+#qpid_password=
+
+# Space separated list of SASL mechanisms to use for auth.
+# (string value)
+#qpid_sasl_mechanisms=
+
+# Seconds between connection keepalive heartbeats. (integer
+# value)
+#qpid_heartbeat=60
+
+# Transport to use, either 'tcp' or 'ssl'. (string value)
+#qpid_protocol=tcp
+
+# Whether to disable the Nagle algorithm. (boolean value)
+#qpid_tcp_nodelay=true
+
+# The number of prefetched messages held by receiver. (integer
+# value)
+#qpid_receiver_capacity=1
+
+# The qpid topology version to use.  Version 1 is what was
+# originally used by impl_qpid.  Version 2 includes some
+# backwards-incompatible changes that allow broker federation
+# to work.  Users should update to version 2 when they are
+# able to take everything down, as it requires a clean break.
+# (integer value)
+#qpid_topology_version=1
+
+
+[oslo_messaging_rabbit]
+
+#
+# Options defined in oslo.messaging
+#
+
+# Use durable queues in AMQP. (boolean value)
+# Deprecated group/name - [DEFAULT]/rabbit_durable_queues
+#amqp_durable_queues=false
+
+# Auto-delete queues in AMQP. (boolean value)
+#amqp_auto_delete=false
+
+# Size of RPC connection pool. (integer value)
+#rpc_conn_pool_size=30
+
+# SSL version to use (valid only if SSL enabled). Valid values
+# are TLSv1 and SSLv23. SSLv2, SSLv3, TLSv1_1, and TLSv1_2 may
+# be available on some distributions. (string value)
+#kombu_ssl_version=
+
+# SSL key file (valid only if SSL enabled). (string value)
+#kombu_ssl_keyfile=
+
+# SSL cert file (valid only if SSL enabled). (string value)
+#kombu_ssl_certfile=
+
+# SSL certification authority file (valid only if SSL
+# enabled). (string value)
+#kombu_ssl_ca_certs=
+
+# How long to wait before reconnecting in response to an AMQP
+# consumer cancel notification. (floating point value)
+#kombu_reconnect_delay=1.0
+
+# The RabbitMQ broker address where a single node is used.
+# (string value)
+#rabbit_host=ironic
+
+# The RabbitMQ broker port where a single node is used.
+# (integer value)
+#rabbit_port=5672
+
+# RabbitMQ HA cluster host:port pairs. (list value)
+#rabbit_hosts=$rabbit_host:$rabbit_port
+
+# Connect over SSL for RabbitMQ. (boolean value)
+#rabbit_use_ssl=false
+
+# The RabbitMQ userid. (string value)
+#rabbit_userid=guest
+
+# The RabbitMQ password. (string value)
+#rabbit_password=guest
+
+# The RabbitMQ login method. (string value)
+#rabbit_login_method=AMQPLAIN
+
+# The RabbitMQ virtual host. (string value)
+#rabbit_virtual_host=/
+
+# How frequently to retry connecting with RabbitMQ. (integer
+# value)
+#rabbit_retry_interval=1
+
+# How long to backoff for between retries when connecting to
+# RabbitMQ. (integer value)
+#rabbit_retry_backoff=2
+
+# Maximum number of RabbitMQ connection retries. Default is 0
+# (infinite retry count). (integer value)
+#rabbit_max_retries=0
+
+# Use HA queues in RabbitMQ (x-ha-policy: all). If you change
+# this option, you must wipe the RabbitMQ database. (boolean
+# value)
+#rabbit_ha_queues=false
+
+# Deprecated, use rpc_backend=kombu+memory or rpc_backend=fake
+# (boolean value)
+#fake_rabbit=false
 
 
 [pxe]
