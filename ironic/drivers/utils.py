@@ -239,3 +239,14 @@ def validate_boot_option_capability(node):
 
     """
     validate_capability(node, 'boot_option', ('local', 'netboot'))
+
+
+def validate_secure_boot_capability(node):
+    """Validate the secure_boot capability set in node property.
+
+    :param node: an ironic node object.
+    :raises: InvalidParameterValue, if 'secure_boot' capability is set
+             other than 'true' or 'false' or None.
+
+    """
+    validate_capability(node, 'secure_boot', ('true', 'false'))
