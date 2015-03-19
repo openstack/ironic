@@ -374,6 +374,12 @@ class MigrationCheckersMixin(object):
         self.assertIsInstance(nodes.c.clean_step.type,
                               sqlalchemy.types.String)
 
+    def _check_2fb93ffd2af1(self, engine, data):
+        # TODO(mrda): Currently database migration tests aren't running
+        # But once that has been resolved, add a new db migration test here
+        # for increasing node name length. See bug 1438531
+        pass
+
     def test_upgrade_and_version(self):
         with patch_with_engine(self.engine):
             self.migration_api.upgrade('head')

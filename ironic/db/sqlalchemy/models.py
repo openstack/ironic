@@ -154,7 +154,7 @@ class Node(Base):
     #             filter on it more efficiently, even though it is
     #             user-settable, and would otherwise be in node.properties.
     instance_uuid = Column(String(36), nullable=True)
-    name = Column(String(63), nullable=True)
+    name = Column(String(255), nullable=True)
     chassis_id = Column(Integer, ForeignKey('chassis.id'), nullable=True)
     power_state = Column(String(15), nullable=True)
     target_power_state = Column(String(15), nullable=True)

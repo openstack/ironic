@@ -184,16 +184,26 @@ def is_hostname_safe(hostname):
         * http://en.wikipedia.org/wiki/Hostname
         * http://tools.ietf.org/html/rfc952
         * http://tools.ietf.org/html/rfc1123
-
-    Also allow "." because what kind of hostname doesn't allow that.
+    Allowing for hostnames, and hostnames + domains.
 
     :param hostname: The hostname to be validated.
     :returns: True if valid. False if not.
 
     """
-    m = '^[a-z0-9]([a-z0-9\-\.]{0,61}[a-z0-9])?$'
-    return (isinstance(hostname, six.string_types) and
-           (re.match(m, hostname) is not None))
+    if not isinstance(hostname, six.string_types) or len(hostname) > 255:
+        return False
+
+    # Periods on the end of a hostname are ok, but complicates the
+    # regex so we'll do this manually
+    if hostname.endswith('.'):
+        hostname = hostname[:-1]
+
+    host = '[a-z0-9]([a-z0-9\-]{0,61}[a-z0-9])?'
+    domain = '[a-z0-9\-_]{0,62}[a-z0-9]'
+
+    m = '^' + host + '(\.' + domain + ')*$'
+
+    return re.match(m, hostname) is not None
 
 
 def validate_and_normalize_mac(address):

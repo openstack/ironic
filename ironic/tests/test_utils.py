@@ -342,6 +342,7 @@ class GenericUtilsTestCase(base.TestCase):
         self.assertFalse(utils.is_hostname_safe('-spam'))
         self.assertFalse(utils.is_hostname_safe('spam-'))
         self.assertTrue(utils.is_hostname_safe('spam-eggs'))
+        self.assertFalse(utils.is_hostname_safe('spam_eggs'))
         self.assertFalse(utils.is_hostname_safe('spam eggs'))
         self.assertTrue(utils.is_hostname_safe('spam.eggs'))
         self.assertTrue(utils.is_hostname_safe('9spam'))
@@ -360,6 +361,18 @@ class GenericUtilsTestCase(base.TestCase):
         # Need to ensure a binary response for success or fail
         self.assertIsNotNone(utils.is_hostname_safe('spam'))
         self.assertIsNotNone(utils.is_hostname_safe('-spam'))
+        self.assertTrue(utils.is_hostname_safe('www.rackspace.com'))
+        self.assertTrue(utils.is_hostname_safe('www.rackspace.com.'))
+        self.assertTrue(utils.is_hostname_safe('http._sctp.www.example.com'))
+        self.assertTrue(utils.is_hostname_safe('mail.pets_r_us.net'))
+        self.assertTrue(utils.is_hostname_safe('mail-server-15.my_host.org'))
+        self.assertFalse(utils.is_hostname_safe('www.nothere.com_'))
+        self.assertFalse(utils.is_hostname_safe('www.nothere_.com'))
+        self.assertFalse(utils.is_hostname_safe('www..nothere.com'))
+        long_str = 'a' * 63 + '.' + 'b' * 63 + '.' + 'c' * 63 + '.' + 'd' * 63
+        self.assertTrue(utils.is_hostname_safe(long_str))
+        self.assertFalse(utils.is_hostname_safe(long_str + '.'))
+        self.assertFalse(utils.is_hostname_safe('a' * 255))
 
     def test_validate_and_normalize_mac(self):
         mac = 'AA:BB:CC:DD:EE:FF'
