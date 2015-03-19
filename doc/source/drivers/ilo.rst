@@ -7,7 +7,7 @@ iLO drivers
 Overview
 ========
 iLO drivers enable to take advantage of features of iLO management engine in
-HP Proliant servers.  iLO drivers are targetted for HP Proliant Gen 8 systems
+HP Proliant servers.  iLO drivers are targeted for HP Proliant Gen 8 systems
 and above which have iLO 4 management engine. [1]_
 
 For more detailed and up-to-date information (like tested platforms, known
@@ -554,7 +554,7 @@ The boot modes can be configured in Ironic in the following way:
   the ``boot_mode`` set appropriately in ``properties/capabilities``. It will
   filter out rest of the nodes.
 
-  The above facility for matching in Nova can be used in heterogenous
+  The above facility for matching in Nova can be used in heterogeneous
   environments where there is a mix of ``uefi`` and ``bios`` machines, and
   operator wants to provide a choice to the user regarding boot modes.  If the
   flavor doesn't contain ``boot_mode`` then Nova scheduler will not consider

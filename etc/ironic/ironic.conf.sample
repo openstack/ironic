@@ -519,7 +519,7 @@
 # significantly longer. While this provides a better and more
 # secure user experience, it does impact the service behavior,
 # and as such IS DISABLED BY DEFAULT until consuming services
-# (eg, Nova) have been updated to accomodate the additional
+# (eg, Nova) have been updated to accommodate the additional
 # time for deletion. (boolean value)
 #clean_nodes=false
 

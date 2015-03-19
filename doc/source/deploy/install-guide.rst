@@ -888,7 +888,7 @@ The boot modes can be configured in Ironic in the following way:
   the ``boot_mode`` set appropriately in ``properties/capabilities``. It will
   filter out rest of the nodes.
 
-  The above facility for matching in Nova can be used in heterogenous
+  The above facility for matching in Nova can be used in heterogeneous
   environments where there is a mix of ``uefi`` and ``bios`` machines, and
   operator wants to provide a choice to the user regarding boot modes. If
   the flavor doesn't contain ``boot_mode`` and ``boot_mode`` is configured for
@@ -1097,7 +1097,7 @@ There are however some limitations for different drivers:
 * If you're using one of the drivers that use agent deploy method (namely,
   ``agent_ilo``, ``agent_ipmitool``, ``agent_pyghmi``, ``agent_ssh`` or
   ``agent_vbox``) you have to know MD5 checksum for your instance image. To
-  compute it, you can use the follwoing command::
+  compute it, you can use the following command::
 
    md5sum image.qcow2
    ed82def8730f394fb85aef8a208635f6  image.qcow2

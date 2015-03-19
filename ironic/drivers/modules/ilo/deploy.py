@@ -767,7 +767,7 @@ class VendorPassthru(agent_base_vendor.BaseAgentVendor):
             'root uuid', uuid_dict.get('disk identifier'))
 
         try:
-            # For iscsi_ilo driver, we boot from disk everytime if the image
+            # For iscsi_ilo driver, we boot from disk every time if the image
             # deployed is a whole disk image.
             if iscsi_deploy.get_boot_option(node) == "local" or iwdi:
                 manager_utils.node_set_boot_device(task, boot_devices.DISK,
