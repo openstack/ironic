@@ -953,6 +953,34 @@ class VendorPassthruTestCase(db_base.DbTestCase):
                        'configure_local_boot')
     @mock.patch.object(iscsi_deploy, 'do_agent_iscsi_deploy')
     @mock.patch.object(ilo_common, 'cleanup_vmedia_boot')
+    def test_continue_deploy_whole_disk_image(
+            self, cleanup_vmedia_boot_mock, do_agent_iscsi_deploy_mock,
+            configure_local_boot_mock, reboot_and_finish_deploy_mock,
+            boot_mode_cap_mock, update_secure_boot_mock):
+        self.node.provision_state = states.DEPLOYWAIT
+        self.node.target_provision_state = states.DEPLOYING
+        self.node.driver_internal_info = {'is_whole_disk_image': True}
+        self.node.save()
+        do_agent_iscsi_deploy_mock.return_value = {
+            'disk identifier': 'some-disk-id'}
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            task.driver.vendor.continue_deploy(task)
+            cleanup_vmedia_boot_mock.assert_called_once_with(task)
+            do_agent_iscsi_deploy_mock.assert_called_once_with(task,
+                                                               mock.ANY)
+            configure_local_boot_mock.assert_called_once_with(
+                task, root_uuid=None, efi_system_part_uuid=None)
+            reboot_and_finish_deploy_mock.assert_called_once_with(task)
+
+    @mock.patch.object(ilo_deploy, '_update_secure_boot_mode')
+    @mock.patch.object(ilo_common, 'update_boot_mode')
+    @mock.patch.object(agent_base_vendor.BaseAgentVendor,
+                       'reboot_and_finish_deploy')
+    @mock.patch.object(agent_base_vendor.BaseAgentVendor,
+                       'configure_local_boot')
+    @mock.patch.object(iscsi_deploy, 'do_agent_iscsi_deploy')
+    @mock.patch.object(ilo_common, 'cleanup_vmedia_boot')
     def test_continue_deploy_localboot_uefi(self, cleanup_vmedia_boot_mock,
                                             do_agent_iscsi_deploy_mock,
                                             configure_local_boot_mock,
