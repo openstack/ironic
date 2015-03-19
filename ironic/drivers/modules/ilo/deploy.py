@@ -766,11 +766,6 @@ class VendorPassthru(agent_base_vendor.BaseAgentVendor):
         root_uuid_or_disk_id = uuid_dict_returned.get(
             'root uuid', uuid_dict_returned.get('disk identifier'))
 
-        # TODO(rameshg87): It's not correct to return here as it will leave
-        # the node in DEPLOYING state. This will be fixed in bug 1405519.
-        if not root_uuid_or_disk_id:
-            return
-
         try:
             # For iscsi_ilo driver, we boot from disk everytime if the image
             # deployed is a whole disk image.

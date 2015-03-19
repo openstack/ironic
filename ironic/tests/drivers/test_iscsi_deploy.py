@@ -511,7 +511,9 @@ class IscsiDeployMethodsTestCase(db_base.DbTestCase):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
             params = iscsi_deploy.get_deploy_info(task.node, **kwargs)
-            iscsi_deploy.continue_deploy(task, **kwargs)
+            self.assertRaises(exception.InstanceDeployFailure,
+                              iscsi_deploy.continue_deploy,
+                              task, **kwargs)
             self.assertEqual(states.DEPLOYFAIL, task.node.provision_state)
             self.assertEqual(states.ACTIVE, task.node.target_provision_state)
             self.assertIsNotNone(task.node.last_error)
@@ -533,7 +535,9 @@ class IscsiDeployMethodsTestCase(db_base.DbTestCase):
 
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
-            retval = iscsi_deploy.continue_deploy(task, **kwargs)
+            self.assertRaises(exception.InstanceDeployFailure,
+                              iscsi_deploy.continue_deploy,
+                              task, **kwargs)
             self.assertIsNotNone(task.node.last_error)
             self.assertEqual(states.DEPLOYFAIL, task.node.provision_state)
             self.assertEqual(states.ACTIVE, task.node.target_provision_state)
@@ -541,7 +545,56 @@ class IscsiDeployMethodsTestCase(db_base.DbTestCase):
             mock_image_cache.assert_called_once_with()
             mock_image_cache.return_value.clean_up.assert_called_once_with()
             self.assertFalse(deploy_mock.called)
-            self.assertEqual({}, retval)
+
+    @mock.patch.object(iscsi_deploy, 'InstanceImageCache')
+    @mock.patch.object(manager_utils, 'node_power_action')
+    @mock.patch.object(deploy_utils, 'deploy_partition_image')
+    def test_continue_deploy_fail_no_root_uuid_or_disk_id(
+            self, deploy_mock, power_mock, mock_image_cache):
+        kwargs = {'address': '123456', 'iqn': 'aaa-bbb', 'key': 'fake-56789'}
+        deploy_mock.return_value = {}
+        self.node.provision_state = states.DEPLOYWAIT
+        self.node.target_provision_state = states.ACTIVE
+        self.node.save()
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            params = iscsi_deploy.get_deploy_info(task.node, **kwargs)
+            self.assertRaises(exception.InstanceDeployFailure,
+                              iscsi_deploy.continue_deploy,
+                              task, **kwargs)
+            self.assertEqual(states.DEPLOYFAIL, task.node.provision_state)
+            self.assertEqual(states.ACTIVE, task.node.target_provision_state)
+            self.assertIsNotNone(task.node.last_error)
+            deploy_mock.assert_called_once_with(**params)
+            power_mock.assert_called_once_with(task, states.POWER_OFF)
+            mock_image_cache.assert_called_once_with()
+            mock_image_cache.return_value.clean_up.assert_called_once_with()
+
+    @mock.patch.object(iscsi_deploy, 'InstanceImageCache')
+    @mock.patch.object(manager_utils, 'node_power_action')
+    @mock.patch.object(deploy_utils, 'deploy_partition_image')
+    def test_continue_deploy_fail_empty_root_uuid(
+            self, deploy_mock, power_mock, mock_image_cache):
+        kwargs = {'address': '123456', 'iqn': 'aaa-bbb', 'key': 'fake-56789'}
+        deploy_mock.return_value = {'root uuid': ''}
+        self.node.provision_state = states.DEPLOYWAIT
+        self.node.target_provision_state = states.ACTIVE
+        self.node.save()
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            params = iscsi_deploy.get_deploy_info(task.node, **kwargs)
+            self.assertRaises(exception.InstanceDeployFailure,
+                              iscsi_deploy.continue_deploy,
+                              task, **kwargs)
+            self.assertEqual(states.DEPLOYFAIL, task.node.provision_state)
+            self.assertEqual(states.ACTIVE, task.node.target_provision_state)
+            self.assertIsNotNone(task.node.last_error)
+            deploy_mock.assert_called_once_with(**params)
+            power_mock.assert_called_once_with(task, states.POWER_OFF)
+            mock_image_cache.assert_called_once_with()
+            mock_image_cache.return_value.clean_up.assert_called_once_with()
 
     @mock.patch.object(iscsi_deploy, 'LOG')
     @mock.patch.object(iscsi_deploy, 'get_deploy_info')
@@ -721,38 +774,6 @@ class IscsiDeployMethodsTestCase(db_base.DbTestCase):
             agent_client_mock.start_iscsi_target.assert_called_once_with(
                 task.node, 'iqn-qweqwe')
             self.node.refresh()
-            self.assertEqual(states.DEPLOYFAIL, self.node.provision_state)
-            self.assertEqual(states.ACTIVE, self.node.target_provision_state)
-            self.assertIsNotNone(self.node.last_error)
-
-    @mock.patch.object(iscsi_deploy, 'continue_deploy')
-    @mock.patch.object(iscsi_deploy, 'build_deploy_ramdisk_options')
-    def test_do_agent_iscsi_deploy_no_root_uuid(self, build_options_mock,
-                                                continue_deploy_mock):
-        build_options_mock.return_value = {'deployment_key': 'abcdef',
-                                           'iscsi_target_iqn': 'iqn-qweqwe'}
-        agent_client_mock = mock.MagicMock()
-        agent_client_mock.start_iscsi_target.return_value = {
-            'command_status': 'SUCCESS', 'command_error': None}
-        driver_internal_info = {'agent_url': 'http://1.2.3.4:1234'}
-        self.node.driver_internal_info = driver_internal_info
-        self.node.provision_state = states.DEPLOYING
-        self.node.target_provision_state = states.ACTIVE
-        self.node.save()
-        continue_deploy_mock.return_value = {}
-
-        with task_manager.acquire(self.context, self.node.uuid,
-                                  shared=False) as task:
-            self.assertRaises(exception.InstanceDeployFailure,
-                              iscsi_deploy.do_agent_iscsi_deploy,
-                              task, agent_client_mock)
-            self.node.refresh()
-            build_options_mock.assert_called_once_with(task.node)
-            agent_client_mock.start_iscsi_target.assert_called_once_with(
-                task.node, 'iqn-qweqwe')
-            continue_deploy_mock.assert_called_once_with(
-                task, error=None, iqn='iqn-qweqwe', key='abcdef',
-                address='1.2.3.4')
             self.assertEqual(states.DEPLOYFAIL, self.node.provision_state)
             self.assertEqual(states.ACTIVE, self.node.target_provision_state)
             self.assertIsNotNone(self.node.last_error)

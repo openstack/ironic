@@ -22,7 +22,6 @@ from six.moves.urllib import parse
 from ironic.common import exception
 from ironic.common.glance_service import service_utils as glance_service_utils
 from ironic.common.i18n import _
-from ironic.common.i18n import _LE
 from ironic.common import image_service as service
 from ironic.common import keystone
 from ironic.common import utils
@@ -286,12 +285,16 @@ def continue_deploy(task, **kwargs):
     params = get_deploy_info(node, **kwargs)
     ramdisk_error = kwargs.get('error')
 
+    def _fail_deploy(task, msg):
+        """Fail the deploy after logging and setting error states."""
+        LOG.error(msg)
+        deploy_utils.set_failed_state(task, msg)
+        destroy_images(task.node.uuid)
+        raise exception.InstanceDeployFailure(msg)
+
     if ramdisk_error:
-        LOG.error(_LE('Error returned from deploy ramdisk: %s'),
-                  ramdisk_error)
-        deploy_utils.set_failed_state(task, _('Failure in deploy ramdisk.'))
-        destroy_images(node.uuid)
-        return {}
+        msg = _('Error returned from deploy ramdisk: %s') % ramdisk_error
+        _fail_deploy(task, msg)
 
     # NOTE(lucasagomes): Let's make sure we don't log the full content
     # of the config drive here because it can be up to 64MB in size,
@@ -311,11 +314,18 @@ def continue_deploy(task, **kwargs):
         else:
             uuid_dict_returned = deploy_utils.deploy_partition_image(**params)
     except Exception as e:
-        LOG.error(_LE('Deploy failed for instance %(instance)s. '
-                      'Error: %(error)s'),
-                  {'instance': node.instance_uuid, 'error': e})
-        deploy_utils.set_failed_state(task, _('Failed to continue '
-                                              'iSCSI deployment.'))
+        msg = (_('Deploy failed for instance %(instance)s. '
+                 'Error: %(error)s') %
+                 {'instance': node.instance_uuid, 'error': e})
+        _fail_deploy(task, msg)
+
+    root_uuid_or_disk_id = uuid_dict_returned.get(
+        'root uuid', uuid_dict_returned.get('disk identifier'))
+    if not root_uuid_or_disk_id:
+        msg = (_("Couldn't determine the UUID of the root "
+                 "partition or the disk identifier after deploying "
+                 "node %s") % node.uuid)
+        _fail_deploy(task, msg)
 
     destroy_images(node.uuid)
     return uuid_dict_returned
@@ -367,12 +377,6 @@ def do_agent_iscsi_deploy(task, agent_client):
     uuid_dict_returned = continue_deploy(task, **iscsi_params)
     root_uuid_or_disk_id = uuid_dict_returned.get(
         'root uuid', uuid_dict_returned.get('disk identifier'))
-    if not root_uuid_or_disk_id:
-        msg = (_("Couldn't determine the UUID of the root "
-                 "partition or the disk identifier when deploying "
-                 "node %s") % node.uuid)
-        deploy_utils.set_failed_state(task, msg)
-        raise exception.InstanceDeployFailure(reason=msg)
 
     # TODO(lucasagomes): Move this bit saving the root_uuid to
     # iscsi_deploy.continue_deploy()
