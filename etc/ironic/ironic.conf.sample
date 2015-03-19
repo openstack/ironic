@@ -1050,6 +1050,44 @@
 # (list value)
 #hash_algorithms=md5
 
+# Prefix to prepend at the beginning of the path. Deprecated,
+# use identity_uri. (string value)
+#auth_admin_prefix=
+
+# Host providing the admin Identity API endpoint. Deprecated,
+# use identity_uri. (string value)
+#auth_host=127.0.0.1
+
+# Port of the admin Identity API endpoint. Deprecated, use
+# identity_uri. (integer value)
+#auth_port=35357
+
+# Protocol of the admin Identity API endpoint (http or https).
+# Deprecated, use identity_uri. (string value)
+#auth_protocol=https
+
+# Complete admin Identity API endpoint. This should specify
+# the unversioned root endpoint e.g. https://localhost:35357/
+# (string value)
+#identity_uri=<None>
+
+# This option is deprecated and may be removed in a future
+# release. Single shared secret with the Keystone
+# configuration used for bootstrapping a Keystone
+# installation, or otherwise bypassing the normal
+# authentication process. This option should not be used, use
+# `admin_user` and `admin_password` instead. (string value)
+#admin_token=<None>
+
+# Service username. (string value)
+#admin_user=<None>
+
+# Service user password. (string value)
+#admin_password=<None>
+
+# Service tenant name. (string value)
+#admin_tenant_name=admin
+
 
 [matchmaker_redis]
 
