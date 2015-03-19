@@ -15,11 +15,14 @@
 iLO Management Interface
 """
 
+from oslo_config import cfg
 from oslo_utils import importutils
 
 from ironic.common import boot_devices
 from ironic.common import exception
 from ironic.common.i18n import _
+from ironic.common.i18n import _LI
+from ironic.common.i18n import _LW
 from ironic.conductor import task_manager
 from ironic.drivers import base
 from ironic.drivers.modules.ilo import common as ilo_common
@@ -37,11 +40,74 @@ BOOT_DEVICE_MAPPING_TO_ILO = {boot_devices.PXE: 'NETWORK',
 BOOT_DEVICE_ILO_TO_GENERIC = {v: k
                               for k, v in BOOT_DEVICE_MAPPING_TO_ILO.items()}
 
+MANAGEMENT_PROPERTIES = ilo_common.REQUIRED_PROPERTIES.copy()
+MANAGEMENT_PROPERTIES.update(ilo_common.CLEAN_PROPERTIES)
+
+clean_step_opts = [
+    cfg.IntOpt('clean_priority_reset_ilo',
+               default=1,
+               help='Priority for reset_ilo clean step.'),
+    cfg.IntOpt('clean_priority_reset_bios_to_default',
+               default=10,
+               help='Priority for reset_bios_to_default clean step.'),
+    cfg.IntOpt('clean_priority_reset_secure_boot_keys_to_default',
+               default=20,
+               help='Priority for reset_secure_boot_keys clean step. This '
+                    'step will reset the secure boot keys to manufacturing '
+                    ' defaults.'),
+    cfg.IntOpt('clean_priority_clear_secure_boot_keys',
+               default=0,
+               help='Priority for clear_secure_boot_keys clean step. This '
+                    'step is not enabled by default. It can be enabled to '
+                    'to clear all secure boot keys enrolled with iLO.'),
+    cfg.IntOpt('clean_priority_reset_ilo_credential',
+               default=30,
+               help='Priority for reset_ilo_credential clean step. This step '
+                    'requires "ilo_change_password" parameter to be updated '
+                    'in nodes\'s driver_info with the new password.'),
+]
+
+CONF = cfg.CONF
+CONF.register_opts(clean_step_opts, group='ilo')
+
+
+def _execute_ilo_clean_step(node, step, *args, **kwargs):
+    """Executes a particular clean step.
+
+    :param node: an Ironic node object.
+    :param step: a clean step to be executed.
+    :param args: The args to be passed to the clean step.
+    :param kwargs: The kwargs to be passed to the clean step.
+    :raises: NodeCleaningFailure, on failure to execute step.
+    """
+    ilo_object = ilo_common.get_ilo_object(node)
+
+    try:
+        clean_step = getattr(ilo_object, step)
+    except AttributeError:
+        # The specified clean step is not present in the proliantutils
+        # package. Raise exception to update the proliantutils package
+        # to newer version.
+        raise exception.NodeCleaningFailure(_("Clean step '%s' not "
+                "found. 'proliantutils' package needs to be updated.") % step)
+    try:
+        clean_step(*args, **kwargs)
+    except ilo_error.IloCommandNotSupportedError:
+        # This clean step is not supported on Gen8 and below servers.
+        # Log the failure and continue with cleaning.
+        LOG.warn(_LW("'%(step)s' clean step is not supported on node "
+                     "%(uuid)s. Skipping the clean step."),
+                     {'step': step, 'uuid': node.uuid})
+    except ilo_error.IloError as ilo_exception:
+        raise exception.NodeCleaningFailure(_("Clean step %(step)s failed "
+                    "on node %(node)s with error: %(err)s") %
+                    {'node': node.uuid, 'step': step, 'err': ilo_exception})
+
 
 class IloManagement(base.ManagementInterface):
 
     def get_properties(self):
-        return ilo_common.REQUIRED_PROPERTIES
+        return MANAGEMENT_PROPERTIES
 
     def validate(self, task):
         """Check that 'driver_info' contains required ILO credentials.
@@ -162,3 +228,71 @@ class IloManagement(base.ManagementInterface):
         ilo_common.update_ipmi_properties(task)
         ipmi_management = ipmitool.IPMIManagement()
         return ipmi_management.get_sensors_data(task)
+
+    @base.clean_step(priority=CONF.ilo.clean_priority_reset_ilo)
+    def reset_ilo(self, task):
+        """Resets the iLO.
+
+        :param task: a task from TaskManager.
+        :raises: NodeCleaningFailure, on failure to execute step.
+        """
+        return _execute_ilo_clean_step(task.node, 'reset_ilo')
+
+    @base.clean_step(priority=CONF.ilo.clean_priority_reset_ilo_credential)
+    def reset_ilo_credential(self, task):
+        """Resets the iLO password.
+
+        :param task: a task from TaskManager.
+        :raises: NodeCleaningFailure, on failure to execute step.
+        """
+        info = task.node.driver_info
+        password = info.pop('ilo_change_password', None)
+
+        if not password:
+            LOG.info(_LI("Missing 'ilo_change_password' parameter in "
+                         "driver_info. Clean step 'reset_ilo_credential' is "
+                         "not performed on node %s."), task.node.uuid)
+            return
+
+        _execute_ilo_clean_step(task.node, 'reset_ilo_credential', password)
+
+        info['ilo_password'] = password
+        task.node.driver_info = info
+        task.node.save()
+
+    @base.clean_step(priority=CONF.ilo.clean_priority_reset_bios_to_default)
+    def reset_bios_to_default(self, task):
+        """Resets the BIOS settings to default values.
+
+        Resets BIOS to default settings. This operation is currently supported
+        only on HP Proliant Gen9 and above servers.
+
+        :param task: a task from TaskManager.
+        :raises: NodeCleaningFailure, on failure to execute step.
+        """
+        return _execute_ilo_clean_step(task.node, 'reset_bios_to_default')
+
+    @base.clean_step(priority=CONF.ilo.
+                     clean_priority_reset_secure_boot_keys_to_default)
+    def reset_secure_boot_keys_to_default(self, task):
+        """Reset secure boot keys to manufacturing defaults.
+
+        Resets the secure boot keys to manufacturing defaults. This
+        operation is supported only on HP Proliant Gen9 and above servers.
+
+        :param task: a task from TaskManager.
+        :raises: NodeCleaningFailure, on failure to execute step.
+        """
+        return _execute_ilo_clean_step(task.node, 'reset_secure_boot_keys')
+
+    @base.clean_step(priority=CONF.ilo.clean_priority_clear_secure_boot_keys)
+    def clear_secure_boot_keys(self, task):
+        """Clear all secure boot keys.
+
+        Clears all the secure boot keys. This operation is supported only
+        on HP Proliant Gen9 and above servers.
+
+        :param task: a task from TaskManager.
+        :raises: NodeCleaningFailure, on failure to execute step.
+        """
+        return _execute_ilo_clean_step(task.node, 'clear_secure_boot_keys')

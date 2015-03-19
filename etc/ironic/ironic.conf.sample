@@ -843,6 +843,33 @@
 
 
 #
+# Options defined in ironic.drivers.modules.ilo.management
+#
+
+# Priority for reset_ilo clean step. (integer value)
+#clean_priority_reset_ilo=1
+
+# Priority for reset_bios_to_default clean step. (integer
+# value)
+#clean_priority_reset_bios_to_default=10
+
+# Priority for reset_secure_boot_keys clean step. This step
+# will reset the secure boot keys to manufacturing  defaults.
+# (integer value)
+#clean_priority_reset_secure_boot_keys_to_default=20
+
+# Priority for clear_secure_boot_keys clean step. This step is
+# not enabled by default. It can be enabled to to clear all
+# secure boot keys enrolled with iLO. (integer value)
+#clean_priority_clear_secure_boot_keys=0
+
+# Priority for reset_ilo_credential clean step. This step
+# requires "ilo_change_password" parameter to be updated in
+# nodes's driver_info with the new password. (integer value)
+#clean_priority_reset_ilo_credential=30
+
+
+#
 # Options defined in ironic.drivers.modules.ilo.power
 #
 

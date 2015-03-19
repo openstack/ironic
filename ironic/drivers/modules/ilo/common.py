@@ -69,7 +69,7 @@ REQUIRED_PROPERTIES = {
 }
 OPTIONAL_PROPERTIES = {
     'client_port': _("port to be used for iLO operations. Optional."),
-    'client_timeout': _("timeout (in seconds) for iLO operations. Optional.")
+    'client_timeout': _("timeout (in seconds) for iLO operations. Optional."),
 }
 CONSOLE_PROPERTIES = {
     'console_port': _("node's UDP port to connect to. Only required for "
@@ -83,6 +83,10 @@ INSPECT_PROPERTIES = {
                        "inspect_ports = 'all' or "
                        "inspect_ports = 'none'. "
                        "Required only for inspection.")
+}
+CLEAN_PROPERTIES = {
+    'ilo_change_password': _("new password for iLO. Required if the clean "
+                             "step 'reset_ilo_credential' is enabled.")
 }
 
 COMMON_PROPERTIES = REQUIRED_PROPERTIES.copy()

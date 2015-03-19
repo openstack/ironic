@@ -555,3 +555,7 @@ class VirtualBoxOperationFailed(IronicException):
 
 class HardwareInspectionFailure(IronicException):
     message = _("Failed to inspect hardware. Reason: %(error)s")
+
+
+class NodeCleaningFailure(IronicException):
+    message = _("Failed to clean node %(node)s: %(reason)s")
