@@ -1452,6 +1452,18 @@ class ParseInstanceInfoCapabilitiesTestCase(tests_base.TestCase):
         self.assertRaises(exception.InvalidParameterValue,
                           utils.parse_instance_info_capabilities, self.node)
 
+    def test_is_secure_boot_requested_true(self):
+        self.node.instance_info = {'capabilities': {"secure_boot": "true"}}
+        self.assertTrue(utils.is_secure_boot_requested(self.node))
+
+    def test_is_secure_boot_requested_false(self):
+        self.node.instance_info = {'capabilities': {"secure_boot": "false"}}
+        self.assertFalse(utils.is_secure_boot_requested(self.node))
+
+    def test_is_secure_boot_requested_invalid(self):
+        self.node.instance_info = {'capabilities': {"secure_boot": "invalid"}}
+        self.assertFalse(utils.is_secure_boot_requested(self.node))
+
 
 class TrySetBootDeviceTestCase(db_base.DbTestCase):
 

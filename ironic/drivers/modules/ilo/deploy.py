@@ -274,6 +274,96 @@ def _prepare_agent_vmedia_boot(task):
     _reboot_into(task, deploy_iso, deploy_ramdisk_opts)
 
 
+def _disable_secure_boot(task):
+    """Disables secure boot on node, if secure boot is enabled on node.
+
+    This method checks if secure boot is enabled on node. If enabled, it
+    disables same and returns True.
+
+    :param task: a TaskManager instance containing the node to act on.
+    :returns: It returns True, if secure boot was successfully disabled on
+              the node.
+              It returns False, if secure boot on node is in disabled state
+              or if secure boot feature is not supported by the node.
+    :raises: IloOperationError, if some operation on iLO failed.
+    """
+    cur_sec_state = False
+    try:
+        cur_sec_state = ilo_common.get_secure_boot_mode(task)
+    except exception.IloOperationNotSupported:
+        LOG.debug('Secure boot mode is not supported for node %s',
+                       task.node.uuid)
+        return False
+
+    if cur_sec_state:
+        LOG.debug('Disabling secure boot for node %s', task.node.uuid)
+        ilo_common.set_secure_boot_mode(task, False)
+        return True
+    return False
+
+
+def _prepare_node_for_deploy(task):
+    """Common preparatory steps for all iLO drivers.
+
+    This method performs common preparatory steps required for all drivers.
+    1. Power off node
+    2. Disables secure boot, if it is in enabled state.
+    3. Updates boot_mode capability to 'uefi' if secure boot is requested.
+    4. Changes boot mode of the node if secure boot is disabled currently.
+
+    :param task: a TaskManager instance containing the node to act on.
+    :raises: IloOperationError, if some operation on iLO failed.
+    """
+    manager_utils.node_power_action(task, states.POWER_OFF)
+
+    # Boot mode can be changed only if secure boot is in disabled state.
+    # secure boot and boot mode cannot be changed together.
+    change_boot_mode = True
+
+    # Disable secure boot on the node if it is in enabled state.
+    if _disable_secure_boot(task):
+        change_boot_mode = False
+
+    # Set boot_mode capability to uefi for secure boot
+    if deploy_utils.is_secure_boot_requested(task.node):
+        LOG.debug('Secure boot deploy requested for node %s', task.node.uuid)
+        _enable_uefi_capability(task)
+
+    if change_boot_mode:
+        ilo_common.update_boot_mode(task)
+
+
+def _update_secure_boot_mode(task, mode):
+    """Changes secure boot mode for next boot on the node.
+
+    This method changes secure boot mode on the node for next boot. It changes
+    the secure boot mode setting on node only if the deploy has requested for
+    the secure boot.
+    During deploy, this method is used to enable secure boot on the node by
+    passing 'mode' as 'True'.
+    During teardown, this method is used to disable secure boot on the node by
+    passing 'mode' as 'False'.
+
+    :param task: a TaskManager instance containing the node to act on.
+    :param mode: Boolean value requesting the next state for secure boot
+    :raises: IloOperationNotSupported, if operation is not supported on iLO
+    :raises: IloOperationError, if some operation on iLO failed.
+    """
+    if deploy_utils.is_secure_boot_requested(task.node):
+        ilo_common.set_secure_boot_mode(task, mode)
+        LOG.info(_LI('Changed secure boot to %(mode)s for node %(node)s'),
+                 {'mode': mode, 'node': task.node.uuid})
+
+
+def _enable_uefi_capability(task):
+    """Adds capability boot_mode='uefi' into Node property.
+
+    :param task: a TaskManager instance containing the node to act on.
+    """
+    driver_utils.rm_node_capability(task, 'boot_mode')
+    driver_utils.add_node_capability(task, 'boot_mode', 'uefi')
+
+
 class IloVirtualMediaIscsiDeploy(base.DeployInterface):
 
     def get_properties(self):

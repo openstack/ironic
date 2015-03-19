@@ -1013,3 +1013,21 @@ def parse_root_device_hints(node):
         hints.append("%s=%s" % (key, value))
 
     return ','.join(hints)
+
+
+def is_secure_boot_requested(node):
+    """Returns True if secure_boot is requested for deploy.
+
+    This method checks node property for secure_boot and returns True
+    if it is requested.
+
+    :param node: a single Node.
+    :raises: InvalidParameterValue if the capabilities string is not a
+             dictionary or is malformed.
+    :returns: True if secure_boot is requested.
+    """
+
+    capabilities = parse_instance_info_capabilities(node)
+    sec_boot = capabilities.get('secure_boot', 'false').lower()
+
+    return sec_boot == 'true'

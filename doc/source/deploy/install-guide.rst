@@ -675,6 +675,21 @@ steps on the Ironic conductor node to configure PXE UEFI environment.
 
     ironic node-update <node-uuid> add properties/capabilities='boot_mode:uefi'
 
+#. For deploying signed images, update the Ironic node with ``secure_boot``
+   capability in node's properties.
+   field::
+
+    ironic node-update <node-uuid> add properties/capabilities='secure_boot:true'
+
+#. Ensure the public key of the signed image is loaded into baremetal to deploy
+   signed images.
+   For HP Proliant Gen9 servers, one can enroll public key using iLO System
+   Utilities UI. Please refer to section ``Accessing Secure Boot options`` in
+   HP UEFI System Utilities User Guide http://www.hp.com/ctg/Manual/c04398276.pdf.
+   Also, one can refer to white paper on Secure Boot on Linux for HP Proliant
+   Servers at http://h20195.www2.hp.com/V2/getpdf.aspx/4AA5-4496ENW.pdf for
+   more details.
+
 #. Make sure that bare metal node is configured to boot in UEFI boot mode and
    boot device is set to network/pxe.
 

@@ -268,6 +268,143 @@ class IloDeployPrivateMethodsTestCase(db_base.DbTestCase):
                                                      'deploy-iso-uuid',
                                                      deploy_opts)
 
+    @mock.patch.object(deploy_utils, 'is_secure_boot_requested')
+    @mock.patch.object(ilo_common, 'set_secure_boot_mode')
+    def test__update_secure_boot_passed_true(self,
+                                             func_set_secure_boot_mode,
+                                             func_is_secure_boot_requested):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            func_is_secure_boot_requested.return_value = True
+            ilo_deploy._update_secure_boot_mode(task, True)
+            func_set_secure_boot_mode.assert_called_once_with(task, True)
+
+    @mock.patch.object(deploy_utils, 'is_secure_boot_requested')
+    @mock.patch.object(ilo_common, 'set_secure_boot_mode')
+    def test__update_secure_boot_passed_False(self,
+                                              func_set_secure_boot_mode,
+                                              func_is_secure_boot_requested):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            func_is_secure_boot_requested.return_value = False
+            ilo_deploy._update_secure_boot_mode(task, False)
+            self.assertFalse(func_set_secure_boot_mode.called)
+
+    @mock.patch.object(driver_utils, 'add_node_capability')
+    @mock.patch.object(driver_utils, 'rm_node_capability')
+    def test__enable_uefi_capability(self, func_rm_node_capability,
+                                           func_add_node_capability):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            ilo_deploy._enable_uefi_capability(task)
+            func_rm_node_capability.assert_called_once_with(task,
+                                                            'boot_mode')
+            func_add_node_capability.assert_called_once_with(task,
+                                                             'boot_mode',
+                                                             'uefi')
+
+    @mock.patch.object(ilo_common, 'set_secure_boot_mode')
+    @mock.patch.object(ilo_common, 'get_secure_boot_mode')
+    def test__disable_secure_boot_false(self,
+                                        func_get_secure_boot_mode,
+                                        func_set_secure_boot_mode):
+        func_get_secure_boot_mode.return_value = False
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            returned_state = ilo_deploy._disable_secure_boot(task)
+            func_get_secure_boot_mode.assert_called_once_with(task)
+            self.assertFalse(func_set_secure_boot_mode.called)
+        self.assertFalse(returned_state)
+
+    @mock.patch.object(ilo_common, 'set_secure_boot_mode')
+    @mock.patch.object(ilo_common, 'get_secure_boot_mode')
+    def test__disable_secure_boot_true(self,
+                                       func_get_secure_boot_mode,
+                                       func_set_secure_boot_mode):
+        func_get_secure_boot_mode.return_value = True
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            returned_state = ilo_deploy._disable_secure_boot(task)
+            func_get_secure_boot_mode.assert_called_once_with(task)
+            func_set_secure_boot_mode.assert_called_once_with(task, False)
+        self.assertTrue(returned_state)
+
+    @mock.patch.object(ilo_deploy, 'exception')
+    @mock.patch.object(ilo_common, 'get_secure_boot_mode')
+    def test__disable_secure_boot_exception(self,
+                                            func_get_secure_boot_mode,
+                                            exception_mock):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            exception_mock.IloOperationNotSupported = Exception
+            func_get_secure_boot_mode.side_effect = Exception
+            returned_state = ilo_deploy._disable_secure_boot(task)
+            func_get_secure_boot_mode.assert_called_once_with(task)
+        self.assertFalse(returned_state)
+
+    @mock.patch.object(ilo_common, 'update_boot_mode')
+    @mock.patch.object(deploy_utils, 'is_secure_boot_requested')
+    @mock.patch.object(ilo_deploy, '_disable_secure_boot')
+    @mock.patch.object(manager_utils, 'node_power_action')
+    def test__prepare_node_for_deploy(self,
+                                      func_node_power_action,
+                                      func_disable_secure_boot,
+                                      func_is_secure_boot_requested,
+                                      func_update_boot_mode):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            func_disable_secure_boot.return_value = False
+            func_is_secure_boot_requested.return_value = False
+            ilo_deploy._prepare_node_for_deploy(task)
+            func_node_power_action.assert_called_once_with(task,
+                                                           states.POWER_OFF)
+            func_disable_secure_boot.assert_called_once_with(task)
+            func_is_secure_boot_requested.assert_called_once_with(task.node)
+            func_update_boot_mode.assert_called_once_with(task)
+
+    @mock.patch.object(ilo_common, 'update_boot_mode')
+    @mock.patch.object(deploy_utils, 'is_secure_boot_requested')
+    @mock.patch.object(ilo_deploy, '_disable_secure_boot')
+    @mock.patch.object(manager_utils, 'node_power_action')
+    def test__prepare_node_for_deploy_sec_boot_on(self,
+                                                  func_node_power_action,
+                                                  func_disable_secure_boot,
+                                                  func_is_secure_boot_req,
+                                                  func_update_boot_mode):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            func_disable_secure_boot.return_value = True
+            func_is_secure_boot_req.return_value = False
+            ilo_deploy._prepare_node_for_deploy(task)
+            func_node_power_action.assert_called_once_with(task,
+                                                           states.POWER_OFF)
+            func_disable_secure_boot.assert_called_once_with(task)
+            func_is_secure_boot_req.assert_called_once_with(task.node)
+            self.assertFalse(func_update_boot_mode.called)
+
+    @mock.patch.object(ilo_common, 'update_boot_mode')
+    @mock.patch.object(ilo_deploy, '_enable_uefi_capability')
+    @mock.patch.object(deploy_utils, 'is_secure_boot_requested')
+    @mock.patch.object(ilo_deploy, '_disable_secure_boot')
+    @mock.patch.object(manager_utils, 'node_power_action')
+    def test__prepare_node_for_deploy_sec_boot_req(self,
+                                                   func_node_power_action,
+                                                   func_disable_secure_boot,
+                                                   func_is_secure_boot_req,
+                                                   func_enable_uefi_cap,
+                                                   func_update_boot_mode):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            func_disable_secure_boot.return_value = True
+            func_is_secure_boot_req.return_value = True
+            ilo_deploy._prepare_node_for_deploy(task)
+            func_node_power_action.assert_called_once_with(task,
+                                                           states.POWER_OFF)
+            func_disable_secure_boot.assert_called_once_with(task)
+            func_is_secure_boot_req.assert_called_once_with(task.node)
+            func_enable_uefi_cap.assert_called_once_with(task)
+            self.assertFalse(func_update_boot_mode.called)
+
 
 class IloVirtualMediaIscsiDeployTestCase(db_base.DbTestCase):
 
