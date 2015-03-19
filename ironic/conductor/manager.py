@@ -856,7 +856,10 @@ class ConductorManager(periodic_task.PeriodicTasks):
                     {'node': task.node.uuid,
                      'state': task.node.provision_state,
                      'clean_state': states.CLEANING})
-            self._spawn_worker(
+            task.set_spawn_error_hook(cleaning_error_handler, task.node,
+                                      'Failed to run next clean step')
+            task.spawn_after(
+                self._spawn_worker,
                 self._do_next_clean_step,
                 task,
                 task.node.driver_internal_info.get('clean_steps', []),
@@ -905,10 +908,9 @@ class ConductorManager(periodic_task.PeriodicTasks):
             return
 
         set_node_cleaning_steps(task)
-
         self._do_next_clean_step(task,
-                                 node.driver_internal_info['clean_steps'],
-                                 node.clean_step)
+            node.driver_internal_info.get('clean_steps', []),
+            node.clean_step)
 
     def _do_next_clean_step(self, task, steps, last_step):
         """Start executing cleaning/zapping steps from the last step (if any).
@@ -920,7 +922,6 @@ class ConductorManager(periodic_task.PeriodicTasks):
             from the beginning
         """
         node = task.node
-
         # Trim already executed steps
         if last_step:
             try:
@@ -934,9 +935,9 @@ class ConductorManager(periodic_task.PeriodicTasks):
                 LOG.exception(msg)
                 return cleaning_error_handler(task, msg)
 
-        LOG.debug('Executing %(state)s on node %(node)s, remaining steps: '
-                  '%(steps)s', {'node': node.uuid, 'steps': steps,
-                                'state': node.provision_state})
+        LOG.info(_LI('Executing %(state)s on node %(node)s, remaining steps: '
+                     '%(steps)s'), {'node': node.uuid, 'steps': steps,
+                                    'state': node.provision_state})
         # Execute each step until we hit an async step or run out of steps
         for step in steps:
             # Save which step we're about to start so we can restart
@@ -944,14 +945,15 @@ class ConductorManager(periodic_task.PeriodicTasks):
             node.clean_step = step
             node.save()
             interface = getattr(task.driver, step.get('interface'))
-            LOG.debug('Executing %(step)s on node %(node)s',
-                      {'step': step, 'node': node.uuid})
+            LOG.info(_LI('Executing %(step)s on node %(node)s'),
+                     {'step': step, 'node': node.uuid})
             try:
                 result = interface.execute_clean_step(task, step)
             except Exception as e:
                 msg = (_('Node %(node)s failed step %(step)s: '
                          '%(exc)s') %
-                       {'node': node.uuid, 'exc': e, 'step': node.clean_step})
+                       {'node': node.uuid, 'exc': e,
+                        'step': node.clean_step})
                 LOG.exception(msg)
                 cleaning_error_handler(task, msg)
                 return
@@ -962,14 +964,14 @@ class ConductorManager(periodic_task.PeriodicTasks):
             if result == states.CLEANING:
                 # Kill this worker, the async step will make an RPC call to
                 # continue_node_clean to continue cleaning
-                LOG.debug('Waiting for node %(node)s to call continue after '
-                          'async clean step %(step)s',
-                          {'node': node.uuid, 'step': step})
+                LOG.info(_LI('Clean step %(step)s on node %(node)s being '
+                             'executed asynchronously, waiting for driver.') %
+                         {'node': node.uuid, 'step': step})
                 return
             elif result is not None:
                 msg = (_('While executing step %(step)s on node '
-                         '%(node)s, step returned invalid value: %(val)s') %
-                       {'step': step, 'node': node.uuid, 'val': result})
+                         '%(node)s, step returned invalid value: %(val)s')
+                       % {'step': step, 'node': node.uuid, 'val': result})
                 LOG.error(msg)
                 return cleaning_error_handler(task, msg)
             LOG.info(_LI('Node %(node)s finished clean step %(step)s'),
