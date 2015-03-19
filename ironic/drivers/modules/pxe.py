@@ -185,7 +185,7 @@ def _build_pxe_config_options(node, pxe_info, ctx):
     :returns: A dictionary of pxe options to be used in the pxe bootfile
         template.
     """
-    is_whole_disk_image = node.driver_internal_info['is_whole_disk_image']
+    is_whole_disk_image = node.driver_internal_info.get('is_whole_disk_image')
 
     if CONF.pxe.ipxe_enabled:
         deploy_kernel = '/'.join([CONF.pxe.http_url, node.uuid,
@@ -267,7 +267,7 @@ def _get_image_info(node, ctx):
 
     image_info.update(pxe_utils.get_deploy_kr_info(node.uuid, d_info))
 
-    if node.driver_internal_info['is_whole_disk_image']:
+    if node.driver_internal_info.get('is_whole_disk_image'):
         return image_info
 
     i_info = node.instance_info
@@ -429,7 +429,7 @@ class PXEDeploy(base.DeployInterface):
         # the image kernel and ramdisk (Or even require it).
         _cache_ramdisk_kernel(task.context, task.node, pxe_info)
 
-        iwdi = task.node.driver_internal_info['is_whole_disk_image']
+        iwdi = task.node.driver_internal_info.get('is_whole_disk_image')
         # NOTE(deva): prepare may be called from conductor._do_takeover
         # in which case, it may need to regenerate the PXE config file for an
         # already-active deployment.
