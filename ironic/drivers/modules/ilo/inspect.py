@@ -155,6 +155,9 @@ def _update_capabilities(node, new_capabilities):
     :returns: The capability string after adding/updating the
               node_capabilities with new_capabilities
     :raises: InvalidParameterValue, if node_capabilities is malformed.
+    :raises: HardwareInspectionFailure, if inspected capabilities
+             are not in dictionary format.
+
     """
     cap_dict = {}
     node_capabilities = node.properties.get('capabilities')
@@ -171,12 +174,12 @@ def _update_capabilities(node, new_capabilities):
                     "properties['capabilities'] string")
                     % {'node': node.uuid, 'capabilities': node_capabilities})
             raise exception.InvalidParameterValue(msg)
-    if new_capabilities and isinstance(new_capabilities, dict):
+    if isinstance(new_capabilities, dict):
         cap_dict.update(new_capabilities)
     else:
         msg = (_("The expected format of capabilities from inspection "
                  "is dictionary while node %(node)s returned "
-                 "%(capabilities)s."), {'node': node.uuid,
+                 "%(capabilities)s.") % {'node': node.uuid,
                  'capabilities': new_capabilities})
         raise exception.HardwareInspectionFailure(error=msg)
     return ','.join(['%(key)s:%(value)s' % {'key': key, 'value': value}
@@ -229,7 +232,6 @@ def _get_macs_for_desired_ports(node, macs):
         to_be_created_macs = macs
     else:
         to_be_created_macs = {}
-        # desired_macs_list = desired_macs.split(',')
         # The list should look like ['Port 1', 'Port 2'] as
         # iLO returns port numbers like this.
         desired_macs_list = [
