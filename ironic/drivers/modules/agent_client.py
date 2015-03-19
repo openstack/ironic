@@ -114,3 +114,26 @@ class AgentClient(object):
                              method='image.install_bootloader',
                              params=params,
                              wait=True)
+
+    def get_clean_steps(self, node, ports):
+        params = {
+            'node': node.as_dict(),
+            'ports': [port.as_dict() for port in ports]
+        }
+        return self._command(node=node,
+                             method='clean.get_clean_steps',
+                             params=params,
+                             wait=True)
+
+    def execute_clean_step(self, step, node, ports):
+        params = {
+            'step': step,
+            'node': node.as_dict(),
+            'ports': [port.as_dict() for port in ports],
+            'clean_version': node.driver_internal_info.get(
+                'hardware_manager_version')
+        }
+        return self._command(node=node,
+                             method='clean.execute_clean_step',
+                             params=params,
+                             wait=False)

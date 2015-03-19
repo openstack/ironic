@@ -401,3 +401,64 @@ class TestBaseAgentVendor(db_base.DbTestCase):
                 task, boot_devices.DISK)
             self.assertEqual(states.DEPLOYFAIL, task.node.provision_state)
             self.assertEqual(states.ACTIVE, task.node.target_provision_state)
+
+    @mock.patch.object(agent_base_vendor.BaseAgentVendor,
+                       '_notify_conductor_resume_clean')
+    @mock.patch.object(agent_client.AgentClient, 'get_commands_status')
+    def test_continue_cleaning(self, status_mock, notify_mock):
+        status_mock.return_value = [{
+            'command_status': 'SUCCEEDED',
+        }]
+        with task_manager.acquire(self.context, self.node['uuid'],
+                                  shared=False) as task:
+            self.passthru.continue_cleaning(task)
+            notify_mock.assert_called_once_with(task)
+
+    @mock.patch.object(agent_base_vendor.BaseAgentVendor,
+                       '_notify_conductor_resume_clean')
+    @mock.patch.object(agent_client.AgentClient, 'get_commands_status')
+    def test_continue_cleaning_running(self, status_mock, notify_mock):
+        status_mock.return_value = [{
+            'command_status': 'RUNNING',
+        }]
+        with task_manager.acquire(self.context, self.node['uuid'],
+                                  shared=False) as task:
+            self.passthru.continue_cleaning(task)
+            notify_mock.assert_not_called()
+
+    @mock.patch('ironic.conductor.manager.cleaning_error_handler')
+    @mock.patch.object(agent_client.AgentClient, 'get_commands_status')
+    def test_continue_cleaning_fail(self, status_mock, error_mock):
+        status_mock.return_value = [{
+            'command_status': 'FAILED',
+        }]
+        with task_manager.acquire(self.context, self.node['uuid'],
+                                  shared=False) as task:
+            self.passthru.continue_cleaning(task)
+            error_mock.assert_called_once_with(task, mock.ANY)
+
+    @mock.patch('ironic.conductor.manager.set_node_cleaning_steps')
+    @mock.patch.object(agent_base_vendor.BaseAgentVendor,
+                       '_notify_conductor_resume_clean')
+    @mock.patch.object(agent_client.AgentClient, 'get_commands_status')
+    def test_continue_cleaning_clean_version_mismatch(
+            self, status_mock, notify_mock, steps_mock):
+        status_mock.return_value = [{
+            'command_status': 'CLEAN_VERSION_MISMATCH',
+        }]
+        with task_manager.acquire(self.context, self.node['uuid'],
+                                  shared=False) as task:
+            self.passthru.continue_cleaning(task)
+            steps_mock.assert_called_once_with(task)
+            notify_mock.assert_called_once_with(task)
+
+    @mock.patch('ironic.conductor.manager.cleaning_error_handler')
+    @mock.patch.object(agent_client.AgentClient, 'get_commands_status')
+    def test_continue_cleaning_unknown(self, status_mock, error_mock):
+        status_mock.return_value = [{
+            'command_status': 'UNKNOWN',
+        }]
+        with task_manager.acquire(self.context, self.node['uuid'],
+                                  shared=False) as task:
+            self.passthru.continue_cleaning(task)
+            error_mock.assert_called_once_with(task, mock.ANY)

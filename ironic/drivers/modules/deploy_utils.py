@@ -44,8 +44,10 @@ from ironic.common import images
 from ironic.common import states
 from ironic.common import utils
 from ironic.conductor import utils as manager_utils
+from ironic.drivers.modules import agent_client
 from ironic.drivers.modules import image_cache
 from ironic.drivers import utils as driver_utils
+from ironic import objects
 from ironic.openstack.common import log as logging
 
 
@@ -69,6 +71,10 @@ CONF.register_opts(deploy_opts, group='deploy')
 LOG = logging.getLogger(__name__)
 
 VALID_ROOT_DEVICE_HINTS = set(('size', 'model', 'wwn', 'serial', 'vendor'))
+
+
+def _get_agent_client():
+    return agent_client.AgentClient()
 
 
 # All functions are called from deploy() directly or indirectly.
@@ -871,6 +877,65 @@ def parse_instance_info_capabilities(node):
         parse_error()
 
     return capabilities
+
+
+def agent_get_clean_steps(task):
+    """Get the list of clean steps from the agent.
+
+    #TODO(JoshNang) move to BootInterface
+
+    :param task: a TaskManager object containing the node
+    :raises: NodeCleaningFailure if the agent returns invalid results
+    :returns: A list of clean step dictionaries
+    """
+    client = _get_agent_client()
+    ports = objects.Port.list_by_node_id(
+        task.context, task.node.id)
+    result = client.get_clean_steps(task.node, ports).get('command_result')
+
+    if ('clean_steps' not in result or
+            'hardware_manager_version' not in result):
+        raise exception.NodeCleaningFailure(_(
+            'get_clean_steps for node %(node)s returned invalid result:'
+            ' %(result)s') % ({'node': task.node.uuid, 'result': result}))
+
+    driver_info = task.node.driver_internal_info
+    driver_info['hardware_manager_version'] = result[
+        'hardware_manager_version']
+    task.node.driver_internal_info = driver_info
+    task.node.save()
+
+    # Clean steps looks like {'HardwareManager': [{step1},{steps2}..]..}
+    # Flatten clean steps into one list
+    steps_list = [step for step_list in
+                  result['clean_steps'].values()
+                  for step in step_list]
+    # Filter steps to only return deploy steps
+    steps = [step for step in steps_list
+             if step.get('interface') == 'deploy']
+    return steps
+
+
+def agent_execute_clean_step(task, step):
+    """Execute a clean step asynchronously on the agent.
+
+    #TODO(JoshNang) move to BootInterface
+
+    :param task: a TaskManager object containing the node
+    :param step: a clean step dictionary to execute
+    :raises: NodeCleaningFailure if the agent does not return a command status
+    :returns: states.CLEANING to signify the step will be completed async
+    """
+    client = _get_agent_client()
+    ports = objects.Port.list_by_node_id(
+        task.context, task.node.id)
+    result = client.execute_clean_step(step, task.node, ports)
+    if not result.get('command_status'):
+        raise exception.NodeCleaningFailure(_(
+            'Agent on node %(node)s returned bad command result: '
+            '%(result)s') % {'node': task.node.uuid,
+                             'result': result.get('command_error')})
+    return states.CLEANING
 
 
 def try_set_boot_device(task, device, persistent=True):

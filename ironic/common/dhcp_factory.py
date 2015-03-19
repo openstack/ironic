@@ -74,7 +74,7 @@ class DHCPFactory(object):
 
         cls._dhcp_provider = _extension_manager.driver
 
-    def update_dhcp(self, task, dhcp_opts):
+    def update_dhcp(self, task, dhcp_opts, ports=None):
         """Send or update the DHCP BOOT options for this node.
 
         :param task: A TaskManager instance.
@@ -88,8 +88,10 @@ class DHCPFactory(object):
                              'opt_value': '123.123.123.456'},
                             {'opt_name': 'tftp-server',
                              'opt_value': '123.123.123.123'}]
+        :param ports: a list of Neutron port dicts to update DHCP options on.
+            If None, will get the list of ports from the Ironic port objects.
         """
-        self.provider.update_dhcp_opts(task, dhcp_opts)
+        self.provider.update_dhcp_opts(task, dhcp_opts, ports)
 
     @property
     def provider(self):

@@ -36,9 +36,18 @@ class MockNode(object):
         self.uuid = 'uuid'
         self.driver_info = {}
         self.driver_internal_info = {
-            'agent_url': "http://127.0.0.1:9999"
+            'agent_url': "http://127.0.0.1:9999",
+            'clean_version': {'generic': '1'}
         }
         self.instance_info = {}
+
+    def as_dict(self):
+        return {
+            'uuid': self.uuid,
+            'driver_info': self.driver_info,
+            'driver_internal_info': self.driver_internal_info,
+            'instance_info': self.instance_info
+        }
 
 
 class TestAgentClient(base.TestCase):
@@ -148,3 +157,37 @@ class TestAgentClient(base.TestCase):
         self.client._command.assert_called_once_with(
             node=self.node, method='image.install_bootloader', params=params,
             wait=True)
+
+    def test_get_clean_steps(self):
+        self.client._command = mock.Mock()
+        ports = []
+        expected_params = {
+            'node': self.node.as_dict(),
+            'ports': []
+        }
+
+        self.client.get_clean_steps(self.node,
+                                    ports)
+        self.client._command.assert_called_once_with(node=self.node,
+                                         method='clean.get_clean_steps',
+                                         params=expected_params,
+                                         wait=True)
+
+    def test_execute_clean_step(self):
+        self.client._command = mock.Mock()
+        ports = []
+        step = {'priority': 10, 'step': 'erase_devices', 'interface': 'deploy'}
+        expected_params = {
+            'step': step,
+            'node': self.node.as_dict(),
+            'ports': [],
+            'clean_version': self.node.driver_internal_info.get(
+                'hardware_manager_version')
+        }
+        self.client.execute_clean_step(step,
+                                       self.node,
+                                       ports)
+        self.client._command.assert_called_once_with(node=self.node,
+                                         method='clean.execute_clean_step',
+                                         params=expected_params,
+                                         wait=False)

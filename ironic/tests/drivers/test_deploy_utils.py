@@ -33,6 +33,7 @@ from ironic.common import boot_devices
 from ironic.common import disk_partitioner
 from ironic.common import exception
 from ironic.common import images
+from ironic.common import states
 from ironic.common import utils as common_utils
 from ironic.conductor import task_manager
 from ironic.conductor import utils as manager_utils
@@ -1507,6 +1508,129 @@ class TrySetBootDeviceTestCase(db_base.DbTestCase):
                               task, boot_devices.DISK, persistent=True)
             node_set_boot_device_mock.assert_called_once_with(
                 task, boot_devices.DISK, persistent=True)
+
+
+class AgentCleaningTestCase(db_base.DbTestCase):
+    def setUp(self):
+        super(AgentCleaningTestCase, self).setUp()
+        mgr_utils.mock_the_extension_manager(driver='fake_agent')
+        n = {'driver': 'fake_agent'}
+        self.node = obj_utils.create_test_node(self.context, **n)
+        self.ports = [obj_utils.create_test_port(self.context,
+                                                 node_id=self.node.id)]
+
+        self.clean_steps = {
+            'hardware_manager_version': '1',
+            'clean_steps': {
+                'GenericHardwareManager': [
+                    {'interface': 'deploy',
+                     'step': 'erase_devices',
+                     'priority': 20},
+                ],
+                'SpecificHardwareManager': [
+                    {'interface': 'deploy',
+                     'step': 'update_firmware',
+                     'priority': 30},
+                    {'interface': 'raid',
+                     'step': 'create_raid',
+                     'priority': 10},
+                ]
+            }
+        }
+
+    @mock.patch('ironic.objects.Port.list_by_node_id')
+    @mock.patch('ironic.drivers.modules.deploy_utils._get_agent_client')
+    def test_get_clean_steps(self, get_client_mock, list_ports_mock):
+        client_mock = mock.Mock()
+        client_mock.get_clean_steps.return_value = {
+            'command_result': self.clean_steps}
+        get_client_mock.return_value = client_mock
+        list_ports_mock.return_value = self.ports
+
+        with task_manager.acquire(
+                self.context, self.node['uuid'], shared=False) as task:
+            response = utils.agent_get_clean_steps(task)
+            client_mock.get_clean_steps.assert_called_once_with(task.node,
+                                                                self.ports)
+            self.assertEqual('1', task.node.driver_internal_info[
+                'hardware_manager_version'])
+
+            # Since steps are returned in dicts, they have non-deterministic
+            # ordering
+            self.assertEqual(2, len(response))
+            self.assertTrue(self.clean_steps['clean_steps'][
+                                'GenericHardwareManager'][0] in response)
+            self.assertTrue(self.clean_steps['clean_steps'][
+                                'SpecificHardwareManager'][0] in response)
+
+    @mock.patch('ironic.objects.Port.list_by_node_id')
+    @mock.patch('ironic.drivers.modules.deploy_utils._get_agent_client')
+    def test_get_clean_steps_missing_steps(self, get_client_mock,
+                                           list_ports_mock):
+        client_mock = mock.Mock()
+        del self.clean_steps['clean_steps']
+        client_mock.get_clean_steps.return_value = {
+            'command_result': self.clean_steps}
+        get_client_mock.return_value = client_mock
+        list_ports_mock.return_value = self.ports
+
+        with task_manager.acquire(
+                self.context, self.node['uuid'], shared=False) as task:
+            self.assertRaises(exception.NodeCleaningFailure,
+                              utils.agent_get_clean_steps,
+                              task)
+            client_mock.get_clean_steps.assert_called_once_with(task.node,
+                                                                self.ports)
+
+    @mock.patch('ironic.objects.Port.list_by_node_id')
+    @mock.patch('ironic.drivers.modules.deploy_utils._get_agent_client')
+    def test_execute_clean_step(self, get_client_mock, list_ports_mock):
+        client_mock = mock.Mock()
+        client_mock.execute_clean_step.return_value = {
+            'command_status': 'SUCCEEDED'}
+        get_client_mock.return_value = client_mock
+        list_ports_mock.return_value = self.ports
+
+        with task_manager.acquire(
+                self.context, self.node['uuid'], shared=False) as task:
+            response = utils.agent_execute_clean_step(
+                task,
+                self.clean_steps['clean_steps']['GenericHardwareManager'][0])
+            self.assertEqual(states.CLEANING, response)
+
+    @mock.patch('ironic.objects.Port.list_by_node_id')
+    @mock.patch('ironic.drivers.modules.deploy_utils._get_agent_client')
+    def test_execute_clean_step_running(self, get_client_mock,
+                                        list_ports_mock):
+        client_mock = mock.Mock()
+        client_mock.execute_clean_step.return_value = {
+            'command_status': 'RUNNING'}
+        get_client_mock.return_value = client_mock
+        list_ports_mock.return_value = self.ports
+
+        with task_manager.acquire(
+                self.context, self.node['uuid'], shared=False) as task:
+            response = utils.agent_execute_clean_step(
+                task,
+                self.clean_steps['clean_steps']['GenericHardwareManager'][0])
+            self.assertEqual(states.CLEANING, response)
+
+    @mock.patch('ironic.objects.Port.list_by_node_id')
+    @mock.patch('ironic.drivers.modules.deploy_utils._get_agent_client')
+    def test_execute_clean_step_version_mismatch(self, get_client_mock,
+                                        list_ports_mock):
+        client_mock = mock.Mock()
+        client_mock.execute_clean_step.return_value = {
+            'command_status': 'RUNNING'}
+        get_client_mock.return_value = client_mock
+        list_ports_mock.return_value = self.ports
+
+        with task_manager.acquire(
+                self.context, self.node['uuid'], shared=False) as task:
+            response = utils.agent_execute_clean_step(
+                task,
+                self.clean_steps['clean_steps']['GenericHardwareManager'][0])
+            self.assertEqual(states.CLEANING, response)
 
 
 @mock.patch.object(utils, 'is_block_device')
