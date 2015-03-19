@@ -125,7 +125,7 @@ class PXEPrivateMethodsTestCase(db_base.DbTestCase):
         self.node = obj_utils.create_test_node(self.context, **n)
 
     @mock.patch.object(base_image_service.BaseImageService, '_show')
-    def test__get_image_info(self, show_mock):
+    def _test__get_image_info(self, show_mock):
         properties = {'properties': {u'kernel_id': u'instance_kernel_uuid',
                      u'ramdisk_id': u'instance_ramdisk_uuid'}}
 
@@ -164,6 +164,17 @@ class PXEPrivateMethodsTestCase(db_base.DbTestCase):
                          self.node.instance_info.get('kernel'))
         self.assertEqual('instance_ramdisk_uuid',
                          self.node.instance_info.get('ramdisk'))
+
+    def test__get_image_info(self):
+        # Tests when 'is_whole_disk_image' exists in driver_internal_info
+        self._test__get_image_info()
+
+    def test__get_image_info_without_is_whole_disk_image(self):
+        # Tests when 'is_whole_disk_image' doesn't exists in
+        # driver_internal_info
+        del self.node.driver_internal_info['is_whole_disk_image']
+        self.node.save()
+        self._test__get_image_info()
 
     @mock.patch.object(base_image_service.BaseImageService, '_show')
     def test__get_image_info_whole_disk_image(self, show_mock):
@@ -271,6 +282,11 @@ class PXEPrivateMethodsTestCase(db_base.DbTestCase):
 
     def test__build_pxe_config_options_ipxe(self):
         self._test_build_pxe_config_options(ipxe_enabled=True)
+
+    def test__build_pxe_config_options_without_is_whole_disk_image(self):
+        del self.node.driver_internal_info['is_whole_disk_image']
+        self.node.save()
+        self._test_build_pxe_config_options(ipxe_enabled=False)
 
     @mock.patch.object(iscsi_deploy, 'build_deploy_ramdisk_options')
     @mock.patch.object(pxe_utils, '_build_pxe_config')
@@ -651,7 +667,7 @@ class PXEDriverTestCase(db_base.DbTestCase):
     @mock.patch.object(pxe_utils, 'get_pxe_config_file_path')
     @mock.patch.object(deploy_utils, 'switch_pxe_config')
     @mock.patch.object(driver_utils, 'get_node_capability')
-    def test_prepare_node_active(self,
+    def _test_prepare_node_active(self,
                                  mock_get_cap,
                                  mock_switch,
                                  mock_pxe_get_cfg,
@@ -665,8 +681,6 @@ class PXEDriverTestCase(db_base.DbTestCase):
         mock_get_cap.return_value = None
 
         self.node.provision_state = states.ACTIVE
-        self.node.driver_internal_info = {'root_uuid_or_disk_id': 'abcd',
-                                          'is_whole_disk_image': False}
         self.node.save()
 
         with task_manager.acquire(self.context, self.node.uuid) as task:
@@ -679,7 +693,19 @@ class PXEDriverTestCase(db_base.DbTestCase):
                                                    task.node, None)
 
             mock_pxe_get_cfg.assert_called_once_with(task.node.uuid)
-            mock_switch.assert_called_once_with('/path', 'abcd', None, False)
+            iwdi = task.node.driver_internal_info.get('is_whole_disk_image')
+            mock_switch.assert_called_once_with('/path', 'abcd', None, iwdi)
+
+    def test_prepare_node_active(self):
+        self.node.driver_internal_info = {'root_uuid_or_disk_id': 'abcd',
+                                          'is_whole_disk_image': False}
+        self.node.save()
+        self._test_prepare_node_active()
+
+    def test_prepare_node_active_without_is_whole_disk_image(self):
+        self.node.driver_internal_info = {'root_uuid_or_disk_id': 'abcd'}
+        self.node.save()
+        self._test_prepare_node_active()
 
     @mock.patch.object(keystone, 'token_expires_soon')
     @mock.patch.object(deploy_utils, 'get_image_mb')
