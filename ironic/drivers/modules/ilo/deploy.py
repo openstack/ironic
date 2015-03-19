@@ -135,14 +135,6 @@ def _get_boot_iso(task, root_uuid):
         LOG.debug("Found boot_iso %s in Glance", boot_iso_uuid)
         return boot_iso_uuid
 
-    # NOTE(faizan) For uefi boot_mode, operator should provide efi capable
-    # boot-iso in glance
-    if driver_utils.get_node_capability(task.node, 'boot_mode') == 'uefi':
-        LOG.error(_LE("Unable to find boot_iso in Glance, required to deploy "
-                      "node %(node)s in UEFI boot mode."),
-                  {'node': task.node.uuid})
-        return
-
     if not kernel_href or not ramdisk_href:
         LOG.error(_LE("Unable to find kernel or ramdisk for "
                       "image %(image)s to generate boot ISO for %(node)s"),
@@ -157,6 +149,8 @@ def _get_boot_iso(task, root_uuid):
 
     # Option 3 - Create boot_iso from kernel/ramdisk, upload to Swift
     # and provide its name.
+    deploy_iso_uuid = deploy_info['ilo_deploy_iso']
+    boot_mode = driver_utils.get_node_capability(task.node, 'boot_mode')
     boot_iso_object_name = _get_boot_iso_object_name(task.node)
     kernel_params = CONF.pxe.pxe_append_params
     container = CONF.ilo.swift_ilo_container
@@ -164,10 +158,12 @@ def _get_boot_iso(task, root_uuid):
     with tempfile.NamedTemporaryFile() as fileobj:
         boot_iso_tmp_file = fileobj.name
         images.create_boot_iso(task.context, boot_iso_tmp_file,
-                kernel_href, ramdisk_href, root_uuid, kernel_params)
+                               kernel_href, ramdisk_href,
+                               deploy_iso_uuid, root_uuid,
+                               kernel_params, boot_mode)
         swift_api = swift.SwiftAPI()
         swift_api.create_object(container, boot_iso_object_name,
-                boot_iso_tmp_file)
+                                boot_iso_tmp_file)
 
     LOG.debug("Created boot_iso %s in Swift", boot_iso_object_name)
 

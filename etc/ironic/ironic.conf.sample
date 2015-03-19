@@ -153,6 +153,9 @@
 # value)
 #isolinux_config_template=$pybasedir/common/isolinux_config.template
 
+# Template file for grub configuration file. (string value)
+#grub_config_template=$pybasedir/common/grub_conf.template
+
 
 #
 # Options defined in ironic.common.paths
@@ -1233,7 +1236,7 @@
 #rpc_conn_pool_size=30
 
 # Qpid broker hostname. (string value)
-#qpid_hostname=ironic
+#qpid_hostname=localhost
 
 # Qpid broker port. (integer value)
 #qpid_port=5672
@@ -1311,7 +1314,7 @@
 
 # The RabbitMQ broker address where a single node is used.
 # (string value)
-#rabbit_host=ironic
+#rabbit_host=localhost
 
 # The RabbitMQ broker port where a single node is used.
 # (integer value)
