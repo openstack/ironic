@@ -17,6 +17,9 @@
 
 """Extracts OpenStack config option info from module(s)."""
 
+# NOTE(GheRivero): Copied from oslo_incubator before getting removed in
+#  Change-Id: If15b77d31a8c615aad8fca30f6dd9928da2d08bb
+
 from __future__ import print_function
 
 import argparse
@@ -27,7 +30,7 @@ import socket
 import sys
 import textwrap
 
-from oslo.config import cfg
+from oslo_config import cfg
 import six
 import stevedore.named
 
@@ -183,6 +186,18 @@ def _list_opts(obj):
                 not isinstance(o, cfg.SubCommandOpt))
 
     opts = list()
+
+    if 'list_opts' in dir(obj):
+        group_opts = getattr(obj, 'list_opts')()
+        # NOTE(GheRivero): Options without a defined group,
+        # must be registered to the DEFAULT section
+        fixed_list = []
+        for section, opts in group_opts:
+            if not section:
+                section = 'DEFAULT'
+            fixed_list.append((section, opts))
+        return fixed_list
+
     for attr_str in dir(obj):
         attr_obj = getattr(obj, attr_str)
         if is_opt(attr_obj):
@@ -272,38 +287,43 @@ def _print_opt(opt):
     try:
         if opt_default is None:
             print('#%s=<None>' % opt_name)
-        elif opt_type == STROPT:
-            assert(isinstance(opt_default, six.string_types))
-            print('#%s=%s' % (opt_name, _sanitize_default(opt_name,
-                                                          opt_default)))
-        elif opt_type == BOOLOPT:
-            assert(isinstance(opt_default, bool))
-            print('#%s=%s' % (opt_name, str(opt_default).lower()))
-        elif opt_type == INTOPT:
-            assert(isinstance(opt_default, int) and
-                   not isinstance(opt_default, bool))
-            print('#%s=%s' % (opt_name, opt_default))
-        elif opt_type == FLOATOPT:
-            assert(isinstance(opt_default, float))
-            print('#%s=%s' % (opt_name, opt_default))
-        elif opt_type == LISTOPT:
-            assert(isinstance(opt_default, list))
-            print('#%s=%s' % (opt_name, ','.join(opt_default)))
-        elif opt_type == DICTOPT:
-            assert(isinstance(opt_default, dict))
-            opt_default_strlist = [str(key) + ':' + str(value)
-                                   for (key, value) in opt_default.items()]
-            print('#%s=%s' % (opt_name, ','.join(opt_default_strlist)))
-        elif opt_type == MULTISTROPT:
-            assert(isinstance(opt_default, list))
-            if not opt_default:
-                opt_default = ['']
-            for default in opt_default:
-                print('#%s=%s' % (opt_name, default))
+        else:
+            _print_type(opt_type, opt_name, opt_default)
         print('')
     except Exception:
         sys.stderr.write('Error in option "%s"\n' % opt_name)
         sys.exit(1)
+
+
+def _print_type(opt_type, opt_name, opt_default):
+    if opt_type == STROPT:
+        assert(isinstance(opt_default, six.string_types))
+        print('#%s=%s' % (opt_name, _sanitize_default(opt_name,
+                                                          opt_default)))
+    elif opt_type == BOOLOPT:
+        assert(isinstance(opt_default, bool))
+        print('#%s=%s' % (opt_name, str(opt_default).lower()))
+    elif opt_type == INTOPT:
+        assert(isinstance(opt_default, int) and
+               not isinstance(opt_default, bool))
+        print('#%s=%s' % (opt_name, opt_default))
+    elif opt_type == FLOATOPT:
+        assert(isinstance(opt_default, float))
+        print('#%s=%s' % (opt_name, opt_default))
+    elif opt_type == LISTOPT:
+        assert(isinstance(opt_default, list))
+        print('#%s=%s' % (opt_name, ','.join(opt_default)))
+    elif opt_type == DICTOPT:
+        assert(isinstance(opt_default, dict))
+        opt_default_strlist = [str(key) + ':' + str(value)
+                                   for (key, value) in opt_default.items()]
+        print('#%s=%s' % (opt_name, ','.join(opt_default_strlist)))
+    elif opt_type == MULTISTROPT:
+        assert(isinstance(opt_default, list))
+        if not opt_default:
+            opt_default = ['']
+        for default in opt_default:
+            print('#%s=%s' % (opt_name, default))
 
 
 def main():

@@ -10,7 +10,7 @@
 #rpc_zmq_bind_address=*
 
 # MatchMaker driver. (string value)
-#rpc_zmq_matchmaker=oslo_messaging._drivers.matchmaker.MatchMakerLocalhost
+#rpc_zmq_matchmaker=local
 
 # ZeroMQ receiver listening port. (integer value)
 #rpc_zmq_port=9501
@@ -43,8 +43,9 @@
 # Size of RPC thread pool. (integer value)
 #rpc_thread_pool_size=64
 
-# Driver or drivers to handle sending notifications. (multi
-# valued)
+# The Drivers(s) to handle sending notifications. Possible
+# values are messaging, messagingv2, routing,log, test, noop
+# (multi valued)
 #notification_driver=
 
 # AMQP topic used for OpenStack notifications. (list value)
@@ -172,7 +173,7 @@
 
 # Directory where the ironic python module is installed.
 # (string value)
-#pybasedir=/usr/lib/python/site-packages/ironic
+#pybasedir=/usr/lib/python/site-packages/ironic/ironic
 
 # Directory where ironic binaries are installed. (string
 # value)
@@ -247,43 +248,10 @@
 # of default WARNING level). (boolean value)
 #verbose=false
 
-# Log output to standard error. (boolean value)
-#use_stderr=true
 
-# Format string to use for log messages with context. (string
-# value)
-#logging_context_format_string=%(asctime)s.%(msecs)03d %(process)d %(levelname)s %(name)s [%(request_id)s %(user_identity)s] %(instance)s%(message)s
-
-# Format string to use for log messages without context.
-# (string value)
-#logging_default_format_string=%(asctime)s.%(msecs)03d %(process)d %(levelname)s %(name)s [-] %(instance)s%(message)s
-
-# Data to append to log format when level is DEBUG. (string
-# value)
-#logging_debug_format_suffix=%(funcName)s %(pathname)s:%(lineno)d
-
-# Prefix each line of exception output with this format.
-# (string value)
-#logging_exception_prefix=%(asctime)s.%(msecs)03d %(process)d TRACE %(name)s %(instance)s
-
-# List of logger=LEVEL pairs. (list value)
-#default_log_levels=amqp=WARN,amqplib=WARN,boto=WARN,qpid=WARN,sqlalchemy=WARN,suds=INFO,oslo.messaging=INFO,iso8601=WARN,requests.packages.urllib3.connectionpool=WARN,urllib3.connectionpool=WARN,websocket=WARN,keystonemiddleware=WARN,routes.middleware=WARN,stevedore=WARN
-
-# Enables or disables publication of error events. (boolean
-# value)
-#publish_errors=false
-
-# Enables or disables fatal status of deprecations. (boolean
-# value)
-#fatal_deprecations=false
-
-# The format for an instance that is passed with the log
-# message. (string value)
-#instance_format="[instance: %(uuid)s] "
-
-# The format for an instance UUID that is passed with the log
-# message. (string value)
-#instance_uuid_format="[instance: %(uuid)s] "
+#
+# Options defined in ironic.openstack.common.log
+#
 
 # The name of a logging configuration file. This file is
 # appended to any existing logging configuration files. For
@@ -327,6 +295,54 @@
 
 # Syslog facility to receive log lines. (string value)
 #syslog_log_facility=LOG_USER
+
+
+#
+# Options defined in ironic.openstack.common.log
+#
+
+# Log output to standard error. (boolean value)
+#use_stderr=true
+
+
+#
+# Options defined in ironic.openstack.common.log
+#
+
+# Format string to use for log messages with context. (string
+# value)
+#logging_context_format_string=%(asctime)s.%(msecs)03d %(process)d %(levelname)s %(name)s [%(request_id)s %(user_identity)s] %(instance)s%(message)s
+
+# Format string to use for log messages without context.
+# (string value)
+#logging_default_format_string=%(asctime)s.%(msecs)03d %(process)d %(levelname)s %(name)s [-] %(instance)s%(message)s
+
+# Data to append to log format when level is DEBUG. (string
+# value)
+#logging_debug_format_suffix=%(funcName)s %(pathname)s:%(lineno)d
+
+# Prefix each line of exception output with this format.
+# (string value)
+#logging_exception_prefix=%(asctime)s.%(msecs)03d %(process)d TRACE %(name)s %(instance)s
+
+# List of logger=LEVEL pairs. (list value)
+#default_log_levels=amqp=WARN,amqplib=WARN,boto=WARN,qpid=WARN,sqlalchemy=WARN,suds=INFO,oslo.messaging=INFO,iso8601=WARN,requests.packages.urllib3.connectionpool=WARN,urllib3.connectionpool=WARN,websocket=WARN,keystonemiddleware=WARN,routes.middleware=WARN,stevedore=WARN
+
+# Enables or disables publication of error events. (boolean
+# value)
+#publish_errors=false
+
+# Enables or disables fatal status of deprecations. (boolean
+# value)
+#fatal_deprecations=false
+
+# The format for an instance that is passed with the log
+# message. (string value)
+#instance_format="[instance: %(uuid)s] "
+
+# The format for an instance UUID that is passed with the log
+# message. (string value)
+#instance_uuid_format="[instance: %(uuid)s] "
 
 
 #
@@ -499,8 +515,8 @@
 # ceilometer via the notification bus. (integer value)
 #send_sensor_data_interval=600
 
-# List of comma separated meter types which need to be sent
-# to Ceilometer. The default value, "ALL", is a special value
+# List of comma separated meter types which need to be sent to
+# Ceilometer. The default value, "ALL", is a special value
 # meaning send all the sensor data. (list value)
 #send_sensor_data_types=ALL
 
@@ -1060,7 +1076,7 @@
 #memcache_pool_maxsize=10
 
 # (Optional) Socket timeout in seconds for communicating with
-# a memcache server. (integer value)
+# a memcached server. (integer value)
 #memcache_pool_socket_timeout=3
 
 # (Optional) Number of seconds a connection to memcached is
@@ -1068,11 +1084,11 @@
 #memcache_pool_unused_timeout=60
 
 # (Optional) Number of seconds that an operation will wait to
-# get a memcache client connection from the pool. (integer
+# get a memcached client connection from the pool. (integer
 # value)
 #memcache_pool_conn_get_timeout=10
 
-# (Optional) Use the advanced (eventlet safe) memcache client
+# (Optional) Use the advanced (eventlet safe) memcached client
 # pool. The advanced pool will only work under python 2.x.
 # (boolean value)
 #memcache_use_advanced_pool=false
@@ -1252,8 +1268,8 @@
 # Debug: dump AMQP frames to stdout (boolean value)
 #trace=false
 
-# CA certificate PEM file for verifing server certificate
-# (string value)
+# CA certificate PEM file to verify server certificate (string
+# value)
 #ssl_ca_file=
 
 # Identifying certificate PEM file to present to clients
@@ -1279,6 +1295,7 @@
 #
 
 # Use durable queues in AMQP. (boolean value)
+# Deprecated group/name - [DEFAULT]/amqp_durable_queues
 # Deprecated group/name - [DEFAULT]/rabbit_durable_queues
 #amqp_durable_queues=false
 
@@ -1337,6 +1354,7 @@
 #
 
 # Use durable queues in AMQP. (boolean value)
+# Deprecated group/name - [DEFAULT]/amqp_durable_queues
 # Deprecated group/name - [DEFAULT]/rabbit_durable_queues
 #amqp_durable_queues=false
 
