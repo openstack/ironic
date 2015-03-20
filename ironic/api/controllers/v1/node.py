@@ -57,6 +57,13 @@ _VENDOR_METHODS = {}
 
 
 def hide_fields_in_newer_versions(obj):
+    # if requested version is < 1.3, hide driver_internal_info
+    if pecan.request.version.minor < 3:
+        obj.driver_internal_info = wsme.Unset
+
+    if not allow_logical_names():
+        obj.name = wsme.Unset
+
     # if requested version is < 1.6, hide inspection_*_at fields
     if pecan.request.version.minor < 6:
         obj.inspection_finished_at = wsme.Unset
@@ -68,12 +75,6 @@ def assert_juno_provision_state_name(obj):
     if (pecan.request.version.minor < 2 and
             obj.provision_state == ir_states.AVAILABLE):
         obj.provision_state = ir_states.NOSTATE
-
-
-def hide_driver_internal_info(obj):
-    # if requested version is < 1.3, hide driver_internal_info
-    if pecan.request.version.minor < 3:
-        obj.driver_internal_info = wsme.Unset
 
 
 def check_allow_management_verbs(verb):
@@ -88,14 +89,8 @@ def check_allow_management_verbs(verb):
 
 
 def allow_logical_names():
-    try:
-        # v1.5 added logical name aliases
-        if pecan.request.version.minor < 5:
-            return False
-    # ignore check if we're not in a pecan context
-    except AttributeError:
-        pass
-    return True
+    # v1.5 added logical name aliases
+    return pecan.request.version.minor >= 5
 
 
 def is_valid_name(name):
@@ -621,9 +616,6 @@ class Node(base.APIBase):
         #                    the user, it's internal only.
         node.chassis_id = wtypes.Unset
 
-        if not allow_logical_names():
-            node.name = wsme.Unset
-
         node.links = [link.Link.make_link('self', url, 'nodes',
                                           node.uuid),
                       link.Link.make_link('bookmark', url, 'nodes',
@@ -635,7 +627,6 @@ class Node(base.APIBase):
     def convert_with_links(cls, rpc_node, expand=True):
         node = Node(**rpc_node.as_dict())
         assert_juno_provision_state_name(node)
-        hide_driver_internal_info(node)
         hide_fields_in_newer_versions(node)
         return cls._convert_with_links(node, pecan.request.host_url,
                                        expand,
