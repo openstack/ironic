@@ -25,40 +25,36 @@ from ironic.tests.db import utils
 
 class DbChassisTestCase(base.DbTestCase):
 
-    def _create_test_chassis(self, **kwargs):
-        ch = utils.get_test_chassis(**kwargs)
-        self.dbapi.create_chassis(ch)
-        return ch
+    def setUp(self):
+        super(DbChassisTestCase, self).setUp()
+        self.chassis = utils.create_test_chassis()
 
     def test_get_chassis_list(self):
-        uuids = []
+        uuids = [self.chassis.uuid]
         for i in range(1, 6):
-            n = utils.get_test_chassis(id=i, uuid=uuidutils.generate_uuid())
-            self.dbapi.create_chassis(n)
-            uuids.append(six.text_type(n['uuid']))
+            ch = utils.create_test_chassis(uuid=uuidutils.generate_uuid())
+            uuids.append(six.text_type(ch.uuid))
         res = self.dbapi.get_chassis_list()
         res_uuids = [r.uuid for r in res]
         self.assertEqual(uuids.sort(), res_uuids.sort())
 
     def test_get_chassis_by_id(self):
-        ch = self._create_test_chassis()
-        chassis = self.dbapi.get_chassis_by_id(ch['id'])
+        chassis = self.dbapi.get_chassis_by_id(self.chassis.id)
 
-        self.assertEqual(ch['uuid'], chassis.uuid)
+        self.assertEqual(self.chassis.uuid, chassis.uuid)
 
     def test_get_chassis_by_uuid(self):
-        ch = self._create_test_chassis()
-        chassis = self.dbapi.get_chassis_by_uuid(ch['uuid'])
+        chassis = self.dbapi.get_chassis_by_uuid(self.chassis.uuid)
 
-        self.assertEqual(ch['id'], chassis.id)
+        self.assertEqual(self.chassis.id, chassis.id)
 
     def test_get_chassis_that_does_not_exist(self):
         self.assertRaises(exception.ChassisNotFound,
                           self.dbapi.get_chassis_by_id, 666)
 
     def test_update_chassis(self):
-        ch = self._create_test_chassis()
-        res = self.dbapi.update_chassis(ch['id'], {'description': 'hello'})
+        res = self.dbapi.update_chassis(self.chassis.id,
+                                        {'description': 'hello'})
 
         self.assertEqual('hello', res.description)
 
@@ -67,32 +63,27 @@ class DbChassisTestCase(base.DbTestCase):
                           self.dbapi.update_chassis, 666, {'description': ''})
 
     def test_update_chassis_uuid(self):
-        ch = self._create_test_chassis()
         self.assertRaises(exception.InvalidParameterValue,
-                          self.dbapi.update_chassis, ch['id'],
+                          self.dbapi.update_chassis, self.chassis.id,
                           {'uuid': 'hello'})
 
     def test_destroy_chassis(self):
-        ch = self._create_test_chassis()
-        self.dbapi.destroy_chassis(ch['id'])
+        self.dbapi.destroy_chassis(self.chassis.id)
 
         self.assertRaises(exception.ChassisNotFound,
-                          self.dbapi.get_chassis_by_id, ch['id'])
+                          self.dbapi.get_chassis_by_id, self.chassis.id)
 
     def test_destroy_chassis_that_does_not_exist(self):
         self.assertRaises(exception.ChassisNotFound,
                           self.dbapi.destroy_chassis, 666)
 
     def test_destroy_chassis_with_nodes(self):
-        ch = self._create_test_chassis()
-        utils.create_test_node(chassis_id=ch['id'])
+        utils.create_test_node(chassis_id=self.chassis.id)
 
         self.assertRaises(exception.ChassisNotEmpty,
-                          self.dbapi.destroy_chassis, ch['id'])
+                          self.dbapi.destroy_chassis, self.chassis.id)
 
     def test_create_chassis_already_exists(self):
-        uuid = uuidutils.generate_uuid()
-        self._create_test_chassis(id=1, uuid=uuid)
         self.assertRaises(exception.ChassisAlreadyExists,
-                          self._create_test_chassis,
-                          id=2, uuid=uuid)
+                          utils.create_test_chassis,
+                          uuid=self.chassis.uuid)

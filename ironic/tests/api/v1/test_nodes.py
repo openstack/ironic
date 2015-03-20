@@ -120,7 +120,7 @@ class TestTopLevelFunctions(base.TestCase):
 class TestNodeObject(base.TestCase):
 
     def test_node_init(self):
-        node_dict = test_api_utils.node_post_data(chassis_id=None)
+        node_dict = test_api_utils.node_post_data()
         del node_dict['instance_uuid']
         node = api_node.Node(**node_dict)
         self.assertEqual(wtypes.Unset, node.instance_uuid)
@@ -159,7 +159,8 @@ class TestListNodes(test_api_base.FunctionalTest):
         self.assertEqual([], data['nodes'])
 
     def test_one(self):
-        node = obj_utils.create_test_node(self.context)
+        node = obj_utils.create_test_node(self.context,
+                                          chassis_id=self.chassis.id)
         data = self.get_json('/nodes',
                  headers={api_base.Version.string: str(api_v1.MAX_VER)})
         self.assertIn('instance_uuid', data['nodes'][0])
@@ -184,7 +185,8 @@ class TestListNodes(test_api_base.FunctionalTest):
         self.assertNotIn('chassis_id', data['nodes'][0])
 
     def test_get_one(self):
-        node = obj_utils.create_test_node(self.context)
+        node = obj_utils.create_test_node(self.context,
+                                          chassis_id=self.chassis.id)
         data = self.get_json('/nodes/%s' % node.uuid,
                  headers={api_base.Version.string: str(api_v1.MAX_VER)})
         self.assertEqual(node.uuid, data['uuid'])
@@ -205,7 +207,8 @@ class TestListNodes(test_api_base.FunctionalTest):
         self.assertNotIn('chassis_id', data)
 
     def test_detail(self):
-        node = obj_utils.create_test_node(self.context)
+        node = obj_utils.create_test_node(self.context,
+                                          chassis_id=self.chassis.id)
         data = self.get_json('/nodes/detail',
                  headers={api_base.Version.string: str(api_v1.MAX_VER)})
         self.assertEqual(node.uuid, data['nodes'][0]["uuid"])
@@ -530,7 +533,8 @@ class TestListNodes(test_api_base.FunctionalTest):
         node = obj_utils.create_test_node(
             self.context,
             uuid=uuidutils.generate_uuid(),
-            instance_uuid=uuidutils.generate_uuid())
+            instance_uuid=uuidutils.generate_uuid(),
+            chassis_id=self.chassis.id)
         instance_uuid = node.instance_uuid
 
         data = self.get_json('/nodes/detail?instance_uuid=%s' % instance_uuid)
@@ -734,9 +738,11 @@ class TestPatch(test_api_base.FunctionalTest):
     def setUp(self):
         super(TestPatch, self).setUp()
         self.chassis = obj_utils.create_test_chassis(self.context)
-        self.node = obj_utils.create_test_node(self.context, name='node-57')
+        self.node = obj_utils.create_test_node(self.context, name='node-57',
+                                               chassis_id=self.chassis.id)
         self.node_no_name = obj_utils.create_test_node(self.context,
-            uuid='deadbeef-0000-1111-2222-333333333333')
+            uuid='deadbeef-0000-1111-2222-333333333333',
+            chassis_id=self.chassis.id)
         p = mock.patch.object(rpcapi.ConductorAPI, 'get_topic_for')
         self.mock_gtf = p.start()
         self.mock_gtf.return_value = 'test-topic'
@@ -1392,7 +1398,6 @@ class TestDelete(test_api_base.FunctionalTest):
 
     def setUp(self):
         super(TestDelete, self).setUp()
-        self.chassis = obj_utils.create_test_chassis(self.context)
         p = mock.patch.object(rpcapi.ConductorAPI, 'get_topic_for')
         self.mock_gtf = p.start()
         self.mock_gtf.return_value = 'test-topic'
@@ -1508,7 +1513,6 @@ class TestPut(test_api_base.FunctionalTest):
 
     def setUp(self):
         super(TestPut, self).setUp()
-        self.chassis = obj_utils.create_test_chassis(self.context)
         self.node = obj_utils.create_test_node(self.context,
                 provision_state=states.AVAILABLE, name='node-39')
         p = mock.patch.object(rpcapi.ConductorAPI, 'get_topic_for')

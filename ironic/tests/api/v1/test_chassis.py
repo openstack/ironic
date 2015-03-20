@@ -77,7 +77,7 @@ class TestListChassis(api_base.FunctionalTest):
         ch_list = []
         for id_ in range(5):
             chassis = obj_utils.create_test_chassis(
-                self.context, id=id_, uuid=uuidutils.generate_uuid())
+                self.context, uuid=uuidutils.generate_uuid())
             ch_list.append(chassis.uuid)
         data = self.get_json('/chassis')
         self.assertEqual(len(ch_list), len(data['chassis']))
@@ -86,7 +86,7 @@ class TestListChassis(api_base.FunctionalTest):
 
     def test_links(self):
         uuid = uuidutils.generate_uuid()
-        obj_utils.create_test_chassis(self.context, id=1, uuid=uuid)
+        obj_utils.create_test_chassis(self.context, uuid=uuid)
         data = self.get_json('/chassis/%s' % uuid)
         self.assertIn('links', data.keys())
         self.assertEqual(2, len(data['links']))
@@ -97,7 +97,7 @@ class TestListChassis(api_base.FunctionalTest):
 
     def test_collection_links(self):
         for id in range(5):
-            obj_utils.create_test_chassis(self.context, id=id,
+            obj_utils.create_test_chassis(self.context,
                                           uuid=uuidutils.generate_uuid())
         data = self.get_json('/chassis/?limit=3')
         self.assertEqual(3, len(data['chassis']))
@@ -108,7 +108,7 @@ class TestListChassis(api_base.FunctionalTest):
     def test_collection_links_default_limit(self):
         cfg.CONF.set_override('max_limit', 3, 'api')
         for id_ in range(5):
-            obj_utils.create_test_chassis(self.context, id=id_,
+            obj_utils.create_test_chassis(self.context,
                                           uuid=uuidutils.generate_uuid())
         data = self.get_json('/chassis')
         self.assertEqual(3, len(data['chassis']))
@@ -186,8 +186,7 @@ class TestPatch(api_base.FunctionalTest):
     def test_replace_multi(self):
         extra = {"foo1": "bar1", "foo2": "bar2", "foo3": "bar3"}
         chassis = obj_utils.create_test_chassis(self.context, extra=extra,
-                                                uuid=uuidutils.generate_uuid(),
-                                                id=1)
+                                                uuid=uuidutils.generate_uuid())
         new_value = 'new value'
         response = self.patch_json('/chassis/%s' % chassis.uuid,
                                    [{'path': '/extra/foo2',
@@ -201,8 +200,7 @@ class TestPatch(api_base.FunctionalTest):
 
     def test_remove_singular(self):
         chassis = obj_utils.create_test_chassis(self.context, extra={'a': 'b'},
-                                                uuid=uuidutils.generate_uuid(),
-                                                id=1)
+                                                uuid=uuidutils.generate_uuid())
         response = self.patch_json('/chassis/%s' % chassis.uuid,
                                    [{'path': '/description', 'op': 'remove'}])
         self.assertEqual('application/json', response.content_type)
@@ -218,8 +216,7 @@ class TestPatch(api_base.FunctionalTest):
         extra = {"foo1": "bar1", "foo2": "bar2", "foo3": "bar3"}
         chassis = obj_utils.create_test_chassis(self.context, extra=extra,
                                                 description="foobar",
-                                                uuid=uuidutils.generate_uuid(),
-                                                id=1)
+                                                uuid=uuidutils.generate_uuid())
 
         # Removing one item from the collection
         response = self.patch_json('/chassis/%s' % chassis.uuid,
@@ -343,7 +340,7 @@ class TestPost(api_base.FunctionalTest):
 
     def test_post_nodes_subresource(self):
         chassis = obj_utils.create_test_chassis(self.context)
-        ndict = apiutils.node_post_data(chassis_id=None)
+        ndict = apiutils.node_post_data()
         ndict['chassis_uuid'] = chassis.uuid
         response = self.post_json('/chassis/nodes', ndict,
                                    expect_errors=True)
