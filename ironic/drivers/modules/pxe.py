@@ -544,11 +544,6 @@ class VendorPassthru(agent_base_vendor.BaseAgentVendor):
         root_uuid_or_disk_id = uuid_dict.get(
             'root uuid', uuid_dict.get('disk identifier'))
 
-        # TODO(rameshg87): It's not correct to return here as it will leave
-        # the node in DEPLOYING state. This will be fixed in bug 1405519.
-        if not root_uuid_or_disk_id:
-            return
-
         # save the node's root disk UUID so that another conductor could
         # rebuild the PXE config file. Due to a shortcoming in Nova objects,
         # we have to assign to node.driver_internal_info so the node knows it
