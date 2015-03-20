@@ -563,8 +563,12 @@ def work_on_disk(dev, root_mb, swap_mb, ephemeral_mb, ephemeral_format,
                         or configdrive HTTP URL.
     :param boot_option: Can be "local" or "netboot". "netboot" by default.
     :param boot_mode: Can be "bios" or "uefi". "bios" by default.
-    :returns: a dictionary containing the UUID of root partition and efi system
-        partition (if boot mode is uefi).
+    :returns: a dictionary containing the following keys:
+        'root uuid': UUID of root partition
+        'efi system partition uuid': UUID of the uefi system partition
+                                     (if boot mode is uefi).
+        NOTE: If key exists but value is None, it means partition doesn't
+              exist.
     """
     # the only way for preserve_ephemeral to be set to true is if we are
     # rebuilding an instance with --preserve_ephemeral.
@@ -673,8 +677,12 @@ def deploy_partition_image(address, port, iqn, lun, image_path,
                         or configdrive HTTP URL.
     :param boot_option: Can be "local" or "netboot". "netboot" by default.
     :param boot_mode: Can be "bios" or "uefi". "bios" by default.
-    :returns: a dictionary containing the UUID of root partition and efi system
-        partition (if boot mode is uefi).
+    :returns: a dictionary containing the following keys:
+        'root uuid': UUID of root partition
+        'efi system partition uuid': UUID of the uefi system partition
+                                     (if boot mode is uefi).
+        NOTE: If key exists but value is None, it means partition doesn't
+              exist.
     """
     with _iscsi_setup_and_handle_errors(address, port, iqn,
                                         lun, image_path) as dev:
@@ -702,7 +710,8 @@ def deploy_disk_image(address, port, iqn, lun,
     :param image_path: Path for the instance's disk image.
     :param node_uuid: node's uuid. Used for logging. Currently not in use
         by this function but could be used in the future.
-    :returns: a dictionary containing the disk identifier for the disk.
+    :returns: a dictionary containing the key 'disk identifier' to identify
+        the disk which was used for deployment.
     """
     with _iscsi_setup_and_handle_errors(address, port, iqn,
                                         lun, image_path) as dev:

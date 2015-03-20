@@ -275,11 +275,15 @@ def continue_deploy(task, **kwargs):
     :param kwargs: the kwargs to be passed to deploy.
     :raises: InvalidState if the event is not allowed by the associated
              state machine.
-    :returns: a dictionary containing some identifiers for the deployed
-        image. If it's partition image, then it returns root uuid and efi
-        system partition uuid (if boot mode is uefi).  If it's whole disk
-        image, it returns disk identifier. On error cases, it returns an
-        empty dictionary.
+    :returns: a dictionary containing the following keys:
+        For partition image:
+            'root uuid': UUID of root partition
+            'efi system partition uuid': UUID of the uefi system partition
+                                         (if boot mode is uefi).
+            NOTE: If key exists but value is None, it means partition doesn't
+                  exist.
+        For whole disk image:
+            'disk identifier': ID of the disk to which image was deployed.
     """
     node = task.node
 
@@ -332,10 +336,15 @@ def do_agent_iscsi_deploy(task, agent_client):
     :param agent_client: an instance of agent_client.AgentClient
         which will be used during iscsi deploy (for exposing node's
         target disk via iSCSI, for install boot loader, etc).
-    :returns: a dictionary containing some identifiers for the deployed
-        image. If it's partition image, then it returns root uuid and efi
-        system partition uuid (if boot mode is uefi).  If it's whole disk
-        image, it returns disk identifier.
+    :returns: a dictionary containing the following keys:
+        For partition image:
+            'root uuid': UUID of root partition
+            'efi system partition uuid': UUID of the uefi system partition
+                                         (if boot mode is uefi).
+            NOTE: If key exists but value is None, it means partition doesn't
+                  exist.
+        For whole disk image:
+            'disk identifier': ID of the disk to which image was deployed.
     :raises: InstanceDeployFailure, if it encounters some error
         during the deploy.
     """

@@ -443,7 +443,7 @@ class BaseAgentVendor(base.VendorInterface):
         :param root_uuid: The UUID of the root partition. This is used
             for identifying the partition which contains the image deployed.
         :param efi_system_part_uuid: The UUID of the efi system partition.
-            This is used only in uef boot mode.
+            This is used only in uefi boot mode.
         :raises: InstanceDeployFailure if bootloader installation failed or
             on encountering error while setting the boot device on the node.
         """

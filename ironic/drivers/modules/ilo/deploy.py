@@ -762,9 +762,9 @@ class VendorPassthru(agent_base_vendor.BaseAgentVendor):
 
         iwdi = node.driver_internal_info.get('is_whole_disk_image')
         ilo_common.cleanup_vmedia_boot(task)
-        uuid_dict_returned = iscsi_deploy.continue_deploy(task, **kwargs)
-        root_uuid_or_disk_id = uuid_dict_returned.get(
-            'root uuid', uuid_dict_returned.get('disk identifier'))
+        uuid_dict = iscsi_deploy.continue_deploy(task, **kwargs)
+        root_uuid_or_disk_id = uuid_dict.get(
+            'root uuid', uuid_dict.get('disk identifier'))
 
         # TODO(rameshg87): It's not correct to return here as it will leave
         # the node in DEPLOYING state. This will be fixed in bug 1405519.
@@ -817,12 +817,11 @@ class VendorPassthru(agent_base_vendor.BaseAgentVendor):
 
         ilo_common.cleanup_vmedia_boot(task)
 
-        uuid_dict_returned = iscsi_deploy.do_agent_iscsi_deploy(task,
-                                                                self._client)
-        root_uuid = uuid_dict_returned.get('root uuid')
+        uuid_dict = iscsi_deploy.do_agent_iscsi_deploy(task, self._client)
+        root_uuid = uuid_dict.get('root uuid')
 
         if iscsi_deploy.get_boot_option(node) == "local":
-            efi_system_part_uuid = uuid_dict_returned.get(
+            efi_system_part_uuid = uuid_dict.get(
                 'efi system partition uuid')
             self.configure_local_boot(
                 task, root_uuid=root_uuid,
