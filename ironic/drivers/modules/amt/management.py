@@ -145,7 +145,7 @@ class AMTManagement(base.ManagementInterface):
                     "with invalid device %(device)s for node %(node_id)s.") %
                     {'device': device, 'node_id': node.uuid})
 
-        # AMT/vPro doesnt support set boot_device persistent, so we have to
+        # AMT/vPro doesn't support set boot_device persistent, so we have to
         # save amt_boot_device/amt_boot_persistent in driver_internal_info.
         driver_internal_info = node.driver_internal_info
         driver_internal_info['amt_boot_device'] = device

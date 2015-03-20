@@ -207,7 +207,7 @@ def _get_macs_for_desired_ports(node, macs):
                                              requested port numbers.
     'inspect_ports' == <mix_of_valid_invalid> : raise error for
                                                 invalid inputs.
-    'inspect_ports' == 'none' : doesnt do any action with the
+    'inspect_ports' == 'none' : doesn't do any action with the
                                 inspected mac addresses.
 
     This method is not called if 'inspect_ports' == 'none', hence the
@@ -320,7 +320,7 @@ class IloInspect(base.InspectInterface):
         properties. It fails if any of the essential properties
         are not received from the node or if 'inspect_ports' is
         not provided in driver_info.
-        It doesnt fail if node fails to return any capabilities as
+        It doesn't fail if node fails to return any capabilities as
         the capabilities differ from hardware to hardware mostly.
 
         :param task: a TaskManager instance.
@@ -372,7 +372,7 @@ class IloInspect(base.InspectInterface):
         task.node.save()
 
         # Get the desired node inputs from the driver_info and create ports
-        # as requested. It doesnt delete the ports because there is
+        # as requested. It doesn't delete the ports because there is
         # no way for the operator to know which all MACs are associated
         # with the node and which are not. The proliantutils can
         # return only embedded NICs mac addresses and not the STANDUP NIC
