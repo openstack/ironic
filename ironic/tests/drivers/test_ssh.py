@@ -283,7 +283,7 @@ class SSHPrivateMethodsTestCase(db_base.DbTestCase):
                           info)
 
         get_hosts_name_mock.assert_called_once_with(self.sshclient, info)
-        exec_ssh_mock.assert_not_called()
+        self.assertFalse(exec_ssh_mock.called)
 
     @mock.patch.object(processutils, 'ssh_execute')
     def test__get_power_status_exception(self, exec_ssh_mock):

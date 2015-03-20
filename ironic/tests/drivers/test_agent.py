@@ -226,8 +226,8 @@ class TestAgentDeploy(db_base.DbTestCase):
                              self.driver.prepare_cleaning(task))
             prepare_mock.assert_called_once_with(task)
             boot_mock.assert_called_once_with(task, ports)
-            create_mock.assert_called_once()
-            delete_mock.assert_called_once()
+            create_mock.assert_called_once_with(task)
+            delete_mock.assert_called_once_with(task)
 
     @mock.patch('ironic.dhcp.neutron.NeutronDHCPApi.delete_cleaning_ports')
     @mock.patch('ironic.drivers.modules.agent._clean_up_pxe')
@@ -238,7 +238,7 @@ class TestAgentDeploy(db_base.DbTestCase):
             self.assertIsNone(self.driver.tear_down_cleaning(task))
             power_mock.assert_called_once_with(task, states.POWER_OFF)
             cleanup_mock.assert_called_once_with(task)
-            neutron_mock.assert_called_once()
+            neutron_mock.assert_called_once_with(task)
 
     @mock.patch('ironic.drivers.modules.deploy_utils.agent_get_clean_steps')
     def test_get_clean_steps(self, mock_get_clean_steps):

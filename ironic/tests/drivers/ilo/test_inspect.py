@@ -327,7 +327,7 @@ class IloInspectTestCase(db_base.DbTestCase):
             get_essential_mock.assert_called_once_with(task.node,
                                                        ilo_object_mock)
             self.assertEqual(task.node.properties, result['properties'])
-            create_port_mock.assert_not_called()
+            self.assertFalse(create_port_mock.called)
 
 
 class TestInspectPrivateMethods(db_base.DbTestCase):
@@ -347,7 +347,7 @@ class TestInspectPrivateMethods(db_base.DbTestCase):
         port_dict1 = {'address': 'aa:aa:aa:aa:aa:aa', 'node_id': node_id}
         port_dict2 = {'address': 'bb:bb:bb:bb:bb:bb', 'node_id': node_id}
         ilo_inspect._create_ports_if_not_exist(self.node, macs)
-        instance_mock.assert_called_once()
+        instance_mock.assert_called_once_with()
         self.assertTrue(log_mock.called)
         db_obj.create_port.assert_any_call(port_dict1)
         db_obj.create_port.assert_any_call(port_dict2)
@@ -361,7 +361,7 @@ class TestInspectPrivateMethods(db_base.DbTestCase):
         dbapi_mock.create_port.side_effect = exception.MACAlreadyExists('f')
         macs = {'Port 1': 'aa:aa:aa:aa:aa:aa', 'Port 2': 'bb:bb:bb:bb:bb:bb'}
         ilo_inspect._create_ports_if_not_exist(self.node, macs)
-        instance_mock.assert_called_once()
+        instance_mock.assert_called_once_with()
         self.assertTrue(log_mock.called)
 
     def test__get_essential_properties_ok(self):

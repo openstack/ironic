@@ -143,7 +143,7 @@ class IloDeployPrivateMethodsTestCase(db_base.DbTestCase):
             image_props_mock.assert_called_once_with(
                 task.context, 'image-uuid',
                 ['boot_iso', 'kernel_id', 'ramdisk_id'])
-            get_node_cap_mock.assert_not_called(task.node, 'boot_mode')
+            self.assertFalse(get_node_cap_mock.called)
             self.assertIsNone(boot_iso_result)
 
     @mock.patch.object(tempfile, 'NamedTemporaryFile')
