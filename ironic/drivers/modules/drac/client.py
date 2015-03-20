@@ -15,14 +15,19 @@
 Wrapper for pywsman.Client
 """
 
+import time
 from xml.etree import ElementTree
 
 from oslo_utils import importutils
 
 from ironic.common import exception
+from ironic.common.i18n import _LW
 from ironic.drivers.modules.drac import common as drac_common
+from ironic.openstack.common import log as logging
 
 pywsman = importutils.try_import('pywsman')
+
+LOG = logging.getLogger(__name__)
 
 _SOAP_ENVELOPE_URI = 'http://www.w3.org/2003/05/soap-envelope'
 
@@ -35,6 +40,9 @@ _FILTER_DIALECT_MAP = {'cql': 'http://schemas.dmtf.org/wbem/cql/1/dsp0202.pdf',
 RET_SUCCESS = '0'
 RET_ERROR = '2'
 RET_CREATED = '4096'
+
+RETRY_COUNT = 5
+RETRY_DELAY = 5
 
 
 def get_wsman_client(node):
@@ -51,6 +59,29 @@ def get_wsman_client(node):
     driver_info = drac_common.parse_driver_info(node)
     client = Client(**driver_info)
     return client
+
+
+def retry_on_empty_response(client, action, *args, **kwargs):
+    """Wrapper to retry an action on failure."""
+
+    func = getattr(client, action)
+    for i in range(RETRY_COUNT):
+        response = func(*args, **kwargs)
+        if response:
+            return response
+        else:
+            LOG.warning(_LW('Empty response on calling %(action)s on client. '
+                            'Last error (cURL error code): %(last_error)s, '
+                            'fault string: "%(fault_string)s" '
+                            'response_code: %(response_code)s. '
+                            'Retry attempt %(count)d') %
+                        {'action': action,
+                         'last_error': client.last_error(),
+                         'fault_string': client.fault_string(),
+                         'response_code': client.response_code(),
+                         'count': i + 1})
+
+            time.sleep(RETRY_DELAY)
 
 
 class Client(object):
@@ -96,15 +127,16 @@ class Client(object):
         options.set_flags(pywsman.FLAG_ENUMERATION_OPTIMIZATION)
         options.set_max_elements(100)
 
-        doc = self.client.enumerate(options, filter_, resource_uri)
+        doc = retry_on_empty_response(self.client, 'enumerate',
+                                      options, filter_, resource_uri)
         root = self._get_root(doc)
 
         final_xml = root
         find_query = './/{%s}Body' % _SOAP_ENVELOPE_URI
         insertion_point = final_xml.find(find_query)
         while doc.context() is not None:
-            doc = self.client.pull(options, None, resource_uri,
-                                   str(doc.context()))
+            doc = retry_on_empty_response(self.client, 'pull', options, None,
+                                          resource_uri, str(doc.context()))
             root = self._get_root(doc)
             for result in root.findall(find_query):
                 for child in list(result):
@@ -160,7 +192,9 @@ class Client(object):
             for name, value in properties.items():
                 options.add_property(name, value)
 
-        doc = self.client.invoke(options, resource_uri, method, xml_doc)
+        doc = retry_on_empty_response(self.client, 'invoke', options,
+                                      resource_uri, method, xml_doc)
+
         root = self._get_root(doc)
 
         return_value = drac_common.find_xml(root, 'ReturnValue',
