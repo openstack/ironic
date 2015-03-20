@@ -262,6 +262,66 @@ image=chain.c32
         append="mbr:0x12345678"
 """
 
+_UEFI_PXECONF_DEPLOY_GRUB = b"""
+set default=deploy
+set timeout=5
+set hidden_timeout_quiet=false
+
+menuentry "deploy"  {
+    linuxefi deploy_kernel "ro text"
+    initrdefi deploy_ramdisk
+}
+
+menuentry "boot_partition"  {
+    linuxefi kernel "root=(( ROOT ))"
+    initrdefi ramdisk
+}
+
+menuentry "boot_whole_disk"  {
+    linuxefi chain.c32 mbr:(( DISK_IDENTIFIER ))
+}
+"""
+
+_UEFI_PXECONF_BOOT_PARTITION_GRUB = """
+set default=boot_partition
+set timeout=5
+set hidden_timeout_quiet=false
+
+menuentry "deploy"  {
+    linuxefi deploy_kernel "ro text"
+    initrdefi deploy_ramdisk
+}
+
+menuentry "boot_partition"  {
+    linuxefi kernel "root=UUID=12345678-1234-1234-1234-1234567890abcdef"
+    initrdefi ramdisk
+}
+
+menuentry "boot_whole_disk"  {
+    linuxefi chain.c32 mbr:(( DISK_IDENTIFIER ))
+}
+"""
+
+_UEFI_PXECONF_BOOT_WHOLE_DISK_GRUB = """
+set default=boot_whole_disk
+set timeout=5
+set hidden_timeout_quiet=false
+
+menuentry "deploy"  {
+    linuxefi deploy_kernel "ro text"
+    initrdefi deploy_ramdisk
+}
+
+menuentry "boot_partition"  {
+    linuxefi kernel "root=(( ROOT ))"
+    initrdefi ramdisk
+}
+
+menuentry "boot_whole_disk"  {
+    linuxefi chain.c32 mbr:0x12345678
+}
+"""
+
 
 @mock.patch.object(time, 'sleep', lambda seconds: None)
 class PhysicalWorkTestCase(tests_base.TestCase):
@@ -917,10 +977,13 @@ class PhysicalWorkTestCase(tests_base.TestCase):
 
 class SwitchPxeConfigTestCase(tests_base.TestCase):
 
-    def _create_config(self, ipxe=False, boot_mode=None):
+    def _create_config(self, ipxe=False, boot_mode=None, boot_loader='elilo'):
         (fd, fname) = tempfile.mkstemp()
         if boot_mode == 'uefi':
-            pxe_cfg = _UEFI_PXECONF_DEPLOY
+            if boot_loader == 'grub':
+                pxe_cfg = _UEFI_PXECONF_DEPLOY_GRUB
+            else:
+                pxe_cfg = _UEFI_PXECONF_DEPLOY
         else:
             pxe_cfg = _IPXECONF_DEPLOY if ipxe else _PXECONF_DEPLOY
         os.write(fd, pxe_cfg)
@@ -985,7 +1048,7 @@ class SwitchPxeConfigTestCase(tests_base.TestCase):
             pxeconf = f.read()
         self.assertEqual(_IPXECONF_BOOT_WHOLE_DISK, pxeconf)
 
-    def test_switch_uefi_pxe_config_partition_image(self):
+    def test_switch_uefi_elilo_pxe_config_partition_image(self):
         boot_mode = 'uefi'
         fname = self._create_config(boot_mode=boot_mode)
         utils.switch_pxe_config(fname,
@@ -996,7 +1059,7 @@ class SwitchPxeConfigTestCase(tests_base.TestCase):
             pxeconf = f.read()
         self.assertEqual(_UEFI_PXECONF_BOOT_PARTITION, pxeconf)
 
-    def test_switch_uefi_config_whole_disk_image(self):
+    def test_switch_uefi_elilo_config_whole_disk_image(self):
         boot_mode = 'uefi'
         fname = self._create_config(boot_mode=boot_mode)
         utils.switch_pxe_config(fname,
@@ -1006,6 +1069,28 @@ class SwitchPxeConfigTestCase(tests_base.TestCase):
         with open(fname, 'r') as f:
             pxeconf = f.read()
         self.assertEqual(_UEFI_PXECONF_BOOT_WHOLE_DISK, pxeconf)
+
+    def test_switch_uefi_grub_pxe_config_partition_image(self):
+        boot_mode = 'uefi'
+        fname = self._create_config(boot_mode=boot_mode, boot_loader='grub')
+        utils.switch_pxe_config(fname,
+                                '12345678-1234-1234-1234-1234567890abcdef',
+                                boot_mode,
+                                False)
+        with open(fname, 'r') as f:
+            pxeconf = f.read()
+        self.assertEqual(_UEFI_PXECONF_BOOT_PARTITION_GRUB, pxeconf)
+
+    def test_switch_uefi_grub_config_whole_disk_image(self):
+        boot_mode = 'uefi'
+        fname = self._create_config(boot_mode=boot_mode, boot_loader='grub')
+        utils.switch_pxe_config(fname,
+                                '0x12345678',
+                                boot_mode,
+                                True)
+        with open(fname, 'r') as f:
+            pxeconf = f.read()
+        self.assertEqual(_UEFI_PXECONF_BOOT_WHOLE_DISK_GRUB, pxeconf)
 
 
 @mock.patch('time.sleep', lambda sec: None)

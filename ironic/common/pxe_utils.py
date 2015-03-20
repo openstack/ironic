@@ -54,7 +54,7 @@ def _ensure_config_dirs_exist(node_uuid):
     fileutils.ensure_tree(os.path.join(root_dir, PXE_CFG_DIR_NAME))
 
 
-def _build_pxe_config(pxe_options, template):
+def _build_pxe_config(pxe_options, template, root_tag, disk_ident_tag):
     """Build the PXE boot configuration file.
 
     This method builds the PXE boot configuration file by rendering the
@@ -62,6 +62,8 @@ def _build_pxe_config(pxe_options, template):
 
     :param pxe_options: A dict of values to set on the configuration file.
     :param template: The PXE configuration template.
+    :param root_tag: Root tag used in the PXE config file.
+    :param disk_ident_tag: Disk identifier tag used in the PXE config file.
     :returns: A formatted string with the file content.
 
     """
@@ -69,8 +71,8 @@ def _build_pxe_config(pxe_options, template):
     env = jinja2.Environment(loader=jinja2.FileSystemLoader(tmpl_path))
     template = env.get_template(tmpl_file)
     return template.render({'pxe_options': pxe_options,
-                            'ROOT': '{{ ROOT }}',
-                            'DISK_IDENTIFIER': '{{ DISK_IDENTIFIER }}',
+                            'ROOT': root_tag,
+                            'DISK_IDENTIFIER': disk_ident_tag,
                             })
 
 
@@ -95,10 +97,12 @@ def _link_mac_pxe_configs(task):
             create_link(_get_pxe_mac_path(mac, delimiter=''))
 
 
-def _link_ip_address_pxe_configs(task):
+def _link_ip_address_pxe_configs(task, hex_form):
     """Link each IP address with the PXE configuration file.
 
     :param task: A TaskManager instance.
+    :param hex_form: Boolean value indicating if the conf file name should be
+                     hexadecimal equivalent of supplied ipv4 address.
     :raises: FailedToGetIPAddressOnPort
     :raises: InvalidIPv4Address
 
@@ -112,7 +116,8 @@ def _link_ip_address_pxe_configs(task):
             "Failed to get IP address for any port on node %s.") %
             task.node.uuid)
     for port_ip_address in ip_addrs:
-        ip_address_path = _get_pxe_ip_address_path(port_ip_address)
+        ip_address_path = _get_pxe_ip_address_path(port_ip_address,
+                                                   hex_form)
         utils.unlink_without_raise(ip_address_path)
         utils.create_link_without_raise(pxe_config_file_path,
                                         ip_address_path)
@@ -136,18 +141,23 @@ def _get_pxe_mac_path(mac, delimiter=None):
     return os.path.join(get_root_dir(), PXE_CFG_DIR_NAME, mac_file_name)
 
 
-def _get_pxe_ip_address_path(ip_address):
+def _get_pxe_ip_address_path(ip_address, hex_form):
     """Convert an ipv4 address into a PXE config file name.
 
     :param ip_address: A valid IPv4 address string in the format 'n.n.n.n'.
+    :param hex_form: Boolean value indicating if the conf file name should be
+                     hexadecimal equivalent of supplied ipv4 address.
     :returns: the path to the config file.
 
     """
-    ip = ip_address.split('.')
-    hex_ip = '{0:02X}{1:02X}{2:02X}{3:02X}'.format(*map(int, ip))
+    # elilo bootloader needs hex based config file name.
+    if hex_form:
+        ip = ip_address.split('.')
+        ip_address = '{0:02X}{1:02X}{2:02X}{3:02X}'.format(*map(int, ip))
 
+    # grub2 bootloader needs ip based config file name.
     return os.path.join(
-        CONF.pxe.tftp_root, hex_ip + ".conf"
+        CONF.pxe.tftp_root, ip_address + ".conf"
     )
 
 
@@ -181,9 +191,14 @@ def create_pxe_config(task, pxe_options, template=None):
 
     This method will generate the PXE configuration file for the task's
     node under a directory named with the UUID of that node. For each
-    MAC address (port) of that node, a symlink for the configuration file
-    will be created under the PXE configuration directory, so regardless
-    of which port boots first they'll get the same PXE configuration.
+    MAC address or DHCP IP address (port) of that node, a symlink for
+    the configuration file will be created under the PXE configuration
+    directory, so regardless of which port boots first they'll get the
+    same PXE configuration.
+    If elilo is the bootloader in use, then its configuration file will
+    be created based on hex form of DHCP IP address.
+    If grub2 bootloader is in use, then its configuration will be created
+    based on DHCP IP address in the form nn.nn.nn.nn.
 
     :param task: A TaskManager instance.
     :param pxe_options: A dictionary with the PXE configuration
@@ -200,11 +215,32 @@ def create_pxe_config(task, pxe_options, template=None):
     _ensure_config_dirs_exist(task.node.uuid)
 
     pxe_config_file_path = get_pxe_config_file_path(task.node.uuid)
-    pxe_config = _build_pxe_config(pxe_options, template)
+    is_uefi_boot_mode = (deploy_utils.get_boot_mode_for_deploy(task.node) ==
+                         'uefi')
+
+    # grub bootloader panics with '{}' around any of its tags in its
+    # config file. To overcome that 'ROOT' and 'DISK_IDENTIFIER' are enclosed
+    # with '(' and ')' in uefi boot mode.
+    # These changes do not have any impact on elilo bootloader.
+    hex_form = True
+    if is_uefi_boot_mode and utils.is_regex_string_in_file(template,
+                                                           '^menuentry'):
+        hex_form = False
+        pxe_config_root_tag = '(( ROOT ))'
+        pxe_config_disk_ident = '(( DISK_IDENTIFIER ))'
+    else:
+        # TODO(stendulker): We should use '(' ')' as the delimiters for all our
+        # config files so that we do not need special handling for each of the
+        # bootloaders. Should be removed once the M release starts.
+        pxe_config_root_tag = '{{ ROOT }}'
+        pxe_config_disk_ident = '{{ DISK_IDENTIFIER }}'
+
+    pxe_config = _build_pxe_config(pxe_options, template, pxe_config_root_tag,
+                                   pxe_config_disk_ident)
     utils.write_to_file(pxe_config_file_path, pxe_config)
 
-    if deploy_utils.get_boot_mode_for_deploy(task.node) == 'uefi':
-        _link_ip_address_pxe_configs(task)
+    if is_uefi_boot_mode:
+        _link_ip_address_pxe_configs(task, hex_form)
     else:
         _link_mac_pxe_configs(task)
 
@@ -225,10 +261,18 @@ def clean_up_pxe_config(task):
 
         for port_ip_address in ip_addresses:
             try:
-                ip_address_path = _get_pxe_ip_address_path(port_ip_address)
+                # Get xx.xx.xx.xx based grub config file
+                ip_address_path = _get_pxe_ip_address_path(port_ip_address,
+                                                           False)
+                # Get 0AOAOAOA based elilo config file
+                hex_ip_path = _get_pxe_ip_address_path(port_ip_address,
+                                                       True)
             except exception.InvalidIPv4Address:
                 continue
+            # Cleaning up config files created for grub2.
             utils.unlink_without_raise(ip_address_path)
+            # Cleaning up config files created for elilo.
+            utils.unlink_without_raise(hex_ip_path)
     else:
         for mac in driver_utils.get_node_mac_addresses(task):
             utils.unlink_without_raise(_get_pxe_mac_path(mac))
