@@ -18,6 +18,7 @@ Wrapper for pywsman.Client
 import time
 from xml.etree import ElementTree
 
+from oslo_config import cfg
 from oslo_log import log as logging
 from oslo_utils import importutils
 
@@ -26,6 +27,25 @@ from ironic.common.i18n import _LW
 from ironic.drivers.modules.drac import common as drac_common
 
 pywsman = importutils.try_import('pywsman')
+
+opts = [
+    cfg.IntOpt('client_retry_count',
+               default=5,
+               help='In case there is a communication failure, the DRAC '
+                    'client is going to resend the request as many times as '
+                    'defined in this setting.'),
+    cfg.IntOpt('client_retry_delay',
+               default=5,
+               help='In case there is a communication failure, the DRAC '
+                    'client is going to wait for as many seconds as defined '
+                    'in this setting before resending the request.')
+]
+
+CONF = cfg.CONF
+opt_group = cfg.OptGroup(name='drac',
+                         title='Options for the DRAC driver')
+CONF.register_group(opt_group)
+CONF.register_opts(opts, opt_group)
 
 LOG = logging.getLogger(__name__)
 
@@ -40,9 +60,6 @@ _FILTER_DIALECT_MAP = {'cql': 'http://schemas.dmtf.org/wbem/cql/1/dsp0202.pdf',
 RET_SUCCESS = '0'
 RET_ERROR = '2'
 RET_CREATED = '4096'
-
-RETRY_COUNT = 5
-RETRY_DELAY = 5
 
 
 def get_wsman_client(node):
@@ -65,7 +82,7 @@ def retry_on_empty_response(client, action, *args, **kwargs):
     """Wrapper to retry an action on failure."""
 
     func = getattr(client, action)
-    for i in range(RETRY_COUNT):
+    for i in range(CONF.drac.client_retry_count):
         response = func(*args, **kwargs)
         if response:
             return response
@@ -81,7 +98,7 @@ def retry_on_empty_response(client, action, *args, **kwargs):
                          'response_code': client.response_code(),
                          'count': i + 1})
 
-            time.sleep(RETRY_DELAY)
+            time.sleep(CONF.drac.client_retry_delay)
 
 
 class Client(object):
