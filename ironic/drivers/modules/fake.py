@@ -54,6 +54,28 @@ class FakePower(base.PowerInterface):
         pass
 
 
+class FakeBoot(base.BootInterface):
+    """Example implementation of a simple boot interface."""
+
+    def get_properties(self):
+        return {}
+
+    def validate(self, task):
+        pass
+
+    def prepare_ramdisk(self, task):
+        pass
+
+    def clean_up_ramdisk(self, task):
+        pass
+
+    def prepare_instance(self, task):
+        pass
+
+    def clean_up_instance(self, task):
+        pass
+
+
 class FakeDeploy(base.DeployInterface):
     """Class for a fake deployment driver.
 

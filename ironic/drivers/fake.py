@@ -56,6 +56,7 @@ class FakeDriver(base.BaseDriver):
     def __init__(self):
         self.power = fake.FakePower()
         self.deploy = fake.FakeDeploy()
+        self.boot = fake.FakeBoot()
 
         self.a = fake.FakeVendorA()
         self.b = fake.FakeVendorB()
