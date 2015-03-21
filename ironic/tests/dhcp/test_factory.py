@@ -13,10 +13,13 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import inspect
+
 import mock
 
 from ironic.common import dhcp_factory
 from ironic.common import exception
+from ironic.dhcp import base as base_class
 from ironic.dhcp import neutron
 from ironic.dhcp import none
 from ironic.tests import base
@@ -68,3 +71,35 @@ class TestDHCPFactory(base.TestCase):
                     group='dhcp')
 
         self.assertRaises(exception.DHCPNotFound, dhcp_factory.DHCPFactory)
+
+
+class CompareBasetoModules(base.TestCase):
+
+    def test_drivers_match_dhcp_base(self):
+        def _get_public_apis(inst):
+            methods = {}
+            for (name, value) in inspect.getmembers(inst, inspect.ismethod):
+                if name.startswith("_"):
+                    continue
+                methods[name] = value
+            return methods
+
+        def _compare_classes(baseclass, driverclass):
+
+            basemethods = _get_public_apis(baseclass)
+            implmethods = _get_public_apis(driverclass)
+
+            for name in basemethods:
+                baseargs = inspect.getargspec(basemethods[name])
+                implargs = inspect.getargspec(implmethods[name])
+                self.assertEqual(
+                    baseargs,
+                    implargs,
+                    "%s args of %s don't match base %s" % (
+                        name,
+                        driverclass,
+                        baseclass)
+                )
+
+        _compare_classes(base_class.BaseDHCP, none.NoneDHCPApi)
+        _compare_classes(base_class.BaseDHCP, neutron.NeutronDHCPApi)

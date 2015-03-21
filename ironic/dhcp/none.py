@@ -18,13 +18,14 @@ from ironic.dhcp import base
 
 class NoneDHCPApi(base.BaseDHCP):
     """No-op DHCP API."""
-    def update_port_dhcp_opts(self, port_id, dhcp_options):
+
+    def update_port_dhcp_opts(self, port_id, dhcp_options, token=None):
         pass
 
-    def update_dhcp_opts(self, task, options):
+    def update_dhcp_opts(self, task, options, vifs=None):
         pass
 
-    def update_port_address(self, port_id, address):
+    def update_port_address(self, port_id, address, token=None):
         pass
 
     def get_ip_addresses(self, task):

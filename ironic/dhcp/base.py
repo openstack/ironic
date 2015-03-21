@@ -27,7 +27,7 @@ class BaseDHCP(object):
     """Base class for DHCP provider APIs."""
 
     @abc.abstractmethod
-    def update_port_dhcp_opts(self, port_id, dhcp_options):
+    def update_port_dhcp_opts(self, port_id, dhcp_options, token=None):
         """Update one or more DHCP options on the specified port.
 
         :param port_id: designate which port these attributes
@@ -42,21 +42,24 @@ class BaseDHCP(object):
                                 'opt_value': '123.123.123.456'},
                                {'opt_name': 'tftp-server',
                                 'opt_value': '123.123.123.123'}]
+        :param token: An optional authenticaiton token.
 
         :raises: FailedToUpdateDHCPOptOnPort
         """
 
     @abc.abstractmethod
-    def update_port_address(self, port_id, address):
+    def update_port_address(self, port_id, address, token=None):
         """Update a port's MAC address.
 
         :param port_id: port id.
         :param address: new MAC address.
+        :param token: An optional authenticaiton token.
+
         :raises: FailedToUpdateMacOnPort
         """
 
     @abc.abstractmethod
-    def update_dhcp_opts(self, task, options):
+    def update_dhcp_opts(self, task, options, vifs=None):
         """Send or update the DHCP BOOT options for this node.
 
         :param task: A TaskManager instance.
@@ -70,6 +73,11 @@ class BaseDHCP(object):
                            'opt_value': '123.123.123.456'},
                           {'opt_name': 'tftp-server',
                            'opt_value': '123.123.123.123'}]
+         :param vifs: a dict of Neutron port dicts to update DHCP options on.
+            The keys should be Ironic port UUIDs, and the values should be
+            Neutron port UUIDs
+            If the value is None, will get the list of ports from the Ironic
+            port objects.
 
         :raises: FailedToUpdateDHCPOptOnPort
         """
