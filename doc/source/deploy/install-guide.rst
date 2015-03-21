@@ -1055,7 +1055,8 @@ by an operator. There are two kinds of inspection supported by Ironic:
 Using Ironic as a standalone service
 ====================================
 
-It's possible to use Ironic without other OpenStack services.
+Starting with Kilo release, it's possible to use Ironic without other
+OpenStack services.
 
 You should make the following changes to ``/etc/ironic/ironic.conf``:
 
