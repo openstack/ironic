@@ -789,7 +789,7 @@ class IRMCVirtualMediaIscsiDeployTestCase(db_base.DbTestCase):
 
     @mock.patch.object(deploy_utils, 'validate_capabilities',
                        spec_set=True, autospec=True)
-    @mock.patch.object(iscsi_deploy, 'validate_image_properties',
+    @mock.patch.object(deploy_utils, 'validate_image_properties',
                        spec_set=True, autospec=True)
     @mock.patch.object(service_utils, 'is_glance_image', spec_set=True,
                        autospec=True)
@@ -822,7 +822,7 @@ class IRMCVirtualMediaIscsiDeployTestCase(db_base.DbTestCase):
 
     @mock.patch.object(deploy_utils, 'validate_capabilities',
                        spec_set=True, autospec=True)
-    @mock.patch.object(iscsi_deploy, 'validate_image_properties',
+    @mock.patch.object(deploy_utils, 'validate_image_properties',
                        spec_set=True, autospec=True)
     @mock.patch.object(service_utils, 'is_glance_image', spec_set=True,
                        autospec=True)
@@ -854,7 +854,7 @@ class IRMCVirtualMediaIscsiDeployTestCase(db_base.DbTestCase):
 
     @mock.patch.object(deploy_utils, 'validate_capabilities',
                        spec_set=True, autospec=True)
-    @mock.patch.object(iscsi_deploy, 'validate_image_properties',
+    @mock.patch.object(deploy_utils, 'validate_image_properties',
                        spec_set=True, autospec=True)
     @mock.patch.object(service_utils, 'is_glance_image', spec_set=True,
                        autospec=True)

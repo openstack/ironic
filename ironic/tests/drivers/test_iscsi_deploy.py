@@ -23,13 +23,17 @@ from oslo_config import cfg
 from oslo_utils import fileutils
 from oslo_utils import uuidutils
 
+from ironic.common import boot_devices
+from ironic.common import driver_factory
 from ironic.common import exception
-from ironic.common import image_service
 from ironic.common import keystone
+from ironic.common import pxe_utils
 from ironic.common import states
 from ironic.common import utils
 from ironic.conductor import task_manager
 from ironic.conductor import utils as manager_utils
+from ironic.drivers.modules import agent
+from ironic.drivers.modules import agent_base_vendor
 from ironic.drivers.modules import agent_client
 from ironic.drivers.modules import deploy_utils
 from ironic.drivers.modules import iscsi_deploy
@@ -278,117 +282,6 @@ class IscsiDeployValidateParametersTestCase(db_base.DbTestCase):
         self.assertRaises(exception.MissingParameterValue,
                           iscsi_deploy.parse_instance_info, node)
 
-    @mock.patch.object(image_service, 'get_image_service', autospec=True)
-    def test_validate_image_properties_glance_image(self, image_service_mock):
-        node = obj_utils.create_test_node(
-            self.context, driver='fake_pxe',
-            instance_info=INST_INFO_DICT,
-            driver_info=DRV_INFO_DICT,
-            driver_internal_info=DRV_INTERNAL_INFO_DICT,
-        )
-        d_info = pxe._parse_deploy_info(node)
-        image_service_mock.return_value.show.return_value = {
-            'properties': {'kernel_id': '1111', 'ramdisk_id': '2222'},
-        }
-
-        iscsi_deploy.validate_image_properties(self.context, d_info,
-                                               ['kernel_id', 'ramdisk_id'])
-        image_service_mock.assert_called_once_with(
-            node.instance_info['image_source'], context=self.context
-        )
-
-    @mock.patch.object(image_service, 'get_image_service', autospec=True)
-    def test_validate_image_properties_glance_image_missing_prop(
-            self, image_service_mock):
-        node = obj_utils.create_test_node(
-            self.context, driver='fake_pxe',
-            instance_info=INST_INFO_DICT,
-            driver_info=DRV_INFO_DICT,
-            driver_internal_info=DRV_INTERNAL_INFO_DICT,
-        )
-        d_info = pxe._parse_deploy_info(node)
-        image_service_mock.return_value.show.return_value = {
-            'properties': {'kernel_id': '1111'},
-        }
-
-        self.assertRaises(exception.MissingParameterValue,
-                          iscsi_deploy.validate_image_properties,
-                          self.context, d_info, ['kernel_id', 'ramdisk_id'])
-        image_service_mock.assert_called_once_with(
-            node.instance_info['image_source'], context=self.context
-        )
-
-    @mock.patch.object(image_service, 'get_image_service', autospec=True)
-    def test_validate_image_properties_glance_image_not_authorized(
-            self, image_service_mock):
-        d_info = {'image_source': 'uuid'}
-        show_mock = image_service_mock.return_value.show
-        show_mock.side_effect = exception.ImageNotAuthorized(image_id='uuid')
-        self.assertRaises(exception.InvalidParameterValue,
-                          iscsi_deploy.validate_image_properties, self.context,
-                          d_info, [])
-
-    @mock.patch.object(image_service, 'get_image_service', autospec=True)
-    def test_validate_image_properties_glance_image_not_found(
-            self, image_service_mock):
-        d_info = {'image_source': 'uuid'}
-        show_mock = image_service_mock.return_value.show
-        show_mock.side_effect = exception.ImageNotFound(image_id='uuid')
-        self.assertRaises(exception.InvalidParameterValue,
-                          iscsi_deploy.validate_image_properties, self.context,
-                          d_info, [])
-
-    def test_validate_image_properties_invalid_image_href(self):
-        d_info = {'image_source': 'emule://uuid'}
-        self.assertRaises(exception.InvalidParameterValue,
-                          iscsi_deploy.validate_image_properties, self.context,
-                          d_info, [])
-
-    @mock.patch.object(image_service.HttpImageService, 'show', autospec=True)
-    def test_validate_image_properties_nonglance_image(
-            self, image_service_show_mock):
-        instance_info = {
-            'image_source': 'http://ubuntu',
-            'kernel': 'kernel_uuid',
-            'ramdisk': 'file://initrd',
-            'root_gb': 100,
-        }
-        image_service_show_mock.return_value = {'size': 1, 'properties': {}}
-        node = obj_utils.create_test_node(
-            self.context, driver='fake_pxe',
-            instance_info=instance_info,
-            driver_info=DRV_INFO_DICT,
-            driver_internal_info=DRV_INTERNAL_INFO_DICT,
-        )
-        d_info = pxe._parse_deploy_info(node)
-        iscsi_deploy.validate_image_properties(self.context, d_info,
-                                               ['kernel', 'ramdisk'])
-        image_service_show_mock.assert_called_once_with(
-            mock.ANY, instance_info['image_source'])
-
-    @mock.patch.object(image_service.HttpImageService, 'show', autospec=True)
-    def test_validate_image_properties_nonglance_image_validation_fail(
-            self, img_service_show_mock):
-        instance_info = {
-            'image_source': 'http://ubuntu',
-            'kernel': 'kernel_uuid',
-            'ramdisk': 'file://initrd',
-            'root_gb': 100,
-        }
-        img_service_show_mock.side_effect = iter(
-            [exception.ImageRefValidationFailed(
-                image_href='http://ubuntu', reason='HTTPError')])
-        node = obj_utils.create_test_node(
-            self.context, driver='fake_pxe',
-            instance_info=instance_info,
-            driver_info=DRV_INFO_DICT,
-            driver_internal_info=DRV_INTERNAL_INFO_DICT,
-        )
-        d_info = pxe._parse_deploy_info(node)
-        self.assertRaises(exception.InvalidParameterValue,
-                          iscsi_deploy.validate_image_properties, self.context,
-                          d_info, ['kernel', 'ramdisk'])
-
     def test_parse_instance_info_whole_disk_image(self):
         driver_internal_info = dict(DRV_INTERNAL_INFO_DICT)
         driver_internal_info['is_whole_disk_image'] = True
@@ -450,6 +343,28 @@ class IscsiDeployMethodsTestCase(db_base.DbTestCase):
         }
         mgr_utils.mock_the_extension_manager(driver="fake_pxe")
         self.node = obj_utils.create_test_node(self.context, **n)
+
+    @mock.patch.object(deploy_utils, 'get_image_mb', autospec=True)
+    def test_check_image_size(self, get_image_mb_mock):
+        get_image_mb_mock.return_value = 1000
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            task.node.instance_info['root_gb'] = 1
+            iscsi_deploy.check_image_size(task)
+            get_image_mb_mock.assert_called_once_with(
+                iscsi_deploy._get_image_file_path(task.node.uuid))
+
+    @mock.patch.object(deploy_utils, 'get_image_mb', autospec=True)
+    def test_check_image_size_fails(self, get_image_mb_mock):
+        get_image_mb_mock.return_value = 1025
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            task.node.instance_info['root_gb'] = 1
+            self.assertRaises(exception.InstanceDeployFailure,
+                              iscsi_deploy.check_image_size,
+                              task)
+            get_image_mb_mock.assert_called_once_with(
+                iscsi_deploy._get_image_file_path(task.node.uuid))
 
     @mock.patch.object(deploy_utils, 'fetch_images', autospec=True)
     def test_cache_instance_images_master_path(self, mock_fetch_image):
@@ -578,16 +493,6 @@ class IscsiDeployMethodsTestCase(db_base.DbTestCase):
         self.config(api_url=fake_api_url, group='conductor')
         self._test_build_deploy_ramdisk_options(mock_alnum, fake_api_url,
                                                 expected_boot_option=expected)
-
-    def test_get_boot_option(self):
-        self.node.instance_info = {'capabilities': '{"boot_option": "local"}'}
-        result = iscsi_deploy.get_boot_option(self.node)
-        self.assertEqual("local", result)
-
-    def test_get_boot_option_default_value(self):
-        self.node.instance_info = {}
-        result = iscsi_deploy.get_boot_option(self.node)
-        self.assertEqual("netboot", result)
 
     @mock.patch.object(iscsi_deploy, '_save_disk_layout', autospec=True)
     @mock.patch.object(iscsi_deploy, 'InstanceImageCache', autospec=True)
@@ -996,3 +901,510 @@ class IscsiDeployMethodsTestCase(db_base.DbTestCase):
             self.assertEqual(states.ACTIVE, task.node.provision_state)
             self.assertEqual(states.NOSTATE, task.node.target_provision_state)
             node_power_mock.assert_called_once_with(task, states.REBOOT)
+
+    @mock.patch.object(keystone, 'get_service_url', autospec=True)
+    def test_validate_good_api_url_from_config_file(self, mock_ks):
+        # not present in the keystone catalog
+        mock_ks.side_effect = exception.KeystoneFailure
+        self.config(group='conductor', api_url='http://foo')
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            iscsi_deploy.validate(task)
+            self.assertFalse(mock_ks.called)
+
+    @mock.patch.object(keystone, 'get_service_url', autospec=True)
+    def test_validate_good_api_url_from_keystone(self, mock_ks):
+        # present in the keystone catalog
+        mock_ks.return_value = 'http://127.0.0.1:1234'
+        # not present in the config file
+        self.config(group='conductor', api_url=None)
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            iscsi_deploy.validate(task)
+            mock_ks.assert_called_once_with()
+
+    @mock.patch.object(keystone, 'get_service_url', autospec=True)
+    def test_validate_fail_no_api_url(self, mock_ks):
+        # not present in the keystone catalog
+        mock_ks.side_effect = exception.KeystoneFailure
+        # not present in the config file
+        self.config(group='conductor', api_url=None)
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            self.assertRaises(exception.InvalidParameterValue,
+                              iscsi_deploy.validate, task)
+            mock_ks.assert_called_once_with()
+
+    def test_validate_invalid_root_device_hints(self):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            task.node.properties['root_device'] = {'size': 'not-int'}
+            self.assertRaises(exception.InvalidParameterValue,
+                              iscsi_deploy.validate, task)
+
+
+class ISCSIDeployTestCase(db_base.DbTestCase):
+
+    def setUp(self):
+        super(ISCSIDeployTestCase, self).setUp()
+        mgr_utils.mock_the_extension_manager(driver="fake_pxe")
+        self.driver = driver_factory.get_driver("fake_pxe")
+        self.driver.vendor = iscsi_deploy.VendorPassthru()
+        self.node = obj_utils.create_test_node(
+            self.context, driver='fake_pxe',
+            instance_info=INST_INFO_DICT,
+            driver_info=DRV_INFO_DICT,
+            driver_internal_info=DRV_INTERNAL_INFO_DICT,
+        )
+        self.node.driver_internal_info['agent_url'] = 'http://1.2.3.4:1234'
+        self.task = mock.MagicMock(spec=task_manager.TaskManager)
+        self.task.shared = False
+        self.task.node = self.node
+        self.task.driver = self.driver
+        self.task.context = self.context
+
+    def test_get_properties(self):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            self.assertEqual({}, task.driver.deploy.get_properties())
+
+    @mock.patch.object(iscsi_deploy, 'validate', autospec=True)
+    @mock.patch.object(deploy_utils, 'validate_capabilities', autospec=True)
+    @mock.patch.object(pxe.PXEBoot, 'validate', autospec=True)
+    def test_validate(self, pxe_validate_mock,
+                      validate_capabilities_mock, validate_mock):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+
+            task.driver.deploy.validate(task)
+
+            pxe_validate_mock.assert_called_once_with(task.driver.boot, task)
+            validate_capabilities_mock.assert_called_once_with(task.node)
+            validate_mock.assert_called_once_with(task)
+
+    @mock.patch.object(pxe.PXEBoot, 'prepare_instance', autospec=True)
+    def test_prepare_node_active(self, prepare_instance_mock):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            task.node.provision_state = states.ACTIVE
+
+            task.driver.deploy.prepare(task)
+
+            prepare_instance_mock.assert_called_once_with(
+                task.driver.boot, task)
+
+    @mock.patch.object(agent, 'build_agent_options', autospec=True)
+    @mock.patch.object(iscsi_deploy, 'build_deploy_ramdisk_options',
+                       autospec=True)
+    @mock.patch.object(pxe.PXEBoot, 'prepare_ramdisk', autospec=True)
+    def test_prepare_node_deploying(self, mock_prepare_ramdisk,
+                                    mock_iscsi_options, mock_agent_options):
+        mock_iscsi_options.return_value = {'a': 'b'}
+        mock_agent_options.return_value = {'c': 'd'}
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            task.node.provision_state = states.DEPLOYWAIT
+
+            task.driver.deploy.prepare(task)
+
+            mock_iscsi_options.assert_called_once_with(task.node)
+            mock_agent_options.assert_called_once_with(task.node)
+            mock_prepare_ramdisk.assert_called_once_with(
+                task.driver.boot, task, {'a': 'b', 'c': 'd'})
+
+    @mock.patch.object(manager_utils, 'node_power_action', autospec=True)
+    @mock.patch.object(iscsi_deploy, 'check_image_size', autospec=True)
+    @mock.patch.object(iscsi_deploy, 'cache_instance_image', autospec=True)
+    def test_deploy(self, mock_cache_instance_image,
+                    mock_check_image_size, mock_node_power_action):
+        with task_manager.acquire(self.context,
+                                  self.node.uuid, shared=False) as task:
+            state = task.driver.deploy.deploy(task)
+            self.assertEqual(state, states.DEPLOYWAIT)
+            mock_cache_instance_image.assert_called_once_with(
+                self.context, task.node)
+            mock_check_image_size.assert_called_once_with(task)
+            mock_node_power_action.assert_called_once_with(task, states.REBOOT)
+
+    @mock.patch.object(manager_utils, 'node_power_action', autospec=True)
+    def test_tear_down(self, node_power_action_mock):
+        with task_manager.acquire(self.context,
+                                  self.node.uuid, shared=False) as task:
+            state = task.driver.deploy.tear_down(task)
+            self.assertEqual(state, states.DELETED)
+            node_power_action_mock.assert_called_once_with(task,
+                                                           states.POWER_OFF)
+
+    @mock.patch.object(pxe.PXEBoot, 'clean_up_instance', autospec=True)
+    @mock.patch.object(pxe.PXEBoot, 'clean_up_ramdisk', autospec=True)
+    @mock.patch.object(iscsi_deploy, 'destroy_images', autospec=True)
+    def test_clean_up(self, destroy_images_mock, clean_up_ramdisk_mock,
+                      clean_up_instance_mock):
+        with task_manager.acquire(self.context,
+                                  self.node.uuid, shared=False) as task:
+            task.driver.deploy.clean_up(task)
+            destroy_images_mock.assert_called_once_with(task.node.uuid)
+            clean_up_ramdisk_mock.assert_called_once_with(
+                task.driver.boot, task)
+            clean_up_instance_mock.assert_called_once_with(
+                task.driver.boot, task)
+
+
+class TestVendorPassthru(db_base.DbTestCase):
+
+    def setUp(self):
+        super(TestVendorPassthru, self).setUp()
+        mgr_utils.mock_the_extension_manager()
+        self.driver = driver_factory.get_driver("fake")
+        self.driver.vendor = iscsi_deploy.VendorPassthru()
+        self.node = obj_utils.create_test_node(
+            self.context, driver='fake',
+            instance_info=INST_INFO_DICT,
+            driver_info=DRV_INFO_DICT,
+            driver_internal_info=DRV_INTERNAL_INFO_DICT,
+        )
+        self.node.driver_internal_info['agent_url'] = 'http://1.2.3.4:1234'
+        self.task = mock.MagicMock(spec=task_manager.TaskManager)
+        self.task.shared = False
+        self.task.node = self.node
+        self.task.driver = self.driver
+        self.task.context = self.context
+
+    def test_validate_good(self):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            task.node.instance_info['deploy_key'] = 'fake-56789'
+            task.driver.vendor.validate(task, method='pass_deploy_info',
+                                        address='123456', iqn='aaa-bbb',
+                                        key='fake-56789')
+
+    def test_validate_fail(self):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            self.assertRaises(exception.InvalidParameterValue,
+                              task.driver.vendor.validate,
+                              task, method='pass_deploy_info',
+                              key='fake-56789')
+
+    def test_validate_key_notmatch(self):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            self.assertRaises(exception.InvalidParameterValue,
+                              task.driver.vendor.validate,
+                              task, method='pass_deploy_info',
+                              address='123456', iqn='aaa-bbb',
+                              key='fake-12345')
+
+    @mock.patch.object(manager_utils, 'node_set_boot_device', autospec=True)
+    @mock.patch.object(deploy_utils, 'notify_ramdisk_to_proceed',
+                       autospec=True)
+    @mock.patch.object(iscsi_deploy, 'InstanceImageCache', autospec=True)
+    @mock.patch.object(deploy_utils, 'deploy_partition_image', autospec=True)
+    def _test_pass_deploy_info_deploy(self, is_localboot, mock_deploy,
+                                      mock_image_cache,
+                                      notify_mock, mock_node_boot_dev):
+        # set local boot
+        i_info = self.node.instance_info
+        if is_localboot:
+            i_info['capabilities'] = '{"boot_option": "local"}'
+
+        i_info['deploy_key'] = 'fake-56789'
+        self.node.instance_info = i_info
+
+        self.node.power_state = states.POWER_ON
+        self.node.provision_state = states.DEPLOYWAIT
+        self.node.target_provision_state = states.ACTIVE
+        self.node.save()
+
+        root_uuid = "12345678-1234-1234-1234-1234567890abcxyz"
+        mock_deploy.return_value = {'root uuid': root_uuid}
+
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            task.driver.vendor.pass_deploy_info(
+                task, address='123456', iqn='aaa-bbb', key='fake-56789')
+
+        self.node.refresh()
+        self.assertEqual(states.POWER_ON, self.node.power_state)
+        self.assertIn('root_uuid_or_disk_id', self.node.driver_internal_info)
+        self.assertIsNone(self.node.last_error)
+        mock_image_cache.assert_called_once_with()
+        mock_image_cache.return_value.clean_up.assert_called_once_with()
+        notify_mock.assert_called_once_with('123456')
+        if is_localboot:
+            mock_node_boot_dev.assert_called_once_with(
+                mock.ANY, boot_devices.DISK, persistent=True)
+        else:
+            self.assertFalse(mock_node_boot_dev.called)
+
+    @mock.patch.object(manager_utils, 'node_set_boot_device', autospec=True)
+    @mock.patch.object(deploy_utils, 'notify_ramdisk_to_proceed',
+                       autospec=True)
+    @mock.patch.object(iscsi_deploy, 'InstanceImageCache', autospec=True)
+    @mock.patch.object(deploy_utils, 'deploy_disk_image', autospec=True)
+    def _test_pass_deploy_info_whole_disk_image(self, is_localboot,
+                                                mock_deploy,
+                                                mock_image_cache,
+                                                notify_mock,
+                                                mock_node_boot_dev):
+        i_info = self.node.instance_info
+        # set local boot
+        if is_localboot:
+            i_info['capabilities'] = '{"boot_option": "local"}'
+
+        i_info['deploy_key'] = 'fake-56789'
+        self.node.instance_info = i_info
+
+        self.node.power_state = states.POWER_ON
+        self.node.provision_state = states.DEPLOYWAIT
+        self.node.target_provision_state = states.ACTIVE
+        self.node.save()
+
+        disk_id = '0x12345678'
+        mock_deploy.return_value = {'disk identifier': disk_id}
+
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            task.node.driver_internal_info['is_whole_disk_image'] = True
+            task.driver.vendor.pass_deploy_info(task, address='123456',
+                                                iqn='aaa-bbb',
+                                                key='fake-56789')
+
+        self.node.refresh()
+        self.assertEqual(states.POWER_ON, self.node.power_state)
+        self.assertIsNone(self.node.last_error)
+        mock_image_cache.assert_called_once_with()
+        mock_image_cache.return_value.clean_up.assert_called_once_with()
+        notify_mock.assert_called_once_with('123456')
+        if is_localboot:
+            mock_node_boot_dev.assert_called_once_with(
+                mock.ANY, boot_devices.DISK, persistent=True)
+        else:
+            self.assertFalse(mock_node_boot_dev.called)
+
+    def test_pass_deploy_info_deploy(self):
+        self._test_pass_deploy_info_deploy(False)
+        self.assertEqual(states.ACTIVE, self.node.provision_state)
+        self.assertEqual(states.NOSTATE, self.node.target_provision_state)
+
+    def test_pass_deploy_info_localboot(self):
+        self._test_pass_deploy_info_deploy(True)
+        self.assertEqual(states.DEPLOYWAIT, self.node.provision_state)
+        self.assertEqual(states.ACTIVE, self.node.target_provision_state)
+
+    def test_pass_deploy_info_whole_disk_image(self):
+        self._test_pass_deploy_info_whole_disk_image(False)
+        self.assertEqual(states.ACTIVE, self.node.provision_state)
+        self.assertEqual(states.NOSTATE, self.node.target_provision_state)
+
+    def test_pass_deploy_info_whole_disk_image_localboot(self):
+        self._test_pass_deploy_info_whole_disk_image(True)
+        self.assertEqual(states.ACTIVE, self.node.provision_state)
+        self.assertEqual(states.NOSTATE, self.node.target_provision_state)
+
+    def test_pass_deploy_info_invalid(self):
+        self.node.power_state = states.POWER_ON
+        self.node.provision_state = states.AVAILABLE
+        self.node.target_provision_state = states.NOSTATE
+        self.node.save()
+
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            self.assertRaises(exception.InvalidState,
+                              task.driver.vendor.pass_deploy_info,
+                              task, address='123456', iqn='aaa-bbb',
+                              key='fake-56789', error='test ramdisk error')
+
+        self.node.refresh()
+        self.assertEqual(states.AVAILABLE, self.node.provision_state)
+        self.assertEqual(states.NOSTATE, self.node.target_provision_state)
+        self.assertEqual(states.POWER_ON, self.node.power_state)
+
+    @mock.patch.object(iscsi_deploy.VendorPassthru, 'pass_deploy_info')
+    def test_pass_deploy_info_lock_elevated(self, mock_deploy_info):
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            task.driver.vendor.pass_deploy_info(
+                task, address='123456', iqn='aaa-bbb', key='fake-56789')
+
+            # lock elevated w/o exception
+            self.assertEqual(1, mock_deploy_info.call_count,
+                             "pass_deploy_info was not called once.")
+
+    def test_vendor_routes(self):
+        expected = ['heartbeat', 'pass_deploy_info',
+                    'pass_bootloader_install_info']
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            vendor_routes = task.driver.vendor.vendor_routes
+            self.assertIsInstance(vendor_routes, dict)
+            self.assertEqual(sorted(expected), sorted(list(vendor_routes)))
+
+    def test_driver_routes(self):
+        expected = ['lookup']
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            driver_routes = task.driver.vendor.driver_routes
+            self.assertIsInstance(driver_routes, dict)
+            self.assertEqual(sorted(expected), sorted(list(driver_routes)))
+
+    @mock.patch.object(iscsi_deploy, 'validate_bootloader_install_status',
+                       autospec=True)
+    @mock.patch.object(iscsi_deploy, 'finish_deploy', autospec=True)
+    def test_pass_bootloader_install_info(self, finish_deploy_mock,
+                                          validate_input_mock):
+        kwargs = {'method': 'pass_deploy_info', 'address': '123456'}
+        self.node.provision_state = states.DEPLOYWAIT
+        self.node.target_provision_state = states.ACTIVE
+        self.node.save()
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            task.driver.vendor.pass_bootloader_install_info(task, **kwargs)
+            finish_deploy_mock.assert_called_once_with(task, '123456')
+            validate_input_mock.assert_called_once_with(task, kwargs)
+
+    @mock.patch.object(agent_base_vendor.BaseAgentVendor,
+                       'reboot_and_finish_deploy', autospec=True)
+    @mock.patch.object(iscsi_deploy, 'do_agent_iscsi_deploy', autospec=True)
+    def test_continue_deploy_netboot(self, do_agent_iscsi_deploy_mock,
+                                     reboot_and_finish_deploy_mock):
+
+        uuid_dict_returned = {'root uuid': 'some-root-uuid'}
+        do_agent_iscsi_deploy_mock.return_value = uuid_dict_returned
+        self.driver.vendor.continue_deploy(self.task)
+        do_agent_iscsi_deploy_mock.assert_called_once_with(
+            self.task, self.driver.vendor._client)
+        reboot_and_finish_deploy_mock.assert_called_once_with(
+            mock.ANY, self.task)
+
+    @mock.patch.object(agent_base_vendor.BaseAgentVendor,
+                       'reboot_and_finish_deploy', autospec=True)
+    @mock.patch.object(agent_base_vendor.BaseAgentVendor,
+                       'configure_local_boot', autospec=True)
+    @mock.patch.object(iscsi_deploy, 'do_agent_iscsi_deploy', autospec=True)
+    def test_continue_deploy_localboot(self, do_agent_iscsi_deploy_mock,
+                                       configure_local_boot_mock,
+                                       reboot_and_finish_deploy_mock):
+
+        self.node.instance_info = {
+            'capabilities': {'boot_option': 'local'}}
+        self.node.save()
+        uuid_dict_returned = {'root uuid': 'some-root-uuid'}
+        do_agent_iscsi_deploy_mock.return_value = uuid_dict_returned
+
+        self.driver.vendor.continue_deploy(self.task)
+        do_agent_iscsi_deploy_mock.assert_called_once_with(
+            self.task, self.driver.vendor._client)
+        configure_local_boot_mock.assert_called_once_with(
+            self.task.driver.vendor, self.task, root_uuid='some-root-uuid',
+            efi_system_part_uuid=None)
+        reboot_and_finish_deploy_mock.assert_called_once_with(
+            self.task.driver.vendor, self.task)
+
+    @mock.patch.object(agent_base_vendor.BaseAgentVendor,
+                       'reboot_and_finish_deploy', autospec=True)
+    @mock.patch.object(agent_base_vendor.BaseAgentVendor,
+                       'configure_local_boot', autospec=True)
+    @mock.patch.object(iscsi_deploy, 'do_agent_iscsi_deploy', autospec=True)
+    def test_continue_deploy_localboot_uefi(self, do_agent_iscsi_deploy_mock,
+                                            configure_local_boot_mock,
+                                            reboot_and_finish_deploy_mock):
+
+        self.node.instance_info = {
+            'capabilities': {'boot_option': 'local'}}
+        self.node.save()
+        uuid_dict_returned = {'root uuid': 'some-root-uuid',
+                              'efi system partition uuid': 'efi-part-uuid'}
+        do_agent_iscsi_deploy_mock.return_value = uuid_dict_returned
+
+        self.driver.vendor.continue_deploy(self.task)
+        do_agent_iscsi_deploy_mock.assert_called_once_with(
+            self.task, self.driver.vendor._client)
+        configure_local_boot_mock.assert_called_once_with(
+            self.task.driver.vendor, self.task, root_uuid='some-root-uuid',
+            efi_system_part_uuid='efi-part-uuid')
+        reboot_and_finish_deploy_mock.assert_called_once_with(
+            self.task.driver.vendor, self.task)
+
+
+# Cleanup of iscsi_deploy with pxe boot interface
+class CleanUpFullFlowTestCase(db_base.DbTestCase):
+    def setUp(self):
+        super(CleanUpFullFlowTestCase, self).setUp()
+        self.config(image_cache_size=0, group='pxe')
+
+        # Configure node
+        mgr_utils.mock_the_extension_manager(driver="fake_pxe")
+        instance_info = INST_INFO_DICT
+        instance_info['deploy_key'] = 'fake-56789'
+        self.node = obj_utils.create_test_node(
+            self.context, driver='fake_pxe',
+            instance_info=instance_info,
+            driver_info=DRV_INFO_DICT,
+            driver_internal_info=DRV_INTERNAL_INFO_DICT,
+        )
+        self.port = obj_utils.create_test_port(self.context,
+                                               node_id=self.node.id)
+
+        # Configure temporary directories
+        pxe_temp_dir = tempfile.mkdtemp()
+        self.config(tftp_root=pxe_temp_dir, group='pxe')
+        tftp_master_dir = os.path.join(CONF.pxe.tftp_root,
+                                       'tftp_master')
+        self.config(tftp_master_path=tftp_master_dir, group='pxe')
+        os.makedirs(tftp_master_dir)
+
+        instance_temp_dir = tempfile.mkdtemp()
+        self.config(images_path=instance_temp_dir,
+                    group='pxe')
+        instance_master_dir = os.path.join(CONF.pxe.images_path,
+                                           'instance_master')
+        self.config(instance_master_path=instance_master_dir,
+                    group='pxe')
+        os.makedirs(instance_master_dir)
+        self.pxe_config_dir = os.path.join(CONF.pxe.tftp_root, 'pxelinux.cfg')
+        os.makedirs(self.pxe_config_dir)
+
+        # Populate some file names
+        self.master_kernel_path = os.path.join(CONF.pxe.tftp_master_path,
+                                               'kernel')
+        self.master_instance_path = os.path.join(CONF.pxe.instance_master_path,
+                                                 'image_uuid')
+        self.node_tftp_dir = os.path.join(CONF.pxe.tftp_root,
+                                          self.node.uuid)
+        os.makedirs(self.node_tftp_dir)
+        self.kernel_path = os.path.join(self.node_tftp_dir,
+                                        'kernel')
+        self.node_image_dir = iscsi_deploy._get_image_dir_path(self.node.uuid)
+        os.makedirs(self.node_image_dir)
+        self.image_path = iscsi_deploy._get_image_file_path(self.node.uuid)
+        self.config_path = pxe_utils.get_pxe_config_file_path(self.node.uuid)
+        self.mac_path = pxe_utils._get_pxe_mac_path(self.port.address)
+
+        # Create files
+        self.files = [self.config_path, self.master_kernel_path,
+                      self.master_instance_path]
+        for fname in self.files:
+            # NOTE(dtantsur): files with 0 size won't be cleaned up
+            with open(fname, 'w') as fp:
+                fp.write('test')
+
+        os.link(self.config_path, self.mac_path)
+        os.link(self.master_kernel_path, self.kernel_path)
+        os.link(self.master_instance_path, self.image_path)
+
+    @mock.patch.object(pxe, '_get_instance_image_info', autospec=True)
+    @mock.patch.object(pxe, '_get_deploy_image_info', autospec=True)
+    def test_clean_up_with_master(self, mock_get_deploy_image_info,
+                                  mock_get_instance_image_info):
+        image_info = {'kernel': ('kernel_uuid',
+                                 self.kernel_path)}
+        mock_get_instance_image_info.return_value = image_info
+        mock_get_deploy_image_info.return_value = {}
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            task.driver.deploy.clean_up(task)
+            mock_get_instance_image_info.assert_called_with(task.node,
+                                                            task.context)
+            mock_get_deploy_image_info.assert_called_with(task.node)
+        for path in ([self.kernel_path, self.image_path, self.config_path]
+                     + self.files):
+            self.assertFalse(os.path.exists(path),
+                             '%s is not expected to exist' % path)

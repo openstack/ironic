@@ -41,6 +41,7 @@ from ironic.common import exception
 from ironic.common.i18n import _
 from ironic.common.i18n import _LE
 from ironic.common.i18n import _LW
+from ironic.common import image_service
 from ironic.common import images
 from ironic.common import states
 from ironic.common import utils
@@ -1177,3 +1178,63 @@ def validate_capabilities(node):
                 exp_str %
                 {'capability': capability_name, 'field': field,
                  'value': value, 'valid_values': ', '.join(valid_values)})
+
+
+def validate_image_properties(ctx, deploy_info, properties):
+    """Validate the image.
+
+    For Glance images it checks that the image exists in Glance and its
+    properties or deployment info contain the properties passed. If it's not a
+    Glance image, it checks that deployment info contains needed properties.
+
+    :param ctx: security context
+    :param deploy_info: the deploy_info to be validated
+    :param properties: the list of image meta-properties to be validated.
+    :raises: InvalidParameterValue if:
+        * connection to glance failed;
+        * authorization for accessing image failed;
+        * HEAD request to image URL failed or returned response code != 200;
+        * HEAD request response does not contain Content-Length header;
+        * the protocol specified in image URL is not supported.
+    :raises: MissingParameterValue if the image doesn't contain
+        the mentioned properties.
+    """
+    image_href = deploy_info['image_source']
+    try:
+        img_service = image_service.get_image_service(image_href, context=ctx)
+        image_props = img_service.show(image_href)['properties']
+    except (exception.GlanceConnectionFailed,
+            exception.ImageNotAuthorized,
+            exception.Invalid):
+        raise exception.InvalidParameterValue(_(
+            "Failed to connect to Glance to get the properties "
+            "of the image %s") % image_href)
+    except exception.ImageNotFound:
+        raise exception.InvalidParameterValue(_(
+            "Image %s can not be found.") % image_href)
+    except exception.ImageRefValidationFailed as e:
+        raise exception.InvalidParameterValue(e)
+
+    missing_props = []
+    for prop in properties:
+        if not (deploy_info.get(prop) or image_props.get(prop)):
+            missing_props.append(prop)
+
+    if missing_props:
+        props = ', '.join(missing_props)
+        raise exception.MissingParameterValue(_(
+            "Image %(image)s is missing the following properties: "
+            "%(properties)s") % {'image': image_href, 'properties': props})
+
+
+def get_boot_option(node):
+    """Gets the boot option.
+
+    :param node: A single Node.
+    :raises: InvalidParameterValue if the capabilities string is not a
+         dict or is malformed.
+    :returns: A string representing the boot option type. Defaults to
+        'netboot'.
+    """
+    capabilities = parse_instance_info_capabilities(node)
+    return capabilities.get('boot_option', 'netboot').lower()

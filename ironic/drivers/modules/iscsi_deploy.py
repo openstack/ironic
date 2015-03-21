@@ -21,19 +21,22 @@ from oslo_utils import fileutils
 from oslo_utils import strutils
 from six.moves.urllib import parse
 
+from ironic.common import boot_devices
 from ironic.common import exception
 from ironic.common.glance_service import service_utils as glance_service_utils
 from ironic.common.i18n import _
 from ironic.common.i18n import _LE
 from ironic.common.i18n import _LI
-from ironic.common import image_service as service
 from ironic.common import keystone
 from ironic.common import states
 from ironic.common import utils
+from ironic.conductor import task_manager
 from ironic.conductor import utils as manager_utils
+from ironic.drivers import base
+from ironic.drivers.modules import agent
+from ironic.drivers.modules import agent_base_vendor
 from ironic.drivers.modules import deploy_utils
 from ironic.drivers.modules import image_cache
-from ironic.drivers import utils as driver_utils
 
 LOG = logging.getLogger(__name__)
 
@@ -173,7 +176,8 @@ def parse_instance_info(node):
     is_whole_disk_image = node.driver_internal_info.get('is_whole_disk_image')
     if not is_whole_disk_image:
         if (i_info['image_source'] and
-            not glance_service_utils.is_glance_image(i_info['image_source'])):
+                not glance_service_utils.is_glance_image(
+                    i_info['image_source'])):
             i_info['kernel'] = info.get('kernel')
             i_info['ramdisk'] = info.get('ramdisk')
     i_info['root_gb'] = info.get('root_gb')
@@ -309,7 +313,7 @@ def get_deploy_info(node, **kwargs):
                        'swap_mb': int(i_info['swap_mb']),
                        'ephemeral_mb': 1024 * int(i_info['ephemeral_gb']),
                        'preserve_ephemeral': i_info['preserve_ephemeral'],
-                       'boot_option': get_boot_option(node),
+                       'boot_option': deploy_utils.get_boot_option(node),
                        'boot_mode': _get_boot_mode(node)})
 
     missing = [key for key in params if params[key] is None]
@@ -444,7 +448,7 @@ def do_agent_iscsi_deploy(task, agent_client):
 
     # TODO(lucasagomes): The 'error' and 'key' parameters in the
     # dictionary below are just being passed because it's needed for
-    # the iscsi_deploy.continue_deploy() method, we are fooling it
+    # the continue_deploy() method, we are fooling it
     # for now. The agent driver doesn't use/need those. So we need to
     # refactor this bits here later.
     iscsi_params = {'error': result['command_error'],
@@ -457,26 +461,13 @@ def do_agent_iscsi_deploy(task, agent_client):
         'root uuid', uuid_dict_returned.get('disk identifier'))
 
     # TODO(lucasagomes): Move this bit saving the root_uuid to
-    # iscsi_deploy.continue_deploy()
+    # continue_deploy()
     driver_internal_info = node.driver_internal_info
     driver_internal_info['root_uuid_or_disk_id'] = root_uuid_or_disk_id
     node.driver_internal_info = driver_internal_info
     node.save()
 
     return uuid_dict_returned
-
-
-def get_boot_option(node):
-    """Gets the boot option.
-
-    :param node: A single Node.
-    :raises: InvalidParameterValue if the capabilities string is not a
-         dict or is malformed.
-    :returns: A string representing the boot option type. Defaults to
-        'netboot'.
-    """
-    capabilities = deploy_utils.parse_instance_info_capabilities(node)
-    return capabilities.get('boot_option', 'netboot').lower()
 
 
 def _get_boot_mode(node):
@@ -515,7 +506,7 @@ def build_deploy_ramdisk_options(node):
     # XXX(jroll) DIB relies on boot_option=local to decide whether or not to
     # lay down a bootloader. Hack this for now; fix it for real in Liberty.
     # See also bug #1441556.
-    boot_option = get_boot_option(node)
+    boot_option = deploy_utils.get_boot_option(node)
     if node.driver_internal_info.get('is_whole_disk_image'):
         boot_option = 'netboot'
 
@@ -538,53 +529,6 @@ def build_deploy_ramdisk_options(node):
     return deploy_options
 
 
-def validate_image_properties(ctx, deploy_info, properties):
-    """Validate the image.
-
-    For Glance images it checks that the image exists in Glance and its
-    properties or deployment info contain the properties passed. If it's not a
-    Glance image, it checks that deployment info contains needed properties.
-
-    :param ctx: security context
-    :param deploy_info: the deploy_info to be validated
-    :param properties: the list of image meta-properties to be validated.
-    :raises: InvalidParameterValue if:
-        * connection to glance failed;
-        * authorization for accessing image failed;
-        * HEAD request to image URL failed or returned response code != 200;
-        * HEAD request response does not contain Content-Length header;
-        * the protocol specified in image URL is not supported.
-    :raises: MissingParameterValue if the image doesn't contain
-        the mentioned properties.
-    """
-    image_href = deploy_info['image_source']
-    try:
-        img_service = service.get_image_service(image_href, context=ctx)
-        image_props = img_service.show(image_href)['properties']
-    except (exception.GlanceConnectionFailed,
-            exception.ImageNotAuthorized,
-            exception.Invalid):
-        raise exception.InvalidParameterValue(_(
-            "Failed to connect to Glance to get the properties "
-            "of the image %s") % image_href)
-    except exception.ImageNotFound:
-        raise exception.InvalidParameterValue(_(
-            "Image %s can not be found.") % image_href)
-    except exception.ImageRefValidationFailed as e:
-        raise exception.InvalidParameterValue(e)
-
-    missing_props = []
-    for prop in properties:
-        if not (deploy_info.get(prop) or image_props.get(prop)):
-            missing_props.append(prop)
-
-    if missing_props:
-        props = ', '.join(missing_props)
-        raise exception.MissingParameterValue(_(
-            "Image %(image)s is missing the following properties: "
-            "%(properties)s") % {'image': image_href, 'properties': props})
-
-
 def validate(task):
     """Validates the pre-requisites for iSCSI deploy.
 
@@ -598,12 +542,6 @@ def validate(task):
              catalog.
     :raises: MissingParameterValue if no ports are enrolled for the given node.
     """
-    node = task.node
-    if not driver_utils.get_node_mac_addresses(task):
-        raise exception.MissingParameterValue(
-            _("Node %s does not have any port associated with it.")
-            % node.uuid)
-
     try:
         # TODO(lucasagomes): Validate the format of the URL
         CONF.conductor.api_url or keystone.get_service_url()
@@ -615,7 +553,8 @@ def validate(task):
             "configuration file or keystone catalog. Keystone error: %s") % e)
 
     # Validate the root device hints
-    deploy_utils.parse_root_device_hints(node)
+    deploy_utils.parse_root_device_hints(task.node)
+    parse_instance_info(task.node)
 
 
 def validate_pass_bootloader_info_input(task, input_params):
@@ -698,8 +637,249 @@ def finish_deploy(task, address):
     # machine is powered off and on again. So the code below is enforcing
     # it. For Liberty we need to change the DIB ramdisk so that Ironic
     # always controls the power state of the node for all drivers.
-    if get_boot_option(node) == "local" and 'ssh' in node.driver:
+    if deploy_utils.get_boot_option(node) == "local" and 'ssh' in node.driver:
         manager_utils.node_power_action(task, states.REBOOT)
 
     LOG.info(_LI('Deployment to node %s done'), node.uuid)
     task.process_event('done')
+
+
+class ISCSIDeploy(base.DeployInterface):
+    """PXE Deploy Interface for deploy-related actions."""
+
+    def get_properties(self):
+        return {}
+
+    def validate(self, task):
+        """Validate the deployment information for the task's node.
+
+        :param task: a TaskManager instance containing the node to act on.
+        :raises: InvalidParameterValue.
+        :raises: MissingParameterValue
+        """
+        task.driver.boot.validate(task)
+        node = task.node
+
+        # Check the boot_mode and boot_option capabilities values.
+        deploy_utils.validate_capabilities(node)
+
+        # TODO(rameshg87): iscsi_ilo driver uses this method. Remove
+        # and copy-paste it's contents here once iscsi_ilo deploy driver
+        # broken down into separate boot and deploy implementations.
+        validate(task)
+
+    @task_manager.require_exclusive_lock
+    def deploy(self, task):
+        """Start deployment of the task's node.
+
+        Fetches instance image, creates a temporary keystone token file,
+        updates the DHCP port options for next boot, and issues a reboot
+        request to the power driver.
+        This causes the node to boot into the deployment ramdisk and triggers
+        the next phase of PXE-based deployment via
+        VendorPassthru.pass_deploy_info().
+
+        :param task: a TaskManager instance containing the node to act on.
+        :returns: deploy state DEPLOYWAIT.
+        """
+        node = task.node
+        cache_instance_image(task.context, node)
+        check_image_size(task)
+
+        manager_utils.node_power_action(task, states.REBOOT)
+
+        return states.DEPLOYWAIT
+
+    @task_manager.require_exclusive_lock
+    def tear_down(self, task):
+        """Tear down a previous deployment on the task's node.
+
+        Power off the node. All actual clean-up is done in the clean_up()
+        method which should be called separately.
+
+        :param task: a TaskManager instance containing the node to act on.
+        :returns: deploy state DELETED.
+        """
+        manager_utils.node_power_action(task, states.POWER_OFF)
+        return states.DELETED
+
+    def prepare(self, task):
+        """Prepare the deployment environment for this task's node.
+
+        Generates the TFTP configuration for PXE-booting both the deployment
+        and user images, fetches the TFTP image from Glance and add it to the
+        local cache.
+
+        :param task: a TaskManager instance containing the node to act on.
+        """
+        node = task.node
+        if node.provision_state == states.ACTIVE:
+            task.driver.boot.prepare_instance(task)
+        else:
+            deploy_opts = build_deploy_ramdisk_options(node)
+
+            # NOTE(lucasagomes): We are going to extend the normal PXE config
+            # to also contain the agent options so it could be used for
+            # both the DIB ramdisk and the IPA ramdisk
+            agent_opts = agent.build_agent_options(node)
+            deploy_opts.update(agent_opts)
+
+            task.driver.boot.prepare_ramdisk(task, deploy_opts)
+
+    def clean_up(self, task):
+        """Clean up the deployment environment for the task's node.
+
+        Unlinks TFTP and instance images and triggers image cache cleanup.
+        Removes the TFTP configuration files for this node. As a precaution,
+        this method also ensures the keystone auth token file was removed.
+
+        :param task: a TaskManager instance containing the node to act on.
+        """
+        destroy_images(task.node.uuid)
+        task.driver.boot.clean_up_ramdisk(task)
+        task.driver.boot.clean_up_instance(task)
+
+    def take_over(self, task):
+        pass
+
+
+class VendorPassthru(agent_base_vendor.BaseAgentVendor):
+    """Interface to mix IPMI and PXE vendor-specific interfaces."""
+
+    def get_properties(self):
+        return {}
+
+    def validate(self, task, method, **kwargs):
+        """Validates the inputs for a vendor passthru.
+
+        If invalid, raises an exception; otherwise returns None.
+
+        Valid methods:
+        * pass_deploy_info
+        * pass_bootloader_install_info
+
+        :param task: a TaskManager instance containing the node to act on.
+        :param method: method to be validated.
+        :param kwargs: kwargs containins the method's parameters.
+        :raises: InvalidParameterValue if any parameters is invalid.
+        """
+        if method == 'pass_deploy_info':
+            deploy_utils.validate_capabilities(task.node)
+            get_deploy_info(task.node, **kwargs)
+        elif method == 'pass_bootloader_install_info':
+            validate_pass_bootloader_info_input(task, kwargs)
+
+    @base.passthru(['POST'])
+    @task_manager.require_exclusive_lock
+    def pass_bootloader_install_info(self, task, **kwargs):
+        """Accepts the results of bootloader installation.
+
+        This method acts as a vendor passthru and accepts the result of
+        the bootloader installation. If bootloader installation was
+        successful, then it notifies the bare metal to proceed to reboot
+        and makes the instance active. If the bootloader installation failed,
+        then it sets provisioning as failed and powers off the node.
+
+        :param task: A TaskManager object.
+        :param kwargs: The arguments sent with vendor passthru.  The expected
+            kwargs are::
+
+                'key': The deploy key for authorization
+                'status': 'SUCCEEDED' or 'FAILED'
+                'error': The error message if status == 'FAILED'
+                'address': The IP address of the ramdisk
+
+        """
+        task.process_event('resume')
+        LOG.debug('Continuing the deployment on node %s', task.node.uuid)
+        validate_bootloader_install_status(task, kwargs)
+        finish_deploy(task, kwargs['address'])
+
+    @base.passthru(['POST'])
+    @task_manager.require_exclusive_lock
+    def pass_deploy_info(self, task, **kwargs):
+        """Continues the deployment of baremetal node over iSCSI.
+
+        This method continues the deployment of the baremetal node over iSCSI
+        from where the deployment ramdisk has left off.
+
+        :param task: a TaskManager instance containing the node to act on.
+        :param kwargs: kwargs for performing iscsi deployment.
+        :raises: InvalidState
+        """
+        node = task.node
+        task.process_event('resume')
+        LOG.debug('Continuing the deployment on node %s', node.uuid)
+
+        is_whole_disk_image = node.driver_internal_info['is_whole_disk_image']
+        uuid_dict_returned = continue_deploy(task, **kwargs)
+        root_uuid_or_disk_id = uuid_dict_returned.get(
+            'root uuid', uuid_dict_returned.get('disk identifier'))
+
+        # save the node's root disk UUID so that another conductor could
+        # rebuild the PXE config file. Due to a shortcoming in Nova objects,
+        # we have to assign to node.driver_internal_info so the node knows it
+        # has changed.
+        driver_internal_info = node.driver_internal_info
+        driver_internal_info['root_uuid_or_disk_id'] = root_uuid_or_disk_id
+        node.driver_internal_info = driver_internal_info
+        node.save()
+
+        try:
+            if deploy_utils.get_boot_option(node) == "local":
+                deploy_utils.try_set_boot_device(task, boot_devices.DISK)
+
+                if not is_whole_disk_image:
+                    LOG.debug('Installing the bootloader on node %s',
+                              node.uuid)
+                    deploy_utils.notify_ramdisk_to_proceed(kwargs['address'])
+                    task.process_event('wait')
+                    return
+
+            task.driver.boot.prepare_instance(task)
+        except Exception as e:
+            LOG.error(_LE('Deploy failed for instance %(instance)s. '
+                          'Error: %(error)s'),
+                      {'instance': node.instance_uuid, 'error': e})
+            msg = _('Failed to continue iSCSI deployment.')
+            deploy_utils.set_failed_state(task, msg)
+        else:
+            finish_deploy(task, kwargs.get('address'))
+
+    @task_manager.require_exclusive_lock
+    def continue_deploy(self, task, **kwargs):
+        """Method invoked when deployed with the IPA ramdisk.
+
+        This method is invoked during a heartbeat from an agent when
+        the node is in wait-call-back state. This deploys the image on
+        the node and then configures the node to boot according to the
+        desired boot option (netboot or localboot).
+
+        :param task: a TaskManager object containing the node.
+        :param kwargs: the kwargs passed from the heartbeat method.
+        :raises: InstanceDeployFailure, if it encounters some error during
+            the deploy.
+        """
+        task.process_event('resume')
+        node = task.node
+        LOG.debug('Continuing the deployment on node %s', node.uuid)
+
+        uuid_dict_returned = do_agent_iscsi_deploy(task, self._client)
+
+        if deploy_utils.get_boot_option(node) == "local":
+            # Install the boot loader
+            root_uuid = uuid_dict_returned.get('root uuid')
+            efi_sys_uuid = uuid_dict_returned.get('efi system partition uuid')
+            self.configure_local_boot(
+                task, root_uuid=root_uuid,
+                efi_system_part_uuid=efi_sys_uuid)
+
+        try:
+            task.driver.boot.prepare_instance(task)
+        except Exception as e:
+            LOG.error(_LE('Deploy failed for instance %(instance)s. '
+                          'Error: %(error)s'),
+                      {'instance': node.instance_uuid, 'error': e})
+            msg = _('Failed to continue agent deployment.')
+            deploy_utils.set_failed_state(task, msg)
+        self.reboot_and_finish_deploy(task)

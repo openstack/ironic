@@ -19,7 +19,7 @@ from ironic.common import boot_devices
 from ironic.common import states
 from ironic.conductor import task_manager
 from ironic.drivers.modules.amt import management as amt_mgmt
-from ironic.drivers.modules import pxe
+from ironic.drivers.modules import iscsi_deploy
 from ironic.tests.conductor import utils as mgr_utils
 from ironic.tests.db import base as db_base
 from ironic.tests.db import utils as db_utils
@@ -55,8 +55,8 @@ class AMTPXEVendorPassthruTestCase(db_base.DbTestCase):
 
     @mock.patch.object(amt_mgmt.AMTManagement, 'ensure_next_boot_device',
                        spec_set=True, autospec=True)
-    @mock.patch.object(pxe.VendorPassthru, 'pass_deploy_info', spec_set=True,
-                       autospec=True)
+    @mock.patch.object(iscsi_deploy.VendorPassthru, 'pass_deploy_info',
+                       spec_set=True, autospec=True)
     def test_vendorpassthru_pass_deploy_info_netboot(self,
                                                      mock_pxe_vendorpassthru,
                                                      mock_ensure):
@@ -76,8 +76,8 @@ class AMTPXEVendorPassthruTestCase(db_base.DbTestCase):
 
     @mock.patch.object(amt_mgmt.AMTManagement, 'ensure_next_boot_device',
                        spec_set=True, autospec=True)
-    @mock.patch.object(pxe.VendorPassthru, 'pass_deploy_info', spec_set=True,
-                       autospec=True)
+    @mock.patch.object(iscsi_deploy.VendorPassthru, 'pass_deploy_info',
+                       spec_set=True, autospec=True)
     def test_vendorpassthru_pass_deploy_info_localboot(self,
                                                        mock_pxe_vendorpassthru,
                                                        mock_ensure):
@@ -94,8 +94,8 @@ class AMTPXEVendorPassthruTestCase(db_base.DbTestCase):
 
     @mock.patch.object(amt_mgmt.AMTManagement, 'ensure_next_boot_device',
                        spec_set=True, autospec=True)
-    @mock.patch.object(pxe.VendorPassthru, 'continue_deploy', spec_set=True,
-                       autospec=True)
+    @mock.patch.object(iscsi_deploy.VendorPassthru, 'continue_deploy',
+                       spec_set=True, autospec=True)
     def test_vendorpassthru_continue_deploy_netboot(self,
                                                     mock_pxe_vendorpassthru,
                                                     mock_ensure):
@@ -115,8 +115,8 @@ class AMTPXEVendorPassthruTestCase(db_base.DbTestCase):
 
     @mock.patch.object(amt_mgmt.AMTManagement, 'ensure_next_boot_device',
                        spec_set=True, autospec=True)
-    @mock.patch.object(pxe.VendorPassthru, 'continue_deploy', spec_set=True,
-                       autospec=True)
+    @mock.patch.object(iscsi_deploy.VendorPassthru, 'continue_deploy',
+                       spec_set=True, autospec=True)
     def test_vendorpassthru_continue_deploy_localboot(self,
                                                       mock_pxe_vendorpassthru,
                                                       mock_ensure):

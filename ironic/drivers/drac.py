@@ -23,6 +23,7 @@ from ironic.drivers.modules.drac import management
 from ironic.drivers.modules.drac import power
 from ironic.drivers.modules.drac import vendor_passthru
 from ironic.drivers.modules import inspector
+from ironic.drivers.modules import iscsi_deploy
 from ironic.drivers.modules import pxe
 from ironic.drivers import utils
 
@@ -37,13 +38,14 @@ class PXEDracDriver(base.BaseDriver):
                 reason=_('Unable to import pywsman library'))
 
         self.power = power.DracPower()
-        self.deploy = pxe.PXEDeploy()
+        self.boot = pxe.PXEBoot()
+        self.deploy = iscsi_deploy.ISCSIDeploy()
         self.management = management.DracManagement()
-        self.pxe_vendor = pxe.VendorPassthru()
+        self.iscsi_vendor = iscsi_deploy.VendorPassthru()
         self.drac_vendor = vendor_passthru.DracVendorPassthru()
-        self.mapping = {'pass_deploy_info': self.pxe_vendor,
-                        'heartbeat': self.pxe_vendor,
-                        'pass_bootloader_install_info': self.pxe_vendor,
+        self.mapping = {'pass_deploy_info': self.iscsi_vendor,
+                        'heartbeat': self.iscsi_vendor,
+                        'pass_bootloader_install_info': self.iscsi_vendor,
                         'get_bios_config': self.drac_vendor,
                         'set_bios_config': self.drac_vendor,
                         'commit_bios_config': self.drac_vendor,

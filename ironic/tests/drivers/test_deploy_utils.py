@@ -33,6 +33,7 @@ import testtools
 from ironic.common import boot_devices
 from ironic.common import disk_partitioner
 from ironic.common import exception
+from ironic.common import image_service
 from ironic.common import images
 from ironic.common import states
 from ironic.common import utils as common_utils
@@ -41,11 +42,16 @@ from ironic.conductor import utils as manager_utils
 from ironic.drivers.modules import agent_client
 from ironic.drivers.modules import deploy_utils as utils
 from ironic.drivers.modules import image_cache
+from ironic.drivers.modules import pxe
 from ironic.tests import base as tests_base
 from ironic.tests.conductor import utils as mgr_utils
 from ironic.tests.db import base as db_base
 from ironic.tests.db import utils as db_utils
 from ironic.tests.objects import utils as obj_utils
+
+INST_INFO_DICT = db_utils.get_test_pxe_instance_info()
+DRV_INFO_DICT = db_utils.get_test_pxe_driver_info()
+DRV_INTERNAL_INFO_DICT = db_utils.get_test_pxe_driver_internal_info()
 
 _PXECONF_DEPLOY = b"""
 default deploy
@@ -1118,6 +1124,16 @@ class OtherFunctionTestCase(db_base.DbTestCase):
                                     power_value=iter([exc_param] * len(calls)),
                                     log_calls=calls)
 
+    def test_get_boot_option(self):
+        self.node.instance_info = {'capabilities': '{"boot_option": "local"}'}
+        result = utils.get_boot_option(self.node)
+        self.assertEqual("local", result)
+
+    def test_get_boot_option_default_value(self):
+        self.node.instance_info = {}
+        result = utils.get_boot_option(self.node)
+        self.assertEqual("netboot", result)
+
 
 @mock.patch.object(disk_partitioner.DiskPartitioner, 'commit', lambda _: None)
 class WorkOnDiskTestCase(tests_base.TestCase):
@@ -1921,3 +1937,117 @@ class ISCSISetupAndHandleErrorsTestCase(tests_base.TestCase):
             self.assertEqual(expected_dev, dev)
 
         mock_ibd.assert_called_once_with(expected_dev)
+
+
+class ValidateImagePropertiesTestCase(db_base.DbTestCase):
+
+    @mock.patch.object(image_service, 'get_image_service', autospec=True)
+    def test_validate_image_properties_glance_image(self, image_service_mock):
+        node = obj_utils.create_test_node(
+            self.context, driver='fake_pxe',
+            instance_info=INST_INFO_DICT,
+            driver_info=DRV_INFO_DICT,
+            driver_internal_info=DRV_INTERNAL_INFO_DICT,
+        )
+        d_info = pxe._parse_instance_info(node)
+        image_service_mock.return_value.show.return_value = {
+            'properties': {'kernel_id': '1111', 'ramdisk_id': '2222'},
+        }
+
+        utils.validate_image_properties(self.context, d_info,
+                                        ['kernel_id', 'ramdisk_id'])
+        image_service_mock.assert_called_once_with(
+            node.instance_info['image_source'], context=self.context
+        )
+
+    @mock.patch.object(image_service, 'get_image_service', autospec=True)
+    def test_validate_image_properties_glance_image_missing_prop(
+            self, image_service_mock):
+        node = obj_utils.create_test_node(
+            self.context, driver='fake_pxe',
+            instance_info=INST_INFO_DICT,
+            driver_info=DRV_INFO_DICT,
+            driver_internal_info=DRV_INTERNAL_INFO_DICT,
+        )
+        d_info = pxe._parse_instance_info(node)
+        image_service_mock.return_value.show.return_value = {
+            'properties': {'kernel_id': '1111'},
+        }
+
+        self.assertRaises(exception.MissingParameterValue,
+                          utils.validate_image_properties,
+                          self.context, d_info, ['kernel_id', 'ramdisk_id'])
+        image_service_mock.assert_called_once_with(
+            node.instance_info['image_source'], context=self.context
+        )
+
+    @mock.patch.object(image_service, 'get_image_service', autospec=True)
+    def test_validate_image_properties_glance_image_not_authorized(
+            self, image_service_mock):
+        d_info = {'image_source': 'uuid'}
+        show_mock = image_service_mock.return_value.show
+        show_mock.side_effect = exception.ImageNotAuthorized(image_id='uuid')
+        self.assertRaises(exception.InvalidParameterValue,
+                          utils.validate_image_properties, self.context,
+                          d_info, [])
+
+    @mock.patch.object(image_service, 'get_image_service', autospec=True)
+    def test_validate_image_properties_glance_image_not_found(
+            self, image_service_mock):
+        d_info = {'image_source': 'uuid'}
+        show_mock = image_service_mock.return_value.show
+        show_mock.side_effect = exception.ImageNotFound(image_id='uuid')
+        self.assertRaises(exception.InvalidParameterValue,
+                          utils.validate_image_properties, self.context,
+                          d_info, [])
+
+    def test_validate_image_properties_invalid_image_href(self):
+        d_info = {'image_source': 'emule://uuid'}
+        self.assertRaises(exception.InvalidParameterValue,
+                          utils.validate_image_properties, self.context,
+                          d_info, [])
+
+    @mock.patch.object(image_service.HttpImageService, 'show', autospec=True)
+    def test_validate_image_properties_nonglance_image(
+            self, image_service_show_mock):
+        instance_info = {
+            'image_source': 'http://ubuntu',
+            'kernel': 'kernel_uuid',
+            'ramdisk': 'file://initrd',
+            'root_gb': 100,
+        }
+        image_service_show_mock.return_value = {'size': 1, 'properties': {}}
+        node = obj_utils.create_test_node(
+            self.context, driver='fake_pxe',
+            instance_info=instance_info,
+            driver_info=DRV_INFO_DICT,
+            driver_internal_info=DRV_INTERNAL_INFO_DICT,
+        )
+        d_info = pxe._parse_instance_info(node)
+        utils.validate_image_properties(self.context, d_info,
+                                        ['kernel', 'ramdisk'])
+        image_service_show_mock.assert_called_once_with(
+            mock.ANY, instance_info['image_source'])
+
+    @mock.patch.object(image_service.HttpImageService, 'show', autospec=True)
+    def test_validate_image_properties_nonglance_image_validation_fail(
+            self, img_service_show_mock):
+        instance_info = {
+            'image_source': 'http://ubuntu',
+            'kernel': 'kernel_uuid',
+            'ramdisk': 'file://initrd',
+            'root_gb': 100,
+        }
+        img_service_show_mock.side_effect = iter(
+            [exception.ImageRefValidationFailed(
+                image_href='http://ubuntu', reason='HTTPError')])
+        node = obj_utils.create_test_node(
+            self.context, driver='fake_pxe',
+            instance_info=instance_info,
+            driver_info=DRV_INFO_DICT,
+            driver_internal_info=DRV_INTERNAL_INFO_DICT,
+        )
+        d_info = pxe._parse_instance_info(node)
+        self.assertRaises(exception.InvalidParameterValue,
+                          utils.validate_image_properties, self.context,
+                          d_info, ['kernel', 'ramdisk'])

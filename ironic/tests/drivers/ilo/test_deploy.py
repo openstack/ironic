@@ -36,7 +36,6 @@ from ironic.drivers.modules import deploy_utils
 from ironic.drivers.modules.ilo import common as ilo_common
 from ironic.drivers.modules.ilo import deploy as ilo_deploy
 from ironic.drivers.modules import iscsi_deploy
-from ironic.drivers.modules import pxe
 from ironic.drivers import utils as driver_utils
 from ironic.tests.conductor import utils as mgr_utils
 from ironic.tests.db import base as db_base
@@ -482,7 +481,7 @@ class IloVirtualMediaIscsiDeployTestCase(db_base.DbTestCase):
 
     @mock.patch.object(deploy_utils, 'validate_capabilities',
                        spec_set=True, autospec=True)
-    @mock.patch.object(iscsi_deploy, 'validate_image_properties',
+    @mock.patch.object(deploy_utils, 'validate_image_properties',
                        spec_set=True, autospec=True)
     @mock.patch.object(ilo_deploy, '_parse_deploy_info', spec_set=True,
                        autospec=True)
@@ -503,7 +502,7 @@ class IloVirtualMediaIscsiDeployTestCase(db_base.DbTestCase):
                 task.context, d_info, props_expected)
             validate_capability_mock.assert_called_once_with(task.node)
 
-    @mock.patch.object(iscsi_deploy, 'validate_image_properties',
+    @mock.patch.object(deploy_utils, 'validate_image_properties',
                        spec_set=True, autospec=True)
     @mock.patch.object(ilo_deploy, '_parse_deploy_info', spec_set=True,
                        autospec=True)
@@ -528,7 +527,7 @@ class IloVirtualMediaIscsiDeployTestCase(db_base.DbTestCase):
                                                        d_info, props)
             self.assertIn('boot_option', str(exc))
 
-    @mock.patch.object(iscsi_deploy, 'validate_image_properties',
+    @mock.patch.object(deploy_utils, 'validate_image_properties',
                        spec_set=True, autospec=True)
     @mock.patch.object(ilo_deploy, '_parse_deploy_info', spec_set=True,
                        autospec=True)
@@ -1352,7 +1351,7 @@ class VendorPassthruTestCase(db_base.DbTestCase):
                 task.driver.vendor._validate_boot_into_iso,
                 task, {})
 
-    @mock.patch.object(iscsi_deploy, 'validate_image_properties',
+    @mock.patch.object(deploy_utils, 'validate_image_properties',
                        spec_set=True, autospec=True)
     def test__validate_boot_into_iso_manage(self, validate_image_prop_mock):
         with task_manager.acquire(self.context, self.node.uuid,
@@ -1364,7 +1363,7 @@ class VendorPassthruTestCase(db_base.DbTestCase):
             validate_image_prop_mock.assert_called_once_with(
                 task.context, {'image_source': 'foo'}, [])
 
-    @mock.patch.object(iscsi_deploy, 'validate_image_properties',
+    @mock.patch.object(deploy_utils, 'validate_image_properties',
                        spec_set=True, autospec=True)
     def test__validate_boot_into_iso_maintenance(
             self, validate_image_prop_mock):
@@ -1386,14 +1385,16 @@ class IloPXEDeployTestCase(db_base.DbTestCase):
         self.node = obj_utils.create_test_node(
             self.context, driver='pxe_ilo', driver_info=INFO_DICT)
 
-    @mock.patch.object(pxe.PXEDeploy, 'validate', spec_set=True, autospec=True)
+    @mock.patch.object(iscsi_deploy.ISCSIDeploy, 'validate', spec_set=True,
+                       autospec=True)
     def test_validate(self, pxe_validate_mock):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
             task.driver.deploy.validate(task)
             pxe_validate_mock.assert_called_once_with(mock.ANY, task)
 
-    @mock.patch.object(pxe.PXEDeploy, 'prepare', spec_set=True, autospec=True)
+    @mock.patch.object(iscsi_deploy.ISCSIDeploy, 'prepare', spec_set=True,
+                       autospec=True)
     @mock.patch.object(ilo_common, 'update_boot_mode', spec_set=True,
                        autospec=True)
     def test_prepare(self,
@@ -1406,7 +1407,8 @@ class IloPXEDeployTestCase(db_base.DbTestCase):
             update_boot_mode_mock.assert_called_once_with(task)
             pxe_prepare_mock.assert_called_once_with(mock.ANY, task)
 
-    @mock.patch.object(pxe.PXEDeploy, 'prepare', spec_set=True, autospec=True)
+    @mock.patch.object(iscsi_deploy.ISCSIDeploy, 'prepare', spec_set=True,
+                       autospec=True)
     @mock.patch.object(ilo_common, 'update_boot_mode', spec_set=True,
                        autospec=True)
     def test_prepare_uefi_whole_disk_image_fail(self,
@@ -1421,7 +1423,8 @@ class IloPXEDeployTestCase(db_base.DbTestCase):
             update_boot_mode_mock.assert_called_once_with(task)
             self.assertFalse(pxe_prepare_mock.called)
 
-    @mock.patch.object(pxe.PXEDeploy, 'deploy', spec_set=True, autospec=True)
+    @mock.patch.object(iscsi_deploy.ISCSIDeploy, 'deploy', spec_set=True,
+                       autospec=True)
     @mock.patch.object(manager_utils, 'node_set_boot_device', spec_set=True,
                        autospec=True)
     def test_deploy_boot_mode_exists(self, set_persistent_mock,
@@ -1458,8 +1461,8 @@ class IloPXEVendorPassthruTestCase(db_base.DbTestCase):
             self.assertIsInstance(driver_routes, dict)
             self.assertEqual(sorted(expected), sorted(list(driver_routes)))
 
-    @mock.patch.object(pxe.VendorPassthru, 'pass_deploy_info', spec_set=True,
-                       autospec=True)
+    @mock.patch.object(iscsi_deploy.VendorPassthru, 'pass_deploy_info',
+                       spec_set=True, autospec=True)
     @mock.patch.object(manager_utils, 'node_set_boot_device', spec_set=True,
                        autospec=True)
     def test_vendorpassthru_pass_deploy_info(self, set_boot_device_mock,

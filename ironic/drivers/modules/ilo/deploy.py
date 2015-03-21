@@ -393,7 +393,7 @@ class IloVirtualMediaIscsiDeploy(base.DeployInterface):
             props = ['kernel_id', 'ramdisk_id']
         else:
             props = ['kernel', 'ramdisk']
-        iscsi_deploy.validate_image_properties(task.context, d_info, props)
+        deploy_utils.validate_image_properties(task.context, d_info, props)
         deploy_utils.validate_capabilities(node)
 
     @task_manager.require_exclusive_lock
@@ -645,7 +645,7 @@ class IloVirtualMediaAgentVendorInterface(agent.AgentVendorInterface):
               self).reboot_to_instance(task, **kwargs)
 
 
-class IloPXEDeploy(pxe.PXEDeploy):
+class IloPXEDeploy(iscsi_deploy.ISCSIDeploy):
 
     def prepare(self, task):
         """Prepare the deployment environment for this task's node.
@@ -714,7 +714,7 @@ class IloConsoleInterface(ipmitool.IPMIShellinaboxConsole):
         super(IloConsoleInterface, self).validate(task)
 
 
-class IloPXEVendorPassthru(pxe.VendorPassthru):
+class IloPXEVendorPassthru(iscsi_deploy.VendorPassthru):
 
     @base.passthru(['POST'])
     def pass_deploy_info(self, task, **kwargs):
@@ -764,7 +764,7 @@ class VendorPassthru(agent_base_vendor.BaseAgentVendor):
         error_msg = _("Error validating input for boot_into_iso vendor "
                       "passthru. Some parameters were not provided: ")
         deploy_utils.check_for_missing_params(d_info, error_msg)
-        iscsi_deploy.validate_image_properties(
+        deploy_utils.validate_image_properties(
             task.context, {'image_source': kwargs.get('boot_iso_href')}, [])
 
     @base.passthru(['POST'])
@@ -870,7 +870,7 @@ class VendorPassthru(agent_base_vendor.BaseAgentVendor):
 
             # For iscsi_ilo driver, we boot from disk every time if the image
             # deployed is a whole disk image.
-            if iscsi_deploy.get_boot_option(node) == "local" or iwdi:
+            if deploy_utils.get_boot_option(node) == "local" or iwdi:
                 manager_utils.node_set_boot_device(task, boot_devices.DISK,
                                                    persistent=True)
 
@@ -917,7 +917,7 @@ class VendorPassthru(agent_base_vendor.BaseAgentVendor):
         uuid_dict = iscsi_deploy.do_agent_iscsi_deploy(task, self._client)
         root_uuid = uuid_dict.get('root uuid')
 
-        if iscsi_deploy.get_boot_option(node) == "local" or iwdi:
+        if deploy_utils.get_boot_option(node) == "local" or iwdi:
             efi_system_part_uuid = uuid_dict.get(
                 'efi system partition uuid')
             self.configure_local_boot(

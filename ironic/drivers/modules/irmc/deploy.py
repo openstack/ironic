@@ -567,7 +567,7 @@ class IRMCVirtualMediaIscsiDeploy(base.DeployInterface):
             props = ['kernel_id', 'ramdisk_id']
         else:
             props = ['kernel', 'ramdisk']
-        iscsi_deploy.validate_image_properties(task.context, d_info,
+        deploy_utils.validate_image_properties(task.context, d_info,
                                                props)
         deploy_utils.validate_capabilities(task.node)
 
@@ -832,7 +832,7 @@ class VendorPassthru(agent_base_vendor.BaseAgentVendor):
 
         try:
             _cleanup_vmedia_boot(task)
-            if (iscsi_deploy.get_boot_option(node) == "local" or
+            if (deploy_utils.get_boot_option(node) == "local" or
                 is_whole_disk_image):
                 manager_utils.node_set_boot_device(task, boot_devices.DISK,
                                                    persistent=True)
@@ -883,7 +883,7 @@ class VendorPassthru(agent_base_vendor.BaseAgentVendor):
         uuid_dict = iscsi_deploy.do_agent_iscsi_deploy(task, self._client)
         root_uuid = uuid_dict.get('root uuid')
 
-        if (iscsi_deploy.get_boot_option(node) == "local" or
+        if (deploy_utils.get_boot_option(node) == "local" or
             is_whole_disk_image):
             efi_system_part_uuid = uuid_dict.get(
                 'efi system partition uuid')
