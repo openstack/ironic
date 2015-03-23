@@ -244,7 +244,29 @@ class TestListNodes(test_api_base.FunctionalTest):
                 headers={api_base.Version.string: "1.2"})
         self.assertEqual(states.AVAILABLE, data['provision_state'])
 
-    def test_hide_fields_in_newer_versions(self):
+    def test_hide_fields_in_newer_versions_driver_internal(self):
+        node = obj_utils.create_test_node(self.context,
+                                          driver_internal_info={"foo": "bar"})
+        data = self.get_json('/nodes/%s' % node.uuid,
+                headers={api_base.Version.string: str(api_v1.MIN_VER)})
+        self.assertNotIn('driver_internal_info', data)
+
+        data = self.get_json('/nodes/%s' % node.uuid,
+                headers={api_base.Version.string: "1.3"})
+        self.assertEqual({"foo": "bar"}, data['driver_internal_info'])
+
+    def test_hide_fields_in_newer_versions_name(self):
+        node = obj_utils.create_test_node(self.context,
+                                          name="fish")
+        data = self.get_json('/nodes/%s' % node.uuid,
+                headers={api_base.Version.string: "1.4"})
+        self.assertNotIn('name', data)
+
+        data = self.get_json('/nodes/%s' % node.uuid,
+                headers={api_base.Version.string: "1.5"})
+        self.assertEqual('fish', data['name'])
+
+    def test_hide_fields_in_newer_versions_inspection(self):
         some_time = datetime.datetime(2015, 3, 18, 19, 20)
         node = obj_utils.create_test_node(self.context,
                                           inspection_started_at=some_time)
@@ -259,28 +281,6 @@ class TestListNodes(test_api_base.FunctionalTest):
                 data['inspection_started_at']).replace(tzinfo=None)
         self.assertEqual(some_time, started)
         self.assertEqual(None, data['inspection_finished_at'])
-
-    def test_hide_driver_internal_info(self):
-        node = obj_utils.create_test_node(self.context,
-                                          driver_internal_info={"foo": "bar"})
-        data = self.get_json('/nodes/%s' % node.uuid,
-                headers={api_base.Version.string: str(api_v1.MIN_VER)})
-        self.assertNotIn('driver_internal_info', data)
-
-        data = self.get_json('/nodes/%s' % node.uuid,
-                headers={api_base.Version.string: "1.3"})
-        self.assertEqual({"foo": "bar"}, data['driver_internal_info'])
-
-    def test_unset_logical_names(self):
-        node = obj_utils.create_test_node(self.context,
-                                          name="fish")
-        data = self.get_json('/nodes/%s' % node.uuid,
-                headers={api_base.Version.string: "1.4"})
-        self.assertNotIn('name', data)
-
-        data = self.get_json('/nodes/%s' % node.uuid,
-                headers={api_base.Version.string: "1.5"})
-        self.assertEqual('fish', data['name'])
 
     def test_many(self):
         nodes = []
