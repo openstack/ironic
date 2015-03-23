@@ -271,23 +271,23 @@ class IloDeployPrivateMethodsTestCase(db_base.DbTestCase):
 
     @mock.patch.object(deploy_utils, 'is_secure_boot_requested')
     @mock.patch.object(ilo_common, 'set_secure_boot_mode')
-    def test__update_secure_boot_passed_true(self,
-                                             func_set_secure_boot_mode,
-                                             func_is_secure_boot_requested):
+    def test__update_secure_boot_mode_passed_true(self,
+                                                  func_set_secure_boot_mode,
+                                                  func_is_secure_boot_req):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
-            func_is_secure_boot_requested.return_value = True
+            func_is_secure_boot_req.return_value = True
             ilo_deploy._update_secure_boot_mode(task, True)
             func_set_secure_boot_mode.assert_called_once_with(task, True)
 
     @mock.patch.object(deploy_utils, 'is_secure_boot_requested')
     @mock.patch.object(ilo_common, 'set_secure_boot_mode')
-    def test__update_secure_boot_passed_False(self,
-                                              func_set_secure_boot_mode,
-                                              func_is_secure_boot_requested):
+    def test__update_secure_boot_mode_passed_False(self,
+                                                   func_set_secure_boot_mode,
+                                                   func_is_secure_boot_req):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
-            func_is_secure_boot_requested.return_value = False
+            func_is_secure_boot_req.return_value = False
             ilo_deploy._update_secure_boot_mode(task, False)
             self.assertFalse(func_set_secure_boot_mode.called)
 
@@ -330,17 +330,20 @@ class IloDeployPrivateMethodsTestCase(db_base.DbTestCase):
             func_set_secure_boot_mode.assert_called_once_with(task, False)
         self.assertTrue(returned_state)
 
+    @mock.patch.object(ilo_deploy.LOG, 'debug')
     @mock.patch.object(ilo_deploy, 'exception')
     @mock.patch.object(ilo_common, 'get_secure_boot_mode')
     def test__disable_secure_boot_exception(self,
                                             func_get_secure_boot_mode,
-                                            exception_mock):
+                                            exception_mock,
+                                            mock_log):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
             exception_mock.IloOperationNotSupported = Exception
             func_get_secure_boot_mode.side_effect = Exception
             returned_state = ilo_deploy._disable_secure_boot(task)
             func_get_secure_boot_mode.assert_called_once_with(task)
+            self.assertTrue(mock_log.called)
         self.assertFalse(returned_state)
 
     @mock.patch.object(ilo_common, 'update_boot_mode')

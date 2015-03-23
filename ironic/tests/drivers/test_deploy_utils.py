@@ -1453,7 +1453,7 @@ class ParseInstanceInfoCapabilitiesTestCase(tests_base.TestCase):
                           utils.parse_instance_info_capabilities, self.node)
 
     def test_is_secure_boot_requested_true(self):
-        self.node.instance_info = {'capabilities': {"secure_boot": "true"}}
+        self.node.instance_info = {'capabilities': {"secure_boot": "tRue"}}
         self.assertTrue(utils.is_secure_boot_requested(self.node))
 
     def test_is_secure_boot_requested_false(self):

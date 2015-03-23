@@ -298,7 +298,7 @@ def _disable_secure_boot(task):
         cur_sec_state = ilo_common.get_secure_boot_mode(task)
     except exception.IloOperationNotSupported:
         LOG.debug('Secure boot mode is not supported for node %s',
-                       task.node.uuid)
+                  task.node.uuid)
         return False
 
     if cur_sec_state:
@@ -613,7 +613,7 @@ class IloVirtualMediaAgentDeploy(base.DeployInterface):
 
 
 class IloVirtualMediaAgentVendorInterface(agent.AgentVendorInterface):
-    """Interface for vendor passthru rateled actions."""
+    """Interface for vendor passthru related actions."""
 
     def reboot_to_instance(self, task, **kwargs):
         node = task.node
