@@ -180,7 +180,7 @@ image=kernel
 
 image=chain.c32
         label=boot_whole_disk
-        append mbr:{{ DISK_IDENTIFIER }}
+        append="mbr:{{ DISK_IDENTIFIER }}"
 """
 
 _UEFI_PXECONF_BOOT_PARTITION = """
@@ -198,7 +198,7 @@ image=kernel
 
 image=chain.c32
         label=boot_whole_disk
-        append mbr:{{ DISK_IDENTIFIER }}
+        append="mbr:{{ DISK_IDENTIFIER }}"
 """
 
 _UEFI_PXECONF_BOOT_WHOLE_DISK = """
@@ -216,7 +216,7 @@ image=kernel
 
 image=chain.c32
         label=boot_whole_disk
-        append mbr:0x12345678
+        append="mbr:0x12345678"
 """
 
 

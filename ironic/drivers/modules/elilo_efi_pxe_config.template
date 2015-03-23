@@ -13,4 +13,4 @@ image={{pxe_options.aki_path}}
 
 image=chain.c32
         label=boot_whole_disk
-        append mbr:{{ DISK_IDENTIFIER }}
+        append="mbr:{{ DISK_IDENTIFIER }}"
