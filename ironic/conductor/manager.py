@@ -186,7 +186,7 @@ conductor_opts = [
                          'secure user experience, it does impact the service '
                          'behavior, and as such IS DISABLED BY DEFAULT until '
                          'consuming services (eg, Nova) have been updated to '
-                         'accomodate the additional time for deletion.'),
+                         'accommodate the additional time for deletion.'),
 ]
 CONF = cfg.CONF
 CONF.register_opts(conductor_opts, 'conductor')
@@ -717,7 +717,7 @@ class ConductorManager(periodic_task.PeriodicTasks):
             # Infer the image type to make sure the deploy driver
             # validates only the necessary variables for different
             # image types.
-            # NOTE(sirushtim): The iwdi variable can be None. It's upto
+            # NOTE(sirushtim): The iwdi variable can be None. It's up to
             # the deploy driver to validate this.
             iwdi = images.is_whole_disk_image(context, node.instance_info)
             driver_internal_info['is_whole_disk_image'] = iwdi

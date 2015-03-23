@@ -74,7 +74,7 @@ The Ironic service is composed of the following components:
    exposed via the API service. The Conductor and API services communicate
    via RPC.
 
-#. various Drivers that support heterogenous hardware
+#. various Drivers that support heterogeneous hardware
 
 #. a Message Queue
 

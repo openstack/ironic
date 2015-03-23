@@ -118,7 +118,7 @@ class SNMPClient(object):
         """
         if self.version == SNMP_V3:
             # Handling auth/encryption credentials is not (yet) supported.
-            # This version supports a security name analagous to community.
+            # This version supports a security name analogous to community.
             return cmdgen.UsmUserData(self.security)
         else:
             mp_model = 1 if self.version == SNMP_V2C else 0
