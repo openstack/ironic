@@ -12,6 +12,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import mock
 from webob import exc as webob_exc
 
 from ironic.api.controllers import v1 as v1_api
@@ -25,7 +26,8 @@ class TestV1Routing(api_base.FunctionalTest):
 
     def test_route_checks_version(self):
         self.get_json('/')
-        self._check_version.assert_called_once()
+        self._check_version.assert_called_once_with(mock.ANY,
+                                                    mock.ANY)
 
 
 class TestCheckVersions(test_base.TestCase):

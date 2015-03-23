@@ -1696,7 +1696,7 @@ class DoNodeCleanTestCase(_ServiceSetUpMixin, tests_db_base.DbTestCase):
         node.refresh()
 
         # Assert that the node was moved to available without cleaning
-        mock_validate.assert_not_called()
+        self.assertFalse(mock_validate.called)
         self.assertEqual(states.AVAILABLE, node.provision_state)
         self.assertEqual(states.NOSTATE, node.target_provision_state)
         self.assertEqual({}, node.clean_step)
@@ -1725,9 +1725,9 @@ class DoNodeCleanTestCase(_ServiceSetUpMixin, tests_db_base.DbTestCase):
         self.service._worker_pool.waitall()
         node.refresh()
 
-        mock_validate.assert_called_once()
+        mock_validate.assert_called_once_with(task)
         mock_next_step.assert_called_once_with(mock.ANY, [], {})
-        mock_steps.assert_called_once()
+        mock_steps.assert_called_once_with(task)
 
         # Check that state didn't change
         self.assertEqual(states.CLEANING, node.provision_state)
@@ -1806,7 +1806,7 @@ class DoNodeCleanTestCase(_ServiceSetUpMixin, tests_db_base.DbTestCase):
         # Cleaning should be complete without calling additional steps
         self.assertEqual(states.AVAILABLE, node.provision_state)
         self.assertEqual({}, node.clean_step)
-        mock_execute.assert_not_called()
+        self.assertFalse(mock_execute.called)
 
     @mock.patch('ironic.drivers.modules.fake.FakePower.execute_clean_step')
     @mock.patch('ironic.drivers.modules.fake.FakeDeploy.execute_clean_step')
@@ -1869,7 +1869,7 @@ class DoNodeCleanTestCase(_ServiceSetUpMixin, tests_db_base.DbTestCase):
         self.assertEqual({}, node.clean_step)
         self.assertIsNotNone(node.last_error)
         self.assertTrue(node.maintenance)
-        mock_execute.assert_not_called()
+        self.assertFalse(mock_execute.called)
 
     @mock.patch('ironic.drivers.modules.fake.FakeDeploy.execute_clean_step')
     def test__do_next_clean_step_fail(self, mock_execute):
@@ -1897,7 +1897,6 @@ class DoNodeCleanTestCase(_ServiceSetUpMixin, tests_db_base.DbTestCase):
         self.assertEqual({}, node.clean_step)
         self.assertIsNotNone(node.last_error)
         self.assertTrue(node.maintenance)
-        mock_execute.assert_not_called()
         mock_execute.assert_called_once_with(mock.ANY, self.clean_steps[0])
 
     @mock.patch('ironic.drivers.modules.fake.FakeDeploy.execute_clean_step')
@@ -1923,7 +1922,7 @@ class DoNodeCleanTestCase(_ServiceSetUpMixin, tests_db_base.DbTestCase):
         # Cleaning should be complete without calling additional steps
         self.assertEqual(states.AVAILABLE, node.provision_state)
         self.assertEqual({}, node.clean_step)
-        mock_execute.assert_not_called()
+        self.assertFalse(mock_execute.called)
 
     @mock.patch('ironic.drivers.modules.fake.FakePower.execute_clean_step')
     @mock.patch('ironic.drivers.modules.fake.FakeDeploy.execute_clean_step')

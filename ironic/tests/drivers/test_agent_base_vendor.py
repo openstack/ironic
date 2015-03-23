@@ -424,7 +424,7 @@ class TestBaseAgentVendor(db_base.DbTestCase):
         with task_manager.acquire(self.context, self.node['uuid'],
                                   shared=False) as task:
             self.passthru.continue_cleaning(task)
-            notify_mock.assert_not_called()
+            self.assertFalse(notify_mock.called)
 
     @mock.patch('ironic.conductor.manager.cleaning_error_handler')
     @mock.patch.object(agent_client.AgentClient, 'get_commands_status')

@@ -679,7 +679,7 @@ class FsImageTestCase(base.TestCase):
                           'tgt_file', 'path/to/deployiso',
                           'path/to/kernel',
                           'path/to/ramdisk')
-        umount_mock.assert_called_once_wth('mountdir')
+        umount_mock.assert_called_once_with('mountdir')
 
     @mock.patch.object(images, '_create_root_fs')
     @mock.patch.object(utils, 'write_to_file')
@@ -744,8 +744,12 @@ class FsImageTestCase(base.TestCase):
                 'tmpdir/kernel-uuid')
         fetch_images_mock.assert_any_call('ctx', 'ramdisk-uuid',
                 'tmpdir/ramdisk-uuid')
-        fetch_images_mock.assert_not_called_with('ctx', 'deploy_iso-uuid',
-                'tmpdir/deploy_iso-uuid')
+        # Note (NobodyCam): the orginal assert asserted that fetch_images
+        #                   was not called with parameters, this did not
+        #                   work, So I instead assert that there were only
+        #                   Two calls to the mock validating the above
+        #                   asserts.
+        self.assertEqual(2, fetch_images_mock.call_count)
 
         params = ['root=UUID=root-uuid', 'kernel-params']
         create_isolinux_mock.assert_called_once_with('output_file',
