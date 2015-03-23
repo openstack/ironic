@@ -1013,7 +1013,17 @@ class NodesController(rest.RestController):
 
         # Check if node is transitioning state, although nodes in some states
         # can be updated.
-        if ((rpc_node.target_power_state or rpc_node.target_provision_state)
+        if (rpc_node.provision_state == ir_states.CLEANING and
+                patch == [{'op': 'remove', 'path': '/instance_uuid'}]):
+            # Allow node.instance_uuid removal during cleaning, but not other
+            # operations.
+            # TODO(JoshNang) remove node.instance_uuid when removing
+            # instance_info stop removing node.instance_uuid in the Nova
+            # Ironic driver. Bug: 1436568
+            LOG.debug('Removing instance uuid %(instance)s from node %(node)s',
+                      {'instance': rpc_node.instance_uuid,
+                       'node': rpc_node.uuid})
+        elif ((rpc_node.target_power_state or rpc_node.target_provision_state)
                 and rpc_node.provision_state not in
                 ir_states.UPDATE_ALLOWED_STATES):
             msg = _("Node %s can not be updated while a state transition "

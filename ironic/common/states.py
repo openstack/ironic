@@ -150,7 +150,7 @@ INSPECTFAIL = 'inspect failed'
 """ Node inspection failed. """
 
 
-UPDATE_ALLOWED_STATES = (DEPLOYFAIL, INSPECTING, INSPECTFAIL)
+UPDATE_ALLOWED_STATES = (DEPLOYFAIL, INSPECTING, INSPECTFAIL, CLEANFAIL)
 """Transitional states in which we allow updating a node."""
 
 
