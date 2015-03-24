@@ -264,6 +264,15 @@ class AgentDeploy(base.DeployInterface):
                     "image_source's image_checksum must be provided in "
                     "instance_info for node %s") % node.uuid)
 
+        is_whole_disk_image = node.driver_internal_info.get(
+            'is_whole_disk_image')
+        # TODO(sirushtim): Remove once IPA has support for partition images.
+        if is_whole_disk_image is False:
+            raise exception.InvalidParameterValue(_(
+                "Node %(node)s is configured to use the %(driver)s driver "
+                "which currently does not support deploying partition "
+                "images.") % {'node': node.uuid, 'driver': node.driver})
+
         # Validate the root device hints
         deploy_utils.parse_root_device_hints(node)
 

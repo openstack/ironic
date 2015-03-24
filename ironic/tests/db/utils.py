@@ -149,6 +149,7 @@ def get_test_agent_driver_info():
 def get_test_agent_driver_internal_info():
     return {
         'agent_url': 'http://127.0.0.1/foo',
+        'is_whole_disk_image': True,
     }
 
 
