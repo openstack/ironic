@@ -21,6 +21,7 @@ import mock
 from oslo_config import cfg
 from oslo_utils import timeutils
 from oslo_utils import uuidutils
+import six
 from six.moves.urllib import parse as urlparse
 from wsme import types as wtypes
 
@@ -82,7 +83,7 @@ class TestListChassis(api_base.FunctionalTest):
         data = self.get_json('/chassis')
         self.assertEqual(len(ch_list), len(data['chassis']))
         uuids = [n['uuid'] for n in data['chassis']]
-        self.assertEqual(ch_list.sort(), uuids.sort())
+        six.assertCountEqual(self, ch_list, uuids)
 
     def test_links(self):
         uuid = uuidutils.generate_uuid()

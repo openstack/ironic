@@ -38,7 +38,7 @@ class DbChassisTestCase(base.DbTestCase):
             uuids.append(six.text_type(n['uuid']))
         res = self.dbapi.get_chassis_list()
         res_uuids = [r.uuid for r in res]
-        self.assertEqual(uuids.sort(), res_uuids.sort())
+        six.assertCountEqual(self, uuids, res_uuids)
 
     def test_get_chassis_by_id(self):
         ch = self._create_test_chassis()
