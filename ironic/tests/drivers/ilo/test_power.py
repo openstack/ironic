@@ -137,11 +137,25 @@ class IloPowerInternalMethodsTestCase(db_base.DbTestCase):
                               get_ilo_object_mock):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
+            task.node.provision_state = states.ACTIVE
             task.node.instance_info['ilo_boot_iso'] = 'boot-iso'
             ilo_power._attach_boot_iso(task)
             setup_vmedia_mock.assert_called_once_with(task, 'boot-iso')
             set_boot_device_mock.assert_called_once_with(task,
                                  boot_devices.CDROM)
+
+    @mock.patch.object(manager_utils, 'node_set_boot_device')
+    @mock.patch.object(ilo_common, 'setup_vmedia_for_boot')
+    def test__attach_boot_iso_on_rebuild(self, setup_vmedia_mock,
+                                         set_boot_device_mock,
+                                         get_ilo_object_mock):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            task.node.provision_state = states.DEPLOYING
+            task.node.instance_info['ilo_boot_iso'] = 'boot-iso'
+            ilo_power._attach_boot_iso(task)
+            self.assertFalse(setup_vmedia_mock.called)
+            self.assertFalse(set_boot_device_mock.called)
 
 
 class IloPowerTestCase(db_base.DbTestCase):
