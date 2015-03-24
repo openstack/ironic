@@ -66,7 +66,7 @@ def main():
         options.filename = 'states.%s' % options.format
 
     source = states.machine
-    graph_name = "Ironic states"
+    graph_name = '"Ironic states"'
     g = pydot.Dot(graph_name=graph_name, rankdir='LR',
                   nodesep='0.25', overlap='false',
                   ranksep="0.5", splines='true',
