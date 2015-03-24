@@ -21,6 +21,7 @@ import mock
 from oslo_config import cfg
 from oslo_utils import timeutils
 from oslo_utils import uuidutils
+import six
 from six.moves.urllib import parse as urlparse
 from testtools.matchers import HasLength
 from wsme import types as wtypes
@@ -109,7 +110,7 @@ class TestListPorts(api_base.FunctionalTest):
         self.assertEqual(len(ports), len(data['ports']))
 
         uuids = [n['uuid'] for n in data['ports']]
-        self.assertEqual(ports.sort(), uuids.sort())
+        six.assertCountEqual(self, ports, uuids)
 
     def test_links(self):
         uuid = uuidutils.generate_uuid()

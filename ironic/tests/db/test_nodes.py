@@ -197,7 +197,7 @@ class DbNodeTestCase(base.DbTestCase):
             uuids.append(six.text_type(node['uuid']))
         res = self.dbapi.get_node_list()
         res_uuids = [r.uuid for r in res]
-        self.assertEqual(uuids.sort(), res_uuids.sort())
+        six.assertCountEqual(self, uuids, res_uuids)
 
     def test_get_node_list_with_filters(self):
         ch1 = utils.get_test_chassis(id=1, uuid=uuidutils.generate_uuid())
