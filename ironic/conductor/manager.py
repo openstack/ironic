@@ -1945,6 +1945,7 @@ def do_sync_power_state(task, count):
     power_state = None
     count += 1
 
+    max_retries = CONF.conductor.power_state_sync_max_retries
     # If power driver info can not be validated, and node has no prior state,
     # do not attempt to sync the node's power state.
     if node.power_state is None:
@@ -1964,11 +1965,14 @@ def do_sync_power_state(task, count):
                       "while trying to sync power state."))
     except Exception as e:
         # Stop if any exception is raised when getting the power state
-        LOG.warning(_LW("During sync_power_state, could not get power "
-                        "state for node %(node)s. Error: %(err)s."),
-                        {'node': node.uuid, 'err': e})
-        if count > CONF.conductor.power_state_sync_max_retries:
+        if count > max_retries:
             handle_sync_power_state_max_retries_exceeded(task, power_state)
+        else:
+            LOG.warning(_LW("During sync_power_state, could not get power "
+                            "state for node %(node)s, attempt %(attempt)s of "
+                            "%(retries)s. Error: %(err)s."),
+                            {'node': node.uuid, 'attempt': count,
+                             'retries': max_retries, 'err': e})
         return count
     else:
         # If node has no prior state AND we successfully got a state,
@@ -1987,7 +1991,7 @@ def do_sync_power_state(task, count):
     if node.power_state == power_state:
         return 0
     else:
-        if count > CONF.conductor.power_state_sync_max_retries:
+        if count > max_retries:
             handle_sync_power_state_max_retries_exceeded(task, power_state)
             return count
 
@@ -2002,13 +2006,12 @@ def do_sync_power_state(task, count):
             # so don't do that again here.
             utils.node_power_action(task, node.power_state)
         except Exception as e:
-            attempts_left = (CONF.conductor.power_state_sync_max_retries -
-                             count)
             LOG.error(_LE("Failed to change power state of node %(node)s "
-                "to '%(state)s'. Attempts left: %(left)s."),
+                "to '%(state)s', attempt %(attempt)s of %(retries)s."),
                 {'node': node.uuid,
                  'state': node.power_state,
-                 'left': attempts_left})
+                 'attempt': count,
+                 'retries': max_retries})
     else:
         LOG.warning(_LW("During sync_power_state, node %(node)s state "
                         "does not match expected state '%(state)s'. "
