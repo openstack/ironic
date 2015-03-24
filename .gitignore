@@ -32,3 +32,6 @@ AUTHORS
 ChangeLog
 *.sqlite
 *~
+
+# Vagrant
+.vagrant
