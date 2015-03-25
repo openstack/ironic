@@ -1052,6 +1052,44 @@ by an operator. There are two kinds of inspection supported by Ironic:
 
 .. _ironic-discoverd: https://github.com/stackforge/ironic-discoverd
 
+
+Specifying the disk for deployment
+==================================
+
+Starting with the Kilo release, Ironic supports passing hints to the
+deploy ramdisk about which disk it should pick for the deployment. In
+Linux when a server has more than one SATA, SCSI or IDE disk controller,
+the order in which their corresponding device nodes are added is arbitrary
+[`link`_], resulting in devices like ``/dev/sda`` and ``/dev/sdb`` to
+switch around between reboots. Therefore, to guarantee that a specific
+disk is always chosen for the deployment, Ironic introduced root device
+hints.
+
+The list of support hints is:
+
+* model (STRING): device identifier
+* vendor (STRING): device vendor
+* serial (STRING): disk serial number
+* wwn (STRING): unique storage identifier
+* size (INT): size of the device in GiB
+
+To associate one or more hints with a node, update the node's properties
+with a ``root_device`` key, e.g::
+
+    ironic node-update <node-uuid> add properties/root_device='{"wwn": "0x4000cca77fc4dba1"}'
+
+
+That will guarantee that Ironic will pick the disk device that has the
+``wwn`` equal to the specified wwn value, or fail the deployment if it
+can not be found.
+
+.. note::
+    If multiple hints are specified, a device must satisfy all the hints.
+
+
+.. _`link`: https://access.redhat.com/documentation/en-US/Red_Hat_Enterprise_Linux/7/html/Storage_Administration_Guide/persistent_naming.html
+
+
 Using Ironic as a standalone service
 ====================================
 
