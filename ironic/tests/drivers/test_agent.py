@@ -48,6 +48,7 @@ class TestAgentMethods(db_base.DbTestCase):
         options = agent.build_agent_options(self.node)
         self.assertEqual('api-url', options['ipa-api-url'])
         self.assertEqual('fake_agent', options['ipa-driver-name'])
+        self.assertEqual(0, options['coreos.configdrive'])
 
     @mock.patch.object(keystone, 'get_service_url')
     def test_build_agent_options_keystone(self, get_url_mock):
@@ -57,6 +58,7 @@ class TestAgentMethods(db_base.DbTestCase):
         options = agent.build_agent_options(self.node)
         self.assertEqual('api-url', options['ipa-api-url'])
         self.assertEqual('fake_agent', options['ipa-driver-name'])
+        self.assertEqual(0, options['coreos.configdrive'])
 
     def test_build_agent_options_root_device_hints(self):
         self.config(api_url='api-url', group='conductor')
@@ -406,6 +408,7 @@ class TestAgentVendor(db_base.DbTestCase):
                     'deployment_ari_path': 'fake-node/deploy_ramdisk',
                     'ipa-api-url': 'api-url',
                     'ipa-driver-name': u'fake_agent',
+                    'coreos.configdrive': 0,
                     'pxe_append_params': 'foo bar'}
 
         if root_device_hints:

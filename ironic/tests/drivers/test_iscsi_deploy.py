@@ -429,6 +429,7 @@ class IscsiDeployMethodsTestCase(db_base.DbTestCase):
                          'ironic_api_url': api_url,
                          'boot_option': expected_boot_option,
                          'boot_mode': expected_boot_mode,
+                         'coreos.configdrive': 0,
                         }
 
         if expected_root_device:
