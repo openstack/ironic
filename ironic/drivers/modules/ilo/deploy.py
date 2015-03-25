@@ -264,11 +264,13 @@ def _reboot_into(task, iso, ramdisk_options):
     """
     ilo_common.setup_vmedia_for_boot(task, iso, ramdisk_options)
 
-    # In secure boot mode, node will reboot twice internally to
-    # enable/disable secure boot. Any one-time boot settings would
-    # be lost.  Hence setting persistent=True.
-    manager_utils.node_set_boot_device(task, boot_devices.CDROM,
-                                       persistent=True)
+    # In UEFI boot mode, upon inserting virtual CDROM, one has to reset the
+    # system to see it as a valid boot device in persistent boot devices.
+    # But virtual CDROM device is always available for one-time boot.
+    # During enable/disable of secure boot settings, iLO internally resets
+    # the server twice. But it retains one time boot settings across internal
+    # resets. Hence no impact of this change for secure boot deploy.
+    manager_utils.node_set_boot_device(task, boot_devices.CDROM)
     manager_utils.node_power_action(task, states.REBOOT)
 
 
@@ -724,9 +726,9 @@ class VendorPassthru(agent_base_vendor.BaseAgentVendor):
             LOG.error(_LE("Cannot get boot ISO for node %s"), node.uuid)
             return
 
-        # In secure boot mode, node will reboot twice internally to
-        # enable/disable secure boot. Any one-time boot settings would
-        # be lost.  Hence setting persistent=True.
+        # Upon deploy complete, some distros cloud images reboot the system as
+        # part of its configuration. Hence boot device should be persistent and
+        # not one-time.
         ilo_common.setup_vmedia_for_boot(task, boot_iso)
         manager_utils.node_set_boot_device(task,
                                            boot_devices.CDROM,

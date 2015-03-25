@@ -253,8 +253,7 @@ class IloDeployPrivateMethodsTestCase(db_base.DbTestCase):
             ilo_deploy._reboot_into(task, 'iso', opts)
             setup_vmedia_mock.assert_called_once_with(task, 'iso', opts)
             set_boot_device_mock.assert_called_once_with(task,
-                                                         boot_devices.CDROM,
-                                                         persistent=True)
+                                                         boot_devices.CDROM)
             node_power_action_mock.assert_called_once_with(task, states.REBOOT)
 
     @mock.patch.object(ilo_deploy, '_reboot_into')
