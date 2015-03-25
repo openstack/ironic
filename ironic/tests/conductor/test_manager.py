@@ -2840,7 +2840,7 @@ class ManagerSyncPowerStatesTestCase(_CommonMixIn, tests_db_base.DbTestCase):
         mapped_mock.assert_called_once_with(self.node.uuid,
                                             self.node.driver)
         get_node_mock.assert_called_once_with(self.context, self.node.id)
-        acquire_mock.assert_called_once_with(self.context, self.node.id)
+        acquire_mock.assert_called_once_with(self.context, self.node.uuid)
         self.assertFalse(sync_mock.called)
 
     def test_node_in_deploywait_on_acquire(self, get_nodeinfo_mock,
@@ -2852,7 +2852,7 @@ class ManagerSyncPowerStatesTestCase(_CommonMixIn, tests_db_base.DbTestCase):
         task = self._create_task(
                 node_attrs=dict(provision_state=states.DEPLOYWAIT,
                                 target_provision_state=states.ACTIVE,
-                                id=self.node.id))
+                                uuid=self.node.uuid))
         acquire_mock.side_effect = self._get_acquire_side_effect(task)
 
         self.service._sync_power_states(self.context)
@@ -2862,7 +2862,7 @@ class ManagerSyncPowerStatesTestCase(_CommonMixIn, tests_db_base.DbTestCase):
         mapped_mock.assert_called_once_with(self.node.uuid,
                                             self.node.driver)
         get_node_mock.assert_called_once_with(self.context, self.node.id)
-        acquire_mock.assert_called_once_with(self.context, self.node.id)
+        acquire_mock.assert_called_once_with(self.context, self.node.uuid)
         self.assertFalse(sync_mock.called)
 
     def test_node_in_maintenance_on_acquire(self, get_nodeinfo_mock,
@@ -2872,7 +2872,7 @@ class ManagerSyncPowerStatesTestCase(_CommonMixIn, tests_db_base.DbTestCase):
         get_node_mock.return_value = self.node
         mapped_mock.return_value = True
         task = self._create_task(
-                node_attrs=dict(maintenance=True, id=self.node.id))
+                node_attrs=dict(maintenance=True, uuid=self.node.uuid))
         acquire_mock.side_effect = self._get_acquire_side_effect(task)
 
         self.service._sync_power_states(self.context)
@@ -2882,7 +2882,7 @@ class ManagerSyncPowerStatesTestCase(_CommonMixIn, tests_db_base.DbTestCase):
         mapped_mock.assert_called_once_with(self.node.uuid,
                                             self.node.driver)
         get_node_mock.assert_called_once_with(self.context, self.node.id)
-        acquire_mock.assert_called_once_with(self.context, self.node.id)
+        acquire_mock.assert_called_once_with(self.context, self.node.uuid)
         self.assertFalse(sync_mock.called)
 
     def test_node_disappears_on_acquire(self, get_nodeinfo_mock,
@@ -2901,7 +2901,7 @@ class ManagerSyncPowerStatesTestCase(_CommonMixIn, tests_db_base.DbTestCase):
         mapped_mock.assert_called_once_with(self.node.uuid,
                                             self.node.driver)
         get_node_mock.assert_called_once_with(self.context, self.node.id)
-        acquire_mock.assert_called_once_with(self.context, self.node.id)
+        acquire_mock.assert_called_once_with(self.context, self.node.uuid)
         self.assertFalse(sync_mock.called)
 
     def test_single_node(self, get_nodeinfo_mock, get_node_mock,
@@ -2909,7 +2909,7 @@ class ManagerSyncPowerStatesTestCase(_CommonMixIn, tests_db_base.DbTestCase):
         get_nodeinfo_mock.return_value = self._get_nodeinfo_list_response()
         get_node_mock.return_value = self.node
         mapped_mock.return_value = True
-        task = self._create_task(node_attrs=dict(id=self.node.id))
+        task = self._create_task(node_attrs=dict(uuid=self.node.uuid))
         acquire_mock.side_effect = self._get_acquire_side_effect(task)
 
         self.service._sync_power_states(self.context)
@@ -2919,7 +2919,7 @@ class ManagerSyncPowerStatesTestCase(_CommonMixIn, tests_db_base.DbTestCase):
         mapped_mock.assert_called_once_with(self.node.uuid,
                                             self.node.driver)
         get_node_mock.assert_called_once_with(self.context, self.node.id)
-        acquire_mock.assert_called_once_with(self.context, self.node.id)
+        acquire_mock.assert_called_once_with(self.context, self.node.uuid)
         sync_mock.assert_called_once_with(task, mock.ANY)
 
     def test__sync_power_state_multiple_nodes(self, get_nodeinfo_mock,
@@ -2956,16 +2956,16 @@ class ManagerSyncPowerStatesTestCase(_CommonMixIn, tests_db_base.DbTestCase):
             mapped_map[n.uuid] = False if i == 2 else True
             get_node_map[n.uuid] = n
 
-        tasks = [self._create_task(node_attrs=dict(id=1)),
+        tasks = [self._create_task(node_attrs=dict(uuid=nodes[0].uuid)),
                  exception.NodeLocked(node=7, host='fake'),
                  exception.NodeNotFound(node=8, host='fake'),
                  self._create_task(
-                     node_attrs=dict(id=9,
+                     node_attrs=dict(uuid=nodes[8].uuid,
                                     provision_state=states.DEPLOYWAIT,
                                     target_provision_state=states.ACTIVE)),
                  self._create_task(
-                     node_attrs=dict(id=10, maintenance=True)),
-                 self._create_task(node_attrs=dict(id=11))]
+                     node_attrs=dict(uuid=nodes[9].uuid, maintenance=True)),
+                 self._create_task(node_attrs=dict(uuid=nodes[10].uuid))]
 
         def _get_node_side_effect(ctxt, node_id):
             if node_id == 6:
@@ -2993,7 +2993,7 @@ class ManagerSyncPowerStatesTestCase(_CommonMixIn, tests_db_base.DbTestCase):
                 for x in nodes[:1] + nodes[2:]]
         self.assertEqual(get_node_calls,
                          get_node_mock.call_args_list)
-        acquire_calls = [mock.call(self.context, x.id)
+        acquire_calls = [mock.call(self.context, x.uuid)
                 for x in nodes[:1] + nodes[6:]]
         self.assertEqual(acquire_calls, acquire_mock.call_args_list)
         sync_calls = [mock.call(tasks[0], mock.ANY),
@@ -3436,7 +3436,7 @@ class ManagerSyncLocalStateTestCase(_CommonMixIn, tests_db_base.DbTestCase):
         self._assert_get_nodeinfo_args(get_nodeinfo_mock)
         mapped_mock.assert_called_once_with(self.node.uuid, self.node.driver)
         get_authtoken_mock.assert_called_once_with()
-        acquire_mock.assert_called_once_with(self.context, self.node.id)
+        acquire_mock.assert_called_once_with(self.context, self.node.uuid)
         # assert spawn_after has been called
         self.task.spawn_after.assert_called_once_with(
                 self.service._spawn_worker,
@@ -3470,7 +3470,7 @@ class ManagerSyncLocalStateTestCase(_CommonMixIn, tests_db_base.DbTestCase):
 
         # assert  acquire() gets called 2 times only instead of 3. When
         # NoFreeConductorWorker is raised the loop should be broken
-        expected = [mock.call(self.context, self.node.id)] * 2
+        expected = [mock.call(self.context, self.node.uuid)] * 2
         self.assertEqual(expected, acquire_mock.call_args_list)
 
         # Only one auth token needed for all runs
@@ -3503,7 +3503,7 @@ class ManagerSyncLocalStateTestCase(_CommonMixIn, tests_db_base.DbTestCase):
         self.assertEqual(expected, mapped_mock.call_args_list)
 
         # assert acquire() gets called 3 times
-        expected = [mock.call(self.context, self.node.id)] * 3
+        expected = [mock.call(self.context, self.node.uuid)] * 3
         self.assertEqual(expected, acquire_mock.call_args_list)
 
         # Only one auth token needed for all runs
@@ -3538,7 +3538,7 @@ class ManagerSyncLocalStateTestCase(_CommonMixIn, tests_db_base.DbTestCase):
         mapped_mock.assert_called_once_with(self.node.uuid, self.node.driver)
 
         # assert acquire() gets called only once because of the worker limit
-        acquire_mock.assert_called_once_with(self.context, self.node.id)
+        acquire_mock.assert_called_once_with(self.context, self.node.uuid)
 
         # Only one auth token needed for all runs
         get_authtoken_mock.assert_called_once_with()
