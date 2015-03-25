@@ -1986,6 +1986,7 @@ def do_sync_power_state(task, count):
                          {'node': node.uuid, 'state': power_state})
             node.power_state = power_state
             node.save()
+            return 0
 
     # If the node is now in the expected state, reset the counter
     # otherwise, if we've exceeded the retry limit, stop here
