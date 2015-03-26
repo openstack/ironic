@@ -643,8 +643,21 @@ class IloPXEDeploy(pxe.PXEDeploy):
         environment for the node
 
         :param task: a TaskManager instance containing the node to act on.
+        :raises: IloOperationError, if some operation on iLO failed.
+        :raises: InvalidParameterValue, if some information is invalid.
         """
         ilo_common.update_boot_mode(task)
+
+        # Check if 'boot_option' is compatible with 'boot_mode' and image.
+        # Whole disk image deploy is not supported in UEFI boot mode if
+        # 'boot_option' is not 'local'.
+        # If boot_mode is not set in the node properties/capabilities then
+        # PXEDeploy.validate() would pass.
+        # Boot mode gets updated in prepare stage. It is possible that the
+        # deploy boot mode is 'uefi' after call to update_boot_mode().
+        # Hence a re-check is required here.
+        pxe.validate_boot_option_for_uefi(task.node)
+
         super(IloPXEDeploy, self).prepare(task)
 
     def deploy(self, task):

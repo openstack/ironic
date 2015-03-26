@@ -1013,6 +1013,20 @@ class IloPXEDeployTestCase(db_base.DbTestCase):
             update_boot_mode_mock.assert_called_once_with(task)
             pxe_prepare_mock.assert_called_once_with(task)
 
+    @mock.patch.object(pxe.PXEDeploy, 'prepare')
+    @mock.patch.object(ilo_common, 'update_boot_mode')
+    def test_prepare_uefi_whole_disk_image_fail(self,
+                                                update_boot_mode_mock,
+                                                pxe_prepare_mock):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            task.node.properties['capabilities'] = 'boot_mode:uefi'
+            task.node.driver_internal_info['is_whole_disk_image'] = True
+            self.assertRaises(exception.InvalidParameterValue,
+                              task.driver.deploy.prepare, task)
+            update_boot_mode_mock.assert_called_once_with(task)
+            self.assertFalse(pxe_prepare_mock.called)
+
     @mock.patch.object(pxe.PXEDeploy, 'deploy')
     @mock.patch.object(manager_utils, 'node_set_boot_device')
     def test_deploy_boot_mode_exists(self, set_persistent_mock,

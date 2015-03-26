@@ -198,7 +198,8 @@ class PXEPrivateMethodsTestCase(db_base.DbTestCase):
     @mock.patch.object(iscsi_deploy, 'build_deploy_ramdisk_options')
     @mock.patch.object(pxe_utils, '_build_pxe_config')
     def _test_build_pxe_config_options(self, build_pxe_mock, deploy_opts_mock,
-                                        ipxe_enabled=False):
+                                       whle_dsk_img=False,
+                                       ipxe_enabled=False):
         self.config(pxe_append_params='test_param', group='pxe')
         # NOTE: right '/' should be removed from url string
         self.config(api_url='http://192.168.122.184:6385', group='conductor')
@@ -216,6 +217,7 @@ class PXEPrivateMethodsTestCase(db_base.DbTestCase):
                            }
 
         deploy_opts_mock.return_value = fake_deploy_opts
+        self.node.driver_internal_info['is_whole_disk_image'] = whle_dsk_img
 
         tftp_server = CONF.pxe.tftp_server
 
@@ -241,6 +243,10 @@ class PXEPrivateMethodsTestCase(db_base.DbTestCase):
             ramdisk = os.path.join(CONF.pxe.tftp_root, self.node.uuid,
                                    'ramdisk')
             root_dir = CONF.pxe.tftp_root
+
+        if whle_dsk_img:
+            ramdisk = 'no_ramdisk'
+            kernel = 'no_kernel'
 
         expected_options = {
             'ari_path': ramdisk,
@@ -279,30 +285,36 @@ class PXEPrivateMethodsTestCase(db_base.DbTestCase):
         self.assertEqual(expected_options, options)
 
     def test__build_pxe_config_options(self):
-        self._test_build_pxe_config_options(ipxe_enabled=False)
+        self._test_build_pxe_config_options(whle_dsk_img=True,
+                                            ipxe_enabled=False)
 
     def test__build_pxe_config_options_ipxe(self):
-        self._test_build_pxe_config_options(ipxe_enabled=True)
+        self._test_build_pxe_config_options(whle_dsk_img=True,
+                                            ipxe_enabled=True)
 
     def test__build_pxe_config_options_without_is_whole_disk_image(self):
         del self.node.driver_internal_info['is_whole_disk_image']
         self.node.save()
-        self._test_build_pxe_config_options(ipxe_enabled=False)
+        self._test_build_pxe_config_options(whle_dsk_img=False,
+                                            ipxe_enabled=False)
 
     @mock.patch.object(iscsi_deploy, 'build_deploy_ramdisk_options')
     @mock.patch.object(pxe_utils, '_build_pxe_config')
-    def _test_build_pxe_config_options_whole_disk_image(self, build_pxe_mock,
-                                       deploy_opts_mock, ipxe_enabled=False):
+    def test__build_pxe_config_options_whole_disk_image(self,
+                                                        build_pxe_mock,
+                                                        deploy_opts_mock,
+                                                        ipxe_enabled=False):
         self.config(pxe_append_params='test_param', group='pxe')
         # NOTE: right '/' should be removed from url string
-        self.config(api_url='http://192.168.122.184:6385/', group='conductor')
+        self.config(api_url='http://192.168.122.184:6385', group='conductor')
         self.config(disk_devices='sda', group='pxe')
 
         fake_deploy_opts = {'iscsi_target_iqn': 'fake-iqn',
                             'deployment_id': 'fake-deploy-id',
                             'deployment_key': 'fake-deploy-key',
                             'disk': 'fake-disk',
-                            'ironic_api_url': 'fake-api-url'}
+                            'ironic_api_url': 'fake-api-url',
+                            'coreos.configdrive': 0}
 
         deploy_opts_mock.return_value = fake_deploy_opts
 
@@ -330,6 +342,10 @@ class PXEPrivateMethodsTestCase(db_base.DbTestCase):
             'pxe_append_params': 'test_param',
             'deployment_aki_path': deploy_kernel,
             'tftp_server': tftp_server,
+            'aki_path': 'no_kernel',
+            'ari_path': 'no_ramdisk',
+            'ipa-api-url': CONF.conductor.api_url,
+            'ipa-driver-name': self.node.driver,
         }
 
         expected_options.update(fake_deploy_opts)
@@ -401,6 +417,48 @@ class PXEPrivateMethodsTestCase(db_base.DbTestCase):
         mock_fetch_image.assert_called_once_with(self.context, mock.ANY,
                                                  fake_pxe_info.values(),
                                                  True)
+
+    @mock.patch.object(pxe.LOG, 'error')
+    def test_validate_boot_option_for_uefi_exc(self, mock_log):
+        properties = {'capabilities': 'boot_mode:uefi'}
+        instance_info = {"boot_option": "netboot"}
+        self.node.properties = properties
+        self.node.instance_info['capabilities'] = instance_info
+        self.node.driver_internal_info['is_whole_disk_image'] = True
+        self.assertRaises(exception.InvalidParameterValue,
+                          pxe.validate_boot_option_for_uefi,
+                          self.node)
+        self.assertTrue(mock_log.called)
+
+    @mock.patch.object(pxe.LOG, 'error')
+    def test_validate_boot_option_for_uefi_noexc_one(self, mock_log):
+        properties = {'capabilities': 'boot_mode:uefi'}
+        instance_info = {"boot_option": "local"}
+        self.node.properties = properties
+        self.node.instance_info['capabilities'] = instance_info
+        self.node.driver_internal_info['is_whole_disk_image'] = True
+        pxe.validate_boot_option_for_uefi(self.node)
+        self.assertFalse(mock_log.called)
+
+    @mock.patch.object(pxe.LOG, 'error')
+    def test_validate_boot_option_for_uefi_noexc_two(self, mock_log):
+        properties = {'capabilities': 'boot_mode:bios'}
+        instance_info = {"boot_option": "local"}
+        self.node.properties = properties
+        self.node.instance_info['capabilities'] = instance_info
+        self.node.driver_internal_info['is_whole_disk_image'] = True
+        pxe.validate_boot_option_for_uefi(self.node)
+        self.assertFalse(mock_log.called)
+
+    @mock.patch.object(pxe.LOG, 'error')
+    def test_validate_boot_option_for_uefi_noexc_three(self, mock_log):
+        properties = {'capabilities': 'boot_mode:uefi'}
+        instance_info = {"boot_option": "local"}
+        self.node.properties = properties
+        self.node.instance_info['capabilities'] = instance_info
+        self.node.driver_internal_info['is_whole_disk_image'] = False
+        pxe.validate_boot_option_for_uefi(self.node)
+        self.assertFalse(mock_log.called)
 
 
 class PXEDriverTestCase(db_base.DbTestCase):
@@ -482,6 +540,17 @@ class PXEDriverTestCase(db_base.DbTestCase):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
             task.node.properties = properties
+            self.assertRaises(exception.InvalidParameterValue,
+                              task.driver.deploy.validate, task)
+
+    def test_validate_fail_invalid_config_uefi_whole_disk_image(self):
+        properties = {'capabilities': 'boot_mode:uefi,boot_option:netboot'}
+        instance_info = {"boot_option": "netboot"}
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            task.node.properties = properties
+            task.node.instance_info['capabilities'] = instance_info
+            task.node.driver_internal_info['is_whole_disk_image'] = True
             self.assertRaises(exception.InvalidParameterValue,
                               task.driver.deploy.validate, task)
 

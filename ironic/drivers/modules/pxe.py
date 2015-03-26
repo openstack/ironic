@@ -186,6 +186,11 @@ def _build_pxe_config_options(node, pxe_info, ctx):
         template.
     """
     is_whole_disk_image = node.driver_internal_info.get('is_whole_disk_image')
+    if is_whole_disk_image:
+        # These are dummy values to satisfy elilo.
+        # image and initrd fields in elilo config cannot be blank.
+        kernel = 'no_kernel'
+        ramdisk = 'no_ramdisk'
 
     if CONF.pxe.ipxe_enabled:
         deploy_kernel = '/'.join([CONF.pxe.http_url, node.uuid,
@@ -206,12 +211,10 @@ def _build_pxe_config_options(node, pxe_info, ctx):
         'deployment_aki_path': deploy_kernel,
         'deployment_ari_path': deploy_ramdisk,
         'pxe_append_params': CONF.pxe.pxe_append_params,
-        'tftp_server': CONF.pxe.tftp_server
+        'tftp_server': CONF.pxe.tftp_server,
+        'aki_path': kernel,
+        'ari_path': ramdisk
     }
-
-    if not is_whole_disk_image:
-        pxe_options.update({'aki_path': kernel,
-                            'ari_path': ramdisk})
 
     deploy_ramdisk_options = iscsi_deploy.build_deploy_ramdisk_options(node)
     pxe_options.update(deploy_ramdisk_options)
@@ -228,6 +231,30 @@ def _build_pxe_config_options(node, pxe_info, ctx):
 def _get_token_file_path(node_uuid):
     """Generate the path for PKI token file."""
     return os.path.join(CONF.pxe.tftp_root, 'token-' + node_uuid)
+
+
+def validate_boot_option_for_uefi(node):
+    """In uefi boot mode, validate if the boot option is compatible.
+
+    This method raises exception if whole disk image being deployed
+    in UEFI boot mode without 'boot_option' being set to 'local'.
+
+    :param node: a single Node.
+    :raises: InvalidParameterValue
+    """
+
+    boot_mode = driver_utils.get_boot_mode_for_deploy(node)
+    boot_option = iscsi_deploy.get_boot_option(node)
+    if (boot_mode == 'uefi' and
+        node.driver_internal_info.get('is_whole_disk_image') and
+        boot_option != 'local'):
+        LOG.error(_LE("Whole disk image with netboot is not supported in UEFI "
+                      "boot mode."))
+        raise exception.InvalidParameterValue(_(
+                    "Conflict: Whole disk image being used for deploy, but "
+                    "cannot be used with node %(node_uuid)s configured to use "
+                    "UEFI boot with netboot option") %
+                    {'node_uuid': node.uuid})
 
 
 @image_cache.cleanup(priority=25)
@@ -342,6 +369,10 @@ class PXEDeploy(base.DeployInterface):
                     "Conflict: iPXE is enabled, but cannot be used with node"
                     "%(node_uuid)s configured to use UEFI boot") %
                     {'node_uuid': node.uuid})
+
+        # Check if 'boot_option' is compatible with 'boot_mode' of uefi and
+        # image being deployed
+        validate_boot_option_for_uefi(task.node)
 
         d_info = _parse_deploy_info(node)
 
