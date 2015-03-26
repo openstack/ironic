@@ -945,6 +945,35 @@ class TestPatch(test_api_base.FunctionalTest):
         self.assertEqual(400, response.status_code)
         self.assertTrue(response.json['error_message'])
 
+    def test_remove_instance_uuid_cleaning(self):
+        node = obj_utils.create_test_node(
+            self.context,
+            uuid=uuidutils.generate_uuid(),
+            provision_state=states.CLEANING,
+            target_provision_state=states.AVAILABLE)
+        self.mock_update_node.return_value = node
+        response = self.patch_json('/nodes/%s' % node.uuid,
+                                   [{'op': 'remove',
+                                     'path': '/instance_uuid'}])
+        self.assertEqual('application/json', response.content_type)
+        self.assertEqual(200, response.status_code)
+        self.mock_update_node.assert_called_once_with(
+                mock.ANY, mock.ANY, 'test-topic')
+
+    def test_add_state_in_cleaning(self):
+        node = obj_utils.create_test_node(
+            self.context,
+            uuid=uuidutils.generate_uuid(),
+            provision_state=states.CLEANING,
+            target_provision_state=states.AVAILABLE)
+        self.mock_update_node.return_value = node
+        response = self.patch_json('/nodes/%s' % node.uuid,
+                                   [{'path': '/extra/foo', 'value': 'bar',
+                                     'op': 'add'}], expect_errors=True)
+        self.assertEqual('application/json', response.content_type)
+        self.assertEqual(409, response.status_code)
+        self.assertTrue(response.json['error_message'])
+
     def test_remove_mandatory_field(self):
         response = self.patch_json('/nodes/%s' % self.node.uuid,
                                    [{'path': '/driver', 'op': 'remove'}],
