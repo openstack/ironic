@@ -261,10 +261,11 @@ class TestAgentDeploy(db_base.DbTestCase):
     @mock.patch('ironic.drivers.modules.deploy_utils.agent_get_clean_steps')
     def test_get_clean_steps_config_priority(self, mock_get_clean_steps):
         # Test that we can override the priority of get clean steps
-        self.config(agent_erase_devices_priority=20, group='agent')
+        # Use 0 because it is an edge case (false-y) and used in devstack
+        self.config(agent_erase_devices_priority=0, group='agent')
         mock_steps = [{'priority': 10, 'interface': 'deploy',
                        'step': 'erase_devices'}]
-        expected_steps = [{'priority': 20, 'interface': 'deploy',
+        expected_steps = [{'priority': 0, 'interface': 'deploy',
                            'step': 'erase_devices'}]
         mock_get_clean_steps.return_value = mock_steps
         with task_manager.acquire(self.context, self.node.uuid) as task:

@@ -73,10 +73,6 @@ LOG = logging.getLogger(__name__)
 VALID_ROOT_DEVICE_HINTS = set(('size', 'model', 'wwn', 'serial', 'vendor'))
 
 
-def _get_agent_client():
-    return agent_client.AgentClient()
-
-
 # All functions are called from deploy() directly or indirectly.
 # They are split for stub-out.
 
@@ -897,7 +893,7 @@ def agent_get_clean_steps(task):
     :raises: NodeCleaningFailure if the agent returns invalid results
     :returns: A list of clean step dictionaries
     """
-    client = _get_agent_client()
+    client = agent_client.AgentClient()
     ports = objects.Port.list_by_node_id(
         task.context, task.node.id)
     result = client.get_clean_steps(task.node, ports).get('command_result')
@@ -908,10 +904,10 @@ def agent_get_clean_steps(task):
             'get_clean_steps for node %(node)s returned invalid result:'
             ' %(result)s') % ({'node': task.node.uuid, 'result': result}))
 
-    driver_info = task.node.driver_internal_info
-    driver_info['hardware_manager_version'] = result[
+    driver_internal_info = task.node.driver_internal_info
+    driver_internal_info['hardware_manager_version'] = result[
         'hardware_manager_version']
-    task.node.driver_internal_info = driver_info
+    task.node.driver_internal_info = driver_internal_info
     task.node.save()
 
     # Clean steps looks like {'HardwareManager': [{step1},{steps2}..]..}
@@ -935,7 +931,7 @@ def agent_execute_clean_step(task, step):
     :raises: NodeCleaningFailure if the agent does not return a command status
     :returns: states.CLEANING to signify the step will be completed async
     """
-    client = _get_agent_client()
+    client = agent_client.AgentClient()
     ports = objects.Port.list_by_node_id(
         task.context, task.node.id)
     result = client.execute_clean_step(step, task.node, ports)

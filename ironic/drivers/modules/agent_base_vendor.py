@@ -147,10 +147,10 @@ class BaseAgentVendor(base.VendorInterface):
         we restart cleaning.
         """
         command = self._get_completed_cleaning_command(task)
-        LOG.debug('Cleaning command status for node %(node)s on step %(step)s '
-                  '(command)%', {'node': task.node.uuid,
-                                 'step': task.node.clean_step,
-                                 'command': command})
+        LOG.debug('Cleaning command status for node %(node)s on step %(step)s:'
+                  ' %(command)s', {'node': task.node.uuid,
+                                   'step': task.node.clean_step,
+                                   'command': command})
 
         if not command:
             # Command is not done yet
@@ -163,7 +163,7 @@ class BaseAgentVendor(base.VendorInterface):
                     'err': command.get('command_error'),
                     'step': task.node.clean_step})
             LOG.error(msg)
-            manager.cleaning_error_handler(task, msg)
+            return manager.cleaning_error_handler(task, msg)
         elif command.get('command_status') == 'CLEAN_VERSION_MISMATCH':
             # Restart cleaning, agent must have rebooted to new version
             try:
@@ -175,7 +175,7 @@ class BaseAgentVendor(base.VendorInterface):
                         'err': command.get('command_error'),
                         'step': task.node.clean_step})
                 LOG.exception(msg)
-                manager.cleaning_error_handler(task, msg)
+                return manager.cleaning_error_handler(task, msg)
             self._notify_conductor_resume_clean(task)
 
         elif command.get('command_status') == 'SUCCEEDED':
@@ -187,7 +187,7 @@ class BaseAgentVendor(base.VendorInterface):
                     'err': command.get('command_status'),
                     'step': task.node.clean_step})
             LOG.error(msg)
-            manager.cleaning_error_handler(task, msg)
+            return manager.cleaning_error_handler(task, msg)
 
     @base.passthru(['POST'])
     def heartbeat(self, task, **kwargs):
@@ -313,7 +313,18 @@ class BaseAgentVendor(base.VendorInterface):
 
         last_command = commands[-1]
 
+        if last_command['command_name'] != 'execute_clean_step':
+            # catches race condition where execute_clean_step is still
+            # processing so the command hasn't started yet
+            return
+
+        last_step = last_command['command_result'].get('clean_step')
         if last_command['command_status'] == 'RUNNING':
+            return
+        elif (last_command['command_status'] == 'SUCCEEDED' and
+              last_step != task.node.clean_step):
+            # A previous clean_step was running, the new command has not yet
+            # started.
             return
         else:
             return last_command
