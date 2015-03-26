@@ -284,6 +284,29 @@ class TestBaseAgentVendor(db_base.DbTestCase):
             '1be26c0b-03f2-4d2e-ae87-c02d7f33c123: Failed checking if deploy '
             'is done. exception: LlamaException')
 
+    @mock.patch.object(agent_base_vendor.BaseAgentVendor, 'continue_deploy')
+    @mock.patch.object(agent_base_vendor.BaseAgentVendor, 'reboot_to_instance')
+    @mock.patch.object(agent_base_vendor.BaseAgentVendor,
+                       '_notify_conductor_resume_clean')
+    def test_heartbeat_noops_maintenance_mode(self, ncrc_mock, rti_mock,
+                                              cd_mock):
+        """Ensures that heartbeat() no-ops for a maintenance node."""
+        kwargs = {
+            'agent_url': 'http://127.0.0.1:9999/bar'
+        }
+        self.node.maintenance = True
+        for state in (states.AVAILABLE, states.DEPLOYWAIT, states.DEPLOYING,
+                      states.CLEANING):
+            self.node.provision_state = state
+            self.node.save()
+            with task_manager.acquire(
+                    self.context, self.node['uuid'], shared=True) as task:
+                self.passthru.heartbeat(task, **kwargs)
+
+        self.assertEqual(0, ncrc_mock.call_count)
+        self.assertEqual(0, rti_mock.call_count)
+        self.assertEqual(0, cd_mock.call_count)
+
     def test_vendor_passthru_vendor_routes(self):
         expected = ['heartbeat']
         with task_manager.acquire(self.context, self.node.uuid,
