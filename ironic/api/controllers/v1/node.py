@@ -112,13 +112,14 @@ def _get_rpc_node(node_ident):
     if uuidutils.is_uuid_like(node_ident):
         return objects.Node.get_by_uuid(pecan.request.context, node_ident)
 
-    # If it was not UUID-like, but it is name-like, and we allow names,
-    # check for nodes by that name
-    if allow_logical_names() and utils.is_hostname_safe(node_ident):
-        return objects.Node.get_by_name(pecan.request.context, node_ident)
+    # We can refer to nodes by their name, if the client supports it
+    if allow_logical_names():
+        if utils.is_hostname_safe(node_ident):
+            return objects.Node.get_by_name(pecan.request.context, node_ident)
+        raise exception.InvalidUuidOrName(name=node_ident)
 
-    # It's not a valid uuid, or it's not a valid name, or we don't allow names
-    raise exception.InvalidUuidOrName(name=node_ident)
+    # Ensure we raise the same exception as we did for the Juno release
+    raise exception.NodeNotFound(node=node_ident)
 
 
 class NodePatchType(types.JsonPatchType):
