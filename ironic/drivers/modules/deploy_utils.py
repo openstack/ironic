@@ -964,7 +964,7 @@ def try_set_boot_device(task, device, persistent=True):
         manager_utils.node_set_boot_device(task, device,
                                            persistent=persistent)
     except exception.IPMIFailure:
-        if driver_utils.get_boot_mode_for_deploy(task.node) == 'uefi':
+        if get_boot_mode_for_deploy(task.node) == 'uefi':
             LOG.warning(_LW("ipmitool is unable to set boot device while "
                             "the node %s is in UEFI boot mode. Please set "
                             "the boot device manually.") % task.node.uuid)
@@ -1035,3 +1035,35 @@ def is_secure_boot_requested(node):
     sec_boot = capabilities.get('secure_boot', 'false').lower()
 
     return sec_boot == 'true'
+
+
+def get_boot_mode_for_deploy(node):
+    """Returns the boot mode that would be used for deploy.
+
+    This method returns boot mode to used for deploy using following order:
+    It returns 'uefi' if 'secure_boot' is set to 'true' in
+    'instance_info/capabilities' of node.
+    It returns value of 'boot_mode' in 'properties/capabilities' of node.
+    It returns boot mode specified in 'instance_info/deploy_boot_mode' of
+    node.
+    It would return None if boot mode is present neither in 'capabilities' of
+    node 'properties' nor in node's 'instance_info'.
+
+    :param node: an ironic node object.
+    :returns: 'bios', 'uefi' or None
+    """
+
+    if is_secure_boot_requested(node):
+        boot_mode = 'uefi'
+        LOG.debug('Deploy boot mode is %(boot_mode)s for %(node)s.',
+                  {'boot_mode': boot_mode, 'node': node.uuid})
+        return boot_mode
+
+    boot_mode = driver_utils.get_node_capability(node, 'boot_mode')
+    if boot_mode is None:
+        instance_info = node.instance_info
+        boot_mode = instance_info.get('deploy_boot_mode')
+
+    LOG.debug('Deploy boot mode is %(boot_mode)s for %(node)s.',
+              {'boot_mode': boot_mode, 'node': node.uuid})
+    return boot_mode

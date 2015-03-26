@@ -160,7 +160,7 @@ def _get_boot_iso(task, root_uuid):
     # Option 3 - Create boot_iso from kernel/ramdisk, upload to Swift
     # and provide its name.
     deploy_iso_uuid = deploy_info['ilo_deploy_iso']
-    boot_mode = driver_utils.get_boot_mode_for_deploy(task.node)
+    boot_mode = deploy_utils.get_boot_mode_for_deploy(task.node)
     boot_iso_object_name = _get_boot_iso_object_name(task.node)
     kernel_params = CONF.pxe.pxe_append_params
     container = CONF.ilo.swift_ilo_container
@@ -332,13 +332,17 @@ def _prepare_node_for_deploy(task):
     if _disable_secure_boot(task):
         change_boot_mode = False
 
-    # Set boot_mode capability to uefi for secure boot
-    if deploy_utils.is_secure_boot_requested(task.node):
-        LOG.debug('Secure boot deploy requested for node %s', task.node.uuid)
-        _enable_uefi_capability(task)
-
     if change_boot_mode:
         ilo_common.update_boot_mode(task)
+    else:
+        # Need to update boot mode that would used during deploy, if one is not
+        # provided.
+        # Since secure boot was disabled, we are in 'uefi' boot mode.
+        if deploy_utils.get_boot_mode_for_deploy(task.node) is None:
+            instance_info = task.node.instance_info
+            instance_info['deploy_boot_mode'] = 'uefi'
+            task.node.instance_info = instance_info
+            task.node.save()
 
 
 def _update_secure_boot_mode(task, mode):
@@ -361,15 +365,6 @@ def _update_secure_boot_mode(task, mode):
         ilo_common.set_secure_boot_mode(task, mode)
         LOG.info(_LI('Changed secure boot to %(mode)s for node %(node)s'),
                  {'mode': mode, 'node': task.node.uuid})
-
-
-def _enable_uefi_capability(task):
-    """Adds capability boot_mode='uefi' into Node property.
-
-    :param task: a TaskManager instance containing the node to act on.
-    """
-    driver_utils.rm_node_capability(task, 'boot_mode')
-    driver_utils.add_node_capability(task, 'boot_mode', 'uefi')
 
 
 class IloVirtualMediaIscsiDeploy(base.DeployInterface):
@@ -624,6 +619,10 @@ class IloVirtualMediaAgentVendorInterface(agent.AgentVendorInterface):
 
         error = self.check_deploy_success(node)
         if error is None:
+            # Set boot mode
+            ilo_common.update_boot_mode(task)
+
+            # Need to enable secure boot, if being requested
             _update_secure_boot_mode(task, True)
 
         super(IloVirtualMediaAgentVendorInterface,

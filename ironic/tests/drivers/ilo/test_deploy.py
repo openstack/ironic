@@ -124,7 +124,7 @@ class IloDeployPrivateMethodsTestCase(db_base.DbTestCase):
             boot_iso_expected = 'boot-iso-uuid'
             self.assertEqual(boot_iso_expected, boot_iso_actual)
 
-    @mock.patch.object(driver_utils, 'get_boot_mode_for_deploy')
+    @mock.patch.object(deploy_utils, 'get_boot_mode_for_deploy')
     @mock.patch.object(images, 'get_image_properties')
     @mock.patch.object(ilo_deploy, '_parse_deploy_info')
     def test__get_boot_iso_uefi_no_glance_image(self,
@@ -293,19 +293,6 @@ class IloDeployPrivateMethodsTestCase(db_base.DbTestCase):
             ilo_deploy._update_secure_boot_mode(task, False)
             self.assertFalse(func_set_secure_boot_mode.called)
 
-    @mock.patch.object(driver_utils, 'add_node_capability')
-    @mock.patch.object(driver_utils, 'rm_node_capability')
-    def test__enable_uefi_capability(self, func_rm_node_capability,
-                                           func_add_node_capability):
-        with task_manager.acquire(self.context, self.node.uuid,
-                                  shared=False) as task:
-            ilo_deploy._enable_uefi_capability(task)
-            func_rm_node_capability.assert_called_once_with(task,
-                                                            'boot_mode')
-            func_add_node_capability.assert_called_once_with(task,
-                                                             'boot_mode',
-                                                             'uefi')
-
     @mock.patch.object(ilo_common, 'set_secure_boot_mode')
     @mock.patch.object(ilo_common, 'get_secure_boot_mode')
     def test__disable_secure_boot_false(self,
@@ -349,67 +336,86 @@ class IloDeployPrivateMethodsTestCase(db_base.DbTestCase):
         self.assertFalse(returned_state)
 
     @mock.patch.object(ilo_common, 'update_boot_mode')
-    @mock.patch.object(deploy_utils, 'is_secure_boot_requested')
     @mock.patch.object(ilo_deploy, '_disable_secure_boot')
     @mock.patch.object(manager_utils, 'node_power_action')
     def test__prepare_node_for_deploy(self,
                                       func_node_power_action,
                                       func_disable_secure_boot,
-                                      func_is_secure_boot_requested,
                                       func_update_boot_mode):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
             func_disable_secure_boot.return_value = False
-            func_is_secure_boot_requested.return_value = False
             ilo_deploy._prepare_node_for_deploy(task)
             func_node_power_action.assert_called_once_with(task,
                                                            states.POWER_OFF)
             func_disable_secure_boot.assert_called_once_with(task)
-            func_is_secure_boot_requested.assert_called_once_with(task.node)
             func_update_boot_mode.assert_called_once_with(task)
+            bootmode = driver_utils.get_node_capability(task.node, "boot_mode")
+            self.assertIsNone(bootmode)
 
     @mock.patch.object(ilo_common, 'update_boot_mode')
-    @mock.patch.object(deploy_utils, 'is_secure_boot_requested')
     @mock.patch.object(ilo_deploy, '_disable_secure_boot')
     @mock.patch.object(manager_utils, 'node_power_action')
     def test__prepare_node_for_deploy_sec_boot_on(self,
                                                   func_node_power_action,
                                                   func_disable_secure_boot,
-                                                  func_is_secure_boot_req,
                                                   func_update_boot_mode):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
             func_disable_secure_boot.return_value = True
-            func_is_secure_boot_req.return_value = False
             ilo_deploy._prepare_node_for_deploy(task)
             func_node_power_action.assert_called_once_with(task,
                                                            states.POWER_OFF)
             func_disable_secure_boot.assert_called_once_with(task)
-            func_is_secure_boot_req.assert_called_once_with(task.node)
             self.assertFalse(func_update_boot_mode.called)
+            ret_boot_mode = task.node.instance_info['deploy_boot_mode']
+            self.assertEqual('uefi', ret_boot_mode)
+            bootmode = driver_utils.get_node_capability(task.node, "boot_mode")
+            self.assertIsNone(bootmode)
 
     @mock.patch.object(ilo_common, 'update_boot_mode')
-    @mock.patch.object(ilo_deploy, '_enable_uefi_capability')
-    @mock.patch.object(deploy_utils, 'is_secure_boot_requested')
     @mock.patch.object(ilo_deploy, '_disable_secure_boot')
     @mock.patch.object(manager_utils, 'node_power_action')
-    def test__prepare_node_for_deploy_sec_boot_req(self,
-                                                   func_node_power_action,
-                                                   func_disable_secure_boot,
-                                                   func_is_secure_boot_req,
-                                                   func_enable_uefi_cap,
-                                                   func_update_boot_mode):
+    def test__prepare_node_for_deploy_inst_info(self,
+                                                func_node_power_action,
+                                                func_disable_secure_boot,
+                                                func_update_boot_mode):
+        instance_info = {'capabilities': '{"secure_boot": "true"}'}
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            func_disable_secure_boot.return_value = False
+            task.node.instance_info = instance_info
+            ilo_deploy._prepare_node_for_deploy(task)
+            func_node_power_action.assert_called_once_with(task,
+                                                           states.POWER_OFF)
+            func_disable_secure_boot.assert_called_once_with(task)
+            func_update_boot_mode.assert_called_once_with(task)
+            bootmode = driver_utils.get_node_capability(task.node, "boot_mode")
+            self.assertIsNone(bootmode)
+            deploy_boot_mode = task.node.instance_info.get('deploy_boot_mode')
+            self.assertIsNone(deploy_boot_mode)
+
+    @mock.patch.object(ilo_common, 'update_boot_mode')
+    @mock.patch.object(ilo_deploy, '_disable_secure_boot')
+    @mock.patch.object(manager_utils, 'node_power_action')
+    def test__prepare_node_for_deploy_sec_boot_on_inst_info(self,
+                                                      func_node_power_action,
+                                                      func_disable_secure_boot,
+                                                      func_update_boot_mode):
+        instance_info = {'capabilities': '{"secure_boot": "true"}'}
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
             func_disable_secure_boot.return_value = True
-            func_is_secure_boot_req.return_value = True
+            task.node.instance_info = instance_info
             ilo_deploy._prepare_node_for_deploy(task)
             func_node_power_action.assert_called_once_with(task,
                                                            states.POWER_OFF)
             func_disable_secure_boot.assert_called_once_with(task)
-            func_is_secure_boot_req.assert_called_once_with(task.node)
-            func_enable_uefi_cap.assert_called_once_with(task)
             self.assertFalse(func_update_boot_mode.called)
+            bootmode = driver_utils.get_node_capability(task.node, "boot_mode")
+            self.assertIsNone(bootmode)
+            deploy_boot_mode = task.node.instance_info.get('deploy_boot_mode')
+            self.assertIsNone(deploy_boot_mode)
 
 
 class IloVirtualMediaIscsiDeployTestCase(db_base.DbTestCase):
@@ -1115,8 +1121,10 @@ class IloVirtualMediaAgentVendorInterfaceTestCase(db_base.DbTestCase):
 
     @mock.patch.object(agent.AgentVendorInterface, 'reboot_to_instance')
     @mock.patch.object(agent.AgentVendorInterface, 'check_deploy_success')
+    @mock.patch.object(ilo_common, 'update_boot_mode')
     @mock.patch.object(ilo_deploy, '_update_secure_boot_mode')
     def test_reboot_to_instance(self, func_update_secure_boot_mode,
+                                func_update_boot_mode,
                                 check_deploy_success_mock,
                                 agent_reboot_to_instance_mock):
         kwargs = {'address': '123456'}
@@ -1125,14 +1133,17 @@ class IloVirtualMediaAgentVendorInterfaceTestCase(db_base.DbTestCase):
                                   shared=False) as task:
             task.driver.vendor.reboot_to_instance(task, **kwargs)
             check_deploy_success_mock.called_once_with(task.node)
+            func_update_boot_mode.assert_called_once_with(task)
             func_update_secure_boot_mode.assert_called_once_with(task, True)
             agent_reboot_to_instance_mock.assert_called_once_with(task,
                                                                   **kwargs)
 
     @mock.patch.object(agent.AgentVendorInterface, 'reboot_to_instance')
     @mock.patch.object(agent.AgentVendorInterface, 'check_deploy_success')
+    @mock.patch.object(ilo_common, 'update_boot_mode')
     @mock.patch.object(ilo_deploy, '_update_secure_boot_mode')
     def test_reboot_to_instance_deploy_fail(self, func_update_secure_boot_mode,
+                                            func_update_boot_mode,
                                             check_deploy_success_mock,
                                             agent_reboot_to_instance_mock):
         kwargs = {'address': '123456'}
@@ -1141,6 +1152,7 @@ class IloVirtualMediaAgentVendorInterfaceTestCase(db_base.DbTestCase):
                                   shared=False) as task:
             task.driver.vendor.reboot_to_instance(task, **kwargs)
             check_deploy_success_mock.called_once_with(task.node)
+            self.assertFalse(func_update_boot_mode.called)
             self.assertFalse(func_update_secure_boot_mode.called)
             agent_reboot_to_instance_mock.assert_called_once_with(task,
                                                                   **kwargs)

@@ -243,7 +243,7 @@ def validate_boot_option_for_uefi(node):
     :raises: InvalidParameterValue
     """
 
-    boot_mode = driver_utils.get_boot_mode_for_deploy(node)
+    boot_mode = deploy_utils.get_boot_mode_for_deploy(node)
     boot_option = iscsi_deploy.get_boot_option(node)
     if (boot_mode == 'uefi' and
         node.driver_internal_info.get('is_whole_disk_image') and
@@ -354,7 +354,7 @@ class PXEDeploy(base.DeployInterface):
         driver_utils.validate_boot_mode_capability(node)
         driver_utils.validate_boot_option_capability(node)
 
-        boot_mode = driver_utils.get_boot_mode_for_deploy(task.node)
+        boot_mode = deploy_utils.get_boot_mode_for_deploy(task.node)
 
         if CONF.pxe.ipxe_enabled:
             if not CONF.pxe.http_url or not CONF.pxe.http_root:
@@ -448,7 +448,7 @@ class PXEDeploy(base.DeployInterface):
         pxe_options = _build_pxe_config_options(task.node, pxe_info,
                                                 task.context)
 
-        if driver_utils.get_boot_mode_for_deploy(task.node) == 'uefi':
+        if deploy_utils.get_boot_mode_for_deploy(task.node) == 'uefi':
             pxe_config_template = CONF.pxe.uefi_pxe_config_template
         else:
             pxe_config_template = CONF.pxe.pxe_config_template
@@ -486,7 +486,7 @@ class PXEDeploy(base.DeployInterface):
                     task.node.uuid)
                 deploy_utils.switch_pxe_config(
                     pxe_config_path, root_uuid_or_disk_id,
-                    driver_utils.get_boot_mode_for_deploy(task.node),
+                    deploy_utils.get_boot_mode_for_deploy(task.node),
                     iwdi)
 
     def clean_up(self, task):
@@ -592,7 +592,7 @@ class VendorPassthru(agent_base_vendor.BaseAgentVendor):
                 pxe_utils.clean_up_pxe_config(task)
             else:
                 pxe_config_path = pxe_utils.get_pxe_config_file_path(node.uuid)
-                boot_mode = driver_utils.get_boot_mode_for_deploy(node)
+                boot_mode = deploy_utils.get_boot_mode_for_deploy(node)
                 deploy_utils.switch_pxe_config(pxe_config_path,
                                                root_uuid_or_disk_id,
                                                boot_mode, is_whole_disk_image)
@@ -648,7 +648,7 @@ class VendorPassthru(agent_base_vendor.BaseAgentVendor):
             root_uuid_or_disk_id = uuid_dict.get(
                 'root uuid', uuid_dict.get('disk identifier'))
             pxe_config_path = pxe_utils.get_pxe_config_file_path(node.uuid)
-            boot_mode = driver_utils.get_boot_mode_for_deploy(node)
+            boot_mode = deploy_utils.get_boot_mode_for_deploy(node)
             deploy_utils.switch_pxe_config(pxe_config_path,
                                            root_uuid_or_disk_id,
                                            boot_mode, is_whole_disk_image)
