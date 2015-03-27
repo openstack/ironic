@@ -60,8 +60,15 @@ def _attach_boot_iso(task):
     :param task: a TaskManager instance containing the node to act on.
     """
     i_info = task.node.instance_info
+    node_state = task.node.provision_state
 
-    if 'ilo_boot_iso' in i_info:
+    # NOTE: On instance rebuild, ilo_boot_iso will be present in
+    # instance_info but the node will be in DEPLOYING state.
+    # In such a scenario, the ilo_boot_iso shouldn't be
+    # attached to the node while powering on the node (the node
+    # should boot from deploy ramdisk instead, which will already
+    # be attached by the deploy driver).
+    if 'ilo_boot_iso' in i_info and node_state == states.ACTIVE:
         ilo_common.setup_vmedia_for_boot(task, i_info['ilo_boot_iso'])
         manager_utils.node_set_boot_device(task, boot_devices.CDROM)
 
