@@ -1078,6 +1078,16 @@ class NodesController(rest.RestController):
             e.code = 400
             raise e
 
+        # NOTE(lucasagomes): If it's changing the driver and the console
+        # is enabled we prevent updating it because the new driver will
+        # not be able to stop a console started by the previous one.
+        delta = rpc_node.obj_what_changed()
+        if 'driver' in delta and rpc_node.console_enabled:
+            raise wsme.exc.ClientSideError(
+                _("Node %s can not update the driver while the console is "
+                  "enabled. Please stop the console first.") % node_ident,
+                status_code=409)
+
         new_node = pecan.request.rpcapi.update_node(
                          pecan.request.context, rpc_node, topic)
 

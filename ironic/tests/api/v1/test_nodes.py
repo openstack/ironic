@@ -1163,6 +1163,21 @@ class TestPatch(test_api_base.FunctionalTest):
         self.assertEqual(409, response.status_code)
         self.assertTrue(response.json['error_message'])
 
+    @mock.patch.object(api_node, '_get_rpc_node')
+    def test_patch_update_drive_console_enabled(self, mock_rpc_node):
+        self.node.console_enabled = True
+        mock_rpc_node.return_value = self.node
+
+        response = self.patch_json('/nodes/%s' % self.node.uuid,
+                                   [{'path': '/driver',
+                                     'value': 'foo',
+                                     'op': 'add'}],
+                                   expect_errors=True)
+        mock_rpc_node.assert_called_once_with(self.node.uuid)
+        self.assertEqual('application/json', response.content_type)
+        self.assertEqual(409, response.status_code)
+        self.assertTrue(response.json['error_message'])
+
 
 class TestPost(test_api_base.FunctionalTest):
 
