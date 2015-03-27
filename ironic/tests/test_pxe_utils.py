@@ -66,6 +66,14 @@ class TestPXEUtils(db_base.DbTestCase):
         }
         self.agent_pxe_options.update(common_pxe_options)
 
+        self.ipxe_options = self.pxe_options.copy()
+        self.ipxe_options.update({
+            'deployment_aki_path': 'http://1.2.3.4:1234/deploy_kernel',
+            'deployment_ari_path': 'http://1.2.3.4:1234/deploy_ramdisk',
+            'aki_path': 'http://1.2.3.4:1234/kernel',
+            'ari_path': 'http://1.2.3.4:1234/ramdisk',
+        })
+
         self.node = object_utils.create_test_node(self.context)
 
     def test__build_pxe_config(self):
@@ -85,6 +93,36 @@ class TestPXEUtils(db_base.DbTestCase):
 
         expected_template = open(
             'ironic/tests/drivers/agent_pxe_config.template').read().rstrip()
+
+        self.assertEqual(unicode(expected_template), rendered_template)
+
+    def test__build_ipxe_config(self):
+        # NOTE(lucasagomes): iPXE is just an extension of the PXE driver,
+        # it doesn't have it's own configuration option for template.
+        # More info:
+        # http://docs.openstack.org/developer/ironic/deploy/install-guide.html
+        self.config(
+            pxe_config_template='ironic/drivers/modules/ipxe_config.template',
+            group='pxe'
+        )
+        self.config(http_url='http://1.2.3.4:1234', group='pxe')
+        rendered_template = pxe_utils._build_pxe_config(
+                self.ipxe_options, CONF.pxe.pxe_config_template)
+
+        expected_template = open(
+            'ironic/tests/drivers/ipxe_config.template').read().rstrip()
+
+        self.assertEqual(unicode(expected_template), rendered_template)
+
+    def test__build_elilo_config(self):
+        pxe_opts = self.pxe_options
+        pxe_opts['boot_mode'] = 'uefi'
+        rendered_template = pxe_utils._build_pxe_config(
+                pxe_opts, CONF.pxe.uefi_pxe_config_template)
+
+        expected_template = open(
+            'ironic/tests/drivers/elilo_efi_pxe_config.template'
+            ).read().rstrip()
 
         self.assertEqual(unicode(expected_template), rendered_template)
 

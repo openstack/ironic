@@ -1,0 +1,16 @@
+default=deploy
+
+image=/tftpboot/1be26c0b-03f2-4d2e-ae87-c02d7f33c123/deploy_kernel
+        label=deploy
+        initrd=/tftpboot/1be26c0b-03f2-4d2e-ae87-c02d7f33c123/deploy_ramdisk
+        append="selinux=0 disk=cciss/c0d0,sda,hda,vda iscsi_target_iqn=iqn-1be26c0b-03f2-4d2e-ae87-c02d7f33c123 deployment_id=1be26c0b-03f2-4d2e-ae87-c02d7f33c123 deployment_key=0123456789ABCDEFGHIJKLMNOPQRSTUV ironic_api_url=http://192.168.122.184:6385 troubleshoot=0 text test_param ip=%I::%G:%M:%H::on root_device=vendor=fake,size=123 ipa-api-url=http://192.168.122.184:6385 ipa-driver-name=pxe_ssh boot_option=netboot boot_mode=uefi coreos.configdrive=0"
+
+
+image=/tftpboot/1be26c0b-03f2-4d2e-ae87-c02d7f33c123/kernel
+        label=boot_partition
+        initrd=/tftpboot/1be26c0b-03f2-4d2e-ae87-c02d7f33c123/ramdisk
+        append="root={{ ROOT }} ro text test_param ip=%I::%G:%M:%H::on"
+
+image=chain.c32
+        label=boot_whole_disk
+        append="mbr:{{ DISK_IDENTIFIER }}"
