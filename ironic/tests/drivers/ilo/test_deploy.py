@@ -1395,24 +1395,24 @@ class IloPXEDeployTestCase(db_base.DbTestCase):
 
     @mock.patch.object(iscsi_deploy.ISCSIDeploy, 'prepare', spec_set=True,
                        autospec=True)
-    @mock.patch.object(ilo_common, 'update_boot_mode', spec_set=True,
+    @mock.patch.object(ilo_deploy, '_prepare_node_for_deploy', spec_set=True,
                        autospec=True)
     def test_prepare(self,
-                     update_boot_mode_mock,
+                     prepare_node_mock,
                      pxe_prepare_mock):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
             task.node.properties['capabilities'] = 'boot_mode:uefi'
             task.driver.deploy.prepare(task)
-            update_boot_mode_mock.assert_called_once_with(task)
+            prepare_node_mock.assert_called_once_with(task)
             pxe_prepare_mock.assert_called_once_with(mock.ANY, task)
 
     @mock.patch.object(iscsi_deploy.ISCSIDeploy, 'prepare', spec_set=True,
                        autospec=True)
-    @mock.patch.object(ilo_common, 'update_boot_mode', spec_set=True,
+    @mock.patch.object(ilo_deploy, '_prepare_node_for_deploy', spec_set=True,
                        autospec=True)
     def test_prepare_uefi_whole_disk_image_fail(self,
-                                                update_boot_mode_mock,
+                                                prepare_node_for_deploy_mock,
                                                 pxe_prepare_mock):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
@@ -1420,7 +1420,7 @@ class IloPXEDeployTestCase(db_base.DbTestCase):
             task.node.driver_internal_info['is_whole_disk_image'] = True
             self.assertRaises(exception.InvalidParameterValue,
                               task.driver.deploy.prepare, task)
-            update_boot_mode_mock.assert_called_once_with(task)
+            prepare_node_for_deploy_mock.assert_called_once_with(task)
             self.assertFalse(pxe_prepare_mock.called)
 
     @mock.patch.object(iscsi_deploy.ISCSIDeploy, 'deploy', spec_set=True,
@@ -1434,6 +1434,48 @@ class IloPXEDeployTestCase(db_base.DbTestCase):
             task.driver.deploy.deploy(task)
             set_persistent_mock.assert_called_with(task, boot_devices.PXE)
             pxe_deploy_mock.assert_called_once_with(mock.ANY, task)
+
+    @mock.patch.object(iscsi_deploy.ISCSIDeploy, 'tear_down',
+                       spec_set=True, autospec=True)
+    @mock.patch.object(ilo_deploy, '_update_secure_boot_mode', autospec=True)
+    @mock.patch.object(manager_utils, 'node_power_action', spec_set=True,
+                       autospec=True)
+    def test_tear_down(self, node_power_action_mock,
+                       update_secure_boot_mode_mock, pxe_tear_down_mock):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            pxe_tear_down_mock.return_value = states.DELETED
+            returned_state = task.driver.deploy.tear_down(task)
+            node_power_action_mock.assert_called_once_with(task,
+                                                           states.POWER_OFF)
+            update_secure_boot_mode_mock.assert_called_once_with(task, False)
+            pxe_tear_down_mock.assert_called_once_with(mock.ANY, task)
+            self.assertEqual(states.DELETED, returned_state)
+
+    @mock.patch.object(ilo_deploy.LOG, 'warn', spec_set=True, autospec=True)
+    @mock.patch.object(iscsi_deploy.ISCSIDeploy, 'tear_down',
+                       spec_set=True, autospec=True)
+    @mock.patch.object(ilo_deploy, 'exception', spec_set=True, autospec=True)
+    @mock.patch.object(ilo_deploy, '_update_secure_boot_mode',
+                       spec_set=True, autospec=True)
+    @mock.patch.object(manager_utils, 'node_power_action', spec_set=True,
+                       autospec=True)
+    def test_tear_down_handle_exception(self, node_power_action_mock,
+                                        update_secure_boot_mode_mock,
+                                        exception_mock, pxe_tear_down_mock,
+                                        mock_log):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            pxe_tear_down_mock.return_value = states.DELETED
+            exception_mock.IloOperationNotSupported = Exception
+            update_secure_boot_mode_mock.side_effect = Exception
+            returned_state = task.driver.deploy.tear_down(task)
+            update_secure_boot_mode_mock.assert_called_once_with(task, False)
+            pxe_tear_down_mock.assert_called_once_with(mock.ANY, task)
+            node_power_action_mock.assert_called_once_with(task,
+                                                           states.POWER_OFF)
+            self.assertTrue(mock_log.called)
+            self.assertEqual(states.DELETED, returned_state)
 
 
 class IloPXEVendorPassthruTestCase(db_base.DbTestCase):
@@ -1463,9 +1505,15 @@ class IloPXEVendorPassthruTestCase(db_base.DbTestCase):
 
     @mock.patch.object(iscsi_deploy.VendorPassthru, 'pass_deploy_info',
                        spec_set=True, autospec=True)
+    @mock.patch.object(ilo_deploy, '_update_secure_boot_mode', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(ilo_common, 'update_boot_mode', spec_set=True,
+                       autospec=True)
     @mock.patch.object(manager_utils, 'node_set_boot_device', spec_set=True,
                        autospec=True)
     def test_vendorpassthru_pass_deploy_info(self, set_boot_device_mock,
+                                             func_update_boot_mode,
+                                             func_update_secure_boot_mode,
                                              pxe_vendorpassthru_mock):
         kwargs = {'address': '123456'}
         with task_manager.acquire(self.context, self.node.uuid,
@@ -1474,7 +1522,28 @@ class IloPXEVendorPassthruTestCase(db_base.DbTestCase):
             task.node.target_provision_state = states.ACTIVE
             task.driver.vendor.pass_deploy_info(task, **kwargs)
             set_boot_device_mock.assert_called_with(task, boot_devices.PXE,
-                                                    True)
+                                                    persistent=True)
+            func_update_boot_mode.assert_called_once_with(task)
+            func_update_secure_boot_mode.assert_called_once_with(task, True)
+            pxe_vendorpassthru_mock.assert_called_once_with(
+                mock.ANY, task, **kwargs)
+
+    @mock.patch.object(iscsi_deploy.VendorPassthru, 'continue_deploy',
+                       spec_set=True, autospec=True)
+    @mock.patch.object(ilo_deploy, '_update_secure_boot_mode', autospec=True)
+    @mock.patch.object(ilo_common, 'update_boot_mode', autospec=True)
+    def test_vendorpassthru_continue_deploy(self,
+                                            func_update_boot_mode,
+                                            func_update_secure_boot_mode,
+                                            pxe_vendorpassthru_mock):
+        kwargs = {'address': '123456'}
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            task.node.provision_state = states.DEPLOYWAIT
+            task.node.target_provision_state = states.ACTIVE
+            task.driver.vendor.continue_deploy(task, **kwargs)
+            func_update_boot_mode.assert_called_once_with(task)
+            func_update_secure_boot_mode.assert_called_once_with(task, True)
             pxe_vendorpassthru_mock.assert_called_once_with(
                 mock.ANY, task, **kwargs)
 
