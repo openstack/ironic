@@ -28,7 +28,7 @@ from ironic.tests import base
 CONF = cfg.CONF
 
 
-@mock.patch.object(swift_client, 'Connection')
+@mock.patch.object(swift_client, 'Connection', autospec=True)
 class SwiftTestCase(base.TestCase):
 
     def setUp(self):
@@ -59,7 +59,7 @@ class SwiftTestCase(base.TestCase):
                   'auth_version': '2'}
         connection_mock.assert_called_once_with(**params)
 
-    @mock.patch.object(__builtin__, 'open')
+    @mock.patch.object(__builtin__, 'open', autospec=True)
     def test_create_object(self, open_mock, connection_mock):
         swiftapi = swift.SwiftAPI()
         connection_obj_mock = connection_mock.return_value
@@ -77,7 +77,7 @@ class SwiftTestCase(base.TestCase):
                 'object', 'file-object', headers=None)
         self.assertEqual('object-uuid', object_uuid)
 
-    @mock.patch.object(__builtin__, 'open')
+    @mock.patch.object(__builtin__, 'open', autospec=True)
     def test_create_object_create_container_fails(self, open_mock,
                                                   connection_mock):
         swiftapi = swift.SwiftAPI()
@@ -89,7 +89,7 @@ class SwiftTestCase(base.TestCase):
         connection_obj_mock.put_container.assert_called_once_with('container')
         self.assertFalse(connection_obj_mock.put_object.called)
 
-    @mock.patch.object(__builtin__, 'open')
+    @mock.patch.object(__builtin__, 'open', autospec=True)
     def test_create_object_put_object_fails(self, open_mock, connection_mock):
         swiftapi = swift.SwiftAPI()
         mock_file_handle = mock.MagicMock(spec=file)
@@ -105,7 +105,7 @@ class SwiftTestCase(base.TestCase):
         connection_obj_mock.put_object.assert_called_once_with('container',
                 'object', 'file-object', headers=None)
 
-    @mock.patch.object(swift_utils, 'generate_temp_url')
+    @mock.patch.object(swift_utils, 'generate_temp_url', autospec=True)
     def test_get_temp_url(self, gen_temp_url_mock, connection_mock):
         swiftapi = swift.SwiftAPI()
         connection_obj_mock = connection_mock.return_value

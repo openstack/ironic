@@ -52,7 +52,8 @@ class DriverLoadTestCase(base.TestCase):
             self.assertRaises(exception.DriverLoadError,
                           driver_factory.DriverFactory._init_extension_manager)
 
-    @mock.patch.object(dispatch.NameDispatchExtensionManager, 'names')
+    @mock.patch.object(dispatch.NameDispatchExtensionManager, 'names',
+                       autospec=True)
     def test_no_driver_load_error_if_driver_disabled(self, mock_em):
         self.config(enabled_drivers=[])
         with mock.patch.object(dispatch.NameDispatchExtensionManager,
