@@ -135,7 +135,7 @@ class DracPower(base.PowerInterface):
                  with unexpected return value.
 
         """
-        return _set_power_state(task.node, power_state)
+        _set_power_state(task.node, power_state)
 
     @task_manager.require_exclusive_lock
     def reboot(self, task):
@@ -148,4 +148,11 @@ class DracPower(base.PowerInterface):
         :raises: DracUnexpectedReturnValue if the client received a response
                  with unexpected return value.
         """
-        return _set_power_state(task.node, states.REBOOT)
+
+        current_power_state = _get_power_state(task.node)
+        if current_power_state == states.POWER_ON:
+            target_power_state = states.REBOOT
+        else:
+            target_power_state = states.POWER_ON
+
+        _set_power_state(task.node, target_power_state)
