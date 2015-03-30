@@ -137,7 +137,6 @@ class DracPowerTestCase(base.DbTestCase):
 
     @mock.patch.object(drac_power, '_set_power_state')
     def test_set_power_state(self, mock_set_power_state):
-        mock_set_power_state.return_value = states.POWER_ON
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
             task.driver.power.set_power_state(task, states.POWER_ON)
@@ -145,10 +144,22 @@ class DracPowerTestCase(base.DbTestCase):
                                                          states.POWER_ON)
 
     @mock.patch.object(drac_power, '_set_power_state')
-    def test_reboot(self, mock_set_power_state):
-        mock_set_power_state.return_value = states.REBOOT
+    @mock.patch.object(drac_power, '_get_power_state')
+    def test_reboot(self, mock_get_power_state, mock_set_power_state):
+        mock_get_power_state.return_value = states.POWER_ON
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
             task.driver.power.reboot(task)
             mock_set_power_state.assert_called_once_with(task.node,
                                                          states.REBOOT)
+
+    @mock.patch.object(drac_power, '_set_power_state')
+    @mock.patch.object(drac_power, '_get_power_state')
+    def test_reboot_in_power_off(self, mock_get_power_state,
+                                       mock_set_power_state):
+        mock_get_power_state.return_value = states.POWER_OFF
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            task.driver.power.reboot(task)
+            mock_set_power_state.assert_called_once_with(task.node,
+                                                         states.POWER_ON)
