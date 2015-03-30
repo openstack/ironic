@@ -367,6 +367,9 @@ class PowerInterface(BaseInterface):
     def reboot(self, task):
         """Perform a hard reboot of the task's node.
 
+        Drivers are expected to properly handle case when node is powered off
+        by powering it on.
+
         :param task: a TaskManager instance containing the node to act on.
         :raises: MissingParameterValue if a required parameter is missing.
         """
