@@ -896,6 +896,54 @@ The boot modes can be configured in Ironic in the following way:
   either ``bios`` or ``uefi`` machine.
 
 
+Local boot with partition images
+================================
+
+Starting with the Kilo release, Ironic supports local boot with partition
+images, meaning that after the deployment the node's subsequent reboots
+won't happen via PXE or Virtual Media. Instead, it will boot from a
+local boot loader installed on the disk.
+
+It's important to note that in order for this to work the image being
+deployed with Ironic **must** contain ``grub2`` installed within it.
+
+Enabling the local boot is different when Ironic is used with Nova and
+without it. The following sections will describe both methods.
+
+
+Enabling local boot with Nova
+-----------------------------
+
+To enable local boot we need to set a capability on the Ironic node, e.g::
+
+    ironic node-update <node-uuid> add properties/capabilities="boot_option:local"
+
+
+Nodes having ``boot_option`` set to ``local`` may be requested by adding
+an ``extra_spec`` to the Nova flavor, e.g::
+
+    nova flavor-key baremetal set capabilities:boot_option="local"
+
+
+.. note::
+    If the node is configured to use ``UEFI``, Ironic will create an ``EFI
+    partition`` on the disk and switch the partition table format to
+    ``gpt``. The ``EFI partition`` will be used later by the boot loader
+    (which is installed from the deploy ramdisk).
+
+
+Enabling local boot without Nova
+--------------------------------
+
+Since adding ``capabilities`` to the node's properties is only used by
+the Nova scheduler to perform more advanced scheduling of instances,
+we need a way to enable local boot when Nova is not present. To do that
+we can simply specify the capability via the ``instance_info`` attribute
+of the node, e.g::
+
+    ironic node-update <node-uuid> add instance_info/capabilities='{"boot_option": "local"}'
+
+
 Enrollment
 ==========
 
@@ -1237,6 +1285,12 @@ For iLO drivers, fields that should be provided are:
    content under hrefs that are specified. I.e., if the content under
    "http://my.server.net/images/deploy.ramdisk" changes, Ironic does not know
    about that and does not redownload the content.
+
+
+Other references
+----------------
+
+* `Enabling local boot without Nova`_
 
 
 Troubleshooting
