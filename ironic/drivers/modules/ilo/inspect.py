@@ -170,7 +170,7 @@ def _update_capabilities(node, new_capabilities):
             # occur in malformed capabilities like:
             # properties/capabilities='boot_mode:bios,boot_option'.
             msg = (_("Node %(node)s has invalid capabilities string "
-                    "%(capabilities), unable to modify the node "
+                    "%(capabilities)s, unable to modify the node "
                     "properties['capabilities'] string")
                     % {'node': node.uuid, 'capabilities': node_capabilities})
             raise exception.InvalidParameterValue(msg)
