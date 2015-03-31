@@ -1072,7 +1072,7 @@ class ConductorManager(periodic_task.PeriodicTasks):
                         node.maintenance or node.reservation is not None):
                     continue
 
-                with task_manager.acquire(context, node_id) as task:
+                with task_manager.acquire(context, node_uuid) as task:
                     if (task.node.provision_state == states.DEPLOYWAIT or
                             task.node.maintenance):
                         continue
@@ -1155,7 +1155,7 @@ class ConductorManager(periodic_task.PeriodicTasks):
 
             # Node is mapped here, but not updated by this conductor last
             try:
-                with task_manager.acquire(admin_context, node_id) as task:
+                with task_manager.acquire(admin_context, node_uuid) as task:
                     # NOTE(deva): now that we have the lock, check again to
                     # avoid racing with deletes and other state changes
                     node = task.node
