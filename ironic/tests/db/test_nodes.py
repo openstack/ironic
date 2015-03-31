@@ -33,9 +33,6 @@ class DbNodeTestCase(base.DbTestCase):
     def test_create_node(self):
         utils.create_test_node()
 
-    def test_create_node_nullable_chassis_id(self):
-        utils.create_test_node(chassis_id=None)
-
     def test_create_node_already_exists(self):
         utils.create_test_node()
         self.assertRaises(exception.NodeAlreadyExists,
@@ -200,10 +197,8 @@ class DbNodeTestCase(base.DbTestCase):
         six.assertCountEqual(self, uuids, res_uuids)
 
     def test_get_node_list_with_filters(self):
-        ch1 = utils.get_test_chassis(id=1, uuid=uuidutils.generate_uuid())
-        ch2 = utils.get_test_chassis(id=2, uuid=uuidutils.generate_uuid())
-        self.dbapi.create_chassis(ch1)
-        self.dbapi.create_chassis(ch2)
+        ch1 = utils.create_test_chassis(uuid=uuidutils.generate_uuid())
+        ch2 = utils.create_test_chassis(uuid=uuidutils.generate_uuid())
 
         node1 = utils.create_test_node(driver='driver-one',
             instance_uuid=uuidutils.generate_uuid(),

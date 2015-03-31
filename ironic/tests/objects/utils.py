@@ -79,6 +79,9 @@ def get_test_chassis(ctxt, **kw):
     that a create() could be used to commit it to the DB.
     """
     db_chassis = db_utils.get_test_chassis(**kw)
+    # Let DB generate ID if it isn't specified explicitly
+    if 'id' not in kw:
+        del db_chassis['id']
     chassis = objects.Chassis(ctxt)
     for key in db_chassis:
         setattr(chassis, key, db_chassis[key])

@@ -188,7 +188,7 @@ def get_test_node(**kw):
         'id': kw.get('id', 123),
         'name': kw.get('name', None),
         'uuid': kw.get('uuid', '1be26c0b-03f2-4d2e-ae87-c02d7f33c123'),
-        'chassis_id': kw.get('chassis_id', 42),
+        'chassis_id': kw.get('chassis_id', None),
         'conductor_affinity': kw.get('conductor_affinity', None),
         'power_state': kw.get('power_state', states.NOSTATE),
         'target_power_state': kw.get('target_power_state', states.NOSTATE),
@@ -271,6 +271,23 @@ def get_test_chassis(**kw):
         'created_at': kw.get('created_at'),
         'updated_at': kw.get('updated_at'),
     }
+
+
+def create_test_chassis(**kw):
+    """Create test chassis entry in DB and return Chassis DB object.
+
+    Function to be used to create test Chassis objects in the database.
+
+    :param kw: kwargs with overriding values for chassis's attributes.
+    :returns: Test Chassis DB object.
+
+    """
+    chassis = get_test_chassis(**kw)
+    # Let DB generate ID if it isn't specified explicitly
+    if 'id' not in kw:
+        del chassis['id']
+    dbapi = db_api.get_instance()
+    return dbapi.create_chassis(chassis)
 
 
 def get_test_conductor(**kw):
