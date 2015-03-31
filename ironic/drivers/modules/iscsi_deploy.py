@@ -451,6 +451,8 @@ def build_deploy_ramdisk_options(node):
         'disk': CONF.pxe.disk_devices,
         'boot_option': get_boot_option(node),
         'boot_mode': _get_boot_mode(node),
+        # NOTE: The below entry is a temporary workaround for bug/1433812
+        'coreos.configdrive': 0,
     }
 
     root_device = deploy_utils.parse_root_device_hints(node)

@@ -212,6 +212,7 @@ class PXEPrivateMethodsTestCase(db_base.DbTestCase):
                             'ironic_api_url': 'fake-api-url',
                             'boot_option': 'netboot',
                             'boot_mode': 'bios',
+                            'coreos.configdrive': 0,
                            }
 
         deploy_opts_mock.return_value = fake_deploy_opts

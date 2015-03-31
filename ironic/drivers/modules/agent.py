@@ -97,7 +97,9 @@ def build_agent_options(node):
                   keystone.get_service_url()).rstrip('/')
     agent_config_opts = {
         'ipa-api-url': ironic_api,
-        'ipa-driver-name': node.driver
+        'ipa-driver-name': node.driver,
+        # NOTE: The below entry is a temporary workaround for bug/1433812
+        'coreos.configdrive': 0,
     }
     root_device = deploy_utils.parse_root_device_hints(node)
     if root_device:
