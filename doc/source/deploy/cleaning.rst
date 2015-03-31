@@ -15,6 +15,8 @@ from each Power, Deploy, and Management driver assigned to the node. These
 steps are then arranged by priority and executed on the node when it is moved
 to CLEANING state, if cleaning is enabled.
 
+Ironic added support for cleaning used nodes in the Kilo release.
+
 
 Enabling Cleaning
 =================
@@ -117,8 +119,7 @@ Ironic conductor logs, viewing logs on the still-running ironic-python-agent
 the node.
 
 When the node is repaired, you can move the node back to AVAILABLE state, to
-allow it to be scheduled by Nova. It will restart cleaning from the first
-step.
+allow it to be scheduled by Nova.
 
 ::
 
