@@ -681,6 +681,33 @@ class PXEDriverTestCase(db_base.DbTestCase):
                               address='123456', iqn='aaa-bbb',
                               key='fake-12345')
 
+    @mock.patch.object(iscsi_deploy, 'validate_pass_bootloader_info_input',
+                       autospec=True)
+    def test_vendor_passthru_pass_bootloader_install_info(self,
+                                                          validate_mock):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            kwargs = {'address': '1.2.3.4', 'key': 'fake-key',
+                      'status': 'SUCCEEDED', 'error': ''}
+            task.driver.vendor.validate(
+                task, method='pass_bootloader_install_info', **kwargs)
+            validate_mock.assert_called_once_with(task, kwargs)
+
+    @mock.patch.object(iscsi_deploy, 'validate_bootloader_install_status',
+                       autospec=True)
+    @mock.patch.object(iscsi_deploy, 'finish_deploy', autospec=True)
+    def test_pass_bootloader_install_info(self, finish_deploy_mock,
+                                          validate_input_mock):
+        kwargs = {'method': 'pass_deploy_info', 'address': '123456'}
+        self.node.provision_state = states.DEPLOYWAIT
+        self.node.target_provision_state = states.ACTIVE
+        self.node.save()
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            task.driver.vendor.pass_bootloader_install_info(task, **kwargs)
+            finish_deploy_mock.assert_called_once_with(task, '123456')
+            validate_input_mock.assert_called_once_with(task, kwargs)
+
     @mock.patch.object(pxe, '_get_image_info')
     @mock.patch.object(pxe, '_cache_ramdisk_kernel')
     @mock.patch.object(pxe, '_build_pxe_config_options')
@@ -901,7 +928,7 @@ class PXEDriverTestCase(db_base.DbTestCase):
 
     @mock.patch.object(pxe_utils, 'clean_up_pxe_config')
     @mock.patch.object(manager_utils, 'node_set_boot_device')
-    @mock.patch.object(deploy_utils, 'notify_deploy_complete')
+    @mock.patch.object(deploy_utils, 'notify_ramdisk_to_proceed')
     @mock.patch.object(deploy_utils, 'switch_pxe_config')
     @mock.patch.object(iscsi_deploy, 'InstanceImageCache')
     @mock.patch.object(deploy_utils, 'deploy_partition_image')
@@ -932,8 +959,6 @@ class PXEDriverTestCase(db_base.DbTestCase):
                     task, address='123456', iqn='aaa-bbb', key='fake-56789')
 
         self.node.refresh()
-        self.assertEqual(states.ACTIVE, self.node.provision_state)
-        self.assertEqual(states.NOSTATE, self.node.target_provision_state)
         self.assertEqual(states.POWER_ON, self.node.power_state)
         self.assertIn('root_uuid_or_disk_id', self.node.driver_internal_info)
         self.assertIsNone(self.node.last_error)
@@ -957,7 +982,7 @@ class PXEDriverTestCase(db_base.DbTestCase):
 
     @mock.patch.object(pxe_utils, 'clean_up_pxe_config')
     @mock.patch.object(manager_utils, 'node_set_boot_device')
-    @mock.patch.object(deploy_utils, 'notify_deploy_complete')
+    @mock.patch.object(deploy_utils, 'notify_ramdisk_to_proceed')
     @mock.patch.object(deploy_utils, 'switch_pxe_config')
     @mock.patch.object(iscsi_deploy, 'InstanceImageCache')
     @mock.patch.object(deploy_utils, 'deploy_disk_image')
@@ -993,8 +1018,6 @@ class PXEDriverTestCase(db_base.DbTestCase):
                                                 key='fake-56789')
 
         self.node.refresh()
-        self.assertEqual(states.ACTIVE, self.node.provision_state)
-        self.assertEqual(states.NOSTATE, self.node.target_provision_state)
         self.assertEqual(states.POWER_ON, self.node.power_state)
         self.assertIsNone(self.node.last_error)
         self.assertFalse(os.path.exists(token_path))
@@ -1017,15 +1040,23 @@ class PXEDriverTestCase(db_base.DbTestCase):
 
     def test_pass_deploy_info_deploy(self):
         self._test_pass_deploy_info_deploy(False)
+        self.assertEqual(states.ACTIVE, self.node.provision_state)
+        self.assertEqual(states.NOSTATE, self.node.target_provision_state)
 
     def test_pass_deploy_info_localboot(self):
         self._test_pass_deploy_info_deploy(True)
+        self.assertEqual(states.DEPLOYWAIT, self.node.provision_state)
+        self.assertEqual(states.ACTIVE, self.node.target_provision_state)
 
     def test_pass_deploy_info_whole_disk_image(self):
         self._test_pass_deploy_info_whole_disk_image(False)
+        self.assertEqual(states.ACTIVE, self.node.provision_state)
+        self.assertEqual(states.NOSTATE, self.node.target_provision_state)
 
     def test_pass_deploy_info_whole_disk_image_localboot(self):
         self._test_pass_deploy_info_whole_disk_image(True)
+        self.assertEqual(states.ACTIVE, self.node.provision_state)
+        self.assertEqual(states.NOSTATE, self.node.target_provision_state)
 
     def test_pass_deploy_info_invalid(self):
         self.node.power_state = states.POWER_ON
@@ -1056,7 +1087,8 @@ class PXEDriverTestCase(db_base.DbTestCase):
                             "pass_deploy_info was not called once.")
 
     def test_vendor_routes(self):
-        expected = ['heartbeat', 'pass_deploy_info']
+        expected = ['heartbeat', 'pass_deploy_info',
+                    'pass_bootloader_install_info']
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
             vendor_routes = task.driver.vendor.vendor_routes

@@ -22,6 +22,8 @@ from six.moves.urllib import parse
 from ironic.common import exception
 from ironic.common.glance_service import service_utils as glance_service_utils
 from ironic.common.i18n import _
+from ironic.common.i18n import _LE
+from ironic.common.i18n import _LI
 from ironic.common import image_service as service
 from ironic.common import keystone
 from ironic.common import utils
@@ -539,3 +541,77 @@ def validate(task):
 
     # Validate the root device hints
     deploy_utils.parse_root_device_hints(node)
+
+
+def validate_pass_bootloader_info_input(task, input_params):
+    """Validates the input sent with bootloader install info passthru.
+
+    This method validates the input sent with bootloader install info
+    passthru.
+
+    :param task: A TaskManager object.
+    :param input_params: A dictionary of params sent as input to passthru.
+    :raises: InvalidParameterValue, if deploy key passed doesn't match the
+        one stored in instance_info.
+    :raises: MissingParameterValue, if some input is missing.
+    """
+    params = {'address': input_params.get('address'),
+              'key': input_params.get('key'),
+              'status': input_params.get('status')}
+    msg = _("Some mandatory input missing in 'pass_bootloader_info' "
+            "vendor passthru from ramdisk.")
+    deploy_utils.check_for_missing_params(params, msg)
+
+    deploy_key = task.node.instance_info['deploy_key']
+    if deploy_key != input_params.get('key'):
+        raise exception.InvalidParameterValue(
+            _("Deploy key %(key_sent)s does not match "
+              "with %(expected_key)s") %
+            {'key_sent': input_params.get('key'), 'expected_key': deploy_key})
+
+
+def validate_bootloader_install_status(task, input_params):
+    """Validate if bootloader was installed.
+
+    This method first validates if deploy key sent in vendor passthru
+    was correct one, and then validates whether bootloader installation
+    was successful or not.
+
+    :param task: A TaskManager object.
+    :param input_params: A dictionary of params sent as input to passthru.
+    :raises: InstanceDeployFailure, if bootloader installation was
+        reported from ramdisk as failure.
+    """
+    if input_params['status'] != 'SUCCEEDED':
+        msg = (_('Failed to install bootloader on node %(node)s. '
+                 'Error: %(error)s.') %
+               {'node': task.node.uuid, 'error': input_params.get('error')})
+        LOG.error(msg)
+        deploy_utils.set_failed_state(task, msg)
+        raise exception.InstanceDeployFailure(msg)
+
+
+def finish_deploy(task, address):
+    """Notifies the ramdisk to reboot the node and makes the instance active.
+
+    This method notifies the ramdisk to proceed to reboot and then
+    makes the instance active.
+
+    :param task: a TaskManager object.
+    :param address: The IP address of the bare metal node.
+    :raises: InstanceDeployFailure, if notifying ramdisk failed.
+    """
+    node = task.node
+    try:
+        deploy_utils.notify_ramdisk_to_proceed(address)
+    except Exception as e:
+        LOG.error(_LE('Deploy failed for instance %(instance)s. '
+                      'Error: %(error)s'),
+                  {'instance': node.instance_uuid, 'error': e})
+        msg = (_('Failed to notify ramdisk to reboot after bootloader '
+                 'installation. Error: %s') % e)
+        deploy_utils.set_failed_state(task, msg)
+        raise exception.InstanceDeployFailure(msg)
+
+    LOG.info(_LI('Deployment to node %s done'), node.uuid)
+    task.process_event('done')

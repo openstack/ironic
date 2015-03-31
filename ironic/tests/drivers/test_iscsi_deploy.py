@@ -778,3 +778,93 @@ class IscsiDeployMethodsTestCase(db_base.DbTestCase):
             self.assertEqual(states.DEPLOYFAIL, self.node.provision_state)
             self.assertEqual(states.ACTIVE, self.node.target_provision_state)
             self.assertIsNotNone(self.node.last_error)
+
+    def test_validate_pass_bootloader_info_input(self):
+        params = {'key': 'some-random-key', 'address': '1.2.3.4',
+                  'error': '', 'status': 'SUCCEEDED'}
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            task.node.instance_info['deploy_key'] = 'some-random-key'
+            # Assert that the method doesn't raise
+            iscsi_deploy.validate_pass_bootloader_info_input(task, params)
+
+    def test_validate_pass_bootloader_info_missing_status(self):
+        params = {'key': 'some-random-key', 'address': '1.2.3.4'}
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            self.assertRaises(exception.MissingParameterValue,
+                              iscsi_deploy.validate_pass_bootloader_info_input,
+                              task, params)
+
+    def test_validate_pass_bootloader_info_missing_key(self):
+        params = {'status': 'SUCCEEDED', 'address': '1.2.3.4'}
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            self.assertRaises(exception.MissingParameterValue,
+                              iscsi_deploy.validate_pass_bootloader_info_input,
+                              task, params)
+
+    def test_validate_pass_bootloader_info_missing_address(self):
+        params = {'status': 'SUCCEEDED', 'key': 'some-random-key'}
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            self.assertRaises(exception.MissingParameterValue,
+                              iscsi_deploy.validate_pass_bootloader_info_input,
+                              task, params)
+
+    def test_validate_pass_bootloader_info_input_invalid_key(self):
+        params = {'key': 'some-other-key', 'address': '1.2.3.4',
+                  'status': 'SUCCEEDED'}
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            task.node.instance_info['deploy_key'] = 'some-random-key'
+            self.assertRaises(exception.InvalidParameterValue,
+                              iscsi_deploy.validate_pass_bootloader_info_input,
+                              task, params)
+
+    def test_validate_bootloader_install_status(self):
+        kwargs = {'key': 'abcdef', 'status': 'SUCCEEDED', 'error': ''}
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            task.node.instance_info['deploy_key'] = 'abcdef'
+            # Nothing much to assert except that it shouldn't raise.
+            iscsi_deploy.validate_bootloader_install_status(task, kwargs)
+
+    @mock.patch.object(deploy_utils, 'set_failed_state', autospec=True)
+    def test_validate_bootloader_install_status_install_failed(
+            self, set_fail_state_mock):
+        kwargs = {'key': 'abcdef', 'status': 'FAILED', 'error': 'some-error'}
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            task.node.provision_state = states.DEPLOYING
+            task.node.target_provision_state = states.ACTIVE
+            task.node.instance_info['deploy_key'] = 'abcdef'
+            self.assertRaises(exception.InstanceDeployFailure,
+                              iscsi_deploy.validate_bootloader_install_status,
+                              task, kwargs)
+            set_fail_state_mock.assert_called_once_with(task, mock.ANY)
+
+    @mock.patch.object(deploy_utils, 'notify_ramdisk_to_proceed',
+                       autospec=True)
+    def test_finish_deploy(self, notify_mock):
+        self.node.provision_state = states.DEPLOYING
+        self.node.target_provision_state = states.ACTIVE
+        self.node.save()
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            iscsi_deploy.finish_deploy(task, '1.2.3.4')
+            notify_mock.assert_called_once_with('1.2.3.4')
+            self.assertEqual(states.ACTIVE, task.node.provision_state)
+            self.assertEqual(states.NOSTATE, task.node.target_provision_state)
+
+    @mock.patch.object(deploy_utils, 'set_failed_state', autospec=True)
+    @mock.patch.object(deploy_utils, 'notify_ramdisk_to_proceed',
+                       autospec=True)
+    def test_finish_deploy_notify_fails(self, notify_mock,
+                                        set_fail_state_mock):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            notify_mock.side_effect = RuntimeError()
+            self.assertRaises(exception.InstanceDeployFailure,
+                              iscsi_deploy.finish_deploy, task, '1.2.3.4')
+            set_fail_state_mock.assert_called_once_with(task, mock.ANY)

@@ -37,7 +37,8 @@ class AMTPXEVendorPassthruTestCase(db_base.DbTestCase):
             driver='pxe_amt', driver_info=INFO_DICT)
 
     def test_vendor_routes(self):
-        expected = ['heartbeat', 'pass_deploy_info']
+        expected = ['heartbeat', 'pass_deploy_info',
+                    'pass_bootloader_install_info']
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
             vendor_routes = task.driver.vendor.vendor_routes

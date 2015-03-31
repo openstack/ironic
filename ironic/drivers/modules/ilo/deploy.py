@@ -730,6 +730,8 @@ class VendorPassthru(agent_base_vendor.BaseAgentVendor):
         """
         if method == 'pass_deploy_info':
             iscsi_deploy.get_deploy_info(task.node, **kwargs)
+        elif method == 'pass_bootloader_install_info':
+            iscsi_deploy.validate_pass_bootloader_info_input(task, kwargs)
 
     def _configure_vmedia_boot(self, task, root_uuid):
         """Configure vmedia boot for the node."""
@@ -751,6 +753,29 @@ class VendorPassthru(agent_base_vendor.BaseAgentVendor):
         if not i_info.get('ilo_boot_iso'):
             i_info['ilo_boot_iso'] = boot_iso
             node.instance_info = i_info
+
+    @base.passthru(['POST'])
+    @task_manager.require_exclusive_lock
+    def pass_bootloader_install_info(self, task, **kwargs):
+        """Accepts the results of bootloader installation.
+
+        This method acts as a vendor passthru and accepts the result of
+        bootloader installation. If the bootloader installation was
+        successful, then it notifies the baremetal to proceed to reboot
+        and makes the instance active. If bootloader installation failed,
+        then it sets provisioning as failed and powers off the node.
+
+        :param task: A TaskManager object.
+        :param kwargs: The arguments sent with vendor passthru.  The expected
+            kwargs are::
+                'key': The deploy key for authorization
+                'status': 'SUCCEEDED' or 'FAILED'
+                'error': The error message if status == 'FAILED'
+                'address': The IP address of the ramdisk
+        """
+        task.process_event('resume')
+        iscsi_deploy.validate_bootloader_install_status(task, kwargs)
+        iscsi_deploy.finish_deploy(task, kwargs['address'])
 
     @base.passthru(['POST'])
     @task_manager.require_exclusive_lock
@@ -782,30 +807,36 @@ class VendorPassthru(agent_base_vendor.BaseAgentVendor):
             'root uuid', uuid_dict.get('disk identifier'))
 
         try:
-            # For iscsi_ilo driver, we boot from disk every time if the image
-            # deployed is a whole disk image.
-            if iscsi_deploy.get_boot_option(node) == "local" or iwdi:
-                manager_utils.node_set_boot_device(task, boot_devices.DISK,
-                                                   persistent=True)
-            else:
-                self._configure_vmedia_boot(task, root_uuid_or_disk_id)
-
             # Set boot mode
             ilo_common.update_boot_mode(task)
 
             # Need to enable secure boot, if being requested
             _update_secure_boot_mode(task, True)
 
-            deploy_utils.notify_deploy_complete(kwargs.get('address'))
+            # For iscsi_ilo driver, we boot from disk every time if the image
+            # deployed is a whole disk image.
+            if iscsi_deploy.get_boot_option(node) == "local" or iwdi:
+                manager_utils.node_set_boot_device(task, boot_devices.DISK,
+                                                   persistent=True)
 
-            LOG.info(_LI('Deployment to node %s done'), node.uuid)
-            task.process_event('done')
+                # Ask the ramdisk to install bootloader and
+                # wait for the call-back through the vendor passthru
+                # 'pass_bootloader_install_info', if it's not a whole
+                # disk image.
+                if not iwdi:
+                    deploy_utils.notify_ramdisk_to_proceed(kwargs['address'])
+                    task.process_event('wait')
+                    return
+            else:
+                self._configure_vmedia_boot(task, root_uuid_or_disk_id)
         except Exception as e:
             LOG.error(_LE('Deploy failed for instance %(instance)s. '
                           'Error: %(error)s'),
                       {'instance': node.instance_uuid, 'error': e})
             msg = _('Failed to continue iSCSI deployment.')
             deploy_utils.set_failed_state(task, msg)
+        else:
+            iscsi_deploy.finish_deploy(task, kwargs.get('address'))
 
     @task_manager.require_exclusive_lock
     def continue_deploy(self, task, **kwargs):

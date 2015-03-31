@@ -744,6 +744,18 @@ class VendorPassthruTestCase(db_base.DbTestCase):
             get_deploy_info_mock.assert_called_once_with(task.node,
                                                          foo='bar')
 
+    @mock.patch.object(iscsi_deploy, 'validate_pass_bootloader_info_input',
+                       autospec=True)
+    def test_validate_pass_bootloader_install_info(self,
+                                                          validate_mock):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            kwargs = {'address': '1.2.3.4', 'key': 'fake-key',
+                      'status': 'SUCCEEDED', 'error': ''}
+            task.driver.vendor.validate(
+                task, method='pass_bootloader_install_info', **kwargs)
+            validate_mock.assert_called_once_with(task, kwargs)
+
     @mock.patch.object(iscsi_deploy, 'get_deploy_info')
     def test_validate_heartbeat(self, get_deploy_info_mock):
         with task_manager.acquire(self.context, self.node.uuid,
@@ -752,7 +764,22 @@ class VendorPassthruTestCase(db_base.DbTestCase):
             vendor.validate(task, method='heartbeat', foo='bar')
             self.assertFalse(get_deploy_info_mock.called)
 
-    @mock.patch.object(deploy_utils, 'notify_deploy_complete')
+    @mock.patch.object(iscsi_deploy, 'validate_bootloader_install_status',
+                       autospec=True)
+    @mock.patch.object(iscsi_deploy, 'finish_deploy', autospec=True)
+    def test_pass_bootloader_install_info(self, finish_deploy_mock,
+                                          validate_input_mock):
+        kwargs = {'method': 'pass_deploy_info', 'address': '123456'}
+        self.node.provision_state = states.DEPLOYWAIT
+        self.node.target_provision_state = states.ACTIVE
+        self.node.save()
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            task.driver.vendor.pass_bootloader_install_info(task, **kwargs)
+            finish_deploy_mock.assert_called_once_with(task, '123456')
+            validate_input_mock.assert_called_once_with(task, kwargs)
+
+    @mock.patch.object(deploy_utils, 'notify_ramdisk_to_proceed')
     @mock.patch.object(ilo_deploy, '_update_secure_boot_mode')
     @mock.patch.object(ilo_common, 'update_boot_mode')
     @mock.patch.object(manager_utils, 'node_set_boot_device')
@@ -765,7 +792,7 @@ class VendorPassthruTestCase(db_base.DbTestCase):
                                    setup_vmedia_mock, set_boot_device_mock,
                                    func_update_boot_mode,
                                    func_update_secure_boot_mode,
-                                   notify_deploy_complete_mock):
+                                   notify_ramdisk_to_proceed_mock):
         kwargs = {'method': 'pass_deploy_info', 'address': '123456'}
         continue_deploy_mock.return_value = {'root uuid': 'root-uuid'}
         get_boot_iso_mock.return_value = 'boot-iso'
@@ -791,7 +818,7 @@ class VendorPassthruTestCase(db_base.DbTestCase):
 
             self.assertEqual('boot-iso',
                              task.node.instance_info['ilo_boot_iso'])
-            notify_deploy_complete_mock.assert_called_once_with('123456')
+            notify_ramdisk_to_proceed_mock.assert_called_once_with('123456')
 
     @mock.patch.object(ilo_common, 'cleanup_vmedia_boot')
     def test_pass_deploy_info_bad(self, cleanup_vmedia_boot_mock):
@@ -810,16 +837,19 @@ class VendorPassthruTestCase(db_base.DbTestCase):
             self.assertEqual(states.NOSTATE, task.node.target_provision_state)
         self.assertFalse(cleanup_vmedia_boot_mock.called)
 
+    @mock.patch.object(ilo_deploy, '_update_secure_boot_mode', autospec=True)
+    @mock.patch.object(ilo_common, 'update_boot_mode', autospec=True)
     @mock.patch.object(manager_utils, 'node_power_action')
     @mock.patch.object(iscsi_deploy, 'continue_deploy')
     @mock.patch.object(ilo_common, 'cleanup_vmedia_boot')
     @mock.patch.object(ilo_deploy, '_get_boot_iso')
     def test_pass_deploy_info_create_boot_iso_fail(self, get_iso_mock,
-            cleanup_vmedia_boot_mock, continue_deploy_mock, node_power_mock):
+            cleanup_vmedia_boot_mock, continue_deploy_mock, node_power_mock,
+            update_boot_mode_mock, update_secure_boot_mode_mock):
         kwargs = {'address': '123456'}
         continue_deploy_mock.return_value = {'root uuid': 'root-uuid'}
         get_iso_mock.side_effect = exception.ImageCreationFailed(
-                                             image_type='iso', error="error")
+            image_type='iso', error="error")
         self.node.provision_state = states.DEPLOYWAIT
         self.node.target_provision_state = states.ACTIVE
         self.node.save()
@@ -829,6 +859,8 @@ class VendorPassthruTestCase(db_base.DbTestCase):
             task.driver.vendor.pass_deploy_info(task, **kwargs)
 
             cleanup_vmedia_boot_mock.assert_called_once_with(task)
+            update_boot_mode_mock.assert_called_once_with(task)
+            update_secure_boot_mode_mock.assert_called_once_with(task, True)
             continue_deploy_mock.assert_called_once_with(task, **kwargs)
             get_iso_mock.assert_called_once_with(task, 'root-uuid')
             node_power_mock.assert_called_once_with(task, states.POWER_OFF)
@@ -836,22 +868,23 @@ class VendorPassthruTestCase(db_base.DbTestCase):
             self.assertEqual(states.ACTIVE, task.node.target_provision_state)
             self.assertIsNotNone(task.node.last_error)
 
-    @mock.patch.object(deploy_utils, 'notify_deploy_complete')
+    @mock.patch.object(iscsi_deploy, 'finish_deploy', autospec=True)
+    @mock.patch.object(deploy_utils, 'notify_ramdisk_to_proceed',
+                       autospec=True)
     @mock.patch.object(manager_utils, 'node_set_boot_device')
     @mock.patch.object(ilo_deploy, '_update_secure_boot_mode')
     @mock.patch.object(ilo_common, 'update_boot_mode')
     @mock.patch.object(iscsi_deploy, 'continue_deploy')
     @mock.patch.object(ilo_common, 'cleanup_vmedia_boot')
-    def _test_pass_deploy_info_localboot(self, cleanup_vmedia_boot_mock,
-                                         continue_deploy_mock,
-                                         func_update_boot_mode,
-                                         func_update_secure_boot_mode,
-                                         set_boot_device_mock,
-                                         notify_deploy_complete_mock):
-
+    def test_pass_deploy_info_boot_option_local(
+            self, cleanup_vmedia_boot_mock, continue_deploy_mock,
+            func_update_boot_mode, func_update_secure_boot_mode,
+            set_boot_device_mock, notify_ramdisk_to_proceed_mock,
+            finish_deploy_mock):
         kwargs = {'method': 'pass_deploy_info', 'address': '123456'}
         continue_deploy_mock.return_value = {'root uuid': '<some-uuid>'}
 
+        self.node.instance_info = {'capabilities': '{"boot_option": "local"}'}
         self.node.provision_state = states.DEPLOYWAIT
         self.node.target_provision_state = states.ACTIVE
         self.node.save()
@@ -867,19 +900,49 @@ class VendorPassthruTestCase(db_base.DbTestCase):
                                                          persistent=True)
             func_update_boot_mode.assert_called_once_with(task)
             func_update_secure_boot_mode.assert_called_once_with(task, True)
-            notify_deploy_complete_mock.assert_called_once_with('123456')
-            self.assertEqual(states.ACTIVE, task.node.provision_state)
-            self.assertEqual(states.NOSTATE, task.node.target_provision_state)
+            notify_ramdisk_to_proceed_mock.assert_called_once_with('123456')
+            self.assertEqual(states.DEPLOYWAIT, task.node.provision_state)
+            self.assertEqual(states.ACTIVE, task.node.target_provision_state)
+            self.assertFalse(finish_deploy_mock.called)
 
-    def test_pass_deploy_info_boot_option_local(self):
+    @mock.patch.object(iscsi_deploy, 'finish_deploy', autospec=True)
+    @mock.patch.object(manager_utils, 'node_set_boot_device', autospec=True)
+    @mock.patch.object(ilo_deploy, '_update_secure_boot_mode', autospec=True)
+    @mock.patch.object(ilo_common, 'update_boot_mode', autospec=True)
+    @mock.patch.object(iscsi_deploy, 'continue_deploy', autospec=True)
+    @mock.patch.object(ilo_common, 'cleanup_vmedia_boot', autospec=True)
+    def _test_pass_deploy_info_whole_disk_image(
+            self, cleanup_vmedia_boot_mock, continue_deploy_mock,
+            func_update_boot_mode, func_update_secure_boot_mode,
+            set_boot_device_mock, notify_ramdisk_to_proceed_mock):
+        kwargs = {'method': 'pass_deploy_info', 'address': '123456'}
+        continue_deploy_mock.return_value = {'root uuid': '<some-uuid>'}
+
+        self.node.driver_internal_info = {'is_whole_disk_image': True}
+        self.node.provision_state = states.DEPLOYWAIT
+        self.node.target_provision_state = states.ACTIVE
+        self.node.save()
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            vendor = task.driver.vendor
+            vendor.pass_deploy_info(task, **kwargs)
+
+            cleanup_vmedia_boot_mock.assert_called_once_with(task)
+            continue_deploy_mock.assert_called_once_with(task, **kwargs)
+            set_boot_device_mock.assert_called_once_with(task,
+                                                         boot_devices.DISK,
+                                                         persistent=True)
+            func_update_boot_mode.assert_called_once_with(task)
+            func_update_secure_boot_mode.assert_called_once_with(task, True)
+            iscsi_deploy.finish_deploy.assert_called_once_with(task, '123456')
+
+    def test_pass_deploy_info_whole_disk_image_local(self):
         self.node.instance_info = {'capabilities': '{"boot_option": "local"}'}
         self.node.save()
-        self._test_pass_deploy_info_localboot()
+        self._test_pass_deploy_info_whole_disk_image()
 
     def test_pass_deploy_info_whole_disk_image(self):
-        self.node.driver_internal_info = {'is_whole_disk_image': True}
-        self.node.save()
-        self._test_pass_deploy_info_localboot()
+        self._test_pass_deploy_info_whole_disk_image()
 
     @mock.patch.object(ilo_deploy, '_update_secure_boot_mode')
     @mock.patch.object(ilo_common, 'update_boot_mode')
@@ -1047,7 +1110,8 @@ class IloPXEVendorPassthruTestCase(db_base.DbTestCase):
                 driver='pxe_ilo', driver_info=INFO_DICT)
 
     def test_vendor_routes(self):
-        expected = ['heartbeat', 'pass_deploy_info']
+        expected = ['heartbeat', 'pass_deploy_info',
+                    'pass_bootloader_install_info']
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
             vendor_routes = task.driver.vendor.vendor_routes
