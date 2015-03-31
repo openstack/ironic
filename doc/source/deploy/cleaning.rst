@@ -1,0 +1,132 @@
+.. _cleaning:
+
+=============
+Node Cleaning
+=============
+
+Overview
+========
+When hardware is recycled from one workload to another, Ironic performs
+cleaning on the node to ensure it's ready for another workload. This ensures
+the tenant will get a consistent baremetal node deployed every time.
+
+Ironic implements cleaning by collecting a list of steps to perform on a node
+from each Power, Deploy, and Management driver assigned to the node. These
+steps are then arranged by priority and executed on the node when it is moved
+to CLEANING state, if cleaning is enabled.
+
+
+Enabling Cleaning
+=================
+To enable cleaning, ensure your ironic.conf is set as follows: ::
+
+  [conductor]
+  clean_nodes=true
+
+This will enable the default set of steps, based on your hardware and Ironic
+drivers. If you're using an agent_* driver, this includes, by default, erasing
+all of the previous tenant's data.
+
+
+In-Band vs Out-of-Band
+======================
+Ironic uses two main methods to perform actions on a node: in-band and
+out-of-band. Ironic supports using both methods to clean a node.
+
+In-Band
+-------
+In-band steps are performed by Ironic making API calls to a ramdisk running
+on the node using a Deploy driver. Currently, only the ironic-python-agent
+ramdisk used with an agent_* driver supports in-band cleaning. By default,
+ironic-python-agent ships with a minimal cleaning configuration, only erasing
+disks. However, with this ramdisk, you can add your own clean_steps and/or
+override default clean_steps with a custom Hardware Manager.
+
+There is currently no support for in-band cleaning using the Ironic pxe
+ramdisk.
+
+Out-of-Band
+-----------
+Out-of-band are actions performed by your management controller, such as IPMI,
+iLO, or DRAC. Out-of-band steps will be performed by Ironic using a Power or
+Management driver. Which steps are performed depends on the driver and hardware.
+
+
+FAQ
+===
+
+How are cleaning steps ordered?
+-------------------------------
+Cleaning steps are ordered by integer priority, where a larger integer is a
+higher priority. In case of a conflict between priorities across drivers,
+the following resolution order is used: Power, Management, Deploy.
+
+How do I skip a cleaning step?
+------------------------------
+Cleaning steps with a priority of 0 or None are skipped.
+
+How do I change the priority of a cleaning step?
+------------------------------------------------
+Most out-of-band cleaning steps have an explicit configuration option for
+priority.
+
+Changing the priority of an in-band (ironic-python-agent) cleaning step
+currently requires use of a custom HardwareManager. The only exception is
+erase_devices, which can have its priority set in ironic.conf. For instance,
+to disable erase_devices, you'd use the following config::
+
+  [agent]
+  agent_erase_devices_priority=0
+
+
+What clean_step is running?
+---------------------------
+To check what clean_step the node is performing or attempted to perform and
+failed, either query the node endpoint for the node or run ``ironic node-show
+$node_ident`` and look at the 'clean_step' field. This will tell you which
+step for which driver is or was (if in CLEANFAIL state) being executed.
+
+Should I disable cleaning?
+--------------------------
+Cleaning is recommended for Ironic deployments, however, there are some
+tradeoffs to having it enabled. For instance, Ironic cannot deploy a new
+instance to a node that is currently cleaning, and cleaning can be a time
+consuming process. To mitigate this, we suggest using disks with support for
+cryptographic ATA Security Erase, as typically the erase_devices step in the
+deploy driver takes the longest time to complete of all cleaning steps.
+
+
+Troubleshooting
+===============
+If cleaning fails on a node, the node will be put into CLEANFAIL state and
+placed in maintenance mode, to prevent Ironic from taking actions on the
+node.
+
+Nodes in CLEANFAIL will not be powered off, as the node might be in a state
+such that powering it off could damage the node or remove useful information
+about the nature of the cleaning failure.
+
+A CLEANFAIL node can be moved to MANAGEABLE state, where they cannot be
+scheduled by Nova and you can safely attempt to fix the node. To move a node
+from CLEANFAIL to MANAGEABLE: ``ironic node-set-provision-state manage``.
+You can now take actions on the node, such as replacing a bad disk drive.
+
+Strategies for determining why a cleaning step failed include checking the
+Ironic conductor logs, viewing logs on the still-running ironic-python-agent
+(if an in-band step failed), or performing general hardware troubleshooting on
+the node.
+
+When the node is repaired, you can move the node back to AVAILABLE state, to
+allow it to be scheduled by Nova. It will restart cleaning from the first
+step.
+
+::
+
+  # First, move it out of maintenance mode
+  ironic node-set-maintenance $node_ident false
+
+  # Now, make the node available for scheduling by Nova
+  ironic node-set-provision-state $node_ident provide
+
+The node will begin cleaning from the start, and move to AVAILABLE state
+when complete.
