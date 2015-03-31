@@ -358,7 +358,7 @@ class NodeStatesController(rest.RestController):
         :raises: ClientSideError (HTTP 409) if a power operation is
                  already in progress.
         :raises: InvalidStateRequested (HTTP 400) if the requested target
-                 state is not valid.
+                 state is not valid or if the node is in CLEANING state.
 
         """
         # TODO(lucasagomes): Test if it's able to transition to the
@@ -369,6 +369,12 @@ class NodeStatesController(rest.RestController):
         if target not in [ir_states.POWER_ON,
                           ir_states.POWER_OFF,
                           ir_states.REBOOT]:
+            raise exception.InvalidStateRequested(
+                    action=target, node=node_ident,
+                    state=rpc_node.power_state)
+
+        # Don't change power state for nodes in cleaning
+        elif rpc_node.provision_state == ir_states.CLEANING:
             raise exception.InvalidStateRequested(
                     action=target, node=node_ident,
                     state=rpc_node.power_state)

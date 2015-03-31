@@ -1618,6 +1618,13 @@ class TestPut(test_api_base.FunctionalTest):
                             {'target': 'not-supported'}, expect_errors=True)
         self.assertEqual(400, ret.status_code)
 
+    def test_power_change_during_cleaning(self):
+        self.node.provision_state = states.CLEANING
+        self.node.save()
+        ret = self.put_json('/nodes/%s/states/power' % self.node.uuid,
+                            {'target': states.POWER_OFF}, expect_errors=True)
+        self.assertEqual(400, ret.status_code)
+
     def test_provision_invalid_state_request(self):
         ret = self.put_json('/nodes/%s/states/provision' % self.node.uuid,
                             {'target': 'not-supported'}, expect_errors=True)
