@@ -95,6 +95,13 @@ consuming process. To mitigate this, we suggest using disks with support for
 cryptographic ATA Security Erase, as typically the erase_devices step in the
 deploy driver takes the longest time to complete of all cleaning steps.
 
+Why can't I power on/off a node while it's cleaning?
+----------------------------------------------------
+During cleaning, nodes may be performing actions that shouldn't be
+interrupted, such as BIOS or Firmware updates. As a result, operators are
+forbidden from changing power state via the Ironic API while a node is
+cleaning.
+
 
 Troubleshooting
 ===============
