@@ -3338,20 +3338,19 @@ class ManagerTestProperties(tests_db_base.DbTestCase):
 
     def test_driver_properties_fake_ilo(self):
         expected = ['ilo_address', 'ilo_username', 'ilo_password',
-                    'client_port', 'client_timeout', 'inspect_ports',
-                    'ilo_change_password']
+                    'client_port', 'client_timeout', 'ilo_change_password']
         self._check_driver_properties("fake_ilo", expected)
 
     def test_driver_properties_ilo_iscsi(self):
         expected = ['ilo_address', 'ilo_username', 'ilo_password',
                    'client_port', 'client_timeout', 'ilo_deploy_iso',
-                   'console_port', 'inspect_ports', 'ilo_change_password']
+                   'console_port', 'ilo_change_password']
         self._check_driver_properties("iscsi_ilo", expected)
 
     def test_driver_properties_agent_ilo(self):
         expected = ['ilo_address', 'ilo_username', 'ilo_password',
                    'client_port', 'client_timeout', 'ilo_deploy_iso',
-                   'console_port', 'inspect_ports', 'ilo_change_password']
+                   'console_port', 'ilo_change_password']
         self._check_driver_properties("agent_ilo", expected)
 
     def test_driver_properties_fail(self):
