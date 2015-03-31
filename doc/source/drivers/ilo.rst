@@ -102,6 +102,7 @@ Features
   (like PXE driver), so this driver has the  benefit of security
   enhancement with the same performance. Hence it segregates management info
   from data channel.
+* Support for Out-Of-Band cleaning operations.
 * Remote Console
 * HW Sensors
 * Works well for machines with resource constraints (lesser amount of memory).
@@ -255,6 +256,10 @@ UEFI Secure Boot
 ~~~~~~~~~~~~~~~~
 Refer to `UEFI Secure Boot support`_ section for more information.
 
+Node cleaning
+~~~~~~~~~~~~~
+Refer to ilo_node_cleaning_ for more information.
+
 agent_ilo driver
 ^^^^^^^^^^^^^^^^
 
@@ -286,6 +291,7 @@ more up-to-date information, check the iLO driver wiki [6]_.
 Features
 ~~~~~~~~
 * PXE-less deploy with Virtual Media using Ironic Python Agent.
+* Support for out-of-band cleaning operations.
 * Remote Console
 * HW Sensors
 * IPA runs on the baremetal node and pulls the image directly from Swift.
@@ -293,6 +299,8 @@ Features
 * Segregates management info from data channel.
 * UEFI Boot Support
 * UEFI Secure Boot Support
+* Support to use default in-band cleaning operations supported by
+  Ironic Python Agent. For more details, see :ref:`InbandvsOutOfBandCleaning`.
 
 Requirements
 ~~~~~~~~~~~~
@@ -438,6 +446,10 @@ UEFI Secure Boot
 ~~~~~~~~~~~~~~~~
 Refer to `UEFI Secure Boot support`_ section for more information.
 
+Node Cleaning
+~~~~~~~~~~~~~
+Refer to ilo_node_cleaning_ for more information.
+
 pxe_ilo driver
 ^^^^^^^^^^^^^^
 
@@ -473,6 +485,7 @@ Features
 * Automatic detection of current boot mode.
 * Automatic setting of the required boot mode if UEFI boot mode is requested
   by the nova flavor's extra spec.
+* Support for Out-Of-Band cleaning operations.
 
 Requirements
 ~~~~~~~~~~~~
@@ -528,6 +541,10 @@ node::
 Boot modes
 ~~~~~~~~~~
 Refer to `Boot mode support`_ section for more information.
+
+Node Cleaning
+~~~~~~~~~~~~~
+Refer to ilo_node_cleaning_ for more information.
 
 Functionalities across drivers
 ==============================
@@ -633,6 +650,57 @@ HP UEFI System Utilities User Guide. [7]_
 One can also refer to white paper on Secure Boot for Linux on HP Proliant
 servers for additional details. [8]_
 
+.. _ilo_node_cleaning:
+
+Node Cleaning
+^^^^^^^^^^^^^
+The following iLO drivers support node cleaning -
+
+* ``pxe_ilo``
+* ``iscsi_ilo``
+* ``agent_ilo``
+
+Supported Cleaning Operations
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+* The cleaning operations supported are:
+
+  -``reset_ilo``:
+    Resets the iLO. By default, enabled with priority 1.
+  -``reset_bios_to_default``:
+    Resets BIOS Settings to default. By default, enabled with priority 10.
+    This clean step is supported only on Gen9 and above servers.
+  -``reset_secure_boot_keys_to_default``:
+    Resets secure boot keys to manufacturer's defaults. This step is supported
+    only on Gen9 and above servers. By default, enabled with priority 20 .
+  -``reset_ilo_credential``:
+    Resets the iLO password, if 'ilo_change_password' is specified as part of
+    node's driver_info. By default, enabled with priority 30.
+  -``clear_secure_boot_keys``:
+    Clears all secure boot keys. This step is supported only on Gen9 and above
+    servers. By default, this step is disabled.
+
+* For in-band cleaning operations supported by ``agent_ilo`` driver, see
+  :ref:`InbandvsOutOfBandCleaning`.
+
+* All the cleaning steps have an explicit configuration option for priority.
+  In order to disable or change the priority of the clean steps, respective
+  configuration option for priority should be updated in ironic.conf.
+
+* Updating clean step priority to 0, will disable that particular clean step
+  and will not run during cleaning.
+
+* Configuration Options for the clean steps are listed under [ilo] section in
+  ironic.conf ::
+
+  - clean_priority_reset_ilo=1
+  - clean_priority_reset_bios_to_default=10
+  - clean_priority_reset_secure_boot_keys_to_default=20
+  - clean_priority_clear_secure_boot_keys=0
+  - clean_priority_reset_ilo_credential=30
+  - clean_priority_erase_devices=10
+
+For more information on node cleaning, see [9]_.
 
 References
 ==========
@@ -644,4 +712,5 @@ References
 .. [6] https://wiki.openstack.org/wiki/Ironic/Drivers/iLODrivers
 .. [7] HP UEFI System Utilities User Guide - http://www.hp.com/ctg/Manual/c04398276.pdf
 .. [8] Secure Boot for Linux on HP Proliant servers http://h20195.www2.hp.com/V2/getpdf.aspx/4AA5-4496ENW.pdf
+.. [9] http://docs.openstack.org/developer/ironic/deploy/cleaning.html
 

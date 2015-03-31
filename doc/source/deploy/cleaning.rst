@@ -34,6 +34,7 @@ This will enable the default set of steps, based on your hardware and Ironic
 drivers. If you're using an agent_* driver, this includes, by default, erasing
 all of the previous tenant's data.
 
+.. _InbandvsOutOfBandCleaning:
 
 In-Band vs Out-of-Band
 ======================
@@ -58,6 +59,8 @@ Out-of-band are actions performed by your management controller, such as IPMI,
 iLO, or DRAC. Out-of-band steps will be performed by Ironic using a Power or
 Management driver. Which steps are performed depends on the driver and hardware.
 
+For Out-of-Band cleaning operations supported by iLO drivers, refer to
+:ref:`ilo_node_cleaning`.
 
 FAQ
 ===
@@ -84,6 +87,12 @@ to disable erase_devices, you'd use the following config::
 
   [agent]
   agent_erase_devices_priority=0
+
+To enable/disable the in-band disk erase using ``agent_ilo`` driver, use the
+following config::
+
+  [ilo]
+  clean_priority_erase_devices=0
 
 
 What cleaning step is running?
