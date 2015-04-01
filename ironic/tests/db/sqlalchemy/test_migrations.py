@@ -15,15 +15,9 @@
 #    under the License.
 
 """
-Tests for database migrations. This test case reads the configuration
-file test_migrations.conf for database connection settings
-to use in the tests. For each connection found in the config file,
-the test case runs a series of test cases to ensure that migrations work
-properly.
-
-There are also "opportunistic" tests for both mysql and postgresql in here,
-which allows testing against all 3 databases (sqlite in memory, mysql, pg) in
-a properly configured unit test environment.
+Tests for database migrations. There are "opportunistic" tests for both mysql
+and postgresql in here, which allows testing against these databases in a
+properly configured unit test environment.
 
 For the opportunistic testing you need to set up a db named 'openstack_citest'
 with user 'openstack_citest' and password 'openstack_citest' on localhost.
