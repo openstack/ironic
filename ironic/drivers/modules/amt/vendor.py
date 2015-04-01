@@ -30,3 +30,10 @@ class AMTPXEVendorPassthru(pxe.VendorPassthru):
             task.driver.management.ensure_next_boot_device(task.node,
                                                            boot_devices.PXE)
         super(AMTPXEVendorPassthru, self).pass_deploy_info(task, **kwargs)
+
+    @task_manager.require_exclusive_lock
+    def continue_deploy(self, task, **kwargs):
+        if iscsi_deploy.get_boot_option(task.node) == "netboot":
+            task.driver.management.ensure_next_boot_device(task.node,
+                                                           boot_devices.PXE)
+        super(AMTPXEVendorPassthru, self).continue_deploy(task, **kwargs)

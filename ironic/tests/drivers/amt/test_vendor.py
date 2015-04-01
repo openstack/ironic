@@ -54,8 +54,9 @@ class AMTPXEVendorPassthruTestCase(db_base.DbTestCase):
 
     @mock.patch.object(amt_mgmt.AMTManagement, 'ensure_next_boot_device')
     @mock.patch.object(pxe.VendorPassthru, 'pass_deploy_info')
-    def test_vendorpassthru_pass_deploy_info(self, mock_pxe_vendorpassthru,
-                                             mock_ensure):
+    def test_vendorpassthru_pass_deploy_info_netboot(self,
+                                                     mock_pxe_vendorpassthru,
+                                                     mock_ensure):
         kwargs = {'address': '123456'}
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
@@ -80,5 +81,37 @@ class AMTPXEVendorPassthruTestCase(db_base.DbTestCase):
             task.node.target_provision_state = states.ACTIVE
             task.node.instance_info['capabilities'] = {"boot_option": "local"}
             task.driver.vendor.pass_deploy_info(task, **kwargs)
+            self.assertFalse(mock_ensure.called)
+            mock_pxe_vendorpassthru.assert_called_once_with(task, **kwargs)
+
+    @mock.patch.object(amt_mgmt.AMTManagement, 'ensure_next_boot_device')
+    @mock.patch.object(pxe.VendorPassthru, 'continue_deploy')
+    def test_vendorpassthru_continue_deploy_netboot(self,
+                                                    mock_pxe_vendorpassthru,
+                                                    mock_ensure):
+        kwargs = {'address': '123456'}
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            task.node.provision_state = states.DEPLOYWAIT
+            task.node.target_provision_state = states.ACTIVE
+            task.node.instance_info['capabilities'] = {
+                                            "boot_option": "netboot"
+                                            }
+            task.driver.vendor.continue_deploy(task, **kwargs)
+            mock_ensure.assert_called_with(task.node, boot_devices.PXE)
+            mock_pxe_vendorpassthru.assert_called_once_with(task, **kwargs)
+
+    @mock.patch.object(amt_mgmt.AMTManagement, 'ensure_next_boot_device')
+    @mock.patch.object(pxe.VendorPassthru, 'continue_deploy')
+    def test_vendorpassthru_continue_deploy_localboot(self,
+                                                      mock_pxe_vendorpassthru,
+                                                      mock_ensure):
+        kwargs = {'address': '123456'}
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            task.node.provision_state = states.DEPLOYWAIT
+            task.node.target_provision_state = states.ACTIVE
+            task.node.instance_info['capabilities'] = {"boot_option": "local"}
+            task.driver.vendor.continue_deploy(task, **kwargs)
             self.assertFalse(mock_ensure.called)
             mock_pxe_vendorpassthru.assert_called_once_with(task, **kwargs)
