@@ -38,18 +38,7 @@ from ironic import objects
 from ironic.tests.api import base as test_api_base
 from ironic.tests.api import utils as test_api_utils
 from ironic.tests import base
-from ironic.tests.db import utils as dbutils
 from ironic.tests.objects import utils as obj_utils
-
-
-# NOTE(lucasagomes): When creating a node via API (POST)
-#                    we have to use chassis_uuid
-def post_get_test_node(**kw):
-    node = test_api_utils.node_post_data(**kw)
-    chassis = dbutils.get_test_chassis()
-    node['chassis_id'] = None
-    node['chassis_uuid'] = kw.get('chassis_uuid', chassis['uuid'])
-    return node
 
 
 class TestNodeObject(base.TestCase):
@@ -1132,7 +1121,7 @@ class TestPost(test_api_base.FunctionalTest):
 
     @mock.patch.object(timeutils, 'utcnow')
     def test_create_node(self, mock_utcnow):
-        ndict = post_get_test_node()
+        ndict = test_api_utils.post_get_test_node()
         test_time = datetime.datetime(2000, 1, 1, 0, 0)
         mock_utcnow.return_value = test_time
         response = self.post_json('/nodes', ndict)
@@ -1157,7 +1146,7 @@ class TestPost(test_api_base.FunctionalTest):
         # as Unset).
         with mock.patch.object(self.dbapi, 'create_node',
                                wraps=self.dbapi.create_node) as cn_mock:
-            ndict = post_get_test_node(extra={'foo': 123})
+            ndict = test_api_utils.post_get_test_node(extra={'foo': 123})
             self.post_json('/nodes', ndict)
             result = self.get_json('/nodes/%s' % ndict['uuid'])
             self.assertEqual(ndict['extra'], result['extra'])
@@ -1169,7 +1158,7 @@ class TestPost(test_api_base.FunctionalTest):
         kwargs = {attr_name: {'str': 'foo', 'int': 123, 'float': 0.1,
                               'bool': True, 'list': [1, 2], 'none': None,
                               'dict': {'cat': 'meow'}}}
-        ndict = post_get_test_node(**kwargs)
+        ndict = test_api_utils.post_get_test_node(**kwargs)
         self.post_json('/nodes', ndict)
         result = self.get_json('/nodes/%s' % ndict['uuid'])
         self.assertEqual(ndict[attr_name], result[attr_name])
@@ -1295,7 +1284,7 @@ class TestPost(test_api_base.FunctionalTest):
         self.assertEqual(403, response.status_int)
 
     def test_create_node_no_mandatory_field_driver(self):
-        ndict = post_get_test_node()
+        ndict = test_api_utils.post_get_test_node()
         del ndict['driver']
         response = self.post_json('/nodes', ndict, expect_errors=True)
         self.assertEqual(400, response.status_int)
@@ -1303,7 +1292,7 @@ class TestPost(test_api_base.FunctionalTest):
         self.assertTrue(response.json['error_message'])
 
     def test_create_node_invalid_driver(self):
-        ndict = post_get_test_node()
+        ndict = test_api_utils.post_get_test_node()
         self.mock_gtf.side_effect = exception.NoValidHost('Fake Error')
         response = self.post_json('/nodes', ndict, expect_errors=True)
         self.assertEqual(400, response.status_int)
@@ -1311,7 +1300,7 @@ class TestPost(test_api_base.FunctionalTest):
         self.assertTrue(response.json['error_message'])
 
     def test_create_node_no_chassis_uuid(self):
-        ndict = post_get_test_node()
+        ndict = test_api_utils.post_get_test_node()
         del ndict['chassis_uuid']
         response = self.post_json('/nodes', ndict)
         self.assertEqual('application/json', response.content_type)
@@ -1323,7 +1312,8 @@ class TestPost(test_api_base.FunctionalTest):
                          expected_location)
 
     def test_create_node_with_chassis_uuid(self):
-        ndict = post_get_test_node(chassis_uuid=self.chassis.uuid)
+        ndict = test_api_utils.post_get_test_node(
+                    chassis_uuid=self.chassis.uuid)
         response = self.post_json('/nodes', ndict)
         self.assertEqual('application/json', response.content_type)
         self.assertEqual(201, response.status_int)
@@ -1336,7 +1326,7 @@ class TestPost(test_api_base.FunctionalTest):
                          expected_location)
 
     def test_create_node_chassis_uuid_not_found(self):
-        ndict = post_get_test_node(
+        ndict = test_api_utils.post_get_test_node(
                            chassis_uuid='1a1a1a1a-2b2b-3c3c-4d4d-5e5e5e5e5e5e')
         response = self.post_json('/nodes', ndict, expect_errors=True)
         self.assertEqual('application/json', response.content_type)
@@ -1344,7 +1334,7 @@ class TestPost(test_api_base.FunctionalTest):
         self.assertTrue(response.json['error_message'])
 
     def test_create_node_with_internal_field(self):
-        ndict = post_get_test_node()
+        ndict = test_api_utils.post_get_test_node()
         ndict['reservation'] = 'fake'
         response = self.post_json('/nodes', ndict, expect_errors=True)
         self.assertEqual('application/json', response.content_type)

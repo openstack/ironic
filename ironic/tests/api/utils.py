@@ -94,3 +94,13 @@ def chassis_post_data(**kw):
     chassis = utils.get_test_chassis(**kw)
     internal = chassis_controller.ChassisPatchType.internal_attrs()
     return remove_internal(chassis, internal)
+
+
+def post_get_test_node(**kw):
+    # NOTE(lucasagomes): When creating a node via API (POST)
+    #                    we have to use chassis_uuid
+    node = node_post_data(**kw)
+    chassis = utils.get_test_chassis()
+    node['chassis_id'] = None
+    node['chassis_uuid'] = kw.get('chassis_uuid', chassis['uuid'])
+    return node
