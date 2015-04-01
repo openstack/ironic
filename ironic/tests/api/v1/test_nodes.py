@@ -109,6 +109,17 @@ class TestTopLevelFunctions(base.TestCase):
     @mock.patch.object(api_v1.node, 'allow_logical_names')
     @mock.patch.object(objects.Node, 'get_by_uuid')
     @mock.patch.object(objects.Node, 'get_by_name')
+    def test__get_rpc_node_invalid_name_2(self, mock_gbn, mock_gbu,
+                                         mock_aln, mock_pr):
+        mock_aln.return_value = False
+        self.assertRaises(exception.NodeNotFound,
+                          api_node._get_rpc_node,
+                          self.invalid_name)
+
+    @mock.patch.object(pecan, 'request')
+    @mock.patch.object(api_v1.node, 'allow_logical_names')
+    @mock.patch.object(objects.Node, 'get_by_uuid')
+    @mock.patch.object(objects.Node, 'get_by_name')
     def test__get_rpc_node_invalid_uuid(self, mock_gbn, mock_gbu,
                                         mock_aln, mock_pr):
         mock_aln.return_value = True
@@ -783,7 +794,7 @@ class TestPatch(test_api_base.FunctionalTest):
                   'value': 'aaaaaaaa-1111-bbbb-2222-cccccccccccc',
                   'op': 'replace'}],
                 expect_errors=True)
-        self.assertEqual(400, response.status_code)
+        self.assertEqual(404, response.status_code)
         self.assertFalse(self.mock_update_node.called)
 
     def test_update_ok_by_name(self):
@@ -1485,7 +1496,7 @@ class TestDelete(test_api_base.FunctionalTest):
 
         response = self.delete('/nodes/%s' % node.name,
                                expect_errors=True)
-        self.assertEqual(400, response.status_int)
+        self.assertEqual(404, response.status_int)
         self.assertFalse(mock_gbn.called)
 
     @mock.patch.object(objects.Node, 'get_by_name')
@@ -1595,7 +1606,7 @@ class TestPut(test_api_base.FunctionalTest):
         response = self.put_json('/nodes/%s/states/power' % self.node.name,
                                  {'target': states.POWER_ON},
                                  expect_errors=True)
-        self.assertEqual(400, response.status_code)
+        self.assertEqual(404, response.status_code)
 
     def test_power_state_by_name(self):
         response = self.put_json('/nodes/%s/states/power' % self.node.name,
@@ -1647,7 +1658,7 @@ class TestPut(test_api_base.FunctionalTest):
         ret = self.put_json('/nodes/%s/states/provision' % self.node.name,
                             {'target': states.ACTIVE},
                             expect_errors=True)
-        self.assertEqual(400, ret.status_code)
+        self.assertEqual(404, ret.status_code)
 
     def test_provision_by_name(self):
         ret = self.put_json('/nodes/%s/states/provision' % self.node.name,
@@ -1830,7 +1841,7 @@ class TestPut(test_api_base.FunctionalTest):
         ret = self.put_json('/nodes/%s/states/console' % self.node.name,
                             {'enabled': "true"},
                             expect_errors=True)
-        self.assertEqual(400, ret.status_code)
+        self.assertEqual(404, ret.status_code)
 
     @mock.patch.object(rpcapi.ConductorAPI, 'set_console_mode')
     def test_set_console_by_name(self, mock_scm):
