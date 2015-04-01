@@ -17,10 +17,10 @@ import pecan
 from pecan import rest
 import wsme
 from wsme import types as wtypes
-import wsmeext.pecan as wsme_pecan
 
 from ironic.api.controllers import base
 from ironic.api.controllers import link
+from ironic.api import expose
 from ironic.common import exception
 from ironic.common.i18n import _
 
@@ -114,7 +114,7 @@ class DriverPassthruController(rest.RestController):
         'methods': ['GET']
     }
 
-    @wsme_pecan.wsexpose(wtypes.text, wtypes.text)
+    @expose.expose(wtypes.text, wtypes.text)
     def methods(self, driver_name):
         """Retrieve information about vendor methods of the given driver.
 
@@ -132,7 +132,7 @@ class DriverPassthruController(rest.RestController):
 
         return _VENDOR_METHODS[driver_name]
 
-    @wsme_pecan.wsexpose(wtypes.text, wtypes.text, wtypes.text,
+    @expose.expose(wtypes.text, wtypes.text, wtypes.text,
                          body=wtypes.text)
     def _default(self, driver_name, method, data=None):
         """Call a driver API extension.
@@ -166,7 +166,7 @@ class DriversController(rest.RestController):
         'properties': ['GET'],
     }
 
-    @wsme_pecan.wsexpose(DriverList)
+    @expose.expose(DriverList)
     def get_all(self):
         """Retrieve a list of drivers."""
         # FIXME(deva): formatting of the auto-generated REST API docs
@@ -176,7 +176,7 @@ class DriversController(rest.RestController):
         driver_list = pecan.request.dbapi.get_active_driver_dict()
         return DriverList.convert_with_links(driver_list)
 
-    @wsme_pecan.wsexpose(Driver, wtypes.text)
+    @expose.expose(Driver, wtypes.text)
     def get_one(self, driver_name):
         """Retrieve a single driver."""
         # NOTE(russell_h): There is no way to make this more efficient than
@@ -191,7 +191,7 @@ class DriversController(rest.RestController):
 
         raise exception.DriverNotFound(driver_name=driver_name)
 
-    @wsme_pecan.wsexpose(wtypes.text, wtypes.text)
+    @expose.expose(wtypes.text, wtypes.text)
     def properties(self, driver_name):
         """Retrieve property information of the given driver.
 

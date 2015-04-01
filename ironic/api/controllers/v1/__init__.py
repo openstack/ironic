@@ -26,7 +26,6 @@ import pecan
 from pecan import rest
 from webob import exc
 from wsme import types as wtypes
-import wsmeext.pecan as wsme_pecan
 
 from ironic.api.controllers import base
 from ironic.api.controllers import link
@@ -34,6 +33,7 @@ from ironic.api.controllers.v1 import chassis
 from ironic.api.controllers.v1 import driver
 from ironic.api.controllers.v1 import node
 from ironic.api.controllers.v1 import port
+from ironic.api import expose
 from ironic.common.i18n import _
 
 BASE_VERSION = 1
@@ -158,7 +158,7 @@ class Controller(rest.RestController):
     chassis = chassis.ChassisController()
     drivers = driver.DriversController()
 
-    @wsme_pecan.wsexpose(V1)
+    @expose.expose(V1)
     def get(self):
         # NOTE: The reason why convert() it's being called for every
         #       request is because we need to get the host url from

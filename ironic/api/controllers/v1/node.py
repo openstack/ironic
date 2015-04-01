@@ -23,7 +23,6 @@ import pecan
 from pecan import rest
 import wsme
 from wsme import types as wtypes
-import wsmeext.pecan as wsme_pecan
 
 from ironic.api.controllers import base
 from ironic.api.controllers import link
@@ -31,6 +30,7 @@ from ironic.api.controllers.v1 import collection
 from ironic.api.controllers.v1 import port
 from ironic.api.controllers.v1 import types
 from ironic.api.controllers.v1 import utils as api_utils
+from ironic.api import expose
 from ironic.common import exception
 from ironic.common.i18n import _
 from ironic.common import states as ir_states
@@ -132,7 +132,7 @@ class BootDeviceController(rest.RestController):
             return pecan.request.rpcapi.get_boot_device(pecan.request.context,
                                                         rpc_node.uuid, topic)
 
-    @wsme_pecan.wsexpose(None, types.uuid_or_name, wtypes.text, types.boolean,
+    @expose.expose(None, types.uuid_or_name, wtypes.text, types.boolean,
                          status_code=204)
     def put(self, node_ident, boot_device, persistent=False):
         """Set the boot device for a node.
@@ -155,7 +155,7 @@ class BootDeviceController(rest.RestController):
                                              persistent=persistent,
                                              topic=topic)
 
-    @wsme_pecan.wsexpose(wtypes.text, types.uuid_or_name)
+    @expose.expose(wtypes.text, types.uuid_or_name)
     def get(self, node_ident):
         """Get the current boot device for a node.
 
@@ -170,7 +170,7 @@ class BootDeviceController(rest.RestController):
         """
         return self._get_boot_device(node_ident)
 
-    @wsme_pecan.wsexpose(wtypes.text, types.uuid_or_name)
+    @expose.expose(wtypes.text, types.uuid_or_name)
     def supported(self, node_ident):
         """Get a list of the supported boot devices.
 
@@ -207,7 +207,7 @@ class ConsoleInfo(base.APIBase):
 
 class NodeConsoleController(rest.RestController):
 
-    @wsme_pecan.wsexpose(ConsoleInfo, types.uuid_or_name)
+    @expose.expose(ConsoleInfo, types.uuid_or_name)
     def get(self, node_ident):
         """Get connection information about the console.
 
@@ -225,7 +225,7 @@ class NodeConsoleController(rest.RestController):
 
         return ConsoleInfo(console_enabled=console_state, console_info=console)
 
-    @wsme_pecan.wsexpose(None, types.uuid_or_name, types.boolean,
+    @expose.expose(None, types.uuid_or_name, types.boolean,
                          status_code=202)
     def put(self, node_ident, enabled):
         """Start and stop the node console.
@@ -302,7 +302,7 @@ class NodeStatesController(rest.RestController):
     console = NodeConsoleController()
     """Expose console as a sub-element of states"""
 
-    @wsme_pecan.wsexpose(NodeStates, types.uuid_or_name)
+    @expose.expose(NodeStates, types.uuid_or_name)
     def get(self, node_ident):
         """List the states of the node.
 
@@ -314,7 +314,7 @@ class NodeStatesController(rest.RestController):
         rpc_node = api_utils.get_rpc_node(node_ident)
         return NodeStates.convert(rpc_node)
 
-    @wsme_pecan.wsexpose(None, types.uuid_or_name, wtypes.text,
+    @expose.expose(None, types.uuid_or_name, wtypes.text,
                          status_code=202)
     def power(self, node_ident, target):
         """Set the power state of the node.
@@ -352,7 +352,7 @@ class NodeStatesController(rest.RestController):
         url_args = '/'.join([node_ident, 'states'])
         pecan.response.location = link.build_url('nodes', url_args)
 
-    @wsme_pecan.wsexpose(None, types.uuid_or_name, wtypes.text,
+    @expose.expose(None, types.uuid_or_name, wtypes.text,
                          wtypes.text, status_code=202)
     def provision(self, node_ident, target, configdrive=None):
         """Asynchronous trigger the provisioning of the node.
@@ -665,7 +665,7 @@ class NodeVendorPassthruController(rest.RestController):
         'methods': ['GET']
     }
 
-    @wsme_pecan.wsexpose(wtypes.text, types.uuid_or_name)
+    @expose.expose(wtypes.text, types.uuid_or_name)
     def methods(self, node_ident):
         """Retrieve information about vendor methods of the given node.
 
@@ -685,7 +685,7 @@ class NodeVendorPassthruController(rest.RestController):
 
         return _VENDOR_METHODS[rpc_node.driver]
 
-    @wsme_pecan.wsexpose(wtypes.text, types.uuid_or_name, wtypes.text,
+    @expose.expose(wtypes.text, types.uuid_or_name, wtypes.text,
                          body=wtypes.text)
     def _default(self, node_ident, method, data=None):
         """Call a vendor extension.
@@ -728,7 +728,7 @@ class NodeMaintenanceController(rest.RestController):
         pecan.request.rpcapi.update_node(pecan.request.context,
                                          rpc_node, topic=topic)
 
-    @wsme_pecan.wsexpose(None, types.uuid_or_name, wtypes.text,
+    @expose.expose(None, types.uuid_or_name, wtypes.text,
                          status_code=202)
     def put(self, node_ident, reason=None):
         """Put the node in maintenance mode.
@@ -739,7 +739,7 @@ class NodeMaintenanceController(rest.RestController):
         """
         self._set_maintenance(node_ident, True, reason=reason)
 
-    @wsme_pecan.wsexpose(None, types.uuid_or_name, status_code=202)
+    @expose.expose(None, types.uuid_or_name, status_code=202)
     def delete(self, node_ident):
         """Remove the node from maintenance mode.
 
@@ -832,7 +832,7 @@ class NodesController(rest.RestController):
         except exception.InstanceNotFound:
             return []
 
-    @wsme_pecan.wsexpose(NodeCollection, types.uuid, types.uuid,
+    @expose.expose(NodeCollection, types.uuid, types.uuid,
                types.boolean, types.boolean, types.uuid, int, wtypes.text,
                wtypes.text)
     def get_all(self, chassis_uuid=None, instance_uuid=None, associated=None,
@@ -859,7 +859,7 @@ class NodesController(rest.RestController):
                                           associated, maintenance, marker,
                                           limit, sort_key, sort_dir)
 
-    @wsme_pecan.wsexpose(NodeCollection, types.uuid, types.uuid,
+    @expose.expose(NodeCollection, types.uuid, types.uuid,
             types.boolean, types.boolean, types.uuid, int, wtypes.text,
             wtypes.text)
     def detail(self, chassis_uuid=None, instance_uuid=None, associated=None,
@@ -894,7 +894,7 @@ class NodesController(rest.RestController):
                                           limit, sort_key, sort_dir, expand,
                                           resource_url)
 
-    @wsme_pecan.wsexpose(wtypes.text, types.uuid_or_name, types.uuid)
+    @expose.expose(wtypes.text, types.uuid_or_name, types.uuid)
     def validate(self, node=None, node_uuid=None):
         """Validate the driver interfaces, using the node's UUID or name.
 
@@ -917,7 +917,7 @@ class NodesController(rest.RestController):
         return pecan.request.rpcapi.validate_driver_interfaces(
                 pecan.request.context, rpc_node.uuid, topic)
 
-    @wsme_pecan.wsexpose(Node, types.uuid_or_name)
+    @expose.expose(Node, types.uuid_or_name)
     def get_one(self, node_ident):
         """Retrieve information about the given node.
 
@@ -929,7 +929,7 @@ class NodesController(rest.RestController):
         rpc_node = api_utils.get_rpc_node(node_ident)
         return Node.convert_with_links(rpc_node)
 
-    @wsme_pecan.wsexpose(Node, body=Node, status_code=201)
+    @expose.expose(Node, body=Node, status_code=201)
     def post(self, node):
         """Create a new node.
 
@@ -972,7 +972,7 @@ class NodesController(rest.RestController):
         return Node.convert_with_links(new_node)
 
     @wsme.validate(types.uuid, [NodePatchType])
-    @wsme_pecan.wsexpose(Node, types.uuid_or_name, body=[NodePatchType])
+    @expose.expose(Node, types.uuid_or_name, body=[NodePatchType])
     def patch(self, node_ident, patch):
         """Update an existing node.
 
@@ -1066,7 +1066,7 @@ class NodesController(rest.RestController):
 
         return Node.convert_with_links(new_node)
 
-    @wsme_pecan.wsexpose(None, types.uuid_or_name, status_code=204)
+    @expose.expose(None, types.uuid_or_name, status_code=204)
     def delete(self, node_ident):
         """Delete a node.
 

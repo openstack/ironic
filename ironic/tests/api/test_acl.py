@@ -88,7 +88,10 @@ class TestACL(base.FunctionalTest):
             self.assertEqual(200, response.status_int)
 
     def test_public_api_with_path_extensions(self):
-        for route in ('/v1/', '/v1.json', '/v1.xml'):
-            response = self.get_json(route,
+        routes = {'/v1/': 200,
+                  '/v1.json': 200,
+                  '/v1.xml': 404}
+        for url in routes:
+            response = self.get_json(url,
                                      path_prefix='', expect_errors=True)
-            self.assertEqual(200, response.status_int)
+            self.assertEqual(routes[url], response.status_int)
