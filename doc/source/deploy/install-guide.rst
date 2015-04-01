@@ -1098,17 +1098,23 @@ Hardware Inspection
 Starting with Kilo release Ironic supports hardware inspection that simplifies
 enrolling nodes. Inspection allows Ironic to discover required node properties
 once required ``driver_info`` fields (e.g. IPMI credentials) are set
-by an operator. There are two kinds of inspection supported by Ironic:
+by an operator. Inspection will also create the ironic ports for the
+discovered ethernet MACs. Operators will have to manually delete the ironic
+ports for which physical media is not connected. This is required due to the
+`bug 1405131 <https://bugs.launchpad.net/ironic/+bug/1405131>`_.
 
-#. Out-of-band inspection may be supported by some vendor drivers.
+There are two kinds of inspection supported by Ironic:
+
+#. Out-of-band inspection is currently implemented by iLO drivers, listed at
+   :ref:`ilo`.
 
 #. In-band inspection is performed by utilizing the ironic-discoverd_ project.
    This is supported by the following drivers::
 
-   pxe_drac
-   pxe_ipmitool
-   pxe_ipminative
-   pxe_ssh
+    pxe_drac
+    pxe_ipmitool
+    pxe_ipminative
+    pxe_ssh
 
   As of Kilo release this feature needs to be explicitly enabled in the
   configuration by setting ``enabled = True`` in ``[discoverd]`` section.
@@ -1125,13 +1131,24 @@ by an operator. There are two kinds of inspection supported by Ironic:
     add_ports = all
     keep_ports = present
 
-  (requires ironic-discoverd of version 1.1.0 or higher). Note that in this
-  case an operator is responsible for deleting ports that can't be actually
-  used by Ironic, see `bug 1405131
-  <https://bugs.launchpad.net/ironic/+bug/1405131>`_ for explanation.
+  Note: It will require ironic-discoverd of version 1.1.0 or higher.
+
+Inspection can be initiated using node-set-provision-state.
+The node should be in MANAGEABLE state before inspection is initiated.
+
+* Move node to manageable state::
+
+    ironic node-set-provision-state <node_UUID> manage
+
+* Initiate inspection::
+
+    ironic node-set-provision-state <node_UUID> inspect
+
+.. note::
+    The above commands require the python-ironicclient_ to be version 0.5.0 or greater.
 
 .. _ironic-discoverd: https://github.com/stackforge/ironic-discoverd
-
+.. _python-ironicclient: https://pypi.python.org/pypi/python-ironicclient
 
 Specifying the disk for deployment
 ==================================
