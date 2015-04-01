@@ -48,78 +48,30 @@ class IloInspectTestCase(db_base.DbTestCase):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
             properties = ilo_common.REQUIRED_PROPERTIES.copy()
-            properties.update(ilo_common.INSPECT_PROPERTIES)
             self.assertEqual(properties,
                              task.driver.inspect.get_properties())
 
     @mock.patch.object(ilo_common, 'parse_driver_info')
-    def test_validate_inspect_ports_valid_with_comma(self, driver_info_mock):
+    def test_validate(self, driver_info_mock):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
-            driver_info_mock.return_value = {'inspect_ports': '1,2'}
             task.driver.inspect.validate(task)
-            driver_info_mock.assert_called_once_with(task.node)
-
-    @mock.patch.object(ilo_common, 'parse_driver_info')
-    def test_validate_inspect_ports_valid_None(self, driver_info_mock):
-        with task_manager.acquire(self.context, self.node.uuid,
-                                  shared=False) as task:
-            driver_info_mock.return_value = {'inspect_ports': 'None'}
-            task.driver.inspect.validate(task)
-            driver_info_mock.assert_called_once_with(task.node)
-
-    @mock.patch.object(ilo_common, 'parse_driver_info')
-    def test_validate_inspect_ports_valid_all(self, driver_info_mock):
-        with task_manager.acquire(self.context, self.node.uuid,
-                                  shared=False) as task:
-            driver_info_mock.return_value = {'inspect_ports': 'all'}
-            task.driver.inspect.validate(task)
-            driver_info_mock.assert_called_once_with(task.node)
-
-    @mock.patch.object(ilo_common, 'parse_driver_info')
-    def test_validate_inspect_ports_valid_single(self, driver_info_mock):
-        with task_manager.acquire(self.context, self.node.uuid,
-                                  shared=False) as task:
-            driver_info_mock.return_value = {'inspect_ports': '1'}
-            task.driver.inspect.validate(task)
-            driver_info_mock.assert_called_once_with(task.node)
-
-    @mock.patch.object(ilo_common, 'parse_driver_info')
-    def test_validate_inspect_ports_invalid(self, driver_info_mock):
-        with task_manager.acquire(self.context, self.node.uuid,
-                                  shared=False) as task:
-            driver_info_mock.return_value = {'inspect_ports': 'abc'}
-            self.assertRaises(exception.InvalidParameterValue,
-                              task.driver.inspect.validate, task)
-            driver_info_mock.assert_called_once_with(task.node)
-
-    @mock.patch.object(ilo_common, 'parse_driver_info')
-    def test_validate_inspect_ports_missing(self, driver_info_mock):
-        with task_manager.acquire(self.context, self.node.uuid,
-                                  shared=False) as task:
-            driver_info_mock.return_value = {'xyz': 'abc'}
-            self.assertRaises(exception.MissingParameterValue,
-                              task.driver.inspect.validate, task)
             driver_info_mock.assert_called_once_with(task.node)
 
     @mock.patch.object(ilo_inspect, '_get_capabilities')
     @mock.patch.object(ilo_inspect, '_create_ports_if_not_exist')
-    @mock.patch.object(ilo_inspect, '_get_macs_for_desired_ports')
     @mock.patch.object(ilo_inspect, '_get_essential_properties')
     @mock.patch.object(ilo_power.IloPower, 'get_power_state')
     @mock.patch.object(ilo_common, 'get_ilo_object')
     def test_inspect_essential_ok(self, get_ilo_object_mock,
                                   power_mock,
                                   get_essential_mock,
-                                  desired_macs_mock,
                                   create_port_mock,
                                   get_capabilities_mock):
         ilo_object_mock = get_ilo_object_mock.return_value
         properties = {'memory_mb': '512', 'local_gb': '10',
                       'cpus': '1', 'cpu_arch': 'x86_64'}
         macs = {'Port 1': 'aa:aa:aa:aa:aa:aa', 'Port 2': 'bb:bb:bb:bb:bb:bb'}
-        desired_macs_mock.return_value = {'Port 1': 'aa:aa:aa:aa:aa:aa',
-                                          'Port 2': 'bb:bb:bb:bb:bb:bb'}
         capabilities = ''
         result = {'properties': properties, 'macs': macs}
         get_essential_mock.return_value = result
@@ -127,7 +79,6 @@ class IloInspectTestCase(db_base.DbTestCase):
         power_mock.return_value = states.POWER_ON
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
-            task.node.driver_info = {'inspect_ports': 'all'}
             task.driver.inspect.inspect_hardware(task)
             self.assertEqual(properties, task.node.properties)
             power_mock.assert_called_once_with(task)
@@ -139,7 +90,6 @@ class IloInspectTestCase(db_base.DbTestCase):
 
     @mock.patch.object(ilo_inspect, '_get_capabilities')
     @mock.patch.object(ilo_inspect, '_create_ports_if_not_exist')
-    @mock.patch.object(ilo_inspect, '_get_macs_for_desired_ports')
     @mock.patch.object(ilo_inspect, '_get_essential_properties')
     @mock.patch.object(conductor_utils, 'node_power_action')
     @mock.patch.object(ilo_power.IloPower, 'get_power_state')
@@ -148,15 +98,12 @@ class IloInspectTestCase(db_base.DbTestCase):
                                             power_mock,
                                             set_power_mock,
                                             get_essential_mock,
-                                            desired_macs_mock,
                                             create_port_mock,
                                             get_capabilities_mock):
         ilo_object_mock = get_ilo_object_mock.return_value
         properties = {'memory_mb': '512', 'local_gb': '10',
                       'cpus': '1', 'cpu_arch': 'x86_64'}
         macs = {'Port 1': 'aa:aa:aa:aa:aa:aa', 'Port 2': 'bb:bb:bb:bb:bb:bb'}
-        desired_macs_mock.return_value = {'Port 1': 'aa:aa:aa:aa:aa:aa',
-                                          'Port 2': 'bb:bb:bb:bb:bb:bb'}
         capabilities = ''
         result = {'properties': properties, 'macs': macs}
         get_essential_mock.return_value = result
@@ -164,7 +111,6 @@ class IloInspectTestCase(db_base.DbTestCase):
         power_mock.return_value = states.POWER_OFF
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
-            task.node.driver_info = {'inspect_ports': 'all'}
             task.driver.inspect.inspect_hardware(task)
             self.assertEqual(properties, task.node.properties)
             power_mock.assert_called_once_with(task)
@@ -177,22 +123,18 @@ class IloInspectTestCase(db_base.DbTestCase):
 
     @mock.patch.object(ilo_inspect, '_get_capabilities')
     @mock.patch.object(ilo_inspect, '_create_ports_if_not_exist')
-    @mock.patch.object(ilo_inspect, '_get_macs_for_desired_ports')
     @mock.patch.object(ilo_inspect, '_get_essential_properties')
     @mock.patch.object(ilo_power.IloPower, 'get_power_state')
     @mock.patch.object(ilo_common, 'get_ilo_object')
     def test_inspect_essential_capabilities_ok(self, get_ilo_object_mock,
                                                power_mock,
                                                get_essential_mock,
-                                               desired_macs_mock,
                                                create_port_mock,
                                                get_capabilities_mock):
         ilo_object_mock = get_ilo_object_mock.return_value
         properties = {'memory_mb': '512', 'local_gb': '10',
                       'cpus': '1', 'cpu_arch': 'x86_64'}
         macs = {'Port 1': 'aa:aa:aa:aa:aa:aa', 'Port 2': 'bb:bb:bb:bb:bb:bb'}
-        desired_macs_mock.return_value = {'Port 1': 'aa:aa:aa:aa:aa:aa',
-                                          'Port 2': 'bb:bb:bb:bb:bb:bb'}
         capability_str = 'BootMode:uefi'
         capabilities = {'BootMode': 'uefi'}
         result = {'properties': properties, 'macs': macs}
@@ -201,7 +143,6 @@ class IloInspectTestCase(db_base.DbTestCase):
         power_mock.return_value = states.POWER_ON
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
-            task.node.driver_info = {'inspect_ports': 'all'}
             task.driver.inspect.inspect_hardware(task)
             expected_properties = {'memory_mb': '512', 'local_gb': '10',
                                    'cpus': '1', 'cpu_arch': 'x86_64',
@@ -216,14 +157,12 @@ class IloInspectTestCase(db_base.DbTestCase):
 
     @mock.patch.object(ilo_inspect, '_get_capabilities')
     @mock.patch.object(ilo_inspect, '_create_ports_if_not_exist')
-    @mock.patch.object(ilo_inspect, '_get_macs_for_desired_ports')
     @mock.patch.object(ilo_inspect, '_get_essential_properties')
     @mock.patch.object(ilo_power.IloPower, 'get_power_state')
     @mock.patch.object(ilo_common, 'get_ilo_object')
     def test_inspect_essential_capabilities_exist_ok(self, get_ilo_object_mock,
                                                      power_mock,
                                                      get_essential_mock,
-                                                     desired_macs_mock,
                                                      create_port_mock,
                                                      get_capabilities_mock):
         ilo_object_mock = get_ilo_object_mock.return_value
@@ -231,8 +170,6 @@ class IloInspectTestCase(db_base.DbTestCase):
                       'cpus': '1', 'cpu_arch': 'x86_64',
                       'somekey': 'somevalue'}
         macs = {'Port 1': 'aa:aa:aa:aa:aa:aa', 'Port 2': 'bb:bb:bb:bb:bb:bb'}
-        desired_macs_mock.return_value = {'Port 1': 'aa:aa:aa:aa:aa:aa',
-                                          'Port 2': 'bb:bb:bb:bb:bb:bb'}
         result = {'properties': properties, 'macs': macs}
         capabilities = {'BootMode': 'uefi'}
         get_essential_mock.return_value = result
@@ -240,7 +177,6 @@ class IloInspectTestCase(db_base.DbTestCase):
         power_mock.return_value = states.POWER_ON
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
-            task.node.driver_info = {'inspect_ports': 'all'}
             task.node.properties = {'capabilities': 'foo:bar'}
             expected_capabilities = ('BootMode:uefi,'
                                      'foo:bar')
@@ -259,75 +195,6 @@ class IloInspectTestCase(db_base.DbTestCase):
             get_capabilities_mock.assert_called_once_with(task.node,
                                                           ilo_object_mock)
             create_port_mock.assert_called_once_with(task.node, macs)
-
-    @mock.patch.object(ilo_inspect, '_get_capabilities')
-    @mock.patch.object(ilo_inspect, '_create_ports_if_not_exist')
-    @mock.patch.object(ilo_inspect, '_get_macs_for_desired_ports')
-    @mock.patch.object(ilo_inspect, '_get_essential_properties')
-    @mock.patch.object(ilo_power.IloPower, 'get_power_state')
-    @mock.patch.object(ilo_common, 'get_ilo_object')
-    def test_inspect_hardware_port_desired(self, get_ilo_object_mock,
-                                      power_mock,
-                                      get_essential_mock,
-                                      desired_macs_mock,
-                                      create_port_mock,
-                                      get_capabilities_mock):
-        ilo_object_mock = get_ilo_object_mock.return_value
-        properties = {'memory_mb': '512', 'local_gb': '10',
-                      'cpus': '1', 'cpu_arch': 'x86_64'}
-        macs = {'Port 1': 'aa:aa:aa:aa:aa:aa', 'Port 2': 'bb:bb:bb:bb:bb:bb'}
-        result = {'properties': properties, 'macs': macs}
-        macs_input_given = {'Port 1': 'aa:aa:aa:aa:aa:aa'}
-        desired_macs_mock.return_value = macs_input_given
-        capabilities = ''
-        get_essential_mock.return_value = result
-        get_capabilities_mock.return_value = capabilities
-        power_mock.return_value = states.POWER_ON
-        with task_manager.acquire(self.context, self.node.uuid,
-                                  shared=False) as task:
-            task.node.driver_info = {'inspect_ports': '1'}
-            task.driver.inspect.inspect_hardware(task)
-            power_mock.assert_called_once_with(task)
-            get_essential_mock.assert_called_once_with(task.node,
-                                                       ilo_object_mock)
-            self.assertEqual(task.node.properties, result['properties'])
-            get_capabilities_mock.assert_called_once_with(task.node,
-                                                          ilo_object_mock)
-            create_port_mock.assert_called_once_with(task.node,
-                                                     macs_input_given)
-
-    @mock.patch.object(ilo_inspect, '_get_capabilities')
-    @mock.patch.object(ilo_inspect, '_create_ports_if_not_exist')
-    @mock.patch.object(ilo_inspect, '_get_macs_for_desired_ports')
-    @mock.patch.object(ilo_inspect, '_get_essential_properties')
-    @mock.patch.object(ilo_power.IloPower, 'get_power_state')
-    @mock.patch.object(ilo_common, 'get_ilo_object')
-    def test_inspect_hardware_port_desired_none(self, get_ilo_object_mock,
-                                      power_mock,
-                                      get_essential_mock,
-                                      desired_macs_mock,
-                                      create_port_mock,
-                                      get_capabilities_mock):
-        ilo_object_mock = get_ilo_object_mock.return_value
-        properties = {'memory_mb': '512', 'local_gb': '10',
-                      'cpus': '1', 'cpu_arch': 'x86_64'}
-        macs = {'Port 1': 'aa:aa:aa:aa:aa:aa', 'Port 2': 'bb:bb:bb:bb:bb:bb'}
-        result = {'properties': properties, 'macs': macs}
-        macs_input_given = {'Port 1': 'aa:aa:aa:aa:aa:aa'}
-        capabilities = ''
-        get_capabilities_mock.return_value = capabilities
-        desired_macs_mock.return_value = macs_input_given
-        get_essential_mock.return_value = result
-        power_mock.return_value = states.POWER_ON
-        with task_manager.acquire(self.context, self.node.uuid,
-                                  shared=False) as task:
-            task.node.driver_info = {'inspect_ports': 'none'}
-            task.driver.inspect.inspect_hardware(task)
-            power_mock.assert_called_once_with(task)
-            get_essential_mock.assert_called_once_with(task.node,
-                                                       ilo_object_mock)
-            self.assertEqual(task.node.properties, result['properties'])
-            self.assertFalse(create_port_mock.called)
 
 
 class TestInspectPrivateMethods(db_base.DbTestCase):
@@ -523,44 +390,3 @@ class TestInspectPrivateMethods(db_base.DbTestCase):
         set2 = set(cap_returned.split(','))
         self.assertEqual(set1, set2)
         self.assertIsInstance(cap_returned, str)
-
-    def test__get_macs_for_desired_ports(self):
-        driver_info_mock = {'inspect_ports': '1,2'}
-        self.node.driver_info = driver_info_mock
-        macs = {'Port 1': 'aa:aa:aa:aa:aa:aa', 'Port 2': 'bb:bb:bb:bb:bb:bb'}
-        expected_macs = {'Port 1': 'aa:aa:aa:aa:aa:aa',
-                         'Port 2': 'bb:bb:bb:bb:bb:bb'}
-        macs_out = (
-             ilo_inspect._get_macs_for_desired_ports(self.node,
-                                                             macs))
-        self.assertEqual(expected_macs, macs_out)
-
-    def test__get_macs_for_desired_ports_few(self):
-        driver_info_mock = {'inspect_ports': '1,2'}
-        self.node.driver_info = driver_info_mock
-        macs = {'Port 1': 'aa:aa:aa:aa:aa:aa', 'Port 2': 'bb:bb:bb:bb:bb:bb',
-                'Port 3': 'cc:cc:cc:cc:cc:cc', 'Port 4': 'dd:dd:dd:dd:dd:dd'}
-        expected_macs = {'Port 1': 'aa:aa:aa:aa:aa:aa',
-                         'Port 2': 'bb:bb:bb:bb:bb:bb'}
-        macs_out = (
-             ilo_inspect._get_macs_for_desired_ports(self.node,
-                                                             macs))
-        self.assertEqual(expected_macs, macs_out)
-
-    def test__get_macs_for_desired_ports_one(self):
-        driver_info_mock = {'inspect_ports': '1'}
-        self.node.driver_info = driver_info_mock
-        macs = {'Port 1': 'aa:aa:aa:aa:aa:aa', 'Port 2': 'bb:bb:bb:bb:bb:bb'}
-        expected_macs = {'Port 1': 'aa:aa:aa:aa:aa:aa'}
-        macs_out = (
-             ilo_inspect._get_macs_for_desired_ports(self.node,
-                                                             macs))
-        self.assertEqual(expected_macs, macs_out)
-
-    def test__get_macs_for_desired_ports_none(self):
-        driver_info_mock = {}
-        self.node.driver_info = driver_info_mock
-        macs = {'Port 1': 'aa:aa:aa:aa:aa:aa', 'Port 2': 'bb:bb:bb:bb:bb:bb'}
-        self.assertRaises(exception.HardwareInspectionFailure,
-                          ilo_inspect._get_macs_for_desired_ports,
-                          self.node, macs)

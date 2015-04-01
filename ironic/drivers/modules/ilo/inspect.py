@@ -186,78 +186,6 @@ def _update_capabilities(node, new_capabilities):
                      for key, value in six.iteritems(cap_dict)])
 
 
-def _get_macs_for_desired_ports(node, macs):
-    """Get the dict of MACs which are desired by the operator.
-
-    Get the MACs for desired ports.
-    Returns a dictionary of MACs associated with the ports specified
-    in the node's driver_info/inspect_ports.
-
-    The driver_info field is expected to be populated with
-    comma-separated port numbers like driver_info/inspect_ports='1,2'.
-    In this case the inspection is expected to create ironic ports
-    only for these two ports.
-    The proliantutils is expected to return key value pair for each
-    MAC address like:
-    {'Port 1': 'aa:aa:aa:aa:aa:aa', 'Port 2': 'bb:bb:bb:bb:bb:bb'}
-
-    Possible scenarios:
-    'inspect_ports' == 'all' : creates ports for all inspected MACs
-    'inspect_ports' == <valid_port_numbers>: creates ports for
-                                             requested port numbers.
-    'inspect_ports' == <mix_of_valid_invalid> : raise error for
-                                                invalid inputs.
-    'inspect_ports' == 'none' : doesn't do any action with the
-                                inspected mac addresses.
-
-    This method is not called if 'inspect_ports' == 'none', hence the
-    scenario is not covered under this method.
-
-    :param node: a node object.
-    :param macs: a dictionary of MAC addresses returned by the hardware
-                 with inspection.
-    :returns: a dictionary of port numbers and MAC addresses with only
-              the MACs requested by operator in
-              node.driver_info['inspect_ports']
-    :raises: HardwareInspectionFailure for the non-existing ports
-             requested in node.driver_info['inspect_ports']
-
-    """
-    driver_info = node.driver_info
-    desired_macs = str(driver_info.get('inspect_ports'))
-
-    # If the operator has given 'all' just return all the macs
-    # returned by inspection.
-    if desired_macs.lower() == 'all':
-        to_be_created_macs = macs
-    else:
-        to_be_created_macs = {}
-        # The list should look like ['Port 1', 'Port 2'] as
-        # iLO returns port numbers like this.
-        desired_macs_list = [
-            'Port %s' % port_number
-            for port_number in (desired_macs.split(','))]
-
-        # Check if the given input is valid or not. Return all the
-        # requested macs.
-        non_existing_ports = []
-        for port_number in desired_macs_list:
-            mac_address = macs.get(port_number)
-            if mac_address:
-                to_be_created_macs[port_number] = mac_address
-            else:
-                non_existing_ports.append(port_number)
-
-        # It is possible that operator has given a wrong input by mistake.
-        if non_existing_ports:
-            error = (_("Could not find requested ports %(ports)s on the "
-                       "node %(node)s")
-                       % {'ports': non_existing_ports, 'node': node.uuid})
-            raise exception.HardwareInspectionFailure(error=error)
-
-    return to_be_created_macs
-
-
 def _get_capabilities(node, ilo_object):
     """inspects hardware and gets additional capabilities.
 
@@ -281,9 +209,7 @@ def _get_capabilities(node, ilo_object):
 class IloInspect(base.InspectInterface):
 
     def get_properties(self):
-        d = ilo_common.REQUIRED_PROPERTIES.copy()
-        d.update(ilo_common.INSPECT_PROPERTIES)
-        return d
+        return ilo_common.REQUIRED_PROPERTIES
 
     def validate(self, task):
         """Check that 'driver_info' contains required ILO credentials.
@@ -295,33 +221,18 @@ class IloInspect(base.InspectInterface):
         :raises: InvalidParameterValue if required iLO parameters
                  are not valid.
         :raises: MissingParameterValue if a required parameter is missing.
-        :raises: InvalidParameterValue if invalid input provided.
-
         """
         node = task.node
-        driver_info = ilo_common.parse_driver_info(node)
-        if 'inspect_ports' not in driver_info:
-            raise exception.MissingParameterValue(_(
-                "Missing 'inspect_ports' parameter in node's driver_info."))
-        value = driver_info['inspect_ports']
-        if (value.lower() != 'all' and value.lower() != 'none'
-            and not all(s.isdigit() for s in value.split(','))):
-                raise exception.InvalidParameterValue(_(
-                    "inspect_ports can accept either comma separated "
-                    "port numbers, or a single port number, or 'all' "
-                    "or 'none'. %(value)s given for node %(node)s "
-                    "driver_info['inspect_ports']")
-                    % {'value': value, 'node': node})
+        ilo_common.parse_driver_info(node)
 
     def inspect_hardware(self, task):
         """Inspect hardware to get the hardware properties.
 
         Inspects hardware to get the essential and additional hardware
         properties. It fails if any of the essential properties
-        are not received from the node or if 'inspect_ports' is
-        not provided in driver_info.
-        It doesn't fail if node fails to return any capabilities as
-        the capabilities differ from hardware to hardware mostly.
+        are not received from the node.  It doesn't fail if node fails
+        to return any capabilities as the capabilities differ from hardware
+        to hardware mostly.
 
         :param task: a TaskManager instance.
         :raises: HardwareInspectionFailure if essential properties
@@ -371,22 +282,8 @@ class IloInspect(base.InspectInterface):
 
         task.node.save()
 
-        # Get the desired node inputs from the driver_info and create ports
-        # as requested. It doesn't delete the ports because there is
-        # no way for the operator to know which all MACs are associated
-        # with the node and which are not. The proliantutils can
-        # return only embedded NICs mac addresses and not the STANDUP NIC
-        # cards. The port creation code is not excercised if
-        # 'inspect_ports' == 'none'.
-
-        driver_info = task.node.driver_info
-        if (driver_info['inspect_ports']).lower() != 'none':
-            macs_input_given = (
-                _get_macs_for_desired_ports(task.node, result['macs']))
-
-            if macs_input_given:
-                # Create ports only for the requested ports.
-                _create_ports_if_not_exist(task.node, macs_input_given)
+        # Create ports for the nics detected.
+        _create_ports_if_not_exist(task.node, result['macs'])
 
         LOG.debug(("Node properties for %(node)s are updated as "
                    "%(properties)s"),
