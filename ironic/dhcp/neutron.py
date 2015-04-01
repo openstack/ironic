@@ -27,7 +27,6 @@ from ironic.common.i18n import _LE
 from ironic.common.i18n import _LW
 from ironic.common import keystone
 from ironic.common import network
-from ironic.conductor import manager
 from ironic.dhcp import base
 from ironic.drivers.modules import ssh
 from ironic.openstack.common import log as logging
@@ -310,25 +309,20 @@ class NeutronDHCPApi(base.BaseDHCP):
             try:
                 port = neutron_client.create_port(body)
             except neutron_client_exc.ConnectionFailed as e:
+                self._rollback_cleaning_ports(task)
                 msg = (_('Could not create cleaning port on network %(net)s '
                          'from %(node)s. %(exc)s') %
                        {'net': CONF.neutron.cleaning_network_uuid,
                         'node': task.node.uuid,
                         'exc': e})
                 LOG.exception(msg)
-                return manager.cleaning_error_handler(task, msg)
+                raise exception.NodeCleaningFailure(msg)
             if not port.get('port') or not port['port'].get('id'):
-                # Rollback changes
-                try:
-                    self.delete_cleaning_ports(task)
-                except Exception:
-                    # Log the error, but continue to cleaning error handler
-                    LOG.exception(_LE('Failed to rollback cleaning port '
-                                      'changes for node %s') % task.node.uuid)
+                self._rollback_cleaning_ports(task)
                 msg = (_('Failed to create cleaning ports for node '
                          '%(node)s') % task.node.uuid)
                 LOG.error(msg)
-                return manager.cleaning_error_handler(task, msg)
+                raise exception.NodeCleaningFailure(msg)
             # Match return value of get_node_vif_ids()
             ports[ironic_port.uuid] = port['port']['id']
         return ports
@@ -351,7 +345,7 @@ class NeutronDHCPApi(base.BaseDHCP):
                    {'node': task.node.uuid,
                     'exc': e})
             LOG.exception(msg)
-            return manager.cleaning_error_handler(task, msg)
+            raise exception.NodeCleaningFailure(msg)
 
         # Iterate the list of Neutron port dicts, remove the ones we added
         for neutron_port in ports.get('ports', []):
@@ -367,4 +361,20 @@ class NeutronDHCPApi(base.BaseDHCP):
                             'node': task.node.uuid,
                             'exc': e})
                     LOG.exception(msg)
-                    return manager.cleaning_error_handler(task, msg)
+                    raise exception.NodeCleaningFailure(msg)
+
+    def _rollback_cleaning_ports(self, task):
+        """Attempts to delete any ports created by cleaning
+
+        Purposefully will not raise any exceptions so error handling can
+        continue.
+
+        :param task: a TaskManager instance.
+        """
+        try:
+            self.delete_cleaning_ports(task)
+        except Exception:
+            # Log the error, but let the caller invoke the
+            # manager.cleaning_error_handler().
+            LOG.exception(_LE('Failed to rollback cleaning port '
+                              'changes for node %s') % task.node.uuid)

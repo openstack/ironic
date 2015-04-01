@@ -37,6 +37,7 @@ from ironic.common import states
 from ironic.common import utils as common_utils
 from ironic.conductor import task_manager
 from ironic.conductor import utils as manager_utils
+from ironic.drivers.modules import agent_client
 from ironic.drivers.modules import deploy_utils as utils
 from ironic.drivers.modules import image_cache
 from ironic.tests import base as tests_base
@@ -1526,7 +1527,9 @@ class AgentCleaningTestCase(db_base.DbTestCase):
     def setUp(self):
         super(AgentCleaningTestCase, self).setUp()
         mgr_utils.mock_the_extension_manager(driver='fake_agent')
-        n = {'driver': 'fake_agent'}
+        n = {'driver': 'fake_agent',
+             'driver_internal_info': {'agent_url': 'http://127.0.0.1:9999'}}
+
         self.node = obj_utils.create_test_node(self.context, **n)
         self.ports = [obj_utils.create_test_port(self.context,
                                                  node_id=self.node.id)]
@@ -1551,39 +1554,34 @@ class AgentCleaningTestCase(db_base.DbTestCase):
         }
 
     @mock.patch('ironic.objects.Port.list_by_node_id')
-    @mock.patch('ironic.drivers.modules.deploy_utils._get_agent_client')
-    def test_get_clean_steps(self, get_client_mock, list_ports_mock):
-        client_mock = mock.Mock()
-        client_mock.get_clean_steps.return_value = {
+    @mock.patch.object(agent_client.AgentClient, 'get_clean_steps')
+    def test_get_clean_steps(self, client_mock, list_ports_mock):
+        client_mock.return_value = {
             'command_result': self.clean_steps}
-        get_client_mock.return_value = client_mock
         list_ports_mock.return_value = self.ports
 
         with task_manager.acquire(
                 self.context, self.node['uuid'], shared=False) as task:
             response = utils.agent_get_clean_steps(task)
-            client_mock.get_clean_steps.assert_called_once_with(task.node,
-                                                                self.ports)
+            client_mock.assert_called_once_with(task.node, self.ports)
             self.assertEqual('1', task.node.driver_internal_info[
                 'hardware_manager_version'])
 
             # Since steps are returned in dicts, they have non-deterministic
             # ordering
             self.assertEqual(2, len(response))
-            self.assertTrue(self.clean_steps['clean_steps'][
-                                'GenericHardwareManager'][0] in response)
-            self.assertTrue(self.clean_steps['clean_steps'][
-                                'SpecificHardwareManager'][0] in response)
+            self.assertIn(self.clean_steps['clean_steps'][
+                'GenericHardwareManager'][0], response)
+            self.assertIn(self.clean_steps['clean_steps'][
+                'SpecificHardwareManager'][0], response)
 
     @mock.patch('ironic.objects.Port.list_by_node_id')
-    @mock.patch('ironic.drivers.modules.deploy_utils._get_agent_client')
-    def test_get_clean_steps_missing_steps(self, get_client_mock,
+    @mock.patch.object(agent_client.AgentClient, 'get_clean_steps')
+    def test_get_clean_steps_missing_steps(self, client_mock,
                                            list_ports_mock):
-        client_mock = mock.Mock()
         del self.clean_steps['clean_steps']
-        client_mock.get_clean_steps.return_value = {
+        client_mock.return_value = {
             'command_result': self.clean_steps}
-        get_client_mock.return_value = client_mock
         list_ports_mock.return_value = self.ports
 
         with task_manager.acquire(
@@ -1591,16 +1589,13 @@ class AgentCleaningTestCase(db_base.DbTestCase):
             self.assertRaises(exception.NodeCleaningFailure,
                               utils.agent_get_clean_steps,
                               task)
-            client_mock.get_clean_steps.assert_called_once_with(task.node,
-                                                                self.ports)
+            client_mock.assert_called_once_with(task.node, self.ports)
 
     @mock.patch('ironic.objects.Port.list_by_node_id')
-    @mock.patch('ironic.drivers.modules.deploy_utils._get_agent_client')
-    def test_execute_clean_step(self, get_client_mock, list_ports_mock):
-        client_mock = mock.Mock()
-        client_mock.execute_clean_step.return_value = {
+    @mock.patch.object(agent_client.AgentClient, 'execute_clean_step')
+    def test_execute_clean_step(self, client_mock, list_ports_mock):
+        client_mock.return_value = {
             'command_status': 'SUCCEEDED'}
-        get_client_mock.return_value = client_mock
         list_ports_mock.return_value = self.ports
 
         with task_manager.acquire(
@@ -1611,13 +1606,10 @@ class AgentCleaningTestCase(db_base.DbTestCase):
             self.assertEqual(states.CLEANING, response)
 
     @mock.patch('ironic.objects.Port.list_by_node_id')
-    @mock.patch('ironic.drivers.modules.deploy_utils._get_agent_client')
-    def test_execute_clean_step_running(self, get_client_mock,
-                                        list_ports_mock):
-        client_mock = mock.Mock()
-        client_mock.execute_clean_step.return_value = {
+    @mock.patch.object(agent_client.AgentClient, 'execute_clean_step')
+    def test_execute_clean_step_running(self, client_mock, list_ports_mock):
+        client_mock.return_value = {
             'command_status': 'RUNNING'}
-        get_client_mock.return_value = client_mock
         list_ports_mock.return_value = self.ports
 
         with task_manager.acquire(
@@ -1628,13 +1620,11 @@ class AgentCleaningTestCase(db_base.DbTestCase):
             self.assertEqual(states.CLEANING, response)
 
     @mock.patch('ironic.objects.Port.list_by_node_id')
-    @mock.patch('ironic.drivers.modules.deploy_utils._get_agent_client')
-    def test_execute_clean_step_version_mismatch(self, get_client_mock,
+    @mock.patch.object(agent_client.AgentClient, 'execute_clean_step')
+    def test_execute_clean_step_version_mismatch(self, client_mock,
                                         list_ports_mock):
-        client_mock = mock.Mock()
-        client_mock.execute_clean_step.return_value = {
+        client_mock.return_value = {
             'command_status': 'RUNNING'}
-        get_client_mock.return_value = client_mock
         list_ports_mock.return_value = self.ports
 
         with task_manager.acquire(

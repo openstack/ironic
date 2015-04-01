@@ -1024,7 +1024,7 @@ class NodesController(rest.RestController):
             # Allow node.instance_uuid removal during cleaning, but not other
             # operations.
             # TODO(JoshNang) remove node.instance_uuid when removing
-            # instance_info stop removing node.instance_uuid in the Nova
+            # instance_info and stop removing node.instance_uuid in the Nova
             # Ironic driver. Bug: 1436568
             LOG.debug('Removing instance uuid %(instance)s from node %(node)s',
                       {'instance': rpc_node.instance_uuid,

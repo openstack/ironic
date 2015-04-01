@@ -207,6 +207,7 @@ def _prepare_pxe_boot(task):
 def _do_pxe_boot(task, ports=None):
     """Reboot the node into the PXE ramdisk.
 
+    :param task: a TaskManager instance
     :param ports: a list of Neutron port dicts to update DHCP options on. If
         None, will get the list of ports from the Ironic port objects.
     """
@@ -359,7 +360,7 @@ class AgentDeploy(base.DeployInterface):
         :returns: A list of clean step dictionaries
         """
         steps = deploy_utils.agent_get_clean_steps(task)
-        if CONF.agent.agent_erase_devices_priority:
+        if CONF.agent.agent_erase_devices_priority is not None:
             for step in steps:
                 if (step.get('step') == 'erase_devices' and
                         step.get('interface') == 'deploy'):
@@ -379,29 +380,44 @@ class AgentDeploy(base.DeployInterface):
         return deploy_utils.agent_execute_clean_step(task, step)
 
     def prepare_cleaning(self, task):
-        """Boot into the agent to prepare for cleaning."""
+        """Boot into the agent to prepare for cleaning.
+
+        :param task: a TaskManager object containing the node
+        :raises NodeCleaningFailure: if the previous cleaning ports cannot
+            be removed or if new cleaning ports cannot be created
+        :returns: states.CLEANING to signify an asynchronous prepare
+        """
         provider = dhcp_factory.DHCPFactory()
         # If we have left over ports from a previous cleaning, remove them
         if getattr(provider.provider, 'delete_cleaning_ports', None):
+            # Allow to raise if it fails, is caught and handled in conductor
             provider.provider.delete_cleaning_ports(task)
 
         # Create cleaning ports if necessary
         ports = None
         if getattr(provider.provider, 'create_cleaning_ports', None):
+            # Allow to raise if it fails, is caught and handled in conductor
             ports = provider.provider.create_cleaning_ports(task)
+
         _prepare_pxe_boot(task)
         _do_pxe_boot(task, ports)
         # Tell the conductor we are waiting for the agent to boot.
         return states.CLEANING
 
     def tear_down_cleaning(self, task):
-        """Clean up the PXE and DHCP files after cleaning."""
+        """Clean up the PXE and DHCP files after cleaning.
+
+        :param task: a TaskManager object containing the node
+        :raises NodeCleaningFailure: if the cleaning ports cannot be
+            removed
+        """
         manager_utils.node_power_action(task, states.POWER_OFF)
         _clean_up_pxe(task)
 
         # If we created cleaning ports, delete them
         provider = dhcp_factory.DHCPFactory()
         if getattr(provider.provider, 'delete_cleaning_ports', None):
+            # Allow to raise if it fails, is caught and handled in conductor
             provider.provider.delete_cleaning_ports(task)
 
 
