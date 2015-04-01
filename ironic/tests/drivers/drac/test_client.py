@@ -15,6 +15,7 @@
 Test class for DRAC client wrapper.
 """
 
+import time
 from xml.etree import ElementTree
 
 import mock
@@ -51,6 +52,7 @@ class DracClientTestCase(base.TestCase):
             None, self.resource_uri)
         mock_xml.context.assert_called_once_with()
 
+    @mock.patch.object(time, 'sleep', lambda seconds: None)
     def test_wsman_enumerate_retry(self, mock_client_pywsman):
         mock_xml = test_utils.mock_wsman_root('<test></test>')
         mock_pywsman_client = mock_client_pywsman.Client.return_value
@@ -136,6 +138,7 @@ class DracClientTestCase(base.TestCase):
         mock_pywsman_client.invoke.assert_called_once_with(mock_options,
             self.resource_uri, method_name, None)
 
+    @mock.patch.object(time, 'sleep', lambda seconds: None)
     def test_wsman_invoke_retry(self, mock_client_pywsman):
         result_xml = test_utils.build_soap_xml(
             [{'ReturnValue': drac_client.RET_SUCCESS}], self.resource_uri)
