@@ -17,7 +17,7 @@
 Listen 6385
 
 <VirtualHost *:6385>
-    WSGIDaemonProcess ironic user=stack group=stack threads=10
+    WSGIDaemonProcess ironic user=stack group=stack threads=10 display-name=%{GROUP}
     WSGIScriptAlias / /opt/stack/ironic/ironic/api/app.wsgi
 
     SetEnv APACHE_RUN_USER stack
