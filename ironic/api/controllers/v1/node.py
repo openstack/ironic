@@ -378,7 +378,7 @@ class NodeStatesController(rest.RestController):
         elif rpc_node.provision_state == ir_states.CLEANING:
             raise exception.InvalidStateRequested(
                     action=target, node=node_ident,
-                    state=rpc_node.power_state)
+                    state=rpc_node.provision_state)
 
         pecan.request.rpcapi.change_node_power_state(pecan.request.context,
                                                      rpc_node.uuid, target,
