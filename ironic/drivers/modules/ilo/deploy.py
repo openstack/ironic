@@ -827,10 +827,11 @@ class VendorPassthru(agent_base_vendor.BaseAgentVendor):
 
         ilo_common.cleanup_vmedia_boot(task)
 
+        iwdi = node.driver_internal_info.get('is_whole_disk_image')
         uuid_dict = iscsi_deploy.do_agent_iscsi_deploy(task, self._client)
         root_uuid = uuid_dict.get('root uuid')
 
-        if iscsi_deploy.get_boot_option(node) == "local":
+        if iscsi_deploy.get_boot_option(node) == "local" or iwdi:
             efi_system_part_uuid = uuid_dict.get(
                 'efi system partition uuid')
             self.configure_local_boot(
