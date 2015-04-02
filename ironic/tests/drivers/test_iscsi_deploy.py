@@ -868,3 +868,28 @@ class IscsiDeployMethodsTestCase(db_base.DbTestCase):
             self.assertRaises(exception.InstanceDeployFailure,
                               iscsi_deploy.finish_deploy, task, '1.2.3.4')
             set_fail_state_mock.assert_called_once_with(task, mock.ANY)
+
+    @mock.patch.object(manager_utils, 'node_power_action')
+    @mock.patch.object(deploy_utils, 'notify_ramdisk_to_proceed',
+                       autospec=True)
+    def test_finish_deploy_ssh_with_local_boot(self, notify_mock,
+                                               node_power_mock):
+        instance_info = dict(INST_INFO_DICT)
+        instance_info['capabilities'] = {'boot_option': 'local'}
+        n = {
+              'uuid': uuidutils.generate_uuid(),
+              'driver': 'fake_ssh',
+              'instance_info': instance_info,
+              'provision_state': states.DEPLOYING,
+              'target_provision_state': states.ACTIVE,
+        }
+        mgr_utils.mock_the_extension_manager(driver="fake_ssh")
+        node = obj_utils.create_test_node(self.context, **n)
+
+        with task_manager.acquire(self.context, node.uuid,
+                                  shared=False) as task:
+            iscsi_deploy.finish_deploy(task, '1.2.3.4')
+            notify_mock.assert_called_once_with('1.2.3.4')
+            self.assertEqual(states.ACTIVE, task.node.provision_state)
+            self.assertEqual(states.NOSTATE, task.node.target_provision_state)
+            node_power_mock.assert_called_once_with(task, states.REBOOT)
