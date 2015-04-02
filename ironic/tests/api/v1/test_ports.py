@@ -26,7 +26,9 @@ from six.moves.urllib import parse as urlparse
 from testtools.matchers import HasLength
 from wsme import types as wtypes
 
+from ironic.api.controllers import base as api_controller
 from ironic.api.controllers.v1 import port as api_port
+from ironic.api.controllers.v1 import utils as api_utils
 from ironic.common import exception
 from ironic.conductor import rpcapi
 from ironic.tests.api import base as api_base
@@ -180,6 +182,78 @@ class TestListPorts(api_base.FunctionalTest):
         self.assertEqual(400, response.status_int)
         self.assertEqual('application/json', response.content_type)
         self.assertIn(invalid_address, response.json['error_message'])
+
+    @mock.patch.object(api_utils, 'get_rpc_node')
+    def test_get_all_by_node_name_ok(self, mock_get_rpc_node):
+        # GET /v1/ports specifying node_name - success
+        mock_get_rpc_node.return_value = self.node
+        for i in range(5):
+            if i < 3:
+                node_id = self.node.id
+            else:
+                node_id = 100000 + i
+            obj_utils.create_test_port(self.context,
+                                       node_id=node_id,
+                                       uuid=uuidutils.generate_uuid(),
+                                       address='52:54:00:cf:2d:3%s' % i)
+        data = self.get_json("/ports?node=%s" % 'test-node',
+                             headers={api_controller.Version.string: '1.5'})
+        self.assertEqual(3, len(data['ports']))
+
+    @mock.patch.object(api_utils, 'get_rpc_node')
+    def test_get_all_by_node_uuid_and_name(self, mock_get_rpc_node):
+        # GET /v1/ports specifying node and uuid - should only use node_uuid
+        mock_get_rpc_node.return_value = self.node
+        obj_utils.create_test_port(self.context, node_id=self.node.id)
+        self.get_json('/ports/detail?node_uuid=%s&node=%s' %
+            (self.node.uuid, 'node-name'))
+        mock_get_rpc_node.assert_called_once_with(self.node.uuid)
+
+    @mock.patch.object(api_utils, 'get_rpc_node')
+    def test_get_all_by_node_name_not_supported(self, mock_get_rpc_node):
+        # GET /v1/ports specifying node_name - name not supported
+        mock_get_rpc_node.side_effect = exception.InvalidUuidOrName(
+                                            name=self.node.uuid)
+        for i in range(3):
+            obj_utils.create_test_port(self.context,
+                                       node_id=self.node.id,
+                                       uuid=uuidutils.generate_uuid(),
+                                       address='52:54:00:cf:2d:3%s' % i)
+        data = self.get_json("/ports?node=%s" % 'test-node',
+                             expect_errors=True)
+        self.assertEqual(0, mock_get_rpc_node.call_count)
+        self.assertEqual(406, data.status_int)
+
+    @mock.patch.object(api_utils, 'get_rpc_node')
+    def test_detail_by_node_name_ok(self, mock_get_rpc_node):
+        # GET /v1/ports/detail specifying node_name - success
+        mock_get_rpc_node.return_value = self.node
+        port = obj_utils.create_test_port(self.context, node_id=self.node.id)
+        data = self.get_json('/ports/detail?node=%s' % 'test-node',
+                             headers={api_controller.Version.string: '1.5'})
+        self.assertEqual(port.uuid, data['ports'][0]['uuid'])
+        self.assertEqual(self.node.uuid, data['ports'][0]['node_uuid'])
+
+    @mock.patch.object(api_utils, 'get_rpc_node')
+    def test_detail_by_node_name_not_supported(self, mock_get_rpc_node):
+        # GET /v1/ports/detail specifying node_name - name not supported
+        mock_get_rpc_node.side_effect = exception.InvalidUuidOrName(
+                                            name=self.node.uuid)
+        obj_utils.create_test_port(self.context, node_id=self.node.id)
+        data = self.get_json('/ports/detail?node=%s' % 'test-node',
+                             expect_errors=True)
+        self.assertEqual(0, mock_get_rpc_node.call_count)
+        self.assertEqual(406, data.status_int)
+
+    @mock.patch.object(api_port.PortsController, '_get_ports_collection')
+    def test_detail_with_incorrect_api_usage(self, mock_gpc):
+        # GET /v1/ports/detail specifying node and node_uuid.  In this case
+        # we expect the node_uuid interface to be used.
+        self.get_json('/ports/detail?node=%s&node_uuid=%s' %
+                     ('test-node', self.node.uuid))
+        mock_gpc.assert_called_once_with(self.node.uuid, mock.ANY, mock.ANY,
+                                         mock.ANY, mock.ANY, mock.ANY,
+                                         mock.ANY, mock.ANY)
 
 
 @mock.patch.object(rpcapi.ConductorAPI, 'update_port')

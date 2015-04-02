@@ -22,7 +22,6 @@ import mock
 from oslo_config import cfg
 from oslo_utils import timeutils
 from oslo_utils import uuidutils
-import pecan
 from six.moves.urllib import parse as urlparse
 from testtools.matchers import HasLength
 from wsme import types as wtypes
@@ -30,6 +29,7 @@ from wsme import types as wtypes
 from ironic.api.controllers import base as api_base
 from ironic.api.controllers import v1 as api_v1
 from ironic.api.controllers.v1 import node as api_node
+from ironic.api.controllers.v1 import utils as api_utils
 from ironic.common import boot_devices
 from ironic.common import exception
 from ironic.common import states
@@ -50,82 +50,6 @@ def post_get_test_node(**kw):
     node['chassis_id'] = None
     node['chassis_uuid'] = kw.get('chassis_uuid', chassis['uuid'])
     return node
-
-
-class TestTopLevelFunctions(base.TestCase):
-
-    def setUp(self):
-        super(TestTopLevelFunctions, self).setUp()
-        self.valid_name = 'my-host'
-        self.valid_uuid = uuidutils.generate_uuid()
-        self.invalid_name = 'Mr Plow'
-        self.invalid_uuid = '636-555-3226-'
-        self.node = post_get_test_node()
-
-    def test_is_valid_name(self):
-        self.assertTrue(api_node.is_valid_name(self.valid_name))
-        self.assertFalse(api_node.is_valid_name(self.invalid_name))
-        self.assertFalse(api_node.is_valid_name(self.valid_uuid))
-        self.assertFalse(api_node.is_valid_name(self.invalid_uuid))
-
-    @mock.patch.object(pecan, 'request')
-    @mock.patch.object(api_node, 'allow_logical_names')
-    @mock.patch.object(objects.Node, 'get_by_uuid')
-    @mock.patch.object(objects.Node, 'get_by_name')
-    def test__get_rpc_node_expect_uuid(self, mock_gbn, mock_gbu, mock_aln,
-                                       mock_pr):
-        mock_aln.return_value = True
-        self.node['uuid'] = self.valid_uuid
-        mock_gbu.return_value = self.node
-        self.assertEqual(self.node, api_node._get_rpc_node(self.valid_uuid))
-        self.assertEqual(1, mock_gbu.call_count)
-        self.assertEqual(0, mock_gbn.call_count)
-
-    @mock.patch.object(pecan, 'request')
-    @mock.patch.object(api_v1.node, 'allow_logical_names')
-    @mock.patch.object(objects.Node, 'get_by_uuid')
-    @mock.patch.object(objects.Node, 'get_by_name')
-    def test__get_rpc_node_expect_name(self, mock_gbn, mock_gbu, mock_aln,
-                                       mock_pr):
-        mock_aln.return_value = True
-        self.node['name'] = self.valid_name
-        mock_gbn.return_value = self.node
-        self.assertEqual(self.node, api_node._get_rpc_node(self.valid_name))
-        self.assertEqual(0, mock_gbu.call_count)
-        self.assertEqual(1, mock_gbn.call_count)
-
-    @mock.patch.object(pecan, 'request')
-    @mock.patch.object(api_v1.node, 'allow_logical_names')
-    @mock.patch.object(objects.Node, 'get_by_uuid')
-    @mock.patch.object(objects.Node, 'get_by_name')
-    def test__get_rpc_node_invalid_name(self, mock_gbn, mock_gbu,
-                                        mock_aln, mock_pr):
-        mock_aln.return_value = True
-        self.assertRaises(exception.InvalidUuidOrName,
-                          api_node._get_rpc_node,
-                          self.invalid_name)
-
-    @mock.patch.object(pecan, 'request')
-    @mock.patch.object(api_v1.node, 'allow_logical_names')
-    @mock.patch.object(objects.Node, 'get_by_uuid')
-    @mock.patch.object(objects.Node, 'get_by_name')
-    def test__get_rpc_node_invalid_name_2(self, mock_gbn, mock_gbu,
-                                         mock_aln, mock_pr):
-        mock_aln.return_value = False
-        self.assertRaises(exception.NodeNotFound,
-                          api_node._get_rpc_node,
-                          self.invalid_name)
-
-    @mock.patch.object(pecan, 'request')
-    @mock.patch.object(api_v1.node, 'allow_logical_names')
-    @mock.patch.object(objects.Node, 'get_by_uuid')
-    @mock.patch.object(objects.Node, 'get_by_name')
-    def test__get_rpc_node_invalid_uuid(self, mock_gbn, mock_gbu,
-                                        mock_aln, mock_pr):
-        mock_aln.return_value = True
-        self.assertRaises(exception.InvalidUuidOrName,
-                          api_node._get_rpc_node,
-                          self.invalid_uuid)
 
 
 class TestNodeObject(base.TestCase):
@@ -1180,7 +1104,7 @@ class TestPatch(test_api_base.FunctionalTest):
         self.assertEqual(409, response.status_code)
         self.assertTrue(response.json['error_message'])
 
-    @mock.patch.object(api_node, '_get_rpc_node')
+    @mock.patch.object(api_utils, 'get_rpc_node')
     def test_patch_update_drive_console_enabled(self, mock_rpc_node):
         self.node.console_enabled = True
         mock_rpc_node.return_value = self.node
