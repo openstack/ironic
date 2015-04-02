@@ -73,7 +73,16 @@ class AgentClient(object):
                                      headers=headers)
 
         # TODO(russellhaering): real error handling
-        return response.json()
+        try:
+            return response.json()
+        except ValueError:
+            msg = _(
+                'Unable to decode response as JSON.\n'
+                'Request URL: %(url)s\nRequest body: "%(body)s"\n'
+                'Response: "%(response)s"'
+                ) % ({'response': response.text, 'body': body, 'url': url})
+            LOG.error(msg)
+            raise exception.IronicException(msg)
 
     def get_commands_status(self, node):
         url = self._get_command_url(node)

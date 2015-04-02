@@ -16,6 +16,7 @@ import json
 
 import mock
 import requests
+import six
 
 from ironic.common import exception
 from ironic.drivers.modules import agent_client
@@ -23,12 +24,12 @@ from ironic.tests import base
 
 
 class MockResponse(object):
-    def __init__(self, data):
-        self.data = data
-        self.text = json.dumps(data)
+    def __init__(self, text):
+        assert isinstance(text, six.string_types)
+        self.text = text
 
     def json(self):
-        return self.data
+        return json.loads(self.text)
 
 
 class MockNode(object):
@@ -75,7 +76,8 @@ class TestAgentClient(base.TestCase):
 
     def test__command(self):
         response_data = {'status': 'ok'}
-        self.client.session.post.return_value = MockResponse(response_data)
+        response_text = json.dumps(response_data)
+        self.client.session.post.return_value = MockResponse(response_text)
         method = 'standby.run_image'
         image_info = {'image_id': 'test_image'}
         params = {'image_info': image_info}
@@ -86,6 +88,26 @@ class TestAgentClient(base.TestCase):
 
         response = self.client._command(self.node, method, params)
         self.assertEqual(response, response_data)
+        self.client.session.post.assert_called_once_with(
+            url,
+            data=body,
+            headers=headers,
+            params={'wait': 'false'})
+
+    def test__command_fail_json(self):
+        response_text = 'this be not json matey!'
+        self.client.session.post.return_value = MockResponse(response_text)
+        method = 'standby.run_image'
+        image_info = {'image_id': 'test_image'}
+        params = {'image_info': image_info}
+
+        url = self.client._get_command_url(self.node)
+        body = self.client._get_command_body(method, params)
+        headers = {'Content-Type': 'application/json'}
+
+        self.assertRaises(exception.IronicException,
+                          self.client._command,
+                          self.node, method, params)
         self.client.session.post.assert_called_once_with(
             url,
             data=body,
