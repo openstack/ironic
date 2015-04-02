@@ -663,7 +663,7 @@ class TestGlanceSwiftTempURL(base.TestCase):
             'id': '757274c4-2856-4bd2-bb20-9a4a231e187b'
         }
 
-    @mock.patch('swiftclient.utils.generate_temp_url')
+    @mock.patch('swiftclient.utils.generate_temp_url', autospec=True)
     def test_swift_temp_url(self, tempurl_mock):
 
         path = ('/v1/AUTH_a422b2-91f3-2f46-74b7-d7c9e8958f5d30'
@@ -686,7 +686,7 @@ class TestGlanceSwiftTempURL(base.TestCase):
             key=CONF.glance.swift_temp_url_key,
             method='GET')
 
-    @mock.patch('swiftclient.utils.generate_temp_url')
+    @mock.patch('swiftclient.utils.generate_temp_url', autospec=True)
     def test_swift_temp_url_multiple_containers(self, tempurl_mock):
 
         self.config(swift_store_multiple_containers_seed=8,

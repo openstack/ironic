@@ -43,25 +43,25 @@ class BareMetalUtilsTestCase(base.TestCase):
         self.assertEqual(100, len(s))
 
     def test_unlink(self):
-        with mock.patch.object(os, "unlink") as unlink_mock:
+        with mock.patch.object(os, "unlink", autospec=True) as unlink_mock:
             unlink_mock.return_value = None
             utils.unlink_without_raise("/fake/path")
             unlink_mock.assert_called_once_with("/fake/path")
 
     def test_unlink_ENOENT(self):
-        with mock.patch.object(os, "unlink") as unlink_mock:
+        with mock.patch.object(os, "unlink", autospec=True) as unlink_mock:
             unlink_mock.side_effect = OSError(errno.ENOENT)
             utils.unlink_without_raise("/fake/path")
             unlink_mock.assert_called_once_with("/fake/path")
 
     def test_create_link(self):
-        with mock.patch.object(os, "symlink") as symlink_mock:
+        with mock.patch.object(os, "symlink", autospec=True) as symlink_mock:
             symlink_mock.return_value = None
             utils.create_link_without_raise("/fake/source", "/fake/link")
             symlink_mock.assert_called_once_with("/fake/source", "/fake/link")
 
     def test_create_link_EEXIST(self):
-        with mock.patch.object(os, "symlink") as symlink_mock:
+        with mock.patch.object(os, "symlink", autospec=True) as symlink_mock:
             symlink_mock.side_effect = OSError(errno.EEXIST)
             utils.create_link_without_raise("/fake/source", "/fake/link")
             symlink_mock.assert_called_once_with("/fake/source", "/fake/link")
@@ -163,15 +163,15 @@ grep foo
             os.unlink(tmpfilename)
             os.unlink(tmpfilename2)
 
-    @mock.patch.object(processutils, 'execute')
-    @mock.patch.object(os.environ, 'copy', return_value={})
+    @mock.patch.object(processutils, 'execute', autospec=True)
+    @mock.patch.object(os.environ, 'copy', return_value={}, autospec=True)
     def test_execute_use_standard_locale_no_env_variables(self, env_mock,
                                                           execute_mock):
         utils.execute('foo', use_standard_locale=True)
         execute_mock.assert_called_once_with('foo',
                                              env_variables={'LC_ALL': 'C'})
 
-    @mock.patch.object(processutils, 'execute')
+    @mock.patch.object(processutils, 'execute', autospec=True)
     def test_execute_use_standard_locale_with_env_variables(self,
                                                             execute_mock):
         utils.execute('foo', use_standard_locale=True,
@@ -180,7 +180,7 @@ grep foo
                                              env_variables={'LC_ALL': 'C',
                                                             'foo': 'bar'})
 
-    @mock.patch.object(processutils, 'execute')
+    @mock.patch.object(processutils, 'execute', autospec=True)
     def test_execute_not_use_standard_locale(self, execute_mock):
         utils.execute('foo', use_standard_locale=False,
                       env_variables={'foo': 'bar'})
@@ -188,14 +188,16 @@ grep foo
                                              env_variables={'foo': 'bar'})
 
     def test_execute_get_root_helper(self):
-        with mock.patch.object(processutils, 'execute') as execute_mock:
+        with mock.patch.object(
+                processutils, 'execute', autospec=True) as execute_mock:
             helper = utils._get_root_helper()
             utils.execute('foo', run_as_root=True)
             execute_mock.assert_called_once_with('foo', run_as_root=True,
                                                  root_helper=helper)
 
     def test_execute_without_root_helper(self):
-        with mock.patch.object(processutils, 'execute') as execute_mock:
+        with mock.patch.object(
+                processutils, 'execute', autospec=True) as execute_mock:
             utils.execute('foo', run_as_root=False)
             execute_mock.assert_called_once_with('foo', run_as_root=False)
 
@@ -226,7 +228,8 @@ class GenericUtilsTestCase(base.TestCase):
         self.assertEqual("hello", utils.sanitize_hostname(hostname))
 
     def test_read_cached_file(self):
-        with mock.patch.object(os.path, "getmtime") as getmtime_mock:
+        with mock.patch.object(
+                os.path, "getmtime", autospec=True) as getmtime_mock:
             getmtime_mock.return_value = 1
 
             cache_data = {"data": 1123, "mtime": 1}
@@ -235,8 +238,10 @@ class GenericUtilsTestCase(base.TestCase):
             getmtime_mock.assert_called_once_with(mock.ANY)
 
     def test_read_modified_cached_file(self):
-        with mock.patch.object(os.path, "getmtime") as getmtime_mock:
-            with mock.patch.object(__builtin__, 'open') as open_mock:
+        with mock.patch.object(
+                os.path, "getmtime", autospec=True) as getmtime_mock:
+            with mock.patch.object(
+                    __builtin__, 'open', autospec=True) as open_mock:
                 getmtime_mock.return_value = 2
                 fake_contents = "lorem ipsum"
                 fake_file = mock.Mock()
@@ -363,13 +368,13 @@ class GenericUtilsTestCase(base.TestCase):
 
     def test_validate_and_normalize_mac(self):
         mac = 'AA:BB:CC:DD:EE:FF'
-        with mock.patch.object(utils, 'is_valid_mac') as m_mock:
+        with mock.patch.object(utils, 'is_valid_mac', autospec=True) as m_mock:
             m_mock.return_value = True
             self.assertEqual(mac.lower(),
                              utils.validate_and_normalize_mac(mac))
 
     def test_validate_and_normalize_mac_invalid_format(self):
-        with mock.patch.object(utils, 'is_valid_mac') as m_mock:
+        with mock.patch.object(utils, 'is_valid_mac', autospec=True) as m_mock:
             m_mock.return_value = False
             self.assertRaises(exception.InvalidMAC,
                               utils.validate_and_normalize_mac, 'invalid-mac')
@@ -394,7 +399,7 @@ class GenericUtilsTestCase(base.TestCase):
 
 class MkfsTestCase(base.TestCase):
 
-    @mock.patch.object(utils, 'execute')
+    @mock.patch.object(utils, 'execute', autospec=True)
     def test_mkfs(self, execute_mock):
         utils.mkfs('ext4', '/my/block/dev')
         utils.mkfs('msdos', '/my/msdos/block/dev')
@@ -411,7 +416,7 @@ class MkfsTestCase(base.TestCase):
                               use_standard_locale=True)]
         self.assertEqual(expected, execute_mock.call_args_list)
 
-    @mock.patch.object(utils, 'execute')
+    @mock.patch.object(utils, 'execute', autospec=True)
     def test_mkfs_with_label(self, execute_mock):
         utils.mkfs('ext4', '/my/block/dev', 'ext4-vol')
         utils.mkfs('msdos', '/my/msdos/block/dev', 'msdos-vol')
@@ -428,14 +433,14 @@ class MkfsTestCase(base.TestCase):
                               use_standard_locale=True)]
         self.assertEqual(expected, execute_mock.call_args_list)
 
-    @mock.patch.object(utils, 'execute',
+    @mock.patch.object(utils, 'execute', autospec=True,
                        side_effect=processutils.ProcessExecutionError(
                            stderr=os.strerror(errno.ENOENT)))
     def test_mkfs_with_unsupported_fs(self, execute_mock):
         self.assertRaises(exception.FileSystemNotSupported,
                           utils.mkfs, 'foo', '/my/block/dev')
 
-    @mock.patch.object(utils, 'execute',
+    @mock.patch.object(utils, 'execute', autospec=True,
                        side_effect=processutils.ProcessExecutionError(
                            stderr='fake'))
     def test_mkfs_with_unexpected_error(self, execute_mock):
@@ -453,13 +458,13 @@ class TempFilesTestCase(base.TestCase):
             dirname = tempdir
         self.assertFalse(os.path.exists(dirname))
 
-    @mock.patch.object(shutil, 'rmtree')
-    @mock.patch.object(tempfile, 'mkdtemp')
+    @mock.patch.object(shutil, 'rmtree', autospec=True)
+    @mock.patch.object(tempfile, 'mkdtemp', autospec=True)
     def test_tempdir_mocked(self, mkdtemp_mock, rmtree_mock):
 
         self.config(tempdir='abc')
         mkdtemp_mock.return_value = 'temp-dir'
-        kwargs = {'a': 'b'}
+        kwargs = {'dir': 'b'}
 
         with utils.tempdir(**kwargs) as tempdir:
             self.assertEqual('temp-dir', tempdir)
@@ -468,9 +473,9 @@ class TempFilesTestCase(base.TestCase):
         mkdtemp_mock.assert_called_once_with(**kwargs)
         rmtree_mock.assert_called_once_with(tempdir_created)
 
-    @mock.patch.object(utils, 'LOG')
-    @mock.patch.object(shutil, 'rmtree')
-    @mock.patch.object(tempfile, 'mkdtemp')
+    @mock.patch.object(utils, 'LOG', autospec=True)
+    @mock.patch.object(shutil, 'rmtree', autospec=True)
+    @mock.patch.object(tempfile, 'mkdtemp', autospec=True)
     def test_tempdir_mocked_error_on_rmtree(self, mkdtemp_mock, rmtree_mock,
                                             log_mock):
 

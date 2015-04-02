@@ -36,7 +36,7 @@ class HashRingTestCase(base.TestCase):
     #                fake -> foo, bar, baz
     #                fake-again -> bar, baz, foo
 
-    @mock.patch.object(hashlib, 'md5')
+    @mock.patch.object(hashlib, 'md5', autospec=True)
     def test__hash2int_returns_int(self, mock_md5):
         CONF.set_override('hash_partition_exponent', 0)
         r1 = 32 * 'a'

@@ -46,8 +46,8 @@ class KeystoneTestCase(base.TestCase):
     def test_failure_authorization(self):
         self.assertRaises(exception.KeystoneFailure, keystone.get_service_url)
 
-    @mock.patch.object(FakeCatalog, 'url_for')
-    @mock.patch('keystoneclient.v2_0.client.Client')
+    @mock.patch.object(FakeCatalog, 'url_for', autospec=True)
+    @mock.patch('keystoneclient.v2_0.client.Client', autospec=True)
     def test_get_url(self, mock_ks, mock_uf):
         fake_url = 'http://127.0.0.1:6385'
         mock_uf.return_value = fake_url
@@ -55,21 +55,21 @@ class KeystoneTestCase(base.TestCase):
         res = keystone.get_service_url()
         self.assertEqual(fake_url, res)
 
-    @mock.patch.object(FakeCatalog, 'url_for')
-    @mock.patch('keystoneclient.v2_0.client.Client')
+    @mock.patch.object(FakeCatalog, 'url_for', autospec=True)
+    @mock.patch('keystoneclient.v2_0.client.Client', autospec=True)
     def test_url_not_found(self, mock_ks, mock_uf):
         mock_uf.side_effect = ksexception.EndpointNotFound
         mock_ks.return_value = FakeClient()
         self.assertRaises(exception.CatalogNotFound, keystone.get_service_url)
 
-    @mock.patch.object(FakeClient, 'has_service_catalog')
-    @mock.patch('keystoneclient.v2_0.client.Client')
+    @mock.patch.object(FakeClient, 'has_service_catalog', autospec=True)
+    @mock.patch('keystoneclient.v2_0.client.Client', autospec=True)
     def test_no_catalog(self, mock_ks, mock_hsc):
         mock_hsc.return_value = False
         mock_ks.return_value = FakeClient()
         self.assertRaises(exception.KeystoneFailure, keystone.get_service_url)
 
-    @mock.patch('keystoneclient.v2_0.client.Client')
+    @mock.patch('keystoneclient.v2_0.client.Client', autospec=True)
     def test_unauthorized(self, mock_ks):
         mock_ks.side_effect = ksexception.Unauthorized
         self.assertRaises(exception.KeystoneUnauthorized,
@@ -80,7 +80,7 @@ class KeystoneTestCase(base.TestCase):
         self.assertRaises(exception.KeystoneFailure,
                           keystone.get_service_url)
 
-    @mock.patch('keystoneclient.v2_0.client.Client')
+    @mock.patch('keystoneclient.v2_0.client.Client', autospec=True)
     def test_get_service_url_versionless_v2(self, mock_ks):
         mock_ks.return_value = FakeClient()
         self.config(group='keystone_authtoken', auth_uri='http://127.0.0.1')
@@ -91,7 +91,7 @@ class KeystoneTestCase(base.TestCase):
                                         region_name='fake',
                                         auth_url=expected_url)
 
-    @mock.patch('keystoneclient.v3.client.Client')
+    @mock.patch('keystoneclient.v3.client.Client', autospec=True)
     def test_get_service_url_versionless_v3(self, mock_ks):
         mock_ks.return_value = FakeClient()
         self.config(group='keystone_authtoken', auth_version='v3.0',
@@ -103,7 +103,7 @@ class KeystoneTestCase(base.TestCase):
                                         region_name='fake',
                                         auth_url=expected_url)
 
-    @mock.patch('keystoneclient.v2_0.client.Client')
+    @mock.patch('keystoneclient.v2_0.client.Client', autospec=True)
     def test_get_service_url_version_override(self, mock_ks):
         mock_ks.return_value = FakeClient()
         self.config(group='keystone_authtoken',
@@ -115,14 +115,14 @@ class KeystoneTestCase(base.TestCase):
                                         region_name='fake',
                                         auth_url=expected_url)
 
-    @mock.patch('keystoneclient.v2_0.client.Client')
+    @mock.patch('keystoneclient.v2_0.client.Client', autospec=True)
     def test_get_admin_auth_token(self, mock_ks):
         fake_client = FakeClient()
         fake_client.auth_token = '123456'
         mock_ks.return_value = fake_client
         self.assertEqual('123456', keystone.get_admin_auth_token())
 
-    @mock.patch('keystoneclient.v2_0.client.Client')
+    @mock.patch('keystoneclient.v2_0.client.Client', autospec=True)
     def test_get_region_name_v2(self, mock_ks):
         mock_ks.return_value = FakeClient()
         self.config(group='keystone', region_name='fake_region')
@@ -134,7 +134,7 @@ class KeystoneTestCase(base.TestCase):
                                         region_name=expected_region,
                                         auth_url=expected_url)
 
-    @mock.patch('keystoneclient.v3.client.Client')
+    @mock.patch('keystoneclient.v3.client.Client', autospec=True)
     def test_get_region_name_v3(self, mock_ks):
         mock_ks.return_value = FakeClient()
         self.config(group='keystone', region_name='fake_region')

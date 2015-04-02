@@ -47,8 +47,9 @@ class DiskPartitionerTestCase(base.TestCase):
         self.assertThat(partitions, HasLength(3))
         self.assertEqual(expected, partitions)
 
-    @mock.patch.object(disk_partitioner.DiskPartitioner, '_exec')
-    @mock.patch.object(utils, 'execute')
+    @mock.patch.object(disk_partitioner.DiskPartitioner, '_exec',
+                       autospec=True)
+    @mock.patch.object(utils, 'execute', autospec=True)
     def test_commit(self, mock_utils_exc, mock_disk_partitioner_exec):
         dp = disk_partitioner.DiskPartitioner('/dev/fake')
         fake_parts = [(1, {'bootable': False,
@@ -59,20 +60,22 @@ class DiskPartitionerTestCase(base.TestCase):
                            'fs_type': 'fake-fs-type',
                            'type': 'fake-type',
                            'size': 1})]
-        with mock.patch.object(dp, 'get_partitions') as mock_gp:
+        with mock.patch.object(dp, 'get_partitions', autospec=True) as mock_gp:
             mock_gp.return_value = fake_parts
             mock_utils_exc.return_value = (None, None)
             dp.commit()
 
-        mock_disk_partitioner_exec.assert_called_once_with('mklabel', 'msdos',
+        mock_disk_partitioner_exec.assert_called_once_with(
+            mock.ANY, 'mklabel', 'msdos',
             'mkpart', 'fake-type', 'fake-fs-type', '1', '2',
             'mkpart', 'fake-type', 'fake-fs-type', '2', '3',
             'set', '2', 'boot', 'on')
         mock_utils_exc.assert_called_once_with('fuser', '/dev/fake',
             run_as_root=True, check_exit_code=[0, 1])
 
-    @mock.patch.object(disk_partitioner.DiskPartitioner, '_exec')
-    @mock.patch.object(utils, 'execute')
+    @mock.patch.object(disk_partitioner.DiskPartitioner, '_exec',
+                       autospec=True)
+    @mock.patch.object(utils, 'execute', autospec=True)
     def test_commit_with_device_is_busy_once(self, mock_utils_exc,
                                              mock_disk_partitioner_exec):
         dp = disk_partitioner.DiskPartitioner('/dev/fake')
@@ -84,14 +87,15 @@ class DiskPartitionerTestCase(base.TestCase):
                            'fs_type': 'fake-fs-type',
                            'type': 'fake-type',
                            'size': 1})]
-        fuser_outputs = [("/dev/fake: 10000 10001", None), (None, None)]
+        fuser_outputs = iter([("/dev/fake: 10000 10001", None), (None, None)])
 
-        with mock.patch.object(dp, 'get_partitions') as mock_gp:
+        with mock.patch.object(dp, 'get_partitions', autospec=True) as mock_gp:
             mock_gp.return_value = fake_parts
             mock_utils_exc.side_effect = fuser_outputs
             dp.commit()
 
-        mock_disk_partitioner_exec.assert_called_once_with('mklabel', 'msdos',
+        mock_disk_partitioner_exec.assert_called_once_with(
+            mock.ANY, 'mklabel', 'msdos',
             'mkpart', 'fake-type', 'fake-fs-type', '1', '2',
             'mkpart', 'fake-type', 'fake-fs-type', '2', '3',
             'set', '2', 'boot', 'on')
@@ -99,8 +103,9 @@ class DiskPartitionerTestCase(base.TestCase):
             run_as_root=True, check_exit_code=[0, 1])
         self.assertEqual(2, mock_utils_exc.call_count)
 
-    @mock.patch.object(disk_partitioner.DiskPartitioner, '_exec')
-    @mock.patch.object(utils, 'execute')
+    @mock.patch.object(disk_partitioner.DiskPartitioner, '_exec',
+                       autospec=True)
+    @mock.patch.object(utils, 'execute', autospec=True)
     def test_commit_with_device_is_always_busy(self, mock_utils_exc,
                                                mock_disk_partitioner_exec):
         dp = disk_partitioner.DiskPartitioner('/dev/fake')
@@ -113,12 +118,13 @@ class DiskPartitionerTestCase(base.TestCase):
                            'type': 'fake-type',
                            'size': 1})]
 
-        with mock.patch.object(dp, 'get_partitions') as mock_gp:
+        with mock.patch.object(dp, 'get_partitions', autospec=True) as mock_gp:
             mock_gp.return_value = fake_parts
             mock_utils_exc.return_value = ("/dev/fake: 10000 10001", None)
             self.assertRaises(exception.InstanceDeployFailure, dp.commit)
 
-        mock_disk_partitioner_exec.assert_called_once_with('mklabel', 'msdos',
+        mock_disk_partitioner_exec.assert_called_once_with(
+            mock.ANY, 'mklabel', 'msdos',
             'mkpart', 'fake-type', 'fake-fs-type', '1', '2',
             'mkpart', 'fake-type', 'fake-fs-type', '2', '3',
             'set', '2', 'boot', 'on')
@@ -126,8 +132,9 @@ class DiskPartitionerTestCase(base.TestCase):
             run_as_root=True, check_exit_code=[0, 1])
         self.assertEqual(20, mock_utils_exc.call_count)
 
-    @mock.patch.object(disk_partitioner.DiskPartitioner, '_exec')
-    @mock.patch.object(utils, 'execute')
+    @mock.patch.object(disk_partitioner.DiskPartitioner, '_exec',
+                       autospec=True)
+    @mock.patch.object(utils, 'execute', autospec=True)
     def test_commit_with_device_disconnected(self, mock_utils_exc,
                                              mock_disk_partitioner_exec):
         dp = disk_partitioner.DiskPartitioner('/dev/fake')
@@ -140,13 +147,14 @@ class DiskPartitionerTestCase(base.TestCase):
                            'type': 'fake-type',
                            'size': 1})]
 
-        with mock.patch.object(dp, 'get_partitions') as mock_gp:
+        with mock.patch.object(dp, 'get_partitions', autospec=True) as mock_gp:
             mock_gp.return_value = fake_parts
             mock_utils_exc.return_value = (None, "Specified filename /dev/fake"
                                                  " does not exist.")
             self.assertRaises(exception.InstanceDeployFailure, dp.commit)
 
-        mock_disk_partitioner_exec.assert_called_once_with('mklabel', 'msdos',
+        mock_disk_partitioner_exec.assert_called_once_with(
+            mock.ANY, 'mklabel', 'msdos',
             'mkpart', 'fake-type', 'fake-fs-type', '1', '2',
             'mkpart', 'fake-type', 'fake-fs-type', '2', '3',
             'set', '2', 'boot', 'on')
@@ -155,7 +163,7 @@ class DiskPartitionerTestCase(base.TestCase):
         self.assertEqual(20, mock_utils_exc.call_count)
 
 
-@mock.patch.object(utils, 'execute')
+@mock.patch.object(utils, 'execute', autospec=True)
 class ListPartitionsTestCase(base.TestCase):
 
     def test_correct(self, execute_mock):
@@ -178,7 +186,7 @@ BYT;
             'parted', '-s', '-m', '/dev/fake', 'unit', 'MiB', 'print',
             use_standard_locale=True)
 
-    @mock.patch.object(disk_partitioner.LOG, 'warn')
+    @mock.patch.object(disk_partitioner.LOG, 'warn', autospec=True)
     def test_incorrect(self, log_mock, execute_mock):
         output = """
 BYT;

@@ -126,9 +126,9 @@ class TestPXEUtils(db_base.DbTestCase):
 
         self.assertEqual(unicode(expected_template), rendered_template)
 
-    @mock.patch('ironic.common.utils.create_link_without_raise')
-    @mock.patch('ironic.common.utils.unlink_without_raise')
-    @mock.patch('ironic.drivers.utils.get_node_mac_addresses')
+    @mock.patch('ironic.common.utils.create_link_without_raise', autospec=True)
+    @mock.patch('ironic.common.utils.unlink_without_raise', autospec=True)
+    @mock.patch('ironic.drivers.utils.get_node_mac_addresses', autospec=True)
     def test__write_mac_pxe_configs(self, get_macs_mock, unlink_mock,
                                     create_link_mock):
         macs = [
@@ -152,9 +152,10 @@ class TestPXEUtils(db_base.DbTestCase):
         unlink_mock.assert_has_calls(unlink_calls)
         create_link_mock.assert_has_calls(create_link_calls)
 
-    @mock.patch('ironic.common.utils.create_link_without_raise')
-    @mock.patch('ironic.common.utils.unlink_without_raise')
-    @mock.patch('ironic.common.dhcp_factory.DHCPFactory.provider')
+    @mock.patch('ironic.common.utils.create_link_without_raise', autospec=True)
+    @mock.patch('ironic.common.utils.unlink_without_raise', autospec=True)
+    @mock.patch('ironic.common.dhcp_factory.DHCPFactory.provider',
+                autospec=True)
     def test__link_ip_address_pxe_configs(self, provider_mock, unlink_mock,
                                           create_link_mock):
         ip_address = '10.10.0.1'
@@ -173,9 +174,9 @@ class TestPXEUtils(db_base.DbTestCase):
         unlink_mock.assert_called_once_with('/tftpboot/0A0A0001.conf')
         create_link_mock.assert_has_calls(create_link_calls)
 
-    @mock.patch('ironic.common.utils.write_to_file')
-    @mock.patch.object(pxe_utils, '_build_pxe_config')
-    @mock.patch('ironic.openstack.common.fileutils.ensure_tree')
+    @mock.patch('ironic.common.utils.write_to_file', autospec=True)
+    @mock.patch.object(pxe_utils, '_build_pxe_config', autospec=True)
+    @mock.patch('ironic.openstack.common.fileutils.ensure_tree', autospec=True)
     def test_create_pxe_config(self, ensure_tree_mock, build_mock,
                                write_mock):
         build_mock.return_value = self.pxe_options
@@ -188,7 +189,7 @@ class TestPXEUtils(db_base.DbTestCase):
             mock.call(os.path.join(CONF.pxe.tftp_root, self.node.uuid)),
             mock.call(os.path.join(CONF.pxe.tftp_root, 'pxelinux.cfg'))
         ]
-        ensure_tree_mock.has_calls(ensure_calls)
+        ensure_tree_mock.assert_has_calls(ensure_calls)
 
         pxe_cfg_file_path = pxe_utils.get_pxe_config_file_path(self.node.uuid)
         write_mock.assert_called_with(pxe_cfg_file_path, self.pxe_options)
