@@ -1293,6 +1293,111 @@ Other references
 * `Enabling local boot without Nova`_
 
 
+Enabling the configuration drive (configdrive)
+==============================================
+
+Starting with the Kilo release, Ironic supports exposing a configuration
+drive image to the instances.
+
+The configuration drive is usually used in conjunction with Nova, but
+Ironic also offers a standalone way of using it. The following sections
+will describe both methods.
+
+
+When used with Nova
+-------------------
+
+To enable the configuration drive when deploying an instance, pass
+``--config-drive true`` parameter to the ``nova boot`` command, e.g::
+
+    nova boot --config-drive true --flavor baremetal --image test-image instance-1
+
+It's also possible to enable the configuration drive automatically on
+all instances by configuring the ``Nova Compute service`` to always
+create a configuration drive by setting the following option in the
+``/etc/nova/nova.conf`` file, e.g::
+
+    [DEFAULT]
+    ...
+
+    force_config_drive=always
+
+
+When used standalone
+--------------------
+
+When used without Nova, the operator needs to create a configuration drive
+and provide the file or HTTP URL to Ironic.
+
+For the format of the configuration drive, Ironic expects a ``gzipped``
+and ``base64`` encoded ISO 9660 [*]_ file with a ``config-2`` label. The
+`Ironic client <https://github.com/openstack/python-ironicclient>`_
+can generate a configuration drive in the expected format. Just pass a
+directory path containing the files that will be injected into it via the
+``--config-drive`` parameter of the ``node-set-provision-state`` command,
+e.g::
+
+    ironic node-set-provision-state --config-drive /dir/configdrive_files $node_identifier active
+
+
+Accessing the configuration drive data
+--------------------------------------
+
+When the configuration drive is enabled, Ironic will create a partition on the
+instance disk and write the configuration drive image onto it. The
+configuration drive must be mounted before use. This is performed
+automatically by many tools, such as cloud-init and cloudbase-init. To mount
+it manually on a Linux distribution that supports accessing devices by labels,
+simply run the following::
+
+    mkdir -p /mnt/config
+    mount /dev/disk/by-label/config-2 /mnt/config
+
+
+If the guest OS doesn't support accessing devices by labels, you can use
+other tools such as ``blkid`` to identify which device corresponds to
+the configuration drive and mount it, e.g::
+
+    CONFIG_DEV=$(blkid -t LABEL="config-2" -odevice)
+    mkdir -p /mnt/config
+    mount $CONFIG_DEV /mnt/config
+
+
+.. [*] A config drive could also be a data block with a VFAT filesystem
+       on it instead of ISO 9660. But it's unlikely that it would be needed
+       since ISO 9660 is widely supported across operating systems.
+
+
+Cloud-init integration
+----------------------
+
+The configuration drive can be especially
+useful when used with ``cloud-init`` [`link
+<http://cloudinit.readthedocs.org/en/latest/topics/datasources.html#config-drive>`_],
+but in order to use it we should follow some rules:
+
+* ``Cloud-init`` expects a specific format to the data. For
+  more information about the expected file layout see [`link
+  <http://docs.openstack.org/user-guide/content/enable_config_drive.html#config_drive_contents>`_].
+
+
+* Since Ironic uses a disk partition as the configuration drive,
+  it will only work with ``cloud-init`` version **>= 0.7.5** [`link
+  <http://bazaar.launchpad.net/~cloud-init-dev/cloud-init/trunk/view/head:/ChangeLog>`_].
+
+
+* ``Cloud-init`` has a collection of data source modules, so when
+  building the image with `disk-image-builder`_ we have to define
+  ``DIB_CLOUD_INIT_DATASOURCES`` environment variable and set the
+  appropriate sources to enable the configuration drive, e.g::
+
+    DIB_CLOUD_INIT_DATASOURCES="ConfigDrive, OpenStack" disk-image-create -o fedora-cloud-image fedora baremetal
+
+  See [`link
+  <http://docs.openstack.org/developer/diskimage-builder/elements/cloud-init-datasources/README.html>`_]
+  for more information.
+
+
 Troubleshooting
 ===============
 
