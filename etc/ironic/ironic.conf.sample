@@ -516,12 +516,10 @@
 # driver that node is managed by; see the individual driver's
 # documentation for details. NOTE: The introduction of the
 # cleaning operation causes instance deletion to take
-# significantly longer. While this provides a better and more
-# secure user experience, it does impact the service behavior,
-# and as such IS DISABLED BY DEFAULT until consuming services
-# (eg, Nova) have been updated to accommodate the additional
-# time for deletion. (boolean value)
-#clean_nodes=false
+# significantly longer. In an environment where all tenants
+# are trusted (eg, because there is only one tenant), this
+# option could be safely disabled. (boolean value)
+#clean_nodes=true
 
 
 [console]

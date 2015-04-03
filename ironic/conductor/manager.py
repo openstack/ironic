@@ -169,7 +169,7 @@ conductor_opts = [
                    help='Timeout (seconds) for waiting for node inspection. '
                         '0 - unlimited.'),
         cfg.BoolOpt('clean_nodes',
-                    default=False,
+                    default=True,
                     help='Cleaning is a configurable set of steps, such as '
                          'erasing disk drives, that are performed on the node '
                          'to ensure it is in a baseline state and ready to be '
@@ -182,11 +182,9 @@ conductor_opts = [
                          'driver\'s documentation for details. '
                          'NOTE: The introduction of the cleaning operation '
                          'causes instance deletion to take significantly '
-                         'longer. While this provides a better and more '
-                         'secure user experience, it does impact the service '
-                         'behavior, and as such IS DISABLED BY DEFAULT until '
-                         'consuming services (eg, Nova) have been updated to '
-                         'accommodate the additional time for deletion.'),
+                         'longer. In an environment where all tenants are '
+                         'trusted (eg, because there is only one tenant), '
+                         'this option could be safely disabled.'),
 ]
 CONF = cfg.CONF
 CONF.register_opts(conductor_opts, 'conductor')
