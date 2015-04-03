@@ -826,8 +826,9 @@
 # (integer value)
 #glance_num_retries=0
 
-# Default protocol to use when connecting to glance. Set to
-# https for SSL. (string value)
+# Authentication strategy to use when connecting to glance.
+# Only "keystone" and "noauth" are currently supported by
+# ironic. (string value)
 #auth_strategy=keystone
 
 
@@ -1375,6 +1376,15 @@
 # this option, you must wipe the RabbitMQ database. (boolean
 # value)
 #rabbit_ha_queues=false
+
+# Number of seconds after which the Rabbit broker is
+# considered down if heartbeat's keep-alive fails (0 disable
+# the heartbeat). (integer value)
+#heartbeat_timeout_threshold=60
+
+# How often times during the heartbeat_timeout_threshold we
+# check the heartbeat. (integer value)
+#heartbeat_rate=2
 
 # Deprecated, use rpc_backend=kombu+memory or rpc_backend=fake
 # (boolean value)
