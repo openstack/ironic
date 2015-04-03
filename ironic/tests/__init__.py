@@ -32,14 +32,3 @@ eventlet.monkey_patch(os=False)
 # The code below enables nosetests to work with i18n _() blocks
 import six.moves.builtins as __builtin__
 setattr(__builtin__, '_', lambda x: x)
-
-# NOTE(viktors): Ironic unittests patches timeutils from oslo_utils. At the
-#                same time oslo.db uses oslo.utils not oslo_utils till 1.5.0
-#                release, so timeutils in oslo.db code at and leave not
-#                patched, so time comparison fails in Ironic tests. To avoid
-#                this we have oslo_db use timeutils from oslo_utils in tests.
-# TODO(viktors): Remove this workaround when Ironic will use oslo.db 1.5.0
-from oslo_db.sqlalchemy import models
-from oslo_utils import timeutils
-
-models.timeutils = timeutils
