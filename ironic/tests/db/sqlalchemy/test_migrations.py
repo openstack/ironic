@@ -375,10 +375,13 @@ class MigrationCheckersMixin(object):
                               sqlalchemy.types.String)
 
     def _check_2fb93ffd2af1(self, engine, data):
-        # TODO(mrda): Currently database migration tests aren't running
-        # But once that has been resolved, add a new db migration test here
-        # for increasing node name length. See bug 1438531
-        pass
+        nodes = db_utils.get_table(engine, 'nodes')
+        bigstring = 'a' * 255
+        uuid = uuidutils.generate_uuid()
+        data = {'uuid': uuid, 'name': bigstring}
+        nodes.insert().execute(data)
+        node = nodes.select(nodes.c.uuid == uuid).execute().first()
+        self.assertEqual(bigstring, node['name'])
 
     def test_upgrade_and_version(self):
         with patch_with_engine(self.engine):
