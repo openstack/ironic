@@ -644,16 +644,17 @@ node(s) where ``ironic-conductor`` is running.
     echo 'r ^([^/]) /tftpboot/\1' > /tftpboot/map-file
     echo 'r ^(/tftpboot/) /tftpboot/\2' >> /tftpboot/map-file
 
+#. Enable tftp map file, modify ``/etc/xinetd.d/tftp`` as below and restart xinetd
+   service::
+
+    server_args = -v -v -v -v -v --map-file /tftpboot/map-file /tftpboot
+
 .. [1] On **Fedora/RHEL** the ``syslinux-tftpboot`` package already install
        the library modules and PXE image at ``/tftpboot``. If the TFTP server
        is configured to listen to a different directory you should copy the
        contents of ``/tftpboot`` to the configured directory
 .. [2] http://www.syslinux.org/wiki/index.php/Library_modules
 
-#. Enable tftp map file, modify ``/etc/xinetd.d/tftp`` as below and restart xinetd
-   service::
-
-   server_args = -v -v -v -v -v --map-file /tftpboot/map-file /tftpboot
 
 PXE UEFI Setup
 --------------
