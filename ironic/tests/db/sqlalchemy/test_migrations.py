@@ -314,12 +314,8 @@ class MigrationCheckersMixin(object):
                 'instance_uuid': instance_uuid}
         nodes.insert().values(data).execute()
         data['uuid'] = uuidutils.generate_uuid()
-        # TODO(viktors): Remove check on sqlalchemy.exc.IntegrityError, when
-        #                Ironic will use oslo_db 0.4.0 or higher.
-        #                See bug #1214341 for details.
-        self.assertRaises(
-            (sqlalchemy.exc.IntegrityError, db_exc.DBDuplicateEntry),
-            nodes.insert().execute, data)
+        self.assertRaises(db_exc.DBDuplicateEntry,
+                          nodes.insert().execute, data)
 
     def _check_242cc6a923b3(self, engine, data):
         nodes = db_utils.get_table(engine, 'nodes')
