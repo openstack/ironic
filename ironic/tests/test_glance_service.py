@@ -18,6 +18,7 @@ import datetime
 import filecmp
 import os
 import tempfile
+import time
 
 import mock
 from oslo_context import context
@@ -458,7 +459,8 @@ class TestGlanceImageService(base.TestCase):
         self.assertEqual(self.NOW_DATETIME, image_meta['created_at'])
         self.assertEqual(self.NOW_DATETIME, image_meta['updated_at'])
 
-    def test_download_with_retries(self):
+    @mock.patch.object(time, 'sleep', autospec=True)
+    def test_download_with_retries(self, mock_sleep):
         tries = [0]
 
         class MyGlanceStubClient(stubs.StubGlanceClient):
@@ -487,6 +489,7 @@ class TestGlanceImageService(base.TestCase):
         tries = [0]
         self.config(glance_num_retries=1, group='glance')
         stub_service.download(image_id, writer)
+        self.assertTrue(mock_sleep.called)
 
     def test_download_file_url(self):
         # NOTE: only in v2 API
