@@ -24,19 +24,8 @@ from ironic.common import exception
 from ironic import objects
 from ironic.tests.api import utils as test_api_utils
 from ironic.tests import base
-from ironic.tests.db import utils as dbutils
 
 CONF = cfg.CONF
-
-
-# NOTE(lucasagomes): When creating a node via API (POST)
-#                    we have to use chassis_uuid
-def post_get_test_node(**kw):
-    node = test_api_utils.node_post_data(**kw)
-    chassis = dbutils.get_test_chassis()
-    node['chassis_id'] = None
-    node['chassis_uuid'] = kw.get('chassis_uuid', chassis['uuid'])
-    return node
 
 
 class TestApiUtils(base.TestCase):
@@ -73,7 +62,7 @@ class TestNodeIdent(base.TestCase):
         self.valid_uuid = uuidutils.generate_uuid()
         self.invalid_name = 'Mr Plow'
         self.invalid_uuid = '636-555-3226-'
-        self.node = post_get_test_node()
+        self.node = test_api_utils.post_get_test_node()
 
     @mock.patch.object(pecan, 'request')
     def test_allow_node_logical_names_pre_name(self, mock_pecan_req):
