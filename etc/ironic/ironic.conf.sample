@@ -360,6 +360,11 @@
 # set to 0, will not run during cleaning. (integer value)
 #agent_erase_devices_priority=<None>
 
+# Whether Ironic will manage TFTP files for the deploy
+# ramdisks. If set to False, you will need to configure your
+# own TFTP server that allows booting the deploy ramdisks.
+# (boolean value)
+#manage_tftp=true
 
 #
 # Options defined in ironic.drivers.modules.agent_base_vendor
