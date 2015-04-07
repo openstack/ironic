@@ -377,8 +377,9 @@ class TestNeutron(db_base.DbTestCase):
                 'network_id': '00000000-0000-0000-0000-000000000000',
                 'admin_state_up': True, 'mac_address': self.ports[0].address}})
 
+    @mock.patch.object(neutron.NeutronDHCPApi, '_rollback_cleaning_ports')
     @mock.patch.object(client.Client, 'create_port')
-    def test_create_cleaning_ports_fail(self, create_mock):
+    def test_create_cleaning_ports_fail(self, create_mock, rollback_mock):
         # Check that if creating a port fails, the ports are cleaned up
         create_mock.side_effect = neutron_client_exc.ConnectionFailed
         api = dhcp_factory.DHCPFactory().provider
@@ -390,6 +391,7 @@ class TestNeutron(db_base.DbTestCase):
             create_mock.assert_called_once_with({'port': {
                 'network_id': '00000000-0000-0000-0000-000000000000',
                 'admin_state_up': True, 'mac_address': self.ports[0].address}})
+            rollback_mock.assert_called_once_with(task)
 
     @mock.patch.object(client.Client, 'create_port')
     def test_create_cleaning_ports_bad_config(self, create_mock):
