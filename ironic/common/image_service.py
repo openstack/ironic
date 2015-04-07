@@ -65,8 +65,9 @@ glance_opts = [
                     'glance.'),
     cfg.StrOpt('auth_strategy',
                default='keystone',
-               help='Default protocol to use when connecting to glance. '
-               'Set to https for SSL.'),
+               help='Authentication strategy to use when connecting to '
+                    'glance. Only "keystone" and "noauth" are currently '
+                    'supported by ironic.'),
 ]
 
 CONF.register_opts(glance_opts, group='glance')
