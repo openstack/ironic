@@ -751,8 +751,14 @@ def _iscsi_setup_and_handle_errors(address, port, iqn, lun,
         delete_iscsi(address, port, iqn)
 
 
-def notify_deploy_complete(address):
-    """Notifies the completion of deployment to the baremetal node.
+def notify_ramdisk_to_proceed(address):
+    """Notifies the ramdisk waiting for instructions from Ironic.
+
+    DIB ramdisk (from init script) makes vendor passhthrus and listens
+    on port 10000 for Ironic to notify back the completion of the task.
+    This method connects to port 10000 of the bare metal running the
+    ramdisk and then sends some data to notify the ramdisk to proceed
+    with it's next task.
 
     :param address: The IP address of the node.
     """

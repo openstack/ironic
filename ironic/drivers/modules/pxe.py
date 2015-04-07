@@ -28,7 +28,6 @@ from ironic.common import exception
 from ironic.common.glance_service import service_utils
 from ironic.common.i18n import _
 from ironic.common.i18n import _LE
-from ironic.common.i18n import _LI
 from ironic.common.i18n import _LW
 from ironic.common import image_service as service
 from ironic.common import keystone
@@ -544,6 +543,7 @@ class VendorPassthru(agent_base_vendor.BaseAgentVendor):
 
         Valid methods:
         * pass_deploy_info
+        * pass_bootloader_install_info
 
         :param task: a TaskManager instance containing the node to act on.
         :param method: method to be validated.
@@ -553,6 +553,30 @@ class VendorPassthru(agent_base_vendor.BaseAgentVendor):
         if method == 'pass_deploy_info':
             driver_utils.validate_boot_option_capability(task.node)
             iscsi_deploy.get_deploy_info(task.node, **kwargs)
+        elif method == 'pass_bootloader_install_info':
+            iscsi_deploy.validate_pass_bootloader_info_input(task, kwargs)
+
+    @base.passthru(['POST'])
+    @task_manager.require_exclusive_lock
+    def pass_bootloader_install_info(self, task, **kwargs):
+        """Accepts the results of bootloader installation.
+
+        This method acts as a vendor passthru and accepts the result of
+        the bootloader installation. If bootloader installation was
+        successful, then it notifies the bare metal to proceed to reboot
+        and makes the instance active. If the bootloader installation failed,
+        then it sets provisioning as failed and powers off the node.
+        :param task: A TaskManager object.
+        :param kwargs: The arguments sent with vendor passthru.  The expected
+            kwargs are::
+                'key': The deploy key for authorization
+                'status': 'SUCCEEDED' or 'FAILED'
+                'error': The error message if status == 'FAILED'
+                'address': The IP address of the ramdisk
+        """
+        task.process_event('resume')
+        iscsi_deploy.validate_bootloader_install_status(task, kwargs)
+        iscsi_deploy.finish_deploy(task, kwargs['address'])
 
     @base.passthru(['POST'])
     @task_manager.require_exclusive_lock
@@ -587,9 +611,19 @@ class VendorPassthru(agent_base_vendor.BaseAgentVendor):
         try:
             if iscsi_deploy.get_boot_option(node) == "local":
                 deploy_utils.try_set_boot_device(task, boot_devices.DISK)
+
                 # If it's going to boot from the local disk, get rid of
                 # the PXE configuration files used for the deployment
                 pxe_utils.clean_up_pxe_config(task)
+
+                # Ask the ramdisk to install bootloader and
+                # wait for the call-back through the vendor passthru
+                # 'pass_bootloader_install_info', if it's not a
+                # whole disk image.
+                if not is_whole_disk_image:
+                    deploy_utils.notify_ramdisk_to_proceed(kwargs['address'])
+                    task.process_event('wait')
+                    return
             else:
                 pxe_config_path = pxe_utils.get_pxe_config_file_path(node.uuid)
                 boot_mode = driver_utils.get_boot_mode_for_deploy(node)
@@ -597,15 +631,14 @@ class VendorPassthru(agent_base_vendor.BaseAgentVendor):
                                                root_uuid_or_disk_id,
                                                boot_mode, is_whole_disk_image)
 
-            deploy_utils.notify_deploy_complete(kwargs['address'])
-            LOG.info(_LI('Deployment to node %s done'), node.uuid)
-            task.process_event('done')
         except Exception as e:
             LOG.error(_LE('Deploy failed for instance %(instance)s. '
                           'Error: %(error)s'),
                       {'instance': node.instance_uuid, 'error': e})
             msg = _('Failed to continue iSCSI deployment.')
             deploy_utils.set_failed_state(task, msg)
+        else:
+            iscsi_deploy.finish_deploy(task, kwargs.get('address'))
 
     @task_manager.require_exclusive_lock
     def continue_deploy(self, task, **kwargs):
