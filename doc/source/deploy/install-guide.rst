@@ -1099,6 +1099,19 @@ by an operator. There are two kinds of inspection supported by Ironic:
   being run on a separate host from the ironic-conductor service, or is using
   non-standard port.
 
+  In order to ensure that ports in Ironic are synchronized with NIC ports on
+  the node, the following settings in the ironic-discoverd configuration file
+  must be set::
+
+    [discoverd]
+    add_ports = all
+    keep_ports = present
+
+  (requires ironic-discoverd of version 1.1.0 or higher). Note that in this
+  case an operator is responsible for deleting ports that can't be actually
+  used by Ironic, see `bug 1405131
+  <https://bugs.launchpad.net/ironic/+bug/1405131>`_ for explanation.
+
 .. _ironic-discoverd: https://github.com/stackforge/ironic-discoverd
 
 
