@@ -391,6 +391,11 @@ class NodeStatesController(rest.RestController):
             raise exception.NodeLocked(node=rpc_node.uuid,
                                        host=rpc_node.reservation)
 
+        if (target in (ir_states.ACTIVE, ir_states.REBUILD)
+                and rpc_node.maintenance):
+            raise exception.NodeInMaintenance(op=_('provisioning'),
+                                              node=rpc_node.uuid)
+
         m = ir_states.machine.copy()
         m.initialize(rpc_node.provision_state)
         if not m.is_valid_event(ir_states.VERBS.get(target, target)):

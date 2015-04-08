@@ -1813,17 +1813,14 @@ class TestPut(test_api_base.FunctionalTest):
                                              True, 'test-topic')
 
     def test_provision_node_in_maintenance_fail(self):
-        with mock.patch.object(rpcapi.ConductorAPI, 'do_node_deploy') as dnd:
-            self.node.maintenance = True
-            self.node.save()
-            dnd.side_effect = exception.NodeInMaintenance(op='provisioning',
-                                                          node=self.node.uuid)
+        self.node.maintenance = True
+        self.node.save()
 
-            ret = self.put_json('/nodes/%s/states/provision' % self.node.uuid,
-                                {'target': states.ACTIVE},
-                                expect_errors=True)
-            self.assertEqual(400, ret.status_code)
-            self.assertTrue(ret.json['error_message'])
+        ret = self.put_json('/nodes/%s/states/provision' % self.node.uuid,
+                            {'target': states.ACTIVE},
+                            expect_errors=True)
+        self.assertEqual(400, ret.status_code)
+        self.assertTrue(ret.json['error_message'])
 
     @mock.patch.object(rpcapi.ConductorAPI, 'set_boot_device')
     def test_set_boot_device(self, mock_sbd):
