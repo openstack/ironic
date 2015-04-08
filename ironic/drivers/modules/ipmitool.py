@@ -111,6 +111,9 @@ ipmitool_command_options = {
     'dual_bridge': ['ipmitool', '-m', '0', '-b', '0', '-t', '0',
                     '-B', '0', '-T', '0', '-h']}
 
+# Note(TheJulia): This string is hardcoded in ipmitool's lanplus driver.
+IPMITOOL_RETRYABLE_FAILURES = ['insufficient resources for session']
+
 
 def _check_option_support(options):
     """Checks if the specific ipmitool options are supported on host.
@@ -335,32 +338,68 @@ def _exec_ipmitool(driver_info, command):
             args.append(driver_info[name])
 
     # specify retry timing more precisely, if supported
+    num_tries = max(
+        (CONF.ipmi.retry_timeout // CONF.ipmi.min_command_interval), 1)
+
     if _is_option_supported('timing'):
-        num_tries = max(
-            (CONF.ipmi.retry_timeout // CONF.ipmi.min_command_interval), 1)
         args.append('-R')
         args.append(str(num_tries))
 
         args.append('-N')
         args.append(str(CONF.ipmi.min_command_interval))
 
-    # 'ipmitool' command will prompt password if there is no '-f' option,
-    # we set it to '\0' to write a password file to support empty password
-    with _make_password_file(driver_info['password'] or '\0') as pw_file:
-        args.append('-f')
-        args.append(pw_file)
-        args.extend(command.split(" "))
+    end_time = (_time() + CONF.ipmi.retry_timeout)
+
+    while True:
+        num_tries = num_tries - 1
         # NOTE(deva): ensure that no communications are sent to a BMC more
         #             often than once every min_command_interval seconds.
         time_till_next_poll = CONF.ipmi.min_command_interval - (
-                time.time() - LAST_CMD_TIME.get(driver_info['address'], 0))
+                _time() - LAST_CMD_TIME.get(driver_info['address'], 0))
         if time_till_next_poll > 0:
             time.sleep(time_till_next_poll)
-        try:
-            out, err = utils.execute(*args)
-        finally:
-            LAST_CMD_TIME[driver_info['address']] = time.time()
-        return out, err
+        # Resetting the list that will be utilized so the password arguments
+        # from any previous execution are preserved.
+        cmd_args = args[:]
+        # 'ipmitool' command will prompt password if there is no '-f'
+        # option, we set it to '\0' to write a password file to support
+        # empty password
+        with _make_password_file(
+                    driver_info['password'] or '\0'
+                ) as pw_file:
+            cmd_args.append('-f')
+            cmd_args.append(pw_file)
+            cmd_args.extend(command.split(" "))
+            try:
+                out, err = utils.execute(*cmd_args)
+                return out, err
+            except processutils.ProcessExecutionError as e:
+                with excutils.save_and_reraise_exception() as ctxt:
+                    err_list = [x for x in IPMITOOL_RETRYABLE_FAILURES
+                                if x in e.message]
+                    if ((_time() > end_time) or
+                        (num_tries == 0) or
+                        not err_list):
+                        LOG.error(_LE('IPMI Error attempting to execute '
+                                  '"%(cmd)s" for node %(node)s. '
+                                  'Error: %(error)s'),
+                                  {
+                                        'node': driver_info['uuid'],
+                                        'cmd': e.cmd,
+                                        'error': e
+                                  })
+                    else:
+                        ctxt.reraise = False
+                        LOG.warning(_LW('IPMI Error encountered, retrying '
+                                    '"%(cmd)s" for node %(node)s '
+                                    'Error: %(error)s'),
+                                    {
+                                        'node': driver_info['uuid'],
+                                        'cmd': e.cmd,
+                                        'error': e
+                                    })
+            finally:
+                LAST_CMD_TIME[driver_info['address']] = _time()
 
 
 def _sleep_time(iter):
@@ -585,6 +624,11 @@ def send_raw(task, raw_bytes):
                       'with error: %(error)s.'),
                       {'node_id': node_uuid, 'error': e})
         raise exception.IPMIFailure(cmd=cmd)
+
+
+def _time():
+    """Wrapper for time.time() enabling simplified unit testing."""
+    return time.time()
 
 
 class IPMIPower(base.PowerInterface):
