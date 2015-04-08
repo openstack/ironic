@@ -136,7 +136,7 @@ class DbNodeTestCase(base.DbTestCase):
         res = self.dbapi.get_node_list(filters={'maintenance': False})
         self.assertEqual([node1.id], [r.id for r in res])
 
-    @mock.patch.object(timeutils, 'utcnow')
+    @mock.patch.object(timeutils, 'utcnow', autospec=True)
     def test_get_nodeinfo_list_provision(self, mock_utcnow):
         past = datetime.datetime(2000, 1, 1, 0, 0)
         next = past + datetime.timedelta(minutes=8)
@@ -161,7 +161,7 @@ class DbNodeTestCase(base.DbTestCase):
                                                     states.DEPLOYWAIT})
         self.assertEqual([node2.id], [r[0] for r in res])
 
-    @mock.patch.object(timeutils, 'utcnow')
+    @mock.patch.object(timeutils, 'utcnow', autospec=True)
     def test_get_nodeinfo_list_inspection(self, mock_utcnow):
         past = datetime.datetime(2000, 1, 1, 0, 0)
         next = past + datetime.timedelta(minutes=8)
@@ -354,7 +354,7 @@ class DbNodeTestCase(base.DbTestCase):
                           node2.id,
                           {'instance_uuid': new_i_uuid})
 
-    @mock.patch.object(timeutils, 'utcnow')
+    @mock.patch.object(timeutils, 'utcnow', autospec=True)
     def test_update_node_provision(self, mock_utcnow):
         mocked_time = datetime.datetime(2000, 1, 1, 0, 0)
         mock_utcnow.return_value = mocked_time
@@ -378,7 +378,7 @@ class DbNodeTestCase(base.DbTestCase):
         self.assertIsNone(res['provision_updated_at'])
         self.assertIsNone(res['inspection_started_at'])
 
-    @mock.patch.object(timeutils, 'utcnow')
+    @mock.patch.object(timeutils, 'utcnow', autospec=True)
     def test_update_node_inspection_started_at(self, mock_utcnow):
         mocked_time = datetime.datetime(2000, 1, 1, 0, 0)
         mock_utcnow.return_value = mocked_time
@@ -390,7 +390,7 @@ class DbNodeTestCase(base.DbTestCase):
                          timeutils.normalize_time(result))
         self.assertIsNone(res['inspection_finished_at'])
 
-    @mock.patch.object(timeutils, 'utcnow')
+    @mock.patch.object(timeutils, 'utcnow', autospec=True)
     def test_update_node_inspection_finished_at(self, mock_utcnow):
         mocked_time = datetime.datetime(2000, 1, 1, 0, 0)
         mock_utcnow.return_value = mocked_time

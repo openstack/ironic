@@ -64,7 +64,7 @@ class DbConductorTestCase(base.DbTestCase):
                 self.dbapi.unregister_conductor,
                 c.hostname)
 
-    @mock.patch.object(timeutils, 'utcnow')
+    @mock.patch.object(timeutils, 'utcnow', autospec=True)
     def test_touch_conductor(self, mock_utcnow):
         test_time = datetime.datetime(2000, 1, 1, 0, 0)
         mock_utcnow.return_value = test_time
@@ -110,7 +110,7 @@ class DbConductorTestCase(base.DbTestCase):
         self.assertEqual('hostname2', node2.reservation)
         self.assertIsNone(node3.reservation)
 
-    @mock.patch.object(timeutils, 'utcnow')
+    @mock.patch.object(timeutils, 'utcnow', autospec=True)
     def test_get_active_driver_dict_one_host_no_driver(self, mock_utcnow):
         h = 'fake-host'
         expected = {}
@@ -120,7 +120,7 @@ class DbConductorTestCase(base.DbTestCase):
         result = self.dbapi.get_active_driver_dict()
         self.assertEqual(expected, result)
 
-    @mock.patch.object(timeutils, 'utcnow')
+    @mock.patch.object(timeutils, 'utcnow', autospec=True)
     def test_get_active_driver_dict_one_host_one_driver(self, mock_utcnow):
         h = 'fake-host'
         d = 'fake-driver'
@@ -131,7 +131,7 @@ class DbConductorTestCase(base.DbTestCase):
         result = self.dbapi.get_active_driver_dict()
         self.assertEqual(expected, result)
 
-    @mock.patch.object(timeutils, 'utcnow')
+    @mock.patch.object(timeutils, 'utcnow', autospec=True)
     def test_get_active_driver_dict_one_host_many_drivers(self, mock_utcnow):
         h = 'fake-host'
         d1 = 'driver-one'
@@ -143,7 +143,7 @@ class DbConductorTestCase(base.DbTestCase):
         result = self.dbapi.get_active_driver_dict()
         self.assertEqual(expected, result)
 
-    @mock.patch.object(timeutils, 'utcnow')
+    @mock.patch.object(timeutils, 'utcnow', autospec=True)
     def test_get_active_driver_dict_many_hosts_one_driver(self, mock_utcnow):
         h1 = 'host-one'
         h2 = 'host-two'
@@ -156,7 +156,7 @@ class DbConductorTestCase(base.DbTestCase):
         result = self.dbapi.get_active_driver_dict()
         self.assertEqual(expected, result)
 
-    @mock.patch.object(timeutils, 'utcnow')
+    @mock.patch.object(timeutils, 'utcnow', autospec=True)
     def test_get_active_driver_dict_many_hosts_and_drivers(self, mock_utcnow):
         h1 = 'host-one'
         h2 = 'host-two'
@@ -172,7 +172,7 @@ class DbConductorTestCase(base.DbTestCase):
         result = self.dbapi.get_active_driver_dict()
         self.assertEqual(expected, result)
 
-    @mock.patch.object(timeutils, 'utcnow')
+    @mock.patch.object(timeutils, 'utcnow', autospec=True)
     def test_get_active_driver_dict_with_old_conductor(self, mock_utcnow):
         past = datetime.datetime(2000, 1, 1, 0, 0)
         present = past + datetime.timedelta(minutes=2)
