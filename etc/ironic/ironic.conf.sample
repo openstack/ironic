@@ -1191,6 +1191,23 @@
 #cleaning_network_uuid=<None>
 
 
+[oslo_concurrency]
+
+#
+# Options defined in oslo.concurrency
+#
+
+# Enables or disables inter-process locks. (boolean value)
+#disable_process_locking=false
+
+# Directory to use for lock files.  For security, the
+# specified directory should only be writable by the user
+# running the processes that need locking. Defaults to
+# environment variable OSLO_LOCK_PATH. If external locks are
+# used, a lock path must be set. (string value)
+#lock_path=<None>
+
+
 [oslo_messaging_amqp]
 
 #
@@ -1387,6 +1404,28 @@
 # Deprecated, use rpc_backend=kombu+memory or rpc_backend=fake
 # (boolean value)
 #fake_rabbit=false
+
+
+[oslo_policy]
+
+#
+# Options defined in oslo.policy
+#
+
+# The JSON file that defines policies. (string value)
+#policy_file=policy.json
+
+# Default rule. Enforced when a requested rule is not found.
+# (string value)
+#policy_default_rule=default
+
+# Directories where policy configuration files are stored.
+# They can be relative to any directory in the search path
+# defined by the config_dir option, or absolute paths. The
+# file defined by policy_file must exist for these directories
+# to be searched.  Missing or empty directories are ignored.
+# (multi valued)
+#policy_dirs=policy.d
 
 
 [pxe]
