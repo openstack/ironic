@@ -85,7 +85,7 @@ class ParsableErrorMiddleware(object):
             else:
                 body = [json.dumps({'error_message': '\n'.join(app_iter)})]
                 state['headers'].append(('Content-Type', 'application/json'))
-            state['headers'].append(('Content-Length', len(body[0])))
+            state['headers'].append(('Content-Length', str(len(body[0]))))
         else:
             body = app_iter
         return body
