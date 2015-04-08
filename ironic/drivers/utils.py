@@ -144,33 +144,6 @@ def get_node_capability(node, capability):
                 "Format should be 'key:val'."), node_capability)
 
 
-def rm_node_capability(task, capability):
-    """Remove 'capability' from node's 'capabilities' property.
-
-    :param task: Task object.
-    :param capability: Capability key.
-
-    """
-    node = task.node
-    properties = node.properties
-    capabilities = properties.get('capabilities')
-
-    if not capabilities:
-        return
-
-    caps = []
-    for cap in capabilities.split(','):
-        parts = cap.split(':')
-        if len(parts) == 2 and parts[0] and parts[1]:
-            if parts[0] == capability:
-                continue
-        caps.append(cap)
-    new_cap_str = ",".join(caps)
-    properties['capabilities'] = new_cap_str if new_cap_str else None
-    node.properties = properties
-    node.save()
-
-
 def add_node_capability(task, capability, value):
     """Add 'capability' to node's 'capabilities' property.
 
@@ -250,28 +223,3 @@ def validate_secure_boot_capability(node):
 
     """
     validate_capability(node, 'secure_boot', ('true', 'false'))
-
-
-def get_boot_mode_for_deploy(node):
-    """Returns the boot mode that would be used for deploy.
-
-    This method returns deploy_boot_mode available in node field
-    boot_mode from 'capabilities' of node 'properties'.
-    Otherwise returns boot mode specified in node's 'instance_info'.
-
-    :param node: an ironic node object.
-    :returns: Value of boot mode that would be used for deploy.
-              Possible values are 'bios', 'uefi'.
-              It would return None if boot mode is present neither
-              in 'capabilities' of node 'properties' nor in node's
-              'instance_info'.
-
-    """
-    boot_mode = get_node_capability(node, 'boot_mode')
-    if boot_mode is None:
-        instance_info = node.instance_info
-        boot_mode = instance_info.get('deploy_boot_mode', None)
-
-    LOG.debug('Deploy boot mode is %(boot_mode)s for %(node)s.',
-              {'boot_mode': boot_mode, 'node': node.uuid})
-    return boot_mode

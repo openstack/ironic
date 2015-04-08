@@ -30,7 +30,7 @@ from ironic.common.i18n import _LI
 from ironic.common import images
 from ironic.common import swift
 from ironic.common import utils
-from ironic.drivers import utils as driver_utils
+from ironic.drivers.modules import deploy_utils
 from ironic.openstack.common import log as logging
 
 ilo_client = importutils.try_import('proliantutils.ilo.client')
@@ -343,7 +343,7 @@ def update_boot_mode(task):
     """
 
     node = task.node
-    boot_mode = driver_utils.get_boot_mode_for_deploy(node)
+    boot_mode = deploy_utils.get_boot_mode_for_deploy(node)
 
     if boot_mode is not None:
         LOG.debug("Node %(uuid)s boot mode is being set to %(boot_mode)s",
@@ -360,7 +360,7 @@ def update_boot_mode(task):
         boot_mode = 'legacy'
 
     if boot_mode != 'UNKNOWN':
-            boot_mode = BOOT_MODE_ILO_TO_GENERIC[boot_mode.lower()]
+        boot_mode = BOOT_MODE_ILO_TO_GENERIC[boot_mode.lower()]
 
     if boot_mode == 'UNKNOWN':
         # NOTE(faizan) ILO will return this in remote cases and mostly on
