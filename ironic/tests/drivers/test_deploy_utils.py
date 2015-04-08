@@ -1020,13 +1020,18 @@ class WorkOnDiskTestCase(tests_base.TestCase):
         self.swap_part = '/dev/fake-part1'
         self.root_part = '/dev/fake-part2'
 
-        self.mock_ibd = mock.patch.object(utils, 'is_block_device').start()
-        self.mock_mp = mock.patch.object(utils, 'make_partitions').start()
-        self.addCleanup(self.mock_ibd.stop)
-        self.addCleanup(self.mock_mp.stop)
-        self.mock_remlbl = mock.patch.object(utils,
-                                             'destroy_disk_metadata').start()
-        self.addCleanup(self.mock_remlbl.stop)
+        self.mock_ibd_obj = mock.patch.object(
+            utils, 'is_block_device', autospec=True)
+        self.mock_ibd = self.mock_ibd_obj.start()
+        self.addCleanup(self.mock_ibd_obj.stop)
+        self.mock_mp_obj = mock.patch.object(
+            utils, 'make_partitions', autospec=True)
+        self.mock_mp = self.mock_mp_obj.start()
+        self.addCleanup(self.mock_mp_obj.stop)
+        self.mock_remlbl_obj = mock.patch.object(
+            utils, 'destroy_disk_metadata', autospec=True)
+        self.mock_remlbl = self.mock_remlbl_obj.start()
+        self.addCleanup(self.mock_remlbl_obj.stop)
         self.mock_mp.return_value = {'swap': self.swap_part,
                                      'root': self.root_part}
 
@@ -1044,7 +1049,7 @@ class WorkOnDiskTestCase(tests_base.TestCase):
                                              boot_mode="bios")
 
     def test_no_swap_partition(self):
-        self.mock_ibd.side_effect = [True, False]
+        self.mock_ibd.side_effect = iter([True, False])
         calls = [mock.call(self.root_part),
                  mock.call(self.swap_part)]
         self.assertRaises(exception.InstanceDeployFailure,
@@ -1068,7 +1073,7 @@ class WorkOnDiskTestCase(tests_base.TestCase):
         self.mock_mp.return_value = {'ephemeral': ephemeral_part,
                                      'swap': swap_part,
                                      'root': root_part}
-        self.mock_ibd.side_effect = [True, True, False]
+        self.mock_ibd.side_effect = iter([True, True, False])
         calls = [mock.call(root_part),
                  mock.call(swap_part),
                  mock.call(ephemeral_part)]
@@ -1096,7 +1101,7 @@ class WorkOnDiskTestCase(tests_base.TestCase):
         self.mock_mp.return_value = {'swap': swap_part,
                                      'configdrive': configdrive_part,
                                      'root': root_part}
-        self.mock_ibd.side_effect = [True, True, False]
+        self.mock_ibd.side_effect = iter([True, True, False])
         calls = [mock.call(root_part),
                  mock.call(swap_part),
                  mock.call(configdrive_part)]
