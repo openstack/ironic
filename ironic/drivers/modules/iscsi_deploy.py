@@ -26,7 +26,9 @@ from ironic.common.i18n import _LE
 from ironic.common.i18n import _LI
 from ironic.common import image_service as service
 from ironic.common import keystone
+from ironic.common import states
 from ironic.common import utils
+from ironic.conductor import utils as manager_utils
 from ironic.drivers.modules import deploy_utils
 from ironic.drivers.modules import image_cache
 from ironic.drivers import utils as driver_utils
@@ -612,6 +614,16 @@ def finish_deploy(task, address):
                  'installation. Error: %s') % e)
         deploy_utils.set_failed_state(task, msg)
         raise exception.InstanceDeployFailure(msg)
+
+    # TODO(lucasagomes): When deploying a node with the DIB ramdisk
+    # Ironic will not power control the node at the end of the deployment,
+    # it's the DIB ramdisk that reboots the node. But, for the SSH driver
+    # some changes like setting the boot device only gets applied when the
+    # machine is powered off and on again. So the code below is enforcing
+    # it. For Liberty we need to change the DIB ramdisk so that Ironic
+    # always controls the power state of the node for all drivers.
+    if get_boot_option(node) == "local" and 'ssh' in node.driver:
+        manager_utils.node_power_action(task, states.REBOOT)
 
     LOG.info(_LI('Deployment to node %s done'), node.uuid)
     task.process_event('done')
