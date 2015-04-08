@@ -13,9 +13,14 @@ the tenant will get a consistent baremetal node deployed every time.
 Ironic implements cleaning by collecting a list of steps to perform on a node
 from each Power, Deploy, and Management driver assigned to the node. These
 steps are then arranged by priority and executed on the node when it is moved
-to CLEANING state, if cleaning is enabled.
+to cleaning state, if cleaning is enabled.
 
-Ironic added support for cleaning used nodes in the Kilo release.
+Typically, nodes move to cleaning state when moving from active -> available.
+Nodes also traverse cleaning when going from manageable -> available. For a
+full understanding of all state transitions into cleaning, please see
+:ref:`states`.
+
+Ironic added support for cleaning nodes in the Kilo release.
 
 
 Enabling Cleaning
@@ -41,8 +46,8 @@ In-band steps are performed by Ironic making API calls to a ramdisk running
 on the node using a Deploy driver. Currently, only the ironic-python-agent
 ramdisk used with an agent_* driver supports in-band cleaning. By default,
 ironic-python-agent ships with a minimal cleaning configuration, only erasing
-disks. However, with this ramdisk, you can add your own clean_steps and/or
-override default clean_steps with a custom Hardware Manager.
+disks. However, with this ramdisk, you can add your own cleaning steps and/or
+override default cleaning steps with a custom Hardware Manager.
 
 There is currently no support for in-band cleaning using the Ironic pxe
 ramdisk.
@@ -81,12 +86,14 @@ to disable erase_devices, you'd use the following config::
   agent_erase_devices_priority=0
 
 
-What clean_step is running?
----------------------------
-To check what clean_step the node is performing or attempted to perform and
+What cleaning step is running?
+------------------------------
+To check what cleaning step the node is performing or attempted to perform and
 failed, either query the node endpoint for the node or run ``ironic node-show
-$node_ident`` and look at the 'clean_step' field. This will tell you which
-step for which driver is or was (if in CLEANFAIL state) being executed.
+$node_ident`` and look in the `internal_driver_info` field. The `clean_steps`
+field will contain a list of all remaining steps with their priority, and the
+first one listed is the step currently in progress or that the node failed
+before going into cleanfail state.
 
 Should I disable cleaning?
 --------------------------
@@ -107,17 +114,17 @@ cleaning.
 
 Troubleshooting
 ===============
-If cleaning fails on a node, the node will be put into CLEANFAIL state and
+If cleaning fails on a node, the node will be put into cleanfail state and
 placed in maintenance mode, to prevent Ironic from taking actions on the
 node.
 
-Nodes in CLEANFAIL will not be powered off, as the node might be in a state
+Nodes in cleanfail will not be powered off, as the node might be in a state
 such that powering it off could damage the node or remove useful information
 about the nature of the cleaning failure.
 
-A CLEANFAIL node can be moved to MANAGEABLE state, where they cannot be
+A cleanfail node can be moved to manageable state, where they cannot be
 scheduled by Nova and you can safely attempt to fix the node. To move a node
-from CLEANFAIL to MANAGEABLE: ``ironic node-set-provision-state manage``.
+from cleanfail to manageable: ``ironic node-set-provision-state manage``.
 You can now take actions on the node, such as replacing a bad disk drive.
 
 Strategies for determining why a cleaning step failed include checking the
@@ -125,7 +132,7 @@ Ironic conductor logs, viewing logs on the still-running ironic-python-agent
 (if an in-band step failed), or performing general hardware troubleshooting on
 the node.
 
-When the node is repaired, you can move the node back to AVAILABLE state, to
+When the node is repaired, you can move the node back to available state, to
 allow it to be scheduled by Nova.
 
 ::
@@ -136,5 +143,5 @@ allow it to be scheduled by Nova.
   # Now, make the node available for scheduling by Nova
   ironic node-set-provision-state $node_ident provide
 
-The node will begin cleaning from the start, and move to AVAILABLE state
+The node will begin cleaning from the start, and move to available state
 when complete.
