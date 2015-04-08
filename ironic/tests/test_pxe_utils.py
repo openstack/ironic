@@ -144,7 +144,40 @@ class TestPXEUtils(db_base.DbTestCase):
         ]
         unlink_calls = [
             mock.call('/tftpboot/pxelinux.cfg/01-00-11-22-33-44-55-66'),
-            mock.call('/tftpboot/pxelinux.cfg/01-00-11-22-33-44-55-67')
+            mock.call('/tftpboot/pxelinux.cfg/01-00-11-22-33-44-55-67'),
+        ]
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            pxe_utils._link_mac_pxe_configs(task)
+
+        unlink_mock.assert_has_calls(unlink_calls)
+        create_link_mock.assert_has_calls(create_link_calls)
+
+    @mock.patch('ironic.common.utils.create_link_without_raise', autospec=True)
+    @mock.patch('ironic.common.utils.unlink_without_raise', autospec=True)
+    @mock.patch('ironic.drivers.utils.get_node_mac_addresses', autospec=True)
+    def test__write_mac_ipxe_configs(self, get_macs_mock, unlink_mock,
+                                     create_link_mock):
+        self.config(ipxe_enabled=True, group='pxe')
+        macs = [
+            '00:11:22:33:44:55:66',
+            '00:11:22:33:44:55:67'
+        ]
+        get_macs_mock.return_value = macs
+        create_link_calls = [
+            mock.call(u'/httpboot/1be26c0b-03f2-4d2e-ae87-c02d7f33c123/config',
+                      '/httpboot/pxelinux.cfg/00-11-22-33-44-55-66'),
+            mock.call(u'/httpboot/1be26c0b-03f2-4d2e-ae87-c02d7f33c123/config',
+                      '/httpboot/pxelinux.cfg/00112233445566'),
+            mock.call(u'/httpboot/1be26c0b-03f2-4d2e-ae87-c02d7f33c123/config',
+                      '/httpboot/pxelinux.cfg/00-11-22-33-44-55-67'),
+            mock.call(u'/httpboot/1be26c0b-03f2-4d2e-ae87-c02d7f33c123/config',
+                      '/httpboot/pxelinux.cfg/00112233445567'),
+        ]
+        unlink_calls = [
+            mock.call('/httpboot/pxelinux.cfg/00-11-22-33-44-55-66'),
+            mock.call('/httpboot/pxelinux.cfg/00112233445566'),
+            mock.call('/httpboot/pxelinux.cfg/00-11-22-33-44-55-67'),
+            mock.call('/httpboot/pxelinux.cfg/00112233445567'),
         ]
         with task_manager.acquire(self.context, self.node.uuid) as task:
             pxe_utils._link_mac_pxe_configs(task)
@@ -218,7 +251,7 @@ class TestPXEUtils(db_base.DbTestCase):
         self.config(ipxe_enabled=True, group='pxe')
         self.config(http_root='/httpboot', group='pxe')
         mac = '00:11:22:33:AA:BB:CC'
-        self.assertEqual('/httpboot/pxelinux.cfg/00112233aabbcc',
+        self.assertEqual('/httpboot/pxelinux.cfg/00-11-22-33-aa-bb-cc',
                          pxe_utils._get_pxe_mac_path(mac))
 
     def test__get_pxe_ip_address_path(self):
