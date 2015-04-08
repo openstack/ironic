@@ -891,21 +891,21 @@ class IPMIToolPrivateMethodTestCase(db_base.DbTestCase):
 
     @mock.patch.object(ipmi, '_is_option_supported', autospec=True)
     @mock.patch.object(utils, 'execute', autospec=True)
-    def test__exec_ipmitool_exception_retry_failure_unhandable(self,
+    def test__exec_ipmitool_exception_non_retryable_failure(self,
             mock_exec, mock_support, mock_sleep):
 
         ipmi.LAST_CMD_TIME = {}
         mock_support.return_value = False
 
-        # Return a retryable error, then a error that cannot
-        # be retryable thus resulting in a single retry
-        # attempt by _exec_ipmitool that is successful.
+        # Return a retryable error, then an error that cannot
+        # be retried thus resulting in a single retry
+        # attempt by _exec_ipmitool.
         mock_exec.side_effect = iter([
             processutils.ProcessExecutionError(
                 stderr="insufficient resources for session"
             ),
             processutils.ProcessExecutionError(
-                "Unknown"
+                stderr="Unknown"
             ),
             ])
 

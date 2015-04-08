@@ -111,7 +111,11 @@ ipmitool_command_options = {
     'dual_bridge': ['ipmitool', '-m', '0', '-b', '0', '-t', '0',
                     '-B', '0', '-T', '0', '-h']}
 
-# Note(TheJulia): This string is hardcoded in ipmitool's lanplus driver.
+# Note(TheJulia): This string is hardcoded in ipmitool's lanplus driver
+# and is substituted in return for the error code received from the IPMI
+# controller.  As of 1.8.15, no internationalization support appears to
+# be in ipmitool which means the string should always be returned in this
+# form regardless of locale.
 IPMITOOL_RETRYABLE_FAILURES = ['insufficient resources for session']
 
 
@@ -348,14 +352,14 @@ def _exec_ipmitool(driver_info, command):
         args.append('-N')
         args.append(str(CONF.ipmi.min_command_interval))
 
-    end_time = (_time() + CONF.ipmi.retry_timeout)
+    end_time = (time.time() + CONF.ipmi.retry_timeout)
 
     while True:
         num_tries = num_tries - 1
         # NOTE(deva): ensure that no communications are sent to a BMC more
         #             often than once every min_command_interval seconds.
         time_till_next_poll = CONF.ipmi.min_command_interval - (
-                _time() - LAST_CMD_TIME.get(driver_info['address'], 0))
+                time.time() - LAST_CMD_TIME.get(driver_info['address'], 0))
         if time_till_next_poll > 0:
             time.sleep(time_till_next_poll)
         # Resetting the list that will be utilized so the password arguments
@@ -377,21 +381,21 @@ def _exec_ipmitool(driver_info, command):
                 with excutils.save_and_reraise_exception() as ctxt:
                     err_list = [x for x in IPMITOOL_RETRYABLE_FAILURES
                                 if x in e.message]
-                    if ((_time() > end_time) or
+                    if ((time.time() > end_time) or
                         (num_tries == 0) or
                         not err_list):
-                        LOG.error(_LE('IPMI Error attempting to execute '
+                        LOG.error(_LE('IPMI Error while attempting '
                                   '"%(cmd)s" for node %(node)s. '
                                   'Error: %(error)s'),
                                   {
-                                        'node': driver_info['uuid'],
-                                        'cmd': e.cmd,
-                                        'error': e
+                                      'node': driver_info['uuid'],
+                                      'cmd': e.cmd,
+                                      'error': e
                                   })
                     else:
                         ctxt.reraise = False
                         LOG.warning(_LW('IPMI Error encountered, retrying '
-                                    '"%(cmd)s" for node %(node)s '
+                                    '"%(cmd)s" for node %(node)s. '
                                     'Error: %(error)s'),
                                     {
                                         'node': driver_info['uuid'],
@@ -399,7 +403,7 @@ def _exec_ipmitool(driver_info, command):
                                         'error': e
                                     })
             finally:
-                LAST_CMD_TIME[driver_info['address']] = _time()
+                LAST_CMD_TIME[driver_info['address']] = time.time()
 
 
 def _sleep_time(iter):
@@ -624,11 +628,6 @@ def send_raw(task, raw_bytes):
                       'with error: %(error)s.'),
                       {'node_id': node_uuid, 'error': e})
         raise exception.IPMIFailure(cmd=cmd)
-
-
-def _time():
-    """Wrapper for time.time() enabling simplified unit testing."""
-    return time.time()
 
 
 class IPMIPower(base.PowerInterface):
