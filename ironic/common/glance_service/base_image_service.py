@@ -22,6 +22,7 @@ import sys
 import time
 
 from glanceclient import client
+from glanceclient import exc as glance_exc
 from oslo_config import cfg
 import sendfile
 import six.moves.urllib.parse as urlparse
@@ -36,23 +37,23 @@ CONF = cfg.CONF
 
 
 def _translate_image_exception(image_id, exc_value):
-    if isinstance(exc_value, (exception.Forbidden,
-                              exception.Unauthorized)):
+    if isinstance(exc_value, (glance_exc.Forbidden,
+                              glance_exc.Unauthorized)):
         return exception.ImageNotAuthorized(image_id=image_id)
-    if isinstance(exc_value, exception.NotFound):
+    if isinstance(exc_value, glance_exc.NotFound):
         return exception.ImageNotFound(image_id=image_id)
-    if isinstance(exc_value, exception.BadRequest):
+    if isinstance(exc_value, glance_exc.BadRequest):
         return exception.Invalid(exc_value)
     return exc_value
 
 
 def _translate_plain_exception(exc_value):
-    if isinstance(exc_value, (exception.Forbidden,
-                              exception.Unauthorized)):
+    if isinstance(exc_value, (glance_exc.Forbidden,
+                              glance_exc.Unauthorized)):
         return exception.NotAuthorized(exc_value)
-    if isinstance(exc_value, exception.NotFound):
+    if isinstance(exc_value, glance_exc.NotFound):
         return exception.NotFound(exc_value)
-    if isinstance(exc_value, exception.BadRequest):
+    if isinstance(exc_value, glance_exc.BadRequest):
         return exception.Invalid(exc_value)
     return exc_value
 
@@ -109,13 +110,13 @@ class BaseImageService(object):
 
         :raises: GlanceConnectionFailed
         """
-        retry_excs = (exception.ServiceUnavailable,
-                      exception.InvalidEndpoint,
-                      exception.CommunicationError)
-        image_excs = (exception.Forbidden,
-                      exception.Unauthorized,
-                      exception.NotFound,
-                      exception.BadRequest)
+        retry_excs = (glance_exc.ServiceUnavailable,
+                      glance_exc.InvalidEndpoint,
+                      glance_exc.CommunicationError)
+        image_excs = (glance_exc.Forbidden,
+                      glance_exc.Unauthorized,
+                      glance_exc.NotFound,
+                      glance_exc.BadRequest)
         num_attempts = 1 + CONF.glance.glance_num_retries
 
         for attempt in range(1, num_attempts + 1):

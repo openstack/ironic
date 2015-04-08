@@ -12,7 +12,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-from ironic.common import exception
+from glanceclient import exc as glance_exc
 
 
 NOW_GLANCE_FORMAT = "2010-10-11T10:30:22"
@@ -40,7 +40,7 @@ class StubGlanceClient(object):
                     index += 1
                     break
             else:
-                raise exception.BadRequest('Marker not found')
+                raise glance_exc.BadRequest('Marker not found')
 
         return self._images[index:index + limit]
 
@@ -48,7 +48,7 @@ class StubGlanceClient(object):
         for image in self._images:
             if image.id == str(image_id):
                 return image
-        raise exception.ImageNotFound(image_id)
+        raise glance_exc.NotFound(image_id)
 
     def data(self, image_id):
         self.get(image_id)
@@ -76,7 +76,7 @@ class StubGlanceClient(object):
                 for k, v in metadata.items():
                     setattr(self._images[i], k, v)
                 return self._images[i]
-        raise exception.NotFound(image_id)
+        raise glance_exc.NotFound(image_id)
 
     def delete(self, image_id):
         for i, image in enumerate(self._images):
@@ -86,10 +86,10 @@ class StubGlanceClient(object):
                 # HTTPForbidden.
                 image_data = self._images[i]
                 if image_data.deleted:
-                    raise exception.Forbidden()
+                    raise glance_exc.Forbidden()
                 image_data.deleted = True
                 return
-        raise exception.NotFound(image_id)
+        raise glance_exc.NotFound(image_id)
 
 
 class FakeImage(object):

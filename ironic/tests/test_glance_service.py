@@ -20,8 +20,11 @@ import os
 import tempfile
 import time
 
+from glanceclient import exc as glance_exc
 import mock
+from oslo_config import cfg
 from oslo_context import context
+from oslo_serialization import jsonutils
 import testtools
 
 
@@ -33,8 +36,6 @@ from ironic.tests import base
 from ironic.tests import matchers
 from ironic.tests import stubs
 
-from oslo_config import cfg
-from oslo_serialization import jsonutils
 
 CONF = cfg.CONF
 
@@ -468,7 +469,7 @@ class TestGlanceImageService(base.TestCase):
             def get(self, image_id):
                 if tries[0] == 0:
                     tries[0] = 1
-                    raise exception.ServiceUnavailable('')
+                    raise glance_exc.ServiceUnavailable('')
                 else:
                     return {}
 
@@ -536,7 +537,7 @@ class TestGlanceImageService(base.TestCase):
         class MyGlanceStubClient(stubs.StubGlanceClient):
             """A client that raises a Forbidden exception."""
             def get(self, image_id):
-                raise exception.Forbidden(image_id)
+                raise glance_exc.Forbidden(image_id)
 
         stub_client = MyGlanceStubClient()
         stub_context = context.RequestContext(auth_token=True)
@@ -552,7 +553,7 @@ class TestGlanceImageService(base.TestCase):
         class MyGlanceStubClient(stubs.StubGlanceClient):
             """A client that raises a HTTPForbidden exception."""
             def get(self, image_id):
-                raise exception.HTTPForbidden(image_id)
+                raise glance_exc.HTTPForbidden(image_id)
 
         stub_client = MyGlanceStubClient()
         stub_context = context.RequestContext(auth_token=True)
@@ -568,7 +569,7 @@ class TestGlanceImageService(base.TestCase):
         class MyGlanceStubClient(stubs.StubGlanceClient):
             """A client that raises a NotFound exception."""
             def get(self, image_id):
-                raise exception.NotFound(image_id)
+                raise glance_exc.NotFound(image_id)
 
         stub_client = MyGlanceStubClient()
         stub_context = context.RequestContext(auth_token=True)
@@ -584,7 +585,7 @@ class TestGlanceImageService(base.TestCase):
         class MyGlanceStubClient(stubs.StubGlanceClient):
             """A client that raises a HTTPNotFound exception."""
             def get(self, image_id):
-                raise exception.HTTPNotFound(image_id)
+                raise glance_exc.HTTPNotFound(image_id)
 
         stub_client = MyGlanceStubClient()
         stub_context = context.RequestContext(auth_token=True)
@@ -635,7 +636,7 @@ def _create_failing_glance_client(info):
         def get(self, image_id):
             info['num_calls'] += 1
             if info['num_calls'] == 1:
-                raise exception.ServiceUnavailable('')
+                raise glance_exc.ServiceUnavailable('')
             return {}
 
     return MyGlanceStubClient()
