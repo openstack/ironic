@@ -348,7 +348,7 @@ def update_boot_mode(task):
     if boot_mode is not None:
         LOG.debug("Node %(uuid)s boot mode is being set to %(boot_mode)s",
                   {'uuid': node.uuid, 'boot_mode': boot_mode})
-        set_boot_mode(node, boot_mode.lower())
+        set_boot_mode(node, boot_mode)
         return
 
     LOG.debug("Check pending boot mode for node %s.", node.uuid)
