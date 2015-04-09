@@ -447,13 +447,19 @@ def build_deploy_ramdisk_options(node):
     node.instance_info = i_info
     node.save()
 
+    # XXX(jroll) DIB relies on boot_option=local to decide whether or not to
+    # lay down a bootloader. Hack this for now; fix it for real in Liberty.
+    boot_option = get_boot_option(node)
+    if node.driver_internal_info.get('is_whole_disk_image'):
+        boot_option = 'netboot'
+
     deploy_options = {
         'deployment_id': node['uuid'],
         'deployment_key': deploy_key,
         'iscsi_target_iqn': "iqn-%s" % node.uuid,
         'ironic_api_url': ironic_api,
         'disk': CONF.pxe.disk_devices,
-        'boot_option': get_boot_option(node),
+        'boot_option': boot_option,
         'boot_mode': _get_boot_mode(node),
         # NOTE: The below entry is a temporary workaround for bug/1433812
         'coreos.configdrive': 0,
