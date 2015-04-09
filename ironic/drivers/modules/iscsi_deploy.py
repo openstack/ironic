@@ -449,6 +449,7 @@ def build_deploy_ramdisk_options(node):
 
     # XXX(jroll) DIB relies on boot_option=local to decide whether or not to
     # lay down a bootloader. Hack this for now; fix it for real in Liberty.
+    # See also bug #1441556.
     boot_option = get_boot_option(node)
     if node.driver_internal_info.get('is_whole_disk_image'):
         boot_option = 'netboot'

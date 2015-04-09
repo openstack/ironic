@@ -487,8 +487,8 @@ class IscsiDeployMethodsTestCase(db_base.DbTestCase):
         self._test_build_deploy_ramdisk_options(mock_alnum, fake_api_url,
                                                 expected_boot_option=expected)
 
-    @mock.patch.object(keystone, 'get_service_url')
-    @mock.patch.object(utils, 'random_alnum')
+    @mock.patch.object(keystone, 'get_service_url', autospec=True)
+    @mock.patch.object(utils, 'random_alnum', autospec=True)
     def test_build_deploy_ramdisk_options_whole_disk_image(self, mock_alnum,
                                                            mock_get_url):
         """Tests a hack to boot_option for whole disk images.
@@ -499,6 +499,7 @@ class IscsiDeployMethodsTestCase(db_base.DbTestCase):
         dii = self.node.driver_internal_info
         dii['is_whole_disk_image'] = True
         self.node.driver_internal_info = dii
+        self.node.save()
         expected = 'netboot'
         fake_api_url = 'http://127.0.0.1:6385'
         self.config(api_url=fake_api_url, group='conductor')
