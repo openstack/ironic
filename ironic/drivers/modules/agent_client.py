@@ -37,6 +37,7 @@ class AgentClient(object):
     """Client for interacting with nodes via a REST API."""
     def __init__(self):
         self.session = requests.Session()
+        self.session.headers.update({'Content-Type': 'application/json'})
 
     def _get_command_url(self, node):
         agent_url = node.driver_internal_info.get('agent_url')
@@ -64,13 +65,9 @@ class AgentClient(object):
         request_params = {
             'wait': str(wait).lower()
         }
-        headers = {
-            'Content-Type': 'application/json'
-        }
         response = self.session.post(url,
                                      params=request_params,
-                                     data=body,
-                                     headers=headers)
+                                     data=body)
 
         # TODO(russellhaering): real error handling
         try:
@@ -86,8 +83,7 @@ class AgentClient(object):
 
     def get_commands_status(self, node):
         url = self._get_command_url(node)
-        headers = {'Content-Type': 'application/json'}
-        res = self.session.get(url, headers=headers)
+        res = self.session.get(url)
         return res.json()['commands']
 
     def prepare_image(self, node, image_info, wait=False):
