@@ -16,7 +16,7 @@ sqlalchemy-migrate==0.9.1
 netaddr>=0.7.12,<=0.7.13
 paramiko>=1.13.0,<=1.15.2
 iso8601>=0.1.9,<=0.1.10
-python-neutronclient>=2.3.6,<3
+python-neutronclient>=2.3.6,<2.4.0
 python-glanceclient>=0.14.0,<=0.15.0
 python-keystoneclient>=0.10.0,<=1.1.0
 python-swiftclient>=2.2.0,<=2.3.1
