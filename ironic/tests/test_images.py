@@ -424,12 +424,15 @@ class FsImageTestCase(base.TestCase):
         self.assertEqual(expected_cfg, cfg)
 
     def test__generate_grub_cfg(self):
-
         kernel_params = ['key1=value1', 'key2']
         options = {'linux': '/vmlinuz', 'initrd': '/initrd'}
-        expected_cfg = ("menuentry \"install\" {\n"
-                        "linux /vmlinuz key1=value1 key2 --\n"
-                        "initrd /initrd\n"
+        expected_cfg = ("set default=0\n"
+                        "set timeout=5\n"
+                        "set hidden_timeout_quiet=false\n"
+                        "\n"
+                        "menuentry \"boot_partition\" {\n"
+                        "linuxefi /vmlinuz key1=value1 key2 --\n"
+                        "initrdefi /initrd\n"
                         "}")
 
         cfg = images._generate_cfg(kernel_params,

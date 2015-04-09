@@ -1,4 +1,8 @@
-menuentry "install" {
-linux {{ linux }} {{ kernel_params }} --
-initrd {{ initrd }}
+set default=0
+set timeout=5
+set hidden_timeout_quiet=false
+
+menuentry "boot_partition" {
+linuxefi {{ linux }} {{ kernel_params }} --
+initrdefi {{ initrd }}
 }
