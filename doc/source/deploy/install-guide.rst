@@ -4,8 +4,9 @@
 Bare Metal Service Installation Guide
 =====================================
 
-This document pertains to the Juno (2014.2) release of OpenStack.  Users of
-earlier releases may encounter some differences in configuration of services.
+This document pertains to the Kilo (2015.1) release of OpenStack Ironic.  Users
+of earlier releases may encounter differences, and are encouraged to look at
+earlier versions of this document for guidance.
 
 
 Service Overview
@@ -14,23 +15,33 @@ Service Overview
 The Bare Metal Service is a collection of components that provides support to
 manage and provision physical machines.
 
-Also known as the ``ironic`` project, the Bare Metal Service interacts with
-several other OpenStack services such as:
+Also known as the ``Ironic`` project, the Bare Metal Service may, depending
+upon configuration, interact with several other OpenStack services. This
+includes:
 
-- the Identity Service (keystone) for request authentication and to
+- the Telemetry (Ceilometer) for consuming the IPMI metrics
+- the Identity Service (Keystone) for request authentication and to
   locate other OpenStack services
-- the Image Service (glance) from which to retrieve images
-- the Networking Service (neutron) for DHCP and network configuration
-- the Compute Service (nova), which leverages the Bare Metal Service to
-  manage compute instances on bare metal.
+- the Image Service (Glance) from which to retrieve images and image meta-data
+- the Networking Service (Neutron) for DHCP and network configuration
+- the Compute Service (Nova) works with Ironic and acts as a user-facing API
+  for instance management, while Ironic provides the admin/operator API for
+  hardware management. Nova also provides scheduling facilities (matching
+  flavors <-> images <-> hardware), tenant quotas, IP assignment, and other
+  services which Ironic does not, in and of itself, provide.
+
+- the Block Storage (Cinder) will provide volumes, but the aspect is not yet available.
 
 The Bare Metal Service includes the following components:
 
-- ironic-api. A RESTful API that processes application requests by sending
+- ironic-api: A RESTful API that processes application requests by sending
   them to the ironic-conductor over RPC.
-- ironic-conductor. Adds/edits/deletes nodes; powers on/off nodes with
+- ironic-conductor: Adds/edits/deletes nodes; powers on/off nodes with
   ipmi or ssh; provisions/deploys/decommissions bare metal nodes.
-- Ironic client. A command-line interface (CLI) for interacting with
+- ironic-python-agent: A python service which is run in a temporary ramdisk to
+  provide ironic-conductor service(s) with remote access and in-band hardware
+  control.
+- python-ironicclient: A command-line interface (CLI) for interacting with
   the Bare Metal Service.
 
 Additionally, the Bare Metal Service has certain external dependencies, which are
@@ -43,6 +54,20 @@ very similar to other OpenStack Services:
   metadata) from users.
 - A queue. A central hub for passing messages. It should use the same
   implementation as that of the Compute Service (typically RabbitMQ).
+
+Optionally, one may wish to utilize the following associated projects for
+additional functionality:
+
+- ironic-discoverd_; An associated service which performs in-band hardware
+  introspection by PXE booting unregistered hardware into a "discovery ramdisk".
+- diskimage-builder_; May be used to customize machine images, create and
+  discovery deploy ramdisks, if necessary.
+.. _ironic-discoverd: https://github.com/stackforge/ironic-discoverd
+.. _diskimage-builder: https://github.com/openstack/diskimage-builder
+
+
+.. todo: include coreos-image-builder reference here, once the split is done
+
 
 Install and Configure Prerequisites
 ===================================
