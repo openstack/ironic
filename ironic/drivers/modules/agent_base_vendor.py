@@ -318,7 +318,8 @@ class BaseAgentVendor(base.VendorInterface):
             # processing so the command hasn't started yet
             return
 
-        last_step = last_command['command_result'].get('clean_step')
+        last_result = last_command.get('command_result') or {}
+        last_step = last_result.get('clean_step')
         if last_command['command_status'] == 'RUNNING':
             return
         elif (last_command['command_status'] == 'SUCCEEDED' and
