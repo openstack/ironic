@@ -47,8 +47,8 @@ Conceptual Architecture
 =======================
 
 The following diagram shows the relationships and how all services come into
-play during the provisioning of a physical server. (Note that Swift can be
-used with Ironic, but is missing from this diagram.)
+play during the provisioning of a physical server. (Note that Ceilometer and
+Swift can be used with Ironic, but are missing from this diagram.)
 
 
 .. figure:: ../images/conceptual_architecture.png
