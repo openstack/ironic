@@ -1046,24 +1046,22 @@ def is_secure_boot_requested(node):
 def get_boot_mode_for_deploy(node):
     """Returns the boot mode that would be used for deploy.
 
-    This method returns boot mode to used for deploy using following order:
+    This method returns boot mode to be used for deploy.
     It returns 'uefi' if 'secure_boot' is set to 'true' in
     'instance_info/capabilities' of node.
-    It returns value of 'boot_mode' in 'properties/capabilities' of node.
-    It returns boot mode specified in 'instance_info/deploy_boot_mode' of
-    node.
+    Otherwise it returns value of 'boot_mode' in 'properties/capabilities'
+    of node if set. If that is not set, it returns boot mode in
+    'instance_info/deploy_boot_mode' for the node.
     It would return None if boot mode is present neither in 'capabilities' of
-    node 'properties' nor in node's 'instance_info'.
+    node 'properties' nor in node's 'instance_info' (which could also be None).
 
     :param node: an ironic node object.
     :returns: 'bios', 'uefi' or None
     """
 
     if is_secure_boot_requested(node):
-        boot_mode = 'uefi'
-        LOG.debug('Deploy boot mode is %(boot_mode)s for %(node)s.',
-                  {'boot_mode': boot_mode, 'node': node.uuid})
-        return boot_mode
+        LOG.debug('Deploy boot mode is uefi for %s.', node.uuid)
+        return 'uefi'
 
     boot_mode = driver_utils.get_node_capability(node, 'boot_mode')
     if boot_mode is None:
@@ -1072,4 +1070,5 @@ def get_boot_mode_for_deploy(node):
 
     LOG.debug('Deploy boot mode is %(boot_mode)s for %(node)s.',
               {'boot_mode': boot_mode, 'node': node.uuid})
-    return boot_mode
+
+    return boot_mode.lower() if boot_mode else boot_mode

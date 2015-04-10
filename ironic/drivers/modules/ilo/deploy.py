@@ -335,8 +335,8 @@ def _prepare_node_for_deploy(task):
     if change_boot_mode:
         ilo_common.update_boot_mode(task)
     else:
-        # Need to update boot mode that would used during deploy, if one is not
-        # provided.
+        # Need to update boot mode that will be used during deploy, if one is
+        # not provided.
         # Since secure boot was disabled, we are in 'uefi' boot mode.
         if deploy_utils.get_boot_mode_for_deploy(task.node) is None:
             instance_info = task.node.instance_info

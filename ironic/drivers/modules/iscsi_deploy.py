@@ -422,7 +422,7 @@ def _get_boot_mode(node):
     """
     boot_mode = deploy_utils.get_boot_mode_for_deploy(node)
     if boot_mode:
-        return boot_mode.lower()
+        return boot_mode
     return "bios"
 
 
