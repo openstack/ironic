@@ -1606,11 +1606,9 @@ class DoNodeCleanTestCase(_ServiceSetUpMixin, tests_db_base.DbTestCase):
 
         mock_spawn.side_effect = exception.NoFreeConductorWorker()
 
-        exc = self.assertRaises(messaging.rpc.ExpectedException,
-                                self.service.continue_node_clean,
-                                self.context, node.uuid)
-        # Compare true exception hidden by @messaging.expected_exceptions
-        self.assertEqual(exception.NoFreeConductorWorker, exc.exc_info[0])
+        self.assertRaises(exception.NoFreeConductorWorker,
+                          self.service.continue_node_clean,
+                          self.context, node.uuid)
 
         self.service._worker_pool.waitall()
         node.refresh()
@@ -1630,11 +1628,9 @@ class DoNodeCleanTestCase(_ServiceSetUpMixin, tests_db_base.DbTestCase):
                                           last_error=None)
         self._start_service()
 
-        exc = self.assertRaises(messaging.rpc.ExpectedException,
-                                self.service.continue_node_clean,
-                                self.context, node.uuid)
-        # Compare true exception hidden by @messaging.expected_exceptions
-        self.assertEqual(exception.InvalidStateRequested, exc.exc_info[0])
+        self.assertRaises(exception.InvalidStateRequested,
+                          self.service.continue_node_clean,
+                          self.context, node.uuid)
 
         self.service._worker_pool.waitall()
         node.refresh()

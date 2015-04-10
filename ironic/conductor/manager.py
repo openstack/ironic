@@ -204,7 +204,7 @@ class ConductorManager(periodic_task.PeriodicTasks):
     """Ironic Conductor manager main class."""
 
     # NOTE(rloo): This must be in sync with rpcapi.ConductorAPI's.
-    RPC_API_VERSION = '1.26'
+    RPC_API_VERSION = '1.27'
 
     target = messaging.Target(version=RPC_API_VERSION)
 
@@ -824,10 +824,6 @@ class ConductorManager(periodic_task.PeriodicTasks):
                 state=node.provision_state)
         self._do_node_clean(task)
 
-    @messaging.expected_exceptions(exception.NoFreeConductorWorker,
-                                   exception.NodeLocked,
-                                   exception.InvalidStateRequested,
-                                   exception.NodeNotFound)
     def continue_node_clean(self, context, node_id):
         """RPC method to continue cleaning a node.
 
