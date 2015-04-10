@@ -57,7 +57,14 @@ agent_opts = [
                     'Python Agent ramdisk. If unset, will use the priority '
                     'set in the ramdisk (defaults to 10 for the '
                     'GenericHardwareManager). If set to 0, will not run '
-                    'during cleaning.')
+                    'during cleaning.'),
+    cfg.BoolOpt('manage_tftp',
+                default=True,
+                help='Whether Ironic will manage TFTP files for the deploy '
+                     'ramdisks. If set to False, you will need to configure '
+                     'your own TFTP server that allows booting the deploy '
+                     'ramdisks.'
+                ),
     ]
 
 CONF = cfg.CONF
@@ -196,12 +203,13 @@ def build_instance_info_for_deploy(task):
 
 def _prepare_pxe_boot(task):
     """Prepare the files required for PXE booting the agent."""
-    pxe_info = _get_tftp_image_info(task.node)
-    pxe_options = _build_pxe_config_options(task.node, pxe_info)
-    pxe_utils.create_pxe_config(task,
-                                pxe_options,
-                                CONF.agent.agent_pxe_config_template)
-    _cache_tftp_images(task.context, task.node, pxe_info)
+    if CONF.agent.manage_tftp:
+        pxe_info = _get_tftp_image_info(task.node)
+        pxe_options = _build_pxe_config_options(task.node, pxe_info)
+        pxe_utils.create_pxe_config(task,
+                                    pxe_options,
+                                    CONF.agent.agent_pxe_config_template)
+        _cache_tftp_images(task.context, task.node, pxe_info)
 
 
 def _do_pxe_boot(task, ports=None):
@@ -220,13 +228,13 @@ def _do_pxe_boot(task, ports=None):
 
 def _clean_up_pxe(task):
     """Clean up left over PXE and DHCP files."""
-    pxe_info = _get_tftp_image_info(task.node)
-    for label in pxe_info:
-        path = pxe_info[label][1]
-        utils.unlink_without_raise(path)
-    AgentTFTPImageCache().clean_up()
-
-    pxe_utils.clean_up_pxe_config(task)
+    if CONF.agent.manage_tftp:
+        pxe_info = _get_tftp_image_info(task.node)
+        for label in pxe_info:
+            path = pxe_info[label][1]
+            utils.unlink_without_raise(path)
+        AgentTFTPImageCache().clean_up()
+        pxe_utils.clean_up_pxe_config(task)
 
 
 class AgentDeploy(base.DeployInterface):
@@ -251,10 +259,11 @@ class AgentDeploy(base.DeployInterface):
         """
         node = task.node
         params = {}
-        params['driver_info.deploy_kernel'] = node.driver_info.get(
-                                                              'deploy_kernel')
-        params['driver_info.deploy_ramdisk'] = node.driver_info.get(
-                                                              'deploy_ramdisk')
+        if CONF.agent.manage_tftp:
+            params['driver_info.deploy_kernel'] = node.driver_info.get(
+                'deploy_kernel')
+            params['driver_info.deploy_ramdisk'] = node.driver_info.get(
+                'deploy_ramdisk')
         image_source = node.instance_info.get('image_source')
         params['instance_info.image_source'] = image_source
         error_msg = _('Node %s failed to validate deploy image info. Some '
