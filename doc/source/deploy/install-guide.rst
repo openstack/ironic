@@ -936,6 +936,14 @@ deployed with Ironic **must** contain ``grub2`` installed within it.
 Enabling the local boot is different when Ironic is used with Nova and
 without it. The following sections will describe both methods.
 
+.. note::
+   The local boot feature is dependent upon a updated deploy ramdisk built
+   with diskimage-builder_ **version >= 0.1.42** or ironic-python-agent_
+   in the kilo-era.
+
+.. _diskimage-builder: https://github.com/openstack/diskimage-builder
+.. _ironic-python-agent: https://github.com/openstack/ironic-python-agent
+
 
 Enabling local boot with Nova
 -----------------------------
