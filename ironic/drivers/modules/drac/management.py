@@ -224,6 +224,13 @@ class DracManagement(base.ManagementInterface):
         :raises: DracPendingConfigJobExists on an error when creating the job.
 
         """
+
+        # If we are already booting from the right device, do nothing.
+        if self.get_boot_device(task) == {'boot_device': device,
+                                          'persistent': persistent}:
+            LOG.debug('DRAC already set to boot from %s', device)
+            return
+
         # Check for an existing configuration job
         _check_for_config_job(task.node)
 
