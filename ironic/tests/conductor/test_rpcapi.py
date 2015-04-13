@@ -291,6 +291,6 @@ class RPCAPITestCase(base.DbTestCase):
 
     def test_continue_node_clean(self):
         self._test_rpcapi('continue_node_clean',
-                          'call',
-                          version='1.26',
+                          'cast',
+                          version='1.27',
                           node_id=self.fake_node['uuid'])

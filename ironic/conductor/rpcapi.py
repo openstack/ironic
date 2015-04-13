@@ -69,11 +69,12 @@ class ConductorAPI(object):
     |    1.24 - Added inspect_hardware method
     |    1.25 - Added destroy_port
     |    1.26 - Added continue_node_clean
+    |    1.27 - Convert continue_node_clean to cast
 
     """
 
     # NOTE(rloo): This must be in sync with manager.ConductorManager's.
-    RPC_API_VERSION = '1.26'
+    RPC_API_VERSION = '1.27'
 
     def __init__(self, topic=None):
         super(ConductorAPI, self).__init__()
@@ -329,18 +330,15 @@ class ConductorAPI(object):
     def continue_node_clean(self, context, node_id, topic=None):
         """Signal to conductor service to start the next cleaning action.
 
+        NOTE(JoshNang) this is an RPC cast, there will be no response or
+        exception raised by the conductor for this RPC.
+
         :param context: request context.
         :param node_id: node id or uuid.
         :param topic: RPC topic. Defaults to self.topic.
-        :raises: NoFreeConductorWorker when there is no free worker to start
-                async task.
-        :raises: InvalidStateRequested if the requested action can not
-                 be performed.
-        :raises: NodeLocked if node is locked by another conductor.
-        :raises: NodeNotFound if the node no longer appears in the database
         """
-        cctxt = self.client.prepare(topic=topic or self.topic, version='1.26')
-        return cctxt.call(context, 'continue_node_clean',
+        cctxt = self.client.prepare(topic=topic or self.topic, version='1.27')
+        return cctxt.cast(context, 'continue_node_clean',
                           node_id=node_id)
 
     def validate_driver_interfaces(self, context, node_id, topic=None):
