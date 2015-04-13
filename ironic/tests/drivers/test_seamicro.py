@@ -129,6 +129,7 @@ class SeaMicroValidateParametersTestCase(db_base.DbTestCase):
                           node)
 
 
+@mock.patch('eventlet.greenthread.sleep', lambda n: None)
 class SeaMicroPrivateMethodsTestCase(db_base.DbTestCase):
 
     def setUp(self):
@@ -144,8 +145,6 @@ class SeaMicroPrivateMethodsTestCase(db_base.DbTestCase):
         self.config(action_timeout=0, group='seamicro')
         self.config(max_retry=2, group='seamicro')
 
-        self.patcher = mock.patch('eventlet.greenthread.sleep')
-        self.mock_sleep = self.patcher.start()
         self.info = seamicro._parse_driver_info(self.node)
 
     @mock.patch.object(seamicro_client, "Client")
