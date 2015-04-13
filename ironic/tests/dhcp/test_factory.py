@@ -34,6 +34,8 @@ class TestDHCPFactory(base.TestCase):
                     url_timeout=30,
                     group='neutron')
         dhcp_factory.DHCPFactory._dhcp_provider = None
+        self.addCleanup(setattr, dhcp_factory.DHCPFactory,
+                        '_dhcp_provider', None)
 
     def test_default_dhcp(self):
         # dhcp provider should default to neutron
