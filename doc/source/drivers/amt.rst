@@ -76,3 +76,14 @@ A detailed reference is available here, and a short guide follows below:
    ``amt_address``, and ``amt_username``
 
 * Boot an instance
+
+.. note::
+    It is recommended that nodes using the pxe_amt driver be deployed with the
+    `local boot`_ option. This is because the AMT firmware currently has no
+    support for setting a persistent boot device. Nodes deployed without the
+    `local boot`_ option could fail to boot if they are restarted outside of
+    Ironic's control (I.E. rebooted by a local user) because the node will
+    not attempt to PXE / network boot the kernel, using `local boot`_ solves this
+    known issue.
+
+.. _`local boot`: http://docs.openstack.org/developer/ironic/deploy/install-guide.html#local-boot-with-partition-images
