@@ -80,9 +80,10 @@ This driver should work on HP Proliant Gen8 Servers and above with iLO 4.
 It has been tested with the following servers:
 
 * ProLiant DL380e Gen8
-* ProLiant DL380e Gen8
 * ProLiant DL580 Gen8 UEFI
 * ProLiant DL180 Gen9 UEFI
+* ProLiant DL380 Gen9 UEFI
+* ProLiant DL580 Gen9 UEFI
 
 For more up-to-date information on server platform support info, refer
 iLO driver wiki [6]_.
@@ -95,6 +96,7 @@ Features
   by the nova flavor's extra spec.
 * Always boot from network using Virtual Media.
 * UEFI Boot Support
+* UEFI Secure Boot Support
 * Passing authentication token via secure, encrypted management network
   (Virtual Media). Provisioning is done using iSCSI over data network
   (like PXE driver), so this driver has the  benefit of security
@@ -247,7 +249,11 @@ node::
 
 Boot modes
 ~~~~~~~~~~
-Refer boot_mode_support_ for more information.
+Refer to `Boot mode support`_ section for more information.
+
+UEFI Secure Boot
+~~~~~~~~~~~~~~~~
+Refer to `UEFI Secure Boot support`_ section for more information.
 
 agent_ilo driver
 ^^^^^^^^^^^^^^^^
@@ -271,7 +277,8 @@ This driver should work on HP Proliant Gen8 Servers and above with iLO 4.
 It has been tested with the following servers:
 
 * ProLiant DL380e Gen8
-* ProLiant DL380e Gen8
+* ProLiant DL380 Gen9 UEFI
+* ProLiant DL580 Gen9 UEFI
 
 This driver supports only Gen 8 Class 0 systems (BIOS only).  For
 more up-to-date information, check the iLO driver wiki [6]_.
@@ -284,6 +291,8 @@ Features
 * IPA runs on the baremetal node and pulls the image directly from Swift.
 * IPA deployed instances always boots from local disk.
 * Segregates management info from data channel.
+* UEFI Boot Support
+* UEFI Secure Boot Support
 
 Requirements
 ~~~~~~~~~~~~
@@ -421,6 +430,14 @@ node::
 
   ironic node-create -d agent_ilo -i ilo_address=<ilo-ip-address> -i ilo_username=<ilo-username> -i ilo_password=<ilo-password> -i ilo_deploy_iso=<glance-uuid-of-deploy-iso>
 
+Boot modes
+~~~~~~~~~~
+Refer to `Boot mode support`_ section for more information.
+
+UEFI Secure Boot
+~~~~~~~~~~~~~~~~
+Refer to `UEFI Secure Boot support`_ section for more information.
+
 pxe_ilo driver
 ^^^^^^^^^^^^^^
 
@@ -510,12 +527,10 @@ node::
 
 Boot modes
 ~~~~~~~~~~
-Refer boot_mode_support_ for more information.
+Refer to `Boot mode support`_ section for more information.
 
 Functionalities across drivers
 ==============================
-
-.. _boot_mode_support:
 
 Boot mode support
 ^^^^^^^^^^^^^^^^^
@@ -524,6 +539,7 @@ mode (Legacy BIOS or UEFI).
 
 * ``pxe_ilo``
 * ``iscsi_ilo``
+* ``agent_ilo``
 
 The boot modes can be configured in Ironic in the following way:
 
@@ -570,6 +586,53 @@ diskimage-builder command to build the image.  For example::
 
   disk-image-create ubuntu baremetal iso
 
+UEFI Secure Boot support
+^^^^^^^^^^^^^^^^^^^^^^^^
+The following drivers support UEFI secure boot deploy:
+
+* ``iscsi_ilo``
+* ``agent_ilo``
+
+The UEFI secure boot mode can be configured in Ironic by adding
+``secure_boot`` parameter in the ``capabilities`` parameter  within
+``properties`` field of an Ironic node.
+
+``secure_boot`` is a boolean parameter and takes value as ``true`` or
+``false``.
+
+To enable ``secure_boot`` on a node add it to ``capabilities`` as below::
+
+ ironic node-update <node-uuid> add properties/capabilities='secure_boot:true'
+
+Nodes having ``secure_boot`` set to ``true`` may be requested by adding an
+``extra_spec`` to the Nova flavor::
+
+  nova flavor-key ironic-test-3 set capabilities:secure_boot="true"
+  nova boot --flavor ironic-test-3 --image test-image instance-1
+
+If ``capabilities`` is used in ``extra_spec`` as above, Nova scheduler
+(``ComputeCapabilitiesFilter``) will match only Ironic nodes which have
+the ``secure_boot`` set appropriately in ``properties/capabilities``. It will
+filter out rest of the nodes.
+
+The above facility for matching in Nova can be used in heterogeneous
+environments where there is a mix of machines supporting and not supporting
+UEFI secure boot, and operator wants to provide a choice to the user
+regarding secure boot.  If the flavor doesn't contain ``secure_boot`` then
+Nova scheduler will not consider secure boot mode as a placement criteria,
+hence user may get a secure boot capable machine that matches with user
+specified flavors but deployment would not use its secure boot capability.
+Secure boot deploy would happen only when it is explicitly specified through
+flavor.
+
+Ensure the public key of the signed image is loaded into baremetal to deploy
+signed images.
+For HP Proliant Gen9 servers, one can enroll public key using iLO System
+Utilities UI. Please refer to section ``Accessing Secure Boot options`` in
+HP UEFI System Utilities User Guide. [7]_
+One can also refer to white paper on Secure Boot for Linux on HP Proliant
+servers for additional details. [8]_
+
 
 References
 ==========
@@ -579,4 +642,6 @@ References
 .. [4] http://docs.openstack.org/developer/glance/configuring.html#configuring-the-swift-storage-backend
 .. [5] Ironic Python Agent - https://github.com/openstack/ironic-python-agent
 .. [6] https://wiki.openstack.org/wiki/Ironic/Drivers/iLODrivers
+.. [7] HP UEFI System Utilities User Guide - http://www.hp.com/ctg/Manual/c04398276.pdf
+.. [8] Secure Boot for Linux on HP Proliant servers http://h20195.www2.hp.com/V2/getpdf.aspx/4AA5-4496ENW.pdf
 
