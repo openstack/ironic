@@ -113,7 +113,7 @@ Both decorators accepts the same parameters:
       ...
 
 * description: A string containing a nice description about what that
-  method is suppose to do. Defaults to "" (empty string).
+  method is supposed to do. Defaults to "" (empty string).
 
 .. _VendorInterface: ../api/ironic.drivers.base.html#ironic.drivers.base.VendorInterface
 
