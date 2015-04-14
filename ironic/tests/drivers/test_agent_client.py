@@ -58,6 +58,11 @@ class TestAgentClient(base.TestCase):
         self.client.session = mock.Mock(autospec=requests.Session)
         self.node = MockNode()
 
+    def test_content_type_header(self):
+        client = agent_client.AgentClient()
+        self.assertEqual('application/json',
+                         client.session.headers['Content-Type'])
+
     def test__get_command_url(self):
         command_url = self.client._get_command_url(self.node)
         expected = self.node.driver_internal_info['agent_url'] + '/v1/commands'
@@ -84,14 +89,12 @@ class TestAgentClient(base.TestCase):
 
         url = self.client._get_command_url(self.node)
         body = self.client._get_command_body(method, params)
-        headers = {'Content-Type': 'application/json'}
 
         response = self.client._command(self.node, method, params)
         self.assertEqual(response, response_data)
         self.client.session.post.assert_called_once_with(
             url,
             data=body,
-            headers=headers,
             params={'wait': 'false'})
 
     def test__command_fail_json(self):
@@ -103,7 +106,6 @@ class TestAgentClient(base.TestCase):
 
         url = self.client._get_command_url(self.node)
         body = self.client._get_command_body(method, params)
-        headers = {'Content-Type': 'application/json'}
 
         self.assertRaises(exception.IronicException,
                           self.client._command,
@@ -111,7 +113,6 @@ class TestAgentClient(base.TestCase):
         self.client.session.post.assert_called_once_with(
             url,
             data=body,
-            headers=headers,
             params={'wait': 'false'})
 
     def test_get_commands_status(self):
