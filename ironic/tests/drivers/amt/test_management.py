@@ -28,13 +28,14 @@ from ironic.tests.conductor import utils as mgr_utils
 from ironic.tests.db import base as db_base
 from ironic.tests.db import utils as db_utils
 from ironic.tests.drivers.drac import utils as test_utils
+from ironic.tests.drivers import third_party_driver_mock_specs as mock_specs
 from ironic.tests.objects import utils as obj_utils
 
 INFO_DICT = db_utils.get_test_amt_info()
 CONF = cfg.CONF
 
 
-@mock.patch.object(amt_common, 'pywsman')
+@mock.patch.object(amt_common, 'pywsman', spec_set=mock_specs.PYWSMAN_SPEC)
 class AMTManagementInteralMethodsTestCase(db_base.DbTestCase):
 
     def setUp(self):
@@ -127,14 +128,14 @@ class AMTManagementTestCase(db_base.DbTestCase):
                                   shared=True) as task:
             self.assertEqual(expected, task.driver.get_properties())
 
-    @mock.patch.object(amt_common, 'parse_driver_info')
+    @mock.patch.object(amt_common, 'parse_driver_info', autospec=True)
     def test_validate(self, mock_drvinfo):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
             task.driver.management.validate(task)
             mock_drvinfo.assert_called_once_with(task.node)
 
-    @mock.patch.object(amt_common, 'parse_driver_info')
+    @mock.patch.object(amt_common, 'parse_driver_info', autospec=True)
     def test_validate_fail(self, mock_drvinfo):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
@@ -177,8 +178,8 @@ class AMTManagementTestCase(db_base.DbTestCase):
                               task.driver.management.set_boot_device,
                               task, 'fake-device')
 
-    @mock.patch.object(amt_mgmt, '_enable_boot_config')
-    @mock.patch.object(amt_mgmt, '_set_boot_device_order')
+    @mock.patch.object(amt_mgmt, '_enable_boot_config', autospec=True)
+    @mock.patch.object(amt_mgmt, '_set_boot_device_order', autospec=True)
     def test_ensure_next_boot_device_one_time(self, mock_sbdo, mock_ebc):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
@@ -192,8 +193,8 @@ class AMTManagementTestCase(db_base.DbTestCase):
             mock_sbdo.assert_called_once_with(task.node, device)
             mock_ebc.assert_called_once_with(task.node)
 
-    @mock.patch.object(amt_mgmt, '_enable_boot_config')
-    @mock.patch.object(amt_mgmt, '_set_boot_device_order')
+    @mock.patch.object(amt_mgmt, '_enable_boot_config', autospec=True)
+    @mock.patch.object(amt_mgmt, '_set_boot_device_order', autospec=True)
     def test_ensure_next_boot_device_persistent(self, mock_sbdo, mock_ebc):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:

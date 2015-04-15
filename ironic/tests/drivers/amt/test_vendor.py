@@ -53,8 +53,9 @@ class AMTPXEVendorPassthruTestCase(db_base.DbTestCase):
             self.assertIsInstance(driver_routes, dict)
             self.assertEqual(sorted(expected), sorted(list(driver_routes)))
 
-    @mock.patch.object(amt_mgmt.AMTManagement, 'ensure_next_boot_device')
-    @mock.patch.object(pxe.VendorPassthru, 'pass_deploy_info')
+    @mock.patch.object(amt_mgmt.AMTManagement, 'ensure_next_boot_device',
+                       autospec=True)
+    @mock.patch.object(pxe.VendorPassthru, 'pass_deploy_info', autospec=True)
     def test_vendorpassthru_pass_deploy_info_netboot(self,
                                                      mock_pxe_vendorpassthru,
                                                      mock_ensure):
@@ -67,11 +68,14 @@ class AMTPXEVendorPassthruTestCase(db_base.DbTestCase):
                                             "boot_option": "netboot"
                                             }
             task.driver.vendor.pass_deploy_info(task, **kwargs)
-            mock_ensure.assert_called_with(task.node, boot_devices.PXE)
-            mock_pxe_vendorpassthru.assert_called_once_with(task, **kwargs)
+            mock_ensure.assert_called_with(
+                task.driver.management, task.node, boot_devices.PXE)
+            mock_pxe_vendorpassthru.assert_called_once_with(
+                task.driver.vendor, task, **kwargs)
 
-    @mock.patch.object(amt_mgmt.AMTManagement, 'ensure_next_boot_device')
-    @mock.patch.object(pxe.VendorPassthru, 'pass_deploy_info')
+    @mock.patch.object(amt_mgmt.AMTManagement, 'ensure_next_boot_device',
+                       autospec=True)
+    @mock.patch.object(pxe.VendorPassthru, 'pass_deploy_info', autospec=True)
     def test_vendorpassthru_pass_deploy_info_localboot(self,
                                                        mock_pxe_vendorpassthru,
                                                        mock_ensure):
@@ -83,10 +87,12 @@ class AMTPXEVendorPassthruTestCase(db_base.DbTestCase):
             task.node.instance_info['capabilities'] = {"boot_option": "local"}
             task.driver.vendor.pass_deploy_info(task, **kwargs)
             self.assertFalse(mock_ensure.called)
-            mock_pxe_vendorpassthru.assert_called_once_with(task, **kwargs)
+            mock_pxe_vendorpassthru.assert_called_once_with(
+                task.driver.vendor, task, **kwargs)
 
-    @mock.patch.object(amt_mgmt.AMTManagement, 'ensure_next_boot_device')
-    @mock.patch.object(pxe.VendorPassthru, 'continue_deploy')
+    @mock.patch.object(amt_mgmt.AMTManagement, 'ensure_next_boot_device',
+                       autospec=True)
+    @mock.patch.object(pxe.VendorPassthru, 'continue_deploy', autospec=True)
     def test_vendorpassthru_continue_deploy_netboot(self,
                                                     mock_pxe_vendorpassthru,
                                                     mock_ensure):
@@ -99,11 +105,14 @@ class AMTPXEVendorPassthruTestCase(db_base.DbTestCase):
                                             "boot_option": "netboot"
                                             }
             task.driver.vendor.continue_deploy(task, **kwargs)
-            mock_ensure.assert_called_with(task.node, boot_devices.PXE)
-            mock_pxe_vendorpassthru.assert_called_once_with(task, **kwargs)
+            mock_ensure.assert_called_with(
+                task.driver.management, task.node, boot_devices.PXE)
+            mock_pxe_vendorpassthru.assert_called_once_with(
+                task.driver.vendor, task, **kwargs)
 
-    @mock.patch.object(amt_mgmt.AMTManagement, 'ensure_next_boot_device')
-    @mock.patch.object(pxe.VendorPassthru, 'continue_deploy')
+    @mock.patch.object(amt_mgmt.AMTManagement, 'ensure_next_boot_device',
+                       autospec=True)
+    @mock.patch.object(pxe.VendorPassthru, 'continue_deploy', autospec=True)
     def test_vendorpassthru_continue_deploy_localboot(self,
                                                       mock_pxe_vendorpassthru,
                                                       mock_ensure):
@@ -115,4 +124,5 @@ class AMTPXEVendorPassthruTestCase(db_base.DbTestCase):
             task.node.instance_info['capabilities'] = {"boot_option": "local"}
             task.driver.vendor.continue_deploy(task, **kwargs)
             self.assertFalse(mock_ensure.called)
-            mock_pxe_vendorpassthru.assert_called_once_with(task, **kwargs)
+            mock_pxe_vendorpassthru.assert_called_once_with(
+                task.driver.vendor, task, **kwargs)
