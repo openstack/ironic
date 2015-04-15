@@ -323,6 +323,11 @@ Compute Service's controller nodes and compute nodes.*
     #compute_manager=nova.compute.manager.ComputeManager
     compute_manager=ironic.nova.compute.manager.ClusteredComputeManager
 
+    # Flag to decide whether to use baremetal_scheduler_default_filters or not.
+    # (boolean value)
+    #scheduler_use_baremetal_filters=False
+    scheduler_use_baremetal_filters=True
+
 2. Change these configuration options in the ``ironic`` section.
    Replace:
 
