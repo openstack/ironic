@@ -437,17 +437,18 @@ class PXEDeploy(base.DeployInterface):
 
         :param task: a TaskManager instance containing the node to act on.
         """
+        node = task.node
         # TODO(deva): optimize this if rerun on existing files
         if CONF.pxe.ipxe_enabled:
             # Copy the iPXE boot script to HTTP root directory
             bootfile_path = os.path.join(CONF.pxe.http_root,
                                    os.path.basename(CONF.pxe.ipxe_boot_script))
             shutil.copyfile(CONF.pxe.ipxe_boot_script, bootfile_path)
-        pxe_info = _get_image_info(task.node, task.context)
-        pxe_options = _build_pxe_config_options(task.node, pxe_info,
+        pxe_info = _get_image_info(node, task.context)
+        pxe_options = _build_pxe_config_options(node, pxe_info,
                                                 task.context)
 
-        if deploy_utils.get_boot_mode_for_deploy(task.node) == 'uefi':
+        if deploy_utils.get_boot_mode_for_deploy(node) == 'uefi':
             pxe_config_template = CONF.pxe.uefi_pxe_config_template
         else:
             pxe_config_template = CONF.pxe.pxe_config_template
@@ -457,35 +458,35 @@ class PXEDeploy(base.DeployInterface):
 
         # FIXME(lucasagomes): If it's local boot we should not cache
         # the image kernel and ramdisk (Or even require it).
-        _cache_ramdisk_kernel(task.context, task.node, pxe_info)
+        _cache_ramdisk_kernel(task.context, node, pxe_info)
 
-        iwdi = task.node.driver_internal_info.get('is_whole_disk_image')
         # NOTE(deva): prepare may be called from conductor._do_takeover
         # in which case, it may need to regenerate the PXE config file for an
         # already-active deployment.
-        if task.node.provision_state == states.ACTIVE:
+        if node.provision_state == states.ACTIVE:
             # this should have been stashed when the deploy was done
             # but let's guard, just in case it's missing
+            iwdi = node.driver_internal_info.get('is_whole_disk_image')
             try:
-                root_uuid_or_disk_id = task.node.driver_internal_info[
+                root_uuid_or_disk_id = node.driver_internal_info[
                                                 'root_uuid_or_disk_id']
             except KeyError:
                 if not iwdi:
                     LOG.warn(_LW("The UUID for the root partition can't be "
                              "found, unable to switch the pxe config from "
                              "deployment mode to service (boot) mode for node "
-                             "%(node)s"), {"node": task.node.uuid})
+                             "%(node)s"), {"node": node.uuid})
                 else:
                     LOG.warn(_LW("The disk id for the whole disk image can't "
                              "be found, unable to switch the pxe config from "
                              "deployment mode to service (boot) mode for "
-                             "node %(node)s"), {"node": task.node.uuid})
+                             "node %(node)s"), {"node": node.uuid})
             else:
                 pxe_config_path = pxe_utils.get_pxe_config_file_path(
-                    task.node.uuid)
+                    node.uuid)
                 deploy_utils.switch_pxe_config(
                     pxe_config_path, root_uuid_or_disk_id,
-                    deploy_utils.get_boot_mode_for_deploy(task.node),
+                    deploy_utils.get_boot_mode_for_deploy(node),
                     iwdi)
 
     def clean_up(self, task):
