@@ -28,12 +28,13 @@ from ironic.tests.conductor import utils as mgr_utils
 from ironic.tests.db import base
 from ironic.tests.db import utils as db_utils
 from ironic.tests.drivers.drac import utils as test_utils
+from ironic.tests.drivers import third_party_driver_mock_specs as mock_specs
 
 INFO_DICT = db_utils.get_test_drac_info()
 
 
-@mock.patch.object(drac_client, 'pywsman')
-@mock.patch.object(drac_power, 'pywsman')
+@mock.patch.object(drac_client, 'pywsman', spec_set=mock_specs.PYWSMAN_SPEC)
+@mock.patch.object(drac_power, 'pywsman', spec_set=mock_specs.PYWSMAN_SPEC)
 class DracPowerInternalMethodsTestCase(base.DbTestCase):
 
     def setUp(self):

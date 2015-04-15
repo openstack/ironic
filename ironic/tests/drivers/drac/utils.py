@@ -62,10 +62,10 @@ def build_soap_xml(items, namespace=None):
 
 def mock_wsman_root(return_value):
     """Helper function to mock the root() from wsman client."""
-    mock_xml_root = mock.Mock()
+    mock_xml_root = mock.Mock(spec_set=['string'])
     mock_xml_root.string.return_value = return_value
 
-    mock_xml = mock.Mock()
+    mock_xml = mock.Mock(spec_set=['context', 'root'])
     mock_xml.context.return_value = None
     mock_xml.root.return_value = mock_xml_root
 
