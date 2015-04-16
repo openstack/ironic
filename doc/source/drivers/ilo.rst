@@ -702,6 +702,38 @@ Supported Cleaning Operations
 
 For more information on node cleaning, see [9]_.
 
+Hardware Inspection
+^^^^^^^^^^^^^^^^^^^
+
+NOTE: The RAID shall be pre-configured prior to inspection otherwise
+proliantutils returns 0 for disk size.
+
+The inspection process will discover the following essential properties
+(properties required for scheduling deployment):
+
+* ``memory_mb``: memory size
+
+* ``cpus``: number of cpus
+
+* ``cpu_arch``: cpu architecture
+
+* ``local_gb``: disk size
+
+Inspection can also discover the following extra capabilities for iLO drivers:
+
+* ``ilo_firmware_version``: iLO firmware version
+
+* ``rom_firmware_version``: ROM firmware version
+
+* ``secure_boot``: secure boot is supported or not. The possible values are
+  'true' or 'false'.
+
+* ``server_model``: server model
+
+* ``pci_gpu_devices``: number of gpu devices connected to the baremetal.
+
+* ``nic_capacity``: the max speed of the embedded NIC adapter.
+
 References
 ==========
 .. [1] HP iLO 4 User Guide - http://h20628.www2.hp.com/km-ext/kmcsdirect/emr_na-c03334051-11.pdf
@@ -713,4 +745,3 @@ References
 .. [7] HP UEFI System Utilities User Guide - http://www.hp.com/ctg/Manual/c04398276.pdf
 .. [8] Secure Boot for Linux on HP Proliant servers http://h20195.www2.hp.com/V2/getpdf.aspx/4AA5-4496ENW.pdf
 .. [9] http://docs.openstack.org/developer/ironic/deploy/cleaning.html
-
