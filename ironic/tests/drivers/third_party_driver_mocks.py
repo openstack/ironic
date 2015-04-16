@@ -35,6 +35,7 @@ import mock
 from oslo_utils import importutils
 
 from ironic.drivers.modules import ipmitool
+from ironic.tests.drivers import third_party_driver_mock_specs as mock_specs
 
 
 # attempt to load the external 'seamicroclient' library, which is
@@ -100,7 +101,7 @@ if not proliantutils:
 # the optional drivers.modules.drac and drivers.modules.amt module
 pywsman = importutils.try_import('pywsman')
 if not pywsman:
-    pywsman = mock.Mock()
+    pywsman = mock.Mock(spec=mock_specs.PYWSMAN_SPEC)
     sys.modules['pywsman'] = pywsman
     # Now that the external library has been mocked, if anything had already
     # loaded any of the drivers, reload them.
