@@ -155,10 +155,11 @@ if 'ironic.drivers.modules.snmp' in sys.modules:
 # the optional drivers.modules.irmc module
 scciclient = importutils.try_import('scciclient')
 if not scciclient:
-    mock_scciclient = mock.MagicMock()
+    mock_scciclient = mock.MagicMock(spec_set=mock_specs.SCCICLIENT_SPEC)
     sys.modules['scciclient'] = mock_scciclient
     sys.modules['scciclient.irmc'] = mock_scciclient.irmc
     sys.modules['scciclient.irmc.scci'] = mock.MagicMock(
+        spec_set=mock_specs.SCCICLIENT_IRMC_SCCI_SPEC,
         POWER_OFF=mock.sentinel.POWER_OFF,
         POWER_ON=mock.sentinel.POWER_ON,
         POWER_RESET=mock.sentinel.POWER_RESET)
