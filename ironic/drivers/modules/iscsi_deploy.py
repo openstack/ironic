@@ -52,11 +52,12 @@ pxe_opts = [
                     'if one is created.'),
     cfg.StrOpt('images_path',
                default='/var/lib/ironic/images/',
-               help='Directory where images are stored on disk.'),
+               help='On the ironic-conductor node, directory where images are '
+                    'stored on disk.'),
     cfg.StrOpt('instance_master_path',
                default='/var/lib/ironic/master_images',
-               help='Directory where master instance images are stored on '
-                    'disk.'),
+               help='On the ironic-conductor node, directory where master '
+                    'instance images are stored on disk.'),
     cfg.IntOpt('image_cache_size',
                default=20480,
                help='Maximum size (in MiB) of cache for master images, '

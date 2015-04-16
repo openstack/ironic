@@ -26,11 +26,13 @@ from ironic.api import middleware
 api_opts = [
     cfg.StrOpt('auth_strategy',
         default='keystone',
-        help='Method to use for authentication: noauth or keystone.'),
+        help='Authentication strategy used by ironic-api: one of "keystone" '
+             'or "noauth". "noauth" should not be used in a production '
+             'environment because all authentication will be disabled.'),
     cfg.BoolOpt('pecan_debug',
                 default=False,
                 help=('Enable pecan debug mode. WARNING: this is insecure '
-                      'and should not be used in production.')),
+                      'and should not be used in a production environment.')),
     ]
 
 CONF = cfg.CONF

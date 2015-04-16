@@ -46,7 +46,7 @@ from ironic.openstack.common import log as logging
 libvirt_opts = [
     cfg.StrOpt('libvirt_uri',
                default='qemu:///system',
-               help='libvirt uri')
+               help='libvirt URI')
 ]
 
 CONF = cfg.CONF
