@@ -513,7 +513,7 @@ class TestBaseAgentVendor(db_base.DbTestCase):
         status_mock.return_value = [{
             'command_status': 'RUNNING',
             'command_name': 'execute_clean_step',
-            'command_result': {}
+            'command_result': None
         }]
         with task_manager.acquire(self.context, self.node['uuid'],
                                   shared=False) as task:
