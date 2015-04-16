@@ -462,6 +462,37 @@ DHCP and PXE Boot configuration. An example of this is shown in the
     --ip-version=4 --gateway=$GATEWAY_IP --allocation-pool \
     start=$START_IP,end=$END_IP --enable-dhcp
 
+.. _CleaningNetworkSetup:
+
+Configure the Bare Metal Service for Cleaning
+=============================================
+
+#. If you configure Ironic to use :ref:`cleaning` (which is enabled by
+   default), you will need to set the ``cleaning_network_uuid`` configuration
+   option. Note the network UUID (the `id` field) of the network you created in
+   :ref:`NeutronFlatNetworking` or another network you created for cleaning::
+
+    neutron net-list
+
+#. Configure the cleaning network UUID via the ``cleaning_network_uuid``
+   option in the Ironic configuration file (/etc/ironic/ironic.conf). In the
+   following, replace NETWORK_UUID with the UUID you noted in the previous
+   step::
+
+    [neutron]
+    ...
+
+    # UUID of the network to create Neutron ports on when booting
+    # to a ramdisk for cleaning/zapping using Neutron DHCP (string
+    # value)
+    #cleaning_network_uuid=<None>
+    cleaning_network_uuid = NETWORK_UUID
+
+#. Restart the Bare Metal Service::
+
+    service ironic-api restart
+    service ironic-conductor restart
+
 Image Requirements
 ==================
 

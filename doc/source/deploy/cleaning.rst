@@ -34,6 +34,12 @@ This will enable the default set of steps, based on your hardware and Ironic
 drivers. If you're using an agent_* driver, this includes, by default, erasing
 all of the previous tenant's data.
 
+If you are using the Neutron DHCP provider (the default) you will also need to
+ensure you have configured a cleaning network. This network will be used to
+boot the ramdisk for in-band cleaning. You can use the same network as your
+tenant network. For steps to set up the cleaning network, please see
+:ref:`CleaningNetworkSetup`.
+
 .. _InbandvsOutOfBandCleaning:
 
 In-Band vs Out-of-Band
