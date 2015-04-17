@@ -141,13 +141,13 @@ class NoExceptionTracebackHook(hooks.PecanHook):
         if cfg.CONF.debug and json_body.get('faultcode') != 'Server':
             return
 
-        faultsting = json_body.get('faultstring')
+        faultstring = json_body.get('faultstring')
         traceback_marker = 'Traceback (most recent call last):'
-        if faultsting and (traceback_marker in faultsting):
+        if faultstring and traceback_marker in faultstring:
             # Cut-off traceback.
-            faultsting = faultsting.split(traceback_marker, 1)[0]
+            faultstring = faultstring.split(traceback_marker, 1)[0]
             # Remove trailing newlines and spaces if any.
-            json_body['faultstring'] = faultsting.rstrip()
+            json_body['faultstring'] = faultstring.rstrip()
             # Replace the whole json. Cannot change original one beacause it's
             # generated on the fly.
             state.response.json = json_body
