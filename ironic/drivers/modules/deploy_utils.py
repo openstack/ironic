@@ -72,6 +72,10 @@ LOG = logging.getLogger(__name__)
 
 VALID_ROOT_DEVICE_HINTS = set(('size', 'model', 'wwn', 'serial', 'vendor'))
 
+SUPPORTED_CAPABILITIES = {'boot_option': ('local', 'netboot'),
+                          'boot_mode': ('bios', 'uefi'),
+                          'secure_boot': ('true', 'false')}
+
 
 # All functions are called from deploy() directly or indirectly.
 # They are split for stub-out.
@@ -1077,3 +1081,44 @@ def get_boot_mode_for_deploy(node):
               {'boot_mode': boot_mode, 'node': node.uuid})
 
     return boot_mode.lower() if boot_mode else boot_mode
+
+
+def validate_capabilities(node):
+    """Validates that specified supported capabilities have valid value
+
+    This method checks if the any of the supported capability is present in
+    Node capabilities. For all supported capabilities specified for a Node,
+    it validates that it has a valid value.
+    The node can have capability as part of the 'properties' or
+    'instance_info' or both.
+    Note that the actual value of a capability does not need to be the same
+    in the node's 'properties' and 'instance_info'.
+
+    :param node: an ironic node object.
+    :raises: InvalidParameterValue, if the capability is not set to a
+        valid value.
+    """
+    exp_str = _("The parameter '%(capability)s' from %(field)s has an "
+                "invalid value: '%(value)s'. Acceptable values are: "
+                "%(valid_values)s.")
+
+    for capability_name, valid_values in SUPPORTED_CAPABILITIES.items():
+        # Validate capability_name in node's properties/capabilities
+        value = driver_utils.get_node_capability(node, capability_name)
+        if value and (value not in valid_values):
+            field = "properties/capabilities"
+            raise exception.InvalidParameterValue(
+                exp_str %
+                {'capability': capability_name, 'field': field,
+                 'value': value, 'valid_values': ', '.join(valid_values)})
+
+        # Validate capability_name in node's instance_info/['capabilities']
+        capabilities = parse_instance_info_capabilities(node)
+        value = capabilities.get(capability_name)
+
+        if value and (value not in valid_values):
+            field = "instance_info['capabilities']"
+            raise exception.InvalidParameterValue(
+                exp_str %
+                {'capability': capability_name, 'field': field,
+                 'value': value, 'valid_values': ', '.join(valid_values)})

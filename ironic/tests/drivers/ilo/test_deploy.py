@@ -474,9 +474,7 @@ class IloVirtualMediaIscsiDeployTestCase(db_base.DbTestCase):
         self.node = obj_utils.create_test_node(
             self.context, driver='iscsi_ilo', driver_info=INFO_DICT)
 
-    @mock.patch.object(driver_utils, 'validate_secure_boot_capability',
-                       spec_set=True, autospec=True)
-    @mock.patch.object(driver_utils, 'validate_boot_mode_capability',
+    @mock.patch.object(deploy_utils, 'validate_capabilities',
                        spec_set=True, autospec=True)
     @mock.patch.object(iscsi_deploy, 'validate_image_properties',
                        spec_set=True, autospec=True)
@@ -486,8 +484,7 @@ class IloVirtualMediaIscsiDeployTestCase(db_base.DbTestCase):
     def _test_validate(self, validate_mock,
                        deploy_info_mock,
                        validate_prop_mock,
-                       validate_boot_mode_mock,
-                       validate_secure_boot_mock,
+                       validate_capability_mock,
                        props_expected):
         d_info = {'image_source': 'uuid'}
         deploy_info_mock.return_value = d_info
@@ -498,8 +495,7 @@ class IloVirtualMediaIscsiDeployTestCase(db_base.DbTestCase):
             deploy_info_mock.assert_called_once_with(task.node)
             validate_prop_mock.assert_called_once_with(
                 task.context, d_info, props_expected)
-            validate_boot_mode_mock.assert_called_once_with(task.node)
-            validate_secure_boot_mock.assert_called_once_with(task.node)
+            validate_capability_mock.assert_called_once_with(task.node)
 
     @mock.patch.object(iscsi_deploy, 'validate_image_properties',
                        spec_set=True, autospec=True)
@@ -675,22 +671,18 @@ class IloVirtualMediaAgentDeployTestCase(db_base.DbTestCase):
         self.node = obj_utils.create_test_node(
             self.context, driver='agent_ilo', driver_info=INFO_DICT)
 
-    @mock.patch.object(driver_utils, 'validate_secure_boot_capability',
-                       spec_set=True, autospec=True)
-    @mock.patch.object(driver_utils, 'validate_boot_mode_capability',
+    @mock.patch.object(deploy_utils, 'validate_capabilities',
                        spec_set=True, autospec=True)
     @mock.patch.object(ilo_deploy, '_parse_driver_info', spec_set=True,
                        autospec=True)
     def test_validate(self,
                       parse_driver_info_mock,
-                      validate_boot_mode_mock,
-                      validate_secure_boot_mock):
+                      validate_capability_mock):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
             task.driver.deploy.validate(task)
             parse_driver_info_mock.assert_called_once_with(task.node)
-            validate_boot_mode_mock.assert_called_once_with(task.node)
-            validate_secure_boot_mock.assert_called_once_with(task.node)
+            validate_capability_mock.assert_called_once_with(task.node)
 
     @mock.patch.object(ilo_deploy, '_prepare_agent_vmedia_boot', spec_set=True,
                        autospec=True)
