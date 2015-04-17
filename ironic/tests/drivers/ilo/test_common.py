@@ -110,7 +110,7 @@ class IloCommonMethodsTestCase(db_base.DbTestCase):
         self.node = obj_utils.create_test_node(self.context,
                 driver='fake_ilo', driver_info=self.info)
 
-    @mock.patch.object(ilo_client, 'IloClient')
+    @mock.patch.object(ilo_client, 'IloClient', autospec=True)
     def test_get_ilo_object(self, ilo_client_mock):
         self.info['client_timeout'] = 60
         self.info['client_port'] = 443
@@ -124,7 +124,7 @@ class IloCommonMethodsTestCase(db_base.DbTestCase):
             self.info['client_port'])
         self.assertEqual('ilo_object', returned_ilo_object)
 
-    @mock.patch.object(ilo_common, 'get_ilo_object')
+    @mock.patch.object(ilo_common, 'get_ilo_object', autospec=True)
     def test_get_ilo_license(self, get_ilo_object_mock):
         ilo_advanced_license = {'LICENSE_TYPE': 'iLO 3 Advanced'}
         ilo_standard_license = {'LICENSE_TYPE': 'iLO 3'}
@@ -139,7 +139,7 @@ class IloCommonMethodsTestCase(db_base.DbTestCase):
         license = ilo_common.get_ilo_license(self.node)
         self.assertEqual(ilo_common.STANDARD_LICENSE, license)
 
-    @mock.patch.object(ilo_common, 'get_ilo_object')
+    @mock.patch.object(ilo_common, 'get_ilo_object', autospec=True)
     def test_get_ilo_license_fail(self, get_ilo_object_mock):
         ilo_mock_object = get_ilo_object_mock.return_value
         exc = ilo_error.IloError('error')
@@ -169,20 +169,20 @@ class IloCommonMethodsTestCase(db_base.DbTestCase):
         image_name_actual = ilo_common._get_floppy_image_name(self.node)
         self.assertEqual(image_name_expected, image_name_actual)
 
-    @mock.patch.object(swift, 'SwiftAPI')
-    @mock.patch.object(images, 'create_vfat_image')
-    @mock.patch.object(utils, 'write_to_file')
-    @mock.patch.object(tempfile, 'NamedTemporaryFile')
+    @mock.patch.object(swift, 'SwiftAPI', autospec=True)
+    @mock.patch.object(images, 'create_vfat_image', autospec=True)
+    @mock.patch.object(utils, 'write_to_file', autospec=True)
+    @mock.patch.object(tempfile, 'NamedTemporaryFile', autospec=True)
     def test__prepare_floppy_image(self, tempfile_mock, write_mock,
                                    fatimage_mock, swift_api_mock):
-        mock_token_file_obj = mock.MagicMock()
+        mock_token_file_obj = mock.MagicMock(spec=file)
         mock_token_file_obj.name = 'token-tmp-file'
         mock_image_file_handle = mock.MagicMock(spec=file)
-        mock_image_file_obj = mock.MagicMock()
+        mock_image_file_obj = mock.MagicMock(spec=file)
         mock_image_file_obj.name = 'image-tmp-file'
         mock_image_file_handle.__enter__.return_value = mock_image_file_obj
-        tempfile_mock.side_effect = [mock_image_file_handle,
-                                     mock_token_file_obj]
+        tempfile_mock.side_effect = iter([mock_image_file_handle,
+                                          mock_token_file_obj])
 
         swift_obj_mock = swift_api_mock.return_value
         self.config(swift_ilo_container='ilo_cont', group='ilo')
@@ -213,18 +213,18 @@ class IloCommonMethodsTestCase(db_base.DbTestCase):
                 object_name, timeout)
         self.assertEqual('temp-url', temp_url)
 
-    @mock.patch.object(swift, 'SwiftAPI')
-    @mock.patch.object(images, 'create_vfat_image')
-    @mock.patch.object(tempfile, 'NamedTemporaryFile')
+    @mock.patch.object(swift, 'SwiftAPI', autospec=True)
+    @mock.patch.object(images, 'create_vfat_image', autospec=True)
+    @mock.patch.object(tempfile, 'NamedTemporaryFile', autospec=True)
     def test__prepare_floppy_image_noauth(self, tempfile_mock, fatimage_mock,
                                           swift_api_mock):
-        mock_token_file_obj = mock.MagicMock()
+        mock_token_file_obj = mock.MagicMock(spec=file)
         mock_token_file_obj.name = 'token-tmp-file'
         mock_image_file_handle = mock.MagicMock(spec=file)
-        mock_image_file_obj = mock.MagicMock()
+        mock_image_file_obj = mock.MagicMock(spec=file)
         mock_image_file_obj.name = 'image-tmp-file'
         mock_image_file_handle.__enter__.return_value = mock_image_file_obj
-        tempfile_mock.side_effect = [mock_image_file_handle]
+        tempfile_mock.side_effect = iter([mock_image_file_handle])
 
         self.config(swift_ilo_container='ilo_cont', group='ilo')
         self.config(swift_object_expiry_timeout=1, group='ilo')
@@ -241,7 +241,7 @@ class IloCommonMethodsTestCase(db_base.DbTestCase):
                                               files_info=files_info,
                                               parameters=deploy_args)
 
-    @mock.patch.object(ilo_common, 'get_ilo_object')
+    @mock.patch.object(ilo_common, 'get_ilo_object', autospec=True)
     def test_attach_vmedia(self, get_ilo_object_mock):
         ilo_mock_object = get_ilo_object_mock.return_value
         insert_media_mock = ilo_mock_object.insert_virtual_media
@@ -252,7 +252,7 @@ class IloCommonMethodsTestCase(db_base.DbTestCase):
         set_status_mock.assert_called_once_with(device='FLOPPY',
                 boot_option='CONNECT', write_protect='YES')
 
-    @mock.patch.object(ilo_common, 'get_ilo_object')
+    @mock.patch.object(ilo_common, 'get_ilo_object', autospec=True)
     def test_attach_vmedia_fails(self, get_ilo_object_mock):
         ilo_mock_object = get_ilo_object_mock.return_value
         set_status_mock = ilo_mock_object.set_vm_status
@@ -262,7 +262,7 @@ class IloCommonMethodsTestCase(db_base.DbTestCase):
                           ilo_common.attach_vmedia, self.node,
                           'FLOPPY', 'url')
 
-    @mock.patch.object(ilo_common, 'get_ilo_object')
+    @mock.patch.object(ilo_common, 'get_ilo_object', autospec=True)
     def test_set_boot_mode(self, get_ilo_object_mock):
         ilo_object_mock = get_ilo_object_mock.return_value
         get_pending_boot_mode_mock = ilo_object_mock.get_pending_boot_mode
@@ -273,7 +273,7 @@ class IloCommonMethodsTestCase(db_base.DbTestCase):
         get_pending_boot_mode_mock.assert_called_once_with()
         set_pending_boot_mode_mock.assert_called_once_with('UEFI')
 
-    @mock.patch.object(ilo_common, 'get_ilo_object')
+    @mock.patch.object(ilo_common, 'get_ilo_object', autospec=True)
     def test_set_boot_mode_without_set_pending_boot_mode(self,
                                                          get_ilo_object_mock):
         ilo_object_mock = get_ilo_object_mock.return_value
@@ -284,7 +284,7 @@ class IloCommonMethodsTestCase(db_base.DbTestCase):
         get_pending_boot_mode_mock.assert_called_once_with()
         self.assertFalse(ilo_object_mock.set_pending_boot_mode.called)
 
-    @mock.patch.object(ilo_common, 'get_ilo_object')
+    @mock.patch.object(ilo_common, 'get_ilo_object', autospec=True)
     def test_set_boot_mode_with_IloOperationError(self,
                                                   get_ilo_object_mock):
         ilo_object_mock = get_ilo_object_mock.return_value
@@ -298,7 +298,7 @@ class IloCommonMethodsTestCase(db_base.DbTestCase):
         get_ilo_object_mock.assert_called_once_with(self.node)
         get_pending_boot_mode_mock.assert_called_once_with()
 
-    @mock.patch.object(ilo_common, 'set_boot_mode')
+    @mock.patch.object(ilo_common, 'set_boot_mode', autospec=True)
     def test_update_boot_mode_instance_info_exists(self,
                                                           set_boot_mode_mock):
         with task_manager.acquire(self.context, self.node.uuid,
@@ -307,7 +307,7 @@ class IloCommonMethodsTestCase(db_base.DbTestCase):
             ilo_common.update_boot_mode(task)
             set_boot_mode_mock.assert_called_once_with(task.node, 'bios')
 
-    @mock.patch.object(ilo_common, 'set_boot_mode')
+    @mock.patch.object(ilo_common, 'set_boot_mode', autospec=True)
     def test_update_boot_mode_capabilities_exist(self,
                                                  set_boot_mode_mock):
         with task_manager.acquire(self.context, self.node.uuid,
@@ -316,7 +316,7 @@ class IloCommonMethodsTestCase(db_base.DbTestCase):
             ilo_common.update_boot_mode(task)
             set_boot_mode_mock.assert_called_once_with(task.node, 'bios')
 
-    @mock.patch.object(ilo_common, 'get_ilo_object')
+    @mock.patch.object(ilo_common, 'get_ilo_object', autospec=True)
     def test_update_boot_mode(self, get_ilo_object_mock):
         ilo_mock_obj = get_ilo_object_mock.return_value
         ilo_mock_obj.get_pending_boot_mode.return_value = 'LEGACY'
@@ -329,7 +329,7 @@ class IloCommonMethodsTestCase(db_base.DbTestCase):
             self.assertEqual('bios',
                             task.node.instance_info['deploy_boot_mode'])
 
-    @mock.patch.object(ilo_common, 'get_ilo_object')
+    @mock.patch.object(ilo_common, 'get_ilo_object', autospec=True)
     def test_update_boot_mode_unknown(self,
                                       get_ilo_object_mock):
         ilo_mock_obj = get_ilo_object_mock.return_value
@@ -345,7 +345,7 @@ class IloCommonMethodsTestCase(db_base.DbTestCase):
             self.assertEqual('uefi',
                            task.node.instance_info['deploy_boot_mode'])
 
-    @mock.patch.object(ilo_common, 'get_ilo_object')
+    @mock.patch.object(ilo_common, 'get_ilo_object', autospec=True)
     def test_update_boot_mode_unknown_except(self,
                                              get_ilo_object_mock):
         ilo_mock_obj = get_ilo_object_mock.return_value
@@ -361,7 +361,7 @@ class IloCommonMethodsTestCase(db_base.DbTestCase):
             get_ilo_object_mock.assert_called_once_with(task.node)
             ilo_mock_obj.get_pending_boot_mode.assert_called_once_with()
 
-    @mock.patch.object(ilo_common, 'get_ilo_object')
+    @mock.patch.object(ilo_common, 'get_ilo_object', autospec=True)
     def test_update_boot_mode_legacy(self,
                                      get_ilo_object_mock):
         ilo_mock_obj = get_ilo_object_mock.return_value
@@ -376,7 +376,7 @@ class IloCommonMethodsTestCase(db_base.DbTestCase):
             self.assertEqual('bios',
                            task.node.instance_info['deploy_boot_mode'])
 
-    @mock.patch.object(ilo_common, 'set_boot_mode')
+    @mock.patch.object(ilo_common, 'set_boot_mode', autospec=True)
     def test_update_boot_mode_prop_boot_mode_exist(self,
                                                    set_boot_mode_mock):
 
@@ -387,9 +387,9 @@ class IloCommonMethodsTestCase(db_base.DbTestCase):
             ilo_common.update_boot_mode(task)
             set_boot_mode_mock.assert_called_once_with(task.node, 'uefi')
 
-    @mock.patch.object(images, 'get_temp_url_for_glance_image')
-    @mock.patch.object(ilo_common, 'attach_vmedia')
-    @mock.patch.object(ilo_common, '_prepare_floppy_image')
+    @mock.patch.object(images, 'get_temp_url_for_glance_image', autospec=True)
+    @mock.patch.object(ilo_common, 'attach_vmedia', autospec=True)
+    @mock.patch.object(ilo_common, '_prepare_floppy_image', autospec=True)
     def test_setup_vmedia_for_boot_with_parameters(self, prepare_image_mock,
             attach_vmedia_mock, temp_url_mock):
         parameters = {'a': 'b'}
@@ -407,8 +407,8 @@ class IloCommonMethodsTestCase(db_base.DbTestCase):
             temp_url_mock.assert_called_once_with(task.context, 'image-uuid')
             attach_vmedia_mock.assert_any_call(task.node, 'CDROM', 'image_url')
 
-    @mock.patch.object(swift, 'SwiftAPI')
-    @mock.patch.object(ilo_common, 'attach_vmedia')
+    @mock.patch.object(swift, 'SwiftAPI', autospec=True)
+    @mock.patch.object(ilo_common, 'attach_vmedia', autospec=True)
     def test_setup_vmedia_for_boot_with_swift(self, attach_vmedia_mock,
             swift_api_mock):
         swift_obj_mock = swift_api_mock.return_value
@@ -425,7 +425,7 @@ class IloCommonMethodsTestCase(db_base.DbTestCase):
             attach_vmedia_mock.assert_called_once_with(task.node, 'CDROM',
                     'image_url')
 
-    @mock.patch.object(ilo_common, 'attach_vmedia')
+    @mock.patch.object(ilo_common, 'attach_vmedia', autospec=True)
     def test_setup_vmedia_for_boot_with_url(self, attach_vmedia_mock):
         boot_iso = 'http://abc.com/img.iso'
         with task_manager.acquire(self.context, self.node.uuid,
@@ -434,15 +434,15 @@ class IloCommonMethodsTestCase(db_base.DbTestCase):
             attach_vmedia_mock.assert_called_once_with(task.node, 'CDROM',
                                                        boot_iso)
 
-    @mock.patch.object(ilo_common, 'get_ilo_object')
-    @mock.patch.object(swift, 'SwiftAPI')
-    @mock.patch.object(ilo_common, '_get_floppy_image_name')
+    @mock.patch.object(ilo_common, 'get_ilo_object', autospec=True)
+    @mock.patch.object(swift, 'SwiftAPI', autospec=True)
+    @mock.patch.object(ilo_common, '_get_floppy_image_name', autospec=True)
     def test_cleanup_vmedia_boot(self, get_name_mock, swift_api_mock,
             get_ilo_object_mock):
         swift_obj_mock = swift_api_mock.return_value
         CONF.ilo.swift_ilo_container = 'ilo_cont'
 
-        ilo_object_mock = mock.MagicMock()
+        ilo_object_mock = mock.MagicMock(spec=['eject_virtual_media'])
         get_ilo_object_mock.return_value = ilo_object_mock
         get_name_mock.return_value = 'image-node-uuid'
 
@@ -454,7 +454,7 @@ class IloCommonMethodsTestCase(db_base.DbTestCase):
             ilo_object_mock.eject_virtual_media.assert_any_call('CDROM')
             ilo_object_mock.eject_virtual_media.assert_any_call('FLOPPY')
 
-    @mock.patch.object(ilo_common, 'get_ilo_object')
+    @mock.patch.object(ilo_common, 'get_ilo_object', autospec=True)
     def test_get_secure_boot_mode(self,
                                   get_ilo_object_mock):
         ilo_object_mock = get_ilo_object_mock.return_value
@@ -467,7 +467,7 @@ class IloCommonMethodsTestCase(db_base.DbTestCase):
             ilo_object_mock.get_secure_boot_mode.assert_called_once_with()
             self.assertTrue(ret)
 
-    @mock.patch.object(ilo_common, 'get_ilo_object')
+    @mock.patch.object(ilo_common, 'get_ilo_object', autospec=True)
     def test_get_secure_boot_mode_bios(self,
                                        get_ilo_object_mock):
         ilo_object_mock = get_ilo_object_mock.return_value
@@ -479,7 +479,7 @@ class IloCommonMethodsTestCase(db_base.DbTestCase):
             self.assertFalse(ilo_object_mock.get_secure_boot_mode.called)
             self.assertFalse(ret)
 
-    @mock.patch.object(ilo_common, 'get_ilo_object')
+    @mock.patch.object(ilo_common, 'get_ilo_object', autospec=True)
     def test_get_secure_boot_mode_fail(self,
                                        get_ilo_object_mock):
         ilo_mock_object = get_ilo_object_mock.return_value
@@ -493,7 +493,7 @@ class IloCommonMethodsTestCase(db_base.DbTestCase):
                               task)
         ilo_mock_object.get_current_boot_mode.assert_called_once_with()
 
-    @mock.patch.object(ilo_common, 'get_ilo_object')
+    @mock.patch.object(ilo_common, 'get_ilo_object', autospec=True)
     def test_get_secure_boot_mode_not_supported(self,
                                                 ilo_object_mock):
         ilo_mock_object = ilo_object_mock.return_value
@@ -509,7 +509,7 @@ class IloCommonMethodsTestCase(db_base.DbTestCase):
         ilo_mock_object.get_current_boot_mode.assert_called_once_with()
         ilo_mock_object.get_secure_boot_mode.assert_called_once_with()
 
-    @mock.patch.object(ilo_common, 'get_ilo_object')
+    @mock.patch.object(ilo_common, 'get_ilo_object', autospec=True)
     def test_set_secure_boot_mode(self,
                                   get_ilo_object_mock):
         ilo_object_mock = get_ilo_object_mock.return_value
@@ -518,7 +518,7 @@ class IloCommonMethodsTestCase(db_base.DbTestCase):
             ilo_common.set_secure_boot_mode(task, True)
             ilo_object_mock.set_secure_boot_mode.assert_called_once_with(True)
 
-    @mock.patch.object(ilo_common, 'get_ilo_object')
+    @mock.patch.object(ilo_common, 'get_ilo_object', autospec=True)
     def test_set_secure_boot_mode_fail(self,
                                        get_ilo_object_mock):
         ilo_mock_object = get_ilo_object_mock.return_value
@@ -532,7 +532,7 @@ class IloCommonMethodsTestCase(db_base.DbTestCase):
                               task, False)
         ilo_mock_object.set_secure_boot_mode.assert_called_once_with(False)
 
-    @mock.patch.object(ilo_common, 'get_ilo_object')
+    @mock.patch.object(ilo_common, 'get_ilo_object', autospec=True)
     def test_set_secure_boot_mode_not_supported(self,
                                                 ilo_object_mock):
         ilo_mock_object = ilo_object_mock.return_value
