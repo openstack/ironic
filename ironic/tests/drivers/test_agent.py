@@ -71,7 +71,7 @@ class TestAgentMethods(db_base.DbTestCase):
     @mock.patch.object(image_service, 'GlanceImageService')
     def test_build_instance_info_for_deploy_glance_image(self, glance_mock):
         i_info = self.node.instance_info
-        i_info['image_source'] = 'image-uuid'
+        i_info['image_source'] = '733d1c44-a2ea-414b-aca7-69decf20d810'
         self.node.instance_info = i_info
         self.node.save()
 

@@ -463,7 +463,7 @@ class IloVirtualMediaIscsiDeployTestCase(db_base.DbTestCase):
                                           validate_mock,
                                           deploy_info_mock,
                                           validate_prop_mock):
-        d_info = {'image_source': 'uuid'}
+        d_info = {'image_source': '733d1c44-a2ea-414b-aca7-69decf20d810'}
         properties = {'capabilities': 'boot_mode:uefi,boot_option:foo'}
         deploy_info_mock.return_value = d_info
         props = ['kernel_id', 'ramdisk_id']
@@ -487,7 +487,7 @@ class IloVirtualMediaIscsiDeployTestCase(db_base.DbTestCase):
                                         validate_mock,
                                         deploy_info_mock,
                                         validate_prop_mock):
-        d_info = {'image_source': 'uuid'}
+        d_info = {'image_source': '733d1c44-a2ea-414b-aca7-69decf20d810'}
         properties = {'capabilities': 'boot_mode:foo,boot_option:local'}
         deploy_info_mock.return_value = d_info
         props = ['kernel_id', 'ramdisk_id']
