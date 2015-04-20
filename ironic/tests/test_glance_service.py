@@ -801,6 +801,8 @@ class TestServiceUtils(base.TestCase):
 
     def test_is_glance_image(self):
         image_href = 'uuid'
+        self.assertFalse(service_utils.is_glance_image(image_href))
+        image_href = '733d1c44-a2ea-414b-aca7-69decf20d810'
         self.assertTrue(service_utils.is_glance_image(image_href))
         image_href = 'glance://uuid'
         self.assertTrue(service_utils.is_glance_image(image_href))

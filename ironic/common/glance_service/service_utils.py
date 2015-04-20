@@ -22,6 +22,7 @@ import random
 from oslo_config import cfg
 from oslo_serialization import jsonutils
 from oslo_utils import timeutils
+from oslo_utils import uuidutils
 import six
 import six.moves.urllib.parse as urlparse
 
@@ -242,4 +243,5 @@ def is_image_available(context, image):
 def is_glance_image(image_href):
     if not isinstance(image_href, six.string_types):
         return False
-    return image_href.startswith('glance://') or '/' not in image_href
+    return (image_href.startswith('glance://') or
+            uuidutils.is_uuid_like(image_href))
