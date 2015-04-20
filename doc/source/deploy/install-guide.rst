@@ -488,9 +488,8 @@ Configure the Bare Metal Service for Cleaning
     #cleaning_network_uuid=<None>
     cleaning_network_uuid = NETWORK_UUID
 
-#. Restart the Bare Metal Service::
+#. Restart the Bare Metal Service's ironic-conductor::
 
-    service ironic-api restart
     service ironic-conductor restart
 
 Image Requirements
