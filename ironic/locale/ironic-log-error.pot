@@ -6,9 +6,9 @@
 #, fuzzy
 msgid ""
 msgstr ""
-"Project-Id-Version: ironic 2015.1.dev139\n"
+"Project-Id-Version: ironic 2015.1.dev1.gb90f423\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2015-04-08 06:27+0000\n"
+"POT-Creation-Date: 2015-04-20 11:51+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -72,7 +72,7 @@ msgstr ""
 msgid "Failed to create a file system in %(path)s. Error: %(error)s"
 msgstr ""
 
-#: ironic/common/glance_service/base_image_service.py:127
+#: ironic/common/glance_service/base_image_service.py:128
 #, python-format
 msgid ""
 "Error contacting glance server '%(host)s:%(port)s' for '%(method)s', "
@@ -92,24 +92,24 @@ msgstr ""
 msgid "Error in tear_down of node %(node)s: %(err)s"
 msgstr ""
 
-#: ironic/conductor/manager.py:1284
+#: ironic/conductor/manager.py:1280
 #, python-format
 msgid "Failed to stop console while deleting the node %(node)s: %(err)s."
 msgstr ""
 
-#: ironic/conductor/manager.py:1911
+#: ironic/conductor/manager.py:1907
 #, python-format
 msgid "Unexpected state %(state)s returned while deploying node %(node)s."
 msgstr ""
 
-#: ironic/conductor/manager.py:2011
+#: ironic/conductor/manager.py:2007
 #, python-format
 msgid ""
 "Failed to change power state of node %(node)s to '%(state)s'. Attempts "
 "left: %(left)s."
 msgstr ""
 
-#: ironic/conductor/manager.py:2043
+#: ironic/conductor/manager.py:2039
 #, python-format
 msgid "Failed to inspect node %(node)s: %(err)s"
 msgstr ""
@@ -149,7 +149,7 @@ msgstr ""
 msgid "vendor_passthru failed with method %s"
 msgstr ""
 
-#: ironic/drivers/modules/agent.py:188
+#: ironic/drivers/modules/agent.py:195
 #, python-format
 msgid ""
 "Agent deploy supports only HTTP(S) URLs as instance_info['image_source']."
@@ -256,25 +256,32 @@ msgid ""
 "error: %(error)s"
 msgstr ""
 
-#: ironic/drivers/modules/ipmitool.py:424
+#: ironic/drivers/modules/ipmitool.py:387
+#, python-format
+msgid ""
+"IPMI Error while attempting \"%(cmd)s\" for node %(node)s. Error: "
+"%(error)s"
+msgstr ""
+
+#: ironic/drivers/modules/ipmitool.py:467
 #, python-format
 msgid ""
 "IPMI power %(state)s timed out after %(tries)s retries on node "
 "%(node_id)s."
 msgstr ""
 
-#: ironic/drivers/modules/ipmitool.py:584
+#: ironic/drivers/modules/ipmitool.py:627
 #, python-format
 msgid "IPMI \"raw bytes\" failed for node %(node_id)s with error: %(error)s."
 msgstr ""
 
-#: ironic/drivers/modules/ipmitool.py:890
+#: ironic/drivers/modules/ipmitool.py:933
 #, python-format
 msgid "IPMI \"bmc reset\" failed for node %(node_id)s with error: %(error)s."
 msgstr ""
 
-#: ironic/drivers/modules/iscsi_deploy.py:610 ironic/drivers/modules/pxe.py:635
-#: ironic/drivers/modules/ilo/deploy.py:833
+#: ironic/drivers/modules/iscsi_deploy.py:617 ironic/drivers/modules/pxe.py:635
+#: ironic/drivers/modules/ilo/deploy.py:832
 #, python-format
 msgid "Deploy failed for instance %(instance)s. Error: %(error)s"
 msgstr ""
@@ -473,7 +480,7 @@ msgstr ""
 msgid "Failed to clean up boot ISO for %(node)s.Error: %(error)s."
 msgstr ""
 
-#: ironic/drivers/modules/ilo/deploy.py:741
+#: ironic/drivers/modules/ilo/deploy.py:740
 #, python-format
 msgid "Cannot get boot ISO for node %s"
 msgstr ""

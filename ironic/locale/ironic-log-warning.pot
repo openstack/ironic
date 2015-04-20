@@ -6,9 +6,9 @@
 #, fuzzy
 msgid ""
 msgstr ""
-"Project-Id-Version: ironic 2015.1.dev139\n"
+"Project-Id-Version: ironic 2015.1.dev1.gb90f423\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2015-04-08 06:27+0000\n"
+"POT-Creation-Date: 2015-04-20 11:51+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -75,54 +75,54 @@ msgid ""
 "decorator."
 msgstr ""
 
-#: ironic/conductor/manager.py:1440
+#: ironic/conductor/manager.py:1436
 #, python-format
 msgid ""
 "No VIF found for instance %(instance)s port %(port)s when attempting to "
 "update port MAC address."
 msgstr ""
 
-#: ironic/conductor/manager.py:1492
+#: ironic/conductor/manager.py:1488
 #, python-format
 msgid ""
 "get_sensors_data is not implemented for driver %(driver)s, node_uuid is "
 "%(node)s"
 msgstr ""
 
-#: ironic/conductor/manager.py:1496
+#: ironic/conductor/manager.py:1492
 #, python-format
 msgid ""
 "During get_sensors_data, could not parse sensor data for node %(node)s. "
 "Error: %(err)s."
 msgstr ""
 
-#: ironic/conductor/manager.py:1500
+#: ironic/conductor/manager.py:1496
 #, python-format
 msgid ""
 "During get_sensors_data, could not get sensor data for node %(node)s. "
 "Error: %(err)s."
 msgstr ""
 
-#: ironic/conductor/manager.py:1504
+#: ironic/conductor/manager.py:1500
 #, python-format
 msgid ""
 "During send_sensor_data, node %(node)s was not found and presumed deleted"
 " by another process."
 msgstr ""
 
-#: ironic/conductor/manager.py:1508
+#: ironic/conductor/manager.py:1504
 #, python-format
 msgid "Failed to get sensor data for node %(node)s. Error: %(error)s"
 msgstr ""
 
-#: ironic/conductor/manager.py:1779
+#: ironic/conductor/manager.py:1775
 #, python-format
 msgid ""
 "No free conductor workers available to perform an action on node "
 "%(node)s, setting node's power state back to %(power_state)s."
 msgstr ""
 
-#: ironic/conductor/manager.py:1807
+#: ironic/conductor/manager.py:1803
 #, python-format
 msgid ""
 "No free conductor workers available to perform an action on node "
@@ -130,36 +130,36 @@ msgid ""
 "target_provision_state to %(tgt_prov_state)s."
 msgstr ""
 
-#: ironic/conductor/manager.py:1875
+#: ironic/conductor/manager.py:1871
 #, python-format
 msgid "Error while uploading the configdrive for %(node)s to Swift"
 msgstr ""
 
-#: ironic/conductor/manager.py:1885
+#: ironic/conductor/manager.py:1881
 #, python-format
 msgid "Error while preparing to deploy to node %(node)s: %(err)s"
 msgstr ""
 
-#: ironic/conductor/manager.py:1894
+#: ironic/conductor/manager.py:1890
 #, python-format
 msgid "Error in deploy of node %(node)s: %(err)s"
 msgstr ""
 
-#: ironic/conductor/manager.py:1971
+#: ironic/conductor/manager.py:1967
 #, python-format
 msgid ""
 "During sync_power_state, could not get power state for node %(node)s. "
 "Error: %(err)s."
 msgstr ""
 
-#: ironic/conductor/manager.py:1999
+#: ironic/conductor/manager.py:1995
 #, python-format
 msgid ""
 "During sync_power_state, node %(node)s state '%(actual)s' does not match "
 "expected state. Changing hardware state to '%(state)s'."
 msgstr ""
 
-#: ironic/conductor/manager.py:2017
+#: ironic/conductor/manager.py:2013
 #, python-format
 msgid ""
 "During sync_power_state, node %(node)s state does not match expected "
@@ -296,24 +296,31 @@ msgid ""
 "%(detail)s"
 msgstr ""
 
-#: ironic/drivers/modules/ipmitool.py:413
+#: ironic/drivers/modules/ipmitool.py:397
+#, python-format
+msgid ""
+"IPMI Error encountered, retrying \"%(cmd)s\" for node %(node)s. Error: "
+"%(error)s"
+msgstr ""
+
+#: ironic/drivers/modules/ipmitool.py:456
 #, python-format
 msgid "IPMI power %(state)s failed for node %(node)s."
 msgstr ""
 
-#: ironic/drivers/modules/ipmitool.py:478
+#: ironic/drivers/modules/ipmitool.py:521
 #, python-format
 msgid "IPMI power status failed for node %(node_id)s with error: %(error)s."
 msgstr ""
 
-#: ironic/drivers/modules/ipmitool.py:753
+#: ironic/drivers/modules/ipmitool.py:796
 #, python-format
 msgid ""
 "IPMI set boot device failed for node %(node)s when executing \"ipmitool "
 "%(cmd)s\". Error: %(error)s"
 msgstr ""
 
-#: ironic/drivers/modules/ipmitool.py:784
+#: ironic/drivers/modules/ipmitool.py:827
 #, python-format
 msgid ""
 "IPMI get boot device failed for node %(node)s when executing \"ipmitool "
@@ -402,8 +409,8 @@ msgid ""
 "%(response_code)s. Retry attempt %(count)d"
 msgstr ""
 
-#: ironic/drivers/modules/ilo/deploy.py:456
-#: ironic/drivers/modules/ilo/deploy.py:536
+#: ironic/drivers/modules/ilo/deploy.py:451
+#: ironic/drivers/modules/ilo/deploy.py:531
 #, python-format
 msgid "Secure boot mode is not supported for node %s"
 msgstr ""
