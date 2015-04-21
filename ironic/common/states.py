@@ -262,11 +262,8 @@ machine.add_transition(CLEANING, AVAILABLE, 'done')
 # If cleaning fails, wait for operator intervention
 machine.add_transition(CLEANING, CLEANFAIL, 'fail')
 
-# A node that fails cleaning may be put back through cleaning
-machine.add_transition(CLEANFAIL, CLEANING, 'clean')
-
-# An operator may want to hold a CLEANFAIL node in operator for zapping or
-# outside-of-Ironic operations (like replacing hardware)
+# An operator may want to move a CLEANFAIL node to MANAGEABLE, to perform
+# other actions like zapping
 machine.add_transition(CLEANFAIL, MANAGEABLE, 'manage')
 
 # From MANAGEABLE, a node may move to available after going through cleaning
