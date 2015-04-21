@@ -456,7 +456,7 @@ class VendorPassthru(base.VendorInterface):
 
     @base.passthru(['POST'])
     def set_node_vlan_id(self, task, **kwargs):
-        """Sets a untagged vlan id for NIC 0 of node.
+        """Sets an untagged vlan id for NIC 0 of node.
 
         @kwargs vlan_id: id of untagged vlan for NIC 0 of node
         """

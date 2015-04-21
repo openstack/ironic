@@ -274,7 +274,7 @@ class BaseAgentVendor(base.VendorInterface):
                      {
                          "name": "eth0",
                          "mac_address": "00:11:22:33:44:55",
-                         "switch_port_descr": "port24"
+                         "switch_port_descr": "port24",
                          "switch_chassis_descr": "tor1"
                      }, ...
                  ], ...
