@@ -90,7 +90,7 @@ def parse_driver_info(node):
 
 
 def find_xml(doc, item, namespace, find_all=False):
-    """Find the first or all elements in a ElementTree object.
+    """Find the first or all elements in an ElementTree object.
 
     :param doc: the element tree object.
     :param item: the element name.

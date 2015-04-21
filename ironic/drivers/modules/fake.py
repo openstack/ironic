@@ -21,7 +21,7 @@ drivers.  For instance, the MultipleVendorInterface class demonstrates how to
 load more than one interface and wrap them in some logic to route incoming
 vendor_passthru requests appropriately. This can be useful eg. when mixing
 functionality between a power interface and a deploy interface, when both rely
-on seprate vendor_passthru methods.
+on separate vendor_passthru methods.
 """
 
 from ironic.common import boot_devices
