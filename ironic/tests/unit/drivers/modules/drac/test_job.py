@@ -24,6 +24,7 @@ from ironic.drivers.modules.drac import job as drac_job
 from ironic.tests.unit.conductor import mgr_utils
 from ironic.tests.unit.db import base as db_base
 from ironic.tests.unit.db import utils as db_utils
+from ironic.tests.unit.drivers.modules.drac import utils as test_utils
 from ironic.tests.unit.objects import utils as obj_utils
 
 INFO_DICT = db_utils.get_test_drac_info()
@@ -39,6 +40,53 @@ class DracJobTestCase(db_base.DbTestCase):
         self.node = obj_utils.create_test_node(self.context,
                                                driver='fake_drac',
                                                driver_info=INFO_DICT)
+        self.job_dict = {
+            'id': 'JID_001436912645',
+            'name': 'ConfigBIOS:BIOS.Setup.1-1',
+            'start_time': '00000101000000',
+            'until_time': 'TIME_NA',
+            'message': 'Job in progress',
+            'state': 'Running',
+            'percent_complete': 34}
+        self.job = test_utils.dict_to_namedtuple(values=self.job_dict)
+
+    def test_get_job(self, mock_get_drac_client):
+        mock_client = mock.Mock()
+        mock_get_drac_client.return_value = mock_client
+        mock_client.get_job.return_value = self.job
+
+        job = drac_job.get_job(self.node, 'foo')
+
+        mock_client.get_job.assert_called_once_with('foo')
+        self.assertEqual(self.job, job)
+
+    def test_get_job_fail(self, mock_get_drac_client):
+        mock_client = mock.Mock()
+        mock_get_drac_client.return_value = mock_client
+        exc = exception.DracOperationError('boom')
+        mock_client.get_job.side_effect = exc
+
+        self.assertRaises(exception.DracOperationError,
+                          drac_job.get_job, self.node, 'foo')
+
+    def test_list_unfinished_jobs(self, mock_get_drac_client):
+        mock_client = mock.Mock()
+        mock_get_drac_client.return_value = mock_client
+        mock_client.list_jobs.return_value = [self.job]
+
+        jobs = drac_job.list_unfinished_jobs(self.node)
+
+        mock_client.list_jobs.assert_called_once_with(only_unfinished=True)
+        self.assertEqual([self.job], jobs)
+
+    def test_list_unfinished_jobs_fail(self, mock_get_drac_client):
+        mock_client = mock.Mock()
+        mock_get_drac_client.return_value = mock_client
+        exc = exception.DracOperationError('boom')
+        mock_client.list_jobs.side_effect = exc
+
+        self.assertRaises(exception.DracOperationError,
+                          drac_job.list_unfinished_jobs, self.node)
 
     def test_validate_job_queue(self, mock_get_drac_client):
         mock_client = mock.Mock()
@@ -61,7 +109,7 @@ class DracJobTestCase(db_base.DbTestCase):
     def test_validate_job_queue_invalid(self, mock_get_drac_client):
         mock_client = mock.Mock()
         mock_get_drac_client.return_value = mock_client
-        mock_client.list_jobs.return_value = [42]
+        mock_client.list_jobs.return_value = [self.job]
 
         self.assertRaises(exception.DracOperationError,
                           drac_job.validate_job_queue, self.node)

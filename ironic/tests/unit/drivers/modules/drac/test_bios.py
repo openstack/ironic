@@ -28,6 +28,7 @@ from ironic.drivers.modules.drac import common as drac_common
 from ironic.tests.unit.conductor import mgr_utils
 from ironic.tests.unit.db import base as db_base
 from ironic.tests.unit.db import utils as db_utils
+from ironic.tests.unit.drivers.modules.drac import utils as test_utils
 from ironic.tests.unit.objects import utils as obj_utils
 
 INFO_DICT = db_utils.get_test_drac_info()
@@ -56,7 +57,8 @@ class DracBIOSConfigurationTestCase(db_base.DbTestCase):
             'read_only': False,
             'possible_values': ['Enabled', 'Disabled']}
         self.bios_attrs = {
-            'ProcVirtualization': mock.Mock(**proc_virt_attr)
+            'ProcVirtualization': test_utils.dict_to_namedtuple(
+                values=proc_virt_attr)
         }
 
     def test_get_config(self):

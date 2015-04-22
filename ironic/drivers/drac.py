@@ -15,13 +15,16 @@
 DRAC Driver for remote system management using Dell Remote Access Card.
 """
 
+from oslo_log import log as logging
 from oslo_utils import importutils
 
 from ironic.common import exception
 from ironic.common.i18n import _
 from ironic.drivers import base
+from ironic.drivers.modules.drac import deploy
 from ironic.drivers.modules.drac import management
 from ironic.drivers.modules.drac import power
+from ironic.drivers.modules.drac import raid
 from ironic.drivers.modules.drac import vendor_passthru
 from ironic.drivers.modules import inspector
 from ironic.drivers.modules import iscsi_deploy
@@ -29,8 +32,11 @@ from ironic.drivers.modules import pxe
 from ironic.drivers import utils
 
 
+LOG = logging.getLogger(__name__)
+
+
 class PXEDracDriver(base.BaseDriver):
-    """Drac driver using PXE for deploy."""
+    """DRAC driver using PXE for deploy."""
 
     def __init__(self):
         if not importutils.try_import('dracclient'):
@@ -40,8 +46,9 @@ class PXEDracDriver(base.BaseDriver):
 
         self.power = power.DracPower()
         self.boot = pxe.PXEBoot()
-        self.deploy = iscsi_deploy.ISCSIDeploy()
+        self.deploy = deploy.DracDeploy()
         self.management = management.DracManagement()
+        self.raid = raid.DracRAID()
         self.iscsi_vendor = iscsi_deploy.VendorPassthru()
         self.drac_vendor = vendor_passthru.DracVendorPassthru()
         self.mapping = {'heartbeat': self.iscsi_vendor,
@@ -53,5 +60,4 @@ class PXEDracDriver(base.BaseDriver):
         self.driver_passthru_mapping = {'lookup': self.iscsi_vendor}
         self.vendor = utils.MixinVendorInterface(self.mapping,
                                                  self.driver_passthru_mapping)
-        self.inspect = inspector.Inspector.create_if_enabled(
-            'PXEDracDriver')
+        self.inspect = inspector.Inspector.create_if_enabled('PXEDracDriver')

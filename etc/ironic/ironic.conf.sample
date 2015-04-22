@@ -1030,6 +1030,19 @@
 #iscsi_verify_attempts = 3
 
 
+[drac]
+
+#
+# From ironic
+#
+
+# Interval (in seconds) between periodic RAID job status
+# checks to determine whether the asynchronous RAID
+# configuration was successfully finished or not. (integer
+# value)
+#query_raid_config_job_status_interval = 120
+
+
 [glance]
 
 #

@@ -29,6 +29,7 @@ from ironic.drivers.modules.cimc import management as cimc_mgmt
 from ironic.drivers.modules.cimc import power as cimc_power
 from ironic.drivers.modules.drac import management as drac_mgmt
 from ironic.drivers.modules.drac import power as drac_power
+from ironic.drivers.modules.drac import raid as drac_raid
 from ironic.drivers.modules.drac import vendor_passthru as drac_vendor
 from ironic.drivers.modules import fake
 from ironic.drivers.modules import iboot
@@ -200,6 +201,7 @@ class FakeDracDriver(base.BaseDriver):
         self.power = drac_power.DracPower()
         self.deploy = fake.FakeDeploy()
         self.management = drac_mgmt.DracManagement()
+        self.raid = drac_raid.DracRAID()
         self.vendor = drac_vendor.DracVendorPassthru()
 
 

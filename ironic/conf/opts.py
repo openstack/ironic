@@ -45,6 +45,7 @@ _opts = [
     ('database', ironic.conf.database.opts),
     ('deploy', ironic.conf.deploy.opts),
     ('dhcp', ironic.conf.dhcp.opts),
+    ('drac', ironic.conf.drac.opts),
     ('glance', ironic.conf.glance.list_opts()),
     ('iboot', ironic.conf.iboot.opts),
     ('ilo', ironic.conf.ilo.opts),
