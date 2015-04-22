@@ -35,6 +35,8 @@ from ironic.drivers.modules import ipminative
 from ironic.drivers.modules import ipmitool
 from ironic.drivers.modules.irmc import management as irmc_management
 from ironic.drivers.modules.irmc import power as irmc_power
+from ironic.drivers.modules.msftocs import management as msftocs_management
+from ironic.drivers.modules.msftocs import power as msftocs_power
 from ironic.drivers.modules import pxe
 from ironic.drivers.modules import seamicro
 from ironic.drivers.modules import snmp
@@ -266,3 +268,20 @@ class PXEAndAMTDriver(base.BaseDriver):
         self.deploy = pxe.PXEDeploy()
         self.management = amt_management.AMTManagement()
         self.vendor = amt_vendor.AMTPXEVendorPassthru()
+
+
+class PXEAndMSFTOCSDriver(base.BaseDriver):
+    """PXE + MSFT OCS driver.
+
+    This driver implements the `core` functionality, combining
+    :class:`ironic.drivers.modules.msftocs.power.MSFTOCSPower` for power on/off
+    and reboot with :class:`ironic.driver.pxe.PXE` for image deployment.
+    Implementations are in those respective classes; this class is merely the
+    glue between them.
+    """
+
+    def __init__(self):
+        self.power = msftocs_power.MSFTOCSPower()
+        self.deploy = pxe.PXEDeploy()
+        self.management = msftocs_management.MSFTOCSManagement()
+        self.vendor = pxe.VendorPassthru()
