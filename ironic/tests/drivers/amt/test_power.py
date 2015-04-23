@@ -48,7 +48,7 @@ class AMTPowerInteralMethodsTestCase(db_base.DbTestCase):
         CONF.set_override('max_attempts', 2, 'amt')
         CONF.set_override('action_wait', 0, 'amt')
 
-    @mock.patch.object(amt_common, 'get_wsman_client')
+    @mock.patch.object(amt_common, 'get_wsman_client', autospec=True)
     def test__set_power_state(self, mock_client_pywsman):
         namespace = resource_uris.CIM_PowerManagementService
         mock_client = mock_client_pywsman.return_value
@@ -56,7 +56,7 @@ class AMTPowerInteralMethodsTestCase(db_base.DbTestCase):
         mock_client.wsman_invoke.assert_called_once_with(mock.ANY,
             namespace, 'RequestPowerStateChange', mock.ANY)
 
-    @mock.patch.object(amt_common, 'get_wsman_client')
+    @mock.patch.object(amt_common, 'get_wsman_client', autospec=True)
     def test__set_power_state_fail(self, mock_client_pywsman):
         mock_client = mock_client_pywsman.return_value
         mock_client.wsman_invoke.side_effect = exception.AMTFailure('x')
@@ -64,7 +64,7 @@ class AMTPowerInteralMethodsTestCase(db_base.DbTestCase):
                           amt_power._set_power_state,
                           self.node, states.POWER_ON)
 
-    @mock.patch.object(amt_common, 'get_wsman_client')
+    @mock.patch.object(amt_common, 'get_wsman_client', autospec=True)
     def test__power_status(self, mock_gwc):
         namespace = resource_uris.CIM_AssociatedPowerManagementService
         result_xml = test_utils.build_soap_xml([{'PowerState':
@@ -94,7 +94,7 @@ class AMTPowerInteralMethodsTestCase(db_base.DbTestCase):
         self.assertEqual(
             states.ERROR, amt_power._power_status(self.node))
 
-    @mock.patch.object(amt_common, 'get_wsman_client')
+    @mock.patch.object(amt_common, 'get_wsman_client', autospec=True)
     def test__power_status_fail(self, mock_gwc):
         mock_client = mock_gwc.return_value
         mock_client.wsman_get.side_effect = exception.AMTFailure('x')
@@ -102,30 +102,32 @@ class AMTPowerInteralMethodsTestCase(db_base.DbTestCase):
                           amt_power._power_status,
                           self.node)
 
-    @mock.patch.object(amt_mgmt.AMTManagement, 'ensure_next_boot_device')
-    @mock.patch.object(amt_power, '_power_status')
-    @mock.patch.object(amt_power, '_set_power_state')
+    @mock.patch.object(amt_mgmt.AMTManagement, 'ensure_next_boot_device',
+                       autospec=True)
+    @mock.patch.object(amt_power, '_power_status', autospec=True)
+    @mock.patch.object(amt_power, '_set_power_state', autospec=True)
     def test__set_and_wait_power_on_with_boot_device(self, mock_sps,
-                                                     mock_ps, mock_snbd):
+                                                     mock_ps, mock_enbd):
         target_state = states.POWER_ON
         boot_device = boot_devices.PXE
-        mock_ps.side_effect = [states.POWER_OFF, states.POWER_ON]
-        mock_snbd.return_value = None
+        mock_ps.side_effect = iter([states.POWER_OFF, states.POWER_ON])
+        mock_enbd.return_value = None
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
             task.node.driver_internal_info['amt_boot_device'] = boot_device
-            self.assertEqual(states.POWER_ON,
-                             amt_power._set_and_wait(task, target_state))
-            mock_snbd.assert_called_with(task.node, boot_devices.PXE)
+            result = amt_power._set_and_wait(task, target_state)
+            self.assertEqual(states.POWER_ON, result)
+            mock_enbd.assert_called_with(task.driver.management, task.node,
+                                         boot_devices.PXE)
             mock_sps.assert_called_once_with(task.node, states.POWER_ON)
             mock_ps.assert_called_with(task.node)
 
-    @mock.patch.object(amt_power, '_power_status')
-    @mock.patch.object(amt_power, '_set_power_state')
+    @mock.patch.object(amt_power, '_power_status', autospec=True)
+    @mock.patch.object(amt_power, '_set_power_state', autospec=True)
     def test__set_and_wait_power_on_without_boot_device(self, mock_sps,
                                                         mock_ps):
         target_state = states.POWER_ON
-        mock_ps.side_effect = [states.POWER_OFF, states.POWER_ON]
+        mock_ps.side_effect = iter([states.POWER_OFF, states.POWER_ON])
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
             self.assertEqual(states.POWER_ON,
@@ -135,7 +137,7 @@ class AMTPowerInteralMethodsTestCase(db_base.DbTestCase):
 
         boot_device = boot_devices.DISK
         self.node.driver_internal_info['amt_boot_device'] = boot_device
-        mock_ps.side_effect = [states.POWER_OFF, states.POWER_ON]
+        mock_ps.side_effect = iter([states.POWER_OFF, states.POWER_ON])
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
             self.assertEqual(states.POWER_ON,
@@ -150,13 +152,13 @@ class AMTPowerInteralMethodsTestCase(db_base.DbTestCase):
             self.assertRaises(exception.InvalidParameterValue,
                               amt_power._set_and_wait, task, target_state)
 
-    @mock.patch.object(amt_power, '_power_status')
-    @mock.patch.object(amt_power, '_set_power_state')
+    @mock.patch.object(amt_power, '_power_status', autospec=True)
+    @mock.patch.object(amt_power, '_set_power_state', autospec=True)
     def test__set_and_wait_exceed_iterations(self, mock_sps,
                                              mock_ps):
         target_state = states.POWER_ON
-        mock_ps.side_effect = [states.POWER_OFF, states.POWER_OFF,
-                               states.POWER_OFF]
+        mock_ps.side_effect = iter([states.POWER_OFF, states.POWER_OFF,
+                                    states.POWER_OFF])
         mock_sps.return_value = exception.AMTFailure('x')
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
@@ -166,21 +168,21 @@ class AMTPowerInteralMethodsTestCase(db_base.DbTestCase):
             mock_ps.assert_called_with(task.node)
             self.assertEqual(3, mock_ps.call_count)
 
-    @mock.patch.object(amt_power, '_power_status')
+    @mock.patch.object(amt_power, '_power_status', autospec=True)
     def test__set_and_wait_already_target_state(self, mock_ps):
         target_state = states.POWER_ON
-        mock_ps.side_effect = [states.POWER_ON]
+        mock_ps.side_effect = iter([states.POWER_ON])
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
             self.assertEqual(states.POWER_ON,
                          amt_power._set_and_wait(task, target_state))
             mock_ps.assert_called_with(task.node)
 
-    @mock.patch.object(amt_power, '_power_status')
-    @mock.patch.object(amt_power, '_set_power_state')
+    @mock.patch.object(amt_power, '_power_status', autospec=True)
+    @mock.patch.object(amt_power, '_set_power_state', autospec=True)
     def test__set_and_wait_power_off(self, mock_sps, mock_ps):
         target_state = states.POWER_OFF
-        mock_ps.side_effect = [states.POWER_ON, states.POWER_OFF]
+        mock_ps.side_effect = iter([states.POWER_ON, states.POWER_OFF])
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
             self.assertEqual(states.POWER_OFF,
@@ -205,14 +207,14 @@ class AMTPowerTestCase(db_base.DbTestCase):
                                   shared=True) as task:
             self.assertEqual(expected, task.driver.get_properties())
 
-    @mock.patch.object(amt_common, 'parse_driver_info')
+    @mock.patch.object(amt_common, 'parse_driver_info', autospec=True)
     def test_validate(self, mock_drvinfo):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
             task.driver.power.validate(task)
             mock_drvinfo.assert_called_once_with(task.node)
 
-    @mock.patch.object(amt_common, 'parse_driver_info')
+    @mock.patch.object(amt_common, 'parse_driver_info', autospec=True)
     def test_validate_fail(self, mock_drvinfo):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
@@ -221,7 +223,7 @@ class AMTPowerTestCase(db_base.DbTestCase):
                               task.driver.power.validate,
                               task)
 
-    @mock.patch.object(amt_power, '_power_status')
+    @mock.patch.object(amt_power, '_power_status', autospec=True)
     def test_get_power_state(self, mock_ps):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
@@ -230,7 +232,7 @@ class AMTPowerTestCase(db_base.DbTestCase):
                              task.driver.power.get_power_state(task))
             mock_ps.assert_called_once_with(task.node)
 
-    @mock.patch.object(amt_power, '_set_and_wait')
+    @mock.patch.object(amt_power, '_set_and_wait', autospec=True)
     def test_set_power_state(self, mock_saw):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
@@ -239,7 +241,7 @@ class AMTPowerTestCase(db_base.DbTestCase):
             task.driver.power.set_power_state(task, pstate)
             mock_saw.assert_called_once_with(task, pstate)
 
-    @mock.patch.object(amt_power, '_set_and_wait')
+    @mock.patch.object(amt_power, '_set_and_wait', autospec=True)
     def test_set_power_state_fail(self, mock_saw):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
@@ -250,11 +252,11 @@ class AMTPowerTestCase(db_base.DbTestCase):
                               task, pstate)
             mock_saw.assert_called_once_with(task, pstate)
 
-    @mock.patch.object(amt_power, '_set_and_wait')
+    @mock.patch.object(amt_power, '_set_and_wait', autospec=True)
     def test_reboot(self, mock_saw):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
             task.driver.power.reboot(task)
             calls = [mock.call(task, states.POWER_OFF),
                      mock.call(task, states.POWER_ON)]
-            mock_saw.has_calls(calls)
+            mock_saw.assert_has_calls(calls)

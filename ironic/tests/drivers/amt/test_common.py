@@ -25,6 +25,7 @@ from ironic.tests import base
 from ironic.tests.db import base as db_base
 from ironic.tests.db import utils as db_utils
 from ironic.tests.drivers.drac import utils as test_utils
+from ironic.tests.drivers import third_party_driver_mock_specs as mock_specs
 from ironic.tests.objects import utils as obj_utils
 
 INFO_DICT = db_utils.get_test_amt_info()
@@ -75,7 +76,7 @@ class AMTCommonMethodsTestCase(db_base.DbTestCase):
         self.assertRaises(exception.InvalidParameterValue,
                           amt_common.parse_driver_info, self.node)
 
-    @mock.patch.object(amt_common, 'Client')
+    @mock.patch.object(amt_common, 'Client', autospec=True)
     def test_get_wsman_client(self, mock_client):
         info = amt_common.parse_driver_info(self.node)
         amt_common.get_wsman_client(self.node)
@@ -103,7 +104,7 @@ class AMTCommonMethodsTestCase(db_base.DbTestCase):
                           mock_doc, 'namespace', 'test_element')
 
 
-@mock.patch.object(amt_common, 'pywsman')
+@mock.patch.object(amt_common, 'pywsman', spec_set=mock_specs.PYWSMAN_SPEC)
 class AMTCommonClientTestCase(base.TestCase):
     def setUp(self):
         super(AMTCommonClientTestCase, self).setUp()
@@ -143,7 +144,7 @@ class AMTCommonClientTestCase(base.TestCase):
         mock_pywsman = mock_client_pywsman.Client.return_value
         mock_pywsman.invoke.return_value = mock_doc
         method = 'ChangeBootOrder'
-        options = mock.Mock()
+        options = mock.Mock(spec_set=[])
         client = amt_common.Client(**self.info)
         doc = None
         client.wsman_invoke(options, namespace, method, doc)
@@ -161,7 +162,7 @@ class AMTCommonClientTestCase(base.TestCase):
         mock_pywsman = mock_client_pywsman.Client.return_value
         mock_pywsman.invoke.return_value = mock_doc
         method = 'fake-method'
-        options = mock.Mock()
+        options = mock.Mock(spec_set=[])
 
         client = amt_common.Client(**self.info)
 
