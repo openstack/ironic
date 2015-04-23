@@ -27,3 +27,18 @@ PYWSMAN_SPEC = (
     'wsman_transport_set_verify_host',
     'wsman_transport_set_verify_peer',
 )
+
+# scciclient
+SCCICLIENT_SPEC = (
+    'irmc',
+)
+
+SCCICLIENT_IRMC_SCCI_SPEC = (
+    'POWER_OFF',
+    'POWER_ON',
+    'POWER_RESET',
+    'SCCIClientError',
+    'get_client',
+    'get_report',
+    'get_sensor_data',
+)

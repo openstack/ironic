@@ -23,6 +23,7 @@ from ironic.drivers.modules.irmc import common as irmc_common
 from ironic.tests.conductor import utils as mgr_utils
 from ironic.tests.db import base as db_base
 from ironic.tests.db import utils as db_utils
+from ironic.tests.drivers import third_party_driver_mock_specs as mock_specs
 from ironic.tests.objects import utils as obj_utils
 
 
@@ -116,7 +117,8 @@ class IRMCCommonMethodsTestCase(db_base.DbTestCase):
             driver='fake_irmc',
             driver_info=self.info)
 
-    @mock.patch.object(irmc_common, 'scci')
+    @mock.patch.object(irmc_common, 'scci',
+                       spec_set=mock_specs.SCCICLIENT_IRMC_SCCI_SPEC)
     def test_get_irmc_client(self, mock_scci):
         self.info['irmc_port'] = 80
         self.info['irmc_auth_method'] = 'digest'
@@ -146,7 +148,8 @@ class IRMCCommonMethodsTestCase(db_base.DbTestCase):
             expected_info = dict(self.info, **ipmi_info)
             self.assertEqual(expected_info, actual_info)
 
-    @mock.patch.object(irmc_common, 'scci')
+    @mock.patch.object(irmc_common, 'scci',
+                       spec_set=mock_specs.SCCICLIENT_IRMC_SCCI_SPEC)
     def test_get_irmc_report(self, mock_scci):
         self.info['irmc_port'] = 80
         self.info['irmc_auth_method'] = 'digest'
