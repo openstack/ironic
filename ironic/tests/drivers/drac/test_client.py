@@ -25,11 +25,12 @@ from ironic.drivers.modules.drac import client as drac_client
 from ironic.tests import base
 from ironic.tests.db import utils as db_utils
 from ironic.tests.drivers.drac import utils as test_utils
+from ironic.tests.drivers import third_party_driver_mock_specs as mock_specs
 
 INFO_DICT = db_utils.get_test_drac_info()
 
 
-@mock.patch.object(drac_client, 'pywsman')
+@mock.patch.object(drac_client, 'pywsman', spec_set=mock_specs.PYWSMAN_SPEC)
 class DracClientTestCase(base.TestCase):
 
     def setUp(self):
@@ -72,12 +73,12 @@ class DracClientTestCase(base.TestCase):
         mock_xml.context.assert_called_once_with()
 
     def test_wsman_enumerate_with_additional_pull(self, mock_client_pywsman):
-        mock_root = mock.Mock()
+        mock_root = mock.Mock(spec=['string'])
         mock_root.string.side_effect = [test_utils.build_soap_xml(
                                            [{'item1': 'test1'}]),
                                         test_utils.build_soap_xml(
                                            [{'item2': 'test2'}])]
-        mock_xml = mock.Mock()
+        mock_xml = mock.Mock(spec=['context', 'root'])
         mock_xml.root.return_value = mock_root
         mock_xml.context.side_effect = [42, 42, None]
 
