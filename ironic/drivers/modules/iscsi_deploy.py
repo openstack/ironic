@@ -591,13 +591,16 @@ def validate_bootloader_install_status(task, input_params):
     :raises: InstanceDeployFailure, if bootloader installation was
         reported from ramdisk as failure.
     """
+    node = task.node
     if input_params['status'] != 'SUCCEEDED':
         msg = (_('Failed to install bootloader on node %(node)s. '
                  'Error: %(error)s.') %
-               {'node': task.node.uuid, 'error': input_params.get('error')})
+               {'node': node.uuid, 'error': input_params.get('error')})
         LOG.error(msg)
         deploy_utils.set_failed_state(task, msg)
         raise exception.InstanceDeployFailure(msg)
+
+    LOG.info(_LI('Bootloader successfully installed on node %s'), node.uuid)
 
 
 def finish_deploy(task, address):

@@ -576,6 +576,7 @@ class VendorPassthru(agent_base_vendor.BaseAgentVendor):
                 'address': The IP address of the ramdisk
         """
         task.process_event('resume')
+        LOG.debug('Continuing the deployment on node %s', task.node.uuid)
         iscsi_deploy.validate_bootloader_install_status(task, kwargs)
         iscsi_deploy.finish_deploy(task, kwargs['address'])
 
@@ -593,6 +594,7 @@ class VendorPassthru(agent_base_vendor.BaseAgentVendor):
         """
         node = task.node
         task.process_event('resume')
+        LOG.debug('Continuing the deployment on node %s', node.uuid)
 
         _destroy_token_file(node)
         is_whole_disk_image = node.driver_internal_info['is_whole_disk_image']
@@ -622,6 +624,8 @@ class VendorPassthru(agent_base_vendor.BaseAgentVendor):
                 # 'pass_bootloader_install_info', if it's not a
                 # whole disk image.
                 if not is_whole_disk_image:
+                    LOG.debug('Installing the bootloader on node %s',
+                              node.uuid)
                     deploy_utils.notify_ramdisk_to_proceed(kwargs['address'])
                     task.process_event('wait')
                     return

@@ -469,6 +469,7 @@ class BaseAgentVendor(base.VendorInterface):
         node = task.node
         if not node.driver_internal_info.get(
                 'is_whole_disk_image') and root_uuid:
+            LOG.debug('Installing the bootloader on node %s', node.uuid)
             result = self._client.install_bootloader(
                 node, root_uuid=root_uuid,
                 efi_system_part_uuid=efi_system_part_uuid)
@@ -487,3 +488,6 @@ class BaseAgentVendor(base.VendorInterface):
                    {'boot_dev': boot_devices.DISK, 'node': node.uuid,
                     'error': e})
             self._log_and_raise_deployment_error(task, msg)
+
+        LOG.info(_LI('Bootloader successfully installed on node %s'),
+                 node.uuid)
