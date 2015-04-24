@@ -62,6 +62,7 @@ additional functionality:
   introspection by PXE booting unregistered hardware into a "discovery ramdisk".
 - diskimage-builder_; May be used to customize machine images, create and
   discovery deploy ramdisks, if necessary.
+
 .. _ironic-discoverd: https://github.com/stackforge/ironic-discoverd
 .. _diskimage-builder: https://github.com/openstack/diskimage-builder
 
@@ -1066,7 +1067,15 @@ if desired.
     | driver       | pxe_ipmitool                         |
     | chassis_uuid |                                      |
     | properties   | {}                                   |
+    | name         | None                                 |
     +--------------+--------------------------------------+
+
+   Beginning with the Kilo release a Node may also be referred to by a logical
+   name as well as its UUID. To utilize this new feature a name must be
+   assigned to the Node. This can be done when the Node is created by
+   adding the ``-n`` option to the ``node-create`` command or by updating an
+   existing Node with the ``node-update`` command. See `Logical Names`_ for
+   examples.
 
 #. Update the Node ``driver_info`` so that Ironic can manage the node. Different
    drivers may require different information about the node. You can determine this
@@ -1156,6 +1165,66 @@ if desired.
    +------------+--------+-------------------------------------------------------------------------------------------------------------------------------------+
 
 .. _ComputeCapabilitiesFilter: http://docs.openstack.org/developer/nova/devref/filter_scheduler.html?highlight=computecapabilitiesfilter
+
+
+Logical Names
+-------------
+Beginning with the Kilo release a Node may also be referred to by a
+logical name as well as its UUID. Names can be assigned either when
+creating the Node by adding the ``-n`` option to the ``node-create`` command or
+by updating an existing Node with the ``node-update`` command.
+
+Node names must be unique, and conform to:
+
+- rfc952_
+- rfc1123_
+- wiki_hostname_
+
+The node is named 'example' in the following examples:
+::
+
+    ironic node-create -d agent_ipmitool -n example
+
+or::
+
+    ironic node-update $NODE_UUID add name=example
+
+
+Once assigned a logical name a Node can then be referred to by name or
+UUID interchangeably.
+::
+
+    ironic node-create -d agent_ipmitool -n example
+
+    +--------------+--------------------------------------+
+    | Property     | Value                                |
+    +--------------+--------------------------------------+
+    | uuid         | 71e01002-8662-434d-aafd-f068f69bb85e |
+    | driver_info  | {}                                   |
+    | extra        | {}                                   |
+    | driver       | agent_ipmitool                       |
+    | chassis_uuid |                                      |
+    | properties   | {}                                   |
+    | name         | example                              |
+    +--------------+--------------------------------------+
+
+
+    ironic node-show example
+
+    +------------------------+--------------------------------------+
+    | Property               | Value                                |
+    +------------------------+--------------------------------------+
+    | target_power_state     | None                                 |
+    | extra                  | {}                                   |
+    | last_error             | None                                 |
+    | updated_at             | 2015-04-24T16:23:46+00:00            |
+    | ...                    | ...                                  |
+    | instance_info          | {}                                   |
+    +------------------------+--------------------------------------+
+
+.. _rfc952: http://tools.ietf.org/html/rfc952
+.. _rfc1123: http://tools.ietf.org/html/rfc1123
+.. _wiki_hostname: http://en.wikipedia.org/wiki/Hostname
 
 
 Hardware Inspection
