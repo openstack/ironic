@@ -734,6 +734,22 @@ class IloVirtualMediaAgentDeployTestCase(db_base.DbTestCase):
                              CONF.ilo.clean_priority_erase_devices)
 
     @mock.patch.object(deploy_utils, 'agent_get_clean_steps', autospec=True)
+    def test_get_clean_steps_erase_devices_disable(self, get_clean_step_mock):
+        self.config(clean_priority_erase_devices=0, group='ilo')
+        get_clean_step_mock.return_value = [{
+                'step': 'erase_devices',
+                'priority': 10,
+                'interface': 'deploy',
+                'reboot_requested': False
+                }]
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            step = task.driver.deploy.get_clean_steps(task)
+            get_clean_step_mock.assert_called_once_with(task)
+            self.assertEqual(step[0].get('priority'),
+                             CONF.ilo.clean_priority_erase_devices)
+
+    @mock.patch.object(deploy_utils, 'agent_get_clean_steps', autospec=True)
     def test_get_clean_steps_without_conf_option(self, get_clean_step_mock):
         get_clean_step_mock.return_value = [{
                 'step': 'erase_devices',
