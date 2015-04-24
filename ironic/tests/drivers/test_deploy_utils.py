@@ -21,6 +21,7 @@ import shutil
 import stat
 import tempfile
 import time
+import types
 
 import mock
 from oslo_concurrency import processutils
@@ -225,12 +226,14 @@ image=chain.c32
 class PhysicalWorkTestCase(tests_base.TestCase):
 
     def _mock_calls(self, name_list):
-        patch_list = [mock.patch.object(utils, name) for name in name_list]
+        patch_list = [mock.patch.object(utils, name,
+                                        spec_set=types.FunctionType)
+                      for name in name_list]
         mock_list = [patcher.start() for patcher in patch_list]
         for patcher in patch_list:
             self.addCleanup(patcher.stop)
 
-        parent_mock = mock.MagicMock()
+        parent_mock = mock.MagicMock(spec=[])
         for mocker, name in zip(mock_list, name_list):
             parent_mock.attach_mock(mocker, name)
         return parent_mock
@@ -338,7 +341,7 @@ class PhysicalWorkTestCase(tests_base.TestCase):
 
     # We mock utils.block_uuid separately here because we can't predict
     # the order in which it will be called.
-    @mock.patch.object(utils, 'block_uuid')
+    @mock.patch.object(utils, 'block_uuid', autospec=True)
     def test_deploy_partition_image_localboot_uefi(self, block_uuid_mock):
         """Check loosely all functions are called with right args."""
         address = '127.0.0.1'
@@ -602,7 +605,7 @@ class PhysicalWorkTestCase(tests_base.TestCase):
         self.assertFalse(parent_mock.get_dev_block_size.called)
         self.assertEqual(root_uuid, uuid_dict_returned['root uuid'])
 
-    @mock.patch.object(common_utils, 'unlink_without_raise')
+    @mock.patch.object(common_utils, 'unlink_without_raise', autospec=True)
     def test_deploy_partition_image_with_configdrive(self, mock_unlink):
         """Check loosely all functions are called with right args."""
         address = '127.0.0.1'
@@ -668,7 +671,7 @@ class PhysicalWorkTestCase(tests_base.TestCase):
         self.assertEqual(root_uuid, uuid_dict_returned['root uuid'])
         mock_unlink.assert_called_once_with('configdrive-path')
 
-    @mock.patch.object(utils, 'get_disk_identifier')
+    @mock.patch.object(utils, 'get_disk_identifier', autospec=True)
     def test_deploy_whole_disk_image(self, mock_gdi):
         """Check loosely all functions are called with right args."""
         address = '127.0.0.1'
@@ -700,7 +703,7 @@ class PhysicalWorkTestCase(tests_base.TestCase):
         self.assertEqual(calls_expected, parent_mock.mock_calls)
         self.assertEqual('0x12345678', uuid_dict_returned['disk identifier'])
 
-    @mock.patch.object(common_utils, 'execute')
+    @mock.patch.object(common_utils, 'execute', autospec=True)
     def test_verify_iscsi_connection_raises(self, mock_exec):
         iqn = 'iqn.xyz'
         mock_exec.return_value = ['iqn.abc', '']
@@ -708,7 +711,7 @@ class PhysicalWorkTestCase(tests_base.TestCase):
                 utils.verify_iscsi_connection, iqn)
         self.assertEqual(3, mock_exec.call_count)
 
-    @mock.patch.object(os.path, 'exists')
+    @mock.patch.object(os.path, 'exists', autospec=True)
     def test_check_file_system_for_iscsi_device_raises(self, mock_os):
         iqn = 'iqn.xyz'
         ip = "127.0.0.1"
@@ -718,7 +721,7 @@ class PhysicalWorkTestCase(tests_base.TestCase):
                 utils.check_file_system_for_iscsi_device, ip, port, iqn)
         self.assertEqual(3, mock_os.call_count)
 
-    @mock.patch.object(os.path, 'exists')
+    @mock.patch.object(os.path, 'exists', autospec=True)
     def test_check_file_system_for_iscsi_device(self, mock_os):
         iqn = 'iqn.xyz'
         ip = "127.0.0.1"
@@ -731,7 +734,7 @@ class PhysicalWorkTestCase(tests_base.TestCase):
         utils.check_file_system_for_iscsi_device(ip, port, iqn)
         mock_os.assert_called_once_with(check_dir)
 
-    @mock.patch.object(common_utils, 'execute')
+    @mock.patch.object(common_utils, 'execute', autospec=True)
     def test_verify_iscsi_connection(self, mock_exec):
         iqn = 'iqn.xyz'
         mock_exec.return_value = ['iqn.xyz', '']
@@ -742,7 +745,7 @@ class PhysicalWorkTestCase(tests_base.TestCase):
                   run_as_root=True,
                   check_exit_code=[0])
 
-    @mock.patch.object(common_utils, 'execute')
+    @mock.patch.object(common_utils, 'execute', autospec=True)
     def test_force_iscsi_lun_update(self, mock_exec):
         iqn = 'iqn.xyz'
         utils.force_iscsi_lun_update(iqn)
@@ -753,10 +756,11 @@ class PhysicalWorkTestCase(tests_base.TestCase):
                   run_as_root=True,
                   check_exit_code=[0])
 
-    @mock.patch.object(common_utils, 'execute')
-    @mock.patch.object(utils, 'verify_iscsi_connection')
-    @mock.patch.object(utils, 'force_iscsi_lun_update')
-    @mock.patch.object(utils, 'check_file_system_for_iscsi_device')
+    @mock.patch.object(common_utils, 'execute', autospec=True)
+    @mock.patch.object(utils, 'verify_iscsi_connection', autospec=True)
+    @mock.patch.object(utils, 'force_iscsi_lun_update', autospec=True)
+    @mock.patch.object(utils, 'check_file_system_for_iscsi_device',
+                       autospec=True)
     def test_login_iscsi_calls_verify_and_update(self,
                                                  mock_check_dev,
                                                  mock_update,
@@ -809,12 +813,14 @@ class PhysicalWorkTestCase(tests_base.TestCase):
 
         name_list = ['get_dev', 'get_image_mb', 'discovery', 'login_iscsi',
                      'logout_iscsi', 'delete_iscsi', 'work_on_disk']
-        patch_list = [mock.patch.object(utils, name) for name in name_list]
+        patch_list = [mock.patch.object(utils, name,
+                                        spec_set=types.FunctionType)
+                      for name in name_list]
         mock_list = [patcher.start() for patcher in patch_list]
         for patcher in patch_list:
             self.addCleanup(patcher.stop)
 
-        parent_mock = mock.MagicMock()
+        parent_mock = mock.MagicMock(spec=[])
         for mocker, name in zip(mock_list, name_list):
             parent_mock.attach_mock(mocker, name)
 
@@ -938,8 +944,8 @@ class OtherFunctionTestCase(db_base.DbTestCase):
         actual = utils.get_dev('1.2.3.4', 5678, 'iqn.fake', 9)
         self.assertEqual(expected, actual)
 
-    @mock.patch.object(os, 'stat')
-    @mock.patch.object(stat, 'S_ISBLK')
+    @mock.patch.object(os, 'stat', autospec=True)
+    @mock.patch.object(stat, 'S_ISBLK', autospec=True)
     def test_is_block_device_works(self, mock_is_blk, mock_os):
         device = '/dev/disk/by-path/ip-1.2.3.4:5678-iscsi-iqn.fake-lun-9'
         mock_is_blk.return_value = True
@@ -947,7 +953,7 @@ class OtherFunctionTestCase(db_base.DbTestCase):
         self.assertTrue(utils.is_block_device(device))
         mock_is_blk.assert_called_once_with(mock_os().st_mode)
 
-    @mock.patch.object(os, 'stat')
+    @mock.patch.object(os, 'stat', autospec=True)
     def test_is_block_device_raises(self, mock_os):
         device = '/dev/disk/by-path/ip-1.2.3.4:5678-iscsi-iqn.fake-lun-9'
         mock_os.side_effect = OSError
@@ -955,8 +961,8 @@ class OtherFunctionTestCase(db_base.DbTestCase):
                           utils.is_block_device, device)
         mock_os.assert_has_calls([mock.call(device)] * 3)
 
-    @mock.patch.object(os.path, 'getsize')
-    @mock.patch.object(images, 'converted_size')
+    @mock.patch.object(os.path, 'getsize', autospec=True)
+    @mock.patch.object(images, 'converted_size', autospec=True)
     def test_get_image_mb(self, mock_csize, mock_getsize):
         mb = 1024 * 1024
 
@@ -1088,8 +1094,8 @@ class WorkOnDiskTestCase(tests_base.TestCase):
                                              boot_option="netboot",
                                              boot_mode="bios")
 
-    @mock.patch.object(common_utils, 'unlink_without_raise')
-    @mock.patch.object(utils, '_get_configdrive')
+    @mock.patch.object(common_utils, 'unlink_without_raise', autospec=True)
+    @mock.patch.object(utils, '_get_configdrive', autospec=True)
     def test_no_configdrive_partition(self, mock_configdrive, mock_unlink):
         mock_configdrive.return_value = (10, 'fake-path')
         swap_part = '/dev/fake-part1'
@@ -1121,7 +1127,7 @@ class WorkOnDiskTestCase(tests_base.TestCase):
         mock_unlink.assert_called_once_with('fake-path')
 
 
-@mock.patch.object(common_utils, 'execute')
+@mock.patch.object(common_utils, 'execute', autospec=True)
 class MakePartitionsTestCase(tests_base.TestCase):
 
     def setUp(self):
@@ -1172,8 +1178,8 @@ class MakePartitionsTestCase(tests_base.TestCase):
         mock_exc.assert_has_calls(parted_call)
 
 
-@mock.patch.object(utils, 'get_dev_block_size')
-@mock.patch.object(common_utils, 'execute')
+@mock.patch.object(utils, 'get_dev_block_size', autospec=True)
+@mock.patch.object(common_utils, 'execute', autospec=True)
 class DestroyMetaDataTestCase(tests_base.TestCase):
 
     def setUp(self):
@@ -1220,7 +1226,7 @@ class DestroyMetaDataTestCase(tests_base.TestCase):
         self.assertFalse(mock_gz.called)
 
 
-@mock.patch.object(common_utils, 'execute')
+@mock.patch.object(common_utils, 'execute', autospec=True)
 class GetDeviceBlockSizeTestCase(tests_base.TestCase):
 
     def setUp(self):
@@ -1236,9 +1242,9 @@ class GetDeviceBlockSizeTestCase(tests_base.TestCase):
         mock_exec.assert_has_calls(expected_call)
 
 
-@mock.patch.object(utils, 'dd')
-@mock.patch.object(images, 'qemu_img_info')
-@mock.patch.object(images, 'convert_image')
+@mock.patch.object(utils, 'dd', autospec=True)
+@mock.patch.object(images, 'qemu_img_info', autospec=True)
+@mock.patch.object(images, 'convert_image', autospec=True)
 class PopulateImageTestCase(tests_base.TestCase):
 
     def setUp(self):
@@ -1334,10 +1340,11 @@ class RealFilePartitioningTestCase(tests_base.TestCase):
                          "unexpected partitioning %s" % part_table)
         self.assertIn(sizes[2], (9, 10))
 
-    @mock.patch.object(image_cache, 'clean_up_caches')
+    @mock.patch.object(image_cache, 'clean_up_caches', autospec=True)
     def test_fetch_images(self, mock_clean_up_caches):
 
-        mock_cache = mock.MagicMock(master_dir='master_dir')
+        mock_cache = mock.MagicMock(
+            spec_set=['fetch_image', 'master_dir'], master_dir='master_dir')
         utils.fetch_images(None, mock_cache, [('uuid', 'path')])
         mock_clean_up_caches.assert_called_once_with(None, 'master_dir',
                                                      [('uuid', 'path')])
@@ -1345,15 +1352,16 @@ class RealFilePartitioningTestCase(tests_base.TestCase):
                                                        ctx=None,
                                                        force_raw=True)
 
-    @mock.patch.object(image_cache, 'clean_up_caches')
+    @mock.patch.object(image_cache, 'clean_up_caches', autospec=True)
     def test_fetch_images_fail(self, mock_clean_up_caches):
 
         exc = exception.InsufficientDiskSpace(path='a',
                                               required=2,
                                               actual=1)
 
-        mock_cache = mock.MagicMock(master_dir='master_dir')
-        mock_clean_up_caches.side_effect = [exc]
+        mock_cache = mock.MagicMock(
+            spec_set=['master_dir'], master_dir='master_dir')
+        mock_clean_up_caches.side_effect = iter([exc])
         self.assertRaises(exception.InstanceDeployFailure,
                           utils.fetch_images,
                           None,
@@ -1363,20 +1371,21 @@ class RealFilePartitioningTestCase(tests_base.TestCase):
                                                      [('uuid', 'path')])
 
 
-@mock.patch.object(shutil, 'copyfileobj')
-@mock.patch.object(requests, 'get')
+@mock.patch.object(shutil, 'copyfileobj', autospec=True)
+@mock.patch.object(requests, 'get', autospec=True)
 class GetConfigdriveTestCase(tests_base.TestCase):
 
-    @mock.patch.object(gzip, 'GzipFile')
+    @mock.patch.object(gzip, 'GzipFile', autospec=True)
     def test_get_configdrive(self, mock_gzip, mock_requests, mock_copy):
-        mock_requests.return_value = mock.MagicMock(content='Zm9vYmFy')
+        mock_requests.return_value = mock.MagicMock(
+            spec_set=['content'], content='Zm9vYmFy')
         utils._get_configdrive('http://1.2.3.4/cd', 'fake-node-uuid')
         mock_requests.assert_called_once_with('http://1.2.3.4/cd')
         mock_gzip.assert_called_once_with('configdrive', 'rb',
                                           fileobj=mock.ANY)
         mock_copy.assert_called_once_with(mock.ANY, mock.ANY)
 
-    @mock.patch.object(gzip, 'GzipFile')
+    @mock.patch.object(gzip, 'GzipFile', autospec=True)
     def test_get_configdrive_base64_string(self, mock_gzip, mock_requests,
                                            mock_copy):
         utils._get_configdrive('Zm9vYmFy', 'fake-node-uuid')
@@ -1392,7 +1401,7 @@ class GetConfigdriveTestCase(tests_base.TestCase):
                           'fake-node-uuid')
         self.assertFalse(mock_copy.called)
 
-    @mock.patch.object(base64, 'b64decode')
+    @mock.patch.object(base64, 'b64decode', autospec=True)
     def test_get_configdrive_base64_error(self, mock_b64, mock_requests,
                                           mock_copy):
         mock_b64.side_effect = TypeError
@@ -1402,10 +1411,11 @@ class GetConfigdriveTestCase(tests_base.TestCase):
         mock_b64.assert_called_once_with('malformed')
         self.assertFalse(mock_copy.called)
 
-    @mock.patch.object(gzip, 'GzipFile')
+    @mock.patch.object(gzip, 'GzipFile', autospec=True)
     def test_get_configdrive_gzip_error(self, mock_gzip, mock_requests,
                                         mock_copy):
-        mock_requests.return_value = mock.MagicMock(content='Zm9vYmFy')
+        mock_requests.return_value = mock.MagicMock(
+            spec_set=['content'], content='Zm9vYmFy')
         mock_copy.side_effect = IOError
         self.assertRaises(exception.InstanceDeployFailure,
                           utils._get_configdrive, 'http://1.2.3.4/cd',
@@ -1499,7 +1509,7 @@ class TrySetBootDeviceTestCase(db_base.DbTestCase):
         mgr_utils.mock_the_extension_manager(driver="fake")
         self.node = obj_utils.create_test_node(self.context, driver="fake")
 
-    @mock.patch.object(manager_utils, 'node_set_boot_device')
+    @mock.patch.object(manager_utils, 'node_set_boot_device', autospec=True)
     def test_try_set_boot_device_okay(self, node_set_boot_device_mock):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
@@ -1508,8 +1518,8 @@ class TrySetBootDeviceTestCase(db_base.DbTestCase):
             node_set_boot_device_mock.assert_called_once_with(
                 task, boot_devices.DISK, persistent=True)
 
-    @mock.patch.object(utils, 'LOG')
-    @mock.patch.object(manager_utils, 'node_set_boot_device')
+    @mock.patch.object(utils, 'LOG', autospec=True)
+    @mock.patch.object(manager_utils, 'node_set_boot_device', autospec=True)
     def test_try_set_boot_device_ipmifailure_uefi(self,
             node_set_boot_device_mock, log_mock):
         self.node.properties = {'capabilities': 'boot_mode:uefi'}
@@ -1523,7 +1533,7 @@ class TrySetBootDeviceTestCase(db_base.DbTestCase):
                 task, boot_devices.DISK, persistent=True)
             log_mock.warning.assert_called_once_with(mock.ANY)
 
-    @mock.patch.object(manager_utils, 'node_set_boot_device')
+    @mock.patch.object(manager_utils, 'node_set_boot_device', autospec=True)
     def test_try_set_boot_device_ipmifailure_bios(
             self, node_set_boot_device_mock):
         node_set_boot_device_mock.side_effect = exception.IPMIFailure(cmd='a')
@@ -1535,7 +1545,7 @@ class TrySetBootDeviceTestCase(db_base.DbTestCase):
             node_set_boot_device_mock.assert_called_once_with(
                 task, boot_devices.DISK, persistent=True)
 
-    @mock.patch.object(manager_utils, 'node_set_boot_device')
+    @mock.patch.object(manager_utils, 'node_set_boot_device', autospec=True)
     def test_try_set_boot_device_some_other_exception(
             self, node_set_boot_device_mock):
         exc = exception.IloOperationError(operation="qwe", error="error")
@@ -1579,8 +1589,10 @@ class AgentCleaningTestCase(db_base.DbTestCase):
             }
         }
 
-    @mock.patch('ironic.objects.Port.list_by_node_id')
-    @mock.patch.object(agent_client.AgentClient, 'get_clean_steps')
+    @mock.patch('ironic.objects.Port.list_by_node_id',
+                spec_set=types.FunctionType)
+    @mock.patch.object(agent_client.AgentClient, 'get_clean_steps',
+                       autospec=True)
     def test_get_clean_steps(self, client_mock, list_ports_mock):
         client_mock.return_value = {
             'command_result': self.clean_steps}
@@ -1589,7 +1601,8 @@ class AgentCleaningTestCase(db_base.DbTestCase):
         with task_manager.acquire(
                 self.context, self.node['uuid'], shared=False) as task:
             response = utils.agent_get_clean_steps(task)
-            client_mock.assert_called_once_with(task.node, self.ports)
+            client_mock.assert_called_once_with(mock.ANY, task.node,
+                                                self.ports)
             self.assertEqual('1', task.node.driver_internal_info[
                 'hardware_manager_version'])
 
@@ -1601,8 +1614,10 @@ class AgentCleaningTestCase(db_base.DbTestCase):
             self.assertIn(self.clean_steps['clean_steps'][
                 'SpecificHardwareManager'][0], response)
 
-    @mock.patch('ironic.objects.Port.list_by_node_id')
-    @mock.patch.object(agent_client.AgentClient, 'get_clean_steps')
+    @mock.patch('ironic.objects.Port.list_by_node_id',
+                spec_set=types.FunctionType)
+    @mock.patch.object(agent_client.AgentClient, 'get_clean_steps',
+                       autospec=True)
     def test_get_clean_steps_missing_steps(self, client_mock,
                                            list_ports_mock):
         del self.clean_steps['clean_steps']
@@ -1615,10 +1630,13 @@ class AgentCleaningTestCase(db_base.DbTestCase):
             self.assertRaises(exception.NodeCleaningFailure,
                               utils.agent_get_clean_steps,
                               task)
-            client_mock.assert_called_once_with(task.node, self.ports)
+            client_mock.assert_called_once_with(mock.ANY, task.node,
+                                                self.ports)
 
-    @mock.patch('ironic.objects.Port.list_by_node_id')
-    @mock.patch.object(agent_client.AgentClient, 'execute_clean_step')
+    @mock.patch('ironic.objects.Port.list_by_node_id',
+                spec_set=types.FunctionType)
+    @mock.patch.object(agent_client.AgentClient, 'execute_clean_step',
+                       autospec=True)
     def test_execute_clean_step(self, client_mock, list_ports_mock):
         client_mock.return_value = {
             'command_status': 'SUCCEEDED'}
@@ -1631,8 +1649,10 @@ class AgentCleaningTestCase(db_base.DbTestCase):
                 self.clean_steps['clean_steps']['GenericHardwareManager'][0])
             self.assertEqual(states.CLEANING, response)
 
-    @mock.patch('ironic.objects.Port.list_by_node_id')
-    @mock.patch.object(agent_client.AgentClient, 'execute_clean_step')
+    @mock.patch('ironic.objects.Port.list_by_node_id',
+                spec_set=types.FunctionType)
+    @mock.patch.object(agent_client.AgentClient, 'execute_clean_step',
+                       autospec=True)
     def test_execute_clean_step_running(self, client_mock, list_ports_mock):
         client_mock.return_value = {
             'command_status': 'RUNNING'}
@@ -1645,8 +1665,10 @@ class AgentCleaningTestCase(db_base.DbTestCase):
                 self.clean_steps['clean_steps']['GenericHardwareManager'][0])
             self.assertEqual(states.CLEANING, response)
 
-    @mock.patch('ironic.objects.Port.list_by_node_id')
-    @mock.patch.object(agent_client.AgentClient, 'execute_clean_step')
+    @mock.patch('ironic.objects.Port.list_by_node_id',
+                spec_set=types.FunctionType)
+    @mock.patch.object(agent_client.AgentClient, 'execute_clean_step',
+                       autospec=True)
     def test_execute_clean_step_version_mismatch(self, client_mock,
                                         list_ports_mock):
         client_mock.return_value = {
@@ -1661,7 +1683,7 @@ class AgentCleaningTestCase(db_base.DbTestCase):
             self.assertEqual(states.CLEANING, response)
 
 
-@mock.patch.object(utils, 'is_block_device')
+@mock.patch.object(utils, 'is_block_device', autospec=True)
 @mock.patch.object(utils, 'login_iscsi', lambda *_: None)
 @mock.patch.object(utils, 'discovery', lambda *_: None)
 @mock.patch.object(utils, 'logout_iscsi', lambda *_: None)

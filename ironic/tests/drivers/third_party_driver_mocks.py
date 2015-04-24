@@ -42,9 +42,9 @@ from ironic.tests.drivers import third_party_driver_mock_specs as mock_specs
 # required by the optional drivers.modules.seamicro module
 seamicroclient = importutils.try_import("seamicroclient")
 if not seamicroclient:
-    smc = mock.Mock()
-    smc.client = mock.Mock()
-    smc.exceptions = mock.Mock()
+    smc = mock.MagicMock(spec_set=mock_specs.SEAMICRO_SPEC)
+    smc.client = mock.MagicMock(spec_set=mock_specs.SEAMICRO_CLIENT_MOD_SPEC)
+    smc.exceptions = mock.MagicMock(spec_set=mock_specs.SEAMICRO_EXC_SPEC)
     smc.exceptions.ClientException = Exception
     smc.exceptions.UnsupportedVersion = Exception
     sys.modules['seamicroclient'] = smc
@@ -65,12 +65,12 @@ ipmitool.SINGLE_BRIDGE_SUPPORT = False
 
 pyghmi = importutils.try_import("pyghmi")
 if not pyghmi:
-    p = mock.Mock()
-    p.exceptions = mock.Mock()
+    p = mock.MagicMock(spec_set=mock_specs.PYGHMI_SPEC)
+    p.exceptions = mock.MagicMock(spec_set=mock_specs.PYGHMI_EXC_SPEC)
     p.exceptions.IpmiException = Exception
-    p.ipmi = mock.Mock()
-    p.ipmi.command = mock.Mock()
-    p.ipmi.command.Command = mock.Mock()
+    p.ipmi = mock.MagicMock(spec_set=mock_specs.PYGHMI_IPMI_SPEC)
+    p.ipmi.command = mock.MagicMock(spec_set=mock_specs.PYGHMI_IPMICMD_SPEC)
+    p.ipmi.command.Command = mock.MagicMock(spec_set=[])
     sys.modules['pyghmi'] = p
     sys.modules['pyghmi.exceptions'] = p.exceptions
     sys.modules['pyghmi.ipmi'] = p.ipmi
@@ -85,7 +85,7 @@ if 'ironic.drivers.modules.ipminative' in sys.modules:
 
 proliantutils = importutils.try_import('proliantutils')
 if not proliantutils:
-    proliantutils = mock.MagicMock()
+    proliantutils = mock.MagicMock(spec_set=mock_specs.PROLIANTUTILS_SPEC)
     sys.modules['proliantutils'] = proliantutils
     sys.modules['proliantutils.ilo'] = proliantutils.ilo
     sys.modules['proliantutils.ilo.client'] = proliantutils.ilo.client
@@ -101,7 +101,7 @@ if not proliantutils:
 # the optional drivers.modules.drac and drivers.modules.amt module
 pywsman = importutils.try_import('pywsman')
 if not pywsman:
-    pywsman = mock.Mock(spec=mock_specs.PYWSMAN_SPEC)
+    pywsman = mock.MagicMock(spec_set=mock_specs.PYWSMAN_SPEC)
     sys.modules['pywsman'] = pywsman
     # Now that the external library has been mocked, if anything had already
     # loaded any of the drivers, reload them.
@@ -115,8 +115,8 @@ if not pywsman:
 # the optional drivers.modules.iboot module
 iboot = importutils.try_import("iboot")
 if not iboot:
-    ib = mock.Mock()
-    ib.iBootInterface = mock.Mock()
+    ib = mock.MagicMock(spec_set=mock_specs.IBOOT_SPEC)
+    ib.iBootInterface = mock.MagicMock(spec_set=[])
     sys.modules['iboot'] = ib
 
 # if anything has loaded the iboot driver yet, reload it now that the
@@ -129,7 +129,7 @@ if 'ironic.drivers.modules.iboot' in sys.modules:
 # the optional drivers.modules.snmp module
 pysnmp = importutils.try_import("pysnmp")
 if not pysnmp:
-    pysnmp = mock.Mock()
+    pysnmp = mock.MagicMock(spec_set=mock_specs.PYWSNMP_SPEC)
     sys.modules["pysnmp"] = pysnmp
     sys.modules["pysnmp.entity"] = pysnmp.entity
     sys.modules["pysnmp.entity.rfc3413"] = pysnmp.entity.rfc3413
@@ -172,10 +172,13 @@ if 'ironic.drivers.modules.irmc' in sys.modules:
 
 pyremotevbox = importutils.try_import('pyremotevbox')
 if not pyremotevbox:
-    pyremotevbox = mock.MagicMock()
-    pyremotevbox.exception = mock.MagicMock()
+    pyremotevbox = mock.MagicMock(spec_set=mock_specs.PYREMOTEVBOX_SPEC)
+    pyremotevbox.exception = mock.MagicMock(
+        spec_set=mock_specs.PYREMOTEVBOX_EXC_SPEC)
     pyremotevbox.exception.PyRemoteVBoxException = Exception
     pyremotevbox.exception.VmInWrongPowerState = Exception
+    pyremotevbox.vbox = mock.MagicMock(
+        spec_set=mock_specs.PYREMOTEVBOX_VBOX_SPEC)
     sys.modules['pyremotevbox'] = pyremotevbox
     if 'ironic.drivers.modules.virtualbox' in sys.modules:
         reload(sys.modules['ironic.drivers.modules.virtualbox'])
@@ -183,7 +186,8 @@ if not pyremotevbox:
 
 ironic_discoverd = importutils.try_import('ironic_discoverd')
 if not ironic_discoverd:
-    ironic_discoverd = mock.MagicMock()
+    ironic_discoverd = mock.MagicMock(
+        spec_set=mock_specs.IRONIC_DISCOVERD_SPEC)
     ironic_discoverd.__version_info__ = (1, 0, 0)
     ironic_discoverd.__version__ = "1.0.0"
     sys.modules['ironic_discoverd'] = ironic_discoverd

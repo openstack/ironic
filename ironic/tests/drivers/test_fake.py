@@ -37,7 +37,7 @@ class FakeDriverTestCase(db_base.DbTestCase):
         mgr_utils.mock_the_extension_manager()
         self.driver = driver_factory.get_driver("fake")
         self.node = obj_utils.get_test_node(self.context)
-        self.task = mock.Mock(spec=task_manager.TaskManager)
+        self.task = mock.MagicMock(spec=task_manager.TaskManager)
         self.task.shared = False
         self.task.node = self.node
         self.task.driver = self.driver

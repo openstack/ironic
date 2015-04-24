@@ -55,7 +55,7 @@ class TestAgentClient(base.TestCase):
     def setUp(self):
         super(TestAgentClient, self).setUp()
         self.client = agent_client.AgentClient()
-        self.client.session = mock.Mock(autospec=requests.Session)
+        self.client.session = mock.MagicMock(autospec=requests.Session)
         self.node = MockNode()
 
     def test_content_type_header(self):
@@ -116,15 +116,16 @@ class TestAgentClient(base.TestCase):
             params={'wait': 'false'})
 
     def test_get_commands_status(self):
-        with mock.patch.object(self.client.session, 'get') as mock_get:
-            res = mock.Mock()
+        with mock.patch.object(self.client.session, 'get',
+                               autospec=True) as mock_get:
+            res = mock.MagicMock(spec_set=['json'])
             res.json.return_value = {'commands': []}
             mock_get.return_value = res
             self.assertEqual([], self.client.get_commands_status(self.node))
 
-    @mock.patch('uuid.uuid4', mock.MagicMock(return_value='uuid'))
+    @mock.patch('uuid.uuid4', mock.MagicMock(spec_set=[], return_value='uuid'))
     def test_prepare_image(self):
-        self.client._command = mock.Mock()
+        self.client._command = mock.MagicMock(spec_set=[])
         image_info = {'image_id': 'image'}
         params = {'image_info': image_info}
 
@@ -136,9 +137,9 @@ class TestAgentClient(base.TestCase):
                                          params=params,
                                          wait=False)
 
-    @mock.patch('uuid.uuid4', mock.MagicMock(return_value='uuid'))
+    @mock.patch('uuid.uuid4', mock.MagicMock(spec_set=[], return_value='uuid'))
     def test_prepare_image_with_configdrive(self):
-        self.client._command = mock.Mock()
+        self.client._command = mock.MagicMock(spec_set=[])
         configdrive_url = 'http://swift/configdrive'
         self.node.instance_info['configdrive'] = configdrive_url
         image_info = {'image_id': 'image'}
@@ -155,9 +156,9 @@ class TestAgentClient(base.TestCase):
                                          params=params,
                                          wait=False)
 
-    @mock.patch('uuid.uuid4', mock.MagicMock(return_value='uuid'))
+    @mock.patch('uuid.uuid4', mock.MagicMock(spec_set=[], return_value='uuid'))
     def test_start_iscsi_target(self):
-        self.client._command = mock.Mock()
+        self.client._command = mock.MagicMock(spec_set=[])
         iqn = 'fake-iqn'
         params = {'iqn': iqn}
 
@@ -167,9 +168,9 @@ class TestAgentClient(base.TestCase):
                                          params=params,
                                          wait=True)
 
-    @mock.patch('uuid.uuid4', mock.MagicMock(return_value='uuid'))
+    @mock.patch('uuid.uuid4', mock.MagicMock(spec_set=[], return_value='uuid'))
     def test_install_bootloader(self):
-        self.client._command = mock.Mock()
+        self.client._command = mock.MagicMock(spec_set=[])
         root_uuid = 'fake-root-uuid'
         efi_system_part_uuid = 'fake-efi-system-part-uuid'
         params = {'root_uuid': root_uuid,
@@ -182,7 +183,7 @@ class TestAgentClient(base.TestCase):
             wait=True)
 
     def test_get_clean_steps(self):
-        self.client._command = mock.Mock()
+        self.client._command = mock.MagicMock(spec_set=[])
         ports = []
         expected_params = {
             'node': self.node.as_dict(),
@@ -197,7 +198,7 @@ class TestAgentClient(base.TestCase):
                                          wait=True)
 
     def test_execute_clean_step(self):
-        self.client._command = mock.Mock()
+        self.client._command = mock.MagicMock(spec_set=[])
         ports = []
         step = {'priority': 10, 'step': 'erase_devices', 'interface': 'deploy'}
         expected_params = {
