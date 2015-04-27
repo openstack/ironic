@@ -566,7 +566,7 @@ class IloVirtualMediaAgentDeploy(base.DeployInterface):
         :returns: A list of clean step dictionaries
         """
         steps = deploy_utils.agent_get_clean_steps(task)
-        if CONF.ilo.clean_priority_erase_devices:
+        if CONF.ilo.clean_priority_erase_devices is not None:
             for step in steps:
                 if (step.get('step') == 'erase_devices' and
                         step.get('interface') == 'deploy'):
