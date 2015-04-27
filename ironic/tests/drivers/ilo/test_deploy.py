@@ -66,7 +66,7 @@ class IloDeployPrivateMethodsTestCase(db_base.DbTestCase):
         self.assertEqual(boot_iso_expected, boot_iso_actual)
 
     @mock.patch.object(image_service.HttpImageService, 'validate_href',
-                       autospec=True)
+                       spec_set=True, autospec=True)
     def test__get_boot_iso_http_url(self, service_mock):
         url = 'http://abc.org/image/qcow2'
         i_info = self.node.instance_info
@@ -81,7 +81,7 @@ class IloDeployPrivateMethodsTestCase(db_base.DbTestCase):
             self.assertEqual(url, boot_iso_actual)
 
     @mock.patch.object(image_service.HttpImageService, 'validate_href',
-                       autospec=True)
+                       spec_set=True, autospec=True)
     def test__get_boot_iso_url(self, mock_validate):
         url = 'http://aaa/bbb'
         i_info = self.node.instance_info
@@ -96,7 +96,7 @@ class IloDeployPrivateMethodsTestCase(db_base.DbTestCase):
             mock_validate.assert_called_once_with(mock.ANY, url)
 
     @mock.patch.object(image_service.HttpImageService, 'validate_href',
-                       autospec=True)
+                       spec_set=True, autospec=True)
     def test__get_boot_iso_unsupported_url(self, validate_href_mock):
         validate_href_mock.side_effect = exception.ImageRefValidationFailed(
             image_href='file://img.qcow2', reason='fail')
@@ -111,8 +111,10 @@ class IloDeployPrivateMethodsTestCase(db_base.DbTestCase):
             self.assertRaises(exception.ImageRefValidationFailed,
                               ilo_deploy._get_boot_iso, task, 'root-uuid')
 
-    @mock.patch.object(images, 'get_image_properties', autospec=True)
-    @mock.patch.object(ilo_deploy, '_parse_deploy_info', autospec=True)
+    @mock.patch.object(images, 'get_image_properties', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(ilo_deploy, '_parse_deploy_info', spec_set=True,
+                       autospec=True)
     def test__get_boot_iso_glance_image(self, deploy_info_mock,
             image_props_mock):
         deploy_info_mock.return_value = {'image_source': 'image-uuid',
@@ -131,9 +133,12 @@ class IloDeployPrivateMethodsTestCase(db_base.DbTestCase):
             boot_iso_expected = 'boot-iso-uuid'
             self.assertEqual(boot_iso_expected, boot_iso_actual)
 
-    @mock.patch.object(deploy_utils, 'get_boot_mode_for_deploy', autospec=True)
-    @mock.patch.object(images, 'get_image_properties', autospec=True)
-    @mock.patch.object(ilo_deploy, '_parse_deploy_info', autospec=True)
+    @mock.patch.object(deploy_utils, 'get_boot_mode_for_deploy', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(images, 'get_image_properties', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(ilo_deploy, '_parse_deploy_info', spec_set=True,
+                       autospec=True)
     def test__get_boot_iso_uefi_no_glance_image(self,
                                                 deploy_info_mock,
                                                 image_props_mock,
@@ -156,13 +161,18 @@ class IloDeployPrivateMethodsTestCase(db_base.DbTestCase):
             self.assertFalse(boot_mode_mock.called)
             self.assertIsNone(boot_iso_result)
 
-    @mock.patch.object(tempfile, 'NamedTemporaryFile', autospec=True)
-    @mock.patch.object(images, 'create_boot_iso', autospec=True)
-    @mock.patch.object(swift, 'SwiftAPI', autospec=True)
-    @mock.patch.object(ilo_deploy, '_get_boot_iso_object_name', autospec=True)
-    @mock.patch.object(driver_utils, 'get_node_capability', autospec=True)
-    @mock.patch.object(images, 'get_image_properties', autospec=True)
-    @mock.patch.object(ilo_deploy, '_parse_deploy_info', autospec=True)
+    @mock.patch.object(tempfile, 'NamedTemporaryFile', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(images, 'create_boot_iso', spec_set=True, autospec=True)
+    @mock.patch.object(swift, 'SwiftAPI', spec_set=True, autospec=True)
+    @mock.patch.object(ilo_deploy, '_get_boot_iso_object_name', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(driver_utils, 'get_node_capability', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(images, 'get_image_properties', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(ilo_deploy, '_parse_deploy_info', spec_set=True,
+                       autospec=True)
     def test__get_boot_iso_create(self, deploy_info_mock, image_props_mock,
                                   capability_mock, boot_object_name_mock,
                                   swift_api_mock,
@@ -208,8 +218,9 @@ class IloDeployPrivateMethodsTestCase(db_base.DbTestCase):
             boot_iso_expected = 'swift:abcdef'
             self.assertEqual(boot_iso_expected, boot_iso_actual)
 
-    @mock.patch.object(ilo_deploy, '_get_boot_iso_object_name', autospec=True)
-    @mock.patch.object(swift, 'SwiftAPI', autospec=True)
+    @mock.patch.object(ilo_deploy, '_get_boot_iso_object_name', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(swift, 'SwiftAPI', spec_set=True, autospec=True)
     def test__clean_up_boot_iso_for_instance(self, swift_mock,
                                              boot_object_name_mock):
         swift_obj_mock = swift_mock.return_value
@@ -223,13 +234,15 @@ class IloDeployPrivateMethodsTestCase(db_base.DbTestCase):
         swift_obj_mock.delete_object.assert_called_once_with('ilo-cont',
                                                              'boot-object')
 
-    @mock.patch.object(ilo_deploy, '_get_boot_iso_object_name', autospec=True)
+    @mock.patch.object(ilo_deploy, '_get_boot_iso_object_name', spec_set=True,
+                       autospec=True)
     def test__clean_up_boot_iso_for_instance_no_boot_iso(
             self, boot_object_name_mock):
         ilo_deploy._clean_up_boot_iso_for_instance(self.node)
         self.assertFalse(boot_object_name_mock.called)
 
-    @mock.patch.object(deploy_utils, 'check_for_missing_params', autospec=True)
+    @mock.patch.object(deploy_utils, 'check_for_missing_params', spec_set=True,
+                       autospec=True)
     def test__parse_driver_info(self, check_params_mock):
         self.node.driver_info['ilo_deploy_iso'] = 'deploy-iso-uuid'
         driver_info_expected = {'ilo_deploy_iso': 'deploy-iso-uuid'}
@@ -240,8 +253,10 @@ class IloDeployPrivateMethodsTestCase(db_base.DbTestCase):
                                                   error_msg)
         self.assertEqual(driver_info_expected, driver_info_actual)
 
-    @mock.patch.object(ilo_deploy, '_parse_driver_info', autospec=True)
-    @mock.patch.object(iscsi_deploy, 'parse_instance_info', autospec=True)
+    @mock.patch.object(ilo_deploy, '_parse_driver_info', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(iscsi_deploy, 'parse_instance_info', spec_set=True,
+                       autospec=True)
     def test__parse_deploy_info(self, instance_info_mock, driver_info_mock):
         instance_info_mock.return_value = {'a': 'b'}
         driver_info_mock.return_value = {'c': 'd'}
@@ -249,9 +264,12 @@ class IloDeployPrivateMethodsTestCase(db_base.DbTestCase):
         actual_info = ilo_deploy._parse_deploy_info(self.node)
         self.assertEqual(expected_info, actual_info)
 
-    @mock.patch.object(manager_utils, 'node_power_action', autospec=True)
-    @mock.patch.object(manager_utils, 'node_set_boot_device', autospec=True)
-    @mock.patch.object(ilo_common, 'setup_vmedia_for_boot', autospec=True)
+    @mock.patch.object(manager_utils, 'node_power_action', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(manager_utils, 'node_set_boot_device', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(ilo_common, 'setup_vmedia_for_boot', spec_set=True,
+                       autospec=True)
     def test__reboot_into(self, setup_vmedia_mock, set_boot_device_mock,
                           node_power_action_mock):
         with task_manager.acquire(self.context, self.node.uuid,
@@ -263,8 +281,10 @@ class IloDeployPrivateMethodsTestCase(db_base.DbTestCase):
                                                          boot_devices.CDROM)
             node_power_action_mock.assert_called_once_with(task, states.REBOOT)
 
-    @mock.patch.object(ilo_deploy, '_reboot_into', autospec=True)
-    @mock.patch.object(agent, 'build_agent_options', autospec=True)
+    @mock.patch.object(ilo_deploy, '_reboot_into', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(agent, 'build_agent_options', spec_set=True,
+                       autospec=True)
     def test__prepare_agent_vmedia_boot(self, build_options_mock,
                                         reboot_into_mock):
         deploy_opts = {'a': 'b'}
@@ -278,8 +298,10 @@ class IloDeployPrivateMethodsTestCase(db_base.DbTestCase):
                                                      'deploy-iso-uuid',
                                                      deploy_opts)
 
-    @mock.patch.object(deploy_utils, 'is_secure_boot_requested', autospec=True)
-    @mock.patch.object(ilo_common, 'set_secure_boot_mode', autospec=True)
+    @mock.patch.object(deploy_utils, 'is_secure_boot_requested', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(ilo_common, 'set_secure_boot_mode', spec_set=True,
+                       autospec=True)
     def test__update_secure_boot_mode_passed_true(self,
                                                   func_set_secure_boot_mode,
                                                   func_is_secure_boot_req):
@@ -289,8 +311,10 @@ class IloDeployPrivateMethodsTestCase(db_base.DbTestCase):
             ilo_deploy._update_secure_boot_mode(task, True)
             func_set_secure_boot_mode.assert_called_once_with(task, True)
 
-    @mock.patch.object(deploy_utils, 'is_secure_boot_requested', autospec=True)
-    @mock.patch.object(ilo_common, 'set_secure_boot_mode', autospec=True)
+    @mock.patch.object(deploy_utils, 'is_secure_boot_requested', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(ilo_common, 'set_secure_boot_mode', spec_set=True,
+                       autospec=True)
     def test__update_secure_boot_mode_passed_False(self,
                                                    func_set_secure_boot_mode,
                                                    func_is_secure_boot_req):
@@ -300,8 +324,10 @@ class IloDeployPrivateMethodsTestCase(db_base.DbTestCase):
             ilo_deploy._update_secure_boot_mode(task, False)
             self.assertFalse(func_set_secure_boot_mode.called)
 
-    @mock.patch.object(ilo_common, 'set_secure_boot_mode', autospec=True)
-    @mock.patch.object(ilo_common, 'get_secure_boot_mode', autospec=True)
+    @mock.patch.object(ilo_common, 'set_secure_boot_mode', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(ilo_common, 'get_secure_boot_mode', spec_set=True,
+                       autospec=True)
     def test__disable_secure_boot_false(self,
                                         func_get_secure_boot_mode,
                                         func_set_secure_boot_mode):
@@ -313,8 +339,10 @@ class IloDeployPrivateMethodsTestCase(db_base.DbTestCase):
             self.assertFalse(func_set_secure_boot_mode.called)
         self.assertFalse(returned_state)
 
-    @mock.patch.object(ilo_common, 'set_secure_boot_mode', autospec=True)
-    @mock.patch.object(ilo_common, 'get_secure_boot_mode', autospec=True)
+    @mock.patch.object(ilo_common, 'set_secure_boot_mode', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(ilo_common, 'get_secure_boot_mode', spec_set=True,
+                       autospec=True)
     def test__disable_secure_boot_true(self,
                                        func_get_secure_boot_mode,
                                        func_set_secure_boot_mode):
@@ -326,9 +354,10 @@ class IloDeployPrivateMethodsTestCase(db_base.DbTestCase):
             func_set_secure_boot_mode.assert_called_once_with(task, False)
         self.assertTrue(returned_state)
 
-    @mock.patch.object(ilo_deploy.LOG, 'debug', autospec=True)
-    @mock.patch.object(ilo_deploy, 'exception', autospec=True)
-    @mock.patch.object(ilo_common, 'get_secure_boot_mode', autospec=True)
+    @mock.patch.object(ilo_deploy.LOG, 'debug', spec_set=True, autospec=True)
+    @mock.patch.object(ilo_deploy, 'exception', spec_set=True, autospec=True)
+    @mock.patch.object(ilo_common, 'get_secure_boot_mode', spec_set=True,
+                       autospec=True)
     def test__disable_secure_boot_exception(self,
                                             func_get_secure_boot_mode,
                                             exception_mock,
@@ -342,9 +371,12 @@ class IloDeployPrivateMethodsTestCase(db_base.DbTestCase):
             self.assertTrue(mock_log.called)
         self.assertFalse(returned_state)
 
-    @mock.patch.object(ilo_common, 'update_boot_mode', autospec=True)
-    @mock.patch.object(ilo_deploy, '_disable_secure_boot', autospec=True)
-    @mock.patch.object(manager_utils, 'node_power_action', autospec=True)
+    @mock.patch.object(ilo_common, 'update_boot_mode', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(ilo_deploy, '_disable_secure_boot', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(manager_utils, 'node_power_action', spec_set=True,
+                       autospec=True)
     def test__prepare_node_for_deploy(self,
                                       func_node_power_action,
                                       func_disable_secure_boot,
@@ -360,9 +392,12 @@ class IloDeployPrivateMethodsTestCase(db_base.DbTestCase):
             bootmode = driver_utils.get_node_capability(task.node, "boot_mode")
             self.assertIsNone(bootmode)
 
-    @mock.patch.object(ilo_common, 'update_boot_mode', autospec=True)
-    @mock.patch.object(ilo_deploy, '_disable_secure_boot', autospec=True)
-    @mock.patch.object(manager_utils, 'node_power_action', autospec=True)
+    @mock.patch.object(ilo_common, 'update_boot_mode', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(ilo_deploy, '_disable_secure_boot', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(manager_utils, 'node_power_action', spec_set=True,
+                       autospec=True)
     def test__prepare_node_for_deploy_sec_boot_on(self,
                                                   func_node_power_action,
                                                   func_disable_secure_boot,
@@ -380,9 +415,12 @@ class IloDeployPrivateMethodsTestCase(db_base.DbTestCase):
             bootmode = driver_utils.get_node_capability(task.node, "boot_mode")
             self.assertIsNone(bootmode)
 
-    @mock.patch.object(ilo_common, 'update_boot_mode', autospec=True)
-    @mock.patch.object(ilo_deploy, '_disable_secure_boot', autospec=True)
-    @mock.patch.object(manager_utils, 'node_power_action', autospec=True)
+    @mock.patch.object(ilo_common, 'update_boot_mode', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(ilo_deploy, '_disable_secure_boot', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(manager_utils, 'node_power_action', spec_set=True,
+                       autospec=True)
     def test__prepare_node_for_deploy_inst_info(self,
                                                 func_node_power_action,
                                                 func_disable_secure_boot,
@@ -402,9 +440,12 @@ class IloDeployPrivateMethodsTestCase(db_base.DbTestCase):
             deploy_boot_mode = task.node.instance_info.get('deploy_boot_mode')
             self.assertIsNone(deploy_boot_mode)
 
-    @mock.patch.object(ilo_common, 'update_boot_mode', autospec=True)
-    @mock.patch.object(ilo_deploy, '_disable_secure_boot', autospec=True)
-    @mock.patch.object(manager_utils, 'node_power_action', autospec=True)
+    @mock.patch.object(ilo_common, 'update_boot_mode', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(ilo_deploy, '_disable_secure_boot', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(manager_utils, 'node_power_action', spec_set=True,
+                       autospec=True)
     def test__prepare_node_for_deploy_sec_boot_on_inst_info(self,
                                                       func_node_power_action,
                                                       func_disable_secure_boot,
@@ -434,13 +475,14 @@ class IloVirtualMediaIscsiDeployTestCase(db_base.DbTestCase):
                 driver='iscsi_ilo', driver_info=INFO_DICT)
 
     @mock.patch.object(driver_utils, 'validate_secure_boot_capability',
-                       autospec=True)
+                       spec_set=True, autospec=True)
     @mock.patch.object(driver_utils, 'validate_boot_mode_capability',
-                       autospec=True)
+                       spec_set=True, autospec=True)
     @mock.patch.object(iscsi_deploy, 'validate_image_properties',
+                       spec_set=True, autospec=True)
+    @mock.patch.object(ilo_deploy, '_parse_deploy_info', spec_set=True,
                        autospec=True)
-    @mock.patch.object(ilo_deploy, '_parse_deploy_info', autospec=True)
-    @mock.patch.object(iscsi_deploy, 'validate', autospec=True)
+    @mock.patch.object(iscsi_deploy, 'validate', spec_set=True, autospec=True)
     def _test_validate(self, validate_mock,
                        deploy_info_mock,
                        validate_prop_mock,
@@ -460,9 +502,10 @@ class IloVirtualMediaIscsiDeployTestCase(db_base.DbTestCase):
             validate_secure_boot_mock.assert_called_once_with(task.node)
 
     @mock.patch.object(iscsi_deploy, 'validate_image_properties',
+                       spec_set=True, autospec=True)
+    @mock.patch.object(ilo_deploy, '_parse_deploy_info', spec_set=True,
                        autospec=True)
-    @mock.patch.object(ilo_deploy, '_parse_deploy_info', autospec=True)
-    @mock.patch.object(iscsi_deploy, 'validate', autospec=True)
+    @mock.patch.object(iscsi_deploy, 'validate', spec_set=True, autospec=True)
     def test_validate_invalid_boot_option(self,
                                           validate_mock,
                                           deploy_info_mock,
@@ -484,9 +527,10 @@ class IloVirtualMediaIscsiDeployTestCase(db_base.DbTestCase):
             self.assertIn('boot_option', str(exc))
 
     @mock.patch.object(iscsi_deploy, 'validate_image_properties',
+                       spec_set=True, autospec=True)
+    @mock.patch.object(ilo_deploy, '_parse_deploy_info', spec_set=True,
                        autospec=True)
-    @mock.patch.object(ilo_deploy, '_parse_deploy_info', autospec=True)
-    @mock.patch.object(iscsi_deploy, 'validate', autospec=True)
+    @mock.patch.object(iscsi_deploy, 'validate', spec_set=True, autospec=True)
     def test_validate_invalid_boot_mode(self,
                                         validate_mock,
                                         deploy_info_mock,
@@ -507,7 +551,8 @@ class IloVirtualMediaIscsiDeployTestCase(db_base.DbTestCase):
                                                        d_info, props)
             self.assertIn('boot_mode', str(exc))
 
-    @mock.patch.object(service_utils, 'is_glance_image', autospec=True)
+    @mock.patch.object(service_utils, 'is_glance_image', spec_set=True,
+                       autospec=True)
     def test_validate_glance_partition_image(self, is_glance_image_mock):
         is_glance_image_mock.return_value = True
         self._test_validate(props_expected=['kernel_id', 'ramdisk_id'])
@@ -517,19 +562,24 @@ class IloVirtualMediaIscsiDeployTestCase(db_base.DbTestCase):
         self.node.save()
         self._test_validate(props_expected=[])
 
-    @mock.patch.object(service_utils, 'is_glance_image', autospec=True)
+    @mock.patch.object(service_utils, 'is_glance_image', spec_set=True,
+                       autospec=True)
     def test_validate_non_glance_partition_image(self, is_glance_image_mock):
         is_glance_image_mock.return_value = False
         self._test_validate(props_expected=['kernel', 'ramdisk'])
 
-    @mock.patch.object(ilo_deploy, '_reboot_into', autospec=True)
+    @mock.patch.object(ilo_deploy, '_reboot_into', spec_set=True,
+                       autospec=True)
     @mock.patch.object(deploy_utils, 'get_single_nic_with_vif_port_id',
+                       spec_set=True, autospec=True)
+    @mock.patch.object(agent, 'build_agent_options', spec_set=True,
                        autospec=True)
-    @mock.patch.object(agent, 'build_agent_options', autospec=True)
     @mock.patch.object(iscsi_deploy, 'build_deploy_ramdisk_options',
+                       spec_set=True, autospec=True)
+    @mock.patch.object(iscsi_deploy, 'check_image_size', spec_set=True,
                        autospec=True)
-    @mock.patch.object(iscsi_deploy, 'check_image_size', autospec=True)
-    @mock.patch.object(iscsi_deploy, 'cache_instance_image', autospec=True)
+    @mock.patch.object(iscsi_deploy, 'cache_instance_image', spec_set=True,
+                       autospec=True)
     def test_deploy(self,
                     cache_instance_image_mock,
                     check_image_size_mock,
@@ -560,8 +610,10 @@ class IloVirtualMediaIscsiDeployTestCase(db_base.DbTestCase):
 
         self.assertEqual(states.DEPLOYWAIT, returned_state)
 
-    @mock.patch.object(ilo_deploy, '_update_secure_boot_mode', autospec=True)
-    @mock.patch.object(manager_utils, 'node_power_action', autospec=True)
+    @mock.patch.object(ilo_deploy, '_update_secure_boot_mode', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(manager_utils, 'node_power_action', spec_set=True,
+                       autospec=True)
     def test_tear_down(self,
                        node_power_action_mock,
                        update_secure_boot_mode_mock):
@@ -573,10 +625,12 @@ class IloVirtualMediaIscsiDeployTestCase(db_base.DbTestCase):
             update_secure_boot_mode_mock.assert_called_once_with(task, False)
             self.assertEqual(states.DELETED, returned_state)
 
-    @mock.patch.object(ilo_deploy.LOG, 'warn', autospec=True)
-    @mock.patch.object(ilo_deploy, 'exception', autospec=True)
-    @mock.patch.object(ilo_deploy, '_update_secure_boot_mode', autospec=True)
-    @mock.patch.object(manager_utils, 'node_power_action', autospec=True)
+    @mock.patch.object(ilo_deploy.LOG, 'warn', spec_set=True, autospec=True)
+    @mock.patch.object(ilo_deploy, 'exception', spec_set=True, autospec=True)
+    @mock.patch.object(ilo_deploy, '_update_secure_boot_mode', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(manager_utils, 'node_power_action', spec_set=True,
+                       autospec=True)
     def test_tear_down_handle_exception(self,
                                         node_power_action_mock,
                                         update_secure_boot_mode_mock,
@@ -594,8 +648,9 @@ class IloVirtualMediaIscsiDeployTestCase(db_base.DbTestCase):
             self.assertEqual(states.DELETED, returned_state)
 
     @mock.patch.object(ilo_deploy, '_clean_up_boot_iso_for_instance',
+                       spec_set=True, autospec=True)
+    @mock.patch.object(iscsi_deploy, 'destroy_images', spec_set=True,
                        autospec=True)
-    @mock.patch.object(iscsi_deploy, 'destroy_images', autospec=True)
     def test_clean_up(self, destroy_images_mock, clean_up_boot_mock):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
@@ -603,7 +658,8 @@ class IloVirtualMediaIscsiDeployTestCase(db_base.DbTestCase):
             destroy_images_mock.assert_called_once_with(task.node.uuid)
             clean_up_boot_mock.assert_called_once_with(task.node)
 
-    @mock.patch.object(ilo_deploy, '_prepare_node_for_deploy', autospec=True)
+    @mock.patch.object(ilo_deploy, '_prepare_node_for_deploy', spec_set=True,
+                       autospec=True)
     def test_prepare(self, func_prepare_node_for_deploy):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
@@ -620,10 +676,11 @@ class IloVirtualMediaAgentDeployTestCase(db_base.DbTestCase):
                 driver='agent_ilo', driver_info=INFO_DICT)
 
     @mock.patch.object(driver_utils, 'validate_secure_boot_capability',
-                       autospec=True)
+                       spec_set=True, autospec=True)
     @mock.patch.object(driver_utils, 'validate_boot_mode_capability',
+                       spec_set=True, autospec=True)
+    @mock.patch.object(ilo_deploy, '_parse_driver_info', spec_set=True,
                        autospec=True)
-    @mock.patch.object(ilo_deploy, '_parse_driver_info', autospec=True)
     def test_validate(self,
                       parse_driver_info_mock,
                       validate_boot_mode_mock,
@@ -635,7 +692,8 @@ class IloVirtualMediaAgentDeployTestCase(db_base.DbTestCase):
             validate_boot_mode_mock.assert_called_once_with(task.node)
             validate_secure_boot_mock.assert_called_once_with(task.node)
 
-    @mock.patch.object(ilo_deploy, '_prepare_agent_vmedia_boot', autospec=True)
+    @mock.patch.object(ilo_deploy, '_prepare_agent_vmedia_boot', spec_set=True,
+                       autospec=True)
     def test_deploy(self, vmedia_boot_mock):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
@@ -643,8 +701,10 @@ class IloVirtualMediaAgentDeployTestCase(db_base.DbTestCase):
             vmedia_boot_mock.assert_called_once_with(task)
             self.assertEqual(states.DEPLOYWAIT, returned_state)
 
-    @mock.patch.object(ilo_deploy, '_update_secure_boot_mode', autospec=True)
-    @mock.patch.object(manager_utils, 'node_power_action', autospec=True)
+    @mock.patch.object(ilo_deploy, '_update_secure_boot_mode', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(manager_utils, 'node_power_action', spec_set=True,
+                       autospec=True)
     def test_tear_down(self,
                        node_power_action_mock,
                        update_secure_boot_mode_mock):
@@ -656,10 +716,12 @@ class IloVirtualMediaAgentDeployTestCase(db_base.DbTestCase):
             update_secure_boot_mode_mock.assert_called_once_with(task, False)
             self.assertEqual(states.DELETED, returned_state)
 
-    @mock.patch.object(ilo_deploy.LOG, 'warn', autospec=True)
-    @mock.patch.object(ilo_deploy, 'exception', autospec=True)
-    @mock.patch.object(ilo_deploy, '_update_secure_boot_mode', autospec=True)
-    @mock.patch.object(manager_utils, 'node_power_action', autospec=True)
+    @mock.patch.object(ilo_deploy.LOG, 'warn', spec_set=True, autospec=True)
+    @mock.patch.object(ilo_deploy, 'exception', spec_set=True, autospec=True)
+    @mock.patch.object(ilo_deploy, '_update_secure_boot_mode', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(manager_utils, 'node_power_action', spec_set=True,
+                       autospec=True)
     def test_tear_down_handle_exception(self,
                                         node_power_action_mock,
                                         update_secure_boot_mode_mock,
@@ -676,8 +738,10 @@ class IloVirtualMediaAgentDeployTestCase(db_base.DbTestCase):
             self.assertTrue(mock_log.called)
             self.assertEqual(states.DELETED, returned_state)
 
-    @mock.patch.object(ilo_deploy, '_prepare_node_for_deploy', autospec=True)
-    @mock.patch.object(agent, 'build_instance_info_for_deploy', autospec=True)
+    @mock.patch.object(ilo_deploy, '_prepare_node_for_deploy', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(agent, 'build_instance_info_for_deploy', spec_set=True,
+                       autospec=True)
     def test_prepare(self,
                      build_instance_info_mock,
                      func_prepare_node_for_deploy):
@@ -690,10 +754,11 @@ class IloVirtualMediaAgentDeployTestCase(db_base.DbTestCase):
             func_prepare_node_for_deploy.assert_called_once_with(task)
 
     @mock.patch('ironic.dhcp.neutron.NeutronDHCPApi.delete_cleaning_ports',
-                autospec=True)
+                spec_set=True, autospec=True)
     @mock.patch('ironic.dhcp.neutron.NeutronDHCPApi.create_cleaning_ports',
-                autospec=True)
-    @mock.patch.object(ilo_deploy, '_prepare_agent_vmedia_boot', autospec=True)
+                spec_set=True, autospec=True)
+    @mock.patch.object(ilo_deploy, '_prepare_agent_vmedia_boot', spec_set=True,
+                       autospec=True)
     def test_prepare_cleaning(self, vmedia_boot_mock, create_port_mock,
                               delete_mock):
         with task_manager.acquire(self.context, self.node.uuid,
@@ -705,8 +770,9 @@ class IloVirtualMediaAgentDeployTestCase(db_base.DbTestCase):
             delete_mock.assert_called_once_with(mock.ANY, task)
 
     @mock.patch('ironic.dhcp.neutron.NeutronDHCPApi.delete_cleaning_ports',
-                autospec=True)
-    @mock.patch.object(manager_utils, 'node_power_action', autospec=True)
+                spec_set=True, autospec=True)
+    @mock.patch.object(manager_utils, 'node_power_action', spec_set=True,
+                       autospec=True)
     def test_tear_down_cleaning(self, power_mock, delete_mock):
         with task_manager.acquire(
                 self.context, self.node['uuid'], shared=False) as task:
@@ -714,14 +780,16 @@ class IloVirtualMediaAgentDeployTestCase(db_base.DbTestCase):
             power_mock.assert_called_once_with(task, states.POWER_OFF)
             delete_mock.assert_called_once_with(mock.ANY, task)
 
-    @mock.patch.object(deploy_utils, 'agent_execute_clean_step', autospec=True)
+    @mock.patch.object(deploy_utils, 'agent_execute_clean_step', spec_set=True,
+                       autospec=True)
     def test_execute_clean_step(self, execute_mock):
         with task_manager.acquire(
                 self.context, self.node['uuid'], shared=False) as task:
             task.driver.deploy.execute_clean_step(task, 'fake-step')
             execute_mock.assert_called_once_with(task, 'fake-step')
 
-    @mock.patch.object(deploy_utils, 'agent_get_clean_steps', autospec=True)
+    @mock.patch.object(deploy_utils, 'agent_get_clean_steps', spec_set=True,
+                       autospec=True)
     def test_get_clean_steps_with_conf_option(self, get_clean_step_mock):
         self.config(clean_priority_erase_devices=20, group='ilo')
         get_clean_step_mock.return_value = [{
@@ -737,7 +805,8 @@ class IloVirtualMediaAgentDeployTestCase(db_base.DbTestCase):
             self.assertEqual(step[0].get('priority'),
                              CONF.ilo.clean_priority_erase_devices)
 
-    @mock.patch.object(deploy_utils, 'agent_get_clean_steps', autospec=True)
+    @mock.patch.object(deploy_utils, 'agent_get_clean_steps', spec_set=True,
+                       autospec=True)
     def test_get_clean_steps_erase_devices_disable(self, get_clean_step_mock):
         self.config(clean_priority_erase_devices=0, group='ilo')
         get_clean_step_mock.return_value = [{
@@ -753,7 +822,8 @@ class IloVirtualMediaAgentDeployTestCase(db_base.DbTestCase):
             self.assertEqual(step[0].get('priority'),
                              CONF.ilo.clean_priority_erase_devices)
 
-    @mock.patch.object(deploy_utils, 'agent_get_clean_steps', autospec=True)
+    @mock.patch.object(deploy_utils, 'agent_get_clean_steps', spec_set=True,
+                       autospec=True)
     def test_get_clean_steps_without_conf_option(self, get_clean_step_mock):
         get_clean_step_mock.return_value = [{
                 'step': 'erase_devices',
@@ -777,7 +847,8 @@ class VendorPassthruTestCase(db_base.DbTestCase):
                                                driver='iscsi_ilo',
                                                driver_info=INFO_DICT)
 
-    @mock.patch.object(iscsi_deploy, 'get_deploy_info', autospec=True)
+    @mock.patch.object(iscsi_deploy, 'get_deploy_info', spec_set=True,
+                       autospec=True)
     def test_validate_pass_deploy_info(self, get_deploy_info_mock):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
@@ -787,7 +858,7 @@ class VendorPassthruTestCase(db_base.DbTestCase):
                                                          foo='bar')
 
     @mock.patch.object(iscsi_deploy, 'validate_pass_bootloader_info_input',
-                       autospec=True)
+                       spec_set=True, autospec=True)
     def test_validate_pass_bootloader_install_info(self,
                                                           validate_mock):
         with task_manager.acquire(self.context, self.node.uuid,
@@ -798,7 +869,8 @@ class VendorPassthruTestCase(db_base.DbTestCase):
                 task, method='pass_bootloader_install_info', **kwargs)
             validate_mock.assert_called_once_with(task, kwargs)
 
-    @mock.patch.object(iscsi_deploy, 'get_deploy_info', autospec=True)
+    @mock.patch.object(iscsi_deploy, 'get_deploy_info', spec_set=True,
+                       autospec=True)
     def test_validate_heartbeat(self, get_deploy_info_mock):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
@@ -807,8 +879,9 @@ class VendorPassthruTestCase(db_base.DbTestCase):
             self.assertFalse(get_deploy_info_mock.called)
 
     @mock.patch.object(iscsi_deploy, 'validate_bootloader_install_status',
+                       spec_set=True, autospec=True)
+    @mock.patch.object(iscsi_deploy, 'finish_deploy', spec_set=True,
                        autospec=True)
-    @mock.patch.object(iscsi_deploy, 'finish_deploy', autospec=True)
     def test_pass_bootloader_install_info(self, finish_deploy_mock,
                                           validate_input_mock):
         kwargs = {'method': 'pass_deploy_info', 'address': '123456'}
@@ -822,14 +895,21 @@ class VendorPassthruTestCase(db_base.DbTestCase):
             validate_input_mock.assert_called_once_with(task, kwargs)
 
     @mock.patch.object(deploy_utils, 'notify_ramdisk_to_proceed',
+                       spec_set=True, autospec=True)
+    @mock.patch.object(ilo_deploy, '_update_secure_boot_mode', spec_set=True,
                        autospec=True)
-    @mock.patch.object(ilo_deploy, '_update_secure_boot_mode', autospec=True)
-    @mock.patch.object(ilo_common, 'update_boot_mode', autospec=True)
-    @mock.patch.object(manager_utils, 'node_set_boot_device', autospec=True)
-    @mock.patch.object(ilo_common, 'setup_vmedia_for_boot', autospec=True)
-    @mock.patch.object(ilo_deploy, '_get_boot_iso', autospec=True)
-    @mock.patch.object(iscsi_deploy, 'continue_deploy', autospec=True)
-    @mock.patch.object(ilo_common, 'cleanup_vmedia_boot', autospec=True)
+    @mock.patch.object(ilo_common, 'update_boot_mode', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(manager_utils, 'node_set_boot_device', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(ilo_common, 'setup_vmedia_for_boot', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(ilo_deploy, '_get_boot_iso', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(iscsi_deploy, 'continue_deploy', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(ilo_common, 'cleanup_vmedia_boot', spec_set=True,
+                       autospec=True)
     def test_pass_deploy_info_good(self, cleanup_vmedia_boot_mock,
                                    continue_deploy_mock, get_boot_iso_mock,
                                    setup_vmedia_mock, set_boot_device_mock,
@@ -863,7 +943,8 @@ class VendorPassthruTestCase(db_base.DbTestCase):
                              task.node.instance_info['ilo_boot_iso'])
             notify_ramdisk_to_proceed_mock.assert_called_once_with('123456')
 
-    @mock.patch.object(ilo_common, 'cleanup_vmedia_boot', autospec=True)
+    @mock.patch.object(ilo_common, 'cleanup_vmedia_boot', spec_set=True,
+                       autospec=True)
     def test_pass_deploy_info_bad(self, cleanup_vmedia_boot_mock):
         kwargs = {'method': 'pass_deploy_info', 'address': '123456'}
 
@@ -880,12 +961,18 @@ class VendorPassthruTestCase(db_base.DbTestCase):
             self.assertEqual(states.NOSTATE, task.node.target_provision_state)
         self.assertFalse(cleanup_vmedia_boot_mock.called)
 
-    @mock.patch.object(ilo_deploy, '_update_secure_boot_mode', autospec=True)
-    @mock.patch.object(ilo_common, 'update_boot_mode', autospec=True)
-    @mock.patch.object(manager_utils, 'node_power_action', autospec=True)
-    @mock.patch.object(iscsi_deploy, 'continue_deploy', autospec=True)
-    @mock.patch.object(ilo_common, 'cleanup_vmedia_boot', autospec=True)
-    @mock.patch.object(ilo_deploy, '_get_boot_iso', autospec=True)
+    @mock.patch.object(ilo_deploy, '_update_secure_boot_mode', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(ilo_common, 'update_boot_mode', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(manager_utils, 'node_power_action', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(iscsi_deploy, 'continue_deploy', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(ilo_common, 'cleanup_vmedia_boot', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(ilo_deploy, '_get_boot_iso', spec_set=True,
+                       autospec=True)
     def test_pass_deploy_info_create_boot_iso_fail(self, get_iso_mock,
             cleanup_vmedia_boot_mock, continue_deploy_mock, node_power_mock,
             update_boot_mode_mock, update_secure_boot_mode_mock):
@@ -911,14 +998,20 @@ class VendorPassthruTestCase(db_base.DbTestCase):
             self.assertEqual(states.ACTIVE, task.node.target_provision_state)
             self.assertIsNotNone(task.node.last_error)
 
-    @mock.patch.object(iscsi_deploy, 'finish_deploy', autospec=True)
-    @mock.patch.object(deploy_utils, 'notify_ramdisk_to_proceed',
+    @mock.patch.object(iscsi_deploy, 'finish_deploy', spec_set=True,
                        autospec=True)
-    @mock.patch.object(manager_utils, 'node_set_boot_device', autospec=True)
-    @mock.patch.object(ilo_deploy, '_update_secure_boot_mode', autospec=True)
-    @mock.patch.object(ilo_common, 'update_boot_mode', autospec=True)
-    @mock.patch.object(iscsi_deploy, 'continue_deploy', autospec=True)
-    @mock.patch.object(ilo_common, 'cleanup_vmedia_boot', autospec=True)
+    @mock.patch.object(deploy_utils, 'notify_ramdisk_to_proceed',
+                       spec_set=True, autospec=True)
+    @mock.patch.object(manager_utils, 'node_set_boot_device', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(ilo_deploy, '_update_secure_boot_mode', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(ilo_common, 'update_boot_mode', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(iscsi_deploy, 'continue_deploy', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(ilo_common, 'cleanup_vmedia_boot', spec_set=True,
+                       autospec=True)
     def test_pass_deploy_info_boot_option_local(
             self, cleanup_vmedia_boot_mock, continue_deploy_mock,
             func_update_boot_mode, func_update_secure_boot_mode,
@@ -948,12 +1041,18 @@ class VendorPassthruTestCase(db_base.DbTestCase):
             self.assertEqual(states.ACTIVE, task.node.target_provision_state)
             self.assertFalse(finish_deploy_mock.called)
 
-    @mock.patch.object(iscsi_deploy, 'finish_deploy', autospec=True)
-    @mock.patch.object(manager_utils, 'node_set_boot_device', autospec=True)
-    @mock.patch.object(ilo_deploy, '_update_secure_boot_mode', autospec=True)
-    @mock.patch.object(ilo_common, 'update_boot_mode', autospec=True)
-    @mock.patch.object(iscsi_deploy, 'continue_deploy', autospec=True)
-    @mock.patch.object(ilo_common, 'cleanup_vmedia_boot', autospec=True)
+    @mock.patch.object(iscsi_deploy, 'finish_deploy', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(manager_utils, 'node_set_boot_device', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(ilo_deploy, '_update_secure_boot_mode', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(ilo_common, 'update_boot_mode', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(iscsi_deploy, 'continue_deploy', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(ilo_common, 'cleanup_vmedia_boot', spec_set=True,
+                       autospec=True)
     def _test_pass_deploy_info_whole_disk_image(
             self, cleanup_vmedia_boot_mock, continue_deploy_mock,
             func_update_boot_mode, func_update_secure_boot_mode,
@@ -987,14 +1086,19 @@ class VendorPassthruTestCase(db_base.DbTestCase):
     def test_pass_deploy_info_whole_disk_image(self):
         self._test_pass_deploy_info_whole_disk_image()
 
-    @mock.patch.object(ilo_deploy, '_update_secure_boot_mode', autospec=True)
-    @mock.patch.object(ilo_common, 'update_boot_mode', autospec=True)
-    @mock.patch.object(agent_base_vendor.BaseAgentVendor,
-                       'reboot_and_finish_deploy', autospec=True)
-    @mock.patch.object(ilo_deploy.VendorPassthru, '_configure_vmedia_boot',
+    @mock.patch.object(ilo_deploy, '_update_secure_boot_mode', spec_set=True,
                        autospec=True)
-    @mock.patch.object(iscsi_deploy, 'do_agent_iscsi_deploy', autospec=True)
-    @mock.patch.object(ilo_common, 'cleanup_vmedia_boot', autospec=True)
+    @mock.patch.object(ilo_common, 'update_boot_mode', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(agent_base_vendor.BaseAgentVendor,
+                       'reboot_and_finish_deploy', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(ilo_deploy.VendorPassthru, '_configure_vmedia_boot',
+                       spec_set=True, autospec=True)
+    @mock.patch.object(iscsi_deploy, 'do_agent_iscsi_deploy', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(ilo_common, 'cleanup_vmedia_boot', spec_set=True,
+                       autospec=True)
     def test_continue_deploy_netboot(self, cleanup_vmedia_boot_mock,
                                      do_agent_iscsi_deploy_mock,
                                      configure_vmedia_boot_mock,
@@ -1019,14 +1123,19 @@ class VendorPassthruTestCase(db_base.DbTestCase):
             reboot_and_finish_deploy_mock.assert_called_once_with(
                 mock.ANY, task)
 
-    @mock.patch.object(ilo_deploy, '_update_secure_boot_mode', autospec=True)
-    @mock.patch.object(ilo_common, 'update_boot_mode', autospec=True)
+    @mock.patch.object(ilo_deploy, '_update_secure_boot_mode', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(ilo_common, 'update_boot_mode', spec_set=True,
+                       autospec=True)
     @mock.patch.object(agent_base_vendor.BaseAgentVendor,
-                       'reboot_and_finish_deploy', autospec=True)
+                       'reboot_and_finish_deploy', spec_set=True,
+                       autospec=True)
     @mock.patch.object(agent_base_vendor.BaseAgentVendor,
-                       'configure_local_boot', autospec=True)
-    @mock.patch.object(iscsi_deploy, 'do_agent_iscsi_deploy', autospec=True)
-    @mock.patch.object(ilo_common, 'cleanup_vmedia_boot', autospec=True)
+                       'configure_local_boot', spec_set=True, autospec=True)
+    @mock.patch.object(iscsi_deploy, 'do_agent_iscsi_deploy', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(ilo_common, 'cleanup_vmedia_boot', spec_set=True,
+                       autospec=True)
     def test_continue_deploy_localboot(self, cleanup_vmedia_boot_mock,
                                        do_agent_iscsi_deploy_mock,
                                        configure_local_boot_mock,
@@ -1054,14 +1163,19 @@ class VendorPassthruTestCase(db_base.DbTestCase):
             reboot_and_finish_deploy_mock.assert_called_once_with(
                 mock.ANY, task)
 
-    @mock.patch.object(ilo_deploy, '_update_secure_boot_mode', autospec=True)
-    @mock.patch.object(ilo_common, 'update_boot_mode', autospec=True)
+    @mock.patch.object(ilo_deploy, '_update_secure_boot_mode', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(ilo_common, 'update_boot_mode', spec_set=True,
+                       autospec=True)
     @mock.patch.object(agent_base_vendor.BaseAgentVendor,
-                       'reboot_and_finish_deploy', autospec=True)
+                       'reboot_and_finish_deploy', spec_set=True,
+                       autospec=True)
     @mock.patch.object(agent_base_vendor.BaseAgentVendor,
-                       'configure_local_boot', autospec=True)
-    @mock.patch.object(iscsi_deploy, 'do_agent_iscsi_deploy', autospec=True)
-    @mock.patch.object(ilo_common, 'cleanup_vmedia_boot', autospec=True)
+                       'configure_local_boot', spec_set=True, autospec=True)
+    @mock.patch.object(iscsi_deploy, 'do_agent_iscsi_deploy', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(ilo_common, 'cleanup_vmedia_boot', spec_set=True,
+                       autospec=True)
     def test_continue_deploy_whole_disk_image(
             self, cleanup_vmedia_boot_mock, do_agent_iscsi_deploy_mock,
             configure_local_boot_mock, reboot_and_finish_deploy_mock,
@@ -1083,14 +1197,19 @@ class VendorPassthruTestCase(db_base.DbTestCase):
             reboot_and_finish_deploy_mock.assert_called_once_with(
                 mock.ANY, task)
 
-    @mock.patch.object(ilo_deploy, '_update_secure_boot_mode', autospec=True)
-    @mock.patch.object(ilo_common, 'update_boot_mode', autospec=True)
+    @mock.patch.object(ilo_deploy, '_update_secure_boot_mode', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(ilo_common, 'update_boot_mode', spec_set=True,
+                       autospec=True)
     @mock.patch.object(agent_base_vendor.BaseAgentVendor,
-                       'reboot_and_finish_deploy', autospec=True)
+                       'reboot_and_finish_deploy', spec_set=True,
+                       autospec=True)
     @mock.patch.object(agent_base_vendor.BaseAgentVendor,
-                       'configure_local_boot', autospec=True)
-    @mock.patch.object(iscsi_deploy, 'do_agent_iscsi_deploy', autospec=True)
-    @mock.patch.object(ilo_common, 'cleanup_vmedia_boot', autospec=True)
+                       'configure_local_boot', spec_set=True, autospec=True)
+    @mock.patch.object(iscsi_deploy, 'do_agent_iscsi_deploy', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(ilo_common, 'cleanup_vmedia_boot', spec_set=True,
+                       autospec=True)
     def test_continue_deploy_localboot_uefi(self, cleanup_vmedia_boot_mock,
                                             do_agent_iscsi_deploy_mock,
                                             configure_local_boot_mock,
@@ -1128,15 +1247,16 @@ class IloPXEDeployTestCase(db_base.DbTestCase):
         self.node = obj_utils.create_test_node(self.context,
                 driver='pxe_ilo', driver_info=INFO_DICT)
 
-    @mock.patch.object(pxe.PXEDeploy, 'validate', autospec=True)
+    @mock.patch.object(pxe.PXEDeploy, 'validate', spec_set=True, autospec=True)
     def test_validate(self, pxe_validate_mock):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
             task.driver.deploy.validate(task)
             pxe_validate_mock.assert_called_once_with(mock.ANY, task)
 
-    @mock.patch.object(pxe.PXEDeploy, 'prepare', autospec=True)
-    @mock.patch.object(ilo_common, 'update_boot_mode', autospec=True)
+    @mock.patch.object(pxe.PXEDeploy, 'prepare', spec_set=True, autospec=True)
+    @mock.patch.object(ilo_common, 'update_boot_mode', spec_set=True,
+                       autospec=True)
     def test_prepare(self,
                      update_boot_mode_mock,
                      pxe_prepare_mock):
@@ -1147,8 +1267,9 @@ class IloPXEDeployTestCase(db_base.DbTestCase):
             update_boot_mode_mock.assert_called_once_with(task)
             pxe_prepare_mock.assert_called_once_with(mock.ANY, task)
 
-    @mock.patch.object(pxe.PXEDeploy, 'prepare', autospec=True)
-    @mock.patch.object(ilo_common, 'update_boot_mode', autospec=True)
+    @mock.patch.object(pxe.PXEDeploy, 'prepare', spec_set=True, autospec=True)
+    @mock.patch.object(ilo_common, 'update_boot_mode', spec_set=True,
+                       autospec=True)
     def test_prepare_uefi_whole_disk_image_fail(self,
                                                 update_boot_mode_mock,
                                                 pxe_prepare_mock):
@@ -1161,8 +1282,9 @@ class IloPXEDeployTestCase(db_base.DbTestCase):
             update_boot_mode_mock.assert_called_once_with(task)
             self.assertFalse(pxe_prepare_mock.called)
 
-    @mock.patch.object(pxe.PXEDeploy, 'deploy', autospec=True)
-    @mock.patch.object(manager_utils, 'node_set_boot_device', autospec=True)
+    @mock.patch.object(pxe.PXEDeploy, 'deploy', spec_set=True, autospec=True)
+    @mock.patch.object(manager_utils, 'node_set_boot_device', spec_set=True,
+                       autospec=True)
     def test_deploy_boot_mode_exists(self, set_persistent_mock,
                                      pxe_deploy_mock):
         with task_manager.acquire(self.context, self.node.uuid,
@@ -1197,8 +1319,10 @@ class IloPXEVendorPassthruTestCase(db_base.DbTestCase):
             self.assertIsInstance(driver_routes, dict)
             self.assertEqual(sorted(expected), sorted(list(driver_routes)))
 
-    @mock.patch.object(pxe.VendorPassthru, 'pass_deploy_info', autospec=True)
-    @mock.patch.object(manager_utils, 'node_set_boot_device', autospec=True)
+    @mock.patch.object(pxe.VendorPassthru, 'pass_deploy_info', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(manager_utils, 'node_set_boot_device', spec_set=True,
+                       autospec=True)
     def test_vendorpassthru_pass_deploy_info(self, set_boot_device_mock,
                                              pxe_vendorpassthru_mock):
         kwargs = {'address': '123456'}
@@ -1222,11 +1346,13 @@ class IloVirtualMediaAgentVendorInterfaceTestCase(db_base.DbTestCase):
                 driver='agent_ilo', driver_info=INFO_DICT)
 
     @mock.patch.object(agent.AgentVendorInterface, 'reboot_to_instance',
-                       autospec=True)
+                       spec_set=True, autospec=True)
     @mock.patch.object(agent.AgentVendorInterface, 'check_deploy_success',
+                       spec_set=True, autospec=True)
+    @mock.patch.object(ilo_common, 'update_boot_mode', spec_set=True,
                        autospec=True)
-    @mock.patch.object(ilo_common, 'update_boot_mode', autospec=True)
-    @mock.patch.object(ilo_deploy, '_update_secure_boot_mode', autospec=True)
+    @mock.patch.object(ilo_deploy, '_update_secure_boot_mode', spec_set=True,
+                       autospec=True)
     def test_reboot_to_instance(self, func_update_secure_boot_mode,
                                 func_update_boot_mode,
                                 check_deploy_success_mock,
@@ -1244,11 +1370,13 @@ class IloVirtualMediaAgentVendorInterfaceTestCase(db_base.DbTestCase):
                 mock.ANY, task, **kwargs)
 
     @mock.patch.object(agent.AgentVendorInterface, 'reboot_to_instance',
-                       autospec=True)
+                       spec_set=True, autospec=True)
     @mock.patch.object(agent.AgentVendorInterface, 'check_deploy_success',
+                       spec_set=True, autospec=True)
+    @mock.patch.object(ilo_common, 'update_boot_mode', spec_set=True,
                        autospec=True)
-    @mock.patch.object(ilo_common, 'update_boot_mode', autospec=True)
-    @mock.patch.object(ilo_deploy, '_update_secure_boot_mode', autospec=True)
+    @mock.patch.object(ilo_deploy, '_update_secure_boot_mode', spec_set=True,
+                       autospec=True)
     def test_reboot_to_instance_deploy_fail(self, func_update_secure_boot_mode,
                                             func_update_boot_mode,
                                             check_deploy_success_mock,
