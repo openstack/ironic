@@ -126,7 +126,8 @@ class DracPowerTestCase(base.DbTestCase):
         driver = drac_power.DracPower()
         self.assertEqual(expected, driver.get_properties())
 
-    @mock.patch.object(drac_power, '_get_power_state')
+    @mock.patch.object(drac_power, '_get_power_state', spec_set=True,
+                       autospec=True)
     def test_get_power_state(self, mock_get_power_state):
         mock_get_power_state.return_value = states.POWER_ON
         driver = drac_power.DracPower()
@@ -136,7 +137,8 @@ class DracPowerTestCase(base.DbTestCase):
         self.assertEqual(states.POWER_ON, driver.get_power_state(task))
         mock_get_power_state.assert_called_once_with(task.node)
 
-    @mock.patch.object(drac_power, '_set_power_state')
+    @mock.patch.object(drac_power, '_set_power_state', spec_set=True,
+                       autospec=True)
     def test_set_power_state(self, mock_set_power_state):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
@@ -144,8 +146,10 @@ class DracPowerTestCase(base.DbTestCase):
             mock_set_power_state.assert_called_once_with(task.node,
                                                          states.POWER_ON)
 
-    @mock.patch.object(drac_power, '_set_power_state')
-    @mock.patch.object(drac_power, '_get_power_state')
+    @mock.patch.object(drac_power, '_set_power_state', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(drac_power, '_get_power_state', spec_set=True,
+                       autospec=True)
     def test_reboot(self, mock_get_power_state, mock_set_power_state):
         mock_get_power_state.return_value = states.POWER_ON
         with task_manager.acquire(self.context, self.node.uuid,
@@ -154,8 +158,10 @@ class DracPowerTestCase(base.DbTestCase):
             mock_set_power_state.assert_called_once_with(task.node,
                                                          states.REBOOT)
 
-    @mock.patch.object(drac_power, '_set_power_state')
-    @mock.patch.object(drac_power, '_get_power_state')
+    @mock.patch.object(drac_power, '_set_power_state', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(drac_power, '_get_power_state', spec_set=True,
+                       autospec=True)
     def test_reboot_in_power_off(self, mock_get_power_state,
                                        mock_set_power_state):
         mock_get_power_state.return_value = states.POWER_OFF
