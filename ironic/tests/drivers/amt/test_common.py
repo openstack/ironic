@@ -76,7 +76,7 @@ class AMTCommonMethodsTestCase(db_base.DbTestCase):
         self.assertRaises(exception.InvalidParameterValue,
                           amt_common.parse_driver_info, self.node)
 
-    @mock.patch.object(amt_common, 'Client', autospec=True)
+    @mock.patch.object(amt_common, 'Client', spec_set=True, autospec=True)
     def test_get_wsman_client(self, mock_client):
         info = amt_common.parse_driver_info(self.node)
         amt_common.get_wsman_client(self.node)
