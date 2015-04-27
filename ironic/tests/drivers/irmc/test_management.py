@@ -57,14 +57,16 @@ class IRMCManagementTestCase(db_base.DbTestCase):
                                   shared=True) as task:
             self.assertEqual(expected, task.driver.get_properties())
 
-    @mock.patch.object(irmc_common, 'parse_driver_info', autospec=True)
+    @mock.patch.object(irmc_common, 'parse_driver_info', spec_set=True,
+                       autospec=True)
     def test_validate(self, mock_drvinfo):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
             task.driver.management.validate(task)
             mock_drvinfo.assert_called_once_with(task.node)
 
-    @mock.patch.object(irmc_common, 'parse_driver_info', autospec=True)
+    @mock.patch.object(irmc_common, 'parse_driver_info', spec_set=True,
+                       autospec=True)
     def test_validate_fail(self, mock_drvinfo):
         side_effect = exception.InvalidParameterValue("Invalid Input")
         mock_drvinfo.side_effect = side_effect
@@ -83,7 +85,7 @@ class IRMCManagementTestCase(db_base.DbTestCase):
                              get_supported_boot_devices()))
 
     @mock.patch.object(ipmitool.IPMIManagement, 'set_boot_device',
-                       autospec=True)
+                       spec_set=True, autospec=True)
     def test_management_interface_set_boot_device_no_mode_ok(
             self,
             set_boot_device_mock):
@@ -97,7 +99,7 @@ class IRMCManagementTestCase(db_base.DbTestCase):
                 False)
 
     @mock.patch.object(ipmitool.IPMIManagement, 'set_boot_device',
-                       autospec=True)
+                       spec_set=True, autospec=True)
     def test_management_interface_set_boot_device_bios_ok(
             self,
             set_boot_device_mock):
@@ -110,7 +112,8 @@ class IRMCManagementTestCase(db_base.DbTestCase):
                 boot_devices.PXE,
                 False)
 
-    @mock.patch.object(irmc_management.ipmitool, "send_raw", autospec=True)
+    @mock.patch.object(irmc_management.ipmitool, "send_raw", spec_set=True,
+                       autospec=True)
     def _test_management_interface_set_boot_device_uefi_ok(self, params,
                                                            expected_raw_code,
                                                            send_raw_mock):
@@ -179,7 +182,8 @@ class IRMCManagementTestCase(db_base.DbTestCase):
             params,
             "0x00 0x08 0x05 0xe0 0x0c 0x00 0x00 0x00")
 
-    @mock.patch.object(irmc_management.ipmitool, "send_raw", autospec=True)
+    @mock.patch.object(irmc_management.ipmitool, "send_raw", spec_set=True,
+                       autospec=True)
     def test_management_interface_set_boot_device_uefi_ng(self,
                                                           send_raw_mock):
         """uefi mode, next boot only, unknown device."""
@@ -194,7 +198,8 @@ class IRMCManagementTestCase(db_base.DbTestCase):
 
     @mock.patch.object(irmc_management, 'scci',
                        spec_set=mock_specs.SCCICLIENT_IRMC_SCCI_SPEC)
-    @mock.patch.object(irmc_common, 'get_irmc_report', autospec=True)
+    @mock.patch.object(irmc_common, 'get_irmc_report', spec_set=True,
+                       autospec=True)
     def test_management_interface_get_sensors_data_scci_ok(self,
                                                           mock_get_irmc_report,
                                                           mock_scci):
@@ -242,7 +247,8 @@ class IRMCManagementTestCase(db_base.DbTestCase):
 
     @mock.patch.object(irmc_management, 'scci',
                        spec_set=mock_specs.SCCICLIENT_IRMC_SCCI_SPEC)
-    @mock.patch.object(irmc_common, 'get_irmc_report', autospec=True)
+    @mock.patch.object(irmc_common, 'get_irmc_report', spec_set=True,
+                       autospec=True)
     def test_management_interface_get_sensors_data_scci_ng(self,
                                                           mock_get_irmc_report,
                                                           mock_scci):
@@ -263,7 +269,7 @@ class IRMCManagementTestCase(db_base.DbTestCase):
         self.assertEqual(len(sensor_dict), 0)
 
     @mock.patch.object(ipmitool.IPMIManagement, 'get_sensors_data',
-                       autospec=True)
+                       spec_set=True, autospec=True)
     def test_management_interface_get_sensors_data_ipmitool_ok(
             self,
             get_sensors_data_mock):
@@ -274,7 +280,8 @@ class IRMCManagementTestCase(db_base.DbTestCase):
             get_sensors_data_mock.assert_called_once_with(
                 task.driver.management, task)
 
-    @mock.patch.object(irmc_common, 'get_irmc_report', autospec=True)
+    @mock.patch.object(irmc_common, 'get_irmc_report', spec_set=True,
+                       autospec=True)
     def test_management_interface_get_sensors_data_exception1(
             self,
             get_irmc_report_mock):
