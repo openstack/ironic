@@ -95,7 +95,8 @@ conductor_opts = [
         cfg.IntOpt('heartbeat_timeout',
                    default=60,
                    help='Maximum time (in seconds) since the last check-in '
-                        'of a conductor.'),
+                        'of a conductor. A conductor is considered inactive '
+                        'when this time has been exceeded.'),
         cfg.IntOpt('sync_power_state_interval',
                    default=60,
                    help='Interval between syncing the node power state to the '
@@ -106,8 +107,8 @@ conductor_opts = [
                         'in seconds.'),
         cfg.IntOpt('deploy_callback_timeout',
                    default=1800,
-                   help='Timeout (seconds) for waiting callback from deploy '
-                        'ramdisk. 0 - unlimited.'),
+                   help='Timeout (seconds) to wait for a callback from '
+                        'a deploy ramdisk. Set to 0 to disable timeout.'),
         cfg.BoolOpt('force_power_state_during_sync',
                    default=True,
                    help='During sync_power_state, should the hardware power '

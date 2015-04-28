@@ -73,7 +73,9 @@
 # Options defined in ironic.netconf
 #
 
-# IP address of this host. (string value)
+# IP address of this host. If unset, will determine the IP
+# programmatically. If unable to do so, will use "127.0.0.1".
+# (string value)
 #my_ip=10.0.0.1
 
 
@@ -81,12 +83,15 @@
 # Options defined in ironic.api.app
 #
 
-# Method to use for authentication: noauth or keystone.
-# (string value)
+# Authentication strategy used by ironic-api: one of
+# "keystone" or "noauth". "noauth" should not be used in a
+# production environment because all authentication will be
+# disabled. (string value)
 #auth_strategy=keystone
 
 # Enable pecan debug mode. WARNING: this is insecure and
-# should not be used in production. (boolean value)
+# should not be used in a production environment. (boolean
+# value)
 #pecan_debug=false
 
 
@@ -109,7 +114,10 @@
 # Options defined in ironic.common.exception
 #
 
-# Make exception message format errors fatal. (boolean value)
+# Used if there is a formatting error when generating an
+# exception message (a programming error). If True, raise an
+# exception; if False, use the unformatted message. (boolean
+# value)
 #fatal_exception_format_errors=false
 
 
@@ -143,7 +151,8 @@
 # Options defined in ironic.common.images
 #
 
-# Force backing images to raw format. (boolean value)
+# If True, convert backing images to "raw" disk image format.
+# (boolean value)
 #force_raw_images=true
 
 # Path to isolinux binary file. (string value)
@@ -366,6 +375,7 @@
 # (boolean value)
 #manage_tftp=true
 
+
 #
 # Options defined in ironic.drivers.modules.agent_base_vendor
 #
@@ -414,10 +424,10 @@
 # Options defined in ironic.api
 #
 
-# The listen IP for the Ironic API server. (string value)
+# The IP address on which ironic-api listens. (string value)
 #host_ip=0.0.0.0
 
-# The port for the Ironic API server. (integer value)
+# The TCP port on which ironic-api listens. (integer value)
 #port=6385
 
 # The maximum number of items returned in a single response
@@ -440,7 +450,8 @@
 #heartbeat_interval=10
 
 # Maximum time (in seconds) since the last check-in of a
-# conductor. (integer value)
+# conductor. A conductor is considered inactive when this time
+# has been exceeded. (integer value)
 #heartbeat_timeout=60
 
 # Interval between syncing the node power state to the
@@ -451,8 +462,8 @@
 # (integer value)
 #check_provision_state_interval=60
 
-# Timeout (seconds) for waiting callback from deploy ramdisk.
-# 0 - unlimited. (integer value)
+# Timeout (seconds) to wait for a callback from a deploy
+# ramdisk. Set to 0 to disable timeout. (integer value)
 #deploy_callback_timeout=1800
 
 # During sync_power_state, should the hardware power state be
@@ -1447,11 +1458,12 @@
 # is created. (string value)
 #default_ephemeral_format=ext4
 
-# Directory where images are stored on disk. (string value)
+# On the ironic-conductor node, directory where images are
+# stored on disk. (string value)
 #images_path=/var/lib/ironic/images/
 
-# Directory where master instance images are stored on disk.
-# (string value)
+# On the ironic-conductor node, directory where master
+# instance images are stored on disk. (string value)
 #instance_master_path=/var/lib/ironic/master_images
 
 # Maximum size (in MiB) of cache for master images, including
@@ -1471,22 +1483,23 @@
 # Options defined in ironic.drivers.modules.pxe
 #
 
-# Template file for PXE configuration. (string value)
+# On ironic-conductor node, template file for PXE
+# configuration. (string value)
 #pxe_config_template=$pybasedir/drivers/modules/pxe_config.template
 
-# Template file for PXE configuration for UEFI boot loader.
-# (string value)
+# On ironic-conductor node, template file for PXE
+# configuration for UEFI boot loader. (string value)
 #uefi_pxe_config_template=$pybasedir/drivers/modules/elilo_efi_pxe_config.template
 
-# IP address of Ironic compute node's tftp server. (string
+# IP address of ironic-conductor node's TFTP server. (string
 # value)
 #tftp_server=$my_ip
 
-# Ironic compute node's tftp root path. (string value)
+# ironic-conductor node's TFTP root path. (string value)
 #tftp_root=/tftpboot
 
-# Directory where master tftp images are stored on disk.
-# (string value)
+# On ironic-conductor node, directory where master TFTP images
+# are stored on disk. (string value)
 #tftp_master_path=/tftpboot/master_images
 
 # Bootfile DHCP parameter. (string value)
@@ -1495,17 +1508,18 @@
 # Bootfile DHCP parameter for UEFI boot mode. (string value)
 #uefi_pxe_bootfile_name=elilo.efi
 
-# Ironic compute node's HTTP server URL. Example:
+# ironic-conductor node's HTTP server URL. Example:
 # http://192.1.2.3:8080 (string value)
 #http_url=<None>
 
-# Ironic compute node's HTTP root path. (string value)
+# ironic-conductor node's HTTP root path. (string value)
 #http_root=/httpboot
 
 # Enable iPXE boot. (boolean value)
 #ipxe_enabled=false
 
-# The path to the main iPXE script file. (string value)
+# On ironic-conductor node, the path to the main iPXE script
+# file. (string value)
 #ipxe_boot_script=$pybasedir/drivers/modules/boot.ipxe
 
 
@@ -1540,7 +1554,7 @@
 # Options defined in ironic.drivers.modules.ssh
 #
 
-# libvirt uri (string value)
+# libvirt URI (string value)
 #libvirt_uri=qemu:///system
 
 

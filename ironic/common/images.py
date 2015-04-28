@@ -42,7 +42,8 @@ LOG = logging.getLogger(__name__)
 image_opts = [
     cfg.BoolOpt('force_raw_images',
                 default=True,
-                help='Force backing images to raw format.'),
+                help='If True, convert backing images to "raw" disk image '
+                     'format.'),
     cfg.StrOpt('isolinux_bin',
                 default='/usr/lib/syslinux/isolinux.bin',
                 help='Path to isolinux binary file.'),
