@@ -17,9 +17,9 @@
 import collections
 import copy
 
-from oslo import messaging
 from oslo_context import context
 from oslo_log import log as logging
+import oslo_messaging as messaging
 import six
 
 from ironic.common import exception

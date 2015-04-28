@@ -17,8 +17,8 @@
 import json
 
 import mock
-from oslo import messaging
 from oslo_config import cfg
+import oslo_messaging as messaging
 import six
 from webob import exc as webob_exc
 

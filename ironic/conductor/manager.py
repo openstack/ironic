@@ -49,12 +49,12 @@ import threading
 
 import eventlet
 from eventlet import greenpool
-from oslo import messaging
 from oslo_concurrency import lockutils
 from oslo_config import cfg
 from oslo_context import context as ironic_context
 from oslo_db import exception as db_exception
 from oslo_log import log
+import oslo_messaging as messaging
 from oslo_utils import excutils
 from oslo_utils import uuidutils
 
