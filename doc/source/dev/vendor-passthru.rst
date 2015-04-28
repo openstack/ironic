@@ -124,3 +124,8 @@ Both decorators accepts the same parameters:
    Please avoid having a synchronous method for slow/long-running
    operations **or** if the method does talk to a BMC; BMCs are flaky
    and very easy to break.
+
+.. WARNING::
+   Each asynchronous request consumes a worker thread in the
+   ``ironic-conductor`` process. This can lead to starvation of the
+   thread pool, resulting in a denial of service.
