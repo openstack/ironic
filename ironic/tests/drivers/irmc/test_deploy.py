@@ -795,7 +795,43 @@ class IRMCVirtualMediaIscsiDeployTestCase(db_base.DbTestCase):
     @mock.patch.object(irmc_deploy, '_parse_deploy_info', spec_set=True,
                        autospec=True)
     @mock.patch.object(iscsi_deploy, 'validate', spec_set=True, autospec=True)
+    @mock.patch.object(irmc_deploy, '_check_share_fs_mounted', spec_set=True,
+                       autospec=True)
+    def test_validate_whole_disk_image(self,
+                                       _check_share_fs_mounted_mock,
+                                       validate_mock,
+                                       deploy_info_mock,
+                                       is_glance_image_mock,
+                                       validate_prop_mock,
+                                       validate_capabilities_mock):
+        d_info = {'image_source': '733d1c44-a2ea-414b-aca7-69decf20d810'}
+        deploy_info_mock.return_value = d_info
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            task.node.driver_internal_info = {'is_whole_disk_image': True}
+            task.driver.deploy.validate(task)
+
+            _check_share_fs_mounted_mock.assert_called_once_with()
+            validate_mock.assert_called_once_with(task)
+            deploy_info_mock.assert_called_once_with(task.node)
+            self.assertFalse(is_glance_image_mock.called)
+            validate_prop_mock.assert_called_once_with(task.context,
+                                                       d_info, [])
+            validate_capabilities_mock.assert_called_once_with(task.node)
+
+    @mock.patch.object(deploy_utils, 'validate_capabilities',
+                       spec_set=True, autospec=True)
+    @mock.patch.object(iscsi_deploy, 'validate_image_properties',
+                       spec_set=True, autospec=True)
+    @mock.patch.object(service_utils, 'is_glance_image', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(irmc_deploy, '_parse_deploy_info', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(iscsi_deploy, 'validate', spec_set=True, autospec=True)
+    @mock.patch.object(irmc_deploy, '_check_share_fs_mounted', spec_set=True,
+                       autospec=True)
     def test_validate_glance_image(self,
+                                   _check_share_fs_mounted_mock,
                                    validate_mock,
                                    deploy_info_mock,
                                    is_glance_image_mock,
@@ -808,6 +844,7 @@ class IRMCVirtualMediaIscsiDeployTestCase(db_base.DbTestCase):
                                   shared=False) as task:
             task.driver.deploy.validate(task)
 
+            _check_share_fs_mounted_mock.assert_called_once_with()
             validate_mock.assert_called_once_with(task)
             deploy_info_mock.assert_called_once_with(task.node)
             validate_prop_mock.assert_called_once_with(
@@ -1155,6 +1192,7 @@ class VendorPassthruTestCase(db_base.DbTestCase):
         continue_deploy_mock.return_value = {'root uuid': 'root_uuid'}
         _prepare_boot_iso_mock.side_effect = Exception("fake error")
 
+        self.node.driver_internal_info = {'is_whole_disk_image': False}
         self.node.provision_state = states.DEPLOYWAIT
         self.node.target_provision_state = states.ACTIVE
         self.node.save()
@@ -1193,6 +1231,7 @@ class VendorPassthruTestCase(db_base.DbTestCase):
         kwargs = {'method': 'pass_deploy_info', 'address': '123456'}
         continue_deploy_mock.return_value = {'root uuid': '<some-uuid>'}
 
+        self.node.driver_internal_info = {'is_whole_disk_image': False}
         self.node.provision_state = states.DEPLOYWAIT
         self.node.target_provision_state = states.ACTIVE
         self.node.instance_info = {'capabilities': '{"boot_option": "local"}'}
@@ -1210,3 +1249,80 @@ class VendorPassthruTestCase(db_base.DbTestCase):
             notify_ramdisk_to_proceed_mock.assert_called_once_with('123456')
             self.assertEqual(states.DEPLOYWAIT, task.node.provision_state)
             self.assertEqual(states.ACTIVE, task.node.target_provision_state)
+
+    @mock.patch.object(iscsi_deploy, 'finish_deploy', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(deploy_utils, 'notify_ramdisk_to_proceed',
+                       spec_set=True, autospec=True)
+    @mock.patch.object(manager_utils, 'node_set_boot_device', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(iscsi_deploy, 'continue_deploy', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(irmc_deploy, '_cleanup_vmedia_boot', spec_set=True,
+                       autospec=True)
+    def test_pass_deploy_info_whole_disk_image(
+            self,
+            _cleanup_vmedia_boot_mock,
+            continue_deploy_mock,
+            set_boot_device_mock,
+            notify_ramdisk_to_proceed_mock,
+            finish_deploy_mock):
+
+        kwargs = {'method': 'pass_deploy_info', 'address': '123456'}
+        continue_deploy_mock.return_value = {'root uuid': '<some-uuid>'}
+
+        self.node.driver_internal_info = {'is_whole_disk_image': True}
+        self.node.provision_state = states.DEPLOYWAIT
+        self.node.target_provision_state = states.ACTIVE
+        self.node.save()
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            vendor = task.driver.vendor
+            vendor.pass_deploy_info(task, **kwargs)
+
+            _cleanup_vmedia_boot_mock.assert_called_once_with(task)
+            continue_deploy_mock.assert_called_once_with(task, **kwargs)
+            set_boot_device_mock.assert_called_once_with(task,
+                                                         boot_devices.DISK,
+                                                         persistent=True)
+            self.assertFalse(notify_ramdisk_to_proceed_mock.called)
+            finish_deploy_mock.assert_called_once_with(task, '123456')
+
+    @mock.patch.object(iscsi_deploy, 'finish_deploy', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(deploy_utils, 'notify_ramdisk_to_proceed',
+                       spec_set=True, autospec=True)
+    @mock.patch.object(manager_utils, 'node_set_boot_device', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(iscsi_deploy, 'continue_deploy', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(irmc_deploy, '_cleanup_vmedia_boot', spec_set=True,
+                       autospec=True)
+    def test_pass_deploy_info_whole_disk_image_local(
+            self,
+            _cleanup_vmedia_boot_mock,
+            continue_deploy_mock,
+            set_boot_device_mock,
+            notify_ramdisk_to_proceed_mock,
+            finish_deploy_mock):
+
+        kwargs = {'method': 'pass_deploy_info', 'address': '123456'}
+        continue_deploy_mock.return_value = {'root uuid': '<some-uuid>'}
+
+        self.node.driver_internal_info = {'is_whole_disk_image': True}
+        self.node.instance_info = {'capabilities': '{"boot_option": "local"}'}
+        self.node.provision_state = states.DEPLOYWAIT
+        self.node.target_provision_state = states.ACTIVE
+        self.node.save()
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            vendor = task.driver.vendor
+            vendor.pass_deploy_info(task, **kwargs)
+
+            _cleanup_vmedia_boot_mock.assert_called_once_with(task)
+            continue_deploy_mock.assert_called_once_with(task, **kwargs)
+            set_boot_device_mock.assert_called_once_with(task,
+                                                         boot_devices.DISK,
+                                                         persistent=True)
+            self.assertFalse(notify_ramdisk_to_proceed_mock.called)
+            finish_deploy_mock.assert_called_once_with(task, '123456')
