@@ -1049,7 +1049,7 @@ hardware.
    if both the ``power`` and ``deploy`` interfaces pass the ``validate`` check.
    If you wish to exclude a Node from Nova's scheduler, for instance so that
    you can perform maintenance on it, you can set the Node to "maintenance" mode.
-   For more information see the `Troubleshooting`_ section below.
+   For more information see the `Maintenance Mode`_ section below.
 
 Some steps are shown separately for illustration purposes, and may be combined
 if desired.
@@ -1659,9 +1659,42 @@ Here is an example set of commands to compare the resources in Nova and Ironic::
     | vcpus_used              | 0                                    |
     +-------------------------+--------------------------------------+
 
-If you need to take a Node out of the resource pool and prevent Nova from
-placing a tenant instance upon it, you can mark the Node as in “maintenance”
-mode with the following command. This also prevents Ironic from executing
-periodic tasks which might affect the node, until maintenance mode is disabled::
 
-  $ ironic node-set-maintenance $NODE_UUID on
+Maintenance Mode
+----------------
+Maintenance mode may be used if you need to take a Node out of the resource
+pool. Putting a Node in maintenance mode will prevent Ironic from executing periodic
+tasks associated with the Node. This will also prevent Nova from placing a tenant
+instance on the Node by not exposing the Node to the Nova scheduler. Nodes can
+be placed into maintenance mode with the following command.
+::
+
+    $ ironic node-set-maintenance $NODE_UUID on
+
+As of the Kilo release a maintenance reason may be included with the optional
+``--reason`` command line option. This is a free form text field that will be
+displayed in the ``maintenance_reason`` section of the ``node-show`` command.
+::
+
+    $ ironic node-set-maintenance $UUID on --reason "Need to add ram."
+
+    $ ironic node-show $UUID
+
+    +------------------------+--------------------------------------+
+    | Property               | Value                                |
+    +------------------------+--------------------------------------+
+    | target_power_state     | None                                 |
+    | extra                  | {}                                   |
+    | last_error             | None                                 |
+    | updated_at             | 2015-04-27T15:43:58+00:00            |
+    | maintenance_reason     | Need to add ram.                     |
+    | ...                    | ...                                  |
+    | maintenance            | True                                 |
+    | ...                    | ...                                  |
+    +------------------------+--------------------------------------+
+
+To remove maintenance mode and clear any ``maintenance_reason`` use the
+following command.
+::
+
+    $ ironic node-set-maintenance $NODE_UUID off
