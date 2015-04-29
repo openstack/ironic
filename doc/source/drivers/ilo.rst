@@ -102,10 +102,11 @@ Features
   (like PXE driver), so this driver has the  benefit of security
   enhancement with the same performance. Hence it segregates management info
   from data channel.
-* Support for Out-Of-Band cleaning operations.
+* Support for out-of-band cleaning operations.
 * Remote Console
 * HW Sensors
 * Works well for machines with resource constraints (lesser amount of memory).
+* Support for out-of-band hardware inspection.
 
 Requirements
 ~~~~~~~~~~~~
@@ -260,6 +261,10 @@ Node cleaning
 ~~~~~~~~~~~~~
 Refer to ilo_node_cleaning_ for more information.
 
+Hardware Inspection
+~~~~~~~~~~~~~~~~~~~
+Refer to hardware_inspection_ for more information.
+
 agent_ilo driver
 ^^^^^^^^^^^^^^^^
 
@@ -301,6 +306,7 @@ Features
 * UEFI Secure Boot Support
 * Support to use default in-band cleaning operations supported by
   Ironic Python Agent. For more details, see :ref:`InbandvsOutOfBandCleaning`.
+* Support for out-of-band hardware inspection.
 
 Requirements
 ~~~~~~~~~~~~
@@ -450,6 +456,10 @@ Node Cleaning
 ~~~~~~~~~~~~~
 Refer to ilo_node_cleaning_ for more information.
 
+Hardware Inspection
+~~~~~~~~~~~~~~~~~~~
+Refer to hardware_inspection_ for more information.
+
 pxe_ilo driver
 ^^^^^^^^^^^^^^
 
@@ -485,7 +495,8 @@ Features
 * Automatic detection of current boot mode.
 * Automatic setting of the required boot mode if UEFI boot mode is requested
   by the nova flavor's extra spec.
-* Support for Out-Of-Band cleaning operations.
+* Support for out-of-band cleaning operations.
+* Support for out-of-band hardware inspection.
 
 Requirements
 ~~~~~~~~~~~~
@@ -546,6 +557,10 @@ Node Cleaning
 ~~~~~~~~~~~~~
 Refer to ilo_node_cleaning_ for more information.
 
+Hardware Inspection
+~~~~~~~~~~~~~~~~~~~
+Refer to hardware_inspection_ for more information.
+
 Functionalities across drivers
 ==============================
 
@@ -595,11 +610,12 @@ The boot modes can be configured in Ironic in the following way:
   machine that matches with user specified flavors.
 
 
-Currently for UEFI boot mode, automatic creation of boot ISO doesn't
-work. The boot ISO for the deploy image needs to be built separately and the
-deploy image's ``boot_iso`` property in Glance should contain the Glance UUID
-of the boot ISO. For building boot ISO, add ``iso`` element to the
-diskimage-builder command to build the image.  For example::
+The automatic boot ISO creation for UEFI boot mode has been enabled in Kilo.
+The manual creation of boot ISO for UEFI boot mode is also supported.
+For the latter, the boot ISO for the deploy image needs to be built
+separately and the deploy image's ``boot_iso`` property in Glance should
+contain the Glance UUID of the boot ISO. For building boot ISO, add ``iso``
+element to the diskimage-builder command to build the image.  For example::
 
   disk-image-create ubuntu baremetal iso
 
@@ -620,6 +636,8 @@ The UEFI secure boot mode can be configured in Ironic by adding
 To enable ``secure_boot`` on a node add it to ``capabilities`` as below::
 
  ironic node-update <node-uuid> add properties/capabilities='secure_boot:true'
+
+Alternatively use hardware_inspection_ to populate the secure boot capability.
 
 Nodes having ``secure_boot`` set to ``true`` may be requested by adding an
 ``extra_spec`` to the Nova flavor::
@@ -702,11 +720,23 @@ Supported Cleaning Operations
 
 For more information on node cleaning, see [9]_.
 
+.. _hardware_inspection:
+
 Hardware Inspection
 ^^^^^^^^^^^^^^^^^^^
 
-NOTE: The RAID shall be pre-configured prior to inspection otherwise
-proliantutils returns 0 for disk size.
+The following iLO drivers support hardware inspection:
+
+* ``pxe_ilo``
+* ``iscsi_ilo``
+* ``agent_ilo``
+
+.. note::
+   
+   * The RAID needs to be pre-configured prior to inspection otherwise
+     proliantutils returns 0 for disk size.
+   * The iLO firmware version needs to be 2.10 or above for nic_capacity to be
+     discovered.
 
 The inspection process will discover the following essential properties
 (properties required for scheduling deployment):
@@ -726,13 +756,27 @@ Inspection can also discover the following extra capabilities for iLO drivers:
 * ``rom_firmware_version``: ROM firmware version
 
 * ``secure_boot``: secure boot is supported or not. The possible values are
-  'true' or 'false'.
+  'true' or 'false'. The value is returned as 'true' if secure boot is supported
+  by the server.
 
 * ``server_model``: server model
 
 * ``pci_gpu_devices``: number of gpu devices connected to the baremetal.
 
 * ``nic_capacity``: the max speed of the embedded NIC adapter.
+
+The operator can specify these capabilities in nova flavor for node to be selected
+for scheduling::
+
+  nova flavor-key my-baremetal-flavor set capabilities:server_model="<in> Gen8"
+
+  nova flavor-key my-baremetal-flavor set capabilities:pci_gpu_devices="> 0"
+
+  nova flavor-key my-baremetal-flavor set capabilities:nic_capacity="10Gb"
+
+  nova flavor-key my-baremetal-flavor set capabilities:ilo_firmware_version="<in> 2.10"
+
+  nova flavor-key my-baremetal-flavor set capabilities:secure_boot="true"
 
 References
 ==========
