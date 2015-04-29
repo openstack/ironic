@@ -14,6 +14,13 @@ from logging import config as log_config
 
 from alembic import context
 
+try:
+    # NOTE(whaom): This is to register the DB2 alembic code which
+    # is an optional runtime dependency.
+    from ibm_db_alembic.ibm_db import IbmDbImpl  # noqa
+except ImportError:
+    pass
+
 from ironic.db.sqlalchemy import api as sqla_api
 from ironic.db.sqlalchemy import models
 
