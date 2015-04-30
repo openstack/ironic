@@ -582,3 +582,7 @@ class UcsOperationError(IronicException):
 class UcsConnectionError(IronicException):
     message = _("Cisco UCS client: connection failed for node "
                 "%(node)s. Reason: %(error)s")
+
+
+class WolOperationError(IronicException):
+    pass
