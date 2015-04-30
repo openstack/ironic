@@ -673,6 +673,8 @@ def deploy_partition_image(address, port, iqn, lun, image_path,
                         or configdrive HTTP URL.
     :param boot_option: Can be "local" or "netboot". "netboot" by default.
     :param boot_mode: Can be "bios" or "uefi". "bios" by default.
+    :raises: InstanceDeployFailure if image virtual size is bigger than root
+        partition size.
     :returns: a dictionary containing the following keys:
         'root uuid': UUID of root partition
         'efi system partition uuid': UUID of the uefi system partition
@@ -680,12 +682,14 @@ def deploy_partition_image(address, port, iqn, lun, image_path,
         NOTE: If key exists but value is None, it means partition doesn't
               exist.
     """
-    with _iscsi_setup_and_handle_errors(address, port, iqn,
-                                        lun, image_path) as dev:
-        image_mb = get_image_mb(image_path)
-        if image_mb > root_mb:
-            root_mb = image_mb
+    image_mb = get_image_mb(image_path)
+    if image_mb > root_mb:
+        msg = (_('Root partition is too small for requested image. Image '
+                 'virtual size: %(image_mb)d MB, Root size: %(root_mb)d MB')
+               % {'image_mb': image_mb, 'root_mb': root_mb})
+        raise exception.InstanceDeployFailure(msg)
 
+    with _iscsi_setup_and_handle_errors(address, port, iqn, lun) as dev:
         uuid_dict_returned = work_on_disk(
             dev, root_mb, swap_mb, ephemeral_mb, ephemeral_format, image_path,
             node_uuid, preserve_ephemeral=preserve_ephemeral,
@@ -710,7 +714,7 @@ def deploy_disk_image(address, port, iqn, lun,
         the disk which was used for deployment.
     """
     with _iscsi_setup_and_handle_errors(address, port, iqn,
-                                        lun, image_path) as dev:
+                                        lun) as dev:
         populate_image(image_path, dev)
         disk_identifier = get_disk_identifier(dev)
 
@@ -718,15 +722,13 @@ def deploy_disk_image(address, port, iqn, lun,
 
 
 @contextlib.contextmanager
-def _iscsi_setup_and_handle_errors(address, port, iqn, lun,
-                                   image_path):
+def _iscsi_setup_and_handle_errors(address, port, iqn, lun):
     """Function that yields an iSCSI target device to work on.
 
     :param address: The iSCSI IP address.
     :param port: The iSCSI port number.
     :param iqn: The iSCSI qualified name.
     :param lun: The iSCSI logical unit number.
-    :param image_path: Path for the instance's disk image.
     """
     dev = get_dev(address, port, iqn, lun)
     discovery(address, port)
