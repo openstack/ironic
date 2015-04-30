@@ -273,6 +273,24 @@ class TestListNodes(test_api_base.FunctionalTest):
         next_marker = data['nodes'][-1]['uuid']
         self.assertIn(next_marker, data['next'])
 
+    def test_sort_key(self):
+        nodes = []
+        for id in range(3):
+            node = obj_utils.create_test_node(self.context,
+                                              uuid=uuidutils.generate_uuid())
+            nodes.append(node.uuid)
+        data = self.get_json('/nodes?sort_key=uuid')
+        uuids = [n['uuid'] for n in data['nodes']]
+        self.assertEqual(sorted(nodes), uuids)
+
+    def test_sort_key_invalid(self):
+        invalid_key = 'foo'
+        response = self.get_json('/nodes?sort_key=%s' % invalid_key,
+                                 expect_errors=True)
+        self.assertEqual(400, response.status_int)
+        self.assertEqual('application/json', response.content_type)
+        self.assertIn(invalid_key, response.json['error_message'])
+
     def test_ports_subresource_link(self):
         node = obj_utils.create_test_node(self.context)
         data = self.get_json('/nodes/%s' % node.uuid)
