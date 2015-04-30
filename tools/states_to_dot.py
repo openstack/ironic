@@ -22,8 +22,6 @@ top_dir = os.path.abspath(os.path.join(os.path.dirname(__file__),
                                        os.pardir))
 sys.path.insert(0, top_dir)
 
-# To get this installed you may have to follow:
-# https://code.google.com/p/pydot/issues/detail?id=93 (until fixed).
 import pydot
 
 from ironic.common import states
