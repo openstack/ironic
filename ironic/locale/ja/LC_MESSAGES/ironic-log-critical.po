@@ -20,6 +20,5 @@ msgstr ""
 "Generated-By: Babel 1.3\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
 
-#: ironic/conductor/manager.py:265
 msgid "Failed to start keepalive"
 msgstr "キープアライブの起動に失敗しました"
