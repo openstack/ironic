@@ -1386,6 +1386,16 @@ There are however some limitations for different drivers:
 
 Steps to start a deployment are pretty similar to those when using Nova:
 
+#. Setup the minimum required environment variables first::
+
+   export OS_AUTH_TOKEN=<token>
+   export IRONIC_URL=<ironic api url>
+
+   Example :
+
+   export OS_AUTH_TOKEN=fake-token
+   export IRONIC_URL=http://localhost:6385/
+
 #. Create a Node in Ironic. At minimum, you must specify the driver name (eg,
    "pxe_ipmitool"). You can also specify all the required driver parameters in
    one command. This will return the node UUID::
