@@ -18,7 +18,7 @@ Install prerequisites:
 
     sudo apt-get install python-dev libssl-dev python-pip libmysqlclient-dev libxml2-dev libxslt-dev libpq-dev git git-review libffi-dev gettext ipmitool psmisc graphviz
 
-- Fedora/RHEL::
+- Fedora/RHEL7::
 
     sudo yum install python-devel openssl-devel python-pip mysql-devel libxml2-devel libxslt-devel postgresql-devel git git-review libffi-devel gettext ipmitool psmisc graphviz
 
@@ -95,15 +95,15 @@ virtual environment, you can do this without starting any other OpenStack
 services. For example, this is useful for rapidly prototyping and debugging
 interactions over the RPC channel, testing database migrations, and so forth.
 
-First, install a few system prerequisites::
+#. Install a few system prerequisites::
 
     # install rabbit message broker
     # Ubuntu/Debian:
     sudo apt-get install rabbitmq-server
 
-    # Fedora/RHEL:
+    # Fedora/RHEL7:
     sudo yum install rabbitmq-server
-    sudo service rabbitmq-server start
+    sudo systemctl start rabbitmq-server.service
 
     # openSUSE/SLE 12:
     sudo zypper install rabbitmq-server
@@ -114,15 +114,16 @@ First, install a few system prerequisites::
     # Ubuntu/Debian:
     # sudo apt-get install mysql-server
 
-    # Fedora/RHEL:
-    # sudo yum install mysql-server
-    # sudo service mysqld start
+    # Fedora/RHEL7:
+    # sudo yum install mariadb
+    # sudo systemctl start mariadb.service
 
     # openSUSE/SLE 12:
     # sudo zypper install mariadb
     # sudo systemctl start mysql.service
 
-Next, clone the client and install it within a virtualenv as well::
+#. Clone the ``python-ironicclient`` repository and install it within
+   a virtualenv::
 
     # from your home or source directory
     cd ~
@@ -132,17 +133,19 @@ Next, clone the client and install it within a virtualenv as well::
     source .tox/venv/bin/activate
     python setup.py develop
 
-Export some ENV vars so the client will connect to the local services
-that you'll start in the next section::
+#. Export some ENV vars so the client will connect to the local services
+   that you'll start in the next section::
 
     export OS_AUTH_TOKEN=fake-token
     export IRONIC_URL=http://localhost:6385/
 
-Open another window (or screen session) and activate the virtual environment
-created in the previous section to run everything else within::
+#. Clone the ``Ironic`` repository and install it within a virtualenv::
 
     # activate the virtualenv
+    cd ~
+    git clone https://git.openstack.org/openstack/ironic
     cd ironic
+    tox -evenv -- echo 'done'
     source .tox/venv/bin/activate
 
     # install ironic within the virtualenv
@@ -174,13 +177,13 @@ created in the previous section to run everything else within::
     # This creates the database tables.
     ironic-dbsync --config-file etc/ironic/ironic.conf.local create_schema
 
-Start the API service in debug mode and watch its output::
+#. Start the API service in debug mode and watch its output::
 
     # start the API service
     ironic-api -v -d --config-file etc/ironic/ironic.conf.local
 
-Open one more window (or screen session), again activate the venv, and then
-start the conductor service and watch its output::
+#. Open one more window (or screen session), again activate the venv, and then
+   start the conductor service and watch its output::
 
     # activate the virtualenv
     cd ironic
@@ -189,10 +192,10 @@ start the conductor service and watch its output::
     # start the conductor service
     ironic-conductor -v -d --config-file etc/ironic/ironic.conf.local
 
-You should now be able to interact with Ironic via the python client (installed
-in the first window) and observe both services' debug outputs in the other two
-windows. This is a good way to test new features or play with the functionality
-without necessarily starting DevStack.
+You should now be able to interact with Ironic via the python client
+(installed in the first window) and observe both services' debug outputs
+in the other two windows. This is a good way to test new features or
+play with the functionality without necessarily starting DevStack.
 
 To get started, list the available commands and resources::
 
@@ -232,9 +235,9 @@ Here is an example walkthrough of creating a node::
     # its power state from ironic!
     ironic node-set-power-state $NODE on
 
-If you make some code changes and want to test their effects,
-install again with "python setup.py develop", stop the services
-with Ctrl-C, and restart them.
+If you make some code changes and want to test their effects, install
+again with "python setup.py develop", stop the services with Ctrl-C,
+and restart them.
 
 ================================
 Deploying Ironic with DevStack
