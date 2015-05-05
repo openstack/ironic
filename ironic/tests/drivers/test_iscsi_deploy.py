@@ -176,6 +176,75 @@ class IscsiDeployValidateParametersTestCase(db_base.DbTestCase):
                           iscsi_deploy.parse_instance_info,
                           node)
 
+    def test_parse_instance_info_invalid_ephemeral_disk(self):
+        info = dict(INST_INFO_DICT)
+        info['ephemeral_gb'] = 10
+        info['swap_mb'] = 0
+        info['root_gb'] = 20
+        info['preserve_ephemeral'] = True
+        drv_internal_dict = {'instance': {'ephemeral_gb': 9,
+                                          'swap_mb': 0,
+                                          'root_gb': 20}}
+        drv_internal_dict.update(DRV_INTERNAL_INFO_DICT)
+        node = obj_utils.create_test_node(
+            self.context, instance_info=info,
+            driver_internal_info=drv_internal_dict,
+        )
+        self.assertRaises(exception.InvalidParameterValue,
+                          iscsi_deploy.parse_instance_info,
+                          node)
+
+    def test__check_disk_layout_fails(self):
+        info = dict(INST_INFO_DICT)
+        info['ephemeral_gb'] = 10
+        info['swap_mb'] = 0
+        info['root_gb'] = 20
+        info['preserve_ephemeral'] = True
+        drv_internal_dict = {'instance': {'ephemeral_gb': 20,
+                                          'swap_mb': 0,
+                                          'root_gb': 20}}
+        drv_internal_dict.update(DRV_INTERNAL_INFO_DICT)
+        node = obj_utils.create_test_node(
+            self.context, instance_info=info,
+            driver_internal_info=drv_internal_dict,
+        )
+        self.assertRaises(exception.InvalidParameterValue,
+                          iscsi_deploy._check_disk_layout,
+                          node, info)
+
+    def test__check_disk_layout(self):
+        info = dict(INST_INFO_DICT)
+        info['ephemeral_gb'] = 10
+        info['swap_mb'] = 0
+        info['root_gb'] = 20
+        info['preserve_ephemeral'] = True
+        drv_internal_dict = {'instance': {'ephemeral_gb': 10,
+                                          'swap_mb': 0,
+                                          'root_gb': 20}}
+        drv_internal_dict.update(DRV_INTERNAL_INFO_DICT)
+        node = obj_utils.create_test_node(
+            self.context, instance_info=info,
+            driver_internal_info=drv_internal_dict,
+        )
+        self.assertIsNone(iscsi_deploy._check_disk_layout(node, info))
+
+    def test__save_disk_layout(self):
+        info = dict(INST_INFO_DICT)
+        info['ephemeral_gb'] = 10
+        info['swap_mb'] = 0
+        info['root_gb'] = 10
+        info['preserve_ephemeral'] = False
+        node = obj_utils.create_test_node(
+            self.context, instance_info=info,
+            driver_internal_info=DRV_INTERNAL_INFO_DICT,
+        )
+        iscsi_deploy._save_disk_layout(node, info)
+        node.refresh()
+        for param in ('ephemeral_gb', 'swap_mb', 'root_gb'):
+            self.assertEqual(
+                info[param], node.driver_internal_info['instance'][param]
+            )
+
     def test_parse_instance_info_configdrive(self):
         info = dict(INST_INFO_DICT)
         info['configdrive'] = 'http://1.2.3.4/cd'

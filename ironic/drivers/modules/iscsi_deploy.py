@@ -100,6 +100,50 @@ def _get_image_file_path(node_uuid):
     return os.path.join(_get_image_dir_path(node_uuid), 'disk')
 
 
+def _check_disk_layout(node, i_info):
+    """Check where disk layout changed."""
+    driver_internal_info = node.driver_internal_info
+    # For backward compatibility.
+    if 'instance' not in driver_internal_info:
+        return
+
+    error_msg = ''
+    for param in ('ephemeral_gb', 'swap_mb', 'root_gb'):
+        # For nodes that were deployed before this was introduced.
+        if param not in driver_internal_info['instance']:
+            return
+        param_value = int(driver_internal_info['instance'][param])
+        if param_value != int(i_info[param]):
+            error_msg += (' Previous value of %(param)s was %(param_value)s'
+                          'and newly request one is %(request_value)s' %
+                          {'param': param, 'param_value': param_value,
+                           'request_value': i_info[param]})
+
+    if error_msg:
+        err_msg_invalid = _("The following parameters have changed their "
+                            "value from previous deployment:%(error_msg)s")
+        raise exception.InvalidParameterValue(err_msg_invalid %
+                                              {'error_msg': error_msg})
+
+
+def _save_disk_layout(node, i_info):
+    """Check where disk layout changed."""
+    driver_internal_info = node.driver_internal_info
+    if 'instance' not in driver_internal_info:
+        driver_internal_info['instance'] = {}
+
+    changed = False
+    for param in ('ephemeral_gb', 'swap_mb', 'root_gb'):
+        param_value = int(driver_internal_info['instance'].get(param, -1))
+        if param_value != int(i_info[param]):
+            driver_internal_info['instance'][param] = i_info[param]
+            changed = True
+
+    if changed:
+        node.driver_internal_info = driver_internal_info
+        node.save()
+
+
 def parse_instance_info(node):
     """Gets the instance specific Node deployment info.
 
@@ -165,6 +209,14 @@ def parse_instance_info(node):
     except ValueError as e:
         raise exception.InvalidParameterValue(
             err_msg_invalid % {'param': 'preserve_ephemeral', 'reason': e})
+
+    # Note(Zhenguo) Add disk layout check here, in case of rebuild with
+    # preserve_ephemeral option.
+    if i_info['preserve_ephemeral']:
+        _check_disk_layout(node, i_info)
+    else:
+        _save_disk_layout(node, i_info)
+
     return i_info
 
 

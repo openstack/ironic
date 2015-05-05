@@ -807,6 +807,9 @@ class ConductorManager(periodic_task.PeriodicTasks):
             # deployed a node, and does not limit any future actions.
             # But we do need to clear the instance_info
             node.instance_info = {}
+            driver_internal_info = node.driver_internal_info
+            driver_internal_info.pop('instance', None)
+            node.driver_internal_info = driver_internal_info
             node.save()
 
         # Begin cleaning
