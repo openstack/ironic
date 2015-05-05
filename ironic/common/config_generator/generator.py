@@ -31,13 +31,13 @@ import sys
 import textwrap
 
 from oslo_config import cfg
+import oslo_i18n
+from oslo_utils import importutils
 import six
 import stevedore.named
 
-from ironic.openstack.common import gettextutils
-from ironic.openstack.common import importutils
 
-gettextutils.install('ironic')
+oslo_i18n.install('ironic')
 
 STROPT = "StrOpt"
 BOOLOPT = "BoolOpt"
