@@ -362,6 +362,6 @@ class VirtualBoxManagement(base.ManagementInterface):
         :raises: FailedToGetSensorData when getting the sensor data fails.
         :raises: FailedToParseSensorData when parsing sensor data fails.
         :returns: returns a consistent format dict of sensor data grouped by
-        sensor type, which can be processed by Ceilometer.
+            sensor type, which can be processed by Ceilometer.
         """
         raise NotImplementedError()

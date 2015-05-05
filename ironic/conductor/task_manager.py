@@ -276,8 +276,8 @@ class TaskManager(object):
 
         :param event: the name of the event to process
         :param callback: optional callback to invoke upon event transition
-        :param call_args: optional *args to pass to the callback method
-        :param call_kwargs: optional **kwargs to pass to the callback method
+        :param call_args: optional \*args to pass to the callback method
+        :param call_kwargs: optional \**kwargs to pass to the callback method
         :param err_handler: optional error handler to invoke if the
                 callback fails, eg. because there are no workers available
                 (err_handler should accept arguments node, prev_prov_state, and

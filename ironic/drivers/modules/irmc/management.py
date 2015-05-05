@@ -178,6 +178,7 @@ class IRMCManagement(ipmitool.IPMIManagement):
         :raises: MissingParameterValue if a required parameter is missing.
         :returns: Returns a consistent formatted dict of sensor data grouped
                   by sensor type, which can be processed by Ceilometer.
+                  Example::
 
                       {
                         'Sensor Type 1': {

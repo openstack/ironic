@@ -570,13 +570,16 @@ class VendorPassthru(agent_base_vendor.BaseAgentVendor):
         successful, then it notifies the bare metal to proceed to reboot
         and makes the instance active. If the bootloader installation failed,
         then it sets provisioning as failed and powers off the node.
+
         :param task: A TaskManager object.
         :param kwargs: The arguments sent with vendor passthru.  The expected
             kwargs are::
+
                 'key': The deploy key for authorization
                 'status': 'SUCCEEDED' or 'FAILED'
                 'error': The error message if status == 'FAILED'
                 'address': The IP address of the ramdisk
+
         """
         task.process_event('resume')
         LOG.debug('Continuing the deployment on node %s', task.node.uuid)

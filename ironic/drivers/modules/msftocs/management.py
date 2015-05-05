@@ -98,9 +98,11 @@ class MSFTOCSManagement(base.ManagementInterface):
 
         :param task: a task from TaskManager.
         :returns: a dictionary containing:
+
             :boot_device: the boot device
             :persistent: Whether the boot device will persist to all
                 future boots or not, None if it is unknown.
+
         """
         client, blade_id = msftocs_common.get_client_info(
             task.node.driver_info)
