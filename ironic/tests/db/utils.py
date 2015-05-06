@@ -129,6 +129,15 @@ def get_test_amt_info():
     }
 
 
+def get_test_msftocs_info():
+    return {
+        "msftocs_base_url": "http://fakehost:8000",
+        "msftocs_username": "admin",
+        "msftocs_password": "fake",
+        "msftocs_blade_id": 1,
+    }
+
+
 def get_test_agent_instance_info():
     return {
         'image_source': 'fake-image',

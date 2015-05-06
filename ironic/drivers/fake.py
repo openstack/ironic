@@ -37,6 +37,8 @@ from ironic.drivers.modules import ipminative
 from ironic.drivers.modules import ipmitool
 from ironic.drivers.modules.irmc import management as irmc_management
 from ironic.drivers.modules.irmc import power as irmc_power
+from ironic.drivers.modules.msftocs import management as msftocs_management
+from ironic.drivers.modules.msftocs import power as msftocs_power
 from ironic.drivers.modules import pxe
 from ironic.drivers.modules import seamicro
 from ironic.drivers.modules import snmp
@@ -234,3 +236,12 @@ class FakeAMTDriver(base.BaseDriver):
         self.power = amt_power.AMTPower()
         self.deploy = fake.FakeDeploy()
         self.management = amt_mgmt.AMTManagement()
+
+
+class FakeMSFTOCSDriver(base.BaseDriver):
+    """Fake MSFT OCS driver."""
+
+    def __init__(self):
+        self.power = msftocs_power.MSFTOCSPower()
+        self.deploy = fake.FakeDeploy()
+        self.management = msftocs_management.MSFTOCSManagement()

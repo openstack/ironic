@@ -334,6 +334,10 @@ class AMTFailure(IronicException):
     message = _("AMT call failed: %(cmd)s.")
 
 
+class MSFTOCSClientApiException(IronicException):
+    message = _("MSFT OCS call failed.")
+
+
 class SSHConnectFailed(IronicException):
     message = _("Failed to establish SSH connection to host %(host)s.")
 
