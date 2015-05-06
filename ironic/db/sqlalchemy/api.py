@@ -23,6 +23,7 @@ from oslo_config import cfg
 from oslo_db import exception as db_exc
 from oslo_db.sqlalchemy import session as db_session
 from oslo_db.sqlalchemy import utils as db_utils
+from oslo_log import log
 from oslo_utils import strutils
 from oslo_utils import timeutils
 from oslo_utils import uuidutils
@@ -35,7 +36,6 @@ from ironic.common import states
 from ironic.common import utils
 from ironic.db import api
 from ironic.db.sqlalchemy import models
-from ironic.openstack.common import log
 
 CONF = cfg.CONF
 CONF.import_opt('heartbeat_timeout',

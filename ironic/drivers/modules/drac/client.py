@@ -18,12 +18,12 @@ Wrapper for pywsman.Client
 import time
 from xml.etree import ElementTree
 
+from oslo_log import log as logging
 from oslo_utils import importutils
 
 from ironic.common import exception
 from ironic.common.i18n import _LW
 from ironic.drivers.modules.drac import common as drac_common
-from ironic.openstack.common import log as logging
 
 pywsman = importutils.try_import('pywsman')
 

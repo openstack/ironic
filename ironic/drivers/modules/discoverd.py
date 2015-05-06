@@ -17,6 +17,7 @@ Modules required to work with ironic_discoverd:
 
 import eventlet
 from oslo_config import cfg
+from oslo_log import log as logging
 from oslo_utils import importutils
 
 from ironic.common import exception
@@ -27,7 +28,6 @@ from ironic.common import keystone
 from ironic.common import states
 from ironic.conductor import task_manager
 from ironic.drivers import base
-from ironic.openstack.common import log as logging
 
 
 LOG = logging.getLogger(__name__)

@@ -15,6 +15,7 @@
 #    under the License.
 
 from oslo_config import cfg
+from oslo_log import log as logging
 from six.moves.urllib import parse
 from swiftclient import client as swift_client
 from swiftclient import exceptions as swift_exceptions
@@ -23,7 +24,6 @@ from swiftclient import utils as swift_utils
 from ironic.common import exception
 from ironic.common.i18n import _
 from ironic.common import keystone
-from ironic.openstack.common import log as logging
 
 swift_opts = [
     cfg.IntOpt('swift_max_retries',

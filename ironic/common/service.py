@@ -22,6 +22,7 @@ import socket
 from oslo import messaging
 from oslo_config import cfg
 from oslo_context import context
+from oslo_log import log
 from oslo_utils import importutils
 
 from ironic.common import config
@@ -29,7 +30,6 @@ from ironic.common.i18n import _LE
 from ironic.common.i18n import _LI
 from ironic.common import rpc
 from ironic.objects import base as objects_base
-from ironic.openstack.common import log
 from ironic.openstack.common import service
 
 
@@ -118,9 +118,8 @@ class RPCService(service.Service):
 
 
 def prepare_service(argv=[]):
-    config.parse_args(argv)
-    cfg.set_defaults(log.log_opts,
-                     default_log_levels=['amqp=WARN',
+    log.register_options(cfg.CONF)
+    log.set_defaults(default_log_levels=['amqp=WARN',
                                          'amqplib=WARN',
                                          'qpid.messaging=INFO',
                                          'oslo.messaging=INFO',
@@ -136,4 +135,5 @@ def prepare_service(argv=[]):
                                          'ironic.openstack.common=WARN',
                                          'urllib3.connectionpool=WARN',
                                          ])
-    log.setup('ironic')
+    config.parse_args(argv)
+    log.setup(cfg.CONF, 'ironic')

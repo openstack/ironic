@@ -19,13 +19,13 @@ import copy
 
 from oslo import messaging
 from oslo_context import context
+from oslo_log import log as logging
 import six
 
 from ironic.common import exception
 from ironic.common.i18n import _
 from ironic.common.i18n import _LE
 from ironic.objects import utils as obj_utils
-from ironic.openstack.common import log as logging
 from ironic.openstack.common import versionutils
 
 

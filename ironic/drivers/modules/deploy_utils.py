@@ -28,6 +28,7 @@ import time
 
 from oslo_concurrency import processutils
 from oslo_config import cfg
+from oslo_log import log as logging
 from oslo_serialization import jsonutils
 from oslo_utils import excutils
 from oslo_utils import units
@@ -48,7 +49,6 @@ from ironic.drivers.modules import agent_client
 from ironic.drivers.modules import image_cache
 from ironic.drivers import utils as driver_utils
 from ironic import objects
-from ironic.openstack.common import log as logging
 
 
 deploy_opts = [

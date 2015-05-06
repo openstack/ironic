@@ -18,6 +18,7 @@ import os
 
 import jinja2
 from oslo_config import cfg
+from oslo_log import log as logging
 
 from ironic.common import dhcp_factory
 from ironic.common import exception
@@ -26,7 +27,6 @@ from ironic.common import utils
 from ironic.drivers.modules import deploy_utils
 from ironic.drivers import utils as driver_utils
 from ironic.openstack.common import fileutils
-from ironic.openstack.common import log as logging
 
 CONF = cfg.CONF
 

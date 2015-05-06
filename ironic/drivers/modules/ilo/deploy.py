@@ -18,6 +18,7 @@ iLO Deploy Driver(s) and supporting methods.
 import tempfile
 
 from oslo_config import cfg
+from oslo_log import log as logging
 from oslo_utils import excutils
 
 from ironic.common import boot_devices
@@ -44,7 +45,6 @@ from ironic.drivers.modules import ipmitool
 from ironic.drivers.modules import iscsi_deploy
 from ironic.drivers.modules import pxe
 from ironic.drivers import utils as driver_utils
-from ironic.openstack.common import log as logging
 
 LOG = logging.getLogger(__name__)
 

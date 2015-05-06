@@ -12,6 +12,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+from oslo_log import log
 from oslo_utils import excutils
 
 from ironic.common import exception
@@ -20,7 +21,6 @@ from ironic.common.i18n import _LI
 from ironic.common.i18n import _LW
 from ironic.common import states
 from ironic.conductor import task_manager
-from ironic.openstack.common import log
 
 LOG = log.getLogger(__name__)
 

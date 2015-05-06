@@ -25,6 +25,7 @@ import uuid
 
 from oslo_concurrency import lockutils
 from oslo_config import cfg
+from oslo_log import log as logging
 
 from ironic.common import exception
 from ironic.common.glance_service import service_utils
@@ -33,7 +34,6 @@ from ironic.common.i18n import _LW
 from ironic.common import images
 from ironic.common import utils
 from ironic.openstack.common import fileutils
-from ironic.openstack.common import log as logging
 
 
 LOG = logging.getLogger(__name__)

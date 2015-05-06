@@ -26,13 +26,13 @@ import time
 
 from oslo_concurrency import processutils
 from oslo_config import cfg
+from oslo_log import log as logging
 from oslo_utils import netutils
 
 from ironic.common import exception
 from ironic.common.i18n import _
 from ironic.common.i18n import _LW
 from ironic.common import utils
-from ironic.openstack.common import log as logging
 from ironic.openstack.common import loopingcall
 
 

@@ -20,6 +20,7 @@
 import time
 
 from oslo_config import cfg
+from oslo_log import log
 from oslo_utils import excutils
 
 from ironic.common import boot_devices
@@ -37,7 +38,6 @@ from ironic.drivers import base
 from ironic.drivers.modules import agent_client
 from ironic.drivers.modules import deploy_utils
 from ironic import objects
-from ironic.openstack.common import log
 
 agent_opts = [
     cfg.IntOpt('heartbeat_timeout',

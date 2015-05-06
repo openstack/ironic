@@ -20,6 +20,7 @@ import os
 import shutil
 
 from oslo_config import cfg
+from oslo_log import log as logging
 from oslo_utils import importutils
 import requests
 import sendfile
@@ -28,7 +29,6 @@ import six.moves.urllib.parse as urlparse
 
 from ironic.common import exception
 from ironic.common.i18n import _
-from ironic.openstack.common import log as logging
 
 LOG = logging.getLogger(__name__)
 

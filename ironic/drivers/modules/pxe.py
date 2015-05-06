@@ -21,6 +21,7 @@ import os
 import shutil
 
 from oslo_config import cfg
+from oslo_log import log as logging
 
 from ironic.common import boot_devices
 from ironic.common import dhcp_factory
@@ -45,7 +46,6 @@ from ironic.drivers.modules import image_cache
 from ironic.drivers.modules import iscsi_deploy
 from ironic.drivers import utils as driver_utils
 from ironic.openstack.common import fileutils
-from ironic.openstack.common import log as logging
 
 
 pxe_opts = [

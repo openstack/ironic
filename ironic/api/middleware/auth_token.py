@@ -15,11 +15,11 @@
 import re
 
 from keystonemiddleware import auth_token
+from oslo_log import log
 
 from ironic.common import exception
 from ironic.common.i18n import _
 from ironic.common import utils
-from ironic.openstack.common import log
 
 LOG = log.getLogger(__name__)
 

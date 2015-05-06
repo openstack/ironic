@@ -15,6 +15,7 @@ VirtualBox Driver Modules
 """
 
 from oslo_config import cfg
+from oslo_log import log as logging
 from oslo_utils import importutils
 
 from ironic.common import boot_devices
@@ -24,7 +25,6 @@ from ironic.common.i18n import _LE
 from ironic.common import states
 from ironic.conductor import task_manager
 from ironic.drivers import base
-from ironic.openstack.common import log as logging
 
 pyremotevbox = importutils.try_import('pyremotevbox')
 if pyremotevbox:

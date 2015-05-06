@@ -22,6 +22,7 @@ import os
 import re
 
 from oslo_config import cfg
+from oslo_log import log as logging
 from oslo_utils import importutils
 from six.moves.urllib import parse as urlparse
 
@@ -34,7 +35,6 @@ from ironic.common import states
 from ironic.conductor import task_manager
 from ironic.drivers import base
 from ironic.drivers.modules import console_utils
-from ironic.openstack.common import log as logging
 from ironic.openstack.common import loopingcall
 
 seamicroclient = importutils.try_import('seamicroclient')

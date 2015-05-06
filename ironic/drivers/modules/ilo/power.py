@@ -17,6 +17,7 @@ iLO Power Driver
 """
 
 from oslo_config import cfg
+from oslo_log import log as logging
 from oslo_utils import importutils
 
 from ironic.common import boot_devices
@@ -28,7 +29,6 @@ from ironic.conductor import task_manager
 from ironic.conductor import utils as manager_utils
 from ironic.drivers import base
 from ironic.drivers.modules.ilo import common as ilo_common
-from ironic.openstack.common import log as logging
 from ironic.openstack.common import loopingcall
 
 ilo_error = importutils.try_import('proliantutils.exception')

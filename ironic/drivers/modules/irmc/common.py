@@ -16,11 +16,11 @@ Common functionalities shared between different iRMC modules.
 """
 
 from oslo_config import cfg
+from oslo_log import log as logging
 from oslo_utils import importutils
 
 from ironic.common import exception
 from ironic.common.i18n import _
-from ironic.openstack.common import log as logging
 
 scci = importutils.try_import('scciclient.irmc.scci')
 

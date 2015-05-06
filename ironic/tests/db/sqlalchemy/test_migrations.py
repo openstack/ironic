@@ -42,6 +42,7 @@ from oslo_db import exception as db_exc
 from oslo_db.sqlalchemy import test_base
 from oslo_db.sqlalchemy import test_migrations
 from oslo_db.sqlalchemy import utils as db_utils
+from oslo_log import log as logging
 from oslo_utils import uuidutils
 import sqlalchemy
 import sqlalchemy.exc
@@ -49,7 +50,6 @@ import sqlalchemy.exc
 from ironic.common.i18n import _LE
 from ironic.db.sqlalchemy import migration
 from ironic.db.sqlalchemy import models
-from ironic.openstack.common import log as logging
 from ironic.tests import base
 
 LOG = logging.getLogger(__name__)

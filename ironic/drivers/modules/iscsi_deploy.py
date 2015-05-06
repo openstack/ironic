@@ -16,6 +16,7 @@
 import os
 
 from oslo_config import cfg
+from oslo_log import log as logging
 from oslo_utils import strutils
 from six.moves.urllib import parse
 
@@ -33,7 +34,6 @@ from ironic.drivers.modules import deploy_utils
 from ironic.drivers.modules import image_cache
 from ironic.drivers import utils as driver_utils
 from ironic.openstack.common import fileutils
-from ironic.openstack.common import log as logging
 
 LOG = logging.getLogger(__name__)
 

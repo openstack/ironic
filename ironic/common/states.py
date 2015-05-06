@@ -28,8 +28,9 @@ the state leaves the current state unchanged. The node is NOT placed into
 maintenance mode in this case.
 """
 
+from oslo_log import log as logging
+
 from ironic.common import fsm
-from ironic.openstack.common import log as logging
 
 LOG = logging.getLogger(__name__)
 

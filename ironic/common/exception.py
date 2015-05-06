@@ -23,11 +23,11 @@ SHOULD include dedicated exception logging.
 """
 
 from oslo_config import cfg
+from oslo_log import log as logging
 import six
 
 from ironic.common.i18n import _
 from ironic.common.i18n import _LE
-from ironic.openstack.common import log as logging
 
 
 LOG = logging.getLogger(__name__)
