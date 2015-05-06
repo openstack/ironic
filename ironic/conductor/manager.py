@@ -1093,6 +1093,12 @@ class ConductorManager(periodic_task.PeriodicTasks):
     @periodic_task.periodic_task(
             spacing=CONF.conductor.check_provision_state_interval)
     def _check_deploy_timeouts(self, context):
+        """Periodically checks whether a deploy RPC call has timed out.
+
+        If a deploy call has timed out, the deploy failed and we clean up.
+
+        :param context: request context.
+        """
         callback_timeout = CONF.conductor.deploy_callback_timeout
         if not callback_timeout:
             return
@@ -1108,6 +1114,14 @@ class ConductorManager(periodic_task.PeriodicTasks):
                                sort_key, callback_method, err_handler)
 
     def _do_takeover(self, task):
+        """Take over this node.
+
+        Prepares a node for takeover by this conductor, performs the takeover,
+        and changes the conductor associated with the node. The node with the
+        new conductor affiliation is saved to the DB.
+
+        :param task: a TaskManager instance
+        """
         LOG.debug(('Conductor %(cdr)s taking over node %(node)s'),
                   {'cdr': self.host, 'node': task.node.uuid})
         task.driver.deploy.prepare(task)
@@ -1462,6 +1476,7 @@ class ConductorManager(periodic_task.PeriodicTasks):
     @periodic_task.periodic_task(
             spacing=CONF.conductor.send_sensor_data_interval)
     def _send_sensor_data(self, context):
+        """Periodically sends sensor data to Ceilometer."""
         # do nothing if send_sensor_data option is False
         if not CONF.conductor.send_sensor_data:
             return
@@ -1515,7 +1530,15 @@ class ConductorManager(periodic_task.PeriodicTasks):
                 eventlet.sleep(0)
 
     def _filter_out_unsupported_types(self, sensors_data):
-        # support the CONF.send_sensor_data_types sensor types only
+        """Filters out sensor data types that aren't specified in the config.
+
+        Removes sensor data types that aren't specified in
+        CONF.conductor.send_sensor_data_types.
+
+        :param sensors_data: dict containing sensor types and the associated
+               data
+        :returns: dict with unsupported sensor types removed
+        """
         allowed = set(x.lower() for x in CONF.conductor.send_sensor_data_types)
 
         if 'all' in allowed:
@@ -1914,6 +1937,16 @@ def do_node_deploy(task, conductor_id, configdrive=None):
 
 def handle_sync_power_state_max_retries_exceeded(task,
                                                  actual_power_state):
+    """Handles power state sync exceeding the max retries.
+
+    When synchronizing the power state between a node and the DB has exceeded
+    the maximum number of retries, change the DB power state to be the actual
+    node power state and place the node in maintenance.
+
+    :param task: a TaskManager instance with an exclusive lock
+    :param actual_power_state: the actual power state of the node; a power
+           state from ironic.common.states
+    """
     node = task.node
     msg = (_("During sync_power_state, max retries exceeded "
               "for node %(node)s, node state %(actual)s "
