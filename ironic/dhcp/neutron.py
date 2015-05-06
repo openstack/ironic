@@ -103,7 +103,7 @@ class NeutronDHCPApi(base.BaseDHCP):
 
         Update one or more DHCP options on the specified port.
         For the relevant API spec, see
-        http://docs.openstack.org/api/openstack-network/2.0/content/extra-dhc-opt-ext-update.html  # noqa
+        http://docs.openstack.org/api/openstack-network/2.0/content/extra-dhc-opt-ext-update.html
 
         :param port_id: designate which port these attributes
                         will be applied to.
