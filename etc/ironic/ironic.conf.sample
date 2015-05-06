@@ -598,6 +598,68 @@
 #subprocess_timeout=10
 
 
+[cors]
+
+#
+# Options defined in oslo.middleware.cors
+#
+
+# Indicate whether this resource may be shared with the domain
+# received in the requests "origin" header. (string value)
+#allowed_origin=<None>
+
+# Indicate that the actual request can include user
+# credentials (boolean value)
+#allow_credentials=true
+
+# Indicate which headers are safe to expose to the API.
+# Defaults to HTTP Simple Headers. (list value)
+#expose_headers=Content-Type,Cache-Control,Content-Language,Expires,Last-Modified,Pragma
+
+# Maximum cache age of CORS preflight requests. (integer
+# value)
+#max_age=3600
+
+# Indicate which methods can be used during the actual
+# request. (list value)
+#allow_methods=GET,POST,PUT,DELETE,OPTIONS
+
+# Indicate which header field names may be used during the
+# actual request. (list value)
+#allow_headers=Content-Type,Cache-Control,Content-Language,Expires,Last-Modified,Pragma
+
+
+[cors.subdomain]
+
+#
+# Options defined in oslo.middleware.cors
+#
+
+# Indicate whether this resource may be shared with the domain
+# received in the requests "origin" header. (string value)
+#allowed_origin=<None>
+
+# Indicate that the actual request can include user
+# credentials (boolean value)
+#allow_credentials=true
+
+# Indicate which headers are safe to expose to the API.
+# Defaults to HTTP Simple Headers. (list value)
+#expose_headers=Content-Type,Cache-Control,Content-Language,Expires,Last-Modified,Pragma
+
+# Maximum cache age of CORS preflight requests. (integer
+# value)
+#max_age=3600
+
+# Indicate which methods can be used during the actual
+# request. (list value)
+#allow_methods=GET,POST,PUT,DELETE,OPTIONS
+
+# Indicate which header field names may be used during the
+# actual request. (list value)
+#allow_headers=Content-Type,Cache-Control,Content-Language,Expires,Last-Modified,Pragma
+
+
 [database]
 
 #
