@@ -314,7 +314,7 @@ def _parse_driver_info(node):
 
     # Only one credential may be set (avoids complexity around having
     # precedence etc).
-    if len(filter(None, (password, key_filename, key_contents))) != 1:
+    if len([v for v in (password, key_filename, key_contents) if v]) != 1:
         raise exception.InvalidParameterValue(_(
             "SSHPowerDriver requires one and only one of password, "
             "key_contents and key_filename to be set."))

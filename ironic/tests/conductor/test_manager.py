@@ -1311,7 +1311,7 @@ class DoNodeDeployTearDownTestCase(_ServiceSetUpMixin,
         self.assertRaises(exception.SwiftOperationError,
                            manager.do_node_deploy, task,
                            self.service.conductor.id,
-                           configdrive='fake config drive')
+                           configdrive=b'fake config drive')
         node.refresh()
         self.assertEqual(states.DEPLOYFAIL, node.provision_state)
         self.assertEqual(states.ACTIVE, node.target_provision_state)
@@ -3573,7 +3573,7 @@ class StoreConfigDriveTestCase(tests_base.TestCase):
                           group='conductor')
         mock_swift.return_value.get_temp_url.return_value = 'http://1.2.3.4'
 
-        manager._store_configdrive(self.node, 'foo')
+        manager._store_configdrive(self.node, b'foo')
 
         mock_swift.assert_called_once_with()
         mock_swift.return_value.create_object.assert_called_once_with(

@@ -18,6 +18,7 @@ import hashlib
 import threading
 
 from oslo_config import cfg
+import six
 
 from ironic.common import exception
 from ironic.common.i18n import _
@@ -105,6 +106,8 @@ class HashRing(object):
 
     def _get_partition(self, data):
         try:
+            if six.PY3 and data is not None:
+                data = data.encode('utf-8')
             key_hash = hashlib.md5(data)
             hashed_key = self._hash2int(key_hash)
             position = bisect.bisect(self._partitions, hashed_key)
@@ -180,7 +183,7 @@ class HashRingManager(object):
         rings = {}
         d2c = self.dbapi.get_active_driver_dict()
 
-        for driver_name, hosts in d2c.iteritems():
+        for driver_name, hosts in d2c.items():
             rings[driver_name] = HashRing(hosts)
         return rings
 

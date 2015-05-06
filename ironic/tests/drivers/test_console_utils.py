@@ -195,7 +195,7 @@ class ConsoleUtilsTestCase(db_base.DbTestCase):
                 'tempdir': tempfile.gettempdir(),
                 'node_uuid': self.info['uuid']}
         password = ''.join([random.choice(string.ascii_letters)
-                            for n in xrange(16)])
+                            for n in range(16)])
         console_utils.make_persistent_password_file(filepath, password)
         # make sure file exists
         self.assertTrue(os.path.exists(filepath))

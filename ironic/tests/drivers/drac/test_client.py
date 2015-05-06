@@ -91,8 +91,8 @@ class DracClientTestCase(base.TestCase):
 
         # assert the XML was merged
         result_string = ElementTree.tostring(result)
-        self.assertIn('<item1>test1</item1>', result_string)
-        self.assertIn('<item2>test2</item2>', result_string)
+        self.assertIn(b'<item1>test1</item1>', result_string)
+        self.assertIn(b'<item2>test2</item2>', result_string)
 
         mock_options = mock_client_pywsman.ClientOptions.return_value
         mock_options.set_flags.assert_called_once_with(

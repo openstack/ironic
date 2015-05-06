@@ -18,6 +18,7 @@ import os
 
 import mock
 from oslo_config import cfg
+import six
 
 from ironic.common import pxe_utils
 from ironic.conductor import task_manager
@@ -84,7 +85,7 @@ class TestPXEUtils(db_base.DbTestCase):
         expected_template = open(
             'ironic/tests/drivers/pxe_config.template').read().rstrip()
 
-        self.assertEqual(unicode(expected_template), rendered_template)
+        self.assertEqual(six.text_type(expected_template), rendered_template)
 
     def test__build_pxe_config_with_agent(self):
 
@@ -94,7 +95,7 @@ class TestPXEUtils(db_base.DbTestCase):
         expected_template = open(
             'ironic/tests/drivers/agent_pxe_config.template').read().rstrip()
 
-        self.assertEqual(unicode(expected_template), rendered_template)
+        self.assertEqual(six.text_type(expected_template), rendered_template)
 
     def test__build_ipxe_config(self):
         # NOTE(lucasagomes): iPXE is just an extension of the PXE driver,
@@ -112,7 +113,7 @@ class TestPXEUtils(db_base.DbTestCase):
         expected_template = open(
             'ironic/tests/drivers/ipxe_config.template').read().rstrip()
 
-        self.assertEqual(unicode(expected_template), rendered_template)
+        self.assertEqual(six.text_type(expected_template), rendered_template)
 
     def test__build_elilo_config(self):
         pxe_opts = self.pxe_options
@@ -124,7 +125,7 @@ class TestPXEUtils(db_base.DbTestCase):
             'ironic/tests/drivers/elilo_efi_pxe_config.template'
             ).read().rstrip()
 
-        self.assertEqual(unicode(expected_template), rendered_template)
+        self.assertEqual(six.text_type(expected_template), rendered_template)
 
     @mock.patch('ironic.common.utils.create_link_without_raise', autospec=True)
     @mock.patch('ironic.common.utils.unlink_without_raise', autospec=True)
@@ -346,8 +347,8 @@ class TestPXEUtils(db_base.DbTestCase):
                          {'opt_name': 'bootfile-name',
                           'opt_value': expected_boot_script_url}]
         with task_manager.acquire(self.context, self.node.uuid) as task:
-            self.assertEqual(sorted(expected_info),
-                             sorted(pxe_utils.dhcp_options_for_instance(task)))
+            self.assertItemsEqual(expected_info,
+                                  pxe_utils.dhcp_options_for_instance(task))
 
         self.config(dhcp_provider='neutron', group='dhcp')
         expected_boot_script_url = 'http://192.0.3.2:1234/boot.ipxe'
@@ -360,8 +361,8 @@ class TestPXEUtils(db_base.DbTestCase):
                          {'opt_name': 'bootfile-name',
                           'opt_value': expected_boot_script_url}]
         with task_manager.acquire(self.context, self.node.uuid) as task:
-            self.assertEqual(sorted(expected_info),
-                             sorted(pxe_utils.dhcp_options_for_instance(task)))
+            self.assertItemsEqual(expected_info,
+                                  pxe_utils.dhcp_options_for_instance(task))
 
     @mock.patch('ironic.common.utils.rmtree_without_raise', autospec=True)
     @mock.patch('ironic.common.utils.unlink_without_raise', autospec=True)

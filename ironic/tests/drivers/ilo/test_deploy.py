@@ -19,6 +19,7 @@ import tempfile
 
 import mock
 from oslo_config import cfg
+import six
 
 from ironic.common import boot_devices
 from ironic.common import exception
@@ -43,6 +44,10 @@ from ironic.tests.db import base as db_base
 from ironic.tests.db import utils as db_utils
 from ironic.tests.objects import utils as obj_utils
 
+
+if six.PY3:
+    import io
+    file = io.BytesIO
 
 INFO_DICT = db_utils.get_test_ilo_info()
 CONF = cfg.CONF

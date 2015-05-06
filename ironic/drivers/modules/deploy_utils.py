@@ -505,7 +505,7 @@ def _get_configdrive(configdrive, node_uuid):
         data = configdrive
 
     try:
-        data = six.StringIO(base64.b64decode(data))
+        data = six.BytesIO(base64.b64decode(data))
     except TypeError:
         error_msg = (_('Config drive for node %s is not base64 encoded '
                        'or the content is malformed.') % node_uuid)

@@ -17,6 +17,7 @@
 
 import mock
 from oslo_utils import uuidutils
+import six
 import webtest
 import wsme
 from wsme import types as wtypes
@@ -134,7 +135,7 @@ class TestJsonPatchType(base.TestCase):
                           'value': {'cat': 'meow'}}]
         ret = self._patch_json(valid_patches, False)
         self.assertEqual(200, ret.status_int)
-        self.assertEqual(sorted(valid_patches), sorted(ret.json))
+        self.assertItemsEqual(valid_patches, ret.json)
 
     def test_cannot_update_internal_attr(self):
         patch = [{'path': '/internal', 'op': 'replace', 'value': 'foo'}]
@@ -255,7 +256,8 @@ class TestJsonType(base.TestCase):
         vts = str(types.jsontype)
         self.assertIn(str(wtypes.text), vts)
         self.assertIn(str(int), vts)
-        self.assertIn(str(long), vts)
+        if six.PY2:
+            self.assertIn(str(long), vts)
         self.assertIn(str(float), vts)
         self.assertIn(str(types.BooleanType), vts)
         self.assertIn(str(list), vts)

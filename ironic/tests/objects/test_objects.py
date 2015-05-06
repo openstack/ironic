@@ -310,14 +310,10 @@ class _TestObject(object):
         class Foo(base.IronicObject):
             fields = {'foobar': int}
         obj = Foo(self.context)
-        # NOTE(danms): Can't use assertRaisesRegexp() because of py26
-        raised = False
-        try:
-            obj.foobar
-        except NotImplementedError as ex:
-            raised = True
-        self.assertTrue(raised)
-        self.assertTrue('foobar' in str(ex))
+
+        self.assertRaisesRegexp(
+            NotImplementedError, "Cannot load 'foobar' in the base class",
+            getattr, obj, 'foobar')
 
     def test_loaded_in_primitive(self):
         obj = MyObj(self.context)
@@ -467,7 +463,7 @@ class _TestObject(object):
         self.assertRaises(AttributeError, obj.get, 'nothing', 3)
 
     def test_object_inheritance(self):
-        base_fields = base.IronicObject.fields.keys()
+        base_fields = list(base.IronicObject.fields)
         myobj_fields = ['foo', 'bar', 'missing'] + base_fields
         myobj3_fields = ['new_field']
         self.assertTrue(issubclass(TestSubclassedObject, MyObj))

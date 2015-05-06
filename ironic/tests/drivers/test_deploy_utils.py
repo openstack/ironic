@@ -46,7 +46,7 @@ from ironic.tests.db import base as db_base
 from ironic.tests.db import utils as db_utils
 from ironic.tests.objects import utils as obj_utils
 
-_PXECONF_DEPLOY = """
+_PXECONF_DEPLOY = b"""
 default deploy
 
 label deploy
@@ -97,7 +97,7 @@ COM32 chain.c32
 append mbr:0x12345678
 """
 
-_IPXECONF_DEPLOY = """
+_IPXECONF_DEPLOY = b"""
 #!ipxe
 
 dhcp
@@ -166,7 +166,7 @@ append mbr:0x12345678
 boot
 """
 
-_UEFI_PXECONF_DEPLOY = """
+_UEFI_PXECONF_DEPLOY = b"""
 default=deploy
 
 image=deploy_kernel
@@ -1169,7 +1169,7 @@ class MakePartitionsTestCase(tests_base.TestCase):
                               self.ephemeral_mb, self.configdrive_mb)
 
         parted_call = mock.call(*cmd, run_as_root=True, check_exit_code=[0])
-        mock_exc.assert_has_calls(parted_call)
+        mock_exc.assert_has_calls([parted_call])
 
 
 @mock.patch.object(utils, 'get_dev_block_size')

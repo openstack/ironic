@@ -277,7 +277,7 @@ def _cache_ramdisk_kernel(ctx, node, pxe_info):
         os.path.join(pxe_utils.get_root_dir(), node.uuid))
     LOG.debug("Fetching necessary kernel and ramdisk for node %s",
               node.uuid)
-    deploy_utils.fetch_images(ctx, TFTPImageCache(), pxe_info.values(),
+    deploy_utils.fetch_images(ctx, TFTPImageCache(), list(pxe_info.values()),
                               CONF.force_raw_images)
 
 

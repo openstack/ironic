@@ -139,11 +139,11 @@ def make_persistent_password_file(path, password):
         utils.delete_if_exists(path)
         with open(path, 'wb') as file:
             os.chmod(path, 0o600)
-            file.write(password)
+            file.write(password.encode())
         return path
     except Exception as e:
         utils.delete_if_exists(path)
-        raise exception.PasswordFileFailedToCreate(error=str(e))
+        raise exception.PasswordFileFailedToCreate(error=e)
 
 
 def get_shellinabox_console_url(port):

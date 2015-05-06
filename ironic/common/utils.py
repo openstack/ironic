@@ -288,10 +288,10 @@ def sanitize_hostname(hostname):
     if isinstance(hostname, six.text_type):
         hostname = hostname.encode('latin-1', 'ignore')
 
-    hostname = re.sub('[ _]', '-', hostname)
-    hostname = re.sub('[^\w.-]+', '', hostname)
+    hostname = re.sub(b'[ _]', b'-', hostname)
+    hostname = re.sub(b'[^\w.-]+', b'', hostname)
     hostname = hostname.lower()
-    hostname = hostname.strip('.-')
+    hostname = hostname.strip(b'.-')
 
     return hostname
 

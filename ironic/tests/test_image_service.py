@@ -16,12 +16,17 @@ import shutil
 import mock
 import requests
 import sendfile
+import six
 import six.moves.builtins as __builtin__
 
 from ironic.common import exception
 from ironic.common.glance_service.v1 import image_service as glance_v1_service
 from ironic.common import image_service
 from ironic.tests import base
+
+if six.PY3:
+    import io
+    file = io.BytesIO
 
 
 class HttpImageServiceTestCase(base.TestCase):
@@ -167,6 +172,7 @@ class FileImageServiceTestCase(base.TestCase):
         _validate_mock.return_value = self.href_path
         stat_mock.return_value.st_dev = 'dev1'
         file_mock = mock.MagicMock(spec=file)
+        file_mock.name = 'file'
         input_mock = mock.MagicMock(spec=file)
         open_mock.return_value = input_mock
         self.service.download(self.href, file_mock)
@@ -208,6 +214,7 @@ class FileImageServiceTestCase(base.TestCase):
         _validate_mock.return_value = self.href_path
         stat_mock.return_value.st_dev = 'dev1'
         file_mock = mock.MagicMock(spec=file)
+        file_mock.name = 'file'
         input_mock = mock.MagicMock(spec=file)
         open_mock.return_value = input_mock
         self.assertRaises(exception.ImageDownloadFailed,

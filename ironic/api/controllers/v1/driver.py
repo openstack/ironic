@@ -185,7 +185,7 @@ class DriversController(rest.RestController):
         # choose to expose below it.
 
         driver_dict = pecan.request.dbapi.get_active_driver_dict()
-        for name, hosts in driver_dict.iteritems():
+        for name, hosts in driver_dict.items():
             if name == driver_name:
                 return Driver.convert_with_links(name, list(hosts))
 

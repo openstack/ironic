@@ -151,7 +151,9 @@ def parse_driver_info(node):
     for param in REQUIRED_PROPERTIES:
         value = info.get(param)
         if value:
-            d_info[param[4:]] = six.binary_type(value)
+            if not isinstance(value, six.binary_type):
+                value = value.encode()
+            d_info[param[4:]] = value
         else:
             missing_info.append(param)
 
@@ -166,7 +168,9 @@ def parse_driver_info(node):
     if protocol not in AMT_PROTOCOL_PORT_MAP:
         raise exception.InvalidParameterValue(_("Invalid "
                 "protocol %s.") % protocol)
-    d_info[param[4:]] = six.binary_type(protocol)
+    if not isinstance(value, six.binary_type):
+        protocol = protocol.encode()
+    d_info[param[4:]] = protocol
 
     return d_info
 

@@ -26,6 +26,7 @@ import json
 from xml import etree as et
 
 from oslo_log import log
+import six
 import webob
 
 from ironic.common.i18n import _
@@ -83,7 +84,11 @@ class ParsableErrorMiddleware(object):
                             + '</error_message>']
                 state['headers'].append(('Content-Type', 'application/xml'))
             else:
+                if six.PY3:
+                    app_iter = [i.decode('utf-8') for i in app_iter]
                 body = [json.dumps({'error_message': '\n'.join(app_iter)})]
+                if six.PY3:
+                    body = [item.encode('utf-8') for item in body]
                 state['headers'].append(('Content-Type', 'application/json'))
             state['headers'].append(('Content-Length', str(len(body[0]))))
         else:

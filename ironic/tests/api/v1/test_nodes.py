@@ -22,6 +22,7 @@ import mock
 from oslo_config import cfg
 from oslo_utils import timeutils
 from oslo_utils import uuidutils
+import six
 from six.moves.urllib import parse as urlparse
 from testtools.matchers import HasLength
 from wsme import types as wtypes
@@ -1197,6 +1198,8 @@ class TestPost(test_api_base.FunctionalTest):
                                  is_async=True):
         expected_status = 202 if is_async else 200
         expected_return_value = json.dumps(return_value)
+        if six.PY3:
+            expected_return_value = expected_return_value.encode('utf-8')
 
         node = obj_utils.create_test_node(self.context)
         info = {'foo': 'bar'}
@@ -1212,6 +1215,8 @@ class TestPost(test_api_base.FunctionalTest):
                                          is_async=True):
         expected_status = 202 if is_async else 200
         expected_return_value = json.dumps(return_value)
+        if six.PY3:
+            expected_return_value = expected_return_value.encode('utf-8')
 
         node = obj_utils.create_test_node(self.context, name='node-109')
         info = {'foo': 'bar'}
@@ -1276,9 +1281,7 @@ class TestPost(test_api_base.FunctionalTest):
         with mock.patch.object(
                 rpcapi.ConductorAPI, 'vendor_passthru') as mock_vendor:
             mock_vendor.side_effect = exception.UnsupportedDriverExtension(
-                                        {'driver': node.driver,
-                                         'node': uuid,
-                                         'extension': 'test'})
+                **{'driver': node.driver, 'node': uuid, 'extension': 'test'})
             response = self.post_json('/nodes/%s/vendor_passthru/test' % uuid,
                                       info, expect_errors=True)
             mock_vendor.assert_called_once_with(
@@ -1470,7 +1473,7 @@ class TestDelete(test_api_base.FunctionalTest):
         mock_get.return_value = node
         response = self.delete('/nodes/%s/maintenance' % node.uuid)
         self.assertEqual(202, response.status_int)
-        self.assertEqual('', response.body)
+        self.assertEqual(b'', response.body)
         self.assertEqual(False, node.maintenance)
         self.assertEqual(None, node.maintenance_reason)
         mock_get.assert_called_once_with(mock.ANY, node.uuid)
@@ -1488,7 +1491,7 @@ class TestDelete(test_api_base.FunctionalTest):
         response = self.delete('/nodes/%s/maintenance' % node.name,
                 headers={api_base.Version.string: "1.5"})
         self.assertEqual(202, response.status_int)
-        self.assertEqual('', response.body)
+        self.assertEqual(b'', response.body)
         self.assertEqual(False, node.maintenance)
         self.assertEqual(None, node.maintenance_reason)
         mock_get.assert_called_once_with(mock.ANY, node.name)
@@ -1523,7 +1526,7 @@ class TestPut(test_api_base.FunctionalTest):
         response = self.put_json('/nodes/%s/states/power' % self.node.uuid,
                                  {'target': states.POWER_ON})
         self.assertEqual(202, response.status_code)
-        self.assertEqual('', response.body)
+        self.assertEqual(b'', response.body)
         self.mock_cnps.assert_called_once_with(mock.ANY,
                                                self.node.uuid,
                                                states.POWER_ON,
@@ -1545,7 +1548,7 @@ class TestPut(test_api_base.FunctionalTest):
                                  {'target': states.POWER_ON},
                                  headers={api_base.Version.string: "1.5"})
         self.assertEqual(202, response.status_code)
-        self.assertEqual('', response.body)
+        self.assertEqual(b'', response.body)
         self.mock_cnps.assert_called_once_with(mock.ANY,
                                                self.node.uuid,
                                                states.POWER_ON,
@@ -1577,7 +1580,7 @@ class TestPut(test_api_base.FunctionalTest):
         ret = self.put_json('/nodes/%s/states/provision' % self.node.uuid,
                             {'target': states.ACTIVE})
         self.assertEqual(202, ret.status_code)
-        self.assertEqual('', ret.body)
+        self.assertEqual(b'', ret.body)
         self.mock_dnd.assert_called_once_with(
                 mock.ANY, self.node.uuid, False, None, 'test-topic')
         # Check location header
@@ -1597,7 +1600,7 @@ class TestPut(test_api_base.FunctionalTest):
                             {'target': states.ACTIVE},
                             headers={api_base.Version.string: "1.5"})
         self.assertEqual(202, ret.status_code)
-        self.assertEqual('', ret.body)
+        self.assertEqual(b'', ret.body)
         self.mock_dnd.assert_called_once_with(
                 mock.ANY, self.node.uuid, False, None, 'test-topic')
 
@@ -1605,7 +1608,7 @@ class TestPut(test_api_base.FunctionalTest):
         ret = self.put_json('/nodes/%s/states/provision' % self.node.uuid,
                             {'target': states.ACTIVE, 'configdrive': 'foo'})
         self.assertEqual(202, ret.status_code)
-        self.assertEqual('', ret.body)
+        self.assertEqual(b'', ret.body)
         self.mock_dnd.assert_called_once_with(
                 mock.ANY, self.node.uuid, False, 'foo', 'test-topic')
         # Check location header
@@ -1628,7 +1631,7 @@ class TestPut(test_api_base.FunctionalTest):
         ret = self.put_json('/nodes/%s/states/provision' % node.uuid,
                             {'target': states.DELETED})
         self.assertEqual(202, ret.status_code)
-        self.assertEqual('', ret.body)
+        self.assertEqual(b'', ret.body)
         self.mock_dntd.assert_called_once_with(
                 mock.ANY, node.uuid, 'test-topic')
         # Check location header
@@ -1656,7 +1659,7 @@ class TestPut(test_api_base.FunctionalTest):
         ret = self.put_json('/nodes/%s/states/provision' % node.uuid,
                             {'target': states.DELETED})
         self.assertEqual(202, ret.status_code)
-        self.assertEqual('', ret.body)
+        self.assertEqual(b'', ret.body)
         self.mock_dntd.assert_called_once_with(
                 mock.ANY, node.uuid, 'test-topic')
         # Check location header
@@ -1678,7 +1681,7 @@ class TestPut(test_api_base.FunctionalTest):
         ret = self.put_json('/nodes/%s/states/provision' % node.uuid,
                             {'target': states.ACTIVE})
         self.assertEqual(202, ret.status_code)
-        self.assertEqual('', ret.body)
+        self.assertEqual(b'', ret.body)
         self.mock_dnd.assert_called_once_with(
                 mock.ANY, node.uuid, False, None, 'test-topic')
         # Check location header
@@ -1711,7 +1714,7 @@ class TestPut(test_api_base.FunctionalTest):
                             {'target': states.VERBS['provide']},
                             headers={api_base.Version.string: "1.4"})
         self.assertEqual(202, ret.status_code)
-        self.assertEqual('', ret.body)
+        self.assertEqual(b'', ret.body)
         mock_dpa.assert_called_once_with(mock.ANY, self.node.uuid,
                                          states.VERBS['provide'],
                                          'test-topic')
@@ -1736,7 +1739,7 @@ class TestPut(test_api_base.FunctionalTest):
                             {'target': states.VERBS['manage']},
                             headers={api_base.Version.string: "1.4"})
         self.assertEqual(202, ret.status_code)
-        self.assertEqual('', ret.body)
+        self.assertEqual(b'', ret.body)
         mock_dpa.assert_called_once_with(mock.ANY, self.node.uuid,
                                          states.VERBS['manage'],
                                          'test-topic')
@@ -1759,7 +1762,7 @@ class TestPut(test_api_base.FunctionalTest):
             ret = self.put_json('/nodes/%s/states/console' % self.node.uuid,
                                 {'enabled': "true"})
             self.assertEqual(202, ret.status_code)
-            self.assertEqual('', ret.body)
+            self.assertEqual(b'', ret.body)
             mock_scm.assert_called_once_with(mock.ANY, self.node.uuid,
                                              True, 'test-topic')
             # Check location header
@@ -1781,7 +1784,7 @@ class TestPut(test_api_base.FunctionalTest):
                             {'enabled': "true"},
                             headers={api_base.Version.string: "1.5"})
         self.assertEqual(202, ret.status_code)
-        self.assertEqual('', ret.body)
+        self.assertEqual(b'', ret.body)
         mock_scm.assert_called_once_with(mock.ANY, self.node.uuid,
                                              True, 'test-topic')
 
@@ -1791,7 +1794,7 @@ class TestPut(test_api_base.FunctionalTest):
             ret = self.put_json('/nodes/%s/states/console' % self.node.uuid,
                                 {'enabled': "false"})
             self.assertEqual(202, ret.status_code)
-            self.assertEqual('', ret.body)
+            self.assertEqual(b'', ret.body)
             mock_scm.assert_called_once_with(mock.ANY, self.node.uuid,
                                              False, 'test-topic')
             # Check location header
@@ -1846,7 +1849,7 @@ class TestPut(test_api_base.FunctionalTest):
         ret = self.put_json('/nodes/%s/management/boot_device'
                             % self.node.uuid, {'boot_device': device})
         self.assertEqual(204, ret.status_code)
-        self.assertEqual('', ret.body)
+        self.assertEqual(b'', ret.body)
         mock_sbd.assert_called_once_with(mock.ANY, self.node.uuid,
                                          device, persistent=False,
                                          topic='test-topic')
@@ -1858,7 +1861,7 @@ class TestPut(test_api_base.FunctionalTest):
                             % self.node.name, {'boot_device': device},
                             headers={api_base.Version.string: "1.5"})
         self.assertEqual(204, ret.status_code)
-        self.assertEqual('', ret.body)
+        self.assertEqual(b'', ret.body)
         mock_sbd.assert_called_once_with(mock.ANY, self.node.uuid,
                                          device, persistent=False,
                                          topic='test-topic')
@@ -1883,7 +1886,7 @@ class TestPut(test_api_base.FunctionalTest):
         ret = self.put_json('/nodes/%s/management/boot_device?persistent=True'
                             % self.node.uuid, {'boot_device': device})
         self.assertEqual(204, ret.status_code)
-        self.assertEqual('', ret.body)
+        self.assertEqual(b'', ret.body)
         mock_sbd.assert_called_once_with(mock.ANY, self.node.uuid,
                                          device, persistent=True,
                                          topic='test-topic')
@@ -1912,7 +1915,7 @@ class TestPut(test_api_base.FunctionalTest):
         ret = self.put_json('/nodes/%s/maintenance' % node_ident,
                             request_body, headers=headers)
         self.assertEqual(202, ret.status_code)
-        self.assertEqual('', ret.body)
+        self.assertEqual(b'', ret.body)
         self.assertEqual(True, self.node.maintenance)
         self.assertEqual(reason, self.node.maintenance_reason)
         mock_get.assert_called_once_with(mock.ANY, node_ident)

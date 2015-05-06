@@ -100,7 +100,7 @@ exit 1
                 self.assertRaises(processutils.ProcessExecutionError,
                                   utils.execute,
                                   tmpfilename, tmpfilename2, attempts=10,
-                                  process_input='foo',
+                                  process_input=b'foo',
                                   delay_on_retry=False)
             except OSError as e:
                 if e.errno == errno.EACCES:
@@ -151,7 +151,7 @@ grep foo
             try:
                 utils.execute(tmpfilename,
                               tmpfilename2,
-                              process_input='foo',
+                              process_input=b'foo',
                               attempts=2)
             except OSError as e:
                 if e.errno == errno.EACCES:
@@ -205,27 +205,27 @@ grep foo
 class GenericUtilsTestCase(base.TestCase):
     def test_hostname_unicode_sanitization(self):
         hostname = u"\u7684.test.example.com"
-        self.assertEqual("test.example.com",
+        self.assertEqual(b"test.example.com",
                          utils.sanitize_hostname(hostname))
 
     def test_hostname_sanitize_periods(self):
         hostname = "....test.example.com..."
-        self.assertEqual("test.example.com",
+        self.assertEqual(b"test.example.com",
                          utils.sanitize_hostname(hostname))
 
     def test_hostname_sanitize_dashes(self):
         hostname = "----test.example.com---"
-        self.assertEqual("test.example.com",
+        self.assertEqual(b"test.example.com",
                          utils.sanitize_hostname(hostname))
 
     def test_hostname_sanitize_characters(self):
         hostname = "(#@&$!(@*--#&91)(__=+--test-host.example!!.com-0+"
-        self.assertEqual("91----test-host.example.com-0",
+        self.assertEqual(b"91----test-host.example.com-0",
                          utils.sanitize_hostname(hostname))
 
     def test_hostname_translate(self):
         hostname = "<}\x1fh\x10e\x08l\x02l\x05o\x12!{>"
-        self.assertEqual("hello", utils.sanitize_hostname(hostname))
+        self.assertEqual(b"hello", utils.sanitize_hostname(hostname))
 
     def test_read_cached_file(self):
         with mock.patch.object(
@@ -273,8 +273,8 @@ class GenericUtilsTestCase(base.TestCase):
                 fake_context_manager.__enter__.assert_called_once_with()
 
     def test_hash_file(self):
-        data = 'Mary had a little lamb, its fleece as white as snow'
-        flo = six.StringIO(data)
+        data = b'Mary had a little lamb, its fleece as white as snow'
+        flo = six.BytesIO(data)
         h1 = utils.hash_file(flo)
         h2 = hashlib.sha1(data).hexdigest()
         self.assertEqual(h1, h2)

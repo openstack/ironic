@@ -579,8 +579,8 @@ class Management(base.ManagementInterface):
         except seamicro_client_exception.ClientException as ex:
             LOG.error(_LE("Seamicro set boot device failed for node "
                           "%(node)s with the following error: %(error)s"),
-                      {'node': task.node.uuid, 'error': ex.message})
-            raise exception.IronicException(message=ex.message)
+                      {'node': task.node.uuid, 'error': ex.args[0]})
+            raise exception.IronicException(message=ex.args[0])
 
     def get_boot_device(self, task):
         """Get the current boot device for the task's node.

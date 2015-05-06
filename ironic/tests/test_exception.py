@@ -20,8 +20,9 @@ from ironic.tests import base
 
 class TestIronicException(base.TestCase):
     def test____init__(self):
-        expected = '\xc3\xa9\xe0\xaf\xb2\xe0\xbe\x84'
+        expected = b'\xc3\xa9\xe0\xaf\xb2\xe0\xbe\x84'
         if six.PY3:
+            expected = expected.decode('utf-8')
             message = chr(233) + chr(0x0bf2) + chr(3972)
         else:
             message = unichr(233) + unichr(0x0bf2) + unichr(3972)

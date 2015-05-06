@@ -25,6 +25,7 @@ from glanceclient import client
 from glanceclient import exc as glance_exc
 from oslo_config import cfg
 import sendfile
+import six
 import six.moves.urllib.parse as urlparse
 
 from ironic.common import exception
@@ -146,7 +147,7 @@ class BaseImageService(object):
                 else:
                     new_exc = _translate_image_exception(
                         args[0], exc_value)
-                raise new_exc, None, exc_trace
+                six.reraise(type(new_exc), new_exc, exc_trace)
 
     @check_image_service
     def _detail(self, method='list', **kwargs):
