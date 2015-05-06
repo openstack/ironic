@@ -140,8 +140,13 @@ def _paginate_query(model, limit=None, marker=None, sort_key=None,
     sort_keys = ['id']
     if sort_key and sort_key not in sort_keys:
         sort_keys.insert(0, sort_key)
-    query = db_utils.paginate_query(query, model, limit, sort_keys,
-                                    marker=marker, sort_dir=sort_dir)
+    try:
+        query = db_utils.paginate_query(query, model, limit, sort_keys,
+                                        marker=marker, sort_dir=sort_dir)
+    except db_exc.InvalidSortKey:
+        raise exception.InvalidParameterValue(_(
+                'The sort_key value "%(key)s" is an invalid field for sorting')
+                % {'key': sort_key})
     return query.all()
 
 

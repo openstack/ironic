@@ -183,6 +183,26 @@ class TestListPorts(api_base.FunctionalTest):
         self.assertEqual('application/json', response.content_type)
         self.assertIn(invalid_address, response.json['error_message'])
 
+    def test_sort_key(self):
+        ports = []
+        for id_ in range(3):
+            port = obj_utils.create_test_port(self.context,
+                                            node_id=self.node.id,
+                                            uuid=uuidutils.generate_uuid(),
+                                            address='52:54:00:cf:2d:3%s' % id_)
+            ports.append(port.uuid)
+        data = self.get_json('/ports?sort_key=uuid')
+        uuids = [n['uuid'] for n in data['ports']]
+        self.assertEqual(sorted(ports), uuids)
+
+    def test_sort_key_invalid(self):
+        invalid_key = 'foo'
+        response = self.get_json('/ports?sort_key=%s' % invalid_key,
+                                 expect_errors=True)
+        self.assertEqual(400, response.status_int)
+        self.assertEqual('application/json', response.content_type)
+        self.assertIn(invalid_key, response.json['error_message'])
+
     @mock.patch.object(api_utils, 'get_rpc_node')
     def test_get_all_by_node_name_ok(self, mock_get_rpc_node):
         # GET /v1/ports specifying node_name - success

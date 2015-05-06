@@ -117,6 +117,24 @@ class TestListChassis(api_base.FunctionalTest):
         next_marker = data['chassis'][-1]['uuid']
         self.assertIn(next_marker, data['next'])
 
+    def test_sort_key(self):
+        ch_list = []
+        for id_ in range(3):
+            chassis = obj_utils.create_test_chassis(
+                self.context, uuid=uuidutils.generate_uuid())
+            ch_list.append(chassis.uuid)
+        data = self.get_json('/chassis?sort_key=uuid')
+        uuids = [n['uuid'] for n in data['chassis']]
+        self.assertEqual(sorted(ch_list), uuids)
+
+    def test_sort_key_invalid(self):
+        invalid_key = 'foo'
+        response = self.get_json('/chassis?sort_key=%s' % invalid_key,
+                                 expect_errors=True)
+        self.assertEqual(400, response.status_int)
+        self.assertEqual('application/json', response.content_type)
+        self.assertIn(invalid_key, response.json['error_message'])
+
     def test_nodes_subresource_link(self):
         chassis = obj_utils.create_test_chassis(self.context)
         data = self.get_json('/chassis/%s' % chassis.uuid)

@@ -56,6 +56,21 @@ class DbPortTestCase(base.DbTestCase):
         res_uuids = [r.uuid for r in res]
         six.assertCountEqual(self, uuids, res_uuids)
 
+    def test_get_port_list_sorted(self):
+        uuids = []
+        for i in range(1, 6):
+            port = db_utils.create_test_port(uuid=uuidutils.generate_uuid(),
+                                             address='52:54:00:cf:2d:4%s' % i)
+            uuids.append(six.text_type(port.uuid))
+        # Also add the uuid for the port created in setUp()
+        uuids.append(six.text_type(self.port.uuid))
+        res = self.dbapi.get_port_list(sort_key='uuid')
+        res_uuids = [r.uuid for r in res]
+        self.assertEqual(sorted(uuids), res_uuids)
+
+        self.assertRaises(exception.InvalidParameterValue,
+                          self.dbapi.get_port_list, sort_key='foo')
+
     def test_get_ports_by_node_id(self):
         res = self.dbapi.get_ports_by_node_id(self.node.id)
         self.assertEqual(self.port.address, res[0].address)
