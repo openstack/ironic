@@ -12,24 +12,33 @@ an OpenStack project.
 
     http://docs.openstack.org/infra/manual/developers.html#development-workflow
 
-Install prerequisites::
+Install prerequisites:
 
-    # Ubuntu/Debian:
-    sudo apt-get install python-dev libssl-dev python-pip libmysqlclient-dev libxml2-dev libxslt-dev libpq-dev git git-review libffi-dev gettext ipmitool psmisc
+- Ubuntu/Debian::
 
-    # Fedora/RHEL:
-    sudo yum install python-devel openssl-devel python-pip mysql-devel libxml2-devel libxslt-devel postgresql-devel git git-review libffi-devel gettext ipmitool psmisc
+    sudo apt-get install python-dev libssl-dev python-pip libmysqlclient-dev libxml2-dev libxslt-dev libpq-dev git git-review libffi-dev gettext ipmitool psmisc graphviz
 
-    # openSUSE/SLE 12:
+- Fedora/RHEL::
+
+    sudo yum install python-devel openssl-devel python-pip mysql-devel libxml2-devel libxslt-devel postgresql-devel git git-review libffi-devel gettext ipmitool psmisc graphviz
+
+  If using RHEL and yum reports “No package python-pip available” and “No
+  package git-review available”, use the EPEL software repository.
+  Instructions can be found at `<http://fedoraproject.org/wiki/EPEL/FAQ#howtouse>`_.
+
+- openSUSE/SLE 12::
+
     sudo zypper install git git-review libffi-devel libmysqlclient-devel libopenssl-devel libxml2-devel libxslt-devel postgresql-devel python-devel python-nose python-pip gettext-runtime psmisc
 
-    # All distros:
+  Graphviz is only needed for generating the state machine diagram. To install it
+  on openSUSE or SLE 12, see
+  `<http://software.opensuse.org/download.html?project=graphics&package=graphviz-plugins>`_.
+
+Install these on all distros::
+
     sudo easy_install nose
     sudo pip install virtualenv setuptools-git flake8 tox testrepository
 
-If using RHEL and yum reports “No package python-pip available” and “No
-package git-review available”, use the EPEL software repository. Instructions
-can be found at `<http://fedoraproject.org/wiki/EPEL/FAQ#howtouse>`_.
 
 You may need to explicitly upgrade virtualenv if you've installed the one
 from your OS distribution and it is too old (tox will complain). You can
