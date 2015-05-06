@@ -71,7 +71,7 @@ class MSFTOCSClientApi(object):
         except requests_exceptions.RequestException as ex:
             LOG.exception(_LE("HTTP call failed: %s"), ex)
             raise exception.MSFTOCSClientApiException(
-                _("HTTP call failed: %s") % ex.message)
+                _("HTTP call failed: %s") % ex.args[0])
 
         xml_response = response.text
         LOG.debug("Call to %(url)s got response: %(xml_response)s",
