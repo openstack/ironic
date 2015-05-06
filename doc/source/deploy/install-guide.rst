@@ -148,8 +148,8 @@ The Bare Metal Service is configured via its configuration file. This file
 is typically located at ``/etc/ironic/ironic.conf``.
 
 Although some configuration options are mentioned here, it is recommended that
-you review all the available options so that the Bare Metal Service is
-configured for your needs.
+you review all the `available options <http://docs.openstack.org/kilo/config-reference/content/ch_configuring-openstack-bare-metal.html>`_
+so that the Bare Metal Service is configured for your needs.
 
 #. The Bare Metal Service stores information in a database. This guide uses the
    MySQL database that is used by other OpenStack services.
