@@ -118,9 +118,9 @@
 # (Optional) Enables or disables syslog rfc5424 format for
 # logging. If enabled, prefixes the MSG part of the syslog
 # message with APP-NAME (RFC5424). The format without the APP-
-# NAME is deprecated in I, and will be removed in J. (boolean
-# value)
-#use_syslog_rfc_format=false
+# NAME is deprecated in K, and will be removed in L, along
+# with this option. (boolean value)
+#use_syslog_rfc_format=true
 
 # Syslog facility to receive log lines. (string value)
 #syslog_log_facility=LOG_USER
