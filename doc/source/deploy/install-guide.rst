@@ -1386,6 +1386,15 @@ There are however some limitations for different drivers:
 
 Steps to start a deployment are pretty similar to those when using Nova:
 
+#. To use the `ironic CLI <http://docs.openstack.org/developer/python-ironicclient/cli.html>`_,
+   set up these environment variables. Since no authentication strategy is
+   being used, the value can be any string for OS_AUTH_TOKEN. IRONIC_URL is
+   the URL of the ironic-api process.
+   For example::
+
+    export OS_AUTH_TOKEN=fake-token
+    export IRONIC_URL=http://localhost:6385/
+
 #. Create a Node in Ironic. At minimum, you must specify the driver name (eg,
    "pxe_ipmitool"). You can also specify all the required driver parameters in
    one command. This will return the node UUID::
