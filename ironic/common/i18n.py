@@ -13,7 +13,7 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-import oslo_i18n as i18n  # noqa
+import oslo_i18n as i18n
 
 _translators = i18n.TranslatorFactory(domain='ironic')
 
