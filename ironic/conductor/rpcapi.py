@@ -20,7 +20,7 @@ Client side of the conductor RPC API.
 
 import random
 
-from oslo import messaging
+import oslo_messaging as messaging
 
 from ironic.common import exception
 from ironic.common import hash_ring

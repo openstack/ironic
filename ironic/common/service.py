@@ -19,10 +19,10 @@
 import signal
 import socket
 
-from oslo import messaging
 from oslo_config import cfg
 from oslo_context import context
 from oslo_log import log
+import oslo_messaging as messaging
 from oslo_utils import importutils
 
 from ironic.common import config

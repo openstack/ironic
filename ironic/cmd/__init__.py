@@ -13,6 +13,6 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-from oslo import i18n
+import oslo_i18n as i18n
 
 i18n.install('ironic')

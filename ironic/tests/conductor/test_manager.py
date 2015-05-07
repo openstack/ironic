@@ -22,10 +22,10 @@ import datetime
 
 import eventlet
 import mock
-from oslo import messaging
 from oslo_config import cfg
 from oslo_context import context
 from oslo_db import exception as db_exception
+import oslo_messaging as messaging
 from oslo_utils import strutils
 from oslo_utils import uuidutils
 
