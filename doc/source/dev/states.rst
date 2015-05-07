@@ -4,9 +4,12 @@
 Ironic's State Machine
 ======================
 
-The diagram below shows the states that an Ironic node goes through during the
-lifetime of a node. The diagram also depicts the events that transition
-the node to different states.
+State Machine Diagram
+=====================
+
+The diagram below shows the provisioning states that an Ironic node goes
+through during the lifetime of a node. The diagram also depicts the events
+that transition the node to different states.
 
 .. figure:: ../images/states.png
    :width: 660px
