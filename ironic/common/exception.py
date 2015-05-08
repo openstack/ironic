@@ -393,11 +393,6 @@ class KeystoneFailure(IronicException):
     pass
 
 
-# aliases for backward compatibility, should be removed after Kilo cycle
-CatalogUnauthorized = KeystoneUnauthorized
-CatalogFailure = KeystoneFailure
-
-
 class CatalogNotFound(IronicException):
     message = _("Service type %(service_type)s with endpoint type "
                 "%(endpoint_type)s not found in keystone service catalog.")
