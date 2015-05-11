@@ -890,8 +890,8 @@ controller in your bare metal server by using ``ipmitool``::
 
 *Note:*
 
-#. This is not the bare metal server’s main IP. The IPMI controller
-   should have it’s own unique IP.
+#. This is not the bare metal server's main IP. The IPMI controller
+   should have it's own unique IP.
 
 #. In case the above command doesn't return the power status of the
    bare metal server, check for these:

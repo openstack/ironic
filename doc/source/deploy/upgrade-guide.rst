@@ -27,7 +27,7 @@ your Nova and Ironic services are as follows:
 - Install new python-ironicclient code.
 - Restart Nova services.
 - Install new Ironic code, run database migrations, restart Ironic services.
-- Edit nova.conf and set force_config_drive to your liking, restaring
+- Edit nova.conf and set force_config_drive to your liking, restarting
   nova-compute if necessary.
 
 Note that during the period between Nova's upgrade and Ironic's upgrades,
