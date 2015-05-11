@@ -57,12 +57,12 @@ While performing the request, a lock is held on the node, and other
 requests for the node will be delayed and may fail with an HTTP 409
 (Conflict) error code.
 
-This endpoint exposes a node’s driver directly, and as such, it is
-expressly not part of Ironic’s standard REST API. There is only a
+This endpoint exposes a node's driver directly, and as such, it is
+expressly not part of Ironic's standard REST API. There is only a
 single HTTP endpoint exposed, and the semantics of the message body
 are determined solely by the driver. Ironic makes no guarantees about
 backwards compatibility; this is solely up to the discretion of each
-driver’s author.
+driver's author.
 
 To get information about all the methods available via the vendor_passthru
 endpoint for a particular node, you can issue an HTTP GET request::
@@ -70,8 +70,8 @@ endpoint for a particular node, you can issue an HTTP GET request::
   GET /v1/nodes/<Node UUID or name>/vendor_passthru/methods
 
 The response's JSON body will contain information for each method,
-such as the method’s name, a description, the HTTP methods supported,
-and whether it’s asynchronous or synchronous.
+such as the method's name, a description, the HTTP methods supported,
+and whether it's asynchronous or synchronous.
 
 
 Driver Vendor Passthru
@@ -100,7 +100,7 @@ A method:
   HTTP 409 (Conflict) error code.
 
 Ironic makes no guarantees about the semantics of the message BODY sent
-to this endpoint. That is left up to each driver’s author.
+to this endpoint. That is left up to each driver's author.
 
 To get information about all the methods available via the driver
 vendor_passthru endpoint, you can issue an HTTP GET request::
@@ -108,5 +108,5 @@ vendor_passthru endpoint, you can issue an HTTP GET request::
   GET /v1/drivers/<driver name>/vendor_passthru/methods
 
 The response's JSON body will contain information for each method,
-such as the method’s name, a description, the HTTP methods supported,
-and whether it’s asynchronous or synchronous.
+such as the method's name, a description, the HTTP methods supported,
+and whether it's asynchronous or synchronous.

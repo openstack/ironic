@@ -22,8 +22,8 @@ Install prerequisites:
 
     sudo yum install python-devel openssl-devel python-pip mysql-devel libxml2-devel libxslt-devel postgresql-devel git git-review libffi-devel gettext ipmitool psmisc graphviz
 
-  If using RHEL and yum reports “No package python-pip available” and “No
-  package git-review available”, use the EPEL software repository.
+  If using RHEL and yum reports "No package python-pip available" and "No
+  package git-review available", use the EPEL software repository.
   Instructions can be found at `<http://fedoraproject.org/wiki/EPEL/FAQ#howtouse>`_.
 
 - openSUSE/SLE 12::
