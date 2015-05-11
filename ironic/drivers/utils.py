@@ -104,7 +104,7 @@ class MixinVendorInterface(base.VendorInterface):
         :raises: UnsupportedDriverExtension if 'method' can not be mapped to
                  the supported interfaces.
         :raises: InvalidParameterValue if 'method' is invalid.
-        :raisee: MissingParameterValue if missing 'method' or parameters
+        :raises: MissingParameterValue if missing 'method' or parameters
                  in kwargs.
 
         """
