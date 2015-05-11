@@ -503,6 +503,114 @@ class TempFilesTestCase(base.TestCase):
         rmtree_mock.assert_called_once_with(tempdir_created)
         self.assertTrue(log_mock.error.called)
 
+    @mock.patch.object(os.path, 'exists', autospec=True)
+    @mock.patch.object(utils, '_check_dir_writable', autospec=True)
+    @mock.patch.object(utils, '_check_dir_free_space', autospec=True)
+    @mock.patch.object(tempfile, 'gettempdir', autospec=True)
+    def test_check_dir_with_conf(self, mock_gettempdir, mock_free_space,
+                              mock_dir_writable, mock_exists):
+        self.config(tempdir='/fake/path')
+        mock_exists.return_value = True
+
+        utils.check_dir()
+        self.assertFalse(mock_gettempdir.called)
+        mock_free_space.assert_called_once_with(CONF.tempdir, 1)
+        mock_exists.assert_called_once_with(CONF.tempdir)
+
+    @mock.patch.object(os.path, 'exists', autospec=True)
+    @mock.patch.object(utils, '_check_dir_writable', autospec=True)
+    @mock.patch.object(utils, '_check_dir_free_space', autospec=True)
+    @mock.patch.object(tempfile, 'gettempdir', autospec=True)
+    def test_check_dir_with_pass_in(self, mock_gettempdir, mock_free_space,
+                              mock_dir_writable, mock_exists):
+        mock_exists.return_value = True
+        # test passing in a directory and size
+        utils.check_dir(directory_to_check='/fake/path', required_space=5)
+        self.assertFalse(mock_gettempdir.called)
+        mock_free_space.assert_called_once_with('/fake/path', 5)
+        mock_exists.assert_called_once_with('/fake/path')
+
+    @mock.patch.object(os.path, 'exists', autospec=True)
+    @mock.patch.object(utils, '_check_dir_writable', autospec=True)
+    @mock.patch.object(utils, '_check_dir_free_space', autospec=True)
+    @mock.patch.object(tempfile, 'gettempdir', autospec=True)
+    def test_check_dir_no_dir(self, mock_gettempdir, mock_free_space,
+                              mock_dir_writable, mock_exists):
+        mock_exists.return_value = False
+        mock_gettempdir.return_value = "/fake/path"
+
+        self.assertRaises(exception.PathNotFound,
+                          utils.check_dir)
+
+        mock_exists.assert_called_once_with(mock_gettempdir.return_value)
+        mock_gettempdir.assert_called_once_with()
+        self.assertFalse(mock_free_space.called)
+        self.assertFalse(mock_dir_writable.called)
+
+    @mock.patch.object(os.path, 'exists', autospec=True)
+    @mock.patch.object(utils, '_check_dir_writable', autospec=True)
+    @mock.patch.object(utils, '_check_dir_free_space', autospec=True)
+    @mock.patch.object(tempfile, 'gettempdir', autospec=True)
+    def test_check_dir_ok(self, mock_gettempdir, mock_dir_writable,
+                                  mock_free_space, mock_exists):
+        mock_gettempdir.return_value = "/fake/path"
+        mock_exists.return_value = True
+
+        utils.check_dir()
+        mock_gettempdir.assert_called_once_with()
+        mock_free_space.assert_called_once_with(mock_gettempdir.return_value)
+        mock_exists.assert_called_once_with(mock_gettempdir.return_value)
+
+    @mock.patch.object(os, 'access', autospec=True)
+    def test__check_dir_writable_ok(self, mock_access):
+        mock_access.return_value = True
+        self.assertEqual(None, utils._check_dir_writable("/fake/path"))
+        mock_access.assert_called_once_with("/fake/path", os.W_OK)
+
+    @mock.patch.object(os, 'access', autospec=True)
+    def test__check_dir_writable_not_writable(self, mock_access):
+        mock_access.return_value = False
+
+        self.assertRaises(exception.DirectoryNotWritable,
+                          utils._check_dir_writable, "/fake/path")
+        mock_access.assert_called_once_with("/fake/path", os.W_OK)
+
+    @mock.patch.object(os, 'statvfs', autospec=True)
+    def test__check_dir_free_space_ok(self, mock_stat):
+        statvfs_mock_return = mock.MagicMock()
+        statvfs_mock_return.f_bsize = 5
+        statvfs_mock_return.f_frsize = 0
+        statvfs_mock_return.f_blocks = 0
+        statvfs_mock_return.f_bfree = 0
+        statvfs_mock_return.f_bavail = 1024 * 1024
+        statvfs_mock_return.f_files = 0
+        statvfs_mock_return.f_ffree = 0
+        statvfs_mock_return.f_favail = 0
+        statvfs_mock_return.f_flag = 0
+        statvfs_mock_return.f_namemax = 0
+        mock_stat.return_value = statvfs_mock_return
+        utils._check_dir_free_space("/fake/path")
+        mock_stat.assert_called_once_with("/fake/path")
+
+    @mock.patch.object(os, 'statvfs', autospec=True)
+    def test_check_dir_free_space_raises(self, mock_stat):
+        statvfs_mock_return = mock.MagicMock()
+        statvfs_mock_return.f_bsize = 1
+        statvfs_mock_return.f_frsize = 0
+        statvfs_mock_return.f_blocks = 0
+        statvfs_mock_return.f_bfree = 0
+        statvfs_mock_return.f_bavail = 1024
+        statvfs_mock_return.f_files = 0
+        statvfs_mock_return.f_ffree = 0
+        statvfs_mock_return.f_favail = 0
+        statvfs_mock_return.f_flag = 0
+        statvfs_mock_return.f_namemax = 0
+        mock_stat.return_value = statvfs_mock_return
+
+        self.assertRaises(exception.InsufficientDiskSpace,
+                          utils._check_dir_free_space, "/fake/path")
+        mock_stat.assert_called_once_with("/fake/path")
+
 
 class IsHttpUrlTestCase(base.TestCase):
 

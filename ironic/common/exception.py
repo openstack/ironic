@@ -568,3 +568,11 @@ class HardwareInspectionFailure(IronicException):
 
 class NodeCleaningFailure(IronicException):
     message = _("Failed to clean node %(node)s: %(reason)s")
+
+
+class PathNotFound(IronicException):
+    message = _("Path %(dir)s does not exist.")
+
+
+class DirectoryNotWritable(IronicException):
+    message = _("Directory %(dir)s is not writable.")
