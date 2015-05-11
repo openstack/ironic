@@ -74,8 +74,8 @@ class BaseTestCase(db_base.DbTestCase):
         mgr_utils.mock_the_extension_manager("fake_discoverd")
         self.driver = driver_factory.get_driver("fake_discoverd")
         self.node = obj_utils.get_test_node(self.context)
-        self.task = mock.Mock(spec=task_manager.TaskManager)
-        self.task.context = mock.Mock()
+        self.task = mock.MagicMock(spec=task_manager.TaskManager)
+        self.task.context = mock.MagicMock(spec_set=['auth_token'])
         self.task.shared = False
         self.task.node = self.node
         self.task.driver = self.driver
@@ -93,7 +93,7 @@ class CommonFunctionsTestCase(BaseTestCase):
         res = discoverd.DiscoverdInspect.create_if_enabled('driver')
         self.assertIsInstance(res, discoverd.DiscoverdInspect)
 
-    @mock.patch.object(discoverd.LOG, 'info')
+    @mock.patch.object(discoverd.LOG, 'info', autospec=True)
     def test_create_if_enabled_disabled(self, warn_mock):
         self.config(enabled=False, group='discoverd')
         res = discoverd.DiscoverdInspect.create_if_enabled('driver')
@@ -102,7 +102,7 @@ class CommonFunctionsTestCase(BaseTestCase):
 
 
 @mock.patch.object(eventlet, 'spawn_n', lambda f, *a, **kw: f(*a, **kw))
-@mock.patch.object(client, 'introspect')
+@mock.patch.object(client, 'introspect', autospec=True)
 class InspectHardwareTestCase(BaseTestCase):
     def test_ok(self, mock_introspect):
         self.assertEqual(states.INSPECTING,
@@ -120,7 +120,7 @@ class InspectHardwareTestCase(BaseTestCase):
             auth_token=self.task.context.auth_token,
             base_url='meow')
 
-    @mock.patch.object(task_manager, 'acquire')
+    @mock.patch.object(task_manager, 'acquire', autospec=True)
     def test_error(self, mock_acquire, mock_introspect):
         mock_introspect.side_effect = RuntimeError('boom')
         self.driver.inspect.inspect_hardware(self.task)
@@ -133,7 +133,7 @@ class InspectHardwareTestCase(BaseTestCase):
 
 
 @mock.patch.object(keystone, 'get_admin_auth_token', lambda: 'the token')
-@mock.patch.object(client, 'get_status')
+@mock.patch.object(client, 'get_status', autospec=True)
 class CheckStatusTestCase(BaseTestCase):
     def setUp(self):
         super(CheckStatusTestCase, self).setUp()
@@ -195,11 +195,11 @@ class CheckStatusTestCase(BaseTestCase):
 @mock.patch.object(discoverd, '_check_status', autospec=True)
 class PeriodicTaskTestCase(BaseTestCase):
     def test_ok(self, mock_check, mock_acquire):
-        mgr = mock.Mock(spec=['iter_nodes'])
+        mgr = mock.MagicMock(spec=['iter_nodes'])
         mgr.iter_nodes.return_value = [('1', 'd1'), ('2', 'd2')]
         tasks = [mock.sentinel.task1, mock.sentinel.task2]
         mock_acquire.side_effect = (
-            mock.MagicMock(__enter__=mock.Mock(return_value=task))
+            mock.MagicMock(__enter__=mock.MagicMock(return_value=task))
             for task in tasks
         )
         discoverd.DiscoverdInspect()._periodic_check_result(
@@ -209,7 +209,7 @@ class PeriodicTaskTestCase(BaseTestCase):
         self.assertEqual(2, mock_acquire.call_count)
 
     def test_node_locked(self, mock_check, mock_acquire):
-        mgr = mock.Mock(spec=['iter_nodes'])
+        mgr = mock.MagicMock(spec=['iter_nodes'])
         mgr.iter_nodes.return_value = [('1', 'd1'), ('2', 'd2')]
         mock_acquire.side_effect = exception.NodeLocked("boom")
         discoverd.DiscoverdInspect()._periodic_check_result(

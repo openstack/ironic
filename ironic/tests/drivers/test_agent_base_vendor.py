@@ -15,6 +15,8 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import types
+
 import mock
 
 from ironic.common import boot_devices
@@ -85,7 +87,7 @@ class TestBaseAgentVendor(db_base.DbTestCase):
                               **kwargs)
 
     @mock.patch('ironic.drivers.modules.agent_base_vendor.BaseAgentVendor'
-                '._find_node_by_macs')
+                '._find_node_by_macs', autospec=True)
     def test_lookup_v2(self, find_mock):
         kwargs = {
             'version': '2',
@@ -129,7 +131,8 @@ class TestBaseAgentVendor(db_base.DbTestCase):
                               version='2',
                               inventory={'interfaces': []})
 
-    @mock.patch.object(objects.Port, 'get_by_address')
+    @mock.patch.object(objects.port.Port, 'get_by_address',
+                       spec_set=types.FunctionType)
     def test_find_ports_by_macs(self, mock_get_port):
         fake_port = object_utils.get_test_port(self.context)
         mock_get_port.return_value = fake_port
@@ -143,7 +146,8 @@ class TestBaseAgentVendor(db_base.DbTestCase):
         self.assertEqual(fake_port.uuid, ports[0].uuid)
         self.assertEqual(fake_port.node_id, ports[0].node_id)
 
-    @mock.patch.object(objects.Port, 'get_by_address')
+    @mock.patch.object(objects.port.Port, 'get_by_address',
+                       spec_set=types.FunctionType)
     def test_find_ports_by_macs_bad_params(self, mock_get_port):
         mock_get_port.side_effect = exception.PortNotFound(port="123")
 
@@ -153,11 +157,12 @@ class TestBaseAgentVendor(db_base.DbTestCase):
             empty_ids = self.passthru._find_ports_by_macs(task, macs)
         self.assertEqual([], empty_ids)
 
-    @mock.patch('ironic.objects.node.Node.get_by_id')
+    @mock.patch('ironic.objects.node.Node.get_by_id',
+                spec_set=types.FunctionType)
     @mock.patch('ironic.drivers.modules.agent_base_vendor.BaseAgentVendor'
-                '._get_node_id')
+                '._get_node_id', autospec=True)
     @mock.patch('ironic.drivers.modules.agent_base_vendor.BaseAgentVendor'
-                '._find_ports_by_macs')
+                '._find_ports_by_macs', autospec=True)
     def test_find_node_by_macs(self, ports_mock, node_id_mock, node_mock):
         ports_mock.return_value = object_utils.get_test_port(self.context)
         node_id_mock.return_value = '1'
@@ -170,7 +175,7 @@ class TestBaseAgentVendor(db_base.DbTestCase):
         self.assertEqual(node, node)
 
     @mock.patch('ironic.drivers.modules.agent_base_vendor.BaseAgentVendor'
-                '._find_ports_by_macs')
+                '._find_ports_by_macs', autospec=True)
     def test_find_node_by_macs_no_ports(self, ports_mock):
         ports_mock.return_value = []
 
@@ -182,11 +187,12 @@ class TestBaseAgentVendor(db_base.DbTestCase):
                               task,
                               macs)
 
-    @mock.patch('ironic.objects.node.Node.get_by_uuid')
+    @mock.patch('ironic.objects.node.Node.get_by_uuid',
+                spec_set=types.FunctionType)
     @mock.patch('ironic.drivers.modules.agent_base_vendor.BaseAgentVendor'
-                '._get_node_id')
+                '._get_node_id', autospec=True)
     @mock.patch('ironic.drivers.modules.agent_base_vendor.BaseAgentVendor'
-                '._find_ports_by_macs')
+                '._find_ports_by_macs', autospec=True)
     def test_find_node_by_macs_nodenotfound(self, ports_mock, node_id_mock,
                                             node_mock):
         port = object_utils.get_test_port(self.context)
@@ -264,9 +270,10 @@ class TestBaseAgentVendor(db_base.DbTestCase):
             self.assertRaises(exception.MissingParameterValue,
                               self.passthru.heartbeat, task, **kwargs)
 
-    @mock.patch.object(deploy_utils, 'set_failed_state')
-    @mock.patch.object(agent_base_vendor.BaseAgentVendor, 'deploy_is_done')
-    @mock.patch.object(agent_base_vendor.LOG, 'exception')
+    @mock.patch.object(deploy_utils, 'set_failed_state', autospec=True)
+    @mock.patch.object(agent_base_vendor.BaseAgentVendor, 'deploy_is_done',
+                       autospec=True)
+    @mock.patch.object(agent_base_vendor.LOG, 'exception', autospec=True)
     def test_heartbeat_deploy_done_fails(self, log_mock, done_mock,
                                          failed_mock):
         kwargs = {
@@ -284,10 +291,12 @@ class TestBaseAgentVendor(db_base.DbTestCase):
             '1be26c0b-03f2-4d2e-ae87-c02d7f33c123: Failed checking if deploy '
             'is done. exception: LlamaException')
 
-    @mock.patch.object(agent_base_vendor.BaseAgentVendor, 'continue_deploy')
-    @mock.patch.object(agent_base_vendor.BaseAgentVendor, 'reboot_to_instance')
+    @mock.patch.object(agent_base_vendor.BaseAgentVendor, 'continue_deploy',
+                       autospec=True)
+    @mock.patch.object(agent_base_vendor.BaseAgentVendor, 'reboot_to_instance',
+                       autospec=True)
     @mock.patch.object(agent_base_vendor.BaseAgentVendor,
-                       '_notify_conductor_resume_clean')
+                       '_notify_conductor_resume_clean', autospec=True)
     def test_heartbeat_noops_maintenance_mode(self, ncrc_mock, rti_mock,
                                               cd_mock):
         """Ensures that heartbeat() no-ops for a maintenance node."""
@@ -323,7 +332,7 @@ class TestBaseAgentVendor(db_base.DbTestCase):
             self.assertIsInstance(driver_routes, dict)
             self.assertEqual(expected, list(driver_routes))
 
-    @mock.patch.object(manager_utils, 'node_power_action')
+    @mock.patch.object(manager_utils, 'node_power_action', autospec=True)
     def test_reboot_and_finish_deploy_success(self, node_power_action_mock):
         self.node.provision_state = states.DEPLOYING
         self.node.target_provision_state = states.ACTIVE
@@ -335,7 +344,7 @@ class TestBaseAgentVendor(db_base.DbTestCase):
             self.assertEqual(states.ACTIVE, task.node.provision_state)
             self.assertEqual(states.NOSTATE, task.node.target_provision_state)
 
-    @mock.patch.object(manager_utils, 'node_power_action')
+    @mock.patch.object(manager_utils, 'node_power_action', autospec=True)
     def test_reboot_and_finish_deploy_reboot_failure(self,
                                                      node_power_action_mock):
         exc = exception.PowerStateFailure(pstate=states.REBOOT)
@@ -351,8 +360,9 @@ class TestBaseAgentVendor(db_base.DbTestCase):
             self.assertEqual(states.DEPLOYFAIL, task.node.provision_state)
             self.assertEqual(states.ACTIVE, task.node.target_provision_state)
 
-    @mock.patch.object(agent_client.AgentClient, 'install_bootloader')
-    @mock.patch.object(deploy_utils, 'try_set_boot_device')
+    @mock.patch.object(agent_client.AgentClient, 'install_bootloader',
+                       autospec=True)
+    @mock.patch.object(deploy_utils, 'try_set_boot_device', autospec=True)
     def test_configure_local_boot(self, try_set_boot_device_mock,
                                    install_bootloader_mock):
         install_bootloader_mock.return_value = {
@@ -365,11 +375,12 @@ class TestBaseAgentVendor(db_base.DbTestCase):
             try_set_boot_device_mock.assert_called_once_with(
                 task, boot_devices.DISK)
             install_bootloader_mock.assert_called_once_with(
-                task.node, root_uuid='some-root-uuid',
+                mock.ANY, task.node, root_uuid='some-root-uuid',
                 efi_system_part_uuid=None)
 
-    @mock.patch.object(agent_client.AgentClient, 'install_bootloader')
-    @mock.patch.object(deploy_utils, 'try_set_boot_device')
+    @mock.patch.object(agent_client.AgentClient, 'install_bootloader',
+                       autospec=True)
+    @mock.patch.object(deploy_utils, 'try_set_boot_device', autospec=True)
     def test_configure_local_boot_uefi(self, try_set_boot_device_mock,
                                        install_bootloader_mock):
         install_bootloader_mock.return_value = {
@@ -383,11 +394,12 @@ class TestBaseAgentVendor(db_base.DbTestCase):
             try_set_boot_device_mock.assert_called_once_with(
                 task, boot_devices.DISK)
             install_bootloader_mock.assert_called_once_with(
-                task.node, root_uuid='some-root-uuid',
+                mock.ANY, task.node, root_uuid='some-root-uuid',
                 efi_system_part_uuid='efi-system-part-uuid')
 
-    @mock.patch.object(deploy_utils, 'try_set_boot_device')
-    @mock.patch.object(agent_client.AgentClient, 'install_bootloader')
+    @mock.patch.object(deploy_utils, 'try_set_boot_device', autospec=True)
+    @mock.patch.object(agent_client.AgentClient, 'install_bootloader',
+                       autospec=True)
     def test_configure_local_boot_whole_disk_image(
             self, install_bootloader_mock, try_set_boot_device_mock):
         with task_manager.acquire(self.context, self.node['uuid'],
@@ -397,8 +409,9 @@ class TestBaseAgentVendor(db_base.DbTestCase):
             try_set_boot_device_mock.assert_called_once_with(
                 task, boot_devices.DISK)
 
-    @mock.patch.object(deploy_utils, 'try_set_boot_device')
-    @mock.patch.object(agent_client.AgentClient, 'install_bootloader')
+    @mock.patch.object(deploy_utils, 'try_set_boot_device', autospec=True)
+    @mock.patch.object(agent_client.AgentClient, 'install_bootloader',
+                       autospec=True)
     def test_configure_local_boot_no_root_uuid(
             self, install_bootloader_mock, try_set_boot_device_mock):
         with task_manager.acquire(self.context, self.node['uuid'],
@@ -409,7 +422,8 @@ class TestBaseAgentVendor(db_base.DbTestCase):
             try_set_boot_device_mock.assert_called_once_with(
                 task, boot_devices.DISK)
 
-    @mock.patch.object(agent_client.AgentClient, 'install_bootloader')
+    @mock.patch.object(agent_client.AgentClient, 'install_bootloader',
+                       autospec=True)
     def test_configure_local_boot_boot_loader_install_fail(
             self, install_bootloader_mock):
         install_bootloader_mock.return_value = {
@@ -424,13 +438,14 @@ class TestBaseAgentVendor(db_base.DbTestCase):
                               self.passthru.configure_local_boot,
                               task, root_uuid='some-root-uuid')
             install_bootloader_mock.assert_called_once_with(
-                task.node, root_uuid='some-root-uuid',
+                mock.ANY, task.node, root_uuid='some-root-uuid',
                 efi_system_part_uuid=None)
             self.assertEqual(states.DEPLOYFAIL, task.node.provision_state)
             self.assertEqual(states.ACTIVE, task.node.target_provision_state)
 
-    @mock.patch.object(deploy_utils, 'try_set_boot_device')
-    @mock.patch.object(agent_client.AgentClient, 'install_bootloader')
+    @mock.patch.object(deploy_utils, 'try_set_boot_device', autospec=True)
+    @mock.patch.object(agent_client.AgentClient, 'install_bootloader',
+                       autospec=True)
     def test_configure_local_boot_set_boot_device_fail(
             self, install_bootloader_mock, try_set_boot_device_mock):
         install_bootloader_mock.return_value = {
@@ -446,7 +461,7 @@ class TestBaseAgentVendor(db_base.DbTestCase):
                               self.passthru.configure_local_boot,
                               task, root_uuid='some-root-uuid')
             install_bootloader_mock.assert_called_once_with(
-                task.node, root_uuid='some-root-uuid',
+                mock.ANY, task.node, root_uuid='some-root-uuid',
                 efi_system_part_uuid=None)
             try_set_boot_device_mock.assert_called_once_with(
                 task, boot_devices.DISK)
@@ -454,8 +469,9 @@ class TestBaseAgentVendor(db_base.DbTestCase):
             self.assertEqual(states.ACTIVE, task.node.target_provision_state)
 
     @mock.patch.object(agent_base_vendor.BaseAgentVendor,
-                       '_notify_conductor_resume_clean')
-    @mock.patch.object(agent_client.AgentClient, 'get_commands_status')
+                       '_notify_conductor_resume_clean', autospec=True)
+    @mock.patch.object(agent_client.AgentClient, 'get_commands_status',
+                       autospec=True)
     def test_continue_cleaning(self, status_mock, notify_mock):
         # Test a successful execute clean step on the agent
         self.node.clean_step = {
@@ -475,11 +491,12 @@ class TestBaseAgentVendor(db_base.DbTestCase):
         with task_manager.acquire(self.context, self.node['uuid'],
                                   shared=False) as task:
             self.passthru.continue_cleaning(task)
-            notify_mock.assert_called_once_with(task)
+            notify_mock.assert_called_once_with(mock.ANY, task)
 
     @mock.patch.object(agent_base_vendor.BaseAgentVendor,
-                       '_notify_conductor_resume_clean')
-    @mock.patch.object(agent_client.AgentClient, 'get_commands_status')
+                       '_notify_conductor_resume_clean', autospec=True)
+    @mock.patch.object(agent_client.AgentClient, 'get_commands_status',
+                       autospec=True)
     def test_continue_cleaning_old_command(self, status_mock, notify_mock):
         # Test when a second execute_clean_step happens to the agent, but
         # the new step hasn't started yet.
@@ -506,8 +523,9 @@ class TestBaseAgentVendor(db_base.DbTestCase):
             self.assertFalse(notify_mock.called)
 
     @mock.patch.object(agent_base_vendor.BaseAgentVendor,
-                       '_notify_conductor_resume_clean')
-    @mock.patch.object(agent_client.AgentClient, 'get_commands_status')
+                       '_notify_conductor_resume_clean', autospec=True)
+    @mock.patch.object(agent_client.AgentClient, 'get_commands_status',
+                       autospec=True)
     def test_continue_cleaning_running(self, status_mock, notify_mock):
         # Test that no action is taken while a clean step is executing
         status_mock.return_value = [{
@@ -520,8 +538,10 @@ class TestBaseAgentVendor(db_base.DbTestCase):
             self.passthru.continue_cleaning(task)
             self.assertFalse(notify_mock.called)
 
-    @mock.patch('ironic.conductor.manager.cleaning_error_handler')
-    @mock.patch.object(agent_client.AgentClient, 'get_commands_status')
+    @mock.patch('ironic.conductor.manager.cleaning_error_handler',
+                autospec=True)
+    @mock.patch.object(agent_client.AgentClient, 'get_commands_status',
+                       autospec=True)
     def test_continue_cleaning_fail(self, status_mock, error_mock):
         # Test the a failure puts the node in CLEANFAIL
         status_mock.return_value = [{
@@ -534,10 +554,12 @@ class TestBaseAgentVendor(db_base.DbTestCase):
             self.passthru.continue_cleaning(task)
             error_mock.assert_called_once_with(task, mock.ANY)
 
-    @mock.patch('ironic.conductor.manager.set_node_cleaning_steps')
+    @mock.patch('ironic.conductor.manager.set_node_cleaning_steps',
+                autospec=True)
     @mock.patch.object(agent_base_vendor.BaseAgentVendor,
-                       '_notify_conductor_resume_clean')
-    @mock.patch.object(agent_client.AgentClient, 'get_commands_status')
+                       '_notify_conductor_resume_clean', autospec=True)
+    @mock.patch.object(agent_client.AgentClient, 'get_commands_status',
+                       autospec=True)
     def test_continue_cleaning_clean_version_mismatch(
             self, status_mock, notify_mock, steps_mock):
         # Test that cleaning is restarted if there is a version mismatch
@@ -550,10 +572,12 @@ class TestBaseAgentVendor(db_base.DbTestCase):
                                   shared=False) as task:
             self.passthru.continue_cleaning(task)
             steps_mock.assert_called_once_with(task)
-            notify_mock.assert_called_once_with(task)
+            notify_mock.assert_called_once_with(mock.ANY, task)
 
-    @mock.patch('ironic.conductor.manager.cleaning_error_handler')
-    @mock.patch.object(agent_client.AgentClient, 'get_commands_status')
+    @mock.patch('ironic.conductor.manager.cleaning_error_handler',
+                autospec=True)
+    @mock.patch.object(agent_client.AgentClient, 'get_commands_status',
+                       autospec=True)
     def test_continue_cleaning_unknown(self, status_mock, error_mock):
         # Test that unknown commands are treated as failures
         status_mock.return_value = [{

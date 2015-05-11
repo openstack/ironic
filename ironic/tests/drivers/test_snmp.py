@@ -39,7 +39,7 @@ CONF = cfg.CONF
 INFO_DICT = db_utils.get_test_snmp_info()
 
 
-@mock.patch.object(cmdgen, 'CommandGenerator')
+@mock.patch.object(cmdgen, 'CommandGenerator', autospec=True)
 class SNMPClientTestCase(base.TestCase):
     def setUp(self):
         super(SNMPClientTestCase, self).setUp()
@@ -58,28 +58,28 @@ class SNMPClientTestCase(base.TestCase):
         self.assertFalse('security' in client.__dict__)
         self.assertEqual(mock_cmdgen.return_value, client.cmd_gen)
 
-    @mock.patch.object(cmdgen, 'CommunityData')
+    @mock.patch.object(cmdgen, 'CommunityData', autospec=True)
     def test__get_auth_v1(self, mock_community, mock_cmdgen):
         client = snmp.SNMPClient(self.address, self.port, snmp.SNMP_V1)
         client._get_auth()
         mock_cmdgen.assert_called_once_with()
         mock_community.assert_called_once_with(client.community, mpModel=0)
 
-    @mock.patch.object(cmdgen, 'UsmUserData')
+    @mock.patch.object(cmdgen, 'UsmUserData', autospec=True)
     def test__get_auth_v3(self, mock_user, mock_cmdgen):
         client = snmp.SNMPClient(self.address, self.port, snmp.SNMP_V3)
         client._get_auth()
         mock_cmdgen.assert_called_once_with()
         mock_user.assert_called_once_with(client.security)
 
-    @mock.patch.object(cmdgen, 'UdpTransportTarget')
+    @mock.patch.object(cmdgen, 'UdpTransportTarget', autospec=True)
     def test__get_transport(self, mock_transport, mock_cmdgen):
         client = snmp.SNMPClient(self.address, self.port, snmp.SNMP_V3)
         client._get_transport()
         mock_cmdgen.assert_called_once_with()
         mock_transport.assert_called_once_with((client.address, client.port))
 
-    @mock.patch.object(cmdgen, 'UdpTransportTarget')
+    @mock.patch.object(cmdgen, 'UdpTransportTarget', autospec=True)
     def test__get_transport_err(self, mock_transport, mock_cmdgen):
         mock_transport.side_effect = snmp_error.PySnmpError
         client = snmp.SNMPClient(self.address, self.port, snmp.SNMP_V3)
@@ -87,8 +87,8 @@ class SNMPClientTestCase(base.TestCase):
         mock_cmdgen.assert_called_once_with()
         mock_transport.assert_called_once_with((client.address, client.port))
 
-    @mock.patch.object(snmp.SNMPClient, '_get_transport')
-    @mock.patch.object(snmp.SNMPClient, '_get_auth')
+    @mock.patch.object(snmp.SNMPClient, '_get_transport', autospec=True)
+    @mock.patch.object(snmp.SNMPClient, '_get_auth', autospec=True)
     def test_get(self, mock_auth, mock_transport, mock_cmdgen):
         var_bind = (self.oid, self.value)
         mock_cmdgenerator = mock_cmdgen.return_value
@@ -99,8 +99,8 @@ class SNMPClientTestCase(base.TestCase):
         mock_cmdgenerator.getCmd.assert_called_once_with(mock.ANY, mock.ANY,
                                                          self.oid)
 
-    @mock.patch.object(snmp.SNMPClient, '_get_transport')
-    @mock.patch.object(snmp.SNMPClient, '_get_auth')
+    @mock.patch.object(snmp.SNMPClient, '_get_transport', autospec=True)
+    @mock.patch.object(snmp.SNMPClient, '_get_auth', autospec=True)
     def test_get_err_transport(self, mock_auth, mock_transport, mock_cmdgen):
         mock_transport.side_effect = snmp_error.PySnmpError
         var_bind = (self.oid, self.value)
@@ -111,8 +111,8 @@ class SNMPClientTestCase(base.TestCase):
         self.assertRaises(exception.SNMPFailure, client.get, self.oid)
         self.assertFalse(mock_cmdgenerator.getCmd.called)
 
-    @mock.patch.object(snmp.SNMPClient, '_get_transport')
-    @mock.patch.object(snmp.SNMPClient, '_get_auth')
+    @mock.patch.object(snmp.SNMPClient, '_get_transport', autospec=True)
+    @mock.patch.object(snmp.SNMPClient, '_get_auth', autospec=True)
     def test_get_err_engine(self, mock_auth, mock_transport, mock_cmdgen):
         var_bind = (self.oid, self.value)
         mock_cmdgenerator = mock_cmdgen.return_value
@@ -123,8 +123,8 @@ class SNMPClientTestCase(base.TestCase):
         mock_cmdgenerator.getCmd.assert_called_once_with(mock.ANY, mock.ANY,
                                                          self.oid)
 
-    @mock.patch.object(snmp.SNMPClient, '_get_transport')
-    @mock.patch.object(snmp.SNMPClient, '_get_auth')
+    @mock.patch.object(snmp.SNMPClient, '_get_transport', autospec=True)
+    @mock.patch.object(snmp.SNMPClient, '_get_auth', autospec=True)
     def test_set(self, mock_auth, mock_transport, mock_cmdgen):
         var_bind = (self.oid, self.value)
         mock_cmdgenerator = mock_cmdgen.return_value
@@ -134,8 +134,8 @@ class SNMPClientTestCase(base.TestCase):
         mock_cmdgenerator.setCmd.assert_called_once_with(mock.ANY, mock.ANY,
                                                          var_bind)
 
-    @mock.patch.object(snmp.SNMPClient, '_get_transport')
-    @mock.patch.object(snmp.SNMPClient, '_get_auth')
+    @mock.patch.object(snmp.SNMPClient, '_get_transport', autospec=True)
+    @mock.patch.object(snmp.SNMPClient, '_get_auth', autospec=True)
     def test_set_err_transport(self, mock_auth, mock_transport, mock_cmdgen):
         mock_transport.side_effect = snmp_error.PySnmpError
         var_bind = (self.oid, self.value)
@@ -147,8 +147,8 @@ class SNMPClientTestCase(base.TestCase):
                           client.set, self.oid, self.value)
         self.assertFalse(mock_cmdgenerator.setCmd.called)
 
-    @mock.patch.object(snmp.SNMPClient, '_get_transport')
-    @mock.patch.object(snmp.SNMPClient, '_get_auth')
+    @mock.patch.object(snmp.SNMPClient, '_get_transport', autospec=True)
+    @mock.patch.object(snmp.SNMPClient, '_get_auth', autospec=True)
     def test_set_err_engine(self, mock_auth, mock_transport, mock_cmdgen):
         var_bind = (self.oid, self.value)
         mock_cmdgenerator = mock_cmdgen.return_value
@@ -351,7 +351,7 @@ class SNMPValidateParametersTestCase(db_base.DbTestCase):
                           node)
 
 
-@mock.patch.object(snmp, '_get_client')
+@mock.patch.object(snmp, '_get_client', autospec=True)
 class SNMPDeviceDriverTestCase(db_base.DbTestCase):
     """Tests for the SNMP device-specific driver classes.
 
@@ -433,7 +433,7 @@ class SNMPDeviceDriverTestCase(db_base.DbTestCase):
         mock_client.get.assert_called_once_with(driver._snmp_oid())
         self.assertEqual(states.POWER_OFF, pstate)
 
-    @mock.patch("eventlet.greenthread.sleep")
+    @mock.patch("eventlet.greenthread.sleep", autospec=True)
     def test_power_on_delay(self, mock_sleep, mock_get_client):
         # Ensure driver waits for the state to change following a power on
         mock_client = mock_get_client.return_value
@@ -447,7 +447,7 @@ class SNMPDeviceDriverTestCase(db_base.DbTestCase):
         mock_client.get.assert_has_calls(calls)
         self.assertEqual(states.POWER_ON, pstate)
 
-    @mock.patch("eventlet.greenthread.sleep")
+    @mock.patch("eventlet.greenthread.sleep", autospec=True)
     def test_power_off_delay(self, mock_sleep, mock_get_client):
         # Ensure driver waits for the state to change following a power off
         mock_client = mock_get_client.return_value
@@ -461,7 +461,7 @@ class SNMPDeviceDriverTestCase(db_base.DbTestCase):
         mock_client.get.assert_has_calls(calls)
         self.assertEqual(states.POWER_OFF, pstate)
 
-    @mock.patch("eventlet.greenthread.sleep")
+    @mock.patch("eventlet.greenthread.sleep", autospec=True)
     def test_power_on_invalid_state(self, mock_sleep, mock_get_client):
         # Ensure driver retries when querying unexpected states following a
         # power on
@@ -476,7 +476,7 @@ class SNMPDeviceDriverTestCase(db_base.DbTestCase):
         mock_client.get.assert_has_calls(calls)
         self.assertEqual(states.ERROR, pstate)
 
-    @mock.patch("eventlet.greenthread.sleep")
+    @mock.patch("eventlet.greenthread.sleep", autospec=True)
     def test_power_off_invalid_state(self, mock_sleep, mock_get_client):
         # Ensure driver retries when querying unexpected states following a
         # power off
@@ -537,7 +537,7 @@ class SNMPDeviceDriverTestCase(db_base.DbTestCase):
                                                 driver.value_power_off)
         mock_client.get.assert_called_once_with(driver._snmp_oid())
 
-    @mock.patch("eventlet.greenthread.sleep")
+    @mock.patch("eventlet.greenthread.sleep", autospec=True)
     def test_power_on_timeout(self, mock_sleep, mock_get_client):
         # Ensure that a power on consistency poll timeout causes an error
         mock_client = mock_get_client.return_value
@@ -551,7 +551,7 @@ class SNMPDeviceDriverTestCase(db_base.DbTestCase):
         mock_client.get.assert_has_calls(calls)
         self.assertEqual(states.ERROR, pstate)
 
-    @mock.patch("eventlet.greenthread.sleep")
+    @mock.patch("eventlet.greenthread.sleep", autospec=True)
     def test_power_off_timeout(self, mock_sleep, mock_get_client):
         # Ensure that a power off consistency poll timeout causes an error
         mock_client = mock_get_client.return_value
@@ -580,7 +580,7 @@ class SNMPDeviceDriverTestCase(db_base.DbTestCase):
         mock_client.get.assert_has_calls(calls)
         self.assertEqual(states.POWER_ON, pstate)
 
-    @mock.patch("eventlet.greenthread.sleep")
+    @mock.patch("eventlet.greenthread.sleep", autospec=True)
     def test_power_reset_off_delay(self, mock_sleep, mock_get_client):
         # Ensure driver waits for the power off state change following a power
         # reset
@@ -597,7 +597,7 @@ class SNMPDeviceDriverTestCase(db_base.DbTestCase):
         mock_client.get.assert_has_calls(calls)
         self.assertEqual(states.POWER_ON, pstate)
 
-    @mock.patch("eventlet.greenthread.sleep")
+    @mock.patch("eventlet.greenthread.sleep", autospec=True)
     def test_power_reset_on_delay(self, mock_sleep, mock_get_client):
         # Ensure driver waits for the power on state change following a power
         # reset
@@ -614,7 +614,7 @@ class SNMPDeviceDriverTestCase(db_base.DbTestCase):
         mock_client.get.assert_has_calls(calls)
         self.assertEqual(states.POWER_ON, pstate)
 
-    @mock.patch("eventlet.greenthread.sleep")
+    @mock.patch("eventlet.greenthread.sleep", autospec=True)
     def test_power_reset_off_delay_on_delay(self, mock_sleep, mock_get_client):
         # Ensure driver waits for both state changes following a power reset
         mock_client = mock_get_client.return_value
@@ -631,7 +631,7 @@ class SNMPDeviceDriverTestCase(db_base.DbTestCase):
         mock_client.get.assert_has_calls(calls)
         self.assertEqual(states.POWER_ON, pstate)
 
-    @mock.patch("eventlet.greenthread.sleep")
+    @mock.patch("eventlet.greenthread.sleep", autospec=True)
     def test_power_reset_off_invalid_state(self, mock_sleep, mock_get_client):
         # Ensure driver retries when querying unexpected states following a
         # power off during a reset
@@ -646,7 +646,7 @@ class SNMPDeviceDriverTestCase(db_base.DbTestCase):
         mock_client.get.assert_has_calls(calls)
         self.assertEqual(states.ERROR, pstate)
 
-    @mock.patch("eventlet.greenthread.sleep")
+    @mock.patch("eventlet.greenthread.sleep", autospec=True)
     def test_power_reset_on_invalid_state(self, mock_sleep, mock_get_client):
         # Ensure driver retries when querying unexpected states following a
         # power on during a reset
@@ -663,7 +663,7 @@ class SNMPDeviceDriverTestCase(db_base.DbTestCase):
         mock_client.get.assert_has_calls(calls)
         self.assertEqual(states.ERROR, pstate)
 
-    @mock.patch("eventlet.greenthread.sleep")
+    @mock.patch("eventlet.greenthread.sleep", autospec=True)
     def test_power_reset_off_timeout(self, mock_sleep, mock_get_client):
         # Ensure that a power off consistency poll timeout during a reset
         # causes an error
@@ -678,7 +678,7 @@ class SNMPDeviceDriverTestCase(db_base.DbTestCase):
         mock_client.get.assert_has_calls(calls)
         self.assertEqual(states.ERROR, pstate)
 
-    @mock.patch("eventlet.greenthread.sleep")
+    @mock.patch("eventlet.greenthread.sleep", autospec=True)
     def test_power_reset_on_timeout(self, mock_sleep, mock_get_client):
         # Ensure that a power on consistency poll timeout during a reset
         # causes an error
@@ -1016,7 +1016,7 @@ class SNMPDeviceDriverTestCase(db_base.DbTestCase):
         self.assertEqual(states.POWER_ON, pstate)
 
 
-@mock.patch.object(snmp, '_get_driver')
+@mock.patch.object(snmp, '_get_driver', autospec=True)
 class SNMPDriverTestCase(db_base.DbTestCase):
     """SNMP power driver interface tests.
 

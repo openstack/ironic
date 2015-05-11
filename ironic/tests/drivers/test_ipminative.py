@@ -67,7 +67,7 @@ class IPMINativePrivateMethodTestCase(db_base.DbTestCase):
                           ipminative._parse_driver_info,
                           node)
 
-    @mock.patch('pyghmi.ipmi.command.Command')
+    @mock.patch('pyghmi.ipmi.command.Command', autospec=True)
     def test__power_status_on(self, ipmi_mock):
         ipmicmd = ipmi_mock.return_value
         ipmicmd.get_power.return_value = {'powerstate': 'on'}
@@ -76,7 +76,7 @@ class IPMINativePrivateMethodTestCase(db_base.DbTestCase):
         ipmicmd.get_power.assert_called_once_with()
         self.assertEqual(states.POWER_ON, state)
 
-    @mock.patch('pyghmi.ipmi.command.Command')
+    @mock.patch('pyghmi.ipmi.command.Command', autospec=True)
     def test__power_status_off(self, ipmi_mock):
         ipmicmd = ipmi_mock.return_value
         ipmicmd.get_power.return_value = {'powerstate': 'off'}
@@ -85,7 +85,7 @@ class IPMINativePrivateMethodTestCase(db_base.DbTestCase):
         ipmicmd.get_power.assert_called_once_with()
         self.assertEqual(states.POWER_OFF, state)
 
-    @mock.patch('pyghmi.ipmi.command.Command')
+    @mock.patch('pyghmi.ipmi.command.Command', autospec=True)
     def test__power_status_error(self, ipmi_mock):
         ipmicmd = ipmi_mock.return_value
         ipmicmd.get_power.return_value = {'powerstate': 'Error'}
@@ -94,7 +94,7 @@ class IPMINativePrivateMethodTestCase(db_base.DbTestCase):
         ipmicmd.get_power.assert_called_once_with()
         self.assertEqual(states.ERROR, state)
 
-    @mock.patch('pyghmi.ipmi.command.Command')
+    @mock.patch('pyghmi.ipmi.command.Command', autospec=True)
     def test__power_on(self, ipmi_mock):
         ipmicmd = ipmi_mock.return_value
         ipmicmd.set_power.return_value = {'powerstate': 'on'}
@@ -104,7 +104,7 @@ class IPMINativePrivateMethodTestCase(db_base.DbTestCase):
         ipmicmd.set_power.assert_called_once_with('on', 400)
         self.assertEqual(states.POWER_ON, state)
 
-    @mock.patch('pyghmi.ipmi.command.Command')
+    @mock.patch('pyghmi.ipmi.command.Command', autospec=True)
     def test__power_off(self, ipmi_mock):
         ipmicmd = ipmi_mock.return_value
         ipmicmd.set_power.return_value = {'powerstate': 'off'}
@@ -114,7 +114,7 @@ class IPMINativePrivateMethodTestCase(db_base.DbTestCase):
         ipmicmd.set_power.assert_called_once_with('off', 500)
         self.assertEqual(states.POWER_OFF, state)
 
-    @mock.patch('pyghmi.ipmi.command.Command')
+    @mock.patch('pyghmi.ipmi.command.Command', autospec=True)
     def test__reboot(self, ipmi_mock):
         ipmicmd = ipmi_mock.return_value
         ipmicmd.set_power.return_value = {'powerstate': 'on'}
@@ -132,7 +132,7 @@ class IPMINativePrivateMethodTestCase(db_base.DbTestCase):
                                      'name': name, 'states': states,
                                      'units': units, 'health': health})()
 
-    @mock.patch('pyghmi.ipmi.command.Command')
+    @mock.patch('pyghmi.ipmi.command.Command', autospec=True)
     def test__get_sensors_data(self, ipmi_mock):
         reading_1 = self._create_sensor_object('fake_value1',
                                                'fake_type_A',
@@ -175,7 +175,7 @@ class IPMINativePrivateMethodTestCase(db_base.DbTestCase):
         ret = ipminative._get_sensors_data(self.info)
         self.assertEqual(expected, ret)
 
-    @mock.patch('pyghmi.ipmi.command.Command')
+    @mock.patch('pyghmi.ipmi.command.Command', autospec=True)
     def test__get_sensors_data_missing_values(self, ipmi_mock):
         reading_1 = self._create_sensor_object('fake_value1',
                                                'fake_type_A',
@@ -230,7 +230,7 @@ class IPMINativeDriverTestCase(db_base.DbTestCase):
         self.assertEqual(sorted(expected),
                          sorted(self.driver.get_properties().keys()))
 
-    @mock.patch('pyghmi.ipmi.command.Command')
+    @mock.patch('pyghmi.ipmi.command.Command', autospec=True)
     def test_get_power_state(self, ipmi_mock):
         # Getting the mocked command.
         cmd_mock = ipmi_mock.return_value
@@ -256,7 +256,7 @@ class IPMINativeDriverTestCase(db_base.DbTestCase):
                              "pyghmi.ipmi.command.Command.get_power was not"
                              " called 3 times.")
 
-    @mock.patch.object(ipminative, '_power_on')
+    @mock.patch.object(ipminative, '_power_on', autospec=True)
     def test_set_power_on_ok(self, power_on_mock):
         power_on_mock.return_value = states.POWER_ON
 
@@ -266,7 +266,7 @@ class IPMINativeDriverTestCase(db_base.DbTestCase):
                 task, states.POWER_ON)
         power_on_mock.assert_called_once_with(self.info)
 
-    @mock.patch.object(ipminative, '_power_off')
+    @mock.patch.object(ipminative, '_power_off', autospec=True)
     def test_set_power_off_ok(self, power_off_mock):
         power_off_mock.return_value = states.POWER_OFF
 
@@ -276,7 +276,7 @@ class IPMINativeDriverTestCase(db_base.DbTestCase):
                 task, states.POWER_OFF)
         power_off_mock.assert_called_once_with(self.info)
 
-    @mock.patch('pyghmi.ipmi.command.Command')
+    @mock.patch('pyghmi.ipmi.command.Command', autospec=True)
     def test_set_power_on_fail(self, ipmi_mock):
         ipmicmd = ipmi_mock.return_value
         ipmicmd.set_power.return_value = {'powerstate': 'error'}
@@ -290,7 +290,7 @@ class IPMINativeDriverTestCase(db_base.DbTestCase):
                               states.POWER_ON)
         ipmicmd.set_power.assert_called_once_with('on', 500)
 
-    @mock.patch('pyghmi.ipmi.command.Command')
+    @mock.patch('pyghmi.ipmi.command.Command', autospec=True)
     def test_set_boot_device_ok(self, ipmi_mock):
         ipmicmd = ipmi_mock.return_value
         ipmicmd.set_bootdev.return_value = None
@@ -308,7 +308,7 @@ class IPMINativeDriverTestCase(db_base.DbTestCase):
                     task,
                     'fake-device')
 
-    @mock.patch.object(ipminative, '_reboot')
+    @mock.patch.object(ipminative, '_reboot', autospec=True)
     def test_reboot_ok(self, reboot_mock):
         reboot_mock.return_value = None
 
@@ -317,7 +317,7 @@ class IPMINativeDriverTestCase(db_base.DbTestCase):
             self.driver.power.reboot(task)
         reboot_mock.assert_called_once_with(self.info)
 
-    @mock.patch('pyghmi.ipmi.command.Command')
+    @mock.patch('pyghmi.ipmi.command.Command', autospec=True)
     def test_reboot_fail(self, ipmi_mock):
         ipmicmd = ipmi_mock.return_value
         ipmicmd.set_power.return_value = {'powerstate': 'error'}
@@ -337,7 +337,7 @@ class IPMINativeDriverTestCase(db_base.DbTestCase):
             self.assertEqual(sorted(expected), sorted(task.driver.management.
                              get_supported_boot_devices()))
 
-    @mock.patch('pyghmi.ipmi.command.Command')
+    @mock.patch('pyghmi.ipmi.command.Command', autospec=True)
     def test_management_interface_get_boot_device_good(self, ipmi_mock):
         ipmicmd = ipmi_mock.return_value
         ipmicmd.get_bootdev.return_value = {'bootdev': 'hd'}
@@ -346,7 +346,7 @@ class IPMINativeDriverTestCase(db_base.DbTestCase):
             self.assertEqual(boot_devices.DISK, bootdev['boot_device'])
             self.assertIsNone(bootdev['persistent'])
 
-    @mock.patch('pyghmi.ipmi.command.Command')
+    @mock.patch('pyghmi.ipmi.command.Command', autospec=True)
     def test_management_interface_get_boot_device_persistent(self, ipmi_mock):
         ipmicmd = ipmi_mock.return_value
         ipmicmd.get_bootdev.return_value = {'bootdev': 'hd',
@@ -356,7 +356,7 @@ class IPMINativeDriverTestCase(db_base.DbTestCase):
             self.assertEqual(boot_devices.DISK, bootdev['boot_device'])
             self.assertTrue(bootdev['persistent'])
 
-    @mock.patch('pyghmi.ipmi.command.Command')
+    @mock.patch('pyghmi.ipmi.command.Command', autospec=True)
     def test_management_interface_get_boot_device_fail(self, ipmi_mock):
         ipmicmd = ipmi_mock.return_value
         ipmicmd.get_bootdev.side_effect = pyghmi_exception.IpmiException
@@ -364,7 +364,7 @@ class IPMINativeDriverTestCase(db_base.DbTestCase):
             self.assertRaises(exception.IPMIFailure,
                               self.driver.management.get_boot_device, task)
 
-    @mock.patch('pyghmi.ipmi.command.Command')
+    @mock.patch('pyghmi.ipmi.command.Command', autospec=True)
     def test_management_interface_get_boot_device_fail_dict(self, ipmi_mock):
         ipmicmd = ipmi_mock.return_value
         ipmicmd.get_bootdev.return_value = {'error': 'boooom'}
@@ -372,7 +372,7 @@ class IPMINativeDriverTestCase(db_base.DbTestCase):
             self.assertRaises(exception.IPMIFailure,
                               self.driver.management.get_boot_device, task)
 
-    @mock.patch('pyghmi.ipmi.command.Command')
+    @mock.patch('pyghmi.ipmi.command.Command', autospec=True)
     def test_management_interface_get_boot_device_unknown(self, ipmi_mock):
         ipmicmd = ipmi_mock.return_value
         ipmicmd.get_bootdev.return_value = {'bootdev': 'unknown'}
@@ -394,7 +394,7 @@ class IPMINativeDriverTestCase(db_base.DbTestCase):
             self.assertRaises(exception.MissingParameterValue,
                               task.driver.management.validate, task)
 
-    @mock.patch('pyghmi.ipmi.command.Command')
+    @mock.patch('pyghmi.ipmi.command.Command', autospec=True)
     def test_get_sensors_data(self, ipmi_mock):
         ipmicmd = ipmi_mock.return_value
         ipmicmd.get_sensor_data.return_value = None

@@ -29,6 +29,7 @@ from ironic.common import states
 from ironic.common import utils
 from ironic.conductor import task_manager
 from ironic.conductor import utils as manager_utils
+from ironic.drivers.modules import agent_client
 from ironic.drivers.modules import deploy_utils
 from ironic.drivers.modules import iscsi_deploy
 from ironic.drivers.modules import pxe
@@ -207,7 +208,7 @@ class IscsiDeployValidateParametersTestCase(db_base.DbTestCase):
         self.assertRaises(exception.MissingParameterValue,
                           iscsi_deploy.parse_instance_info, node)
 
-    @mock.patch.object(image_service, 'get_image_service')
+    @mock.patch.object(image_service, 'get_image_service', autospec=True)
     def test_validate_image_properties_glance_image(self, image_service_mock):
         node = obj_utils.create_test_node(
                    self.context, driver='fake_pxe',
@@ -226,7 +227,7 @@ class IscsiDeployValidateParametersTestCase(db_base.DbTestCase):
             node.instance_info['image_source'], context=self.context
         )
 
-    @mock.patch.object(image_service, 'get_image_service')
+    @mock.patch.object(image_service, 'get_image_service', autospec=True)
     def test_validate_image_properties_glance_image_missing_prop(self,
             image_service_mock):
         node = obj_utils.create_test_node(
@@ -247,7 +248,7 @@ class IscsiDeployValidateParametersTestCase(db_base.DbTestCase):
             node.instance_info['image_source'], context=self.context
         )
 
-    @mock.patch.object(image_service, 'get_image_service')
+    @mock.patch.object(image_service, 'get_image_service', autospec=True)
     def test_validate_image_properties_glance_image_not_authorized(self,
             image_service_mock):
         d_info = {'image_source': 'uuid'}
@@ -257,7 +258,7 @@ class IscsiDeployValidateParametersTestCase(db_base.DbTestCase):
                           iscsi_deploy.validate_image_properties, self.context,
                           d_info, [])
 
-    @mock.patch.object(image_service, 'get_image_service')
+    @mock.patch.object(image_service, 'get_image_service', autospec=True)
     def test_validate_image_properties_glance_image_not_found(self,
             image_service_mock):
         d_info = {'image_source': 'uuid'}
@@ -273,7 +274,7 @@ class IscsiDeployValidateParametersTestCase(db_base.DbTestCase):
                           iscsi_deploy.validate_image_properties, self.context,
                           d_info, [])
 
-    @mock.patch.object(image_service.HttpImageService, 'show')
+    @mock.patch.object(image_service.HttpImageService, 'show', autospec=True)
     def test_validate_image_properties_nonglance_image(self,
             image_service_show_mock):
         instance_info = {
@@ -293,9 +294,9 @@ class IscsiDeployValidateParametersTestCase(db_base.DbTestCase):
         iscsi_deploy.validate_image_properties(self.context, d_info,
                                                ['kernel', 'ramdisk'])
         image_service_show_mock.assert_called_once_with(
-            instance_info['image_source'])
+            mock.ANY, instance_info['image_source'])
 
-    @mock.patch.object(image_service.HttpImageService, 'show')
+    @mock.patch.object(image_service.HttpImageService, 'show', autospec=True)
     def test_validate_image_properties_nonglance_image_validation_fail(self,
             img_service_show_mock):
         instance_info = {
@@ -379,7 +380,7 @@ class IscsiDeployMethodsTestCase(db_base.DbTestCase):
         mgr_utils.mock_the_extension_manager(driver="fake_pxe")
         self.node = obj_utils.create_test_node(self.context, **n)
 
-    @mock.patch.object(deploy_utils, 'fetch_images')
+    @mock.patch.object(deploy_utils, 'fetch_images', autospec=True)
     def test_cache_instance_images_master_path(self, mock_fetch_image):
         temp_dir = tempfile.mkdtemp()
         self.config(images_path=temp_dir, group='pxe')
@@ -398,9 +399,9 @@ class IscsiDeployMethodsTestCase(db_base.DbTestCase):
                                       'disk'),
                          image_path)
 
-    @mock.patch.object(utils, 'unlink_without_raise')
-    @mock.patch.object(utils, 'rmtree_without_raise')
-    @mock.patch.object(iscsi_deploy, 'InstanceImageCache')
+    @mock.patch.object(utils, 'unlink_without_raise', autospec=True)
+    @mock.patch.object(utils, 'rmtree_without_raise', autospec=True)
+    @mock.patch.object(iscsi_deploy, 'InstanceImageCache', autospec=True)
     def test_destroy_images(self, mock_cache, mock_rmtree, mock_unlink):
         self.config(images_path='/path', group='pxe')
 
@@ -442,8 +443,8 @@ class IscsiDeployMethodsTestCase(db_base.DbTestCase):
         # assert deploy_key was injected in the node
         self.assertIn('deploy_key', self.node.instance_info)
 
-    @mock.patch.object(keystone, 'get_service_url')
-    @mock.patch.object(utils, 'random_alnum')
+    @mock.patch.object(keystone, 'get_service_url', autospec=True)
+    @mock.patch.object(utils, 'random_alnum', autospec=True)
     def test_build_deploy_ramdisk_options(self, mock_alnum, mock_get_url):
         fake_api_url = 'http://127.0.0.1:6385'
         self.config(api_url=fake_api_url, group='conductor')
@@ -453,8 +454,8 @@ class IscsiDeployMethodsTestCase(db_base.DbTestCase):
         # assert keystone wasn't called
         self.assertFalse(mock_get_url.called)
 
-    @mock.patch.object(keystone, 'get_service_url')
-    @mock.patch.object(utils, 'random_alnum')
+    @mock.patch.object(keystone, 'get_service_url', autospec=True)
+    @mock.patch.object(utils, 'random_alnum', autospec=True)
     def test_build_deploy_ramdisk_options_keystone(self, mock_alnum,
                                                    mock_get_url):
         fake_api_url = 'http://127.0.0.1:6385'
@@ -465,8 +466,8 @@ class IscsiDeployMethodsTestCase(db_base.DbTestCase):
         # assert we are getting it from keystone
         mock_get_url.assert_called_once_with()
 
-    @mock.patch.object(keystone, 'get_service_url')
-    @mock.patch.object(utils, 'random_alnum')
+    @mock.patch.object(keystone, 'get_service_url', autospec=True)
+    @mock.patch.object(utils, 'random_alnum', autospec=True)
     def test_build_deploy_ramdisk_options_root_device(self, mock_alnum,
                                                       mock_get_url):
         self.node.properties['root_device'] = {'wwn': 123456}
@@ -476,8 +477,8 @@ class IscsiDeployMethodsTestCase(db_base.DbTestCase):
         self._test_build_deploy_ramdisk_options(mock_alnum, fake_api_url,
                                                 expected_root_device=expected)
 
-    @mock.patch.object(keystone, 'get_service_url')
-    @mock.patch.object(utils, 'random_alnum')
+    @mock.patch.object(keystone, 'get_service_url', autospec=True)
+    @mock.patch.object(utils, 'random_alnum', autospec=True)
     def test_build_deploy_ramdisk_options_boot_option(self, mock_alnum,
                                                       mock_get_url):
         self.node.instance_info = {'capabilities': '{"boot_option": "local"}'}
@@ -516,9 +517,9 @@ class IscsiDeployMethodsTestCase(db_base.DbTestCase):
         result = iscsi_deploy.get_boot_option(self.node)
         self.assertEqual("netboot", result)
 
-    @mock.patch.object(iscsi_deploy, 'InstanceImageCache')
-    @mock.patch.object(manager_utils, 'node_power_action')
-    @mock.patch.object(deploy_utils, 'deploy_partition_image')
+    @mock.patch.object(iscsi_deploy, 'InstanceImageCache', autospec=True)
+    @mock.patch.object(manager_utils, 'node_power_action', autospec=True)
+    @mock.patch.object(deploy_utils, 'deploy_partition_image', autospec=True)
     def test_continue_deploy_fail(self, deploy_mock, power_mock,
                                   mock_image_cache):
         kwargs = {'address': '123456', 'iqn': 'aaa-bbb', 'key': 'fake-56789'}
@@ -542,9 +543,9 @@ class IscsiDeployMethodsTestCase(db_base.DbTestCase):
             mock_image_cache.assert_called_once_with()
             mock_image_cache.return_value.clean_up.assert_called_once_with()
 
-    @mock.patch.object(iscsi_deploy, 'InstanceImageCache')
-    @mock.patch.object(manager_utils, 'node_power_action')
-    @mock.patch.object(deploy_utils, 'deploy_partition_image')
+    @mock.patch.object(iscsi_deploy, 'InstanceImageCache', autospec=True)
+    @mock.patch.object(manager_utils, 'node_power_action', autospec=True)
+    @mock.patch.object(deploy_utils, 'deploy_partition_image', autospec=True)
     def test_continue_deploy_ramdisk_fails(self, deploy_mock, power_mock,
                                            mock_image_cache):
         kwargs = {'address': '123456', 'iqn': 'aaa-bbb', 'key': 'fake-56789',
@@ -566,9 +567,9 @@ class IscsiDeployMethodsTestCase(db_base.DbTestCase):
             mock_image_cache.return_value.clean_up.assert_called_once_with()
             self.assertFalse(deploy_mock.called)
 
-    @mock.patch.object(iscsi_deploy, 'InstanceImageCache')
-    @mock.patch.object(manager_utils, 'node_power_action')
-    @mock.patch.object(deploy_utils, 'deploy_partition_image')
+    @mock.patch.object(iscsi_deploy, 'InstanceImageCache', autospec=True)
+    @mock.patch.object(manager_utils, 'node_power_action', autospec=True)
+    @mock.patch.object(deploy_utils, 'deploy_partition_image', autospec=True)
     def test_continue_deploy_fail_no_root_uuid_or_disk_id(
             self, deploy_mock, power_mock, mock_image_cache):
         kwargs = {'address': '123456', 'iqn': 'aaa-bbb', 'key': 'fake-56789'}
@@ -591,9 +592,9 @@ class IscsiDeployMethodsTestCase(db_base.DbTestCase):
             mock_image_cache.assert_called_once_with()
             mock_image_cache.return_value.clean_up.assert_called_once_with()
 
-    @mock.patch.object(iscsi_deploy, 'InstanceImageCache')
-    @mock.patch.object(manager_utils, 'node_power_action')
-    @mock.patch.object(deploy_utils, 'deploy_partition_image')
+    @mock.patch.object(iscsi_deploy, 'InstanceImageCache', autospec=True)
+    @mock.patch.object(manager_utils, 'node_power_action', autospec=True)
+    @mock.patch.object(deploy_utils, 'deploy_partition_image', autospec=True)
     def test_continue_deploy_fail_empty_root_uuid(
             self, deploy_mock, power_mock, mock_image_cache):
         kwargs = {'address': '123456', 'iqn': 'aaa-bbb', 'key': 'fake-56789'}
@@ -616,11 +617,11 @@ class IscsiDeployMethodsTestCase(db_base.DbTestCase):
             mock_image_cache.assert_called_once_with()
             mock_image_cache.return_value.clean_up.assert_called_once_with()
 
-    @mock.patch.object(iscsi_deploy, 'LOG')
-    @mock.patch.object(iscsi_deploy, 'get_deploy_info')
-    @mock.patch.object(iscsi_deploy, 'InstanceImageCache')
-    @mock.patch.object(manager_utils, 'node_power_action')
-    @mock.patch.object(deploy_utils, 'deploy_partition_image')
+    @mock.patch.object(iscsi_deploy, 'LOG', autospec=True)
+    @mock.patch.object(iscsi_deploy, 'get_deploy_info', autospec=True)
+    @mock.patch.object(iscsi_deploy, 'InstanceImageCache', autospec=True)
+    @mock.patch.object(manager_utils, 'node_power_action', autospec=True)
+    @mock.patch.object(deploy_utils, 'deploy_partition_image', autospec=True)
     def test_continue_deploy(self, deploy_mock, power_mock, mock_image_cache,
                              mock_deploy_info, mock_log):
         kwargs = {'address': '123456', 'iqn': 'aaa-bbb', 'key': 'fake-56789'}
@@ -667,11 +668,11 @@ class IscsiDeployMethodsTestCase(db_base.DbTestCase):
             mock_image_cache.return_value.clean_up.assert_called_once_with()
             self.assertEqual(uuid_dict_returned, retval)
 
-    @mock.patch.object(iscsi_deploy, 'LOG')
-    @mock.patch.object(iscsi_deploy, 'get_deploy_info')
-    @mock.patch.object(iscsi_deploy, 'InstanceImageCache')
-    @mock.patch.object(manager_utils, 'node_power_action')
-    @mock.patch.object(deploy_utils, 'deploy_disk_image')
+    @mock.patch.object(iscsi_deploy, 'LOG', autospec=True)
+    @mock.patch.object(iscsi_deploy, 'get_deploy_info', autospec=True)
+    @mock.patch.object(iscsi_deploy, 'InstanceImageCache', autospec=True)
+    @mock.patch.object(manager_utils, 'node_power_action', autospec=True)
+    @mock.patch.object(deploy_utils, 'deploy_disk_image', autospec=True)
     def test_continue_deploy_whole_disk_image(
             self, deploy_mock, power_mock, mock_image_cache, mock_deploy_info,
             mock_log):
@@ -688,7 +689,6 @@ class IscsiDeployMethodsTestCase(db_base.DbTestCase):
             'lun': '1',
             'node_uuid': u'1be26c0b-03f2-4d2e-ae87-c02d7f33c123',
             'port': '3260',
-            'root_mb': 102400,
         }
         log_params = mock_deploy_info.return_value.copy()
         expected_dict = {
@@ -743,13 +743,14 @@ class IscsiDeployMethodsTestCase(db_base.DbTestCase):
         self.assertEqual('target-iqn', ret_val['iqn'])
         self.assertEqual('local', ret_val['boot_option'])
 
-    @mock.patch.object(iscsi_deploy, 'continue_deploy')
-    @mock.patch.object(iscsi_deploy, 'build_deploy_ramdisk_options')
+    @mock.patch.object(iscsi_deploy, 'continue_deploy', autospec=True)
+    @mock.patch.object(iscsi_deploy, 'build_deploy_ramdisk_options',
+                       autospec=True)
     def test_do_agent_iscsi_deploy_okay(self, build_options_mock,
                                         continue_deploy_mock):
         build_options_mock.return_value = {'deployment_key': 'abcdef',
                                            'iscsi_target_iqn': 'iqn-qweqwe'}
-        agent_client_mock = mock.MagicMock()
+        agent_client_mock = mock.MagicMock(spec_set=agent_client.AgentClient)
         agent_client_mock.start_iscsi_target.return_value = {
             'command_status': 'SUCCESS', 'command_error': None}
         driver_internal_info = {'agent_url': 'http://1.2.3.4:1234'}
@@ -773,12 +774,13 @@ class IscsiDeployMethodsTestCase(db_base.DbTestCase):
                 task.node.driver_internal_info['root_uuid_or_disk_id'])
             self.assertEqual(ret_val, uuid_dict_returned)
 
-    @mock.patch.object(iscsi_deploy, 'build_deploy_ramdisk_options')
+    @mock.patch.object(iscsi_deploy, 'build_deploy_ramdisk_options',
+                       autospec=True)
     def test_do_agent_iscsi_deploy_start_iscsi_failure(self,
                                                        build_options_mock):
         build_options_mock.return_value = {'deployment_key': 'abcdef',
                                            'iscsi_target_iqn': 'iqn-qweqwe'}
-        agent_client_mock = mock.MagicMock()
+        agent_client_mock = mock.MagicMock(spec_set=agent_client.AgentClient)
         agent_client_mock.start_iscsi_target.return_value = {
             'command_status': 'FAILED', 'command_error': 'booom'}
         self.node.provision_state = states.DEPLOYING
@@ -888,7 +890,7 @@ class IscsiDeployMethodsTestCase(db_base.DbTestCase):
                               iscsi_deploy.finish_deploy, task, '1.2.3.4')
             set_fail_state_mock.assert_called_once_with(task, mock.ANY)
 
-    @mock.patch.object(manager_utils, 'node_power_action')
+    @mock.patch.object(manager_utils, 'node_power_action', autospec=True)
     @mock.patch.object(deploy_utils, 'notify_ramdisk_to_proceed',
                        autospec=True)
     def test_finish_deploy_ssh_with_local_boot(self, notify_mock,

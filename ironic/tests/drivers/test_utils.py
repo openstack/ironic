@@ -41,13 +41,14 @@ class UtilsTestCase(db_base.DbTestCase):
         props = self.driver.vendor.get_properties()
         self.assertEqual(expected, props)
 
-    @mock.patch.object(fake.FakeVendorA, 'validate')
+    @mock.patch.object(fake.FakeVendorA, 'validate', autospec=True)
     def test_vendor_interface_validate_valid_methods(self,
                                                      mock_fakea_validate):
         with task_manager.acquire(self.context, self.node.uuid) as task:
             self.driver.vendor.validate(task, method='first_method')
-            mock_fakea_validate.assert_called_once_with(task,
-                                                        method='first_method')
+            mock_fakea_validate.assert_called_once_with(
+                self.driver.vendor.mapping['first_method'],
+                task, method='first_method')
 
     def test_vendor_interface_validate_bad_method(self):
         with task_manager.acquire(self.context, self.node.uuid) as task:

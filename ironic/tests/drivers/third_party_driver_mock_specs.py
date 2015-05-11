@@ -16,6 +16,53 @@
 """This module provides mock 'specs' for third party modules that can be used
 when needing to mock those third party modules"""
 
+# iboot
+IBOOT_SPEC = (
+    'iBootInterface',
+)
+
+# ironic_discoverd
+IRONIC_DISCOVERD_SPEC = (
+    '__version__',
+    '__version_info__',
+    'client',
+)
+
+# proliantutils
+PROLIANTUTILS_SPEC = (
+    'exception',
+    'ilo',
+)
+
+# pyghmi
+PYGHMI_SPEC = (
+    'exceptions',
+    'ipmi',
+)
+PYGHMI_EXC_SPEC = (
+    'IpmiException',
+)
+PYGHMI_IPMI_SPEC = (
+    'command',
+)
+PYGHMI_IPMICMD_SPEC = (
+    'boot_devices',
+    'Command',
+)
+
+# pyremotevbox
+PYREMOTEVBOX_SPEC = (
+    'exception',
+    'vbox',
+)
+PYREMOTEVBOX_EXC_SPEC = (
+    'PyRemoteVBoxException',
+    'VmInWrongPowerState',
+)
+PYREMOTEVBOX_VBOX_SPEC = (
+    'VirtualBoxHost',
+)
+
 # pywsman
 PYWSMAN_SPEC = (
     'Client',
@@ -28,11 +75,17 @@ PYWSMAN_SPEC = (
     'wsman_transport_set_verify_peer',
 )
 
+# pywsnmp
+PYWSNMP_SPEC = (
+    'entity',
+    'error',
+    'proto',
+)
+
 # scciclient
 SCCICLIENT_SPEC = (
     'irmc',
 )
-
 SCCICLIENT_IRMC_SCCI_SPEC = (
     'POWER_OFF',
     'POWER_ON',
@@ -41,4 +94,18 @@ SCCICLIENT_IRMC_SCCI_SPEC = (
     'get_client',
     'get_report',
     'get_sensor_data',
+)
+
+# seamicro
+SEAMICRO_SPEC = (
+    'client',
+    'exceptions',
+)
+# seamicro.client module
+SEAMICRO_CLIENT_MOD_SPEC = (
+    'Client',
+)
+SEAMICRO_EXC_SPEC = (
+    'ClientException',
+    'UnsupportedVersion',
 )
