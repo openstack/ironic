@@ -32,7 +32,8 @@ INFO_DICT = db_utils.get_test_irmc_info()
 CONF = cfg.CONF
 
 
-@mock.patch.object(irmc_common, 'get_irmc_client', autospec=True)
+@mock.patch.object(irmc_common, 'get_irmc_client', spec_set=True,
+                   autospec=True)
 class IRMCPowerInternalMethodsTestCase(db_base.DbTestCase):
 
     def setUp(self):
@@ -110,14 +111,16 @@ class IRMCPowerTestCase(db_base.DbTestCase):
             for prop in irmc_common.COMMON_PROPERTIES:
                 self.assertIn(prop, properties)
 
-    @mock.patch.object(irmc_common, 'parse_driver_info', autospec=True)
+    @mock.patch.object(irmc_common, 'parse_driver_info', spec_set=True,
+                       autospec=True)
     def test_validate(self, mock_drvinfo):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
             task.driver.power.validate(task)
             mock_drvinfo.assert_called_once_with(task.node)
 
-    @mock.patch.object(irmc_common, 'parse_driver_info', autospec=True)
+    @mock.patch.object(irmc_common, 'parse_driver_info', spec_set=True,
+                       autospec=True)
     def test_validate_fail(self, mock_drvinfo):
         side_effect = exception.InvalidParameterValue("Invalid Input")
         mock_drvinfo.side_effect = side_effect
@@ -128,7 +131,7 @@ class IRMCPowerTestCase(db_base.DbTestCase):
                               task)
 
     @mock.patch('ironic.drivers.modules.irmc.power.ipmitool.IPMIPower',
-                autospec=True)
+                spec_set=True, autospec=True)
     def test_get_power_state(self, mock_IPMIPower):
         ipmi_power = mock_IPMIPower.return_value
         ipmi_power.get_power_state.return_value = states.POWER_ON
@@ -138,7 +141,8 @@ class IRMCPowerTestCase(db_base.DbTestCase):
                              task.driver.power.get_power_state(task))
             ipmi_power.get_power_state.assert_called_once_with(task)
 
-    @mock.patch.object(irmc_power, '_set_power_state', autospec=True)
+    @mock.patch.object(irmc_power, '_set_power_state', spec_set=True,
+                       autospec=True)
     def test_set_power_state(self, mock_set_power):
         mock_set_power.return_value = states.POWER_ON
         with task_manager.acquire(self.context, self.node.uuid,
@@ -146,8 +150,10 @@ class IRMCPowerTestCase(db_base.DbTestCase):
             task.driver.power.set_power_state(task, states.POWER_ON)
         mock_set_power.assert_called_once_with(task, states.POWER_ON)
 
-    @mock.patch.object(irmc_power, '_set_power_state', autospec=True)
-    @mock.patch.object(irmc_power.IRMCPower, 'get_power_state', autospec=True)
+    @mock.patch.object(irmc_power, '_set_power_state', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(irmc_power.IRMCPower, 'get_power_state', spec_set=True,
+                       autospec=True)
     def test_reboot_reboot(self, mock_get_power, mock_set_power):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
@@ -157,8 +163,10 @@ class IRMCPowerTestCase(db_base.DbTestCase):
                 task.driver.power, task)
         mock_set_power.assert_called_once_with(task, states.REBOOT)
 
-    @mock.patch.object(irmc_power, '_set_power_state', autospec=True)
-    @mock.patch.object(irmc_power.IRMCPower, 'get_power_state', autospec=True)
+    @mock.patch.object(irmc_power, '_set_power_state', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(irmc_power.IRMCPower, 'get_power_state', spec_set=True,
+                       autospec=True)
     def test_reboot_power_on(self, mock_get_power, mock_set_power):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
