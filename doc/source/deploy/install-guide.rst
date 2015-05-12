@@ -849,12 +849,13 @@ DHCP client to chainload the iPXE image (undionly.kpxe). Neutron needs to
 be configured to create this DHCP tag, since it isn't create by default.
 
 #. Create a custom ``dnsmasq.conf`` file with a setting for the ipxe tag. For
-   example, the following creates the file ``/etc/dnsmasq-ironic.conf`` ::
+   example, create the file ``/etc/dnsmasq-ironic.conf`` with the content::
 
-    cat > /etc/dnsmasq-ironic.conf << EOF
-    dhcp-match=ipxe,175
-    EOF
+    # Create the "ipxe" tag if request comes from iPXE user class
+    dhcp-userclass=set:ipxe,iPXE
 
+    # Alternatively, create the "ipxe" tag if request comes from DHCP option 175
+    # dhcp-match=set:ipxe,175
 
 #. In the Neutron DHCP Agent configuration file (typically located at
    /etc/neutron/dhcp_agent.ini), set the custom ``/etc/dnsmasq-ironic.conf``

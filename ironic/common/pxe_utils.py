@@ -260,15 +260,15 @@ def dhcp_options_for_instance(task):
             # to neutron "dhcp-match=set:ipxe,175" and use below option
             dhcp_opts.append({'opt_name': 'tag:!ipxe,bootfile-name',
                               'opt_value': CONF.pxe.pxe_bootfile_name})
+            dhcp_opts.append({'opt_name': 'tag:ipxe,bootfile-name',
+                              'opt_value': ipxe_script_url})
         else:
             # !175 == non-iPXE.
             # http://ipxe.org/howto/dhcpd#ipxe-specific_options
             dhcp_opts.append({'opt_name': '!175,bootfile-name',
                               'opt_value': CONF.pxe.pxe_bootfile_name})
-        # If the request comes from iPXE, direct it to boot from the
-        # iPXE script
-        dhcp_opts.append({'opt_name': 'bootfile-name',
-                          'opt_value': ipxe_script_url})
+            dhcp_opts.append({'opt_name': 'bootfile-name',
+                              'opt_value': ipxe_script_url})
     else:
         if deploy_utils.get_boot_mode_for_deploy(task.node) == 'uefi':
             boot_file = CONF.pxe.uefi_pxe_bootfile_name
