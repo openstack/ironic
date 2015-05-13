@@ -20,7 +20,6 @@ Test class for Native IPMI power driver module.
 """
 
 import mock
-from oslo_config import cfg
 from oslo_utils import uuidutils
 from pyghmi import exceptions as pyghmi_exception
 
@@ -35,8 +34,6 @@ from ironic.tests.conductor import utils as mgr_utils
 from ironic.tests.db import base as db_base
 from ironic.tests.db import utils as db_utils
 from ironic.tests.objects import utils as obj_utils
-
-CONF = cfg.CONF
 
 INFO_DICT = db_utils.get_test_ipmi_info()
 
