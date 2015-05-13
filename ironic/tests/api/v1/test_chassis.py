@@ -128,12 +128,13 @@ class TestListChassis(api_base.FunctionalTest):
         self.assertEqual(sorted(ch_list), uuids)
 
     def test_sort_key_invalid(self):
-        invalid_key = 'foo'
-        response = self.get_json('/chassis?sort_key=%s' % invalid_key,
-                                 expect_errors=True)
-        self.assertEqual(400, response.status_int)
-        self.assertEqual('application/json', response.content_type)
-        self.assertIn(invalid_key, response.json['error_message'])
+        invalid_keys_list = ['foo', 'extra']
+        for invalid_key in invalid_keys_list:
+            response = self.get_json('/chassis?sort_key=%s' % invalid_key,
+                                     expect_errors=True)
+            self.assertEqual(400, response.status_int)
+            self.assertEqual('application/json', response.content_type)
+            self.assertIn(invalid_key, response.json['error_message'])
 
     def test_nodes_subresource_link(self):
         chassis = obj_utils.create_test_chassis(self.context)

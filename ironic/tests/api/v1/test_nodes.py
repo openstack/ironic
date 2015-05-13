@@ -285,12 +285,14 @@ class TestListNodes(test_api_base.FunctionalTest):
         self.assertEqual(sorted(nodes), uuids)
 
     def test_sort_key_invalid(self):
-        invalid_key = 'foo'
-        response = self.get_json('/nodes?sort_key=%s' % invalid_key,
-                                 expect_errors=True)
-        self.assertEqual(400, response.status_int)
-        self.assertEqual('application/json', response.content_type)
-        self.assertIn(invalid_key, response.json['error_message'])
+        invalid_keys_list = ['foo', 'properties', 'driver_info', 'extra',
+                             'instance_info', 'driver_internal_info']
+        for invalid_key in invalid_keys_list:
+            response = self.get_json('/nodes?sort_key=%s' % invalid_key,
+                                     expect_errors=True)
+            self.assertEqual(400, response.status_int)
+            self.assertEqual('application/json', response.content_type)
+            self.assertIn(invalid_key, response.json['error_message'])
 
     def test_ports_subresource_link(self):
         node = obj_utils.create_test_node(self.context)
