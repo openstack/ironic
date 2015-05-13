@@ -189,7 +189,7 @@ def list_partitions(device):
     """
     output = utils.execute(
         'parted', '-s', '-m', device, 'unit', 'MiB', 'print',
-        use_standard_locale=True)[0]
+        use_standard_locale=True, run_as_root=True)[0]
     if isinstance(output, bytes):
         output = output.decode("utf-8")
     lines = [line for line in output.split('\n') if line.strip()][2:]
