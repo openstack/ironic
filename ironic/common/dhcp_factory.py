@@ -53,7 +53,7 @@ class DHCPFactory(object):
     def _set_dhcp_provider(cls, **kwargs):
         """Initialize the dhcp provider
 
-        :raises: DHCPNotFound if the dhcp_provider cannot be loaded.
+        :raises: DHCPLoadError if the dhcp_provider cannot be loaded.
         """
 
         # NOTE(lucasagomes): In case multiple greenthreads queue up on
@@ -69,8 +69,10 @@ class DHCPFactory(object):
                 dhcp_provider_name,
                 invoke_kwds=kwargs,
                 invoke_on_load=True)
-        except RuntimeError:
-            raise exception.DHCPNotFound(dhcp_provider_name=dhcp_provider_name)
+        except Exception as e:
+            raise exception.DHCPLoadError(
+                dhcp_provider_name=dhcp_provider_name, reason=e
+            )
 
         cls._dhcp_provider = _extension_manager.driver
 
