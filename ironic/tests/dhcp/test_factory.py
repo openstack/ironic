@@ -16,6 +16,7 @@
 import inspect
 
 import mock
+import stevedore
 
 from ironic.common import dhcp_factory
 from ironic.common import exception
@@ -72,7 +73,12 @@ class TestDHCPFactory(base.TestCase):
         self.config(dhcp_provider='bad_dhcp',
                     group='dhcp')
 
-        self.assertRaises(exception.DHCPNotFound, dhcp_factory.DHCPFactory)
+        self.assertRaises(exception.DHCPLoadError, dhcp_factory.DHCPFactory)
+
+    @mock.patch.object(stevedore.driver, 'DriverManager', autospec=True)
+    def test_dhcp_some_error(self, mock_drv_mgr):
+        mock_drv_mgr.side_effect = Exception('No module mymod found.')
+        self.assertRaises(exception.DHCPLoadError, dhcp_factory.DHCPFactory)
 
 
 class CompareBasetoModules(base.TestCase):
