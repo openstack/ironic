@@ -1428,7 +1428,7 @@ class ConductorManager(periodic_task.PeriodicTasks):
 
         :param context: request context.
         :param port_obj: a changed (but not saved) port object.
-        :raises: DHCPNotFound if the dhcp_provider provider endpoint is invalid
+        :raises: DHCPLoadError if the dhcp_provider cannot be loaded.
         :raises: FailedToUpdateMacOnPort if MAC address changed and update
                  failed.
         :raises: MACAlreadyExists if the update is setting a MAC which is
