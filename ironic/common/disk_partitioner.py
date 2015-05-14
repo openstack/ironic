@@ -176,7 +176,7 @@ class DiskPartitioner(object):
                     % {'device': self._device, 'fuser_err': fuser_err[0]})
 
 
-_PARTED_PRINT_RE = re.compile(r"^\d+:([\d\.]+)MiB:"
+_PARTED_PRINT_RE = re.compile(r"^(\d+):([\d\.]+)MiB:"
                               "([\d\.]+)MiB:([\d\.]+)MiB:(\w*)::(\w*)")
 
 
@@ -185,7 +185,7 @@ def list_partitions(device):
 
     :param device: The device path.
     :returns: list of dictionaries (one per partition) with keys:
-              start, end, size (in MiB), filesystem, flags
+              number, start, end, size (in MiB), filesystem, flags
     """
     output = utils.execute(
         'parted', '-s', '-m', device, 'unit', 'MiB', 'print',
@@ -194,7 +194,7 @@ def list_partitions(device):
         output = output.decode("utf-8")
     lines = [line for line in output.split('\n') if line.strip()][2:]
     # Example of line: 1:1.00MiB:501MiB:500MiB:ext4::boot
-    fields = ('start', 'end', 'size', 'filesystem', 'flags')
+    fields = ('number', 'start', 'end', 'size', 'filesystem', 'flags')
     result = []
     for line in lines:
         match = _PARTED_PRINT_RE.match(line)
@@ -205,7 +205,7 @@ def list_partitions(device):
                      dict(device=device, line=line))
             continue
         # Cast int fields to ints (some are floats and we round them down)
-        groups = [int(float(x)) if i < 3 else x
+        groups = [int(float(x)) if i < 4 else x
                   for i, x in enumerate(match.groups())]
         result.append(dict(zip(fields, groups)))
     return result
