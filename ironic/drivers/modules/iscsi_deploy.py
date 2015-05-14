@@ -180,8 +180,8 @@ def check_image_size(task):
     image_mb = deploy_utils.get_image_mb(image_path)
     root_mb = 1024 * int(i_info['root_gb'])
     if image_mb > root_mb:
-        msg = (_('Root partition is too small for requested image. '
-                 'Image size: %(image_mb)d MB, Root size: %(root_mb)d MB')
+        msg = (_('Root partition is too small for requested image. Image '
+                 'virtual size: %(image_mb)d MB, Root size: %(root_mb)d MB')
                % {'image_mb': image_mb, 'root_mb': root_mb})
         raise exception.InstanceDeployFailure(msg)
 

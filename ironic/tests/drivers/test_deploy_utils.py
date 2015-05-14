@@ -287,11 +287,11 @@ class PhysicalWorkTestCase(tests_base.TestCase):
             make_partitions_expected_kwargs['boot_mode'] = 'bios'
 
         # If no boot_option, then it should default to netboot.
-        calls_expected = [mock.call.get_dev(address, port, iqn, lun),
+        calls_expected = [mock.call.get_image_mb(image_path),
+                          mock.call.get_dev(address, port, iqn, lun),
                           mock.call.discovery(address, port),
                           mock.call.login_iscsi(address, port, iqn),
                           mock.call.is_block_device(dev),
-                          mock.call.get_image_mb(image_path),
                           mock.call.destroy_disk_metadata(dev, node_uuid),
                           mock.call.make_partitions(
                               *make_partitions_expected_args,
@@ -339,6 +339,27 @@ class PhysicalWorkTestCase(tests_base.TestCase):
         self._test_deploy_partition_image(boot_option="netboot",
                                           boot_mode="uefi")
 
+    @mock.patch.object(utils, 'get_image_mb', return_value=129, autospec=True)
+    def test_deploy_partition_image_image_exceeds_root_partition(self,
+                                                                 gim_mock):
+        address = '127.0.0.1'
+        port = 3306
+        iqn = 'iqn.xyz'
+        lun = 1
+        image_path = '/tmp/xyz/image'
+        root_mb = 128
+        swap_mb = 64
+        ephemeral_mb = 0
+        ephemeral_format = None
+        node_uuid = "12345678-1234-1234-1234-1234567890abcxyz"
+
+        self.assertRaises(exception.InstanceDeployFailure,
+                          utils.deploy_partition_image, address, port, iqn,
+                          lun, image_path, root_mb, swap_mb, ephemeral_mb,
+                          ephemeral_format, node_uuid)
+
+        gim_mock.assert_called_once_with(image_path)
+
     # We mock utils.block_uuid separately here because we can't predict
     # the order in which it will be called.
     @mock.patch.object(utils, 'block_uuid', autospec=True)
@@ -384,11 +405,11 @@ class PhysicalWorkTestCase(tests_base.TestCase):
             'efi system partition': efi_system_part}
 
         # If no boot_option, then it should default to netboot.
-        calls_expected = [mock.call.get_dev(address, port, iqn, lun),
+        calls_expected = [mock.call.get_image_mb(image_path),
+                          mock.call.get_dev(address, port, iqn, lun),
                           mock.call.discovery(address, port),
                           mock.call.login_iscsi(address, port, iqn),
                           mock.call.is_block_device(dev),
-                          mock.call.get_image_mb(image_path),
                           mock.call.destroy_disk_metadata(dev, node_uuid),
                           mock.call.make_partitions(dev, root_mb, swap_mb,
                                                     ephemeral_mb,
@@ -448,11 +469,11 @@ class PhysicalWorkTestCase(tests_base.TestCase):
         parent_mock.is_block_device.return_value = True
         parent_mock.block_uuid.return_value = root_uuid
         parent_mock.make_partitions.return_value = {'root': root_part}
-        calls_expected = [mock.call.get_dev(address, port, iqn, lun),
+        calls_expected = [mock.call.get_image_mb(image_path),
+                          mock.call.get_dev(address, port, iqn, lun),
                           mock.call.discovery(address, port),
                           mock.call.login_iscsi(address, port, iqn),
                           mock.call.is_block_device(dev),
-                          mock.call.get_image_mb(image_path),
                           mock.call.destroy_disk_metadata(dev, node_uuid),
                           mock.call.make_partitions(dev, root_mb, swap_mb,
                                                     ephemeral_mb,
@@ -508,11 +529,11 @@ class PhysicalWorkTestCase(tests_base.TestCase):
         parent_mock.make_partitions.return_value = {'swap': swap_part,
                                                    'ephemeral': ephemeral_part,
                                                    'root': root_part}
-        calls_expected = [mock.call.get_dev(address, port, iqn, lun),
+        calls_expected = [mock.call.get_image_mb(image_path),
+                          mock.call.get_dev(address, port, iqn, lun),
                           mock.call.discovery(address, port),
                           mock.call.login_iscsi(address, port, iqn),
                           mock.call.is_block_device(dev),
-                          mock.call.get_image_mb(image_path),
                           mock.call.destroy_disk_metadata(dev, node_uuid),
                           mock.call.make_partitions(dev, root_mb, swap_mb,
                                                     ephemeral_mb,
@@ -576,11 +597,11 @@ class PhysicalWorkTestCase(tests_base.TestCase):
                                                    'ephemeral': ephemeral_part,
                                                    'root': root_part}
         parent_mock.block_uuid.return_value = root_uuid
-        calls_expected = [mock.call.get_dev(address, port, iqn, lun),
+        calls_expected = [mock.call.get_image_mb(image_path),
+                          mock.call.get_dev(address, port, iqn, lun),
                           mock.call.discovery(address, port),
                           mock.call.login_iscsi(address, port, iqn),
                           mock.call.is_block_device(dev),
-                          mock.call.get_image_mb(image_path),
                           mock.call.make_partitions(dev, root_mb, swap_mb,
                                                     ephemeral_mb,
                                                     configdrive_mb,
@@ -640,11 +661,11 @@ class PhysicalWorkTestCase(tests_base.TestCase):
                                                     'configdrive':
                                                         configdrive_part}
         parent_mock._get_configdrive.return_value = (10, 'configdrive-path')
-        calls_expected = [mock.call.get_dev(address, port, iqn, lun),
+        calls_expected = [mock.call.get_image_mb(image_path),
+                          mock.call.get_dev(address, port, iqn, lun),
                           mock.call.discovery(address, port),
                           mock.call.login_iscsi(address, port, iqn),
                           mock.call.is_block_device(dev),
-                          mock.call.get_image_mb(image_path),
                           mock.call.destroy_disk_metadata(dev, node_uuid),
                           mock.call._get_configdrive(configdrive_url,
                                                      node_uuid),
@@ -827,10 +848,10 @@ class PhysicalWorkTestCase(tests_base.TestCase):
         parent_mock.get_dev.return_value = dev
         parent_mock.get_image_mb.return_value = 1
         parent_mock.work_on_disk.side_effect = TestException
-        calls_expected = [mock.call.get_dev(address, port, iqn, lun),
+        calls_expected = [mock.call.get_image_mb(image_path),
+                          mock.call.get_dev(address, port, iqn, lun),
                           mock.call.discovery(address, port),
                           mock.call.login_iscsi(address, port, iqn),
-                          mock.call.get_image_mb(image_path),
                           mock.call.work_on_disk(dev, root_mb, swap_mb,
                                                  ephemeral_mb,
                                                  ephemeral_format, image_path,
@@ -1696,12 +1717,11 @@ class ISCSISetupAndHandleErrorsTestCase(tests_base.TestCase):
         port = 3306
         iqn = 'iqn.xyz'
         lun = 1
-        image_path = '/tmp/xyz/image'
         mock_ibd.return_value = False
         expected_dev = '/dev/fake'
         with testtools.ExpectedException(exception.InstanceDeployFailure):
             with utils._iscsi_setup_and_handle_errors(
-                    address, port, iqn, lun, image_path) as dev:
+                    address, port, iqn, lun) as dev:
                 self.assertEqual(expected_dev, dev)
 
         mock_ibd.assert_called_once_with(expected_dev)
@@ -1711,11 +1731,10 @@ class ISCSISetupAndHandleErrorsTestCase(tests_base.TestCase):
         port = 3306
         iqn = 'iqn.xyz'
         lun = 1
-        image_path = '/tmp/xyz/image'
         expected_dev = '/dev/fake'
         mock_ibd.return_value = True
         with utils._iscsi_setup_and_handle_errors(address, port,
-                                iqn, lun, image_path) as dev:
+                                iqn, lun) as dev:
             self.assertEqual(expected_dev, dev)
 
         mock_ibd.assert_called_once_with(expected_dev)
