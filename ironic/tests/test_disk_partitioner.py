@@ -174,9 +174,9 @@ BYT;
 2:501MiB:476940MiB:476439MiB:::;
 """
         expected = [
-            {'start': 1, 'end': 501, 'size': 500,
+            {'number': 1, 'start': 1, 'end': 501, 'size': 500,
              'filesystem': 'ext4', 'flags': 'boot'},
-            {'start': 501, 'end': 476940, 'size': 476439,
+            {'number': 2, 'start': 501, 'end': 476940, 'size': 476439,
              'filesystem': '', 'flags': ''},
         ]
         execute_mock.return_value = (output, '')
