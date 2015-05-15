@@ -25,8 +25,10 @@ import six
 from six.moves.urllib import parse as urlparse
 from wsme import types as wtypes
 
+from ironic.api.controllers import base as api_base
+from ironic.api.controllers import v1 as api_v1
 from ironic.api.controllers.v1 import chassis as api_chassis
-from ironic.tests.api import base as api_base
+from ironic.tests.api import base as test_api_base
 from ironic.tests.api import utils as apiutils
 from ironic.tests import base
 from ironic.tests.objects import utils as obj_utils
@@ -41,7 +43,7 @@ class TestChassisObject(base.TestCase):
         self.assertEqual(wtypes.Unset, chassis.description)
 
 
-class TestListChassis(api_base.FunctionalTest):
+class TestListChassis(test_api_base.FunctionalTest):
 
     def test_empty(self):
         data = self.get_json('/chassis')
@@ -60,6 +62,50 @@ class TestListChassis(api_base.FunctionalTest):
         self.assertEqual(chassis.uuid, data['uuid'])
         self.assertIn('extra', data)
         self.assertIn('nodes', data)
+
+    def test_get_one_custom_fields(self):
+        chassis = obj_utils.create_test_chassis(self.context)
+        fields = 'extra,description'
+        data = self.get_json(
+            '/chassis/%s?fields=%s' % (chassis.uuid, fields),
+            headers={api_base.Version.string: str(api_v1.MAX_VER)})
+        # We always append "links"
+        self.assertItemsEqual(['description', 'extra', 'links'], data)
+
+    def test_get_collection_custom_fields(self):
+        fields = 'uuid,extra'
+        for i in range(3):
+            obj_utils.create_test_chassis(
+                self.context, uuid=uuidutils.generate_uuid())
+
+        data = self.get_json(
+            '/chassis?fields=%s' % fields,
+            headers={api_base.Version.string: str(api_v1.MAX_VER)})
+
+        self.assertEqual(3, len(data['chassis']))
+        for ch in data['chassis']:
+            # We always append "links"
+            self.assertItemsEqual(['uuid', 'extra', 'links'], ch)
+
+    def test_get_custom_fields_invalid_fields(self):
+        chassis = obj_utils.create_test_chassis(self.context)
+        fields = 'uuid,spongebob'
+        response = self.get_json(
+            '/chassis/%s?fields=%s' % (chassis.uuid, fields),
+            headers={api_base.Version.string: str(api_v1.MAX_VER)},
+            expect_errors=True)
+        self.assertEqual(400, response.status_int)
+        self.assertEqual('application/json', response.content_type)
+        self.assertIn('spongebob', response.json['error_message'])
+
+    def test_get_custom_fields_invalid_api_version(self):
+        chassis = obj_utils.create_test_chassis(self.context)
+        fields = 'uuid,extra'
+        response = self.get_json(
+            '/chassis/%s?fields=%s' % (chassis.uuid, fields),
+            headers={api_base.Version.string: str(api_v1.MIN_VER)},
+            expect_errors=True)
+        self.assertEqual(406, response.status_int)
 
     def test_detail(self):
         chassis = obj_utils.create_test_chassis(self.context)
@@ -169,7 +215,7 @@ class TestListChassis(api_base.FunctionalTest):
         self.assertEqual(404, response.status_int)
 
 
-class TestPatch(api_base.FunctionalTest):
+class TestPatch(test_api_base.FunctionalTest):
 
     def setUp(self):
         super(TestPatch, self).setUp()
@@ -317,7 +363,7 @@ class TestPatch(api_base.FunctionalTest):
         self.assertTrue(response.json['error_message'])
 
 
-class TestPost(api_base.FunctionalTest):
+class TestPost(test_api_base.FunctionalTest):
 
     @mock.patch.object(timeutils, 'utcnow')
     def test_create_chassis(self, mock_utcnow):
@@ -384,7 +430,7 @@ class TestPost(api_base.FunctionalTest):
         self.assertEqual(descr, result['description'])
 
 
-class TestDelete(api_base.FunctionalTest):
+class TestDelete(test_api_base.FunctionalTest):
 
     def test_delete_chassis(self):
         chassis = obj_utils.create_test_chassis(self.context)

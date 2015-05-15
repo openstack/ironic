@@ -32,6 +32,9 @@ from ironic.common.i18n import _
 from ironic import objects
 
 
+_DEFAULT_RETURN_FIELDS = ('uuid', 'description')
+
+
 class ChassisPatchType(types.JsonPatchType):
     pass
 
@@ -69,35 +72,43 @@ class Chassis(base.APIBase):
             setattr(self, field, kwargs.get(field, wtypes.Unset))
 
     @staticmethod
-    def _convert_with_links(chassis, url, expand=True):
-        if not expand:
-            chassis.unset_fields_except(['uuid', 'description'])
+    def _convert_with_links(chassis, url, fields=None):
+        # NOTE(lucasagomes): Since we are able to return a specified set of
+        # fields the "uuid" can be unset, so we need to save it in another
+        # variable to use when building the links
+        chassis_uuid = chassis.uuid
+        if fields is not None:
+            chassis.unset_fields_except(fields)
         else:
             chassis.nodes = [link.Link.make_link('self',
                                                  url,
                                                  'chassis',
-                                                 chassis.uuid + "/nodes"),
+                                                 chassis_uuid + "/nodes"),
                              link.Link.make_link('bookmark',
                                                  url,
                                                  'chassis',
-                                                 chassis.uuid + "/nodes",
+                                                 chassis_uuid + "/nodes",
                                                  bookmark=True)
                              ]
         chassis.links = [link.Link.make_link('self',
                                              url,
-                                             'chassis', chassis.uuid),
+                                             'chassis', chassis_uuid),
                          link.Link.make_link('bookmark',
                                              url,
-                                             'chassis', chassis.uuid,
+                                             'chassis', chassis_uuid,
                                              bookmark=True)
                          ]
         return chassis
 
     @classmethod
-    def convert_with_links(cls, rpc_chassis, expand=True):
+    def convert_with_links(cls, rpc_chassis, fields=None):
         chassis = Chassis(**rpc_chassis.as_dict())
+
+        if fields is not None:
+            api_utils.check_for_invalid_fields(fields, chassis.as_dict())
+
         return cls._convert_with_links(chassis, pecan.request.host_url,
-                                       expand)
+                                       fields)
 
     @classmethod
     def sample(cls, expand=True):
@@ -105,8 +116,9 @@ class Chassis(base.APIBase):
         sample = cls(uuid='eaaca217-e7d8-47b4-bb41-3f99f20eed89', extra={},
                      description='Sample chassis', created_at=time,
                      updated_at=time)
+        fields = None if expand else _DEFAULT_RETURN_FIELDS
         return cls._convert_with_links(sample, 'http://localhost:6385',
-                                       expand)
+                                       fields=fields)
 
 
 class ChassisCollection(collection.Collection):
@@ -119,16 +131,16 @@ class ChassisCollection(collection.Collection):
         self._type = 'chassis'
 
     @staticmethod
-    def convert_with_links(chassis, limit, url=None, expand=False, **kwargs):
+    def convert_with_links(chassis, limit, url=None, fields=None, **kwargs):
         collection = ChassisCollection()
-        collection.chassis = [Chassis.convert_with_links(ch, expand)
+        collection.chassis = [Chassis.convert_with_links(ch, fields=fields)
                               for ch in chassis]
         url = url or None
         collection.next = collection.get_next(limit, url=url, **kwargs)
         return collection
 
     @classmethod
-    def sample(cls, expand=True):
+    def sample(cls):
         sample = cls()
         sample.chassis = [Chassis.sample(expand=False)]
         return sample
@@ -151,7 +163,7 @@ class ChassisController(rest.RestController):
     invalid_sort_key_list = ['extra']
 
     def _get_chassis_collection(self, marker, limit, sort_key, sort_dir,
-                                expand=False, resource_url=None):
+                                resource_url=None, fields=None):
         limit = api_utils.validate_limit(limit)
         sort_dir = api_utils.validate_sort_dir(sort_dir)
         marker_obj = None
@@ -169,21 +181,28 @@ class ChassisController(rest.RestController):
                                        sort_dir=sort_dir)
         return ChassisCollection.convert_with_links(chassis, limit,
                                                     url=resource_url,
-                                                    expand=expand,
+                                                    fields=fields,
                                                     sort_key=sort_key,
                                                     sort_dir=sort_dir)
 
-    @expose.expose(ChassisCollection, types.uuid,
-                   int, wtypes.text, wtypes.text)
-    def get_all(self, marker=None, limit=None, sort_key='id', sort_dir='asc'):
+    @expose.expose(ChassisCollection, types.uuid, int,
+                   wtypes.text, wtypes.text, types.listtype)
+    def get_all(self, marker=None, limit=None, sort_key='id', sort_dir='asc',
+                fields=None):
         """Retrieve a list of chassis.
 
         :param marker: pagination marker for large data sets.
         :param limit: maximum number of resources to return in a single result.
         :param sort_key: column to sort results by. Default: id.
         :param sort_dir: direction to sort. "asc" or "desc". Default: asc.
+        :param fields: Optional, a list with a specified set of fields
+            of the resource to be returned.
         """
-        return self._get_chassis_collection(marker, limit, sort_key, sort_dir)
+        api_utils.check_allow_specify_fields(fields)
+        if fields is None:
+            fields = _DEFAULT_RETURN_FIELDS
+        return self._get_chassis_collection(marker, limit, sort_key, sort_dir,
+                                            fields=fields)
 
     @expose.expose(ChassisCollection, types.uuid, int,
                    wtypes.text, wtypes.text)
@@ -200,20 +219,22 @@ class ChassisController(rest.RestController):
         if parent != "chassis":
             raise exception.HTTPNotFound
 
-        expand = True
         resource_url = '/'.join(['chassis', 'detail'])
         return self._get_chassis_collection(marker, limit, sort_key, sort_dir,
-                                            expand, resource_url)
+                                            resource_url)
 
-    @expose.expose(Chassis, types.uuid)
-    def get_one(self, chassis_uuid):
+    @expose.expose(Chassis, types.uuid, types.listtype)
+    def get_one(self, chassis_uuid, fields=None):
         """Retrieve information about the given chassis.
 
         :param chassis_uuid: UUID of a chassis.
+        :param fields: Optional, a list with a specified set of fields
+            of the resource to be returned.
         """
+        api_utils.check_allow_specify_fields(fields)
         rpc_chassis = objects.Chassis.get_by_uuid(pecan.request.context,
                                                   chassis_uuid)
-        return Chassis.convert_with_links(rpc_chassis)
+        return Chassis.convert_with_links(rpc_chassis, fields=fields)
 
     @expose.expose(Chassis, body=Chassis, status_code=201)
     def post(self, chassis):
