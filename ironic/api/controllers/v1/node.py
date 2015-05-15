@@ -54,6 +54,9 @@ LOG = log.getLogger(__name__)
 # versions, the API service should be restarted.
 _VENDOR_METHODS = {}
 
+_DEFAULT_RETURN_FIELDS = ('instance_uuid', 'maintenance', 'power_state',
+                          'provision_state', 'uuid', 'name')
+
 
 def hide_fields_in_newer_versions(obj):
     # if requested version is < 1.3, hide driver_internal_info
@@ -578,42 +581,50 @@ class Node(base.APIBase):
         setattr(self, 'chassis_uuid', kwargs.get('chassis_id', wtypes.Unset))
 
     @staticmethod
-    def _convert_with_links(node, url, expand=True, show_password=True):
-        if not expand:
-            except_list = ['instance_uuid', 'maintenance', 'power_state',
-                           'provision_state', 'uuid', 'name']
-            node.unset_fields_except(except_list)
+    def _convert_with_links(node, url, fields=None, show_password=True):
+        # NOTE(lucasagomes): Since we are able to return a specified set of
+        # fields the "uuid" can be unset, so we need to save it in another
+        # variable to use when building the links
+        node_uuid = node.uuid
+        if fields is not None:
+            node.unset_fields_except(fields)
         else:
-            if not show_password:
-                node.driver_info = ast.literal_eval(strutils.mask_password(
-                                                    node.driver_info,
-                                                    "******"))
             node.ports = [link.Link.make_link('self', url, 'nodes',
-                                              node.uuid + "/ports"),
+                                              node_uuid + "/ports"),
                           link.Link.make_link('bookmark', url, 'nodes',
-                                              node.uuid + "/ports",
+                                              node_uuid + "/ports",
                                               bookmark=True)
                           ]
+
+        if not show_password and node.driver_info != wtypes.Unset:
+            node.driver_info = ast.literal_eval(strutils.mask_password(
+                                                node.driver_info,
+                                                "******"))
 
         # NOTE(lucasagomes): The numeric ID should not be exposed to
         #                    the user, it's internal only.
         node.chassis_id = wtypes.Unset
 
         node.links = [link.Link.make_link('self', url, 'nodes',
-                                          node.uuid),
+                                          node_uuid),
                       link.Link.make_link('bookmark', url, 'nodes',
-                                          node.uuid, bookmark=True)
+                                          node_uuid, bookmark=True)
                       ]
         return node
 
     @classmethod
-    def convert_with_links(cls, rpc_node, expand=True):
+    def convert_with_links(cls, rpc_node, fields=None):
         node = Node(**rpc_node.as_dict())
+
+        if fields is not None:
+            api_utils.check_for_invalid_fields(fields, node.as_dict())
+
         assert_juno_provision_state_name(node)
         hide_fields_in_newer_versions(node)
+        show_password = pecan.request.context.show_password
         return cls._convert_with_links(node, pecan.request.host_url,
-                                       expand,
-                                       pecan.request.context.show_password)
+                                       fields=fields,
+                                       show_password=show_password)
 
     @classmethod
     def sample(cls, expand=True):
@@ -638,7 +649,9 @@ class Node(base.APIBase):
         # NOTE(matty_dubs): The chassis_uuid getter() is based on the
         # _chassis_uuid variable:
         sample._chassis_uuid = 'edcad704-b2da-41d5-96d9-afd580ecfa12'
-        return cls._convert_with_links(sample, 'http://localhost:6385', expand)
+        fields = None if expand else _DEFAULT_RETURN_FIELDS
+        return cls._convert_with_links(sample, 'http://localhost:6385',
+                                       fields=fields)
 
 
 class NodeCollection(collection.Collection):
@@ -651,9 +664,10 @@ class NodeCollection(collection.Collection):
         self._type = 'nodes'
 
     @staticmethod
-    def convert_with_links(nodes, limit, url=None, expand=False, **kwargs):
+    def convert_with_links(nodes, limit, url=None, fields=None, **kwargs):
         collection = NodeCollection()
-        collection.nodes = [Node.convert_with_links(n, expand) for n in nodes]
+        collection.nodes = [Node.convert_with_links(n, fields=fields)
+                            for n in nodes]
         collection.next = collection.get_next(limit, url=url, **kwargs)
         return collection
 
@@ -787,7 +801,7 @@ class NodesController(rest.RestController):
 
     def _get_nodes_collection(self, chassis_uuid, instance_uuid, associated,
                               maintenance, marker, limit, sort_key, sort_dir,
-                              expand=False, resource_url=None):
+                              resource_url=None, fields=None):
         if self.from_chassis and not chassis_uuid:
             raise exception.MissingParameterValue(
                 _("Chassis id not specified."))
@@ -827,7 +841,7 @@ class NodesController(rest.RestController):
             parameters['maintenance'] = maintenance
         return NodeCollection.convert_with_links(nodes, limit,
                                                  url=resource_url,
-                                                 expand=expand,
+                                                 fields=fields,
                                                  **parameters)
 
     def _get_nodes_by_instance(self, instance_uuid):
@@ -843,10 +857,11 @@ class NodesController(rest.RestController):
             return []
 
     @expose.expose(NodeCollection, types.uuid, types.uuid, types.boolean,
-                   types.boolean, types.uuid, int, wtypes.text, wtypes.text)
+                   types.boolean, types.uuid, int, wtypes.text, wtypes.text,
+                   types.listtype)
     def get_all(self, chassis_uuid=None, instance_uuid=None, associated=None,
                 maintenance=None, marker=None, limit=None, sort_key='id',
-                sort_dir='asc'):
+                sort_dir='asc', fields=None):
         """Retrieve a list of nodes.
 
         :param chassis_uuid: Optional UUID of a chassis, to get only nodes for
@@ -863,10 +878,16 @@ class NodesController(rest.RestController):
         :param limit: maximum number of resources to return in a single result.
         :param sort_key: column to sort results by. Default: id.
         :param sort_dir: direction to sort. "asc" or "desc". Default: asc.
+        :param fields: Optional, a list with a specified set of fields
+            of the resource to be returned.
         """
+        api_utils.check_allow_specify_fields(fields)
+        if fields is None:
+            fields = _DEFAULT_RETURN_FIELDS
         return self._get_nodes_collection(chassis_uuid, instance_uuid,
                                           associated, maintenance, marker,
-                                          limit, sort_key, sort_dir)
+                                          limit, sort_key, sort_dir,
+                                          fields=fields)
 
     @expose.expose(NodeCollection, types.uuid, types.uuid, types.boolean,
                    types.boolean, types.uuid, int, wtypes.text, wtypes.text)
@@ -895,11 +916,10 @@ class NodesController(rest.RestController):
         if parent != "nodes":
             raise exception.HTTPNotFound
 
-        expand = True
         resource_url = '/'.join(['nodes', 'detail'])
         return self._get_nodes_collection(chassis_uuid, instance_uuid,
                                           associated, maintenance, marker,
-                                          limit, sort_key, sort_dir, expand,
+                                          limit, sort_key, sort_dir,
                                           resource_url)
 
     @expose.expose(wtypes.text, types.uuid_or_name, types.uuid)
@@ -925,17 +945,21 @@ class NodesController(rest.RestController):
         return pecan.request.rpcapi.validate_driver_interfaces(
             pecan.request.context, rpc_node.uuid, topic)
 
-    @expose.expose(Node, types.uuid_or_name)
-    def get_one(self, node_ident):
+    @expose.expose(Node, types.uuid_or_name, types.listtype)
+    def get_one(self, node_ident, fields=None):
         """Retrieve information about the given node.
 
         :param node_ident: UUID or logical name of a node.
+        :param fields: Optional, a list with a specified set of fields
+            of the resource to be returned.
         """
         if self.from_chassis:
             raise exception.OperationNotPermitted
 
+        api_utils.check_allow_specify_fields(fields)
+
         rpc_node = api_utils.get_rpc_node(node_ident)
-        return Node.convert_with_links(rpc_node)
+        return Node.convert_with_links(rpc_node, fields=fields)
 
     @expose.expose(Node, body=Node, status_code=201)
     def post(self, node):

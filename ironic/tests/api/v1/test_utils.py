@@ -53,6 +53,29 @@ class TestApiUtils(base.TestCase):
                           utils.validate_sort_dir,
                           'fake-sort')
 
+    def test_check_for_invalid_fields(self):
+        requested = ['field_1', 'field_3']
+        supported = ['field_1', 'field_2', 'field_3']
+        utils.check_for_invalid_fields(requested, supported)
+
+    def test_check_for_invalid_fields_fail(self):
+        requested = ['field_1', 'field_4']
+        supported = ['field_1', 'field_2', 'field_3']
+        self.assertRaises(exception.InvalidParameterValue,
+                          utils.check_for_invalid_fields,
+                          requested, supported)
+
+    @mock.patch.object(pecan, 'request', spec_set=['version'])
+    def test_check_allow_specify_fields(self, mock_request):
+        mock_request.version.minor = 8
+        self.assertIsNone(utils.check_allow_specify_fields(['foo']))
+
+    @mock.patch.object(pecan, 'request', spec_set=['version'])
+    def test_check_allow_specify_fields_fail(self, mock_request):
+        mock_request.version.minor = 7
+        self.assertRaises(exception.NotAcceptable,
+                          utils.check_allow_specify_fields, ['foo'])
+
 
 class TestNodeIdent(base.TestCase):
 

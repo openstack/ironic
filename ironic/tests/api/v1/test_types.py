@@ -263,3 +263,17 @@ class TestJsonType(base.TestCase):
         self.assertIn(str(list), vts)
         self.assertIn(str(dict), vts)
         self.assertIn(str(None), vts)
+
+
+class TestListType(base.TestCase):
+
+    def test_list_type(self):
+        v = types.ListType()
+        self.assertItemsEqual(['foo', 'bar'], v.validate('foo,bar'))
+        self.assertItemsEqual(['cat', 'meow'], v.validate("cat  ,  meow"))
+        self.assertItemsEqual(['spongebob', 'squarepants'],
+                              v.validate("SpongeBob,SquarePants"))
+        self.assertItemsEqual(['foo', 'bar'],
+                              v.validate("foo, ,,bar"))
+        self.assertItemsEqual(['foo', 'bar'],
+                              v.validate("foo,foo,foo,bar"))
