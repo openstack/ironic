@@ -34,6 +34,36 @@ pywsman = importutils.try_import('pywsman')
 LOG = logging.getLogger(__name__)
 
 
+_ADDRESS = 'http://schemas.xmlsoap.org/ws/2004/08/addressing'
+_ANONYMOUS = 'http://schemas.xmlsoap.org/ws/2004/08/addressing/role/anonymous'
+_WSMAN = 'http://schemas.dmtf.org/wbem/wsman/1/wsman.xsd'
+
+
+def _generate_change_boot_order_input(device):
+    """Generate Xmldoc as change_boot_order input.
+
+    This generates a Xmldoc used as input for change_boot_order.
+
+    :param device: the boot device.
+    :returns: Xmldoc.
+    """
+    method_input = "ChangeBootOrder_INPUT"
+    namespace = resource_uris.CIM_BootConfigSetting
+    doc = pywsman.XmlDoc(method_input)
+    root = doc.root()
+    root.set_ns(namespace)
+
+    child = root.add(namespace, 'Source', None)
+    child.add(_ADDRESS, 'Address', _ANONYMOUS)
+
+    grand_child = child.add(_ADDRESS, 'ReferenceParameters', None)
+    grand_child.add(_WSMAN, 'ResourceURI', resource_uris.CIM_BootSourceSetting)
+    g_grand_child = grand_child.add(_WSMAN, 'SelectorSet', None)
+    g_g_grand_child = g_grand_child.add(_WSMAN, 'Selector', device)
+    g_g_grand_child.attr_add(_WSMAN, 'Name', 'InstanceID')
+    return doc
+
+
 def _set_boot_device_order(node, boot_device):
     """Set boot device order configuration of AMT Client.
 
@@ -43,20 +73,17 @@ def _set_boot_device_order(node, boot_device):
     :raises: AMTConnectFailure
     """
     client = amt_common.get_wsman_client(node)
-    source = pywsman.EndPointReference(resource_uris.CIM_BootSourceSetting,
-                                       None)
     device = amt_common.BOOT_DEVICES_MAPPING[boot_device]
-    source.add_selector('InstanceID', device)
+    doc = _generate_change_boot_order_input(device)
 
     method = 'ChangeBootOrder'
 
     options = pywsman.ClientOptions()
     options.add_selector('InstanceID', 'Intel(r) AMT: Boot Configuration 0')
 
-    options.add_property('Source', source)
     try:
         client.wsman_invoke(options, resource_uris.CIM_BootConfigSetting,
-                            method)
+                            method, doc)
     except (exception.AMTFailure, exception.AMTConnectFailure) as e:
         with excutils.save_and_reraise_exception():
             LOG.exception(_LE("Failed to set boot device %(boot_device)s for "
@@ -69,6 +96,32 @@ def _set_boot_device_order(node, boot_device):
                  {'boot_device': boot_device, 'node_id': node.uuid})
 
 
+def _generate_enable_boot_config_input():
+    """Generate Xmldoc as enable_boot_config input.
+
+    This generates a Xmldoc used as input for enable_boot_config.
+
+    :returns: Xmldoc.
+    """
+    method_input = "SetBootConfigRole_INPUT"
+    namespace = resource_uris.CIM_BootService
+    doc = pywsman.XmlDoc(method_input)
+    root = doc.root()
+    root.set_ns(namespace)
+
+    child = root.add(namespace, 'BootConfigSetting', None)
+    child.add(_ADDRESS, 'Address', _ANONYMOUS)
+
+    grand_child = child.add(_ADDRESS, 'ReferenceParameters', None)
+    grand_child.add(_WSMAN, 'ResourceURI', resource_uris.CIM_BootConfigSetting)
+    g_grand_child = grand_child.add(_WSMAN, 'SelectorSet', None)
+    g_g_grand_child = g_grand_child.add(_WSMAN, 'Selector',
+                                        'Intel(r) AMT: Boot Configuration 0')
+    g_g_grand_child.attr_add(_WSMAN, 'Name', 'InstanceID')
+    root.add(namespace, 'Role', '1')
+    return doc
+
+
 def _enable_boot_config(node):
     """Enable boot configuration of AMT Client.
 
@@ -77,19 +130,13 @@ def _enable_boot_config(node):
     :raises: AMTConnectFailure
     """
     client = amt_common.get_wsman_client(node)
-    config = pywsman.EndPointReference(resource_uris.CIM_BootConfigSetting,
-                                       None)
-    config.add_selector('InstanceID', 'Intel(r) AMT: Boot Configuration 0')
-
     method = 'SetBootConfigRole'
-
+    doc = _generate_enable_boot_config_input()
     options = pywsman.ClientOptions()
     options.add_selector('Name', 'Intel(r) AMT Boot Service')
-
-    options.add_property('Role', '1')
-    options.add_property('BootConfigSetting', config)
     try:
-        client.wsman_invoke(options, resource_uris.CIM_BootService, method)
+        client.wsman_invoke(options, resource_uris.CIM_BootService,
+                            method, doc)
     except (exception.AMTFailure, exception.AMTConnectFailure) as e:
         with excutils.save_and_reraise_exception():
             LOG.exception(_LE("Failed to enable boot config for node "

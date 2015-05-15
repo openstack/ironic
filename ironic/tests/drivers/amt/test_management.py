@@ -57,7 +57,7 @@ class AMTManagementInteralMethodsTestCase(db_base.DbTestCase):
         amt_mgmt._set_boot_device_order(self.node, device)
 
         mock_pywsman.invoke.assert_called_once_with(mock.ANY,
-            namespace, 'ChangeBootOrder')
+            namespace, 'ChangeBootOrder', mock.ANY)
 
     def test__set_boot_device_order_fail(self, mock_client_pywsman):
         namespace = resource_uris.CIM_BootConfigSetting
@@ -71,7 +71,7 @@ class AMTManagementInteralMethodsTestCase(db_base.DbTestCase):
         self.assertRaises(exception.AMTFailure,
                           amt_mgmt._set_boot_device_order, self.node, device)
         mock_pywsman.invoke.assert_called_once_with(mock.ANY,
-            namespace, 'ChangeBootOrder')
+            namespace, 'ChangeBootOrder', mock.ANY)
 
         mock_pywsman = mock_client_pywsman.Client.return_value
         mock_pywsman.invoke.return_value = None
@@ -90,7 +90,7 @@ class AMTManagementInteralMethodsTestCase(db_base.DbTestCase):
         amt_mgmt._enable_boot_config(self.node)
 
         mock_pywsman.invoke.assert_called_once_with(mock.ANY,
-            namespace, 'SetBootConfigRole')
+            namespace, 'SetBootConfigRole', mock.ANY)
 
     def test__enable_boot_config_fail(self, mock_client_pywsman):
         namespace = resource_uris.CIM_BootService
@@ -103,7 +103,7 @@ class AMTManagementInteralMethodsTestCase(db_base.DbTestCase):
         self.assertRaises(exception.AMTFailure,
                           amt_mgmt._enable_boot_config, self.node)
         mock_pywsman.invoke.assert_called_once_with(mock.ANY,
-            namespace, 'SetBootConfigRole')
+            namespace, 'SetBootConfigRole', mock.ANY)
 
         mock_pywsman = mock_client_pywsman.Client.return_value
         mock_pywsman.invoke.return_value = None
