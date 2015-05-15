@@ -128,14 +128,16 @@ class AMTManagementTestCase(db_base.DbTestCase):
                                   shared=True) as task:
             self.assertEqual(expected, task.driver.get_properties())
 
-    @mock.patch.object(amt_common, 'parse_driver_info', autospec=True)
+    @mock.patch.object(amt_common, 'parse_driver_info', spec_set=True,
+                       autospec=True)
     def test_validate(self, mock_drvinfo):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
             task.driver.management.validate(task)
             mock_drvinfo.assert_called_once_with(task.node)
 
-    @mock.patch.object(amt_common, 'parse_driver_info', autospec=True)
+    @mock.patch.object(amt_common, 'parse_driver_info', spec_set=True,
+                       autospec=True)
     def test_validate_fail(self, mock_drvinfo):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
@@ -178,8 +180,10 @@ class AMTManagementTestCase(db_base.DbTestCase):
                               task.driver.management.set_boot_device,
                               task, 'fake-device')
 
-    @mock.patch.object(amt_mgmt, '_enable_boot_config', autospec=True)
-    @mock.patch.object(amt_mgmt, '_set_boot_device_order', autospec=True)
+    @mock.patch.object(amt_mgmt, '_enable_boot_config', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(amt_mgmt, '_set_boot_device_order', spec_set=True,
+                       autospec=True)
     def test_ensure_next_boot_device_one_time(self, mock_sbdo, mock_ebc):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
@@ -193,8 +197,10 @@ class AMTManagementTestCase(db_base.DbTestCase):
             mock_sbdo.assert_called_once_with(task.node, device)
             mock_ebc.assert_called_once_with(task.node)
 
-    @mock.patch.object(amt_mgmt, '_enable_boot_config', autospec=True)
-    @mock.patch.object(amt_mgmt, '_set_boot_device_order', autospec=True)
+    @mock.patch.object(amt_mgmt, '_enable_boot_config', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(amt_mgmt, '_set_boot_device_order', spec_set=True,
+                       autospec=True)
     def test_ensure_next_boot_device_persistent(self, mock_sbdo, mock_ebc):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
