@@ -32,7 +32,7 @@ from ironic.openstack.common import versionutils
 LOG = logging.getLogger('object')
 
 
-class NotSpecifiedSentinel:
+class NotSpecifiedSentinel(object):
     pass
 
 

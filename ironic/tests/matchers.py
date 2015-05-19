@@ -26,7 +26,8 @@ class DictKeysMismatch(object):
 
     def describe(self):
         return ('Keys in d1 and not d2: %(d1only)s.'
-                ' Keys in d2 and not d1: %(d2only)s' % self.__dict__)
+                ' Keys in d2 and not d1: %(d2only)s' %
+                {'d1only': self.d1only, 'd2only': self.d2only})
 
     def get_details(self):
         return {}
@@ -40,7 +41,8 @@ class DictMismatch(object):
 
     def describe(self):
         return ("Dictionaries do not match at %(key)s."
-                " d1: %(d1_value)s d2: %(d2_value)s" % self.__dict__)
+                " d1: %(d1_value)s d2: %(d2_value)s" %
+                {'d1_value': self.d1_value, 'd2_value': self.d2_value})
 
     def get_details(self):
         return {}

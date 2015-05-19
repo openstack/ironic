@@ -20,12 +20,12 @@ from ironic.common import keystone
 from ironic.tests import base
 
 
-class FakeCatalog:
+class FakeCatalog(object):
     def url_for(self, **kwargs):
         return 'fake-url'
 
 
-class FakeClient:
+class FakeClient(object):
     def __init__(self, **kwargs):
         self.service_catalog = FakeCatalog()
 
