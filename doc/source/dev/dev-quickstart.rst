@@ -462,7 +462,7 @@ commands to build the documentation set::
     source .tox/venv/bin/activate
 
     # build the docs
-    tox -egendocs
+    tox -edocs
 
 Now use your browser to open the top-level index.html located at::
 
