@@ -1,0 +1,20 @@
+---
+upgrade:
+  - |
+    Adds new configuration [ironic_lib]root_helper, to specify
+    the command that is prefixed to commands that are run as root.
+    Defaults to using the rootwrap config file at
+    /etc/ironic/rootwrap.conf.
+  - |
+    Moves these configuration options from [deploy] group to the
+    new [disk_utils] group: efi_system_partition_size, dd_block_size
+    and iscsi_verify_attempts.
+deprecations:
+  - |
+    The following configuration options have been moved to
+    the [disk_utils] group; they are deprecated from the
+    [deploy] group: efi_system_partition_size, dd_block_size and
+    iscsi_verify_attempts.
+other:
+  - Code related to disk partitioning was moved to
+    ironic-lib.

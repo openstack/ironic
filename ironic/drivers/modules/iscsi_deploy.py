@@ -15,6 +15,7 @@
 
 import os
 
+from ironic_lib import disk_utils
 from oslo_config import cfg
 from oslo_log import log as logging
 from oslo_utils import fileutils
@@ -241,7 +242,7 @@ def check_image_size(task):
     """
     i_info = parse_instance_info(task.node)
     image_path = _get_image_file_path(task.node.uuid)
-    image_mb = deploy_utils.get_image_mb(image_path)
+    image_mb = disk_utils.get_image_mb(image_path)
     root_mb = 1024 * int(i_info['root_gb'])
     if image_mb > root_mb:
         msg = (_('Root partition is too small for requested image. Image '

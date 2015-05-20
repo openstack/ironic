@@ -4,9 +4,6 @@
 [Filters]
 # ironic/drivers/modules/deploy_utils.py
 iscsiadm: CommandFilter, iscsiadm, root
-blkid: CommandFilter, blkid, root
-blockdev: CommandFilter, blockdev, root
-hexdump: CommandFilter, hexdump, root
 
 # ironic/common/utils.py
 mkswap: CommandFilter, mkswap, root
@@ -14,7 +11,3 @@ mkfs: CommandFilter, mkfs, root
 mount: CommandFilter, mount, root
 umount: CommandFilter, umount, root
 dd: CommandFilter, dd, root
-
-# ironic/common/disk_partitioner.py
-fuser: CommandFilter, fuser, root
-parted: CommandFilter, parted, root
