@@ -95,6 +95,15 @@ virtual environment, you can do this without starting any other OpenStack
 services. For example, this is useful for rapidly prototyping and debugging
 interactions over the RPC channel, testing database migrations, and so forth.
 
+Step 1: System Dependencies
+---------------------------
+
+There are two ways you may use to install the required system dependencies:
+Manually, or by using the included Vagrant file.
+
+Option 1: Manual Install
+########################
+
 #. Install a few system prerequisites::
 
     # install rabbit message broker
@@ -122,23 +131,6 @@ interactions over the RPC channel, testing database migrations, and so forth.
     # sudo zypper install mariadb
     # sudo systemctl start mysql.service
 
-#. Clone the ``python-ironicclient`` repository and install it within
-   a virtualenv::
-
-    # from your home or source directory
-    cd ~
-    git clone https://git.openstack.org/openstack/python-ironicclient
-    cd python-ironicclient
-    tox -evenv -- echo 'done'
-    source .tox/venv/bin/activate
-    python setup.py develop
-
-#. Export some ENV vars so the client will connect to the local services
-   that you'll start in the next section::
-
-    export OS_AUTH_TOKEN=fake-token
-    export IRONIC_URL=http://localhost:6385/
-
 #. Clone the ``Ironic`` repository and install it within a virtualenv::
 
     # activate the virtualenv
@@ -150,6 +142,8 @@ interactions over the RPC channel, testing database migrations, and so forth.
 
     # install ironic within the virtualenv
     python setup.py develop
+
+#. Create a configuration file within the ironic source directory::
 
     # copy sample config and modify it as necessary
     cp etc/ironic/ironic.conf.sample etc/ironic/ironic.conf.local
@@ -166,13 +160,50 @@ interactions over the RPC channel, testing database migrations, and so forth.
     # turn off the periodic sync_power_state task, to avoid getting NodeLocked exceptions
     sed -i "s/#sync_power_state_interval=60/sync_power_state_interval=-1/" etc/ironic/ironic.conf.local
 
-    # initialize the ironic database
-    # this defaults to storing data in ./ironic/ironic.sqlite
+#. Initialize the ironic database (optional)
+
+    # ironic defaults to storing data in ./ironic/ironic.sqlite
 
     # If using MySQL, you need to create the initial database
     # mysql -u root -e "create schema ironic"
     # and switch the DB connection from sqlite to something else, eg. mysql
     # sed -i "s/#connection=.*/connection=mysql:\/\/root@localhost\/ironic/" etc/ironic/ironic.conf.local
+
+At this point, you can continue to Step 2.
+
+Option 2: Vagrant, VirtualBox, and Ansible
+##########################################
+
+This option requires `virtualbox <https://www.virtualbox.org//>`_,
+`vagrant <http://www.vagrantup.com/downloads>`_, and
+`ansible <http://www.ansible.com/home>`_. You may install these using your
+favorite package manager, or by downloading from the provided links.
+
+Next, run vagrant::
+
+    vagrant up
+
+This will create a VM available to your local system at `192.168.99.11`,
+will install all the necessary service dependencies,
+and configure some default users. It will also generate
+`./etc/ironic/ironic.conf.local` preconfigured for local dev work.
+We recommend you compare and familiarize yourself with the settings in
+`./etc/ironic/ironic.conf.sample` so you can adjust it to meet your own needs.
+
+Step 2: Start the API
+---------------------
+
+Activate the virtual environment created in the previous section to run
+the API::
+
+    # switch to the ironic source (Not necessary if you followed Option 1)
+    cd ironic
+
+    # activate the virtualenv
+    source .tox/venv/bin/activate
+
+    # install ironic within the virtualenv
+    python setup.py develop
 
     # This creates the database tables.
     ironic-dbsync --config-file etc/ironic/ironic.conf.local create_schema
@@ -185,6 +216,31 @@ interactions over the RPC channel, testing database migrations, and so forth.
 #. Open one more window (or screen session), again activate the venv, and then
    start the conductor service and watch its output::
 
+Step 3: Install the Client
+--------------------------
+#. Clone the ``python-ironicclient`` repository and install it within a
+   virtualenv::
+
+    # from your home or source directory
+    cd ~
+    git clone https://git.openstack.org/openstack/python-ironicclient
+    cd python-ironicclient
+    tox -evenv -- echo 'done'
+    source .tox/venv/bin/activate
+    python setup.py develop
+
+#. Export some ENV vars so the client will connect to the local services
+   that you'll start in the next section::
+
+    export OS_AUTH_TOKEN=fake-token
+    export IRONIC_URL=http://localhost:6385/
+
+
+Step 4: Start the Conductor Service
+-----------------------------------
+Open one more window (or screen session), again activate the venv, and then
+start the conductor service and watch its output::
+
     # activate the virtualenv
     cd ironic
     source .tox/venv/bin/activate
@@ -192,10 +248,10 @@ interactions over the RPC channel, testing database migrations, and so forth.
     # start the conductor service
     ironic-conductor -v -d --config-file etc/ironic/ironic.conf.local
 
-You should now be able to interact with Ironic via the python client
-(installed in the first window) and observe both services' debug outputs
-in the other two windows. This is a good way to test new features or
-play with the functionality without necessarily starting DevStack.
+You should now be able to interact with Ironic via the python client (installed
+in Step 3) and observe both services' debug outputs in the other two
+windows. This is a good way to test new features or play with the functionality
+without necessarily starting DevStack.
 
 To get started, list the available commands and resources::
 

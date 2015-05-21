@@ -1,0 +1,146 @@
+---
+###############################################################################
+# This ansible playbook installs all supporting software necessary to run the
+# ironic service locally into the vagrant VM attached. Its intent is to provide
+# a quickstart development environment that doesn't pollute an engineer's own
+# machine.
+#
+# The vagrant vm's IP address is assumed to be 192.168.99.11
+#
+# http://docs.openstack.org/developer/ironic/dev/dev-quickstart.html#exercising-the-services-locally
+#
+- hosts: ironic
+  sudo: yes
+  tasks:
+    ############################################################################
+    # APT Updates
+    ############################################################################
+    # Make sure our VM's software is ~@Latest
+    - name: Apt Update
+      apt: update_cache=yes
+           upgrade=dist
+           cache_valid_time=86400
+
+    # Reboot if required.
+    - name: Reboot system if required
+      command: shutdown -r now 'Rebooting to complete system upgrade'
+               removes=/var/run/reboot-required
+      register: rebooted
+    - name: Wait for VM Reboot.
+      sudo: no
+      local_action: wait_for
+                    port=22
+                    host="{{ip}}"
+                    search_regex=OpenSSH
+                    delay=10
+                    timeout=900
+      when: rebooted.changed
+
+    ############################################################################
+    # Install all the needed packages in one go.
+    ############################################################################
+    - name: Install Required Packages
+      apt: name={{item}}
+           state=present
+      with_items:
+      - rabbitmq-server
+      - python-mysqldb
+      - mysql-server
+      - mysql-client
+
+    ############################################################################
+    # Configure rabbitmq.
+    ############################################################################
+    - name: Ensure rabbitmq is running
+      service: name=rabbitmq-server
+               state=started
+               enabled=yes
+    - name: Add ironic RabbitMQ user
+      rabbitmq_user: user=ironic
+                     password=ironic
+                     vhost=/
+                     configure_priv=.*
+                     read_priv=.*
+                     write_priv=.*
+                     state=present
+
+    ############################################################################
+    # Configure mysql.
+    ############################################################################
+    - name: Configure MySQL
+      lineinfile: dest=/etc/mysql/my.cnf
+                  line="bind-address={{ip}}"
+                  regexp="^bind\-address"
+      notify: Restart MySQL
+    - name: Create MySQL Database
+      mysql_db: name=ironic state=present
+    - name: Create ironic MySQL user
+      mysql_user: name=ironic
+                  password=ironic
+                  host={{item}}
+                  priv=ironic.*:ALL
+                  state=present
+      with_items:
+      - localhost
+      - "%"
+    - name: Ensure mysql is running
+      service: name=mysql
+               state=started
+               enabled=yes
+
+    ############################################################################
+    # Create ironic.conf.local configuration.
+    ############################################################################
+    - name: Update local configuration with vagrant parameters.
+      sudo: no
+      local_action: ini_file dest=etc/ironic/ironic.conf.local
+                             section="{{item.section}}"
+                             option="{{item.option}}"
+                             value="{{item.value}}"
+      with_items:
+        - {
+            section: 'glance',
+            option: 'auth_strategy', value: 'noauth'
+          }
+        - {
+            section: 'neutron',
+            option: 'auth_strategy', value: 'noauth'
+          }
+        - {
+            section: 'database',
+            option: 'connection', value: "mysql://ironic:ironic@{{ip}}/ironic"
+          }
+        - {
+            section: 'DEFAULT',
+            option: 'auth_strategy', value: 'noauth'
+          }
+        - {
+            section: 'DEFAULT',
+            option: 'enabled_drivers', value: 'fake_ipmitool'
+          }
+        - {
+            section: 'DEFAULT',
+            option: 'pecan_debug', value: 'true'
+          }
+        - {
+            section: 'oslo_messaging_rabbit',
+            option: 'rabbit_host', value: "{{ip}}"
+          }
+        - {
+            section: 'oslo_messaging_rabbit',
+            option: 'rabbit_userid', value: "ironic"
+          }
+        - {
+            section: 'oslo_messaging_rabbit',
+            option: 'rabbit_password', value: "ironic"
+          }
+
+
+  #############################################################################
+  # Handlers
+  #############################################################################
+  handlers:
+  - name: Restart MySQL
+    service: name=mysql
+             state=restarted
+             enabled=yes
