@@ -90,7 +90,7 @@ class AgentAndVirtualBoxDriver(base.BaseDriver):
 
     This driver implements the `core` functionality, combining
     :class:`ironic.drivers.modules.virtualbox.VirtualBoxPower` (for power
-        on/off and reboot of VirtualBox virtual machines), with
+    on/off and reboot of VirtualBox virtual machines), with
     :class:`ironic.drivers.modules.agent.AgentDeploy` (for image
     deployment). Implementations are in those respective classes; this class
     is merely the glue between them.

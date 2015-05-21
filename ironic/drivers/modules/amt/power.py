@@ -244,7 +244,7 @@ class AMTPower(base.PowerInterface):
         Turn the node power on or off.
 
         :param task: a TaskManager instance contains the target node.
-        :param pstate : The desired power state of the node.
+        :param pstate: The desired power state of the node.
         :raises: PowerStateFailure if the power cannot set to pstate.
         :raises: AMTFailure.
         :raises: AMTConnectFailure.

@@ -73,6 +73,7 @@ class BaseDHCP(object):
                            'opt_value': '123.123.123.456'},
                           {'opt_name': 'tftp-server',
                            'opt_value': '123.123.123.123'}]
+
          :param vifs: a dict of Neutron port dicts to update DHCP options on.
             The keys should be Ironic port UUIDs, and the values should be
             Neutron port UUIDs

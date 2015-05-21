@@ -207,9 +207,11 @@ class AMTManagement(base.ManagementInterface):
 
         :param task: a task from TaskManager.
         :returns: a dictionary containing:
-            :boot_device: the boot device
-            :persistent: Whether the boot device will persist to all
+
+             :boot_device: the boot device
+             :persistent: Whether the boot device will persist to all
                 future boots or not, None if it is unknown.
+
         """
         driver_internal_info = task.node.driver_internal_info
         device = driver_internal_info.get('amt_boot_device')
