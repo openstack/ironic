@@ -20,7 +20,7 @@ from ironic.common import exception
 from ironic.tests import base
 
 
-class FakeEp:
+class FakeEp(object):
     name = 'fake'
 
 

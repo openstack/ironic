@@ -34,7 +34,7 @@ from ironic.tests.objects import utils as obj_utils
 INFO_DICT = db_utils.get_test_seamicro_info()
 
 
-class Fake_Server():
+class Fake_Server(object):
     def __init__(self, active=False, *args, **kwargs):
         self.active = active
         self.nic = {'0': {'untaggedVlan': ''}}
@@ -64,7 +64,7 @@ class Fake_Server():
         return self
 
 
-class Fake_Volume():
+class Fake_Volume(object):
     def __init__(self, id=None, *args, **kwargs):
         if id is None:
             self.id = "%s/%s/%s" % ("0", "ironic-p6-6", str(uuid.uuid4()))
@@ -72,7 +72,7 @@ class Fake_Volume():
             self.id = id
 
 
-class Fake_Pool():
+class Fake_Pool(object):
     def __init__(self, freeSize=None, *args, **kwargs):
         self.freeSize = freeSize
 
