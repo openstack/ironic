@@ -9,7 +9,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
 
   config.vm.define 'ironic' do |ironic|
     ironic.vm.provider :virtualbox do |vb|
-      vb.customize ['modifyvm', :id,'--memory', '2048']
+      vb.customize ['modifyvm', :id, '--memory', '512', '--cpuexecutioncap', '25']
     end
 
     ironic.vm.network 'private_network', ip: '192.168.99.11' # It goes to 11.
