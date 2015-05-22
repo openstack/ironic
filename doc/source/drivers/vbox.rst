@@ -82,19 +82,9 @@ Setting up development environment
 
 * Set up devstack.
 
-* Install ZSI library.
-
-  On Ubuntu::
-
-    sudo apt-get install python-ZSI
-
-  On Fedora/RHEL/CentOS::
-
-    sudo yum install python-ZSI
-
 * Install pyremotevbox::
 
-    sudo pip install pyremotevbox
+    sudo pip install "pyremotevbox>=0.5.0"
 
 * Enable one (or more) of the VirtualBox drivers (``pxe_vbox``, ``agent_vbox``,
   or ``fake_vbox``) via the ``enabled_drivers`` configuration option in
