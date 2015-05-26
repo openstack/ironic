@@ -65,12 +65,16 @@ class ContextHook(hooks.PecanHook):
     def before(self, state):
         headers = state.request.headers
 
+        # Do not pass any token with context for noauth mode
+        auth_token = (None if cfg.CONF.auth_strategy == 'noauth' else
+                      headers.get('X-Auth-Token'))
+
         creds = {
             'user': headers.get('X-User') or headers.get('X-User-Id'),
             'tenant': headers.get('X-Tenant') or headers.get('X-Tenant-Id'),
             'domain_id': headers.get('X-User-Domain-Id'),
             'domain_name': headers.get('X-User-Domain-Name'),
-            'auth_token': headers.get('X-Auth-Token'),
+            'auth_token': auth_token,
             'roles': headers.get('X-Roles', '').split(','),
         }
 

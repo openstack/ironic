@@ -228,6 +228,24 @@ class TestContextHook(base.FunctionalTest):
             is_admin=True,
             roles=headers['X-Roles'].split(','))
 
+    @mock.patch.object(context, 'RequestContext')
+    def test_context_hook_noauth_token_removed(self, mock_ctx):
+        cfg.CONF.set_override('auth_strategy', 'noauth')
+        headers = fake_headers(admin=False)
+        reqstate = FakeRequestState(headers=headers)
+        context_hook = hooks.ContextHook(None)
+        context_hook.before(reqstate)
+        mock_ctx.assert_called_with(
+            auth_token=None,
+            user=headers['X-User'],
+            tenant=headers['X-Tenant'],
+            domain_id=headers['X-User-Domain-Id'],
+            domain_name=headers['X-User-Domain-Name'],
+            is_public_api=False,
+            show_password=False,
+            is_admin=False,
+            roles=headers['X-Roles'].split(','))
+
 
 class TestContextHookCompatJuno(TestContextHook):
     def setUp(self):
