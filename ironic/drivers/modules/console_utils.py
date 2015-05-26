@@ -155,8 +155,10 @@ def get_shellinabox_console_url(port):
     console_host = CONF.my_ip
     if netutils.is_valid_ipv6(console_host):
         console_host = '[%s]' % console_host
-    console_url = "http://%s:%s" % (console_host, port)
-    return console_url
+    scheme = 'https' if CONF.console.terminal_cert_dir else 'http'
+    return '%(scheme)s://%(host)s:%(port)s' % {'scheme': scheme,
+                                                'host': console_host,
+                                                'port': port}
 
 
 def start_shellinabox_console(node_uuid, port, console_cmd):

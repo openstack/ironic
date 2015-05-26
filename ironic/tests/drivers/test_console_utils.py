@@ -181,14 +181,23 @@ class ConsoleUtilsTestCase(db_base.DbTestCase):
                                              check_exit_code=[0, 99])
         mock_unlink.assert_called_once_with(pid_file)
 
-    def test_get_shellinabox_console_url(self):
+    def _get_shellinabox_console(self, scheme):
         generated_url = console_utils.get_shellinabox_console_url(
-                self.info['port'])
+                                                     self.info['port'])
         console_host = CONF.my_ip
         if netutils.is_valid_ipv6(console_host):
             console_host = '[%s]' % console_host
-        http_url = "http://%s:%s" % (console_host, self.info['port'])
-        self.assertEqual(generated_url, http_url)
+        http_url = "%s://%s:%s" % (scheme, console_host, self.info['port'])
+        self.assertEqual(http_url, generated_url)
+
+    def test_get_shellinabox_console_url(self):
+        self._get_shellinabox_console('http')
+
+    def test_get_shellinabox_console_https_url(self):
+        # specify terminal_cert_dir in /etc/ironic/ironic.conf
+        self.config(terminal_cert_dir='/tmp', group='console')
+        # use https
+        self._get_shellinabox_console('https')
 
     def test_make_persistent_password_file(self):
         filepath = '%(tempdir)s/%(node_uuid)s' % {
