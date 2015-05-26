@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import types
+
 import mock
 from oslo_config import cfg
 
@@ -22,8 +24,10 @@ from ironic.common import keystone
 from ironic.common import pxe_utils
 from ironic.common import states
 from ironic.conductor import task_manager
+from ironic.conductor import utils as manager_utils
 from ironic.drivers.modules import agent
 from ironic.drivers.modules import agent_client
+from ironic.drivers.modules import fake
 from ironic.tests.conductor import utils as mgr_utils
 from ironic.tests.db import base as db_base
 from ironic.tests.db import utils as db_utils
@@ -421,12 +425,17 @@ class TestAgentVendor(db_base.DbTestCase):
             self.assertEqual(states.ACTIVE,
                              task.node.target_provision_state)
 
-    @mock.patch('ironic.conductor.utils.node_power_action', autospec=True)
+    @mock.patch.object(manager_utils, 'node_power_action', autospec=True)
+    @mock.patch.object(fake.FakePower, 'get_power_state',
+                       spec=types.FunctionType)
+    @mock.patch.object(agent_client.AgentClient, 'power_off',
+                       spec=types.FunctionType)
     @mock.patch('ironic.conductor.utils.node_set_boot_device', autospec=True)
     @mock.patch('ironic.drivers.modules.agent.AgentVendorInterface'
                 '.check_deploy_success', autospec=True)
     def test_reboot_to_instance(self, check_deploy_mock, bootdev_mock,
-                                power_mock):
+                                power_off_mock, get_power_state_mock,
+                                node_power_action_mock):
         check_deploy_mock.return_value = None
 
         self.node.provision_state = states.DEPLOYING
@@ -435,11 +444,15 @@ class TestAgentVendor(db_base.DbTestCase):
 
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
+            get_power_state_mock.return_value = states.POWER_OFF
             self.passthru.reboot_to_instance(task)
 
             check_deploy_mock.assert_called_once_with(mock.ANY, task.node)
             bootdev_mock.assert_called_once_with(task, 'disk', persistent=True)
-            power_mock.assert_called_once_with(task, states.REBOOT)
+            power_off_mock.assert_called_once_with(task.node)
+            get_power_state_mock.assert_called_once_with(task)
+            node_power_action_mock.assert_called_once_with(
+                task, states.POWER_ON)
             self.assertEqual(states.ACTIVE, task.node.provision_state)
             self.assertEqual(states.NOSTATE, task.node.target_provision_state)
 

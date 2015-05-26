@@ -15,6 +15,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import time
 import types
 
 import mock
@@ -27,6 +28,7 @@ from ironic.conductor import utils as manager_utils
 from ironic.drivers.modules import agent_base_vendor
 from ironic.drivers.modules import agent_client
 from ironic.drivers.modules import deploy_utils
+from ironic.drivers.modules import fake
 from ironic import objects
 from ironic.tests.conductor import utils as mgr_utils
 from ironic.tests.db import base as db_base
@@ -332,31 +334,118 @@ class TestBaseAgentVendor(db_base.DbTestCase):
             self.assertIsInstance(driver_routes, dict)
             self.assertEqual(expected, list(driver_routes))
 
+    @mock.patch.object(time, 'sleep', lambda seconds: None)
     @mock.patch.object(manager_utils, 'node_power_action', autospec=True)
-    def test_reboot_and_finish_deploy_success(self, node_power_action_mock):
+    @mock.patch.object(fake.FakePower, 'get_power_state',
+                       spec=types.FunctionType)
+    @mock.patch.object(agent_client.AgentClient, 'power_off',
+                       spec=types.FunctionType)
+    def test_reboot_and_finish_deploy(self, power_off_mock,
+                                      get_power_state_mock,
+                                      node_power_action_mock):
         self.node.provision_state = states.DEPLOYING
         self.node.target_provision_state = states.ACTIVE
         self.node.save()
-        with task_manager.acquire(self.context, self.node['uuid'],
-                                  shared=False) as task:
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            get_power_state_mock.side_effect = [states.POWER_ON,
+                                                states.POWER_OFF]
             self.passthru.reboot_and_finish_deploy(task)
-            node_power_action_mock.assert_called_once_with(task, states.REBOOT)
+            power_off_mock.assert_called_once_with(task.node)
+            self.assertEqual(2, get_power_state_mock.call_count)
+            node_power_action_mock.assert_called_once_with(
+                task, states.POWER_ON)
+            self.assertEqual(states.ACTIVE, task.node.provision_state)
+            self.assertEqual(states.NOSTATE, task.node.target_provision_state)
+
+    @mock.patch.object(time, 'sleep', lambda seconds: None)
+    @mock.patch.object(manager_utils, 'node_power_action', autospec=True)
+    @mock.patch.object(fake.FakePower, 'get_power_state',
+                       spec=types.FunctionType)
+    @mock.patch.object(agent_client.AgentClient, 'power_off',
+                       spec=types.FunctionType)
+    def test_reboot_and_finish_deploy_soft_poweroff_doesnt_complete(
+            self, power_off_mock, get_power_state_mock,
+            node_power_action_mock):
+        self.node.provision_state = states.DEPLOYING
+        self.node.target_provision_state = states.ACTIVE
+        self.node.save()
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            get_power_state_mock.return_value = states.POWER_ON
+            self.passthru.reboot_and_finish_deploy(task)
+            power_off_mock.assert_called_once_with(task.node)
+            self.assertEqual(7, get_power_state_mock.call_count)
+            node_power_action_mock.assert_called_once_with(
+                task, states.REBOOT)
             self.assertEqual(states.ACTIVE, task.node.provision_state)
             self.assertEqual(states.NOSTATE, task.node.target_provision_state)
 
     @mock.patch.object(manager_utils, 'node_power_action', autospec=True)
-    def test_reboot_and_finish_deploy_reboot_failure(self,
-                                                     node_power_action_mock):
-        exc = exception.PowerStateFailure(pstate=states.REBOOT)
+    @mock.patch.object(agent_client.AgentClient, 'power_off',
+                       spec=types.FunctionType)
+    def test_reboot_and_finish_deploy_soft_poweroff_fails(
+            self, power_off_mock, node_power_action_mock):
+        power_off_mock.side_effect = RuntimeError("boom")
         self.node.provision_state = states.DEPLOYING
         self.node.target_provision_state = states.ACTIVE
         self.node.save()
-        node_power_action_mock.side_effect = exc
-        with task_manager.acquire(self.context, self.node['uuid'],
-                                  shared=False) as task:
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            self.passthru.reboot_and_finish_deploy(task)
+            power_off_mock.assert_called_once_with(task.node)
+            node_power_action_mock.assert_called_once_with(
+                task, states.REBOOT)
+            self.assertEqual(states.ACTIVE, task.node.provision_state)
+            self.assertEqual(states.NOSTATE, task.node.target_provision_state)
+
+    @mock.patch.object(time, 'sleep', lambda seconds: None)
+    @mock.patch.object(manager_utils, 'node_power_action', autospec=True)
+    @mock.patch.object(fake.FakePower, 'get_power_state',
+                       spec=types.FunctionType)
+    @mock.patch.object(agent_client.AgentClient, 'power_off',
+                       spec=types.FunctionType)
+    def test_reboot_and_finish_deploy_get_power_state_fails(
+            self, power_off_mock, get_power_state_mock,
+            node_power_action_mock):
+        self.node.provision_state = states.DEPLOYING
+        self.node.target_provision_state = states.ACTIVE
+        self.node.save()
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            get_power_state_mock.side_effect = RuntimeError("boom")
+            self.passthru.reboot_and_finish_deploy(task)
+            power_off_mock.assert_called_once_with(task.node)
+            self.assertEqual(7, get_power_state_mock.call_count)
+            node_power_action_mock.assert_called_once_with(
+                task, states.REBOOT)
+            self.assertEqual(states.ACTIVE, task.node.provision_state)
+            self.assertEqual(states.NOSTATE, task.node.target_provision_state)
+
+    @mock.patch.object(time, 'sleep', lambda seconds: None)
+    @mock.patch.object(manager_utils, 'node_power_action', autospec=True)
+    @mock.patch.object(fake.FakePower, 'get_power_state',
+                       spec=types.FunctionType)
+    @mock.patch.object(agent_client.AgentClient, 'power_off',
+                       spec=types.FunctionType)
+    def test_reboot_and_finish_deploy_power_action_fails(
+            self, power_off_mock, get_power_state_mock,
+            node_power_action_mock):
+        self.node.provision_state = states.DEPLOYING
+        self.node.target_provision_state = states.ACTIVE
+        self.node.save()
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            get_power_state_mock.return_value = states.POWER_ON
+            node_power_action_mock.side_effect = RuntimeError("boom")
             self.assertRaises(exception.InstanceDeployFailure,
-                              self.passthru.reboot_and_finish_deploy, task)
-            node_power_action_mock.assert_any_call(task, states.REBOOT)
+                              self.passthru.reboot_and_finish_deploy,
+                              task)
+            power_off_mock.assert_called_once_with(task.node)
+            self.assertEqual(7, get_power_state_mock.call_count)
+            node_power_action_mock.assert_has_calls([
+                mock.call(task, states.REBOOT),
+                mock.call(task, states.POWER_OFF)])
             self.assertEqual(states.DEPLOYFAIL, task.node.provision_state)
             self.assertEqual(states.ACTIVE, task.node.target_provision_state)
 

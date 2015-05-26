@@ -22,6 +22,7 @@ import time
 from oslo_config import cfg
 from oslo_log import log
 from oslo_utils import excutils
+import retrying
 
 from ironic.common import boot_devices
 from ironic.common import exception
@@ -43,6 +44,15 @@ agent_opts = [
     cfg.IntOpt('heartbeat_timeout',
                default=300,
                help='Maximum interval (in seconds) for agent heartbeats.'),
+    cfg.IntOpt('post_deploy_get_power_state_retries',
+               default=6,
+               help='Number of times to retry getting power state to check '
+                    'if bare metal node has been powered off after a soft '
+                    'power off.'),
+    cfg.IntOpt('post_deploy_get_power_state_retry_interval',
+               default=5,
+               help='Amount of time (in seconds) to wait between polling '
+                    'power state after trigger soft poweroff.'),
 ]
 
 CONF = cfg.CONF
@@ -438,11 +448,37 @@ class BaseAgentVendor(base.VendorInterface):
         :param task: a TaskManager object containing the node
         :raises: InstanceDeployFailure, if node reboot failed.
         """
+        wait = CONF.agent.post_deploy_get_power_state_retry_interval * 1000
+        attempts = CONF.agent.post_deploy_get_power_state_retries + 1
+
+        @retrying.retry(
+            stop_max_attempt_number=attempts,
+            retry_on_result=lambda state: state != states.POWER_OFF,
+            wait_fixed=wait
+        )
+        def _wait_until_powered_off(task):
+            return task.driver.power.get_power_state(task)
+
+        node = task.node
+
         try:
-            manager_utils.node_power_action(task, states.REBOOT)
+            try:
+                self._client.power_off(node)
+                _wait_until_powered_off(task)
+            except Exception as e:
+                LOG.warning(
+                    _LW('Failed to soft power off node %(node_uuid)s '
+                        'in at least %(timeout)d seconds. Error: %(error)s'),
+                    {'node_uuid': node.uuid,
+                     'timeout': wait * (attempts - 1),
+                     'error': e})
+                manager_utils.node_power_action(task, states.REBOOT)
+            else:
+                manager_utils.node_power_action(task, states.POWER_ON)
         except Exception as e:
-            msg = (_('Error rebooting node %(node)s. Error: %(error)s') %
-                   {'node': task.node.uuid, 'error': e})
+            msg = (_('Error rebooting node %(node)s after deploy. '
+                     'Error: %(error)s') %
+                   {'node': node.uuid, 'error': e})
             self._log_and_raise_deployment_error(task, msg)
 
         task.process_event('done')
