@@ -28,6 +28,7 @@ from ironic.api.controllers.v1 import types
 from ironic.api.controllers.v1 import utils as api_utils
 from ironic.api import expose
 from ironic.common import exception
+from ironic.common.i18n import _
 from ironic import objects
 
 
@@ -147,6 +148,8 @@ class ChassisController(rest.RestController):
         'detail': ['GET'],
     }
 
+    invalid_sort_key_list = ['extra']
+
     def _get_chassis_collection(self, marker, limit, sort_key, sort_dir,
                                 expand=False, resource_url=None):
         limit = api_utils.validate_limit(limit)
@@ -155,6 +158,12 @@ class ChassisController(rest.RestController):
         if marker:
             marker_obj = objects.Chassis.get_by_uuid(pecan.request.context,
                                                      marker)
+
+        if sort_key in self.invalid_sort_key_list:
+            raise exception.InvalidParameterValue(_(
+                  "The sort_key value %(key)s is an invalid field for sorting")
+                  % {'key': sort_key})
+
         chassis = objects.Chassis.list(pecan.request.context, limit,
                                        marker_obj, sort_key=sort_key,
                                        sort_dir=sort_dir)

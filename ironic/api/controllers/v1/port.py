@@ -176,6 +176,8 @@ class PortsController(rest.RestController):
         'detail': ['GET'],
     }
 
+    invalid_sort_key_list = ['extra']
+
     def _get_ports_collection(self, node_ident, address, marker, limit,
                               sort_key, sort_dir, expand=False,
                               resource_url=None):
@@ -190,6 +192,11 @@ class PortsController(rest.RestController):
         if marker:
             marker_obj = objects.Port.get_by_uuid(pecan.request.context,
                                                   marker)
+
+        if sort_key in self.invalid_sort_key_list:
+            raise exception.InvalidParameterValue(_(
+                  "The sort_key value %(key)s is an invalid field for sorting"
+                  ) % {'key': sort_key})
 
         if node_ident:
             # FIXME(comstud): Since all we need is the node ID, we can

@@ -786,6 +786,9 @@ class NodesController(rest.RestController):
         'validate': ['GET'],
     }
 
+    invalid_sort_key_list = ['properties', 'driver_info', 'extra',
+                             'instance_info', 'driver_internal_info']
+
     def _get_nodes_collection(self, chassis_uuid, instance_uuid, associated,
                               maintenance, marker, limit, sort_key, sort_dir,
                               expand=False, resource_url=None):
@@ -800,6 +803,12 @@ class NodesController(rest.RestController):
         if marker:
             marker_obj = objects.Node.get_by_uuid(pecan.request.context,
                                                   marker)
+
+        if sort_key in self.invalid_sort_key_list:
+            raise exception.InvalidParameterValue(_(
+                  "The sort_key value %(key)s is an invalid field for sorting")
+                  % {'key': sort_key})
+
         if instance_uuid:
             nodes = self._get_nodes_by_instance(instance_uuid)
         else:
