@@ -242,24 +242,21 @@ def _prepare_floppy_image(task, params):
     """
     with tempfile.NamedTemporaryFile() as vfat_image_tmpfile_obj:
 
-        files_info = {}
-        token_tmpfile_obj = None
         vfat_image_tmpfile = vfat_image_tmpfile_obj.name
 
         # If auth_strategy is noauth, then no need to write token into
         # the image file.
         if task.context.auth_token:
-            token_tmpfile_obj = tempfile.NamedTemporaryFile()
-            token_tmpfile = token_tmpfile_obj.name
-            utils.write_to_file(token_tmpfile, task.context.auth_token)
-            files_info[token_tmpfile] = 'token'
-
-        try:
-            images.create_vfat_image(vfat_image_tmpfile, files_info=files_info,
-                                     parameters=params)
-        finally:
-            if token_tmpfile_obj:
-                token_tmpfile_obj.close()
+            with tempfile.NamedTemporaryFile() as token_tmpfile_obj:
+                files_info = {}
+                token_tmpfile = token_tmpfile_obj.name
+                utils.write_to_file(token_tmpfile, task.context.auth_token)
+                files_info[token_tmpfile] = 'token'
+                images.create_vfat_image(vfat_image_tmpfile,
+                                         files_info=files_info,
+                                         parameters=params)
+        else:
+            images.create_vfat_image(vfat_image_tmpfile, parameters=params)
 
         container = CONF.ilo.swift_ilo_container
         object_name = _get_floppy_image_name(task.node)

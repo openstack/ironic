@@ -180,14 +180,18 @@ class IloCommonMethodsTestCase(db_base.DbTestCase):
     @mock.patch.object(tempfile, 'NamedTemporaryFile', autospec=True)
     def test__prepare_floppy_image(self, tempfile_mock, write_mock,
                                    fatimage_mock, swift_api_mock):
+        mock_token_file_handle = mock.MagicMock(spec=file)
         mock_token_file_obj = mock.MagicMock(spec=file)
         mock_token_file_obj.name = 'token-tmp-file'
+        mock_token_file_handle.__enter__.return_value = mock_token_file_obj
+
         mock_image_file_handle = mock.MagicMock(spec=file)
         mock_image_file_obj = mock.MagicMock(spec=file)
         mock_image_file_obj.name = 'image-tmp-file'
         mock_image_file_handle.__enter__.return_value = mock_image_file_obj
+
         tempfile_mock.side_effect = iter([mock_image_file_handle,
-                                          mock_token_file_obj])
+                                          mock_token_file_handle])
 
         swift_obj_mock = swift_api_mock.return_value
         self.config(swift_ilo_container='ilo_cont', group='ilo')
@@ -207,7 +211,6 @@ class IloCommonMethodsTestCase(db_base.DbTestCase):
         object_name = 'image-' + node_uuid
         files_info = {'token-tmp-file': 'token'}
         write_mock.assert_called_once_with('token-tmp-file', 'token')
-        mock_token_file_obj.close.assert_called_once_with()
         fatimage_mock.assert_called_once_with('image-tmp-file',
                                               files_info=files_info,
                                               parameters=deploy_args)
@@ -241,9 +244,7 @@ class IloCommonMethodsTestCase(db_base.DbTestCase):
             task.context.auth_token = None
             ilo_common._prepare_floppy_image(task, deploy_args)
 
-        files_info = {}
         fatimage_mock.assert_called_once_with('image-tmp-file',
-                                              files_info=files_info,
                                               parameters=deploy_args)
 
     @mock.patch.object(ilo_common, 'get_ilo_object', autospec=True)
