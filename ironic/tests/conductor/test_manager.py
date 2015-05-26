@@ -41,6 +41,7 @@ from ironic.conductor import task_manager
 from ironic.conductor import utils as conductor_utils
 from ironic.db import api as dbapi
 from ironic.drivers import base as drivers_base
+from ironic.drivers.modules import fake
 from ironic import objects
 from ironic.tests import base as tests_base
 from ironic.tests.conductor import utils as mgr_utils
@@ -1868,7 +1869,8 @@ class DoNodeCleanTestCase(_ServiceSetUpMixin, tests_db_base.DbTestCase):
         self.assertFalse(mock_execute.called)
 
     @mock.patch('ironic.drivers.modules.fake.FakeDeploy.execute_clean_step')
-    def test__do_next_clean_step_fail(self, mock_execute):
+    @mock.patch.object(fake.FakeDeploy, 'tear_down_cleaning', autospec=True)
+    def test__do_next_clean_step_fail(self, tear_mock, mock_execute):
         # When a clean step fails, go to CLEANFAIL
         node = obj_utils.create_test_node(
             self.context, driver='fake',
@@ -1884,6 +1886,7 @@ class DoNodeCleanTestCase(_ServiceSetUpMixin, tests_db_base.DbTestCase):
                 self.context, node['id'], shared=False) as task:
             self.service._do_next_clean_step(
                 task, self.clean_steps, node.clean_step)
+            tear_mock.assert_called_once_with(task.driver.deploy, task)
 
         self.service._worker_pool.waitall()
         node.refresh()
@@ -1892,6 +1895,38 @@ class DoNodeCleanTestCase(_ServiceSetUpMixin, tests_db_base.DbTestCase):
         self.assertEqual(states.CLEANFAIL, node.provision_state)
         self.assertEqual({}, node.clean_step)
         self.assertIsNotNone(node.last_error)
+        self.assertTrue(node.maintenance)
+        mock_execute.assert_called_once_with(mock.ANY, self.clean_steps[0])
+
+    @mock.patch('ironic.drivers.modules.fake.FakeDeploy.execute_clean_step')
+    @mock.patch.object(fake.FakeDeploy, 'tear_down_cleaning', autospec=True)
+    def test__do_next_clean_step_fail_in_tear_down_cleaning(self, tear_mock,
+                                                           mock_execute):
+        node = obj_utils.create_test_node(
+            self.context, driver='fake',
+            provision_state=states.CLEANING,
+            target_provision_state=states.AVAILABLE,
+            last_error=None,
+            clean_step={})
+
+        mock_execute.return_value = None
+        tear_mock.side_effect = Exception()
+
+        self._start_service()
+
+        with task_manager.acquire(
+                self.context, node['id'], shared=False) as task:
+            self.service._do_next_clean_step(
+                task, self.clean_steps, node.clean_step)
+
+        self.service._worker_pool.waitall()
+        node.refresh()
+
+        # Make sure we go to CLEANFAIL, clear clean_steps
+        self.assertEqual(states.CLEANFAIL, node.provision_state)
+        self.assertEqual({}, node.clean_step)
+        self.assertIsNotNone(node.last_error)
+        self.assertEqual(1, tear_mock.call_count)
         self.assertTrue(node.maintenance)
         mock_execute.assert_called_once_with(mock.ANY, self.clean_steps[0])
 
