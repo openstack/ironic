@@ -51,7 +51,6 @@ import eventlet
 from eventlet import greenpool
 from oslo_concurrency import lockutils
 from oslo_config import cfg
-from oslo_context import context as ironic_context
 from oslo_db import exception as db_exception
 from oslo_log import log
 import oslo_messaging as messaging
@@ -69,7 +68,6 @@ from ironic.common.i18n import _LE
 from ironic.common.i18n import _LI
 from ironic.common.i18n import _LW
 from ironic.common import images
-from ironic.common import keystone
 from ironic.common import rpc
 from ironic.common import states
 from ironic.common import swift
@@ -1150,22 +1148,14 @@ class ConductorManager(periodic_task.PeriodicTasks):
         node_iter = self.iter_nodes(fields=['id', 'conductor_affinity'],
                                     filters=filters)
 
-        admin_context = None
         workers_count = 0
         for node_uuid, driver, node_id, conductor_affinity in node_iter:
             if conductor_affinity == self.conductor.id:
                 continue
 
-            # NOTE(lucasagomes): The context provided by the periodic task
-            # will make the glance client to fail with an 401 (Unauthorized)
-            # so we have to use the admin_context with an admin auth_token
-            if not admin_context:
-                admin_context = ironic_context.get_admin_context()
-                admin_context.auth_token = keystone.get_admin_auth_token()
-
             # Node is mapped here, but not updated by this conductor last
             try:
-                with task_manager.acquire(admin_context, node_uuid) as task:
+                with task_manager.acquire(context, node_uuid) as task:
                     # NOTE(deva): now that we have the lock, check again to
                     # avoid racing with deletes and other state changes
                     node = task.node

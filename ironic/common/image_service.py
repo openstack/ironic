@@ -29,6 +29,7 @@ import six.moves.urllib.parse as urlparse
 
 from ironic.common import exception
 from ironic.common.i18n import _
+from ironic.common import keystone
 
 LOG = logging.getLogger(__name__)
 
@@ -83,6 +84,9 @@ def import_versioned_module(version, submodule=None):
 def GlanceImageService(client=None, version=1, context=None):
     module = import_versioned_module(version, 'image_service')
     service_class = getattr(module, 'GlanceImageService')
+    if (context is not None and CONF.glance.auth_strategy == 'keystone'
+        and not context.auth_token):
+        context.auth_token = keystone.get_admin_auth_token()
     return service_class(client, version, context)
 
 

@@ -646,6 +646,7 @@ class TestGlanceSwiftTempURL(base.TestCase):
         super(TestGlanceSwiftTempURL, self).setUp()
         client = stubs.StubGlanceClient()
         self.context = context.RequestContext()
+        self.context.auth_token = 'fake'
         self.service = service.GlanceImageService(client, 2, self.context)
         self.config(swift_temp_url_key='correcthorsebatterystaple',
                     group='glance')

@@ -31,7 +31,6 @@ from ironic.common.i18n import _LI
 from ironic.common.i18n import _LW
 from ironic.common import image_service
 from ironic.common import images
-from ironic.common import keystone
 from ironic.common import states
 from ironic.common import swift
 from ironic.conductor import task_manager
@@ -870,9 +869,6 @@ class VendorPassthru(agent_base_vendor.BaseAgentVendor):
                 task, root_uuid=root_uuid,
                 efi_system_part_uuid=efi_system_part_uuid)
         else:
-            # Agent vendorpassthru are made without auth token.
-            # We require auth_token to talk to glance while building boot iso.
-            task.context.auth_token = keystone.get_admin_auth_token()
             self._configure_vmedia_boot(task, root_uuid)
 
         # Set boot mode
