@@ -52,13 +52,10 @@ A detailed reference is available here, and a short guide follows below:
 
 * Install ``openwsman`` on servers where ``ironic-conductor`` is running:
 
-  * Fedora/RHEL: ``openwsman-python`` (>=2.4.10). You can 
-    get the RPM package for Fedora 20 from::
-
-    http://download.opensuse.org/repositories/Openwsman/Fedora_20/
+  * Fedora/RHEL: ``openwsman-python``.
 
   * Ubuntu: ``python-openwsman``'s most recent version is 2.4.3 which
-    isn't recent enough, so you'll need to build it yourself (see next point)
+    is enough.
 
   * Or build it yourself from::
 
