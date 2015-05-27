@@ -458,7 +458,7 @@ def build_deploy_ramdisk_options(node):
     deploy_options = {
         'deployment_id': node['uuid'],
         'deployment_key': deploy_key,
-        'iscsi_target_iqn': "iqn-%s" % node.uuid,
+        'iscsi_target_iqn': 'iqn.2008-10.org.openstack:%s' % node.uuid,
         'ironic_api_url': ironic_api,
         'disk': CONF.pxe.disk_devices,
         'boot_option': boot_option,

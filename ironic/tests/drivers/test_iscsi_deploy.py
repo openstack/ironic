@@ -422,8 +422,9 @@ class IscsiDeployMethodsTestCase(db_base.DbTestCase):
 
         mock_alnum.return_value = fake_key
 
+        expected_iqn = 'iqn.2008-10.org.openstack:%s' % self.node.uuid
         expected_opts = {
-                         'iscsi_target_iqn': 'iqn-%s' % self.node.uuid,
+                         'iscsi_target_iqn': expected_iqn,
                          'deployment_id': self.node.uuid,
                          'deployment_key': fake_key,
                          'disk': fake_disk,
