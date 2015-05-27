@@ -20,6 +20,30 @@ The developer documentation provided here is continually kept up-to-date based
 on the latest code, and may not represent the state of the project at any
 specific prior release.
 
+Admin Guide
+===========
+
+Overview
+--------
+
+.. toctree::
+  :maxdepth: 1
+
+  deploy/user-guide
+  Installation Guide <deploy/install-guide>
+  Upgrade Guide <deploy/upgrade-guide>
+  Configuration Reference (Kilo) <http://docs.openstack.org/kilo/config-reference/content/ch_configuring-openstack-bare-metal.html>
+  deploy/drivers
+  deploy/cleaning
+
+Commands
+--------
+
+.. toctree::
+  :maxdepth: 1
+
+  cmds/ironic-dbsync
+
 Developer Guide
 ===============
 
@@ -45,30 +69,6 @@ API References
 
   webapi/v1
   dev/drivers
-
-Admin Guide
-===========
-
-Overview
---------
-
-.. toctree::
-  :maxdepth: 1
-
-  deploy/user-guide
-  Installation Guide <deploy/install-guide>
-  Upgrade Guide <deploy/upgrade-guide>
-  Configuration Reference (Kilo) <http://docs.openstack.org/kilo/config-reference/content/ch_configuring-openstack-bare-metal.html>
-  deploy/drivers
-  deploy/cleaning
-
-Commands
---------
-
-.. toctree::
-  :maxdepth: 1
-
-  cmds/ironic-dbsync
 
 Indices and tables
 ==================
