@@ -633,7 +633,7 @@ mapped to the bare metal server through the hardware specifications.
       "baremetal:deploy_kernel_id"=$DEPLOY_VMLINUZ_UUID \
       "baremetal:deploy_ramdisk_id"=$DEPLOY_INITRD_UUID
 
-   - **Juno** and higher versions of Ironic::
+   - **Juno** version of Ironic::
 
       nova flavor-key my-baremetal-flavor set cpu_arch=$ARCH
 
@@ -642,7 +642,19 @@ mapped to the bare metal server through the hardware specifications.
 
       ironic node-update $NODE_UUID add \
       driver_info/pxe_deploy_kernel=$DEPLOY_VMLINUZ_UUID \
-      driver_info/pxe_deploy_ramdisk=$DEPLOY_INITRD_UUID \
+      driver_info/pxe_deploy_ramdisk=$DEPLOY_INITRD_UUID
+
+   - **Kilo** and higher versions of Ironic::
+
+      nova flavor-key my-baremetal-flavor set cpu_arch=$ARCH
+
+     Associate the deploy ramdisk and deploy kernel images each of your
+     node's driver_info::
+
+      ironic node-update $NODE_UUID add \
+      driver_info/deploy_kernel=$DEPLOY_VMLINUZ_UUID \
+      driver_info/deploy_ramdisk=$DEPLOY_INITRD_UUID
+
 
 Setup the drivers for Bare Metal Service
 ========================================
@@ -1090,8 +1102,8 @@ if desired.
     | ipmi_password        | password. Optional.                                                                                         |
     | ipmi_username        | username; default is NULL user. Optional.                                                                   |
     | ...                  | ...                                                                                                         |
-    | pxe_deploy_kernel    | UUID (from Glance) of the deployment kernel. Required.                                                      |
-    | pxe_deploy_ramdisk   | UUID (from Glance) of the ramdisk that is mounted at boot time. Required.                                   |
+    | deploy_kernel        | UUID (from Glance) of the deployment kernel. Required.                                                      |
+    | deploy_ramdisk       | UUID (from Glance) of the ramdisk that is mounted at boot time. Required.                                   |
     +----------------------+-------------------------------------------------------------------------------------------------------------+
 
     ironic node-update $NODE_UUID add \
@@ -1123,13 +1135,13 @@ if desired.
     ironic node-update $NODE_UUID add \
     properties/capabilities=key1:val1,key2:val2
 
-#. As mentioned in the `Flavor Creation`_ section, if using the Juno or later
+#. As mentioned in the `Flavor Creation`_ section, if using the Kilo or later
    release of Ironic, you should specify a deploy kernel and ramdisk which
    correspond to the Node's driver, eg::
 
     ironic node-update $NODE_UUID add \
-    driver_info/pxe_deploy_kernel=$DEPLOY_VMLINUZ_UUID \
-    driver_info/pxe_deploy_ramdisk=$DEPLOY_INITRD_UUID \
+    driver_info/deploy_kernel=$DEPLOY_VMLINUZ_UUID \
+    driver_info/deploy_ramdisk=$DEPLOY_INITRD_UUID \
 
 #. You must also inform Ironic of the Network Interface Cards which are part of
    the Node by creating a Port with each NIC's MAC address.  These MAC
@@ -1402,15 +1414,15 @@ Steps to start a deployment are pretty similar to those when using Nova:
 
     ironic node-create -d pxe_ipmitool -i ipmi_address=ipmi.server.net \
     -i ipmi_username=user -i ipmi_password=pass \
-    -i pxe_deploy_kernel=file:///images/deploy.vmlinuz \
-    -i pxe_deploy_ramdisk=http://my.server.net/images/deploy.ramdisk
+    -i deploy_kernel=file:///images/deploy.vmlinuz \
+    -i deploy_ramdisk=http://my.server.net/images/deploy.ramdisk
 
     +--------------+--------------------------------------------------------------------------+
     | Property     | Value                                                                    |
     +--------------+--------------------------------------------------------------------------+
     | uuid         | be94df40-b80a-4f63-b92b-e9368ee8d14c                                     |
-    | driver_info  | {u'pxe_deploy_ramdisk': u'http://my.server.net/images/deploy.ramdisk',   |
-    |              | u'pxe_deploy_kernel': u'file:///images/deploy.vmlinuz', u'ipmi_address': |
+    | driver_info  | {u'deploy_ramdisk': u'http://my.server.net/images/deploy.ramdisk',       |
+    |              | u'deploy_kernel': u'file:///images/deploy.vmlinuz', u'ipmi_address':     |
     |              | u'ipmi.server.net', u'ipmi_username': u'user', u'ipmi_password':         |
     |              | u'******'}                                                               |
     | extra        | {}                                                                       |
@@ -1419,7 +1431,7 @@ Steps to start a deployment are pretty similar to those when using Nova:
     | properties   | {}                                                                       |
     +--------------+--------------------------------------------------------------------------+
 
-   Note that here pxe_deploy_kernel and pxe_deploy_ramdisk contain links to
+   Note that here deploy_kernel and deploy_ramdisk contain links to
    images instead of Glance UUIDs.
 
 #. As in case of Nova, you can also provide ``capabilities`` to node

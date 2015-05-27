@@ -106,12 +106,6 @@ REQUIRED_PROPERTIES = {
                        "Required."),
     'deploy_ramdisk': _("UUID (from Glance) of the ramdisk that is "
                         "mounted at boot time. Required."),
-    'pxe_deploy_kernel': _("DEPRECATED: Use deploy_kernel instead. UUID "
-                           "(from Glance) of the deployment kernel. "
-                           "Required."),
-    'pxe_deploy_ramdisk': _("DEPRECATED: Use deploy_ramdisk instead. UUID "
-                            "(from Glance) of the ramdisk that is "
-                            "mounted at boot time. Required."),
 }
 COMMON_PROPERTIES = REQUIRED_PROPERTIES
 
@@ -128,29 +122,10 @@ def _parse_driver_info(node):
     :raises: MissingParameterValue
     """
     info = node.driver_info
-    d_info = {}
-
-    # NOTE(lucasagomes): For backwards compatibility let's keep accepting
-    # pxe_deploy_{kernel, ramdisk}, should be removed in Liberty.
-    deprecated_msg = _LW('The "%(old_param)s" parameter is deprecated. '
-                         'Please update the node %(node)s to use '
-                         '"%(new_param)s" instead.')
-
-    for parameter in ('deploy_kernel', 'deploy_ramdisk'):
-        value = info.get(parameter)
-        if not value:
-            old_parameter = 'pxe_' + parameter
-            value = info.get(old_parameter)
-            if value:
-                LOG.warning(deprecated_msg, {'old_param': old_parameter,
-                                             'new_param': parameter,
-                                             'node': node.uuid})
-        d_info[parameter] = value
-
+    d_info = {k: info.get(k) for k in ('deploy_kernel', 'deploy_ramdisk')}
     error_msg = _("Cannot validate PXE bootloader. Some parameters were"
                   " missing in node's driver_info")
     deploy_utils.check_for_missing_params(d_info, error_msg)
-
     return d_info
 
 

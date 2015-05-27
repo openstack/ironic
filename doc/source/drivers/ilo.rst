@@ -535,8 +535,8 @@ Nodes configured for iLO driver should have the ``driver`` property set to
 - ``ilo_address``: IP address or hostname of the iLO.
 - ``ilo_username``: Username for the iLO with administrator privileges.
 - ``ilo_password``: Password for the above iLO user.
-- ``pxe_deploy_kernel``: The Glance UUID of the deployment kernel.
-- ``pxe_deploy_ramdisk``: The Glance UUID of the deployment ramdisk.
+- ``deploy_kernel``: The Glance UUID of the deployment kernel.
+- ``deploy_ramdisk``: The Glance UUID of the deployment ramdisk.
 - ``client_port``: (optional) Port to be used for iLO operations if you are
   using a custom port on the iLO. Default port used is 443.
 - ``client_timeout``: (optional) Timeout for iLO operations. Default timeout
@@ -547,7 +547,7 @@ Nodes configured for iLO driver should have the ``driver`` property set to
 For example, you could run a similar command like below to enroll the Proliant
 node::
 
-  ironic node-create -d pxe_ilo ilo_address=<ilo-ip-address> -i ilo_username=<ilo-username> -i ilo_password=<ilo-password> -i pxe_deploy_kernel=<glance-uuid-of-pxe-deploy-kernel> pxe_deploy_ramdisk=<glance-uuid-of-deploy-ramdisk>
+  ironic node-create -d pxe_ilo ilo_address=<ilo-ip-address> -i ilo_username=<ilo-username> -i ilo_password=<ilo-password> -i deploy_kernel=<glance-uuid-of-pxe-deploy-kernel> deploy_ramdisk=<glance-uuid-of-deploy-ramdisk>
 
 Boot modes
 ~~~~~~~~~~
@@ -732,7 +732,7 @@ The following iLO drivers support hardware inspection:
 * ``agent_ilo``
 
 .. note::
-   
+
    * The RAID needs to be pre-configured prior to inspection otherwise
      proliantutils returns 0 for disk size.
    * The iLO firmware version needs to be 2.10 or above for nic_capacity to be

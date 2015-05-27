@@ -99,17 +99,6 @@ class PXEValidateParametersTestCase(db_base.DbTestCase):
         self.assertIsNotNone(info.get('deploy_ramdisk'))
         self.assertIsNotNone(info.get('deploy_kernel'))
 
-    def test__parse_driver_info_backwards_compat(self):
-        old_drv_info = {}
-        old_drv_info['pxe_deploy_kernel'] = DRV_INFO_DICT['deploy_kernel']
-        old_drv_info['pxe_deploy_ramdisk'] = DRV_INFO_DICT['deploy_ramdisk']
-        node = obj_utils.create_test_node(self.context,
-                                          driver='fake_pxe',
-                                          driver_info=old_drv_info)
-        info = pxe._parse_driver_info(node)
-        self.assertIsNotNone(info.get('deploy_ramdisk'))
-        self.assertIsNotNone(info.get('deploy_kernel'))
-
 
 class PXEPrivateMethodsTestCase(db_base.DbTestCase):
 
