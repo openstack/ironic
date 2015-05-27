@@ -8,11 +8,15 @@ This is a quick walkthrough to get you started developing code for Ironic.
 This assumes you are already familiar with submitting code reviews to
 an OpenStack project.
 
+The gate currently runs the unit tests under both
+Python 2.7 and Python 3.4.  It is strongly encouraged to run the unit tests
+locally under one, the other, or both prior to submitting a patch.
+
 .. seealso::
 
     http://docs.openstack.org/infra/manual/developers.html#development-workflow
 
-Install prerequisites:
+Install prerequisites (for python 2.7):
 
 - Ubuntu/Debian::
 
@@ -20,7 +24,7 @@ Install prerequisites:
 
 - Fedora/RHEL7::
 
-    sudo yum install python-devel openssl-devel python-pip mysql-devel libxml2-devel libxslt-devel postgresql-devel git git-review libffi-devel gettext ipmitool psmisc graphviz
+    sudo yum install python-devel openssl-devel python-pip mysql-devel libxml2-devel libxslt-devel postgresql-devel git git-review libffi-devel gettext ipmitool psmisc graphviz gcc
 
   If using RHEL and yum reports "No package python-pip available" and "No
   package git-review available", use the EPEL software repository.
@@ -33,6 +37,15 @@ Install prerequisites:
   Graphviz is only needed for generating the state machine diagram. To install it
   on openSUSE or SLE 12, see
   `<http://software.opensuse.org/download.html?project=graphics&package=graphviz-plugins>`_.
+
+
+Using Python 3.4:
+
+  Follow the instructions above to install prerequisites and on:
+
+  - Fedora::
+
+    sudo yum install python3-devel
 
 Install these on all distros::
 
@@ -65,8 +78,18 @@ All further commands in this section should be run with the venv active::
 
 All unit tests should be run using tox. To run Ironic's entire test suite::
 
-    # run all tests (unit and pep8)
+    # run all tests (unit under both py27 and py34, and pep8)
     tox
+
+To run the unit tests under py27 and also run the pep8 tests::
+
+    # run all tests (unit under py27 and pep8)
+    tox -epy27 -epep8
+
+To run the unit tests under py34 and also run the pep8 tests::
+
+    # run all tests (unit under py34 and pep8)
+    tox -epy34 -epep8
 
 To run a specific test, use a positional argument for the unit tests::
 
