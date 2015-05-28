@@ -25,9 +25,15 @@ class FakeCatalog(object):
         return 'fake-url'
 
 
+class FakeAccessInfo(object):
+    def will_expire_soon(self):
+        pass
+
+
 class FakeClient(object):
     def __init__(self, **kwargs):
         self.service_catalog = FakeCatalog()
+        self.auth_ref = FakeAccessInfo()
 
     def has_service_catalog(self):
         return True
@@ -42,6 +48,7 @@ class KeystoneTestCase(base.TestCase):
                     admin_user='fake', admin_password='fake',
                     admin_tenant_name='fake')
         self.config(group='keystone', region_name='fake')
+        keystone._KS_CLIENT = None
 
     def test_failure_authorization(self):
         self.assertRaises(exception.KeystoneFailure, keystone.get_service_url)
@@ -146,3 +153,33 @@ class KeystoneTestCase(base.TestCase):
                                         tenant_name='fake',
                                         region_name=expected_region,
                                         auth_url=expected_url)
+
+    @mock.patch('keystoneclient.v2_0.client.Client', autospec=True)
+    def test_cache_client_init(self, mock_ks):
+        fake_client = FakeClient()
+        mock_ks.return_value = fake_client
+        self.assertEqual(fake_client, keystone._get_ksclient())
+        self.assertEqual(fake_client, keystone._KS_CLIENT)
+        self.assertEqual(1, mock_ks.call_count)
+
+    @mock.patch.object(FakeAccessInfo, 'will_expire_soon', autospec=True)
+    @mock.patch('keystoneclient.v2_0.client.Client', autospec=True)
+    def test_cache_client_cached(self, mock_ks, mock_expire):
+        mock_expire.return_value = False
+        fake_client = FakeClient()
+        keystone._KS_CLIENT = fake_client
+        self.assertEqual(fake_client, keystone._get_ksclient())
+        self.assertEqual(fake_client, keystone._KS_CLIENT)
+        self.assertFalse(mock_ks.called)
+
+    @mock.patch.object(FakeAccessInfo, 'will_expire_soon', autospec=True)
+    @mock.patch('keystoneclient.v2_0.client.Client', autospec=True)
+    def test_cache_client_expired(self, mock_ks, mock_expire):
+        mock_expire.return_value = True
+        fake_client = FakeClient()
+        keystone._KS_CLIENT = fake_client
+        new_client = FakeClient()
+        mock_ks.return_value = new_client
+        self.assertEqual(new_client, keystone._get_ksclient())
+        self.assertEqual(new_client, keystone._KS_CLIENT)
+        self.assertEqual(1, mock_ks.call_count)
