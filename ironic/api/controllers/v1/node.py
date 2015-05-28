@@ -133,7 +133,7 @@ class BootDeviceController(rest.RestController):
                                                         rpc_node.uuid, topic)
 
     @expose.expose(None, types.uuid_or_name, wtypes.text, types.boolean,
-                         status_code=204)
+                   status_code=204)
     def put(self, node_ident, boot_device, persistent=False):
         """Set the boot device for a node.
 
@@ -226,7 +226,7 @@ class NodeConsoleController(rest.RestController):
         return ConsoleInfo(console_enabled=console_state, console_info=console)
 
     @expose.expose(None, types.uuid_or_name, types.boolean,
-                         status_code=202)
+                   status_code=202)
     def put(self, node_ident, enabled):
         """Start and stop the node console.
 
@@ -315,7 +315,7 @@ class NodeStatesController(rest.RestController):
         return NodeStates.convert(rpc_node)
 
     @expose.expose(None, types.uuid_or_name, wtypes.text,
-                         status_code=202)
+                   status_code=202)
     def power(self, node_ident, target):
         """Set the power state of the node.
 
@@ -336,14 +336,14 @@ class NodeStatesController(rest.RestController):
                           ir_states.POWER_OFF,
                           ir_states.REBOOT]:
             raise exception.InvalidStateRequested(
-                    action=target, node=node_ident,
-                    state=rpc_node.power_state)
+                action=target, node=node_ident,
+                state=rpc_node.power_state)
 
         # Don't change power state for nodes in cleaning
         elif rpc_node.provision_state == ir_states.CLEANING:
             raise exception.InvalidStateRequested(
-                    action=target, node=node_ident,
-                    state=rpc_node.provision_state)
+                action=target, node=node_ident,
+                state=rpc_node.provision_state)
 
         pecan.request.rpcapi.change_node_power_state(pecan.request.context,
                                                      rpc_node.uuid, target,
@@ -353,7 +353,7 @@ class NodeStatesController(rest.RestController):
         pecan.response.location = link.build_url('nodes', url_args)
 
     @expose.expose(None, types.uuid_or_name, wtypes.text,
-                         wtypes.text, status_code=202)
+                   wtypes.text, status_code=202)
     def provision(self, node_ident, target, configdrive=None):
         """Asynchronous trigger the provisioning of the node.
 
@@ -400,8 +400,8 @@ class NodeStatesController(rest.RestController):
         m.initialize(rpc_node.provision_state)
         if not m.is_valid_event(ir_states.VERBS.get(target, target)):
             raise exception.InvalidStateRequested(
-                    action=target, node=rpc_node.uuid,
-                    state=rpc_node.provision_state)
+                action=target, node=rpc_node.uuid,
+                state=rpc_node.provision_state)
 
         if configdrive and target != ir_states.ACTIVE:
             msg = (_('Adding a config drive is only supported when setting '
@@ -421,14 +421,14 @@ class NodeStatesController(rest.RestController):
                                                 None, topic)
         elif target == ir_states.DELETED:
             pecan.request.rpcapi.do_node_tear_down(
-                    pecan.request.context, rpc_node.uuid, topic)
+                pecan.request.context, rpc_node.uuid, topic)
         elif target == ir_states.VERBS['inspect']:
             pecan.request.rpcapi.inspect_hardware(
                 pecan.request.context, rpc_node.uuid, topic=topic)
         elif target in (
                 ir_states.VERBS['manage'], ir_states.VERBS['provide']):
             pecan.request.rpcapi.do_provisioning_action(
-                    pecan.request.context, rpc_node.uuid, target, topic)
+                pecan.request.context, rpc_node.uuid, target, topic)
         else:
             msg = (_('The requested action "%(action)s" could not be '
                      'understood.') % {'action': target})
@@ -622,8 +622,9 @@ class Node(base.APIBase):
                      target_provision_state=ir_states.NOSTATE,
                      reservation=None, driver='fake', driver_info={},
                      driver_internal_info={}, extra={},
-                     properties={'memory_mb': '1024', 'local_gb': '10',
-                     'cpus': '1'}, updated_at=time, created_at=time,
+                     properties={
+                         'memory_mb': '1024', 'local_gb': '10', 'cpus': '1'},
+                     updated_at=time, created_at=time,
                      provision_updated_at=time, instance_info={},
                      maintenance=False, maintenance_reason=None,
                      inspection_finished_at=None, inspection_started_at=time,
@@ -685,13 +686,13 @@ class NodeVendorPassthruController(rest.RestController):
         if rpc_node.driver not in _VENDOR_METHODS:
             topic = pecan.request.rpcapi.get_topic_for(rpc_node)
             ret = pecan.request.rpcapi.get_node_vendor_passthru_methods(
-                        pecan.request.context, rpc_node.uuid, topic=topic)
+                pecan.request.context, rpc_node.uuid, topic=topic)
             _VENDOR_METHODS[rpc_node.driver] = ret
 
         return _VENDOR_METHODS[rpc_node.driver]
 
     @expose.expose(wtypes.text, types.uuid_or_name, wtypes.text,
-                         body=wtypes.text)
+                   body=wtypes.text)
     def _default(self, node_ident, method, data=None):
         """Call a vendor extension.
 
@@ -712,8 +713,8 @@ class NodeVendorPassthruController(rest.RestController):
 
         http_method = pecan.request.method.upper()
         ret, is_async = pecan.request.rpcapi.vendor_passthru(
-                            pecan.request.context, rpc_node.uuid, method,
-                            http_method, data, topic)
+            pecan.request.context, rpc_node.uuid, method,
+            http_method, data, topic)
         status_code = 202 if is_async else 200
         return wsme.api.Response(ret, status_code=status_code)
 
@@ -734,7 +735,7 @@ class NodeMaintenanceController(rest.RestController):
                                          rpc_node, topic=topic)
 
     @expose.expose(None, types.uuid_or_name, wtypes.text,
-                         status_code=202)
+                   status_code=202)
     def put(self, node_ident, reason=None):
         """Put the node in maintenance mode.
 
@@ -793,8 +794,8 @@ class NodesController(rest.RestController):
                               maintenance, marker, limit, sort_key, sort_dir,
                               expand=False, resource_url=None):
         if self.from_chassis and not chassis_uuid:
-            raise exception.MissingParameterValue(_(
-                  "Chassis id not specified."))
+            raise exception.MissingParameterValue(
+                _("Chassis id not specified."))
 
         limit = api_utils.validate_limit(limit)
         sort_dir = api_utils.validate_sort_dir(sort_dir)
@@ -805,9 +806,9 @@ class NodesController(rest.RestController):
                                                   marker)
 
         if sort_key in self.invalid_sort_key_list:
-            raise exception.InvalidParameterValue(_(
-                  "The sort_key value %(key)s is an invalid field for sorting")
-                  % {'key': sort_key})
+            raise exception.InvalidParameterValue(
+                _("The sort_key value %(key)s is an invalid field for "
+                  "sorting") % {'key': sort_key})
 
         if instance_uuid:
             nodes = self._get_nodes_by_instance(instance_uuid)
@@ -846,9 +847,8 @@ class NodesController(rest.RestController):
         except exception.InstanceNotFound:
             return []
 
-    @expose.expose(NodeCollection, types.uuid, types.uuid,
-               types.boolean, types.boolean, types.uuid, int, wtypes.text,
-               wtypes.text)
+    @expose.expose(NodeCollection, types.uuid, types.uuid, types.boolean,
+                   types.boolean, types.uuid, int, wtypes.text, wtypes.text)
     def get_all(self, chassis_uuid=None, instance_uuid=None, associated=None,
                 maintenance=None, marker=None, limit=None, sort_key='id',
                 sort_dir='asc'):
@@ -873,9 +873,8 @@ class NodesController(rest.RestController):
                                           associated, maintenance, marker,
                                           limit, sort_key, sort_dir)
 
-    @expose.expose(NodeCollection, types.uuid, types.uuid,
-            types.boolean, types.boolean, types.uuid, int, wtypes.text,
-            wtypes.text)
+    @expose.expose(NodeCollection, types.uuid, types.uuid, types.boolean,
+                   types.boolean, types.uuid, int, wtypes.text, wtypes.text)
     def detail(self, chassis_uuid=None, instance_uuid=None, associated=None,
                maintenance=None, marker=None, limit=None, sort_key='id',
                sort_dir='asc'):
@@ -929,7 +928,7 @@ class NodesController(rest.RestController):
 
         topic = pecan.request.rpcapi.get_topic_for(rpc_node)
         return pecan.request.rpcapi.validate_driver_interfaces(
-                pecan.request.context, rpc_node.uuid, topic)
+            pecan.request.context, rpc_node.uuid, topic)
 
     @expose.expose(Node, types.uuid_or_name)
     def get_one(self, node_ident):
@@ -1076,7 +1075,7 @@ class NodesController(rest.RestController):
                 status_code=409)
 
         new_node = pecan.request.rpcapi.update_node(
-                         pecan.request.context, rpc_node, topic)
+            pecan.request.context, rpc_node, topic)
 
         return Node.convert_with_links(new_node)
 

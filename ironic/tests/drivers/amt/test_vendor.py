@@ -33,8 +33,8 @@ class AMTPXEVendorPassthruTestCase(db_base.DbTestCase):
     def setUp(self):
         super(AMTPXEVendorPassthruTestCase, self).setUp()
         mgr_utils.mock_the_extension_manager(driver="pxe_amt")
-        self.node = obj_utils.create_test_node(self.context,
-            driver='pxe_amt', driver_info=INFO_DICT)
+        self.node = obj_utils.create_test_node(
+            self.context, driver='pxe_amt', driver_info=INFO_DICT)
 
     def test_vendor_routes(self):
         expected = ['heartbeat', 'pass_deploy_info',
@@ -66,8 +66,8 @@ class AMTPXEVendorPassthruTestCase(db_base.DbTestCase):
             task.node.provision_state = states.DEPLOYWAIT
             task.node.target_provision_state = states.ACTIVE
             task.node.instance_info['capabilities'] = {
-                                            "boot_option": "netboot"
-                                            }
+                "boot_option": "netboot"
+            }
             task.driver.vendor.pass_deploy_info(task, **kwargs)
             mock_ensure.assert_called_with(
                 task.driver.management, task.node, boot_devices.PXE)
@@ -105,8 +105,8 @@ class AMTPXEVendorPassthruTestCase(db_base.DbTestCase):
             task.node.provision_state = states.DEPLOYWAIT
             task.node.target_provision_state = states.ACTIVE
             task.node.instance_info['capabilities'] = {
-                                            "boot_option": "netboot"
-                                            }
+                "boot_option": "netboot"
+            }
             task.driver.vendor.continue_deploy(task, **kwargs)
             mock_ensure.assert_called_with(
                 task.driver.management, task.node, boot_devices.PXE)

@@ -45,10 +45,10 @@ class TestBaseAgentVendor(db_base.DbTestCase):
         mgr_utils.mock_the_extension_manager(driver="fake_agent")
         self.passthru = agent_base_vendor.BaseAgentVendor()
         n = {
-              'driver': 'fake_agent',
-              'instance_info': INSTANCE_INFO,
-              'driver_info': DRIVER_INFO,
-              'driver_internal_info': DRIVER_INTERNAL_INFO,
+            'driver': 'fake_agent',
+            'instance_info': INSTANCE_INFO,
+            'driver_info': DRIVER_INFO,
+            'driver_internal_info': DRIVER_INTERNAL_INFO,
         }
         self.node = object_utils.create_test_node(self.context, **n)
 
@@ -364,7 +364,7 @@ class TestBaseAgentVendor(db_base.DbTestCase):
                        autospec=True)
     @mock.patch.object(deploy_utils, 'try_set_boot_device', autospec=True)
     def test_configure_local_boot(self, try_set_boot_device_mock,
-                                   install_bootloader_mock):
+                                  install_bootloader_mock):
         install_bootloader_mock.return_value = {
             'command_status': 'SUCCESS', 'command_error': None}
         with task_manager.acquire(self.context, self.node['uuid'],

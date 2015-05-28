@@ -195,7 +195,7 @@ class IronicObject(object):
     fields = {
         'created_at': obj_utils.datetime_or_str_or_none,
         'updated_at': obj_utils.datetime_or_str_or_none,
-        }
+    }
     obj_extra_fields = []
 
     _attr_created_at_from_primitive = obj_utils.dt_deserializer
@@ -454,8 +454,8 @@ class IronicObject(object):
 
     def as_dict(self):
         return dict((k, getattr(self, k))
-                for k in self.fields
-                if hasattr(self, k))
+                    for k in self.fields
+                    if hasattr(self, k))
 
 
 class ObjectListBase(object):
@@ -468,7 +468,7 @@ class ObjectListBase(object):
     """
     fields = {
         'objects': list,
-        }
+    }
 
     # This is a dictionary of my_version:child_version mappings so that
     # we can support backleveling our contents based on the version

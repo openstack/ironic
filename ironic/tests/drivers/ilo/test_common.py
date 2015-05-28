@@ -48,8 +48,9 @@ class IloValidateParametersTestCase(db_base.DbTestCase):
 
     def setUp(self):
         super(IloValidateParametersTestCase, self).setUp()
-        self.node = obj_utils.create_test_node(self.context,
-            driver='fake_ilo', driver_info=db_utils.get_test_ilo_info())
+        self.node = obj_utils.create_test_node(
+            self.context, driver='fake_ilo',
+            driver_info=db_utils.get_test_ilo_info())
 
     def test_parse_driver_info(self):
         info = ilo_common.parse_driver_info(self.node)
@@ -112,8 +113,8 @@ class IloCommonMethodsTestCase(db_base.DbTestCase):
         super(IloCommonMethodsTestCase, self).setUp()
         mgr_utils.mock_the_extension_manager(driver="fake_ilo")
         self.info = db_utils.get_test_ilo_info()
-        self.node = obj_utils.create_test_node(self.context,
-                driver='fake_ilo', driver_info=self.info)
+        self.node = obj_utils.create_test_node(
+            self.context, driver='fake_ilo', driver_info=self.info)
 
     @mock.patch.object(ilo_client, 'IloClient', spec_set=True,
                        autospec=True)
@@ -160,10 +161,10 @@ class IloCommonMethodsTestCase(db_base.DbTestCase):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
             ipmi_info = {
-                         "ipmi_address": "1.2.3.4",
-                         "ipmi_username": "admin",
-                         "ipmi_password": "fake",
-                         "ipmi_terminal_port": 60
+                "ipmi_address": "1.2.3.4",
+                "ipmi_username": "admin",
+                "ipmi_password": "fake",
+                "ipmi_terminal_port": 60
             }
             self.info['console_port'] = 60
             task.node.driver_info = self.info
@@ -221,10 +222,11 @@ class IloCommonMethodsTestCase(db_base.DbTestCase):
                                               files_info=files_info,
                                               parameters=deploy_args)
 
-        swift_obj_mock.create_object.assert_called_once_with('ilo_cont',
-                object_name, 'image-tmp-file', object_headers=object_headers)
-        swift_obj_mock.get_temp_url.assert_called_once_with('ilo_cont',
-                object_name, timeout)
+        swift_obj_mock.create_object.assert_called_once_with(
+            'ilo_cont', object_name, 'image-tmp-file',
+            object_headers=object_headers)
+        swift_obj_mock.get_temp_url.assert_called_once_with(
+            'ilo_cont', object_name, timeout)
         self.assertEqual('temp-url', temp_url)
 
     @mock.patch.object(swift, 'SwiftAPI', spec_set=True, autospec=True)
@@ -264,8 +266,8 @@ class IloCommonMethodsTestCase(db_base.DbTestCase):
 
         ilo_common.attach_vmedia(self.node, 'FLOPPY', 'url')
         insert_media_mock.assert_called_once_with('url', device='FLOPPY')
-        set_status_mock.assert_called_once_with(device='FLOPPY',
-                boot_option='CONNECT', write_protect='YES')
+        set_status_mock.assert_called_once_with(
+            device='FLOPPY', boot_option='CONNECT', write_protect='YES')
 
     @mock.patch.object(ilo_common, 'get_ilo_object', spec_set=True,
                        autospec=True)
@@ -320,7 +322,7 @@ class IloCommonMethodsTestCase(db_base.DbTestCase):
     @mock.patch.object(ilo_common, 'set_boot_mode', spec_set=True,
                        autospec=True)
     def test_update_boot_mode_instance_info_exists(self,
-                                                          set_boot_mode_mock):
+                                                   set_boot_mode_mock):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
             task.node.instance_info['deploy_boot_mode'] = 'bios'
@@ -349,7 +351,7 @@ class IloCommonMethodsTestCase(db_base.DbTestCase):
             get_ilo_object_mock.assert_called_once_with(task.node)
             ilo_mock_obj.get_pending_boot_mode.assert_called_once_with()
             self.assertEqual('bios',
-                            task.node.instance_info['deploy_boot_mode'])
+                             task.node.instance_info['deploy_boot_mode'])
 
     @mock.patch.object(ilo_common, 'get_ilo_object', spec_set=True,
                        autospec=True)
@@ -366,7 +368,7 @@ class IloCommonMethodsTestCase(db_base.DbTestCase):
             ilo_mock_obj.get_pending_boot_mode.assert_called_once_with()
             set_pending_boot_mode_mock.assert_called_once_with('UEFI')
             self.assertEqual('uefi',
-                           task.node.instance_info['deploy_boot_mode'])
+                             task.node.instance_info['deploy_boot_mode'])
 
     @mock.patch.object(ilo_common, 'get_ilo_object', spec_set=True,
                        autospec=True)
@@ -381,7 +383,7 @@ class IloCommonMethodsTestCase(db_base.DbTestCase):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
             self.assertRaises(exception.IloOperationError,
-                          ilo_common.update_boot_mode, task)
+                              ilo_common.update_boot_mode, task)
             get_ilo_object_mock.assert_called_once_with(task.node)
             ilo_mock_obj.get_pending_boot_mode.assert_called_once_with()
 
@@ -399,7 +401,7 @@ class IloCommonMethodsTestCase(db_base.DbTestCase):
             get_ilo_object_mock.assert_called_once_with(task.node)
             ilo_mock_obj.get_pending_boot_mode.assert_called_once_with()
             self.assertEqual('bios',
-                           task.node.instance_info['deploy_boot_mode'])
+                             task.node.instance_info['deploy_boot_mode'])
 
     @mock.patch.object(ilo_common, 'set_boot_mode', spec_set=True,
                        autospec=True)
@@ -419,8 +421,8 @@ class IloCommonMethodsTestCase(db_base.DbTestCase):
                        autospec=True)
     @mock.patch.object(ilo_common, '_prepare_floppy_image', spec_set=True,
                        autospec=True)
-    def test_setup_vmedia_for_boot_with_parameters(self, prepare_image_mock,
-            attach_vmedia_mock, temp_url_mock):
+    def test_setup_vmedia_for_boot_with_parameters(
+            self, prepare_image_mock, attach_vmedia_mock, temp_url_mock):
         parameters = {'a': 'b'}
         boot_iso = '733d1c44-a2ea-414b-aca7-69decf20d810'
         prepare_image_mock.return_value = 'floppy_url'
@@ -441,7 +443,7 @@ class IloCommonMethodsTestCase(db_base.DbTestCase):
     @mock.patch.object(ilo_common, 'attach_vmedia', spec_set=True,
                        autospec=True)
     def test_setup_vmedia_for_boot_with_swift(self, attach_vmedia_mock,
-            swift_api_mock):
+                                              swift_api_mock):
         swift_obj_mock = swift_api_mock.return_value
         boot_iso = 'swift:object-name'
         swift_obj_mock.get_temp_url.return_value = 'image_url'
@@ -451,10 +453,10 @@ class IloCommonMethodsTestCase(db_base.DbTestCase):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
             ilo_common.setup_vmedia_for_boot(task, boot_iso)
-            swift_obj_mock.get_temp_url.assert_called_once_with('ilo_cont',
-                    'object-name', 1)
-            attach_vmedia_mock.assert_called_once_with(task.node, 'CDROM',
-                    'image_url')
+            swift_obj_mock.get_temp_url.assert_called_once_with(
+                'ilo_cont', 'object-name', 1)
+            attach_vmedia_mock.assert_called_once_with(
+                task.node, 'CDROM', 'image_url')
 
     @mock.patch.object(ilo_common, 'attach_vmedia', spec_set=True,
                        autospec=True)
@@ -472,7 +474,7 @@ class IloCommonMethodsTestCase(db_base.DbTestCase):
     @mock.patch.object(ilo_common, '_get_floppy_image_name', spec_set=True,
                        autospec=True)
     def test_cleanup_vmedia_boot(self, get_name_mock, swift_api_mock,
-            get_ilo_object_mock):
+                                 get_ilo_object_mock):
         swift_obj_mock = swift_api_mock.return_value
         CONF.ilo.swift_ilo_container = 'ilo_cont'
 
@@ -483,8 +485,8 @@ class IloCommonMethodsTestCase(db_base.DbTestCase):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
             ilo_common.cleanup_vmedia_boot(task)
-            swift_obj_mock.delete_object.assert_called_once_with('ilo_cont',
-                    'image-node-uuid')
+            swift_obj_mock.delete_object.assert_called_once_with(
+                'ilo_cont', 'image-node-uuid')
             ilo_object_mock.eject_virtual_media.assert_any_call('CDROM')
             ilo_object_mock.eject_virtual_media.assert_any_call('FLOPPY')
 

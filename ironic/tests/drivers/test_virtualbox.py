@@ -27,12 +27,12 @@ from ironic.tests.db import base as db_base
 from ironic.tests.objects import utils as obj_utils
 
 INFO_DICT = {
-             'virtualbox_vmname': 'baremetal1',
-             'virtualbox_host': '10.0.2.2',
-             'virtualbox_username': 'username',
-             'virtualbox_password': 'password',
-             'virtualbox_port': 12345,
-            }
+    'virtualbox_vmname': 'baremetal1',
+    'virtualbox_host': '10.0.2.2',
+    'virtualbox_username': 'username',
+    'virtualbox_password': 'password',
+    'virtualbox_port': 12345,
+}
 
 CONF = cfg.CONF
 
@@ -84,8 +84,8 @@ class VirtualBoxMethodsTestCase(db_base.DbTestCase):
         host_object_mock.find_vm.return_value = vm_object_mock
         func_mock.return_value = 'return-value'
 
-        return_value = virtualbox._run_virtualbox_method(self.node,
-                'some-ironic-method', 'foo', 'args', kwarg='kwarg')
+        return_value = virtualbox._run_virtualbox_method(
+            self.node, 'some-ironic-method', 'foo', 'args', kwarg='kwarg')
 
         host_mock.assert_called_once_with(vmname='baremetal1',
                                           host='10.0.2.2',
@@ -219,8 +219,8 @@ class VirtualBoxPowerTestCase(db_base.DbTestCase):
                                   shared=False) as task:
             power_state = task.driver.power.get_power_state(task)
             run_method_mock.assert_called_once_with(task.node,
-                                                         'get_power_state',
-                                                         'get_power_status')
+                                                    'get_power_state',
+                                                    'get_power_status')
             self.assertEqual(states.POWER_OFF, power_state)
 
     @mock.patch.object(virtualbox, '_run_virtualbox_method', autospec=True)
@@ -230,8 +230,8 @@ class VirtualBoxPowerTestCase(db_base.DbTestCase):
                                   shared=False) as task:
             power_state = task.driver.power.get_power_state(task)
             run_method_mock.assert_called_once_with(task.node,
-                                                         'get_power_state',
-                                                         'get_power_status')
+                                                    'get_power_state',
+                                                    'get_power_status')
             self.assertEqual(states.ERROR, power_state)
 
     @mock.patch.object(virtualbox, '_run_virtualbox_method', autospec=True)
@@ -240,8 +240,8 @@ class VirtualBoxPowerTestCase(db_base.DbTestCase):
                                   shared=False) as task:
             task.driver.power.set_power_state(task, states.POWER_OFF)
             run_method_mock.assert_called_once_with(task.node,
-                                                         'set_power_state',
-                                                         'stop')
+                                                    'set_power_state',
+                                                    'stop')
 
     @mock.patch.object(virtualbox, '_run_virtualbox_method', autospec=True)
     def test_set_power_state_on(self, run_method_mock):
@@ -249,8 +249,8 @@ class VirtualBoxPowerTestCase(db_base.DbTestCase):
                                   shared=False) as task:
             task.driver.power.set_power_state(task, states.POWER_ON)
             run_method_mock.assert_called_once_with(task.node,
-                                                         'set_power_state',
-                                                         'start')
+                                                    'set_power_state',
+                                                    'start')
 
     @mock.patch.object(virtualbox, '_run_virtualbox_method', autospec=True)
     def test_set_power_state_reboot(self, run_method_mock):
@@ -258,11 +258,11 @@ class VirtualBoxPowerTestCase(db_base.DbTestCase):
                                   shared=False) as task:
             task.driver.power.set_power_state(task, states.REBOOT)
             run_method_mock.assert_any_call(task.node,
-                                                 'reboot',
-                                                 'stop')
+                                            'reboot',
+                                            'stop')
             run_method_mock.assert_any_call(task.node,
-                                                 'reboot',
-                                                 'start')
+                                            'reboot',
+                                            'start')
 
     def test_set_power_state_invalid_state(self):
         with task_manager.acquire(self.context, self.node.uuid,
@@ -277,11 +277,11 @@ class VirtualBoxPowerTestCase(db_base.DbTestCase):
                                   shared=False) as task:
             task.driver.power.reboot(task)
             run_method_mock.assert_any_call(task.node,
-                                                 'reboot',
-                                                 'stop')
+                                            'reboot',
+                                            'stop')
             run_method_mock.assert_any_call(task.node,
-                                                 'reboot',
-                                                 'start')
+                                            'reboot',
+                                            'start')
 
 
 class VirtualBoxManagementTestCase(db_base.DbTestCase):
@@ -324,8 +324,8 @@ class VirtualBoxManagementTestCase(db_base.DbTestCase):
                                   shared=False) as task:
             ret_val = task.driver.management.get_boot_device(task)
             run_method_mock.assert_called_once_with(task.node,
-                                                         'get_boot_device',
-                                                         'get_boot_device')
+                                                    'get_boot_device',
+                                                    'get_boot_device')
             self.assertEqual(boot_devices.PXE, ret_val['boot_device'])
             self.assertTrue(ret_val['persistent'])
 
@@ -344,9 +344,9 @@ class VirtualBoxManagementTestCase(db_base.DbTestCase):
                                   shared=False) as task:
             task.driver.management.set_boot_device(task, boot_devices.PXE)
             run_method_mock.assert_called_once_with(task.node,
-                                                         'set_boot_device',
-                                                         'set_boot_device',
-                                                         'Network')
+                                                    'set_boot_device',
+                                                    'set_boot_device',
+                                                    'Network')
 
     @mock.patch.object(virtualbox, 'LOG', autospec=True)
     @mock.patch.object(virtualbox, '_run_virtualbox_method', autospec=True)

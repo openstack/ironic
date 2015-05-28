@@ -29,8 +29,8 @@ class TestConductorObject(base.DbTestCase):
 
     def setUp(self):
         super(TestConductorObject, self).setUp()
-        self.fake_conductor = utils.get_test_conductor(
-                                        updated_at=timeutils.utcnow())
+        self.fake_conductor = (
+            utils.get_test_conductor(updated_at=timeutils.utcnow()))
 
     def test_load(self):
         host = self.fake_conductor['hostname']
@@ -56,7 +56,7 @@ class TestConductorObject(base.DbTestCase):
         with mock.patch.object(self.dbapi, 'get_conductor',
                                autospec=True) as mock_get_cdr:
             with mock.patch.object(self.dbapi, 'touch_conductor',
-                               autospec=True) as mock_touch_cdr:
+                                   autospec=True) as mock_touch_cdr:
                 mock_get_cdr.return_value = self.fake_conductor
                 c = objects.Conductor.get_by_hostname(self.context, host)
                 c.touch(self.context)

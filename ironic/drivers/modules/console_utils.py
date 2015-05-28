@@ -54,7 +54,7 @@ opts = [
                default=10,
                help='Time (in seconds) to wait for the console subprocess '
                'to start.'),
-    ]
+]
 
 CONF = cfg.CONF
 CONF.register_opts(opts, group='console')
@@ -157,8 +157,8 @@ def get_shellinabox_console_url(port):
         console_host = '[%s]' % console_host
     scheme = 'https' if CONF.console.terminal_cert_dir else 'http'
     return '%(scheme)s://%(host)s:%(port)s' % {'scheme': scheme,
-                                                'host': console_host,
-                                                'port': port}
+                                               'host': console_host,
+                                               'port': port}
 
 
 def start_shellinabox_console(node_uuid, port, console_cmd):
@@ -179,9 +179,9 @@ def start_shellinabox_console(node_uuid, port, console_cmd):
         pass
     except processutils.ProcessExecutionError as exc:
         LOG.warning(_LW("Failed to kill the old console process "
-                "before starting a new shellinabox console "
-                "for node %(node)s. Reason: %(err)s"),
-                {'node': node_uuid, 'err': exc})
+                        "before starting a new shellinabox console "
+                        "for node %(node)s. Reason: %(err)s"),
+                    {'node': node_uuid, 'err': exc})
 
     _ensure_console_pid_dir_exists()
     pid_file = _get_console_pid_file(node_uuid)
@@ -226,19 +226,21 @@ def start_shellinabox_console(node_uuid, port, console_cmd):
                 raise loopingcall.LoopingCallDone()
             else:
                 (stdout, stderr) = popen_obj.communicate()
-                locals['errstr'] = _("Command: %(command)s.\n"
-                        "Exit code: %(return_code)s.\n"
-                        "Stdout: %(stdout)r\n"
-                        "Stderr: %(stderr)r") % {'command': ' '.join(args),
-                                'return_code': locals['returncode'],
-                                'stdout': stdout,
-                                'stderr': stderr}
+                locals['errstr'] = _(
+                    "Command: %(command)s.\n"
+                    "Exit code: %(return_code)s.\n"
+                    "Stdout: %(stdout)r\n"
+                    "Stderr: %(stderr)r") % {
+                        'command': ' '.join(args),
+                        'return_code': locals['returncode'],
+                        'stdout': stdout,
+                        'stderr': stderr}
                 LOG.warning(locals['errstr'])
                 raise loopingcall.LoopingCallDone()
 
         if (time.time() > expiration):
-            locals['errstr'] = _("Timeout while waiting for console"
-                    " subprocess to start for node %s.") % node_uuid
+            locals['errstr'] = _("Timeout while waiting for console subprocess"
+                                 "to start for node %s.") % node_uuid
             LOG.warning(locals['errstr'])
             raise loopingcall.LoopingCallDone()
 

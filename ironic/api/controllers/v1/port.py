@@ -182,8 +182,8 @@ class PortsController(rest.RestController):
                               sort_key, sort_dir, expand=False,
                               resource_url=None):
         if self.from_nodes and not node_ident:
-            raise exception.MissingParameterValue(_(
-                  "Node identifier not specified."))
+            raise exception.MissingParameterValue(
+                _("Node identifier not specified."))
 
         limit = api_utils.validate_limit(limit)
         sort_dir = api_utils.validate_sort_dir(sort_dir)
@@ -194,9 +194,9 @@ class PortsController(rest.RestController):
                                                   marker)
 
         if sort_key in self.invalid_sort_key_list:
-            raise exception.InvalidParameterValue(_(
-                  "The sort_key value %(key)s is an invalid field for sorting"
-                  ) % {'key': sort_key})
+            raise exception.InvalidParameterValue(
+                _("The sort_key value %(key)s is an invalid field for "
+                  "sorting") % {'key': sort_key})
 
         if node_ident:
             # FIXME(comstud): Since all we need is the node ID, we can
@@ -236,8 +236,8 @@ class PortsController(rest.RestController):
             return []
 
     @expose.expose(PortCollection, types.uuid_or_name, types.uuid,
-                         types.macaddress, types.uuid, int, wtypes.text,
-                         wtypes.text)
+                   types.macaddress, types.uuid, int, wtypes.text,
+                   wtypes.text)
     def get_all(self, node=None, node_uuid=None, address=None, marker=None,
                 limit=None, sort_key='id', sort_dir='asc'):
         """Retrieve a list of ports.
@@ -268,8 +268,8 @@ class PortsController(rest.RestController):
                                           limit, sort_key, sort_dir)
 
     @expose.expose(PortCollection, types.uuid_or_name, types.uuid,
-                         types.macaddress, types.uuid, int, wtypes.text,
-                         wtypes.text)
+                   types.macaddress, types.uuid, int, wtypes.text,
+                   wtypes.text)
     def detail(self, node=None, node_uuid=None, address=None, marker=None,
                limit=None, sort_key='id', sort_dir='asc'):
         """Retrieve a list of ports with detail.
@@ -375,7 +375,7 @@ class PortsController(rest.RestController):
         topic = pecan.request.rpcapi.get_topic_for(rpc_node)
 
         new_port = pecan.request.rpcapi.update_port(
-                                        pecan.request.context, rpc_port, topic)
+            pecan.request.context, rpc_port, topic)
 
         return Port.convert_with_links(new_port)
 

@@ -47,9 +47,9 @@ class ConsoleUtilsTestCase(db_base.DbTestCase):
     def setUp(self):
         super(ConsoleUtilsTestCase, self).setUp()
         self.node = obj_utils.get_test_node(
-                self.context,
-                driver='fake_ipmitool',
-                driver_info=INFO_DICT)
+            self.context,
+            driver='fake_ipmitool',
+            driver_info=INFO_DICT)
         self.info = ipmi._parse_driver_info(self.node)
 
     def test__get_console_pid_dir(self):
@@ -94,8 +94,8 @@ class ConsoleUtilsTestCase(db_base.DbTestCase):
     def test__get_console_pid_file(self, mock_dir):
         mock_dir.return_value = tempfile.gettempdir()
         expected_path = '%(tempdir)s/%(uuid)s.pid' % {
-                            'tempdir': mock_dir.return_value,
-                            'uuid': self.info.get('uuid')}
+            'tempdir': mock_dir.return_value,
+            'uuid': self.info.get('uuid')}
         path = console_utils._get_console_pid_file(self.info['uuid'])
         self.assertEqual(expected_path, path)
         mock_dir.assert_called_once_with()
@@ -182,8 +182,8 @@ class ConsoleUtilsTestCase(db_base.DbTestCase):
         mock_unlink.assert_called_once_with(pid_file)
 
     def _get_shellinabox_console(self, scheme):
-        generated_url = console_utils.get_shellinabox_console_url(
-                                                     self.info['port'])
+        generated_url = (
+            console_utils.get_shellinabox_console_url(self.info['port']))
         console_host = CONF.my_ip
         if netutils.is_valid_ipv6(console_host):
             console_host = '[%s]' % console_host
@@ -201,8 +201,8 @@ class ConsoleUtilsTestCase(db_base.DbTestCase):
 
     def test_make_persistent_password_file(self):
         filepath = '%(tempdir)s/%(node_uuid)s' % {
-                'tempdir': tempfile.gettempdir(),
-                'node_uuid': self.info['uuid']}
+            'tempdir': tempfile.gettempdir(),
+            'node_uuid': self.info['uuid']}
         password = ''.join([random.choice(string.ascii_letters)
                             for n in range(16)])
         console_utils.make_persistent_password_file(filepath, password)
@@ -219,8 +219,8 @@ class ConsoleUtilsTestCase(db_base.DbTestCase):
     def test_make_persistent_password_file_fail(self, mock_chmod):
         mock_chmod.side_effect = IOError()
         filepath = '%(tempdir)s/%(node_uuid)s' % {
-                'tempdir': tempfile.gettempdir(),
-                'node_uuid': self.info['uuid']}
+            'tempdir': tempfile.gettempdir(),
+            'node_uuid': self.info['uuid']}
         self.assertRaises(exception.PasswordFileFailedToCreate,
                           console_utils.make_persistent_password_file,
                           filepath,
@@ -240,8 +240,8 @@ class ConsoleUtilsTestCase(db_base.DbTestCase):
         self.assertTrue(os.path.exists(pid_file))
 
         console_utils.start_shellinabox_console(self.info['uuid'],
-                                                 self.info['port'],
-                                                 'ls&')
+                                                self.info['port'],
+                                                'ls&')
 
         mock_stop.assert_called_once_with(self.info['uuid'])
         mock_dir_exists.assert_called_once_with()
@@ -266,8 +266,8 @@ class ConsoleUtilsTestCase(db_base.DbTestCase):
         self.assertTrue(os.path.exists(pid_file))
 
         console_utils.start_shellinabox_console(self.info['uuid'],
-                                                 self.info['port'],
-                                                 'ls&')
+                                                self.info['port'],
+                                                'ls&')
 
         mock_stop.assert_called_once_with(self.info['uuid'])
         mock_dir_exists.assert_called_once_with()

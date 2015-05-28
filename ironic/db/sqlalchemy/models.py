@@ -117,7 +117,7 @@ class Chassis(Base):
     __table_args__ = (
         schema.UniqueConstraint('uuid', name='uniq_chassis0uuid'),
         table_args()
-        )
+    )
     id = Column(Integer, primary_key=True)
     uuid = Column(String(36))
     extra = Column(JSONEncodedDict)
@@ -131,7 +131,7 @@ class Conductor(Base):
     __table_args__ = (
         schema.UniqueConstraint('hostname', name='uniq_conductors0hostname'),
         table_args()
-        )
+    )
     id = Column(Integer, primary_key=True)
     hostname = Column(String(255), nullable=False)
     drivers = Column(JSONEncodedList)
@@ -179,9 +179,9 @@ class Node(Base):
     #             When affinity and the hash ring's mapping do not match,
     #             this indicates that a conductor should rebuild local state.
     conductor_affinity = Column(Integer,
-                         ForeignKey('conductors.id',
-                             name='nodes_conductor_affinity_fk'),
-                         nullable=True)
+                                ForeignKey('conductors.id',
+                                           name='nodes_conductor_affinity_fk'),
+                                nullable=True)
 
     maintenance = Column(Boolean, default=False)
     maintenance_reason = Column(Text, nullable=True)

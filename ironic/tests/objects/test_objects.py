@@ -325,7 +325,7 @@ class _TestObject(object):
                     'ironic_object.version': '1.5',
                     'ironic_object.changes': ['bar'],
                     'ironic_object.data': {'foo': 1,
-                                         'bar': 'loaded!'}}
+                                           'bar': 'loaded!'}}
         self.assertEqual(expected, obj.obj_to_primitive())
 
     def test_changes_in_primitive(self):

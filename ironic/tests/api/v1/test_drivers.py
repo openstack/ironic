@@ -158,7 +158,7 @@ class TestListDrivers(base.FunctionalTest):
         data = self.get_json(path)
         self.assertEqual(return_value, data)
         get_methods_mock.assert_called_once_with(mock.ANY, self.d1,
-                                                  topic=mock.ANY)
+                                                 topic=mock.ANY)
 
         # Now let's test the cache: Reset the mock
         get_methods_mock.reset_mock()
@@ -212,7 +212,7 @@ class TestDriverProperties(base.FunctionalTest):
         driver._DRIVER_PROPERTIES = {}
         driver_name = 'bad_driver'
         mock_topic.side_effect = exception.DriverNotFound(
-                driver_name=driver_name)
+            driver_name=driver_name)
         mock_properties.return_value = {'prop1': 'Property 1. Required.'}
         ret = self.get_json('/drivers/%s/properties' % driver_name,
                             expect_errors=True)
@@ -227,7 +227,7 @@ class TestDriverProperties(base.FunctionalTest):
         driver_name = 'driver'
         mock_topic.return_value = 'driver_topic'
         mock_properties.side_effect = exception.DriverNotFound(
-                driver_name=driver_name)
+            driver_name=driver_name)
         ret = self.get_json('/drivers/%s/properties' % driver_name,
                             expect_errors=True)
         self.assertEqual(404, ret.status_int)

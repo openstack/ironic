@@ -54,8 +54,8 @@ class AMTPowerInteralMethodsTestCase(db_base.DbTestCase):
         namespace = resource_uris.CIM_PowerManagementService
         mock_client = mock_client_pywsman.return_value
         amt_power._set_power_state(self.node, states.POWER_ON)
-        mock_client.wsman_invoke.assert_called_once_with(mock.ANY,
-            namespace, 'RequestPowerStateChange', mock.ANY)
+        mock_client.wsman_invoke.assert_called_once_with(
+            mock.ANY, namespace, 'RequestPowerStateChange', mock.ANY)
 
     @mock.patch.object(amt_common, 'get_wsman_client', spec_set=True,
                        autospec=True)
@@ -186,7 +186,7 @@ class AMTPowerInteralMethodsTestCase(db_base.DbTestCase):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
             self.assertEqual(states.POWER_ON,
-                         amt_power._set_and_wait(task, target_state))
+                             amt_power._set_and_wait(task, target_state))
             mock_ps.assert_called_with(task.node)
 
     @mock.patch.object(amt_power, '_power_status', spec_set=True,
@@ -199,7 +199,7 @@ class AMTPowerInteralMethodsTestCase(db_base.DbTestCase):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
             self.assertEqual(states.POWER_OFF,
-                         amt_power._set_and_wait(task, target_state))
+                             amt_power._set_and_wait(task, target_state))
             mock_sps.assert_called_once_with(task.node, states.POWER_OFF)
             mock_ps.assert_called_with(task.node)
 

@@ -190,8 +190,8 @@ class TaskManagerTestCase(tests_db_base.DbTestCase):
                                             get_driver_mock, reserve_mock,
                                             release_mock, node_get_mock):
         reserve_mock.return_value = self.node
-        get_driver_mock.side_effect = exception.DriverNotFound(
-                driver_name='foo')
+        get_driver_mock.side_effect = (
+            exception.DriverNotFound(driver_name='foo'))
 
         self.assertRaises(exception.DriverNotFound,
                           task_manager.TaskManager,
@@ -282,8 +282,8 @@ class TaskManagerTestCase(tests_db_base.DbTestCase):
                                               get_driver_mock, reserve_mock,
                                               release_mock, node_get_mock):
         node_get_mock.return_value = self.node
-        get_driver_mock.side_effect = exception.DriverNotFound(
-                driver_name='foo')
+        get_driver_mock.side_effect = (
+            exception.DriverNotFound(driver_name='foo'))
 
         self.assertRaises(exception.DriverNotFound,
                           task_manager.TaskManager,
@@ -310,7 +310,7 @@ class TaskManagerTestCase(tests_db_base.DbTestCase):
 
         spawn_mock.assert_called_once_with(1, 2, foo='bar', cat='meow')
         thread_mock.link.assert_called_once_with(
-                task._thread_release_resources)
+            task._thread_release_resources)
         self.assertFalse(thread_mock.cancel.called)
         # Since we mocked link(), we're testing that __exit__ didn't
         # release resources pending the finishing of the background
@@ -423,9 +423,9 @@ class TaskManagerTestCase(tests_db_base.DbTestCase):
                                                  'fake-argument')
 
     @mock.patch.object(states.machine, 'copy')
-    def test_init_prepares_fsm(self, copy_mock, get_ports_mock,
-                  get_driver_mock, reserve_mock, release_mock,
-                  node_get_mock):
+    def test_init_prepares_fsm(
+            self, copy_mock, get_ports_mock, get_driver_mock, reserve_mock,
+            release_mock, node_get_mock):
         m = mock.Mock(spec=fsm.FSM)
         reserve_mock.return_value = self.node
         copy_mock.return_value = m
@@ -462,9 +462,9 @@ class TaskManagerStateModelTestCases(tests_base.TestCase):
         self.fsm.process_event.side_effect = exception.InvalidState('test')
 
         self.assertRaises(
-                exception.InvalidState,
-                self.task.process_event,
-                self.task, 'fake')
+            exception.InvalidState,
+            self.task.process_event,
+            self.task, 'fake')
         self.assertEqual(0, self.task.spawn_after.call_count)
         self.assertFalse(self.task.node.save.called)
 
@@ -473,8 +473,9 @@ class TaskManagerStateModelTestCases(tests_base.TestCase):
         arg = mock.Mock()
         kwarg = mock.Mock()
         self.task.process_event = task_manager.TaskManager.process_event
-        self.task.process_event(self.task, 'fake',
-                callback=cb, call_args=[arg], call_kwargs={'mock': kwarg})
+        self.task.process_event(
+            self.task, 'fake', callback=cb, call_args=[arg],
+            call_kwargs={'mock': kwarg})
         self.fsm.process_event.assert_called_once_with('fake')
         self.task.spawn_after.assert_called_with(cb, arg, mock=kwarg)
         self.assertEqual(1, self.task.node.save.call_count)
@@ -491,19 +492,19 @@ class TaskManagerStateModelTestCases(tests_base.TestCase):
         self.node.target_provision_state = target_provision_state
         self.task.process_event = task_manager.TaskManager.process_event
 
-        self.task.process_event(self.task, 'fake',
-                callback=cb, call_args=[arg], call_kwargs={'mock': kwarg},
-                err_handler=er)
+        self.task.process_event(
+            self.task, 'fake', callback=cb, call_args=[arg],
+            call_kwargs={'mock': kwarg}, err_handler=er)
 
-        self.task.set_spawn_error_hook.assert_called_once_with(er,
-                self.node, provision_state, target_provision_state)
+        self.task.set_spawn_error_hook.assert_called_once_with(
+            er, self.node, provision_state, target_provision_state)
         self.fsm.process_event.assert_called_once_with('fake')
         self.task.spawn_after.assert_called_with(cb, arg, mock=kwarg)
         self.assertEqual(1, self.task.node.save.call_count)
         self.assertIsNone(self.node.last_error)
         self.assertNotEqual(provision_state, self.node.provision_state)
         self.assertNotEqual(target_provision_state,
-                self.node.target_provision_state)
+                            self.node.target_provision_state)
 
 
 @task_manager.require_exclusive_lock

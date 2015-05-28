@@ -42,15 +42,17 @@ class DriverLoadTestCase(base.TestCase):
         self.config(enabled_drivers=['fake'])
         with mock.patch.object(dispatch.NameDispatchExtensionManager,
                                '__init__', self._fake_init_driver_err):
-            self.assertRaises(exception.DriverLoadError,
-                          driver_factory.DriverFactory._init_extension_manager)
+            self.assertRaises(
+                exception.DriverLoadError,
+                driver_factory.DriverFactory._init_extension_manager)
 
     def test_wrap_in_driver_load_error_if_driver_enabled(self):
         self.config(enabled_drivers=['fake'])
         with mock.patch.object(dispatch.NameDispatchExtensionManager,
                                '__init__', self._fake_init_name_err):
-            self.assertRaises(exception.DriverLoadError,
-                          driver_factory.DriverFactory._init_extension_manager)
+            self.assertRaises(
+                exception.DriverLoadError,
+                driver_factory.DriverFactory._init_extension_manager)
 
     @mock.patch.object(dispatch.NameDispatchExtensionManager, 'names',
                        autospec=True)

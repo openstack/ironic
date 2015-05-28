@@ -32,18 +32,18 @@ if pyremotevbox:
     from pyremotevbox import vbox as virtualbox
 
 IRONIC_TO_VIRTUALBOX_DEVICE_MAPPING = {
-                                 boot_devices.PXE: 'Network',
-                                 boot_devices.DISK: 'HardDisk',
-                                 boot_devices.CDROM: 'DVD',
-                                }
-VIRTUALBOX_TO_IRONIC_DEVICE_MAPPING = {v: k
-                       for k, v in IRONIC_TO_VIRTUALBOX_DEVICE_MAPPING.items()}
+    boot_devices.PXE: 'Network',
+    boot_devices.DISK: 'HardDisk',
+    boot_devices.CDROM: 'DVD',
+}
+VIRTUALBOX_TO_IRONIC_DEVICE_MAPPING = {
+    v: k for k, v in IRONIC_TO_VIRTUALBOX_DEVICE_MAPPING.items()}
 
 VIRTUALBOX_TO_IRONIC_POWER_MAPPING = {
-                                'PoweredOff': states.POWER_OFF,
-                                'Running': states.POWER_ON,
-                                'Error': states.ERROR
-                               }
+    'PoweredOff': states.POWER_OFF,
+    'Running': states.POWER_ON,
+    'Error': states.ERROR
+}
 
 opts = [
     cfg.IntOpt('port',
@@ -109,7 +109,7 @@ def _parse_driver_info(node):
 
     if missing_params:
         msg = (_("The following parameters are missing in driver_info: %s") %
-                 ', '.join(missing_params))
+               ', '.join(missing_params))
         raise exception.MissingParameterValue(msg)
 
     for param in OPTIONAL_PROPERTIES:
@@ -335,8 +335,8 @@ class VirtualBoxManagement(base.ManagementInterface):
         try:
             boot_dev = IRONIC_TO_VIRTUALBOX_DEVICE_MAPPING[device]
         except KeyError:
-            raise exception.InvalidParameterValue(_(
-                 "Invalid boot device %s specified.") % device)
+            raise exception.InvalidParameterValue(
+                _("Invalid boot device %s specified.") % device)
 
         try:
             _run_virtualbox_method(task.node, 'set_boot_device',

@@ -651,10 +651,10 @@ class ShellinaboxConsole(base.ConsoleInterface):
         chassis_ip = urlparse.urlparse(driver_info['api_endpoint']).netloc
 
         seamicro_cmd = ("/:%(uid)s:%(gid)s:HOME:telnet %(chassis)s %(port)s"
-                       % {'uid': os.getuid(),
-                          'gid': os.getgid(),
-                          'chassis': chassis_ip,
-                          'port': telnet_port})
+                        % {'uid': os.getuid(),
+                           'gid': os.getgid(),
+                           'chassis': chassis_ip,
+                           'port': telnet_port})
 
         console_utils.start_shellinabox_console(driver_info['uuid'],
                                                 driver_info['port'],

@@ -43,7 +43,7 @@ agent_opts = [
     cfg.IntOpt('heartbeat_timeout',
                default=300,
                help='Maximum interval (in seconds) for agent heartbeats.'),
-    ]
+]
 
 CONF = cfg.CONF
 CONF.register_opts(agent_opts, group='agent')
@@ -126,7 +126,7 @@ class BaseAgentVendor(base.VendorInterface):
         if version not in self.supported_payload_versions:
             raise exception.InvalidParameterValue(_('Unknown lookup '
                                                     'payload version: %s')
-                                                    % version)
+                                                  % version)
 
     def _notify_conductor_resume_clean(self, task):
         uuid = task.node.uuid
@@ -477,7 +477,7 @@ class BaseAgentVendor(base.VendorInterface):
                 msg = (_("Failed to install a bootloader when "
                          "deploying node %(node)s. Error: %(error)s") %
                        {'node': node.uuid,
-                            'error': result['command_error']})
+                        'error': result['command_error']})
                 self._log_and_raise_deployment_error(task, msg)
 
         try:

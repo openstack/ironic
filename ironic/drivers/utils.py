@@ -142,7 +142,7 @@ def get_node_capability(node, capability):
                 return parts[1]
         else:
             LOG.warn(_LW("Ignoring malformed capability '%s'. "
-                "Format should be 'key:val'."), node_capability)
+                         "Format should be 'key:val'."), node_capability)
 
 
 def add_node_capability(task, capability, value):

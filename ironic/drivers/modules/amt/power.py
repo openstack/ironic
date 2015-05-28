@@ -163,7 +163,7 @@ def _set_and_wait(task, target_state):
     driver = task.driver
     if target_state not in (states.POWER_ON, states.POWER_OFF):
         raise exception.InvalidParameterValue(_('Unsupported target_state: %s')
-                                                % target_state)
+                                              % target_state)
     elif target_state == states.POWER_ON:
         boot_device = node.driver_internal_info.get('amt_boot_device')
         if boot_device and boot_device != amt_common.DEFAULT_BOOT_DEVICE:

@@ -24,7 +24,8 @@ from ironic.api import hooks
 from ironic.api import middleware
 
 api_opts = [
-    cfg.StrOpt('auth_strategy',
+    cfg.StrOpt(
+        'auth_strategy',
         default='keystone',
         help='Authentication strategy used by ironic-api: one of "keystone" '
              'or "noauth". "noauth" should not be used in a production '
@@ -33,7 +34,7 @@ api_opts = [
                 default=False,
                 help=('Enable pecan debug mode. WARNING: this is insecure '
                       'and should not be used in a production environment.')),
-    ]
+]
 
 CONF = cfg.CONF
 CONF.register_opts(api_opts)

@@ -298,18 +298,18 @@ def _parse_driver_info(node):
             {'priv_level': priv_level, 'valid_levels': valid_priv_lvls})
 
     return {
-            'address': address,
-            'username': username,
-            'password': password,
-            'port': port,
-            'uuid': node.uuid,
-            'priv_level': priv_level,
-            'local_address': local_address,
-            'transit_channel': transit_channel,
-            'transit_address': transit_address,
-            'target_channel': target_channel,
-            'target_address': target_address
-            }
+        'address': address,
+        'username': username,
+        'password': password,
+        'port': port,
+        'uuid': node.uuid,
+        'priv_level': priv_level,
+        'local_address': local_address,
+        'transit_channel': transit_channel,
+        'transit_address': transit_address,
+        'target_channel': target_channel,
+        'target_address': target_address
+    }
 
 
 def _exec_ipmitool(driver_info, command):
@@ -359,7 +359,7 @@ def _exec_ipmitool(driver_info, command):
         # NOTE(deva): ensure that no communications are sent to a BMC more
         #             often than once every min_command_interval seconds.
         time_till_next_poll = CONF.ipmi.min_command_interval - (
-                time.time() - LAST_CMD_TIME.get(driver_info['address'], 0))
+            time.time() - LAST_CMD_TIME.get(driver_info['address'], 0))
         if time_till_next_poll > 0:
             time.sleep(time_till_next_poll)
         # Resetting the list that will be utilized so the password arguments
@@ -368,9 +368,7 @@ def _exec_ipmitool(driver_info, command):
         # 'ipmitool' command will prompt password if there is no '-f'
         # option, we set it to '\0' to write a password file to support
         # empty password
-        with _make_password_file(
-                    driver_info['password'] or '\0'
-                ) as pw_file:
+        with _make_password_file(driver_info['password'] or '\0') as pw_file:
             cmd_args.append('-f')
             cmd_args.append(pw_file)
             cmd_args.extend(command.split(" "))
@@ -384,23 +382,18 @@ def _exec_ipmitool(driver_info, command):
                     if ((time.time() > end_time) or
                         (num_tries == 0) or
                         not err_list):
-                        LOG.error(_LE('IPMI Error while attempting '
-                                  '"%(cmd)s" for node %(node)s. '
-                                  'Error: %(error)s'),
-                                  {
-                                      'node': driver_info['uuid'],
-                                      'cmd': e.cmd,
-                                      'error': e
+                        LOG.error(_LE('IPMI Error while attempting "%(cmd)s"'
+                                      'for node %(node)s. Error: %(error)s'), {
+                                  'node': driver_info['uuid'],
+                                  'cmd': e.cmd, 'error': e
                                   })
                     else:
                         ctxt.reraise = False
                         LOG.warning(_LW('IPMI Error encountered, retrying '
-                                    '"%(cmd)s" for node %(node)s. '
-                                    'Error: %(error)s'),
-                                    {
-                                        'node': driver_info['uuid'],
-                                        'cmd': e.cmd,
-                                        'error': e
+                                        '"%(cmd)s" for node %(node)s. '
+                                        'Error: %(error)s'), {
+                                    'node': driver_info['uuid'],
+                                    'cmd': e.cmd, 'error': e
                                     })
             finally:
                 LAST_CMD_TIME[driver_info['address']] = time.time()
@@ -454,7 +447,7 @@ def _set_and_wait(target_state, driver_info):
                 exception.IPMIFailure):
             # Log failures but keep trying
             LOG.warning(_LW("IPMI power %(state)s failed for node %(node)s."),
-                           {'state': state_name, 'node': driver_info['uuid']})
+                        {'state': state_name, 'node': driver_info['uuid']})
         finally:
             mutable['iter'] += 1
 
@@ -466,8 +459,8 @@ def _set_and_wait(target_state, driver_info):
             # Stop if the next loop would exceed maximum retry_timeout
             LOG.error(_LE('IPMI power %(state)s timed out after '
                           '%(tries)s retries on node %(node_id)s.'),
-                          {'state': state_name, 'tries': mutable['iter'],
-                          'node_id': driver_info['uuid']})
+                      {'state': state_name, 'tries': mutable['iter'],
+                       'node_id': driver_info['uuid']})
             mutable['power'] = states.ERROR
             raise loopingcall.LoopingCallDone()
         else:
@@ -559,7 +552,8 @@ def _get_sensor_type(node, sensor_data_dict):
     raise exception.FailedToParseSensorData(
         node=node.uuid,
         error=(_("parse ipmi sensor data failed, unknown sensor type"
-            " data: %(sensors_data)s"), {'sensors_data': sensor_data_dict}))
+                 " data: %(sensors_data)s"),
+               {'sensors_data': sensor_data_dict}))
 
 
 def _parse_ipmi_sensors_data(node, sensors_data):
@@ -589,7 +583,8 @@ def _parse_ipmi_sensors_data(node, sensors_data):
 
         # ignore the sensors which has no current 'Sensor Reading' data
         if 'Sensor Reading' in sensor_data_dict:
-            sensors_data_dict.setdefault(sensor_type,
+            sensors_data_dict.setdefault(
+                sensor_type,
                 {})[sensor_data_dict['Sensor ID']] = sensor_data_dict
 
     # get nothing, no valid sensor data
@@ -597,7 +592,8 @@ def _parse_ipmi_sensors_data(node, sensors_data):
         raise exception.FailedToParseSensorData(
             node=node.uuid,
             error=(_("parse ipmi sensor data failed, get nothing with input"
-                " data: %(sensors_data)s") % {'sensors_data': sensors_data}))
+                     " data: %(sensors_data)s")
+                   % {'sensors_data': sensors_data}))
     return sensors_data_dict
 
 
@@ -659,9 +655,9 @@ class IPMIPower(base.PowerInterface):
             _check_option_support(['timing', 'single_bridge', 'dual_bridge'])
         except OSError:
             raise exception.DriverLoadError(
-                    driver=self.__class__.__name__,
-                    reason=_("Unable to locate usable ipmitool command in "
-                             "the system path when checking ipmitool version"))
+                driver=self.__class__.__name__,
+                reason=_("Unable to locate usable ipmitool command in "
+                         "the system path when checking ipmitool version"))
         _check_temp_dir()
 
     def get_properties(self):
@@ -716,8 +712,9 @@ class IPMIPower(base.PowerInterface):
         elif pstate == states.POWER_OFF:
             state = _power_off(driver_info)
         else:
-            raise exception.InvalidParameterValue(_("set_power_state called "
-                    "with invalid power state %s.") % pstate)
+            raise exception.InvalidParameterValue(
+                _("set_power_state called "
+                  "with invalid power state %s.") % pstate)
 
         if state != pstate:
             raise exception.PowerStateFailure(pstate=pstate)
@@ -751,9 +748,9 @@ class IPMIManagement(base.ManagementInterface):
             _check_option_support(['timing', 'single_bridge', 'dual_bridge'])
         except OSError:
             raise exception.DriverLoadError(
-                    driver=self.__class__.__name__,
-                    reason=_("Unable to locate usable ipmitool command in "
-                             "the system path when checking ipmitool version"))
+                driver=self.__class__.__name__,
+                reason=_("Unable to locate usable ipmitool command in "
+                         "the system path when checking ipmitool version"))
         _check_temp_dir()
 
     def validate(self, task):
@@ -997,9 +994,9 @@ class IPMIShellinaboxConsole(base.ConsoleInterface):
             _check_option_support(['timing', 'single_bridge', 'dual_bridge'])
         except OSError:
             raise exception.DriverLoadError(
-                    driver=self.__class__.__name__,
-                    reason=_("Unable to locate usable ipmitool command in "
-                             "the system path when checking ipmitool version"))
+                driver=self.__class__.__name__,
+                reason=_("Unable to locate usable ipmitool command in "
+                         "the system path when checking ipmitool version"))
         _check_temp_dir()
 
     def get_properties(self):
@@ -1036,7 +1033,7 @@ class IPMIShellinaboxConsole(base.ConsoleInterface):
 
         path = _console_pwfile_path(driver_info['uuid'])
         pw_file = console_utils.make_persistent_password_file(
-                path, driver_info['password'])
+            path, driver_info['password'])
 
         ipmi_cmd = ("/:%(uid)s:%(gid)s:HOME:ipmitool -H %(address)s"
                     " -I lanplus -U %(user)s -f %(pwfile)s"
@@ -1074,7 +1071,7 @@ class IPMIShellinaboxConsole(base.ConsoleInterface):
             console_utils.stop_shellinabox_console(driver_info['uuid'])
         finally:
             utils.unlink_without_raise(
-                    _console_pwfile_path(driver_info['uuid']))
+                _console_pwfile_path(driver_info['uuid']))
 
     def get_console(self, task):
         """Get the type and connection information about the console."""

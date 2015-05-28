@@ -61,7 +61,7 @@ def _get_sensors_data(task):
                   "with the following error: %(error)s"),
                   {'node_id': task.node.uuid, 'error': e})
         raise exception.FailedToGetSensorData(
-                    node=task.node.uuid, error=e)
+            node=task.node.uuid, error=e)
 
     sensors_data = {}
     for sdr in sensor:

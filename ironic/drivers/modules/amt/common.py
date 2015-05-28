@@ -166,8 +166,8 @@ def parse_driver_info(node):
     param = 'amt_protocol'
     protocol = info.get(param, CONF.amt.get(param[4:]))
     if protocol not in AMT_PROTOCOL_PORT_MAP:
-        raise exception.InvalidParameterValue(_("Invalid "
-                "protocol %s.") % protocol)
+        raise exception.InvalidParameterValue(
+            _("Invalid protocol %s.") % protocol)
     if not isinstance(value, six.binary_type):
         protocol = protocol.encode()
     d_info[param[4:]] = protocol

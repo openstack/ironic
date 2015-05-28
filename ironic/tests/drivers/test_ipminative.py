@@ -122,12 +122,12 @@ class IPMINativePrivateMethodTestCase(db_base.DbTestCase):
         self.assertEqual(states.POWER_ON, state)
 
     def _create_sensor_object(self, value, type_, name, states=None,
-                   units='fake_units', health=0):
+                              units='fake_units', health=0):
         if states is None:
             states = []
-        return type('Reading', (object, ), {'value': value, 'type': type_,
-                                     'name': name, 'states': states,
-                                     'units': units, 'health': health})()
+        return type('Reading', (object, ), {
+            'value': value, 'type': type_, 'name': name,
+            'states': states, 'units': units, 'health': health})()
 
     @mock.patch('pyghmi.ipmi.command.Command', autospec=True)
     def test__get_sensors_data(self, ipmi_mock):
@@ -144,30 +144,30 @@ class IPMINativePrivateMethodTestCase(db_base.DbTestCase):
         ipmicmd = ipmi_mock.return_value
         ipmicmd.get_sensor_data.return_value = readings
         expected = {
-              'fake_type_A': {
-                  'fake_name1': {
-                      'Health': '0',
-                      'Sensor ID': 'fake_name1',
-                      'Sensor Reading': 'fake_value1 fake_units',
-                      'States': '[]',
-                      'Units': 'fake_units'
-                  },
-                  'fake_name2': {
-                      'Health': '0',
-                      'Sensor ID': 'fake_name2',
-                      'Sensor Reading': 'fake_value2 fake_units',
-                      'States': '[]',
-                      'Units': 'fake_units'
-                  }
-              },
-              'fake_type_B': {
-                  'fake_name3': {
-                      'Health': '0',
-                      'Sensor ID': 'fake_name3',
-                      'Sensor Reading': 'fake_value3 fake_units',
-                      'States': '[]', 'Units': 'fake_units'
-                  }
-              }
+            'fake_type_A': {
+                'fake_name1': {
+                    'Health': '0',
+                    'Sensor ID': 'fake_name1',
+                    'Sensor Reading': 'fake_value1 fake_units',
+                    'States': '[]',
+                    'Units': 'fake_units'
+                },
+                'fake_name2': {
+                    'Health': '0',
+                    'Sensor ID': 'fake_name2',
+                    'Sensor Reading': 'fake_value2 fake_units',
+                    'States': '[]',
+                    'Units': 'fake_units'
+                }
+            },
+            'fake_type_B': {
+                'fake_name3': {
+                    'Health': '0',
+                    'Sensor ID': 'fake_name3',
+                    'Sensor Reading': 'fake_value3 fake_units',
+                    'States': '[]', 'Units': 'fake_units'
+                }
+            }
         }
         ret = ipminative._get_sensors_data(self.info)
         self.assertEqual(expected, ret)
@@ -188,15 +188,15 @@ class IPMINativePrivateMethodTestCase(db_base.DbTestCase):
         ipmicmd.get_sensor_data.return_value = readings
 
         expected = {
-              'fake_type_A': {
-                  'fake_name1': {
-                      'Health': '0',
-                      'Sensor ID': 'fake_name1',
-                      'Sensor Reading': 'fake_value1 fake_units',
-                      'States': '[]',
-                      'Units': 'fake_units'
-                  }
-              }
+            'fake_type_A': {
+                'fake_name1': {
+                    'Health': '0',
+                    'Sensor ID': 'fake_name1',
+                    'Sensor Reading': 'fake_value1 fake_units',
+                    'States': '[]',
+                    'Units': 'fake_units'
+                }
+            }
         }
         ret = ipminative._get_sensors_data(self.info)
         self.assertEqual(expected, ret)
@@ -301,9 +301,9 @@ class IPMINativeDriverTestCase(db_base.DbTestCase):
     def test_set_boot_device_bad_device(self):
         with task_manager.acquire(self.context, self.node.uuid) as task:
             self.assertRaises(exception.InvalidParameterValue,
-                    self.driver.management.set_boot_device,
-                    task,
-                    'fake-device')
+                              self.driver.management.set_boot_device,
+                              task,
+                              'fake-device')
 
     @mock.patch.object(ipminative, '_reboot', autospec=True)
     def test_reboot_ok(self, reboot_mock):
@@ -418,8 +418,8 @@ class IPMINativeDriverTestCase(db_base.DbTestCase):
     @mock.patch.object(console_utils, 'start_shellinabox_console',
                        autospec=True)
     def test_start_console_fail(self, mock_exec):
-        mock_exec.side_effect = exception.ConsoleSubprocessFailed(
-                error='error')
+        mock_exec.side_effect = (
+            exception.ConsoleSubprocessFailed(error='error'))
 
         with task_manager.acquire(self.context,
                                   self.node.uuid) as task:

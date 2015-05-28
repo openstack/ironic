@@ -31,8 +31,8 @@ class PXEDracDriver(base.BaseDriver):
     def __init__(self):
         if not importutils.try_import('pywsman'):
             raise exception.DriverLoadError(
-                    driver=self.__class__.__name__,
-                    reason=_('Unable to import pywsman library'))
+                driver=self.__class__.__name__,
+                reason=_('Unable to import pywsman library'))
 
         self.power = power.DracPower()
         self.deploy = pxe.PXEDeploy()

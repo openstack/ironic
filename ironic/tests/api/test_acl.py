@@ -37,11 +37,11 @@ class TestACL(base.FunctionalTest):
 
     def get_json(self, path, expect_errors=False, headers=None, q=[], **param):
         return super(TestACL, self).get_json(path,
-                                                expect_errors=expect_errors,
-                                                headers=headers,
-                                                q=q,
-                                                extra_environ=self.environ,
-                                                **param)
+                                             expect_errors=expect_errors,
+                                             headers=headers,
+                                             q=q,
+                                             extra_environ=self.environ,
+                                             **param)
 
     def _make_app(self):
         cfg.CONF.set_override('cache', 'fake.cache',
@@ -57,8 +57,8 @@ class TestACL(base.FunctionalTest):
                                autospec=True) as mock_get_node:
             mock_get_node.return_value = self.fake_db_node
 
-            response = self.get_json(self.node_path,
-                                 headers={'X-Auth-Token': utils.ADMIN_TOKEN})
+            response = self.get_json(
+                self.node_path, headers={'X-Auth-Token': utils.ADMIN_TOKEN})
 
             self.assertEqual(self.fake_db_node['uuid'], response['uuid'])
             mock_get_node.assert_called_once_with(self.fake_db_node['uuid'])

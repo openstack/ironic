@@ -144,7 +144,7 @@ class IloPowerInternalMethodsTestCase(db_base.DbTestCase):
             ilo_power._attach_boot_iso(task)
             setup_vmedia_mock.assert_called_once_with(task, 'boot-iso')
             set_boot_device_mock.assert_called_once_with(task,
-                                 boot_devices.CDROM)
+                                                         boot_devices.CDROM)
 
     @mock.patch.object(manager_utils, 'node_set_boot_device', spec_set=True,
                        autospec=True)

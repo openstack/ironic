@@ -49,7 +49,7 @@ def mock_the_extension_manager(driver="fake", namespace="ironic.drivers"):
                                               lambda x: True))
     mock_ext_mgr = driver_factory.DriverFactory()
     mock_ext = mock_ext_mgr._extension_manager._load_one_plugin(
-                                              entry_point, True, [], {}, False)
+        entry_point, True, [], {}, False)
     mock_ext_mgr._extension_manager.extensions = [mock_ext]
     mock_ext_mgr._extension_manager.by_name = dict((e.name, e)
                                                    for e in [mock_ext])

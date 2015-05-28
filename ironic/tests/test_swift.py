@@ -80,8 +80,8 @@ class SwiftTestCase(base.TestCase):
                                              'some-file-location')
 
         connection_obj_mock.put_container.assert_called_once_with('container')
-        connection_obj_mock.put_object.assert_called_once_with('container',
-                'object', 'file-object', headers=None)
+        connection_obj_mock.put_object.assert_called_once_with(
+            'container', 'object', 'file-object', headers=None)
         self.assertEqual('object-uuid', object_uuid)
 
     @mock.patch.object(__builtin__, 'open', autospec=True)
@@ -109,8 +109,8 @@ class SwiftTestCase(base.TestCase):
                           swiftapi.create_object, 'container',
                           'object', 'some-file-location')
         connection_obj_mock.put_container.assert_called_once_with('container')
-        connection_obj_mock.put_object.assert_called_once_with('container',
-                'object', 'file-object', headers=None)
+        connection_obj_mock.put_object.assert_called_once_with(
+            'container', 'object', 'file-object', headers=None)
 
     @mock.patch.object(swift_utils, 'generate_temp_url', autospec=True)
     def test_get_temp_url(self, gen_temp_url_mock, connection_mock):
@@ -126,7 +126,7 @@ class SwiftTestCase(base.TestCase):
         connection_obj_mock.head_account.assert_called_once_with()
         object_path_expected = '/v1/AUTH_tenant_id/container/object'
         gen_temp_url_mock.assert_called_once_with(object_path_expected, 10,
-                                                 'secretkey', 'GET')
+                                                  'secretkey', 'GET')
         self.assertEqual('http://host/temp-url-path', temp_url_returned)
 
     def test_delete_object(self, connection_mock):
@@ -134,7 +134,7 @@ class SwiftTestCase(base.TestCase):
         connection_obj_mock = connection_mock.return_value
         swiftapi.delete_object('container', 'object')
         connection_obj_mock.delete_object.assert_called_once_with('container',
-                                                             'object')
+                                                                  'object')
 
     def test_head_object(self, connection_mock):
         swiftapi = swift.SwiftAPI()
@@ -151,5 +151,5 @@ class SwiftTestCase(base.TestCase):
         connection_obj_mock = connection_mock.return_value
         headers = {'a': 'b'}
         swiftapi.update_object_meta('container', 'object', headers)
-        connection_obj_mock.post_object.assert_called_once_with('container',
-                'object', headers)
+        connection_obj_mock.post_object.assert_called_once_with(
+            'container', 'object', headers)

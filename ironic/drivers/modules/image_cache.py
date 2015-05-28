@@ -204,7 +204,7 @@ class ImageCache(object):
         amount = self._clean_up_ensure_cache_size(survived, amount)
         if amount is not None and amount > 0:
             LOG.warn(_LW("Cache clean up was unable to reclaim %(required)d "
-                       "MiB of disk space, still %(left)d MiB required"),
+                         "MiB of disk space, still %(left)d MiB required"),
                      {'required': amount_copy / 1024 / 1024,
                       'left': amount / 1024 / 1024})
 
@@ -264,7 +264,7 @@ class ImageCache(object):
         total_size = sum(os.path.getsize(f)
                          for f in total_listing)
         while listing and (total_size > self._cache_size or
-               (amount is not None and amount > 0)):
+                           (amount is not None and amount > 0)):
             file_name, last_used, stat = listing.pop()
             try:
                 os.unlink(file_name)
@@ -373,7 +373,7 @@ def clean_up_caches(ctx, directory, images_info):
     after trying all the caches.
     """
     total_size = sum(images.download_size(ctx, uuid)
-            for (uuid, path) in images_info)
+                     for (uuid, path) in images_info)
     _clean_up_caches(directory, total_size)
 
 

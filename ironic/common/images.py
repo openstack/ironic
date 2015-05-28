@@ -45,14 +45,14 @@ image_opts = [
                 help='If True, convert backing images to "raw" disk image '
                      'format.'),
     cfg.StrOpt('isolinux_bin',
-                default='/usr/lib/syslinux/isolinux.bin',
-                help='Path to isolinux binary file.'),
+               default='/usr/lib/syslinux/isolinux.bin',
+               help='Path to isolinux binary file.'),
     cfg.StrOpt('isolinux_config_template',
-                default=paths.basedir_def('common/isolinux_config.template'),
-                help='Template file for isolinux configuration file.'),
+               default=paths.basedir_def('common/isolinux_config.template'),
+               help='Template file for isolinux configuration file.'),
     cfg.StrOpt('grub_config_template',
-                default=paths.basedir_def('common/grub_conf.template'),
-                help='Template file for grub configuration file.'),
+               default=paths.basedir_def('common/grub_conf.template'),
+               help='Template file for grub configuration file.'),
 ]
 
 
@@ -141,7 +141,7 @@ def create_vfat_image(output_file, files_info=None, parameters=None,
             if parameters:
                 parameters_file = os.path.join(tmpdir, parameters_file)
                 params_list = ['%(key)s=%(val)s' % {'key': k, 'val': v}
-                           for k, v in parameters.items()]
+                               for k, v in parameters.items()]
                 file_contents = '\n'.join(params_list)
                 utils.write_to_file(parameters_file, file_contents)
 
@@ -209,10 +209,10 @@ def create_isolinux_image_for_bios(output_file, kernel, ramdisk,
 
     with utils.tempdir() as tmpdir:
         files_info = {
-                      kernel: 'vmlinuz',
-                      ramdisk: 'initrd',
-                      CONF.isolinux_bin: ISOLINUX_BIN,
-                     }
+            kernel: 'vmlinuz',
+            ramdisk: 'initrd',
+            CONF.isolinux_bin: ISOLINUX_BIN,
+        }
         try:
             _create_root_fs(tmpdir, files_info)
         except (OSError, IOError) as e:
@@ -264,10 +264,10 @@ def create_isolinux_image_for_uefi(output_file, deploy_iso, kernel, ramdisk,
 
     with utils.tempdir() as tmpdir:
         files_info = {
-                      kernel: 'vmlinuz',
-                      ramdisk: 'initrd',
-                      CONF.isolinux_bin: ISOLINUX_BIN,
-                     }
+            kernel: 'vmlinuz',
+            ramdisk: 'initrd',
+            CONF.isolinux_bin: ISOLINUX_BIN,
+        }
 
         # Open the deploy iso used to initiate deploy and copy the
         # efiboot.img i.e. boot loader to the current temporary
@@ -335,7 +335,7 @@ def fetch(context, image_href, path, image_service=None, force_raw=False):
     #             checked before we got here.
     if not image_service:
         image_service = service.get_image_service(image_href,
-            context=context)
+                                                  context=context)
         LOG.debug("Using %(image_service)s to download image %(image_href)s." %
                   {'image_service': image_service.__class__,
                    'image_href': image_href})
@@ -355,29 +355,30 @@ def image_to_raw(image_href, path, path_tmp):
         fmt = data.file_format
         if fmt is None:
             raise exception.ImageUnacceptable(
-                    reason=_("'qemu-img info' parsing failed."),
-                    image_id=image_href)
+                reason=_("'qemu-img info' parsing failed."),
+                image_id=image_href)
 
         backing_file = data.backing_file
         if backing_file is not None:
-            raise exception.ImageUnacceptable(image_id=image_href,
+            raise exception.ImageUnacceptable(
+                image_id=image_href,
                 reason=_("fmt=%(fmt)s backed by: %(backing_file)s") %
-                                              {'fmt': fmt,
-                                               'backing_file': backing_file})
+                {'fmt': fmt, 'backing_file': backing_file})
 
         if fmt != "raw":
             staged = "%s.converted" % path
             LOG.debug("%(image)s was %(format)s, converting to raw" %
-                    {'image': image_href, 'format': fmt})
+                      {'image': image_href, 'format': fmt})
             with fileutils.remove_path_on_error(staged):
                 convert_image(path_tmp, staged, 'raw')
                 os.unlink(path_tmp)
 
                 data = qemu_img_info(staged)
                 if data.file_format != "raw":
-                    raise exception.ImageConvertFailed(image_id=image_href,
-                        reason=_("Converted to raw, but format is now %s") %
-                                 data.file_format)
+                    raise exception.ImageConvertFailed(
+                        image_id=image_href,
+                        reason=_("Converted to raw, but format is "
+                                 "now %s") % data.file_format)
 
                 os.rename(staged, path)
         else:

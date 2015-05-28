@@ -61,14 +61,14 @@ class PassthruDecoratorTestCase(base.TestCase):
     @mock.patch.object(driver_base, 'LOG', autospec=True)
     def test_passthru_ironicexception(self, mock_log):
         self.assertRaises(exception.IronicException,
-            self.fvi.ironicexception, mock.ANY)
+                          self.fvi.ironicexception, mock.ANY)
         mock_log.exception.assert_called_with(
             mock.ANY, 'ironicexception')
 
     @mock.patch.object(driver_base, 'LOG', autospec=True)
     def test_passthru_nonironicexception(self, mock_log):
         self.assertRaises(exception.VendorPassthruException,
-            self.fvi.normalexception, mock.ANY)
+                          self.fvi.normalexception, mock.ANY)
         mock_log.exception.assert_called_with(
             mock.ANY, 'normalexception')
 

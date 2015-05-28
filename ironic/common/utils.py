@@ -446,7 +446,7 @@ def unlink_without_raise(path):
             return
         else:
             LOG.warn(_LW("Failed to unlink %(path)s, error: %(e)s"),
-                        {'path': path, 'e': e})
+                     {'path': path, 'e': e})
 
 
 def rmtree_without_raise(path):
@@ -455,7 +455,7 @@ def rmtree_without_raise(path):
             shutil.rmtree(path)
     except OSError as e:
         LOG.warn(_LW("Failed to remove dir %(path)s, error: %(e)s"),
-                {'path': path, 'e': e})
+                 {'path': path, 'e': e})
 
 
 def write_to_file(path, contents):
@@ -472,7 +472,7 @@ def create_link_without_raise(source, link):
         else:
             LOG.warn(_LW("Failed to create symlink from %(source)s to %(link)s"
                          ", error: %(e)s"),
-                         {'source': source, 'link': link, 'e': e})
+                     {'source': source, 'link': link, 'e': e})
 
 
 def safe_rstrip(value, chars=None):
@@ -558,7 +558,7 @@ def check_dir(directory_to_check=None, required_space=1):
     # check if directory_to_check is passed in, if not set to tempdir
     if directory_to_check is None:
         directory_to_check = (tempfile.gettempdir() if CONF.tempdir
-                is None else CONF.tempdir)
+                              is None else CONF.tempdir)
 
     LOG.debug("checking directory: %s", directory_to_check)
 

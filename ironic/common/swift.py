@@ -30,7 +30,7 @@ swift_opts = [
                default=2,
                help='Maximum number of times to retry a Swift request, '
                     'before failing.')
-    ]
+]
 
 
 CONF = cfg.CONF

@@ -54,11 +54,11 @@ clean_opts = [
                help='Priority for erase devices clean step. If unset, '
                     'it defaults to 10. If set to 0, the step will be '
                     'disabled and will not run during cleaning.')
-              ]
+]
 
 REQUIRED_PROPERTIES = {
     'ilo_deploy_iso': _("UUID (from Glance) of the deployment ISO. "
-                    "Required.")
+                        "Required.")
 }
 COMMON_PROPERTIES = REQUIRED_PROPERTIES
 
@@ -131,8 +131,8 @@ def _get_boot_iso(task, root_uuid):
 
     image_href = deploy_info['image_source']
     image_properties = (
-        images.get_image_properties(task.context,
-            image_href, ['boot_iso', 'kernel_id', 'ramdisk_id']))
+        images.get_image_properties(
+            task.context, image_href, ['boot_iso', 'kernel_id', 'ramdisk_id']))
 
     boot_iso_uuid = image_properties.get('boot_iso')
     kernel_href = (task.node.instance_info.get('kernel') or
@@ -448,7 +448,7 @@ class IloVirtualMediaIscsiDeploy(base.DeployInterface):
         # user to tear down such a Node.
         except exception.IloOperationNotSupported:
             LOG.warn(_LW('Secure boot mode is not supported for node %s'),
-                         task.node.uuid)
+                     task.node.uuid)
         return states.DELETED
 
     def prepare(self, task):
@@ -528,7 +528,7 @@ class IloVirtualMediaAgentDeploy(base.DeployInterface):
         # Node.
         except exception.IloOperationNotSupported:
             LOG.warn(_LW('Secure boot mode is not supported for node %s'),
-                         task.node.uuid)
+                     task.node.uuid)
         return states.DELETED
 
     def prepare(self, task):

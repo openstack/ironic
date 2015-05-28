@@ -44,8 +44,7 @@ class SqlAlchemyCustomTypesTestCase(base.DbTestCase):
     def test_JSONEncodedDict_type_check(self):
         self.assertRaises(db_exc.DBError,
                           self.dbapi.create_chassis,
-                          {'extra':
-                               ['this is not a dict']})
+                          {'extra': ['this is not a dict']})
 
     def test_JSONEncodedLict_default_value(self):
         # Create conductor w/o extra specified.

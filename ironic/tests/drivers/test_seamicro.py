@@ -82,9 +82,9 @@ class SeaMicroValidateParametersTestCase(db_base.DbTestCase):
     def test__parse_driver_info_good(self):
         # make sure we get back the expected things
         node = obj_utils.get_test_node(
-                self.context,
-                driver='fake_seamicro',
-                driver_info=INFO_DICT)
+            self.context,
+            driver='fake_seamicro',
+            driver_info=INFO_DICT)
         info = seamicro._parse_driver_info(node)
         self.assertIsNotNone(info.get('api_endpoint'))
         self.assertIsNotNone(info.get('username'))
@@ -617,8 +617,8 @@ class SeaMicroDriverTestCase(db_base.DbTestCase):
     @mock.patch.object(console_utils, 'start_shellinabox_console',
                        autospec=True)
     def test_start_console_fail(self, mock_exec):
-        mock_exec.side_effect = exception.ConsoleSubprocessFailed(
-                error='error')
+        mock_exec.side_effect = (
+            exception.ConsoleSubprocessFailed(error='error'))
 
         with task_manager.acquire(self.context,
                                   self.node.uuid) as task:

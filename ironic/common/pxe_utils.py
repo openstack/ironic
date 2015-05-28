@@ -115,7 +115,7 @@ def _link_ip_address_pxe_configs(task):
         ip_address_path = _get_pxe_ip_address_path(port_ip_address)
         utils.unlink_without_raise(ip_address_path)
         utils.create_link_without_raise(pxe_config_file_path,
-                                         ip_address_path)
+                                        ip_address_path)
 
 
 def _get_pxe_mac_path(mac, delimiter=None):

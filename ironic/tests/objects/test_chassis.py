@@ -69,7 +69,7 @@ class TestChassisObject(base.DbTestCase):
 
                 mock_get_chassis.assert_called_once_with(uuid)
                 mock_update_chassis.assert_called_once_with(
-                        uuid, {'extra': {"test": 123}})
+                    uuid, {'extra': {"test": 123}})
                 self.assertEqual(self.context, c._context)
 
     def test_refresh(self):

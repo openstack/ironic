@@ -77,7 +77,7 @@ class AgentClient(object):
                 'Unable to decode response as JSON.\n'
                 'Request URL: %(url)s\nRequest body: "%(body)s"\n'
                 'Response: "%(response)s"'
-                ) % ({'response': response.text, 'body': body, 'url': url})
+            ) % ({'response': response.text, 'body': body, 'url': url})
             LOG.error(msg)
             raise exception.IronicException(msg)
 

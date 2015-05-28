@@ -188,9 +188,10 @@ class AMTManagement(base.ManagementInterface):
         node = task.node
 
         if device not in amt_common.BOOT_DEVICES_MAPPING:
-            raise exception.InvalidParameterValue(_("set_boot_device called "
-                    "with invalid device %(device)s for node %(node_id)s.") %
-                    {'device': device, 'node_id': node.uuid})
+            raise exception.InvalidParameterValue(
+                _("set_boot_device called with invalid device "
+                  "%(device)s for node %(node_id)s."
+                  ) % {'device': device, 'node_id': node.uuid})
 
         # AMT/vPro doesn't support set boot_device persistent, so we have to
         # save amt_boot_device/amt_boot_persistent in driver_internal_info.
@@ -233,7 +234,7 @@ class AMTManagement(base.ManagementInterface):
         driver_internal_info = node.driver_internal_info
         if not driver_internal_info.get('amt_boot_persistent'):
             driver_internal_info['amt_boot_device'] = (
-                                amt_common.DEFAULT_BOOT_DEVICE)
+                amt_common.DEFAULT_BOOT_DEVICE)
             driver_internal_info['amt_boot_persistent'] = True
             node.driver_internal_info = driver_internal_info
             node.save()

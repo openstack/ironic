@@ -58,12 +58,12 @@ class PXEValidateParametersTestCase(db_base.DbTestCase):
     def test__parse_deploy_info(self):
         # make sure we get back the expected things
         node = obj_utils.create_test_node(
-                    self.context,
-                    driver='fake_pxe',
-                    instance_info=INST_INFO_DICT,
-                    driver_info=DRV_INFO_DICT,
-                    driver_internal_info=DRV_INTERNAL_INFO_DICT,
-               )
+            self.context,
+            driver='fake_pxe',
+            instance_info=INST_INFO_DICT,
+            driver_info=DRV_INFO_DICT,
+            driver_internal_info=DRV_INTERNAL_INFO_DICT,
+        )
 
         info = pxe._parse_deploy_info(node)
         self.assertIsNotNone(info.get('deploy_ramdisk'))
@@ -78,8 +78,8 @@ class PXEValidateParametersTestCase(db_base.DbTestCase):
         del info['deploy_kernel']
         node = obj_utils.create_test_node(self.context, driver_info=info)
         self.assertRaises(exception.MissingParameterValue,
-                pxe._parse_driver_info,
-                node)
+                          pxe._parse_driver_info,
+                          node)
 
     def test__parse_driver_info_missing_deploy_ramdisk(self):
         # make sure error is raised when info is missing
@@ -87,8 +87,8 @@ class PXEValidateParametersTestCase(db_base.DbTestCase):
         del info['deploy_ramdisk']
         node = obj_utils.create_test_node(self.context, driver_info=info)
         self.assertRaises(exception.MissingParameterValue,
-                pxe._parse_driver_info,
-                node)
+                          pxe._parse_driver_info,
+                          node)
 
     def test__parse_driver_info_good(self):
         # make sure we get back the expected things
@@ -105,10 +105,10 @@ class PXEPrivateMethodsTestCase(db_base.DbTestCase):
     def setUp(self):
         super(PXEPrivateMethodsTestCase, self).setUp()
         n = {
-              'driver': 'fake_pxe',
-              'instance_info': INST_INFO_DICT,
-              'driver_info': DRV_INFO_DICT,
-              'driver_internal_info': DRV_INTERNAL_INFO_DICT,
+            'driver': 'fake_pxe',
+            'instance_info': INST_INFO_DICT,
+            'driver_info': DRV_INFO_DICT,
+            'driver_internal_info': DRV_INTERNAL_INFO_DICT,
         }
         mgr_utils.mock_the_extension_manager(driver="fake_pxe")
         self.node = obj_utils.create_test_node(self.context, **n)
@@ -117,7 +117,7 @@ class PXEPrivateMethodsTestCase(db_base.DbTestCase):
                        autospec=True)
     def _test__get_image_info(self, show_mock):
         properties = {'properties': {u'kernel_id': u'instance_kernel_uuid',
-                     u'ramdisk_id': u'instance_ramdisk_uuid'}}
+                      u'ramdisk_id': u'instance_ramdisk_uuid'}}
 
         expected_info = {'ramdisk':
                          ('instance_ramdisk_uuid',
@@ -131,9 +131,9 @@ class PXEPrivateMethodsTestCase(db_base.DbTestCase):
                                        'kernel')),
                          'deploy_ramdisk':
                          (DRV_INFO_DICT['deploy_ramdisk'],
-                           os.path.join(CONF.pxe.tftp_root,
-                                        self.node.uuid,
-                                        'deploy_ramdisk')),
+                          os.path.join(CONF.pxe.tftp_root,
+                                       self.node.uuid,
+                                       'deploy_ramdisk')),
                          'deploy_kernel':
                          (DRV_INFO_DICT['deploy_kernel'],
                           os.path.join(CONF.pxe.tftp_root,
@@ -174,9 +174,9 @@ class PXEPrivateMethodsTestCase(db_base.DbTestCase):
 
         expected_info = {'deploy_ramdisk':
                          (DRV_INFO_DICT['deploy_ramdisk'],
-                           os.path.join(CONF.pxe.tftp_root,
-                                        self.node.uuid,
-                                        'deploy_ramdisk')),
+                          os.path.join(CONF.pxe.tftp_root,
+                                       self.node.uuid,
+                                       'deploy_ramdisk')),
                          'deploy_kernel':
                          (DRV_INFO_DICT['deploy_kernel'],
                           os.path.join(CONF.pxe.tftp_root,
@@ -199,15 +199,15 @@ class PXEPrivateMethodsTestCase(db_base.DbTestCase):
         self.config(disk_devices='sda', group='pxe')
 
         fake_deploy_opts = {
-                            'iscsi_target_iqn': 'fake-iqn',
-                            'deployment_id': 'fake-deploy-id',
-                            'deployment_key': 'fake-deploy-key',
-                            'disk': 'fake-disk',
-                            'ironic_api_url': 'fake-api-url',
-                            'boot_option': 'netboot',
-                            'boot_mode': 'bios',
-                            'coreos.configdrive': 0,
-                           }
+            'iscsi_target_iqn': 'fake-iqn',
+            'deployment_id': 'fake-deploy-id',
+            'deployment_key': 'fake-deploy-key',
+            'disk': 'fake-disk',
+            'ironic_api_url': 'fake-api-url',
+            'boot_option': 'netboot',
+            'boot_mode': 'bios',
+            'coreos.configdrive': 0,
+        }
 
         deploy_opts_mock.return_value = fake_deploy_opts
         self.node.driver_internal_info['is_whole_disk_image'] = whle_dsk_img
@@ -230,7 +230,7 @@ class PXEPrivateMethodsTestCase(db_base.DbTestCase):
             deploy_kernel = os.path.join(CONF.pxe.tftp_root, self.node.uuid,
                                          'deploy_kernel')
             deploy_ramdisk = os.path.join(CONF.pxe.tftp_root, self.node.uuid,
-                                         'deploy_ramdisk')
+                                          'deploy_ramdisk')
             kernel = os.path.join(CONF.pxe.tftp_root, self.node.uuid,
                                   'kernel')
             ramdisk = os.path.join(CONF.pxe.tftp_root, self.node.uuid,
@@ -328,7 +328,7 @@ class PXEPrivateMethodsTestCase(db_base.DbTestCase):
             deploy_kernel = os.path.join(CONF.pxe.tftp_root, self.node.uuid,
                                          'deploy_kernel')
             deploy_ramdisk = os.path.join(CONF.pxe.tftp_root, self.node.uuid,
-                                         'deploy_ramdisk')
+                                          'deploy_ramdisk')
             root_dir = CONF.pxe.tftp_root
 
         expected_options = {
@@ -463,11 +463,11 @@ class PXEDriverTestCase(db_base.DbTestCase):
         instance_info = INST_INFO_DICT
         instance_info['deploy_key'] = 'fake-56789'
         self.node = obj_utils.create_test_node(
-                        self.context,
-                        driver='fake_pxe',
-                        instance_info=instance_info,
-                        driver_info=DRV_INFO_DICT,
-                        driver_internal_info=DRV_INTERNAL_INFO_DICT)
+            self.context,
+            driver='fake_pxe',
+            instance_info=instance_info,
+            driver_info=DRV_INFO_DICT,
+            driver_internal_info=DRV_INTERNAL_INFO_DICT)
         self.port = obj_utils.create_test_port(self.context,
                                                node_id=self.node.id)
         self.config(group='conductor', api_url='http://127.0.0.1:1234/')
@@ -556,10 +556,10 @@ class PXEDriverTestCase(db_base.DbTestCase):
 
     def test_validate_fail_no_port(self):
         new_node = obj_utils.create_test_node(
-                self.context,
-                uuid='aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee',
-                driver='fake_pxe', instance_info=INST_INFO_DICT,
-                driver_info=DRV_INFO_DICT)
+            self.context,
+            uuid='aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee',
+            driver='fake_pxe', instance_info=INST_INFO_DICT,
+            driver_info=DRV_INFO_DICT)
         with task_manager.acquire(self.context, new_node.uuid,
                                   shared=True) as task:
             self.assertRaises(exception.MissingParameterValue,
@@ -760,13 +760,13 @@ class PXEDriverTestCase(db_base.DbTestCase):
     @mock.patch.object(deploy_utils, 'switch_pxe_config', autospec=True)
     @mock.patch.object(driver_utils, 'get_node_capability', autospec=True)
     def _test_prepare_node_active(self,
-                                 mock_get_cap,
-                                 mock_switch,
-                                 mock_pxe_get_cfg,
-                                 mock_pxe_config,
-                                 mock_build_pxe,
-                                 mock_cache_r_k,
-                                 mock_img_info):
+                                  mock_get_cap,
+                                  mock_switch,
+                                  mock_pxe_get_cfg,
+                                  mock_pxe_config,
+                                  mock_build_pxe,
+                                  mock_cache_r_k,
+                                  mock_img_info):
         mock_build_pxe.return_value = None
         mock_img_info.return_value = None
         mock_pxe_get_cfg.return_value = '/path'
@@ -840,7 +840,7 @@ class PXEDriverTestCase(db_base.DbTestCase):
         with task_manager.acquire(self.context,
                                   self.node.uuid, shared=False) as task:
             self.assertRaises(exception.InstanceDeployFailure,
-                task.driver.deploy.deploy, task)
+                              task.driver.deploy.deploy, task)
             mock_cache_instance_image.assert_called_once_with(
                 self.context, task.node)
             mock_get_image_file_path.assert_called_once_with(task.node.uuid)
@@ -913,7 +913,7 @@ class PXEDriverTestCase(db_base.DbTestCase):
 
         with task_manager.acquire(self.context, self.node.uuid) as task:
             task.driver.vendor.pass_deploy_info(
-                    task, address='123456', iqn='aaa-bbb', key='fake-56789')
+                task, address='123456', iqn='aaa-bbb', key='fake-56789')
 
         self.node.refresh()
         self.assertEqual(states.POWER_ON, self.node.power_state)
@@ -1020,9 +1020,9 @@ class PXEDriverTestCase(db_base.DbTestCase):
 
         with task_manager.acquire(self.context, self.node.uuid) as task:
             self.assertRaises(exception.InvalidState,
-                    task.driver.vendor.pass_deploy_info,
-                    task, address='123456', iqn='aaa-bbb',
-                    key='fake-56789', error='test ramdisk error')
+                              task.driver.vendor.pass_deploy_info,
+                              task, address='123456', iqn='aaa-bbb',
+                              key='fake-56789', error='test ramdisk error')
 
         self.node.refresh()
         self.assertEqual(states.AVAILABLE, self.node.provision_state)
@@ -1038,7 +1038,7 @@ class PXEDriverTestCase(db_base.DbTestCase):
 
                 # lock elevated w/o exception
                 self.assertEqual(1, _cont_deploy_mock.call_count,
-                            "pass_deploy_info was not called once.")
+                                 "pass_deploy_info was not called once.")
 
     def test_vendor_routes(self):
         expected = ['heartbeat', 'pass_deploy_info',
@@ -1070,11 +1070,11 @@ class CleanUpTestCase(db_base.DbTestCase):
         instance_info = INST_INFO_DICT
         instance_info['deploy_key'] = 'fake-56789'
         self.node = obj_utils.create_test_node(
-                        self.context, driver='fake_pxe',
-                        instance_info=instance_info,
-                        driver_info=DRV_INFO_DICT,
-                        driver_internal_info=DRV_INTERNAL_INFO_DICT,
-                    )
+            self.context, driver='fake_pxe',
+            instance_info=instance_info,
+            driver_info=DRV_INFO_DICT,
+            driver_internal_info=DRV_INTERNAL_INFO_DICT,
+        )
 
     def test_clean_up(self, mock_image_info, mock_cache, mock_pxe_clean,
                       mock_iscsi_clean, mock_unlink):
@@ -1113,11 +1113,11 @@ class CleanUpFullFlowTestCase(db_base.DbTestCase):
         instance_info = INST_INFO_DICT
         instance_info['deploy_key'] = 'fake-56789'
         self.node = obj_utils.create_test_node(
-                        self.context, driver='fake_pxe',
-                        instance_info=instance_info,
-                        driver_info=DRV_INFO_DICT,
-                        driver_internal_info=DRV_INTERNAL_INFO_DICT,
-                    )
+            self.context, driver='fake_pxe',
+            instance_info=instance_info,
+            driver_info=DRV_INFO_DICT,
+            driver_internal_info=DRV_INTERNAL_INFO_DICT,
+        )
         self.port = obj_utils.create_test_port(self.context,
                                                node_id=self.node.id)
 
@@ -1144,7 +1144,7 @@ class CleanUpFullFlowTestCase(db_base.DbTestCase):
         self.master_kernel_path = os.path.join(CONF.pxe.tftp_master_path,
                                                'kernel')
         self.master_instance_path = os.path.join(CONF.pxe.instance_master_path,
-                                                'image_uuid')
+                                                 'image_uuid')
         self.node_tftp_dir = os.path.join(CONF.pxe.tftp_root,
                                           self.node.uuid)
         os.makedirs(self.node_tftp_dir)
@@ -1193,11 +1193,11 @@ class TestAgentVendorPassthru(db_base.DbTestCase):
         self.driver = driver_factory.get_driver("fake")
         self.driver.vendor = pxe.VendorPassthru()
         self.node = obj_utils.create_test_node(
-                        self.context, driver='fake',
-                        instance_info=INST_INFO_DICT,
-                        driver_info=DRV_INFO_DICT,
-                        driver_internal_info=DRV_INTERNAL_INFO_DICT,
-                    )
+            self.context, driver='fake',
+            instance_info=INST_INFO_DICT,
+            driver_info=DRV_INFO_DICT,
+            driver_internal_info=DRV_INTERNAL_INFO_DICT,
+        )
         self.node.driver_internal_info['agent_url'] = 'http://1.2.3.4:1234'
         self.task = mock.MagicMock(spec=task_manager.TaskManager)
         self.task.shared = False
@@ -1267,7 +1267,7 @@ class TestAgentVendorPassthru(db_base.DbTestCase):
             'capabilities': {'boot_option': 'local'}}
         self.node.save()
         uuid_dict_returned = {'root uuid': 'some-root-uuid',
-            'efi system partition uuid': 'efi-part-uuid'}
+                              'efi system partition uuid': 'efi-part-uuid'}
         do_agent_iscsi_deploy_mock.return_value = uuid_dict_returned
 
         self.driver.vendor.continue_deploy(self.task)

@@ -74,9 +74,9 @@ class RPCService(service.Service):
         self.handle_signal()
         self.manager.init_host()
         self.tg.add_dynamic_timer(
-                self.manager.periodic_tasks,
-                periodic_interval_max=cfg.CONF.periodic_interval,
-                context=admin_context)
+            self.manager.periodic_tasks,
+            periodic_interval_max=cfg.CONF.periodic_interval,
+            context=admin_context)
 
         LOG.info(_LI('Created RPC server for service %(service)s on host '
                      '%(host)s.'),

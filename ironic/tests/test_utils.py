@@ -112,11 +112,11 @@ exit 1
             runs = fp.read()
             fp.close()
             self.assertNotEqual(runs.strip(), 'failure', 'stdin did not '
-                                                          'always get passed '
-                                                          'correctly')
+                                'always get passed '
+                                'correctly')
             runs = int(runs.strip())
             self.assertEqual(10, runs,
-                              'Ran %d times instead of 10.' % (runs,))
+                             'Ran %d times instead of 10.' % (runs,))
         finally:
             os.unlink(tmpfilename)
             os.unlink(tmpfilename2)
@@ -295,11 +295,11 @@ class GenericUtilsTestCase(base.TestCase):
     def test_is_valid_ipv6_cidr(self):
         self.assertTrue(utils.is_valid_ipv6_cidr("2600::/64"))
         self.assertTrue(utils.is_valid_ipv6_cidr(
-                "abcd:ef01:2345:6789:abcd:ef01:192.168.254.254/48"))
+            "abcd:ef01:2345:6789:abcd:ef01:192.168.254.254/48"))
         self.assertTrue(utils.is_valid_ipv6_cidr(
-                "0000:0000:0000:0000:0000:0000:0000:0001/32"))
+            "0000:0000:0000:0000:0000:0000:0000:0001/32"))
         self.assertTrue(utils.is_valid_ipv6_cidr(
-                "0000:0000:0000:0000:0000:0000:0000:0001"))
+            "0000:0000:0000:0000:0000:0000:0000:0001"))
         self.assertFalse(utils.is_valid_ipv6_cidr("foo"))
         self.assertFalse(utils.is_valid_ipv6_cidr("127.0.0.1"))
 
@@ -308,10 +308,10 @@ class GenericUtilsTestCase(base.TestCase):
                          utils.get_shortened_ipv6(
                              "abcd:ef01:2345:6789:abcd:ef01:192.168.254.254"))
         self.assertEqual("::1", utils.get_shortened_ipv6(
-                                    "0000:0000:0000:0000:0000:0000:0000:0001"))
+            "0000:0000:0000:0000:0000:0000:0000:0001"))
         self.assertEqual("caca::caca:0:babe:201:102",
-                          utils.get_shortened_ipv6(
-                                    "caca:0000:0000:caca:0000:babe:0201:0102"))
+                         utils.get_shortened_ipv6(
+                             "caca:0000:0000:caca:0000:babe:0201:0102"))
         self.assertRaises(netaddr.AddrFormatError, utils.get_shortened_ipv6,
                           "127.0.0.1")
         self.assertRaises(netaddr.AddrFormatError, utils.get_shortened_ipv6,
@@ -319,9 +319,9 @@ class GenericUtilsTestCase(base.TestCase):
 
     def test_get_shortened_ipv6_cidr(self):
         self.assertEqual("2600::/64", utils.get_shortened_ipv6_cidr(
-                "2600:0000:0000:0000:0000:0000:0000:0000/64"))
+            "2600:0000:0000:0000:0000:0000:0000:0000/64"))
         self.assertEqual("2600::/64", utils.get_shortened_ipv6_cidr(
-                "2600::1/64"))
+            "2600::1/64"))
         self.assertRaises(netaddr.AddrFormatError,
                           utils.get_shortened_ipv6_cidr,
                           "127.0.0.1")
@@ -508,7 +508,7 @@ class TempFilesTestCase(base.TestCase):
     @mock.patch.object(utils, '_check_dir_free_space', autospec=True)
     @mock.patch.object(tempfile, 'gettempdir', autospec=True)
     def test_check_dir_with_conf(self, mock_gettempdir, mock_free_space,
-                              mock_dir_writable, mock_exists):
+                                 mock_dir_writable, mock_exists):
         self.config(tempdir='/fake/path')
         mock_exists.return_value = True
 
@@ -522,7 +522,7 @@ class TempFilesTestCase(base.TestCase):
     @mock.patch.object(utils, '_check_dir_free_space', autospec=True)
     @mock.patch.object(tempfile, 'gettempdir', autospec=True)
     def test_check_dir_with_pass_in(self, mock_gettempdir, mock_free_space,
-                              mock_dir_writable, mock_exists):
+                                    mock_dir_writable, mock_exists):
         mock_exists.return_value = True
         # test passing in a directory and size
         utils.check_dir(directory_to_check='/fake/path', required_space=5)
@@ -552,7 +552,7 @@ class TempFilesTestCase(base.TestCase):
     @mock.patch.object(utils, '_check_dir_free_space', autospec=True)
     @mock.patch.object(tempfile, 'gettempdir', autospec=True)
     def test_check_dir_ok(self, mock_gettempdir, mock_dir_writable,
-                                  mock_free_space, mock_exists):
+                          mock_free_space, mock_exists):
         mock_gettempdir.return_value = "/fake/path"
         mock_exists.return_value = True
 

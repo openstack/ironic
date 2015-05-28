@@ -46,9 +46,9 @@ def main():
     host = CONF.api.host_ip
     port = CONF.api.port
     wsgi = simple_server.make_server(
-            host, port,
-            app.VersionSelectorApplication(),
-            server_class=ThreadedSimpleServer)
+        host, port,
+        app.VersionSelectorApplication(),
+        server_class=ThreadedSimpleServer)
 
     LOG = log.getLogger(__name__)
     LOG.info(_LI("Serving on http://%(host)s:%(port)s"),

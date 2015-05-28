@@ -63,8 +63,8 @@ class PolicyTestCaseNegative(base.TestCase):
 
     def test_trusted_call(self):
         creds = ({'roles': ['Member']},
-                {'is_public_api': 'False'},
-                {'roles': ['Member'], 'is_public_api': 'False'})
+                 {'is_public_api': 'False'},
+                 {'roles': ['Member'], 'is_public_api': 'False'})
 
         for c in creds:
             self.assertFalse(policy.enforce('trusted_call', c, c))

@@ -97,7 +97,7 @@ def node_power_action(task, new_state):
         if curr_state == states.ERROR:
             # be optimistic and continue action
             LOG.warn(_LW("Driver returns ERROR power state for node %s."),
-                          node.uuid)
+                     node.uuid)
 
     # Set the target_power_state and clear any last_error, if we're
     # starting a new operation. This will expose to other processes
@@ -137,7 +137,7 @@ def cleanup_after_timeout(task):
     """
     node = task.node
     msg = (_('Timeout reached while waiting for callback for node %s')
-             % node.uuid)
+           % node.uuid)
     node.last_error = msg
     LOG.error(msg)
     node.save()

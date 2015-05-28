@@ -526,9 +526,8 @@ class PhysicalWorkTestCase(tests_base.TestCase):
         parent_mock.get_image_mb.return_value = 1
         parent_mock.is_block_device.return_value = True
         parent_mock.block_uuid.return_value = root_uuid
-        parent_mock.make_partitions.return_value = {'swap': swap_part,
-                                                   'ephemeral': ephemeral_part,
-                                                   'root': root_part}
+        parent_mock.make_partitions.return_value = {
+            'swap': swap_part, 'ephemeral': ephemeral_part, 'root': root_part}
         calls_expected = [mock.call.get_image_mb(image_path),
                           mock.call.get_dev(address, port, iqn, lun),
                           mock.call.discovery(address, port),
@@ -593,9 +592,8 @@ class PhysicalWorkTestCase(tests_base.TestCase):
         parent_mock.get_image_mb.return_value = 1
         parent_mock.is_block_device.return_value = True
         parent_mock.block_uuid.return_value = root_uuid
-        parent_mock.make_partitions.return_value = {'swap': swap_part,
-                                                   'ephemeral': ephemeral_part,
-                                                   'root': root_part}
+        parent_mock.make_partitions.return_value = {
+            'swap': swap_part, 'ephemeral': ephemeral_part, 'root': root_part}
         parent_mock.block_uuid.return_value = root_uuid
         calls_expected = [mock.call.get_image_mb(image_path),
                           mock.call.get_dev(address, port, iqn, lun),
@@ -729,7 +727,7 @@ class PhysicalWorkTestCase(tests_base.TestCase):
         iqn = 'iqn.xyz'
         mock_exec.return_value = ['iqn.abc', '']
         self.assertRaises(exception.InstanceDeployFailure,
-                utils.verify_iscsi_connection, iqn)
+                          utils.verify_iscsi_connection, iqn)
         self.assertEqual(3, mock_exec.call_count)
 
     @mock.patch.object(os.path, 'exists', autospec=True)
@@ -739,7 +737,8 @@ class PhysicalWorkTestCase(tests_base.TestCase):
         port = "22"
         mock_os.return_value = False
         self.assertRaises(exception.InstanceDeployFailure,
-                utils.check_file_system_for_iscsi_device, ip, port, iqn)
+                          utils.check_file_system_for_iscsi_device,
+                          ip, port, iqn)
         self.assertEqual(3, mock_os.call_count)
 
     @mock.patch.object(os.path, 'exists', autospec=True)
@@ -760,22 +759,24 @@ class PhysicalWorkTestCase(tests_base.TestCase):
         iqn = 'iqn.xyz'
         mock_exec.return_value = ['iqn.xyz', '']
         utils.verify_iscsi_connection(iqn)
-        mock_exec.assert_called_once_with('iscsiadm',
-                  '-m', 'node',
-                  '-S',
-                  run_as_root=True,
-                  check_exit_code=[0])
+        mock_exec.assert_called_once_with(
+            'iscsiadm',
+            '-m', 'node',
+            '-S',
+            run_as_root=True,
+            check_exit_code=[0])
 
     @mock.patch.object(common_utils, 'execute', autospec=True)
     def test_force_iscsi_lun_update(self, mock_exec):
         iqn = 'iqn.xyz'
         utils.force_iscsi_lun_update(iqn)
-        mock_exec.assert_called_once_with('iscsiadm',
-                  '-m', 'node',
-                  '-T', iqn,
-                  '-R',
-                  run_as_root=True,
-                  check_exit_code=[0])
+        mock_exec.assert_called_once_with(
+            'iscsiadm',
+            '-m', 'node',
+            '-T', iqn,
+            '-R',
+            run_as_root=True,
+            check_exit_code=[0])
 
     @mock.patch.object(common_utils, 'execute', autospec=True)
     @mock.patch.object(utils, 'verify_iscsi_connection', autospec=True)
@@ -792,7 +793,8 @@ class PhysicalWorkTestCase(tests_base.TestCase):
         iqn = 'iqn.xyz'
         mock_exec.return_value = ['iqn.xyz', '']
         utils.login_iscsi(address, port, iqn)
-        mock_exec.assert_called_once_with('iscsiadm',
+        mock_exec.assert_called_once_with(
+            'iscsiadm',
             '-m', 'node',
             '-p', '%s:%s' % (address, port),
             '-T', iqn,
@@ -1225,8 +1227,8 @@ class DestroyMetaDataTestCase(tests_base.TestCase):
         mock_gz.side_effect = processutils.ProcessExecutionError
 
         expected_call = [mock.call('dd', 'if=/dev/zero', 'of=fake-dev',
-                            'bs=512', 'count=36', run_as_root=True,
-                            check_exit_code=[0])]
+                                   'bs=512', 'count=36', run_as_root=True,
+                                   check_exit_code=[0])]
         self.assertRaises(processutils.ProcessExecutionError,
                           utils.destroy_disk_metadata,
                           self.dev,
@@ -1237,8 +1239,8 @@ class DestroyMetaDataTestCase(tests_base.TestCase):
         mock_exec.side_effect = processutils.ProcessExecutionError
 
         expected_call = [mock.call('dd', 'if=/dev/zero', 'of=fake-dev',
-                            'bs=512', 'count=36', run_as_root=True,
-                            check_exit_code=[0])]
+                                   'bs=512', 'count=36', run_as_root=True,
+                                   check_exit_code=[0])]
         self.assertRaises(processutils.ProcessExecutionError,
                           utils.destroy_disk_metadata,
                           self.dev,
@@ -1258,7 +1260,7 @@ class GetDeviceBlockSizeTestCase(tests_base.TestCase):
     def test_get_dev_block_size(self, mock_exec):
         mock_exec.return_value = ("64", "")
         expected_call = [mock.call('blockdev', '--getsz', self.dev,
-                                     run_as_root=True, check_exit_code=[0])]
+                                   run_as_root=True, check_exit_code=[0])]
         utils.get_dev_block_size(self.dev)
         mock_exec.assert_has_calls(expected_call)
 
@@ -1453,13 +1455,14 @@ class VirtualMediaDeployUtilsTestCase(db_base.DbTestCase):
         super(VirtualMediaDeployUtilsTestCase, self).setUp()
         mgr_utils.mock_the_extension_manager(driver="iscsi_ilo")
         info_dict = db_utils.get_test_ilo_info()
-        self.node = obj_utils.create_test_node(self.context,
-        driver='iscsi_ilo', driver_info=info_dict)
+        self.node = obj_utils.create_test_node(
+            self.context, driver='iscsi_ilo', driver_info=info_dict)
 
     def test_get_single_nic_with_vif_port_id(self):
-        obj_utils.create_test_port(self.context, node_id=self.node.id,
-                address='aa:bb:cc', uuid=uuidutils.generate_uuid(),
-                extra={'vif_port_id': 'test-vif-A'}, driver='iscsi_ilo')
+        obj_utils.create_test_port(
+            self.context, node_id=self.node.id, address='aa:bb:cc',
+            uuid=uuidutils.generate_uuid(),
+            extra={'vif_port_id': 'test-vif-A'}, driver='iscsi_ilo')
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
             address = utils.get_single_nic_with_vif_port_id(task)
@@ -1541,15 +1544,15 @@ class TrySetBootDeviceTestCase(db_base.DbTestCase):
 
     @mock.patch.object(utils, 'LOG', autospec=True)
     @mock.patch.object(manager_utils, 'node_set_boot_device', autospec=True)
-    def test_try_set_boot_device_ipmifailure_uefi(self,
-            node_set_boot_device_mock, log_mock):
+    def test_try_set_boot_device_ipmifailure_uefi(
+            self, node_set_boot_device_mock, log_mock):
         self.node.properties = {'capabilities': 'boot_mode:uefi'}
         self.node.save()
         node_set_boot_device_mock.side_effect = exception.IPMIFailure(cmd='a')
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
             utils.try_set_boot_device(task, boot_devices.DISK,
-                                             persistent=True)
+                                      persistent=True)
             node_set_boot_device_mock.assert_called_once_with(
                 task, boot_devices.DISK, persistent=True)
             log_mock.warning.assert_called_once_with(mock.ANY)
@@ -1690,8 +1693,8 @@ class AgentCleaningTestCase(db_base.DbTestCase):
                 spec_set=types.FunctionType)
     @mock.patch.object(agent_client.AgentClient, 'execute_clean_step',
                        autospec=True)
-    def test_execute_clean_step_version_mismatch(self, client_mock,
-                                        list_ports_mock):
+    def test_execute_clean_step_version_mismatch(
+            self, client_mock, list_ports_mock):
         client_mock.return_value = {
             'command_status': 'RUNNING'}
         list_ports_mock.return_value = self.ports
@@ -1733,8 +1736,8 @@ class ISCSISetupAndHandleErrorsTestCase(tests_base.TestCase):
         lun = 1
         expected_dev = '/dev/fake'
         mock_ibd.return_value = True
-        with utils._iscsi_setup_and_handle_errors(address, port,
-                                iqn, lun) as dev:
+        with utils._iscsi_setup_and_handle_errors(
+                address, port, iqn, lun) as dev:
             self.assertEqual(expected_dev, dev)
 
         mock_ibd.assert_called_once_with(expected_dev)

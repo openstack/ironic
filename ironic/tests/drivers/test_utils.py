@@ -59,16 +59,18 @@ class UtilsTestCase(db_base.DbTestCase):
     def test_get_node_mac_addresses(self):
         ports = []
         ports.append(
-            obj_utils.create_test_port(self.context,
-                    address='aa:bb:cc',
-                    uuid='bb43dc0b-03f2-4d2e-ae87-c02d7f33cc53',
-                    node_id=self.node.id)
+            obj_utils.create_test_port(
+                self.context,
+                address='aa:bb:cc',
+                uuid='bb43dc0b-03f2-4d2e-ae87-c02d7f33cc53',
+                node_id=self.node.id)
         )
         ports.append(
-            obj_utils.create_test_port(self.context,
-                    address='dd:ee:ff',
-                    uuid='4fc26c0b-03f2-4d2e-ae87-c02d7f33c234',
-                    node_id=self.node.id)
+            obj_utils.create_test_port(
+                self.context,
+                address='dd:ee:ff',
+                uuid='4fc26c0b-03f2-4d2e-ae87-c02d7f33c234',
+                node_id=self.node.id)
         )
         with task_manager.acquire(self.context, self.node.uuid) as task:
             node_macs = driver_utils.get_node_mac_addresses(task)
@@ -141,7 +143,8 @@ class UtilsTestCase(db_base.DbTestCase):
         self.node.properties = properties
 
         self.assertRaises(exception.InvalidParameterValue,
-                   driver_utils.validate_boot_mode_capability, self.node)
+                          driver_utils.validate_boot_mode_capability,
+                          self.node)
 
     def test_validate_boot_option_capability(self):
         properties = {'capabilities': 'boot_option:netboot,cap2:value2'}
@@ -155,7 +158,8 @@ class UtilsTestCase(db_base.DbTestCase):
         self.node.properties = properties
 
         self.assertRaises(exception.InvalidParameterValue,
-                   driver_utils.validate_boot_option_capability, self.node)
+                          driver_utils.validate_boot_option_capability,
+                          self.node)
 
     def test_validate_secure_boot_capability(self):
         properties = {'capabilities': 'secure_boot:true,cap2:value2'}

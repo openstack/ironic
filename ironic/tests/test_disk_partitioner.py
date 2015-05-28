@@ -70,8 +70,8 @@ class DiskPartitionerTestCase(base.TestCase):
             'mkpart', 'fake-type', 'fake-fs-type', '1', '2',
             'mkpart', 'fake-type', 'fake-fs-type', '2', '3',
             'set', '2', 'boot', 'on')
-        mock_utils_exc.assert_called_once_with('fuser', '/dev/fake',
-            run_as_root=True, check_exit_code=[0, 1])
+        mock_utils_exc.assert_called_once_with(
+            'fuser', '/dev/fake', run_as_root=True, check_exit_code=[0, 1])
 
     @mock.patch.object(disk_partitioner.DiskPartitioner, '_exec',
                        autospec=True)
@@ -99,8 +99,8 @@ class DiskPartitionerTestCase(base.TestCase):
             'mkpart', 'fake-type', 'fake-fs-type', '1', '2',
             'mkpart', 'fake-type', 'fake-fs-type', '2', '3',
             'set', '2', 'boot', 'on')
-        mock_utils_exc.assert_called_with('fuser', '/dev/fake',
-            run_as_root=True, check_exit_code=[0, 1])
+        mock_utils_exc.assert_called_with(
+            'fuser', '/dev/fake', run_as_root=True, check_exit_code=[0, 1])
         self.assertEqual(2, mock_utils_exc.call_count)
 
     @mock.patch.object(disk_partitioner.DiskPartitioner, '_exec',
@@ -128,8 +128,8 @@ class DiskPartitionerTestCase(base.TestCase):
             'mkpart', 'fake-type', 'fake-fs-type', '1', '2',
             'mkpart', 'fake-type', 'fake-fs-type', '2', '3',
             'set', '2', 'boot', 'on')
-        mock_utils_exc.assert_called_with('fuser', '/dev/fake',
-            run_as_root=True, check_exit_code=[0, 1])
+        mock_utils_exc.assert_called_with(
+            'fuser', '/dev/fake', run_as_root=True, check_exit_code=[0, 1])
         self.assertEqual(20, mock_utils_exc.call_count)
 
     @mock.patch.object(disk_partitioner.DiskPartitioner, '_exec',
@@ -158,8 +158,8 @@ class DiskPartitionerTestCase(base.TestCase):
             'mkpart', 'fake-type', 'fake-fs-type', '1', '2',
             'mkpart', 'fake-type', 'fake-fs-type', '2', '3',
             'set', '2', 'boot', 'on')
-        mock_utils_exc.assert_called_with('fuser', '/dev/fake',
-            run_as_root=True, check_exit_code=[0, 1])
+        mock_utils_exc.assert_called_with(
+            'fuser', '/dev/fake', run_as_root=True, check_exit_code=[0, 1])
         self.assertEqual(20, mock_utils_exc.call_count)
 
 

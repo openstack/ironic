@@ -83,107 +83,106 @@ WORKER_SPAWN_lOCK = "conductor_worker_spawn"
 LOG = log.getLogger(__name__)
 
 conductor_opts = [
-        cfg.StrOpt('api_url',
-                   help=('URL of Ironic API service. If not set ironic can '
-                         'get the current value from the keystone service '
-                         'catalog.')),
-        cfg.IntOpt('heartbeat_interval',
-                   default=10,
-                   help='Seconds between conductor heart beats.'),
-        cfg.IntOpt('heartbeat_timeout',
-                   default=60,
-                   help='Maximum time (in seconds) since the last check-in '
-                        'of a conductor. A conductor is considered inactive '
-                        'when this time has been exceeded.'),
-        cfg.IntOpt('sync_power_state_interval',
-                   default=60,
-                   help='Interval between syncing the node power state to the '
-                        'database, in seconds.'),
-        cfg.IntOpt('check_provision_state_interval',
-                   default=60,
-                   help='Interval between checks of provision timeouts, '
-                        'in seconds.'),
-        cfg.IntOpt('deploy_callback_timeout',
-                   default=1800,
-                   help='Timeout (seconds) to wait for a callback from '
-                        'a deploy ramdisk. Set to 0 to disable timeout.'),
-        cfg.BoolOpt('force_power_state_during_sync',
-                   default=True,
-                   help='During sync_power_state, should the hardware power '
-                        'state be set to the state recorded in the database '
-                        '(True) or should the database be updated based on '
-                        'the hardware state (False).'),
-        cfg.IntOpt('power_state_sync_max_retries',
-                   default=3,
-                   help='During sync_power_state failures, limit the '
-                        'number of times Ironic should try syncing the '
-                        'hardware node power state with the node power state '
-                        'in DB'),
-        cfg.IntOpt('periodic_max_workers',
-                   default=8,
-                   help='Maximum number of worker threads that can be started '
-                        'simultaneously by a periodic task. Should be less '
-                        'than RPC thread pool size.'),
-        cfg.IntOpt('workers_pool_size',
-                   default=100,
-                   help='The size of the workers greenthread pool.'),
-        cfg.IntOpt('node_locked_retry_attempts',
-                   default=3,
-                   help='Number of attempts to grab a node lock.'),
-        cfg.IntOpt('node_locked_retry_interval',
-                   default=1,
-                   help='Seconds to sleep between node lock attempts.'),
-        cfg.BoolOpt('send_sensor_data',
-                   default=False,
-                   help='Enable sending sensor data message via the '
-                        'notification bus'),
-        cfg.IntOpt('send_sensor_data_interval',
-                   default=600,
-                   help='Seconds between conductor sending sensor data message'
-                        ' to ceilometer via the notification bus.'),
-        cfg.ListOpt('send_sensor_data_types',
-                   default=['ALL'],
-                   help='List of comma separated meter types which need to be'
-                        ' sent to Ceilometer. The default value, "ALL", is a '
-                        'special value meaning send all the sensor data.'
-                    ),
-        cfg.IntOpt('sync_local_state_interval',
-                   default=180,
-                   help='When conductors join or leave the cluster, existing '
-                        'conductors may need to update any persistent '
-                        'local state as nodes are moved around the cluster. '
-                        'This option controls how often, in seconds, each '
-                        'conductor will check for nodes that it should '
-                        '"take over". Set it to a negative value to disable '
-                        'the check entirely.'),
-        cfg.BoolOpt('configdrive_use_swift',
-                    default=False,
-                    help='Whether to upload the config drive to Swift.'),
-        cfg.StrOpt('configdrive_swift_container',
-                   default='ironic_configdrive_container',
-                   help='Name of the Swift container to store config drive '
-                        'data. Used when configdrive_use_swift is True.'),
-        cfg.IntOpt('inspect_timeout',
-                   default=1800,
-                   help='Timeout (seconds) for waiting for node inspection. '
-                        '0 - unlimited.'),
-        cfg.BoolOpt('clean_nodes',
-                    default=True,
-                    help='Cleaning is a configurable set of steps, such as '
-                         'erasing disk drives, that are performed on the node '
-                         'to ensure it is in a baseline state and ready to be '
-                         'deployed to. '
-                         'This is done after instance deletion, and during '
-                         'the transition from a "managed" to "available" '
-                         'state. When enabled, the particular steps '
-                         'performed to clean a node depend on which driver '
-                         'that node is managed by; see the individual '
-                         'driver\'s documentation for details. '
-                         'NOTE: The introduction of the cleaning operation '
-                         'causes instance deletion to take significantly '
-                         'longer. In an environment where all tenants are '
-                         'trusted (eg, because there is only one tenant), '
-                         'this option could be safely disabled.'),
+    cfg.StrOpt('api_url',
+               help=('URL of Ironic API service. If not set ironic can '
+                     'get the current value from the keystone service '
+                     'catalog.')),
+    cfg.IntOpt('heartbeat_interval',
+               default=10,
+               help='Seconds between conductor heart beats.'),
+    cfg.IntOpt('heartbeat_timeout',
+               default=60,
+               help='Maximum time (in seconds) since the last check-in '
+                    'of a conductor. A conductor is considered inactive '
+                    'when this time has been exceeded.'),
+    cfg.IntOpt('sync_power_state_interval',
+               default=60,
+               help='Interval between syncing the node power state to the '
+                    'database, in seconds.'),
+    cfg.IntOpt('check_provision_state_interval',
+               default=60,
+               help='Interval between checks of provision timeouts, '
+                    'in seconds.'),
+    cfg.IntOpt('deploy_callback_timeout',
+               default=1800,
+               help='Timeout (seconds) to wait for a callback from '
+                    'a deploy ramdisk. Set to 0 to disable timeout.'),
+    cfg.BoolOpt('force_power_state_during_sync',
+                default=True,
+                help='During sync_power_state, should the hardware power '
+                     'state be set to the state recorded in the database '
+                     '(True) or should the database be updated based on '
+                     'the hardware state (False).'),
+    cfg.IntOpt('power_state_sync_max_retries',
+               default=3,
+               help='During sync_power_state failures, limit the '
+                    'number of times Ironic should try syncing the '
+                    'hardware node power state with the node power state '
+                    'in DB'),
+    cfg.IntOpt('periodic_max_workers',
+               default=8,
+               help='Maximum number of worker threads that can be started '
+                    'simultaneously by a periodic task. Should be less '
+                    'than RPC thread pool size.'),
+    cfg.IntOpt('workers_pool_size',
+               default=100,
+               help='The size of the workers greenthread pool.'),
+    cfg.IntOpt('node_locked_retry_attempts',
+               default=3,
+               help='Number of attempts to grab a node lock.'),
+    cfg.IntOpt('node_locked_retry_interval',
+               default=1,
+               help='Seconds to sleep between node lock attempts.'),
+    cfg.BoolOpt('send_sensor_data',
+                default=False,
+                help='Enable sending sensor data message via the '
+                     'notification bus'),
+    cfg.IntOpt('send_sensor_data_interval',
+               default=600,
+               help='Seconds between conductor sending sensor data message'
+                    ' to ceilometer via the notification bus.'),
+    cfg.ListOpt('send_sensor_data_types',
+                default=['ALL'],
+                help='List of comma separated meter types which need to be'
+                     ' sent to Ceilometer. The default value, "ALL", is a '
+                     'special value meaning send all the sensor data.'),
+    cfg.IntOpt('sync_local_state_interval',
+               default=180,
+               help='When conductors join or leave the cluster, existing '
+                    'conductors may need to update any persistent '
+                    'local state as nodes are moved around the cluster. '
+                    'This option controls how often, in seconds, each '
+                    'conductor will check for nodes that it should '
+                    '"take over". Set it to a negative value to disable '
+                    'the check entirely.'),
+    cfg.BoolOpt('configdrive_use_swift',
+                default=False,
+                help='Whether to upload the config drive to Swift.'),
+    cfg.StrOpt('configdrive_swift_container',
+               default='ironic_configdrive_container',
+               help='Name of the Swift container to store config drive '
+                    'data. Used when configdrive_use_swift is True.'),
+    cfg.IntOpt('inspect_timeout',
+               default=1800,
+               help='Timeout (seconds) for waiting for node inspection. '
+                    '0 - unlimited.'),
+    cfg.BoolOpt('clean_nodes',
+                default=True,
+                help='Cleaning is a configurable set of steps, such as '
+                     'erasing disk drives, that are performed on the node '
+                     'to ensure it is in a baseline state and ready to be '
+                     'deployed to. '
+                     'This is done after instance deletion, and during '
+                     'the transition from a "managed" to "available" '
+                     'state. When enabled, the particular steps '
+                     'performed to clean a node depend on which driver '
+                     'that node is managed by; see the individual '
+                     'driver\'s documentation for details. '
+                     'NOTE: The introduction of the cleaning operation '
+                     'causes instance deletion to take significantly '
+                     'longer. In an environment where all tenants are '
+                     'trusted (eg, because there is only one tenant), '
+                     'this option could be safely disabled.'),
 ]
 CONF = cfg.CONF
 CONF.register_opts(conductor_opts, 'conductor')
@@ -237,7 +236,7 @@ class ConductorManager(periodic_task.PeriodicTasks):
         """Event for the keepalive thread."""
 
         self._worker_pool = greenpool.GreenPool(
-                                size=CONF.conductor.workers_pool_size)
+            size=CONF.conductor.workers_pool_size)
         """GreenPool of background workers for performing tasks async."""
 
         self.ring_manager = hash.HashRingManager()
@@ -282,7 +281,7 @@ class ConductorManager(periodic_task.PeriodicTasks):
                      {'hostname': self.host})
             cdr = self.dbapi.register_conductor({'hostname': self.host,
                                                  'drivers': self.drivers},
-                                                 update_existing=True)
+                                                update_existing=True)
         self.conductor = cdr
 
         # Spawn a dedicated greenthread for the keepalive
@@ -481,7 +480,7 @@ class ConductorManager(periodic_task.PeriodicTasks):
                                 "Please update the code to use the "
                                 "@passthru decorator."))
                 vendor_iface.validate(task, method=driver_method,
-                                            **info)
+                                      **info)
                 task.spawn_after(self._spawn_worker,
                                  vendor_iface.vendor_passthru, task,
                                  method=driver_method, **info)
@@ -576,7 +575,7 @@ class ConductorManager(periodic_task.PeriodicTasks):
 
             driver.vendor.driver_validate(method=driver_method, **info)
             ret = driver.vendor.driver_vendor_passthru(
-                            context, method=driver_method, **info)
+                context, method=driver_method, **info)
             # DriverVendorPassthru was always sync
             return (ret, False)
 
@@ -626,7 +625,7 @@ class ConductorManager(periodic_task.PeriodicTasks):
                     extension='vendor interface')
 
             return get_vendor_passthru_metadata(
-                    task.driver.vendor.vendor_routes)
+                task.driver.vendor.vendor_routes)
 
     @messaging.expected_exceptions(exception.UnsupportedDriverExtension,
                                    exception.DriverNotFound)
@@ -737,8 +736,8 @@ class ConductorManager(periodic_task.PeriodicTasks):
                                    err_handler=provisioning_error_handler)
             except exception.InvalidState:
                 raise exception.InvalidStateRequested(
-                        action=event, node=task.node.uuid,
-                        state=task.node.provision_state)
+                    action=event, node=task.node.uuid,
+                    state=task.node.provision_state)
 
     @messaging.expected_exceptions(exception.NoFreeConductorWorker,
                                    exception.NodeLocked,
@@ -780,8 +779,8 @@ class ConductorManager(periodic_task.PeriodicTasks):
                                    err_handler=provisioning_error_handler)
             except exception.InvalidState:
                 raise exception.InvalidStateRequested(
-                        action='delete', node=task.node.uuid,
-                        state=task.node.provision_state)
+                    action='delete', node=task.node.uuid,
+                    state=task.node.provision_state)
 
     def _do_node_tear_down(self, task):
         """Internal RPC method to tear down an existing node deployment."""
@@ -897,7 +896,8 @@ class ConductorManager(periodic_task.PeriodicTasks):
             return
 
         set_node_cleaning_steps(task)
-        self._do_next_clean_step(task,
+        self._do_next_clean_step(
+            task,
             node.driver_internal_info.get('clean_steps', []),
             node.clean_step)
 
@@ -1017,7 +1017,7 @@ class ConductorManager(periodic_task.PeriodicTasks):
                         state=task.node.provision_state)
 
     @periodic_task.periodic_task(
-            spacing=CONF.conductor.sync_power_state_interval)
+        spacing=CONF.conductor.sync_power_state_interval)
     def _sync_power_states(self, context):
         """Periodic task to sync power states for the nodes.
 
@@ -1067,7 +1067,7 @@ class ConductorManager(periodic_task.PeriodicTasks):
                             task.node.maintenance):
                         continue
                     count = do_sync_power_state(
-                            task, self.power_state_sync_count[node_uuid])
+                        task, self.power_state_sync_count[node_uuid])
                     if count:
                         self.power_state_sync_count[node_uuid] = count
                     else:
@@ -1086,7 +1086,7 @@ class ConductorManager(periodic_task.PeriodicTasks):
                 eventlet.sleep(0)
 
     @periodic_task.periodic_task(
-            spacing=CONF.conductor.check_provision_state_interval)
+        spacing=CONF.conductor.check_provision_state_interval)
     def _check_deploy_timeouts(self, context):
         """Periodically checks whether a deploy RPC call has timed out.
 
@@ -1127,7 +1127,7 @@ class ConductorManager(periodic_task.PeriodicTasks):
         task.node.save()
 
     @periodic_task.periodic_task(
-            spacing=CONF.conductor.sync_local_state_interval)
+        spacing=CONF.conductor.sync_local_state_interval)
     def _sync_local_state(self, context):
         """Perform any actions necessary to sync local state.
 
@@ -1318,13 +1318,13 @@ class ConductorManager(periodic_task.PeriodicTasks):
 
         """
         LOG.debug('RPC destroy_port called for port %(port)s',
-                 {'port': port.uuid})
+                  {'port': port.uuid})
         with task_manager.acquire(context, port.node_id) as task:
             port.destroy()
             LOG.info(_LI('Successfully deleted port %(port)s. '
                          'The node associated with the port was '
                          '%(node)s'),
-                         {'port': port.uuid, 'node': task.node.uuid})
+                     {'port': port.uuid, 'node': task.node.uuid})
 
     @messaging.expected_exceptions(exception.NodeLocked,
                                    exception.UnsupportedDriverExtension,
@@ -1416,9 +1416,9 @@ class ConductorManager(periodic_task.PeriodicTasks):
             with excutils.save_and_reraise_exception():
                 op = _('enabling') if enabled else _('disabling')
                 msg = (_('Error %(op)s the console on node %(node)s. '
-                        'Reason: %(error)s') % {'op': op,
-                                                'node': node.uuid,
-                                                'error': e})
+                         'Reason: %(error)s') % {'op': op,
+                                                 'node': node.uuid,
+                                                 'error': e})
                 node.last_error = msg
         else:
             node.console_enabled = enabled
@@ -1454,7 +1454,8 @@ class ConductorManager(periodic_task.PeriodicTasks):
                 # Log warning if there is no vif_port_id and an instance
                 # is associated with the node.
                 elif node.instance_uuid:
-                    LOG.warning(_LW("No VIF found for instance %(instance)s "
+                    LOG.warning(_LW(
+                        "No VIF found for instance %(instance)s "
                         "port %(port)s when attempting to update port MAC "
                         "address."),
                         {'port': port_uuid, 'instance': node.instance_uuid})
@@ -1480,7 +1481,7 @@ class ConductorManager(periodic_task.PeriodicTasks):
         return driver.get_properties()
 
     @periodic_task.periodic_task(
-            spacing=CONF.conductor.send_sensor_data_interval)
+        spacing=CONF.conductor.send_sensor_data_interval)
     def _send_sensor_data(self, context):
         """Periodically sends sensor data to Ceilometer."""
         # do nothing if send_sensor_data option is False
@@ -1507,27 +1508,32 @@ class ConductorManager(periodic_task.PeriodicTasks):
                     sensors_data = task.driver.management.get_sensors_data(
                         task)
             except NotImplementedError:
-                LOG.warn(_LW('get_sensors_data is not implemented for driver'
+                LOG.warn(_LW(
+                    'get_sensors_data is not implemented for driver'
                     ' %(driver)s, node_uuid is %(node)s'),
                     {'node': node_uuid, 'driver': driver})
             except exception.FailedToParseSensorData as fps:
-                LOG.warn(_LW("During get_sensors_data, could not parse "
+                LOG.warn(_LW(
+                    "During get_sensors_data, could not parse "
                     "sensor data for node %(node)s. Error: %(err)s."),
                     {'node': node_uuid, 'err': str(fps)})
             except exception.FailedToGetSensorData as fgs:
-                LOG.warn(_LW("During get_sensors_data, could not get "
+                LOG.warn(_LW(
+                    "During get_sensors_data, could not get "
                     "sensor data for node %(node)s. Error: %(err)s."),
                     {'node': node_uuid, 'err': str(fgs)})
             except exception.NodeNotFound:
-                LOG.warn(_LW("During send_sensor_data, node %(node)s was not "
-                           "found and presumed deleted by another process."),
-                           {'node': node_uuid})
+                LOG.warn(_LW(
+                    "During send_sensor_data, node %(node)s was not "
+                    "found and presumed deleted by another process."),
+                    {'node': node_uuid})
             except Exception as e:
-                LOG.warn(_LW("Failed to get sensor data for node %(node)s. "
+                LOG.warn(_LW(
+                    "Failed to get sensor data for node %(node)s. "
                     "Error: %(error)s"), {'node': node_uuid, 'error': str(e)})
             else:
-                message['payload'] = self._filter_out_unsupported_types(
-                                                              sensors_data)
+                message['payload'] = (
+                    self._filter_out_unsupported_types(sensors_data))
                 if message['payload']:
                     self.notifier.info(context, "hardware.ipmi.metrics",
                                        message)
@@ -1551,7 +1557,7 @@ class ConductorManager(periodic_task.PeriodicTasks):
             return sensors_data
 
         return dict((sensor_type, sensor_value) for (sensor_type, sensor_value)
-            in sensors_data.items() if sensor_type.lower() in allowed)
+                    in sensors_data.items() if sensor_type.lower() in allowed)
 
     @messaging.expected_exceptions(exception.NodeLocked,
                                    exception.UnsupportedDriverExtension,
@@ -1581,7 +1587,7 @@ class ConductorManager(periodic_task.PeriodicTasks):
             node = task.node
             if not getattr(task.driver, 'management', None):
                 raise exception.UnsupportedDriverExtension(
-                            driver=node.driver, extension='management')
+                    driver=node.driver, extension='management')
             task.driver.management.validate(task)
             task.driver.management.set_boot_device(task, device,
                                                    persistent=persistent)
@@ -1615,7 +1621,7 @@ class ConductorManager(periodic_task.PeriodicTasks):
         with task_manager.acquire(context, node_id) as task:
             if not getattr(task.driver, 'management', None):
                 raise exception.UnsupportedDriverExtension(
-                            driver=task.node.driver, extension='management')
+                    driver=task.node.driver, extension='management')
             task.driver.management.validate(task)
             return task.driver.management.get_boot_device(task)
 
@@ -1644,7 +1650,7 @@ class ConductorManager(periodic_task.PeriodicTasks):
         with task_manager.acquire(context, node_id, shared=True) as task:
             if not getattr(task.driver, 'management', None):
                 raise exception.UnsupportedDriverExtension(
-                            driver=task.node.driver, extension='management')
+                    driver=task.node.driver, extension='management')
             return task.driver.management.get_supported_boot_devices()
 
     @messaging.expected_exceptions(exception.NoFreeConductorWorker,
@@ -1676,7 +1682,7 @@ class ConductorManager(periodic_task.PeriodicTasks):
         with task_manager.acquire(context, node_id, shared=False) as task:
             if not getattr(task.driver, 'inspect', None):
                 raise exception.UnsupportedDriverExtension(
-                      driver=task.node.driver, extension='inspect')
+                    driver=task.node.driver, extension='inspect')
 
             try:
                 task.driver.power.validate(task)
@@ -1685,7 +1691,7 @@ class ConductorManager(periodic_task.PeriodicTasks):
                     exception.MissingParameterValue) as e:
                 error = (_("RPC inspect_hardware failed to validate "
                            "inspection or power info. Error: %(msg)s")
-                           % {'msg': e})
+                         % {'msg': e})
                 raise exception.HardwareInspectionFailure(error=error)
 
             try:
@@ -1696,8 +1702,8 @@ class ConductorManager(periodic_task.PeriodicTasks):
 
             except exception.InvalidState:
                 raise exception.InvalidStateRequested(
-                        action='inspect', node=task.node.uuid,
-                        state=task.node.provision_state)
+                    action='inspect', node=task.node.uuid,
+                    state=task.node.provision_state)
 
     @periodic_task.periodic_task(
         spacing=CONF.conductor.check_provision_state_interval)
@@ -1805,11 +1811,11 @@ def power_state_error_handler(e, node, power_state):
         LOG.warning(_LW("No free conductor workers available to perform "
                         "an action on node %(node)s, setting node's "
                         "power state back to %(power_state)s."),
-                        {'node': node.uuid, 'power_state': power_state})
+                    {'node': node.uuid, 'power_state': power_state})
 
 
 def provisioning_error_handler(e, node, provision_state,
-                                target_provision_state):
+                               target_provision_state):
     """Set the node's provisioning states if error occurs.
 
     This hook gets called upon an exception being raised when spawning
@@ -1897,7 +1903,8 @@ def do_node_deploy(task, conductor_id, configdrive=None):
                 _store_configdrive(node, configdrive)
         except exception.SwiftOperationError as e:
             with excutils.save_and_reraise_exception():
-                handle_failure(e, task,
+                handle_failure(
+                    e, task,
                     _LW('Error while uploading the configdrive for '
                         '%(node)s to Swift'),
                     _('Failed to upload the configdrive to Swift. '
@@ -1907,7 +1914,8 @@ def do_node_deploy(task, conductor_id, configdrive=None):
             task.driver.deploy.prepare(task)
         except Exception as e:
             with excutils.save_and_reraise_exception():
-                handle_failure(e, task,
+                handle_failure(
+                    e, task,
                     _LW('Error while preparing to deploy to node %(node)s: '
                         '%(err)s'),
                     _("Failed to prepare to deploy. Error: %s"))
@@ -1916,7 +1924,8 @@ def do_node_deploy(task, conductor_id, configdrive=None):
             new_state = task.driver.deploy.deploy(task)
         except Exception as e:
             with excutils.save_and_reraise_exception():
-                handle_failure(e, task,
+                handle_failure(
+                    e, task,
                     _LW('Error in deploy of node %(node)s: %(err)s'),
                     _("Failed to deploy. Error: %s"))
 
@@ -1936,7 +1945,7 @@ def do_node_deploy(task, conductor_id, configdrive=None):
         else:
             LOG.error(_LE('Unexpected state %(state)s returned while '
                           'deploying node %(node)s.'),
-                          {'state': new_state, 'node': node.uuid})
+                      {'state': new_state, 'node': node.uuid})
     finally:
         node.save()
 
@@ -1955,12 +1964,12 @@ def handle_sync_power_state_max_retries_exceeded(task,
     """
     node = task.node
     msg = (_("During sync_power_state, max retries exceeded "
-              "for node %(node)s, node state %(actual)s "
-              "does not match expected state '%(state)s'. "
-              "Updating DB state to '%(actual)s' "
-              "Switching node to maintenance mode.") %
-              {'node': node.uuid, 'actual': actual_power_state,
-               'state': node.power_state})
+             "for node %(node)s, node state %(actual)s "
+             "does not match expected state '%(state)s'. "
+             "Updating DB state to '%(actual)s' "
+             "Switching node to maintenance mode.") %
+           {'node': node.uuid, 'actual': actual_power_state,
+            'state': node.power_state})
     node.power_state = actual_power_state
     node.last_error = msg
     node.maintenance = True
@@ -2001,8 +2010,8 @@ def do_sync_power_state(task, count):
         power_state = task.driver.power.get_power_state(task)
         if power_state == states.ERROR:
             raise exception.PowerStateFailure(
-                    _("Power driver returned ERROR state "
-                      "while trying to sync power state."))
+                _("Power driver returned ERROR state "
+                  "while trying to sync power state."))
     except Exception as e:
         # Stop if any exception is raised when getting the power state
         if count > max_retries:
@@ -2011,8 +2020,8 @@ def do_sync_power_state(task, count):
             LOG.warning(_LW("During sync_power_state, could not get power "
                             "state for node %(node)s, attempt %(attempt)s of "
                             "%(retries)s. Error: %(err)s."),
-                            {'node': node.uuid, 'attempt': count,
-                             'retries': max_retries, 'err': e})
+                        {'node': node.uuid, 'attempt': count,
+                         'retries': max_retries, 'err': e})
         return count
     else:
         # If node has no prior state AND we successfully got a state,
@@ -2021,7 +2030,7 @@ def do_sync_power_state(task, count):
             LOG.info(_LI("During sync_power_state, node %(node)s has no "
                          "previous known state. Recording current state "
                          "'%(state)s'."),
-                         {'node': node.uuid, 'state': power_state})
+                     {'node': node.uuid, 'state': power_state})
             node.power_state = power_state
             node.save()
             return 0
@@ -2039,14 +2048,15 @@ def do_sync_power_state(task, count):
         LOG.warning(_LW("During sync_power_state, node %(node)s state "
                         "'%(actual)s' does not match expected state. "
                         "Changing hardware state to '%(state)s'."),
-                        {'node': node.uuid, 'actual': power_state,
-                         'state': node.power_state})
+                    {'node': node.uuid, 'actual': power_state,
+                     'state': node.power_state})
         try:
             # node_power_action will update the node record
             # so don't do that again here.
             utils.node_power_action(task, node.power_state)
         except Exception as e:
-            LOG.error(_LE("Failed to change power state of node %(node)s "
+            LOG.error(_LE(
+                "Failed to change power state of node %(node)s "
                 "to '%(state)s', attempt %(attempt)s of %(retries)s."),
                 {'node': node.uuid,
                  'state': node.power_state,
@@ -2056,8 +2066,8 @@ def do_sync_power_state(task, count):
         LOG.warning(_LW("During sync_power_state, node %(node)s state "
                         "does not match expected state '%(state)s'. "
                         "Updating recorded state to '%(actual)s'."),
-                        {'node': node.uuid, 'actual': power_state,
-                         'state': node.power_state})
+                    {'node': node.uuid, 'actual': power_state,
+                     'state': node.power_state})
         node.power_state = power_state
         node.save()
 

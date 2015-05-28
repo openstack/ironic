@@ -163,9 +163,9 @@ class TestNeutron(db_base.DbTestCase):
 
         api = dhcp_factory.DHCPFactory()
         self.assertRaises(
-                exception.FailedToUpdateDHCPOptOnPort,
-                api.provider.update_port_dhcp_opts,
-                port_id, opts)
+            exception.FailedToUpdateDHCPOptOnPort,
+            api.provider.update_port_dhcp_opts,
+            port_id, opts)
 
     @mock.patch.object(client.Client, 'update_port')
     @mock.patch.object(client.Client, '__init__')
@@ -264,7 +264,7 @@ class TestNeutron(db_base.DbTestCase):
                 }
             ],
             "device_id": 'bece68a3-2f8b-4e66-9092-244493d6aba7',
-            }
+        }
         fake_client = mock.Mock()
         fake_client.show_port.return_value = {'port': port_data}
         result = api._get_fixed_ip_address(port_id, fake_client)
@@ -287,7 +287,7 @@ class TestNeutron(db_base.DbTestCase):
                 }
             ],
             "device_id": 'bece68a3-2f8b-4e66-9092-244493d6aba7',
-            }
+        }
         fake_client = mock.Mock()
         fake_client.show_port.return_value = {'port': port_data}
         self.assertRaises(exception.InvalidIPv4Address,
@@ -301,7 +301,7 @@ class TestNeutron(db_base.DbTestCase):
 
         fake_client = mock.Mock()
         fake_client.show_port.side_effect = (
-                                neutron_client_exc.NeutronClientException())
+            neutron_client_exc.NeutronClientException())
         self.assertRaises(exception.FailedToGetIPAddressOnPort,
                           api._get_fixed_ip_address, port_id, fake_client)
         fake_client.show_port.assert_called_once_with(port_id)

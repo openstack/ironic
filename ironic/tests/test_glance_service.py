@@ -213,8 +213,8 @@ class TestGlanceImageService(base.TestCase):
         image_id = self.service.create(fixture)['id']
 
         self.assertIsNotNone(image_id)
-        self.assertEqual(num_images + 1,
-                          len(self.service.detail()))
+        self.assertEqual(
+            num_images + 1, len(self.service.detail()))
 
     def test_create_and_show_non_existing_image(self):
         fixture = self._make_fixture(name='test image')
@@ -673,9 +673,8 @@ class TestGlanceSwiftTempURL(base.TestCase):
         path = ('/v1/AUTH_a422b2-91f3-2f46-74b7-d7c9e8958f5d30'
                 '/glance'
                 '/757274c4-2856-4bd2-bb20-9a4a231e187b')
-        tempurl_mock.return_value = (path +
-            '?temp_url_sig=hmacsig'
-            '&temp_url_expires=1400001200')
+        tempurl_mock.return_value = (
+            path + '?temp_url_sig=hmacsig&temp_url_expires=1400001200')
 
         self.service._validate_temp_url_config = mock.Mock()
 
@@ -699,9 +698,8 @@ class TestGlanceSwiftTempURL(base.TestCase):
         path = ('/v1/AUTH_a422b2-91f3-2f46-74b7-d7c9e8958f5d30'
                 '/glance_757274c4'
                 '/757274c4-2856-4bd2-bb20-9a4a231e187b')
-        tempurl_mock.return_value = (path +
-            '?temp_url_sig=hmacsig'
-            '&temp_url_expires=1400001200')
+        tempurl_mock.return_value = (
+            path + '?temp_url_sig=hmacsig&temp_url_expires=1400001200')
 
         self.service._validate_temp_url_config = mock.Mock()
 

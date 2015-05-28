@@ -70,8 +70,8 @@ class Version(object):
         :param latest_version: version to use if latest is requested
         :raises: webob.HTTPNotAcceptable
         """
-        (self.major, self.minor) = Version.parse_headers(headers,
-                                       default_version, latest_version)
+        (self.major, self.minor) = Version.parse_headers(
+            headers, default_version, latest_version)
 
     def __repr__(self):
         return '%s.%s' % (self.major, self.minor)

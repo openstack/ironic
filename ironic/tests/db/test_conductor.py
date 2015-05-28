@@ -31,9 +31,9 @@ class DbConductorTestCase(base.DbTestCase):
         c = utils.get_test_conductor()
         self.dbapi.register_conductor(c)
         self.assertRaises(
-                exception.ConductorAlreadyRegistered,
-                self.dbapi.register_conductor,
-                c)
+            exception.ConductorAlreadyRegistered,
+            self.dbapi.register_conductor,
+            c)
 
     def test_register_conductor_override(self):
         c = utils.get_test_conductor()
@@ -52,17 +52,17 @@ class DbConductorTestCase(base.DbTestCase):
     def test_get_conductor_not_found(self):
         self._create_test_cdr()
         self.assertRaises(
-                exception.ConductorNotFound,
-                self.dbapi.get_conductor,
-                'bad-hostname')
+            exception.ConductorNotFound,
+            self.dbapi.get_conductor,
+            'bad-hostname')
 
     def test_unregister_conductor(self):
         c = self._create_test_cdr()
         self.dbapi.unregister_conductor(c.hostname)
         self.assertRaises(
-                exception.ConductorNotFound,
-                self.dbapi.unregister_conductor,
-                c.hostname)
+            exception.ConductorNotFound,
+            self.dbapi.unregister_conductor,
+            c.hostname)
 
     @mock.patch.object(timeutils, 'utcnow', autospec=True)
     def test_touch_conductor(self, mock_utcnow):
@@ -82,9 +82,9 @@ class DbConductorTestCase(base.DbTestCase):
         # it will only update existing ones
         self._create_test_cdr()
         self.assertRaises(
-                exception.ConductorNotFound,
-                self.dbapi.touch_conductor,
-                'bad-hostname')
+            exception.ConductorNotFound,
+            self.dbapi.touch_conductor,
+            'bad-hostname')
 
     def test_touch_offline_conductor(self):
         # Ensure that a conductor's periodic heartbeat task can make the
@@ -92,9 +92,9 @@ class DbConductorTestCase(base.DbTestCase):
         c = self._create_test_cdr()
         self.dbapi.unregister_conductor(c.hostname)
         self.assertRaises(
-                exception.ConductorNotFound,
-                self.dbapi.get_conductor,
-                c.hostname)
+            exception.ConductorNotFound,
+            self.dbapi.get_conductor,
+            c.hostname)
         self.dbapi.touch_conductor(c.hostname)
         self.dbapi.get_conductor(c.hostname)
 

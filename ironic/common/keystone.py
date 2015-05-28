@@ -64,11 +64,12 @@ def _get_ksclient(token=None):
         if token:
             return client.Client(token=token, auth_url=auth_url)
         else:
-            return client.Client(username=CONF.keystone_authtoken.admin_user,
-                         password=CONF.keystone_authtoken.admin_password,
-                         tenant_name=CONF.keystone_authtoken.admin_tenant_name,
-                         region_name=CONF.keystone.region_name,
-                         auth_url=auth_url)
+            return client.Client(
+                username=CONF.keystone_authtoken.admin_user,
+                password=CONF.keystone_authtoken.admin_password,
+                tenant_name=CONF.keystone_authtoken.admin_tenant_name,
+                region_name=CONF.keystone.region_name,
+                auth_url=auth_url)
     except ksexception.Unauthorized:
         raise exception.KeystoneUnauthorized()
     except ksexception.AuthorizationFailure as err:
@@ -111,9 +112,10 @@ def get_service_url(service_type='baremetal', endpoint_type='internal'):
                                           'loaded'))
 
     try:
-        endpoint = ksclient.service_catalog.url_for(service_type=service_type,
-                                        endpoint_type=endpoint_type,
-                                        region_name=CONF.keystone.region_name)
+        endpoint = ksclient.service_catalog.url_for(
+            service_type=service_type,
+            endpoint_type=endpoint_type,
+            region_name=CONF.keystone.region_name)
 
     except ksexception.EndpointNotFound:
         raise exception.CatalogNotFound(service_type=service_type,

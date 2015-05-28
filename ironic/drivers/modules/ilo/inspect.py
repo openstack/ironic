@@ -58,8 +58,8 @@ def _create_ports_if_not_exist(node, macs):
                          "%(node)s"), {'address': mac, 'node': node.uuid})
         except exception.MACAlreadyExists:
             LOG.warn(_LW("Port already exists for MAC address %(address)s "
-                         "for node %(node)s"), {'address': mac,
-                         'node': node.uuid})
+                         "for node %(node)s"),
+                     {'address': mac, 'node': node.uuid})
 
 
 def _get_essential_properties(node, ilo_object):
@@ -104,9 +104,9 @@ def _validate(node, data):
                 raise exception.HardwareInspectionFailure(error=error)
         else:
             error = (_("Essential properties are expected to be in dictionary "
-                      "format, received %(properties)s from node "
-                      "%(node)s.") % {"properties": data['properties'],
-                                      'node': node.uuid})
+                       "format, received %(properties)s from node "
+                       "%(node)s.") % {"properties": data['properties'],
+                                       'node': node.uuid})
             raise exception.HardwareInspectionFailure(error=error)
     else:
         error = (_("The node %s didn't return 'properties' as the key with "
@@ -117,7 +117,7 @@ def _validate(node, data):
         if not isinstance(data['macs'], dict):
             error = (_("Node %(node)s didn't return MACs %(macs)s "
                        "in dictionary format.")
-                      % {"macs": data['macs'], 'node': node.uuid})
+                     % {"macs": data['macs'], 'node': node.uuid})
             raise exception.HardwareInspectionFailure(error=error)
     else:
         error = (_("The node %s didn't return 'macs' as the key with "
@@ -170,17 +170,17 @@ def _update_capabilities(node, new_capabilities):
             # occur in malformed capabilities like:
             # properties/capabilities='boot_mode:bios,boot_option'.
             msg = (_("Node %(node)s has invalid capabilities string "
-                    "%(capabilities)s, unable to modify the node "
-                    "properties['capabilities'] string")
-                    % {'node': node.uuid, 'capabilities': node_capabilities})
+                     "%(capabilities)s, unable to modify the node "
+                     "properties['capabilities'] string")
+                   % {'node': node.uuid, 'capabilities': node_capabilities})
             raise exception.InvalidParameterValue(msg)
     if isinstance(new_capabilities, dict):
         cap_dict.update(new_capabilities)
     else:
         msg = (_("The expected format of capabilities from inspection "
                  "is dictionary while node %(node)s returned "
-                 "%(capabilities)s.") % {'node': node.uuid,
-                 'capabilities': new_capabilities})
+                 "%(capabilities)s.")
+               % {'node': node.uuid, 'capabilities': new_capabilities})
         raise exception.HardwareInspectionFailure(error=msg)
     return ','.join(['%(key)s:%(value)s' % {'key': key, 'value': value}
                      for key, value in six.iteritems(cap_dict)])
@@ -201,7 +201,7 @@ def _get_capabilities(node, ilo_object):
         capabilities = ilo_object.get_server_capabilities()
     except ilo_error.IloError:
         LOG.debug(("Node %s did not return any additional capabilities."),
-                   node.uuid)
+                  node.uuid)
 
     return capabilities
 
@@ -247,7 +247,7 @@ class IloInspect(base.InspectInterface):
             state = task.driver.power.get_power_state(task)
         except exception.IloOperationError as ilo_exception:
             operation = (_("Inspecting hardware (get_power_state) on %s")
-                           % task.node.uuid)
+                         % task.node.uuid)
             raise exception.IloOperationError(operation=operation,
                                               error=ilo_exception)
         if state != states.POWER_ON:
@@ -287,13 +287,13 @@ class IloInspect(base.InspectInterface):
 
         LOG.debug(("Node properties for %(node)s are updated as "
                    "%(properties)s"),
-                   {'properties': inspected_properties,
-                    'node': task.node.uuid})
+                  {'properties': inspected_properties,
+                   'node': task.node.uuid})
 
         LOG.info(_LI("Node %s inspected."), task.node.uuid)
         if power_turned_on:
             conductor_utils.node_power_action(task, states.POWER_OFF)
             LOG.info(_LI("The node %s was powered on for inspection. "
                          "Powered off the node as inspection completed."),
-                         task.node.uuid)
+                     task.node.uuid)
         return states.MANAGEABLE

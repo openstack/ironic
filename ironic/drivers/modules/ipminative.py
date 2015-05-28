@@ -58,7 +58,7 @@ opts = [
                     'sent to a server. There is a risk with some hardware '
                     'that setting this too low may cause the BMC to crash. '
                     'Recommended setting is 5 seconds.'),
-    ]
+]
 
 CONF = cfg.CONF
 CONF.register_opts(opts, group='ipmi')
@@ -139,8 +139,8 @@ def _power_on(driver_info):
               "following error: %(error)s")
     try:
         ipmicmd = ipmi_command.Command(bmc=driver_info['address'],
-                           userid=driver_info['username'],
-                           password=driver_info['password'])
+                                       userid=driver_info['username'],
+                                       password=driver_info['password'])
         wait = CONF.ipmi.retry_timeout
         ret = ipmicmd.set_power('on', wait)
     except pyghmi_exception.IpmiException as e:
@@ -169,8 +169,8 @@ def _power_off(driver_info):
               "following error: %(error)s")
     try:
         ipmicmd = ipmi_command.Command(bmc=driver_info['address'],
-                           userid=driver_info['username'],
-                           password=driver_info['password'])
+                                       userid=driver_info['username'],
+                                       password=driver_info['password'])
         wait = CONF.ipmi.retry_timeout
         ret = ipmicmd.set_power('off', wait)
     except pyghmi_exception.IpmiException as e:
@@ -201,8 +201,8 @@ def _reboot(driver_info):
               "following error: %(error)s")
     try:
         ipmicmd = ipmi_command.Command(bmc=driver_info['address'],
-                           userid=driver_info['username'],
-                           password=driver_info['password'])
+                                       userid=driver_info['username'],
+                                       password=driver_info['password'])
         wait = CONF.ipmi.retry_timeout
         ret = ipmicmd.set_power('boot', wait)
     except pyghmi_exception.IpmiException as e:
@@ -228,8 +228,8 @@ def _power_status(driver_info):
 
     try:
         ipmicmd = ipmi_command.Command(bmc=driver_info['address'],
-                           userid=driver_info['username'],
-                           password=driver_info['password'])
+                                       userid=driver_info['username'],
+                                       password=driver_info['password'])
         ret = ipmicmd.get_power()
     except pyghmi_exception.IpmiException as e:
         LOG.warning(_LW("IPMI get power state failed for node %(node_id)s "
@@ -261,15 +261,15 @@ def _get_sensors_data(driver_info):
     """
     try:
         ipmicmd = ipmi_command.Command(bmc=driver_info['address'],
-            userid=driver_info['username'],
-            password=driver_info['password'])
+                                       userid=driver_info['username'],
+                                       password=driver_info['password'])
         ret = ipmicmd.get_sensor_data()
     except Exception as e:
         LOG.error(_LE("IPMI get sensor data failed for node %(node_id)s "
                   "with the following error: %(error)s"),
-              {'node_id': driver_info['uuid'], 'error': e})
+                  {'node_id': driver_info['uuid'], 'error': e})
         raise exception.FailedToGetSensorData(
-                    node=driver_info['uuid'], error=e)
+            node=driver_info['uuid'], error=e)
 
     if not ret:
         return {}
@@ -279,13 +279,14 @@ def _get_sensors_data(driver_info):
         # ignore the sensor data which has no sensor reading value
         if not reading.value:
             continue
-        sensors_data.setdefault(reading.type,
+        sensors_data.setdefault(
+            reading.type,
             {})[reading.name] = {
-              'Sensor Reading': '%s %s' % (reading.value, reading.units),
-              'Sensor ID': reading.name,
-              'States': str(reading.states),
-              'Units': reading.units,
-              'Health': str(reading.health)}
+                'Sensor Reading': '%s %s' % (reading.value, reading.units),
+                'Sensor ID': reading.name,
+                'States': str(reading.states),
+                'Units': reading.units,
+                'Health': str(reading.health)}
 
     return sensors_data
 
@@ -340,9 +341,9 @@ class NativeIPMIPower(base.PowerInterface):
         elif pstate == states.POWER_OFF:
             _power_off(driver_info)
         else:
-            raise exception.InvalidParameterValue(_(
-                "set_power_state called with an invalid power state: %s."
-                ) % pstate)
+            raise exception.InvalidParameterValue(
+                _("set_power_state called with an invalid power state: %s."
+                  ) % pstate)
 
     @task_manager.require_exclusive_lock
     def reboot(self, task):
@@ -411,8 +412,8 @@ class NativeIPMIManagement(base.ManagementInterface):
         driver_info = _parse_driver_info(task.node)
         try:
             ipmicmd = ipmi_command.Command(bmc=driver_info['address'],
-                               userid=driver_info['username'],
-                               password=driver_info['password'])
+                                           userid=driver_info['username'],
+                                           password=driver_info['password'])
             bootdev = _BOOT_DEVICES_MAP[device]
             ipmicmd.set_bootdev(bootdev, persist=persistent)
         except pyghmi_exception.IpmiException as e:
@@ -442,8 +443,8 @@ class NativeIPMIManagement(base.ManagementInterface):
         response = {'boot_device': None}
         try:
             ipmicmd = ipmi_command.Command(bmc=driver_info['address'],
-                               userid=driver_info['username'],
-                               password=driver_info['password'])
+                                           userid=driver_info['username'],
+                                           password=driver_info['password'])
             ret = ipmicmd.get_bootdev()
             # FIXME(lucasagomes): pyghmi doesn't seem to handle errors
             # consistently, for some errors it raises an exception
@@ -514,7 +515,7 @@ class NativeIPMIShellinaboxConsole(base.ConsoleInterface):
 
         path = _console_pwfile_path(driver_info['uuid'])
         pw_file = console_utils.make_persistent_password_file(
-                path, driver_info['password'])
+            path, driver_info['password'])
 
         console_cmd = ("/:%(uid)s:%(gid)s:HOME:pyghmicons %(bmc)s"
                        " %(user)s"
