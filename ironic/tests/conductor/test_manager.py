@@ -23,7 +23,6 @@ import datetime
 import eventlet
 import mock
 from oslo_config import cfg
-from oslo_context import context
 from oslo_db import exception as db_exception
 import oslo_messaging as messaging
 from oslo_utils import strutils
@@ -33,7 +32,6 @@ from ironic.common import boot_devices
 from ironic.common import driver_factory
 from ironic.common import exception
 from ironic.common import images
-from ironic.common import keystone
 from ironic.common import states
 from ironic.common import swift
 from ironic.conductor import manager
@@ -3395,7 +3393,6 @@ class ManagerTestProperties(tests_db_base.DbTestCase):
         self.assertEqual(exception.DriverNotFound, exc.exc_info[0])
 
 
-@mock.patch.object(keystone, 'get_admin_auth_token')
 @mock.patch.object(task_manager, 'acquire')
 @mock.patch.object(manager.ConductorManager, '_mapped_to_this_conductor')
 @mock.patch.object(dbapi.IMPL, 'get_nodeinfo_list')
@@ -3423,8 +3420,7 @@ class ManagerSyncLocalStateTestCase(_CommonMixIn, tests_db_base.DbTestCase):
         get_nodeinfo_mock.assert_called_once_with(
                 columns=self.columns, filters=self.filters)
 
-    def test_not_mapped(self, get_nodeinfo_mock, mapped_mock, acquire_mock,
-                        get_authtoken_mock):
+    def test_not_mapped(self, get_nodeinfo_mock, mapped_mock, acquire_mock):
         get_nodeinfo_mock.return_value = self._get_nodeinfo_list_response()
         mapped_mock.return_value = False
 
@@ -3433,11 +3429,10 @@ class ManagerSyncLocalStateTestCase(_CommonMixIn, tests_db_base.DbTestCase):
         self._assert_get_nodeinfo_args(get_nodeinfo_mock)
         mapped_mock.assert_called_once_with(self.node.uuid, self.node.driver)
         self.assertFalse(acquire_mock.called)
-        self.assertFalse(get_authtoken_mock.called)
         self.service.ring_manager.reset.assert_called_once_with()
 
     def test_already_mapped(self, get_nodeinfo_mock, mapped_mock,
-                             acquire_mock, get_authtoken_mock):
+                            acquire_mock):
         # Node is already mapped to the conductor running the periodic task
         self.node.conductor_affinity = 123
         self.service.conductor.id = 123
@@ -3450,13 +3445,9 @@ class ManagerSyncLocalStateTestCase(_CommonMixIn, tests_db_base.DbTestCase):
         self._assert_get_nodeinfo_args(get_nodeinfo_mock)
         mapped_mock.assert_called_once_with(self.node.uuid, self.node.driver)
         self.assertFalse(acquire_mock.called)
-        self.assertFalse(get_authtoken_mock.called)
         self.service.ring_manager.reset.assert_called_once_with()
 
-    @mock.patch.object(context, 'get_admin_context')
-    def test_good(self, get_ctx_mock, get_nodeinfo_mock, mapped_mock,
-                  acquire_mock, get_authtoken_mock):
-        get_ctx_mock.return_value = self.context
+    def test_good(self, get_nodeinfo_mock, mapped_mock, acquire_mock):
         get_nodeinfo_mock.return_value = self._get_nodeinfo_list_response()
         mapped_mock.return_value = True
         acquire_mock.side_effect = self._get_acquire_side_effect(self.task)
@@ -3465,17 +3456,14 @@ class ManagerSyncLocalStateTestCase(_CommonMixIn, tests_db_base.DbTestCase):
 
         self._assert_get_nodeinfo_args(get_nodeinfo_mock)
         mapped_mock.assert_called_once_with(self.node.uuid, self.node.driver)
-        get_authtoken_mock.assert_called_once_with()
         acquire_mock.assert_called_once_with(self.context, self.node.uuid)
         # assert spawn_after has been called
         self.task.spawn_after.assert_called_once_with(
                 self.service._spawn_worker,
                 self.service._do_takeover, self.task)
 
-    @mock.patch.object(context, 'get_admin_context')
-    def test_no_free_worker(self, get_ctx_mock, get_nodeinfo_mock, mapped_mock,
-                            acquire_mock, get_authtoken_mock):
-        get_ctx_mock.return_value = self.context
+    def test_no_free_worker(self, get_nodeinfo_mock, mapped_mock,
+                            acquire_mock):
         mapped_mock.return_value = True
         acquire_mock.side_effect = self._get_acquire_side_effect(
                                        [self.task] * 3)
@@ -3503,18 +3491,12 @@ class ManagerSyncLocalStateTestCase(_CommonMixIn, tests_db_base.DbTestCase):
         expected = [mock.call(self.context, self.node.uuid)] * 2
         self.assertEqual(expected, acquire_mock.call_args_list)
 
-        # Only one auth token needed for all runs
-        get_authtoken_mock.assert_called_once_with()
-
         # assert spawn_after has been called twice
         expected = [mock.call(self.service._spawn_worker,
                     self.service._do_takeover, self.task)] * 2
         self.assertEqual(expected, self.task.spawn_after.call_args_list)
 
-    @mock.patch.object(context, 'get_admin_context')
-    def test_node_locked(self, get_ctx_mock, get_nodeinfo_mock, mapped_mock,
-                            acquire_mock, get_authtoken_mock):
-        get_ctx_mock.return_value = self.context
+    def test_node_locked(self, get_nodeinfo_mock, mapped_mock, acquire_mock,):
         mapped_mock.return_value = True
         acquire_mock.side_effect = self._get_acquire_side_effect(
                 [self.task, exception.NodeLocked('error'), self.task])
@@ -3536,20 +3518,14 @@ class ManagerSyncLocalStateTestCase(_CommonMixIn, tests_db_base.DbTestCase):
         expected = [mock.call(self.context, self.node.uuid)] * 3
         self.assertEqual(expected, acquire_mock.call_args_list)
 
-        # Only one auth token needed for all runs
-        get_authtoken_mock.assert_called_once_with()
-
         # assert spawn_after has been called only 2 times
         expected = [mock.call(self.service._spawn_worker,
                     self.service._do_takeover, self.task)] * 2
         self.assertEqual(expected, self.task.spawn_after.call_args_list)
 
-    @mock.patch.object(context, 'get_admin_context')
-    def test_worker_limit(self, get_ctx_mock, get_nodeinfo_mock, mapped_mock,
-                          acquire_mock, get_authtoken_mock):
+    def test_worker_limit(self, get_nodeinfo_mock, mapped_mock, acquire_mock):
         # Limit to only 1 worker
         self.config(periodic_max_workers=1, group='conductor')
-        get_ctx_mock.return_value = self.context
         mapped_mock.return_value = True
         acquire_mock.side_effect = self._get_acquire_side_effect(
                                        [self.task] * 3)
@@ -3569,9 +3545,6 @@ class ManagerSyncLocalStateTestCase(_CommonMixIn, tests_db_base.DbTestCase):
 
         # assert acquire() gets called only once because of the worker limit
         acquire_mock.assert_called_once_with(self.context, self.node.uuid)
-
-        # Only one auth token needed for all runs
-        get_authtoken_mock.assert_called_once_with()
 
         # assert spawn_after has been called
         self.task.spawn_after.assert_called_once_with(

@@ -26,7 +26,6 @@ from ironic.common import exception
 from ironic.common.glance_service import service_utils
 from ironic.common import image_service
 from ironic.common import images
-from ironic.common import keystone
 from ironic.common import states
 from ironic.common import swift
 from ironic.conductor import task_manager
@@ -990,7 +989,6 @@ class VendorPassthruTestCase(db_base.DbTestCase):
 
     @mock.patch.object(ilo_deploy, '_update_secure_boot_mode', autospec=True)
     @mock.patch.object(ilo_common, 'update_boot_mode', autospec=True)
-    @mock.patch.object(keystone, 'get_admin_auth_token', autospec=True)
     @mock.patch.object(agent_base_vendor.BaseAgentVendor,
                        'reboot_and_finish_deploy', autospec=True)
     @mock.patch.object(ilo_deploy.VendorPassthru, '_configure_vmedia_boot',
@@ -1001,7 +999,6 @@ class VendorPassthruTestCase(db_base.DbTestCase):
                                      do_agent_iscsi_deploy_mock,
                                      configure_vmedia_boot_mock,
                                      reboot_and_finish_deploy_mock,
-                                     keystone_mock,
                                      boot_mode_cap_mock,
                                      update_secure_boot_mock):
         self.node.provision_state = states.DEPLOYWAIT
@@ -1009,7 +1006,6 @@ class VendorPassthruTestCase(db_base.DbTestCase):
         self.node.save()
         do_agent_iscsi_deploy_mock.return_value = {
             'root uuid': 'some-root-uuid'}
-        keystone_mock.return_value = 'admin-token'
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
             task.driver.vendor.continue_deploy(task)
@@ -1022,8 +1018,6 @@ class VendorPassthruTestCase(db_base.DbTestCase):
             update_secure_boot_mock.assert_called_once_with(task, True)
             reboot_and_finish_deploy_mock.assert_called_once_with(
                 mock.ANY, task)
-            # Ensure that admin token is populated in task
-            self.assertEqual('admin-token', task.context.auth_token)
 
     @mock.patch.object(ilo_deploy, '_update_secure_boot_mode', autospec=True)
     @mock.patch.object(ilo_common, 'update_boot_mode', autospec=True)
