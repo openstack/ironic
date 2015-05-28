@@ -70,11 +70,12 @@ class ConductorAPI(object):
     |    1.25 - Added destroy_port
     |    1.26 - Added continue_node_clean
     |    1.27 - Convert continue_node_clean to cast
+    |    1.28 - Change exceptions raised by destroy_node
 
     """
 
     # NOTE(rloo): This must be in sync with manager.ConductorManager's.
-    RPC_API_VERSION = '1.27'
+    RPC_API_VERSION = '1.28'
 
     def __init__(self, topic=None):
         super(ConductorAPI, self).__init__()
@@ -363,8 +364,8 @@ class ConductorAPI(object):
         :raises: NodeLocked if node is locked by another conductor.
         :raises: NodeAssociated if the node contains an instance
             associated with it.
-        :raises: NodeInWrongPowerState if the node is not powered off.
-
+        :raises: InvalidState if the node is in the wrong provision
+            state to perform deletion.
         """
         cctxt = self.client.prepare(topic=topic or self.topic, version='1.9')
         return cctxt.call(context, 'destroy_node', node_id=node_id)

@@ -203,7 +203,7 @@ class ConductorManager(periodic_task.PeriodicTasks):
     """Ironic Conductor manager main class."""
 
     # NOTE(rloo): This must be in sync with rpcapi.ConductorAPI's.
-    RPC_API_VERSION = '1.27'
+    RPC_API_VERSION = '1.28'
 
     target = messaging.Target(version=RPC_API_VERSION)
 
@@ -1258,7 +1258,7 @@ class ConductorManager(periodic_task.PeriodicTasks):
 
     @messaging.expected_exceptions(exception.NodeLocked,
                                    exception.NodeAssociated,
-                                   exception.NodeInWrongPowerState)
+                                   exception.InvalidState)
     def destroy_node(self, context, node_id):
         """Delete a node.
 
@@ -1267,7 +1267,8 @@ class ConductorManager(periodic_task.PeriodicTasks):
         :raises: NodeLocked if node is locked by another conductor.
         :raises: NodeAssociated if the node contains an instance
             associated with it.
-        :raises: NodeInWrongPowerState if the node is not powered off.
+        :raises: InvalidState if the node is in the wrong provision
+            state to perform deletion.
 
         """
         with task_manager.acquire(context, node_id) as task:
@@ -1275,10 +1276,28 @@ class ConductorManager(periodic_task.PeriodicTasks):
             if node.instance_uuid is not None:
                 raise exception.NodeAssociated(node=node.uuid,
                                                instance=node.instance_uuid)
-            if node.power_state not in [states.POWER_OFF, states.NOSTATE]:
-                msg = (_("Node %s can't be deleted because it's not "
-                         "powered off") % node.uuid)
-                raise exception.NodeInWrongPowerState(msg)
+
+            # TODO(lucasagomes): We should add ENROLLED once it's part of our
+            #                    state machine
+            # NOTE(lucasagomes): For the *FAIL states we users should
+            # move it to a safe state prior to deletion. This is because we
+            # should try to avoid deleting a node in a dirty/whacky state,
+            # e.g: A node in DEPLOYFAIL, if deleted without passing through
+            # tear down/cleaning may leave data from the previous tenant
+            # in the disk. So nodes in *FAIL states should first be moved to:
+            # CLEANFAIL -> MANAGEABLE
+            # INSPECTIONFAIL -> MANAGEABLE
+            # DEPLOYFAIL -> DELETING
+            # ZAPFAIL -> MANAGEABLE (in the future)
+            valid_states = (states.AVAILABLE, states.NOSTATE,
+                            states.MANAGEABLE)
+            if node.provision_state not in valid_states:
+                msg = (_('Can not delete node "%(node)s" while it is in '
+                         'provision state "%(state)s". Valid provision states '
+                         'to perform deletion are: "%(valid_states)s"') %
+                       {'node': node.uuid, 'state': node.provision_state,
+                        'valid_states': valid_states})
+                raise exception.InvalidState(msg)
             if node.console_enabled:
                 try:
                     task.driver.console.stop_console(task)

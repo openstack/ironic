@@ -2226,13 +2226,16 @@ class ConsoleTestCase(_ServiceSetUpMixin, tests_db_base.DbTestCase):
 
 @_mock_record_keepalive
 class DestroyNodeTestCase(_ServiceSetUpMixin, tests_db_base.DbTestCase):
+
     def test_destroy_node(self):
         self._start_service()
-        node = obj_utils.create_test_node(self.context, driver='fake')
-        self.service.destroy_node(self.context, node.uuid)
-        self.assertRaises(exception.NodeNotFound,
-                          self.dbapi.get_node_by_uuid,
-                          node.uuid)
+        for state in (states.MANAGEABLE, states.NOSTATE, states.AVAILABLE):
+            node = obj_utils.create_test_node(self.context,
+                                              provision_state=state)
+            self.service.destroy_node(self.context, node.uuid)
+            self.assertRaises(exception.NodeNotFound,
+                              self.dbapi.get_node_by_uuid,
+                              node.uuid)
 
     def test_destroy_node_reserved(self):
         self._start_service()
@@ -2264,16 +2267,16 @@ class DestroyNodeTestCase(_ServiceSetUpMixin, tests_db_base.DbTestCase):
         node.refresh()
         self.assertIsNone(node.reservation)
 
-    def test_destroy_node_power_on(self):
+    def test_destroy_node_invalid_provision_state(self):
         self._start_service()
         node = obj_utils.create_test_node(self.context,
-                                          power_state=states.POWER_ON)
+                                          provision_state=states.ACTIVE)
 
         exc = self.assertRaises(messaging.rpc.ExpectedException,
                                 self.service.destroy_node,
                                 self.context, node.uuid)
         # Compare true exception hidden by @messaging.expected_exceptions
-        self.assertEqual(exception.NodeInWrongPowerState, exc.exc_info[0])
+        self.assertEqual(exception.InvalidState, exc.exc_info[0])
         # Verify reservation was released.
         node.refresh()
         self.assertIsNone(node.reservation)
