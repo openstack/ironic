@@ -789,22 +789,6 @@ class TestPatch(test_api_base.FunctionalTest):
         self.assertEqual('application/json', response.content_type)
         self.assertEqual(400, response.status_code)
 
-    def test_update_fails_bad_state(self):
-        fake_err = 'Fake Power State'
-        self.mock_update_node.side_effect = exception.NodeInWrongPowerState(
-                    node=self.node.uuid, pstate=fake_err)
-
-        response = self.patch_json('/nodes/%s' % self.node.uuid,
-                             [{'path': '/instance_uuid',
-                               'value': 'aaaaaaaa-1111-bbbb-2222-cccccccccccc',
-                               'op': 'replace'}],
-                                expect_errors=True)
-        self.assertEqual('application/json', response.content_type)
-        self.assertEqual(409, response.status_code)
-
-        self.mock_update_node.assert_called_once_with(
-                mock.ANY, mock.ANY, 'test-topic')
-
     def test_add_ok(self):
         self.mock_update_node.return_value = self.node
 

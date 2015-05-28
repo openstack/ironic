@@ -313,11 +313,6 @@ class NodeInMaintenance(Invalid):
                 "%(node)s because it's in maintenance mode.")
 
 
-class NodeInWrongPowerState(InvalidState):
-    message = _("Can not change instance association while node "
-                "%(node)s is in power state %(pstate)s.")
-
-
 class ChassisNotEmpty(Invalid):
     message = _("Cannot complete the requested action because chassis "
                 "%(chassis)s contains nodes.")
