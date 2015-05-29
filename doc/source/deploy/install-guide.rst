@@ -138,8 +138,12 @@ Install the Bare Metal Service
 
 #. Install from packages::
 
-    # Available in Ubuntu 14.04 (trusty)
-    apt-get install ironic-api ironic-conductor python-ironicclient
+    Ubuntu 14.04 (trusty) or higher:
+        apt-get install ironic-api ironic-conductor python-ironicclient
+
+    RHEL7/Fedora 21 or higher:
+        yum install openstack-ironic-api openstack-ironic-conductor python-ironicclient
+
 
 Configure the Bare Metal Service
 ================================
