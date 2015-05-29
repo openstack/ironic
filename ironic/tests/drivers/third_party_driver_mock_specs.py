@@ -21,8 +21,8 @@ IBOOT_SPEC = (
     'iBootInterface',
 )
 
-# ironic_discoverd
-IRONIC_DISCOVERD_SPEC = (
+# ironic_inspector
+IRONIC_INSPECTOR_SPEC = (
     '__version__',
     '__version_info__',
     'client',

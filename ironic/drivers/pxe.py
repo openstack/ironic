@@ -25,12 +25,12 @@ from ironic.drivers import base
 from ironic.drivers.modules.amt import management as amt_management
 from ironic.drivers.modules.amt import power as amt_power
 from ironic.drivers.modules.amt import vendor as amt_vendor
-from ironic.drivers.modules import discoverd
 from ironic.drivers.modules import iboot
 from ironic.drivers.modules.ilo import deploy as ilo_deploy
 from ironic.drivers.modules.ilo import inspect as ilo_inspect
 from ironic.drivers.modules.ilo import management as ilo_management
 from ironic.drivers.modules.ilo import power as ilo_power
+from ironic.drivers.modules import inspector
 from ironic.drivers.modules import ipminative
 from ironic.drivers.modules import ipmitool
 from ironic.drivers.modules.irmc import management as irmc_management
@@ -60,7 +60,7 @@ class PXEAndIPMIToolDriver(base.BaseDriver):
         self.deploy = pxe.PXEDeploy()
         self.management = ipmitool.IPMIManagement()
         self.vendor = pxe.VendorPassthru()
-        self.inspect = discoverd.DiscoverdInspect.create_if_enabled(
+        self.inspect = inspector.Inspector.create_if_enabled(
             'PXEAndIPMIToolDriver')
 
 
@@ -81,7 +81,7 @@ class PXEAndSSHDriver(base.BaseDriver):
         self.deploy = pxe.PXEDeploy()
         self.management = ssh.SSHManagement()
         self.vendor = pxe.VendorPassthru()
-        self.inspect = discoverd.DiscoverdInspect.create_if_enabled(
+        self.inspect = inspector.Inspector.create_if_enabled(
             'PXEAndSSHDriver')
 
 
@@ -106,7 +106,7 @@ class PXEAndIPMINativeDriver(base.BaseDriver):
         self.deploy = pxe.PXEDeploy()
         self.management = ipminative.NativeIPMIManagement()
         self.vendor = pxe.VendorPassthru()
-        self.inspect = discoverd.DiscoverdInspect.create_if_enabled(
+        self.inspect = inspector.Inspector.create_if_enabled(
             'PXEAndIPMINativeDriver')
 
 

@@ -25,7 +25,6 @@ from ironic.drivers import base
 from ironic.drivers.modules import agent
 from ironic.drivers.modules.amt import management as amt_mgmt
 from ironic.drivers.modules.amt import power as amt_power
-from ironic.drivers.modules import discoverd
 from ironic.drivers.modules.drac import management as drac_mgmt
 from ironic.drivers.modules.drac import power as drac_power
 from ironic.drivers.modules import fake
@@ -33,6 +32,7 @@ from ironic.drivers.modules import iboot
 from ironic.drivers.modules.ilo import inspect as ilo_inspect
 from ironic.drivers.modules.ilo import management as ilo_management
 from ironic.drivers.modules.ilo import power as ilo_power
+from ironic.drivers.modules import inspector
 from ironic.drivers.modules import ipminative
 from ironic.drivers.modules import ipmitool
 from ironic.drivers.modules.irmc import management as irmc_management
@@ -210,8 +210,8 @@ class FakeVirtualBoxDriver(base.BaseDriver):
         self.management = virtualbox.VirtualBoxManagement()
 
 
-class FakeIPMIToolDiscoverdDriver(base.BaseDriver):
-    """Fake Discoverd driver."""
+class FakeIPMIToolInspectorDriver(base.BaseDriver):
+    """Fake Inspector driver."""
 
     def __init__(self):
         self.power = ipmitool.IPMIPower()
@@ -219,10 +219,10 @@ class FakeIPMIToolDiscoverdDriver(base.BaseDriver):
         self.deploy = fake.FakeDeploy()
         self.vendor = ipmitool.VendorPassthru()
         self.management = ipmitool.IPMIManagement()
-        # NOTE(dtantsur): unlike other uses of DiscoverdInspect, this one is
-        # unconditional, as this driver is designed for testing discoverd
+        # NOTE(dtantsur): unlike other uses of Inspector, this one is
+        # unconditional, as this driver is designed for testing inspector
         # integration.
-        self.inspect = discoverd.DiscoverdInspect()
+        self.inspect = inspector.Inspector()
 
 
 class FakeAMTDriver(base.BaseDriver):

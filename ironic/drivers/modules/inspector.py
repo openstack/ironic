@@ -11,7 +11,7 @@
 # under the License.
 
 """
-Modules required to work with ironic_discoverd:
+Modules required to work with ironic_inspector:
     https://pypi.python.org/pypi/ironic-discoverd
 """
 
@@ -33,59 +33,66 @@ from ironic.drivers import base
 LOG = logging.getLogger(__name__)
 
 
-discoverd_opts = [
+inspector_opts = [
     cfg.BoolOpt('enabled', default=False,
-                help='whether to enable inspection using ironic-discoverd'),
+                help='whether to enable inspection using ironic-inspector',
+                deprecated_group='discoverd'),
     cfg.StrOpt('service_url',
-               help='ironic-discoverd HTTP endpoint. If this is not set, the '
-               'ironic-discoverd client default (http://127.0.0.1:5050) '
-               'will be used.'),
+               help='ironic-inspector HTTP endpoint. If this is not set, the '
+               'ironic-inspector client default (http://127.0.0.1:5050) '
+               'will be used.',
+               deprecated_group='discoverd'),
     cfg.IntOpt('status_check_period', default=60,
                help='period (in seconds) to check status of nodes '
-               'on inspection')
+               'on inspection',
+               deprecated_group='discoverd'),
 ]
 
 CONF = cfg.CONF
-CONF.register_opts(discoverd_opts, group='discoverd')
+CONF.register_opts(inspector_opts, group='inspector')
 
 
-ironic_discoverd = importutils.try_import('ironic_discoverd')
-if ironic_discoverd:
-    from ironic_discoverd import client
+# TODO(dtantsur): change this to ironic_inspector_client once it's available
+ironic_inspector = importutils.try_import('ironic_inspector')
+if not ironic_inspector:
+    # NOTE(dtantsur): old name for ironic-inspector
+    ironic_inspector = importutils.try_import('ironic_discoverd')
+if ironic_inspector:
+    from ironic_inspector import client
 
 
-class DiscoverdInspect(base.InspectInterface):
-    """In-band inspection via ironic-discoverd project."""
+class Inspector(base.InspectInterface):
+    """In-band inspection via ironic-inspector project."""
 
     @classmethod
     def create_if_enabled(cls, driver_name):
-        """Create instance of DiscoverdInspect if it's enabled.
+        """Create instance of Inspector if it's enabled.
 
         Reports log warning with given driver_name if it's not.
 
-        :return: DiscoverdInspect instance or None
+        :return: Inspector instance or None
         """
-        if CONF.discoverd.enabled:
+        if CONF.inspector.enabled:
             return cls()
         else:
-            LOG.info(_LI("Inspection via ironic-discoverd is disabled in "
+            LOG.info(_LI("Inspection via ironic-inspector is disabled in "
                          "configuration for driver %s. To enable, change "
-                         "[discoverd] enabled = True."), driver_name)
+                         "[inspector] enabled = True."), driver_name)
 
     def __init__(self):
-        if not CONF.discoverd.enabled:
+        if not CONF.inspector.enabled:
             raise exception.DriverLoadError(
-                _('ironic-discoverd support is disabled'))
+                _('ironic-inspector support is disabled'))
 
-        if not ironic_discoverd:
+        if not ironic_inspector:
             raise exception.DriverLoadError(
-                _('ironic-discoverd Python module not found'))
+                _('ironic-inspector Python module not found'))
 
         # NOTE(dtantsur): __version_info__ attribute appeared in 1.0.0
-        version = getattr(ironic_discoverd, '__version_info__', (0, 2))
+        version = getattr(ironic_inspector, '__version_info__', (0, 2))
         if version < (1, 0):
             raise exception.DriverLoadError(
-                _('ironic-discoverd version is too old: required >= 1.0.0, '
+                _('ironic-inspector version is too old: required >= 1.0.0, '
                   'got %s') % '.'.join(str(x) for x in version))
 
     def get_properties(self):
@@ -102,7 +109,7 @@ class DiscoverdInspect(base.InspectInterface):
 
         :param task: a task from TaskManager.
         """
-        # NOTE(deva): this is not callable if discoverd is disabled
+        # NOTE(deva): this is not callable if inspector is disabled
         #             so don't raise an exception -- just pass.
         pass
 
@@ -110,24 +117,24 @@ class DiscoverdInspect(base.InspectInterface):
         """Inspect hardware to obtain the hardware properties.
 
         This particular implementation only starts inspection using
-        ironic-discoverd. Results will be checked in a periodic task.
+        ironic-inspector. Results will be checked in a periodic task.
 
         :param task: a task from TaskManager.
         :returns: states.INSPECTING
         """
         LOG.debug('Starting inspection for node %(uuid)s using '
-                  'ironic-discoverd client %(version)s',
+                  'ironic-inspector client %(version)s',
                   {'uuid': task.node.uuid, 'version':
-                   ironic_discoverd.__version__})
+                   ironic_inspector.__version__})
 
         # NOTE(dtantsur): we're spawning a short-living green thread so that
-        # we can release a lock as soon as possible and allow ironic-discoverd
+        # we can release a lock as soon as possible and allow ironic-inspector
         # to operate on a node.
         eventlet.spawn_n(_start_inspection, task.node.uuid, task.context)
         return states.INSPECTING
 
-    @base.driver_periodic_task(spacing=CONF.discoverd.status_check_period,
-                               enabled=CONF.discoverd.enabled)
+    @base.driver_periodic_task(spacing=CONF.inspector.status_check_period,
+                               enabled=CONF.inspector.enabled)
     def _periodic_check_result(self, manager, context):
         """Periodic task checking results of inspection."""
         filters = {'provision_state': states.INSPECTING}
@@ -143,21 +150,21 @@ class DiscoverdInspect(base.InspectInterface):
                 continue
 
 
-def _call_discoverd(func, uuid, context):
-    """Wrapper around calls to discoverd."""
+def _call_inspector(func, uuid, context):
+    """Wrapper around calls to inspector."""
     # NOTE(dtantsur): due to bug #1428652 None is not accepted for base_url.
     kwargs = {}
-    if CONF.discoverd.service_url:
-        kwargs['base_url'] = CONF.discoverd.service_url
+    if CONF.inspector.service_url:
+        kwargs['base_url'] = CONF.inspector.service_url
     return func(uuid, auth_token=context.auth_token, **kwargs)
 
 
 def _start_inspection(node_uuid, context):
-    """Call to discoverd to start inspection."""
+    """Call to inspector to start inspection."""
     try:
-        _call_discoverd(client.introspect, node_uuid, context)
+        _call_inspector(client.introspect, node_uuid, context)
     except Exception as exc:
-        LOG.exception(_LE('Exception during contacting ironic-discoverd '
+        LOG.exception(_LE('Exception during contacting ironic-inspector '
                           'for inspection of node %(node)s: %(err)s'),
                       {'node': node_uuid, 'err': exc})
         # NOTE(dtantsur): if acquire fails our last option is to rely on
@@ -166,7 +173,7 @@ def _start_inspection(node_uuid, context):
             task.node.last_error = _('Failed to start inspection: %s') % exc
             task.process_event('fail')
     else:
-        LOG.info(_LI('Node %s was sent to inspection to ironic-discoverd'),
+        LOG.info(_LI('Node %s was sent to inspection to ironic-inspector'),
                  node_uuid)
 
 
@@ -175,16 +182,16 @@ def _check_status(task):
     node = task.node
     if node.provision_state != states.INSPECTING:
         return
-    if not isinstance(task.driver.inspect, DiscoverdInspect):
+    if not isinstance(task.driver.inspect, Inspector):
         return
 
-    LOG.debug('Calling to discoverd to check status of node %s',
+    LOG.debug('Calling to inspector to check status of node %s',
               task.node.uuid)
 
     # NOTE(dtantsur): periodic tasks do not have proper tokens in context
     task.context.auth_token = keystone.get_admin_auth_token()
     try:
-        status = _call_discoverd(client.get_status, node.uuid, task.context)
+        status = _call_inspector(client.get_status, node.uuid, task.context)
     except Exception:
         # NOTE(dtantsur): get_status should not normally raise
         # let's assume it's a transient failure and retry later
@@ -197,7 +204,7 @@ def _check_status(task):
         LOG.error(_LE('Inspection failed for node %(uuid)s '
                       'with error: %(err)s'),
                   {'uuid': node.uuid, 'err': status['error']})
-        node.last_error = (_('ironic-discoverd inspection failed: %s')
+        node.last_error = (_('ironic-inspector inspection failed: %s')
                            % status['error'])
         task.process_event('fail')
     elif status.get('finished'):
