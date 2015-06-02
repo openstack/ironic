@@ -51,19 +51,24 @@ class IloInspectTestCase(db_base.DbTestCase):
             self.assertEqual(properties,
                              task.driver.inspect.get_properties())
 
-    @mock.patch.object(ilo_common, 'parse_driver_info', autospec=True)
+    @mock.patch.object(ilo_common, 'parse_driver_info', spec_set=True,
+                       autospec=True)
     def test_validate(self, driver_info_mock):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
             task.driver.inspect.validate(task)
             driver_info_mock.assert_called_once_with(task.node)
 
-    @mock.patch.object(ilo_inspect, '_get_capabilities', autospec=True)
-    @mock.patch.object(ilo_inspect, '_create_ports_if_not_exist',
+    @mock.patch.object(ilo_inspect, '_get_capabilities', spec_set=True,
                        autospec=True)
-    @mock.patch.object(ilo_inspect, '_get_essential_properties', autospec=True)
-    @mock.patch.object(ilo_power.IloPower, 'get_power_state', autospec=True)
-    @mock.patch.object(ilo_common, 'get_ilo_object', autospec=True)
+    @mock.patch.object(ilo_inspect, '_create_ports_if_not_exist',
+                       spec_set=True, autospec=True)
+    @mock.patch.object(ilo_inspect, '_get_essential_properties', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(ilo_power.IloPower, 'get_power_state', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(ilo_common, 'get_ilo_object', spec_set=True,
+                       autospec=True)
     def test_inspect_essential_ok(self, get_ilo_object_mock,
                                   power_mock,
                                   get_essential_mock,
@@ -89,13 +94,18 @@ class IloInspectTestCase(db_base.DbTestCase):
                                                           ilo_object_mock)
             create_port_mock.assert_called_once_with(task.node, macs)
 
-    @mock.patch.object(ilo_inspect, '_get_capabilities', autospec=True)
-    @mock.patch.object(ilo_inspect, '_create_ports_if_not_exist',
+    @mock.patch.object(ilo_inspect, '_get_capabilities', spec_set=True,
                        autospec=True)
-    @mock.patch.object(ilo_inspect, '_get_essential_properties', autospec=True)
-    @mock.patch.object(conductor_utils, 'node_power_action', autospec=True)
-    @mock.patch.object(ilo_power.IloPower, 'get_power_state', autospec=True)
-    @mock.patch.object(ilo_common, 'get_ilo_object', autospec=True)
+    @mock.patch.object(ilo_inspect, '_create_ports_if_not_exist',
+                       spec_set=True, autospec=True)
+    @mock.patch.object(ilo_inspect, '_get_essential_properties', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(conductor_utils, 'node_power_action', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(ilo_power.IloPower, 'get_power_state', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(ilo_common, 'get_ilo_object', spec_set=True,
+                       autospec=True)
     def test_inspect_essential_ok_power_off(self, get_ilo_object_mock,
                                             power_mock,
                                             set_power_mock,
@@ -123,12 +133,16 @@ class IloInspectTestCase(db_base.DbTestCase):
                                                           ilo_object_mock)
             create_port_mock.assert_called_once_with(task.node, macs)
 
-    @mock.patch.object(ilo_inspect, '_get_capabilities', autospec=True)
-    @mock.patch.object(ilo_inspect, '_create_ports_if_not_exist',
+    @mock.patch.object(ilo_inspect, '_get_capabilities', spec_set=True,
                        autospec=True)
-    @mock.patch.object(ilo_inspect, '_get_essential_properties', autospec=True)
-    @mock.patch.object(ilo_power.IloPower, 'get_power_state', autospec=True)
-    @mock.patch.object(ilo_common, 'get_ilo_object', autospec=True)
+    @mock.patch.object(ilo_inspect, '_create_ports_if_not_exist',
+                       spec_set=True, autospec=True)
+    @mock.patch.object(ilo_inspect, '_get_essential_properties', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(ilo_power.IloPower, 'get_power_state', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(ilo_common, 'get_ilo_object', spec_set=True,
+                       autospec=True)
     def test_inspect_essential_capabilities_ok(self, get_ilo_object_mock,
                                                power_mock,
                                                get_essential_mock,
@@ -158,12 +172,16 @@ class IloInspectTestCase(db_base.DbTestCase):
                                                           ilo_object_mock)
             create_port_mock.assert_called_once_with(task.node, macs)
 
-    @mock.patch.object(ilo_inspect, '_get_capabilities', autospec=True)
-    @mock.patch.object(ilo_inspect, '_create_ports_if_not_exist',
+    @mock.patch.object(ilo_inspect, '_get_capabilities', spec_set=True,
                        autospec=True)
-    @mock.patch.object(ilo_inspect, '_get_essential_properties', autospec=True)
-    @mock.patch.object(ilo_power.IloPower, 'get_power_state', autospec=True)
-    @mock.patch.object(ilo_common, 'get_ilo_object', autospec=True)
+    @mock.patch.object(ilo_inspect, '_create_ports_if_not_exist',
+                       spec_set=True, autospec=True)
+    @mock.patch.object(ilo_inspect, '_get_essential_properties', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(ilo_power.IloPower, 'get_power_state', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(ilo_common, 'get_ilo_object', spec_set=True,
+                       autospec=True)
     def test_inspect_essential_capabilities_exist_ok(self, get_ilo_object_mock,
                                                      power_mock,
                                                      get_essential_mock,
@@ -209,8 +227,8 @@ class TestInspectPrivateMethods(db_base.DbTestCase):
         self.node = obj_utils.create_test_node(self.context,
                 driver='fake_ilo', driver_info=INFO_DICT)
 
-    @mock.patch.object(ilo_inspect.LOG, 'info', autospec=True)
-    @mock.patch.object(dbapi, 'get_instance', autospec=True)
+    @mock.patch.object(ilo_inspect.LOG, 'info', spec_set=True, autospec=True)
+    @mock.patch.object(dbapi, 'get_instance', spec_set=True, autospec=True)
     def test__create_ports_if_not_exist(self, instance_mock, log_mock):
         db_obj = instance_mock.return_value
         macs = {'Port 1': 'aa:aa:aa:aa:aa:aa', 'Port 2': 'bb:bb:bb:bb:bb:bb'}
@@ -223,8 +241,8 @@ class TestInspectPrivateMethods(db_base.DbTestCase):
         db_obj.create_port.assert_any_call(port_dict1)
         db_obj.create_port.assert_any_call(port_dict2)
 
-    @mock.patch.object(ilo_inspect.LOG, 'warn', autospec=True)
-    @mock.patch.object(dbapi, 'get_instance', autospec=True)
+    @mock.patch.object(ilo_inspect.LOG, 'warn', spec_set=True, autospec=True)
+    @mock.patch.object(dbapi, 'get_instance', spec_set=True, autospec=True)
     def test__create_ports_if_not_exist_mac_exception(self,
                                                       instance_mock,
                                                       log_mock):
@@ -318,7 +336,8 @@ class TestInspectPrivateMethods(db_base.DbTestCase):
             exception.HardwareInspectionFailure,
             ilo_inspect._get_essential_properties, self.node, ilo_mock)
 
-    @mock.patch.object(ilo_inspect, '_update_capabilities', autospec=True)
+    @mock.patch.object(ilo_inspect, '_update_capabilities', spec_set=True,
+                       autospec=True)
     def test__get_capabilities_ok(self, capability_mock):
         ilo_mock = mock.MagicMock(spec=['get_server_capabilities'])
         capabilities = {'ilo_firmware_version': 'xyz'}
