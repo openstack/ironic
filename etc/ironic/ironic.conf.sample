@@ -713,26 +713,6 @@
 #dhcp_provider=neutron
 
 
-[discoverd]
-
-#
-# Options defined in ironic.drivers.modules.discoverd
-#
-
-# whether to enable inspection using ironic-discoverd (boolean
-# value)
-#enabled=false
-
-# ironic-discoverd HTTP endpoint. If this is not set, the
-# ironic-discoverd client default (http://127.0.0.1:5050) will
-# be used. (string value)
-#service_url=<None>
-
-# period (in seconds) to check status of nodes on inspection
-# (integer value)
-#status_check_period=60
-
-
 [disk_partitioner]
 
 #
@@ -932,6 +912,26 @@
 # Amount of time in seconds to wait in between power
 # operations (integer value)
 #power_wait=2
+
+
+[inspector]
+
+#
+# Options defined in ironic.drivers.modules.inspector
+#
+
+# whether to enable inspection using ironic-inspector (boolean
+# value)
+#enabled=false
+
+# ironic-inspector HTTP endpoint. If this is not set, the
+# ironic-inspector client default (http://127.0.0.1:5050) will
+# be used. (string value)
+#service_url=<None>
+
+# period (in seconds) to check status of nodes on inspection
+# (integer value)
+#status_check_period=60
 
 
 [ipmi]

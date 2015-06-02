@@ -11,8 +11,8 @@
 # under the License.
 
 import eventlet
-import ironic_discoverd
-from ironic_discoverd import client
+import ironic_inspector
+from ironic_inspector import client
 import mock
 
 from ironic.common import driver_factory
@@ -20,7 +20,7 @@ from ironic.common import exception
 from ironic.common import keystone
 from ironic.common import states
 from ironic.conductor import task_manager
-from ironic.drivers.modules import discoverd
+from ironic.drivers.modules import inspector
 from ironic.tests.conductor import utils as mgr_utils
 from ironic.tests.db import base as db_base
 from ironic.tests.objects import utils as obj_utils
@@ -36,43 +36,43 @@ class DisabledTestCase(db_base.DbTestCase):
         self.driver = driver_factory.get_driver("pxe_ssh")
 
     def test_disabled(self):
-        self.config(enabled=False, group='discoverd')
+        self.config(enabled=False, group='inspector')
         self._do_mock()
         self.assertIsNone(self.driver.inspect)
-        # NOTE(dtantsur): it's expected that fake_discoverd fails to load
+        # NOTE(dtantsur): it's expected that fake_inspector fails to load
         # in this case
         self.assertRaises(exception.DriverLoadError,
                           mgr_utils.mock_the_extension_manager,
-                          "fake_discoverd")
+                          "fake_inspector")
 
     def test_enabled(self):
-        self.config(enabled=True, group='discoverd')
+        self.config(enabled=True, group='inspector')
         self._do_mock()
         self.assertIsNotNone(self.driver.inspect)
 
-    @mock.patch.object(discoverd, 'ironic_discoverd', None)
-    def test_init_discoverd_not_imported(self):
+    @mock.patch.object(inspector, 'ironic_inspector', None)
+    def test_init_inspector_not_imported(self):
         self.assertRaises(exception.DriverLoadError,
-                          discoverd.DiscoverdInspect)
+                          inspector.Inspector)
 
-    @mock.patch.object(ironic_discoverd, '__version_info__', (1, 0, 0))
+    @mock.patch.object(ironic_inspector, '__version_info__', (1, 0, 0))
     def test_init_ok(self):
-        self.config(enabled=True, group='discoverd')
-        discoverd.DiscoverdInspect()
+        self.config(enabled=True, group='inspector')
+        inspector.Inspector()
 
-    @mock.patch.object(ironic_discoverd, '__version_info__', (0, 2, 2))
+    @mock.patch.object(ironic_inspector, '__version_info__', (0, 2, 2))
     def test_init_old_version(self):
-        self.config(enabled=True, group='discoverd')
+        self.config(enabled=True, group='inspector')
         self.assertRaises(exception.DriverLoadError,
-                          discoverd.DiscoverdInspect)
+                          inspector.Inspector)
 
 
 class BaseTestCase(db_base.DbTestCase):
     def setUp(self):
         super(BaseTestCase, self).setUp()
-        self.config(enabled=True, group='discoverd')
-        mgr_utils.mock_the_extension_manager("fake_discoverd")
-        self.driver = driver_factory.get_driver("fake_discoverd")
+        self.config(enabled=True, group='inspector')
+        mgr_utils.mock_the_extension_manager("fake_inspector")
+        self.driver = driver_factory.get_driver("fake_inspector")
         self.node = obj_utils.get_test_node(self.context)
         self.task = mock.MagicMock(spec=task_manager.TaskManager)
         self.task.context = mock.MagicMock(spec_set=['auth_token'])
@@ -90,13 +90,13 @@ class CommonFunctionsTestCase(BaseTestCase):
         self.assertEqual({}, res)
 
     def test_create_if_enabled(self):
-        res = discoverd.DiscoverdInspect.create_if_enabled('driver')
-        self.assertIsInstance(res, discoverd.DiscoverdInspect)
+        res = inspector.Inspector.create_if_enabled('driver')
+        self.assertIsInstance(res, inspector.Inspector)
 
-    @mock.patch.object(discoverd.LOG, 'info', autospec=True)
+    @mock.patch.object(inspector.LOG, 'info', autospec=True)
     def test_create_if_enabled_disabled(self, warn_mock):
-        self.config(enabled=False, group='discoverd')
-        res = discoverd.DiscoverdInspect.create_if_enabled('driver')
+        self.config(enabled=False, group='inspector')
+        res = inspector.Inspector.create_if_enabled('driver')
         self.assertIsNone(res)
         self.assertTrue(warn_mock.called)
 
@@ -112,7 +112,7 @@ class InspectHardwareTestCase(BaseTestCase):
             auth_token=self.task.context.auth_token)
 
     def test_url(self, mock_introspect):
-        self.config(service_url='meow', group='discoverd')
+        self.config(service_url='meow', group='inspector')
         self.assertEqual(states.INSPECTING,
                          self.driver.inspect.inspect_hardware(self.task))
         mock_introspect.assert_called_once_with(
@@ -141,47 +141,47 @@ class CheckStatusTestCase(BaseTestCase):
 
     def test_not_inspecting(self, mock_get):
         self.node.provision_state = states.MANAGEABLE
-        discoverd._check_status(self.task)
+        inspector._check_status(self.task)
         self.assertFalse(mock_get.called)
 
-    def test_not_discoverd(self, mock_get):
+    def test_not_inspector(self, mock_get):
         self.task.driver.inspect = object()
-        discoverd._check_status(self.task)
+        inspector._check_status(self.task)
         self.assertFalse(mock_get.called)
 
     def test_not_finished(self, mock_get):
         mock_get.return_value = {}
-        discoverd._check_status(self.task)
+        inspector._check_status(self.task)
         mock_get.assert_called_once_with(self.node.uuid,
                                          auth_token='the token')
         self.assertFalse(self.task.process_event.called)
 
     def test_exception_ignored(self, mock_get):
         mock_get.side_effect = RuntimeError('boom')
-        discoverd._check_status(self.task)
+        inspector._check_status(self.task)
         mock_get.assert_called_once_with(self.node.uuid,
                                          auth_token='the token')
         self.assertFalse(self.task.process_event.called)
 
     def test_status_ok(self, mock_get):
         mock_get.return_value = {'finished': True}
-        discoverd._check_status(self.task)
+        inspector._check_status(self.task)
         mock_get.assert_called_once_with(self.node.uuid,
                                          auth_token='the token')
         self.task.process_event.assert_called_once_with('done')
 
     def test_status_error(self, mock_get):
         mock_get.return_value = {'error': 'boom'}
-        discoverd._check_status(self.task)
+        inspector._check_status(self.task)
         mock_get.assert_called_once_with(self.node.uuid,
                                          auth_token='the token')
         self.task.process_event.assert_called_once_with('fail')
         self.assertIn('boom', self.node.last_error)
 
     def test_service_url(self, mock_get):
-        self.config(service_url='meow', group='discoverd')
+        self.config(service_url='meow', group='inspector')
         mock_get.return_value = {'finished': True}
-        discoverd._check_status(self.task)
+        inspector._check_status(self.task)
         mock_get.assert_called_once_with(self.node.uuid,
                                          auth_token='the token',
                                          base_url='meow')
@@ -190,9 +190,9 @@ class CheckStatusTestCase(BaseTestCase):
 
 @mock.patch.object(eventlet.greenthread, 'spawn_n',
                    lambda f, *a, **kw: f(*a, **kw))
-@mock.patch.object(ironic_discoverd, '__version_info__', (1, 0, 0))
+@mock.patch.object(ironic_inspector, '__version_info__', (1, 0, 0))
 @mock.patch.object(task_manager, 'acquire', autospec=True)
-@mock.patch.object(discoverd, '_check_status', autospec=True)
+@mock.patch.object(inspector, '_check_status', autospec=True)
 class PeriodicTaskTestCase(BaseTestCase):
     def test_ok(self, mock_check, mock_acquire):
         mgr = mock.MagicMock(spec=['iter_nodes'])
@@ -202,7 +202,7 @@ class PeriodicTaskTestCase(BaseTestCase):
             mock.MagicMock(__enter__=mock.MagicMock(return_value=task))
             for task in tasks
         )
-        discoverd.DiscoverdInspect()._periodic_check_result(
+        inspector.Inspector()._periodic_check_result(
             mgr, mock.sentinel.context)
         mock_check.assert_any_call(tasks[0])
         mock_check.assert_any_call(tasks[1])
@@ -212,7 +212,7 @@ class PeriodicTaskTestCase(BaseTestCase):
         mgr = mock.MagicMock(spec=['iter_nodes'])
         mgr.iter_nodes.return_value = [('1', 'd1'), ('2', 'd2')]
         mock_acquire.side_effect = exception.NodeLocked("boom")
-        discoverd.DiscoverdInspect()._periodic_check_result(
+        inspector.Inspector()._periodic_check_result(
             mgr, mock.sentinel.context)
         self.assertFalse(mock_check.called)
         self.assertEqual(2, mock_acquire.call_count)
