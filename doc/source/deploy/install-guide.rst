@@ -1530,7 +1530,7 @@ create a configuration drive by setting the following option in the
     [DEFAULT]
     ...
 
-    force_config_drive=always
+    force_config_drive=True
 
 
 When used standalone
