@@ -370,14 +370,10 @@ class ConductorManager(periodic_task.PeriodicTasks):
         node_id = node_obj.uuid
         LOG.debug("RPC update_node called for node %s." % node_id)
 
-        delta = node_obj.obj_what_changed()
-        if 'power_state' in delta:
-            raise exception.IronicException(_(
-                "Invalid method call: update_node can not change node state."))
-
         # NOTE(jroll) clear maintenance_reason if node.update sets
         # maintenance to False for backwards compatibility, for tools
         # not using the maintenance endpoint.
+        delta = node_obj.obj_what_changed()
         if 'maintenance' in delta and not node_obj.maintenance:
             node_obj.maintenance_reason = None
 
