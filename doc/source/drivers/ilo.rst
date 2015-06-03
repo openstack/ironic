@@ -82,8 +82,8 @@ It has been tested with the following servers:
 * ProLiant DL380e Gen8
 * ProLiant DL580 Gen8 UEFI
 * ProLiant DL180 Gen9 UEFI
+* ProLiant DL360 Gen9 UEFI
 * ProLiant DL380 Gen9 UEFI
-* ProLiant DL580 Gen9 UEFI
 
 For more up-to-date information on server platform support info, refer
 iLO driver wiki [6]_.
@@ -287,8 +287,8 @@ This driver should work on HP Proliant Gen8 Servers and above with iLO 4.
 It has been tested with the following servers:
 
 * ProLiant DL380e Gen8
+* ProLiant DL360 Gen9 UEFI
 * ProLiant DL380 Gen9 UEFI
-* ProLiant DL580 Gen9 UEFI
 
 This driver supports only Gen 8 Class 0 systems (BIOS only).  For
 more up-to-date information, check the iLO driver wiki [6]_.
@@ -303,7 +303,6 @@ Features
 * IPA deployed instances always boots from local disk.
 * Segregates management info from data channel.
 * UEFI Boot Support
-* UEFI Secure Boot Support
 * Support to use default in-band cleaning operations supported by
   Ironic Python Agent. For more details, see :ref:`InbandvsOutOfBandCleaning`.
 * Support for out-of-band hardware inspection.
@@ -448,10 +447,6 @@ Boot modes
 ~~~~~~~~~~
 Refer to `Boot mode support`_ section for more information.
 
-UEFI Secure Boot
-~~~~~~~~~~~~~~~~
-Refer to `UEFI Secure Boot support`_ section for more information.
-
 Node Cleaning
 ~~~~~~~~~~~~~
 Refer to ilo_node_cleaning_ for more information.
@@ -483,6 +478,8 @@ It has been tested with the following servers:
 * ProLiant DL380e Gen8
 * ProLiant DL380e Gen8
 * ProLiant DL580 Gen8 (BIOS/UEFI)
+* ProLiant DL360 Gen9 UEFI
+* ProLiant DL380 Gen9 UEFI
 
 The driver doesn't work on BIOS mode on DL580 Gen8 and Gen9 systems due to
 an issue in the firmware.  For information on this, refer iLO driver
@@ -624,7 +621,6 @@ UEFI Secure Boot support
 The following drivers support UEFI secure boot deploy:
 
 * ``iscsi_ilo``
-* ``agent_ilo``
 
 The UEFI secure boot mode can be configured in Ironic by adding
 ``secure_boot`` parameter in the ``capabilities`` parameter  within
@@ -660,6 +656,34 @@ specified flavors but deployment would not use its secure boot capability.
 Secure boot deploy would happen only when it is explicitly specified through
 flavor.
 
+Use element ``ubuntu-signed`` or ``fedora`` to build signed deploy iso and
+user images from ``diskimage-builder`` [3]_.
+
+The below command creates files named ``deploy-ramdisk.kernel``,
+``deploy-ramdisk.initramfs`` and ``deploy-ramdisk.iso`` in the current
+working directory.::
+
+ cd <path-to-diskimage-builder>
+ ./bin/ramdisk-image-create -o deploy-ramdisk ubuntu-signed deploy-ironic iso
+
+The below command creates files named cloud-image-boot.iso, cloud-image.initrd,
+cloud-image.vmlinuz and cloud-image.qcow2 in the current working directory.::
+
+ cd <path-to-diskimage-builder>
+ ./bin/disk-image-create -o cloud-image ubuntu-signed baremetal iso
+
+.. note::
+   In UEFI secure boot, digitally signed bootloader should be able to validate
+   digital signatures of kernel during boot process. This requires that the
+   bootloader contains the digital signatures of the kernel.
+   For ``iscsi_ilo`` driver, it is recommended that ``boot_iso`` property for
+   user image contains the Glance UUID of the boot ISO.
+   If ``boot_iso`` property is not updated in Glance for the user image, it
+   would create the ``boot_iso`` using bootloader from the deploy iso. This
+   ``boot_iso`` will be able to boot the user image in UEFI secure boot
+   environment only if the bootloader is signed and can validate digital
+   signatures of user image kernel.
+
 Ensure the public key of the signed image is loaded into baremetal to deploy
 signed images.
 For HP Proliant Gen9 servers, one can enroll public key using iLO System
@@ -667,6 +691,9 @@ Utilities UI. Please refer to section ``Accessing Secure Boot options`` in
 HP UEFI System Utilities User Guide. [7]_
 One can also refer to white paper on Secure Boot for Linux on HP Proliant
 servers for additional details. [8]_
+
+For more up-to-date information, refer to the ``UEFI Secure Boot support``
+section in the iLO driver (Kilo release) wiki [10]_.
 
 .. _ilo_node_cleaning:
 
@@ -789,3 +816,4 @@ References
 .. [7] HP UEFI System Utilities User Guide - http://www.hp.com/ctg/Manual/c04398276.pdf
 .. [8] Secure Boot for Linux on HP Proliant servers http://h20195.www2.hp.com/V2/getpdf.aspx/4AA5-4496ENW.pdf
 .. [9] http://docs.openstack.org/developer/ironic/deploy/cleaning.html
+.. [10] https://wiki.openstack.org/wiki/Ironic/Drivers/iLODrivers/Kilo
