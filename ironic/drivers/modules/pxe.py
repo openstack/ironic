@@ -31,7 +31,6 @@ from ironic.common.i18n import _
 from ironic.common.i18n import _LE
 from ironic.common.i18n import _LW
 from ironic.common import image_service as service
-from ironic.common import keystone
 from ironic.common import paths
 from ironic.common import pxe_utils
 from ironic.common import states
@@ -205,11 +204,6 @@ def _build_pxe_config_options(node, pxe_info, ctx):
     return pxe_options
 
 
-def _get_token_file_path(node_uuid):
-    """Generate the path for PKI token file."""
-    return os.path.join(CONF.pxe.tftp_root, 'token-' + node_uuid)
-
-
 def validate_boot_option_for_uefi(node):
     """In uefi boot mode, validate if the boot option is compatible.
 
@@ -293,25 +287,6 @@ def _get_image_info(node, ctx):
     return image_info
 
 
-def _create_token_file(task):
-    """Save PKI token to file."""
-    token_file_path = _get_token_file_path(task.node.uuid)
-    token = task.context.auth_token
-    if token:
-        timeout = CONF.conductor.deploy_callback_timeout
-        if timeout and keystone.token_expires_soon(token, timeout):
-            token = keystone.get_admin_auth_token()
-        utils.write_to_file(token_file_path, token)
-    else:
-        utils.unlink_without_raise(token_file_path)
-
-
-def _destroy_token_file(node):
-    """Delete PKI token file."""
-    token_file_path = _get_token_file_path(node['uuid'])
-    utils.unlink_without_raise(token_file_path)
-
-
 class PXEDeploy(base.DeployInterface):
     """PXE Deploy Interface for deploy-related actions."""
 
@@ -368,9 +343,8 @@ class PXEDeploy(base.DeployInterface):
     def deploy(self, task):
         """Start deployment of the task's node'.
 
-        Fetches instance image, creates a temporary keystone token file,
-        updates the DHCP port options for next boot, and issues a reboot
-        request to the power driver.
+        Fetches instance image, updates the DHCP port options for next boot,
+        and issues a reboot request to the power driver.
         This causes the node to boot into the deployment ramdisk and triggers
         the next phase of PXE-based deployment via
         VendorPassthru.pass_deploy_info().
@@ -381,9 +355,6 @@ class PXEDeploy(base.DeployInterface):
         iscsi_deploy.cache_instance_image(task.context, task.node)
         iscsi_deploy.check_image_size(task)
 
-        # TODO(yuriyz): more secure way needed for pass auth token
-        #               to deploy ramdisk
-        _create_token_file(task)
         dhcp_opts = pxe_utils.dhcp_options_for_instance(task)
         provider = dhcp_factory.DHCPFactory()
         provider.update_dhcp(task, dhcp_opts)
@@ -471,8 +442,7 @@ class PXEDeploy(base.DeployInterface):
         """Clean up the deployment environment for the task's node.
 
         Unlinks TFTP and instance images and triggers image cache cleanup.
-        Removes the TFTP configuration files for this node. As a precaution,
-        this method also ensures the keystone auth token file was removed.
+        Removes the TFTP configuration files for this node.
 
         :param task: a TaskManager instance containing the node to act on.
         """
@@ -493,7 +463,6 @@ class PXEDeploy(base.DeployInterface):
         pxe_utils.clean_up_pxe_config(task)
 
         iscsi_deploy.destroy_images(node.uuid)
-        _destroy_token_file(node)
 
     def take_over(self, task):
         if not iscsi_deploy.get_boot_option(task.node) == "local":
@@ -577,7 +546,6 @@ class VendorPassthru(agent_base_vendor.BaseAgentVendor):
         task.process_event('resume')
         LOG.debug('Continuing the deployment on node %s', node.uuid)
 
-        _destroy_token_file(node)
         is_whole_disk_image = node.driver_internal_info['is_whole_disk_image']
         uuid_dict = iscsi_deploy.continue_deploy(task, **kwargs)
         root_uuid_or_disk_id = uuid_dict.get(
@@ -643,11 +611,6 @@ class VendorPassthru(agent_base_vendor.BaseAgentVendor):
         task.process_event('resume')
         node = task.node
         LOG.debug('Continuing the deployment on node %s', node.uuid)
-
-        # NOTE(lucasagomes): We don't use the token file with the agent,
-        # but as it's created as part of deploy() we are going to remove
-        # it here.
-        _destroy_token_file(node)
 
         uuid_dict = iscsi_deploy.do_agent_iscsi_deploy(task, self._client)
 
