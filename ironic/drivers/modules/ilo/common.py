@@ -30,7 +30,6 @@ from ironic.common.i18n import _LE
 from ironic.common.i18n import _LI
 from ironic.common import images
 from ironic.common import swift
-from ironic.common import utils
 from ironic.drivers.modules import deploy_utils
 
 ilo_client = importutils.try_import('proliantutils.ilo.client')
@@ -227,11 +226,11 @@ def _prepare_floppy_image(task, params):
     """Prepares the floppy image for passing the parameters.
 
     This method prepares a temporary vfat filesystem image. Then it adds
-    two files into the image - one containing the authentication token and
-    the other containing the parameters to be passed to the ramdisk. Then it
-    uploads the file to Swift in 'swift_ilo_container', setting it to
-    auto-expire after 'swift_object_expiry_timeout' seconds. Then it returns
-    the temp url for the Swift object.
+    a file into the image which contains the parameters to be passed to
+    the ramdisk. After adding the parameters, it then uploads the file to Swift
+    in 'swift_ilo_container', setting it to auto-expire after
+    'swift_object_expiry_timeout' seconds. Then it returns the temp url for the
+    Swift object.
 
     :param task: a TaskManager instance containing the node to act on.
     :param params: a dictionary containing 'parameter name'->'value' mapping
@@ -243,20 +242,7 @@ def _prepare_floppy_image(task, params):
     with tempfile.NamedTemporaryFile() as vfat_image_tmpfile_obj:
 
         vfat_image_tmpfile = vfat_image_tmpfile_obj.name
-
-        # If auth_strategy is noauth, then no need to write token into
-        # the image file.
-        if task.context.auth_token:
-            with tempfile.NamedTemporaryFile() as token_tmpfile_obj:
-                files_info = {}
-                token_tmpfile = token_tmpfile_obj.name
-                utils.write_to_file(token_tmpfile, task.context.auth_token)
-                files_info[token_tmpfile] = 'token'
-                images.create_vfat_image(vfat_image_tmpfile,
-                                         files_info=files_info,
-                                         parameters=params)
-        else:
-            images.create_vfat_image(vfat_image_tmpfile, parameters=params)
+        images.create_vfat_image(vfat_image_tmpfile, parameters=params)
 
         container = CONF.ilo.swift_ilo_container
         object_name = _get_floppy_image_name(task.node)
