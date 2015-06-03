@@ -16,14 +16,15 @@ Tests for ACL. Checks whether certain kinds of requests
 are blocked or allowed to be processed.
 """
 
-# NOTE(deva): import auth_token so we can override a config option
-from keystonemiddleware import auth_token  # noqa
 import mock
 from oslo_config import cfg
 
 from ironic.tests.api import base
 from ironic.tests.api import utils
 from ironic.tests.db import utils as db_utils
+
+cfg.CONF.import_opt('cache', 'keystonemiddleware.auth_token',
+                    group='keystone_authtoken')
 
 
 class TestACL(base.FunctionalTest):

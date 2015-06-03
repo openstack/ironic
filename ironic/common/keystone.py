@@ -13,8 +13,6 @@
 # under the License.
 
 from keystoneclient import exceptions as ksexception
-# NOTE(deva): import auth_token so oslo_config pulls in keystone_authtoken
-from keystonemiddleware import auth_token  # noqa
 from oslo_config import cfg
 from six.moves.urllib import parse
 
@@ -30,6 +28,7 @@ keystone_opts = [
 ]
 
 CONF.register_opts(keystone_opts, group='keystone')
+CONF.import_group('keystone_authtoken', 'keystonemiddleware.auth_token')
 
 
 def _is_apiv3(auth_url, auth_version):
