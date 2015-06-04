@@ -20,8 +20,6 @@
 #       ceilometer/tests/api/__init__.py). This should be oslo'ified:
 #       https://bugs.launchpad.net/ironic/+bug/1255115.
 
-# NOTE(deva): import auth_token so we can override a config option
-from keystonemiddleware import auth_token  # noqa
 import mock
 from oslo_config import cfg
 import pecan
@@ -31,6 +29,8 @@ from six.moves.urllib import parse as urlparse
 from ironic.tests.db import base
 
 PATH_PREFIX = '/v1'
+
+cfg.CONF.import_group('keystone_authtoken', 'keystonemiddleware.auth_token')
 
 
 class FunctionalTest(base.DbTestCase):
