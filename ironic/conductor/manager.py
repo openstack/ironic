@@ -968,9 +968,9 @@ class ConductorManager(periodic_task.PeriodicTasks):
 
         # Clear clean_step
         node.clean_step = None
-        driver_info = node.driver_internal_info
-        driver_info['clean_steps'] = None
-        node.driver_internal_info = driver_info
+        driver_internal_info = node.driver_internal_info
+        driver_internal_info['clean_steps'] = None
+        node.driver_internal_info = driver_internal_info
         try:
             task.driver.deploy.tear_down_cleaning(task)
         except Exception as e:
@@ -2155,8 +2155,9 @@ def set_node_cleaning_steps(task):
     """Get the list of clean steps, save them to the node."""
     # Get the prioritized steps, store them.
     node = task.node
-    driver_info = node.driver_internal_info
-    driver_info['clean_steps'] = _get_cleaning_steps(task, enabled=True)
-    node.driver_internal_info = driver_info
+    driver_internal_info = node.driver_internal_info
+    driver_internal_info['clean_steps'] = _get_cleaning_steps(task,
+                                                              enabled=True)
+    node.driver_internal_info = driver_internal_info
     node.clean_step = {}
     node.save()
