@@ -1496,7 +1496,7 @@ class IPMIToolDriverTestCase(db_base.DbTestCase):
                         boot_devices.CDROM, boot_devices.BIOS,
                         boot_devices.SAFE]
             self.assertEqual(sorted(expected), sorted(task.driver.management.
-                             get_supported_boot_devices()))
+                             get_supported_boot_devices(task)))
 
     @mock.patch.object(ipmi, '_exec_ipmitool', autospec=True)
     def test_management_interface_get_boot_device(self, mock_exec):

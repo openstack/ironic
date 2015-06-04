@@ -126,9 +126,10 @@ class IloManagement(base.ManagementInterface):
         """
         ilo_common.parse_driver_info(task.node)
 
-    def get_supported_boot_devices(self):
+    def get_supported_boot_devices(self, task):
         """Get a list of the supported boot devices.
 
+        :param task: a task from TaskManager.
         :returns: A list with the supported boot devices defined
                   in :mod:`ironic.common.boot_devices`.
 

@@ -852,7 +852,7 @@ class SSHDriverTestCase(db_base.DbTestCase):
             expected = [boot_devices.PXE, boot_devices.DISK,
                         boot_devices.CDROM]
             self.assertEqual(sorted(expected), sorted(task.driver.management.
-                             get_supported_boot_devices()))
+                             get_supported_boot_devices(task)))
 
     @mock.patch.object(ssh, '_get_connection', autospec=True)
     @mock.patch.object(ssh, '_get_hosts_name_for_node', autospec=True)

@@ -2536,6 +2536,28 @@ class UpdatePortTestCase(_ServiceSetUpMixin, tests_db_base.DbTestCase):
                                                            node.uuid)
         self.assertEqual([boot_devices.PXE], bootdevs)
 
+    def test_get_supported_boot_devices_no_task(self):
+        # NOTE(MattMan): This test method should be removed in next
+        #                cycle(Mitaka), task parameter will be mandatory then
+        node = obj_utils.create_test_node(self.context, driver='fake')
+
+        def no_task_get_supported_boot_devices():
+            return "FAKE_BOOT_DEVICE_NO_TASK"
+
+        # Override driver's get_supported_boot_devices method ensuring
+        # no task parameter
+        saved_get_boot_devices = \
+            self.driver.management.get_supported_boot_devices
+        self.driver.management.get_supported_boot_devices = \
+            no_task_get_supported_boot_devices
+        bootdevs = self.service.get_supported_boot_devices(self.context,
+                                                           node.uuid)
+        self.assertEqual("FAKE_BOOT_DEVICE_NO_TASK", bootdevs)
+
+        # Revert back to original method
+        self.driver.management.get_supported_boot_devices = \
+            saved_get_boot_devices
+
     def test_get_supported_boot_devices_iface_not_supported(self):
         node = obj_utils.create_test_node(self.context, driver='fake')
         # null the management interface

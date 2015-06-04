@@ -82,7 +82,7 @@ class IRMCManagementTestCase(db_base.DbTestCase):
                         boot_devices.CDROM, boot_devices.BIOS,
                         boot_devices.SAFE]
             self.assertEqual(sorted(expected), sorted(task.driver.management.
-                             get_supported_boot_devices()))
+                             get_supported_boot_devices(task)))
 
     @mock.patch.object(ipmitool.IPMIManagement, 'set_boot_device',
                        spec_set=True, autospec=True)

@@ -312,7 +312,7 @@ class VirtualBoxManagementTestCase(db_base.DbTestCase):
     def test_get_supported_boot_devices(self):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
-            devices = task.driver.management.get_supported_boot_devices()
+            devices = task.driver.management.get_supported_boot_devices(task)
             self.assertIn(boot_devices.PXE, devices)
             self.assertIn(boot_devices.DISK, devices)
             self.assertIn(boot_devices.CDROM, devices)
