@@ -715,30 +715,6 @@ class VendorPassthruTestCase(_ServiceSetUpMixin, tests_db_base.DbTestCase):
             # Verify reservation has been cleared.
             self.assertIsNone(node.reservation)
 
-    @mock.patch.object(task_manager, 'acquire')
-    def test_vendor_passthru_backwards_compat(self, acquire_mock):
-        node = obj_utils.create_test_node(self.context, driver='fake')
-        vendor_passthru_ref = mock.Mock()
-        self._start_service()
-
-        driver = mock.Mock()
-        driver.vendor.vendor_routes = {}
-        driver.vendor.vendor_passthru = vendor_passthru_ref
-
-        task = mock.Mock()
-        task.node = node
-        task.driver = driver
-
-        acquire_mock.return_value.__enter__.return_value = task
-
-        response = self.service.vendor_passthru(
-            self.context, node.uuid, 'test_method', 'POST', {'bar': 'baz'})
-
-        self.assertEqual((None, True), response)
-        task.spawn_after.assert_called_once_with(
-            mock.ANY, vendor_passthru_ref, task, bar='baz',
-            method='test_method')
-
     def test_get_node_vendor_passthru_methods(self):
         node = obj_utils.create_test_node(self.context, driver='fake')
         fake_routes = {'test_method': {'async': True,
