@@ -104,11 +104,13 @@ class DbNodeTestCase(base.DbTestCase):
         self.assertEqual(uuids, dict((r[0], r[2]) for r in res))
 
     def test_get_nodeinfo_list_with_filters(self):
-        node1 = utils.create_test_node(driver='driver-one',
+        node1 = utils.create_test_node(
+            driver='driver-one',
             instance_uuid=uuidutils.generate_uuid(),
             reservation='fake-host',
             uuid=uuidutils.generate_uuid())
-        node2 = utils.create_test_node(driver='driver-two',
+        node2 = utils.create_test_node(
+            driver='driver-two',
             uuid=uuidutils.generate_uuid(),
             maintenance=True)
 
@@ -151,7 +153,7 @@ class DbNodeTestCase(base.DbTestCase):
                                        provision_state=states.DEPLOYWAIT)
         # node without timeout
         utils.create_test_node(uuid=uuidutils.generate_uuid(),
-                            provision_updated_at=next)
+                               provision_updated_at=next)
 
         mock_utcnow.return_value = present
         res = self.dbapi.get_nodeinfo_list(filters={'provisioned_before': 300})
@@ -180,7 +182,7 @@ class DbNodeTestCase(base.DbTestCase):
 
         mock_utcnow.return_value = present
         res = self.dbapi.get_nodeinfo_list(
-                  filters={'inspection_started_before': 300})
+            filters={'inspection_started_before': 300})
         self.assertEqual([node1.id], [r[0] for r in res])
 
         res = self.dbapi.get_nodeinfo_list(filters={'provision_state':
@@ -200,12 +202,14 @@ class DbNodeTestCase(base.DbTestCase):
         ch1 = utils.create_test_chassis(uuid=uuidutils.generate_uuid())
         ch2 = utils.create_test_chassis(uuid=uuidutils.generate_uuid())
 
-        node1 = utils.create_test_node(driver='driver-one',
+        node1 = utils.create_test_node(
+            driver='driver-one',
             instance_uuid=uuidutils.generate_uuid(),
             reservation='fake-host',
             uuid=uuidutils.generate_uuid(),
             chassis_id=ch1['id'])
-        node2 = utils.create_test_node(driver='driver-two',
+        node2 = utils.create_test_node(
+            driver='driver-two',
             uuid=uuidutils.generate_uuid(),
             chassis_id=ch2['id'],
             maintenance=True)
@@ -247,14 +251,14 @@ class DbNodeTestCase(base.DbTestCase):
 
     def test_get_node_by_instance(self):
         node = utils.create_test_node(
-                instance_uuid='12345678-9999-0000-aaaa-123456789012')
+            instance_uuid='12345678-9999-0000-aaaa-123456789012')
 
         res = self.dbapi.get_node_by_instance(node.instance_uuid)
         self.assertEqual(node.uuid, res.uuid)
 
     def test_get_node_by_instance_wrong_uuid(self):
         utils.create_test_node(
-                instance_uuid='12345678-9999-0000-aaaa-123456789012')
+            instance_uuid='12345678-9999-0000-aaaa-123456789012')
 
         self.assertRaises(exception.InstanceNotFound,
                           self.dbapi.get_node_by_instance,

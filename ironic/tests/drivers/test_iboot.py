@@ -39,9 +39,9 @@ class IBootPrivateMethodTestCase(db_base.DbTestCase):
 
     def test__parse_driver_info_good(self):
         node = obj_utils.create_test_node(
-                self.context,
-                driver='fake_iboot',
-                driver_info=INFO_DICT)
+            self.context,
+            driver='fake_iboot',
+            driver_info=INFO_DICT)
         info = iboot._parse_driver_info(node)
         self.assertIsNotNone(info.get('address'))
         self.assertIsNotNone(info.get('username'))
@@ -53,9 +53,9 @@ class IBootPrivateMethodTestCase(db_base.DbTestCase):
         info = dict(INFO_DICT)
         info['iboot_port'] = '1234'
         node = obj_utils.create_test_node(
-                self.context,
-                driver='fake_iboot',
-                driver_info=info)
+            self.context,
+            driver='fake_iboot',
+            driver_info=info)
         info = iboot._parse_driver_info(node)
         self.assertEqual(1234, info.get('port'))
 
@@ -63,9 +63,9 @@ class IBootPrivateMethodTestCase(db_base.DbTestCase):
         info = dict(INFO_DICT)
         info['iboot_relay_id'] = '2'
         node = obj_utils.create_test_node(
-                self.context,
-                driver='fake_iboot',
-                driver_info=info)
+            self.context,
+            driver='fake_iboot',
+            driver_info=info)
         info = iboot._parse_driver_info(node)
         self.assertEqual(2, info.get('relay_id'))
 
@@ -73,9 +73,9 @@ class IBootPrivateMethodTestCase(db_base.DbTestCase):
         info = dict(INFO_DICT)
         del info['iboot_address']
         node = obj_utils.create_test_node(
-                self.context,
-                driver='fake_iboot',
-                driver_info=info)
+            self.context,
+            driver='fake_iboot',
+            driver_info=info)
         self.assertRaises(exception.MissingParameterValue,
                           iboot._parse_driver_info,
                           node)
@@ -84,9 +84,9 @@ class IBootPrivateMethodTestCase(db_base.DbTestCase):
         info = dict(INFO_DICT)
         del info['iboot_username']
         node = obj_utils.create_test_node(
-                self.context,
-                driver='fake_iboot',
-                driver_info=info)
+            self.context,
+            driver='fake_iboot',
+            driver_info=info)
         self.assertRaises(exception.MissingParameterValue,
                           iboot._parse_driver_info,
                           node)
@@ -95,9 +95,9 @@ class IBootPrivateMethodTestCase(db_base.DbTestCase):
         info = dict(INFO_DICT)
         del info['iboot_password']
         node = obj_utils.create_test_node(
-                self.context,
-                driver='fake_iboot',
-                driver_info=info)
+            self.context,
+            driver='fake_iboot',
+            driver_info=info)
         self.assertRaises(exception.MissingParameterValue,
                           iboot._parse_driver_info,
                           node)
@@ -106,9 +106,9 @@ class IBootPrivateMethodTestCase(db_base.DbTestCase):
         info = dict(INFO_DICT)
         info['iboot_port'] = 'not-integer'
         node = obj_utils.create_test_node(
-                self.context,
-                driver='fake_iboot',
-                driver_info=info)
+            self.context,
+            driver='fake_iboot',
+            driver_info=info)
         self.assertRaises(exception.InvalidParameterValue,
                           iboot._parse_driver_info,
                           node)
@@ -117,9 +117,9 @@ class IBootPrivateMethodTestCase(db_base.DbTestCase):
         info = dict(INFO_DICT)
         info['iboot_relay_id'] = 'not-integer'
         node = obj_utils.create_test_node(
-                self.context,
-                driver='fake_iboot',
-                driver_info=info)
+            self.context,
+            driver='fake_iboot',
+            driver_info=info)
         self.assertRaises(exception.InvalidParameterValue,
                           iboot._parse_driver_info,
                           node)
@@ -130,9 +130,9 @@ class IBootPrivateMethodTestCase(db_base.DbTestCase):
         mock_connection.get_relays.return_value = [True]
         mock_get_conn.return_value = mock_connection
         node = obj_utils.create_test_node(
-                self.context,
-                driver='fake_iboot',
-                driver_info=INFO_DICT)
+            self.context,
+            driver='fake_iboot',
+            driver_info=INFO_DICT)
         info = iboot._parse_driver_info(node)
 
         status = iboot._power_status(info)
@@ -147,9 +147,9 @@ class IBootPrivateMethodTestCase(db_base.DbTestCase):
         mock_connection.get_relays.return_value = [False]
         mock_get_conn.return_value = mock_connection
         node = obj_utils.create_test_node(
-                self.context,
-                driver='fake_iboot',
-                driver_info=INFO_DICT)
+            self.context,
+            driver='fake_iboot',
+            driver_info=INFO_DICT)
         info = iboot._parse_driver_info(node)
 
         status = iboot._power_status(info)
@@ -164,9 +164,9 @@ class IBootPrivateMethodTestCase(db_base.DbTestCase):
         mock_connection.get_relays.return_value = None
         mock_get_conn.return_value = mock_connection
         node = obj_utils.create_test_node(
-                self.context,
-                driver='fake_iboot',
-                driver_info=INFO_DICT)
+            self.context,
+            driver='fake_iboot',
+            driver_info=INFO_DICT)
         info = iboot._parse_driver_info(node)
 
         self.assertRaises(exception.IBootOperationError,
@@ -184,9 +184,9 @@ class IBootPrivateMethodTestCase(db_base.DbTestCase):
 
         mock_get_conn.return_value = mock_connection
         node = obj_utils.create_test_node(
-                self.context,
-                driver='fake_iboot',
-                driver_info=INFO_DICT)
+            self.context,
+            driver='fake_iboot',
+            driver_info=INFO_DICT)
         info = iboot._parse_driver_info(node)
 
         self.assertRaises(exception.IBootOperationError,
@@ -204,9 +204,9 @@ class IBootPrivateMethodTestCase(db_base.DbTestCase):
 
         mock_get_conn.return_value = mock_connection
         node = obj_utils.create_test_node(
-                self.context,
-                driver='fake_iboot',
-                driver_info=INFO_DICT)
+            self.context,
+            driver='fake_iboot',
+            driver_info=INFO_DICT)
         info = iboot._parse_driver_info(node)
         status = iboot._power_status(info)
         self.assertEqual(states.ERROR, status)
@@ -220,9 +220,9 @@ class IBootPrivateMethodTestCase(db_base.DbTestCase):
         mock_connection.get_relays.return_value = list()
         mock_get_conn.return_value = mock_connection
         node = obj_utils.create_test_node(
-                self.context,
-                driver='fake_iboot',
-                driver_info=INFO_DICT)
+            self.context,
+            driver='fake_iboot',
+            driver_info=INFO_DICT)
         info = iboot._parse_driver_info(node)
 
         status = iboot._power_status(info)
@@ -239,15 +239,15 @@ class IBootDriverTestCase(db_base.DbTestCase):
         mgr_utils.mock_the_extension_manager(driver='fake_iboot')
         self.driver = driver_factory.get_driver('fake_iboot')
         self.node = obj_utils.create_test_node(
-                self.context,
-                driver='fake_iboot',
-                driver_info=INFO_DICT)
+            self.context,
+            driver='fake_iboot',
+            driver_info=INFO_DICT)
         self.info = iboot._parse_driver_info(self.node)
 
     def test_get_properties(self):
         expected = iboot.COMMON_PROPERTIES
-        with task_manager.acquire(self.context, self.node.uuid,
-                shared=True) as task:
+        with task_manager.acquire(
+                self.context, self.node.uuid, shared=True) as task:
             self.assertEqual(expected, task.driver.get_properties())
 
     @mock.patch.object(iboot, '_power_status', autospec=True)

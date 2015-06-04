@@ -127,7 +127,8 @@ class HashRingTestCase(base.TestCase):
         self.assertEqual(
             set(['bar', 'baz']),
             set(ring.get_hosts('fake', ignore_hosts=['foo'])))
-        self.assertEqual(set(['baz']),
+        self.assertEqual(
+            set(['baz']),
             set(ring.get_hosts('fake', ignore_hosts=['foo', 'bar'])))
         self.assertEqual(
             set(['baz', 'foo']),
@@ -138,11 +139,11 @@ class HashRingTestCase(base.TestCase):
         self.assertEqual([], ring.get_hosts('fake', ignore_hosts=hosts))
 
     def _compare_rings(self, nodes, conductors, ring,
-                                    new_conductors, new_ring):
+                       new_conductors, new_ring):
         delta = {}
         mapping = dict((node, ring.get_hosts(node)[0]) for node in nodes)
         new_mapping = dict(
-                (node, new_ring.get_hosts(node)[0]) for node in nodes)
+            (node, new_ring.get_hosts(node)[0]) for node in nodes)
 
         for key, old in mapping.items():
             new = new_mapping.get(key, None)
@@ -161,9 +162,9 @@ class HashRingTestCase(base.TestCase):
         nodes = [str(x) for x in range(num_nodes)]
         conductors = [str(x) for x in range(num_conductors)]
         new_conductors = conductors + ['new']
-        delta = self._compare_rings(nodes,
-                    conductors, hash_ring.HashRing(conductors),
-                    new_conductors, hash_ring.HashRing(new_conductors))
+        delta = self._compare_rings(
+            nodes, conductors, hash_ring.HashRing(conductors),
+            new_conductors, hash_ring.HashRing(new_conductors))
 
         self.assertTrue(len(delta) < num_nodes * redistribution_factor)
 
@@ -179,9 +180,9 @@ class HashRingTestCase(base.TestCase):
         conductors = [str(x) for x in range(num_conductors)]
         new_conductors = conductors[:]
         new_conductors.pop()
-        delta = self._compare_rings(nodes,
-                    conductors, hash_ring.HashRing(conductors),
-                    new_conductors, hash_ring.HashRing(new_conductors))
+        delta = self._compare_rings(
+            nodes, conductors, hash_ring.HashRing(conductors),
+            new_conductors, hash_ring.HashRing(new_conductors))
 
         self.assertTrue(len(delta) < num_nodes * redistribution_factor)
 

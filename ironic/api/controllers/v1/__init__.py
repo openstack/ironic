@@ -122,9 +122,9 @@ class V1(base.APIBase):
         v1.chassis = [link.Link.make_link('self', pecan.request.host_url,
                                           'chassis', ''),
                       link.Link.make_link('bookmark',
-                                           pecan.request.host_url,
-                                           'chassis', '',
-                                           bookmark=True)
+                                          pecan.request.host_url,
+                                          'chassis', '',
+                                          bookmark=True)
                       ]
         v1.nodes = [link.Link.make_link('self', pecan.request.host_url,
                                         'nodes', ''),
@@ -173,15 +173,17 @@ class Controller(rest.RestController):
             raise exc.HTTPNotAcceptable(_(
                 "Mutually exclusive versions requested. Version %(ver)s "
                 "requested but not supported by this service. The supported "
-                "version range is: [%(min)s, %(max)s].") % {'ver': version,
-                'min': MIN_VER_STR, 'max': MAX_VER_STR}, headers=headers)
+                "version range is: [%(min)s, %(max)s].") %
+                {'ver': version, 'min': MIN_VER_STR, 'max': MAX_VER_STR},
+                headers=headers)
         # ensure the minor version is within the supported range
         if version < MIN_VER or version > MAX_VER:
             raise exc.HTTPNotAcceptable(_(
                 "Version %(ver)s was requested but the minor version is not "
                 "supported by this service. The supported version range is: "
-                "[%(min)s, %(max)s].") % {'ver': version, 'min': MIN_VER_STR,
-                                          'max': MAX_VER_STR}, headers=headers)
+                "[%(min)s, %(max)s].") %
+                {'ver': version, 'min': MIN_VER_STR, 'max': MAX_VER_STR},
+                headers=headers)
 
     @pecan.expose()
     def _route(self, args):

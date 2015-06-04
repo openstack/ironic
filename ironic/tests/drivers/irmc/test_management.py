@@ -200,9 +200,8 @@ class IRMCManagementTestCase(db_base.DbTestCase):
                        spec_set=mock_specs.SCCICLIENT_IRMC_SCCI_SPEC)
     @mock.patch.object(irmc_common, 'get_irmc_report', spec_set=True,
                        autospec=True)
-    def test_management_interface_get_sensors_data_scci_ok(self,
-                                                          mock_get_irmc_report,
-                                                          mock_scci):
+    def test_management_interface_get_sensors_data_scci_ok(
+            self, mock_get_irmc_report, mock_scci):
         """'irmc_sensor_method' = 'scci' specified and OK data."""
         with open(os.path.join(os.path.dirname(__file__),
                                'fake_sensors_data_ok.xml'), "r") as report:
@@ -249,9 +248,8 @@ class IRMCManagementTestCase(db_base.DbTestCase):
                        spec_set=mock_specs.SCCICLIENT_IRMC_SCCI_SPEC)
     @mock.patch.object(irmc_common, 'get_irmc_report', spec_set=True,
                        autospec=True)
-    def test_management_interface_get_sensors_data_scci_ng(self,
-                                                          mock_get_irmc_report,
-                                                          mock_scci):
+    def test_management_interface_get_sensors_data_scci_ng(
+            self, mock_get_irmc_report, mock_scci):
         """'irmc_sensor_method' = 'scci' specified and NG data."""
         with open(os.path.join(os.path.dirname(__file__),
                                'fake_sensors_data_ng.xml'), "r") as report:

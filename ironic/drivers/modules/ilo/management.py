@@ -33,12 +33,13 @@ LOG = logging.getLogger(__name__)
 
 ilo_error = importutils.try_import('proliantutils.exception')
 
-BOOT_DEVICE_MAPPING_TO_ILO = {boot_devices.PXE: 'NETWORK',
-                               boot_devices.DISK: 'HDD',
-                               boot_devices.CDROM: 'CDROM'
-                              }
-BOOT_DEVICE_ILO_TO_GENERIC = {v: k
-                              for k, v in BOOT_DEVICE_MAPPING_TO_ILO.items()}
+BOOT_DEVICE_MAPPING_TO_ILO = {
+    boot_devices.PXE: 'NETWORK',
+    boot_devices.DISK: 'HDD',
+    boot_devices.CDROM: 'CDROM'
+}
+BOOT_DEVICE_ILO_TO_GENERIC = {
+    v: k for k, v in BOOT_DEVICE_MAPPING_TO_ILO.items()}
 
 MANAGEMENT_PROPERTIES = ilo_common.REQUIRED_PROPERTIES.copy()
 MANAGEMENT_PROPERTIES.update(ilo_common.CLEAN_PROPERTIES)
@@ -88,8 +89,9 @@ def _execute_ilo_clean_step(node, step, *args, **kwargs):
         # The specified clean step is not present in the proliantutils
         # package. Raise exception to update the proliantutils package
         # to newer version.
-        raise exception.NodeCleaningFailure(_("Clean step '%s' not "
-                "found. 'proliantutils' package needs to be updated.") % step)
+        raise exception.NodeCleaningFailure(
+            _("Clean step '%s' not found. 'proliantutils' package needs to be "
+              "updated.") % step)
     try:
         clean_step(*args, **kwargs)
     except ilo_error.IloCommandNotSupportedError:
@@ -97,11 +99,12 @@ def _execute_ilo_clean_step(node, step, *args, **kwargs):
         # Log the failure and continue with cleaning.
         LOG.warn(_LW("'%(step)s' clean step is not supported on node "
                      "%(uuid)s. Skipping the clean step."),
-                     {'step': step, 'uuid': node.uuid})
+                 {'step': step, 'uuid': node.uuid})
     except ilo_error.IloError as ilo_exception:
-        raise exception.NodeCleaningFailure(_("Clean step %(step)s failed "
-                    "on node %(node)s with error: %(err)s") %
-                    {'node': node.uuid, 'step': step, 'err': ilo_exception})
+        raise exception.NodeCleaningFailure(_(
+            "Clean step %(step)s failed "
+            "on node %(node)s with error: %(err)s") %
+            {'node': node.uuid, 'step': step, 'err': ilo_exception})
 
 
 class IloManagement(base.ManagementInterface):
@@ -211,7 +214,7 @@ class IloManagement(base.ManagementInterface):
                                               error=ilo_exception)
 
         LOG.debug("Node %(uuid)s set to boot from %(device)s.",
-                 {'uuid': task.node.uuid, 'device': device})
+                  {'uuid': task.node.uuid, 'device': device})
 
     def get_sensors_data(self, task):
         """Get sensors data.

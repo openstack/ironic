@@ -254,7 +254,7 @@ class ConductorAPI(object):
                           node_id=node_id)
 
     def get_driver_vendor_passthru_methods(self, context, driver_name,
-                                            topic=None):
+                                           topic=None):
         """Retrieve information about vendor methods of the given driver.
 
         :param context: an admin context.

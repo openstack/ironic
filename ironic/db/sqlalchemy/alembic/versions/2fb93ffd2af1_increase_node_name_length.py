@@ -30,13 +30,13 @@ from sqlalchemy.dialects import mysql
 
 def upgrade():
     op.alter_column('nodes', 'name',
-               existing_type=mysql.VARCHAR(length=63),
-               type_=sa.String(length=255),
-               existing_nullable=True)
+                    existing_type=mysql.VARCHAR(length=63),
+                    type_=sa.String(length=255),
+                    existing_nullable=True)
 
 
 def downgrade():
     op.alter_column('nodes', 'name',
-               existing_type=sa.String(length=255),
-               type_=mysql.VARCHAR(length=63),
-               existing_nullable=True)
+                    existing_type=sa.String(length=255),
+                    type_=mysql.VARCHAR(length=63),
+                    existing_nullable=True)

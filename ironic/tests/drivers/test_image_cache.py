@@ -65,8 +65,8 @@ class TestImageCacheFetch(base.TestCase):
     @mock.patch.object(image_cache.ImageCache, 'clean_up', autospec=True)
     @mock.patch.object(image_cache.ImageCache, '_download_image',
                        autospec=True)
-    def test_fetch_image_dest_and_master_exist_uptodate(self, mock_download,
-            mock_clean_up, mock_unlink, mock_fetch):
+    def test_fetch_image_dest_and_master_exist_uptodate(
+            self, mock_download, mock_clean_up, mock_unlink, mock_fetch):
         touch(self.master_path)
         os.link(self.master_path, self.dest_path)
         self.cache.fetch_image(self.uuid, self.dest_path)
@@ -78,8 +78,8 @@ class TestImageCacheFetch(base.TestCase):
     @mock.patch.object(image_cache.ImageCache, 'clean_up', autospec=True)
     @mock.patch.object(image_cache.ImageCache, '_download_image',
                        autospec=True)
-    def test_fetch_image_dest_and_master_exist_outdated(self, mock_download,
-            mock_clean_up, mock_fetch):
+    def test_fetch_image_dest_and_master_exist_outdated(
+            self, mock_download, mock_clean_up, mock_fetch):
         touch(self.master_path)
         touch(self.dest_path)
         self.assertNotEqual(os.stat(self.dest_path).st_ino,
@@ -96,8 +96,8 @@ class TestImageCacheFetch(base.TestCase):
     @mock.patch.object(image_cache.ImageCache, 'clean_up', autospec=True)
     @mock.patch.object(image_cache.ImageCache, '_download_image',
                        autospec=True)
-    def test_fetch_image_only_dest_exists(self, mock_download,
-            mock_clean_up, mock_unlink, mock_fetch):
+    def test_fetch_image_only_dest_exists(
+            self, mock_download, mock_clean_up, mock_unlink, mock_fetch):
         touch(self.dest_path)
         self.cache.fetch_image(self.uuid, self.dest_path)
         mock_unlink.assert_called_once_with(self.dest_path)

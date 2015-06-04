@@ -99,8 +99,8 @@ class PXEAndIPMINativeDriver(base.BaseDriver):
     def __init__(self):
         if not importutils.try_import('pyghmi'):
             raise exception.DriverLoadError(
-                    driver=self.__class__.__name__,
-                    reason=_("Unable to import pyghmi library"))
+                driver=self.__class__.__name__,
+                reason=_("Unable to import pyghmi library"))
         self.power = ipminative.NativeIPMIPower()
         self.console = ipminative.NativeIPMIShellinaboxConsole()
         self.deploy = pxe.PXEDeploy()
@@ -124,8 +124,8 @@ class PXEAndSeaMicroDriver(base.BaseDriver):
     def __init__(self):
         if not importutils.try_import('seamicroclient'):
             raise exception.DriverLoadError(
-                    driver=self.__class__.__name__,
-                    reason=_("Unable to import seamicroclient library"))
+                driver=self.__class__.__name__,
+                reason=_("Unable to import seamicroclient library"))
         self.power = seamicro.Power()
         self.deploy = pxe.PXEDeploy()
         self.management = seamicro.Management()
@@ -152,8 +152,8 @@ class PXEAndIBootDriver(base.BaseDriver):
     def __init__(self):
         if not importutils.try_import('iboot'):
             raise exception.DriverLoadError(
-                    driver=self.__class__.__name__,
-                    reason=_("Unable to import iboot library"))
+                driver=self.__class__.__name__,
+                reason=_("Unable to import iboot library"))
         self.power = iboot.IBootPower()
         self.deploy = pxe.PXEDeploy()
         self.vendor = pxe.VendorPassthru()
@@ -172,8 +172,8 @@ class PXEAndIloDriver(base.BaseDriver):
     def __init__(self):
         if not importutils.try_import('proliantutils'):
             raise exception.DriverLoadError(
-                    driver=self.__class__.__name__,
-                    reason=_("Unable to import proliantutils library"))
+                driver=self.__class__.__name__,
+                reason=_("Unable to import proliantutils library"))
         self.power = ilo_power.IloPower()
         self.deploy = ilo_deploy.IloPXEDeploy()
         self.vendor = ilo_deploy.IloPXEVendorPassthru()
@@ -218,8 +218,8 @@ class PXEAndIRMCDriver(base.BaseDriver):
     def __init__(self):
         if not importutils.try_import('scciclient'):
             raise exception.DriverLoadError(
-                    driver=self.__class__.__name__,
-                    reason=_("Unable to import python-scciclient library"))
+                driver=self.__class__.__name__,
+                reason=_("Unable to import python-scciclient library"))
         self.power = irmc_power.IRMCPower()
         self.console = ipmitool.IPMIShellinaboxConsole()
         self.deploy = pxe.PXEDeploy()
@@ -242,8 +242,8 @@ class PXEAndVirtualBoxDriver(base.BaseDriver):
     def __init__(self):
         if not importutils.try_import('pyremotevbox'):
             raise exception.DriverLoadError(
-                    driver=self.__class__.__name__,
-                    reason=_("Unable to import pyremotevbox library"))
+                driver=self.__class__.__name__,
+                reason=_("Unable to import pyremotevbox library"))
         self.power = virtualbox.VirtualBoxPower()
         self.deploy = pxe.PXEDeploy()
         self.management = virtualbox.VirtualBoxManagement()
@@ -262,8 +262,8 @@ class PXEAndAMTDriver(base.BaseDriver):
     def __init__(self):
         if not importutils.try_import('pywsman'):
             raise exception.DriverLoadError(
-                    driver=self.__class__.__name__,
-                    reason=_("Unable to import pywsman library"))
+                driver=self.__class__.__name__,
+                reason=_("Unable to import pywsman library"))
         self.power = amt_power.AMTPower()
         self.deploy = pxe.PXEDeploy()
         self.management = amt_management.AMTManagement()

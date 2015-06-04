@@ -99,8 +99,8 @@ class AgentAndVirtualBoxDriver(base.BaseDriver):
     def __init__(self):
         if not importutils.try_import('pyremotevbox'):
             raise exception.DriverLoadError(
-                    driver=self.__class__.__name__,
-                    reason=_("Unable to import pyremotevbox library"))
+                driver=self.__class__.__name__,
+                reason=_("Unable to import pyremotevbox library"))
         self.power = virtualbox.VirtualBoxPower()
         self.deploy = agent.AgentDeploy()
         self.management = virtualbox.VirtualBoxManagement()

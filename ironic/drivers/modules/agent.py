@@ -65,7 +65,7 @@ agent_opts = [
                      'your own TFTP server that allows booting the deploy '
                      'ramdisks.'
                 ),
-    ]
+]
 
 CONF = cfg.CONF
 CONF.import_opt('my_ip', 'ironic.netconf')
@@ -489,7 +489,7 @@ class AgentVendorInterface(agent_base_vendor.BaseAgentVendor):
         if error is not None:
             # TODO(jimrollenhagen) power off if using neutron dhcp to
             #                      align with pxe driver?
-            msg = _('node %(node)s command status errored: %(error)s') % (
+            msg = (_('node %(node)s command status errored: %(error)s') %
                    {'node': node.uuid, 'error': error})
             LOG.error(msg)
             deploy_utils.set_failed_state(task, msg)

@@ -157,8 +157,8 @@ class DiskPartitioner(object):
         max_retries = CONF.disk_partitioner.check_device_max_retries
 
         timer = loopingcall.FixedIntervalLoopingCall(
-                    self._wait_for_disk_to_become_available,
-                    retries, max_retries, pids, fuser_err)
+            self._wait_for_disk_to_become_available,
+            retries, max_retries, pids, fuser_err)
         timer.start(interval=interval).wait()
 
         if retries[0] > max_retries:

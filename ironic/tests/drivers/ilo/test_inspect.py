@@ -41,8 +41,8 @@ class IloInspectTestCase(db_base.DbTestCase):
     def setUp(self):
         super(IloInspectTestCase, self).setUp()
         mgr_utils.mock_the_extension_manager(driver="fake_ilo")
-        self.node = obj_utils.create_test_node(self.context,
-                driver='fake_ilo', driver_info=INFO_DICT)
+        self.node = obj_utils.create_test_node(
+            self.context, driver='fake_ilo', driver_info=INFO_DICT)
 
     def test_get_properties(self):
         with task_manager.acquire(self.context, self.node.uuid,
@@ -224,8 +224,8 @@ class TestInspectPrivateMethods(db_base.DbTestCase):
     def setUp(self):
         super(TestInspectPrivateMethods, self).setUp()
         mgr_utils.mock_the_extension_manager(driver="fake_ilo")
-        self.node = obj_utils.create_test_node(self.context,
-                driver='fake_ilo', driver_info=INFO_DICT)
+        self.node = obj_utils.create_test_node(
+            self.context, driver='fake_ilo', driver_info=INFO_DICT)
 
     @mock.patch.object(ilo_inspect.LOG, 'info', spec_set=True, autospec=True)
     @mock.patch.object(dbapi, 'get_instance', spec_set=True, autospec=True)

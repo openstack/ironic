@@ -299,7 +299,7 @@ def _print_type(opt_type, opt_name, opt_default):
     if opt_type == STROPT:
         assert(isinstance(opt_default, six.string_types))
         print('#%s=%s' % (opt_name, _sanitize_default(opt_name,
-                                                          opt_default)))
+                                                      opt_default)))
     elif opt_type == BOOLOPT:
         assert(isinstance(opt_default, bool))
         print('#%s=%s' % (opt_name, str(opt_default).lower()))
@@ -316,7 +316,7 @@ def _print_type(opt_type, opt_name, opt_default):
     elif opt_type == DICTOPT:
         assert(isinstance(opt_default, dict))
         opt_default_strlist = [str(key) + ':' + str(value)
-                                   for (key, value) in opt_default.items()]
+                               for (key, value) in opt_default.items()]
         print('#%s=%s' % (opt_name, ','.join(opt_default_strlist)))
     elif opt_type == MULTISTROPT:
         assert(isinstance(opt_default, list))

@@ -25,10 +25,10 @@ class Conductor(base.IronicObject):
     dbapi = db_api.get_instance()
 
     fields = {
-            'id': int,
-            'drivers': utils.list_or_none,
-            'hostname': str,
-            }
+        'id': int,
+        'drivers': utils.list_or_none,
+        'hostname': str,
+    }
 
     @staticmethod
     def _from_db_object(conductor, db_obj):
@@ -53,7 +53,7 @@ class Conductor(base.IronicObject):
     def save(self, context):
         """Save is not supported by Conductor objects."""
         raise NotImplementedError(
-                _('Cannot update a conductor record directly.'))
+            _('Cannot update a conductor record directly.'))
 
     @base.remotable
     def refresh(self, context=None):

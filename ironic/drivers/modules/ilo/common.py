@@ -85,8 +85,8 @@ COMMON_PROPERTIES.update(OPTIONAL_PROPERTIES)
 DEFAULT_BOOT_MODE = 'LEGACY'
 
 BOOT_MODE_GENERIC_TO_ILO = {'bios': 'legacy', 'uefi': 'uefi'}
-BOOT_MODE_ILO_TO_GENERIC = dict((v, k)
-                           for (k, v) in BOOT_MODE_GENERIC_TO_ILO.items())
+BOOT_MODE_ILO_TO_GENERIC = dict(
+    (v, k) for (k, v) in BOOT_MODE_GENERIC_TO_ILO.items())
 
 
 def parse_driver_info(node):
@@ -113,8 +113,8 @@ def parse_driver_info(node):
             missing_info.append(param)
     if missing_info:
         raise exception.MissingParameterValue(_(
-                "The following required iLO parameters are missing from the "
-                "node's driver_info: %s") % missing_info)
+            "The following required iLO parameters are missing from the "
+            "node's driver_info: %s") % missing_info)
 
     not_integers = []
     for param in OPTIONAL_PROPERTIES:
@@ -134,8 +134,8 @@ def parse_driver_info(node):
 
     if not_integers:
         raise exception.InvalidParameterValue(_(
-                "The following iLO parameters from the node's driver_info "
-                "should be integers: %s") % not_integers)
+            "The following iLO parameters from the node's driver_info "
+            "should be integers: %s") % not_integers)
 
     return d_info
 
@@ -287,12 +287,12 @@ def attach_vmedia(node, device, url):
 
     try:
         ilo_object.insert_virtual_media(url, device=device)
-        ilo_object.set_vm_status(device=device, boot_option='CONNECT',
-                write_protect='YES')
+        ilo_object.set_vm_status(
+            device=device, boot_option='CONNECT', write_protect='YES')
     except ilo_error.IloError as ilo_exception:
         operation = _("Inserting virtual media %s") % device
-        raise exception.IloOperationError(operation=operation,
-                error=ilo_exception)
+        raise exception.IloOperationError(
+            operation=operation, error=ilo_exception)
 
     LOG.info(_LI("Attached virtual media %s successfully."), device)
 
@@ -318,11 +318,11 @@ def set_boot_mode(node, boot_mode):
 
     try:
         ilo_object.set_pending_boot_mode(
-                        BOOT_MODE_GENERIC_TO_ILO[boot_mode].upper())
+            BOOT_MODE_GENERIC_TO_ILO[boot_mode].upper())
     except ilo_error.IloError as ilo_exception:
         operation = _("Setting %s as boot mode") % boot_mode
-        raise exception.IloOperationError(operation=operation,
-                error=ilo_exception)
+        raise exception.IloOperationError(
+            operation=operation, error=ilo_exception)
 
     LOG.info(_LI("Node %(uuid)s boot mode is set to %(boot_mode)s."),
              {'uuid': node.uuid, 'boot_mode': boot_mode})
@@ -367,15 +367,15 @@ def update_boot_mode(task):
         try:
             boot_mode = 'uefi'
             ilo_object.set_pending_boot_mode(
-                                   BOOT_MODE_GENERIC_TO_ILO[boot_mode].upper())
+                BOOT_MODE_GENERIC_TO_ILO[boot_mode].upper())
         except ilo_error.IloError as ilo_exception:
             operation = _("Setting %s as boot mode") % boot_mode
             raise exception.IloOperationError(operation=operation,
                                               error=ilo_exception)
 
         LOG.debug("Node %(uuid)s boot mode is being set to %(boot_mode)s "
-                      "as pending boot mode is unknown.",
-                      {'uuid': node.uuid, 'boot_mode': boot_mode})
+                  "as pending boot mode is unknown.",
+                  {'uuid': node.uuid, 'boot_mode': boot_mode})
 
     instance_info = node.instance_info
     instance_info['deploy_boot_mode'] = boot_mode
@@ -418,11 +418,11 @@ def setup_vmedia_for_boot(task, boot_iso, parameters=None):
         container = CONF.ilo.swift_ilo_container
         object_name = parsed_ref.path
         timeout = CONF.ilo.swift_object_expiry_timeout
-        boot_iso_url = swift_api.get_temp_url(container, object_name,
-                timeout)
+        boot_iso_url = swift_api.get_temp_url(
+            container, object_name, timeout)
     elif service_utils.is_glance_image(boot_iso):
-        boot_iso_url = images.get_temp_url_for_glance_image(task.context,
-                boot_iso)
+        boot_iso_url = (
+            images.get_temp_url_for_glance_image(task.context, boot_iso))
 
     attach_vmedia(task.node, 'CDROM', boot_iso_url or boot_iso)
 
@@ -507,7 +507,7 @@ def set_secure_boot_mode(task, flag):
     """
 
     operation = (_("Setting secure boot to %(flag)s for node %(node)s.") %
-                   {'flag': flag, 'node': task.node.uuid})
+                 {'flag': flag, 'node': task.node.uuid})
     ilo_object = get_ilo_object(task.node)
 
     try:

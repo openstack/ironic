@@ -165,8 +165,8 @@ class SNMPValidateParametersTestCase(db_base.DbTestCase):
 
     def _get_test_node(self, driver_info):
         return obj_utils.get_test_node(
-                self.context,
-                driver_info=driver_info)
+            self.context,
+            driver_info=driver_info)
 
     def test__parse_driver_info_default(self):
         # Make sure we get back the expected things.
@@ -937,7 +937,7 @@ class SNMPDeviceDriverTestCase(db_base.DbTestCase):
         mock_client.get.return_value = driver.status_on
         pstate = driver.power_state()
         mock_client.get.assert_called_once_with(
-                driver._snmp_oid(driver.oid_status))
+            driver._snmp_oid(driver.oid_status))
         self.assertEqual(states.POWER_ON, pstate)
 
     def test_eaton_power_power_state_off(self, mock_get_client):
@@ -948,7 +948,7 @@ class SNMPDeviceDriverTestCase(db_base.DbTestCase):
         mock_client.get.return_value = driver.status_off
         pstate = driver.power_state()
         mock_client.get.assert_called_once_with(
-                driver._snmp_oid(driver.oid_status))
+            driver._snmp_oid(driver.oid_status))
         self.assertEqual(states.POWER_OFF, pstate)
 
     def test_eaton_power_power_state_pending_off(self, mock_get_client):
@@ -959,7 +959,7 @@ class SNMPDeviceDriverTestCase(db_base.DbTestCase):
         mock_client.get.return_value = driver.status_pending_off
         pstate = driver.power_state()
         mock_client.get.assert_called_once_with(
-                driver._snmp_oid(driver.oid_status))
+            driver._snmp_oid(driver.oid_status))
         self.assertEqual(states.POWER_ON, pstate)
 
     def test_eaton_power_power_state_pending_on(self, mock_get_client):
@@ -970,7 +970,7 @@ class SNMPDeviceDriverTestCase(db_base.DbTestCase):
         mock_client.get.return_value = driver.status_pending_on
         pstate = driver.power_state()
         mock_client.get.assert_called_once_with(
-                driver._snmp_oid(driver.oid_status))
+            driver._snmp_oid(driver.oid_status))
         self.assertEqual(states.POWER_OFF, pstate)
 
     def test_eaton_power_power_on(self, mock_get_client):
@@ -981,9 +981,9 @@ class SNMPDeviceDriverTestCase(db_base.DbTestCase):
         mock_client.get.return_value = driver.status_on
         pstate = driver.power_on()
         mock_client.set.assert_called_once_with(
-                driver._snmp_oid(driver.oid_poweron), driver.value_power_on)
+            driver._snmp_oid(driver.oid_poweron), driver.value_power_on)
         mock_client.get.assert_called_once_with(
-                driver._snmp_oid(driver.oid_status))
+            driver._snmp_oid(driver.oid_status))
         self.assertEqual(states.POWER_ON, pstate)
 
     def test_eaton_power_power_off(self, mock_get_client):
@@ -994,9 +994,9 @@ class SNMPDeviceDriverTestCase(db_base.DbTestCase):
         mock_client.get.return_value = driver.status_off
         pstate = driver.power_off()
         mock_client.set.assert_called_once_with(
-                driver._snmp_oid(driver.oid_poweroff), driver.value_power_off)
+            driver._snmp_oid(driver.oid_poweroff), driver.value_power_off)
         mock_client.get.assert_called_once_with(
-                driver._snmp_oid(driver.oid_status))
+            driver._snmp_oid(driver.oid_status))
         self.assertEqual(states.POWER_OFF, pstate)
 
     def test_eaton_power_power_reset(self, mock_get_client):

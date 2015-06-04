@@ -223,16 +223,16 @@ class Client(object):
                 raise exception.DracOperationFailed(message=message)
             else:
                 raise exception.DracUnexpectedReturnValue(
-                        expected_return_value=expected_return_value,
-                        actual_return_value=return_value)
+                    expected_return_value=expected_return_value,
+                    actual_return_value=return_value)
 
         return root
 
     def _get_root(self, doc):
         if doc is None or doc.root() is None:
             raise exception.DracClientError(
-                    last_error=self.client.last_error(),
-                    fault_string=self.client.fault_string(),
-                    response_code=self.client.response_code())
+                last_error=self.client.last_error(),
+                fault_string=self.client.fault_string(),
+                response_code=self.client.response_code())
         root = doc.root()
         return ElementTree.fromstring(root.string())

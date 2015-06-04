@@ -68,9 +68,9 @@ class Driver(base.APIBase):
                                 pecan.request.host_url,
                                 'drivers', name),
             link.Link.make_link('bookmark',
-                                 pecan.request.host_url,
-                                 'drivers', name,
-                                 bookmark=True)
+                                pecan.request.host_url,
+                                'drivers', name,
+                                bookmark=True)
         ]
         return driver
 
@@ -127,13 +127,13 @@ class DriverPassthruController(rest.RestController):
         if driver_name not in _VENDOR_METHODS:
             topic = pecan.request.rpcapi.get_topic_for_driver(driver_name)
             ret = pecan.request.rpcapi.get_driver_vendor_passthru_methods(
-                        pecan.request.context, driver_name, topic=topic)
+                pecan.request.context, driver_name, topic=topic)
             _VENDOR_METHODS[driver_name] = ret
 
         return _VENDOR_METHODS[driver_name]
 
     @expose.expose(wtypes.text, wtypes.text, wtypes.text,
-                         body=wtypes.text)
+                   body=wtypes.text)
     def _default(self, driver_name, method, data=None):
         """Call a driver API extension.
 
@@ -151,8 +151,8 @@ class DriverPassthruController(rest.RestController):
         http_method = pecan.request.method.upper()
         topic = pecan.request.rpcapi.get_topic_for_driver(driver_name)
         ret, is_async = pecan.request.rpcapi.driver_vendor_passthru(
-                            pecan.request.context, driver_name, method,
-                            http_method, data, topic=topic)
+            pecan.request.context, driver_name, method,
+            http_method, data, topic=topic)
         status_code = 202 if is_async else 200
         return wsme.api.Response(ret, status_code=status_code)
 
@@ -204,7 +204,7 @@ class DriversController(rest.RestController):
         if driver_name not in _DRIVER_PROPERTIES:
             topic = pecan.request.rpcapi.get_topic_for_driver(driver_name)
             properties = pecan.request.rpcapi.get_driver_properties(
-                             pecan.request.context, driver_name, topic=topic)
+                pecan.request.context, driver_name, topic=topic)
             _DRIVER_PROPERTIES[driver_name] = properties
 
         return _DRIVER_PROPERTIES[driver_name]

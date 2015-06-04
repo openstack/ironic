@@ -135,9 +135,9 @@ if not pysnmp:
     sys.modules["pysnmp.entity"] = pysnmp.entity
     sys.modules["pysnmp.entity.rfc3413"] = pysnmp.entity.rfc3413
     sys.modules["pysnmp.entity.rfc3413.oneliner"] = (
-            pysnmp.entity.rfc3413.oneliner)
+        pysnmp.entity.rfc3413.oneliner)
     sys.modules["pysnmp.entity.rfc3413.oneliner.cmdgen"] = (
-            pysnmp.entity.rfc3413.oneliner.cmdgen)
+        pysnmp.entity.rfc3413.oneliner.cmdgen)
     sys.modules["pysnmp.error"] = pysnmp.error
     pysnmp.error.PySnmpError = Exception
     sys.modules["pysnmp.proto"] = pysnmp.proto

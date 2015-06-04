@@ -95,8 +95,8 @@ class TestAgentMethods(db_base.DbTestCase):
 
     @mock.patch.object(image_service.HttpImageService, 'validate_href',
                        autospec=True)
-    def test_build_instance_info_for_deploy_nonglance_image(self,
-            validate_href_mock):
+    def test_build_instance_info_for_deploy_nonglance_image(
+            self, validate_href_mock):
         i_info = self.node.instance_info
         i_info['image_source'] = 'http://image-ref'
         i_info['image_checksum'] = 'aa'
@@ -116,8 +116,8 @@ class TestAgentMethods(db_base.DbTestCase):
 
     @mock.patch.object(image_service.HttpImageService, 'validate_href',
                        autospec=True)
-    def test_build_instance_info_for_deploy_nonsupported_image(self,
-            validate_href_mock):
+    def test_build_instance_info_for_deploy_nonsupported_image(
+            self, validate_href_mock):
         validate_href_mock.side_effect = exception.ImageRefValidationFailed(
             image_href='file://img.qcow2', reason='fail')
         i_info = self.node.instance_info
@@ -362,10 +362,10 @@ class TestAgentVendor(db_base.DbTestCase):
         mgr_utils.mock_the_extension_manager(driver="fake_agent")
         self.passthru = agent.AgentVendorInterface()
         n = {
-              'driver': 'fake_agent',
-              'instance_info': INSTANCE_INFO,
-              'driver_info': DRIVER_INFO,
-              'driver_internal_info': DRIVER_INTERNAL_INFO,
+            'driver': 'fake_agent',
+            'instance_info': INSTANCE_INFO,
+            'driver_info': DRIVER_INFO,
+            'driver_internal_info': DRIVER_INTERNAL_INFO,
         }
         self.node = object_utils.create_test_node(self.context, **n)
 
@@ -386,11 +386,11 @@ class TestAgentVendor(db_base.DbTestCase):
         self.passthru._client = client_mock
 
         with task_manager.acquire(self.context, self.node.uuid,
-                                      shared=False) as task:
+                                  shared=False) as task:
             self.passthru.continue_deploy(task)
 
             client_mock.prepare_image.assert_called_with(task.node,
-                expected_image_info)
+                                                         expected_image_info)
             self.assertEqual(states.DEPLOYING, task.node.provision_state)
             self.assertEqual(states.ACTIVE,
                              task.node.target_provision_state)
@@ -412,11 +412,11 @@ class TestAgentVendor(db_base.DbTestCase):
         self.passthru._client = client_mock
 
         with task_manager.acquire(self.context, self.node.uuid,
-                                      shared=False) as task:
+                                  shared=False) as task:
             self.passthru.continue_deploy(task)
 
             client_mock.prepare_image.assert_called_with(task.node,
-                expected_image_info)
+                                                         expected_image_info)
             self.assertEqual(states.DEPLOYING, task.node.provision_state)
             self.assertEqual(states.ACTIVE,
                              task.node.target_provision_state)
@@ -434,7 +434,7 @@ class TestAgentVendor(db_base.DbTestCase):
         self.node.save()
 
         with task_manager.acquire(self.context, self.node.uuid,
-                                      shared=False) as task:
+                                  shared=False) as task:
             self.passthru.reboot_to_instance(task)
 
             check_deploy_mock.assert_called_once_with(mock.ANY, task.node)

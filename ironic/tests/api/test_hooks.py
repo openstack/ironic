@@ -297,7 +297,7 @@ class TestTrustedCallHook(base.FunctionalTest):
         reqstate.set_context()
         trusted_call_hook = hooks.TrustedCallHook()
         self.assertRaises(webob_exc.HTTPForbidden,
-            trusted_call_hook.before, reqstate)
+                          trusted_call_hook.before, reqstate)
 
     def test_trusted_call_hook_admin(self):
         headers = fake_headers(admin=True)

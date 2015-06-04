@@ -100,8 +100,8 @@ class FakeIPMINativeDriver(base.BaseDriver):
     def __init__(self):
         if not importutils.try_import('pyghmi'):
             raise exception.DriverLoadError(
-                    driver=self.__class__.__name__,
-                    reason=_("Unable to import pyghmi IPMI library"))
+                driver=self.__class__.__name__,
+                reason=_("Unable to import pyghmi IPMI library"))
         self.power = ipminative.NativeIPMIPower()
         self.console = ipminative.NativeIPMIShellinaboxConsole()
         self.deploy = fake.FakeDeploy()
@@ -114,8 +114,8 @@ class FakeSeaMicroDriver(base.BaseDriver):
     def __init__(self):
         if not importutils.try_import('seamicroclient'):
             raise exception.DriverLoadError(
-                    driver=self.__class__.__name__,
-                    reason=_("Unable to import seamicroclient library"))
+                driver=self.__class__.__name__,
+                reason=_("Unable to import seamicroclient library"))
         self.power = seamicro.Power()
         self.deploy = fake.FakeDeploy()
         self.management = seamicro.Management()
@@ -138,8 +138,8 @@ class FakeIBootDriver(base.BaseDriver):
     def __init__(self):
         if not importutils.try_import('iboot'):
             raise exception.DriverLoadError(
-                    driver=self.__class__.__name__,
-                    reason=_("Unable to import iboot library"))
+                driver=self.__class__.__name__,
+                reason=_("Unable to import iboot library"))
         self.power = iboot.IBootPower()
         self.deploy = fake.FakeDeploy()
 
@@ -150,8 +150,8 @@ class FakeIloDriver(base.BaseDriver):
     def __init__(self):
         if not importutils.try_import('proliantutils'):
             raise exception.DriverLoadError(
-                    driver=self.__class__.__name__,
-                    reason=_("Unable to import proliantutils library"))
+                driver=self.__class__.__name__,
+                reason=_("Unable to import proliantutils library"))
         self.power = ilo_power.IloPower()
         self.deploy = fake.FakeDeploy()
         self.management = ilo_management.IloManagement()
@@ -164,8 +164,8 @@ class FakeDracDriver(base.BaseDriver):
     def __init__(self):
         if not importutils.try_import('pywsman'):
             raise exception.DriverLoadError(
-                    driver=self.__class__.__name__,
-                    reason=_('Unable to import pywsman library'))
+                driver=self.__class__.__name__,
+                reason=_('Unable to import pywsman library'))
 
         self.power = drac_power.DracPower()
         self.deploy = fake.FakeDeploy()
@@ -178,8 +178,8 @@ class FakeSNMPDriver(base.BaseDriver):
     def __init__(self):
         if not importutils.try_import('pysnmp'):
             raise exception.DriverLoadError(
-                    driver=self.__class__.__name__,
-                    reason=_("Unable to import pysnmp library"))
+                driver=self.__class__.__name__,
+                reason=_("Unable to import pysnmp library"))
         self.power = snmp.SNMPPower()
         self.deploy = fake.FakeDeploy()
 
@@ -190,8 +190,8 @@ class FakeIRMCDriver(base.BaseDriver):
     def __init__(self):
         if not importutils.try_import('scciclient'):
             raise exception.DriverLoadError(
-                    driver=self.__class__.__name__,
-                    reason=_("Unable to import python-scciclient library"))
+                driver=self.__class__.__name__,
+                reason=_("Unable to import python-scciclient library"))
         self.power = irmc_power.IRMCPower()
         self.deploy = fake.FakeDeploy()
         self.management = irmc_management.IRMCManagement()
@@ -203,8 +203,8 @@ class FakeVirtualBoxDriver(base.BaseDriver):
     def __init__(self):
         if not importutils.try_import('pyremotevbox'):
             raise exception.DriverLoadError(
-                    driver=self.__class__.__name__,
-                    reason=_("Unable to import pyremotevbox library"))
+                driver=self.__class__.__name__,
+                reason=_("Unable to import pyremotevbox library"))
         self.power = virtualbox.VirtualBoxPower()
         self.deploy = fake.FakeDeploy()
         self.management = virtualbox.VirtualBoxManagement()
@@ -231,8 +231,8 @@ class FakeAMTDriver(base.BaseDriver):
     def __init__(self):
         if not importutils.try_import('pywsman'):
             raise exception.DriverLoadError(
-                    driver=self.__class__.__name__,
-                    reason=_("Unable to import pywsman library"))
+                driver=self.__class__.__name__,
+                reason=_("Unable to import pywsman library"))
         self.power = amt_power.AMTPower()
         self.deploy = fake.FakeDeploy()
         self.management = amt_mgmt.AMTManagement()

@@ -27,7 +27,7 @@ API_SERVICE_OPTS = [
                default=1000,
                help='The maximum number of items returned in a single '
                     'response from a collection resource.'),
-    ]
+]
 
 CONF = cfg.CONF
 opt_group = cfg.OptGroup(name='api',

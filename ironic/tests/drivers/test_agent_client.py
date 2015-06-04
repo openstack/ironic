@@ -132,10 +132,9 @@ class TestAgentClient(base.TestCase):
         self.client.prepare_image(self.node,
                                   image_info,
                                   wait=False)
-        self.client._command.assert_called_once_with(node=self.node,
-                                         method='standby.prepare_image',
-                                         params=params,
-                                         wait=False)
+        self.client._command.assert_called_once_with(
+            node=self.node, method='standby.prepare_image',
+            params=params, wait=False)
 
     @mock.patch('uuid.uuid4', mock.MagicMock(spec_set=[], return_value='uuid'))
     def test_prepare_image_with_configdrive(self):
@@ -151,10 +150,9 @@ class TestAgentClient(base.TestCase):
         self.client.prepare_image(self.node,
                                   image_info,
                                   wait=False)
-        self.client._command.assert_called_once_with(node=self.node,
-                                         method='standby.prepare_image',
-                                         params=params,
-                                         wait=False)
+        self.client._command.assert_called_once_with(
+            node=self.node, method='standby.prepare_image',
+            params=params, wait=False)
 
     @mock.patch('uuid.uuid4', mock.MagicMock(spec_set=[], return_value='uuid'))
     def test_start_iscsi_target(self):
@@ -163,10 +161,9 @@ class TestAgentClient(base.TestCase):
         params = {'iqn': iqn}
 
         self.client.start_iscsi_target(self.node, iqn)
-        self.client._command.assert_called_once_with(node=self.node,
-                                         method='iscsi.start_iscsi_target',
-                                         params=params,
-                                         wait=True)
+        self.client._command.assert_called_once_with(
+            node=self.node, method='iscsi.start_iscsi_target',
+            params=params, wait=True)
 
     @mock.patch('uuid.uuid4', mock.MagicMock(spec_set=[], return_value='uuid'))
     def test_install_bootloader(self):
@@ -192,10 +189,9 @@ class TestAgentClient(base.TestCase):
 
         self.client.get_clean_steps(self.node,
                                     ports)
-        self.client._command.assert_called_once_with(node=self.node,
-                                         method='clean.get_clean_steps',
-                                         params=expected_params,
-                                         wait=True)
+        self.client._command.assert_called_once_with(
+            node=self.node, method='clean.get_clean_steps',
+            params=expected_params, wait=True)
 
     def test_execute_clean_step(self):
         self.client._command = mock.MagicMock(spec_set=[])
@@ -211,7 +207,6 @@ class TestAgentClient(base.TestCase):
         self.client.execute_clean_step(step,
                                        self.node,
                                        ports)
-        self.client._command.assert_called_once_with(node=self.node,
-                                         method='clean.execute_clean_step',
-                                         params=expected_params,
-                                         wait=False)
+        self.client._command.assert_called_once_with(
+            node=self.node, method='clean.execute_clean_step',
+            params=expected_params, wait=False)

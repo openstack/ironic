@@ -200,7 +200,7 @@ class TestPatch(api_base.FunctionalTest):
         result = self.get_json('/chassis/%s' % chassis.uuid)
         self.assertEqual(description, result['description'])
         return_updated_at = timeutils.parse_isotime(
-                            result['updated_at']).replace(tzinfo=None)
+            result['updated_at']).replace(tzinfo=None)
         self.assertEqual(test_time, return_updated_at)
 
     def test_replace_multi(self):
@@ -261,9 +261,10 @@ class TestPatch(api_base.FunctionalTest):
 
     def test_remove_non_existent_property_fail(self):
         chassis = obj_utils.get_test_chassis(self.context)
-        response = self.patch_json('/chassis/%s' % chassis.uuid,
-                             [{'path': '/extra/non-existent', 'op': 'remove'}],
-                             expect_errors=True)
+        response = self.patch_json(
+            '/chassis/%s' % chassis.uuid,
+            [{'path': '/extra/non-existent', 'op': 'remove'}],
+            expect_errors=True)
         self.assertEqual('application/json', response.content_type)
         self.assertEqual(400, response.status_code)
         self.assertTrue(response.json['error_message'])
@@ -330,7 +331,7 @@ class TestPost(api_base.FunctionalTest):
         self.assertEqual(cdict['uuid'], result['uuid'])
         self.assertFalse(result['updated_at'])
         return_created_at = timeutils.parse_isotime(
-                            result['created_at']).replace(tzinfo=None)
+            result['created_at']).replace(tzinfo=None)
         self.assertEqual(test_time, return_created_at)
         # Check location header
         self.assertIsNotNone(response.location)
@@ -363,7 +364,7 @@ class TestPost(api_base.FunctionalTest):
         ndict = apiutils.node_post_data()
         ndict['chassis_uuid'] = chassis.uuid
         response = self.post_json('/chassis/nodes', ndict,
-                                   expect_errors=True)
+                                  expect_errors=True)
         self.assertEqual(403, response.status_int)
 
     def test_create_chassis_valid_extra(self):

@@ -41,55 +41,55 @@ class Node(base.IronicObject):
     dbapi = db_api.get_instance()
 
     fields = {
-            'id': int,
+        'id': int,
 
-            'uuid': obj_utils.str_or_none,
-            'name': obj_utils.str_or_none,
-            'chassis_id': obj_utils.int_or_none,
-            'instance_uuid': obj_utils.str_or_none,
+        'uuid': obj_utils.str_or_none,
+        'name': obj_utils.str_or_none,
+        'chassis_id': obj_utils.int_or_none,
+        'instance_uuid': obj_utils.str_or_none,
 
-            'driver': obj_utils.str_or_none,
-            'driver_info': obj_utils.dict_or_none,
-            'driver_internal_info': obj_utils.dict_or_none,
+        'driver': obj_utils.str_or_none,
+        'driver_info': obj_utils.dict_or_none,
+        'driver_internal_info': obj_utils.dict_or_none,
 
-            # A clean step dictionary, indicating the current clean step
-            # being executed, or None, indicating cleaning is not in progress
-            # or has not yet started.
-            'clean_step': obj_utils.dict_or_none,
+        # A clean step dictionary, indicating the current clean step
+        # being executed, or None, indicating cleaning is not in progress
+        # or has not yet started.
+        'clean_step': obj_utils.dict_or_none,
 
-            'instance_info': obj_utils.dict_or_none,
-            'properties': obj_utils.dict_or_none,
-            'reservation': obj_utils.str_or_none,
-            # a reference to the id of the conductor service, not its hostname,
-            # that has most recently performed some action which could require
-            # local state to be maintained (eg, built a PXE config)
-            'conductor_affinity': obj_utils.int_or_none,
+        'instance_info': obj_utils.dict_or_none,
+        'properties': obj_utils.dict_or_none,
+        'reservation': obj_utils.str_or_none,
+        # a reference to the id of the conductor service, not its hostname,
+        # that has most recently performed some action which could require
+        # local state to be maintained (eg, built a PXE config)
+        'conductor_affinity': obj_utils.int_or_none,
 
-            # One of states.POWER_ON|POWER_OFF|NOSTATE|ERROR
-            'power_state': obj_utils.str_or_none,
+        # One of states.POWER_ON|POWER_OFF|NOSTATE|ERROR
+        'power_state': obj_utils.str_or_none,
 
-            # Set to one of states.POWER_ON|POWER_OFF when a power operation
-            # starts, and set to NOSTATE when the operation finishes
-            # (successfully or unsuccessfully).
-            'target_power_state': obj_utils.str_or_none,
+        # Set to one of states.POWER_ON|POWER_OFF when a power operation
+        # starts, and set to NOSTATE when the operation finishes
+        # (successfully or unsuccessfully).
+        'target_power_state': obj_utils.str_or_none,
 
-            'provision_state': obj_utils.str_or_none,
-            'provision_updated_at': obj_utils.datetime_or_str_or_none,
-            'target_provision_state': obj_utils.str_or_none,
+        'provision_state': obj_utils.str_or_none,
+        'provision_updated_at': obj_utils.datetime_or_str_or_none,
+        'target_provision_state': obj_utils.str_or_none,
 
-            'maintenance': bool,
-            'maintenance_reason': obj_utils.str_or_none,
-            'console_enabled': bool,
+        'maintenance': bool,
+        'maintenance_reason': obj_utils.str_or_none,
+        'console_enabled': bool,
 
-            # Any error from the most recent (last) asynchronous transaction
-            # that started but failed to finish.
-            'last_error': obj_utils.str_or_none,
+        # Any error from the most recent (last) asynchronous transaction
+        # that started but failed to finish.
+        'last_error': obj_utils.str_or_none,
 
-            'inspection_finished_at': obj_utils.datetime_or_str_or_none,
-            'inspection_started_at': obj_utils.datetime_or_str_or_none,
+        'inspection_finished_at': obj_utils.datetime_or_str_or_none,
+        'inspection_started_at': obj_utils.datetime_or_str_or_none,
 
-            'extra': obj_utils.dict_or_none,
-            }
+        'extra': obj_utils.dict_or_none,
+    }
 
     @staticmethod
     def _from_db_object(node, db_node):

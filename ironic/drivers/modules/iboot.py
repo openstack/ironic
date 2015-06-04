@@ -51,8 +51,8 @@ def _parse_driver_info(node):
     info = node.driver_info or {}
     missing_info = [key for key in REQUIRED_PROPERTIES if not info.get(key)]
     if missing_info:
-        raise exception.MissingParameterValue(_(
-              "Missing the following iBoot credentials in node's"
+        raise exception.MissingParameterValue(
+            _("Missing the following iBoot credentials in node's"
               " driver_info: %s.") % missing_info)
 
     address = info.get('iboot_address', None)
@@ -63,24 +63,24 @@ def _parse_driver_info(node):
     try:
         relay_id = int(relay_id)
     except ValueError:
-        raise exception.InvalidParameterValue(_(
-              "iBoot PDU relay id must be an integer."))
+        raise exception.InvalidParameterValue(
+            _("iBoot PDU relay id must be an integer."))
 
     port = info.get('iboot_port', 9100)
     try:
         port = int(port)
     except ValueError:
-        raise exception.InvalidParameterValue(_(
-              "iBoot PDU port must be an integer."))
+        raise exception.InvalidParameterValue(
+            _("iBoot PDU port must be an integer."))
 
     return {
-            'address': address,
-            'username': username,
-            'password': password,
-            'port': port,
-            'relay_id': relay_id,
-            'uuid': node.uuid,
-           }
+        'address': address,
+        'username': username,
+        'password': password,
+        'port': port,
+        'relay_id': relay_id,
+        'uuid': node.uuid,
+    }
 
 
 def _get_connection(driver_info):
@@ -112,7 +112,7 @@ def _power_status(driver_info):
     except IndexError:
         LOG.warning(_LW("Cannot get power status for node '%(node)s' at relay "
                         "'%(relay)s'. iBoot get_relays() failed."),
-                        {'node': driver_info['uuid'], 'relay': relay_id})
+                    {'node': driver_info['uuid'], 'relay': relay_id})
         return states.ERROR
 
     if status:
@@ -182,8 +182,8 @@ class IBootPower(base.PowerInterface):
         elif pstate == states.POWER_OFF:
             _switch(driver_info, False)
         else:
-            raise exception.InvalidParameterValue(_(
-                  "set_power_state called with invalid "
+            raise exception.InvalidParameterValue(
+                _("set_power_state called with invalid "
                   "power state %s.") % pstate)
 
         state = _power_status(driver_info)

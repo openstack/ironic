@@ -63,7 +63,7 @@ deploy_opts = [
                default=3,
                help='Maximum attempts to verify an iSCSI connection is '
                     'active, sleeping 1 second between attempts.'),
-    ]
+]
 
 CONF = cfg.CONF
 CONF.register_opts(deploy_opts, group='deploy')
@@ -146,8 +146,9 @@ def verify_iscsi_connection(target_iqn):
             break
         time.sleep(1)
         LOG.debug("iSCSI connection not active. Rechecking. Attempt "
-                  "%(attempt)d out of %(total)d", {"attempt": attempt + 1,
-                  "total": CONF.deploy.iscsi_verify_attempts})
+                  "%(attempt)d out of %(total)d",
+                  {"attempt": attempt + 1,
+                   "total": CONF.deploy.iscsi_verify_attempts})
     else:
         msg = _("iSCSI connection did not become active after attempting to "
                 "verify %d times.") % CONF.deploy.iscsi_verify_attempts
@@ -208,12 +209,12 @@ def get_disk_identifier(dev):
     :returns The Disk Identifier.
     """
     disk_identifier = utils.execute('hexdump', '-s', '440', '-n', '4',
-                                     '-e', '''\"0x%08x\"''',
-                                     dev,
-                                     run_as_root=True,
-                                     check_exit_code=[0],
-                                     attempts=5,
-                                     delay_on_retry=True)
+                                    '-e', '''\"0x%08x\"''',
+                                    dev,
+                                    run_as_root=True,
+                                    check_exit_code=[0],
+                                    attempts=5,
+                                    delay_on_retry=True)
     return disk_identifier[0]
 
 
@@ -258,12 +259,12 @@ def make_partitions(dev, root_mb, swap_mb, ephemeral_mb,
 
     if ephemeral_mb:
         LOG.debug("Add ephemeral partition (%(size)d MB) to device: %(dev)s",
-                 {'dev': dev, 'size': ephemeral_mb})
+                  {'dev': dev, 'size': ephemeral_mb})
         part_num = dp.add_partition(ephemeral_mb)
         part_dict['ephemeral'] = part_template % part_num
     if swap_mb:
         LOG.debug("Add Swap partition (%(size)d MB) to device: %(dev)s",
-                 {'dev': dev, 'size': swap_mb})
+                  {'dev': dev, 'size': swap_mb})
         part_num = dp.add_partition(swap_mb, fs_type='linux-swap')
         part_dict['swap'] = part_template % part_num
     if configdrive_mb:
@@ -276,7 +277,7 @@ def make_partitions(dev, root_mb, swap_mb, ephemeral_mb,
     # enables tools like cloud-init's growroot utility to expand the root
     # partition until the end of the disk.
     LOG.debug("Add root partition (%(size)d MB) to device: %(dev)s",
-             {'dev': dev, 'size': root_mb})
+              {'dev': dev, 'size': root_mb})
     part_num = dp.add_partition(root_mb, bootable=(boot_option == "local" and
                                                    boot_mode == "bios"))
     part_dict['root'] = part_template % part_num
@@ -295,8 +296,9 @@ def is_block_device(dev):
             s = os.stat(dev)
         except OSError as e:
             LOG.debug("Unable to stat device %(dev)s. Attempt %(attempt)d "
-                      "out of %(total)d. Error: %(err)s", {"dev": dev,
-                      "attempt": attempt + 1, "total": attempts, "err": e})
+                      "out of %(total)d. Error: %(err)s",
+                      {"dev": dev, "attempt": attempt + 1,
+                       "total": attempts, "err": e})
             time.sleep(1)
         else:
             return stat.S_ISBLK(s.st_mode)
@@ -600,8 +602,8 @@ def work_on_disk(dev, root_mb, swap_mb, ephemeral_mb, ephemeral_format,
                      'efi system partition'):
             part_device = part_dict.get(part)
             LOG.debug("Checking for %(part)s device (%(dev)s) on node "
-                      "%(node)s.", {'part': part, 'dev': part_device,
-                      'node': node_uuid})
+                      "%(node)s.",
+                      {'part': part, 'dev': part_device, 'node': node_uuid})
             if part_device and not is_block_device(part_device):
                 raise exception.InstanceDeployFailure(
                     _("'%(partition)s' device '%(part_device)s' not found") %
@@ -648,10 +650,11 @@ def work_on_disk(dev, root_mb, swap_mb, ephemeral_mb, ephemeral_format,
     return uuids_to_return
 
 
-def deploy_partition_image(address, port, iqn, lun, image_path,
-           root_mb, swap_mb, ephemeral_mb, ephemeral_format, node_uuid,
-           preserve_ephemeral=False, configdrive=None,
-           boot_option="netboot", boot_mode="bios"):
+def deploy_partition_image(
+        address, port, iqn, lun, image_path,
+        root_mb, swap_mb, ephemeral_mb, ephemeral_format, node_uuid,
+        preserve_ephemeral=False, configdrive=None,
+        boot_option="netboot", boot_mode="bios"):
     """All-in-one function to deploy a partition image to a node.
 
     :param address: The iSCSI IP address.
@@ -735,7 +738,7 @@ def _iscsi_setup_and_handle_errors(address, port, iqn, lun):
     login_iscsi(address, port, iqn)
     if not is_block_device(dev):
         raise exception.InstanceDeployFailure(_("Parent device '%s' not found")
-                                                % dev)
+                                              % dev)
     try:
         yield dev
     except processutils.ProcessExecutionError as err:
@@ -786,8 +789,8 @@ def check_for_missing_params(info_dict, error_msg, param_prefix=''):
 
     if missing_info:
         exc_msg = _("%(error_msg)s. Missing are: %(missing_info)s")
-        raise exception.MissingParameterValue(exc_msg %
-                    {'error_msg': error_msg, 'missing_info': missing_info})
+        raise exception.MissingParameterValue(
+            exc_msg % {'error_msg': error_msg, 'missing_info': missing_info})
 
 
 def fetch_images(ctx, cache, images_info, force_raw=True):

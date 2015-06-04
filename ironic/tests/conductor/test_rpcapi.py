@@ -50,8 +50,7 @@ class RPCAPITestCase(base.DbTestCase):
         super(RPCAPITestCase, self).setUp()
         self.fake_node = dbutils.get_test_node(driver='fake-driver')
         self.fake_node_obj = objects.Node._from_db_object(
-                                                    objects.Node(self.context),
-                                                    self.fake_node)
+            objects.Node(self.context), self.fake_node)
 
     def test_serialized_instance_has_uuid(self):
         self.assertTrue('uuid' in self.fake_node)
@@ -73,16 +72,16 @@ class RPCAPITestCase(base.DbTestCase):
 
         rpcapi = conductor_rpcapi.ConductorAPI(topic='fake-topic')
         self.assertRaises(exception.NoValidHost,
-                         rpcapi.get_topic_for,
-                         self.fake_node_obj)
+                          rpcapi.get_topic_for,
+                          self.fake_node_obj)
 
     def test_get_topic_doesnt_cache(self):
         CONF.set_override('host', 'fake-host')
 
         rpcapi = conductor_rpcapi.ConductorAPI(topic='fake-topic')
         self.assertRaises(exception.NoValidHost,
-                         rpcapi.get_topic_for,
-                         self.fake_node_obj)
+                          rpcapi.get_topic_for,
+                          self.fake_node_obj)
 
         self.dbapi.register_conductor({'hostname': 'fake-host',
                                        'drivers': ['fake-driver']})

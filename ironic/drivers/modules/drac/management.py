@@ -91,10 +91,10 @@ def _get_next_boot_mode(node):
     # and another one for the OneTime if set
     boot_mode = None
     for i in items:
-        instance_id = drac_common.find_xml(i, 'InstanceID',
-                                     resource_uris.DCIM_BootConfigSetting).text
-        is_next = drac_common.find_xml(i, 'IsNext',
-                                     resource_uris.DCIM_BootConfigSetting).text
+        instance_id = drac_common.find_xml(
+            i, 'InstanceID', resource_uris.DCIM_BootConfigSetting).text
+        is_next = drac_common.find_xml(
+            i, 'IsNext', resource_uris.DCIM_BootConfigSetting).text
 
         boot_mode = {'instance_id': instance_id, 'is_next': is_next}
         # If OneTime is set we should return it, because that's
@@ -162,8 +162,8 @@ def _check_for_config_job(node):
         if TARGET_DEVICE not in name.text:
             continue
 
-        job_status = drac_common.find_xml(i, 'JobStatus',
-                                      resource_uris.DCIM_LifecycleJob).text
+        job_status = drac_common.find_xml(
+            i, 'JobStatus', resource_uris.DCIM_LifecycleJob).text
         # If job is already completed or failed we can
         # create another one.
         # Job Control Documentation: http://goo.gl/o1dDD3 (Section 7.2.3.2)
@@ -249,13 +249,14 @@ class DracManagement(base.ManagementInterface):
                           {'node_uuid': task.node.uuid, 'error': exc,
                            'device': device})
 
-        instance_id = drac_common.find_xml(doc, 'InstanceID',
-                                     resource_uris.DCIM_BootSourceSetting).text
+        instance_id = drac_common.find_xml(
+            doc, 'InstanceID', resource_uris.DCIM_BootSourceSetting).text
 
         source = 'OneTime'
         if persistent:
-            source = drac_common.find_xml(doc, 'BootSourceType',
-                                     resource_uris.DCIM_BootSourceSetting).text
+            source = drac_common.find_xml(
+                doc, 'BootSourceType',
+                resource_uris.DCIM_BootSourceSetting).text
 
         # NOTE(lucasagomes): Don't ask me why 'BootSourceType' is set
         # for 'InstanceID' and 'InstanceID' is set for 'source'! You
@@ -312,8 +313,8 @@ class DracManagement(base.ManagementInterface):
                               'Reason: %(error)s.'),
                           {'node_uuid': task.node.uuid, 'error': exc})
 
-        instance_id = drac_common.find_xml(doc, 'InstanceID',
-                                     resource_uris.DCIM_BootSourceSetting).text
+        instance_id = drac_common.find_xml(
+            doc, 'InstanceID', resource_uris.DCIM_BootSourceSetting).text
         boot_device = next((key for (key, value) in _BOOT_DEVICES_MAP.items()
                             if value in instance_id), None)
         return {'boot_device': boot_device, 'persistent': persistent}

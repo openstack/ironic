@@ -71,7 +71,7 @@ pxe_opts = [
     cfg.StrOpt('disk_devices',
                default='cciss/c0d0,sda,hda,vda',
                help='The disk devices to scan while doing the deploy.'),
-    ]
+]
 
 CONF = cfg.CONF
 CONF.register_opts(pxe_opts, group='pxe')
@@ -160,11 +160,11 @@ def parse_instance_info(node):
 
     preserve_ephemeral = info.get('preserve_ephemeral', False)
     try:
-        i_info['preserve_ephemeral'] = strutils.bool_from_string(
-                                            preserve_ephemeral, strict=True)
+        i_info['preserve_ephemeral'] = (
+            strutils.bool_from_string(preserve_ephemeral, strict=True))
     except ValueError as e:
-        raise exception.InvalidParameterValue(err_msg_invalid %
-                                  {'param': 'preserve_ephemeral', 'reason': e})
+        raise exception.InvalidParameterValue(
+            err_msg_invalid % {'param': 'preserve_ephemeral', 'reason': e})
     return i_info
 
 
@@ -237,12 +237,12 @@ def get_deploy_info(node, **kwargs):
         raise exception.InvalidParameterValue(_("Deploy key does not match"))
 
     params = {
-              'address': kwargs.get('address'),
-              'port': kwargs.get('port', '3260'),
-              'iqn': kwargs.get('iqn'),
-              'lun': kwargs.get('lun', '1'),
-              'image_path': _get_image_file_path(node.uuid),
-              'node_uuid': node.uuid}
+        'address': kwargs.get('address'),
+        'port': kwargs.get('port', '3260'),
+        'iqn': kwargs.get('iqn'),
+        'lun': kwargs.get('lun', '1'),
+        'image_path': _get_image_file_path(node.uuid),
+        'node_uuid': node.uuid}
 
     is_whole_disk_image = node.driver_internal_info['is_whole_disk_image']
     if not is_whole_disk_image:
@@ -255,9 +255,9 @@ def get_deploy_info(node, **kwargs):
 
     missing = [key for key in params if params[key] is None]
     if missing:
-        raise exception.MissingParameterValue(_(
-                "Parameters %s were not passed to ironic"
-                " for deploy.") % missing)
+        raise exception.MissingParameterValue(
+            _("Parameters %s were not passed to ironic"
+              " for deploy.") % missing)
 
     if is_whole_disk_image:
         return params
@@ -325,7 +325,7 @@ def continue_deploy(task, **kwargs):
     except Exception as e:
         msg = (_('Deploy failed for instance %(instance)s. '
                  'Error: %(error)s') %
-                 {'instance': node.instance_uuid, 'error': e})
+               {'instance': node.instance_uuid, 'error': e})
         _fail_deploy(task, msg)
 
     root_uuid_or_disk_id = uuid_dict_returned.get(
@@ -536,8 +536,9 @@ def validate(task):
     """
     node = task.node
     if not driver_utils.get_node_mac_addresses(task):
-        raise exception.MissingParameterValue(_("Node %s does not have "
-                            "any port associated with it.") % node.uuid)
+        raise exception.MissingParameterValue(
+            _("Node %s does not have any port associated with it.")
+            % node.uuid)
 
     try:
         # TODO(lucasagomes): Validate the format of the URL

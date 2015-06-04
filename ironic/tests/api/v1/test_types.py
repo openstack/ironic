@@ -117,8 +117,8 @@ class TestJsonPatchType(base.TestCase):
 
     def _patch_json(self, params, expect_errors=False):
         return self.app.patch_json('/test', params=params,
-                              headers={'Accept': 'application/json'},
-                              expect_errors=expect_errors)
+                                   headers={'Accept': 'application/json'},
+                                   expect_errors=expect_errors)
 
     def test_valid_patches(self):
         valid_patches = [{'path': '/extra/foo', 'op': 'remove'},

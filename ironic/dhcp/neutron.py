@@ -53,7 +53,7 @@ neutron_opts = [
                help='UUID of the network to create Neutron ports on when '
                     'booting to a ramdisk for cleaning/zapping using Neutron '
                     'DHCP')
-    ]
+]
 
 CONF = cfg.CONF
 CONF.import_opt('my_ip', 'ironic.netconf')
@@ -282,7 +282,7 @@ class NeutronDHCPApi(base.BaseDHCP):
             LOG.warn(_LW("Some errors were encountered on node %(node)s"
                          " while retrieving IP address on the following"
                          " ports: %(ports)s."),
-                         {'node': task.node.uuid, 'ports': failures})
+                     {'node': task.node.uuid, 'ports': failures})
 
         return ip_addresses
 

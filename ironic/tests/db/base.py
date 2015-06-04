@@ -37,7 +37,7 @@ _DB_CACHE = None
 class Database(fixtures.Fixture):
 
     def __init__(self, db_api, db_migrate, sql_connection,
-                    sqlite_db, sqlite_clean_db):
+                 sqlite_db, sqlite_clean_db):
         self.sql_connection = sql_connection
         self.sqlite_db = sqlite_db
         self.sqlite_clean_db = sqlite_clean_db

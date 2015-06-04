@@ -78,7 +78,7 @@ class TestPortObject(base.DbTestCase):
 
                 mock_get_port.assert_called_once_with(uuid)
                 mock_update_port.assert_called_once_with(
-                        uuid, {'address': "b2:54:00:cf:2d:40"})
+                    uuid, {'address': "b2:54:00:cf:2d:40"})
                 self.assertEqual(self.context, p._context)
 
     def test_refresh(self):

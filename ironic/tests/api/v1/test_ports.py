@@ -103,10 +103,10 @@ class TestListPorts(api_base.FunctionalTest):
     def test_many(self):
         ports = []
         for id_ in range(5):
-            port = obj_utils.create_test_port(self.context,
-                                            node_id=self.node.id,
-                                            uuid=uuidutils.generate_uuid(),
-                                            address='52:54:00:cf:2d:3%s' % id_)
+            port = obj_utils.create_test_port(
+                self.context, node_id=self.node.id,
+                uuid=uuidutils.generate_uuid(),
+                address='52:54:00:cf:2d:3%s' % id_)
             ports.append(port.uuid)
         data = self.get_json('/ports')
         self.assertEqual(len(ports), len(data['ports']))
@@ -130,10 +130,11 @@ class TestListPorts(api_base.FunctionalTest):
     def test_collection_links(self):
         ports = []
         for id_ in range(5):
-            port = obj_utils.create_test_port(self.context,
-                                            node_id=self.node.id,
-                                            uuid=uuidutils.generate_uuid(),
-                                            address='52:54:00:cf:2d:3%s' % id_)
+            port = obj_utils.create_test_port(
+                self.context,
+                node_id=self.node.id,
+                uuid=uuidutils.generate_uuid(),
+                address='52:54:00:cf:2d:3%s' % id_)
             ports.append(port.uuid)
         data = self.get_json('/ports/?limit=3')
         self.assertEqual(3, len(data['ports']))
@@ -145,10 +146,11 @@ class TestListPorts(api_base.FunctionalTest):
         cfg.CONF.set_override('max_limit', 3, 'api')
         ports = []
         for id_ in range(5):
-            port = obj_utils.create_test_port(self.context,
-                                            node_id=self.node.id,
-                                            uuid=uuidutils.generate_uuid(),
-                                            address='52:54:00:cf:2d:3%s' % id_)
+            port = obj_utils.create_test_port(
+                self.context,
+                node_id=self.node.id,
+                uuid=uuidutils.generate_uuid(),
+                address='52:54:00:cf:2d:3%s' % id_)
             ports.append(port.uuid)
         data = self.get_json('/ports')
         self.assertEqual(3, len(data['ports']))
@@ -186,10 +188,11 @@ class TestListPorts(api_base.FunctionalTest):
     def test_sort_key(self):
         ports = []
         for id_ in range(3):
-            port = obj_utils.create_test_port(self.context,
-                                            node_id=self.node.id,
-                                            uuid=uuidutils.generate_uuid(),
-                                            address='52:54:00:cf:2d:3%s' % id_)
+            port = obj_utils.create_test_port(
+                self.context,
+                node_id=self.node.id,
+                uuid=uuidutils.generate_uuid(),
+                address='52:54:00:cf:2d:3%s' % id_)
             ports.append(port.uuid)
         data = self.get_json('/ports?sort_key=uuid')
         uuids = [n['uuid'] for n in data['ports']]
@@ -227,14 +230,14 @@ class TestListPorts(api_base.FunctionalTest):
         mock_get_rpc_node.return_value = self.node
         obj_utils.create_test_port(self.context, node_id=self.node.id)
         self.get_json('/ports/detail?node_uuid=%s&node=%s' %
-            (self.node.uuid, 'node-name'))
+                      (self.node.uuid, 'node-name'))
         mock_get_rpc_node.assert_called_once_with(self.node.uuid)
 
     @mock.patch.object(api_utils, 'get_rpc_node')
     def test_get_all_by_node_name_not_supported(self, mock_get_rpc_node):
         # GET /v1/ports specifying node_name - name not supported
-        mock_get_rpc_node.side_effect = exception.InvalidUuidOrName(
-                                            name=self.node.uuid)
+        mock_get_rpc_node.side_effect = (
+            exception.InvalidUuidOrName(name=self.node.uuid))
         for i in range(3):
             obj_utils.create_test_port(self.context,
                                        node_id=self.node.id,
@@ -258,8 +261,8 @@ class TestListPorts(api_base.FunctionalTest):
     @mock.patch.object(api_utils, 'get_rpc_node')
     def test_detail_by_node_name_not_supported(self, mock_get_rpc_node):
         # GET /v1/ports/detail specifying node_name - name not supported
-        mock_get_rpc_node.side_effect = exception.InvalidUuidOrName(
-                                            name=self.node.uuid)
+        mock_get_rpc_node.side_effect = (
+            exception.InvalidUuidOrName(name=self.node.uuid))
         obj_utils.create_test_port(self.context, node_id=self.node.id)
         data = self.get_json('/ports/detail?node=%s' % 'test-node',
                              expect_errors=True)
@@ -271,7 +274,7 @@ class TestListPorts(api_base.FunctionalTest):
         # GET /v1/ports/detail specifying node and node_uuid.  In this case
         # we expect the node_uuid interface to be used.
         self.get_json('/ports/detail?node=%s&node_uuid=%s' %
-                     ('test-node', self.node.uuid))
+                      ('test-node', self.node.uuid))
         mock_gpc.assert_called_once_with(self.node.uuid, mock.ANY, mock.ANY,
                                          mock.ANY, mock.ANY, mock.ANY,
                                          mock.ANY, mock.ANY)
@@ -355,7 +358,7 @@ class TestPatch(api_base.FunctionalTest):
                                    [{'path': '/address',
                                      'value': address,
                                      'op': 'replace'}],
-                                     expect_errors=True)
+                                   expect_errors=True)
         self.assertEqual('application/json', response.content_type)
         self.assertEqual(409, response.status_code)
         self.assertTrue(response.json['error_message'])
@@ -367,46 +370,46 @@ class TestPatch(api_base.FunctionalTest):
     def test_replace_node_uuid(self, mock_upd):
         mock_upd.return_value = self.port
         response = self.patch_json('/ports/%s' % self.port.uuid,
-                             [{'path': '/node_uuid',
-                               'value': self.node.uuid,
-                               'op': 'replace'}])
+                                   [{'path': '/node_uuid',
+                                     'value': self.node.uuid,
+                                     'op': 'replace'}])
         self.assertEqual('application/json', response.content_type)
         self.assertEqual(200, response.status_code)
 
     def test_add_node_uuid(self, mock_upd):
         mock_upd.return_value = self.port
         response = self.patch_json('/ports/%s' % self.port.uuid,
-                             [{'path': '/node_uuid',
-                               'value': self.node.uuid,
-                               'op': 'add'}])
+                                   [{'path': '/node_uuid',
+                                     'value': self.node.uuid,
+                                     'op': 'add'}])
         self.assertEqual('application/json', response.content_type)
         self.assertEqual(200, response.status_code)
 
     def test_add_node_id(self, mock_upd):
         response = self.patch_json('/ports/%s' % self.port.uuid,
-                             [{'path': '/node_id',
-                               'value': '1',
-                               'op': 'add'}],
-                               expect_errors=True)
+                                   [{'path': '/node_id',
+                                     'value': '1',
+                                     'op': 'add'}],
+                                   expect_errors=True)
         self.assertEqual('application/json', response.content_type)
         self.assertEqual(400, response.status_code)
         self.assertFalse(mock_upd.called)
 
     def test_replace_node_id(self, mock_upd):
         response = self.patch_json('/ports/%s' % self.port.uuid,
-                             [{'path': '/node_id',
-                               'value': '1',
-                               'op': 'replace'}],
-                               expect_errors=True)
+                                   [{'path': '/node_id',
+                                     'value': '1',
+                                     'op': 'replace'}],
+                                   expect_errors=True)
         self.assertEqual('application/json', response.content_type)
         self.assertEqual(400, response.status_code)
         self.assertFalse(mock_upd.called)
 
     def test_remove_node_id(self, mock_upd):
         response = self.patch_json('/ports/%s' % self.port.uuid,
-                             [{'path': '/node_id',
-                               'op': 'remove'}],
-                               expect_errors=True)
+                                   [{'path': '/node_id',
+                                     'op': 'remove'}],
+                                   expect_errors=True)
         self.assertEqual('application/json', response.content_type)
         self.assertEqual(400, response.status_code)
         self.assertFalse(mock_upd.called)
@@ -414,10 +417,10 @@ class TestPatch(api_base.FunctionalTest):
     def test_replace_non_existent_node_uuid(self, mock_upd):
         node_uuid = '12506333-a81c-4d59-9987-889ed5f8687b'
         response = self.patch_json('/ports/%s' % self.port.uuid,
-                             [{'path': '/node_uuid',
-                               'value': node_uuid,
-                               'op': 'replace'}],
-                             expect_errors=True)
+                                   [{'path': '/node_uuid',
+                                     'value': node_uuid,
+                                     'op': 'replace'}],
+                                   expect_errors=True)
         self.assertEqual('application/json', response.content_type)
         self.assertEqual(400, response.status_code)
         self.assertIn(node_uuid, response.json['error_message'])
@@ -595,7 +598,7 @@ class TestPost(api_base.FunctionalTest):
         self.assertEqual(pdict['uuid'], result['uuid'])
         self.assertFalse(result['updated_at'])
         return_created_at = timeutils.parse_isotime(
-                            result['created_at']).replace(tzinfo=None)
+            result['created_at']).replace(tzinfo=None)
         self.assertEqual(test_time, return_created_at)
         # Check location header
         self.assertIsNotNone(response.location)
@@ -687,7 +690,7 @@ class TestPost(api_base.FunctionalTest):
 
     def test_create_port_node_uuid_not_found(self):
         pdict = post_get_test_port(
-                              node_uuid='1a1a1a1a-2b2b-3c3c-4d4d-5e5e5e5e5e5e')
+            node_uuid='1a1a1a1a-2b2b-3c3c-4d4d-5e5e5e5e5e5e')
         response = self.post_json('/ports', pdict, expect_errors=True)
         self.assertEqual('application/json', response.content_type)
         self.assertEqual(400, response.status_int)
@@ -728,8 +731,7 @@ class TestDelete(api_base.FunctionalTest):
         self.assertIn(self.port.address, response.json['error_message'])
 
     def test_delete_port_byid(self, mock_dpt):
-        self.delete('/ports/%s' % self.port.uuid,
-                               expect_errors=True)
+        self.delete('/ports/%s' % self.port.uuid, expect_errors=True)
         self.assertTrue(mock_dpt.called)
 
     def test_delete_port_node_locked(self, mock_dpt):

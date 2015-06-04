@@ -157,14 +157,14 @@ def _set_power_state(task, target_state):
             target_state = states.POWER_ON
         else:
             msg = _("_set_power_state called with invalid power state "
-                "'%s'") % target_state
+                    "'%s'") % target_state
             raise exception.InvalidParameterValue(msg)
 
     except ilo_error.IloError as ilo_exception:
         LOG.error(_LE("iLO set_power_state failed to set state to %(tstate)s "
                       " for node %(node_id)s with error: %(error)s"),
-                   {'tstate': target_state, 'node_id': node.uuid,
-                     'error': ilo_exception})
+                  {'tstate': target_state, 'node_id': node.uuid,
+                   'error': ilo_exception})
         operation = _('iLO set_power_state')
         raise exception.IloOperationError(operation=operation,
                                           error=ilo_exception)
@@ -176,7 +176,7 @@ def _set_power_state(task, target_state):
         timeout = (CONF.ilo.power_wait) * (CONF.ilo.power_retry)
         LOG.error(_LE("iLO failed to change state to %(tstate)s "
                       "within %(timeout)s sec"),
-                    {'tstate': target_state, 'timeout': timeout})
+                  {'tstate': target_state, 'timeout': timeout})
         raise exception.PowerStateFailure(pstate=target_state)
 
 

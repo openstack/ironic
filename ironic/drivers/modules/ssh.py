@@ -116,14 +116,17 @@ def _get_command_sets(virt_type):
             'reboot_cmd': 'controlvm {_NodeName_} reset',
             'list_all': "list vms|awk -F'\"' '{print $2}'",
             'list_running': 'list runningvms',
-            'get_node_macs': ("showvminfo --machinereadable {_NodeName_} | "
+            'get_node_macs': (
+                "showvminfo --machinereadable {_NodeName_} | "
                 "awk -F '\"' '/macaddress/{print $2}'"),
-            'set_boot_device': ('{_BaseCmd_} modifyvm {_NodeName_} '
+            'set_boot_device': (
+                '{_BaseCmd_} modifyvm {_NodeName_} '
                 '--boot1 {_BootDevice_}'),
-            'get_boot_device': ("{_BaseCmd_} showvminfo "
+            'get_boot_device': (
+                "{_BaseCmd_} showvminfo "
                 "--machinereadable {_NodeName_} | "
                 "awk -F '\"' '/boot1/{print $2}'"),
-            }
+        }
     elif virt_type == 'vmware':
         return {
             'base_cmd': 'LC_ALL=C /bin/vim-cmd',
@@ -156,14 +159,18 @@ def _get_command_sets(virt_type):
             'stop_cmd': 'destroy {_NodeName_}',
             'reboot_cmd': 'reset {_NodeName_}',
             'list_all': "list --all | tail -n +2 | awk -F\" \" '{print $2}'",
-            'list_running': ("list --all|grep running | "
+            'list_running': (
+                "list --all|grep running | "
                 "awk -v qc='\"' -F\" \" '{print qc$2qc}'"),
-            'get_node_macs': ("dumpxml {_NodeName_} | "
+            'get_node_macs': (
+                "dumpxml {_NodeName_} | "
                 "awk -F \"'\" '/mac address/{print $2}'| tr -d ':'"),
-            'set_boot_device': ("EDITOR=\"sed -i '/<boot \(dev\|order\)=*\>/d;"
+            'set_boot_device': (
+                "EDITOR=\"sed -i '/<boot \(dev\|order\)=*\>/d;"
                 "/<\/os>/i\<boot dev=\\\"{_BootDevice_}\\\"/>'\" "
                 "{_BaseCmd_} edit {_NodeName_}"),
-            'get_boot_device': ("{_BaseCmd_} dumpxml {_NodeName_} | "
+            'get_boot_device': (
+                "{_BaseCmd_} dumpxml {_NodeName_} | "
                 "awk '/boot dev=/ { gsub( \".*dev=\" Q, \"\" ); "
                 "gsub( Q \".*\", \"\" ); print; }' "
                 "Q=\"'\" RS=\"[<>]\" | "
@@ -182,14 +189,17 @@ def _get_command_sets(virt_type):
             'reboot_cmd': 'reset {_NodeName_}',
             'list_all': "list -a -o name |tail -n +2",
             'list_running': 'list -o name |tail -n +2',
-            'get_node_macs': ("list -j -i \"{_NodeName_}\" | "
+            'get_node_macs': (
+                "list -j -i \"{_NodeName_}\" | "
                 "awk -F'\"' '/\"mac\":/ {print $4}' | "
                 "sed 's/\\(..\\)\\(..\\)\\(..\\)\\(..\\)\\(..\\)\\(..\\)/"
                 "\\1:\\2:\\3:\\4:\\5\\6/' | "
                 "tr '[:upper:]' '[:lower:]'"),
-            'set_boot_device': ("{_BaseCmd_} set {_NodeName_} "
+            'set_boot_device': (
+                "{_BaseCmd_} set {_NodeName_} "
                 "--device-bootorder \"{_BootDevice_}\""),
-            'get_boot_device': ("{_BaseCmd_} list -i {_NodeName_} | "
+            'get_boot_device': (
+                "{_BaseCmd_} list -i {_NodeName_} | "
                 "awk '/^Boot order:/ {print $3}'"),
         }
     else:
@@ -302,12 +312,12 @@ def _parse_driver_info(node):
 
     # NOTE(deva): we map 'address' from API to 'host' for common utils
     res = {
-           'host': address,
-           'username': username,
-           'port': port,
-           'virt_type': virt_type,
-           'uuid': node.uuid
-          }
+        'host': address,
+        'username': username,
+        'port': port,
+        'virt_type': virt_type,
+        'uuid': node.uuid
+    }
 
     cmd_set = _get_command_sets(virt_type)
     res['cmd_set'] = cmd_set
@@ -505,8 +515,9 @@ class SSHPower(base.PowerInterface):
                  node.
         """
         if not driver_utils.get_node_mac_addresses(task):
-            raise exception.MissingParameterValue(_("Node %s does not have "
-                              "any port associated with it.") % task.node.uuid)
+            raise exception.MissingParameterValue(
+                _("Node %s does not have any port associated with it."
+                  ) % task.node.uuid)
         try:
             _get_connection(task.node)
         except exception.SSHConnectFailed as e:
@@ -558,8 +569,9 @@ class SSHPower(base.PowerInterface):
         elif pstate == states.POWER_OFF:
             state = _power_off(ssh_obj, driver_info)
         else:
-            raise exception.InvalidParameterValue(_("set_power_state called "
-                    "with invalid power state %s.") % pstate)
+            raise exception.InvalidParameterValue(
+                _("set_power_state called with invalid power state %s."
+                  ) % pstate)
 
         if state != pstate:
             raise exception.PowerStateFailure(pstate=pstate)

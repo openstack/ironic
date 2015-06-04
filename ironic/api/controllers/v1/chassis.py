@@ -160,9 +160,9 @@ class ChassisController(rest.RestController):
                                                      marker)
 
         if sort_key in self.invalid_sort_key_list:
-            raise exception.InvalidParameterValue(_(
-                  "The sort_key value %(key)s is an invalid field for sorting")
-                  % {'key': sort_key})
+            raise exception.InvalidParameterValue(
+                _("The sort_key value %(key)s is an invalid field for sorting")
+                % {'key': sort_key})
 
         chassis = objects.Chassis.list(pecan.request.context, limit,
                                        marker_obj, sort_key=sort_key,
@@ -174,7 +174,7 @@ class ChassisController(rest.RestController):
                                                     sort_dir=sort_dir)
 
     @expose.expose(ChassisCollection, types.uuid,
-                         int, wtypes.text, wtypes.text)
+                   int, wtypes.text, wtypes.text)
     def get_all(self, marker=None, limit=None, sort_key='id', sort_dir='asc'):
         """Retrieve a list of chassis.
 
@@ -186,7 +186,7 @@ class ChassisController(rest.RestController):
         return self._get_chassis_collection(marker, limit, sort_key, sort_dir)
 
     @expose.expose(ChassisCollection, types.uuid, int,
-                         wtypes.text, wtypes.text)
+                   wtypes.text, wtypes.text)
     def detail(self, marker=None, limit=None, sort_key='id', sort_dir='asc'):
         """Retrieve a list of chassis with detail.
 
@@ -239,8 +239,9 @@ class ChassisController(rest.RestController):
         rpc_chassis = objects.Chassis.get_by_uuid(pecan.request.context,
                                                   chassis_uuid)
         try:
-            chassis = Chassis(**api_utils.apply_jsonpatch(
-                                            rpc_chassis.as_dict(), patch))
+            chassis = Chassis(
+                **api_utils.apply_jsonpatch(rpc_chassis.as_dict(), patch))
+
         except api_utils.JSONPATCH_EXCEPTIONS as e:
             raise exception.PatchError(patch=patch, reason=e)
 

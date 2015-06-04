@@ -27,8 +27,8 @@ from sqlalchemy import String
 from sqlalchemy.sql import table, column
 
 node = table('nodes',
-        column('uuid', String(36)),
-        column('provision_state', String(15)))
+             column('uuid', String(36)),
+             column('provision_state', String(15)))
 
 
 # NOTE(deva): We must represent the states as static strings in this migration

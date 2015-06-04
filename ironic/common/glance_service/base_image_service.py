@@ -127,13 +127,13 @@ class BaseImageService(object):
                 host = self.glance_host
                 port = self.glance_port
                 error_msg = _LE("Error contacting glance server "
-                            "'%(host)s:%(port)s' for '%(method)s', attempt"
-                            " %(attempt)s of %(num_attempts)s failed.")
+                                "'%(host)s:%(port)s' for '%(method)s', attempt"
+                                " %(attempt)s of %(num_attempts)s failed.")
                 LOG.exception(error_msg, {'host': host,
-                                    'port': port,
-                                    'num_attempts': num_attempts,
-                                    'attempt': attempt,
-                                    'method': method})
+                                          'port': port,
+                                          'num_attempts': num_attempts,
+                                          'attempt': attempt,
+                                          'method': method})
                 if attempt == num_attempts:
                     raise exception.GlanceConnectionFailed(host=host,
                                                            port=port,

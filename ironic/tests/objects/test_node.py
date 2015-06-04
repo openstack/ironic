@@ -71,9 +71,9 @@ class TestNodeObject(base.DbTestCase):
 
                 mock_get_node.assert_called_once_with(uuid)
                 mock_update_node.assert_called_once_with(
-                        uuid, {'properties': {"fake": "property"},
-                               'driver': 'fake-driver',
-                               'driver_internal_info': {}})
+                    uuid, {'properties': {"fake": "property"},
+                           'driver': 'fake-driver',
+                           'driver_internal_info': {}})
                 self.assertEqual(self.context, n._context)
                 self.assertEqual({}, n.driver_internal_info)
 

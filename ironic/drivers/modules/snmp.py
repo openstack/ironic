@@ -56,7 +56,7 @@ opts = [
     cfg.IntOpt('power_timeout',
                default=10,
                help='Seconds to wait for power action to be completed')
-    ]
+]
 
 LOG = logging.getLogger(__name__)
 
@@ -155,12 +155,12 @@ class SNMPClient(object):
         if error_indication:
             # SNMP engine-level error.
             raise exception.SNMPFailure(operation="GET",
-                    error=error_indication)
+                                        error=error_indication)
 
         if error_status:
             # SNMP PDU error.
             raise exception.SNMPFailure(operation="GET",
-                    error=error_status.prettyPrint())
+                                        error=error_status.prettyPrint())
 
         # We only expect a single value back
         name, val = var_binds[0]
@@ -185,12 +185,12 @@ class SNMPClient(object):
         if error_indication:
             # SNMP engine-level error.
             raise exception.SNMPFailure(operation="SET",
-                    error=error_indication)
+                                        error=error_indication)
 
         if error_status:
             # SNMP PDU error.
             raise exception.SNMPFailure(operation="SET",
-                    error=error_status.prettyPrint())
+                                        error=error_status.prettyPrint())
 
 
 def _get_client(snmp_info):
@@ -522,11 +522,11 @@ class SNMPDriverEatonPower(SNMPDriverBase):
 
 # A dictionary of supported drivers keyed by snmp_driver attribute
 DRIVER_CLASSES = {
-        'apc': SNMPDriverAPC,
-        'aten': SNMPDriverAten,
-        'cyberpower': SNMPDriverCyberPower,
-        'eatonpower': SNMPDriverEatonPower,
-        'teltronix': SNMPDriverTeltronix
+    'apc': SNMPDriverAPC,
+    'aten': SNMPDriverAten,
+    'cyberpower': SNMPDriverCyberPower,
+    'eatonpower': SNMPDriverEatonPower,
+    'teltronix': SNMPDriverTeltronix
 }
 
 

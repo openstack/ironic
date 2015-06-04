@@ -83,7 +83,7 @@ class HashRing(object):
             self.replicas = replicas if replicas <= len(hosts) else len(hosts)
         except TypeError:
             raise exception.Invalid(
-                    _("Invalid hosts supplied when building HashRing."))
+                _("Invalid hosts supplied when building HashRing."))
 
         self._host_hashes = {}
         for host in hosts:
@@ -114,7 +114,7 @@ class HashRing(object):
             return position if position < len(self._partitions) else 0
         except TypeError:
             raise exception.Invalid(
-                    _("Invalid data supplied to HashRing.get_hosts."))
+                _("Invalid data supplied to HashRing.get_hosts."))
 
     def get_hosts(self, data, ignore_hosts=None):
         """Get the list of hosts which the supplied data maps onto.
@@ -197,4 +197,4 @@ class HashRingManager(object):
             return self.ring[driver_name]
         except KeyError:
             raise exception.DriverNotFound(
-                    _("The driver '%s' is unknown.") % driver_name)
+                _("The driver '%s' is unknown.") % driver_name)

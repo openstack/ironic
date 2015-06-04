@@ -50,12 +50,12 @@ from ironic.openstack.common import fileutils
 pxe_opts = [
     cfg.StrOpt('pxe_config_template',
                default=paths.basedir_def(
-                    'drivers/modules/pxe_config.template'),
+                   'drivers/modules/pxe_config.template'),
                help='On ironic-conductor node, template file for PXE '
                     'configuration.'),
     cfg.StrOpt('uefi_pxe_config_template',
                default=paths.basedir_def(
-                    'drivers/modules/elilo_efi_pxe_config.template'),
+                   'drivers/modules/elilo_efi_pxe_config.template'),
                help='On ironic-conductor node, template file for PXE '
                     'configuration for UEFI boot loader.'),
     cfg.StrOpt('tftp_server',
@@ -77,20 +77,20 @@ pxe_opts = [
                default='elilo.efi',
                help='Bootfile DHCP parameter for UEFI boot mode.'),
     cfg.StrOpt('http_url',
-                help='ironic-conductor node\'s HTTP server URL. '
-                     'Example: http://192.1.2.3:8080'),
+               help='ironic-conductor node\'s HTTP server URL. '
+                    'Example: http://192.1.2.3:8080'),
     cfg.StrOpt('http_root',
-                default='/httpboot',
-                help='ironic-conductor node\'s HTTP root path.'),
+               default='/httpboot',
+               help='ironic-conductor node\'s HTTP root path.'),
     cfg.BoolOpt('ipxe_enabled',
                 default=False,
                 help='Enable iPXE boot.'),
     cfg.StrOpt('ipxe_boot_script',
                default=paths.basedir_def(
-                    'drivers/modules/boot.ipxe'),
+                   'drivers/modules/boot.ipxe'),
                help='On ironic-conductor node, the path to the main iPXE '
                     'script file.'),
-    ]
+]
 
 LOG = logging.getLogger(__name__)
 
@@ -222,10 +222,10 @@ def validate_boot_option_for_uefi(node):
         LOG.error(_LE("Whole disk image with netboot is not supported in UEFI "
                       "boot mode."))
         raise exception.InvalidParameterValue(_(
-                    "Conflict: Whole disk image being used for deploy, but "
-                    "cannot be used with node %(node_uuid)s configured to use "
-                    "UEFI boot with netboot option") %
-                    {'node_uuid': node.uuid})
+            "Conflict: Whole disk image being used for deploy, but "
+            "cannot be used with node %(node_uuid)s configured to use "
+            "UEFI boot with netboot option") %
+            {'node_uuid': node.uuid})
 
 
 @image_cache.cleanup(priority=25)
@@ -390,8 +390,9 @@ class PXEDeploy(base.DeployInterface):
         # TODO(deva): optimize this if rerun on existing files
         if CONF.pxe.ipxe_enabled:
             # Copy the iPXE boot script to HTTP root directory
-            bootfile_path = os.path.join(CONF.pxe.http_root,
-                                   os.path.basename(CONF.pxe.ipxe_boot_script))
+            bootfile_path = os.path.join(
+                CONF.pxe.http_root,
+                os.path.basename(CONF.pxe.ipxe_boot_script))
             shutil.copyfile(CONF.pxe.ipxe_boot_script, bootfile_path)
         pxe_info = _get_image_info(node, task.context)
         pxe_options = _build_pxe_config_options(node, pxe_info,
@@ -417,19 +418,21 @@ class PXEDeploy(base.DeployInterface):
             # but let's guard, just in case it's missing
             iwdi = node.driver_internal_info.get('is_whole_disk_image')
             try:
-                root_uuid_or_disk_id = node.driver_internal_info[
-                                                'root_uuid_or_disk_id']
+                root_uuid_or_disk_id = (
+                    node.driver_internal_info['root_uuid_or_disk_id'])
             except KeyError:
                 if not iwdi:
-                    LOG.warn(_LW("The UUID for the root partition can't be "
-                             "found, unable to switch the pxe config from "
-                             "deployment mode to service (boot) mode for node "
-                             "%(node)s"), {"node": node.uuid})
+                    LOG.warn(_LW(
+                        "The UUID for the root partition can't be "
+                        "found, unable to switch the pxe config from "
+                        "deployment mode to service (boot) mode for node "
+                        "%(node)s"), {"node": node.uuid})
                 else:
-                    LOG.warn(_LW("The disk id for the whole disk image can't "
-                             "be found, unable to switch the pxe config from "
-                             "deployment mode to service (boot) mode for "
-                             "node %(node)s"), {"node": node.uuid})
+                    LOG.warn(_LW(
+                        "The disk id for the whole disk image can't "
+                        "be found, unable to switch the pxe config from "
+                        "deployment mode to service (boot) mode for "
+                        "node %(node)s"), {"node": node.uuid})
             else:
                 pxe_config_path = pxe_utils.get_pxe_config_file_path(
                     node.uuid)

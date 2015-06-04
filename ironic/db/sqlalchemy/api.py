@@ -120,7 +120,7 @@ def add_port_filter_by_node(query, value):
         return query.filter_by(node_id=value)
     else:
         query = query.join(models.Node,
-                models.Port.node_id == models.Node.id)
+                           models.Port.node_id == models.Node.id)
         return query.filter(models.Node.uuid == value)
 
 
@@ -129,7 +129,7 @@ def add_node_filter_by_chassis(query, value):
         return query.filter_by(chassis_id=value)
     else:
         query = query.join(models.Chassis,
-                models.Node.chassis_id == models.Chassis.id)
+                           models.Node.chassis_id == models.Chassis.id)
         return query.filter(models.Chassis.uuid == value)
 
 
@@ -144,9 +144,9 @@ def _paginate_query(model, limit=None, marker=None, sort_key=None,
         query = db_utils.paginate_query(query, model, limit, sort_keys,
                                         marker=marker, sort_dir=sort_dir)
     except db_exc.InvalidSortKey:
-        raise exception.InvalidParameterValue(_(
-                'The sort_key value "%(key)s" is an invalid field for sorting')
-                % {'key': sort_key})
+        raise exception.InvalidParameterValue(
+            _('The sort_key value "%(key)s" is an invalid field for sorting')
+            % {'key': sort_key})
     return query.all()
 
 
@@ -182,13 +182,13 @@ class Connection(api.Connection):
         if 'provision_state' in filters:
             query = query.filter_by(provision_state=filters['provision_state'])
         if 'provisioned_before' in filters:
-            limit = timeutils.utcnow() - datetime.timedelta(
-                                         seconds=filters['provisioned_before'])
+            limit = (timeutils.utcnow() -
+                     datetime.timedelta(seconds=filters['provisioned_before']))
             query = query.filter(models.Node.provision_updated_at < limit)
         if 'inspection_started_before' in filters:
             limit = ((timeutils.utcnow()) -
-                      (datetime.timedelta(
-                       seconds=filters['inspection_started_before'])))
+                     (datetime.timedelta(
+                         seconds=filters['inspection_started_before'])))
             query = query.filter(models.Node.inspection_started_at < limit)
 
         return query
@@ -221,7 +221,7 @@ class Connection(api.Connection):
             query = add_identity_filter(query, node_id)
             # be optimistic and assume we usually create a reservation
             count = query.filter_by(reservation=None).update(
-                        {'reservation': tag}, synchronize_session=False)
+                {'reservation': tag}, synchronize_session=False)
             try:
                 node = query.one()
                 if count != 1:
@@ -240,7 +240,7 @@ class Connection(api.Connection):
             query = add_identity_filter(query, node_id)
             # be optimistic and assume we usually release a reservation
             count = query.filter_by(reservation=tag).update(
-                        {'reservation': None}, synchronize_session=False)
+                {'reservation': None}, synchronize_session=False)
             try:
                 if count != 1:
                     node = query.one()
@@ -365,8 +365,8 @@ class Connection(api.Connection):
 
             # Prevent instance_uuid overwriting
             if values.get("instance_uuid") and ref.instance_uuid:
-                raise exception.NodeAssociated(node=node_id,
-                                instance=ref.instance_uuid)
+                raise exception.NodeAssociated(
+                    node=node_id, instance=ref.instance_uuid)
 
             if 'provision_state' in values:
                 values['provision_updated_at'] = timeutils.utcnow()
@@ -535,7 +535,7 @@ class Connection(api.Connection):
                 ref = query.one()
                 if ref.online is True and not update_existing:
                     raise exception.ConductorAlreadyRegistered(
-                            conductor=values['hostname'])
+                        conductor=values['hostname'])
             except NoResultFound:
                 ref = models.Conductor()
             ref.update(values)
@@ -579,8 +579,8 @@ class Connection(api.Connection):
         session = get_session()
         nodes = []
         with session.begin():
-            query = model_query(models.Node, session=session).filter_by(
-                    reservation=hostname)
+            query = (model_query(models.Node, session=session)
+                     .filter_by(reservation=hostname))
             nodes = [node['uuid'] for node in query]
             query.update({'reservation': None})
 

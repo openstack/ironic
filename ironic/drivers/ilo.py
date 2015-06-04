@@ -39,8 +39,8 @@ class IloVirtualMediaIscsiDriver(base.BaseDriver):
     def __init__(self):
         if not importutils.try_import('proliantutils'):
             raise exception.DriverLoadError(
-                    driver=self.__class__.__name__,
-                    reason=_("Unable to import proliantutils library"))
+                driver=self.__class__.__name__,
+                reason=_("Unable to import proliantutils library"))
 
         self.power = power.IloPower()
         self.deploy = deploy.IloVirtualMediaIscsiDeploy()
@@ -63,8 +63,8 @@ class IloVirtualMediaAgentDriver(base.BaseDriver):
     def __init__(self):
         if not importutils.try_import('proliantutils'):
             raise exception.DriverLoadError(
-                    driver=self.__class__.__name__,
-                    reason=_("Unable to import proliantutils library"))
+                driver=self.__class__.__name__,
+                reason=_("Unable to import proliantutils library"))
 
         self.power = power.IloPower()
         self.deploy = deploy.IloVirtualMediaAgentDeploy()

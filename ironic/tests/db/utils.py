@@ -93,9 +93,9 @@ def get_test_seamicro_info():
 
 def get_test_ilo_info():
     return {
-            "ilo_address": "1.2.3.4",
-            "ilo_username": "admin",
-            "ilo_password": "fake",
+        "ilo_address": "1.2.3.4",
+        "ilo_username": "admin",
+        "ilo_password": "fake",
     }
 
 

@@ -40,11 +40,11 @@ LOG = logging.getLogger(__name__)
 
 # TODO(deva): add add'l state mappings here
 VERBS = {
-        'active': 'deploy',
-        'deleted': 'delete',
-        'manage': 'manage',
-        'provide': 'provide',
-        'inspect': 'inspect',
+    'active': 'deploy',
+    'deleted': 'delete',
+    'manage': 'manage',
+    'provide': 'provide',
+    'inspect': 'inspect',
 }
 """ Mapping of state-changing events that are PUT to the REST API
 
@@ -175,7 +175,7 @@ REBOOT = 'rebooting'
 def on_exit(old_state, event):
     """Used to log when a state is exited."""
     LOG.debug("Exiting old state '%s' in response to event '%s'",
-        old_state, event)
+              old_state, event)
 
 
 def on_enter(new_state, event):

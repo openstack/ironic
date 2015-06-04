@@ -74,7 +74,7 @@ class FSM(object):
         return self._states[self._current.name]['terminal']
 
     def add_state(self, state, on_enter=None, on_exit=None,
-            target=None, terminal=None, stable=False):
+                  target=None, terminal=None, stable=False):
         """Adds a given state to the state machine.
 
         The on_enter and on_exit callbacks, if provided will be expected to
@@ -100,7 +100,7 @@ class FSM(object):
                 raise ValueError(_("On exit callback must be callable"))
         if target is not None and target not in self._states:
             raise excp.InvalidState(_("Target state '%s' does not exist")
-                    % target)
+                                    % target)
         if target is not None and not self._states[target]['stable']:
             raise excp.InvalidState(
                 _("Target state '%s' is not a 'stable' state") % target)

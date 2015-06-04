@@ -137,7 +137,8 @@ class HttpImageService(BaseImageService):
         try:
             response = requests.head(image_href)
             if response.status_code != 200:
-                raise exception.ImageRefValidationFailed(image_href=image_href,
+                raise exception.ImageRefValidationFailed(
+                    image_href=image_href,
                     reason=_("Got HTTP code %s instead of 200 in response to "
                              "HEAD request.") % response.status_code)
         except requests.RequestException as e:
@@ -159,7 +160,8 @@ class HttpImageService(BaseImageService):
         try:
             response = requests.get(image_href, stream=True)
             if response.status_code != 200:
-                raise exception.ImageRefValidationFailed(image_href=image_href,
+                raise exception.ImageRefValidationFailed(
+                    image_href=image_href,
                     reason=_("Got HTTP code %s instead of 200 in response to "
                              "GET request.") % response.status_code)
             with response.raw as input_img:
@@ -181,7 +183,8 @@ class HttpImageService(BaseImageService):
         response = self.validate_href(image_href)
         image_size = response.headers.get('Content-Length')
         if image_size is None:
-            raise exception.ImageRefValidationFailed(image_href=image_href,
+            raise exception.ImageRefValidationFailed(
+                image_href=image_href,
                 reason=_("Cannot determine image size as there is no "
                          "Content-Length header specified in response "
                          "to HEAD request."))
@@ -204,7 +207,8 @@ class FileImageService(BaseImageService):
         """
         image_path = urlparse.urlparse(image_href).path
         if not os.path.isfile(image_path):
-            raise exception.ImageRefValidationFailed(image_href=image_href,
+            raise exception.ImageRefValidationFailed(
+                image_href=image_href,
                 reason=_("Specified image file not found."))
         return image_path
 

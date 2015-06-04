@@ -40,15 +40,15 @@ class IloManagementTestCase(db_base.DbTestCase):
     def setUp(self):
         super(IloManagementTestCase, self).setUp()
         mgr_utils.mock_the_extension_manager(driver="fake_ilo")
-        self.node = obj_utils.create_test_node(self.context,
-                driver='fake_ilo', driver_info=INFO_DICT)
+        self.node = obj_utils.create_test_node(
+            self.context, driver='fake_ilo', driver_info=INFO_DICT)
 
     def test_get_properties(self):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
             expected = ilo_management.MANAGEMENT_PROPERTIES
-            self.assertEqual(expected, task.driver.management.
-                                       get_properties())
+            self.assertEqual(expected,
+                             task.driver.management.get_properties())
 
     @mock.patch.object(ilo_common, 'parse_driver_info', spec_set=True,
                        autospec=True)
@@ -63,8 +63,9 @@ class IloManagementTestCase(db_base.DbTestCase):
                                   shared=False) as task:
             expected = [boot_devices.PXE, boot_devices.DISK,
                         boot_devices.CDROM]
-            self.assertEqual(sorted(expected), sorted(task.driver.management.
-                                           get_supported_boot_devices()))
+            self.assertEqual(
+                sorted(expected),
+                sorted(task.driver.management.get_supported_boot_devices()))
 
     @mock.patch.object(ilo_common, 'get_ilo_object', spec_set=True,
                        autospec=True)
@@ -148,7 +149,7 @@ class IloManagementTestCase(db_base.DbTestCase):
                                                    True)
             get_ilo_object_mock.assert_called_once_with(task.node)
             ilo_mock.update_persistent_boot.assert_called_once_with(
-                                                ['NETWORK'])
+                ['NETWORK'])
 
     @mock.patch.object(ilo_common, 'get_ilo_object', spec_set=True,
                        autospec=True)
@@ -177,14 +178,14 @@ class IloManagementTestCase(db_base.DbTestCase):
                               task.driver.management.set_boot_device,
                               task, boot_devices.PXE, True)
         ilo_mock_object.update_persistent_boot.assert_called_once_with(
-                                               ['NETWORK'])
+            ['NETWORK'])
 
     def test_set_boot_device_invalid_device(self):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
             self.assertRaises(exception.InvalidParameterValue,
-                    task.driver.management.set_boot_device,
-                    task, 'fake-device')
+                              task.driver.management.set_boot_device,
+                              task, 'fake-device')
 
     @mock.patch.object(ilo_common, 'update_ipmi_properties', spec_set=True,
                        autospec=True)
@@ -202,8 +203,8 @@ class IloManagementTestCase(db_base.DbTestCase):
     def test__execute_ilo_clean_step_ok(self, get_ilo_object_mock):
         ilo_mock = get_ilo_object_mock.return_value
         clean_step_mock = getattr(ilo_mock, 'fake-step')
-        ilo_management._execute_ilo_clean_step(self.node,
-                    'fake-step', 'args', kwarg='kwarg')
+        ilo_management._execute_ilo_clean_step(
+            self.node, 'fake-step', 'args', kwarg='kwarg')
         clean_step_mock.assert_called_once_with('args', kwarg='kwarg')
 
     @mock.patch.object(ilo_management, 'LOG', spec_set=True, autospec=True)
@@ -215,8 +216,8 @@ class IloManagementTestCase(db_base.DbTestCase):
         exc = ilo_error.IloCommandNotSupportedError("error")
         clean_step_mock = getattr(ilo_mock, 'fake-step')
         clean_step_mock.side_effect = exc
-        ilo_management._execute_ilo_clean_step(self.node,
-                    'fake-step', 'args', kwarg='kwarg')
+        ilo_management._execute_ilo_clean_step(
+            self.node, 'fake-step', 'args', kwarg='kwarg')
         clean_step_mock.assert_called_once_with('args', kwarg='kwarg')
         self.assertTrue(log_mock.warn.called)
 
@@ -250,10 +251,10 @@ class IloManagementTestCase(db_base.DbTestCase):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
             task.driver.management.reset_ilo_credential(task)
-            clean_step_mock.assert_called_once_with(task.node,
-                'reset_ilo_credential', 'fake-password')
-            self.assertIsNone(task.node.driver_info.get(
-                                                    'ilo_change_password'))
+            clean_step_mock.assert_called_once_with(
+                task.node, 'reset_ilo_credential', 'fake-password')
+            self.assertIsNone(
+                task.node.driver_info.get('ilo_change_password'))
             self.assertEqual(task.node.driver_info['ilo_password'],
                              'fake-password')
 

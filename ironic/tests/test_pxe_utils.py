@@ -80,7 +80,7 @@ class TestPXEUtils(db_base.DbTestCase):
     def test__build_pxe_config(self):
 
         rendered_template = pxe_utils._build_pxe_config(
-                self.pxe_options, CONF.pxe.pxe_config_template)
+            self.pxe_options, CONF.pxe.pxe_config_template)
 
         expected_template = open(
             'ironic/tests/drivers/pxe_config.template').read().rstrip()
@@ -90,7 +90,7 @@ class TestPXEUtils(db_base.DbTestCase):
     def test__build_pxe_config_with_agent(self):
 
         rendered_template = pxe_utils._build_pxe_config(
-                self.agent_pxe_options, CONF.agent.agent_pxe_config_template)
+            self.agent_pxe_options, CONF.agent.agent_pxe_config_template)
 
         expected_template = open(
             'ironic/tests/drivers/agent_pxe_config.template').read().rstrip()
@@ -108,7 +108,7 @@ class TestPXEUtils(db_base.DbTestCase):
         )
         self.config(http_url='http://1.2.3.4:1234', group='pxe')
         rendered_template = pxe_utils._build_pxe_config(
-                self.ipxe_options, CONF.pxe.pxe_config_template)
+            self.ipxe_options, CONF.pxe.pxe_config_template)
 
         expected_template = open(
             'ironic/tests/drivers/ipxe_config.template').read().rstrip()
@@ -119,11 +119,11 @@ class TestPXEUtils(db_base.DbTestCase):
         pxe_opts = self.pxe_options
         pxe_opts['boot_mode'] = 'uefi'
         rendered_template = pxe_utils._build_pxe_config(
-                pxe_opts, CONF.pxe.uefi_pxe_config_template)
+            pxe_opts, CONF.pxe.uefi_pxe_config_template)
 
         expected_template = open(
             'ironic/tests/drivers/elilo_efi_pxe_config.template'
-            ).read().rstrip()
+        ).read().rstrip()
 
         self.assertEqual(six.text_type(expected_template), rendered_template)
 
@@ -241,7 +241,7 @@ class TestPXEUtils(db_base.DbTestCase):
         unlink_mock.assert_called_once_with("/tftpboot/pxelinux.cfg/01-%s"
                                             % address.replace(':', '-'))
         rmtree_mock.assert_called_once_with(
-                os.path.join(CONF.pxe.tftp_root, self.node.uuid))
+            os.path.join(CONF.pxe.tftp_root, self.node.uuid))
 
     def test__get_pxe_mac_path(self):
         mac = '00:11:22:33:44:55:66'

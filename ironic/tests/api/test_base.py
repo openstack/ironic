@@ -63,26 +63,28 @@ class TestVersion(base.FunctionalTest):
 
     def test_parse_headers_ok(self):
         version = cbase.Version.parse_headers(
-                {cbase.Version.string: '123.456'}, mock.ANY, mock.ANY)
+            {cbase.Version.string: '123.456'}, mock.ANY, mock.ANY)
         self.assertEqual((123, 456), version)
 
     def test_parse_headers_latest(self):
         for s in ['latest', 'LATEST']:
             version = cbase.Version.parse_headers(
-                    {cbase.Version.string: s}, mock.ANY, '1.9')
+                {cbase.Version.string: s}, mock.ANY, '1.9')
             self.assertEqual((1, 9), version)
 
     def test_parse_headers_bad_length(self):
-        self.assertRaises(exc.HTTPNotAcceptable,
-                cbase.Version.parse_headers,
-                {cbase.Version.string: '1'},
-                mock.ANY,
-                mock.ANY)
-        self.assertRaises(exc.HTTPNotAcceptable,
-                cbase.Version.parse_headers,
-                {cbase.Version.string: '1.2.3'},
-                mock.ANY,
-                mock.ANY)
+        self.assertRaises(
+            exc.HTTPNotAcceptable,
+            cbase.Version.parse_headers,
+            {cbase.Version.string: '1'},
+            mock.ANY,
+            mock.ANY)
+        self.assertRaises(
+            exc.HTTPNotAcceptable,
+            cbase.Version.parse_headers,
+            {cbase.Version.string: '1.2.3'},
+            mock.ANY,
+            mock.ANY)
 
     def test_parse_no_header(self):
         # this asserts that the minimum version string of "1.1" is applied

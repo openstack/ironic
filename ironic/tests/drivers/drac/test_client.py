@@ -49,8 +49,8 @@ class DracClientTestCase(base.TestCase):
         mock_options.set_flags.assert_called_once_with(
             mock_client_pywsman.FLAG_ENUMERATION_OPTIMIZATION)
         mock_options.set_max_elements.assert_called_once_with(100)
-        mock_pywsman_client.enumerate.assert_called_once_with(mock_options,
-            None, self.resource_uri)
+        mock_pywsman_client.enumerate.assert_called_once_with(
+            mock_options, None, self.resource_uri)
         mock_xml.context.assert_called_once_with()
 
     @mock.patch.object(time, 'sleep', lambda seconds: None)
@@ -74,10 +74,10 @@ class DracClientTestCase(base.TestCase):
 
     def test_wsman_enumerate_with_additional_pull(self, mock_client_pywsman):
         mock_root = mock.Mock(spec=['string'])
-        mock_root.string.side_effect = [test_utils.build_soap_xml(
-                                           [{'item1': 'test1'}]),
-                                        test_utils.build_soap_xml(
-                                           [{'item2': 'test2'}])]
+        mock_root.string.side_effect = [
+            test_utils.build_soap_xml([{'item1': 'test1'}]),
+            test_utils.build_soap_xml([{'item2': 'test2'}])
+        ]
         mock_xml = mock.Mock(spec=['context', 'root'])
         mock_xml.root.return_value = mock_root
         mock_xml.context.side_effect = [42, 42, None]
@@ -98,8 +98,8 @@ class DracClientTestCase(base.TestCase):
         mock_options.set_flags.assert_called_once_with(
             mock_client_pywsman.FLAG_ENUMERATION_OPTIMIZATION)
         mock_options.set_max_elements.assert_called_once_with(100)
-        mock_pywsman_client.enumerate.assert_called_once_with(mock_options,
-            None, self.resource_uri)
+        mock_pywsman_client.enumerate.assert_called_once_with(
+            mock_options, None, self.resource_uri)
 
     def test_wsman_enumerate_filter_query(self, mock_client_pywsman):
         mock_xml = test_utils.mock_wsman_root('<test></test>')
@@ -113,8 +113,8 @@ class DracClientTestCase(base.TestCase):
         mock_options = mock_client_pywsman.ClientOptions.return_value
         mock_filter = mock_client_pywsman.Filter.return_value
         mock_filter.simple.assert_called_once_with(mock.ANY, filter_query)
-        mock_pywsman_client.enumerate.assert_called_once_with(mock_options,
-            mock_filter, self.resource_uri)
+        mock_pywsman_client.enumerate.assert_called_once_with(
+            mock_options, mock_filter, self.resource_uri)
         mock_xml.context.assert_called_once_with()
 
     def test_wsman_enumerate_invalid_filter_dialect(self, mock_client_pywsman):
@@ -136,8 +136,8 @@ class DracClientTestCase(base.TestCase):
         client.wsman_invoke(self.resource_uri, method_name)
 
         mock_options = mock_client_pywsman.ClientOptions.return_value
-        mock_pywsman_client.invoke.assert_called_once_with(mock_options,
-            self.resource_uri, method_name, None)
+        mock_pywsman_client.invoke.assert_called_once_with(
+            mock_options, self.resource_uri, method_name, None)
 
     @mock.patch.object(time, 'sleep', lambda seconds: None)
     def test_wsman_invoke_retry(self, mock_client_pywsman):
@@ -171,8 +171,8 @@ class DracClientTestCase(base.TestCase):
                             selectors=selectors)
 
         mock_options = mock_client_pywsman.ClientOptions.return_value
-        mock_pywsman_client.invoke.assert_called_once_with(mock_options,
-            self.resource_uri, method_name, None)
+        mock_pywsman_client.invoke.assert_called_once_with(
+            mock_options, self.resource_uri, method_name, None)
         mock_options.add_selector.assert_called_once_with('foo', 'bar')
 
     def test_wsman_invoke_with_properties(self, mock_client_pywsman):
@@ -189,12 +189,12 @@ class DracClientTestCase(base.TestCase):
                             properties=properties)
 
         mock_options = mock_client_pywsman.ClientOptions.return_value
-        mock_pywsman_client.invoke.assert_called_once_with(mock_options,
-            self.resource_uri, method_name, None)
+        mock_pywsman_client.invoke.assert_called_once_with(
+            mock_options, self.resource_uri, method_name, None)
         mock_options.add_property.assert_called_once_with('foo', 'bar')
 
-    def test_wsman_invoke_with_properties_including_a_list(self,
-            mock_client_pywsman):
+    def test_wsman_invoke_with_properties_including_a_list(
+            self, mock_client_pywsman):
         result_xml = test_utils.build_soap_xml(
             [{'ReturnValue': drac_client.RET_SUCCESS}], self.resource_uri)
         mock_xml = test_utils.mock_wsman_root(result_xml)
@@ -209,16 +209,16 @@ class DracClientTestCase(base.TestCase):
                             properties=properties)
 
         mock_options = mock_client_pywsman.ClientOptions.return_value
-        mock_pywsman_client.invoke.assert_called_once_with(mock_options,
-            self.resource_uri, method_name, mock_request_xml)
+        mock_pywsman_client.invoke.assert_called_once_with(
+            mock_options, self.resource_uri, method_name, mock_request_xml)
         mock_request_xml.root().add.assert_has_calls([
             mock.call(self.resource_uri, 'foo', 'bar'),
             mock.call(self.resource_uri, 'foo', 'baz')
         ])
         self.assertEqual(2, mock_request_xml.root().add.call_count)
 
-    def test_wsman_invoke_receives_error_return_value(self,
-            mock_client_pywsman):
+    def test_wsman_invoke_receives_error_return_value(
+            self, mock_client_pywsman):
         result_xml = test_utils.build_soap_xml(
             [{'ReturnValue': drac_client.RET_ERROR,
               'Message': 'error message'}],
@@ -230,14 +230,14 @@ class DracClientTestCase(base.TestCase):
         method_name = 'method'
         client = drac_client.Client(**INFO_DICT)
         self.assertRaises(exception.DracOperationFailed,
-            client.wsman_invoke, self.resource_uri, method_name)
+                          client.wsman_invoke, self.resource_uri, method_name)
 
         mock_options = mock_client_pywsman.ClientOptions.return_value
-        mock_pywsman_client.invoke.assert_called_once_with(mock_options,
-            self.resource_uri, method_name, None)
+        mock_pywsman_client.invoke.assert_called_once_with(
+            mock_options, self.resource_uri, method_name, None)
 
-    def test_wsman_invoke_receives_unexpected_return_value(self,
-            mock_client_pywsman):
+    def test_wsman_invoke_receives_unexpected_return_value(
+            self, mock_client_pywsman):
         result_xml = test_utils.build_soap_xml(
             [{'ReturnValue': '42'}], self.resource_uri)
         mock_xml = test_utils.mock_wsman_root(result_xml)
@@ -247,8 +247,8 @@ class DracClientTestCase(base.TestCase):
         method_name = 'method'
         client = drac_client.Client(**INFO_DICT)
         self.assertRaises(exception.DracUnexpectedReturnValue,
-            client.wsman_invoke, self.resource_uri, method_name)
+                          client.wsman_invoke, self.resource_uri, method_name)
 
         mock_options = mock_client_pywsman.ClientOptions.return_value
-        mock_pywsman_client.invoke.assert_called_once_with(mock_options,
-            self.resource_uri, method_name, None)
+        mock_pywsman_client.invoke.assert_called_once_with(
+            mock_options, self.resource_uri, method_name, None)

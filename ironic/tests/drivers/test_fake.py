@@ -48,7 +48,7 @@ class FakeDriverTestCase(db_base.DbTestCase):
         self.assertIsInstance(self.driver.deploy, driver_base.DeployInterface)
         self.assertIsInstance(self.driver.vendor, driver_base.VendorInterface)
         self.assertIsInstance(self.driver.console,
-                                                  driver_base.ConsoleInterface)
+                              driver_base.ConsoleInterface)
         self.assertIsNone(self.driver.rescue)
 
     def test_get_properties(self):

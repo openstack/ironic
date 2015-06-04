@@ -102,7 +102,7 @@ class TestCase(testtools.TestCase):
         # registry
         objects_base.IronicObject.indirection_api = None
         self._base_test_obj_backup = copy.copy(
-                objects_base.IronicObject._obj_classes)
+            objects_base.IronicObject._obj_classes)
         self.addCleanup(self._restore_obj_registry)
 
         self.addCleanup(self._clear_attrs)
