@@ -4,7 +4,8 @@
 Bare Metal Service Installation Guide
 =====================================
 
-This document pertains to the Kilo (2015.1) release of OpenStack Ironic.  Users
+This document pertains to the current code (on master branch) of OpenStack Ironic and should
+be accurate for the Kilo (2015.1) release of OpenStack Ironic.  Users
 of earlier releases may encounter differences, and are encouraged to look at
 earlier versions of this document for guidance.
 
@@ -152,7 +153,7 @@ The Bare Metal Service is configured via its configuration file. This file
 is typically located at ``/etc/ironic/ironic.conf``.
 
 Although some configuration options are mentioned here, it is recommended that
-you review all the `available options <http://docs.openstack.org/kilo/config-reference/content/ch_configuring-openstack-bare-metal.html>`_
+you review all the `available options <https://git.openstack.org/cgit/openstack/ironic/tree/etc/ironic/ironic.conf.sample>`_
 so that the Bare Metal Service is configured for your needs.
 
 #. The Bare Metal Service stores information in a database. This guide uses the
