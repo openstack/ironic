@@ -227,7 +227,6 @@ Step 3: Install the Client
     cd python-ironicclient
     tox -evenv -- echo 'done'
     source .tox/venv/bin/activate
-    python setup.py develop
 
 #. Export some ENV vars so the client will connect to the local services
    that you'll start in the next section::
