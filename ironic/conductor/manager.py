@@ -468,25 +468,6 @@ class ConductorManager(periodic_task.PeriodicTasks):
 
             vendor_iface = task.driver.vendor
 
-            # NOTE(lucasagomes): Before the vendor_passthru() method was
-            # a self-contained method and each driver implemented their own
-            # version of it, now we have a common mechanism that drivers
-            # should use to expose their vendor methods. If a driver still
-            # have their own vendor_passthru() method we call it to be
-            # backward compat. This code should be removed once L opens.
-            if hasattr(vendor_iface, 'vendor_passthru'):
-                LOG.warning(_LW("Drivers implementing their own version "
-                                "of vendor_passthru() has been deprecated. "
-                                "Please update the code to use the "
-                                "@passthru decorator."))
-                vendor_iface.validate(task, method=driver_method,
-                                      **info)
-                task.spawn_after(self._spawn_worker,
-                                 vendor_iface.vendor_passthru, task,
-                                 method=driver_method, **info)
-                # NodeVendorPassthru was always async
-                return (None, True)
-
             try:
                 vendor_opts = vendor_iface.vendor_routes[driver_method]
                 vendor_func = vendor_opts['func']
