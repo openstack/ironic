@@ -116,6 +116,26 @@ class DracManagementInternalMethodsTestCase(db_base.DbTestCase):
         mock_pywsman.enumerate.assert_called_once_with(
             mock.ANY, mock.ANY, resource_uris.DCIM_LifecycleJob)
 
+    def test__check_for_config_job_not_exist(self, mock_client_pywsman):
+        job_statuses = ["Completed", "Completed with Errors", "Failed"]
+        for job_status in job_statuses:
+            result_xml = test_utils.build_soap_xml(
+                [{'DCIM_LifecycleJob': {'Name': 'BIOS.Setup.1-1',
+                                        'JobStatus': job_status,
+                                        'InstanceID': 'fake'}}],
+                resource_uris.DCIM_LifecycleJob)
+
+            mock_xml = test_utils.mock_wsman_root(result_xml)
+            mock_pywsman = mock_client_pywsman.Client.return_value
+            mock_pywsman.enumerate.return_value = mock_xml
+
+            try:
+                drac_mgmt._check_for_config_job(self.node)
+            except (exception.DracClientError,
+                    exception.DracPendingConfigJobExists):
+                self.fail("Failed to detect completed job due to "
+                          "\"{}\" job status".format(job_status))
+
     def test__create_config_job(self, mock_client_pywsman):
         result_xml = test_utils.build_soap_xml(
             [{'ReturnValue': drac_client.RET_CREATED}],

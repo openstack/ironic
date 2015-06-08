@@ -166,8 +166,11 @@ def _check_for_config_job(node):
             i, 'JobStatus', resource_uris.DCIM_LifecycleJob).text
         # If job is already completed or failed we can
         # create another one.
+        # The 'Completed with Errors' JobStatus can be returned by
+        # configuration jobs that set NIC or BIOS attributes.
         # Job Control Documentation: http://goo.gl/o1dDD3 (Section 7.2.3.2)
-        if job_status.lower() not in ('completed', 'failed'):
+        if job_status.lower() not in ('completed', 'completed with errors',
+                                      'failed'):
             job_id = drac_common.find_xml(i, 'InstanceID',
                                           resource_uris.DCIM_LifecycleJob).text
             raise exception.DracPendingConfigJobExists(job_id=job_id,
