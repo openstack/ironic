@@ -457,6 +457,9 @@ class ConductorManager(periodic_task.PeriodicTasks):
             :async: Boolean value. Whether the method was invoked
                 asynchronously (True) or synchronously (False). When invoked
                 asynchronously the response will be always None.
+            :attach: Boolean value. Whether to attach the response of
+                the invoked vendor method to the HTTP response object (True)
+                or return it in the response body (False).
 
         """
         LOG.debug("RPC vendor_passthru called for node %s." % node_id)
@@ -501,7 +504,8 @@ class ConductorManager(periodic_task.PeriodicTasks):
                 ret = vendor_func(task, **info)
 
             return {'return': ret,
-                    'async': is_async}
+                    'async': is_async,
+                    'attach': vendor_opts['attach']}
 
     @messaging.expected_exceptions(exception.NoFreeConductorWorker,
                                    exception.InvalidParameterValue,
@@ -538,6 +542,9 @@ class ConductorManager(periodic_task.PeriodicTasks):
             :async: Boolean value. Whether the method was invoked
                 asynchronously (True) or synchronously (False). When invoked
                 asynchronously the response will be always None.
+            :attach: Boolean value. Whether to attach the response of
+                the invoked vendor method to the HTTP response object (True)
+                or return it in the response body (False).
 
         """
         # Any locking in a top-level vendor action will need to be done by the
@@ -595,7 +602,8 @@ class ConductorManager(periodic_task.PeriodicTasks):
             ret = vendor_func(context, **info)
 
         return {'return': ret,
-                'async': is_async}
+                'async': is_async,
+                'attach': vendor_opts['attach']}
 
     @messaging.expected_exceptions(exception.UnsupportedDriverExtension)
     def get_node_vendor_passthru_methods(self, context, node_id):

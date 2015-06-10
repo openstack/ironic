@@ -17,6 +17,8 @@ import jsonpatch
 from oslo_config import cfg
 from oslo_utils import uuidutils
 import pecan
+import six
+from webob.static import FileIter
 import wsme
 
 from ironic.common import exception
@@ -140,7 +142,22 @@ def vendor_passthru(ident, method, topic, data=None, driver_passthru=False):
         response = pecan.request.rpcapi.vendor_passthru(*params)
 
     status_code = 202 if response['async'] else 200
-    return wsme.api.Response(response['return'], status_code=status_code)
+    return_value = response['return']
+    response_params = {'status_code': status_code}
+
+    # Attach the return value to the response object
+    if response.get('attach'):
+        if isinstance(return_value, six.text_type):
+            # If unicode, convert to bytes
+            return_value = return_value.encode('utf-8')
+        file_ = wsme.types.File(content=return_value)
+        pecan.response.app_iter = FileIter(file_.file)
+        # Since we've attached the return value to the response
+        # object the response body should now be empty.
+        return_value = None
+        response_params['return_type'] = None
+
+    return wsme.api.Response(return_value, **response_params)
 
 
 def check_for_invalid_fields(fields, object_fields):
