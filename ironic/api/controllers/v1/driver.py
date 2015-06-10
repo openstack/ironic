@@ -150,11 +150,11 @@ class DriverPassthruController(rest.RestController):
 
         http_method = pecan.request.method.upper()
         topic = pecan.request.rpcapi.get_topic_for_driver(driver_name)
-        ret, is_async = pecan.request.rpcapi.driver_vendor_passthru(
+        response = pecan.request.rpcapi.driver_vendor_passthru(
             pecan.request.context, driver_name, method,
             http_method, data, topic=topic)
-        status_code = 202 if is_async else 200
-        return wsme.api.Response(ret, status_code=status_code)
+        status_code = 202 if response['async'] else 200
+        return wsme.api.Response(response['return'], status_code=status_code)
 
 
 class DriversController(rest.RestController):

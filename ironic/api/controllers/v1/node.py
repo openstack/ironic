@@ -712,11 +712,11 @@ class NodeVendorPassthruController(rest.RestController):
             data = {}
 
         http_method = pecan.request.method.upper()
-        ret, is_async = pecan.request.rpcapi.vendor_passthru(
+        response = pecan.request.rpcapi.vendor_passthru(
             pecan.request.context, rpc_node.uuid, method,
             http_method, data, topic)
-        status_code = 202 if is_async else 200
-        return wsme.api.Response(ret, status_code=status_code)
+        status_code = 202 if response['async'] else 200
+        return wsme.api.Response(response['return'], status_code=status_code)
 
 
 class NodeMaintenanceController(rest.RestController):
