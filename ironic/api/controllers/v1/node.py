@@ -703,20 +703,8 @@ class NodeVendorPassthruController(rest.RestController):
         # Raise an exception if node is not found
         rpc_node = api_utils.get_rpc_node(node_ident)
         topic = pecan.request.rpcapi.get_topic_for(rpc_node)
-
-        # Raise an exception if method is not specified
-        if not method:
-            raise wsme.exc.ClientSideError(_("Method not specified"))
-
-        if data is None:
-            data = {}
-
-        http_method = pecan.request.method.upper()
-        response = pecan.request.rpcapi.vendor_passthru(
-            pecan.request.context, rpc_node.uuid, method,
-            http_method, data, topic)
-        status_code = 202 if response['async'] else 200
-        return wsme.api.Response(response['return'], status_code=status_code)
+        return api_utils.vendor_passthru(rpc_node.uuid, method, topic,
+                                         data=data)
 
 
 class NodeMaintenanceController(rest.RestController):

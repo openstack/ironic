@@ -20,9 +20,9 @@ from wsme import types as wtypes
 
 from ironic.api.controllers import base
 from ironic.api.controllers import link
+from ironic.api.controllers.v1 import utils as api_utils
 from ironic.api import expose
 from ironic.common import exception
-from ironic.common.i18n import _
 
 
 # Property information for drivers:
@@ -142,19 +142,9 @@ class DriverPassthruController(rest.RestController):
                        implementation.
         :param data: body of data to supply to the specified method.
         """
-        if not method:
-            raise wsme.exc.ClientSideError(_("Method not specified"))
-
-        if data is None:
-            data = {}
-
-        http_method = pecan.request.method.upper()
         topic = pecan.request.rpcapi.get_topic_for_driver(driver_name)
-        response = pecan.request.rpcapi.driver_vendor_passthru(
-            pecan.request.context, driver_name, method,
-            http_method, data, topic=topic)
-        status_code = 202 if response['async'] else 200
-        return wsme.api.Response(response['return'], status_code=status_code)
+        return api_utils.vendor_passthru(driver_name, method, topic, data=data,
+                                         driver_passthru=True)
 
 
 class DriversController(rest.RestController):
