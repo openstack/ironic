@@ -25,7 +25,6 @@ import six
 from ironic.common import exception
 from ironic.common import images
 from ironic.common import swift
-from ironic.common import utils
 from ironic.conductor import task_manager
 from ironic.drivers.modules.ilo import common as ilo_common
 from ironic.tests.conductor import utils as mgr_utils
@@ -181,24 +180,16 @@ class IloCommonMethodsTestCase(db_base.DbTestCase):
     @mock.patch.object(swift, 'SwiftAPI', spec_set=True, autospec=True)
     @mock.patch.object(images, 'create_vfat_image', spec_set=True,
                        autospec=True)
-    @mock.patch.object(utils, 'write_to_file', spec_set=True,
-                       autospec=True)
     @mock.patch.object(tempfile, 'NamedTemporaryFile', spec_set=True,
                        autospec=True)
-    def test__prepare_floppy_image(self, tempfile_mock, write_mock,
-                                   fatimage_mock, swift_api_mock):
-        mock_token_file_handle = mock.MagicMock(spec=file)
-        mock_token_file_obj = mock.MagicMock(spec=file)
-        mock_token_file_obj.name = 'token-tmp-file'
-        mock_token_file_handle.__enter__.return_value = mock_token_file_obj
-
+    def test__prepare_floppy_image(self, tempfile_mock, fatimage_mock,
+                                   swift_api_mock):
         mock_image_file_handle = mock.MagicMock(spec=file)
         mock_image_file_obj = mock.MagicMock(spec=file)
         mock_image_file_obj.name = 'image-tmp-file'
         mock_image_file_handle.__enter__.return_value = mock_image_file_obj
 
-        tempfile_mock.side_effect = iter([mock_image_file_handle,
-                                          mock_token_file_handle])
+        tempfile_mock.return_value = mock_image_file_handle
 
         swift_obj_mock = swift_api_mock.return_value
         self.config(swift_ilo_container='ilo_cont', group='ilo')
@@ -210,16 +201,11 @@ class IloCommonMethodsTestCase(db_base.DbTestCase):
 
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
-
-            task.context.auth_token = 'token'
             temp_url = ilo_common._prepare_floppy_image(task, deploy_args)
             node_uuid = task.node.uuid
 
         object_name = 'image-' + node_uuid
-        files_info = {'token-tmp-file': 'token'}
-        write_mock.assert_called_once_with('token-tmp-file', 'token')
         fatimage_mock.assert_called_once_with('image-tmp-file',
-                                              files_info=files_info,
                                               parameters=deploy_args)
 
         swift_obj_mock.create_object.assert_called_once_with(
@@ -228,34 +214,6 @@ class IloCommonMethodsTestCase(db_base.DbTestCase):
         swift_obj_mock.get_temp_url.assert_called_once_with(
             'ilo_cont', object_name, timeout)
         self.assertEqual('temp-url', temp_url)
-
-    @mock.patch.object(swift, 'SwiftAPI', spec_set=True, autospec=True)
-    @mock.patch.object(images, 'create_vfat_image', spec_set=True,
-                       autospec=True)
-    @mock.patch.object(tempfile, 'NamedTemporaryFile', spec_set=True,
-                       autospec=True)
-    def test__prepare_floppy_image_noauth(self, tempfile_mock, fatimage_mock,
-                                          swift_api_mock):
-        mock_token_file_obj = mock.MagicMock(spec=file)
-        mock_token_file_obj.name = 'token-tmp-file'
-        mock_image_file_handle = mock.MagicMock(spec=file)
-        mock_image_file_obj = mock.MagicMock(spec=file)
-        mock_image_file_obj.name = 'image-tmp-file'
-        mock_image_file_handle.__enter__.return_value = mock_image_file_obj
-        tempfile_mock.side_effect = iter([mock_image_file_handle])
-
-        self.config(swift_ilo_container='ilo_cont', group='ilo')
-        self.config(swift_object_expiry_timeout=1, group='ilo')
-        deploy_args = {'arg1': 'val1', 'arg2': 'val2'}
-
-        with task_manager.acquire(self.context, self.node.uuid,
-                                  shared=False) as task:
-
-            task.context.auth_token = None
-            ilo_common._prepare_floppy_image(task, deploy_args)
-
-        fatimage_mock.assert_called_once_with('image-tmp-file',
-                                              parameters=deploy_args)
 
     @mock.patch.object(ilo_common, 'get_ilo_object', spec_set=True,
                        autospec=True)
