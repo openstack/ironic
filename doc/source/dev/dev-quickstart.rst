@@ -56,7 +56,7 @@ Ironic source code should be pulled directly from git::
 Set up a local environment for development and testing should be done with tox::
 
     # create a virtualenv for development
-    tox -evenv -- echo 'done'
+    tox -evenv --notest
 
 Activate the virtual environment whenever you want to work in it.
 All further commands in this section should be run with the venv active::
@@ -137,7 +137,7 @@ Option 1: Manual Install
     cd ~
     git clone https://git.openstack.org/openstack/ironic
     cd ironic
-    tox -evenv -- echo 'done'
+    tox -evenv --notest
     source .tox/venv/bin/activate
 
     # install ironic within the virtualenv
@@ -225,7 +225,7 @@ Step 3: Install the Client
     cd ~
     git clone https://git.openstack.org/openstack/python-ironicclient
     cd python-ironicclient
-    tox -evenv -- echo 'done'
+    tox -evenv --notest
     source .tox/venv/bin/activate
 
 #. Export some ENV vars so the client will connect to the local services
