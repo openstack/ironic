@@ -197,3 +197,26 @@ if not ironic_inspector:
     if 'ironic.drivers.modules.inspector' in sys.modules:
         six.moves.reload_module(
             sys.modules['ironic.drivers.modules.inspector'])
+
+
+class MockKwargsException(Exception):
+    def __init__(self, *args, **kwargs):
+        super(MockKwargsException, self).__init__(*args)
+        self.kwargs = kwargs
+
+
+ucssdk = importutils.try_import('UcsSdk')
+if not ucssdk:
+    ucssdk = mock.MagicMock()
+    sys.modules['UcsSdk'] = ucssdk
+    sys.modules['UcsSdk.utils'] = ucssdk.utils
+    sys.modules['UcsSdk.utils.power'] = ucssdk.utils.power
+    sys.modules['UcsSdk.utils.management'] = ucssdk.utils.management
+    sys.modules['UcsSdk.utils.exception'] = ucssdk.utils.exception
+    ucssdk.utils.exception.UcsOperationError = (
+        type('UcsOperationError', (MockKwargsException,), {}))
+    ucssdk.utils.exception.UcsConnectionError = (
+        type('UcsConnectionError', (MockKwargsException,), {}))
+    if 'ironic.drivers.modules.ucs' in sys.modules:
+        six.moves.reload_module(
+            sys.modules['ironic.drivers.modules.ucs'])

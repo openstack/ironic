@@ -41,6 +41,8 @@ from ironic.drivers.modules import pxe
 from ironic.drivers.modules import seamicro
 from ironic.drivers.modules import snmp
 from ironic.drivers.modules import ssh
+from ironic.drivers.modules.ucs import management as ucs_mgmt
+from ironic.drivers.modules.ucs import power as ucs_power
 from ironic.drivers.modules import virtualbox
 from ironic.drivers import utils
 
@@ -284,4 +286,26 @@ class PXEAndMSFTOCSDriver(base.BaseDriver):
         self.power = msftocs_power.MSFTOCSPower()
         self.deploy = pxe.PXEDeploy()
         self.management = msftocs_management.MSFTOCSManagement()
+        self.vendor = pxe.VendorPassthru()
+
+
+class PXEAndUcsDriver(base.BaseDriver):
+    """PXE + Cisco UCSM driver.
+
+    This driver implements the `core` functionality, combining
+    :class:ironic.drivers.modules.ucs.power.Power for power
+    on/off and reboot with
+    :class:ironic.driver.modules.pxe.PXE for image deployment.
+    Implementations are in those respective classes;
+    this class is merely the glue between them.
+    """
+
+    def __init__(self):
+        if not importutils.try_import('UcsSdk'):
+            raise exception.DriverLoadError(
+                driver=self.__class__.__name__,
+                reason=_("Unable to import UcsSdk library"))
+        self.power = ucs_power.Power()
+        self.deploy = pxe.PXEDeploy()
+        self.management = ucs_mgmt.UcsManagement()
         self.vendor = pxe.VendorPassthru()
