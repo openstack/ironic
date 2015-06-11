@@ -375,8 +375,9 @@ class IscsiDeployValidateParametersTestCase(db_base.DbTestCase):
             'ramdisk': 'file://initrd',
             'root_gb': 100,
         }
-        img_service_show_mock.side_effect = exception.ImageRefValidationFailed(
-            image_href='http://ubuntu', reason='HTTPError')
+        img_service_show_mock.side_effect = iter(
+            [exception.ImageRefValidationFailed(
+                image_href='http://ubuntu', reason='HTTPError')])
         node = obj_utils.create_test_node(
             self.context, driver='fake_pxe',
             instance_info=instance_info,

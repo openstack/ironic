@@ -1105,13 +1105,16 @@ class OtherFunctionTestCase(db_base.DbTestCase):
         exc_param = exception.InvalidParameterValue('invalid parameter')
         mock_call = mock.call(mock.ANY)
         self._test_set_failed_state()
-        self._test_set_failed_state(event_value=exc_state,
-                                    log_calls=[mock_call])
-        self._test_set_failed_state(power_value=exc_param,
-                                    log_calls=[mock_call])
-        self._test_set_failed_state(event_value=exc_state,
-                                    power_value=exc_param,
-                                    log_calls=[mock_call, mock_call])
+        calls = [mock_call]
+        self._test_set_failed_state(event_value=iter([exc_state] * len(calls)),
+                                    log_calls=calls)
+        calls = [mock_call]
+        self._test_set_failed_state(power_value=iter([exc_param] * len(calls)),
+                                    log_calls=calls)
+        calls = [mock_call, mock_call]
+        self._test_set_failed_state(event_value=iter([exc_state] * len(calls)),
+                                    power_value=iter([exc_param] * len(calls)),
+                                    log_calls=calls)
 
 
 @mock.patch.object(disk_partitioner.DiskPartitioner, 'commit', lambda _: None)
@@ -1691,7 +1694,8 @@ class TrySetBootDeviceTestCase(db_base.DbTestCase):
             self, node_set_boot_device_mock, log_mock):
         self.node.properties = {'capabilities': 'boot_mode:uefi'}
         self.node.save()
-        node_set_boot_device_mock.side_effect = exception.IPMIFailure(cmd='a')
+        node_set_boot_device_mock.side_effect = iter(
+            [exception.IPMIFailure(cmd='a')])
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
             utils.try_set_boot_device(task, boot_devices.DISK,
@@ -1703,7 +1707,8 @@ class TrySetBootDeviceTestCase(db_base.DbTestCase):
     @mock.patch.object(manager_utils, 'node_set_boot_device', autospec=True)
     def test_try_set_boot_device_ipmifailure_bios(
             self, node_set_boot_device_mock):
-        node_set_boot_device_mock.side_effect = exception.IPMIFailure(cmd='a')
+        node_set_boot_device_mock.side_effect = iter(
+            [exception.IPMIFailure(cmd='a')])
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
             self.assertRaises(exception.IPMIFailure,
@@ -1716,7 +1721,7 @@ class TrySetBootDeviceTestCase(db_base.DbTestCase):
     def test_try_set_boot_device_some_other_exception(
             self, node_set_boot_device_mock):
         exc = exception.IloOperationError(operation="qwe", error="error")
-        node_set_boot_device_mock.side_effect = exc
+        node_set_boot_device_mock.side_effect = iter([exc])
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
             self.assertRaises(exception.IloOperationError,

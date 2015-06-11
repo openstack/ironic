@@ -446,17 +446,17 @@ class MkfsTestCase(base.TestCase):
                               use_standard_locale=True)]
         self.assertEqual(expected, execute_mock.call_args_list)
 
-    @mock.patch.object(utils, 'execute', autospec=True,
-                       side_effect=processutils.ProcessExecutionError(
-                           stderr=os.strerror(errno.ENOENT)))
+    @mock.patch.object(utils, 'execute', autospec=True)
     def test_mkfs_with_unsupported_fs(self, execute_mock):
+        execute_mock.side_effect = iter([processutils.ProcessExecutionError(
+            stderr=os.strerror(errno.ENOENT))])
         self.assertRaises(exception.FileSystemNotSupported,
                           utils.mkfs, 'foo', '/my/block/dev')
 
-    @mock.patch.object(utils, 'execute', autospec=True,
-                       side_effect=processutils.ProcessExecutionError(
-                           stderr='fake'))
+    @mock.patch.object(utils, 'execute', autospec=True)
     def test_mkfs_with_unexpected_error(self, execute_mock):
+        execute_mock.side_effect = iter([processutils.ProcessExecutionError(
+            stderr='fake')])
         self.assertRaises(processutils.ProcessExecutionError, utils.mkfs,
                           'ext4', '/my/block/dev', 'ext4-vol')
 

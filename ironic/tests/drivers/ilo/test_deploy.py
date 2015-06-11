@@ -98,8 +98,9 @@ class IloDeployPrivateMethodsTestCase(db_base.DbTestCase):
     @mock.patch.object(image_service.HttpImageService, 'validate_href',
                        spec_set=True, autospec=True)
     def test__get_boot_iso_unsupported_url(self, validate_href_mock):
-        validate_href_mock.side_effect = exception.ImageRefValidationFailed(
-            image_href='file://img.qcow2', reason='fail')
+        validate_href_mock.side_effect = iter(
+            [exception.ImageRefValidationFailed(
+                image_href='file://img.qcow2', reason='fail')])
         url = 'file://img.qcow2'
         i_info = self.node.instance_info
         i_info['ilo_boot_iso'] = url

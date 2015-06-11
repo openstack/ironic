@@ -268,7 +268,7 @@ class DracManagementTestCase(db_base.DbTestCase):
         mock_glcv.return_value = controller_version
         mock_gnbl.return_value = {'instance_id': 'OneTime',
                                   'is_next': drac_mgmt.ONE_TIME_BOOT}
-        mock_we.side_effect = exception.DracClientError('E_FAKE')
+        mock_we.side_effect = iter([exception.DracClientError('E_FAKE')])
 
         self.assertRaises(exception.DracClientError,
                           self.driver.get_boot_device, self.task)
@@ -377,7 +377,7 @@ class DracManagementTestCase(db_base.DbTestCase):
         mock_glcv.return_value = controller_version
         mock_gbd.return_value = {'boot_device': boot_devices.PXE,
                                  'persistent': True}
-        mock_we.side_effect = exception.DracClientError('E_FAKE')
+        mock_we.side_effect = iter([exception.DracClientError('E_FAKE')])
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
             task.node = self.node

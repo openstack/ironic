@@ -211,7 +211,8 @@ class SSHPrivateMethodsTestCase(db_base.DbTestCase):
 
     @mock.patch.object(utils, 'ssh_connect', autospec=True)
     def test__get_connection_exception(self, ssh_connect_mock):
-        ssh_connect_mock.side_effect = exception.SSHConnectFailed(host='fake')
+        ssh_connect_mock.side_effect = iter(
+            [exception.SSHConnectFailed(host='fake')])
         self.assertRaises(exception.SSHConnectFailed,
                           ssh._get_connection,
                           self.node)
@@ -588,7 +589,8 @@ class SSHDriverTestCase(db_base.DbTestCase):
     def test__validate_info_ssh_connect_failed(self, ssh_connect_mock):
         info = ssh._parse_driver_info(self.node)
 
-        ssh_connect_mock.side_effect = exception.SSHConnectFailed(host='fake')
+        ssh_connect_mock.side_effect = iter(
+            [exception.SSHConnectFailed(host='fake')])
         with task_manager.acquire(self.context, info['uuid'],
                                   shared=False) as task:
             self.assertRaises(exception.InvalidParameterValue,

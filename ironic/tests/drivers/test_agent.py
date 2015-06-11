@@ -122,8 +122,9 @@ class TestAgentMethods(db_base.DbTestCase):
                        autospec=True)
     def test_build_instance_info_for_deploy_nonsupported_image(
             self, validate_href_mock):
-        validate_href_mock.side_effect = exception.ImageRefValidationFailed(
-            image_href='file://img.qcow2', reason='fail')
+        validate_href_mock.side_effect = iter(
+            [exception.ImageRefValidationFailed(
+                image_href='file://img.qcow2', reason='fail')])
         i_info = self.node.instance_info
         i_info['image_source'] = 'file://img.qcow2'
         i_info['image_checksum'] = 'aa'

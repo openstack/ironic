@@ -338,7 +338,7 @@ class IBootDriverTestCase(db_base.DbTestCase):
 
     @mock.patch.object(iboot, '_parse_driver_info', autospec=True)
     def test_validate_fails(self, parse_drv_info_mock):
-        side_effect = exception.InvalidParameterValue("Bad input")
+        side_effect = iter([exception.InvalidParameterValue("Bad input")])
         parse_drv_info_mock.side_effect = side_effect
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:

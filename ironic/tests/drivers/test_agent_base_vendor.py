@@ -281,7 +281,7 @@ class TestBaseAgentVendor(db_base.DbTestCase):
         kwargs = {
             'agent_url': 'http://127.0.0.1:9999/bar'
         }
-        done_mock.side_effect = Exception('LlamaException')
+        done_mock.side_effect = iter([Exception('LlamaException')])
         with task_manager.acquire(
                 self.context, self.node['uuid'], shared=True) as task:
             task.node.provision_state = states.DEPLOYING
