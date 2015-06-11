@@ -8,7 +8,6 @@ eventlet>=0.17.3
 lxml>=2.3
 WebOb>=1.2.3
 greenlet>=0.3.2
-sqlalchemy-migrate>=0.9.6
 netaddr>=0.7.12
 paramiko>=1.13.0
 iso8601>=0.1.9
