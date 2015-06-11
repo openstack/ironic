@@ -138,8 +138,8 @@ def get_node_capability(node, capability):
     for node_capability in capabilities.split(','):
         parts = node_capability.split(':')
         if len(parts) == 2 and parts[0] and parts[1]:
-            if parts[0] == capability:
-                return parts[1]
+            if parts[0].strip() == capability:
+                return parts[1].strip()
         else:
             LOG.warn(_LW("Ignoring malformed capability '%s'. "
                          "Format should be 'key:val'."), node_capability)

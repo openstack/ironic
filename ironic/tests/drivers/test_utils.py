@@ -77,12 +77,15 @@ class UtilsTestCase(db_base.DbTestCase):
         self.assertEqual(sorted([p.address for p in ports]), sorted(node_macs))
 
     def test_get_node_capability(self):
-        properties = {'capabilities': 'cap1:value1,cap2:value2'}
+        properties = {'capabilities': 'cap1:value1, cap2: value2'}
         self.node.properties = properties
         expected = 'value1'
+        expected2 = 'value2'
 
         result = driver_utils.get_node_capability(self.node, 'cap1')
+        result2 = driver_utils.get_node_capability(self.node, 'cap2')
         self.assertEqual(expected, result)
+        self.assertEqual(expected2, result2)
 
     def test_get_node_capability_returns_none(self):
         properties = {'capabilities': 'cap1:value1,cap2:value2'}
