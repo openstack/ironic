@@ -30,3 +30,6 @@ DCIM_BIOSService = ('http://schemas.dell.com/wbem/wscim/1/cim-schema/2/'
 
 DCIM_LifecycleJob = ('http://schemas.dell.com/wbem/wscim/1/cim-schema/2/'
                      'DCIM_LifecycleJob')
+
+DCIM_SystemView = ('http://schemas.dell.com/wbem/wscim/1/cim-schema/2/'
+                   'DCIM_SystemView')

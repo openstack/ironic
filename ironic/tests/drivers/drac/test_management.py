@@ -48,7 +48,7 @@ class DracManagementInternalMethodsTestCase(db_base.DbTestCase):
                                                driver='fake_drac',
                                                driver_info=INFO_DICT)
 
-    def test__get_next_boot_mode(self, mock_client_pywsman):
+    def test__get_next_boot_list(self, mock_client_pywsman):
         result_xml = test_utils.build_soap_xml(
             [{'DCIM_BootConfigSetting': {'InstanceID': 'IPL',
                                          'IsNext': drac_mgmt.PERSISTENT}}],
@@ -59,13 +59,13 @@ class DracManagementInternalMethodsTestCase(db_base.DbTestCase):
         mock_pywsman.enumerate.return_value = mock_xml
 
         expected = {'instance_id': 'IPL', 'is_next': drac_mgmt.PERSISTENT}
-        result = drac_mgmt._get_next_boot_mode(self.node)
+        result = drac_mgmt._get_next_boot_list(self.node)
 
         self.assertEqual(expected, result)
         mock_pywsman.enumerate.assert_called_once_with(
             mock.ANY, mock.ANY, resource_uris.DCIM_BootConfigSetting)
 
-    def test__get_next_boot_mode_onetime(self, mock_client_pywsman):
+    def test__get_next_boot_list_onetime(self, mock_client_pywsman):
         result_xml = test_utils.build_soap_xml(
             [{'DCIM_BootConfigSetting': {'InstanceID': 'IPL',
                                          'IsNext': drac_mgmt.PERSISTENT}},
@@ -79,7 +79,7 @@ class DracManagementInternalMethodsTestCase(db_base.DbTestCase):
 
         expected = {'instance_id': 'OneTime',
                     'is_next': drac_mgmt.ONE_TIME_BOOT}
-        result = drac_mgmt._get_next_boot_mode(self.node)
+        result = drac_mgmt._get_next_boot_list(self.node)
 
         self.assertEqual(expected, result)
         mock_pywsman.enumerate.assert_called_once_with(
@@ -168,6 +168,21 @@ class DracManagementInternalMethodsTestCase(db_base.DbTestCase):
             mock.ANY, resource_uris.DCIM_BIOSService,
             'CreateTargetedConfigJob', None)
 
+    def test__get_lifecycle_controller_version(self, mock_client_pywsman):
+        result_xml = test_utils.build_soap_xml(
+            [{'DCIM_SystemView': {'LifecycleControllerVersion': '42'}}],
+            resource_uris.DCIM_SystemView)
+
+        mock_xml = test_utils.mock_wsman_root(result_xml)
+        mock_pywsman = mock_client_pywsman.Client.return_value
+        mock_pywsman.enumerate.return_value = mock_xml
+
+        result = drac_mgmt._get_lifecycle_controller_version(self.node)
+
+        self.assertEqual('42', result)
+        mock_pywsman.enumerate.assert_called_once_with(
+            mock.ANY, mock.ANY, resource_uris.DCIM_SystemView)
+
 
 @mock.patch.object(drac_client, 'pywsman', spec_set=mock_specs.PYWSMAN_SPEC)
 class DracManagementTestCase(db_base.DbTestCase):
@@ -191,10 +206,14 @@ class DracManagementTestCase(db_base.DbTestCase):
         self.assertEqual(sorted(expected),
                          sorted(self.driver.get_supported_boot_devices()))
 
-    @mock.patch.object(drac_mgmt, '_get_next_boot_mode', spec_set=True,
+    @mock.patch.object(drac_mgmt, '_get_next_boot_list', spec_set=True,
                        autospec=True)
-    def test_get_boot_device(self, mock_gnbm, mock_client_pywsman):
-        mock_gnbm.return_value = {'instance_id': 'OneTime',
+    @mock.patch.object(drac_mgmt, '_get_lifecycle_controller_version',
+                       spec_set=True, autospec=True)
+    def test_get_boot_device(self, mock_glcv, mock_gnbl, mock_client_pywsman):
+        controller_version = '2.1.5.0'
+        mock_glcv.return_value = controller_version
+        mock_gnbl.return_value = {'instance_id': 'OneTime',
                                   'is_next': drac_mgmt.ONE_TIME_BOOT}
 
         result_xml = test_utils.build_soap_xml(
@@ -211,14 +230,20 @@ class DracManagementTestCase(db_base.DbTestCase):
         mock_pywsman.enumerate.assert_called_once_with(
             mock.ANY, mock.ANY, resource_uris.DCIM_BootSourceSetting)
 
-    @mock.patch.object(drac_mgmt, '_get_next_boot_mode', spec_set=True,
+    @mock.patch.object(drac_mgmt, '_get_next_boot_list', spec_set=True,
                        autospec=True)
-    def test_get_boot_device_persistent(self, mock_gnbm, mock_client_pywsman):
-        mock_gnbm.return_value = {'instance_id': 'IPL',
+    @mock.patch.object(drac_mgmt, '_get_lifecycle_controller_version',
+                       spec_set=True, autospec=True)
+    def test_get_boot_device_persistent(self, mock_glcv, mock_gnbl,
+                                        mock_client_pywsman):
+        controller_version = '2.1.5.0'
+        mock_glcv.return_value = controller_version
+        mock_gnbl.return_value = {'instance_id': 'IPL',
                                   'is_next': drac_mgmt.PERSISTENT}
 
         result_xml = test_utils.build_soap_xml(
-            [{'InstanceID': 'NIC'}], resource_uris.DCIM_BootSourceSetting)
+            [{'InstanceID': 'NIC', 'BootSourceType': 'IPL'}],
+            resource_uris.DCIM_BootSourceSetting)
 
         mock_xml = test_utils.mock_wsman_root(result_xml)
         mock_pywsman = mock_client_pywsman.Client.return_value
@@ -233,11 +258,15 @@ class DracManagementTestCase(db_base.DbTestCase):
 
     @mock.patch.object(drac_client.Client, 'wsman_enumerate', spec_set=True,
                        autospec=True)
-    @mock.patch.object(drac_mgmt, '_get_next_boot_mode', spec_set=True,
+    @mock.patch.object(drac_mgmt, '_get_next_boot_list', spec_set=True,
                        autospec=True)
-    def test_get_boot_device_client_error(self, mock_gnbm, mock_we,
+    @mock.patch.object(drac_mgmt, '_get_lifecycle_controller_version',
+                       spec_set=True, autospec=True)
+    def test_get_boot_device_client_error(self, mock_glcv, mock_gnbl, mock_we,
                                           mock_client_pywsman):
-        mock_gnbm.return_value = {'instance_id': 'OneTime',
+        controller_version = '2.1.5.0'
+        mock_glcv.return_value = controller_version
+        mock_gnbl.return_value = {'instance_id': 'OneTime',
                                   'is_next': drac_mgmt.ONE_TIME_BOOT}
         mock_we.side_effect = exception.DracClientError('E_FAKE')
 
@@ -247,18 +276,23 @@ class DracManagementTestCase(db_base.DbTestCase):
             mock.ANY, resource_uris.DCIM_BootSourceSetting,
             filter_query=mock.ANY)
 
-    @mock.patch.object(drac_mgmt.DracManagement, 'get_boot_device',
+    @mock.patch.object(drac_mgmt, '_get_boot_device', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(drac_mgmt, '_get_lifecycle_controller_version',
                        spec_set=True, autospec=True)
     @mock.patch.object(drac_mgmt, '_check_for_config_job', spec_set=True,
                        autospec=True)
     @mock.patch.object(drac_mgmt, '_create_config_job', spec_set=True,
                        autospec=True)
-    def test_set_boot_device(self, mock_ccj, mock_cfcj, mock_gbd,
+    def test_set_boot_device(self, mock_ccj, mock_cfcj, mock_glcv, mock_gbd,
                              mock_client_pywsman):
+        controller_version = '2.1.5.0'
+        mock_glcv.return_value = controller_version
         mock_gbd.return_value = {'boot_device': boot_devices.PXE,
                                  'persistent': True}
         result_xml_enum = test_utils.build_soap_xml(
-            [{'InstanceID': 'NIC'}], resource_uris.DCIM_BootSourceSetting)
+            [{'InstanceID': 'NIC', 'BootSourceType': 'IPL'}],
+            resource_uris.DCIM_BootSourceSetting)
         result_xml_invk = test_utils.build_soap_xml(
             [{'ReturnValue': drac_client.RET_SUCCESS}],
             resource_uris.DCIM_BootConfigSetting)
@@ -280,22 +314,28 @@ class DracManagementTestCase(db_base.DbTestCase):
         mock_pywsman.invoke.assert_called_once_with(
             mock.ANY, resource_uris.DCIM_BootConfigSetting,
             'ChangeBootOrderByInstanceID', None)
-        mock_gbd.assert_called_once_with(self.driver, task)
+        mock_glcv.assert_called_once_with(self.node)
+        mock_gbd.assert_called_once_with(self.node, controller_version)
         mock_cfcj.assert_called_once_with(self.node)
         mock_ccj.assert_called_once_with(self.node)
 
-    @mock.patch.object(drac_mgmt.DracManagement, 'get_boot_device',
+    @mock.patch.object(drac_mgmt, '_get_boot_device', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(drac_mgmt, '_get_lifecycle_controller_version',
                        spec_set=True, autospec=True)
     @mock.patch.object(drac_mgmt, '_check_for_config_job', spec_set=True,
                        autospec=True)
     @mock.patch.object(drac_mgmt, '_create_config_job', spec_set=True,
                        autospec=True)
-    def test_set_boot_device_fail(self, mock_ccj, mock_cfcj, mock_gbd,
-                                  mock_client_pywsman):
+    def test_set_boot_device_fail(self, mock_ccj, mock_cfcj, mock_glcv,
+                                  mock_gbd, mock_client_pywsman):
+        controller_version = '2.1.5.0'
+        mock_glcv.return_value = controller_version
         mock_gbd.return_value = {'boot_device': boot_devices.PXE,
                                  'persistent': True}
         result_xml_enum = test_utils.build_soap_xml(
-            [{'InstanceID': 'NIC'}], resource_uris.DCIM_BootSourceSetting)
+            [{'InstanceID': 'NIC', 'BootSourceType': 'IPL'}],
+            resource_uris.DCIM_BootSourceSetting)
         result_xml_invk = test_utils.build_soap_xml(
             [{'ReturnValue': drac_client.RET_ERROR, 'Message': 'E_FAKE'}],
             resource_uris.DCIM_BootConfigSetting)
@@ -317,19 +357,24 @@ class DracManagementTestCase(db_base.DbTestCase):
         mock_pywsman.invoke.assert_called_once_with(
             mock.ANY, resource_uris.DCIM_BootConfigSetting,
             'ChangeBootOrderByInstanceID', None)
-        mock_gbd.assert_called_once_with(self.driver, task)
+        mock_glcv.assert_called_once_with(self.node)
+        mock_gbd.assert_called_once_with(self.node, controller_version)
         mock_cfcj.assert_called_once_with(self.node)
         self.assertFalse(mock_ccj.called)
 
-    @mock.patch.object(drac_mgmt.DracManagement, 'get_boot_device',
+    @mock.patch.object(drac_mgmt, '_get_boot_device', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(drac_mgmt, '_get_lifecycle_controller_version',
                        spec_set=True, autospec=True)
     @mock.patch.object(drac_client.Client, 'wsman_enumerate', spec_set=True,
                        autospec=True)
     @mock.patch.object(drac_mgmt, '_check_for_config_job', spec_set=True,
                        autospec=True)
-    def test_set_boot_device_client_error(self, mock_cfcj, mock_we,
+    def test_set_boot_device_client_error(self, mock_cfcj, mock_we, mock_glcv,
                                           mock_gbd,
                                           mock_client_pywsman):
+        controller_version = '2.1.5.0'
+        mock_glcv.return_value = controller_version
         mock_gbd.return_value = {'boot_device': boot_devices.PXE,
                                  'persistent': True}
         mock_we.side_effect = exception.DracClientError('E_FAKE')
@@ -339,17 +384,22 @@ class DracManagementTestCase(db_base.DbTestCase):
             self.assertRaises(exception.DracClientError,
                               self.driver.set_boot_device, task,
                               boot_devices.PXE)
-        mock_gbd.assert_called_once_with(self.driver, task)
+        mock_glcv.assert_called_once_with(self.node)
+        mock_gbd.assert_called_once_with(self.node, controller_version)
         mock_we.assert_called_once_with(
             mock.ANY, resource_uris.DCIM_BootSourceSetting,
             filter_query=mock.ANY)
 
-    @mock.patch.object(drac_mgmt.DracManagement, 'get_boot_device',
+    @mock.patch.object(drac_mgmt, '_get_boot_device', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(drac_mgmt, '_get_lifecycle_controller_version',
                        spec_set=True, autospec=True)
     @mock.patch.object(drac_mgmt, '_check_for_config_job', spec_set=True,
                        autospec=True)
-    def test_set_boot_device_noop(self, mock_cfcj, mock_gbd,
+    def test_set_boot_device_noop(self, mock_cfcj, mock_glcv, mock_gbd,
                                   mock_client_pywsman):
+        controller_version = '2.1.5.0'
+        mock_glcv.return_value = controller_version
         mock_gbd.return_value = {'boot_device': boot_devices.PXE,
                                  'persistent': False}
         with task_manager.acquire(self.context, self.node.uuid,
@@ -357,9 +407,53 @@ class DracManagementTestCase(db_base.DbTestCase):
             task.node = self.node
             result = self.driver.set_boot_device(task, boot_devices.PXE)
         self.assertIsNone(result)
-        mock_gbd.assert_called_once_with(self.driver, task)
+        mock_glcv.assert_called_once_with(self.node)
+        mock_gbd.assert_called_once_with(self.node, controller_version)
         self.assertFalse(mock_cfcj.called)
 
     def test_get_sensors_data(self, mock_client_pywsman):
         self.assertRaises(NotImplementedError,
                           self.driver.get_sensors_data, self.task)
+
+    @mock.patch.object(drac_mgmt, '_get_boot_device', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(drac_mgmt, '_get_lifecycle_controller_version',
+                       spec_set=True, autospec=True)
+    @mock.patch.object(drac_mgmt, '_check_for_config_job', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(drac_mgmt, '_create_config_job', spec_set=True,
+                       autospec=True)
+    def test_set_boot_device_11g(self, mock_ccj, mock_cfcj, mock_glcv,
+                                 mock_gbd, mock_client_pywsman):
+        controller_version = '1.5.0.0'
+        mock_glcv.return_value = controller_version
+        mock_gbd.return_value = {'boot_device': boot_devices.PXE,
+                                 'persistent': True}
+        result_xml_enum = test_utils.build_soap_xml(
+            [{'InstanceID': 'NIC'}],
+            resource_uris.DCIM_BootSourceSetting)
+        result_xml_invk = test_utils.build_soap_xml(
+            [{'ReturnValue': drac_client.RET_SUCCESS}],
+            resource_uris.DCIM_BootConfigSetting)
+
+        mock_xml_enum = test_utils.mock_wsman_root(result_xml_enum)
+        mock_xml_invk = test_utils.mock_wsman_root(result_xml_invk)
+        mock_pywsman = mock_client_pywsman.Client.return_value
+        mock_pywsman.enumerate.return_value = mock_xml_enum
+        mock_pywsman.invoke.return_value = mock_xml_invk
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            task.node = self.node
+            result = self.driver.set_boot_device(task, boot_devices.PXE)
+
+        self.assertIsNone(result)
+        mock_pywsman.enumerate.assert_called_once_with(
+            mock.ANY, mock.ANY, resource_uris.DCIM_BootSourceSetting)
+        mock_pywsman.invoke.assert_called_once_with(
+            mock.ANY, resource_uris.DCIM_BootConfigSetting,
+            'ChangeBootOrderByInstanceID', None)
+        mock_glcv.assert_called_once_with(self.node)
+        mock_gbd.assert_called_once_with(self.node, controller_version)
+        mock_cfcj.assert_called_once_with(self.node)
+        mock_ccj.assert_called_once_with(self.node)
