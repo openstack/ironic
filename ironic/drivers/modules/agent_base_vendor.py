@@ -129,6 +129,8 @@ class BaseAgentVendor(base.VendorInterface):
                                                   % version)
 
     def _notify_conductor_resume_clean(self, task):
+        LOG.debug('Sending RPC to conductor to resume cleaning for node %s',
+                  task.node.uuid)
         uuid = task.node.uuid
         rpc = rpcapi.ConductorAPI()
         topic = rpc.get_topic_for(task.node)
@@ -166,6 +168,9 @@ class BaseAgentVendor(base.VendorInterface):
             return manager.cleaning_error_handler(task, msg)
         elif command.get('command_status') == 'CLEAN_VERSION_MISMATCH':
             # Restart cleaning, agent must have rebooted to new version
+            LOG.info(_LI('Node %s detected a clean version mismatch, '
+                         'resetting clean steps and rebooting the node.'),
+                     task.node.uuid)
             try:
                 manager.set_node_cleaning_steps(task)
             except exception.NodeCleaningFailure:
@@ -179,6 +184,8 @@ class BaseAgentVendor(base.VendorInterface):
             self._notify_conductor_resume_clean(task)
 
         elif command.get('command_status') == 'SUCCEEDED':
+            LOG.info(_LI('Agent on node %s returned cleaning command success, '
+                         'moving to next clean step'), task.node.uuid)
             self._notify_conductor_resume_clean(task)
         else:
             msg = (_('Agent returned unknown status for clean step %(step)s '
@@ -238,6 +245,7 @@ class BaseAgentVendor(base.VendorInterface):
             elif (node.provision_state == states.CLEANING and
                   not node.clean_step):
                 # Agent booted from prepare_cleaning
+                LOG.debug('Node %s just booted to start cleaning.', node.uuid)
                 manager.set_node_cleaning_steps(task)
                 self._notify_conductor_resume_clean(task)
             elif (node.provision_state == states.CLEANING and
@@ -316,16 +324,25 @@ class BaseAgentVendor(base.VendorInterface):
         if last_command['command_name'] != 'execute_clean_step':
             # catches race condition where execute_clean_step is still
             # processing so the command hasn't started yet
+            LOG.debug('Expected agent last command to be "execute_clean_step" '
+                      'for node %(node)s, instead got "%(command)s". Waiting '
+                      'for next heartbeat.',
+                      {'node': task.node.uuid,
+                       'command': last_command['command_name']})
             return
 
         last_result = last_command.get('command_result') or {}
         last_step = last_result.get('clean_step')
         if last_command['command_status'] == 'RUNNING':
+            LOG.debug('Clean step still running for node %(node)s: %(step)s',
+                      {'step': last_step, 'node': task.node.uuid})
             return
         elif (last_command['command_status'] == 'SUCCEEDED' and
               last_step != task.node.clean_step):
             # A previous clean_step was running, the new command has not yet
             # started.
+            LOG.debug('Clean step not yet started for node %(node)s: %(step)s',
+                      {'step': last_step, 'node': task.node.uuid})
             return
         else:
             return last_command
