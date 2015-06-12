@@ -1239,6 +1239,68 @@ class VendorPassthruTestCase(db_base.DbTestCase):
             reboot_and_finish_deploy_mock.assert_called_once_with(
                 mock.ANY, task)
 
+    @mock.patch.object(ilo_deploy, '_reboot_into', spec_set=True,
+                       autospec=True)
+    def test_boot_into_iso(self, reboot_into_mock):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            task.driver.vendor.boot_into_iso(task, boot_iso_href='foo')
+            reboot_into_mock.assert_called_once_with(task, 'foo',
+                                                     ramdisk_options=None)
+
+    @mock.patch.object(ilo_deploy.VendorPassthru, '_validate_boot_into_iso',
+                       spec_set=True, autospec=True)
+    def test_validate_boot_into_iso(self, validate_boot_into_iso_mock):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            vendor = ilo_deploy.VendorPassthru()
+            vendor.validate(task, method='boot_into_iso', foo='bar')
+            validate_boot_into_iso_mock.assert_called_once_with(
+                vendor, task, {'foo': 'bar'})
+
+    def test__validate_boot_into_iso_invalid_state(self):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            task.node.provision_state = states.AVAILABLE
+            self.assertRaises(
+                exception.InvalidStateRequested,
+                task.driver.vendor._validate_boot_into_iso,
+                task, {})
+
+    def test__validate_boot_into_iso_missing_boot_iso_href(self):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            task.node.provision_state = states.MANAGEABLE
+            self.assertRaises(
+                exception.MissingParameterValue,
+                task.driver.vendor._validate_boot_into_iso,
+                task, {})
+
+    @mock.patch.object(iscsi_deploy, 'validate_image_properties',
+                       spec_set=True, autospec=True)
+    def test__validate_boot_into_iso_manage(self, validate_image_prop_mock):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            info = {'boot_iso_href': 'foo'}
+            task.node.provision_state = states.MANAGEABLE
+            task.driver.vendor._validate_boot_into_iso(
+                task, info)
+            validate_image_prop_mock.assert_called_once_with(
+                task.context, {'image_source': 'foo'}, [])
+
+    @mock.patch.object(iscsi_deploy, 'validate_image_properties',
+                       spec_set=True, autospec=True)
+    def test__validate_boot_into_iso_maintenance(
+            self, validate_image_prop_mock):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            info = {'boot_iso_href': 'foo'}
+            task.node.maintenance = True
+            task.driver.vendor._validate_boot_into_iso(
+                task, info)
+            validate_image_prop_mock.assert_called_once_with(
+                task.context, {'image_source': 'foo'}, [])
+
 
 class IloPXEDeployTestCase(db_base.DbTestCase):
 
