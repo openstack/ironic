@@ -20,6 +20,7 @@ from oslo_config import cfg
 
 from ironic.common import exception
 from ironic.common import states
+from ironic.common import utils
 from ironic.conductor import task_manager
 from ironic.conductor import utils as conductor_utils
 from ironic.db import api as dbapi
@@ -336,7 +337,7 @@ class TestInspectPrivateMethods(db_base.DbTestCase):
             exception.HardwareInspectionFailure,
             ilo_inspect._get_essential_properties, self.node, ilo_mock)
 
-    @mock.patch.object(ilo_inspect, '_update_capabilities', spec_set=True,
+    @mock.patch.object(utils, 'get_updated_capabilities', spec_set=True,
                        autospec=True)
     def test__get_capabilities_ok(self, capability_mock):
         ilo_mock = mock.MagicMock(spec=['get_server_capabilities'])
@@ -361,58 +362,3 @@ class TestInspectPrivateMethods(db_base.DbTestCase):
         data = {'properties': properties, 'macs': macs}
         self.assertRaises(exception.HardwareInspectionFailure,
                           ilo_inspect._validate, self.node, data)
-
-    def test__update_capabilities(self):
-        capabilities = {'ilo_firmware_version': 'xyz'}
-        cap_string = 'ilo_firmware_version:xyz'
-        cap_returned = ilo_inspect._update_capabilities(self.node,
-                                                        capabilities)
-        self.assertEqual(cap_string, cap_returned)
-        self.assertIsInstance(cap_returned, str)
-
-    def test__update_capabilities_multiple_keys(self):
-        capabilities = {'ilo_firmware_version': 'xyz',
-                        'foo': 'bar', 'somekey': 'value'}
-        cap_string = 'ilo_firmware_version:xyz,foo:bar,somekey:value'
-        cap_returned = ilo_inspect._update_capabilities(self.node,
-                                                        capabilities)
-        set1 = set(cap_string.split(','))
-        set2 = set(cap_returned.split(','))
-        self.assertEqual(set1, set2)
-        self.assertIsInstance(cap_returned, str)
-
-    def test__update_capabilities_invalid_capabilities(self):
-        capabilities = 'ilo_firmware_version'
-        self.assertRaises(exception.HardwareInspectionFailure,
-                          ilo_inspect._update_capabilities,
-                          self.node, capabilities)
-
-    def test__update_capabilities_capabilities_not_dict(self):
-        capabilities = ['ilo_firmware_version:xyz', 'foo:bar']
-        self.assertRaises(exception.HardwareInspectionFailure,
-                          ilo_inspect._update_capabilities,
-                          self.node, capabilities)
-
-    def test__update_capabilities_add_to_existing_capabilities(self):
-        node_capabilities = {'capabilities': 'foo:bar'}
-        self.node.properties.update(node_capabilities)
-        new_capabilities = {'BootMode': 'uefi'}
-        expected_capabilities = 'BootMode:uefi,foo:bar'
-        cap_returned = ilo_inspect._update_capabilities(self.node,
-                                                        new_capabilities)
-        set1 = set(expected_capabilities.split(','))
-        set2 = set(cap_returned.split(','))
-        self.assertEqual(set1, set2)
-        self.assertIsInstance(cap_returned, str)
-
-    def test__update_capabilities_replace_to_existing_capabilities(self):
-        node_capabilities = {'capabilities': 'BootMode:uefi'}
-        self.node.properties.update(node_capabilities)
-        new_capabilities = {'BootMode': 'bios'}
-        expected_capabilities = 'BootMode:bios'
-        cap_returned = ilo_inspect._update_capabilities(self.node,
-                                                        new_capabilities)
-        set1 = set(expected_capabilities.split(','))
-        set2 = set(cap_returned.split(','))
-        self.assertEqual(set1, set2)
-        self.assertIsInstance(cap_returned, str)

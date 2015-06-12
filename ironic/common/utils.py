@@ -597,3 +597,41 @@ def _check_dir_free_space(chk_dir, required_space=1):
         raise exception.InsufficientDiskSpace(path=chk_dir,
                                               required=required_space,
                                               actual=free_space)
+
+
+def get_updated_capabilities(current_capabilities, new_capabilities):
+    """Returns an updated capability string.
+
+    This method updates the original (or current) capabilities with the new
+    capabilities. The original capabilities would typically be from a node's
+    properties['capabilities']. From new_capabilities, any new capabilities
+    are added, and existing capabilities may have their values updated. This
+    updated capabilities string is returned.
+
+    :param current_capabilities: Current capability string
+    :param new_capabilities: the dictionary of capabilities to be updated.
+    :returns: An updated capability string.
+        with new_capabilities.
+    :raises: ValueError, if current_capabilities is malformed or
+        if new_capabilities is not a dictionary
+    """
+    if not isinstance(new_capabilities, dict):
+        raise ValueError(
+            _("Cannot update capabilities. The new capabilities should be in "
+              "a dictionary. Provided value is %s") % new_capabilities)
+
+    cap_dict = {}
+    if current_capabilities:
+        try:
+            cap_dict = dict(x.split(':', 1)
+                            for x in current_capabilities.split(','))
+        except ValueError:
+            # Capabilities can be filled by operator.  ValueError can
+            # occur in malformed capabilities like:
+            # properties/capabilities='boot_mode:bios,boot_option'.
+            raise ValueError(
+                _("Invalid capabilities string '%s'.") % current_capabilities)
+
+    cap_dict.update(new_capabilities)
+    return ','.join('%(key)s:%(value)s' % {'key': key, 'value': value}
+                    for key, value in six.iteritems(cap_dict))
