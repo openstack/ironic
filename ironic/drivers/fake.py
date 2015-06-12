@@ -46,6 +46,7 @@ from ironic.drivers.modules import ssh
 from ironic.drivers.modules.ucs import management as ucs_mgmt
 from ironic.drivers.modules.ucs import power as ucs_power
 from ironic.drivers.modules import virtualbox
+from ironic.drivers.modules import wol
 from ironic.drivers import utils
 
 
@@ -260,3 +261,11 @@ class FakeUcsDriver(base.BaseDriver):
         self.power = ucs_power.Power()
         self.deploy = fake.FakeDeploy()
         self.management = ucs_mgmt.UcsManagement()
+
+
+class FakeWakeOnLanDriver(base.BaseDriver):
+    """Fake Wake-On-Lan driver."""
+
+    def __init__(self):
+        self.power = wol.WakeOnLanPower()
+        self.deploy = fake.FakeDeploy()
