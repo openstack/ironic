@@ -122,9 +122,10 @@ class Power(base.PowerInterface):
             power_handle = ucs_power.UcsPower(helper)
             power_status = power_handle.get_power_state()
         except ucs_error.UcsOperationError as ucs_exception:
-            LOG.error(_LE("%(driver)s: get_power_status operation failed for "
-                          "node %(uuid)s with error."),
-                      {'driver': task.node.driver, 'uuid': task.node.uuid})
+            LOG.error(_LE("%(driver)s: get_power_state operation failed for "
+                          "node %(uuid)s with error: %(msg)s."),
+                      {'driver': task.node.driver, 'uuid': task.node.uuid,
+                       'msg': ucs_exception})
             operation = _('getting power status')
             raise exception.UcsOperationError(operation=operation,
                                               error=ucs_exception,
@@ -163,8 +164,10 @@ class Power(base.PowerInterface):
             else:
                 return
         except ucs_error.UcsOperationError as ucs_exception:
-            LOG.error(_LE("Cisco client exception %(msg)s for node %(uuid)s"),
-                      {'msg': ucs_exception, 'uuid': task.node.uuid})
+            LOG.error(_LE("%(driver)s: set_power_state operation failed for "
+                          "node %(uuid)s with error: %(msg)s."),
+                      {'driver': task.node.driver, 'uuid': task.node.uuid,
+                       'msg': ucs_exception})
             operation = _("setting power status")
             raise exception.UcsOperationError(operation=operation,
                                               error=ucs_exception,

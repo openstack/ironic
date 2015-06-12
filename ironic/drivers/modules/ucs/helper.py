@@ -78,7 +78,9 @@ def parse_driver_info(node):
     info = {}
     for param in REQUIRED_PROPERTIES:
         info[param] = node.driver_info.get(param)
-    error_msg = _("cisco driver requries these parameter to be set.")
+    error_msg = (_("%s driver requires these parameters to be set in the "
+                   "node's driver_info.") %
+                 node.driver)
     deploy_utils.check_for_missing_params(info, error_msg)
     return info
 
