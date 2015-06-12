@@ -324,7 +324,8 @@ class PXEDeploy(base.DeployInterface):
 
         # Check if 'boot_option' is compatible with 'boot_mode' of uefi and
         # image being deployed
-        validate_boot_option_for_uefi(task.node)
+        if boot_mode == 'uefi':
+            validate_boot_option_for_uefi(task.node)
 
         d_info = _parse_deploy_info(node)
 
