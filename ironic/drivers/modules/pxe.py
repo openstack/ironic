@@ -227,6 +227,29 @@ def validate_boot_option_for_uefi(node):
             {'node_uuid': node.uuid})
 
 
+def validate_boot_parameters_for_trusted_boot(node):
+    """Check if boot parameters are valid for trusted boot."""
+    boot_mode = deploy_utils.get_boot_mode_for_deploy(node)
+    boot_option = iscsi_deploy.get_boot_option(node)
+    is_whole_disk_image = node.driver_internal_info.get('is_whole_disk_image')
+    # 'is_whole_disk_image' is not supported by trusted boot, because there is
+    # no Kernel/Ramdisk to measure at all.
+    if (boot_mode != 'bios' or
+        is_whole_disk_image or
+        boot_option != 'netboot'):
+        msg = (_("Trusted boot is only supported in BIOS boot mode with "
+                 "netboot and without whole_disk_image, but Node "
+                 "%(node_uuid)s was configured with boot_mode: %(boot_mode)s, "
+                 "boot_option: %(boot_option)s, is_whole_disk_image: "
+                 "%(is_whole_disk_image)s: at least one of them is wrong, and "
+                 "this can be caused by enable secure boot.") %
+               {'node_uuid': node.uuid, 'boot_mode': boot_mode,
+                'boot_option': boot_option,
+                'is_whole_disk_image': is_whole_disk_image})
+        LOG.error(msg)
+        raise exception.InvalidParameterValue(msg)
+
+
 @image_cache.cleanup(priority=25)
 class TFTPImageCache(image_cache.ImageCache):
     def __init__(self, image_service=None):
@@ -324,6 +347,11 @@ class PXEDeploy(base.DeployInterface):
         # image being deployed
         if boot_mode == 'uefi':
             validate_boot_option_for_uefi(task.node)
+
+        if deploy_utils.is_trusted_boot_requested(task.node):
+            # Check if 'boot_option' and boot mode is compatible with
+            # trusted boot.
+            validate_boot_parameters_for_trusted_boot(task.node)
 
         d_info = _parse_deploy_info(node)
 
@@ -438,7 +466,7 @@ class PXEDeploy(base.DeployInterface):
                 deploy_utils.switch_pxe_config(
                     pxe_config_path, root_uuid_or_disk_id,
                     deploy_utils.get_boot_mode_for_deploy(node),
-                    iwdi)
+                    iwdi, deploy_utils.is_trusted_boot_requested(node))
 
     def clean_up(self, task):
         """Clean up the deployment environment for the task's node.
@@ -583,9 +611,10 @@ class VendorPassthru(agent_base_vendor.BaseAgentVendor):
             else:
                 pxe_config_path = pxe_utils.get_pxe_config_file_path(node.uuid)
                 boot_mode = deploy_utils.get_boot_mode_for_deploy(node)
-                deploy_utils.switch_pxe_config(pxe_config_path,
-                                               root_uuid_or_disk_id,
-                                               boot_mode, is_whole_disk_image)
+                deploy_utils.switch_pxe_config(
+                    pxe_config_path, root_uuid_or_disk_id,
+                    boot_mode, is_whole_disk_image,
+                    deploy_utils.is_trusted_boot_requested(node))
 
         except Exception as e:
             LOG.error(_LE('Deploy failed for instance %(instance)s. '
@@ -633,8 +662,9 @@ class VendorPassthru(agent_base_vendor.BaseAgentVendor):
                 'root uuid', uuid_dict.get('disk identifier'))
             pxe_config_path = pxe_utils.get_pxe_config_file_path(node.uuid)
             boot_mode = deploy_utils.get_boot_mode_for_deploy(node)
-            deploy_utils.switch_pxe_config(pxe_config_path,
-                                           root_uuid_or_disk_id,
-                                           boot_mode, is_whole_disk_image)
+            deploy_utils.switch_pxe_config(
+                pxe_config_path, root_uuid_or_disk_id,
+                boot_mode, is_whole_disk_image,
+                deploy_utils.is_trusted_boot_requested(node))
 
         self.reboot_and_finish_deploy(task)

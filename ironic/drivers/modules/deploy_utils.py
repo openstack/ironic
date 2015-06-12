@@ -72,9 +72,12 @@ LOG = logging.getLogger(__name__)
 
 VALID_ROOT_DEVICE_HINTS = set(('size', 'model', 'wwn', 'serial', 'vendor'))
 
-SUPPORTED_CAPABILITIES = {'boot_option': ('local', 'netboot'),
-                          'boot_mode': ('bios', 'uefi'),
-                          'secure_boot': ('true', 'false')}
+SUPPORTED_CAPABILITIES = {
+    'boot_option': ('local', 'netboot'),
+    'boot_mode': ('bios', 'uefi'),
+    'secure_boot': ('true', 'false'),
+    'trusted_boot': ('true', 'false'),
+}
 
 
 # All functions are called from deploy() directly or indirectly.
@@ -357,9 +360,12 @@ def _replace_root_uuid(path, root_uuid):
     _replace_lines_in_file(path, pattern, root)
 
 
-def _replace_boot_line(path, boot_mode, is_whole_disk_image):
+def _replace_boot_line(path, boot_mode, is_whole_disk_image,
+                       trusted_boot=False):
     if is_whole_disk_image:
         boot_disk_type = 'boot_whole_disk'
+    elif trusted_boot:
+        boot_disk_type = 'trusted_boot'
     else:
         boot_disk_type = 'boot_partition'
 
@@ -380,7 +386,7 @@ def _replace_disk_identifier(path, disk_identifier):
 
 
 def switch_pxe_config(path, root_uuid_or_disk_id, boot_mode,
-                      is_whole_disk_image):
+                      is_whole_disk_image, trusted_boot=False):
     """Switch a pxe config from deployment mode to service mode.
 
     :param path: path to the pxe config file in tftpboot.
@@ -388,13 +394,16 @@ def switch_pxe_config(path, root_uuid_or_disk_id, boot_mode,
                                  disk_id in case of whole disk image.
     :param boot_mode: if boot mode is uefi or bios.
     :param is_whole_disk_image: if the image is a whole disk image or not.
+    :param trusted_boot: if boot with trusted_boot or not. The usage of
+        is_whole_disk_image and trusted_boot are mutually exclusive. You can
+        have one or neither, but not both.
     """
     if not is_whole_disk_image:
         _replace_root_uuid(path, root_uuid_or_disk_id)
     else:
         _replace_disk_identifier(path, root_uuid_or_disk_id)
 
-    _replace_boot_line(path, boot_mode, is_whole_disk_image)
+    _replace_boot_line(path, boot_mode, is_whole_disk_image, trusted_boot)
 
 
 def notify(address, port):
@@ -1057,12 +1066,30 @@ def is_secure_boot_requested(node):
     return sec_boot == 'true'
 
 
+def is_trusted_boot_requested(node):
+    """Returns True if trusted_boot is requested for deploy.
+
+    This method checks instance property for trusted_boot and returns True
+    if it is requested.
+
+    :param node: a single Node.
+    :raises: InvalidParameterValue if the capabilities string is not a
+             dictionary or is malformed.
+    :returns: True if trusted_boot is requested.
+    """
+
+    capabilities = parse_instance_info_capabilities(node)
+    trusted_boot = capabilities.get('trusted_boot', 'false').lower()
+
+    return trusted_boot == 'true'
+
+
 def get_boot_mode_for_deploy(node):
     """Returns the boot mode that would be used for deploy.
 
     This method returns boot mode to be used for deploy.
-    It returns 'uefi' if 'secure_boot' is set to 'true' in
-    'instance_info/capabilities' of node.
+    It returns 'uefi' if 'secure_boot' is set to 'true' or returns 'bios' if
+    'trusted_boot' is set to 'true' in 'instance_info/capabilities' of node.
     Otherwise it returns value of 'boot_mode' in 'properties/capabilities'
     of node if set. If that is not set, it returns boot mode in
     'instance_info/deploy_boot_mode' for the node.
@@ -1076,6 +1103,12 @@ def get_boot_mode_for_deploy(node):
     if is_secure_boot_requested(node):
         LOG.debug('Deploy boot mode is uefi for %s.', node.uuid)
         return 'uefi'
+
+    if is_trusted_boot_requested(node):
+        # TODO(lintan) Trusted boot also supports uefi, but at the moment,
+        # it should only boot with bios.
+        LOG.debug('Deploy boot mode is bios for %s.', node.uuid)
+        return 'bios'
 
     boot_mode = driver_utils.get_node_capability(node, 'boot_mode')
     if boot_mode is None:

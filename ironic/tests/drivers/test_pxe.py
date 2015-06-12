@@ -449,6 +449,52 @@ class PXEPrivateMethodsTestCase(db_base.DbTestCase):
         pxe.validate_boot_option_for_uefi(self.node)
         self.assertFalse(mock_log.called)
 
+    @mock.patch.object(pxe.LOG, 'error', autospec=True)
+    def test_validate_boot_parameters_for_trusted_boot_one(self, mock_log):
+        properties = {'capabilities': 'boot_mode:uefi'}
+        instance_info = {"boot_option": "netboot"}
+        self.node.properties = properties
+        self.node.instance_info['capabilities'] = instance_info
+        self.node.driver_internal_info['is_whole_disk_image'] = False
+        self.assertRaises(exception.InvalidParameterValue,
+                          pxe.validate_boot_parameters_for_trusted_boot,
+                          self.node)
+        self.assertTrue(mock_log.called)
+
+    @mock.patch.object(pxe.LOG, 'error', autospec=True)
+    def test_validate_boot_parameters_for_trusted_boot_two(self, mock_log):
+        properties = {'capabilities': 'boot_mode:bios'}
+        instance_info = {"boot_option": "local"}
+        self.node.properties = properties
+        self.node.instance_info['capabilities'] = instance_info
+        self.node.driver_internal_info['is_whole_disk_image'] = False
+        self.assertRaises(exception.InvalidParameterValue,
+                          pxe.validate_boot_parameters_for_trusted_boot,
+                          self.node)
+        self.assertTrue(mock_log.called)
+
+    @mock.patch.object(pxe.LOG, 'error', autospec=True)
+    def test_validate_boot_parameters_for_trusted_boot_three(self, mock_log):
+        properties = {'capabilities': 'boot_mode:bios'}
+        instance_info = {"boot_option": "netboot"}
+        self.node.properties = properties
+        self.node.instance_info['capabilities'] = instance_info
+        self.node.driver_internal_info['is_whole_disk_image'] = True
+        self.assertRaises(exception.InvalidParameterValue,
+                          pxe.validate_boot_parameters_for_trusted_boot,
+                          self.node)
+        self.assertTrue(mock_log.called)
+
+    @mock.patch.object(pxe.LOG, 'error', autospec=True)
+    def test_validate_boot_parameters_for_trusted_boot_pass(self, mock_log):
+        properties = {'capabilities': 'boot_mode:bios'}
+        instance_info = {"boot_option": "netboot"}
+        self.node.properties = properties
+        self.node.instance_info['capabilities'] = instance_info
+        self.node.driver_internal_info['is_whole_disk_image'] = False
+        pxe.validate_boot_parameters_for_trusted_boot(self.node)
+        self.assertFalse(mock_log.called)
+
 
 class PXEDriverTestCase(db_base.DbTestCase):
 
@@ -563,6 +609,25 @@ class PXEDriverTestCase(db_base.DbTestCase):
         with task_manager.acquire(self.context, new_node.uuid,
                                   shared=True) as task:
             self.assertRaises(exception.MissingParameterValue,
+                              task.driver.deploy.validate, task)
+
+    def test_validate_fail_trusted_boot(self):
+        properties = {'capabilities': 'boot_mode:uefi'}
+        instance_info = {"boot_option": "netboot", 'trusted_boot': 'true'}
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            task.node.properties = properties
+            task.node.instance_info['capabilities'] = instance_info
+            task.node.driver_internal_info['is_whole_disk_image'] = False
+            self.assertRaises(exception.InvalidParameterValue,
+                              task.driver.deploy.validate, task)
+
+    def test_validate_fail_invalid_trusted_boot_value(self):
+        properties = {'capabilities': 'trusted_boot:value'}
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            task.node.properties = properties
+            self.assertRaises(exception.InvalidParameterValue,
                               task.driver.deploy.validate, task)
 
     @mock.patch.object(base_image_service.BaseImageService, '_show',
@@ -786,7 +851,8 @@ class PXEDriverTestCase(db_base.DbTestCase):
 
             mock_pxe_get_cfg.assert_called_once_with(task.node.uuid)
             iwdi = task.node.driver_internal_info.get('is_whole_disk_image')
-            mock_switch.assert_called_once_with('/path', 'abcd', None, iwdi)
+            mock_switch.assert_called_once_with('/path', 'abcd', None,
+                                                iwdi, False)
 
     def test_prepare_node_active(self):
         self.node.driver_internal_info = {'root_uuid_or_disk_id': 'abcd',
@@ -894,22 +960,29 @@ class PXEDriverTestCase(db_base.DbTestCase):
     def _test_pass_deploy_info_deploy(self, is_localboot, mock_deploy,
                                       mock_image_cache, mock_switch_config,
                                       notify_mock, mock_node_boot_dev,
-                                      mock_clean_pxe):
+                                      mock_clean_pxe, trusted_boot=False):
+
+        root_uuid = "12345678-1234-1234-1234-1234567890abcxyz"
+        mock_deploy.return_value = {'root uuid': root_uuid}
+        boot_mode = None
+        is_whole_disk_image = False
+
         # set local boot
         if is_localboot:
             i_info = self.node.instance_info
             i_info['capabilities'] = '{"boot_option": "local"}'
             self.node.instance_info = i_info
 
+        if trusted_boot:
+            i_info = self.node.instance_info
+            i_info['capabilities'] = '{"trusted_boot": "true"}'
+            self.node.instance_info = i_info
+            boot_mode = 'bios'
+
         self.node.power_state = states.POWER_ON
         self.node.provision_state = states.DEPLOYWAIT
         self.node.target_provision_state = states.ACTIVE
         self.node.save()
-
-        root_uuid = "12345678-1234-1234-1234-1234567890abcxyz"
-        mock_deploy.return_value = {'root uuid': root_uuid}
-        boot_mode = None
-        is_whole_disk_image = False
 
         with task_manager.acquire(self.context, self.node.uuid) as task:
             task.driver.vendor.pass_deploy_info(
@@ -932,7 +1005,8 @@ class PXEDriverTestCase(db_base.DbTestCase):
             mock_switch_config.assert_called_once_with(pxe_config_path,
                                                        root_uuid,
                                                        boot_mode,
-                                                       is_whole_disk_image)
+                                                       is_whole_disk_image,
+                                                       trusted_boot)
             self.assertFalse(mock_node_boot_dev.called)
             self.assertFalse(mock_clean_pxe.called)
 
@@ -965,6 +1039,7 @@ class PXEDriverTestCase(db_base.DbTestCase):
         is_whole_disk_image = True
         disk_id = '0x12345678'
         mock_deploy.return_value = {'disk identifier': disk_id}
+        trusted_boot = False
 
         with task_manager.acquire(self.context, self.node.uuid) as task:
             task.node.driver_internal_info['is_whole_disk_image'] = True
@@ -988,7 +1063,8 @@ class PXEDriverTestCase(db_base.DbTestCase):
             mock_switch_config.assert_called_once_with(pxe_config_path,
                                                        disk_id,
                                                        boot_mode,
-                                                       is_whole_disk_image)
+                                                       is_whole_disk_image,
+                                                       trusted_boot)
             self.assertFalse(mock_node_boot_dev.called)
             self.assertFalse(mock_clean_pxe.called)
 
@@ -1009,6 +1085,11 @@ class PXEDriverTestCase(db_base.DbTestCase):
 
     def test_pass_deploy_info_whole_disk_image_localboot(self):
         self._test_pass_deploy_info_whole_disk_image(True)
+        self.assertEqual(states.ACTIVE, self.node.provision_state)
+        self.assertEqual(states.NOSTATE, self.node.target_provision_state)
+
+    def test_pass_deploy_info_deploy_trusted_boot(self):
+        self._test_pass_deploy_info_deploy(False, trusted_boot=True)
         self.assertEqual(states.ACTIVE, self.node.provision_state)
         self.assertEqual(states.NOSTATE, self.node.target_provision_state)
 
@@ -1221,7 +1302,7 @@ class TestAgentVendorPassthru(db_base.DbTestCase):
         tftp_config = '/tftpboot/%s/config' % self.node.uuid
         switch_pxe_config_mock.assert_called_once_with(tftp_config,
                                                        'some-root-uuid',
-                                                       None, False)
+                                                       None, False, False)
         reboot_and_finish_deploy_mock.assert_called_once_with(
             mock.ANY, self.task)
 
