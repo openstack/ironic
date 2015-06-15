@@ -1,13 +1,13 @@
 .. _drivers:
 
 =================
-Enabling Drivers
+Enabling drivers
 =================
 
 Ironic-Python-Agent (agent)
 ---------------------------
 
-To enable IPA add the appropriate Ironic agent driver to the ``enabled_drivers``
+To enable IPA, add the appropriate ironic agent driver to the ``enabled_drivers``
 line of the ironic.conf file.
 
 Several variants are currently supported, they are:
@@ -17,7 +17,7 @@ Several variants are currently supported, they are:
     * agent_ssh
     * agent_vbox
 
-.. note:: Starting with the Kilo release IPA ramdisk may also be used with Ironic PXE drivers.
+.. note:: Starting with the Kilo release IPA ramdisk may also be used with ironic PXE drivers.
 
 For more information see the `ironic-python-agent GitHub repo <https://github.com/openstack/ironic-python-agent/>`_
 
@@ -57,23 +57,23 @@ Supported PDUs
 - EatonPower (implemented according to MIB spec but not tested on hardware)
 - Teltronix
 
-Software Requirements
+Software requirements
 ^^^^^^^^^^^^^^^^^^^^^
 
 - The PySNMP package must be installed, variously referred to as ``pysnmp``
   or ``python-pysnmp``
 
-Enabling the SNMP Power Driver
+Enabling the SNMP power driver
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 - Add ``pxe_snmp`` to the list of ``enabled_drivers`` in
   ``/etc/ironic/ironic.conf``
 - Ironic Conductor must be restarted for the new driver to be loaded.
 
-Ironic Node Configuration
+Ironic node configuration
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Nodes are configured for SNMP control by setting the Ironic node object's
+Nodes are configured for SNMP control by setting the ironic node object's
 ``driver`` property to be ``pxe_snmp``.  Further configuration values are
 added to ``driver_info``:
 
@@ -88,7 +88,7 @@ added to ``driver_info``:
   parameter for reads and writes to the PDU.
 - ``snmp_security``: (Required for SNMPv3) SNMP security string.
 
-PDU Configuration
+PDU configuration
 ^^^^^^^^^^^^^^^^^
 
 This version of the SNMP power driver does not support handling
@@ -116,25 +116,25 @@ SeaMicro driver
 iRMC
 ----
 
-The iRMC driver enables PXE Deploy to control power via ServerView Common
+The iRMC driver enables PXE deploy to control power via ServerView Common
 Command Interface (SCCI).
 
-Software Requirements
+Software requirements
 ^^^^^^^^^^^^^^^^^^^^^
 
 - Install `python-scciclient package <https://pypi.python.org/pypi/python-scciclient>`_
 
-Enabling the iRMC Driver
+Enabling the iRMC driver
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
 - Add ``pxe_irmc`` to the list of ``enabled_drivers in``
   ``/etc/ironic/ironic.conf``
 - Ironic Conductor must be restarted for the new driver to be loaded.
 
-Ironic Node Configuration
+Ironic node configuration
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Nodes are configured for iRMC with PXE Deploy by setting the Ironic node
+Nodes are configured for iRMC with PXE deploy by setting the ironic node
 object's ``driver`` property to be ``pxe_irmc``.  Further configuration values
 are added to ``driver_info``:
 
@@ -145,7 +145,7 @@ are added to ``driver_info``:
 - ``irmc_auth_method``: authentication method for iRMC (optional, either
   'basic' or 'digest'. default is 'basic')
 
-Supported Platforms
+Supported platforms
 ^^^^^^^^^^^^^^^^^^^
 This driver supports FUJITSU PRIMERGY BX S4 or RX S8 servers and above.
 
@@ -163,7 +163,7 @@ VirtualBox drivers
   ../drivers/vbox
 
 
-Cisco UCS Driver
+Cisco UCS driver
 ----------------
 
 .. toctree::
