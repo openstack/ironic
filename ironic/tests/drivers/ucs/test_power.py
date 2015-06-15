@@ -43,7 +43,7 @@ class UcsPowerTestCase(db_base.DbTestCase):
                                                driver='fake_ucs',
                                                driver_info=driver_info)
         CONF.set_override('max_retry', 2, 'cisco_ucs')
-        CONF.set_override('action_interval', 1, 'cisco_ucs')
+        CONF.set_override('action_interval', 0, 'cisco_ucs')
         self.interface = ucs_power.Power()
 
     def test_get_properties(self):
