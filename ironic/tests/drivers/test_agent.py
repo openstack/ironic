@@ -317,6 +317,8 @@ class TestAgentDeploy(db_base.DbTestCase):
             boot_mock.assert_called_once_with(task, ports)
             create_mock.assert_called_once_with(mock.ANY, task)
             delete_mock.assert_called_once_with(mock.ANY, task)
+            self.assertEqual(task.node.driver_internal_info.get(
+                             'agent_erase_devices_iterations'), 1)
 
     @mock.patch('ironic.dhcp.neutron.NeutronDHCPApi.delete_cleaning_ports',
                 autospec=True)

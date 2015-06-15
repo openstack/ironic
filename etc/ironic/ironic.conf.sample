@@ -1,76 +1,6 @@
 [DEFAULT]
 
 #
-# Options defined in oslo.messaging
-#
-
-# ZeroMQ bind address. Should be a wildcard (*), an ethernet
-# interface, or IP. The "host" option should point or resolve
-# to this address. (string value)
-#rpc_zmq_bind_address=*
-
-# MatchMaker driver. (string value)
-#rpc_zmq_matchmaker=local
-
-# ZeroMQ receiver listening port. (integer value)
-#rpc_zmq_port=9501
-
-# Number of ZeroMQ contexts, defaults to 1. (integer value)
-#rpc_zmq_contexts=1
-
-# Maximum number of ingress messages to locally buffer per
-# topic. Default is unlimited. (integer value)
-#rpc_zmq_topic_backlog=<None>
-
-# Directory for holding IPC sockets. (string value)
-#rpc_zmq_ipc_dir=/var/run/openstack
-
-# Name of this node. Must be a valid hostname, FQDN, or IP
-# address. Must match "host" option, if running Nova. (string
-# value)
-#rpc_zmq_host=ironic
-
-# Seconds to wait before a cast expires (TTL). Only supported
-# by impl_zmq. (integer value)
-#rpc_cast_timeout=30
-
-# Heartbeat frequency. (integer value)
-#matchmaker_heartbeat_freq=300
-
-# Heartbeat time-to-live. (integer value)
-#matchmaker_heartbeat_ttl=600
-
-# Size of RPC thread pool. (integer value)
-#rpc_thread_pool_size=64
-
-# The Drivers(s) to handle sending notifications. Possible
-# values are messaging, messagingv2, routing,log, test, noop
-# (multi valued)
-#notification_driver=
-
-# AMQP topic used for OpenStack notifications. (list value)
-# Deprecated group/name - [rpc_notifier2]/topics
-#notification_topics=notifications
-
-# Seconds to wait for a response from a call. (integer value)
-#rpc_response_timeout=60
-
-# A URL representing the messaging driver to use and its full
-# configuration. If not set, we fall back to the rpc_backend
-# option and driver specific configuration. (string value)
-#transport_url=<None>
-
-# The messaging driver to use, defaults to rabbit. Other
-# drivers include qpid and zmq. (string value)
-#rpc_backend=rabbit
-
-# The default exchange under which topics are scoped. May be
-# overridden by an exchange name specified in the
-# transport_url option. (string value)
-#control_exchange=openstack
-
-
-#
 # Options defined in oslo.log
 #
 
@@ -162,6 +92,76 @@
 # The format for an instance UUID that is passed with the log
 # message. (string value)
 #instance_uuid_format="[instance: %(uuid)s] "
+
+
+#
+# Options defined in oslo.messaging
+#
+
+# ZeroMQ bind address. Should be a wildcard (*), an ethernet
+# interface, or IP. The "host" option should point or resolve
+# to this address. (string value)
+#rpc_zmq_bind_address=*
+
+# MatchMaker driver. (string value)
+#rpc_zmq_matchmaker=local
+
+# ZeroMQ receiver listening port. (integer value)
+#rpc_zmq_port=9501
+
+# Number of ZeroMQ contexts, defaults to 1. (integer value)
+#rpc_zmq_contexts=1
+
+# Maximum number of ingress messages to locally buffer per
+# topic. Default is unlimited. (integer value)
+#rpc_zmq_topic_backlog=<None>
+
+# Directory for holding IPC sockets. (string value)
+#rpc_zmq_ipc_dir=/var/run/openstack
+
+# Name of this node. Must be a valid hostname, FQDN, or IP
+# address. Must match "host" option, if running Nova. (string
+# value)
+#rpc_zmq_host=ironic
+
+# Seconds to wait before a cast expires (TTL). Only supported
+# by impl_zmq. (integer value)
+#rpc_cast_timeout=30
+
+# Heartbeat frequency. (integer value)
+#matchmaker_heartbeat_freq=300
+
+# Heartbeat time-to-live. (integer value)
+#matchmaker_heartbeat_ttl=600
+
+# Size of RPC thread pool. (integer value)
+#rpc_thread_pool_size=64
+
+# The Drivers(s) to handle sending notifications. Possible
+# values are messaging, messagingv2, routing,log, test, noop
+# (multi valued)
+#notification_driver=
+
+# AMQP topic used for OpenStack notifications. (list value)
+# Deprecated group/name - [rpc_notifier2]/topics
+#notification_topics=notifications
+
+# Seconds to wait for a response from a call. (integer value)
+#rpc_response_timeout=60
+
+# A URL representing the messaging driver to use and its full
+# configuration. If not set, we fall back to the rpc_backend
+# option and driver specific configuration. (string value)
+#transport_url=<None>
+
+# The messaging driver to use, defaults to rabbit. Other
+# drivers include qpid and zmq. (string value)
+#rpc_backend=rabbit
+
+# The default exchange under which topics are scoped. May be
+# overridden by an exchange name specified in the
+# transport_url option. (string value)
+#control_exchange=openstack
 
 
 #
@@ -370,6 +370,10 @@
 # set to 0, will not run during cleaning. (integer value)
 #agent_erase_devices_priority=<None>
 
+# Number of iterations to be run for erasing devices. (integer
+# value)
+#agent_erase_devices_iterations=1
+
 # Whether Ironic will manage TFTP files for the deploy
 # ramdisks. If set to False, you will need to configure your
 # own TFTP server that allows booting the deploy ramdisks.
@@ -384,6 +388,15 @@
 # Maximum interval (in seconds) for agent heartbeats. (integer
 # value)
 #heartbeat_timeout=300
+
+# Number of times to retry getting power state to check if
+# bare metal node has been powered off after a soft power off.
+# (integer value)
+#post_deploy_get_power_state_retries=6
+
+# Amount of time (in seconds) to wait between polling power
+# state after trigger soft poweroff. (integer value)
+#post_deploy_get_power_state_retry_interval=5
 
 
 #
@@ -434,6 +447,21 @@
 # The maximum number of items returned in a single response
 # from a collection resource. (integer value)
 #max_limit=1000
+
+
+[cisco_ucs]
+
+#
+# Options defined in ironic.drivers.modules.ucs.power
+#
+
+# Number of times a power operation needs to be retried
+# (integer value)
+#max_retry=6
+
+# Amount of time in seconds to wait in between power
+# operations (integer value)
+#action_interval=5
 
 
 [conductor]
@@ -1600,14 +1628,3 @@
 #port=18083
 
 
-[cisco_ucs]
-
-#
-# Options defined in ironic.drivers.modules.ucs.power
-#
-
-# Number of times a power operation needs to be retried.
-#max_retry=6
-
-# Amount of time in seconds to wait in between power operations.
-#action_interval=5

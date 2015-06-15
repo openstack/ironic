@@ -595,6 +595,10 @@ class IloVirtualMediaAgentDeploy(base.DeployInterface):
         if getattr(provider, 'create_cleaning_ports', None):
             provider.create_cleaning_ports(task)
 
+        # Append required config parameters to node's driver_internal_info
+        # to pass to IPA.
+        deploy_utils.agent_add_clean_params(task)
+
         _prepare_agent_vmedia_boot(task)
         # Tell the conductor we are waiting for the agent to boot.
         return states.CLEANING
