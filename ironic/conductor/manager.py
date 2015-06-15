@@ -1271,10 +1271,13 @@ class ConductorManager(periodic_task.PeriodicTasks):
             state to perform deletion.
 
         """
+        # NOTE(dtantsur): we allow deleting a node in maintenance mode even if
+        # we would disallow it otherwise. That's done for recoveting hopelessly
+        # broken nodes (e.g. with broken BMC).
         with task_manager.acquire(context, node_id,
                                   purpose='node deletion') as task:
             node = task.node
-            if node.instance_uuid is not None:
+            if not node.maintenance and node.instance_uuid is not None:
                 raise exception.NodeAssociated(node=node.uuid,
                                                instance=node.instance_uuid)
 
@@ -1292,7 +1295,8 @@ class ConductorManager(periodic_task.PeriodicTasks):
             # ZAPFAIL -> MANAGEABLE (in the future)
             valid_states = (states.AVAILABLE, states.NOSTATE,
                             states.MANAGEABLE)
-            if node.provision_state not in valid_states:
+            if (not node.maintenance and
+                    node.provision_state not in valid_states):
                 msg = (_('Can not delete node "%(node)s" while it is in '
                          'provision state "%(state)s". Valid provision states '
                          'to perform deletion are: "%(valid_states)s"') %

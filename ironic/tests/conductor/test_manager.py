@@ -2269,6 +2269,17 @@ class DestroyNodeTestCase(_ServiceSetUpMixin, tests_db_base.DbTestCase):
         node.refresh()
         self.assertIsNone(node.reservation)
 
+    def test_destroy_node_allowed_in_maintenance(self):
+        self._start_service()
+        node = obj_utils.create_test_node(self.context,
+                                          instance_uuid='fake-uuid',
+                                          provision_state=states.ACTIVE,
+                                          maintenance=True)
+        self.service.destroy_node(self.context, node.uuid)
+        self.assertRaises(exception.NodeNotFound,
+                          self.dbapi.get_node_by_uuid,
+                          node.uuid)
+
     def test_destroy_node_power_off(self):
         self._start_service()
         node = obj_utils.create_test_node(self.context,
