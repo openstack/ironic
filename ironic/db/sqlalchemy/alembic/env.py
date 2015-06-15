@@ -13,6 +13,7 @@
 from logging import config as log_config
 
 from alembic import context
+from oslo_db.sqlalchemy import enginefacade
 
 try:
     # NOTE(whaom): This is to register the DB2 alembic code which
@@ -21,7 +22,6 @@ try:
 except ImportError:
     pass
 
-from ironic.db.sqlalchemy import api as sqla_api
 from ironic.db.sqlalchemy import models
 
 # this is the Alembic Config object, which provides
@@ -50,7 +50,7 @@ def run_migrations_online():
     and associate a connection with the context.
 
     """
-    engine = sqla_api.get_engine()
+    engine = enginefacade.get_legacy_facade().get_engine()
     with engine.connect() as connection:
         context.configure(connection=connection,
                           target_metadata=target_metadata)

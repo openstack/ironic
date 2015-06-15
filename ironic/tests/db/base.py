@@ -20,10 +20,10 @@ import shutil
 
 import fixtures
 from oslo_config import cfg
+from oslo_db.sqlalchemy import enginefacade
 
 from ironic.common import paths
 from ironic.db import api as dbapi
-from ironic.db.sqlalchemy import api as sqla_api
 from ironic.db.sqlalchemy import migration
 from ironic.db.sqlalchemy import models
 from ironic.tests import base
@@ -36,13 +36,13 @@ _DB_CACHE = None
 
 class Database(fixtures.Fixture):
 
-    def __init__(self, db_api, db_migrate, sql_connection,
+    def __init__(self, engine, db_migrate, sql_connection,
                  sqlite_db, sqlite_clean_db):
         self.sql_connection = sql_connection
         self.sqlite_db = sqlite_db
         self.sqlite_clean_db = sqlite_clean_db
 
-        self.engine = db_api.get_engine()
+        self.engine = engine
         self.engine.dispose()
         conn = self.engine.connect()
         if sql_connection == "sqlite://":
@@ -94,7 +94,8 @@ class DbTestCase(base.TestCase):
 
         global _DB_CACHE
         if not _DB_CACHE:
-            _DB_CACHE = Database(sqla_api, migration,
+            engine = enginefacade.get_legacy_facade().get_engine()
+            _DB_CACHE = Database(engine, migration,
                                  sql_connection=CONF.database.connection,
                                  sqlite_db=CONF.database.sqlite_db,
                                  sqlite_clean_db='clean.sqlite')

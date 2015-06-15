@@ -39,6 +39,7 @@ import contextlib
 from alembic import script
 import mock
 from oslo_db import exception as db_exc
+from oslo_db.sqlalchemy import enginefacade
 from oslo_db.sqlalchemy import test_base
 from oslo_db.sqlalchemy import test_migrations
 from oslo_db.sqlalchemy import utils as db_utils
@@ -90,9 +91,9 @@ def _is_backend_avail(backend, user, passwd, database):
 
 @contextlib.contextmanager
 def patch_with_engine(engine):
-    with mock.patch(('ironic.db'
-                     '.sqlalchemy.api.get_engine')) as patch_migration:
-        patch_migration.return_value = engine
+    with mock.patch.object(enginefacade.get_legacy_facade(),
+                           'get_engine') as patch_engine:
+        patch_engine.return_value = engine
         yield
 
 

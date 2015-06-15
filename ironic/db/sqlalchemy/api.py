@@ -18,10 +18,11 @@
 
 import collections
 import datetime
+import threading
 
 from oslo_config import cfg
 from oslo_db import exception as db_exc
-from oslo_db.sqlalchemy import session as db_session
+from oslo_db.sqlalchemy import enginefacade
 from oslo_db.sqlalchemy import utils as db_utils
 from oslo_log import log
 from oslo_utils import strutils
@@ -45,29 +46,20 @@ CONF.import_opt('heartbeat_timeout',
 LOG = log.getLogger(__name__)
 
 
-_FACADE = None
-
-
-def _create_facade_lazily():
-    global _FACADE
-    if _FACADE is None:
-        _FACADE = db_session.EngineFacade.from_config(CONF)
-    return _FACADE
-
-
-def get_engine():
-    facade = _create_facade_lazily()
-    return facade.get_engine()
-
-
-def get_session(**kwargs):
-    facade = _create_facade_lazily()
-    return facade.get_session(**kwargs)
+_CONTEXT = threading.local()
 
 
 def get_backend():
     """The backend is this module itself."""
     return Connection()
+
+
+def _session_for_read():
+    return enginefacade.reader.using(_CONTEXT)
+
+
+def _session_for_write():
+    return enginefacade.writer.using(_CONTEXT)
 
 
 def model_query(model, *args, **kwargs):
@@ -76,9 +68,9 @@ def model_query(model, *args, **kwargs):
     :param session: if present, the session to use
     """
 
-    session = kwargs.get('session') or get_session()
-    query = session.query(model, *args)
-    return query
+    with _session_for_read() as session:
+        query = session.query(model, *args)
+        return query
 
 
 def add_identity_filter(query, value):
@@ -215,9 +207,8 @@ class Connection(api.Connection):
                                sort_key, sort_dir, query)
 
     def reserve_node(self, tag, node_id):
-        session = get_session()
-        with session.begin():
-            query = model_query(models.Node, session=session)
+        with _session_for_write():
+            query = model_query(models.Node)
             query = add_identity_filter(query, node_id)
             # be optimistic and assume we usually create a reservation
             count = query.filter_by(reservation=None).update(
@@ -234,9 +225,8 @@ class Connection(api.Connection):
                 raise exception.NodeNotFound(node_id)
 
     def release_node(self, tag, node_id):
-        session = get_session()
-        with session.begin():
-            query = model_query(models.Node, session=session)
+        with _session_for_write():
+            query = model_query(models.Node)
             query = add_identity_filter(query, node_id)
             # be optimistic and assume we usually release a reservation
             count = query.filter_by(reservation=tag).update(
@@ -263,17 +253,19 @@ class Connection(api.Connection):
 
         node = models.Node()
         node.update(values)
-        try:
-            node.save()
-        except db_exc.DBDuplicateEntry as exc:
-            if 'name' in exc.columns:
-                raise exception.DuplicateName(name=values['name'])
-            elif 'instance_uuid' in exc.columns:
-                raise exception.InstanceAssociated(
-                    instance_uuid=values['instance_uuid'],
-                    node=values['uuid'])
-            raise exception.NodeAlreadyExists(uuid=values['uuid'])
-        return node
+        with _session_for_write() as session:
+            try:
+                session.add(node)
+                session.flush()
+            except db_exc.DBDuplicateEntry as exc:
+                if 'name' in exc.columns:
+                    raise exception.DuplicateName(name=values['name'])
+                elif 'instance_uuid' in exc.columns:
+                    raise exception.InstanceAssociated(
+                        instance_uuid=values['instance_uuid'],
+                        node=values['uuid'])
+                raise exception.NodeAlreadyExists(uuid=values['uuid'])
+            return node
 
     def get_node_by_id(self, node_id):
         query = model_query(models.Node).filter_by(id=node_id)
@@ -311,9 +303,8 @@ class Connection(api.Connection):
         return result
 
     def destroy_node(self, node_id):
-        session = get_session()
-        with session.begin():
-            query = model_query(models.Node, session=session)
+        with _session_for_write():
+            query = model_query(models.Node)
             query = add_identity_filter(query, node_id)
 
             try:
@@ -326,7 +317,7 @@ class Connection(api.Connection):
             if uuidutils.is_uuid_like(node_id):
                 node_id = node_ref['id']
 
-            port_query = model_query(models.Port, session=session)
+            port_query = model_query(models.Port)
             port_query = add_port_filter_by_node(port_query, node_id)
             port_query.delete()
 
@@ -353,9 +344,8 @@ class Connection(api.Connection):
                 raise e
 
     def _do_update_node(self, node_id, values):
-        session = get_session()
-        with session.begin():
-            query = model_query(models.Node, session=session)
+        with _session_for_write():
+            query = model_query(models.Node)
             query = add_identity_filter(query, node_id)
             try:
                 ref = query.with_lockmode('update').one()
@@ -419,15 +409,18 @@ class Connection(api.Connection):
     def create_port(self, values):
         if not values.get('uuid'):
             values['uuid'] = uuidutils.generate_uuid()
+
         port = models.Port()
         port.update(values)
-        try:
-            port.save()
-        except db_exc.DBDuplicateEntry as exc:
-            if 'address' in exc.columns:
-                raise exception.MACAlreadyExists(mac=values['address'])
-            raise exception.PortAlreadyExists(uuid=values['uuid'])
-        return port
+        with _session_for_write() as session:
+            try:
+                session.add(port)
+                session.flush()
+            except db_exc.DBDuplicateEntry as exc:
+                if 'address' in exc.columns:
+                    raise exception.MACAlreadyExists(mac=values['address'])
+                raise exception.PortAlreadyExists(uuid=values['uuid'])
+            return port
 
     def update_port(self, port_id, values):
         # NOTE(dtantsur): this can lead to very strange errors
@@ -435,13 +428,13 @@ class Connection(api.Connection):
             msg = _("Cannot overwrite UUID for an existing Port.")
             raise exception.InvalidParameterValue(err=msg)
 
-        session = get_session()
         try:
-            with session.begin():
-                query = model_query(models.Port, session=session)
+            with _session_for_write() as session:
+                query = model_query(models.Port)
                 query = add_port_filter(query, port_id)
                 ref = query.one()
                 ref.update(values)
+                session.flush()
         except NoResultFound:
             raise exception.PortNotFound(port=port_id)
         except db_exc.DBDuplicateEntry:
@@ -449,9 +442,8 @@ class Connection(api.Connection):
         return ref
 
     def destroy_port(self, port_id):
-        session = get_session()
-        with session.begin():
-            query = model_query(models.Port, session=session)
+        with _session_for_write():
+            query = model_query(models.Port)
             query = add_port_filter(query, port_id)
             count = query.delete()
             if count == 0:
@@ -479,13 +471,16 @@ class Connection(api.Connection):
     def create_chassis(self, values):
         if not values.get('uuid'):
             values['uuid'] = uuidutils.generate_uuid()
+
         chassis = models.Chassis()
         chassis.update(values)
-        try:
-            chassis.save()
-        except db_exc.DBDuplicateEntry:
-            raise exception.ChassisAlreadyExists(uuid=values['uuid'])
-        return chassis
+        with _session_for_write() as session:
+            try:
+                session.add(chassis)
+                session.flush()
+            except db_exc.DBDuplicateEntry:
+                raise exception.ChassisAlreadyExists(uuid=values['uuid'])
+            return chassis
 
     def update_chassis(self, chassis_id, values):
         # NOTE(dtantsur): this can lead to very strange errors
@@ -493,9 +488,8 @@ class Connection(api.Connection):
             msg = _("Cannot overwrite UUID for an existing Chassis.")
             raise exception.InvalidParameterValue(err=msg)
 
-        session = get_session()
-        with session.begin():
-            query = model_query(models.Chassis, session=session)
+        with _session_for_write():
+            query = model_query(models.Chassis)
             query = add_identity_filter(query, chassis_id)
 
             count = query.update(values)
@@ -505,20 +499,19 @@ class Connection(api.Connection):
         return ref
 
     def destroy_chassis(self, chassis_id):
-        def chassis_not_empty(session):
+        def chassis_not_empty():
             """Checks whether the chassis does not have nodes."""
 
-            query = model_query(models.Node, session=session)
+            query = model_query(models.Node)
             query = add_node_filter_by_chassis(query, chassis_id)
 
             return query.count() != 0
 
-        session = get_session()
-        with session.begin():
-            if chassis_not_empty(session):
+        with _session_for_write():
+            if chassis_not_empty():
                 raise exception.ChassisNotEmpty(chassis=chassis_id)
 
-            query = model_query(models.Chassis, session=session)
+            query = model_query(models.Chassis)
             query = add_identity_filter(query, chassis_id)
 
             count = query.delete()
@@ -526,9 +519,8 @@ class Connection(api.Connection):
                 raise exception.ChassisNotFound(chassis=chassis_id)
 
     def register_conductor(self, values, update_existing=False):
-        session = get_session()
-        with session.begin():
-            query = (model_query(models.Conductor, session=session)
+        with _session_for_write() as session:
+            query = (model_query(models.Conductor)
                      .filter_by(hostname=values['hostname']))
             try:
                 ref = query.one()
@@ -537,12 +529,12 @@ class Connection(api.Connection):
                         conductor=values['hostname'])
             except NoResultFound:
                 ref = models.Conductor()
+                session.add(ref)
             ref.update(values)
             # always set online and updated_at fields when registering
             # a conductor, especially when updating an existing one
             ref.update({'updated_at': timeutils.utcnow(),
                         'online': True})
-            ref.save(session)
         return ref
 
     def get_conductor(self, hostname):
@@ -554,18 +546,16 @@ class Connection(api.Connection):
             raise exception.ConductorNotFound(conductor=hostname)
 
     def unregister_conductor(self, hostname):
-        session = get_session()
-        with session.begin():
-            query = (model_query(models.Conductor, session=session)
+        with _session_for_write():
+            query = (model_query(models.Conductor)
                      .filter_by(hostname=hostname, online=True))
             count = query.update({'online': False})
             if count == 0:
                 raise exception.ConductorNotFound(conductor=hostname)
 
     def touch_conductor(self, hostname):
-        session = get_session()
-        with session.begin():
-            query = (model_query(models.Conductor, session=session)
+        with _session_for_write():
+            query = (model_query(models.Conductor)
                      .filter_by(hostname=hostname))
             # since we're not changing any other field, manually set updated_at
             # and since we're heartbeating, make sure that online=True
@@ -575,10 +565,9 @@ class Connection(api.Connection):
                 raise exception.ConductorNotFound(conductor=hostname)
 
     def clear_node_reservations_for_conductor(self, hostname):
-        session = get_session()
         nodes = []
-        with session.begin():
-            query = (model_query(models.Node, session=session)
+        with _session_for_write():
+            query = (model_query(models.Node)
                      .filter_by(reservation=hostname))
             nodes = [node['uuid'] for node in query]
             query.update({'reservation': None})
