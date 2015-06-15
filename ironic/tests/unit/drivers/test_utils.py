@@ -163,3 +163,68 @@ class UtilsTestCase(db_base.DbTestCase):
                 False,
                 task.node.driver_internal_info.get('is_next_boot_persistent')
             )
+
+    def test_capabilities_to_dict(self):
+        capabilities_more_than_one_item = 'a:b,c:d'
+        capabilities_exactly_one_item = 'e:f'
+
+        # Testing empty capabilities
+        self.assertEqual(
+            {},
+            driver_utils.capabilities_to_dict('')
+        )
+        self.assertEqual(
+            {'e': 'f'},
+            driver_utils.capabilities_to_dict(capabilities_exactly_one_item)
+        )
+        self.assertEqual(
+            {'a': 'b', 'c': 'd'},
+            driver_utils.capabilities_to_dict(capabilities_more_than_one_item)
+        )
+
+    def test_capabilities_to_dict_with_only_key_or_value_fail(self):
+        capabilities_only_key_or_value = 'xpto'
+        exc = self.assertRaises(
+            exception.InvalidParameterValue,
+            driver_utils.capabilities_to_dict,
+            capabilities_only_key_or_value
+        )
+        self.assertEqual('Malformed capabilities value: xpto', str(exc))
+
+    def test_capabilities_to_dict_with_invalid_character_fail(self):
+        for test_capabilities in ('xpto:a,', ',xpto:a'):
+            exc = self.assertRaises(
+                exception.InvalidParameterValue,
+                driver_utils.capabilities_to_dict,
+                test_capabilities
+            )
+            self.assertEqual('Malformed capabilities value: ', str(exc))
+
+    def test_capabilities_to_dict_with_incorrect_format_fail(self):
+        for test_capabilities in (':xpto,', 'xpto:,', ':,'):
+            exc = self.assertRaises(
+                exception.InvalidParameterValue,
+                driver_utils.capabilities_to_dict,
+                test_capabilities
+            )
+            self.assertEqual('Malformed capabilities value: ', str(exc))
+
+    def test_capabilities_not_string(self):
+        capabilities_already_dict = {'a': 'b'}
+        capabilities_something_else = 42
+
+        exc = self.assertRaises(
+            exception.InvalidParameterValue,
+            driver_utils.capabilities_to_dict,
+            capabilities_already_dict
+        )
+        self.assertEqual("Value of 'capabilities' must be string. Got " +
+                         str(dict), str(exc))
+
+        exc = self.assertRaises(
+            exception.InvalidParameterValue,
+            driver_utils.capabilities_to_dict,
+            capabilities_something_else
+        )
+        self.assertEqual("Value of 'capabilities' must be string. Got " +
+                         str(int), str(exc))

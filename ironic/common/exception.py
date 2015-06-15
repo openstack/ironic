@@ -605,3 +605,7 @@ class ImageUploadFailed(IronicException):
 
 class CIMCException(IronicException):
     _msg_fmt = _("Cisco IMC exception occurred for node %(node)s: %(error)s")
+
+
+class OneViewError(IronicException):
+    _msg_fmt = _("OneView exception occurred. Error: %(error)s")

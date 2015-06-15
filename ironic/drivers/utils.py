@@ -13,6 +13,7 @@
 # under the License.
 
 from oslo_log import log as logging
+import six
 
 from ironic.common import exception
 from ironic.common.i18n import _
@@ -216,3 +217,28 @@ def force_persistent_boot(task, device, persistent):
 
     node.driver_internal_info = driver_internal_info
     node.save()
+
+
+def capabilities_to_dict(capabilities):
+    """Parse the capabilities string into a dictionary
+
+    :param capabilities: the capabilities of the node as a formatted string.
+    :raises: InvalidParameterValue if capabilities is not an string or has a
+             malformed value
+    """
+    capabilities_dict = {}
+    if capabilities:
+        if not isinstance(capabilities, six.string_types):
+            raise exception.InvalidParameterValue(
+                _("Value of 'capabilities' must be string. Got %s")
+                % type(capabilities))
+        try:
+            for capability in capabilities.split(','):
+                key, value = capability.split(':')
+                capabilities_dict[key] = value
+        except ValueError:
+            raise exception.InvalidParameterValue(
+                _("Malformed capabilities value: %s") % capability
+            )
+
+    return capabilities_dict

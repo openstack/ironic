@@ -27,6 +27,7 @@ Current list of mocked libraries:
 - proliantutils
 - pysnmp
 - scciclient
+- oneview_client
 """
 
 import sys
@@ -97,6 +98,30 @@ if not proliantutils:
     proliantutils.exception.IloCommandNotSupportedError = command_exception
     if 'ironic.drivers.ilo' in sys.modules:
         six.moves.reload_module(sys.modules['ironic.drivers.ilo'])
+
+
+oneview_client = importutils.try_import('oneview_client')
+if not oneview_client:
+    oneview_client = mock.MagicMock(spec_set=mock_specs.ONEVIEWCLIENT_SPEC)
+    sys.modules['oneview_client'] = oneview_client
+    sys.modules['oneview_client.client'] = oneview_client.client
+    sys.modules['oneview_client.client.Client'] = mock.MagicMock(
+        spec_set=mock_specs.ONEVIEWCLIENT_CLIENT_CLS_SPEC
+    )
+    states = mock.MagicMock(
+        spec_set=mock_specs.ONEVIEWCLIENT_STATES_SPEC,
+        ONEVIEW_POWER_OFF='Off',
+        ONEVIEW_POWERING_OFF='PoweringOff',
+        ONEVIEW_POWER_ON='On',
+        ONEVIEW_POWERING_ON='PoweringOn',
+        ONEVIEW_RESETTING='Resetting',
+        ONEVIEW_ERROR='error')
+    sys.modules['oneview_client.states'] = states
+    sys.modules['oneview_client.exceptions'] = oneview_client.exceptions
+    oneview_client.exceptions.OneViewException = type('OneViewException',
+                                                      (Exception,), {})
+    if 'ironic.drivers.oneview' in sys.modules:
+        six.moves.reload_module(sys.modules['ironic.drivers.modules.oneview'])
 
 
 # attempt to load the external 'pywsman' library, which is required by

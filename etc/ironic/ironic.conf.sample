@@ -1413,6 +1413,33 @@
 #cleaning_network_uuid=<None>
 
 
+[oneview]
+
+#
+# Options defined in ironic.drivers.modules.oneview.common
+#
+
+# URL where OneView is available (string value)
+#manager_url=<None>
+
+# OneView username to be used (string value)
+#username=<None>
+
+# OneView password to be used (string value)
+#password=<None>
+
+# Option to allow insecure connection with OneView (boolean
+# value)
+#allow_insecure_connections=false
+
+# Path to CA certificate (string value)
+#tls_cacert_file=<None>
+
+# Max connection retries to check changes on OneView (integer
+# value)
+#max_polling_attempts=20
+
+
 [oslo_concurrency]
 
 #
