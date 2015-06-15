@@ -142,3 +142,9 @@ class AgentClient(object):
                              method='clean.execute_clean_step',
                              params=params,
                              wait=False)
+
+    def power_off(self, node):
+        """Soft powers off the bare metal node by shutting down ramdisk OS."""
+        return self._command(node=node,
+                             method='standby.power_off',
+                             params={})

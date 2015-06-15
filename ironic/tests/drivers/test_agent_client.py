@@ -210,3 +210,9 @@ class TestAgentClient(base.TestCase):
         self.client._command.assert_called_once_with(
             node=self.node, method='clean.execute_clean_step',
             params=expected_params, wait=False)
+
+    def test_power_off(self):
+        self.client._command = mock.MagicMock(spec_set=[])
+        self.client.power_off(self.node)
+        self.client._command.assert_called_once_with(
+            node=self.node, method='standby.power_off', params={})
