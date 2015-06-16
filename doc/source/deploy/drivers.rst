@@ -170,3 +170,12 @@ Cisco UCS Driver
   :maxdepth: 1
 
   ../drivers/ucs
+
+
+Wake-On-Lan driver
+------------------
+
+.. toctree::
+  :maxdepth: 1
+
+  ../drivers/wol
