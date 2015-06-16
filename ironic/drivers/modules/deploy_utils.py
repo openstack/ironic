@@ -826,11 +826,16 @@ def set_failed_state(task, msg):
 
     :param task: a TaskManager instance containing the node to act on.
     :param msg: the message to set in last_error of the node.
-    :raises: InvalidState if the event is not allowed by the associated
-             state machine.
     """
-    task.process_event('fail')
     node = task.node
+    try:
+        task.process_event('fail')
+    except exception.InvalidState:
+        msg2 = (_LE('Internal error. Node %(node)s in provision state '
+                    '"%(state)s" could not transition to a failed state.')
+                % {'node': node.uuid, 'state': node.provision_state})
+        LOG.exception(msg2)
+
     try:
         manager_utils.node_power_action(task, states.POWER_OFF)
     except Exception:
@@ -839,11 +844,11 @@ def set_failed_state(task, msg):
                     'should be removed from Ironic or put in maintenance '
                     'mode until the problem is resolved.') % node.uuid)
         LOG.exception(msg2)
-    finally:
-        # NOTE(deva): node_power_action() erases node.last_error
-        #             so we need to set it again here.
-        node.last_error = msg
-        node.save()
+
+    # NOTE(deva): node_power_action() erases node.last_error
+    #             so we need to set it here.
+    node.last_error = msg
+    node.save()
 
 
 def get_single_nic_with_vif_port_id(task):

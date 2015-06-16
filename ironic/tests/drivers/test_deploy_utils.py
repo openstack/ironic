@@ -1033,6 +1033,40 @@ class OtherFunctionTestCase(db_base.DbTestCase):
         self.assertRaises(exception.InvalidParameterValue,
                           utils.parse_root_device_hints, self.node)
 
+    @mock.patch.object(utils, 'LOG', autospec=True)
+    @mock.patch.object(manager_utils, 'node_power_action', autospec=True)
+    @mock.patch.object(task_manager.TaskManager, 'process_event',
+                       autospec=True)
+    def _test_set_failed_state(self, mock_event, mock_power, mock_log,
+                               event_value=None, power_value=None,
+                               log_calls=None):
+        err_msg = 'some failure'
+        mock_event.side_effect = event_value
+        mock_power.side_effect = power_value
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            utils.set_failed_state(task, err_msg)
+            mock_event.assert_called_once_with(task, 'fail')
+            mock_power.assert_called_once_with(task, states.POWER_OFF)
+            self.assertEqual(err_msg, task.node.last_error)
+            if log_calls:
+                mock_log.exception.assert_has_calls(log_calls)
+            else:
+                self.assertFalse(mock_log.called)
+
+    def test_set_failed_state(self):
+        exc_state = exception.InvalidState('invalid state')
+        exc_param = exception.InvalidParameterValue('invalid parameter')
+        mock_call = mock.call(mock.ANY)
+        self._test_set_failed_state()
+        self._test_set_failed_state(event_value=exc_state,
+                                    log_calls=[mock_call])
+        self._test_set_failed_state(power_value=exc_param,
+                                    log_calls=[mock_call])
+        self._test_set_failed_state(event_value=exc_state,
+                                    power_value=exc_param,
+                                    log_calls=[mock_call, mock_call])
+
 
 @mock.patch.object(disk_partitioner.DiskPartitioner, 'commit', lambda _: None)
 class WorkOnDiskTestCase(tests_base.TestCase):
