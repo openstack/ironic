@@ -2022,6 +2022,7 @@ class MiscTestCase(_ServiceSetUpMixin, _CommonMixIn, tests_db_base.DbTestCase):
                     'power': {'result': True},
                     'inspect': {'result': True},
                     'management': {'result': True},
+                    'boot': {'result': True},
                     'deploy': {'result': True}}
         self.assertEqual(expected, ret)
         mock_iwdi.assert_called_once_with(self.context, node.instance_info)

@@ -88,6 +88,14 @@ class BaseDriver(object):
     """
     standard_interfaces.append('management')
 
+    boot = None
+    """`Standard` attribute for boot related features.
+
+    A reference to an instance of :class:BootInterface.
+    May be None, if unsupported by a driver.
+    """
+    standard_interfaces.append('boot')
+
     vendor = None
     """Attribute for accessing any vendor-specific extensions.
 
@@ -322,6 +330,86 @@ class DeployInterface(BaseInterface):
         :param task: a TaskManager instance containing the node to act on.
         """
         pass
+
+
+@six.add_metaclass(abc.ABCMeta)
+class BootInterface(object):
+    """Interface for boot-related actions."""
+
+    @abc.abstractmethod
+    def get_properties(self):
+        """Return the properties of the interface.
+
+        :returns: dictionary of <property name>:<property description> entries.
+        """
+
+    @abc.abstractmethod
+    def validate(self, task):
+        """Validate the driver-specific info for booting.
+
+        This method validates the driver-specific info for booting the
+        ramdisk and instance on the node.  If invalid, raises an
+        exception; otherwise returns None.
+
+        :param task: a task from TaskManager.
+        :returns: None
+        :raises: InvalidParameterValue
+        :raises: MissingParameterValue
+        """
+
+    @abc.abstractmethod
+    def prepare_ramdisk(self, task, ramdisk_params):
+        """Prepares the boot of Ironic ramdisk.
+
+        This method prepares the boot of the deploy ramdisk after
+        reading relevant information from the node's database.
+
+        :param task: a task from TaskManager.
+        :param ramdisk_params: the options to be passed to the ironic ramdisk.
+            Different implementations might want to boot the ramdisk in
+            different ways by passing parameters to them.  For example,
+            * When DIB ramdisk is booted to deploy a node, it takes the
+              parameters iscsi_target_iqn, deployment_id, ironic_api_url, etc.
+            * When Agent ramdisk is booted to deploy a node, it takes the
+              parameters ipa-driver-name, ipa-api-url, root_device, etc.
+            Other implementations can make use of ramdisk_params to pass such
+            information.  Different implementations of boot interface will
+            have different ways of passing parameters to the ramdisk.
+        :returns: None
+        """
+
+    @abc.abstractmethod
+    def clean_up_ramdisk(self, task):
+        """Cleans up the boot of ironic ramdisk.
+
+        This method cleans up the environment that was setup for booting the
+        deploy ramdisk.
+
+        :param task: a task from TaskManager.
+        :returns: None
+        """
+
+    @abc.abstractmethod
+    def prepare_instance(self, task):
+        """Prepares the boot of instance.
+
+        This method prepares the boot of the instance after reading
+        relevant information from the node's database.
+
+        :param task: a task from TaskManager.
+        :returns: None
+        """
+
+    @abc.abstractmethod
+    def clean_up_instance(self, task):
+        """Cleans up the boot of instance.
+
+        This method cleans up the environment that was setup for booting
+        the instance.
+
+        :param task: a task from TaskManager.
+        :returns: None
+        """
 
 
 @six.add_metaclass(abc.ABCMeta)
