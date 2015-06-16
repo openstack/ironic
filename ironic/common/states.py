@@ -65,6 +65,15 @@ This state is used with power_state to represent a lack of knowledge of
 power state, and in target_*_state fields when there is no target.
 """
 
+ENROLL = 'enroll'
+""" Node is enrolled.
+
+This state indicates that Ironic is aware of a node, but is not managing it.
+"""
+
+VERIFYING = 'verifying'
+""" Node power management credentials are being verified. """
+
 MANAGEABLE = 'manageable'
 """ Node is in a manageable state.
 
@@ -190,10 +199,14 @@ watchers['on_enter'] = on_enter
 machine = fsm.FSM()
 
 # Add stable states
+machine.add_state(ENROLL, stable=True, **watchers)
 machine.add_state(MANAGEABLE, stable=True, **watchers)
 machine.add_state(AVAILABLE, stable=True, **watchers)
 machine.add_state(ACTIVE, stable=True, **watchers)
 machine.add_state(ERROR, stable=True, **watchers)
+
+# Add verifying state
+machine.add_state(VERIFYING, target=MANAGEABLE, **watchers)
 
 # Add deploy* states
 # NOTE(deva): Juno shows a target_provision_state of DEPLOYDONE
@@ -296,3 +309,12 @@ machine.add_transition(INSPECTFAIL, MANAGEABLE, 'manage')
 
 # Reinitiate the inspect after inspectfail.
 machine.add_transition(INSPECTFAIL, INSPECTING, 'inspect')
+
+# Start power credentials verification
+machine.add_transition(ENROLL, VERIFYING, 'manage')
+
+# Verification can succeed
+machine.add_transition(VERIFYING, MANAGEABLE, 'done')
+
+# Verification can fail with setting last_error and rolling back to ENROLL
+machine.add_transition(VERIFYING, ENROLL, 'fail')
