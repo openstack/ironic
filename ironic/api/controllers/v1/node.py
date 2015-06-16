@@ -1018,10 +1018,12 @@ class NodesController(rest.RestController):
 
         # Check if node is transitioning state, although nodes in some states
         # can be updated.
-        if (rpc_node.provision_state == ir_states.CLEANING and
+        if ((rpc_node.maintenance or
+                rpc_node.provision_state == ir_states.CLEANING) and
                 patch == [{'op': 'remove', 'path': '/instance_uuid'}]):
             # Allow node.instance_uuid removal during cleaning, but not other
-            # operations.
+            # operations. Also allow it during maintenance, to break
+            # association with Nova in case of serious problems.
             # TODO(JoshNang) remove node.instance_uuid when removing
             # instance_info and stop removing node.instance_uuid in the Nova
             # Ironic driver. Bug: 1436568

@@ -936,6 +936,17 @@ class TestPatch(test_api_base.FunctionalTest):
         self.assertEqual(409, response.status_code)
         self.assertTrue(response.json['error_message'])
 
+    def test_update_allowed_in_maintenance(self):
+        node = obj_utils.create_test_node(self.context,
+                                          uuid=uuidutils.generate_uuid(),
+                                          target_power_state=states.POWER_OFF,
+                                          maintenance=True)
+        self.mock_update_node.return_value = node
+        response = self.patch_json('/nodes/%s' % node.uuid,
+                                   [{'path': '/instance_uuid',
+                                     'op': 'remove'}])
+        self.assertEqual(200, response.status_code)
+
     def test_add_state_in_deployfail(self):
         node = obj_utils.create_test_node(self.context,
                                           uuid=uuidutils.generate_uuid(),
