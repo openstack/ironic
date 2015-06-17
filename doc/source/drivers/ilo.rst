@@ -544,7 +544,7 @@ Nodes configured for iLO driver should have the ``driver`` property set to
 For example, you could run a similar command like below to enroll the Proliant
 node::
 
-  ironic node-create -d pxe_ilo ilo_address=<ilo-ip-address> -i ilo_username=<ilo-username> -i ilo_password=<ilo-password> -i deploy_kernel=<glance-uuid-of-pxe-deploy-kernel> deploy_ramdisk=<glance-uuid-of-deploy-ramdisk>
+  ironic node-create -d pxe_ilo -i ilo_address=<ilo-ip-address> -i ilo_username=<ilo-username> -i ilo_password=<ilo-password> -i deploy_kernel=<glance-uuid-of-pxe-deploy-kernel> -i deploy_ramdisk=<glance-uuid-of-deploy-ramdisk>
 
 Boot modes
 ~~~~~~~~~~
