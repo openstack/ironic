@@ -43,7 +43,6 @@ from ironic.drivers.modules.ilo import common as ilo_common
 from ironic.drivers.modules import ipmitool
 from ironic.drivers.modules import iscsi_deploy
 from ironic.drivers.modules import pxe
-from ironic.drivers import utils as driver_utils
 
 LOG = logging.getLogger(__name__)
 
@@ -392,9 +391,7 @@ class IloVirtualMediaIscsiDeploy(base.DeployInterface):
         else:
             props = ['kernel', 'ramdisk']
         iscsi_deploy.validate_image_properties(task.context, d_info, props)
-        driver_utils.validate_boot_mode_capability(node)
-        driver_utils.validate_boot_option_capability(node)
-        driver_utils.validate_secure_boot_capability(node)
+        deploy_utils.validate_capabilities(node)
 
     @task_manager.require_exclusive_lock
     def deploy(self, task):
@@ -490,8 +487,7 @@ class IloVirtualMediaAgentDeploy(base.DeployInterface):
         :raises: MissingParameterValue if some parameters are missing.
         """
 
-        driver_utils.validate_boot_mode_capability(task.node)
-        driver_utils.validate_secure_boot_capability(task.node)
+        deploy_utils.validate_capabilities(task.node)
         _parse_driver_info(task.node)
 
     @task_manager.require_exclusive_lock

@@ -43,7 +43,6 @@ from ironic.drivers.modules import agent_base_vendor
 from ironic.drivers.modules import deploy_utils
 from ironic.drivers.modules import image_cache
 from ironic.drivers.modules import iscsi_deploy
-from ironic.drivers import utils as driver_utils
 from ironic.openstack.common import fileutils
 
 
@@ -303,8 +302,7 @@ class PXEDeploy(base.DeployInterface):
         node = task.node
 
         # Check the boot_mode and boot_option capabilities values.
-        driver_utils.validate_boot_mode_capability(node)
-        driver_utils.validate_boot_option_capability(node)
+        deploy_utils.validate_capabilities(node)
 
         boot_mode = deploy_utils.get_boot_mode_for_deploy(task.node)
 
@@ -503,7 +501,7 @@ class VendorPassthru(agent_base_vendor.BaseAgentVendor):
         :raises: InvalidParameterValue if any parameters is invalid.
         """
         if method == 'pass_deploy_info':
-            driver_utils.validate_boot_option_capability(task.node)
+            deploy_utils.validate_capabilities(task.node)
             iscsi_deploy.get_deploy_info(task.node, **kwargs)
         elif method == 'pass_bootloader_install_info':
             iscsi_deploy.validate_pass_bootloader_info_input(task, kwargs)

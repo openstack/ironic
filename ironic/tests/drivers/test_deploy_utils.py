@@ -1559,6 +1559,42 @@ class ParseInstanceInfoCapabilitiesTestCase(tests_base.TestCase):
         result = utils.get_boot_mode_for_deploy(self.node)
         self.assertEqual('bios', result)
 
+    def test_validate_boot_mode_capability(self):
+        prop = {'capabilities': 'boot_mode:uefi,cap2:value2'}
+        self.node.properties = prop
+
+        result = utils.validate_capabilities(self.node)
+        self.assertIsNone(result)
+
+    def test_validate_boot_mode_capability_with_exc(self):
+        prop = {'capabilities': 'boot_mode:UEFI,cap2:value2'}
+        self.node.properties = prop
+
+        self.assertRaises(exception.InvalidParameterValue,
+                          utils.validate_capabilities, self.node)
+
+    def test_validate_boot_mode_capability_instance_info(self):
+        inst_info = {'capabilities': {"boot_mode": "uefi", "cap2": "value2"}}
+        self.node.instance_info = inst_info
+
+        result = utils.validate_capabilities(self.node)
+        self.assertIsNone(result)
+
+    def test_validate_boot_mode_capability_instance_info_with_exc(self):
+        inst_info = {'capabilities': {"boot_mode": "UEFI", "cap2": "value2"}}
+        self.node.instance_info = inst_info
+
+        self.assertRaises(exception.InvalidParameterValue,
+                          utils.validate_capabilities, self.node)
+
+    def test_all_supported_capabilities(self):
+        self.assertEqual(('local', 'netboot'),
+                         utils.SUPPORTED_CAPABILITIES['boot_option'])
+        self.assertEqual(('bios', 'uefi'),
+                         utils.SUPPORTED_CAPABILITIES['boot_mode'])
+        self.assertEqual(('true', 'false'),
+                         utils.SUPPORTED_CAPABILITIES['secure_boot'])
+
 
 class TrySetBootDeviceTestCase(db_base.DbTestCase):
 
