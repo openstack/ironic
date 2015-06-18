@@ -23,12 +23,12 @@ work. The goal here is to generalise the areas where n-c talking to a clustered
 hypervisor has issues, and long term fold them into the main ComputeManager.
 """
 
-from oslo_concurrency import lockutils
 from nova.compute import manager
 import nova.context
+from oslo_concurrency import lockutils
 
 
-CCM_SEMAPHORE='clustered_compute_manager'
+CCM_SEMAPHORE = 'clustered_compute_manager'
 
 
 class ClusteredComputeManager(manager.ComputeManager):
@@ -48,22 +48,24 @@ class ClusteredComputeManager(manager.ComputeManager):
         self.init_virt_events()
 
         # try:
-            # evacuation is moot for a clustered hypervisor
-            # # checking that instance was not already evacuated to other host
-            # self._destroy_evacuated_instances(context)
-            # Don't run _init_instance until we solve the partitioning problem
-            # - with N n-cpu's all claiming the same hostname, running
-            # _init_instance here would lead to race conditions where each runs
-            # _init_instance concurrently.
-            # for instance in instances:
-            #     self._init_instance(context, instance)
+        #     evacuation is moot for a clustered hypervisor
+        #     # checking that instance was not already evacuated to other host
+        #     self._destroy_evacuated_instances(context)
+        #     Don't run _init_instance until we solve the partitioning problem
+        #     - with N n-cpu's all claiming the same hostname, running
+        #     _init_instance here would lead to race conditions where each runs
+        #     _init_instance concurrently.
+        #     for instance in instances:
+        #         self._init_instance(context, instance)
         # finally:
-            # defer_iptables_apply is moot for clusters - no local iptables
-            # if CONF.defer_iptables_apply:
-            #     self.driver.filter_defer_apply_off()
+        #     defer_iptables_apply is moot for clusters - no local iptables
+        #     if CONF.defer_iptables_apply:
+        #         self.driver.filter_defer_apply_off()
 
     def pre_start_hook(self):
-        """After the service is initialized, but before we fully bring
+        """Update our available resources
+
+        After the service is initialized, but before we fully bring
         the service up by listening on RPC queues, make sure to update
         our available resources (and indirectly our available nodes).
         """
@@ -80,7 +82,9 @@ class ClusteredComputeManager(manager.ComputeManager):
 
     @lockutils.synchronized(CCM_SEMAPHORE, 'ironic-')
     def _update_resources(self):
-        """Updates resources while protecting against a race on
+        """Update our resources
+
+        Updates the resources while protecting against a race on
         self._resource_tracker_dict.
         """
         self.update_available_resource(nova.context.get_admin_context())
