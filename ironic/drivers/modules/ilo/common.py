@@ -16,12 +16,15 @@
 Common functionalities shared between different iLO modules.
 """
 
+import os
+import shutil
 import tempfile
 
 from oslo_config import cfg
 from oslo_log import log as logging
 from oslo_utils import importutils
 import six.moves.urllib.parse as urlparse
+from six.moves.urllib.parse import urljoin
 
 from ironic.common import exception
 from ironic.common.glance_service import service_utils
@@ -30,6 +33,7 @@ from ironic.common.i18n import _LE
 from ironic.common.i18n import _LI
 from ironic.common import images
 from ironic.common import swift
+from ironic.common import utils
 from ironic.drivers.modules import deploy_utils
 
 ilo_client = importutils.try_import('proliantutils.ilo.client')
@@ -54,6 +58,15 @@ opts = [
                default=900,
                help=_('Amount of time in seconds for Swift objects to '
                       'auto-expire.')),
+    cfg.BoolOpt('use_web_server_for_images',
+                default=False,
+                help=_('Set this to True to use http web server to host '
+                       'floppy images and generated boot ISO. This '
+                       'requires http_root and http_url to be configured '
+                       'in the [deploy] section of the config file. If this '
+                       'is set to False, then Ironic will use Swift '
+                       'to host the floppy images and generated '
+                       'boot_iso.')),
 ]
 
 CONF = cfg.CONF
@@ -87,6 +100,36 @@ DEFAULT_BOOT_MODE = 'LEGACY'
 BOOT_MODE_GENERIC_TO_ILO = {'bios': 'legacy', 'uefi': 'uefi'}
 BOOT_MODE_ILO_TO_GENERIC = dict(
     (v, k) for (k, v) in BOOT_MODE_GENERIC_TO_ILO.items())
+
+
+def copy_image_to_web_server(source_file_path, destination):
+    """Copies the given image to the http web server.
+
+    This method copies the given image to the http_root location.
+    It enables read-write access to the image else the deploy fails
+    as the image file at the web_server url is inaccessible.
+
+    :param source_file_path: The absolute path of the image file
+                             which needs to be copied to the
+                             web server root.
+    :param destination: The name of the file that
+                        will contain the copied image.
+    :raises: ImageUploadFailed exception if copying the source
+             file to the web server fails.
+    :returns: image url after the source image is uploaded.
+
+    """
+
+    image_url = urljoin(CONF.deploy.http_url, destination)
+    image_path = os.path.join(CONF.deploy.http_root, destination)
+    try:
+        shutil.copyfile(source_file_path, image_path)
+    except IOError as exc:
+        raise exception.ImageUploadFailed(image_name=destination,
+                                          web_server=CONF.deploy.http_url,
+                                          reason=exc)
+    os.chmod(image_path, 0o644)
+    return image_url
 
 
 def parse_driver_info(node):
@@ -228,10 +271,11 @@ def _prepare_floppy_image(task, params):
 
     This method prepares a temporary vfat filesystem image. Then it adds
     a file into the image which contains the parameters to be passed to
-    the ramdisk. After adding the parameters, it then uploads the file to Swift
-    in 'swift_ilo_container', setting it to auto-expire after
-    'swift_object_expiry_timeout' seconds. Then it returns the temp url for the
-    Swift object.
+    the ramdisk. After adding the parameters, it then uploads the file either
+    to Swift in 'swift_ilo_container', setting it to auto-expire after
+    'swift_object_expiry_timeout' seconds or in web server. Then it returns
+    the temp url for the Swift object or the http url for the uploaded floppy
+    image depending upon value of CONF.ilo.use_web_server_for_images.
 
     :param task: a TaskManager instance containing the node to act on.
     :param params: a dictionary containing 'parameter name'->'value' mapping
@@ -245,22 +289,38 @@ def _prepare_floppy_image(task, params):
 
         vfat_image_tmpfile = vfat_image_tmpfile_obj.name
         images.create_vfat_image(vfat_image_tmpfile, parameters=params)
-
-        container = CONF.ilo.swift_ilo_container
         object_name = _get_floppy_image_name(task.node)
-        timeout = CONF.ilo.swift_object_expiry_timeout
+        if CONF.ilo.use_web_server_for_images:
+            image_url = copy_image_to_web_server(vfat_image_tmpfile,
+                                                 object_name)
+            return image_url
+        else:
+            container = CONF.ilo.swift_ilo_container
+            timeout = CONF.ilo.swift_object_expiry_timeout
 
-        object_headers = {'X-Delete-After': timeout}
-        swift_api = swift.SwiftAPI()
-        swift_api.create_object(container, object_name,
-                                vfat_image_tmpfile,
-                                object_headers=object_headers)
-        temp_url = swift_api.get_temp_url(container, object_name, timeout)
+            object_headers = {'X-Delete-After': timeout}
+            swift_api = swift.SwiftAPI()
+            swift_api.create_object(container, object_name,
+                                    vfat_image_tmpfile,
+                                    object_headers=object_headers)
+            temp_url = swift_api.get_temp_url(container, object_name, timeout)
 
-        LOG.debug("Uploaded floppy image %(object_name)s to %(container)s "
-                  "for deployment.",
-                  {'object_name': object_name, 'container': container})
-        return temp_url
+            LOG.debug("Uploaded floppy image %(object_name)s to %(container)s "
+                      "for deployment.",
+                      {'object_name': object_name, 'container': container})
+            return temp_url
+
+
+def destroy_floppy_image_from_web_server(node):
+    """Removes the temporary floppy image.
+
+    It removes the floppy image created for deploy.
+    :param node: an ironic node object.
+    """
+
+    object_name = _get_floppy_image_name(node)
+    image_path = os.path.join(CONF.deploy.http_root, object_name)
+    utils.unlink_without_raise(image_path)
 
 
 def attach_vmedia(node, device, url):
@@ -394,7 +454,6 @@ def setup_vmedia_for_boot(task, boot_iso, parameters=None):
     """
     LOG.info(_LI("Setting up node %s to boot from virtual media"),
              task.node.uuid)
-
     if parameters:
         floppy_image_temp_url = _prepare_floppy_image(task, parameters)
         attach_vmedia(task.node, 'FLOPPY', floppy_image_temp_url)
@@ -411,7 +470,6 @@ def setup_vmedia_for_boot(task, boot_iso, parameters=None):
     elif service_utils.is_glance_image(boot_iso):
         boot_iso_url = (
             images.get_temp_url_for_glance_image(task.context, boot_iso))
-
     attach_vmedia(task.node, 'CDROM', boot_iso_url or boot_iso)
 
 
@@ -443,23 +501,26 @@ def cleanup_vmedia_boot(task):
     """Cleans a node after a virtual media boot.
 
     This method cleans up a node after a virtual media boot. It deletes the
-    floppy image if it exists in CONF.ilo.swift_ilo_container. It also
-    ejects both virtual media cdrom and virtual media floppy.
+    floppy image if it exists in CONF.ilo.swift_ilo_container or web server.
+    It also ejects both virtual media cdrom and virtual media floppy.
 
     :param task: a TaskManager instance containing the node to act on.
     """
     LOG.debug("Cleaning up node %s after virtual media boot", task.node.uuid)
 
-    container = CONF.ilo.swift_ilo_container
-    object_name = _get_floppy_image_name(task.node)
-    try:
-        swift_api = swift.SwiftAPI()
-        swift_api.delete_object(container, object_name)
-    except exception.SwiftOperationError as e:
-        LOG.exception(_LE("Error while deleting %(object_name)s from "
-                          "%(container)s. Error: %(error)s"),
-                      {'object_name': object_name, 'container': container,
-                       'error': e})
+    if not CONF.ilo.use_web_server_for_images:
+        container = CONF.ilo.swift_ilo_container
+        object_name = _get_floppy_image_name(task.node)
+        try:
+            swift_api = swift.SwiftAPI()
+            swift_api.delete_object(container, object_name)
+        except exception.SwiftOperationError as e:
+            LOG.exception(_LE("Error while deleting %(object_name)s from "
+                              "%(container)s. Error: %(error)s"),
+                          {'object_name': object_name, 'container': container,
+                           'error': e})
+    else:
+        destroy_floppy_image_from_web_server(task.node)
     eject_vmedia_devices(task)
 
 

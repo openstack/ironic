@@ -15,11 +15,13 @@
 iLO Deploy Driver(s) and supporting methods.
 """
 
+import os
 import tempfile
 
 from oslo_config import cfg
 from oslo_log import log as logging
 from oslo_utils import excutils
+import six.moves.urllib.parse as urlparse
 
 from ironic.common import boot_devices
 from ironic.common import dhcp_factory
@@ -33,6 +35,7 @@ from ironic.common import image_service
 from ironic.common import images
 from ironic.common import states
 from ironic.common import swift
+from ironic.common import utils
 from ironic.conductor import task_manager
 from ironic.conductor import utils as manager_utils
 from ironic.drivers import base
@@ -122,6 +125,7 @@ def _get_boot_iso(task, root_uuid):
                                   "instance_info['ilo_boot_iso']. Either %s "
                                   "is not a valid HTTP(S) URL or is "
                                   "not reachable."), boot_iso)
+
         return task.node.instance_info['ilo_boot_iso']
 
     # Option 2 - Check if user has provided a boot_iso in Glance. If boot_iso
@@ -156,45 +160,59 @@ def _get_boot_iso(task, root_uuid):
     # ISO.  Such a synchronisation mechanism doesn't exist in ironic as of now.
 
     # Option 3 - Create boot_iso from kernel/ramdisk, upload to Swift
-    # and provide its name.
+    # or web server and provide its name.
     deploy_iso_uuid = deploy_info['ilo_deploy_iso']
     boot_mode = deploy_utils.get_boot_mode_for_deploy(task.node)
     boot_iso_object_name = _get_boot_iso_object_name(task.node)
     kernel_params = CONF.pxe.pxe_append_params
-    container = CONF.ilo.swift_ilo_container
-
     with tempfile.NamedTemporaryFile(dir=CONF.tempdir) as fileobj:
         boot_iso_tmp_file = fileobj.name
         images.create_boot_iso(task.context, boot_iso_tmp_file,
                                kernel_href, ramdisk_href,
                                deploy_iso_uuid, root_uuid,
                                kernel_params, boot_mode)
-        swift_api = swift.SwiftAPI()
-        swift_api.create_object(container, boot_iso_object_name,
-                                boot_iso_tmp_file)
 
-    LOG.debug("Created boot_iso %s in Swift", boot_iso_object_name)
+        if CONF.ilo.use_web_server_for_images:
+            boot_iso_url = (
+                ilo_common.copy_image_to_web_server(boot_iso_tmp_file,
+                                                    boot_iso_object_name))
+            LOG.debug("Created boot_iso %(boot_iso)s for node %(node)s",
+                      {'boot_iso': boot_iso_url, 'node': task.node.uuid})
+            return boot_iso_url
+        else:
+            container = CONF.ilo.swift_ilo_container
+            swift_api = swift.SwiftAPI()
+            swift_api.create_object(container, boot_iso_object_name,
+                                    boot_iso_tmp_file)
 
-    return 'swift:%s' % boot_iso_object_name
+            LOG.debug("Created boot_iso %s in Swift", boot_iso_object_name)
+            return 'swift:%s' % boot_iso_object_name
 
 
 def _clean_up_boot_iso_for_instance(node):
-    """Deletes the boot ISO if it was created in Swift for the instance.
+    """Deletes the boot ISO if it was created for the instance.
 
     :param node: an ironic node object.
     """
     ilo_boot_iso = node.instance_info.get('ilo_boot_iso')
-    if not (ilo_boot_iso and ilo_boot_iso.startswith('swift')):
+    if not ilo_boot_iso:
         return
-    swift_api = swift.SwiftAPI()
-    container = CONF.ilo.swift_ilo_container
-    boot_iso_object_name = _get_boot_iso_object_name(node)
-    try:
-        swift_api.delete_object(container, boot_iso_object_name)
-    except exception.SwiftOperationError as e:
-        LOG.exception(_LE("Failed to clean up boot ISO for %(node)s."
-                          "Error: %(error)s."),
-                      {'node': node.uuid, 'error': e})
+    if ilo_boot_iso.startswith('swift'):
+        swift_api = swift.SwiftAPI()
+        container = CONF.ilo.swift_ilo_container
+        boot_iso_object_name = _get_boot_iso_object_name(node)
+        try:
+            swift_api.delete_object(container, boot_iso_object_name)
+        except exception.SwiftOperationError as e:
+            LOG.exception(_LE("Failed to clean up boot ISO for node "
+                              "%(node)s. Error: %(error)s."),
+                          {'node': node.uuid, 'error': e})
+    elif CONF.ilo.use_web_server_for_images:
+        result = urlparse.urlparse(ilo_boot_iso)
+        ilo_boot_iso_name = os.path.basename(result.path)
+        boot_iso_path = os.path.join(
+            CONF.deploy.http_root, ilo_boot_iso_name)
+        utils.unlink_without_raise(boot_iso_path)
 
 
 def _parse_driver_info(node):
@@ -491,7 +509,10 @@ class IloVirtualMediaIscsiDeploy(base.DeployInterface):
         :param task: a TaskManager instance containing the node to act on.
         """
         _clean_up_boot_iso_for_instance(task.node)
-        iscsi_deploy.destroy_images(task.node.uuid)
+        if not CONF.ilo.use_web_server_for_images:
+            iscsi_deploy.destroy_images(task.node.uuid)
+        else:
+            ilo_common.destroy_floppy_image_from_web_server(task.node)
 
     def take_over(self, task):
         pass
@@ -965,7 +986,6 @@ class VendorPassthru(agent_base_vendor.BaseAgentVendor):
         task.process_event('resume')
         node = task.node
         LOG.debug('Continuing the deployment on node %s', node.uuid)
-
         ilo_common.cleanup_vmedia_boot(task)
 
         iwdi = node.driver_internal_info.get('is_whole_disk_image')

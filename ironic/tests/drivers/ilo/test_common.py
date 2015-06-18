@@ -15,6 +15,8 @@
 
 """Test class for common methods used by iLO modules."""
 
+import os
+import shutil
 import tempfile
 
 import mock
@@ -25,6 +27,7 @@ import six
 from ironic.common import exception
 from ironic.common import images
 from ironic.common import swift
+from ironic.common import utils
 from ironic.conductor import task_manager
 from ironic.drivers.modules.ilo import common as ilo_common
 from ironic.tests.conductor import utils as mgr_utils
@@ -214,6 +217,39 @@ class IloCommonMethodsTestCase(db_base.DbTestCase):
         swift_obj_mock.get_temp_url.assert_called_once_with(
             'ilo_cont', object_name, timeout)
         self.assertEqual('temp-url', temp_url)
+
+    @mock.patch.object(ilo_common, 'copy_image_to_web_server',
+                       spec_set=True, autospec=True)
+    @mock.patch.object(images, 'create_vfat_image', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(tempfile, 'NamedTemporaryFile', spec_set=True,
+                       autospec=True)
+    def test__prepare_floppy_image_use_webserver(self, tempfile_mock,
+                                                 fatimage_mock,
+                                                 copy_mock):
+        mock_image_file_handle = mock.MagicMock(spec=file)
+        mock_image_file_obj = mock.MagicMock(spec=file)
+        mock_image_file_obj.name = 'image-tmp-file'
+        mock_image_file_handle.__enter__.return_value = mock_image_file_obj
+
+        tempfile_mock.return_value = mock_image_file_handle
+        self.config(use_web_server_for_images=True, group='ilo')
+        deploy_args = {'arg1': 'val1', 'arg2': 'val2'}
+        CONF.deploy.http_url = "http://abc.com/httpboot"
+        CONF.deploy.http_root = "/httpboot"
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            node_uuid = task.node.uuid
+            object_name = 'image-' + node_uuid
+            http_url = CONF.deploy.http_url + '/' + object_name
+            copy_mock.return_value = "http://abc.com/httpboot/" + object_name
+            temp_url = ilo_common._prepare_floppy_image(task, deploy_args)
+
+        fatimage_mock.assert_called_once_with('image-tmp-file',
+                                              parameters=deploy_args)
+        copy_mock.assert_called_once_with('image-tmp-file', object_name)
+        self.assertEqual(http_url, temp_url)
 
     @mock.patch.object(ilo_common, 'get_ilo_object', spec_set=True,
                        autospec=True)
@@ -445,6 +481,21 @@ class IloCommonMethodsTestCase(db_base.DbTestCase):
                 'ilo_cont', 'image-node-uuid')
             eject_mock.assert_called_once_with(task)
 
+    @mock.patch.object(ilo_common, 'eject_vmedia_devices',
+                       spec_set=True, autospec=True)
+    @mock.patch.object(ilo_common, 'destroy_floppy_image_from_web_server',
+                       spec_set=True, autospec=True)
+    def test_cleanup_vmedia_boot_for_webserver(self,
+                                               destroy_image_mock,
+                                               eject_mock):
+        CONF.ilo.use_web_server_for_images = True
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            ilo_common.cleanup_vmedia_boot(task)
+            destroy_image_mock.assert_called_once_with(task.node)
+            eject_mock.assert_called_once_with(task)
+
     @mock.patch.object(ilo_common, 'get_ilo_object', spec_set=True,
                        autospec=True)
     def test_eject_vmedia_devices(self, get_ilo_object_mock):
@@ -572,3 +623,53 @@ class IloCommonMethodsTestCase(db_base.DbTestCase):
                               ilo_common.set_secure_boot_mode,
                               task, False)
         ilo_mock_object.set_secure_boot_mode.assert_called_once_with(False)
+
+    @mock.patch.object(os, 'chmod', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(shutil, 'copyfile', spec_set=True,
+                       autospec=True)
+    def test_copy_image_to_web_server(self, copy_mock,
+                                      chmod_mock):
+        CONF.deploy.http_url = "http://x.y.z.a/webserver/"
+        CONF.deploy.http_root = "/webserver"
+        expected_url = "http://x.y.z.a/webserver/image-UUID"
+        source = 'tmp_image_file'
+        destination = "image-UUID"
+        image_path = "/webserver/image-UUID"
+        actual_url = ilo_common.copy_image_to_web_server(source, destination)
+        self.assertEqual(expected_url, actual_url)
+        copy_mock.assert_called_once_with(source, image_path)
+        chmod_mock.assert_called_once_with(image_path, 0o644)
+
+    @mock.patch.object(os, 'chmod', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(shutil, 'copyfile', spec_set=True,
+                       autospec=True)
+    def test_copy_image_to_web_server_fails(self, copy_mock,
+                                            chmod_mock):
+        CONF.deploy.http_url = "http://x.y.z.a/webserver/"
+        CONF.deploy.http_root = "/webserver"
+        source = 'tmp_image_file'
+        destination = "image-UUID"
+        image_path = "/webserver/image-UUID"
+        exc = exception.ImageUploadFailed('reason')
+        copy_mock.side_effect = exc
+        self.assertRaises(exception.ImageUploadFailed,
+                          ilo_common.copy_image_to_web_server,
+                          source, destination)
+        copy_mock.assert_called_once_with(source, image_path)
+        self.assertFalse(chmod_mock.called)
+
+    @mock.patch.object(utils, 'unlink_without_raise', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(ilo_common, '_get_floppy_image_name', spec_set=True,
+                       autospec=True)
+    def test_destroy_floppy_image_from_web_server(self, get_floppy_name_mock,
+                                                  utils_mock):
+        get_floppy_name_mock.return_value = 'image-uuid'
+        CONF.deploy.http_root = "/webserver/"
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            ilo_common.destroy_floppy_image_from_web_server(task.node)
+            get_floppy_name_mock.assert_called_once_with(task.node)
+            utils_mock.assert_called_once_with('/webserver/image-uuid')

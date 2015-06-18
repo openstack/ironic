@@ -725,6 +725,30 @@ class FsImageTestCase(base.TestCase):
             'output_file', 'tmpdir/deploy_iso-uuid', 'tmpdir/kernel-uuid',
             'tmpdir/ramdisk-uuid', params)
 
+    @mock.patch.object(images, 'create_isolinux_image_for_uefi', autospec=True)
+    @mock.patch.object(images, 'fetch', autospec=True)
+    @mock.patch.object(utils, 'tempdir', autospec=True)
+    def test_create_boot_iso_for_uefi_for_hrefs(
+            self, tempdir_mock, fetch_images_mock, create_isolinux_mock):
+        mock_file_handle = mock.MagicMock(spec=file)
+        mock_file_handle.__enter__.return_value = 'tmpdir'
+        tempdir_mock.return_value = mock_file_handle
+
+        images.create_boot_iso('ctx', 'output_file', 'http://kernel-href',
+                               'http://ramdisk-href', 'http://deploy_iso-href',
+                               'root-uuid', 'kernel-params', 'uefi')
+        expected_calls = [mock.call('ctx', 'http://kernel-href',
+                                    'tmpdir/kernel-href'),
+                          mock.call('ctx', 'http://ramdisk-href',
+                                    'tmpdir/ramdisk-href'),
+                          mock.call('ctx', 'http://deploy_iso-href',
+                                    'tmpdir/deploy_iso-href')]
+        fetch_images_mock.assert_has_calls(expected_calls)
+        params = ['root=UUID=root-uuid', 'kernel-params']
+        create_isolinux_mock.assert_called_once_with(
+            'output_file', 'tmpdir/deploy_iso-href', 'tmpdir/kernel-href',
+            'tmpdir/ramdisk-href', params)
+
     @mock.patch.object(images, 'create_isolinux_image_for_bios', autospec=True)
     @mock.patch.object(images, 'fetch', autospec=True)
     @mock.patch.object(utils, 'tempdir', autospec=True)

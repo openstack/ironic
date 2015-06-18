@@ -440,7 +440,7 @@ def get_temp_url_for_glance_image(context, image_uuid):
 
 
 def create_boot_iso(context, output_filename, kernel_href,
-                    ramdisk_href, deploy_iso_uuid, root_uuid=None,
+                    ramdisk_href, deploy_iso_href, root_uuid=None,
                     kernel_params=None, boot_mode=None):
     """Creates a bootable ISO image for a node.
 
@@ -453,7 +453,7 @@ def create_boot_iso(context, output_filename, kernel_href,
     :param output_filename: the absolute path of the output ISO file
     :param kernel_href: URL or glance uuid of the kernel to use
     :param ramdisk_href: URL or glance uuid of the ramdisk to use
-    :param deploy_iso_uuid: URL or glance uuid of the deploy iso used
+    :param deploy_iso_href: URL or glance uuid of the deploy iso used
     :param root_uuid: uuid of the root filesystem (optional)
     :param kernel_params: a string containing whitespace separated values
         kernel cmdline arguments of the form K=V or K (optional).
@@ -473,8 +473,8 @@ def create_boot_iso(context, output_filename, kernel_href,
             params.append(kernel_params)
 
         if boot_mode == 'uefi':
-            deploy_iso = os.path.join(tmpdir, deploy_iso_uuid)
-            fetch(context, deploy_iso_uuid, deploy_iso)
+            deploy_iso = os.path.join(tmpdir, deploy_iso_href.split('/')[-1])
+            fetch(context, deploy_iso_href, deploy_iso)
             create_isolinux_image_for_uefi(output_filename,
                                            deploy_iso,
                                            kernel_path,
