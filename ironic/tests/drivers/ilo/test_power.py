@@ -135,13 +135,14 @@ class IloPowerInternalMethodsTestCase(db_base.DbTestCase):
                        autospec=True)
     @mock.patch.object(ilo_common, 'setup_vmedia_for_boot', spec_set=True,
                        autospec=True)
-    def test__attach_boot_iso(self, setup_vmedia_mock, set_boot_device_mock,
-                              get_ilo_object_mock):
+    def test__attach_boot_iso_if_needed(
+            self, setup_vmedia_mock, set_boot_device_mock,
+            get_ilo_object_mock):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
             task.node.provision_state = states.ACTIVE
             task.node.instance_info['ilo_boot_iso'] = 'boot-iso'
-            ilo_power._attach_boot_iso(task)
+            ilo_power._attach_boot_iso_if_needed(task)
             setup_vmedia_mock.assert_called_once_with(task, 'boot-iso')
             set_boot_device_mock.assert_called_once_with(task,
                                                          boot_devices.CDROM)
@@ -150,14 +151,14 @@ class IloPowerInternalMethodsTestCase(db_base.DbTestCase):
                        autospec=True)
     @mock.patch.object(ilo_common, 'setup_vmedia_for_boot', spec_set=True,
                        autospec=True)
-    def test__attach_boot_iso_on_rebuild(self, setup_vmedia_mock,
-                                         set_boot_device_mock,
-                                         get_ilo_object_mock):
+    def test__attach_boot_iso_if_needed_on_rebuild(
+            self, setup_vmedia_mock, set_boot_device_mock,
+            get_ilo_object_mock):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
             task.node.provision_state = states.DEPLOYING
             task.node.instance_info['ilo_boot_iso'] = 'boot-iso'
-            ilo_power._attach_boot_iso(task)
+            ilo_power._attach_boot_iso_if_needed(task)
             self.assertFalse(setup_vmedia_mock.called)
             self.assertFalse(set_boot_device_mock.called)
 
