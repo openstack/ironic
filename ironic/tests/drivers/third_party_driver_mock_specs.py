@@ -22,10 +22,9 @@ IBOOT_SPEC = (
 )
 
 # ironic_inspector
-IRONIC_INSPECTOR_SPEC = (
-    '__version__',
-    '__version_info__',
-    'client',
+IRONIC_INSPECTOR_CLIENT_SPEC = (
+    'introspect',
+    'get_status',
 )
 
 # proliantutils

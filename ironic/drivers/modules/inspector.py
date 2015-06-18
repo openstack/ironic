@@ -12,7 +12,7 @@
 
 """
 Modules required to work with ironic_inspector:
-    https://pypi.python.org/pypi/ironic-discoverd
+    https://pypi.python.org/pypi/ironic-inspector
 """
 
 import eventlet
@@ -52,13 +52,10 @@ CONF = cfg.CONF
 CONF.register_opts(inspector_opts, group='inspector')
 
 
-# TODO(dtantsur): change this to ironic_inspector_client once it's available
-ironic_inspector = importutils.try_import('ironic_inspector')
-if not ironic_inspector:
-    # NOTE(dtantsur): old name for ironic-inspector
-    ironic_inspector = importutils.try_import('ironic_discoverd')
-if ironic_inspector:
-    from ironic_inspector import client
+client = importutils.try_import('ironic_inspector_client')
+
+
+INSPECTOR_API_VERSION = (1, 0)
 
 
 class Inspector(base.InspectInterface):
@@ -84,16 +81,9 @@ class Inspector(base.InspectInterface):
             raise exception.DriverLoadError(
                 _('ironic-inspector support is disabled'))
 
-        if not ironic_inspector:
+        if not client:
             raise exception.DriverLoadError(
-                _('ironic-inspector Python module not found'))
-
-        # NOTE(dtantsur): __version_info__ attribute appeared in 1.0.0
-        version = getattr(ironic_inspector, '__version_info__', (0, 2))
-        if version < (1, 0):
-            raise exception.DriverLoadError(
-                _('ironic-inspector version is too old: required >= 1.0.0, '
-                  'got %s') % '.'.join(str(x) for x in version))
+                _('python-ironic-inspector-client Python module not found'))
 
     def get_properties(self):
         """Return the properties of the interface.
@@ -123,9 +113,7 @@ class Inspector(base.InspectInterface):
         :returns: states.INSPECTING
         """
         LOG.debug('Starting inspection for node %(uuid)s using '
-                  'ironic-inspector client %(version)s',
-                  {'uuid': task.node.uuid, 'version':
-                   ironic_inspector.__version__})
+                  'ironic-inspector', {'uuid': task.node.uuid})
 
         # NOTE(dtantsur): we're spawning a short-living green thread so that
         # we can release a lock as soon as possible and allow ironic-inspector
@@ -153,7 +141,7 @@ class Inspector(base.InspectInterface):
 def _call_inspector(func, uuid, context):
     """Wrapper around calls to inspector."""
     # NOTE(dtantsur): due to bug #1428652 None is not accepted for base_url.
-    kwargs = {}
+    kwargs = {'api_version': INSPECTOR_API_VERSION}
     if CONF.inspector.service_url:
         kwargs['base_url'] = CONF.inspector.service_url
     return func(uuid, auth_token=context.auth_token, **kwargs)

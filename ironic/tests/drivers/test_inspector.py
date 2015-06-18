@@ -11,8 +11,7 @@
 # under the License.
 
 import eventlet
-import ironic_inspector
-from ironic_inspector import client
+import ironic_inspector_client as client
 import mock
 
 from ironic.common import driver_factory
@@ -50,21 +49,14 @@ class DisabledTestCase(db_base.DbTestCase):
         self._do_mock()
         self.assertIsNotNone(self.driver.inspect)
 
-    @mock.patch.object(inspector, 'ironic_inspector', None)
+    @mock.patch.object(inspector, 'client', None)
     def test_init_inspector_not_imported(self):
         self.assertRaises(exception.DriverLoadError,
                           inspector.Inspector)
 
-    @mock.patch.object(ironic_inspector, '__version_info__', (1, 0, 0))
     def test_init_ok(self):
         self.config(enabled=True, group='inspector')
         inspector.Inspector()
-
-    @mock.patch.object(ironic_inspector, '__version_info__', (0, 2, 2))
-    def test_init_old_version(self):
-        self.config(enabled=True, group='inspector')
-        self.assertRaises(exception.DriverLoadError,
-                          inspector.Inspector)
 
 
 class BaseTestCase(db_base.DbTestCase):
@@ -190,7 +182,6 @@ class CheckStatusTestCase(BaseTestCase):
 
 @mock.patch.object(eventlet.greenthread, 'spawn_n',
                    lambda f, *a, **kw: f(*a, **kw))
-@mock.patch.object(ironic_inspector, '__version_info__', (1, 0, 0))
 @mock.patch.object(task_manager, 'acquire', autospec=True)
 @mock.patch.object(inspector, '_check_status', autospec=True)
 class PeriodicTaskTestCase(BaseTestCase):
