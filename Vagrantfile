@@ -1,6 +1,12 @@
 # -*- mode: ruby -*-
 # vi: set ft=ruby :
 
+# WARNING: This Vagrantfile is for development purposes only. It is intended to
+# bootstrap required services - such as mysql and rabbit - into a reliably
+# accessible VM, rather than forcing the engineer to install and manage these
+# services manually. This Vagrantfile is not intended to assist in provisioning
+# Ironic. For that, please use the bifrost project.
+
 VAGRANTFILE_API_VERSION = '2'
 
 Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
