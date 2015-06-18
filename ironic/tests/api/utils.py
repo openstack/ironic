@@ -16,6 +16,7 @@ Utils for testing the API service.
 """
 
 import datetime
+import hashlib
 import json
 
 from ironic.api.controllers.v1 import chassis as chassis_controller
@@ -26,35 +27,45 @@ from ironic.tests.db import utils
 ADMIN_TOKEN = '4562138218392831'
 MEMBER_TOKEN = '4562138218392832'
 
+ADMIN_TOKEN_HASH = hashlib.sha256(ADMIN_TOKEN.encode()).hexdigest()
+MEMBER_TOKEN_HASH = hashlib.sha256(MEMBER_TOKEN.encode()).hexdigest()
+
+ADMIN_BODY = {
+    'access': {
+        'token': {'id': ADMIN_TOKEN,
+                  'expires': '2100-09-11T00:00:00'},
+        'user': {'id': 'user_id1',
+                 'name': 'user_name1',
+                 'tenantId': '123i2910',
+                 'tenantName': 'mytenant',
+                 'roles': [{'name': 'admin'}]},
+    }
+}
+
+MEMBER_BODY = {
+    'access': {
+        'token': {'id': MEMBER_TOKEN,
+                  'expires': '2100-09-11T00:00:00'},
+        'user': {'id': 'user_id2',
+                 'name': 'user-good',
+                 'tenantId': 'project-good',
+                 'tenantName': 'goodies',
+                 'roles': [{'name': 'Member'}]},
+    }
+}
+
 
 class FakeMemcache(object):
     """Fake cache that is used for keystone tokens lookup."""
 
+    # NOTE(lucasagomes): keystonemiddleware >= 2.0.0 the token cache
+    # keys are sha256 hashes of the token key. This was introduced in
+    # https://review.openstack.org/#/c/186971
     _cache = {
-        'tokens/%s' % ADMIN_TOKEN: {
-            'access': {
-                'token': {'id': ADMIN_TOKEN,
-                          'expires': '2100-09-11T00:00:00'},
-                'user': {'id': 'user_id1',
-                         'name': 'user_name1',
-                         'tenantId': '123i2910',
-                         'tenantName': 'mytenant',
-                         'roles': [{'name': 'admin'}]
-                         },
-            }
-        },
-        'tokens/%s' % MEMBER_TOKEN: {
-            'access': {
-                'token': {'id': MEMBER_TOKEN,
-                          'expires': '2100-09-11T00:00:00'},
-                'user': {'id': 'user_id2',
-                         'name': 'user-good',
-                         'tenantId': 'project-good',
-                         'tenantName': 'goodies',
-                         'roles': [{'name': 'Member'}]
-                         }
-            }
-        }
+        'tokens/%s' % ADMIN_TOKEN: ADMIN_BODY,
+        'tokens/%s' % ADMIN_TOKEN_HASH: ADMIN_BODY,
+        'tokens/%s' % MEMBER_TOKEN: MEMBER_BODY,
+        'tokens/%s' % MEMBER_TOKEN_HASH: MEMBER_BODY,
     }
 
     def __init__(self):
