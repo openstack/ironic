@@ -106,7 +106,7 @@ class TestPXEUtils(db_base.DbTestCase):
             pxe_config_template='ironic/drivers/modules/ipxe_config.template',
             group='pxe'
         )
-        self.config(http_url='http://1.2.3.4:1234', group='pxe')
+        self.config(http_url='http://1.2.3.4:1234', group='deploy')
         rendered_template = pxe_utils._build_pxe_config(
             self.ipxe_options, CONF.pxe.pxe_config_template)
 
@@ -250,7 +250,7 @@ class TestPXEUtils(db_base.DbTestCase):
 
     def test__get_pxe_mac_path_ipxe(self):
         self.config(ipxe_enabled=True, group='pxe')
-        self.config(http_root='/httpboot', group='pxe')
+        self.config(http_root='/httpboot', group='deploy')
         mac = '00:11:22:33:AA:BB:CC'
         self.assertEqual('/httpboot/pxelinux.cfg/00-11-22-33-aa-bb-cc',
                          pxe_utils._get_pxe_mac_path(mac))
@@ -269,7 +269,7 @@ class TestPXEUtils(db_base.DbTestCase):
     def test_get_root_dir_ipxe(self):
         expected_dir = '/httpboot'
         self.config(ipxe_enabled=True, group='pxe')
-        self.config(http_root=expected_dir, group='pxe')
+        self.config(http_root=expected_dir, group='deploy')
         self.assertEqual(expected_dir, pxe_utils.get_root_dir())
 
     def test_get_pxe_config_file_path(self):
@@ -317,7 +317,7 @@ class TestPXEUtils(db_base.DbTestCase):
     def test_get_deploy_kr_info_ipxe(self):
         expected_dir = '/http'
         self.config(ipxe_enabled=True, group='pxe')
-        self.config(http_root=expected_dir, group='pxe')
+        self.config(http_root=expected_dir, group='deploy')
         self._test_get_deploy_kr_info(expected_dir)
 
     def test_get_deploy_kr_info_bad_driver_info(self):
@@ -333,7 +333,7 @@ class TestPXEUtils(db_base.DbTestCase):
         self.config(tftp_server='192.0.2.1', group='pxe')
         self.config(pxe_bootfile_name='fake-bootfile', group='pxe')
         self.config(ipxe_enabled=True, group='pxe')
-        self.config(http_url='http://192.0.3.2:1234', group='pxe')
+        self.config(http_url='http://192.0.3.2:1234', group='deploy')
         self.config(ipxe_boot_script='/test/boot.ipxe', group='pxe')
 
         self.config(dhcp_provider='isc', group='dhcp')

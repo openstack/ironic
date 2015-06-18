@@ -38,7 +38,7 @@ PXE_CFG_DIR_NAME = 'pxelinux.cfg'
 def get_root_dir():
     """Returns the directory where the config files and images will live."""
     if CONF.pxe.ipxe_enabled:
-        return CONF.pxe.http_root
+        return CONF.deploy.http_root
     else:
         return CONF.pxe.tftp_root
 
@@ -251,7 +251,7 @@ def dhcp_options_for_instance(task):
     dhcp_opts = []
     if CONF.pxe.ipxe_enabled:
         script_name = os.path.basename(CONF.pxe.ipxe_boot_script)
-        ipxe_script_url = '/'.join([CONF.pxe.http_url, script_name])
+        ipxe_script_url = '/'.join([CONF.deploy.http_url, script_name])
         dhcp_provider_name = dhcp_factory.CONF.dhcp.dhcp_provider
         # if the request comes from dumb firmware send them the iPXE
         # boot image.
