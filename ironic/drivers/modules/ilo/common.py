@@ -414,6 +414,29 @@ def setup_vmedia_for_boot(task, boot_iso, parameters=None):
     attach_vmedia(task.node, 'CDROM', boot_iso_url or boot_iso)
 
 
+def eject_vmedia_devices(task):
+    """Ejects virtual media devices.
+
+    This method ejects virtual media devices. It ignores
+    any exception encountered in the process.
+
+    :param task: a TaskManager instance containing the node to act on.
+    :returns: None
+    """
+    ilo_object = get_ilo_object(task.node)
+    for device in ('FLOPPY', 'CDROM'):
+        try:
+            ilo_object.eject_virtual_media(device)
+        except ilo_error.IloError as ilo_exception:
+            LOG.error(_LE("Error while ejecting virtual media %(device)s "
+                          "from node %(uuid)s. Error: %(error)s"),
+                      {'device': device, 'uuid': task.node.uuid,
+                       'error': ilo_exception})
+            operation = _("Eject virtual media %s") % device.lower()
+            raise exception.IloOperationError(operation=operation,
+                                              error=ilo_exception)
+
+
 def cleanup_vmedia_boot(task):
     """Cleans a node after a virtual media boot.
 
@@ -435,16 +458,7 @@ def cleanup_vmedia_boot(task):
                           "%(container)s. Error: %(error)s"),
                       {'object_name': object_name, 'container': container,
                        'error': e})
-
-    ilo_object = get_ilo_object(task.node)
-    for device in ('FLOPPY', 'CDROM'):
-        try:
-            ilo_object.eject_virtual_media(device)
-        except ilo_error.IloError as ilo_exception:
-            LOG.exception(_LE("Error while ejecting virtual media %(device)s "
-                              "from node %(uuid)s. Error: %(error)s"),
-                          {'device': device, 'uuid': task.node.uuid,
-                           'error': ilo_exception})
+    eject_vmedia_devices(task)
 
 
 def get_secure_boot_mode(task):

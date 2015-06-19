@@ -273,7 +273,10 @@ def _reboot_into(task, iso, ramdisk_options):
 
 
 def _prepare_agent_vmedia_boot(task):
-    """prepare for vmedia boot."""
+    """Ejects virtual media devices and prepares for vmedia boot."""
+    # Eject all virtual media devices are we are going to use them
+    # during deploy.
+    ilo_common.eject_vmedia_devices(task)
 
     deploy_ramdisk_opts = agent.build_agent_options(task.node)
     deploy_iso = task.node.driver_info['ilo_deploy_iso']
@@ -411,6 +414,20 @@ class IloVirtualMediaIscsiDeploy(base.DeployInterface):
         """
         node = task.node
 
+        # Clear ilo_boot_iso if it's a glance image to force recreate
+        # another one again (or use existing one in glance).
+        # This is mainly for rebuild scenario.
+        if service_utils.is_glance_image(
+                node.instance_info.get('image_source')):
+            instance_info = node.instance_info
+            instance_info.pop('ilo_boot_iso', None)
+            node.instance_info = instance_info
+            node.save()
+
+        # Eject all virtual media devices are we are going to use them
+        # during deploy.
+        ilo_common.eject_vmedia_devices(task)
+
         iscsi_deploy.cache_instance_image(task.context, node)
         iscsi_deploy.check_image_size(task)
 
@@ -503,6 +520,7 @@ class IloVirtualMediaAgentDeploy(base.DeployInterface):
             image.
         :raises: IloOperationError, if some operation on iLO fails.
         """
+
         _prepare_agent_vmedia_boot(task)
 
         return states.DEPLOYWAIT
