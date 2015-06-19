@@ -202,7 +202,7 @@ class ConductorManager(periodic_task.PeriodicTasks):
     """Ironic Conductor manager main class."""
 
     # NOTE(rloo): This must be in sync with rpcapi.ConductorAPI's.
-    RPC_API_VERSION = '1.28'
+    RPC_API_VERSION = '1.29'
 
     target = messaging.Target(version=RPC_API_VERSION)
 
@@ -449,11 +449,13 @@ class ConductorManager(periodic_task.PeriodicTasks):
         :raises: NoFreeConductorWorker when there is no free worker to start
                  async task.
         :raises: NodeLocked if node is locked by another conductor.
-        :returns: A tuple containing the response of the invoked method
-                  and a boolean value indicating whether the method was
-                  invoked asynchronously (True) or synchronously (False).
-                  If invoked asynchronously the response field will be
-                  always None.
+        :returns: A dictionary containing:
+
+            :return: The response of the invoked vendor method
+            :async: Boolean value. Whether the method was invoked
+                asynchronously (True) or synchronously (False). When invoked
+                asynchronously the response will be always None.
+
         """
         LOG.debug("RPC vendor_passthru called for node %s." % node_id)
         # NOTE(max_lobur): Even though not all vendor_passthru calls may
@@ -495,7 +497,8 @@ class ConductorManager(periodic_task.PeriodicTasks):
             else:
                 ret = vendor_func(task, **info)
 
-            return (ret, is_async)
+            return {'return': ret,
+                    'async': is_async}
 
     @messaging.expected_exceptions(exception.NoFreeConductorWorker,
                                    exception.InvalidParameterValue,
@@ -526,11 +529,13 @@ class ConductorManager(periodic_task.PeriodicTasks):
         :raises: DriverNotFound if the supplied driver is not loaded.
         :raises: NoFreeConductorWorker when there is no free worker to start
                  async task.
-        :returns: A tuple containing the response of the invoked method
-                  and a boolean value indicating whether the method was
-                  invoked asynchronously (True) or synchronously (False).
-                  If invoked asynchronously the response field will be
-                  always None.
+        :returns: A dictionary containing:
+
+            :return: The response of the invoked vendor method
+            :async: Boolean value. Whether the method was invoked
+                asynchronously (True) or synchronously (False). When invoked
+                asynchronously the response will be always None.
+
         """
         # Any locking in a top-level vendor action will need to be done by the
         # implementation, as there is little we could reasonably lock on here.
@@ -586,7 +591,8 @@ class ConductorManager(periodic_task.PeriodicTasks):
         else:
             ret = vendor_func(context, **info)
 
-        return (ret, is_async)
+        return {'return': ret,
+                'async': is_async}
 
     @messaging.expected_exceptions(exception.UnsupportedDriverExtension)
     def get_node_vendor_passthru_methods(self, context, node_id):

@@ -564,16 +564,16 @@ class VendorPassthruTestCase(_ServiceSetUpMixin, tests_db_base.DbTestCase):
         info = {'bar': 'baz'}
         self._start_service()
 
-        ret, is_async = self.service.vendor_passthru(self.context, node.uuid,
-                                                     'first_method', 'POST',
-                                                     info)
+        response = self.service.vendor_passthru(self.context, node.uuid,
+                                                'first_method', 'POST',
+                                                info)
         # Waiting to make sure the below assertions are valid.
         self.service._worker_pool.waitall()
 
         # Assert spawn_after was called
         self.assertTrue(mock_spawn.called)
-        self.assertIsNone(ret)
-        self.assertTrue(is_async)
+        self.assertIsNone(response['return'])
+        self.assertTrue(response['async'])
 
         node.refresh()
         self.assertIsNone(node.last_error)
@@ -586,16 +586,16 @@ class VendorPassthruTestCase(_ServiceSetUpMixin, tests_db_base.DbTestCase):
         info = {'bar': 'meow'}
         self._start_service()
 
-        ret, is_async = self.service.vendor_passthru(self.context, node.uuid,
-                                                     'third_method_sync',
-                                                     'POST', info)
+        response = self.service.vendor_passthru(self.context, node.uuid,
+                                                'third_method_sync',
+                                                'POST', info)
         # Waiting to make sure the below assertions are valid.
         self.service._worker_pool.waitall()
 
         # Assert no workers were used
         self.assertFalse(mock_spawn.called)
-        self.assertTrue(ret)
-        self.assertFalse(is_async)
+        self.assertTrue(response['return'])
+        self.assertFalse(response['async'])
 
         node.refresh()
         self.assertIsNone(node.last_error)
@@ -754,14 +754,14 @@ class VendorPassthruTestCase(_ServiceSetUpMixin, tests_db_base.DbTestCase):
         mock_spawn.reset_mock()
 
         vendor_args = {'test': 'arg'}
-        got, is_async = self.service.driver_vendor_passthru(
+        response = self.service.driver_vendor_passthru(
             self.context, 'fake', 'test_method', 'POST', vendor_args)
 
         # Assert that the vendor interface has no custom
         # driver_vendor_passthru()
         self.assertFalse(hasattr(self.driver.vendor, 'driver_vendor_passthru'))
-        self.assertEqual(expected, got)
-        self.assertFalse(is_async)
+        self.assertEqual(expected, response['return'])
+        self.assertFalse(response['async'])
         test_method.assert_called_once_with(self.context, **vendor_args)
         # No worker was spawned
         self.assertFalse(mock_spawn.called)
@@ -779,14 +779,14 @@ class VendorPassthruTestCase(_ServiceSetUpMixin, tests_db_base.DbTestCase):
         mock_spawn.reset_mock()
 
         vendor_args = {'test': 'arg'}
-        got, is_async = self.service.driver_vendor_passthru(
+        response = self.service.driver_vendor_passthru(
             self.context, 'fake', 'test_sync_method', 'POST', vendor_args)
 
         # Assert that the vendor interface has no custom
         # driver_vendor_passthru()
         self.assertFalse(hasattr(self.driver.vendor, 'driver_vendor_passthru'))
-        self.assertIsNone(got)
-        self.assertTrue(is_async)
+        self.assertIsNone(response['return'])
+        self.assertTrue(response['async'])
         mock_spawn.assert_called_once_with(test_method, self.context,
                                            **vendor_args)
 

@@ -1214,7 +1214,7 @@ class TestPost(test_api_base.FunctionalTest):
 
         node = obj_utils.create_test_node(self.context)
         info = {'foo': 'bar'}
-        mock_vendor.return_value = (return_value, is_async)
+        mock_vendor.return_value = {'return': return_value, 'async': is_async}
         response = self.post_json('/nodes/%s/vendor_passthru/test' % node.uuid,
                                   info)
         mock_vendor.assert_called_once_with(
@@ -1231,7 +1231,7 @@ class TestPost(test_api_base.FunctionalTest):
 
         node = obj_utils.create_test_node(self.context, name='node-109')
         info = {'foo': 'bar'}
-        mock_vendor.return_value = (return_value, is_async)
+        mock_vendor.return_value = {'return': return_value, 'async': is_async}
         response = self.post_json('/nodes/%s/vendor_passthru/test' % node.name,
                                   info,
                                   headers={api_base.Version.string: "1.5"})
@@ -1253,13 +1253,13 @@ class TestPost(test_api_base.FunctionalTest):
     @mock.patch.object(rpcapi.ConductorAPI, 'vendor_passthru')
     def test_vendor_passthru_put(self, mocked_vendor_passthru):
         node = obj_utils.create_test_node(self.context)
-        return_value = (None, 'async')
+        return_value = {'return': None, 'async': True}
         mocked_vendor_passthru.return_value = return_value
         response = self.put_json(
             '/nodes/%s/vendor_passthru/do_test' % node.uuid,
             {'test_key': 'test_value'})
         self.assertEqual(202, response.status_int)
-        self.assertEqual(return_value[0], response.json)
+        self.assertEqual(return_value['return'], response.json)
 
     @mock.patch.object(rpcapi.ConductorAPI, 'vendor_passthru')
     def test_vendor_passthru_by_name(self, mock_vendor):
@@ -1268,21 +1268,21 @@ class TestPost(test_api_base.FunctionalTest):
     @mock.patch.object(rpcapi.ConductorAPI, 'vendor_passthru')
     def test_vendor_passthru_get(self, mocked_vendor_passthru):
         node = obj_utils.create_test_node(self.context)
-        return_value = ('foo', 'sync')
+        return_value = {'return': 'foo', 'async': False}
         mocked_vendor_passthru.return_value = return_value
         response = self.get_json(
             '/nodes/%s/vendor_passthru/do_test' % node.uuid)
-        self.assertEqual(return_value[0], response)
+        self.assertEqual(return_value['return'], response)
 
     @mock.patch.object(rpcapi.ConductorAPI, 'vendor_passthru')
     def test_vendor_passthru_delete(self, mock_vendor_passthru):
         node = obj_utils.create_test_node(self.context)
-        return_value = (None, 'async')
+        return_value = {'return': None, 'async': True}
         mock_vendor_passthru.return_value = return_value
         response = self.delete(
             '/nodes/%s/vendor_passthru/do_test' % node.uuid)
         self.assertEqual(202, response.status_int)
-        self.assertEqual(return_value[0], response.json)
+        self.assertEqual(return_value['return'], response.json)
 
     def test_vendor_passthru_no_such_method(self):
         node = obj_utils.create_test_node(self.context)
