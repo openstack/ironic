@@ -23,6 +23,7 @@ import six
 import wsme
 from wsme import types as wtypes
 
+from ironic.api.controllers.v1 import utils as v1_utils
 from ironic.common import exception
 from ironic.common.i18n import _
 from ironic.common import utils
@@ -64,7 +65,7 @@ class UuidOrNameType(wtypes.UserType):
     @staticmethod
     def validate(value):
         if not (uuidutils.is_uuid_like(value)
-                or utils.is_hostname_safe(value)):
+                or v1_utils.is_valid_logical_name(value)):
             raise exception.InvalidUuidOrName(name=value)
         return value
 
@@ -88,7 +89,7 @@ class NameType(wtypes.UserType):
 
     @staticmethod
     def validate(value):
-        if not utils.is_hostname_safe(value):
+        if not v1_utils.is_valid_logical_name(value):
             raise exception.InvalidName(name=value)
         return value
 

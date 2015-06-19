@@ -1179,12 +1179,12 @@ class TestPatch(test_api_base.FunctionalTest):
 
     def test_patch_add_name_invalid(self):
         self.mock_update_node.return_value = self.node_no_name
-        test_name = 'I-AM-INVALID'
+        test_name = 'i am invalid'
         response = self.patch_json('/nodes/%s' % self.node_no_name.uuid,
                                    [{'path': '/name',
                                      'op': 'add',
                                      'value': test_name}],
-                                   headers={api_base.Version.string: "1.5"},
+                                   headers={api_base.Version.string: "1.10"},
                                    expect_errors=True)
         self.assertEqual('application/json', response.content_type)
         self.assertEqual(400, response.status_code)

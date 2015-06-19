@@ -89,7 +89,7 @@ def get_rpc_node(node_ident):
 
     # We can refer to nodes by their name, if the client supports it
     if allow_node_logical_names():
-        if utils.is_hostname_safe(node_ident):
+        if is_valid_logical_name(node_ident):
             return objects.Node.get_by_name(pecan.request.context, node_ident)
         raise exception.InvalidUuidOrName(name=node_ident)
 
@@ -105,7 +105,15 @@ def is_valid_node_name(name):
     :param: name: the node name to check.
     :returns: True if the name is valid, False otherwise.
     """
-    return utils.is_hostname_safe(name) and (not uuidutils.is_uuid_like(name))
+    return is_valid_logical_name(name) and not uuidutils.is_uuid_like(name)
+
+
+def is_valid_logical_name(name):
+    """Determine if the provided name is a valid hostname."""
+    if pecan.request.version.minor < 10:
+        return utils.is_hostname_safe(name)
+    else:
+        return utils.is_valid_logical_name(name)
 
 
 def vendor_passthru(ident, method, topic, data=None, driver_passthru=False):

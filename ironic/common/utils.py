@@ -177,33 +177,50 @@ def is_valid_mac(address):
             re.match(m, address.lower()))
 
 
-def is_hostname_safe(hostname):
-    """Determine if the supplied hostname is RFC compliant.
+_is_valid_logical_name_re = re.compile(r'^[A-Z0-9-._~]+$', re.I)
 
-    Check that the supplied hostname conforms to:
-        * http://en.wikipedia.org/wiki/Hostname
-        * http://tools.ietf.org/html/rfc952
-        * http://tools.ietf.org/html/rfc1123
-    Allowing for hostnames, and hostnames + domains.
+# old is_hostname_safe() regex, retained for backwards compat
+_is_hostname_safe_re = re.compile(r"""^
+[a-z0-9]([a-z0-9\-]{0,61}[a-z0-9])?  # host
+(\.[a-z0-9\-_]{0,62}[a-z0-9])*       # domain
+\.?                                  # trailing dot
+$""", re.X)
 
-    :param hostname: The hostname to be validated.
-    :returns: True if valid. False if not.
 
+def is_valid_logical_name(hostname):
+    """Determine if a logical name is valid.
+
+    The logical name may only consist of RFC3986 unreserved
+    characters, to wit:
+
+        ALPHA / DIGIT / "-" / "." / "_" / "~"
     """
     if not isinstance(hostname, six.string_types) or len(hostname) > 255:
         return False
 
-    # Periods on the end of a hostname are ok, but complicates the
-    # regex so we'll do this manually
-    if hostname.endswith('.'):
-        hostname = hostname[:-1]
+    return _is_valid_logical_name_re.match(hostname) is not None
 
-    host = '[a-z0-9]([a-z0-9\-]{0,61}[a-z0-9])?'
-    domain = '[a-z0-9\-_]{0,62}[a-z0-9]'
 
-    m = '^' + host + '(\.' + domain + ')*$'
+def is_hostname_safe(hostname):
+    """Old check for valid logical node names.
 
-    return re.match(m, hostname) is not None
+    Retained for compatibility with REST API < 1.10.
+
+    Nominally, checks that the supplied hostname conforms to:
+        * http://en.wikipedia.org/wiki/Hostname
+        * http://tools.ietf.org/html/rfc952
+        * http://tools.ietf.org/html/rfc1123
+
+    In practice, this check has several shortcomings and errors that
+    are more thoroughly documented in bug #1468508.
+
+    :param hostname: The hostname to be validated.
+    :returns: True if valid. False if not.
+    """
+    if not isinstance(hostname, six.string_types) or len(hostname) > 255:
+        return False
+
+    return _is_hostname_safe_re.match(hostname) is not None
 
 
 def validate_and_normalize_mac(address):

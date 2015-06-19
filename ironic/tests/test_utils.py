@@ -379,6 +379,31 @@ class GenericUtilsTestCase(base.TestCase):
         self.assertFalse(utils.is_hostname_safe(long_str + '.'))
         self.assertFalse(utils.is_hostname_safe('a' * 255))
 
+    def test_is_valid_logical_name(self):
+        valid = (
+            'spam', 'spAm', 'SPAM', 'spam-eggs', 'spam.eggs', 'spam_eggs',
+            'spam~eggs', '9spam', 'spam7', '~spam', '.spam', '.~-_', '~',
+            'br34kf4st', 's', 's' * 63, 's' * 255)
+        invalid = (
+            ' ', 'spam eggs', '$pam', 'egg$', 'spam#eggs',
+            ' eggs', 'spam ', '', None, 'spam%20')
+
+        for hostname in valid:
+            result = utils.is_valid_logical_name(hostname)
+            # Need to ensure a binary response for success. assertTrue
+            # is too generous, and would pass this test if, for
+            # instance, a regex Match object were returned.
+            self.assertIs(result, True,
+                          "%s is unexpectedly invalid" % hostname)
+
+        for hostname in invalid:
+            result = utils.is_valid_logical_name(hostname)
+            # Need to ensure a binary response for
+            # success. assertFalse is too generous and would pass this
+            # test if None were returned.
+            self.assertIs(result, False,
+                          "%s is unexpectedly valid" % hostname)
+
     def test_validate_and_normalize_mac(self):
         mac = 'AA:BB:CC:DD:EE:FF'
         with mock.patch.object(utils, 'is_valid_mac', autospec=True) as m_mock:
