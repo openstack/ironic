@@ -154,3 +154,51 @@ class TestNodeIdent(base.TestCase):
         self.assertRaises(exception.NodeNotFound,
                           utils.get_rpc_node,
                           self.valid_name)
+
+
+class TestVendorPassthru(base.TestCase):
+
+    def test_method_not_specified(self):
+        self.assertRaises(wsme.exc.ClientSideError,
+                          utils.vendor_passthru, 'fake-ident',
+                          None, 'fake-topic', data='fake-data')
+
+    @mock.patch.object(pecan, 'request',
+                       spec_set=['method', 'context', 'rpcapi'])
+    def _vendor_passthru(self, mock_request, async=True,
+                         driver_passthru=False):
+        return_value = {'return': 'SpongeBob', 'async': async}
+        mock_request.method = 'post'
+        mock_request.context = 'fake-context'
+
+        passthru_mock = None
+        if driver_passthru:
+            passthru_mock = mock_request.rpcapi.driver_vendor_passthru
+        else:
+            passthru_mock = mock_request.rpcapi.vendor_passthru
+        passthru_mock.return_value = return_value
+
+        response = utils.vendor_passthru('fake-ident', 'squarepants',
+                                         'fake-topic', data='fake-data',
+                                         driver_passthru=driver_passthru)
+
+        passthru_mock.assert_called_once_with(
+            'fake-context', 'fake-ident', 'squarepants', 'POST',
+            'fake-data', 'fake-topic')
+        self.assertIsInstance(response, wsme.api.Response)
+        self.assertEqual('SpongeBob', response.obj)
+        self.assertEqual(response.return_type, wsme.types.Unset)
+        sc = 202 if async else 200
+        self.assertEqual(sc, response.status_code)
+
+    def test_vendor_passthru_async(self):
+        self._vendor_passthru()
+
+    def test_vendor_passthru_sync(self):
+        self._vendor_passthru(async=False)
+
+    def test_driver_vendor_passthru_async(self):
+        self._vendor_passthru(driver_passthru=True)
+
+    def test_driver_vendor_passthru_sync(self):
+        self._vendor_passthru(async=False, driver_passthru=True)

@@ -105,3 +105,39 @@ def is_valid_node_name(name):
     :returns: True if the name is valid, False otherwise.
     """
     return utils.is_hostname_safe(name) and (not uuidutils.is_uuid_like(name))
+
+
+def vendor_passthru(ident, method, topic, data=None, driver_passthru=False):
+    """Call a vendor passthru API extension.
+
+    Call the vendor passthru API extension and process the method response
+    to set the right return code for methods that are asynchronous or
+    synchronous; Attach the return value to the response object if it's
+    being served statically.
+
+    :param ident: The resource identification. For node's vendor passthru
+        this is the node's UUID, for driver's vendor passthru this is the
+        driver's name.
+    :param method: The vendor method name.
+    :param topic: The RPC topic.
+    :param data: The data passed to the vendor method. Defaults to None.
+    :param driver_passthru: Boolean value. Whether this is a node or
+        driver vendor passthru. Defaults to False.
+    :returns: A WSME response object to be returned by the API.
+
+    """
+    if not method:
+        raise wsme.exc.ClientSideError(_("Method not specified"))
+
+    if data is None:
+        data = {}
+
+    http_method = pecan.request.method.upper()
+    params = (pecan.request.context, ident, method, http_method, data, topic)
+    if driver_passthru:
+        response = pecan.request.rpcapi.driver_vendor_passthru(*params)
+    else:
+        response = pecan.request.rpcapi.vendor_passthru(*params)
+
+    status_code = 202 if response['async'] else 200
+    return wsme.api.Response(response['return'], status_code=status_code)
