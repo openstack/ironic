@@ -106,6 +106,7 @@ class TestListNodes(test_api_base.FunctionalTest):
         self.assertNotIn('target_provision_state', data['nodes'][0])
         self.assertNotIn('provision_updated_at', data['nodes'][0])
         self.assertNotIn('maintenance_reason', data['nodes'][0])
+        self.assertNotIn('clean_step', data['nodes'][0])
         # never expose the chassis_id
         self.assertNotIn('chassis_id', data['nodes'][0])
 
@@ -129,6 +130,7 @@ class TestListNodes(test_api_base.FunctionalTest):
         self.assertIn('name', data)
         self.assertIn('inspection_finished_at', data)
         self.assertIn('inspection_started_at', data)
+        self.assertIn('clean_step', data)
         # never expose the chassis_id
         self.assertNotIn('chassis_id', data)
 
@@ -215,6 +217,18 @@ class TestListNodes(test_api_base.FunctionalTest):
         self.assertEqual(some_time, started)
         self.assertEqual(None, data['inspection_finished_at'])
 
+    def test_hide_fields_in_newer_versions_clean_step(self):
+        node = obj_utils.create_test_node(self.context,
+                                          clean_step={"foo": "bar"})
+        data = self.get_json(
+            '/nodes/%s' % node.uuid,
+            headers={api_base.Version.string: str(api_v1.MIN_VER)})
+        self.assertNotIn('clean_step', data)
+
+        data = self.get_json('/nodes/%s' % node.uuid,
+                             headers={api_base.Version.string: "1.7"})
+        self.assertEqual({"foo": "bar"}, data['clean_step'])
+
     def test_many(self):
         nodes = []
         for id in range(5):
@@ -291,7 +305,8 @@ class TestListNodes(test_api_base.FunctionalTest):
 
     def test_sort_key_invalid(self):
         invalid_keys_list = ['foo', 'properties', 'driver_info', 'extra',
-                             'instance_info', 'driver_internal_info']
+                             'instance_info', 'driver_internal_info',
+                             'clean_step']
         for invalid_key in invalid_keys_list:
             response = self.get_json('/nodes?sort_key=%s' % invalid_key,
                                      expect_errors=True)

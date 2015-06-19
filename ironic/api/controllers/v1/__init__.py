@@ -61,7 +61,8 @@ MIN_VER_STR = '1.1'
 # v1.4: Add MANAGEABLE state
 # v1.5: Add logical node names
 # v1.6: Add INSPECT* states
-MAX_VER_STR = '1.6'
+# v1.7: Add node.clean_step
+MAX_VER_STR = '1.7'
 
 
 MIN_VER = base.Version({base.Version.string: MIN_VER_STR},

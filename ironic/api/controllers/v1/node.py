@@ -68,6 +68,9 @@ def hide_fields_in_newer_versions(obj):
         obj.inspection_finished_at = wsme.Unset
         obj.inspection_started_at = wsme.Unset
 
+    if pecan.request.version.minor < 7:
+        obj.clean_step = wsme.Unset
+
 
 def assert_juno_provision_state_name(obj):
     # if requested version is < 1.2, convert AVAILABLE to the old NOSTATE
@@ -99,7 +102,7 @@ class NodePatchType(types.JsonPatchType):
                            '/target_power_state', '/target_provision_state',
                            '/provision_updated_at', '/maintenance_reason',
                            '/driver_internal_info', '/inspection_finished_at',
-                           '/inspection_started_at', ]
+                           '/inspection_started_at', '/clean_step']
 
     @staticmethod
     def mandatory_attrs():
@@ -530,6 +533,9 @@ class Node(base.APIBase):
                                        readonly=True)
     """This driver's internal configuration"""
 
+    clean_step = wsme.wsattr({wtypes.text: types.jsontype}, readonly=True)
+    """The current clean step"""
+
     extra = {wtypes.text: types.jsontype}
     """This node's meta data"""
 
@@ -628,7 +634,7 @@ class Node(base.APIBase):
                      provision_updated_at=time, instance_info={},
                      maintenance=False, maintenance_reason=None,
                      inspection_finished_at=None, inspection_started_at=time,
-                     console_enabled=False, clean_step='')
+                     console_enabled=False, clean_step={})
         # NOTE(matty_dubs): The chassis_uuid getter() is based on the
         # _chassis_uuid variable:
         sample._chassis_uuid = 'edcad704-b2da-41d5-96d9-afd580ecfa12'
@@ -788,7 +794,8 @@ class NodesController(rest.RestController):
     }
 
     invalid_sort_key_list = ['properties', 'driver_info', 'extra',
-                             'instance_info', 'driver_internal_info']
+                             'instance_info', 'driver_internal_info',
+                             'clean_step']
 
     def _get_nodes_collection(self, chassis_uuid, instance_uuid, associated,
                               maintenance, marker, limit, sort_key, sort_dir,
