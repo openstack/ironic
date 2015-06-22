@@ -872,6 +872,54 @@ class VendorPassthruTestCase(db_base.DbTestCase):
             vendor.validate(task, method='heartbeat', foo='bar')
             self.assertFalse(get_deploy_info_mock.called)
 
+    @mock.patch.object(manager_utils, 'node_set_boot_device', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(ilo_common, 'setup_vmedia_for_boot', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(ilo_deploy, '_get_boot_iso', spec_set=True,
+                       autospec=True)
+    def test__configure_vmedia_boot_with_boot_iso(
+            self, get_boot_iso_mock, setup_vmedia_mock, set_boot_device_mock):
+        root_uuid = {'root uuid': 'root_uuid'}
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            get_boot_iso_mock.return_value = 'boot.iso'
+
+            task.driver.vendor._configure_vmedia_boot(
+                task, root_uuid)
+
+            get_boot_iso_mock.assert_called_once_with(
+                task, root_uuid)
+            setup_vmedia_mock.assert_called_once_with(
+                task, 'boot.iso')
+            set_boot_device_mock.assert_called_once_with(
+                task, boot_devices.CDROM, persistent=True)
+            self.assertEqual('boot.iso',
+                             task.node.instance_info['ilo_boot_iso'])
+
+    @mock.patch.object(manager_utils, 'node_set_boot_device', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(ilo_common, 'setup_vmedia_for_boot', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(ilo_deploy, '_get_boot_iso', spec_set=True,
+                       autospec=True)
+    def test__configure_vmedia_boot_without_boot_iso(
+            self, get_boot_iso_mock, setup_vmedia_mock, set_boot_device_mock):
+        root_uuid = {'root uuid': 'root_uuid'}
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            get_boot_iso_mock.return_value = None
+
+            task.driver.vendor._configure_vmedia_boot(
+                task, root_uuid)
+
+            get_boot_iso_mock.assert_called_once_with(
+                task, root_uuid)
+            self.assertFalse(setup_vmedia_mock.called)
+            self.assertFalse(set_boot_device_mock.called)
+
     @mock.patch.object(iscsi_deploy, 'validate_bootloader_install_status',
                        spec_set=True, autospec=True)
     @mock.patch.object(iscsi_deploy, 'finish_deploy', spec_set=True,
