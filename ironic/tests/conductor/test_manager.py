@@ -1391,7 +1391,8 @@ class DoNodeDeployTearDownTestCase(_ServiceSetUpMixin,
             self.context, driver='fake', provision_state=states.DELETING,
             target_provision_state=states.AVAILABLE,
             instance_info={'foo': 'bar'},
-            driver_internal_info={'is_whole_disk_image': False})
+            driver_internal_info={'is_whole_disk_image': False,
+                                  'instance': {'ephemeral_gb': 10}})
 
         task = task_manager.TaskManager(self.context, node.uuid)
         self._start_service()
@@ -1402,6 +1403,7 @@ class DoNodeDeployTearDownTestCase(_ServiceSetUpMixin,
         self.assertEqual(states.AVAILABLE, node.target_provision_state)
         self.assertIsNone(node.last_error)
         self.assertEqual({}, node.instance_info)
+        self.assertNotIn('instance', node.driver_internal_info)
         mock_tear_down.assert_called_once_with(mock.ANY)
         mock_clean.assert_called_once_with(mock.ANY)
 
