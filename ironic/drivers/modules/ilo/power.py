@@ -50,12 +50,14 @@ CONF.register_opts(opts, group='ilo')
 LOG = logging.getLogger(__name__)
 
 
-def _attach_boot_iso(task):
+def _attach_boot_iso_if_needed(task):
     """Attaches boot ISO for a deployed node.
 
     This method checks the instance info of the baremetal node for a
-    boot iso.  It attaches the boot ISO on the baremetal node, and then
-    sets the node to boot from virtual media cdrom.
+    boot iso. If the instance info has a value of key 'ilo_boot_iso',
+    it indicates that 'boot_option' is 'netboot'. Therefore it attaches
+    the boot ISO on the baremetal node and then sets the node to boot from
+    virtual media cdrom.
 
     :param task: a TaskManager instance containing the node to act on.
     """
@@ -149,10 +151,10 @@ def _set_power_state(task, target_state):
         if target_state == states.POWER_OFF:
             ilo_object.hold_pwr_btn()
         elif target_state == states.POWER_ON:
-            _attach_boot_iso(task)
+            _attach_boot_iso_if_needed(task)
             ilo_object.set_host_power('ON')
         elif target_state == states.REBOOT:
-            _attach_boot_iso(task)
+            _attach_boot_iso_if_needed(task)
             ilo_object.reset_server()
             target_state = states.POWER_ON
         else:
