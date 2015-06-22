@@ -13,6 +13,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import datetime
 import errno
 import hashlib
 import os
@@ -433,6 +434,14 @@ class GenericUtilsTestCase(base.TestCase):
         # In the case of raising an exception safe_rstrip() should return the
         # original value.
         self.assertEqual(value, utils.safe_rstrip(value))
+
+    @mock.patch.object(os.path, 'getmtime', return_value=1439465889.4964755,
+                       autospec=True)
+    def test_unix_file_modification_datetime(self, mtime_mock):
+        expected = datetime.datetime(2015, 8, 13, 11, 38, 9, 496475)
+        self.assertEqual(expected,
+                         utils.unix_file_modification_datetime('foo'))
+        mtime_mock.assert_called_once_with('foo')
 
 
 class MkfsTestCase(base.TestCase):

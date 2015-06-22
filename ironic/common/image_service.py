@@ -16,6 +16,7 @@
 
 
 import abc
+import datetime
 import os
 import shutil
 
@@ -30,6 +31,7 @@ import six.moves.urllib.parse as urlparse
 from ironic.common import exception
 from ironic.common.i18n import _
 from ironic.common import keystone
+from ironic.common import utils
 
 LOG = logging.getLogger(__name__)
 
@@ -119,7 +121,9 @@ class BaseImageService(object):
 
         :param image_href: Image reference.
         :raises: exception.ImageRefValidationFailed.
-        :returns: dictionary of image properties.
+        :returns: dictionary of image properties. It has three of them: 'size',
+            'updated_at' and 'properties'. 'updated_at' attribute is a naive
+            UTC datetime object.
         """
 
 
@@ -178,7 +182,9 @@ class HttpImageService(BaseImageService):
             * HEAD request failed;
             * HEAD request returned response code not equal to 200;
             * Content-Length header not found in response to HEAD request.
-        :returns: dictionary of image properties.
+        :returns: dictionary of image properties. It has three of them: 'size',
+            'updated_at' and 'properties'. 'updated_at' attribute is a naive
+            UTC datetime object.
         """
         response = self.validate_href(image_href)
         image_size = response.headers.get('Content-Length')
@@ -188,8 +194,26 @@ class HttpImageService(BaseImageService):
                 reason=_("Cannot determine image size as there is no "
                          "Content-Length header specified in response "
                          "to HEAD request."))
+
+        # Parse last-modified header to return naive datetime object
+        str_date = response.headers.get('Last-Modified')
+        date = None
+        if str_date:
+            http_date_format_strings = [
+                '%a, %d %b %Y %H:%M:%S GMT',  # RFC 822
+                '%A, %d-%b-%y %H:%M:%S GMT',  # RFC 850
+                '%a %b %d %H:%M:%S %Y'        # ANSI C
+            ]
+            for fmt in http_date_format_strings:
+                try:
+                    date = datetime.datetime.strptime(str_date, fmt)
+                    break
+                except ValueError:
+                    continue
+
         return {
             'size': int(image_size),
+            'updated_at': date,
             'properties': {}
         }
 
@@ -248,11 +272,15 @@ class FileImageService(BaseImageService):
         :param image_href: Image reference.
         :raises: exception.ImageRefValidationFailed if image file specified
             doesn't exist.
-        :returns: dictionary of image properties.
+        :returns: dictionary of image properties. It has three of them: 'size',
+            'updated_at' and 'properties'. 'updated_at' attribute is a naive
+            UTC datetime object.
         """
         source_image_path = self.validate_href(image_href)
         return {
             'size': os.path.getsize(source_image_path),
+            'updated_at': utils.unix_file_modification_datetime(
+                source_image_path),
             'properties': {}
         }
 
