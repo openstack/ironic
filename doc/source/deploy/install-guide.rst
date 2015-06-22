@@ -59,12 +59,12 @@ very similar to other OpenStack Services:
 Optionally, one may wish to utilize the following associated projects for
 additional functionality:
 
-- ironic-discoverd_; An associated service which performs in-band hardware
+- ironic-inspector_; An associated service which performs in-band hardware
   introspection by PXE booting unregistered hardware into a "discovery ramdisk".
 - diskimage-builder_; May be used to customize machine images, create and
   discovery deploy ramdisks, if necessary.
 
-.. _ironic-discoverd: https://github.com/stackforge/ironic-discoverd
+.. _ironic-inspector: https://github.com/openstack/ironic-inspector
 .. _diskimage-builder: https://github.com/openstack/diskimage-builder
 
 
@@ -1396,7 +1396,7 @@ There are two kinds of inspection supported by Ironic:
 #. Out-of-band inspection is currently implemented by iLO drivers, listed at
    :ref:`ilo`.
 
-#. In-band inspection is performed by utilizing the ironic-discoverd_ project.
+#. In-band inspection is performed by utilizing the ironic-inspector_ project.
    This is supported by the following drivers::
 
     pxe_drac
@@ -1404,22 +1404,31 @@ There are two kinds of inspection supported by Ironic:
     pxe_ipminative
     pxe_ssh
 
-  As of Kilo release this feature needs to be explicitly enabled in the
-  configuration by setting ``enabled = True`` in ``[discoverd]`` section.
-  You must additionally install ``ironic-discoverd`` to use this functionality.
-  You must set ``service_url`` if the ironic-discoverd service is
+  This feature needs to be explicitly enabled in the configuration
+  by setting ``enabled = True`` in ``[inspector]`` section.
+  You must additionally install python-ironic-inspector-client_ to use
+  this functionality.
+  You must set ``service_url`` if the ironic-inspector service is
   being run on a separate host from the ironic-conductor service, or is using
   non-standard port.
 
   In order to ensure that ports in Ironic are synchronized with NIC ports on
-  the node, the following settings in the ironic-discoverd configuration file
+  the node, the following settings in the ironic-inspector configuration file
   must be set::
 
-    [discoverd]
+    [processing]
     add_ports = all
     keep_ports = present
 
-  Note: It will require ironic-discoverd of version 1.1.0 or higher.
+  .. note::
+    During Kilo cycle we used on older verions of Inspector called
+    ironic-discoverd_. Inspector is expected to be a mostly drop-in
+    replacement, and the same client library should be used to connect to both.
+
+    For Ironic Kilo install ironic-discoverd_ of version 1.1.0 or higher
+    instead of python-ironic-inspector-client and use ``[discoverd]`` option
+    group in both Ironic and ironic-discoverd configuration files instead of
+    ones provided above.
 
 Inspection can be initiated using node-set-provision-state.
 The node should be in MANAGEABLE state before inspection is initiated.
@@ -1435,7 +1444,8 @@ The node should be in MANAGEABLE state before inspection is initiated.
 .. note::
     The above commands require the python-ironicclient_ to be version 0.5.0 or greater.
 
-.. _ironic-discoverd: https://github.com/stackforge/ironic-discoverd
+.. _ironic-discoverd: https://pypi.python.org/pypi/ironic-discoverd
+.. _python-ironic-inspector-client: https://pypi.python.org/pypi/python-ironic-inspector-client
 .. _python-ironicclient: https://pypi.python.org/pypi/python-ironicclient
 
 Specifying the disk for deployment

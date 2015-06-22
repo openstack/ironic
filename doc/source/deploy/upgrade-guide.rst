@@ -11,6 +11,17 @@ The Ironic service is tightly coupled with the Ironic driver that is shipped
 with Nova. Currently, some special considerations must be taken into account
 when upgrading your cloud from previous versions of OpenStack.
 
+Upgrading from Kilo to Liberty
+==============================
+
+Inspection
+----------
+
+If you used in-band inspection with **ironic-discoverd**, you have to install
+**python-ironic-inspector-client** before the upgrade. It's also recommended
+that you switch to using **ironic-inspector**, which is a newer version of the
+same service.
+
 Upgrading from Juno to Kilo
 ===========================
 
