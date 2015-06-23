@@ -963,6 +963,22 @@ def agent_execute_clean_step(task, step):
     return states.CLEANING
 
 
+def agent_add_clean_params(task):
+    """Add required config parameters to node's driver_interal_info.
+
+    Adds the required conf options to node's driver_internal_info.
+    It is Required to pass the information to IPA.
+
+    :param task: a TaskManager instance.
+    """
+    agent_params = CONF.agent
+    info = task.node.driver_internal_info
+    passes = agent_params.agent_erase_devices_iterations
+    info['agent_erase_devices_iterations'] = passes
+    task.node.driver_internal_info = info
+    task.node.save()
+
+
 def try_set_boot_device(task, device, persistent=True):
     """Tries to set the boot device on the node.
 

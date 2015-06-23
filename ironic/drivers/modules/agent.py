@@ -58,6 +58,9 @@ agent_opts = [
                     'set in the ramdisk (defaults to 10 for the '
                     'GenericHardwareManager). If set to 0, will not run '
                     'during cleaning.'),
+    cfg.IntOpt('agent_erase_devices_iterations',
+               default=1,
+               help='Number of iterations to be run for erasing devices.'),
     cfg.BoolOpt('manage_tftp',
                 default=True,
                 help='Whether Ironic will manage TFTP files for the deploy '
@@ -407,6 +410,10 @@ class AgentDeploy(base.DeployInterface):
         if getattr(provider.provider, 'create_cleaning_ports', None):
             # Allow to raise if it fails, is caught and handled in conductor
             ports = provider.provider.create_cleaning_ports(task)
+
+        # Append required config parameters to node's driver_internal_info
+        # to pass to IPA.
+        deploy_utils.agent_add_clean_params(task)
 
         _prepare_pxe_boot(task)
         _do_pxe_boot(task, ports)

@@ -1776,6 +1776,14 @@ class AgentCleaningTestCase(db_base.DbTestCase):
                 self.clean_steps['clean_steps']['GenericHardwareManager'][0])
             self.assertEqual(states.CLEANING, response)
 
+    def test_agent_add_clean_params(self):
+        cfg.CONF.agent.agent_erase_devices_iterations = 2
+        with task_manager.acquire(
+                self.context, self.node['uuid'], shared=False) as task:
+            utils.agent_add_clean_params(task)
+            self.assertEqual(task.node.driver_internal_info.get(
+                'agent_erase_devices_iterations'), 2)
+
 
 @mock.patch.object(utils, 'is_block_device', autospec=True)
 @mock.patch.object(utils, 'login_iscsi', lambda *_: None)
