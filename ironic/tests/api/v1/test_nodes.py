@@ -134,6 +134,66 @@ class TestListNodes(test_api_base.FunctionalTest):
         # never expose the chassis_id
         self.assertNotIn('chassis_id', data)
 
+    def test_get_one_custom_fields(self):
+        node = obj_utils.create_test_node(self.context,
+                                          chassis_id=self.chassis.id)
+        fields = 'extra,instance_info'
+        data = self.get_json(
+            '/nodes/%s?fields=%s' % (node.uuid, fields),
+            headers={api_base.Version.string: str(api_v1.MAX_VER)})
+        # We always append "links"
+        self.assertItemsEqual(['extra', 'instance_info', 'links'], data)
+
+    def test_get_collection_custom_fields(self):
+        fields = 'uuid,instance_info'
+        for i in range(3):
+            obj_utils.create_test_node(self.context,
+                                       uuid=uuidutils.generate_uuid(),
+                                       instance_uuid=uuidutils.generate_uuid())
+
+        data = self.get_json(
+            '/nodes?fields=%s' % fields,
+            headers={api_base.Version.string: str(api_v1.MAX_VER)})
+
+        self.assertEqual(3, len(data['nodes']))
+        for node in data['nodes']:
+            # We always append "links"
+            self.assertItemsEqual(['uuid', 'instance_info', 'links'], node)
+
+    def test_get_custom_fields_invalid_fields(self):
+        node = obj_utils.create_test_node(self.context,
+                                          chassis_id=self.chassis.id)
+        fields = 'uuid,spongebob'
+        response = self.get_json(
+            '/nodes/%s?fields=%s' % (node.uuid, fields),
+            headers={api_base.Version.string: str(api_v1.MAX_VER)},
+            expect_errors=True)
+        self.assertEqual(400, response.status_int)
+        self.assertEqual('application/json', response.content_type)
+        self.assertIn('spongebob', response.json['error_message'])
+
+    def test_get_custom_fields_invalid_api_version(self):
+        node = obj_utils.create_test_node(self.context,
+                                          chassis_id=self.chassis.id)
+        fields = 'uuid,extra'
+        response = self.get_json(
+            '/nodes/%s?fields=%s' % (node.uuid, fields),
+            headers={api_base.Version.string: str(api_v1.MIN_VER)},
+            expect_errors=True)
+        self.assertEqual(406, response.status_int)
+
+    def test_get_one_custom_fields_show_password(self):
+        node = obj_utils.create_test_node(self.context,
+                                          chassis_id=self.chassis.id,
+                                          driver_info={'fake_password': 'bar'})
+        fields = 'driver_info'
+        data = self.get_json(
+            '/nodes/%s?fields=%s' % (node.uuid, fields),
+            headers={api_base.Version.string: str(api_v1.MAX_VER)})
+        # We always append "links"
+        self.assertItemsEqual(['driver_info', 'links'], data)
+        self.assertEqual('******', data['driver_info']['fake_password'])
+
     def test_detail(self):
         node = obj_utils.create_test_node(self.context,
                                           chassis_id=self.chassis.id)

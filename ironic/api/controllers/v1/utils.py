@@ -141,3 +141,30 @@ def vendor_passthru(ident, method, topic, data=None, driver_passthru=False):
 
     status_code = 202 if response['async'] else 200
     return wsme.api.Response(response['return'], status_code=status_code)
+
+
+def check_for_invalid_fields(fields, object_fields):
+    """Check for requested non-existent fields.
+
+    Check if the user requested non-existent fields.
+
+    :param fields: A list of fields requested by the user
+    :object_fields: A list of fields supported by the object.
+    :raises: InvalidParameterValue if invalid fields were requested.
+
+    """
+    invalid_fields = set(fields) - set(object_fields)
+    if invalid_fields:
+        raise exception.InvalidParameterValue(
+            _('Field(s) "%s" are not valid') % ', '.join(invalid_fields))
+
+
+def check_allow_specify_fields(fields):
+    """Check if fetching a subset of the resource attributes is allowed.
+
+    Version 1.8 of the API allows fetching a subset of the resource
+    attributes, this method checks if the required version is being
+    requested.
+    """
+    if fields is not None and pecan.request.version.minor < 8:
+        raise exception.NotAcceptable()

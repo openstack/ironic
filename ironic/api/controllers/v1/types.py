@@ -179,11 +179,42 @@ class JsonType(wtypes.UserType):
         return JsonType.validate(value)
 
 
+class ListType(wtypes.UserType):
+    """A simple list type."""
+
+    basetype = wtypes.text
+    name = 'list'
+    # FIXME(lucasagomes): When used with wsexpose decorator WSME will try
+    # to get the name of the type by accessing it's __name__ attribute.
+    # Remove this __name__ attribute once it's fixed in WSME.
+    # https://bugs.launchpad.net/wsme/+bug/1265590
+    __name__ = name
+
+    @staticmethod
+    def validate(value):
+        """Validate and convert the input to a ListType.
+
+        :param value: A comma separated string of values
+        :returns: A list of values.
+        """
+        items = [v.strip().lower() for v in six.text_type(value).split(',')]
+        # filter() to remove empty items
+        # set() to remove duplicated items
+        return set(filter(None, items))
+
+    @staticmethod
+    def frombasetype(value):
+        if value is None:
+            return None
+        return ListType.validate(value)
+
+
 macaddress = MacAddressType()
 uuid_or_name = UuidOrNameType()
 name = NameType()
 uuid = UuidType()
 boolean = BooleanType()
+listtype = ListType()
 # Can't call it 'json' because that's the name of the stdlib module
 jsontype = JsonType()
 
