@@ -1013,6 +1013,8 @@ class NodesController(rest.RestController):
                 raise wsme.exc.ClientSideError(msg % {'name': node.name},
                                                status_code=400)
 
+        node.provision_state = api_utils.initial_node_provision_state()
+
         new_node = objects.Node(pecan.request.context,
                                 **node.as_dict())
         new_node.create()

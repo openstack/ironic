@@ -56,7 +56,7 @@ BASE_VERSION = 1
 # v1.1: API at the point in time when microversioning support was added
 MIN_VER_STR = '1.1'
 
-# v1.2: Renamed NOSTATE ("None") to AVAILABLE ("available")
+# v1.2: Renamed NOSTATE ("None") to AVAILABLE ("available")  [breaking change]
 # v1.3: Add node.driver_internal_info
 # v1.4: Add MANAGEABLE state
 # v1.5: Add logical node names
@@ -65,7 +65,8 @@ MIN_VER_STR = '1.1'
 # v1.8: Add ability to return a subset of resource fields
 # v1.9: Add ability to filter nodes by provision state
 # v1.10: Logical node names support RFC 3986 unreserved characters
-MAX_VER_STR = '1.10'
+# v1.11: Nodes appear in ENROLL state by default  [breaking change]
+MAX_VER_STR = '1.11'
 
 
 MIN_VER = base.Version({base.Version.string: MIN_VER_STR},

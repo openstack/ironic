@@ -1005,6 +1005,36 @@ class ConductorManager(periodic_task.PeriodicTasks):
         LOG.info(_LI('Node %s cleaning complete'), node.uuid)
         task.process_event('done')
 
+    def _do_node_verify(self, task):
+        """Internal method to perform power credentials verification."""
+        node = task.node
+        LOG.debug('Starting power credentials verification for node %s',
+                  node.uuid)
+
+        error = None
+        try:
+            task.driver.power.validate(task)
+        except Exception as e:
+            error = (_('Failed to validate power driver interface for node '
+                       '%(node)s. Error: %(msg)s') %
+                     {'node': node.uuid, 'msg': e})
+        else:
+            try:
+                power_state = task.driver.power.get_power_state(task)
+            except Exception as e:
+                error = (_('Failed to get power state for node '
+                           '%(node)s. Error: %(msg)s') %
+                         {'node': node.uuid, 'msg': e})
+
+        if error is None:
+            node.power_state = power_state
+            task.process_event('done')
+        else:
+            node.last_error = error
+            task.process_event('fail')
+            node.target_provision_state = None
+            node.save()
+
     @messaging.expected_exceptions(exception.NoFreeConductorWorker,
                                    exception.NodeLocked,
                                    exception.InvalidParameterValue,
@@ -1032,6 +1062,12 @@ class ConductorManager(periodic_task.PeriodicTasks):
                 task.process_event('provide',
                                    callback=self._spawn_worker,
                                    call_args=(self._do_node_clean, task),
+                                   err_handler=provisioning_error_handler)
+            elif (action == states.VERBS['manage'] and
+                    task.node.provision_state == states.ENROLL):
+                task.process_event('manage',
+                                   callback=self._spawn_worker,
+                                   call_args=(self._do_node_verify, task),
                                    err_handler=provisioning_error_handler)
             else:
                 try:
@@ -1073,6 +1109,7 @@ class ConductorManager(periodic_task.PeriodicTasks):
         # (through to its DB API call) so that we can eliminate our call
         # and first set of checks below.
 
+        exclude_states = (states.DEPLOYWAIT, states.ENROLL)
         filters = {'reserved': False, 'maintenance': False}
         node_iter = self.iter_nodes(fields=['id'], filters=filters)
         for (node_uuid, driver, node_id) in node_iter:
@@ -1083,13 +1120,13 @@ class ConductorManager(periodic_task.PeriodicTasks):
                 # TODO(deva): refactor this check, because it needs to be done
                 #             in every periodic task, not just this one.
                 node = objects.Node.get_by_id(context, node_id)
-                if (node.provision_state == states.DEPLOYWAIT or
+                if (node.provision_state in exclude_states or
                         node.maintenance or node.reservation is not None):
                     continue
 
                 with task_manager.acquire(context, node_uuid,
                                           purpose='power state sync') as task:
-                    if (task.node.provision_state == states.DEPLOYWAIT or
+                    if (task.node.provision_state in exclude_states or
                             task.node.maintenance):
                         continue
                     count = do_sync_power_state(

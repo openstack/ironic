@@ -208,3 +208,13 @@ def check_for_invalid_state_and_allow_filter(provision_state):
         if provision_state not in valid_states:
             raise exception.InvalidParameterValue(
                 _('Provision state "%s" is not valid') % provision_state)
+
+
+def initial_node_provision_state():
+    """Return node state to use by default when creating new nodes.
+
+    Previously the default state for new nodes was AVAILABLE.
+    Starting with API 1.11 it is ENROLL.
+    """
+    return (states.AVAILABLE if pecan.request.version.minor < 11
+            else states.ENROLL)

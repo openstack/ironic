@@ -1289,6 +1289,30 @@ class TestPost(test_api_base.FunctionalTest):
         self.assertEqual(urlparse.urlparse(response.location).path,
                          expected_location)
 
+    def test_create_node_default_state_none(self):
+        ndict = test_api_utils.post_get_test_node()
+        response = self.post_json('/nodes', ndict,
+                                  headers={api_base.Version.string: "1.10"})
+        self.assertEqual(201, response.status_int)
+
+        # default state remains NONE/AVAILABLE
+        result = self.get_json('/nodes/%s' % ndict['uuid'])
+        self.assertEqual(states.NOSTATE, result['provision_state'])
+        result = self.get_json('/nodes/%s' % ndict['uuid'],
+                               headers={api_base.Version.string: "1.10"})
+        self.assertEqual(states.AVAILABLE, result['provision_state'])
+
+    def test_create_node_default_state_enroll(self):
+        ndict = test_api_utils.post_get_test_node()
+        response = self.post_json('/nodes', ndict,
+                                  headers={api_base.Version.string: "1.11"})
+        self.assertEqual(201, response.status_int)
+
+        # default state is ENROLL
+        result = self.get_json('/nodes/%s' % ndict['uuid'])
+        self.assertEqual(ndict['uuid'], result['uuid'])
+        self.assertEqual(states.ENROLL, result['provision_state'])
+
     def test_create_node_doesnt_contain_id(self):
         # FIXME(comstud): I'd like to make this test not use the
         # dbapi, however, no matter what I do when trying to mock
