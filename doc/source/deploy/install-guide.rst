@@ -169,7 +169,7 @@ so that the Bare Metal Service is configured for your needs.
     # The SQLAlchemy connection string used to connect to the
     # database (string value)
     #connection=<None>
-    connection = mysql://ironic:IRONIC_DBPASSWORD@DB_IP/ironic?charset=utf8
+    connection = mysql+pymysql://ironic:IRONIC_DBPASSWORD@DB_IP/ironic?charset=utf8
 
 #. Configure the Bare Metal Service to use the RabbitMQ message broker by
    setting one or more of these options. Replace RABBIT_HOST with the

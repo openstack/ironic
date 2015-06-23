@@ -69,7 +69,7 @@ The configuration file defines the database backend to use with the
 *connection* database option::
 
   [database]
-  connection=mysql://root@localhost/ironic
+  connection=mysql+pymysql://root@localhost/ironic
 
 If no configuration file is specified with the :option:`--config-file` option,
 :command:`ironic-dbsync` assumes an SQLite database.
