@@ -58,19 +58,16 @@ _cache_cleanup_list = []
 class ImageCache(object):
     """Class handling access to cache for master images."""
 
-    def __init__(self, master_dir, cache_size, cache_ttl,
-                 image_service=None):
+    def __init__(self, master_dir, cache_size, cache_ttl):
         """Constructor.
 
         :param master_dir: cache directory to work on
         :param cache_size: desired maximum cache size in bytes
         :param cache_ttl: cache entity TTL in seconds
-        :param image_service: Glance image service to use, None for default
         """
         self.master_dir = master_dir
         self._cache_size = cache_size
         self._cache_ttl = cache_ttl
-        self._image_service = image_service
         if master_dir is not None:
             fileutils.ensure_tree(master_dir)
 
@@ -93,10 +90,9 @@ class ImageCache(object):
             # NOTE(ghe): We don't share images between instances/hosts
             if not CONF.parallel_image_downloads:
                 with lockutils.lock(img_download_lock_name, 'ironic-'):
-                    _fetch(ctx, href, dest_path, self._image_service,
-                           force_raw)
+                    _fetch(ctx, href, dest_path, force_raw)
             else:
-                _fetch(ctx, href, dest_path, self._image_service, force_raw)
+                _fetch(ctx, href, dest_path, force_raw)
             return
 
         # TODO(ghe): have hard links and counts the same behaviour in all fs
@@ -170,7 +166,7 @@ class ImageCache(object):
         tmp_path = os.path.join(tmp_dir, href.split('/')[-1])
 
         try:
-            _fetch(ctx, href, tmp_path, self._image_service, force_raw)
+            _fetch(ctx, href, tmp_path, force_raw)
             # NOTE(dtantsur): no need for global lock here - master_path
             # will have link count >1 at any moment, so won't be cleaned up
             os.link(tmp_path, master_path)
@@ -310,13 +306,12 @@ def _free_disk_space_for(path):
     return stat.f_frsize * stat.f_bavail
 
 
-def _fetch(context, image_href, path, image_service=None, force_raw=False):
+def _fetch(context, image_href, path, force_raw=False):
     """Fetch image and convert to raw format if needed."""
     path_tmp = "%s.part" % path
-    images.fetch(context, image_href, path_tmp, image_service,
-                 force_raw=False)
+    images.fetch(context, image_href, path_tmp, force_raw=False)
     # Notes(yjiang5): If glance can provide the virtual size information,
-    # then we can firstly clean cach and then invoke images.fetch().
+    # then we can firstly clean cache and then invoke images.fetch().
     if force_raw:
         required_space = images.converted_size(path_tmp)
         directory = os.path.dirname(path_tmp)

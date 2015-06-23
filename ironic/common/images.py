@@ -328,17 +328,16 @@ def convert_image(source, dest, out_format, run_as_root=False):
     utils.execute(*cmd, run_as_root=run_as_root)
 
 
-def fetch(context, image_href, path, image_service=None, force_raw=False):
+def fetch(context, image_href, path, force_raw=False):
     # TODO(vish): Improve context handling and add owner and auth data
     #             when it is added to glance.  Right now there is no
     #             auth checking in glance, so we assume that access was
     #             checked before we got here.
-    if not image_service:
-        image_service = service.get_image_service(image_href,
-                                                  context=context)
-        LOG.debug("Using %(image_service)s to download image %(image_href)s." %
-                  {'image_service': image_service.__class__,
-                   'image_href': image_href})
+    image_service = service.get_image_service(image_href,
+                                              context=context)
+    LOG.debug("Using %(image_service)s to download image %(image_href)s." %
+              {'image_service': image_service.__class__,
+               'image_href': image_href})
 
     with fileutils.remove_path_on_error(path):
         with open(path, "wb") as image_file:

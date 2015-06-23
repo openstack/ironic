@@ -74,7 +74,7 @@ class IronicImagesTestCase(base.TestCase):
 
     @mock.patch.object(image_service, 'get_image_service', autospec=True)
     @mock.patch.object(__builtin__, 'open', autospec=True)
-    def test_fetch_no_image_service(self, open_mock, image_service_mock):
+    def test_fetch_image_service(self, open_mock, image_service_mock):
         mock_file_handle = mock.MagicMock(spec=file)
         mock_file_handle.__enter__.return_value = 'file'
         open_mock.return_value = mock_file_handle
@@ -87,32 +87,19 @@ class IronicImagesTestCase(base.TestCase):
         image_service_mock.return_value.download.assert_called_once_with(
             'image_href', 'file')
 
-    @mock.patch.object(__builtin__, 'open', autospec=True)
-    def test_fetch_image_service(self, open_mock):
-        mock_file_handle = mock.MagicMock(spec=file)
-        mock_file_handle.__enter__.return_value = 'file'
-        open_mock.return_value = mock_file_handle
-        image_service_mock = mock.Mock()
-
-        images.fetch('context', 'image_href', 'path', image_service_mock)
-
-        open_mock.assert_called_once_with('path', 'wb')
-        image_service_mock.download.assert_called_once_with(
-            'image_href', 'file')
-
+    @mock.patch.object(image_service, 'get_image_service', autospec=True)
     @mock.patch.object(images, 'image_to_raw', autospec=True)
     @mock.patch.object(__builtin__, 'open', autospec=True)
-    def test_fetch_image_service_force_raw(self, open_mock, image_to_raw_mock):
+    def test_fetch_image_service_force_raw(self, open_mock, image_to_raw_mock,
+                                           image_service_mock):
         mock_file_handle = mock.MagicMock(spec=file)
         mock_file_handle.__enter__.return_value = 'file'
         open_mock.return_value = mock_file_handle
-        image_service_mock = mock.Mock()
 
-        images.fetch('context', 'image_href', 'path', image_service_mock,
-                     force_raw=True)
+        images.fetch('context', 'image_href', 'path', force_raw=True)
 
         open_mock.assert_called_once_with('path', 'wb')
-        image_service_mock.download.assert_called_once_with(
+        image_service_mock.return_value.download.assert_called_once_with(
             'image_href', 'file')
         image_to_raw_mock.assert_called_once_with(
             'image_href', 'path', 'path.part')

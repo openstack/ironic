@@ -146,14 +146,13 @@ def _get_tftp_image_info(node):
 
 @image_cache.cleanup(priority=25)
 class AgentTFTPImageCache(image_cache.ImageCache):
-    def __init__(self, image_service=None):
+    def __init__(self):
         super(AgentTFTPImageCache, self).__init__(
             CONF.pxe.tftp_master_path,
             # MiB -> B
             CONF.pxe.image_cache_size * 1024 * 1024,
             # min -> sec
-            CONF.pxe.image_cache_ttl * 60,
-            image_service=image_service)
+            CONF.pxe.image_cache_ttl * 60)
 
 
 def _cache_tftp_images(ctx, node, pxe_info):
