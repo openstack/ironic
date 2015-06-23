@@ -406,7 +406,7 @@ or the agent driver, not both. The default is the PXE driver.::
 
     # Log all output to files
     LOGFILE=$HOME/devstack.log
-    SCREEN_LOGDIR=$HOME/logs
+    LOGDIR=$HOME/logs
     IRONIC_VM_LOG_DIR=$HOME/ironic-bm-logs
 
     END
