@@ -58,7 +58,7 @@ Example usage:
 
 ::
 
-    with task_manager.acquire(context, node_id) as task:
+    with task_manager.acquire(context, node_id, purpose='power on') as task:
         task.driver.power.power_on(task.node)
 
 If you need to execute task-requiring code in a background thread, the
@@ -68,7 +68,7 @@ an exception occurs). Common use of this is within the Manager like so:
 
 ::
 
-    with task_manager.acquire(context, node_id) as task:
+    with task_manager.acquire(context, node_id, purpose='some work') as task:
         <do some work>
         task.spawn_after(self._spawn_worker,
                          utils.node_power_action, task, new_state)
@@ -86,7 +86,7 @@ raised in the background thread.):
         if isinstance(e, Exception):
             ...
 
-    with task_manager.acquire(context, node_id) as task:
+    with task_manager.acquire(context, node_id, purpose='some work') as task:
         <do some work>
         task.set_spawn_error_hook(on_error)
         task.spawn_after(self._spawn_worker,
@@ -95,6 +95,7 @@ raised in the background thread.):
 """
 
 import functools
+import time
 
 from oslo_config import cfg
 from oslo_log import log as logging
@@ -129,7 +130,8 @@ def require_exclusive_lock(f):
     return wrapper
 
 
-def acquire(context, node_id, shared=False, driver_name=None):
+def acquire(context, node_id, shared=False, driver_name=None,
+            purpose='unspecified action'):
     """Shortcut for acquiring a lock on a Node.
 
     :param context: Request context.
@@ -137,11 +139,12 @@ def acquire(context, node_id, shared=False, driver_name=None):
     :param shared: Boolean indicating whether to take a shared or exclusive
                    lock. Default: False.
     :param driver_name: Name of Driver. Default: None.
+    :param purpose: human-readable purpose to put to debug logs.
     :returns: An instance of :class:`TaskManager`.
 
     """
     return TaskManager(context, node_id, shared=shared,
-                       driver_name=driver_name)
+                       driver_name=driver_name, purpose=purpose)
 
 
 class TaskManager(object):
@@ -152,7 +155,8 @@ class TaskManager(object):
 
     """
 
-    def __init__(self, context, node_id, shared=False, driver_name=None):
+    def __init__(self, context, node_id, shared=False, driver_name=None,
+                 purpose='unspecified action'):
         """Create a new TaskManager.
 
         Acquire a lock on a node. The lock can be either shared or
@@ -166,6 +170,7 @@ class TaskManager(object):
                        lock. Default: False.
         :param driver_name: The name of the driver to load, if different
                             from the Node's current driver.
+        :param purpose: human-readable purpose to put to debug logs.
         :raises: DriverNotFound
         :raises: NodeNotFound
         :raises: NodeLocked
@@ -180,6 +185,8 @@ class TaskManager(object):
         self.shared = shared
 
         self.fsm = states.machine.copy()
+        self._purpose = purpose
+        self._debug_timer = time.time()
 
         # NodeLocked exceptions can be annoying. Let's try to alleviate
         # some of that pain by retrying our lock attempts. The retrying
@@ -189,11 +196,18 @@ class TaskManager(object):
             stop_max_attempt_number=CONF.conductor.node_locked_retry_attempts,
             wait_fixed=CONF.conductor.node_locked_retry_interval * 1000)
         def reserve_node():
-            LOG.debug("Attempting to reserve node %(node)s",
-                      {'node': node_id})
             self.node = objects.Node.reserve(context, CONF.host, node_id)
+            LOG.debug("Node %(node)s successfully reserved for %(purpose)s "
+                      "(took %(time).2f seconds)",
+                      {'node': node_id, 'purpose': purpose,
+                       'time': time.time() - self._debug_timer})
+            self._debug_timer = time.time()
 
         try:
+            LOG.debug("Attempting to get %(type)s lock on node %(node)s (for "
+                      "%(purpose)s)",
+                      {'type': 'shared' if shared else 'exclusive',
+                       'node': node_id, 'purpose': purpose})
             if not self.shared:
                 reserve_node()
             else:
@@ -261,6 +275,12 @@ class TaskManager(object):
                 # squelch the exception if the node was deleted
                 # within the task's context.
                 pass
+        if self.node:
+            LOG.debug("Successfully released %(type)s lock for %(purpose)s "
+                      "on node %(node)s (lock was held %(time).2f sec)",
+                      {'type': 'shared' if self.shared else 'exclusive',
+                       'purpose': self._purpose, 'node': self.node.uuid,
+                       'time': time.time() - self._debug_timer})
         self.node = None
         self.driver = None
         self.ports = None

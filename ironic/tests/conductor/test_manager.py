@@ -2860,7 +2860,8 @@ class ManagerSyncPowerStatesTestCase(_CommonMixIn, tests_db_base.DbTestCase):
         mapped_mock.assert_called_once_with(self.node.uuid,
                                             self.node.driver)
         get_node_mock.assert_called_once_with(self.context, self.node.id)
-        acquire_mock.assert_called_once_with(self.context, self.node.uuid)
+        acquire_mock.assert_called_once_with(self.context, self.node.uuid,
+                                             purpose=mock.ANY)
         self.assertFalse(sync_mock.called)
 
     def test_node_in_deploywait_on_acquire(self, get_nodeinfo_mock,
@@ -2882,7 +2883,8 @@ class ManagerSyncPowerStatesTestCase(_CommonMixIn, tests_db_base.DbTestCase):
         mapped_mock.assert_called_once_with(self.node.uuid,
                                             self.node.driver)
         get_node_mock.assert_called_once_with(self.context, self.node.id)
-        acquire_mock.assert_called_once_with(self.context, self.node.uuid)
+        acquire_mock.assert_called_once_with(self.context, self.node.uuid,
+                                             purpose=mock.ANY)
         self.assertFalse(sync_mock.called)
 
     def test_node_in_maintenance_on_acquire(self, get_nodeinfo_mock,
@@ -2902,7 +2904,8 @@ class ManagerSyncPowerStatesTestCase(_CommonMixIn, tests_db_base.DbTestCase):
         mapped_mock.assert_called_once_with(self.node.uuid,
                                             self.node.driver)
         get_node_mock.assert_called_once_with(self.context, self.node.id)
-        acquire_mock.assert_called_once_with(self.context, self.node.uuid)
+        acquire_mock.assert_called_once_with(self.context, self.node.uuid,
+                                             purpose=mock.ANY)
         self.assertFalse(sync_mock.called)
 
     def test_node_disappears_on_acquire(self, get_nodeinfo_mock,
@@ -2921,7 +2924,8 @@ class ManagerSyncPowerStatesTestCase(_CommonMixIn, tests_db_base.DbTestCase):
         mapped_mock.assert_called_once_with(self.node.uuid,
                                             self.node.driver)
         get_node_mock.assert_called_once_with(self.context, self.node.id)
-        acquire_mock.assert_called_once_with(self.context, self.node.uuid)
+        acquire_mock.assert_called_once_with(self.context, self.node.uuid,
+                                             purpose=mock.ANY)
         self.assertFalse(sync_mock.called)
 
     def test_single_node(self, get_nodeinfo_mock, get_node_mock,
@@ -2939,7 +2943,8 @@ class ManagerSyncPowerStatesTestCase(_CommonMixIn, tests_db_base.DbTestCase):
         mapped_mock.assert_called_once_with(self.node.uuid,
                                             self.node.driver)
         get_node_mock.assert_called_once_with(self.context, self.node.id)
-        acquire_mock.assert_called_once_with(self.context, self.node.uuid)
+        acquire_mock.assert_called_once_with(self.context, self.node.uuid,
+                                             purpose=mock.ANY)
         sync_mock.assert_called_once_with(task, mock.ANY)
 
     def test__sync_power_state_multiple_nodes(self, get_nodeinfo_mock,
@@ -3013,7 +3018,8 @@ class ManagerSyncPowerStatesTestCase(_CommonMixIn, tests_db_base.DbTestCase):
                           for x in nodes[:1] + nodes[2:]]
         self.assertEqual(get_node_calls,
                          get_node_mock.call_args_list)
-        acquire_calls = [mock.call(self.context, x.uuid)
+        acquire_calls = [mock.call(self.context, x.uuid,
+                                   purpose=mock.ANY)
                          for x in nodes[:1] + nodes[6:]]
         self.assertEqual(acquire_calls, acquire_mock.call_args_list)
         sync_calls = [mock.call(tasks[0], mock.ANY),
@@ -3079,7 +3085,8 @@ class ManagerCheckDeployTimeoutsTestCase(_CommonMixIn,
 
         self._assert_get_nodeinfo_args(get_nodeinfo_mock)
         mapped_mock.assert_called_once_with(self.node.uuid, self.node.driver)
-        acquire_mock.assert_called_once_with(self.context, self.node.uuid)
+        acquire_mock.assert_called_once_with(self.context, self.node.uuid,
+                                             purpose=mock.ANY)
         self.task.process_event.assert_called_with(
             'fail',
             callback=self.service._spawn_worker,
@@ -3099,7 +3106,8 @@ class ManagerCheckDeployTimeoutsTestCase(_CommonMixIn,
         mapped_mock.assert_called_once_with(
             self.node.uuid, self.node.driver)
         acquire_mock.assert_called_once_with(self.context,
-                                             self.node.uuid)
+                                             self.node.uuid,
+                                             purpose=mock.ANY)
         self.assertFalse(self.task.spawn_after.called)
 
     def test_acquire_node_locked(self, get_nodeinfo_mock, mapped_mock,
@@ -3116,7 +3124,8 @@ class ManagerCheckDeployTimeoutsTestCase(_CommonMixIn,
         mapped_mock.assert_called_once_with(
             self.node.uuid, self.node.driver)
         acquire_mock.assert_called_once_with(self.context,
-                                             self.node.uuid)
+                                             self.node.uuid,
+                                             purpose=mock.ANY)
         self.assertFalse(self.task.spawn_after.called)
 
     def test_no_deploywait_after_lock(self, get_nodeinfo_mock, mapped_mock,
@@ -3134,7 +3143,8 @@ class ManagerCheckDeployTimeoutsTestCase(_CommonMixIn,
         mapped_mock.assert_called_once_with(
             self.node.uuid, self.node.driver)
         acquire_mock.assert_called_once_with(self.context,
-                                             self.node.uuid)
+                                             self.node.uuid,
+                                             purpose=mock.ANY)
         self.assertFalse(task.spawn_after.called)
 
     def test_maintenance_after_lock(self, get_nodeinfo_mock, mapped_mock,
@@ -3156,8 +3166,10 @@ class ManagerCheckDeployTimeoutsTestCase(_CommonMixIn,
         self.assertEqual([mock.call(self.node.uuid, task.node.driver),
                           mock.call(self.node2.uuid, self.node2.driver)],
                          mapped_mock.call_args_list)
-        self.assertEqual([mock.call(self.context, self.node.uuid),
-                          mock.call(self.context, self.node2.uuid)],
+        self.assertEqual([mock.call(self.context, self.node.uuid,
+                                    purpose=mock.ANY),
+                          mock.call(self.context, self.node2.uuid,
+                                    purpose=mock.ANY)],
                          acquire_mock.call_args_list)
         # First node skipped
         self.assertFalse(task.spawn_after.called)
@@ -3185,7 +3197,8 @@ class ManagerCheckDeployTimeoutsTestCase(_CommonMixIn,
         mapped_mock.assert_called_once_with(
             self.node.uuid, self.node.driver)
         acquire_mock.assert_called_once_with(self.context,
-                                             self.node.uuid)
+                                             self.node.uuid,
+                                             purpose=mock.ANY)
         self.task.process_event.assert_called_with(
             'fail',
             callback=self.service._spawn_worker,
@@ -3210,7 +3223,8 @@ class ManagerCheckDeployTimeoutsTestCase(_CommonMixIn,
         # have exited the loop early due to unknown exception
         mapped_mock.assert_called_once_with(self.node.uuid, self.node.driver)
         acquire_mock.assert_called_once_with(self.context,
-                                             self.node.uuid)
+                                             self.node.uuid,
+                                             purpose=mock.ANY)
         self.task.process_event.assert_called_with(
             'fail',
             callback=self.service._spawn_worker,
@@ -3234,7 +3248,8 @@ class ManagerCheckDeployTimeoutsTestCase(_CommonMixIn,
         # Should only have ran 2.
         self.assertEqual([mock.call(self.node.uuid, self.node.driver)] * 2,
                          mapped_mock.call_args_list)
-        self.assertEqual([mock.call(self.context, self.node.uuid)] * 2,
+        self.assertEqual([mock.call(self.context, self.node.uuid,
+                                    purpose=mock.ANY)] * 2,
                          acquire_mock.call_args_list)
         process_event_call = mock.call(
             'fail',
@@ -3440,7 +3455,8 @@ class ManagerSyncLocalStateTestCase(_CommonMixIn, tests_db_base.DbTestCase):
 
         self._assert_get_nodeinfo_args(get_nodeinfo_mock)
         mapped_mock.assert_called_once_with(self.node.uuid, self.node.driver)
-        acquire_mock.assert_called_once_with(self.context, self.node.uuid)
+        acquire_mock.assert_called_once_with(self.context, self.node.uuid,
+                                             purpose=mock.ANY)
         # assert spawn_after has been called
         self.task.spawn_after.assert_called_once_with(
             self.service._spawn_worker,
@@ -3472,7 +3488,8 @@ class ManagerSyncLocalStateTestCase(_CommonMixIn, tests_db_base.DbTestCase):
 
         # assert  acquire() gets called 2 times only instead of 3. When
         # NoFreeConductorWorker is raised the loop should be broken
-        expected = [mock.call(self.context, self.node.uuid)] * 2
+        expected = [mock.call(self.context, self.node.uuid,
+                              purpose=mock.ANY)] * 2
         self.assertEqual(expected, acquire_mock.call_args_list)
 
         # assert spawn_after has been called twice
@@ -3499,7 +3516,8 @@ class ManagerSyncLocalStateTestCase(_CommonMixIn, tests_db_base.DbTestCase):
         self.assertEqual(expected, mapped_mock.call_args_list)
 
         # assert acquire() gets called 3 times
-        expected = [mock.call(self.context, self.node.uuid)] * 3
+        expected = [mock.call(self.context, self.node.uuid,
+                              purpose=mock.ANY)] * 3
         self.assertEqual(expected, acquire_mock.call_args_list)
 
         # assert spawn_after has been called only 2 times
@@ -3528,7 +3546,8 @@ class ManagerSyncLocalStateTestCase(_CommonMixIn, tests_db_base.DbTestCase):
         mapped_mock.assert_called_once_with(self.node.uuid, self.node.driver)
 
         # assert acquire() gets called only once because of the worker limit
-        acquire_mock.assert_called_once_with(self.context, self.node.uuid)
+        acquire_mock.assert_called_once_with(self.context, self.node.uuid,
+                                             purpose=mock.ANY)
 
         # assert spawn_after has been called
         self.task.spawn_after.assert_called_once_with(
@@ -3769,7 +3788,8 @@ class ManagerCheckInspectTimeoutsTestCase(_CommonMixIn,
 
         self._assert_get_nodeinfo_args(get_nodeinfo_mock)
         mapped_mock.assert_called_once_with(self.node.uuid, self.node.driver)
-        acquire_mock.assert_called_once_with(self.context, self.node.uuid)
+        acquire_mock.assert_called_once_with(self.context, self.node.uuid,
+                                             purpose=mock.ANY)
         self.task.process_event.assert_called_with('fail')
 
     def test__check_inspect_timeouts_acquire_node_disappears(self,
@@ -3787,7 +3807,8 @@ class ManagerCheckInspectTimeoutsTestCase(_CommonMixIn,
         mapped_mock.assert_called_once_with(self.node.uuid,
                                             self.node.driver)
         acquire_mock.assert_called_once_with(self.context,
-                                             self.node.uuid)
+                                             self.node.uuid,
+                                             purpose=mock.ANY)
         self.assertFalse(self.task.process_event.called)
 
     def test__check_inspect_timeouts_acquire_node_locked(self,
@@ -3806,7 +3827,8 @@ class ManagerCheckInspectTimeoutsTestCase(_CommonMixIn,
         mapped_mock.assert_called_once_with(self.node.uuid,
                                             self.node.driver)
         acquire_mock.assert_called_once_with(self.context,
-                                             self.node.uuid)
+                                             self.node.uuid,
+                                             purpose=mock.ANY)
         self.assertFalse(self.task.process_event.called)
 
     def test__check_inspect_timeouts_no_acquire_after_lock(self,
@@ -3826,7 +3848,8 @@ class ManagerCheckInspectTimeoutsTestCase(_CommonMixIn,
         mapped_mock.assert_called_once_with(
             self.node.uuid, self.node.driver)
         acquire_mock.assert_called_once_with(self.context,
-                                             self.node.uuid)
+                                             self.node.uuid,
+                                             purpose=mock.ANY)
         self.assertFalse(task.process_event.called)
 
     def test__check_inspect_timeouts_to_maintenance_after_lock(
@@ -3848,8 +3871,10 @@ class ManagerCheckInspectTimeoutsTestCase(_CommonMixIn,
         self.assertEqual([mock.call(self.node.uuid, task.node.driver),
                           mock.call(self.node2.uuid, self.node2.driver)],
                          mapped_mock.call_args_list)
-        self.assertEqual([mock.call(self.context, self.node.uuid),
-                          mock.call(self.context, self.node2.uuid)],
+        self.assertEqual([mock.call(self.context, self.node.uuid,
+                                    purpose=mock.ANY),
+                          mock.call(self.context, self.node2.uuid,
+                                    purpose=mock.ANY)],
                          acquire_mock.call_args_list)
         # First node skipped
         self.assertFalse(task.process_event.called)
@@ -3873,7 +3898,8 @@ class ManagerCheckInspectTimeoutsTestCase(_CommonMixIn,
         mapped_mock.assert_called_once_with(
             self.node.uuid, self.node.driver)
         acquire_mock.assert_called_once_with(self.context,
-                                             self.node.uuid)
+                                             self.node.uuid,
+                                             purpose=mock.ANY)
         self.task.process_event.assert_called_with('fail')
 
     def test__check_inspect_timeouts_exit_with_other_exception(
@@ -3895,7 +3921,8 @@ class ManagerCheckInspectTimeoutsTestCase(_CommonMixIn,
         mapped_mock.assert_called_once_with(
             self.node.uuid, self.node.driver)
         acquire_mock.assert_called_once_with(self.context,
-                                             self.node.uuid)
+                                             self.node.uuid,
+                                             purpose=mock.ANY)
         self.task.process_event.assert_called_with('fail')
 
     def test__check_inspect_timeouts_worker_limit(self, get_nodeinfo_mock,
@@ -3916,7 +3943,8 @@ class ManagerCheckInspectTimeoutsTestCase(_CommonMixIn,
         # Should only have ran 2.
         self.assertEqual([mock.call(self.node.uuid, self.node.driver)] * 2,
                          mapped_mock.call_args_list)
-        self.assertEqual([mock.call(self.context, self.node.uuid)] * 2,
+        self.assertEqual([mock.call(self.context, self.node.uuid,
+                                    purpose=mock.ANY)] * 2,
                          acquire_mock.call_args_list)
         process_event_call = mock.call('fail')
         self.assertEqual([process_event_call] * 2,

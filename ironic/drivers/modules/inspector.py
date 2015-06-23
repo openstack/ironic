@@ -132,7 +132,9 @@ class Inspector(base.InspectInterface):
             try:
                 # TODO(dtantsur): we need an exclusive lock only once
                 # inspection is finished.
-                with task_manager.acquire(context, node_uuid) as task:
+                lock_purpose = 'checking hardware inspection status'
+                with task_manager.acquire(context, node_uuid,
+                                          purpose=lock_purpose) as task:
                     _check_status(task)
             except (exception.NodeLocked, exception.NodeNotFound):
                 continue
@@ -157,7 +159,9 @@ def _start_inspection(node_uuid, context):
                       {'node': node_uuid, 'err': exc})
         # NOTE(dtantsur): if acquire fails our last option is to rely on
         # timeout
-        with task_manager.acquire(context, node_uuid) as task:
+        lock_purpose = 'recording hardware inspection error'
+        with task_manager.acquire(context, node_uuid,
+                                  purpose=lock_purpose) as task:
             task.node.last_error = _('Failed to start inspection: %s') % exc
             task.process_event('fail')
     else:
