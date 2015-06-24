@@ -25,12 +25,12 @@ import inspect
 
 import eventlet
 from oslo_log import log as logging
+from oslo_service import periodic_task
 from oslo_utils import excutils
 import six
 
 from ironic.common import exception
 from ironic.common.i18n import _LE
-from ironic.openstack.common import periodic_task
 
 LOG = logging.getLogger(__name__)
 

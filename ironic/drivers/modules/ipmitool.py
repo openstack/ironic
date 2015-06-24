@@ -38,6 +38,7 @@ import time
 from oslo_concurrency import processutils
 from oslo_config import cfg
 from oslo_log import log as logging
+from oslo_service import loopingcall
 from oslo_utils import excutils
 
 from ironic.common import boot_devices
@@ -50,7 +51,6 @@ from ironic.common import utils
 from ironic.conductor import task_manager
 from ironic.drivers import base
 from ironic.drivers.modules import console_utils
-from ironic.openstack.common import loopingcall
 
 
 CONF = cfg.CONF

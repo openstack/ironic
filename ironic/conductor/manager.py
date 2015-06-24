@@ -54,6 +54,7 @@ from oslo_config import cfg
 from oslo_db import exception as db_exception
 from oslo_log import log
 import oslo_messaging as messaging
+from oslo_service import periodic_task
 from oslo_utils import excutils
 from oslo_utils import uuidutils
 
@@ -75,7 +76,6 @@ from ironic.conductor import task_manager
 from ironic.conductor import utils
 from ironic.db import api as dbapi
 from ironic import objects
-from ironic.openstack.common import periodic_task
 
 MANAGER_TOPIC = 'ironic.conductor_manager'
 WORKER_SPAWN_lOCK = "conductor_worker_spawn"
@@ -207,7 +207,7 @@ class ConductorManager(periodic_task.PeriodicTasks):
     target = messaging.Target(version=RPC_API_VERSION)
 
     def __init__(self, host, topic):
-        super(ConductorManager, self).__init__()
+        super(ConductorManager, self).__init__(CONF)
         if not host:
             host = CONF.host
         self.host = host
