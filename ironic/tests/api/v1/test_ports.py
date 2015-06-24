@@ -26,12 +26,13 @@ from six.moves.urllib import parse as urlparse
 from testtools.matchers import HasLength
 from wsme import types as wtypes
 
-from ironic.api.controllers import base as api_controller
+from ironic.api.controllers import base as api_base
+from ironic.api.controllers import v1 as api_v1
 from ironic.api.controllers.v1 import port as api_port
 from ironic.api.controllers.v1 import utils as api_utils
 from ironic.common import exception
 from ironic.conductor import rpcapi
-from ironic.tests.api import base as api_base
+from ironic.tests.api import base as test_api_base
 from ironic.tests.api import utils as apiutils
 from ironic.tests import base
 from ironic.tests.db import utils as dbutils
@@ -57,7 +58,7 @@ class TestPortObject(base.TestCase):
         self.assertEqual(wtypes.Unset, port.extra)
 
 
-class TestListPorts(api_base.FunctionalTest):
+class TestListPorts(test_api_base.FunctionalTest):
 
     def setUp(self):
         super(TestListPorts, self).setUp()
@@ -84,6 +85,52 @@ class TestListPorts(api_base.FunctionalTest):
         self.assertIn('node_uuid', data)
         # never expose the node_id
         self.assertNotIn('node_id', data)
+
+    def test_get_one_custom_fields(self):
+        port = obj_utils.create_test_port(self.context, node_id=self.node.id)
+        fields = 'address,extra'
+        data = self.get_json(
+            '/ports/%s?fields=%s' % (port.uuid, fields),
+            headers={api_base.Version.string: str(api_v1.MAX_VER)})
+        # We always append "links"
+        self.assertItemsEqual(['address', 'extra', 'links'], data)
+
+    def test_get_collection_custom_fields(self):
+        fields = 'uuid,extra'
+        for i in range(3):
+            obj_utils.create_test_port(self.context,
+                                       node_id=self.node.id,
+                                       uuid=uuidutils.generate_uuid(),
+                                       address='52:54:00:cf:2d:3%s' % i)
+
+        data = self.get_json(
+            '/ports?fields=%s' % fields,
+            headers={api_base.Version.string: str(api_v1.MAX_VER)})
+
+        self.assertEqual(3, len(data['ports']))
+        for port in data['ports']:
+            # We always append "links"
+            self.assertItemsEqual(['uuid', 'extra', 'links'], port)
+
+    def test_get_custom_fields_invalid_fields(self):
+        port = obj_utils.create_test_port(self.context, node_id=self.node.id)
+        fields = 'uuid,spongebob'
+        response = self.get_json(
+            '/ports/%s?fields=%s' % (port.uuid, fields),
+            headers={api_base.Version.string: str(api_v1.MAX_VER)},
+            expect_errors=True)
+        self.assertEqual(400, response.status_int)
+        self.assertEqual('application/json', response.content_type)
+        self.assertIn('spongebob', response.json['error_message'])
+
+    def test_get_custom_fields_invalid_api_version(self):
+        port = obj_utils.create_test_port(self.context, node_id=self.node.id)
+        fields = 'uuid,extra'
+        response = self.get_json(
+            '/ports/%s?fields=%s' % (port.uuid, fields),
+            headers={api_base.Version.string: str(api_v1.MIN_VER)},
+            expect_errors=True)
+        self.assertEqual(406, response.status_int)
 
     def test_detail(self):
         port = obj_utils.create_test_port(self.context, node_id=self.node.id)
@@ -221,7 +268,7 @@ class TestListPorts(api_base.FunctionalTest):
                                        uuid=uuidutils.generate_uuid(),
                                        address='52:54:00:cf:2d:3%s' % i)
         data = self.get_json("/ports?node=%s" % 'test-node',
-                             headers={api_controller.Version.string: '1.5'})
+                             headers={api_base.Version.string: '1.5'})
         self.assertEqual(3, len(data['ports']))
 
     @mock.patch.object(api_utils, 'get_rpc_node')
@@ -254,7 +301,7 @@ class TestListPorts(api_base.FunctionalTest):
         mock_get_rpc_node.return_value = self.node
         port = obj_utils.create_test_port(self.context, node_id=self.node.id)
         data = self.get_json('/ports/detail?node=%s' % 'test-node',
-                             headers={api_controller.Version.string: '1.5'})
+                             headers={api_base.Version.string: '1.5'})
         self.assertEqual(port.uuid, data['ports'][0]['uuid'])
         self.assertEqual(self.node.uuid, data['ports'][0]['node_uuid'])
 
@@ -277,11 +324,11 @@ class TestListPorts(api_base.FunctionalTest):
                       ('test-node', self.node.uuid))
         mock_gpc.assert_called_once_with(self.node.uuid, mock.ANY, mock.ANY,
                                          mock.ANY, mock.ANY, mock.ANY,
-                                         mock.ANY, mock.ANY)
+                                         mock.ANY)
 
 
 @mock.patch.object(rpcapi.ConductorAPI, 'update_port')
-class TestPatch(api_base.FunctionalTest):
+class TestPatch(test_api_base.FunctionalTest):
 
     def setUp(self):
         super(TestPatch, self).setUp()
@@ -581,7 +628,7 @@ class TestPatch(api_base.FunctionalTest):
         self.assertEqual(address.lower(), kargs.address)
 
 
-class TestPost(api_base.FunctionalTest):
+class TestPost(test_api_base.FunctionalTest):
 
     def setUp(self):
         super(TestPost, self).setUp()
@@ -710,7 +757,7 @@ class TestPost(api_base.FunctionalTest):
 
 
 @mock.patch.object(rpcapi.ConductorAPI, 'destroy_port')
-class TestDelete(api_base.FunctionalTest):
+class TestDelete(test_api_base.FunctionalTest):
 
     def setUp(self):
         super(TestDelete, self).setUp()

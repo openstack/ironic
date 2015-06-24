@@ -32,6 +32,9 @@ from ironic.common.i18n import _
 from ironic import objects
 
 
+_DEFAULT_RETURN_FIELDS = ('uuid', 'address')
+
+
 class PortPatchType(types.JsonPatchType):
 
     @staticmethod
@@ -108,25 +111,34 @@ class Port(base.APIBase):
         setattr(self, 'node_uuid', kwargs.get('node_id', wtypes.Unset))
 
     @staticmethod
-    def _convert_with_links(port, url, expand=True):
-        if not expand:
-            port.unset_fields_except(['uuid', 'address'])
+    def _convert_with_links(port, url, fields=None):
+        # NOTE(lucasagomes): Since we are able to return a specified set of
+        # fields the "uuid" can be unset, so we need to save it in another
+        # variable to use when building the links
+        port_uuid = port.uuid
+        if fields is not None:
+            port.unset_fields_except(fields)
 
         # never expose the node_id attribute
         port.node_id = wtypes.Unset
 
         port.links = [link.Link.make_link('self', url,
-                                          'ports', port.uuid),
+                                          'ports', port_uuid),
                       link.Link.make_link('bookmark', url,
-                                          'ports', port.uuid,
+                                          'ports', port_uuid,
                                           bookmark=True)
                       ]
         return port
 
     @classmethod
-    def convert_with_links(cls, rpc_port, expand=True):
+    def convert_with_links(cls, rpc_port, fields=None):
         port = Port(**rpc_port.as_dict())
-        return cls._convert_with_links(port, pecan.request.host_url, expand)
+
+        if fields is not None:
+            api_utils.check_for_invalid_fields(fields, port.as_dict())
+
+        return cls._convert_with_links(port, pecan.request.host_url,
+                                       fields=fields)
 
     @classmethod
     def sample(cls, expand=True):
@@ -138,7 +150,9 @@ class Port(base.APIBase):
         # NOTE(lucasagomes): node_uuid getter() method look at the
         # _node_uuid variable
         sample._node_uuid = '7ae81bb3-dec3-4289-8d6c-da80bd8001ae'
-        return cls._convert_with_links(sample, 'http://localhost:6385', expand)
+        fields = None if expand else _DEFAULT_RETURN_FIELDS
+        return cls._convert_with_links(sample, 'http://localhost:6385',
+                                       fields=fields)
 
 
 class PortCollection(collection.Collection):
@@ -151,9 +165,9 @@ class PortCollection(collection.Collection):
         self._type = 'ports'
 
     @staticmethod
-    def convert_with_links(rpc_ports, limit, url=None, expand=False, **kwargs):
+    def convert_with_links(rpc_ports, limit, url=None, fields=None, **kwargs):
         collection = PortCollection()
-        collection.ports = [Port.convert_with_links(p, expand)
+        collection.ports = [Port.convert_with_links(p, fields=fields)
                             for p in rpc_ports]
         collection.next = collection.get_next(limit, url=url, **kwargs)
         return collection
@@ -179,8 +193,8 @@ class PortsController(rest.RestController):
     invalid_sort_key_list = ['extra']
 
     def _get_ports_collection(self, node_ident, address, marker, limit,
-                              sort_key, sort_dir, expand=False,
-                              resource_url=None):
+                              sort_key, sort_dir, resource_url=None,
+                              fields=None):
         if self.from_nodes and not node_ident:
             raise exception.MissingParameterValue(
                 _("Node identifier not specified."))
@@ -217,7 +231,7 @@ class PortsController(rest.RestController):
 
         return PortCollection.convert_with_links(ports, limit,
                                                  url=resource_url,
-                                                 expand=expand,
+                                                 fields=fields,
                                                  sort_key=sort_key,
                                                  sort_dir=sort_dir)
 
@@ -237,9 +251,9 @@ class PortsController(rest.RestController):
 
     @expose.expose(PortCollection, types.uuid_or_name, types.uuid,
                    types.macaddress, types.uuid, int, wtypes.text,
-                   wtypes.text)
+                   wtypes.text, types.listtype)
     def get_all(self, node=None, node_uuid=None, address=None, marker=None,
-                limit=None, sort_key='id', sort_dir='asc'):
+                limit=None, sort_key='id', sort_dir='asc', fields=None):
         """Retrieve a list of ports.
 
         Note that the 'node_uuid' interface is deprecated in favour
@@ -255,7 +269,13 @@ class PortsController(rest.RestController):
         :param limit: maximum number of resources to return in a single result.
         :param sort_key: column to sort results by. Default: id.
         :param sort_dir: direction to sort. "asc" or "desc". Default: asc.
+        :param fields: Optional, a list with a specified set of fields
+            of the resource to be returned.
         """
+        api_utils.check_allow_specify_fields(fields)
+        if fields is None:
+            fields = _DEFAULT_RETURN_FIELDS
+
         if not node_uuid and node:
             # We're invoking this interface using positional notation, or
             # explicitly using 'node'.  Try and determine which one.
@@ -265,7 +285,8 @@ class PortsController(rest.RestController):
                 raise exception.NotAcceptable()
 
         return self._get_ports_collection(node_uuid or node, address, marker,
-                                          limit, sort_key, sort_dir)
+                                          limit, sort_key, sort_dir,
+                                          fields=fields)
 
     @expose.expose(PortCollection, types.uuid_or_name, types.uuid,
                    types.macaddress, types.uuid, int, wtypes.text,
@@ -301,23 +322,26 @@ class PortsController(rest.RestController):
         if parent != "ports":
             raise exception.HTTPNotFound
 
-        expand = True
         resource_url = '/'.join(['ports', 'detail'])
         return self._get_ports_collection(node_uuid or node, address, marker,
-                                          limit, sort_key, sort_dir, expand,
+                                          limit, sort_key, sort_dir,
                                           resource_url)
 
-    @expose.expose(Port, types.uuid)
-    def get_one(self, port_uuid):
+    @expose.expose(Port, types.uuid, types.listtype)
+    def get_one(self, port_uuid, fields=None):
         """Retrieve information about the given port.
 
         :param port_uuid: UUID of a port.
+        :param fields: Optional, a list with a specified set of fields
+            of the resource to be returned.
         """
         if self.from_nodes:
             raise exception.OperationNotPermitted
 
+        api_utils.check_allow_specify_fields(fields)
+
         rpc_port = objects.Port.get_by_uuid(pecan.request.context, port_uuid)
-        return Port.convert_with_links(rpc_port)
+        return Port.convert_with_links(rpc_port, fields=fields)
 
     @expose.expose(Port, body=Port, status_code=201)
     def post(self, port):
