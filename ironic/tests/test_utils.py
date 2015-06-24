@@ -621,3 +621,55 @@ class IsHttpUrlTestCase(base.TestCase):
         self.assertTrue(utils.is_http_url('HTTPS://127.3.2.1'))
         self.assertFalse(utils.is_http_url('Zm9vYmFy'))
         self.assertFalse(utils.is_http_url('11111111'))
+
+
+class GetUpdatedCapabilitiesTestCase(base.TestCase):
+
+    def test_get_updated_capabilities(self):
+        capabilities = {'ilo_firmware_version': 'xyz'}
+        cap_string = 'ilo_firmware_version:xyz'
+        cap_returned = utils.get_updated_capabilities(None, capabilities)
+        self.assertEqual(cap_string, cap_returned)
+        self.assertIsInstance(cap_returned, str)
+
+    def test_get_updated_capabilities_multiple_keys(self):
+        capabilities = {'ilo_firmware_version': 'xyz',
+                        'foo': 'bar', 'somekey': 'value'}
+        cap_string = 'ilo_firmware_version:xyz,foo:bar,somekey:value'
+        cap_returned = utils.get_updated_capabilities(None, capabilities)
+        set1 = set(cap_string.split(','))
+        set2 = set(cap_returned.split(','))
+        self.assertEqual(set1, set2)
+        self.assertIsInstance(cap_returned, str)
+
+    def test_get_updated_capabilities_invalid_capabilities(self):
+        capabilities = 'ilo_firmware_version'
+        self.assertRaises(ValueError,
+                          utils.get_updated_capabilities,
+                          capabilities, {})
+
+    def test_get_updated_capabilities_capabilities_not_dict(self):
+        capabilities = ['ilo_firmware_version:xyz', 'foo:bar']
+        self.assertRaises(ValueError,
+                          utils.get_updated_capabilities,
+                          None, capabilities)
+
+    def test_get_updated_capabilities_add_to_existing_capabilities(self):
+        new_capabilities = {'BootMode': 'uefi'}
+        expected_capabilities = 'BootMode:uefi,foo:bar'
+        cap_returned = utils.get_updated_capabilities('foo:bar',
+                                                      new_capabilities)
+        set1 = set(expected_capabilities.split(','))
+        set2 = set(cap_returned.split(','))
+        self.assertEqual(set1, set2)
+        self.assertIsInstance(cap_returned, str)
+
+    def test_get_updated_capabilities_replace_to_existing_capabilities(self):
+        new_capabilities = {'BootMode': 'bios'}
+        expected_capabilities = 'BootMode:bios'
+        cap_returned = utils.get_updated_capabilities('BootMode:uefi',
+                                                      new_capabilities)
+        set1 = set(expected_capabilities.split(','))
+        set2 = set(cap_returned.split(','))
+        self.assertEqual(set1, set2)
+        self.assertIsInstance(cap_returned, str)

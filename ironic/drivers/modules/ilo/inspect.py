@@ -14,13 +14,13 @@ iLO Inspect Interface
 """
 from oslo_log import log as logging
 from oslo_utils import importutils
-import six
 
 from ironic.common import exception
 from ironic.common.i18n import _
 from ironic.common.i18n import _LI
 from ironic.common.i18n import _LW
 from ironic.common import states
+from ironic.common import utils
 from ironic.conductor import utils as conductor_utils
 from ironic.db import api as dbapi
 from ironic.drivers import base
@@ -140,52 +140,6 @@ def _create_supported_capabilities_dict(capabilities):
     return valid_cap
 
 
-def _update_capabilities(node, new_capabilities):
-    """Add or update a capability to the capabilities string.
-
-    This method adds/updates a given property to the node capabilities
-    string.
-    Currently the capabilities are recorded as a string in
-    properties/capabilities of a Node. It's of the below format:
-    properties/capabilities='boot_mode:bios,boot_option:local'
-
-    :param node: Node object.
-    :param new_capabilities: the dictionary of capabilities returned
-                             by baremetal with inspection.
-    :returns: The capability string after adding/updating the
-              node_capabilities with new_capabilities
-    :raises: InvalidParameterValue, if node_capabilities is malformed.
-    :raises: HardwareInspectionFailure, if inspected capabilities
-             are not in dictionary format.
-
-    """
-    cap_dict = {}
-    node_capabilities = node.properties.get('capabilities')
-    if node_capabilities:
-        try:
-            cap_dict = dict(x.split(':', 1)
-                            for x in node_capabilities.split(','))
-        except ValueError:
-            # Capabilities can be filled by operator.  ValueError can
-            # occur in malformed capabilities like:
-            # properties/capabilities='boot_mode:bios,boot_option'.
-            msg = (_("Node %(node)s has invalid capabilities string "
-                     "%(capabilities)s, unable to modify the node "
-                     "properties['capabilities'] string")
-                   % {'node': node.uuid, 'capabilities': node_capabilities})
-            raise exception.InvalidParameterValue(msg)
-    if isinstance(new_capabilities, dict):
-        cap_dict.update(new_capabilities)
-    else:
-        msg = (_("The expected format of capabilities from inspection "
-                 "is dictionary while node %(node)s returned "
-                 "%(capabilities)s.")
-               % {'node': node.uuid, 'capabilities': new_capabilities})
-        raise exception.HardwareInspectionFailure(error=msg)
-    return ','.join(['%(key)s:%(value)s' % {'key': key, 'value': value}
-                     for key, value in six.iteritems(cap_dict)])
-
-
 def _get_capabilities(node, ilo_object):
     """inspects hardware and gets additional capabilities.
 
@@ -275,7 +229,8 @@ class IloInspect(base.InspectInterface):
         capabilities = _get_capabilities(task.node, ilo_object)
         if capabilities:
             valid_cap = _create_supported_capabilities_dict(capabilities)
-            capabilities = _update_capabilities(task.node, valid_cap)
+            capabilities = utils.get_updated_capabilities(
+                task.node.properties.get('capabilities'), valid_cap)
             if capabilities:
                 node_properties['capabilities'] = capabilities
                 task.node.properties = node_properties
