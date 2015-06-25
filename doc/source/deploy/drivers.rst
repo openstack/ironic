@@ -179,3 +179,12 @@ Wake-On-Lan driver
   :maxdepth: 1
 
   ../drivers/wol
+
+
+iBoot driver
+------------
+
+.. toctree::
+  :maxdepth: 1
+
+  ../drivers/iboot
