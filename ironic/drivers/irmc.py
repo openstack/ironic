@@ -24,6 +24,7 @@ from ironic.drivers import base
 from ironic.drivers.modules import agent
 from ironic.drivers.modules import ipmitool
 from ironic.drivers.modules.irmc import boot
+from ironic.drivers.modules.irmc import inspect
 from ironic.drivers.modules.irmc import management
 from ironic.drivers.modules.irmc import power
 from ironic.drivers.modules import iscsi_deploy
@@ -50,6 +51,7 @@ class IRMCVirtualMediaIscsiDriver(base.BaseDriver):
         self.console = ipmitool.IPMIShellinaboxConsole()
         self.management = management.IRMCManagement()
         self.vendor = iscsi_deploy.VendorPassthru()
+        self.inspect = inspect.IRMCInspect()
 
 
 class IRMCVirtualMediaAgentDriver(base.BaseDriver):
@@ -74,3 +76,4 @@ class IRMCVirtualMediaAgentDriver(base.BaseDriver):
         self.console = ipmitool.IPMIShellinaboxConsole()
         self.management = management.IRMCManagement()
         self.vendor = agent.AgentVendorInterface()
+        self.inspect = inspect.IRMCInspect()

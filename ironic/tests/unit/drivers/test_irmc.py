@@ -49,6 +49,7 @@ class IRMCVirtualMediaIscsiTestCase(testtools.TestCase):
         self.assertIsInstance(driver.management,
                               irmc.management.IRMCManagement)
         self.assertIsInstance(driver.vendor, iscsi_deploy.VendorPassthru)
+        self.assertIsInstance(driver.inspect, irmc.inspect.IRMCInspect)
 
     @mock.patch.object(irmc.importutils, 'try_import')
     def test___init___try_import_exception(self, mock_try_import):
@@ -91,6 +92,7 @@ class IRMCVirtualMediaAgentTestCase(testtools.TestCase):
         self.assertIsInstance(driver.management,
                               irmc.management.IRMCManagement)
         self.assertIsInstance(driver.vendor, irmc.agent.AgentVendorInterface)
+        self.assertIsInstance(driver.inspect, irmc.inspect.IRMCInspect)
 
     @mock.patch.object(irmc.importutils, 'try_import')
     def test___init___try_import_exception(self, mock_try_import):

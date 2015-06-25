@@ -103,6 +103,19 @@ class SNMPClientTestCase(base.TestCase):
 
     @mock.patch.object(snmp.SNMPClient, '_get_transport', autospec=True)
     @mock.patch.object(snmp.SNMPClient, '_get_auth', autospec=True)
+    def test_get_next(self, mock_auth, mock_transport, mock_cmdgen):
+        var_bind = (self.oid, self.value)
+        mock_cmdgenerator = mock_cmdgen.return_value
+        mock_cmdgenerator.nextCmd.return_value = (
+            "", None, 0, [[var_bind, var_bind]])
+        client = snmp.SNMPClient(self.address, self.port, snmp.SNMP_V3)
+        val = client.get_next(self.oid)
+        self.assertEqual([self.value, self.value], val)
+        mock_cmdgenerator.nextCmd.assert_called_once_with(mock.ANY, mock.ANY,
+                                                          self.oid)
+
+    @mock.patch.object(snmp.SNMPClient, '_get_transport', autospec=True)
+    @mock.patch.object(snmp.SNMPClient, '_get_auth', autospec=True)
     def test_get_err_transport(self, mock_auth, mock_transport, mock_cmdgen):
         mock_transport.side_effect = snmp_error.PySnmpError
         var_bind = (self.oid, self.value)
@@ -115,6 +128,19 @@ class SNMPClientTestCase(base.TestCase):
 
     @mock.patch.object(snmp.SNMPClient, '_get_transport', autospec=True)
     @mock.patch.object(snmp.SNMPClient, '_get_auth', autospec=True)
+    def test_get_next_err_transport(self, mock_auth, mock_transport,
+                                    mock_cmdgen):
+        mock_transport.side_effect = snmp_error.PySnmpError
+        var_bind = (self.oid, self.value)
+        mock_cmdgenerator = mock_cmdgen.return_value
+        mock_cmdgenerator.nextCmd.return_value = ("engine error", None, 0,
+                                                  [[var_bind, var_bind]])
+        client = snmp.SNMPClient(self.address, self.port, snmp.SNMP_V3)
+        self.assertRaises(exception.SNMPFailure, client.get_next, self.oid)
+        self.assertFalse(mock_cmdgenerator.nextCmd.called)
+
+    @mock.patch.object(snmp.SNMPClient, '_get_transport', autospec=True)
+    @mock.patch.object(snmp.SNMPClient, '_get_auth', autospec=True)
     def test_get_err_engine(self, mock_auth, mock_transport, mock_cmdgen):
         var_bind = (self.oid, self.value)
         mock_cmdgenerator = mock_cmdgen.return_value
@@ -124,6 +150,18 @@ class SNMPClientTestCase(base.TestCase):
         self.assertRaises(exception.SNMPFailure, client.get, self.oid)
         mock_cmdgenerator.getCmd.assert_called_once_with(mock.ANY, mock.ANY,
                                                          self.oid)
+
+    @mock.patch.object(snmp.SNMPClient, '_get_transport', autospec=True)
+    @mock.patch.object(snmp.SNMPClient, '_get_auth', autospec=True)
+    def test_get_next_err_engine(self, mock_auth, mock_transport, mock_cmdgen):
+        var_bind = (self.oid, self.value)
+        mock_cmdgenerator = mock_cmdgen.return_value
+        mock_cmdgenerator.nextCmd.return_value = ("engine error", None, 0,
+                                                  [[var_bind, var_bind]])
+        client = snmp.SNMPClient(self.address, self.port, snmp.SNMP_V3)
+        self.assertRaises(exception.SNMPFailure, client.get_next, self.oid)
+        mock_cmdgenerator.nextCmd.assert_called_once_with(mock.ANY, mock.ANY,
+                                                          self.oid)
 
     @mock.patch.object(snmp.SNMPClient, '_get_transport', autospec=True)
     @mock.patch.object(snmp.SNMPClient, '_get_auth', autospec=True)
