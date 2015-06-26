@@ -2611,7 +2611,7 @@ class ManagerDoSyncPowerStateTestCase(tests_db_base.DbTestCase):
         self.assertFalse(self.power.get_power_state.called)
         self.assertFalse(self.node.save.called)
         self.assertFalse(node_power_action.called)
-        self.assertEqual(None, self.node.power_state)
+        self.assertIsNone(self.node.power_state)
 
     def test_get_power_state_fail(self, node_power_action):
         self._do_sync_power_state('fake',
@@ -2741,7 +2741,7 @@ class ManagerDoSyncPowerStateTestCase(tests_db_base.DbTestCase):
         self.assertFalse(self.power.validate.called)
         self.power.get_power_state.assert_called_once_with(self.task)
 
-        self.assertEqual(None, self.node.power_state)
+        self.assertIsNone(self.node.power_state)
         self.assertTrue(self.node.maintenance)
         self.assertTrue(self.node.save.called)
 

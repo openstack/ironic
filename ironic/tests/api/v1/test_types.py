@@ -246,7 +246,7 @@ class TestJsonType(base.TestCase):
         value = vt.validate({'foo': 'bar'})
         self.assertEqual({'foo': 'bar'}, value)
         value = vt.validate(None)
-        self.assertEqual(None, value)
+        self.assertIsNone(value)
 
     def test_invalid_values(self):
         vt = types.jsontype

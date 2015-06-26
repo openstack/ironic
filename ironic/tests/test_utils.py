@@ -564,7 +564,7 @@ class TempFilesTestCase(base.TestCase):
     @mock.patch.object(os, 'access', autospec=True)
     def test__check_dir_writable_ok(self, mock_access):
         mock_access.return_value = True
-        self.assertEqual(None, utils._check_dir_writable("/fake/path"))
+        self.assertIsNone(utils._check_dir_writable("/fake/path"))
         mock_access.assert_called_once_with("/fake/path", os.W_OK)
 
     @mock.patch.object(os, 'access', autospec=True)
