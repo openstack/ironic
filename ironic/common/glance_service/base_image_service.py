@@ -16,7 +16,6 @@
 
 
 import functools
-import logging
 import os
 import sys
 import time
@@ -24,6 +23,7 @@ import time
 from glanceclient import client
 from glanceclient import exc as glance_exc
 from oslo_config import cfg
+from oslo_log import log
 import sendfile
 import six
 import six.moves.urllib.parse as urlparse
@@ -33,7 +33,7 @@ from ironic.common.glance_service import service_utils
 from ironic.common.i18n import _LE
 
 
-LOG = logging.getLogger(__name__)
+LOG = log.getLogger(__name__)
 CONF = cfg.CONF
 
 
