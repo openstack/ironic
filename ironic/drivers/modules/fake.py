@@ -205,3 +205,17 @@ class FakeInspect(base.InspectInterface):
 
     def inspect_hardware(self, task):
         return states.MANAGEABLE
+
+
+class FakeRAID(base.RAIDInterface):
+    """Example implementation of simple RAIDInterface."""
+
+    def get_properties(self):
+        return {}
+
+    def create_configuration(self, task, create_root_volume=True,
+                             create_nonroot_volumes=True):
+        pass
+
+    def delete_configuration(self, task):
+        pass

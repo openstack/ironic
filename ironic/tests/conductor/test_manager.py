@@ -2154,7 +2154,10 @@ class MiscTestCase(_ServiceSetUpMixin, _CommonMixIn, tests_db_base.DbTestCase):
     @mock.patch.object(images, 'is_whole_disk_image')
     def test_validate_driver_interfaces(self, mock_iwdi):
         mock_iwdi.return_value = False
-        node = obj_utils.create_test_node(self.context, driver='fake')
+        target_raid_config = {'logical_disks': [{'size_gb': 1,
+                                                 'raid_level': '1'}]}
+        node = obj_utils.create_test_node(
+            self.context, driver='fake', target_raid_config=target_raid_config)
         ret = self.service.validate_driver_interfaces(self.context,
                                                       node.uuid)
         expected = {'console': {'result': True},
@@ -2162,6 +2165,7 @@ class MiscTestCase(_ServiceSetUpMixin, _CommonMixIn, tests_db_base.DbTestCase):
                     'inspect': {'result': True},
                     'management': {'result': True},
                     'boot': {'result': True},
+                    'raid': {'result': True},
                     'deploy': {'result': True}}
         self.assertEqual(expected, ret)
         mock_iwdi.assert_called_once_with(self.context, node.instance_info)

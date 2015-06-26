@@ -68,6 +68,7 @@ class FakeDriver(base.BaseDriver):
         self.console = fake.FakeConsole()
         self.management = fake.FakeManagement()
         self.inspect = fake.FakeInspect()
+        self.raid = fake.FakeRAID()
 
 
 class FakeIPMIToolDriver(base.BaseDriver):
