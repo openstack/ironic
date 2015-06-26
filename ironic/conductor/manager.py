@@ -378,7 +378,8 @@ class ConductorManager(periodic_task.PeriodicTasks):
 
         driver_name = node_obj.driver if 'driver' in delta else None
         with task_manager.acquire(context, node_id, shared=False,
-                                  driver_name=driver_name):
+                                  driver_name=driver_name,
+                                  purpose='node update'):
             node_obj.save()
 
         return node_obj
@@ -407,7 +408,8 @@ class ConductorManager(periodic_task.PeriodicTasks):
                   "The desired new state is %(state)s."
                   % {'node': node_id, 'state': new_state})
 
-        with task_manager.acquire(context, node_id, shared=False) as task:
+        with task_manager.acquire(context, node_id, shared=False,
+                                  purpose='changing node power state') as task:
             task.driver.power.validate(task)
             # Set the target_power_state and clear any last_error, since we're
             # starting a new operation. This will expose to other processes
@@ -462,7 +464,8 @@ class ConductorManager(periodic_task.PeriodicTasks):
         # require an exclusive lock, we need to do so to guarantee that the
         # state doesn't unexpectedly change between doing a vendor.validate
         # and vendor.vendor_passthru.
-        with task_manager.acquire(context, node_id, shared=False) as task:
+        with task_manager.acquire(context, node_id, shared=False,
+                                  purpose='calling vendor passthru') as task:
             if not getattr(task.driver, 'vendor', None):
                 raise exception.UnsupportedDriverExtension(
                     driver=task.node.driver,
@@ -605,7 +608,9 @@ class ConductorManager(periodic_task.PeriodicTasks):
         """
         LOG.debug("RPC get_node_vendor_passthru_methods called for node %s"
                   % node_id)
-        with task_manager.acquire(context, node_id, shared=True) as task:
+        lock_purpose = 'listing vendor passthru methods'
+        with task_manager.acquire(context, node_id, shared=True,
+                                  purpose=lock_purpose) as task:
             if not getattr(task.driver, 'vendor', None):
                 raise exception.UnsupportedDriverExtension(
                     driver=task.node.driver,
@@ -670,7 +675,8 @@ class ConductorManager(periodic_task.PeriodicTasks):
         # to have locked this node, we'll fail to acquire the lock. The
         # client should perhaps retry in this case unless we decide we
         # want to add retries or extra synchronization here.
-        with task_manager.acquire(context, node_id, shared=False) as task:
+        with task_manager.acquire(context, node_id, shared=False,
+                                  purpose='node deployment') as task:
             node = task.node
             if node.maintenance:
                 raise exception.NodeInMaintenance(op=_('provisioning'),
@@ -747,7 +753,8 @@ class ConductorManager(periodic_task.PeriodicTasks):
         """
         LOG.debug("RPC do_node_tear_down called for node %s." % node_id)
 
-        with task_manager.acquire(context, node_id, shared=False) as task:
+        with task_manager.acquire(context, node_id, shared=False,
+                                  purpose='node tear down') as task:
             try:
                 # NOTE(ghe): Valid power driver values are needed to perform
                 # a tear-down. Deploy info is useful to purge the cache but not
@@ -826,7 +833,8 @@ class ConductorManager(periodic_task.PeriodicTasks):
         """
         LOG.debug("RPC continue_node_clean called for node %s.", node_id)
 
-        with task_manager.acquire(context, node_id, shared=False) as task:
+        with task_manager.acquire(context, node_id, shared=False,
+                                  purpose='node cleaning') as task:
             if task.node.provision_state != states.CLEANING:
                 raise exception.InvalidStateRequested(_(
                     'Cannot continue cleaning on %(node)s, node is in '
@@ -991,7 +999,9 @@ class ConductorManager(periodic_task.PeriodicTasks):
         :raises: NoFreeConductorWorker
 
         """
-        with task_manager.acquire(context, node_id, shared=False) as task:
+        with task_manager.acquire(context, node_id, shared=False,
+                                  purpose='provision action %s'
+                                  % action) as task:
             if (action == states.VERBS['provide'] and
                     task.node.provision_state == states.MANAGEABLE):
                 task.process_event('provide',
@@ -1052,7 +1062,8 @@ class ConductorManager(periodic_task.PeriodicTasks):
                         node.maintenance or node.reservation is not None):
                     continue
 
-                with task_manager.acquire(context, node_uuid) as task:
+                with task_manager.acquire(context, node_uuid,
+                                          purpose='power state sync') as task:
                     if (task.node.provision_state == states.DEPLOYWAIT or
                             task.node.maintenance):
                         continue
@@ -1141,7 +1152,8 @@ class ConductorManager(periodic_task.PeriodicTasks):
 
             # Node is mapped here, but not updated by this conductor last
             try:
-                with task_manager.acquire(context, node_uuid) as task:
+                with task_manager.acquire(context, node_uuid,
+                                          purpose='node take over') as task:
                     # NOTE(deva): now that we have the lock, check again to
                     # avoid racing with deletes and other state changes
                     node = task.node
@@ -1210,7 +1222,9 @@ class ConductorManager(periodic_task.PeriodicTasks):
         LOG.debug('RPC validate_driver_interfaces called for node %s.',
                   node_id)
         ret_dict = {}
-        with task_manager.acquire(context, node_id, shared=True) as task:
+        lock_purpose = 'driver interface validation'
+        with task_manager.acquire(context, node_id, shared=True,
+                                  purpose=lock_purpose) as task:
             # NOTE(sirushtim): the is_whole_disk_image variable is needed by
             # deploy drivers for doing their validate(). Since the deploy
             # isn't being done yet and the driver information could change in
@@ -1257,7 +1271,8 @@ class ConductorManager(periodic_task.PeriodicTasks):
             state to perform deletion.
 
         """
-        with task_manager.acquire(context, node_id) as task:
+        with task_manager.acquire(context, node_id,
+                                  purpose='node deletion') as task:
             node = task.node
             if node.instance_uuid is not None:
                 raise exception.NodeAssociated(node=node.uuid,
@@ -1309,7 +1324,8 @@ class ConductorManager(periodic_task.PeriodicTasks):
         """
         LOG.debug('RPC destroy_port called for port %(port)s',
                   {'port': port.uuid})
-        with task_manager.acquire(context, port.node_id) as task:
+        with task_manager.acquire(context, port.node_id,
+                                  purpose='port deletion') as task:
             port.destroy()
             LOG.info(_LI('Successfully deleted port %(port)s. '
                          'The node associated with the port was '
@@ -1334,7 +1350,9 @@ class ConductorManager(periodic_task.PeriodicTasks):
         """
         LOG.debug('RPC get_console_information called for node %s' % node_id)
 
-        with task_manager.acquire(context, node_id, shared=True) as task:
+        lock_purpose = 'getting console information'
+        with task_manager.acquire(context, node_id, shared=True,
+                                  purpose=lock_purpose) as task:
             node = task.node
 
             if not getattr(task.driver, 'console', None):
@@ -1372,7 +1390,8 @@ class ConductorManager(periodic_task.PeriodicTasks):
                   'enabled %(enabled)s' % {'node': node_id,
                                            'enabled': enabled})
 
-        with task_manager.acquire(context, node_id, shared=False) as task:
+        with task_manager.acquire(context, node_id, shared=False,
+                                  purpose='setting console mode') as task:
             node = task.node
             if not getattr(task.driver, 'console', None):
                 raise exception.UnsupportedDriverExtension(driver=node.driver,
@@ -1433,7 +1452,8 @@ class ConductorManager(periodic_task.PeriodicTasks):
         port_uuid = port_obj.uuid
         LOG.debug("RPC update_port called for port %s.", port_uuid)
 
-        with task_manager.acquire(context, port_obj.node_id) as task:
+        with task_manager.acquire(context, port_obj.node_id,
+                                  purpose='port update') as task:
             node = task.node
             if 'address' in port_obj.obj_what_changed():
                 vif = port_obj.extra.get('vif_port_id')
@@ -1491,9 +1511,11 @@ class ConductorManager(periodic_task.PeriodicTasks):
                        'event_type': 'hardware.ipmi.metrics.update'}
 
             try:
+                lock_purpose = 'getting sensors data'
                 with task_manager.acquire(context,
                                           node_uuid,
-                                          shared=True) as task:
+                                          shared=True,
+                                          purpose=lock_purpose) as task:
                     task.driver.management.validate(task)
                     sensors_data = task.driver.management.get_sensors_data(
                         task)
@@ -1573,7 +1595,8 @@ class ConductorManager(periodic_task.PeriodicTasks):
         """
         LOG.debug('RPC set_boot_device called for node %(node)s with '
                   'device %(device)s', {'node': node_id, 'device': device})
-        with task_manager.acquire(context, node_id) as task:
+        with task_manager.acquire(context, node_id,
+                                  purpose='setting boot device') as task:
             node = task.node
             if not getattr(task.driver, 'management', None):
                 raise exception.UnsupportedDriverExtension(
@@ -1608,7 +1631,8 @@ class ConductorManager(periodic_task.PeriodicTasks):
 
         """
         LOG.debug('RPC get_boot_device called for node %s', node_id)
-        with task_manager.acquire(context, node_id) as task:
+        with task_manager.acquire(context, node_id,
+                                  purpose='getting boot device') as task:
             if not getattr(task.driver, 'management', None):
                 raise exception.UnsupportedDriverExtension(
                     driver=task.node.driver, extension='management')
@@ -1637,7 +1661,9 @@ class ConductorManager(periodic_task.PeriodicTasks):
 
         """
         LOG.debug('RPC get_supported_boot_devices called for node %s', node_id)
-        with task_manager.acquire(context, node_id, shared=True) as task:
+        lock_purpose = 'getting supported boot devices'
+        with task_manager.acquire(context, node_id, shared=True,
+                                  purpose=lock_purpose) as task:
             if not getattr(task.driver, 'management', None):
                 raise exception.UnsupportedDriverExtension(
                     driver=task.node.driver, extension='management')
@@ -1669,7 +1695,8 @@ class ConductorManager(periodic_task.PeriodicTasks):
 
         """
         LOG.debug('RPC inspect_hardware called for node %s', node_id)
-        with task_manager.acquire(context, node_id, shared=False) as task:
+        with task_manager.acquire(context, node_id, shared=False,
+                                  purpose='hardware inspection') as task:
             if not getattr(task.driver, 'inspect', None):
                 raise exception.UnsupportedDriverExtension(
                     driver=task.node.driver, extension='inspect')
@@ -1751,7 +1778,8 @@ class ConductorManager(periodic_task.PeriodicTasks):
         workers_count = 0
         for node_uuid, driver in node_iter:
             try:
-                with task_manager.acquire(context, node_uuid) as task:
+                with task_manager.acquire(context, node_uuid,
+                                          purpose='node state check') as task:
                     if (task.node.maintenance or
                         task.node.provision_state != provision_state):
                         continue
