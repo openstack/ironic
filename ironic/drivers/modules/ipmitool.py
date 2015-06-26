@@ -32,6 +32,7 @@ DRIVER.
 import contextlib
 import os
 import re
+import subprocess
 import tempfile
 import time
 
@@ -45,6 +46,7 @@ from ironic.common import boot_devices
 from ironic.common import exception
 from ironic.common.i18n import _
 from ironic.common.i18n import _LE
+from ironic.common.i18n import _LI
 from ironic.common.i18n import _LW
 from ironic.common import states
 from ironic.common import utils
@@ -138,12 +140,19 @@ def _check_option_support(options):
         if _is_option_supported(opt) is None:
             try:
                 cmd = ipmitool_command_options[opt]
-                out, err = utils.execute(*cmd)
-            except processutils.ProcessExecutionError:
-                # the local ipmitool does not support the command.
+                # NOTE(cinerama): use subprocess.check_call to
+                # check options & suppress ipmitool output to
+                # avoid alarming people
+                with open(os.devnull, 'wb') as nullfile:
+                    subprocess.check_call(cmd, stdout=nullfile,
+                                          stderr=nullfile)
+            except subprocess.CalledProcessError:
+                LOG.info(_LI("Option %(opt)s is not supported by ipmitool"),
+                         {'opt': opt})
                 _is_option_supported(opt, False)
             else:
-                # looks like ipmitool supports the command.
+                LOG.info(_LI("Option %(opt)s is supported by ipmitool"),
+                         {'opt': opt})
                 _is_option_supported(opt, True)
 
 
