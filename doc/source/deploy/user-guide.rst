@@ -235,3 +235,94 @@ Deploy Process
 
 #. The bare metal node status is updated and the node instance is made
    available.
+
+Example 1: PXE Deploy Process
+--------------------------------
+
+.. seqdiag::
+   :scale: 80
+   :alt: pxe_ipmi
+
+   diagram {
+      Nova; API; Conductor; Neutron; "TFTP/HTTPd"; Node;
+      activation = none;
+      span_height = 1;
+      edge_length = 250;
+      default_note_color = white;
+      default_fontsize = 14;
+
+      Nova -> API [label = "Set instance_info", note = "image_source\n,root_gb,etc."];
+      Nova -> API [label = "Set provision_state"];
+      API -> Conductor [label = "do_node_deploy()"];
+      Conductor -> Conductor [label = "Cache images"];
+      Conductor -> Conductor [label = "Build TFTP config"];
+      Conductor -> Neutron [label = "Update DHCPBOOT"];
+      Conductor -> Node [label = "IPMI power-on"];
+      Node -> Neutron [label = "DHCP request"];
+      Neutron -> Node [label = "next-server = Conductor"];
+      Node -> Conductor [label = "Attempts to tftpboot from Conductor"];
+      "TFTP/HTTPd" -> Node [label = "Send deploy kernel, ramdisk\nand config"];
+      Node -> Node [label = "Runs deploy\nramdisk"];
+      Node -> Node [label = "Exposes disks\nvia iSCSI"];
+      Node -> API [label = "POST /vendor_passthru?method=pass_deploy_info"];
+      API -> Conductor [label = "Continue deploy"];
+      Conductor -> Node [label = "iSCSI attach"];
+      Conductor -> Node [label = "Copies user image"];
+      Conductor -> Node [label = "iSCSI detach"];
+      Conductor -> Node [label = "Sends 'DONE' message"];
+      Conductor -> Conductor [label = "Mark node as\nACTIVE"];
+      Node -> Node [label = "Terminates iSCSI endpoint"];
+      Node -> Node [label = "Reboots into\nuser instance"];
+   }
+
+(From a `talk`_  and `slides`_)
+
+Example 2: Agent Deploy Process
+---------------------------------
+
+.. seqdiag::
+   :scale: 80
+   :alt: pxe_ipmi_agent
+
+   diagram {
+      Nova; API; Conductor; Neutron; "TFTP/HTTPd"; Node;
+      activation = none;
+      edge_length = 250;
+      span_height = 1;
+      default_note_color = white;
+      default_fontsize = 14;
+
+      Nova -> API [label = "Set instance_info", note = "image_source\n,root_gb,etc."];
+      Nova -> API [label = "Set provision_state"];
+      API -> Conductor [label = "do_node_deploy()"];
+      Conductor -> Conductor [label = "Cache images"];
+      Conductor -> Conductor [label = "Update pxe,\ntftp configs"];
+      Conductor -> Neutron [label = "Update DHCPBOOT"];
+      Conductor -> Node [label = "power on"];
+      Node -> Neutron [label = "DHCP request"];
+      Neutron -> Node [label = "next-server = Conductor"];
+      Node -> Conductor [label = "Attempts tftpboot"];
+      "TFTP/HTTPd" -> Node [label = "Send deploy kernel, ramdisk and config"];
+      Node -> Node [label = "Runs agent\nramdisk"];
+      Node -> API [label = "lookup()"];
+      API -> Conductor [label = "..."];
+      Conductor -> Node [label = "Pass UUID"];
+      Node -> API [label = "Heartbeat (UUID)"];
+      API -> Conductor [label = "Heartbeat"];
+      Conductor -> Node [label = "Continue deploy: Pass image, disk info"];
+      === Node downloads image, writes to disk ===
+      Node -> API [label = "Heartbeat periodically"];
+      API -> Conductor [label = "..."];
+      Conductor -> Node [label = "Is deploy done yet?"];
+      Node -> Conductor [label = "Still working..."];
+      === When deploy is done ===
+      Conductor -> Neutron [label = "Clear DHCPBOOT"];
+      Conductor -> Node [label = "Set bootdev HDD"];
+      Conductor -> Node [label = "Reboot"];
+      Node -> Node [label = "Reboots into\nuser instance"];
+   }
+
+(From a `talk`_  and `slides`_)
+
+.. _talk: https://www.openstack.org/summit/vancouver-2015/summit-videos/presentation/isn-and-039t-it-ironic-the-bare-metal-cloud
+.. _slides: http://devananda.github.io/talks/isnt-it-ironic.html
