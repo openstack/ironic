@@ -73,11 +73,13 @@ class ConductorAPI(object):
     |    1.28 - Change exceptions raised by destroy_node
     |    1.29 - Change return value of vendor_passthru and
     |           driver_vendor_passthru to a dictionary
+    |    1.30 - Added set_target_raid_config and
+    |           get_raid_logical_disk_properties
 
     """
 
     # NOTE(rloo): This must be in sync with manager.ConductorManager's.
-    RPC_API_VERSION = '1.29'
+    RPC_API_VERSION = '1.30'
 
     def __init__(self, topic=None):
         super(ConductorAPI, self).__init__()
@@ -544,3 +546,46 @@ class ConductorAPI(object):
         """
         cctxt = self.client.prepare(topic=topic or self.topic, version='1.25')
         return cctxt.call(context, 'destroy_port', port=port)
+
+    def set_target_raid_config(self, context, node_id, target_raid_config,
+                               topic=None):
+        """Stores the target RAID configuration on the node.
+
+        Stores the target RAID configuration on node.target_raid_config
+
+        :param context: request context.
+        :param node_id: node id or uuid.
+        :param target_raid_config: Dictionary containing the target RAID
+            configuration.
+        :param topic: RPC topic. Defaults to self.topic.
+        :raises: UnsupportedDriverExtension if the node's driver doesn't
+            support RAID configuration.
+        :raises: InvalidParameterValue, if validation of target raid config
+            fails.
+        :raises: MissingParameterValue, if some required parameters are
+            missing.
+        :raises: NodeLocked if node is locked by another conductor.
+        """
+        cctxt = self.client.prepare(topic=topic or self.topic, version='1.30')
+        return cctxt.call(context, 'set_target_raid_config',
+                          node_id=node_id,
+                          target_raid_config=target_raid_config)
+
+    def get_raid_logical_disk_properties(self, context, driver_name,
+                                         topic=None):
+        """Get the logical disk properties for RAID configuration.
+
+        Gets the information about logical disk properties which can
+        be specified in the input RAID configuration.
+
+        :param context: request context.
+        :param driver_name: name of the driver
+        :param topic: RPC topic. Defaults to self.topic.
+        :raises: UnsupportedDriverExtension if the driver doesn't
+            support RAID configuration.
+        :returns: A dictionary containing the properties that can be mentioned
+            for logical disks and a textual description for them.
+        """
+        cctxt = self.client.prepare(topic=topic or self.topic, version='1.30')
+        return cctxt.call(context, 'get_raid_logical_disk_properties',
+                          driver_name=driver_name)

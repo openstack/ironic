@@ -293,3 +293,16 @@ class RPCAPITestCase(base.DbTestCase):
                           'cast',
                           version='1.27',
                           node_id=self.fake_node['uuid'])
+
+    def test_get_raid_logical_disk_properties(self):
+        self._test_rpcapi('get_raid_logical_disk_properties',
+                          'call',
+                          version='1.30',
+                          driver_name='fake-driver')
+
+    def test_set_target_raid_config(self):
+        self._test_rpcapi('set_target_raid_config',
+                          'call',
+                          version='1.30',
+                          node_id=self.fake_node['uuid'],
+                          target_raid_config='config')
