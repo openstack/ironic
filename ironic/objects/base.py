@@ -20,13 +20,13 @@ import copy
 from oslo_context import context
 from oslo_log import log as logging
 import oslo_messaging as messaging
+from oslo_utils import versionutils
 import six
 
 from ironic.common import exception
 from ironic.common.i18n import _
 from ironic.common.i18n import _LE
 from ironic.objects import utils as obj_utils
-from ironic.openstack.common import versionutils
 
 
 LOG = logging.getLogger('object')
