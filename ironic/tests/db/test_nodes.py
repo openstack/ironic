@@ -496,7 +496,7 @@ class DbNodeTestCase(base.DbTestCase):
     def test_release_non_locked_node(self):
         node = utils.create_test_node()
 
-        self.assertEqual(None, node.reservation)
+        self.assertIsNone(node.reservation)
         self.assertRaises(exception.NodeNotLocked,
                           self.dbapi.release_node, 'fake', node.id)
         self.assertRaises(exception.NodeNotLocked,

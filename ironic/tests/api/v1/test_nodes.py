@@ -275,7 +275,7 @@ class TestListNodes(test_api_base.FunctionalTest):
         started = timeutils.parse_isotime(
             data['inspection_started_at']).replace(tzinfo=None)
         self.assertEqual(some_time, started)
-        self.assertEqual(None, data['inspection_finished_at'])
+        self.assertIsNone(data['inspection_finished_at'])
 
     def test_hide_fields_in_newer_versions_clean_step(self):
         node = obj_utils.create_test_node(self.context,
@@ -1557,7 +1557,7 @@ class TestDelete(test_api_base.FunctionalTest):
         self.assertEqual(202, response.status_int)
         self.assertEqual(b'', response.body)
         self.assertEqual(False, node.maintenance)
-        self.assertEqual(None, node.maintenance_reason)
+        self.assertIsNone(node.maintenance_reason)
         mock_get.assert_called_once_with(mock.ANY, node.uuid)
         mock_update.assert_called_once_with(mock.ANY, mock.ANY,
                                             topic='test-topic')
@@ -1575,7 +1575,7 @@ class TestDelete(test_api_base.FunctionalTest):
         self.assertEqual(202, response.status_int)
         self.assertEqual(b'', response.body)
         self.assertEqual(False, node.maintenance)
-        self.assertEqual(None, node.maintenance_reason)
+        self.assertIsNone(node.maintenance_reason)
         mock_get.assert_called_once_with(mock.ANY, node.name)
         mock_update.assert_called_once_with(mock.ANY, mock.ANY,
                                             topic='test-topic')
