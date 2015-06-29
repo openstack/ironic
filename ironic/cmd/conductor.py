@@ -19,10 +19,13 @@
 The Ironic Management Service
 """
 
+import logging
 import sys
 
 from oslo_config import cfg
+from oslo_log import log
 
+from ironic.common.i18n import _LI
 from ironic.common import service as ironic_service
 from ironic.openstack.common import service
 
@@ -36,5 +39,10 @@ def main():
     mgr = ironic_service.RPCService(CONF.host,
                                     'ironic.conductor.manager',
                                     'ConductorManager')
+
+    LOG = log.getLogger(__name__)
+    LOG.info(_LI("Configuration:"))
+    CONF.log_opt_values(LOG, logging.INFO)
+
     launcher = service.launch(mgr)
     launcher.wait()
