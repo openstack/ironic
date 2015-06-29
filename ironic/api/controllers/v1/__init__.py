@@ -63,7 +63,8 @@ MIN_VER_STR = '1.1'
 # v1.6: Add INSPECT* states
 # v1.7: Add node.clean_step
 # v1.8: Add ability to return a subset of resource fields
-MAX_VER_STR = '1.8'
+# v1.9: Add ability to filter nodes by provision state
+MAX_VER_STR = '1.9'
 
 
 MIN_VER = base.Version({base.Version.string: MIN_VER_STR},

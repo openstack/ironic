@@ -616,6 +616,41 @@ class TestListNodes(test_api_base.FunctionalTest):
         uuids = [n['uuid'] for n in data['nodes']]
         self.assertIn(node.uuid, uuids)
 
+    def test_get_nodes_by_provision_state(self):
+        node = obj_utils.create_test_node(self.context,
+                                          uuid=uuidutils.generate_uuid(),
+                                          provision_state=states.AVAILABLE)
+        node1 = obj_utils.create_test_node(self.context,
+                                           uuid=uuidutils.generate_uuid(),
+                                           provision_state=states.DEPLOYING)
+
+        data = self.get_json('/nodes?provision_state=available',
+                             headers={api_base.Version.string: "1.9"})
+        uuids = [n['uuid'] for n in data['nodes']]
+        self.assertIn(node.uuid, uuids)
+        self.assertNotIn(node1.uuid, uuids)
+        data = self.get_json('/nodes?provision_state=deploying',
+                             headers={api_base.Version.string: "1.9"})
+        uuids = [n['uuid'] for n in data['nodes']]
+        self.assertIn(node1.uuid, uuids)
+        self.assertNotIn(node.uuid, uuids)
+
+    def test_get_nodes_by_invalid_provision_state(self):
+        response = self.get_json('/nodes?provision_state=test',
+                                 headers={api_base.Version.string: "1.9"},
+                                 expect_errors=True)
+        self.assertEqual('application/json', response.content_type)
+        self.assertEqual(400, response.status_code)
+        self.assertTrue(response.json['error_message'])
+
+    def test_get_nodes_by_provision_state_not_allowed(self):
+        response = self.get_json('/nodes?provision_state=test',
+                                 headers={api_base.Version.string: "1.8"},
+                                 expect_errors=True)
+        self.assertEqual('application/json', response.content_type)
+        self.assertEqual(406, response.status_code)
+        self.assertTrue(response.json['error_message'])
+
     def test_get_console_information(self):
         node = obj_utils.create_test_node(self.context)
         expected_console_info = {'test': 'test-data'}

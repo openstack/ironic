@@ -21,6 +21,7 @@ import wsme
 
 from ironic.common import exception
 from ironic.common.i18n import _
+from ironic.common import states
 from ironic.common import utils
 from ironic import objects
 
@@ -168,3 +169,17 @@ def check_allow_specify_fields(fields):
     """
     if fields is not None and pecan.request.version.minor < 8:
         raise exception.NotAcceptable()
+
+
+def check_for_invalid_state_and_allow_filter(provision_state):
+    """Check if filtering nodes by provision state is allowed.
+
+    Version 1.9 of the API allows filter nodes by provision state.
+    """
+    if provision_state is not None:
+        if pecan.request.version.minor < 9:
+            raise exception.NotAcceptable()
+        valid_states = states.machine.states
+        if provision_state not in valid_states:
+            raise exception.InvalidParameterValue(
+                _('Provision state "%s" is not valid') % provision_state)
