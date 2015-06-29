@@ -32,6 +32,7 @@ class AuthTokenMiddleware(auth_token.AuthProtocol):
 
     """
     def __init__(self, app, conf, public_api_routes=[]):
+        self._ironic_app = app
         # TODO(mrda): Remove .xml and ensure that doesn't result in a
         # 401 Authentication Required instead of 404 Not Found
         route_pattern_tpl = '%s(\.json|\.xml)?$'
@@ -57,6 +58,6 @@ class AuthTokenMiddleware(auth_token.AuthProtocol):
                                        self.public_api_routes))
 
         if env['is_public_api']:
-            return self._app(env, start_response)
+            return self._ironic_app(env, start_response)
 
         return super(AuthTokenMiddleware, self).__call__(env, start_response)
