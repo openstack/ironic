@@ -3298,7 +3298,7 @@ class ManagerTestProperties(tests_db_base.DbTestCase):
                     'ipmi_username', 'ipmi_bridging',
                     'ipmi_transit_channel', 'ipmi_transit_address',
                     'ipmi_target_channel', 'ipmi_target_address',
-                    'ipmi_local_address'
+                    'ipmi_local_address', 'ipmi_protocol_version',
                     ]
         self._check_driver_properties("fake_ipmitool", expected)
 
@@ -3334,7 +3334,7 @@ class ManagerTestProperties(tests_db_base.DbTestCase):
                     'ipmi_username', 'ipmi_bridging', 'ipmi_transit_channel',
                     'ipmi_transit_address', 'ipmi_target_channel',
                     'ipmi_target_address', 'ipmi_local_address',
-                    'deploy_kernel', 'deploy_ramdisk',
+                    'deploy_kernel', 'deploy_ramdisk', 'ipmi_protocol_version',
                     ]
         self._check_driver_properties("pxe_ipmitool", expected)
 

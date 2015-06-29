@@ -591,6 +591,20 @@ class IPMIToolPrivateMethodTestCase(db_base.DbTestCase):
             self.assertEqual(mock.call('single_bridge'),
                              mock_support.call_args)
 
+    def test__parse_driver_info_ipmi_prot_version_1_5(self, mock_sleep):
+        info = dict(INFO_DICT)
+        info['ipmi_protocol_version'] = '1.5'
+        node = obj_utils.get_test_node(self.context, driver_info=info)
+        ret = ipmi._parse_driver_info(node)
+        self.assertEqual('1.5', ret['protocol_version'])
+
+    def test__parse_driver_info_invalid_ipmi_prot_version(self, mock_sleep):
+        info = dict(INFO_DICT)
+        info['ipmi_protocol_version'] = '9000'
+        node = obj_utils.get_test_node(self.context, driver_info=info)
+        self.assertRaises(exception.InvalidParameterValue,
+                          ipmi._parse_driver_info, node)
+
     @mock.patch.object(ipmi, '_is_option_supported', autospec=True)
     @mock.patch.object(ipmi, '_make_password_file', autospec=True)
     @mock.patch.object(utils, 'execute', autospec=True)
@@ -1032,6 +1046,30 @@ class IPMIToolPrivateMethodTestCase(db_base.DbTestCase):
                           self.info, 'A B C')
         mock_support.assert_called_once_with('timing')
         self.assertEqual(2, mock_exec.call_count)
+
+    @mock.patch.object(ipmi, '_is_option_supported', autospec=True)
+    @mock.patch.object(ipmi, '_make_password_file', autospec=True)
+    @mock.patch.object(utils, 'execute', autospec=True)
+    def test__exec_ipmitool_IPMI_version_1_5(
+            self, mock_exec, mock_pwf, mock_support, mock_sleep):
+        self.info['protocol_version'] = '1.5'
+        # Assert it uses "-I lan" (1.5) instead of "-I lanplus" (2.0)
+        args = [
+            'ipmitool',
+            '-I', 'lan',
+            '-H', self.info['address'],
+            '-L', self.info['priv_level'],
+            '-U', self.info['username'],
+            '-f', mock.ANY,
+            'A', 'B', 'C',
+        ]
+
+        mock_support.return_value = False
+        mock_exec.return_value = (None, None)
+        ipmi._exec_ipmitool(self.info, 'A B C')
+        mock_support.assert_called_once_with('timing')
+        self.assertTrue(mock_pwf.called)
+        mock_exec.assert_called_once_with(*args)
 
     @mock.patch.object(ipmi, '_exec_ipmitool', autospec=True)
     def test__power_status_on(self, mock_exec, mock_sleep):

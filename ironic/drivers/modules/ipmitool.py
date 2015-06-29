@@ -65,6 +65,8 @@ LOG = logging.getLogger(__name__)
 
 VALID_PRIV_LEVELS = ['ADMINISTRATOR', 'CALLBACK', 'OPERATOR', 'USER']
 
+VALID_PROTO_VERSIONS = ('2.0', '1.5')
+
 REQUIRED_PROPERTIES = {
     'ipmi_address': _("IP address or hostname of the node. Required.")
 }
@@ -87,7 +89,9 @@ OPTIONAL_PROPERTIES = {
                              "to \"single\" or \"dual\"."),
     'ipmi_local_address': _("local IPMB address for bridged requests. "
                             "Used only if ipmi_bridging is set "
-                            "to \"single\" or \"dual\". Optional.")
+                            "to \"single\" or \"dual\". Optional."),
+    'ipmi_protocol_version': _('the version of the IPMI protocol; default '
+                               'is "2.0". One of "1.5", "2.0". Optional.'),
 }
 COMMON_PROPERTIES = REQUIRED_PROPERTIES.copy()
 COMMON_PROPERTIES.update(OPTIONAL_PROPERTIES)
@@ -242,6 +246,14 @@ def _parse_driver_info(node):
     transit_address = info.get('ipmi_transit_address')
     target_channel = info.get('ipmi_target_channel')
     target_address = info.get('ipmi_target_address')
+    protocol_version = str(info.get('ipmi_protocol_version', '2.0'))
+
+    if protocol_version not in VALID_PROTO_VERSIONS:
+        valid_versions = ', '.join(VALID_PROTO_VERSIONS)
+        raise exception.InvalidParameterValue(_(
+            "Invalid IPMI protocol version value %(version)s, the valid "
+            "value can be one of %(valid_versions)s") %
+            {'version': protocol_version, 'valid_versions': valid_versions})
 
     if port:
         try:
@@ -308,14 +320,13 @@ def _parse_driver_info(node):
         'transit_channel': transit_channel,
         'transit_address': transit_address,
         'target_channel': target_channel,
-        'target_address': target_address
+        'target_address': target_address,
+        'protocol_version': protocol_version,
     }
 
 
 def _exec_ipmitool(driver_info, command):
     """Execute the ipmitool command.
-
-    This uses the lanplus interface to communicate with the BMC device driver.
 
     :param driver_info: the ipmitool parameters for accessing a node.
     :param command: the ipmitool command to be executed.
@@ -325,9 +336,12 @@ def _exec_ipmitool(driver_info, command):
     :raises: processutils.ProcessExecutionError from executing the command.
 
     """
+    ipmi_version = ('lanplus'
+                    if driver_info['protocol_version'] == '2.0'
+                    else 'lan')
     args = ['ipmitool',
             '-I',
-            'lanplus',
+            ipmi_version,
             '-H',
             driver_info['address'],
             '-L', driver_info['priv_level']
