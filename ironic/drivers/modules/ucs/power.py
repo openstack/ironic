@@ -19,6 +19,7 @@ Provides basic power control of servers managed by Cisco UCSM using PyUcs Sdk.
 
 from oslo_config import cfg
 from oslo_log import log as logging
+from oslo_service import loopingcall
 from oslo_utils import importutils
 
 from ironic.common import exception
@@ -28,7 +29,6 @@ from ironic.common import states
 from ironic.conductor import task_manager
 from ironic.drivers import base
 from ironic.drivers.modules.ucs import helper as ucs_helper
-from ironic.openstack.common import loopingcall
 
 ucs_power = importutils.try_import('UcsSdk.utils.power')
 ucs_error = importutils.try_import('UcsSdk.utils.exception')

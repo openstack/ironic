@@ -18,6 +18,7 @@ import copy
 
 from oslo_config import cfg
 from oslo_log import log as logging
+from oslo_service import loopingcall
 from oslo_utils import excutils
 from oslo_utils import importutils
 
@@ -31,7 +32,6 @@ from ironic.conductor import task_manager
 from ironic.drivers import base
 from ironic.drivers.modules.amt import common as amt_common
 from ironic.drivers.modules.amt import resource_uris
-from ironic.openstack.common import loopingcall
 
 pywsman = importutils.try_import('pywsman')
 
