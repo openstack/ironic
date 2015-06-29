@@ -194,7 +194,7 @@ class IscsiDeployValidateParametersTestCase(db_base.DbTestCase):
                           iscsi_deploy.parse_instance_info,
                           node)
 
-    def test__check_disk_layout_fails(self):
+    def test__check_disk_layout_unchanged_fails(self):
         info = dict(INST_INFO_DICT)
         info['ephemeral_gb'] = 10
         info['swap_mb'] = 0
@@ -209,10 +209,10 @@ class IscsiDeployValidateParametersTestCase(db_base.DbTestCase):
             driver_internal_info=drv_internal_dict,
         )
         self.assertRaises(exception.InvalidParameterValue,
-                          iscsi_deploy._check_disk_layout,
+                          iscsi_deploy._check_disk_layout_unchanged,
                           node, info)
 
-    def test__check_disk_layout(self):
+    def test__check_disk_layout_unchanged(self):
         info = dict(INST_INFO_DICT)
         info['ephemeral_gb'] = 10
         info['swap_mb'] = 0
@@ -226,7 +226,8 @@ class IscsiDeployValidateParametersTestCase(db_base.DbTestCase):
             self.context, instance_info=info,
             driver_internal_info=drv_internal_dict,
         )
-        self.assertIsNone(iscsi_deploy._check_disk_layout(node, info))
+        self.assertIsNone(iscsi_deploy._check_disk_layout_unchanged(node,
+                                                                    info))
 
     def test__save_disk_layout(self):
         info = dict(INST_INFO_DICT)
@@ -587,11 +588,12 @@ class IscsiDeployMethodsTestCase(db_base.DbTestCase):
         result = iscsi_deploy.get_boot_option(self.node)
         self.assertEqual("netboot", result)
 
+    @mock.patch.object(iscsi_deploy, '_save_disk_layout', autospec=True)
     @mock.patch.object(iscsi_deploy, 'InstanceImageCache', autospec=True)
     @mock.patch.object(manager_utils, 'node_power_action', autospec=True)
     @mock.patch.object(deploy_utils, 'deploy_partition_image', autospec=True)
     def test_continue_deploy_fail(self, deploy_mock, power_mock,
-                                  mock_image_cache):
+                                  mock_image_cache, mock_disk_layout):
         kwargs = {'address': '123456', 'iqn': 'aaa-bbb', 'key': 'fake-56789'}
         deploy_mock.side_effect = (
             exception.InstanceDeployFailure("test deploy error"))
@@ -612,12 +614,14 @@ class IscsiDeployMethodsTestCase(db_base.DbTestCase):
             power_mock.assert_called_once_with(task, states.POWER_OFF)
             mock_image_cache.assert_called_once_with()
             mock_image_cache.return_value.clean_up.assert_called_once_with()
+            self.assertFalse(mock_disk_layout.called)
 
+    @mock.patch.object(iscsi_deploy, '_save_disk_layout', autospec=True)
     @mock.patch.object(iscsi_deploy, 'InstanceImageCache', autospec=True)
     @mock.patch.object(manager_utils, 'node_power_action', autospec=True)
     @mock.patch.object(deploy_utils, 'deploy_partition_image', autospec=True)
     def test_continue_deploy_ramdisk_fails(self, deploy_mock, power_mock,
-                                           mock_image_cache):
+                                           mock_image_cache, mock_disk_layout):
         kwargs = {'address': '123456', 'iqn': 'aaa-bbb', 'key': 'fake-56789',
                   'error': 'test ramdisk error'}
         self.node.provision_state = states.DEPLOYWAIT
@@ -636,12 +640,14 @@ class IscsiDeployMethodsTestCase(db_base.DbTestCase):
             mock_image_cache.assert_called_once_with()
             mock_image_cache.return_value.clean_up.assert_called_once_with()
             self.assertFalse(deploy_mock.called)
+            self.assertFalse(mock_disk_layout.called)
 
+    @mock.patch.object(iscsi_deploy, '_save_disk_layout', autospec=True)
     @mock.patch.object(iscsi_deploy, 'InstanceImageCache', autospec=True)
     @mock.patch.object(manager_utils, 'node_power_action', autospec=True)
     @mock.patch.object(deploy_utils, 'deploy_partition_image', autospec=True)
     def test_continue_deploy_fail_no_root_uuid_or_disk_id(
-            self, deploy_mock, power_mock, mock_image_cache):
+            self, deploy_mock, power_mock, mock_image_cache, mock_disk_layout):
         kwargs = {'address': '123456', 'iqn': 'aaa-bbb', 'key': 'fake-56789'}
         deploy_mock.return_value = {}
         self.node.provision_state = states.DEPLOYWAIT
@@ -661,12 +667,14 @@ class IscsiDeployMethodsTestCase(db_base.DbTestCase):
             power_mock.assert_called_once_with(task, states.POWER_OFF)
             mock_image_cache.assert_called_once_with()
             mock_image_cache.return_value.clean_up.assert_called_once_with()
+            self.assertFalse(mock_disk_layout.called)
 
+    @mock.patch.object(iscsi_deploy, '_save_disk_layout', autospec=True)
     @mock.patch.object(iscsi_deploy, 'InstanceImageCache', autospec=True)
     @mock.patch.object(manager_utils, 'node_power_action', autospec=True)
     @mock.patch.object(deploy_utils, 'deploy_partition_image', autospec=True)
     def test_continue_deploy_fail_empty_root_uuid(
-            self, deploy_mock, power_mock, mock_image_cache):
+            self, deploy_mock, power_mock, mock_image_cache, mock_disk_layout):
         kwargs = {'address': '123456', 'iqn': 'aaa-bbb', 'key': 'fake-56789'}
         deploy_mock.return_value = {'root uuid': ''}
         self.node.provision_state = states.DEPLOYWAIT
@@ -686,14 +694,16 @@ class IscsiDeployMethodsTestCase(db_base.DbTestCase):
             power_mock.assert_called_once_with(task, states.POWER_OFF)
             mock_image_cache.assert_called_once_with()
             mock_image_cache.return_value.clean_up.assert_called_once_with()
+            self.assertFalse(mock_disk_layout.called)
 
+    @mock.patch.object(iscsi_deploy, '_save_disk_layout', autospec=True)
     @mock.patch.object(iscsi_deploy, 'LOG', autospec=True)
     @mock.patch.object(iscsi_deploy, 'get_deploy_info', autospec=True)
     @mock.patch.object(iscsi_deploy, 'InstanceImageCache', autospec=True)
     @mock.patch.object(manager_utils, 'node_power_action', autospec=True)
     @mock.patch.object(deploy_utils, 'deploy_partition_image', autospec=True)
     def test_continue_deploy(self, deploy_mock, power_mock, mock_image_cache,
-                             mock_deploy_info, mock_log):
+                             mock_deploy_info, mock_log, mock_disk_layout):
         kwargs = {'address': '123456', 'iqn': 'aaa-bbb', 'key': 'fake-56789'}
         self.node.provision_state = states.DEPLOYWAIT
         self.node.target_provision_state = states.ACTIVE
@@ -711,7 +721,7 @@ class IscsiDeployMethodsTestCase(db_base.DbTestCase):
             'lun': '1',
             'node_uuid': u'1be26c0b-03f2-4d2e-ae87-c02d7f33c123',
             'port': '3260',
-            'preserve_ephemeral': False,
+            'preserve_ephemeral': True,
             'root_mb': 102400,
             'swap_mb': 0,
         }
@@ -737,6 +747,7 @@ class IscsiDeployMethodsTestCase(db_base.DbTestCase):
             mock_image_cache.assert_called_once_with()
             mock_image_cache.return_value.clean_up.assert_called_once_with()
             self.assertEqual(uuid_dict_returned, retval)
+            mock_disk_layout.assert_called_once_with(task.node, mock.ANY)
 
     @mock.patch.object(iscsi_deploy, 'LOG', autospec=True)
     @mock.patch.object(iscsi_deploy, 'get_deploy_info', autospec=True)
