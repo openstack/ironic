@@ -947,8 +947,6 @@ Ceilometer, they are:
 
 * Temperature,Fan,Voltage,Current
 
-.. _boot_mode_support:
-
 
 Configure node web console
 --------------------------
@@ -1083,6 +1081,8 @@ The web console can be configured in Ironic in the following way:
 .. _`shellinabox page`: https://code.google.com/p/shellinabox/
 .. _`openssl page`: https://www.openssl.org/
 .. _`FedoraProject page`: https://fedoraproject.org/wiki/Infrastructure/Mirroring
+
+.. _boot_mode_support:
 
 Boot mode support
 -----------------
