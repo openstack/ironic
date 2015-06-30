@@ -182,7 +182,9 @@ class RaidPublicMethodsTestCase(db_base.DbTestCase):
             properties['capabilities'] = capabilities
             del properties['local_gb']
             node.properties = properties
-            node.save()
+        target_raid_config = json.loads(raid_constants.RAID_CONFIG_OKAY)
+        node.target_raid_config = target_raid_config
+        node.save()
         raid.update_raid_info(node, current_config)
         properties = node.properties
         current = node.raid_config
@@ -202,7 +204,8 @@ class RaidPublicMethodsTestCase(db_base.DbTestCase):
             if capabilities:
                 self.assertNotIn('raid_level:1', properties['capabilities'])
 
-        self.assertEqual({}, target)
+        # Verify node.target_raid_config is preserved.
+        self.assertEqual(target_raid_config, target)
 
     def test_update_raid_info_okay(self):
         current_config = json.loads(raid_constants.CURRENT_RAID_CONFIG)

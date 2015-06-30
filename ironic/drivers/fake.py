@@ -139,6 +139,7 @@ class FakeAgentDriver(base.BaseDriver):
         self.boot = pxe.PXEBoot()
         self.deploy = agent.AgentDeploy()
         self.vendor = agent.AgentVendorInterface()
+        self.raid = agent.AgentRAID()
 
 
 class FakeIBootDriver(base.BaseDriver):

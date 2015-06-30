@@ -54,6 +54,7 @@ class AgentAndIPMIToolDriver(base.BaseDriver):
         self.vendor = utils.MixinVendorInterface(
             self.mapping,
             driver_passthru_mapping=self.driver_passthru_mapping)
+        self.raid = agent.AgentRAID()
 
 
 class AgentAndIPMINativeDriver(base.BaseDriver):
@@ -75,6 +76,7 @@ class AgentAndIPMINativeDriver(base.BaseDriver):
         self.management = ipminative.NativeIPMIManagement()
         self.console = ipminative.NativeIPMIShellinaboxConsole()
         self.vendor = agent.AgentVendorInterface()
+        self.raid = agent.AgentRAID()
 
 
 class AgentAndSSHDriver(base.BaseDriver):
@@ -96,6 +98,7 @@ class AgentAndSSHDriver(base.BaseDriver):
         self.deploy = agent.AgentDeploy()
         self.management = ssh.SSHManagement()
         self.vendor = agent.AgentVendorInterface()
+        self.raid = agent.AgentRAID()
 
 
 class AgentAndVirtualBoxDriver(base.BaseDriver):
@@ -121,6 +124,7 @@ class AgentAndVirtualBoxDriver(base.BaseDriver):
         self.deploy = agent.AgentDeploy()
         self.management = virtualbox.VirtualBoxManagement()
         self.vendor = agent.AgentVendorInterface()
+        self.raid = agent.AgentRAID()
 
 
 class AgentAndUcsDriver(base.BaseDriver):
