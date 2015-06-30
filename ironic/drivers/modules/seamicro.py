@@ -45,10 +45,10 @@ if seamicroclient:
 opts = [
     cfg.IntOpt('max_retry',
                default=3,
-               help='Maximum retries for SeaMicro operations'),
+               help=_('Maximum retries for SeaMicro operations')),
     cfg.IntOpt('action_timeout',
                default=10,
-               help='Seconds to wait for power action to be completed')
+               help=_('Seconds to wait for power action to be completed'))
 ]
 
 CONF = cfg.CONF

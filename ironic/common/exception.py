@@ -35,10 +35,10 @@ LOG = logging.getLogger(__name__)
 exc_log_opts = [
     cfg.BoolOpt('fatal_exception_format_errors',
                 default=False,
-                help='Used if there is a formatting error when generating an '
-                     'exception message (a programming error). If True, '
-                     'raise an exception; if False, use the unformatted '
-                     'message.'),
+                help=_('Used if there is a formatting error when generating '
+                       'an exception message (a programming error). If True, '
+                       'raise an exception; if False, use the unformatted '
+                       'message.')),
 ]
 
 CONF = cfg.CONF

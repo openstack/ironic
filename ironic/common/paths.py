@@ -19,17 +19,20 @@ import os
 
 from oslo_config import cfg
 
+from ironic.common.i18n import _
+
 path_opts = [
     cfg.StrOpt('pybasedir',
                default=os.path.abspath(os.path.join(os.path.dirname(__file__),
                                                     '../')),
-               help='Directory where the ironic python module is installed.'),
+               help=_('Directory where the ironic python module is '
+                      'installed.')),
     cfg.StrOpt('bindir',
                default='$pybasedir/bin',
-               help='Directory where ironic binaries are installed.'),
+               help=_('Directory where ironic binaries are installed.')),
     cfg.StrOpt('state_path',
                default='$pybasedir',
-               help="Top-level directory for maintaining ironic's state."),
+               help=_("Top-level directory for maintaining ironic's state.")),
 ]
 
 CONF = cfg.CONF

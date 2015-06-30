@@ -43,12 +43,12 @@ from ironic.common.i18n import _LW
 utils_opts = [
     cfg.StrOpt('rootwrap_config',
                default="/etc/ironic/rootwrap.conf",
-               help='Path to the rootwrap configuration file to use for '
-                    'running commands as root.'),
+               help=_('Path to the rootwrap configuration file to use for '
+                      'running commands as root.')),
     cfg.StrOpt('tempdir',
                default=tempfile.gettempdir(),
-               help='Temporary working directory, default is Python temp '
-                    'dir.'),
+               help=_('Temporary working directory, default is Python temp '
+                      'dir.')),
 ]
 
 CONF = cfg.CONF

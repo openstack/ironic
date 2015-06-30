@@ -27,57 +27,62 @@ from ironic.common.i18n import _
 glance_opts = [
     cfg.ListOpt('allowed_direct_url_schemes',
                 default=[],
-                help='A list of URL schemes that can be downloaded directly '
-                'via the direct_url.  Currently supported schemes: '
-                '[file].'),
+                help=_('A list of URL schemes that can be downloaded directly '
+                       'via the direct_url.  Currently supported schemes: '
+                       '[file].')),
     # To upload this key to Swift:
     # swift post -m Temp-Url-Key:correcthorsebatterystaple
     cfg.StrOpt('swift_temp_url_key',
-               help='The secret token given to Swift to allow temporary URL '
-                    'downloads. Required for temporary URLs.',
+               help=_('The secret token given to Swift to allow temporary URL '
+                      'downloads. Required for temporary URLs.'),
                secret=True),
     cfg.IntOpt('swift_temp_url_duration',
                default=1200,
-               help='The length of time in seconds that the temporary URL '
-                    'will be valid for. Defaults to 20 minutes. If some '
-                    'deploys get a 401 response code when trying to download '
-                    'from the temporary URL, try raising this duration.'),
-    cfg.StrOpt('swift_endpoint_url',
-               help='The "endpoint" (scheme, hostname, optional port) for '
-                    'the Swift URL of the form '
-                    '"endpoint_url/api_version/account/container/object_id". '
-                    'Do not include trailing "/". '
-                    'For example, use "https://swift.example.com". '
-                    'Required for temporary URLs.'),
-    cfg.StrOpt('swift_api_version',
-               default='v1',
-               help='The Swift API version to create a temporary URL for. '
-                    'Defaults to "v1". Swift temporary URL format: '
-                    '"endpoint_url/api_version/account/container/object_id"'),
-    cfg.StrOpt('swift_account',
-               help='The account that Glance uses to communicate with '
-                    'Swift. The format is "AUTH_uuid". "uuid" is the '
-                    'UUID for the account configured in the glance-api.conf. '
-                    'Required for temporary URLs. For example: '
-                    '"AUTH_a422b2-91f3-2f46-74b7-d7c9e8958f5d30". '
-                    'Swift temporary URL format: '
-                    '"endpoint_url/api_version/account/container/object_id"'),
-    cfg.StrOpt('swift_container',
-               default='glance',
-               help='The Swift container Glance is configured to store its '
-                    'images in. Defaults to "glance", which is the default '
-                    'in glance-api.conf. '
-                    'Swift temporary URL format: '
-                    '"endpoint_url/api_version/account/container/object_id"'),
+               help=_('The length of time in seconds that the temporary URL '
+                      'will be valid for. Defaults to 20 minutes. If some '
+                      'deploys get a 401 response code when trying to '
+                      'download from the temporary URL, try raising this '
+                      'duration.')),
+    cfg.StrOpt(
+        'swift_endpoint_url',
+        help=_('The "endpoint" (scheme, hostname, optional port) for '
+               'the Swift URL of the form '
+               '"endpoint_url/api_version/account/container/object_id". '
+               'Do not include trailing "/". '
+               'For example, use "https://swift.example.com". '
+               'Required for temporary URLs.')),
+    cfg.StrOpt(
+        'swift_api_version',
+        default='v1',
+        help=_('The Swift API version to create a temporary URL for. '
+               'Defaults to "v1". Swift temporary URL format: '
+               '"endpoint_url/api_version/account/container/object_id"')),
+    cfg.StrOpt(
+        'swift_account',
+        help=_('The account that Glance uses to communicate with '
+               'Swift. The format is "AUTH_uuid". "uuid" is the '
+               'UUID for the account configured in the glance-api.conf. '
+               'Required for temporary URLs. For example: '
+               '"AUTH_a422b2-91f3-2f46-74b7-d7c9e8958f5d30". '
+               'Swift temporary URL format: '
+               '"endpoint_url/api_version/account/container/object_id"')),
+    cfg.StrOpt(
+        'swift_container',
+        default='glance',
+        help=_('The Swift container Glance is configured to store its '
+               'images in. Defaults to "glance", which is the default '
+               'in glance-api.conf. '
+               'Swift temporary URL format: '
+               '"endpoint_url/api_version/account/container/object_id"')),
     cfg.IntOpt('swift_store_multiple_containers_seed',
                default=0,
-               help='This should match a config by the same name in the '
-                    'Glance configuration file. When set to 0, a '
-                    'single-tenant store will only use one '
-                    'container to store all images. When set to an integer '
-                    'value between 1 and 32, a single-tenant store will use '
-                    'multiple containers to store images, and this value '
-                    'will determine how many containers are created.'),
+               help=_('This should match a config by the same name in the '
+                      'Glance configuration file. When set to 0, a '
+                      'single-tenant store will only use one '
+                      'container to store all images. When set to an integer '
+                      'value between 1 and 32, a single-tenant store will use '
+                      'multiple containers to store images, and this value '
+                      'will determine how many containers are created.')),
 ]
 
 CONF = cfg.CONF

@@ -44,30 +44,29 @@ from ironic.openstack.common import fileutils
 agent_opts = [
     cfg.StrOpt('agent_pxe_append_params',
                default='nofb nomodeset vga=normal',
-               help='Additional append parameters for baremetal PXE boot.'),
+               help=_('Additional append parameters for baremetal PXE boot.')),
     cfg.StrOpt('agent_pxe_config_template',
                default=paths.basedir_def(
                    'drivers/modules/agent_config.template'),
-               help='Template file for PXE configuration.'),
+               help=_('Template file for PXE configuration.')),
     cfg.StrOpt('agent_pxe_bootfile_name',
                default='pxelinux.0',
-               help='Neutron bootfile DHCP parameter.'),
+               help=_('Neutron bootfile DHCP parameter.')),
     cfg.IntOpt('agent_erase_devices_priority',
-               help='Priority to run in-band erase devices via the Ironic '
-                    'Python Agent ramdisk. If unset, will use the priority '
-                    'set in the ramdisk (defaults to 10 for the '
-                    'GenericHardwareManager). If set to 0, will not run '
-                    'during cleaning.'),
+               help=_('Priority to run in-band erase devices via the Ironic '
+                      'Python Agent ramdisk. If unset, will use the priority '
+                      'set in the ramdisk (defaults to 10 for the '
+                      'GenericHardwareManager). If set to 0, will not run '
+                      'during cleaning.')),
     cfg.IntOpt('agent_erase_devices_iterations',
                default=1,
-               help='Number of iterations to be run for erasing devices.'),
+               help=_('Number of iterations to be run for erasing devices.')),
     cfg.BoolOpt('manage_tftp',
                 default=True,
-                help='Whether Ironic will manage TFTP files for the deploy '
-                     'ramdisks. If set to False, you will need to configure '
-                     'your own TFTP server that allows booting the deploy '
-                     'ramdisks.'
-                ),
+                help=_('Whether Ironic will manage TFTP files for the deploy '
+                       'ramdisks. If set to False, you will need to configure '
+                       'your own TFTP server that allows booting the deploy '
+                       'ramdisks.')),
 ]
 
 CONF = cfg.CONF

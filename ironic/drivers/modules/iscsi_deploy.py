@@ -45,32 +45,32 @@ LOG = logging.getLogger(__name__)
 pxe_opts = [
     cfg.StrOpt('pxe_append_params',
                default='nofb nomodeset vga=normal',
-               help='Additional append parameters for baremetal PXE boot.'),
+               help=_('Additional append parameters for baremetal PXE boot.')),
     cfg.StrOpt('default_ephemeral_format',
                default='ext4',
-               help='Default file system format for ephemeral partition, '
-                    'if one is created.'),
+               help=_('Default file system format for ephemeral partition, '
+                      'if one is created.')),
     cfg.StrOpt('images_path',
                default='/var/lib/ironic/images/',
-               help='On the ironic-conductor node, directory where images are '
-                    'stored on disk.'),
+               help=_('On the ironic-conductor node, directory where images '
+                      'are stored on disk.')),
     cfg.StrOpt('instance_master_path',
                default='/var/lib/ironic/master_images',
-               help='On the ironic-conductor node, directory where master '
-                    'instance images are stored on disk.'),
+               help=_('On the ironic-conductor node, directory where master '
+                      'instance images are stored on disk.')),
     cfg.IntOpt('image_cache_size',
                default=20480,
-               help='Maximum size (in MiB) of cache for master images, '
-                    'including those in use.'),
+               help=_('Maximum size (in MiB) of cache for master images, '
+                      'including those in use.')),
     # 10080 here is 1 week - 60*24*7. It is entirely arbitrary in the absence
     # of a facility to disable the ttl entirely.
     cfg.IntOpt('image_cache_ttl',
                default=10080,
-               help='Maximum TTL (in minutes) for old master images in '
-               'cache.'),
+               help=_('Maximum TTL (in minutes) for old master images in '
+                      'cache.')),
     cfg.StrOpt('disk_devices',
                default='cciss/c0d0,sda,hda,vda',
-               help='The disk devices to scan while doing the deploy.'),
+               help=_('The disk devices to scan while doing the deploy.')),
 ]
 
 CONF = cfg.CONF

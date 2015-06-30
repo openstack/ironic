@@ -25,6 +25,7 @@ from oslo_service import service
 from oslo_utils import importutils
 
 from ironic.common import config
+from ironic.common.i18n import _
 from ironic.common.i18n import _LE
 from ironic.common.i18n import _LI
 from ironic.common import rpc
@@ -34,14 +35,14 @@ from ironic.objects import base as objects_base
 service_opts = [
     cfg.IntOpt('periodic_interval',
                default=60,
-               help='Seconds between running periodic tasks.'),
+               help=_('Seconds between running periodic tasks.')),
     cfg.StrOpt('host',
                default=socket.getfqdn(),
-               help='Name of this node.  This can be an opaque identifier.  '
-               'It is not necessarily a hostname, FQDN, or IP address. '
-               'However, the node name must be valid within '
-               'an AMQP key, and if using ZeroMQ, a valid '
-               'hostname, FQDN, or IP address.'),
+               help=_('Name of this node.  This can be an opaque identifier. '
+                      'It is not necessarily a hostname, FQDN, or IP address. '
+                      'However, the node name must be valid within '
+                      'an AMQP key, and if using ZeroMQ, a valid '
+                      'hostname, FQDN, or IP address.')),
 ]
 
 cfg.CONF.register_opts(service_opts)

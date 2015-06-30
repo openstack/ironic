@@ -42,17 +42,17 @@ LOG = logging.getLogger(__name__)
 image_opts = [
     cfg.BoolOpt('force_raw_images',
                 default=True,
-                help='If True, convert backing images to "raw" disk image '
-                     'format.'),
+                help=_('If True, convert backing images to "raw" disk image '
+                       'format.')),
     cfg.StrOpt('isolinux_bin',
                default='/usr/lib/syslinux/isolinux.bin',
-               help='Path to isolinux binary file.'),
+               help=_('Path to isolinux binary file.')),
     cfg.StrOpt('isolinux_config_template',
                default=paths.basedir_def('common/isolinux_config.template'),
-               help='Template file for isolinux configuration file.'),
+               help=_('Template file for isolinux configuration file.')),
     cfg.StrOpt('grub_config_template',
                default=paths.basedir_def('common/grub_conf.template'),
-               help='Template file for grub configuration file.'),
+               help=_('Template file for grub configuration file.')),
 ]
 
 

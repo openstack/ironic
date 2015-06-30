@@ -27,26 +27,26 @@ from ironic.db import api as dbapi
 hash_opts = [
     cfg.IntOpt('hash_partition_exponent',
                default=5,
-               help='Exponent to determine number of hash partitions to use '
-                    'when distributing load across conductors. Larger values '
-                    'will result in more even distribution of load and less '
-                    'load when rebalancing the ring, but more memory usage. '
-                    'Number of partitions per conductor is '
-                    '(2^hash_partition_exponent). This determines the '
-                    'granularity of rebalancing: given 10 hosts, and an '
-                    'exponent of the 2, there are 40 partitions in the ring.'
-                    'A few thousand partitions should make rebalancing '
-                    'smooth in most cases. The default is suitable for up to '
-                    'a few hundred conductors. Too many partitions has a CPU '
-                    'impact.'),
+               help=_('Exponent to determine number of hash partitions to use '
+                      'when distributing load across conductors. Larger '
+                      'values will result in more even distribution of load '
+                      'and less load when rebalancing the ring, but more '
+                      'memory usage. Number of partitions per conductor is '
+                      '(2^hash_partition_exponent). This determines the '
+                      'granularity of rebalancing: given 10 hosts, and an '
+                      'exponent of the 2, there are 40 partitions in the ring.'
+                      'A few thousand partitions should make rebalancing '
+                      'smooth in most cases. The default is suitable for up '
+                      'to a few hundred conductors. Too many partitions has a '
+                      'CPU impact.')),
     cfg.IntOpt('hash_distribution_replicas',
                default=1,
-               help='[Experimental Feature] '
-                    'Number of hosts to map onto each hash partition. '
-                    'Setting this to more than one will cause additional '
-                    'conductor services to prepare deployment environments '
-                    'and potentially allow the Ironic cluster to recover '
-                    'more quickly if a conductor instance is terminated.'),
+               help=_('[Experimental Feature] '
+                      'Number of hosts to map onto each hash partition. '
+                      'Setting this to more than one will cause additional '
+                      'conductor services to prepare deployment environments '
+                      'and potentially allow the Ironic cluster to recover '
+                      'more quickly if a conductor instance is terminated.')),
 ]
 
 CONF = cfg.CONF

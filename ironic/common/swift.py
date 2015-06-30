@@ -28,8 +28,8 @@ from ironic.common import keystone
 swift_opts = [
     cfg.IntOpt('swift_max_retries',
                default=2,
-               help='Maximum number of times to retry a Swift request, '
-                    'before failing.')
+               help=_('Maximum number of times to retry a Swift request, '
+                      'before failing.'))
 ]
 
 

@@ -47,25 +47,26 @@ MANAGEMENT_PROPERTIES.update(ilo_common.CLEAN_PROPERTIES)
 clean_step_opts = [
     cfg.IntOpt('clean_priority_reset_ilo',
                default=1,
-               help='Priority for reset_ilo clean step.'),
+               help=_('Priority for reset_ilo clean step.')),
     cfg.IntOpt('clean_priority_reset_bios_to_default',
                default=10,
-               help='Priority for reset_bios_to_default clean step.'),
+               help=_('Priority for reset_bios_to_default clean step.')),
     cfg.IntOpt('clean_priority_reset_secure_boot_keys_to_default',
                default=20,
-               help='Priority for reset_secure_boot_keys clean step. This '
-                    'step will reset the secure boot keys to manufacturing '
-                    ' defaults.'),
+               help=_('Priority for reset_secure_boot_keys clean step. This '
+                      'step will reset the secure boot keys to manufacturing '
+                      'defaults.')),
     cfg.IntOpt('clean_priority_clear_secure_boot_keys',
                default=0,
-               help='Priority for clear_secure_boot_keys clean step. This '
-                    'step is not enabled by default. It can be enabled to '
-                    'to clear all secure boot keys enrolled with iLO.'),
+               help=_('Priority for clear_secure_boot_keys clean step. This '
+                      'step is not enabled by default. It can be enabled to '
+                      'to clear all secure boot keys enrolled with iLO.')),
     cfg.IntOpt('clean_priority_reset_ilo_credential',
                default=30,
-               help='Priority for reset_ilo_credential clean step. This step '
-                    'requires "ilo_change_password" parameter to be updated '
-                    'in nodes\'s driver_info with the new password.'),
+               help=_('Priority for reset_ilo_credential clean step. This '
+                      'step requires "ilo_change_password" parameter to be '
+                      'updated in nodes\'s driver_info with the new '
+                      'password.')),
 ]
 
 CONF = cfg.CONF

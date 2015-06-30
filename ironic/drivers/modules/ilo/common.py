@@ -42,17 +42,17 @@ ADVANCED_LICENSE = 3
 opts = [
     cfg.IntOpt('client_timeout',
                default=60,
-               help='Timeout (in seconds) for iLO operations'),
+               help=_('Timeout (in seconds) for iLO operations')),
     cfg.IntOpt('client_port',
                default=443,
-               help='Port to be used for iLO operations'),
+               help=_('Port to be used for iLO operations')),
     cfg.StrOpt('swift_ilo_container',
                default='ironic_ilo_container',
-               help='The Swift iLO container to store data.'),
+               help=_('The Swift iLO container to store data.')),
     cfg.IntOpt('swift_object_expiry_timeout',
                default=900,
-               help='Amount of time in seconds for Swift objects to '
-                    'auto-expire.'),
+               help=_('Amount of time in seconds for Swift objects to '
+                      'auto-expire.')),
 ]
 
 CONF = cfg.CONF

@@ -23,6 +23,7 @@ from oslo_log import log as logging
 from oslo_utils import importutils
 
 from ironic.common import exception
+from ironic.common.i18n import _
 from ironic.common.i18n import _LW
 from ironic.drivers.modules.drac import common as drac_common
 
@@ -31,14 +32,14 @@ pywsman = importutils.try_import('pywsman')
 opts = [
     cfg.IntOpt('client_retry_count',
                default=5,
-               help='In case there is a communication failure, the DRAC '
-                    'client is going to resend the request as many times as '
-                    'defined in this setting.'),
+               help=_('In case there is a communication failure, the DRAC '
+                      'client is going to resend the request as many times as '
+                      'defined in this setting.')),
     cfg.IntOpt('client_retry_delay',
                default=5,
-               help='In case there is a communication failure, the DRAC '
-                    'client is going to wait for as many seconds as defined '
-                    'in this setting before resending the request.')
+               help=_('In case there is a communication failure, the DRAC '
+                      'client is going to wait for as many seconds as defined '
+                      'in this setting before resending the request.'))
 ]
 
 CONF = cfg.CONF

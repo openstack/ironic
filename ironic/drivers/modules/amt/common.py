@@ -48,8 +48,8 @@ COMMON_PROPERTIES.update(OPTIONAL_PROPERTIES)
 opts = [
     cfg.StrOpt('protocol',
                default='http',
-               help='Protocol used for AMT endpoint, '
-               'support http/https'),
+               help=_('Protocol used for AMT endpoint, '
+                      'support http/https')),
 ]
 
 CONF = cfg.CONF

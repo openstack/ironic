@@ -35,24 +35,24 @@ from ironic.drivers.modules import ssh
 neutron_opts = [
     cfg.StrOpt('url',
                default='http://$my_ip:9696',
-               help='URL for connecting to neutron.'),
+               help=_('URL for connecting to neutron.')),
     cfg.IntOpt('url_timeout',
                default=30,
-               help='Timeout value for connecting to neutron in seconds.'),
+               help=_('Timeout value for connecting to neutron in seconds.')),
     cfg.IntOpt('retries',
                default=3,
-               help='Client retries in the case of a failed request.'),
+               help=_('Client retries in the case of a failed request.')),
     cfg.StrOpt('auth_strategy',
                default='keystone',
-               help='Default authentication strategy to use when connecting '
-                    'to neutron. Can be either "keystone" or "noauth". '
-                    'Running neutron in noauth mode (related to but not '
-                    'affected by this setting) is insecure and should only be '
-                    'used for testing.'),
+               help=_('Default authentication strategy to use when connecting '
+                      'to neutron. Can be either "keystone" or "noauth". '
+                      'Running neutron in noauth mode (related to but not '
+                      'affected by this setting) is insecure and should only '
+                      'be used for testing.')),
     cfg.StrOpt('cleaning_network_uuid',
-               help='UUID of the network to create Neutron ports on when '
-                    'booting to a ramdisk for cleaning/zapping using Neutron '
-                    'DHCP')
+               help=_('UUID of the network to create Neutron ports on when '
+                      'booting to a ramdisk for cleaning/zapping using '
+                      'Neutron DHCP'))
 ]
 
 CONF = cfg.CONF

@@ -23,8 +23,8 @@ CONF = cfg.CONF
 
 keystone_opts = [
     cfg.StrOpt('region_name',
-               help='The region used for getting endpoints of OpenStack'
-                    'services.'),
+               help=_('The region used for getting endpoints of OpenStack'
+                      'services.')),
 ]
 
 CONF.register_opts(keystone_opts, group='keystone')

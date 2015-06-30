@@ -46,7 +46,7 @@ from ironic.drivers import utils as driver_utils
 libvirt_opts = [
     cfg.StrOpt('libvirt_uri',
                default='qemu:///system',
-               help='libvirt URI')
+               help=_('libvirt URI'))
 ]
 
 CONF = cfg.CONF

@@ -44,31 +44,31 @@ CONF.import_opt('my_ip', 'ironic.netconf')
 glance_opts = [
     cfg.StrOpt('glance_host',
                default='$my_ip',
-               help='Default glance hostname or IP address.'),
+               help=_('Default glance hostname or IP address.')),
     cfg.IntOpt('glance_port',
                default=9292,
-               help='Default glance port.'),
+               help=_('Default glance port.')),
     cfg.StrOpt('glance_protocol',
                default='http',
-               help='Default protocol to use when connecting to glance. '
-               'Set to https for SSL.'),
+               help=_('Default protocol to use when connecting to glance. '
+                      'Set to https for SSL.')),
     cfg.ListOpt('glance_api_servers',
-                help='A list of the glance api servers available to ironic. '
-                'Prefix with https:// for SSL-based glance API servers. '
-                'Format is [hostname|IP]:port.'),
+                help=_('A list of the glance api servers available to ironic. '
+                       'Prefix with https:// for SSL-based glance API '
+                       'servers. Format is [hostname|IP]:port.')),
     cfg.BoolOpt('glance_api_insecure',
                 default=False,
-                help='Allow to perform insecure SSL (https) requests to '
-                     'glance.'),
+                help=_('Allow to perform insecure SSL (https) requests to '
+                       'glance.')),
     cfg.IntOpt('glance_num_retries',
                default=0,
-               help='Number of retries when downloading an image from '
-                    'glance.'),
+               help=_('Number of retries when downloading an image from '
+                      'glance.')),
     cfg.StrOpt('auth_strategy',
                default='keystone',
-               help='Authentication strategy to use when connecting to '
-                    'glance. Only "keystone" and "noauth" are currently '
-                    'supported by ironic.'),
+               help=_('Authentication strategy to use when connecting to '
+                      'glance. Only "keystone" and "noauth" are currently '
+                      'supported by ironic.')),
 ]
 
 CONF.register_opts(glance_opts, group='glance')

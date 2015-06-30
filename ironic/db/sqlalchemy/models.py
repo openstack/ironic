@@ -30,13 +30,14 @@ from sqlalchemy import schema, String, Text
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.types import TypeDecorator, TEXT
 
+from ironic.common.i18n import _
 from ironic.common import paths
 
 
 sql_opts = [
     cfg.StrOpt('mysql_engine',
                default='InnoDB',
-               help='MySQL engine to use.')
+               help=_('MySQL engine to use.'))
 ]
 
 _DEFAULT_SQL_CONNECTION = 'sqlite:///' + paths.state_path_def('ironic.sqlite')

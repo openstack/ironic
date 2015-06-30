@@ -17,14 +17,13 @@ from oslo_config import cfg
 import stevedore
 
 from ironic.common import exception
-
+from ironic.common.i18n import _
 
 dhcp_provider_opts = [
     cfg.StrOpt('dhcp_provider',
                default='neutron',
-               help='DHCP provider to use. "neutron" uses Neutron, and '
-               '"none" uses a no-op provider.'
-               ),
+               help=_('DHCP provider to use. "neutron" uses Neutron, and '
+                      '"none" uses a no-op provider.')),
 ]
 
 CONF = cfg.CONF
