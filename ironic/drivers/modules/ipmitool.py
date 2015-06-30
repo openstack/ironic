@@ -1032,6 +1032,12 @@ class IPMIShellinaboxConsole(base.ConsoleInterface):
                 "Missing 'ipmi_terminal_port' parameter in node's"
                 " driver_info."))
 
+        if driver_info['protocol_version'] != '2.0':
+            raise exception.InvalidParameterValue(_(
+                "Serial over lan only works with IPMI protocol version 2.0. "
+                "Check the 'ipmi_protocol_version' parameter in "
+                "node's driver_info"))
+
     def start_console(self, task):
         """Start a remote console for the node.
 
