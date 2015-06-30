@@ -487,7 +487,7 @@ class BaseAgentVendor(base.VendorInterface):
                     _LW('Failed to soft power off node %(node_uuid)s '
                         'in at least %(timeout)d seconds. Error: %(error)s'),
                     {'node_uuid': node.uuid,
-                     'timeout': wait * (attempts - 1),
+                     'timeout': (wait * (attempts - 1)) / 1000,
                      'error': e})
                 manager_utils.node_power_action(task, states.REBOOT)
             else:
