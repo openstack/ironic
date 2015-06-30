@@ -169,6 +169,9 @@ class Node(Base):
     driver_internal_info = Column(JSONEncodedDict)
     clean_step = Column(JSONEncodedDict)
 
+    raid_config = Column(JSONEncodedDict)
+    target_raid_config = Column(JSONEncodedDict)
+
     # NOTE(deva): this is the host name of the conductor which has
     #             acquired a TaskManager lock on the node.
     #             We should use an INT FK (conductors.id) in the future.

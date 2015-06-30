@@ -364,6 +364,16 @@ class MigrationCheckersMixin(object):
         self.assertIsInstance(nodes.c.clean_step.type,
                               sqlalchemy.types.String)
 
+    def _check_789acc877671(self, engine, data):
+        nodes = db_utils.get_table(engine, 'nodes')
+        col_names = [column.name for column in nodes.c]
+        self.assertIn('raid_config', col_names)
+        self.assertIn('target_raid_config', col_names)
+        self.assertIsInstance(nodes.c.raid_config.type,
+                              sqlalchemy.types.String)
+        self.assertIsInstance(nodes.c.target_raid_config.type,
+                              sqlalchemy.types.String)
+
     def _check_2fb93ffd2af1(self, engine, data):
         nodes = db_utils.get_table(engine, 'nodes')
         bigstring = 'a' * 255

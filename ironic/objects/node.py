@@ -36,7 +36,8 @@ class Node(base.IronicObject):
     # Version 1.9: Add driver_internal_info
     # Version 1.10: Add name and get_by_name()
     # Version 1.11: Add clean_step
-    VERSION = '1.11'
+    # Version 1.12: Add raid_config and target_raid_config
+    VERSION = '1.12'
 
     dbapi = db_api.get_instance()
 
@@ -56,6 +57,9 @@ class Node(base.IronicObject):
         # being executed, or None, indicating cleaning is not in progress
         # or has not yet started.
         'clean_step': obj_utils.dict_or_none,
+
+        'raid_config': obj_utils.dict_or_none,
+        'target_raid_config': obj_utils.dict_or_none,
 
         'instance_info': obj_utils.dict_or_none,
         'properties': obj_utils.dict_or_none,

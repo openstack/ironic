@@ -222,6 +222,8 @@ def get_test_node(**kw):
         'created_at': kw.get('created_at'),
         'inspection_finished_at': kw.get('inspection_finished_at'),
         'inspection_started_at': kw.get('inspection_started_at'),
+        'raid_config': kw.get('raid_config'),
+        'target_raid_config': kw.get('target_raid_config'),
     }
 
 
