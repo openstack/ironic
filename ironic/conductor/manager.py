@@ -1134,6 +1134,60 @@ class ConductorManager(periodic_task.PeriodicTasks):
         self._fail_if_in_state(context, filters, states.DEPLOYWAIT,
                                sort_key, callback_method, err_handler)
 
+    @periodic_task.periodic_task(
+        spacing=CONF.conductor.check_provision_state_interval)
+    def _check_deploying_status(self, context):
+        """Periodically checks the status of nodes in DEPLOYING state.
+
+        Periodically checks the nodes in DEPLOYING and the state of the
+        conductor deploying them. If we find out that a conductor that
+        was provisioning the node has died we then break release the
+        node and gracefully mark the deployment as failed.
+
+        :param context: request context.
+        """
+        offline_conductors = self.dbapi.get_offline_conductors()
+        if not offline_conductors:
+            return
+
+        node_iter = self.iter_nodes(
+            fields=['id', 'reservation'],
+            filters={'provision_state': states.DEPLOYING,
+                     'maintenance': False})
+        if not node_iter:
+            return
+
+        for node_uuid, driver, node_id, conductor_hostname in node_iter:
+            if conductor_hostname not in offline_conductors:
+                continue
+
+            # NOTE(lucasagomes): Although very rare, this may lead to a
+            # race condition. By the time we release the lock the conductor
+            # that was previously managing the node could be back online.
+            try:
+                objects.Node.release(context, conductor_hostname, node_id)
+            except exception.NodeNotFound:
+                LOG.warning(_LW("During checking for deploying state, node "
+                                "%s was not found and presumed deleted by "
+                                "another process. Skipping."), node_uuid)
+                continue
+            except exception.NodeLocked:
+                LOG.warning(_LW("During checking for deploying state, when "
+                                "releasing the lock of the node %s, it was "
+                                "locked by another process. Skipping."),
+                            node_uuid)
+                continue
+            except exception.NodeNotLocked:
+                LOG.warning(_LW("During checking for deploying state, when "
+                                "releasing the lock of the node %s, it was "
+                                "already unlocked."), node_uuid)
+
+            self._fail_if_in_state(
+                context, {'id': node_id}, states.DEPLOYING,
+                'provision_updated_at',
+                callback_method=utils.cleanup_after_timeout,
+                err_handler=provisioning_error_handler)
+
     def _do_takeover(self, task):
         """Take over this node.
 

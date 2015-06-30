@@ -393,3 +393,10 @@ class Connection(object):
                     {driverA: set([host1, host2]),
                      driverB: set([host2, host3])}
         """
+
+    @abc.abstractmethod
+    def get_offline_conductors(self):
+        """Get a list conductor hostnames that are offline (dead).
+
+        :returns: A list of conductor hostnames.
+        """
