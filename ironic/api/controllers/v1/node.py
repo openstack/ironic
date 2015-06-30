@@ -57,6 +57,16 @@ _VENDOR_METHODS = {}
 _DEFAULT_RETURN_FIELDS = ('instance_uuid', 'maintenance', 'power_state',
                           'provision_state', 'uuid', 'name')
 
+# Minimum API version to use for certain verbs
+MIN_VERB_VERSIONS = {
+    # v1.4 added the MANAGEABLE state and two verbs to move nodes into
+    # and out of that state. Reject requests to do this in older versions
+    ir_states.VERBS['manage']: 4,
+    ir_states.VERBS['provide']: 4,
+
+    ir_states.VERBS['inspect']: 6,
+}
+
 
 def hide_fields_in_newer_versions(obj):
     # if requested version is < 1.3, hide driver_internal_info
@@ -83,14 +93,9 @@ def assert_juno_provision_state_name(obj):
 
 
 def check_allow_management_verbs(verb):
-    # v1.4 added the MANAGEABLE state and two verbs to move nodes into
-    # and out of that state. Reject requests to do this in older versions
-    if (pecan.request.version.minor < 4 and
-            verb in [ir_states.VERBS['manage'], ir_states.VERBS['provide']]):
-                raise exception.NotAcceptable()
-    if (pecan.request.version.minor < 6 and
-            verb == ir_states.VERBS['inspect']):
-                raise exception.NotAcceptable()
+    min_version = MIN_VERB_VERSIONS.get(verb)
+    if min_version is not None and pecan.request.version.minor < min_version:
+        raise exception.NotAcceptable()
 
 
 class NodePatchType(types.JsonPatchType):
