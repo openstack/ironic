@@ -22,6 +22,7 @@
 
 import os
 import stat
+import subprocess
 import tempfile
 import time
 import types
@@ -169,120 +170,102 @@ class IPMIToolCheckInitTestCase(base.TestCase):
         self.assertEqual(0, mock_check_dir.call_count)
 
 
+@mock.patch.object(ipmi, '_is_option_supported', autospec=True)
+@mock.patch.object(subprocess, 'check_call', autospec=True)
 class IPMIToolCheckOptionSupportedTestCase(base.TestCase):
 
-    @mock.patch.object(ipmi, '_is_option_supported', autospec=True)
-    @mock.patch.object(utils, 'execute', autospec=True)
-    def test_check_timing_pass(self, mock_exc, mock_support):
-        mock_exc.return_value = (None, None)
+    def test_check_timing_pass(self, mock_chkcall, mock_support):
+        mock_chkcall.return_value = (None, None)
         mock_support.return_value = None
         expected = [mock.call('timing'),
                     mock.call('timing', True)]
 
         ipmi._check_option_support(['timing'])
-        self.assertTrue(mock_exc.called)
+        self.assertTrue(mock_chkcall.called)
         self.assertEqual(expected, mock_support.call_args_list)
 
-    @mock.patch.object(ipmi, '_is_option_supported', autospec=True)
-    @mock.patch.object(utils, 'execute', autospec=True)
-    def test_check_timing_fail(self, mock_exc, mock_support):
-        mock_exc.side_effect = processutils.ProcessExecutionError()
+    def test_check_timing_fail(self, mock_chkcall, mock_support):
+        mock_chkcall.side_effect = subprocess.CalledProcessError(1, 'ipmitool')
         mock_support.return_value = None
         expected = [mock.call('timing'),
                     mock.call('timing', False)]
 
         ipmi._check_option_support(['timing'])
-        self.assertTrue(mock_exc.called)
+        self.assertTrue(mock_chkcall.called)
         self.assertEqual(expected, mock_support.call_args_list)
 
-    @mock.patch.object(ipmi, '_is_option_supported', autospec=True)
-    @mock.patch.object(utils, 'execute', autospec=True)
-    def test_check_timing_no_ipmitool(self, mock_exc, mock_support):
-        mock_exc.side_effect = OSError()
+    def test_check_timing_no_ipmitool(self, mock_chkcall, mock_support):
+        mock_chkcall.side_effect = OSError()
         mock_support.return_value = None
         expected = [mock.call('timing')]
 
         self.assertRaises(OSError, ipmi._check_option_support, ['timing'])
-        self.assertTrue(mock_exc.called)
+        self.assertTrue(mock_chkcall.called)
         self.assertEqual(expected, mock_support.call_args_list)
 
-    @mock.patch.object(ipmi, '_is_option_supported', autospec=True)
-    @mock.patch.object(utils, 'execute', autospec=True)
-    def test_check_single_bridge_pass(self, mock_exc, mock_support):
-        mock_exc.return_value = (None, None)
+    def test_check_single_bridge_pass(self, mock_chkcall, mock_support):
+        mock_chkcall.return_value = (None, None)
         mock_support.return_value = None
         expected = [mock.call('single_bridge'),
                     mock.call('single_bridge', True)]
 
         ipmi._check_option_support(['single_bridge'])
-        self.assertTrue(mock_exc.called)
+        self.assertTrue(mock_chkcall.called)
         self.assertEqual(expected, mock_support.call_args_list)
 
-    @mock.patch.object(ipmi, '_is_option_supported', autospec=True)
-    @mock.patch.object(utils, 'execute', autospec=True)
-    def test_check_single_bridge_fail(self, mock_exc, mock_support):
-        mock_exc.side_effect = processutils.ProcessExecutionError()
+    def test_check_single_bridge_fail(self, mock_chkcall, mock_support):
+        mock_chkcall.side_effect = subprocess.CalledProcessError(1, 'ipmitool')
         mock_support.return_value = None
         expected = [mock.call('single_bridge'),
                     mock.call('single_bridge', False)]
 
         ipmi._check_option_support(['single_bridge'])
-        self.assertTrue(mock_exc.called)
+        self.assertTrue(mock_chkcall.called)
         self.assertEqual(expected, mock_support.call_args_list)
 
-    @mock.patch.object(ipmi, '_is_option_supported', autospec=True)
-    @mock.patch.object(utils, 'execute', autospec=True)
-    def test_check_single_bridge_no_ipmitool(self, mock_exc,
+    def test_check_single_bridge_no_ipmitool(self, mock_chkcall,
                                              mock_support):
-        mock_exc.side_effect = OSError()
+        mock_chkcall.side_effect = OSError()
         mock_support.return_value = None
         expected = [mock.call('single_bridge')]
 
         self.assertRaises(OSError, ipmi._check_option_support,
                           ['single_bridge'])
-        self.assertTrue(mock_exc.called)
+        self.assertTrue(mock_chkcall.called)
         self.assertEqual(expected, mock_support.call_args_list)
 
-    @mock.patch.object(ipmi, '_is_option_supported', autospec=True)
-    @mock.patch.object(utils, 'execute', autospec=True)
-    def test_check_dual_bridge_pass(self, mock_exc, mock_support):
-        mock_exc.return_value = (None, None)
+    def test_check_dual_bridge_pass(self, mock_chkcall, mock_support):
+        mock_chkcall.return_value = (None, None)
         mock_support.return_value = None
         expected = [mock.call('dual_bridge'),
                     mock.call('dual_bridge', True)]
 
         ipmi._check_option_support(['dual_bridge'])
-        self.assertTrue(mock_exc.called)
+        self.assertTrue(mock_chkcall.called)
         self.assertEqual(expected, mock_support.call_args_list)
 
-    @mock.patch.object(ipmi, '_is_option_supported', autospec=True)
-    @mock.patch.object(utils, 'execute', autospec=True)
-    def test_check_dual_bridge_fail(self, mock_exc, mock_support):
-        mock_exc.side_effect = processutils.ProcessExecutionError()
+    def test_check_dual_bridge_fail(self, mock_chkcall, mock_support):
+        mock_chkcall.side_effect = subprocess.CalledProcessError(1, 'ipmitool')
         mock_support.return_value = None
         expected = [mock.call('dual_bridge'),
                     mock.call('dual_bridge', False)]
 
         ipmi._check_option_support(['dual_bridge'])
-        self.assertTrue(mock_exc.called)
+        self.assertTrue(mock_chkcall.called)
         self.assertEqual(expected, mock_support.call_args_list)
 
-    @mock.patch.object(ipmi, '_is_option_supported', autospec=True)
-    @mock.patch.object(utils, 'execute', autospec=True)
-    def test_check_dual_bridge_no_ipmitool(self, mock_exc, mock_support):
-        mock_exc.side_effect = OSError()
+    def test_check_dual_bridge_no_ipmitool(self, mock_chkcall, mock_support):
+        mock_chkcall.side_effect = OSError()
         mock_support.return_value = None
         expected = [mock.call('dual_bridge')]
 
         self.assertRaises(OSError, ipmi._check_option_support,
                           ['dual_bridge'])
-        self.assertTrue(mock_exc.called)
+        self.assertTrue(mock_chkcall.called)
         self.assertEqual(expected, mock_support.call_args_list)
 
-    @mock.patch.object(ipmi, '_is_option_supported', autospec=True)
-    @mock.patch.object(utils, 'execute', autospec=True)
-    def test_check_all_options_pass(self, mock_exc, mock_support):
-        mock_exc.return_value = (None, None)
+    def test_check_all_options_pass(self, mock_chkcall, mock_support):
+        mock_chkcall.return_value = (None, None)
         mock_support.return_value = None
         expected = [
             mock.call('timing'), mock.call('timing', True),
@@ -291,13 +274,11 @@ class IPMIToolCheckOptionSupportedTestCase(base.TestCase):
             mock.call('dual_bridge'), mock.call('dual_bridge', True)]
 
         ipmi._check_option_support(['timing', 'single_bridge', 'dual_bridge'])
-        self.assertTrue(mock_exc.called)
+        self.assertTrue(mock_chkcall.called)
         self.assertEqual(expected, mock_support.call_args_list)
 
-    @mock.patch.object(ipmi, '_is_option_supported', autospec=True)
-    @mock.patch.object(utils, 'execute', autospec=True)
-    def test_check_all_options_fail(self, mock_exc, mock_support):
-        mock_exc.side_effect = processutils.ProcessExecutionError()
+    def test_check_all_options_fail(self, mock_chkcall, mock_support):
+        mock_chkcall.side_effect = subprocess.CalledProcessError(1, 'ipmitool')
         mock_support.return_value = None
         expected = [
             mock.call('timing'), mock.call('timing', False),
@@ -307,20 +288,18 @@ class IPMIToolCheckOptionSupportedTestCase(base.TestCase):
             mock.call('dual_bridge', False)]
 
         ipmi._check_option_support(['timing', 'single_bridge', 'dual_bridge'])
-        self.assertTrue(mock_exc.called)
+        self.assertTrue(mock_chkcall.called)
         self.assertEqual(expected, mock_support.call_args_list)
 
-    @mock.patch.object(ipmi, '_is_option_supported', autospec=True)
-    @mock.patch.object(utils, 'execute', autospec=True)
-    def test_check_all_options_no_ipmitool(self, mock_exc, mock_support):
-        mock_exc.side_effect = OSError()
+    def test_check_all_options_no_ipmitool(self, mock_chkcall, mock_support):
+        mock_chkcall.side_effect = OSError()
         mock_support.return_value = None
         # exception is raised once ipmitool was not found for an command
         expected = [mock.call('timing')]
 
         self.assertRaises(OSError, ipmi._check_option_support,
                           ['timing', 'single_bridge', 'dual_bridge'])
-        self.assertTrue(mock_exc.called)
+        self.assertTrue(mock_chkcall.called)
         self.assertEqual(expected, mock_support.call_args_list)
 
 
