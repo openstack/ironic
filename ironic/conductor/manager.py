@@ -1906,7 +1906,7 @@ def _store_configdrive(node, configdrive):
 
         object_headers = {'X-Delete-After': timeout}
 
-        with tempfile.NamedTemporaryFile() as fileobj:
+        with tempfile.NamedTemporaryFile(dir=CONF.tempdir) as fileobj:
             fileobj.write(configdrive)
             fileobj.flush()
 

@@ -46,7 +46,9 @@ utils_opts = [
                help='Path to the rootwrap configuration file to use for '
                     'running commands as root.'),
     cfg.StrOpt('tempdir',
-               help='Explicitly specify the temporary working directory.'),
+               default=tempfile.gettempdir(),
+               help='Temporary working directory, default is Python temp '
+                    'dir.'),
 ]
 
 CONF = cfg.CONF
@@ -557,8 +559,7 @@ def check_dir(directory_to_check=None, required_space=1):
     """
     # check if directory_to_check is passed in, if not set to tempdir
     if directory_to_check is None:
-        directory_to_check = (tempfile.gettempdir() if CONF.tempdir
-                              is None else CONF.tempdir)
+        directory_to_check = CONF.tempdir
 
     LOG.debug("checking directory: %s", directory_to_check)
 

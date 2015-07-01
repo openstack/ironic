@@ -20,7 +20,6 @@ Ironic Native IPMI power manager.
 """
 
 import os
-import tempfile
 
 from oslo_config import cfg
 from oslo_log import log as logging
@@ -122,7 +121,7 @@ def _parse_driver_info(node):
 def _console_pwfile_path(uuid):
     """Return the file path for storing the ipmi password."""
     file_name = "%(uuid)s.pw" % {'uuid': uuid}
-    return os.path.join(tempfile.gettempdir(), file_name)
+    return os.path.join(CONF.tempdir, file_name)
 
 
 def _power_on(driver_info):

@@ -59,9 +59,9 @@ class ConsoleUtilsTestCase(db_base.DbTestCase):
         self.assertEqual(pid_dir, dir)
 
     def test__get_console_pid_dir_tempdir(self):
-        tempdir = tempfile.gettempdir()
+        self.config(tempdir='/tmp/fake_dir')
         dir = console_utils._get_console_pid_dir()
-        self.assertEqual(tempdir, dir)
+        self.assertEqual(CONF.tempdir, dir)
 
     @mock.patch.object(os, 'makedirs', autospec=True)
     @mock.patch.object(os.path, 'exists', autospec=True)

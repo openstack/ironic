@@ -163,7 +163,7 @@ def _get_boot_iso(task, root_uuid):
     kernel_params = CONF.pxe.pxe_append_params
     container = CONF.ilo.swift_ilo_container
 
-    with tempfile.NamedTemporaryFile() as fileobj:
+    with tempfile.NamedTemporaryFile(dir=CONF.tempdir) as fileobj:
         boot_iso_tmp_file = fileobj.name
         images.create_boot_iso(task.context, boot_iso_tmp_file,
                                kernel_href, ramdisk_href,

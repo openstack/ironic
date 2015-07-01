@@ -529,7 +529,8 @@ def _get_configdrive(configdrive, node_uuid):
         raise exception.InstanceDeployFailure(error_msg)
 
     configdrive_file = tempfile.NamedTemporaryFile(delete=False,
-                                                   prefix='configdrive')
+                                                   prefix='configdrive',
+                                                   dir=CONF.tempdir)
     configdrive_mb = 0
     with gzip.GzipFile('configdrive', 'rb', fileobj=data) as gunzipped:
         try:

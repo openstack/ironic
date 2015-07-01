@@ -239,7 +239,8 @@ def _prepare_floppy_image(task, params):
     :raises: SwiftOperationError, if any operation with Swift fails.
     :returns: the Swift temp url for the floppy image.
     """
-    with tempfile.NamedTemporaryFile() as vfat_image_tmpfile_obj:
+    with tempfile.NamedTemporaryFile(
+            dir=CONF.tempdir) as vfat_image_tmpfile_obj:
 
         vfat_image_tmpfile = vfat_image_tmpfile_obj.name
         images.create_vfat_image(vfat_image_tmpfile, parameters=params)
