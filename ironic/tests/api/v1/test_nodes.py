@@ -1209,6 +1209,21 @@ class TestPatch(test_api_base.FunctionalTest):
         self.assertEqual(409, response.status_code)
         self.assertTrue(response.json['error_message'])
 
+    def test_update_in_UPDATE_ALLOWED_STATES(self):
+        for state in states.UPDATE_ALLOWED_STATES:
+            node = obj_utils.create_test_node(
+                self.context,
+                uuid=uuidutils.generate_uuid(),
+                provision_state=state,
+                target_provision_state=states.AVAILABLE)
+
+            self.mock_update_node.return_value = node
+            response = self.patch_json('/nodes/%s' % node.uuid,
+                                       [{'path': '/extra/foo', 'value': 'bar',
+                                         'op': 'add'}])
+            self.assertEqual('application/json', response.content_type)
+            self.assertEqual(200, response.status_code)
+
 
 class TestPost(test_api_base.FunctionalTest):
 
