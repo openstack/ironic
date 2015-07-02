@@ -2044,9 +2044,12 @@ class MiscTestCase(_ServiceSetUpMixin, _CommonMixIn, tests_db_base.DbTestCase):
             self.assertEqual(reason, ret['deploy']['reason'])
             mock_iwdi.assert_called_once_with(self.context, node.instance_info)
 
+    @mock.patch.object(manager.ConductorManager, '_fail_if_in_state',
+                       autospec=True)
     @mock.patch.object(manager.ConductorManager, '_mapped_to_this_conductor')
     @mock.patch.object(dbapi.IMPL, 'get_nodeinfo_list')
-    def test_iter_nodes(self, mock_nodeinfo_list, mock_mapped):
+    def test_iter_nodes(self, mock_nodeinfo_list, mock_mapped,
+                        mock_fail_if_state):
         self._start_service()
         self.columns = ['uuid', 'driver', 'id']
         nodes = [self._create_node(id=i, driver='fake') for i in range(2)]
@@ -2059,6 +2062,11 @@ class MiscTestCase(_ServiceSetUpMixin, _CommonMixIn, tests_db_base.DbTestCase):
         self.assertEqual([(nodes[0].uuid, 'fake', 0)], result)
         mock_nodeinfo_list.assert_called_once_with(
             columns=self.columns, filters=mock.sentinel.filters)
+        mock_fail_if_state.assert_called_once_with(
+            mock.ANY, mock.ANY,
+            {'provision_state': 'deploying', 'reserved': False},
+            'deploying', 'provision_updated_at',
+            last_error=mock.ANY)
 
 
 @_mock_record_keepalive
@@ -2407,12 +2415,15 @@ class UpdatePortTestCase(_ServiceSetUpMixin, tests_db_base.DbTestCase):
                 self.assertTrue(get_sensors_data_mock.called)
                 self.assertTrue(validate_mock.called)
 
+    @mock.patch.object(manager.ConductorManager, '_fail_if_in_state',
+                       autospec=True)
     @mock.patch.object(manager.ConductorManager, '_mapped_to_this_conductor')
     @mock.patch.object(dbapi.IMPL, 'get_nodeinfo_list')
     @mock.patch.object(task_manager, 'acquire')
     def test___send_sensor_data_disabled(self, acquire_mock,
                                          get_nodeinfo_list_mock,
-                                         _mapped_to_this_conductor_mock):
+                                         _mapped_to_this_conductor_mock,
+                                         mock_fail_if_state):
         node = obj_utils.create_test_node(self.context,
                                           driver='fake')
         self._start_service()
@@ -2431,6 +2442,11 @@ class UpdatePortTestCase(_ServiceSetUpMixin, tests_db_base.DbTestCase):
                 self.assertFalse(acquire_mock.called)
                 self.assertFalse(get_sensors_data_mock.called)
                 self.assertFalse(validate_mock.called)
+                mock_fail_if_state.assert_called_once_with(
+                    mock.ANY, mock.ANY,
+                    {'provision_state': 'deploying', 'reserved': False},
+                    'deploying', 'provision_updated_at',
+                    last_error=mock.ANY)
 
     def test_set_boot_device(self):
         node = obj_utils.create_test_node(self.context, driver='fake')

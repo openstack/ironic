@@ -51,6 +51,7 @@ import eventlet
 from eventlet import greenpool
 from oslo_concurrency import lockutils
 from oslo_config import cfg
+from oslo_context import context as ironic_context
 from oslo_db import exception as db_exception
 from oslo_log import log
 import oslo_messaging as messaging
@@ -283,6 +284,22 @@ class ConductorManager(periodic_task.PeriodicTasks):
                                                  'drivers': self.drivers},
                                                 update_existing=True)
         self.conductor = cdr
+
+        # NOTE(lucasagomes): If the conductor server dies abruptly
+        # mid deployment (OMM Killer, power outage, etc...) we
+        # can not resume the deployment even if the conductor
+        # comes back online. Cleaning the reservation of the nodes
+        # (dbapi.clear_node_reservations_for_conductor) is not enough to
+        # unstick it, so let's gracefully fail the deployment so the node
+        # can go through the steps (deleting & cleaning) to make itself
+        # available again.
+        filters = {'reserved': False,
+                   'provision_state': states.DEPLOYING}
+        last_error = (_("The deployment can't be resumed by conductor "
+                        "%s. Moving to fail state.") % self.host)
+        self._fail_if_in_state(ironic_context.get_admin_context(), filters,
+                               states.DEPLOYING, 'provision_updated_at',
+                               last_error=last_error)
 
         # Spawn a dedicated greenthread for the keepalive
         try:
