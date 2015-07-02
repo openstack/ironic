@@ -122,7 +122,9 @@ Command Interface (SCCI).
 Software Requirements
 ^^^^^^^^^^^^^^^^^^^^^
 
-- Install `python-scciclient package <https://pypi.python.org/pypi/python-scciclient>`_
+- Install `python-scciclient package <https://pypi.python.org/pypi/python-scciclient>`_::
+
+  $ pip install "python-scciclient>=0.1.0"
 
 Enabling the iRMC Driver
 ^^^^^^^^^^^^^^^^^^^^^^^^
