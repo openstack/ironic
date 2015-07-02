@@ -805,8 +805,9 @@ class NodesController(rest.RestController):
                              'clean_step']
 
     def _get_nodes_collection(self, chassis_uuid, instance_uuid, associated,
-                              maintenance, marker, limit, sort_key, sort_dir,
-                              resource_url=None, fields=None):
+                              maintenance, provision_state, marker, limit,
+                              sort_key, sort_dir, resource_url=None,
+                              fields=None):
         if self.from_chassis and not chassis_uuid:
             raise exception.MissingParameterValue(
                 _("Chassis id not specified."))
@@ -834,6 +835,8 @@ class NodesController(rest.RestController):
                 filters['associated'] = associated
             if maintenance is not None:
                 filters['maintenance'] = maintenance
+            if provision_state:
+                filters['provision_state'] = provision_state
 
             nodes = objects.Node.list(pecan.request.context, limit, marker_obj,
                                       sort_key=sort_key, sort_dir=sort_dir,
@@ -862,11 +865,11 @@ class NodesController(rest.RestController):
             return []
 
     @expose.expose(NodeCollection, types.uuid, types.uuid, types.boolean,
-                   types.boolean, types.uuid, int, wtypes.text, wtypes.text,
-                   types.listtype)
+                   types.boolean, wtypes.text, types.uuid, int, wtypes.text,
+                   wtypes.text, types.listtype)
     def get_all(self, chassis_uuid=None, instance_uuid=None, associated=None,
-                maintenance=None, marker=None, limit=None, sort_key='id',
-                sort_dir='asc', fields=None):
+                maintenance=None, provision_state=None, marker=None,
+                limit=None, sort_key='id', sort_dir='asc', fields=None):
         """Retrieve a list of nodes.
 
         :param chassis_uuid: Optional UUID of a chassis, to get only nodes for
@@ -879,6 +882,8 @@ class NodesController(rest.RestController):
         :param maintenance: Optional boolean value that indicates whether
                             to get nodes in maintenance mode ("True"), or not
                             in maintenance mode ("False").
+        :param provision_state: Optional string value to get only nodes in
+                                that provision state.
         :param marker: pagination marker for large data sets.
         :param limit: maximum number of resources to return in a single result.
         :param sort_key: column to sort results by. Default: id.
@@ -887,18 +892,21 @@ class NodesController(rest.RestController):
             of the resource to be returned.
         """
         api_utils.check_allow_specify_fields(fields)
+        api_utils.check_for_invalid_state_and_allow_filter(provision_state)
         if fields is None:
             fields = _DEFAULT_RETURN_FIELDS
         return self._get_nodes_collection(chassis_uuid, instance_uuid,
-                                          associated, maintenance, marker,
+                                          associated, maintenance,
+                                          provision_state, marker,
                                           limit, sort_key, sort_dir,
                                           fields=fields)
 
     @expose.expose(NodeCollection, types.uuid, types.uuid, types.boolean,
-                   types.boolean, types.uuid, int, wtypes.text, wtypes.text)
+                   types.boolean, wtypes.text, types.uuid, int, wtypes.text,
+                   wtypes.text)
     def detail(self, chassis_uuid=None, instance_uuid=None, associated=None,
-               maintenance=None, marker=None, limit=None, sort_key='id',
-               sort_dir='asc'):
+               maintenance=None, provision_state=None, marker=None,
+               limit=None, sort_key='id', sort_dir='asc'):
         """Retrieve a list of nodes with detail.
 
         :param chassis_uuid: Optional UUID of a chassis, to get only nodes for
@@ -911,11 +919,14 @@ class NodesController(rest.RestController):
         :param maintenance: Optional boolean value that indicates whether
                             to get nodes in maintenance mode ("True"), or not
                             in maintenance mode ("False").
+        :param provision_state: Optional string value to get only nodes in
+                                that provision state.
         :param marker: pagination marker for large data sets.
         :param limit: maximum number of resources to return in a single result.
         :param sort_key: column to sort results by. Default: id.
         :param sort_dir: direction to sort. "asc" or "desc". Default: asc.
         """
+        api_utils.check_for_invalid_state_and_allow_filter(provision_state)
         # /detail should only work against collections
         parent = pecan.request.path.split('/')[:-1][-1]
         if parent != "nodes":
@@ -923,7 +934,8 @@ class NodesController(rest.RestController):
 
         resource_url = '/'.join(['nodes', 'detail'])
         return self._get_nodes_collection(chassis_uuid, instance_uuid,
-                                          associated, maintenance, marker,
+                                          associated, maintenance,
+                                          provision_state, marker,
                                           limit, sort_key, sort_dir,
                                           resource_url)
 
