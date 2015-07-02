@@ -687,7 +687,7 @@ class PXEDriverTestCase(db_base.DbTestCase):
     @mock.patch.object(base_image_service.BaseImageService, '_show',
                        autospec=True)
     def test_validate_fail_glance_image_doesnt_exists(self, mock_glance):
-        mock_glance.side_effect = exception.ImageNotFound('not found')
+        mock_glance.side_effect = iter([exception.ImageNotFound('not found')])
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
             self.assertRaises(exception.InvalidParameterValue,
@@ -1173,7 +1173,8 @@ class CleanUpTestCase(db_base.DbTestCase):
     def test_clean_up_fail_get_image_info(self, mock_image_info, mock_cache,
                                           mock_pxe_clean, mock_iscsi_clean,
                                           mock_unlink):
-        mock_image_info.side_effect = exception.MissingParameterValue('foo')
+        mock_image_info.side_effect = iter(
+            [exception.MissingParameterValue('foo')])
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
             task.driver.deploy.clean_up(task)

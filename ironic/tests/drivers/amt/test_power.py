@@ -233,7 +233,8 @@ class AMTPowerTestCase(db_base.DbTestCase):
     def test_validate_fail(self, mock_drvinfo):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
-            mock_drvinfo.side_effect = exception.InvalidParameterValue('x')
+            mock_drvinfo.side_effect = iter(
+                [exception.InvalidParameterValue('x')])
             self.assertRaises(exception.InvalidParameterValue,
                               task.driver.power.validate,
                               task)
@@ -264,7 +265,7 @@ class AMTPowerTestCase(db_base.DbTestCase):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
             pstate = states.POWER_ON
-            mock_saw.side_effect = exception.PowerStateFailure('x')
+            mock_saw.side_effect = iter([exception.PowerStateFailure('x')])
             self.assertRaises(exception.PowerStateFailure,
                               task.driver.power.set_power_state,
                               task, pstate)

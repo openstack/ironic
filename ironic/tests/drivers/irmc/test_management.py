@@ -68,7 +68,7 @@ class IRMCManagementTestCase(db_base.DbTestCase):
     @mock.patch.object(irmc_common, 'parse_driver_info', spec_set=True,
                        autospec=True)
     def test_validate_fail(self, mock_drvinfo):
-        side_effect = exception.InvalidParameterValue("Invalid Input")
+        side_effect = iter([exception.InvalidParameterValue("Invalid Input")])
         mock_drvinfo.side_effect = side_effect
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
@@ -285,7 +285,7 @@ class IRMCManagementTestCase(db_base.DbTestCase):
             get_irmc_report_mock):
         """'FailedToGetSensorData Exception."""
 
-        get_irmc_report_mock.side_effect = Exception("Report Error")
+        get_irmc_report_mock.side_effect = iter([Exception("Report Error")])
 
         with task_manager.acquire(self.context, self.node.uuid) as task:
             task.node.driver_info['irmc_sensor_method'] = 'scci'

@@ -418,8 +418,8 @@ class IPMINativeDriverTestCase(db_base.DbTestCase):
     @mock.patch.object(console_utils, 'start_shellinabox_console',
                        autospec=True)
     def test_start_console_fail(self, mock_exec):
-        mock_exec.side_effect = (
-            exception.ConsoleSubprocessFailed(error='error'))
+        mock_exec.side_effect = iter(
+            [exception.ConsoleSubprocessFailed(error='error')])
 
         with task_manager.acquire(self.context,
                                   self.node.uuid) as task:
@@ -442,7 +442,7 @@ class IPMINativeDriverTestCase(db_base.DbTestCase):
     @mock.patch.object(console_utils, 'stop_shellinabox_console',
                        autospec=True)
     def test_stop_console_fail(self, mock_stop):
-        mock_stop.side_effect = exception.ConsoleError()
+        mock_stop.side_effect = iter([exception.ConsoleError()])
 
         with task_manager.acquire(self.context,
                                   self.node.uuid) as task:
