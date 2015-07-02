@@ -1391,6 +1391,27 @@ class IPMIToolDriverTestCase(db_base.DbTestCase):
             self.assertIsInstance(driver_routes, dict)
             self.assertEqual({}, driver_routes)
 
+    def test_console_validate(self):
+        with task_manager.acquire(
+                self.context, self.node.uuid, shared=True) as task:
+            task.node.driver_info['ipmi_terminal_port'] = 123
+            task.driver.console.validate(task)
+
+    def test_console_validate_missing_port(self):
+        with task_manager.acquire(
+                self.context, self.node.uuid, shared=True) as task:
+            task.node.driver_info.pop('ipmi_terminal_port', None)
+            self.assertRaises(exception.MissingParameterValue,
+                              task.driver.console.validate, task)
+
+    def test_console_validate_wrong_ipmi_protocol_version(self):
+        with task_manager.acquire(
+                self.context, self.node.uuid, shared=True) as task:
+            task.node.driver_info['ipmi_terminal_port'] = 123
+            task.node.driver_info['ipmi_protocol_version'] = '1.5'
+            self.assertRaises(exception.InvalidParameterValue,
+                              task.driver.console.validate, task)
+
     @mock.patch.object(console_utils, 'start_shellinabox_console',
                        autospec=True)
     def test_start_console(self, mock_exec):
