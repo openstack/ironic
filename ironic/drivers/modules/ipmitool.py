@@ -190,7 +190,7 @@ def _is_option_supported(option, is_supported=None):
 def _console_pwfile_path(uuid):
     """Return the file path for storing the ipmi password for a console."""
     file_name = "%(uuid)s.pw" % {'uuid': uuid}
-    return os.path.join(tempfile.gettempdir(), file_name)
+    return os.path.join(CONF.tempdir, file_name)
 
 
 @contextlib.contextmanager

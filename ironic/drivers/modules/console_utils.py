@@ -21,7 +21,6 @@ Ironic console utilities.
 
 import os
 import subprocess
-import tempfile
 import time
 
 from oslo_concurrency import processutils
@@ -65,11 +64,7 @@ LOG = logging.getLogger(__name__)
 def _get_console_pid_dir():
     """Return the directory for the pid file."""
 
-    if CONF.console.terminal_pid_dir:
-        pid_dir = CONF.console.terminal_pid_dir
-    else:
-        pid_dir = tempfile.gettempdir()
-    return pid_dir
+    return CONF.console.terminal_pid_dir or CONF.tempdir
 
 
 def _ensure_console_pid_dir_exists():
