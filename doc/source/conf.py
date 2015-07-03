@@ -9,6 +9,7 @@ extensions = ['sphinx.ext.autodoc',
               'sphinx.ext.viewcode',
               'sphinxcontrib.httpdomain',
               'sphinxcontrib.pecanwsme.rest',
+              'sphinxcontrib.seqdiag',
               'wsmeext.sphinxext',
               'oslosphinx',
               ]
@@ -80,3 +81,7 @@ latex_documents = [
         'manual'
     ),
 ]
+
+# -- Options for seqdiag ------------------------------------------------------
+
+seqdiag_html_image_format = "SVG"
