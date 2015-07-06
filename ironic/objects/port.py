@@ -20,7 +20,7 @@ from ironic.common import exception
 from ironic.common import utils
 from ironic.db import api as dbapi
 from ironic.objects import base
-from ironic.objects import utils as obj_utils
+from ironic.objects import fields as object_fields
 
 
 class Port(base.IronicObject):
@@ -35,11 +35,11 @@ class Port(base.IronicObject):
     dbapi = dbapi.get_instance()
 
     fields = {
-        'id': int,
-        'uuid': obj_utils.str_or_none,
-        'node_id': obj_utils.int_or_none,
-        'address': obj_utils.str_or_none,
-        'extra': obj_utils.dict_or_none,
+        'id': object_fields.IntegerField(),
+        'uuid': object_fields.UUIDField(nullable=True),
+        'node_id': object_fields.IntegerField(nullable=True),
+        'address': object_fields.MACAddressField(nullable=True),
+        'extra': object_fields.FlexibleDictField(nullable=True),
     }
 
     @staticmethod

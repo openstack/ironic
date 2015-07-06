@@ -38,7 +38,7 @@ class TestNetwork(db_base.DbTestCase):
 
     def test_get_node_vif_ids_one_port(self):
         port1 = db_utils.create_test_port(node_id=self.node.id,
-                                          address='aa:bb:cc',
+                                          address='aa:bb:cc:dd:ee:ff',
                                           uuid=uuidutils.generate_uuid(),
                                           extra={'vif_port_id': 'test-vif-A'},
                                           driver='fake')
@@ -49,12 +49,12 @@ class TestNetwork(db_base.DbTestCase):
 
     def test_get_node_vif_ids_two_ports(self):
         port1 = db_utils.create_test_port(node_id=self.node.id,
-                                          address='aa:bb:cc',
+                                          address='aa:bb:cc:dd:ee:ff',
                                           uuid=uuidutils.generate_uuid(),
                                           extra={'vif_port_id': 'test-vif-A'},
                                           driver='fake')
         port2 = db_utils.create_test_port(node_id=self.node.id,
-                                          address='dd:ee:ff',
+                                          address='dd:ee:ff:aa:bb:cc',
                                           uuid=uuidutils.generate_uuid(),
                                           extra={'vif_port_id': 'test-vif-B'},
                                           driver='fake')

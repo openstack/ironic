@@ -17,7 +17,7 @@
 from ironic.common.i18n import _
 from ironic.db import api as db_api
 from ironic.objects import base
-from ironic.objects import utils
+from ironic.objects import fields as object_fields
 
 
 class Conductor(base.IronicObject):
@@ -25,9 +25,9 @@ class Conductor(base.IronicObject):
     dbapi = db_api.get_instance()
 
     fields = {
-        'id': int,
-        'drivers': utils.list_or_none,
-        'hostname': str,
+        'id': object_fields.IntegerField(),
+        'drivers': object_fields.ListOfStringsField(nullable=True),
+        'hostname': object_fields.StringField(),
     }
 
     @staticmethod
