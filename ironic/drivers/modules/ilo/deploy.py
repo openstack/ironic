@@ -274,7 +274,7 @@ def _reboot_into(task, iso, ramdisk_options):
 
 def _prepare_agent_vmedia_boot(task):
     """Ejects virtual media devices and prepares for vmedia boot."""
-    # Eject all virtual media devices are we are going to use them
+    # Eject all virtual media devices, as we are going to use them
     # during deploy.
     ilo_common.eject_vmedia_devices(task)
 
@@ -424,7 +424,7 @@ class IloVirtualMediaIscsiDeploy(base.DeployInterface):
             node.instance_info = instance_info
             node.save()
 
-        # Eject all virtual media devices are we are going to use them
+        # Eject all virtual media devices, as we are going to use them
         # during deploy.
         ilo_common.eject_vmedia_devices(task)
 
@@ -520,7 +520,6 @@ class IloVirtualMediaAgentDeploy(base.DeployInterface):
             image.
         :raises: IloOperationError, if some operation on iLO fails.
         """
-
         _prepare_agent_vmedia_boot(task)
 
         return states.DEPLOYWAIT
