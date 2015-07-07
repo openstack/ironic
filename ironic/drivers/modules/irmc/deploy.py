@@ -560,7 +560,9 @@ class IRMCVirtualMediaIscsiDeploy(base.DeployInterface):
         iscsi_deploy.validate(task)
 
         d_info = _parse_deploy_info(task.node)
-        if service_utils.is_glance_image(d_info['image_source']):
+        if task.node.driver_internal_info.get('is_whole_disk_image'):
+            props = []
+        elif service_utils.is_glance_image(d_info['image_source']):
             props = ['kernel_id', 'ramdisk_id']
         else:
             props = ['kernel', 'ramdisk']
@@ -807,24 +809,30 @@ class VendorPassthru(base.VendorInterface):
         node = task.node
         task.process_event('resume')
 
-        root_dict = iscsi_deploy.continue_deploy(task, **kwargs)
-        root_uuid = root_dict.get('root uuid')
+        is_whole_disk_image = node.driver_internal_info.get(
+            'is_whole_disk_image')
+        uuid_dict = iscsi_deploy.continue_deploy(task, **kwargs)
+        root_uuid_or_disk_id = uuid_dict.get(
+            'root uuid', uuid_dict.get('disk identifier'))
 
         try:
             _cleanup_vmedia_boot(task)
-            if iscsi_deploy.get_boot_option(node) == "local":
+            if (iscsi_deploy.get_boot_option(node) == "local" or
+                is_whole_disk_image):
                 manager_utils.node_set_boot_device(task, boot_devices.DISK,
                                                    persistent=True)
 
                 # Ask the ramdisk to install bootloader and
                 # wait for the call-back through the vendor passthru
-                # 'pass_bootloader_install_info'.
-                deploy_utils.notify_ramdisk_to_proceed(kwargs['address'])
-                task.process_event('wait')
-                return
+                # 'pass_bootloader_install_info', if it's not a whole
+                # disk image.
+                if not is_whole_disk_image:
+                    deploy_utils.notify_ramdisk_to_proceed(kwargs['address'])
+                    task.process_event('wait')
+                    return
 
             else:
-                _prepare_boot_iso(task, root_uuid)
+                _prepare_boot_iso(task, root_uuid_or_disk_id)
                 setup_vmedia_for_boot(
                     task, node.driver_internal_info['irmc_boot_iso'])
                 manager_utils.node_set_boot_device(task, boot_devices.CDROM,
