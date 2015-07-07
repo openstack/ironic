@@ -283,18 +283,23 @@ class IloDeployPrivateMethodsTestCase(db_base.DbTestCase):
                                                          boot_devices.CDROM)
             node_power_action_mock.assert_called_once_with(task, states.REBOOT)
 
+    @mock.patch.object(ilo_common, 'eject_vmedia_devices',
+                       spec_set=True, autospec=True)
     @mock.patch.object(ilo_deploy, '_reboot_into', spec_set=True,
                        autospec=True)
     @mock.patch.object(agent, 'build_agent_options', spec_set=True,
                        autospec=True)
     def test__prepare_agent_vmedia_boot(self, build_options_mock,
-                                        reboot_into_mock):
+                                        reboot_into_mock, eject_mock):
         deploy_opts = {'a': 'b'}
         build_options_mock.return_value = deploy_opts
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
             task.node.driver_info['ilo_deploy_iso'] = 'deploy-iso-uuid'
+
             ilo_deploy._prepare_agent_vmedia_boot(task)
+
+            eject_mock.assert_called_once_with(task)
             build_options_mock.assert_called_once_with(task.node)
             reboot_into_mock.assert_called_once_with(task,
                                                      'deploy-iso-uuid',
@@ -565,6 +570,8 @@ class IloVirtualMediaIscsiDeployTestCase(db_base.DbTestCase):
         is_glance_image_mock.return_value = False
         self._test_validate(props_expected=['kernel', 'ramdisk'])
 
+    @mock.patch.object(ilo_common, 'eject_vmedia_devices',
+                       spec_set=True, autospec=True)
     @mock.patch.object(ilo_deploy, '_reboot_into', spec_set=True,
                        autospec=True)
     @mock.patch.object(deploy_utils, 'get_single_nic_with_vif_port_id',
@@ -577,13 +584,23 @@ class IloVirtualMediaIscsiDeployTestCase(db_base.DbTestCase):
                        autospec=True)
     @mock.patch.object(iscsi_deploy, 'cache_instance_image', spec_set=True,
                        autospec=True)
-    def test_deploy(self,
-                    cache_instance_image_mock,
-                    check_image_size_mock,
-                    build_opts_mock,
-                    agent_options_mock,
-                    get_nic_mock,
-                    reboot_into_mock):
+    def _test_deploy(self,
+                     cache_instance_image_mock,
+                     check_image_size_mock,
+                     build_opts_mock,
+                     agent_options_mock,
+                     get_nic_mock,
+                     reboot_into_mock,
+                     eject_mock,
+                     ilo_boot_iso,
+                     image_source
+                     ):
+        instance_info = self.node.instance_info
+        instance_info['ilo_boot_iso'] = ilo_boot_iso
+        instance_info['image_source'] = image_source
+        self.node.instance_info = instance_info
+        self.node.save()
+
         deploy_opts = {'a': 'b'}
         agent_options_mock.return_value = {
             'ipa-api-url': 'http://1.2.3.4:6385'}
@@ -595,6 +612,7 @@ class IloVirtualMediaIscsiDeployTestCase(db_base.DbTestCase):
             task.node.driver_info['ilo_deploy_iso'] = 'deploy-iso'
             returned_state = task.driver.deploy.deploy(task)
 
+            eject_mock.assert_called_once_with(task)
             cache_instance_image_mock.assert_called_once_with(task.context,
                                                               task.node)
             check_image_size_mock.assert_called_once_with(task)
@@ -606,6 +624,21 @@ class IloVirtualMediaIscsiDeployTestCase(db_base.DbTestCase):
                                                      expected_ramdisk_opts)
 
         self.assertEqual(states.DEPLOYWAIT, returned_state)
+
+    def test_deploy_glance_image(self):
+        self._test_deploy(
+            ilo_boot_iso='swift:abcdef',
+            image_source='6b2f0c0c-79e8-4db6-842e-43c9764204af')
+        self.node.refresh()
+        self.assertNotIn('ilo_boot_iso', self.node.instance_info)
+
+    def test_deploy_not_a_glance_image(self):
+        self._test_deploy(
+            ilo_boot_iso='http://mybootiso',
+            image_source='http://myimage')
+        self.node.refresh()
+        self.assertEqual('http://mybootiso',
+                         self.node.instance_info['ilo_boot_iso'])
 
     @mock.patch.object(ilo_deploy, '_update_secure_boot_mode', spec_set=True,
                        autospec=True)

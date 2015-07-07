@@ -426,18 +426,16 @@ class IloCommonMethodsTestCase(db_base.DbTestCase):
             attach_vmedia_mock.assert_called_once_with(task.node, 'CDROM',
                                                        boot_iso)
 
-    @mock.patch.object(ilo_common, 'get_ilo_object', spec_set=True,
-                       autospec=True)
+    @mock.patch.object(ilo_common, 'eject_vmedia_devices',
+                       spec_set=True, autospec=True)
     @mock.patch.object(swift, 'SwiftAPI', spec_set=True, autospec=True)
     @mock.patch.object(ilo_common, '_get_floppy_image_name', spec_set=True,
                        autospec=True)
     def test_cleanup_vmedia_boot(self, get_name_mock, swift_api_mock,
-                                 get_ilo_object_mock):
+                                 eject_mock):
         swift_obj_mock = swift_api_mock.return_value
         CONF.ilo.swift_ilo_container = 'ilo_cont'
 
-        ilo_object_mock = mock.MagicMock(spec=['eject_virtual_media'])
-        get_ilo_object_mock.return_value = ilo_object_mock
         get_name_mock.return_value = 'image-node-uuid'
 
         with task_manager.acquire(self.context, self.node.uuid,
@@ -445,8 +443,35 @@ class IloCommonMethodsTestCase(db_base.DbTestCase):
             ilo_common.cleanup_vmedia_boot(task)
             swift_obj_mock.delete_object.assert_called_once_with(
                 'ilo_cont', 'image-node-uuid')
+            eject_mock.assert_called_once_with(task)
+
+    @mock.patch.object(ilo_common, 'get_ilo_object', spec_set=True,
+                       autospec=True)
+    def test_eject_vmedia_devices(self, get_ilo_object_mock):
+        ilo_object_mock = mock.MagicMock(spec=['eject_virtual_media'])
+        get_ilo_object_mock.return_value = ilo_object_mock
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            ilo_common.eject_vmedia_devices(task)
             ilo_object_mock.eject_virtual_media.assert_any_call('CDROM')
             ilo_object_mock.eject_virtual_media.assert_any_call('FLOPPY')
+
+    @mock.patch.object(ilo_common, 'get_ilo_object', spec_set=True,
+                       autospec=True)
+    def test_eject_vmedia_devices_raises(
+            self, get_ilo_object_mock):
+        ilo_object_mock = mock.MagicMock(spec=['eject_virtual_media'])
+        get_ilo_object_mock.return_value = ilo_object_mock
+        exc = ilo_error.IloError('error')
+        ilo_object_mock.eject_virtual_media.side_effect = exc
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            self.assertRaises(exception.IloOperationError,
+                              ilo_common.eject_vmedia_devices,
+                              task)
+
+            ilo_object_mock.eject_virtual_media.assert_called_once_with(
+                'FLOPPY')
 
     @mock.patch.object(ilo_common, 'get_ilo_object', spec_set=True,
                        autospec=True)
