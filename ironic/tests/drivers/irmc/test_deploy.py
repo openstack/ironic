@@ -1000,12 +1000,40 @@ class VendorPassthruTestCase(db_base.DbTestCase):
         CONF.irmc.remote_image_user_password = 'admin0'
         CONF.irmc.remote_image_user_domain = 'local'
 
-    @mock.patch.object(iscsi_deploy, 'get_deploy_info')
-    def test_validate(self, get_deploy_info_mock):
+    @mock.patch.object(iscsi_deploy, 'get_deploy_info', spec_set=True,
+                       autospec=True)
+    def test_validate_pass_deploy_info(self, get_deploy_info_mock):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
-            task.driver.vendor.validate(task, method=None, a=1)
+            task.driver.vendor.validate(task, method='pass_deploy_info', a=1)
             get_deploy_info_mock.assert_called_once_with(task.node, a=1)
+
+    @mock.patch.object(iscsi_deploy, 'validate_pass_bootloader_info_input',
+                       spec_set=True, autospec=True)
+    def test_validate_pass_bootloader_install_info(self, validate_mock):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            kwargs = {'address': '1.2.3.4', 'key': 'fake-key',
+                      'status': 'SUCCEEDED', 'error': ''}
+            task.driver.vendor.validate(
+                task, method='pass_bootloader_install_info', **kwargs)
+            validate_mock.assert_called_once_with(task, kwargs)
+
+    @mock.patch.object(iscsi_deploy, 'validate_bootloader_install_status',
+                       spec_set=True, autospec=True)
+    @mock.patch.object(iscsi_deploy, 'finish_deploy', spec_set=True,
+                       autospec=True)
+    def test_pass_bootloader_install_info(self, finish_deploy_mock,
+                                          validate_input_mock):
+        kwargs = {'method': 'pass_deploy_info', 'address': '123456'}
+        self.node.provision_state = states.DEPLOYWAIT
+        self.node.target_provision_state = states.ACTIVE
+        self.node.save()
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            task.driver.vendor.pass_bootloader_install_info(task, **kwargs)
+            finish_deploy_mock.assert_called_once_with(task, '123456')
+            validate_input_mock.assert_called_once_with(task, kwargs)
 
     @mock.patch.object(deploy_utils, 'set_failed_state', spec_set=True,
                        autospec=True)
@@ -1041,15 +1069,14 @@ class VendorPassthruTestCase(db_base.DbTestCase):
             task.driver.vendor.pass_deploy_info(task, **kwargs)
 
             _cleanup_vmedia_boot_mock.assert_called_once_with(task)
-            continue_deploy_mock.assert_called_once_with(
-                task, method='pass_deploy_info', address='123456')
+            continue_deploy_mock.assert_called_once_with(task, **kwargs)
 
             _prepare_boot_iso_mock.assert_called_once_with(
                 task, 'root_uuid')
             setup_vmedia_for_boot_mock.assert_called_once_with(
                 task, 'irmc_boot.iso')
             node_set_boot_device_mock.assert_called_once_with(
-                task, boot_devices.CDROM)
+                task, boot_devices.CDROM, persistent=True)
             notify_ramdisk_to_proceed_mock.assert_called_once_with(
                 '123456')
 
@@ -1101,7 +1128,7 @@ class VendorPassthruTestCase(db_base.DbTestCase):
             self.assertFalse(notify_ramdisk_to_proceed_mock.called)
             self.assertFalse(set_failed_state_mock.called)
 
-    @mock.patch.object(deploy_utils, 'set_failed_state', spec_set=True,
+    @mock.patch.object(manager_utils, 'node_power_action', spec_set=True,
                        autospec=True)
     @mock.patch.object(deploy_utils, 'notify_ramdisk_to_proceed',
                        spec_set=True, autospec=True)
@@ -1123,7 +1150,7 @@ class VendorPassthruTestCase(db_base.DbTestCase):
             setup_vmedia_for_boot_mock,
             node_set_boot_device_mock,
             notify_ramdisk_to_proceed_mock,
-            set_failed_state_mock):
+            node_power_mock):
         kwargs = {'method': 'pass_deploy_info', 'address': '123456'}
         continue_deploy_mock.return_value = {'root uuid': 'root_uuid'}
         _prepare_boot_iso_mock.side_effect = Exception("fake error")
@@ -1137,12 +1164,49 @@ class VendorPassthruTestCase(db_base.DbTestCase):
 
             continue_deploy_mock.assert_called_once_with(
                 task, method='pass_deploy_info', address='123456')
+
             _cleanup_vmedia_boot_mock.assert_called_once_with(task)
             _prepare_boot_iso_mock.assert_called_once_with(
                 task, 'root_uuid')
+
+            self.assertEqual(states.DEPLOYFAIL, task.node.provision_state)
+            self.assertEqual(states.ACTIVE, task.node.target_provision_state)
             self.assertFalse(setup_vmedia_for_boot_mock.called)
             self.assertFalse(node_set_boot_device_mock.called)
             self.assertFalse(notify_ramdisk_to_proceed_mock.called)
+            node_power_mock.assert_called_once_with(task, states.POWER_OFF)
 
-            msg = _('Failed to continue iSCSI deployment.')
-            set_failed_state_mock.assert_called_once_with(task, msg)
+    @mock.patch.object(deploy_utils, 'notify_ramdisk_to_proceed',
+                       spec_set=True, autospec=True)
+    @mock.patch.object(manager_utils, 'node_set_boot_device', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(iscsi_deploy, 'continue_deploy', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(irmc_deploy, '_cleanup_vmedia_boot', spec_set=True,
+                       autospec=True)
+    def test_pass_deploy_info_localboot(self,
+                                        _cleanup_vmedia_boot_mock,
+                                        continue_deploy_mock,
+                                        set_boot_device_mock,
+                                        notify_ramdisk_to_proceed_mock):
+
+        kwargs = {'method': 'pass_deploy_info', 'address': '123456'}
+        continue_deploy_mock.return_value = {'root uuid': '<some-uuid>'}
+
+        self.node.provision_state = states.DEPLOYWAIT
+        self.node.target_provision_state = states.ACTIVE
+        self.node.instance_info = {'capabilities': '{"boot_option": "local"}'}
+        self.node.save()
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            vendor = task.driver.vendor
+            vendor.pass_deploy_info(task, **kwargs)
+
+            _cleanup_vmedia_boot_mock.assert_called_once_with(task)
+            continue_deploy_mock.assert_called_once_with(task, **kwargs)
+            set_boot_device_mock.assert_called_once_with(task,
+                                                         boot_devices.DISK,
+                                                         persistent=True)
+            notify_ramdisk_to_proceed_mock.assert_called_once_with('123456')
+            self.assertEqual(states.DEPLOYWAIT, task.node.provision_state)
+            self.assertEqual(states.ACTIVE, task.node.target_provision_state)
