@@ -64,7 +64,8 @@ MIN_VER_STR = '1.1'
 # v1.7: Add node.clean_step
 # v1.8: Add ability to return a subset of resource fields
 # v1.9: Add ability to filter nodes by provision state
-MAX_VER_STR = '1.9'
+# v1.10: Logical node names support RFC 3986 unreserved characters
+MAX_VER_STR = '1.10'
 
 
 MIN_VER = base.Version({base.Version.string: MIN_VER_STR},

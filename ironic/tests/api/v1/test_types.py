@@ -16,7 +16,6 @@
 #    under the License.
 
 import mock
-from oslo_utils import uuidutils
 import six
 import webtest
 import wsme
@@ -54,36 +53,36 @@ class TestUuidType(base.TestCase):
 
 class TestNameType(base.TestCase):
 
-    def test_valid_name(self):
+    @mock.patch("pecan.request")
+    def test_valid_name(self, mock_pecan_req):
+        mock_pecan_req.version.minor = 10
         test_name = 'hal-9000'
         self.assertEqual(test_name, types.NameType.validate(test_name))
 
-    def test_invalid_name(self):
+    @mock.patch("pecan.request")
+    def test_invalid_name(self, mock_pecan_req):
+        mock_pecan_req.version.minor = 10
         self.assertRaises(exception.InvalidName,
                           types.NameType.validate, '-this is not valid-')
 
 
 class TestUuidOrNameType(base.TestCase):
 
-    @mock.patch.object(uuidutils, 'is_uuid_like')
-    @mock.patch.object(utils, 'is_hostname_safe')
-    def test_valid_uuid(self, host_mock, uuid_mock):
+    @mock.patch("pecan.request")
+    def test_valid_uuid(self, mock_pecan_req):
+        mock_pecan_req.version.minor = 10
         test_uuid = '1a1a1a1a-2b2b-3c3c-4d4d-5e5e5e5e5e5e'
-        host_mock.return_value = False
-        uuid_mock.return_value = True
         self.assertTrue(types.UuidOrNameType.validate(test_uuid))
-        uuid_mock.assert_called_once_with(test_uuid)
 
-    @mock.patch.object(uuidutils, 'is_uuid_like')
-    @mock.patch.object(utils, 'is_hostname_safe')
-    def test_valid_name(self, host_mock, uuid_mock):
+    @mock.patch("pecan.request")
+    def test_valid_name(self, mock_pecan_req):
+        mock_pecan_req.version.minor = 10
         test_name = 'dc16-database5'
-        uuid_mock.return_value = False
-        host_mock.return_value = True
         self.assertTrue(types.UuidOrNameType.validate(test_name))
-        host_mock.assert_called_once_with(test_name)
 
-    def test_invalid_uuid_or_name(self):
+    @mock.patch("pecan.request")
+    def test_invalid_uuid_or_name(self, mock_pecan_req):
+        mock_pecan_req.version.minor = 10
         self.assertRaises(exception.InvalidUuidOrName,
                           types.UuidOrNameType.validate, 'inval#uuid%or*name')
 

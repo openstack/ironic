@@ -84,7 +84,6 @@ class TestNodeIdent(base.TestCase):
         self.valid_name = 'my-host'
         self.valid_uuid = uuidutils.generate_uuid()
         self.invalid_name = 'Mr Plow'
-        self.invalid_uuid = '636-555-3226-'
         self.node = test_api_utils.post_get_test_node()
 
     @mock.patch.object(pecan, 'request')
@@ -97,11 +96,12 @@ class TestNodeIdent(base.TestCase):
         mock_pecan_req.version.minor = 5
         self.assertTrue(utils.allow_node_logical_names())
 
-    def test_is_valid_node_name(self):
+    @mock.patch("pecan.request")
+    def test_is_valid_node_name(self, mock_pecan_req):
+        mock_pecan_req.version.minor = 10
         self.assertTrue(utils.is_valid_node_name(self.valid_name))
         self.assertFalse(utils.is_valid_node_name(self.invalid_name))
         self.assertFalse(utils.is_valid_node_name(self.valid_uuid))
-        self.assertFalse(utils.is_valid_node_name(self.invalid_uuid))
 
     @mock.patch.object(pecan, 'request')
     @mock.patch.object(utils, 'allow_node_logical_names')
@@ -122,6 +122,7 @@ class TestNodeIdent(base.TestCase):
     @mock.patch.object(objects.Node, 'get_by_name')
     def test_get_rpc_node_expect_name(self, mock_gbn, mock_gbu, mock_anln,
                                       mock_pr):
+        mock_pr.version.minor = 10
         mock_anln.return_value = True
         self.node['name'] = self.valid_name
         mock_gbn.return_value = self.node
@@ -135,21 +136,11 @@ class TestNodeIdent(base.TestCase):
     @mock.patch.object(objects.Node, 'get_by_name')
     def test_get_rpc_node_invalid_name(self, mock_gbn, mock_gbu,
                                        mock_anln, mock_pr):
+        mock_pr.version.minor = 10
         mock_anln.return_value = True
         self.assertRaises(exception.InvalidUuidOrName,
                           utils.get_rpc_node,
                           self.invalid_name)
-
-    @mock.patch.object(pecan, 'request')
-    @mock.patch.object(utils, 'allow_node_logical_names')
-    @mock.patch.object(objects.Node, 'get_by_uuid')
-    @mock.patch.object(objects.Node, 'get_by_name')
-    def test_get_rpc_node_invalid_uuid(self, mock_gbn, mock_gbu,
-                                       mock_anln, mock_pr):
-        mock_anln.return_value = True
-        self.assertRaises(exception.InvalidUuidOrName,
-                          utils.get_rpc_node,
-                          self.invalid_uuid)
 
     @mock.patch.object(pecan, 'request')
     @mock.patch.object(utils, 'allow_node_logical_names')
