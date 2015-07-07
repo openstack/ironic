@@ -252,14 +252,13 @@ def validate_boot_parameters_for_trusted_boot(node):
 
 @image_cache.cleanup(priority=25)
 class TFTPImageCache(image_cache.ImageCache):
-    def __init__(self, image_service=None):
+    def __init__(self):
         super(TFTPImageCache, self).__init__(
             CONF.pxe.tftp_master_path,
             # MiB -> B
             cache_size=CONF.pxe.image_cache_size * 1024 * 1024,
             # min -> sec
-            cache_ttl=CONF.pxe.image_cache_ttl * 60,
-            image_service=image_service)
+            cache_ttl=CONF.pxe.image_cache_ttl * 60)
 
 
 def _cache_ramdisk_kernel(ctx, node, pxe_info):

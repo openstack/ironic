@@ -82,14 +82,13 @@ DISK_LAYOUT_PARAMS = ('root_gb', 'swap_mb', 'ephemeral_gb')
 @image_cache.cleanup(priority=50)
 class InstanceImageCache(image_cache.ImageCache):
 
-    def __init__(self, image_service=None):
+    def __init__(self):
         super(self.__class__, self).__init__(
             CONF.pxe.instance_master_path,
             # MiB -> B
             cache_size=CONF.pxe.image_cache_size * 1024 * 1024,
             # min -> sec
-            cache_ttl=CONF.pxe.image_cache_ttl * 60,
-            image_service=image_service)
+            cache_ttl=CONF.pxe.image_cache_ttl * 60)
 
 
 def _get_image_dir_path(node_uuid):

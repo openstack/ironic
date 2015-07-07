@@ -58,7 +58,7 @@ class TestImageCacheFetch(base.TestCase):
         self.cache.fetch_image(self.uuid, self.dest_path)
         self.assertFalse(mock_download.called)
         mock_fetch.assert_called_once_with(
-            None, self.uuid, self.dest_path, None, True)
+            None, self.uuid, self.dest_path, True)
         self.assertFalse(mock_clean_up.called)
 
     @mock.patch.object(os, 'unlink', autospec=True)
@@ -554,8 +554,7 @@ class TestFetchCleanup(base.TestCase):
         mock_size.return_value = 100
         image_cache._fetch('fake', 'fake-uuid', '/foo/bar', force_raw=True)
         mock_fetch.assert_called_once_with('fake', 'fake-uuid',
-                                           '/foo/bar.part', None,
-                                           force_raw=False)
+                                           '/foo/bar.part', force_raw=False)
         mock_clean.assert_called_once_with('/foo', 100)
         mock_raw.assert_called_once_with('fake-uuid', '/foo/bar',
                                          '/foo/bar.part')
