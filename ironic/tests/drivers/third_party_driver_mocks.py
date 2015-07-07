@@ -163,13 +163,28 @@ if not scciclient:
         spec_set=mock_specs.SCCICLIENT_IRMC_SCCI_SPEC,
         POWER_OFF=mock.sentinel.POWER_OFF,
         POWER_ON=mock.sentinel.POWER_ON,
-        POWER_RESET=mock.sentinel.POWER_RESET)
+        POWER_RESET=mock.sentinel.POWER_RESET,
+        MOUNT_CD=mock.sentinel.MOUNT_CD,
+        UNMOUNT_CD=mock.sentinel.UNMOUNT_CD,
+        MOUNT_FD=mock.sentinel.MOUNT_FD,
+        UNMOUNT_FD=mock.sentinel.UNMOUNT_FD)
 
 
 # if anything has loaded the iRMC driver yet, reload it now that the
 # external library has been mocked
 if 'ironic.drivers.modules.irmc' in sys.modules:
     six.moves.reload_module(sys.modules['ironic.drivers.modules.irmc'])
+
+
+# install mock object to prevent 'iscsi_irmc' and 'agent_irmc' from
+# checking whether NFS/CIFS share file system is mounted or not.
+irmc_deploy = importutils.import_module(
+    'ironic.drivers.modules.irmc.deploy')
+irmc_deploy._check_share_fs_mounted_orig = irmc_deploy._check_share_fs_mounted
+irmc_deploy._check_share_fs_mounted_patcher = mock.patch(
+    'ironic.drivers.modules.irmc.deploy._check_share_fs_mounted')
+irmc_deploy._check_share_fs_mounted_patcher.return_value = None
+
 
 pyremotevbox = importutils.try_import('pyremotevbox')
 if not pyremotevbox:

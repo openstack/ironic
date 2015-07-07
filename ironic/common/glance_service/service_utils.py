@@ -27,7 +27,7 @@ import six
 import six.moves.urllib.parse as urlparse
 
 from ironic.common import exception
-
+from ironic.common import image_service
 
 CONF = cfg.CONF
 LOG = log.getLogger(__name__)
@@ -245,3 +245,18 @@ def is_glance_image(image_href):
         return False
     return (image_href.startswith('glance://') or
             uuidutils.is_uuid_like(image_href))
+
+
+def is_image_href_ordinary_file_name(image_href):
+    """judge if image_href is a ordinary file name.
+
+    This method judges if image_href is a ordinary file name or not,
+    which is a file supposed to be stored in share file system.
+    The ordinary file name is neither glance image href
+    nor image service href.
+
+    :returns: True if image_href is ordinary file name, False otherwise.
+    """
+    return not (is_glance_image(image_href) or
+                urlparse.urlparse(image_href).scheme.lower() in
+                image_service.protocol_mapping)
