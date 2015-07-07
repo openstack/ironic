@@ -292,16 +292,6 @@ class _TestObject(object):
             obj.foo = 'a'
         self.assertRaises(ValueError, fail)
 
-    def test_object_dict_syntax(self):
-        obj = MyObj(self.context)
-        obj.foo = 123
-        obj.bar = 'bar'
-        self.assertEqual(123, obj['foo'])
-        self.assertEqual([('bar', 'bar'), ('foo', 123)],
-                         sorted(obj.items(), key=lambda x: x[0]))
-        self.assertEqual([('bar', 'bar'), ('foo', 123)],
-                         sorted(list(obj.iteritems()), key=lambda x: x[0]))
-
     def test_load(self):
         obj = MyObj(self.context)
         self.assertEqual('loaded!', obj.bar)

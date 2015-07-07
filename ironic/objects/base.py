@@ -21,6 +21,7 @@ from oslo_context import context
 from oslo_log import log as logging
 import oslo_messaging as messaging
 from oslo_utils import versionutils
+from oslo_versionedobjects import base as ovo_base
 import six
 
 from ironic.common import exception
@@ -30,10 +31,6 @@ from ironic.objects import utils as obj_utils
 
 
 LOG = logging.getLogger('object')
-
-
-class NotSpecifiedSentinel(object):
-    pass
 
 
 def get_attrname(name):
@@ -169,7 +166,7 @@ def check_object_version(server, client):
 
 
 @six.add_metaclass(IronicObjectMetaclass)
-class IronicObject(object):
+class IronicObject(ovo_base.VersionedObjectDictCompat):
     """Base class and object factory.
 
     This forms the base of all objects that can be remoted or instantiated
@@ -395,62 +392,6 @@ class IronicObject(object):
     @property
     def obj_fields(self):
         return list(self.fields) + self.obj_extra_fields
-
-    # dictish syntactic sugar
-    def iteritems(self):
-        """For backwards-compatibility with dict-based objects.
-
-        NOTE(danms): May be removed in the future.
-        """
-        for name in list(self.fields) + self.obj_extra_fields:
-            if (hasattr(self, get_attrname(name)) or
-                    name in self.obj_extra_fields):
-                yield name, getattr(self, name)
-
-    items = lambda self: list(self.iteritems())
-
-    def __getitem__(self, name):
-        """For backwards-compatibility with dict-based objects.
-
-        NOTE(danms): May be removed in the future.
-        """
-        return getattr(self, name)
-
-    def __setitem__(self, name, value):
-        """For backwards-compatibility with dict-based objects.
-
-        NOTE(danms): May be removed in the future.
-        """
-        setattr(self, name, value)
-
-    def __contains__(self, name):
-        """For backwards-compatibility with dict-based objects.
-
-        NOTE(danms): May be removed in the future.
-        """
-        return hasattr(self, get_attrname(name))
-
-    def get(self, key, value=NotSpecifiedSentinel):
-        """For backwards-compatibility with dict-based objects.
-
-        NOTE(danms): May be removed in the future.
-        """
-        if key not in self.obj_fields:
-            raise AttributeError(
-                _("'%(objclass)s' object has no attribute '%(attrname)s'") %
-                {'objclass': self.__class__, 'attrname': key})
-        if value != NotSpecifiedSentinel and not self.obj_attr_is_set(key):
-            return value
-        else:
-            return self[key]
-
-    def update(self, updates):
-        """For backwards-compatibility with dict-base objects.
-
-        NOTE(danms): May be removed in the future.
-        """
-        for key, value in updates.items():
-            self[key] = value
 
     def as_dict(self):
         return dict((k, getattr(self, k))
