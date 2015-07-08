@@ -198,6 +198,9 @@ class ConductorAPI(object):
             :async: Boolean value. Whether the method was invoked
                 asynchronously (True) or synchronously (False). When invoked
                 asynchronously the response will be always None.
+            :attach: Boolean value. Whether to attach the response of
+                the invoked vendor method to the HTTP response object (True)
+                or return it in the response body (False).
 
         """
         cctxt = self.client.prepare(topic=topic or self.topic, version='1.20')
@@ -235,6 +238,9 @@ class ConductorAPI(object):
             :async: Boolean value. Whether the method was invoked
                 asynchronously (True) or synchronously (False). When invoked
                 asynchronously the response will be always None.
+            :attach: Boolean value. Whether to attach the response of
+                the invoked vendor method to the HTTP response object (True)
+                or return it in the response body (False).
 
         """
         cctxt = self.client.prepare(topic=topic or self.topic, version='1.20')

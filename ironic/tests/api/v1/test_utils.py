@@ -1,3 +1,4 @@
+# -*- encoding: utf-8 -*-
 # Copyright 2013 Red Hat, Inc.
 # All Rights Reserved.
 #
@@ -17,6 +18,7 @@ import mock
 from oslo_config import cfg
 from oslo_utils import uuidutils
 import pecan
+from webob.static import FileIter
 import wsme
 
 from ironic.api.controllers.v1 import utils
@@ -181,7 +183,7 @@ class TestVendorPassthru(base.TestCase):
                        spec_set=['method', 'context', 'rpcapi'])
     def _vendor_passthru(self, mock_request, async=True,
                          driver_passthru=False):
-        return_value = {'return': 'SpongeBob', 'async': async}
+        return_value = {'return': 'SpongeBob', 'async': async, 'attach': False}
         mock_request.method = 'post'
         mock_request.context = 'fake-context'
 
@@ -216,3 +218,38 @@ class TestVendorPassthru(base.TestCase):
 
     def test_driver_vendor_passthru_sync(self):
         self._vendor_passthru(async=False, driver_passthru=True)
+
+    @mock.patch.object(pecan, 'response', spec_set=['app_iter'])
+    @mock.patch.object(pecan, 'request',
+                       spec_set=['method', 'context', 'rpcapi'])
+    def _test_vendor_passthru_attach(self, return_value, expct_return_value,
+                                     mock_request, mock_response):
+        return_ = {'return': return_value, 'async': False, 'attach': True}
+        mock_request.method = 'get'
+        mock_request.context = 'fake-context'
+        mock_request.rpcapi.driver_vendor_passthru.return_value = return_
+        response = utils.vendor_passthru('fake-ident', 'bar',
+                                         'fake-topic', data='fake-data',
+                                         driver_passthru=True)
+        mock_request.rpcapi.driver_vendor_passthru.assert_called_once_with(
+            'fake-context', 'fake-ident', 'bar', 'GET',
+            'fake-data', 'fake-topic')
+
+        # Assert file was attached to the response object
+        self.assertIsInstance(mock_response.app_iter, FileIter)
+        self.assertEqual(expct_return_value,
+                         mock_response.app_iter.file.read())
+        # Assert response message is none
+        self.assertIsInstance(response, wsme.api.Response)
+        self.assertIsNone(response.obj)
+        self.assertIsNone(response.return_type)
+        self.assertEqual(200, response.status_code)
+
+    def test_vendor_passthru_attach(self):
+        self._test_vendor_passthru_attach('foo', b'foo')
+
+    def test_vendor_passthru_attach_unicode_to_byte(self):
+        self._test_vendor_passthru_attach(u'não', b'n\xc3\xa3o')
+
+    def test_vendor_passthru_attach_byte_to_byte(self):
+        self._test_vendor_passthru_attach(b'\x00\x01', b'\x00\x01')

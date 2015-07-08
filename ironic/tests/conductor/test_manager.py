@@ -748,6 +748,7 @@ class VendorPassthruTestCase(_ServiceSetUpMixin, tests_db_base.DbTestCase):
         self.driver.vendor.driver_routes = {
             'test_method': {'func': test_method,
                             'async': False,
+                            'attach': False,
                             'http_methods': ['POST']}}
         self.service.init_host()
         # init_host() called _spawn_worker because of the heartbeat
@@ -773,6 +774,7 @@ class VendorPassthruTestCase(_ServiceSetUpMixin, tests_db_base.DbTestCase):
         self.driver.vendor.driver_routes = {
             'test_sync_method': {'func': test_method,
                                  'async': True,
+                                 'attach': False,
                                  'http_methods': ['POST']}}
         self.service.init_host()
         # init_host() called _spawn_worker because of the heartbeat

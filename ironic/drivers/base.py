@@ -562,7 +562,7 @@ VendorMetadata = collections.namedtuple('VendorMetadata', ['method',
 
 
 def _passthru(http_methods, method=None, async=True, driver_passthru=False,
-              description=None):
+              description=None, attach=False):
     """A decorator for registering a function as a passthru function.
 
     Decorator ensures function is ready to catch any ironic exceptions
@@ -583,6 +583,10 @@ def _passthru(http_methods, method=None, async=True, driver_passthru=False,
     :param driver_passthru: Boolean value. True if this is a driver vendor
                             passthru method, and False if it is a node
                             vendor passthru method.
+    :param attach: Boolean value. True if the return value should be
+                   attached to the response object, and False if the return
+                   value should be returned in the response body.
+                   Defaults to False.
     :param description: a string shortly describing what the method does.
 
     """
@@ -595,7 +599,8 @@ def _passthru(http_methods, method=None, async=True, driver_passthru=False,
         description_ = description or ''
         metadata = VendorMetadata(api_method, {'http_methods': supported_,
                                                'async': async,
-                                               'description': description_})
+                                               'description': description_,
+                                               'attach': attach})
         if driver_passthru:
             func._driver_metadata = metadata
         else:
@@ -618,14 +623,16 @@ def _passthru(http_methods, method=None, async=True, driver_passthru=False,
     return handle_passthru
 
 
-def passthru(http_methods, method=None, async=True, description=None):
+def passthru(http_methods, method=None, async=True, description=None,
+             attach=False):
     return _passthru(http_methods, method, async, driver_passthru=False,
-                     description=description)
+                     description=description, attach=attach)
 
 
-def driver_passthru(http_methods, method=None, async=True, description=None):
+def driver_passthru(http_methods, method=None, async=True, description=None,
+                    attach=False):
     return _passthru(http_methods, method, async, driver_passthru=True,
-                     description=description)
+                     description=description, attach=attach)
 
 
 @six.add_metaclass(abc.ABCMeta)
