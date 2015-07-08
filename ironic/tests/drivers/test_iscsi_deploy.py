@@ -20,6 +20,7 @@ import tempfile
 
 import mock
 from oslo_config import cfg
+from oslo_utils import fileutils
 from oslo_utils import uuidutils
 
 from ironic.common import exception
@@ -33,7 +34,6 @@ from ironic.drivers.modules import agent_client
 from ironic.drivers.modules import deploy_utils
 from ironic.drivers.modules import iscsi_deploy
 from ironic.drivers.modules import pxe
-from ironic.openstack.common import fileutils
 from ironic.tests.conductor import utils as mgr_utils
 from ironic.tests.db import base as db_base
 from ironic.tests.db import utils as db_utils
