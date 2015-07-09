@@ -6,9 +6,9 @@
 #, fuzzy
 msgid ""
 msgstr ""
-"Project-Id-Version: ironic 2015.1.dev139\n"
+"Project-Id-Version: ironic 2015.2.0.dev332\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2015-04-08 06:27+0000\n"
+"POT-Creation-Date: 2015-07-09 06:23+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -22,7 +22,7 @@ msgstr ""
 msgid "Serving on http://%(host)s:%(port)s"
 msgstr ""
 
-#: ironic/cmd/api.py:56
+#: ironic/cmd/api.py:56 ironic/cmd/conductor.py:44
 msgid "Configuration:"
 msgstr ""
 
@@ -31,121 +31,121 @@ msgstr ""
 msgid "Loaded the following drivers: %s"
 msgstr ""
 
-#: ironic/common/service.py:83
+#: ironic/common/service.py:81
 #, python-format
 msgid "Created RPC server for service %(service)s on host %(host)s."
 msgstr ""
 
-#: ironic/common/service.py:101
+#: ironic/common/service.py:99
 #, python-format
 msgid "Stopped RPC server for service %(service)s on host %(host)s."
 msgstr ""
 
-#: ironic/common/service.py:106
+#: ironic/common/service.py:104
 #, python-format
 msgid ""
 "Got signal SIGUSR1. Not deregistering on next shutdown of service "
 "%(service)s on host %(host)s."
 msgstr ""
 
-#: ironic/conductor/manager.py:292
+#: ironic/conductor/manager.py:307
 #, python-format
 msgid "Successfully started conductor with hostname %(hostname)s."
 msgstr ""
 
-#: ironic/conductor/manager.py:313
+#: ironic/conductor/manager.py:328
 #, python-format
 msgid "Successfully stopped conductor with hostname %(hostname)s."
 msgstr ""
 
-#: ironic/conductor/manager.py:319
+#: ironic/conductor/manager.py:334
 #, python-format
 msgid "Not deregistering conductor with hostname %(hostname)s."
 msgstr ""
 
-#: ironic/conductor/manager.py:807
+#: ironic/conductor/manager.py:820
 #, python-format
 msgid "Successfully unprovisioned node %(node)s with instance %(instance)s."
 msgstr ""
 
-#: ironic/conductor/manager.py:877
+#: ironic/conductor/manager.py:890
 #, python-format
 msgid ""
 "Cleaning is disabled, node %s has been successfully moved to AVAILABLE "
 "state."
 msgstr ""
 
-#: ironic/conductor/manager.py:936
+#: ironic/conductor/manager.py:950
 #, python-format
 msgid "Executing %(state)s on node %(node)s, remaining steps: %(steps)s"
 msgstr ""
 
-#: ironic/conductor/manager.py:946
+#: ironic/conductor/manager.py:960
 #, python-format
 msgid "Executing %(step)s on node %(node)s"
 msgstr ""
 
-#: ironic/conductor/manager.py:965
+#: ironic/conductor/manager.py:979
 #, python-format
 msgid ""
 "Clean step %(step)s on node %(node)s being executed asynchronously, "
 "waiting for driver."
 msgstr ""
 
-#: ironic/conductor/manager.py:975
+#: ironic/conductor/manager.py:989
 #, python-format
 msgid "Node %(node)s finished clean step %(step)s"
 msgstr ""
 
-#: ironic/conductor/manager.py:990
+#: ironic/conductor/manager.py:1005
 #, python-format
 msgid "Node %s cleaning complete"
 msgstr ""
 
-#: ironic/conductor/manager.py:1085
+#: ironic/conductor/manager.py:1103
 #, python-format
 msgid ""
 "During sync_power_state, node %(node)s was not found and presumed deleted"
 " by another process."
 msgstr ""
 
-#: ironic/conductor/manager.py:1089
+#: ironic/conductor/manager.py:1107
 #, python-format
 msgid ""
 "During sync_power_state, node %(node)s was already locked by another "
 "process. Skip."
 msgstr ""
 
-#: ironic/conductor/manager.py:1288
+#: ironic/conductor/manager.py:1339
 #, python-format
 msgid "Successfully deleted node %(node)s."
 msgstr ""
 
-#: ironic/conductor/manager.py:1307
+#: ironic/conductor/manager.py:1359
 #, python-format
 msgid ""
 "Successfully deleted port %(port)s. The node associated with the port was"
 " %(node)s"
 msgstr ""
 
-#: ironic/conductor/manager.py:1378
+#: ironic/conductor/manager.py:1433
 #, python-format
 msgid "No console action was triggered because the console is already %s"
 msgstr ""
 
-#: ironic/conductor/manager.py:1905
+#: ironic/conductor/manager.py:1987
 #, python-format
 msgid "Successfully deployed node %(node)s with instance %(instance)s."
 msgstr ""
 
-#: ironic/conductor/manager.py:1981
+#: ironic/conductor/manager.py:2077
 #, python-format
 msgid ""
 "During sync_power_state, node %(node)s has no previous known state. "
 "Recording current state '%(state)s'."
 msgstr ""
 
-#: ironic/conductor/manager.py:2056
+#: ironic/conductor/manager.py:2152
 #, python-format
 msgid "Successfully inspected node %(node)s"
 msgstr ""
@@ -155,47 +155,91 @@ msgstr ""
 msgid "Successfully set node %(node)s power state to %(state)s."
 msgstr ""
 
-#: ironic/drivers/modules/agent_base_vendor.py:448
-#: ironic/drivers/modules/iscsi_deploy.py:628
+#: ironic/drivers/modules/agent_base_vendor.py:181
+#, python-format
+msgid ""
+"Node %s detected a clean version mismatch, resetting clean steps and "
+"rebooting the node."
+msgstr ""
+
+#: ironic/drivers/modules/agent_base_vendor.py:197
+#, python-format
+msgid ""
+"Agent on node %s returned cleaning command success, moving to next clean "
+"step"
+msgstr ""
+
+#: ironic/drivers/modules/agent_base_vendor.py:502
+#: ironic/drivers/modules/iscsi_deploy.py:704
 #, python-format
 msgid "Deployment to node %s done"
 msgstr ""
 
-#: ironic/drivers/modules/discoverd.py:71
+#: ironic/drivers/modules/agent_base_vendor.py:545
+#: ironic/drivers/modules/iscsi_deploy.py:669
 #, python-format
-msgid ""
-"Inspection via ironic-discoverd is disabled in configuration for driver "
-"%s. To enable, change [discoverd] enabled = True."
+msgid "Bootloader successfully installed on node %s"
 msgstr ""
 
-#: ironic/drivers/modules/discoverd.py:169
-#, python-format
-msgid "Node %s was sent to inspection to ironic-discoverd"
-msgstr ""
-
-#: ironic/drivers/modules/discoverd.py:204
-#, python-format
-msgid "Inspection finished successfully for node %s"
-msgstr ""
-
-#: ironic/drivers/modules/image_cache.py:138
+#: ironic/drivers/modules/image_cache.py:136
 #, python-format
 msgid "Master cache miss for image %(uuid)s, starting download"
 msgstr ""
 
-#: ironic/drivers/modules/image_cache.py:279
+#: ironic/drivers/modules/image_cache.py:277
 #, python-format
 msgid ""
 "After cleaning up cache dir %(dir)s cache size %(actual)d is still larger"
 " than threshold %(expected)d"
 msgstr ""
 
-#: ironic/drivers/modules/amt/management.py:67
+#: ironic/drivers/modules/inspector.py:75
+#, python-format
+msgid ""
+"Inspection via ironic-inspector is disabled in configuration for driver "
+"%s. To enable, change [inspector] enabled = True."
+msgstr ""
+
+#: ironic/drivers/modules/inspector.py:168
+#, python-format
+msgid "Node %s was sent to inspection to ironic-inspector"
+msgstr ""
+
+#: ironic/drivers/modules/inspector.py:203
+#, python-format
+msgid "Inspection finished successfully for node %s"
+msgstr ""
+
+#: ironic/drivers/modules/ipmitool.py:150
+#, python-format
+msgid "Option %(opt)s is not supported by ipmitool"
+msgstr ""
+
+#: ironic/drivers/modules/ipmitool.py:154
+#, python-format
+msgid "Option %(opt)s is supported by ipmitool"
+msgstr ""
+
+#: ironic/drivers/modules/wol.py:158
+#, python-format
+msgid ""
+"Power off called for node %s. Wake-On-Lan does not support this "
+"operation. Manual intervention required to perform this action."
+msgstr ""
+
+#: ironic/drivers/modules/wol.py:181
+#, python-format
+msgid ""
+"Reboot called for node %s. Wake-On-Lan does not fully support this "
+"operation. Trying to power on the node."
+msgstr ""
+
+#: ironic/drivers/modules/amt/management.py:94
 #, python-format
 msgid "Successfully set boot device %(boot_device)s for node %(node_id)s"
 msgstr ""
 
-#: ironic/drivers/modules/amt/management.py:99
+#: ironic/drivers/modules/amt/management.py:146
 #, python-format
 msgid "Successfully enabled boot config for node %(node_id)s."
 msgstr ""
@@ -205,27 +249,28 @@ msgstr ""
 msgid "Power state set to %(state)s for node %(node_id)s"
 msgstr ""
 
-#: ironic/drivers/modules/ilo/common.py:300
+#: ironic/drivers/modules/ilo/common.py:284
 #, python-format
 msgid "Attached virtual media %s successfully."
 msgstr ""
 
-#: ironic/drivers/modules/ilo/common.py:318
+#: ironic/drivers/modules/ilo/common.py:302
 #, python-format
 msgid "Node %(uuid)s pending boot mode is %(boot_mode)s."
 msgstr ""
 
-#: ironic/drivers/modules/ilo/common.py:330
+#: ironic/drivers/modules/ilo/common.py:314
 #, python-format
 msgid "Node %(uuid)s boot mode is set to %(boot_mode)s."
 msgstr ""
 
-#: ironic/drivers/modules/ilo/common.py:410
+#: ironic/drivers/modules/ilo/common.py:394
+#: ironic/drivers/modules/irmc/deploy.py:364
 #, python-format
 msgid "Setting up node %s to boot from virtual media"
 msgstr ""
 
-#: ironic/drivers/modules/ilo/deploy.py:362
+#: ironic/drivers/modules/ilo/deploy.py:367
 #, python-format
 msgid "Changed secure boot to %(mode)s for node %(node)s"
 msgstr ""
@@ -235,94 +280,47 @@ msgstr ""
 msgid "Port created for MAC address %(address)s for node %(node)s"
 msgstr ""
 
-#: ironic/drivers/modules/ilo/inspect.py:254
+#: ironic/drivers/modules/ilo/inspect.py:208
 #, python-format
 msgid "The node %s is not powered on. Powering on the node for inspection."
 msgstr ""
 
-#: ironic/drivers/modules/ilo/inspect.py:293
+#: ironic/drivers/modules/ilo/inspect.py:248
 #, python-format
 msgid "Node %s inspected."
 msgstr ""
 
-#: ironic/drivers/modules/ilo/inspect.py:296
+#: ironic/drivers/modules/ilo/inspect.py:251
 #, python-format
 msgid ""
 "The node %s was powered on for inspection. Powered off the node as "
 "inspection completed."
 msgstr ""
 
-#: ironic/drivers/modules/ilo/management.py:252
+#: ironic/drivers/modules/ilo/management.py:255
 #, python-format
 msgid ""
 "Missing 'ilo_change_password' parameter in driver_info. Clean step "
 "'reset_ilo_credential' is not performed on node %s."
 msgstr ""
 
-#: ironic/openstack/common/eventlet_backdoor.py:146
+#: ironic/drivers/modules/irmc/deploy.py:435
 #, python-format
-msgid "Eventlet backdoor listening on %(port)s for process %(pid)d"
+msgid "Attached virtual cdrom successfully for node %s"
 msgstr ""
 
-#: ironic/openstack/common/periodic_task.py:120
+#: ironic/drivers/modules/irmc/deploy.py:458
 #, python-format
-msgid "Skipping periodic task %(task)s because its interval is negative"
+msgid "Detached virtual cdrom successfully for node %s"
 msgstr ""
 
-#: ironic/openstack/common/periodic_task.py:125
+#: ironic/drivers/modules/irmc/deploy.py:491
 #, python-format
-msgid "Skipping periodic task %(task)s because it is disabled"
+msgid "Attached virtual floppy successfully for node %s"
 msgstr ""
 
-#: ironic/openstack/common/service.py:173
+#: ironic/drivers/modules/irmc/deploy.py:514
 #, python-format
-msgid "Caught %s, exiting"
-msgstr ""
-
-#: ironic/openstack/common/service.py:239
-msgid "Parent process has died unexpectedly, exiting"
-msgstr ""
-
-#: ironic/openstack/common/service.py:270
-#, python-format
-msgid "Child caught %s, exiting"
-msgstr ""
-
-#: ironic/openstack/common/service.py:309
-msgid "Forking too fast, sleeping"
-msgstr ""
-
-#: ironic/openstack/common/service.py:328
-#, python-format
-msgid "Started child %d"
-msgstr ""
-
-#: ironic/openstack/common/service.py:338
-#, python-format
-msgid "Starting %d workers"
-msgstr ""
-
-#: ironic/openstack/common/service.py:355
-#, python-format
-msgid "Child %(pid)d killed by signal %(sig)d"
-msgstr ""
-
-#: ironic/openstack/common/service.py:359
-#, python-format
-msgid "Child %(pid)s exited with status %(code)d"
-msgstr ""
-
-#: ironic/openstack/common/service.py:398
-#, python-format
-msgid "Caught %s, stopping children"
-msgstr ""
-
-#: ironic/openstack/common/service.py:413
-msgid "Wait called after thread killed. Cleaning up."
-msgstr ""
-
-#: ironic/openstack/common/service.py:429
-#, python-format
-msgid "Waiting on %d children to exit"
+msgid "Detached virtual floppy successfully for node %s"
 msgstr ""
 

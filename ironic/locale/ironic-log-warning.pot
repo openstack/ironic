@@ -6,9 +6,9 @@
 #, fuzzy
 msgid ""
 msgstr ""
-"Project-Id-Version: ironic 2015.1.dev139\n"
+"Project-Id-Version: ironic 2015.2.0.dev332\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2015-04-08 06:27+0000\n"
+"POT-Creation-Date: 2015-07-09 06:23+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -22,107 +22,101 @@ msgstr ""
 msgid "Failed to check the device %(device)s with fuser: %(err)s"
 msgstr ""
 
-#: ironic/common/disk_partitioner.py:200
+#: ironic/common/disk_partitioner.py:202
 #, python-format
 msgid ""
 "Partition information from parted for device %(device)s does not match "
 "expected format: %(line)s"
 msgstr ""
 
-#: ironic/common/utils.py:448
+#: ironic/common/utils.py:467
 #, python-format
 msgid "Failed to unlink %(path)s, error: %(e)s"
 msgstr ""
 
-#: ironic/common/utils.py:457
+#: ironic/common/utils.py:476
 #, python-format
 msgid "Failed to remove dir %(path)s, error: %(e)s"
 msgstr ""
 
-#: ironic/common/utils.py:473
+#: ironic/common/utils.py:492
 #, python-format
 msgid "Failed to create symlink from %(source)s to %(link)s, error: %(e)s"
 msgstr ""
 
-#: ironic/common/utils.py:487
+#: ironic/common/utils.py:506
 #, python-format
 msgid ""
 "Failed to remove trailing character. Returning original object. Supplied "
 "object is not a string: %s,"
 msgstr ""
 
-#: ironic/conductor/manager.py:281
+#: ironic/conductor/manager.py:280
 #, python-format
 msgid ""
 "A conductor with hostname %(hostname)s was previously registered. "
 "Updating registration"
 msgstr ""
 
-#: ironic/conductor/manager.py:353
+#: ironic/conductor/manager.py:368
 msgid "Conductor could not connect to database while heartbeating."
 msgstr ""
 
-#: ironic/conductor/manager.py:484
-msgid ""
-"Drivers implementing their own version of vendor_passthru() has been "
-"deprecated. Please update the code to use the @passthru decorator."
-msgstr ""
-
-#: ironic/conductor/manager.py:577
+#: ironic/conductor/manager.py:584
 msgid ""
 "Drivers implementing their own version of driver_vendor_passthru() has "
 "been deprecated. Please update the code to use the @driver_passthru "
 "decorator."
 msgstr ""
 
-#: ironic/conductor/manager.py:1440
+#: ironic/conductor/manager.py:1496
 #, python-format
 msgid ""
 "No VIF found for instance %(instance)s port %(port)s when attempting to "
 "update port MAC address."
 msgstr ""
 
-#: ironic/conductor/manager.py:1492
+#: ironic/conductor/manager.py:1552
 #, python-format
 msgid ""
 "get_sensors_data is not implemented for driver %(driver)s, node_uuid is "
 "%(node)s"
 msgstr ""
 
-#: ironic/conductor/manager.py:1496
+#: ironic/conductor/manager.py:1557
 #, python-format
 msgid ""
 "During get_sensors_data, could not parse sensor data for node %(node)s. "
 "Error: %(err)s."
 msgstr ""
 
-#: ironic/conductor/manager.py:1500
+#: ironic/conductor/manager.py:1562
 #, python-format
 msgid ""
 "During get_sensors_data, could not get sensor data for node %(node)s. "
 "Error: %(err)s."
 msgstr ""
 
-#: ironic/conductor/manager.py:1504
+#: ironic/conductor/manager.py:1567
 #, python-format
 msgid ""
 "During send_sensor_data, node %(node)s was not found and presumed deleted"
 " by another process."
 msgstr ""
 
-#: ironic/conductor/manager.py:1508
+#: ironic/conductor/manager.py:1572
 #, python-format
 msgid "Failed to get sensor data for node %(node)s. Error: %(error)s"
 msgstr ""
 
-#: ironic/conductor/manager.py:1779
+#: ironic/conductor/manager.py:1858
 #, python-format
 msgid ""
 "No free conductor workers available to perform an action on node "
 "%(node)s, setting node's power state back to %(power_state)s."
 msgstr ""
 
-#: ironic/conductor/manager.py:1807
+#: ironic/conductor/manager.py:1886
 #, python-format
 msgid ""
 "No free conductor workers available to perform an action on node "
@@ -130,43 +124,43 @@ msgid ""
 "target_provision_state to %(tgt_prov_state)s."
 msgstr ""
 
-#: ironic/conductor/manager.py:1875
+#: ironic/conductor/manager.py:1955
 #, python-format
 msgid "Error while uploading the configdrive for %(node)s to Swift"
 msgstr ""
 
-#: ironic/conductor/manager.py:1885
+#: ironic/conductor/manager.py:1966
 #, python-format
 msgid "Error while preparing to deploy to node %(node)s: %(err)s"
 msgstr ""
 
-#: ironic/conductor/manager.py:1894
+#: ironic/conductor/manager.py:1976
 #, python-format
 msgid "Error in deploy of node %(node)s: %(err)s"
 msgstr ""
 
-#: ironic/conductor/manager.py:1971
+#: ironic/conductor/manager.py:2067
 #, python-format
 msgid ""
-"During sync_power_state, could not get power state for node %(node)s. "
-"Error: %(err)s."
+"During sync_power_state, could not get power state for node %(node)s, "
+"attempt %(attempt)s of %(retries)s. Error: %(err)s."
 msgstr ""
 
-#: ironic/conductor/manager.py:1999
+#: ironic/conductor/manager.py:2095
 #, python-format
 msgid ""
 "During sync_power_state, node %(node)s state '%(actual)s' does not match "
 "expected state. Changing hardware state to '%(state)s'."
 msgstr ""
 
-#: ironic/conductor/manager.py:2017
+#: ironic/conductor/manager.py:2113
 #, python-format
 msgid ""
 "During sync_power_state, node %(node)s state does not match expected "
 "state '%(state)s'. Updating recorded state to '%(actual)s'."
 msgstr ""
 
-#: ironic/conductor/task_manager.py:351
+#: ironic/conductor/task_manager.py:371
 #, python-format
 msgid "Task's on_error hook failed to call %(method)s on node %(node)s"
 msgstr ""
@@ -174,7 +168,7 @@ msgstr ""
 #: ironic/conductor/utils.py:92
 #, python-format
 msgid ""
-"Not going to change_node_power_state because current state = requested "
+"Not going to change node power state because current state = requested "
 "state = '%(state)s'."
 msgstr ""
 
@@ -183,7 +177,7 @@ msgstr ""
 msgid "Driver returns ERROR power state for node %s."
 msgstr ""
 
-#: ironic/db/sqlalchemy/api.py:584
+#: ironic/db/sqlalchemy/api.py:589
 #, python-format
 msgid "Cleared reservations held by %(hostname)s: %(nodes)s"
 msgstr ""
@@ -207,34 +201,41 @@ msgid ""
 " on the following ports: %(ports)s."
 msgstr ""
 
-#: ironic/drivers/utils.py:143
+#: ironic/drivers/utils.py:144
 #, python-format
 msgid "Ignoring malformed capability '%s'. Format should be 'key:val'."
 msgstr ""
 
-#: ironic/drivers/modules/agent_base_vendor.py:351
+#: ironic/drivers/modules/agent_base_vendor.py:379
 #, python-format
 msgid "Malformed MAC: %s"
 msgstr ""
 
-#: ironic/drivers/modules/agent_base_vendor.py:394
+#: ironic/drivers/modules/agent_base_vendor.py:422
 #, python-format
 msgid "MAC address %s not found in database"
 msgstr ""
 
-#: ironic/drivers/modules/console_utils.py:179
+#: ironic/drivers/modules/agent_base_vendor.py:487
+#, python-format
+msgid ""
+"Failed to soft power off node %(node_uuid)s in at least %(timeout)d "
+"seconds. Error: %(error)s"
+msgstr ""
+
+#: ironic/drivers/modules/console_utils.py:176
 #, python-format
 msgid ""
 "Failed to kill the old console process before starting a new shellinabox "
 "console for node %(node)s. Reason: %(err)s"
 msgstr ""
 
-#: ironic/drivers/modules/console_utils.py:262
+#: ironic/drivers/modules/console_utils.py:261
 #, python-format
 msgid "No console pid found for node %s while trying to stop shellinabox console."
 msgstr ""
 
-#: ironic/drivers/modules/deploy_utils.py:974
+#: ironic/drivers/modules/deploy_utils.py:1014
 #, python-format
 msgid ""
 "ipmitool is unable to set boot device while the node %s is in UEFI boot "
@@ -248,100 +249,100 @@ msgid ""
 "get_relays() failed."
 msgstr ""
 
-#: ironic/drivers/modules/image_cache.py:204
+#: ironic/drivers/modules/image_cache.py:202
 #, python-format
 msgid ""
 "Cache clean up was unable to reclaim %(required)d MiB of disk space, "
 "still %(left)d MiB required"
 msgstr ""
 
-#: ironic/drivers/modules/image_cache.py:231
-#: ironic/drivers/modules/image_cache.py:270
+#: ironic/drivers/modules/image_cache.py:229
+#: ironic/drivers/modules/image_cache.py:268
 #, python-format
 msgid "Unable to delete file %(name)s from master image cache: %(exc)s"
 msgstr ""
 
-#: ironic/drivers/modules/ipminative.py:138
+#: ironic/drivers/modules/ipminative.py:137
 #, python-format
 msgid ""
 "IPMI power on failed for node %(node_id)s with the following error: "
 "%(error)s"
 msgstr ""
 
-#: ironic/drivers/modules/ipminative.py:168
+#: ironic/drivers/modules/ipminative.py:167
 #, python-format
 msgid ""
 "IPMI power off failed for node %(node_id)s with the following error: "
 "%(error)s"
 msgstr ""
 
-#: ironic/drivers/modules/ipminative.py:200
+#: ironic/drivers/modules/ipminative.py:199
 #, python-format
 msgid ""
 "IPMI power reboot failed for node %(node_id)s with the following error: "
 "%(error)s"
 msgstr ""
 
-#: ironic/drivers/modules/ipminative.py:235
+#: ironic/drivers/modules/ipminative.py:234
 #, python-format
 msgid ""
 "IPMI get power state failed for node %(node_id)s with the following "
 "error: %(error)s"
 msgstr ""
 
-#: ironic/drivers/modules/ipminative.py:249
+#: ironic/drivers/modules/ipminative.py:248
 #, python-format
 msgid ""
 "IPMI get power state for node %(node_id)s returns the following details: "
 "%(detail)s"
 msgstr ""
 
-#: ironic/drivers/modules/ipmitool.py:413
+#: ironic/drivers/modules/ipmitool.py:415
+#, python-format
+msgid ""
+"IPMI Error encountered, retrying \"%(cmd)s\" for node %(node)s. Error: "
+"%(error)s"
+msgstr ""
+
+#: ironic/drivers/modules/ipmitool.py:472
 #, python-format
 msgid "IPMI power %(state)s failed for node %(node)s."
 msgstr ""
 
-#: ironic/drivers/modules/ipmitool.py:478
+#: ironic/drivers/modules/ipmitool.py:537
 #, python-format
 msgid "IPMI power status failed for node %(node_id)s with error: %(error)s."
 msgstr ""
 
-#: ironic/drivers/modules/ipmitool.py:753
+#: ironic/drivers/modules/ipmitool.py:840
 #, python-format
 msgid ""
 "IPMI set boot device failed for node %(node)s when executing \"ipmitool "
 "%(cmd)s\". Error: %(error)s"
 msgstr ""
 
-#: ironic/drivers/modules/ipmitool.py:784
+#: ironic/drivers/modules/ipmitool.py:871
 #, python-format
 msgid ""
 "IPMI get boot device failed for node %(node)s when executing \"ipmitool "
 "%(cmd)s\". Error: %(error)s"
 msgstr ""
 
-#: ironic/drivers/modules/pxe.py:132
-#, python-format
-msgid ""
-"The \"%(old_param)s\" parameter is deprecated. Please update the node "
-"%(node)s to use \"%(new_param)s\" instead."
-msgstr ""
-
-#: ironic/drivers/modules/pxe.py:474
+#: ironic/drivers/modules/pxe.py:451
 #, python-format
 msgid ""
 "The UUID for the root partition can't be found, unable to switch the pxe "
 "config from deployment mode to service (boot) mode for node %(node)s"
 msgstr ""
 
-#: ironic/drivers/modules/pxe.py:479
+#: ironic/drivers/modules/pxe.py:457
 #, python-format
 msgid ""
 "The disk id for the whole disk image can't be found, unable to switch the"
 " pxe config from deployment mode to service (boot) mode for node %(node)s"
 msgstr ""
 
-#: ironic/drivers/modules/pxe.py:504
+#: ironic/drivers/modules/pxe.py:482
 #, python-format
 msgid "Could not get image info to clean up images for node %(node)s: %(err)s"
 msgstr ""
@@ -373,7 +374,7 @@ msgid ""
 " %(state)s."
 msgstr ""
 
-#: ironic/drivers/modules/ssh.py:687
+#: ironic/drivers/modules/ssh.py:699
 #, python-format
 msgid ""
 "Failed to get boot device for node %(node)s, virt_type %(vtype)s does not"
@@ -394,7 +395,7 @@ msgid ""
 "times of %(max_attempt)s failed."
 msgstr ""
 
-#: ironic/drivers/modules/drac/client.py:73
+#: ironic/drivers/modules/drac/client.py:90
 #, python-format
 msgid ""
 "Empty response on calling %(action)s on client. Last error (cURL error "
@@ -402,8 +403,8 @@ msgid ""
 "%(response_code)s. Retry attempt %(count)d"
 msgstr ""
 
-#: ironic/drivers/modules/ilo/deploy.py:456
-#: ironic/drivers/modules/ilo/deploy.py:536
+#: ironic/drivers/modules/ilo/deploy.py:464
+#: ironic/drivers/modules/ilo/deploy.py:544
 #, python-format
 msgid "Secure boot mode is not supported for node %s"
 msgstr ""
@@ -413,35 +414,10 @@ msgstr ""
 msgid "Port already exists for MAC address %(address)s for node %(node)s"
 msgstr ""
 
-#: ironic/drivers/modules/ilo/management.py:98
+#: ironic/drivers/modules/ilo/management.py:100
 #, python-format
 msgid ""
 "'%(step)s' clean step is not supported on node %(uuid)s. Skipping the "
 "clean step."
-msgstr ""
-
-#: ironic/nova/scheduler/ironic_host_manager.py:35
-msgid ""
-"This class (ironic.nova.scheduler.ironic_host_manager.IronicHostManager) "
-"is deprecated and has moved into the Nova tree. Please set "
-"scheduler_host_manager = "
-"nova.scheduler.ironic_host_manager.IronicHostManager."
-msgstr ""
-
-#: ironic/nova/virt/ironic/driver.py:36
-msgid ""
-"This class (ironic.nova.virt.ironic.IronicDriver) is deprecated and has "
-"moved into the Nova tree. Please set compute_driver =  "
-"nova.virt.ironic.IronicDriver."
-msgstr ""
-
-#: ironic/openstack/common/loopingcall.py:87
-#, python-format
-msgid "task %(func_name)r run outlasted interval by %(delay).2f sec"
-msgstr ""
-
-#: ironic/openstack/common/service.py:363
-#, python-format
-msgid "pid %d not in child list"
 msgstr ""
 
