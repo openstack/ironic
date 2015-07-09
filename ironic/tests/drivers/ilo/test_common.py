@@ -453,8 +453,9 @@ class IloCommonMethodsTestCase(db_base.DbTestCase):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
             ilo_common.eject_vmedia_devices(task)
-            ilo_object_mock.eject_virtual_media.assert_any_call('CDROM')
-            ilo_object_mock.eject_virtual_media.assert_any_call('FLOPPY')
+
+            ilo_object_mock.eject_virtual_media.assert_has_calls(
+                [mock.call('FLOPPY'), mock.call('CDROM')])
 
     @mock.patch.object(ilo_common, 'get_ilo_object', spec_set=True,
                        autospec=True)

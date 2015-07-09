@@ -417,11 +417,12 @@ def setup_vmedia_for_boot(task, boot_iso, parameters=None):
 def eject_vmedia_devices(task):
     """Ejects virtual media devices.
 
-    This method ejects virtual media devices. It ignores
-    any exception encountered in the process.
+    This method ejects virtual media floppy and cdrom.
 
     :param task: a TaskManager instance containing the node to act on.
     :returns: None
+    :raises: IloOperationError, if some error was encountered while
+        trying to eject virtual media floppy or cdrom.
     """
     ilo_object = get_ilo_object(task.node)
     for device in ('FLOPPY', 'CDROM'):
