@@ -830,7 +830,7 @@ class ConductorManager(periodic_task.PeriodicTasks):
 
         :param context: an admin context.
         :param node_id: the id or uuid of a node.
-        :raises: InvalidStateRequested if the node is not in CLEANING state
+        :raises: InvalidStateRequested if the node is not in CLEANWAIT state
         :raises: NoFreeConductorWorker when there is no free worker to start
                  async task
         :raises: NodeLocked if node is locked by another conductor.
@@ -841,15 +841,27 @@ class ConductorManager(periodic_task.PeriodicTasks):
 
         with task_manager.acquire(context, node_id, shared=False,
                                   purpose='node cleaning') as task:
-            if task.node.provision_state != states.CLEANING:
+            # TODO(lucasagomes): CLEANING here for backwards compat
+            # with previous code, otherwise nodes in CLEANING when this
+            # is deployed would fail. Should be removed once the M
+            # release starts.
+            if task.node.provision_state not in (states.CLEANWAIT,
+                                                 states.CLEANING):
                 raise exception.InvalidStateRequested(_(
                     'Cannot continue cleaning on %(node)s, node is in '
                     '%(state)s state, should be %(clean_state)s') %
                     {'node': task.node.uuid,
                      'state': task.node.provision_state,
-                     'clean_state': states.CLEANING})
+                     'clean_state': states.CLEANWAIT})
             task.set_spawn_error_hook(cleaning_error_handler, task.node,
                                       'Failed to run next clean step')
+
+            # TODO(lucasagomes): This conditional is here for backwards
+            # compat with previous code. Should be removed once the M
+            # release starts.
+            if task.node.provision_state == states.CLEANWAIT:
+                task.process_event('resume')
+
             task.spawn_after(
                 self._spawn_worker,
                 self._do_next_clean_step,
@@ -892,11 +904,20 @@ class ConductorManager(periodic_task.PeriodicTasks):
                    % {'node': node.uuid, 'e': e})
             LOG.exception(msg)
             return cleaning_error_handler(task, msg)
+
+        # TODO(lucasagomes): Should be removed once the M release starts
         if prepare_result == states.CLEANING:
+            LOG.warning(_LW('Returning CLEANING for asynchronous prepare '
+                            'cleaning has been deprecated. Please use '
+                            'CLEANWAIT instead.'))
+            prepare_result = states.CLEANWAIT
+
+        if prepare_result == states.CLEANWAIT:
             # Prepare is asynchronous, the deploy driver will need to
             # set node.driver_internal_info['clean_steps'] and
             # node.clean_step and then make an RPC call to
             # continue_node_cleaning to start cleaning.
+            task.process_event('wait')
             return
 
         set_node_cleaning_steps(task)
@@ -951,15 +972,23 @@ class ConductorManager(periodic_task.PeriodicTasks):
                 cleaning_error_handler(task, msg)
                 return
 
-            # Check if the step is done or not. The step should return
-            # states.CLEANING if the step is still being executed, or
-            # None if the step is done.
+            # TODO(lucasagomes): Should be removed once the M release starts
             if result == states.CLEANING:
+                LOG.warning(_LW('Returning CLEANING for asynchronous clean '
+                                'steps has been deprecated. Please use '
+                                'CLEANWAIT instead.'))
+                result = states.CLEANWAIT
+
+            # Check if the step is done or not. The step should return
+            # states.CLEANWAIT if the step is still being executed, or
+            # None if the step is done.
+            if result == states.CLEANWAIT:
                 # Kill this worker, the async step will make an RPC call to
                 # continue_node_clean to continue cleaning
                 LOG.info(_LI('Clean step %(step)s on node %(node)s being '
                              'executed asynchronously, waiting for driver.') %
                          {'node': node.uuid, 'step': step})
+                task.process_event('wait')
                 return
             elif result is not None:
                 msg = (_('While executing step %(step)s on node '
@@ -1091,14 +1120,15 @@ class ConductorManager(periodic_task.PeriodicTasks):
         # (through to its DB API call) so that we can eliminate our call
         # and first set of checks below.
 
-        exclude_states = (states.DEPLOYWAIT, states.ENROLL)
+        exclude_states = (states.DEPLOYWAIT, states.CLEANWAIT, states.ENROLL)
         filters = {'reserved': False, 'maintenance': False}
         node_iter = self.iter_nodes(fields=['id'], filters=filters)
         for (node_uuid, driver, node_id) in node_iter:
             try:
                 # NOTE(deva): we should not acquire a lock on a node in
-                #             DEPLOYWAIT, as this could cause an error within
-                #             a deploy ramdisk POSTing back at the same time.
+                #             DEPLOYWAIT/CLEANWAIT, as this could cause an
+                #             error within a deploy ramdisk POSTing back at
+                #             the same time.
                 # TODO(deva): refactor this check, because it needs to be done
                 #             in every periodic task, not just this one.
                 node = objects.Node.get_by_id(context, node_id)

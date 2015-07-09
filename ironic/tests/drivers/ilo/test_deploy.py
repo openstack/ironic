@@ -791,7 +791,7 @@ class IloVirtualMediaAgentDeployTestCase(db_base.DbTestCase):
                                   shared=False) as task:
             returned_state = task.driver.deploy.prepare_cleaning(task)
             vmedia_boot_mock.assert_called_once_with(task)
-            self.assertEqual(states.CLEANING, returned_state)
+            self.assertEqual(states.CLEANWAIT, returned_state)
             create_port_mock.assert_called_once_with(mock.ANY, task)
             delete_mock.assert_called_once_with(mock.ANY, task)
             self.assertEqual(task.node.driver_internal_info.get(

@@ -592,7 +592,7 @@ class IloVirtualMediaAgentDeploy(base.DeployInterface):
 
         :param task: a TaskManager object containing the node
         :param step: a clean step dictionary to execute
-        :returns: states.CLEANING to signify the step will be completed async
+        :returns: states.CLEANWAIT to signify the step will be completed async
         """
         return deploy_utils.agent_execute_clean_step(task, step)
 
@@ -614,7 +614,7 @@ class IloVirtualMediaAgentDeploy(base.DeployInterface):
 
         _prepare_agent_vmedia_boot(task)
         # Tell the conductor we are waiting for the agent to boot.
-        return states.CLEANING
+        return states.CLEANWAIT
 
     def tear_down_cleaning(self, task):
         """Clean up the PXE and DHCP files after cleaning."""

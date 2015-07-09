@@ -263,14 +263,22 @@ class BaseAgentVendor(base.VendorInterface):
             elif (node.provision_state == states.DEPLOYWAIT and
                   self.deploy_has_started(task)):
                 node.touch_provisioning()
-            elif (node.provision_state == states.CLEANING and
-                  not node.clean_step):
+            # TODO(lucasagomes): CLEANING here for backwards compat
+            # with previous code, otherwise nodes in CLEANING when this
+            # is deployed would fail. Should be removed once the M
+            # release starts.
+            elif (node.provision_state in (states.CLEANWAIT, states.CLEANING)
+                  and not node.clean_step):
                 # Agent booted from prepare_cleaning
                 LOG.debug('Node %s just booted to start cleaning.', node.uuid)
                 manager.set_node_cleaning_steps(task)
                 self._notify_conductor_resume_clean(task)
-            elif (node.provision_state == states.CLEANING and
-                  node.clean_step):
+            # TODO(lucasagomes): CLEANING here for backwards compat
+            # with previous code, otherwise nodes in CLEANING when this
+            # is deployed would fail. Should be removed once the M
+            # release starts.
+            elif (node.provision_state in (states.CLEANWAIT, states.CLEANING)
+                  and node.clean_step):
                 self.continue_cleaning(task, **kwargs)
 
         except Exception as e:

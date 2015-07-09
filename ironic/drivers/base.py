@@ -177,7 +177,7 @@ class BaseInterface(object):
         A clean step should take a single argument: a TaskManager object.
         A step can be executed synchronously or asynchronously. A step should
         return None if the method has completed synchronously or
-        states.CLEANING if the step will continue to execute asynchronously.
+        states.CLEANWAIT if the step will continue to execute asynchronously.
         If the step executes asynchronously, it should issue a call to the
         'continue_node_clean' RPC, so the conductor can begin the next
         clean step.
@@ -185,7 +185,7 @@ class BaseInterface(object):
         :param task: A TaskManager object
         :param step: The clean step dictionary representing the step to execute
         :returns: None if this method has completed synchronously, or
-            states.CLEANING if the step will continue to execute
+            states.CLEANWAIT if the step will continue to execute
             asynchronously.
         """
         return getattr(self, step['step'])(task)
@@ -312,7 +312,7 @@ class DeployInterface(BaseInterface):
 
         :param task: a TaskManager instance containing the node to act on.
         :returns: If this function is going to be asynchronous, should return
-            `states.CLEANING`. Otherwise, should return `None`. The interface
+            `states.CLEANWAIT`. Otherwise, should return `None`. The interface
             will need to call _get_cleaning_steps and then RPC to
             continue_node_cleaning
         """
@@ -859,13 +859,14 @@ class InspectInterface(object):
 def clean_step(priority):
     """Decorator for cleaning and zapping steps.
 
-    If priority is greater than 0, the function will be executed as part of the
-    CLEANING state for any node using the interface with the decorated clean
-    step. During CLEANING, a list of steps will be ordered by priority for all
-    interfaces associated with the node, and then execute_clean_step() will be
-    called on each step. Steps will be executed based on priority, with the
-    highest priority step being called first, the next highest priority
-    being call next, and so on.
+    If priority is greater than 0, the function will be executed as part
+    of the CLEANING (sync) or CLEANWAIT (async) state for any node using
+    the interface with the decorated clean step. During the cleaning,
+    a list of steps will be ordered by priority for all interfaces
+    associated with the node, and then execute_clean_step() will be
+    called on each step. Steps will be executed based on priority,
+    with the highest priority step being called first, the next highest
+    priority being call next, and so on.
 
     Decorated clean steps should take a single argument, a TaskManager object.
 
@@ -877,7 +878,7 @@ def clean_step(priority):
     Clean steps can be either synchronous or asynchronous. If the step is
     synchronous, it should return `None` when finished, and the conductor will
     continue on to the next step. If the step is asynchronous, the step should
-    return `states.CLEANING` to signal to the conductor. When the step is
+    return `states.CLEANWAIT` to signal to the conductor. When the step is
     complete, the step should make an RPC call to `continue_node_clean` to move
     to the next step in cleaning.
 

@@ -23,6 +23,7 @@ import mock
 from ironic.common import boot_devices
 from ironic.common import exception
 from ironic.common import states
+from ironic.conductor import manager
 from ironic.conductor import task_manager
 from ironic.conductor import utils as manager_utils
 from ironic.drivers.modules import agent_base_vendor
@@ -295,6 +296,48 @@ class TestBaseAgentVendor(db_base.DbTestCase):
             'Asynchronous exception for node '
             '1be26c0b-03f2-4d2e-ae87-c02d7f33c123: Failed checking if deploy '
             'is done. exception: LlamaException')
+
+    @mock.patch.object(manager, 'set_node_cleaning_steps', autospec=True)
+    @mock.patch.object(agent_base_vendor.BaseAgentVendor,
+                       '_notify_conductor_resume_clean', autospec=True)
+    def test_heartbeat_resume_clean(self, mock_notify, mock_set_steps):
+        kwargs = {
+            'agent_url': 'http://127.0.0.1:9999/bar'
+        }
+        self.node.clean_step = {}
+        for state in (states.CLEANWAIT, states.CLEANING):
+            self.node.provision_state = state
+            self.node.save()
+            with task_manager.acquire(
+                    self.context, self.node.uuid, shared=True) as task:
+                self.passthru.heartbeat(task, **kwargs)
+
+            mock_notify.assert_called_once_with(mock.ANY, task)
+            mock_set_steps.assert_called_once_with(task)
+            mock_notify.reset_mock()
+            mock_set_steps.reset_mock()
+
+    @mock.patch.object(agent_base_vendor.BaseAgentVendor,
+                       'continue_cleaning', autospec=True)
+    def test_heartbeat_continue_cleaning(self, mock_continue):
+        kwargs = {
+            'agent_url': 'http://127.0.0.1:9999/bar'
+        }
+        self.node.clean_step = {
+            'priority': 10,
+            'interface': 'deploy',
+            'step': 'foo',
+            'reboot_requested': False
+        }
+        for state in (states.CLEANWAIT, states.CLEANING):
+            self.node.provision_state = state
+            self.node.save()
+            with task_manager.acquire(
+                    self.context, self.node.uuid, shared=True) as task:
+                self.passthru.heartbeat(task, **kwargs)
+
+            mock_continue.assert_called_once_with(mock.ANY, task, **kwargs)
+            mock_continue.reset_mock()
 
     @mock.patch.object(agent_base_vendor.BaseAgentVendor, 'continue_deploy',
                        autospec=True)

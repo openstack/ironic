@@ -1843,7 +1843,7 @@ class AgentCleaningTestCase(db_base.DbTestCase):
             response = utils.agent_execute_clean_step(
                 task,
                 self.clean_steps['clean_steps']['GenericHardwareManager'][0])
-            self.assertEqual(states.CLEANING, response)
+            self.assertEqual(states.CLEANWAIT, response)
 
     @mock.patch('ironic.objects.Port.list_by_node_id',
                 spec_set=types.FunctionType)
@@ -1859,7 +1859,7 @@ class AgentCleaningTestCase(db_base.DbTestCase):
             response = utils.agent_execute_clean_step(
                 task,
                 self.clean_steps['clean_steps']['GenericHardwareManager'][0])
-            self.assertEqual(states.CLEANING, response)
+            self.assertEqual(states.CLEANWAIT, response)
 
     @mock.patch('ironic.objects.Port.list_by_node_id',
                 spec_set=types.FunctionType)
@@ -1876,7 +1876,7 @@ class AgentCleaningTestCase(db_base.DbTestCase):
             response = utils.agent_execute_clean_step(
                 task,
                 self.clean_steps['clean_steps']['GenericHardwareManager'][0])
-            self.assertEqual(states.CLEANING, response)
+            self.assertEqual(states.CLEANWAIT, response)
 
     def test_agent_add_clean_params(self):
         cfg.CONF.agent.agent_erase_devices_iterations = 2

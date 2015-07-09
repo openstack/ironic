@@ -132,6 +132,13 @@ represented in target_provision_state.
 CLEANING = 'cleaning'
 """ Node is being automatically cleaned to prepare it for provisioning. """
 
+CLEANWAIT = 'clean wait'
+""" Node is waiting to be cleaned.
+
+This will be the node `provision_state` while the node is waiting for
+the driver to finish cleaning step.
+"""
+
 CLEANFAIL = 'clean failed'
 """ Node failed cleaning. This requires operator intervention to resolve. """
 
@@ -220,6 +227,7 @@ machine.add_state(DEPLOYFAIL, target=ACTIVE, **watchers)
 
 # Add clean* states
 machine.add_state(CLEANING, target=AVAILABLE, **watchers)
+machine.add_state(CLEANWAIT, target=AVAILABLE, **watchers)
 machine.add_state(CLEANFAIL, target=AVAILABLE, **watchers)
 
 # Add delete* states
@@ -278,6 +286,11 @@ machine.add_transition(CLEANING, AVAILABLE, 'done')
 
 # If cleaning fails, wait for operator intervention
 machine.add_transition(CLEANING, CLEANFAIL, 'fail')
+machine.add_transition(CLEANWAIT, CLEANFAIL, 'fail')
+
+# A deployment may also wait on external callbacks
+machine.add_transition(CLEANING, CLEANWAIT, 'wait')
+machine.add_transition(CLEANWAIT, CLEANING, 'resume')
 
 # An operator may want to move a CLEANFAIL node to MANAGEABLE, to perform
 # other actions like zapping
