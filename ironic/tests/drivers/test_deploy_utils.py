@@ -1477,12 +1477,23 @@ class RealFilePartitioningTestCase(tests_base.TestCase):
                                                      [('uuid', 'path')])
 
 
+@mock.patch.object(tempfile, 'NamedTemporaryFile', autospec=True)
 @mock.patch.object(shutil, 'copyfileobj', autospec=True)
 @mock.patch.object(requests, 'get', autospec=True)
 class GetConfigdriveTestCase(tests_base.TestCase):
 
+    def setUp(self):
+        super(GetConfigdriveTestCase, self).setUp()
+        # NOTE(lucasagomes): "name" can't be passed to Mock() when
+        # instantiating the object because it's an expected parameter.
+        # https://docs.python.org/3/library/unittest.mock.html
+        self.fake_configdrive_file = mock.Mock(tell=lambda *_: 123)
+        self.fake_configdrive_file.name = '/tmp/foo'
+
     @mock.patch.object(gzip, 'GzipFile', autospec=True)
-    def test_get_configdrive(self, mock_gzip, mock_requests, mock_copy):
+    def test_get_configdrive(self, mock_gzip, mock_requests, mock_copy,
+                             mock_file):
+        mock_file.return_value = self.fake_configdrive_file
         mock_requests.return_value = mock.MagicMock(
             spec_set=['content'], content='Zm9vYmFy')
         utils._get_configdrive('http://1.2.3.4/cd', 'fake-node-uuid')
@@ -1490,36 +1501,45 @@ class GetConfigdriveTestCase(tests_base.TestCase):
         mock_gzip.assert_called_once_with('configdrive', 'rb',
                                           fileobj=mock.ANY)
         mock_copy.assert_called_once_with(mock.ANY, mock.ANY)
+        mock_file.assert_called_once_with(prefix='configdrive',
+                                          dir=cfg.CONF.tempdir, delete=False)
 
     @mock.patch.object(gzip, 'GzipFile', autospec=True)
     def test_get_configdrive_base64_string(self, mock_gzip, mock_requests,
-                                           mock_copy):
+                                           mock_copy, mock_file):
+        mock_file.return_value = self.fake_configdrive_file
         utils._get_configdrive('Zm9vYmFy', 'fake-node-uuid')
         self.assertFalse(mock_requests.called)
         mock_gzip.assert_called_once_with('configdrive', 'rb',
                                           fileobj=mock.ANY)
         mock_copy.assert_called_once_with(mock.ANY, mock.ANY)
+        mock_file.assert_called_once_with(prefix='configdrive',
+                                          dir=cfg.CONF.tempdir, delete=False)
 
-    def test_get_configdrive_bad_url(self, mock_requests, mock_copy):
+    def test_get_configdrive_bad_url(self, mock_requests, mock_copy,
+                                     mock_file):
         mock_requests.side_effect = requests.exceptions.RequestException
         self.assertRaises(exception.InstanceDeployFailure,
                           utils._get_configdrive, 'http://1.2.3.4/cd',
                           'fake-node-uuid')
         self.assertFalse(mock_copy.called)
+        self.assertFalse(mock_file.called)
 
     @mock.patch.object(base64, 'b64decode', autospec=True)
     def test_get_configdrive_base64_error(self, mock_b64, mock_requests,
-                                          mock_copy):
+                                          mock_copy, mock_file):
         mock_b64.side_effect = TypeError
         self.assertRaises(exception.InstanceDeployFailure,
                           utils._get_configdrive,
                           'malformed', 'fake-node-uuid')
         mock_b64.assert_called_once_with('malformed')
         self.assertFalse(mock_copy.called)
+        self.assertFalse(mock_file.called)
 
     @mock.patch.object(gzip, 'GzipFile', autospec=True)
     def test_get_configdrive_gzip_error(self, mock_gzip, mock_requests,
-                                        mock_copy):
+                                        mock_copy, mock_file):
+        mock_file.return_value = self.fake_configdrive_file
         mock_requests.return_value = mock.MagicMock(
             spec_set=['content'], content='Zm9vYmFy')
         mock_copy.side_effect = IOError
@@ -1530,6 +1550,8 @@ class GetConfigdriveTestCase(tests_base.TestCase):
         mock_gzip.assert_called_once_with('configdrive', 'rb',
                                           fileobj=mock.ANY)
         mock_copy.assert_called_once_with(mock.ANY, mock.ANY)
+        mock_file.assert_called_once_with(prefix='configdrive',
+                                          dir=cfg.CONF.tempdir, delete=False)
 
 
 class VirtualMediaDeployUtilsTestCase(db_base.DbTestCase):
