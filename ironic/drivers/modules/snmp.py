@@ -55,7 +55,7 @@ else:
 opts = [
     cfg.IntOpt('power_timeout',
                default=10,
-               help='Seconds to wait for power action to be completed')
+               help=_('Seconds to wait for power action to be completed'))
 ]
 
 LOG = logging.getLogger(__name__)

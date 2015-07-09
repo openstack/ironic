@@ -15,18 +15,19 @@
 
 from oslo_config import cfg
 
+from ironic.common.i18n import _
 
 API_SERVICE_OPTS = [
     cfg.StrOpt('host_ip',
                default='0.0.0.0',
-               help='The IP address on which ironic-api listens.'),
+               help=_('The IP address on which ironic-api listens.')),
     cfg.IntOpt('port',
                default=6385,
-               help='The TCP port on which ironic-api listens.'),
+               help=_('The TCP port on which ironic-api listens.')),
     cfg.IntOpt('max_limit',
                default=1000,
-               help='The maximum number of items returned in a single '
-                    'response from a collection resource.'),
+               help=_('The maximum number of items returned in a single '
+                      'response from a collection resource.')),
 ]
 
 CONF = cfg.CONF

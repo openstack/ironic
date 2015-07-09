@@ -37,11 +37,12 @@ ilo_error = importutils.try_import('proliantutils.exception')
 opts = [
     cfg.IntOpt('power_retry',
                default=6,
-               help='Number of times a power operation needs to be retried'),
+               help=_('Number of times a power operation needs to be '
+                      'retried')),
     cfg.IntOpt('power_wait',
                default=2,
-               help='Amount of time in seconds to wait in between power '
-                    'operations'),
+               help=_('Amount of time in seconds to wait in between power '
+                      'operations')),
 ]
 
 CONF = cfg.CONF

@@ -28,16 +28,16 @@ from ironic.common import utils
 opts = [
     cfg.IntOpt('check_device_interval',
                default=1,
-               help='After Ironic has completed creating the partition table, '
-                    'it continues to check for activity on the attached iSCSI '
-                    'device status at this interval prior to copying the image'
-                    ' to the node, in seconds'),
+               help=_('After Ironic has completed creating the partition '
+                      'table, it continues to check for activity on the '
+                      'attached iSCSI device status at this interval prior '
+                      'to copying the image to the node, in seconds')),
     cfg.IntOpt('check_device_max_retries',
                default=20,
-               help='The maximum number of times to check that the device is '
-                    'not accessed by another process. If the device is still '
-                    'busy after that, the disk partitioning will be treated as'
-                    ' having failed.'),
+               help=_('The maximum number of times to check that the device '
+                      'is not accessed by another process. If the device is '
+                      'still busy after that, the disk partitioning will be '
+                      'treated as having failed.')),
 ]
 
 CONF = cfg.CONF

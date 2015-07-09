@@ -50,45 +50,45 @@ pxe_opts = [
     cfg.StrOpt('pxe_config_template',
                default=paths.basedir_def(
                    'drivers/modules/pxe_config.template'),
-               help='On ironic-conductor node, template file for PXE '
-                    'configuration.'),
+               help=_('On ironic-conductor node, template file for PXE '
+                      'configuration.')),
     cfg.StrOpt('uefi_pxe_config_template',
                default=paths.basedir_def(
                    'drivers/modules/elilo_efi_pxe_config.template'),
-               help='On ironic-conductor node, template file for PXE '
-                    'configuration for UEFI boot loader.'),
+               help=_('On ironic-conductor node, template file for PXE '
+                      'configuration for UEFI boot loader.')),
     cfg.StrOpt('tftp_server',
                default='$my_ip',
-               help='IP address of ironic-conductor node\'s TFTP server.'),
+               help=_('IP address of ironic-conductor node\'s TFTP server.')),
     cfg.StrOpt('tftp_root',
                default='/tftpboot',
-               help='ironic-conductor node\'s TFTP root path.'),
+               help=_('ironic-conductor node\'s TFTP root path.')),
     cfg.StrOpt('tftp_master_path',
                default='/tftpboot/master_images',
-               help='On ironic-conductor node, directory where master TFTP '
-                    'images are stored on disk.'),
+               help=_('On ironic-conductor node, directory where master TFTP '
+                      'images are stored on disk.')),
     # NOTE(dekehn): Additional boot files options may be created in the event
     #  other architectures require different boot files.
     cfg.StrOpt('pxe_bootfile_name',
                default='pxelinux.0',
-               help='Bootfile DHCP parameter.'),
+               help=_('Bootfile DHCP parameter.')),
     cfg.StrOpt('uefi_pxe_bootfile_name',
                default='elilo.efi',
-               help='Bootfile DHCP parameter for UEFI boot mode.'),
+               help=_('Bootfile DHCP parameter for UEFI boot mode.')),
     cfg.StrOpt('http_url',
-               help='ironic-conductor node\'s HTTP server URL. '
-                    'Example: http://192.1.2.3:8080'),
+               help=_('ironic-conductor node\'s HTTP server URL. '
+                      'Example: http://192.1.2.3:8080')),
     cfg.StrOpt('http_root',
                default='/httpboot',
-               help='ironic-conductor node\'s HTTP root path.'),
+               help=_('ironic-conductor node\'s HTTP root path.')),
     cfg.BoolOpt('ipxe_enabled',
                 default=False,
-                help='Enable iPXE boot.'),
+                help=_('Enable iPXE boot.')),
     cfg.StrOpt('ipxe_boot_script',
                default=paths.basedir_def(
                    'drivers/modules/boot.ipxe'),
-               help='On ironic-conductor node, the path to the main iPXE '
-                    'script file.'),
+               help=_('On ironic-conductor node, the path to the main iPXE '
+                      'script file.')),
 ]
 
 LOG = logging.getLogger(__name__)

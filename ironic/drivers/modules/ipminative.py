@@ -45,18 +45,18 @@ if pyghmi:
 opts = [
     cfg.IntOpt('retry_timeout',
                default=60,
-               help='Maximum time in seconds to retry IPMI operations. There '
-                    'is a tradeoff when setting this value. Setting this too '
-                    'low may cause older BMCs to crash and require a hard '
-                    'reset. However, setting too high can cause the sync '
-                    'power state periodic task to hang when there are slow '
-                    'or unresponsive BMCs.'),
+               help=_('Maximum time in seconds to retry IPMI operations. '
+                      'There is a tradeoff when setting this value. Setting '
+                      'this too low may cause older BMCs to crash and require '
+                      'a hard reset. However, setting too high can cause the '
+                      'sync power state periodic task to hang when there are '
+                      'slow or unresponsive BMCs.')),
     cfg.IntOpt('min_command_interval',
                default=5,
-               help='Minimum time, in seconds, between IPMI operations '
-                    'sent to a server. There is a risk with some hardware '
-                    'that setting this too low may cause the BMC to crash. '
-                    'Recommended setting is 5 seconds.'),
+               help=_('Minimum time, in seconds, between IPMI operations '
+                      'sent to a server. There is a risk with some hardware '
+                      'that setting this too low may cause the BMC to crash. '
+                      'Recommended setting is 5 seconds.')),
 ]
 
 CONF = cfg.CONF

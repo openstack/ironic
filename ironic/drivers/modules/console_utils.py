@@ -38,21 +38,22 @@ from ironic.common import utils
 opts = [
     cfg.StrOpt('terminal',
                default='shellinaboxd',
-               help='Path to serial console terminal program'),
+               help=_('Path to serial console terminal program')),
     cfg.StrOpt('terminal_cert_dir',
-               help='Directory containing the terminal SSL cert(PEM) for '
-               'serial console access'),
+               help=_('Directory containing the terminal SSL cert(PEM) for '
+                      'serial console access')),
     cfg.StrOpt('terminal_pid_dir',
-               help='Directory for holding terminal pid files. '
-               'If not specified, the temporary directory will be used.'),
+               help=_('Directory for holding terminal pid files. '
+                      'If not specified, the temporary directory '
+                      'will be used.')),
     cfg.IntOpt('subprocess_checking_interval',
                default=1,
-               help='Time interval (in seconds) for checking the status of '
-               'console subprocess.'),
+               help=_('Time interval (in seconds) for checking the status of '
+                      'console subprocess.')),
     cfg.IntOpt('subprocess_timeout',
                default=10,
-               help='Time (in seconds) to wait for the console subprocess '
-               'to start.'),
+               help=_('Time (in seconds) to wait for the console subprocess '
+                      'to start.')),
 ]
 
 CONF = cfg.CONF

@@ -35,16 +35,16 @@ LOG = logging.getLogger(__name__)
 
 inspector_opts = [
     cfg.BoolOpt('enabled', default=False,
-                help='whether to enable inspection using ironic-inspector',
+                help=_('whether to enable inspection using ironic-inspector'),
                 deprecated_group='discoverd'),
     cfg.StrOpt('service_url',
-               help='ironic-inspector HTTP endpoint. If this is not set, the '
-               'ironic-inspector client default (http://127.0.0.1:5050) '
-               'will be used.',
+               help=_('ironic-inspector HTTP endpoint. If this is not set, '
+                      'the ironic-inspector client default '
+                      '(http://127.0.0.1:5050) will be used.'),
                deprecated_group='discoverd'),
     cfg.IntOpt('status_check_period', default=60,
-               help='period (in seconds) to check status of nodes '
-               'on inspection',
+               help=_('period (in seconds) to check status of nodes '
+                      'on inspection'),
                deprecated_group='discoverd'),
 ]
 

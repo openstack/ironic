@@ -38,12 +38,12 @@ pywsman = importutils.try_import('pywsman')
 opts = [
     cfg.IntOpt('max_attempts',
                default=3,
-               help='Maximum number of times to attempt an AMT operation, '
-                    'before failing'),
+               help=_('Maximum number of times to attempt an AMT operation, '
+                      'before failing')),
     cfg.IntOpt('action_wait',
                default=10,
-               help='Amount of time (in seconds) to wait, before retrying '
-                    'an AMT operation')
+               help=_('Amount of time (in seconds) to wait, before retrying '
+                      'an AMT operation'))
 ]
 
 CONF = cfg.CONF

@@ -36,11 +36,12 @@ ucs_error = importutils.try_import('UcsSdk.utils.exception')
 opts = [
     cfg.IntOpt('max_retry',
                default=6,
-               help='Number of times a power operation needs to be retried'),
+               help=_('Number of times a power operation needs to be '
+                      'retried')),
     cfg.IntOpt('action_interval',
                default=5,
-               help='Amount of time in seconds to wait in between power '
-                    'operations'),
+               help=_('Amount of time in seconds to wait in between power '
+                      'operations')),
 ]
 
 CONF = cfg.CONF

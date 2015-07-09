@@ -23,8 +23,8 @@ from ironic.common.i18n import _
 agent_opts = [
     cfg.StrOpt('agent_api_version',
                default='v1',
-               help='API version to use for communicating with the ramdisk '
-                    'agent.')
+               help=_('API version to use for communicating with the ramdisk '
+                      'agent.'))
 ]
 
 CONF = cfg.CONF

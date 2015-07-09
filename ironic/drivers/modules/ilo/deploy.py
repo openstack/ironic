@@ -50,9 +50,9 @@ CONF = cfg.CONF
 
 clean_opts = [
     cfg.IntOpt('clean_priority_erase_devices',
-               help='Priority for erase devices clean step. If unset, '
-                    'it defaults to 10. If set to 0, the step will be '
-                    'disabled and will not run during cleaning.')
+               help=_('Priority for erase devices clean step. If unset, '
+                      'it defaults to 10. If set to 0, the step will be '
+                      'disabled and will not run during cleaning.'))
 ]
 
 REQUIRED_PROPERTIES = {

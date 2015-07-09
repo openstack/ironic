@@ -30,6 +30,7 @@ import six
 
 from ironic.common import exception
 from ironic.common.glance_service import service_utils
+from ironic.common.i18n import _
 from ironic.common.i18n import _LI
 from ironic.common.i18n import _LW
 from ironic.common import images
@@ -42,8 +43,8 @@ LOG = logging.getLogger(__name__)
 img_cache_opts = [
     cfg.BoolOpt('parallel_image_downloads',
                 default=False,
-                help='Run image downloads and raw format conversions in '
-                     'parallel.'),
+                help=_('Run image downloads and raw format conversions in '
+                       'parallel.')),
 ]
 
 CONF = cfg.CONF

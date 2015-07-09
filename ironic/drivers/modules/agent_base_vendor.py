@@ -43,16 +43,16 @@ from ironic import objects
 agent_opts = [
     cfg.IntOpt('heartbeat_timeout',
                default=300,
-               help='Maximum interval (in seconds) for agent heartbeats.'),
+               help=_('Maximum interval (in seconds) for agent heartbeats.')),
     cfg.IntOpt('post_deploy_get_power_state_retries',
                default=6,
-               help='Number of times to retry getting power state to check '
-                    'if bare metal node has been powered off after a soft '
-                    'power off.'),
+               help=_('Number of times to retry getting power state to check '
+                      'if bare metal node has been powered off after a soft '
+                      'power off.')),
     cfg.IntOpt('post_deploy_get_power_state_retry_interval',
                default=5,
-               help='Amount of time (in seconds) to wait between polling '
-                    'power state after trigger soft poweroff.'),
+               help=_('Amount of time (in seconds) to wait between polling '
+                      'power state after trigger soft poweroff.')),
 ]
 
 CONF = cfg.CONF
