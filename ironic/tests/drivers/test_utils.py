@@ -61,14 +61,14 @@ class UtilsTestCase(db_base.DbTestCase):
         ports.append(
             obj_utils.create_test_port(
                 self.context,
-                address='aa:bb:cc',
+                address='aa:bb:cc:dd:ee:ff',
                 uuid='bb43dc0b-03f2-4d2e-ae87-c02d7f33cc53',
                 node_id=self.node.id)
         )
         ports.append(
             obj_utils.create_test_port(
                 self.context,
-                address='dd:ee:ff',
+                address='dd:ee:ff:aa:bb:cc',
                 uuid='4fc26c0b-03f2-4d2e-ae87-c02d7f33c234',
                 node_id=self.node.id)
         )

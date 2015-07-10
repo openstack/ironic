@@ -16,8 +16,6 @@ import contextlib
 import datetime
 import gettext
 
-import iso8601
-import netaddr
 from oslo_context import context
 from oslo_utils import timeutils
 import six
@@ -124,47 +122,6 @@ class TestMetaclass(test_base.TestCase):
 
 
 class TestUtils(test_base.TestCase):
-
-    def test_datetime_or_none(self):
-        naive_dt = datetime.datetime.now()
-        dt = timeutils.parse_isotime(timeutils.isotime(naive_dt))
-        self.assertEqual(utils.datetime_or_none(dt), dt)
-        self.assertEqual(utils.datetime_or_none(dt),
-                         naive_dt.replace(tzinfo=iso8601.iso8601.Utc(),
-                                          microsecond=0))
-        self.assertIsNone(utils.datetime_or_none(None))
-        self.assertRaises(ValueError, utils.datetime_or_none, 'foo')
-
-    def test_datetime_or_str_or_none(self):
-        dts = timeutils.isotime()
-        dt = timeutils.parse_isotime(dts)
-        self.assertEqual(utils.datetime_or_str_or_none(dt), dt)
-        self.assertIsNone(utils.datetime_or_str_or_none(None))
-        self.assertEqual(utils.datetime_or_str_or_none(dts), dt)
-        self.assertRaises(ValueError, utils.datetime_or_str_or_none, 'foo')
-
-    def test_int_or_none(self):
-        self.assertEqual(utils.int_or_none(1), 1)
-        self.assertEqual(utils.int_or_none('1'), 1)
-        self.assertIsNone(utils.int_or_none(None))
-        self.assertRaises(ValueError, utils.int_or_none, 'foo')
-
-    def test_str_or_none(self):
-        class Obj(object):
-            pass
-        self.assertEqual(utils.str_or_none('foo'), 'foo')
-        self.assertEqual(utils.str_or_none(1), '1')
-        self.assertIsNone(utils.str_or_none(None))
-
-    def test_ip_or_none(self):
-        ip4 = netaddr.IPAddress('1.2.3.4', 4)
-        ip6 = netaddr.IPAddress('1::2', 6)
-        self.assertEqual(utils.ip_or_none(4)('1.2.3.4'), ip4)
-        self.assertEqual(utils.ip_or_none(6)('1::2'), ip6)
-        self.assertIsNone(utils.ip_or_none(4)(None))
-        self.assertIsNone(utils.ip_or_none(6)(None))
-        self.assertRaises(netaddr.AddrFormatError, utils.ip_or_none(4), 'foo')
-        self.assertRaises(netaddr.AddrFormatError, utils.ip_or_none(6), 'foo')
 
     def test_dt_serializer(self):
         class Obj(object):

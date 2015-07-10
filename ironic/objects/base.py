@@ -27,6 +27,7 @@ import six
 from ironic.common import exception
 from ironic.common.i18n import _
 from ironic.common.i18n import _LE
+from ironic.objects import fields as object_fields
 from ironic.objects import utils as obj_utils
 
 
@@ -190,8 +191,8 @@ class IronicObject(ovo_base.VersionedObjectDictCompat):
     # by subclasses, but that is a special case. Objects inheriting from
     # other objects will not receive this merging of fields contents.
     fields = {
-        'created_at': obj_utils.datetime_or_str_or_none,
-        'updated_at': obj_utils.datetime_or_str_or_none,
+        'created_at': object_fields.DateTimeField(nullable=True),
+        'updated_at': object_fields.DateTimeField(nullable=True),
     }
     obj_extra_fields = []
 

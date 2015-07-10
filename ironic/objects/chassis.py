@@ -19,7 +19,7 @@ from oslo_utils import uuidutils
 from ironic.common import exception
 from ironic.db import api as dbapi
 from ironic.objects import base
-from ironic.objects import utils as obj_utils
+from ironic.objects import fields as object_fields
 
 
 class Chassis(base.IronicObject):
@@ -33,10 +33,10 @@ class Chassis(base.IronicObject):
     dbapi = dbapi.get_instance()
 
     fields = {
-        'id': int,
-        'uuid': obj_utils.str_or_none,
-        'extra': obj_utils.dict_or_none,
-        'description': obj_utils.str_or_none,
+        'id': object_fields.IntegerField(),
+        'uuid': object_fields.UUIDField(nullable=True),
+        'extra': object_fields.FlexibleDictField(nullable=True),
+        'description': object_fields.StringField(nullable=True),
     }
 
     @staticmethod

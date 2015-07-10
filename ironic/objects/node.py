@@ -19,7 +19,7 @@ from oslo_utils import uuidutils
 from ironic.common import exception
 from ironic.db import api as db_api
 from ironic.objects import base
-from ironic.objects import utils as obj_utils
+from ironic.objects import fields as object_fields
 
 
 class Node(base.IronicObject):
@@ -42,57 +42,57 @@ class Node(base.IronicObject):
     dbapi = db_api.get_instance()
 
     fields = {
-        'id': int,
+        'id': object_fields.IntegerField(),
 
-        'uuid': obj_utils.str_or_none,
-        'name': obj_utils.str_or_none,
-        'chassis_id': obj_utils.int_or_none,
-        'instance_uuid': obj_utils.str_or_none,
+        'uuid': object_fields.UUIDField(nullable=True),
+        'name': object_fields.StringField(nullable=True),
+        'chassis_id': object_fields.IntegerField(nullable=True),
+        'instance_uuid': object_fields.UUIDField(nullable=True),
 
-        'driver': obj_utils.str_or_none,
-        'driver_info': obj_utils.dict_or_none,
-        'driver_internal_info': obj_utils.dict_or_none,
+        'driver': object_fields.StringField(nullable=True),
+        'driver_info': object_fields.FlexibleDictField(nullable=True),
+        'driver_internal_info': object_fields.FlexibleDictField(nullable=True),
 
         # A clean step dictionary, indicating the current clean step
         # being executed, or None, indicating cleaning is not in progress
         # or has not yet started.
-        'clean_step': obj_utils.dict_or_none,
+        'clean_step': object_fields.FlexibleDictField(nullable=True),
 
-        'raid_config': obj_utils.dict_or_none,
-        'target_raid_config': obj_utils.dict_or_none,
+        'raid_config': object_fields.FlexibleDictField(nullable=True),
+        'target_raid_config': object_fields.FlexibleDictField(nullable=True),
 
-        'instance_info': obj_utils.dict_or_none,
-        'properties': obj_utils.dict_or_none,
-        'reservation': obj_utils.str_or_none,
+        'instance_info': object_fields.FlexibleDictField(nullable=True),
+        'properties': object_fields.FlexibleDictField(nullable=True),
+        'reservation': object_fields.StringField(nullable=True),
         # a reference to the id of the conductor service, not its hostname,
         # that has most recently performed some action which could require
         # local state to be maintained (eg, built a PXE config)
-        'conductor_affinity': obj_utils.int_or_none,
+        'conductor_affinity': object_fields.IntegerField(nullable=True),
 
         # One of states.POWER_ON|POWER_OFF|NOSTATE|ERROR
-        'power_state': obj_utils.str_or_none,
+        'power_state': object_fields.StringField(nullable=True),
 
         # Set to one of states.POWER_ON|POWER_OFF when a power operation
         # starts, and set to NOSTATE when the operation finishes
         # (successfully or unsuccessfully).
-        'target_power_state': obj_utils.str_or_none,
+        'target_power_state': object_fields.StringField(nullable=True),
 
-        'provision_state': obj_utils.str_or_none,
-        'provision_updated_at': obj_utils.datetime_or_str_or_none,
-        'target_provision_state': obj_utils.str_or_none,
+        'provision_state': object_fields.StringField(nullable=True),
+        'provision_updated_at': object_fields.DateTimeField(nullable=True),
+        'target_provision_state': object_fields.StringField(nullable=True),
 
-        'maintenance': bool,
-        'maintenance_reason': obj_utils.str_or_none,
-        'console_enabled': bool,
+        'maintenance': object_fields.BooleanField(),
+        'maintenance_reason': object_fields.StringField(nullable=True),
+        'console_enabled': object_fields.BooleanField(),
 
         # Any error from the most recent (last) asynchronous transaction
         # that started but failed to finish.
-        'last_error': obj_utils.str_or_none,
+        'last_error': object_fields.StringField(nullable=True),
 
-        'inspection_finished_at': obj_utils.datetime_or_str_or_none,
-        'inspection_started_at': obj_utils.datetime_or_str_or_none,
+        'inspection_finished_at': object_fields.DateTimeField(nullable=True),
+        'inspection_started_at': object_fields.DateTimeField(nullable=True),
 
-        'extra': obj_utils.dict_or_none,
+        'extra': object_fields.FlexibleDictField(nullable=True),
     }
 
     @staticmethod

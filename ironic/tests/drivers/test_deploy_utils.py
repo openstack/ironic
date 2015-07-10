@@ -1565,13 +1565,13 @@ class VirtualMediaDeployUtilsTestCase(db_base.DbTestCase):
 
     def test_get_single_nic_with_vif_port_id(self):
         obj_utils.create_test_port(
-            self.context, node_id=self.node.id, address='aa:bb:cc',
+            self.context, node_id=self.node.id, address='aa:bb:cc:dd:ee:ff',
             uuid=uuidutils.generate_uuid(),
             extra={'vif_port_id': 'test-vif-A'}, driver='iscsi_ilo')
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
             address = utils.get_single_nic_with_vif_port_id(task)
-            self.assertEqual('aa:bb:cc', address)
+            self.assertEqual('aa:bb:cc:dd:ee:ff', address)
 
 
 class ParseInstanceInfoCapabilitiesTestCase(tests_base.TestCase):
