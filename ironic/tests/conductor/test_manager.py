@@ -839,24 +839,6 @@ class VendorPassthruTestCase(_ServiceSetUpMixin, tests_db_base.DbTestCase):
                           self.context, 'does_not_exist', 'test_method',
                           'POST', {})
 
-    def test_driver_vendor_passthru_backwards_compat(self):
-        expected = {'foo': 'bar'}
-        driver_vendor_passthru_ref = mock.Mock(return_value=expected)
-
-        self.driver.vendor = mock.Mock(spec=drivers_base.VendorInterface)
-        self.driver.vendor.driver_routes = {}
-        self.driver.vendor.driver_vendor_passthru = driver_vendor_passthru_ref
-
-        self.service.init_host()
-
-        vendor_args = {'test': 'arg'}
-        response = self.service.driver_vendor_passthru(
-            self.context, 'fake', 'test_method', 'POST', vendor_args)
-
-        self.assertEqual((expected, False), response)
-        driver_vendor_passthru_ref.assert_called_once_with(
-            self.context, test='arg', method='test_method')
-
     def test_get_driver_vendor_passthru_methods(self):
         self.driver.vendor = mock.Mock(spec=drivers_base.VendorInterface)
         fake_routes = {'test_method': {'async': True,

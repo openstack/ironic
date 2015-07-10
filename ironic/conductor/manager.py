@@ -573,25 +573,6 @@ class ConductorManager(periodic_task.PeriodicTasks):
                 driver=driver_name,
                 extension='vendor interface')
 
-        # NOTE(lucasagomes): Before the driver_vendor_passthru()
-        # method was a self-contained method and each driver implemented
-        # their own version of it, now we have a common mechanism that
-        # drivers should use to expose their vendor methods. If a driver
-        # still have their own driver_vendor_passthru() method we call
-        # it to be backward compat. This code should be removed
-        # once L opens.
-        if hasattr(driver.vendor, 'driver_vendor_passthru'):
-            LOG.warning(_LW("Drivers implementing their own version "
-                            "of driver_vendor_passthru() has been "
-                            "deprecated. Please update the code to use "
-                            "the @driver_passthru decorator."))
-
-            driver.vendor.driver_validate(method=driver_method, **info)
-            ret = driver.vendor.driver_vendor_passthru(
-                context, method=driver_method, **info)
-            # DriverVendorPassthru was always sync
-            return (ret, False)
-
         try:
             vendor_opts = driver.vendor.driver_routes[driver_method]
             vendor_func = vendor_opts['func']
