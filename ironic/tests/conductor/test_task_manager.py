@@ -142,7 +142,9 @@ class TaskManagerTestCase(tests_db_base.DbTestCase):
         with task_manager.TaskManager(self.context, 'fake-node-id') as task:
             self.assertFalse(task.shared)
 
-        reserve_mock.assert_called(self.context, self.host, 'fake-node-id')
+        expected_calls = [mock.call(self.context, self.host,
+                                    'fake-node-id')] * 2
+        reserve_mock.assert_has_calls(expected_calls)
         self.assertEqual(2, reserve_mock.call_count)
 
     def test_excl_lock_reserve_exception(self, get_ports_mock,

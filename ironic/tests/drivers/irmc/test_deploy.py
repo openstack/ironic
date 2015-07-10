@@ -496,7 +496,7 @@ class IRMCDeployPrivateMethodsTestCase(db_base.DbTestCase):
 
         deploy_args = {'arg1': 'val1', 'arg2': 'val2'}
         CONF.irmc.remote_image_share_name = '/remote_image_share_root'
-        execute_mock.side_effect = Exception("fake error")
+        execute_mock.side_effect = iter([Exception("fake error")])
 
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:

@@ -1055,8 +1055,8 @@ class VendorPassthruTestCase(db_base.DbTestCase):
             update_secure_boot_mode_mock):
         kwargs = {'address': '123456'}
         continue_deploy_mock.return_value = {'root uuid': 'root-uuid'}
-        get_iso_mock.side_effect = exception.ImageCreationFailed(
-            image_type='iso', error="error")
+        get_iso_mock.side_effect = iter([exception.ImageCreationFailed(
+            image_type='iso', error="error")])
         self.node.provision_state = states.DEPLOYWAIT
         self.node.target_provision_state = states.ACTIVE
         self.node.save()

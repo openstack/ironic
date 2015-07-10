@@ -1110,16 +1110,15 @@ class PXEDriverTestCase(db_base.DbTestCase):
         self.assertEqual(states.NOSTATE, self.node.target_provision_state)
         self.assertEqual(states.POWER_ON, self.node.power_state)
 
-    def test_lock_elevated(self):
+    @mock.patch.object(pxe.VendorPassthru, 'pass_deploy_info')
+    def test_lock_elevated(self, mock_deploy_info):
         with task_manager.acquire(self.context, self.node.uuid) as task:
-            with mock.patch.object(task.driver.vendor, 'pass_deploy_info',
-                                   autospec=True) as _cont_deploy_mock:
-                task.driver.vendor.pass_deploy_info(
-                    task, address='123456', iqn='aaa-bbb', key='fake-56789')
+            task.driver.vendor.pass_deploy_info(
+                task, address='123456', iqn='aaa-bbb', key='fake-56789')
 
-                # lock elevated w/o exception
-                self.assertEqual(1, _cont_deploy_mock.call_count,
-                                 "pass_deploy_info was not called once.")
+            # lock elevated w/o exception
+            self.assertEqual(1, mock_deploy_info.call_count,
+                             "pass_deploy_info was not called once.")
 
     def test_vendor_routes(self):
         expected = ['heartbeat', 'pass_deploy_info',

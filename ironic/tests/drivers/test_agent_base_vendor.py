@@ -386,7 +386,7 @@ class TestBaseAgentVendor(db_base.DbTestCase):
                        spec=types.FunctionType)
     def test_reboot_and_finish_deploy_soft_poweroff_fails(
             self, power_off_mock, node_power_action_mock):
-        power_off_mock.side_effect = RuntimeError("boom")
+        power_off_mock.side_effect = iter([RuntimeError("boom")])
         self.node.provision_state = states.DEPLOYING
         self.node.target_provision_state = states.ACTIVE
         self.node.save()
@@ -413,7 +413,7 @@ class TestBaseAgentVendor(db_base.DbTestCase):
         self.node.save()
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
-            get_power_state_mock.side_effect = RuntimeError("boom")
+            get_power_state_mock.side_effect = iter([RuntimeError("boom")])
             self.passthru.reboot_and_finish_deploy(task)
             power_off_mock.assert_called_once_with(task.node)
             self.assertEqual(7, get_power_state_mock.call_count)
@@ -437,7 +437,7 @@ class TestBaseAgentVendor(db_base.DbTestCase):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
             get_power_state_mock.return_value = states.POWER_ON
-            node_power_action_mock.side_effect = RuntimeError("boom")
+            node_power_action_mock.side_effect = iter([RuntimeError("boom")])
             self.assertRaises(exception.InstanceDeployFailure,
                               self.passthru.reboot_and_finish_deploy,
                               task)
@@ -539,7 +539,7 @@ class TestBaseAgentVendor(db_base.DbTestCase):
             self, install_bootloader_mock, try_set_boot_device_mock):
         install_bootloader_mock.return_value = {
             'command_status': 'SUCCESS', 'command_error': None}
-        try_set_boot_device_mock.side_effect = RuntimeError('error')
+        try_set_boot_device_mock.side_effect = iter([RuntimeError('error')])
         self.node.provision_state = states.DEPLOYING
         self.node.target_provision_state = states.ACTIVE
         self.node.save()
