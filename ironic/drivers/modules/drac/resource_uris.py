@@ -28,8 +28,19 @@ DCIM_BootConfigSetting = ('http://schemas.dell.com/wbem/wscim/1/cim-schema/2/'
 DCIM_BIOSService = ('http://schemas.dell.com/wbem/wscim/1/cim-schema/2/'
                     'DCIM_BIOSService')
 
+DCIM_BIOSEnumeration = ('http://schemas.dell.com/wbem/wscim/1/cim-schema/2/'
+                        'DCIM_BIOSEnumeration')
+DCIM_BIOSString = ('http://schemas.dell.com/wbem/wscim/1/cim-schema/2/'
+                   'DCIM_BIOSString')
+DCIM_BIOSInteger = ('http://schemas.dell.com/wbem/wscim/1/cim-schema/2/'
+                    'DCIM_BIOSInteger')
+
 DCIM_LifecycleJob = ('http://schemas.dell.com/wbem/wscim/1/cim-schema/2/'
                      'DCIM_LifecycleJob')
 
 DCIM_SystemView = ('http://schemas.dell.com/wbem/wscim/1/cim-schema/2/'
                    'DCIM_SystemView')
+
+CIM_XmlSchema = 'http://www.w3.org/2001/XMLSchema-instance'
+
+CIM_WSMAN = 'http://schemas.dmtf.org/wbem/wsman/1/wsman.xsd'

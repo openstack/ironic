@@ -21,8 +21,10 @@ from ironic.common.i18n import _
 from ironic.drivers import base
 from ironic.drivers.modules.drac import management
 from ironic.drivers.modules.drac import power
+from ironic.drivers.modules.drac import vendor_passthru
 from ironic.drivers.modules import inspector
 from ironic.drivers.modules import pxe
+from ironic.drivers import utils
 
 
 class PXEDracDriver(base.BaseDriver):
@@ -37,6 +39,16 @@ class PXEDracDriver(base.BaseDriver):
         self.power = power.DracPower()
         self.deploy = pxe.PXEDeploy()
         self.management = management.DracManagement()
-        self.vendor = pxe.VendorPassthru()
+        self.pxe_vendor = pxe.VendorPassthru()
+        self.drac_vendor = vendor_passthru.DracVendorPassthru()
+        self.mapping = {'pass_deploy_info': self.pxe_vendor,
+                        'heartbeat': self.pxe_vendor,
+                        'pass_bootloader_install_info': self.pxe_vendor,
+                        'get_bios_config': self.drac_vendor,
+                        'set_bios_config': self.drac_vendor,
+                        'commit_bios_config': self.drac_vendor,
+                        'abandon_bios_config': self.drac_vendor,
+                        }
+        self.vendor = utils.MixinVendorInterface(self.mapping)
         self.inspect = inspector.Inspector.create_if_enabled(
             'PXEDracDriver')
