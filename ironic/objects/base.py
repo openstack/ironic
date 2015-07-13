@@ -21,7 +21,7 @@ from oslo_context import context
 from oslo_log import log as logging
 import oslo_messaging as messaging
 from oslo_utils import versionutils
-from oslo_versionedobjects import base as ovo_base
+from oslo_versionedobjects import base as object_base
 import six
 
 from ironic.common import exception
@@ -167,7 +167,7 @@ def check_object_version(server, client):
 
 
 @six.add_metaclass(IronicObjectMetaclass)
-class IronicObject(ovo_base.VersionedObjectDictCompat):
+class IronicObject(object_base.VersionedObjectDictCompat):
     """Base class and object factory.
 
     This forms the base of all objects that can be remoted or instantiated
@@ -400,81 +400,12 @@ class IronicObject(ovo_base.VersionedObjectDictCompat):
                     if hasattr(self, k))
 
 
-class ObjectListBase(object):
-    """Mixin class for lists of objects.
-
-    This mixin class can be added as a base class for an object that
-    is implementing a list of objects. It adds a single field of 'objects',
-    which is the list store, and behaves like a list itself. It supports
-    serialization of the list of objects automatically.
-    """
+class ObjectListBase(object_base.ObjectListBase):
+    # NOTE(lintan): These are for transition to using the oslo base object
+    # and can be removed when we move to it.
     fields = {
         'objects': list,
     }
-
-    # This is a dictionary of my_version:child_version mappings so that
-    # we can support backleveling our contents based on the version
-    # requested of the list object.
-    child_versions = {}
-
-    def __iter__(self):
-        """List iterator interface."""
-        return iter(self.objects)
-
-    def __len__(self):
-        """List length."""
-        return len(self.objects)
-
-    def __getitem__(self, index):
-        """List index access."""
-        if isinstance(index, slice):
-            new_obj = self.__class__(self._context)
-            new_obj.objects = self.objects[index]
-            # NOTE(danms): We must be mixed in with an IronicObject!
-            new_obj.obj_reset_changes()
-            return new_obj
-        return self.objects[index]
-
-    def __contains__(self, value):
-        """List membership test."""
-        return value in self.objects
-
-    def count(self, value):
-        """List count of value occurrences."""
-        return self.objects.count(value)
-
-    def index(self, value):
-        """List index of value."""
-        return self.objects.index(value)
-
-    def _attr_objects_to_primitive(self):
-        """Serialization of object list."""
-        return [x.obj_to_primitive() for x in self.objects]
-
-    def _attr_objects_from_primitive(self, value):
-        """Deserialization of object list."""
-        objects = []
-        for entity in value:
-            obj = IronicObject.obj_from_primitive(entity,
-                                                  context=self._context)
-            objects.append(obj)
-        return objects
-
-    def obj_make_compatible(self, primitive, target_version):
-        primitives = primitive['objects']
-        child_target_version = self.child_versions.get(target_version, '1.0')
-        for index, item in enumerate(self.objects):
-            self.objects[index].obj_make_compatible(
-                primitives[index]['ironic_object.data'],
-                child_target_version)
-            primitives[index]['ironic_object.version'] = child_target_version
-
-    def obj_what_changed(self):
-        changes = set(self._changed_fields)
-        for child in self.objects:
-            if child.obj_what_changed():
-                changes.add('objects')
-        return changes
 
 
 class IronicObjectSerializer(messaging.NoOpSerializer):
