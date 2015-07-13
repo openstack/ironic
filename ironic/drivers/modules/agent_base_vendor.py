@@ -88,6 +88,13 @@ class BaseAgentVendor(base.VendorInterface):
         """
         pass
 
+    def deploy_has_started(self, task):
+        """Check if the deployment has started already.
+
+        :returns: True if the deploy has started, False otherwise.
+        """
+        pass
+
     def deploy_is_done(self, task):
         """Check if the deployment is already completed.
 
@@ -245,10 +252,11 @@ class BaseAgentVendor(base.VendorInterface):
                 LOG.debug('Heartbeat from node %(node)s in maintenance mode; '
                           'not taking any action.', {'node': node.uuid})
                 return
-            elif node.provision_state == states.DEPLOYWAIT:
+            elif (node.provision_state == states.DEPLOYWAIT and
+                  not self.deploy_has_started(task)):
                 msg = _('Node failed to get image for deploy.')
                 self.continue_deploy(task, **kwargs)
-            elif (node.provision_state == states.DEPLOYING and
+            elif (node.provision_state == states.DEPLOYWAIT and
                   self.deploy_is_done(task)):
                 msg = _('Node failed to move to active state.')
                 self.reboot_to_instance(task, **kwargs)

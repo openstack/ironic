@@ -272,19 +272,22 @@ class TestBaseAgentVendor(db_base.DbTestCase):
             self.assertRaises(exception.MissingParameterValue,
                               self.passthru.heartbeat, task, **kwargs)
 
+    @mock.patch.object(agent_base_vendor.BaseAgentVendor, 'deploy_has_started',
+                       autospec=True)
     @mock.patch.object(deploy_utils, 'set_failed_state', autospec=True)
     @mock.patch.object(agent_base_vendor.BaseAgentVendor, 'deploy_is_done',
                        autospec=True)
     @mock.patch.object(agent_base_vendor.LOG, 'exception', autospec=True)
     def test_heartbeat_deploy_done_fails(self, log_mock, done_mock,
-                                         failed_mock):
+                                         failed_mock, deploy_started_mock):
+        deploy_started_mock.return_value = True
         kwargs = {
             'agent_url': 'http://127.0.0.1:9999/bar'
         }
         done_mock.side_effect = iter([Exception('LlamaException')])
         with task_manager.acquire(
                 self.context, self.node['uuid'], shared=True) as task:
-            task.node.provision_state = states.DEPLOYING
+            task.node.provision_state = states.DEPLOYWAIT
             task.node.target_provision_state = states.ACTIVE
             self.passthru.heartbeat(task, **kwargs)
             failed_mock.assert_called_once_with(task, mock.ANY)

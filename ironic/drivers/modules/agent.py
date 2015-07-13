@@ -437,6 +437,15 @@ class AgentDeploy(base.DeployInterface):
 
 class AgentVendorInterface(agent_base_vendor.BaseAgentVendor):
 
+    def deploy_has_started(self, task):
+        commands = self._client.get_commands_status(task.node)
+
+        for command in commands:
+            if command['command_name'] == 'prepare_image':
+                # deploy did start at some point
+                return True
+        return False
+
     def deploy_is_done(self, task):
         commands = self._client.get_commands_status(task.node)
         if not commands:
@@ -479,6 +488,8 @@ class AgentVendorInterface(agent_base_vendor.BaseAgentVendor):
         LOG.debug('prepare_image got response %(res)s for node %(node)s',
                   {'res': res, 'node': node.uuid})
 
+        task.process_event('wait')
+
     def check_deploy_success(self, node):
         # should only ever be called after we've validated that
         # the prepare_image command is complete
@@ -487,6 +498,7 @@ class AgentVendorInterface(agent_base_vendor.BaseAgentVendor):
             return command['command_error']
 
     def reboot_to_instance(self, task, **kwargs):
+        task.process_event('resume')
         node = task.node
         LOG.debug('Preparing to reboot to instance for node %s',
                   node.uuid)

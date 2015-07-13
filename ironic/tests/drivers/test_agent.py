@@ -398,7 +398,7 @@ class TestAgentVendor(db_base.DbTestCase):
 
             client_mock.prepare_image.assert_called_with(task.node,
                                                          expected_image_info)
-            self.assertEqual(states.DEPLOYING, task.node.provision_state)
+            self.assertEqual(states.DEPLOYWAIT, task.node.provision_state)
             self.assertEqual(states.ACTIVE,
                              task.node.target_provision_state)
 
@@ -424,7 +424,7 @@ class TestAgentVendor(db_base.DbTestCase):
 
             client_mock.prepare_image.assert_called_with(task.node,
                                                          expected_image_info)
-            self.assertEqual(states.DEPLOYING, task.node.provision_state)
+            self.assertEqual(states.DEPLOYWAIT, task.node.provision_state)
             self.assertEqual(states.ACTIVE,
                              task.node.target_provision_state)
 
@@ -441,7 +441,7 @@ class TestAgentVendor(db_base.DbTestCase):
                                 node_power_action_mock):
         check_deploy_mock.return_value = None
 
-        self.node.provision_state = states.DEPLOYING
+        self.node.provision_state = states.DEPLOYWAIT
         self.node.target_provision_state = states.ACTIVE
         self.node.save()
 
@@ -458,6 +458,47 @@ class TestAgentVendor(db_base.DbTestCase):
                 task, states.POWER_ON)
             self.assertEqual(states.ACTIVE, task.node.provision_state)
             self.assertEqual(states.NOSTATE, task.node.target_provision_state)
+
+    @mock.patch.object(agent_client.AgentClient, 'get_commands_status',
+                       autospec=True)
+    def test_deploy_has_started(self, mock_get_cmd):
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            mock_get_cmd.return_value = []
+            self.assertFalse(self.passthru.deploy_has_started(task))
+
+    @mock.patch.object(agent_client.AgentClient, 'get_commands_status',
+                       autospec=True)
+    def test_deploy_has_started_is_done(self, mock_get_cmd):
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            mock_get_cmd.return_value = [{'command_name': 'prepare_image',
+                                          'command_status': 'SUCCESS'}]
+            self.assertTrue(self.passthru.deploy_has_started(task))
+
+    @mock.patch.object(agent_client.AgentClient, 'get_commands_status',
+                       autospec=True)
+    def test_deploy_has_started_did_start(self, mock_get_cmd):
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            mock_get_cmd.return_value = [{'command_name': 'prepare_image',
+                                          'command_status': 'RUNNING'}]
+            self.assertTrue(self.passthru.deploy_has_started(task))
+
+    @mock.patch.object(agent_client.AgentClient, 'get_commands_status',
+                       autospec=True)
+    def test_deploy_has_started_multiple_commands(self, mock_get_cmd):
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            mock_get_cmd.return_value = [{'command_name': 'cache_image',
+                                          'command_status': 'SUCCESS'},
+                                         {'command_name': 'prepare_image',
+                                          'command_status': 'RUNNING'}]
+            self.assertTrue(self.passthru.deploy_has_started(task))
+
+    @mock.patch.object(agent_client.AgentClient, 'get_commands_status',
+                       autospec=True)
+    def test_deploy_has_started_other_commands(self, mock_get_cmd):
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            mock_get_cmd.return_value = [{'command_name': 'cache_image',
+                                          'command_status': 'SUCCESS'}]
+            self.assertFalse(self.passthru.deploy_has_started(task))
 
     @mock.patch.object(agent_client.AgentClient, 'get_commands_status',
                        autospec=True)
