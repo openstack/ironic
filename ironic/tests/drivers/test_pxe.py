@@ -23,6 +23,7 @@ import tempfile
 import mock
 from oslo_config import cfg
 from oslo_serialization import jsonutils as json
+from oslo_utils import fileutils
 
 from ironic.common import boot_devices
 from ironic.common import dhcp_factory
@@ -40,7 +41,6 @@ from ironic.drivers.modules import deploy_utils
 from ironic.drivers.modules import iscsi_deploy
 from ironic.drivers.modules import pxe
 from ironic.drivers import utils as driver_utils
-from ironic.openstack.common import fileutils
 from ironic.tests.conductor import utils as mgr_utils
 from ironic.tests.db import base as db_base
 from ironic.tests.db import utils as db_utils
