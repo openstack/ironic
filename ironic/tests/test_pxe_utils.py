@@ -210,7 +210,7 @@ class TestPXEUtils(db_base.DbTestCase):
 
     @mock.patch('ironic.common.utils.write_to_file', autospec=True)
     @mock.patch.object(pxe_utils, '_build_pxe_config', autospec=True)
-    @mock.patch('ironic.openstack.common.fileutils.ensure_tree', autospec=True)
+    @mock.patch('oslo_utils.fileutils.ensure_tree', autospec=True)
     def test_create_pxe_config(self, ensure_tree_mock, build_mock,
                                write_mock):
         build_mock.return_value = self.pxe_options
