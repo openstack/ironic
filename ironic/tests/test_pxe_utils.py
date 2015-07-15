@@ -357,7 +357,7 @@ class TestPXEUtils(db_base.DbTestCase):
                           'opt_value': '192.0.2.1'},
                          {'opt_name': 'tftp-server',
                           'opt_value': '192.0.2.1'},
-                         {'opt_name': 'bootfile-name',
+                         {'opt_name': 'tag:ipxe,bootfile-name',
                           'opt_value': expected_boot_script_url}]
         with task_manager.acquire(self.context, self.node.uuid) as task:
             self.assertEqual(sorted(expected_info),
