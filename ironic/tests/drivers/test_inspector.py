@@ -179,6 +179,23 @@ class CheckStatusTestCase(BaseTestCase):
                                          base_url='meow')
         self.task.process_event.assert_called_once_with('done')
 
+    def test_is_standalone(self, mock_get):
+        self.config(auth_strategy='noauth')
+        mock_get.return_value = {'finished': True}
+        inspector._check_status(self.task)
+        token = self.task.context.auth_token
+        mock_get.assert_called_once_with(self.node.uuid,
+                                         auth_token=token)
+        self.task.process_event.assert_called_once_with('done')
+
+    def test_not_standalone(self, mock_get):
+        self.config(auth_strategy='keystone')
+        mock_get.return_value = {'finished': True}
+        inspector._check_status(self.task)
+        mock_get.assert_called_once_with(self.node.uuid,
+                                         auth_token='the token')
+        self.task.process_event.assert_called_once_with('done')
+
 
 @mock.patch.object(eventlet.greenthread, 'spawn_n',
                    lambda f, *a, **kw: f(*a, **kw))

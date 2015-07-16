@@ -50,7 +50,7 @@ inspector_opts = [
 
 CONF = cfg.CONF
 CONF.register_opts(inspector_opts, group='inspector')
-
+CONF.import_opt('auth_strategy', 'ironic.api.app')
 
 client = importutils.try_import('ironic_inspector_client')
 
@@ -181,7 +181,9 @@ def _check_status(task):
               task.node.uuid)
 
     # NOTE(dtantsur): periodic tasks do not have proper tokens in context
-    task.context.auth_token = keystone.get_admin_auth_token()
+    if CONF.auth_strategy == 'keystone':
+        task.context.auth_token = keystone.get_admin_auth_token()
+
     try:
         status = _call_inspector(client.get_status, node.uuid, task.context)
     except Exception:
