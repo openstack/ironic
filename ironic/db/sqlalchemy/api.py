@@ -259,8 +259,7 @@ class Connection(api.Connection):
         if 'power_state' not in values:
             values['power_state'] = states.NOSTATE
         if 'provision_state' not in values:
-            # TODO(deva): change this to ENROLL
-            values['provision_state'] = states.AVAILABLE
+            values['provision_state'] = states.ENROLL
 
         node = models.Node()
         node.update(values)

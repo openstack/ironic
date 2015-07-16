@@ -1501,6 +1501,23 @@ class DoNodeDeployTearDownTestCase(_ServiceSetUpMixin,
         self.assertIsNone(node.last_error)
         mock_spawn.assert_called_with(self.service._do_node_clean, mock.ANY)
 
+    @mock.patch('ironic.conductor.manager.ConductorManager._spawn_worker')
+    def test_do_provision_action_manage(self, mock_spawn):
+        # test when a node is verified going from enroll to manageable
+        node = obj_utils.create_test_node(
+            self.context, driver='fake',
+            provision_state=states.ENROLL,
+            target_provision_state=states.MANAGEABLE)
+
+        self._start_service()
+        self.service.do_provisioning_action(self.context, node.uuid, 'manage')
+        node.refresh()
+        # Node will be moved to MANAGEABLE after verification, not tested here
+        self.assertEqual(states.VERIFYING, node.provision_state)
+        self.assertEqual(states.MANAGEABLE, node.target_provision_state)
+        self.assertIsNone(node.last_error)
+        mock_spawn.assert_called_with(self.service._do_node_verify, mock.ANY)
+
 
 @_mock_record_keepalive
 class DoNodeCleanTestCase(_ServiceSetUpMixin, tests_db_base.DbTestCase):
@@ -1975,6 +1992,90 @@ class DoNodeCleanTestCase(_ServiceSetUpMixin, tests_db_base.DbTestCase):
             self.assertEqual(self.clean_steps,
                              task.node.driver_internal_info['clean_steps'])
             self.assertEqual({}, node.clean_step)
+
+
+@_mock_record_keepalive
+class DoNodeVerifyTestCase(_ServiceSetUpMixin, tests_db_base.DbTestCase):
+    @mock.patch('ironic.drivers.modules.fake.FakePower.get_power_state')
+    @mock.patch('ironic.drivers.modules.fake.FakePower.validate')
+    def test__do_node_verify(self, mock_validate, mock_get_power_state):
+        mock_get_power_state.return_value = states.POWER_OFF
+        node = obj_utils.create_test_node(
+            self.context, driver='fake',
+            provision_state=states.VERIFYING,
+            target_provision_state=states.MANAGEABLE,
+            last_error=None,
+            power_state=states.NOSTATE)
+
+        self._start_service()
+        with task_manager.acquire(
+                self.context, node['id'], shared=False) as task:
+            self.service._do_node_verify(task)
+
+        self.service._worker_pool.waitall()
+        node.refresh()
+
+        mock_validate.assert_called_once_with(task)
+        mock_get_power_state.assert_called_once_with(task)
+
+        self.assertEqual(states.MANAGEABLE, node.provision_state)
+        self.assertIsNone(node.target_provision_state)
+        self.assertIsNone(node.last_error)
+        self.assertEqual(states.POWER_OFF, node.power_state)
+
+    @mock.patch('ironic.drivers.modules.fake.FakePower.get_power_state')
+    @mock.patch('ironic.drivers.modules.fake.FakePower.validate')
+    def test__do_node_verify_validation_fails(self, mock_validate,
+                                              mock_get_power_state):
+        node = obj_utils.create_test_node(
+            self.context, driver='fake',
+            provision_state=states.VERIFYING,
+            target_provision_state=states.MANAGEABLE,
+            last_error=None,
+            power_state=states.NOSTATE)
+
+        mock_validate.side_effect = iter([RuntimeError("boom")])
+
+        self._start_service()
+        with task_manager.acquire(
+                self.context, node['id'], shared=False) as task:
+            self.service._do_node_verify(task)
+
+        self.service._worker_pool.waitall()
+        node.refresh()
+
+        mock_validate.assert_called_once_with(task)
+
+        self.assertEqual(states.ENROLL, node.provision_state)
+        self.assertIsNone(node.target_provision_state)
+        self.assertTrue(node.last_error)
+
+    @mock.patch('ironic.drivers.modules.fake.FakePower.get_power_state')
+    @mock.patch('ironic.drivers.modules.fake.FakePower.validate')
+    def test__do_node_verify_get_state_fails(self, mock_validate,
+                                             mock_get_power_state):
+        node = obj_utils.create_test_node(
+            self.context, driver='fake',
+            provision_state=states.VERIFYING,
+            target_provision_state=states.MANAGEABLE,
+            last_error=None,
+            power_state=states.NOSTATE)
+
+        mock_get_power_state.side_effect = iter([RuntimeError("boom")])
+
+        self._start_service()
+        with task_manager.acquire(
+                self.context, node['id'], shared=False) as task:
+            self.service._do_node_verify(task)
+
+        self.service._worker_pool.waitall()
+        node.refresh()
+
+        mock_validate.assert_called_once_with(task)
+
+        self.assertEqual(states.ENROLL, node.provision_state)
+        self.assertIsNone(node.target_provision_state)
+        self.assertTrue(node.last_error)
 
 
 @_mock_record_keepalive
@@ -2824,6 +2925,23 @@ class ManagerSyncPowerStatesTestCase(_CommonMixIn, tests_db_base.DbTestCase):
         self.assertFalse(acquire_mock.called)
         self.assertFalse(sync_mock.called)
 
+    def test_node_in_enroll(self, get_nodeinfo_mock, get_node_mock,
+                            mapped_mock, acquire_mock, sync_mock):
+        get_nodeinfo_mock.return_value = self._get_nodeinfo_list_response()
+        get_node_mock.return_value = self.node
+        self.node.provision_state = states.ENROLL
+        self.node.save()
+
+        self.service._sync_power_states(self.context)
+
+        get_nodeinfo_mock.assert_called_once_with(
+            columns=self.columns, filters=self.filters)
+        mapped_mock.assert_called_once_with(self.node.uuid,
+                                            self.node.driver)
+        get_node_mock.assert_called_once_with(self.context, self.node.id)
+        self.assertFalse(acquire_mock.called)
+        self.assertFalse(sync_mock.called)
+
     def test_node_in_maintenance(self, get_nodeinfo_mock, get_node_mock,
                                  mapped_mock, acquire_mock, sync_mock):
         get_nodeinfo_mock.return_value = self._get_nodeinfo_list_response()
@@ -2884,6 +3002,29 @@ class ManagerSyncPowerStatesTestCase(_CommonMixIn, tests_db_base.DbTestCase):
         task = self._create_task(
             node_attrs=dict(provision_state=states.DEPLOYWAIT,
                             target_provision_state=states.ACTIVE,
+                            uuid=self.node.uuid))
+        acquire_mock.side_effect = self._get_acquire_side_effect(task)
+
+        self.service._sync_power_states(self.context)
+
+        get_nodeinfo_mock.assert_called_once_with(
+            columns=self.columns, filters=self.filters)
+        mapped_mock.assert_called_once_with(self.node.uuid,
+                                            self.node.driver)
+        get_node_mock.assert_called_once_with(self.context, self.node.id)
+        acquire_mock.assert_called_once_with(self.context, self.node.uuid,
+                                             purpose=mock.ANY)
+        self.assertFalse(sync_mock.called)
+
+    def test_node_in_enroll_on_acquire(self, get_nodeinfo_mock,
+                                       get_node_mock, mapped_mock,
+                                       acquire_mock, sync_mock):
+        get_nodeinfo_mock.return_value = self._get_nodeinfo_list_response()
+        get_node_mock.return_value = self.node
+        mapped_mock.return_value = True
+        task = self._create_task(
+            node_attrs=dict(provision_state=states.ENROLL,
+                            target_provision_state=states.NOSTATE,
                             uuid=self.node.uuid))
         acquire_mock.side_effect = self._get_acquire_side_effect(task)
 
