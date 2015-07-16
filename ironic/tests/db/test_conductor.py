@@ -200,3 +200,20 @@ class DbConductorTestCase(base.DbTestCase):
         expected = {d: set([h1, h2]), d1: set([h1]), d2: set([h2])}
         result = self.dbapi.get_active_driver_dict(interval=two_minute)
         self.assertEqual(expected, result)
+
+    @mock.patch.object(timeutils, 'utcnow', autospec=True)
+    def test_get_offline_conductors(self, mock_utcnow):
+        self.config(heartbeat_timeout=60, group='conductor')
+        time_ = datetime.datetime(2000, 1, 1, 0, 0)
+
+        mock_utcnow.return_value = time_
+        c = self._create_test_cdr()
+
+        # Only 30 seconds passed since last heartbeat, it's still
+        # considered alive
+        mock_utcnow.return_value = time_ + datetime.timedelta(seconds=30)
+        self.assertEqual([], self.dbapi.get_offline_conductors())
+
+        # 61 seconds passed since last heartbeat, it's dead
+        mock_utcnow.return_value = time_ + datetime.timedelta(seconds=61)
+        self.assertEqual([c.hostname], self.dbapi.get_offline_conductors())

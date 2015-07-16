@@ -4123,3 +4123,105 @@ class DestroyPortTestCase(_ServiceSetUpMixin, tests_db_base.DbTestCase):
                                 self.context, port)
         # Compare true exception hidden by @messaging.expected_exceptions
         self.assertEqual(exception.NodeLocked, exc.exc_info[0])
+
+
+@mock.patch.object(manager.ConductorManager, '_fail_if_in_state')
+@mock.patch.object(manager.ConductorManager, '_mapped_to_this_conductor')
+@mock.patch.object(dbapi.IMPL, 'get_offline_conductors')
+class ManagerCheckDeployingStatusTestCase(_ServiceSetUpMixin,
+                                          tests_db_base.DbTestCase):
+    def setUp(self):
+        super(ManagerCheckDeployingStatusTestCase, self).setUp()
+        self.service = manager.ConductorManager('hostname', 'test-topic')
+        self.service.dbapi = self.dbapi
+
+        self._start_service()
+
+        self.node = obj_utils.create_test_node(
+            self.context, id=1, uuid=uuidutils.generate_uuid(),
+            driver='fake', provision_state=states.DEPLOYING,
+            target_provision_state=states.DEPLOYDONE,
+            reservation='fake-conductor')
+
+        # create a second node in a different state to test the
+        # filtering nodes in DEPLOYING state
+        obj_utils.create_test_node(
+            self.context, id=10, uuid=uuidutils.generate_uuid(),
+            driver='fake', provision_state=states.AVAILABLE,
+            target_provision_state=states.NOSTATE)
+
+        self.expected_filter = {
+            'provision_state': 'deploying', 'reserved': False,
+            'maintenance': False}
+
+    def test__check_deploying_status(self, mock_off_cond, mock_mapped,
+                                     mock_fail_if):
+        mock_off_cond.return_value = ['fake-conductor']
+
+        self.service._check_deploying_status(self.context)
+
+        self.node.refresh()
+        mock_off_cond.assert_called_once_with()
+        mock_mapped.assert_called_once_with(self.node.uuid, 'fake')
+        mock_fail_if.assert_called_once_with(
+            mock.ANY, {'id': self.node.id}, states.DEPLOYING,
+            'provision_updated_at',
+            callback_method=conductor_utils.cleanup_after_timeout,
+            err_handler=manager.provisioning_error_handler)
+        # assert node was released
+        self.assertIsNone(self.node.reservation)
+
+    def test__check_deploying_status_alive(self, mock_off_cond,
+                                           mock_mapped, mock_fail_if):
+        mock_off_cond.return_value = []
+
+        self.service._check_deploying_status(self.context)
+
+        self.node.refresh()
+        mock_off_cond.assert_called_once_with()
+        self.assertFalse(mock_mapped.called)
+        self.assertFalse(mock_fail_if.called)
+        # assert node still locked
+        self.assertIsNotNone(self.node.reservation)
+
+    @mock.patch.object(objects.Node, 'release')
+    def test__check_deploying_status_release_exceptions_skipping(
+            self, mock_release, mock_off_cond, mock_mapped, mock_fail_if):
+        mock_off_cond.return_value = ['fake-conductor']
+        # Add another node so we can check both exceptions
+        node2 = obj_utils.create_test_node(
+            self.context, id=2, uuid=uuidutils.generate_uuid(),
+            driver='fake', provision_state=states.DEPLOYING,
+            target_provision_state=states.DEPLOYDONE,
+            reservation='fake-conductor')
+
+        mock_mapped.return_value = True
+        mock_release.side_effect = iter([exception.NodeNotFound('not found'),
+                                         exception.NodeLocked('locked')])
+        self.service._check_deploying_status(self.context)
+
+        self.node.refresh()
+        mock_off_cond.assert_called_once_with()
+        expected_calls = [mock.call(self.node.uuid, 'fake'),
+                          mock.call(node2.uuid, 'fake')]
+        mock_mapped.assert_has_calls(expected_calls)
+        # Assert we skipped and didn't try to call _fail_if_in_state
+        self.assertFalse(mock_fail_if.called)
+
+    @mock.patch.object(objects.Node, 'release')
+    def test__check_deploying_status_release_node_not_locked(
+            self, mock_release, mock_off_cond, mock_mapped, mock_fail_if):
+        mock_off_cond.return_value = ['fake-conductor']
+        mock_mapped.return_value = True
+        mock_release.side_effect = iter([
+            exception.NodeNotLocked('not locked')])
+        self.service._check_deploying_status(self.context)
+
+        self.node.refresh()
+        mock_off_cond.assert_called_once_with()
+        mock_mapped.assert_called_once_with(self.node.uuid, 'fake')
+        mock_fail_if.assert_called_once_with(
+            mock.ANY, {'id': self.node.id}, states.DEPLOYING,
+            'provision_updated_at',
+            callback_method=conductor_utils.cleanup_after_timeout,
+            err_handler=manager.provisioning_error_handler)

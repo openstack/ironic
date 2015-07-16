@@ -604,3 +604,11 @@ class Connection(api.Connection):
             for driver in row['drivers']:
                 d2c[driver].add(row['hostname'])
         return d2c
+
+    def get_offline_conductors(self):
+        interval = CONF.conductor.heartbeat_timeout
+        limit = timeutils.utcnow() - datetime.timedelta(seconds=interval)
+        result = (model_query(models.Conductor).filter_by()
+                  .filter(models.Conductor.updated_at < limit)
+                  .all())
+        return [row['hostname'] for row in result]
