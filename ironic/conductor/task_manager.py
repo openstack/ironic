@@ -182,26 +182,11 @@ class TaskManager(object):
 
         self.context = context
         self.node = None
+        self.node_id = node_id
         self.shared = shared
 
         self.fsm = states.machine.copy()
         self._purpose = purpose
-        self._debug_timer = time.time()
-
-        # NodeLocked exceptions can be annoying. Let's try to alleviate
-        # some of that pain by retrying our lock attempts. The retrying
-        # module expects a wait_fixed value in milliseconds.
-        @retrying.retry(
-            retry_on_exception=lambda e: isinstance(e, exception.NodeLocked),
-            stop_max_attempt_number=CONF.conductor.node_locked_retry_attempts,
-            wait_fixed=CONF.conductor.node_locked_retry_interval * 1000)
-        def reserve_node():
-            self.node = objects.Node.reserve(context, CONF.host, node_id)
-            LOG.debug("Node %(node)s successfully reserved for %(purpose)s "
-                      "(took %(time).2f seconds)",
-                      {'node': node_id, 'purpose': purpose,
-                       'time': time.time() - self._debug_timer})
-            self._debug_timer = time.time()
 
         try:
             LOG.debug("Attempting to get %(type)s lock on node %(node)s (for "
@@ -209,8 +194,9 @@ class TaskManager(object):
                       {'type': 'shared' if shared else 'exclusive',
                        'node': node_id, 'purpose': purpose})
             if not self.shared:
-                reserve_node()
+                self._lock()
             else:
+                self._debug_timer = time.time()
                 self.node = objects.Node.get(context, node_id)
             self.ports = objects.Port.list_by_node_id(context, self.node.id)
             self.driver = driver_factory.get_driver(driver_name or
@@ -227,6 +213,42 @@ class TaskManager(object):
         except Exception:
             with excutils.save_and_reraise_exception():
                 self.release_resources()
+
+    def _lock(self):
+        self._debug_timer = time.time()
+
+        # NodeLocked exceptions can be annoying. Let's try to alleviate
+        # some of that pain by retrying our lock attempts. The retrying
+        # module expects a wait_fixed value in milliseconds.
+        @retrying.retry(
+            retry_on_exception=lambda e: isinstance(e, exception.NodeLocked),
+            stop_max_attempt_number=CONF.conductor.node_locked_retry_attempts,
+            wait_fixed=CONF.conductor.node_locked_retry_interval * 1000)
+        def reserve_node():
+            self.node = objects.Node.reserve(self.context, CONF.host,
+                                             self.node_id)
+            LOG.debug("Node %(node)s successfully reserved for %(purpose)s "
+                      "(took %(time).2f seconds)",
+                      {'node': self.node_id, 'purpose': self._purpose,
+                       'time': time.time() - self._debug_timer})
+            self._debug_timer = time.time()
+
+        reserve_node()
+
+    def upgrade_lock(self):
+        """Upgrade a shared lock to an exclusive lock.
+
+        Also reloads node object from the database.
+        Does nothing if lock is already exclusive.
+        """
+        if self.shared:
+            LOG.debug('Upgrading shared lock on node %(uuid)s for %(purpose)s '
+                      'to an exclusive one (shared lock was held %(time).2f '
+                      'seconds)',
+                      {'uuid': self.node.uuid, 'purpose': self._purpose,
+                       'time': time.time() - self._debug_timer})
+            self._lock()
+            self.shared = False
 
     def spawn_after(self, _spawn_method, *args, **kwargs):
         """Call this to spawn a thread to complete the task.

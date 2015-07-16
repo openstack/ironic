@@ -299,6 +299,34 @@ class TaskManagerTestCase(tests_db_base.DbTestCase):
         get_ports_mock.assert_called_once_with(self.context, self.node.id)
         get_driver_mock.assert_called_once_with(self.node.driver)
 
+    def test_upgrade_lock(self, get_ports_mock, get_driver_mock,
+                          reserve_mock, release_mock, node_get_mock):
+        node_get_mock.return_value = self.node
+        reserve_mock.return_value = self.node
+        with task_manager.TaskManager(self.context, 'fake-node-id',
+                                      shared=True) as task:
+            self.assertEqual(self.context, task.context)
+            self.assertEqual(self.node, task.node)
+            self.assertEqual(get_ports_mock.return_value, task.ports)
+            self.assertEqual(get_driver_mock.return_value, task.driver)
+            self.assertTrue(task.shared)
+            self.assertFalse(reserve_mock.called)
+
+            task.upgrade_lock()
+            self.assertFalse(task.shared)
+            # second upgrade does nothing
+            task.upgrade_lock()
+            self.assertFalse(task.shared)
+
+        # make sure reserve() was called only once
+        reserve_mock.assert_called_once_with(self.context, self.host,
+                                             'fake-node-id')
+        release_mock.assert_called_once_with(self.context, self.host,
+                                             self.node.id)
+        node_get_mock.assert_called_once_with(self.context, 'fake-node-id')
+        get_ports_mock.assert_called_once_with(self.context, self.node.id)
+        get_driver_mock.assert_called_once_with(self.node.driver)
+
     def test_spawn_after(self, get_ports_mock, get_driver_mock,
                          reserve_mock, release_mock, node_get_mock):
         thread_mock = mock.Mock(spec_set=['link', 'cancel'])
