@@ -20,8 +20,8 @@ import alembic
 from alembic import config as alembic_config
 import alembic.migration as alembic_migration
 from oslo_db import exception as db_exc
+from oslo_db.sqlalchemy import enginefacade
 
-from ironic.db.sqlalchemy import api as sqla_api
 from ironic.db.sqlalchemy import models
 
 
@@ -38,7 +38,7 @@ def version(config=None, engine=None):
     :rtype: string
     """
     if engine is None:
-        engine = sqla_api.get_engine()
+        engine = enginefacade.get_legacy_facade().get_engine()
     with engine.connect() as conn:
         context = alembic_migration.MigrationContext.configure(conn)
         return context.get_current_revision()
@@ -62,7 +62,7 @@ def create_schema(config=None, engine=None):
     Can be used for initial installation instead of upgrade('head').
     """
     if engine is None:
-        engine = sqla_api.get_engine()
+        engine = enginefacade.get_legacy_facade().get_engine()
 
     # NOTE(viktors): If we will use metadata.create_all() for non empty db
     #                schema, it will only add the new tables, but leave
