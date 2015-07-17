@@ -601,3 +601,11 @@ class Connection(api.Connection):
                   .filter(models.Conductor.updated_at < limit)
                   .all())
         return [row['hostname'] for row in result]
+
+    def touch_node_provisioning(self, node_id):
+        with _session_for_write():
+            query = model_query(models.Node)
+            query = add_identity_filter(query, node_id)
+            count = query.update({'provision_updated_at': timeutils.utcnow()})
+            if count == 0:
+                raise exception.NodeNotFound(node_id)

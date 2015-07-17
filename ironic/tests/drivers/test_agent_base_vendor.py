@@ -321,6 +321,24 @@ class TestBaseAgentVendor(db_base.DbTestCase):
         self.assertEqual(0, rti_mock.call_count)
         self.assertEqual(0, cd_mock.call_count)
 
+    @mock.patch.object(objects.node.Node, 'touch_provisioning', autospec=True)
+    @mock.patch.object(agent_base_vendor.BaseAgentVendor, 'deploy_has_started',
+                       autospec=True)
+    def test_heartbeat_touch_provisioning(self, mock_deploy_started,
+                                          mock_touch):
+        mock_deploy_started.return_value = True
+        kwargs = {
+            'agent_url': 'http://127.0.0.1:9999/bar'
+        }
+
+        self.node.provision_state = states.DEPLOYWAIT
+        self.node.save()
+        with task_manager.acquire(
+                self.context, self.node.uuid, shared=True) as task:
+            self.passthru.heartbeat(task, **kwargs)
+
+        mock_touch.assert_called_once_with(mock.ANY)
+
     def test_vendor_passthru_vendor_routes(self):
         expected = ['heartbeat']
         with task_manager.acquire(self.context, self.node.uuid,

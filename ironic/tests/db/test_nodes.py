@@ -501,3 +501,22 @@ class DbNodeTestCase(base.DbTestCase):
                           self.dbapi.release_node, 'fake', node.id)
         self.assertRaises(exception.NodeNotLocked,
                           self.dbapi.release_node, 'fake', node.uuid)
+
+    @mock.patch.object(timeutils, 'utcnow', autospec=True)
+    def test_touch_node_provisioning(self, mock_utcnow):
+        test_time = datetime.datetime(2000, 1, 1, 0, 0)
+        mock_utcnow.return_value = test_time
+        node = utils.create_test_node()
+        # assert provision_updated_at is None
+        self.assertIsNone(node.provision_updated_at)
+
+        self.dbapi.touch_node_provisioning(node.uuid)
+        node = self.dbapi.get_node_by_uuid(node.uuid)
+        # assert provision_updated_at has been updated
+        self.assertEqual(test_time,
+                         timeutils.normalize_time(node.provision_updated_at))
+
+    def test_touch_node_provisioning_not_found(self):
+        self.assertRaises(
+            exception.NodeNotFound,
+            self.dbapi.touch_node_provisioning, uuidutils.generate_uuid())

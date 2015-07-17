@@ -139,3 +139,13 @@ class TestNodeObject(base.DbTestCase):
             self.assertRaises(exception.NodeNotFound,
                               objects.Node.release, self.context,
                               'fake-tag', node_id)
+
+    def test_touch_provisioning(self):
+        with mock.patch.object(self.dbapi, 'get_node_by_uuid',
+                               autospec=True) as mock_get_node:
+            mock_get_node.return_value = self.fake_node
+            with mock.patch.object(self.dbapi, 'touch_node_provisioning',
+                                   autospec=True) as mock_touch:
+                node = objects.Node.get(self.context, self.fake_node['uuid'])
+                node.touch_provisioning()
+                mock_touch.assert_called_once_with(node.id)

@@ -37,7 +37,8 @@ class Node(base.IronicObject):
     # Version 1.10: Add name and get_by_name()
     # Version 1.11: Add clean_step
     # Version 1.12: Add raid_config and target_raid_config
-    VERSION = '1.12'
+    # Version 1.13: Add touch_provisioning()
+    VERSION = '1.13'
 
     dbapi = db_api.get_instance()
 
@@ -285,3 +286,8 @@ class Node(base.IronicObject):
             if (hasattr(self, base.get_attrname(field)) and
                     self[field] != current[field]):
                 self[field] = current[field]
+
+    @base.remotable
+    def touch_provisioning(self, context=None):
+        """Touch the database record to mark the provisioning as alive."""
+        self.dbapi.touch_node_provisioning(self.id)

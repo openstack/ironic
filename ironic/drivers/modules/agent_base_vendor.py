@@ -260,6 +260,9 @@ class BaseAgentVendor(base.VendorInterface):
                   self.deploy_is_done(task)):
                 msg = _('Node failed to move to active state.')
                 self.reboot_to_instance(task, **kwargs)
+            elif (node.provision_state == states.DEPLOYWAIT and
+                  self.deploy_has_started(task)):
+                node.touch_provisioning()
             elif (node.provision_state == states.CLEANING and
                   not node.clean_step):
                 # Agent booted from prepare_cleaning

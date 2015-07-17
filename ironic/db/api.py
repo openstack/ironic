@@ -400,3 +400,14 @@ class Connection(object):
 
         :returns: A list of conductor hostnames.
         """
+
+    @abc.abstractmethod
+    def touch_node_provisioning(self, node_id):
+        """Mark the node's provisioning as running.
+
+        Mark the node's provisioning as running by updating its
+        'provision_updated_at' property.
+
+        :param node_id: The id of a node.
+        :raises: NodeNotFound
+        """
