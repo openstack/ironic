@@ -132,7 +132,7 @@ def remotable(fn):
         if IronicObject.indirection_api:
             updates, result = IronicObject.indirection_api.object_action(
                 ctxt, self, fn.__name__, args, kwargs)
-            for key, value in updates.iteritems():
+            for key, value in updates.items():
                 if key in self.fields:
                     self[key] = self._attr_from_primitive(key, value)
             self._changed_fields = set(updates.get('obj_what_changed', []))
@@ -531,7 +531,7 @@ def obj_to_primitive(obj):
         return [obj_to_primitive(x) for x in obj]
     elif isinstance(obj, IronicObject):
         result = {}
-        for key, value in obj.iteritems():
+        for key, value in obj.items():
             result[key] = obj_to_primitive(value)
         return result
     else:
