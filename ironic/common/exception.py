@@ -47,7 +47,7 @@ CONF.register_opts(exc_log_opts)
 
 def _cleanse_dict(original):
     """Strip all admin_password, new_pass, rescue_pass keys from a dict."""
-    return dict((k, v) for k, v in original.iteritems() if "_pass" not in k)
+    return dict((k, v) for k, v in original.items() if "_pass" not in k)
 
 
 class IronicException(Exception):
