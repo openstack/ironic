@@ -1300,6 +1300,7 @@ class TestPost(test_api_base.FunctionalTest):
         self.assertEqual(states.NOSTATE, result['provision_state'])
         result = self.get_json('/nodes/%s' % ndict['uuid'],
                                headers={api_base.Version.string: "1.10"})
+        self.assertEqual(ndict['uuid'], result['uuid'])
         self.assertEqual(states.AVAILABLE, result['provision_state'])
 
     def test_create_node_default_state_enroll(self):

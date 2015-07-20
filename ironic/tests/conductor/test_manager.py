@@ -2049,6 +2049,7 @@ class DoNodeVerifyTestCase(_ServiceSetUpMixin, tests_db_base.DbTestCase):
         self.assertEqual(states.ENROLL, node.provision_state)
         self.assertIsNone(node.target_provision_state)
         self.assertTrue(node.last_error)
+        self.assertFalse(mock_get_power_state.called)
 
     @mock.patch('ironic.drivers.modules.fake.FakePower.get_power_state')
     @mock.patch('ironic.drivers.modules.fake.FakePower.validate')
@@ -2071,7 +2072,7 @@ class DoNodeVerifyTestCase(_ServiceSetUpMixin, tests_db_base.DbTestCase):
         self.service._worker_pool.waitall()
         node.refresh()
 
-        mock_validate.assert_called_once_with(task)
+        mock_get_power_state.assert_called_once_with(task)
 
         self.assertEqual(states.ENROLL, node.provision_state)
         self.assertIsNone(node.target_provision_state)

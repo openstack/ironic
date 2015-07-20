@@ -1011,6 +1011,7 @@ class ConductorManager(periodic_task.PeriodicTasks):
             node.power_state = power_state
             task.process_event('done')
         else:
+            LOG.error(error)
             node.last_error = error
             task.process_event('fail')
             node.target_provision_state = None
