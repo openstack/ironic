@@ -78,7 +78,7 @@ the node vendor passthru endpoint:
                   raise MissingParameterValue()
 
       @base.driver_passthru(['GET'], async=False)
-      def authentication_types(self, context **kwargs):
+      def authentication_types(self, context, **kwargs):
           return {"types": ["NONE", "MD5", "MD2"]}
 
       @base.passthru(['POST'])
