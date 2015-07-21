@@ -1812,6 +1812,21 @@ class TestPut(test_api_base.FunctionalTest):
                             {'target': states.ACTIVE},
                             expect_errors=True)
         self.assertEqual(409, ret.status_code)  # Conflict
+        self.assertFalse(self.mock_dnd.called)
+
+    def test_provision_locked_with_correct_state(self):
+        node = self.node
+        node.provision_state = states.AVAILABLE
+        node.target_provision_state = states.NOSTATE
+        node.reservation = 'fake-host'
+        node.save()
+        self.mock_dnd.side_effect = iter([exception.NodeLocked(node='',
+                                                               host='')])
+        ret = self.put_json('/nodes/%s/states/provision' % node.uuid,
+                            {'target': states.ACTIVE},
+                            expect_errors=True)
+        self.assertEqual(409, ret.status_code)  # Conflict
+        self.assertTrue(self.mock_dnd.called)
 
     def test_provision_with_tear_down_in_progress_deploywait(self):
         node = self.node

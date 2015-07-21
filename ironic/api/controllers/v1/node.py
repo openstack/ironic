@@ -392,16 +392,6 @@ class NodeStatesController(rest.RestController):
         rpc_node = api_utils.get_rpc_node(node_ident)
         topic = pecan.request.rpcapi.get_topic_for(rpc_node)
 
-        # Normally, we let the task manager recognize and deal with
-        # NodeLocked exceptions. However, that isn't done until the RPC calls
-        # below. In order to main backward compatibility with our API HTTP
-        # response codes, we have this check here to deal with cases where
-        # a node is already being operated on (DEPLOYING or such) and we
-        # want to continue returning 409. Without it, we'd return 400.
-        if rpc_node.reservation:
-            raise exception.NodeLocked(node=rpc_node.uuid,
-                                       host=rpc_node.reservation)
-
         if (target in (ir_states.ACTIVE, ir_states.REBUILD)
                 and rpc_node.maintenance):
             raise exception.NodeInMaintenance(op=_('provisioning'),
@@ -410,6 +400,17 @@ class NodeStatesController(rest.RestController):
         m = ir_states.machine.copy()
         m.initialize(rpc_node.provision_state)
         if not m.is_valid_event(ir_states.VERBS.get(target, target)):
+            # Normally, we let the task manager recognize and deal with
+            # NodeLocked exceptions. However, that isn't done until the RPC
+            # calls below.
+            # In order to main backward compatibility with our API HTTP
+            # response codes, we have this check here to deal with cases where
+            # a node is already being operated on (DEPLOYING or such) and we
+            # want to continue returning 409. Without it, we'd return 400.
+            if rpc_node.reservation:
+                raise exception.NodeLocked(node=rpc_node.uuid,
+                                           host=rpc_node.reservation)
+
             raise exception.InvalidStateRequested(
                 action=target, node=rpc_node.uuid,
                 state=rpc_node.provision_state)
