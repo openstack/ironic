@@ -399,6 +399,18 @@ class IronicObject(ovo_base.VersionedObjectDictCompat):
                     for k in self.fields
                     if hasattr(self, k))
 
+    def obj_refresh(self, loaded_object):
+        """Applies updates for objects that inherit from base.IronicObject.
+
+        Checks for updated attributes in an object. Updates are applied from
+        the loaded object column by column in comparison with the current
+        object.
+        """
+        for field in self.fields:
+            if (hasattr(self, get_attrname(field)) and
+                    self[field] != loaded_object[field]):
+                self[field] = loaded_object[field]
+
 
 class ObjectListBase(object):
     """Mixin class for lists of objects.
