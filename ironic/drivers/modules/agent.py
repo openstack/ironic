@@ -516,3 +516,8 @@ class AgentVendorInterface(agent_base_vendor.BaseAgentVendor):
 
         manager_utils.node_set_boot_device(task, 'disk', persistent=True)
         self.reboot_and_finish_deploy(task)
+        # Note(TheJulia): If we we deployed a whole disk image, we
+        # should expect a whole disk image and clean-up the tftp files
+        # on-disk incase the node is disregarding the boot preference.
+        if node.driver_internal_info.get('is_whole_disk_image'):
+            _clean_up_pxe(task)
