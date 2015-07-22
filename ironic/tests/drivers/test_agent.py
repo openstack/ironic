@@ -436,9 +436,10 @@ class TestAgentVendor(db_base.DbTestCase):
     @mock.patch('ironic.conductor.utils.node_set_boot_device', autospec=True)
     @mock.patch('ironic.drivers.modules.agent.AgentVendorInterface'
                 '.check_deploy_success', autospec=True)
-    def test_reboot_to_instance(self, check_deploy_mock, bootdev_mock,
-                                power_off_mock, get_power_state_mock,
-                                node_power_action_mock):
+    @mock.patch.object(agent, '_clean_up_pxe', autospec=True)
+    def test_reboot_to_instance(self, clean_pxe_mock, check_deploy_mock,
+                                bootdev_mock, power_off_mock,
+                                get_power_state_mock, node_power_action_mock):
         check_deploy_mock.return_value = None
 
         self.node.provision_state = states.DEPLOYWAIT
@@ -448,8 +449,10 @@ class TestAgentVendor(db_base.DbTestCase):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
             get_power_state_mock.return_value = states.POWER_OFF
+            task.node.driver_internal_info['is_whole_disk_image'] = True
             self.passthru.reboot_to_instance(task)
 
+            clean_pxe_mock.assert_called_once_with(task)
             check_deploy_mock.assert_called_once_with(mock.ANY, task.node)
             bootdev_mock.assert_called_once_with(task, 'disk', persistent=True)
             power_off_mock.assert_called_once_with(task.node)
