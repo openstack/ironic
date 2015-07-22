@@ -328,13 +328,6 @@ def populate_image(src, dst):
         images.convert_image(src, dst, 'raw', True)
 
 
-# TODO(rameshg87): Remove this one-line method and use utils.mkfs
-# directly.
-def mkfs(fs, dev, label=None):
-    """Execute mkfs on a device."""
-    utils.mkfs(fs, dev, label)
-
-
 def block_uuid(dev):
     """Get UUID of a block device."""
     out, _err = utils.execute('blkid', '-s', 'UUID', '-o', 'value', dev,
@@ -627,7 +620,7 @@ def work_on_disk(dev, root_mb, swap_mb, ephemeral_mb, ephemeral_format,
         # partition.  Create a fat filesystem on it.
         if boot_mode == "uefi" and boot_option == "local":
             efi_system_part = part_dict.get('efi system partition')
-            mkfs(dev=efi_system_part, fs='vfat', label='efi-part')
+            utils.mkfs('vfat', efi_system_part, 'efi-part')
 
         if configdrive_part:
             # Copy the configdrive content to the configdrive partition
@@ -642,10 +635,10 @@ def work_on_disk(dev, root_mb, swap_mb, ephemeral_mb, ephemeral_format,
     populate_image(image_path, root_part)
 
     if swap_part:
-        mkfs(dev=swap_part, fs='swap', label='swap1')
+        utils.mkfs('swap', swap_part, 'swap1')
 
     if ephemeral_part and not preserve_ephemeral:
-        mkfs(dev=ephemeral_part, fs=ephemeral_format, label="ephemeral0")
+        utils.mkfs(ephemeral_format, ephemeral_part, "ephemeral0")
 
     uuids_to_return = {
         'root uuid': root_part,

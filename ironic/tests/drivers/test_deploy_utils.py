@@ -273,7 +273,9 @@ class PhysicalWorkTestCase(tests_base.TestCase):
             parent_mock.attach_mock(mocker, name)
         return parent_mock
 
-    def _test_deploy_partition_image(self, boot_option=None, boot_mode=None):
+    @mock.patch.object(common_utils, 'mkfs', autospec=True)
+    def _test_deploy_partition_image(self, mock_mkfs, boot_option=None,
+                                     boot_mode=None):
         """Check loosely all functions are called with right args."""
         address = '127.0.0.1'
         port = 3306
@@ -294,8 +296,8 @@ class PhysicalWorkTestCase(tests_base.TestCase):
 
         name_list = ['get_dev', 'get_image_mb', 'discovery', 'login_iscsi',
                      'logout_iscsi', 'delete_iscsi', 'make_partitions',
-                     'is_block_device', 'populate_image', 'mkfs',
-                     'block_uuid', 'notify', 'destroy_disk_metadata']
+                     'is_block_device', 'populate_image', 'block_uuid',
+                     'notify', 'destroy_disk_metadata']
         parent_mock = self._mock_calls(name_list)
         parent_mock.get_dev.return_value = dev
         parent_mock.get_image_mb.return_value = 1
@@ -334,8 +336,6 @@ class PhysicalWorkTestCase(tests_base.TestCase):
                           mock.call.is_block_device(root_part),
                           mock.call.is_block_device(swap_part),
                           mock.call.populate_image(image_path, root_part),
-                          mock.call.mkfs(dev=swap_part, fs='swap',
-                                         label='swap1'),
                           mock.call.block_uuid(root_part),
                           mock.call.logout_iscsi(address, port, iqn),
                           mock.call.delete_iscsi(address, port, iqn)]
@@ -349,6 +349,7 @@ class PhysicalWorkTestCase(tests_base.TestCase):
             'root uuid': root_uuid,
             'efi system partition uuid': None}
         self.assertEqual(expected_uuid_dict, uuids_dict_returned)
+        mock_mkfs.assert_called_once_with('swap', swap_part, 'swap1')
 
     def test_deploy_partition_image_without_boot_option(self):
         self._test_deploy_partition_image()
@@ -398,7 +399,9 @@ class PhysicalWorkTestCase(tests_base.TestCase):
     # We mock utils.block_uuid separately here because we can't predict
     # the order in which it will be called.
     @mock.patch.object(utils, 'block_uuid', autospec=True)
-    def test_deploy_partition_image_localboot_uefi(self, block_uuid_mock):
+    @mock.patch.object(common_utils, 'mkfs', autospec=True)
+    def test_deploy_partition_image_localboot_uefi(self, mock_mkfs,
+                                                   block_uuid_mock):
         """Check loosely all functions are called with right args."""
         address = '127.0.0.1'
         port = 3306
@@ -421,8 +424,8 @@ class PhysicalWorkTestCase(tests_base.TestCase):
 
         name_list = ['get_dev', 'get_image_mb', 'discovery', 'login_iscsi',
                      'logout_iscsi', 'delete_iscsi', 'make_partitions',
-                     'is_block_device', 'populate_image', 'mkfs',
-                     'notify', 'destroy_disk_metadata']
+                     'is_block_device', 'populate_image', 'notify',
+                     'destroy_disk_metadata']
         parent_mock = self._mock_calls(name_list)
         parent_mock.get_dev.return_value = dev
         parent_mock.get_image_mb.return_value = 1
@@ -455,11 +458,7 @@ class PhysicalWorkTestCase(tests_base.TestCase):
                           mock.call.is_block_device(root_part),
                           mock.call.is_block_device(swap_part),
                           mock.call.is_block_device(efi_system_part),
-                          mock.call.mkfs(dev=efi_system_part, fs='vfat',
-                                         label='efi-part'),
                           mock.call.populate_image(image_path, root_part),
-                          mock.call.mkfs(dev=swap_part, fs='swap',
-                                         label='swap1'),
                           mock.call.logout_iscsi(address, port, iqn),
                           mock.call.delete_iscsi(address, port, iqn)]
 
@@ -475,6 +474,9 @@ class PhysicalWorkTestCase(tests_base.TestCase):
             'root uuid': root_uuid,
             'efi system partition uuid': efi_system_part_uuid}
         self.assertEqual(expected_uuid_dict, uuid_dict_returned)
+        expected_calls = [mock.call('vfat', efi_system_part, 'efi-part'),
+                          mock.call('swap', swap_part, 'swap1')]
+        mock_mkfs.assert_has_calls(expected_calls)
 
     def test_deploy_partition_image_without_swap(self):
         """Check loosely all functions are called with right args."""
@@ -532,7 +534,8 @@ class PhysicalWorkTestCase(tests_base.TestCase):
         self.assertEqual(calls_expected, parent_mock.mock_calls)
         self.assertEqual(root_uuid, uuid_dict_returned['root uuid'])
 
-    def test_deploy_partition_image_with_ephemeral(self):
+    @mock.patch.object(common_utils, 'mkfs', autospec=True)
+    def test_deploy_partition_image_with_ephemeral(self, mock_mkfs):
         """Check loosely all functions are called with right args."""
         address = '127.0.0.1'
         port = 3306
@@ -554,8 +557,8 @@ class PhysicalWorkTestCase(tests_base.TestCase):
 
         name_list = ['get_dev', 'get_image_mb', 'discovery', 'login_iscsi',
                      'logout_iscsi', 'delete_iscsi', 'make_partitions',
-                     'is_block_device', 'populate_image', 'mkfs',
-                     'block_uuid', 'notify', 'destroy_disk_metadata']
+                     'is_block_device', 'populate_image', 'block_uuid',
+                     'notify', 'destroy_disk_metadata']
         parent_mock = self._mock_calls(name_list)
         parent_mock.get_dev.return_value = dev
         parent_mock.get_image_mb.return_value = 1
@@ -579,11 +582,6 @@ class PhysicalWorkTestCase(tests_base.TestCase):
                           mock.call.is_block_device(swap_part),
                           mock.call.is_block_device(ephemeral_part),
                           mock.call.populate_image(image_path, root_part),
-                          mock.call.mkfs(dev=swap_part, fs='swap',
-                                         label='swap1'),
-                          mock.call.mkfs(dev=ephemeral_part,
-                                         fs=ephemeral_format,
-                                         label='ephemeral0'),
                           mock.call.block_uuid(root_part),
                           mock.call.logout_iscsi(address, port, iqn),
                           mock.call.delete_iscsi(address, port, iqn)]
@@ -597,8 +595,13 @@ class PhysicalWorkTestCase(tests_base.TestCase):
 
         self.assertEqual(calls_expected, parent_mock.mock_calls)
         self.assertEqual(root_uuid, uuid_dict_returned['root uuid'])
+        expected_calls = [mock.call('swap', swap_part, 'swap1'),
+                          mock.call(ephemeral_format, ephemeral_part,
+                                    'ephemeral0')]
+        mock_mkfs.assert_has_calls(expected_calls)
 
-    def test_deploy_partition_image_preserve_ephemeral(self):
+    @mock.patch.object(common_utils, 'mkfs', autospec=True)
+    def test_deploy_partition_image_preserve_ephemeral(self, mock_mkfs):
         """Check if all functions are called with right args."""
         address = '127.0.0.1'
         port = 3306
@@ -620,8 +623,8 @@ class PhysicalWorkTestCase(tests_base.TestCase):
 
         name_list = ['get_dev', 'get_image_mb', 'discovery', 'login_iscsi',
                      'logout_iscsi', 'delete_iscsi', 'make_partitions',
-                     'is_block_device', 'populate_image', 'mkfs',
-                     'block_uuid', 'notify', 'get_dev_block_size']
+                     'is_block_device', 'populate_image', 'block_uuid',
+                     'notify', 'get_dev_block_size']
         parent_mock = self._mock_calls(name_list)
         parent_mock.get_dev.return_value = dev
         parent_mock.get_image_mb.return_value = 1
@@ -645,8 +648,6 @@ class PhysicalWorkTestCase(tests_base.TestCase):
                           mock.call.is_block_device(swap_part),
                           mock.call.is_block_device(ephemeral_part),
                           mock.call.populate_image(image_path, root_part),
-                          mock.call.mkfs(dev=swap_part, fs='swap',
-                                         label='swap1'),
                           mock.call.block_uuid(root_part),
                           mock.call.logout_iscsi(address, port, iqn),
                           mock.call.delete_iscsi(address, port, iqn)]
@@ -658,6 +659,7 @@ class PhysicalWorkTestCase(tests_base.TestCase):
         self.assertEqual(calls_expected, parent_mock.mock_calls)
         self.assertFalse(parent_mock.get_dev_block_size.called)
         self.assertEqual(root_uuid, uuid_dict_returned['root uuid'])
+        mock_mkfs.assert_called_once_with('swap', swap_part, 'swap1')
 
     @mock.patch.object(common_utils, 'unlink_without_raise', autospec=True)
     def test_deploy_partition_image_with_configdrive(self, mock_unlink):
