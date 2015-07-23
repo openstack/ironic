@@ -1,102 +1,39 @@
 [DEFAULT]
 
 #
-# Options defined in oslo.log
+# Options defined in oslo.service.service
 #
 
-# Print debugging output (set logging level to DEBUG instead
-# of default WARNING level). (boolean value)
-#debug=false
+# Enable eventlet backdoor.  Acceptable values are 0, <port>,
+# and <start>:<end>, where 0 results in listening on a random
+# tcp port number; <port> results in listening on the
+# specified port number (and not enabling backdoor if that
+# port is in use); and <start>:<end> results in listening on
+# the smallest unused port number within the specified range
+# of port numbers.  The chosen port is displayed in the
+# service's log file. (string value)
+#backdoor_port=<None>
 
-# Print more verbose output (set logging level to INFO instead
-# of default WARNING level). (boolean value)
-#verbose=false
+# Enables or disables logging values of all registered options
+# when starting a service (at DEBUG level). (boolean value)
+#log_options=true
 
-# The name of a logging configuration file. This file is
-# appended to any existing logging configuration files. For
-# details about logging configuration files, see the Python
-# logging module documentation. (string value)
-# Deprecated group/name - [DEFAULT]/log_config
-#log_config_append=<None>
 
-# DEPRECATED. A logging.Formatter log message format string
-# which may use any of the available logging.LogRecord
-# attributes. This option is deprecated.  Please use
-# logging_context_format_string and
-# logging_default_format_string instead. (string value)
-#log_format=<None>
+#
+# Options defined in oslo.service.periodic_task
+#
 
-# Format string for %%(asctime)s in log records. Default:
-# %(default)s . (string value)
-#log_date_format=%Y-%m-%d %H:%M:%S
-
-# (Optional) Name of log file to output to. If no default is
-# set, logging will go to stdout. (string value)
-# Deprecated group/name - [DEFAULT]/logfile
-#log_file=<None>
-
-# (Optional) The base directory used for relative --log-file
-# paths. (string value)
-# Deprecated group/name - [DEFAULT]/logdir
-#log_dir=<None>
-
-# Use syslog for logging. Existing syslog format is DEPRECATED
-# during I, and will change in J to honor RFC5424. (boolean
-# value)
-#use_syslog=false
-
-# (Optional) Enables or disables syslog rfc5424 format for
-# logging. If enabled, prefixes the MSG part of the syslog
-# message with APP-NAME (RFC5424). The format without the APP-
-# NAME is deprecated in K, and will be removed in L, along
-# with this option. (boolean value)
-#use_syslog_rfc_format=true
-
-# Syslog facility to receive log lines. (string value)
-#syslog_log_facility=LOG_USER
-
-# Log output to standard error. (boolean value)
-#use_stderr=true
-
-# Format string to use for log messages with context. (string
-# value)
-#logging_context_format_string=%(asctime)s.%(msecs)03d %(process)d %(levelname)s %(name)s [%(request_id)s %(user_identity)s] %(instance)s%(message)s
-
-# Format string to use for log messages without context.
-# (string value)
-#logging_default_format_string=%(asctime)s.%(msecs)03d %(process)d %(levelname)s %(name)s [-] %(instance)s%(message)s
-
-# Data to append to log format when level is DEBUG. (string
-# value)
-#logging_debug_format_suffix=%(funcName)s %(pathname)s:%(lineno)d
-
-# Prefix each line of exception output with this format.
-# (string value)
-#logging_exception_prefix=%(asctime)s.%(msecs)03d %(process)d TRACE %(name)s %(instance)s
-
-# List of logger=LEVEL pairs. (list value)
-#default_log_levels=amqp=WARN,amqplib=WARN,boto=WARN,qpid=WARN,sqlalchemy=WARN,suds=INFO,oslo.messaging=INFO,iso8601=WARN,requests.packages.urllib3.connectionpool=WARN,urllib3.connectionpool=WARN,websocket=WARN,requests.packages.urllib3.util.retry=WARN,urllib3.util.retry=WARN,keystonemiddleware=WARN,routes.middleware=WARN,stevedore=WARN
-
-# Enables or disables publication of error events. (boolean
-# value)
-#publish_errors=false
-
-# Enables or disables fatal status of deprecations. (boolean
-# value)
-#fatal_deprecations=false
-
-# The format for an instance that is passed with the log
-# message. (string value)
-#instance_format="[instance: %(uuid)s] "
-
-# The format for an instance UUID that is passed with the log
-# message. (string value)
-#instance_uuid_format="[instance: %(uuid)s] "
+# Some periodic tasks can be run in a separate process. Should
+# we run them here? (boolean value)
+#run_external_periodic_tasks=true
 
 
 #
 # Options defined in oslo.messaging
 #
+
+# Size of RPC connection pool. (integer value)
+#rpc_conn_pool_size=30
 
 # ZeroMQ bind address. Should be a wildcard (*), an ethernet
 # interface, or IP. The "host" option should point or resolve
@@ -138,7 +75,7 @@
 #rpc_thread_pool_size=64
 
 # The Drivers(s) to handle sending notifications. Possible
-# values are messaging, messagingv2, routing,log, test, noop
+# values are messaging, messagingv2, routing, log, test, noop
 # (multi valued)
 #notification_driver=
 
@@ -165,31 +102,96 @@
 
 
 #
-# Options defined in oslo.service.service
+# Options defined in oslo.log
 #
 
-# Enable eventlet backdoor.  Acceptable values are 0, <port>,
-# and <start>:<end>, where 0 results in listening on a random
-# tcp port number; <port> results in listening on the
-# specified port number (and not enabling backdoor if that
-# port is in use); and <start>:<end> results in listening on
-# the smallest unused port number within the specified range
-# of port numbers.  The chosen port is displayed in the
-# service's log file. (string value)
-#backdoor_port=<None>
+# Print debugging output (set logging level to DEBUG instead
+# of default WARNING level). (boolean value)
+#debug=false
 
-# Enables or disables logging values of all registered options
-# when starting a service (at DEBUG level). (boolean value)
-#log_options=true
+# Print more verbose output (set logging level to INFO instead
+# of default WARNING level). (boolean value)
+#verbose=false
 
+# The name of a logging configuration file. This file is
+# appended to any existing logging configuration files. For
+# details about logging configuration files, see the Python
+# logging module documentation. (string value)
+# Deprecated group/name - [DEFAULT]/log_config
+#log_config_append=<None>
 
-#
-# Options defined in oslo.service.periodic_task
-#
+# DEPRECATED. A logging.Formatter log message format string
+# which may use any of the available logging.LogRecord
+# attributes. This option is deprecated.  Please use
+# logging_context_format_string and
+# logging_default_format_string instead. (string value)
+#log_format=<None>
 
-# Some periodic tasks can be run in a separate process. Should
-# we run them here? (boolean value)
-#run_external_periodic_tasks=true
+# Format string for %%(asctime)s in log records. Default:
+# %(default)s . (string value)
+#log_date_format=%Y-%m-%d %H:%M:%S
+
+# (Optional) Name of log file to output to. If no default is
+# set, logging will go to stdout. (string value)
+# Deprecated group/name - [DEFAULT]/logfile
+#log_file=<None>
+
+# (Optional) The base directory used for relative --log-file
+# paths. (string value)
+# Deprecated group/name - [DEFAULT]/logdir
+#log_dir=<None>
+
+# Use syslog for logging. Existing syslog format is DEPRECATED
+# and will be changed later to honor RFC5424. (boolean value)
+#use_syslog=false
+
+# (Optional) Enables or disables syslog rfc5424 format for
+# logging. If enabled, prefixes the MSG part of the syslog
+# message with APP-NAME (RFC5424). The format without the APP-
+# NAME is deprecated in K, and will be removed in M, along
+# with this option. (boolean value)
+#use_syslog_rfc_format=true
+
+# Syslog facility to receive log lines. (string value)
+#syslog_log_facility=LOG_USER
+
+# Log output to standard error. (boolean value)
+#use_stderr=true
+
+# Format string to use for log messages with context. (string
+# value)
+#logging_context_format_string=%(asctime)s.%(msecs)03d %(process)d %(levelname)s %(name)s [%(request_id)s %(user_identity)s] %(instance)s%(message)s
+
+# Format string to use for log messages without context.
+# (string value)
+#logging_default_format_string=%(asctime)s.%(msecs)03d %(process)d %(levelname)s %(name)s [-] %(instance)s%(message)s
+
+# Data to append to log format when level is DEBUG. (string
+# value)
+#logging_debug_format_suffix=%(funcName)s %(pathname)s:%(lineno)d
+
+# Prefix each line of exception output with this format.
+# (string value)
+#logging_exception_prefix=%(asctime)s.%(msecs)03d %(process)d ERROR %(name)s %(instance)s
+
+# List of logger=LEVEL pairs. (list value)
+#default_log_levels=amqp=WARN,amqplib=WARN,boto=WARN,qpid=WARN,sqlalchemy=WARN,suds=INFO,oslo.messaging=INFO,iso8601=WARN,requests.packages.urllib3.connectionpool=WARN,urllib3.connectionpool=WARN,websocket=WARN,requests.packages.urllib3.util.retry=WARN,urllib3.util.retry=WARN,keystonemiddleware=WARN,routes.middleware=WARN,stevedore=WARN
+
+# Enables or disables publication of error events. (boolean
+# value)
+#publish_errors=false
+
+# The format for an instance that is passed with the log
+# message. (string value)
+#instance_format="[instance: %(uuid)s] "
+
+# The format for an instance UUID that is passed with the log
+# message. (string value)
+#instance_uuid_format="[instance: %(uuid)s] "
+
+# Enables or disables fatal status of deprecations. (boolean
+# value)
+#fatal_deprecations=false
 
 
 #
@@ -313,7 +315,7 @@
 # Seconds between running periodic tasks. (integer value)
 #periodic_interval=60
 
-# Name of this node.  This can be an opaque identifier.  It is
+# Name of this node.  This can be an opaque identifier. It is
 # not necessarily a hostname, FQDN, or IP address. However,
 # the node name must be valid within an AMQP key, and if using
 # ZeroMQ, a valid hostname, FQDN, or IP address. (string
@@ -329,9 +331,9 @@
 # commands as root. (string value)
 #rootwrap_config=/etc/ironic/rootwrap.conf
 
-# Explicitly specify the temporary working directory. (string
-# value)
-#tempdir=<None>
+# Temporary working directory, default is Python temp dir.
+# (string value)
+#tempdir=/tmp
 
 
 #
@@ -341,15 +343,6 @@
 # Run image downloads and raw format conversions in parallel.
 # (boolean value)
 #parallel_image_downloads=false
-
-
-#
-# Options defined in ironic.openstack.common.versionutils
-#
-
-# Enables or disables fatal status of deprecations. (boolean
-# value)
-#fatal_deprecations=false
 
 
 [agent]
@@ -733,6 +726,13 @@
 # sleeping 1 second between attempts. (integer value)
 #iscsi_verify_attempts=3
 
+# ironic-conductor node's HTTP server URL. Example:
+# http://192.1.2.3:8080 (string value)
+#http_url=<None>
+
+# ironic-conductor node's HTTP root path. (string value)
+#http_root=/httpboot
+
 
 [dhcp]
 
@@ -918,7 +918,7 @@
 #clean_priority_reset_bios_to_default=10
 
 # Priority for reset_secure_boot_keys clean step. This step
-# will reset the secure boot keys to manufacturing  defaults.
+# will reset the secure boot keys to manufacturing defaults.
 # (integer value)
 #clean_priority_reset_secure_boot_keys_to_default=20
 
@@ -1364,8 +1364,17 @@
 # Auto-delete queues in AMQP. (boolean value)
 #amqp_auto_delete=false
 
-# Size of RPC connection pool. (integer value)
-#rpc_conn_pool_size=30
+# Send a single AMQP reply to call message. The current
+# behaviour since oslo-incubator is to send two AMQP replies -
+# first one with the payload, a second one to ensure the other
+# have finish to send the payload. We are going to remove it
+# in the N release, but we must keep backward compatible at
+# the same time. This option provides such compatibility - it
+# defaults to False in Liberty and can be turned on for early
+# adopters with a new installations or for testing. Please
+# note, that this option will be removed in M release.
+# (boolean value)
+#send_single_reply=false
 
 # Qpid broker hostname. (string value)
 #qpid_hostname=ironic
@@ -1423,8 +1432,17 @@
 # Auto-delete queues in AMQP. (boolean value)
 #amqp_auto_delete=false
 
-# Size of RPC connection pool. (integer value)
-#rpc_conn_pool_size=30
+# Send a single AMQP reply to call message. The current
+# behaviour since oslo-incubator is to send two AMQP replies -
+# first one with the payload, a second one to ensure the other
+# have finish to send the payload. We are going to remove it
+# in the N release, but we must keep backward compatible at
+# the same time. This option provides such compatibility - it
+# defaults to False in Liberty and can be turned on for early
+# adopters with a new installations or for testing. Please
+# note, that this option will be removed in M release.
+# (boolean value)
+#send_single_reply=false
 
 # SSL version to use (valid only if SSL enabled). Valid values
 # are TLSv1 and SSLv23. SSLv2, SSLv3, TLSv1_1, and TLSv1_2 may
@@ -1444,6 +1462,11 @@
 # How long to wait before reconnecting in response to an AMQP
 # consumer cancel notification. (floating point value)
 #kombu_reconnect_delay=1.0
+
+# How long to wait before considering a reconnect attempt to
+# have failed. This value should not be longer than
+# rpc_response_timeout. (integer value)
+#kombu_reconnect_timeout=60
 
 # The RabbitMQ broker address where a single node is used.
 # (string value)
@@ -1490,7 +1513,7 @@
 
 # Number of seconds after which the Rabbit broker is
 # considered down if heartbeat's keep-alive fails (0 disable
-# the heartbeat). (integer value)
+# the heartbeat). EXPERIMENTAL (integer value)
 #heartbeat_timeout_threshold=60
 
 # How often times during the heartbeat_timeout_threshold we
@@ -1587,13 +1610,6 @@
 
 # Bootfile DHCP parameter for UEFI boot mode. (string value)
 #uefi_pxe_bootfile_name=elilo.efi
-
-# ironic-conductor node's HTTP server URL. Example:
-# http://192.1.2.3:8080 (string value)
-#http_url=<None>
-
-# ironic-conductor node's HTTP root path. (string value)
-#http_root=/httpboot
 
 # Enable iPXE boot. (boolean value)
 #ipxe_enabled=false

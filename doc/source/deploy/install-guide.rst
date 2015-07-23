@@ -802,15 +802,16 @@ on the Bare Metal Service node(s) where ``ironic-conductor`` is running.
 
     [pxe]
 
-    # Ironic compute node's http root path. (string value)
-    http_root=/httpboot
-
     # Ironic compute node's tftp root path. (string value)
     tftp_root=/tftpboot
 
     # IP address of Ironic compute node's tftp server. (string
     # value)
     tftp_server=192.168.0.2
+
+    [deploy]
+    # Ironic compute node's http root path. (string value)
+    http_root=/httpboot
 
     # Ironic compute node's HTTP server URL. Example:
     # http://192.1.2.3:8080 (string value)

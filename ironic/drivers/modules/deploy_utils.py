@@ -63,8 +63,15 @@ deploy_opts = [
                default=3,
                help=_('Maximum attempts to verify an iSCSI connection is '
                       'active, sleeping 1 second between attempts.')),
+    cfg.StrOpt('http_url',
+               help='ironic-conductor node\'s HTTP server URL. '
+                    'Example: http://192.1.2.3:8080',
+               deprecated_group='pxe'),
+    cfg.StrOpt('http_root',
+               default='/httpboot',
+               help='ironic-conductor node\'s HTTP root path.',
+               deprecated_group='pxe'),
 ]
-
 CONF = cfg.CONF
 CONF.register_opts(deploy_opts, group='deploy')
 

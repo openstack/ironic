@@ -217,7 +217,7 @@ class PXEPrivateMethodsTestCase(db_base.DbTestCase):
         if ipxe_enabled:
             http_url = 'http://192.1.2.3:1234'
             self.config(ipxe_enabled=True, group='pxe')
-            self.config(http_url=http_url, group='pxe')
+            self.config(http_url=http_url, group='deploy')
 
             deploy_kernel = os.path.join(http_url, self.node.uuid,
                                          'deploy_kernel')
@@ -225,7 +225,7 @@ class PXEPrivateMethodsTestCase(db_base.DbTestCase):
                                           'deploy_ramdisk')
             kernel = os.path.join(http_url, self.node.uuid, 'kernel')
             ramdisk = os.path.join(http_url, self.node.uuid, 'ramdisk')
-            root_dir = CONF.pxe.http_root
+            root_dir = CONF.deploy.http_root
         else:
             deploy_kernel = os.path.join(CONF.pxe.tftp_root, self.node.uuid,
                                          'deploy_kernel')
@@ -317,13 +317,13 @@ class PXEPrivateMethodsTestCase(db_base.DbTestCase):
         if ipxe_enabled:
             http_url = 'http://192.1.2.3:1234'
             self.config(ipxe_enabled=True, group='pxe')
-            self.config(http_url=http_url, group='pxe')
+            self.config(http_url=http_url, group='deploy')
 
             deploy_kernel = os.path.join(http_url, self.node.uuid,
                                          'deploy_kernel')
             deploy_ramdisk = os.path.join(http_url, self.node.uuid,
                                           'deploy_ramdisk')
-            root_dir = CONF.pxe.http_root
+            root_dir = CONF.deploy.http_root
         else:
             deploy_kernel = os.path.join(CONF.pxe.tftp_root, self.node.uuid,
                                          'deploy_kernel')
@@ -399,7 +399,8 @@ class PXEPrivateMethodsTestCase(db_base.DbTestCase):
                                         mock_ensure_tree):
         self.config(ipxe_enabled=True, group='pxe')
         fake_pxe_info = {'foo': 'bar'}
-        expected_path = os.path.join(CONF.pxe.http_root, self.node.uuid)
+        expected_path = os.path.join(CONF.deploy.http_root,
+                                     self.node.uuid)
 
         pxe._cache_ramdisk_kernel(self.context, self.node, fake_pxe_info)
         mock_ensure_tree.assert_called_with(expected_path)
@@ -570,7 +571,7 @@ class PXEDriverTestCase(db_base.DbTestCase):
         mock_glance.return_value = {'properties': {'kernel_id': 'fake-kernel',
                                                    'ramdisk_id': 'fake-initr'}}
         self.config(ipxe_enabled=True, group='pxe')
-        self.config(http_url='dummy_url', group='pxe')
+        self.config(http_url='dummy_url', group='deploy')
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
             task.node.properties = properties

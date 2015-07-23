@@ -75,12 +75,6 @@ pxe_opts = [
     cfg.StrOpt('uefi_pxe_bootfile_name',
                default='elilo.efi',
                help=_('Bootfile DHCP parameter for UEFI boot mode.')),
-    cfg.StrOpt('http_url',
-               help=_('ironic-conductor node\'s HTTP server URL. '
-                      'Example: http://192.1.2.3:8080')),
-    cfg.StrOpt('http_root',
-               default='/httpboot',
-               help=_('ironic-conductor node\'s HTTP root path.')),
     cfg.BoolOpt('ipxe_enabled',
                 default=False,
                 help=_('Enable iPXE boot.')),
@@ -168,13 +162,15 @@ def _build_pxe_config_options(node, pxe_info, ctx):
         ramdisk = 'no_ramdisk'
 
     if CONF.pxe.ipxe_enabled:
-        deploy_kernel = '/'.join([CONF.pxe.http_url, node.uuid,
+        deploy_kernel = '/'.join([CONF.deploy.http_url, node.uuid,
                                   'deploy_kernel'])
-        deploy_ramdisk = '/'.join([CONF.pxe.http_url, node.uuid,
+        deploy_ramdisk = '/'.join([CONF.deploy.http_url, node.uuid,
                                    'deploy_ramdisk'])
         if not is_whole_disk_image:
-            kernel = '/'.join([CONF.pxe.http_url, node.uuid, 'kernel'])
-            ramdisk = '/'.join([CONF.pxe.http_url, node.uuid, 'ramdisk'])
+            kernel = '/'.join([CONF.deploy.http_url, node.uuid,
+                              'kernel'])
+            ramdisk = '/'.join([CONF.deploy.http_url, node.uuid,
+                               'ramdisk'])
     else:
         deploy_kernel = pxe_info['deploy_kernel'][1]
         deploy_ramdisk = pxe_info['deploy_ramdisk'][1]
@@ -329,7 +325,8 @@ class PXEDeploy(base.DeployInterface):
         boot_mode = deploy_utils.get_boot_mode_for_deploy(task.node)
 
         if CONF.pxe.ipxe_enabled:
-            if not CONF.pxe.http_url or not CONF.pxe.http_root:
+            if (not CONF.deploy.http_url or
+                not CONF.deploy.http_root):
                 raise exception.MissingParameterValue(_(
                     "iPXE boot is enabled but no HTTP URL or HTTP "
                     "root was specified."))
@@ -417,7 +414,7 @@ class PXEDeploy(base.DeployInterface):
         if CONF.pxe.ipxe_enabled:
             # Copy the iPXE boot script to HTTP root directory
             bootfile_path = os.path.join(
-                CONF.pxe.http_root,
+                CONF.deploy.http_root,
                 os.path.basename(CONF.pxe.ipxe_boot_script))
             shutil.copyfile(CONF.pxe.ipxe_boot_script, bootfile_path)
         pxe_info = _get_image_info(node, task.context)
