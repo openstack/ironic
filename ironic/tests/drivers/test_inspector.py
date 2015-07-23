@@ -71,6 +71,7 @@ class BaseTestCase(db_base.DbTestCase):
         self.task.shared = False
         self.task.node = self.node
         self.task.driver = self.driver
+        self.api_version = (1, 0)
 
 
 class CommonFunctionsTestCase(BaseTestCase):
@@ -94,13 +95,14 @@ class CommonFunctionsTestCase(BaseTestCase):
 
 
 @mock.patch.object(eventlet, 'spawn_n', lambda f, *a, **kw: f(*a, **kw))
-@mock.patch.object(client, 'introspect', autospec=True)
+@mock.patch.object(client, 'introspect')
 class InspectHardwareTestCase(BaseTestCase):
     def test_ok(self, mock_introspect):
         self.assertEqual(states.INSPECTING,
                          self.driver.inspect.inspect_hardware(self.task))
         mock_introspect.assert_called_once_with(
             self.node.uuid,
+            api_version=self.api_version,
             auth_token=self.task.context.auth_token)
 
     def test_url(self, mock_introspect):
@@ -109,6 +111,7 @@ class InspectHardwareTestCase(BaseTestCase):
                          self.driver.inspect.inspect_hardware(self.task))
         mock_introspect.assert_called_once_with(
             self.node.uuid,
+            api_version=self.api_version,
             auth_token=self.task.context.auth_token,
             base_url='meow')
 
@@ -118,6 +121,7 @@ class InspectHardwareTestCase(BaseTestCase):
         self.driver.inspect.inspect_hardware(self.task)
         mock_introspect.assert_called_once_with(
             self.node.uuid,
+            api_version=self.api_version,
             auth_token=self.task.context.auth_token)
         task = mock_acquire.return_value.__enter__.return_value
         self.assertIn('boom', task.node.last_error)
@@ -125,7 +129,7 @@ class InspectHardwareTestCase(BaseTestCase):
 
 
 @mock.patch.object(keystone, 'get_admin_auth_token', lambda: 'the token')
-@mock.patch.object(client, 'get_status', autospec=True)
+@mock.patch.object(client, 'get_status')
 class CheckStatusTestCase(BaseTestCase):
     def setUp(self):
         super(CheckStatusTestCase, self).setUp()
@@ -145,6 +149,7 @@ class CheckStatusTestCase(BaseTestCase):
         mock_get.return_value = {}
         inspector._check_status(self.task)
         mock_get.assert_called_once_with(self.node.uuid,
+                                         api_version=self.api_version,
                                          auth_token='the token')
         self.assertFalse(self.task.process_event.called)
 
@@ -152,6 +157,7 @@ class CheckStatusTestCase(BaseTestCase):
         mock_get.side_effect = RuntimeError('boom')
         inspector._check_status(self.task)
         mock_get.assert_called_once_with(self.node.uuid,
+                                         api_version=self.api_version,
                                          auth_token='the token')
         self.assertFalse(self.task.process_event.called)
 
@@ -159,6 +165,7 @@ class CheckStatusTestCase(BaseTestCase):
         mock_get.return_value = {'finished': True}
         inspector._check_status(self.task)
         mock_get.assert_called_once_with(self.node.uuid,
+                                         api_version=self.api_version,
                                          auth_token='the token')
         self.task.process_event.assert_called_once_with('done')
 
@@ -166,6 +173,7 @@ class CheckStatusTestCase(BaseTestCase):
         mock_get.return_value = {'error': 'boom'}
         inspector._check_status(self.task)
         mock_get.assert_called_once_with(self.node.uuid,
+                                         api_version=self.api_version,
                                          auth_token='the token')
         self.task.process_event.assert_called_once_with('fail')
         self.assertIn('boom', self.node.last_error)
@@ -175,6 +183,7 @@ class CheckStatusTestCase(BaseTestCase):
         mock_get.return_value = {'finished': True}
         inspector._check_status(self.task)
         mock_get.assert_called_once_with(self.node.uuid,
+                                         api_version=self.api_version,
                                          auth_token='the token',
                                          base_url='meow')
         self.task.process_event.assert_called_once_with('done')
@@ -183,9 +192,10 @@ class CheckStatusTestCase(BaseTestCase):
         self.config(auth_strategy='noauth')
         mock_get.return_value = {'finished': True}
         inspector._check_status(self.task)
-        token = self.task.context.auth_token
-        mock_get.assert_called_once_with(self.node.uuid,
-                                         auth_token=token)
+        mock_get.assert_called_once_with(
+            self.node.uuid,
+            api_version=self.api_version,
+            auth_token=self.task.context.auth_token)
         self.task.process_event.assert_called_once_with('done')
 
     def test_not_standalone(self, mock_get):
@@ -193,6 +203,7 @@ class CheckStatusTestCase(BaseTestCase):
         mock_get.return_value = {'finished': True}
         inspector._check_status(self.task)
         mock_get.assert_called_once_with(self.node.uuid,
+                                         api_version=self.api_version,
                                          auth_token='the token')
         self.task.process_event.assert_called_once_with('done')
 
