@@ -1374,6 +1374,7 @@ class DoNodeDeployTearDownTestCase(_ServiceSetUpMixin,
         node = obj_utils.create_test_node(
             self.context, driver='fake', provision_state=states.DELETING,
             target_provision_state=states.AVAILABLE,
+            instance_uuid=uuidutils.generate_uuid(),
             instance_info={'foo': 'bar'},
             driver_internal_info={'is_whole_disk_image': False,
                                   'instance': {'ephemeral_gb': 10}})
@@ -1386,6 +1387,7 @@ class DoNodeDeployTearDownTestCase(_ServiceSetUpMixin,
         self.assertEqual(states.CLEANING, node.provision_state)
         self.assertEqual(states.AVAILABLE, node.target_provision_state)
         self.assertIsNone(node.last_error)
+        self.assertIsNone(node.instance_uuid)
         self.assertEqual({}, node.instance_info)
         self.assertNotIn('instance', node.driver_internal_info)
         mock_tear_down.assert_called_once_with(mock.ANY)

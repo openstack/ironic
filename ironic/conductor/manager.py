@@ -805,8 +805,9 @@ class ConductorManager(periodic_task.PeriodicTasks):
             # NOTE(deva): there is no need to unset conductor_affinity
             # because it is a reference to the most recent conductor which
             # deployed a node, and does not limit any future actions.
-            # But we do need to clear the instance_info
+            # But we do need to clear the instance-related fields.
             node.instance_info = {}
+            node.instance_uuid = None
             driver_internal_info = node.driver_internal_info
             driver_internal_info.pop('instance', None)
             node.driver_internal_info = driver_internal_info
