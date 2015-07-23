@@ -282,10 +282,7 @@ class Node(base.IronicObject):
                         object, e.g.: Node(context)
         """
         current = self.__class__.get_by_uuid(self._context, self.uuid)
-        for field in self.fields:
-            if (hasattr(self, base.get_attrname(field)) and
-                    self[field] != current[field]):
-                self[field] = current[field]
+        self.obj_refresh(current)
 
     @base.remotable
     def touch_provisioning(self, context=None):

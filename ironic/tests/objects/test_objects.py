@@ -444,6 +444,20 @@ class _TestObject(object):
         self.assertEqual(set(['created_at', 'updated_at', 'foo', 'bar']),
                          set(obj.obj_fields))
 
+    def test_refresh_object(self):
+        class TestObj(base.IronicObject):
+            fields = {'foo': int, 'bar': str}
+
+        obj = TestObj(self.context)
+        current_obj = TestObj(self.context)
+        obj.foo = 10
+        obj.bar = 'obj.bar'
+        current_obj.foo = 2
+        current_obj.bar = 'current.bar'
+        obj.obj_refresh(current_obj)
+        self.assertEqual(obj.foo, 2)
+        self.assertEqual(obj.bar, 'current.bar')
+
     def test_obj_constructor(self):
         obj = MyObj(self.context, foo=123, bar='abc')
         self.assertEqual(123, obj.foo)
