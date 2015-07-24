@@ -40,6 +40,7 @@ from ironic.common import disk_partitioner
 from ironic.common import exception
 from ironic.common.i18n import _
 from ironic.common.i18n import _LE
+from ironic.common.i18n import _LI
 from ironic.common.i18n import _LW
 from ironic.common import images
 from ironic.common import states
@@ -492,6 +493,8 @@ def destroy_disk_metadata(dev, node_uuid):
                           {'node': node_uuid,
                            'command': err.cmd,
                            'error': err.stderr})
+    LOG.info(_LI("Disk metadata on %(dev)s successfully destroyed for node "
+                 "%(node)s"), {'dev': dev, 'node': node_uuid})
 
 
 def _get_configdrive(configdrive, node_uuid):
@@ -602,6 +605,9 @@ def work_on_disk(dev, root_mb, swap_mb, ephemeral_mb, ephemeral_format,
                                     configdrive_mb, commit=commit,
                                     boot_option=boot_option,
                                     boot_mode=boot_mode)
+        LOG.info(_LI("Successfully completed the disk device"
+                     " %(dev)s partitioning for node %(node)s"),
+                 {'dev': dev, "node": node_uuid})
 
         ephemeral_part = part_dict.get('ephemeral')
         swap_part = part_dict.get('swap')
@@ -632,6 +638,9 @@ def work_on_disk(dev, root_mb, swap_mb, ephemeral_mb, ephemeral_format,
         if configdrive_part:
             # Copy the configdrive content to the configdrive partition
             dd(configdrive_file, configdrive_part)
+            LOG.info(_LI("Configdrive for node %(node)s successfully copied "
+                         "onto partition %(partition)s"),
+                     {'node': node_uuid, 'partition': configdrive_part})
 
     finally:
         # If the configdrive was requested make sure we delete the file
@@ -640,12 +649,20 @@ def work_on_disk(dev, root_mb, swap_mb, ephemeral_mb, ephemeral_format,
             utils.unlink_without_raise(configdrive_file)
 
     populate_image(image_path, root_part)
+    LOG.info(_LI("Image for %(node)s successfully populated"),
+             {'node': node_uuid})
 
     if swap_part:
         utils.mkfs('swap', swap_part, 'swap1')
+        LOG.info(_LI("Swap partition %(swap)s successfully formatted "
+                     "for node %(node)s"),
+                 {'swap': swap_part, 'node': node_uuid})
 
     if ephemeral_part and not preserve_ephemeral:
         utils.mkfs(ephemeral_format, ephemeral_part, "ephemeral0")
+        LOG.info(_LI("Ephemeral partition %(ephemeral)s successfully "
+                     "formatted for node %(node)s"),
+                 {'ephemeral': ephemeral_part, 'node': node_uuid})
 
     uuids_to_return = {
         'root uuid': root_part,
