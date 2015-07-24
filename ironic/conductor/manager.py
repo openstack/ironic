@@ -1379,8 +1379,6 @@ class ConductorManager(periodic_task.PeriodicTasks):
                 raise exception.NodeAssociated(node=node.uuid,
                                                instance=node.instance_uuid)
 
-            # TODO(lucasagomes): We should add ENROLLED once it's part of our
-            #                    state machine
             # NOTE(lucasagomes): For the *FAIL states we users should
             # move it to a safe state prior to deletion. This is because we
             # should try to avoid deleting a node in a dirty/whacky state,
@@ -1391,15 +1389,13 @@ class ConductorManager(periodic_task.PeriodicTasks):
             # INSPECTIONFAIL -> MANAGEABLE
             # DEPLOYFAIL -> DELETING
             # ZAPFAIL -> MANAGEABLE (in the future)
-            valid_states = (states.AVAILABLE, states.NOSTATE,
-                            states.MANAGEABLE)
             if (not node.maintenance and
-                    node.provision_state not in valid_states):
+                    node.provision_state not in states.DELETE_ALLOWED_STATES):
                 msg = (_('Can not delete node "%(node)s" while it is in '
                          'provision state "%(state)s". Valid provision states '
                          'to perform deletion are: "%(valid_states)s"') %
                        {'node': node.uuid, 'state': node.provision_state,
-                        'valid_states': valid_states})
+                        'valid_states': states.DELETE_ALLOWED_STATES})
                 raise exception.InvalidState(msg)
             if node.console_enabled:
                 try:

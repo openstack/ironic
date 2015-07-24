@@ -163,6 +163,9 @@ INSPECTFAIL = 'inspect failed'
 UPDATE_ALLOWED_STATES = (DEPLOYFAIL, INSPECTING, INSPECTFAIL, CLEANFAIL, ERROR)
 """Transitional states in which we allow updating a node."""
 
+DELETE_ALLOWED_STATES = (AVAILABLE, NOSTATE, MANAGEABLE, ENROLL)
+"""States in which node deletion is allowed."""
+
 
 ##############
 # Power states
