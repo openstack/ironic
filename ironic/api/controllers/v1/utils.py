@@ -231,3 +231,13 @@ def allow_raid_config():
     Version 1.12 of the API allows RAID configuration for the node.
     """
     return pecan.request.version.minor >= versions.MINOR_12_RAID_CONFIG
+
+
+def allow_links_node_states_and_driver_properties():
+    """Check if links are displayable.
+
+    Version 1.14 of the API allows the display of links to node states
+    and driver properties.
+    """
+    return (pecan.request.version.minor >=
+            versions.MINOR_14_LINKS_NODESTATES_DRIVERPROPERTIES)

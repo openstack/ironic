@@ -79,6 +79,13 @@ class TestApiUtils(base.TestCase):
         self.assertRaises(exception.NotAcceptable,
                           utils.check_allow_specify_fields, ['foo'])
 
+    @mock.patch.object(pecan, 'request', spec_set=['version'])
+    def test_allow_links_node_states_and_driver_properties(self, mock_request):
+        mock_request.version.minor = 14
+        self.assertTrue(utils.allow_links_node_states_and_driver_properties())
+        mock_request.version.minor = 10
+        self.assertFalse(utils.allow_links_node_states_and_driver_properties())
+
 
 class TestNodeIdent(base.TestCase):
 

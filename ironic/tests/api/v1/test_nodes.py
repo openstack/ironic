@@ -134,8 +134,17 @@ class TestListNodes(test_api_base.FunctionalTest):
         self.assertIn('inspection_finished_at', data)
         self.assertIn('inspection_started_at', data)
         self.assertIn('clean_step', data)
+        self.assertIn('states', data)
         # never expose the chassis_id
         self.assertNotIn('chassis_id', data)
+
+    def test_node_states_field_hidden_in_lower_version(self):
+        node = obj_utils.create_test_node(self.context,
+                                          chassis_id=self.chassis.id)
+        data = self.get_json(
+            '/nodes/%s' % node.uuid,
+            headers={api_base.Version.string: '1.8'})
+        self.assertNotIn('states', data)
 
     def test_get_one_custom_fields(self):
         node = obj_utils.create_test_node(self.context,

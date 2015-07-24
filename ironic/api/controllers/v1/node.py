@@ -625,6 +625,9 @@ class Node(base.APIBase):
     ports = wsme.wsattr([link.Link], readonly=True)
     """Links to the collection of ports on this node"""
 
+    states = wsme.wsattr([link.Link], readonly=True)
+    """Links to endpoint for retrieving and setting node states"""
+
     # NOTE(deva): "conductor_affinity" shouldn't be presented on the
     #             API because it's an internal value. Don't add it here.
 
@@ -648,7 +651,8 @@ class Node(base.APIBase):
         setattr(self, 'chassis_uuid', kwargs.get('chassis_id', wtypes.Unset))
 
     @staticmethod
-    def _convert_with_links(node, url, fields=None, show_password=True):
+    def _convert_with_links(node, url, fields=None, show_password=True,
+                            show_states_links=True):
         # NOTE(lucasagomes): Since we are able to return a specified set of
         # fields the "uuid" can be unset, so we need to save it in another
         # variable to use when building the links
@@ -662,6 +666,12 @@ class Node(base.APIBase):
                                               node_uuid + "/ports",
                                               bookmark=True)
                           ]
+            if show_states_links:
+                node.states = [link.Link.make_link('self', url, 'nodes',
+                                                   node_uuid + "/states"),
+                               link.Link.make_link('bookmark', url, 'nodes',
+                                                   node_uuid + "/states",
+                                                   bookmark=True)]
 
         if not show_password and node.driver_info != wtypes.Unset:
             node.driver_info = ast.literal_eval(strutils.mask_password(
@@ -689,9 +699,12 @@ class Node(base.APIBase):
         assert_juno_provision_state_name(node)
         hide_fields_in_newer_versions(node)
         show_password = pecan.request.context.show_password
+        show_states_links = (
+            api_utils.allow_links_node_states_and_driver_properties())
         return cls._convert_with_links(node, pecan.request.public_url,
                                        fields=fields,
-                                       show_password=show_password)
+                                       show_password=show_password,
+                                       show_states_links=show_states_links)
 
     @classmethod
     def sample(cls, expand=True):
