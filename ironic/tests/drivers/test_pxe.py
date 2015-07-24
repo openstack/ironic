@@ -612,12 +612,12 @@ class PXEDriverTestCase(db_base.DbTestCase):
             self.assertRaises(exception.MissingParameterValue,
                               task.driver.deploy.validate, task)
 
-    def test_validate_fail_trusted_boot(self):
-        properties = {'capabilities': 'boot_mode:uefi'}
-        instance_info = {"boot_option": "netboot", 'trusted_boot': 'true'}
+    def test_validate_fail_trusted_boot_with_secure_boot(self):
+        instance_info = {"boot_option": "netboot",
+                         "secure_boot": "true",
+                         "trusted_boot": "true"}
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
-            task.node.properties = properties
             task.node.instance_info['capabilities'] = instance_info
             task.node.driver_internal_info['is_whole_disk_image'] = False
             self.assertRaises(exception.InvalidParameterValue,
