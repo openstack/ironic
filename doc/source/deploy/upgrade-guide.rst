@@ -14,13 +14,49 @@ when upgrading your cloud from previous versions of OpenStack.
 Upgrading from Kilo to Liberty
 ==============================
 
-Inspection
-----------
+In-band Inspection
+------------------
 
 If you used in-band inspection with **ironic-discoverd**, you have to install
-**python-ironic-inspector-client** before the upgrade. It's also recommended
-that you switch to using **ironic-inspector**, which is a newer version of the
-same service.
+**python-ironic-inspector-client** during the upgrade. This package contains a
+client module for in-band inspection service, which was previously part of
+**ironic-discoverd** package. Ironic Liberty supports **ironic-discoverd**
+service, but does not support its in-tree client module. Please refer to
+`ironic-inspector version support matrix
+<https://github.com/openstack/ironic-inspector#version-support-matrix>`_ for
+details on which Ironic version can work with which
+**ironic-inspector**/**ironic-discoverd** version.
+
+It's also highly recommended that you switch to using **ironic-inspector**,
+which is a newer (and compatible on API level) version of the same service.
+
+The discoverd to inspector upgrade procedure:
+
+#. Install **ironic-inspector** on the machine where you have
+   **ironic-discoverd** (usually the same as conductor).
+
+#. (Recommended) update the **ironic-inspector** configuration file to stop
+   using deprecated configuration options, as marked by the comments in the
+   `example.conf
+   <https://github.com/openstack/ironic-inspector/blob/master/example.conf>`_.
+
+   The file name is provided on command line when starting
+   **ironic-discoverd**, and the previously recommended default was
+   ``/etc/ironic-discoverd/discoverd.conf``. In this case, for the sake of
+   consistency it's recommended you move the configuration file to
+   ``/etc/ironic-inspector/inspector.conf``.
+
+#. Shutdown **ironic-discoverd**, start **ironic-inspector**.
+
+#. During upgrade of each conductor instance:
+
+    #. Shutdown the conductor
+    #. Uninstall **ironic-discoverd**,
+       install **python-ironic-inspector-client**
+    #. Update the conductor Kilo -> Liberty
+    #. (Recommended) update ``ironic.conf`` to use ``[inspector]`` section
+       instead of ``[discoverd]`` (option names are the same)
+    #. Start the conductor
 
 Upgrading from Juno to Kilo
 ===========================
