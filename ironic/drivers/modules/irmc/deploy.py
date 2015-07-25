@@ -35,6 +35,7 @@ from ironic.conductor import task_manager
 from ironic.conductor import utils as manager_utils
 from ironic.drivers import base
 from ironic.drivers.modules import agent
+from ironic.drivers.modules import agent_base_vendor
 from ironic.drivers.modules import deploy_utils
 from ironic.drivers.modules.irmc import common as irmc_common
 from ironic.drivers.modules import iscsi_deploy
@@ -593,6 +594,8 @@ class IRMCVirtualMediaIscsiDeploy(base.DeployInterface):
         iscsi_deploy.check_image_size(task)
 
         deploy_ramdisk_opts = iscsi_deploy.build_deploy_ramdisk_options(node)
+        agent_opts = agent.build_agent_options(node)
+        deploy_ramdisk_opts.update(agent_opts)
         deploy_nic_mac = deploy_utils.get_single_nic_with_vif_port_id(task)
         deploy_ramdisk_opts['BOOTIF'] = deploy_nic_mac
 
@@ -737,7 +740,7 @@ class IRMCVirtualMediaAgentDeploy(base.DeployInterface):
         pass
 
 
-class VendorPassthru(base.VendorInterface):
+class VendorPassthru(agent_base_vendor.BaseAgentVendor):
     """Vendor-specific interfaces for iRMC deploy drivers."""
 
     def get_properties(self):
@@ -762,6 +765,15 @@ class VendorPassthru(base.VendorInterface):
             iscsi_deploy.get_deploy_info(task.node, **kwargs)
         elif method == 'pass_bootloader_install_info':
             iscsi_deploy.validate_pass_bootloader_info_input(task, kwargs)
+
+    def _configure_vmedia_boot(self, task, root_uuid_or_disk_id):
+        """Configure vmedia boot for the node."""
+        node = task.node
+        _prepare_boot_iso(task, root_uuid_or_disk_id)
+        setup_vmedia_for_boot(
+            task, node.driver_internal_info['irmc_boot_iso'])
+        manager_utils.node_set_boot_device(task, boot_devices.CDROM,
+                                           persistent=True)
 
     @base.passthru(['POST'])
     @task_manager.require_exclusive_lock
@@ -809,6 +821,9 @@ class VendorPassthru(base.VendorInterface):
         node = task.node
         task.process_event('resume')
 
+        LOG.debug('Continuing iSCSI virtual media deployment on node %s',
+                  node.uuid)
+
         is_whole_disk_image = node.driver_internal_info.get(
             'is_whole_disk_image')
         uuid_dict = iscsi_deploy.continue_deploy(task, **kwargs)
@@ -832,11 +847,7 @@ class VendorPassthru(base.VendorInterface):
                     return
 
             else:
-                _prepare_boot_iso(task, root_uuid_or_disk_id)
-                setup_vmedia_for_boot(
-                    task, node.driver_internal_info['irmc_boot_iso'])
-                manager_utils.node_set_boot_device(task, boot_devices.CDROM,
-                                                   persistent=True)
+                self._configure_vmedia_boot(task, root_uuid_or_disk_id)
 
         except Exception as e:
             LOG.exception(_LE('Deploy failed for instance %(instance)s. '
@@ -846,3 +857,40 @@ class VendorPassthru(base.VendorInterface):
             deploy_utils.set_failed_state(task, msg)
         else:
             iscsi_deploy.finish_deploy(task, kwargs.get('address'))
+
+    @task_manager.require_exclusive_lock
+    def continue_deploy(self, task, **kwargs):
+        """Method invoked when deployed with the IPA ramdisk.
+
+        This method is invoked during a heartbeat from an agent when
+        the node is in wait-call-back state. This deploys the image on
+        the node and then configures the node to boot according to the
+        desired boot option (netboot or localboot).
+
+        :param task: a TaskManager object containing the node.
+        :param kwargs: the kwargs passed from the heartbeat method.
+        :raises: InstanceDeployFailure, if it encounters some error during
+            the deploy.
+        """
+        node = task.node
+        task.process_event('resume')
+
+        LOG.debug('Continuing IPA deployment on node %s', node.uuid)
+
+        is_whole_disk_image = node.driver_internal_info.get(
+            'is_whole_disk_image')
+        _cleanup_vmedia_boot(task)
+        uuid_dict = iscsi_deploy.do_agent_iscsi_deploy(task, self._client)
+        root_uuid = uuid_dict.get('root uuid')
+
+        if (iscsi_deploy.get_boot_option(node) == "local" or
+            is_whole_disk_image):
+            efi_system_part_uuid = uuid_dict.get(
+                'efi system partition uuid')
+            self.configure_local_boot(
+                task, root_uuid=root_uuid,
+                efi_system_part_uuid=efi_system_part_uuid)
+        else:
+            self._configure_vmedia_boot(task, root_uuid)
+
+        self.reboot_and_finish_deploy(task)

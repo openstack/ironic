@@ -32,6 +32,7 @@ from ironic.common import utils
 from ironic.conductor import task_manager
 from ironic.conductor import utils as manager_utils
 from ironic.drivers.modules import agent
+from ironic.drivers.modules import agent_base_vendor
 from ironic.drivers.modules import deploy_utils
 from ironic.drivers.modules.irmc import common as irmc_common
 from ironic.drivers.modules.irmc import deploy as irmc_deploy
@@ -887,6 +888,8 @@ class IRMCVirtualMediaIscsiDeployTestCase(db_base.DbTestCase):
                        spec_set=True, autospec=True)
     @mock.patch.object(deploy_utils, 'get_single_nic_with_vif_port_id',
                        spec_set=True, autospec=True)
+    @mock.patch.object(agent, 'build_agent_options', spec_set=True,
+                       autospec=True)
     @mock.patch.object(iscsi_deploy, 'build_deploy_ramdisk_options',
                        spec_set=True, autospec=True)
     @mock.patch.object(iscsi_deploy, 'check_image_size', spec_set=True,
@@ -900,10 +903,15 @@ class IRMCVirtualMediaIscsiDeployTestCase(db_base.DbTestCase):
                     cache_instance_image_mock,
                     check_image_size_mock,
                     build_deploy_ramdisk_options_mock,
+                    build_agent_options_mock,
                     get_single_nic_with_vif_port_id_mock,
-                    _reboot_into_deploy_iso_mock):
-        bootif = get_single_nic_with_vif_port_id_mock.return_value
-        build_deploy_ramdisk_options_mock.return_value = bootif
+                    _reboot_into_mock):
+        deploy_opts = {'a': 'b'}
+        build_agent_options_mock.return_value = {
+            'ipa-api-url': 'http://1.2.3.4:6385'}
+        build_deploy_ramdisk_options_mock.return_value = deploy_opts
+        get_single_nic_with_vif_port_id_mock.return_value = '12:34:56:78:90:ab'
+
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
             returned_state = task.driver.deploy.deploy(task)
@@ -913,12 +921,15 @@ class IRMCVirtualMediaIscsiDeployTestCase(db_base.DbTestCase):
             cache_instance_image_mock.assert_called_once_with(
                 task.context, task.node)
             check_image_size_mock.assert_called_once_with(task)
+            expected_ramdisk_opts = {'a': 'b', 'BOOTIF': '12:34:56:78:90:ab',
+                                     'ipa-api-url': 'http://1.2.3.4:6385'}
+            build_agent_options_mock.assert_called_once_with(task.node)
             build_deploy_ramdisk_options_mock.assert_called_once_with(
                 task.node)
             get_single_nic_with_vif_port_id_mock.assert_called_once_with(
                 task)
-            _reboot_into_deploy_iso_mock.assert_called_once_with(
-                task, bootif)
+            _reboot_into_mock.assert_called_once_with(
+                task, expected_ramdisk_opts)
             self.assertEqual(states.DEPLOYWAIT, returned_state)
 
     @mock.patch.object(manager_utils, 'node_power_action', spec_set=True,
@@ -1055,6 +1066,31 @@ class VendorPassthruTestCase(db_base.DbTestCase):
             task.driver.vendor.validate(
                 task, method='pass_bootloader_install_info', **kwargs)
             validate_mock.assert_called_once_with(task, kwargs)
+
+    @mock.patch.object(manager_utils, 'node_set_boot_device', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(irmc_deploy, 'setup_vmedia_for_boot', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(irmc_deploy, '_prepare_boot_iso', spec_set=True,
+                       autospec=True)
+    def test__configure_vmedia_boot(self,
+                                    _prepare_boot_iso_mock,
+                                    setup_vmedia_for_boot_mock,
+                                    node_set_boot_device):
+        root_uuid_or_disk_id = {'root uuid': 'root_uuid'}
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            task.node.driver_internal_info['irmc_boot_iso'] = 'boot.iso'
+            task.driver.vendor._configure_vmedia_boot(
+                task, root_uuid_or_disk_id)
+
+            _prepare_boot_iso_mock.assert_called_once_with(
+                task, root_uuid_or_disk_id)
+            setup_vmedia_for_boot_mock.assert_called_once_with(
+                task, 'boot.iso')
+            node_set_boot_device.assert_called_once_with(
+                task, boot_devices.CDROM, persistent=True)
 
     @mock.patch.object(iscsi_deploy, 'validate_bootloader_install_status',
                        spec_set=True, autospec=True)
@@ -1326,3 +1362,135 @@ class VendorPassthruTestCase(db_base.DbTestCase):
                                                          persistent=True)
             self.assertFalse(notify_ramdisk_to_proceed_mock.called)
             finish_deploy_mock.assert_called_once_with(task, '123456')
+
+    @mock.patch.object(agent_base_vendor.BaseAgentVendor,
+                       'reboot_and_finish_deploy', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(irmc_deploy.VendorPassthru, '_configure_vmedia_boot',
+                       autospec=True)
+    @mock.patch.object(iscsi_deploy, 'do_agent_iscsi_deploy', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(irmc_deploy, '_cleanup_vmedia_boot', spec_set=True,
+                       autospec=True)
+    def test_continue_deploy_netboot(self,
+                                     _cleanup_vmedia_boot_mock,
+                                     do_agent_iscsi_deploy_mock,
+                                     _configure_vmedia_boot_mock,
+                                     reboot_and_finish_deploy_mock):
+        self.node.provision_state = states.DEPLOYWAIT
+        self.node.target_provision_state = states.DEPLOYING
+        self.node.save()
+        do_agent_iscsi_deploy_mock.return_value = {
+            'root uuid': 'some-root-uuid'}
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            task.driver.vendor.continue_deploy(task)
+
+            _cleanup_vmedia_boot_mock.assert_called_once_with(task)
+            do_agent_iscsi_deploy_mock.assert_called_once_with(task,
+                                                               mock.ANY)
+            _configure_vmedia_boot_mock.assert_called_once_with(
+                mock.ANY, task, 'some-root-uuid')
+            reboot_and_finish_deploy_mock.assert_called_once_with(
+                task.driver.vendor, task)
+
+    @mock.patch.object(agent_base_vendor.BaseAgentVendor,
+                       'reboot_and_finish_deploy', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(agent_base_vendor.BaseAgentVendor,
+                       'configure_local_boot', spec_set=True, autospec=True)
+    @mock.patch.object(iscsi_deploy, 'do_agent_iscsi_deploy', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(irmc_deploy, '_cleanup_vmedia_boot', spec_set=True,
+                       autospec=True)
+    def test_continue_deploy_localboot(self,
+                                       _cleanup_vmedia_boot_mock,
+                                       do_agent_iscsi_deploy_mock,
+                                       configure_local_boot_mock,
+                                       reboot_and_finish_deploy_mock):
+        self.node.provision_state = states.DEPLOYWAIT
+        self.node.target_provision_state = states.DEPLOYING
+        self.node.instance_info = {
+            'capabilities': {'boot_option': 'local'}}
+        self.node.save()
+        do_agent_iscsi_deploy_mock.return_value = {
+            'root uuid': 'some-root-uuid'}
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            task.driver.vendor.continue_deploy(task)
+
+            _cleanup_vmedia_boot_mock.assert_called_once_with(task)
+            do_agent_iscsi_deploy_mock.assert_called_once_with(task,
+                                                               mock.ANY)
+            configure_local_boot_mock.assert_called_once_with(
+                mock.ANY, task, root_uuid='some-root-uuid',
+                efi_system_part_uuid=None)
+            reboot_and_finish_deploy_mock.assert_called_once_with(
+                mock.ANY, task)
+
+    @mock.patch.object(agent_base_vendor.BaseAgentVendor,
+                       'reboot_and_finish_deploy', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(agent_base_vendor.BaseAgentVendor,
+                       'configure_local_boot', spec_set=True, autospec=True)
+    @mock.patch.object(iscsi_deploy, 'do_agent_iscsi_deploy', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(irmc_deploy, '_cleanup_vmedia_boot', spec_set=True,
+                       autospec=True)
+    def test_continue_deploy_whole_disk_image(self,
+                                              _cleanup_vmedia_boot_mock,
+                                              do_agent_iscsi_deploy_mock,
+                                              configure_local_boot_mock,
+                                              reboot_and_finish_deploy_mock):
+        self.node.provision_state = states.DEPLOYWAIT
+        self.node.target_provision_state = states.DEPLOYING
+        self.node.driver_internal_info = {'is_whole_disk_image': True}
+        self.node.save()
+        do_agent_iscsi_deploy_mock.return_value = {
+            'disk identifier': 'some-disk-id'}
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            task.driver.vendor.continue_deploy(task)
+
+            _cleanup_vmedia_boot_mock.assert_called_once_with(task)
+            do_agent_iscsi_deploy_mock.assert_called_once_with(task,
+                                                               mock.ANY)
+            configure_local_boot_mock.assert_called_once_with(
+                mock.ANY, task, root_uuid=None, efi_system_part_uuid=None)
+            reboot_and_finish_deploy_mock.assert_called_once_with(
+                mock.ANY, task)
+
+    @mock.patch.object(agent_base_vendor.BaseAgentVendor,
+                       'reboot_and_finish_deploy', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(agent_base_vendor.BaseAgentVendor,
+                       'configure_local_boot', spec_set=True, autospec=True)
+    @mock.patch.object(iscsi_deploy, 'do_agent_iscsi_deploy', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(irmc_deploy, '_cleanup_vmedia_boot', autospec=True)
+    def test_continue_deploy_localboot_uefi(self,
+                                            _cleanup_vmedia_boot_mock,
+                                            do_agent_iscsi_deploy_mock,
+                                            configure_local_boot_mock,
+                                            reboot_and_finish_deploy_mock):
+        self.node.provision_state = states.DEPLOYWAIT
+        self.node.target_provision_state = states.DEPLOYING
+        self.node.instance_info = {
+            'capabilities': {'boot_option': 'local'}}
+        self.node.save()
+        do_agent_iscsi_deploy_mock.return_value = {
+            'root uuid': 'some-root-uuid',
+            'efi system partition uuid': 'efi-system-part-uuid'}
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            task.driver.vendor.continue_deploy(task)
+
+            _cleanup_vmedia_boot_mock.assert_called_once_with(task)
+            do_agent_iscsi_deploy_mock.assert_called_once_with(task,
+                                                               mock.ANY)
+            configure_local_boot_mock.assert_called_once_with(
+                mock.ANY, task, root_uuid='some-root-uuid',
+                efi_system_part_uuid='efi-system-part-uuid')
+            reboot_and_finish_deploy_mock.assert_called_once_with(
+                mock.ANY, task)
