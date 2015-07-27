@@ -97,3 +97,30 @@ def create_test_chassis(ctxt, **kw):
     chassis = get_test_chassis(ctxt, **kw)
     chassis.create()
     return chassis
+
+
+def get_test_portgroup(ctxt, **kw):
+    """Return a Portgroup object with appropriate attributes.
+
+    NOTE: The object leaves the attributes marked as changed, such
+    that a create() could be used to commit it to the DB.
+    """
+    db_portgroup = db_utils.get_test_portgroup(**kw)
+    # Let DB generate ID if it isn't specified explicitly
+    if 'id' not in kw:
+        del db_portgroup['id']
+    portgroup = objects.Portgroup(ctxt)
+    for key in db_portgroup:
+        setattr(portgroup, key, db_portgroup[key])
+    return portgroup
+
+
+def create_test_portgroup(ctxt, **kw):
+    """Create and return a test portgroup object.
+
+    Create a portgroup in the DB and return a Portgroup object with appropriate
+    attributes.
+    """
+    portgroup = get_test_portgroup(ctxt, **kw)
+    portgroup.create()
+    return portgroup
