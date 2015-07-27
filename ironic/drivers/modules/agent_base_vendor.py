@@ -307,11 +307,16 @@ class BaseAgentVendor(base.VendorInterface):
                          "switch_chassis_descr": "tor1"
                      }, ...
                  ], ...
-             }
+             },
+             "node_uuid": "ab229209-0139-4588-bbe5-64ccec81dd6e"
          }
 
         The interfaces list should include a list of the non-IPMI MAC addresses
         in the form aa:bb:cc:dd:ee:ff.
+
+        node_uuid argument is optional. If it's provided (e.g. as a result of
+        inspection run before lookup), this method will just return a node and
+        options.
 
         This method will also return the timeout for heartbeats. The driver
         will expect the agent to heartbeat before that timeout, or it will be
@@ -321,11 +326,15 @@ class BaseAgentVendor(base.VendorInterface):
         :raises: NotFound if no matching node is found.
         :raises: InvalidParameterValue with unknown payload version
         """
-        inventory = kwargs.get('inventory')
-        interfaces = self._get_interfaces(inventory)
-        mac_addresses = self._get_mac_addresses(interfaces)
+        uuid = kwargs.get('node_uuid')
+        if uuid:
+            node = objects.Node.get_by_uuid(context, uuid)
+        else:
+            inventory = kwargs.get('inventory')
+            interfaces = self._get_interfaces(inventory)
+            mac_addresses = self._get_mac_addresses(interfaces)
 
-        node = self._find_node_by_macs(context, mac_addresses)
+            node = self._find_node_by_macs(context, mac_addresses)
 
         LOG.debug('Initial lookup for node %s succeeded.', node.uuid)
 

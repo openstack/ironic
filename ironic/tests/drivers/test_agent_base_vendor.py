@@ -133,6 +133,31 @@ class TestBaseAgentVendor(db_base.DbTestCase):
                               version='2',
                               inventory={'interfaces': []})
 
+    @mock.patch.object(objects.Node, 'get_by_uuid')
+    def test_lookup_v2_with_node_uuid(self, mock_get_node):
+        kwargs = {
+            'version': '2',
+            'node_uuid': 'fake uuid',
+            'inventory': {
+                'interfaces': [
+                    {
+                        'mac_address': 'aa:bb:cc:dd:ee:ff',
+                        'name': 'eth0'
+                    },
+                    {
+                        'mac_address': 'ff:ee:dd:cc:bb:aa',
+                        'name': 'eth1'
+                    }
+
+                ]
+            }
+        }
+        mock_get_node.return_value = self.node
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            node = self.passthru.lookup(task.context, **kwargs)
+        self.assertEqual(self.node, node['node'])
+        mock_get_node.assert_called_once_with(mock.ANY, 'fake uuid')
+
     @mock.patch.object(objects.port.Port, 'get_by_address',
                        spec_set=types.FunctionType)
     def test_find_ports_by_macs(self, mock_get_port):
