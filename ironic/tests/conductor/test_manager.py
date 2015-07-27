@@ -2311,7 +2311,7 @@ class DestroyNodeTestCase(_ServiceSetUpMixin, tests_db_base.DbTestCase):
 
     def test_destroy_node(self):
         self._start_service()
-        for state in (states.MANAGEABLE, states.NOSTATE, states.AVAILABLE):
+        for state in states.DELETE_ALLOWED_STATES:
             node = obj_utils.create_test_node(self.context,
                                               provision_state=state)
             self.service.destroy_node(self.context, node.uuid)
