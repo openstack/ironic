@@ -192,6 +192,16 @@ class InvalidMAC(Invalid):
     _msg_fmt = _("Expected a MAC address but received %(mac)s.")
 
 
+class InvalidSwitchID(Invalid):
+    _msg_fmt = _("Expected a MAC address or OpenFlow datapath ID but "
+                 "received %(switch_id)s.")
+
+
+class InvalidDatapathId(Invalid):
+    _msg_fmt = _("Expected an OpenFlow datapath ID but received "
+                 "%(datapath_id)s.")
+
+
 class InvalidStateRequested(Invalid):
     _msg_fmt = _('The requested action "%(action)s" can not be performed '
                  'on node "%(node)s" while it is in state "%(state)s".')

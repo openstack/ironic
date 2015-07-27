@@ -48,6 +48,7 @@ BASE_VERSION = 1
 # v1.16: Add ability to filter nodes by driver.
 # v1.17: Add 'adopt' verb for ADOPTING active nodes.
 # v1.18: Add port.internal_info.
+# v1.19: Add port.local_link_connection and port.pxe_enabled.
 
 MINOR_0_JUNO = 0
 MINOR_1_INITIAL_VERSION = 1
@@ -68,11 +69,12 @@ MINOR_15_MANUAL_CLEAN = 15
 MINOR_16_DRIVER_FILTER = 16
 MINOR_17_ADOPT_VERB = 17
 MINOR_18_PORT_INTERNAL_INFO = 18
+MINOR_19_PORT_ADVANCED_NET_FIELDS = 19
 
 # When adding another version, update MINOR_MAX_VERSION and also update
 # doc/source/webapi/v1.rst with a detailed explanation of what the version has
 # changed.
-MINOR_MAX_VERSION = MINOR_18_PORT_INTERNAL_INFO
+MINOR_MAX_VERSION = MINOR_19_PORT_ADVANCED_NET_FIELDS
 
 # String representations of the minor and maximum versions
 MIN_VERSION_STRING = '{}.{}'.format(BASE_VERSION, MINOR_1_INITIAL_VERSION)

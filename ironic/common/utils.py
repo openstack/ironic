@@ -185,6 +185,22 @@ def is_valid_mac(address):
             re.match(m, address.lower()))
 
 
+def is_valid_datapath_id(datapath_id):
+    """Verify the format of an OpenFlow datapath_id.
+
+    Check if a datapath_id is valid and contains 16 hexadecimal digits.
+    Datapath ID format: the lower 48-bits are for a MAC address,
+    while the upper 16-bits are implementer-defined.
+
+    :param datapath_id: OpenFlow datapath_id to be validated.
+    :returns: True if valid. False if not.
+
+    """
+    m = "^[0-9a-f]{16}$"
+    return (isinstance(datapath_id, six.string_types) and
+            re.match(m, datapath_id.lower()))
+
+
 _is_valid_logical_name_re = re.compile(r'^[A-Z0-9-._~]+$', re.I)
 
 # old is_hostname_safe() regex, retained for backwards compat
@@ -282,6 +298,23 @@ def validate_and_normalize_mac(address):
     if not is_valid_mac(address):
         raise exception.InvalidMAC(mac=address)
     return address.lower()
+
+
+def validate_and_normalize_datapath_id(datapath_id):
+    """Validate an OpenFlow datapath_id and return normalized form.
+
+    Checks whether the supplied OpenFlow datapath_id is formally correct and
+    normalize it to all lower case.
+
+    :param datapath_id: OpenFlow datapath_id to be validated and normalized.
+    :returns: Normalized and validated OpenFlow datapath_id.
+    :raises: InvalidDatapathId If an OpenFlow datapath_id is not valid.
+
+    """
+
+    if not is_valid_datapath_id(datapath_id):
+        raise exception.InvalidDatapathId(datapath_id=datapath_id)
+    return datapath_id.lower()
 
 
 def is_valid_ipv6_cidr(address):
