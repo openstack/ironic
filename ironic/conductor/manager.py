@@ -184,7 +184,7 @@ class ConductorManager(base_manager.BaseConductorManager):
     """Ironic Conductor manager main class."""
 
     # NOTE(rloo): This must be in sync with rpcapi.ConductorAPI's.
-    RPC_API_VERSION = '1.32'
+    RPC_API_VERSION = '1.33'
 
     target = messaging.Target(version=RPC_API_VERSION)
 
@@ -1512,6 +1512,30 @@ class ConductorManager(base_manager.BaseConductorManager):
                      {'port': port.uuid, 'node': task.node.uuid})
 
     @messaging.expected_exceptions(exception.NodeLocked,
+                                   exception.NodeNotFound,
+                                   exception.PortgroupNotEmpty)
+    def destroy_portgroup(self, context, portgroup):
+        """Delete a portgroup.
+
+        :param context: request context.
+        :param portgroup: portgroup object
+        :raises: NodeLocked if node is locked by another conductor.
+        :raises: NodeNotFound if the node associated with the portgroup does
+                 not exist.
+        :raises: PortgroupNotEmpty if portgroup is not empty
+
+        """
+        LOG.debug('RPC destroy_portgroup called for portgroup %(portgroup)s',
+                  {'portgroup': portgroup.uuid})
+        with task_manager.acquire(context, portgroup.node_id,
+                                  purpose='portgroup deletion') as task:
+            portgroup.destroy()
+            LOG.info(_LI('Successfully deleted portgroup %(portgroup)s. '
+                         'The node associated with the portgroup was '
+                         '%(node)s'),
+                     {'portgroup': portgroup.uuid, 'node': task.node.uuid})
+
+    @messaging.expected_exceptions(exception.NodeLocked,
                                    exception.UnsupportedDriverExtension,
                                    exception.NodeConsoleNotEnabled,
                                    exception.InvalidParameterValue,
@@ -1616,7 +1640,8 @@ class ConductorManager(base_manager.BaseConductorManager):
 
     @messaging.expected_exceptions(exception.NodeLocked,
                                    exception.FailedToUpdateMacOnPort,
-                                   exception.MACAlreadyExists)
+                                   exception.MACAlreadyExists,
+                                   exception.InvalidState)
     def update_port(self, context, port_obj):
         """Update a port.
 
@@ -1627,6 +1652,9 @@ class ConductorManager(base_manager.BaseConductorManager):
                  failed.
         :raises: MACAlreadyExists if the update is setting a MAC which is
                  registered on another port already.
+        :raises: InvalidState if port connectivity attributes
+                 are updated while node not in a MANAGEABLE or ENROLL or
+                 INSPECTING state or not in MAINTENANCE mode.
         """
         port_uuid = port_obj.uuid
         LOG.debug("RPC update_port called for port %s.", port_uuid)
@@ -1634,6 +1662,32 @@ class ConductorManager(base_manager.BaseConductorManager):
         with task_manager.acquire(context, port_obj.node_id,
                                   purpose='port update') as task:
             node = task.node
+
+            # If port update is modifying the portgroup membership of the port
+            # or modifying the local_link_connection or pxe_enabled flags then
+            # node should be in MANAGEABLE/INSPECTING/ENROLL provisioning state
+            # or in maintenance mode.
+            # Otherwise InvalidState exception is raised.
+            connectivity_attr = {'portgroup_uuid',
+                                 'pxe_enabled',
+                                 'local_link_connection'}
+            allowed_update_states = [states.ENROLL,
+                                     states.INSPECTING,
+                                     states.MANAGEABLE]
+            if (set(port_obj.obj_what_changed()) & connectivity_attr
+                    and not (task.node.provision_state in allowed_update_states
+                             or task.node.maintenance)):
+                action = _("Port %(port)s can not have any connectivity "
+                           "attributes (%(connect)s) updated unless "
+                           "node %(node)s is in a %(allowed)s state "
+                           "or in maintenance mode.")
+
+                raise exception.InvalidState(
+                    action % {'port': port_uuid,
+                              'node': task.node.uuid,
+                              'connect': ', '.join(connectivity_attr),
+                              'allowed': ', '.join(allowed_update_states)})
+
             if 'address' in port_obj.obj_what_changed():
                 vif = port_obj.extra.get('vif_port_id')
                 if vif:
@@ -1652,6 +1706,51 @@ class ConductorManager(base_manager.BaseConductorManager):
             port_obj.save()
 
             return port_obj
+
+    @messaging.expected_exceptions(exception.NodeLocked,
+                                   exception.FailedToUpdateMacOnPort,
+                                   exception.PortgroupMACAlreadyExists)
+    def update_portgroup(self, context, portgroup_obj):
+        """Update a portgroup.
+
+        :param context: request context.
+        :param portgroup_obj: a changed (but not saved) portgroup object.
+        :raises: DHCPLoadError if the dhcp_provider cannot be loaded.
+        :raises: FailedToUpdateMacOnPort if MAC address changed and update
+                 failed.
+        :raises: PortgroupMACAlreadyExists if the update is setting a MAC which
+                 is registered on another portgroup already.
+        """
+        portgroup_uuid = portgroup_obj.uuid
+        LOG.debug("RPC update_portgroup called for portgroup %s.",
+                  portgroup_uuid)
+        lock_purpose = 'update portgroup'
+        with task_manager.acquire(context,
+                                  portgroup_obj.node_id,
+                                  purpose=lock_purpose) as task:
+            node = task.node
+            if 'address' in portgroup_obj.obj_what_changed():
+                vif = portgroup_obj.extra.get('vif_portgroup_id')
+                if vif:
+                    api = dhcp_factory.DHCPFactory()
+                    api.provider.update_port_address(
+                        vif,
+                        portgroup_obj.address,
+                        token=context.auth_token)
+                # Log warning if there is no vif_portgroup_id and an instance
+                # is associated with the node.
+                elif node.instance_uuid:
+                    LOG.warning(_LW(
+                        "No VIF was found for instance %(instance)s "
+                        "on node %(node)s, when attempting to update "
+                        "portgroup %(portgroup)s MAC address."),
+                        {'portgroup': portgroup_uuid,
+                         'instance': node.instance_uuid,
+                         'node': node.uuid})
+
+            portgroup_obj.save()
+
+            return portgroup_obj
 
     @messaging.expected_exceptions(exception.DriverNotFound)
     def get_driver_properties(self, context, driver_name):

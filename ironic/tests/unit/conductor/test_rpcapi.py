@@ -53,6 +53,7 @@ class RPCAPITestCase(base.DbTestCase):
         self.fake_node = dbutils.get_test_node(driver='fake-driver')
         self.fake_node_obj = objects.Node._from_db_object(
             objects.Node(self.context), self.fake_node)
+        self.fake_portgroup = dbutils.get_test_portgroup()
 
     def test_serialized_instance_has_uuid(self):
         self.assertTrue('uuid' in self.fake_node)
@@ -380,3 +381,15 @@ class RPCAPITestCase(base.DbTestCase):
                           rpcapi.object_backport_versions, self.context,
                           objinst='fake-object',
                           object_versions={'fake-object': '1.0'})
+
+    def test_update_portgroup(self):
+        self._test_rpcapi('update_portgroup',
+                          'call',
+                          version='1.33',
+                          portgroup_obj=self.fake_portgroup)
+
+    def test_destroy_portgroup(self):
+        self._test_rpcapi('destroy_portgroup',
+                          'call',
+                          version='1.33',
+                          portgroup=self.fake_portgroup)
