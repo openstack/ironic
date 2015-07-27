@@ -19,12 +19,26 @@ def get_node_vif_ids(task):
     This function does not handle multi node operations.
 
     :param task: a TaskManager instance.
-    :returns: A dict of the Node's port UUIDs and their associated VIFs
+    :returns: A dict of Node's neutron ports where keys are
+        'ports' & 'portgroups' and the values are dict of UUIDs
+        and their associated VIFs, e.g.
 
+              ::
+
+               {'ports': {'port.uuid': vif.id},
+                'portgroups': {'portgroup.uuid': vif.id}}
     """
+    vifs = {}
+    portgroup_vifs = {}
     port_vifs = {}
+    for portgroup in task.portgroups:
+        vif = portgroup.extra.get('vif_port_id')
+        if vif:
+            portgroup_vifs[portgroup.uuid] = vif
+    vifs['portgroups'] = portgroup_vifs
     for port in task.ports:
         vif = port.extra.get('vif_port_id')
         if vif:
             port_vifs[port.uuid] = vif
-    return port_vifs
+    vifs['ports'] = port_vifs
+    return vifs
