@@ -843,7 +843,7 @@ class ConductorManager(periodic_task.PeriodicTasks):
                                   purpose='node cleaning') as task:
             # TODO(lucasagomes): CLEANING here for backwards compat
             # with previous code, otherwise nodes in CLEANING when this
-            # is deployed would fail. Should be removed once the M
+            # is deployed would fail. Should be removed once the Mitaka
             # release starts.
             if task.node.provision_state not in (states.CLEANWAIT,
                                                  states.CLEANING):
@@ -857,7 +857,7 @@ class ConductorManager(periodic_task.PeriodicTasks):
                                       'Failed to run next clean step')
 
             # TODO(lucasagomes): This conditional is here for backwards
-            # compat with previous code. Should be removed once the M
+            # compat with previous code. Should be removed once the Mitaka
             # release starts.
             if task.node.provision_state == states.CLEANWAIT:
                 task.process_event('resume')
@@ -905,7 +905,7 @@ class ConductorManager(periodic_task.PeriodicTasks):
             LOG.exception(msg)
             return cleaning_error_handler(task, msg)
 
-        # TODO(lucasagomes): Should be removed once the M release starts
+        # TODO(lucasagomes): Should be removed once the Mitaka release starts
         if prepare_result == states.CLEANING:
             LOG.warning(_LW('Returning CLEANING for asynchronous prepare '
                             'cleaning has been deprecated. Please use '
@@ -972,7 +972,8 @@ class ConductorManager(periodic_task.PeriodicTasks):
                 cleaning_error_handler(task, msg)
                 return
 
-            # TODO(lucasagomes): Should be removed once the M release starts
+            # TODO(lucasagomes): Should be removed once the Mitaka
+            # release starts
             if result == states.CLEANING:
                 LOG.warning(_LW('Returning CLEANING for asynchronous clean '
                                 'steps has been deprecated. Please use '
@@ -1098,15 +1099,15 @@ class ConductorManager(periodic_task.PeriodicTasks):
 
         1) Node is mapped to this conductor.
         2) Node is not in maintenance mode.
-        3) Node is not in DEPLOYWAIT provision state.
+        3) Node is not in DEPLOYWAIT/CLEANWAIT provision state.
         4) Node doesn't have a reservation
 
         NOTE: Grabbing a lock here can cause other methods to fail to
-        grab it. We want to avoid trying to grab a lock while a
-        node is in the DEPLOYWAIT state so we don't unnecessarily
-        cause a deploy callback to fail. There's not much we can do
-        here to avoid failing a brand new deploy to a node that we've
-        locked here, though.
+        grab it. We want to avoid trying to grab a lock while a node
+        is in the DEPLOYWAIT/CLEANWAIT state so we don't unnecessarily
+        cause a deploy/cleaning callback to fail. There's not much we
+        can do here to avoid failing a brand new deploy to a node that
+        we've locked here, though.
         """
         # FIXME(comstud): Since our initial state checks are outside
         # of the lock (to try to avoid the lock), some checks are

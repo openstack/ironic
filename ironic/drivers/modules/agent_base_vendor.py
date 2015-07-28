@@ -265,7 +265,7 @@ class BaseAgentVendor(base.VendorInterface):
                 node.touch_provisioning()
             # TODO(lucasagomes): CLEANING here for backwards compat
             # with previous code, otherwise nodes in CLEANING when this
-            # is deployed would fail. Should be removed once the M
+            # is deployed would fail. Should be removed once the Mitaka
             # release starts.
             elif (node.provision_state in (states.CLEANWAIT, states.CLEANING)
                   and not node.clean_step):
@@ -275,7 +275,7 @@ class BaseAgentVendor(base.VendorInterface):
                 self._notify_conductor_resume_clean(task)
             # TODO(lucasagomes): CLEANING here for backwards compat
             # with previous code, otherwise nodes in CLEANING when this
-            # is deployed would fail. Should be removed once the M
+            # is deployed would fail. Should be removed once the Mitaka
             # release starts.
             elif (node.provision_state in (states.CLEANWAIT, states.CLEANING)
                   and node.clean_step):
