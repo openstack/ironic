@@ -25,9 +25,9 @@ Prerequisites
   to manage Cisco UCS Managed B/C-series servers.
 
   Install ``UcsSdk`` [1]_ module on the Ironic conductor node.
-  Required version is 0.8.1.9::
+  Required version is 0.8.2.2::
 
-   $ pip install "UcsSdk==0.8.1.9"
+   $ pip install "UcsSdk==0.8.2.2"
 
 Tested Platforms
 ~~~~~~~~~~~~~~~~
