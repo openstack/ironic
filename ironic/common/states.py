@@ -133,10 +133,10 @@ CLEANING = 'cleaning'
 """ Node is being automatically cleaned to prepare it for provisioning. """
 
 CLEANWAIT = 'clean wait'
-""" Node is waiting to be cleaned.
+""" Node is waiting for a clean step to be finished.
 
-This will be the node `provision_state` while the node is waiting for
-the driver to finish cleaning step.
+This will be the node's `provision_state` while the node is waiting for
+the driver to finish a cleaning step.
 """
 
 CLEANFAIL = 'clean failed'
@@ -289,7 +289,7 @@ machine.add_transition(CLEANING, AVAILABLE, 'done')
 machine.add_transition(CLEANING, CLEANFAIL, 'fail')
 machine.add_transition(CLEANWAIT, CLEANFAIL, 'fail')
 
-# A deployment may also wait on external callbacks
+# Cleaning may also wait on external callbacks
 machine.add_transition(CLEANING, CLEANWAIT, 'wait')
 machine.add_transition(CLEANWAIT, CLEANING, 'resume')
 
