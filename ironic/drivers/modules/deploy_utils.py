@@ -959,7 +959,7 @@ def agent_execute_clean_step(task, step):
     :param task: a TaskManager object containing the node
     :param step: a clean step dictionary to execute
     :raises: NodeCleaningFailure if the agent does not return a command status
-    :returns: states.CLEANING to signify the step will be completed async
+    :returns: states.CLEANWAIT to signify the step will be completed async
     """
     client = agent_client.AgentClient()
     ports = objects.Port.list_by_node_id(
@@ -970,7 +970,7 @@ def agent_execute_clean_step(task, step):
             'Agent on node %(node)s returned bad command result: '
             '%(result)s') % {'node': task.node.uuid,
                              'result': result.get('command_error')})
-    return states.CLEANING
+    return states.CLEANWAIT
 
 
 def agent_add_clean_params(task):

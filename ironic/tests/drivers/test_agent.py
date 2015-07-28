@@ -312,7 +312,7 @@ class TestAgentDeploy(db_base.DbTestCase):
         create_mock.return_value = ports
         with task_manager.acquire(
                 self.context, self.node['uuid'], shared=False) as task:
-            self.assertEqual(states.CLEANING,
+            self.assertEqual(states.CLEANWAIT,
                              self.driver.prepare_cleaning(task))
             prepare_mock.assert_called_once_with(task)
             boot_mock.assert_called_once_with(task, ports)

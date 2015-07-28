@@ -385,7 +385,7 @@ class AgentDeploy(base.DeployInterface):
         :param step: a clean step dictionary to execute
         :raises: NodeCleaningFailure if the agent does not return a command
             status
-        :returns: states.CLEANING to signify the step will be completed async
+        :returns: states.CLEANWAIT to signify the step will be completed async
         """
         return deploy_utils.agent_execute_clean_step(task, step)
 
@@ -395,7 +395,7 @@ class AgentDeploy(base.DeployInterface):
         :param task: a TaskManager object containing the node
         :raises NodeCleaningFailure: if the previous cleaning ports cannot
             be removed or if new cleaning ports cannot be created
-        :returns: states.CLEANING to signify an asynchronous prepare
+        :returns: states.CLEANWAIT to signify an asynchronous prepare
         """
         provider = dhcp_factory.DHCPFactory()
         # If we have left over ports from a previous cleaning, remove them
@@ -416,7 +416,7 @@ class AgentDeploy(base.DeployInterface):
         _prepare_pxe_boot(task)
         _do_pxe_boot(task, ports)
         # Tell the conductor we are waiting for the agent to boot.
-        return states.CLEANING
+        return states.CLEANWAIT
 
     def tear_down_cleaning(self, task):
         """Clean up the PXE and DHCP files after cleaning.
