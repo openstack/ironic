@@ -1050,9 +1050,8 @@ class NodesController(rest.RestController):
             LOG.debug('Removing instance uuid %(instance)s from node %(node)s',
                       {'instance': rpc_node.instance_uuid,
                        'node': rpc_node.uuid})
-        elif ((rpc_node.target_power_state or rpc_node.target_provision_state)
-                and rpc_node.provision_state not in
-                ir_states.UPDATE_ALLOWED_STATES):
+        elif (rpc_node.target_provision_state and rpc_node.provision_state
+              not in ir_states.UPDATE_ALLOWED_STATES):
             msg = _("Node %s can not be updated while a state transition "
                     "is in progress.")
             raise wsme.exc.ClientSideError(msg % node_ident, status_code=409)
