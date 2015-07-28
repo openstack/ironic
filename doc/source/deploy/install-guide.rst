@@ -334,6 +334,11 @@ Compute Service's controller nodes and compute nodes.*
     #scheduler_use_baremetal_filters=False
     scheduler_use_baremetal_filters=True
 
+    # Determines if the Scheduler tracks changes to instances to help with
+    # its filtering decisions (boolean value)
+    #scheduler_tracks_instance_changes=True
+    scheduler_tracks_instance_changes=False
+
 2. Change these configuration options in the ``ironic`` section.
    Replace:
 
