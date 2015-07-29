@@ -1449,6 +1449,8 @@ UUID interchangeably.
 .. _wiki_hostname: http://en.wikipedia.org/wiki/Hostname
 
 
+.. _inspection:
+
 Hardware Inspection
 -------------------
 
