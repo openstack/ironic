@@ -284,6 +284,60 @@ so that the Bare Metal Service is configured for your needs.
     service ironic-conductor restart
 
 
+Configuring ironic-api behind mod_wsgi
+--------------------------------------
+
+Ironic comes with an example file  for configuring the ``ironic-api``
+service to run behind Apache with mod_wsgi.
+
+1. Install the apache service::
+
+    RHEL7/CentOS/Fedora 21 (or lower):
+      sudo yum install httpd
+
+    Fedora 22 (or higher):
+      sudo dnf install httpd
+
+    Debian/Ubuntu:
+      apt-get install apache2
+
+
+2. Copy the ``etc/apache2/ironic`` file under the apache sites::
+
+    Fedora/RHEL7/CentOS:
+      sudo cp etc/apache2/ironic /etc/httpd/conf.d/ironic.conf
+
+    Debian/Ubuntu:
+      sudo cp etc/apache2/ironic /etc/apache2/sites-available/ironic.conf
+
+
+3. Edit the recently copied ``<apache-configuration-dir>/ironic.conf``:
+
+  - Modify the ``WSGIDaemonProcess``, ``APACHE_RUN_USER`` and
+    ``APACHE_RUN_GROUP`` directives to set the user and group values to
+    an appropriate user on your server.
+
+  - Modify the ``WSGIScriptAlias`` directive to point to the
+    *ironic/api/app.wsgi* script.
+
+  - Modify the ``Directory`` directive to set the path to the Ironic API code.
+
+
+4. Enable the apache ``ironic`` in site and reload::
+
+    Fedora/RHEL7/CentOS:
+      sudo systemctl reload httpd
+
+    Debian/Ubuntu:
+      sudo a2ensite ironic
+      sudo service apache2 reload
+
+
+.. note::
+   The file ironic/api/app.wsgi is installed with the rest of the ironic
+   application code, and should not need to be modified.
+
+
 Configure Compute Service to use the Bare Metal Service
 =======================================================
 
