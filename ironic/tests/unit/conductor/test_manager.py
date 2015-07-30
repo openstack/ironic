@@ -85,6 +85,36 @@ class ChangeNodePowerStateTestCase(mgr_utils.ServiceSetUpMixin,
             # background task's link callback.
             self.assertIsNone(node.reservation)
 
+    def test_change_node_power_state_soft_power_off_timeout(self):
+        # Test change_node_power_state with timeout optional parameter
+        # including integration with conductor.utils.node_power_action and
+        # lower.
+        mgr_utils.mock_the_extension_manager(driver="fake_soft_power")
+        self.driver = driver_factory.get_driver("fake_soft_power")
+        node = obj_utils.create_test_node(self.context,
+                                          driver='fake_soft_power',
+                                          power_state=states.POWER_ON)
+        self._start_service()
+
+        with mock.patch.object(self.driver.power,
+                               'get_power_state') as get_power_mock:
+            get_power_mock.return_value = states.POWER_ON
+
+            self.service.change_node_power_state(self.context,
+                                                 node.uuid,
+                                                 states.SOFT_POWER_OFF,
+                                                 timeout=2)
+            self._stop_service()
+
+            get_power_mock.assert_called_once_with(mock.ANY)
+            node.refresh()
+            self.assertEqual(states.POWER_OFF, node.power_state)
+            self.assertIsNone(node.target_power_state)
+            self.assertIsNone(node.last_error)
+            # Verify the reservation has been cleared by
+            # background task's link callback.
+            self.assertIsNone(node.reservation)
+
     @mock.patch.object(conductor_utils, 'node_power_action')
     def test_change_node_power_state_node_already_locked(self,
                                                          pwr_act_mock):
@@ -135,7 +165,7 @@ class ChangeNodePowerStateTestCase(mgr_utils.ServiceSetUpMixin,
             self.assertEqual(exception.NoFreeConductorWorker, exc.exc_info[0])
 
             spawn_mock.assert_called_once_with(mock.ANY, mock.ANY,
-                                               mock.ANY)
+                                               mock.ANY, timeout=mock.ANY)
             node.refresh()
             self.assertEqual(initial_state, node.power_state)
             self.assertIsNone(node.target_power_state)
@@ -343,7 +373,8 @@ class ChangeNodePowerStateTestCase(mgr_utils.ServiceSetUpMixin,
                               states.POWER_ON)
 
             spawn_mock.assert_called_once_with(
-                conductor_utils.node_power_action, mock.ANY, states.POWER_ON)
+                conductor_utils.node_power_action, mock.ANY, states.POWER_ON,
+                timeout=None)
             self.assertFalse(mock_notif.called)
 
     @mock.patch('ironic.objects.node.NodeSetPowerStateNotification')
@@ -380,6 +411,33 @@ class ChangeNodePowerStateTestCase(mgr_utils.ServiceSetUpMixin,
                                      'ironic-conductor', CONF.host,
                                      'baremetal.node.power_set.end',
                                      obj_fields.NotificationLevel.INFO)
+
+    def test_change_node_power_state_unsupported_state(self):
+        # Test change_node_power_state where unsupported power state raises
+        # an exception
+        initial_state = states.POWER_ON
+        node = obj_utils.create_test_node(self.context, driver='fake',
+                                          power_state=initial_state)
+        self._start_service()
+
+        with mock.patch.object(self.driver.power,
+                               'get_supported_power_states') as supported_mock:
+            supported_mock.return_value = [
+                states.POWER_ON, states.POWER_OFF, states.REBOOT]
+
+            exc = self.assertRaises(messaging.rpc.ExpectedException,
+                                    self.service.change_node_power_state,
+                                    self.context,
+                                    node.uuid,
+                                    states.SOFT_POWER_OFF)
+
+            self.assertEqual(exception.InvalidParameterValue, exc.exc_info[0])
+
+            node.refresh()
+            supported_mock.assert_called_once_with(mock.ANY)
+            self.assertEqual(states.POWER_ON, node.power_state)
+            self.assertIsNone(node.target_power_state)
+            self.assertIsNone(node.last_error)
 
 
 @mgr_utils.mock_record_keepalive

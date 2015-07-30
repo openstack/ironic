@@ -83,7 +83,7 @@ class ConductorManager(base_manager.BaseConductorManager):
     """Ironic Conductor manager main class."""
 
     # NOTE(rloo): This must be in sync with rpcapi.ConductorAPI's.
-    RPC_API_VERSION = '1.38'
+    RPC_API_VERSION = '1.39'
 
     target = messaging.Target(version=RPC_API_VERSION)
 
@@ -179,7 +179,8 @@ class ConductorManager(base_manager.BaseConductorManager):
     @messaging.expected_exceptions(exception.InvalidParameterValue,
                                    exception.NoFreeConductorWorker,
                                    exception.NodeLocked)
-    def change_node_power_state(self, context, node_id, new_state):
+    def change_node_power_state(self, context, node_id, new_state,
+                                timeout=None):
         """RPC method to encapsulate changes to a node's state.
 
         Perform actions such as power on, power off. The validation is
@@ -191,8 +192,12 @@ class ConductorManager(base_manager.BaseConductorManager):
         :param context: an admin context.
         :param node_id: the id or uuid of a node.
         :param new_state: the desired power state of the node.
+        :param timeout: timeout (in seconds) positive integer (> 0) for any
+          power state. ``None`` indicates to use default timeout.
         :raises: NoFreeConductorWorker when there is no free worker to start
                  async task.
+        :raises: InvalidParameterValue
+        :raises: MissingParameterValue
 
         """
         LOG.debug("RPC change_node_power_state called for node %(node)s. "
@@ -202,19 +207,38 @@ class ConductorManager(base_manager.BaseConductorManager):
         with task_manager.acquire(context, node_id, shared=False,
                                   purpose='changing node power state') as task:
             task.driver.power.validate(task)
+
+            if (new_state not in
+                task.driver.power.get_supported_power_states(task)):
+                # FIXME(naohirot):
+                # After driver composition, we should print power interface
+                # name here instead of driver.
+                raise exception.InvalidParameterValue(
+                    _('The driver %(driver)s does not support the power state,'
+                      ' %(state)s') %
+                    {'driver': task.node.driver, 'state': new_state})
+
+            if new_state in (states.SOFT_REBOOT, states.SOFT_POWER_OFF):
+                power_timeout = (timeout or
+                                 CONF.conductor.soft_power_off_timeout)
+            else:
+                power_timeout = timeout
+
             # Set the target_power_state and clear any last_error, since we're
             # starting a new operation. This will expose to other processes
             # and clients that work is in progress.
-            if new_state == states.REBOOT:
+            if new_state in (states.POWER_ON, states.REBOOT,
+                             states.SOFT_REBOOT):
                 task.node.target_power_state = states.POWER_ON
             else:
-                task.node.target_power_state = new_state
+                task.node.target_power_state = states.POWER_OFF
+
             task.node.last_error = None
             task.node.save()
             task.set_spawn_error_hook(utils.power_state_error_handler,
                                       task.node, task.node.power_state)
             task.spawn_after(self._spawn_worker, utils.node_power_action,
-                             task, new_state)
+                             task, new_state, timeout=power_timeout)
 
     @METRICS.timer('ConductorManager.vendor_passthru')
     @messaging.expected_exceptions(exception.NoFreeConductorWorker,

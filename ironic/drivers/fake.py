@@ -78,6 +78,14 @@ class FakeDriver(base.BaseDriver):
         self.raid = fake.FakeRAID()
 
 
+class FakeSoftPowerDriver(FakeDriver):
+    """Example implementation of a Driver."""
+
+    def __init__(self):
+        super(FakeSoftPowerDriver, self).__init__()
+        self.power = fake.FakeSoftPower()
+
+
 class FakeIPMIToolDriver(base.BaseDriver):
     """Example implementation of a Driver."""
 

@@ -46,12 +46,31 @@ class FakePower(base.PowerInterface):
     def set_power_state(self, task, power_state):
         if power_state not in [states.POWER_ON, states.POWER_OFF]:
             raise exception.InvalidParameterValue(
-                _("set_power_state called with an invalid power"
+                _("set_power_state called with an invalid power "
                   "state: %s.") % power_state)
         task.node.power_state = power_state
 
     def reboot(self, task):
         pass
+
+
+class FakeSoftPower(FakePower):
+    """Example implementation of a simple soft power operations."""
+
+    def set_power_state(self, task, power_state, timeout=None):
+        if power_state not in [states.POWER_ON, states.POWER_OFF,
+                               states.SOFT_REBOOT, states.SOFT_POWER_OFF]:
+            raise exception.InvalidParameterValue(
+                _("set_power_state called with an invalid power "
+                  "state: %s.") % power_state)
+        task.node.power_state = power_state
+
+    def reboot(self, task, timeout=None):
+        pass
+
+    def get_supported_power_states(self, task):
+        return [states.POWER_ON, states.POWER_OFF, states.REBOOT,
+                states.SOFT_REBOOT, states.SOFT_POWER_OFF]
 
 
 class FakeBoot(base.BootInterface):

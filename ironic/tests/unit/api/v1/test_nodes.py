@@ -2345,20 +2345,119 @@ class TestPut(test_api_base.BaseApiTest):
         self.mock_dnih = p.start()
         self.addCleanup(p.stop)
 
-    def test_power_state(self):
-        response = self.put_json('/nodes/%s/states/power' % self.node.uuid,
-                                 {'target': states.POWER_ON})
+    def _test_power_state_success(self, target_state, timeout, api_version):
+        if timeout is None:
+            body = {'target': target_state}
+        else:
+            body = {'target': target_state, 'timeout': timeout}
+
+        if api_version is None:
+            response = self.put_json(
+                '/nodes/%s/states/power' % self.node.uuid, body)
+        else:
+            response = self.put_json(
+                '/nodes/%s/states/power' % self.node.uuid, body,
+                headers={api_base.Version.string: api_version})
+
         self.assertEqual(http_client.ACCEPTED, response.status_code)
         self.assertEqual(b'', response.body)
         self.mock_cnps.assert_called_once_with(mock.ANY,
                                                self.node.uuid,
-                                               states.POWER_ON,
-                                               'test-topic')
+                                               target_state,
+                                               timeout=timeout,
+                                               topic='test-topic')
         # Check location header
         self.assertIsNotNone(response.location)
         expected_location = '/v1/nodes/%s/states' % self.node.uuid
         self.assertEqual(urlparse.urlparse(response.location).path,
                          expected_location)
+
+    def _test_power_state_failure(self, target_state, http_status_code,
+                                  timeout, api_version):
+        if timeout is None:
+            body = {'target': target_state}
+        else:
+            body = {'target': target_state, 'timeout': timeout}
+
+        if api_version is None:
+            response = self.put_json(
+                '/nodes/%s/states/power' % self.node.uuid, body,
+                expect_errors=True)
+        else:
+            response = self.put_json(
+                '/nodes/%s/states/power' % self.node.uuid, body,
+                headers={api_base.Version.string: api_version},
+                expect_errors=True)
+
+        self.assertEqual('application/json', response.content_type)
+        self.assertEqual(http_status_code, response.status_code)
+        self.assertTrue(response.json['error_message'])
+
+    def test_power_state_power_on_no_timeout_no_ver(self):
+        self._test_power_state_success(states.POWER_ON, None, None)
+
+    def test_power_state_power_on_no_timeout_valid_soft_ver(self):
+        self._test_power_state_success(states.POWER_ON, None, "1.27")
+
+    def test_power_state_power_on_no_timeout_invalid_soft_ver(self):
+        self._test_power_state_success(states.POWER_ON, None, "1.26")
+
+    def test_power_state_power_on_valid_timeout_no_ver(self):
+        self._test_power_state_failure(
+            states.POWER_ON, http_client.NOT_ACCEPTABLE, 2, None)
+
+    def test_power_state_power_on_valid_timeout_valid_soft_ver(self):
+        self._test_power_state_success(states.POWER_ON, 2, "1.27")
+
+    def test_power_state_power_on_valid_timeout_invalid_soft_ver(self):
+        self._test_power_state_failure(
+            states.POWER_ON, http_client.NOT_ACCEPTABLE, 2, "1.26")
+
+    def test_power_state_power_on_invalid_timeout_no_ver(self):
+        self._test_power_state_failure(
+            states.POWER_ON, http_client.BAD_REQUEST, 0, None)
+
+    def test_power_state_power_on_invalid_timeout_valid_soft_ver(self):
+        self._test_power_state_failure(
+            states.POWER_ON, http_client.BAD_REQUEST, 0, "1.27")
+
+    def test_power_state_power_on_invalid_timeout_invalid_soft_ver(self):
+        self._test_power_state_failure(
+            states.POWER_ON, http_client.BAD_REQUEST, 0, "1.26")
+
+    def test_power_state_soft_power_off_no_timeout_no_ver(self):
+        self._test_power_state_failure(
+            states.SOFT_POWER_OFF, http_client.NOT_ACCEPTABLE, None, None)
+
+    def test_power_state_soft_power_off_no_timeout_valid_soft_ver(self):
+        self._test_power_state_success(states.SOFT_POWER_OFF, None, "1.27")
+
+    def test_power_state_soft_power_off_no_timeout_invalid_soft_ver(self):
+        self._test_power_state_failure(
+            states.SOFT_POWER_OFF, http_client.NOT_ACCEPTABLE, None, "1.26")
+
+    def test_power_state_soft_power_off_valid_timeout_no_ver(self):
+        self._test_power_state_failure(
+            states.SOFT_POWER_OFF, http_client.NOT_ACCEPTABLE, 2, None)
+
+    def test_power_state_soft_power_off_valid_timeout_valid_soft_ver(self):
+        self._test_power_state_success(states.SOFT_POWER_OFF, 2, "1.27")
+
+    def test_power_state_soft_power_off_valid_timeout_invalid_soft_ver(self):
+        self._test_power_state_failure(
+            states.SOFT_POWER_OFF, http_client.NOT_ACCEPTABLE, 2, "1.26")
+
+    def test_power_state_soft_power_off_invalid_timeout_no_ver(self):
+        self._test_power_state_failure(
+            states.SOFT_POWER_OFF, http_client.NOT_ACCEPTABLE, 0, None)
+
+    def test_power_state_soft_power_off_invalid_timeout_valid_soft_ver(self):
+        self._test_power_state_failure(
+            states.SOFT_POWER_OFF, http_client.BAD_REQUEST, 0, "1.27")
+
+    def test_power_state_soft_power_off_invalid_timeout_invalid_soft_ver(self):
+        self._test_power_state_failure(
+            states.SOFT_POWER_OFF, http_client.NOT_ACCEPTABLE, 0, "1.26")
 
     def test_power_state_by_name_unsupported(self):
         response = self.put_json('/nodes/%s/states/power' % self.node.name,
@@ -2375,7 +2474,8 @@ class TestPut(test_api_base.BaseApiTest):
         self.mock_cnps.assert_called_once_with(mock.ANY,
                                                self.node.uuid,
                                                states.POWER_ON,
-                                               'test-topic')
+                                               timeout=None,
+                                               topic='test-topic')
         # Check location header
         self.assertIsNotNone(response.location)
         expected_location = '/v1/nodes/%s/states' % self.node.name

@@ -2,6 +2,12 @@
 REST API Version History
 ========================
 
+**1.27** (Ocata)
+
+    Add ``soft rebooting`` and ``soft power off`` as possible values
+    for the ``target`` field of the power state change payload, and
+    also add ``timeout`` field to it.
+
 **1.26** (Ocata)
 
     Add portgroup ``mode`` and ``properties`` fields.

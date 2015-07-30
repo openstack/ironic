@@ -1013,6 +1013,12 @@
 # disable timeout. (integer value)
 #clean_callback_timeout = 1800
 
+# Timeout (in seconds) of soft reboot and soft power off
+# operation. This value always has to be positive. (integer
+# value)
+# Minimum value: 1
+#soft_power_off_timeout = 600
+
 
 [console]
 

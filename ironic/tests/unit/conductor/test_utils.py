@@ -495,6 +495,96 @@ class NodePowerActionTestCase(base.DbTestCase):
                     obj_fields.NotificationLevel.ERROR)
 
 
+class NodeSoftPowerActionTestCase(base.DbTestCase):
+
+    def setUp(self):
+        super(NodeSoftPowerActionTestCase, self).setUp()
+        mgr_utils.mock_the_extension_manager(driver="fake_soft_power")
+        self.driver = driver_factory.get_driver("fake_soft_power")
+
+    def test_node_power_action_power_soft_reboot(self):
+        """Test for soft reboot a node."""
+        node = obj_utils.create_test_node(self.context,
+                                          uuid=uuidutils.generate_uuid(),
+                                          driver='fake_soft_power',
+                                          power_state=states.POWER_ON)
+        task = task_manager.TaskManager(self.context, node.uuid)
+
+        with mock.patch.object(self.driver.power,
+                               'get_power_state') as get_power_mock:
+            get_power_mock.return_value = states.POWER_ON
+
+            conductor_utils.node_power_action(task, states.SOFT_REBOOT)
+
+            node.refresh()
+            get_power_mock.assert_called_once_with(mock.ANY)
+            self.assertEqual(states.POWER_ON, node['power_state'])
+            self.assertIsNone(node['target_power_state'])
+            self.assertIsNone(node['last_error'])
+
+    def test_node_power_action_power_soft_reboot_timeout(self):
+        """Test for soft reboot a node."""
+        node = obj_utils.create_test_node(self.context,
+                                          uuid=uuidutils.generate_uuid(),
+                                          driver='fake_soft_power',
+                                          power_state=states.POWER_ON)
+        task = task_manager.TaskManager(self.context, node.uuid)
+
+        with mock.patch.object(self.driver.power,
+                               'get_power_state') as get_power_mock:
+            get_power_mock.return_value = states.POWER_ON
+
+            conductor_utils.node_power_action(task, states.SOFT_REBOOT,
+                                              timeout=2)
+
+            node.refresh()
+            get_power_mock.assert_called_once_with(mock.ANY)
+            self.assertEqual(states.POWER_ON, node['power_state'])
+            self.assertIsNone(node['target_power_state'])
+            self.assertIsNone(node['last_error'])
+
+    def test_node_power_action_soft_power_off(self):
+        """Test node_power_action to turn node soft power off."""
+        node = obj_utils.create_test_node(self.context,
+                                          uuid=uuidutils.generate_uuid(),
+                                          driver='fake_soft_power',
+                                          power_state=states.POWER_ON)
+        task = task_manager.TaskManager(self.context, node.uuid)
+
+        with mock.patch.object(self.driver.power,
+                               'get_power_state') as get_power_mock:
+            get_power_mock.return_value = states.POWER_ON
+
+            conductor_utils.node_power_action(task, states.SOFT_POWER_OFF)
+
+            node.refresh()
+            get_power_mock.assert_called_once_with(mock.ANY)
+            self.assertEqual(states.POWER_OFF, node['power_state'])
+            self.assertIsNone(node['target_power_state'])
+            self.assertIsNone(node['last_error'])
+
+    def test_node_power_action_soft_power_off_timeout(self):
+        """Test node_power_action to turn node soft power off."""
+        node = obj_utils.create_test_node(self.context,
+                                          uuid=uuidutils.generate_uuid(),
+                                          driver='fake_soft_power',
+                                          power_state=states.POWER_ON)
+        task = task_manager.TaskManager(self.context, node.uuid)
+
+        with mock.patch.object(self.driver.power,
+                               'get_power_state') as get_power_mock:
+            get_power_mock.return_value = states.POWER_ON
+
+            conductor_utils.node_power_action(task, states.SOFT_POWER_OFF,
+                                              timeout=2)
+
+            node.refresh()
+            get_power_mock.assert_called_once_with(mock.ANY)
+            self.assertEqual(states.POWER_OFF, node['power_state'])
+            self.assertIsNone(node['target_power_state'])
+            self.assertIsNone(node['last_error'])
+
+
 class CleanupAfterTimeoutTestCase(tests_base.TestCase):
     def setUp(self):
         super(CleanupAfterTimeoutTestCase, self).setUp()
