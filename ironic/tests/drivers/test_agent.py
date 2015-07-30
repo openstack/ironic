@@ -28,6 +28,10 @@ from ironic.conductor import utils as manager_utils
 from ironic.drivers.modules import agent
 from ironic.drivers.modules import agent_client
 from ironic.drivers.modules import fake
+from ironic.drivers.modules.ilo import power as ilo_power
+from ironic.drivers.modules import ipmitool
+from ironic.drivers.modules.irmc import deploy as irmc_deploy
+from ironic.drivers.modules.irmc import power as irmc_power
 from ironic.tests.conductor import utils as mgr_utils
 from ironic.tests.db import base as db_base
 from ironic.tests.db import utils as db_utils
@@ -429,17 +433,17 @@ class TestAgentVendor(db_base.DbTestCase):
                              task.node.target_provision_state)
 
     @mock.patch.object(manager_utils, 'node_power_action', autospec=True)
-    @mock.patch.object(fake.FakePower, 'get_power_state',
-                       spec=types.FunctionType)
     @mock.patch.object(agent_client.AgentClient, 'power_off',
                        spec=types.FunctionType)
     @mock.patch('ironic.conductor.utils.node_set_boot_device', autospec=True)
     @mock.patch('ironic.drivers.modules.agent.AgentVendorInterface'
                 '.check_deploy_success', autospec=True)
     @mock.patch.object(agent, '_clean_up_pxe', autospec=True)
-    def test_reboot_to_instance(self, clean_pxe_mock, check_deploy_mock,
-                                bootdev_mock, power_off_mock,
-                                get_power_state_mock, node_power_action_mock):
+    def _test_reboot_to_instance(self, clean_pxe_mock, check_deploy_mock,
+                                 bootdev_mock, power_off_mock,
+                                 node_power_action_mock,
+                                 get_power_state_mock,
+                                 uses_pxe=True):
         check_deploy_mock.return_value = None
 
         self.node.provision_state = states.DEPLOYWAIT
@@ -452,7 +456,10 @@ class TestAgentVendor(db_base.DbTestCase):
             task.node.driver_internal_info['is_whole_disk_image'] = True
             self.passthru.reboot_to_instance(task)
 
-            clean_pxe_mock.assert_called_once_with(task)
+            if uses_pxe:
+                clean_pxe_mock.assert_called_once_with(task)
+            else:
+                self.assertFalse(clean_pxe_mock.called)
             check_deploy_mock.assert_called_once_with(mock.ANY, task.node)
             bootdev_mock.assert_called_once_with(task, 'disk', persistent=True)
             power_off_mock.assert_called_once_with(task.node)
@@ -461,6 +468,41 @@ class TestAgentVendor(db_base.DbTestCase):
                 task, states.POWER_ON)
             self.assertEqual(states.ACTIVE, task.node.provision_state)
             self.assertEqual(states.NOSTATE, task.node.target_provision_state)
+
+    @mock.patch.object(fake.FakePower, 'get_power_state',
+                       spec=types.FunctionType)
+    def test_reboot_to_instance_fake_driver(self, get_power_state_mock):
+        self._test_reboot_to_instance(
+            get_power_state_mock=get_power_state_mock)
+
+    @mock.patch.object(ipmitool.IPMIPower, 'get_power_state',
+                       spec=types.FunctionType)
+    def test_reboot_to_instance_agent_ipmitool_driver(
+            self, get_power_state_mock):
+        mgr_utils.mock_the_extension_manager(driver='agent_ipmitool')
+        self.node.driver = 'agent_ipmitool'
+        self.node.save()
+        self._test_reboot_to_instance(
+            get_power_state_mock=get_power_state_mock)
+
+    @mock.patch.object(ilo_power.IloPower, 'get_power_state',
+                       spec=types.FunctionType)
+    def test_reboot_to_instance_agent_ilo_driver(self, get_power_state_mock):
+        mgr_utils.mock_the_extension_manager(driver='agent_ilo')
+        self.node.driver = 'agent_ilo'
+        self.node.save()
+        self._test_reboot_to_instance(
+            get_power_state_mock=get_power_state_mock, uses_pxe=False)
+
+    @mock.patch.object(irmc_power.IRMCPower, 'get_power_state',
+                       spec=types.FunctionType)
+    def test_reboot_to_instance_agent_irmc_driver(self, get_power_state_mock):
+        irmc_deploy._check_share_fs_mounted_patcher.start()
+        mgr_utils.mock_the_extension_manager(driver='agent_irmc')
+        self.node.driver = 'agent_irmc'
+        self.node.save()
+        self._test_reboot_to_instance(
+            get_power_state_mock=get_power_state_mock, uses_pxe=False)
 
     @mock.patch.object(agent_client.AgentClient, 'get_commands_status',
                        autospec=True)

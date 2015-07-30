@@ -143,6 +143,15 @@ def _get_tftp_image_info(node):
     return pxe_utils.get_deploy_kr_info(node.uuid, node.driver_info)
 
 
+def _driver_uses_pxe(driver):
+    """A quick hack to check if driver uses pxe."""
+    # If driver.deploy says I need deploy_kernel and deploy_ramdisk,
+    # then it's using PXE boot.
+    properties = driver.deploy.get_properties()
+    return (('deploy_kernel' in properties) and
+            ('deploy_ramdisk' in properties))
+
+
 @image_cache.cleanup(priority=25)
 class AgentTFTPImageCache(image_cache.ImageCache):
     def __init__(self):
@@ -516,8 +525,12 @@ class AgentVendorInterface(agent_base_vendor.BaseAgentVendor):
 
         manager_utils.node_set_boot_device(task, 'disk', persistent=True)
         self.reboot_and_finish_deploy(task)
-        # Note(TheJulia): If we we deployed a whole disk image, we
+        # NOTE(TheJulia): If we we deployed a whole disk image, we
         # should expect a whole disk image and clean-up the tftp files
         # on-disk incase the node is disregarding the boot preference.
-        if node.driver_internal_info.get('is_whole_disk_image'):
+        # TODO(rameshg87): This shouldn't get called for virtual media deploy
+        # drivers (iLO and iRMC).  This is just a hack, but it will be taken
+        # care in boot/deploy interface separation.
+        if (_driver_uses_pxe(task.driver) and
+                node.driver_internal_info.get('is_whole_disk_image')):
             _clean_up_pxe(task)
