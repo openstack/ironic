@@ -1701,6 +1701,12 @@ class ParseInstanceInfoCapabilitiesTestCase(tests_base.TestCase):
         self.assertRaises(exception.InvalidParameterValue,
                           utils.validate_capabilities, self.node)
 
+    def test_validate_trusted_boot_capability(self):
+        properties = {'capabilities': 'trusted_boot:value'}
+        self.node.properties = properties
+        self.assertRaises(exception.InvalidParameterValue,
+                          utils.validate_capabilities, self.node)
+
     def test_all_supported_capabilities(self):
         self.assertEqual(('local', 'netboot'),
                          utils.SUPPORTED_CAPABILITIES['boot_option'])
