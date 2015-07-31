@@ -234,8 +234,8 @@ def get_disk_identifier(dev):
 
 
 def make_partitions(dev, root_mb, swap_mb, ephemeral_mb,
-                    configdrive_mb, commit=True, boot_option="netboot",
-                    boot_mode="bios"):
+                    configdrive_mb, node_uuid, commit=True,
+                    boot_option="netboot", boot_mode="bios"):
     """Partition the disk device.
 
     Create partitions for root, swap, ephemeral and configdrive on a
@@ -252,12 +252,14 @@ def make_partitions(dev, root_mb, swap_mb, ephemeral_mb,
         partitions will not be written to disk.
     :param boot_option: Can be "local" or "netboot". "netboot" by default.
     :param boot_mode: Can be "bios" or "uefi". "bios" by default.
+    :param node_uuid: Node's uuid. Used for logging.
     :returns: A dictionary containing the partition type as Key and partition
         path as Value for the partitions created by this method.
 
     """
-    LOG.debug("Starting to partition the disk device: %(dev)s",
-              {'dev': dev})
+    LOG.debug("Starting to partition the disk device: %(dev)s "
+              "for node %(node)s",
+              {'dev': dev, 'node': node_uuid})
     part_template = dev + '-part%d'
     part_dict = {}
 
@@ -273,26 +275,30 @@ def make_partitions(dev, root_mb, swap_mb, ephemeral_mb,
         dp = disk_partitioner.DiskPartitioner(dev)
 
     if ephemeral_mb:
-        LOG.debug("Add ephemeral partition (%(size)d MB) to device: %(dev)s",
-                  {'dev': dev, 'size': ephemeral_mb})
+        LOG.debug("Add ephemeral partition (%(size)d MB) to device: %(dev)s "
+                  "for node %(node)s",
+                  {'dev': dev, 'size': ephemeral_mb, 'node': node_uuid})
         part_num = dp.add_partition(ephemeral_mb)
         part_dict['ephemeral'] = part_template % part_num
     if swap_mb:
-        LOG.debug("Add Swap partition (%(size)d MB) to device: %(dev)s",
-                  {'dev': dev, 'size': swap_mb})
+        LOG.debug("Add Swap partition (%(size)d MB) to device: %(dev)s "
+                  "for node %(node)s",
+                  {'dev': dev, 'size': swap_mb, 'node': node_uuid})
         part_num = dp.add_partition(swap_mb, fs_type='linux-swap')
         part_dict['swap'] = part_template % part_num
     if configdrive_mb:
         LOG.debug("Add config drive partition (%(size)d MB) to device: "
-                  "%(dev)s", {'dev': dev, 'size': configdrive_mb})
+                  "%(dev)s for node %(node)s",
+                  {'dev': dev, 'size': configdrive_mb, 'node': node_uuid})
         part_num = dp.add_partition(configdrive_mb)
         part_dict['configdrive'] = part_template % part_num
 
     # NOTE(lucasagomes): Make the root partition the last partition. This
     # enables tools like cloud-init's growroot utility to expand the root
     # partition until the end of the disk.
-    LOG.debug("Add root partition (%(size)d MB) to device: %(dev)s",
-              {'dev': dev, 'size': root_mb})
+    LOG.debug("Add root partition (%(size)d MB) to device: %(dev)s "
+              "for node %(node)s",
+              {'dev': dev, 'size': root_mb, 'node': node_uuid})
     part_num = dp.add_partition(root_mb, bootable=(boot_option == "local" and
                                                    boot_mode == "bios"))
     part_dict['root'] = part_template % part_num
@@ -600,7 +606,8 @@ def work_on_disk(dev, root_mb, swap_mb, ephemeral_mb, ephemeral_format,
                                                                 node_uuid)
 
         part_dict = make_partitions(dev, root_mb, swap_mb, ephemeral_mb,
-                                    configdrive_mb, commit=commit,
+                                    configdrive_mb, node_uuid,
+                                    commit=commit,
                                     boot_option=boot_option,
                                     boot_mode=boot_mode)
 
