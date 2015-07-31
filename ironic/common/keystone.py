@@ -13,6 +13,7 @@
 # under the License.
 
 from keystoneclient import exceptions as ksexception
+from oslo_concurrency import lockutils
 from oslo_config import cfg
 from six.moves.urllib import parse
 
@@ -29,6 +30,8 @@ keystone_opts = [
 
 CONF.register_opts(keystone_opts, group='keystone')
 CONF.import_group('keystone_authtoken', 'keystonemiddleware.auth_token')
+
+_KS_CLIENT = None
 
 
 def _is_apiv3(auth_url, auth_version):
@@ -63,17 +66,27 @@ def _get_ksclient(token=None):
         if token:
             return client.Client(token=token, auth_url=auth_url)
         else:
-            return client.Client(
-                username=CONF.keystone_authtoken.admin_user,
-                password=CONF.keystone_authtoken.admin_password,
-                tenant_name=CONF.keystone_authtoken.admin_tenant_name,
-                region_name=CONF.keystone.region_name,
-                auth_url=auth_url)
+            params = {'username': CONF.keystone_authtoken.admin_user,
+                      'password': CONF.keystone_authtoken.admin_password,
+                      'tenant_name': CONF.keystone_authtoken.admin_tenant_name,
+                      'region_name': CONF.keystone.region_name,
+                      'auth_url': auth_url}
+            return _get_ksclient_from_conf(client, **params)
     except ksexception.Unauthorized:
         raise exception.KeystoneUnauthorized()
     except ksexception.AuthorizationFailure as err:
         raise exception.KeystoneFailure(_('Could not authorize in Keystone:'
                                           ' %s') % err)
+
+
+@lockutils.synchronized('keystone_client', 'ironic-')
+def _get_ksclient_from_conf(client, **params):
+    global _KS_CLIENT
+    # NOTE(yuriyz): use Keystone client default gap, to determine whether the
+    # given token is about to expire
+    if _KS_CLIENT is None or _KS_CLIENT.auth_ref.will_expire_soon():
+        _KS_CLIENT = client.Client(**params)
+    return _KS_CLIENT
 
 
 def get_keystone_url(auth_url, auth_version):
