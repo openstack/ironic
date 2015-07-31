@@ -398,15 +398,41 @@ class SNMPDriverAten(SNMPDriverSimple):
         return self.oid_enterprise + self.oid_device + (outlet, 0,)
 
 
-class SNMPDriverAPC(SNMPDriverSimple):
-    """SNMP driver class for APC PDU devices.
+class SNMPDriverAPCMasterSwitch(SNMPDriverSimple):
+    """SNMP driver class for APC MasterSwitch PDU devices.
 
-    SNMP objects for APC PDU:
+    SNMP objects for APC SNMPDriverAPCMasterSwitch PDU:
     1.3.6.1.4.1.318.1.1.4.4.2.1.3 sPDUOutletCtl
     Values: 1=On, 2=Off, 3=PowerCycle, [...more options follow]
     """
 
     oid_device = (318, 1, 1, 4, 4, 2, 1, 3)
+    value_power_on = 1
+    value_power_off = 2
+
+
+class SNMPDriverAPCMasterSwitchPlus(SNMPDriverSimple):
+    """SNMP driver class for APC MasterSwitchPlus PDU devices.
+
+    SNMP objects for APC SNMPDriverAPCMasterSwitchPlus PDU:
+    1.3.6.1.4.1.318.1.1.6.5.1.1.5 sPDUOutletControlMSPOutletCommand
+    Values: 1=On, 3=Off, [...more options follow]
+    """
+
+    oid_device = (318, 1, 1, 6, 5, 1, 1, 5)
+    value_power_on = 1
+    value_power_off = 3
+
+
+class SNMPDriverAPCRackPDU(SNMPDriverSimple):
+    """SNMP driver class for APC RackPDU devices.
+
+    SNMP objects for APC SNMPDriverAPCMasterSwitch PDU:
+    # 1.3.6.1.4.1.318.1.1.12.3.3.1.1.4 rPDUOutletControlOutletCommand
+    Values: 1=On, 2=Off, 3=PowerCycle, [...more options follow]
+    """
+
+    oid_device = (318, 1, 1, 12, 3, 3, 1, 1, 4)
     value_power_on = 1
     value_power_off = 2
 
@@ -522,7 +548,10 @@ class SNMPDriverEatonPower(SNMPDriverBase):
 
 # A dictionary of supported drivers keyed by snmp_driver attribute
 DRIVER_CLASSES = {
-    'apc': SNMPDriverAPC,
+    'apc': SNMPDriverAPCMasterSwitch,
+    'apc_masterswitch': SNMPDriverAPCMasterSwitch,
+    'apc_masterswitchplus': SNMPDriverAPCMasterSwitchPlus,
+    'apc_rackpdu': SNMPDriverAPCRackPDU,
     'aten': SNMPDriverAten,
     'cyberpower': SNMPDriverCyberPower,
     'eatonpower': SNMPDriverEatonPower,
