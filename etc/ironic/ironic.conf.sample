@@ -71,8 +71,9 @@
 # Heartbeat time-to-live. (integer value)
 #matchmaker_heartbeat_ttl=600
 
-# Size of RPC thread pool. (integer value)
-#rpc_thread_pool_size=64
+# Size of executor thread pool. (integer value)
+# Deprecated group/name - [DEFAULT]/rpc_thread_pool_size
+#executor_thread_pool_size=64
 
 # The Drivers(s) to handle sending notifications. Possible
 # values are messaging, messagingv2, routing, log, test, noop
