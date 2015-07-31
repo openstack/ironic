@@ -36,8 +36,10 @@ LOG = logging.getLogger(__name__)
 
 UCS_TO_IRONIC_BOOT_DEVICE = {
     'storage': boot_devices.DISK,
+    'disk': boot_devices.DISK,
     'pxe': boot_devices.PXE,
-    'read-only-vm': boot_devices.CDROM
+    'read-only-vm': boot_devices.CDROM,
+    'cdrom': boot_devices.CDROM
 }
 
 
@@ -65,7 +67,7 @@ class UcsManagement(base.ManagementInterface):
               in :mod:`ironic.common.boot_devices`.
         """
 
-        return list(UCS_TO_IRONIC_BOOT_DEVICE.values())
+        return list(set(UCS_TO_IRONIC_BOOT_DEVICE.values()))
 
     @ucs_helper.requires_ucs_client
     def set_boot_device(self, task, device, persistent=False, helper=None):

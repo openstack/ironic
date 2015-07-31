@@ -66,7 +66,7 @@ class UcsManagementTestCase(db_base.DbTestCase):
         mock_helper.generate_ucsm_handle.return_value = (True, mock.Mock())
         mock_mgmt = mock_ucs_mgmt.return_value
         mock_mgmt.get_boot_device.return_value = {
-            'boot_device': 'storage',
+            'boot_device': 'disk',
             'persistent': False
         }
         with task_manager.acquire(self.context, self.node.uuid,
