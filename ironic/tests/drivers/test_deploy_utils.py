@@ -313,7 +313,7 @@ class PhysicalWorkTestCase(tests_base.TestCase):
                                                     'swap': swap_part}
 
         make_partitions_expected_args = [dev, root_mb, swap_mb, ephemeral_mb,
-                                         configdrive_mb]
+                                         configdrive_mb, node_uuid]
         make_partitions_expected_kwargs = {'commit': True}
         deploy_kwargs = {}
 
@@ -458,6 +458,7 @@ class PhysicalWorkTestCase(tests_base.TestCase):
                           mock.call.make_partitions(dev, root_mb, swap_mb,
                                                     ephemeral_mb,
                                                     configdrive_mb,
+                                                    node_uuid,
                                                     commit=True,
                                                     boot_option="local",
                                                     boot_mode="uefi"),
@@ -521,6 +522,7 @@ class PhysicalWorkTestCase(tests_base.TestCase):
                           mock.call.make_partitions(dev, root_mb, swap_mb,
                                                     ephemeral_mb,
                                                     configdrive_mb,
+                                                    node_uuid,
                                                     commit=True,
                                                     boot_option="netboot",
                                                     boot_mode="bios"),
@@ -581,6 +583,7 @@ class PhysicalWorkTestCase(tests_base.TestCase):
                           mock.call.make_partitions(dev, root_mb, swap_mb,
                                                     ephemeral_mb,
                                                     configdrive_mb,
+                                                    node_uuid,
                                                     commit=True,
                                                     boot_option="netboot",
                                                     boot_mode="bios"),
@@ -647,6 +650,7 @@ class PhysicalWorkTestCase(tests_base.TestCase):
                           mock.call.make_partitions(dev, root_mb, swap_mb,
                                                     ephemeral_mb,
                                                     configdrive_mb,
+                                                    node_uuid,
                                                     commit=False,
                                                     boot_option="netboot",
                                                     boot_mode="bios"),
@@ -713,6 +717,7 @@ class PhysicalWorkTestCase(tests_base.TestCase):
                           mock.call.make_partitions(dev, root_mb, swap_mb,
                                                     ephemeral_mb,
                                                     configdrive_mb,
+                                                    node_uuid,
                                                     commit=True,
                                                     boot_option="netboot",
                                                     boot_mode="bios"),
@@ -1174,7 +1179,9 @@ class WorkOnDiskTestCase(tests_base.TestCase):
         self.mock_ibd.assert_called_once_with(self.root_part)
         self.mock_mp.assert_called_once_with(self.dev, self.root_mb,
                                              self.swap_mb, self.ephemeral_mb,
-                                             self.configdrive_mb, commit=True,
+                                             self.configdrive_mb,
+                                             'fake-uuid',
+                                             commit=True,
                                              boot_option="netboot",
                                              boot_mode="bios")
 
@@ -1189,7 +1196,9 @@ class WorkOnDiskTestCase(tests_base.TestCase):
         self.assertEqual(self.mock_ibd.call_args_list, calls)
         self.mock_mp.assert_called_once_with(self.dev, self.root_mb,
                                              self.swap_mb, self.ephemeral_mb,
-                                             self.configdrive_mb, commit=True,
+                                             self.configdrive_mb,
+                                             'fake-uuid',
+                                             commit=True,
                                              boot_option="netboot",
                                              boot_mode="bios")
 
@@ -1214,7 +1223,9 @@ class WorkOnDiskTestCase(tests_base.TestCase):
         self.assertEqual(self.mock_ibd.call_args_list, calls)
         self.mock_mp.assert_called_once_with(self.dev, self.root_mb,
                                              self.swap_mb, ephemeral_mb,
-                                             self.configdrive_mb, commit=True,
+                                             self.configdrive_mb,
+                                             'fake-uuid',
+                                             commit=True,
                                              boot_option="netboot",
                                              boot_mode="bios")
 
@@ -1245,7 +1256,9 @@ class WorkOnDiskTestCase(tests_base.TestCase):
         self.assertEqual(self.mock_ibd.call_args_list, calls)
         self.mock_mp.assert_called_once_with(self.dev, self.root_mb,
                                              self.swap_mb, self.ephemeral_mb,
-                                             configdrive_mb, commit=True,
+                                             configdrive_mb,
+                                             'fake-uuid',
+                                             commit=True,
                                              boot_option="netboot",
                                              boot_mode="bios")
         mock_unlink.assert_called_once_with('fake-path')
@@ -1268,6 +1281,7 @@ class MakePartitionsTestCase(tests_base.TestCase):
         mock_exc.return_value = (None, None)
         utils.make_partitions(self.dev, self.root_mb, self.swap_mb,
                               self.ephemeral_mb, self.configdrive_mb,
+                              '12345678-1234-1234-1234-1234567890abcxyz',
                               boot_option=boot_option)
 
         expected_mkpart = ['mkpart', 'primary', 'linux-swap', '1', '513',
@@ -1296,7 +1310,8 @@ class MakePartitionsTestCase(tests_base.TestCase):
         cmd = self.parted_static_cmd + expected_mkpart
         mock_exc.return_value = (None, None)
         utils.make_partitions(self.dev, self.root_mb, self.swap_mb,
-                              self.ephemeral_mb, self.configdrive_mb)
+                              self.ephemeral_mb, self.configdrive_mb,
+                              '12345678-1234-1234-1234-1234567890abcxyz')
 
         parted_call = mock.call(*cmd, run_as_root=True, check_exit_code=[0])
         mock_exc.assert_has_calls([parted_call])
