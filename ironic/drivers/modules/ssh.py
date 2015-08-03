@@ -31,6 +31,7 @@ import os
 from oslo_concurrency import processutils
 from oslo_config import cfg
 from oslo_log import log as logging
+from oslo_utils import excutils
 
 from ironic.common import boot_devices
 from ironic.common import exception
@@ -662,11 +663,12 @@ class SSHManagement(base.ManagementInterface):
         try:
             _set_boot_device(ssh_obj, driver_info, boot_device_map[device])
         except NotImplementedError:
-            LOG.error(_LE("Failed to set boot device for node %(node)s, "
-                          "virt_type %(vtype)s does not support this "
-                          "operation") % {'node': node.uuid,
-                                          'vtype': driver_info['virt_type']})
-            raise
+            with excutils.save_and_reraise_exception():
+                LOG.error(_LE("Failed to set boot device for node %(node)s, "
+                              "virt_type %(vtype)s does not support this "
+                              "operation"),
+                          {'node': node.uuid,
+                           'vtype': driver_info['virt_type']})
 
     def get_boot_device(self, task):
         """Get the current boot device for the task's node.

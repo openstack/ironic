@@ -212,9 +212,9 @@ def _make_password_file(password):
             f.close()
         raise exception.PasswordFileFailedToCreate(error=exc)
     except Exception:
-        if f is not None:
-            f.close()
-        raise
+        with excutils.save_and_reraise_exception():
+            if f is not None:
+                f.close()
 
     try:
         # NOTE(jlvillal): This yield can not be in the try/except block above
@@ -660,13 +660,13 @@ def _check_temp_dir():
         except (exception.PathNotFound,
                 exception.DirectoryNotWritable,
                 exception.InsufficientDiskSpace) as e:
-            TMP_DIR_CHECKED = False
-            err_msg = (_("Ipmitool drivers need to be able to create "
-                         "temporary files to pass password to ipmitool. "
-                         "Encountered error: %s") % e)
-            e.message = err_msg
-            LOG.error(err_msg)
-            raise
+            with excutils.save_and_reraise_exception():
+                TMP_DIR_CHECKED = False
+                err_msg = (_("Ipmitool drivers need to be able to create "
+                             "temporary files to pass password to ipmitool. "
+                             "Encountered error: %s") % e)
+                e.message = err_msg
+                LOG.error(err_msg)
         else:
             TMP_DIR_CHECKED = True
 
