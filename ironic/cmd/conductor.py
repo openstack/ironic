@@ -26,7 +26,6 @@ from oslo_config import cfg
 from oslo_log import log
 from oslo_service import service
 
-from ironic.common.i18n import _LI
 from ironic.common import service as ironic_service
 
 CONF = cfg.CONF
@@ -41,8 +40,8 @@ def main():
                                     'ConductorManager')
 
     LOG = log.getLogger(__name__)
-    LOG.info(_LI("Configuration:"))
-    CONF.log_opt_values(LOG, logging.INFO)
+    LOG.debug("Configuration:")
+    CONF.log_opt_values(LOG, logging.DEBUG)
 
     launcher = service.launch(CONF, mgr)
     launcher.wait()
