@@ -123,7 +123,13 @@ def require_exclusive_lock(f):
     """
     @functools.wraps(f)
     def wrapper(*args, **kwargs):
-        task = args[0] if isinstance(args[0], TaskManager) else args[1]
+        # NOTE(dtantsur): this code could be written simpler, but then unit
+        # testing decorated functions is pretty hard, as we usually pass a Mock
+        # object instead of TaskManager there.
+        if len(args) > 1:
+            task = args[1] if isinstance(args[1], TaskManager) else args[0]
+        else:
+            task = args[0]
         if task.shared:
             raise exception.ExclusiveLockRequired()
         return f(*args, **kwargs)

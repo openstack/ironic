@@ -197,6 +197,7 @@ CLEANING_INTERFACE_PRIORITY = {
     'management': 2,
     'deploy': 1
 }
+SYNC_EXCLUDED_STATES = (states.DEPLOYWAIT, states.CLEANWAIT, states.ENROLL)
 
 
 class ConductorManager(periodic_task.PeriodicTasks):
@@ -1121,26 +1122,23 @@ class ConductorManager(periodic_task.PeriodicTasks):
         # (through to its DB API call) so that we can eliminate our call
         # and first set of checks below.
 
-        exclude_states = (states.DEPLOYWAIT, states.CLEANWAIT, states.ENROLL)
         filters = {'reserved': False, 'maintenance': False}
         node_iter = self.iter_nodes(fields=['id'], filters=filters)
         for (node_uuid, driver, node_id) in node_iter:
             try:
-                # NOTE(deva): we should not acquire a lock on a node in
-                #             DEPLOYWAIT/CLEANWAIT, as this could cause an
-                #             error within a deploy ramdisk POSTing back at
-                #             the same time.
-                # TODO(deva): refactor this check, because it needs to be done
-                #             in every periodic task, not just this one.
-                node = objects.Node.get_by_id(context, node_id)
-                if (node.provision_state in exclude_states or
-                        node.maintenance or node.reservation is not None):
-                    continue
-
+                # NOTE(dtantsur): start with a shared lock, upgrade if needed
                 with task_manager.acquire(context, node_uuid,
-                                          purpose='power state sync') as task:
-                    if (task.node.provision_state in exclude_states or
-                            task.node.maintenance):
+                                          purpose='power state sync',
+                                          shared=True) as task:
+                    # NOTE(deva): we should not acquire a lock on a node in
+                    #             DEPLOYWAIT/CLEANWAIT, as this could cause
+                    #             an error within a deploy ramdisk POSTing back
+                    #             at the same time.
+                    # NOTE(dtantsur): it's also pointless (and dangerous) to
+                    # sync power state when a power action is in progress
+                    if (task.node.provision_state in SYNC_EXCLUDED_STATES or
+                            task.node.maintenance or
+                            task.node.target_power_state):
                         continue
                     count = do_sync_power_state(
                         task, self.power_state_sync_count[node_uuid])
@@ -2097,6 +2095,7 @@ def do_node_deploy(task, conductor_id, configdrive=None):
         node.save()
 
 
+@task_manager.require_exclusive_lock
 def handle_sync_power_state_max_retries_exceeded(task,
                                                  actual_power_state):
     """Handles power state sync exceeding the max retries.
@@ -2131,8 +2130,9 @@ def do_sync_power_state(task, count):
     When the limit of power_state_sync_max_retries is reached, the node is put
     into maintenance mode and the error recorded.
 
-    :param task: a TaskManager instance with an exclusive lock
+    :param task: a TaskManager instance
     :param count: number of times this node has previously failed a sync
+    :raises: NodeLocked if unable to upgrade task lock to an exclusive one
     :returns: Count of failed attempts.
               On success, the counter is set to 0.
               On failure, the count is incremented by one
@@ -2162,6 +2162,7 @@ def do_sync_power_state(task, count):
     except Exception as e:
         # Stop if any exception is raised when getting the power state
         if count > max_retries:
+            task.upgrade_lock()
             handle_sync_power_state_max_retries_exceeded(task, power_state)
         else:
             LOG.warning(_LW("During sync_power_state, could not get power "
@@ -2170,26 +2171,37 @@ def do_sync_power_state(task, count):
                         {'node': node.uuid, 'attempt': count,
                          'retries': max_retries, 'err': e})
         return count
-    else:
+
+    if node.power_state and node.power_state == power_state:
+        # No action is needed
+        return 0
+
+    # We will modify a node, so upgrade our lock and use reloaded node.
+    # This call may raise NodeLocked that will be caught on upper level.
+    task.upgrade_lock()
+    node = task.node
+
+    # Repeat all checks with exclusive lock to avoid races
+    if node.power_state and node.power_state == power_state:
+        # Node power state was updated to the correct value
+        return 0
+    elif node.provision_state in SYNC_EXCLUDED_STATES or node.maintenance:
+        # Something was done to a node while a shared lock was held
+        return 0
+    elif node.power_state is None:
         # If node has no prior state AND we successfully got a state,
         # simply record that.
-        if node.power_state is None:
-            LOG.info(_LI("During sync_power_state, node %(node)s has no "
-                         "previous known state. Recording current state "
-                         "'%(state)s'."),
-                     {'node': node.uuid, 'state': power_state})
-            node.power_state = power_state
-            node.save()
-            return 0
-
-    # If the node is now in the expected state, reset the counter
-    # otherwise, if we've exceeded the retry limit, stop here
-    if node.power_state == power_state:
+        LOG.info(_LI("During sync_power_state, node %(node)s has no "
+                     "previous known state. Recording current state "
+                     "'%(state)s'."),
+                 {'node': node.uuid, 'state': power_state})
+        node.power_state = power_state
+        node.save()
         return 0
-    else:
-        if count > max_retries:
-            handle_sync_power_state_max_retries_exceeded(task, power_state)
-            return count
+
+    if count > max_retries:
+        handle_sync_power_state_max_retries_exceeded(task, power_state)
+        return count
 
     if CONF.conductor.force_power_state_during_sync:
         LOG.warning(_LW("During sync_power_state, node %(node)s state "

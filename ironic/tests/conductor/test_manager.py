@@ -56,6 +56,7 @@ class _CommonMixIn(object):
         attrs = {'id': 1,
                  'uuid': uuidutils.generate_uuid(),
                  'power_state': states.POWER_OFF,
+                 'target_power_state': None,
                  'maintenance': False,
                  'reservation': None}
         attrs.update(kwargs)
@@ -2721,11 +2722,15 @@ class ManagerDoSyncPowerStateTestCase(tests_db_base.DbTestCase):
         self.service = manager.ConductorManager('hostname', 'test-topic')
         self.driver = mock.Mock(spec_set=drivers_base.BaseDriver)
         self.power = self.driver.power
-        self.node = mock.Mock(spec_set=objects.Node)
-        self.task = mock.Mock(spec_set=['context', 'driver', 'node'])
+        self.node = mock.Mock(spec_set=objects.Node,
+                              maintenance=False,
+                              provision_state=states.AVAILABLE)
+        self.task = mock.Mock(spec_set=['context', 'driver', 'node',
+                                        'upgrade_lock', 'shared'])
         self.task.context = self.context
         self.task.driver = self.driver
         self.task.node = self.node
+        self.task.shared = False
         self.config(force_power_state_during_sync=False, group='conductor')
 
     def _do_sync_power_state(self, old_power_state, new_power_states,
@@ -2754,6 +2759,7 @@ class ManagerDoSyncPowerStateTestCase(tests_db_base.DbTestCase):
         self.assertEqual('fake-power', self.node.power_state)
         self.assertFalse(self.node.save.called)
         self.assertFalse(node_power_action.called)
+        self.assertFalse(self.task.upgrade_lock.called)
 
     def test_state_not_set(self, node_power_action):
         self._do_sync_power_state(None, states.POWER_ON)
@@ -2763,6 +2769,7 @@ class ManagerDoSyncPowerStateTestCase(tests_db_base.DbTestCase):
         self.node.save.assert_called_once_with()
         self.assertFalse(node_power_action.called)
         self.assertEqual(states.POWER_ON, self.node.power_state)
+        self.task.upgrade_lock.assert_called_once_with()
 
     def test_validate_fail(self, node_power_action):
         self._do_sync_power_state(None, states.POWER_ON,
@@ -2804,6 +2811,7 @@ class ManagerDoSyncPowerStateTestCase(tests_db_base.DbTestCase):
         self.node.save.assert_called_once_with()
         self.assertFalse(node_power_action.called)
         self.assertEqual(states.POWER_OFF, self.node.power_state)
+        self.task.upgrade_lock.assert_called_once_with()
 
     def test_state_changed_sync(self, node_power_action):
         self.config(force_power_state_during_sync=True, group='conductor')
@@ -2816,6 +2824,7 @@ class ManagerDoSyncPowerStateTestCase(tests_db_base.DbTestCase):
         self.assertFalse(self.node.save.called)
         node_power_action.assert_called_once_with(self.task, states.POWER_ON)
         self.assertEqual(states.POWER_ON, self.node.power_state)
+        self.task.upgrade_lock.assert_called_once_with()
 
     def test_state_changed_sync_failed(self, node_power_action):
         self.config(force_power_state_during_sync=True, group='conductor')
@@ -2908,11 +2917,48 @@ class ManagerDoSyncPowerStateTestCase(tests_db_base.DbTestCase):
 
         self.assertFalse(node_power_action.called)
 
+    def test_maintenance_on_upgrade_lock(self, node_power_action):
+        self.node.maintenance = True
+
+        self._do_sync_power_state(states.POWER_ON, states.POWER_OFF)
+
+        self.assertFalse(self.power.validate.called)
+        self.power.get_power_state.assert_called_once_with(self.task)
+        self.assertEqual(states.POWER_ON, self.node.power_state)
+        self.assertFalse(self.node.save.called)
+        self.assertFalse(node_power_action.called)
+        self.task.upgrade_lock.assert_called_once_with()
+
+    def test_wrong_provision_state_on_upgrade_lock(self, node_power_action):
+        self.node.provision_state = states.DEPLOYWAIT
+
+        self._do_sync_power_state(states.POWER_ON, states.POWER_OFF)
+
+        self.assertFalse(self.power.validate.called)
+        self.power.get_power_state.assert_called_once_with(self.task)
+        self.assertEqual(states.POWER_ON, self.node.power_state)
+        self.assertFalse(self.node.save.called)
+        self.assertFalse(node_power_action.called)
+        self.task.upgrade_lock.assert_called_once_with()
+
+    def test_correct_power_state_on_upgrade_lock(self, node_power_action):
+        def _fake_upgrade():
+            self.node.power_state = states.POWER_OFF
+
+        self.task.upgrade_lock.side_effect = _fake_upgrade
+
+        self._do_sync_power_state(states.POWER_ON, states.POWER_OFF)
+
+        self.assertFalse(self.power.validate.called)
+        self.power.get_power_state.assert_called_once_with(self.task)
+        self.assertFalse(self.node.save.called)
+        self.assertFalse(node_power_action.called)
+        self.task.upgrade_lock.assert_called_once_with()
+
 
 @mock.patch.object(manager, 'do_sync_power_state')
 @mock.patch.object(task_manager, 'acquire')
 @mock.patch.object(manager.ConductorManager, '_mapped_to_this_conductor')
-@mock.patch.object(objects.Node, 'get_by_id')
 @mock.patch.object(dbapi.IMPL, 'get_nodeinfo_list')
 class ManagerSyncPowerStatesTestCase(_CommonMixIn, tests_db_base.DbTestCase):
     def setUp(self):
@@ -2923,10 +2969,9 @@ class ManagerSyncPowerStatesTestCase(_CommonMixIn, tests_db_base.DbTestCase):
         self.filters = {'reserved': False, 'maintenance': False}
         self.columns = ['uuid', 'driver', 'id']
 
-    def test_node_not_mapped(self, get_nodeinfo_mock, get_node_mock,
+    def test_node_not_mapped(self, get_nodeinfo_mock,
                              mapped_mock, acquire_mock, sync_mock):
         get_nodeinfo_mock.return_value = self._get_nodeinfo_list_response()
-        get_node_mock.return_value = self.node
         mapped_mock.return_value = False
 
         self.service._sync_power_states(self.context)
@@ -2935,98 +2980,12 @@ class ManagerSyncPowerStatesTestCase(_CommonMixIn, tests_db_base.DbTestCase):
             columns=self.columns, filters=self.filters)
         mapped_mock.assert_called_once_with(self.node.uuid,
                                             self.node.driver)
-        self.assertFalse(get_node_mock.called)
         self.assertFalse(acquire_mock.called)
         self.assertFalse(sync_mock.called)
 
-    def test_node_disappeared(self, get_nodeinfo_mock, get_node_mock,
-                              mapped_mock, acquire_mock, sync_mock):
-        get_nodeinfo_mock.return_value = self._get_nodeinfo_list_response()
-        get_node_mock.return_value = self.node
-        mapped_mock.return_value = True
-        get_node_mock.side_effect = exception.NodeNotFound(node=self.node.uuid)
-
-        self.service._sync_power_states(self.context)
-
-        get_nodeinfo_mock.assert_called_once_with(
-            columns=self.columns, filters=self.filters)
-        mapped_mock.assert_called_once_with(self.node.uuid,
-                                            self.node.driver)
-        get_node_mock.assert_called_once_with(self.context, self.node.id)
-        self.assertFalse(acquire_mock.called)
-        self.assertFalse(sync_mock.called)
-
-    def test_node_in_deploywait(self, get_nodeinfo_mock, get_node_mock,
-                                mapped_mock, acquire_mock, sync_mock):
-        get_nodeinfo_mock.return_value = self._get_nodeinfo_list_response()
-        get_node_mock.return_value = self.node
-        self.node.provision_state = states.DEPLOYWAIT
-        self.node.target_provision_state = states.ACTIVE
-        self.node.save()
-
-        self.service._sync_power_states(self.context)
-
-        get_nodeinfo_mock.assert_called_once_with(
-            columns=self.columns, filters=self.filters)
-        mapped_mock.assert_called_once_with(self.node.uuid,
-                                            self.node.driver)
-        get_node_mock.assert_called_once_with(self.context, self.node.id)
-        self.assertFalse(acquire_mock.called)
-        self.assertFalse(sync_mock.called)
-
-    def test_node_in_enroll(self, get_nodeinfo_mock, get_node_mock,
-                            mapped_mock, acquire_mock, sync_mock):
-        get_nodeinfo_mock.return_value = self._get_nodeinfo_list_response()
-        get_node_mock.return_value = self.node
-        self.node.provision_state = states.ENROLL
-        self.node.save()
-
-        self.service._sync_power_states(self.context)
-
-        get_nodeinfo_mock.assert_called_once_with(
-            columns=self.columns, filters=self.filters)
-        mapped_mock.assert_called_once_with(self.node.uuid,
-                                            self.node.driver)
-        get_node_mock.assert_called_once_with(self.context, self.node.id)
-        self.assertFalse(acquire_mock.called)
-        self.assertFalse(sync_mock.called)
-
-    def test_node_in_maintenance(self, get_nodeinfo_mock, get_node_mock,
-                                 mapped_mock, acquire_mock, sync_mock):
-        get_nodeinfo_mock.return_value = self._get_nodeinfo_list_response()
-        get_node_mock.return_value = self.node
-        self.node.maintenance = True
-
-        self.service._sync_power_states(self.context)
-
-        get_nodeinfo_mock.assert_called_once_with(
-            columns=self.columns, filters=self.filters)
-        mapped_mock.assert_called_once_with(self.node.uuid,
-                                            self.node.driver)
-        get_node_mock.assert_called_once_with(self.context, self.node.id)
-        self.assertFalse(acquire_mock.called)
-        self.assertFalse(sync_mock.called)
-
-    def test_node_has_reservation(self, get_nodeinfo_mock, get_node_mock,
-                                  mapped_mock, acquire_mock, sync_mock):
-        get_nodeinfo_mock.return_value = self._get_nodeinfo_list_response()
-        get_node_mock.return_value = self.node
-        self.node.reservation = 'fake'
-
-        self.service._sync_power_states(self.context)
-
-        get_nodeinfo_mock.assert_called_once_with(
-            columns=self.columns, filters=self.filters)
-        mapped_mock.assert_called_once_with(self.node.uuid,
-                                            self.node.driver)
-        get_node_mock.assert_called_once_with(self.context, self.node.id)
-        self.assertFalse(acquire_mock.called)
-        self.assertFalse(sync_mock.called)
-
-    def test_node_locked_on_acquire(self, get_nodeinfo_mock, get_node_mock,
+    def test_node_locked_on_acquire(self, get_nodeinfo_mock,
                                     mapped_mock, acquire_mock, sync_mock):
         get_nodeinfo_mock.return_value = self._get_nodeinfo_list_response()
-        get_node_mock.return_value = self.node
         mapped_mock.return_value = True
         acquire_mock.side_effect = exception.NodeLocked(node=self.node.uuid,
                                                         host='fake')
@@ -3037,16 +2996,15 @@ class ManagerSyncPowerStatesTestCase(_CommonMixIn, tests_db_base.DbTestCase):
             columns=self.columns, filters=self.filters)
         mapped_mock.assert_called_once_with(self.node.uuid,
                                             self.node.driver)
-        get_node_mock.assert_called_once_with(self.context, self.node.id)
         acquire_mock.assert_called_once_with(self.context, self.node.uuid,
-                                             purpose=mock.ANY)
+                                             purpose=mock.ANY,
+                                             shared=True)
         self.assertFalse(sync_mock.called)
 
     def test_node_in_deploywait_on_acquire(self, get_nodeinfo_mock,
-                                           get_node_mock, mapped_mock,
-                                           acquire_mock, sync_mock):
+                                           mapped_mock, acquire_mock,
+                                           sync_mock):
         get_nodeinfo_mock.return_value = self._get_nodeinfo_list_response()
-        get_node_mock.return_value = self.node
         mapped_mock.return_value = True
         task = self._create_task(
             node_attrs=dict(provision_state=states.DEPLOYWAIT,
@@ -3060,16 +3018,14 @@ class ManagerSyncPowerStatesTestCase(_CommonMixIn, tests_db_base.DbTestCase):
             columns=self.columns, filters=self.filters)
         mapped_mock.assert_called_once_with(self.node.uuid,
                                             self.node.driver)
-        get_node_mock.assert_called_once_with(self.context, self.node.id)
         acquire_mock.assert_called_once_with(self.context, self.node.uuid,
-                                             purpose=mock.ANY)
+                                             purpose=mock.ANY,
+                                             shared=True)
         self.assertFalse(sync_mock.called)
 
-    def test_node_in_enroll_on_acquire(self, get_nodeinfo_mock,
-                                       get_node_mock, mapped_mock,
+    def test_node_in_enroll_on_acquire(self, get_nodeinfo_mock, mapped_mock,
                                        acquire_mock, sync_mock):
         get_nodeinfo_mock.return_value = self._get_nodeinfo_list_response()
-        get_node_mock.return_value = self.node
         mapped_mock.return_value = True
         task = self._create_task(
             node_attrs=dict(provision_state=states.ENROLL,
@@ -3083,16 +3039,36 @@ class ManagerSyncPowerStatesTestCase(_CommonMixIn, tests_db_base.DbTestCase):
             columns=self.columns, filters=self.filters)
         mapped_mock.assert_called_once_with(self.node.uuid,
                                             self.node.driver)
-        get_node_mock.assert_called_once_with(self.context, self.node.id)
         acquire_mock.assert_called_once_with(self.context, self.node.uuid,
-                                             purpose=mock.ANY)
+                                             purpose=mock.ANY,
+                                             shared=True)
+        self.assertFalse(sync_mock.called)
+
+    def test_node_in_power_transition_on_acquire(self, get_nodeinfo_mock,
+                                                 mapped_mock, acquire_mock,
+                                                 sync_mock):
+        get_nodeinfo_mock.return_value = self._get_nodeinfo_list_response()
+        mapped_mock.return_value = True
+        task = self._create_task(
+            node_attrs=dict(target_power_state=states.POWER_ON,
+                            uuid=self.node.uuid))
+        acquire_mock.side_effect = self._get_acquire_side_effect(task)
+
+        self.service._sync_power_states(self.context)
+
+        get_nodeinfo_mock.assert_called_once_with(
+            columns=self.columns, filters=self.filters)
+        mapped_mock.assert_called_once_with(self.node.uuid,
+                                            self.node.driver)
+        acquire_mock.assert_called_once_with(self.context, self.node.uuid,
+                                             purpose=mock.ANY,
+                                             shared=True)
         self.assertFalse(sync_mock.called)
 
     def test_node_in_maintenance_on_acquire(self, get_nodeinfo_mock,
-                                            get_node_mock, mapped_mock,
-                                            acquire_mock, sync_mock):
+                                            mapped_mock, acquire_mock,
+                                            sync_mock):
         get_nodeinfo_mock.return_value = self._get_nodeinfo_list_response()
-        get_node_mock.return_value = self.node
         mapped_mock.return_value = True
         task = self._create_task(
             node_attrs=dict(maintenance=True, uuid=self.node.uuid))
@@ -3104,16 +3080,14 @@ class ManagerSyncPowerStatesTestCase(_CommonMixIn, tests_db_base.DbTestCase):
             columns=self.columns, filters=self.filters)
         mapped_mock.assert_called_once_with(self.node.uuid,
                                             self.node.driver)
-        get_node_mock.assert_called_once_with(self.context, self.node.id)
         acquire_mock.assert_called_once_with(self.context, self.node.uuid,
-                                             purpose=mock.ANY)
+                                             purpose=mock.ANY,
+                                             shared=True)
         self.assertFalse(sync_mock.called)
 
     def test_node_disappears_on_acquire(self, get_nodeinfo_mock,
-                                        get_node_mock, mapped_mock,
-                                        acquire_mock, sync_mock):
+                                        mapped_mock, acquire_mock, sync_mock):
         get_nodeinfo_mock.return_value = self._get_nodeinfo_list_response()
-        get_node_mock.return_value = self.node
         mapped_mock.return_value = True
         acquire_mock.side_effect = exception.NodeNotFound(node=self.node.uuid,
                                                           host='fake')
@@ -3124,15 +3098,14 @@ class ManagerSyncPowerStatesTestCase(_CommonMixIn, tests_db_base.DbTestCase):
             columns=self.columns, filters=self.filters)
         mapped_mock.assert_called_once_with(self.node.uuid,
                                             self.node.driver)
-        get_node_mock.assert_called_once_with(self.context, self.node.id)
         acquire_mock.assert_called_once_with(self.context, self.node.uuid,
-                                             purpose=mock.ANY)
+                                             purpose=mock.ANY,
+                                             shared=True)
         self.assertFalse(sync_mock.called)
 
-    def test_single_node(self, get_nodeinfo_mock, get_node_mock,
+    def test_single_node(self, get_nodeinfo_mock,
                          mapped_mock, acquire_mock, sync_mock):
         get_nodeinfo_mock.return_value = self._get_nodeinfo_list_response()
-        get_node_mock.return_value = self.node
         mapped_mock.return_value = True
         task = self._create_task(node_attrs=dict(uuid=self.node.uuid))
         acquire_mock.side_effect = self._get_acquire_side_effect(task)
@@ -3143,30 +3116,27 @@ class ManagerSyncPowerStatesTestCase(_CommonMixIn, tests_db_base.DbTestCase):
             columns=self.columns, filters=self.filters)
         mapped_mock.assert_called_once_with(self.node.uuid,
                                             self.node.driver)
-        get_node_mock.assert_called_once_with(self.context, self.node.id)
         acquire_mock.assert_called_once_with(self.context, self.node.uuid,
-                                             purpose=mock.ANY)
+                                             purpose=mock.ANY,
+                                             shared=True)
         sync_mock.assert_called_once_with(task, mock.ANY)
 
     def test__sync_power_state_multiple_nodes(self, get_nodeinfo_mock,
-                                              get_node_mock, mapped_mock,
-                                              acquire_mock, sync_mock):
-        # Create 11 nodes:
+                                              mapped_mock, acquire_mock,
+                                              sync_mock):
+        # Create 8 nodes:
         # 1st node: Should acquire and try to sync
         # 2nd node: Not mapped to this conductor
         # 3rd node: In DEPLOYWAIT provision_state
         # 4th node: In maintenance mode
-        # 5th node: Has a reservation
-        # 6th node: Disappears after getting nodeinfo list.
-        # 7th node: task_manger.acquire() fails due to lock
-        # 8th node: task_manger.acquire() fails due to node disappearing
-        # 9th node: In DEPLOYWAIT provision_state acquire()
-        # 10th node: In maintenance mode on acquire()
-        # 11th node: Should acquire and try to sync
+        # 5th node: Is in power transition
+        # 6th node: Disappears after getting nodeinfo list
+        # 7th node: Should acquire and try to sync
+        # 8th node: do_sync_power_state raises NodeLocked
         nodes = []
-        get_node_map = {}
+        node_attrs = {}
         mapped_map = {}
-        for i in range(1, 12):
+        for i in range(1, 8):
             attrs = {'id': i,
                      'uuid': uuidutils.generate_uuid()}
             if i == 3:
@@ -3175,35 +3145,24 @@ class ManagerSyncPowerStatesTestCase(_CommonMixIn, tests_db_base.DbTestCase):
             elif i == 4:
                 attrs['maintenance'] = True
             elif i == 5:
-                attrs['reservation'] = 'fake'
+                attrs['target_power_state'] = states.POWER_ON
 
             n = self._create_node(**attrs)
             nodes.append(n)
+            node_attrs[n.uuid] = attrs
             mapped_map[n.uuid] = False if i == 2 else True
-            get_node_map[n.uuid] = n
 
-        tasks = [self._create_task(node_attrs=dict(uuid=nodes[0].uuid)),
-                 exception.NodeLocked(node=7, host='fake'),
-                 exception.NodeNotFound(node=8, host='fake'),
-                 self._create_task(
-                     node_attrs=dict(uuid=nodes[8].uuid,
-                                     provision_state=states.DEPLOYWAIT,
-                                     target_provision_state=states.ACTIVE)),
-                 self._create_task(
-                     node_attrs=dict(uuid=nodes[9].uuid, maintenance=True)),
-                 self._create_task(node_attrs=dict(uuid=nodes[10].uuid))]
-
-        def _get_node_side_effect(ctxt, node_id):
-            if node_id == 6:
-                # Make this node disappear
-                raise exception.NodeNotFound(node=node_id)
-            return nodes[node_id - 1]
+        tasks = [self._create_task(node_attrs=node_attrs[x.uuid])
+                 for x in nodes if x.id != 2]
+        # not found during acquire (4 = index of Node6 after removing Node2)
+        tasks[4] = exception.NodeNotFound(node=6)
+        sync_results = [0] * 7 + [exception.NodeLocked(node=8, host='')]
 
         get_nodeinfo_mock.return_value = (
             self._get_nodeinfo_list_response(nodes))
         mapped_mock.side_effect = lambda x, y: mapped_map[x]
-        get_node_mock.side_effect = _get_node_side_effect
         acquire_mock.side_effect = self._get_acquire_side_effect(tasks)
+        sync_mock.side_effect = sync_results
 
         with mock.patch.object(eventlet, 'sleep') as sleep_mock:
             self.service._sync_power_states(self.context)
@@ -3215,14 +3174,12 @@ class ManagerSyncPowerStatesTestCase(_CommonMixIn, tests_db_base.DbTestCase):
             columns=self.columns, filters=self.filters)
         mapped_calls = [mock.call(x.uuid, x.driver) for x in nodes]
         self.assertEqual(mapped_calls, mapped_mock.call_args_list)
-        get_node_calls = [mock.call(self.context, x.id)
-                          for x in nodes[:1] + nodes[2:]]
-        self.assertEqual(get_node_calls,
-                         get_node_mock.call_args_list)
         acquire_calls = [mock.call(self.context, x.uuid,
-                                   purpose=mock.ANY)
-                         for x in nodes[:1] + nodes[6:]]
+                                   purpose=mock.ANY,
+                                   shared=True)
+                         for x in nodes if x.id != 2]
         self.assertEqual(acquire_calls, acquire_mock.call_args_list)
+        # Nodes 1 and 7 (5 = index of Node7 after removing Node2)
         sync_calls = [mock.call(tasks[0], mock.ANY),
                       mock.call(tasks[5], mock.ANY)]
         self.assertEqual(sync_calls, sync_mock.call_args_list)
