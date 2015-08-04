@@ -144,8 +144,14 @@ Install the Bare Metal service
     Ubuntu 14.04 (trusty) or higher:
         sudo apt-get install ironic-api ironic-conductor python-ironicclient
 
-    RHEL7/CentOS7/Fedora 21 or higher:
+    Fedora 21/RHEL7/CentOS7:
         sudo yum install openstack-ironic-api openstack-ironic-conductor \
+        python-ironicclient
+        sudo systemctl enable openstack-ironic-api openstack-ironic-conductor
+        sudo systemctl start openstack-ironic-api openstack-ironic-conductor
+
+    Fedora 22 or higher:
+        sudo dnf install openstack-ironic-api openstack-ironic-conductor \
         python-ironicclient
         sudo systemctl enable openstack-ironic-api openstack-ironic-conductor
         sudo systemctl start openstack-ironic-api openstack-ironic-conductor
@@ -302,7 +308,7 @@ Bare Metal service comes with an example file  for configuring the
 
 1. Install the apache service::
 
-    RHEL7/CentOS7/Fedora 21 (or lower):
+    Fedora 21/RHEL7/CentOS7:
       sudo yum install httpd
 
     Fedora 22 (or higher):
@@ -762,8 +768,11 @@ node(s) where ``ironic-conductor`` is running.
     Ubuntu: (14.10 and after)
         sudo apt-get install tftpd-hpa syslinux-common pxelinux
 
-    Fedora/RHEL7/CentOS7:
+    Fedora 21/RHEL7/CentOS7:
         sudo yum install tftp-server syslinux-tftpboot
+
+    Fedora 22 or higher:
+         sudo dnf install tftp-server syslinux-tftpboot
 
 #. Setup tftp server to serve ``/tftpboot``.
 
@@ -835,9 +844,11 @@ steps on the ironic conductor node to configure the PXE UEFI environment.
     Ubuntu: (14.04LTS and later)
         sudo apt-get install grub-efi-amd64-signed shim-signed
 
-    Fedora: (21 and later)
-    CentOS: (7 and later)
+    Fedora 21/RHEL7/CentOS7:
         sudo yum install grub2-efi shim
+
+    Fedora 22 or higher:
+        sudo dnf install grub2-efi shim
 
 #. Copy grub and shim boot loader images to ``/tftpboot`` directory::
 
@@ -963,8 +974,11 @@ on the Bare Metal service node(s) where ``ironic-conductor`` is running.
     Ubuntu:
         apt-get install ipxe
 
-    Fedora/RHEL7/CentOS7:
+    Fedora 21/RHEL7/CentOS7:
         yum install ipxe-bootimgs
+
+    Fedora 22 or higher:
+        dnf install ipxe-bootimgs
 
 #. Copy the iPXE boot image (undionly.kpxe) to ``/tftpboot``. The binary
    might be found at::
@@ -1110,9 +1124,11 @@ The web console can be configured in Bare Metal service in the following way:
     Ubuntu:
         sudo apt-get install shellinabox
 
-    Fedora/RHEL7/CentOS7:
-
+    Fedora 21/RHEL7/CentOS7:
         sudo yum install shellinabox
+
+    Fedora 22 or higher:
+         sudo dnf install shellinabox
 
   You can find more about shellinabox on the `shellinabox page`_.
 
@@ -1124,8 +1140,11 @@ The web console can be configured in Bare Metal service in the following way:
         Ubuntu:
              sudo apt-get install openssl
 
-        Fedora/RHEL7/CentOS7:
+        Fedora 21/RHEL7/CentOS7:
              sudo yum install openssl
+
+        Fedora 22 or higher:
+             sudo dnf install openssl
 
   2. Generate the SSL certificate, here is an example, you can find more about openssl on
      the `openssl page`_::
@@ -2126,7 +2145,7 @@ CoreOS tools
 
 #. Install the requirements::
 
-    Fedora 21 or lower/RHEL7/CentOS7:
+    Fedora 21/RHEL7/CentOS7:
         sudo yum install docker gzip util-linux cpio findutils grep gpg
 
     Fedora 22 or higher:
