@@ -631,18 +631,22 @@ class PXEBootTestCase(db_base.DbTestCase):
         instance_info = {"boot_option": "netboot",
                          "secure_boot": "true",
                          "trusted_boot": "true"}
+        properties = {'capabilities': 'trusted_boot:true'}
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
             task.node.instance_info['capabilities'] = instance_info
+            task.node.properties = properties
             task.node.driver_internal_info['is_whole_disk_image'] = False
             self.assertRaises(exception.InvalidParameterValue,
                               task.driver.boot.validate, task)
 
     def test_validate_fail_invalid_trusted_boot_value(self):
         properties = {'capabilities': 'trusted_boot:value'}
+        instance_info = {"trusted_boot": "value"}
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
             task.node.properties = properties
+            task.node.instance_info['capabilities'] = instance_info
             self.assertRaises(exception.InvalidParameterValue,
                               task.driver.boot.validate, task)
 

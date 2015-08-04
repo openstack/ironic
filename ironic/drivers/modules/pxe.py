@@ -364,7 +364,7 @@ class PXEBoot(base.BootInterface):
                 _("Node %s does not have any port associated with it.")
                 % node.uuid)
 
-        # Check the boot_mode and boot_option capabilities values.
+        # Get the boot_mode capability value.
         boot_mode = deploy_utils.get_boot_mode_for_deploy(node)
 
         if CONF.pxe.ipxe_enabled:
@@ -385,6 +385,8 @@ class PXEBoot(base.BootInterface):
         if boot_mode == 'uefi':
             validate_boot_option_for_uefi(node)
 
+        # Check the trusted_boot capabilities value.
+        deploy_utils.validate_capabilities(node)
         if deploy_utils.is_trusted_boot_requested(node):
             # Check if 'boot_option' and boot mode is compatible with
             # trusted boot.
