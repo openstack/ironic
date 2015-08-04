@@ -368,6 +368,24 @@ def _update_secure_boot_mode(task, mode):
                  {'mode': mode, 'node': task.node.uuid})
 
 
+def _disable_secure_boot_if_supported(task):
+    """Disables secure boot on node, does not throw if its not supported.
+
+    :param task: a TaskManager instance containing the node to act on.
+    :raises: IloOperationError, if some operation on iLO failed.
+    """
+    try:
+        _update_secure_boot_mode(task, False)
+    # We need to handle IloOperationNotSupported exception so that if
+    # the user has incorrectly specified the Node capability
+    # 'secure_boot' to a node that does not have that capability and
+    # attempted deploy. Handling this exception here, will help the
+    # user to tear down such a Node.
+    except exception.IloOperationNotSupported:
+        LOG.warn(_LW('Secure boot mode is not supported for node %s'),
+                 task.node.uuid)
+
+
 class IloVirtualMediaIscsiDeploy(base.DeployInterface):
 
     def get_properties(self):
@@ -453,16 +471,7 @@ class IloVirtualMediaIscsiDeploy(base.DeployInterface):
         :returns: deploy state DELETED.
         """
         manager_utils.node_power_action(task, states.POWER_OFF)
-        try:
-            _update_secure_boot_mode(task, False)
-        # We need to handle IloOperationNotSupported exception so that if
-        # the user has incorrectly specified the Node capability
-        # 'secure_boot' to a node that does not have that capability and
-        # attempted deploy. Handling this exception here, will help the
-        # user to tear down such a Node.
-        except exception.IloOperationNotSupported:
-            LOG.warn(_LW('Secure boot mode is not supported for node %s'),
-                     task.node.uuid)
+        _disable_secure_boot_if_supported(task)
         return states.DELETED
 
     def prepare(self, task):
@@ -532,16 +541,7 @@ class IloVirtualMediaAgentDeploy(base.DeployInterface):
         :returns: states.DELETED
         """
         manager_utils.node_power_action(task, states.POWER_OFF)
-        try:
-            _update_secure_boot_mode(task, False)
-        # We need to handle IloOperationNotSupported exception so that if
-        # User had incorrectly specified the Node capability 'secure_boot'
-        # to a node that do not have such capability and attempted deploy.
-        # Handling this exception here, will help user to tear down such a
-        # Node.
-        except exception.IloOperationNotSupported:
-            LOG.warn(_LW('Secure boot mode is not supported for node %s'),
-                     task.node.uuid)
+        _disable_secure_boot_if_supported(task)
         return states.DELETED
 
     def prepare(self, task):
@@ -661,7 +661,7 @@ class IloPXEDeploy(iscsi_deploy.ISCSIDeploy):
         :raises: IloOperationError, if some operation on iLO failed.
         :raises: InvalidParameterValue, if some information is invalid.
         """
-        ilo_common.update_boot_mode(task)
+        _prepare_node_for_deploy(task)
 
         # Check if 'boot_option' is compatible with 'boot_mode' and image.
         # Whole disk image deploy is not supported in UEFI boot mode if
@@ -686,6 +686,19 @@ class IloPXEDeploy(iscsi_deploy.ISCSIDeploy):
         """
         manager_utils.node_set_boot_device(task, boot_devices.PXE)
         return super(IloPXEDeploy, self).deploy(task)
+
+    @task_manager.require_exclusive_lock
+    def tear_down(self, task):
+        """Tear down a previous deployment on the task's node.
+
+        :param task: a TaskManager instance.
+        :returns: states.DELETED
+        """
+        # Powering off the Node before disabling secure boot. If the node is
+        # is in POST, disable secure boot will fail.
+        manager_utils.node_power_action(task, states.POWER_OFF)
+        _disable_secure_boot_if_supported(task)
+        return super(IloPXEDeploy, self).tear_down(task)
 
 
 class IloConsoleInterface(ipmitool.IPMIShellinaboxConsole):
@@ -718,8 +731,39 @@ class IloPXEVendorPassthru(iscsi_deploy.VendorPassthru):
 
     @base.passthru(['POST'])
     def pass_deploy_info(self, task, **kwargs):
-        manager_utils.node_set_boot_device(task, boot_devices.PXE, True)
+        LOG.debug('Pass deploy info for the deployment on node %s',
+                  task.node.uuid)
+        manager_utils.node_set_boot_device(task, boot_devices.PXE,
+                                           persistent=True)
+        # Set boot mode
+        ilo_common.update_boot_mode(task)
+        # Need to enable secure boot, if being requested
+        _update_secure_boot_mode(task, True)
+
         super(IloPXEVendorPassthru, self).pass_deploy_info(task, **kwargs)
+
+    @task_manager.require_exclusive_lock
+    def continue_deploy(self, task, **kwargs):
+        """Method invoked when deployed with the IPA ramdisk.
+
+        This method is invoked during a heartbeat from an agent when
+        the node is in wait-call-back state. This deploys the image on
+        the node and then configures the node to boot according to the
+        desired boot option (netboot or localboot).
+
+        :param task: a TaskManager object containing the node.
+        :param kwargs: the kwargs passed from the heartbeat method.
+        :raises: InstanceDeployFailure, if it encounters some error during
+            the deploy.
+        :raises: IloOperationError, if some operation on iLO failed.
+        """
+        LOG.debug('Continuing the deployment on node %s', task.node.uuid)
+        # Set boot mode
+        ilo_common.update_boot_mode(task)
+        # Need to enable secure boot, if being requested
+        _update_secure_boot_mode(task, True)
+
+        super(IloPXEVendorPassthru, self).continue_deploy(task, **kwargs)
 
 
 class VendorPassthru(agent_base_vendor.BaseAgentVendor):
