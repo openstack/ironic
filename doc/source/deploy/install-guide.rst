@@ -542,16 +542,8 @@ them to Glance service:
      *my-image.vmlinuz* and *my-image.initrd* are used for booting after
      deploying the bare metal with my-image.qcow2.
 
-   - Build the deploy image::
-
-       ramdisk-image-create ubuntu deploy-ironic \
-       -o my-deploy-ramdisk
-
-     The above command creates *my-deploy-ramdisk.kernel* and
-     *my-deploy-ramdisk.initramfs* files which are used initially for
-     preparing the server (creating disk partitions) before the actual
-     OS deploy. If you want to use a Fedora image, replace *ubuntu* with
-     *fedora* in the above command.
+   - To build the deploy image take a look at the `Building or
+     downloading a deploy ramdisk image`_ section.
 
 2. Add the user images to glance
 
@@ -1215,10 +1207,6 @@ without it. The following sections will describe both methods.
    with diskimage-builder_ **version >= 0.1.42** or ironic-python-agent_
    in the kilo-era.
 
-.. _diskimage-builder: https://github.com/openstack/diskimage-builder
-.. _ironic-python-agent: https://github.com/openstack/ironic-python-agent
-
-
 Enabling local boot with Nova
 -----------------------------
 
@@ -1822,6 +1810,103 @@ but in order to use it we should follow some rules:
   <http://docs.openstack.org/developer/diskimage-builder/elements/cloud-init-datasources/README.html>`_]
   for more information.
 
+.. _BuildingDeployRamdisk:
+
+Building or downloading a deploy ramdisk image
+==============================================
+
+Ironic depends on having an image with the ironic-python-agent_ (IPA)
+service running on it for controlling and deploying bare metal nodes.
+
+You can download a pre-built version of the deploy ramdisk built with
+the `CoreOS tools`_ at:
+
+* `CoreOS deploy ramdisk <http://tarballs.openstack.org/ironic-python-agent/coreos/files/coreos_production_pxe.vmlinuz>`_
+* `CoreOS deploy kernel <http://tarballs.openstack.org/ironic-python-agent/coreos/files/coreos_production_pxe_image-oem.cpio.gz>`_
+
+Building from source
+--------------------
+
+There are two known methods for creating the deployment image with the
+IPA service:
+
+.. _BuildingCoreOSDeployRamdisk:
+
+CoreOS tools
+~~~~~~~~~~~~
+
+#. Clone the ironic-python-agent_ project::
+
+    git clone https://github.com/openstack/ironic-python-agent
+
+#. Install the requirements::
+
+    Fedora 21 or lower/RHEL/CentOS:
+        sudo yum install docker gzip util-linux cpio findutils grep gpg
+
+    Fedora 22 or higher:
+        sudo dnf install docker gzip util-linux cpio findutils grep gpg
+
+    Ubuntu 14.04 (trusty) or higher:
+        sudo apt-get install docker gzip uuid-runtime cpio findutils grep gpg
+
+#. Change directory to ``imagebuild/coreos``::
+
+    cd ironic-python-agent/imagebuild/coreos
+
+#. Start the docker daemon::
+
+    Fedora/RHEL/CentOS:
+        sudo systemctl start docker
+
+    Ubuntu:
+        sudo service docker.io start
+
+#. Create the image::
+
+    sudo make
+
+#. Or, create an ISO image to boot with virtual media::
+
+    sudo make iso
+
+
+.. note::
+   Once built the deploy ramdisk and kernel will appear inside of a
+   directory called ``UPLOAD``.
+
+
+.. _BuildingDibBasedDeployRamdisk:
+
+disk-image-builder
+~~~~~~~~~~~~~~~~~~
+
+#. Install disk-image-builder_ from pip or from your distro's packages::
+
+    sudo pip install diskimage-builder
+
+#. Create the image::
+
+    disk-image-create ironic-agent fedora -o ironic-deploy
+
+   The above command creates the deploy ramdisk and kernel named
+   ``ironic-deploy.vmlinuz`` and ``ironic-deploy.initramfs`` in your
+   current directory.
+
+#. Or, create an ISO image to boot with virtual media::
+
+    disk-image-create ironic-agent fedora iso -o ironic-deploy
+
+   The above command creates the deploy ISO named ``ironic-deploy.iso``
+   in your current directory.
+
+.. note::
+   Fedora was used as an example for the base operational system. Please
+   check the `diskimage-builder documentation`_ for other supported
+   operational systems.
+
+.. _`diskimage-builder documentation`: http://docs.openstack.org/developer/diskimage-builder
+
 
 Troubleshooting
 ===============
@@ -1939,3 +2024,7 @@ following command.
 ::
 
     $ ironic node-set-maintenance $NODE_UUID off
+
+
+.. _diskimage-builder: https://github.com/openstack/diskimage-builder
+.. _ironic-python-agent: https://github.com/openstack/ironic-python-agent

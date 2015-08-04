@@ -52,12 +52,8 @@ None.
 
 Configuring and Enabling the driver
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-1. Prepare an ISO deploy ramdisk image from ``diskimage-builder`` [2]_.
 
-   The below command creates files named ``deploy-ramdisk.kernel`` and
-   ``deploy-ramdisk.initramfs`` in the current working directory::
-
-    <path_to_diskimage_builder>/bin/ramdisk-image-create -o deploy-ramdisk ubuntu deploy-ironic
+1. Build or download a deploy image, see :ref:`BuildingDeployRamdisk`
 
 2. Upload these images to Glance::
 
