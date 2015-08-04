@@ -653,3 +653,8 @@ def get_updated_capabilities(current_capabilities, new_capabilities):
     cap_dict.update(new_capabilities)
     return ','.join('%(key)s:%(value)s' % {'key': key, 'value': value}
                     for key, value in six.iteritems(cap_dict))
+
+
+def is_regex_string_in_file(path, string):
+    with open(path, 'r') as inf:
+        return any(re.search(string, line) for line in inf.readlines())

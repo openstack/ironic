@@ -364,7 +364,7 @@ def _replace_lines_in_file(path, regex_pattern, replacement):
 
 def _replace_root_uuid(path, root_uuid):
     root = 'UUID=%s' % root_uuid
-    pattern = r'\{\{ ROOT \}\}'
+    pattern = r'(\(\(|\{\{) ROOT (\)\)|\}\})'
     _replace_lines_in_file(path, pattern, root)
 
 
@@ -378,8 +378,8 @@ def _replace_boot_line(path, boot_mode, is_whole_disk_image,
         boot_disk_type = 'boot_partition'
 
     if boot_mode == 'uefi':
-        pattern = '^default=.*$'
-        boot_line = 'default=%s' % boot_disk_type
+        pattern = '^((set )?default)=.*$'
+        boot_line = '\\1=%s' % boot_disk_type
     else:
         pxe_cmd = 'goto' if CONF.pxe.ipxe_enabled else 'default'
         pattern = '^%s .*$' % pxe_cmd
@@ -389,7 +389,7 @@ def _replace_boot_line(path, boot_mode, is_whole_disk_image,
 
 
 def _replace_disk_identifier(path, disk_identifier):
-    pattern = r'\{\{ DISK_IDENTIFIER \}\}'
+    pattern = r'(\(\(|\{\{) DISK_IDENTIFIER (\)\)|\}\})'
     _replace_lines_in_file(path, pattern, disk_identifier)
 
 

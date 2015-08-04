@@ -724,8 +724,10 @@ node(s) where ``ironic-conductor`` is running.
 
 #. Create a map file in the tftp boot directory (``/tftpboot``)::
 
-    echo 'r ^([^/]) /tftpboot/\1' > /tftpboot/map-file
-    echo 'r ^(/tftpboot/) /tftpboot/\2' >> /tftpboot/map-file
+    echo 're ^(/tftpboot/) /tftpboot/\2' > /tftpboot/map-file
+    echo 're ^/tftpboot/ /tftpboot/' >> /tftpboot/map-file
+    echo 're ^(^/) /tftpboot/\1' >> /tftpboot/map-file
+    echo 're ^([^/]) /tftpboot/\1' >> /tftpboot/map-file
 
 #. Enable tftp map file, modify ``/etc/xinetd.d/tftp`` as below and restart xinetd
    service::
@@ -753,6 +755,67 @@ steps on the Ironic conductor node to configure PXE UEFI environment.
 #. Copy the elilo boot loader image to ``/tftpboot`` directory::
 
     sudo cp ./elilo-3.16-x86_64.efi /tftpboot/elilo.efi
+
+#. Grub2 is an alternate UEFI bootloader supported in Ironic. Install grub2 and
+   shim packages::
+
+    Ubuntu: (14.04LTS and later)
+        sudo apt-get install grub-efi-amd64-signed shim-signed
+
+    Fedora: (21 and later)
+    CentOS: (7 and later)
+        sudo yum install grub2-efi shim
+
+#. Copy grub and shim boot loader images to ``/tftpboot`` directory::
+
+    Ubuntu: (14.04LTS and later)
+        sudo cp /usr/lib/shim/shim.efi.signed /tftpboot/bootx64.efi
+        sudo cp /usr/lib/grub/x86_64-efi-signed/grubnetx64.efi.signed  \
+        /tftpboot/grubx64.efi
+
+    Fedora: (21 and later)
+        sudo cp /boot/efi/EFI/fedora/shim.efi /tftpboot/bootx64.efi
+        sudo cp /boot/efi/EFI/fedora/grubx64.efi /tftpboot/grubx64.efi
+
+    CentOS: (7 and later)
+        sudo cp /boot/efi/EFI/centos/shim.efi /tftpboot/bootx64.efi
+        sudo cp /boot/efi/EFI/centos/grubx64.efi /tftpboot/grubx64.efi
+
+#. Create master grub.cfg::
+
+    Ubuntu: Create grub.cfg under ``/tftpboot/grub`` directory.
+        GRUB_DIR=/tftpboot/grub
+
+    Fedora: Create grub.cfg under ``/tftpboot/EFI/fedora`` directory.
+         GRUB_DIR=/tftpboot/EFI/fedora
+
+    CentOS: Create grub.cfg under ``/tftpboot/EFI/centos`` directory.
+        GRUB_DIR=/tftpboot/EFI/centos
+
+    Create directory GRUB_DIR
+      sudo mkdir $GRUB_DIR
+
+  This file is used to redirect grub to baremetal node specific config file.
+  It redirects it to specific grub config file based on DHCP IP assigned to
+  baremetal node.
+
+  .. literalinclude:: ../../../ironic/drivers/modules/master_grub_cfg.txt
+
+  Change the permission of grub.cfg::
+
+    sudo chmod 644 $GRUB_DIR/grub.cfg
+
+#. Update bootfile and template file configuration parameters for UEFI PXE boot
+   in the Bare Metal Service's configuration file (/etc/ironic/ironic.conf)::
+
+    [pxe]
+
+    # Bootfile DHCP parameter for UEFI boot mode. (string value)
+    uefi_pxe_bootfile_name=bootx64.efi
+
+    # Template file for PXE configuration for UEFI boot loader.
+    # (string value)
+    uefi_pxe_config_template=$pybasedir/drivers/modules/pxe_grub_config.template
 
 #. Update the Ironic node with ``boot_mode`` capability in node's properties
    field::

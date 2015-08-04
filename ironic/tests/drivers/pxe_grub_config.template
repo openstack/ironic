@@ -1,0 +1,18 @@
+set default=deploy
+set timeout=5
+set hidden_timeout_quiet=false
+
+menuentry "deploy"  {
+    linuxefi /tftpboot/1be26c0b-03f2-4d2e-ae87-c02d7f33c123/deploy_kernel selinux=0 troubleshoot=0 text disk=cciss/c0d0,sda,hda,vda iscsi_target_iqn=iqn-1be26c0b-03f2-4d2e-ae87-c02d7f33c123 deployment_id=1be26c0b-03f2-4d2e-ae87-c02d7f33c123 deployment_key=0123456789ABCDEFGHIJKLMNOPQRSTUV ironic_api_url=http://192.168.122.184:6385 test_param boot_server=192.0.2.1 root_device=vendor=fake,size=123 ipa-api-url=http://192.168.122.184:6385 ipa-driver-name=pxe_ssh boot_option=netboot boot_mode=uefi coreos.configdrive=0
+    initrdefi /tftpboot/1be26c0b-03f2-4d2e-ae87-c02d7f33c123/deploy_ramdisk
+}
+
+menuentry "boot_partition"  {
+    linuxefi /tftpboot/1be26c0b-03f2-4d2e-ae87-c02d7f33c123/kernel root=(( ROOT )) ro text test_param boot_server=192.0.2.1
+    initrdefi /tftpboot/1be26c0b-03f2-4d2e-ae87-c02d7f33c123/ramdisk
+}
+
+menuentry "boot_whole_disk"  {
+    linuxefi chain.c32 mbr:(( DISK_IDENTIFIER ))
+}
+
