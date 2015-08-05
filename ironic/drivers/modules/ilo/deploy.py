@@ -871,6 +871,10 @@ class VendorPassthru(agent_base_vendor.BaseAgentVendor):
                 'error': The error message if status == 'FAILED'
                 'address': The IP address of the ramdisk
         """
+        LOG.warning(_LW("The node %s is using the bash deploy ramdisk for "
+                        "its deployment. This deploy ramdisk has been "
+                        "deprecated. Please use the ironic-python-agent "
+                        "(IPA) ramdisk instead."), task.node.uuid)
         task.process_event('resume')
         iscsi_deploy.validate_bootloader_install_status(task, kwargs)
         iscsi_deploy.finish_deploy(task, kwargs['address'])
@@ -897,6 +901,10 @@ class VendorPassthru(agent_base_vendor.BaseAgentVendor):
         :raises: InvalidState
         """
         node = task.node
+        LOG.warning(_LW("The node %s is using the bash deploy ramdisk for "
+                        "its deployment. This deploy ramdisk has been "
+                        "deprecated. Please use the ironic-python-agent "
+                        "(IPA) ramdisk instead."), node.uuid)
         task.process_event('resume')
 
         iwdi = node.driver_internal_info.get('is_whole_disk_image')

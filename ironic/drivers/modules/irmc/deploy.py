@@ -28,6 +28,7 @@ from ironic.common.glance_service import service_utils
 from ironic.common.i18n import _
 from ironic.common.i18n import _LE
 from ironic.common.i18n import _LI
+from ironic.common.i18n import _LW
 from ironic.common import images
 from ironic.common import states
 from ironic.common import utils
@@ -794,6 +795,10 @@ class VendorPassthru(agent_base_vendor.BaseAgentVendor):
                 'error': The error message if status == 'FAILED'
                 'address': The IP address of the ramdisk
         """
+        LOG.warning(_LW("The node %s is using the bash deploy ramdisk for "
+                        "its deployment. This deploy ramdisk has been "
+                        "deprecated. Please use the ironic-python-agent "
+                        "(IPA) ramdisk instead."), task.node.uuid)
         task.process_event('resume')
         iscsi_deploy.validate_bootloader_install_status(task, kwargs)
         iscsi_deploy.finish_deploy(task, kwargs['address'])
@@ -819,6 +824,10 @@ class VendorPassthru(agent_base_vendor.BaseAgentVendor):
         :raises: InvalidState
         """
         node = task.node
+        LOG.warning(_LW("The node %s is using the bash deploy ramdisk for "
+                        "its deployment. This deploy ramdisk has been "
+                        "deprecated. Please use the ironic-python-agent "
+                        "(IPA) ramdisk instead."), node.uuid)
         task.process_event('resume')
 
         LOG.debug('Continuing iSCSI virtual media deployment on node %s',
