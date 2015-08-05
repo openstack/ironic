@@ -108,7 +108,7 @@
           }
         - {
             section: 'database',
-            option: 'connection', value: "mysql://ironic:ironic@{{ip}}/ironic"
+            option: 'connection', value: "mysql+pymysql://ironic:ironic@{{ip}}/ironic"
           }
         - {
             section: 'DEFAULT',
