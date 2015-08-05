@@ -183,14 +183,15 @@ Option 1: Manual Install
     # turn off the periodic sync_power_state task, to avoid getting NodeLocked exceptions
     sed -i "s/#sync_power_state_interval=60/sync_power_state_interval=-1/" etc/ironic/ironic.conf.local
 
-#. Initialize the ironic database (optional)
+#. Initialize the ironic database (optional)::
 
     # ironic defaults to storing data in ./ironic/ironic.sqlite
 
     # If using MySQL, you need to create the initial database
-    # mysql -u root -e "create schema ironic"
+    mysql -u root -e "create schema ironic"
+
     # and switch the DB connection from sqlite to something else, eg. mysql
-    # sed -i "s/#connection=.*/connection=mysql:\/\/root@localhost\/ironic/" etc/ironic/ironic.conf.local
+    sed -i "s/#connection=.*/connection=mysql:\/\/root@localhost\/ironic/" etc/ironic/ironic.conf.local
 
 At this point, you can continue to Step 2.
 
@@ -215,9 +216,8 @@ We recommend you compare and familiarize yourself with the settings in
 
 Step 2: Start the API
 ---------------------
-
-Activate the virtual environment created in the previous section to run
-the API::
+#. Activate the virtual environment created in the previous section to run
+   the API::
 
     # switch to the ironic source (Not necessary if you followed Option 1)
     cd ironic
@@ -236,8 +236,6 @@ the API::
     # start the API service
     ironic-api -v -d --config-file etc/ironic/ironic.conf.local
 
-#. Open one more window (or screen session), again activate the venv, and then
-   start the conductor service and watch its output::
 
 Step 3: Install the Client
 --------------------------
