@@ -53,8 +53,8 @@ def main():
     LOG = log.getLogger(__name__)
     LOG.info(_LI("Serving on http://%(host)s:%(port)s"),
              {'host': host, 'port': port})
-    LOG.info(_LI("Configuration:"))
-    CONF.log_opt_values(LOG, logging.INFO)
+    LOG.debug("Configuration:")
+    CONF.log_opt_values(LOG, logging.DEBUG)
 
     try:
         wsgi.serve_forever()
