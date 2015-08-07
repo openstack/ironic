@@ -790,6 +790,7 @@ class VendorPassthru(agent_base_vendor.BaseAgentVendor):
         :param task: A TaskManager object.
         :param kwargs: The arguments sent with vendor passthru.  The expected
             kwargs are::
+
                 'key': The deploy key for authorization
                 'status': 'SUCCEEDED' or 'FAILED'
                 'error': The error message if status == 'FAILED'
@@ -811,6 +812,7 @@ class VendorPassthru(agent_base_vendor.BaseAgentVendor):
         This method continues the iSCSI deployment from the conductor node
         and writes the deploy image to the bare metal's disk.  After that,
         it does the following depending on boot_option for deploy:
+
         - If the boot_option requested for this deploy is 'local', then it
           sets the node to boot from disk (ramdisk installs the boot loader
           present within the image to the bare metal's disk).

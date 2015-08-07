@@ -114,7 +114,7 @@ class AgentAndUcsDriver(base.BaseDriver):
 
     This driver implements the `core` functionality, combining
     :class:ironic.drivers.modules.ucs.power.Power for power
-        on/off and reboot with
+    on/off and reboot with
     :class:'ironic.driver.modules.agent.AgentDeploy' (for image deployment.)
     Implementations are in those respective classes;
     this class is merely the glue between them.
