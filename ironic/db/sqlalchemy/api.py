@@ -168,6 +168,9 @@ class Connection(api.Connection):
                 query = query.filter(models.Node.reservation != sql.null())
             else:
                 query = query.filter(models.Node.reservation == sql.null())
+        if 'reserved_by_any_of' in filters:
+            query = query.filter(models.Node.reservation.in_(
+                filters['reserved_by_any_of']))
         if 'maintenance' in filters:
             query = query.filter_by(maintenance=filters['maintenance'])
         if 'driver' in filters:

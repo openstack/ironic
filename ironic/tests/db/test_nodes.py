@@ -113,9 +113,14 @@ class DbNodeTestCase(base.DbTestCase):
             driver='driver-two',
             uuid=uuidutils.generate_uuid(),
             maintenance=True)
+        node3 = utils.create_test_node(
+            driver='driver-one',
+            uuid=uuidutils.generate_uuid(),
+            reservation='another-fake-host')
 
         res = self.dbapi.get_nodeinfo_list(filters={'driver': 'driver-one'})
-        self.assertEqual([node1.id], [r[0] for r in res])
+        self.assertEqual(sorted([node1.id, node3.id]),
+                         sorted([r[0] for r in res]))
 
         res = self.dbapi.get_nodeinfo_list(filters={'driver': 'bad-driver'})
         self.assertEqual([], [r[0] for r in res])
@@ -124,10 +129,12 @@ class DbNodeTestCase(base.DbTestCase):
         self.assertEqual([node1.id], [r[0] for r in res])
 
         res = self.dbapi.get_nodeinfo_list(filters={'associated': False})
-        self.assertEqual([node2.id], [r[0] for r in res])
+        self.assertEqual(sorted([node2.id, node3.id]),
+                         sorted([r[0] for r in res]))
 
         res = self.dbapi.get_nodeinfo_list(filters={'reserved': True})
-        self.assertEqual([node1.id], [r[0] for r in res])
+        self.assertEqual(sorted([node1.id, node3.id]),
+                         sorted([r[0] for r in res]))
 
         res = self.dbapi.get_nodeinfo_list(filters={'reserved': False})
         self.assertEqual([node2.id], [r[0] for r in res])
@@ -136,7 +143,14 @@ class DbNodeTestCase(base.DbTestCase):
         self.assertEqual([node2.id], [r.id for r in res])
 
         res = self.dbapi.get_node_list(filters={'maintenance': False})
-        self.assertEqual([node1.id], [r.id for r in res])
+        self.assertEqual(sorted([node1.id, node3.id]),
+                         sorted([r.id for r in res]))
+
+        res = self.dbapi.get_node_list(
+            filters={'reserved_by_any_of': ['fake-host',
+                                            'another-fake-host']})
+        self.assertEqual(sorted([node1.id, node3.id]),
+                         sorted([r.id for r in res]))
 
     @mock.patch.object(timeutils, 'utcnow', autospec=True)
     def test_get_nodeinfo_list_provision(self, mock_utcnow):
