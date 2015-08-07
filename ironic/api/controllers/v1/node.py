@@ -573,11 +573,10 @@ class Node(base.APIBase):
         # because it's an API-only attribute.
         fields.append('chassis_uuid')
         for k in fields:
-            # Skip fields we do not expose.
-            if not hasattr(self, k):
-                continue
-            self.fields.append(k)
-            setattr(self, k, kwargs.get(k, wtypes.Unset))
+            # Add fields we expose.
+            if hasattr(self, k):
+                self.fields.append(k)
+                setattr(self, k, kwargs.get(k, wtypes.Unset))
 
         # NOTE(lucasagomes): chassis_id is an attribute created on-the-fly
         # by _set_chassis_uuid(), it needs to be present in the fields so
@@ -865,6 +864,54 @@ class NodesController(rest.RestController):
         except exception.InstanceNotFound:
             return []
 
+    def _check_name_acceptable(self, name, error_msg):
+        """Checks if a node 'name' is acceptable, it does not return a value.
+
+        This function will raise an exception for unacceptable names.
+
+        :param name: node name
+        :param error_msg: error message in case of wsme.exc.ClientSideError
+        :raises: exception.NotAcceptable
+        :raises: wsme.exc.ClientSideError
+        """
+        if name:
+            if not api_utils.allow_node_logical_names():
+                raise exception.NotAcceptable()
+            if not api_utils.is_valid_node_name(name):
+                raise wsme.exc.ClientSideError(error_msg, status_code=400)
+
+    def _update_changed_fields(self, node, rpc_node):
+        """Update rpc_node based on changed fields in a node.
+
+        """
+        for field in objects.Node.fields:
+            try:
+                patch_val = getattr(node, field)
+            except AttributeError:
+                # Ignore fields that aren't exposed in the API
+                continue
+            if patch_val == wtypes.Unset:
+                patch_val = None
+            if rpc_node[field] != patch_val:
+                rpc_node[field] = patch_val
+
+    def _check_driver_changed_and_console_enabled(self, rpc_node, node_ident):
+        """Checks if the driver and the console is enabled in a node.
+
+        If it does, is necessary to prevent updating it because the new driver
+        will not be able to stop a console started by the previous one.
+
+        :param rpc_node: RPC Node object to be veryfied.
+        :param node_ident: the UUID or logical name of a node.
+        :raises: wsme.exc.ClientSideError
+        """
+        delta = rpc_node.obj_what_changed()
+        if 'driver' in delta and rpc_node.console_enabled:
+            raise wsme.exc.ClientSideError(
+                _("Node %s can not update the driver while the console is "
+                  "enabled. Please stop the console first.") % node_ident,
+                status_code=409)
+
     @expose.expose(NodeCollection, types.uuid, types.uuid, types.boolean,
                    types.boolean, wtypes.text, types.uuid, int, wtypes.text,
                    wtypes.text, types.listtype)
@@ -950,7 +997,7 @@ class NodesController(rest.RestController):
         :param node: UUID or name of a node.
         :param node_uuid: UUID of a node.
         """
-        if node:
+        if node is not None:
             # We're invoking this interface using positional notation, or
             # explicitly using 'node'.  Try and determine which one.
             if (not api_utils.allow_node_logical_names() and
@@ -1004,16 +1051,9 @@ class NodesController(rest.RestController):
             e.code = 400
             raise e
 
-        # Verify that if we're creating a new node with a 'name' set
-        # that it is a valid name
-        if node.name:
-            if not api_utils.allow_node_logical_names():
-                raise exception.NotAcceptable()
-            if not api_utils.is_valid_node_name(node.name):
-                msg = _("Cannot create node with invalid name %(name)s")
-                raise wsme.exc.ClientSideError(msg % {'name': node.name},
-                                               status_code=400)
-
+        error_msg = _("Cannot create node with invalid name "
+                      "%(name)s") % {'name': node.name}
+        self._check_name_acceptable(node.name, error_msg)
         node.provision_state = api_utils.initial_node_provision_state()
 
         new_node = objects.Node(pecan.request.context,
@@ -1059,18 +1099,10 @@ class NodesController(rest.RestController):
                     "is in progress.")
             raise wsme.exc.ClientSideError(msg % node_ident, status_code=409)
 
-        # Verify that if we're patching 'name' that it is a valid
         name = api_utils.get_patch_value(patch, '/name')
-        if name:
-            if not api_utils.allow_node_logical_names():
-                raise exception.NotAcceptable()
-            if not api_utils.is_valid_node_name(name):
-                msg = _("Node %(node)s: Cannot change name to invalid "
-                        "name '%(name)s'")
-                raise wsme.exc.ClientSideError(msg % {'node': node_ident,
-                                                      'name': name},
-                                               status_code=400)
-
+        error_msg = _("Node %(node)s: Cannot change name to invalid "
+                      "name '%(name)s'") % {'node': node_ident, 'name': name}
+        self._check_name_acceptable(name, error_msg)
         try:
             node_dict = rpc_node.as_dict()
             # NOTE(lucasagomes):
@@ -1081,19 +1113,7 @@ class NodesController(rest.RestController):
             node = Node(**api_utils.apply_jsonpatch(node_dict, patch))
         except api_utils.JSONPATCH_EXCEPTIONS as e:
             raise exception.PatchError(patch=patch, reason=e)
-
-        # Update only the fields that have changed
-        for field in objects.Node.fields:
-            try:
-                patch_val = getattr(node, field)
-            except AttributeError:
-                # Ignore fields that aren't exposed in the API
-                continue
-            if patch_val == wtypes.Unset:
-                patch_val = None
-            if rpc_node[field] != patch_val:
-                rpc_node[field] = patch_val
-
+        self._update_changed_fields(node, rpc_node)
         # NOTE(deva): we calculate the rpc topic here in case node.driver
         #             has changed, so that update is sent to the
         #             new conductor, not the old one which may fail to
@@ -1106,17 +1126,7 @@ class NodesController(rest.RestController):
             #             one that doesn't exist.
             e.code = 400
             raise e
-
-        # NOTE(lucasagomes): If it's changing the driver and the console
-        # is enabled we prevent updating it because the new driver will
-        # not be able to stop a console started by the previous one.
-        delta = rpc_node.obj_what_changed()
-        if 'driver' in delta and rpc_node.console_enabled:
-            raise wsme.exc.ClientSideError(
-                _("Node %s can not update the driver while the console is "
-                  "enabled. Please stop the console first.") % node_ident,
-                status_code=409)
-
+        self._check_driver_changed_and_console_enabled(rpc_node, node_ident)
         new_node = pecan.request.rpcapi.update_node(
             pecan.request.context, rpc_node, topic)
 

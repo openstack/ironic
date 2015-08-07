@@ -146,15 +146,13 @@ def cleanup_after_timeout(task):
                   ' %(error)s')
     try:
         task.driver.deploy.clean_up(task)
-    except exception.IronicException as e:
-        msg = error_msg % {'node': node.uuid, 'error': e}
-        LOG.error(msg)
-        node.last_error = msg
-        node.save()
     except Exception as e:
         msg = error_msg % {'node': node.uuid, 'error': e}
         LOG.error(msg)
-        node.last_error = _('Deploy timed out, but an unhandled exception was '
-                            'encountered while aborting. More info may be '
-                            'found in the log file.')
+        if isinstance(e, exception.IronicException):
+            node.last_error = msg
+        else:
+            node.last_error = _('Deploy timed out, but an unhandled '
+                                'exception was encountered while aborting. '
+                                'More info may be found in the log file.')
         node.save()
