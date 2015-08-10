@@ -25,16 +25,20 @@ LaunchPad Project
 -----------------
 
 Most of the tools used for OpenStack depend on a launchpad.net ID for
-authentication. After signing up for a launchpad account, join the
-"openstack" team to have access to the mailing list and receive
-notifications of important events.
+authentication.
 
 .. seealso::
 
-   * http://launchpad.net
-   * http://launchpad.net/ironic
-   * http://launchpad.net/~openstack
+   * https://launchpad.net
+   * https://launchpad.net/ironic
 
+Related Projects
+-----------------
+
+   * https://launchpad.net/ironic-inspector
+   * https://launchpad.net/python-ironicclient
+   * https://launchpad.net/python-ironic-inspector-client
+   * https://launchpad.net/bifrost
 
 Project Hosting Details
 -------------------------
