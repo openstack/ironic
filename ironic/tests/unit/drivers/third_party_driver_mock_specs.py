@@ -48,6 +48,7 @@ IRONIC_INSPECTOR_CLIENT_SPEC = (
 PROLIANTUTILS_SPEC = (
     'exception',
     'ilo',
+    'utils',
 )
 
 # pyghmi

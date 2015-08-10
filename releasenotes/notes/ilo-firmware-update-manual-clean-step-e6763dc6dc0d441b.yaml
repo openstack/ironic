@@ -1,0 +1,4 @@
+---
+features:
+  - iLO drivers now provide out-of-band firmware update as a manual cleaning
+    step, for supported hardware components.

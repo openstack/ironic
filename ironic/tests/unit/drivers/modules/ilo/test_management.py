@@ -323,3 +323,228 @@ class IloManagementTestCase(db_base.DbTestCase):
                                   task,
                                   **activate_license_args)
                 self.assertFalse(clean_step_mock.called)
+
+    @mock.patch.object(ilo_management, 'LOG')
+    @mock.patch.object(ilo_management, '_execute_ilo_clean_step',
+                       spec_set=True, autospec=True)
+    @mock.patch.object(ilo_management.firmware_processor, 'FirmwareProcessor',
+                       spec_set=True, autospec=True)
+    @mock.patch.object(ilo_common, 'remove_single_or_list_of_files',
+                       spec_set=True, autospec=True)
+    def test_update_firmware_calls_clean_step_foreach_url(
+            self, remove_file_mock, FirmwareProcessor_mock, clean_step_mock,
+            LOG_mock):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            # | GIVEN |
+            firmware_images = [
+                {
+                    'url': 'file:///any_path',
+                    'checksum': 'xxxx',
+                    'component': 'ilo'
+                },
+                {
+                    'url': 'http://any_url',
+                    'checksum': 'xxxx',
+                    'component': 'cpld'
+                },
+                {
+                    'url': 'https://any_url',
+                    'checksum': 'xxxx',
+                    'component': 'power_pic'
+                },
+                {
+                    'url': 'swift://container/object',
+                    'checksum': 'xxxx',
+                    'component': 'bios'
+                },
+                {
+                    'url': 'file:///any_path',
+                    'checksum': 'xxxx',
+                    'component': 'chassis'
+                }
+            ]
+            FirmwareProcessor_mock.return_value.process_fw_on.side_effect = [
+                ilo_management.firmware_processor.FirmwareImageLocation(
+                    'fw_location_for_filepath', 'filepath'),
+                ilo_management.firmware_processor.FirmwareImageLocation(
+                    'fw_location_for_httppath', 'httppath'),
+                ilo_management.firmware_processor.FirmwareImageLocation(
+                    'fw_location_for_httpspath', 'httpspath'),
+                ilo_management.firmware_processor.FirmwareImageLocation(
+                    'fw_location_for_swiftpath', 'swiftpath'),
+                ilo_management.firmware_processor.FirmwareImageLocation(
+                    'fw_location_for_another_filepath', 'filepath2')
+            ]
+            firmware_update_args = {'firmware_update_mode': 'ilo',
+                                    'firmware_images': firmware_images}
+            # | WHEN |
+            task.driver.management.update_firmware(task,
+                                                   **firmware_update_args)
+            # | THEN |
+            calls = [mock.call(task.node, 'update_firmware',
+                               'fw_location_for_filepath', 'ilo'),
+                     mock.call(task.node, 'update_firmware',
+                               'fw_location_for_httppath', 'cpld'),
+                     mock.call(task.node, 'update_firmware',
+                               'fw_location_for_httpspath', 'power_pic'),
+                     mock.call(task.node, 'update_firmware',
+                               'fw_location_for_swiftpath', 'bios'),
+                     mock.call(task.node, 'update_firmware',
+                               'fw_location_for_another_filepath', 'chassis'),
+                     ]
+            clean_step_mock.assert_has_calls(calls)
+            self.assertTrue(clean_step_mock.call_count == 5)
+
+    def test_update_firmware_throws_if_invalid_update_mode_provided(self):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            # | GIVEN |
+            firmware_update_args = {'firmware_update_mode': 'invalid_mode',
+                                    'firmware_images': None}
+            # | WHEN & THEN |
+            self.assertRaises(exception.InvalidParameterValue,
+                              task.driver.management.update_firmware,
+                              task,
+                              **firmware_update_args)
+
+    def test_update_firmware_throws_error_for_no_firmware_url(self):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            # | GIVEN |
+            firmware_update_args = {'firmware_update_mode': 'ilo',
+                                    'firmware_images': []}
+            # | WHEN & THEN |
+            self.assertRaises(exception.InvalidParameterValue,
+                              task.driver.management.update_firmware,
+                              task,
+                              **firmware_update_args)
+
+    def test_update_firmware_throws_error_for_invalid_component_type(self):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            # | GIVEN |
+            firmware_update_args = {'firmware_update_mode': 'ilo',
+                                    'firmware_images': [
+                                        {
+                                            'url': 'any_valid_url',
+                                            'checksum': 'xxxx',
+                                            'component': 'xyz'
+                                        }
+                                    ]}
+            # | WHEN & THEN |
+            self.assertRaises(exception.NodeCleaningFailure,
+                              task.driver.management.update_firmware,
+                              task,
+                              **firmware_update_args)
+
+    @mock.patch.object(ilo_management, 'LOG')
+    @mock.patch.object(ilo_management.firmware_processor.FirmwareProcessor,
+                       'process_fw_on', spec_set=True, autospec=True)
+    def test_update_firmware_throws_error_for_checksum_validation_error(
+            self, process_fw_on_mock, LOG_mock):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            # | GIVEN |
+            firmware_update_args = {'firmware_update_mode': 'ilo',
+                                    'firmware_images': [
+                                        {
+                                            'url': 'any_valid_url',
+                                            'checksum': 'invalid_checksum',
+                                            'component': 'bios'
+                                        }
+                                    ]}
+            process_fw_on_mock.side_effect = exception.ImageRefValidationFailed
+            # | WHEN & THEN |
+            self.assertRaises(exception.NodeCleaningFailure,
+                              task.driver.management.update_firmware,
+                              task,
+                              **firmware_update_args)
+
+    @mock.patch.object(ilo_management, '_execute_ilo_clean_step',
+                       spec_set=True, autospec=True)
+    @mock.patch.object(ilo_management.firmware_processor, 'FirmwareProcessor',
+                       spec_set=True, autospec=True)
+    def test_update_firmware_doesnt_update_any_if_processing_on_any_url_fails(
+            self, FirmwareProcessor_mock, clean_step_mock):
+        """update_firmware throws error for failure in processing any url
+
+        update_firmware doesn't invoke firmware update of proliantutils
+        for any url if processing on any firmware url fails.
+        """
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            # | GIVEN |
+            firmware_update_args = {'firmware_update_mode': 'ilo',
+                                    'firmware_images': [
+                                        {
+                                            'url': 'any_valid_url',
+                                            'checksum': 'xxxx',
+                                            'component': 'ilo'
+                                        },
+                                        {
+                                            'url': 'any_invalid_url',
+                                            'checksum': 'xxxx',
+                                            'component': 'bios'
+                                        }]
+                                    }
+            FirmwareProcessor_mock.return_value.process_fw_on.side_effect = [
+                ilo_management.firmware_processor.FirmwareImageLocation(
+                    'extracted_firmware_url_of_any_valid_url', 'filename'),
+                exception.IronicException
+            ]
+            # | WHEN & THEN |
+            self.assertRaises(exception.NodeCleaningFailure,
+                              task.driver.management.update_firmware,
+                              task,
+                              **firmware_update_args)
+            self.assertFalse(clean_step_mock.called)
+
+    @mock.patch.object(ilo_management, 'LOG')
+    @mock.patch.object(ilo_management, '_execute_ilo_clean_step',
+                       spec_set=True, autospec=True)
+    @mock.patch.object(ilo_management.firmware_processor, 'FirmwareProcessor',
+                       spec_set=True, autospec=True)
+    @mock.patch.object(ilo_management.firmware_processor.FirmwareImageLocation,
+                       'remove', spec_set=True, autospec=True)
+    def test_update_firmware_cleans_all_files_if_exc_thrown(
+            self, remove_mock, FirmwareProcessor_mock, clean_step_mock,
+            LOG_mock):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            # | GIVEN |
+            firmware_update_args = {'firmware_update_mode': 'ilo',
+                                    'firmware_images': [
+                                        {
+                                            'url': 'any_valid_url',
+                                            'checksum': 'xxxx',
+                                            'component': 'ilo'
+                                        },
+                                        {
+                                            'url': 'any_invalid_url',
+                                            'checksum': 'xxxx',
+                                            'component': 'bios'
+                                        }]
+                                    }
+            fw_loc_obj_1 = (ilo_management.firmware_processor.
+                            FirmwareImageLocation('extracted_firmware_url_1',
+                                                  'filename_1'))
+            fw_loc_obj_2 = (ilo_management.firmware_processor.
+                            FirmwareImageLocation('extracted_firmware_url_2',
+                                                  'filename_2'))
+            FirmwareProcessor_mock.return_value.process_fw_on.side_effect = [
+                fw_loc_obj_1, fw_loc_obj_2
+            ]
+            clean_step_mock.side_effect = exception.NodeCleaningFailure(
+                node=self.node.uuid, reason='ilo_exc')
+            # | WHEN & THEN |
+            self.assertRaises(exception.NodeCleaningFailure,
+                              task.driver.management.update_firmware,
+                              task,
+                              **firmware_update_args)
+            clean_step_mock.assert_called_once_with(
+                task.node, 'update_firmware',
+                'extracted_firmware_url_1', 'ilo')
+            self.assertTrue(LOG_mock.error.called)
+            remove_mock.assert_has_calls([mock.call(fw_loc_obj_1),
+                                          mock.call(fw_loc_obj_2)])

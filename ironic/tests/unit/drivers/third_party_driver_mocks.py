@@ -95,9 +95,15 @@ if not proliantutils:
     sys.modules['proliantutils.ilo'] = proliantutils.ilo
     sys.modules['proliantutils.ilo.client'] = proliantutils.ilo.client
     sys.modules['proliantutils.exception'] = proliantutils.exception
+    sys.modules['proliantutils.utils'] = proliantutils.utils
+    proliantutils.utils.process_firmware_image = mock.MagicMock()
     proliantutils.exception.IloError = type('IloError', (Exception,), {})
     command_exception = type('IloCommandNotSupportedError', (Exception,), {})
     proliantutils.exception.IloCommandNotSupportedError = command_exception
+    proliantutils.exception.InvalidInputError = type(
+        'InvalidInputError', (Exception,), {})
+    proliantutils.exception.ImageExtractionFailed = type(
+        'ImageExtractionFailed', (Exception,), {})
     if 'ironic.drivers.ilo' in sys.modules:
         six.moves.reload_module(sys.modules['ironic.drivers.ilo'])
 

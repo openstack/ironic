@@ -15,6 +15,7 @@
 
 """Test class for common methods used by iLO modules."""
 
+import hashlib
 import os
 import shutil
 import tempfile
@@ -24,6 +25,7 @@ import mock
 from oslo_config import cfg
 from oslo_utils import importutils
 import six
+import six.moves.builtins as __builtin__
 
 from ironic.common import boot_devices
 from ironic.common import exception
@@ -718,6 +720,73 @@ class IloCommonMethodsTestCase(db_base.DbTestCase):
         copy_mock.assert_called_once_with(source, image_path)
         self.assertFalse(chmod_mock.called)
 
+    @mock.patch.object(ilo_common, 'ironic_utils', autospec=True)
+    def test_remove_image_from_web_server(self, utils_mock):
+        # | GIVEN |
+        CONF.deploy.http_url = "http://x.y.z.a/webserver/"
+        CONF.deploy.http_root = "/webserver"
+        object_name = 'tmp_image_file'
+        # | WHEN |
+        ilo_common.remove_image_from_web_server(object_name)
+        # | THEN |
+        (utils_mock.unlink_without_raise.
+         assert_called_once_with("/webserver/tmp_image_file"))
+
+    @mock.patch.object(swift, 'SwiftAPI', spec_set=True, autospec=True)
+    @mock.patch.object(ilo_common, 'LOG')
+    def test_copy_image_to_swift(self, LOG_mock, swift_api_mock):
+        # | GIVEN |
+        self.config(swift_ilo_container='ilo_container', group='ilo')
+        self.config(swift_object_expiry_timeout=1, group='ilo')
+        container = CONF.ilo.swift_ilo_container
+        timeout = CONF.ilo.swift_object_expiry_timeout
+
+        swift_obj_mock = swift_api_mock.return_value
+        destination_object_name = 'destination_object_name'
+        source_file_path = 'tmp_image_file'
+        object_headers = {'X-Delete-After': timeout}
+        # | WHEN |
+        ilo_common.copy_image_to_swift(source_file_path,
+                                       destination_object_name)
+        # | THEN |
+        swift_obj_mock.create_object.assert_called_once_with(
+            container, destination_object_name, source_file_path,
+            object_headers=object_headers)
+        swift_obj_mock.get_temp_url.assert_called_once_with(
+            container, destination_object_name, timeout)
+
+    @mock.patch.object(swift, 'SwiftAPI', spec_set=True, autospec=True)
+    def test_copy_image_to_swift_throws_error_if_swift_operation_fails(
+            self, swift_api_mock):
+        # | GIVEN |
+        self.config(swift_ilo_container='ilo_container', group='ilo')
+        self.config(swift_object_expiry_timeout=1, group='ilo')
+
+        swift_obj_mock = swift_api_mock.return_value
+        destination_object_name = 'destination_object_name'
+        source_file_path = 'tmp_image_file'
+        swift_obj_mock.create_object.side_effect = (
+            exception.SwiftOperationError(operation='create_object',
+                                          error='failed'))
+        # | WHEN | & | THEN |
+        self.assertRaises(exception.SwiftOperationError,
+                          ilo_common.copy_image_to_swift,
+                          source_file_path, destination_object_name)
+
+    @mock.patch.object(swift, 'SwiftAPI', spec_set=True, autospec=True)
+    def test_remove_image_from_swift(self, swift_api_mock):
+        # | GIVEN |
+        self.config(swift_ilo_container='ilo_container', group='ilo')
+        container = CONF.ilo.swift_ilo_container
+
+        swift_obj_mock = swift_api_mock.return_value
+        object_name = 'object_name'
+        # | WHEN |
+        ilo_common.remove_image_from_swift(object_name)
+        # | THEN |
+        swift_obj_mock.delete_object.assert_called_once_with(
+            container, object_name)
+
     @mock.patch.object(ironic_utils, 'unlink_without_raise', spec_set=True,
                        autospec=True)
     @mock.patch.object(ilo_common, '_get_floppy_image_name', spec_set=True,
@@ -774,3 +843,52 @@ class IloCommonMethodsTestCase(db_base.DbTestCase):
             func_is_secure_boot_req.return_value = False
             ilo_common.update_secure_boot_mode(task, False)
             self.assertFalse(func_set_secure_boot_mode.called)
+
+    @mock.patch.object(ironic_utils, 'unlink_without_raise', spec_set=True,
+                       autospec=True)
+    def test_remove_single_or_list_of_files(self, unlink_mock):
+        # | GIVEN |
+        file_list = ['/any_path1/any_file1',
+                     '/any_path2/any_file2',
+                     '/any_path3/any_file3']
+        # | WHEN |
+        ilo_common.remove_single_or_list_of_files(file_list)
+        # | THEN |
+        calls = [mock.call('/any_path1/any_file1'),
+                 mock.call('/any_path2/any_file2'),
+                 mock.call('/any_path3/any_file3')]
+        unlink_mock.assert_has_calls(calls)
+
+    @mock.patch.object(__builtin__, 'open', autospec=True)
+    def test_verify_image_checksum(self, open_mock):
+        # | GIVEN |
+        data = b'Yankee Doodle went to town riding on a pony;'
+        file_like_object = six.BytesIO(data)
+        open_mock().__enter__.return_value = file_like_object
+        actual_hash = hashlib.md5(data).hexdigest()
+        # | WHEN |
+        ilo_common.verify_image_checksum(file_like_object, actual_hash)
+        # | THEN |
+        # no any exception thrown
+
+    def test_verify_image_checksum_throws_for_nonexistent_file(self):
+        # | GIVEN |
+        invalid_file_path = '/some/invalid/file/path'
+        # | WHEN | & | THEN |
+        self.assertRaises(exception.ImageRefValidationFailed,
+                          ilo_common.verify_image_checksum,
+                          invalid_file_path, 'hash_xxx')
+
+    @mock.patch.object(__builtin__, 'open', autospec=True)
+    def test_verify_image_checksum_throws_for_failed_validation(self,
+                                                                open_mock):
+        # | GIVEN |
+        data = b'Yankee Doodle went to town riding on a pony;'
+        file_like_object = six.BytesIO(data)
+        open_mock().__enter__.return_value = file_like_object
+        invalid_hash = 'invalid_hash_value'
+        # | WHEN | & | THEN |
+        self.assertRaises(exception.ImageRefValidationFailed,
+                          ilo_common.verify_image_checksum,
+                          file_like_object,
+                          invalid_hash)

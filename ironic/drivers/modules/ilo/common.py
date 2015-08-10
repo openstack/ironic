@@ -24,6 +24,7 @@ from ironic_lib import utils as ironic_utils
 from oslo_config import cfg
 from oslo_log import log as logging
 from oslo_utils import importutils
+import six
 import six.moves.urllib.parse as urlparse
 from six.moves.urllib.parse import urljoin
 
@@ -133,6 +134,77 @@ def copy_image_to_web_server(source_file_path, destination):
                                           reason=exc)
     os.chmod(image_path, 0o644)
     return image_url
+
+
+def remove_image_from_web_server(object_name):
+    """Removes the given image from the configured http web server.
+
+    This method removes the given image from the http_root location. It deletes
+    the image if it exists in web server.
+
+    :param object_name: The name of the image file which needs to be removed
+                        from the web server root.
+    """
+    image_path = os.path.join(CONF.deploy.http_root, object_name)
+    ironic_utils.unlink_without_raise(image_path)
+
+
+def copy_image_to_swift(source_file_path, destination_object_name):
+    """Uploads the given image to swift.
+
+    This method copies the given image to swift.
+
+    :param source_file_path: The absolute path of the image file which needs
+                             to be copied to swift.
+    :param destination_object_name: The name of the object that will contain
+                                    the copied image.
+    :raises: SwiftOperationError, if any operation with Swift fails.
+    :returns: temp url from swift after the source image is uploaded.
+
+    """
+    container = CONF.ilo.swift_ilo_container
+    timeout = CONF.ilo.swift_object_expiry_timeout
+
+    object_headers = {'X-Delete-After': timeout}
+    swift_api = swift.SwiftAPI()
+    swift_api.create_object(container, destination_object_name,
+                            source_file_path, object_headers=object_headers)
+    temp_url = swift_api.get_temp_url(container, destination_object_name,
+                                      timeout)
+    LOG.debug("Uploaded image %(destination_object_name)s to %(container)s.",
+              {'destination_object_name': destination_object_name,
+               'container': container})
+    return temp_url
+
+
+def remove_image_from_swift(object_name, associated_with=None):
+    """Removes the given image from swift.
+
+    This method removes the given image name from swift. It deletes the
+    image if it exists in CONF.ilo.swift_ilo_container
+
+    :param object_name: The name of the object which needs to be removed
+                        from swift.
+    :param associated_with: string to depict the component/operation this
+                            object is associated to.
+    """
+    container = CONF.ilo.swift_ilo_container
+    try:
+        swift_api = swift.SwiftAPI()
+        swift_api.delete_object(container, object_name)
+    except exception.SwiftObjectNotFoundError as e:
+        LOG.warning(
+            _LW("Temporary object %(associated_with_msg)s"
+                "was already deleted from Swift. Error: %(err)s"),
+            {'associated_with_msg': ("associated with %s " % associated_with
+                                     if associated_with else ""), 'err': e})
+    except exception.SwiftOperationError as e:
+        LOG.exception(
+            _LE("Error while deleting temporary swift object %(object_name)s "
+                "%(associated_with_msg)s from %(container)s. Error: %(err)s"),
+            {'object_name': object_name, 'container': container,
+             'associated_with_msg': ("associated with %s" % associated_with
+                                     if associated_with else ""), 'err': e})
 
 
 def parse_driver_info(node):
@@ -287,8 +359,10 @@ def _prepare_floppy_image(task, params):
     :param params: a dictionary containing 'parameter name'->'value' mapping
         to be passed to the deploy ramdisk via the floppy image.
     :raises: ImageCreationFailed, if it failed while creating the floppy image.
+    :raises: ImageUploadFailed, if copying the source file to the
+             web server fails.
     :raises: SwiftOperationError, if any operation with Swift fails.
-    :returns: the Swift temp url for the floppy image.
+    :returns: the http image URL or the Swift temp url for the floppy image.
     """
     with tempfile.NamedTemporaryFile(
             dir=CONF.tempdir) as vfat_image_tmpfile_obj:
@@ -299,22 +373,10 @@ def _prepare_floppy_image(task, params):
         if CONF.ilo.use_web_server_for_images:
             image_url = copy_image_to_web_server(vfat_image_tmpfile,
                                                  object_name)
-            return image_url
         else:
-            container = CONF.ilo.swift_ilo_container
-            timeout = CONF.ilo.swift_object_expiry_timeout
+            image_url = copy_image_to_swift(vfat_image_tmpfile, object_name)
 
-            object_headers = {'X-Delete-After': timeout}
-            swift_api = swift.SwiftAPI()
-            swift_api.create_object(container, object_name,
-                                    vfat_image_tmpfile,
-                                    object_headers=object_headers)
-            temp_url = swift_api.get_temp_url(container, object_name, timeout)
-
-            LOG.debug("Uploaded floppy image %(object_name)s to %(container)s "
-                      "for deployment.",
-                      {'object_name': object_name, 'container': container})
-            return temp_url
+        return image_url
 
 
 def destroy_floppy_image_from_web_server(node):
@@ -325,8 +387,7 @@ def destroy_floppy_image_from_web_server(node):
     """
 
     object_name = _get_floppy_image_name(node)
-    image_path = os.path.join(CONF.deploy.http_root, object_name)
-    ironic_utils.unlink_without_raise(image_path)
+    remove_image_from_web_server(object_name)
 
 
 def attach_vmedia(node, device, url):
@@ -546,20 +607,8 @@ def cleanup_vmedia_boot(task):
     LOG.debug("Cleaning up node %s after virtual media boot", task.node.uuid)
 
     if not CONF.ilo.use_web_server_for_images:
-        container = CONF.ilo.swift_ilo_container
         object_name = _get_floppy_image_name(task.node)
-        try:
-            swift_api = swift.SwiftAPI()
-            swift_api.delete_object(container, object_name)
-        except exception.SwiftObjectNotFoundError as e:
-            LOG.warning(_LW("Temporary object associated with virtual floppy "
-                            "was already deleted from Swift. Error: %s"), e)
-        except exception.SwiftOperationError as e:
-            LOG.exception(_LE("Error while deleting temporary swift object "
-                              "%(object_name)s from %(container)s associated "
-                              "with virtual floppy. Error: %(error)s"),
-                          {'object_name': object_name, 'container': container,
-                           'error': e})
+        remove_image_from_swift(object_name, 'virtual floppy')
     else:
         destroy_floppy_image_from_web_server(task.node)
     eject_vmedia_devices(task)
@@ -648,3 +697,53 @@ def update_secure_boot_mode(task, mode):
         set_secure_boot_mode(task, mode)
         LOG.info(_LI('Changed secure boot to %(mode)s for node %(node)s'),
                  {'mode': mode, 'node': task.node.uuid})
+
+
+def remove_single_or_list_of_files(file_location):
+    """Removes (deletes) the file or list of files.
+
+    This method only accepts single or list of files to delete.
+    If single file is passed, this method removes (deletes) the file.
+    If list of files is passed, this method removes (deletes) each of the
+    files iteratively.
+
+    :param file_location: a single or a list of file paths
+    """
+    # file_location is a list of files
+    if isinstance(file_location, list):
+        for location in file_location:
+            ironic_utils.unlink_without_raise(location)
+    # file_location is a single file path
+    elif isinstance(file_location, six.string_types):
+        ironic_utils.unlink_without_raise(file_location)
+
+
+def verify_image_checksum(image_location, expected_checksum):
+    """Verifies checksum (md5) of image file against the expected one.
+
+    This method generates the checksum of the image file on the fly and
+    verifies it against the expected checksum provided as argument.
+
+    :param image_location: location of image file whose checksum is verified.
+    :param expected_checksum: checksum to be checked against
+    :raises: ImageRefValidationFailed, if invalid file path or
+             verification fails.
+    """
+    try:
+        with open(image_location, 'rb') as fd:
+            actual_checksum = utils.hash_file(fd)
+    except IOError as e:
+        LOG.error(_LE("Error opening file: %(file)s"),
+                  {'file': image_location})
+        raise exception.ImageRefValidationFailed(image_href=image_location,
+                                                 reason=six.text_type(e))
+
+    if actual_checksum != expected_checksum:
+        msg = (_('Error verifying image checksum. Image %(image)s failed to '
+                 'verify against checksum %(checksum)s. Actual checksum is: '
+                 '%(actual_checksum)s') %
+               {'image': image_location, 'checksum': expected_checksum,
+                'actual_checksum': actual_checksum})
+        LOG.error(msg)
+        raise exception.ImageRefValidationFailed(image_href=image_location,
+                                                 reason=msg)
