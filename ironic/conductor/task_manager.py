@@ -95,11 +95,11 @@ raised in the background thread.):
 """
 
 import functools
-import time
 
 from oslo_config import cfg
 from oslo_log import log as logging
 from oslo_utils import excutils
+from oslo_utils import timeutils
 import retrying
 
 from ironic.common import driver_factory
@@ -193,6 +193,7 @@ class TaskManager(object):
 
         self.fsm = states.machine.copy()
         self._purpose = purpose
+        self._debug_timer = timeutils.StopWatch()
 
         try:
             LOG.debug("Attempting to get %(type)s lock on node %(node)s (for "
@@ -202,7 +203,7 @@ class TaskManager(object):
             if not self.shared:
                 self._lock()
             else:
-                self._debug_timer = time.time()
+                self._debug_timer.restart()
                 self.node = objects.Node.get(context, node_id)
             self.ports = objects.Port.list_by_node_id(context, self.node.id)
             self.driver = driver_factory.get_driver(driver_name or
@@ -221,7 +222,7 @@ class TaskManager(object):
                 self.release_resources()
 
     def _lock(self):
-        self._debug_timer = time.time()
+        self._debug_timer.restart()
 
         # NodeLocked exceptions can be annoying. Let's try to alleviate
         # some of that pain by retrying our lock attempts. The retrying
@@ -236,8 +237,8 @@ class TaskManager(object):
             LOG.debug("Node %(node)s successfully reserved for %(purpose)s "
                       "(took %(time).2f seconds)",
                       {'node': self.node_id, 'purpose': self._purpose,
-                       'time': time.time() - self._debug_timer})
-            self._debug_timer = time.time()
+                       'time': self._debug_timer.elapsed()})
+            self._debug_timer.restart()
 
         reserve_node()
 
@@ -252,7 +253,7 @@ class TaskManager(object):
                       'to an exclusive one (shared lock was held %(time).2f '
                       'seconds)',
                       {'uuid': self.node.uuid, 'purpose': self._purpose,
-                       'time': time.time() - self._debug_timer})
+                       'time': self._debug_timer.elapsed()})
             self._lock()
             self.shared = False
 
@@ -308,7 +309,7 @@ class TaskManager(object):
                       "on node %(node)s (lock was held %(time).2f sec)",
                       {'type': 'shared' if self.shared else 'exclusive',
                        'purpose': self._purpose, 'node': self.node.uuid,
-                       'time': time.time() - self._debug_timer})
+                       'time': self._debug_timer.elapsed()})
         self.node = None
         self.driver = None
         self.ports = None

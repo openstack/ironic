@@ -481,7 +481,7 @@ class TaskManagerStateModelTestCases(tests_base.TestCase):
         t.ports = mock.Mock()
         t.shared = True
         t._purpose = 'purpose'
-        t._debug_timer = 3.14
+        t._debug_timer = mock.Mock()
 
         t.release_resources(t)
         self.assertIsNone(t.node)
