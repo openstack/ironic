@@ -1404,7 +1404,7 @@ if desired.
 
     ironic node-update $NODE_UUID add \
     driver_info/deploy_kernel=$DEPLOY_VMLINUZ_UUID \
-    driver_info/deploy_ramdisk=$DEPLOY_INITRD_UUID \
+    driver_info/deploy_ramdisk=$DEPLOY_INITRD_UUID
 
 #. You must also inform Ironic of the Network Interface Cards which are part of
    the Node by creating a Port with each NIC's MAC address.  These MAC
