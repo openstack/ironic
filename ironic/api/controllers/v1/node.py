@@ -350,8 +350,9 @@ class NodeStatesController(rest.RestController):
                 action=target, node=node_ident,
                 state=rpc_node.power_state)
 
-        # Don't change power state for nodes in cleaning
-        elif rpc_node.provision_state == ir_states.CLEANING:
+        # Don't change power state for nodes being cleaned
+        elif rpc_node.provision_state in (ir_states.CLEANWAIT,
+                                          ir_states.CLEANING):
             raise exception.InvalidStateRequested(
                 action=target, node=node_ident,
                 state=rpc_node.provision_state)
