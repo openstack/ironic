@@ -97,11 +97,10 @@ class Port(base.APIBase):
         #                    because it's an API-only attribute
         fields.append('node_uuid')
         for field in fields:
-            # Skip fields we do not expose.
-            if not hasattr(self, field):
-                continue
-            self.fields.append(field)
-            setattr(self, field, kwargs.get(field, wtypes.Unset))
+            # Add fields we expose.
+            if hasattr(self, field):
+                self.fields.append(field)
+                setattr(self, field, kwargs.get(field, wtypes.Unset))
 
         # NOTE(lucasagomes): node_id is an attribute created on-the-fly
         # by _set_node_uuid(), it needs to be present in the fields so

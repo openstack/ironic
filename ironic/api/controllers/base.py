@@ -104,11 +104,10 @@ class Version(object):
         return version
 
     def __lt__(a, b):
-        if (a.major == b.major and a.minor < b.minor):
-            return True
-        return False
+        return (a.major, a.minor) < (b.major, b.minor)
 
     def __gt__(a, b):
-        if (a.major == b.major and a.minor > b.minor):
-            return True
-        return False
+        return (a.major, a.minor) > (b.major, b.minor)
+
+    def __eq__(a, b):
+        return (a.major, a.minor) == (b.major, b.minor)
