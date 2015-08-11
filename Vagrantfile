@@ -22,7 +22,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
 
     ironic.vm.provision 'ansible' do |ansible|
       ansible.verbose = 'v'
-      ansible.playbook = 'vagrant.yml'
+      ansible.playbook = 'vagrant.yaml'
       ansible.extra_vars = {
           ip: '192.168.99.11'
       }
