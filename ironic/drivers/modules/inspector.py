@@ -130,10 +130,9 @@ class Inspector(base.InspectInterface):
 
         for node_uuid, driver in node_iter:
             try:
-                # TODO(dtantsur): we need an exclusive lock only once
-                # inspection is finished.
                 lock_purpose = 'checking hardware inspection status'
                 with task_manager.acquire(context, node_uuid,
+                                          shared=True,
                                           purpose=lock_purpose) as task:
                     _check_status(task)
             except (exception.NodeLocked, exception.NodeNotFound):
@@ -194,14 +193,24 @@ def _check_status(task):
                       node.uuid)
         return
 
-    if status.get('error'):
+    error = status.get('error')
+    finished = status.get('finished')
+    if not error and not finished:
+        return
+
+    # If the inspection has finished or failed, we need to update the node, so
+    # upgrade our lock to an exclusive one.
+    task.upgrade_lock()
+    node = task.node
+
+    if error:
         LOG.error(_LE('Inspection failed for node %(uuid)s '
                       'with error: %(err)s'),
-                  {'uuid': node.uuid, 'err': status['error']})
+                  {'uuid': node.uuid, 'err': error})
         node.last_error = (_('ironic-inspector inspection failed: %s')
-                           % status['error'])
+                           % error)
         task.process_event('fail')
-    elif status.get('finished'):
+    elif finished:
         LOG.info(_LI('Inspection finished successfully for node %s'),
                  node.uuid)
         task.process_event('done')
