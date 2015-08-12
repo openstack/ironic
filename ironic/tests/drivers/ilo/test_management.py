@@ -65,7 +65,8 @@ class IloManagementTestCase(db_base.DbTestCase):
                         boot_devices.CDROM]
             self.assertEqual(
                 sorted(expected),
-                sorted(task.driver.management.get_supported_boot_devices()))
+                sorted(task.driver.management.
+                       get_supported_boot_devices(task)))
 
     @mock.patch.object(ilo_common, 'get_ilo_object', spec_set=True,
                        autospec=True)

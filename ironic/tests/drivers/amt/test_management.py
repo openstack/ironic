@@ -153,7 +153,8 @@ class AMTManagementTestCase(db_base.DbTestCase):
                                   shared=True) as task:
             self.assertEqual(
                 sorted(expected),
-                sorted(task.driver.management.get_supported_boot_devices()))
+                sorted(task.driver.management.
+                       get_supported_boot_devices(task)))
 
     def test_set_boot_device_one_time(self):
         with task_manager.acquire(self.context, self.node.uuid,

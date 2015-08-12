@@ -178,11 +178,11 @@ class FakeManagement(base.ManagementInterface):
     def validate(self, task):
         pass
 
-    def get_supported_boot_devices(self):
+    def get_supported_boot_devices(self, task):
         return [boot_devices.PXE]
 
     def set_boot_device(self, task, device, persistent=False):
-        if device not in self.get_supported_boot_devices():
+        if device not in self.get_supported_boot_devices(task):
             raise exception.InvalidParameterValue(_(
                 "Invalid boot device %s specified.") % device)
 

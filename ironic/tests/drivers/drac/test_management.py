@@ -204,7 +204,8 @@ class DracManagementTestCase(db_base.DbTestCase):
     def test_get_supported_boot_devices(self, mock_client_pywsman):
         expected = [boot_devices.PXE, boot_devices.DISK, boot_devices.CDROM]
         self.assertEqual(sorted(expected),
-                         sorted(self.driver.get_supported_boot_devices()))
+                         sorted(self.driver.
+                                get_supported_boot_devices(self.task)))
 
     @mock.patch.object(drac_mgmt, '_get_next_boot_list', spec_set=True,
                        autospec=True)

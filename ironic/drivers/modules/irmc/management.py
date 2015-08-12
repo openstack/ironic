@@ -138,7 +138,7 @@ class IRMCManagement(ipmitool.IPMIManagement):
 
         """
         if driver_utils.get_node_capability(task.node, 'boot_mode') == 'uefi':
-            if device not in self.get_supported_boot_devices():
+            if device not in self.get_supported_boot_devices(task):
                 raise exception.InvalidParameterValue(_(
                     "Invalid boot device %s specified.") % device)
             timeout_disable = "0x00 0x08 0x03 0x08"

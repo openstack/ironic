@@ -71,7 +71,8 @@ class MSFTOCSManagementTestCase(db_base.DbTestCase):
                                   shared=True) as task:
             self.assertEqual(
                 sorted(expected),
-                sorted(task.driver.management.get_supported_boot_devices()))
+                sorted(task.driver.management.
+                       get_supported_boot_devices(task)))
 
     @mock.patch.object(msftocs_common, 'get_client_info', autospec=True)
     def _test_set_boot_device_one_time(self, persistent, uefi,

@@ -332,7 +332,7 @@ class IPMINativeDriverTestCase(db_base.DbTestCase):
             expected = [boot_devices.PXE, boot_devices.DISK,
                         boot_devices.CDROM, boot_devices.BIOS]
             self.assertEqual(sorted(expected), sorted(task.driver.management.
-                             get_supported_boot_devices()))
+                             get_supported_boot_devices(task)))
 
     @mock.patch('pyghmi.ipmi.command.Command', autospec=True)
     def test_management_interface_get_boot_device_good(self, ipmi_mock):

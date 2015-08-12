@@ -378,9 +378,10 @@ class NativeIPMIManagement(base.ManagementInterface):
         """
         _parse_driver_info(task.node)
 
-    def get_supported_boot_devices(self):
+    def get_supported_boot_devices(self, task):
         """Get a list of the supported boot devices.
 
+        :param task: a task from TaskManager.
         :returns: A list with the supported boot devices defined
                   in :mod:`ironic.common.boot_devices`.
 
@@ -405,7 +406,7 @@ class NativeIPMIManagement(base.ManagementInterface):
                  are missing.
         :raises: IPMIFailure on an error from pyghmi.
         """
-        if device not in self.get_supported_boot_devices():
+        if device not in self.get_supported_boot_devices(task):
             raise exception.InvalidParameterValue(_(
                 "Invalid boot device %s specified.") % device)
         driver_info = _parse_driver_info(task.node)

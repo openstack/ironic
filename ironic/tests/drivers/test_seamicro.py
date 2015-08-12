@@ -563,7 +563,7 @@ class SeaMicroPowerDriverTestCase(db_base.DbTestCase):
         with task_manager.acquire(self.context, self.node.uuid) as task:
             expected = [boot_devices.PXE, boot_devices.DISK]
             self.assertEqual(sorted(expected), sorted(task.driver.management.
-                             get_supported_boot_devices()))
+                             get_supported_boot_devices(task)))
 
     def test_management_interface_get_boot_device(self):
         with task_manager.acquire(self.context, self.node.uuid) as task:
