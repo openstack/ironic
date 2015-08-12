@@ -207,9 +207,8 @@ class Port(base.IronicObject):
 
         """
         updates = self.obj_get_changes()
-        self.dbapi.update_port(self.uuid, updates)
-
-        self.obj_reset_changes()
+        updated_port = self.dbapi.update_port(self.uuid, updates)
+        self._from_db_object(self, updated_port)
 
     @base.remotable
     def refresh(self, context=None):

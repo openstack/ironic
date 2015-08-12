@@ -13,6 +13,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import datetime
 import mock
 from testtools.matchers import HasLength
 
@@ -67,19 +68,25 @@ class TestPortObject(base.DbTestCase):
 
     def test_save(self):
         uuid = self.fake_port['uuid']
+        address = "b2:54:00:cf:2d:40"
+        test_time = datetime.datetime(2000, 1, 1, 0, 0)
         with mock.patch.object(self.dbapi, 'get_port_by_uuid',
                                autospec=True) as mock_get_port:
             mock_get_port.return_value = self.fake_port
             with mock.patch.object(self.dbapi, 'update_port',
                                    autospec=True) as mock_update_port:
+                mock_update_port.return_value = (
+                    utils.get_test_port(address=address, updated_at=test_time))
                 p = objects.Port.get_by_uuid(self.context, uuid)
-                p.address = "b2:54:00:cf:2d:40"
+                p.address = address
                 p.save()
 
                 mock_get_port.assert_called_once_with(uuid)
                 mock_update_port.assert_called_once_with(
                     uuid, {'address': "b2:54:00:cf:2d:40"})
                 self.assertEqual(self.context, p._context)
+                res_updated_at = (p.updated_at).replace(tzinfo=None)
+                self.assertEqual(test_time, res_updated_at)
 
     def test_refresh(self):
         uuid = self.fake_port['uuid']
