@@ -148,17 +148,8 @@ Deploy Process
 
 Configuring and Enabling the driver
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-1. Prepare an ISO deploy ramdisk image from ``diskimage-builder`` [3]_.  This
-   can be done by adding the ``iso`` element to the ``ramdisk-image-create``
-   command.  This command creates the deploy kernel/ramdisk as well as a
-   bootable ISO image containing the deploy kernel and ramdisk.
 
-   The below command creates files named ``deploy-ramdisk.kernel``,
-   ``deploy-ramdisk.initramfs`` and ``deploy-ramdisk.iso`` in the current
-   working directory.::
-
-    cd <path-to-diskimage-builder>
-    ./bin/ramdisk-image-create -o deploy-ramdisk ubuntu deploy-ironic iso
+1. Build a deploy ISO image, see :ref:`BuildingDibBasedDeployRamdisk`
 
 2. Upload this image to Glance.::
 
@@ -340,18 +331,8 @@ Deploy Process
 
 Configuring and Enabling the driver
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-1. Prepare an ISO deploy Ironic Python Agent image containing the agent [5]_.
-   This can be done by using the iso-image-create script found within
-   the agent. The below set of commands will create a file ``ipa-ramdisk.iso``
-   in the below directory ``UPLOAD``::
 
-    $ cd <directory-containing-ironic-python-agent>
-    $ cd ./imagebuild/coreos
-    $ make iso
-    $ cd UPLOAD
-    $ ls
-    $ coreos_production_pxe_image-oem.cpio.gz  coreos_production_pxe.vmlinuz  ipa-coreos.iso
-
+1. Build a deploy ISO image, see :ref:`BuildingCoreOSDeployRamdisk`.
 
 2. Upload the IPA ramdisk image to Glance.::
 
@@ -359,6 +340,7 @@ Configuring and Enabling the driver
 
 3. Configure Glance image service with its storage backend as Swift. See
    [4]_ for configuration instructions.
+
 4. Set a temp-url key for Glance user in Swift. For example, if you have
    configured Glance with user ``glance-swift`` and tenant as ``service``,
    then run the below command::
@@ -501,13 +483,8 @@ None.
 
 Configuring and Enabling the driver
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-1. Prepare an ISO deploy ramdisk image from ``diskimage-builder`` [3]_.
 
-   The below command creates a file named ``deploy-ramdisk.kernel`` and
-   ``deploy-ramdisk.initramfs`` in the current working directory::
-
-    cd <path-to-diskimage-builder>
-    ./bin/ramdisk-image-create -o deploy-ramdisk ubuntu deploy-ironic
+1. Build a deploy image, see :ref:`BuildingDibBasedDeployRamdisk`
 
 2. Upload this image to Glance.::
 
