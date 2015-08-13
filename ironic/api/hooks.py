@@ -80,7 +80,7 @@ class ContextHook(hooks.PecanHook):
 
         # NOTE(adam_g): We also check the previous 'admin' rule to ensure
         # compat with default juno policy.json.  This double check may be
-        # removed in L.
+        # removed in Liberty.
         is_admin = (policy.enforce('admin_api', creds, creds) or
                     policy.enforce('admin', creds, creds))
         is_public_api = state.request.environ.get('is_public_api', False)

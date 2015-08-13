@@ -91,7 +91,7 @@ def _link_mac_pxe_configs(task):
     for mac in driver_utils.get_node_mac_addresses(task):
         create_link(_get_pxe_mac_path(mac))
         # TODO(lucasagomes): Backward compatibility with :hexraw,
-        # to be removed in M.
+        # to be removed in Mitaka.
         # see: https://bugs.launchpad.net/ironic/+bug/1441710
         if CONF.pxe.ipxe_enabled:
             create_link(_get_pxe_mac_path(mac, delimiter=''))
@@ -231,7 +231,7 @@ def create_pxe_config(task, pxe_options, template=None):
     else:
         # TODO(stendulker): We should use '(' ')' as the delimiters for all our
         # config files so that we do not need special handling for each of the
-        # bootloaders. Should be removed once the M release starts.
+        # bootloaders. Should be removed once the Mitaka release starts.
         pxe_config_root_tag = '{{ ROOT }}'
         pxe_config_disk_ident = '{{ DISK_IDENTIFIER }}'
 
@@ -277,7 +277,7 @@ def clean_up_pxe_config(task):
         for mac in driver_utils.get_node_mac_addresses(task):
             utils.unlink_without_raise(_get_pxe_mac_path(mac))
             # TODO(lucasagomes): Backward compatibility with :hexraw,
-            # to be removed in M.
+            # to be removed in Mitaka.
             # see: https://bugs.launchpad.net/ironic/+bug/1441710
             if CONF.pxe.ipxe_enabled:
                 utils.unlink_without_raise(_get_pxe_mac_path(mac,
