@@ -352,11 +352,15 @@
 # Options defined in ironic.drivers.modules.agent
 #
 
-# Additional append parameters for baremetal PXE boot. (string
-# value)
+# DEPRECATED. Additional append parameters for baremetal PXE
+# boot. This option is deprecated and will be removed in
+# Mitaka release. Please use [pxe]pxe_append_params instead.
+# (string value)
 #agent_pxe_append_params=nofb nomodeset vga=normal
 
-# Template file for PXE configuration. (string value)
+# DEPRECATED. Template file for PXE configuration. This option
+# is deprecated and will be removed in Mitaka release. Please
+# use [pxe]pxe_config_template instead. (string value)
 #agent_pxe_config_template=$pybasedir/drivers/modules/agent_config.template
 
 # Priority to run in-band erase devices via the Ironic Python
@@ -369,11 +373,11 @@
 # value)
 #agent_erase_devices_iterations=1
 
-# Whether Ironic will manage TFTP files for the deploy
-# ramdisks. If set to False, you will need to configure your
-# own TFTP server that allows booting the deploy ramdisks.
-# (boolean value)
-#manage_tftp=true
+# Whether Ironic will manage booting of the agent ramdisk. If
+# set to False, you will need to configure your mechanism to
+# allow booting the agent ramdisk. (boolean value)
+# Deprecated group/name - [agent]/manage_tftp
+#manage_agent_boot=true
 
 
 #

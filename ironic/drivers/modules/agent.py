@@ -12,15 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import os
 import time
 
 from oslo_config import cfg
 from oslo_log import log
 from oslo_utils import excutils
-from oslo_utils import fileutils
 
-from ironic.common import boot_devices
 from ironic.common import dhcp_factory
 from ironic.common import exception
 from ironic.common.glance_service import service_utils
@@ -30,26 +27,29 @@ from ironic.common.i18n import _LI
 from ironic.common import image_service
 from ironic.common import keystone
 from ironic.common import paths
-from ironic.common import pxe_utils
 from ironic.common import states
-from ironic.common import utils
 from ironic.conductor import task_manager
 from ironic.conductor import utils as manager_utils
 from ironic.drivers import base
 from ironic.drivers.modules import agent_base_vendor
 from ironic.drivers.modules import agent_client
 from ironic.drivers.modules import deploy_utils
-from ironic.drivers.modules import image_cache
 
 
 agent_opts = [
     cfg.StrOpt('agent_pxe_append_params',
                default='nofb nomodeset vga=normal',
-               help=_('Additional append parameters for baremetal PXE boot.')),
+               help=_('DEPRECATED. Additional append parameters for '
+                      'baremetal PXE boot. This option is deprecated and '
+                      'will be removed in Mitaka release. Please use '
+                      '[pxe]pxe_append_params instead.')),
     cfg.StrOpt('agent_pxe_config_template',
                default=paths.basedir_def(
                    'drivers/modules/agent_config.template'),
-               help=_('Template file for PXE configuration.')),
+               help=_('DEPRECATED. Template file for PXE configuration. '
+                      'This option is deprecated and will be removed '
+                      'in Mitaka release. Please use [pxe]pxe_config_template '
+                      'instead.')),
     cfg.IntOpt('agent_erase_devices_priority',
                help=_('Priority to run in-band erase devices via the Ironic '
                       'Python Agent ramdisk. If unset, will use the priority '
@@ -59,12 +59,14 @@ agent_opts = [
     cfg.IntOpt('agent_erase_devices_iterations',
                default=1,
                help=_('Number of iterations to be run for erasing devices.')),
-    cfg.BoolOpt('manage_tftp',
+    cfg.BoolOpt('manage_agent_boot',
                 default=True,
-                help=_('Whether Ironic will manage TFTP files for the deploy '
-                       'ramdisks. If set to False, you will need to configure '
-                       'your own TFTP server that allows booting the deploy '
-                       'ramdisks.')),
+                deprecated_name='manage_tftp',
+                deprecated_group='agent',
+                help=_('Whether Ironic will manage booting of the agent '
+                       'ramdisk. If set to False, you will need to configure '
+                       'your mechanism to allow booting the agent '
+                       'ramdisk.')),
 ]
 
 CONF = cfg.CONF
@@ -115,61 +117,6 @@ def build_agent_options(node):
     return agent_config_opts
 
 
-def _build_pxe_config_options(node, pxe_info):
-    """Builds the pxe config options for booting agent.
-
-    This method builds the config options to be replaced on
-    the agent pxe config template.
-
-    :param node: an ironic node object
-    :param pxe_info: A dict containing the 'deploy_kernel' and
-        'deploy_ramdisk' for the agent pxe config template.
-    :returns: a dict containing the options to be applied on
-    the agent pxe config template.
-    """
-    agent_config_opts = {
-        'deployment_aki_path': pxe_info['deploy_kernel'][1],
-        'deployment_ari_path': pxe_info['deploy_ramdisk'][1],
-        'pxe_append_params': CONF.agent.agent_pxe_append_params,
-    }
-    agent_opts = build_agent_options(node)
-    agent_config_opts.update(agent_opts)
-    return agent_config_opts
-
-
-def _get_tftp_image_info(node):
-    return pxe_utils.get_deploy_kr_info(node.uuid, node.driver_info)
-
-
-def _driver_uses_pxe(driver):
-    """A quick hack to check if driver uses pxe."""
-    # If driver.deploy says I need deploy_kernel and deploy_ramdisk,
-    # then it's using PXE boot.
-    properties = driver.deploy.get_properties()
-    return (('deploy_kernel' in properties) and
-            ('deploy_ramdisk' in properties))
-
-
-@image_cache.cleanup(priority=25)
-class AgentTFTPImageCache(image_cache.ImageCache):
-    def __init__(self):
-        super(AgentTFTPImageCache, self).__init__(
-            CONF.pxe.tftp_master_path,
-            # MiB -> B
-            CONF.pxe.image_cache_size * 1024 * 1024,
-            # min -> sec
-            CONF.pxe.image_cache_ttl * 60)
-
-
-def _cache_tftp_images(ctx, node, pxe_info):
-    """Fetch the necessary kernels and ramdisks for the instance."""
-    fileutils.ensure_tree(
-        os.path.join(CONF.pxe.tftp_root, node.uuid))
-    LOG.debug("Fetching kernel and ramdisk for node %s",
-              node.uuid)
-    deploy_utils.fetch_images(ctx, AgentTFTPImageCache(), pxe_info.values())
-
-
 def build_instance_info_for_deploy(task):
     """Build instance_info necessary for deploying to a node.
 
@@ -209,42 +156,6 @@ def build_instance_info_for_deploy(task):
     return instance_info
 
 
-def _prepare_pxe_boot(task):
-    """Prepare the files required for PXE booting the agent."""
-    if CONF.agent.manage_tftp:
-        pxe_info = _get_tftp_image_info(task.node)
-        pxe_options = _build_pxe_config_options(task.node, pxe_info)
-        pxe_utils.create_pxe_config(task,
-                                    pxe_options,
-                                    CONF.agent.agent_pxe_config_template)
-        _cache_tftp_images(task.context, task.node, pxe_info)
-
-
-def _do_pxe_boot(task, ports=None):
-    """Reboot the node into the PXE ramdisk.
-
-    :param task: a TaskManager instance
-    :param ports: a list of Neutron port dicts to update DHCP options on. If
-        None, will get the list of ports from the Ironic port objects.
-    """
-    dhcp_opts = pxe_utils.dhcp_options_for_instance(task)
-    provider = dhcp_factory.DHCPFactory()
-    provider.update_dhcp(task, dhcp_opts, ports)
-    manager_utils.node_set_boot_device(task, boot_devices.PXE, persistent=True)
-    manager_utils.node_power_action(task, states.REBOOT)
-
-
-def _clean_up_pxe(task):
-    """Clean up left over PXE and DHCP files."""
-    if CONF.agent.manage_tftp:
-        pxe_info = _get_tftp_image_info(task.node)
-        for label in pxe_info:
-            path = pxe_info[label][1]
-            utils.unlink_without_raise(path)
-        AgentTFTPImageCache().clean_up()
-        pxe_utils.clean_up_pxe_config(task)
-
-
 class AgentDeploy(base.DeployInterface):
     """Interface for deploy-related actions."""
 
@@ -265,13 +176,11 @@ class AgentDeploy(base.DeployInterface):
         :param task: a TaskManager instance
         :raises: MissingParameterValue
         """
+        if CONF.agent.manage_agent_boot:
+            task.driver.boot.validate(task)
+
         node = task.node
         params = {}
-        if CONF.agent.manage_tftp:
-            params['driver_info.deploy_kernel'] = node.driver_info.get(
-                'deploy_kernel')
-            params['driver_info.deploy_ramdisk'] = node.driver_info.get(
-                'deploy_ramdisk')
         image_source = node.instance_info.get('image_source')
         params['instance_info.image_source'] = image_source
         error_msg = _('Node %s failed to validate deploy image info. Some '
@@ -308,7 +217,7 @@ class AgentDeploy(base.DeployInterface):
         :param task: a TaskManager instance.
         :returns: status of the deploy. One of ironic.common.states.
         """
-        _do_pxe_boot(task)
+        manager_utils.node_power_action(task, states.REBOOT)
         return states.DEPLOYWAIT
 
     @task_manager.require_exclusive_lock
@@ -326,11 +235,16 @@ class AgentDeploy(base.DeployInterface):
 
         :param task: a TaskManager instance.
         """
+        # Nodes deployed by AgentDeploy always boot from disk now. So there
+        # is nothing to be done in prepare() when it's called during
+        # take over.
         node = task.node
-        _prepare_pxe_boot(task)
-
-        node.instance_info = build_instance_info_for_deploy(task)
-        node.save()
+        if node.provision_state != states.ACTIVE:
+            node.instance_info = build_instance_info_for_deploy(task)
+            node.save()
+            if CONF.agent.manage_agent_boot:
+                deploy_opts = build_agent_options(node)
+                task.driver.boot.prepare_ramdisk(task, deploy_opts)
 
     def clean_up(self, task):
         """Clean up the deployment environment for this node.
@@ -348,7 +262,8 @@ class AgentDeploy(base.DeployInterface):
 
         :param task: a TaskManager instance.
         """
-        _clean_up_pxe(task)
+        if CONF.agent.manage_agent_boot:
+            task.driver.boot.clean_up_ramdisk(task)
 
     def take_over(self, task):
         """Take over management of this node from a dead conductor.
@@ -403,17 +318,38 @@ class AgentDeploy(base.DeployInterface):
             provider.provider.delete_cleaning_ports(task)
 
         # Create cleaning ports if necessary
-        ports = None
         if getattr(provider.provider, 'create_cleaning_ports', None):
             # Allow to raise if it fails, is caught and handled in conductor
             ports = provider.provider.create_cleaning_ports(task)
+
+            # Add vif_port_id for each of the ports because some boot
+            # interfaces expects these to prepare for booting ramdisk.
+            for port in task.ports:
+                extra_dict = port.extra
+                try:
+                    extra_dict['vif_port_id'] = ports[port.uuid]
+                except KeyError:
+                    # This is an internal error in Ironic.  All DHCP providers
+                    # implementing create_cleaning_ports are supposed to
+                    # return a VIF port ID for all Ironic ports.  But
+                    # that doesn't seem to be true here.
+                    error = (_("When creating cleaning ports, DHCP provider "
+                               "didn't return VIF port ID for %s") % port.uuid)
+                    raise exception.NodeCleaningFailure(
+                        node=task.node.uuid, reason=error)
+                else:
+                    port.extra = extra_dict
+                    port.save()
 
         # Append required config parameters to node's driver_internal_info
         # to pass to IPA.
         deploy_utils.agent_add_clean_params(task)
 
-        _prepare_pxe_boot(task)
-        _do_pxe_boot(task, ports)
+        if CONF.agent.manage_agent_boot:
+            ramdisk_opts = build_agent_options(task.node)
+            task.driver.boot.prepare_ramdisk(task, ramdisk_opts)
+        manager_utils.node_power_action(task, states.REBOOT)
+
         # Tell the conductor we are waiting for the agent to boot.
         return states.CLEANWAIT
 
@@ -425,13 +361,21 @@ class AgentDeploy(base.DeployInterface):
             removed
         """
         manager_utils.node_power_action(task, states.POWER_OFF)
-        _clean_up_pxe(task)
+        if CONF.agent.manage_agent_boot:
+            task.driver.boot.clean_up_ramdisk(task)
 
         # If we created cleaning ports, delete them
         provider = dhcp_factory.DHCPFactory()
         if getattr(provider.provider, 'delete_cleaning_ports', None):
             # Allow to raise if it fails, is caught and handled in conductor
             provider.provider.delete_cleaning_ports(task)
+
+            for port in task.ports:
+                if 'vif_port_id' in port.extra:
+                    extra_dict = port.extra
+                    extra_dict.pop('vif_port_id', None)
+                    port.extra = extra_dict
+                    port.save()
 
 
 class AgentVendorInterface(agent_base_vendor.BaseAgentVendor):
@@ -513,12 +457,12 @@ class AgentVendorInterface(agent_base_vendor.BaseAgentVendor):
 
         manager_utils.node_set_boot_device(task, 'disk', persistent=True)
         self.reboot_and_finish_deploy(task)
-        # NOTE(TheJulia): If we we deployed a whole disk image, we
+
+        # NOTE(TheJulia): If we deployed a whole disk image, we
         # should expect a whole disk image and clean-up the tftp files
         # on-disk incase the node is disregarding the boot preference.
-        # TODO(rameshg87): This shouldn't get called for virtual media deploy
-        # drivers (iLO and iRMC).  This is just a hack, but it will be taken
-        # care in boot/deploy interface separation.
-        if (_driver_uses_pxe(task.driver) and
-                node.driver_internal_info.get('is_whole_disk_image')):
-            _clean_up_pxe(task)
+        # TODO(rameshg87): Not all in-tree drivers using reboot_to_instance
+        # have a boot interface. So include a check for now. Remove this
+        # check once all in-tree drivers have a boot interface.
+        if hasattr(task.driver, 'boot'):
+            task.driver.boot.clean_up_ramdisk(task)

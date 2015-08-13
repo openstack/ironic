@@ -128,6 +128,34 @@ class PXEPrivateMethodsTestCase(db_base.DbTestCase):
         mgr_utils.mock_the_extension_manager(driver="fake_pxe")
         self.node = obj_utils.create_test_node(self.context, **n)
 
+    def _test_get_pxe_conf_option(self, driver, expected_value):
+        mgr_utils.mock_the_extension_manager(driver=driver)
+        self.node.driver = driver
+        self.node.save()
+
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            returned_value = pxe._get_pxe_conf_option(
+                task, 'pxe_config_template')
+
+        self.assertEqual(expected_value, returned_value)
+
+    def test_get_pxe_conf_option_iscsi_deploy(self):
+        self.config(group='pxe', pxe_config_template='my-pxe-config-template')
+        self._test_get_pxe_conf_option('fake_pxe',
+                                       'my-pxe-config-template')
+
+    def test_get_pxe_conf_option_agent_deploy_default(self):
+        self.config(group='pxe', pxe_config_template='my-pxe-config-template')
+        self._test_get_pxe_conf_option('fake_agent',
+                                       'my-pxe-config-template')
+
+    def test_get_pxe_conf_option_agent_deploy_not_default(self):
+        self.config(group='agent',
+                    agent_pxe_config_template='my-agent-config-template')
+        self.config(group='pxe', pxe_config_template='my-pxe-config-template')
+        self._test_get_pxe_conf_option('fake_agent',
+                                       'my-agent-config-template')
+
     def test__parse_driver_info_missing_deploy_kernel(self):
         del self.node.driver_info['deploy_kernel']
         self.assertRaises(exception.MissingParameterValue,
@@ -230,7 +258,10 @@ class PXEPrivateMethodsTestCase(db_base.DbTestCase):
         self.config(api_url='http://192.168.122.184:6385', group='conductor')
         self.config(disk_devices='sda', group='pxe')
 
-        self.node.driver_internal_info['is_whole_disk_image'] = whle_dsk_img
+        driver_internal_info = self.node.driver_internal_info
+        driver_internal_info['is_whole_disk_image'] = whle_dsk_img
+        self.node.driver_internal_info = driver_internal_info
+        self.node.save()
 
         tftp_server = CONF.pxe.tftp_server
 
@@ -286,9 +317,10 @@ class PXEPrivateMethodsTestCase(db_base.DbTestCase):
                                   os.path.join(root_dir,
                                                self.node.uuid,
                                                'ramdisk'))}
-        options = pxe._build_pxe_config_options(self.node,
-                                                image_info,
-                                                self.context)
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            options = pxe._build_pxe_config_options(task, image_info)
         self.assertEqual(expected_options, options)
 
     def test__build_pxe_config_options(self):
@@ -351,10 +383,14 @@ class PXEPrivateMethodsTestCase(db_base.DbTestCase):
                                                       self.node.uuid,
                                                       'deploy_ramdisk')),
                       }
-        self.node.driver_internal_info['is_whole_disk_image'] = True
-        options = pxe._build_pxe_config_options(self.node,
-                                                image_info,
-                                                self.context)
+        driver_internal_info = self.node.driver_internal_info
+        driver_internal_info['is_whole_disk_image'] = True
+        self.node.driver_internal_info = driver_internal_info
+        self.node.save()
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            options = pxe._build_pxe_config_options(task, image_info)
         self.assertEqual(expected_options, options)
 
     @mock.patch.object(deploy_utils, 'fetch_images', autospec=True)
