@@ -16,13 +16,25 @@
 Use this file for deploying the API service under Apache2 mod_wsgi.
 """
 
+import logging
+import sys
+
+from oslo_config import cfg
+import oslo_i18n as i18n
+from oslo_log import log
+
 from ironic.api import app
 from ironic.common import service
 
-import oslo_i18n as i18n
+
+CONF = cfg.CONF
 
 i18n.install('ironic')
 
-service.prepare_service([])
+service.prepare_service(sys.argv)
+
+LOG = log.getLogger(__name__)
+LOG.debug("Configuration:")
+CONF.log_opt_values(LOG, logging.DEBUG)
 
 application = app.VersionSelectorApplication()
