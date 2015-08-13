@@ -111,7 +111,7 @@ class TestBaseAgentVendor(db_base.DbTestCase):
         find_mock.return_value = self.node
         with task_manager.acquire(self.context, self.node.uuid) as task:
             node = self.passthru.lookup(task.context, **kwargs)
-        self.assertEqual(self.node, node['node'])
+        self.assertEqual(self.node.as_dict(), node['node'])
 
     def test_lookup_v2_missing_inventory(self):
         with task_manager.acquire(self.context, self.node.uuid) as task:
@@ -156,7 +156,7 @@ class TestBaseAgentVendor(db_base.DbTestCase):
         mock_get_node.return_value = self.node
         with task_manager.acquire(self.context, self.node.uuid) as task:
             node = self.passthru.lookup(task.context, **kwargs)
-        self.assertEqual(self.node, node['node'])
+        self.assertEqual(self.node.as_dict(), node['node'])
         mock_get_node.assert_called_once_with(mock.ANY, 'fake uuid')
 
     @mock.patch.object(objects.port.Port, 'get_by_address',

@@ -348,7 +348,7 @@ class BaseAgentVendor(base.VendorInterface):
 
         return {
             'heartbeat_timeout': CONF.agent.heartbeat_timeout,
-            'node': node
+            'node': node.as_dict()
         }
 
     def _get_completed_cleaning_command(self, task):

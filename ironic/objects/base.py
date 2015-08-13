@@ -19,7 +19,6 @@ import copy
 
 from oslo_context import context
 from oslo_log import log as logging
-import oslo_messaging as messaging
 from oslo_utils import versionutils
 from oslo_versionedobjects import base as object_base
 import six
@@ -177,6 +176,7 @@ class IronicObject(object_base.VersionedObjectDictCompat):
     as appropriate.
     """
 
+    OBJ_SERIAL_NAMESPACE = 'ironic_object'
     # Version of this object (see rules above check_object_version())
     VERSION = '1.0'
 
@@ -420,48 +420,9 @@ class ObjectListBase(object_base.ObjectListBase):
     }
 
 
-class IronicObjectSerializer(messaging.NoOpSerializer):
-    """A IronicObject-aware Serializer.
-
-    This implements the Oslo Serializer interface and provides the
-    ability to serialize and deserialize IronicObject entities. Any service
-    that needs to accept or return IronicObjects as arguments or result values
-    should pass this to its RpcProxy and RpcDispatcher objects.
-    """
-
-    def _process_iterable(self, context, action_fn, values):
-        """Process an iterable, taking an action on each value.
-
-        :param:context: Request context
-        :param:action_fn: Action to take on each item in values
-        :param:values: Iterable container of things to take action on
-        :returns: A new container of the same type (except set) with
-                  items from values having had action applied.
-        """
-        iterable = values.__class__
-        if iterable == set:
-            # NOTE(danms): A set can't have an unhashable value inside, such as
-            # a dict. Convert sets to tuples, which is fine, since we can't
-            # send them over RPC anyway.
-            iterable = tuple
-        return iterable([action_fn(context, value) for value in values])
-
-    def serialize_entity(self, context, entity):
-        if isinstance(entity, (tuple, list, set)):
-            entity = self._process_iterable(context, self.serialize_entity,
-                                            entity)
-        elif (hasattr(entity, 'obj_to_primitive') and
-                callable(entity.obj_to_primitive)):
-            entity = entity.obj_to_primitive()
-        return entity
-
-    def deserialize_entity(self, context, entity):
-        if isinstance(entity, dict) and 'ironic_object.name' in entity:
-            entity = IronicObject.obj_from_primitive(entity, context=context)
-        elif isinstance(entity, (tuple, list, set)):
-            entity = self._process_iterable(context, self.deserialize_entity,
-                                            entity)
-        return entity
+class IronicObjectSerializer(object_base.VersionedObjectSerializer):
+    # Base class to use for object hydration
+    OBJ_BASE_CLASS = IronicObject
 
 
 def obj_to_primitive(obj):
