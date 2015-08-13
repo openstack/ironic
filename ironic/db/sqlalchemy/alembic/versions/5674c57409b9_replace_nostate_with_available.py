@@ -24,7 +24,7 @@ down_revision = '242cc6a923b3'
 
 from alembic import op
 from sqlalchemy import String
-from sqlalchemy.sql import table, column
+from sqlalchemy.sql import table, column, null
 
 node = table('nodes',
              column('uuid', String(36)),
@@ -41,7 +41,7 @@ AVAILABLE = 'available'
 def upgrade():
     op.execute(
         node.update().where(
-            node.c.provision_state == None).values(
+            node.c.provision_state == null()).values(
                 {'provision_state': op.inline_literal(AVAILABLE)}))
 
 
