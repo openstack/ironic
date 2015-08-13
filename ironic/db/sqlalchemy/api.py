@@ -29,6 +29,7 @@ from oslo_utils import strutils
 from oslo_utils import timeutils
 from oslo_utils import uuidutils
 from sqlalchemy.orm.exc import NoResultFound
+from sqlalchemy import sql
 
 from ironic.common import exception
 from ironic.common.i18n import _
@@ -159,14 +160,14 @@ class Connection(api.Connection):
             query = query.filter_by(chassis_id=chassis_obj.id)
         if 'associated' in filters:
             if filters['associated']:
-                query = query.filter(models.Node.instance_uuid != None)
+                query = query.filter(models.Node.instance_uuid != sql.null())
             else:
-                query = query.filter(models.Node.instance_uuid == None)
+                query = query.filter(models.Node.instance_uuid == sql.null())
         if 'reserved' in filters:
             if filters['reserved']:
-                query = query.filter(models.Node.reservation != None)
+                query = query.filter(models.Node.reservation != sql.null())
             else:
-                query = query.filter(models.Node.reservation == None)
+                query = query.filter(models.Node.reservation == sql.null())
         if 'maintenance' in filters:
             query = query.filter_by(maintenance=filters['maintenance'])
         if 'driver' in filters:
