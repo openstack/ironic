@@ -22,6 +22,8 @@ import collections
 import copy
 import functools
 import inspect
+import json
+import os
 
 import eventlet
 from oslo_log import log as logging
@@ -31,8 +33,12 @@ import six
 
 from ironic.common import exception
 from ironic.common.i18n import _LE
+from ironic.common import raid
 
 LOG = logging.getLogger(__name__)
+
+RAID_CONFIG_SCHEMA = os.path.join(os.path.dirname(__file__),
+                                  'raid_config_schema.json')
 
 
 @six.add_metaclass(abc.ABCMeta)
@@ -110,6 +116,14 @@ class BaseDriver(object):
     May be None, if unsupported by a driver.
     """
     standard_interfaces.append('inspect')
+
+    raid = None
+    """`Standard` attribute for RAID related features.
+
+    A reference to an instance of :class:RaidInterface.
+    May be None, if unsupported by a driver.
+    """
+    standard_interfaces.append('raid')
 
     @abc.abstractmethod
     def __init__(self):
@@ -864,6 +878,89 @@ class InspectInterface(object):
         :returns: resulting state of the inspection i.e. states.MANAGEABLE
                   or None.
         """
+
+
+class RAIDInterface(BaseInterface):
+    interface_type = 'raid'
+
+    def __init__(self):
+        """Constructor for RAIDInterface class."""
+        with open(RAID_CONFIG_SCHEMA, 'r') as raid_schema_fobj:
+            self.raid_schema = json.load(raid_schema_fobj)
+
+    @abc.abstractmethod
+    def get_properties(self):
+        """Return the properties of the interface.
+
+        :returns: dictionary of <property name>:<property description> entries.
+        """
+
+    def validate(self, task):
+        """Validate a given RAID configuration.
+
+        This method validates the properties defined by Ironic for RAID
+        configuration. Driver implementations of this interface can override
+        this method for doing more validations.
+
+        :param task: a TaskManager instance.
+        :raises: InvalidParameterValue, if the RAID configuration is invalid.
+        """
+        target_raid_config = task.node.target_raid_config
+        if not target_raid_config:
+            return
+
+        raid.validate_configuration(target_raid_config, self.raid_schema)
+
+    @abc.abstractmethod
+    def create_configuration(self, task,
+                             create_root_volume=True,
+                             create_nonroot_volumes=True):
+        """Creates RAID configuration on the given node.
+
+        This method creates a RAID configuration on the given node.
+        It assumes that the target RAID configuration is already
+        available in node.target_raid_config.
+        Implementations of this interface are supposed to read the
+        RAID configuration from node.target_raid_config. After the
+        RAID configuration is done (either in this method OR in a call-back
+        method), ironic.common.raid.update_raid_info()
+        may be called to sync the node's RAID-related information with the
+        RAID configuration applied on the node.
+
+        :param task: a TaskManager instance.
+        :param create_root_volume: Setting this to False indicates
+            not to create root volume that is specified in the node's
+            target_raid_config. Default value is True.
+        :param create_nonroot_volumes: Setting this to False indicates
+            not to create non-root volumes (all except the root volume) in the
+            node's target_raid_config.  Default value is True.
+        :returns: states.CLEANWAIT if RAID configuration is in progress
+            asynchronously or None if it is complete.
+        """
+
+    @abc.abstractmethod
+    def delete_configuration(self, task):
+        """Deletes RAID configuration on the given node.
+
+        This method deletes the RAID configuration on the give node.
+        After RAID configuration is deleted, node.raid_config should be
+        cleared by the implementation.
+
+        :param task: a TaskManager instance.
+        :returns: states.CLEANWAIT if deletion is in progress
+            asynchronously or None if it is complete.
+        """
+
+    def get_logical_disk_properties(self):
+        """Get the properties that can be specified for logical disks.
+
+        This method returns a dictionary containing the properties that can
+        be specified for logical disks and a textual description for them.
+
+        :returns: A dictionary containing properties that can be mentioned for
+            logical disks and a textual description for them.
+        """
+        return raid.get_logical_disk_properties(self.raid_schema)
 
 
 def clean_step(priority):
