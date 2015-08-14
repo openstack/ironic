@@ -19,6 +19,9 @@ import iso8601
 
 from oslo_context import context
 from oslo_utils import timeutils
+from oslo_versionedobjects import base as object_base
+from oslo_versionedobjects import exception as object_exception
+import six
 
 from ironic.common import exception
 from ironic.objects import base
@@ -30,7 +33,7 @@ gettext.install('ironic')
 
 
 @base.IronicObjectRegistry.register
-class MyObj(base.IronicObject):
+class MyObj(base.IronicObject, object_base.VersionedObjectDictCompat):
     VERSION = '1.5'
 
     fields = {'foo': fields.IntegerField(),
@@ -167,7 +170,7 @@ class _TestObject(object):
                      'ironic_object.namespace': 'foo',
                      'ironic_object.version': '1.5',
                      'ironic_object.data': {'foo': 1}}
-        self.assertRaises(exception.UnsupportedObjectError,
+        self.assertRaises(object_exception.UnsupportedObjectError,
                           MyObj.obj_from_primitive, primitive)
 
     def test_dehydration(self):
@@ -207,7 +210,7 @@ class _TestObject(object):
 
     def test_load_in_base(self):
         @base.IronicObjectRegistry.register_if(False)
-        class Foo(base.IronicObject):
+        class Foo(base.IronicObject, object_base.VersionedObjectDictCompat):
             fields = {'foobar': fields.IntegerField()}
         obj = Foo(self.context)
 
@@ -240,7 +243,7 @@ class _TestObject(object):
         self.assertEqual(set(), obj2.obj_what_changed())
 
     def test_unknown_objtype(self):
-        self.assertRaises(exception.UnsupportedObjectError,
+        self.assertRaises(object_exception.UnsupportedObjectError,
                           base.IronicObject.obj_class_from_name, 'foo', '1.0')
 
     def test_with_alternate_context(self):
@@ -312,6 +315,7 @@ class _TestObject(object):
 
     def test_base_attributes(self):
         dt = datetime.datetime(1955, 11, 5, 0, 0, tzinfo=iso8601.iso8601.Utc())
+        datatime = fields.DateTimeField()
         obj = MyObj(self.context)
         obj.created_at = dt
         obj.updated_at = dt
@@ -321,8 +325,8 @@ class _TestObject(object):
                     'ironic_object.changes':
                         ['created_at', 'updated_at'],
                     'ironic_object.data':
-                        {'created_at': dt.isoformat(),
-                         'updated_at': dt.isoformat(),
+                        {'created_at': datatime.stringify(dt),
+                         'updated_at': datatime.stringify(dt),
                          }
                     }
         actual = obj.obj_to_primitive()
@@ -386,7 +390,8 @@ class _TestObject(object):
 
     def test_obj_fields(self):
         @base.IronicObjectRegistry.register_if(False)
-        class TestObj(base.IronicObject):
+        class TestObj(base.IronicObject,
+                      object_base.VersionedObjectDictCompat):
             fields = {'foo': fields.IntegerField()}
             obj_extra_fields = ['bar']
 
@@ -400,7 +405,8 @@ class _TestObject(object):
 
     def test_refresh_object(self):
         @base.IronicObjectRegistry.register_if(False)
-        class TestObj(base.IronicObject):
+        class TestObj(base.IronicObject,
+                      object_base.VersionedObjectDictCompat):
             fields = {'foo': fields.IntegerField(),
                       'bar': fields.StringField()}
 
@@ -419,6 +425,21 @@ class _TestObject(object):
         self.assertEqual(123, obj.foo)
         self.assertEqual('abc', obj.bar)
         self.assertEqual(set(['foo', 'bar']), obj.obj_what_changed())
+
+    def test_assign_value_without_DictCompat(self):
+        class TestObj(base.IronicObject):
+            fields = {'foo': fields.IntegerField(),
+                      'bar': fields.StringField()}
+        obj = TestObj(self.context)
+        obj.foo = 10
+        err_message = ''
+        try:
+            obj['bar'] = 'value'
+        except TypeError as e:
+            err_message = six.text_type(e)
+        finally:
+            self.assertIn("'TestObj' object does not support item assignment",
+                          err_message)
 
 
 class TestObject(_LocalTest, _TestObject):

@@ -15,6 +15,7 @@
 
 from oslo_utils import strutils
 from oslo_utils import uuidutils
+from oslo_versionedobjects import base as object_base
 
 from ironic.common import exception
 from ironic.db import api as dbapi
@@ -23,7 +24,7 @@ from ironic.objects import fields as object_fields
 
 
 @base.IronicObjectRegistry.register
-class Chassis(base.IronicObject):
+class Chassis(base.IronicObject, object_base.VersionedObjectDictCompat):
     # Version 1.0: Initial version
     # Version 1.1: Add get() and get_by_id() and make get_by_uuid()
     #              only work with a uuid
