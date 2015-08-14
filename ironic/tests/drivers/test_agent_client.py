@@ -24,6 +24,8 @@ from ironic.tests import base
 
 
 class MockResponse(object):
+    status_code = 200
+
     def __init__(self, text):
         assert isinstance(text, six.string_types)
         self.text = text
